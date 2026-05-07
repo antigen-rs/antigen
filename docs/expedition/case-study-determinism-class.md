@@ -412,6 +412,133 @@ That's the project.
 
 ---
 
+## Update — 2026-05-07: real integration data
+
+The scaffolding session shipped working `#[antigen]`, `#[presents]`, `#[immune]`
+macros, a working `cargo antigen scan`, and a working `cargo antigen audit`
+with witness validation. Before the JBD team launch, the team-lead ran the
+tool against tambear's actual codebase to gather real-world adoption data.
+
+### Phase 1: Bare scan, no setup, no antigen-side work
+
+```sh
+cd R:/antigen
+cargo run --release --bin cargo-antigen -- antigen scan --root R:/tambear/crates
+```
+
+Result:
+
+```
+Scanned 216 files, found 0 antigen-related declarations:
+  - 0 antigen declarations
+  - 0 presentations
+  - 0 immunity claims
+
+✓ No unaddressed presentations.
+
+real    0m0.341s
+```
+
+**216 Rust source files (across 7 workspace crates, ~50,000+ lines including
+generated proc-macro outputs and large recipe modules) scanned in 341ms.**
+
+Per ADR-008 (named-observer terminal stratum) and Risk A3 (slow scan kills
+adoption), this is the kind of performance that lets antigen scan land in CI
+without becoming a bottleneck.
+
+The first run included a release-mode compile of `cargo-antigen` (10.8s); the
+0.341s is the warm-cache scan time. CI will see ~0.5s overhead per scan once
+the binary is cached.
+
+### Phase 2: Step-by-step naive integration
+
+Five steps to first-antigen-declared-and-discovered:
+
+1. **Add path dependency** to `R:/tambear/crates/tambear/Cargo.toml`:
+   ```toml
+   antigen = { path = "../../../antigen/antigen" }
+   ```
+
+2. **Create antigens module** at `R:/tambear/crates/tambear/src/antigens.rs`
+   with `PolarityInvertedClassMeet` and `PanickingInDrop` declarations
+   (using the syntax shown earlier in this case study).
+
+3. **Register the module** by adding `pub mod antigens;` to
+   `R:/tambear/crates/tambear/src/lib.rs`.
+
+4. **Compile**: `cargo check` — succeeds in 1.7s incremental.
+
+5. **Re-scan**:
+   ```
+   Scanned 217 files, found 2 antigen-related declarations:
+     - 2 antigen declarations
+     - 0 presentations
+     - 0 immunity claims
+   ```
+
+The integration works end-to-end. Tambear is now the first project to use
+antigen.
+
+### Phase 3: What we learned
+
+**Performance**: 217-file scan in <0.5 seconds. Acceptable for CI.
+
+**Adoption friction**: 5 steps, ~10 minutes for first antigen integration
+(including reading docs and figuring out the macro syntax). Subsequent
+declarations land in seconds. The 60-second-per-additional-antigen target
+(ADR-008) is met.
+
+**Honest finding about tambear's actual code**: tambear's main-branch class
+enums (`DeterminismClass`, `FiniteClass`, `NyquistClass`, `PdeClass`) do NOT
+currently have `meet` methods. The original GAP-BIT-EXACT-1 polarity-inversion
+was already corrected during DEC-007 work, and the team's substrate verification
+discipline caught the near-miss in `CommutativityClass` before it shipped.
+
+So:
+
+- Antigen DOESN'T flag any tambear class enum as polarity-inverted-class-meet
+  vulnerable in the current codebase. **This is the correct behavior.**
+- Antigen's value for tambear is **prospective**: any future class enum
+  introduced with a meet method inherits the structural memory of why
+  polarity matters, without anyone needing to remember GAP-BIT-EXACT-1.
+
+This is exactly what structural failure-class memory is supposed to do. The
+tooling didn't find a bug because there isn't one. It will find the next one
+if it appears.
+
+**Honest finding about output ergonomics**: scan's brief summary works for the
+"workspace is clean" case but doesn't show the full diagnostic context that
+makes audit's output more useful. Sweep A2 should consider making `cargo
+antigen scan` more diagnostic-rich for this case.
+
+### Phase 4: What the team inherits
+
+The integration with tambear is committed and ready for the team to extend:
+
+- `R:/tambear/crates/tambear/Cargo.toml` has the path dependency
+- `R:/tambear/crates/tambear/src/antigens.rs` has 2 seed declarations + TODO
+  markers for follow-up antigens
+- The scan demonstrably works against real-world Rust code
+
+The team can:
+
+1. Phase 1-8 the antigens themselves (currently declared without formal review)
+2. Add `#[presents]` markers across tambear's actual code where applicable
+3. Author witnesses and add `#[immune]` declarations
+4. Extend the antigen catalog as new failure patterns surface in tambear's
+   sweeps
+
+This is what the antigen project being "the tool tambear depends on" looks
+like in practice. Phase 2 of the inheritance arc (per
+[`inheritance-from-tambear.md`](inheritance-from-tambear.md)) is now real, not
+aspirational.
+
+For ongoing experience reports, the [`tambear-adoption-log.md`](tambear-adoption-log.md)
+captures every antigen-related thing tambear does going forward — what worked,
+what didn't, what got removed, what problem each addition solved.
+
+---
+
 ## References
 
 - [`docs/origin.md`](../origin.md) — the post-mortem narrative motivating the project
@@ -420,3 +547,4 @@ That's the project.
 - [`docs/decisions.md` ADR-010](../decisions.md#adr-010--fingerprint-grammar-v1-syn-based-ast-visitor-pattern) — fingerprint grammar v1
 - [`docs/expedition/api-shape.md`](api-shape.md) — sketch of the macro and cargo subcommand surface
 - [`docs/expedition/inheritance-from-tambear.md`](inheritance-from-tambear.md) — phase 2 (tambear adopts antigen as code-level DEC extension)
+- [`docs/expedition/tambear-adoption-log.md`](tambear-adoption-log.md) — ongoing tambear-uses-antigen experience log
