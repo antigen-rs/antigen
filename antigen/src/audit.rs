@@ -40,6 +40,11 @@ use crate::scan::{Immunity, ScanReport};
 pub enum WitnessStatus {
     /// Witness identifier resolves to a function with a recognized testing
     /// attribute in the workspace.
+    ///
+    /// **Important**: "resolved" means the identifier was found — it does NOT
+    /// mean the witness was executed or that it asserts immunity to this specific
+    /// failure class. Semantic verification requires fingerprint-aware reasoning
+    /// (ADR-010, planned for Sweep A3+).
     Resolved {
         /// Where the witness function was found.
         location: PathBuf,
