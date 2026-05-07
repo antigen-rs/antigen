@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "antigen",
+    "antigen-macros",
     "cargo-antigen",
 ]
 
@@ -18,4 +19,10 @@ keywords = ["immunity", "memory", "failure-class", "lint", "antibody"]
 categories = ["development-tools", "development-tools::cargo-plugins", "development-tools::testing"]
 
 [workspace.dependencies]
-# Reserved for future use as the project takes shape.
+syn = { version = "2", features = ["full", "extra-traits", "visit"] }
+quote = "1"
+proc-macro2 = "1"
+walkdir = "2"
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

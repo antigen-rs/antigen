@@ -10,6 +10,28 @@
 > Drafts can be edited freely; ratified ADRs require explicit revision via amendment
 > or supersession.
 
+> **Note on Phase 1-8 status of ADR-001 through ADR-010** (foundational, pre-team):
+> these ten ADRs were ratified by the team-lead during pre-team scaffolding (Tekgy +
+> Claude in winrapids working directory, 2026-05-07) WITHOUT going through the full
+> Phase 1-8 deconstruction process documented in [`process.md`](process.md). They are
+> ratified-by-trust rather than ratified-by-discipline.
+>
+> **The JBD team's first sweep (Sweep A1)** explicitly covers Phase 1-8 deconstruction
+> of these foundational ADRs by the aristotle role, with adversarial review,
+> systems-research review, and scientist validation. See [`expedition/first-sweep-plan.md`](expedition/first-sweep-plan.md)
+> for the concrete plan.
+>
+> **Implications for readers**:
+> - These ADRs are TREATED as ratified for purposes of building substrate (the team
+>   operates under them; downstream code can cite them; the process treats them as
+>   load-bearing)
+> - But they are MORE OPEN to amendment than ADRs that have been through full Phase 1-8
+> - When the team's Phase 1-8 surfaces necessary refinements, expect amendments to
+>   land readily (less ratification ceremony than a post-team ADR amendment)
+> - The team should NOT defer to these as authoritative when their Phase 1-8 finds real
+>   issues; the discipline of recognition-not-design (ADR-006) means the team's
+>   findings supersede pre-team intuition
+
 ---
 
 ## Index
