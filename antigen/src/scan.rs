@@ -41,8 +41,125 @@
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
+use syn::parse::Parse;
 use syn::visit::Visit;
 use walkdir::WalkDir;
+
+// ============================================================================
+// Scan-side attribute argument parsers
+//
+// These mirror the proc-macro-side parsers in antigen-macros but live in a
+// regular (non-proc-macro) crate so they can be used at scan time. Both must
+// produce identical results for the same input — the canonical representation
+// is `syn::LitStr::value()`, which correctly unescapes string literal content.
+//
+// The proc-macro crate cannot be re-exported as a library (proc-macro = true
+// crates export only their macro entry points), so we duplicate the parsing
+// logic here. Any change to the attribute grammar must be reflected in both.
+// ============================================================================
+
+/// Scan-time parse of `#[antigen(name = "...", fingerprint = "...", ...)]`.
+struct ScanAntigenArgs {
+    name: String,
+    fingerprint: Option<String>,
+    family: Option<String>,
+    summary: Option<String>,
+}
+
+impl Parse for ScanAntigenArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use syn::{Ident, LitStr, Token};
+        let mut name: Option<String> = None;
+        let mut fingerprint: Option<String> = None;
+        let mut family: Option<String> = None;
+        let mut summary: Option<String> = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "name" => {
+                    let lit: LitStr = input.parse()?;
+                    name = Some(lit.value());
+                }
+                "fingerprint" => {
+                    let lit: LitStr = input.parse()?;
+                    fingerprint = Some(lit.value());
+                }
+                "family" => {
+                    let lit: LitStr = input.parse()?;
+                    family = Some(lit.value());
+                }
+                "summary" => {
+                    let lit: LitStr = input.parse()?;
+                    summary = Some(lit.value());
+                }
+                "references" => {
+                    // Consume the array without storing (not used in scan output yet).
+                    let _arr: syn::ExprArray = input.parse()?;
+                }
+                _ => {
+                    // Unknown field: consume the value expression and continue.
+                    let _: syn::Expr = input.parse()?;
+                }
+            }
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            name: name.unwrap_or_default(),
+            fingerprint,
+            family,
+            summary,
+        })
+    }
+}
+
+/// Scan-time parse of `#[immune(AntigenType, witness = expr, ...)]`.
+struct ScanImmuneArgs {
+    antigen_type: String,
+    witness: String,
+}
+
+impl Parse for ScanImmuneArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use syn::{Ident, Path, Token};
+        // First token is the antigen path.
+        let antigen_path: Path = input.parse()?;
+        let antigen_type = antigen_path
+            .segments
+            .last()
+            .map(|s| s.ident.to_string())
+            .unwrap_or_default();
+
+        let mut witness = String::new();
+        while !input.is_empty() {
+            input.parse::<Token![,]>()?;
+            if input.is_empty() {
+                break;
+            }
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            let val: syn::Expr = input.parse()?;
+            if key == "witness" {
+                // Render the witness expression as its token string — this is the
+                // identifier or path the user wrote, e.g. `my_test_fn` or
+                // `clippy::no_panic_in_drop`. We use `quote::ToTokens` to get
+                // a canonical rendering without depending on string heuristics.
+                use quote::ToTokens;
+                witness = val.to_token_stream().to_string();
+            }
+            // rationale and other fields: consume silently.
+        }
+
+        Ok(Self {
+            antigen_type,
+            witness,
+        })
+    }
+}
 
 /// A single antigen declaration discovered in source.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -250,38 +367,34 @@ impl ScanVisitor<'_> {
         let type_name = item.ident.to_string();
         let line = self.line_of_attr("antigen");
 
-        let mut name = String::new();
-        let mut family = None;
-        let mut summary = None;
-        let mut fingerprint = None;
-
         if let syn::Meta::List(list) = &attr.meta {
-            // Parse the attribute body as comma-separated key=value pairs.
-            // We can't use the proc-macro parser here (this is a regular crate),
-            // so we do a string-level extraction.
-            let body = list.tokens.to_string();
-            for assignment in split_top_level_commas(&body) {
-                if let Some((key, val)) = parse_kv(&assignment) {
-                    match key.trim() {
-                        "name" => name = val,
-                        "family" => family = Some(val),
-                        "summary" => summary = Some(val),
-                        "fingerprint" => fingerprint = Some(val),
-                        _ => {} // ignore unknown
-                    }
+            match syn::parse2::<ScanAntigenArgs>(list.tokens.clone()) {
+                Ok(args) => {
+                    self.report.antigens.push(AntigenDeclaration {
+                        name: args.name,
+                        type_name,
+                        file: self.file_path.clone(),
+                        line,
+                        family: args.family,
+                        summary: args.summary,
+                        fingerprint: args.fingerprint,
+                    });
+                }
+                Err(_) => {
+                    // Malformed attribute: record with empty name so scan output
+                    // surfaces the file for investigation rather than silently skipping.
+                    self.report.antigens.push(AntigenDeclaration {
+                        name: String::new(),
+                        type_name,
+                        file: self.file_path.clone(),
+                        line,
+                        family: None,
+                        summary: None,
+                        fingerprint: None,
+                    });
                 }
             }
         }
-
-        self.report.antigens.push(AntigenDeclaration {
-            name,
-            type_name,
-            file: self.file_path.clone(),
-            line,
-            family,
-            summary,
-            fingerprint,
-        });
     }
 
     fn extract_presents(&mut self, attr: &syn::Attribute, item_kind: &str) {
@@ -303,27 +416,17 @@ impl ScanVisitor<'_> {
 
     fn extract_immune(&mut self, attr: &syn::Attribute, item_kind: &str) {
         if let syn::Meta::List(list) = &attr.meta {
-            let body = list.tokens.to_string();
-            // First comma-separated segment is the antigen path; rest are key=value
-            let parts = split_top_level_commas(&body);
-            let antigen_type = parts
-                .first()
-                .map(|s| s.trim().split("::").last().unwrap_or(s).to_string())
-                .unwrap_or_default();
             // TODO(team): witness validation is presence-only. The audit subcommand
             // (sweep A2/A3) should: (1) resolve the witness identifier to an item
             // in the workspace, (2) verify it's a #[test], proptest!, or recognized
             // delegated tool reference, (3) optionally invoke it via cargo test and
             // verify it asserts the expected property. Currently we just record
-            // the witness string verbatim.
-            let mut witness = String::new();
-            for part in parts.iter().skip(1) {
-                if let Some((k, v)) = parse_kv(part) {
-                    if k.trim() == "witness" {
-                        witness = v;
-                    }
-                }
-            }
+            // the witness expression verbatim.
+            let (antigen_type, witness) =
+                match syn::parse2::<ScanImmuneArgs>(list.tokens.clone()) {
+                    Ok(args) => (args.antigen_type, args.witness),
+                    Err(_) => (String::new(), String::new()),
+                };
             let line = self.line_of_attr("immune");
             self.report.immunities.push(Immunity {
                 antigen_type,
@@ -390,81 +493,70 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
     }
 }
 
-// ============================================================================
-// Helpers
-// ============================================================================
-
-/// Split a token string on commas at top level (not inside brackets/braces/parens).
-fn split_top_level_commas(s: &str) -> Vec<String> {
-    let mut out = Vec::new();
-    let mut depth: i32 = 0;
-    let mut current = String::new();
-    for c in s.chars() {
-        match c {
-            '(' | '[' | '{' => {
-                depth += 1;
-                current.push(c);
-            }
-            ')' | ']' | '}' => {
-                depth -= 1;
-                current.push(c);
-            }
-            ',' if depth == 0 => {
-                if !current.trim().is_empty() {
-                    out.push(current.trim().to_string());
-                }
-                current.clear();
-            }
-            _ => current.push(c),
-        }
-    }
-    if !current.trim().is_empty() {
-        out.push(current.trim().to_string());
-    }
-    out
-}
-
-/// Parse a `key = value` pair, returning trimmed key and unquoted-string value.
-fn parse_kv(s: &str) -> Option<(String, String)> {
-    let mut parts = s.splitn(2, '=');
-    let key = parts.next()?.trim().to_string();
-    let raw_val = parts.next()?.trim();
-    // Strip surrounding quotes if present.
-    let val = if raw_val.starts_with('"') && raw_val.ends_with('"') && raw_val.len() >= 2 {
-        raw_val[1..raw_val.len() - 1].to_string()
-    } else {
-        raw_val.to_string()
-    };
-    Some((key, val))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn split_commas_respects_brackets() {
-        let result = split_top_level_commas("a, [b, c], d");
-        assert_eq!(result, vec!["a", "[b, c]", "d"]);
-    }
-
-    #[test]
-    fn parse_kv_strips_quotes() {
-        let (k, v) = parse_kv(r#"name = "hello""#).unwrap();
-        assert_eq!(k, "name");
-        assert_eq!(v, "hello");
-    }
-
-    #[test]
-    fn parse_kv_keeps_inner_quotes() {
-        let (k, v) = parse_kv(r#"family = "boundary-violation""#).unwrap();
-        assert_eq!(k, "family");
-        assert_eq!(v, "boundary-violation");
-    }
-
-    #[test]
     fn empty_scan_report_has_no_unaddressed() {
         let report = ScanReport::default();
         assert!(report.unaddressed_presentations().is_empty());
+    }
+
+    #[test]
+    fn antigen_args_parses_name_and_fingerprint() {
+        let tokens: proc_macro2::TokenStream = r#"
+            name = "frame-translation",
+            fingerprint = "item: enum, has_method(\"meet\", \"(Self, Self) -> Self\")"
+        "#
+        .parse()
+        .unwrap();
+        let args = syn::parse2::<ScanAntigenArgs>(tokens).unwrap();
+        assert_eq!(args.name, "frame-translation");
+        // The fingerprint must be correctly unescaped — not contain raw backslash-quote.
+        let fp = args.fingerprint.unwrap();
+        assert!(
+            fp.contains("has_method(\"meet\""),
+            "fingerprint should contain unescaped double-quotes, got: {fp:?}"
+        );
+        assert!(
+            !fp.contains(r#"\""#),
+            "fingerprint must not contain raw backslash-quote escape sequences, got: {fp:?}"
+        );
+    }
+
+    #[test]
+    fn antigen_args_parses_optional_fields() {
+        let tokens: proc_macro2::TokenStream =
+            r#"name = "panicking-in-drop", fingerprint = "impl Drop", family = "boundary-violation", summary = "Drop impl can panic""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<ScanAntigenArgs>(tokens).unwrap();
+        assert_eq!(args.name, "panicking-in-drop");
+        assert_eq!(args.family.as_deref(), Some("boundary-violation"));
+        assert_eq!(args.summary.as_deref(), Some("Drop impl can panic"));
+    }
+
+    #[test]
+    fn immune_args_parses_antigen_type_and_witness() {
+        let tokens: proc_macro2::TokenStream =
+            r#"PanickingInDrop, witness = no_panic_in_drop_test"#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<ScanImmuneArgs>(tokens).unwrap();
+        assert_eq!(args.antigen_type, "PanickingInDrop");
+        assert_eq!(args.witness, "no_panic_in_drop_test");
+    }
+
+    #[test]
+    fn immune_args_parses_path_witness() {
+        let tokens: proc_macro2::TokenStream =
+            r#"FrameTranslation, witness = clippy :: no_panic_in_drop"#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<ScanImmuneArgs>(tokens).unwrap();
+        assert_eq!(args.antigen_type, "FrameTranslation");
+        // witness is the token-stream rendering of the expression
+        assert!(args.witness.contains("no_panic_in_drop"));
     }
 }
