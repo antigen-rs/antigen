@@ -1,0 +1,17 @@
+[package]
+name = "cargo-antigen"
+description = "Cargo subcommand for antigen — scan, build, and apply structural failure-class antibodies in Rust codebases."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+keywords.workspace = true
+categories.workspace = true
+
+[[bin]]
+name = "cargo-antigen"
+path = "src/main.rs"

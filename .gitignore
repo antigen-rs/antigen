@@ -1,0 +1,17 @@
+# Rust build outputs
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Campsite logbook (SQLite database; ephemeral team coordination state)
+campsites/
+
+# OS
+.DS_Store
+Thumbs.db
