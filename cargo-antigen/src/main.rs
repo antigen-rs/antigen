@@ -270,13 +270,17 @@ struct JsonAuditReport<'a> {
 
 fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::AuditReport) {
     println!();
+    // Note: "resolved" means the witness identifier was found in the workspace.
+    // It does NOT mean the witness was executed or that it asserts immunity to
+    // this specific failure class. Full semantic validation requires fingerprint-
+    // aware reasoning (ADR-010, planned for Sweep A3+).
     println!("Audited {} immunity claim(s):", audit_report.audits.len());
     println!(
-        "  - {} resolved (witness found)",
+        "  - {} declared (witness identifier found in workspace — not yet semantically verified)",
         audit_report.resolved_count
     );
     println!(
-        "  - {} external (delegated to clippy/kani/prusti/etc.)",
+        "  - {} external (delegated to clippy/kani/prusti/etc. — not yet executed by antigen)",
         audit_report.external_count
     );
     println!(
@@ -292,7 +296,9 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
     let problematic = audit_report.problematic_audits();
 
     if problematic.is_empty() {
-        println!("✓ All immunity claims are well-formed.");
+        println!("✓ All immunity claims are structurally well-formed (witness identifiers exist).");
+        println!("  Note: semantic verification (does the witness actually test this failure class?)");
+        println!("  requires fingerprint-aware audit, planned for Sweep A3+.");
         if scan_report.immunities.is_empty() {
             println!("  (No immunity declarations found in the workspace.)");
         }
