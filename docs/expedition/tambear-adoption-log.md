@@ -192,6 +192,58 @@ load-bearing case.
 [antigen team note: pattern-over-function-body is a real feature gap;
 consider adding to ADR-010 amendment proposal for v2 grammar.]
 
+### [2026-05-07 (later still)] PanickingInDrop and PolarityInvertedClassMeet: prospective protection only
+
+**Why**: After the UlpDistanceRolledByHand cleanup, completed the audit pass
+for the OTHER two declared antigens — looking at where in tambear they would
+apply today.
+
+**What**: 
+- Grepped tambear for `impl Drop` blocks across all 7 workspace crates
+- Confirmed earlier finding that tambear's class enums (DeterminismClass,
+  FiniteClass, NyquistClass, PdeClass) don't have meet methods
+
+**Result**:
+
+- **Zero `impl Drop` blocks** anywhere in tambear's codebase. Tambear is
+  pure-functional math; types aren't holding RAII resources, file handles,
+  or external state that needs Drop cleanup. So PanickingInDrop has no current
+  surface to fire on.
+- Same finding for PolarityInvertedClassMeet (already documented earlier):
+  no class enums currently have meet methods.
+
+**Verdict**: keeping both antigens as declared, even though they don't fire
+today. They serve **prospective protection**: when someone later introduces a
+type that holds a Mutex/File/external handle (Drop impl) or a class enum
+with strength-class lattice (meet method), they'll inherit the structural
+memory of these failure-classes without having to remember the original bugs
+or read tambear's history.
+
+**Lessons**:
+
+1. **Antigens that don't fire today are still doing work**: they make
+   future-additions inherit the discipline. The 2 declared-but-not-firing
+   antigens cost nothing at runtime, take ~50 lines of declaration each, and
+   immunize all future contributors against the patterns. This is exactly
+   what the inheritance-from-tambear.md "Future reciprocity" section
+   anticipated: tambear becomes a teaching surface for failure-class memory
+   that propagates beyond the current codebase.
+2. **The full picture of A's findings**:
+   - PolarityInvertedClassMeet: prospective (4 class enums exist; no meet
+     methods today)
+   - PanickingInDrop: prospective (0 impl Drop blocks today)
+   - UlpDistanceRolledByHand: ACTIVE (2 sites found and cleaned up; future
+     re-rolls would be flagged)
+3. **The real-world adoption story is a mix**: 1 active antigen + 2
+   prospective antigens. This is honest. Many production projects will look
+   like this — most antigens prevent future bugs; a few catch current ones.
+   The mix is fine; the substrate is doing its job whether the antigen fires
+   today or in 2 years.
+
+[antigen team note: when designing v0.1 docs, be explicit that "antigen
+doesn't fire" is GOOD news for the consumer's codebase, not a sign the
+antigen is useless. The educational/prospective value is real.]
+
 ### [pending] Phase 1-8 deconstruction of `PolarityInvertedClassMeet`, `PanickingInDrop`, and `UlpDistanceRolledByHand`
 
 (Aristotle thread, after JBD team launch. The antigens were declared without
