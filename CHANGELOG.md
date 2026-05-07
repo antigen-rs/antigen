@@ -58,6 +58,20 @@ the antigen JBD team completes its initial sweeps.
 - `docs/process.md` — formal ADR lifecycle and governance (how decisions get drafted,
   reviewed, ratified, and govern downstream work; inherited from tambear DEC discipline
   and adapted for antigen)
+- `docs/vision-pitch.md` — 1500-word ecosystem-outreach pitch
+- `docs/expedition/case-study-determinism-class.md` — pseudocode walkthrough of how
+  antigen would have caught the originating bug pattern (closes the loop origin.md
+  opens)
+- `docs/expedition/stdlib-seed-antigens.md` — 10 concrete antigen declarations for
+  the eventual `antigen-stdlib` v0.1 catalog
+- `docs/expedition/first-sweep-plan.md` — concrete plan for Sweep A1 (design
+  ratification + scope-lock for Sweep A2)
+- `docs/expedition/risk-register.md` — adversarial-perspective catalog of what
+  could kill the project
+- `docs/expedition/conventions.md` — naming, file layout, witness type abbreviations
+- ADR-009 (Adoption gradient — antigen meets consumers at any discipline level) and
+  ADR-010 (Fingerprint grammar v1 — syn-based AST visitor pattern) ratified into
+  `docs/decisions.md`
 - `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md` — open-source hygiene
 - `.github/workflows/ci.yml` — CI scaffolding (cargo check + test + fmt + clippy + doc)
 - `.github/workflows/release.yml` — release workflow (git-tag-triggered crates.io

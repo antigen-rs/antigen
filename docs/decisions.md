@@ -22,6 +22,8 @@
 - [ADR-006 — Recognition, not design](#adr-006--recognition-not-design)
 - [ADR-007 — Anti-YAGNI: structurally-guaranteed need](#adr-007--anti-yagni-structurally-guaranteed-need)
 - [ADR-008 — Named-observer position as terminal stratum](#adr-008--named-observer-position-as-terminal-stratum)
+- [ADR-009 — Adoption gradient: antigen meets consumers at any discipline level](#adr-009--adoption-gradient-antigen-meets-consumers-at-any-discipline-level)
+- [ADR-010 — Fingerprint grammar v1: syn-based AST visitor pattern](#adr-010--fingerprint-grammar-v1-syn-based-ast-visitor-pattern)
 
 ---
 
@@ -657,6 +659,313 @@ User-experience review is explicit at every API decision. Questions to ask:
 - Tooling-first anti-pattern (where the tool exists for its own sake, not for users)
 - Vocabulary fragmentation between API docs and tooling output
 - Implicit assumption that "clean architecture" matters more than "ergonomic to use"
+
+---
+
+## [ADR-009] Adoption gradient: antigen meets consumers at any discipline level
+
+**Status**: Ratified 2026-05-07 (foundational; pre-team).
+
+**Participants**: Tekgy + Claude.
+
+**Related**: ADR-002 (compose, don't compete), ADR-006 (recognition-not-design),
+ADR-008 (named-observer terminal stratum).
+
+### Finding
+
+Antigen's adoption depends on a hard question: how much architectural discipline does
+a consuming project need to have before they can use antigen?
+
+If antigen requires consumers to maintain ratified architectural decision records
+(DECs/ADRs), structured changelogs, linked issue trackers, or other "mature project"
+artifacts, adoption stalls at projects that already have those — which is a small
+minority of Rust codebases.
+
+If antigen can be adopted by a project with only a Cargo.toml, a README, and some
+test files, adoption can be broad — early-stage projects, hobby projects, internal
+tools, and large codebases without rigorous decision-record practices all become
+candidates.
+
+The forgotten-lesson failure mode (ADR-001's motivating problem) is universal. It
+hits projects regardless of their architectural-record discipline. Antigen's value
+proposition must be available regardless.
+
+### Decision
+
+**Antigen's API is layered into a minimum-viable, enriched, and richest-experience
+gradient. Only the minimum-viable layer is required for the tool to function. Higher
+layers add traceability and search affordances; none gate basic functionality.**
+
+**Layer 1 — Minimum viable** (works for any project on day one):
+
+```rust
+#[antigen(name = "panicking-in-drop", fingerprint = "...")]
+pub struct PanickingInDrop;
+
+#[presents(PanickingInDrop)]
+impl Drop for MyType { ... }
+
+#[immune(PanickingInDrop, witness = no_panic_in_drop_test)]
+impl Drop for SafeType { ... }
+```
+
+Required fields:
+- `#[antigen]`: `name` (string identifier), `fingerprint` (structural pattern, see ADR-010)
+- `#[presents]`: the antigen type
+- `#[immune]`: the antigen type + `witness` (test/proptest/clippy/kani/phantom-type
+  reference)
+
+That's it. Two required fields per macro. No internal-doc discipline required.
+
+**Layer 2 — Enriched** (when the project has architectural records or rich context):
+
+```rust
+#[antigen(
+    name = "polarity-inverted-class-meet",
+    fingerprint = "...",
+    family = "frame-translation",                          // optional class hierarchy
+    summary = "Class enums with strongest-first ...",      // optional human description
+    references = ["GAP-BIT-EXACT-1", "DEC-030 §1.1"],      // optional open-vocabulary list
+)]
+pub struct PolarityInvertedClassMeet;
+```
+
+Optional fields:
+- `family`: maps to one of the 8 first-principles classes or a project-specific family
+- `summary`: human-readable description for IDE hover, error messages, audit reports
+- `references`: open-vocabulary list (URLs, ADR/DEC IDs, CVE numbers, RFC numbers,
+  blog post URLs, internal Notion docs, issue tracker references — anything)
+
+The `references` field's open vocabulary is load-bearing. It accommodates any
+project's documentation discipline (or absence of one) without antigen prescribing a
+specific schema.
+
+**Layer 3 — Richest** (with project-side ADR/DEC integration when antigen-stdlib v0.2+
+supports it):
+
+```rust
+#[antigen(
+    name = "...",
+    fingerprint = "...",
+    adr = "ADR-NNN",   // explicit cross-reference to consumer's ADR registry
+    family = "...",
+)]
+```
+
+The `adr` field (and equivalent for tambear's `dec` etc.) is structured cross-reference.
+When present, cargo-antigen tooling can validate that the named ADR exists in the
+project's `decisions.md` (or configured equivalent), surface it in audit reports,
+generate trace links from antigen presentations to ratified decisions, and provide
+rich IDE integration (hover shows ADR text inline).
+
+This layer is enrichment, not gating. Projects without ADR registries skip the field;
+their experience is identical to Layer 2 minus the structured ADR cross-reference.
+
+### Mechanics
+
+The layers are implemented as **optional macro fields**. The proc-macro accepts both
+`#[antigen(name, fingerprint)]` and `#[antigen(name, fingerprint, family, summary,
+references, adr)]` and any subset between. Missing fields default to None and produce
+no warnings.
+
+The `references` field accepts any string or string array; cargo-antigen does not
+validate URL syntax or doc-existence at compile time. Validation happens optionally
+at `cargo antigen audit` time, with configurable strictness.
+
+The `adr` field, when present, points to an identifier resolvable in
+`Cargo.toml`'s `[package.metadata.antigen]` section:
+
+```toml
+[package.metadata.antigen]
+adr_registry = "docs/decisions.md"   # or "docs/adrs/"; or omitted
+adr_pattern = "ADR-(\\d+)"            # default; configurable for projects using DEC-N or similar
+```
+
+If `adr_registry` is configured, `cargo antigen audit` validates that referenced ADR
+identifiers exist. If not configured, `adr` field references are stored but not
+validated.
+
+### Sweep-level consequences
+
+- The macro design must support optional fields without surface-area warnings
+- Cargo.toml metadata schema must include `[package.metadata.antigen]` for
+  configuration
+- `cargo antigen audit` strictness must be configurable (skip ADR validation for
+  projects without registries)
+- antigen-stdlib's antigens must work for consumers at all three layers
+- Documentation must show the minimum viable example as the primary surface; enriched
+  examples as secondary
+
+### Enforcement
+
+- API design review: every new optional field must have a clear default and produce
+  no warnings when absent
+- Documentation: README and getting-started materials lead with Layer 1 examples
+- CI: `cargo antigen audit` on a project without `adr_registry` configured must
+  succeed even with antigen presentations and immunities declared
+
+### Resolves
+
+- Adoption barrier for early-stage Rust projects without ADR discipline
+- The "antigen requires you to be a tambear-class project" misperception
+- Schema rigidity in cross-reference fields (open-vocabulary `references` accommodates
+  any documentation practice)
+
+### Open question deferred to future ADR
+
+How does antigen handle CONFLICTING `references` across descended-from chains? e.g.,
+parent function cites `ADR-005` but descendant cites `ADR-007` (a partial supersession).
+Initial heuristic: cargo-antigen audit reports both; future ADR may refine.
+
+---
+
+## [ADR-010] Fingerprint grammar v1: syn-based AST visitor pattern
+
+**Status**: Ratified 2026-05-07 (foundational; pre-team).
+
+**Participants**: Tekgy + Claude. Synthesizes ecosystem-composition research
+(ast-grep, comby, clippy lint internals, dylint) with academic-context research
+(refinement type specification grammars).
+
+**Related**: ADR-001 (structural memory), ADR-002 (compose, don't compete),
+ADR-009 (adoption gradient).
+
+### Finding
+
+The `#[antigen(fingerprint = "...")]` field needs a grammar. The grammar specifies
+what structural patterns `cargo antigen scan` matches against new code to identify
+sites that should be flagged for the antigen.
+
+The grammar's design space spans:
+- **Free-text identifier patterns**: shortest path; brittle; cannot match structural
+  shape, only names
+- **Regex over source**: flexible but unprincipled; misses AST structure; sensitive
+  to formatting
+- **AST shape match via syn::parse2 + visitor pattern**: principled; matches actual
+  Rust syntax; integrates with cargo-antigen's existing AST scanning
+- **Tree-sitter based grammar**: cross-language; heavier; introduces tree-sitter as a
+  dependency
+- **Custom DSL**: full power; high implementation cost; introduces parser/grammar
+  maintenance burden
+
+The trade-offs are real. Surveyed ecosystem tools:
+- **clippy** uses syn-internal AST visitors with hardcoded pattern matching per lint
+- **ast-grep** uses tree-sitter for cross-language structural search
+- **comby** uses its own template-based syntax for structural rewrites
+- **dylint** allows external clippy-style lints via syn::Visit trait
+
+For antigen's v1, the right balance is: principled enough to match real structural
+patterns; light enough to ship quickly; extensible enough to grow into richer
+grammars; aligned enough with Rust ecosystem norms (clippy-style) to feel native.
+
+### Decision
+
+**Antigen v1 fingerprints are described as structured Rust expressions, parsed via
+`syn::parse2`, evaluated against target code via a visitor pattern over `syn::File`
+ASTs. The grammar is Rust-syntax-shaped and compiled at antigen-declaration-load
+time.**
+
+The fingerprint surface accepts:
+- **Type-name patterns**: glob-style (`*Class`, `Class*`, exact match)
+- **Struct/enum/trait kind matchers**: filter by item kind
+- **Attribute presence checks**: e.g., `has_attr("derive(PartialEq)")`
+- **Field/variant shape matchers**: e.g., `enum_with_4_or_more_variants`,
+  `struct_with_field("hi", "f64")`
+- **Method-signature patterns**: e.g., `has_method("meet", "(Self, Self) -> Self")`
+- **Composition operators**: `all_of`, `any_of`, `not`
+
+Concrete syntax (subject to refinement during implementation):
+
+```rust
+#[antigen(
+    name = "polarity-inverted-class-meet",
+    fingerprint = "
+        item: enum,
+        name: matches('*Class'),
+        variants: 3..=8,
+        has_method('meet', '(Self, Self) -> Self'),
+        all_of([
+            attr_present('repr(u8)'),
+            doc_contains('strength')
+        ])
+    "
+)]
+pub struct PolarityInvertedClassMeet;
+```
+
+The fingerprint is **a structured expression**, not free text. The grammar is small
+enough to learn in 30 minutes. It compiles to a syn-visitor that walks AST nodes
+and reports matches.
+
+### Mechanics
+
+**Implementation surface** (lives in `antigen-fingerprint` workspace member, or
+`antigen::fingerprint` module):
+
+1. `syn::parse2` parses the fingerprint string into an internal AST
+2. The internal AST has variants for each match operator (TypeNameGlob, ItemKind,
+   AttrPresent, FieldShape, MethodSignature, Composition)
+3. A visitor type implementing `syn::visit::Visit` walks target code's `syn::File`,
+   evaluating each fingerprint AST node against AST positions
+4. Matches return `Vec<MatchSite>` with file:line positions for `cargo antigen scan`
+   output
+
+**Performance**: the visitor pass is `O(n × m)` where `n` is target code AST size
+and `m` is fingerprint complexity. For typical projects (10-100k lines, 10-50 active
+antigens), scan time should be under 5 seconds. Cargo's incremental compilation and
+fingerprint caching apply.
+
+**Extensibility path** (v2+):
+- Tree-sitter integration for cross-language fingerprints (when antigen extends
+  beyond Rust)
+- Pattern macros: shorthand for common patterns (`is_class_enum!()` expands to a
+  full fingerprint clause)
+- Auto-generation: from a sample failing site, antigen suggests a fingerprint that
+  matches it
+
+### Sweep-level consequences
+
+- Sweep A2 (core macros) implements the basic fingerprint parser
+- Sweep A3 (cargo-antigen scan) implements the visitor pattern walking target code
+- Sweep A4 (composition rules + #[descended_from]) extends fingerprints to handle
+  inheritance-aware matching
+- Sweep A5 (vaccinate + audit + stdlib antigens) populates antigen-stdlib with real
+  fingerprints exercising the grammar
+
+### Enforcement
+
+- Property tests verify each fingerprint operator's behavior against synthetic ASTs
+- Adversarial sweep (per ADR-005 sub-clause F) tests fingerprint validation at
+  `cargo antigen scan` time: malformed fingerprints fail loudly, not silently
+- Documentation includes worked examples of each operator with input/output pairs
+
+### Resolves
+
+- The "what is the fingerprint grammar" open question from `api-shape.md`
+- The structural-pattern matching gap identified in `ecosystem-composition.md`
+- The need for principled-but-light grammar (vs free text vs full DSL vs heavyweight
+  tree-sitter)
+
+### Open questions deferred to future ADRs
+
+1. **Cross-crate fingerprint inheritance**: when an antigen is imported from another
+   crate, do its fingerprints re-evaluate against the consuming crate's AST? Or are
+   matches cached at the source crate? (Future ADR; v0.2+ work.)
+
+2. **Fingerprint versioning**: when an antigen ships v1.0 with fingerprint F1 and
+   later ships v1.1 with refined fingerprint F2, do existing immunity declarations
+   need re-validation? (Future ADR; tied to crates.io semver discipline.)
+
+3. **Negative fingerprints**: should `not` operators be allowed at top level (e.g.,
+   "match anything that's not X")? Risk: autoimmunity (over-flagging legitimate code).
+   Initial position: top-level negation is rejected; `not` is composable inside
+   `all_of` / `any_of` only. Future refinement possible.
+
+4. **Performance bounds**: at what point does fingerprint complexity become
+   pathological? Initial heuristic: cap fingerprint AST depth at 10; reject beyond.
+   Empirical refinement during stdlib development.
+
+These open questions become future ADR-NNNs as the team encounters concrete needs.
 
 ---
 

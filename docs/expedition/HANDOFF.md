@@ -150,12 +150,59 @@ In `api-shape.md` § "What this API shape DOESN'T address":
 
 These are *for the team*, not pre-answered.
 
+## What's also in the substrate now (post-initial-handoff additions)
+
+The pre-team substrate has expanded substantially since the initial handoff. The
+following docs were added in the same scaffolding session for completeness:
+
+- **`docs/origin.md`** — narrative post-mortem motivating the project (the
+  DeterminismClass GAP-BIT-EXACT-1 → CommutativityClass meet=min reincidence story)
+- **`docs/decisions.md`** — 10 ratified ADRs (foundational ADR-001 through ADR-010,
+  including ADR-009 adoption-gradient and ADR-010 fingerprint-grammar v1)
+- **`docs/process.md`** — full ADR lifecycle and governance: Draft → Phase 1-8
+  (the witness) → adversarial review → math/systems-research → scientist validation
+  → ratification → enforcement → reference and propagation. Plus sweep planning,
+  governance flows, team-role process responsibilities, drift detection.
+- **`docs/glossary.md`** — vocabulary anchor (every term in flight)
+- **`docs/vision-pitch.md`** — 1500-word ecosystem-outreach pitch suitable for
+  sending to Rust ecosystem maintainers
+- **`docs/expedition/inheritance-from-tambear.md`** — what disciplines come pre-
+  loaded vs invented fresh, plus the future-reciprocity arc (tambear adopting
+  antigen v0.1+ as code-level DEC extension)
+- **`docs/expedition/case-study-determinism-class.md`** — full pseudocode walkthrough
+  of how antigen would have caught the originating bug pattern (closes the loop
+  origin.md opens)
+- **`docs/expedition/stdlib-seed-antigens.md`** — 10 concrete antigen declarations
+  for the eventual `antigen-stdlib` v0.1 catalog, with fingerprints, witness
+  mechanisms, and references
+- **`docs/expedition/first-sweep-plan.md`** — concrete plan for Sweep A1 (design
+  ratification + scope-lock for Sweep A2)
+- **`docs/expedition/risk-register.md`** — adversarial-perspective catalog of what
+  could kill the project, with mitigation strategies
+- **`docs/expedition/conventions.md`** — naming, file layout, witness type
+  abbreviations, references field formats
+- **`docs/expedition/failure-class-instances.md`** — 36 real-world Rust ecosystem
+  instances researched by background subagent
+- **`docs/expedition/ecosystem-composition.md`** — 20+ Rust tools with composition
+  matrix (research subagent)
+- **`docs/expedition/academic-context.md`** — positioning vs refinement types,
+  design-by-contract, named-effect type systems (research subagent)
+
+Plus open-source hygiene: CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md,
+CHANGELOG.md, .github/ISSUE_TEMPLATE/* (5 templates + config), .github/PULL_REQUEST_TEMPLATE.md,
+.github/workflows/ci.yml + release.yml.
+
 ## What I (team-lead) take into the next session
 
-- The substrate is ready
-- The team-briefing is in place
+- The substrate is rich
+- The team-briefing is in place and references all the new docs
 - The reservation steps are clear
 - Phase-2 decisions deferred appropriately
+- The first sweep plan is concrete (not abstract direction)
+- The risk register names what could go wrong
+- The conventions remove bikeshedding
+- The case study + seed antigens make the project tangible, not abstract
+- The vision pitch is ready for ecosystem outreach when v0.1 ships
 - The JBD team launch is one fresh-session command away
 
 When you're ready, open Claude Code at `R:\antigen` and we go.
