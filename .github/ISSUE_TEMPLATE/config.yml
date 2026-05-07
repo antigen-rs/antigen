@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Use-case stories and broad questions
+    url: https://github.com/antigen-rs/antigen/discussions
+    about: For introductions, use-case stories, broad questions about the project's direction, or anything that doesn't fit a specific issue template, please open a Discussion.
+  - name: Code of Conduct concerns
+    url: https://github.com/antigen-rs/antigen/blob/main/CODE_OF_CONDUCT.md
+    about: For Code of Conduct concerns, please follow the private reporting process described in CODE_OF_CONDUCT.md.
+  - name: Security vulnerabilities
+    url: https://github.com/antigen-rs/antigen/security/advisories/new
+    about: For security vulnerabilities, please report privately via GitHub Security Advisories.
