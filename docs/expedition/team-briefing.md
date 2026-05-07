@@ -14,10 +14,18 @@ the rust-lang ecosystem accept this if matured?"
 
 ## Read first
 
-1. `docs/expedition/design-intent.md` — what antigen IS, what it ISN'T, why now, the 8-class failure taxonomy, biological→Rust mapping.
-2. `docs/expedition/api-shape.md` — sketch of macros, cargo subcommands, witness types, composition rules. **This is a sketch, not a spec — you refine, contradict, and ratify.**
-3. `docs/expedition/revolutionary-and-not.md` — honest assessment of what's genuinely new vs. existing-tools-recomposed. Adoption pathway, what could kill it, what it doesn't replace.
-4. `README.md` — public-facing project framing.
+1. `docs/origin.md` — the post-mortem narrative motivating the project. Read this first; everything else makes more sense after.
+2. `docs/expedition/design-intent.md` — what antigen IS, what it ISN'T, why now, the 8-class failure taxonomy, biological→Rust mapping.
+3. `docs/expedition/api-shape.md` — sketch of macros, cargo subcommands, witness types, composition rules. **This is a sketch, not a spec — you refine, contradict, and ratify.**
+4. `docs/expedition/revolutionary-and-not.md` — honest assessment of what's genuinely new vs. existing-tools-recomposed. Adoption pathway, what could kill it, what it doesn't replace.
+5. `docs/decisions.md` — 8 foundational ADRs (ADR-001 through ADR-008). These are pre-ratified by team-lead in pre-team scaffolding.
+6. `docs/process.md` — the formal ADR lifecycle and governance process. **You operate within this process.** When drafting new ADRs, follow the lifecycle described there.
+7. `docs/expedition/inheritance-from-tambear.md` — what disciplines come pre-loaded from tambear vs what antigen invents fresh. Includes the future-reciprocity section on tambear adopting antigen.
+8. `docs/expedition/failure-class-instances.md` — 36 real-world Rust ecosystem instances of the 8 failure classes (research subagent output).
+9. `docs/expedition/ecosystem-composition.md` — 20+ Rust tools mapped against the 8 classes (research subagent output).
+10. `docs/expedition/academic-context.md` — relationship to refinement types, design-by-contract, named-effect type systems (research subagent output).
+11. `docs/glossary.md` — vocabulary anchor; reference whenever terminology feels ambiguous.
+12. `README.md` — public-facing project framing.
 
 The design docs are *captured shape* documents from pre-team conversation. They are not
 ratified. The team's first job is to deconstruct them, contradict where appropriate, and

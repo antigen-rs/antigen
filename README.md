@@ -55,6 +55,7 @@ antigen/                              workspace root
 ├── docs/
 │   ├── origin.md                     the WHY — post-mortem narrative motivating the project
 │   ├── decisions.md                  ratified ADRs (foundational ADR-001 through ADR-008)
+│   ├── process.md                    formal ADR lifecycle and governance
 │   ├── glossary.md                   vocabulary anchor
 │   └── expedition/
 │       ├── design-intent.md          what antigen IS, what it ISN'T, why now
@@ -89,6 +90,7 @@ If you're an architect interested in API surface:
 - **[`docs/expedition/api-shape.md`](docs/expedition/api-shape.md)** — sketch of macros, cargo subcommands, witness types
 - **[`docs/expedition/ecosystem-composition.md`](docs/expedition/ecosystem-composition.md)** — how antigen delegates to existing Rust tools
 - **[`docs/decisions.md`](docs/decisions.md)** — ratified ADRs
+- **[`docs/process.md`](docs/process.md)** — formal ADR lifecycle and governance
 
 If you're an academic or researcher:
 

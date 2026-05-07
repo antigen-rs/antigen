@@ -500,5 +500,129 @@ new?" Either way, name it explicitly and add to either the inheritance list (thi
 document) or the ADR registry.
 
 This document is itself living substrate. As the team works, additions and
-refinements are welcomed. The version pinned at hand-off is `2026-05-07`; subsequent
-revisions track the team's discoveries.
+refinements are welcomed.
+
+---
+
+## Future reciprocity: when antigen returns to tambear
+
+The relationship between tambear and antigen is not one-way inheritance — it's a
+reciprocity that compounds over time. The phases:
+
+### Phase 1 (current, 2026-05-07)
+
+Tambear's DEC discipline is the parent. Antigen inherits process, vocabulary, and
+architectural disciplines. The substrate of tambear's expedition produced the insight
+(via adversarial's reflection) that became antigen.
+
+This phase ships when antigen v0.0.1 placeholders are reserved (done) and the antigen
+JBD team launches its first sweep.
+
+### Phase 2: tambear adopts antigen as code-level DEC extension
+
+When antigen v0.1 ships with working `#[antigen]` / `#[presents]` / `#[immune]` /
+`#[descended_from]` macros and a usable `cargo antigen scan`, tambear can adopt
+antigen-the-tool as a code-level extension of its DEC process.
+
+Concretely:
+- Tambear's code can carry antigen markers that **cite tambear DECs**:
+  ```rust
+  #[antigen(
+      name = "polarity-inverted-class-meet",
+      family = "frame-translation",
+      dec = "DEC-030",  // refers to tambear's Symbolic refinement-lattice DEC
+      fingerprint = "...",
+  )]
+  pub struct PolarityInvertedClassMeet;
+  ```
+- Tambear's CI can run `cargo antigen audit` to verify DEC-to-code consistency.
+- Tambear's sweep planning can include "antigen coverage" as a deliverable —
+  every new DEC ratification ships with corresponding antigens that enforce its
+  invariants in code.
+
+The DEC process operates at the document level; the antigen process operates at the
+code level. They become bidirectional siblings rather than parent-child. The DEC
+ratifies a decision; the antigen makes that decision structurally enforceable in
+code.
+
+This is when antigen graduates. It stops being "the project tambear inspired" and
+becomes "the tool tambear depends on."
+
+### Phase 3: tambear contributes back via tambear-antigens
+
+Tambear's expedition has surfaced many failure-classes that don't have direct general-
+purpose Rust analogs but are real and reusable. Examples:
+- `meet-polarity-inversion` — class enums with reverse-discriminant-ordering meet
+- `conditional-lean-collapse` — conditional structure becoming unconditional through
+  routing
+- `substrate-over-memory-violation` — using stale model instead of checking the actual
+  state
+- `phantom-domain-on-predicate` — predicate answered for an imaginary domain instead
+  of the implemented one
+- `frame-translation` — semantic interpretation drifting across context boundaries
+
+Some of these are domain-specific to tambear (the conditional-lean-collapse arose in
+JBD-team coordination context). Some are universal Rust patterns that should live in
+`antigen-stdlib`.
+
+Tambear contributes back via:
+- A `tambear-antigens` crate with tambear-specific failure-class declarations
+- PRs to `antigen-stdlib` for general-purpose patterns surfaced in tambear's work
+- Issue reports when tambear's adoption of antigen surfaces shortcomings in the tool
+- Use-case stories that shape antigen's roadmap
+
+The antigen project's adoption flywheel relies on real users. Tambear is the natural
+first user — both because it's the project where the insight emerged AND because its
+own DEC discipline is well-suited to antigen integration.
+
+### Phase 4: recursive deployment
+
+Antigen eventually ships its own antigens — declarations of failure-classes that
+occurred during antigen's own development — as a form of self-immunity. The
+`antigen-self-antigens` (or similar) crate inoculates against patterns the antigen
+team identified as failure modes during their work.
+
+Tambear continues contributing back. Other Rust projects adopt antigen and contribute
+their own failure-class observations. The antigen library compounds.
+
+The compounding is the substrate. Each project's failure-class memory becomes
+shareable across projects via stdlib + ecosystem antigen crates. The "lesson lost
+when senior engineers leave" failure mode dissolves at the ecosystem level: the
+lessons are now structural, sharable, and compose.
+
+### Why this reciprocity matters
+
+Most open-source projects start with an idea and find users. The tambear-antigen
+relationship is different: antigen starts with a parent project that has a
+proven need, a paying user (tambear itself), and a contributor who has been working
+on the substrate for months. Antigen graduates from a research idea to a load-bearing
+tool the parent already needs.
+
+This shape is rare and valuable. It also means the antigen team has an anchor —
+when uncertain about a design choice, "what would tambear's DEC process need from
+this?" is a real load-bearing question, not a speculative one.
+
+For the antigen team: tambear is your first customer. Build for them, and the design
+will be grounded in real demands rather than imagined ones.
+
+For tambear's future maintainers: antigen will mature into a tool you can adopt.
+Until then, tambear's DEC discipline IS the structural memory. When antigen ships,
+the discipline stays the same — the implementation moves from documents to code.
+
+### How to track the reciprocity
+
+The reciprocity should be tracked explicitly in both projects:
+- Tambear's expedition log (or DEC registry) records when tambear adopts antigen
+  features and what failure-classes get migrated from "DEC-only" to "DEC + antigen"
+- Antigen's CHANGELOG records when tambear contributions land in stdlib or as
+  ecosystem packages
+- Both projects' READMEs cite the relationship explicitly
+
+The reciprocity is itself a structural commitment. Treat it that way.
+
+---
+
+## Closing thought
+
+The version pinned at hand-off is `2026-05-07`; subsequent revisions track the
+team's discoveries — and tambear's adoption.

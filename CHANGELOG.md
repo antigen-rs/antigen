@@ -55,8 +55,13 @@ the antigen JBD team completes its initial sweeps.
 - Foundational ADRs (ADR-001 through ADR-008) ratified by Tekgy + Claude in pre-team
   scaffolding
 - `docs/glossary.md` — vocabulary anchor
+- `docs/process.md` — formal ADR lifecycle and governance (how decisions get drafted,
+  reviewed, ratified, and govern downstream work; inherited from tambear DEC discipline
+  and adapted for antigen)
 - `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md` — open-source hygiene
 - `.github/workflows/ci.yml` — CI scaffolding (cargo check + test + fmt + clippy + doc)
+- `.github/workflows/release.yml` — release workflow (git-tag-triggered crates.io
+  publish + GitHub release)
 - GitHub issue templates and PR template
 - 9 starter campsites for the future antigen JBD team
 

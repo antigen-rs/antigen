@@ -681,12 +681,27 @@ old, and the old ADR's status becomes "Superseded by ADR-MMM".
 
 ## Adding a new ADR
 
+The full ADR lifecycle is documented in [`docs/process.md`](process.md). Quick
+checklist:
+
 1. Number sequentially. Skip numbers only with explicit reservation.
-2. Use the section template above (Status, Participants, Related, Finding, Decision,
+2. Open a campsite under `campsites/adr-NNN-<slug>` for the in-flight draft.
+3. Use the section template above (Status, Participants, Related, Finding, Decision,
    Mechanics, Sweep-level consequences, Enforcement, Resolves).
-3. Update the index at the top of this file.
-4. Reference the ADR in any related code or other docs that act on its decisions.
-5. Update `docs/glossary.md` if the ADR introduces new vocabulary.
+4. Run the draft through the full lifecycle: Phase 1-8 deconstruction (aristotle) →
+   adversarial review → math/systems-research review → scientist validation →
+   team-lead ratification.
+5. After ratification:
+   - Move the ratified text into this file (`decisions.md`)
+   - Update the index at the top of this file
+   - Update `docs/glossary.md` if the ADR introduces new vocabulary
+   - Reference the ADR in any related code or other docs that act on its decisions
+   - Mark the campsite `closed` with a final log entry
+
+See [`docs/process.md`](process.md) for the complete process — including the
+recursive insight that **ADRs are antigen-in-document-form** (the original
+implementation of the structural-memory pattern that antigen-the-tool ships at the
+code level).
 
 ---
 
