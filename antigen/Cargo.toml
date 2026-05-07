@@ -15,6 +15,9 @@ categories.workspace = true
 [lib]
 path = "src/lib.rs"
 
+[lints]
+workspace = true
+
 [dependencies]
 antigen-macros = { version = "=0.0.1", path = "../antigen-macros" }
 syn = { workspace = true }

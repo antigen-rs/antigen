@@ -13,9 +13,9 @@
 //! ```
 //!
 //! The scan should find:
-//! - 1 antigen declaration (PanickingInDrop)
-//! - 1 presentation (the impl Drop for VulnerableType)
-//! - 1 immunity claim (the impl Drop for SafeType)
+//! - 1 antigen declaration (`PanickingInDrop`)
+//! - 1 presentation (the `impl Drop` for `VulnerableType`)
+//! - 1 immunity claim (the `impl Drop` for `SafeType`)
 //!
 //! And report 0 unaddressed presentations because each #[presents] has a
 //! corresponding #[immune] nearby (or in this minimal example, the
@@ -36,8 +36,9 @@ use antigen::{antigen, immune, presents};
 )]
 pub struct PanickingInDrop;
 
-/// A type that demonstrates the failure-class — its Drop impl could panic.
+/// A type that demonstrates the failure-class — its `Drop` impl could panic.
 pub struct VulnerableType {
+    /// Inner data; could be `None`.
     pub data: Option<String>,
 }
 
@@ -51,8 +52,9 @@ impl Drop for VulnerableType {
     }
 }
 
-/// A safe alternative whose Drop impl is provably panic-free.
+/// A safe alternative whose `Drop` impl is provably panic-free.
 pub struct SafeType {
+    /// Inner data; could be `None`.
     pub data: Option<String>,
 }
 
@@ -70,7 +72,7 @@ impl Drop for SafeType {
     }
 }
 
-/// Witness: proves SafeType::drop does not panic on any state.
+/// Witness: proves `SafeType::drop` does not panic on any state.
 #[allow(dead_code)]
 fn safe_type_drop_no_panic_test() {
     let s = SafeType { data: None };

@@ -32,6 +32,24 @@
 //! `0.0.1` is a placeholder reserving the crate name. The macros below validate
 //! syntax and pass through; the full validation/scanning loop ships with the
 //! companion `cargo-antigen` crate.
+//!
+//! ## Known v1 limitations (easy wins for the JBD team)
+//!
+//! Search this crate for `TODO(team)` to find specific spots that the antigen
+//! JBD team can sharpen quickly. Top items:
+//!
+//! 1. **No span-aware error pointing**: parse errors point to `Span::call_site()`
+//!    rather than the offending token. The team should thread spans through the
+//!    parser so error messages point to the EXACT bad token (per
+//!    rust-analyzer's diagnostic conventions).
+//! 2. **No trybuild test fixtures**: testing-patterns.md describes the trybuild
+//!    pattern for proc-macro errors, but no fixtures ship in v0.0.1. Adding
+//!    them is straightforward and gives the team confidence that error
+//!    messages stay helpful as the parser evolves.
+//! 3. **Macros are pure pass-through**: future versions may emit `#[doc(hidden)]`
+//!    inventory items so the cargo-antigen tooling can discover declarations
+//!    without re-parsing source. The team can decide whether the inventory
+//!    pattern is worth the complexity vs the current source-parse approach.
 
 use proc_macro::TokenStream;
 use quote::quote;

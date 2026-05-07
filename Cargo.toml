@@ -26,3 +26,21 @@ walkdir = "2"
 clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+# Pedantic and nursery lints, opt-in to the strict-but-helpful subset.
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+# Allow a few overly-strict pedantic lints that don't add value here.
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+# Allow uninlined_format_args because it conflicts with rustfmt sometimes.
+uninlined_format_args = "allow"
+# Allow some lints inside doctests / examples where ergonomics matter.
+needless_pass_by_value = "allow"

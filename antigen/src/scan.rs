@@ -19,8 +19,25 @@
 //! - Fingerprint structural matching against unmarked code (the
 //!   recognition-not-yet-marked half of scan)
 //! - Performance optimizations (incremental scan, parallel file walks)
+//!
+//! ## Known v1 limitations (easy wins for the JBD team)
+//!
+//! Search this file for `TODO(team)` to find specific spots that the antigen JBD
+//! team can sharpen quickly without redesigning anything. Top three:
+//!
+//! 1. **Line numbers are heuristic** — see [`ScanVisitor::line_of_attr`]; finds
+//!    the FIRST occurrence of the attribute name in the source, not the actual
+//!    span of the specific invocation. Replace with `syn::spanned::Spanned::span()
+//!    .start().line` once syn's span info is reliable on the team's toolchain.
+//! 2. **Item-level matching is loose** — see [`ScanReport::unaddressed_presentations`];
+//!    uses 20-line proximity heuristic. Should match by impl-target / fn-name /
+//!    struct-name (the actual ITEM the attributes are applied to), not source
+//!    proximity.
+//! 3. **Witness validation is presence-only** — the scan records the witness
+//!    identifier but doesn't verify it resolves to a real function or that the
+//!    function actually exercises behavior matching the antigen. The audit
+//!    subcommand (sweep A2/A3) lifts this.
 
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -50,7 +67,7 @@ pub struct AntigenDeclaration {
 /// A `#[presents(antigen_type)]` declaration discovered in source.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Presentation {
-    /// The antigen type referenced (last path segment, e.g., "PanickingInDrop").
+    /// The antigen type referenced (last path segment, e.g., `PanickingInDrop`).
     pub antigen_type: String,
     /// Source file path.
     pub file: PathBuf,
@@ -93,6 +110,7 @@ pub struct ScanReport {
 /// A presentation that has no matching immunity declaration on the same item.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UnaddressedPresentation {
+    /// The presentation itself.
     pub presentation: Presentation,
     /// True if the antigen referenced is found in the scan report.
     pub antigen_known: bool,
@@ -101,16 +119,18 @@ pub struct UnaddressedPresentation {
 impl ScanReport {
     /// Find presentations that lack a corresponding immunity declaration.
     ///
-    /// In v1, "matching" means: same antigen_type AND same file AND same line
-    /// (presentations and immunities applied to the same item). Future versions
-    /// will extend to `#[descended_from]` chains and item-aware matching.
+    /// In v1, "matching" means: same `antigen_type` AND same file AND nearby
+    /// line (presentations and immunities applied to the same item, within
+    /// 20 source lines). Future versions will extend to `#[descended_from]`
+    /// chains and exact item-target matching.
+    ///
+    // TODO(team): item-level matching is loose. The 20-line proximity heuristic
+    // is a placeholder. Replace with structural matching: track the impl-target
+    // / fn-name / struct-name during AST walk, store it on Presentation and
+    // Immunity, and match by item identity rather than source proximity. This
+    // is an easy win that significantly improves accuracy.
+    #[must_use]
     pub fn unaddressed_presentations(&self) -> Vec<UnaddressedPresentation> {
-        let immunity_keys: HashMap<(String, PathBuf, usize), &Immunity> = self
-            .immunities
-            .iter()
-            .map(|i| ((i.antigen_type.clone(), i.file.clone(), i.line), i))
-            .collect();
-
         let known_antigens: std::collections::HashSet<&str> =
             self.antigens.iter().map(|a| a.type_name.as_str()).collect();
 
@@ -121,7 +141,7 @@ impl ScanReport {
             let has_nearby_immunity = self.immunities.iter().any(|i| {
                 i.antigen_type == p.antigen_type
                     && i.file == p.file
-                    && (i.line as isize - p.line as isize).abs() <= 20
+                    && i.line.abs_diff(p.line) <= 20
             });
             if !has_nearby_immunity {
                 result.push(UnaddressedPresentation {
@@ -130,13 +150,11 @@ impl ScanReport {
                 });
             }
         }
-        // Suppress dead-code warning on the immunity_keys HashMap; it's reserved for
-        // a future exact-line matching mode.
-        let _ = immunity_keys;
         result
     }
 
     /// Total count of antigen-related declarations found.
+    #[must_use]
     pub fn total_declarations(&self) -> usize {
         self.antigens.len() + self.presentations.len() + self.immunities.len()
     }
@@ -166,10 +184,7 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
             }
         })
     {
-        let entry = match entry {
-            Ok(e) => e,
-            Err(_) => continue,
-        };
+        let Ok(entry) = entry else { continue };
 
         if !entry.file_type().is_file() {
             continue;
@@ -178,9 +193,8 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
             continue;
         }
 
-        let content = match std::fs::read_to_string(entry.path()) {
-            Ok(c) => c,
-            Err(_) => continue,
+        let Ok(content) = std::fs::read_to_string(entry.path()) else {
+            continue;
         };
 
         match syn::parse_file(&content) {
@@ -211,14 +225,19 @@ struct ScanVisitor<'a> {
     report: &'a mut ScanReport,
 }
 
-impl<'a> ScanVisitor<'a> {
+impl ScanVisitor<'_> {
     /// Compute 1-indexed line number for a span by counting newlines in source up
-    /// to the span's start. `syn`'s span line info isn't reliable on stable, so we
-    /// fall back to source-counting.
+    /// to the span's start.
+    ///
+    /// TODO(team): currently returns the FIRST occurrence of the attribute name
+    /// in the file, regardless of which instance is being processed. This means
+    /// multi-instance scenarios report the same line number for every instance.
+    /// Replace with a real span-tracking approach: pass the `&syn::Attribute` in
+    /// and use `syn::spanned::Spanned::span().start().line` (verify it returns
+    /// usable line numbers on the team's stable toolchain; if not, walk byte
+    /// offsets via `proc_macro2::Span::byte_range` once that's stable).
     fn line_of_attr(&self, attr_name: &str) -> usize {
         // Heuristic: find the first occurrence of the attribute name in the source.
-        // For multi-instance scenarios this isn't ideal; future improvement is to
-        // track byte offsets via syn::spanned::Spanned and locate within source.
         for (i, line) in self.source.lines().enumerate() {
             if line.contains(&format!("#[{attr_name}")) {
                 return i + 1;
@@ -291,6 +310,12 @@ impl<'a> ScanVisitor<'a> {
                 .first()
                 .map(|s| s.trim().split("::").last().unwrap_or(s).to_string())
                 .unwrap_or_default();
+            // TODO(team): witness validation is presence-only. The audit subcommand
+            // (sweep A2/A3) should: (1) resolve the witness identifier to an item
+            // in the workspace, (2) verify it's a #[test], proptest!, or recognized
+            // delegated tool reference, (3) optionally invoke it via cargo test and
+            // verify it asserts the expected property. Currently we just record
+            // the witness string verbatim.
             let mut witness = String::new();
             for part in parts.iter().skip(1) {
                 if let Some((k, v)) = parse_kv(part) {
@@ -321,7 +346,7 @@ impl<'a> ScanVisitor<'a> {
     }
 }
 
-impl<'ast, 'a> Visit<'ast> for ScanVisitor<'a> {
+impl<'ast> Visit<'ast> for ScanVisitor<'_> {
     fn visit_item_struct(&mut self, item: &'ast syn::ItemStruct) {
         for attr in &item.attrs {
             if attr.path().is_ident("antigen") {

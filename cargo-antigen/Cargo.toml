@@ -16,6 +16,9 @@ categories.workspace = true
 name = "cargo-antigen"
 path = "src/main.rs"
 
+[lints]
+workspace = true
+
 [dependencies]
 antigen = { version = "=0.0.1", path = "../antigen" }
 clap = { workspace = true }
