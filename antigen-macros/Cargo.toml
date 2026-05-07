@@ -1,6 +1,6 @@
 [package]
-name = "antigen"
-description = "Structural memory of failure-classes for Rust. Make implicit immunity explicit."
+name = "antigen-macros"
+description = "Procedural macros for the antigen crate. Not for direct use; use antigen instead."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -13,13 +13,9 @@ keywords.workspace = true
 categories.workspace = true
 
 [lib]
-path = "src/lib.rs"
+proc-macro = true
 
 [dependencies]
-antigen-macros = { version = "=0.0.1", path = "../antigen-macros" }
 syn = { workspace = true }
 quote = { workspace = true }
 proc-macro2 = { workspace = true }
-walkdir = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
