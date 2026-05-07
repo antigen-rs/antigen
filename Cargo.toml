@@ -1,0 +1,21 @@
+[workspace]
+resolver = "2"
+members = [
+    "antigen",
+    "cargo-antigen",
+]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2021"
+rust-version = "1.75"
+authors = ["Christopher Averill <c@tek.gy>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/antigen-rs/antigen"
+homepage = "https://github.com/antigen-rs/antigen"
+readme = "README.md"
+keywords = ["immunity", "memory", "failure-class", "lint", "antibody"]
+categories = ["development-tools", "development-tools::cargo-plugins", "development-tools::testing"]
+
+[workspace.dependencies]
+# Reserved for future use as the project takes shape.
