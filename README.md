@@ -49,15 +49,50 @@ The biological metaphor maps cleanly:
 ## Project structure
 
 ```
-antigen/                 — workspace root
-├── antigen/             — core crate (macros, witness types, recognition primitives)
-├── cargo-antigen/       — cargo subcommand (scan, new, vaccinate, audit)
-└── docs/expedition/     — design documents
-    ├── design-intent.md
-    ├── api-shape.md
-    ├── revolutionary-and-not.md
-    └── team-briefing.md
+antigen/                              workspace root
+├── antigen/                          core crate (macros, witness types, recognition primitives)
+├── cargo-antigen/                    cargo subcommand (scan, new, vaccinate, audit)
+├── docs/
+│   ├── origin.md                     the WHY — post-mortem narrative motivating the project
+│   ├── decisions.md                  ratified ADRs (foundational ADR-001 through ADR-008)
+│   ├── glossary.md                   vocabulary anchor
+│   └── expedition/
+│       ├── design-intent.md          what antigen IS, what it ISN'T, why now
+│       ├── api-shape.md              sketch of macros and cargo subcommands
+│       ├── revolutionary-and-not.md  honest claims and limits
+│       ├── failure-class-instances.md  real-world Rust ecosystem instances of the 8 classes
+│       ├── ecosystem-composition.md  composition opportunities with existing Rust tools
+│       ├── academic-context.md       relationship to existing academic work
+│       ├── inheritance-from-tambear.md  disciplines and patterns inherited from tambear
+│       ├── team-briefing.md          for the JBD team at spawn time
+│       └── HANDOFF.md                pre-team scaffolding hand-off summary
+├── CONTRIBUTING.md                   how to contribute (design phase guidelines)
+├── CODE_OF_CONDUCT.md                Rust Code of Conduct adoption
+├── SECURITY.md                       security disclosure policy
+└── CHANGELOG.md                      version history (Keep-a-Changelog format)
 ```
+
+## Read first
+
+If you've never heard of antigen before, read in this order:
+
+1. **[`docs/origin.md`](docs/origin.md)** — the post-mortem narrative. The story of the
+   tambear `DeterminismClass` failure that healed once, the same failure showing up
+   months later in `CommutativityClass`, and how that became this project.
+2. **[`docs/expedition/design-intent.md`](docs/expedition/design-intent.md)** — what
+   antigen IS, what it ISN'T, why now.
+3. **[`docs/expedition/revolutionary-and-not.md`](docs/expedition/revolutionary-and-not.md)** —
+   honest assessment of what's genuinely new vs. existing-tools-recomposed.
+
+If you're an architect interested in API surface:
+
+- **[`docs/expedition/api-shape.md`](docs/expedition/api-shape.md)** — sketch of macros, cargo subcommands, witness types
+- **[`docs/expedition/ecosystem-composition.md`](docs/expedition/ecosystem-composition.md)** — how antigen delegates to existing Rust tools
+- **[`docs/decisions.md`](docs/decisions.md)** — ratified ADRs
+
+If you're an academic or researcher:
+
+- **[`docs/expedition/academic-context.md`](docs/expedition/academic-context.md)** — relationship to refinement types, design-by-contract, named-effect type systems, and the Rust verification cohort
 
 ## Why now
 
@@ -65,15 +100,32 @@ antigen/                 — workspace root
 - **Mature Rust ecosystem**: cargo extensions, proc-macros, custom diagnostics, and proptest are all stable.
 - **AI-coding era**: agents lose context between sessions. Implicit memory of failure patterns is no longer a viable strategy. Memory must be structural.
 
+## Contributing
+
+The project is in active design. The most valuable contributions right now:
+
+- **Design feedback** on the substrate documents
+- **Prior-art surfacing** — tools and papers we should know about
+- **Failure-class proposals** — real-world Rust failures that fit (or refine) the 8 classes
+- **Antigen-stdlib candidates** — specific patterns to bundle in the eventual stdlib library
+
+See **[`CONTRIBUTING.md`](CONTRIBUTING.md)** for detail. Code PRs against the placeholder
+crates are unlikely to land until v0.1.
+
 ## License
 
 Dual-licensed under MIT or Apache-2.0.
 
-## Contributing
-
-The project is in active design. Issues and discussion welcome — see the GitHub repository.
-Code contribution is premature until the design phase resolves.
-
 ## Status
 
-Reserved on crates.io: [`antigen`](https://crates.io/crates/antigen), [`cargo-antigen`](https://crates.io/crates/cargo-antigen) — version `0.0.1` placeholders signaling intent.
+- Reserved on crates.io: [`antigen`](https://crates.io/crates/antigen), [`cargo-antigen`](https://crates.io/crates/cargo-antigen) — version `0.0.1` placeholders
+- Repository: [github.com/antigen-rs/antigen](https://github.com/antigen-rs/antigen)
+- CI: cargo check + test + fmt + clippy + doc on every push and PR
+
+## Acknowledgments
+
+The originating insight came from the adversarial agent on the [tambear](https://github.com/tambear-rs/tambear)
+project's 2026-05-06 cleanup expedition. The frame shift to immune-system architecture
+came from the project lead. The naming, three-verb framing, taxonomy, and design substrate
+emerged in pre-team scaffolding conversation. See [`docs/origin.md`](docs/origin.md) for
+the full story.
