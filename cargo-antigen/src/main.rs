@@ -13,7 +13,7 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 
-use antigen::scan;
+use antigen::{audit, scan};
 
 /// Cargo subcommand for antigen.
 #[derive(Debug, Parser)]
@@ -76,6 +76,9 @@ struct AuditArgs {
     /// Output format: human or json
     #[arg(long, default_value = "human")]
     format: OutputFormat,
+    /// Exit with non-zero status if audit finds problematic immunity claims
+    #[arg(long)]
+    strict: bool,
 }
 
 #[derive(Debug, Clone, clap::ValueEnum)]
@@ -224,21 +227,106 @@ fn run_vaccinate(antigen: String, pattern: String) -> ExitCode {
 }
 
 fn run_audit(args: AuditArgs) -> ExitCode {
-    eprintln!(
-        "cargo-antigen audit (design phase) — using `scan` for now.\n\
-         Comprehensive audit (witness validation, cross-crate inheritance walks,\n\
-         coverage trend reporting) is under design. The eventual command will\n\
-         supplement scan with:\n\
-           - Witness function existence + freshness checks\n\
-           - #[descended_from] propagation walks\n\
-           - antigen-stdlib version drift detection\n\
-           - Cross-crate antigen consumption reporting\n\
-         \n\
-         Falling through to `scan` semantics for the current release.\n"
+    eprintln!("Auditing workspace: {}", args.root.display());
+
+    let scan_report = match scan::scan_workspace(&args.root, None) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: scan failed: {e}");
+            return ExitCode::from(2);
+        }
+    };
+
+    let audit_report = audit::audit(&scan_report, &args.root);
+
+    match args.format {
+        OutputFormat::Human => {
+            print_audit_human(&scan_report, &audit_report);
+        }
+        OutputFormat::Json => match serde_json::to_string_pretty(&JsonAuditReport {
+            scan: &scan_report,
+            audit: &audit_report,
+        }) {
+            Ok(s) => println!("{s}"),
+            Err(e) => {
+                eprintln!("error: failed to serialize report: {e}");
+                return ExitCode::from(2);
+            }
+        },
+    }
+
+    if args.strict && !audit_report.all_valid() {
+        ExitCode::from(1)
+    } else {
+        ExitCode::SUCCESS
+    }
+}
+
+#[derive(serde::Serialize)]
+struct JsonAuditReport<'a> {
+    scan: &'a scan::ScanReport,
+    audit: &'a audit::AuditReport,
+}
+
+fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::AuditReport) {
+    println!();
+    println!("Audited {} immunity claim(s):", audit_report.audits.len());
+    println!(
+        "  - {} resolved (witness found)",
+        audit_report.resolved_count
     );
-    run_scan(ScanArgs {
-        root: args.root,
-        format: args.format,
-        strict: false,
-    })
+    println!(
+        "  - {} external (delegated to clippy/kani/prusti/etc.)",
+        audit_report.external_count
+    );
+    println!(
+        "  - {} broken (witness identifier not found)",
+        audit_report.broken_count
+    );
+    println!(
+        "  - {} missing (no witness identifier)",
+        audit_report.missing_count
+    );
+    println!();
+
+    let problematic = audit_report.problematic_audits();
+
+    if problematic.is_empty() {
+        println!("✓ All immunity claims are well-formed.");
+        if scan_report.immunities.is_empty() {
+            println!("  (No immunity declarations found in the workspace.)");
+        }
+    } else {
+        println!("⚠ {} problematic immunity claim(s):", problematic.len());
+        println!();
+        for a in &problematic {
+            let i = &a.immunity;
+            println!(
+                "  {}:{}  {} (witness = `{}`)",
+                i.file.display(),
+                i.line,
+                i.antigen_type,
+                i.witness
+            );
+            match &a.witness_status {
+                audit::WitnessStatus::NotFound { reason } => {
+                    println!("    → broken: {reason}");
+                }
+                audit::WitnessStatus::Missing => {
+                    println!(
+                        "    → missing: declaration has no witness identifier; \
+                         a marker without proof is not a claim (per ADR-005)"
+                    );
+                }
+                _ => {}
+            }
+        }
+        println!();
+        println!(
+            "Resolve broken witnesses by either:\n  \
+             a) Adding the witness function to the workspace\n  \
+             b) Updating the witness reference to point at an existing function\n  \
+             c) Removing the immunity claim if it's premature"
+        );
+    }
 }

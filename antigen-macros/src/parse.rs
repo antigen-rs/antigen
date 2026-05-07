@@ -9,7 +9,7 @@ use syn::{Expr, Ident, Lit, LitStr, Path, Token};
                     // not currently used in macro expansion. They will be used
                     // when the macro emits richer #[doc] forwards or registers
                     // declarations for cross-crate discovery (future ADRs).
-pub(crate) struct AntigenArgs {
+pub struct AntigenArgs {
     pub name: String,
     pub fingerprint: String,
     pub family: Option<String>,
@@ -18,13 +18,13 @@ pub(crate) struct AntigenArgs {
 }
 
 /// Arguments to `#[presents(antigen_type)]`.
-pub(crate) struct PresentsArgs {
+pub struct PresentsArgs {
     #[allow(dead_code)]
     pub antigen: Path,
 }
 
 /// Arguments to `#[immune(antigen_type, witness = ..., [rationale = ...])]`.
-pub(crate) struct ImmuneArgs {
+pub struct ImmuneArgs {
     #[allow(dead_code)]
     pub antigen: Path,
     pub witness: Option<Expr>,
@@ -33,7 +33,7 @@ pub(crate) struct ImmuneArgs {
 }
 
 /// Arguments to `#[descended_from(parent_path)]`.
-pub(crate) struct DescendedFromArgs {
+pub struct DescendedFromArgs {
     #[allow(dead_code)]
     pub parent: Path,
 }
@@ -78,7 +78,7 @@ impl Parse for AntigenArgs {
             syn::Error::new(input.span(), "#[antigen] requires `fingerprint = \"...\"`")
         })?;
 
-        Ok(AntigenArgs {
+        Ok(Self {
             name,
             fingerprint,
             family,
@@ -89,7 +89,13 @@ impl Parse for AntigenArgs {
 }
 
 impl AntigenArgs {
-    pub(crate) fn validate(&self) -> syn::Result<()> {
+    // TODO(team): error messages currently point to Span::call_site() rather
+    // than the offending token. Thread spans through the parser so each
+    // validation error points to the EXACT bad token (e.g., the malformed name
+    // string literal, not just the macro invocation). This significantly
+    // improves the user experience and matches rust-analyzer's diagnostic
+    // conventions.
+    pub fn validate(&self) -> syn::Result<()> {
         if self.name.is_empty() {
             return Err(syn::Error::new(
                 proc_macro2::Span::call_site(),
@@ -122,7 +128,7 @@ impl AntigenArgs {
 impl Parse for PresentsArgs {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let antigen: Path = input.parse()?;
-        Ok(PresentsArgs { antigen })
+        Ok(Self { antigen })
     }
 }
 
@@ -162,7 +168,7 @@ impl Parse for ImmuneArgs {
             }
         }
 
-        Ok(ImmuneArgs {
+        Ok(Self {
             antigen,
             witness,
             rationale,
@@ -171,7 +177,7 @@ impl Parse for ImmuneArgs {
 }
 
 impl ImmuneArgs {
-    pub(crate) fn validate(&self) -> syn::Result<()> {
+    pub fn validate(&self) -> syn::Result<()> {
         if self.witness.is_none() {
             return Err(syn::Error::new(
                 proc_macro2::Span::call_site(),
@@ -191,7 +197,7 @@ impl ImmuneArgs {
 impl Parse for DescendedFromArgs {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let parent: Path = input.parse()?;
-        Ok(DescendedFromArgs { parent })
+        Ok(Self { parent })
     }
 }
 
@@ -209,7 +215,7 @@ impl Parse for MetaPair {
         let key: Ident = input.parse()?;
         input.parse::<Token![=]>()?;
         let value: Expr = input.parse()?;
-        Ok(MetaPair { key, value })
+        Ok(Self { key, value })
     }
 }
 

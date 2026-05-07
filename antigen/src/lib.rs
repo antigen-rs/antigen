@@ -67,4 +67,5 @@
 // `use antigen::presents`, etc.
 pub use antigen_macros::{antigen, descended_from, immune, presents};
 
+pub mod audit;
 pub mod scan;
