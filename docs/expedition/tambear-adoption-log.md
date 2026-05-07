@@ -107,7 +107,92 @@ the inheritance-arc is operational.
 The following are placeholder slots for upcoming work. As the team takes
 each on, the slots get replaced with real entry text.
 
-### [pending] Phase 1-8 deconstruction of `PolarityInvertedClassMeet` and `PanickingInDrop`
+### [2026-05-07 (later)] Third antigen + first real cleanup driven by antigen discipline
+
+**Why**: ULP-CANON-1 spot check (item 2 from the post-DEC-029 roadmap)
+discovered that despite the original 8 sign-magnitude re-implementation sites
+being cleaned up in 2026-04-25, **two NEW sites had emerged in 2026-05-06
+expedition work** (commits `f53bc1c` chains-E/F/G and `8c0555f`
+sweep_29c_kappa_oracle). Each was a 7-line hand-rolled Dawson 2012 ULP
+distance function, complete with the signed-zero sign-flip mechanics.
+
+The pre-existing pattern detector at `tambear-substrate/src/pattern.rs` only
+catches the inline single-expression form (`($A.to_bits() as i64).wrapping_sub(...)
+.abs()`); it missed the multi-statement function form because those don't
+match the same AST shape.
+
+This is exactly the failure-class adversarial gardened about: "corrected
+designs don't carry the failure that motivated them." Even with:
+- The canonical `oracle_compare::ulp_distance_f64` existing
+- The 8 prior sites cleaned up
+- A pattern detector specifically for this pattern
+- The lesson documented in roadmap-after-dec029.md
+
+...two new sites STILL re-rolled the function from scratch. Different agents,
+different contexts, different sweeps.
+
+**What**:
+
+1. Added a third antigen `UlpDistanceRolledByHand` to
+   `crates/tambear/src/antigens.rs`:
+   - Family: `forgotten-lesson` (the meta-pattern of lessons re-emerging)
+   - Fingerprint: documented (multi-statement function form NOT covered by
+     pattern.rs)
+   - References: ULP-CANON-1 (original cleanup), `f53bc1c`, `8c0555f`,
+     `tambear-substrate/src/pattern.rs`, Dawson 2012
+2. Replaced the hand-rolled function in
+   `crates/tambear/tests/dd_subnormal_sweep_oracle.rs` with a thin delegation
+   to the canonical: `tambear::primitives::oracle_compare::ulp_distance_f64`
+3. Same replacement in `crates/tambear/tests/sweep_29c_kappa_oracle.rs`
+4. Verified both files' tests still pass (7 tests + 4 tests) — the canonical
+   produces identical results for these test inputs
+
+**Result**:
+
+- `cargo test --workspace --lib` still passes 1397 tests
+- `cargo antigen scan` against tambear finds 3 declarations (was 2)
+- The 2 hand-rolled functions are gone; both files use the canonical
+- ULP-CANON-1 is now actually complete (8 original sites + 2 newly-discovered
+  sites all cleaned up)
+- The `UlpDistanceRolledByHand` antigen now structurally documents the failure
+  pattern, including the meta-finding that the pattern.rs detector has known
+  blind spots (multi-statement function form)
+
+**Verdict**: keeping it. This is the discipline working. The cleanup itself
+wasn't dramatic (each replacement was 7 lines → 1 line), but the fact that
+the failure-class re-emerged across sweeps is itself the antigen's
+load-bearing case.
+
+**Lessons**:
+
+1. **The ULP-CANON-1 "complete" status from 2026-04-25 was actually
+   incomplete-as-of-2026-05-07** because new sweeps reintroduced the pattern.
+   This validates the antigen-stdlib argument that **failure-class memory
+   needs to live in code, not in commit messages or roadmap items**. A
+   commit-message-tracked cleanup gets reintroduced; a structural antigen
+   doesn't (because `cargo antigen scan --hunt` would have flagged the new
+   sites at PR time).
+2. **Pattern detectors with blind spots create false confidence.** The
+   `tambear-substrate/src/pattern.rs` pattern set covers inline forms but
+   misses multi-statement function forms. The team thought ULP-CANON-1 was
+   covered structurally; it was only partially covered. This is a Phase 3
+   future-extensions.md item: fingerprint hunting needs to handle structural
+   variants of the same pattern, not just specific expressions.
+3. **The antigen-driven cleanup added net structural value beyond just the
+   line replacement**: the antigen declaration now serves as documentation
+   for any future contributor, with explicit references to all known sites
+   AND the meta-finding about pattern.rs's blind spots. This is more durable
+   than a commit message.
+4. **Antigen team feedback**: the structural-fingerprint grammar needs to
+   handle "function whose body matches pattern X" not just "expression
+   matching pattern X." This is ADR-010's v1 grammar limitation; future
+   versions should compose patterns over function bodies. (TODO(team) marker
+   added to relevant scan code.)
+
+[antigen team note: pattern-over-function-body is a real feature gap;
+consider adding to ADR-010 amendment proposal for v2 grammar.]
+
+### [pending] Phase 1-8 deconstruction of `PolarityInvertedClassMeet`, `PanickingInDrop`, and `UlpDistanceRolledByHand`
 
 (Aristotle thread, after JBD team launch. The antigens were declared without
 formal Phase 1-8 review during pre-team scaffolding; same status as the
