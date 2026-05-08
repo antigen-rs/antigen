@@ -555,7 +555,20 @@ impl<'ast> syn::visit::Visit<'ast> for FunctionIndexVisitor<'_> {
 /// 3. Phantom-type witness shape → `Resolved { PhantomType }`
 /// 4. Workspace function lookup → `Resolved` / `Ambiguous` / `NotFound`
 fn validate_witness(witness: &str, index: &FunctionIndex) -> WitnessStatus {
-    let trimmed = witness.trim();
+    // Normalize whitespace: the scan path records witnesses via ToTokens, which
+    // emits spaced token form (`clippy :: no_panic_in_drop`, `PolarityProof :: < T > :: verified`).
+    // Collapse all spacing around `::` and `<>` so every downstream detector
+    // works on compact form regardless of source (hand-written or scan-path).
+    let normalized_owned: String = {
+        let collapsed = witness.split_whitespace().collect::<Vec<_>>().join(" ");
+        collapsed
+            .replace(" :: ", "::")
+            .replace(":: ", "::")
+            .replace(" ::", "::")
+            .replace("< ", "<")
+            .replace(" >", ">")
+    };
+    let trimmed = normalized_owned.trim();
     if trimmed.is_empty() {
         return WitnessStatus::Missing;
     }
@@ -631,21 +644,8 @@ fn validate_witness(witness: &str, index: &FunctionIndex) -> WitnessStatus {
 /// no trailing `()` (which would indicate a function call), treat it as
 /// a phantom-type witness candidate.
 fn detect_phantom_type_witness(witness: &str) -> Option<WitnessKind> {
-    // Normalize whitespace: the scan path records witnesses via ToTokens, which
-    // emits spaced token form (`PolarityProof :: < T > :: verified`). Collapse
-    // all internal whitespace sequences to a single space, then strip spaces
-    // adjacent to `::` and `<>` so the sentinel checks below work uniformly
-    // regardless of whether the witness came from source-text parsing or scan.
-    let normalized_owned: String = {
-        let collapsed = witness.split_whitespace().collect::<Vec<_>>().join(" ");
-        collapsed
-            .replace(" :: ", "::")
-            .replace(":: ", "::")
-            .replace(" ::", "::")
-            .replace("< ", "<")
-            .replace(" >", ">")
-    };
-    let trimmed = normalized_owned.trim().trim_end_matches("()").trim();
+    // Input is pre-normalized by validate_witness — compact token spacing guaranteed.
+    let trimmed = witness.trim().trim_end_matches("()").trim();
     let has_turbofish = trimmed.contains("::<");
     if !has_turbofish {
         // No turbofish = not a phantom-type witness shape we recognize. The
