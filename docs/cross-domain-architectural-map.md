@@ -2129,7 +2129,8 @@ substrate-of-practice (Polanyi + Lave & Wenger + Wenger-Trayner et al.
 
 Primary cognates: **cumulative culture (high-fidelity transmission),
 indigenous epistemologies (substrate-embedding), Peirce (icon-to-symbol
-elevation)**. The contrast with fine-tuning-based approaches is sharpest
+elevation), social epistemology (common-knowledge proofs at AI-team
+scale)**. The contrast with fine-tuning-based approaches is sharpest
 through these:
 - Fine-tuning is low-fidelity transmission across model versions;
   antigen is high-fidelity (substrate-grounded, model-independent).
@@ -2138,6 +2139,60 @@ through these:
 - Fine-tuning operates at the iconic-resemblance level (vector-space
   similarity); antigen operates at the symbolic-categorical level
   (named declarations).
+- The muddy-children unreachability claim from the comprehension-drift
+  family applies directly: *fine-tuning is private bilateral state
+  (the model's weights); it cannot establish common knowledge across
+  model instances*. Antigen's structural declarations ARE the public
+  announcement that all agents witness — Halpern & Moses 1990's
+  structural answer applied to AI dev contexts. The 3-gap-variants
+  → forced-externalization antibody finding (V4 vocabulary drift, V5
+  stakeholder mental-model divergence, V10 comprehension-vs-naming
+  drift) is the AI-dev-tooling-paper-specific contribution: these
+  variants are exactly where AI-team coordination fails without
+  shared-substrate carriers.
+
+### Comprehension-drift family material distribution
+
+The comprehension-drift family was authored *after* the initial
+Appendix B framing and its primary cognates (team cognition / shared
+mental models, Argyris organizational learning, social epistemology /
+common-knowledge proofs, systems thinking) initially had no slot
+assignment. Per the recognition-not-design discipline (posture §2):
+*the structure is prior; we recognize it rather than design new slots
+speculatively*. The family's material distributes across the existing
+four slots rather than warranting a fifth:
+
+- **Foundational paper** absorbs the structural-unifier finding (one
+  fail-mode across ten surface forms) and the 5-fundamental-gap
+  cluster (V4, V5, V7, V8b, V10 structurally unreachable per
+  literature prediction). Cognate additions: team cognition / shared
+  mental models, social epistemology / common-knowledge proofs.
+- **Methodology paper** absorbs the form-content gap sub-claim
+  (variants 4, 8, 10 + impure 9 per scientist's three-cluster
+  amendments) and the substrate-of-practice ↔ comprehension-drift
+  unification finding. Cognate additions: Argyris organizational
+  learning, substrate-of-practice citation chain (per Appendix C).
+- **Tool paper** absorbs the V9 showcase variant (three Rust crates
+  exist at three independent angles per scout's prior-art sweep;
+  schema theory predicts the three-axis architecture per the
+  literature-to-tooling-architecture-prediction finding). No new
+  cognate additions; the existing tool-paper cognates suffice.
+- **AI dev tooling paper** absorbs the V5/V7 unreachability claim and
+  the gap-variants forced-externalization antibody finding. Cognate
+  additions: social epistemology / muddy-children-puzzle structural
+  answer applied at AI-team scale.
+
+The genuinely novel contribution scientist flagged ("gap variants with
+forced-externalization antibody shape that doesn't map to any existing
+slot") lives at the *architectural-claim layer*, not the manuscript-
+shape layer. It is foundational-paper positioning material — the
+structural argument that some failure modes are unreachable by static
+analysis and the architecture's structural answer (shared-substrate
+declarations) is the only available response. Distribution rather
+than a fifth slot preserves recognition-not-design discipline while
+locating the novelty correctly.
+
+### Closing posture
 
 This appendix is recommendation, not commitment. Scientist owns
 manuscript-trajectory decisions; the appendix surfaces the cognate-to-
