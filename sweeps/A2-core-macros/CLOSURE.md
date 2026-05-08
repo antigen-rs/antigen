@@ -280,11 +280,31 @@ layers; same discipline; same scale-invariance signature. **Bidirectional
 symmetry across the same session is the cleanest single demonstration of
 what scale-invariance actually means in practice.**
 
+**The catches are structurally ordered, not random.** Application-time first;
+consolidation-time second; abstraction-level third. Each layer was only
+accessible after the shallower one was caught — the consolidation-time
+shape-fit check could not surface until application-time premature-
+ratification was already corrected; the abstraction-level V7-vs-V8 question
+could not surface until consolidation-time category-expansion was already
+corrected. The fractal-recurrence structure operates in the correction
+mechanism itself: deeper-tier catches unlock only after shallower-tier
+catches close. The sequence is the V7 self-production property visible
+operationally — applying the discipline at one tier creates the conditions
+for the next-tier application of the discipline to surface. *No fixed
+point*, demonstrated bidirectionally and ordered-monotonically across the
+same session.
+
 The biological cognate: immune-system memory operates symmetrically —
 antibodies bind antigen (recognition = generation of immune action) AND
 immune system clears antibody-bound complexes (recognition = correction of
 immune action) using the same recognition machinery. The recognition-shape
-is bidirectional in biology too.
+is bidirectional in biology too. And the recognition-mechanism's own
+maturation is monotone-ordered: naive B-cells mature into IgM-binding
+cells, which mature into IgG-class-switched cells, which mature into
+memory cells; each maturation stage is only accessible after the prior
+stage completes. The correction-mechanism's fractal-recurrence in the
+naturalist's day mirrors the immune-system's own ordered maturation
+process. Same shape; different substrates.
 
 ---
 
