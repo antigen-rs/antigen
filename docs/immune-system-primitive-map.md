@@ -612,22 +612,97 @@ across these N modules."
 
 ---
 
-### Contact tracing (find who else was exposed)
+### Contact tracing (find who else was exposed) — multi-modal transmission
 
-**Biology**: when someone tests positive, identify everyone they were in
-contact with so they can be tested/quarantined.
+**Biology**: when an index case is identified, trace contacts across multiple
+*transmission modes* — each pathogen has different transmission characteristics
+that determine which contact relationships matter. Public health tooling
+distinguishes direct contact, droplet, airborne, vector, vertical, fomite
+transmission; each mode has different infectious-period bounds, different
+intervention strategies, and different graph-types for the contact tracer
+to walk.
 
-**Potential antigen instantiation**: when a fingerprint match is found,
-trace `#[descended_from]` chains backward (who derived from this?) and
-forward (what does this derive from?) to find related code that may also
-need attention.
+**Potential antigen instantiation**: contact tracing is *not* limited to
+`#[descended_from]` chains. The full code-relationship graph has multiple
+"transmission modes" — different ways a "sick" code site can affect related
+code without direct executed contact. Each transmission mode has a different
+graph-type antigen tooling could traverse:
 
-**What would trigger instantiation**: post-A3 when descended_from chains
-are cross-crate. Useful when an antigen is added that retroactively
-implicates code in derived chains.
+| Transmission mode | Code relationship | Antigen exposure shape |
+|---|---|---|
+| Direct contact (skin-to-skin) | Call graph (A calls B) | Function presenting antigen → caller is structurally exposed |
+| Droplet transmission (proximity) | Module proximity (same file/mod) | Local invariant assumptions in nearby code |
+| Airborne (long-range) | Trait implementation graph | `impl X for Y` exposes Y everywhere X is used |
+| Vector transmission (mosquitoes) | Macro expansion graph | Macros carry the pattern across many call sites without direct contact |
+| Vertical transmission (parent → child) | Descended_from inheritance | Currently operational (only graph antigen reasons over today) |
+| Fomite transmission (shared objects) | Shared types / traits / generics | Container<T> as carrier; the type itself is the surface |
+| Assumption-graph transmission | Downstream assumptions about behavior | Cross-reactivity at the contextual-assumption tier — see cross-reactivity entry above |
 
-**Tooling shape**: `cargo antigen trace <type>` showing the derivation
-graph + immunity status across the graph.
+That's seven transmission modes corresponding to seven graph-types antigen
+would eventually need to reason over. Rust-analyzer's existing infrastructure
+provides much of the graph substrate (call graph, trait impl resolution, type
+relations, macro expansion); antigen-tooling integration becomes "consume
+rust-analyzer's graphs as substrate, walk them with antigen-aware queries."
+
+**The architectural commitment this elevates**: antigen's recognition surface
+is **graph-typed, not site-typed**. A fingerprint match isn't just "at site
+X"; it's "at site X plus the contact graph rooted at X across all transmission
+modes." Currently antigen reasons over one graph (descended_from); the
+contact-graph framing says antigen will eventually consume multiple graph
+types as substrate.
+
+**The biological richness extends beyond just transmission modes**:
+
+- **Reproductive number (R₀)** → how many code sites per ancestor pattern?
+  Stdlib antigens with high R₀ are keystone-class (per §3 ecology cognate);
+  low R₀ are niche.
+- **Patient zero** → already encoded! The `references = ["GAP-BIT-EXACT-1"]`
+  field IS patient-zero attribution. Every antigen knows its index case.
+- **Quarantine** → PR-gating: when a PR introduces new descended_from chains
+  (or call-graph contacts, or trait-impl surfaces) from an antigen-marked
+  ancestor, gate the PR until immunity is declared OR tolerance is justified.
+  CI-time public-health intervention.
+- **Cluster identification** → families of types sharing an ancestor that
+  presents an antigen. The `family` field on `#[antigen]` partially encodes
+  this; contact-graph traversal operationalizes it.
+- **Index case investigation** → the question contact tracing always asks:
+  "where did this start, and what was the chain?" The references field traces
+  forward from index case; descended_from traces forward from ancestor types.
+  Multiple complementary trace directions.
+
+**Cross-crate version post-A3 is genuinely powerful**:
+
+> "tambear's `Container<T>` was just declared as presenting X. `cargo antigen
+> trace --cross-crate` shows: every project depending on tambear that uses
+> Container<T> is structurally exposed."
+
+That's CVE-style supply-chain propagation but for *failure-classes generally*,
+not just security. The cybersecurity precedent (CVE in dep-graph affects every
+dependent project) maps directly. See cross-domain-architectural-map.md §8
+for the cybersecurity cognate.
+
+**What would trigger instantiation**: post-A5 when antigen-stdlib accumulation
+reaches the point where graph-effects of one declaration matter operationally.
+Pre-A5, descended_from-only contact tracing covers the realistic case. Post-
+A5, when A3 cross-crate scan + adoption pressure surface real cases of
+"declaration of antigen X graph-effects across distant code," the additional
+transmission modes become operationally valuable.
+
+**Tooling shape (graduated by transmission mode)**:
+
+- Phase 1 (descended_from only — current): `cargo antigen trace <type>` showing
+  derivation graph + immunity status across the graph
+- Phase 2 (call graph + trait impl): rust-analyzer integration; trace command
+  walks across multiple graph types
+- Phase 3 (cross-crate, all modes): supply-chain-style propagation tracing
+  via rustdoc JSON or static-emission (per cross-domain-map.md Appendix A
+  for cybersecurity precedent)
+
+*Forward pointer*: the multi-modal transmission framework and its relationship
+to the three-tier cross-reactivity framework above warrants a companion document
+(`contact-graph-and-recognition-tiers.md`) — not yet authored. The framework
+above is the seed; the companion will expand it when adoption surfaces the first
+multi-graph contact tracing requirement (expected post-A3 cross-crate scan).
 
 ---
 
