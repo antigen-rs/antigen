@@ -461,11 +461,6 @@ fn atk_a2_010_phantom_witness_type_param_mismatch_is_flagged() {
 // ============================================================================
 
 #[test]
-#[ignore = "blocks on W4 span-aware error messages — `line_of_attr` returns \
-    the first occurrence of the attribute name in the file rather than the \
-    span of the specific invocation. W4's span-threading work is the natural \
-    home for the fix on the macro side; the scan-side line story lands in a \
-    follow-up using `syn::spanned::Spanned::span().start().line`."]
 fn atk_a2_002_second_antigen_in_file_reports_correct_line() {
     let report = scan_workspace(&fixture("atk_a2_002_multi_antigen_same_file"), None).unwrap();
 

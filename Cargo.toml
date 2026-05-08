@@ -21,7 +21,7 @@ categories = ["development-tools", "development-tools::cargo-plugins", "developm
 [workspace.dependencies]
 syn = { version = "2", features = ["full", "extra-traits", "visit"] }
 quote = "1"
-proc-macro2 = "1"
+proc-macro2 = { version = "1", features = ["span-locations"] }
 walkdir = "2"
 clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
