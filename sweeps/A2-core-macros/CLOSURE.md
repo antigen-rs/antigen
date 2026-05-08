@@ -500,11 +500,54 @@ stand independently as evidence; the family-level naming structure waits
 for the research to produce its substrate before the closure narrative
 fixes a vocabulary in place.
 
-Future closure-narrative drafter (A3+ sweeps): once research deepening
-produces the candidate variants with substrate-grounded names, these
-empirical instances can be assigned to specific variants per the standard
-recognition-not-design workflow. Until then, the empirical evidence is
-the anchor; the family-naming is the deferred work.
+**A2 day-2 addendum (2026-05-08)**: V1 academic-research deepening has
+now completed (Tasks #13 + #14, cross-domain-map campsite). The 10-variant
+matrix is substrate-grounded in six academic fields (cognitive science,
+social epistemology, organizational learning, systems thinking,
+distributed-systems theory, software engineering). The empirical instances
+above can now be assigned:
+
+- **Architectural-relationship-direction drift** (codependence framing
+  corrected to antigen → tambear asymmetry): **Variant 2 — Mental-model
+  drift on system structure** (Forrester, Senge; Argyris). The agent's
+  internal model of the structural relationship was symmetric when the
+  substrate-honest direction is asymmetric. Recovery: double-loop
+  re-grounding (depth-shift discipline re-applied to the relationship-
+  structure tier).
+
+- **Three intra-role catches at progressively-deeper layers**
+  (application-time premature ratification → consolidation-time
+  category-expansion → abstraction-level V8-vs-V7-mechanism framing):
+  **Variant 1 — Substrate-comprehension drift** (Radvansky & Zacks;
+  stale-cache) for each individual catch. The progressive-depth quality
+  is the depth-shift discipline operating as partial antibody at each
+  layer; the recurrence at deeper layers confirms the family-level
+  framing (each layer has its own drift surface).
+
+- **Cross-role conflation transmission** (drafting-vs-finalizing
+  distinction conflated through two routing hops): **Variant 7 —
+  Mutual-update assumption coupling** (Halpern & Moses; Prentice &
+  Miller). Agent A assumed agent B had the correct framing; agent B
+  routed without re-grounding. This is the muddy-children failure mode
+  at the team-coordination layer. Recovery: public-announcement structural
+  answer — substrate-grounded explicit declaration rather than bilateral
+  assumption.
+
+- **Verification-fatigue drift (forward watchpoint)**: **Variant 8 —
+  Verification-fatigue drift** (Vaughan normalization of deviance;
+  Argyris espoused-theory vs theory-in-use). No current empirical
+  instance — still a forward watchpoint. The adversarial-pairing role
+  is the primary structural antibody. Escalation signature: adversarial
+  ATK passes start passing trivially without genuine surface-breaking.
+
+The variant-assignment is recognition, not ratification. These remain
+candidate failure-class family substrate. The five fundamental-gap
+variants (V4 loop-of-meaning drift; V5 stakeholder mental-model
+divergence; V7 mutual-update assumption coupling; V8b verification-rigor
+decay; V10 comprehension-vs-naming drift) are the structural priority for
+antigen failure-class declarations if adoption surfaces real instances in
+codebases — per the substrate-not-localizable / forced-externalization
+antibody finding (cross-domain-map Appendix B, 2026-05-08).
 
 ---
 
