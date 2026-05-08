@@ -184,6 +184,21 @@ recognizes rather than designs):
 
 ### Comprehensive immune-system primitive map (forward substrate)
 
+> **Scale note**: the table below is a **seed set for unbounded ecosystem
+> growth**, not a bounded enumeration of "the primitives antigen will
+> eventually have." Vertebrate immune systems carry on the order of 10^11
+> distinct antibody specificities; the antigen ecosystem's eventual scale —
+> across stdlib + community + domain-specific antigen libraries +
+> per-project antigens — is comparably unbounded. Each named primitive
+> below is a category that could spawn many specific instances. The
+> complete list is the open ecosystem itself, not this table.
+>
+> See [`immune-system-primitive-map.md`](immune-system-primitive-map.md)
+> for substantive expansion of the territory beyond this summary table —
+> including biology categories not yet listed here (latency,
+> cross-reactivity, herd immunity, original antigenic sin, allergy,
+> immunodeficiency, virology, public health, comprehension-drift family).
+
 | Biology | Potential Rust ecosystem instantiation |
 |---|---|
 | Macrophages (phagocytosis: consume + present) | Code-consumer tools that walk macro outputs / build.rs generation / external dependencies and present what's inside as antigen-knowable substrate |
