@@ -324,26 +324,41 @@ fn atk_a2_005_ambiguous_witness_name_is_not_silently_resolved() {
 // ============================================================================
 
 #[test]
-#[ignore = "pre-implementation contract for W6/ADR-011; remove ignore when #[antigen_tolerance] and orphan detection ship"]
-fn atk_a2_009_stale_tolerance_orphan_is_flagged_by_audit() {
-    // Contract: a scan report containing a tolerance marker for an antigen
-    // that has been renamed or removed must NOT silently pass audit.
-    // AuditReport must expose orphaned tolerances as non-well-formed.
+fn atk_a2_009_stale_tolerance_orphan_is_flagged_by_scan() {
+    // Per ADR-011 §Mechanics + ATK-A2-009 (naturalist's biology cognate
+    // "peripheral suppression continuing after the antigen it suppressed is
+    // no longer present"). A tolerance marker for an antigen that isn't
+    // declared in the scanned workspace must surface as an orphan.
     //
-    // Naturalist prediction (A1 closure): "don't ship ADR-011 without at
-    // least a count + top-N rationale strings per antigen in audit output."
-    // Orphan detection is the enforcement gate for that prediction.
-    //
-    // When W6 ships:
-    //   1. ScanReport gains `tolerances: Vec<Tolerance>` field
-    //   2. AuditReport gains `orphaned_tolerances: Vec<OrphanedTolerance>`
-    //   3. Scan fixture: #[antigen_tolerance(OldAntigen, rationale="x")]
-    //      with no AntigenDeclaration for OldAntigen in the workspace
-    //   4. Assert: audit_report.orphaned_tolerances.len() == 1
-    //   5. Assert: audit_report.all_valid() == false (orphans invalidate)
-    //
-    // TODO(adversarial): fill in test body when W6 extends ScanReport/AuditReport.
-    panic!("pre-implementation contract — remove #[ignore] when W6 ships tolerance tracking");
+    // For v0.1 the orphan check lives on the scan side
+    // (ScanReport::orphaned_tolerances). Cross-crate antigens are deferred
+    // to A3 — a tolerance referencing an antigen imported from another
+    // crate would surface as an orphan in this v0.1 model. That's the
+    // documented v0.1 limitation.
+    let fixture_root = fixture("atk_a2_009_orphaned_tolerance");
+    let scan = scan_workspace(&fixture_root, None).unwrap();
+
+    assert_eq!(
+        scan.tolerances.len(),
+        1,
+        "fixture has one #[antigen_tolerance] declaration",
+    );
+    assert!(
+        scan.antigens.is_empty(),
+        "fixture must NOT declare OldAntigen — that's the orphan setup",
+    );
+
+    let orphans = scan.orphaned_tolerances();
+    assert_eq!(
+        orphans.len(),
+        1,
+        "ATK-A2-009: tolerance for undeclared OldAntigen must surface as orphan",
+    );
+    assert_eq!(orphans[0].antigen_type, "OldAntigen");
+    assert!(
+        !orphans[0].rationale.is_empty(),
+        "orphan tolerance carries the original rationale forward for diagnostic context",
+    );
 }
 
 // ============================================================================

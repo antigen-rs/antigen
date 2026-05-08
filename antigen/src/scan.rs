@@ -613,7 +613,16 @@ impl ScanReport {
                     && i.file == p.file
                     && i.item_target.addresses(&p.item_target)
             });
-            if !has_matching_immunity {
+            // W6a: tolerance acknowledges a presentation per ADR-011
+            // §Mechanics. A site with `#[antigen_tolerance(X, ...)]` for
+            // the same antigen on the same item is reported under
+            // "tolerated", not "unaddressed".
+            let has_matching_tolerance = self.tolerances.iter().any(|t| {
+                t.antigen_type == p.antigen_type
+                    && t.file == p.file
+                    && t.item_target.addresses(&p.item_target)
+            });
+            if !has_matching_immunity && !has_matching_tolerance {
                 result.push(UnaddressedPresentation {
                     presentation: p.clone(),
                     antigen_known: known_antigens.contains(p.antigen_type.as_str()),
@@ -623,10 +632,33 @@ impl ScanReport {
         result
     }
 
+    /// Tolerances whose named antigen is no longer declared in the scanned
+    /// workspace. Per ADR-011 §Mechanics + ATK-A2-009 (the stale-tolerance
+    /// orphan check, naturalist's biology cognate "peripheral suppression
+    /// continuing after the antigen it suppressed is no longer present").
+    ///
+    /// Cross-crate antigens are deferred to A3 — for v0.1, an "orphan" is a
+    /// tolerance whose antigen `type_name` doesn't appear in any
+    /// `AntigenDeclaration` in the same scan. Consumers using cross-crate
+    /// antigens may produce false positives here; that's the recognized
+    /// v0.1 limitation.
+    #[must_use]
+    pub fn orphaned_tolerances(&self) -> Vec<&Toleration> {
+        let known: std::collections::HashSet<&str> =
+            self.antigens.iter().map(|a| a.type_name.as_str()).collect();
+        self.tolerances
+            .iter()
+            .filter(|t| !known.contains(t.antigen_type.as_str()))
+            .collect()
+    }
+
     /// Total count of antigen-related declarations found.
     #[must_use]
     pub fn total_declarations(&self) -> usize {
-        self.antigens.len() + self.presentations.len() + self.immunities.len()
+        self.antigens.len()
+            + self.presentations.len()
+            + self.immunities.len()
+            + self.tolerances.len()
     }
 }
 
