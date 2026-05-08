@@ -103,6 +103,14 @@ fn main() -> ExitCode {
 }
 
 fn run_scan(args: ScanArgs) -> ExitCode {
+    if !args.root.exists() {
+        eprintln!("error: path does not exist: {}", args.root.display());
+        return ExitCode::from(2);
+    }
+    if !args.root.is_dir() {
+        eprintln!("error: expected a directory, got a file: {}", args.root.display());
+        return ExitCode::from(2);
+    }
     eprintln!("Scanning workspace: {}", args.root.display());
 
     let report = match scan::scan_workspace(&args.root, None) {
@@ -315,6 +323,14 @@ fn run_vaccinate(antigen: String, pattern: String) -> ExitCode {
 }
 
 fn run_audit(args: AuditArgs) -> ExitCode {
+    if !args.root.exists() {
+        eprintln!("error: path does not exist: {}", args.root.display());
+        return ExitCode::from(2);
+    }
+    if !args.root.is_dir() {
+        eprintln!("error: expected a directory, got a file: {}", args.root.display());
+        return ExitCode::from(2);
+    }
     eprintln!("Auditing workspace: {}", args.root.display());
 
     let scan_report = match scan::scan_workspace(&args.root, None) {
