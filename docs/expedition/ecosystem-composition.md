@@ -1056,21 +1056,106 @@ ran and passed.
 
 ---
 
+## 21. Flux — liquid types for Rust (compile-time refinement witnesses)
+
+**What it does.** Flux (Lehmann, Geller, Vazou, Jhala; PLDI 2023) extends
+Rust's type checker with *liquid types* — refinement predicates that are
+discharged by an SMT solver (Z3) at `cargo check` time, not at a separate
+verifier invocation. Specifications attach to function signatures and type
+definitions via `#[flux::sig(...)]`:
+
+```rust
+#[flux::sig(fn(x: i32{v: v > 0}, y: i32{v: v > 0}) -> i32{v: v > 0})]
+fn add_positive(x: i32, y: i32) -> i32 { x + y }
+```
+
+If the refinement predicate is violated, the build fails at `cargo check`
+with a type error. No separate `cargo flux` step required in the happy path;
+the annotation IS the proof obligation, discharged automatically.
+
+**Failure-class coverage.**
+- **(7) Boundary-violation** — precondition refinements (`{v: v >= 0}`,
+  `{v: v < len}`) encode trust boundaries as types; violation is a type
+  error, not a runtime panic.
+- **(1) Frame-translation** — postcondition refinements encode semantic
+  invariants; any implementation that violates the invariant fails at
+  `cargo check`.
+- **(8) Optionality-collapse** — conditional refinements preserve
+  structural conditional shape through call boundaries.
+- **(6) Incompatible-merger** — composition properties expressible as
+  SMT-dischargeable predicates can encode compatibility invariants.
+
+**Integration surface.**
+- `#[flux::sig(...)]` on functions and methods — the primary annotation.
+- `#[flux::refined_by(...)]` on type definitions — refinement predicates
+  for struct/enum fields.
+- `#[flux::trusted]` — mark a function as trusted without specifying its
+  spec (for FFI boundaries or intentional spec holes).
+- Build integration: Flux plugs into `rustc` via a custom driver; `cargo
+  check` invokes it transparently when Flux is installed.
+
+**Witness-mechanism opportunity.**
+
+Flux is categorically distinct from kani, prusti, creusot, and verus:
+it is the only Rust verification tool that discharges at `cargo check`
+rather than at a separate verifier invocation. This means a Flux-backed
+immunity claim is the only **compile-time-discharged refinement witness**
+in antigen's inventory (phantom-types are compile-time but are type-
+construction witnesses rather than refinement-predicate witnesses).
+
+Integration pattern:
+
+```rust
+#[flux::sig(fn(a: Class, b: Class) -> Class{v: v <= a && v <= b})]
+pub fn meet(a: Class, b: Class) -> Class { /* ... */ }
+
+#[immune(
+    FrameTranslation,
+    witness = flux::sig(meet),
+    rationale = "Flux type signature encodes meet's lower-bound invariant; \
+                 discharged at cargo check, not at runtime."
+)]
+pub fn meet(a: Class, b: Class) -> Class { /* same as above */ }
+```
+
+What `cargo antigen scan` does:
+1. Detects `#[flux::sig]` on the marked item (attribute presence check;
+   shallow, no Flux installation required for detection).
+2. Confirms the crate builds cleanly (implies Flux discharged the spec
+   successfully — if the spec is violated, the build would have failed
+   before antigen runs).
+3. Status: `declared (compile-time refinement — verified by cargo check
+   if build succeeded)`.
+
+This is the *lightest possible audit path* for a formal-verification
+witness: the proof obligation is always discharged if the code compiles.
+No separate tool invocation, no cached output parsing, no CI step beyond
+the normal build.
+
+**Gaps.** Flux requires nightly Rust (at time of writing) and a separate
+Flux compiler installation. The refinement predicate language is
+value-level (integer arithmetic, ordering, set membership) — it cannot
+express behavioral properties beyond arithmetic/structural constraints.
+For complex behavioral properties (liveness, termination, pointer
+aliasing), kani/prusti/verus are more appropriate.
+
+---
+
 ## Composition matrix
 
 Failure-class coverage by tool. `D` = direct/strong coverage,
 `P` = partial coverage (slice of the class), `–` = not applicable.
 
-| Failure class                  | clippy | proptest | quickcheck | mutants | careful | kani | prusti | creusot | verus | miri | deprec. | rustsec | deny | fuzz | cov | doctest | phantom |
-|--------------------------------|:------:|:--------:|:----------:|:-------:|:-------:|:----:|:------:|:-------:|:-----:|:----:|:-------:|:-------:|:----:|:----:|:---:|:-------:|:-------:|
-| 1 Frame-translation            |   P    |    P     |     P      |    P    |    –    |  P   |   D    |    D    |   D   |  –   |    P    |    –    |  –   |  –   |  –  |    P    |    D    |
-| 2 Forgotten-lesson             |   P    |    P     |     P      |    D    |    P    |  P   |   P    |    P    |   P   |  P   |    D    |    D    |  D   |  P   |  P  |    D    |    P    |
-| 3 Implicit-coupling            |   P    |    P     |     P      |    P    |    D    |  P   |   D    |    D    |   D   |  D   |    –    |    –    |  P   |  –   |  –  |    –    |    P    |
-| 4 Stale-context                |   –    |    –     |     –      |    –    |    –    |  –   |   –    |    –    |   –   |  –   |    P    |    D    |  P   |  –   |  –  |    –    |    –    |
-| 5 Premature-abstraction        |   –    |    –     |     –      |    P    |    –    |  –   |   –    |    –    |   –   |  –   |    –    |    –    |  –   |  –   |  –  |    –    |    P    |
-| 6 Incompatible-merger          |   P    |    D     |     P      |    P    |    P    |  D   |   D    |    D    |   D   |  P   |    –    |    –    |  P   |  –   |  –  |    –    |    P    |
-| 7 Boundary-violation           |   D    |    D     |     D      |    D    |    D    |  D   |   D    |    D    |   D   |  D   |    –    |    P    |  –   |  D   |  –  |    P    |    D    |
-| 8 Optionality-collapse         |   –    |    P     |     P      |    P    |    –    |  P   |   D    |    D    |   D   |  –   |    –    |    –    |  –   |  P   |  –  |    –    |    D    |
+| Failure class                  | clippy | proptest | quickcheck | mutants | careful | kani | prusti | creusot | verus | flux | miri | deprec. | rustsec | deny | fuzz | cov | doctest | phantom |
+|--------------------------------|:------:|:--------:|:----------:|:-------:|:-------:|:----:|:------:|:-------:|:-----:|:----:|:----:|:-------:|:-------:|:----:|:----:|:---:|:-------:|:-------:|
+| 1 Frame-translation            |   P    |    P     |     P      |    P    |    –    |  P   |   D    |    D    |   D   |  D   |  –   |    P    |    –    |  –   |  –   |  –  |    P    |    D    |
+| 2 Forgotten-lesson             |   P    |    P     |     P      |    D    |    P    |  P   |   P    |    P    |   P   |  P   |  P   |    D    |    D    |  D   |  P   |  P  |    D    |    P    |
+| 3 Implicit-coupling            |   P    |    P     |     P      |    P    |    D    |  P   |   D    |    D    |   D   |  P   |  D   |    –    |    –    |  P   |  –   |  –  |    –    |    P    |
+| 4 Stale-context                |   –    |    –     |     –      |    –    |    –    |  –   |   –    |    –    |   –   |  –   |  –   |    P    |    D    |  P   |  –   |  –  |    –    |    –    |
+| 5 Premature-abstraction        |   –    |    –     |     –      |    P    |    –    |  –   |   –    |    –    |   –   |  –   |  –   |    –    |    –    |  –   |  –   |  –  |    –    |    P    |
+| 6 Incompatible-merger          |   P    |    D     |     P      |    P    |    P    |  D   |   D    |    D    |   D   |  P   |  P   |    –    |    –    |  P   |  –   |  –  |    –    |    P    |
+| 7 Boundary-violation           |   D    |    D     |     D      |    D    |    D    |  D   |   D    |    D    |   D   |  D   |  D   |    –    |    P    |  –   |  D   |  –  |    P    |    D    |
+| 8 Optionality-collapse         |   –    |    P     |     P      |    P    |    –    |  P   |   D    |    D    |   D   |  D   |  –   |    –    |    –    |  –   |  P   |  –  |    –    |    D    |
 
 Reading the matrix:
 
@@ -1244,13 +1329,21 @@ shallow, and where the partnership produces obvious shared value.
    `fuzz/artifacts/` for crashes and CI logs for run counts. **High
    value for the security-conscious user; modest install cost.**
 
-10. **prusti / creusot / verus** — heavy formal verification. Adapter
+10. **Flux (liquid types)** — uniquely lightweight among formal-verification
+    witnesses: the spec is discharged at `cargo check`, so antigen's adapter
+    needs only to confirm `#[flux::sig]` presence and that the build
+    succeeded. No separate tool invocation to parse. The *only* compile-time-
+    discharged refinement-predicate witness in the inventory. **Bring in
+    alongside or before prusti/verus; the adapter is the simplest of all
+    formal-verification witnesses.**
+
+11. **prusti / creusot / verus** — heavy formal verification. Adapter
     pattern is uniform (each emits per-item verified/unverified). Bring
     in *one* (probably verus, given Rust-native syntax) as the formal
     witness backend. **Niche but high-prestige; signals that antigen
     interoperates with the verification frontier.**
 
-11. **RustSec advisory cross-references** — auto-generate antigens
+12. **RustSec advisory cross-references** — auto-generate antigens
     from advisory DB entries. Adapter: pull RustSec YAML, emit antigen
     declarations. **Connects antigen to the established
     vulnerability-naming ecosystem; broadens adoption story.**
@@ -1281,9 +1374,9 @@ Antigen's positioning rests on three threading observations:
 
 2. **The ecosystem already has rich annotation surfaces:**
    `#[test]`, `#[kani::proof]`, `proptest!`, `#[deprecated]`,
-   `#[mutants::skip]`, `#[requires]`/`#[ensures]`, doctest tags. Antigen
-   doesn't add a new test runner or a new verifier — it adds a
-   *vocabulary* that points at these existing surfaces.
+   `#[mutants::skip]`, `#[requires]`/`#[ensures]`, `#[flux::sig]`,
+   doctest tags. Antigen doesn't add a new test runner or a new verifier
+   — it adds a *vocabulary* that points at these existing surfaces.
 
 3. **The witness mechanism IS the composition.** `witness = <X>` is the
    one sentence that does the threading. Every adapter implements the

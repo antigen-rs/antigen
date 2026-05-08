@@ -146,6 +146,52 @@ why don't I just use clippy + proptest directly?"
   failure-class memory at ecosystem level" message may need different framing for
   different audiences
 
+### Risk A6: Multi-contributor workflow friction
+
+**Likelihood**: Medium. **Severity**: Medium.
+
+*Surfaced by adversarial during Sweep A1 (ATK-008-1); recommended for register
+addition by naturalist convergence-check 1.*
+
+In a multi-contributor codebase, branches are often in mid-progress. A branch
+introducing a new presentation site without yet declaring its immunity is a
+**legitimate intermediate state**, not a defect. If `cargo antigen scan` is
+configured to fail CI on any unaddressed presentation, contributors hit
+hard-stops on transient states — and the project gets blamed for the friction.
+
+This risk is structurally similar to clippy's `-D warnings` flag friction in
+mid-stream development. Contributors learn to disable rather than navigate.
+
+**Biological framing** *(added 2026-05-07 per naturalist H7 finding)*: this
+is not just a workflow accident — it is the **immune lag phase** mapped onto
+code-development. The biological immune system has a mandatory lag of
+5-7 days for primary antibody response and 1-3 days for secondary (memory-
+boosted) response. The system *cannot* produce instant immunity to a new
+presentation; the lag is physiological, not pathological. Antigen's current
+zero-tolerance default for the presentation→immunity gap is biologically
+backwards. The lag is not a bug to suppress; it is a phase to design for.
+See inventory v0 H7 for the full chain.
+
+**Signals**:
+- Issue reports about CI failures on intermediate-state branches
+- `#[antigen_tolerance(reason = "wip")]` markers proliferating in active
+  development branches
+- Project READMEs that recommend disabling `cargo antigen audit` in CI for
+  feature-branch builds
+- Adopters describing antigen as "noisy" not because of false-positives but
+  because of state-of-progress flagging
+
+**Mitigation**:
+- `cargo antigen audit` severity (warn vs error) must be configurable per ADR
+  amendment (ATK-008-1 recommends amending ADR-008's enforcement clause). Default
+  to warn for unaddressed presentations; error only when explicit opt-in.
+- Audit output should distinguish "presentation lacks immunity" (potentially
+  in-progress) from "immunity declared but witness invalid" (a real problem).
+- Documentation must clearly explain when to use `--strict` vs default modes,
+  and how to integrate antigen with mid-stream development workflows.
+- Stories from real adopters about how they integrate antigen into PR/branch
+  workflows feed into the documentation.
+
 ---
 
 ## Engineering-killing risks
@@ -214,6 +260,73 @@ framework conventions, conditional compilation, async runtimes, feature flags.
   v1 with simple witness types (just `#[test]` and proptest) and add complexity
   later
 - Documentation on writing GOOD witnesses helps users avoid edge cases
+
+### Risk E4: Form-blind fingerprints
+
+**Likelihood**: High. **Severity**: High.
+
+*Surfaced empirically by tambear adoption (UlpDistanceRolledByHand, 2026-05-07);
+routed by navigator with biological framing; filed by naturalist as H8 in
+inventory v0. See `docs/expedition/tambear-adoption-log.md` "Third antigen +
+first real cleanup" for the full case.*
+
+A fingerprint declared from one structural manifestation of a failure-class
+will systematically miss other structural manifestations of *the same*
+failure-class. The cleanup that addresses the inline form of a pattern leaves
+the multi-statement form unguarded. **Worse than no fingerprint**: a
+form-blind fingerprint creates *false confidence* — the team believes the
+class is structurally covered when it is only partially covered.
+
+**Empirical evidence**: tambear's `UlpDistanceRolledByHand` case. The
+`tambear-substrate/src/pattern.rs` detector covered the inline expression
+form. Two weeks later, the same failure-class appeared in multi-statement
+function-body form. The detector was form-blind. ULP-CANON-1 was reported
+"complete" on 2026-04-25 but was actually incomplete-as-of-2026-05-07
+because new sweeps reintroduced the pattern in the uncovered form.
+
+**Biological framing** *(per naturalist H8)*: the immune system handles the
+same problem via **multiple epitopes per antigen**. Linear epitopes
+(continuous amino-acid sequence) and conformational epitopes (3D shape)
+can recognize the same antigen molecule in different presentation states.
+Antibodies are raised against *multiple* epitopes simultaneously, not
+against a single representative form. Antigen's design currently supports
+one fingerprint per declaration; biology predicts the fingerprint slot
+should accept *alternative forms* of the same pattern.
+
+**Signals**:
+- A failure-class believed-covered re-emerges in a different syntactic form
+  weeks or months after declaration
+- `cargo antigen scan` reports pattern matches only at one syntax site;
+  manual grep finds additional sites of the same class
+- Adopter feedback: "this antigen catches X but not Y, even though Y is
+  structurally the same failure"
+- Pattern.rs / clippy / similar detectors require multiple per-failure-class
+  rules in their codebase (a known prior-art signal that the multi-form
+  problem is real)
+
+**Mitigation**:
+1. **Top-level `any_of` in fingerprint grammar** (ADR-010): allow a single
+   antigen declaration to specify *multiple alternative structural patterns*
+   that all match the same antigen. The syntax already supports `any_of`
+   nested inside `all_of`; lifting it to top-level is an amendment.
+2. **`cargo antigen new` scaffolding**: when generating an antigen from a
+   sample failing site, suggest alternative structural forms the
+   practitioner should consider (e.g., "this is the inline form; have you
+   considered the function-body form?").
+3. **antigen-stdlib documentation discipline**: every stdlib antigen
+   documents which structural forms it covers AND which it knowingly
+   doesn't. The "covered forms" enumeration becomes part of the antigen's
+   self-description, surfaced by audit.
+4. **Adversarial review at antigen creation**: when an antigen is added,
+   the adversarial role explicitly searches for alternative forms of the
+   same failure-class. This is a recognition pass per ADR-006.
+
+**Cross-reference**: this risk and H8 motivate a refinement to ADR-010
+(grammar) and ADR-006 (recognition). Together with H1 (affinity maturation
+/ descendant fingerprint refinement) the project has two
+fingerprint-refinement paths: at-declaration multi-form support (H8) and
+at-descendant refinement (H1). The first is structurally required; the
+second is deferred to v0.2+.
 
 ---
 
