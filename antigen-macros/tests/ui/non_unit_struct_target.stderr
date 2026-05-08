@@ -1,0 +1,5 @@
+error: #[antigen] must be applied to a unit struct (e.g., `pub struct Name;`)
+  --> tests/ui/non_unit_struct_target.rs:10:1
+   |
+10 | pub struct NonUnit(pub u32);
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^

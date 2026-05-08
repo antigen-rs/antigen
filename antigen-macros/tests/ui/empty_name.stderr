@@ -1,0 +1,7 @@
+error: #[antigen] `name` cannot be empty
+ --> tests/ui/empty_name.rs:7:1
+  |
+7 | #[antigen(name = "", fingerprint = "x")]
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the attribute macro `antigen` (in Nightly builds, run with -Z macro-backtrace for more info)
