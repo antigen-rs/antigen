@@ -171,6 +171,7 @@ impl ItemKind {
     }
 
     /// Render the kind back to its keyword form (for error messages).
+    #[must_use]
     pub const fn keyword(self) -> &'static str {
         match self {
             Self::Struct => "struct",
@@ -190,6 +191,7 @@ pub struct GlobPattern(pub String);
 
 impl GlobPattern {
     /// Match this pattern against a string. See [`glob_match_ident`].
+    #[must_use]
     pub fn matches(&self, name: &str) -> bool {
         glob_match_ident(&self.0, name)
     }
@@ -206,6 +208,7 @@ pub struct VariantRange {
 
 impl VariantRange {
     /// Whether `n` is inside `[min, max]`.
+    #[must_use]
     pub const fn contains(&self, n: usize) -> bool {
         n >= self.min && n <= self.max
     }
