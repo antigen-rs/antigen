@@ -17,10 +17,20 @@
 > rest of the academic literature has already done structural work the
 > project will eventually need to recognize.
 >
+> **The window count is a lower bound, not a census.** The map currently
+> names fifteen fields plus one confirmed A2-day-2 addition (window 16:
+> epistemic logic / common-knowledge proofs — passes full structural-identity
+> test; scientist ruling 2026-05-08). This is structurally expected: a
+> framework with genuine falsifiability structure will keep finding gaps when
+> applied carefully. The no-fixed-point property (Finding 6 below) operates
+> at the meta-level — the framework predicts its own expansion. Each time the
+> structural-identity test is run against a new field, the count updates.
+> "Fifteen+" means at-least-fifteen, not exactly-fifteen.
+>
 > **Companion to**:
 > - [`immune-system-primitive-map.md`](immune-system-primitive-map.md) V0
 >   (biology / virology / medicine / public health spine)
-> - [`scope.md`](scope.md) (the four-window convergence frame)
+> - [`scope.md`](scope.md) (the multi-window convergence frame)
 > - Sweep A1 closure narrative
 >   ([`../sweeps/A1-design-ratification/CLOSURE.md`](../sweeps/A1-design-ratification/CLOSURE.md)),
 >   four empirical validations, especially Validation 3 (three-window defense
