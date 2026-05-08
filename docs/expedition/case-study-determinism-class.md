@@ -539,6 +539,82 @@ what didn't, what got removed, what problem each addition solved.
 
 ---
 
+## Update — 2026-05-08: the live family and empirical defenses
+
+Sweep A2 transformed this case study from aspirational pseudocode to an empirically
+grounded account. The tool shipped (v0.1.0 substrate complete); the biology-derived
+heuristic produced measurable results; and the polarity-inverted-class-meet pattern
+surfaced a third instance during the sweep.
+
+### The live family (three instances confirmed)
+
+The `PolarityInvertedClassMeet` antigen has three confirmed instances in the tambear
+and antigen substrate:
+
+| Instance | Codebase | Status | How it surfaced |
+|---|---|---|---|
+| `DeterminismClass` | tambear | Immune (proptest witness) | Original GAP-BIT-EXACT-1 bug, fixed pre-antigen |
+| `CommutativityClass` | tambear | Immune (proptest witness + DEC-030) | Near-miss during A1 ratification; caught by manual re-derivation |
+| ULP-CANON-1 | antigen/tambear | Immune | Surfaced during Sweep A2 adversarial pass; third instance of the family |
+
+Three instances establishes a *species*, not a coincidence. Each instance is
+independently derived by a different agent working in a fresh context. None of the
+three had access to the others' derivation; all arrived at the same wrong answer
+(`meet = min`) before being corrected. This is exactly the failure mode the antigen
+architecture exists to prevent propagating to a fourth instance.
+
+### Biology-as-search-heuristic: 5/5 precision, ~64% recall
+
+During Sweep A2, the fingerprint grammar and witness-tier design were subjected to an
+adversarial exercise using the biological immune-system metaphor as a search heuristic.
+Predictions were filed as natural-language hypotheses before implementation; adversarial
+then independently searched for implementation defects.
+
+Results:
+- **5 of 5 biology-predicted defect types confirmed** (100% precision)
+- **~64% recall** on the adversarial-confirmed defect set (7 of 11, or 5 of 9 excluding
+  pre-implementation contracts)
+- **Asymmetry**: high recall on recognition-mechanism failure modes (the domain biology
+  has vocabulary for); low recall on engineering-hygiene bugs (biology has no vocabulary
+  for "forgot to refactor this function")
+
+The asymmetry is the correct behavior for a domain-appropriate heuristic. This is
+empirical evidence that the biological metaphor (ADR-003) is load-bearing — a
+decorative metaphor cannot predict failure modes it hasn't modeled.
+
+### Colonization ratio: 8/5 = 160%
+
+During Sweep A2, 8 structural-antigen-pattern instances surfaced for every 5 that were
+deliberately authored as part of the sweep's planned scope. The recognition architecture
+found more failure-class patterns than were consciously targeted — including the third
+`PolarityInvertedClassMeet` instance above. This measures the generativity of the
+recognition architecture: structural-fingerprint design, when applied to a real
+engineering substrate, surfaces more patterns than were programmed into it.
+
+### What changed in the tool output
+
+The v0.1.0 `cargo antigen scan` output is functionally as described in the pseudocode
+above, with two improvements from Sweep A2:
+
+1. **Span-aware error messages** (W4): the diagnostic underlines the offending literal
+   rather than reporting a line number.
+
+2. **5-state interaction matrix** (W6a): scan output distinguishes five states — marked
+   + matched (immune), passively detected (fingerprint match, no explicit marker),
+   inconsistent (marker present but fingerprint doesn't fire), tolerated, stale-tolerance.
+   The "⚠ Unaddressed antigen presentation" shown in the pseudocode maps to the
+   "passively detected" state.
+
+3. **WitnessTier gradient** (W7): audit output reports the *tier* of verification
+   actually performed (Reachability / Execution / FormalProof), not just "witness
+   passed." A proptest is Execution-tier; a kani harness is FormalProof-tier. The
+   declaration explicitly does not claim stronger verification than its witness provides.
+
+The scan output for the CommutativityClass case would now include the witness tier in
+the immunity declaration display: `IMMUNE (WitnessTier::Execution, witness: proptest)`.
+
+---
+
 ## References
 
 - [`docs/origin.md`](../origin.md) — the post-mortem narrative motivating the project
