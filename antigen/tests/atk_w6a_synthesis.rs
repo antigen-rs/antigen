@@ -403,8 +403,10 @@ struct TargetStruct;
         !report.parse_failures.is_empty(),
         "ATK-W6a-SYN-003: malformed fingerprint did not produce a parse_failure entry"
     );
-    let bad_antigen_failure = report.parse_failures.iter().any(|(_, msg)| {
-        msg.contains("BadAntigen") || msg.contains("bad-antigen") || msg.contains("fingerprint")
+    let bad_antigen_failure = report.parse_failures.iter().any(|pf| {
+        pf.error.contains("BadAntigen")
+            || pf.error.contains("bad-antigen")
+            || pf.error.contains("fingerprint")
     });
     assert!(
         bad_antigen_failure,

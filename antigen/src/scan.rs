@@ -552,6 +552,19 @@ pub struct Toleration {
     pub item_target: ItemTarget,
 }
 
+/// A file that failed to parse during a scan, with the associated error.
+///
+/// Serializes as `{"file": "...", "error": "..."}` — named fields, consistent
+/// with every other collection in [`ScanReport`]. (`Vec<(PathBuf, String)>`
+/// would serialize as positional JSON arrays, breaking JSON consumers.)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ParseFailure {
+    /// Path to the file that failed.
+    pub file: PathBuf,
+    /// Human-readable parse error.
+    pub error: String,
+}
+
 /// Aggregate result of scanning a workspace.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ScanReport {
@@ -568,7 +581,7 @@ pub struct ScanReport {
     /// Files scanned successfully.
     pub files_scanned: usize,
     /// Files that failed to parse.
-    pub parse_failures: Vec<(PathBuf, String)>,
+    pub parse_failures: Vec<ParseFailure>,
 }
 
 /// A presentation that has no matching immunity declaration on the same item.
@@ -729,9 +742,10 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
                 parsed_files.push((file_path, file));
             }
             Err(e) => {
-                report
-                    .parse_failures
-                    .push((entry.path().to_path_buf(), e.to_string()));
+                report.parse_failures.push(ParseFailure {
+                    file: entry.path().to_path_buf(),
+                    error: e.to_string(),
+                });
             }
         }
     }
@@ -753,7 +767,7 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
     // Collect parse failures separately to avoid aliasing `report` inside the
     // iterator (immutable borrow on `report.antigens` + mutable push on
     // `report.parse_failures` would conflict at borrow-check time).
-    let mut fp_parse_failures: Vec<(PathBuf, String)> = Vec::new();
+    let mut fp_parse_failures: Vec<ParseFailure> = Vec::new();
     let fingerprints: Vec<(String, antigen_fingerprint::Fingerprint)> = report
         .antigens
         .iter()
@@ -762,13 +776,13 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
             match antigen_fingerprint::Fingerprint::parse(raw) {
                 Ok(fp) => Some((ag.type_name.clone(), fp)),
                 Err(e) => {
-                    fp_parse_failures.push((
-                        ag.file.clone(),
-                        format!(
+                    fp_parse_failures.push(ParseFailure {
+                        file: ag.file.clone(),
+                        error: format!(
                             "antigen `{}`: fingerprint failed to re-parse during synthesis: {e}",
                             ag.type_name
                         ),
-                    ));
+                    });
                     None
                 }
             }
@@ -984,10 +998,10 @@ impl ScanVisitor<'_> {
                     .map(|s| s.ident.to_string())
                     .unwrap_or_default(),
                 Err(e) => {
-                    self.report.parse_failures.push((
-                        self.file_path.clone(),
-                        format!("malformed #[presents] attribute: {e}"),
-                    ));
+                    self.report.parse_failures.push(ParseFailure {
+                        file: self.file_path.clone(),
+                        error: format!("malformed #[presents] attribute: {e}"),
+                    });
                     return;
                 }
             }
@@ -1023,10 +1037,10 @@ impl ScanVisitor<'_> {
                     // check fires, and would produce a misleading "0 unaddressed
                     // presentations" result. ADR-005: every trust boundary requires
                     // a validation check; malformed immunity claims are not claims.
-                    self.report.parse_failures.push((
-                        self.file_path.clone(),
-                        format!("malformed #[immune] attribute: {e}"),
-                    ));
+                    self.report.parse_failures.push(ParseFailure {
+                        file: self.file_path.clone(),
+                        error: format!("malformed #[immune] attribute: {e}"),
+                    });
                     return;
                 }
             };
@@ -1052,10 +1066,10 @@ impl ScanVisitor<'_> {
             let args = match syn::parse2::<ScanToleranceArgs>(list.tokens.clone()) {
                 Ok(args) => args,
                 Err(e) => {
-                    self.report.parse_failures.push((
-                        self.file_path.clone(),
-                        format!("malformed #[antigen_tolerance] attribute: {e}"),
-                    ));
+                    self.report.parse_failures.push(ParseFailure {
+                        file: self.file_path.clone(),
+                        error: format!("malformed #[antigen_tolerance] attribute: {e}"),
+                    });
                     return;
                 }
             };
@@ -1063,10 +1077,10 @@ impl ScanVisitor<'_> {
             // Scan side enforces the same boundary the macro enforces — a
             // tolerance without rationale is silent suppression.
             if args.rationale.is_empty() {
-                self.report.parse_failures.push((
-                    self.file_path.clone(),
-                    "#[antigen_tolerance] requires non-empty rationale".to_string(),
-                ));
+                self.report.parse_failures.push(ParseFailure {
+                    file: self.file_path.clone(),
+                    error: "#[antigen_tolerance] requires non-empty rationale".to_string(),
+                });
                 return;
             }
             let line = Self::line_of_attr(attr);
@@ -1223,9 +1237,9 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
                 // time; this scan-side diagnostic catches enum cases that
                 // wouldn't reach the macro (e.g., a user investigating "why
                 // doesn't my class enum scan as an antigen?").
-                self.report.parse_failures.push((
-                    self.file_path.clone(),
-                    format!(
+                self.report.parse_failures.push(ParseFailure {
+                    file: self.file_path.clone(),
+                    error: format!(
                         "#[antigen] on enum `{}` is not supported in v0.1; \
                          antigen declarations must be unit structs (e.g., \
                          `pub struct {};`). Enum-shaped failure-classes are \
@@ -1233,7 +1247,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
                          in a future grammar version.",
                         item.ident, item.ident
                     ),
-                ));
+                });
             }
         }
         let target = ItemTarget::Enum(item.ident.to_string());
