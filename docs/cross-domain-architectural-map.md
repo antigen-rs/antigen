@@ -2144,12 +2144,17 @@ through these:
   (the model's weights); it cannot establish common knowledge across
   model instances*. Antigen's structural declarations ARE the public
   announcement that all agents witness — Halpern & Moses 1990's
-  structural answer applied to AI dev contexts. The 3-gap-variants
-  → forced-externalization antibody finding (V4 vocabulary drift, V5
-  stakeholder mental-model divergence, V10 comprehension-vs-naming
+  structural answer applied to AI dev contexts. The 5-gap-variants
+  → forced-externalization antibody finding (V4 loop-of-meaning drift;
+  V5 stakeholder mental-model divergence; V7 mutual-update assumption
+  coupling; V8b verification-rigor decay; V10 comprehension-vs-naming
   drift) is the AI-dev-tooling-paper-specific contribution: these
   variants are exactly where AI-team coordination fails without
-  shared-substrate carriers.
+  shared-substrate carriers. The five-variant set spans Clusters B and
+  C in scientist's three-cluster structure, which is itself a finding
+  — the antibody shape is determined by *substrate localizability*,
+  not by which cluster the variant occupies (per scientist's cross-
+  cluster antibody finding, methodology-paper-substrate.md, 2026-05-08).
 
 ### Comprehension-drift family material distribution
 
@@ -2165,22 +2170,41 @@ four slots rather than warranting a fifth:
 - **Foundational paper** absorbs the structural-unifier finding (one
   fail-mode across ten surface forms) and the 5-fundamental-gap
   cluster (V4, V5, V7, V8b, V10 structurally unreachable per
-  literature prediction). Cognate additions: team cognition / shared
-  mental models, social epistemology / common-knowledge proofs.
-- **Methodology paper** absorbs the form-content gap sub-claim
-  (variants 4, 8, 10 + impure 9 per scientist's three-cluster
-  amendments) and the substrate-of-practice ↔ comprehension-drift
-  unification finding. Cognate additions: Argyris organizational
-  learning, substrate-of-practice citation chain (per Appendix C).
+  literature prediction). The manuscript-grade positioning sentence
+  (per scientist's substrate, 2026-05-08): *"There are five named
+  comprehension-drift variants that static analysis fundamentally
+  cannot reach: V4 (loop-of-meaning drift), V5 (stakeholder mental-
+  model divergence), V7 (mutual-update assumption coupling), V8b
+  (verification-rigor decay), V10 (comprehension-vs-naming drift).
+  The literatures predict the unreachability — this is not contingent
+  tooling absence. The structural answer in each case is shared-
+  substrate declarations: the muddy-children-puzzle move generalized."*
+  Cognate additions: team cognition / shared mental models, social
+  epistemology / common-knowledge proofs.
+- **Methodology paper** absorbs the three-cluster structure (Currency-
+  lag A {1, 2, 3, 7}; Form-content gap B {4, 8a, 10 + impure 9};
+  Social-tracking C {5, 6}), the V8 split (V8a iconic / V8b symbolic-
+  tier per Peirce framing — V8b moves to substrate-not-localizable
+  cluster), and the substrate-of-practice ↔ comprehension-drift
+  unification finding. Worth noting: variant 5 is *Cluster C by
+  symptom but Cluster A by mechanism* — the coordination failure is
+  observable; the underlying mechanism is individual-comprehension
+  failure at each agent. The cluster structure names the symptom; the
+  structural unifier names the mechanism. Cognate additions: Argyris
+  organizational learning + Vaughan normalization of deviance
+  (form-content gap mechanism), substrate-of-practice citation chain
+  (per Appendix C).
 - **Tool paper** absorbs the V9 showcase variant (three Rust crates
   exist at three independent angles per scout's prior-art sweep;
   schema theory predicts the three-axis architecture per the
   literature-to-tooling-architecture-prediction finding). No new
   cognate additions; the existing tool-paper cognates suffice.
 - **AI dev tooling paper** absorbs the V5/V7 unreachability claim and
-  the gap-variants forced-externalization antibody finding. Cognate
-  additions: social epistemology / muddy-children-puzzle structural
-  answer applied at AI-team scale.
+  the cross-cluster forced-externalization antibody finding (V4, V5,
+  V7, V8b, V10 — five variants spanning Clusters B and C; antibody
+  shape is determined by *substrate localizability*, not cluster
+  membership). Cognate additions: social epistemology / muddy-
+  children-puzzle structural answer applied at AI-team scale.
 
 The genuinely novel contribution scientist flagged ("gap variants with
 forced-externalization antibody shape that doesn't map to any existing
@@ -2191,6 +2215,14 @@ analysis and the architecture's structural answer (shared-substrate
 declarations) is the only available response. Distribution rather
 than a fifth slot preserves recognition-not-design discipline while
 locating the novelty correctly.
+
+The cross-cluster span of the antibody finding is itself a methodology
+paper finding distinct from the foundational paper's gap-existence
+claim: *the antibody architecture for a failure family depends on the
+structure of the drifting-thing (substrate localizability), not on the
+surface-form cluster of the failure*. Naming this explicitly preempts
+a reviewer asking why the same antibody applies to variants in
+different clusters.
 
 ### Closing posture
 
