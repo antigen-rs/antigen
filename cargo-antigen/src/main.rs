@@ -51,7 +51,7 @@ enum AntigenSubcommand {
         /// Pattern (glob or path) describing target sites
         pattern: String,
     },
-    /// Comprehensive immunity coverage report (design phase).
+    /// Comprehensive immunity coverage report — witness resolution and tier validation.
     Audit(AuditArgs),
 }
 
