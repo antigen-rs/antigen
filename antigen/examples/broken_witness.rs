@@ -20,7 +20,10 @@ use antigen::{antigen, immune, presents};
 #[antigen(
     name = "demo-broken-witness",
     family = "boundary-violation",
-    fingerprint = "demonstration only — represents any structural pattern",
+    // Minimal valid DSL fingerprint — the example's job is to exercise audit's
+    // broken-witness path, not the fingerprint matcher. `name = matches("*")`
+    // is the trivially-applicable shape.
+    fingerprint = r#"name = matches("*")"#,
     summary = "Demonstrates audit catching a broken witness identifier."
 )]
 pub struct DemoBrokenWitness;

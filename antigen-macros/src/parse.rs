@@ -163,6 +163,20 @@ impl AntigenArgs {
                 "#[antigen] `fingerprint` cannot be empty",
             ));
         }
+        // W6a: per ADR-010 Amendment 3 Clause E, the fingerprint string is
+        // parsed at macro-compile time so malformed fingerprints don't ship.
+        // Re-anchor any Path-C parser error to the fingerprint literal's span
+        // so the user sees the squiggle on the offending text.
+        if let Err(parse_err) = antigen_fingerprint::Fingerprint::parse(&self.fingerprint) {
+            let anchor = self.fingerprint_span.unwrap_or(self.args_span);
+            return Err(syn::Error::new(
+                anchor,
+                format!(
+                    "#[antigen] `fingerprint` does not parse: {parse_err}\n\
+                     (per ADR-010 Amendment 1 Path C — DSL syntax, not raw Rust expressions)"
+                ),
+            ));
+        }
         Ok(())
     }
 }
@@ -576,9 +590,11 @@ mod tests {
         }
     }
 
-    /// Construct an `AntigenArgs` with the given name+fingerprint and call-site
-    /// spans. Used by direct-construction tests that bypass `Parse` to exercise
-    /// `validate()` against arbitrary field values.
+    /// Construct an `AntigenArgs` with the given name + a valid DSL fingerprint.
+    /// Used by direct-construction tests that bypass `Parse` to exercise
+    /// name-validation paths in `validate()`. Tests that need to exercise
+    /// fingerprint-validation paths build their own `AntigenArgs` literal
+    /// with the specific fingerprint they want to assert against.
     fn args_with(name: &str, fingerprint: &str) -> AntigenArgs {
         AntigenArgs {
             name: name.to_string(),
@@ -592,29 +608,41 @@ mod tests {
         }
     }
 
+    /// Minimal DSL fingerprint string accepted by the W6a parser. Tests that
+    /// don't care about fingerprint content but DO want validate() to succeed
+    /// use this to keep their assertions focused on name validation.
+    const VALID_DSL: &str = r#"name = matches("*")"#;
+
     #[test]
     fn validate_rejects_empty_name() {
-        assert!(args_with("", "x").validate().is_err());
+        assert!(args_with("", VALID_DSL).validate().is_err());
     }
 
     #[test]
     fn validate_rejects_non_kebab_name() {
-        assert!(args_with("FooBar", "x").validate().is_err());
+        assert!(args_with("FooBar", VALID_DSL).validate().is_err());
     }
 
     #[test]
     fn validate_accepts_kebab_name_with_digits() {
-        assert!(args_with("frame-2-translation", "x").validate().is_ok());
+        assert!(args_with("frame-2-translation", VALID_DSL).validate().is_ok());
     }
 
     #[test]
     fn validate_rejects_name_with_double_hyphen() {
-        assert!(args_with("frame--translation", "x").validate().is_err());
+        assert!(args_with("frame--translation", VALID_DSL).validate().is_err());
     }
 
     #[test]
     fn validate_rejects_name_starting_with_hyphen() {
-        assert!(args_with("-frame", "x").validate().is_err());
+        assert!(args_with("-frame", VALID_DSL).validate().is_err());
+    }
+
+    #[test]
+    fn validate_rejects_malformed_dsl_fingerprint() {
+        let args = args_with("ok-name", "this is not the dsl");
+        let err = args.validate().unwrap_err().to_string();
+        assert!(err.contains("fingerprint"), "got: {err}");
     }
 
     #[test]
@@ -804,7 +832,11 @@ mod parser_props {
             prop_assert_eq!(&args.fingerprint, &fingerprint);
             prop_assert_eq!(args.family.as_deref(), family.as_deref());
             prop_assert_eq!(args.summary.as_deref(), summary.as_deref());
-            prop_assert!(args.validate().is_ok());
+            // W6a: validate() now invokes antigen_fingerprint::Fingerprint::parse,
+            // which rejects arbitrary text. The round-trip property is about
+            // parse-render-parse idempotency for the value fields, not about
+            // DSL validity; drop the validate() assertion here. A separate
+            // proptest with a valid_dsl() strategy is future work.
 
             // Round-trip: re-render the parsed args and re-parse. Result
             // must be identical (idempotency under the canonical rendering).
