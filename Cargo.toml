@@ -27,6 +27,15 @@ clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
+# Dev-only: property-based tests for parser invariants (W1).
+# proptest 1.x has been stable since 2017; we hold to that line.
+proptest = "1"
+# Dev-only: trybuild compile-error fixture harness (W2).
+trybuild = "1"
+# Dev-only: tempdir helper for filesystem-fixture integration tests
+# (used by `antigen/tests/atk_a2_adversarial.rs` and similar).
+tempfile = "3"
+
 [workspace.lints.rust]
 unsafe_code = "forbid"
 missing_docs = "warn"

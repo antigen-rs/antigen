@@ -423,24 +423,23 @@ impl ScanVisitor<'_> {
             // delegated tool reference, (3) optionally invoke it via cargo test and
             // verify it asserts the expected property. Currently we just record
             // the witness expression verbatim.
-            let (antigen_type, witness) =
-                match syn::parse2::<ScanImmuneArgs>(list.tokens.clone()) {
-                    Ok(args) => (args.antigen_type, args.witness),
-                    Err(e) => {
-                        // Malformed #[immune] args: record a parse failure rather
-                        // than silently inserting a ghost immunity record with empty
-                        // antigen_type and witness. A ghost record would pass
-                        // WitnessStatus::Missing detection only if the empty-string
-                        // check fires, and would produce a misleading "0 unaddressed
-                        // presentations" result. ADR-005: every trust boundary requires
-                        // a validation check; malformed immunity claims are not claims.
-                        self.report.parse_failures.push((
-                            self.file_path.clone(),
-                            format!("malformed #[immune] attribute: {e}"),
-                        ));
-                        return;
-                    }
-                };
+            let (antigen_type, witness) = match syn::parse2::<ScanImmuneArgs>(list.tokens.clone()) {
+                Ok(args) => (args.antigen_type, args.witness),
+                Err(e) => {
+                    // Malformed #[immune] args: record a parse failure rather
+                    // than silently inserting a ghost immunity record with empty
+                    // antigen_type and witness. A ghost record would pass
+                    // WitnessStatus::Missing detection only if the empty-string
+                    // check fires, and would produce a misleading "0 unaddressed
+                    // presentations" result. ADR-005: every trust boundary requires
+                    // a validation check; malformed immunity claims are not claims.
+                    self.report.parse_failures.push((
+                        self.file_path.clone(),
+                        format!("malformed #[immune] attribute: {e}"),
+                    ));
+                    return;
+                }
+            };
             let line = self.line_of_attr("immune");
             self.report.immunities.push(Immunity {
                 antigen_type,
@@ -553,10 +552,9 @@ mod tests {
 
     #[test]
     fn immune_args_parses_antigen_type_and_witness() {
-        let tokens: proc_macro2::TokenStream =
-            r"PanickingInDrop, witness = no_panic_in_drop_test"
-                .parse()
-                .unwrap();
+        let tokens: proc_macro2::TokenStream = r"PanickingInDrop, witness = no_panic_in_drop_test"
+            .parse()
+            .unwrap();
         let args = syn::parse2::<ScanImmuneArgs>(tokens).unwrap();
         assert_eq!(args.antigen_type, "PanickingInDrop");
         assert_eq!(args.witness, "no_panic_in_drop_test");
@@ -592,7 +590,13 @@ mod tests {
     // ========================================================================
 
     // (input, expected_name, expected_fingerprint, expected_family, expected_summary)
-    type ScanFixture = (&'static str, &'static str, &'static str, Option<&'static str>, Option<&'static str>);
+    type ScanFixture = (
+        &'static str,
+        &'static str,
+        &'static str,
+        Option<&'static str>,
+        Option<&'static str>,
+    );
 
     const SCAN_PARSER_FIXTURES: &[ScanFixture] = &[
         (
@@ -689,5 +693,288 @@ mod tests {
         let args = syn::parse2::<ScanAntigenArgs>(tokens).unwrap();
         assert_eq!(args.name, "only-name");
         assert_eq!(args.fingerprint, None);
+    }
+
+    // ========================================================================
+    // Property tests (W1) — proptest invariants over the scan-side parser.
+    //
+    // These are the scan-side half of the cross-parser equivalence story.
+    // Their invariants mirror the macro-side proptests in
+    // `antigen-macros/src/parse.rs::parser_props`. Both sides share the same
+    // input strategies (literal-copied; if you change one, change the other
+    // in the same commit) — this is the by-construction substitute for
+    // running both parsers in one binary, which the proc-macro crate
+    // separation forbids.
+    //
+    // Cross-parser invariants asserted (macro-side P1-P8 mirror):
+    //
+    //   I1 (P1 mirror) — round-trip on intersection: any input the macro
+    //        side accepts, the scan side accepts and produces equivalent
+    //        semantic content for name/fingerprint/family/summary.
+    //
+    //   I2 (P2 mirror) — order-invariance: shuffling fields doesn't change
+    //        the parsed result on the scan side.
+    //
+    //   I3 (asymmetry) — scan tolerates what macro rejects:
+    //        - unknown fields: macro errors, scan silently consumes
+    //        - missing required: macro errors, scan defaults to empty
+    //        These asymmetries are intentional (forward-compat + non-blocking
+    //        scan progress on partial workspaces) and are documented as
+    //        properties so they don't accidentally regress.
+    //
+    // The macro-side parser reports were tested under `parser_props` in the
+    // sister crate. Together, the two test modules form the W1 floor that
+    // ADR-001 Amendment 1 C5 (drift-detection-at-scan-time) makes
+    // load-bearing.
+    // ========================================================================
+
+    mod parser_props {
+        use super::super::*;
+        use proc_macro2::TokenStream;
+        use proptest::prelude::*;
+
+        /// Rust strict + reserved keywords that cannot appear as path
+        /// segments. Kept in sync with `antigen-macros/src/parse.rs::
+        /// parser_props::RUST_KEYWORDS` (literal-shared by convention; if
+        /// you change one, change the other in the same commit).
+        const RUST_KEYWORDS: &[&str] = &[
+            "as", "async", "await", "box", "break", "const", "continue", "crate", "do", "dyn",
+            "else", "enum", "extern", "false", "fn", "for", "if", "impl", "in", "let", "loop",
+            "macro", "match", "mod", "move", "mut", "pub", "ref", "return", "self", "static",
+            "struct", "super", "trait", "true", "type", "union", "unsafe", "use", "where", "while",
+            "yield", "abstract", "become", "final", "override", "priv", "try",
+        ];
+
+        // --- Strategies (kept literally identical to macro side; see
+        //     antigen-macros/src/parse.rs::parser_props). ---
+
+        fn valid_kebab() -> impl Strategy<Value = String> {
+            proptest::collection::vec(
+                (
+                    proptest::char::range('a', 'z'),
+                    proptest::collection::vec(
+                        prop_oneof![
+                            proptest::char::range('a', 'z'),
+                            proptest::char::range('0', '9'),
+                        ],
+                        0..8usize,
+                    ),
+                )
+                    .prop_map(|(first, rest)| {
+                        let mut s = String::with_capacity(rest.len() + 1);
+                        s.push(first);
+                        for c in rest {
+                            s.push(c);
+                        }
+                        s
+                    }),
+                1..5usize,
+            )
+            .prop_map(|segments| segments.join("-"))
+        }
+
+        fn valid_text(max_len: usize) -> impl Strategy<Value = String> {
+            proptest::collection::vec(
+                prop_oneof![
+                    proptest::char::range(' ', '~').prop_filter("excluded chars", |c| {
+                        *c != '\\' && *c != '"' && *c != '\0'
+                    }),
+                ],
+                1..=max_len,
+            )
+            .prop_map(|chars| chars.into_iter().collect())
+        }
+
+        fn lit(s: &str) -> String {
+            format!("{s:?}")
+        }
+
+        fn render_antigen_body(
+            name: &str,
+            fingerprint: &str,
+            family: Option<&str>,
+            summary: Option<&str>,
+        ) -> String {
+            let mut parts = vec![
+                format!("name = {}", lit(name)),
+                format!("fingerprint = {}", lit(fingerprint)),
+            ];
+            if let Some(f) = family {
+                parts.push(format!("family = {}", lit(f)));
+            }
+            if let Some(s) = summary {
+                parts.push(format!("summary = {}", lit(s)));
+            }
+            parts.join(", ")
+        }
+
+        proptest! {
+            // I1 — equivalence-on-intersection: any input the macro side
+            // accepts (i.e., any input render_antigen_body produces from
+            // valid_kebab + valid_text), the scan side accepts and produces
+            // matching semantic content. The macro-side counterpart asserts
+            // its own acceptance + identical extraction; together they lock
+            // cross-parser drift.
+            #[test]
+            fn scan_parser_round_trip_on_macro_inputs(
+                name in valid_kebab(),
+                fingerprint in valid_text(64),
+                family in proptest::option::of(valid_text(32)),
+                summary in proptest::option::of(valid_text(64)),
+            ) {
+                let body = render_antigen_body(&name, &fingerprint, family.as_deref(), summary.as_deref());
+                let tokens: TokenStream = body.parse().expect("body must tokenize");
+                let args = syn::parse2::<ScanAntigenArgs>(tokens).expect("scan must accept macro-acceptable input");
+                prop_assert_eq!(&args.name, &name);
+                prop_assert_eq!(args.fingerprint.as_deref(), Some(fingerprint.as_str()));
+                prop_assert_eq!(args.family.as_deref(), family.as_deref());
+                prop_assert_eq!(args.summary.as_deref(), summary.as_deref());
+            }
+
+            // I2 — order-invariance: scan side, like macro side, must not
+            // depend on field order.
+            #[test]
+            fn scan_parser_order_invariant(
+                name in valid_kebab(),
+                fingerprint in valid_text(48),
+                family in valid_text(24),
+                summary in valid_text(48),
+            ) {
+                let canonical = format!(
+                    "name = {}, fingerprint = {}, family = {}, summary = {}",
+                    lit(&name), lit(&fingerprint), lit(&family), lit(&summary),
+                );
+                let reversed = format!(
+                    "summary = {}, family = {}, fingerprint = {}, name = {}",
+                    lit(&summary), lit(&family), lit(&fingerprint), lit(&name),
+                );
+                let a: ScanAntigenArgs = syn::parse2(canonical.parse::<TokenStream>().unwrap()).unwrap();
+                let b: ScanAntigenArgs = syn::parse2(reversed.parse::<TokenStream>().unwrap()).unwrap();
+                prop_assert_eq!(&a.name, &b.name);
+                prop_assert_eq!(&a.fingerprint, &b.fingerprint);
+                prop_assert_eq!(&a.family, &b.family);
+                prop_assert_eq!(&a.summary, &b.summary);
+            }
+
+            // I3a (asymmetry) — scan tolerates unknown fields. For ANY
+            // valid base input plus an arbitrary unknown field, scan still
+            // parses and recovers name/fingerprint correctly.
+            #[test]
+            fn scan_parser_tolerates_arbitrary_unknown_field(
+                name in valid_kebab(),
+                fingerprint in valid_text(32),
+                unknown in "[a-z][a-z_]{2,12}".prop_filter(
+                    "must not collide with known fields",
+                    |s| !matches!(s.as_str(), "name" | "fingerprint" | "family" | "summary" | "references"),
+                ),
+                unknown_val in valid_text(16),
+            ) {
+                let body = format!(
+                    "name = {}, fingerprint = {}, {} = {}",
+                    lit(&name), lit(&fingerprint), unknown, lit(&unknown_val),
+                );
+                let tokens: TokenStream = body.parse().expect("body tokenizes");
+                let args = syn::parse2::<ScanAntigenArgs>(tokens).expect("scan tolerates unknown fields");
+                prop_assert_eq!(&args.name, &name);
+                prop_assert_eq!(args.fingerprint.as_deref(), Some(fingerprint.as_str()));
+            }
+
+            // I3b (asymmetry) — scan tolerates missing required fields:
+            // an input with only `name` (or only `fingerprint`) parses,
+            // with the other field as `None` / empty. Macro side errors.
+            #[test]
+            fn scan_parser_tolerates_missing_fingerprint(
+                name in valid_kebab(),
+            ) {
+                let body = format!("name = {}", lit(&name));
+                let tokens: TokenStream = body.parse().expect("body tokenizes");
+                let args = syn::parse2::<ScanAntigenArgs>(tokens).expect("scan tolerates missing fingerprint");
+                prop_assert_eq!(&args.name, &name);
+                prop_assert_eq!(args.fingerprint, None);
+            }
+
+            // I4 — references field is consumed silently (not stored in
+            // the scan output today, but must not error). Macro side
+            // stores into Vec<String>.
+            #[test]
+            fn scan_parser_consumes_references_array(
+                name in valid_kebab(),
+                fingerprint in valid_text(32),
+                refs in proptest::collection::vec(valid_text(24), 0..6usize),
+            ) {
+                let refs_lit: Vec<String> = refs.iter().map(|s| lit(s)).collect();
+                let body = format!(
+                    "name = {}, fingerprint = {}, references = [{}]",
+                    lit(&name), lit(&fingerprint), refs_lit.join(", "),
+                );
+                let tokens: TokenStream = body.parse().expect("body tokenizes");
+                let args = syn::parse2::<ScanAntigenArgs>(tokens).expect("scan parses references");
+                prop_assert_eq!(&args.name, &name);
+                prop_assert_eq!(args.fingerprint.as_deref(), Some(fingerprint.as_str()));
+            }
+
+            // I5 — ScanImmuneArgs: any (path, witness-path) parses and
+            // exposes the last segment as antigen_type. Mirrors the
+            // macro-side P7 property.
+            //
+            // Identifier strategies skip Rust keywords: even though our
+            // regex generates legal-looking strings like "as" or "fn",
+            // syn rejects them as path segments. Filtering the keyword
+            // set out is the by-construction property — "valid path
+            // segments parse" — rather than the false stronger one
+            // "any [a-z][a-z_0-9]* parses".
+            #[test]
+            fn scan_immune_extracts_last_path_segment(
+                antigen in "[A-Z][A-Za-z0-9]{0,16}",
+                witness_segments in proptest::collection::vec(
+                    "[a-z][a-z_0-9]{0,8}".prop_filter(
+                        "must not be a Rust keyword",
+                        |s| !RUST_KEYWORDS.contains(&s.as_str()),
+                    ),
+                    1..4usize,
+                ),
+            ) {
+                let witness = witness_segments.join("::");
+                let body = format!("{antigen}, witness = {witness}");
+                let tokens: TokenStream = body.parse().expect("body tokenizes");
+                let args = syn::parse2::<ScanImmuneArgs>(tokens).expect("body parses");
+                prop_assert_eq!(args.antigen_type.as_str(), antigen.as_str());
+                // witness_segments.last() is the trailing identifier; the
+                // scan parser canonicalises whitespace via quote::ToTokens,
+                // so the rendered witness contains all segments separated
+                // by " :: ".
+                let last = witness_segments.last().unwrap();
+                prop_assert!(args.witness.contains(last.as_str()),
+                    "rendered witness {:?} should contain trailing segment {:?}", args.witness, last);
+            }
+
+            // I6 — ScanImmuneArgs: a qualified-path antigen extracts only
+            // the last segment as the antigen_type (the matching surface
+            // antigen scan/audit reasons against). This is a regression
+            // anchor for ATK-A2-001 — the path-split corruption that the
+            // adversarial pass surfaced.
+            #[test]
+            fn scan_immune_qualified_antigen_path_extracts_last_segment(
+                module_segs in proptest::collection::vec(
+                    "[a-z][a-z_0-9]{0,6}".prop_filter(
+                        "must not be a Rust keyword",
+                        |s| !RUST_KEYWORDS.contains(&s.as_str()),
+                    ),
+                    1..3usize,
+                ),
+                antigen in "[A-Z][A-Za-z0-9]{0,12}",
+                witness in "[a-z][a-z_0-9]{0,12}".prop_filter(
+                    "must not be a Rust keyword",
+                    |s| !RUST_KEYWORDS.contains(&s.as_str()),
+                ),
+            ) {
+                let qualified = format!("{}::{}", module_segs.join("::"), antigen);
+                let body = format!("{qualified}, witness = {witness}");
+                let tokens: TokenStream = body.parse().expect("body tokenizes");
+                let args = syn::parse2::<ScanImmuneArgs>(tokens).expect("body parses");
+                prop_assert_eq!(args.antigen_type.as_str(), antigen.as_str(),
+                    "qualified antigen path {:?} must yield bare last-segment antigen_type", qualified);
+            }
+        }
     }
 }
