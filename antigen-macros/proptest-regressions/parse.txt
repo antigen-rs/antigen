@@ -5,3 +5,4 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc 82cdb0b99dc26acb9d64daa3798b08ef60a17d9580b86ad19588d1a47018feb8 # shrinks to antigen = "A", witness_segments = ["fn"]
+cc 2c51b1692c8875b4114750c1db1306735bbb515596a6c78f790902e688633fea # shrinks to name = "a", fingerprint = "A", unknown = "try"

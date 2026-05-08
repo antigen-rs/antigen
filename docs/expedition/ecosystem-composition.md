@@ -988,6 +988,39 @@ don't admit type-level encoding. Best for lattice-shaped or
 state-machine-shaped invariants. Antigen-stdlib should ship a starter
 catalog of phantom-type witness templates.
 
+**W7 detection targets (substrate-verified 2026-05-08).**
+
+Three Rust crates implement the phantom-type witness pattern in the wild:
+
+1. **`witnessed` (crates.io)** — `Witnessed<T, W>` where `W` encodes the
+   proof as a type parameter. Uses `PhantomData<fn() -> W>` (the fn-pointer
+   trick) so `Witnessed<T, W>` is `Send`+`Sync` whenever `T` is, rather than
+   being accidentally non-Send if `W` is not. Construction via sealed
+   `Witnessed::into_inner` / `witness()` boundary. This crate IS the
+   phantom-type witness pattern deployed in production.
+   **W7 detection**: `detect_phantom_type_witness` should recognize
+   `Witnessed<_, _>` shaped return types as `WitnessKind::PhantomType`,
+   mapping to `WitnessTier::FormalProof`. ADR-006 applies: the pattern
+   exists in the wild; antigen recognizes it rather than reinventing it.
+
+2. **`bear_witness` (crates.io / github.com/tinybeachthor)** — example-only
+   crate demonstrating the pattern via a `Certified<T>` wrapper. The crate's
+   README explicitly states it is not intended as a dependency.
+   **W7 detection**: NOT a detection target. Document as prior-art
+   pedagogy only. Future-team should not add it to the recognized-pattern
+   list; it is examples, not production substrate.
+
+3. **`typewit` (crates.io)** — `TypeEq<L, R>` type witnesses for const-fn
+   polymorphism. Solves a DIFFERENT problem: calling trait methods in `const
+   fn` contexts on stable Rust (not possible as of Rust 1.87; typewit works
+   around the limitation). The word "witness" appears in both antigen's
+   vocabulary and typewit's, but they name different patterns.
+   **W7 detection**: NOT a detection target. The vocabulary collision with
+   antigen's "phantom-type witness for invariant-encoding" must be explicitly
+   noted in docs (see also glossary — naturalist added a disambiguation note).
+   W7's `detect_phantom_type_witness` should NOT match `TypeEq<L, R>` shaped
+   returns; those are const-fn dispatch helpers, not immunity proofs.
+
 ---
 
 ## 19. cargo-semver-checks — API compatibility
@@ -1141,21 +1174,109 @@ aliasing), kani/prusti/verus are more appropriate.
 
 ---
 
+## 22. Aeneas — Rust-to-Lean/F*/HOL4/Coq functional translator
+
+**What it does.** Aeneas (Ho, Protzenko, Fromherz; ICFP 2022; active 2026)
+translates safe Rust programs to functional models in proof assistants
+(Lean 4, HOL4, F*, Coq/Rocq). The core insight: Rust's region-based
+ownership eliminates the need to reason about memory aliasing, so the
+translated model is a pure functional program that proof assistants can
+verify using standard tactics. Aeneas is not a linter or an attribute-based
+in-source annotation system — it is a whole-crate translation pipeline.
+Active production use at Microsoft (SymCrypt cryptographic library,
+protecting Windows/Azure/Xbox); winner of the 2025 Gilles Kahn PhD Award
+(French Academy of Science).
+
+**Failure-class coverage.**
+- **(7) Boundary-violation** — functional translation exposes overflow,
+  out-of-bounds, and precondition failures as proof obligations in Lean.
+- **(1) Frame-translation** — semantic invariants (e.g., lattice meet
+  properties) expressible as Lean theorems; violation is a proof failure.
+- **(6) Incompatible-merger** — composition properties provable as
+  functional equations.
+- **(3) Implicit-coupling** — Rust's borrow semantics eliminate aliasing
+  from the translated model; coupling bugs that survive the type system
+  become proof obligations.
+
+**Integration surface.**
+Unlike kani, prusti, verus, or creusot — Aeneas has **no per-function
+or per-method source annotations** in Rust code. It operates on the whole
+crate via a compiler plugin, producing a `.lean` / `.fst` / `.hl4` file
+that the proof assistant then verifies. There is no `#[aeneas::proof]`
+attribute or `aeneas::` namespace pattern in Rust source.
+
+This means `detect_external_tool`'s string-prefix matching pattern does
+not apply to Aeneas the way it does to kani (`kani::`) or prusti (`prusti::`).
+
+**Witness-mechanism opportunity.**
+
+Aeneas witnesses require a convention rather than an annotation API:
+
+```rust
+// By convention: functions verified by Aeneas are named _aeneas_verified
+// or documented in a #[cfg(aeneas)] companion module.
+// There is no first-class #[aeneas::proof] attribute.
+
+#[immune(
+    BoundaryViolation,
+    witness = symcrypt_verified_by_aeneas,
+    rationale = "Lean proof via Aeneas translation confirms no overflow \
+                 for all valid input bounds; see proofs/symcrypt.lean."
+)]
+pub fn critical_crypto_op(input: &[u8]) -> Result<Vec<u8>, Error> { /* ... */ }
+```
+
+What `cargo antigen scan` does (v0.1 — convention-based):
+1. Resolves `symcrypt_verified_by_aeneas` as a local function (or marker
+   constant). This is a **convention marker**, not an executable proof.
+2. Reports `WitnessStatus::External { tool_hint: "aeneas" }` if the
+   witness name matches a user-configured convention pattern, or
+   `WitnessStatus::Resolved { WitnessKind::Function }` if the function
+   is found in the index.
+
+A3+ can add: reading a configured Lean proof directory path from
+`[package.metadata.antigen]` in Cargo.toml and checking for a
+corresponding `.lean` file with a successful `lake build` exit code.
+
+**Tier placement.** Per the `WitnessTier` model (W7): Aeneas-backed
+witnesses are `FormalProof` tier in principle — Lean proofs are the
+strongest available evidence. But in v0.1, without tool invocation
+confirmation, they resolve as `ExternalUnvalidated`. A3 promotion path:
+check Lean proof file existence + `lake build` pass → promote to
+`FormalProof`.
+
+**Gaps.** No in-source annotation surface makes automatic detection
+harder than for kani/prusti. Requires nightly Rust + Lean + Aeneas
+toolchain installation (heavier than kani). Best suited for
+security-critical code where the proof cost is justified (cryptographic
+primitives, kernel code). For most application code, kani or prusti is
+more accessible.
+
+**Relationship to other formal tools.** Aeneas occupies a distinct niche:
+where kani is a bounded model checker (finds bugs), Aeneas is a proof
+translator (proves correctness). The same code can have both a kani
+harness (fast, bounded, CI-friendly) and an Aeneas proof (slow,
+unbounded, mathematically complete). Antigen can record both witnesses on
+the same immunity declaration via multiple `witness = ` entries (future
+ADR territory; v0.1 records one witness per immunity).
+
+---
+
 ## Composition matrix
 
 Failure-class coverage by tool. `D` = direct/strong coverage,
 `P` = partial coverage (slice of the class), `–` = not applicable.
 
-| Failure class                  | clippy | proptest | quickcheck | mutants | careful | kani | prusti | creusot | verus | flux | miri | deprec. | rustsec | deny | fuzz | cov | doctest | phantom |
-|--------------------------------|:------:|:--------:|:----------:|:-------:|:-------:|:----:|:------:|:-------:|:-----:|:----:|:----:|:-------:|:-------:|:----:|:----:|:---:|:-------:|:-------:|
-| 1 Frame-translation            |   P    |    P     |     P      |    P    |    –    |  P   |   D    |    D    |   D   |  D   |  –   |    P    |    –    |  –   |  –   |  –  |    P    |    D    |
-| 2 Forgotten-lesson             |   P    |    P     |     P      |    D    |    P    |  P   |   P    |    P    |   P   |  P   |  P   |    D    |    D    |  D   |  P   |  P  |    D    |    P    |
-| 3 Implicit-coupling            |   P    |    P     |     P      |    P    |    D    |  P   |   D    |    D    |   D   |  P   |  D   |    –    |    –    |  P   |  –   |  –  |    –    |    P    |
-| 4 Stale-context                |   –    |    –     |     –      |    –    |    –    |  –   |   –    |    –    |   –   |  –   |  –   |    P    |    D    |  P   |  –   |  –  |    –    |    –    |
-| 5 Premature-abstraction        |   –    |    –     |     –      |    P    |    –    |  –   |   –    |    –    |   –   |  –   |  –   |    –    |    –    |  –   |  –   |  –  |    –    |    P    |
-| 6 Incompatible-merger          |   P    |    D     |     P      |    P    |    P    |  D   |   D    |    D    |   D   |  P   |  P   |    –    |    –    |  P   |  –   |  –  |    –    |    P    |
-| 7 Boundary-violation           |   D    |    D     |     D      |    D    |    D    |  D   |   D    |    D    |   D   |  D   |  D   |    –    |    P    |  –   |  D   |  –  |    P    |    D    |
-| 8 Optionality-collapse         |   –    |    P     |     P      |    P    |    –    |  P   |   D    |    D    |   D   |  D   |  –   |    –    |    –    |  –   |  P   |  –  |    –    |    D    |
+| Failure class                  | clippy | proptest | quickcheck | mutants | careful | kani | prusti | creusot | verus | flux | miri | deprec. | rustsec | deny | fuzz | cov | doctest | phantom | aeneas |
+|--------------------------------|:------:|:--------:|:----------:|:-------:|:-------:|:----:|:------:|:-------:|:-----:|:----:|:----:|:-------:|:-------:|:----:|:----:|:---:|:-------:|:-------:|:------:|
+| 1 Frame-translation            |   P    |    P     |     P      |    P    |    –    |  P   |   D    |    D    |   D   |  D   |  –   |    P    |    –    |  –   |  –   |  –  |    P    |    D    |   D    |
+| 2 Forgotten-lesson             |   P    |    P     |     P      |    D    |    P    |  P   |   P    |    P    |   P   |  P   |  P   |    D    |    D    |  D   |  P   |  P  |    D    |    P    |   P    |
+| 3 Implicit-coupling            |   P    |    P     |     P      |    P    |    D    |  P   |   D    |    D    |   D   |  P   |  D   |    –    |    –    |  P   |  –   |  –  |    –    |    P    |   P    |
+| 4 Stale-context                |   –    |    –     |     –      |    –    |    –    |  –   |   –    |    –    |   –   |  –   |  –   |    P    |    D    |  P   |  –   |  –  |    –    |    –    |   –    |
+| 5 Premature-abstraction        |   –    |    –     |     –      |    P    |    –    |  –   |   –    |    –    |   –   |  –   |  –   |    –    |    –    |  –   |  –   |  –  |    –    |    P    |   –    |
+| 6 Incompatible-merger          |   P    |    D     |     P      |    P    |    P    |  D   |   D    |    D    |   D   |  P   |  P   |    –    |    –    |  P   |  –   |  –  |    –    |    P    |   D    |
+| 7 Boundary-violation           |   D    |    D     |     D      |    D    |    D    |  D   |   D    |    D    |   D   |  D   |  D   |    –    |    P    |  –   |  D   |  –  |    P    |    D    |   D    |
+| 8 Optionality-collapse         |   –    |    P     |     P      |    P    |    –    |  P   |   D    |    D    |   D   |  D   |  –   |    –    |    –    |  –   |  P   |  –  |    –    |    D    |   P    |
 
 Reading the matrix:
 
@@ -1342,6 +1463,18 @@ shallow, and where the partnership produces obvious shared value.
     in *one* (probably verus, given Rust-native syntax) as the formal
     witness backend. **Niche but high-prestige; signals that antigen
     interoperates with the verification frontier.**
+
+11a. **Aeneas** — Rust→Lean/F*/HOL4/Coq functional translator. Unlike
+    kani/prusti/verus, Aeneas has no per-function source annotations:
+    no `#[aeneas::proof]` attribute, no `aeneas::` namespace prefix.
+    Integration requires a naming convention for witnesses + optional
+    Lean proof file path configuration in `[package.metadata.antigen]`.
+    A3+ can check `lake build` pass as promotion to FormalProof tier.
+    **Niche but increasingly production-relevant** (Microsoft SymCrypt
+    deployment confirms the integration surface is real). Adapter more
+    complex than kani/prusti because there is no annotation API to parse
+    — antigen must rely on convention + Lean toolchain invocation.
+    **Bring in alongside prusti/verus as a peer-tier formal tool.**
 
 12. **RustSec advisory cross-references** — auto-generate antigens
     from advisory DB entries. Adapter: pull RustSec YAML, emit antigen

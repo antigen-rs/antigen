@@ -751,8 +751,11 @@ mod parser_props {
             // Generate an unknown field name that doesn't collide with any
             // of the known field names.
             unknown in "[a-z][a-z_]{2,12}".prop_filter(
-                "must not collide with known fields",
-                |s| !matches!(s.as_str(), "name" | "fingerprint" | "family" | "summary" | "references"),
+                "must not collide with known fields or Rust keywords",
+                |s| {
+                    !matches!(s.as_str(), "name" | "fingerprint" | "family" | "summary" | "references")
+                        && !RUST_KEYWORDS.contains(&s.as_str())
+                },
             ),
         ) {
             let body = format!(
