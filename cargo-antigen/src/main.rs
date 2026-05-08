@@ -76,7 +76,10 @@ struct AuditArgs {
     /// Output format: human or json
     #[arg(long, default_value = "human")]
     format: OutputFormat,
-    /// Exit with non-zero status if audit finds problematic immunity claims
+    /// Exit with non-zero status if any immunity witness is unresolved
+    /// (`Missing`, `NotFound`, or `Ambiguous`). v0.1: gates on `Reachability`
+    /// tier minimum; `Execution`-tier gating arrives in A3 with `cargo test`
+    /// integration.
     #[arg(long)]
     strict: bool,
 }
@@ -340,7 +343,7 @@ fn run_audit(args: AuditArgs) -> ExitCode {
         },
     }
 
-    if args.strict && !audit_report.all_valid() {
+    if args.strict && !audit_report.all_meet_tier(audit::WitnessTier::Reachability) {
         ExitCode::from(1)
     } else {
         ExitCode::SUCCESS
