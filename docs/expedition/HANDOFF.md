@@ -54,21 +54,10 @@ All under `campsites/antigen-design/` (gitignored, on-disk only):
 
 ### Git state
 
-- `git init` done; 13 files staged
-- **No initial commit yet** — left for you to make with your preferred message
-- Suggested commit message:
-  ```
-  Initial scaffolding: workspace + design substrate + campsites
-
-  Reserved namespace for antigen + cargo-antigen on crates.io.
-  Pre-team design substrate captures the 8-class failure taxonomy,
-  three-verb API framing, biological→Rust mapping, and honest
-  revolutionary-and-not assessment.
-
-  See docs/expedition/team-briefing.md for the JBD team's spawn-time
-  context. The expedition launches in a fresh Claude Code session
-  from R:\antigen\.
-  ```
+- `git init` done; 8 commits exist as of Sweep A1 launch (2026-05-07)
+- Repository is on branch `main`; GitHub push status not yet verified from local substrate
+- The initial commit and subsequent pre-team work are committed; the team launched into
+  working code, not scaffolding
 
 ## What you need to do
 
@@ -125,7 +114,7 @@ project DEC), then a sweep-by-sweep implementation expedition.
 - **Naming**: `antigen` (not `anamnesis`). Adoption-friendly, three-verb shape, post-COVID familiar.
 - **GitHub org**: `antigen-rs` (Rust ecosystem convention).
 - **License**: Dual MIT + Apache-2.0 (Rust ecosystem standard).
-- **Workspace**: two-crate (lib + bin); `antigen-stdlib` and other extension crates added as members later.
+- **Workspace**: three-crate (`antigen` lib, `antigen-macros` proc-macro, `cargo-antigen` bin); `antigen-stdlib` and other extension crates added as members later. The proc-macro split is required Rust practice (proc-macro crates cannot re-export as libraries).
 - **Campsites**: gitignored on-disk substrate (matches tambear convention).
 - **Biology metaphor**: load-bearing, not decorative. Preserve through expedition.
 - **Compose, don't compete**: antigen DELEGATES to existing tools (clippy, kani, prusti, proptest); does NOT replace them.

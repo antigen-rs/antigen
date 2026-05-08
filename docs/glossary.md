@@ -96,23 +96,42 @@ may mutate slightly.
 If the descendant's witness no longer applies (signature divergence, behavioral change),
 cargo-antigen flags it for re-justification.
 
+**Closest existing academic analog**: Eiffel's design-by-contract with inheritance
+(Meyer 1992, 1997) — pre/post-conditions inherited through subclassing with covariance
+/ contravariance rules. Antigen's `#[descended_from]` is the Rust-ecosystem analog of
+inherited contracts at the failure-class level rather than the predicate level. See
+`docs/expedition/academic-context.md` §2.
+
 **Introduced in**: `api-shape.md`.
 
 ### B-cell memory
 
-**Biological referent**: the persistence of antigen-specific B-cells (and their plasma
-cell descendants producing antibodies) long after an infection clears, providing rapid
-response to reinfection.
+**Biological referent**: the persistence of antigen-specific B-cells long after an
+infection clears. Critically, B-cell memory is **stratified**: memory cells persist
+for decades (10-15 years for hepatitis B; 24+ years for rabies), but *circulating
+antibody titer* decays on a much shorter timescale (half-life ~30 days). On
+re-exposure, memory cells trigger a recall response producing high antibody titers
+within 3-4 days.
 
-**Rust ecosystem analog**: `#[antigen]` declarations themselves, plus the immunity
-markers across the codebase. The MEMORY persists past the specific bug that motivated
-the antigen declaration. New code in the structural family inherits the immunity via
-`#[descended_from]`.
+**Rust ecosystem analog (pattern-memory layer)**: `#[antigen]` declarations
+themselves — they don't decay. The pattern is permanent across project lifetime;
+new code in the structural family inherits via `#[descended_from]`. This is the
+B-cell-memory layer.
 
-**Note**: the *crisis case* this addresses is "corrected designs don't carry the failure
-that motivated them" — the originating insight from tambear adversarial's reflection.
+**Rust ecosystem analog (currency layer)**: the *recency of verification* on
+`#[immune(X, witness = Y)]` claims. The witness was attested against a particular
+version of the protected item; if the item changes, the verification is stale —
+the analog of declining circulating antibody titer. `cargo antigen audit`
+re-running witnesses is the recall-response / booster analog. The currency layer
+is in flight as a Sweep A1 finding (scout-routed; task #12 Phase 1-8).
 
-**Introduced in**: `design-intent.md`.
+**Note**: the *crisis case* this addresses is "corrected designs don't carry the
+failure that motivated them" — the originating insight from tambear adversarial's
+reflection. Pattern-memory persists; verification-currency requires periodic
+re-attestation.
+
+**Introduced in**: `design-intent.md`. Stratified-memory refinement: Sweep A1
+closure (2026-05-07).
 
 ### lineage
 
@@ -200,10 +219,12 @@ because tolerance mechanisms broke down.
 **Rust ecosystem analog**: cargo-antigen scan over-flagging legitimate code as fragile.
 Tolerance check: distinguishing "this code structurally matches an antigen fingerprint
 but is in fact correct" from "this code is genuinely vulnerable." Initial mitigation: the
-fingerprint grammar must be precise enough to minimize false positives; user can mark
-specific sites with `#[antigen_tolerance(reason = "...")]` for documented exceptions.
+fingerprint grammar must be precise enough to minimize false positives; users can mark
+specific sites with `#[antigen_tolerance(X, rationale = "...")]` for documented
+exceptions (per ADR-011).
 
-**Introduced in**: `design-intent.md` (what could kill it).
+**Introduced in**: `design-intent.md` (what could kill it). Tolerance carrier ratified
+in ADR-011 (Sweep A1, 2026-05-07/08).
 
 ---
 
@@ -220,7 +241,55 @@ witness = ...)]`. Acceptable witness shapes: test function, proptest block, phan
 construction, formal-verification harness reference, custom-lint reference. The witness
 is checked by tooling; immunity without witness is not a claim.
 
+**Academic lineage**: the witness-as-proof concept descends from Necula's
+proof-carrying code (Necula, "Proof-Carrying Code," POPL 1997) — code accompanied
+by a checkable proof of a stated property. Antigen's witness pluralism extends this
+by accepting heterogeneous proof shapes (test, proptest, formal verification, lint,
+phantom type) under one vocabulary. See `docs/expedition/academic-context.md` §10
+and §11.
+
 **Introduced in**: `api-shape.md`.
+
+### witness-validity tiers
+
+**Definition** (per ADR-001 Amendment 1, Change 4): the `witness` parameter of
+`#[immune]` accepts proofs at four progressively-stronger tiers:
+
+- **Reachability tier** — the witness identifier resolves to a function/test that
+  exists. Floor; v0.0.x audit currently lives here.
+- **Execution tier** — the witness runs without panic and asserts a non-trivial
+  property. Sweep A2-A3 lift.
+- **Behavioral-alignment tier** — the witness exercises behavior that matches the
+  antigen's structural fingerprint. Sweep A4-A5 work; ADR-005 open question.
+- **Formal-proof tier** — the witness is a verified compile-time proof (phantom-type
+  construction, kani/prusti/verus/creusot proof annotation). Sweep A4+ via ADR-002
+  witness delegation.
+
+ADR-005 sub-clause F applies to whichever tier is current. Audit's `--format=json`
+output includes a `witness_tier` field for CI gates.
+
+**Introduced in**: ADR-001 Amendment 1 (2026-05-08).
+
+### phantom witness / phantom-type witness
+
+**Biological referent**: high-affinity antibody that confirms binding via constructive
+recognition rather than catalytic action — the existence of the antibody-antigen complex
+*is* the proof.
+
+**Rust ecosystem analog**: a witness expressed as a typed path with type parameters
+(e.g., `PolarityProof::<FrameTranslation>::established_by_construction`). The
+constructor's compile-time success encodes the proof: if the code compiles, the
+proof holds. Audit recognizes this shape via `WitnessKind::PhantomType { proof_type,
+type_params, constructor }` and reports at the formal-proof tier of witness validity.
+
+v0.1 ships **recognize-and-warn**: audit recognizes the phantom-type *shape* but
+cannot verify whether the construction encodes meaningful preconditions (a trivial
+`pub fn () -> Self { Self(PhantomData) }` shape-matches but proves nothing).
+Construction-validation is deferred to a future ADR.
+
+**Introduced in**: ADR-013 (2026-05-08). Pre-existing api-shape.md sketch. Academic
+lineage: refinement-type proof carriers (Liquid Haskell, Flux); seal-trait
+private-constructor patterns.
 
 ### family / failure-class family
 
@@ -263,6 +332,170 @@ panicking-in-Drop, lock-order-inversion, async-in-sync-context, etc.). Adoption 
 users get value without writing antigens themselves.
 
 **Introduced in**: `design-intent.md`, `revolutionary-and-not.md`.
+
+---
+
+## Carriers (macros and attributes)
+
+### #[antigen_tolerance]
+
+**Definition** (per ADR-011): the macro that declares a site as a legitimate
+fingerprint match — an opt-out from immunity-or-flagging when the site genuinely
+exhibits the failure-class pattern but is correct in context (test fixtures
+demonstrating the pattern, examples deliberately constructing it, code-generation
+sites where the context makes the pattern fine).
+
+```rust
+#[antigen_tolerance(
+    PolarityInvertedClassMeet,
+    rationale = "Test fixture deliberately constructs failure pattern to verify witness.",
+    until = "v1.0",  // optional
+    see = ["..."],   // optional open-vocabulary references
+)]
+```
+
+**Required fields**: antigen type (positional), `rationale` (non-empty string).
+**Optional fields**: `until` (non-empty if present), `see` (string array).
+**Item-level only in v1**; module-level deferred to future ADR.
+**Tolerance dominates** over `#[presents]` on the same site (the marker becomes dead code; audit warns).
+
+**Biological referent**: peripheral tolerance via T-regulatory cells / anergy —
+the immune system's mechanism for not attacking self despite recognition signals.
+
+**Introduced in**: ADR-011 (2026-05-08). Substrate already named the path in
+`cargo-antigen/src/main.rs:185` before ratification.
+
+### #[antigen_generates]
+
+**Definition** (per ADR-014): the macro that proc-macro and macro_rules authors
+apply to declare that invocations of their macro emit code presenting a named
+antigen. Closes the macro-expansion structural-blindness gap (sibling to ADR-012's
+function-body blindness fix).
+
+```rust
+#[antigen_generates(
+    PanickingInDrop,
+    rationale = "This derive emits a Drop impl that may panic if the inner type's destructor panics.",
+)]
+#[proc_macro_derive(SomeDerive)]
+pub fn some_derive(input: TokenStream) -> TokenStream { ... }
+```
+
+`cargo antigen scan`'s synthesis pass recognizes `#[antigen_generates]` annotations
+and emits synthetic presentations at invocation sites, requiring consumers to
+discharge the immunity duty (`#[immune]` or `#[antigen_tolerance]` at the call site).
+
+**Deferred to Sweep A3-A4 implementation**; v0.1.0 ships without it but the carrier
+is ratified.
+
+**Introduced in**: ADR-014 (2026-05-08).
+
+---
+
+## Architectural patterns
+
+### tiered substrate / carrier-strength hierarchy
+
+**Definition** (per ADR-001 Amendment 1, Change 1): the project-wide architectural
+pattern where every primitive sits on a strength-of-evidence gradient rather than
+being binary. Memory carriers sit on a drift-resistance hierarchy:
+
+```
+  compile-time-checked   (type system, phantom-types, kani/prusti proofs)
+          ↑
+  scan-time-checked      (#[antigen], #[immune], #[presents], #[descended_from])
+          ↑
+  test-suite-checked     (proptest, regression tests, witness functions)
+          ↑
+  review-discipline      (PR review, mentorship, ADR cross-references)
+          ↑
+  documentation          (rustdoc, README, design docs, CHANGELOG)
+          ↑
+  commit-message         (commit log, issue tracker, post-mortems)
+          ↑
+  human/agent memory     (mentorship, conversation, in-context working memory)
+```
+
+Antigen's role: push failure-class memory upward in this hierarchy whenever the
+class admits structural recognition.
+
+**Convergent across the project**: witness-validity tiers (ADR-001 Amendment 1
+Change 4), filter-vs-proof tiers (ADR-010 amendment 4 deferred), recognition tiers
+(ADR-006), guarantee tiers (ADR-007). When proposing a new primitive, the right
+question is "what's its tier in the hierarchy?" before "is it correct?"
+
+**Three-window convergence** (per Sweep A1 closure, ADR-003 empirical defense):
+biology (vertebrate immunology), past-self gardening (March-April 2026
+naming-checkability frame), academic lineage (Hoare 1969 → Eiffel 1992 → Koka →
+Liquid Haskell → Flux). When three independent traditions converge on the same
+primitive, the underlying architecture is real, not metaphor-dependent.
+
+**Introduced in**: ADR-001 Amendment 1 (2026-05-08), naturalist closure narrative.
+
+### passive surface / fingerprint scan
+
+**Definition** (per ADR-001 Amendment 1, Change 2): the *recognition-not-yet-marked*
+half of antigen's design. `cargo antigen scan` walks the codebase and recognizes
+unmarked code that structurally matches a declared antigen's `fingerprint`.
+Catches vulnerable code that the original author did not mark — including code
+authored before the antigen was declared.
+
+The biological analog is **innate immunity** — broad pattern recognition (PRRs)
+that fires against pathogen-associated molecular patterns without requiring prior
+adaptive memory.
+
+**5 interaction states** with the active surface (per Change 2):
+1. **Marked + matched** — `#[presents(X)]` is on a site that also matches X's
+   fingerprint (intentional + recognized; audit reports as doubly-marked)
+2. **Passively detected** — no marker, but fingerprint matches (scan reports
+   needs-immunity-or-tolerance)
+3. **Inconsistent** — `#[presents(X)]` is on a site that does NOT match X's
+   fingerprint (audit warns; either marker is wrong or fingerprint is wrong)
+4. **Tolerated** — `#[antigen_tolerance(X)]` is on a site that matches X's
+   fingerprint (legitimate match acknowledged)
+5. **Stale tolerance** — `#[antigen_tolerance(X)]` is on a site that no longer
+   matches (tolerance is dead weight; audit warns it can be removed — the
+   descended_from-style stale-reference pattern applied to tolerances)
+
+**Introduced in**: ADR-001 Amendment 1 (2026-05-08).
+
+### active surface / explicit marker
+
+**Definition** (per ADR-001 Amendment 1, Change 2): the *intent-carrying* half of
+antigen's design. The developer explicitly marks code with attribute macros
+(`#[presents]`, `#[immune]`, `#[descended_from]`, `#[antigen_tolerance]`,
+`#[antigen_generates]`). Active markers are unambiguous, document intent, and
+survive refactoring as long as the marked items survive.
+
+The biological analog is **adaptive immunity** — antigen-specific antibody
+production after the immune system has built memory of a specific pathogen.
+
+The two surfaces are dual-load-bearing: active markers carry intent; passive
+fingerprints carry recognition. Adoption at Layer 1 (per ADR-009) depends on
+the passive surface — consumers benefit from antigen-stdlib's fingerprints
+without authoring their own markers.
+
+**Introduced in**: ADR-001 Amendment 1 (2026-05-08).
+
+### rationale-as-required-field
+
+**Definition** (transverse principle, observed across ADR-005, ADR-009, ADR-011,
+ADR-014, and potentially ADR-001 Amendment 1's tolerance state): every primitive
+that extends trust requires a justification field. The pattern:
+
+- `#[antigen(... summary)]` — human description (ADR-009 Layer 2)
+- `#[immune(... witness)]` — proof of immunity (ADR-001/002/005)
+- `#[antigen_tolerance(... rationale)]` — justification for waiver (ADR-011)
+- `#[antigen_generates(... rationale)]` — justification for generated
+  presentation (ADR-014)
+
+Sub-clause F (ADR-005) applied at the API level — every trust-extending primitive
+carries its own justification. The discipline propagates from existing ADRs to
+new ADRs without explicit coordination, which is how a load-bearing principle
+should behave.
+
+**Introduced in**: naturalist closure narrative finding 3 (Sweep A1 closure,
+2026-05-08). May be ratified as a small ADR-005 amendment in A2.
 
 ---
 
