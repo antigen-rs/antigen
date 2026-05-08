@@ -569,6 +569,21 @@ Explicit out-of-scope items, deferred to later sweeps:
 - **Stdlib antigens crate (`antigen-stdlib`) population** → A5. The
   scaffolding (Cargo.toml, workspace member) may land in A2 if free; the
   population of all 8 first-principles classes is A5 work.
+  **Named v0.1 stdlib candidates** (per recognition discipline of ADR-006;
+  three or more independent real-world instances confirmed):
+  - **`frame-translation` / `polarity-inverted-class-meet`** — the
+    failure-class motivating the project (per origin.md). Three independent
+    instances now documented: tambear `DeterminismClass` (GAP-BIT-EXACT-1),
+    tambear `CommutativityClass` (DEC-030 ATK-DEC030-2), and ULP-CANON-1
+    (per tambear adoption log entry 2026-05-07). The most empirically-
+    grounded antigen the project has; A5 ratifies its v0.1 stdlib
+    inclusion. A2 prepares the substrate (W6 fingerprint grammar — note
+    the discriminant-ordering operator this antigen needs is explicitly
+    deferred to A5 per ADR-010 amendment 3 Clause C).
+  - **`panicking-in-drop`** — canonical seed antigen demonstrating the
+    `body_contains_macro` operator (which A2 W6 ships per ADR-010
+    amendment 3 Clause C). Exercises the operator end-to-end before A5
+    populates the full taxonomy.
 - **rust-analyzer plugin / IDE integration** → A6. Sweep A2 ships ergonomic
   CLI; A6 ships ergonomic editor.
 - **`cargo antigen test`** (run only witness functions) → A6 or later.

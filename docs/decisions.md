@@ -1028,7 +1028,12 @@ checklist:
 1. Number sequentially. Skip numbers only with explicit reservation.
 2. Open a campsite under `campsites/adr-NNN-<slug>` for the in-flight draft.
 3. Use the section template above (Status, Participants, Related, Finding, Decision,
-   Mechanics, Sweep-level consequences, Enforcement, Resolves).
+   Mechanics, Sweep-level consequences, Enforcement, Resolves). Within the Finding
+   section, optionally include an **"Implicit pattern elevated"** sub-clause naming
+   the implicit-mode convention this ADR replaces with explicit structure (per
+   ADR-004's enforcement clause; F-TEMPLATE-1 from scientist's validation pass).
+   Foundational ADR-001 through ADR-010 contain this analysis embedded in their
+   Finding prose; future ADRs may surface it as a labeled sub-clause for clarity.
 4. Run the draft through the full lifecycle: Phase 1-8 deconstruction (aristotle) →
    adversarial review → math/systems-research review → scientist validation →
    team-lead ratification.
