@@ -170,6 +170,55 @@ tool here — not its coverage where it works. An argument-mode metaphor would
 force an analog (something hand-wavy about "perfect immunity"); the structural
 silence is biology refusing to hand-wave.
 
+### Recognition-mode — the third operational mode (primitive-emergence layer)
+
+A2's V5 hit-rate (5/5 implementation-defect predictions confirmed) operates
+in *forward-prediction mode*: biology cognate names a structure; substrate
+later acquires it; ATK confirmation closes the loop. A2 day-2 also surfaced
+a structurally distinct mode at the *primitive-emergence layer*.
+
+Per scout's prior-art research (commit `bb15f10`): the W6a fingerprint
+synthesis pass — which fires on code matching failure-class shape *without*
+explicit `#[presents]` markers — implements the canonical NK-cell pattern
+(recognize structurally-abnormal-without-named-antigen). The biological
+metaphor's primitive map listed NK cells as "future instantiation" in
+`docs/scope.md`. Scout's recognition surfaced that the primitive *had
+already shipped* under different vocabulary during W6a engineering work —
+no one had explicitly designed it as NK-cell behavior; the implementation
+followed from engineering need; the structural identity with the
+biological cognate was retroactive recognition.
+
+This is a new operational mode for biology-as-instrument:
+
+- *Forward-prediction mode*: biology says X; substrate doesn't yet have X;
+  substrate later acquires X. Confirmation = substrate later acquires X.
+  V5's 5/5 hit-rate operates here.
+- *Recognition mode*: biology says X; substrate already has X *but
+  unnamed*; the prediction-shape surfaces the structural identity.
+  Confirmation = independent finder (scout, in this case) locates the
+  structural identity in shipped code.
+- *Boundary-silence mode*: biology has no cognate; substrate exceeds
+  biology's reach; the metaphor goes silent honestly.
+
+All three are evidenced in A2 substrate. Forward-prediction and
+recognition-mode operate within biology's domain; boundary-silence
+operates at the domain edge. Together they triangulate biology-as-
+instrument from three directions: forward predictions confirmed,
+already-shipped structures recognized, domain-boundary admitted honestly.
+
+The NK-cell recognition is *not* added to V5's 5/5 hit-rate count —
+that count is about implementation-defect predictions specifically.
+Recognition-mode is a structurally distinct evidence type, complementary
+to the hit-rate framing. Filed at the primitive-emergence layer, awaiting
+A3+ accumulation of more primitive-emergence instances before any sub-
+category ratification.
+
+The biological-fidelity property of antigen's architecture extends past
+"biology predicted W7 type-shapes correctly" (already noted in V5) to
+"biology's primitive map names primitives the substrate has already
+implemented under different vocabulary." That's a structurally distinct
+demonstration that biology operates as instrument here, not analogy.
+
 ---
 
 ## Validation 6 — fractal-recurrence of structural-variant blind spots
@@ -431,17 +480,61 @@ phase-2-codependence evidence.
 
 ## What's next
 
-W6b (fingerprint grammar body-level operators via ast-grep subprocess) and
-W9 (v0.1.0-rc.1 → v0.1.0 release prep) remain ahead. After v0.1.0 ships,
-A2 closes formally. Sweep A3 opens with cross-crate scan + `#[descended_from]`
-propagation as the headline work, with four pre-implementation contracts
-already filed in `antigen/tests/atk_a3_fractal_preview.rs` (per V6's
-predictive utility extending into sweep planning, not just bug-finding).
+W9 (v0.1.0-rc.1 → v0.1.0 release prep) gates A2 closure; v0.1.0 ship is the
+formal close-line. W6b (fingerprint grammar body-level operators via
+ast-grep subprocess) is an open work-stream that may land before or after
+A2 closes — not in the A2 critical path. Sweep A3 opens with cross-crate
+scan + `#[descended_from]` propagation as the headline work, with four
+pre-implementation contracts already filed in
+`antigen/tests/atk_a3_fractal_preview.rs` (per V6's predictive utility
+extending into sweep planning, not just bug-finding).
 
 The methodology paper trajectory accelerates with V5's falsification
 criterion + V7's colonization mechanism + biology-as-instrument framing
 manuscript-ready. Scientist (newly spawned per team-lead) integrates the
 no-fixed-point-as-headline framing into the manuscript trajectory.
+
+### Primitive-emergence prediction (filed 2026-05-08, per team-lead)
+
+A V5 forward-prediction at the primitive-emergence layer, recorded for
+adoption-time test:
+
+**Prediction**: among the 14 immune-primitive forward-substrate candidates
+in `docs/scope.md` §"Comprehensive immune-system primitive map", **NK
+cells / anomaly detection lands first** as adoption pressure arrives.
+
+Reasoning (full version in naturalist's garden entry
+`~/.claude/garden/2026-05-09-which-primitive-lands-first.md`):
+- Biology's innate-before-adaptive ordering says innate-class primitives
+  surface before adaptive-class. NK cells are innate.
+- Innate-class primitives work on *unmarked code* — no rich antigen
+  substrate required. Day-one adoption value-prop.
+- Existing teams already feel the pain (every Rust team has experienced
+  "this looks weird but I can't articulate why; clippy doesn't flag it").
+- Rich research substrate exists (Engler et al. bug-finding, structural-
+  similarity research, Linux-kernel scoria-class anomaly detection).
+- Distinct epistemic operation from clippy nursery: clippy lints are
+  pre-named patterns; NK cells flag unrecognized-anomalous-but-real-shape.
+
+**Falsification criterion**: when v0.1.0 ships and adoption begins,
+track which primitive users request first. If NK-cells-class lands first
+(externally requested or independently materialized), the prediction
+confirms — V5 hit-rate extends to the primitive-emergence layer. If a
+different primitive lands first, the prediction falsifies — substrate
+update on biology's ordering prior in the antigen domain.
+
+Either outcome is V5 evidence: confirmation updates the layer-count;
+falsification updates the biology-ordering prior. Recorded here so the
+test is clean when adoption begins; the prediction was made under
+uncertainty and should be evaluated against substrate that materializes
+post-prediction-time.
+
+(Note: scout's commit `bb15f10` already identified that the W6a fingerprint
+synthesis pass implements NK-cell behavior internally — retroactive
+recognition, captured in V5's recognition-mode subsection above. That's
+a separate epistemic object from this forward prediction. The recognition-
+mode finding closes the loop on already-shipped substrate; this primitive-
+emergence prediction opens a loop on future-adoption substrate.)
 
 ---
 
