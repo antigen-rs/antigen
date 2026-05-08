@@ -1,0 +1,2123 @@
+# Antigen — Cross-Domain Architectural Map
+
+> **V1 (2026-05-08)**. Forward-substrate map of academic fields beyond
+> classical immunology, virology, and medicine where structural-recognition-
+> with-memory-and-inheritance has been independently studied. Authored by
+> academic-researcher during A2 day-2 evening as the cross-domain companion
+> to [`immune-system-primitive-map.md`](immune-system-primitive-map.md) V0
+> (which catalogs the biology spine). The two documents map together: V0
+> deepens biology; this document deepens *the rest of the academic record*
+> that converges on the same architectural questions biology has been
+> answering for ~500 million years.
+>
+> **This document is recognition substrate, not design.** Per ADR-006: each
+> cognate listed here is a tooling/framing primitive that lands in antigen
+> *when adoption surfaces a real instance that needs it*. The point of the
+> map is not to commit antigen to building anything; it is to name where the
+> rest of the academic literature has already done structural work the
+> project will eventually need to recognize.
+>
+> **Companion to**:
+> - [`immune-system-primitive-map.md`](immune-system-primitive-map.md) V0
+>   (biology / virology / medicine / public health spine)
+> - [`scope.md`](scope.md) (the four-window convergence frame)
+> - Sweep A1 closure narrative
+>   ([`../sweeps/A1-design-ratification/CLOSURE.md`](../sweeps/A1-design-ratification/CLOSURE.md)),
+>   four empirical validations, especially Validation 3 (three-window defense
+>   of ADR-003 — biology + past-self gardening + academic CS lineage)
+
+---
+
+## Why this document exists
+
+Sweep A1's closure named **three windows** that converge on antigen's
+architecture (biology, past-self gardening, programming-language theory) and
+scope.md added a **fourth** (2026 ML graph-memory research). The three- and
+four-window convergence is itself an empirical defense of the architecture
+(per ADR-003): when independent traditions arrive at the same primitive
+without coordinating, the structure is real, not metaphor-dependent.
+
+This document widens the convergence test. It asks: **across the academic
+record more broadly — not just biology, not just programming languages —
+where else does the same architecture appear?**
+
+The thesis the map will substantiate: **structural-recognition-with-memory-
+and-inheritance is a domain-general architecture studied in at least
+fifteen academic fields**, each of which has discovered it independently
+and given it different vocabulary. The biology spine in V0 is one
+instantiation among many. Antigen is the first ergonomically-adoptable
+instantiation in a programming-language ecosystem; it is not the first
+instantiation of the architecture itself.
+
+This is the strongest possible defense of recognition-not-design (posture
+§2): if fifteen+ independent fields converge on the same architecture, the
+project is not designing anything — it is recognizing what was already
+there, distributed across the disciplines.
+
+---
+
+## Structural-identity criteria
+
+Per math-researcher's structural-identity test in postures.md §7 (depth-
+shift discipline), the criteria for "this field's framework is the same
+pattern, not a rhyme":
+
+1. **Same fail-mode without the architecture** (i.e., what fails when
+   recognition + memory + inheritance is absent).
+2. **Same recovery shape** (i.e., the architectural move that fixes the
+   fail-mode).
+3. **Same routing pattern** (i.e., how the recognition propagates from
+   instance to declaration to inheritance to enforcement).
+
+A field passes the structural-identity test when all three criteria are
+"yes" — the field has independently arrived at antigen's architecture.
+
+A field passes the **partial-cognate** test when one or two criteria match
+— the field illuminates a piece of the architecture but not the whole.
+
+A field is **silent** when zero criteria match — the field is genuinely a
+different architecture, and the silence is informative (per naturalist's
+biology-as-instrument framing: silence where it should be silent is
+evidence of load-bearing-ness).
+
+Each entry below records its identity-criteria status explicitly.
+
+---
+
+## Index
+
+1. [Cognitive science — schema theory + chunking + structure-mapping](#1-cognitive-science--schema-theory--chunking--structure-mapping)
+2. [Evolutionary biology — convergent evolution + fitness landscapes + niche construction](#2-evolutionary-biology--convergent-evolution--fitness-landscapes--niche-construction)
+3. [Ecology — niche partitioning + keystone species + ecosystem resilience](#3-ecology--niche-partitioning--keystone-species--ecosystem-resilience)
+4. [Information theory — error-correcting codes + Hamming distance + redundancy](#4-information-theory--error-correcting-codes--hamming-distance--redundancy)
+5. [Semiotics — Peirce's icon/index/symbol triad + sign-to-symbol elevation](#5-semiotics--peirces-iconindexsymbol-triad--sign-to-symbol-elevation)
+6. [Knowledge management — Nonaka SECI tacit/explicit conversion](#6-knowledge-management--nonaka-seci-tacitexplicit-conversion)
+7. [Complex adaptive systems — Holland's signals + boundaries + emergence](#7-complex-adaptive-systems--hollands-signals--boundaries--emergence)
+8. [Cybersecurity — MITRE ATT&CK + CVE/NVD + threat-intelligence taxonomies](#8-cybersecurity--mitre-attck--cvenvd--threat-intelligence-taxonomies)
+9. [Aviation safety — NTSB blameless post-mortem + structural recommendations](#9-aviation-safety--ntsb-blameless-post-mortem--structural-recommendations)
+10. [Pattern languages — Christopher Alexander's architecture + GoF descent](#10-pattern-languages--christopher-alexanders-architecture--gof-descent)
+11. [Cumulative culture — Tomasello's ratchet effect + transmission fidelity](#11-cumulative-culture--tomasellos-ratchet-effect--transmission-fidelity)
+12. [Indigenous epistemologies — oral transmission + intergenerational pattern](#12-indigenous-epistemologies--oral-transmission--intergenerational-pattern)
+13. [Stigmergy — environmental signaling + memory-in-substrate](#13-stigmergy--environmental-signaling--memory-in-substrate)
+14. [Bayesian inference — prior/posterior + rare-event reasoning](#14-bayesian-inference--priorposterior--rare-event-reasoning)
+15. [Philosophy of science — paradigm shift + normal-science accumulation](#15-philosophy-of-science--paradigm-shift--normal-science-accumulation)
+16. [Where the cross-domain map goes silent (honest boundaries)](#where-the-cross-domain-map-goes-silent-honest-boundaries)
+17. [Cross-domain convergence findings](#cross-domain-convergence-findings)
+
+---
+
+## 1. Cognitive science — schema theory + chunking + structure-mapping
+
+### Field synopsis
+
+Cognitive science has three independent threads that converge on antigen's
+architecture from different angles:
+
+- **Schema theory** (Bartlett 1932 → Rumelhart 1980 → contemporary 2024
+  research): humans encode new experience by fitting it into pre-existing
+  schemas — abstract structural patterns that organize knowledge. Schema
+  activation drives comprehension, pattern recognition, and memory
+  consolidation. Failure to recognize a schema produces lossy encoding;
+  successful schema match produces durable, retrievable memory.
+
+- **Chunking theory** (Chase & Simon 1973, de Groot's chess studies, Gobet
+  & Simon's template theory): expertise is the result of accumulating
+  thousands of named structural units (chunks/templates) in long-term
+  memory. Experts perceive at the level of chunks, not raw features.
+  Beginners see piece positions; chess masters see "Sicilian Defense
+  middle-game with isolated d-pawn" — a structurally-named class. Chunks
+  are inherited via template hierarchies; new chunks build on existing
+  ones.
+
+- **Structure-mapping theory** (Gentner 1983, Gentner & Holyoak 1997, the
+  Structure-Mapping Engine): analogical reasoning works by mapping
+  *systems of relations* — not surface features — from base domain to
+  target domain. The mapping is constrained by *systematicity*: relations
+  embedded in larger relational systems transfer; isolated features do not.
+
+### Structural-identity test
+
+| Criterion | Schema | Chunking | Structure-mapping |
+|---|---|---|---|
+| Same fail-mode without architecture | yes (schema-less learning is lossy) | yes (chunkless perception caps at ~7 items) | yes (surface-similarity retrieval misses deep structure) |
+| Same recovery shape | yes (named schema persists past instances) | yes (named chunks persist past instances) | yes (mapped relational systems persist) |
+| Same routing pattern | yes (schema propagation across instances) | yes (template inheritance hierarchies) | yes (systematicity-constrained relation transfer) |
+
+**Verdict: full structural identity across all three threads.** Cognitive
+science is one of the deepest cross-domain instantiations of antigen's
+architecture, with three internal sub-instantiations.
+
+### What this maps to in antigen
+
+- `#[antigen]` declaration ≈ named schema / named chunk / named relational
+  system. Each is an explicit, retrievable, propagatable structural class.
+- Fingerprint matching ≈ schema activation / chunk recognition / structure
+  mapping. The act of matching a code site to a fingerprint *is* the act of
+  recognizing the pattern.
+- `#[descended_from]` ≈ template inheritance hierarchy (Gobet & Simon) /
+  schema hierarchy / structure-mapping systematicity. Inherited structure
+  carries inherited recognition.
+- The four-window convergence claim is itself a structure-mapping move —
+  mapping the architecture across biology / programming-language theory /
+  past-self gardening / ML graph-memory at the *relational* level, not the
+  surface level.
+
+### Where the cognitive-science framework adds new substrate beyond biology
+
+- **Transmission fidelity is a measurable property, not just a desired one.**
+  Schema theory and chunking theory both quantify the conditions under which
+  pattern memory survives transmission across individuals (Tomasello's
+  ratchet effect — see §11 — extends this). Antigen has not yet quantified
+  its own transmission-fidelity properties; the cognitive-science literature
+  predicts what to measure.
+
+- **Surface-similarity retrieval is the dominant failure mode.** Gentner's
+  finding that humans tend to retrieve surface-similar cases rather than
+  relationally-similar ones is directly relevant to antigen's W6a synthesis
+  pass and adversarial test substrate: developers confronted with a
+  fingerprint match may pattern-match by surface (variable names, syntactic
+  shape) rather than by structural relationship. The cognitive-science
+  literature predicts adversarial test patterns we should specifically
+  generate.
+
+- **Expertise is structurally distinct from skill.** Chunking theory says
+  expertise is *named-pattern accumulation*; antigen-stdlib + project-
+  specific antigens combined IS the operationalization of expertise as a
+  shared, structural artifact. The framing is recognition-grade for
+  ecosystem-outreach.
+
+### Recognition triggers in antigen
+
+- When stdlib reaches the point where adversarial tests need to specifically
+  generate "surface-similar but structurally-different" code that should NOT
+  match (Gentner's failure-mode in test form), the cognitive-science
+  framework makes the test pattern explicit.
+- When antigen-stdlib documentation needs a framing for "why this catches
+  things expert reviewers miss," the chunking framework predicts the answer:
+  experts have chunks; antigen makes chunks structural and shareable.
+
+### Recognition examples in cited prior art
+
+- Schema theory: 2024 *Schemas play a causal role in forming lasting
+  associative memory representations during one-trial learning, emphasizing
+  their importance in memory consolidation* — direct cognate to ADR-001's
+  "structural memory survives, implicit memory decays."
+- Chunking: Chase & Simon's finding that expert chess players store
+  thousands of named chunks in LTM is the empirical analog to antigen-stdlib
+  as accumulated ecosystem expertise.
+- Structure-mapping: SME (Forbus et al.) is computationally homologous to
+  antigen's fingerprint-matching engine — both recognize structured
+  relational patterns rather than feature bags.
+
+---
+
+## 2. Evolutionary biology — convergent evolution + fitness landscapes + niche construction
+
+### Field synopsis
+
+Beyond immunology-specific evolution (V0 §Virology mutation rates), broader
+evolutionary biology has three threads relevant to antigen:
+
+- **Convergent evolution**: independent species evolve similar traits under
+  similar selective pressures. The shared environment selects for the same
+  structural answer, even when the organisms have no common ancestor for
+  that trait.
+
+- **Fitness landscapes** (Wright 1932, Kauffman 1993): the genotype-phenotype-
+  fitness relationship visualized as a topology with peaks and valleys.
+  Selection pressure causes populations to climb toward local peaks;
+  populations stuck on suboptimal peaks may need oscillating selection or
+  drift to traverse fitness valleys to higher peaks.
+
+- **Niche construction theory** (Lewontin 1983, Odling-Smee, Laland) +
+  **extended phenotype** (Dawkins): organisms do not passively adapt to
+  selection; they *construct* the selective environment. Beaver dams,
+  termite mounds, human agricultural systems — built environment that
+  becomes the selective context for subsequent generations. The constructed
+  niche is itself heritable.
+
+### Structural-identity test
+
+| Criterion | Convergent evolution | Fitness landscape | Niche construction |
+|---|---|---|---|
+| Same fail-mode without architecture | yes (re-derivation across populations) | partial (suboptimal-peak lock-in) | yes (each generation re-builds environment) |
+| Same recovery shape | yes (independent arrival at same structure) | partial (path-dependence is the architecture) | yes (constructed niche persists across generations) |
+| Same routing pattern | yes (selection pressure as fingerprint) | partial (gradient-following in topology) | yes (extended phenotype as inherited environment) |
+
+**Verdict: full structural identity for convergent evolution and niche
+construction; partial for fitness landscapes.** Convergent evolution is
+the deepest cognate; niche construction is the most actionable for
+ecosystem framing.
+
+### What this maps to in antigen
+
+- **Convergent evolution → the four-window convergence as evolutionary
+  evidence.** Biology, programming-language theory, past-self gardening,
+  ML graph-memory all converged on structural-memory-with-recognition-and-
+  inheritance under different selective pressures (different problem
+  spaces). Independent arrival at the same architecture is empirical
+  evidence for the architecture's load-bearing structure.
+
+- **Fitness landscapes → fingerprint-precision/recall trade-off curves.**
+  V0's "dose-response curves" entry already names this; the
+  fitness-landscape framing makes the trade-off topology *explicit*. A
+  fingerprint can be tuned to local maxima of precision; fingerprint
+  refinement is gradient-following on the precision/recall topology.
+  Antigen-stdlib's per-antigen precision metrics ARE the fitness-landscape
+  coordinates.
+
+- **Niche construction → antigen-stdlib as ecosystem-niche construction.**
+  This is the single most important framing this document adds. *The
+  antigen-stdlib is the constructed niche that subsequent Rust development
+  inherits as its selective environment.* Each antigen declared in stdlib
+  shifts the selection pressure on Rust code: code that presents the
+  failure-class pattern is selected against by tooling; code that resists
+  it is selected for. Over time, the constructed niche reshapes the
+  ecosystem's fitness landscape.
+
+### Where the evolutionary-biology framework adds new substrate beyond biology immunology
+
+V0 covers immunology evolution. This section's contribution is that
+**evolutionary biology MORE BROADLY frames antigen-stdlib as ecosystem-
+niche construction** — antigen is not just a tool that helps codebases
+adapt; it is a tool that *changes the selective environment* in which
+Rust codebases evolve. This shifts the project's framing from "useful
+tool" to "ecosystem niche-constructor" — closer to scope.md's "first
+ergonomically-adoptable instantiation of a domain-general architecture."
+
+The framing also predicts: as antigen-stdlib accumulates, the Rust
+ecosystem's *fitness landscape* shifts. New code is evaluated against a
+landscape that already includes the immunity peaks. Adoption is not
+just lateral spread; it is environmental construction.
+
+### Recognition triggers in antigen
+
+- Vision-pitch material discussing antigen's ecosystem effects can use
+  niche-construction framing to explain why adoption is non-linear: each
+  adopting project shifts the selective environment for subsequent
+  projects.
+- Convergent-evolution framing is already operational in scope.md's
+  four-window convergence; this section extends the framing to
+  *fifteen-window convergence* via this whole document.
+
+### Recognition examples
+
+- Convergent evolution producing similar eye structures across cephalopods
+  + vertebrates is the canonical biological case. The four-window
+  convergence on structural memory is the same shape: same problem, same
+  selection pressure, same architectural answer, independent origins.
+- Niche construction: human agricultural environments selecting for
+  amylase gene duplications. Antigen-stdlib selecting for code patterns
+  that don't trigger fingerprint matches is the same shape, different
+  substrate.
+
+---
+
+## 3. Ecology — niche partitioning + keystone species + ecosystem resilience
+
+### Field synopsis
+
+Ecology studies population-level + ecosystem-level dynamics:
+
+- **Niche partitioning**: competing species divide resources to coexist.
+  Different niches reduce direct competition; biodiversity is preserved
+  by structural differentiation rather than by exclusion.
+
+- **Keystone species**: species whose impact on ecosystem structure is
+  disproportionately large relative to their abundance. Removal causes
+  cascade effects across many other species. Examples: sea otters,
+  beavers, predators that cap herbivore populations.
+
+- **Ecosystem resilience**: the ability of an ecosystem to recover from
+  disturbance. Diverse species pools absorb shocks better; functional
+  redundancy means species loss is less catastrophic when other species
+  can fill the niche.
+
+### Structural-identity test
+
+| Criterion | Niche partitioning | Keystone species | Ecosystem resilience |
+|---|---|---|---|
+| Same fail-mode without architecture | partial (monoculture vulnerability) | yes (disproportionate-impact removal cascades) | yes (low-diversity ecosystems collapse on shock) |
+| Same recovery shape | yes (structural differentiation) | partial (disproportionate-impact retention) | yes (functional redundancy across species) |
+| Same routing pattern | yes (niche coordinates as fingerprints) | partial (impact propagation graphs) | yes (cross-species functional substitutability) |
+
+**Verdict: full structural identity for niche partitioning and ecosystem
+resilience; partial for keystone species.**
+
+### What this maps to in antigen
+
+- **Niche partitioning → antigen-vs-clippy-vs-tests-vs-formal-verification
+  ecosystem coexistence.** The eight first-principles failure-classes
+  occupy distinct niches in the recognition ecosystem. Antigen does not
+  compete with clippy (compose-don't-compete, posture §3); it occupies a
+  distinct niche — *named-failure-class memory across time and
+  inheritance*. Each verification tool occupies a structurally different
+  niche; none replaces another.
+
+- **Keystone species → load-bearing antigens.** Some antigens, once
+  declared, produce disproportionate ecosystem effects. The hypothetical
+  `PolarityInvertedClassMeet` antigen, if propagated through stdlib, would
+  prevent a category of bugs that cascade across many codebases. The
+  framing predicts: post-A5, antigen-stdlib will contain a small number of
+  keystone antigens with disproportionate impact, and a long tail of
+  niche-specific antigens with localized impact. Stdlib prioritization
+  follows keystone identification.
+
+- **Ecosystem resilience → witness pluralism as functional redundancy.**
+  ADR-002's commitment to multiple witness types (test, proptest, phantom,
+  formal verification, lint) is functional redundancy. If one witness
+  category becomes unavailable (e.g., kani is deprecated), other witness
+  types can absorb the load. The ecosystem is resilient because no single
+  witness is load-bearing.
+
+### Where the ecology framework adds new substrate beyond biology immunology
+
+- **Population-level dynamics** are absent from immunology-as-individual-
+  organism framing. Ecology operates at the population/ecosystem scale —
+  precisely the scale relevant to "antigen-stdlib accumulating as
+  ecosystem expertise." V0's herd-immunity entry is one instance;
+  ecology generalizes.
+
+- **Stability-vs-resilience distinction**: ecology distinguishes between
+  *stability* (resistance to disturbance) and *resilience* (recovery
+  from disturbance). Antigen's design is a resilience strategy, not a
+  stability strategy: failure-classes will keep emerging; the architecture
+  is about *recovering* through pattern-naming, not about *preventing*
+  pattern emergence.
+
+### Recognition triggers in antigen
+
+- Stdlib prioritization should ask "which antigens are keystone (high
+  impact, low abundance) vs. niche (low impact, high specificity)?" The
+  ecology framework predicts the question.
+- Adoption-pitch material can use ecosystem-resilience framing for
+  enterprise audiences who think in terms of risk management.
+
+### Recognition examples
+
+- Sea otters keeping urchin populations in check, preserving kelp
+  forests = `PolarityInvertedClassMeet` keeping a category of class-meet
+  bugs in check, preserving lattice-correctness across a swath of code.
+- Coral reef diversity providing resilience to bleaching events =
+  witness-pluralism providing resilience to verification-tool deprecation.
+
+---
+
+## 4. Information theory — error-correcting codes + Hamming distance + redundancy
+
+### Field synopsis
+
+Shannon (1948), Hamming (1950), and successors developed formal theory of
+reliable information transmission over noisy channels:
+
+- **Error-correcting codes**: redundancy added to messages so that errors
+  can be detected and corrected. Forward error correction encodes the
+  message in a way that allows the receiver to recover the original even
+  when some bits are corrupted.
+
+- **Hamming distance**: the minimum number of bit-flips needed to
+  transform one valid codeword into another. A code with minimum
+  distance d can detect d-1 errors and correct ⌊(d-1)/2⌋ errors.
+
+- **Signal-to-noise ratio**: the trade-off between message bandwidth and
+  reliability. Stronger codes use more redundancy and reduce effective
+  bit rate, but improve resilience.
+
+### Structural-identity test
+
+| Criterion | Error-correcting codes |
+|---|---|
+| Same fail-mode without architecture | yes (silent corruption indistinguishable from valid signal) |
+| Same recovery shape | yes (redundancy lets receiver recover from local errors) |
+| Same routing pattern | partial (decoding is single-stage; antigen has propagation) |
+
+**Verdict: partial cognate.** Information theory illuminates the
+*per-instance* recognition problem (is this message corrupted? is this
+code an antigen instance?) but does not directly map to inheritance /
+propagation. Still, the per-instance illumination is precise.
+
+### What this maps to in antigen
+
+- **Hamming distance → fingerprint discriminability.** Two failure-classes
+  whose fingerprints have small "Hamming distance" (i.e., overlap heavily
+  in structural features) will produce false positives — the recognition
+  cannot distinguish them. V0's cross-reactivity entry names this
+  biologically; information theory makes it formal: antigen-stdlib needs
+  a *minimum-fingerprint-distance* discipline analogous to minimum Hamming
+  distance, so that fingerprints don't ambiguously fire on related-but-
+  distinct failure-classes.
+
+- **Redundancy as resilience → witness pluralism + verification tier
+  gradient.** Multiple witness types attached to a single antigen are
+  redundancy. ADR-013's phantom-type witnesses + ADR-002's external-tool
+  witnesses + ADR-016's `verified_at` re-attestation form an error-
+  correcting code over the immunity-claim space. A single witness can
+  fail (compile error, tooling regression, stale proof); multiple
+  redundant witnesses make the immunity claim correctable rather than
+  losable.
+
+- **Signal-to-noise → fingerprint precision/recall + tolerance.** The
+  fingerprint engine emits a signal (match) over a noisy channel
+  (codebase). Tolerance (ADR-011) is the operational acknowledgment that
+  the channel has noise: some matches are not real signal. The signal-to-
+  noise framing predicts that tolerance count + rationale count per
+  antigen are themselves measurable quality metrics.
+
+### Where the information-theory framework adds new substrate
+
+- **Discriminability is a formal property, not just a desideratum.** V0's
+  cross-reactivity entry names the problem; information theory says how
+  to *measure* it. Future stdlib quality work can adopt explicit
+  fingerprint-distance metrics rather than relying on adversarial-test
+  intuition.
+
+- **Channel capacity bounds.** There is a theoretical upper bound on how
+  much failure-class memory a fingerprint engine can carry per byte of
+  declaration. As antigen-stdlib grows, fingerprints will need to encode
+  more disambiguation — the framework predicts the architectural cost
+  rather than letting it surprise the project.
+
+### Recognition triggers in antigen
+
+- When stdlib accumulates to the point where antigen-overlap becomes a
+  real ergonomic issue, the Hamming-distance framing makes the
+  disambiguation discipline formal.
+- When witness-pluralism adoption produces real cases of "kani regression
+  invalidated my proof but my proptest still holds," the
+  error-correcting-code framing makes the resilience visible to users.
+
+### Recognition examples
+
+- ECC RAM uses Hamming codes to detect/correct single-bit errors silently
+  in computer memory. Antigen with witness-pluralism makes single-witness
+  loss recoverable silently in immunity claims.
+- Reed-Solomon codes (used in CDs, DVDs, QR codes) handle burst errors via
+  block-level redundancy. Witness-tier-gradient (ADR-005 Amendment 3) is
+  block-level honesty about which redundancy layer is actually doing the
+  work.
+
+---
+
+## 5. Semiotics — Peirce's icon/index/symbol triad + sign-to-symbol elevation
+
+### Field synopsis
+
+Charles Sanders Peirce (1839-1914) developed a triadic theory of signs
+that distinguishes three modes by which a sign refers to its object:
+
+- **Icon**: refers by *resemblance* (a portrait resembles its subject; a
+  diagram resembles its referent's structural relationships). Iconicity
+  is intrinsic — the icon shares qualities with its object.
+
+- **Index**: refers by *factual connection* (smoke is index of fire;
+  footprint is index of an animal's passage). Indexicality requires a
+  causal/contiguous relation in the world.
+
+- **Symbol**: refers by *interpretive habit or convention* (the word
+  "tree" refers to trees by social convention, not by resemblance or
+  causal connection). Symbolicity is purely conventional — there is no
+  intrinsic or causal connection between signifier and signified.
+
+The progression icon → index → symbol is a hierarchy of *abstraction*
+and *generativity*: symbols permit categorical reasoning; indices permit
+specific reference; icons permit similarity-based recognition.
+
+### Structural-identity test
+
+| Criterion | Peirce's triad |
+|---|---|
+| Same fail-mode without architecture | yes (un-symbolized patterns are non-categorically-shareable) |
+| Same recovery shape | yes (symbol creation makes pattern categorically shareable) |
+| Same routing pattern | partial (symbol-via-convention vs symbol-via-declaration) |
+
+**Verdict: partial cognate at the per-sign level; full cognate at the
+*sign-to-symbol elevation* level.** This is the deepest semiotic framing
+for antigen.
+
+### What this maps to in antigen
+
+- **Fingerprint-as-pattern is iconic.** The fingerprint resembles the code
+  pattern it matches — it is structurally similar to the failure-class
+  shape. `name: matches('*Class')` resembles the named-class pattern by
+  shape.
+
+- **Fingerprint-match-on-actual-code is indexical.** The match is a
+  factual-causal connection between the fingerprint and the code site —
+  "this code site contains the structural feature the fingerprint is
+  about." The match is not the pattern in the abstract; it is the
+  pointer-to-instance relation.
+
+- **`#[antigen(name = "...")]` is symbolic.** The named declaration is
+  Peirce's symbol — a categorical referent established by convention
+  (the project's substrate). Once named, `PolarityInvertedClassMeet`
+  refers categorically to the failure-class regardless of which icon
+  (which fingerprint variant), which index (which code site), or which
+  witness (which verification tool).
+
+- **The fingerprint → match → declaration → witness chain is a
+  Peircean ladder**. From iconic structure (the fingerprint shape)
+  through indexical pointing (the match) to symbolic naming (the
+  antigen) to symbolic-conventional verification (the witness, which is
+  a *named* tool with conventional semantics). Each tier is a Peirce-
+  shaped abstraction.
+
+### Where the semiotics framework adds new substrate
+
+- **Implicit-to-explicit elevation (posture §5) is a sign-to-symbol move
+  in Peirce's vocabulary.** Implicit memory (developer mind) is iconic at
+  best — a fading internal resemblance. Antigen converts the implicit to
+  symbolic: a name, a referent, a categorically-shareable artifact. The
+  ADR-004 posture is structurally identical to Peirce's "thirdness"
+  category — symbols-as-conventions are the substrate of categorical
+  thought.
+
+- **The four-window convergence is a meta-symbolic move.** When biology,
+  programming-language theory, past-self gardening, and ML graph-memory
+  converge on the same architecture, they are independently constructing
+  the same *symbol* — the architecture itself becomes referent. Antigen-
+  the-project is the act of making that symbol explicit-and-named in
+  the Rust ecosystem.
+
+### Recognition triggers in antigen
+
+- When ecosystem-outreach material explains why "naming the failure-class
+  matters," the Peirce framework gives the explanation: naming is the
+  shift from icon/index to symbol; it is what makes the pattern
+  categorically shareable across contexts.
+
+- When ADR-001 Amendment 1's C1-C8 commitments need a meta-framing for
+  manuscript material, Peirce's triad provides it: C1-C8 is the
+  enumeration of antigen's symbolic surface, the categorical referents
+  the project commits to making explicit.
+
+### Recognition examples
+
+- A photograph of a face is iconic; the security-camera footage tagged
+  with timestamp + location is indexical; the police-report case-number
+  referring to the suspect is symbolic. The case-number permits
+  cross-jurisdictional categorical reference; the photograph alone does
+  not. Antigen names are case-numbers for failure-classes.
+
+---
+
+## 6. Knowledge management — Nonaka SECI tacit/explicit conversion
+
+### Field synopsis
+
+Ikujiro Nonaka and Hirotaka Takeuchi developed the SECI model (1995)
+based on studies of Japanese corporate innovation in the 1980s-90s. The
+model formalizes how organizational knowledge cycles between two modes:
+
+- **Tacit knowledge**: cannot be fully articulated; acquired through
+  practice, shared experience, and apprenticeship. Lives in individual
+  minds and shared workplace context.
+
+- **Explicit knowledge**: expressible in words, formulas, documents.
+  Communicable across distance and time without face-to-face
+  transmission.
+
+The SECI cycle has four conversion modes:
+
+1. **Socialization** (tacit → tacit): shared experience transmits tacit
+   knowledge between individuals.
+2. **Externalization** (tacit → explicit): tacit knowledge is articulated
+   into communicable form.
+3. **Combination** (explicit → explicit): explicit knowledge is integrated,
+   organized, restructured.
+4. **Internalization** (explicit → tacit): explicit knowledge is absorbed
+   back into individual practice and intuition.
+
+Organizational learning depends on all four conversions; missing any one
+breaks the cycle.
+
+### Structural-identity test
+
+| Criterion | SECI |
+|---|---|
+| Same fail-mode without architecture | yes (tacit-only knowledge dies with the carriers) |
+| Same recovery shape | yes (externalization to explicit form is the architectural move) |
+| Same routing pattern | yes (combination + internalization are propagation/inheritance) |
+
+**Verdict: full structural identity.** SECI is one of the closest non-
+biological cognates for antigen's whole architecture, because both
+fields are explicitly about knowledge persisting past its original
+carriers.
+
+### What this maps to in antigen
+
+- **Tacit knowledge ≈ implicit failure-class memory** (developer minds,
+  AI session context, mentorship). Decays at carrier turnover (per
+  scope.md "Carriers that drift" enumeration).
+
+- **Externalization (tacit → explicit) ≈ writing an `#[antigen]`
+  declaration.** This IS the SECI externalization move, structurally.
+  The team has tacit knowledge of a failure-class (we keep hitting this);
+  someone externalizes to `#[antigen(name, fingerprint, summary,
+  references)]` form.
+
+- **Combination (explicit → explicit) ≈ antigen-stdlib accumulation +
+  cross-crate `#[descended_from]` propagation.** Explicit antigens are
+  organized, refined, related, propagated through a dependency graph.
+
+- **Internalization (explicit → tacit) ≈ developer intuition shaped by
+  scan output and IDE annotations.** As `cargo antigen scan` runs over
+  time, developers internalize the failure-classes; future code writing
+  is informed by tacit awareness derived from explicit feedback.
+
+- **Socialization** ≈ the original failure-class transmission via
+  mentorship, code review, war stories. Antigen does not eliminate
+  socialization; it ensures the cycle continues even when socialization
+  fails (carrier turnover).
+
+### Where the knowledge-management framework adds new substrate beyond biology
+
+- **The full cycle vs the half-cycle.** Biology gives antigen the
+  *externalization + combination* halves of SECI (tacit → explicit;
+  explicit accumulation). Knowledge management adds the
+  *internalization* half: how externalized knowledge becomes tacit
+  practice. This predicts that A6's IDE integration is structurally
+  load-bearing for the SECI cycle, not just an ergonomic adjuvant.
+  Without internalization, antigen-stdlib would accumulate explicit
+  knowledge that is never absorbed into tacit practice — knowledge
+  management calls this *knowledge stagnation*.
+
+- **The cycle is iterative, not unidirectional.** SECI is a spiral, not
+  a one-way pipeline. Antigen-stdlib's evolution is a SECI spiral:
+  tacit experience → explicit antigen → combined ecosystem → internalized
+  intuition → new tacit experience that motivates the next antigen.
+  V0's "vaccine modalities" entry hints at this; SECI makes the spiral
+  explicit.
+
+### Recognition triggers in antigen
+
+- A6 IDE integration framing material can explicitly invoke
+  internalization: "antigen turns the explicit failure-class declaration
+  back into tacit developer awareness via inline IDE annotation."
+- Methodology-paper material on JBD-team-with-substrate discipline maps
+  cleanly onto SECI: the team operates the externalization + combination
+  half explicitly and structurally; substrate-over-memory is the
+  discipline that prevents the cycle from collapsing back to tacit-only.
+
+### Recognition examples
+
+- Toyota Production System's externalization of tacit machine-shop
+  expertise into explicit standard-work documents is the historical
+  prototype. Antigen-stdlib is the same shape for Rust ecosystem
+  failure-class expertise.
+
+---
+
+## 7. Complex adaptive systems — Holland's signals + boundaries + emergence
+
+### Field synopsis
+
+John H. Holland's complex-adaptive-systems (CAS) framework, especially in
+*Signals and Boundaries* (2012), formalizes systems characterized by:
+
+- **Many adaptive agents** with local interactions
+- **Signals** that propagate information across the system
+- **Boundaries** that delineate semi-permeable subsystems (cells,
+  organizations, ecosystems)
+- **Emergence**: system-level behavior that is not reducible to component-
+  level behavior
+- **Coevolution**: agents and environment shape each other simultaneously
+
+CAS produces hierarchical organization through nested signal/boundary
+arrangements. Niches act as semi-permeable boundaries; smells, visual
+patterns, and (in ecosystems) chemical signals drive coordination.
+
+### Structural-identity test
+
+| Criterion | Complex adaptive systems |
+|---|---|
+| Same fail-mode without architecture | yes (no signals → no coordination across boundaries) |
+| Same recovery shape | yes (named signals + nested boundaries enable coordination) |
+| Same routing pattern | yes (signals propagate hierarchically across boundary layers) |
+
+**Verdict: full structural identity.** CAS is the most general framework
+on this list; it subsumes much of biology, ecology, and economics under
+one architectural lens.
+
+### What this maps to in antigen
+
+- **`#[antigen]` declarations are signals.** They propagate across crate
+  boundaries (which are semi-permeable), across team boundaries (humans
+  + AI agents reading the codebase), across time boundaries (sessions
+  cycle but signals persist).
+
+- **Crate / module / function boundaries are CAS boundaries.** Each is
+  semi-permeable in different ways. `#[descended_from]` propagation is
+  one specific signal-crossing-boundary pattern; cross-crate scan (A3)
+  is another.
+
+- **Antigen ecosystem is a CAS at the meta level.** Projects + their
+  dependencies + their developers + the AI agents reading them = a
+  complex adaptive system. Antigen provides the *signaling
+  infrastructure* for that system. Without antigen, the system has
+  signals (commits, PR reviews, mentorship) but they decay at
+  boundary-crossings (carrier turnover); with antigen, the signals are
+  *structural* and persist across boundaries.
+
+- **Emergence**: The four-window convergence + the colonization-ratio
+  finding (8/5 = 160% from scope.md) are emergent properties of the
+  team-with-substrate operating over A1+A2 — properties that no single
+  agent or document encodes, but that emerge from the coordination
+  pattern.
+
+### Where the CAS framework adds new substrate
+
+- **The boundary/signal/emergence triad makes antigen's ecosystem effects
+  predictable.** When v0.1 ships and adoption begins, the project should
+  expect emergent properties not encoded in any single ADR — this is a
+  CAS prediction. The framework predicts what *kind* of properties will
+  emerge: hierarchical signal-propagation, boundary-spanning coalitions,
+  novel signal forms.
+
+- **Coevolution framing**: antigen and Rust idioms will coevolve. As
+  antigen-stdlib accumulates, Rust idioms will shift to avoid fingerprint
+  matches; antigen-stdlib will then need to refine fingerprints to
+  capture new instances. CAS predicts the dynamics; recognition-not-
+  design (posture §2) lets the project ride them rather than legislate
+  them.
+
+### Recognition triggers in antigen
+
+- Manuscript material discussing antigen's ecosystem effects (especially
+  the foundational paper post-v0.2.0) can use CAS framing to predict
+  rather than just describe the dynamics.
+- Stdlib release-cadence guidance (V0's "Mutation rates" entry) becomes
+  formal under CAS: signal evolution rates are a measurable property
+  with structural drivers.
+
+### Recognition examples
+
+- Stock markets, ant colonies, immune systems, and ecosystems all share
+  CAS structure. Antigen ecosystem is the same shape — different
+  substrate, same architecture.
+
+---
+
+## 8. Cybersecurity — MITRE ATT&CK + CVE/NVD + threat-intelligence taxonomies
+
+### Field synopsis
+
+Cybersecurity has two well-developed structural-memory artifacts:
+
+- **CVE (Common Vulnerabilities and Exposures)** + **NVD (National
+  Vulnerability Database)**: a globally-shared registry of named
+  vulnerabilities. Each CVE has a unique identifier (e.g., CVE-2021-44228
+  for log4shell), affected versions, severity scores (CVSS), and links to
+  patches. CVE entries propagate through software supply chains: a CVE
+  in a transitive dependency affects every dependent project.
+
+- **MITRE ATT&CK**: a globally-accessible knowledge base of *adversary
+  tactics and techniques* based on real-world observations. Each
+  technique has a structured ID (e.g., T1059.001 for malicious
+  PowerShell), tactical category (Initial Access, Execution, etc.),
+  documented adversary usage, and detection guidance. ATT&CK is a
+  taxonomy of attack-pattern *shapes*, distinct from CVE's instance-
+  level vulnerability registry.
+
+### Structural-identity test
+
+| Criterion | CVE/NVD | MITRE ATT&CK |
+|---|---|---|
+| Same fail-mode without architecture | yes (re-exploitation of unnamed vulnerabilities) | yes (re-defense against unnamed attack patterns) |
+| Same recovery shape | yes (named vulnerability + patches) | yes (named technique + detections) |
+| Same routing pattern | yes (CVE propagation through dep graphs) | yes (technique propagation through threat reports) |
+
+**Verdict: full structural identity for both.** Cybersecurity is **the
+single most direct cross-domain instantiation of antigen's architecture
+in non-biological substrate.**
+
+### What this maps to in antigen
+
+- **CVE ≈ instance-level antigen analog.** A CVE is a named instance of
+  a vulnerability in a specific package version. `#[presents]` markers
+  are the antigen analog of CVE entries — instance-level, vulnerable code.
+
+- **NVD ≈ antigen-stdlib + project-specific antigen registry.** NVD
+  accumulates CVEs across the ecosystem; antigen-stdlib + downstream
+  declarations accumulate antigens across the Rust ecosystem.
+
+- **MITRE ATT&CK ≈ `#[antigen]` taxonomy.** ATT&CK is structurally
+  closest to antigen-the-project: a *taxonomy of named pattern-classes*
+  (not instance-level), with structural fingerprints (in ATT&CK,
+  procedural descriptions; in antigen, syn-AST patterns), with
+  inheritance relationships (sub-techniques like T1059.001 descend from
+  T1059), with witness-like artifacts (detection guidance).
+
+- **CVSS scoring ≈ severity-weighted antigen prioritization.** V0's
+  "triage" entry names the need; CVSS provides the prior art for how a
+  named-failure-class registry handles severity at scale.
+
+- **Supply-chain propagation ≈ A3 cross-crate scan.** A CVE in a
+  dependency 5 levels deep affects the top-level project; the same
+  shape is what A3 implements for antigen propagation.
+
+### Where the cybersecurity framework adds new substrate
+
+This is the section where this document earns its keep. Several
+architectural questions antigen will face have direct prior-art answers:
+
+- **How does antigen-stdlib release cadence work?** CVE assignment +
+  NVD enrichment workflows are 25+ years of ecosystem operational
+  experience. CNAs (CVE Numbering Authorities), embargo windows,
+  responsible-disclosure timelines — antigen will eventually face
+  analogs and can adopt patterns rather than re-derive them.
+
+- **How are antigen IDs structured?** CVE format (`CVE-YYYY-NNNNN`) +
+  ATT&CK format (`TNNNN.NNN` with sub-techniques) are two different
+  successful patterns. Antigen IDs are currently named-string
+  (`PolarityInvertedClassMeet`); a structured-ID layer may eventually
+  be load-bearing for cross-ecosystem coordination.
+
+- **How does fingerprint-vs-instance separation work at scale?** ATT&CK
+  separates *technique* (the pattern class) from *procedure* (specific
+  observed instances) from *detection* (the witness). Antigen's
+  parallel structure is `#[antigen]` (technique) + `#[presents]`
+  (procedure) + `witness` (detection). The cybersecurity framework
+  predicts ergonomic friction points (e.g., when a single technique has
+  many procedures with subtly different shapes) and how to handle them
+  (sub-technique decomposition).
+
+- **What is the social structure of stdlib contribution?** ATT&CK is
+  curated by MITRE with community contribution; CVE has CNAs
+  distributed across the ecosystem. Both have governance models that
+  antigen-stdlib could adopt or adapt.
+
+- **What is the framing for "this is a new category of structural
+  verification"?** Cybersecurity is the field-level peer that has been
+  doing exactly this for the security domain. Adoption-pitch material
+  for antigen can frame as "what CVE/MITRE ATT&CK did for security
+  knowledge, antigen does for failure-class knowledge more generally."
+
+### Recognition triggers in antigen
+
+- A5+ when stdlib release cadence becomes load-bearing, the CVE/CNA
+  governance model is recognition substrate.
+- Vision-pitch v2 + manuscript material can directly invoke the
+  CVE/ATT&CK comparison as the most precise non-biological cognate.
+- When a single antigen accumulates many distinct fingerprint variants
+  (W6a synthesis pass surfacing different structural forms), ATT&CK's
+  sub-technique decomposition is the architectural prior.
+
+### Recognition examples
+
+- log4shell (CVE-2021-44228) propagated through millions of projects
+  via supply chain — exactly the propagation A3 cross-crate scan
+  enables for antigens.
+- T1059.001 PowerShell sub-technique was created when T1059 (Command
+  and Scripting Interpreter) accumulated enough sub-pattern instances
+  to warrant decomposition. A future antigen-stdlib evolution will
+  likely produce analogous decompositions; ATT&CK shows what they
+  look like.
+
+---
+
+## 9. Aviation safety — NTSB blameless post-mortem + structural recommendations
+
+### Field synopsis
+
+The National Transportation Safety Board (NTSB) and analogous bodies in
+healthcare have developed blameless investigation practices since the
+mid-20th century:
+
+- **Blameless investigation**: incidents are investigated without
+  assigning fault; the goal is *understanding* and *prevention*, not
+  liability. The investigation finds *contributing factors*, not
+  blameworthy individuals.
+
+- **Structural recommendations**: investigation outputs are *structural
+  changes* (procedures, training requirements, equipment modifications,
+  regulations) — not individual sanctions. Each recommendation closes a
+  specific failure pathway identified by the investigation.
+
+- **Cumulative safety culture**: the ecosystem accumulates structural
+  changes over decades. Aviation's exceptional safety record is
+  attributed to this cumulative cultural artifact.
+
+The discipline migrated to software via Google SRE's blameless-
+postmortem culture (Beyer et al. 2016) and adjacent industry practice.
+
+### Structural-identity test
+
+| Criterion | NTSB-style post-mortem |
+|---|---|
+| Same fail-mode without architecture | yes (without structural recommendations, lessons stay tacit) |
+| Same recovery shape | yes (structural changes prevent failure-class recurrence) |
+| Same routing pattern | yes (recommendations propagate via regulation + training) |
+
+**Verdict: full structural identity.** This is the closest professional-
+practice cognate to antigen's discipline.
+
+### What this maps to in antigen
+
+- **Antigen declaration ≈ NTSB structural recommendation.** Each
+  `#[antigen]` is a structural change to the codebase's recognition
+  surface, derived from a specific failure instance, designed to prevent
+  recurrence.
+
+- **References field ≈ NTSB report linkage.** The `references = [...]`
+  field on `#[antigen]` (issue numbers, ADRs, commits) is the antigen
+  analog of NTSB report citations — provenance from instance to
+  declaration.
+
+- **Witness ≈ NTSB recommendation verification.** A safety
+  recommendation is implemented + audited; an antigen has a witness
+  that verifies immunity.
+
+- **Antigen-stdlib ≈ aviation regulatory ecosystem.** The accumulated
+  structural recommendations of decades of NTSB investigation IS the
+  aviation safety culture. Antigen-stdlib is the analogous accumulated
+  structural carrier for Rust ecosystem failure-classes.
+
+### Where the aviation framework adds new substrate
+
+- **Origin-incident discipline.** NTSB practice requires that every
+  recommendation be tied to a specific incident (or pattern of
+  incidents). Antigen's `references` field formalizes the same
+  discipline. The aviation framework is the *historical proof* that
+  this discipline scales to ecosystem-wide cumulative knowledge over
+  decades.
+
+- **Blameless culture is structurally load-bearing, not just ergonomic.**
+  NTSB's effectiveness depends on the blameless framing — investigators
+  get truth from witnesses because there are no liability consequences.
+  Antigen's adoption depends on the same: developers must feel safe
+  declaring antigens about their own past mistakes. The framing is *not*
+  decorative; it shapes whether the architecture works at all.
+
+- **The asymmetry between aviation/medical blamelessness and software
+  blamelessness** (per the Google SRE source: "where human error is a
+  factor, the FAA may revoke a pilot's license") is itself instructive:
+  software's ability to be *fully* blameless is a structural advantage
+  the architecture can lean into.
+
+### Recognition triggers in antigen
+
+- Vision-pitch material for enterprise/regulated-industry audiences can
+  use NTSB cognates directly. "Antigen brings aviation-grade
+  failure-class memory to the Rust ecosystem."
+- Stdlib contribution guidelines should formalize the
+  origin-incident-required discipline as NTSB practice does.
+
+### Recognition examples
+
+- Post-Tenerife (1977) collision: standardized phraseology + crew
+  resource management. The recommendation was structural; it propagated
+  globally; airspace coordination has not had a similar collision since.
+  The pattern is structurally identical to "post-DeterminismClass-
+  polarity-bug, declare `PolarityInvertedClassMeet` antigen, propagate
+  through stdlib, similar bugs prevented across ecosystem."
+
+---
+
+## 10. Pattern languages — Christopher Alexander's architecture + GoF descent
+
+### Field synopsis
+
+Christopher Alexander's *A Pattern Language* (1977) introduced the idea of
+*patterns* in physical architecture: each pattern is a problem + context
++ structural solution + relations to other patterns. 253 patterns in the
+original book formed a *pattern language* — a network of patterns that
+call upon one another.
+
+The Gang of Four book *Design Patterns* (Gamma, Helm, Johnson, Vlissides
+1994) imported this structure to software design (Singleton, Observer,
+Factory, etc.). Ward Cunningham invented the wiki specifically as a
+collaboration substrate for documenting software patterns.
+
+### Structural-identity test
+
+| Criterion | Pattern languages |
+|---|---|
+| Same fail-mode without architecture | yes (re-derivation of structural solutions across projects) |
+| Same recovery shape | yes (named patterns capture structural answers) |
+| Same routing pattern | partial (patterns are descriptive, not enforced; antigen has tooling enforcement) |
+
+**Verdict: partial cognate.** Pattern languages are the architectural
+predecessor to antigen-the-discipline — same recognition move (name
+recurring structural answers), different enforcement model (descriptive
+documentation vs. structural type-system carriers).
+
+### What this maps to in antigen
+
+- **GoF design patterns ≈ project-level antigens that don't ship as
+  stdlib.** Each GoF pattern names a recurring structural answer; each
+  antigen names a recurring failure-class. The recognition discipline is
+  the same (name what recurs); the modality differs (GoF promotes good
+  patterns; antigen warns against bad patterns).
+
+- **Alexander's pattern relationships ≈ `#[descended_from]`
+  inheritance.** Alexander explicitly designed patterns to call upon
+  one another; antigen explicitly supports inheritance. The Alexander
+  network structure is the prior art for what cross-antigen relations
+  look like at scale.
+
+- **Wiki + WikiWikiWeb origin ≈ collaborative-substrate publication for
+  pattern collections.** Antigen-stdlib + the GitHub repo + future
+  community contribution flows are the modern instantiation of the same
+  collaborative pattern-curation move Cunningham invented for GoF.
+
+### Where the pattern-language framework adds new substrate
+
+- **Patterns as a *language*, not a list.** Alexander's original
+  framing emphasized that patterns *combine* — the language is
+  generative, not just descriptive. Antigen's commitment to
+  composition (multiple antigens at one site, inheritance graphs,
+  family relationships) inherits this generative-language framing.
+  V0's "comorbidity" entry (multiple antigens manifesting together)
+  is the antigen analog of pattern-language composition.
+
+- **Pattern languages have a known failure mode: descriptive without
+  enforcement.** GoF patterns famously *are not enforced* by tools; they
+  are encouraged by documentation. The result: real-world adoption is
+  inconsistent, and pattern-misuse persists. Antigen's structural
+  enforcement (cargo subcommand + macros) is the architectural
+  improvement over GoF — *named patterns + tooling* > *named patterns
+  alone*.
+
+### Recognition triggers in antigen
+
+- Stdlib documentation framing can invoke GoF as the closest
+  software-engineering precedent: "GoF for failure-classes, with
+  cargo enforcement."
+- When community contribution flows mature, Cunningham's WikiWikiWeb
+  history is recognition substrate for governance.
+
+---
+
+## 11. Cumulative culture — Tomasello's ratchet effect + transmission fidelity
+
+### Field synopsis
+
+Michael Tomasello and collaborators (2009, 2012) developed the *cultural
+ratchet effect* framework explaining why human culture is *cumulative*
+in ways no other species' is:
+
+- Cultural innovations *stay* in the population (ratchet) rather than
+  drifting back to baseline.
+- The mechanism: high *transmission fidelity* — language, teaching,
+  imitation — that preserves innovations precisely enough to be improved
+  upon by the next generation.
+- Without high fidelity, innovations drift and are lost; with it, each
+  generation builds on the prior.
+
+Chimpanzees have culture (regional tool-use traditions); they don't have
+*cumulative* culture (nothing builds; each generation re-invents at
+baseline). The species-level difference is transmission fidelity.
+
+### Structural-identity test
+
+| Criterion | Cumulative culture |
+|---|---|
+| Same fail-mode without architecture | yes (innovations drift back to baseline without high-fidelity transmission) |
+| Same recovery shape | yes (high-fidelity transmission preserves innovations across generations) |
+| Same routing pattern | yes (teaching + language + imitation = inheritance mechanisms) |
+
+**Verdict: full structural identity.** Cumulative-culture theory is
+*about exactly what antigen is about* — preserving innovations
+(failure-class recognitions) across generations (sessions, contributors,
+AI agents) via high-fidelity carriers (structural macros).
+
+### What this maps to in antigen
+
+- **Implicit failure-class memory ≈ chimpanzee culture.** Real, but
+  doesn't ratchet. Each session re-invents at baseline. The bug
+  patterns of 2024 are still ship-able in 2026 because the carrier was
+  low-fidelity.
+
+- **Antigen as high-fidelity carrier ≈ language + teaching.** The
+  `#[antigen]` declaration is the high-fidelity transmission mechanism.
+  Once declared, the failure-class recognition propagates across
+  context-window boundaries, across team-handoffs, across
+  AI-agent-generations *without re-derivation*.
+
+- **Antigen-stdlib growing over years ≈ cumulative cultural innovation.**
+  Each declared antigen is a contribution to the cumulative cultural
+  artifact; the artifact ratchets — antigens stay declared, future
+  innovations build on them.
+
+### Where the cumulative-culture framework adds new substrate
+
+- **Transmission fidelity as a measurable property.** Tomasello's group
+  developed experimental paradigms for measuring transmission fidelity.
+  Antigen could in principle measure its own: declare an antigen, hand
+  the codebase to a fresh-context agent, ask whether the agent
+  understands the failure-class without being told. High fidelity if
+  yes; low if not. This is recognition substrate for empirical defense.
+
+- **Ratchet vs drift distinction makes adoption stakes precise.** Without
+  antigen, the Rust ecosystem's failure-class knowledge is in
+  drift-mode: innovations (lessons learned) keep being lost to carrier
+  turnover. With antigen, the ecosystem becomes ratchet-mode:
+  innovations stay. The framing is non-decorative — it names the
+  qualitative shift in ecosystem dynamics.
+
+- **The four-window convergence is itself a cumulative-culture artifact.**
+  Biology accumulated immune-system architecture over 500M years.
+  Programming-language theory accumulated structural-property
+  verification over 50+ years. Past-self gardening accumulated
+  pattern-recognition insights over months. ML graph-memory accumulated
+  in 2026. Each window is a cumulative-cultural ratchet in its
+  domain. Antigen is the artifact that *crosses the windows* — the
+  meta-ratchet.
+
+### Recognition triggers in antigen
+
+- Foundational-paper material (post-v0.2.0, per scope.md trajectory) can
+  use cumulative-culture framing as the deepest non-biological
+  defense of why structural memory matters: *humans only have
+  cumulative civilization because of high-fidelity transmission;
+  software ecosystems will only have cumulative failure-class culture
+  because of structural carriers.*
+- AI-dev-tooling paper can use the cumulative-culture frame to
+  contrast antigen with fine-tuning-based knowledge embedding:
+  fine-tuning is low-fidelity (training-data residue, model-version
+  drift); antigen is high-fidelity (substrate-grounded, model-
+  independent).
+
+### Recognition examples
+
+- The accumulated stock of human technology over 200,000 years (stone
+  tools → agriculture → metallurgy → electronics → AI) IS the
+  cumulative-cultural ratchet. Antigen-stdlib growing over years +
+  decades IS the same shape, restricted to one specific domain
+  (Rust failure-class knowledge).
+
+---
+
+## 12. Indigenous epistemologies — oral transmission + intergenerational pattern
+
+### Field synopsis
+
+Indigenous knowledge systems across the world (Vhavenda, Tsimane,
+Hawaiian, Coast Salish, Navajo, etc.) share certain structural features
+in how they preserve and transmit knowledge across generations:
+
+- **Multi-modal carriers**: knowledge is encoded in stories, ceremony,
+  song, dance, ritual, place-naming, plant/animal ecology — distributed
+  across redundant channels rather than localized in one document or
+  practice.
+
+- **Layered meaning**: stories carry multiple interpretive levels;
+  different audiences (children, adults, elders, initiates) extract
+  different content from the same surface. The layering is a feature,
+  not noise.
+
+- **Authoritative carriers**: respected individuals (elders, hereditary
+  chiefs, medicine people) are responsible for accurate transmission and
+  contextualization. They are not just knowledge-holders; they are
+  *trust-boundary validators* — they decide which content is shared
+  with which audience under what conditions.
+
+- **Land-embedded knowledge**: substantial knowledge is encoded in
+  place-relations rather than abstracted from them. The land itself is
+  a carrier.
+
+### Structural-identity test
+
+| Criterion | Indigenous epistemology |
+|---|---|
+| Same fail-mode without architecture | yes (knowledge dies at carrier death without structural transmission) |
+| Same recovery shape | yes (multi-modal redundancy + authoritative validation preserves) |
+| Same routing pattern | partial (intergenerational propagation is structurally similar; substrate-embedding is novel relative to antigen's text-based substrate) |
+
+**Verdict: full structural identity for the recognition + memory +
+inheritance triad; indigenous frameworks ADD substrate-embedding as a
+fourth principle that text-based antigen does not currently encode.**
+
+### What this maps to in antigen
+
+- **Multi-modal carriers ≈ multi-witness pluralism.** Indigenous systems
+  preserve knowledge across stories, ceremony, song — multiple redundant
+  channels. Antigen preserves immunity claims across test, proptest,
+  phantom-type, formal-verification, lint — multiple redundant witness
+  types. The structural move is the same (redundancy as resilience).
+
+- **Layered meaning ≈ tier-aware audit honesty (ADR-005 Amendment 3).**
+  Different audiences extract different content from the same surface.
+  Antigen's audit reports the tier its verification work actually
+  supports — not a stronger one. The audience determines the depth.
+
+- **Authoritative carriers ≈ rationale-required field (posture §6) +
+  substrate-over-memory.** Trust-boundary validators in indigenous
+  systems are structurally analogous to the rationale field: someone is
+  responsible for the justification, and the justification is checkable.
+
+### Where the indigenous-epistemology framework adds new substrate
+
+- **Substrate-embedding as a fourth principle.** Indigenous knowledge is
+  not just *recorded in* the substrate; it is *embedded in* the
+  substrate (place-names, plant-relations, ecosystem-knowledge). For
+  antigen, the analogous direction is that fingerprints + immunity
+  claims live IN the code (as macros), not in a separate registry.
+  This is already operational (per ADR-001's structural-not-documentary
+  posture), but the indigenous framework makes the principle more
+  vivid: *the carrier and the carried must live in the same substrate*.
+
+- **The danger of extraction-without-context.** Indigenous knowledge
+  systems are damaged when content is extracted from cultural context
+  (e.g., medicinal plant knowledge extracted into pharmacology
+  literature without the practice context). The framework predicts:
+  antigen-stdlib content extracted into manuscripts/papers/tutorials
+  without the ecosystem-practice context is similarly degraded. This
+  is a posture-class implication for how antigen is *talked about*
+  outside the substrate.
+
+- **Plurality of traditions, not singular framework.** Indigenous
+  epistemologies are *plural* — Vhavenda is not Tsimane is not
+  Coast Salish. The field-level lesson: antigen-stdlib should not
+  presume a single "correct" failure-class framing for all Rust
+  contexts. Domain-specific antigens (embedded systems, web servers,
+  cryptography) may need framing that respects the plurality of
+  domain practice.
+
+### Recognition triggers in antigen
+
+- Methodology-paper material can invoke indigenous-epistemology framing
+  as the deepest non-Western prior art for the principle *the carrier
+  must live in the substrate of practice*. The framing widens the
+  paper's reach beyond Western academic traditions.
+
+### Recognition examples
+
+- Tsimane oral-tradition research (cited prior art): elders'
+  storytelling expertise *increases* with age — knowledge transmission
+  is bidirectional and lifecycle-distributed, not just downward.
+  Antigen-ecosystem analog: senior contributors' value to
+  antigen-stdlib comes from accumulated pattern-recognition, not just
+  technical knowledge.
+
+---
+
+## 13. Stigmergy — environmental signaling + memory-in-substrate
+
+### Field synopsis
+
+*Stigmergy* (Grassé 1959; Theraulaz & Bonabeau 1999) is coordination
+without direct communication — agents leave signals in the environment;
+other agents detect and respond to the signals. Ant pheromone trails are
+the canonical example:
+
+- Ants searching for food deposit trail-pheromone-A; ants returning
+  follow trail-pheromone-B.
+- Trails strengthen with use, evaporate without it.
+- The pheromone field is *external memory*: simple agents with no
+  individual record of the colony's path-history nonetheless
+  collectively converge on optimal routes via the substrate-encoded
+  signal.
+
+Stigmergy generalizes beyond ants: termite mounds, traffic flow, social-
+media trending, distributed-system gossip protocols, version-control
+systems all operate stigmergically.
+
+### Structural-identity test
+
+| Criterion | Stigmergy |
+|---|---|
+| Same fail-mode without architecture | yes (without environmental signal, agents repeat exploration) |
+| Same recovery shape | yes (signal-in-substrate enables convergence without central control) |
+| Same routing pattern | yes (signal strength + decay + reinforcement = recognition propagation) |
+
+**Verdict: full structural identity.** Stigmergy is **the deepest
+architectural cognate for substrate-over-memory**, the discipline that
+makes antigen's project-level coordination work.
+
+### What this maps to in antigen
+
+- **Substrate-over-memory IS stigmergy.** The campsite logbook + git
+  history + on-disk docs are the pheromone field. Each agent (Claude
+  instance, human contributor) leaves signals in substrate; other
+  agents detect and respond without direct coordination. Validation 4
+  in the A1 closure narrative (the team passed three "ratification
+  complete" signals through routing on the basis of agent context, not
+  substrate-grounded check) is *exactly* the failure mode stigmergy
+  warns against: when agents respond to other agents' signals rather
+  than to substrate, coordination collapses.
+
+- **`#[antigen]` declarations ≈ pheromone trails for recognition.**
+  Each declaration is a persistent environmental signal. Future
+  agents (developers, AI assistants, scan tooling) detect the signal
+  and respond. The signal does not require synchronous communication
+  between agents.
+
+- **Stale tolerance + verified_at decay ≈ pheromone evaporation.**
+  Without the decay term, stigmergy would saturate (every trail
+  reinforced indefinitely). Antigen's `verified_at` (ADR-016) is the
+  decay term — claims have a freshness. Without decay, witness
+  pluralism would saturate (every claim "verified once" is equivalent
+  to "verified eternally," which violates sub-clause F).
+
+### Where the stigmergy framework adds new substrate
+
+- **Coordination-tier substrate-over-memory mitigation has a name.**
+  The A1 closure narrative names the discipline ("every 'X is complete'
+  routing must include a substrate-grounded check name"); stigmergy
+  gives it a 60-year theoretical grounding. The discipline is not ad
+  hoc; it is a specific instance of a domain-general coordination
+  architecture.
+
+- **Stigmergy explains why the JBD-team-with-substrate works at scale.**
+  Direct communication scales as O(N²) with team size; stigmergic
+  coordination scales as O(N) because each agent only interacts with
+  the substrate, not with all other agents. Antigen's coordination
+  pattern (campsite logbook + ADRs + docs/expedition + memory.md)
+  operates stigmergically by design — the team scales because the
+  substrate carries the coordination load.
+
+- **Signal evaporation is load-bearing, not just hygiene.**
+  Pheromone-trail evaporation prevents lock-in to suboptimal paths.
+  ADR-016's `verified_at` evaporation prevents lock-in to stale
+  immunity claims. The framework predicts: *every persistent signal
+  in antigen needs a decay term, or it will eventually mislead*.
+  This is recognition substrate for future-ADR territory.
+
+### Recognition triggers in antigen
+
+- Methodology-paper material on JBD-team-with-substrate can directly
+  invoke stigmergy as the theoretical grounding for substrate-over-
+  memory. The discipline becomes a *named architectural practice*,
+  not just a project-specific reflex.
+- Future ADR territory: when antigen primitives are added that don't
+  have decay terms (e.g., `references` field, `summary` field), the
+  stigmergy framework asks "does this signal need evaporation?" The
+  answer is sometimes no (provenance claims should not evaporate);
+  sometimes yes (claims about freshness should).
+
+### Recognition examples
+
+- The Linux kernel coordination model (no central architect; coordination
+  via patches, mailing lists, git history) is stigmergic at scale.
+  Antigen-stdlib + cross-crate antigen propagation will be the same shape.
+- Wikipedia editorial coordination is stigmergic. Antigen-stdlib
+  contribution governance will likely converge on similar patterns.
+
+---
+
+## 14. Bayesian inference — prior/posterior + rare-event reasoning
+
+### Field synopsis
+
+Bayesian statistics formalizes belief-updating under uncertainty:
+
+- **Prior distribution**: representation of belief before new evidence.
+- **Posterior distribution**: representation of belief after incorporating
+  new evidence.
+- **Bayes' theorem**: prescribes how to combine prior + likelihood of
+  evidence under hypotheses to produce posterior.
+
+Bayesian methods are the dominant framework for engineering reliability
+modeling under rare events: a component with one or zero observed failures
+in its operational history still permits calibrated belief about future
+failure rates, given an informative prior.
+
+### Structural-identity test
+
+| Criterion | Bayesian inference |
+|---|---|
+| Same fail-mode without architecture | partial (purely-empirical reasoning struggles with rare events) |
+| Same recovery shape | partial (informative prior compensates for sparse data) |
+| Same routing pattern | partial (prior → posterior → next prior is iterative) |
+
+**Verdict: partial cognate, but illuminating.** Bayesian framework is
+not the architecture itself; it is the *reasoning engine* used over the
+architecture.
+
+### What this maps to in antigen
+
+- **Antigen-stdlib ≈ informative prior for codebase failure-class
+  reasoning.** A codebase that imports antigen-stdlib starts with a
+  *prior belief* that certain failure-classes exist in the world. As
+  scan + audit produces evidence (matches, immunity claims), the
+  codebase's posterior shifts. The mathematical framework for
+  reasoning about partially-observed risks IS Bayesian.
+
+- **Rare-event reasoning ≈ failure-class reasoning at scale.** Most
+  individual codebases will never personally experience most failure-
+  classes (e.g., a small data-pipeline crate may never have a
+  Drop-impl panic). But the existence of antigen-stdlib gives them a
+  *prior* — failure-classes the broader ecosystem has seen, even if
+  this codebase has not. Bayesian framework predicts: codebases with
+  good priors (from stdlib) handle rare events better than codebases
+  with flat priors (no failure-class knowledge).
+
+- **`verified_at` re-attestation ≈ posterior-becomes-next-prior.**
+  Each round of audit + re-verification updates the system's belief
+  state. The Bayesian iterative-update structure matches ADR-016's
+  temporal substrate.
+
+### Where the Bayesian framework adds new substrate
+
+- **Confidence calibration as ecosystem-level metric.** Bayesian methods
+  produce *calibrated* beliefs (probability claims that match
+  empirical frequencies). Antigen-stdlib could in principle produce
+  calibrated immunity claims: "codebases with witness W for antigen X
+  have empirical failure rate Y." This is recognition substrate for
+  future stdlib quality metrics.
+
+- **Rare-event-with-informative-prior is the structurally hard case.**
+  Most individual project codebases will see most antigen-stdlib
+  failure-classes zero times; antigen-stdlib's value is precisely in
+  bringing the prior. Bayesian framework formalizes why this is
+  load-bearing rather than overhead.
+
+### Recognition triggers in antigen
+
+- Stdlib quality framework can adopt Bayesian-calibration metrics as
+  precision/recall metrics mature.
+- Adoption-pitch material for risk-conscious audiences (regulated
+  industry, safety-critical software) can use Bayesian framing
+  directly: antigen-stdlib is the prior; project-specific antigens
+  are the likelihood; verified immunity is the posterior with low
+  failure rate.
+
+### Recognition examples
+
+- Aerospace component reliability: a turbine blade's failure
+  probability is estimated via Bayesian methods even when individual
+  blades have no observed failures, by leveraging informative priors
+  from broader fleet data. Antigen-stdlib brings the same architectural
+  shape to Rust ecosystem reliability.
+
+---
+
+## 15. Philosophy of science — paradigm shift + normal-science accumulation
+
+### Field synopsis
+
+Thomas Kuhn's *The Structure of Scientific Revolutions* (1962) describes
+science as alternating between:
+
+- **Normal science**: cumulative puzzle-solving within an established
+  paradigm. Structural assumptions are shared; investigators work on
+  problems the paradigm makes tractable.
+
+- **Crisis**: anomalies accumulate that the paradigm cannot accommodate.
+
+- **Revolution / paradigm shift**: a new paradigm reorganizes the
+  field's structural assumptions; old anomalies dissolve under new
+  framing; new puzzles become tractable that were unaskable before.
+
+Subsequent philosophy of science (Lakatos, Feyerabend) refined the
+account but the cumulative-paradigm + paradigm-shift dichotomy persists.
+
+### Structural-identity test
+
+| Criterion | Philosophy of science |
+|---|---|
+| Same fail-mode without architecture | partial (paradigm-less science is incoherent, but this is more a meta-claim) |
+| Same recovery shape | partial (paradigm articulation is a recognition move) |
+| Same routing pattern | yes (normal-science-within-paradigm = inheritance + accumulation) |
+
+**Verdict: partial cognate at the meta level; illuminating for
+positioning antigen as paradigm-shift candidate.**
+
+### What this maps to in antigen
+
+- **Antigen as paradigm-shift candidate**: scope.md's "domain-knowledge
+  memory safety as a fourth structural property of secure-by-default
+  Rust development" is explicitly a paradigm-shift claim. Memory
+  safety, type safety, thread safety are the existing paradigm;
+  domain-knowledge memory safety is a fourth axis the field has not
+  organized around.
+
+- **Antigen-stdlib accumulation as normal science.** Each antigen
+  declaration is a normal-science contribution within the antigen
+  paradigm: cumulative puzzle-solving once the paradigm is
+  established. The first 10-20 stdlib antigens are paradigm-
+  establishing; the next thousands are normal-science accumulation.
+
+### Where the philosophy-of-science framework adds new substrate
+
+- **Paradigm-shift discipline.** Kuhn's account predicts: paradigm
+  shifts are *resisted* until anomalies accumulate too obviously.
+  Antigen will face this. The four-window convergence is the project's
+  defense against premature paradigm-shift claim (the architecture is
+  not arbitrary; it has independent multi-window grounding) AND the
+  argument that the shift is overdue (the architecture has been
+  emerging in four fields independently for decades).
+
+- **Normal-science vs revolutionary-science cadence.** The project's
+  own work cadence will shift: A1+A2 are paradigm-establishing
+  (revolutionary mode); A3+A4+A5 are normal-science (puzzle-solving
+  within established paradigm). The recognition-not-design (posture
+  §2) discipline is suited for normal-science mode; the
+  anti-YAGNI / structurally-guaranteed-need (posture §4) discipline
+  is suited for revolutionary mode. The framework predicts: as
+  antigen matures, posture-§2 dominance grows and posture-§4 fades.
+
+### Recognition triggers in antigen
+
+- Foundational-paper material (post-v0.2.0) can use the paradigm-shift
+  framing directly. The contribution is a new structural property
+  the field has not previously organized around.
+- Post-A5 retrospective framing material: as antigen-stdlib stabilizes
+  and contribution cadence shifts to normal-science, the framework
+  predicts the team's experience of the work changing.
+
+---
+
+## Where the cross-domain map goes silent (honest boundaries)
+
+Per naturalist's biology-as-instrument framing in V0: the silence is
+informative. Fields where the structural-identity test fails *zero*
+criteria — i.e., the field's framework genuinely doesn't map to
+antigen's architecture — are themselves load-bearing evidence that the
+architecture has shape.
+
+### Fields that are silent
+
+- **Pure mathematics** (set theory, category theory, topology in the
+  abstract): mathematics provides the *substrate* in which formal
+  verification operates (Liquid Haskell types, kani proofs are
+  mathematical objects), but mathematics-itself does not have the
+  *recognition + memory + inheritance over time* structure. A theorem
+  is timeless; antigen claims have temporal substrate (`verified_at`).
+  Mathematics is one tier deeper than antigen; antigen-the-architecture
+  is not mathematics.
+
+- **Physics** (thermodynamics, statistical mechanics, quantum field
+  theory): physics has *laws*, not *recognized patterns*. A failure
+  mode in physics is a violation of conservation; not a learnable
+  recurrence. The framework genuinely doesn't apply.
+
+- **Pure logic** (propositional, first-order): logic provides the
+  *grammar* for reasoning about failure-classes (e.g., the witness
+  type-system invariants), but logic does not have the *empirical-
+  pattern-recognition* layer that antigen's fingerprint engine
+  embodies.
+
+- **Formal language theory** (Chomsky hierarchy, regular/context-free/
+  context-sensitive): the AST grammar antigen operates over is
+  formally a context-sensitive matter, but formal-language-theory
+  itself is about the substrate, not the architecture-over-substrate.
+
+These silences are evidence of antigen's architectural specificity:
+*recognition-with-memory-and-inheritance over an empirically-evolving
+substrate*. Pure mathematics, physics, logic, and formal-language theory
+all lack one or more of those modifiers (empirical, evolving,
+substrate-bound). The architecture lives in the intersection where
+those modifiers all hold.
+
+### Fields with weak partial-cognate that don't earn their own section
+
+- **Game theory / mechanism design**: provides framing for the
+  *strategic interactions* between antigen's contributors (why
+  contribute to stdlib? why declare antigens about your own
+  mistakes?), but the strategic-interaction layer is one tier above
+  the architecture, not part of it.
+
+- **Economics of information goods**: relevant to ecosystem-adoption
+  dynamics (positive externalities, network effects), but not part of
+  the architectural substrate.
+
+- **Linguistics (syntax / phonology)**: linguistics is closer to
+  formal-language theory than to recognition-with-memory; the
+  structural-identity test fails most criteria.
+
+- **Anthropology of science** (Latour, actor-network theory): provides
+  framing for how antigen-as-artifact mediates relationships between
+  human and AI agents and codebases. The framework is illuminating but
+  is a *meta-account* of the architecture, not the architecture itself.
+
+These are catalogued here so the catalog is honest: not every field
+illuminates antigen; some fields illuminate the *context around*
+antigen but not the architecture. The distinction matters for
+manuscript trajectory (which framings appear in which papers).
+
+---
+
+## Cross-domain convergence findings
+
+After reviewing fifteen fields and naming silences in four+ more, the
+following structural findings emerge:
+
+### Finding 1 — Fifteen-window convergence
+
+The four-window convergence in scope.md (biology, programming-language
+theory, past-self gardening, ML graph-memory) is a special case of a
+broader fifteen-window convergence:
+
+| Window | Vocabulary | Architectural cognate |
+|---|---|---|
+| 1. Biology | antibodies, MHC, B-cell memory | *V0's spine* |
+| 2. Cognitive science (schema) | schema activation | named-pattern persistence |
+| 3. Cognitive science (chunking) | template hierarchy | inheritance |
+| 4. Cognitive science (structure-mapping) | systematicity | relational-fingerprint matching |
+| 5. Evolutionary biology | convergent evolution | independent arrival at same structure |
+| 6. Evolutionary biology | niche construction | ecosystem-niche shaping |
+| 7. Ecology | niche partitioning + keystone | tool-coexistence + load-bearing antigens |
+| 8. Information theory | error-correcting codes | witness pluralism as redundancy |
+| 9. Semiotics | symbol-formation | named declaration as symbol |
+| 10. Knowledge management (SECI) | externalization | implicit-to-explicit elevation |
+| 11. Complex adaptive systems | signals + boundaries | antigen as signal infrastructure |
+| 12. Cybersecurity (CVE/ATT&CK) | named vulnerability/technique | direct architectural twin |
+| 13. Aviation safety (NTSB) | structural recommendation | discipline cognate |
+| 14. Pattern languages (Alexander/GoF) | named pattern | recognition predecessor |
+| 15. Cumulative culture (Tomasello) | ratchet effect | high-fidelity transmission |
+| (16. Indigenous epistemologies) | multi-modal redundancy | substrate-embedding |
+| (17. Stigmergy) | environmental signal | substrate-over-memory cognate |
+| (18. Bayesian inference) | informative prior | reasoning engine over architecture |
+| (19. Philosophy of science) | paradigm + normal science | meta-positioning |
+
+That is **15 fields with full structural identity, 4 more with partial
+cognates, 4+ silent fields**. The four-window claim in scope.md is a
+*lower bound*. The actual convergence is wider.
+
+The implication for ADR-003 (biological metaphor load-bearing): the
+metaphor is one window onto an architecture so widely-distributed that
+calling it "biological" undersells it. The architecture is **domain-
+general**, present wherever recognition + memory + inheritance over
+empirically-evolving substrate is needed.
+
+This is an empirical defense of the project's foundational claim that
+the architecture is not arbitrary. Fifteen+ fields could not all
+independently have arrived at it by accident.
+
+### Finding 2 — The closest non-biological cognate is cybersecurity
+
+CVE/NVD + MITRE ATT&CK is the architectural twin of antigen, restricted
+to the security domain. Almost every architectural question antigen
+will face has prior-art answers in the cybersecurity ecosystem:
+
+- ID structure (CVE-YYYY-NNNNN, T1059.001)
+- Severity scoring (CVSS)
+- Supply-chain propagation (transitive CVE dep tracking)
+- Sub-pattern decomposition (ATT&CK sub-technique structure)
+- Governance models (CNAs, MITRE curation)
+- Disclosure timelines, embargo windows
+- Detection guidance attached to technique declarations
+- Cross-ecosystem coordination
+
+This is recognition substrate for ecosystem governance work post-A5.
+Antigen does not need to reinvent how named-failure-class registries
+operate at scale; cybersecurity has 25+ years of operational experience.
+
+The framing is also *load-bearing for adoption-pitch*: the closest
+analog audiences already know is CVE/MITRE ATT&CK. "What CVE/ATT&CK
+did for security knowledge, antigen does for failure-class knowledge
+more generally" is a precise framing.
+
+### Finding 3 — The deepest substrate-over-memory grounding is stigmergy
+
+The A1 closure narrative's Validation 4 (substrate-over-memory caught
+the team's own coordination failure) is given a 60-year theoretical
+foundation by stigmergy theory. The discipline is not project-specific;
+it is a specific instance of a domain-general coordination architecture.
+
+This shifts methodology-paper framing: instead of presenting
+substrate-over-memory as a JBD-team practice, present it as the project's
+adoption of stigmergic coordination, with citations across biology
+(Grassé), distributed systems (gossip protocols), and version control
+(git as stigmergic substrate).
+
+### Finding 4 — Implicit-to-explicit elevation is Peirce's sign-to-symbol move
+
+Posture §5 (implicit-to-explicit elevation) gains a precise theoretical
+articulation via semiotics: the elevation is a Peircean sign-to-symbol
+move. Implicit memory is iconic at best (fading internal resemblance);
+externalized antigens are symbolic (categorical, conventionally-
+shareable referents). The ADR-004 posture is structurally identical to
+Peirce's "thirdness" category.
+
+This is recognition substrate for foundational-paper material: the
+architectural posture is not idiosyncratic; it is a specific instance
+of a Peirce-shaped abstraction with 100+ years of philosophical
+articulation.
+
+### Finding 5 — Cumulative culture is the deepest non-biological argument for why this matters
+
+Tomasello's cumulative-culture / ratchet-effect framework is the most
+load-bearing non-biological framing for *why* structural failure-class
+memory matters at the ecosystem level. The framing is precise:
+
+- **Without antigen**: Rust ecosystem failure-class knowledge is in
+  drift mode (chimpanzee-culture-like). Innovations are lost across
+  carrier turnover.
+- **With antigen**: Rust ecosystem failure-class knowledge ratchets
+  (human-culture-like). Innovations persist across generations.
+
+The qualitative shift — from drift-mode to ratchet-mode — is the
+ecosystem-level claim antigen embodies. The cognitive-science
+literature documents this shift as the difference between human and
+non-human cognition; antigen brings the shift to a software ecosystem.
+
+This is the strongest possible argument for antigen's foundational
+claim, and it is *not* metaphor. It is a structural-identity claim.
+
+### Finding 6 — The architecture's signature is no fixed point
+
+Across all fifteen+ fields, the architecture has the same operational
+signature: *the discipline that catches the discipline's failure must
+be structural too*. No fixed point. The recursion is generative, not
+pathological.
+
+- **Biology**: B-cell memory of past pathogens IS the system; immune
+  failures cause autoimmunity which is itself a B-cell failure;
+  Tregs are the structural answer to Treg failure-modes. Each tier
+  recurses.
+- **Cumulative culture**: high-fidelity transmission is what preserves
+  innovations; failure of high-fidelity transmission is what loses
+  innovations; *teaching how to teach* is the recursive structural
+  answer. Each tier recurses.
+- **Stigmergy**: signal-in-substrate enables coordination; stale
+  signals mislead coordination; signal-decay is the structural answer;
+  *decay-of-the-decay-mechanism* is the next-tier question. Each tier
+  recurses.
+- **Antigen**: structural memory of failure-classes IS the system;
+  failure-of-structural-memory (Validation 4 substrate-currency
+  failure) is the failure mode; substrate-over-memory is the
+  structural answer; substrate-currency-of-substrate-over-memory is
+  the next-tier question. Each tier recurses.
+
+This is the depth-shift discipline (posture §7) generalized: across the
+fifteen+ fields, every architecture that successfully implements
+recognition-with-memory-and-inheritance has the no-fixed-point property.
+The recursion is the discipline, not a bug in the discipline.
+
+The implication: when antigen substrate inevitably surfaces failure
+modes of antigen's own coordination, the response is *not* "the
+architecture has a flaw"; the response is "the architecture is doing
+what successful instances of this architecture in fifteen other fields
+do — generating its own next tier." The recursion is evidence of
+structural soundness, not weakness.
+
+---
+
+## What this map is for
+
+Each cognate listed here is **forward substrate**, not commitment.
+Per ADR-006: when a real adoption pressure surfaces a need that
+matches a cognate listed here, the team recognizes the prior art rather
+than re-deriving it.
+
+This document is V1. Future deepening:
+
+- **Naturalist** can deepen the biology-spine V1 (V0 deepening) in
+  parallel; this document is the cross-domain sibling.
+- **Scout** can find prior-art partial-instantiations within specific
+  cognate fields (e.g., academic papers on schema-theory tooling that
+  could be ergonomic prior art for IDE integration in A6).
+- **Scientist** can integrate the fifteen-window convergence into
+  manuscript trajectory: tool-paper uses cybersecurity + aviation
+  cognates for adoption-pitch; foundational-paper uses cumulative-
+  culture + Peirce + stigmergy cognates for the architectural-claim
+  substrate; methodology-paper uses stigmergy + SECI cognates for the
+  team-discipline framing.
+- **Aristotle** can note candidate posture-class entries surfacing from
+  cross-domain framing — particularly stigmergy as the theoretical
+  grounding of substrate-over-memory.
+
+V2 of this document, if needed, would deepen each cognate with
+specific academic citations, prior-art instantiations of related
+tooling within each field, and recognition triggers tied to specific
+A3+ adoption pressures.
+
+---
+
+## Closing posture
+
+Antigen is not a Rust tool that happens to use biological vocabulary.
+Antigen is the first ergonomically-adoptable instantiation in a Rust
+ecosystem of an architecture that fifteen+ academic fields have been
+independently developing for decades to centuries.
+
+The biological framing is one window. The deepest non-biological
+windows are cybersecurity (architectural twin), cumulative culture
+(why-this-matters argument), and stigmergy (substrate-over-memory
+foundation).
+
+The discipline (per ADR-006): no speculative instantiation. This map
+is recognition substrate — when adoption surfaces a real instance, the
+team finds the answer here rather than re-deriving it. The map's
+existence does not commit the project to building any specific
+primitive on any specific timeline.
+
+Per the four empirical validations from A1 closure: the substrate has
+earned its scope. Per this V1 deepening: the substrate's *theoretical
+grounding* has fifteen-window depth. Both supports compound.
+
+---
+
+## Appendix A — Cybersecurity cognate deepening: ecosystem governance prior art
+
+The cybersecurity cognate (§8) is the closest non-biological architectural
+twin and the most actionable for ecosystem governance work. This appendix
+enumerates specific operational patterns from CVE/NVD, MITRE ATT&CK, and
+RustSec that antigen-stdlib will eventually face analogs of, so the team
+can recognize prior art rather than re-derive when the time comes.
+
+Per ADR-006: this is recognition substrate, not a commitment to adopt any
+specific pattern. The point is to make the prior art surveyable.
+
+### A.1 — RustSec is the directly-comparable Rust ecosystem prior
+
+The single most directly-applicable prior art is **RustSec** (rustsec.org +
+the rustsec/advisory-db GitHub repo + cargo-audit + the rustsec crate). It
+is structurally what antigen-stdlib will resemble at scale, restricted to
+the security-vulnerability subset of failure-classes:
+
+- **Structured advisory format**: each advisory has package, dates, IDs,
+  patched versions, references — precisely the shape of a future
+  antigen-stdlib entry.
+- **PR-based contribution**: vulnerabilities reported by opening pull
+  requests against the rustsec/advisory-db GitHub repo. This is the
+  community-curation pattern; antigen-stdlib can adopt directly.
+- **OSV format export**: RustSec exports to OSV (osv.dev), and the GitHub
+  Advisory Database imports RustSec advisories. This is **multi-format
+  interoperability** as a known operational pattern. Antigen-stdlib should
+  expect to need an interoperability format from inception, not retrofit.
+- **Tool consumption** (cargo-audit, the rustsec crate): the database is
+  consumed by tooling; the database format and the tool API co-evolve.
+  Antigen-stdlib + cargo-antigen audit are the parallel structure.
+
+**Recognition trigger**: post-A5, when antigen-stdlib reaches publication
+maturity, RustSec's contribution governance is the closest Rust-ecosystem
+operational analog. Likely the right invitation pattern is "if you've
+contributed to RustSec, you'll recognize most of antigen-stdlib's
+contribution flow."
+
+### A.2 — CNA federation is the scaling-governance pattern
+
+The CVE program scales to thousands of vulnerabilities per year via CNA
+(CVE Numbering Authority) federation: a hierarchical structure where
+higher-level CNAs assign blocks of CVE IDs to lower-level CNAs, who use
+their block to issue IDs within their domain.
+
+- **Program Root → Root → Sub-CNA hierarchy.** Each level has the same
+  rules; higher levels can sanction lower levels for non-compliance.
+- **Block-based ID assignment**: rather than central issuance per
+  vulnerability, blocks are pre-allocated. This is *stigmergic
+  governance* (per §13): each CNA operates on a substrate (their assigned
+  block) without per-vulnerability central coordination.
+- **De-centralized within rule-bound structure**: the goal is federation
+  of governance ability while maintaining program-wide consistency.
+
+**Recognition trigger**: if antigen-stdlib accumulates to multi-thousand
+scale (post-A6+), federation will become structurally necessary. Domain-
+specific extensions (antigen-stdlib-embedded, antigen-stdlib-web,
+antigen-stdlib-crypto) are candidate federation boundaries. The CVE CNA
+model predicts the architectural shape such federation would take.
+
+### A.3 — Disclosure/embargo policies are not optional
+
+Every CNA must publish a disclosure (embargo) policy. The policy describes
+when CVE IDs are assigned, when publication happens, communication
+guidelines, and timelines. The disclosure framework is *load-bearing for
+contributor trust* — without it, reporters do not know what to expect.
+
+**Recognition trigger**: antigen-stdlib does not currently have an
+analogous concept (failure-classes are not under-embargo the way security
+vulnerabilities are), but post-A5 may surface analogs:
+- **Pre-publication antigens**: an antigen recognized internally before
+  the underlying failure-class is widely understood. Embargo equivalent:
+  hold the antigen until the broader pattern is understood enough that
+  publication doesn't cause confusion.
+- **Cross-project coordination**: an antigen that affects multiple
+  unrelated projects may need coordination before publication so all
+  affected projects can prepare.
+- **Witness-not-yet-available antigens**: an antigen recognized but
+  without an executable witness yet. Tier-honesty (ADR-005 Amendment 3)
+  already handles this at the audit reporting layer; the disclosure-
+  policy framing makes it ecosystem-coordinatable.
+
+### A.4 — CVSS as severity rubric template
+
+The Common Vulnerability Scoring System (CVSS) maps each vulnerability to
+a vector of base/threat/environmental metrics, producing a 0-10 numeric
+score that maps to None/Low/Medium/High/Critical tiers. The vector is
+*structured* (e.g., `AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H` for log4shell)
+so that score derivation is reproducible.
+
+Two Rust crates exist: `cvssrust` and `cvss-rs` — prior art for how the
+Rust ecosystem already encodes CVSS structurally.
+
+**Recognition trigger**: V0's "triage" + "dose-response curves" entries
+both predict that severity-weighting becomes load-bearing post-stdlib.
+CVSS is the prior art for how a named-failure-class registry handles
+severity *reproducibly* (vector-based derivation, not just tier
+assignment). Antigen-stdlib could in principle adopt a CVSS-shaped
+vector for failure-class severity — base metrics (e.g., manifestation
+likelihood, blast radius, recoverability), environmental modifiers (e.g.,
+relevance to specific project type), threat modifiers (e.g., exploit
+maturity in the wild). The architectural shape is recognition substrate;
+specific metric choice is future ADR territory.
+
+### A.5 — Sub-technique decomposition criteria from ATT&CK
+
+ATT&CK's sub-technique system (introduced 2020) is the prior art for how
+a named-pattern-class taxonomy handles fingerprint variation. Specific
+operational patterns:
+
+- **One-to-one parent relationship**: each sub-technique has *exactly
+  one* parent technique; no diamond inheritance. This is "complicated
+  and difficult to maintain relationships" avoidance — ATT&CK explicitly
+  rejected diamond inheritance to keep the model tractable.
+- **Decomposition triggered by accumulation**: techniques are decomposed
+  into sub-techniques when content accumulates that warrants
+  finer-grained naming (Account Manipulation, Process Injection are
+  cited examples). The decomposition is *recognition-driven*, not
+  designed-ahead.
+- **Realignment + deprecation as part of lifecycle**: techniques can be
+  pruned, moved to different tactics, or deprecated. Deprecated objects
+  are marked but retained; references are not invalidated retroactively.
+
+**Recognition trigger**: when antigen-stdlib's W6a synthesis pass surfaces
+sufficient structural variants of a single antigen that decomposition
+becomes ergonomically necessary, ATT&CK's sub-technique pattern is the
+prior. The single-parent constraint is especially load-bearing —
+`#[descended_from]` already supports multi-parent inheritance, but
+antigen-stdlib's *taxonomic* structure may benefit from ATT&CK-style
+single-parent constraint at the stdlib-level even while
+`#[descended_from]` permits richer relationships at code-level.
+
+### A.6 — Contribution attribution and review patterns
+
+ATT&CK's contribution governance combines:
+- **Contact-before-writing**: contributors are asked to contact MITRE
+  before spending time on a new technique. This prevents wasted effort
+  and ensures alignment with the curation roadmap.
+- **Final-product review**: the final product is run by the contributor
+  who is credited as a contributor. Attribution is preserved while
+  curation maintains quality.
+- **Public threat-intelligence as primary source**: the data source is
+  publicly-available threat intelligence + incident reporting, with
+  research on new techniques included when they "closely align with
+  what adversaries commonly do" — a recognition-not-design discipline.
+
+**Recognition trigger**: antigen-stdlib contribution governance has not
+been articulated yet. ATT&CK's pattern (contact-first, attributed-review,
+recognition-driven curation) is recognition substrate. The pattern is
+likely to be the right starting point because it already reflects
+recognition-not-design discipline (posture §2) and rationale-as-
+required-field (posture §6) at the social layer.
+
+### A.7 — Multi-format interoperability is structural
+
+Both NVD and RustSec interoperate with multiple consumer formats (OSV,
+GitHub Advisories, etc.). Multi-format interoperability is *structural*
+in the cybersecurity ecosystem — every consumer of vulnerability data
+expects the data to be available in multiple machine-readable formats
+because different tooling pipelines need different shapes.
+
+**Recognition trigger**: antigen-stdlib's data shape will be consumed by
+cargo-antigen scan/audit, future LSP integration (A6), future external
+tooling. The multi-format-interoperability pattern is recognition
+substrate for an *ecosystem-data-format* ADR (likely post-A5+).
+Pre-emptive design for interoperability would violate ADR-006
+(speculative); recognition of the pattern as forward substrate is
+exactly what this appendix is for.
+
+### A.8 — The framing arc for adoption-pitch material
+
+The cybersecurity cognate provides a precise framing arc that adoption-
+pitch material can reuse:
+
+> *In the early 1990s, software security was tribal knowledge — every
+> security team carried a personal mental catalog of attack patterns
+> learned from incidents and word-of-mouth. CVE (1999) and later MITRE
+> ATT&CK (2013) made that knowledge structural: named, shared, propagable
+> across organizations. The Rust ecosystem currently has tribal knowledge
+> for non-security failure-classes (panicking-in-Drop, polarity-inverted-
+> class-meet, etc.). Antigen does for non-security failure-class
+> knowledge what CVE+ATT&CK did for security knowledge: makes it
+> structural, named, and propagable.*
+
+This framing has two important properties:
+1. **It uses prior art the audience already knows.** Anyone who has
+   worked with CVEs or ATT&CK techniques recognizes the architectural
+   move; the cognitive load to grasp antigen's framing is low.
+2. **It positions antigen as a category extension, not a category
+   reinvention.** The architecture is established; antigen is the
+   first instantiation of the architecture for general failure-classes
+   in a programming-language ecosystem. This is closer to scope.md's
+   actual claim than the "another linter" framing the audience might
+   default to.
+
+**Recognition trigger**: the foundational paper (post-v0.2.0 per
+scope.md trajectory) has positioning material that benefits from this
+framing arc directly. The tool paper (post-v0.1.0) has a less-formal
+version useful for blog posts and conference proposals.
+
+---
+
+## Appendix B — Field-by-field manuscript framing assignments
+
+Different cognates serve different manuscript trajectories. This is the
+academic-researcher's recommendation for which framing fits where, per
+scope.md's multi-paper trajectory:
+
+### Tool paper (post-v0.1.0)
+
+Primary cognates: **cybersecurity (CVE+ATT&CK), aviation safety (NTSB),
+RustSec**. These give the audience-familiar framing for "what category
+of tool is antigen, and why does the category matter?" The empirical
+defenses (biology-as-search-heuristic precision, colonization ratio, ATK
+confirmation rate, tambear adoption signal) take primary load; the
+cognates are the *category framing* the reader needs to understand the
+empirical defenses.
+
+### Foundational paper (post-v0.2.0 with antigen-stdlib + cross-crate)
+
+Primary cognates: **cumulative culture (Tomasello), Peirce semiotics,
+cognitive science (schema + chunking + structure-mapping), evolutionary
+biology (niche construction), philosophy of science (paradigm shift)**.
+These give the deep architectural-claim defenses that the foundational
+paper's positioning requires:
+- Tomasello's ratchet effect frames *why structural memory matters*
+  beyond ergonomics (the qualitative shift from drift-mode to ratchet-
+  mode).
+- Peirce frames *why naming is load-bearing* beyond convenience (the
+  iconic→indexical→symbolic elevation).
+- Cognitive science frames *why fingerprint-matching works* beyond
+  empirical observation (chunking + structure-mapping are the
+  mechanisms).
+- Niche construction frames *why ecosystem-stdlib matters* beyond
+  adoption (the constructed niche reshapes the ecosystem's selective
+  environment).
+- Paradigm-shift framing positions the contribution at the right level
+  (a new structural property the field has not previously organized
+  around).
+
+### Methodology paper (post-A2 closure)
+
+Primary cognates: **stigmergy, knowledge management (SECI), complex
+adaptive systems (Holland)**. These give the team-discipline framings:
+- Stigmergy provides theoretical grounding for substrate-over-memory.
+- SECI provides the cycle framing (tacit-explicit-explicit-tacit) for
+  why externalization-without-internalization fails.
+- CAS provides the boundary/signal/emergence framing for why JBD-team
+  scales — the team coordinates stigmergically, not through direct
+  communication.
+
+### AI dev tooling paper (after AI-industry comparison)
+
+Primary cognates: **cumulative culture (high-fidelity transmission),
+indigenous epistemologies (substrate-embedding), Peirce (icon-to-symbol
+elevation)**. The contrast with fine-tuning-based approaches is sharpest
+through these:
+- Fine-tuning is low-fidelity transmission across model versions;
+  antigen is high-fidelity (substrate-grounded, model-independent).
+- Fine-tuning extracts knowledge from substrate of practice; antigen
+  embeds knowledge IN the substrate.
+- Fine-tuning operates at the iconic-resemblance level (vector-space
+  similarity); antigen operates at the symbolic-categorical level
+  (named declarations).
+
+This appendix is recommendation, not commitment. Scientist owns
+manuscript-trajectory decisions; the appendix surfaces the cognate-to-
+paper assignments that the academic-researcher has substrate confidence
+in.
+
+---
+
+*V1 authored 2026-05-08 by academic-researcher during A2 day 2.
+Companion to V0 immune-system-primitive-map.md. Maintained as ADR-006
+threshold is met by additional fields surfacing in adoption.*
+
+*Appendix A (cybersecurity governance deepening) + Appendix B (manuscript
+framing assignments) added 2026-05-08 same authoring session, after the
+main V1 substrate landed and idle-as-invitation pulled academic-researcher
+toward the most actionable cognate.*
