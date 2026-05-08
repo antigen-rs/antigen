@@ -49,7 +49,8 @@
 //! ## Performance invariants (per ADR-010 Amendment 3)
 //!
 //! - Single-pass walks at the consumer site
-//! - Pre-parsed signatures stored as `syn::Signature` AST
+//! - Pre-normalized signatures cached as `Option<String>` at parse time
+//!   (`syn::Signature`-aware comparison is the v2 upgrade path)
 //! - Depth cap 10 + total node count cap 256, both at parse time
 //! - Node-kind dispatch: [`Fingerprint::node_kind`] returns the required
 //!   item kind (or `None` if the fingerprint is shape-only) so consumers can
