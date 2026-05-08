@@ -5,7 +5,7 @@
 //! `body_contains_macro` operator walks the function/method body for
 //! `syn::Macro` invocations natively (per ADR-015 S2).
 
-use crate::{Constraint, Fingerprint, ItemKind};
+use crate::{normalize_ws, Constraint, Fingerprint, ItemKind, MethodPattern};
 
 impl Fingerprint {
     /// Match this fingerprint against a `syn::Item`.
@@ -30,7 +30,7 @@ fn match_constraint(c: &Constraint, item: &syn::Item) -> bool {
             syn::Item::Enum(e) => range.contains(e.variants.len()),
             _ => false,
         },
-        Constraint::HasMethod(pattern) => has_matching_method(item, &pattern.name, &pattern.signature),
+        Constraint::HasMethod(pattern) => has_matching_method(item, pattern),
         Constraint::AttrPresent(path) => item_attrs(item)
             .iter()
             .any(|a| attr_path_matches(a, path)),
@@ -137,14 +137,21 @@ fn doc_text(item: &syn::Item) -> String {
 }
 
 /// Whether any method in an `impl` block has the given name AND a signature
-/// whose normalized text matches `signature_pattern`.
-fn has_matching_method(item: &syn::Item, name: &str, signature_pattern: &str) -> bool {
+/// whose normalized text matches the pattern's pre-normalized form.
+fn has_matching_method(item: &syn::Item, pattern: &MethodPattern) -> bool {
     let syn::Item::Impl(imp) = item else {
         return false;
     };
+    // PI-2: read the pattern's pre-normalized form computed at parse time.
+    // Fallback path for serde-deserialized patterns (where the cache is
+    // None) preserves correctness at the cost of a one-time normalize.
+    let pattern_norm: String = pattern
+        .normalized_signature
+        .clone()
+        .unwrap_or_else(|| normalize_ws(&pattern.signature));
     for impl_item in &imp.items {
         if let syn::ImplItem::Fn(f) = impl_item {
-            if f.sig.ident == name && signature_matches(&f.sig, signature_pattern) {
+            if f.sig.ident == pattern.name && signature_matches(&f.sig, &pattern_norm) {
                 return true;
             }
         }
@@ -152,12 +159,15 @@ fn has_matching_method(item: &syn::Item, name: &str, signature_pattern: &str) ->
     false
 }
 
-/// Compare a method signature's input/output shape against the pattern.
+/// Compare a method signature's input/output shape against the pattern's
+/// pre-normalized form.
 ///
-/// The pattern is a string like `"(Self, Self) -> Self"` — inputs in
-/// parens, optionally followed by `-> Output`. v1 does string normalization
-/// on both sides (whitespace collapsed, then equality).
-fn signature_matches(sig: &syn::Signature, pattern: &str) -> bool {
+/// The pattern arrives normalized (whitespace collapsed) per ADR-010
+/// Amendment 3 Performance Invariant 2 — the parser does the normalize ONCE
+/// at fingerprint-load time. The actual `syn::Signature` is rendered fresh
+/// per call (it's the per-match-site cost we cannot avoid) and normalized
+/// here for comparison.
+fn signature_matches(sig: &syn::Signature, pattern_norm: &str) -> bool {
     use quote::ToTokens;
 
     let inputs_rendered = render_inputs(sig);
@@ -170,7 +180,7 @@ fn signature_matches(sig: &syn::Signature, pattern: &str) -> bool {
     } else {
         format!("({inputs_rendered}) -> {output_rendered}")
     };
-    normalize_ws(&actual) == normalize_ws(pattern)
+    normalize_ws(&actual) == pattern_norm
 }
 
 fn render_inputs(sig: &syn::Signature) -> String {
@@ -188,10 +198,6 @@ fn render_inputs(sig: &syn::Signature) -> String {
         })
         .collect();
     parts.join(", ")
-}
-
-fn normalize_ws(s: &str) -> String {
-    s.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// Walk the function/method body for a macro invocation whose path's last

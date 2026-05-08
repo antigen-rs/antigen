@@ -146,7 +146,17 @@ fn parse_has_method(input: ParseStream) -> syn::Result<Constraint> {
         ));
     }
     let _ = kw; // silence unused-warning; the keyword position carries the diagnostic span via the lit.
-    Ok(Constraint::HasMethod(MethodPattern { name, signature }))
+    // ADR-010 Amendment 3 Performance Invariant 2: normalize the signature
+    // pattern ONCE at parse time so the matcher does not re-normalize per
+    // match site. This is the "pre-parsed signature" the invariant names —
+    // for v1 the canonical form is the whitespace-normalized string;
+    // future ADRs may upgrade to a parsed `syn::Signature` shape.
+    let normalized_signature = Some(crate::normalize_ws(&signature));
+    Ok(Constraint::HasMethod(MethodPattern {
+        name,
+        signature,
+        normalized_signature,
+    }))
 }
 
 fn parse_attr_present(input: ParseStream) -> syn::Result<Constraint> {
@@ -368,12 +378,41 @@ mod tests {
     #[test]
     fn parses_has_method() {
         let fp = parse(r#"has_method("meet", "(Self, Self) -> Self")"#).unwrap();
+        // PartialEq on MethodPattern is on (name, signature) — the
+        // normalized cache is a derived field, not part of equality.
         assert_eq!(
             fp.constraints,
             vec![Constraint::HasMethod(MethodPattern {
                 name: "meet".to_string(),
                 signature: "(Self, Self) -> Self".to_string(),
+                normalized_signature: None,
             })]
+        );
+        // PI-2 substrate check: the parser populated the cache.
+        if let Constraint::HasMethod(p) = &fp.constraints[0] {
+            assert!(
+                p.normalized_signature.is_some(),
+                "parser must populate normalized_signature at load time per ADR-010 Am3 PI-2",
+            );
+            assert_eq!(
+                p.normalized_signature.as_deref(),
+                Some("(Self, Self) -> Self"),
+                "v1 normalize collapses whitespace; the input is already canonical here",
+            );
+        }
+    }
+
+    #[test]
+    fn has_method_normalize_collapses_whitespace_at_parse_time() {
+        // Pattern with sloppy whitespace; the normalized cache should be
+        // the canonical (single-spaced) form.
+        let fp = parse(r#"has_method("meet", "(Self,   Self)  ->   Self")"#).unwrap();
+        let Constraint::HasMethod(p) = &fp.constraints[0] else {
+            panic!("expected HasMethod");
+        };
+        assert_eq!(
+            p.normalized_signature.as_deref(),
+            Some("(Self, Self) -> Self"),
         );
     }
 
