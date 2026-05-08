@@ -829,14 +829,21 @@ fn synthesis_pass(
                 }
 
                 // Deduplication: skip if an explicit #[presents] already covers
-                // this (antigen_type, file, item) triple.
-                let already_explicit = report.presentations.iter().any(|p| {
+                // this (antigen_type, file, item) triple, OR if a tolerance
+                // acknowledges the match — tolerated sites belong in the
+                // "tolerated" state, not "fingerprint match" (5-state matrix,
+                // ADR-001 Amendment 1 Change 2).
+                let already_covered = report.presentations.iter().any(|p| {
                     p.match_kind == MatchKind::ExplicitMarker
                         && p.antigen_type == *antigen_type
                         && p.file == *file_path
                         && p.item_target.addresses(&item_target)
+                }) || report.tolerances.iter().any(|t| {
+                    t.antigen_type == *antigen_type
+                        && t.file == *file_path
+                        && t.item_target.addresses(&item_target)
                 });
-                if already_explicit {
+                if already_covered {
                     continue;
                 }
 
