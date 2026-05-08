@@ -25,10 +25,24 @@ use antigen::{antigen, immune, presents};
 
 /// Drop impls must not panic. Panic during Drop while another panic is
 /// unwinding causes process abort.
+// Canonical seed antigen per ADR-010 Amendment 3 Clause C. The fingerprint
+// matches `impl` blocks whose bodies contain a panic-shaped macro; it
+// over-fires for non-`Drop` impls (the v1 grammar has no operator for
+// "this impl is for the Drop trait" — that's a v2 enhancement). False
+// positives are expected per ADR-010 Amendment 4 (recall-tuned filters);
+// `#[antigen_tolerance(...)]` is the structural relief valve per ADR-011.
 #[antigen(
     name = "panicking-in-drop",
     family = "boundary-violation",
-    fingerprint = "impl Drop with unwrap/expect/panic in body",
+    fingerprint = r#"
+        item = impl,
+        any_of([
+            body_contains_macro("panic"),
+            body_contains_macro("unreachable"),
+            body_contains_macro("todo"),
+            body_contains_macro("unimplemented")
+        ])
+    "#,
     summary = "Drop impls must not panic; panic-during-unwind causes process abort.",
     references = [
         "https://doc.rust-lang.org/std/ops/trait.Drop.html#panics",

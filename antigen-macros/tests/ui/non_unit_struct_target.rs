@@ -6,7 +6,7 @@
 
 use antigen_macros::antigen;
 
-#[antigen(name = "non-unit", fingerprint = "x")]
+#[antigen(name = "non-unit", fingerprint = r#"name = matches("*")"#)]
 pub struct NonUnit(pub u32);
 
 fn main() {}
