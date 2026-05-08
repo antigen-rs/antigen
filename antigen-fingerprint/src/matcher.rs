@@ -143,8 +143,12 @@ fn has_matching_method(item: &syn::Item, pattern: &MethodPattern) -> bool {
         return false;
     };
     // PI-2: read the pattern's pre-normalized form computed at parse time.
-    // Fallback path for serde-deserialized patterns (where the cache is
-    // None) preserves correctness at the cost of a one-time normalize.
+    // Fallback for serde-deserialized patterns (where the cache is None):
+    // normalize_ws fires on every call — O(N items) per pattern on the serde
+    // path vs O(1) for the parsed path. Acceptable in v0.1 because the scan
+    // CLI always parses fingerprints from source; serde deserialization is not
+    // the hot path. Fix when it bites: call ensure_normalized() on Fingerprint
+    // before scanning, or change to &mut MethodPattern to write back on first use.
     let pattern_norm: String = pattern
         .normalized_signature
         .clone()
