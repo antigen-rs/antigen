@@ -158,3 +158,51 @@ fn atk_a3_004_proc_macro_generated_witness_is_handled_not_silently_missing() {
     // TODO(adversarial): write fixture when A3 ships.
     panic!("A3 pre-implementation contract");
 }
+
+// ============================================================================
+// ATK-A3-005: cross-crate immunity false-positive — naive file-guard removal
+//
+// v0.1 `unaddressed_presentations` uses `i.file == p.file` as a proxy for
+// "same item." The A3 cross-crate case requires relaxing this guard so that
+// an `#[immune]` in `crate-a` can address a fingerprint-matched presentation
+// in `crate-b`. But naive removal of the file guard would cause false-positive
+// address matches across unrelated types:
+//
+//   crate-a/src/lib.rs: struct MyType (with #[immune(PanickingInDrop, ...)])
+//   crate-b/src/lib.rs: struct MyType (with FingerprintMatch for PanickingInDrop)
+//
+// Both have `ItemTarget::Struct("MyType")`. Without the file guard, `addresses()`
+// returns true — the immunity in crate-a suppresses the presentation in crate-b
+// despite them being completely unrelated types that happen to share a name.
+//
+// The correct A3 fix is NOT to remove the file guard but to replace it with
+// a module-path-aware identity: `ItemTarget` variants must carry crate-qualified
+// paths (e.g., `crate_a::MyType` vs `crate_b::MyType`). The `i.file == p.file`
+// guard becomes `i.module_path == p.module_path` where module_path is the
+// fully-qualified crate + module path.
+//
+// This requires changing the `ItemTarget` representation — it's an ADR-class
+// decision, not a one-line fix. File at A3 open to ensure it's in scope before
+// implementation begins.
+//
+// Status: #[ignore] until A3 ships cross-crate identity model.
+// ============================================================================
+
+#[test]
+#[ignore = "A3 pre-implementation contract; cross-crate name collision via naive file-guard removal — address when A3 designs cross-crate ItemTarget identity"]
+fn atk_a3_005_cross_crate_name_collision_not_suppressed_by_same_name_immunity() {
+    // Contract: an #[immune(X)] on `crate_a::MyType` must NOT suppress an
+    // unaddressed presentation for `crate_b::MyType`, even if both have
+    // ItemTarget::Struct("MyType"). The fix requires module-path-qualified
+    // identity in ItemTarget, not just name equality.
+    //
+    // The failing scenario (naive cross-crate implementation):
+    //   1. crate-a declares #[immune(PanickingInDrop, witness = my_test)] on MyType
+    //   2. crate-b has a fingerprint-matched presentation on its own MyType
+    //   3. A3 relaxes the `i.file == p.file` guard to allow cross-crate matching
+    //   4. ItemTarget::Struct("MyType").addresses(ItemTarget::Struct("MyType")) = true
+    //   5. The crate-b presentation is silently suppressed — false green
+    //
+    // TODO(adversarial): write multi-crate fixture when A3 ships cross-crate scan.
+    panic!("A3 pre-implementation contract");
+}
