@@ -8,15 +8,28 @@
 //!
 //! ## Quick start
 //!
-//! Declare a failure-class:
+//! Antigen meets you at any discipline level (per ADR-009 — adoption gradient).
+//! Layer 1 — the minimum-viable form — has just `name` and `fingerprint`:
 //!
 //! ```ignore
 //! use antigen::antigen;
 //!
 //! #[antigen(
 //!     name = "panicking-in-drop",
+//!     fingerprint = "impl Drop with unwrap/expect/panic in body",
+//! )]
+//! pub struct PanickingInDrop;
+//! ```
+//!
+//! Layer 2 enriches with `family`, `summary`, and `references`:
+//!
+//! ```ignore
+//! #[antigen(
+//!     name = "panicking-in-drop",
 //!     family = "boundary-violation",
 //!     fingerprint = "impl Drop with unwrap/expect/panic in body",
+//!     summary = "Drop impls must not panic; panic-during-unwind aborts the process.",
+//!     references = ["https://doc.rust-lang.org/std/ops/trait.Drop.html#panics"],
 //! )]
 //! pub struct PanickingInDrop;
 //! ```
@@ -47,8 +60,8 @@
 //! - The four core attribute macros (re-exported from `antigen-macros`)
 //! - The [`scan`] module: scanning library used by `cargo-antigen` and consumable
 //!   directly for custom integrations
-//! - Future: [`witness`] module with phantom-type witness templates
-//! - Future: [`stdlib`] feature flag re-exporting `antigen-stdlib`'s seed antigens
+//! - Future: `witness` module with phantom-type witness templates
+//! - Future: `stdlib` feature flag re-exporting `antigen-stdlib`'s seed antigens
 //!
 //! ## What this crate is NOT
 //!

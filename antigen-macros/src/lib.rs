@@ -69,11 +69,23 @@ mod parse;
 /// - `references = [...]` (optional) — open-vocabulary list of references
 ///   (URLs, ADR/DEC IDs, CVE numbers, RFC numbers, etc.)
 ///
-/// # Example
+/// # Examples
+///
+/// Layer 1 (minimum viable — just `name` and `fingerprint`):
 ///
 /// ```ignore
 /// use antigen::antigen;
 ///
+/// #[antigen(
+///     name = "panicking-in-drop",
+///     fingerprint = "impl Drop with unwrap/expect/panic in body",
+/// )]
+/// pub struct PanickingInDrop;
+/// ```
+///
+/// Layer 2 (enriched — adds `family`, `summary`, `references`):
+///
+/// ```ignore
 /// #[antigen(
 ///     name = "panicking-in-drop",
 ///     family = "boundary-violation",
