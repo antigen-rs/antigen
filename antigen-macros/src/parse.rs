@@ -1,5 +1,16 @@
 //! Argument parsing for the antigen attribute macros.
+//!
+//! ## Span discipline (W4)
+//!
+//! Validation errors point at the offending token, not the whole macro
+//! invocation. Each parsed field carries its own `proc_macro2::Span` (the
+//! span of the *value* literal, e.g., the `""` in `name = ""`). For
+//! missing-required-field errors there is no offending token — those errors
+//! are anchored at `args_span`, the span of the macro's argument list. This
+//! is consistently better than `Span::call_site()`, which points at the
+//! whole `#[antigen(...)]` invocation.
 
+use proc_macro2::Span;
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
 use syn::{Expr, Ident, Lit, LitStr, Path, Token};
@@ -17,6 +28,15 @@ pub struct AntigenArgs {
     pub family: Option<String>,
     pub summary: Option<String>,
     pub references: Vec<String>,
+    /// Span of the `name`'s string literal value.
+    /// `None` only when the field was missing — see [`AntigenArgs::validate`].
+    pub name_span: Option<Span>,
+    /// Span of the `fingerprint`'s string literal value.
+    /// `None` only when the field was missing — see [`AntigenArgs::validate`].
+    pub fingerprint_span: Option<Span>,
+    /// Span of the macro's argument list as a whole. Used as the fallback
+    /// anchor for missing-required-field errors (no offending token).
+    pub args_span: Span,
 }
 
 /// Arguments to `#[presents(antigen_type)]`.
@@ -27,7 +47,6 @@ pub struct PresentsArgs {
 
 /// Arguments to `#[immune(antigen_type, witness = ..., [rationale = ...])]`.
 pub struct ImmuneArgs {
-    #[allow(dead_code)]
     pub antigen: Path,
     pub witness: Option<Expr>,
     #[allow(dead_code)]
@@ -46,8 +65,12 @@ pub struct DescendedFromArgs {
 
 impl Parse for AntigenArgs {
     fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+
         let mut name: Option<String> = None;
+        let mut name_span: Option<Span> = None;
         let mut fingerprint: Option<String> = None;
+        let mut fingerprint_span: Option<Span> = None;
         let mut family: Option<String> = None;
         let mut summary: Option<String> = None;
         let mut references: Vec<String> = Vec::new();
@@ -57,8 +80,16 @@ impl Parse for AntigenArgs {
 
         for pair in pairs {
             match pair.key.to_string().as_str() {
-                "name" => name = Some(pair.expect_string()?),
-                "fingerprint" => fingerprint = Some(pair.expect_string()?),
+                "name" => {
+                    let (s, span) = pair.expect_string_spanned()?;
+                    name = Some(s);
+                    name_span = Some(span);
+                }
+                "fingerprint" => {
+                    let (s, span) = pair.expect_string_spanned()?;
+                    fingerprint = Some(s);
+                    fingerprint_span = Some(span);
+                }
                 "family" => family = Some(pair.expect_string()?),
                 "summary" => summary = Some(pair.expect_string()?),
                 "references" => references = pair.expect_string_array()?,
@@ -74,10 +105,10 @@ impl Parse for AntigenArgs {
             }
         }
 
-        let name = name
-            .ok_or_else(|| syn::Error::new(input.span(), "#[antigen] requires `name = \"...\"`"))?;
+        let name =
+            name.ok_or_else(|| syn::Error::new(args_span, "#[antigen] requires `name = \"...\"`"))?;
         let fingerprint = fingerprint.ok_or_else(|| {
-            syn::Error::new(input.span(), "#[antigen] requires `fingerprint = \"...\"`")
+            syn::Error::new(args_span, "#[antigen] requires `fingerprint = \"...\"`")
         })?;
 
         Ok(Self {
@@ -86,27 +117,24 @@ impl Parse for AntigenArgs {
             family,
             summary,
             references,
+            name_span,
+            fingerprint_span,
+            args_span,
         })
     }
 }
 
 impl AntigenArgs {
-    // TODO(team): error messages currently point to Span::call_site() rather
-    // than the offending token. Thread spans through the parser so each
-    // validation error points to the EXACT bad token (e.g., the malformed name
-    // string literal, not just the macro invocation). This significantly
-    // improves the user experience and matches rust-analyzer's diagnostic
-    // conventions.
     pub fn validate(&self) -> syn::Result<()> {
         if self.name.is_empty() {
             return Err(syn::Error::new(
-                proc_macro2::Span::call_site(),
+                self.name_span.unwrap_or(self.args_span),
                 "#[antigen] `name` cannot be empty",
             ));
         }
         if !is_kebab_case(&self.name) {
             return Err(syn::Error::new(
-                proc_macro2::Span::call_site(),
+                self.name_span.unwrap_or(self.args_span),
                 format!(
                     "#[antigen] `name = \"{}\"` must be kebab-case (lowercase with hyphens)",
                     self.name
@@ -115,7 +143,7 @@ impl AntigenArgs {
         }
         if self.fingerprint.is_empty() {
             return Err(syn::Error::new(
-                proc_macro2::Span::call_site(),
+                self.fingerprint_span.unwrap_or(self.args_span),
                 "#[antigen] `fingerprint` cannot be empty",
             ));
         }
@@ -181,8 +209,8 @@ impl Parse for ImmuneArgs {
 impl ImmuneArgs {
     pub fn validate(&self) -> syn::Result<()> {
         if self.witness.is_none() {
-            return Err(syn::Error::new(
-                proc_macro2::Span::call_site(),
+            return Err(syn::Error::new_spanned(
+                &self.antigen,
                 "#[immune] requires `witness = ...` (a test, proptest, lint reference, \
                  formal-verification proof, or phantom-type construction). \
                  A marker without proof is not a claim.",
@@ -228,6 +256,22 @@ impl MetaPair {
         }) = &self.value
         {
             Ok(s.value())
+        } else {
+            Err(syn::Error::new_spanned(
+                &self.value,
+                format!("expected a string literal for `{}`", self.key),
+            ))
+        }
+    }
+
+    /// Like [`Self::expect_string`] but also returns the span of the string
+    /// literal so validation errors can point at the literal itself.
+    fn expect_string_spanned(&self) -> syn::Result<(String, Span)> {
+        if let Expr::Lit(syn::ExprLit {
+            lit: Lit::Str(s), ..
+        }) = &self.value
+        {
+            Ok((s.value(), s.span()))
         } else {
             Err(syn::Error::new_spanned(
                 &self.value,
@@ -412,64 +456,45 @@ mod tests {
         }
     }
 
-    #[test]
-    fn validate_rejects_empty_name() {
-        let args = AntigenArgs {
-            name: String::new(),
-            fingerprint: "x".to_string(),
+    /// Construct an `AntigenArgs` with the given name+fingerprint and call-site
+    /// spans. Used by direct-construction tests that bypass `Parse` to exercise
+    /// `validate()` against arbitrary field values.
+    fn args_with(name: &str, fingerprint: &str) -> AntigenArgs {
+        AntigenArgs {
+            name: name.to_string(),
+            fingerprint: fingerprint.to_string(),
             family: None,
             summary: None,
             references: Vec::new(),
-        };
-        assert!(args.validate().is_err());
+            name_span: Some(proc_macro2::Span::call_site()),
+            fingerprint_span: Some(proc_macro2::Span::call_site()),
+            args_span: proc_macro2::Span::call_site(),
+        }
+    }
+
+    #[test]
+    fn validate_rejects_empty_name() {
+        assert!(args_with("", "x").validate().is_err());
     }
 
     #[test]
     fn validate_rejects_non_kebab_name() {
-        let args = AntigenArgs {
-            name: "FooBar".to_string(),
-            fingerprint: "x".to_string(),
-            family: None,
-            summary: None,
-            references: Vec::new(),
-        };
-        assert!(args.validate().is_err());
+        assert!(args_with("FooBar", "x").validate().is_err());
     }
 
     #[test]
     fn validate_accepts_kebab_name_with_digits() {
-        let args = AntigenArgs {
-            name: "frame-2-translation".to_string(),
-            fingerprint: "x".to_string(),
-            family: None,
-            summary: None,
-            references: Vec::new(),
-        };
-        assert!(args.validate().is_ok());
+        assert!(args_with("frame-2-translation", "x").validate().is_ok());
     }
 
     #[test]
     fn validate_rejects_name_with_double_hyphen() {
-        let args = AntigenArgs {
-            name: "frame--translation".to_string(),
-            fingerprint: "x".to_string(),
-            family: None,
-            summary: None,
-            references: Vec::new(),
-        };
-        assert!(args.validate().is_err());
+        assert!(args_with("frame--translation", "x").validate().is_err());
     }
 
     #[test]
     fn validate_rejects_name_starting_with_hyphen() {
-        let args = AntigenArgs {
-            name: "-frame".to_string(),
-            fingerprint: "x".to_string(),
-            family: None,
-            summary: None,
-            references: Vec::new(),
-        };
-        assert!(args.validate().is_err());
+        assert!(args_with("-frame", "x").validate().is_err());
     }
 
     #[test]

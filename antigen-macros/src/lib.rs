@@ -118,10 +118,9 @@ pub fn antigen(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let name_string = &args.name;
     let attr_doc = format!(
-        " antigen `{}` — declares a named failure-class.\n\n Use \
+        " antigen `{name_string}` — declares a named failure-class.\n\n Use \
          `cargo antigen scan` to find sites presenting this antigen; \
-         `cargo antigen audit` to validate witness coverage.",
-        name_string
+         `cargo antigen audit` to validate witness coverage."
     );
 
     let expanded = quote! {

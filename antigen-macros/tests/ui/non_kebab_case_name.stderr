@@ -1,7 +1,5 @@
 error: #[antigen] `name = "FooBar"` must be kebab-case (lowercase with hyphens)
- --> tests/ui/non_kebab_case_name.rs:8:1
+ --> tests/ui/non_kebab_case_name.rs:8:18
   |
 8 | #[antigen(name = "FooBar", fingerprint = "x")]
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |
-  = note: this error originates in the attribute macro `antigen` (in Nightly builds, run with -Z macro-backtrace for more info)
+  |                  ^^^^^^^^

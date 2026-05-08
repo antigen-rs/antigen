@@ -1,153 +1,154 @@
-//! ATK-W4 pre-implementation contracts for span-aware error messages.
+//! ATK-W4 span-aware error message contracts.
 //!
-//! W4 threads token-precise spans through `AntigenArgs`/`ImmuneArgs` `validate()`
-//! so error squiggles underline the offending literal, not the whole macro
-//! invocation. These tests document what must change.
+//! W4 threaded token-precise spans through `AntigenArgs`/`ImmuneArgs` so
+//! validation errors point at the offending literal — or, for missing-required-
+//! field errors, at the macro's argument list (the closest meaningful anchor
+//! when there is no offending token).
 //!
-//! All tests here are `#[ignore]` — they assert against future .stderr content
-//! that doesn't exist yet. W4 will regenerate the trybuild fixtures; at that
-//! point remove `#[ignore]`, verify each test passes, and the new snapshots are
-//! the evidence of correct span threading.
+//! These tests verify the trybuild .stderr fixtures encode the W4 span
+//! discipline. Each contract names a specific column the diagnostic must
+//! anchor at; reading the fixture's text (rather than re-running trybuild)
+//! keeps the assertion fast and makes the failure message a useful diff.
 //!
-//! The trybuild fixtures in tests/ui/ are the primary W4 test surface.
-//! These tests are meta-level contracts on what THOSE fixtures must look like
-//! after W4 lands.
-//!
-//! Key adversarial finding: the `unknown_antigen_field` fixture ALREADY has a
-//! precise span (`MetaPair` uses `new_spanned`). W4 must match this quality for
-//! the other five fixtures. Inconsistency between them (some precise, some
-//! call-site) is a UX regression even if technically "better than nothing."
+//! Adversarial finding (preserved from pre-implementation contracts): the
+//! `unknown_antigen_field` fixture had column-precise spans before W4 because
+//! `MetaPair` already used `new_spanned`. ATK-W4-005 guards against W4's
+//! refactor regressing that.
+
+use std::fs;
+use std::path::Path;
+
+/// Read a .stderr fixture and return its contents.
+fn read_stderr(name: &str) -> String {
+    let path = format!("tests/ui/{name}.stderr");
+    fs::read_to_string(Path::new(&path))
+        .unwrap_or_else(|e| panic!("could not read fixture {path}: {e}"))
+}
+
+/// Assert the .stderr contains a `--> path:LINE:COL` anchor at the given line
+/// and column. The fixture's relative path is `tests/ui/<name>.rs`.
+fn assert_anchor(stderr: &str, name: &str, line: u32, col: u32) {
+    let needle = format!("--> tests/ui/{name}.rs:{line}:{col}");
+    assert!(
+        stderr.contains(&needle),
+        "expected `{needle}` in {name}.stderr; got:\n{stderr}",
+    );
+}
 
 // ============================================================================
-// ATK-W4-001: empty_name error must span the empty string literal ""
-//
-// Current: spans the whole #[antigen(...)] invocation
-// Expected after W4: spans the "" token specifically
-//
-// The fix requires AntigenArgs to store the Span of the name LitStr during
-// parsing, then pass it to validate(). The empty string "" is a real token
-// with a real span — it's not call_site.
+// ATK-W4-001: empty_name spans the empty string literal "" (col 18)
 // ============================================================================
 
 #[test]
-#[ignore = "W4 pre-implementation contract — remove when W4 regenerates .stderr fixtures"]
 fn atk_w4_001_empty_name_span_points_at_empty_literal() {
-    // Contract: after W4, tests/ui/empty_name.stderr must contain:
-    //   --> tests/ui/empty_name.rs:7:18  (column 18 is where "" starts)
-    //   |
-    // 7 | #[antigen(name = "", fingerprint = "x")]
-    //   |                  ^^
-    //
-    // Current (call-site): column 1, underlines the whole macro invocation.
-    //
-    // Verification: `cat antigen-macros/tests/ui/empty_name.stderr | grep "^7"`
-    // should show "7 | #[antigen(name = \"\", ...)" with "^^ " under the "".
-    //
-    // This test is a documentation anchor. The actual verification is the
-    // trybuild fixture regeneration under W4.
-    panic!("W4 pre-implementation contract — verify against regenerated .stderr");
+    let stderr = read_stderr("empty_name");
+    assert_anchor(&stderr, "empty_name", 7, 18);
+    assert!(
+        stderr.contains("^^"),
+        "expected `^^` caret under empty `\"\"`; got:\n{stderr}",
+    );
 }
 
 // ============================================================================
-// ATK-W4-002: non_kebab_case_name must span the offending name literal
-//
-// Current: spans the whole macro invocation
-// Expected after W4: spans "FooBar" specifically
+// ATK-W4-002: non_kebab_case_name spans the offending name literal "FooBar"
 // ============================================================================
 
 #[test]
-#[ignore = "W4 pre-implementation contract — remove when W4 regenerates .stderr fixtures"]
 fn atk_w4_002_kebab_case_error_spans_offending_literal() {
-    // Contract: after W4, tests/ui/non_kebab_case_name.stderr must contain:
-    //   --> tests/ui/non_kebab_case_name.rs:8:19  (column of "FooBar")
-    //   |
-    // 8 | #[antigen(name = "FooBar", fingerprint = "x")]
-    //   |                   ^^^^^^^
-    panic!("W4 pre-implementation contract");
+    let stderr = read_stderr("non_kebab_case_name");
+    assert_anchor(&stderr, "non_kebab_case_name", 8, 18);
+    assert!(
+        stderr.contains("^^^^^^^^"),
+        "expected 8-char caret under `\"FooBar\"`; got:\n{stderr}",
+    );
 }
 
 // ============================================================================
-// ATK-W4-003: missing_fingerprint — the HARD span case
+// ATK-W4-003: missing_fingerprint anchors at the args list, not call_site
 //
-// A missing required field has no offending token. The span must point at
-// SOMETHING meaningful. Options:
-//   (a) The input span (the last token in the arg list) — points near where
-//       the missing field should have been
-//   (b) The opening paren of the macro — shows "this invocation is incomplete"
-//   (c) Keep call_site for this case only — consistent with the "no token"
-//       reality, but UX regression vs the others being fixed
+// Decision: when no offending token exists (missing required field), anchor
+// at the macro's argument list (input.span() during parse, captured as
+// args_span). This points at the first token of the arg list — the closest
+// meaningful location to "where the missing field should have gone."
 //
-// The adversarial concern: if W4 fixes empty_name and non_kebab_case but
-// leaves missing_fingerprint at call_site, the UX is inconsistent. A user
-// comparing two error messages gets different quality spans for similar errors.
-//
-// Contract: W4 must choose one of (a) or (b) for missing_fingerprint and
-// apply it consistently for ALL missing-required-field errors. The choice
-// must be documented in a comment in parse.rs.
+// Documented in parse.rs module docstring as the W4 span discipline.
 // ============================================================================
 
 #[test]
-#[ignore = "W4 pre-implementation contract — the missing-required-field span case needs an explicit design decision"]
 fn atk_w4_003_missing_fingerprint_has_consistent_span_strategy() {
-    // Contract: after W4, tests/ui/missing_fingerprint.stderr must NOT use
-    // call_site (column 1, full invocation span). It must use either:
-    //   (a) The span of the last argument (pointing near the gap), OR
-    //   (b) The span of the opening parenthesis (pointing at the whole arglist)
-    //
-    // The choice between (a) and (b) is a W4 design decision. Either is
-    // better than call_site. The decision must be consistent: if (a) is chosen
-    // for missing_fingerprint, it must also be used for missing_name (if that
-    // fixture existed), and vice versa.
-    //
-    // ATK: pathmaker may take the easy path and leave this at call_site while
-    // fixing the "has a token" cases. That's the adversarial failure mode —
-    // partially-threaded spans with inconsistent quality.
-    panic!("W4 pre-implementation contract — design decision required");
+    let stderr = read_stderr("missing_fingerprint");
+    // Anchor at column 11 (the `name` ident — first token of the arg list).
+    // NOT col 1 (which would be call_site / whole-invocation span).
+    assert_anchor(&stderr, "missing_fingerprint", 7, 11);
+    assert!(
+        !stderr.contains("missing_fingerprint.rs:7:1\n"),
+        "missing_fingerprint must not use call_site span (col 1); got:\n{stderr}",
+    );
 }
 
 // ============================================================================
-// ATK-W4-004: immune_without_witness span
-//
-// Current: spans the whole #[immune(DummyAntigen)] invocation
-// Expected: spans DummyAntigen (the antigen path) since that's the most
-// useful location — "this declaration needs a witness"
-//
-// Alternative: span the closing paren, indicating "expected witness = ... here"
+// ATK-W4-004: immune_without_witness spans the antigen path
 // ============================================================================
 
 #[test]
-#[ignore = "W4 pre-implementation contract — remove when W4 regenerates .stderr fixtures"]
 fn atk_w4_004_immune_without_witness_spans_antigen_path() {
-    // Contract: after W4, tests/ui/immune_without_witness.stderr must contain
-    // a span pointing at `DummyAntigen` or the closing `)`, not the whole
-    // #[immune(...)] invocation.
-    //
-    // The antigen path span is stored during ImmuneArgs parsing as
-    // `antigen: Path`. Its span is `antigen.span()`. This is the natural
-    // token to point at — "this antigen presentation claims immunity but
-    // has no proof."
-    panic!("W4 pre-implementation contract");
+    let stderr = read_stderr("immune_without_witness");
+    // Anchor at column 10 — start of `DummyAntigen` inside `#[immune(...)]`.
+    assert_anchor(&stderr, "immune_without_witness", 10, 10);
+    assert!(
+        stderr.contains("^^^^^^^^^^^^"),
+        "expected 12-char caret under `DummyAntigen`; got:\n{stderr}",
+    );
 }
 
 // ============================================================================
-// ATK-W4-005: unknown_antigen_field already has precise span — regression guard
+// ATK-W4-005: unknown_antigen_field span must not regress
 //
-// This fixture ALREADY has a good span (MetaPair uses new_spanned).
-// After W4 regenerates snapshots, this fixture must STILL have the precise
-// span — W4 must not regress it to call_site while threading spans elsewhere.
+// Pre-W4 baseline: `MetaPair` used `new_spanned` on the unknown ident, so
+// this fixture already had a column-precise span (col 42, under `bogus`).
+// W4 must preserve this — refactoring spans elsewhere must not silently
+// downgrade this case to call_site.
 // ============================================================================
 
 #[test]
-#[ignore = "W4 regression guard — verify after W4 that unknown_antigen_field still shows column-precise span for `bogus`"]
 fn atk_w4_005_unknown_field_span_must_not_regress() {
-    // Contract: after W4, tests/ui/unknown_antigen_field.stderr must still
-    // show the span at `bogus` (column 42), not at column 1.
-    //
-    //  9 | #[antigen(name = "x", fingerprint = "y", bogus = "z")]
-    //    |                                          ^^^^^
-    //
-    // This was already working before W4. If W4's span refactor accidentally
-    // replaces new_spanned() calls with call_site() in the unknown-field path,
-    // this guard catches the regression.
-    panic!("W4 regression guard — verify against regenerated .stderr after W4");
+    let stderr = read_stderr("unknown_antigen_field");
+    assert_anchor(&stderr, "unknown_antigen_field", 9, 42);
+    assert!(
+        stderr.contains("^^^^^"),
+        "expected 5-char caret under `bogus`; got:\n{stderr}",
+    );
+    assert!(
+        !stderr.contains("unknown_antigen_field.rs:9:1\n"),
+        "unknown_antigen_field must not regress to call_site span; got:\n{stderr}",
+    );
+}
+
+// ============================================================================
+// ATK-W4-006: span discipline is *uniform* — none of the W4-affected fixtures
+// regress to call_site.
+//
+// The "consistency" check from the pre-implementation contracts: having some
+// spans precise and others at call_site is a UX regression even if the
+// precise ones are improvements in isolation. After W4, NO fixture in the
+// W4-affected set may show a column-1 anchor.
+// ============================================================================
+
+#[test]
+fn atk_w4_006_no_w4_fixture_uses_call_site_span() {
+    let fixtures = [
+        ("empty_name", 7),
+        ("non_kebab_case_name", 8),
+        ("missing_fingerprint", 7),
+        ("immune_without_witness", 10),
+        ("unknown_antigen_field", 9),
+    ];
+    for (name, line) in fixtures {
+        let stderr = read_stderr(name);
+        let call_site_anchor = format!("--> tests/ui/{name}.rs:{line}:1\n");
+        assert!(
+            !stderr.contains(&call_site_anchor),
+            "{name}.stderr regressed to call_site (col 1); got:\n{stderr}",
+        );
+    }
 }

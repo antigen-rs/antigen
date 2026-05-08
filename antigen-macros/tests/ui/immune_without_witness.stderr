@@ -1,7 +1,5 @@
 error: #[immune] requires `witness = ...` (a test, proptest, lint reference, formal-verification proof, or phantom-type construction). A marker without proof is not a claim.
-  --> tests/ui/immune_without_witness.rs:10:1
+  --> tests/ui/immune_without_witness.rs:10:10
    |
 10 | #[immune(DummyAntigen)]
-   | ^^^^^^^^^^^^^^^^^^^^^^^
-   |
-   = note: this error originates in the attribute macro `immune` (in Nightly builds, run with -Z macro-backtrace for more info)
+   |          ^^^^^^^^^^^^
