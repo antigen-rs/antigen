@@ -244,6 +244,65 @@ or read tambear's history.
 doesn't fire" is GOOD news for the consumer's codebase, not a sign the
 antigen is useless. The educational/prospective value is real.]
 
+### [2026-05-07 (later still 2)] First `#[immune]` declarations + witness functions
+
+**Why**: Up to this point, tambear had 3 declared antigens but 0 immunity
+claims. `cargo antigen audit` found nothing to validate because nothing was
+asserting protection. To exercise the discipline end-to-end, we needed at
+least one immunity claim with a real witness.
+
+**What**:
+
+1. Added `use antigen::immune; use tambear::antigens::UlpDistanceRolledByHand;`
+   at file-scope in both `tests/dd_subnormal_sweep_oracle.rs` and
+   `tests/sweep_29c_kappa_oracle.rs`.
+2. Applied `#[immune(UlpDistanceRolledByHand, witness = ..., rationale = ...)]`
+   to each file's `ulp_distance` wrapper function (the thin delegations to
+   `oracle_compare::ulp_distance_f64` that replaced the original hand-rolled
+   implementations).
+3. Added `#[test]` witness functions in each file that exercise the
+   across-zero killer assertion: `assert_eq!(ulp_distance(smallest_pos_denorm,
+   smallest_neg_denorm), 2)` — the failure mode that hand-rolled
+   re-implementations historically silently miss.
+
+**Result**:
+
+- `cargo test --workspace --lib`: 1397 tests pass (unchanged)
+- `cargo test --test dd_subnormal_sweep_oracle`: 8 tests pass (was 7, +1 witness)
+- `cargo test --test sweep_29c_kappa_oracle`: 5 tests pass (was 4, +1 witness)
+- `cargo antigen scan --root R:/tambear/crates`: 5 antigen-related declarations
+  (3 antigens + 2 immunity claims)
+- `cargo antigen audit --root R:/tambear/crates`: 2 immunity claims, both
+  structurally well-formed (witness identifiers resolved)
+
+**Verdict**: keeping it. This is the discipline working end-to-end.
+
+**Lessons**:
+
+1. **Macro path matters for scan**: initially used `#[antigen::immune(...)]`
+   (fully-qualified path) — scan didn't pick it up because the matcher uses
+   `attr.path().is_ident("immune")` which requires a simple identifier. Fixed
+   by adding `use antigen::immune;` at file-scope and using `#[immune(...)]`.
+   This is a documentation gap: the antigen macros must be used as simple
+   identifiers, not paths. Antigen team note: clarify in macro docs.
+2. **Witness functions are best when adversarial**: the witness here doesn't
+   just verify "the function returns something" — it specifically asserts
+   the across-zero behavior that hand-rolled implementations historically
+   fail. A weak witness (just `assert_eq!(ulp_distance(1.0, 1.0), 0)`) would
+   pass even on broken re-rolls. The failing-as-passing pattern at the
+   witness level: assert what the failure-class would NOT satisfy.
+3. **Immunity declarations as documentation**: the rationale field on the
+   `#[immune]` attribute documents WHY the immunity claim holds. Future
+   readers (or re-roll attempters) see "this is a thin pass-through to
+   canonical, and the witness verifies it" inline, without needing to consult
+   external docs.
+
+[antigen team note: macro-path scan limitation — `#[antigen::immune(...)]`
+silently doesn't match. Either teach scan to handle path-form attributes,
+or document the simple-identifier requirement prominently. Currently the
+adoption-friction shows up as "audit reports 0 immunity even though
+declarations exist."]
+
 ### [pending] Phase 1-8 deconstruction of `PolarityInvertedClassMeet`, `PanickingInDrop`, and `UlpDistanceRolledByHand`
 
 (Aristotle thread, after JBD team launch. The antigens were declared without
