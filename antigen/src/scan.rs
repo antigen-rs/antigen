@@ -23,21 +23,24 @@
 //! ## Known v1 limitations (easy wins for the JBD team)
 //!
 //! Search this file for `TODO(team)` to find specific spots that the antigen JBD
-//! team can sharpen quickly without redesigning anything. Top three:
+//! team can sharpen quickly without redesigning anything.
 //!
 //! 1. **Line numbers are heuristic** — see `ScanVisitor::line_of_attr` (private);
 //!    finds the FIRST occurrence of the attribute name in the source, not the
 //!    actual span of the specific invocation. Replace with
 //!    `syn::spanned::Spanned::span().start().line` once syn's span info is
-//!    reliable on the team's toolchain.
-//! 2. **Item-level matching is loose** — see [`ScanReport::unaddressed_presentations`];
-//!    uses 20-line proximity heuristic. Should match by impl-target / fn-name /
-//!    struct-name (the actual ITEM the attributes are applied to), not source
-//!    proximity.
-//! 3. **Witness validation is presence-only** — the scan records the witness
+//!    reliable on the team's toolchain. (W4 territory: span-aware error
+//!    messages on the macro side, with the scan-side line story landing in a
+//!    follow-up.)
+//! 2. **Witness validation is presence-only** — the scan records the witness
 //!    identifier but doesn't verify it resolves to a real function or that the
 //!    function actually exercises behavior matching the antigen. The audit
-//!    subcommand (sweep A2/A3) lifts this.
+//!    subcommand (sweep A2/A3) lifts this; W7 sharpens witness-validity tier
+//!    semantics for v0.1.
+//!
+//! W3 (sweep A2) replaced the prior 20-line proximity heuristic in
+//! [`ScanReport::unaddressed_presentations`] with structural item-identity
+//! matching via [`ItemTarget`] + [`ItemTarget::addresses`]. See those types.
 
 use std::path::{Path, PathBuf};
 
@@ -182,6 +185,233 @@ pub struct AntigenDeclaration {
     pub fingerprint: Option<String>,
 }
 
+/// Identity of the Rust item that an antigen-related attribute is applied to.
+///
+/// W3 (sweep A2): replaces the old proximity heuristic in
+/// `unaddressed_presentations` with structural matching. `Presentation` and
+/// `Immunity` carry an `item_target` that names the *item they live on*; two
+/// declarations address each other if and only if their item targets are
+/// equal (and they're in the same file and reference the same antigen).
+///
+/// The variants mirror the visitor entry points:
+/// - `Struct`, `Enum`, `Trait`: top-level type declarations
+/// - `Fn`: a free function
+/// - `Impl`: an `impl ... for ...` or inherent `impl ...` block
+/// - `ImplFn`: a method inside an impl block (with its enclosing impl
+///   target captured so two methods named `drop` on different types
+///   don't collide)
+/// - `Unknown`: visitor fallback for shapes we don't yet model (e.g.,
+///   free constants); kept rather than asserted so scans never panic on
+///   third-party code with novel item shapes.
+///
+/// `trait_path` on `Impl`/`ImplFn` is the trait being implemented (e.g.,
+/// `Drop` from `impl Drop for X`); `None` for inherent impls. The path is
+/// captured as a string after canonical rendering — full-path equality is
+/// W3's invariant, but A3 cross-crate matching may need richer
+/// representation later.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum ItemTarget {
+    /// A top-level struct declaration. Holds the struct identifier.
+    Struct(String),
+    /// A top-level enum declaration. Holds the enum identifier.
+    Enum(String),
+    /// A top-level trait declaration. Holds the trait identifier.
+    Trait(String),
+    /// A free function. Holds the function identifier.
+    Fn(String),
+    /// A type alias declaration (`type Foo = ...;`). Holds the alias
+    /// identifier. ATK-W3-005: without this, type aliases fall back to
+    /// `Unknown`, and two unrelated Unknown items collide on equality.
+    TypeAlias(String),
+    /// An `impl ... for ...` or inherent `impl ...` block. The trait
+    /// portion is `None` for inherent impls and `Some(rendered_path)`
+    /// otherwise. Methods inside the impl carry an `ImplFn` target that
+    /// references the same `target_type` and `trait_path`.
+    Impl {
+        /// The trait being implemented, rendered to its canonical token
+        /// string. `None` for inherent impls (no trait).
+        trait_path: Option<String>,
+        /// The implementing type, rendered to its canonical token string.
+        target_type: String,
+    },
+    /// A method inside an impl block. `target_type` and `trait_path`
+    /// mirror the enclosing `Impl` target so that two methods with the
+    /// same name on different types do not collide for matching purposes.
+    ImplFn {
+        /// Trait of the enclosing impl, if any.
+        trait_path: Option<String>,
+        /// Type of the enclosing impl.
+        target_type: String,
+        /// The method name.
+        fn_name: String,
+    },
+    /// A method declared inside a `trait` definition. Pairs with
+    /// `ImplFn { trait_path: Some(trait_name), fn_name, .. }` — the
+    /// presents-on-trait-method + immune-on-impl-method pattern is one
+    /// of the W3 README's adversarial cases. Holds the trait name and
+    /// method name; matching bridges `TraitFn` ↔ `ImplFn` explicitly.
+    TraitFn {
+        /// The enclosing trait identifier.
+        trait_name: String,
+        /// The method name.
+        fn_name: String,
+    },
+    /// Visitor fallback for shapes we don't yet model (e.g., free
+    /// constants, modules with attribute-bearing macro-expansion).
+    /// Kept rather than asserted so scans never panic on third-party
+    /// code with novel item shapes. Carries the source line so that two
+    /// Unknown items at different positions are not falsely equal —
+    /// ATK-W3-005 caught the previous unit-variant form colliding on
+    /// equality across unrelated items. The line is a best-effort
+    /// discriminator; perfect identity for unhandled shapes requires
+    /// per-shape visitor methods (deferred).
+    Unknown {
+        /// Best-effort line number; used as a tie-breaker for equality.
+        line: usize,
+    },
+}
+
+impl ItemTarget {
+    /// Best-effort short name for diagnostic output. Not used for matching.
+    #[must_use]
+    pub fn label(&self) -> String {
+        match self {
+            Self::Struct(n) | Self::Enum(n) | Self::Trait(n) | Self::Fn(n) | Self::TypeAlias(n) => {
+                n.clone()
+            }
+            Self::Impl {
+                trait_path: Some(t),
+                target_type,
+            } => format!("impl {t} for {target_type}"),
+            Self::Impl {
+                trait_path: None,
+                target_type,
+            } => format!("impl {target_type}"),
+            Self::ImplFn {
+                trait_path: Some(t),
+                target_type,
+                fn_name,
+            } => format!("<{target_type} as {t}>::{fn_name}"),
+            Self::ImplFn {
+                trait_path: None,
+                target_type,
+                fn_name,
+            } => format!("{target_type}::{fn_name}"),
+            Self::TraitFn {
+                trait_name,
+                fn_name,
+            } => format!("trait {trait_name}::{fn_name}"),
+            Self::Unknown { line } => format!("<unknown at line {line}>"),
+        }
+    }
+
+    /// Whether this item-target addresses another for the purposes of the
+    /// presents+immune match. The relation is reflexive and symmetric.
+    ///
+    /// W3 (sweep A2) — the "addresses" relation is wider than strict
+    /// equality, per the A2 README's matching rules:
+    ///
+    /// - Same kind, same name (Struct/Enum/Trait/Fn/TypeAlias) → match.
+    /// - Two `Impl` blocks for the same base type (regardless of trait
+    ///   being implemented) → match. Generics are normalised away so
+    ///   `Container<T>` and `Container<i32>` share a base type.
+    /// - Two `ImplFn` items on the same base type with the same method
+    ///   name → match (regardless of whether the impls implement the
+    ///   same trait).
+    /// - `TraitFn(T, f)` ↔ `ImplFn { trait_path: Some(T), fn_name: f, .. }`
+    ///   → match. Handles the README's case (a): presents on a trait
+    ///   method, immune on the impl method.
+    /// - `Unknown` never matches anything — never a false negative on
+    ///   unclassified items (per ATK-W3-005's premise).
+    /// - Heterogeneous variants don't match.
+    ///
+    /// The relaxation is intentional: false positives in the matcher
+    /// surface as unaddressed presentations the user can investigate;
+    /// false negatives silently green-light a vulnerability. Err on the
+    /// side of matching legitimate presents+immune pairings.
+    #[must_use]
+    #[allow(
+        clippy::match_same_arms,
+        reason = "the explicit `Unknown` arm is the load-bearing invariant — \
+                  Unknown items must NEVER match anything, including each other. \
+                  Keeping it explicit (even though it duplicates the `_` wildcard's \
+                  body) makes the invariant readable and refactor-safe."
+    )]
+    pub fn addresses(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Unknown { .. }, _) | (_, Self::Unknown { .. }) => false,
+            (Self::Struct(a), Self::Struct(b))
+            | (Self::Enum(a), Self::Enum(b))
+            | (Self::Trait(a), Self::Trait(b))
+            | (Self::Fn(a), Self::Fn(b))
+            | (Self::TypeAlias(a), Self::TypeAlias(b)) => a == b,
+            (
+                Self::Impl {
+                    target_type: t1, ..
+                },
+                Self::Impl {
+                    target_type: t2, ..
+                },
+            ) => normalize_type_name(t1) == normalize_type_name(t2),
+            (
+                Self::ImplFn {
+                    target_type: t1,
+                    fn_name: f1,
+                    ..
+                },
+                Self::ImplFn {
+                    target_type: t2,
+                    fn_name: f2,
+                    ..
+                },
+            ) => normalize_type_name(t1) == normalize_type_name(t2) && f1 == f2,
+            (
+                Self::TraitFn {
+                    trait_name,
+                    fn_name: tf,
+                },
+                Self::ImplFn {
+                    trait_path: Some(t),
+                    fn_name: imf,
+                    ..
+                },
+            )
+            | (
+                Self::ImplFn {
+                    trait_path: Some(t),
+                    fn_name: imf,
+                    ..
+                },
+                Self::TraitFn {
+                    trait_name,
+                    fn_name: tf,
+                },
+            ) => trait_name == t && tf == imf,
+            (
+                Self::TraitFn {
+                    trait_name: t1,
+                    fn_name: f1,
+                },
+                Self::TraitFn {
+                    trait_name: t2,
+                    fn_name: f2,
+                },
+            ) => t1 == t2 && f1 == f2,
+            _ => false,
+        }
+    }
+}
+
+/// Strip generic parameters from a `quote::ToTokens`-rendered type name.
+/// `"Container < T >"` → `"Container"`. Used for impl-block matching so
+/// that `impl<T> Container<T>` and `impl Container<i32>` share an
+/// addressable identity at the type level.
+fn normalize_type_name(rendered: &str) -> String {
+    let s = rendered.trim();
+    s.find('<')
+        .map_or_else(|| s.to_string(), |idx| s[..idx].trim().to_string())
+}
+
 /// A `#[presents(antigen_type)]` declaration discovered in source.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Presentation {
@@ -193,6 +423,8 @@ pub struct Presentation {
     pub line: usize,
     /// Item kind that was annotated (impl, fn, struct, etc.).
     pub item_kind: String,
+    /// Item identity for structural matching against `Immunity`. W3 (sweep A2).
+    pub item_target: ItemTarget,
 }
 
 /// An `#[immune(antigen_type, witness = ...)]` declaration discovered in source.
@@ -208,6 +440,8 @@ pub struct Immunity {
     pub line: usize,
     /// Item kind that was annotated.
     pub item_kind: String,
+    /// Item identity for structural matching against `Presentation`. W3 (sweep A2).
+    pub item_target: ItemTarget,
 }
 
 /// Aggregate result of scanning a workspace.
@@ -237,16 +471,24 @@ pub struct UnaddressedPresentation {
 impl ScanReport {
     /// Find presentations that lack a corresponding immunity declaration.
     ///
-    /// In v1, "matching" means: same `antigen_type` AND same file AND nearby
-    /// line (presentations and immunities applied to the same item, within
-    /// 20 source lines). Future versions will extend to `#[descended_from]`
-    /// chains and exact item-target matching.
+    /// W3 (sweep A2) — structural item-identity matching. A `Presentation`
+    /// and an `Immunity` "address each other" when:
     ///
-    // TODO(team): item-level matching is loose. The 20-line proximity heuristic
-    // is a placeholder. Replace with structural matching: track the impl-target
-    // / fn-name / struct-name during AST walk, store it on Presentation and
-    // Immunity, and match by item identity rather than source proximity. This
-    // is an easy win that significantly improves accuracy.
+    /// - they reference the same `antigen_type`, AND
+    /// - they're in the same source file, AND
+    /// - their `item_target` values are equal (i.e., they're applied to
+    ///   the same Rust item).
+    ///
+    /// This replaces the pre-W3 20-line proximity heuristic, which produced
+    /// false positives in multi-impl files (immunity on `impl X` matched
+    /// presentation on `impl Y` if their attributes happened to be within
+    /// 20 lines) and false negatives when long doc-comments separated paired
+    /// declarations on the same item.
+    ///
+    /// Cross-file matching remains out of scope here — different items can
+    /// share names across modules, and the structural identity of an
+    /// "item" extends to its containing module path. That's A3 territory
+    /// (cross-crate scan + `#[descended_from]` propagation).
     #[must_use]
     pub fn unaddressed_presentations(&self) -> Vec<UnaddressedPresentation> {
         let known_antigens: std::collections::HashSet<&str> =
@@ -254,14 +496,12 @@ impl ScanReport {
 
         let mut result = Vec::new();
         for p in &self.presentations {
-            // Match if there's an immunity declaration on a nearby line (within ~20
-            // lines, accommodating multi-attribute stacking).
-            let has_nearby_immunity = self.immunities.iter().any(|i| {
+            let has_matching_immunity = self.immunities.iter().any(|i| {
                 i.antigen_type == p.antigen_type
                     && i.file == p.file
-                    && i.line.abs_diff(p.line) <= 20
+                    && i.item_target.addresses(&p.item_target)
             });
-            if !has_nearby_immunity {
+            if !has_matching_immunity {
                 result.push(UnaddressedPresentation {
                     presentation: p.clone(),
                     antigen_known: known_antigens.contains(p.antigen_type.as_str()),
@@ -321,6 +561,8 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
                     file_path: entry.path().to_path_buf(),
                     source: &content,
                     report: &mut report,
+                    impl_stack: Vec::new(),
+                    trait_stack: Vec::new(),
                 };
                 visitor.visit_file(&file);
                 report.files_scanned += 1;
@@ -341,6 +583,15 @@ struct ScanVisitor<'a> {
     file_path: PathBuf,
     source: &'a str,
     report: &'a mut ScanReport,
+    /// Context stack for nested items. The current top of stack is the
+    /// enclosing-impl context for any `visit_impl_item_fn` call — so that
+    /// a method's `ItemTarget::ImplFn` knows which impl block it lives in.
+    /// W3 (sweep A2): structural item-identity tracking.
+    impl_stack: Vec<(Option<String>, String)>,
+    /// Context stack for nested traits — analogous to `impl_stack`, but
+    /// for `visit_trait_item_fn` so trait methods carry the enclosing
+    /// trait identifier in `ItemTarget::TraitFn`.
+    trait_stack: Vec<String>,
 }
 
 impl ScanVisitor<'_> {
@@ -398,21 +649,35 @@ impl ScanVisitor<'_> {
         }
     }
 
-    fn extract_presents(&mut self, attr: &syn::Attribute, item_kind: &str) {
+    fn extract_presents(
+        &mut self,
+        attr: &syn::Attribute,
+        item_kind: &str,
+        item_target: ItemTarget,
+    ) {
         let antigen_type = if let syn::Meta::List(list) = &attr.meta {
-            // The body is a single path; the last segment is the type name.
-            // `quote::ToTokens` renders `my_crate::Foo` as `"my_crate :: Foo"`
-            // (spaces around `::`), so split("::") yields `[" my_crate ", " Foo "]`.
-            // Trim the last segment to recover the bare type name. (ATK-A2-001:
-            // the same regression class as ATK-001-2 — it was fixed in
-            // extract_antigen and extract_immune via syn::parse2 but missed
-            // here. The structural fix is to parse the body as syn::Path; the
-            // tactical fix below is the minimal one-liner.)
-            let body = list.tokens.to_string();
-            body.trim()
-                .split("::")
-                .last()
-                .map_or_else(|| body.trim().to_string(), |s| s.trim().to_string())
+            // Parse the body as a `syn::Path` rather than splitting the
+            // `quote::ToTokens` rendering on `::`. The string form contains
+            // whitespace artifacts (`" my_crate :: Foo "`) that the prior
+            // tactical-fix code recovered from with a `.trim()` — but the
+            // structural fix is to never produce the string in the first
+            // place. ATK-A2-001's pre-W3 hotfix landed in commit b9440b2;
+            // this is the W3 structural form. Path's last segment is the
+            // bare type name regardless of qualifier.
+            match syn::parse2::<syn::Path>(list.tokens.clone()) {
+                Ok(path) => path
+                    .segments
+                    .last()
+                    .map(|s| s.ident.to_string())
+                    .unwrap_or_default(),
+                Err(e) => {
+                    self.report.parse_failures.push((
+                        self.file_path.clone(),
+                        format!("malformed #[presents] attribute: {e}"),
+                    ));
+                    return;
+                }
+            }
         } else {
             return;
         };
@@ -422,10 +687,11 @@ impl ScanVisitor<'_> {
             file: self.file_path.clone(),
             line,
             item_kind: item_kind.to_string(),
+            item_target,
         });
     }
 
-    fn extract_immune(&mut self, attr: &syn::Attribute, item_kind: &str) {
+    fn extract_immune(&mut self, attr: &syn::Attribute, item_kind: &str, item_target: ItemTarget) {
         if let syn::Meta::List(list) = &attr.meta {
             // TODO(team): witness validation is presence-only. The audit subcommand
             // (sweep A2/A3) should: (1) resolve the witness identifier to an item
@@ -457,19 +723,39 @@ impl ScanVisitor<'_> {
                 file: self.file_path.clone(),
                 line,
                 item_kind: item_kind.to_string(),
+                item_target,
             });
         }
     }
 
-    fn check_attrs(&mut self, attrs: &[syn::Attribute], item_kind: &str) {
+    fn check_attrs(&mut self, attrs: &[syn::Attribute], item_kind: &str, item_target: &ItemTarget) {
         for attr in attrs {
             if attr.path().is_ident("presents") {
-                self.extract_presents(attr, item_kind);
+                self.extract_presents(attr, item_kind, item_target.clone());
             } else if attr.path().is_ident("immune") {
-                self.extract_immune(attr, item_kind);
+                self.extract_immune(attr, item_kind, item_target.clone());
             }
         }
     }
+}
+
+/// Render a `syn::Type` to its canonical token-stream string. Used to
+/// extract a string identifier for `impl Trait for Type` blocks. The
+/// rendering normalizes whitespace via `quote::ToTokens`. For W3 we only
+/// need a stable string for equality matching — A3 cross-crate work will
+/// likely want a richer canonical form (e.g., resolved module paths).
+fn render_type(ty: &syn::Type) -> String {
+    use quote::ToTokens;
+    ty.to_token_stream().to_string()
+}
+
+/// Render a `syn::Path` similarly. Used for the trait portion of
+/// `impl Trait for Type` so that `Drop` and `core::ops::Drop` produce
+/// distinct strings (which is correct — they're different items in
+/// Rust's name resolution, even when they alias).
+fn render_path(path: &syn::Path) -> String {
+    use quote::ToTokens;
+    path.to_token_stream().to_string()
 }
 
 impl<'ast> Visit<'ast> for ScanVisitor<'_> {
@@ -479,29 +765,75 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
                 self.extract_antigen(item, attr);
             }
         }
-        // structs can also have presents/immune for unusual cases
-        self.check_attrs(&item.attrs, "struct");
+        let target = ItemTarget::Struct(item.ident.to_string());
+        self.check_attrs(&item.attrs, "struct", &target);
         syn::visit::visit_item_struct(self, item);
     }
 
     fn visit_item_impl(&mut self, item: &'ast syn::ItemImpl) {
-        self.check_attrs(&item.attrs, "impl");
+        let trait_path = item.trait_.as_ref().map(|(_, path, _)| render_path(path));
+        let target_type = render_type(&item.self_ty);
+        let target = ItemTarget::Impl {
+            trait_path: trait_path.clone(),
+            target_type: target_type.clone(),
+        };
+        self.check_attrs(&item.attrs, "impl", &target);
+        // Push impl context so visit_impl_item_fn can build ImplFn targets.
+        self.impl_stack.push((trait_path, target_type));
         syn::visit::visit_item_impl(self, item);
+        self.impl_stack.pop();
     }
 
     fn visit_item_fn(&mut self, item: &'ast syn::ItemFn) {
-        self.check_attrs(&item.attrs, "fn");
+        let target = ItemTarget::Fn(item.sig.ident.to_string());
+        self.check_attrs(&item.attrs, "fn", &target);
         syn::visit::visit_item_fn(self, item);
     }
 
     fn visit_impl_item_fn(&mut self, item: &'ast syn::ImplItemFn) {
-        self.check_attrs(&item.attrs, "impl_fn");
+        let target = self.impl_stack.last().map_or_else(
+            || ItemTarget::Fn(item.sig.ident.to_string()),
+            |(trait_path, target_type)| ItemTarget::ImplFn {
+                trait_path: trait_path.clone(),
+                target_type: target_type.clone(),
+                fn_name: item.sig.ident.to_string(),
+            },
+        );
+        self.check_attrs(&item.attrs, "impl_fn", &target);
         syn::visit::visit_impl_item_fn(self, item);
     }
 
     fn visit_item_trait(&mut self, item: &'ast syn::ItemTrait) {
-        self.check_attrs(&item.attrs, "trait");
+        let target = ItemTarget::Trait(item.ident.to_string());
+        self.check_attrs(&item.attrs, "trait", &target);
+        // Push trait context so visit_trait_item_fn produces TraitFn targets
+        // identifying the enclosing trait.
+        self.trait_stack.push(item.ident.to_string());
         syn::visit::visit_item_trait(self, item);
+        self.trait_stack.pop();
+    }
+
+    fn visit_trait_item_fn(&mut self, item: &'ast syn::TraitItemFn) {
+        let target = self.trait_stack.last().map_or_else(
+            || ItemTarget::Fn(item.sig.ident.to_string()),
+            |trait_name| ItemTarget::TraitFn {
+                trait_name: trait_name.clone(),
+                fn_name: item.sig.ident.to_string(),
+            },
+        );
+        self.check_attrs(&item.attrs, "trait_fn", &target);
+        syn::visit::visit_trait_item_fn(self, item);
+    }
+
+    fn visit_item_type(&mut self, item: &'ast syn::ItemType) {
+        // Type aliases (`type Foo = ...;`) carry attributes too. ATK-W3-005:
+        // without this handler, attributes on type aliases would fall back
+        // to ItemTarget::Unknown, and two unrelated Unknown items collide
+        // on equality. Tracking the alias name keeps each alias as its own
+        // distinct match target.
+        let target = ItemTarget::TypeAlias(item.ident.to_string());
+        self.check_attrs(&item.attrs, "type_alias", &target);
+        syn::visit::visit_item_type(self, item);
     }
 
     fn visit_item_enum(&mut self, item: &'ast syn::ItemEnum) {
@@ -528,7 +860,8 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
                 ));
             }
         }
-        self.check_attrs(&item.attrs, "enum");
+        let target = ItemTarget::Enum(item.ident.to_string());
+        self.check_attrs(&item.attrs, "enum", &target);
         syn::visit::visit_item_enum(self, item);
     }
 }
@@ -891,8 +1224,11 @@ mod tests {
                 name in valid_kebab(),
                 fingerprint in valid_text(32),
                 unknown in "[a-z][a-z_]{2,12}".prop_filter(
-                    "must not collide with known fields",
-                    |s| !matches!(s.as_str(), "name" | "fingerprint" | "family" | "summary" | "references"),
+                    "must not collide with known fields or Rust keywords",
+                    |s| {
+                        !matches!(s.as_str(), "name" | "fingerprint" | "family" | "summary" | "references")
+                            && !RUST_KEYWORDS.contains(&s.as_str())
+                    },
                 ),
                 unknown_val in valid_text(16),
             ) {
