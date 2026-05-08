@@ -25,14 +25,7 @@
 //! Search this file for `TODO(team)` to find specific spots that the antigen JBD
 //! team can sharpen quickly without redesigning anything.
 //!
-//! 1. **Line numbers are heuristic** — see `ScanVisitor::line_of_attr` (private);
-//!    finds the FIRST occurrence of the attribute name in the source, not the
-//!    actual span of the specific invocation. Replace with
-//!    `syn::spanned::Spanned::span().start().line` once syn's span info is
-//!    reliable on the team's toolchain. (W4 territory: span-aware error
-//!    messages on the macro side, with the scan-side line story landing in a
-//!    follow-up.)
-//! 2. **Witness validation is presence-only** — the scan records the witness
+//! 1. **Witness validation is presence-only** — the scan records the witness
 //!    identifier but doesn't verify it resolves to a real function or that the
 //!    function actually exercises behavior matching the antigen. The audit
 //!    subcommand (sweep A2/A3) lifts this; W7 sharpens witness-validity tier
@@ -559,7 +552,6 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
             Ok(file) => {
                 let mut visitor = ScanVisitor {
                     file_path: entry.path().to_path_buf(),
-                    source: &content,
                     report: &mut report,
                     impl_stack: Vec::new(),
                     trait_stack: Vec::new(),
@@ -581,7 +573,6 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
 /// AST visitor that extracts antigen-related attributes.
 struct ScanVisitor<'a> {
     file_path: PathBuf,
-    source: &'a str,
     report: &'a mut ScanReport,
     /// Context stack for nested items. The current top of stack is the
     /// enclosing-impl context for any `visit_impl_item_fn` call — so that
@@ -598,26 +589,23 @@ impl ScanVisitor<'_> {
     /// Compute 1-indexed line number for a span by counting newlines in source up
     /// to the span's start.
     ///
-    /// TODO(team): currently returns the FIRST occurrence of the attribute name
-    /// in the file, regardless of which instance is being processed. This means
-    /// multi-instance scenarios report the same line number for every instance.
-    /// Replace with a real span-tracking approach: pass the `&syn::Attribute` in
-    /// and use `syn::spanned::Spanned::span().start().line` (verify it returns
-    /// usable line numbers on the team's stable toolchain; if not, walk byte
-    /// offsets via `proc_macro2::Span::byte_range` once that's stable).
-    fn line_of_attr(&self, attr_name: &str) -> usize {
-        // Heuristic: find the first occurrence of the attribute name in the source.
-        for (i, line) in self.source.lines().enumerate() {
-            if line.contains(&format!("#[{attr_name}")) {
-                return i + 1;
-            }
-        }
-        0
+    /// Resolve the source line of a specific `#[attr]` invocation via
+    /// `syn::spanned::Spanned::span().start().line`. Each per-instance call
+    /// reports the line of *that* invocation rather than the first match in
+    /// the file (the pre-fix heuristic that broke ATK-A2-002 for multi-
+    /// instance scenarios).
+    ///
+    /// Falls back to `0` only if the span info is unavailable (which on
+    /// stable rustc with `proc-macro2`'s default features is rare; a 0
+    /// return means "we don't know," which is honest).
+    fn line_of_attr(attr: &syn::Attribute) -> usize {
+        use syn::spanned::Spanned;
+        attr.span().start().line
     }
 
     fn extract_antigen(&mut self, item: &syn::ItemStruct, attr: &syn::Attribute) {
         let type_name = item.ident.to_string();
-        let line = self.line_of_attr("antigen");
+        let line = Self::line_of_attr(attr);
 
         if let syn::Meta::List(list) = &attr.meta {
             match syn::parse2::<ScanAntigenArgs>(list.tokens.clone()) {
@@ -681,7 +669,7 @@ impl ScanVisitor<'_> {
         } else {
             return;
         };
-        let line = self.line_of_attr("presents");
+        let line = Self::line_of_attr(attr);
         self.report.presentations.push(Presentation {
             antigen_type,
             file: self.file_path.clone(),
@@ -716,7 +704,7 @@ impl ScanVisitor<'_> {
                     return;
                 }
             };
-            let line = self.line_of_attr("immune");
+            let line = Self::line_of_attr(attr);
             self.report.immunities.push(Immunity {
                 antigen_type,
                 witness,
