@@ -452,6 +452,62 @@ substrate-quality metric. Rules with colonization ratios significantly above
 1.0 are case-by-case rather than tier-tier. The metric does not need to be
 explicit governance; it accrues naturally as ATK corpus grows.
 
+### Candidate comprehension-drift failure-class family — empirical instances awaiting research deepening
+
+A2 day-2 produced multiple substrate-grounded instances of what may be a
+broader family of *comprehension-drift* failure-classes. Per team-lead's
+flagging, these are anchored as empirical evidence awaiting V1 research
+deepening — *not ratified as ADR-class antigen declarations, not extending
+the existing taxonomy*. Anchoring is recognition-not-design at the
+candidate-family level: name what surfaced empirically; defer
+classification until research deepening produces the framing substrate.
+
+Instances surfaced in A2 day-2:
+
+- **Architectural-relationship-direction drift**: closure-narrative draft
+  framed Phase 2 as "codependence" when the substrate-honest direction is
+  asymmetric (antigen → tambear, not bidirectional). Symmetry-inflation
+  drift; caught via team-lead correction routed through navigator. Same
+  shape as an earlier-day correction at the implementation tier; recurs
+  at the architectural-relationship tier one structural layer deeper.
+- **Three intra-role catches at progressively-deeper layers**: application-
+  time premature ratification → consolidation-time category-expansion →
+  abstraction-level V8-vs-V7-mechanism framing. Documented in V7's
+  bidirectional-anchor section above. Each catch a distinct drift mode at
+  a deeper layer of the same vocabulary cluster (substrate-currency).
+- **Cross-role conflation transmission**: drafting-vs-finalizing
+  distinction conflated through two routing hops before substrate-check
+  caught it. Documented in V7's bidirectional-anchor section (catch #4 at
+  team-coordination layer).
+- **Verification-fatigue drift (forward watchpoint)**: as the team
+  accumulates substrate-currency discipline, will the discipline stay
+  rigorous or become ritual? Flagged for forward observation across A3+;
+  no current empirical instance.
+
+The cross-reactivity primitive in `docs/immune-system-primitive-map.md`
+§"Cross-reactivity (antibody recognizes multiple related antigens)"
+(line 346) is operating empirically here: existing antibodies
+(substrate-currency, depth-shift discipline) gave partial protection
+against multiple variants today, but each candidate variant ultimately
+needs its own specific witness type. *Cross-reactivity dynamics
+operating in the team's own session*, not yet in the codebase. First
+real-world test case of the cross-reactivity primitive operating at the
+methodology layer.
+
+This is anchored as candidate failure-class family substrate, not
+ratified vocabulary. The taxonomy of named variants (which instances
+belong to which named comprehension-drift class) awaits V1 academic-
+research deepening before assignment. The empirical instances themselves
+stand independently as evidence; the family-level naming structure waits
+for the research to produce its substrate before the closure narrative
+fixes a vocabulary in place.
+
+Future closure-narrative drafter (A3+ sweeps): once research deepening
+produces the candidate variants with substrate-grounded names, these
+empirical instances can be assigned to specific variants per the standard
+recognition-not-design workflow. Until then, the empirical evidence is
+the anchor; the family-naming is the deferred work.
+
 ---
 
 ## Phase 2 of the inheritance arc — confirmed

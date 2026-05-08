@@ -192,6 +192,93 @@ struct Vulnerable;
 }
 
 // ============================================================================
+// ATK-W6a-SYN-004: immunity on impl-method does not address synthesis match
+//                   on the enclosing impl block
+//
+// `synthesis_pass` only walks top-level `parsed.items`. For `syn::Item::Impl`,
+// it assigns `ItemTarget::Impl { trait_path, target_type }`. The visitor
+// descends into impl blocks and assigns `ItemTarget::ImplFn` for methods.
+// `ItemTarget::addresses()` returns false for heterogeneous variants — so an
+// `#[immune(X)]` on a method inside `impl Foo` does NOT address a synthetic
+// `FingerprintMatch` on the `impl Foo` block itself.
+//
+// This is a known scope limitation: synthesis sees the impl block as the
+// matched unit; the user must put `#[immune]` on the impl block (not a
+// method inside it) to suppress the synthesis match. The test documents the
+// behavior so it's an explicit invariant rather than a silent surprise.
+//
+// STATUS: PASSING — documents existing behavior as an explicit contract.
+// ============================================================================
+
+#[test]
+fn atk_w6a_syn_004_immunity_on_impl_method_does_not_address_synthesis_match_on_impl_block() {
+    let dir = tempfile::TempDir::new().expect("tempdir");
+    let src_path = dir.path().join("lib.rs");
+    let mut f = std::fs::File::create(&src_path).expect("create lib.rs");
+    // Fingerprint matches `impl` blocks (no further constraint).
+    // #[immune] is on the `drop` method INSIDE the impl, not on the impl block.
+    // Per the scope limit above, this must NOT suppress the unaddressed presentation.
+    write!(
+        f,
+        r#"
+use antigen::antigen;
+use antigen::immune;
+
+#[antigen(
+    name = "impl-antigen",
+    fingerprint = "item = impl",
+    summary = "matches all impl blocks",
+)]
+struct ImplAntigen;
+
+struct MyType;
+
+impl MyType {{
+    #[immune(ImplAntigen, witness = my_test)]
+    fn drop(&mut self) {{}}
+}}
+
+#[test]
+fn my_test() {{}}
+"#
+    )
+    .expect("write lib.rs");
+    drop(f);
+
+    let report = scan_workspace(dir.path(), None).unwrap();
+
+    // The synthesis pass must emit a FingerprintMatch for `impl MyType`.
+    let fp_match_count = report
+        .presentations
+        .iter()
+        .filter(|p| p.match_kind == MatchKind::FingerprintMatch && p.antigen_type == "ImplAntigen")
+        .count();
+    assert_eq!(
+        fp_match_count, 1,
+        "expected one FingerprintMatch for `impl MyType`; got {}",
+        fp_match_count
+    );
+
+    // The #[immune] is on the method (ImplFn target), not the impl block (Impl target).
+    // addresses() returns false for heterogeneous variants — so the match is unaddressed.
+    let unaddressed = report.unaddressed_presentations();
+    let unaddressed_impl_antigen: Vec<_> = unaddressed
+        .iter()
+        .filter(|u| u.presentation.antigen_type == "ImplAntigen")
+        .collect();
+    assert_eq!(
+        unaddressed_impl_antigen.len(),
+        1,
+        "ATK-W6a-SYN-004: #[immune] on an impl METHOD must NOT address a \
+         synthesis match on the enclosing IMPL BLOCK — immunity must be \
+         placed on the impl block itself. Got {} unaddressed (expected 1).\n\
+         This is a known scope invariant, not a bug. Users must write \
+         #[immune] on `impl MyType {{` not on a method inside it.",
+        unaddressed_impl_antigen.len()
+    );
+}
+
+// ============================================================================
 // ATK-W6a-SYN-002: `item = mod` fingerprint — dead code in dispatch map
 //
 // `synthesis_pass`'s node-kind dispatch maps `syn::Item::Mod` →
