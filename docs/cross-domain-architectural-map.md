@@ -2062,8 +2062,10 @@ empirical defenses.
 ### Foundational paper (post-v0.2.0 with antigen-stdlib + cross-crate)
 
 Primary cognates: **cumulative culture (Tomasello), Peirce semiotics,
-cognitive science (schema + chunking + structure-mapping), evolutionary
-biology (niche construction), philosophy of science (paradigm shift)**.
+cognitive science (schema + chunking + structure-mapping + team-
+cognition / shared mental models), evolutionary biology (niche
+construction), philosophy of science (paradigm shift), social
+epistemology (common-knowledge proofs)**.
 These give the deep architectural-claim defenses that the foundational
 paper's positioning requires:
 - Tomasello's ratchet effect frames *why structural memory matters*
@@ -2073,7 +2075,21 @@ paper's positioning requires:
   iconic→indexical→symbolic elevation).
 - Cognitive science frames *why fingerprint-matching works* beyond
   empirical observation (chunking + structure-mapping are the
-  mechanisms).
+  mechanisms). The team-cognition / shared-mental-models extension
+  (Cannon-Bowers, Salas & Converse 1993; Klimoski & Mohammed 1994;
+  Clark & Brennan 1991) frames *why the comprehension-drift family
+  unifies as one fail-mode across ten surface forms* — the structural
+  unifier finding from the comprehension-drift literature grounding.
+- Social epistemology / common-knowledge proofs (Halpern & Moses 1990;
+  Halpern *Reasoning About Knowledge* 1995; Prentice & Miller 1993)
+  ground the *strongest positioning claim antigen has*: V5/V7 of the
+  comprehension-drift family are *structurally unreachable* by static
+  analysis per the muddy-children proof. Static analysis is itself
+  private bilateral inspection that cannot establish common knowledge;
+  the structural answer is shared-substrate declarations. The
+  3-fundamental-gap → 5-fundamental-gap finding (per scout↔academic
+  convergence) is foundational-paper material grounded in this
+  literature.
 - Niche construction frames *why ecosystem-stdlib matters* beyond
   adoption (the constructed niche reshapes the ecosystem's selective
   environment).
@@ -2084,13 +2100,30 @@ paper's positioning requires:
 ### Methodology paper (post-A2 closure)
 
 Primary cognates: **stigmergy, knowledge management (SECI), complex
-adaptive systems (Holland)**. These give the team-discipline framings:
+adaptive systems (Holland), organizational learning (Argyris),
+substrate-of-practice (Polanyi + Lave & Wenger + Wenger-Trayner et al.
+2015 + Pyrko et al. 2019)**. These give the team-discipline framings:
 - Stigmergy provides theoretical grounding for substrate-over-memory.
 - SECI provides the cycle framing (tacit-explicit-explicit-tacit) for
   why externalization-without-internalization fails.
 - CAS provides the boundary/signal/emergence framing for why JBD-team
   scales — the team coordinates stigmergically, not through direct
   communication.
+- Argyris's espoused-theory vs theory-in-use distinction (Argyris &
+  Schön 1974; Argyris 1976) grounds the form-content gap cluster
+  (variants 4, 8, 10 + impure 9 per scientist's three-cluster
+  amendments) — the comprehension-drift sub-claim about *behavior-
+  drifting-while-nominal-form-stays-fixed*. Vaughan's normalization of
+  deviance (1996) extends Argyris into safety-science territory.
+- Substrate-of-practice (per Appendix C citation chain) grounds the
+  three-layer unification: stigmergy (coordination architecture) +
+  SECI (knowledge-conversion cycle) + substrate-of-practice
+  (recognition discipline) = one architecture at three operational
+  layers, with communities-of-practice as connecting tissue. The
+  substrate-currency posture and depth-shift discipline live across
+  all three layers; bridge postures (rationale-as-required-field;
+  candidate depth-shift per A3 prediction) are the connective tissue
+  the manuscript should make explicit.
 
 ### AI dev tooling paper (after AI-industry comparison)
 
