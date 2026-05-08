@@ -668,6 +668,17 @@ impl ScanReport {
 /// `excluded_dirs` is a list of directory names (not full paths) to skip during
 /// the walk; the default is `["target", ".git", "node_modules"]` if `None` is
 /// passed.
+///
+/// # Errors
+///
+/// Currently never returns `Err` — IO errors during the walk (unreadable
+/// files, permission denied, etc.) are silently skipped, and parse errors
+/// are recorded in `ScanReport::parse_failures` rather than aborting the
+/// scan. The `std::io::Result` return type reserves space for future
+/// failure modes (e.g., a `--strict` mode that fails the walk on the first
+/// unreadable file, or an out-of-memory cap on `parsed_files` cache size).
+/// Callers should treat any `Err` as a hard scan failure and surface the
+/// error to the user.
 pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::Result<ScanReport> {
     let default_exclusions = ["target", ".git", "node_modules"];
     let exclusions = excluded_dirs.unwrap_or(&default_exclusions);

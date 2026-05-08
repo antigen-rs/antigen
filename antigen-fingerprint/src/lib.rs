@@ -54,8 +54,6 @@
 //!   skip evaluating fingerprints whose top-level `item:` constraint cannot
 //!   match the current AST node
 
-#![allow(clippy::module_name_repetitions)]
-
 use proc_macro2::TokenStream;
 use serde::{Deserialize, Serialize};
 use syn::parse::{Parse, ParseStream};
