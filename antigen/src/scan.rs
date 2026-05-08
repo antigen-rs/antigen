@@ -573,4 +573,121 @@ mod tests {
         // witness is the token-stream rendering of the expression
         assert!(args.witness.contains("no_panic_in_drop"));
     }
+
+    // ========================================================================
+    // Cross-parser equivalence fixtures
+    //
+    // These fixtures must stay in sync with `antigen-macros::parse::tests::
+    // ANTIGEN_PARSER_FIXTURES`. The invariant: for any input the proc-macro
+    // parser accepts as valid, the scan parser must produce equivalent semantic
+    // content for the four overlapping fields (name, fingerprint, family,
+    // summary). The two parsers live in different crates by structural
+    // necessity (proc-macro = true crates can't be linked as libraries) and
+    // their drift was the substance of ATK-001-2 in pre-team scaffolding.
+    //
+    // When adding a fixture here, add the matching one in antigen-macros's
+    // parse.rs ANTIGEN_PARSER_FIXTURES table. Field-additions to the antigen
+    // attribute grammar must add fixtures in BOTH crates to lock the
+    // equivalence.
+    // ========================================================================
+
+    // (input, expected_name, expected_fingerprint, expected_family, expected_summary)
+    type ScanFixture = (&'static str, &'static str, &'static str, Option<&'static str>, Option<&'static str>);
+
+    const SCAN_PARSER_FIXTURES: &[ScanFixture] = &[
+        (
+            r#"name = "panicking-in-drop", fingerprint = "impl Drop with panic""#,
+            "panicking-in-drop",
+            "impl Drop with panic",
+            None,
+            None,
+        ),
+        (
+            r#"name = "frame-translation", fingerprint = "class enum + meet", family = "semantic-drift", summary = "Polarity inverts at the frame boundary""#,
+            "frame-translation",
+            "class enum + meet",
+            Some("semantic-drift"),
+            Some("Polarity inverts at the frame boundary"),
+        ),
+        (
+            r#"name = "x", fingerprint = "item: enum, has_method(\"meet\", \"(Self, Self) -> Self\")""#,
+            "x",
+            r#"item: enum, has_method("meet", "(Self, Self) -> Self")"#,
+            None,
+            None,
+        ),
+        (
+            r#"summary = "S", family = "F", fingerprint = "FP", name = "n""#,
+            "n",
+            "FP",
+            Some("F"),
+            Some("S"),
+        ),
+        (
+            r#"name = "x", fingerprint = "y", references = ["GAP-1", "DEC-2"]"#,
+            "x",
+            "y",
+            None,
+            None,
+        ),
+        (
+            "name = \"multi-line\",\n\tfingerprint = \"shape\",\n\tfamily = \"family\"",
+            "multi-line",
+            "shape",
+            Some("family"),
+            None,
+        ),
+    ];
+
+    #[test]
+    fn scan_parser_accepts_all_macro_fixtures() {
+        for (input, exp_name, exp_fp, exp_family, exp_summary) in SCAN_PARSER_FIXTURES {
+            let tokens: proc_macro2::TokenStream = input
+                .parse()
+                .unwrap_or_else(|e| panic!("fixture failed to tokenize: {input:?}: {e}"));
+            let args = syn::parse2::<ScanAntigenArgs>(tokens)
+                .unwrap_or_else(|e| panic!("scan parser rejected fixture {input:?}: {e}"));
+            assert_eq!(&args.name, exp_name, "name mismatch for fixture: {input:?}");
+            assert_eq!(
+                args.fingerprint.as_deref(),
+                Some(*exp_fp),
+                "fingerprint mismatch for fixture: {input:?}"
+            );
+            assert_eq!(
+                args.family.as_deref(),
+                *exp_family,
+                "family mismatch for fixture: {input:?}"
+            );
+            assert_eq!(
+                args.summary.as_deref(),
+                *exp_summary,
+                "summary mismatch for fixture: {input:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn scan_parser_tolerates_unknown_fields() {
+        // Asymmetry from macro side: scan tolerates unknown fields silently
+        // (forward-compat for fields added later that this scan binary doesn't
+        // know yet). Macro side rejects them strictly.
+        let tokens: proc_macro2::TokenStream =
+            r#"name = "x", fingerprint = "y", future_field = "irrelevant""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<ScanAntigenArgs>(tokens).unwrap();
+        assert_eq!(args.name, "x");
+        assert_eq!(args.fingerprint.as_deref(), Some("y"));
+    }
+
+    #[test]
+    fn scan_parser_tolerates_missing_required_fields() {
+        // Asymmetry from macro side: scan defaults to empty rather than
+        // erroring. Malformed declarations get aggregated into parse_failures
+        // upstream rather than blocking the scan.
+        let tokens: proc_macro2::TokenStream = r#"name = "only-name""#.parse().unwrap();
+        let args = syn::parse2::<ScanAntigenArgs>(tokens).unwrap();
+        assert_eq!(args.name, "only-name");
+        assert_eq!(args.fingerprint, None);
+    }
 }
