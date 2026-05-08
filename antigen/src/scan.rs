@@ -426,7 +426,20 @@ impl ScanVisitor<'_> {
             let (antigen_type, witness) =
                 match syn::parse2::<ScanImmuneArgs>(list.tokens.clone()) {
                     Ok(args) => (args.antigen_type, args.witness),
-                    Err(_) => (String::new(), String::new()),
+                    Err(e) => {
+                        // Malformed #[immune] args: record a parse failure rather
+                        // than silently inserting a ghost immunity record with empty
+                        // antigen_type and witness. A ghost record would pass
+                        // WitnessStatus::Missing detection only if the empty-string
+                        // check fires, and would produce a misleading "0 unaddressed
+                        // presentations" result. ADR-005: every trust boundary requires
+                        // a validation check; malformed immunity claims are not claims.
+                        self.report.parse_failures.push((
+                            self.file_path.clone(),
+                            format!("malformed #[immune] attribute: {e}"),
+                        ));
+                        return;
+                    }
                 };
             let line = self.line_of_attr("immune");
             self.report.immunities.push(Immunity {
