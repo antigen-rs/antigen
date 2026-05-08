@@ -730,9 +730,9 @@ impl ScanVisitor<'_> {
 
     fn check_attrs(&mut self, attrs: &[syn::Attribute], item_kind: &str, item_target: &ItemTarget) {
         for attr in attrs {
-            if attr.path().is_ident("presents") {
+            if attr_is(attr, "presents") {
                 self.extract_presents(attr, item_kind, item_target.clone());
-            } else if attr.path().is_ident("immune") {
+            } else if attr_is(attr, "immune") {
                 self.extract_immune(attr, item_kind, item_target.clone());
             }
         }
@@ -749,6 +749,29 @@ fn render_type(ty: &syn::Type) -> String {
     ty.to_token_stream().to_string()
 }
 
+/// Whether an attribute's path matches a given antigen attribute name.
+///
+/// `syn::Path::is_ident("X")` only returns true for single-segment paths.
+/// Path-qualified attribute forms — `#[antigen::immune(...)]`,
+/// `#[crate::presents(...)]`, `#[my::module::antigen(...)]` — produce
+/// multi-segment paths that `is_ident` rejects, causing the scan to
+/// silently drop them. The fix: an attribute's path matches `name`
+/// either when it's the bare ident, OR when its *last segment* is the
+/// ident.
+///
+/// This is the path-segment-aware analog of `is_ident` and is the only
+/// matcher used inside `ScanVisitor`. Using last-segment equality is
+/// cheap and the same heuristic Rust itself uses to find the macro
+/// being invoked — name resolution happens elsewhere.
+fn attr_is(attr: &syn::Attribute, name: &str) -> bool {
+    let path = attr.path();
+    path.is_ident(name)
+        || path
+            .segments
+            .last()
+            .is_some_and(|s| s.ident == name)
+}
+
 /// Render a `syn::Path` similarly. Used for the trait portion of
 /// `impl Trait for Type` so that `Drop` and `core::ops::Drop` produce
 /// distinct strings (which is correct — they're different items in
@@ -761,7 +784,7 @@ fn render_path(path: &syn::Path) -> String {
 impl<'ast> Visit<'ast> for ScanVisitor<'_> {
     fn visit_item_struct(&mut self, item: &'ast syn::ItemStruct) {
         for attr in &item.attrs {
-            if attr.path().is_ident("antigen") {
+            if attr_is(attr, "antigen") {
                 self.extract_antigen(item, attr);
             }
         }
@@ -838,7 +861,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
 
     fn visit_item_enum(&mut self, item: &'ast syn::ItemEnum) {
         for attr in &item.attrs {
-            if attr.path().is_ident("antigen") {
+            if attr_is(attr, "antigen") {
                 // ATK-A2-007: silently dropping #[antigen] on enums eats the
                 // class-enum pattern (the frame-translation antigen's primary
                 // use case). Surface the situation as a parse_failure so the
