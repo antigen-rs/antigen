@@ -30,8 +30,12 @@
 //! | W6a-010 | parser | Node count cap: 257 flat constraints rejected | ACTIVE (boundary test) |
 //! | W6a-011 | matcher | `not` inside `not` inside `all_of`: double-negation matches correctly | ACTIVE (logic check) |
 //! | W6a-012 | matcher | `any_of([item = struct, item = enum])` on impl item: both fail → false | ACTIVE (exhaustive kind check) |
+//! | W6a-013 | matcher | `has_method` with `(&self, ...)` pattern silently mismatches | ACTIVE (documents silent mismatch) |
+//! | W6a-014 | matcher | `node_kind` extraction from nested `all_of` | ACTIVE (dispatch optimization) |
+//! | W6a-015 | matcher | Serde-deserialized `MethodPattern` has `None` cache; still matches correctly | ACTIVE (correctness contract) |
+//! | W6a-016 | matcher | `PartialEq` on `MethodPattern` ignores normalized cache | ACTIVE (identity contract) |
 
-use antigen_fingerprint::{Fingerprint, ItemKind, MAX_DEPTH, MAX_NODES};
+use antigen_fingerprint::{Fingerprint, ItemKind, MethodPattern, MAX_DEPTH, MAX_NODES};
 
 fn parse(s: &str) -> syn::Result<Fingerprint> {
     Fingerprint::parse(s)
@@ -519,5 +523,114 @@ fn atk_w6a_014_node_kind_extracted_from_nested_all_of() {
         fp3.node_kind(),
         None,
         "ATK-W6a-014: node_kind must return None when no item= constraint present"
+    );
+}
+
+// ============================================================================
+// ATK-W6a-015 — Serde round-trip: deserialized MethodPattern has None cache
+//               but still matches correctly
+// ============================================================================
+
+/// ATK-W6a-015 — `MethodPattern::normalized_signature` is `#[serde(skip)]`,
+/// so after a JSON round-trip it is `None`. The matcher fallback (`unwrap_or_else`)
+/// must still produce correct match results.
+///
+/// **Performance note**: The fallback recomputes `normalize_ws` on EVERY call
+/// to `has_matching_method` for serde-deserialized patterns, not "once per
+/// pattern" as the commit message claimed. The `&MethodPattern` reference in
+/// `has_matching_method` means the computed value cannot be written back to
+/// the cache. This is a correctness-preserving performance discrepancy between
+/// the parsed path (cache populated once at parse time) and the serde path
+/// (normalize on every match call). For v0.1 correctness this is acceptable;
+/// for future performance-sensitive scan loops over many items × many
+/// fingerprints, the serde path should be noted as slower.
+///
+/// This test documents: (a) the serde round-trip clears the cache, and (b)
+/// the matcher still produces correct results with a cleared cache.
+#[test]
+fn atk_w6a_015_serde_roundtrip_method_pattern_cache_is_none_but_still_matches() {
+    use antigen_fingerprint::Constraint;
+
+    // Parse a fingerprint with has_method — this populates normalized_signature.
+    let impl_src = "impl Lattice { fn meet(a: Self, b: Self) -> Self { unimplemented!() } }";
+    let fp_parsed = parse_ok(r#"item = impl, has_method("meet", "(Self, Self) -> Self")"#);
+
+    // Verify the cache is populated after parsing.
+    let has_populated_cache = fp_parsed.constraints.iter().any(|c| match c {
+        Constraint::HasMethod(p) => p.normalized_signature.is_some(),
+        _ => false,
+    });
+    assert!(
+        has_populated_cache,
+        "ATK-W6a-015: parsed MethodPattern must have populated normalized_signature cache"
+    );
+
+    // Serialize to JSON then deserialize — serde(skip) clears normalized_signature.
+    let json = serde_json::to_string(&fp_parsed).expect("serialize");
+    let fp_deser: Fingerprint = serde_json::from_str(&json).expect("deserialize");
+
+    // Cache must be None after serde round-trip.
+    let cache_cleared = fp_deser.constraints.iter().all(|c| match c {
+        Constraint::HasMethod(p) => p.normalized_signature.is_none(),
+        _ => true,
+    });
+    assert!(
+        cache_cleared,
+        "ATK-W6a-015: deserialized MethodPattern must have None normalized_signature (serde(skip))"
+    );
+
+    // But matching must still work correctly with the fallback path.
+    assert!(
+        fp_deser.matches(&item(impl_src)),
+        "ATK-W6a-015: deserialized fingerprint must still match correctly via normalize_ws fallback"
+    );
+
+    // And equality between parsed and deserialized is preserved (cache excluded from PartialEq).
+    assert_eq!(
+        fp_parsed, fp_deser,
+        "ATK-W6a-015: parsed and serde-deserialized fingerprints must be equal \
+         (MethodPattern::PartialEq ignores normalized_signature cache)"
+    );
+}
+
+// ============================================================================
+// ATK-W6a-016 — PartialEq on MethodPattern ignores normalized_signature cache
+// ============================================================================
+
+/// ATK-W6a-016 — `MethodPattern`'s custom `PartialEq` excludes
+/// `normalized_signature`. Two patterns with the same `(name, signature)` are
+/// equal even if one has a populated cache and one does not.
+///
+/// This is the correct semantic behavior: the cache is a derived performance
+/// field, not part of the pattern's identity. This test documents the behavior
+/// so future refactors that accidentally include `normalized_signature` in
+/// equality comparisons will produce a failing test.
+#[test]
+fn atk_w6a_016_method_pattern_equality_ignores_normalized_cache() {
+    // Two MethodPatterns with same name + signature but different cache state.
+    let with_cache = MethodPattern {
+        name: "meet".to_string(),
+        signature: "(Self, Self) -> Self".to_string(),
+        normalized_signature: Some("(Self, Self) -> Self".to_string()),
+    };
+    let without_cache = MethodPattern {
+        name: "meet".to_string(),
+        signature: "(Self, Self) -> Self".to_string(),
+        normalized_signature: None,
+    };
+    assert_eq!(
+        with_cache, without_cache,
+        "ATK-W6a-016: MethodPattern equality must ignore normalized_signature cache"
+    );
+
+    // Different signature — must be unequal regardless of cache state.
+    let different_sig = MethodPattern {
+        name: "meet".to_string(),
+        signature: "(Self) -> Self".to_string(),
+        normalized_signature: Some("(Self) -> Self".to_string()),
+    };
+    assert_ne!(
+        with_cache, different_sig,
+        "ATK-W6a-016: MethodPatterns with different signatures must be unequal"
     );
 }
