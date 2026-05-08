@@ -575,6 +575,16 @@ witnesses).
 about antigens is informational; the source-of-truth is the `#[antigen]` / `#[presents]`
 / `#[immune]` declarations themselves.
 
+- **substrate-currency** (temporal sub-pattern): substrate-as-of-author-time ≠
+  substrate-as-of-consumer-time. A claim or finding verified against the substrate at
+  authorship time may be stale by the time it is consumed — files change, findings get
+  corrected, commits land between the moment of writing and the moment of reading.
+  The discipline: verify against the substrate at consumption time, not just at authorship
+  time. Three operational layers confirmed in A2 day-2 (tracker-tier context drift,
+  reporter-tier unverified findings, claim-propagation-tier routing without re-verification).
+  Candidate posture; awaiting shape stability for ratification (see `docs/postures.md`
+  V0+1 candidates).
+
 ### narrow-then-lift
 
 **Origin**: tambear DEC-022 sub-clause discipline.
