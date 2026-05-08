@@ -1,0 +1,7 @@
+error: #[antigen] requires `fingerprint = "..."`
+ --> tests/ui/missing_fingerprint.rs:7:1
+  |
+7 | #[antigen(name = "x")]
+  | ^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the attribute macro `antigen` (in Nightly builds, run with -Z macro-backtrace for more info)
