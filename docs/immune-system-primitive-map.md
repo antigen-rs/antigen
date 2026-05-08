@@ -698,11 +698,10 @@ transmission modes become operationally valuable.
   via rustdoc JSON or static-emission (per cross-domain-map.md Appendix A
   for cybersecurity precedent)
 
-*Forward pointer*: the multi-modal transmission framework and its relationship
-to the three-tier cross-reactivity framework above warrants a companion document
-(`contact-graph-and-recognition-tiers.md`) — not yet authored. The framework
-above is the seed; the companion will expand it when adoption surfaces the first
-multi-graph contact tracing requirement (expected post-A3 cross-crate scan).
+See companion document [`contact-graph-and-recognition-tiers.md`](contact-graph-and-recognition-tiers.md)
+for substantive expansion of the multi-modal transmission framework and its
+relationship to the three-tier cross-reactivity framework above (authored A2 day-2,
+commit `30d91bf`).
 
 ---
 
