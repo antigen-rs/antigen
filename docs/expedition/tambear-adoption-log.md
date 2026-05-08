@@ -303,6 +303,20 @@ or document the simple-identifier requirement prominently. Currently the
 adoption-friction shows up as "audit reports 0 immunity even though
 declarations exist."]
 
+[antigen team note 2026-05-08, W7]: The two `#[immune(UlpDistanceRolledByHand)]`
+declarations above — on `fn ulp_distance` in `dd_subnormal_sweep_oracle.rs`
+and `sweep_29c_kappa_oracle.rs` — are the first real-world confirmation of
+ATK-A2-005 (flat FunctionIndex ambiguity). Both files declare a function named
+`ulp_distance`; pre-W7, the `or_insert_with` flat index would silently lose one
+candidate, meaning one witness declaration would silently fail to resolve
+correctly depending on filesystem walk order. W7's `WitnessStatus::Ambiguous`
+fix (shipped in A2) means `cargo antigen audit` will correctly surface both
+candidates as ambiguous when the user qualifies witnesses by bare name rather
+than path. Lesson for tambear: if audit reports `WitnessStatus::Ambiguous` on
+these witnesses, the fix is to qualify the witness path with a module prefix
+(e.g., `witness = tests::ulp_wrapper_delegates_to_canonical_test`) so the name
+is unambiguous across the workspace. Tracked in antigen as ATK-A2-005.]
+
 ### [pending] Phase 1-8 deconstruction of `PolarityInvertedClassMeet`, `PanickingInDrop`, and `UlpDistanceRolledByHand`
 
 (Aristotle thread, after JBD team launch. The antigens were declared without

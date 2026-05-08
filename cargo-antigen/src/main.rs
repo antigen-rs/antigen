@@ -270,10 +270,9 @@ struct JsonAuditReport<'a> {
 
 fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::AuditReport) {
     println!();
-    // Note: "resolved" means the witness identifier was found in the workspace.
-    // It does NOT mean the witness was executed or that it asserts immunity to
-    // this specific failure class. Full semantic validation requires fingerprint-
-    // aware reasoning (ADR-010, planned for Sweep A3+).
+    // Per ADR-005 Amendment 3: tier counts report the work the audit ACTUALLY
+    // PERFORMED, never potential maximum evidence. A `#[test]` whose run was
+    // not invoked sits at Reachability, not Execution.
     println!("Audited {} immunity claim(s):", audit_report.audits.len());
     println!(
         "  - {} declared (witness identifier found in workspace — not yet semantically verified)",
@@ -282,6 +281,10 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
     println!(
         "  - {} external (delegated to clippy/kani/prusti/etc. — not yet executed by antigen)",
         audit_report.external_count
+    );
+    println!(
+        "  - {} ambiguous (witness name resolves to multiple workspace functions)",
+        audit_report.ambiguous_count
     );
     println!(
         "  - {} broken (witness identifier not found)",
@@ -296,7 +299,7 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
     let problematic = audit_report.problematic_audits();
 
     if problematic.is_empty() {
-        println!("✓ All immunity claims are structurally well-formed (witness identifiers exist).");
+        println!("✓ All immunity claims meet the Execution tier or higher.");
         println!(
             "  Note: semantic verification (does the witness actually test this failure class?)"
         );
@@ -305,7 +308,7 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
             println!("  (No immunity declarations found in the workspace.)");
         }
     } else {
-        println!("⚠ {} problematic immunity claim(s):", problematic.len());
+        println!("⚠ {} immunity claim(s) below Execution tier:", problematic.len());
         println!();
         for a in &problematic {
             let i = &a.immunity;
@@ -315,6 +318,10 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
                 i.line,
                 i.antigen_type,
                 i.witness
+            );
+            println!(
+                "    tier = {:?}, hint = {:?}",
+                a.witness_tier, a.audit_hint,
             );
             match &a.witness_status {
                 audit::WitnessStatus::NotFound { reason } => {
@@ -326,15 +333,40 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
                          a marker without proof is not a claim (per ADR-005)"
                     );
                 }
-                _ => {}
+                audit::WitnessStatus::Ambiguous { candidates } => {
+                    println!(
+                        "    → ambiguous: witness name matches {} workspace functions",
+                        candidates.len(),
+                    );
+                    for c in candidates {
+                        println!("        - {}", c.display());
+                    }
+                    println!(
+                        "      Fix: rename one of the colliding functions, or \
+                         qualify the witness path"
+                    );
+                }
+                audit::WitnessStatus::External { tool_hint } => {
+                    println!(
+                        "    → external ({tool_hint}): tool prefix recognized but not invoked. \
+                         A3+ will run the tool to promote this witness to Execution tier."
+                    );
+                }
+                audit::WitnessStatus::Resolved { .. } => {
+                    // Resolved witnesses below Execution tier (Reachability):
+                    // empty function bodies, ignored tests, or unrun tests.
+                    // The hint already says which case applies.
+                }
             }
         }
         println!();
         println!(
-            "Resolve broken witnesses by either:\n  \
-             a) Adding the witness function to the workspace\n  \
-             b) Updating the witness reference to point at an existing function\n  \
-             c) Removing the immunity claim if it's premature"
+            "Resolve below-Execution claims by either:\n  \
+             a) Adding test invocation that exercises the witness path (A3+ feature)\n  \
+             b) Pointing the witness at a runnable test (#[test] without #[ignore])\n  \
+             c) Renaming colliding functions or qualifying ambiguous witness paths\n  \
+             d) Adding the witness function to the workspace if it's missing\n  \
+             e) Tolerating the gap with `#[antigen_tolerance(...)]` if intentional"
         );
     }
 }

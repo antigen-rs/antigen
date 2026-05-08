@@ -57,6 +57,14 @@ pub enum WitnessStatus {
         /// Best-effort guess at the external tool.
         tool_hint: String,
     },
+    /// Witness identifier resolves to multiple functions in the workspace
+    /// (ATK-A2-005). The caller must qualify the path or rename one
+    /// candidate. Audit reports `WitnessTier::None` because no single
+    /// resolution was confirmed.
+    Ambiguous {
+        /// Locations of all candidate functions sharing this name.
+        candidates: Vec<PathBuf>,
+    },
     /// Witness identifier could not be resolved in the workspace.
     NotFound {
         /// Reason the witness wasn't found (e.g., "no matching function in any
@@ -71,35 +79,193 @@ pub enum WitnessStatus {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum WitnessKind {
-    /// A function with a `#[test]` attribute.
+    /// A function with a `#[test]` attribute (and not `#[ignore]`).
     Test,
+    /// A function with `#[test]` AND `#[ignore]` — `cargo test` skips it
+    /// by default. Audit treats this as Reachability tier, not Execution,
+    /// per ADR-005 Amendment 3 (ATK-A2-012).
+    IgnoredTest,
     /// A `proptest!` macro invocation.
     Proptest,
     /// A regular function (no testing attribute detected; might be a phantom-type
     /// proof or non-test witness).
     Function,
+    /// A phantom-type witness: a path like `Path::<TypeParams>::constructor`
+    /// where construction itself is the proof. Recognized structurally per
+    /// ADR-013; the audit reports a hint to verify the constructor is sealed.
+    PhantomType {
+        /// The base path (e.g., `PolarityProof`).
+        proof_type: String,
+        /// Type parameters if any (e.g., `["FrameTranslation"]`).
+        type_params: Vec<String>,
+        /// Constructor function name if present (e.g., `verified` in
+        /// `PolarityProof::<FrameTranslation>::verified()`).
+        constructor: Option<String>,
+    },
+}
+
+/// The strength of evidence a witness provides for an immunity claim.
+///
+/// Per ADR-005 Amendment 3: this enum reports work the audit *actually
+/// performed* at the validation point — never potential-maximum evidence.
+/// Per-case disambiguation lives on the parallel [`AuditHint`] axis.
+///
+/// Ordered: higher ordinal = stronger evidence. Stable discriminants
+/// reserve room for `BehavioralAlignment` to insert at 3 in a future ADR.
+///
+/// # CI gating
+///
+/// `cargo antigen audit --min-tier execution` fails if any immunity claim
+/// is below Execution tier.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "snake_case")]
+pub enum WitnessTier {
+    /// No witness or unresolved witness. Immunity asserted without evidence.
+    None = 0,
+    /// Witness identifier resolves but no execution-level verification
+    /// happened. Evidence: "this code path / tool reference exists."
+    Reachability = 1,
+    /// Witness was executed: a test or proptest function whose run was
+    /// confirmed (A3+ feature; not yet emitted by v0.1 audit).
+    Execution = 2,
+    // BehavioralAlignment = 3, reserved per ADR-005 OQ
+    /// Compile-time proof: phantom-type construction whose construction is
+    /// the proof, or formal-verification tool with confirmed passing proof
+    /// (A3+).
+    FormalProof = 4,
+}
+
+/// Per-case verification-work disambiguation, parallel to [`WitnessTier`].
+/// Per ADR-005 Amendment 3 Mechanics §2.
+///
+/// Two witnesses can carry the same [`WitnessTier`] but different
+/// `AuditHint` — for example, an unrun `#[test]` and an external clippy
+/// reference both sit at `Reachability` (zero confirmed assertions about
+/// this site) but the disambiguation tells the user how to upgrade.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum AuditHint {
+    /// No hint applicable (status is Missing or `NotFound`).
+    NoneApplicable,
+    /// Identifier resolves to a function; no further check.
+    FunctionResolves,
+    /// Function has `#[test]`, audit did not invoke `cargo test`.
+    TestAttributePresentNotInvoked,
+    /// Function has `#[test]` AND `#[ignore]`; `cargo test` would skip it.
+    TestAttributePresentIgnoreSkipped,
+    /// `proptest!` macro invocation found; harness not invoked.
+    ProptestPresentNotInvoked,
+    /// External-tool prefix recognized (`clippy::`, `kani::`, ...);
+    /// tool not invoked.
+    ExternalToolPrefixRecognized,
+    /// External tool actually invoked; deferred to A3+.
+    ExternalToolInvoked,
+    /// Phantom-type witness shape recognized; constructor not validated.
+    PhantomTypeShapeRecognized,
+    /// Phantom-type witness construction validated; deferred to future ADR.
+    PhantomTypeConstructionValidated,
+    /// Witness name matches more than one function in the workspace
+    /// (ATK-A2-005). Caller should qualify the path.
+    AmbiguousResolution,
+    /// Witness path's module prefix does not exist in the workspace
+    /// (ATK-A2-011). The last segment was found but in an unrelated location.
+    FabricatedPathPrefix,
 }
 
 /// Result of auditing a single immunity declaration.
+///
+/// Two structured fields express what the audit found:
+/// - [`witness_tier`](Self::witness_tier): Ord-able strength of evidence,
+///   what CI gates check (`--min-tier`)
+/// - [`audit_hint`](Self::audit_hint): per-case verification-work
+///   disambiguation, what humans read in reports
+///
+/// Both are derived from [`witness_status`](Self::witness_status) at audit
+/// time per ADR-005 Amendment 3 §Mechanics §2.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ImmunityAudit {
     /// The original immunity declaration.
     pub immunity: Immunity,
     /// What we determined about its witness.
     pub witness_status: WitnessStatus,
+    /// Strength of evidence the witness provides, derived from
+    /// `witness_status` per ADR-005 Amendment 3.
+    pub witness_tier: WitnessTier,
+    /// Per-case verification-work disambiguation; carries the signal that
+    /// the tier ordinal alone cannot.
+    pub audit_hint: AuditHint,
 }
 
 impl ImmunityAudit {
+    /// True if the witness provides any evidence (tier > None).
+    #[must_use]
+    pub const fn has_witness(&self) -> bool {
+        !matches!(self.witness_tier, WitnessTier::None)
+    }
+
+    /// True if the witness meets a minimum evidence tier. Used by `--strict`
+    /// mode and CI gates.
+    #[must_use]
+    pub fn meets_tier(&self, minimum: WitnessTier) -> bool {
+        self.witness_tier >= minimum
+    }
+
     /// True if the audit considers the immunity claim well-formed.
     ///
-    /// `Resolved` and `External` are both well-formed (we trust external tools
-    /// to enforce the claim). `NotFound` and `Missing` are NOT well-formed.
+    /// Per ADR-005 Amendment 3: well-formed requires execution-tier evidence
+    /// or stronger. `Reachability`-tier witnesses (e.g., a `#[test]` that
+    /// hasn't been run, or a fabricated `clippy::` lint) are NOT well-formed.
+    /// This is the post-W7 honest definition; the pre-W7 `is_well_formed`
+    /// returned true for any `Resolved`/`External`, which is the bug
+    /// ATK-A2-003/004/005/011/012 named.
     #[must_use]
-    pub const fn is_well_formed(&self) -> bool {
-        matches!(
-            self.witness_status,
-            WitnessStatus::Resolved { .. } | WitnessStatus::External { .. }
-        )
+    pub fn is_well_formed(&self) -> bool {
+        self.meets_tier(WitnessTier::Execution)
+    }
+}
+
+impl WitnessTier {
+    /// Derive the tier from a [`WitnessStatus`] per the Amendment 3 mapping
+    /// table. The audit reports the work it actually performed — never
+    /// potential maximum evidence.
+    #[must_use]
+    pub const fn from_status(status: &WitnessStatus) -> Self {
+        match status {
+            WitnessStatus::Missing
+            | WitnessStatus::NotFound { .. }
+            | WitnessStatus::Ambiguous { .. } => Self::None,
+            WitnessStatus::External { .. } => Self::Reachability,
+            WitnessStatus::Resolved { witness_kind, .. } => match witness_kind {
+                // v0.1 audit does not invoke cargo test or proptest harness;
+                // witness presence means "this code path exists" — Reachability.
+                // Execution tier requires confirmed invocation (A3+ work).
+                WitnessKind::Test
+                | WitnessKind::IgnoredTest
+                | WitnessKind::Proptest
+                | WitnessKind::Function => Self::Reachability,
+                WitnessKind::PhantomType { .. } => Self::FormalProof,
+            },
+        }
+    }
+}
+
+impl AuditHint {
+    /// Derive the audit hint from a [`WitnessStatus`] per the Amendment 3
+    /// mapping table.
+    #[must_use]
+    pub const fn from_status(status: &WitnessStatus) -> Self {
+        match status {
+            WitnessStatus::Missing | WitnessStatus::NotFound { .. } => Self::NoneApplicable,
+            WitnessStatus::Ambiguous { .. } => Self::AmbiguousResolution,
+            WitnessStatus::External { .. } => Self::ExternalToolPrefixRecognized,
+            WitnessStatus::Resolved { witness_kind, .. } => match witness_kind {
+                WitnessKind::Test => Self::TestAttributePresentNotInvoked,
+                WitnessKind::IgnoredTest => Self::TestAttributePresentIgnoreSkipped,
+                WitnessKind::Proptest => Self::ProptestPresentNotInvoked,
+                WitnessKind::Function => Self::FunctionResolves,
+                WitnessKind::PhantomType { .. } => Self::PhantomTypeShapeRecognized,
+            },
+        }
     }
 }
 
@@ -112,6 +278,9 @@ pub struct AuditReport {
     pub resolved_count: usize,
     /// Number of immunities whose witness defers to an external tool.
     pub external_count: usize,
+    /// Number of immunities whose witness name resolves ambiguously
+    /// (multiple workspace functions share the name). Per ATK-A2-005.
+    pub ambiguous_count: usize,
     /// Number of immunities whose witness was not found.
     pub broken_count: usize,
     /// Number of immunities with no witness identifier at all.
@@ -119,10 +288,19 @@ pub struct AuditReport {
 }
 
 impl AuditReport {
-    /// True if all witnesses validated (no broken or missing).
+    /// True if all immunity claims meet at least Execution tier
+    /// (per `is_well_formed`). Per ADR-005 Amendment 3, a Reachability-tier
+    /// witness is NOT a well-formed claim — it has zero confirmed evidence.
     #[must_use]
-    pub const fn all_valid(&self) -> bool {
-        self.broken_count == 0 && self.missing_count == 0
+    pub fn all_valid(&self) -> bool {
+        self.audits.iter().all(ImmunityAudit::is_well_formed)
+    }
+
+    /// True if all immunity claims meet the given minimum tier. Used by
+    /// `cargo antigen audit --min-tier <tier>` for CI gating.
+    #[must_use]
+    pub fn all_meet_tier(&self, minimum: WitnessTier) -> bool {
+        self.audits.iter().all(|a| a.meets_tier(minimum))
     }
 
     /// Returns audits whose witness status indicates a problem.
@@ -150,9 +328,13 @@ pub fn audit(report: &ScanReport, workspace_root: &Path) -> AuditReport {
     let mut audits = Vec::new();
     for immunity in &report.immunities {
         let status = validate_witness(&immunity.witness, &workspace_functions);
+        let witness_tier = WitnessTier::from_status(&status);
+        let audit_hint = AuditHint::from_status(&status);
         audits.push(ImmunityAudit {
             immunity: immunity.clone(),
             witness_status: status,
+            witness_tier,
+            audit_hint,
         });
     }
 
@@ -164,6 +346,7 @@ pub fn audit(report: &ScanReport, workspace_root: &Path) -> AuditReport {
         match &a.witness_status {
             WitnessStatus::Resolved { .. } => audit_report.resolved_count += 1,
             WitnessStatus::External { .. } => audit_report.external_count += 1,
+            WitnessStatus::Ambiguous { .. } => audit_report.ambiguous_count += 1,
             WitnessStatus::NotFound { .. } => audit_report.broken_count += 1,
             WitnessStatus::Missing => audit_report.missing_count += 1,
         }
@@ -172,18 +355,28 @@ pub fn audit(report: &ScanReport, workspace_root: &Path) -> AuditReport {
     audit_report
 }
 
-/// Index of function name → (file path, kind) for the workspace.
+/// One entry in the function index — a single (path, kind) pair for a name.
+#[derive(Debug, Clone)]
+struct FunctionEntry {
+    location: PathBuf,
+    kind: WitnessKind,
+}
+
+/// Index of function name → all (file path, kind) pairs sharing that name.
 ///
-/// TODO(team): this is a flat name index; doesn't handle:
-/// - Module-qualified paths (`crate::foo::bar` would need to find the function
-///   `bar` in module `foo`)
-/// - Function ambiguity (two functions with the same name in different modules)
-/// - Functions inside `impl` blocks (these are method names, not free functions;
-///   currently we record both but matching is name-only)
+/// W7 (A2) extends the flat name index to track *all* candidates for a name,
+/// so `validate_witness` can detect ambiguity (ATK-A2-005). When more than one
+/// function shares a name, the witness resolves to `WitnessStatus::Ambiguous`
+/// rather than silently picking whichever was indexed last.
 ///
-/// Sweep A3 should: parse witness as a full path, resolve against the workspace's
-/// module graph, and disambiguate methods vs free functions.
-type FunctionIndex = std::collections::HashMap<String, (PathBuf, WitnessKind)>;
+/// Cross-cutting limitations remaining for A3+:
+/// - Module-qualified paths (`crate::foo::bar` parsing) require module-graph
+///   resolution; for v0.1 we detect ambiguity and require the user to qualify
+///   the witness (e.g., rename one of the conflicting functions, or use a
+///   path that is unique).
+/// - Functions inside `impl` blocks (method names, not free functions);
+///   currently recorded with the same shape — matching is name-only.
+type FunctionIndex = std::collections::HashMap<String, Vec<FunctionEntry>>;
 
 fn collect_function_index(root: &Path) -> FunctionIndex {
     use syn::visit::Visit;
@@ -247,17 +440,21 @@ impl FunctionIndexVisitor<'_> {
     /// — over-classified every function in any file mentioning the string
     /// `proptest!` (including doc comments) as `WitnessKind::Proptest`.
     /// Replaced by structural detection: `visit_macro` registers
-    /// proptest-internal function names with `WitnessKind::Proptest` directly,
-    /// so by the time `visit_item_fn` runs `detect_kind` the function is
-    /// already correctly tagged for proptest cases. The remaining job here
-    /// is to pick `Test` when `#[test]` appears, and `Function` otherwise.
+    /// proptest-internal function names with `WitnessKind::Proptest` directly.
+    ///
+    /// W7 (sweep A2): distinguish `#[test] #[ignore]` from a running `#[test]`.
+    /// Per ADR-005 Amendment 3 and ATK-A2-012, an ignored test is weaker
+    /// evidence than a runnable test — `cargo test` skips it by default.
+    /// We tag it as `WitnessKind::IgnoredTest` so the audit can emit the
+    /// `TestAttributePresentIgnoreSkipped` hint.
     fn detect_kind(attrs: &[syn::Attribute]) -> WitnessKind {
-        for attr in attrs {
-            if attr.path().is_ident("test") {
-                return WitnessKind::Test;
-            }
+        let has_test = attrs.iter().any(|a| a.path().is_ident("test"));
+        let has_ignore = attrs.iter().any(|a| a.path().is_ident("ignore"));
+        match (has_test, has_ignore) {
+            (true, true) => WitnessKind::IgnoredTest,
+            (true, false) => WitnessKind::Test,
+            (false, _) => WitnessKind::Function,
         }
-        WitnessKind::Function
     }
 }
 
@@ -310,49 +507,40 @@ fn macro_path_last_is(path: &syn::Path, name: &str) -> bool {
         .is_some_and(|s| s.ident == name)
 }
 
+impl FunctionIndexVisitor<'_> {
+    /// Push a candidate entry for `name`. W7: every distinct (location, kind)
+    /// pair is preserved so `validate_witness` can detect ambiguity. The
+    /// pre-W7 behavior (silent first-wins) is the bug ATK-A2-005 named.
+    fn push(&mut self, name: String, kind: WitnessKind) {
+        self.index.entry(name).or_default().push(FunctionEntry {
+            location: self.file_path.clone(),
+            kind,
+        });
+    }
+}
+
 impl<'ast> syn::visit::Visit<'ast> for FunctionIndexVisitor<'_> {
     fn visit_item_fn(&mut self, item: &'ast syn::ItemFn) {
         let name = item.sig.ident.to_string();
         let kind = Self::detect_kind(&item.attrs);
-        // Only insert if not already present — preserves any prior tagging
-        // (e.g., `WitnessKind::Proptest` from a `visit_macro` pass that
-        // walked an enclosing `proptest! { ... }` block before the visitor
-        // descended to the inner function items, in case the visitor order
-        // ever changes). For W5 the proptest macro is a leaf so this is
-        // defence-in-depth.
-        self.index
-            .entry(name)
-            .or_insert_with(|| (self.file_path.clone(), kind));
+        self.push(name, kind);
         syn::visit::visit_item_fn(self, item);
     }
 
     fn visit_impl_item_fn(&mut self, item: &'ast syn::ImplItemFn) {
         let name = item.sig.ident.to_string();
         let kind = Self::detect_kind(&item.attrs);
-        // Only insert if not already present; free functions take precedence over
-        // method names in the flat index.
-        self.index
-            .entry(name)
-            .or_insert_with(|| (self.file_path.clone(), kind));
+        self.push(name, kind);
         syn::visit::visit_impl_item_fn(self, item);
     }
 
     fn visit_macro(&mut self, mac: &'ast syn::Macro) {
         // W5: structural proptest! detection. When the macro path's last
         // segment is `proptest`, walk its tokens for `fn IDENT` patterns
-        // and register each name with `WitnessKind::Proptest`. Inserting
-        // BEFORE the visitor descends into the macro tokens (which it
-        // doesn't actually do for unparsed-token macros, but we insert
-        // ahead of any `visit_item_fn` that might happen for adjacent code
-        // anyway) means a same-name function inside a proptest! block
-        // wins the entry over a same-name free function elsewhere only
-        // when it appears first in walk order. Acceptable since the
-        // typical case is one or the other, not both.
+        // and register each name with `WitnessKind::Proptest`.
         if macro_path_last_is(&mac.path, "proptest") {
             for name in extract_proptest_fn_names(&mac.tokens) {
-                self.index
-                    .entry(name)
-                    .or_insert_with(|| (self.file_path.clone(), WitnessKind::Proptest));
+                self.push(name, WitnessKind::Proptest);
             }
         }
         syn::visit::visit_macro(self, mac);
@@ -360,6 +548,12 @@ impl<'ast> syn::visit::Visit<'ast> for FunctionIndexVisitor<'_> {
 }
 
 /// Determine the witness status for a single witness identifier string.
+///
+/// Resolution priority per ADR-013 + ADR-005 Amendment 3:
+/// 1. Empty witness → `Missing`
+/// 2. External-tool prefix (`clippy::`, `kani::`, ...) → `External`
+/// 3. Phantom-type witness shape → `Resolved { PhantomType }`
+/// 4. Workspace function lookup → `Resolved` / `Ambiguous` / `NotFound`
 fn validate_witness(witness: &str, index: &FunctionIndex) -> WitnessStatus {
     let trimmed = witness.trim();
     if trimmed.is_empty() {
@@ -373,6 +567,16 @@ fn validate_witness(witness: &str, index: &FunctionIndex) -> WitnessStatus {
         };
     }
 
+    // Detect phantom-type witness shapes (ADR-013): `Path::<Args>::ctor` or
+    // `Path::<Args>` or `Path` with trailing `()`. The shape recognition is
+    // structural — we don't validate that the type exists.
+    if let Some(phantom) = detect_phantom_type_witness(trimmed) {
+        return WitnessStatus::Resolved {
+            location: PathBuf::new(),
+            witness_kind: phantom,
+        };
+    }
+
     // Resolve as a workspace-local function. The witness might be a path
     // (`module::function`); take the last segment as the function name.
     let function_name = trimmed
@@ -382,18 +586,87 @@ fn validate_witness(witness: &str, index: &FunctionIndex) -> WitnessStatus {
         .trim_end_matches("()")
         .trim();
 
-    if let Some((location, kind)) = index.get(function_name) {
-        WitnessStatus::Resolved {
-            location: location.clone(),
-            witness_kind: kind.clone(),
-        }
-    } else {
-        WitnessStatus::NotFound {
+    let candidates = index.get(function_name);
+    let Some(candidates) = candidates else {
+        return WitnessStatus::NotFound {
             reason: format!(
                 "no function named `{function_name}` found in any .rs file under the scan root"
             ),
-        }
+        };
+    };
+
+    match candidates.as_slice() {
+        [] => WitnessStatus::NotFound {
+            reason: format!(
+                "no function named `{function_name}` found in any .rs file under the scan root"
+            ),
+        },
+        [only] => WitnessStatus::Resolved {
+            location: only.location.clone(),
+            witness_kind: only.kind.clone(),
+        },
+        many => WitnessStatus::Ambiguous {
+            candidates: many.iter().map(|e| e.location.clone()).collect(),
+        },
     }
+}
+
+/// Recognize a phantom-type witness shape per ADR-013.
+///
+/// Matches: `Type`, `Type::ctor`, `Type::<Args>`, `Type::<Args>::ctor`,
+/// optionally with trailing `()`. The `<Args>` group, when present, contains
+/// comma-separated type parameters.
+///
+/// We deliberately accept *any* type-name shape (capital-leading identifier
+/// path) here because v0.1's audit has no symbol table — we cannot tell
+/// whether `PolarityProof` refers to a real type. The `audit_hint` carries
+/// the warning to verify the constructor is sealed; that's the recognize-
+/// and-warn discipline ADR-013 §OQ1 specifies.
+///
+/// Returns `None` when the witness looks more like a function path than a
+/// phantom-type construction (lowercase final segment with no type-param
+/// list and no trailing `()`-after-`::`-segment ambiguity). The heuristic:
+/// if the path contains a `<...>` segment, OR the last segment starts with
+/// an uppercase letter (typical Rust type-name convention) AND there are
+/// no trailing `()` (which would indicate a function call), treat it as
+/// a phantom-type witness candidate.
+fn detect_phantom_type_witness(witness: &str) -> Option<WitnessKind> {
+    let trimmed = witness.trim().trim_end_matches("()").trim();
+    let has_turbofish = trimmed.contains("::<");
+    if !has_turbofish {
+        // No turbofish = not a phantom-type witness shape we recognize. The
+        // bare-type-name shape (`Foo`) is indistinguishable from a function
+        // path at this layer; we let the function-index path handle it.
+        return None;
+    }
+
+    // Split into pre-turbofish, type-params, post-turbofish-ctor.
+    let (before, after) = trimmed.split_once("::<")?;
+    let (params_raw, ctor_part) = after.split_once('>')?;
+    let proof_type = before.trim().to_string();
+    let type_params: Vec<String> = params_raw
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
+    // Strip any remaining closing `>`s and the `::` separator left by
+    // split_once('>') on nested-generic inputs like `Foo::<Bar<Baz>>::new`.
+    let constructor = ctor_part
+        .trim_start_matches(['>', ':'])
+        .trim()
+        .trim_end_matches("()")
+        .trim();
+    let constructor = if constructor.is_empty() {
+        None
+    } else {
+        Some(constructor.to_string())
+    };
+
+    Some(WitnessKind::PhantomType {
+        proof_type,
+        type_params,
+        constructor,
+    })
 }
 
 /// Detect whether the witness references an external tool we recognize.
@@ -446,7 +719,10 @@ mod tests {
         let mut idx = FunctionIndex::new();
         idx.insert(
             "my_test".to_string(),
-            (PathBuf::from("src/lib.rs"), WitnessKind::Test),
+            vec![FunctionEntry {
+                location: PathBuf::from("src/lib.rs"),
+                kind: WitnessKind::Test,
+            }],
         );
 
         let status = validate_witness("module::path::my_test", &idx);
@@ -497,6 +773,18 @@ mod tests {
         index
     }
 
+    /// Helper for tests that expect a single index entry for a name.
+    /// Panics with a clear message if the name is unindexed or ambiguous.
+    fn unique_kind(idx: &FunctionIndex, name: &str) -> WitnessKind {
+        let entries = idx.get(name).unwrap_or_else(|| panic!("{name} indexed"));
+        assert_eq!(
+            entries.len(),
+            1,
+            "expected single index entry for {name}, got {entries:?}",
+        );
+        entries[0].kind.clone()
+    }
+
     #[test]
     fn w5_proptest_inner_fns_are_classified_proptest() {
         let src = r"
@@ -513,10 +801,8 @@ mod tests {
             }
         ";
         let idx = index_from_str(src);
-        let (_, k1) = idx.get("first_proptest").expect("first_proptest indexed");
-        let (_, k2) = idx.get("second_proptest").expect("second_proptest indexed");
-        assert_eq!(*k1, WitnessKind::Proptest);
-        assert_eq!(*k2, WitnessKind::Proptest);
+        assert_eq!(unique_kind(&idx, "first_proptest"), WitnessKind::Proptest);
+        assert_eq!(unique_kind(&idx, "second_proptest"), WitnessKind::Proptest);
     }
 
     #[test]
@@ -534,10 +820,10 @@ mod tests {
             }
         ";
         let idx = index_from_str(src);
-        let (_, k) = idx
-            .get("qualified_form_proptest")
-            .expect("qualified_form_proptest indexed");
-        assert_eq!(*k, WitnessKind::Proptest);
+        assert_eq!(
+            unique_kind(&idx, "qualified_form_proptest"),
+            WitnessKind::Proptest,
+        );
     }
 
     #[test]
@@ -563,15 +849,13 @@ mod tests {
             }
         ";
         let idx = index_from_str(src);
-        let (_, k_plain) = idx.get("plain_test").expect("plain_test indexed");
         assert_eq!(
-            *k_plain,
+            unique_kind(&idx, "plain_test"),
             WitnessKind::Test,
             "plain_test outside proptest! must be Test, not Proptest, even when \
              the same file contains a proptest! invocation",
         );
-        let (_, k_prop) = idx.get("proptest_one").expect("proptest_one indexed");
-        assert_eq!(*k_prop, WitnessKind::Proptest);
+        assert_eq!(unique_kind(&idx, "proptest_one"), WitnessKind::Proptest);
     }
 
     #[test]
@@ -589,10 +873,11 @@ mod tests {
             }
         ";
         let idx = index_from_str(src);
-        let (_, k) = idx
-            .get("doc_comment_only_test")
-            .expect("doc_comment_only_test indexed");
-        assert_eq!(*k, WitnessKind::Test, "doc-comment mention must not trigger Proptest");
+        assert_eq!(
+            unique_kind(&idx, "doc_comment_only_test"),
+            WitnessKind::Test,
+            "doc-comment mention must not trigger Proptest",
+        );
     }
 
     #[test]
@@ -601,10 +886,10 @@ mod tests {
             fn no_attribute_function() {}
         ";
         let idx = index_from_str(src);
-        let (_, k) = idx
-            .get("no_attribute_function")
-            .expect("no_attribute_function indexed");
-        assert_eq!(*k, WitnessKind::Function);
+        assert_eq!(
+            unique_kind(&idx, "no_attribute_function"),
+            WitnessKind::Function,
+        );
     }
 
     #[test]
