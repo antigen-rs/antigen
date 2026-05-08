@@ -25,10 +25,11 @@
 //! Search this file for `TODO(team)` to find specific spots that the antigen JBD
 //! team can sharpen quickly without redesigning anything. Top three:
 //!
-//! 1. **Line numbers are heuristic** — see [`ScanVisitor::line_of_attr`]; finds
-//!    the FIRST occurrence of the attribute name in the source, not the actual
-//!    span of the specific invocation. Replace with `syn::spanned::Spanned::span()
-//!    .start().line` once syn's span info is reliable on the team's toolchain.
+//! 1. **Line numbers are heuristic** — see `ScanVisitor::line_of_attr` (private);
+//!    finds the FIRST occurrence of the attribute name in the source, not the
+//!    actual span of the specific invocation. Replace with
+//!    `syn::spanned::Spanned::span().start().line` once syn's span info is
+//!    reliable on the team's toolchain.
 //! 2. **Item-level matching is loose** — see [`ScanReport::unaddressed_presentations`];
 //!    uses 20-line proximity heuristic. Should match by impl-target / fn-name /
 //!    struct-name (the actual ITEM the attributes are applied to), not source
@@ -540,7 +541,7 @@ mod tests {
     #[test]
     fn immune_args_parses_antigen_type_and_witness() {
         let tokens: proc_macro2::TokenStream =
-            r#"PanickingInDrop, witness = no_panic_in_drop_test"#
+            r"PanickingInDrop, witness = no_panic_in_drop_test"
                 .parse()
                 .unwrap();
         let args = syn::parse2::<ScanImmuneArgs>(tokens).unwrap();
@@ -551,7 +552,7 @@ mod tests {
     #[test]
     fn immune_args_parses_path_witness() {
         let tokens: proc_macro2::TokenStream =
-            r#"FrameTranslation, witness = clippy :: no_panic_in_drop"#
+            r"FrameTranslation, witness = clippy :: no_panic_in_drop"
                 .parse()
                 .unwrap();
         let args = syn::parse2::<ScanImmuneArgs>(tokens).unwrap();

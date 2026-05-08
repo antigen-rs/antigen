@@ -40,6 +40,38 @@ The biological metaphor maps cleanly:
 | Vaccination | `cargo antigen vaccinate` applying immunity to a structural family |
 | Tolerance / autoimmunity check | distinguishing legitimate code from over-flagging |
 
+## Quick start (Layer 1 — minimum viable)
+
+Per ADR-009 (adoption gradient), antigen meets your project at whatever
+discipline level it has. The smallest viable declaration uses just `name`
+and `fingerprint`:
+
+```rust,ignore
+use antigen::{antigen, immune, presents};
+
+#[antigen(
+    name = "panicking-in-drop",
+    fingerprint = "impl Drop with unwrap/expect/panic in body",
+)]
+pub struct PanickingInDrop;
+
+#[presents(PanickingInDrop)]
+impl Drop for SomeType { /* could panic */ }
+
+#[immune(PanickingInDrop, witness = no_panic_in_drop_test)]
+impl Drop for SafeType { /* verified safe */ }
+```
+
+That's it — two required fields, one of three macros applied as needed.
+No project-wide ADR registry required. No bureaucracy.
+
+Then run `cargo antigen scan` to find unaddressed presentations across
+your codebase, or `cargo antigen audit` to check that every immunity
+claim has a working witness. Layer 2 adds `family`, `summary`, and
+`references` (open-vocabulary cross-refs to URLs, issues, ADRs, CVEs,
+or anything else). Layer 3 (planned) supports structured ADR registry
+cross-references.
+
 ## What this is NOT
 
 - Not a documentation system. Documentation drifts; antigen declarations are checked by tooling.

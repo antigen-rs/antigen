@@ -128,7 +128,8 @@ Cargo subcommands:
 
 **Participants**: Tekgy + Claude.
 
-**Related**: ADR-001 (memory mechanism), ADR-004 (elevation posture).
+**Related**: ADR-001 (memory mechanism), ADR-004 (elevation posture),
+ADR-005 (sub-clause F validates the witness types this ADR defines).
 
 ### Finding
 
@@ -447,7 +448,8 @@ violations.
 **Participants**: Tekgy + Claude. Inherited from tambear DEC-032 placeholder
 ("recognition-not-design") and naturalist's DEC-character finding.
 
-**Related**: ADR-003 (metaphor), ADR-004 (elevation).
+**Related**: ADR-003 (metaphor), ADR-004 (elevation),
+ADR-007 (anti-YAGNI is the structurally-guaranteed counterweight to recognition).
 
 ### Finding
 
@@ -529,7 +531,8 @@ every antigen in stdlib must have its source pattern documented there.
 
 **Participants**: Tekgy + Claude. Inherited from tambear standing constraints.
 
-**Related**: ADR-006 (recognition), ADR-002 (composition).
+**Related**: ADR-001 (the memory carriers ADR-007 commits to building all of),
+ADR-002 (composition), ADR-006 (recognition).
 
 ### Finding
 
@@ -606,7 +609,9 @@ this?" If the answer is "the design works fine," the feature is YAGNI; if the an
 **Participants**: Tekgy + Claude. Inherited from tambear's vertical-to-horizontal terminal
 pattern (P8-A) and named-observer convergence-pattern work.
 
-**Related**: ADR-004 (elevation), ADR-006 (recognition).
+**Related**: ADR-001 (the carriers the named observer authors),
+ADR-004 (elevation), ADR-006 (recognition),
+ADR-009 (adoption gradient is named-observer ergonomics applied to the API).
 
 ### Finding
 
@@ -690,8 +695,11 @@ User-experience review is explicit at every API decision. Questions to ask:
 
 **Participants**: Tekgy + Claude.
 
-**Related**: ADR-002 (compose, don't compete), ADR-006 (recognition-not-design),
-ADR-008 (named-observer terminal stratum).
+**Related**: ADR-002 (compose, don't compete),
+ADR-005 (Layer 3 `adr` field validation is a trust-boundary decision),
+ADR-006 (recognition-not-design),
+ADR-008 (named-observer terminal stratum),
+ADR-010 (fingerprint grammar — required field in Layer 1).
 
 ### Finding
 
@@ -849,7 +857,9 @@ Initial heuristic: cargo-antigen audit reports both; future ADR may refine.
 (ast-grep, comby, clippy lint internals, dylint) with academic-context research
 (refinement type specification grammars).
 
-**Related**: ADR-001 (structural memory), ADR-002 (compose, don't compete),
+**Related**: ADR-001 (structural memory),
+ADR-002 (compose, don't compete),
+ADR-005 (cross-crate fingerprint inheritance is a trust-boundary decision),
 ADR-009 (adoption gradient).
 
 ### Finding
