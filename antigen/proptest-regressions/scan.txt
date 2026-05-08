@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc fce3d1d29d9d4cb5fa7a85933276187f95f359fb445fb625ebacdf8fa6f57dab # shrinks to module_segs = ["as"], antigen = "A", witness = "a"

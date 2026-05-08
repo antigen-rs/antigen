@@ -297,7 +297,9 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
 
     if problematic.is_empty() {
         println!("✓ All immunity claims are structurally well-formed (witness identifiers exist).");
-        println!("  Note: semantic verification (does the witness actually test this failure class?)");
+        println!(
+            "  Note: semantic verification (does the witness actually test this failure class?)"
+        );
         println!("  requires fingerprint-aware audit, planned for Sweep A3+.");
         if scan_report.immunities.is_empty() {
             println!("  (No immunity declarations found in the workspace.)");
