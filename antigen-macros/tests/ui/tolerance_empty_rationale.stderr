@@ -1,0 +1,5 @@
+error: #[antigen_tolerance] `rationale` must not be empty
+ --> tests/ui/tolerance_empty_rationale.rs:8:60
+  |
+8 | #[antigen_tolerance(PolarityInvertedClassMeet, rationale = "")]
+  |                                                            ^^

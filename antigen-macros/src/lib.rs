@@ -238,3 +238,45 @@ pub fn descended_from(args: TokenStream, input: TokenStream) -> TokenStream {
 
     quote! { #input }.into()
 }
+
+/// Mark a site as a deliberate, non-vulnerable match against an antigen's
+/// fingerprint. Per ADR-011.
+///
+/// # Arguments
+///
+/// - The antigen type name (positional)
+/// - `rationale = "..."` (required) — human-readable justification; empty
+///   string is rejected
+/// - `until = "..."` (optional) — expiry tag (e.g., `"v1.0"`); empty string
+///   is rejected (per aristotle reciprocal Phase 1-8)
+/// - `see = [...]` (optional) — open-vocabulary string array of references
+///
+/// # Example
+///
+/// ```ignore
+/// use antigen::antigen_tolerance;
+///
+/// #[antigen_tolerance(
+///     PolarityInvertedClassMeet,
+///     rationale = "This test fixture deliberately constructs the failure \
+///                  pattern to verify the witness catches it.",
+///     until = "v1.0",
+///     see = ["GAP-BIT-EXACT-1"],
+/// )]
+/// fn test_polarity_inversion_caught() { /* ... */ }
+/// ```
+///
+/// `cargo antigen scan` recognizes tolerance markers as explicit
+/// acknowledgments of fingerprint matches; tolerated sites are reported in
+/// a separate category from unaddressed presentations.
+#[proc_macro_attribute]
+pub fn antigen_tolerance(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::ToleranceArgs);
+    let input = proc_macro2::TokenStream::from(input);
+
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+
+    quote! { #input }.into()
+}

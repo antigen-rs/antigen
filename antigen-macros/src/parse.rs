@@ -59,6 +59,22 @@ pub struct DescendedFromArgs {
     pub parent: Path,
 }
 
+/// Arguments to `#[antigen_tolerance(antigen, rationale = "...", until = "...", see = [...])]`.
+///
+/// Per ADR-011: positional antigen, required `rationale` (non-empty),
+/// optional `until` (non-empty if present), optional `see` (open-vocab string array).
+pub struct ToleranceArgs {
+    #[allow(dead_code)]
+    pub antigen: Path,
+    pub rationale: Option<String>,
+    pub rationale_span: Option<Span>,
+    pub until: Option<String>,
+    pub until_span: Option<Span>,
+    #[allow(dead_code)]
+    pub see: Vec<String>,
+    pub args_span: Span,
+}
+
 // ============================================================================
 // AntigenArgs parsing
 // ============================================================================
@@ -228,6 +244,110 @@ impl Parse for DescendedFromArgs {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let parent: Path = input.parse()?;
         Ok(Self { parent })
+    }
+}
+
+// ============================================================================
+// ToleranceArgs parsing (ADR-011)
+// ============================================================================
+
+impl Parse for ToleranceArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let antigen: Path = input.parse()?;
+        let mut rationale: Option<String> = None;
+        let mut rationale_span: Option<Span> = None;
+        let mut until: Option<String> = None;
+        let mut until_span: Option<Span> = None;
+        let mut see: Vec<String> = Vec::new();
+
+        while !input.is_empty() {
+            input.parse::<Token![,]>()?;
+            if input.is_empty() {
+                break;
+            }
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "rationale" => {
+                    let lit: LitStr = input.parse()?;
+                    rationale_span = Some(lit.span());
+                    rationale = Some(lit.value());
+                }
+                "until" => {
+                    let lit: LitStr = input.parse()?;
+                    until_span = Some(lit.span());
+                    until = Some(lit.value());
+                }
+                "see" => {
+                    let arr: syn::ExprArray = input.parse()?;
+                    for elem in &arr.elems {
+                        if let Expr::Lit(syn::ExprLit {
+                            lit: Lit::Str(s), ..
+                        }) = elem
+                        {
+                            see.push(s.value());
+                        } else {
+                            return Err(syn::Error::new_spanned(
+                                elem,
+                                "expected a string literal in `see` array",
+                            ));
+                        }
+                    }
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown #[antigen_tolerance] field `{other}`; expected one of: \
+                             rationale, until, see",
+                        ),
+                    ));
+                }
+            }
+        }
+
+        Ok(Self {
+            antigen,
+            rationale,
+            rationale_span,
+            until,
+            until_span,
+            see,
+            args_span,
+        })
+    }
+}
+
+impl ToleranceArgs {
+    /// Trust-boundary checks per ADR-011 Mechanics:
+    /// - rationale required and non-empty (claim without rationale is not a claim)
+    /// - until non-empty if present (empty string indicates user error)
+    pub fn validate(&self) -> syn::Result<()> {
+        let Some(rationale) = self.rationale.as_deref() else {
+            return Err(syn::Error::new_spanned(
+                &self.antigen,
+                "#[antigen_tolerance] requires `rationale = \"...\"`. \
+                 A tolerance without rationale is not a claim — it's a silent suppression.",
+            ));
+        };
+        if rationale.is_empty() {
+            return Err(syn::Error::new(
+                self.rationale_span.unwrap_or(self.args_span),
+                "#[antigen_tolerance] `rationale` must not be empty",
+            ));
+        }
+        if let Some(until) = self.until.as_deref() {
+            if until.is_empty() {
+                return Err(syn::Error::new(
+                    self.until_span.unwrap_or(self.args_span),
+                    "#[antigen_tolerance] `until = \"\"` rejected — \
+                     an empty expiry indicates user error. Use `until = \"v1.0\"` \
+                     (or similar) or omit the field entirely for forever-tolerance.",
+                ));
+            }
+        }
+        Ok(())
     }
 }
 
