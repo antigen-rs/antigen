@@ -18,14 +18,15 @@
 > project will eventually need to recognize.
 >
 > **The window count is a lower bound, not a census.** The map currently
-> names fifteen fields plus one confirmed A2-day-2 addition (window 16:
-> epistemic logic / common-knowledge proofs — passes full structural-identity
-> test; scientist ruling 2026-05-08). This is structurally expected: a
-> framework with genuine falsifiability structure will keep finding gaps when
-> applied carefully. The no-fixed-point property (Finding 6 below) operates
-> at the meta-level — the framework predicts its own expansion. Each time the
-> structural-identity test is run against a new field, the count updates.
-> "Fifteen+" means at-least-fifteen, not exactly-fifteen.
+> names sixteen fields with full structural identity (window 16: epistemic
+> logic / common-knowledge proofs, confirmed A2-day-2, scientist ruling
+> 2026-05-08) plus four partial-cognate fields. This is structurally
+> expected: a framework with genuine falsifiability structure will keep
+> finding gaps when applied carefully. The no-fixed-point property (Finding
+> 6 below) operates at the meta-level — the framework predicts its own
+> expansion. Each time the structural-identity test is run against a new
+> field, the count updates. "Sixteen+" means at-least-sixteen, not
+> exactly-sixteen.
 >
 > **Companion to**:
 > - [`immune-system-primitive-map.md`](immune-system-primitive-map.md) V0
@@ -53,14 +54,14 @@ where else does the same architecture appear?**
 
 The thesis the map will substantiate: **structural-recognition-with-memory-
 and-inheritance is a domain-general architecture studied in at least
-fifteen academic fields**, each of which has discovered it independently
+sixteen academic fields**, each of which has discovered it independently
 and given it different vocabulary. The biology spine in V0 is one
 instantiation among many. Antigen is the first ergonomically-adoptable
 instantiation in a programming-language ecosystem; it is not the first
 instantiation of the architecture itself.
 
 This is the strongest possible defense of recognition-not-design (posture
-§2): if fifteen+ independent fields converge on the same architecture, the
+§2): if sixteen+ independent fields converge on the same architecture, the
 project is not designing anything — it is recognizing what was already
 there, distributed across the disciplines.
 
@@ -309,7 +310,7 @@ just lateral spread; it is environmental construction.
   projects.
 - Convergent-evolution framing is already operational in scope.md's
   four-window convergence; this section extends the framing to
-  *fifteen-window convergence* via this whole document.
+  *sixteen-window convergence* via this whole document.
 
 ### Recognition examples
 
@@ -1802,14 +1803,14 @@ manuscript trajectory (which framings appear in which papers).
 
 ## Cross-domain convergence findings
 
-After reviewing fifteen fields and naming silences in four+ more, the
+After reviewing sixteen fields and naming silences in four+ more, the
 following structural findings emerge:
 
-### Finding 1 — Fifteen-window convergence
+### Finding 1 — Sixteen-window convergence
 
 The four-window convergence in scope.md (biology, programming-language
 theory, past-self gardening, ML graph-memory) is a special case of a
-broader fifteen-window convergence:
+broader at-least-sixteen-window convergence:
 
 | Window | Vocabulary | Architectural cognate |
 |---|---|---|
@@ -1828,12 +1829,13 @@ broader fifteen-window convergence:
 | 13. Aviation safety (NTSB) | structural recommendation | discipline cognate |
 | 14. Pattern languages (Alexander/GoF) | named pattern | recognition predecessor |
 | 15. Cumulative culture (Tomasello) | ratchet effect | high-fidelity transmission |
-| (16. Indigenous epistemologies) | multi-modal redundancy | substrate-embedding |
-| (17. Stigmergy) | environmental signal | substrate-over-memory cognate |
-| (18. Bayesian inference) | informative prior | reasoning engine over architecture |
-| (19. Philosophy of science) | paradigm + normal science | meta-positioning |
+| 16. Epistemic logic (Halpern & Moses) | common knowledge / public announcement | public-substrate declarations as common-knowledge protocol |
+| (17. Indigenous epistemologies) | multi-modal redundancy | substrate-embedding |
+| (18. Stigmergy) | environmental signal | substrate-over-memory cognate |
+| (19. Bayesian inference) | informative prior | reasoning engine over architecture |
+| (20. Philosophy of science) | paradigm + normal science | meta-positioning |
 
-That is **15 fields with full structural identity, 4 more with partial
+That is **16 fields with full structural identity, 4 more with partial
 cognates, 4+ silent fields**. The four-window claim in scope.md is a
 *lower bound*. The actual convergence is wider.
 
@@ -1844,7 +1846,7 @@ general**, present wherever recognition + memory + inheritance over
 empirically-evolving substrate is needed.
 
 This is an empirical defense of the project's foundational claim that
-the architecture is not arbitrary. Fifteen+ fields could not all
+the architecture is not arbitrary. Sixteen+ fields could not all
 independently have arrived at it by accident.
 
 ### Finding 2 — The closest non-biological cognate is cybersecurity
@@ -1920,7 +1922,7 @@ claim, and it is *not* metaphor. It is a structural-identity claim.
 
 ### Finding 6 — The architecture's signature is no fixed point
 
-Across all fifteen+ fields, the architecture has the same operational
+Across all sixteen+ fields, the architecture has the same operational
 signature: *the discipline that catches the discipline's failure must
 be structural too*. No fixed point. The recursion is generative, not
 pathological.
@@ -1944,14 +1946,14 @@ pathological.
   the next-tier question. Each tier recurses.
 
 This is the depth-shift discipline (posture §7) generalized: across the
-fifteen+ fields, every architecture that successfully implements
+sixteen+ fields, every architecture that successfully implements
 recognition-with-memory-and-inheritance has the no-fixed-point property.
 The recursion is the discipline, not a bug in the discipline.
 
 The implication: when antigen substrate inevitably surfaces failure
 modes of antigen's own coordination, the response is *not* "the
 architecture has a flaw"; the response is "the architecture is doing
-what successful instances of this architecture in fifteen other fields
+what successful instances of this architecture in sixteen other fields
 do — generating its own next tier." The recursion is evidence of
 structural soundness, not weakness.
 
@@ -1971,12 +1973,12 @@ This document is V1. Future deepening:
 - **Scout** can find prior-art partial-instantiations within specific
   cognate fields (e.g., academic papers on schema-theory tooling that
   could be ergonomic prior art for IDE integration in A6).
-- **Scientist** can integrate the fifteen-window convergence into
+- **Scientist** can integrate the sixteen-window convergence into
   manuscript trajectory: tool-paper uses cybersecurity + aviation
   cognates for adoption-pitch; foundational-paper uses cumulative-
-  culture + Peirce + stigmergy cognates for the architectural-claim
-  substrate; methodology-paper uses stigmergy + SECI cognates for the
-  team-discipline framing.
+  culture + Peirce + stigmergy + epistemic-logic cognates for the
+  architectural-claim substrate; methodology-paper uses stigmergy +
+  SECI cognates for the team-discipline framing.
 - **Aristotle** can note candidate posture-class entries surfacing from
   cross-domain framing — particularly stigmergy as the theoretical
   grounding of substrate-over-memory.
@@ -1992,7 +1994,7 @@ A3+ adoption pressures.
 
 Antigen is not a Rust tool that happens to use biological vocabulary.
 Antigen is the first ergonomically-adoptable instantiation in a Rust
-ecosystem of an architecture that fifteen+ academic fields have been
+ecosystem of an architecture that sixteen+ academic fields have been
 independently developing for decades to centuries.
 
 The biological framing is one window. The deepest non-biological
@@ -2008,7 +2010,7 @@ primitive on any specific timeline.
 
 Per the four empirical validations from A1 closure: the substrate has
 earned its scope. Per this V1 deepening: the substrate's *theoretical
-grounding* has fifteen-window depth. Both supports compound.
+grounding* has sixteen-window depth. Both supports compound.
 
 ---
 
