@@ -212,13 +212,13 @@ fn atk_w6a_005c_empty_fingerprint_string_rejected() {
 // ATK-W6a-006 — Depth cap boundary
 // ============================================================================
 
-/// 006a: A chain of exactly MAX_DEPTH `all_of` wrappers around a leaf must
-/// be accepted. The leaf is at depth MAX_DEPTH+1 inside check_depth_and_count;
+/// 006a: A chain of exactly `MAX_DEPTH` `all_of` wrappers around a leaf must
+/// be accepted. The leaf is at depth `MAX_DEPTH+1` inside `check_depth_and_count`;
 /// however, the validator increments depth BEFORE checking, then checks
-/// `depth > MAX_DEPTH`. A leaf at depth MAX_DEPTH passes (`MAX_DEPTH > MAX_DEPTH`
-/// is false). Verify the exact boundary: chain of MAX_DEPTH-1 `all_of`s
-/// wrapping one leaf constraint — outermost all_of is at depth 1, each nesting
-/// adds 1, leaf is at depth MAX_DEPTH.
+/// `depth > MAX_DEPTH`. A leaf at depth `MAX_DEPTH` passes (`MAX_DEPTH > MAX_DEPTH`
+/// is false). Verify the exact boundary: chain of `MAX_DEPTH-1` `all_of`s
+/// wrapping one leaf constraint — outermost `all_of` is at depth 1, each nesting
+/// adds 1, leaf is at depth `MAX_DEPTH`.
 #[test]
 fn atk_w6a_006a_depth_cap_boundary_accepted() {
     // Build all_of([all_of([...all_of([item = enum])...])]) with MAX_DEPTH-1
@@ -232,7 +232,7 @@ fn atk_w6a_006a_depth_cap_boundary_accepted() {
 }
 
 /// 006b: One level deeper than 006a must be rejected. The leaf is now at
-/// depth MAX_DEPTH+1, which exceeds MAX_DEPTH.
+/// depth `MAX_DEPTH+1`, which exceeds `MAX_DEPTH`.
 #[test]
 fn atk_w6a_006b_depth_cap_boundary_rejected() {
     // Add one more all_of level on top of 006a — leaf at depth MAX_DEPTH+1.
@@ -255,7 +255,7 @@ fn atk_w6a_006b_depth_cap_boundary_rejected() {
 ///
 /// The matcher's `attr_path_matches` renders the attribute path as segments
 /// joined with `"::"` (no spaces). A user who writes spaces around `::` in the
-/// attr_present argument will never match, silently. The fingerprint parses,
+/// `attr_present` argument will never match, silently. The fingerprint parses,
 /// the matcher runs, and `false` is returned with no diagnostic.
 ///
 /// This test documents the silent-mismatch behavior. It is a ACTIVE regression
@@ -299,7 +299,7 @@ fn atk_w6a_007_attr_present_spaces_around_colons_silently_mismatches() {
 /// silent empty results with no guidance.
 ///
 /// This is a documentation test. When a linting pass is added that warns on
-/// impossible constraint combinations (item=struct + body_contains_macro),
+/// impossible constraint combinations (`item=struct` + `body_contains_macro`),
 /// update this test to assert the warning.
 #[test]
 fn atk_w6a_008_body_contains_macro_on_struct_always_false() {
@@ -353,11 +353,11 @@ fn atk_w6a_009_variants_zero_zero_matches_uninhabited_enum() {
 // ATK-W6a-010 — Node count cap: 257 flat constraints rejected
 // ============================================================================
 
-/// ATK-W6a-010 — Total node count cap at MAX_NODES (256).
+/// ATK-W6a-010 — Total node count cap at `MAX_NODES` (256).
 ///
-/// Building a fingerprint with MAX_NODES+1 = 257 flat constraints must be
+/// Building a fingerprint with `MAX_NODES+1` = 257 flat constraints must be
 /// rejected. Each constraint counts as one node; the cap fires when `nodes`
-/// exceeds MAX_NODES during `check_depth_and_count`.
+/// exceeds `MAX_NODES` during `check_depth_and_count`.
 #[test]
 fn atk_w6a_010_node_count_cap_exceeded_rejected() {
     // 257 `item = struct` constraints, comma-separated.
@@ -372,7 +372,7 @@ fn atk_w6a_010_node_count_cap_exceeded_rejected() {
     );
 }
 
-/// ATK-W6a-010b — Exactly MAX_NODES (256) flat constraints accepted.
+/// ATK-W6a-010b — Exactly `MAX_NODES` (256) flat constraints accepted.
 #[test]
 fn atk_w6a_010b_node_count_cap_boundary_accepted() {
     let constraints: Vec<&str> = vec!["item = struct"; MAX_NODES];
@@ -386,23 +386,24 @@ fn atk_w6a_010b_node_count_cap_boundary_accepted() {
 
 /// ATK-W6a-011 — Double negation inside `all_of` should parse and evaluate
 /// correctly. `not(not(item = struct))` is double-negation — it should behave
-/// as `item = struct` semantically. The check_not_placement validator recurses
+/// as `item = struct` semantically. The `check_not_placement` validator recurses
 /// into `not` children with `in_legal_all_of = false`, so the inner `not` is
-/// checked at the outer level (not inside an all_of). This means:
+/// checked at the outer level (not inside an `all_of`). This means:
 ///
 ///   `all_of([item = struct, not(not(item = struct))])`
 ///
 /// has an inner `not(item = struct)` that is the child of the outer `not`.
 /// The outer `not` is inside `all_of` (legal). The inner `not` is recursed
 /// with `in_legal_all_of = false` — so it fires as "not is only legal inside
-/// all_of" and the parse FAILS.
+/// `all_of`" and the parse FAILS.
 ///
 /// This is the correct behavior per ADR-010 Amendment 3 OQ3 — `not(not(x))`
 /// is a De Morgan identity that can be rewritten as `x`, and the grammar
 /// does not need to support it. This test confirms the rejection.
 #[test]
 fn atk_w6a_011_double_negation_inside_all_of_is_rejected() {
-    let err = parse_err(r#"all_of([item = struct, not(not(item = struct))])"#);
+    let err = parse_err("all_of([item = struct, not(not(item = struct))])");
+
     assert!(
         err.contains("not"),
         "ATK-W6a-011: `not(not(x))` must be rejected (inner not is outside all_of); got: {err}"
