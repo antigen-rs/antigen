@@ -316,7 +316,7 @@ Dual-licensed under MIT or Apache-2.0. See [`LICENSE-MIT`](LICENSE-MIT) and
 - Repository: [github.com/antigen-rs/antigen](https://github.com/antigen-rs/antigen)
 - CI: cargo check + test + fmt + clippy (-D warnings) + doc (-D warnings) on
   every push and PR
-- Tests: 185 passing, 20 ignored across the workspace as of A2 (W1-W8) closure
+- Tests: 187 passing, 21 ignored across the workspace as of A2 (W1-W8) closure
 - Tambear integration: live as of 2026-05-07 (commit `80a19b4` in tambear);
   exploratory adoption with three seed antigens
 

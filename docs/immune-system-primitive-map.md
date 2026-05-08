@@ -17,6 +17,19 @@
 > primitive in this map is a potential future ADR / sweep / tool surface
 > visible from scope.md's "comprehensive immune-system primitive map" table
 > but expanded into substantive territory exploration.
+>
+> **Scale framing — important**: this catalog is a **seed set for unbounded
+> ecosystem growth**, NOT a bounded enumeration of "the primitives antigen
+> will eventually have." Vertebrate immune systems carry on the order of
+> 10^11 distinct antibody specificities. The antigen ecosystem's eventual
+> contribution scale — across stdlib + community + domain-specific antigen
+> libraries + per-project antigens — is comparably unbounded. Each named
+> primitive here is a category that could spawn many specific instances; the
+> total count of failure-classes antigen recognizes when adoption matures
+> will be vast. Read this document as "which biological architectural
+> patterns predict what antigen will need" — not as "the complete list
+> of primitives antigen will build." The complete list is the open
+> ecosystem itself.
 
 ---
 
