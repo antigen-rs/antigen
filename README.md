@@ -2,10 +2,13 @@
 
 **Structural memory of failure-classes for Rust. Make implicit immunity explicit.**
 
-> **Status**: v0.1.0 substrate ready; release imminent. The `0.0.1` namespace
-> reservation has been the placeholder while the core macros, scan, audit,
-> WitnessTier gradient, and fingerprint grammar v1 are built. v0.1.0-rc.1
-> tags when the W9 release work-stream lands.
+> **Status**: v0.1.0-rc.1 — release candidate. The substrate from Sweep A2
+> (W1–W8: property tests, trybuild fixtures, item-identity scan,
+> span-aware errors, structural witness detection, fingerprint grammar,
+> witness-tier gradient with `WitnessTier`/`AuditHint`, `#[antigen_tolerance]`,
+> and idiomatic-refinement pass) is shipped. Pinning `=0.1.0-rc.1` lets
+> tambear and other early adopters validate before v0.1.0 final. See
+> [`CHANGELOG.md`](CHANGELOG.md) for the full v0.1.0-rc.1 manifest.
 
 ---
 
@@ -305,13 +308,15 @@ Dual-licensed under MIT or Apache-2.0. See [`LICENSE-MIT`](LICENSE-MIT) and
 
 ## Status
 
-- Reserved on crates.io: [`antigen`](https://crates.io/crates/antigen),
-  [`cargo-antigen`](https://crates.io/crates/cargo-antigen) — version `0.0.1`
-  placeholders; v0.1.0 imminent
+- crates.io: [`antigen`](https://crates.io/crates/antigen),
+  [`cargo-antigen`](https://crates.io/crates/cargo-antigen),
+  [`antigen-macros`](https://crates.io/crates/antigen-macros),
+  [`antigen-fingerprint`](https://crates.io/crates/antigen-fingerprint) —
+  v0.1.0-rc.1 (release candidate; v0.1.0 final tracking after rc validation)
 - Repository: [github.com/antigen-rs/antigen](https://github.com/antigen-rs/antigen)
-- CI: cargo check + test + fmt + clippy (-D warnings, pedantic + nursery) +
-  doc on every push and PR
-- Tests: 181+ passing across the workspace as of W6a completion
+- CI: cargo check + test + fmt + clippy (-D warnings) + doc (-D warnings) on
+  every push and PR
+- Tests: 185 passing, 20 ignored across the workspace as of A2 (W1-W8) closure
 - Tambear integration: live as of 2026-05-07 (commit `80a19b4` in tambear);
   exploratory adoption with three seed antigens
 
