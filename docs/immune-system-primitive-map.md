@@ -356,25 +356,95 @@ preconditions change.
 
 ---
 
-### Cross-reactivity (antibody recognizes multiple related antigens)
+### Cross-reactivity (antibody recognizes multiple related antigens) — three tiers
 
 **Biology**: an antibody raised against one antigen sometimes binds related
-antigens with shared structural features. Useful for breadth, dangerous for
-false positives (e.g., autoimmune diseases involving cross-reactive
-antibodies).
+antigens with shared structural features. Useful for breadth (broad-spectrum
+defense); dangerous for false positives (autoimmune diseases involving
+cross-reactive antibodies; molecular mimicry where pathogen shapes resemble
+self-peptides). Cross-reactivity is *molecular recognition with shape-violation
+beyond the antibody's intended target*.
 
-**Potential antigen instantiation**: fingerprints that match multiple
-related failure-classes. Useful for fingerprint *consolidation* (one
-fingerprint covers a family of related failure-classes). Dangerous for
-false-positive rate (one antigen now flags too broadly).
+**Cross-reactivity is not a single primitive — it operates at three tiers**:
 
-**What would trigger instantiation**: stdlib refinement after adoption — when
-patterns reveal that two declared antigens are structurally identical or
-that one fingerprint is matching both intended and unintended failure-classes.
+1. **Structural-shape tier (canonical)**: an antibody binds molecules sharing
+   surface epitope shape. Antigen analog: a fingerprint matches code AST
+   patterns. The structural match is correct; sometimes the *intended*
+   target is one specific failure-class but the fingerprint also matches
+   structurally-similar non-instances. Current W6a operators all live at
+   this tier.
 
-**Tooling shape**: fingerprint-quality metrics; antigen-deduplication tooling;
-ADR for "conjoined antigens" — multiple failure-class names sharing a
-fingerprint.
+2. **Behavioral-assumption tier**: a receptor binds a ligand of the right
+   *shape*, but the ligand's downstream signaling differs from the
+   receptor's encoded assumption (e.g., agonist vs antagonist with similar
+   binding affinities; molecular mimicry causing autoimmunity). Antigen
+   analog: code that *looks like* a known failure-class structurally but
+   has different *behavioral semantics*. The fingerprint match is correct
+   structurally; the behavioral assumption embedded in the fingerprint's
+   intent is violated. Future tooling territory.
+
+3. **Contextual-assumption tier**: a molecule binds correctly and behaves
+   correctly in isolation, but violates assumptions made by *downstream
+   cascades* about its operating context (e.g., a hormone whose
+   concentration is normal but whose *timing* deviates from circadian
+   assumptions; signal whose magnitude is correct but whose phase relative
+   to other signals is wrong). Antigen analog: code whose shape matches
+   AND whose behavior is locally-correct, but whose downstream *callers*
+   depended on assumptions the code violates (panic-freedom assumed by
+   downstream that doesn't actually hold; thread-safety assumed by
+   downstream that the code doesn't guarantee). This is the
+   "assumption-graph" failure mode — sick-but-localized code still
+   downstream-infects via violated assumptions.
+
+**Why three tiers matter**: V0's earlier framing treated cross-reactivity as
+a single primitive (fingerprint matches multiple related failure-classes).
+The deeper finding: *every level of recognition has its own cross-reactivity
+failure mode*. Antigen's tooling will eventually need fingerprint-precision
+metrics at each tier — structural-shape precision (does this AST pattern
+match?), behavioral-assumption precision (does the matched code *behave* like
+the failure-class instance the fingerprint targets?), contextual-assumption
+precision (do downstream callers assume what this code provides?).
+
+**Where biology DOES have cellular cognates for assumption-violation**: every
+receptor, enzyme, signaling molecule, and DNA repair complex encodes
+*assumptions about the molecular shapes it will encounter*. Receptor binding,
+enzyme-substrate specificity, MHC self/non-self distinction, Watson-Crick
+base pairing — each is a structural assumption embedded in molecular
+machinery. Violation of the assumption produces wrong downstream behavior
+even without "direct executed contact" in any classical sense. Assumptions
+are cellular at the molecular-recognition level. The architectural-identity
+between antigen's fingerprint matching and biological molecular recognition
+is exact at this level: both encode structural assumptions that downstream
+behavior depends on; both fail when the assumption is violated by
+shape-similar-but-behaviorally-different inputs.
+
+**What would trigger instantiation per tier**:
+- Tier 1 (structural-shape): stdlib refinement after adoption — patterns
+  reveal that two declared antigens are structurally identical or one
+  fingerprint is matching both intended and unintended structural-shape
+  failure-classes.
+- Tier 2 (behavioral-assumption): antigen-stdlib mature enough that
+  fingerprint authors can encode behavioral predicates (per ADR-001
+  Amendment 1's witness-tier discipline — execution-tier witnesses verify
+  this kind of assumption).
+- Tier 3 (contextual-assumption): A3+ when cross-crate scan surfaces
+  cases where code matching a fingerprint affects downstream assumptions
+  in distant code without direct call relationships.
+
+**Tooling shape per tier**:
+- Tier 1: fingerprint-quality metrics; antigen-deduplication tooling;
+  ADR for "conjoined antigens" — multiple failure-class names sharing a
+  fingerprint.
+- Tier 2: behavioral-witness templates; tier-aware audit reporting (already
+  partially shipped per WitnessTier in ADR-005 Amendment 3).
+- Tier 3: contact-graph traversal (see contact-tracing entry below);
+  assumption-graph instrumentation; rust-analyzer integration for
+  surfacing assumed invariants alongside fingerprint matches.
+
+See companion document [`contact-graph-and-recognition-tiers.md`](contact-graph-and-recognition-tiers.md)
+for substantive expansion of the three-tier framework + multi-modal
+transmission framework that operationalizes contact tracing across the
+relationship-graph types antigen will eventually need to traverse.
 
 ---
 
