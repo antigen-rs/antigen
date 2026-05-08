@@ -111,8 +111,9 @@ Each entry below records its identity-criteria status explicitly.
 13. [Stigmergy — environmental signaling + memory-in-substrate](#13-stigmergy--environmental-signaling--memory-in-substrate)
 14. [Bayesian inference — prior/posterior + rare-event reasoning](#14-bayesian-inference--priorposterior--rare-event-reasoning)
 15. [Philosophy of science — paradigm shift + normal-science accumulation](#15-philosophy-of-science--paradigm-shift--normal-science-accumulation)
-16. [Where the cross-domain map goes silent (honest boundaries)](#where-the-cross-domain-map-goes-silent-honest-boundaries)
-17. [Cross-domain convergence findings](#cross-domain-convergence-findings)
+16. [Epistemic logic — common-knowledge proofs + the muddy-children puzzle](#16-epistemic-logic--common-knowledge-proofs--the-muddy-children-puzzle)
+17. [Where the cross-domain map goes silent (honest boundaries)](#where-the-cross-domain-map-goes-silent-honest-boundaries)
+18. [Cross-domain convergence findings](#cross-domain-convergence-findings)
 
 ---
 
@@ -1566,6 +1567,166 @@ positioning antigen as paradigm-shift candidate.**
 - Post-A5 retrospective framing material: as antigen-stdlib stabilizes
   and contribution cadence shifts to normal-science, the framework
   predicts the team's experience of the work changing.
+
+---
+
+## 16. Epistemic logic — common-knowledge proofs + the muddy-children puzzle
+
+### Field synopsis
+
+Epistemic logic — the modal logic of knowledge — is the formal study of
+*who knows what, and who knows what others know*. The thread relevant to
+antigen runs through Halpern & Moses's "Knowledge and common knowledge in
+a distributed environment" (1990), Halpern's *Reasoning About Knowledge*
+(1995, with Fagin, Moses & Vardi), and the much older muddy-children
+puzzle as the canonical demonstration.
+
+The field formalizes a hierarchy of knowledge states for a group of
+agents:
+
+- **Each agent knows X individually**: every agent has X in their private
+  belief state.
+- **Everyone knows X (E¹X)**: each agent knows X, but they may not know
+  that the others know.
+- **Everyone knows that everyone knows X (E²X)**: each agent knows that
+  each other agent knows.
+- **Common knowledge (CX)**: the infinite hierarchy — E¹X ∧ E²X ∧ E³X ∧ …
+  At common knowledge, each agent knows X, knows everyone else knows,
+  knows everyone knows everyone knows, ad infinitum.
+
+The field's central structural finding: **common knowledge cannot be
+established by private bilateral exchange**. No finite number of pairwise
+messages between agents can produce common knowledge. The structural
+answer is *public announcement that all agents witness simultaneously* —
+when the announcement happens in a way every agent observes (and observes
+every other agent observing), common knowledge is established in one
+step. The muddy-children puzzle is the canonical demonstration: three
+children with mud on their foreheads cannot collectively conclude their
+own muddiness from private observation alone, but a public announcement
+("at least one of you has mud") triggers a chain of inductive updates
+that resolves it.
+
+The field has 35+ years of development across distributed systems
+(consensus protocols, CRDTs), social epistemology (pluralistic ignorance,
+common-ground theory), and game theory (coordination problems with
+common-knowledge constraints).
+
+### Structural-identity test
+
+| Criterion | Epistemic logic / common-knowledge proofs |
+|---|---|
+| Same fail-mode without architecture | yes (agents hold correct private beliefs while common knowledge is absent — V5/V7 of the comprehension-drift family at the formal level) |
+| Same recovery shape | yes (public announcement that all agents witness simultaneously establishes common knowledge in one inductive cascade) |
+| Same routing pattern | yes (inductive propagation from the shared signal — each agent updates, others update based on the first update, etc.) |
+
+**Verdict: full structural identity.** All three criteria pass. Window 16
+joins the structural-identity-passing windows; the count moves from 15 to
+at-least-16, and the framework's lower-bound property (per the document
+header) is operationally demonstrated by this addition.
+
+### What this maps to in antigen
+
+- **`#[antigen]` declarations as public announcements**: the named
+  failure-class declaration is a *public* artifact in the codebase —
+  every agent (developer, AI assistant, scan tooling, audit pass) that
+  reads the codebase observes the declaration, observes that other
+  agents observe it, and the observation is itself observable. That is
+  the muddy-children-puzzle structural answer instantiated at the
+  recognition surface.
+
+- **`#[descended_from]` propagation as inductive cascade**: when an
+  antigen declaration propagates through inheritance, each descendant
+  inherits the public knowledge AND inherits the fact that other
+  descendants will inherit it. The cascade is structurally the
+  E¹X → E²X → E³X → … inductive chain that establishes common
+  knowledge across the dependency graph.
+
+- **Substrate-over-memory discipline as common-knowledge protocol**:
+  the team-coordination practice of *checking substrate before claiming
+  state* IS the formal answer epistemic logic prescribes for
+  distributed-knowledge problems. The "X is complete — `git grep
+  ADR-NNN docs/decisions.md` returns matches" pattern from CLOSURE.md
+  Validation 4 is the muddy-children move at team scale: don't rely on
+  private bilateral exchange ("pathmaker said it's done" → "navigator
+  relays" → "observer logs"); rely on public-substrate inspection
+  every agent can witness.
+
+### Connection to the comprehension-drift family
+
+V5 (stakeholder mental-model divergence) and V7 (mutual-update
+assumption coupling) of the comprehension-drift family are *instances*
+of common-knowledge failure at the team-coordination scope. The
+literature-grounding doc (campsite trail) cited Halpern & Moses 1990 +
+Prentice & Miller 1993 for these variants; this window makes the
+citation structurally load-bearing rather than incidental.
+
+The unreachability claim for V5/V7 ("static analysis cannot establish
+common knowledge; it is private bilateral inspection of substrate, not
+multi-agent witnessed announcement") is now grounded in a direct
+structural-identity-passing window. Static analysis tools inspect each
+file in isolation; even when they aggregate findings, the aggregation
+is a *single agent's* private inspection of the substrate. Common
+knowledge requires *multi-agent simultaneous witnessing* — a property
+no static-analysis architecture can supply, per the muddy-children
+proof. The structural answer is what antigen already provides:
+shared-substrate declarations that all agents read as public
+announcements.
+
+V8b (verification-rigor decay) is also adjacent: ritual-form-without-
+substance preserves the surface of public announcement while the
+substantive content erodes — the *appearance* of common knowledge
+without the underlying CX state. Vaughan's normalization-of-deviance
+predicted this; epistemic logic gives the formal account of why
+appearance-without-substance fails (the inductive cascade requires
+substantive observation, not just observation-of-the-form).
+
+### Why this window matters for the foundational paper
+
+This window makes the V5/V7 unreachability argument rest on a direct
+structural-identity-passing window rather than indirect support. The
+foundational paper's strongest positioning claim — that some failure
+modes are *structurally* unreachable by static analysis and the
+architectural answer (shared-substrate declarations) is the only
+available response — now has 35+ years of formal-logic substrate
+behind it, not just team-cognition or social-epistemology framing.
+
+### Recognition triggers in antigen
+
+- **Foundational paper drafting** (post-v0.2.0): Halpern & Moses 1990
+  and the muddy-children proof become primary citations for the
+  V5/V7 unreachability claim. The argument structure: *static
+  analysis is structurally a private bilateral inspection mechanism;
+  common knowledge cannot be established by private bilateral
+  exchange; therefore static analysis cannot detect failures that
+  require common-knowledge coordination; the structural answer is
+  shared-substrate declarations as public announcement.*
+- **Methodology paper**: substrate-over-memory's grounding in
+  stigmergy (per scientist's routing) extends naturally into
+  epistemic logic — both are formal accounts of how distributed
+  agents coordinate via shared substrate rather than private
+  exchange. Bridge-posture material.
+- **AI dev tooling paper**: the muddy-children proof applied to
+  AI-team coordination is the contrast with fine-tuning — fine-tuning
+  is private bilateral state (model weights); it cannot establish
+  common knowledge across model instances or human-AI teams. Antigen
+  declarations are the public announcement that all agents witness.
+
+### Recognition examples
+
+- **The muddy-children puzzle itself**: three children, three
+  forehead-mud states, no private resolution possible — but the
+  father's public announcement triggers the inductive cascade. Direct
+  structural cognate of antigen's substrate-over-memory practice.
+- **Distributed consensus protocols** (Lamport, Paxos, Raft):
+  three-phase commit + acknowledgment chains exist *because* common
+  knowledge requires multi-agent witnessed announcement. Antigen's
+  ADR-text-as-public-substrate is the same shape, instantiated at the
+  team-coordination layer rather than the protocol layer.
+- **CLOSURE.md Validation 4 recovery protocol**: navigator's "X is
+  complete — `git grep ...`" pattern is the muddy-children move
+  applied operationally. The substrate-grounded check is the public
+  announcement; agent-to-agent relay is the private bilateral
+  exchange that fails to establish common knowledge.
 
 ---
 
