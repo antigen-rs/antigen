@@ -200,11 +200,9 @@ This is a new operational mode for biology-as-instrument:
 - *Boundary-silence mode*: biology has no cognate; substrate exceeds
   biology's reach; the metaphor goes silent honestly.
 
-All three are evidenced in A2 substrate. Forward-prediction and
-recognition-mode operate within biology's domain; boundary-silence
-operates at the domain edge. Together they triangulate biology-as-
-instrument from three directions: forward predictions confirmed,
-already-shipped structures recognized, domain-boundary admitted honestly.
+Together these triangulate biology-as-instrument from three directions:
+forward predictions confirmed, already-shipped structures recognized,
+domain-boundary admitted honestly.
 
 The NK-cell recognition is *not* added to V5's 5/5 hit-rate count —
 that count is about implementation-defect predictions specifically.
@@ -295,8 +293,8 @@ ADR-005 Amendment 3 was authored to address five named ATKs
   principle
 
 **Eight ATKs covered against five authored. ~60% colonization beyond
-original envelope on first measurement.** Six cases, one rule. That ratio is
-the colonization signature.
+original envelope on first measurement (equivalent to a colonization-domain
+ratio of 1.6).** Six cases, one rule. That ratio is the colonization signature.
 
 Decisions at the correct abstraction tier compress into rules that colonize
 future cases. The closure narrative claim: V7's self-production has a

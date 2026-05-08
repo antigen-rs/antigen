@@ -336,3 +336,191 @@ fn atk_w7_g_immunity_audit_round_trips() {
         "JSON must contain audit_hint; got: {json}",
     );
 }
+
+// ============================================================================
+// ATK-W7-H: phantom-type witness end-to-end — scan path produces spaced form
+//
+// The unit tests in ATK-W7-B call `audit_single("PolarityProof::<T>::verified")`
+// with the compact `"::<"` form. But the scan path stores the witness via
+// `val.to_token_stream().to_string()` (scan.rs:149), which uses
+// `quote::ToTokens` — this renders `PolarityProof::<T>::verified` as
+// `"PolarityProof :: < T > :: verified"` (spaces around all tokens).
+//
+// `detect_phantom_type_witness` checks `trimmed.contains("::<")` — which is
+// false for the spaced form. Result: every real-user phantom-type witness is
+// silently classified as `NotFound` (falls through to function-index lookup,
+// finds no function named `verified`), and the immunity claim lands at
+// `WitnessTier::None` instead of `WitnessTier::FormalProof`.
+//
+// The test exercises the full pipeline: a fixture file with a real
+// `#[immune(X, witness = PolarityProof::<FrameTranslation>::verified)]`
+// attribute is scanned, then audited. The witness string recorded in the
+// scan report is the spaced ToTokens form; `detect_phantom_type_witness`
+// must handle it.
+//
+// STATUS: FAILING — `detect_phantom_type_witness` uses `contains("::<")`
+// which does not match the spaced ToTokens rendering.
+//
+// Fix: normalize whitespace in `detect_phantom_type_witness` before the
+// sentinel check (strip spaces around `::<` and `>`) — or use a regex /
+// split-on-whitespace approach that is insensitive to spacing.
+// ============================================================================
+
+#[test]
+fn atk_w7_h_phantom_type_witness_via_scan_path_lands_at_formal_proof() {
+    use antigen::scan::scan_workspace;
+    use std::io::Write;
+
+    // Create a temp workspace with a phantom-type witness in an #[immune] attr.
+    // The scan path will record the witness as the spaced ToTokens form.
+    let dir = tempfile::TempDir::new().expect("tempdir");
+    let src_path = dir.path().join("lib.rs");
+    let mut f = std::fs::File::create(&src_path).expect("create lib.rs");
+    write!(
+        f,
+        "
+use antigen::immune;
+
+struct PanickingInDrop;
+
+#[immune(
+    PanickingInDrop,
+    witness = PolarityProof :: < FrameTranslation > :: verified,
+)]
+impl Drop for PanickingInDrop {{
+    fn drop(&mut self) {{}}
+}}
+"
+    )
+    .expect("write lib.rs");
+    drop(f);
+
+    let scan_report = scan_workspace(dir.path(), None).unwrap();
+    assert_eq!(
+        scan_report.immunities.len(),
+        1,
+        "expected one immunity; got {}",
+        scan_report.immunities.len()
+    );
+
+    // Confirm what the scan actually stored — it should be the spaced form.
+    let recorded_witness = &scan_report.immunities[0].witness;
+    eprintln!("ATK-W7-H: recorded witness = {:?}", recorded_witness);
+    // The scan path uses quote::ToTokens which inserts spaces around tokens.
+    // We document the exact spaced form here for observability.
+    // (Do not assert the exact string — ToTokens rendering is an impl detail.)
+
+    let audit_report = audit(&scan_report, dir.path());
+    assert_eq!(audit_report.audits.len(), 1);
+    let a = &audit_report.audits[0];
+
+    eprintln!("ATK-W7-H: witness_status = {:?}", a.witness_status);
+    eprintln!("ATK-W7-H: witness_tier = {:?}", a.witness_tier);
+
+    assert!(
+        matches!(
+            &a.witness_status,
+            WitnessStatus::Resolved {
+                witness_kind: WitnessKind::PhantomType { .. },
+                ..
+            }
+        ),
+        "ATK-W7-H: phantom-type witness via scan path must resolve to \
+         PhantomType kind. Got: {:?}\n\
+         Root cause: scan stores witness via quote::ToTokens which inserts \
+         spaces around all tokens — `PolarityProof::<T>::verified` becomes \
+         `\"PolarityProof :: < T > :: verified\"`. \
+         detect_phantom_type_witness checks `contains(\"::<\")` which is false \
+         for the spaced form. Fix: normalize whitespace before the sentinel check.",
+        a.witness_status
+    );
+    assert_eq!(
+        a.witness_tier,
+        WitnessTier::FormalProof,
+        "ATK-W7-H: phantom-type witness must be FormalProof tier; got {:?}",
+        a.witness_tier
+    );
+}
+
+// ============================================================================
+// ATK-W7-I: external-tool witness via scan path — ToTokens spacing breaks
+//            `starts_with("clippy::")` sentinel
+//
+// Same ToTokens spacing family as ATK-W7-H. `detect_external_tool` checks
+// `lower.starts_with("clippy::")`. But a user writes:
+//   `witness = clippy::no_panic_in_drop`
+// and `quote::ToTokens` renders that as `"clippy :: no_panic_in_drop"`.
+// `"clippy :: ...".starts_with("clippy::")` is false — external tool detection
+// misses, falls through to function-index lookup, returns NotFound.
+//
+// `contains("clippy_")` is a secondary guard but requires the user to have
+// used an underscore form; the standard `clippy::` path form is the one that
+// breaks.
+//
+// STATUS: FAILING — detect_external_tool uses starts_with("clippy::") which
+// does not match the spaced ToTokens rendering.
+//
+// Fix: normalize whitespace in `validate_witness` before passing to
+// `detect_external_tool`, or in `detect_external_tool` itself check both
+// `"clippy::"` and `"clippy ::"` (or strip spaces before the check).
+// ============================================================================
+
+#[test]
+fn atk_w7_i_external_tool_witness_via_scan_path_lands_at_reachability() {
+    use antigen::scan::scan_workspace;
+    use std::io::Write;
+
+    let dir = tempfile::TempDir::new().expect("tempdir");
+    let src_path = dir.path().join("lib.rs");
+    let mut f = std::fs::File::create(&src_path).expect("create lib.rs");
+    // Write the #[immune] with a clippy:: witness — ToTokens will space it.
+    write!(
+        f,
+        "
+use antigen::immune;
+
+struct PanickingInDrop;
+
+#[immune(
+    PanickingInDrop,
+    witness = clippy :: no_panic_in_drop,
+)]
+impl Drop for PanickingInDrop {{
+    fn drop(&mut self) {{}}
+}}
+"
+    )
+    .expect("write lib.rs");
+    drop(f);
+
+    let scan_report = scan_workspace(dir.path(), None).unwrap();
+    assert_eq!(
+        scan_report.immunities.len(),
+        1,
+        "expected one immunity; got {}",
+        scan_report.immunities.len()
+    );
+
+    let recorded_witness = &scan_report.immunities[0].witness;
+    eprintln!("ATK-W7-I: recorded witness = {:?}", recorded_witness);
+
+    let audit_report = audit(&scan_report, dir.path());
+    let a = &audit_report.audits[0];
+    eprintln!("ATK-W7-I: witness_status = {:?}", a.witness_status);
+
+    assert!(
+        matches!(&a.witness_status, WitnessStatus::External { .. }),
+        "ATK-W7-I: clippy:: witness via scan path must resolve to External. \
+         Got: {:?}\n\
+         Root cause: ToTokens renders `clippy::no_panic_in_drop` as \
+         `\"clippy :: no_panic_in_drop\"`. detect_external_tool checks \
+         starts_with(\"clippy::\") which is false for the spaced form.",
+        a.witness_status
+    );
+    assert_eq!(
+        a.witness_tier,
+        WitnessTier::Reachability,
+        "ATK-W7-I: external-tool witness must be Reachability tier; got {:?}",
+        a.witness_tier
+    );
+}
