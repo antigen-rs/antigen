@@ -92,8 +92,12 @@ clean. Cuts the substrate the JBD team built across A1 (10 ratified ADRs +
 - `WitnessStatus::Ambiguous { candidates }` for collision detection;
   `FunctionIndex` tracks all candidate locations rather than silently
   picking one
-- `is_well_formed() = meets_tier(Execution)` — Reachability witnesses
-  correctly fail strict gates (per ADR-005 Amendment 3 tier-honesty)
+- `is_well_formed() = meets_tier(Execution)` — informational only; not
+  wired to `--strict` at v0.1 (see ATK-CLI-003 below)
+- `audit --strict` gates on `all_meet_tier(Reachability)` — exits 1 for
+  `Missing`/`NotFound`/`Ambiguous` witnesses (`WitnessTier::None`);
+  `Execution`-tier gating arrives in A3 with `cargo test` integration
+  (ATK-CLI-003: previously always-exited-1, training users to disable)
 - Phantom-type witness recognition for `Type::<Args>::ctor` shapes
 - Structural `proptest!` witness detection (W5) — replaces the pre-W5
   textual `source.contains("proptest!")` sentinel that over-classified
