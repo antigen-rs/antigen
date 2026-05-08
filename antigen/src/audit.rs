@@ -643,6 +643,16 @@ fn detect_phantom_type_witness(witness: &str) -> Option<WitnessKind> {
     // Split into pre-turbofish, type-params, post-turbofish-ctor.
     let (before, after) = trimmed.split_once("::<")?;
     let (params_raw, ctor_part) = after.split_once('>')?;
+
+    // Guard: nested generics like `Foo::<Option<Bar>, Baz>::new` make
+    // split_once('>') fire at the inner `>`, leaving params_raw with
+    // unbalanced `<`. Return None rather than emit FormalProof for a
+    // garbled parse — let it fall through to function-index (NotFound).
+    let open_count = params_raw.chars().filter(|&c| c == '<').count();
+    if open_count > 0 {
+        return None;
+    }
+
     let proof_type = before.trim().to_string();
     let type_params: Vec<String> = params_raw
         .split(',')
@@ -919,5 +929,22 @@ mod tests {
         assert!(macro_path_last_is(&bare, "proptest"));
         assert!(macro_path_last_is(&qualified, "proptest"));
         assert!(!macro_path_last_is(&unrelated, "proptest"));
+    }
+
+    #[test]
+    fn detect_phantom_nested_generic_returns_none() {
+        // `Witnessed::<Option<MyType>, MyWitness>::try_new` has a nested `<>`
+        // inside the type-param region. split_once('>') fires at the inner `>`,
+        // producing malformed fields. The balanced-bracket guard must return None
+        // so audit falls through to function-index (NotFound), not FormalProof.
+        assert_eq!(
+            detect_phantom_type_witness("Witnessed::<Option<MyType>, MyWitness>::try_new"),
+            None,
+        );
+        // Simple non-nested shape must still work.
+        assert!(matches!(
+            detect_phantom_type_witness("PolarityProof::<FrameTranslation>::verified"),
+            Some(WitnessKind::PhantomType { .. }),
+        ));
     }
 }
