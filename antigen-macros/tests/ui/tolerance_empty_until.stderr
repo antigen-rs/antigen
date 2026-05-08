@@ -1,0 +1,5 @@
+error: #[antigen_tolerance] `until = ""` rejected — an empty expiry indicates user error. Use `until = "v1.0"` (or similar) or omit the field entirely for forever-tolerance.
+  --> tests/ui/tolerance_empty_until.rs:12:13
+   |
+12 |     until = ""
+   |             ^^

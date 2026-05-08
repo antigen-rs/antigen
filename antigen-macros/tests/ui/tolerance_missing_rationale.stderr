@@ -1,0 +1,5 @@
+error: #[antigen_tolerance] requires `rationale = "..."`. A tolerance without rationale is not a claim — it's a silent suppression.
+ --> tests/ui/tolerance_missing_rationale.rs:9:21
+  |
+9 | #[antigen_tolerance(PolarityInvertedClassMeet)]
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^

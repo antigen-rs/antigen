@@ -78,7 +78,7 @@
 
 // Re-export the proc-macros from antigen-macros so users can `use antigen::antigen`,
 // `use antigen::presents`, etc.
-pub use antigen_macros::{antigen, descended_from, immune, presents};
+pub use antigen_macros::{antigen, antigen_tolerance, descended_from, immune, presents};
 
 pub mod audit;
 pub mod scan;

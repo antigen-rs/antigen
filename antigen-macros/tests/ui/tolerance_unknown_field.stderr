@@ -1,0 +1,5 @@
+error: unknown #[antigen_tolerance] field `bogus`; expected one of: rationale, until, see
+  --> tests/ui/tolerance_unknown_field.rs:11:5
+   |
+11 |     bogus = "y"
+   |     ^^^^^
