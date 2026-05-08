@@ -12,7 +12,7 @@ Tracking work for v0.1.0 final + post-v0.1.0 sweeps. Cf. `sweeps/`.
 ## [0.1.0-rc.1] — 2026-05-08
 
 First functional release candidate. Sweep A2 (core macros + scan + audit
-completion) closed with 185 passing tests across 18 suites; clippy + doc gates
+completion) closed with 187 passing tests across 18 suites; clippy + doc gates
 clean. Cuts the substrate the JBD team built across A1 (10 ratified ADRs +
 4 amendments) and A2 (W1-W8 implementation work-streams).
 

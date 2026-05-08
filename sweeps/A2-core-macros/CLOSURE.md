@@ -458,23 +458,39 @@ explicit governance; it accrues naturally as ATK corpus grows.
 
 A2 launched with tambear's first `#[immune]` declarations and the audit-loop
 closing reciprocally (commit `54f7ad9`, 2026-05-07 evening). Through A2,
-tambear continued to use antigen as path dependency; antigen-the-tool
-matured against tambear's actual use (not just synthetic fixtures). The
-inheritance arc is confirmed:
+tambear continued to use antigen as a path dependency; antigen-the-tool
+matured against tambear as a real first-user codebase (not just synthetic
+fixtures). The inheritance arc is confirmed:
 
-- **Phase 1 (origin)**: tambear's failure-class memory disciplines produced
-  the antigen idea.
-- **Phase 2 (codependence)**: tambear depends on antigen; antigen depends on
-  tambear's adoption experience for substrate-grounding. Confirmed live
-  through A2.
+- **Phase 1 (origin)**: tambear's earlier cleanup expeditions surfaced the
+  failure-class memory problem that motivated the antigen idea. Antigen
+  was authored from that observation; tambear had no design role in the
+  authoring.
+- **Phase 2 (first-user smoke-test)**: tambear imports antigen as a path
+  dependency and is the first naive consumer. The seed antigens in
+  `crates/tambear/src/antigens.rs` were authored from antigen substrate
+  and imported into tambear, not discovered independently by tambear.
+  Confirmed live through A2: tambear is the smoke-test surface where
+  antigen's tooling encounters real codebase shapes.
 - **Phase 3 (independent maturation)**: antigen reaches versions where new
   users adopt without requiring tambear context. v0.1.0 ships with this
   capability; A3+ tests it.
 
-The tambear adoption log (`docs/expedition/tambear-adoption-log.md`) carries
-the experience report through A2. Tambear's `UlpDistanceRolledByHand`
-re-incurrence during A2 (V1 instance above) is the canonical
-phase-2-codependence evidence.
+The architectural-relationship direction is asymmetric: antigen → tambear
+(antigen authored; tambear consumes). Tambear is not a design-authority
+for antigen and should not be checked for design input. The tambear
+adoption log (`docs/expedition/tambear-adoption-log.md`) carries the
+first-user experience report through A2 — useful as smoke-test feedback,
+not as architectural direction.
+
+Tambear's `UlpDistanceRolledByHand` re-incurrence during A2 (V1 instance
+above) is canonical V1 evidence not because tambear "discovered" the
+failure-class for antigen — antigen was already named for that shape —
+but because the failure mode antigen exists to surface *re-occurred in the
+exact codebase antigen was built to help*, while antigen was being built.
+That's the failure-class-survives-context-cycling claim demonstrated in
+real time on the project's first-user codebase. Empirical corroboration
+of the architectural premise, not co-design.
 
 ---
 
