@@ -242,7 +242,7 @@ If you've never heard of antigen before:
    adoption flywheel, AI-industry implications.
 3. **[`sweeps/A1-design-ratification/CLOSURE.md`](sweeps/A1-design-ratification/CLOSURE.md)** —
    the four empirical validations Sweep A1 produced (events, discipline,
-   biology-as-search-heuristic, coordination-tier substrate-currency).
+   biology-as-search-heuristic, coordination-tier substrate-over-memory).
 
 If you're an architect interested in API surface:
 

@@ -291,7 +291,7 @@ As the project develops, multiple papers will land:
   programming-language theory venues, software-engineering foundations.
 - **Methodology paper** (post-A2 closure narrative): JBD-team-with-substrate
   discipline as a software-engineering practice. The verification protocol,
-  recognition-not-design, depth-shift discipline, substrate-currency, and
+  recognition-not-design, depth-shift discipline, substrate-over-memory, and
   rationale-as-required-field as transverse principles. Venues: software-
   engineering methodology, AI-assisted development.
 - **AI-dev-tooling paper** (after AI-industry comparison data accumulates):
