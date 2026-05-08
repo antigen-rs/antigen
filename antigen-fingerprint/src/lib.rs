@@ -31,7 +31,9 @@
 //! - `name = matches("<glob>")` — `*` (any) and `?` (one) are the only
 //!   metachars; case-sensitive; whole-name match
 //! - `variants = M..=N` — inclusive range over enum variant count
-//! - `has_method("<name>", "<signature>")` — signature pre-parsed at load time
+//! - `has_method("<name>", "<signature>")` — signature pre-parsed at load time;
+//!   use `"(& self, T) -> U"` (space after `&`) — `proc_macro2` renders `&self`
+//!   as `& self`, so `"(&self, ...)"` silently never matches
 //! - `attr_present("<path>")` — outer attribute path matches (e.g.
 //!   `repr`, `clippy::panic`)
 //! - `doc_contains("<substring>")` — case-sensitive substring search in the
@@ -103,6 +105,12 @@ pub enum Constraint {
 
     /// `has_method("<name>", "<signature>")` — there exists an `impl` method
     /// with this name AND a signature whose shape matches `signature`.
+    ///
+    /// Signatures are whitespace-normalized before comparison, so extra spaces
+    /// collapse. However, `proc_macro2` renders `&self` as `& self` (space
+    /// between `&` and `self`), so the correct pattern form is
+    /// `"(& self, T) -> U"`, not `"(&self, T) -> U"`. A missing space produces
+    /// a silent mismatch with no diagnostic (ATK-W6a-013).
     HasMethod(MethodPattern),
 
     /// `attr_present("<path>")` — at least one outer attribute on the item
