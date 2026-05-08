@@ -691,25 +691,24 @@ fn atk_w7_002_fabricated_phantom_type_gets_formal_proof_tier() {
 }
 
 // ============================================================================
-// ATK-W7-003: detect_phantom_type_witness misparses nested generics
+// ATK-W7-003: detect_phantom_type_witness nested generics fall through cleanly
 //
-// split_once(">") splits at the FIRST ">", not the matching close bracket.
-// Input: `Foo::<Bar<Baz>>::new` (nested generic)
-// split_once("::<") → before="Foo", after="Bar<Baz>>::new"
-// split_once(">")   → params_raw="Bar<Baz", ctor_part="::new"  ← dangling `<`
+// `Foo::<Bar<Baz>>::new` contains a nested generic in the type-param region.
+// The balanced-bracket guard in detect_phantom_type_witness detects the
+// unmatched `<` in params_raw and returns None, so the witness falls through
+// to function-index lookup (producing NotFound, not a malformed FormalProof).
 //
-// The type param is recorded as "Bar<Baz" (malformed).
-// The constructor is recorded as "new" (correct by accident).
-// No crash — but the type_params content is malformed, corrupting any
-// future type-param matching logic that depends on parsed params.
+// Pre-fix behavior (v0.1 before hotfix): returned Resolved(PhantomType) with
+// malformed type_params="Bar<Baz" (dangling open bracket). That would silently
+// corrupt future type-param matching. The fix was caught by this test.
 //
-// Impact: LOW in v0.1 (params aren't validated against antigen shape yet).
-// Impact: HIGH in future ADR that uses type_params for matching — malformed
-// param strings will silently fail to match real type names.
+// Post-fix behavior: None → function-index → NotFound. Honest: audit reports
+// the witness cannot be resolved rather than fabricating a FormalProof tier
+// for a parse that didn't succeed.
 // ============================================================================
 
 #[test]
-fn atk_w7_003_nested_generic_in_phantom_witness_produces_malformed_type_param() {
+fn atk_w7_003_nested_generic_in_phantom_witness_falls_through_to_not_found() {
     let immunity = Immunity {
         antigen_type: "frame-translation".to_string(),
         witness: "Foo::<Bar<Baz>>::new".to_string(),
@@ -725,29 +724,14 @@ fn atk_w7_003_nested_generic_in_phantom_witness_produces_malformed_type_param() 
     let audit_report = audit(&report, &tmp);
     let a = &audit_report.audits[0];
 
-    match &a.witness_status {
-        WitnessStatus::Resolved {
-            witness_kind: WitnessKind::PhantomType { proof_type, type_params, constructor },
-            ..
-        } => {
-            assert_eq!(proof_type, "Foo", "ATK-W7-003: proof_type must be 'Foo'");
-            // This is the malformed result: "Bar<Baz" with dangling open bracket.
-            // After the future ADR adds type-param matching, this malformed string
-            // will silently fail to match "Bar<Baz>" (with the closing bracket).
-            // Documenting the actual value so future changes that fix it are caught.
-            assert_eq!(
-                type_params,
-                &["Bar<Baz"],
-                "ATK-W7-003: KNOWN GAP — nested generic produces malformed type param \
-                 'Bar<Baz' (dangling open bracket from split_once('>')).\n\
-                 Future ADR fix: use a bracket-aware parser for type params."
-            );
-            assert_eq!(
-                constructor.as_deref(),
-                Some("new"),
-                "ATK-W7-003: constructor 'new' extracted correctly despite malformed params"
-            );
-        }
-        other => panic!("ATK-W7-003: expected Resolved(PhantomType), got {:?}", other),
-    }
+    // Nested generic must NOT produce a (malformed) PhantomType result.
+    // The balanced-bracket guard returns None; function-index finds no
+    // function named "new" in the empty temp dir, so we get NotFound.
+    assert!(
+        matches!(a.witness_status, WitnessStatus::NotFound { .. }),
+        "ATK-W7-003: nested generic must fall through to NotFound, not fabricate FormalProof; got {:?}",
+        a.witness_status,
+    );
+    assert_eq!(a.witness_tier, WitnessTier::None);
+    assert!(!a.is_well_formed());
 }
