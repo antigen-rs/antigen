@@ -38,19 +38,28 @@
 
 - [ADR-001 — Failure-class memory is structural, not documentary](#adr-001--failure-class-memory-is-structural-not-documentary)
   - [ADR-001 Amendment 1 — Carrier-strength hierarchy + passive/active surfaces + structural commitments C1–C8](#adr-001-amendment-1--carrier-strength-hierarchy--passiveactive-surfaces--structural-commitments-c1c8)
-- [ADR-002 — Compose, don't compete](#adr-002--compose-dont-compete) *(amended by ADR-013)*
+- [ADR-002 — Compose, don't compete](#adr-002--compose-dont-compete) *(amended by ADR-013, ADR-015)*
 - [ADR-003 — Biological metaphor is load-bearing, not decorative](#adr-003--biological-metaphor-is-load-bearing-not-decorative)
 - [ADR-004 — Implicit-to-explicit elevation as architectural posture](#adr-004--implicit-to-explicit-elevation-as-architectural-posture)
 - [ADR-005 — Sub-clause F at every trust boundary](#adr-005--sub-clause-f-at-every-trust-boundary)
+  - [ADR-005 Amendment 2 — Rationale-as-required-field as transverse sub-clause F discipline](#adr-005-amendment-2--rationale-as-required-field-as-transverse-sub-clause-f-discipline)
+  - [ADR-005 Amendment 3 — Audit reports its own tier honestly](#adr-005-amendment-3--audit-reports-its-own-tier-honestly)
 - [ADR-006 — Recognition, not design](#adr-006--recognition-not-design)
 - [ADR-007 — Anti-YAGNI: structurally-guaranteed need](#adr-007--anti-yagni-structurally-guaranteed-need)
 - [ADR-008 — Named-observer position as terminal stratum](#adr-008--named-observer-position-as-terminal-stratum)
+  - [ADR-008 Amendment 1 — Multi-contributor workflow + scan severity defaults](#adr-008-amendment-1--multi-contributor-workflow--scan-severity-defaults)
 - [ADR-009 — Adoption gradient: antigen meets consumers at any discipline level](#adr-009--adoption-gradient-antigen-meets-consumers-at-any-discipline-level)
-- [ADR-010 — Fingerprint grammar v1: syn-based AST visitor pattern](#adr-010--fingerprint-grammar-v1-syn-based-ast-visitor-pattern) *(amended by ADR-012)*
+- [ADR-010 — Fingerprint grammar v1: syn-based AST visitor pattern](#adr-010--fingerprint-grammar-v1-syn-based-ast-visitor-pattern) *(amended by ADR-012; partially superseded by ADR-015 §Mechanics §1)*
+  - [ADR-010 Amendment 1 — Disambiguate the parsing path (Path C)](#adr-010-amendment-1--disambiguate-the-parsing-path-path-c)
+  - [ADR-010 Amendment 2 — Fingerprint semver + MSRV policy](#adr-010-amendment-2--fingerprint-semver--msrv-policy)
+  - [ADR-010 Amendment 3 — Scan semantics + first-stdlib operators + matcher-engine location + filter framing + invariants](#adr-010-amendment-3--scan-semantics--first-stdlib-operators--matcher-engine-location--filter-framing--invariants)
+  - [ADR-010 Amendment 4 — Filter/proof framing as architectural principle](#adr-010-amendment-4--filterproof-framing-as-architectural-principle)
 - [ADR-011 — `#[antigen_tolerance(...)]`: opt-out for legitimate fingerprint matches](#adr-011-antigen_tolerance-opt-out-for-legitimate-fingerprint-matches)
 - [ADR-012 — ADR-010 Amendment 1: function-body patterns + match-context awareness](#adr-012-adr-010-amendment-1-function-body-patterns--match-context-awareness)
 - [ADR-013 — ADR-002 Amendment 1: phantom-type witness recognition + witness-validity tier mapping](#adr-013-adr-002-amendment-1-phantom-type-witness-recognition--witness-validity-tier-mapping)
 - [ADR-014 — `#[antigen_generates(...)]`: declaring antigens that proc-macros emit](#adr-014-antigen_generates-declaring-antigens-that-proc-macros-emit)
+- [ADR-015 — Fingerprint engine: grammar-over-AST with per-fingerprint evaluator trait](#adr-015-fingerprint-engine-grammar-over-ast-with-per-fingerprint-evaluator-trait) *(partially supersedes ADR-010 §Mechanics §1)*
+- [ADR-016 — Temporal recognition surface: provenance + freshness primitives](#adr-016-temporal-recognition-surface-provenance--freshness-primitives-for-stale-context-and-premature-abstraction)
 
 ---
 
@@ -625,6 +634,403 @@ violations.
 
 ---
 
+## ADR-005 Amendment 2 — Rationale-as-required-field as transverse sub-clause F discipline
+
+**Status**: Ratified 2026-05-09.
+
+**Amends**: ADR-005 (Sub-clause F at every trust boundary).
+
+**Participants**: pathmaker (drafted; integration commit), navigator (full-body
+spec), aristotle (Phase 1-8 in Track 1 bundle), team-lead (ratification).
+
+**Related**: ADR-001 Amendment 1 Change 7 (originating observation —
+rationale-as-required-field elevated to a structural commitment of the
+carrier hierarchy); ADR-009 (`summary` field on Layer 1; `references` field
+on Layer 2); ADR-011 (`rationale` on `#[antigen_tolerance]`); ADR-014
+(`rationale` on `#[antigen_generates]`); ADR-005 Amendment 3 (sibling
+amendment; complementary surface — Amendment 2 governs trust-extension
+primitives at parse time, Amendment 3 governs audit's reporting surface
+at runtime; per aristotle R-Conflict-Check, no content conflict).
+
+### Finding
+
+ADR-005 ratifies sub-clause F as a per-boundary discipline: every trust
+boundary requires a validation check before trust is extended. The original
+text enumerates three boundaries (immunity claim, lineage propagation,
+cross-crate antigen consumption) and discusses each individually. What the
+original text does *not* surface — and what the substrate exhibits across
+nearly every primitive added since ratification — is that sub-clause F has
+a *transverse* application: **every primitive that extends trust requires
+an explicit justification field, not just a validation check on the trust
+itself.**
+
+The transverse principle was first named in ADR-001 Amendment 1 Change 7
+("rationale-as-required-field is structurally a property of the carrier
+set, not just a Layer-2 ergonomic"). What that change observed: the
+*carriers* of antigen memory consistently grew justification fields as
+they accumulated trust-extending power. This amendment promotes the
+observation from a property-of-the-carriers (per ADR-001) to an
+operational-discipline-of-trust-boundaries (per ADR-005). Different lens;
+same fact.
+
+The substrate makes the principle visible: every primitive that extends
+trust currently carries a justification field, and removing any of them
+would be a sub-clause F violation:
+
+| Primitive | Trust-extension | Justification field |
+|---|---|---|
+| `#[antigen(name = "...", summary = "...")]` | "this name labels a real failure-class" | `summary` (Layer 1; ADR-009) — human-readable description of what the antigen is |
+| `#[antigen(..., references = [...])]` | "this declaration is grounded in real-world evidence" | `references` (Layer 2; ADR-009) — open-vocabulary list of CVE/RFC/ADR/URL pointers |
+| `#[immune(X, witness = Y)]` | "Y proves immunity to X" | `witness` (ADR-001/002/005) — executable rationale |
+| `#[immune(X, witness = Y, rationale = "...")]` | "the witness is appropriate for THIS site" | `rationale` (ADR-001 Amendment 1 Change 7) — narrative justification supplementing the executable witness |
+| `#[antigen_tolerance(X, rationale = "...")]` | "this site matches X's fingerprint by design, not by vulnerability" | `rationale` (ADR-011) — required field; tolerance without rationale is rejected at parse time |
+| `#[antigen_generates(X, rationale = "...")]` | "this proc-macro emits sites presenting X" | `rationale` (ADR-014) — required field; the macro author justifies the generation pattern |
+
+Five+ manifestations across five+ ADRs. The discipline propagates from
+existing ADRs to new ADRs (ADR-011, ADR-014) without explicit
+coordination — that's how a load-bearing principle should behave.
+
+### Decision
+
+**Sub-clause F applies recursively at the API level: when an ADR
+introduces a trust-extending primitive, the justification-field
+requirement applies by default unless explicitly waived with documented
+reasoning.**
+
+The principle, stated normatively:
+
+> When a new ADR ratifies a primitive (attribute macro, configuration
+> field, declaration form) that extends trust — i.e., causes downstream
+> tooling, auditors, or consumers to act differently because the
+> primitive is present — the primitive MUST carry a justification field
+> (named `rationale`, `summary`, `references`, `witness`, or an
+> ADR-specific equivalent) by default.
+>
+> Waivers require explicit ADR-level reasoning. A waiver is a
+> structural commitment ("this primitive does not extend trust;
+> justification would be decorative"); the absence of a justification
+> field is itself a claim that consumers will read and rely on.
+
+### Mechanics
+
+The amendment operationalizes at three surfaces:
+
+1. **Parse-time enforcement**: justification fields are typically
+   `Option<String>` at the parser level (so they appear in syntax)
+   but ADR-NNN may declare them required (`#[antigen_tolerance]`'s
+   `rationale` is required at parse time per ADR-011). When required,
+   omission produces a compile error from the proc-macro pointing at
+   the missing field.
+
+2. **Empty-rationale rejection**: where the field is required, the
+   parser MUST reject empty strings (rationale-stuffing prevention).
+   ADR-011's parser already does this; the principle generalizes.
+
+3. **Future-ADR review checklist**: the ADR template (per
+   `process.md`) gains an explicit prompt — "Does this ADR introduce
+   a primitive that extends trust? If yes: name the justification
+   field, OR document why one is not required." Ratification cannot
+   proceed without an answer.
+
+The cross-cutting consequence: when an ADR proposes a new primitive
+that downstream consumers will rely on, reviewers ask "where is the
+justification field?" rather than "why isn't there one?" The default
+flips. New trust-extending primitives without justification fields
+require active argument; primitives with justification fields are the
+unmarked default.
+
+### Sweep-level consequences
+
+- **Sweep A2 (current)**: ADR-011 (`#[antigen_tolerance]`) and ADR-014
+  (`#[antigen_generates]`) already operationalize the principle; this
+  amendment ratifies what they already do. ADR-016 (temporal
+  recognition surface) ships its `verified_at`/`evidence`/`stale_after`
+  trio with the same discipline — `evidence` is the justification
+  field for temporal trust extensions.
+- **Future sweeps**: every ADR that proposes a new attribute, config
+  field, or declaration form is reviewed against this discipline at
+  Phase 1-8 time. Aristotle's deconstruction asks the question
+  explicitly.
+
+### Enforcement
+
+- **Parse-time**: required justification fields enforced by the
+  relevant proc-macro parsers (e.g., `antigen-macros::parse::ImmuneArgs::validate`,
+  `antigen_tolerance` parser when ADR-011 ships).
+- **Process**: `process.md`'s ADR template + Phase 1-8 review prompt
+  ensures future amendments are reviewed against the discipline.
+- **Adversarial**: ATK seeds against new primitives include
+  "justification-field-missing" as a default attack pattern.
+
+### Resolves
+
+- The implicit-but-unnamed principle that the carrier set has
+  consistently grown justification fields as trust-extending power
+  accumulated.
+- The asymmetry where ADR-005's original text named per-boundary
+  validation (the trust check itself) but did not name the
+  per-primitive justification (the rationale for extending trust in
+  the first place).
+- The future-ADR review gap: without this amendment, future trust-
+  extending primitives could ship without justification fields and
+  be discovered only at adversarial review. The amendment makes the
+  question structural at ADR-template time.
+
+---
+
+## ADR-005 Amendment 3 — Audit reports its own tier honestly
+
+**Status**: Ratified 2026-05-09.
+
+**Amends**: ADR-005 (Sub-clause F at every trust boundary), specifically
+Decision item 1 (Immunity-claim trust boundary).
+
+**Participants**: naturalist (drafted; v1 absorbs aristotle's four
+refinements: R-Tier-Granularity, R-Crash, R-Soft-MUST, R-Conflict-Check),
+aristotle (Phase 1-8 verdict: ratify substantively with refinements),
+adversarial (motivation ATKs filed A2-003/004/005/011/012; ATK-Am3 queue
+surfaced via aristotle Phase 1-8), scientist (validation), team-lead
+(ratification).
+
+**Related**: ADR-001 Amendment 1 Change 4 (witness-validity tier model —
+this amendment enforces tier-honesty at the output surface where the
+model is read); ADR-005 §sub-clause F (the discipline being extended);
+ADR-005 Amendment 2 (sibling amendment — complementary surfaces:
+Amendment 2 governs trust-extension primitives, Amendment 3 governs
+audit's reporting surface; per R-Conflict-Check, no content conflict);
+ADR-006 (recognition-not-design — five confirmed instances cleared the
+threshold; broader generalization to all recognition mechanisms held
+below threshold per team-lead's scope decision); ADR-013 (phantom-type
+witness recognition — also subject to the tier-honesty discipline).
+
+### Finding
+
+ADR-005 establishes sub-clause F at every trust boundary: an asserted
+claim must be canonicalized and validated by the receiving system
+before it is acted upon. Item 1 of the original Decision identifies the
+immunity-claim trust boundary: `cargo antigen scan` validates that
+`witness = Y` resolves to a real test/proptest/proof/lint.
+
+What ADR-005 does not yet address: **the audit's own status output is
+itself a trust boundary**. When `ImmunityAudit::is_well_formed()`
+returns `true`, or when the JSON output reports `WitnessStatus::Resolved`,
+downstream consumers (developers reading reports, CI gates, IDE
+integrations) extend trust on the basis of the status word. That trust
+extension is governed by sub-clause F: the status word must reflect
+what the audit *actually verified*, not what it *could maximally
+infer*.
+
+A2 adversarial filings produced five confirmed classes of
+under-verified immunity claims, each demonstrating the same failure
+mode: the audit's status surface reports verification work at a
+stronger tier than the audit actually performs. The pattern is
+biology-derivable from B-cell affinity-maturation tier hierarchy and
+corresponds directly to ADR-001 Amendment 1 Change 4's witness-validity
+tier model (reachability / execution / behavioral-alignment /
+formal-proof). The substrate evidence:
+
+| ATK | Surface | Reported tier | Actual tier | Failure mode |
+|---|---|---|---|---|
+| **A2-003** | `audit.rs` (`validate_witness` + `is_well_formed`) | Execution (Resolved Function = "well-formed") | Reachability (identifier exists; function body asserts nothing) | `fn my_witness() {}` empty body passes audit |
+| **A2-004** | `audit.rs` (`detect_external_tool`) | External delegation (well-formed; "trusts external tool") | Pattern-match-on-prefix (`clippy::` matched; lint name unverified) | `clippy::nonexistent_lint` passes audit |
+| **A2-005** | `audit.rs` (`FunctionIndexVisitor`) | Resolved with confident `WitnessKind` | Resolved-to-one-of-N functions, filesystem-walk-order dependent | Same-name collision flips classification non-deterministically |
+| **A2-011** | `audit.rs` (function-name extraction via `rsplit("::")`) | Resolved | Last-segment-name-lookup; full path discarded | Fabricated path resolves cleanly |
+| **A2-012** | `audit.rs` (`detect_kind`) | Execution (Resolved Test = "cargo test ran it") | Reachability + attribute-presence (audit doesn't run cargo test) | `#[test] #[ignore]` witness reported as well-formed |
+
+All five are sub-clause F violations at the audit-reporting surface.
+The audit extends trust ("this immunity claim is well-formed") on the
+basis of work that does not support the trust extension.
+Recognition-not-design (ADR-006) threshold satisfied: substrate (five
+`TODO(team)` markers in `antigen/src/` already enumerate the same
+gaps), engineering (five adversarial-confirmed ATKs), biology (B-cell
+affinity-maturation cognate names the pattern). Three windows; same
+finding.
+
+The biology-derivation itself instantiates the depth-shift discipline:
+the visible question was "should `is_well_formed` return true for
+empty bodies?" The load-bearing commitment was "the audit's reporting
+surface IS a trust boundary" — once that commitment is named, the
+empty-body case becomes one of five instances of the underlying
+violation, and the amendment's scope follows from the deeper commitment
+rather than the visible question.
+
+**Implicit pattern elevated**: the audit's status word ("Resolved",
+"well-formed") implicitly encodes a verification-tier claim. This
+amendment makes the encoding *explicit* — the audit's reporting
+surface must name the tier its verification work actually supports,
+not the tier its status word historically implied.
+
+### Decision
+
+**ADR-005's sub-clause F applies at the audit-reporting surface. The
+audit's status output (`is_well_formed()`, `WitnessStatus`,
+`witness_tier` field in JSON) must report the tier its verification
+work actually supports — never a stronger tier.**
+
+The principle, stated normatively:
+
+> **Audit reports its own tier honestly.** When `cargo antigen audit`
+> emits a status word (`Resolved`, `External`, `well-formed`,
+> `witness_tier`), the word must reflect the verification work the
+> audit actually performed at that point. The audit cannot report
+> tier-N+1 work while doing tier-N verification. Where verification
+> at the claimed tier has not occurred, the audit MUST either (a)
+> report at the lower tier its work actually supports (per W7's
+> strict four-tier `WitnessTier` enum: `None | Reachability |
+> Execution | FormalProof`), OR (b) emit a tier-honesty audit hint
+> per W7's audit-hint mechanism so downstream consumers can
+> distinguish "audit verified at the reported tier" from "audit
+> recognized at this tier; stronger verification deferred or absent."
+
+Two failure modes the principle covers:
+
+- **Wrong-tier (silent false answer)**: audit reports
+  `Resolved`/`well-formed` while doing strictly less verification
+  work. Five confirmed instances above.
+- **No-answer (crash variant)**: audit's recognition mechanism crashes
+  on a legitimate-but-pathological input. This is a stronger
+  sub-clause F violation — the audit extends trust *unconditionally*
+  by failing to produce any answer at all. A crashing recognition
+  mechanism cannot report any tier honestly.
+
+### Mechanics
+
+The amendment operationalizes at three surfaces:
+
+1. **`is_well_formed()` semantics**: must not return `true` when the
+   underlying verification work is at strictly lower tier than the
+   audit's report language suggests. Per ADR-001 Amendment 1 Change 4's
+   tier model, `Resolved (Function)` (no `#[test]` attribute, not
+   external, not proptest) is at Reachability tier — `is_well_formed()`
+   should return `true` only if the consumer is willing to accept
+   Reachability-tier evidence. v0.1 ships with documented soft-language:
+   status output explicitly names the tier so consumers can choose
+   their threshold.
+
+2. **`witness_tier` field in JSON output** (R-Tier-Granularity:
+   aligned with W7's strict four-tier `WitnessTier` enum +
+   audit-hint mechanism): per ADR-001 Amendment 1 Change 4, audit
+   emits the witness-validity tier as an explicit field. The
+   amendment requires this field to reflect actual verification
+   work, not maximally-inferred tier. The tier is the strict W7
+   `WitnessTier` enum (Ord-able for CI gating); per-case
+   disambiguation rides on a parallel `audit_hint` field rather
+   than tier-name compound forms:
+
+   | Verified work | `witness_tier` | `audit_hint` |
+   |---|---|---|
+   | Identifier resolves to a function (no further check) | `Reachability` | `function-resolves` |
+   | Function has `#[test]` attribute (audit did not invoke cargo test) | `Reachability` | `test-attribute-present-not-invoked` |
+   | Function has `#[test]` AND `#[ignore]` (test will not run) | `Reachability` | `test-attribute-present-ignore-skipped` |
+   | External-tool prefix matched (e.g., `clippy::`) | `Reachability` | `external-tool-prefix-recognized` |
+   | External-tool reference verified by tool invocation (deferred to A3+) | `Execution` | `external-tool-invoked` |
+   | Phantom-type witness shape recognized | `FormalProof` | `phantom-type-shape-recognized` |
+   | Phantom-type witness construction validated (deferred to future ADR) | `FormalProof` | `phantom-type-construction-validated` |
+
+   The strict four-tier enum preserves W7's Ord-able CI gating;
+   the audit_hint carries the additional information that
+   compound names would have encoded.
+
+3. **Crash-resistance at recognition surfaces** (per R-Crash:
+   in-domain input defined explicitly): `cargo antigen audit` MUST
+   not crash on legitimate-but-pathological *in-domain* input.
+
+   *In-domain input* is defined as: source files that parse via
+   `syn::parse_file`; declarations whose attribute-arg parsers
+   accept; `[package.metadata.antigen]` config that deserializes
+   via serde. Out-of-domain inputs (parse failures at any layer)
+   are caught earlier by the parsing trust boundary and are not
+   subject to crash-resistance under this amendment.
+
+   *In-domain pathological inputs* governed by crash-resistance:
+   cycles in `#[descended_from]` chains; deep-recursion phantom-type
+   construction walks; high-cardinality fingerprint-set matching.
+   Audit MUST handle gracefully — bound depth, detect cycle, or
+   fail with structured error naming the limit hit (rather than
+   panic, abort, or hang).
+
+### Sweep-level consequences
+
+- **Sweep A2 W7**: `WitnessKind::PhantomType` recognition ships with
+  `WitnessTier::FormalProof` + `phantom-type-shape-recognized` audit
+  hint (per ADR-013); recognition is warn-and-emit-tier rather than
+  silent acceptance. `#[ignore]` detection added to `detect_kind`;
+  `#[test] #[ignore]` reports `WitnessTier::Reachability` +
+  `test-attribute-present-ignore-skipped`.
+- **Sweep A2 W9**: human-readable audit output language reviewed for
+  tier-honesty — replace "structurally well-formed" with explicit
+  tier-naming where current status word over-claims.
+- **Sweep A3**: cycle detection in `#[descended_from]` walking is
+  *required* for Amendment 3 compliance, not optional.
+- **Future ADR territory**: extension of the tier-honesty principle
+  beyond audit surfaces (to all antigen recognition mechanisms)
+  waits for substrate confirmation outside audit. Per team-lead's
+  ADR-006 invocation: this amendment is audit-specific only; the
+  broader generalization stays in methodology/closure-narrative
+  substrate until three independent instances surface outside audit.
+
+### Enforcement
+
+- **Tests for tier-honesty (existing motivation ATKs)**:
+  ATK-A2-003/004/005/011/012 fixtures remain in
+  `antigen/tests/atk_a2_adversarial.rs` as Amendment 3 regression
+  guards. They PASS when the implementation reports honest tiers;
+  FAIL when the audit silently over-claims.
+- **JSON schema includes `witness_tier` + `audit_hint`**: CI gates
+  for downstream consumers can read the tier field directly. Both
+  fields MUST be present on every audit output; absence indicates
+  tier-unknown which is itself a sub-clause F violation.
+- **Crash-resistance gate (per ATK-Am3 queue)**:
+  - **ATK-Am3-Crash-1**: cycle detection in `#[descended_from]`
+    chain walking. Audit MUST detect cycle; structured error names
+    the cycle.
+  - **ATK-Am3-Crash-2**: depth-bound on phantom-type construction
+    walks. Audit MUST bound depth; structured error names the
+    depth limit hit.
+  - **ATK-Am3-Crash-3**: memory-bound on high-cardinality
+    fingerprint-set matching. Audit MUST bound memory or paginate;
+    structured error names the limit hit.
+  - **ATK-Am3-Tier-1**: `witness_tier` field absent in JSON output
+    is itself a sub-clause F violation. Test verifies field
+    presence on every audit output.
+
+### Resolves
+
+- ATK-A2-003 (empty witness body classified as well-formed).
+- ATK-A2-004 (fabricated external tool reference classified as
+  well-formed).
+- ATK-A2-005 (same-name function collision classified
+  non-deterministically).
+- ATK-A2-011 (fabricated path prefix discarded; resolves as clean
+  witness).
+- ATK-A2-012 (`#[test] #[ignore]` classified equivalently to running
+  test).
+- The biology-cognate prediction (B-cell affinity-maturation tier
+  hierarchy applied to witness validity) is now operationalized at
+  the audit reporting surface, not just acknowledged in ADR-001
+  Amendment 1 Change 4's tier model.
+
+### Open questions deferred
+
+1. **Tier-honesty for non-audit recognition mechanisms.** The
+   amendment is audit-specific per team-lead's ADR-006 scope
+   decision. Whether the principle generalizes to scan-time
+   attribute parsing, schema versioning at the producer-consumer
+   boundary, or cross-crate `descended_from` propagation stays
+   open until three independent instances surface outside audit.
+2. **Behavioral-alignment tier verification.** ADR-001 Amendment 1
+   Change 4 names this tier; the amendment requires the audit to
+   *report honestly that behavioral-alignment is unverified* when
+   fingerprint-aware reasoning hasn't occurred. Behavioral-alignment
+   verification is its own future-ADR territory.
+3. **External-tool actual invocation**. Currently the audit
+   recognizes external-tool prefixes without invoking the tool;
+   `Reachability` + `external-tool-prefix-recognized` acknowledges
+   this gap. `Execution` + `external-tool-invoked` comes when
+   invocation lands (Sweep A3+).
+
+---
+
 ## [ADR-006] Recognition, not design
 
 **Status**: Ratified 2026-05-07 (foundational; pre-team).
@@ -871,6 +1277,190 @@ User-experience review is explicit at every API decision. Questions to ask:
 - Tooling-first anti-pattern (where the tool exists for its own sake, not for users)
 - Vocabulary fragmentation between API docs and tooling output
 - Implicit assumption that "clean architecture" matters more than "ergonomic to use"
+
+---
+
+## ADR-008 Amendment 1 — Multi-contributor workflow + scan severity defaults
+
+**Status**: Ratified 2026-05-09.
+
+**Amends**: ADR-008 (Named-observer position as terminal stratum).
+
+**Participants**: pathmaker (drafted), aristotle (Phase 1-8: ratify
+substantively as drafted with Open-questions Layer-1/3 differential
+add), adversarial (ATK-008-1 surfaced multi-contributor friction;
+amendment ATKs queued), scientist (validation), team-lead (ratification).
+
+**Related**: ADR-001 (the carriers the named observer authors); ADR-003
+(biological metaphor — immune response lag predicts the warn-not-error
+default); ADR-004 (elevation); ADR-005 (severity defaults are
+trust-boundary defaults); ADR-006 (recognition — multi-contributor
+lag is observed reality); ADR-009 (adoption gradient — warn-not-error
+IS Layer 1 ergonomics); ADR-011 (`#[antigen_tolerance]` is the sibling
+escape valve to warn-not-error severity).
+
+### Reason
+
+ADR-008 frames the named-observer as a single practitioner editing
+code with antigen markers, but the design is silent on
+multi-contributor workflows. Adversarial ATK-008-1 surfaced the
+concrete failure: Team A declares `#[presents(X)]` in their branch;
+Team B is writing `#[immune(X, witness = ...)]` in a parallel branch.
+With `cargo antigen scan --strict` in CI, Team A's branch permanently
+fails until Team B merges. The lag is normal development flow, not a
+real vulnerability — but the current design treats it as a hard
+failure. Naturalist's biology framing reinforces this: immune response
+lag is normal; antigen presentation and antibody production are
+temporally separated in real immune systems.
+
+This amendment also closes the gap scientist named in F-DOCS-2 (the
+"named observer experience" sections claimed by ADR-008's enforcement
+clause that don't exist on current API surfaces — Sweep A2 deliverable).
+
+### Change 1: Acknowledge multi-contributor workflow as the default case
+
+ADR-008 calibrates around a single practitioner editing code with
+antigen markers. The team-development reality is N practitioners
+across parallel branches with different markers in flight at different
+stages of review. Per ADR-006 (recognition-not-design):
+multi-contributor lag is the observed-substrate reality of how Rust
+projects actually develop.
+
+**Amended addition** (new subsection in "Decision" section, after the
+existing ergonomic-threshold paragraph):
+
+> #### Multi-contributor workflow as the default
+>
+> The named-observer is rarely working alone. In team development, the
+> practitioner's branch may contain a `#[presents(X)]` marker whose
+> matching `#[immune(X, witness = ...)]` lives in a parallel branch
+> still under review. The temporal gap between presentation and
+> immunity is normal development flow, not a vulnerability.
+>
+> Antigen's tooling treats this lag as expected:
+>
+> 1. `cargo antigen scan` defaults to **warn-not-error** for
+>    unaddressed presentations. The default reports unaddressed sites
+>    and exits with success (exit code 0). The named observer sees the
+>    warning, the CI pipeline doesn't break.
+> 2. `--strict` mode is opt-in for both the CLI flag and the
+>    `[package.metadata.antigen] strict = true` Cargo.toml setting.
+>    Strict mode escalates unaddressed presentations to errors (exit
+>    code 1) — appropriate for release branches and consumer projects
+>    that have completed their adoption phase.
+> 3. CI configurations may invoke `cargo antigen scan --strict` only
+>    on main/release branches, leaving feature branches in warn-mode.
+>    This pattern is documented in `cargo-antigen`'s help text and the
+>    project's CONTRIBUTING-style guides.
+>
+> The biological analog (per ADR-003): immune response lag is normal.
+> Antigen presentation and antibody production are temporally
+> separated in real immune systems. The system accommodates the lag
+> rather than treating any gap as a crisis.
+
+### Change 2: Configurable severity at the project level
+
+ADR-008 lists "User-experience telemetry" as an enforcement clause but
+doesn't specify the project-level configuration surface for severity.
+This change adds explicit configuration semantics consistent with
+ADR-009's `[package.metadata.antigen]` schema.
+
+**Amended addition** (new sub-bullet in "Mechanics" section):
+
+> 4. Severity defaults are configurable at the project level via
+>    `[package.metadata.antigen]`:
+>
+>    ```toml
+>    [package.metadata.antigen]
+>    # Default severity for unaddressed presentations.
+>    # "warn" — report and exit 0 (default; per ADR-008 amendment 1)
+>    # "error" — report and exit 1 (equivalent to --strict)
+>    severity = "warn"  # default
+>
+>    # Per-antigen override: list antigens that escalate to error.
+>    required = ["FrameTranslation", "BoundaryViolation"]
+>
+>    # Per-antigen override: list antigens that demote to info (no flag).
+>    advisory = ["StaleContext"]
+>    ```
+>
+>    The CLI flag `--strict` overrides the configured severity for the
+>    invocation. Per-antigen overrides (`required`, `advisory`) are
+>    fine-grained: a consumer can warn-by-default for most antigens
+>    while requiring strict immunity for a small set of critical
+>    failure-classes.
+
+### Change 3: "Named observer experience" documentation as a Sweep A2 deliverable
+
+Scientist F-DOCS-2 finding: ADR-008's enforcement clause requires
+"every public API surface includes a 'named observer experience'
+section in its docs." Current `antigen/src/lib.rs` and
+`cargo-antigen/src/main.rs` documentation is minimal. The enforcement
+gap is real but is a Sweep A2 deliverable, not an ADR amendment per
+se. This change explicitly names the A2 commitment so it doesn't slip.
+
+**Amended addition** (new bullet in "Sweep-level consequences" section):
+
+> - Sweep A2 W8 (idiomatic refinement) ships "named observer
+>   experience" sections on every public API surface
+>   (`antigen-macros::antigen`, `antigen-macros::presents`,
+>   `antigen-macros::immune`, `antigen-macros::descended_from`,
+>   `antigen-macros::antigen_tolerance` per ADR-011, `cargo-antigen
+>   scan|audit|new|vaccinate`). Each section names: who the named
+>   observer is at that surface, what their typical 60-second flow
+>   looks like, what ergonomic affordances exist (scaffolding, error
+>   message shape, IDE integration when available), and the
+>   multi-contributor expectations (warn-not-error default, when to
+>   escalate via `--strict`).
+
+### Related field expansion
+
+**Original**: ADR-008 lists Related: ADR-001, ADR-004, ADR-006, ADR-009.
+
+**Amended Related field**:
+
+> **Related**: ADR-001 (the carriers the named observer authors),
+> ADR-003 (biological metaphor — immune response lag predicts the
+> warn-not-error default), ADR-004 (elevation), ADR-005 (severity
+> defaults are trust-boundary defaults), ADR-006 (recognition —
+> multi-contributor lag is observed reality), ADR-009 (adoption
+> gradient — warn-not-error IS Layer 1 ergonomics), ADR-011
+> (`#[antigen_tolerance]` is the sibling escape valve to
+> warn-not-error severity).
+
+### Resolves
+
+- Adversarial ATK-008-1 (multi-contributor workflow friction; the
+  "Team A's branch permanently fails until Team B merges" failure
+  case).
+- Naturalist's Risk A5 entry on multi-contributor workflow friction.
+- The conflict between ADR-008's named-observer ergonomics and
+  ADR-009's Layer 1 minimum-friction promise.
+- The configuration-surface ambiguity in ADR-008 around severity.
+- Scientist F-DOCS-2 finding (named observer experience documentation
+  gap).
+
+### Open questions deferred to future ADRs
+
+1. **Per-author tolerance scoping**: should tolerance markers track
+   which contributor added them? Useful for review accountability;
+   risks pseudo-blame patterns. Defer to adoption data.
+2. **Severity escalation timing**: when a project transitions from
+   warn-default to strict-default (e.g., post-v1.0 release), how does
+   the migration work? Bulk tolerance? Per-antigen waiver flow? Defer
+   to A5+ when stdlib + adoption data inform the question.
+3. **CI-platform integration**: GitHub Actions checks API, GitLab
+   merge-request annotations, etc. — should antigen ship recognized
+   output formats (SARIF was named in ADR-001 mechanics but is not
+   yet implemented)? Defer to A6+ (IDE/CI integration sweep).
+4. **Layer 1 vs Layer 3 default-severity differential** (per
+   aristotle's Phase 1-8 D2 finding): Layer 3 consumers (with ADR
+   registries per ADR-009) are in discipline-mature territory and
+   may default to severity = error rather than warn, since strict
+   discipline is the operating mode they've already opted into.
+   Defer to future ADR; expected to surface when the first Layer 3
+   consumer (likely tambear) hits the question and the migration
+   path becomes concrete.
 
 ---
 
@@ -1184,6 +1774,614 @@ fingerprint caching apply.
    Empirical refinement during stdlib development.
 
 These open questions become future ADR-NNNs as the team encounters concrete needs.
+
+---
+
+## ADR-010 Amendment 1 — Disambiguate the parsing path (Path C)
+
+**Status**: Ratified 2026-05-09.
+
+**Amends**: ADR-010 (Fingerprint grammar v1: syn-based AST visitor pattern).
+
+**Participants**: pathmaker (drafted), aristotle (Phase 1-8 verdict:
+ratify substantively as drafted), math-researcher (originating
+systems-research review identifying Path C), adversarial (ATK pass),
+scientist (validation), team-lead (ratification).
+
+**Reason**: ADR-010's example fingerprint isn't valid Rust syntax (uses
+single-quoted string-style operators that `syn::parse2::<Expr>`
+rejects). The intended path is custom DSL parsing via
+`syn::parse::ParseBuffer` peek/parse machinery — math-researcher's
+"Path C". The ADR's prose said "parsed via `syn::parse2`" without
+specifying that the `T` parameter is a custom DSL parser, not
+`syn::Expr`.
+
+### Change
+
+Replace the "Decision" section's example fingerprint with a
+tokens-valid version, and replace the prose with the tokens-machinery
+specification.
+
+The current ADR-010 Decision section example becomes:
+
+```rust
+#[antigen(
+    name = "polarity-inverted-class-meet",
+    fingerprint = r#"
+        item = enum,
+        name = matches("*Class"),
+        variants = 3..=8,
+        has_method("meet", "(Self, Self) -> Self"),
+        all_of([
+            attr_present("repr(u8)"),
+            doc_contains("strength")
+        ])
+    "#,
+)]
+pub struct PolarityInvertedClassMeet;
+```
+
+Differences from the pre-amendment example:
+- `r#"..."#` raw-string outer wrapper (so inner double-quotes don't
+  escape).
+- `key = value` pairs (not `key: value`) — Rust idiom; `syn` parses
+  cleanly.
+- Inner string literals use `"..."` not `'...'` (single-quoted
+  character literals in Rust mean `char`, not `&str`).
+- Operator parameters are double-quoted.
+
+The Mechanics section's prose:
+
+> 1. `syn::parse2` parses the fingerprint string into an internal AST
+
+Becomes:
+
+> 1. The fingerprint string is tokenized via `syn`'s tokenizer; a
+>    custom DSL parser (using `syn::parse::ParseBuffer` peek/parse
+>    machinery) consumes the tokens into an internal `Fingerprint`
+>    AST. This is Path C from the systems-research review — distinct
+>    from `syn::parse2::<syn::Expr>`, which cannot accept the DSL
+>    syntax above.
+
+### W6 implementation note (per aristotle R-Q1.D — not part of ratified amendment text)
+
+The fingerprint parser will tokenize the LitStr value via
+`proc_macro2::TokenStream::from_str` then parse through Path C.
+Spans inside the re-tokenized stream are relative to the inner
+string; mapping back to outer `#[antigen(fingerprint = "...")]`
+source positions requires span-bridging. This is sibling concern
+with W4 (span-aware errors) — flagged in W6 implementation notes,
+not blocker for this amendment's ratification.
+
+### Resolves
+
+- The parsing-path ambiguity that would have surfaced as a Sweep A2
+  W6 implementation failure (the worked example as written cannot
+  parse).
+- ADR-005 sub-clause F at the parser boundary: the parsing path is
+  now unambiguous; the trust extended to "the example compiles and
+  runs" is honest.
+
+---
+
+## ADR-010 Amendment 2 — Fingerprint semver + MSRV policy
+
+**Status**: Ratified 2026-05-09.
+
+**Amends**: ADR-010 (Fingerprint grammar v1: syn-based AST visitor pattern).
+
+**Participants**: pathmaker (drafted; v1 absorbs aristotle's two
+refinements R-Q2-A deprecation-then-narrow workflow and R-Q2-B
+named-companion-antigen pattern), aristotle (Phase 1-8 verdict),
+adversarial, scientist, team-lead (ratification).
+
+**Reason**: Once `antigen-stdlib` ships v0.1 to crates.io, every
+fingerprint is part of a public API under semver. Without explicit
+policy, breaking changes leak into minor versions silently. Clippy's
+MSRV precedent ([clippy::msrv configuration]) is directly applicable.
+This was ADR-010 open question 2; math-researcher's review elevated
+it to "must land before stdlib publication."
+
+[clippy::msrv configuration]: https://rust-lang.github.io/rust-clippy/master/index.html#/msrv
+
+### Change
+
+Add a "Semver and MSRV" subsection to ADR-010 between "Mechanics" and
+"Sweep-level consequences":
+
+> ### Semver and MSRV policy
+>
+> Once an antigen is published in a crate (whether `antigen-stdlib`,
+> a project's local antigen catalog, or a third-party antigen
+> library), its fingerprint is part of the crate's public API under
+> semver:
+>
+> - **Broadening a fingerprint** (the new fingerprint matches strictly
+>   more sites than the old): minor version bump. Existing consumers
+>   may see new flagged sites; this is an additive expansion of
+>   recognition.
+> - **Narrowing a fingerprint** (the new fingerprint matches strictly
+>   fewer sites than the old): **major version bump by default**.
+>   Existing consumers may lose coverage they were relying on;
+>   tolerance markers and immunity declarations may become orphaned
+>   (per ADR-011 stale-tolerance detection).
+> - **Deprecation-then-narrow workflow** (alternative to immediate
+>   major bump; per aristotle R-Q2-A): narrowings MAY ship in minor
+>   versions IF preceded by N..N+M minor versions of deprecation
+>   warnings. During the deprecation cycle, audit emits a warning
+>   when sites are matched by the broader form but would be
+>   unmatched by the narrower form; consumers migrate during the
+>   cycle. After the deprecation window, the narrower form ships in
+>   the next minor version. Strict immediate narrowing remains
+>   major-bump-required when no deprecation cycle is feasible
+>   (e.g., when the broader form is actively unsound and consumers
+>   should never rely on it). Substrate precedent: clippy and
+>   cargo-deny both use deprecation-then-narrow patterns.
+> - **Named-companion-antigen pattern** (recommended for material
+>   narrowings; per aristotle R-Q2-B): for narrowings affecting >10%
+>   of matched sites (heuristic, not formal threshold), introduce a
+>   *named companion antigen* with the narrower fingerprint rather
+>   than narrowing in-place. The original antigen persists at v1.0
+>   shape; consumers opt into the narrower form by adding immune
+>   declarations to the new antigen. Both antigens coexist; the
+>   broader catches more candidates, the narrower catches the
+>   precise pattern. Pattern preserves consumer trust while letting
+>   the catalog grow more discriminating.
+> - **Adding operators to the grammar**: minor version bump on the
+>   `antigen-fingerprint` crate. Forward-compatible: older consumers
+>   silently ignore unknown operators (per ADR-009 adoption-gradient
+>   tolerance for unknown fields).
+> - **Removing operators from the grammar**: major version bump on
+>   `antigen-fingerprint`. Breaking; consumers using removed
+>   operators stop parsing.
+>
+> The `#[antigen]` macro accepts an optional `msrv = "1.65"` field
+> (parallel to Cargo.toml's `rust-version`):
+>
+> ```rust
+> #[antigen(
+>     name = "...",
+>     fingerprint = r#"..."#,
+>     msrv = "1.75",
+> )]
+> ```
+>
+> When present, `cargo antigen scan` skips antigens whose `msrv`
+> exceeds the consuming crate's `rust-version` (read from the
+> consumer's `Cargo.toml`). This mirrors clippy's MSRV-aware lint
+> behavior. The skip is logged under `--verbose` so consumers can
+> see which antigens they're missing due to MSRV.
+>
+> Antigens with no `msrv` field are scanned regardless of the
+> consumer's `rust-version` (forward-compatible default).
+
+### Resolves
+
+- ADR-010 open question 2 (fingerprint versioning), before stdlib
+  publication forces the issue.
+- The substrate-trust vacuum where stdlib consumers had no contract
+  for what semver bumps mean.
+- The MSRV-induced false-positive class: an antigen using grammar
+  operators added in `antigen-fingerprint` v0.3 firing against a
+  consumer whose `rust-version = "1.65"` and pulling in
+  `antigen-fingerprint` v0.2 transitively.
+- The narrowing-without-warning anti-pattern: catalogs that update
+  fingerprints in-place without semver discipline silently invalidate
+  consumer expectations. The two refinement options
+  (deprecation-then-narrow workflow + named-companion-antigen
+  pattern) give catalog authors structurally-sound paths.
+
+---
+
+## ADR-010 Amendment 3 — Scan semantics + first-stdlib operators + matcher-engine location + filter framing + invariants
+
+**Status**: Ratified 2026-05-09.
+
+**Amends**: ADR-010 (Fingerprint grammar v1: syn-based AST visitor pattern).
+
+**Participants**: pathmaker (drafted; v1 absorbs aristotle's three
+refinements R-Q3 dead-code-elimination clarification, R-Q4
+anti-laziness discipline, R-Q5 fourth performance invariant
+node_kind dispatch), math-researcher (originating systems-research
+review §16 + filter framing folding), aristotle (Phase 1-8 verdict),
+adversarial, scientist, team-lead (ratification).
+
+**Reason**: ADR-010 is silent on conditional compilation, macro
+expansion, and body-level shape matching. The first canonical seed
+antigen (`panicking-in-drop`, per origin.md) requires body-level
+operators that v1 grammar as ratified doesn't provide. The matcher
+engine's location is also unspecified, leading to circular-dependency
+risk between `antigen-macros` (compile-time validation) and `antigen`
+(scan-time matching). This amendment also folds in the filter-vs-proof
+framing crystallized during A1 in scout's framing + math-researcher's
+review §16.
+
+### Clause A: scan semantics — pre-expansion only
+
+> ### Scan semantics: what's scanned
+>
+> v1 fingerprints match **pre-expansion source** only. Macro-generated
+> code is invisible to the scan — derive macros, declarative macros,
+> and proc-macros all expand outside the scan's view. `cargo antigen
+> scan` reports "N items in macro-generated code were not scanned"
+> when macro expansion sites are detected (transparency, not blame).
+> Coverage of macro-generated code is the structural-blindness pair
+> addressed by ADR-014 (`#[antigen_generates]`) in a future sweep.
+
+### Clause B: cfg handling — match-through by default
+
+> ### Conditional compilation
+>
+> v1 fingerprints match **all items regardless of `#[cfg]` gates** by
+> default. A site under `#[cfg(target_os = "linux")]` is matched
+> whether the consumer's compile target is linux or not. The default
+> is match-through because:
+>
+> 1. Failure-classes the antigen names exist whenever the source is
+>    parseable, regardless of whether THIS build target compiles them.
+> 2. Compile-target-specific scans miss vulnerabilities in
+>    cross-platform code that other consumers' builds will execute.
+> 3. Match-through aligns with the filter framing (Clause D below):
+>    the scan is recall-tuned; let the witness layer reason about cfg.
+>
+> Consumers needing cfg-aware scans use `cargo antigen scan
+> --respect-cfg` for strict-mode behavior. Per-target invocation is
+> configurable in `[package.metadata.antigen]`.
+
+### Clause C: first-stdlib operators
+
+> ### First-stdlib operators (v1 grammar additions)
+>
+> v1 grammar adds:
+>
+> - **`body_contains_macro(name)`** — matches when the
+>   function/method body contains a macro invocation whose name
+>   matches `name`. Required for the canonical seed antigen
+>   `panicking-in-drop` (which detects `panic!`, `unreachable!`,
+>   `todo!`, `unimplemented!` in `Drop` impl bodies). Implemented as a
+>   `syn::Block` walk for `syn::Macro` invocations. **Native syn
+>   walker, NOT delegated to the body-pattern engine** (per ADR-015
+>   §S2 + R-3).
+>
+> v1 grammar **gestures at** but does NOT ratify:
+>
+> - **`enum_discriminant_ordering(strongest_first | weakest_first |
+>   unspecified)`** — needed for `polarity-inverted-class-meet`-shaped
+>   antigens. Deferred to the first stdlib release sweep (likely A5)
+>   because it requires analysis of explicit discriminant expressions
+>   on `syn::Variant::discriminant` and a stable convention for what
+>   "strongest" means when discriminants are user-supplied.
+>   Recognition-driven (ADR-006): ratify when stdlib content
+>   exercises it, not speculatively.
+>
+> Other operators ratified in the original ADR-010 (type-name
+> patterns, item-kind matchers, attribute presence checks,
+> field/variant shape matchers, method-signature patterns,
+> composition operators) ship in v1 unchanged.
+
+### Clause D: filter-vs-proof framing — folded in from scout/math-researcher §16.1
+
+> ### Semantic posture: fingerprints filter, witnesses prove
+>
+> Fingerprints are **recall-tuned candidate filters**. They identify
+> *sites that may exhibit the failure-class*, not *sites that
+> definitely do*. The witness mechanism (per ADR-001 + ADR-002) is
+> what proves immunity at each candidate site. This split is
+> intentional:
+>
+> - `cargo antigen scan` finds candidates fast (recall-tuned, accept
+>   moderate false-positive rate).
+> - `cargo antigen audit` validates witnesses where they apply
+>   (precision lives in the witness layer per ADR-002 composition).
+> - `#[antigen_tolerance(...)]` (per ADR-011) marks sites that are
+>   matches-by-design and not vulnerabilities.
+>
+> Consequences for grammar design:
+>
+> 1. Cheap syntax-level operators (item-kind, name pattern, attribute
+>    presence) are sufficient for v1. Expensive operators (call-graph
+>    analysis, HIR type resolution) are NOT structurally guaranteed by
+>    ADR-007; they may land if the witness layer can't cover the
+>    precision case, but the default is to push precision to the
+>    witness.
+> 2. False positives from the filter are EXPECTED and not failure
+>    states. ADR-011 tolerance is the structural relief valve.
+>    Without the filter framing,
+>    autoimmunity-via-broad-fingerprint becomes a design crisis;
+>    with the framing, it's load-bearing recall.
+> 3. The grammar surface (which operators exist) is structurally
+>    guaranteed by ADR-007. Each individual operator is
+>    recognition-driven (ADR-006) — added when stdlib content
+>    exercises it. The filter framing makes the staged rollout
+>    coherent: ship the parser + dispatch + name-glob in A2; add
+>    operators per stdlib need.
+>
+> **Anti-laziness discipline** (per aristotle R-Q4): recall-tuned
+> does NOT mean unboundedly broad. Stdlib authors SHOULD calibrate
+> fingerprints against a representative corpus
+> (`docs/expedition/failure-class-instances.md`) before publishing.
+> A fingerprint matching >50% of items in any item-kind bucket
+> (heuristic, not formal threshold) signals over-broadness; such
+> fingerprints either narrow before publishing or cite specific
+> evidence justifying the breadth. ATK-001-1's audit-side
+> autoimmunity-rate signal (deferred to A4+) is the systematic
+> enforcement of this discipline; until it ships, code review is
+> the discipline.
+
+### Clause E: matcher engine location — workspace topology
+
+> ### Implementation surface: `antigen-fingerprint` workspace member
+>
+> The fingerprint parser + visitor lives in a separate workspace
+> member `antigen-fingerprint`, depended-on by both:
+>
+> - `antigen-macros` — for compile-time validation that
+>   `#[antigen(fingerprint = "...")]` parses cleanly (the macro is
+>   identity-transform-with-validation; rejecting at parse time
+>   avoids shipping malformed fingerprints to crates.io).
+> - `antigen` — for scan-time matching against target-code ASTs.
+>
+> Both `Fingerprint::parse(s)` AND `Fingerprint::matches(item)`
+> live in `antigen-fingerprint` (per aristotle R-Q3).
+> `antigen-macros` consumes parse-only (compile-time validation);
+> `antigen` + `cargo-antigen` consume both. The matcher's
+> per-consumer compile cost in `antigen-macros` is negligible — cargo
+> dead-code elimination removes unreachable visitor code at the
+> macro-crate compile boundary, so consuming the parser does not pay
+> for the matcher.
+>
+> Without this split, `antigen-macros` (proc-macro = true) would have
+> to re-implement the parser internally, and `antigen` would have to
+> re-implement it again at scan time. The duplication was the
+> substance of ATK-001-2 in pre-team scaffolding (the dual-parser
+> drift bug). The workspace split makes the parser canonical.
+>
+> The `antigen-fingerprint` crate is itself a Sweep A2 W6 deliverable.
+> Its public API is the parser + the `Fingerprint::matches(item:
+> &syn::Item) -> bool` method. Internal state is private; future
+> performance optimizations (incremental scan, caching) live behind
+> the API.
+
+### Performance invariants (load-bearing)
+
+> ### Implementation invariants (load-bearing)
+>
+> The 5-second performance budget for typical workspaces (10-100k
+> LoC, 10-50 antigens) requires four implementation invariants:
+>
+> 1. **Single-pass walks**: `cargo antigen scan` walks each `.rs`
+>    file exactly once per invocation; all fingerprints are
+>    evaluated on the same pass via fan-out at the visitor level.
+> 2. **Pre-parsed pattern signatures**: signatures inside operators
+>    like `has_method("meet", "(Self, Self) -> Self")` are parsed
+>    once at fingerprint-load time and stored as `syn::Signature`
+>    AST nodes, NOT re-parsed per match site. The naive
+>    per-match-site re-parse is a documented 50× slowdown
+>    (math-researcher §4.1).
+> 3. **Parse-time depth + node-count caps**: the fingerprint parser
+>    rejects fingerprints with AST depth > 10 OR total node count >
+>    256 (defaults; configurable in `[package.metadata.antigen]`).
+>    This prevents pathological fingerprints from blowing up the
+>    matcher.
+> 4. **Node-kind dispatch at the visitor** (per aristotle R-Q5; also
+>    named in ADR-015 §Performance invariants): the
+>    `Fingerprint::matches` evaluator dispatches by `node_kind` at
+>    the top of each visit. Only fingerprints with matching
+>    `node_kind` are evaluated against the current AST node. For N
+>    fingerprints sharing common node-kinds (e.g., 20 `item: enum`
+>    fingerprints), the per-node cost is O(matching-fingerprints)
+>    not O(N). Without this invariant, scan time scales linearly
+>    with total fingerprint count regardless of relevance.
+>
+> Without these invariants, the 5-second budget blows out 5-10× per
+> math-researcher §4. The invariants are required for v0.1.0 release.
+
+### Sweep-level consequences additions
+
+> - **Sweep A2 (W6)**: ships `antigen-fingerprint` workspace member;
+>   ships parser + item-kind dispatch + name-glob operator; ships
+>   `body_contains_macro` operator (native syn walker); ships `msrv`
+>   macro-field; ships single-pass walks + pre-parsed signatures +
+>   depth/node-count caps + node-kind dispatch. Defers other
+>   operators per the filter framing.
+> - **Sweep A3+**: incremental scan cache (per-file mtime +
+>   content-hash keyed) — math-researcher §14 names this as
+>   required for IDE integration; not load-bearing for v0.1.0
+>   release but high-priority for v0.2+.
+> - **Sweep A5 (stdlib)**: `enum_discriminant_ordering` operator
+>   added when first stdlib antigen exercises it.
+
+### Open-question tightenings
+
+In addition to the substantive amendments, three of ADR-010's open
+questions tighten without deferring further:
+
+**Open Question 1 (cross-crate fingerprint inheritance)**: the larger
+question stays deferred to a future ADR. Lock the static-fingerprint
+invariant in ADR-010 itself:
+
+> Fingerprints are static at the antigen's declaration site — they
+> do not re-evaluate against the consuming crate's AST when the
+> antigen is imported across crates. Cross-crate matching walks the
+> consumer's AST against the source crate's parsed `Fingerprint` AST.
+
+**Open Question 3 (negative fingerprints)**: tighten from "top-level
+negation rejected" to:
+
+> The `not` operator is valid only inside `all_of`, only as a
+> sibling of at least one positive matcher. `not` as a direct child
+> of `any_of` is rejected at parse time. This closes the De Morgan
+> promiscuity loophole where `any_of([not(A), not(B)])` becomes
+> `not(all_of([A, B]))` via De Morgan and re-creates top-level
+> negation.
+
+**Open Question 4 (depth cap)**: tighten from "cap fingerprint AST
+depth at 10" to:
+
+> Cap fingerprint AST depth AND total node count. Defaults: depth
+> 10, total nodes 256. Both checked at parse time; both configurable
+> in `[package.metadata.antigen]` (`fingerprint_max_depth`,
+> `fingerprint_max_nodes`).
+
+### Resolves
+
+- The cfg-handling silence in original ADR-010 (Clause B).
+- The macro-expansion silence (Clause A; structural-blindness pair
+  to ADR-014).
+- The body-level operator gap (Clause C; canonical seed antigen
+  `panicking-in-drop` was structurally blocked).
+- The matcher-engine-location ambiguity (Clause E; ATK-001-2
+  dual-parser drift surfaced from this gap).
+- Performance budget honesty (Invariants); the 5-second claim was
+  speculative without these invariants ratified.
+- Adversarial ATK-010-2 (math-researcher §11; performance estimate
+  speculation acknowledged).
+
+---
+
+## ADR-010 Amendment 4 — Filter/proof framing as architectural principle
+
+**Status**: Ratified 2026-05-09.
+
+**Amends**: ADR-010 (Fingerprint grammar v1: syn-based AST visitor pattern).
+
+**Participants**: pathmaker (drafted; integration commit), navigator
+(full-body spec), aristotle (Track 1 P1-8 + bundle deconstruction
+identifying the framing as elevation-worthy), team-lead (ratification).
+
+**Related**: ADR-001 Amendment 1 (carrier-strength + witness-validity
+tiers; the filter-vs-proof split is the operational form of the
+tiered-substrate pattern); ADR-002 (compose-don't-compete; filter
+framing is what makes composition with witnesses natural);
+ADR-010 Amendment 3 Clause D (where the framing was first ratified
+as part of the bundle); ADR-011 (`#[antigen_tolerance]` is the
+structural relief valve for filter false-positives); ADR-012
+(function-body patterns inherit the framing); ADR-015 (engine
+architecture preserves filter/proof at the body-pattern delegation
+boundary).
+
+### Reason
+
+Amendment 3 Clause D ratifies filter-vs-proof as part of a bundle of
+mechanics changes, but the framing is *load-bearing across ADR-010 as
+a whole*, not just a single clause inside Amendment 3. Subsequent
+readers of ADR-010 looking for the operative semantic posture will
+find it buried inside Amendment 3 rather than elevated to a top-level
+named principle. This amendment promotes the framing from
+clause-position to top-level-principle-position, naming it as the
+operative semantic posture across the entire ADR.
+
+The framing is not new content — Amendment 3 Clause D is the
+canonical statement and remains so. Amendment 4 names the framing as
+*the operative posture for ADR-010 readings going forward*: when
+future amendments, future operators, or future implementation
+decisions for ADR-010 surface, they are evaluated against the
+filter/proof split as the architectural commitment.
+
+### Decision
+
+**Antigen's recognition surface is split into a filter layer
+(fingerprints) and a proof layer (witnesses). The filter is
+recall-tuned; the proof is precision-tuned. ADR-010's grammar serves
+the filter layer; the proof layer composes via ADR-002 with external
+witness mechanisms.**
+
+The principle, stated normatively as the operative architectural
+posture for ADR-010:
+
+> **Fingerprints filter; witnesses prove.** The fingerprint grammar
+> ratified by ADR-010 is recall-tuned: it identifies *candidates*
+> that may exhibit the failure-class. Precision — the determination
+> of whether a candidate is *actually* a vulnerability — lives in
+> the witness layer, composed via ADR-002 with tests, proptests,
+> formal-verification adapters, phantom-type proofs, or external
+> tools. ADR-011 (`#[antigen_tolerance]`) is the structural relief
+> valve for filter false-positives that are matches-by-design.
+
+### Consequences for grammar design
+
+The filter/proof split has three load-bearing consequences:
+
+1. **Cheap syntax-level operators are sufficient for v1.**
+   Item-kind, name pattern, attribute presence, body-macro presence
+   — these are all O(syntactic-shape) operations. Expensive
+   operators (call-graph analysis, HIR type resolution, MIR
+   reasoning) are NOT structurally guaranteed by ADR-007: they may
+   land when the witness layer cannot cover the precision case, but
+   the default is to push precision to the witness rather than
+   inflate the filter.
+
+2. **False positives from the filter are EXPECTED and not failure
+   states.** ADR-011's `#[antigen_tolerance]` is the structural
+   relief valve: a site that matches a fingerprint by design (not
+   by vulnerability) gets a tolerance marker with required
+   rationale. Without the filter framing,
+   autoimmunity-via-broad-fingerprint becomes a design crisis
+   ("the scan reports too much; the grammar is broken"); with the
+   framing, the same observation is load-bearing recall ("the
+   scan finds candidates; the witness or tolerance proves the
+   per-site disposition").
+
+3. **The grammar surface is structurally guaranteed; individual
+   operators are recognition-driven.** Per ADR-007, the project
+   commits to recognition coverage of the 8-class failure
+   taxonomy. Per ADR-006, individual operators are added when
+   stdlib content exercises them. Filter/proof makes the staged
+   rollout coherent: ship the parser + dispatch + a small set of
+   operators in A2; expand the operator set as stdlib antigens
+   surface needs.
+
+### Mechanics
+
+The amendment is principle-elevation, not new mechanics.
+Implementation details remain in Amendment 3 Clause D (the original
+ratification site). Future amendments to ADR-010 reference *this
+amendment* as the architectural commitment when justifying
+operator additions, performance trade-offs, or composition rules
+involving the witness layer.
+
+### Sweep-level consequences
+
+- **Sweep A2 (current)**: W6 ships the filter layer (parser +
+  dispatch + initial operators per Amendment 3 Clause C). W7
+  ships the proof layer's witness-tier API (per ADR-013 + scout's
+  W7 design). The two ship together because they are operational
+  halves of the same architectural commitment.
+- **Sweep A3+**: composition rules for the filter/proof boundary
+  become explicit (when does a witness invalidate a filter match?
+  When does a tolerance? When does a `descended_from` chain
+  inherit either?).
+- **Future ADRs**: when a future amendment proposes adding an
+  expensive operator (HIR/MIR reasoning, cross-crate analysis),
+  the review asks "can this live in the witness layer instead?"
+  per filter/proof. The default is push-to-witness; expensive
+  filter operators require structural argument why witness
+  composition cannot suffice.
+
+### Enforcement
+
+- **Process**: ADR-template Phase 1-8 review prompt (per
+  `process.md`) asks of every ADR-010 amendment: "Does this
+  belong in the filter layer (fingerprint) or the proof layer
+  (witness)? If filter, can it instead live in proof? If proof,
+  why does this ADR amend ADR-010?"
+- **Adversarial**: ATK seeds against new ADR-010 amendments
+  include "filter/proof boundary violation" as a default attack
+  pattern.
+
+### Resolves
+
+- The implicit-but-unnamed semantic posture across ADR-010 + its
+  amendments. Pre-Amendment-4, future readers of ADR-010 had to
+  chase Amendment 3 Clause D to find the operative principle;
+  Amendment 4 makes the principle top-level.
+- The architectural-posture-vs-clause asymmetry: Amendment 3
+  ratified the framing as one clause among five; Amendment 4
+  acknowledges that the framing is the operative posture for
+  the ADR's architectural reading going forward.
+- The future-ADR review gap: when a future amendment proposes
+  expanding the filter, the question "does this belong in proof
+  instead?" is now structural rather than ad-hoc.
 
 ---
 
@@ -1649,6 +2847,662 @@ expansion-validation deferred (v0.2+ trusts the author).
 2. Macro expansion validation (deeper structural check; deferred).
 3. Conditional generation (`if_attr_present` v2 sketch; v1 unconditional).
 4. Doc-comment surfacing in generated code (legibility vs pollution; deferred).
+
+---
+
+## [ADR-015] Fingerprint engine: grammar-over-AST with per-fingerprint evaluator trait
+
+**Status**: Ratified 2026-05-09.
+
+**Participants**: scout (engine-shift proposal; substrate evidence in
+tambear `pattern.rs`), math-researcher (drafted v0 + v1 absorbing
+self-deconstruction + substrate-correction addendum), aristotle (two
+external Phase 1-8 cycles + revising addendum; recommendation:
+ratify substantively as drafted with backend-choice deferred),
+adversarial (ATK-015-1..7), scientist (validation), team-lead
+(ratification).
+
+**Related**:
+- ADR-002 (compose, don't compete) — load-bearing; this ADR
+  operationalizes ADR-002 at the body-pattern delegation surface.
+- ADR-006 (recognition, not design) — drives substrate honesty.
+- ADR-007 (anti-YAGNI / structurally-guaranteed need) — ADR-016
+  dependency makes S3's evaluator trait structurally guaranteed;
+  without ADR-016, S3 reduces to private scaffolding-until-second-backend.
+- ADR-010 + Amendments 1-4 — partially superseded; see Supersedes.
+- ADR-011 (`#[antigen_tolerance]`) — tolerance is the autoimmunity
+  relief valve under filter-vs-proof framing.
+- ADR-012 (function-body operators) — body-pattern operator family
+  that delegates per ADR-015.
+- ADR-013 (phantom-witness operators) — separate concern (witness
+  side); coordinates via the same delegation-boundary discipline.
+- ADR-016 (temporal recognition surface) — sibling ratification;
+  structural guarantee for the evaluator trait going public.
+
+**Supersedes (partial)**: **ADR-010 §Mechanics §1 only** ("syn::parse2
+parses the fingerprint string into an internal AST"). The visitor
+pattern, `MatchSite` reporting, performance characterization, and all
+other §Mechanics content stand under this engine choice. ADR-010
+Amendment 1 (Path C parsing) is the actual replacement for
+§Mechanics §1.
+
+### Finding
+
+ADR-010 ratified a fingerprint grammar with `syn::parse2` +
+`syn::visit::Visit` as the implementation engine. Three pieces of
+substrate evidence surfaced after ratification that warrant amendment
+to that single mechanics commitment:
+
+1. **The body-pattern problem is real** (ADR-012, deferred from
+   ADR-010 v1; tambear adoption-log entry 2026-05-07: simple
+   syntactic patterns missed the multi-statement form of
+   `UlpDistanceRolledByHand`). Body-level matching for arbitrary
+   structural patterns is structurally guaranteed by the v0.1 stdlib
+   commitments per ADR-007.
+
+2. **The grammar-vs-vocabulary cut** (per aristotle's reciprocal
+   Phase 1-8 of math-researcher's ADR-010 systems review): the
+   *grammar* (node-kind × field-path × constraint-op + Boolean
+   composition) is the load-bearing structural commitment; the
+   *vocabulary* (named operators) is the projection surface. ADR-010
+   ratified the vocabulary explicitly; the grammar was implicit.
+   ADR-015 surfaces it.
+
+3. **Engine choice and grammar shape are separable**. The grammar
+   (predicates over Rust AST) can be evaluated by syn-visitor,
+   ast-grep matcher, or future backends. The grammar's shape is
+   independent of which engine runs it. ADR-010 conflated them;
+   ADR-015 separates them.
+
+**Substrate honesty**: tambear's `pattern.rs` is exploratory-not-
+committed (per team-lead clarification). ast-grep itself is at
+v0.42.1 (April 2026), pre-1.0; ast-grep-core docs explicitly state
+"the Rust API is not stable yet" with the CLI as the recommended
+primary path. Recognition-not-design (ADR-006) requires substrate
+that has happened *and is committed*; tambear clears the first bar
+but not the second. ast-grep-core clears existence but not stability.
+
+This honesty constrains what ADR-015 can ratify. The
+grammar-vs-vocabulary cut, the engine separability, and the
+delegation-boundary discipline all stand on substrate-stable
+evidence. The specific delegation backend (ast-grep-core library vs
+ast-grep CLI subprocess vs deferred) does not — the substrate doesn't
+yet justify ratifying a single backend.
+
+### Decision
+
+**ADR-015 ratifies four structural commitments and explicitly defers
+the body-pattern delegation backend choice.**
+
+#### Ratified structural commitments
+
+**S1 — Grammar-vs-vocabulary cut**: the antigen fingerprint engine is
+a *grammar over Rust AST predicates*. Operators in the grammar may
+evaluate via different runtimes; the grammar is one. The vocabulary
+(named operators users write) projects the grammar.
+
+**S2 — Per-operator implementation principle**: typed-AST queries
+(item-kind dispatch, name predicates, attribute presence,
+field/variant shape, method-signature shape) evaluate against `syn`'s
+typed AST directly. Metavariable / structural patterns at body level
+delegate to a separate runtime via the evaluator interface (S3). The
+grammar is one; the runtime is per-operator-decided.
+
+This explicitly resolves: `body_contains_macro(name)` (Tier-1
+vocabulary, per ADR-010 Amendment 3 Clause C) is a `syn::Block`
+walker for `syn::Macro` invocations matching the name — implemented
+natively in syn, **NOT** through a delegated body-pattern engine. The
+native walker is faster for the common case of macro-name matching.
+`body_pattern("<arbitrary structural pattern>")` (deferred to sibling
+backend decision; see Deferred) is the general escape hatch for
+arbitrary structural patterns at body level, when ratified.
+
+**S3 — Per-fingerprint evaluator trait (private in v0.1)**:
+
+```rust
+trait Evaluator {
+    fn evaluate(&self, fingerprint: &Fingerprint, file: &syn::File) -> Vec<MatchSite>;
+}
+```
+
+Per-fingerprint granularity (not per-operator). The trait stays
+**private** in v0.1 and goes public when a second evaluator backend
+ratifies (or when ADR-016's temporal evaluator lands, whichever comes
+first). The trait abstraction at the delegation boundary is what
+makes "defer the backend choice" operationally clean: a sibling
+decision on body-pattern backend can later add an `AstGrepEvaluator`
+or `SubprocessEvaluator` that implements the trait without invasive
+refactor.
+
+**Coordination note**: S3's structurally-guaranteed-need argument
+depends on ADR-016 ratifying its temporal-axis structural commitments
+(the temporal evaluator becomes the second backend that justifies
+S3's existence). If ADR-016 fails or is deferred to v0.2+, S3 reduces
+to YAGNI under anti-YAGNI scrutiny — the private-until-second-backend
+fallback is then primary mechanism.
+
+**S4 — Supersession scope: ADR-010 §Mechanics §1 only**. The visitor
+pattern, `MatchSite` reporting, performance characterization,
+depth/node-count caps, per-file caching pattern, and witness adapter
+independence (ADR-002 separation) all stand. Only the
+implementation-detail "syn::parse2 parses the fingerprint string into
+an internal AST" shifts. The Path C parsing decision (ADR-010
+Amendment 1) is the actual replacement for §Mechanics §1.
+
+The fingerprint AST is `#[derive(Serialize, Deserialize)]` so future
+cross-language ADRs can emit alternative serialized forms from the
+AST without parser rewrites.
+
+#### Deferred — body-pattern delegation backend
+
+The choice of *which* runtime evaluates body-pattern operators is
+**deferred** to a sibling decision under W6b implementation pressure.
+Three honest paths exist:
+
+- **Path 1 — Library-level delegation** to ast-grep-core. Requires
+  hardened version-pinning (explicit `rust-version` in
+  antigen-fingerprint's Cargo.toml + ast-grep range as `>=X, <Y`; CI
+  checks minor-version compat; major triggers amendment). Pre-1.0
+  API instability is a load-bearing operational concern.
+
+- **Path 2 — Subprocess-level delegation** to ast-grep CLI (binary).
+  Drops the library dependency; invokes `ast-grep` as a subprocess
+  and parses JSON output. Version-pinning concern transforms to
+  **PATH/binary verification at audit time** (the cargo-deny /
+  cargo-audit pattern). Restores consistency with the
+  composition-surface taxonomy (clippy/kani/prusti/creusot/verus
+  all compose at output-level for stability reasons).
+
+- **Path 3 — Defer body-pattern entirely to v0.2+**. Ship v0.1 with
+  item-shape-only fingerprints; document the body-pattern
+  limitation honestly per ADR-010's already-stated honest-known-
+  limitations posture.
+
+**Both math-researcher (substrate-correction addendum) and aristotle
+(revising addendum) independently recommend Path 2** when the backend
+ratifies. Independent convergence on Path 2 from different
+chains-of-reasoning is the recognition signal at the strongest tier.
+The sibling decision should consider this as substrate, not as a
+pre-commitment from ADR-015's body. **Pathmaker decides under W6b
+implementation pressure.**
+
+When the sibling decision lands:
+- The S3 evaluator trait goes public, with the chosen backend
+  implementing it.
+- Version-pinning materializes per-path: Path 1 → MSRV+range
+  discipline; Path 2 → binary verification; Path 3 → moot.
+- ADR-012's deferred body-level operators unblock for W6b
+  implementation.
+
+### Mechanics
+
+#### Implementation surface
+
+`antigen-fingerprint` (workspace member):
+
+1. **Parser** — hand-written `Parse` impl over
+   `syn::parse::ParseBuffer`, per Path C. Tokenizes via `syn`'s
+   tokenizer; parses the comma-separated key=value vocabulary into a
+   `Fingerprint` AST.
+
+2. **Fingerprint AST** — serializable Rust enum. Node kinds,
+   constraints, composition. `#[derive(Serialize, Deserialize)]`.
+
+3. **Evaluator trait (private)** — per-fingerprint granularity (S3);
+   private API in v0.1; goes public when a second backend ratifies.
+
+4. **Built-in syn evaluator** — implements the evaluator trait
+   against `syn::visit::Visit`. Handles all Tier-1 typed-AST queries
+   (item-kind dispatch, name predicates, attribute presence,
+   field/variant shape, method-signature shape, `body_contains_macro`
+   via native syn::Block walker).
+
+5. **Body-pattern operator** — `body_pattern("<arbitrary structural
+   pattern>")`. NOT shipped in v0.1 unless the sibling backend
+   decision lands first. When shipped: the chosen backend implements
+   the evaluator trait for body-pattern operators; the syn evaluator
+   delegates body-pattern operators to that backend.
+
+#### Span granularity
+
+Three distinct span concerns disambiguated:
+
+- **Scan reports**: file:line:col is mechanical and ships in v0.1.
+- **Proc-macro `Span`** for fingerprint-parse compile errors: uses
+  antigen-fingerprint's own Path C parser spans (not external
+  substrate spans). Sibling work to W4.
+- **Body-pattern report-back** (when a body-pattern backend
+  ratifies): the backend's match coordinates round-trip to syn for
+  span reporting; v0.1 fallback is file:line:col.
+
+#### Crate dependencies
+
+`antigen-fingerprint` adds (to its `Cargo.toml`):
+- `syn` — already in scan.rs's deps; tokenizer + AST.
+- `proc-macro2` — already transitive.
+- `serde` — already in deps; for serializable AST invariant.
+- **No body-pattern backend dependency in v0.1**. Added (under
+  chosen Path) when sibling decision ratifies.
+
+#### Performance invariants
+
+Per math-researcher's ADR-010 review §3.2 + §4 + §15.Q2 + W6 advance
+note, all unchanged from ADR-010 Amendment 3:
+
+- Single-pass walking with `node_kind` dispatch (don't run N
+  separate passes for N fingerprints).
+- Pattern signatures compile *once* per fingerprint set per scan
+  invocation, not per file or per item. Cost asymmetry is ~50×
+  without this discipline.
+- Per-file `target/antigen/` cache keyed on `(path, mtime,
+  content_hash, fingerprint_set_hash)` (forward-compat path; not
+  v0.1 surface).
+- Depth + node-count caps at parse time (depth ≤ 10, total nodes ≤
+  256) per ADR-010 OQ4.
+
+#### Witness adapter independence
+
+Witness adapters (per ADR-002) are unaffected by this engine choice.
+Witnesses run via their respective tools (`cargo test`, `cargo kani`,
+`cargo clippy`, `cargo prusti`, etc.) and report results. The engine
+choice is *what fingerprints match*, not *what witnesses prove*.
+
+### Sweep-level consequences
+
+- **Sweep A2 (core macros + initial fingerprint engine)**: scope is
+  item-level operators only. Body-pattern operator (W6b) blocks on
+  sibling backend decision. The evaluator trait ships as private
+  scaffolding in v0.1.
+- **Sweep A3 (cargo-antigen scan)**: per-file caching pattern is
+  ratified; implementation defers per ADR-010 stewardship.
+- **Sweep A4 (composition rules)**: ADR-016's temporal evaluator
+  (when ratified) is the second backend that justifies S3's public
+  API; trait goes public during A4 if not earlier.
+- **Sweep A5 (vaccinate + audit + stdlib antigens)**: stdlib
+  antigens authored against this grammar. Tier-2/Tier-3 vocabulary
+  additions sized when stdlib content surfaces the need.
+
+### Enforcement
+
+- **CI gate**: `cargo build` succeeds with `antigen-fingerprint`
+  crate building against `syn` only (v0.1). `cargo test --workspace`
+  covers parser unit tests + syn-evaluator integration tests
+  against synthetic AST fixtures.
+- **Adversarial sweep** (per ADR-005 sub-clause F): malformed
+  fingerprint strings fail loudly at fingerprint-load time, not
+  silently at scan time. `Path C` parser produces `syn::Error`
+  pointing to the offending token's span.
+- **Recognition substrate**: when the sibling backend decision
+  ratifies, tambear's `UlpDistanceRolledByHand` adoption gap
+  (multi-statement form) becomes the integration test target. v0.1
+  ships honest documentation that body-pattern matching is
+  deferred; the gap is named, not papered over.
+
+### Resolves
+
+- The implementation-detail tension in ADR-010 §Mechanics §1 that
+  surfaced under math-researcher's review §16.6 + tambear
+  adoption-log evidence.
+- The B-vs-C question scout asked: this ADR makes the answer
+  "neither B nor C as initially framed; it's *one grammar with
+  separable runtime*." The runtime choice (library / subprocess /
+  deferred) is sibling decision territory.
+- Aristotle's grammar-vs-vocabulary cut: the grammar is what gets
+  ratified (this ADR pins it); the vocabulary is what gets
+  documented and grows with stdlib content.
+
+### Open questions deferred to future ADRs
+
+1. **Body-pattern backend choice (sibling decision)**. Path 1 / Path
+   2 / Path 3 per Deferred section. Both reviewers independently
+   recommend Path 2; the sibling decision should weigh that
+   convergence against any new substrate.
+
+2. **Path-relative predicates**: fingerprints expressing
+   path-relative predicates ("an enum X *inside* a module named Y")
+   aren't in v0.1 grammar. Future Tier-2/Tier-3 vocabulary
+   extension if substrate surfaces the need.
+
+3. **Cross-language readiness**. The serializable AST makes
+   language-portability tractable; the actual cross-language ADR
+   sequences in v0.2+ when stdlib content surfaces a non-Rust
+   failure-class.
+
+4. **Per-operator trait granularity** (deferred from S3).
+   Per-fingerprint is the v0.1 grain. If cross-language work
+   surfaces evidence that per-operator dispatch is structurally
+   needed, future amendment to S3.
+
+---
+
+## [ADR-016] Temporal recognition surface: provenance + freshness primitives for stale-context and premature-abstraction
+
+**Status**: Ratified 2026-05-09.
+
+**Participants**: scout (T2 finding — stale-context and
+premature-abstraction need temporal primitives), math-researcher
+(drafted v0 + v1 absorbing aristotle's external Phase 1-8),
+aristotle (external Phase 1-8: ratify with grid framing +
+substrate-honesty refinement + R-5 PrematureAbstraction witness gap
+closure), adversarial (ATK-T2-1..4 + ATK-016-1..5 + ATK-A2-1..6),
+scientist (validation), team-lead (ratification).
+
+**Sibling**: ADR-015 (engine grammar). Together they ratify the
+analysis-level × temporality grid as recognition substrate. ADR-015
+picks engines (the analysis-level axis); ADR-016 picks the temporal
+level + freshness substrate (the temporality axis).
+
+**Related**:
+- ADR-001 + Amendment 1 — **orthogonal axes**, not extension.
+  Carrier-strength is about drift-resistance of the memory carrier;
+  temporality is about the memory's relationship to time.
+- ADR-002 (compose-don't-compete) — load-bearing for v1
+  implementation: cargo-audit / cargo-deny / Renovate are external
+  temporal witnesses.
+- ADR-005 sub-clause F — every trust boundary needs validation. The
+  temporal trust boundary (was-verified-at-commit-X) is no
+  exception.
+- ADR-006 (recognition, not design) — the substrate exhibits
+  temporal failure-classes; this ADR names them.
+- ADR-007 (anti-YAGNI: structurally-guaranteed need) — the 8-class
+  taxonomy commits us to all 8; classes 4 (stale-context) and 5
+  (premature-abstraction) are temporal.
+- ADR-009 (adoption gradient) — `references` field is the passive
+  temporal carrier today; ADR-016 adds an active carrier.
+- ADR-010 + Amendments — temporal level joins syn / HIR / MIR /
+  runtime in the analysis-level field.
+- ADR-013 + Amendments — witness-validity tier hierarchy.
+  PrematureAbstraction's witness shape sits *below* Reachability
+  tier; future-ADR placeholder for a possible Documentation tier.
+- ADR-015 — engine-axis extensibility (the per-fingerprint
+  evaluator trait private-in-v0.1) admits a temporal-evaluator
+  backend when one ratifies.
+
+### Finding
+
+The 8-class failure taxonomy is **not analysis-level-uniform** and
+**not temporality-uniform**. Two of the eight classes (stale-context
+#4 and premature-abstraction #5) are *fundamentally temporal*: they
+involve comparisons between *current state* and *past state* (or
+past evidence). The substrate evidence:
+
+- **Stale-context** instances (per
+  `failure-class-instances.md` §4; 4 instances):
+  `cratedepression-rustdecimal-typosquat`,
+  `faster-log-async-println-supply-chain`,
+  `rust-1.80-time-crate-stale-pin`,
+  `openssl-sys-vendored-stale-build-cache`. Each instance has the
+  shape: state X was true at time T; state X is no longer true at
+  T'; consumer is using state X confidently.
+
+- **Premature-abstraction** instances (per
+  `failure-class-instances.md` §5; 5 instances):
+  `mem-uninitialized`, `unsafe_destructor_blind_to_params`,
+  `TrustedLen`, `pin!`, GATs. Each has the shape: abstraction A was
+  made against evidence E at time T; evidence E' became available
+  at T'; A is now load-bearing but doesn't fit E'.
+
+ADR-010 (fingerprint grammar at scan time) and ADR-002 (witness
+composition operating on current code/test/proof state) are
+**temporally flat** — they see the codebase's *current state* only.
+They cannot, in principle, recognize stale-context or
+premature-abstraction without access to a temporal substrate.
+
+ADR-007's anti-YAGNI clause commits us to all 8 classes. Aristotle's
+P1-8 phase 8 surfaced the deeper structure: antigen v1 occupies one
+cell of a 2D grid (analysis-level × temporality) and gestures at the
+others via taxonomy + manually-presented antigens. This ADR ratifies
+the grid as a recognition substrate.
+
+### Decision
+
+**Antigen ratifies temporality as a first-class axis of recognition,
+orthogonal to analysis-level. Antigen declarations may carry a
+`verified_at = "<commit-hash>"` field; `cargo antigen audit` walks
+git history to check freshness; `cargo audit` / `cargo-deny` /
+`Renovate` are accepted as external temporal witnesses via ADR-002
+composition. Stdlib v0.1 ships at least one temporal antigen
+(`OutdatedSecurityAdvisory` with cargo-audit witness).**
+
+**Stdlib v0.1 commitments — sequencing**:
+- **A2** ratifies the substrate (fields + grid).
+- **A4** implements audit-checks.
+- **A4-A5** stdlib populates.
+
+**PrematureAbstraction's witness shape gap**: PrematureAbstraction
+in v0.1 is **taxonomy-entry + Layer-2 references-only carrier** (per
+ADR-009). Sites marked manually use `#[presents(PrematureAbstraction,
+references = [...])]`. **Sites are NOT marked `#[immune(...)]`**
+because the witness shape ("manual evidence review") is *below* the
+Reachability tier of ADR-013's witness-validity hierarchy — it's not
+a callable artifact. To explicitly tolerate a site that matches
+PrematureAbstraction's shape, use `#[antigen_tolerance(...)]` per
+ADR-011.
+
+**Substrate-honesty refinement**: the A2 macro-parser must accept
+the three new fields (`verified_at`, `evidence`, `stale_after`)
+**with known-limitation note** ("verified_at field present but
+audit-check landing in v0.2+"). NOT silent acceptance (sub-clause F
+violation per ATK-A2-1); NOT field rejection (forward-compat block);
+explicit accept-and-note. The pattern matches ADR-001 Amendment 1
+Change 4's witness-tier-deferral discipline.
+
+The two-axis grid:
+
+```
+                analysis level →
+              syn   HIR   MIR   runtime
+snapshot      X     .     .     .          (ADR-010 + ADR-015 cell)
+longitudinal  .     .     .     X2         (ADR-016 cell)
+```
+
+**v0.1 cell coverage**:
+- **(syn, snapshot)** — the ADR-010 + ADR-015 cell. Most v1 stdlib
+  antigens. PrematureAbstraction lives here in v0.1 as taxonomy-only
+  entry (Layer-2 references-only carrier; no `#[immune]` because
+  witness shape sits below ADR-013 Reachability tier).
+- **(runtime, longitudinal)** — X2 — stale-context via cargo-audit,
+  cargo-deny, Renovate as witnesses. v0.1 stdlib commits at least
+  one antigen here (`OutdatedSecurityAdvisory` +
+  `StaleDependencyPin`).
+- **(syn, longitudinal)** — *future cell, not v0.1*. Will carry
+  premature-abstraction's full provenance substrate when it
+  ratifies in v0.2+.
+- **(HIR, snapshot)**, **(MIR, snapshot)**, **(HIR, longitudinal)**
+  — deferred to v0.2+ via external-analyzer composition.
+
+The grid is the recognition substrate; v0.1 populates two cells;
+future ADRs populate others as substrate evidence accumulates.
+
+### Mechanics
+
+#### Field additions
+
+`#[antigen(...)]`, `#[immune(...)]`, `#[presents(...)]` accept three
+new optional fields (per substrate-honesty discipline: A2 accepts
+these with known-limitation note; A4 implements the audit-side
+checks):
+
+- **`verified_at = "<commit-hash>"`** — the commit hash at which
+  this declaration was last verified. Audit walks `git log` to
+  determine whether HEAD is reachable from this commit and how far.
+  Default: absent (no temporal claim).
+
+- **`stale_after = <interval>`** — declaration becomes "stale" if
+  HEAD is more than this many commits / days past `verified_at`.
+  Default: absent (no decay; staleness only flagged on explicit
+  external-tool failure). Interval syntax: `commits(N)` (commit-
+  count distance), `days(N)` (calendar days), `version("X.Y.Z")`
+  (semver-major-or-minor change in a watched dependency).
+
+- **`evidence = ["<URL-or-commit-or-RFC>"]`** — the evidence that
+  supports this declaration's claim. Audit checks evidence is still
+  accessible. Decay is reported as warnings, not failures (link rot
+  is normal).
+
+#### Audit behavior
+
+`cargo antigen audit` extends with three checks (A4 implementation):
+
+1. **Freshness check** — for declarations carrying `verified_at`,
+   walk `git log --first-parent` and compute commit distance from
+   HEAD. **Calendar time is sourced at audit invocation** (system
+   clock); audit explicitly does NOT use frozen-time substrates. Report:
+   - Reachable + within threshold → green.
+   - Reachable + over threshold → warning (not error; v0.1).
+   - Unreachable → error.
+   - Git unavailable (CI shallow clone) → graceful skip with note.
+
+2. **Evidence check** — for declarations carrying `evidence`,
+   attempt to verify each entry:
+   - URL → HTTP HEAD (off by default to keep audit hermetic; opt-in
+     via `cargo antigen audit --check-evidence`).
+   - Commit → `git rev-parse` (always; no network).
+   - Other (RFC, ADR ref) → format-validation only.
+
+3. **External temporal-witness check** — for antigens declared with
+   `temporal_witness = "cargo-audit" | "cargo-deny" | ...`, audit
+   invokes the external tool and threads its output. Same composition
+   pattern as ADR-002 for syn-snapshot witnesses, applied to the
+   runtime-longitudinal cell.
+
+#### Stdlib v0.1 commitments
+
+- **`OutdatedSecurityAdvisory`** (runtime-longitudinal) —
+  vulnerability declared in a workspace's lockfile is patched in a
+  newer version. Witness: `cargo audit`. Audit fails when cargo-audit
+  reports unpatched advisory.
+- **`StaleDependencyPin`** (runtime-longitudinal) — declared minimum
+  supported dependency version is N major versions behind crates.io
+  latest. Witness: cargo-deny `bans` rules with version range.
+- **`PrematureAbstraction`** (syn-snapshot, taxonomy entry only in
+  v0.1) — declared via `#[presents(PrematureAbstraction, references
+  = ["<RFC URL>", "<commit hash>"])]`. v0.1 has no automated
+  detection; consumer marks manually. v0.2+ adds active provenance
+  substrate. NOT marked `#[immune(...)]` because witness shape sits
+  below Reachability tier.
+
+#### Engine integration (sibling ADR-015 connection)
+
+Per ADR-015's engine-axis extensibility (the per-fingerprint
+evaluator trait private-in-v0.1, going public when a second backend
+ratifies), the temporal evaluator is a backend. Operators in the
+temporal cell:
+
+- **`verified_at(<commit>)`** — predicate evaluated at audit time,
+  not scan time.
+- **`evidence_present(<URL>)`** — predicate evaluated on
+  evidence-check pass.
+- **`stale_relative_to(<interval>)`** — predicate over `git log` /
+  dependency-graph state.
+
+When ADR-016's temporal evaluator implementation lands (A4), it
+becomes the second evaluator backend that justifies ADR-015 §S3's
+evaluator trait going public. The two ADRs co-validate: ADR-015's S3
+trait is structurally guaranteed by ADR-016's temporal evaluator;
+ADR-016's temporal evaluator is operationally clean because ADR-015
+§S3 abstracts the delegation boundary.
+
+#### Crate dependencies
+
+ADR-016 ratifies the *need* for git-graph walking. **A4
+implementation chooses among**:
+- `git2` — libgit2 binding for commit-graph walking.
+- `gitoxide` — pure-Rust git library; rapidly maturing as of 2026.
+- `git` subprocess invocation — composition-surface taxonomy
+  consistency with cargo-audit/cargo-deny path; no library dep.
+
+ADR-016 does not pin the git substrate at v0; A4 implementation pass
+picks based on substrate evolution at the time. Graceful degradation
+when git substrate is unavailable.
+
+`semver` — version parsing for `stale_after = version("X.Y.Z")`.
+Mature stable.
+
+External witness invocation reuses the cargo subcommand machinery
+already in `cargo-antigen`. cargo-audit / cargo-deny are not added
+as dependencies; they are invoked as external processes (per
+ADR-002).
+
+### Sweep-level consequences
+
+- **Sweep A2 (core macros)**: the macro arg-parser must accept the
+  three new fields **with known-limitation note** per
+  substrate-honesty refinement. Audit doesn't yet *act* on the
+  fields in v0.1.0 (ADR-016 implementation is mostly Sweep A4
+  territory).
+- **Sweep A3 (cross-crate scan + descended_from)**: the
+  `verified_at` field interacts with `#[descended_from]`: the
+  inheritor must re-verify (filed as Eiffel rule D4 — substantive
+  claims do not propagate without explicit re-statement).
+- **Sweep A4 (composition rules)**: ADR-016's full implementation
+  lands here. Audit gains `verified_at` walking; stdlib gets
+  `OutdatedSecurityAdvisory` + `StaleDependencyPin`; cargo-audit /
+  cargo-deny witness adapters land. A4 also surfaces ADR-015 §S3's
+  evaluator trait going public if ADR-015's R6.4 fallback was
+  active.
+- **Sweep A5 (vaccinate + audit completeness)**: stdlib temporal
+  vocabulary is mature enough to author complex stdlib temporal
+  antigens. Premature-abstraction's full provenance substrate is
+  the v0.2+ ADR.
+
+### Enforcement
+
+- **CI gate**: `cargo build` succeeds with `verified_at = "..."`
+  declarations. `cargo antigen audit` reports staleness in
+  machine-readable JSON.
+- **Adversarial sweep** (ADR-005 sub-clause F): a `verified_at`
+  field that the audit doesn't actually walk is *decoration*, not
+  memory. ADR-005 forbids decorative trust extensions.
+- **Recognition substrate**: tambear's CI workflow (after antigen
+  v0.2+ ships) is the integration test target.
+
+### Resolves
+
+- The temporal flatness of ADR-010 + ADR-002.
+- The 2-of-8 stdlib coverage gap in v1 (without ADR-016, classes 4
+  and 5 have no v0.1 carriers).
+- The implicit conflation of recognition surface with snapshot
+  recognition (ADR-006 violation: substrate exhibits temporal
+  recognition; v1 didn't name it).
+- The asymmetry between `references` (Layer 2 ADR-009; passive
+  carrier) and what stale-context actually needs (active carrier
+  with audit-time check).
+- The witness-shape gap for PrematureAbstraction: below-Reachability
+  tier is now explicitly named; tolerance path via ADR-011; future
+  Documentation tier as ADR placeholder.
+- The accept-vs-reject vs accept-with-note dilemma at A2
+  macro-parser boundary: substrate-honesty refinement closes
+  ATK-A2-1.
+
+### Open questions deferred to future ADRs
+
+1. **Premature-abstraction full provenance** (v0.2+ ADR). Likely
+   shape: `verified_at_evidence = [{commit, time, justification}]`.
+   Requires git-graph integration, evidence-storage shape,
+   abstraction-time recording.
+2. **Documentation witness tier**. If multiple instances surface
+   where "manual evidence review" or "documentation cross-reference"
+   is structurally a witness, a Documentation tier *below*
+   Reachability becomes structurally guaranteed by the substrate.
+3. **Reverse-antigen primitive (`#[contingent_on(X)]`)**.
+   Stale-context is structurally a *reverse antigen* — the antigen
+   is "this code is correct WHEN X is current." May need its own
+   primitive.
+4. **Decay-rate per failure-class**. cargo-audit's advisory DB has
+   daily decay; rust-1.80-time has yearly decay; mem-uninitialized
+   had decade-scale decay. v0.1 ships single-default decay.
+5. **Cross-version semver awareness as fingerprint operator**. v0.1
+   ships interval syntax; the actual semver-watch logic may need
+   its own ADR if it grows beyond cargo-deny composition.
+6. **Inheritance interaction with verified_at**. v1 position:
+   inheritors don't inherit `verified_at`. Eiffel rule D4.
+7. **Audit hermeticity disclosure**. The `--check-evidence` flag is
+   opt-in for network calls; system clock for calendar time is
+   canonically non-hermetic. The exact disclosure-shape may need
+   its own future ADR if audit grows additional non-hermetic checks.
+8. **Git substrate choice** (deferred to A4 implementation).
+   git2 / gitoxide / `git` subprocess.
 
 ---
 

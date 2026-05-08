@@ -241,33 +241,50 @@ fn atk_a2_007_antigen_on_enum_produces_feedback_not_silence() {
 }
 
 // ============================================================================
-// ATK-A2-005 (revised): Scope-unaware witness lookup — cross-reactive antibody
+// ATK-A2-005 (reframed): Scope-unaware witness lookup — ambiguous name must
+// not silently resolve.
 //
 // The flat FunctionIndex cannot distinguish two functions with the same name
-// in different scopes. A witness declaration intending to cite a #[test]
-// function can silently resolve to a non-test function with the same name.
+// in different scopes. When a witness declaration is ambiguous (two functions
+// share the name), the audit must NOT silently resolve to whichever function
+// the filesystem walk happened to index last.
 //
 // Fixture (tests/fixtures/atk_a2_005_scope_cross_reactive/):
 //   tests.rs       — `#[test] fn verify_boundary() { assert!(...) }`  (intended)
 //   utils.rs       — `fn verify_boundary() {}`                         (collision)
 //   immune_site.rs — `#[immune(X, witness = verify_boundary)]`
 //
-// The precise bug: if utils.rs is walked AFTER tests.rs, the Function-kind
-// entry overwrites the Test-kind entry. The audit resolves as Function-kind
-// and is_well_formed() returns true — a witness that asserts nothing satisfies
-// an immunity claim.
+// THE PREMISE ISSUE WITH THE ORIGINAL TEST: the original test asserted that
+// the resolution MUST be Test-kind (i.e., the right function wins). That's
+// the wrong assertion — it only tests for a specific tie-breaking rule, not
+// for the real bug. A "prefer Test over Function on collision" fix would pass
+// that test while still being wrong: it leaves the result dependent on which
+// functions happen to share a name, producing fragile immunity claims that
+// break if the naming changes.
 //
-// This test asserts: if the resolution is Resolved, it MUST be Test-kind.
-// If it's Function-kind, the collision function won and the claim is invalid.
-// If this test is flaky (Test sometimes, Function sometimes), that confirms
-// the non-determinism and is itself a failure.
+// THE CORRECT ASSERTION: when two functions share a name, the audit must NOT
+// silently pick one. The correct fix is one of:
+//   (a) WitnessStatus that flags ambiguity (WitnessStatus::Ambiguous or
+//       equivalent), OR
+//   (b) require a qualified path — `verify_boundary` is rejected; the user
+//       must write `tests::verify_boundary` to be unambiguous.
+//
+// In both cases: `is_well_formed()` must return false for an ambiguous
+// unqualified witness name. A developer writing `witness = verify_boundary`
+// in a codebase where that name is shared gets a NOT-well-formed result
+// that tells them to qualify the path — not a silent pass.
+//
+// PASS CONDITION for W7: `is_well_formed()` returns false for an unqualified
+// witness name that resolves to multiple functions in the workspace. The
+// resolution either produces a new WitnessStatus variant (Ambiguous) or
+// WitnessStatus::NotFound with an ambiguity message.
 // ============================================================================
 
 #[test]
-#[ignore = "blocks on W7 tier-aware audit — scope-aware witness resolution \
-    (preferring #[test] kind over Function kind on name collision) is part \
-    of the W7 redesign of FunctionIndex. Remove ignore when W7 lands."]
-fn atk_a2_005_scope_unaware_lookup_resolves_to_test_not_collision() {
+#[ignore = "pre-implementation contract for W7 — ambiguous witness names must \
+    not silently resolve. Remove ignore when W7 ships FunctionIndex with \
+    qualified-path resolution or WitnessStatus::Ambiguous."]
+fn atk_a2_005_ambiguous_witness_name_is_not_silently_resolved() {
     let fixture_root = fixture("atk_a2_005_scope_cross_reactive");
     let scan = scan_workspace(&fixture_root, None).unwrap();
 
@@ -277,34 +294,41 @@ fn atk_a2_005_scope_unaware_lookup_resolves_to_test_not_collision() {
     assert_eq!(audit_report.audits.len(), 1);
     let a = &audit_report.audits[0];
 
-    match &a.witness_status {
-        WitnessStatus::Resolved {
-            witness_kind,
-            location,
-        } => {
-            assert_eq!(
-                *witness_kind,
-                WitnessKind::Test,
-                "ATK-A2-005: witness `verify_boundary` resolved to {:?} at {:?}.\n\
-                 The flat FunctionIndex indexed two functions with the same name:\n\
-                 - tests.rs: #[test] fn verify_boundary()  (intended, Test kind)\n\
-                 - utils.rs: fn verify_boundary()           (collision, Function kind)\n\
-                 If resolved as Function, the non-test collision won. The audit then\n\
-                 reports a structurally well-formed immunity backed by a function\n\
-                 that asserts nothing. This is ATK-A2-005: scope-unaware lookup.\n\
-                 Fix: FunctionIndex must use qualified paths, or ambiguous names\n\
-                 must produce WitnessStatus::Ambiguous rather than silently resolving.",
-                witness_kind,
-                location
-            );
-        }
-        other => {
-            panic!(
-                "ATK-A2-005: expected Resolved status for verify_boundary; got {:?}",
-                other
-            );
-        }
-    }
+    // THE REAL FAILURE MODE: the witness `verify_boundary` is ambiguous —
+    // two functions share this name in the workspace. The audit must surface
+    // this ambiguity rather than silently resolving to one of them.
+    //
+    // Currently FAILING: audit silently picks whichever file was indexed last
+    // (utils.rs, alphabetically after tests.rs) and reports Resolved{Function},
+    // which is_well_formed() treats as structurally sound. The developer has
+    // no indication their witness points at a non-test function.
+    //
+    // W7 fix: either
+    //   (a) is_well_formed() returns false when the witness name is ambiguous, OR
+    //   (b) a new WitnessStatus::Ambiguous variant is emitted, which is also
+    //       not well-formed.
+    // Either way: an unqualified witness that matches multiple functions in the
+    // workspace must NOT produce a clean is_well_formed() result.
+    assert!(
+        !a.is_well_formed(),
+        "ATK-A2-005 (reframed): witness `verify_boundary` is ambiguous — two functions\n\
+         share this name in the fixture workspace:\n\
+         - tests.rs: #[test] fn verify_boundary()   (intended reference)\n\
+         - utils.rs: fn verify_boundary() {{}}        (collision, asserts nothing)\n\
+         \n\
+         The audit must NOT report is_well_formed() = true for an ambiguous unqualified\n\
+         witness name. The developer cannot know which function the audit resolved to.\n\
+         \n\
+         Current behavior: {:?} — is_well_formed() = {}\n\
+         \n\
+         Fix (W7): FunctionIndex must detect name collisions and either:\n\
+         (a) emit WitnessStatus::Ambiguous (not well-formed), requiring the user\n\
+             to qualify the path (e.g., `tests::verify_boundary`), OR\n\
+         (b) emit WitnessStatus::NotFound with a message explaining the ambiguity.\n\
+         Silently picking one function by filesystem walk order is not acceptable.",
+        a.witness_status,
+        a.is_well_formed()
+    );
 }
 
 // ============================================================================

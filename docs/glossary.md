@@ -248,7 +248,25 @@ by accepting heterogeneous proof shapes (test, proptest, formal verification, li
 phantom type) under one vocabulary. See `docs/expedition/academic-context.md` §10
 and §11.
 
-**Introduced in**: `api-shape.md`.
+**Vocabulary disambiguation — "witness" in Rust ecosystem usage**: the word "witness"
+appears in multiple Rust patterns with structurally-different meanings. Antigen uses
+"witness" specifically for **proof-of-immunity-claim**, not for either:
+
+- **Type-witness for const-fn dispatch** (e.g., the `typewit` crate's `TypeEq<L, R>`)
+  — uses `witness` to mean "compile-time proof that two types are equal so const-fn
+  branches can specialize." Different pattern, different use case. Antigen's witness
+  is about *immunity to a failure-class*; typewit's witness is about *type-level
+  equality for polymorphism*.
+- **Proof-of-knowledge witness** in zero-knowledge cryptography — uses "witness"
+  for the secret value the prover demonstrates knowledge of. Out-of-domain for antigen.
+
+When ADR-013/W7 talk about "phantom-type witnesses," they mean the immunity-encoding
+pattern (see `phantom witness / phantom-type witness` below), not typewit-style
+type-witnesses. The vocabulary collision is real and worth flagging in user-facing
+docs to prevent ecosystem-wide drift.
+
+**Introduced in**: `api-shape.md`. Vocabulary-disambiguation note added 2026-05-08
+after scout's substrate-verification of `witnessed`/`bear_witness`/`typewit` crates.
 
 ### witness-validity tiers
 
@@ -287,9 +305,26 @@ cannot verify whether the construction encodes meaningful preconditions (a trivi
 `pub fn () -> Self { Self(PhantomData) }` shape-matches but proves nothing).
 Construction-validation is deferred to a future ADR.
 
+**Real-world prior art** (per scout's substrate-verification 2026-05-08): the
+[`witnessed`](https://crates.io/crates/witnessed) crate ships exactly this pattern
+as `Witnessed<T, W>`, where `W` is a phantom type encoding a verification proof and
+`T` is the value being witnessed. The crate uses `PhantomData<fn() -> W>` to keep
+the wrapper Send/Sync-transparent. Any function-signature requiring `Witnessed<T,
+ValidatedShape>` refuses unverified values at compile-time. This is the canonical
+real-world example of the pattern ADR-013 / W7 are about to recognize, and is a
+**first-class W7 detection target** alongside hand-rolled `PhantomData<T>` constructions.
+
+**Vocabulary disambiguation — distinct from typewit-style witnesses**: this entry
+covers phantom-type witnesses *for invariant-encoding* (the `Witnessed<T, W>` /
+`PolarityProof::<FrameTranslation>` pattern). It is **not** the same as the
+[`typewit`](https://crates.io/crates/typewit) crate's `TypeEq<L, R>`, which uses
+"witness" to mean type-level equality proof for const-fn dispatch. Same word,
+different patterns. See the `witness` entry above for the broader disambiguation.
+
 **Introduced in**: ADR-013 (2026-05-08). Pre-existing api-shape.md sketch. Academic
 lineage: refinement-type proof carriers (Liquid Haskell, Flux); seal-trait
-private-constructor patterns.
+private-constructor patterns. Real-world-instance note added 2026-05-08 after
+scout's substrate-verification of `witnessed` / `bear_witness` / `typewit`.
 
 ### family / failure-class family
 
@@ -574,6 +609,114 @@ antigen-stdlib is recognition of existing common patterns.
 conditional structure. e.g., if a function is "fragile to X under condition C, immune to
 X under condition !C," do not collapse to "fragile to X" or "immune to X." Express the
 conditional via separate antigen instances or refined fingerprints.
+
+### grammar-vs-vocabulary cut
+
+**Origin**: aristotle's reciprocal Phase 1-8 of math-researcher's ADR-010 systems
+review; ratified in ADR-015.
+
+**In antigen**: the distinction between the *grammar* of fingerprint expressions
+(node-kind × field-path × constraint-op + Boolean composition — the load-bearing
+structural commitment) and the *vocabulary* of named operators that project the
+grammar (`item:`, `name: matches(...)`, `body_contains_macro(...)`, etc. — the
+projection surface). ADR-010 ratified the vocabulary explicitly; the grammar was
+implicit. ADR-015 surfaces the grammar as the structural commitment; the vocabulary
+grows with stdlib content.
+
+### evaluator trait
+
+**Origin**: ADR-015 §S3.
+
+**In antigen**: a per-fingerprint trait abstracting the engine that evaluates a
+fingerprint against a Rust source AST. Private in v0.1; goes public when a second
+backend ratifies (likely ADR-016's temporal evaluator). Two implementations expected
+in `antigen-fingerprint`: `SynEvaluator` (item-level operators, native syn) and a
+deferred body-pattern backend (Path 1 library / Path 2 subprocess / Path 3 defer
+per ADR-015's deferred sibling decision).
+
+### delegation-boundary discipline
+
+**Origin**: ADR-015 + ADR-013 + ADR-016 convergence; postures.md V0+1 candidate.
+
+**In antigen**: the architectural posture that the boundary between antigen-grammar
+and external substrate is the design surface; the implementation across that boundary
+is delegation, not reinvention. Each engine is a delegation-boundary; the evaluator
+trait abstracts. Operationalises ADR-002 (compose-don't-compete) at engine-axis +
+witness-axis + temporal-axis.
+
+### accept-and-note discipline
+
+**Origin**: ADR-016 substrate-honesty refinement (per aristotle's external Phase 1-8).
+
+**In antigen**: when a macro arg-parser receives a field whose audit-side check is
+not yet implemented (e.g., `verified_at` in v0.1 before ADR-016 A4 implementation),
+the parser MUST accept the field with an explicit known-limitation note rather than
+silently accept (sub-clause F violation; ATK-A2-1) or reject (forward-compat block).
+The pattern matches ADR-001 Amendment 1 Change 4's witness-tier-deferral discipline.
+
+### audit tier-honesty
+
+**Origin**: ADR-005 Amendment 3.
+
+**In antigen**: the discipline that audit's status output (`is_well_formed()`,
+`WitnessStatus`, `witness_tier` field in JSON) must report the tier its verification
+work *actually* supports — never a stronger tier. Where verification at the claimed
+tier has not occurred, audit MUST either (a) report at the lower tier its work
+actually supports, OR (b) emit a tier-honesty audit hint. Sub-clause F applied at
+the audit reporting surface.
+
+### verified_at / evidence / stale_after
+
+**Origin**: ADR-016 (temporal recognition surface).
+
+**In antigen**: optional fields on `#[antigen]`, `#[immune]`, `#[presents]`
+declarations carrying temporal claims:
+
+- `verified_at = "<commit-hash>"` — the commit at which this declaration was last
+  verified. `cargo antigen audit` (A4 implementation) walks `git log` to determine
+  whether HEAD is reachable and how far past.
+- `evidence = ["<URL-or-commit-or-RFC>"]` — supporting evidence for the
+  declaration's claim. Audit can verify accessibility (opt-in via
+  `--check-evidence`).
+- `stale_after = <interval>` — declaration becomes "stale" past this interval.
+  Syntax: `commits(N)`, `days(N)`, `version("X.Y.Z")`.
+
+A2 macro-parser accepts these per accept-and-note discipline; A4 implements the
+audit-side checks.
+
+### analysis-level × temporality grid
+
+**Origin**: aristotle's ADR-016 Phase 1-8 grid framing; ratified jointly across
+ADR-015 + ADR-016.
+
+**In antigen**: the two-axis recognition substrate. Analysis-level axis: syn / HIR /
+MIR / runtime (ADR-015 picks engines along this axis). Temporality axis: snapshot /
+longitudinal (ADR-016 picks the temporal level). v0.1 populates two cells:
+(syn, snapshot) and (runtime, longitudinal). Future ADRs populate other cells as
+substrate evidence accumulates.
+
+### filter / proof split (fingerprints filter; witnesses prove)
+
+**Origin**: scout's framing; math-researcher §16; ratified at ADR-010 Amendment 3
+Clause D; promoted to top-level architectural principle at ADR-010 Amendment 4.
+
+**In antigen**: the operative semantic posture across antigen's recognition surface.
+Fingerprints are recall-tuned candidate filters; precision lives in the witness
+layer (composed via ADR-002). False positives from the filter are EXPECTED and not
+failure states; ADR-011 `#[antigen_tolerance]` is the structural relief valve for
+matches-by-design. The split is what makes cheap syntax-level fingerprint operators
+sufficient for v1: precision pushes to witness, not filter.
+
+### rationale-as-required-field
+
+**Origin**: ADR-001 Amendment 1 Change 7 (originating observation); ADR-005
+Amendment 2 (transverse sub-clause F discipline).
+
+**In antigen**: the principle that every primitive that extends trust requires an
+explicit justification field (named `rationale`, `summary`, `references`, `witness`,
+or an ADR-specific equivalent) by default. Five+ manifestations across the carrier
+set. New trust-extending primitives without justification fields require active
+argument; primitives with justification fields are the unmarked default.
 
 ---
 

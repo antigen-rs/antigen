@@ -192,8 +192,9 @@ system for "named, declared, propagated through types."
   *POPL 2017*.
 - Bauer, A., & Pretnar, M. (2015). "Programming with Algebraic Effects and
   Handlers." *Journal of Logical and Algebraic Methods in Programming*.
-- Sivaramakrishnan, K. C., et al. (2021). "Retrofitting Parallelism onto OCaml."
-  *ICFP 2020*.
+- Sivaramakrishnan, K. C., et al. (2020). "Retrofitting Parallelism onto OCaml."
+  *ICFP 2020* (Proc. ACM Program. Lang. 4, Article 113). — For the effects-as-typed-phenomenon
+  angle: Sivaramakrishnan et al. "Retrofitting Effect Handlers onto OCaml." *PLDI 2021*.
 - Convent, L., Lindley, S., McBride, C., & McLaughlin, C. (2020). "Doo Bee Doo
   Bee Doo." *JFP 30*.
 
@@ -348,10 +349,17 @@ failure-class, the witness is a Dafny proof / Frama-C contract / Why3 derivation
   built on Viper. Reasons about ownership; specifications attached as Rust
   attributes. Possibly the most mature Rust-specific verification tool. A
   natural witness backend for antigen.
-- **Creusot** (Denis, Jourdan, Marché). Foreshadow/Why3-based verifier for Rust.
-  Specifications via attributes; produces Why3 proof obligations.
-- **Verus** (Hance et al., MSR / CMU; OOPSLA/POPL papers 2023+). Rust extension
-  with linear ghost code, SMT discharge, and Coq-like rich specifications.
+- **Creusot** (Denis, Jourdan, Marché; ICFEM 2022). Why3-based deductive verifier for
+  Rust. Specifications via attributes; produces Why3 proof obligations. Cite as:
+  Xavier Denis, Jacques-Henri Jourdan, Claude Marché. "Creusot: A Foundry for the
+  Deductive Verification of Rust Programs." LNCS 13478, Springer 2022 (DOI:
+  10.1007/978-3-031-17244-1_6). [Note: "ICFM 2022" in earlier drafts is wrong — it
+  is ICFEM (23rd International Conference on Formal Engineering Methods).]
+- **Verus** (Lattuada, Hance et al., VMware/CMU/MSR; OOPSLA 2023). Rust extension
+  with linear ghost code, SMT discharge. Canonical citation: Andrea Lattuada, Travis
+  Hance et al. "Verus: Verifying Rust Programs using Linear Ghost Types." Proc. ACM
+  Program. Lang. 7, OOPSLA1, Article 85 (2023), DOI: 10.1145/3586037. A second
+  systems paper exists (SOSP 2024); cite the OOPSLA 2023 paper for language design.
 - **Aeneas** (Ho, Protzenko; ICFP 2022). Translates Rust functional-fragment
   programs into pure F\* / Lean / Coq for verification. A different design
   point — translation rather than annotation.
@@ -696,8 +704,9 @@ degrades — is, to our knowledge, novel.
   *Journal of Logical and Algebraic Methods in Programming*.
 - Convent, L., Lindley, S., McBride, C., & McLaughlin, C. (2020). "Doo Bee Doo
   Bee Doo." *Journal of Functional Programming* 30.
-- Sivaramakrishnan, K. C., et al. (2021). "Retrofitting Parallelism onto OCaml."
-  *ICFP 2020*.
+- Sivaramakrishnan, K. C., et al. (2020). "Retrofitting Parallelism onto OCaml."
+  *ICFP 2020* (Proc. ACM Program. Lang. 4, Article 113). — For the effects-as-typed-phenomenon
+  angle: Sivaramakrishnan et al. "Retrofitting Effect Handlers onto OCaml." *PLDI 2021*.
 
 ### Information flow
 - Pottier, F., & Simonet, V. (2003). "Information Flow Inference for ML." *ACM TOPLAS*.
@@ -762,25 +771,28 @@ degrades — is, to our knowledge, novel.
 
 ## 14. Open verification items for the team
 
-Items where this survey relied on background knowledge and which a paper-track
-team should verify against current literature:
+Items where this survey relied on background knowledge. Items 1-5 are now
+**VERIFIED** (2026-05-08, scientist A2 pass via WebSearch).
 
-1. **Verus venue/year** — listed as OOPSLA 2023, multiple Verus papers exist;
-   verify which is the canonical citation.
-2. **Creusot venue** — likely *iFM* or *FM* 2022/2023, verify exact venue.
-3. **Tree Borrows** — listed as 2023+; the formal publication may be 2024.
-   Verify before citing.
-4. **MIRAI** — engineering paper exists; verify whether there is a venue paper
-   to cite or whether it should be cited as a tool URL.
-5. **Sivaramakrishnan et al. on OCaml 5 effects** — multiple papers; 2021 ICFP
-   listed but the canonical citation may be PLDI 2020 / 2021 / 2022.
-6. **Recent FindBugs / SpotBugs / Infer citations** — the lineage spans 2004
-   (Hovemeyer & Pugh) to 2015 (Calcagno et al.) to ongoing. Pick the relevant
-   anchors for the angle being argued.
+1. **Verus venue/year** — VERIFIED: OOPSLA 2023 confirmed. Proc. ACM Program.
+   Lang. 7, OOPSLA1, Article 85. DOI: 10.1145/3586037. Use this citation.
+2. **Creusot venue** — VERIFIED and CORRECTED: it is **ICFEM 2022** (23rd
+   International Conference on Formal Engineering Methods, Madrid). Not iFM or FM.
+   Earlier drafts used "ICFM 2022" — that is a truncation error.
+3. **Tree Borrows** — VERIFIED: Published PLDI 2025. Neven Villani, Johannes
+   Hostert, Derek Dreyer, Ralf Jung. Proc. ACM Program. Lang. 9, Article in PLDI
+   issue. DOI: 10.1145/3735592. (4 authors — earlier drafts said "Villani, Jung.")
+4. **MIRAI** — VERIFIED: No venue paper found. Cite as tool with GitHub URL:
+   facebookexperimental/MIRAI. Project is orphaned (Meta team disbanded).
+5. **Sivaramakrishnan et al. on OCaml 5 effects** — VERIFIED and CORRECTED: Two
+   papers. "Retrofitting Parallelism onto OCaml" is ICFP 2020 (not 2021 as
+   previously listed). For the effects-as-typed-phenomenon angle relevant to
+   antigen, use "Retrofitting Effect Handlers onto OCaml" (PLDI 2021).
+6. **Recent FindBugs / SpotBugs / Infer citations** — still unverified; pick
+   relevant anchors for the angle being argued.
 
-Until these are verified, the paper-track team should treat this document as a
-**research-grade survey of nearest neighbors** rather than as a copy-pasteable
-bibliography.
+Until item 6 is verified, the paper-track team should treat citations in that
+lineage as research-grade estimates rather than copy-pasteable bibliography.
 
 ---
 
