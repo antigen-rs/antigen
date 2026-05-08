@@ -609,7 +609,7 @@ mod tests {
     }
 
     /// Minimal DSL fingerprint string accepted by the W6a parser. Tests that
-    /// don't care about fingerprint content but DO want validate() to succeed
+    /// don't care about fingerprint content but DO want `validate()` to succeed
     /// use this to keep their assertions focused on name validation.
     const VALID_DSL: &str = r#"name = matches("*")"#;
 
