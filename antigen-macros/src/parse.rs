@@ -268,3 +268,227 @@ fn is_kebab_case(s: &str) -> bool {
         && !s.ends_with('-')
         && !s.contains("--")
 }
+
+// ============================================================================
+// Cross-parser equivalence fixtures
+//
+// These fixtures define the invariant: for any input the macro side accepts as
+// valid, the scan side must produce equivalent semantic content for the four
+// overlapping fields (name, fingerprint, family, summary). The same fixture
+// table appears in `antigen/src/scan.rs` (ScanAntigenArgs tests) — keeping the
+// inputs and expected outputs literally identical is what makes the
+// equivalence inspectable.
+//
+// ATK-001-2 lesson: the brittle string-manipulation parser corrupted
+// fingerprints with inner double-quotes silently. Property tests over both
+// parsers prevent that class of drift from re-emerging.
+//
+// When adding a fixture here, add the matching one to scan.rs. When adding a
+// new field to the antigen attribute grammar, add fixtures here AND to scan.rs
+// to lock the equivalence.
+// ============================================================================
+
+/// Fixture tuple shape: `(input, expected_name, expected_fingerprint,
+/// expected_family, expected_summary)`.
+#[cfg(test)]
+type AntigenFixture = (&'static str, &'static str, &'static str, Option<&'static str>, Option<&'static str>);
+
+#[cfg(test)]
+const ANTIGEN_PARSER_FIXTURES: &[AntigenFixture] = &[
+
+    // 1. Smoke test: just the two required fields.
+    (
+        r#"name = "panicking-in-drop", fingerprint = "impl Drop with panic""#,
+        "panicking-in-drop",
+        "impl Drop with panic",
+        None,
+        None,
+    ),
+    // 2. All four fields populated.
+    (
+        r#"name = "frame-translation", fingerprint = "class enum + meet", family = "semantic-drift", summary = "Polarity inverts at the frame boundary""#,
+        "frame-translation",
+        "class enum + meet",
+        Some("semantic-drift"),
+        Some("Polarity inverts at the frame boundary"),
+    ),
+    // 3. Inner-quoted fingerprint (the ATK-001-2 regression case).
+    (
+        r#"name = "x", fingerprint = "item: enum, has_method(\"meet\", \"(Self, Self) -> Self\")""#,
+        "x",
+        r#"item: enum, has_method("meet", "(Self, Self) -> Self")"#,
+        None,
+        None,
+    ),
+    // 4. Reordered fields (order-invariance check).
+    (
+        r#"summary = "S", family = "F", fingerprint = "FP", name = "n""#,
+        "n",
+        "FP",
+        Some("F"),
+        Some("S"),
+    ),
+    // 5. References array present (macro stores; scan ignores; both must
+    //    accept without error).
+    (
+        r#"name = "x", fingerprint = "y", references = ["GAP-1", "DEC-2"]"#,
+        "x",
+        "y",
+        None,
+        None,
+    ),
+    // 6. Multi-line whitespace (tab + newline) — common rustfmt output shape.
+    (
+        "name = \"multi-line\",\n\tfingerprint = \"shape\",\n\tfamily = \"family\"",
+        "multi-line",
+        "shape",
+        Some("family"),
+        None,
+    ),
+];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proc_macro2::TokenStream;
+
+    #[test]
+    fn antigen_parser_accepts_all_fixtures() {
+        for (input, exp_name, exp_fp, exp_family, exp_summary) in ANTIGEN_PARSER_FIXTURES {
+            let tokens: TokenStream = input
+                .parse()
+                .unwrap_or_else(|e| panic!("fixture failed to tokenize: {input:?}: {e}"));
+            let args = syn::parse2::<AntigenArgs>(tokens)
+                .unwrap_or_else(|e| panic!("macro parser rejected fixture {input:?}: {e}"));
+            assert_eq!(&args.name, exp_name, "name mismatch for fixture: {input:?}");
+            assert_eq!(
+                &args.fingerprint, exp_fp,
+                "fingerprint mismatch for fixture: {input:?}"
+            );
+            assert_eq!(
+                args.family.as_deref(),
+                *exp_family,
+                "family mismatch for fixture: {input:?}"
+            );
+            assert_eq!(
+                args.summary.as_deref(),
+                *exp_summary,
+                "summary mismatch for fixture: {input:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn antigen_parser_rejects_missing_name() {
+        let tokens: TokenStream = r#"fingerprint = "x""#.parse().unwrap();
+        assert!(syn::parse2::<AntigenArgs>(tokens).is_err());
+    }
+
+    #[test]
+    fn antigen_parser_rejects_missing_fingerprint() {
+        let tokens: TokenStream = r#"name = "x""#.parse().unwrap();
+        assert!(syn::parse2::<AntigenArgs>(tokens).is_err());
+    }
+
+    #[test]
+    fn antigen_parser_rejects_unknown_field() {
+        let tokens: TokenStream = r#"name = "x", fingerprint = "y", bogus = "z""#.parse().unwrap();
+        match syn::parse2::<AntigenArgs>(tokens) {
+            Ok(_) => panic!("expected parse to reject unknown field `bogus`"),
+            Err(e) => {
+                let msg = e.to_string();
+                assert!(
+                    msg.contains("unknown") && msg.contains("bogus"),
+                    "expected unknown-field error mentioning `bogus`, got: {msg}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn validate_rejects_empty_name() {
+        let args = AntigenArgs {
+            name: String::new(),
+            fingerprint: "x".to_string(),
+            family: None,
+            summary: None,
+            references: Vec::new(),
+        };
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn validate_rejects_non_kebab_name() {
+        let args = AntigenArgs {
+            name: "FooBar".to_string(),
+            fingerprint: "x".to_string(),
+            family: None,
+            summary: None,
+            references: Vec::new(),
+        };
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn validate_accepts_kebab_name_with_digits() {
+        let args = AntigenArgs {
+            name: "frame-2-translation".to_string(),
+            fingerprint: "x".to_string(),
+            family: None,
+            summary: None,
+            references: Vec::new(),
+        };
+        assert!(args.validate().is_ok());
+    }
+
+    #[test]
+    fn validate_rejects_name_with_double_hyphen() {
+        let args = AntigenArgs {
+            name: "frame--translation".to_string(),
+            fingerprint: "x".to_string(),
+            family: None,
+            summary: None,
+            references: Vec::new(),
+        };
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn validate_rejects_name_starting_with_hyphen() {
+        let args = AntigenArgs {
+            name: "-frame".to_string(),
+            fingerprint: "x".to_string(),
+            family: None,
+            summary: None,
+            references: Vec::new(),
+        };
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn immune_parser_requires_witness() {
+        let tokens: TokenStream = r"PanickingInDrop".parse().unwrap();
+        let args = syn::parse2::<ImmuneArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn immune_parser_accepts_witness_path() {
+        let tokens: TokenStream = r"PanickingInDrop, witness = my::module::test_fn"
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<ImmuneArgs>(tokens).unwrap();
+        assert!(args.witness.is_some());
+        assert!(args.validate().is_ok());
+    }
+
+    #[test]
+    fn immune_parser_accepts_rationale() {
+        let tokens: TokenStream =
+            r#"X, witness = my_test, rationale = "checked manually""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<ImmuneArgs>(tokens).unwrap();
+        assert_eq!(args.rationale.as_deref(), Some("checked manually"));
+    }
+}
