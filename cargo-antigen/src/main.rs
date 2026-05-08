@@ -136,6 +136,19 @@ fn run_scan(args: ScanArgs) -> ExitCode {
 }
 
 fn print_human_report(report: &scan::ScanReport, unaddressed: &[scan::UnaddressedPresentation]) {
+    use antigen::scan::MatchKind;
+
+    let explicit_count = report
+        .presentations
+        .iter()
+        .filter(|p| p.match_kind == MatchKind::ExplicitMarker)
+        .count();
+    let fingerprint_count = report
+        .presentations
+        .iter()
+        .filter(|p| p.match_kind == MatchKind::FingerprintMatch)
+        .count();
+
     println!();
     println!(
         "Scanned {} files, found {} antigen-related declarations:",
@@ -143,47 +156,73 @@ fn print_human_report(report: &scan::ScanReport, unaddressed: &[scan::Unaddresse
         report.total_declarations()
     );
     println!("  - {} antigen declarations", report.antigens.len());
-    println!("  - {} presentations", report.presentations.len());
+    println!("  - {} explicit #[presents] markers", explicit_count);
+    if fingerprint_count > 0 {
+        println!("  - {fingerprint_count} fingerprint matches (unmarked sites)");
+    }
+    if !report.tolerances.is_empty() {
+        println!("  - {} tolerated sites (#[antigen_tolerance])", report.tolerances.len());
+    }
     println!("  - {} immunity claims", report.immunities.len());
     if !report.parse_failures.is_empty() {
-        println!(
-            "  - {} files failed to parse (see --format json for details)",
-            report.parse_failures.len()
-        );
+        println!("  - {} parse failures (see --format json for details)", report.parse_failures.len());
     }
     println!();
 
-    if unaddressed.is_empty() {
-        println!("✓ No unaddressed presentations.");
-        if !report.presentations.is_empty() {
-            println!(
-                "  All {} presentations have nearby immunity declarations.",
-                report.presentations.len()
-            );
-        }
-    } else {
-        println!("⚠ {} unaddressed presentation(s):", unaddressed.len());
-        println!();
-        for u in unaddressed {
-            let p = &u.presentation;
-            println!(
-                "  {}:{}  {} on {}",
-                p.file.display(),
-                p.line,
-                p.antigen_type,
-                p.item_kind
-            );
-            if !u.antigen_known {
-                println!(
-                    "    note: antigen `{}` was not declared in the scanned workspace; \
-                     may be imported from an external crate or undeclared",
-                    p.antigen_type
-                );
-            }
-        }
-        println!();
-        println!("To address: add #[immune({}, witness = ...)] on the same item, OR mark with #[antigen_tolerance(...)]", unaddressed[0].presentation.antigen_type);
+    print_fingerprint_matches(report);
+    print_unaddressed(unaddressed);
+}
+
+fn print_fingerprint_matches(report: &scan::ScanReport) {
+    use antigen::scan::MatchKind;
+    let fp_matches: Vec<_> = report
+        .presentations
+        .iter()
+        .filter(|p| p.match_kind == MatchKind::FingerprintMatch)
+        .collect();
+    if fp_matches.is_empty() {
+        return;
     }
+    println!("{} fingerprint match(es) — structurally similar to a declared antigen:", fp_matches.len());
+    println!();
+    for p in &fp_matches {
+        println!("  {}:{}  {} on {} [fingerprint match]", p.file.display(), p.line, p.antigen_type, p.item_kind);
+    }
+    println!();
+    let ag = &fp_matches[0].antigen_type;
+    println!("  To acknowledge: add #[presents({ag})] to mark explicitly,");
+    println!("    OR #[immune({ag}, witness = ...)] if defended,");
+    println!("    OR #[antigen_tolerance({ag}, rationale = \"...\")] to document intent.");
+    println!();
+}
+
+fn print_unaddressed(unaddressed: &[scan::UnaddressedPresentation]) {
+    use antigen::scan::MatchKind;
+    let explicit_unaddressed: Vec<_> = unaddressed
+        .iter()
+        .filter(|u| u.presentation.match_kind == MatchKind::ExplicitMarker)
+        .collect();
+    if explicit_unaddressed.is_empty() {
+        println!("All explicit presentations are addressed.");
+        return;
+    }
+    println!("{} unaddressed explicit presentation(s):", explicit_unaddressed.len());
+    println!();
+    for u in &explicit_unaddressed {
+        let p = &u.presentation;
+        println!("  {}:{}  {} on {}", p.file.display(), p.line, p.antigen_type, p.item_kind);
+        if !u.antigen_known {
+            println!(
+                "    note: antigen `{}` was not declared in the scanned workspace",
+                p.antigen_type
+            );
+        }
+    }
+    println!();
+    println!(
+        "To address: add #[immune({}, witness = ...)] on the same item, OR #[antigen_tolerance(...)]",
+        explicit_unaddressed[0].presentation.antigen_type
+    );
 }
 
 #[derive(serde::Serialize)]

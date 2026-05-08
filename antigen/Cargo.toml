@@ -20,6 +20,7 @@ workspace = true
 
 [dependencies]
 antigen-macros = { version = "=0.0.1", path = "../antigen-macros" }
+antigen-fingerprint = { version = "=0.0.1", path = "../antigen-fingerprint" }
 syn = { workspace = true }
 quote = { workspace = true }
 proc-macro2 = { workspace = true, features = ["span-locations"] }
