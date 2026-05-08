@@ -226,11 +226,11 @@ pub fn immune(args: TokenStream, input: TokenStream) -> TokenStream {
 /// fn refined_function(...) { ... }
 /// ```
 ///
-/// `cargo antigen scan` walks `#[descended_from]` chains. Markers (`#[presents]`,
-/// `#[immune]`) on the parent propagate to the descendant — with re-validation
-/// of witnesses against the descendant's actual behavior. Witness divergence
-/// (signature change, new edge case) invalidates inherited immunity and prompts
-/// re-justification.
+/// **v0.1 status**: `#[descended_from]` is recognized and parsed but
+/// propagation is not yet implemented. In v0.1, this attribute compiles
+/// cleanly and is recorded by `cargo antigen scan` for future use.
+/// Chain-walking and marker propagation (`#[presents]` / `#[immune]`
+/// inheritance with witness re-validation) arrive in A3.
 #[proc_macro_attribute]
 pub fn descended_from(args: TokenStream, input: TokenStream) -> TokenStream {
     let _args = parse_macro_input!(args as parse::DescendedFromArgs);
