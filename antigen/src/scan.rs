@@ -401,8 +401,18 @@ impl ScanVisitor<'_> {
     fn extract_presents(&mut self, attr: &syn::Attribute, item_kind: &str) {
         let antigen_type = if let syn::Meta::List(list) = &attr.meta {
             // The body is a single path; the last segment is the type name.
+            // `quote::ToTokens` renders `my_crate::Foo` as `"my_crate :: Foo"`
+            // (spaces around `::`), so split("::") yields `[" my_crate ", " Foo "]`.
+            // Trim the last segment to recover the bare type name. (ATK-A2-001:
+            // the same regression class as ATK-001-2 — it was fixed in
+            // extract_antigen and extract_immune via syn::parse2 but missed
+            // here. The structural fix is to parse the body as syn::Path; the
+            // tactical fix below is the minimal one-liner.)
             let body = list.tokens.to_string();
-            body.trim().split("::").last().unwrap_or(&body).to_string()
+            body.trim()
+                .split("::")
+                .last()
+                .map_or_else(|| body.trim().to_string(), |s| s.trim().to_string())
         } else {
             return;
         };
@@ -497,8 +507,25 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
     fn visit_item_enum(&mut self, item: &'ast syn::ItemEnum) {
         for attr in &item.attrs {
             if attr.path().is_ident("antigen") {
-                // antigen on enum is not standard but we record it for diagnostic
-                let _ = attr;
+                // ATK-A2-007: silently dropping #[antigen] on enums eats the
+                // class-enum pattern (the frame-translation antigen's primary
+                // use case). Surface the situation as a parse_failure so the
+                // user sees it, rather than the previous `let _ = attr` no-op.
+                // The macro itself still rejects non-unit structs at compile
+                // time; this scan-side diagnostic catches enum cases that
+                // wouldn't reach the macro (e.g., a user investigating "why
+                // doesn't my class enum scan as an antigen?").
+                self.report.parse_failures.push((
+                    self.file_path.clone(),
+                    format!(
+                        "#[antigen] on enum `{}` is not supported in v0.1; \
+                         antigen declarations must be unit structs (e.g., \
+                         `pub struct {};`). Enum-shaped failure-classes are \
+                         tracked by ADR-010 Amendment 1's class-enum operator \
+                         in a future grammar version.",
+                        item.ident, item.ident
+                    ),
+                ));
             }
         }
         self.check_attrs(&item.attrs, "enum");
