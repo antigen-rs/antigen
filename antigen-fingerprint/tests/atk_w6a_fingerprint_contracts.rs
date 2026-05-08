@@ -74,7 +74,10 @@ fn atk_w6a_001_over_broad_fingerprint_item_only_warns() {
     // A future warning pass should flag this as an autoimmunity risk.
     let result = parse("item = struct");
     // Once warning system exists, expect `Err` or a `warnings` field.
-    assert!(result.is_err(), "ATK-W6a-001: `item = struct` alone must warn/reject as over-broad");
+    assert!(
+        result.is_err(),
+        "ATK-W6a-001: `item = struct` alone must warn/reject as over-broad"
+    );
 }
 
 // ============================================================================
@@ -148,9 +151,8 @@ fn atk_w6a_004c_not_inside_all_of_inside_any_of_is_legal() {
     //
     // The `not` is inside `all_of` with positive sibling `item = struct`.
     // This must parse and match correctly.
-    let fp = parse_ok(
-        r#"any_of([all_of([item = struct, not(name = matches("Test*"))]), item = enum])"#,
-    );
+    let fp =
+        parse_ok(r#"any_of([all_of([item = struct, not(name = matches("Test*"))]), item = enum])"#);
     // Matches a non-Test struct.
     assert!(
         fp.matches(&item("struct ValidStruct;")),
@@ -464,8 +466,7 @@ fn atk_w6a_013_has_method_signature_whitespace_normalized() {
     let impl_src = "impl Lattice { fn meet(&self, other: Self) -> Self { unimplemented!() } }";
 
     // Correct form: `& self` with a space — matches the token render of `&self`.
-    let fp_correct =
-        parse_ok(r#"item = impl, has_method("meet", "(& self, Self) -> Self")"#);
+    let fp_correct = parse_ok(r#"item = impl, has_method("meet", "(& self, Self) -> Self")"#);
     assert!(
         fp_correct.matches(&item(impl_src)),
         "ATK-W6a-013: has_method with '& self' (space after &) must match"
@@ -474,7 +475,8 @@ fn atk_w6a_013_has_method_signature_whitespace_normalized() {
     // normalize_ws collapses runs of whitespace within tokens but does NOT
     // remove punctuation-adjacent spaces. `"(&  self,  Self) -> Self"` (extra
     // internal spaces within the `& self` cluster) collapses correctly.
-    let fp_extra_inner = parse_ok(r#"item = impl, has_method("meet", "(&  self,  Self)  ->  Self")"#);
+    let fp_extra_inner =
+        parse_ok(r#"item = impl, has_method("meet", "(&  self,  Self)  ->  Self")"#);
     assert!(
         fp_extra_inner.matches(&item(impl_src)),
         "ATK-W6a-013: has_method with extra spaces INSIDE tokens collapses via normalize_ws"

@@ -161,11 +161,17 @@ fn print_human_report(report: &scan::ScanReport, unaddressed: &[scan::Unaddresse
         println!("  - {fingerprint_count} fingerprint matches (unmarked sites)");
     }
     if !report.tolerances.is_empty() {
-        println!("  - {} tolerated sites (#[antigen_tolerance])", report.tolerances.len());
+        println!(
+            "  - {} tolerated sites (#[antigen_tolerance])",
+            report.tolerances.len()
+        );
     }
     println!("  - {} immunity claims", report.immunities.len());
     if !report.parse_failures.is_empty() {
-        println!("  - {} parse failures (see --format json for details)", report.parse_failures.len());
+        println!(
+            "  - {} parse failures (see --format json for details)",
+            report.parse_failures.len()
+        );
     }
     println!();
 
@@ -184,10 +190,19 @@ fn print_fingerprint_matches(report: &scan::ScanReport) {
     if fp_matches.is_empty() {
         return;
     }
-    println!("{} fingerprint match(es) — structurally similar to a declared antigen:", fp_matches.len());
+    println!(
+        "{} fingerprint match(es) — structurally similar to a declared antigen:",
+        fp_matches.len()
+    );
     println!();
     for p in &fp_matches {
-        println!("  {}:{}  {} on {} [fingerprint match]", p.file.display(), p.line, p.antigen_type, p.item_kind);
+        println!(
+            "  {}:{}  {} on {} [fingerprint match]",
+            p.file.display(),
+            p.line,
+            p.antigen_type,
+            p.item_kind
+        );
     }
     println!();
     println!("  To acknowledge each site, use the antigen type shown above:");
@@ -202,10 +217,18 @@ fn print_orphaned_tolerances(report: &scan::ScanReport) {
     if orphans.is_empty() {
         return;
     }
-    println!("{} orphaned tolerance(s) — antigen no longer declared in workspace:", orphans.len());
+    println!(
+        "{} orphaned tolerance(s) — antigen no longer declared in workspace:",
+        orphans.len()
+    );
     println!();
     for t in &orphans {
-        println!("  {}:{}  {} [tolerance for unknown antigen]", t.file.display(), t.line, t.antigen_type);
+        println!(
+            "  {}:{}  {} [tolerance for unknown antigen]",
+            t.file.display(),
+            t.line,
+            t.antigen_type
+        );
     }
     println!();
     println!("  Remove or update these tolerances — the antigen they suppress is gone.");
@@ -222,11 +245,20 @@ fn print_unaddressed(unaddressed: &[scan::UnaddressedPresentation]) {
         println!("All explicit presentations are addressed.");
         return;
     }
-    println!("{} unaddressed explicit presentation(s):", explicit_unaddressed.len());
+    println!(
+        "{} unaddressed explicit presentation(s):",
+        explicit_unaddressed.len()
+    );
     println!();
     for u in &explicit_unaddressed {
         let p = &u.presentation;
-        println!("  {}:{}  {} on {}", p.file.display(), p.line, p.antigen_type, p.item_kind);
+        println!(
+            "  {}:{}  {} on {}",
+            p.file.display(),
+            p.line,
+            p.antigen_type,
+            p.item_kind
+        );
         if !u.antigen_known {
             println!(
                 "    note: antigen `{}` was not declared in the scanned workspace",
@@ -361,7 +393,10 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
             println!("  (No immunity declarations found in the workspace.)");
         }
     } else {
-        println!("⚠ {} immunity claim(s) below Execution tier:", problematic.len());
+        println!(
+            "⚠ {} immunity claim(s) below Execution tier:",
+            problematic.len()
+        );
         println!();
         for a in &problematic {
             let i = &a.immunity;
@@ -372,10 +407,7 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
                 i.antigen_type,
                 i.witness
             );
-            println!(
-                "    tier = {:?}, hint = {:?}",
-                a.witness_tier, a.audit_hint,
-            );
+            println!("    tier = {:?}, hint = {:?}", a.witness_tier, a.audit_hint,);
             match &a.witness_status {
                 audit::WitnessStatus::NotFound { reason } => {
                     println!("    → broken: {reason}");

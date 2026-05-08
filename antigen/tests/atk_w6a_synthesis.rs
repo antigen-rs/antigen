@@ -97,13 +97,19 @@ fn w6a_synthesis_dedupes_against_explicit_markers() {
     let mut by_target: HashMap<_, Vec<&_>> = HashMap::new();
     for p in &report.presentations {
         by_target
-            .entry((p.file.clone(), p.antigen_type.clone(), p.item_target.clone()))
+            .entry((
+                p.file.clone(),
+                p.antigen_type.clone(),
+                p.item_target.clone(),
+            ))
             .or_default()
             .push(p);
     }
     for (key, ps) in &by_target {
         let has_explicit = ps.iter().any(|p| p.match_kind == MatchKind::ExplicitMarker);
-        let has_synthetic = ps.iter().any(|p| p.match_kind == MatchKind::FingerprintMatch);
+        let has_synthetic = ps
+            .iter()
+            .any(|p| p.match_kind == MatchKind::FingerprintMatch);
         assert!(
             !(has_explicit && has_synthetic),
             "W6a dedup: same (file, antigen, item_target) {key:?} has BOTH explicit \
@@ -177,9 +183,7 @@ struct Vulnerable;
     let fp_matches: Vec<_> = report
         .presentations
         .iter()
-        .filter(|p| {
-            p.match_kind == MatchKind::FingerprintMatch && p.antigen_type == "TestAntigen"
-        })
+        .filter(|p| p.match_kind == MatchKind::FingerprintMatch && p.antigen_type == "TestAntigen")
         .collect();
     assert!(
         fp_matches.is_empty(),

@@ -427,8 +427,11 @@ struct FunctionIndexVisitor<'a> {
     /// `scan::ScanVisitor` and for future span-anchored diagnostics; the
     /// pre-W5 textual `source.contains("proptest!")` sentinel was removed
     /// when `visit_macro` took over proptest classification.
-    #[allow(dead_code, reason = "reserved for span-anchored diagnostic work \
-        that mirrors scan::ScanVisitor::source")]
+    #[allow(
+        dead_code,
+        reason = "reserved for span-anchored diagnostic work \
+        that mirrors scan::ScanVisitor::source"
+    )]
     source: &'a str,
     index: &'a mut FunctionIndex,
 }
@@ -502,9 +505,7 @@ fn extract_proptest_fn_names(tokens: &proc_macro2::TokenStream) -> Vec<String> {
 /// `attr_is`-style test in `scan.rs`: matches both `#[proptest!(...)]`-style
 /// bare names and `proptest::proptest!(...)` path-qualified forms.
 fn macro_path_last_is(path: &syn::Path, name: &str) -> bool {
-    path.segments
-        .last()
-        .is_some_and(|s| s.ident == name)
+    path.segments.last().is_some_and(|s| s.ident == name)
 }
 
 impl FunctionIndexVisitor<'_> {

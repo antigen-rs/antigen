@@ -56,7 +56,8 @@ fn atk_parser_2_null_byte_in_fingerprint_does_not_crash() {
     let report = scan_workspace(&fixture("atk_parser_null_byte"), None).unwrap();
     eprintln!(
         "ATK-PARSER-2: null byte result: antigens={}, parse_failures={}",
-        report.antigens.len(), report.parse_failures.len()
+        report.antigens.len(),
+        report.parse_failures.len()
     );
     // Must not panic. Either recorded or parse_failure, not crash.
     // If it parsed, the fingerprint may contain a null byte character.
@@ -90,7 +91,9 @@ fn atk_parser_3_long_fingerprint_completes_quickly() {
 
     eprintln!(
         "ATK-PARSER-3: long fingerprint scan: {}ms, antigens={}, parse_failures={}",
-        elapsed.as_millis(), report.antigens.len(), report.parse_failures.len()
+        elapsed.as_millis(),
+        report.antigens.len(),
+        report.parse_failures.len()
     );
 }
 
@@ -108,10 +111,15 @@ fn atk_parser_4_kanji_in_references_does_not_corrupt_name() {
         "ATK-PARSER-4: kanji references fixture must produce output"
     );
     if let Some(a) = report.antigens.first() {
-        assert_eq!(a.name, "test-kanji-refs",
-            "ATK-PARSER-4: kanji in references field must not corrupt the name field");
-        assert_eq!(a.fingerprint.as_deref(), Some("fp"),
-            "ATK-PARSER-4: kanji in references field must not corrupt the fingerprint");
+        assert_eq!(
+            a.name, "test-kanji-refs",
+            "ATK-PARSER-4: kanji in references field must not corrupt the name field"
+        );
+        assert_eq!(
+            a.fingerprint.as_deref(),
+            Some("fp"),
+            "ATK-PARSER-4: kanji in references field must not corrupt the fingerprint"
+        );
     }
 }
 
@@ -128,7 +136,11 @@ fn atk_parser_5_keyword_adjacent_witness_does_not_crash() {
     let report = scan_workspace(&fixture("atk_parser_keyword_witnesses"), None).unwrap();
     eprintln!(
         "ATK-PARSER-5: keyword witnesses: immunities={:?} parse_failures={}",
-        report.immunities.iter().map(|i| &i.witness).collect::<Vec<_>>(),
+        report
+            .immunities
+            .iter()
+            .map(|i| &i.witness)
+            .collect::<Vec<_>>(),
         report.parse_failures.len()
     );
     // Must not panic. Some witnesses may be rejected (parse_failures),

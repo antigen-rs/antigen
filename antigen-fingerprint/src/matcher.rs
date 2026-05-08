@@ -23,17 +23,15 @@ impl Fingerprint {
 fn match_constraint(c: &Constraint, item: &syn::Item) -> bool {
     match c {
         Constraint::Item(kind) => item_kind_matches(item, *kind),
-        Constraint::NameMatches(glob) => {
-            item_name(item).is_some_and(|name| glob.matches(&name))
-        }
+        Constraint::NameMatches(glob) => item_name(item).is_some_and(|name| glob.matches(&name)),
         Constraint::Variants(range) => match item {
             syn::Item::Enum(e) => range.contains(e.variants.len()),
             _ => false,
         },
         Constraint::HasMethod(pattern) => has_matching_method(item, pattern),
-        Constraint::AttrPresent(path) => item_attrs(item)
-            .iter()
-            .any(|a| attr_path_matches(a, path)),
+        Constraint::AttrPresent(path) => {
+            item_attrs(item).iter().any(|a| attr_path_matches(a, path))
+        }
         Constraint::DocContains(needle) => doc_text(item).contains(needle.as_str()),
         Constraint::BodyContainsMacro(name) => body_contains_macro(item, name),
         Constraint::AllOf(children) => children.iter().all(|c| match_constraint(c, item)),
@@ -103,11 +101,7 @@ fn attr_path_matches(attr: &syn::Attribute, needle: &str) -> bool {
         }
     }
     // Full-path render.
-    let full: Vec<String> = path
-        .segments
-        .iter()
-        .map(|s| s.ident.to_string())
-        .collect();
+    let full: Vec<String> = path.segments.iter().map(|s| s.ident.to_string()).collect();
     let rendered = full.join("::");
     rendered == needle
 }
@@ -123,7 +117,8 @@ fn doc_text(item: &syn::Item) -> String {
         // `#[doc = "..."]` — name-value form.
         if let syn::Meta::NameValue(nv) = &a.meta {
             if let syn::Expr::Lit(syn::ExprLit {
-                lit: syn::Lit::Str(s), ..
+                lit: syn::Lit::Str(s),
+                ..
             }) = &nv.value
             {
                 if !out.is_empty() {
@@ -403,14 +398,12 @@ mod tests {
     #[test]
     fn polarity_inverted_class_meet_canonical() {
         // The canonical fingerprint from ADR-010 Amendment 1.
-        let fp = fp(
-            r#"
+        let fp = fp(r#"
                 item = enum,
                 name = matches("*Class"),
                 variants = 3..=8,
                 has_method("meet", "(& self, Self) -> Self")
-            "#,
-        );
+            "#);
         let canonical = item(
             "
             #[repr(u8)]

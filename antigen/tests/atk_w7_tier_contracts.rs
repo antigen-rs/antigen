@@ -120,11 +120,12 @@ fn atk_w7_b_phantom_type_shape_is_formal_proof_with_recognized_hint() {
     // function-index lookup.
     let a = audit_single("PolarityProof::<FrameTranslation>::verified");
     if let WitnessStatus::Resolved {
-        witness_kind: WitnessKind::PhantomType {
-            ref proof_type,
-            ref type_params,
-            ref constructor,
-        },
+        witness_kind:
+            WitnessKind::PhantomType {
+                ref proof_type,
+                ref type_params,
+                ref constructor,
+            },
         ..
     } = a.witness_status
     {
@@ -148,10 +149,9 @@ fn atk_w7_b_phantom_type_no_constructor_still_recognized() {
     // Witness shape without constructor: `PolarityProof::<FrameTranslation>`.
     let a = audit_single("PolarityProof::<FrameTranslation>");
     if let WitnessStatus::Resolved {
-        witness_kind:
-            WitnessKind::PhantomType {
-                ref constructor, ..
-            },
+        witness_kind: WitnessKind::PhantomType {
+            ref constructor, ..
+        },
         ..
     } = a.witness_status
     {
@@ -169,16 +169,15 @@ fn atk_w7_b_phantom_type_no_constructor_still_recognized() {
 fn atk_w7_b_phantom_type_with_multiple_params() {
     let a = audit_single("Witnessed::<FrameTranslation, MyAntibody>::new");
     if let WitnessStatus::Resolved {
-        witness_kind: WitnessKind::PhantomType { ref type_params, .. },
+        witness_kind: WitnessKind::PhantomType {
+            ref type_params, ..
+        },
         ..
     } = a.witness_status
     {
         assert_eq!(
             type_params,
-            &vec![
-                "FrameTranslation".to_string(),
-                "MyAntibody".to_string(),
-            ]
+            &vec!["FrameTranslation".to_string(), "MyAntibody".to_string(),]
         );
     } else {
         panic!("expected Resolved {{ PhantomType }}");
@@ -204,7 +203,10 @@ fn atk_w7_c_ignored_test_distinguished_by_hint_axis() {
     let r = audit(&report, &root);
     let ignored = r.audits.into_iter().next().unwrap();
 
-    if let WitnessStatus::Resolved { ref witness_kind, .. } = ignored.witness_status {
+    if let WitnessStatus::Resolved {
+        ref witness_kind, ..
+    } = ignored.witness_status
+    {
         assert_eq!(*witness_kind, WitnessKind::IgnoredTest);
     } else {
         panic!(
