@@ -216,14 +216,44 @@ impl VariantRange {
 /// The signature is pre-parsed at fingerprint-load time (per ADR-010
 /// Amendment 3 Performance Invariant 2 — naive per-match-site re-parse is a
 /// 50× slowdown).
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MethodPattern {
     /// Method name to match against `impl` items.
     pub name: String,
-    /// Pre-parsed signature shape, stored as the originally-parsed string.
-    /// We compare structurally at match time rather than carrying
-    /// non-`PartialEq`/non-`Serialize` `syn` types through serde.
+    /// User-supplied signature shape as written (e.g.,
+    /// `"(& self, Self) -> Self"`). The canonical form for serde + equality.
     pub signature: String,
+    /// Whitespace-normalized form of `signature`, computed at parse time
+    /// per ADR-010 Amendment 3 Performance Invariant 2 (signatures inside
+    /// `has_method` are pre-parsed at fingerprint-load time, NOT re-parsed
+    /// per match site — the naive per-match-site re-normalize was a
+    /// documented 50× slowdown). `None` when a `MethodPattern` is
+    /// deserialized via serde without going through the parser; the matcher
+    /// falls back to normalizing on first use in that case.
+    #[serde(skip)]
+    pub normalized_signature: Option<String>,
+}
+
+impl PartialEq for MethodPattern {
+    fn eq(&self, other: &Self) -> bool {
+        // Equality is on the user-visible shape (name + signature string).
+        // `normalized_signature` is a derived performance cache; two
+        // MethodPatterns with the same `signature` are equal regardless of
+        // whether either has populated the cache.
+        self.name == other.name && self.signature == other.signature
+    }
+}
+
+impl Eq for MethodPattern {}
+
+/// Whitespace-normalize a string: collapse runs of whitespace into single
+/// spaces. Used by both the parser (to populate
+/// [`MethodPattern::normalized_signature`] at load time) and the matcher
+/// (to compare on the same canonical form). Per ADR-010 Amendment 3
+/// Performance Invariant 2.
+#[must_use]
+pub(crate) fn normalize_ws(s: &str) -> String {
+    s.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 // ============================================================================
