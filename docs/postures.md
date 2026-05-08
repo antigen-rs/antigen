@@ -649,6 +649,26 @@ ADR-006:
   accept (sub-clause F violation) or reject (forward-compat block). One
   ratified ADR-016 instance + one A2 verified_at instance; awaiting third.
 
+- **substrate-currency** — the temporal sub-pattern of substrate-over-memory:
+  substrate-as-of-author-time ≠ substrate-as-of-consumer-time; a claim or
+  finding is only authoritative if verified against the substrate at the
+  time of consumption, not the time of authorship. Three distinct instances
+  at three operational layers (tracker-tier, reporter-tier, claim-propagation
+  tier) confirmed in A2 day-2. Held below ratification: three instances at
+  three *different* layers signals concept still extending into new territory,
+  not repeating at known layers. Ratification trigger: same-layer repetition.
+  Currently travels at role-memory tier (typed feedback files in agent roles)
+  — the right carrier for an active team-coordination discipline. Glossary
+  sub-bullet under substrate-over-memory when cross-session accumulation
+  confirms shape stability.
+- **settling-time diagnostic** — the criterion "concepts that stop surprising
+  the people tracking them are ready to freeze; concepts still surprising
+  trackers are not ready." Surfaced as the operative ratification test for
+  substrate-currency (CLOSURE.md:357-370, A2 day-2). Plausibly posture-class
+  in its own right as a vocabulary-maturation discipline generative beyond any
+  single concept. One clean in-session instance (substrate-currency itself);
+  awaiting cross-session confirmation that the diagnostic generalizes.
+
 These are not posture-class today. They are catalogued so future-readers
 know what is being watched and what threshold is outstanding.
 
