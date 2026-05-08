@@ -190,7 +190,7 @@ recognizes rather than designs):
 | Dendritic cells (bridge innate to adaptive) | Audit pass that takes scan-detected patterns and routes them to specific immunity claims with provenance |
 | Complement system (tag for destruction) | Refactor-suggestion tools that mark code presenting antigens with structural fix recommendations |
 | Affinity maturation (B-cells refine antibodies over time) | Antigen fingerprints that improve as community contributions arrive; v1 catches X%, v2 catches X+Y% as patterns refine |
-| NK cells (recognize abnormal without specific antigen) | Anomaly-detection tooling that flags structurally-unusual code even when no antigen has been named |
+| NK cells (recognize abnormal without specific antigen) | **Already operational (W6a)**: the fingerprint synthesis pass fires on code matching failure-class shape even without `#[presents]` markers — structurally-abnormal code flagged without a named per-site declaration. Full outlier detection (flagging code unusual against the whole corpus) is A7+ territory. |
 | Cytokines (signaling propagation) | Cross-crate antigen propagation signals; descended_from is one shape; richer propagation is forward work |
 | Innate vs adaptive immunity layers | Already operational: passive surface (fingerprint scan) + active surface (explicit markers) |
 | Innoculation (small controlled exposure) | Test harnesses that deliberately apply antigen patterns to verify witness behavior — `examples/broken_witness.rs` is a primitive instance |
