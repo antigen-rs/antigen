@@ -875,7 +875,13 @@ fn item_kind_and_target(item: &syn::Item) -> Option<(&'static str, ItemTarget)> 
         syn::Item::Impl(i) => {
             let trait_path = i.trait_.as_ref().map(|(_, path, _)| render_path(path));
             let target_type = render_type(&i.self_ty);
-            Some(("impl", ItemTarget::Impl { trait_path, target_type }))
+            Some((
+                "impl",
+                ItemTarget::Impl {
+                    trait_path,
+                    target_type,
+                },
+            ))
         }
         // `mod` items are not yet modeled in `ItemTarget`; skip for synthesis.
         _ => None,
@@ -1116,11 +1122,7 @@ fn render_type(ty: &syn::Type) -> String {
 /// being invoked — name resolution happens elsewhere.
 fn attr_is(attr: &syn::Attribute, name: &str) -> bool {
     let path = attr.path();
-    path.is_ident(name)
-        || path
-            .segments
-            .last()
-            .is_some_and(|s| s.ident == name)
+    path.is_ident(name) || path.segments.last().is_some_and(|s| s.ident == name)
 }
 
 /// Render a `syn::Path` similarly. Used for the trait portion of

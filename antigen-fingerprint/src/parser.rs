@@ -12,7 +12,7 @@ use syn::parenthesized;
 use syn::parse::ParseStream;
 use syn::{Ident, LitInt, LitStr, Token};
 
-use crate::{Constraint, GlobPattern, ItemKind, MAX_DEPTH, MAX_NODES, MethodPattern, VariantRange};
+use crate::{Constraint, GlobPattern, ItemKind, MethodPattern, VariantRange, MAX_DEPTH, MAX_NODES};
 
 /// Parse the top-level constraint list (comma-separated, optional trailing
 /// comma). The caller wraps the result in [`crate::Fingerprint`] and runs
@@ -146,11 +146,11 @@ fn parse_has_method(input: ParseStream) -> syn::Result<Constraint> {
         ));
     }
     let _ = kw; // silence unused-warning; the keyword position carries the diagnostic span via the lit.
-    // ADR-010 Amendment 3 Performance Invariant 2: normalize the signature
-    // pattern ONCE at parse time so the matcher does not re-normalize per
-    // match site. This is the "pre-parsed signature" the invariant names —
-    // for v1 the canonical form is the whitespace-normalized string;
-    // future ADRs may upgrade to a parsed `syn::Signature` shape.
+                // ADR-010 Amendment 3 Performance Invariant 2: normalize the signature
+                // pattern ONCE at parse time so the matcher does not re-normalize per
+                // match site. This is the "pre-parsed signature" the invariant names —
+                // for v1 the canonical form is the whitespace-normalized string;
+                // future ADRs may upgrade to a parsed `syn::Signature` shape.
     let normalized_signature = Some(crate::normalize_ws(&signature));
     Ok(Constraint::HasMethod(MethodPattern {
         name,
@@ -419,7 +419,10 @@ mod tests {
     #[test]
     fn parses_attr_present() {
         let fp = parse(r#"attr_present("repr")"#).unwrap();
-        assert_eq!(fp.constraints, vec![Constraint::AttrPresent("repr".to_string())]);
+        assert_eq!(
+            fp.constraints,
+            vec![Constraint::AttrPresent("repr".to_string())]
+        );
     }
 
     #[test]
@@ -491,10 +494,7 @@ mod tests {
 
     #[test]
     fn parses_multi_constraint_top_level() {
-        let fp = parse(
-            r#"item = enum, name = matches("*Class"), variants = 3..=8"#,
-        )
-        .unwrap();
+        let fp = parse(r#"item = enum, name = matches("*Class"), variants = 3..=8"#).unwrap();
         assert_eq!(fp.constraints.len(), 3);
     }
 

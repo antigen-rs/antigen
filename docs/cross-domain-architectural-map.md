@@ -2113,6 +2113,501 @@ in.
 
 ---
 
+---
+
+## Appendix C — Indigenous-epistemology cognate deepening: substrate-of-practice principle and extraction-degradation
+
+The indigenous-epistemologies cognate (§12) was held lightly in the main
+substrate because the structural-identity test came back partial-
+substrate-embedding. That partial verdict deserves expansion, because
+the partial is at the *substrate axis* — the very axis the project's
+whole architecture is about.
+
+This appendix grounds the §12 framing in specific academic literatures
+(CARE Principles, Two-Eyed Seeing / Etuaptmumk, Haraway's situated
+knowledges, Polanyi + Lave & Wenger on substrate-of-practice tacit
+knowing) and develops the two §12 threads that the main pass left
+sketched: **extraction-without-context as a named degradation mode**,
+and **the substrate-of-practice principle** as the deepest non-Western
+prior for ADR-001's structural-not-documentary commitment.
+
+Per ADR-006: this is recognition substrate, not a commitment. The
+indigenous-epistemology framework predicts specific failure patterns
+in *how antigen is talked about* outside the codebase substrate; the
+appendix names them so the team recognizes the patterns when they
+surface.
+
+### C.1 — Why this appendix is structurally necessary
+
+The whole project commits to a posture: *the carrier and the carried
+must live in the same substrate* (ADR-001 structural-not-documentary;
+posture §5 implicit-to-explicit elevation; the substrate-over-memory
+discipline; the no-fixed-point property at every operational layer).
+
+That posture is the deepest non-decorative claim antigen makes. It is
+also the claim with the *thinnest Western-academic literature
+supporting it*. Western philosophy of science from Descartes onward has
+generally separated knowledge (proposition) from substrate (practice);
+the modern academic reflex is to extract knowledge into propositions
+and then talk about the propositions. Antigen's posture inverts that
+reflex.
+
+The frameworks that support antigen's posture most cleanly come from
+*outside* the Western academic mainline: indigenous epistemologies
+(many traditions; substrate-embedded knowledge as the rule, not the
+exception); Haraway's situated knowledges (Western feminist
+epistemology making the same move from inside the mainline); Polanyi's
+tacit knowledge (Western philosophy explicitly arguing that knowledge
+cannot be separated from the knower's body and practice); Lave &
+Wenger's communities-of-practice (organizational learning making the
+same move at team scale).
+
+The cluster of these frameworks is the substantive prior for antigen's
+posture. The cybersecurity cognate (§8) is about *governance of named-
+failure-class registries at scale*; this cognate is about *why the
+substrate-embedding posture is load-bearing rather than aesthetic*.
+Different operational scopes; same architecture.
+
+### C.2 — Two-Eyed Seeing / Etuaptmumk as the integration framing
+
+**Background**: Two-Eyed Seeing (Mi'kmaq: *Etuaptmumk*) was named by
+Mi'kmaq Elders Albert and Murdena Marshall with Cheryl Bartlett at
+Cape Breton University in the early 2000s. The principle: integrate
+Indigenous and Western knowledge by *learning to see with one eye
+through Indigenous knowledge and the other eye through Western
+knowledge — and using both eyes together*. Not amalgamation (mashing
+together); not assimilation (one swallowing the other); but
+*coexistent perspective*, where each tradition's strengths inform the
+other while neither is reduced.
+
+Two-Eyed Seeing has expanded from its origin in fisheries/biology
+education to applications across health research, neuroscience, and
+ecological management. The framework has 25+ years of operational
+experience integrating two epistemologies that the academic mainline
+otherwise treats as incompatible.
+
+**What this maps to in antigen**: the project's combination of
+*biology-as-instrument* (naturalist's framing) plus *programming-
+language-theory-as-instrument* (the academic CS lineage) plus *past-
+self-gardening-as-instrument* plus *ML-graph-memory-as-instrument*
+(scope.md's four-window convergence) is *structurally Two-Eyed Seeing
+extended to four eyes*. Each window is an independent epistemological
+tradition; the project doesn't reduce any to the others; it sees
+*through* all of them simultaneously.
+
+This is recognition substrate for the foundational paper's positioning.
+The reflex Western framing would be: "antigen takes the biological
+metaphor as inspiration and translates it into Rust." That's
+assimilation-shaped; biology gets used and discarded. The Two-Eyed
+Seeing framing is: "antigen sees through biology AND through
+programming-language theory AND through past-self gardening AND
+through ML graph-memory simultaneously, and the architecture is the
+intersection-with-no-reduction." Different framing; different ethical
+relationship to source traditions.
+
+**Recognition trigger**: when foundational-paper material discusses
+the biological framing's role, the Two-Eyed Seeing principle is the
+most-load-bearing prior for "biology-as-instrument is not biology-as-
+metaphor." The principle is older than the antigen-project's framing
+and has 25+ years of operational practice supporting it.
+
+### C.3 — CARE Principles as substrate-of-practice governance
+
+**Background**: the CARE Principles for Indigenous Data Governance
+(Collective Benefit, Authority to Control, Responsibility, Ethics)
+were developed by the International Indigenous Data Sovereignty
+Interest Group in 2020. They complement the more famous FAIR
+Principles (Findable, Accessible, Interoperable, Reusable) for
+research data — but where FAIR is *technical and people-neutral*,
+CARE is *people- and purpose-oriented*.
+
+Operational core of CARE:
+- **Collective benefit**: data ecosystems should benefit Indigenous
+  Peoples whose data are involved.
+- **Authority to control**: Indigenous Peoples' rights to govern data
+  about their territories, resources, and communities.
+- **Responsibility**: data stewards have responsibilities for ethical
+  use and re-use across the data lifecycle.
+- **Ethics**: prioritizing Indigenous well-being in data decisions
+  throughout the lifecycle.
+
+The principles are operationalized through ICIP (Indigenous Cultural
+and Intellectual Property) protocols + free-prior-informed-consent
+(FPIC) requirements + explicit attribution + benefit-sharing
+provisions.
+
+**What this maps to in antigen**: the cybersecurity cognate (§8)
+provides governance prior-art for *named-failure-class registries at
+scale* (CVE/NVD, MITRE ATT&CK, RustSec). CARE provides governance
+prior-art for **communities-of-practice authority over their own
+substrate**. As antigen-stdlib accumulates community contributions,
+the question of *who has authority over what* becomes load-bearing.
+
+CARE predicts specific governance questions antigen-stdlib will face:
+- Who has authority to decide what becomes a stdlib antigen vs. a
+  project-specific antigen?
+- How does a domain community (embedded systems, cryptography, web
+  servers) preserve authority over its own failure-class framings?
+- What is the equivalent of free-prior-informed-consent when an
+  antigen declared in a small project gets adopted into stdlib?
+  (Scope.md's "PRs to antigen-stdlib become contributions to
+  collective Rust-ecosystem memory" raises this question.)
+- What is the antigen analog of attribution + benefit-sharing? The
+  `references` field is a partial answer; CARE predicts the question
+  is broader.
+
+The CARE framework is not a direct one-to-one fit for antigen — antigen
+isn't governing personally-identifying or culturally-sensitive data —
+but the *structural shape* of "communities-of-practice retain authority
+over how their substrate is named and propagated" is exactly the
+shape antigen-stdlib will need at A5+. Recognition substrate for that
+work, not a proposal.
+
+**Recognition trigger**: post-A5 when stdlib accumulation produces
+real questions about domain-specific authority. Vision-pitch material
+for community contributors can also invoke the CARE-shaped framing
+as a precise alternative to "open-source means anyone can use anything
+without context" — that framing is not the only available
+relationship-to-substrate.
+
+### C.4 — Haraway's situated knowledges: the Western-academic prior for substrate-bound objectivity
+
+**Background**: Donna Haraway's "Situated Knowledges: The Science
+Question in Feminism and the Privilege of Partial Perspective" (1988)
+is a foundational text in feminist epistemology + science studies. The
+core move: reject "the god trick" — the conceit that objectivity comes
+from a "view from nowhere" — and replace it with **embodied
+objectivity** that is "view from somewhere," partial, situated, and
+accountable to its location.
+
+Haraway's argument is structurally important: she does not argue for
+relativism or against objectivity. She argues that *real* objectivity
+requires acknowledging the specific embodied position from which a
+claim is made, and that knowledge that pretends to be from-nowhere is
+worse-objectivity, not better.
+
+The literature on situated knowledges has 35+ years of development in
+feminist epistemology, science studies, and adjacent fields. It is
+the closest *Western-academic* prior to indigenous substrate-embedding
+principles, and it specifically inoculates against the criticism that
+substrate-bound knowledge is "merely subjective."
+
+**What this maps to in antigen**: ADR-005 Amendment 3 (audit reports
+its own tier honestly) is structurally a Haraway-shaped move.
+Pre-amendment, the audit's `is_well_formed()` performed the god trick
+— claimed verification at a tier the audit did not actually do the
+work to support. Post-amendment, the audit reports the tier of
+verification it actually performed, with its actual partiality made
+explicit.
+
+This is "view from somewhere" applied at the recognition surface.
+The audit's objectivity is *strengthened* by the explicit
+acknowledgment of partiality, not weakened. That structural property
+is exactly Haraway's argument.
+
+The implication for the foundational paper: *antigen's commitment to
+tier-honesty is not an engineering compromise; it is a specific
+instance of the situated-knowledges epistemological move that the
+science-studies literature has been making since 1988*. The position
+is principled, not pragmatic.
+
+**Recognition trigger**: foundational-paper material defending the
+tier-honesty discipline can invoke Haraway as the deepest Western-
+academic prior. Manuscript framing material for AI-dev-tooling paper
+can use the situated-knowledges frame to contrast antigen with
+"objective AI assistants from nowhere" — a god-trick framing the AI
+industry tends to default into.
+
+### C.5 — Polanyi + Lave & Wenger: the tacit-knowing-as-substrate-bound prior
+
+**Background**: Michael Polanyi (*The Tacit Dimension*, 1966) famously
+formulated *we can know more than we can tell*. His central claim:
+tacit knowledge is not "implicit knowledge waiting to be made
+explicit"; it is knowledge that is *intrinsic to the knower's body,
+background, beliefs, and practice* and cannot be separated from those
+without degradation. *Indwelling* — Polanyi's term — is the specific
+mode of knowing where the knower inhabits the substrate of practice.
+
+Lave & Wenger (*Situated Learning*, 1991) extended Polanyi's
+substrate-bound framing to organizational scale: **communities of
+practice** are the structural units in which tacit knowledge actually
+lives. Knowledge is shared *indirectly through socialization in shared
+practice*, not transmitted as propositions.
+
+Recent work (Hadjimichael, Ribeiro, Tsoukas 2024 — Polanyi via
+Merleau-Ponty) develops the embodiment-cognition cognate further:
+substrate-bound tacit knowledge requires embodied participation, not
+just textual access.
+
+**What this maps to in antigen**:
+
+This is the most directly-load-bearing cognate for antigen's
+substrate-of-practice principle, because Polanyi + Lave & Wenger
+together provide a *Western academic substrate* for the principle that
+the indigenous-epistemology framing surfaces from outside the academy.
+The two literatures converge on the same structural claim from
+different starting points; the convergence itself is recognition
+substrate.
+
+Specifically:
+
+- **`#[antigen]` declarations as partially-explicit substrate-bound
+  knowledge**: an antigen declaration is not full propositional capture
+  of the failure-class; it is a substrate-bound trace that *requires
+  the codebase practice to be meaningful*. A stdlib antigen extracted
+  into a paper without the codebase context loses meaning the same way
+  Polanyi predicts tacit knowledge loses meaning when extracted from
+  practice.
+
+- **Antigen-stdlib + per-project antigens as a community of practice**:
+  the contributor community + the codebase + the tooling + the shared
+  failure-class vocabulary together form a Lave-Wenger-shaped community
+  of practice. The substrate is the community's collective indwelling
+  in the codebase. Adoption is structurally a process of newcomers
+  entering the community of practice, not a process of transmitting
+  propositions.
+
+- **The fine-tuning vs. structural-substrate contrast (scope.md AI dev
+  tooling implications)** maps cleanly to Polanyi's distinction:
+  fine-tuning extracts knowledge into model weights (loses substrate-
+  embedding); antigen keeps knowledge in code (preserves substrate-
+  embedding). The structural difference is *exactly Polanyi's
+  distinction* between extracted-and-degraded vs. substrate-bound-and-
+  preserved.
+
+**Recognition trigger**: the AI-dev-tooling paper trajectory (post AI-
+industry comparison data accumulates per scope.md) has its deepest
+positioning material here. Polanyi + Lave & Wenger + Hadjimichael et al.
+2024 together form the "why structural matters more than extracted"
+argument the paper needs. The argument has 60 years of Western academic
+substrate behind it and converges with indigenous-epistemology
+substrate from a different starting point — convergent-evolution-
+shaped evidence per §2 of the main map.
+
+### C.6 — The named extraction-degradation modes
+
+The §12 main pass named "extraction-without-context as a degradation
+mode" but did not develop the modes. The literatures predict at least
+**five distinct extraction-degradation patterns** that antigen-related
+content can suffer when extracted from the substrate of codebase
+practice. Naming them explicitly is recognition substrate for the
+methodology paper + tutorial/blog-post material.
+
+#### Mode 1 — Decoration extraction (using vocabulary without commitment)
+
+The pattern: antigen vocabulary (named failure-classes, fingerprints,
+witnesses) is used in writing or talking about *non-antigen-using*
+projects, deployed as decoration rather than as commitment to the
+underlying discipline.
+
+Indigenous-epistemology cognate: ceremonial language used outside
+ceremonial context degrades both. The vocabulary stops carrying weight.
+
+Predicted antigen-context manifestation: blog posts that use "antigen-
+shaped" framing to describe Rust patterns without actually adopting the
+tooling. This dilutes the vocabulary's structural meaning. The
+antibody: stdlib documentation should distinguish *adopting antigen*
+(structural commitment) from *using antigen-flavored language*
+(decoration); the former is the project's destination, the latter is
+not.
+
+#### Mode 2 — Reduction extraction (the core idea without the substrate)
+
+The pattern: an academic paper or summary captures "the core idea" of
+antigen — failure-class memory + recognition + inheritance — without
+the substrate-bound implementation. The reduction reads as if the idea
+could be implemented anywhere; the substrate-bound nature of why the
+implementation matters is lost.
+
+Polanyi-cognate: tacit knowledge presented as proposition. Loses
+meaning.
+
+Predicted antigen-context manifestation: papers about antigen that
+discuss "the architecture" without engaging with the *Rust-specific
+implementation choices* (proc-macro substrate, syn AST, cargo
+extension surface, witness-tier honesty). The architecture-without-
+substrate framing is structurally degraded — it cannot be reproduced
+because the substrate-bound implementation choices are *load-bearing*,
+not incidental.
+
+The antibody: foundational-paper material should explicitly defend
+substrate-bound implementation choices as part of the architecture,
+not as engineering details. ADR-001 (structural-not-documentary) does
+this in operational form; the foundational paper needs an analogous
+section.
+
+#### Mode 3 — Generalization extraction (claiming domain-applicability without domain-specific work)
+
+The pattern: someone reads the cross-domain map V1 (15 windows) and
+generalizes "antigen is the universal failure-class memory
+architecture for any software" without engaging the specific
+adoption-in-Rust substrate work that made antigen viable in Rust.
+
+Two-Eyed Seeing cognate: assimilating one tradition's framework into
+another without the integration work. Loses the strengths of both.
+
+Predicted antigen-context manifestation: papers / startups / tooling
+that try to instantiate antigen for Python / TypeScript / Go without
+doing the substrate-specific work (proc-macro analog, AST analog,
+witness-tier analog, IDE-integration analog). The generalization
+claim is precisely the failure mode Two-Eyed Seeing inoculates against.
+
+The antibody: scope.md's positioning ("first ergonomically-adoptable
+instantiation for Rust") is structurally specific. The foundational
+paper should preserve the specificity even as it claims domain-
+generality of the architecture; one is not the other.
+
+#### Mode 4 — Authority extraction (canonical framings from non-canonical sources)
+
+The pattern: someone outside the project's substrate-of-practice
+publishes "the canonical framing of antigen" without engaging the
+ratified ADR substrate, the postures.md catalog, or the cross-
+project history. Their framing is then cited downstream as
+authoritative.
+
+CARE-cognate: data governance failures where outside parties claim
+authority over substrate they don't own.
+
+Predicted antigen-context manifestation: external papers / blog posts
+that paraphrase project documents and become the canonical citation
+in downstream literature, even when their framing diverges from the
+project's substrate. The substrate-grounded framing gets eclipsed by
+the easier-to-cite secondary source.
+
+The antibody: explicit project-authored canonical material (the
+foundational paper, scope.md, the cross-domain map V1 itself) at
+visibility levels that outpace secondary citations. ADR substrate as
+the authoritative source. Citation discipline in project-authored
+material modeling the relationship between substrate and citation.
+
+#### Mode 5 — Authoritarian extraction (substrate becomes the authority)
+
+The pattern: as antigen-stdlib stabilizes and adoption grows, the
+*substrate itself* becomes authoritative in ways that close off
+re-grounding. New contributors defer to "what stdlib says" rather
+than re-engaging with first principles. The community-of-practice
+calcifies into rule-application.
+
+This is Polanyi + Lave & Wenger predicting their own degradation
+mode: communities of practice can fossilize into communities of
+rule-following, and tacit indwelling is replaced with explicit-but-
+ritualized compliance. (See also: variant 8 of the comprehension-
+drift family — verification-fatigue drift / normalization of
+deviance — at the team-coordination scope.)
+
+Predicted antigen-context manifestation: post-A5+, antigen-stdlib
+becomes "what every Rust project should adopt" without engagement
+with the underlying recognition discipline. The architecture
+calcifies; the substrate-of-practice principle is replaced with
+substrate-as-authority.
+
+The antibody: continuous re-grounding discipline at the project
+level (the team's substrate-over-memory practice generalized);
+explicit reaffirmation of recognition-not-design (posture §2) and
+anti-YAGNI (posture §4) as the project scales; the no-fixed-point
+operational signature kept active rather than allowed to relax.
+
+### C.7 — The substrate-of-practice principle: synthesis
+
+Across CARE Principles, Two-Eyed Seeing, Haraway, Polanyi, Lave &
+Wenger, and indigenous-epistemology traditions, a single structural
+principle emerges that the §12 main pass named without developing:
+
+> **The carrier and the carried must live in the same substrate of
+> practice. Knowledge that pretends to be substrate-free is degraded
+> knowledge.**
+
+This is the deepest non-decorative claim antigen makes. It is also
+the claim with the densest cross-tradition substrate behind it —
+indigenous traditions plus feminist epistemology plus philosophy of
+tacit knowing plus organizational learning theory plus
+communities-of-practice all converge on it.
+
+Operational implications for antigen:
+
+- **For the architecture itself**: the substrate-of-practice principle
+  predicts that any future feature pulling antigen-substrate *out of*
+  the codebase (e.g., a separate registry, a documentation-only
+  declaration form, a doc-comment fingerprint) will degrade
+  proportionately to the distance from substrate. The recognition
+  trigger is when such proposals surface; the framework predicts the
+  failure mode.
+
+- **For the team's coordination**: the comprehension-drift family
+  literature grounding (this campsite thread) maps the substrate-of-
+  practice principle to the team-coordination scope. Substrate-over-
+  memory IS the team-coordination instance of the principle. The
+  cross-domain map V1 catches the project-architecture instance; this
+  appendix catches the substrate-of-practice principle as the deeper
+  cross-scope unifier.
+
+- **For manuscript trajectory**: the foundational paper (post-v0.2.0)
+  needs the substrate-of-practice principle as one of its load-bearing
+  positioning claims — *what makes antigen architecturally novel is
+  not that it remembers failure-classes, but that it remembers them
+  in the substrate of the practice that produces them*. That framing
+  has Polanyi + Haraway + Lave & Wenger + indigenous traditions + Two-
+  Eyed Seeing all behind it; it is not a project-specific idiosyncrasy.
+
+- **For ecosystem outreach**: the Two-Eyed Seeing principle inoculates
+  against the most-likely misframing — that the biological metaphor is
+  decorative or assimilative. The framing is *biology-as-instrument
+  alongside other instruments without reduction*, which is what Two-
+  Eyed Seeing names.
+
+### C.8 — Recognition triggers for antigen
+
+Per ADR-006, no primitive proposals follow. Specific recognition
+triggers from this appendix:
+
+- **Foundational paper drafting** (post-v0.2.0): substrate-of-practice
+  principle becomes a core positioning claim with the citation cluster
+  named in C.5 + C.7.
+- **AI-dev-tooling paper**: Polanyi distinction (extracted vs.
+  substrate-bound) becomes the architectural argument against fine-
+  tuning-based knowledge embedding.
+- **Methodology paper** (post-A2): communities-of-practice (Lave &
+  Wenger) becomes the team-coordination framing alongside stigmergy
+  (which scientist already has).
+- **Adoption pitch v2**: Two-Eyed Seeing as the framing for biology-as-
+  instrument; CARE-shaped framing for community authority over
+  domain-specific stdlib branches.
+- **Stdlib governance** (post-A5+): CARE Principles as recognition
+  substrate for community authority structure.
+- **External-citation hygiene**: when external papers/blog posts
+  surface that paraphrase antigen substrate, the named extraction-
+  degradation modes (C.6) help diagnose which mode is operating and
+  how to respond.
+
+### C.9 — What this appendix does NOT do
+
+To prevent scope creep:
+
+- Does NOT propose new postures. The substrate-of-practice principle
+  is operationally present at four-plus instances in current ratified
+  substrate (ADR-001, posture §5, substrate-over-memory, Amendment 3
+  tier-honesty); the appendix surfaces the underlying principle but
+  does not advance it to formal posture-class until the team chooses
+  to. Aristotle's call.
+
+- Does NOT advocate for direct adoption of CARE Principles or
+  Two-Eyed Seeing as governance frameworks. They are recognition
+  substrate; specific adoption is future ADR territory if at all.
+
+- Does NOT claim antigen "applies" indigenous knowledge frameworks.
+  Two-Eyed Seeing explicitly inoculates against extractive use of
+  Indigenous frameworks; the appendix follows that discipline by
+  treating the indigenous traditions as substrate-of-practice prior
+  art that the project respects rather than appropriates. The
+  framework is *cited*, not *applied to make antigen indigenous-
+  flavored*.
+
+- Does NOT replace §12's main pass. The §12 main pass + this
+  appendix together constitute the cognate; the appendix deepens
+  rather than restates.
+
+---
+
 *V1 authored 2026-05-08 by academic-researcher during A2 day 2.
 Companion to V0 immune-system-primitive-map.md. Maintained as ADR-006
 threshold is met by additional fields surfacing in adoption.*
@@ -2121,3 +2616,9 @@ threshold is met by additional fields surfacing in adoption.*
 framing assignments) added 2026-05-08 same authoring session, after the
 main V1 substrate landed and idle-as-invitation pulled academic-researcher
 toward the most actionable cognate.*
+
+*Appendix C (indigenous-epistemology cognate deepening + substrate-of-
+practice principle synthesis + named extraction-degradation modes) added
+2026-05-08 same authoring session, after navigator endorsed continued
+idle-as-invitation pursuit and academic-researcher followed the next
+unmined adjacent vein per JBD discipline.*

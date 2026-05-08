@@ -427,7 +427,10 @@ fn atk_a2_010_phantom_witness_type_param_mismatch_is_flagged() {
                 witness_kind
             );
         }
-        other => panic!("ATK-A2-010: expected Resolved(PhantomType), got {:?}", other),
+        other => panic!(
+            "ATK-A2-010: expected Resolved(PhantomType), got {:?}",
+            other
+        ),
     }
 
     // v0.1 behavior: FormalProof tier (shape recognized, construction not validated).
@@ -687,7 +690,13 @@ fn atk_w7_002_fabricated_phantom_type_gets_formal_proof_tier() {
     // The test documents the known gap, not a bug to fix now.
     // Future ADR will change this to Reachability or NotFound for nonexistent types.
     assert!(
-        matches!(a.witness_status, WitnessStatus::Resolved { witness_kind: WitnessKind::PhantomType { .. }, .. }),
+        matches!(
+            a.witness_status,
+            WitnessStatus::Resolved {
+                witness_kind: WitnessKind::PhantomType { .. },
+                ..
+            }
+        ),
         "ATK-W7-002: fabricated turbofish witness resolves as PhantomType (syntactic match)"
     );
     assert_eq!(

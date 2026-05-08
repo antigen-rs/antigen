@@ -625,12 +625,16 @@ mod tests {
 
     #[test]
     fn validate_accepts_kebab_name_with_digits() {
-        assert!(args_with("frame-2-translation", VALID_DSL).validate().is_ok());
+        assert!(args_with("frame-2-translation", VALID_DSL)
+            .validate()
+            .is_ok());
     }
 
     #[test]
     fn validate_rejects_name_with_double_hyphen() {
-        assert!(args_with("frame--translation", VALID_DSL).validate().is_err());
+        assert!(args_with("frame--translation", VALID_DSL)
+            .validate()
+            .is_err());
     }
 
     #[test]

@@ -85,7 +85,9 @@ fn atk_a3_002_circular_descended_from_chain_is_detected_not_infinite_loop() {
     // This is the crash variant of the structural-variant blind spot — not a
     // wrong answer but a catastrophic failure mode. File immediately as A3
     // opens to ensure cycle detection is in scope from the start.
-    panic!("A3 pre-implementation contract — cycle detection is a safety requirement, not optional");
+    panic!(
+        "A3 pre-implementation contract — cycle detection is a safety requirement, not optional"
+    );
 }
 
 // ============================================================================
