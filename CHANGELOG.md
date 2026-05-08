@@ -150,8 +150,6 @@ clean. Cuts the substrate the JBD team built across A1 (10 ratified ADRs +
 
 ## [0.0.1] — 2026-05-07
 
-## [0.0.1] — 2026-05-07
-
 ### Added
 
 - Workspace scaffolding (Cargo.toml, dual MIT/Apache-2.0 license)
