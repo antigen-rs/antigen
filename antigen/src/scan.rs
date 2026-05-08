@@ -158,6 +158,73 @@ impl Parse for ScanImmuneArgs {
     }
 }
 
+/// Scan-time parse of `#[antigen_tolerance(antigen, rationale = "...",
+/// until = "...", see = [...])]`. Per ADR-011.
+struct ScanToleranceArgs {
+    antigen_type: String,
+    rationale: String,
+    until: Option<String>,
+    see: Vec<String>,
+}
+
+impl Parse for ScanToleranceArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use syn::{Expr, Ident, Lit, LitStr, Path, Token};
+        let antigen_path: Path = input.parse()?;
+        let antigen_type = antigen_path
+            .segments
+            .last()
+            .map(|s| s.ident.to_string())
+            .unwrap_or_default();
+
+        let mut rationale = String::new();
+        let mut until: Option<String> = None;
+        let mut see: Vec<String> = Vec::new();
+
+        while !input.is_empty() {
+            input.parse::<Token![,]>()?;
+            if input.is_empty() {
+                break;
+            }
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "rationale" => {
+                    let lit: LitStr = input.parse()?;
+                    rationale = lit.value();
+                }
+                "until" => {
+                    let lit: LitStr = input.parse()?;
+                    until = Some(lit.value());
+                }
+                "see" => {
+                    let arr: syn::ExprArray = input.parse()?;
+                    for elem in &arr.elems {
+                        if let Expr::Lit(syn::ExprLit {
+                            lit: Lit::Str(s), ..
+                        }) = elem
+                        {
+                            see.push(s.value());
+                        }
+                    }
+                }
+                _ => {
+                    // Unknown field: consume silently (forward-compat per
+                    // ADR-009 adoption-gradient tolerance).
+                    let _: Expr = input.parse()?;
+                }
+            }
+        }
+
+        Ok(Self {
+            antigen_type,
+            rationale,
+            until,
+            see,
+        })
+    }
+}
+
 /// A single antigen declaration discovered in source.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AntigenDeclaration {
@@ -405,7 +472,26 @@ fn normalize_type_name(rendered: &str) -> String {
         .map_or_else(|| s.to_string(), |idx| s[..idx].trim().to_string())
 }
 
-/// A `#[presents(antigen_type)]` declaration discovered in source.
+/// How a [`Presentation`] was discovered.
+///
+/// Per ADR-001 Amendment 1 Change 2 (the 5-state matrix): explicit
+/// `#[presents]` markers and synthetic fingerprint matches share the
+/// `Presentation` shape but differ in provenance. Audit and CLI output
+/// distinguish the two — passive (synthetic) matches are the structural
+/// surface ADR-010's recognition-not-yet-marked half exposes.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum MatchKind {
+    /// `#[presents(X)]` was written on this item.
+    #[default]
+    ExplicitMarker,
+    /// The item was not marked but matches an antigen's fingerprint per
+    /// ADR-010. Surfaced by the synthesis pass after explicit collection.
+    FingerprintMatch,
+}
+
+/// A `#[presents(antigen_type)]` declaration or synthetic fingerprint match
+/// discovered in source.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Presentation {
     /// The antigen type referenced (last path segment, e.g., `PanickingInDrop`).
@@ -418,6 +504,11 @@ pub struct Presentation {
     pub item_kind: String,
     /// Item identity for structural matching against `Immunity`. W3 (sweep A2).
     pub item_target: ItemTarget,
+    /// How this presentation was discovered: explicit marker vs fingerprint
+    /// match. W6a (sweep A2). Defaults to `ExplicitMarker` for backwards
+    /// compatibility with serialized reports from before W6a.
+    #[serde(default)]
+    pub match_kind: MatchKind,
 }
 
 /// An `#[immune(antigen_type, witness = ...)]` declaration discovered in source.
@@ -437,15 +528,43 @@ pub struct Immunity {
     pub item_target: ItemTarget,
 }
 
+/// An `#[antigen_tolerance(antigen, rationale = "...", until = "...", see = [...])]`
+/// declaration discovered in source. Per ADR-011.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Toleration {
+    /// The antigen type referenced (last path segment).
+    pub antigen_type: String,
+    /// The rationale string from the macro args (required, non-empty per
+    /// ADR-011).
+    pub rationale: String,
+    /// Optional expiry tag (e.g., `"v1.0"`); `None` for forever-tolerance.
+    pub until: Option<String>,
+    /// Optional open-vocabulary references list (mirrors ADR-009's `references`
+    /// field shape).
+    pub see: Vec<String>,
+    /// Source file path.
+    pub file: PathBuf,
+    /// Line number.
+    pub line: usize,
+    /// Item kind that was annotated.
+    pub item_kind: String,
+    /// Item identity for structural matching against fingerprint matches.
+    pub item_target: ItemTarget,
+}
+
 /// Aggregate result of scanning a workspace.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ScanReport {
     /// All discovered antigen declarations.
     pub antigens: Vec<AntigenDeclaration>,
-    /// All discovered `#[presents]` sites.
+    /// All discovered `#[presents]` sites + synthetic fingerprint matches.
+    /// Distinguish the two via [`Presentation::match_kind`].
     pub presentations: Vec<Presentation>,
     /// All discovered `#[immune]` sites.
     pub immunities: Vec<Immunity>,
+    /// All discovered `#[antigen_tolerance]` sites. W6a (sweep A2).
+    #[serde(default)]
+    pub tolerances: Vec<Toleration>,
     /// Files scanned successfully.
     pub files_scanned: usize,
     /// Files that failed to parse.
@@ -523,6 +642,10 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
 
     let mut report = ScanReport::default();
 
+    // Cache parsed files between pass 1 (collect explicit declarations) and
+    // pass 2 (synthesize fingerprint matches) to avoid re-parsing every .rs.
+    let mut parsed_files: Vec<(PathBuf, syn::File)> = Vec::new();
+
     for entry in WalkDir::new(root)
         .follow_links(false)
         .into_iter()
@@ -550,14 +673,17 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
 
         match syn::parse_file(&content) {
             Ok(file) => {
+                let file_path = entry.path().to_path_buf();
                 let mut visitor = ScanVisitor {
-                    file_path: entry.path().to_path_buf(),
+                    file_path: file_path.clone(),
                     report: &mut report,
                     impl_stack: Vec::new(),
                     trait_stack: Vec::new(),
                 };
                 visitor.visit_file(&file);
                 report.files_scanned += 1;
+                // Cache for the synthesis pass — avoids re-reading + re-parsing.
+                parsed_files.push((file_path, file));
             }
             Err(e) => {
                 report
@@ -567,7 +693,150 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
         }
     }
 
+    // ---- Fingerprint synthesis pass ----
+    //
+    // After explicit-collection, walk every file again and emit synthetic
+    // `Presentation { match_kind: FingerprintMatch }` records for items that
+    // match a declared antigen's fingerprint but weren't explicitly annotated.
+    //
+    // Only antigens with a parseable fingerprint participate. Parse failures
+    // are appended to `report.parse_failures` as non-fatal diagnostics —
+    // a malformed fingerprint never silently suppresses all matching.
+    //
+    // Deduplication: an item that already has an explicit `#[presents(X)]`
+    // gets no synthetic match for antigen X — `addresses()` is the bridge.
+
+    // Build the set of parseable fingerprints once, before the file re-walk.
+    // Collect parse failures separately to avoid aliasing `report` inside the
+    // iterator (immutable borrow on `report.antigens` + mutable push on
+    // `report.parse_failures` would conflict at borrow-check time).
+    let mut fp_parse_failures: Vec<(PathBuf, String)> = Vec::new();
+    let fingerprints: Vec<(String, antigen_fingerprint::Fingerprint)> = report
+        .antigens
+        .iter()
+        .filter_map(|ag| {
+            let raw = ag.fingerprint.as_deref()?;
+            match antigen_fingerprint::Fingerprint::parse(raw) {
+                Ok(fp) => Some((ag.type_name.clone(), fp)),
+                Err(e) => {
+                    fp_parse_failures.push((
+                        ag.file.clone(),
+                        format!(
+                            "antigen `{}`: fingerprint failed to re-parse during synthesis: {e}",
+                            ag.type_name
+                        ),
+                    ));
+                    None
+                }
+            }
+        })
+        .collect();
+    report.parse_failures.extend(fp_parse_failures);
+
+    if !fingerprints.is_empty() {
+        synthesis_pass(&parsed_files, &fingerprints, &mut report);
+    }
+
     Ok(report)
+}
+
+/// Emit synthetic `FingerprintMatch` presentations for items that match a
+/// declared antigen fingerprint but weren't explicitly annotated.
+///
+/// Called from [`scan_workspace`] after the explicit-collection walk. Uses the
+/// cached `(path, syn::File)` pairs from pass 1 — no re-reading or re-parsing.
+/// Only top-level items are checked (`syn::File::items`); descent into `impl`
+/// methods and `trait` methods is deferred to W6b/A3.
+fn synthesis_pass(
+    parsed_files: &[(PathBuf, syn::File)],
+    fingerprints: &[(String, antigen_fingerprint::Fingerprint)],
+    report: &mut ScanReport,
+) {
+    for (file_path, parsed) in parsed_files {
+        for syn_item in &parsed.items {
+            let Some((kind_str, item_target)) = item_kind_and_target(syn_item) else {
+                continue;
+            };
+
+            // Node-kind dispatch: skip fingerprints whose top-level item
+            // constraint can't match this item's kind — cheap O(1) filter
+            // per ADR-010 Amendment 3 Performance Invariant 4.
+            let item_kind_for_dispatch = match syn_item {
+                syn::Item::Struct(_) => Some(antigen_fingerprint::ItemKind::Struct),
+                syn::Item::Enum(_) => Some(antigen_fingerprint::ItemKind::Enum),
+                syn::Item::Trait(_) => Some(antigen_fingerprint::ItemKind::Trait),
+                syn::Item::Fn(_) => Some(antigen_fingerprint::ItemKind::Fn),
+                syn::Item::Impl(_) => Some(antigen_fingerprint::ItemKind::Impl),
+                syn::Item::Type(_) => Some(antigen_fingerprint::ItemKind::Type),
+                syn::Item::Mod(_) => Some(antigen_fingerprint::ItemKind::Mod),
+                _ => None,
+            };
+
+            for (antigen_type, fp) in fingerprints {
+                // Node-kind dispatch: if the fingerprint pins a required kind,
+                // skip evaluation when this item's kind doesn't match.
+                if let Some(required_kind) = fp.node_kind() {
+                    if item_kind_for_dispatch != Some(required_kind) {
+                        continue;
+                    }
+                }
+
+                if !fp.matches(syn_item) {
+                    continue;
+                }
+
+                // Deduplication: skip if an explicit #[presents] already covers
+                // this (antigen_type, file, item) triple.
+                let already_explicit = report.presentations.iter().any(|p| {
+                    p.match_kind == MatchKind::ExplicitMarker
+                        && p.antigen_type == *antigen_type
+                        && p.file == *file_path
+                        && p.item_target.addresses(&item_target)
+                });
+                if already_explicit {
+                    continue;
+                }
+
+                // Compute line from the item's first attribute or item span.
+                let line = item_line(syn_item);
+
+                report.presentations.push(Presentation {
+                    antigen_type: antigen_type.clone(),
+                    file: file_path.clone(),
+                    line,
+                    item_kind: kind_str.to_string(),
+                    item_target: item_target.clone(),
+                    match_kind: MatchKind::FingerprintMatch,
+                });
+            }
+        }
+    }
+}
+
+/// Build a `(kind_str, ItemTarget)` pair from a top-level `syn::Item`.
+/// Returns `None` for item kinds we don't model (macros, extern crates, etc.).
+fn item_kind_and_target(item: &syn::Item) -> Option<(&'static str, ItemTarget)> {
+    match item {
+        syn::Item::Struct(s) => Some(("struct", ItemTarget::Struct(s.ident.to_string()))),
+        syn::Item::Enum(e) => Some(("enum", ItemTarget::Enum(e.ident.to_string()))),
+        syn::Item::Trait(t) => Some(("trait", ItemTarget::Trait(t.ident.to_string()))),
+        syn::Item::Fn(f) => Some(("fn", ItemTarget::Fn(f.sig.ident.to_string()))),
+        syn::Item::Type(t) => Some(("type", ItemTarget::TypeAlias(t.ident.to_string()))),
+        syn::Item::Impl(i) => {
+            let trait_path = i.trait_.as_ref().map(|(_, path, _)| render_path(path));
+            let target_type = render_type(&i.self_ty);
+            Some(("impl", ItemTarget::Impl { trait_path, target_type }))
+        }
+        // `mod` items are not yet modeled in `ItemTarget`; skip for synthesis.
+        _ => None,
+    }
+}
+
+/// Best-effort line number for a top-level `syn::Item` (line of its first
+/// attribute if any, else the item's own span start).
+fn item_line(item: &syn::Item) -> usize {
+    use syn::spanned::Spanned;
+    item.span().start().line
 }
 
 /// AST visitor that extracts antigen-related attributes.
@@ -676,6 +945,7 @@ impl ScanVisitor<'_> {
             line,
             item_kind: item_kind.to_string(),
             item_target,
+            match_kind: MatchKind::ExplicitMarker,
         });
     }
 
@@ -716,12 +986,55 @@ impl ScanVisitor<'_> {
         }
     }
 
+    fn extract_tolerance(
+        &mut self,
+        attr: &syn::Attribute,
+        item_kind: &str,
+        item_target: ItemTarget,
+    ) {
+        if let syn::Meta::List(list) = &attr.meta {
+            let args = match syn::parse2::<ScanToleranceArgs>(list.tokens.clone()) {
+                Ok(args) => args,
+                Err(e) => {
+                    self.report.parse_failures.push((
+                        self.file_path.clone(),
+                        format!("malformed #[antigen_tolerance] attribute: {e}"),
+                    ));
+                    return;
+                }
+            };
+            // Per ADR-011 §Mechanics §1: rationale required + non-empty.
+            // Scan side enforces the same boundary the macro enforces — a
+            // tolerance without rationale is silent suppression.
+            if args.rationale.is_empty() {
+                self.report.parse_failures.push((
+                    self.file_path.clone(),
+                    "#[antigen_tolerance] requires non-empty rationale".to_string(),
+                ));
+                return;
+            }
+            let line = Self::line_of_attr(attr);
+            self.report.tolerances.push(Toleration {
+                antigen_type: args.antigen_type,
+                rationale: args.rationale,
+                until: args.until,
+                see: args.see,
+                file: self.file_path.clone(),
+                line,
+                item_kind: item_kind.to_string(),
+                item_target,
+            });
+        }
+    }
+
     fn check_attrs(&mut self, attrs: &[syn::Attribute], item_kind: &str, item_target: &ItemTarget) {
         for attr in attrs {
             if attr_is(attr, "presents") {
                 self.extract_presents(attr, item_kind, item_target.clone());
             } else if attr_is(attr, "immune") {
                 self.extract_immune(attr, item_kind, item_target.clone());
+            } else if attr_is(attr, "antigen_tolerance") {
+                self.extract_tolerance(attr, item_kind, item_target.clone());
             }
         }
     }
