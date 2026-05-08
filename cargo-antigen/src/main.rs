@@ -128,7 +128,7 @@ fn run_scan(args: ScanArgs) -> ExitCode {
         },
     }
 
-    if args.strict && !unaddressed.is_empty() {
+    if args.strict && (!unaddressed.is_empty() || !report.orphaned_tolerances().is_empty()) {
         ExitCode::from(1)
     } else {
         ExitCode::SUCCESS
@@ -170,6 +170,7 @@ fn print_human_report(report: &scan::ScanReport, unaddressed: &[scan::Unaddresse
     println!();
 
     print_fingerprint_matches(report);
+    print_orphaned_tolerances(report);
     print_unaddressed(unaddressed);
 }
 
@@ -189,10 +190,25 @@ fn print_fingerprint_matches(report: &scan::ScanReport) {
         println!("  {}:{}  {} on {} [fingerprint match]", p.file.display(), p.line, p.antigen_type, p.item_kind);
     }
     println!();
-    let ag = &fp_matches[0].antigen_type;
-    println!("  To acknowledge: add #[presents({ag})] to mark explicitly,");
-    println!("    OR #[immune({ag}, witness = ...)] if defended,");
-    println!("    OR #[antigen_tolerance({ag}, rationale = \"...\")] to document intent.");
+    println!("  To acknowledge each site, use the antigen type shown above:");
+    println!("    #[presents(<antigen>)] to mark explicitly,");
+    println!("    #[immune(<antigen>, witness = ...)] if defended,");
+    println!("    #[antigen_tolerance(<antigen>, rationale = \"...\")] to document intent.");
+    println!();
+}
+
+fn print_orphaned_tolerances(report: &scan::ScanReport) {
+    let orphans = report.orphaned_tolerances();
+    if orphans.is_empty() {
+        return;
+    }
+    println!("{} orphaned tolerance(s) — antigen no longer declared in workspace:", orphans.len());
+    println!();
+    for t in &orphans {
+        println!("  {}:{}  {} [tolerance for unknown antigen]", t.file.display(), t.line, t.antigen_type);
+    }
+    println!();
+    println!("  Remove or update these tolerances — the antigen they suppress is gone.");
     println!();
 }
 
@@ -219,10 +235,8 @@ fn print_unaddressed(unaddressed: &[scan::UnaddressedPresentation]) {
         }
     }
     println!();
-    println!(
-        "To address: add #[immune({}, witness = ...)] on the same item, OR #[antigen_tolerance(...)]",
-        explicit_unaddressed[0].presentation.antigen_type
-    );
+    println!("To address each site, use the antigen type shown above:");
+    println!("  #[immune(<antigen>, witness = ...)] on the same item, OR #[antigen_tolerance(<antigen>, rationale = \"...\")]");
 }
 
 #[derive(serde::Serialize)]
