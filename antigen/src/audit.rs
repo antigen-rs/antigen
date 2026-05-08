@@ -230,45 +230,132 @@ fn collect_function_index(root: &Path) -> FunctionIndex {
 
 struct FunctionIndexVisitor<'a> {
     file_path: PathBuf,
+    /// Source text of the file being walked. Carried for symmetry with
+    /// `scan::ScanVisitor` and for future span-anchored diagnostics; the
+    /// pre-W5 textual `source.contains("proptest!")` sentinel was removed
+    /// when `visit_macro` took over proptest classification.
+    #[allow(dead_code, reason = "reserved for span-anchored diagnostic work \
+        that mirrors scan::ScanVisitor::source")]
     source: &'a str,
     index: &'a mut FunctionIndex,
 }
 
 impl FunctionIndexVisitor<'_> {
-    fn detect_kind(&self, attrs: &[syn::Attribute]) -> WitnessKind {
+    /// Classify a function by its own attributes.
+    ///
+    /// W5 (sweep A2): the prior heuristic — `self.source.contains("proptest!")`
+    /// — over-classified every function in any file mentioning the string
+    /// `proptest!` (including doc comments) as `WitnessKind::Proptest`.
+    /// Replaced by structural detection: `visit_macro` registers
+    /// proptest-internal function names with `WitnessKind::Proptest` directly,
+    /// so by the time `visit_item_fn` runs `detect_kind` the function is
+    /// already correctly tagged for proptest cases. The remaining job here
+    /// is to pick `Test` when `#[test]` appears, and `Function` otherwise.
+    fn detect_kind(attrs: &[syn::Attribute]) -> WitnessKind {
         for attr in attrs {
             if attr.path().is_ident("test") {
                 return WitnessKind::Test;
             }
         }
-        // Detect proptest! by looking for it textually in the surrounding source.
-        // TODO(team): replace this with proper macro-call detection. proptest!
-        // is a function-like macro; its expansion contains #[test], but the
-        // outer source position needs a different match.
-        if self.source.contains("proptest!") {
-            return WitnessKind::Proptest;
-        }
         WitnessKind::Function
     }
+}
+
+/// Extract top-level `fn IDENT` names from a `proptest! { ... }` macro body.
+///
+/// `proptest!` is a function-like macro that takes a sequence of test-shaped
+/// declarations:
+///
+/// ```ignore
+/// proptest! {
+///     #[test]
+///     fn name(args in strategy) { body }
+///     ...
+/// }
+/// ```
+///
+/// The body's tokens contain `fn IDENT` at the top level for each test;
+/// nested function definitions live inside `Group` tokens (the body block of
+/// each fn) which a top-level token-iterator does not descend into. So a
+/// linear walk that yields `name` whenever it sees `fn` followed by an
+/// identifier captures exactly the proptest test names — no more, no less.
+///
+/// Why not parse with `syn` directly? `proptest!`'s grammar (`fn name(args
+/// in strategy)`) is not a valid Rust function signature: the `in` keyword
+/// inside the parameter list is custom syntax. `syn::ItemFn::parse` rejects
+/// the body. The token walk below is grammar-aware enough for our purpose
+/// (extracting names) without committing to parsing the strategy expressions.
+fn extract_proptest_fn_names(tokens: &proc_macro2::TokenStream) -> Vec<String> {
+    use proc_macro2::TokenTree;
+    let mut names = Vec::new();
+    let mut iter = tokens.clone().into_iter();
+    while let Some(tt) = iter.next() {
+        if let TokenTree::Ident(i) = &tt {
+            if i == "fn" {
+                if let Some(TokenTree::Ident(name)) = iter.next() {
+                    names.push(name.to_string());
+                }
+            }
+        }
+    }
+    names
+}
+
+/// Whether a macro path's last segment is `name`. Mirrors the
+/// `attr_is`-style test in `scan.rs`: matches both `#[proptest!(...)]`-style
+/// bare names and `proptest::proptest!(...)` path-qualified forms.
+fn macro_path_last_is(path: &syn::Path, name: &str) -> bool {
+    path.segments
+        .last()
+        .is_some_and(|s| s.ident == name)
 }
 
 impl<'ast> syn::visit::Visit<'ast> for FunctionIndexVisitor<'_> {
     fn visit_item_fn(&mut self, item: &'ast syn::ItemFn) {
         let name = item.sig.ident.to_string();
-        let kind = self.detect_kind(&item.attrs);
-        self.index.insert(name, (self.file_path.clone(), kind));
+        let kind = Self::detect_kind(&item.attrs);
+        // Only insert if not already present — preserves any prior tagging
+        // (e.g., `WitnessKind::Proptest` from a `visit_macro` pass that
+        // walked an enclosing `proptest! { ... }` block before the visitor
+        // descended to the inner function items, in case the visitor order
+        // ever changes). For W5 the proptest macro is a leaf so this is
+        // defence-in-depth.
+        self.index
+            .entry(name)
+            .or_insert_with(|| (self.file_path.clone(), kind));
         syn::visit::visit_item_fn(self, item);
     }
 
     fn visit_impl_item_fn(&mut self, item: &'ast syn::ImplItemFn) {
         let name = item.sig.ident.to_string();
-        let kind = self.detect_kind(&item.attrs);
+        let kind = Self::detect_kind(&item.attrs);
         // Only insert if not already present; free functions take precedence over
         // method names in the flat index.
         self.index
             .entry(name)
             .or_insert_with(|| (self.file_path.clone(), kind));
         syn::visit::visit_impl_item_fn(self, item);
+    }
+
+    fn visit_macro(&mut self, mac: &'ast syn::Macro) {
+        // W5: structural proptest! detection. When the macro path's last
+        // segment is `proptest`, walk its tokens for `fn IDENT` patterns
+        // and register each name with `WitnessKind::Proptest`. Inserting
+        // BEFORE the visitor descends into the macro tokens (which it
+        // doesn't actually do for unparsed-token macros, but we insert
+        // ahead of any `visit_item_fn` that might happen for adjacent code
+        // anyway) means a same-name function inside a proptest! block
+        // wins the entry over a same-name free function elsewhere only
+        // when it appears first in walk order. Acceptable since the
+        // typical case is one or the other, not both.
+        if macro_path_last_is(&mac.path, "proptest") {
+            for name in extract_proptest_fn_names(&mac.tokens) {
+                self.index
+                    .entry(name)
+                    .or_insert_with(|| (self.file_path.clone(), WitnessKind::Proptest));
+            }
+        }
+        syn::visit::visit_macro(self, mac);
     }
 }
 
@@ -378,5 +465,174 @@ mod tests {
         let idx = FunctionIndex::new();
         let status = validate_witness("nonexistent_test", &idx);
         assert!(matches!(status, WitnessStatus::NotFound { .. }));
+    }
+
+    // ========================================================================
+    // W5 — structural proptest! witness detection.
+    //
+    // Pre-W5, `detect_kind` did `self.source.contains("proptest!")` as a
+    // sentinel — if the source string contained that text anywhere, every
+    // function in the file was tagged `WitnessKind::Proptest`. Doc comments
+    // mentioning the macro for explanatory purposes triggered the same
+    // over-classification.
+    //
+    // W5 lifts this to structural detection via `visit_macro` + token-walking
+    // the macro body for `fn IDENT` patterns. These tests are the contract
+    // pinning the W5 behavior without needing a full filesystem fixture.
+    // ========================================================================
+
+    /// Run the function-index walk against an in-memory source string.
+    /// Mirrors what `collect_function_index` does per-file but without
+    /// touching disk — gives the W5 unit tests a tight feedback loop.
+    fn index_from_str(source: &str) -> FunctionIndex {
+        use syn::visit::Visit;
+        let file = syn::parse_file(source).expect("source must parse");
+        let mut index = FunctionIndex::new();
+        let mut visitor = FunctionIndexVisitor {
+            file_path: PathBuf::from("<test>.rs"),
+            source,
+            index: &mut index,
+        };
+        visitor.visit_file(&file);
+        index
+    }
+
+    #[test]
+    fn w5_proptest_inner_fns_are_classified_proptest() {
+        let src = r"
+            proptest! {
+                #[test]
+                fn first_proptest(x in 0u32..100) {
+                    assert!(x < 100);
+                }
+
+                #[test]
+                fn second_proptest(x in 0u32..100, y in 0u32..100) {
+                    assert!(x + y < 200);
+                }
+            }
+        ";
+        let idx = index_from_str(src);
+        let (_, k1) = idx.get("first_proptest").expect("first_proptest indexed");
+        let (_, k2) = idx.get("second_proptest").expect("second_proptest indexed");
+        assert_eq!(*k1, WitnessKind::Proptest);
+        assert_eq!(*k2, WitnessKind::Proptest);
+    }
+
+    #[test]
+    fn w5_proptest_path_qualified_macro_is_recognized() {
+        // The fixture canonical form is `proptest::proptest!`, matching how
+        // the `proptest` crate is typically imported. The W5 helper
+        // `macro_path_last_is` checks the LAST segment, so any path ending
+        // in `proptest` matches.
+        let src = r"
+            proptest::proptest! {
+                #[test]
+                fn qualified_form_proptest(x in 0u32..100) {
+                    assert!(x < 100);
+                }
+            }
+        ";
+        let idx = index_from_str(src);
+        let (_, k) = idx
+            .get("qualified_form_proptest")
+            .expect("qualified_form_proptest indexed");
+        assert_eq!(*k, WitnessKind::Proptest);
+    }
+
+    #[test]
+    fn w5_test_function_outside_proptest_is_classified_test() {
+        // A regular `#[test]` outside any proptest! block must remain
+        // `WitnessKind::Test`. The pre-W5 sentinel would have over-classified
+        // this as Proptest if the file contained the string `proptest!`
+        // anywhere; this test exercises the negative case directly.
+        let src = r"
+            // Doc-style comment mentioning proptest! for explanation purposes.
+            // Pre-W5 this string in the source was sufficient to flag every
+            // function in the file as Proptest. W5 must not regress to that.
+            #[test]
+            fn plain_test() {
+                assert_eq!(2 + 2, 4);
+            }
+
+            proptest! {
+                #[test]
+                fn proptest_one(x in 0u32..10) {
+                    assert!(x < 10);
+                }
+            }
+        ";
+        let idx = index_from_str(src);
+        let (_, k_plain) = idx.get("plain_test").expect("plain_test indexed");
+        assert_eq!(
+            *k_plain,
+            WitnessKind::Test,
+            "plain_test outside proptest! must be Test, not Proptest, even when \
+             the same file contains a proptest! invocation",
+        );
+        let (_, k_prop) = idx.get("proptest_one").expect("proptest_one indexed");
+        assert_eq!(*k_prop, WitnessKind::Proptest);
+    }
+
+    #[test]
+    fn w5_doc_comment_mentioning_proptest_does_not_over_classify() {
+        // The exact regression the pre-W5 textual sentinel had: a doc
+        // comment containing the literal string `proptest!` would tag
+        // every function in the file as Proptest. W5's structural detection
+        // only fires on actual macro invocations, so this `#[test]` stays Test.
+        let src = r"
+            /// This function has nothing to do with proptest! — the macro
+            /// is named here only for documentation.
+            #[test]
+            fn doc_comment_only_test() {
+                assert!(true);
+            }
+        ";
+        let idx = index_from_str(src);
+        let (_, k) = idx
+            .get("doc_comment_only_test")
+            .expect("doc_comment_only_test indexed");
+        assert_eq!(*k, WitnessKind::Test, "doc-comment mention must not trigger Proptest");
+    }
+
+    #[test]
+    fn w5_plain_function_is_classified_function() {
+        let src = r"
+            fn no_attribute_function() {}
+        ";
+        let idx = index_from_str(src);
+        let (_, k) = idx
+            .get("no_attribute_function")
+            .expect("no_attribute_function indexed");
+        assert_eq!(*k, WitnessKind::Function);
+    }
+
+    #[test]
+    fn w5_extract_proptest_fn_names_skips_nested() {
+        // Nested function definitions inside a fn body live in a Group token;
+        // the top-level token walk should not descend into them. This locks
+        // the "nested fn doesn't get registered as a proptest test" invariant.
+        use proc_macro2::TokenStream;
+        let tokens: TokenStream = r"
+            #[test]
+            fn outer(x in 0u32..10) {
+                fn nested_helper() {}
+                assert!(x < 10);
+            }
+        "
+        .parse()
+        .unwrap();
+        let names = extract_proptest_fn_names(&tokens);
+        assert_eq!(names, vec!["outer".to_string()]);
+    }
+
+    #[test]
+    fn w5_macro_path_last_is_handles_qualified_paths() {
+        let bare: syn::Path = syn::parse_str("proptest").unwrap();
+        let qualified: syn::Path = syn::parse_str("proptest::proptest").unwrap();
+        let unrelated: syn::Path = syn::parse_str("other_crate::other_macro").unwrap();
+        assert!(macro_path_last_is(&bare, "proptest"));
+        assert!(macro_path_last_is(&qualified, "proptest"));
+        assert!(!macro_path_last_is(&unrelated, "proptest"));
     }
 }
