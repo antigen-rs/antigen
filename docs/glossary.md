@@ -718,6 +718,27 @@ or an ADR-specific equivalent) by default. Five+ manifestations across the carri
 set. New trust-extending primitives without justification fields require active
 argument; primitives with justification fields are the unmarked default.
 
+### depth-shift discipline
+
+**Origin**: postures.md V0 (posture #7); aristotle and naturalist convergence
+across A1-A2; canonical example at ADR-005 Amendment 3's motivating Finding.
+
+**In antigen**: the load-bearing structural commitment lives one tier deeper than
+the visible decision. Before drafting, deconstructing, or rejecting any proposal,
+ask "what is the X−1 commitment that determines whether X works?" The discipline
+is *operationally self-producing* — each application of substrate-honesty creates
+the conditions for the next tier of substrate-honesty to surface. Operational
+signature: **no fixed point**. Eight+ confirmed instances across two roles'
+substrates as of A2 day 2; structural-identity test confirmed all instances are
+the same pattern across operational layers, not analogy at different scales.
+
+The discipline's structural sibling is biology-as-search-heuristic: both are
+instances of *recursion-into-substrate one tier below the visible question* at
+different operational layers (failure-mode discovery vs design-decision
+identification). The biological cognate is immune-system scale-invariance —
+the same recognition shapes operate at every scale, by structural identity not
+analogy.
+
 ---
 
 ## Glossary maintenance
@@ -731,4 +752,5 @@ matures, terms WILL drift in meaning. The discipline:
 3. Vocabulary drift is treated as a sub-clause E violation (coordinate-explicitness
    failure) and triggers a glossary review.
 
-Maintained by: the antigen team. Last updated: 2026-05-07 (initial scaffold).
+Maintained by: the antigen team. Last updated: 2026-05-08 (A2 day-2: + depth-shift
+discipline).

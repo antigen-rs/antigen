@@ -39,7 +39,6 @@ fn fixture(name: &str) -> PathBuf {
 // ============================================================================
 
 #[test]
-#[ignore = "W5 pre-implementation contract — proptest! structural detection not yet implemented"]
 fn atk_w5_001_proptest_inner_function_is_detected() {
     let fixture_root = fixture("atk_w5_proptest_detection");
     let scan = scan_workspace(&fixture_root, None).unwrap();
@@ -85,7 +84,6 @@ fn atk_w5_001_proptest_inner_function_is_detected() {
 // ============================================================================
 
 #[test]
-#[ignore = "W5 pre-implementation contract — proptest! structural detection not yet implemented"]
 fn atk_w5_002_multiple_proptest_functions_all_detected() {
     let fixture_root = fixture("atk_w5_proptest_detection");
 
@@ -147,7 +145,6 @@ fn atk_w5_002_multiple_proptest_functions_all_detected() {
 // ============================================================================
 
 #[test]
-#[ignore = "W5 pre-implementation contract — proptest! structural detection not yet implemented"]
 fn atk_w5_003_doc_comment_proptest_mention_does_not_over_classify() {
     let fixture_root = fixture("atk_w5_proptest_detection");
 
@@ -196,7 +193,6 @@ fn atk_w5_003_doc_comment_proptest_mention_does_not_over_classify() {
 // ============================================================================
 
 #[test]
-#[ignore = "W5 pre-implementation contract — proptest! structural detection not yet implemented"]
 fn atk_w5_004_plain_test_in_proptest_file_remains_test_kind() {
     let fixture_root = fixture("atk_w5_proptest_detection");
     let immunity = Immunity {
@@ -227,4 +223,56 @@ fn atk_w5_004_plain_test_in_proptest_file_remains_test_kind() {
         }
         other => panic!("ATK-W5-004: unexpected status {:?}", other),
     }
+}
+
+// ============================================================================
+// ATK-W5-007: Free function with same name as proptest function — W7 resolution
+//
+// Original W5 framing: precedence ordering. The visit_macro `or_insert_with`
+// silently lost to an earlier `visit_item_fn` for the same name, downgrading
+// a Proptest witness to Function classification. The pre-W7 fix proposed
+// "Proptest always wins."
+//
+// W7 (ADR-005 Amendment 3) reframes: when two functions share a name, the
+// witness is genuinely ambiguous. The user has written `witness =
+// shadowed_by_free_fn` against a workspace where that name resolves to two
+// distinct definitions. Silently picking Proptest is the same shape of bug
+// as silently picking the alphabetically-last file — it lets the audit
+// resolution depend on properties the user didn't author intentionally.
+//
+// Post-W7 correct behavior: report `WitnessStatus::Ambiguous` with both
+// candidate locations, witness_tier `None`, audit_hint `AmbiguousResolution`.
+// The fix on the user side is to rename one function or qualify the path.
+// This is consistent with ATK-A2-005's resolution discipline.
+// ============================================================================
+
+#[test]
+fn atk_w5_007_proptest_function_collision_with_free_fn_is_ambiguous() {
+    use antigen::audit::{AuditHint, WitnessTier};
+
+    let fixture_root = fixture("atk_w5_007_proptest_name_shadow");
+    let scan = scan_workspace(&fixture_root, None).unwrap();
+    let audit_report = audit(&scan, &fixture_root);
+
+    assert_eq!(audit_report.audits.len(), 1, "fixture has one immunity");
+    let a = &audit_report.audits[0];
+
+    // Per W7: same-named free function and proptest function = two distinct
+    // candidates. The audit must surface the ambiguity rather than picking one.
+    match &a.witness_status {
+        WitnessStatus::Ambiguous { candidates } => {
+            assert_eq!(
+                candidates.len(),
+                2,
+                "expected two candidates for shadowed_by_free_fn (free fn + proptest fn)",
+            );
+        }
+        other => panic!(
+            "ATK-W5-007 (post-W7): expected WitnessStatus::Ambiguous; got {:?}",
+            other
+        ),
+    }
+    assert_eq!(a.witness_tier, WitnessTier::None);
+    assert_eq!(a.audit_hint, AuditHint::AmbiguousResolution);
+    assert!(!a.is_well_formed());
 }
