@@ -362,15 +362,18 @@ The W6a addition pre-solved the A3 structural requirement.
 - [x] `lineage_edges` — LANDED commit df72f9e
 - [x] `detect_lineage_failures` (cycle detection + DFS) — LANDED commit df72f9e
 - [x] `orphaned_lineage_edges()` — LANDED commit df72f9e
-- [x] `cargo test --workspace` — 220 passing, 24 ignored, 0 failed (post-A3-D3+BUG-A3-001/002, 2026-05-09)
+- [x] `cargo test --workspace` — 220 passing, 25 ignored, 0 failed (post-ATK-A3-010, 2026-05-09)
 - [x] D3 cross-crate scan — LANDED commit 9b677c6 (`enumerate_dep_crate_roots`, `--include-deps`, `DepScanResult`)
 - [x] BUG-A3-001 duplicate lineage edge — LANDED (detect_duplicate_lineage_edges, parse_failures channel)
 - [x] BUG-A3-002 dangling child — LANDED (dangling_lineage_edges() query method)
 - [x] ATK-A3-006/007/008 — pre-impl contracts filed
-- [ ] `inherited_from: Option<Vec<String>>` on `Presentation` — pending ADR ratification
-- [ ] `canonical_path: Option<String>` on 5 types + LineageEdge — pending ADR ratification
-- [ ] D1.5 propagation walk + diamond dedup — pending ADR ratification
+- [x] ATK-A3-010 — filed (drift vs waning audit message category, A4+ scope); commit 94fff1b
+- [x] **ADR-017 + ADR-018 — RATIFIED 2026-05-09; moved to decisions.md**
+- [x] `inherited_from: Option<Vec<ProvenanceEntry>>` on `Presentation` — RATIFIED Option C (Tekgy, 2026-05-09)
+- [ ] `canonical_path: Option<String>` on 5 types + LineageEdge — pending implementation (ADR-017 ratified)
+- [ ] D1.5 propagation walk + diamond dedup — **UNBLOCKED** (ADR-018 ratified; pathmaker to implement)
 - [ ] ATK-A3-001, ATK-A3-004, ATK-A3-005 — still `#[ignore]`; pending implementation
+- [ ] ATK-A3-009 — needs reframe (name@version format eliminates original attack surface; residual risk is alt-registry same-name@version collision)
 
 ---
 

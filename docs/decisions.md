@@ -60,6 +60,8 @@
 - [ADR-014 — `#[antigen_generates(...)]`: declaring antigens that proc-macros emit](#adr-014-antigen_generates-declaring-antigens-that-proc-macros-emit)
 - [ADR-015 — Fingerprint engine: grammar-over-AST with per-fingerprint evaluator trait](#adr-015-fingerprint-engine-grammar-over-ast-with-per-fingerprint-evaluator-trait) *(partially supersedes ADR-010 §Mechanics §1)*
 - [ADR-016 — Temporal recognition surface: provenance + freshness primitives](#adr-016-temporal-recognition-surface-provenance--freshness-primitives-for-stale-context-and-premature-abstraction)
+- [ADR-017 — Antigen identity is canonical declaration site; cross-crate trust delegates to cargo](#adr-017-antigen-identity-is-canonical-declaration-site-cross-crate-trust-delegates-to-cargo)
+- [ADR-018 — `#[descended_from]` propagation: tagged synthesis + diamond dedup + inheritance state matrix](#adr-018-descended_from-propagation-tagged-synthesis--diamond-dedup--inheritance-state-matrix)
 
 ---
 
@@ -3503,6 +3505,554 @@ ADR-002).
    its own future ADR if audit grows additional non-hermetic checks.
 8. **Git substrate choice** (deferred to A4 implementation).
    git2 / gitoxide / `git` subprocess.
+
+---
+
+## [ADR-017] Antigen identity is canonical declaration site; cross-crate trust delegates to cargo
+
+**Status**: Ratified 2026-05-09.
+
+**Participants**: aristotle (Phase 1-8 + draft), navigator (scope-lock,
+substrate-currency, routing, divergence-as-signal sharpening, v5 stale-example
+fix + precondition clarification), pathmaker (substrate verification), scout
+(cross-crate discovery substrate; P1/P2/P5 empirical checks; canonical_path
+semver format; precondition enforcement clarification), naturalist
+(biology-layering rationale; earned-identity framing), adversarial
+(orphaned_lineage_edges enforcement gap), team-lead + Tekgy (Approach
+3-revised ratification).
+
+**Related**:
+- ADR-001 Amendment 1 Change 3 C7 (cross-crate consumption commitment)
+- ADR-005 (sub-clause F at every trust boundary; cross-crate antigen consumption is named boundary item 4)
+- ADR-005 Amendment 2 (rationale-as-required-field; the trust-extension justification carries via cargo's own checksum chain)
+- ADR-006 (recognition-not-design; canonical-path is recognition of structure already partially present in `ItemTarget::Impl::target_type`)
+- ADR-007 (anti-YAGNI structurally-guaranteed; cross-crate identity is forced by C7 + T7 + T13 from Phase 1-8)
+- ADR-009 (adoption gradient; canonical_path stays Option to preserve Layer 1 minimum-viable path)
+- ADR-010 Amendment 4 (filter/proof framing; canonical_path keys identity, fingerprints filter — orthogonal axes)
+- ADR-018 (propagation semantics; sibling ADR depending on identity primitives this ADR ratifies)
+
+**Implicit pattern elevated** (per ADR-004 Enforcement):
+
+The current substrate keys antigen identity via bare type-name strings
+(`AntigenDeclaration::type_name: String`, `LineageEdge::parent: String`,
+`Presentation::antigen_type: String`, `Immunity::antigen_type: String`,
+`Toleration::antigen_type: String`). For intra-workspace scanning this is
+correct — antigen type-names are unique within a workspace by convention
+(enforced by the compiler). For cross-crate scanning (ADR-001 C7, deferred
+to A3), bare type-names are structurally ambiguous: `crate_a::PanickingInDrop`
+and `crate_b::PanickingInDrop` are different antigens with the same type-name.
+The implicit convention "type-name uniqueness = antigen identity" is a
+workspace-scope assumption that fails at the cross-crate boundary. This ADR
+elevates antigen identity from type-name-string to canonical-declaration-site.
+
+### Finding
+
+Cross-crate antigen consumption (ADR-001 C7, Sweep A3 scope) requires
+antigen *identity* beyond the bare type-name. Two antigens in different
+crates can share a type-name; immunity claims and lineage edges must
+distinguish them.
+
+Three identity-model approaches exist:
+
+**Approach 1** (bare type-name): current substrate. Works intra-workspace;
+fails at cross-crate boundary as described above.
+
+**Approach 2** (user-declared qualified paths: `crate_a::PanickingInDrop`
+in source code): requires users to write qualified paths in
+`#[presents]`/`#[immune]` attributes. Conflicts with ADR-001 C4 (declarations
+live in source files without side-cars) — the qualification becomes a
+side-car embedded in the attribute.
+
+**Approach 3-revised** (scanner-derived canonical_path field): the user never
+writes the canonical_path. The scanner derives it from cargo metadata at
+scan-time and stamps it on discovered declarations. User-facing macros are
+unchanged. The identity is a derived property of the discovery mechanism,
+not a user-declared property.
+
+Phase 1-8 (aristotle) deconstructed all approaches and eight additional
+alternatives on a gradient from user-burden to scanner-burden. Approach
+3-revised wins on ADR-002 (compose, don't compete — delegates to cargo),
+ADR-005 (sub-clause F — validates cross-crate trust via cargo's resolution
+chain rather than re-implementing it), and ADR-006 (recognition, not design —
+recognizes structure that cargo metadata already provides).
+
+### Decision
+
+**Antigen identity is the canonical declaration site: `(type_name,
+canonical_path)` tuple where `canonical_path` is scanner-derived at
+cross-crate scan time.**
+
+A new field is added to five carrier types:
+
+| Type | Field added | Semantics |
+|---|---|---|
+| `AntigenDeclaration` | `canonical_path: Option<String>` | crate name + version where this antigen was originally declared (e.g., `"crate_a@1.2.3"`); `None` for intra-workspace |
+| `Presentation` | `canonical_path: Option<String>` | crate where the *antigen* originated, not where the presentation is — see Mechanics |
+| `Immunity` | `canonical_path: Option<String>` | crate where the antigen originated |
+| `Toleration` | `canonical_path: Option<String>` | crate where the antigen originated |
+| `LineageEdge` | `parent_canonical_path: Option<String>` + `child_canonical_path: Option<String>` | crates of parent and child antigens (cross-crate lineage edges become first-class) |
+
+All fields use `#[serde(default)]` for backward-compatible deserialization
+of pre-A3 reports.
+
+### Mechanics
+
+#### canonical_path is set by the scanner, not by the user
+
+The user never types `canonical_path` in source code. The field is set by
+the cargo-metadata-driven scanner when the scan is cross-crate:
+
+- Workspace-internal scan (`cargo antigen scan`): all `canonical_path` fields are `None`.
+- Cross-crate scan (`cargo antigen scan --include-deps`): the scanner runs
+  `cargo metadata`, identifies dependency crates, walks each to its
+  `.cargo/registry/src/<index>/<crate>-<version>/`, and runs the same scanner
+  with `canonical_path` set to the crate identity for each declaration
+  discovered there.
+
+The user's source code stays unchanged. The path information is derived,
+not declared. This honors ADR-001 C4.
+
+#### How the path is computed
+
+**The canonical_path format is `"<crate-name>@<version>"`** — e.g.,
+`"foo@1.2.3"`, `"serde@1.0.193"`. The `<version>` portion is the dependency's
+exact resolved version string from `cargo metadata`'s `packages[].version`
+field (semver-formatted; major.minor.patch with optional pre-release/build
+metadata as cargo reports it).
+
+**Why include the version** (scout's P5 nuance, empirically verified):
+A workspace can depend on `foo v1.0` and `foo v2.0` simultaneously. With
+crate-name-only canonical_path, the two versions' antigens become
+observationally identical — sub-clause F violation. The `@<version>` suffix
+makes the distinction explicit. Scout empirically verified: antigen's own
+dep graph already has 4 crate names at multiple versions (`getrandom`,
+`hashbrown`, `r-efi`, `wit-bindgen`). `name@version` is minimum-viable, not
+future-proofing.
+
+#### The `addresses()` semantics
+
+`unaddressed_presentations()` is amended: the `i.file == p.file` guard is
+replaced with a combined identity check:
+
+```rust
+let same_antigen_identity =
+    i.antigen_type == p.antigen_type &&
+    i.canonical_path == p.canonical_path;
+let same_item = i.item_target.addresses(&p.item_target);
+let same_locus =
+    i.canonical_path.is_some() == p.canonical_path.is_some()
+    && (i.canonical_path.is_none() && i.file == p.file
+        || i.canonical_path.is_some() && i.canonical_path == p.canonical_path);
+```
+
+**Note on locus semantics**: a `Presentation` discovered in
+`.cargo/registry/src/<crate-α>-1.2.3/` carries `canonical_path =
+Some("crate-α@1.2.3")`. An `Immunity` declared in the consumer workspace that
+references `crate_α::PanickingInDrop` carries `canonical_path =
+Some("crate-α@1.2.3")` (the antigen's origin + version, not the consumer's
+location). The two address each other because they reference the same
+cross-crate identity including version.
+
+#### Version-boundary semantics: re-attestation as a feature, not a limitation
+
+With `"name@version"` as the identity, version upgrade is itself a
+trust-boundary event. Sub-clause F applied across time: a child antigen
+declaring `#[descended_from(ParentAntigen)]` against `foo@1.0.0::ParentAntigen`
+made its claim at a specific declaration at a specific fingerprint at a
+specific version. When `foo` upgrades to `1.1.0`, the parent declaration
+may have changed.
+
+**The orphan mechanism IS the re-verification prompt**:
+- Lineage edges pointing at `foo@1.0.0::ParentAntigen` become orphans when
+  the workspace upgrades to `foo@1.1.0` (`orphaned_lineage_edges()` surfaces
+  the edge).
+- Cross-version immunity claims appear as unaddressed presentations (the
+  `addresses()` check returns false because canonical_paths differ).
+- Both behaviors are correct — they enforce periodic re-verification of
+  cross-crate claims at version boundaries.
+
+**What v0.1 audit does NOT do** (and why): it does not auto-translate v1
+immunities to v2; does not silence orphan warnings on version upgrade; does
+not warn the user they upgraded a dep. The orphan warning is the feature.
+
+**Open Question 1** (documented limitation): same-named crates from different
+registries (`crates.io foo@1.0.0` vs alt-registry `foo@1.0.0`) produce the
+same canonical_path string. Alt-registry users typically vendor or rename;
+this limitation is acceptable for v0.1. Forward-compatible: a future
+structured `CanonicalPath { crate_name, version, registry }` form requires
+only a schema_version bump.
+
+**A4+ candidate**: semver-range descent claims (`#[descended_from(Parent,
+semver = "~1.0")]`). Future ADR; not A3 scope. Forward-compatible with
+current `Option<String>` shape.
+
+#### The trust delegation
+
+**Both preconditions are satisfied by construction via `enumerate_dep_crate_roots`**,
+not by runtime layout-check. The function is the only public mechanism for
+enumerating cross-crate scan targets, and every path it returns is sourced
+from `cargo metadata`'s output. Cargo verifies registry layout itself before
+populating that output.
+
+**Do not add alternative path-discovery mechanisms that bypass
+`enumerate_dep_crate_roots`** — doing so bypasses the sub-clause F delegation
+and requires a separate trust argument. ATK-A3-007 enforces this discipline.
+
+The two preconditions (path reachable from cargo metadata's resolution graph;
+path's parent directory matches registry layout) are both honored by
+construction via `enumerate_dep_crate_roots`. The scanner does NOT re-verify
+checksums or dependency authenticity — cargo's resolution chain is the authority.
+Sub-clause F by delegation (ADR-002 compose-not-compete applied to the trust
+boundary itself).
+
+### Sweep-level consequences
+
+- **A3**: `canonical_path` field lands on all five types + LineageEdge.
+  `unaddressed_presentations()` amended. `scan_workspace` option A (caller
+  stamps `canonical_path` post-scan via `enumerate_dep_crate_roots`). D3
+  already shipped in commit `9b677c6`.
+- **A4-A5**: behavioral re-validation of inherited presentations consumes
+  canonical_path-aware identity for O(1) ancestor lookup (via ADR-018's
+  `ProvenanceEntry`).
+- **v0.1.0 public API**: `canonical_path: Option<String>` is a public field.
+  Backward-compatible (serde default). Semver-minor bump policy applies.
+
+### Enforcement
+
+- `orphaned_lineage_edges()` and `dangling_child_lineage_edges()` MUST
+  compare `(type_name, canonical_path)` tuples, not bare names. Detected
+  by cross-crate fixture (ATK-A3-006): edge with `parent_canonical_path:
+  Some("foo@1.0.0")` NOT satisfied by AntigenDeclaration with same
+  `type_name` but different `canonical_path`.
+- The propagation walk MUST use `(type_name, canonical_path)` tuple lookup
+  for parent endpoint resolution. Detected by version-mismatch fixture:
+  `#[descended_from(XVuln)]` pointing at `foo@1.0.0` when only `foo@1.1.0`
+  is in scan produces orphaned-edge warning, NOT silently-wrong propagation.
+- `enumerate_dep_crate_roots` is the only public mechanism for returning
+  registry paths to scan (ATK-A3-007 fixture).
+
+### Resolves
+
+- Cross-crate antigen identity: bare type-name ambiguity at the cross-crate
+  boundary.
+- ADR-001 C7's cross-crate consumption commitment — now has a substrate
+  mechanism.
+- ADR-005's named trust-boundary item 4 (cross-crate antigen consumption)
+  — now has a validation mechanism (cargo delegation).
+- The orphan-detection gap for `orphaned_lineage_edges()` canonical_path
+  comparison (adversarial enforcement review, 2026-05-09).
+- ATK-A3-006 (cross-crate canonical_path-aware orphan detection).
+
+### Open questions deferred
+
+1. Alt-registry disambiguation (same name+version, different registry).
+   **Trigger**: adoption feedback from alt-registry users.
+2. Structured `CanonicalPath` type (name, version, registry fields).
+   **Trigger**: schema_version bump migration tooling is available.
+3. Behavioral validation of `#[descended_from]` claim (does the inheritance
+   hold structurally?). Cross-listed with ADR-018 OQ4.
+4. Re-export resolution (witness `crate_α::fn` re-exported as `crate_β::fn`).
+   Out of scope — witness-resolution problem, not antigen identity problem.
+5. Semver-range descent claims (`semver = "~1.0"` on `#[descended_from]`).
+   **Trigger**: adoption feedback on re-attestation overhead at version boundaries.
+
+---
+
+## [ADR-018] `#[descended_from]` propagation: tagged synthesis + diamond dedup + inheritance state matrix
+
+**Status**: Ratified 2026-05-09.
+
+**Participants**: aristotle (Phase 1-8 + draft), pathmaker (substrate
+verification), navigator (scope-lock, propagation question routing,
+refinement coordination, v3 absorption), naturalist (biology cognate
+validation: lineage-as-clonal-line), adversarial (BUG-A3-001 duplicate-edge
+gap, BUG-A3-002 dangling-child case, enforcement review A18-01 through
+A18-09), team-lead + Tekgy (sibling ratification with ADR-017;
+`ProvenanceEntry` Option C ratification 2026-05-09).
+
+**Related**:
+- ADR-001 Amendment 1 Change 2 (5-state interaction matrix; this ADR amends to 7-state)
+- ADR-005 §Decision item 2 (inheritance propagation trust boundary)
+- ADR-005 Amendment 3 (audit reports its own tier honestly; AuditHint integration)
+- ADR-007 (anti-YAGNI structurally-guaranteed; full propagation logic must ship)
+- ADR-008 Amendment 1 (multi-contributor warn-not-error severity)
+- ADR-011 (`#[antigen_tolerance]` is the escape valve for intentional inheritance)
+- ADR-013 (`#[descended_from]` meaningful only on antigen-type declarations)
+- ADR-017 (sibling ADR; identity primitives this ADR consumes)
+
+**Implicit pattern elevated** (per ADR-004 Enforcement):
+
+The current substrate has `#[descended_from]` declarations and lineage edges
+collected in `ScanReport.lineage_edges`, but the propagation walk that consumes
+edges to synthesize inherited presentations does not yet exist. The implicit
+convention "lineage edges are collected; what they DO is decided later" is
+load-bearing-by-omission. This ADR elevates the implicit-by-omission to
+explicit tagged-synthesis with diamond dedup.
+
+### Finding
+
+A3's scope-lock commits to `#[descended_from]` propagation as Deliverable 1.
+Pathmaker surfaced a question before implementing: what does the synthesis
+pass actually DO with inherited presentations? Three readings:
+
+1. **Literal scope-lock**: synthesize inherited Presentation records as-if-marked; audit treats them identically to explicit markers.
+2. **ADR-005-strict**: scan collects lineage edges only; audit walks chain at audit-time.
+3. **Pathmaker's recommendation**: synthesize inherited Presentations BUT mark them with `MatchKind::DescendedFrom { parent }` variant; audit emits re-attestation hint.
+
+Phase 1-8 (aristotle) deconstructed all three plus seven additional approaches.
+The depth-shift cut: ADR-005 §Decision item 2 says scan re-checks inherited
+witnesses; P2 says behavioral re-check is A4-A5 work. A3's job is to surface
+the inheritance state in a form A4-A5's behavioral-tier can consume. This is
+Approach 4 + Approach 8 hybrid: no MatchKind change; provenance lives in a
+separate `inherited_from` field.
+
+### Decision
+
+**Inheritance propagates as tagged Presentation records carrying provenance
+in an `inherited_from: Option<Vec<ProvenanceEntry>>` field. `MatchKind` is
+unchanged. Diamond inheritance dedupes by `(antigen_type, item_target,
+canonical_path)` tuple, merging inherited_from chains by set-union. The audit
+emits warn-level diagnostics for inherited+unaddressed presentations.**
+
+### Mechanics
+
+#### `ProvenanceEntry` struct and `inherited_from` field
+
+```rust
+/// Provenance entry: the identity of one ancestor antigen whose
+/// presentations propagated to this descendant.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct ProvenanceEntry {
+    /// Antigen type name at the ancestor declaration site.
+    pub antigen_type: String,
+    /// Crate-name@version where the ancestor antigen was declared.
+    /// `None` = ancestor is intra-workspace.
+    pub canonical_path: Option<String>,
+}
+```
+
+Field on `Presentation`:
+
+```rust
+#[serde(default)]
+pub inherited_from: Option<Vec<ProvenanceEntry>>,
+```
+
+Semantics: `None` = direct match. `Some(chain)` = inherited via these ancestor
+antigens, each fully identified by `(antigen_type, canonical_path)` tuple.
+Order not significant; use `BTreeSet<ProvenanceEntry>` internally (requires
+`Ord`), serialize as `Vec<ProvenanceEntry>` for JSON schema stability.
+Empty Vec inside Some: forbidden — collapse to `None` (defensive normalization
+at construction).
+
+**Rationale for `ProvenanceEntry` over bare `String`** (ADR-004, ADR-006,
+ADR-007):
+- ADR-004 (implicit-to-explicit): bare strings hide canonical_path as implicit
+  co-variance. ProvenanceEntry makes full identity explicit in the type system.
+- ADR-006 (recognition-not-design): `(antigen_type, canonical_path)` is the
+  identity tuple used by `unaddressed_presentations()`, diamond dedup, and all
+  lineage-edge query methods. ProvenanceEntry is recognition of existing
+  structure.
+- ADR-007 (anti-YAGNI): A4-A5 behavioral re-validation is structurally
+  guaranteed; bare strings force O(lineage_edges) traversal per lookup.
+  ProvenanceEntry gives O(1). Field is pre-commit — no migration cost.
+
+#### The synthesis algorithm
+
+```
+For each child antigen with at least one outgoing lineage edge:
+    visited = HashSet::new()
+    ancestors = transitive_closure(child, lineage_edges, visited)
+    For each (ancestor_decl, edge) in ancestors:
+        provenance = ProvenanceEntry {
+            antigen_type: ancestor_decl.type_name,
+            canonical_path: edge.parent_canonical_path,
+        }
+        For each presentation P on ancestor_decl:
+            if exists explicit/fingerprint Presentation on child site
+                with same (antigen_type, item_target, canonical_path):
+                    update existing.inherited_from = set_union(existing.inherited_from, [provenance])
+                    continue
+            if exists inherited Presentation on child site
+                with same (antigen_type, item_target, canonical_path):
+                    existing.inherited_from = set_union(existing.inherited_from, [provenance])
+                    continue
+            append Presentation {
+                antigen_type: P.antigen_type,
+                file: child.declaration_file,
+                line: child.declaration_line,
+                item_kind: child.item_kind,
+                item_target: child.item_target,
+                match_kind: P.match_kind,   // preserve ancestor's
+                inherited_from: Some([provenance]),
+                canonical_path: P.canonical_path,
+            }
+```
+
+The descendant inherits the ancestor's `match_kind`. Inheritance is provenance,
+not match-kind.
+
+#### Diamond dedup
+
+When a descendant has multiple paths to the same ancestor presentation
+(diamond: A→B→D and A→C→D), the second visit hits the dedup branch and merges
+inherited_from chains by set-union. Result: one Presentation record per
+`(antigen, item, canonical_path)` tuple per descendant, with inherited_from
+carrying ALL transitive ancestors.
+
+The dedup key `(antigen, item, canonical_path)` corresponds to the three
+components of `addresses()` (ADR-017 §addresses): `same_antigen_identity` +
+`same_item` + `same_locus`. Consistent by construction.
+
+**Cross-version diamond is not a diamond**: under ADR-017's `name@version`
+format, `foo@1.0.0::D` and `foo@1.1.0::D` have different `canonical_path`
+values and are distinct antigens. A child with lineage chains through both
+versions inherits two distinct Presentations, each entering state 7 until
+separately re-attested. Collapsing versions would skip a sub-clause F check —
+the audit warnings for both records are the correct mechanism.
+
+#### Edge-level dedup
+
+Edge-level dedup runs before BOTH `detect_lineage_failures` AND the propagation
+walk (BUG-A3-001). Edges are deduped by `(child, parent, child_canonical_path,
+parent_canonical_path)` tuple. A user accidentally writing
+`#[descended_from(A)] #[descended_from(A)]` produces two edges; dedup collapses
+to one. Dedup MUST happen before cycle detection to avoid spurious cycle
+detection on duplicated paths.
+
+Implementation order in `scan_workspace`:
+1. Edge collection (existing visitor pass).
+2. **Edge-level dedup** (new).
+3. Cycle detection (`detect_lineage_failures`) consumes the deduped edge set.
+4. Propagation walk consumes the same deduped edge set.
+
+#### Stale-lineage interaction
+
+The propagation walk does NOT walk through orphaned edges (parent antigen not
+in scan) or dangling-child edges (child antigen not in `self.antigens`).
+Both produce no inherited presentations on the descendant; both surface via
+query methods (`orphaned_lineage_edges()` and `dangling_child_lineage_edges()`).
+
+Both query methods compare `(type_name, canonical_path)` tuples, not bare
+names. An edge with `parent_canonical_path: Some("foo@1.0.0")` is satisfied
+ONLY by an `AntigenDeclaration` with both matching fields.
+
+#### The 7-state interaction matrix
+
+ADR-001 Amendment 1 Change 2 ratified a 5-state matrix. This ADR amends to 7 states:
+
+1. **Marked + matched** (existing): `#[presents(X)]` + matching `#[immune(X, witness=Y)]` on same item.
+2. **Passively detected** (existing): no markers; matches X's fingerprint.
+3. **Inconsistent** (existing): `#[presents(X)]` on item NOT matching X's fingerprint.
+4. **Tolerated** (existing): `#[antigen_tolerance(X)]` on a matching site.
+5. **Stale tolerance** (existing): `#[antigen_tolerance(X)]` on a site matching no fingerprint.
+6. **Inherited + re-attested** (NEW): `inherited_from = Some(_)` AND descendant has explicit `#[immune]` or `#[antigen_tolerance]` addressing the same antigen on the same item.
+7. **Inherited + unaddressed** (NEW): `inherited_from = Some(_)` AND descendant has neither immune nor tolerance for the same antigen on the same item. Audit emits warn diagnostic (default) or error (`--strict`).
+
+**Anti-case for state 6**: an item with `#[presents(A)]` and an inherited
+Presentation for B (different antigen) is state 1 for A and state 7 for B.
+`#[presents(A)]` does NOT re-attest an inherited Presentation for a different
+antigen. State 6 requires the explicit marker and inherited Presentation to be
+for the **same antigen** on the same item.
+
+**No state 8**: orphaned/dangling edges produce no Presentation records — they
+surface at the report layer via query methods. A Presentation record for a
+broken lineage would have no well-defined `inherited_from` content. Audit
+can cross-reference ("broken lineage claim — see orphaned-edge warning") as a
+rendering choice without substrate-state change.
+
+#### Audit diagnostic text
+
+Default (warn) format:
+
+```
+warning: inherited presentation: `<Antigen>` flowed from `<Ancestor>`
+  (declared in <ancestor-source>) to `<Descendant>` via `#[descended_from]`;
+  the witness inherited from the ancestor has not been re-attested on the
+  descendant. Add `#[immune(<Antigen>, witness = ...)]` or
+  `#[antigen_tolerance(<Antigen>, rationale = "...")]` on the descendant.
+  --> <descendant-source>:<line>
+```
+
+State 7 AuditHint: `inherited-presentation-not-re-attested: behavioral-tier
+audit (A4-A5) will validate that the ancestor's witness applies to descendant;
+reachability-tier audit cannot perform this check.` SHOULD include reference
+to ancestor immunity declarations to help the user evaluate re-attestation.
+
+### Sweep-level consequences
+
+- **A3 implementation** adds `ProvenanceEntry` struct + `inherited_from:
+  Option<Vec<ProvenanceEntry>>` on `Presentation` (~15 lines struct + serde),
+  propagation walk (~80 lines), audit diagnostic (~30 lines), tests (~80
+  lines covering linear chain, diamond, deep chain, orphaned-edge non-walk,
+  explicit-vs-inherited precedence, fingerprint-match-vs-inherited precedence,
+  cross-crate inheritance, immunity-does-not-inherit, tolerance-covers-inherited).
+- `ScanReport schema_version` bumps once for combined ADR-017 + ADR-018 changes.
+- 7-state matrix amends ADR-001 Amendment 1 Change 2.
+- **A4** scope unblocks: behavioral re-validation of inherited witnesses
+  (state 7 → A4-A5 check); `ProvenanceEntry` provides O(1) ancestor identity
+  lookup for that check.
+
+### Enforcement
+
+- The propagation walk MUST run after `detect_lineage_failures` passes clean.
+  Detected by ordering test.
+- `inherited_from = Some(empty_vec)` MUST never appear. Detected by serde
+  round-trip property test.
+- Diamond cases MUST produce exactly one Presentation per `(antigen, item,
+  canonical_path)` tuple per descendant. Detected by diamond-fixture test.
+- Explicit `#[presents]` + inheritance overlap MUST produce one Presentation
+  with `MatchKind::ExplicitMarker` and `inherited_from = Some(_)`.
+- Fingerprint-match + inheritance overlap MUST produce one Presentation with
+  `MatchKind::FingerprintMatch` and `inherited_from = Some(_)`.
+- Immunity MUST NOT auto-propagate. Detected by inheritance-fixture test.
+- State 7 MUST emit warn-level diagnostic by default and error-level under
+  `--strict`.
+- Tolerance MUST cover inherited presentations (state 4 absorbs
+  inherited+tolerated).
+- Orphaned lineage edges MUST NOT be walked through.
+- Dangling-child lineage edges MUST NOT be walked through (BUG-A3-002).
+- Edge-level dedup MUST run before BOTH `detect_lineage_failures` AND the
+  propagation walk (BUG-A3-001).
+- Both `orphaned_lineage_edges()` and `dangling_child_lineage_edges()` MUST
+  compare `(type_name, canonical_path)` tuples, not bare names.
+- The propagation walk MUST use `(type_name, canonical_path)` tuple lookup
+  for parent endpoint resolution, not bare-name lookup.
+- Each `inherited_from` entry MUST identify the ancestor antigen with
+  canonical_path fidelity — `(antigen_type, canonical_path)` ProvenanceEntry,
+  not bare name. Detected by cross-crate diamond fixture.
+- Anti-case fixture: `#[presents(A)]` + inherited Presentation for B →
+  state 7 for B, not state 6.
+
+### Resolves
+
+- The propagation-semantics question pathmaker surfaced (Reading 1 vs 2 vs 3).
+- ADR-005 §Decision item 2's "scan walks descended_from chains and re-checks"
+  language gains an A3-tractable substrate.
+- Diamond Phase 1-8 and propagation Phase 1-8 findings — ratified into substrate.
+- ADR-001 Amendment 1 Change 2 5-state matrix — amended to 7-state.
+- The implicit-by-omission "what does propagation DO?" elevated to explicit
+  tagged-synthesis with diamond dedup.
+- Adversarial BUG-A3-001 (edge-level dedup precondition for cycle detection).
+- Adversarial BUG-A3-002 (dangling-child edge non-walk).
+- Adversarial enforcement findings A18-01/04/09 (inherited_from canonical_path
+  granularity — resolved by ProvenanceEntry).
+
+### Open questions deferred
+
+1. **Provisional inheritance via isotype-switching analog**: defer until stdlib
+   antigens with shared lineage produce ergonomic-friction adoption signals.
+2. **Lazy/audit-time synthesis**: defer until scan-side synthesis at ecosystem
+   scale produces real performance pressure.
+3. **Path-attribution beyond set-of-ancestors**: would consumers benefit from
+   per-path provenance? Trigger: audit use case requiring path detail beyond
+   inherited_from + lineage_edges cross-reference.
+4. **Behavioral validation of `#[descended_from]` claim itself**. Cross-listed
+   with ADR-017 Open Question 3.
+5. **Witness re-validation across inheritance** (A4-A5 behavioral-tier work;
+   surfaced by state 7 + AuditHint). Includes the multi-version case: with
+   `ProvenanceEntry` carrying canonical_path, A4-A5 ancestor lookup is O(1) —
+   this open question is substantially simplified vs bare-string Option A.
 
 ---
 
