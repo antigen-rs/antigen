@@ -1268,13 +1268,31 @@ pub struct DepCrateRoot {
 /// In all error cases, the error message preserves the underlying cause
 /// (cargo's stderr or the JSON parse error) for diagnostic surfacing.
 ///
-/// # Sub-clause F note (ADR-005)
+/// # Sub-clause F note (ADR-005 / ADR-017 trust delegation)
 ///
 /// Cross-crate antigen declarations are trusted inputs — the trust anchor
 /// is cargo's own checksum verification of registry sources + git revision
-/// pinning. This trust model needs an ADR sentence (in flight with
-/// aristotle); the function ships separately so that mechanism work is
-/// not blocked on the documentation.
+/// pinning. The ADR-017 (draft) trust delegation model requires two
+/// preconditions before extending trust to a registry path:
+///
+/// 1. The path is reachable from `cargo metadata`'s resolution graph as
+///    a transitive dependency of the consumer workspace.
+/// 2. The path's parent directory matches the registry's expected layout
+///    (`<index>/<crate>-<version>/`).
+///
+/// **Both preconditions are satisfied by construction here**: this function
+/// is the only public mechanism for enumerating cross-crate scan targets,
+/// and every path it returns is sourced from `cargo metadata`'s output.
+/// Cargo verifies registry layout itself before populating that output;
+/// we inherit cargo's verification rather than re-implementing it.
+///
+/// **Discipline for future contributors**: do NOT add a non-cargo-metadata
+/// path discovery mechanism (e.g., recursive walking of
+/// `~/.cargo/registry/src/`) without explicitly adding the layout-matching
+/// and reachability checks. Such a path would extend trust outside cargo's
+/// resolution chain. Adversarial ATK-A3-007 (in
+/// `antigen/tests/atk_a3_fractal_preview.rs`) is the green-test for that
+/// scenario.
 pub fn enumerate_dep_crate_roots(
     workspace_root: &Path,
     include_path_workspace: bool,
