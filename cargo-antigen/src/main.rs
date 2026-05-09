@@ -108,7 +108,10 @@ fn run_scan(args: ScanArgs) -> ExitCode {
         return ExitCode::from(2);
     }
     if !args.root.is_dir() {
-        eprintln!("error: expected a directory, got a file: {}", args.root.display());
+        eprintln!(
+            "error: expected a directory, got a file: {}",
+            args.root.display()
+        );
         return ExitCode::from(2);
     }
     eprintln!("Scanning workspace: {}", args.root.display());
@@ -328,7 +331,10 @@ fn run_audit(args: AuditArgs) -> ExitCode {
         return ExitCode::from(2);
     }
     if !args.root.is_dir() {
-        eprintln!("error: expected a directory, got a file: {}", args.root.display());
+        eprintln!(
+            "error: expected a directory, got a file: {}",
+            args.root.display()
+        );
         return ExitCode::from(2);
     }
     eprintln!("Auditing workspace: {}", args.root.display());

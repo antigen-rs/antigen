@@ -15,8 +15,21 @@
 //! See: campsites/antigen-design/20260508120021-.../naturalist/20260508-tier-confusion-roam.md
 //! and the-fractal-was-the-architecture.md garden entry.
 
-// All tests in this file are #[ignore] pre-implementation contracts.
-// Fixtures and scan_workspace will be needed when A3 ships.
+// Tests in this file are pre-implementation contracts. As each A3 deliverable
+// ships, the corresponding test loses its #[ignore] and gains a real fixture-
+// driven body. ATK-A3-002 (cycle detection) and ATK-A3-003 (stale lineage)
+// were activated when scan-side cycle detection + lineage-edge collection
+// landed (A3 deliverable 1 + 2).
+
+use antigen::scan::scan_workspace;
+use std::path::{Path, PathBuf};
+
+fn fixture(name: &str) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("fixtures")
+        .join(name)
+}
 
 // ============================================================================
 // ATK-A3-001: cross-crate witness resolution — re-export structural variant
@@ -74,19 +87,52 @@ fn atk_a3_001_reexported_witness_resolves_correctly() {
 // ============================================================================
 
 #[test]
-#[ignore = "A3 pre-implementation contract; #[descended_from] cycle detection — remove ignore when A3 ships lineage walking"]
 fn atk_a3_002_circular_descended_from_chain_is_detected_not_infinite_loop() {
-    // Contract: a workspace containing:
-    //   fn_a: #[descended_from(fn_b)]
-    //   fn_b: #[descended_from(fn_a)]
-    // must produce a parse_failure or diagnostic, not hang indefinitely.
+    // Contract: a workspace with `Alpha #[descended_from(Beta)]` and
+    // `Beta #[descended_from(Alpha)]` must produce a parse_failure with
+    // the chain text — not hang indefinitely or stack-overflow. ADR-005
+    // Amendment 3 (crash-resistance) — cycle detection is a hard entry
+    // requirement, not optional.
     //
-    // TODO(adversarial): write fixture with circular chain when A3 ships.
-    // This is the crash variant of the structural-variant blind spot — not a
-    // wrong answer but a catastrophic failure mode. File immediately as A3
-    // opens to ensure cycle detection is in scope from the start.
-    panic!(
-        "A3 pre-implementation contract — cycle detection is a safety requirement, not optional"
+    // The fixture uses struct types because #[descended_from] applies to
+    // antigen-type declarations (unit struct + class enum) per ADR-013;
+    // applying it to functions is a parse_failure on its own (separate
+    // from the cycle detection path under test here).
+    let fixture_root = fixture("atk_a3_002_circular_lineage");
+    let scan = scan_workspace(&fixture_root, None).expect("scan must complete, not hang");
+
+    assert_eq!(
+        scan.lineage_edges.len(),
+        2,
+        "fixture has two #[descended_from] declarations forming a cycle"
+    );
+
+    // Cycle must surface as a parse_failure (structural error channel —
+    // scan cannot complete a propagation walk correctly). Other channels
+    // (orphaned_lineage_edges) are for semantic warnings, not crashes.
+    let cycle_failures: Vec<_> = scan
+        .parse_failures
+        .iter()
+        .filter(|f| f.error.contains("cycle"))
+        .collect();
+    assert_eq!(
+        cycle_failures.len(),
+        1,
+        "exactly one cycle should be reported (dedup across entry points), \
+         got: {:?}",
+        scan.parse_failures
+    );
+
+    // Chain text must be present in the error so the user can identify
+    // which edges form the loop.
+    let err = &cycle_failures[0].error;
+    assert!(
+        err.contains("Alpha") && err.contains("Beta"),
+        "cycle error must name both nodes in the chain, got: {err}"
+    );
+    assert!(
+        err.contains("->"),
+        "cycle error must render the chain with `->` between nodes, got: {err}"
     );
 }
 
@@ -110,20 +156,54 @@ fn atk_a3_002_circular_descended_from_chain_is_detected_not_infinite_loop() {
 // ============================================================================
 
 #[test]
-#[ignore = "A3 pre-implementation contract; stale #[descended_from] reference — remove ignore when A3 ships lineage walking"]
 fn atk_a3_003_stale_descended_from_reference_is_flagged_not_silently_dropped() {
-    // Contract: #[descended_from(nonexistent_parent)] must produce a
-    // diagnostic (parse_failure or scan warning), not silently succeed with
-    // "no inherited presentations" — which would be indistinguishable from
-    // a valid function that happens to have no presentations.
+    // Contract: #[descended_from(MissingParent)] where MissingParent is not
+    // declared in the scanned workspace must surface via the
+    // orphaned_lineage_edges() query method — parallel to orphaned_tolerances().
     //
-    // The key silent-failure mode: if the lineage walker returns "chain
-    // resolved to nothing" without distinguishing "parent doesn't exist" from
-    // "parent exists and has no presentations," the developer cannot know
-    // whether their inheritance chain is working.
+    // Channel taxonomy (scope-lock §"Stale reference handling"):
+    //   - parse_failures: structural errors that prevent correct scan
+    //     completion (file IO, fingerprint parse errors, cycles)
+    //   - orphaned_lineage_edges() / orphaned_tolerances(): semantic warnings,
+    //     scan completed but a declaration references something no longer
+    //     present. Caller decides severity.
     //
-    // TODO(adversarial): write fixture when A3 ships lineage walking.
-    panic!("A3 pre-implementation contract");
+    // The silent-failure mode this test guards against: if a stale lineage
+    // reference were silently dropped, propagation would resolve to "no
+    // inherited presentations" — indistinguishable from a valid antigen
+    // that genuinely has no parent presentations. The query method makes
+    // the orphan visible without forcing scan failure.
+    let fixture_root = fixture("atk_a3_003_stale_lineage");
+    let scan = scan_workspace(&fixture_root, None).expect("scan must complete");
+
+    assert_eq!(
+        scan.lineage_edges.len(),
+        1,
+        "fixture has one #[descended_from] declaration"
+    );
+    assert_eq!(
+        scan.antigens.len(),
+        1,
+        "fixture declares Child but NOT MissingParent — that's the orphan setup"
+    );
+
+    // Stale references must NOT appear as parse_failures (different channel).
+    assert!(
+        scan.parse_failures
+            .iter()
+            .all(|f| !f.error.contains("MissingParent")),
+        "stale lineage references must not be reported as parse_failures, got: {:?}",
+        scan.parse_failures
+    );
+
+    let orphans = scan.orphaned_lineage_edges();
+    assert_eq!(
+        orphans.len(),
+        1,
+        "stale lineage reference must surface as one orphan, got: {orphans:?}"
+    );
+    assert_eq!(orphans[0].child, "Child");
+    assert_eq!(orphans[0].parent, "MissingParent");
 }
 
 // ============================================================================

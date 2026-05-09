@@ -565,6 +565,38 @@ pub struct ParseFailure {
     pub error: String,
 }
 
+/// A `#[descended_from(parent)]` lineage edge discovered during scan.
+///
+/// A3 (sweep) — every `#[descended_from]` site contributes one edge with
+/// `child` = the bearing antigen type's name and `parent` = the last segment
+/// of the path supplied as the attribute argument. Edges are collected during
+/// the visitor pass and consumed afterwards by:
+///
+/// - cycle detection (ATK-A3-002 — required safety guard before propagation)
+/// - the propagation walk (ADR-013 — child inherits parent's presentations)
+/// - [`ScanReport::orphaned_lineage_edges`] (ATK-A3-003 — semantic warning
+///   parallel to [`ScanReport::orphaned_tolerances`] for declarations whose
+///   parent is no longer present in the scan)
+///
+/// `#[descended_from]` is meaningful only on antigen-type declarations
+/// (unit `struct` and class-shaped `enum`). The visitor surfaces other
+/// placements as `parse_failures`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LineageEdge {
+    /// Bare type name of the antigen bearing `#[descended_from]` (the child).
+    pub child: String,
+    /// Last path segment of the `#[descended_from]` argument (the parent
+    /// antigen type). Stored as the bare type name, mirroring how
+    /// [`Presentation::antigen_type`] and [`Immunity::antigen_type`] are
+    /// stored — A3 cross-crate identity (module-path qualification) is an
+    /// ADR-class question; until resolved, names are bare last-segment.
+    pub parent: String,
+    /// Source file path.
+    pub file: PathBuf,
+    /// Line number of the `#[descended_from]` attribute.
+    pub line: usize,
+}
+
 /// Aggregate result of scanning a workspace.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ScanReport {
@@ -578,6 +610,12 @@ pub struct ScanReport {
     /// All discovered `#[antigen_tolerance]` sites. W6a (sweep A2).
     #[serde(default)]
     pub tolerances: Vec<Toleration>,
+    /// All discovered `#[descended_from]` edges. A3.
+    ///
+    /// `#[serde(default)]` so reports serialized before A3 deserialize
+    /// cleanly with an empty edge list (additive change, not breaking).
+    #[serde(default)]
+    pub lineage_edges: Vec<LineageEdge>,
     /// Files scanned successfully.
     pub files_scanned: usize,
     /// Files that failed to parse.
@@ -665,6 +703,35 @@ impl ScanReport {
             .collect()
     }
 
+    /// Lineage edges whose parent antigen is not present in the scan.
+    ///
+    /// A3 / ATK-A3-003 — parallel to [`ScanReport::orphaned_tolerances`].
+    ///
+    /// A `#[descended_from(Parent)]` declaration whose `Parent` is no
+    /// longer declared in the scanned workspace (rename, removal, or
+    /// — for v0.1 — a parent that lives in a not-yet-scanned crate) is
+    /// a *semantic warning*, not a structural error: the scan completed
+    /// correctly, but the declaration references something that isn't
+    /// there. Surfaced via this query method rather than emitted into
+    /// `parse_failures` so callers (CLI, audit tooling, IDE plugins)
+    /// choose the severity, the same channel discipline used for
+    /// orphaned tolerances.
+    ///
+    /// Cross-crate antigens are deferred to A3+ — for v0.1, an "orphan"
+    /// is a lineage edge whose `parent` doesn't appear as a `type_name`
+    /// in any [`AntigenDeclaration`] in the same scan. Consumers using
+    /// cross-crate antigens may produce false positives here; that's
+    /// the recognized v0.1 limitation.
+    #[must_use]
+    pub fn orphaned_lineage_edges(&self) -> Vec<&LineageEdge> {
+        let known: std::collections::HashSet<&str> =
+            self.antigens.iter().map(|a| a.type_name.as_str()).collect();
+        self.lineage_edges
+            .iter()
+            .filter(|e| !known.contains(e.parent.as_str()))
+            .collect()
+    }
+
     /// Total count of antigen-related declarations found.
     #[must_use]
     pub fn total_declarations(&self) -> usize {
@@ -673,6 +740,201 @@ impl ScanReport {
             + self.immunities.len()
             + self.tolerances.len()
     }
+}
+
+/// Hard depth limit for `#[descended_from]` lineage chains.
+///
+/// ADR-005 Amendment 3 (crash-resistance) — bounds pathological-linear
+/// chains that exceed reasonable inheritance depth. Default 64; longer chains
+/// surface as `parse_failures` rather than letting the propagation walk
+/// recurse without bound. The limit is a sibling guard to cycle detection;
+/// both are required entry conditions before propagation.
+///
+/// The constant is internal for v0.1; per the scope-lock document, it will
+/// become configurable via `[package.metadata.antigen]` in a follow-up.
+pub(crate) const MAX_LINEAGE_DEPTH: usize = 64;
+
+/// Detect circular and over-deep `#[descended_from]` chains.
+///
+/// ATK-A3-002. Iterative DFS with white/gray/black coloring on the lineage
+/// graph (`child → parent` edges). Stack frames carry `(node, child_index)`
+/// so the algorithm is iterative — no recursion → no stack-overflow risk on
+/// pathological inputs.
+///
+/// Coloring discipline:
+/// - **white** (absent from `color`): not yet visited.
+/// - **gray** (`= 1`): on the current DFS path. Re-encountering a gray node
+///   closes a cycle.
+/// - **black** (`= 2`): fully processed. Re-encountering a black node is a
+///   shortcut — its subtree was already proven cycle-free in this scan.
+///
+/// Returns one [`ParseFailure`] per discovered cycle (cycle anchored at the
+/// first edge that closed it) and one per chain that exceeded `max_depth`.
+/// The chain text is preserved in the `error` string — the structured-enum
+/// representation of `ParseFailure` is an open question (see scope-lock §5
+/// and aristotle's pending Phase 1-8 ruling).
+fn detect_lineage_failures(edges: &[LineageEdge], max_depth: usize) -> Vec<ParseFailure> {
+    use std::collections::HashMap;
+
+    // Build adjacency: child → list of (parent, edge-index). The edge-index
+    // lets us recover the source location (file + line) of the closing edge
+    // when a cycle is reported, which matters for human-readable diagnostics.
+    let mut adjacency: HashMap<&str, Vec<(&str, usize)>> = HashMap::new();
+    for (idx, edge) in edges.iter().enumerate() {
+        adjacency
+            .entry(edge.child.as_str())
+            .or_default()
+            .push((edge.parent.as_str(), idx));
+    }
+
+    let mut failures: Vec<ParseFailure> = Vec::new();
+    let mut color: HashMap<&str, u8> = HashMap::new();
+    // Seen-cycle set keyed by the canonicalised cycle (smallest rotation of
+    // the node sequence) so we don't report the same loop multiple times
+    // when entered from different start nodes.
+    let mut reported_cycles: std::collections::HashSet<Vec<String>> =
+        std::collections::HashSet::new();
+
+    // For deterministic output (tests, diff stability) iterate roots in the
+    // order edges were discovered rather than HashMap iteration order.
+    let mut roots_in_order: Vec<&str> = Vec::new();
+    let mut seen_roots: std::collections::HashSet<&str> = std::collections::HashSet::new();
+    for edge in edges {
+        let c = edge.child.as_str();
+        if seen_roots.insert(c) {
+            roots_in_order.push(c);
+        }
+    }
+
+    for &root in &roots_in_order {
+        if color.contains_key(root) {
+            continue;
+        }
+        // Stack frame: (node, next-child-index, file-of-edge-into-node).
+        // The path vector is maintained alongside so cycles can render the
+        // full chain text on closure. file-of-edge is `None` for the root.
+        let mut stack: Vec<(&str, usize)> = Vec::new();
+        let mut path: Vec<&str> = Vec::new();
+
+        color.insert(root, 1);
+        stack.push((root, 0));
+        path.push(root);
+
+        while let Some(&mut (node, ref mut idx)) = stack.last_mut() {
+            // Hard depth guard — per ADR-005 Amendment 3 sibling to cycle
+            // detection. Path length includes the current node, so a chain
+            // a -> b -> c at this frame has path.len() == 3.
+            if path.len() > max_depth {
+                // Anchor the diagnostic at the edge that pushed us over —
+                // the most recent edge in the path.
+                let leaf = *path.last().unwrap_or(&node);
+                let anchor = adjacency
+                    .get(leaf)
+                    .and_then(|v| v.first())
+                    .and_then(|(_, edge_idx)| edges.get(*edge_idx))
+                    .map_or_else(PathBuf::new, |e| e.file.clone());
+                failures.push(ParseFailure {
+                    file: anchor,
+                    error: format!(
+                        "#[descended_from] chain exceeds maximum depth ({max_depth}) at \
+                         `{leaf}`; chain: {}",
+                        path.join(" -> ")
+                    ),
+                });
+                // Mark the leaf black and pop so the rest of the graph is
+                // still examined for other failures.
+                color.insert(node, 2);
+                stack.pop();
+                path.pop();
+                continue;
+            }
+
+            let children = adjacency.get(node).map_or(&[][..], Vec::as_slice);
+            if *idx >= children.len() {
+                // All children processed — paint black and unwind one level.
+                color.insert(node, 2);
+                stack.pop();
+                path.pop();
+                continue;
+            }
+
+            let (child, edge_idx) = children[*idx];
+            *idx += 1;
+
+            match color.get(child).copied().unwrap_or(0) {
+                0 => {
+                    // White — descend into it.
+                    color.insert(child, 1);
+                    path.push(child);
+                    stack.push((child, 0));
+                }
+                1 => {
+                    // Gray — closing a cycle. Capture the chain from the
+                    // first occurrence of `child` in `path` to the current
+                    // node, then back to `child`.
+                    let cycle_start = path.iter().position(|n| *n == child).unwrap_or(0);
+                    let bare_refs: Vec<&str> = path[cycle_start..].to_vec();
+                    let mut cycle_chain: Vec<String> =
+                        bare_refs.iter().map(|s| (*s).to_string()).collect();
+                    cycle_chain.push(child.to_string());
+
+                    // Canonicalise (smallest rotation of the bare cycle,
+                    // excluding the duplicated tail) for dedup.
+                    let canonical = canonicalise_cycle(&bare_refs);
+                    if reported_cycles.insert(canonical) {
+                        let edge = edges.get(edge_idx);
+                        let file = edge.map_or_else(PathBuf::new, |e| e.file.clone());
+                        let line = edge.map_or(0, |e| e.line);
+                        failures.push(ParseFailure {
+                            file,
+                            error: format!(
+                                "#[descended_from] forms a cycle (closing edge at line \
+                                 {line}): {}",
+                                cycle_chain.join(" -> ")
+                            ),
+                        });
+                    }
+                    // Don't descend into the gray child — that would loop.
+                    // Continue with the next child of `node`.
+                }
+                _ => {
+                    // Black — already proven cycle-free in this scan; skip.
+                }
+            }
+        }
+    }
+
+    failures
+}
+
+/// Canonicalise a cycle as the lexicographically smallest rotation of its
+/// node sequence, so cycles entered from different start nodes deduplicate.
+///
+/// Input is the bare cycle `[a, b, c]` (without the repeated tail node) —
+/// `[a, b, c]` and `[b, c, a]` are the same cycle and produce the same
+/// canonical form `[a, b, c]` here.
+fn canonicalise_cycle(bare: &[&str]) -> Vec<String> {
+    if bare.is_empty() {
+        return Vec::new();
+    }
+    let n = bare.len();
+    let mut best_start = 0;
+    for start in 1..n {
+        // Compare rotation starting at `start` vs current best.
+        for i in 0..n {
+            let a = bare[(start + i) % n];
+            let b = bare[(best_start + i) % n];
+            if a < b {
+                best_start = start;
+                break;
+            } else if a > b {
+                break;
+            }
+        }
+    }
+    (0..n)
+        .map(|i| bare[(best_start + i) % n].to_string())
+        .collect()
 }
 
 /// Scan a directory tree, reading every `.rs` file and extracting antigen
@@ -749,6 +1011,27 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
             }
         }
     }
+
+    // ---- Lineage safety pass ----
+    //
+    // ATK-A3-002 — `#[descended_from]` chains require two hard entry guards
+    // (ADR-005 Amendment 3 crash-resistance, both required) before any
+    // propagation walk reads the edge graph:
+    //
+    //   1. Cycle detection — a `child → parent → ... → child` chain would
+    //      cause a propagation walker to recurse indefinitely. Every cycle
+    //      surfaces as one `ParseFailure` with the full chain text so the
+    //      user sees which edges form the loop.
+    //
+    //   2. Depth limit (default 64) — bounds pathological-linear chains
+    //      that aren't cyclic but blow the stack. Reports the offending
+    //      child + observed depth.
+    //
+    // Both are emitted into `parse_failures` because they prevent correct
+    // scan completion (channel taxonomy: structural error, not semantic
+    // warning — the latter is `orphaned_lineage_edges()`).
+    let lineage_failures = detect_lineage_failures(&report.lineage_edges, MAX_LINEAGE_DEPTH);
+    report.parse_failures.extend(lineage_failures);
 
     // ---- Fingerprint synthesis pass ----
     //
@@ -1097,6 +1380,72 @@ impl ScanVisitor<'_> {
         }
     }
 
+    fn extract_descended_from(&mut self, attr: &syn::Attribute, item_target: &ItemTarget) {
+        // ADR-013: `#[descended_from]` is meaningful only on antigen-type
+        // declarations (unit `struct` and class-shaped `enum`). Other
+        // placements — impl blocks, free functions, traits, methods —
+        // surface as parse_failures so the user sees what got dropped
+        // rather than the visitor silently no-op'ing them.
+        let child = match item_target {
+            ItemTarget::Struct(name) | ItemTarget::Enum(name) => name.clone(),
+            other => {
+                self.report.parse_failures.push(ParseFailure {
+                    file: self.file_path.clone(),
+                    error: format!(
+                        "#[descended_from] on `{}` is not a type declaration; \
+                         this attribute is meaningful only on `struct` and `enum` \
+                         antigen declarations",
+                        other.label()
+                    ),
+                });
+                return;
+            }
+        };
+
+        let syn::Meta::List(list) = &attr.meta else {
+            self.report.parse_failures.push(ParseFailure {
+                file: self.file_path.clone(),
+                error: "malformed #[descended_from] attribute: expected `(parent)`".to_string(),
+            });
+            return;
+        };
+
+        // Body is a single positional `syn::Path`, mirroring
+        // `extract_presents`. Last segment becomes the bare parent type
+        // name — module-path qualification is an A3+ ADR-class question
+        // (ATK-A3-005), so for now we keep names bare.
+        let parent = match syn::parse2::<syn::Path>(list.tokens.clone()) {
+            Ok(path) => path
+                .segments
+                .last()
+                .map(|s| s.ident.to_string())
+                .unwrap_or_default(),
+            Err(e) => {
+                self.report.parse_failures.push(ParseFailure {
+                    file: self.file_path.clone(),
+                    error: format!("malformed #[descended_from] attribute: {e}"),
+                });
+                return;
+            }
+        };
+
+        if parent.is_empty() {
+            self.report.parse_failures.push(ParseFailure {
+                file: self.file_path.clone(),
+                error: "#[descended_from] requires a parent path argument".to_string(),
+            });
+            return;
+        }
+
+        let line = Self::line_of_attr(attr);
+        self.report.lineage_edges.push(LineageEdge {
+            child,
+            parent,
+            file: self.file_path.clone(),
+            line,
+        });
+    }
+
     fn check_attrs(&mut self, attrs: &[syn::Attribute], item_kind: &str, item_target: &ItemTarget) {
         for attr in attrs {
             if attr_is(attr, "presents") {
@@ -1105,6 +1454,8 @@ impl ScanVisitor<'_> {
                 self.extract_immune(attr, item_kind, item_target.clone());
             } else if attr_is(attr, "antigen_tolerance") {
                 self.extract_tolerance(attr, item_kind, item_target.clone());
+            } else if attr_is(attr, "descended_from") {
+                self.extract_descended_from(attr, item_target);
             }
         }
     }
@@ -1729,5 +2080,212 @@ mod tests {
                     "qualified antigen path {:?} must yield bare last-segment antigen_type", qualified);
             }
         }
+    }
+
+    // ========================================================================
+    // A3: lineage edge cycle detection (ATK-A3-002)
+    // ========================================================================
+
+    fn edge(child: &str, parent: &str) -> LineageEdge {
+        LineageEdge {
+            child: child.to_string(),
+            parent: parent.to_string(),
+            file: PathBuf::from("test.rs"),
+            line: 1,
+        }
+    }
+
+    #[test]
+    fn lineage_no_edges_no_failures() {
+        let failures = detect_lineage_failures(&[], MAX_LINEAGE_DEPTH);
+        assert!(failures.is_empty());
+    }
+
+    #[test]
+    fn lineage_acyclic_chain_no_failures() {
+        // C -> B -> A (deepest first declared)
+        let edges = vec![edge("C", "B"), edge("B", "A")];
+        let failures = detect_lineage_failures(&edges, MAX_LINEAGE_DEPTH);
+        assert!(
+            failures.is_empty(),
+            "acyclic chain must produce no failures, got: {failures:?}"
+        );
+    }
+
+    #[test]
+    fn lineage_self_loop_detected() {
+        // A -> A
+        let edges = vec![edge("A", "A")];
+        let failures = detect_lineage_failures(&edges, MAX_LINEAGE_DEPTH);
+        assert_eq!(
+            failures.len(),
+            1,
+            "self-loop must report exactly one failure"
+        );
+        assert!(
+            failures[0].error.contains("cycle"),
+            "self-loop error must mention cycle, got: {}",
+            failures[0].error
+        );
+        assert!(
+            failures[0].error.contains("A -> A"),
+            "self-loop error must contain chain `A -> A`, got: {}",
+            failures[0].error
+        );
+    }
+
+    #[test]
+    fn lineage_two_node_cycle_detected() {
+        // A -> B -> A
+        let edges = vec![edge("A", "B"), edge("B", "A")];
+        let failures = detect_lineage_failures(&edges, MAX_LINEAGE_DEPTH);
+        assert_eq!(
+            failures.len(),
+            1,
+            "2-cycle must report one failure, got: {failures:?}"
+        );
+        let err = &failures[0].error;
+        assert!(err.contains("cycle"), "must mention cycle, got: {err}");
+        assert!(
+            err.contains("A -> B -> A") || err.contains("B -> A -> B"),
+            "must contain full cycle chain, got: {err}"
+        );
+    }
+
+    #[test]
+    fn lineage_three_node_cycle_detected() {
+        // A -> B -> C -> A
+        let edges = vec![edge("A", "B"), edge("B", "C"), edge("C", "A")];
+        let failures = detect_lineage_failures(&edges, MAX_LINEAGE_DEPTH);
+        assert_eq!(
+            failures.len(),
+            1,
+            "3-cycle must report exactly one failure, got: {failures:?}"
+        );
+    }
+
+    #[test]
+    fn lineage_cycle_dedup_across_entry_points() {
+        // A -> B -> C -> A (same cycle reachable from B and from C)
+        // Adding extra non-cyclic edges should still produce one failure.
+        let edges = vec![
+            edge("A", "B"),
+            edge("B", "C"),
+            edge("C", "A"),
+            edge("D", "B"), // D enters the cycle through B
+            edge("E", "C"), // E enters the cycle through C
+        ];
+        let failures = detect_lineage_failures(&edges, MAX_LINEAGE_DEPTH);
+        assert_eq!(
+            failures.len(),
+            1,
+            "same cycle entered from multiple roots must dedup, got: {failures:?}"
+        );
+    }
+
+    #[test]
+    fn lineage_two_disjoint_cycles_both_reported() {
+        // A -> B -> A (cycle 1) and X -> Y -> X (cycle 2)
+        let edges = vec![
+            edge("A", "B"),
+            edge("B", "A"),
+            edge("X", "Y"),
+            edge("Y", "X"),
+        ];
+        let failures = detect_lineage_failures(&edges, MAX_LINEAGE_DEPTH);
+        assert_eq!(
+            failures.len(),
+            2,
+            "two disjoint cycles must produce two failures, got: {failures:?}"
+        );
+    }
+
+    #[test]
+    fn lineage_diamond_no_cycle() {
+        // A descended_from B, A descended_from C, B descended_from D, C descended_from D
+        // (a DAG diamond — no cycle even though D is reached via two paths)
+        let edges = vec![
+            edge("A", "B"),
+            edge("A", "C"),
+            edge("B", "D"),
+            edge("C", "D"),
+        ];
+        let failures = detect_lineage_failures(&edges, MAX_LINEAGE_DEPTH);
+        assert!(
+            failures.is_empty(),
+            "DAG diamond must not be reported as cycle, got: {failures:?}"
+        );
+    }
+
+    #[test]
+    fn lineage_depth_limit_fires_on_long_linear_chain() {
+        // 10-node linear chain with a depth limit of 5 fires depth-exceeded.
+        let edges: Vec<LineageEdge> = (0..10)
+            .map(|i| edge(&format!("N{i}"), &format!("N{}", i + 1)))
+            .collect();
+        let failures = detect_lineage_failures(&edges, 5);
+        assert!(
+            failures.iter().any(|f| f.error.contains("maximum depth")),
+            "depth limit must fire on long linear chain, got: {failures:?}"
+        );
+    }
+
+    #[test]
+    fn lineage_canonicalise_cycle_basic() {
+        // Three rotations of the same cycle produce the same canonical form.
+        let a = canonicalise_cycle(&["A", "B", "C"]);
+        let b = canonicalise_cycle(&["B", "C", "A"]);
+        let c = canonicalise_cycle(&["C", "A", "B"]);
+        assert_eq!(a, b);
+        assert_eq!(b, c);
+    }
+
+    #[test]
+    fn lineage_canonicalise_cycle_distinguishes_distinct() {
+        // Different cycles canonicalise to different forms.
+        let a = canonicalise_cycle(&["A", "B"]);
+        let b = canonicalise_cycle(&["A", "C"]);
+        assert_ne!(a, b);
+    }
+
+    // ========================================================================
+    // A3: orphaned lineage edges query (ATK-A3-003)
+    // ========================================================================
+
+    fn antigen_decl(type_name: &str) -> AntigenDeclaration {
+        AntigenDeclaration {
+            name: type_name.to_lowercase(),
+            type_name: type_name.to_string(),
+            file: PathBuf::from("test.rs"),
+            line: 1,
+            family: None,
+            summary: None,
+            fingerprint: None,
+        }
+    }
+
+    #[test]
+    fn orphaned_lineage_edges_empty_report_returns_empty() {
+        let report = ScanReport::default();
+        assert!(report.orphaned_lineage_edges().is_empty());
+    }
+
+    #[test]
+    fn orphaned_lineage_edges_known_parent_not_orphan() {
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_decl("Parent"));
+        report.antigens.push(antigen_decl("Child"));
+        report.lineage_edges.push(edge("Child", "Parent"));
+        assert!(report.orphaned_lineage_edges().is_empty());
+    }
+
+    #[test]
+    fn orphaned_lineage_edges_unknown_parent_is_orphan() {
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_decl("Child"));
+        report.lineage_edges.push(edge("Child", "MissingParent"));
+        let orphans = report.orphaned_lineage_edges();
+        assert_eq!(orphans.len(), 1);
+        assert_eq!(orphans[0].parent, "MissingParent");
     }
 }
