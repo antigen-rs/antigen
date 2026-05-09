@@ -240,8 +240,11 @@ pub struct AntigenDeclaration {
     pub family: Option<String>,
     /// Optional human-readable summary.
     pub summary: Option<String>,
-    /// Optional fingerprint string (uninterpreted in v1; ADR-010 grammar
-    /// implementation lands in a future sweep).
+    /// Optional fingerprint string in the [`antigen_fingerprint`] grammar
+    /// (ADR-010, W6a). Parsed at scan time during the synthesis pass to
+    /// emit synthetic [`Presentation`] records for unmarked items that
+    /// match the structural pattern. `None` for antigens declared without
+    /// a fingerprint (Layer 1 minimum-viable form, ADR-009).
     pub fingerprint: Option<String>,
 }
 

@@ -1,34 +1,70 @@
 # Sweep A3 Scope-Lock
 
-> **Status**: Draft — authored by navigator at A3 open (2026-05-09).
-> Aristotle will Phase 1-8 this as the first formal A3 artifact.
+> **Status**: ADR-017 + ADR-018 drafts filed; team review pass open; ratification
+> pending. D1+D2 landed (df72f9e). D3 in active implementation (pathmaker, green-lit
+> 2026-05-09). D1.5 waits for ADR ratification + BUG-A3-002 fix. BUG-A3-001
+> (duplicate edge silent) + BUG-A3-002 (child-without-antigen) in flight (pathmaker).
 >
 > **Companion substrate**: scout's A3 seeds from A2 day-2 at
 > `campsites/antigen-A2/20260508145642-day2/scout/20260508150446-a3-scope-lock-seeds-from-scout-day-2.md`
-> This document formalizes those seeds into ratifiable scope.
+> Aristotle Phase 1-8 trilogy at `campsites/antigen-A3/.../aristotle/`:
+> `20260509163030-a3-scope-lock-phase-1-8.md` (identity model),
+> `20260509170000-diamond-dedup-phase-1-8.md` (dedup mechanics),
+> `20260509180000-propagation-semantics-phase-1-8.md` (synthesis pass semantics).
+> ADR-017 draft at `campsites/antigen-A3/.../aristotle/20260509190000-adr-017-draft-identity-model.md`.
+> ADR-018 draft at `campsites/antigen-A3/.../aristotle/20260509193000-adr-018-draft-propagation-semantics.md`.
 >
-> **Visible decision**: "A3 ships cross-crate scan + `#[descended_from]` propagation."
-> Load-bearing X-1 commitment: every trust boundary introduced by cross-crate
-> scanning requires a Sub-clause F validation check before trust is extended
-> (ADR-005).
+> **Visible decision**: "A3 ships cross-crate scan + `#[descended_from]` propagation
+> with canonical-path identity model (Approach 3-revised)."
+> X-1 commitment: antigen identity is canonical declaration site, expressed as
+> `canonical_path: Option<String>` on all affected types.
 
 ---
 
 ## A3 headline scope
 
-Three interlocking deliverables — ordered by dependency:
+Four interlocking deliverables — ordered by dependency:
 
-1. **`#[descended_from]` propagation walk** — collect `LineageEdge` records during
-   file scan; emit `lineage_edges` field on `ScanReport`; surface inherited
-   presentations via synthesis pass.
+1. **`#[descended_from]` propagation walk** — LANDED (commit df72f9e): LineageEdge
+   collection, cycle detection, orphaned_lineage_edges(). Remaining: propagation
+   walk (synthesis pass) + canonical_path field addition.
 
-2. **Cycle detection (ATK-A3-002)** — DFS white/gray/black coloring on the
-   lineage graph; depth limit (64, configurable); emit into `parse_failures` on
-   detection. **Safety requirement, not optional** — ADR-005 Amendment 3.
+1.5. **Diamond inheritance dedup** — synthesis pass dedup by `(antigen_type,
+   item_target)` key; `inherited_from: Option<Vec<String>>` provenance field on
+   Presentation. Identity-agnostic; waits for ADR ratification to confirm field
+   semantics.
 
-3. **Cross-crate source walking** — `cargo metadata` traversal + `.cargo/registry`
-   path resolution; call existing `scan_workspace()` on each resolved path. ~30
-   lines of new code. No structural change to the scanner.
+2. **Cycle detection (ATK-A3-002)** — LANDED (commit df72f9e). Both guards green:
+   DFS white/gray/black + MAX_LINEAGE_DEPTH=64. ATK-A3-002 contract green.
+
+3. **Cross-crate source walking** — **LANDED** (commit 9b677c6, pathmaker, 2026-05-09):
+   `enumerate_dep_crate_roots()` via cargo metadata subprocess (~10 lines not ~30,
+   per P1 finding). `CrateOrigin` enum + `DepCrateRoot` struct. `DepScanResult`
+   wrapper `{ package_name, version, origin, report }`. `--include-deps` flag on
+   `cargo antigen scan`. `JsonReport.dep_reports` optional field (backward compat).
+   216 deps enumerated, 0 antigen declarations in any dep (P5 confirmed live).
+   D3 shipped WITHOUT canonical_path field (field addition waits for ADR-017
+   ratification). ATK-A3-006/007/008 pre-impl contracts filed.
+
+## Identity model (Approach 3-revised — ratified 2026-05-09)
+
+`canonical_path: Option<String>` added to:
+- `AntigenDeclaration`
+- `Presentation`
+- `Immunity`
+- `Toleration`
+- `LineageEdge`
+
+`None` = intra-crate (v0.1 default everywhere). `Some` = cross-crate, set by
+cargo-metadata-driven scanner during D3. Additive with `#[serde(default)]` —
+no breaking serde change (rc.1 pre-tag window).
+
+`addresses()` semantics: same antigen-type AND same canonical_path (when both
+Some) AND structural item-target equality. ATK-A3-005 becomes green-test for this
+refactor, not a documented limitation.
+
+`canonical_path` stays `Option<String>` (never required) — leaves door open for
+post-A6 shape-based identity (Approaches 4/5/8) without breaking serialization.
 
 ### What A3 explicitly does NOT include
 
@@ -45,34 +81,69 @@ Three interlocking deliverables — ordered by dependency:
 
 ---
 
+## Deliverable 1.5: Diamond inheritance dedup (aristotle Phase 1-8, 2026-05-09)
+
+`#[descended_from]` admits multi-parent inheritance via **attribute stacking** —
+`DescendedFromArgs` takes ONE parent per attribute; multiple `#[descended_from]`
+attributes on the same item each call `extract_descended_from` via `check_attrs`'s
+iteration. (Prior text said "multiple args" — wrong framing; phenomenon unchanged.
+Substrate correction from aristotle diamond Phase 1-8, 2026-05-09.)
+
+Diamond case: A descended-from B + C; B + C both descended-from D. That is a DAG,
+not a cycle; cycle detection correctly passes it. But propagation produces duplicate
+inherited presentations (D's presentations reach A via two paths).
+
+**Implementation spec** (aristotle diamond Phase 1-8, identity-agnostic):
+- New `inherited_from: Option<Vec<String>>` field on `Presentation` with `#[serde(default)]`
+- Walk runs after cycle detection; edge-level dedup `(child, parent)` first
+- Diamond dedup: `(antigen_type, item_target)` keys, merge `inherited_from` by set-union
+- Explicit + inherited co-existence: attach inheritance info to explicit, don't parallel-record
+- Reachability: don't walk through orphaned ancestors (use `orphaned_lineage_edges()`)
+- ~60 lines code + ~30 lines tests
+- `inherited_from` IS the provenance marker — achieves Reading 3 semantics without
+  a breaking `MatchKind` enum change. Audit emits "re-verify witness" hint when
+  `inherited_from` is non-empty.
+
+**Witness identity note** (aristotle Phase 8): witnesses are presentation-keyed,
+not (presentation × inheritance-path)-keyed. Two paths to the same presentation
+don't require two witnesses. Document in the A3 ADR.
+
+**Propagation semantics** (aristotle Phase 1-8, 2026-05-09): Approach 4 + Approach 8
+hybrid ratified. `MatchKind` unchanged; `inherited_from: Option<Vec<String>>` is provenance,
+not match-kind. Audit warns by default, errors on `--strict` (per ADR-008 Amendment 1).
+5-state matrix amends to 7-state in the A3 ADR. `inherited_from` carries transitive
+ancestor set (full chain, not just immediate parent). See `campsites/.../aristotle/
+20260509180000-propagation-semantics-phase-1-8.md`.
+
+**Timing**: D1.5 implementation waits for ADR ratification (drafting by aristotle).
+
+---
+
 ## Deliverable 1: `#[descended_from]` propagation
 
-### New type
+### LANDED (commit df72f9e, pathmaker, 2026-05-09)
+
+`LineageEdge` type, `ScanReport::lineage_edges` field, `extract_descended_from`,
+`detect_lineage_failures` (iterative DFS, MAX_LINEAGE_DEPTH=64, cycle dedup via
+`canonicalise_cycle`), `orphaned_lineage_edges()` query method, 14 unit tests +
+2 ATK fixture tests. ATK-A3-002 + ATK-A3-003 contracts green.
+
+The not-yet-built piece is the **propagation walk** that consumes `lineage_edges`
+and synthesizes inherited presentations — see Deliverable 1.5 spec above.
+
+### Type reference (landed)
 
 ```rust
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LineageEdge {
     pub child: String,   // antigen type bearing #[descended_from]
-    pub parent: String,  // argument to #[descended_from]
+    pub parent: String,  // argument to #[descended_from] (bare last segment)
     pub file: PathBuf,
     pub line: usize,
 }
 ```
 
-### ScanReport field
-
-```rust
-pub lineage_edges: Vec<LineageEdge>   // with #[serde(default)]
-```
-
-### Collection site
-
-`check_attrs` arm, called from `visit_item_struct` and `visit_item_enum`.
-- If `item_target` is not `Struct` or `Enum`: push `parse_failure`
-  ("descended_from on non-type item") and return. (Guard for impl-block misuse.)
-- `child` = `item_target.label()` (bare type name).
-- `parent` = parse attribute body as `syn::Path`, take
-  `.segments.last().ident.to_string()`.
+`ScanReport::lineage_edges: Vec<LineageEdge>` with `#[serde(default)]`.
 
 ### Synthesis pass
 
@@ -169,6 +240,21 @@ when antigen-stdlib propagates post-A5.
 
 ---
 
+## Cross-crate lineage edges — RESOLVED 2026-05-09
+
+Approach 3-revised ratification (Tekgy, 2026-05-09) settled this question: cross-crate
+lineage edges are **in scope for A3**. `canonical_path: Option<String>` on `LineageEdge`
+enables cross-crate parent resolution naturally. `#[descended_from(parent)]` in crate A
+naming a parent in crate B is legal; the cargo-metadata traversal (D3) resolves the
+parent's canonical path during cross-crate scan.
+
+Intra-crate lineage edges set `canonical_path = None` on both child and parent ends.
+Cross-crate edges set `canonical_path = Some(crate_id)` on the parent end. The
+`orphaned_lineage_edges()` channel surfaces parents whose canonical path cannot be
+resolved (crate not in dependency graph or not scanned).
+
+---
+
 ## ATK contracts in scope for A3
 
 All five contracts from `antigen/tests/atk_a3_fractal_preview.rs` are A3 scope:
@@ -240,15 +326,31 @@ Two trust-boundary introductions require ADR coverage before implementation:
 Aristotle to evaluate both in Phase 1-8. Navigator ruling: neither blocks A3
 from *starting* but both must be documented before the implementing code lands.
 
+3. **`scan_workspace` signature** (scout empirical, 2026-05-09): D3 implementation
+   seam requires a decision — Option A (caller stamps `canonical_path` post-scan via
+   `report.stamp_canonical_path(&crate_id)`) vs Option B (`scan_workspace` takes
+   `crate_id: Option<&str>` param). Scope-lock said "no structural change to scanner"
+   which leans toward Option A. ADR should make explicit choice.
+
+4. **`canonical_path` format** — **SETTLED** (scout empirical, 2026-05-09): Format MUST
+   be `"name@version"` (e.g. `"foo@1.0.0"`). Name-only is already ambiguous: antigen's
+   own dep graph has 4 crate names at multiple versions (`getrandom`, `hashbrown`,
+   `r-efi`, `wit-bindgen`). `"name@version"` is available directly from cargo metadata's
+   `name` + `version` fields — no parsing required. Version-boundary orphans (upgrade
+   `foo@1.0.0` → `foo@1.1.0` makes lineage edges against the old version orphaned) are
+   correct behavior — sub-clause F through time: trust boundaries require re-attestation
+   at version boundaries. ADR-017 to document this as designed behavior, not limitation.
+   A4+ path: semver-range descent claims (tolerate minor-version upgrades without orphan)
+   is a future ADR-009 amendment — leave door open, don't implement in A3.
+
 ---
 
 ## Structural note: `parse_failures` field
 
-`parse_failures: Vec<(PathBuf, String)>` was added during W6a (fingerprint
-grammar) — already used at lines 571, 722, 963, 1002, 1031, 1042, 1206 of
-`antigen/src/scan.rs`. A3 cycle detection writes directly into this field.
-**No structural breaking change needed.** The W6a addition pre-solved the A3
-structural requirement.
+`parse_failures: Vec<ParseFailure>` (named struct `{ file: PathBuf, error: String }`)
+was added during W6a (fingerprint grammar) — already used across `antigen/src/scan.rs`.
+A3 cycle detection writes directly into this field. **No structural breaking change needed.**
+The W6a addition pre-solved the A3 structural requirement.
 
 ---
 
@@ -257,10 +359,18 @@ structural requirement.
 - [x] `ScanReport::parse_failures` is `Vec<ParseFailure>` (named struct, not tuple) — already landed W6a
 - [x] `orphaned_tolerances()` — already landed at `antigen/src/scan.rs:659`
 - [x] `atk_a3_fractal_preview.rs` has all 5 contracts as `#[ignore]` (pre-impl)
-- [x] `lineage_edges` does NOT yet exist on `ScanReport` — correct starting state
-- [x] `detect_lineage_cycles` does NOT yet exist — correct starting state
-- [x] `orphaned_lineage_edges()` does NOT yet exist — correct starting state
-- [x] `cargo test --workspace` exits 0 at A3 open — 190 passing, 0 failed (verified 2026-05-09)
+- [x] `lineage_edges` — LANDED commit df72f9e
+- [x] `detect_lineage_failures` (cycle detection + DFS) — LANDED commit df72f9e
+- [x] `orphaned_lineage_edges()` — LANDED commit df72f9e
+- [x] `cargo test --workspace` — 220 passing, 24 ignored, 0 failed (post-A3-D3+BUG-A3-001/002, 2026-05-09)
+- [x] D3 cross-crate scan — LANDED commit 9b677c6 (`enumerate_dep_crate_roots`, `--include-deps`, `DepScanResult`)
+- [x] BUG-A3-001 duplicate lineage edge — LANDED (detect_duplicate_lineage_edges, parse_failures channel)
+- [x] BUG-A3-002 dangling child — LANDED (dangling_lineage_edges() query method)
+- [x] ATK-A3-006/007/008 — pre-impl contracts filed
+- [ ] `inherited_from: Option<Vec<String>>` on `Presentation` — pending ADR ratification
+- [ ] `canonical_path: Option<String>` on 5 types + LineageEdge — pending ADR ratification
+- [ ] D1.5 propagation walk + diamond dedup — pending ADR ratification
+- [ ] ATK-A3-001, ATK-A3-004, ATK-A3-005 — still `#[ignore]`; pending implementation
 
 ---
 
