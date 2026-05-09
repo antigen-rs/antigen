@@ -207,6 +207,113 @@ fn atk_a3_003_stale_descended_from_reference_is_flagged_not_silently_dropped() {
 }
 
 // ============================================================================
+// A3 hardening: #[descended_from] on a non-type item surfaces as parse_failure
+//
+// Per ADR-013, #[descended_from] applies to antigen-type declarations (unit
+// struct + class enum). Silent no-op on a "wrong" item kind (function, impl,
+// trait, etc.) would hide user error. The visitor's guard must surface the
+// situation explicitly.
+// ============================================================================
+
+#[test]
+fn a3_descended_from_on_function_is_parse_failure_not_silent() {
+    let fixture_root = fixture("atk_a3_descended_from_on_fn");
+    let scan = scan_workspace(&fixture_root, None).expect("scan must complete");
+
+    // No lineage edge is recorded for the misuse case — the function is
+    // not a valid lineage child.
+    assert_eq!(
+        scan.lineage_edges.len(),
+        0,
+        "no lineage edge should be recorded for #[descended_from] on a function"
+    );
+
+    let descended_from_failures: Vec<_> = scan
+        .parse_failures
+        .iter()
+        .filter(|f| f.error.contains("#[descended_from]"))
+        .collect();
+    assert_eq!(
+        descended_from_failures.len(),
+        1,
+        "exactly one parse_failure should surface for the misuse, got: {:?}",
+        scan.parse_failures
+    );
+    let err = &descended_from_failures[0].error;
+    assert!(
+        err.contains("type declaration") || err.contains("struct") || err.contains("enum"),
+        "parse_failure must explain the type-declaration constraint, got: {err}"
+    );
+}
+
+// ============================================================================
+// A3 hardening: an acyclic 3-node lineage chain produces no failures.
+//
+// Negative-control sibling to ATK-A3-002 — cycle detection must not produce
+// false positives on legitimate inheritance chains. Grandchild -> Child ->
+// Parent is the canonical "memory cell descended from progenitor" lineage.
+// ============================================================================
+
+#[test]
+fn a3_acyclic_three_node_chain_records_edges_without_failure() {
+    let fixture_root = fixture("atk_a3_acyclic_chain");
+    let scan = scan_workspace(&fixture_root, None).expect("scan must complete");
+
+    assert_eq!(
+        scan.lineage_edges.len(),
+        2,
+        "fixture has Grandchild -> Child and Child -> Parent",
+    );
+    assert_eq!(scan.antigens.len(), 3, "fixture declares three antigens");
+
+    let cycle_failures: Vec<_> = scan
+        .parse_failures
+        .iter()
+        .filter(|f| f.error.contains("cycle") || f.error.contains("maximum depth"))
+        .collect();
+    assert!(
+        cycle_failures.is_empty(),
+        "acyclic chain must produce no cycle/depth failures, got: {cycle_failures:?}"
+    );
+    assert!(
+        scan.orphaned_lineage_edges().is_empty(),
+        "all parents are declared in the same scan, so no orphans"
+    );
+}
+
+// ============================================================================
+// A3 hardening: a single-edge self-loop is the most degenerate cycle.
+//
+// Solo #[descended_from(Solo)] — one edge, one node. Cycle detection must
+// catch this without looping or hanging. The unit test in scan.rs covers
+// `detect_lineage_failures` directly; this test covers the full
+// scan_workspace integration path.
+// ============================================================================
+
+#[test]
+fn a3_self_loop_lineage_detected_through_scan_workspace() {
+    let fixture_root = fixture("atk_a3_self_loop_lineage");
+    let scan = scan_workspace(&fixture_root, None).expect("scan must complete, not hang");
+
+    let cycle_failures: Vec<_> = scan
+        .parse_failures
+        .iter()
+        .filter(|f| f.error.contains("cycle"))
+        .collect();
+    assert_eq!(
+        cycle_failures.len(),
+        1,
+        "self-loop must produce exactly one cycle failure, got: {:?}",
+        scan.parse_failures
+    );
+    assert!(
+        cycle_failures[0].error.contains("Solo -> Solo"),
+        "self-loop error must render `Solo -> Solo` chain, got: {}",
+        cycle_failures[0].error
+    );
+}
+
+// ============================================================================
 // ATK-A3-004: cross-crate witness via proc-macro generated impl
 //
 // A witness function that lives inside a proc-macro generated impl block
