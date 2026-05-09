@@ -33,23 +33,19 @@
 //! syntax and pass through; the full validation/scanning loop ships with the
 //! companion `cargo-antigen` crate.
 //!
-//! ## Known v1 limitations (easy wins for the JBD team)
+//! ## Known v1 limitations
 //!
-//! Search this crate for `TODO(team)` to find specific spots that the antigen
-//! JBD team can sharpen quickly. Top items:
+//! 1. **Macros are pure pass-through**: the proc-macros parse + validate the
+//!    attribute syntax and emit the original item unchanged (ADR-001 identity
+//!    transform). Cross-crate antigen discovery in v0.1.0-rc.1 works via
+//!    source-walking the `.cargo/registry` tree (A3 sweep). A future ADR
+//!    amendment may add metadata-emitting transforms (e.g.,
+//!    `<!-- antigen:metadata:v1 {...} -->` doc-comment markers, or
+//!    `#[cfg(doc)] pub static __ANTIGEN_META_*`) for the no-source-access
+//!    case — verified-viable but post-A5 ADR territory per the A3 scope-lock.
 //!
-//! 1. **No span-aware error pointing**: parse errors point to `Span::call_site()`
-//!    rather than the offending token. The team should thread spans through the
-//!    parser so error messages point to the EXACT bad token (per
-//!    rust-analyzer's diagnostic conventions).
-//! 2. **No trybuild test fixtures**: testing-patterns.md describes the trybuild
-//!    pattern for proc-macro errors, but no fixtures ship in v0.0.1. Adding
-//!    them is straightforward and gives the team confidence that error
-//!    messages stay helpful as the parser evolves.
-//! 3. **Macros are pure pass-through**: future versions may emit `#[doc(hidden)]`
-//!    inventory items so the cargo-antigen tooling can discover declarations
-//!    without re-parsing source. The team can decide whether the inventory
-//!    pattern is worth the complexity vs the current source-parse approach.
+//! Span-aware error pointing (W4) and trybuild fixtures (A2 ratification)
+//! both shipped in v0.1.0-rc.1.
 
 use proc_macro::TokenStream;
 use quote::quote;

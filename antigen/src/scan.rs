@@ -23,10 +23,7 @@
 //! - Witness validation (delegating to clippy/kani/proptest as appropriate)
 //! - Performance optimizations (incremental scan, parallel file walks)
 //!
-//! ## Known v1 limitations (easy wins for the JBD team)
-//!
-//! Search this file for `TODO(team)` to find specific spots that the antigen JBD
-//! team can sharpen quickly without redesigning anything.
+//! ## Known v1 limitations
 //!
 //! 1. **Witness validation is presence-only at scan time** — the scan records
 //!    the witness identifier verbatim. Validity classification (`Test`,
