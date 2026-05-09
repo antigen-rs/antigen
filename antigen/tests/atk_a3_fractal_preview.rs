@@ -580,7 +580,23 @@ fn atk_a3_008_duplicate_edge_adr018_synthesis_dedup_emits_diagnostic() {
 // threshold: three independent instances). "MAY" is not sufficient — it
 // implies optionality where the structural consequence is a silent wrong answer.
 //
+// Biological cognate (naturalist, A3): this is ANTIGENIC DRIFT, not memory-waning.
+//   - Memory-waning: claim-side decay. Target stays stable; the claim ages (titer
+//     wanes). Maps to ADR-016 `verified_at` + re-attestation ("re-validate witness").
+//   - Antigenic drift: target-side movement. The antigen has changed shape; the
+//     claim references a stable-but-now-stale fingerprint version. Maps to this
+//     scenario ("re-recognize against new fingerprint").
+//
+// This distinction predicts different A4+ audit messages:
+//   - Memory-waning  → "your witness is stale; re-validate"
+//   - Antigenic drift → "the antigen you referenced has changed shape; re-recognize"
+//
+// The A4+ ATK to file: audit emitting memory-waning language for an antigenic-drift
+// failure is a silent category error — the user re-runs the same witness (which passes)
+// and believes the problem is solved, but the fingerprint mismatch remains unaddressed.
+//
 // See: adversarial enforcement-review campsite entry for full analysis.
+// See: ATK-A3-010 for the audit-message category-error contract (A4+ scope).
 //
 // Status: #[ignore] until ADR-017 Enforcement is amended to commit to
 // either detection or explicit deferral with a named trigger.
@@ -609,4 +625,70 @@ fn atk_a3_009_multi_version_fingerprint_divergence_addressed_without_revalidatio
     // TODO(adversarial): implement when ADR-017 Enforcement §version-collision
     // is resolved to MUST or explicit-deferred-with-trigger.
     panic!("A3 pre-implementation contract");
+}
+
+// ============================================================================
+// ATK-A3-010: audit message category error — drift language vs waning language
+//
+// A4+ pre-implementation contract. Gated on A4-A5 behavioral re-validation tier.
+//
+// Two failure modes produce "witness may be stale" audit hints, but require
+// DIFFERENT user actions:
+//
+//   Memory-waning (ADR-016, `verified_at` staleness):
+//     The antigen fingerprint is UNCHANGED. The user's witness worked when
+//     validated; time has passed. The user action: re-run the same witness.
+//     Audit message shape: "witness verified_at <date>; re-validate against
+//     current codebase."
+//
+//   Antigenic drift (this contract):
+//     The antigen fingerprint has CHANGED (version divergence or deliberate
+//     antigen amendment). The user's witness was correct for the old fingerprint
+//     shape; it may not be correct for the new shape. The user action: re-examine
+//     whether the witness covers the new fingerprint — re-running the same witness
+//     is not sufficient.
+//     Audit message shape: "antigen fingerprint has changed since witness validation;
+//     re-recognize vulnerability shape before re-running witness."
+//
+// The adversarial catch: an A4 implementation that emits memory-waning language
+// ("re-validate your witness") for an antigenic-drift scenario gives the user
+// a plausible-but-wrong action. The user re-runs the witness, it passes (because
+// the witness was written correctly for the OLD fingerprint and still compiles),
+// and believes the immunity is restored — but the fingerprint mismatch between
+// old witness scope and new antigen shape remains unaddressed. Silent wrong answer
+// with confirmed green output.
+//
+// Contract: when the audit detects fingerprint divergence (two versions of same
+// antigen with different fingerprints + an immunity validated against one version),
+// the audit diagnostic MUST use drift language ("antigen shape changed" or
+// equivalent), NOT memory-waning language ("re-validate witness"). The distinction
+// MUST appear in the AuditHint text so callers can key off it programmatically.
+//
+// Detection: fixture with two fingerprint-divergent declarations + an immunity
+// whose witness was validated against the old fingerprint. Audit output is
+// string-matched for drift-specific language. A test that asserts the ABSENCE
+// of memory-waning language ("re-validate", "stale witness") in the drift case.
+//
+// Status: #[ignore] until A4-A5 behavioral re-validation tier lands.
+// ============================================================================
+
+#[test]
+#[ignore = "A4+ pre-implementation contract; audit drift-vs-waning message category \
+             error — remove ignore when A4-A5 behavioral re-validation tier ships"]
+fn atk_a3_010_antigenic_drift_audit_message_must_not_use_memory_waning_language() {
+    // Contract: a fingerprint-divergence scenario (ATK-A3-009 substrate) MUST
+    // produce audit language that tells the user to RE-RECOGNIZE the vulnerability
+    // shape, not merely to re-run their existing witness.
+    //
+    // The failure to catch: user re-runs witness, it passes (witness still compiles
+    // against new fingerprint), audit shows green, fingerprint mismatch silently
+    // remains. This is the antigenic-drift silent-green: a plausible passing action
+    // that does not address the actual structural change.
+    //
+    // TODO(adversarial): implement when A4-A5 ships behavioral re-validation +
+    // AuditHint text differentiation. Requires:
+    //   - ATK-A3-009 fixture (fingerprint divergence + immunity against old version)
+    //   - Audit AuditHint carrying a category field (Drift vs Waning) or equivalent
+    //     textual distinction the test can assert against.
+    panic!("A4+ pre-implementation contract — antigenic-drift audit message category");
 }

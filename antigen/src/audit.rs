@@ -42,8 +42,10 @@ pub enum WitnessStatus {
     ///
     /// **Important**: "resolved" means the identifier was found — it does NOT
     /// mean the witness was executed or that it asserts immunity to this specific
-    /// failure class. Semantic verification requires fingerprint-aware reasoning
-    /// (ADR-010, planned for Sweep A3+).
+    /// failure class. Semantic verification (does the witness actually assert
+    /// the antigen's failure mode?) is behavioral-tier work tracked as
+    /// the BehavioralAlignment witness tier; planned for A4-A5 sweeps
+    /// (ADR-001 Amendment 1 Change 4 + ADR-013 phantom-type witness pluralism).
     Resolved {
         /// Where the witness function was found.
         location: PathBuf,

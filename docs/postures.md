@@ -561,10 +561,25 @@ commitment that determined whether the visible decision worked:
    — *is the v1 ratification verdict ready?* Load-bearing commitment —
    *is the verification rubber-stamping?* Phase 8 self-applied to the
    verifier's own verdict surfaced three findings; one warranted edit.
+9. **A3 scope-lock identity model** (aristotle, A3 day-1): visible decision
+   — *which deliverables ship in A3 (cross-crate scan + descended_from
+   propagation + cycle detection)?* Load-bearing commitment — *how A3
+   commits to antigen identity at the cross-crate boundary*. Phase 1-8
+   surfaced canonical-declaration-site as the X−1 commitment; ratified as
+   ADR-017. Same canonical-layer shape as Instance 8 (the X−1/X−2/X−3
+   recursion is *within-deconstruction*, not five new instances per
+   naturalist's Route-1 convergence-check, 2026-05-09).
 
-The structural-identity test (math-researcher, 2026-05-09) confirmed all
+The structural-identity test (math-researcher, 2026-05-09) confirmed
 seven tiers as the *same pattern* across all instances, not just rhyming
-patterns at different scales:
+patterns at different scales. Instance 9 fits the same shape (T1-T7
+identity criteria all hold) and is catalogued as a same-layer
+canonical-layer instance per naturalist's Route-1 finding — not as a
+new mechanism, not as Path-1 promotion. The ratification-trigger
+framework caught a subtle gate: same-layer-repeat fires the trigger but
+load-bearing-reason is the second gate; absorption (mechanism for
+existing posture) over addition (parallel new posture) when the new
+instance does not add new mechanism / commitment / API surface.
 
 | Identity criterion | T1 code | T2 team-coord | T3 researcher | T4 self-application | T5 substrate-correction | T6 Phase-8-self-applied | T7 verifier-self-correction |
 |---|---|---|---|---|---|---|---|
@@ -572,8 +587,12 @@ patterns at different scales:
 | Same recovery shape | yes | yes | yes | yes | yes | yes | yes |
 | Same routing pattern | yes | yes | yes | yes | yes | yes | yes |
 
-Seven instances; three identity criteria; all yes. Structural identity, not
-analogy at a different scale.
+Seven tiers; three identity criteria; all yes. Structural identity, not
+analogy at a different scale. Instance 9 (added 2026-05-09 per Route-1
+catalog refresh) does not introduce a new tier — it is a same-layer
+canonical-layer instance at T1 (within-deconstruction X−1 surfacing).
+The seven-tier T1-T7 framework remains intact; new same-layer instances
+absorb into the existing tiers rather than extending the table.
 
 ### How to apply
 
@@ -651,16 +670,58 @@ ADR-006:
 
 - **substrate-currency** — the temporal sub-pattern of substrate-over-memory:
   substrate-as-of-author-time ≠ substrate-as-of-consumer-time; a claim or
-  finding is only authoritative if verified against the substrate at the
-  time of consumption, not the time of authorship. Three distinct instances
-  at three operational layers (tracker-tier, reporter-tier, claim-propagation
-  tier) confirmed in A2 day-2. Held below ratification: three instances at
-  three *different* layers signals concept still extending into new territory,
-  not repeating at known layers. Ratification trigger: same-layer repetition.
-  Currently travels at role-memory tier (typed feedback files in agent roles)
-  — the right carrier for an active team-coordination discipline. Glossary
-  sub-bullet under substrate-over-memory when cross-session accumulation
-  confirms shape stability.
+  finding is authoritative only if verified against the substrate at the
+  time of consumption, not the time of authorship.
+
+  *Evolution of framing — preserved here as inoculation against premature
+  vocabulary closure on a still-extending concept.*
+
+  **First framing (A2 day-2)**: three operational *layers* — tracker
+  (context vs disk drift on stable substrate), reporter (uncommitted
+  treated as authoritative), claim-propagation (forwarding without
+  independent verification). Ratification trigger drafted as same-layer
+  repetition. Aristotle count correction (2026-05-08, in posture draft
+  at `campsites/antigen-design/20260507161107-manuscript/scientist/substrate-currency-posture-draft.md`):
+  generously 1.5–2 clean independent instances rather than 3 — three of
+  four cited co-occurred within a single A2 day-2 burst, so temporal
+  independence was not established.
+
+  **Reframe (2026-05-09, antigen-A3 launch session)**: those three are
+  not layers, they are *mechanisms*. They can each manifest in different
+  *substrate-domains*. Two axes observed so far (current shape, not final):
+
+  - **Mechanism axis**: tracker, reporter, claim-propagation,
+    persistence/registry (stored representation outlives functional
+    reality — observed in zombie-team-config drift during A3 launch
+    when antigen-A2 team config showed 9 active members whose lead
+    session had ended at compact).
+  - **Substrate-domain axis**: project-substrate (campsites, glossary,
+    scan results, ADRs — what antigen-the-tool targets) and
+    harness-substrate (team configs, agent liveness, tool-availability
+    registries — the operational walled garden in which we work).
+
+  Ratification trigger updated to require all three: (1) cross-session
+  temporal independence, (2) same-cell repetition (same mechanism ×
+  same substrate-domain seen at least twice), and (3) concept stops
+  surprising its trackers.
+
+  **Open**: lingering felt-shape (Tekgy, 2026-05-09) that more axes /
+  mechanisms / substrate-domains will surface. The taxonomy is what we
+  know SO FAR, not final. New presentations may force further reframes.
+
+  *Why the evolution itself is preserved here*: the reframe-record is
+  structural memory of a failure-class — "premature vocabulary closure
+  on a still-extending concept." Future vocabulary work inherits
+  antibodies against that closure-mode by reading how this one evolved:
+  past framings preserved explicitly, with the observations that forced
+  each reframe, so future-readers recognize the closure-mode signature
+  when they're in it. Antigen-the-discipline applied to antigen-the-
+  vocabulary's own evolution.
+
+  Currently travels at role-memory tier (typed feedback files in agent
+  roles). Glossary sub-bullet under substrate-over-memory when
+  cross-session accumulation confirms shape stability — which it has
+  not, and we expect may not for a while.
 - **settling-time diagnostic** — the criterion "concepts that stop surprising
   the people tracking them are ready to freeze; concepts still surprising
   trackers are not ready." Surfaced as the operative ratification test for
