@@ -8,16 +8,19 @@
 //! custom integrations (e.g., a project's own CI harness, IDE plugins, or
 //! programmatic audit tooling).
 //!
-//! ## Status (v0.0.1)
+//! ## Status (v0.1.0-rc.1)
 //!
-//! Initial implementation. Discovers attribute invocations and matches presentations
-//! against immunities at the same item level. Future versions will add:
+//! Initial implementation. Discovers attribute invocations, matches presentations
+//! against immunities at the same item level, synthesizes fingerprint matches
+//! against unmarked code (W6a), and collects `#[descended_from]` lineage edges
+//! with cycle detection (A3 D1+D2). Future versions will add:
 //!
-//! - `#[descended_from]` propagation walks
-//! - Cross-crate antigen declaration discovery
+//! - `#[descended_from]` propagation (synthesizing inherited presentations on
+//!   descendants) — lineage edges + cycle/depth guards already land in
+//!   [`ScanReport::lineage_edges`] (A3 D1+D2); the propagation step depends on
+//!   the ADR-005 sub-clause F ruling on inherited-witness re-verification
+//! - Cross-crate antigen declaration discovery (A3 D3)
 //! - Witness validation (delegating to clippy/kani/proptest as appropriate)
-//! - Fingerprint structural matching against unmarked code (the
-//!   recognition-not-yet-marked half of scan)
 //! - Performance optimizations (incremental scan, parallel file walks)
 //!
 //! ## Known v1 limitations (easy wins for the JBD team)
@@ -25,11 +28,11 @@
 //! Search this file for `TODO(team)` to find specific spots that the antigen JBD
 //! team can sharpen quickly without redesigning anything.
 //!
-//! 1. **Witness validation is presence-only** — the scan records the witness
-//!    identifier but doesn't verify it resolves to a real function or that the
-//!    function actually exercises behavior matching the antigen. The audit
-//!    subcommand (sweep A2/A3) lifts this; W7 sharpens witness-validity tier
-//!    semantics for v0.1.
+//! 1. **Witness validation is presence-only at scan time** — the scan records
+//!    the witness identifier verbatim. Validity classification (`Test`,
+//!    `Proptest`, `PhantomType`, `Function`, `External`) and tier mapping
+//!    (`Reachability`, `Execution`, `FormalProof`) are the [`crate::audit`]
+//!    module's job (shipped in W7 per ADR-001 Amendment 1 + ADR-013).
 //!
 //! W3 (sweep A2) replaced the prior 20-line proximity heuristic in
 //! [`ScanReport::unaddressed_presentations`] with structural item-identity
@@ -1304,12 +1307,12 @@ impl ScanVisitor<'_> {
 
     fn extract_immune(&mut self, attr: &syn::Attribute, item_kind: &str, item_target: ItemTarget) {
         if let syn::Meta::List(list) = &attr.meta {
-            // TODO(team): witness validation is presence-only. The audit subcommand
-            // (sweep A2/A3) should: (1) resolve the witness identifier to an item
-            // in the workspace, (2) verify it's a #[test], proptest!, or recognized
-            // delegated tool reference, (3) optionally invoke it via cargo test and
-            // verify it asserts the expected property. Currently we just record
-            // the witness expression verbatim.
+            // Scan records the witness expression verbatim; validity
+            // classification (Test, Proptest, PhantomType, Function, External)
+            // and behavioral verification (cargo test invocation) are the
+            // audit module's responsibility. ADR-005 sub-clause F: the
+            // trust boundary at "immunity claim" is checked by audit, not
+            // by scan — scan provides the substrate, audit decides validity.
             let (antigen_type, witness) = match syn::parse2::<ScanImmuneArgs>(list.tokens.clone()) {
                 Ok(args) => (args.antigen_type, args.witness),
                 Err(e) => {
