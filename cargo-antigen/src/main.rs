@@ -66,6 +66,13 @@ struct ScanArgs {
     /// Exit with non-zero status if unaddressed presentations are found
     #[arg(long)]
     strict: bool,
+    /// Also scan dependency crates (registry/git) resolved by `cargo metadata`.
+    /// Each dep is scanned independently; results appear under `dep_reports`
+    /// in JSON output. Per A3 scope-lock: no cross-crate `addresses()` matching
+    /// in v0.1 — each crate's report stays its own bag of antigens. Default OFF
+    /// for backward compatibility.
+    #[arg(long)]
+    include_deps: bool,
 }
 
 #[derive(Debug, Parser)]
@@ -126,13 +133,55 @@ fn run_scan(args: ScanArgs) -> ExitCode {
 
     let unaddressed = report.unaddressed_presentations();
 
+    // A3 D3: optional cross-crate dep enumeration + per-crate scan. Per
+    // navigator's 2026-05-09 ruling, deps are scanned independently — no
+    // cross-crate addresses() matching in v0.1. Each dep report stands on
+    // its own; the union appears under `dep_reports` in JSON output.
+    let dep_reports = if args.include_deps {
+        match scan::enumerate_dep_crate_roots(&args.root, false) {
+            Ok(roots) => {
+                eprintln!("Scanning {} dependency crate(s)...", roots.len());
+                let mut out: Vec<DepScanResult> = Vec::with_capacity(roots.len());
+                for dep in roots {
+                    let r = match scan::scan_workspace(&dep.crate_root, None) {
+                        Ok(r) => r,
+                        Err(e) => {
+                            eprintln!(
+                                "  warning: scan failed for `{}` v{}: {e}",
+                                dep.package_name, dep.version
+                            );
+                            continue;
+                        }
+                    };
+                    out.push(DepScanResult {
+                        package_name: dep.package_name,
+                        version: dep.version,
+                        origin: dep.origin,
+                        report: r,
+                    });
+                }
+                Some(out)
+            }
+            Err(e) => {
+                eprintln!("error: cargo metadata failed: {e}");
+                return ExitCode::from(2);
+            }
+        }
+    } else {
+        None
+    };
+
     match args.format {
         OutputFormat::Human => {
             print_human_report(&report, &unaddressed);
+            if let Some(deps) = dep_reports.as_ref() {
+                print_human_dep_summary(deps);
+            }
         }
         OutputFormat::Json => match serde_json::to_string_pretty(&JsonReport {
             report: &report,
             unaddressed: &unaddressed,
+            dep_reports: dep_reports.as_deref(),
         }) {
             Ok(s) => println!("{s}"),
             Err(e) => {
@@ -146,6 +195,34 @@ fn run_scan(args: ScanArgs) -> ExitCode {
         ExitCode::from(1)
     } else {
         ExitCode::SUCCESS
+    }
+}
+
+/// Render a brief summary of dep scan results in human format. Per
+/// navigator's ruling, dep reports are independent — we only summarize
+/// counts here (full per-crate detail goes through --format json).
+fn print_human_dep_summary(deps: &[DepScanResult]) {
+    println!();
+    println!("Cross-crate dep scan ({} crates):", deps.len());
+    let mut deps_with_antigens: Vec<&DepScanResult> = deps
+        .iter()
+        .filter(|d| !d.report.antigens.is_empty())
+        .collect();
+    deps_with_antigens.sort_by_key(|d| d.package_name.clone());
+    if deps_with_antigens.is_empty() {
+        println!("  No antigen declarations found in any dependency.");
+        println!("  (P5 finding 2026-05-09: zero `#[antigen(...)]` instances in the wild.)");
+    } else {
+        for d in deps_with_antigens {
+            println!(
+                "  {} v{}: {} antigen(s), {} presentation(s), {} immunity claim(s)",
+                d.package_name,
+                d.version,
+                d.report.antigens.len(),
+                d.report.presentations.len(),
+                d.report.immunities.len()
+            );
+        }
     }
 }
 
@@ -289,6 +366,25 @@ fn print_unaddressed(unaddressed: &[scan::UnaddressedPresentation]) {
 struct JsonReport<'a> {
     report: &'a scan::ScanReport,
     unaddressed: &'a [scan::UnaddressedPresentation],
+    /// A3 D3: when `--include-deps` is set, one entry per scanned dep
+    /// crate. `None` (skipped in JSON output via `skip_serializing_if`)
+    /// when the flag wasn't passed — preserves byte-identical output for
+    /// existing consumers.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    dep_reports: Option<&'a [DepScanResult]>,
+}
+
+/// Per-dependency scan result returned by the `--include-deps` mode of
+/// `cargo antigen scan`. Each dep is scanned independently — per navigator's
+/// 2026-05-09 ruling on cross-crate scope, no cross-crate `addresses()`
+/// matching happens here (ATK-A3-005 / module-path-qualified `ItemTarget`
+/// is an ADR-class decision deferred to aristotle Phase 1-8).
+#[derive(serde::Serialize)]
+struct DepScanResult {
+    package_name: String,
+    version: String,
+    origin: scan::CrateOrigin,
+    report: scan::ScanReport,
 }
 
 fn run_new(name: String) -> ExitCode {

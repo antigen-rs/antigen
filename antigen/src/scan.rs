@@ -722,6 +722,9 @@ impl ScanReport {
     /// in any [`AntigenDeclaration`] in the same scan. Consumers using
     /// cross-crate antigens may produce false positives here; that's
     /// the recognized v0.1 limitation.
+    ///
+    /// See also [`ScanReport::dangling_lineage_edges`] for the dual case
+    /// (child missing rather than parent missing).
     #[must_use]
     pub fn orphaned_lineage_edges(&self) -> Vec<&LineageEdge> {
         let known: std::collections::HashSet<&str> =
@@ -729,6 +732,38 @@ impl ScanReport {
         self.lineage_edges
             .iter()
             .filter(|e| !known.contains(e.parent.as_str()))
+            .collect()
+    }
+
+    /// Lineage edges whose CHILD has no [`AntigenDeclaration`] in the scan.
+    ///
+    /// BUG-A3-002 fix (adversarial 2026-05-09). The dual of
+    /// [`ScanReport::orphaned_lineage_edges`] — `orphaned` checks the
+    /// parent endpoint, `dangling` checks the child endpoint.
+    ///
+    /// A struct or enum bearing `#[descended_from(Parent)]` *without* its
+    /// own `#[antigen]` declaration is structurally incoherent: it claims
+    /// to inherit into the antigen system without being a participant
+    /// itself. The propagation walk (D1.5) cannot meaningfully attach
+    /// inherited presentations to a non-antigen child — the descendant
+    /// has no record in [`ScanReport::antigens`] for inheritance to flow
+    /// into.
+    ///
+    /// Surfaced as a *semantic warning*, not a `parse_failure` — the
+    /// declaration is structurally well-formed; only the relationship
+    /// to the antigen registry is missing. Caller (CLI, audit tooling)
+    /// chooses severity, mirroring the `orphaned_tolerances` /
+    /// `orphaned_lineage_edges` channel discipline.
+    ///
+    /// The propagation walk skips edges flagged by this query the same
+    /// way it skips edges flagged by `orphaned_lineage_edges`.
+    #[must_use]
+    pub fn dangling_lineage_edges(&self) -> Vec<&LineageEdge> {
+        let known: std::collections::HashSet<&str> =
+            self.antigens.iter().map(|a| a.type_name.as_str()).collect();
+        self.lineage_edges
+            .iter()
+            .filter(|e| !known.contains(e.child.as_str()))
             .collect()
     }
 
@@ -754,6 +789,47 @@ impl ScanReport {
 /// become configurable via `[package.metadata.antigen]` in a follow-up.
 pub(crate) const MAX_LINEAGE_DEPTH: usize = 64;
 
+/// Emit one [`ParseFailure`] per duplicate `(child, parent)` pair found in
+/// `edges`. BUG-A3-001 (adversarial 2026-05-09).
+///
+/// Two `#[descended_from(B)]` attributes on the same struct `A` produce two
+/// identical `LineageEdge` entries. The DFS in [`detect_lineage_failures`]
+/// would silently swallow the second one (black-skip path), so duplicates
+/// never reach the user. Per ADR-004 implicit-to-explicit elevation, this
+/// pre-pass surfaces them as explicit diagnostics on the same channel as
+/// cycles + depth violations.
+fn detect_duplicate_lineage_edges(edges: &[LineageEdge]) -> Vec<ParseFailure> {
+    use std::collections::{HashMap, HashSet};
+
+    let mut counts: HashMap<(&str, &str), usize> = HashMap::new();
+    for edge in edges {
+        *counts
+            .entry((edge.child.as_str(), edge.parent.as_str()))
+            .or_insert(0) += 1;
+    }
+
+    // Walk edges in source order, flag the first occurrence of each
+    // duplicate pair. Determinism preserved across hash-randomized runs.
+    let mut emitted: HashSet<(&str, &str)> = HashSet::new();
+    let mut failures: Vec<ParseFailure> = Vec::new();
+    for edge in edges {
+        let key = (edge.child.as_str(), edge.parent.as_str());
+        if counts.get(&key).copied().unwrap_or(0) > 1 && emitted.insert(key) {
+            failures.push(ParseFailure {
+                file: edge.file.clone(),
+                error: format!(
+                    "duplicate #[descended_from({})] declarations on `{}` \
+                     (first at line {}); structural lies surface as \
+                     diagnostics rather than being silently collapsed \
+                     (ADR-004 implicit-to-explicit elevation)",
+                    edge.parent, edge.child, edge.line
+                ),
+            });
+        }
+    }
+    failures
+}
+
 /// Detect circular and over-deep `#[descended_from]` chains.
 ///
 /// ATK-A3-002. Iterative DFS with white/gray/black coloring on the lineage
@@ -776,6 +852,15 @@ pub(crate) const MAX_LINEAGE_DEPTH: usize = 64;
 fn detect_lineage_failures(edges: &[LineageEdge], max_depth: usize) -> Vec<ParseFailure> {
     use std::collections::HashMap;
 
+    // BUG-A3-001 fix: detect duplicate `(child, parent)` pairs first and
+    // emit one parse_failure per duplicate group. Without this guard the
+    // DFS swallows duplicates silently — adjacency for `A` lists `B` twice,
+    // the first visit marks `B` black, the second hits the black-skip path,
+    // and the user gets no signal that they wrote `#[descended_from(B)]`
+    // twice on `A`. Per ADR-004 (implicit-to-explicit elevation): structural
+    // anomalies visible to the scanner must surface as explicit diagnostics.
+    let mut failures = detect_duplicate_lineage_edges(edges);
+
     // Build adjacency: child → list of (parent, edge-index). The edge-index
     // lets us recover the source location (file + line) of the closing edge
     // when a cycle is reported, which matters for human-readable diagnostics.
@@ -787,7 +872,6 @@ fn detect_lineage_failures(edges: &[LineageEdge], max_depth: usize) -> Vec<Parse
             .push((edge.parent.as_str(), idx));
     }
 
-    let mut failures: Vec<ParseFailure> = Vec::new();
     let mut color: HashMap<&str, u8> = HashMap::new();
     // Seen-cycle set keyed by the canonicalised cycle (smallest rotation of
     // the node sequence) so we don't report the same loop multiple times
@@ -1078,6 +1162,228 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
     }
 
     Ok(report)
+}
+
+// ============================================================================
+// Cross-crate enumeration (A3 D3)
+//
+// Per the A3 scope-lock and navigator's 2026-05-09 ruling: cross-crate scope
+// in v0.1 is enumeration + per-crate scanning, NOT merged cross-crate matching.
+// The `addresses()` relation stays file-scoped; module-path-qualified
+// `ItemTarget` is an ADR-class decision (ATK-A3-005) deferred until aristotle
+// rules + an ADR sentence drafts.
+//
+// Empirical substrate findings (pre-flight P1/P2/P5, 2026-05-09):
+//   P1: `cargo metadata --format-version 1` returns `manifest_path` already
+//       resolved per-package — no need to construct paths from cargo home +
+//       index hash + crate-version suffix. Path-deps, workspace-internal,
+//       and registry deps share the same shape.
+//   P2: `~/.cargo/registry/src/index.crates.io-<hash>/<crate>-<version>/`
+//       hosts multiple co-existing versions of the same crate. The
+//       `cargo metadata`-driven approach avoids the multi-version problem
+//       entirely because cargo dedupes by version per package.
+//   P5: zero `#[antigen(...)]` instances in the wild across the registry
+//       (sample: this workspace's 96 reg deps + tambear's 227 reg deps).
+//       The collision question is hypothetical until antigen-stdlib lands;
+//       Approach 2 vs 3-revised ruling can absorb after D3 ships.
+//
+// Sub-clause F (ADR-005): cross-crate antigen declarations are trusted
+// inputs; the trust anchor is cargo's own checksum verification chain.
+// The trust-model ADR sentence is in flight with aristotle.
+// ============================================================================
+
+/// How a [`DepCrateRoot`] was sourced — the `cargo metadata` `source` field
+/// classified into the buckets the scan tooling cares about.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum CrateOrigin {
+    /// `source: null` — workspace-internal package or path-dep (cross- or
+    /// in-workspace). Source already lives at `manifest_path`'s parent.
+    PathOrWorkspace,
+    /// `source: "registry+..."` — a crates.io or alt-registry dependency
+    /// downloaded into `~/.cargo/registry/src/<index>/<crate>-<version>/`.
+    Registry,
+    /// `source: "git+..."` — a git dependency cloned into
+    /// `~/.cargo/git/checkouts/`. Captures `manifest_path` directly without
+    /// path-construction.
+    Git,
+    /// Anything else cargo returns we don't classify yet (sparse registries,
+    /// alternative registry indices, future cargo source kinds). The raw
+    /// source string is preserved so consumers can decide to scan it or not.
+    Other(String),
+}
+
+impl CrateOrigin {
+    fn from_source(source: Option<&str>) -> Self {
+        match source {
+            None => Self::PathOrWorkspace,
+            Some(s) if s.starts_with("registry+") => Self::Registry,
+            Some(s) if s.starts_with("git+") => Self::Git,
+            Some(s) => Self::Other(s.to_string()),
+        }
+    }
+}
+
+/// A single dependency crate's enumerated source root.
+///
+/// Returned by [`enumerate_dep_crate_roots`]. The `crate_root` directory is
+/// the parent of the package's `Cargo.toml`; passing it to [`scan_workspace`]
+/// scans the crate's full source tree. The `package_name` and `version`
+/// pair uniquely identifies the dep across the workspace's resolved graph.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DepCrateRoot {
+    /// Cargo package name (e.g., `"serde"`, `"antigen-fingerprint"`).
+    pub package_name: String,
+    /// Cargo package version (e.g., `"1.0.219"`).
+    pub version: String,
+    /// Directory containing the package's `Cargo.toml` — i.e., the crate
+    /// root suitable for [`scan_workspace`].
+    pub crate_root: PathBuf,
+    /// Where this crate came from. See [`CrateOrigin`].
+    pub origin: CrateOrigin,
+}
+
+/// Enumerate dependency crates resolved by cargo for the workspace at
+/// `workspace_root`.
+///
+/// Runs `cargo metadata --format-version 1 --manifest-path <workspace>/Cargo.toml`
+/// in a subprocess, parses the JSON, and returns one [`DepCrateRoot`] per
+/// non-workspace-member package. Workspace-internal members are excluded:
+/// when [`scan_workspace`] is called on the workspace root, it already
+/// covers them.
+///
+/// `include_path_workspace` controls whether `CrateOrigin::PathOrWorkspace`
+/// dependencies (cross-workspace path-deps) are returned. The default for
+/// CLI consumers is `false` — these path-deps usually live alongside the
+/// workspace and are scanned independently. Set `true` to opt in.
+///
+/// # Errors
+///
+/// Returns an `io::Error` if:
+/// - the `cargo` binary cannot be invoked (`PATH` or executable issue),
+/// - `cargo metadata` exits non-zero (manifest parse error, lock-file out
+///   of date, network failure on first resolve, etc.),
+/// - the JSON output cannot be parsed.
+///
+/// In all error cases, the error message preserves the underlying cause
+/// (cargo's stderr or the JSON parse error) for diagnostic surfacing.
+///
+/// # Sub-clause F note (ADR-005)
+///
+/// Cross-crate antigen declarations are trusted inputs — the trust anchor
+/// is cargo's own checksum verification of registry sources + git revision
+/// pinning. This trust model needs an ADR sentence (in flight with
+/// aristotle); the function ships separately so that mechanism work is
+/// not blocked on the documentation.
+pub fn enumerate_dep_crate_roots(
+    workspace_root: &Path,
+    include_path_workspace: bool,
+) -> std::io::Result<Vec<DepCrateRoot>> {
+    use std::process::Command;
+
+    let manifest_path = workspace_root.join("Cargo.toml");
+    let output = Command::new("cargo")
+        .arg("metadata")
+        .arg("--format-version")
+        .arg("1")
+        .arg("--manifest-path")
+        .arg(&manifest_path)
+        .output()
+        .map_err(|e| {
+            std::io::Error::new(
+                e.kind(),
+                format!(
+                    "failed to invoke `cargo metadata` at `{}`: {e} \
+                     (is cargo on PATH?)",
+                    manifest_path.display()
+                ),
+            )
+        })?;
+
+    if !output.status.success() {
+        return Err(std::io::Error::other(format!(
+            "`cargo metadata` exited with status {} for manifest `{}`: {}",
+            output.status,
+            manifest_path.display(),
+            String::from_utf8_lossy(&output.stderr).trim()
+        )));
+    }
+
+    let metadata: serde_json::Value = serde_json::from_slice(&output.stdout).map_err(|e| {
+        std::io::Error::other(format!("failed to parse `cargo metadata` JSON output: {e}"))
+    })?;
+
+    // Identify workspace-member package IDs so we can exclude them — running
+    // scan_workspace on the workspace root already covers these.
+    let workspace_members: std::collections::HashSet<String> = metadata
+        .get("workspace_members")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let packages = metadata
+        .get("packages")
+        .and_then(|v| v.as_array())
+        .ok_or_else(|| {
+            std::io::Error::other(
+                "`cargo metadata` output missing `packages` array — unexpected schema",
+            )
+        })?;
+
+    let mut roots: Vec<DepCrateRoot> = Vec::new();
+    for pkg in packages {
+        let id = pkg.get("id").and_then(|v| v.as_str()).unwrap_or_default();
+        if workspace_members.contains(id) {
+            continue;
+        }
+
+        let package_name = pkg
+            .get("name")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string();
+        let version = pkg
+            .get("version")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string();
+        let source = pkg.get("source").and_then(|v| v.as_str());
+        let manifest_str = pkg.get("manifest_path").and_then(|v| v.as_str());
+
+        let Some(manifest_str) = manifest_str else {
+            // No manifest_path — defensive guard. Skip rather than panic;
+            // future cargo schemas may surface unexpected shapes.
+            continue;
+        };
+        let manifest = PathBuf::from(manifest_str);
+        let Some(crate_root) = manifest.parent().map(Path::to_path_buf) else {
+            continue;
+        };
+
+        let origin = CrateOrigin::from_source(source);
+
+        // Path-or-workspace deps: `source` is null. Some are workspace
+        // members (already excluded above by id); the rest are path-deps to
+        // sibling workspaces (e.g., tambear's path-dep to `R:\antigen`).
+        // Skip by default — those workspaces are normally scanned on their
+        // own — but allow opt-in for full transitive coverage.
+        if matches!(origin, CrateOrigin::PathOrWorkspace) && !include_path_workspace {
+            continue;
+        }
+
+        roots.push(DepCrateRoot {
+            package_name,
+            version,
+            crate_root,
+            origin,
+        });
+    }
+
+    Ok(roots)
 }
 
 /// Emit synthetic `FingerprintMatch` presentations for items that match a
@@ -2287,5 +2593,156 @@ mod tests {
         let orphans = report.orphaned_lineage_edges();
         assert_eq!(orphans.len(), 1);
         assert_eq!(orphans[0].parent, "MissingParent");
+    }
+
+    // ========================================================================
+    // ATK-A3: adversarial edge cases.
+    // Two are FAILING bug contracts (atk_a3_dup, atk_a3_orphan_child).
+    // Two are PASSING positive-controls verifying dedup correctness.
+    // ========================================================================
+
+    #[test]
+    fn atk_a3_dup_duplicate_lineage_edge_is_diagnosed_not_silent() {
+        // ATK-A3-DUP: two `#[descended_from(B)]` on the same struct A produce
+        // two identical lineage edges (child="A", parent="B"). This is a user
+        // error (copy-paste or duplicate attribute) that current code silently
+        // swallows — adjacency["A"] gets two entries for B, DFS marks B black
+        // on first visit, skips it on second. No failure emitted.
+        //
+        // Contract: duplicate (child, parent) pairs must produce at least one
+        // diagnostic. Silent acceptance allows structural lies — the user
+        // believes they have two distinct heritage claims (per ADR-004
+        // implicit-to-explicit elevation).
+        //
+        // Note: ADR-018 §"Edge-level dedup" ratifies that propagation dedupes
+        // edges by (child, parent, canonical_paths) tuple — but that dedup is
+        // also silent. The contract here applies to the earlier cycle-detection
+        // pass: a structural anomaly that reaches cycle detection must be
+        // surfaced, not swallowed. The diagnostic channel (parse_failure vs new
+        // query method) is a design question for pathmaker; this test asserts
+        // the minimum: at least one failure must emerge.
+        //
+        // STATUS: FAILING — fix in detect_lineage_failures or visitor.
+        let edges = vec![
+            edge("A", "B"),
+            edge("A", "B"), // exact duplicate
+        ];
+        let failures = detect_lineage_failures(&edges, MAX_LINEAGE_DEPTH);
+        assert!(
+            !failures.is_empty(),
+            "duplicate lineage edge (A->B twice) must produce at least one \
+             diagnostic; got: {failures:?}"
+        );
+    }
+
+    #[test]
+    fn atk_a3_shared_two_cycles_sharing_a_node_both_reported() {
+        // ATK-A3-SHARED: A->B->A forms cycle 1; A->C->A forms cycle 2.
+        // Node A participates in both. The canonicalise_cycle dedup must NOT
+        // suppress cycle 2 because it shares node A with cycle 1 — the cycles
+        // are structurally distinct ({A,B} vs {A,C}).
+        //
+        // This is a positive-control test verifying the dedup logic does not
+        // over-suppress. Expected: 2 failures.
+        let edges = vec![
+            edge("A", "B"),
+            edge("B", "A"),
+            edge("A", "C"),
+            edge("C", "A"),
+        ];
+        let failures = detect_lineage_failures(&edges, MAX_LINEAGE_DEPTH);
+        assert_eq!(
+            failures.len(),
+            2,
+            "two distinct cycles sharing node A must both be reported; \
+             got: {failures:?}"
+        );
+        let texts: Vec<&str> = failures.iter().map(|f| f.error.as_str()).collect();
+        assert!(
+            texts.iter().any(|t| t.contains('A') && t.contains('B')),
+            "one failure must name the A-B cycle; texts: {texts:?}"
+        );
+        assert!(
+            texts.iter().any(|t| t.contains('A') && t.contains('C')),
+            "one failure must name the A-C cycle; texts: {texts:?}"
+        );
+    }
+
+    #[test]
+    fn atk_a3_combined_cycle_and_depth_exceeded_both_reported() {
+        // ATK-A3-COMBINED: a graph with BOTH a cycle (X->Y->X) and a long chain
+        // (N0->...->N5) exceeding a small depth limit. Both failure types must
+        // appear — the pass must not short-circuit after the first failure type.
+        //
+        // Contract: at least one "cycle" failure AND at least one "maximum depth"
+        // failure must be present.
+        let depth = 3_usize;
+        let mut edges = vec![edge("X", "Y"), edge("Y", "X")];
+        for i in 0..=(depth + 2) {
+            edges.push(edge(&format!("N{i}"), &format!("N{}", i + 1)));
+        }
+        let failures = detect_lineage_failures(&edges, depth);
+        assert!(
+            failures.iter().any(|f| f.error.contains("cycle")),
+            "cycle X->Y->X must be detected even when long chain is also present; \
+             all failures: {failures:?}"
+        );
+        assert!(
+            failures.iter().any(|f| f.error.contains("maximum depth")),
+            "depth limit must fire on long chain even when cycle is also present; \
+             all failures: {failures:?}"
+        );
+    }
+
+    #[test]
+    fn atk_a3_orphan_child_without_antigen_declaration_is_surfaced() {
+        // ATK-A3-ORPHAN-CHILD (adversarial BUG-A3-002): lineage edge where the
+        // CHILD has no corresponding `#[antigen]` declaration. The user wrote
+        // `#[descended_from(Parent)]` on a struct that is NOT itself an antigen.
+        //
+        // `orphaned_lineage_edges()` only checks if the PARENT is in the
+        // known-antigens set; this is its dual case. A child-without-antigen
+        // is structurally incoherent: it claims inheritance into the antigen
+        // system without being a participant.
+        //
+        // Contract: this must be surfaced via SOME query channel —
+        // `dangling_lineage_edges()` (the chosen channel),
+        // `orphaned_lineage_edges()`, or `parse_failures`. Pathmaker chose
+        // a separate `dangling_lineage_edges()` method (parallel to
+        // `orphaned_lineage_edges`) because the channel separation
+        // is structurally cleaner per ADR-006 (recognition-not-design).
+        //
+        // The ADR-018 propagation walk (D1.5) skips edges flagged by either
+        // query method — both produce the same effect on inheritance
+        // resolution.
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_decl("Parent"));
+        // OrphanChild is NOT in antigens — only in lineage_edges.
+        report.lineage_edges.push(edge("OrphanChild", "Parent"));
+
+        let orphans = report.orphaned_lineage_edges();
+        let dangling = report.dangling_lineage_edges();
+        assert!(
+            !orphans.is_empty() || !dangling.is_empty() || !report.parse_failures.is_empty(),
+            "lineage edge whose child has no #[antigen] declaration must be \
+             surfaced via orphaned_lineage_edges, dangling_lineage_edges, or \
+             parse_failures; got orphans: {orphans:?}, dangling: {dangling:?}"
+        );
+
+        // Specific assertion: pathmaker chose dangling_lineage_edges as the
+        // channel. The orphan-channel must NOT also surface this case
+        // (parent IS in antigens, so it's not a parent-orphan).
+        assert!(
+            orphans.is_empty(),
+            "child-missing case must NOT appear in orphaned_lineage_edges \
+             (that channel is for parent-missing); got: {orphans:?}"
+        );
+        assert_eq!(
+            dangling.len(),
+            1,
+            "child-missing must appear in dangling_lineage_edges, exactly one"
+        );
+        assert_eq!(dangling[0].child, "OrphanChild");
+        assert_eq!(dangling[0].parent, "Parent");
     }
 }

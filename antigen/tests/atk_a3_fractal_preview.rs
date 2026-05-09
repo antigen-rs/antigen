@@ -393,3 +393,220 @@ fn atk_a3_005_cross_crate_name_collision_not_suppressed_by_same_name_immunity() 
     // TODO(adversarial): write multi-crate fixture when A3 ships cross-crate scan.
     panic!("A3 pre-implementation contract");
 }
+
+// ============================================================================
+// ATK-A3-006: orphaned_lineage_edges cross-crate false-resolution via
+// bare-name collision when canonical_path lands
+//
+// The current `orphaned_lineage_edges()` builds a `known` set using bare
+// `type_name` strings (e.g., "Foo"). When canonical_path lands on
+// AntigenDeclaration (Approach 3-revised — `canonical_path: Option<String>`),
+// two antigens from different crates may both have `type_name = "Foo"`:
+//   - crate_a: AntigenDeclaration { type_name: "Foo", canonical_path: Some("crate_a::Foo") }
+//   - crate_b: AntigenDeclaration { type_name: "Foo", canonical_path: Some("crate_b::Foo") }
+//
+// A lineage edge pointing to `crate_b::Foo` (orphaned because crate_b isn't
+// in the local scan) would NOT appear as an orphan because `crate_a::Foo`'s
+// bare type_name "Foo" is in the known set. The orphan check silently
+// resolves the wrong antigen across crate boundaries.
+//
+// The fix: `orphaned_lineage_edges()` must use canonical_path for comparison
+// when both the edge and the antigen carry canonical_path (Some/Some case),
+// falling back to bare name only when canonical_path is None on either side
+// (intra-workspace / pre-cross-crate case).
+//
+// This is the orphan-detection analog of ATK-A3-005 (immunity false-positive
+// via naive file-guard removal). Same structural shape: bare-name equality
+// across crate boundaries produces false-resolution.
+//
+// Status: #[ignore] until canonical_path lands on AntigenDeclaration (A3 D3+).
+// ============================================================================
+
+#[test]
+#[ignore = "A3 pre-implementation contract; canonical_path cross-crate orphan \
+             collision — remove ignore when canonical_path lands on AntigenDeclaration"]
+fn atk_a3_006_orphan_edge_canonical_path_false_resolution() {
+    // Contract: a lineage edge pointing to `crate_b::Foo` must NOT be
+    // resolved as non-orphaned because `crate_a::Foo` (different canonical
+    // path) is in the scan. The orphan query must use canonical_path equality
+    // when both sides carry it.
+    //
+    // TODO(adversarial): implement when canonical_path: Option<String> lands
+    // on AntigenDeclaration, LineageEdge, and orphaned_lineage_edges() uses
+    // canonical-path-aware comparison.
+    panic!("A3 pre-implementation contract");
+}
+
+// ============================================================================
+// ATK-A3-007: fake registry path bypasses cross-crate trust delegation
+//
+// ADR-017 Enforcement §4 names this adversarial fixture explicitly.
+// The trust delegation model:
+//   1. Path reachable from `cargo metadata` resolution graph.
+//   2. Path matches expected registry layout (`<index>/<crate>-<version>/`).
+//
+// Attack: create a directory at
+//   `.cargo/registry/src/<fake-index>/implausible-crate-9.9.9/`
+// containing a valid-looking `lib.rs` with `#[antigen]` declarations.
+// This directory passes the layout check (correct `<index>/<crate>-<version>/`
+// shape) but is NOT present in `cargo metadata` output (not a real resolved
+// dependency).
+//
+// If the scanner trusts layout check alone and skips the metadata-reachability
+// check, the fake antigen file is ingested and processed. A malicious dev
+// environment or compromised `.cargo/registry/` could inject antigens that
+// appear to the scan as real cross-crate declarations.
+//
+// The attack is distinct from cargo's supply-chain checksum verification —
+// cargo verifies the integrity of packages it FETCHED; it says nothing about
+// files planted manually in the registry directory after fetch.
+//
+// Impact: false injected antigens appear as real cross-crate declarations;
+// immunity claims against the injected antigens suppress legitimate
+// unaddressed-presentation warnings; audit reports become unreliable.
+//
+// Contract: `cargo antigen scan --include-deps` must:
+//   (a) skip paths not reachable from `cargo metadata` resolution graph,
+//   (b) emit a parse_failure noting the skipped-unreachable-registry-path.
+//
+// ADR-017 Enforcement §4: both preconditions MUST be enforced.
+//
+// Status: #[ignore] until A3 D3 (cross-crate source walking) ships.
+// ============================================================================
+
+#[test]
+#[ignore = "A3 pre-implementation contract; fake registry path bypasses trust \
+             delegation — remove ignore when cross-crate scanning lands (A3 D3)"]
+fn atk_a3_007_fake_registry_path_not_in_cargo_metadata_is_rejected() {
+    // Contract: a path at `.cargo/registry/src/<index>/fake-crate-9.9.9/`
+    // that passes the layout check but is absent from `cargo metadata` output
+    // MUST be skipped, not ingested. The scanner emits a parse_failure for
+    // the skipped path so the user can see what was rejected.
+    //
+    // TODO(adversarial): build a fixture that:
+    //   1. Creates a fake `.cargo/registry/src/` directory tree with a
+    //      plausible-looking crate directory containing `#[antigen]` decls.
+    //   2. Runs scan_workspace (or the cross-crate scan path) against a
+    //      workspace that does NOT have the fake crate as a dependency.
+    //   3. Asserts: no AntigenDeclaration from the fake directory appears in
+    //      the report; at least one parse_failure names the skipped path.
+    //
+    // See ADR-017 §"The trust delegation" for the two-precondition model.
+    panic!("A3 pre-implementation contract");
+}
+
+// ============================================================================
+// ATK-A3-008: ADR-018 duplicate edge silent swallow in synthesis pass
+//
+// ADR-018 §"Edge-level dedup" ratifies: "before the propagation walk, edges
+// are deduped by (child, parent, child_canonical_path, parent_canonical_path)
+// tuple." This means BUG-A3-001's duplicate edges get collapsed silently at
+// the synthesis pass — no failure is emitted to the user.
+//
+// But the unit test `atk_a3_dup_duplicate_lineage_edge_is_diagnosed_not_silent`
+// (scan::tests, currently FAILING) asserts a diagnostic SHOULD be emitted.
+//
+// This pre-implementation contract records the design question:
+//   Should duplicate #[descended_from] be:
+//   (a) Silently deduped (ADR-018 synthesis pass dedup — no user feedback), OR
+//   (b) Diagnosed with a warning/parse_failure before dedup (explicit elevation
+//       per ADR-004)?
+//
+// The fractal prediction: wherever dedup is silent, a user who writes the
+// attribute twice accidentally receives no feedback. The sub-clause F argument:
+// the user's intent (two distinct declarations) is not what they get (one
+// silently collapsed). This is the same shape as stale-tolerance orphans —
+// structural incoherence that surfaces via orphan query, not parse_failure.
+//
+// Contract: duplicate (child, parent) edges must produce at least one visible
+// diagnostic — either a parse_failure or inclusion in a future
+// `duplicate_lineage_edges()` query. Silent dedup is not acceptable because it
+// makes the user's structural error invisible.
+//
+// Note: if ADR-018 is amended to emit a diagnostic for duplicates at dedup time,
+// the existing FAILING test in scan::tests should be updated to match the
+// actual diagnostic channel (parse_failure vs a new query method).
+//
+// Status: #[ignore] until ADR-018 is ratified and propagation pass lands.
+// ============================================================================
+
+#[test]
+#[ignore = "A3 pre-implementation contract; ADR-018 duplicate edge dedup \
+             diagnostic channel — remove ignore when propagation pass lands (A3 D1.5+)"]
+fn atk_a3_008_duplicate_edge_adr018_synthesis_dedup_emits_diagnostic() {
+    // Contract: duplicate #[descended_from(B)] on struct A, after ADR-018
+    // edge-level dedup collapses the two edges to one, must emit at least one
+    // visible diagnostic explaining the collapse. Scan report's duplicate_lineage
+    // count should be queryable.
+    //
+    // TODO(adversarial): implement after ADR-018 ratification defines the
+    // diagnostic channel for edge-level dedup discards.
+    panic!("A3 pre-implementation contract");
+}
+
+// ============================================================================
+// ATK-A3-009: multi-version same-crate antigen fingerprint divergence — silent
+// wrong immunity address
+//
+// ADR-017 §"How the path is computed" intentionally collapses two versions of
+// the same crate to the same canonical_path string (crate name only, no
+// version). If `foo v1.0` declares `PanickingInDrop` with fingerprint F1, and
+// `foo v2.0` (allowed in same dep tree under semver major splits) declares
+// `PanickingInDrop` with a breaking fingerprint change F2, the scanner sees:
+//
+//   AntigenDeclaration { type_name: "PanickingInDrop", canonical_path: Some("foo") }  // v1
+//   AntigenDeclaration { type_name: "PanickingInDrop", canonical_path: Some("foo") }  // v2
+//
+// A user's `#[immune(PanickingInDrop, witness = my_test)]` validated against F1
+// addresses the v2 presentation (same canonical_path, same type_name) even
+// though the witness was never re-validated against F2's changed contract.
+// Audit shows "addressed" — silent wrong answer.
+//
+// The ADR says "audit MAY surface version-divergence as a diagnostic." The
+// enforcement review flags this as too weak — "MAY" leaves a known silent
+// failure mode without committed detection. The failure is:
+//   1. Two AntigenDeclarations for the same canonical_path + type_name with
+//      DIFFERENT fingerprints — version divergence.
+//   2. An immunity that was validated against one version addresses the other.
+//   3. No diagnostic emitted.
+//
+// Contract: when the scan report contains two antigen declarations with the
+// same (canonical_path, type_name) but different fingerprints, the audit MUST
+// emit a diagnostic naming the divergence and flagging associated immunities
+// for re-attestation.
+//
+// Alternatively (if deferred): the limitation must be explicitly named as an
+// out-of-scope known failure with an adoption-pressure trigger (ADR-006
+// threshold: three independent instances). "MAY" is not sufficient — it
+// implies optionality where the structural consequence is a silent wrong answer.
+//
+// See: adversarial enforcement-review campsite entry for full analysis.
+//
+// Status: #[ignore] until ADR-017 Enforcement is amended to commit to
+// either detection or explicit deferral with a named trigger.
+// ============================================================================
+
+#[test]
+#[ignore = "A3 pre-implementation contract; multi-version fingerprint divergence \
+             silent wrong immunity — remove ignore when ADR-017 version-collision \
+             enforcement is resolved (either detection or explicit deferral)"]
+fn atk_a3_009_multi_version_fingerprint_divergence_addressed_without_revalidation() {
+    // Contract: two antigen declarations for `foo::PanickingInDrop` (same
+    // canonical_path = "foo", same type_name, different fingerprints from v1 vs
+    // v2) with an immunity validated against only one version must NOT silently
+    // show "addressed" for the other version's presentation without a diagnostic.
+    //
+    // The scenario requires a ScanReport with:
+    //   - Two AntigenDeclarations: same canonical_path + type_name, different fingerprints
+    //   - One Immunity referencing the antigen (canonical_path = "foo")
+    //   - Two Presentations for the same antigen (from v1 and v2 scans)
+    //
+    // Expected (per corrected enforcement):
+    //   - Either a parse_failure or audit diagnostic flagging version divergence
+    //   - OR explicit out-of-scope limitation documented in ScanReport.known_limitations
+    //     so callers can surface the gap rather than silently suppress it
+    //
+    // TODO(adversarial): implement when ADR-017 Enforcement §version-collision
+    // is resolved to MUST or explicit-deferred-with-trigger.
+    panic!("A3 pre-implementation contract");
+}
