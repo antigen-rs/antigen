@@ -24,9 +24,8 @@
 //! - **External tool delegation**: clippy/kani/prusti adapters are stubbed with
 //!   "external; manual validation required" status. Sweep A3+ adds adapters.
 //! - **Cross-crate witnesses**: a witness that lives in a dependency isn't
-//!   followed. v0.0.1 audit is workspace-local only.
-//!
-//! Search this file for `TODO(team)` for specific easy-win extension points.
+//!   followed. v0.0.1 audit is workspace-local only — A3 sweep extends this
+//!   via cross-crate source walking (per scope-lock).
 
 use std::path::{Path, PathBuf};
 
