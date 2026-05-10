@@ -18,10 +18,11 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V1 (2026-05-09, post-ADR-017+018 ratification). V0 authored
-> during ratification-cycle pause; V1 updated when commit 3ef4b9a landed —
-> D1.5 moved to active, ATK-A3-009/007 marked now-unblocked, encounters-
-> proposal marked tracked in git.
+> **Status**: V2 (2026-05-09, post-encounters-SMALL-PUSH + Tekgy framings).
+> V1: D1.5 active, ATK reframes unblocked, encounters tracked.
+> V2: encounters entry updated with three Tekgy framings as substrate
+> commitments; routing-stream-overtaken-by-events added as new presentation
+> type in vocabulary-candidates section.
 
 ---
 
@@ -81,23 +82,38 @@ Removing from deferred index.
 Items that are A3-cadence but explicitly held while ratification cycle
 runs.
 
-### Encounters proposal — Phase 1-8
+### Encounters proposal — full Phase 1-8 + ratification
 
-**What**: Proposal for a third vocabulary tier below `postures.md` V0+1
-candidates, for first-encounter formal capture so subsequent encounters
-recognize each other rather than being treated as fresh first-recognitions.
-Scope expanded mid-draft to cover patterns + vocabulary + structural-moves
-+ frames; carries tracing (graph relationships between encounters).
+**What**: Proposal for a sibling vocabulary tier alongside `postures.md`
+for first-encounter formal capture. Phase 1-8 SMALL-PUSH complete
+(2026-05-09). Three Tekgy framings now landed as substrate commitments:
 
-**Where it lives**: `docs/expedition/encounters-proposal.md` (now tracked
-in git as of commit after 3ef4b9a; 446-line proposal).
+1. Findings 1-3 accepted: scope-coherence (four shapes = one abstraction
+   at different scales); sibling `encounters.md` placement (not sub-tier);
+   `recognition-cue` required field (the friction is the gate).
+2. Governance: inherits postures.md governance by default. Don't pre-design;
+   recognize what works and let encounters inherit. Ratify divergence if/when
+   it surfaces.
+3. Tooling/discipline co-existence: keep BOTH layers active as tools mature.
+   "Extend, don't replace" — encounters-the-discipline is the human/agent-
+   facing layer; encounters-tooling-eventually is the leverage layer. They
+   cross-link rather than one superseding the other. Same posture as antigen-
+   the-tool: structural memory gives developer judgment leverage, doesn't
+   replace it. This framing should land explicitly in the encounters substrate
+   so future-instances inherit it rather than re-derive.
 
-**Unblocked by**: aristotle's bandwidth post-A3-ADR-ratification.
-Scout was prepping Q3 (entry shape) sharpening before aristotle starts
-Phase 1-8; that prep may already be done.
+**Where it lives**: `docs/expedition/encounters-proposal.md` (tracked, 446
+lines); aristotle's SMALL-PUSH artifact at
+`campsites/antigen-A3/20260509163016-20260509080000-launch/aristotle/20260509230000-encounters-phase-1-8-initial.md`.
 
-**Owner when active**: aristotle Phase 1-8 → team deconstruction →
-ratification per process.md.
+**Next move**: full Phase 1-8 → ratification cycle. Three Tekgy framings
++ eight aristotle findings are the substrate for that pass.
+
+**Unblocked by**: Tekgy bandwidth + team capacity post-A3-close.
+
+**Owner when active**: aristotle (full Phase 1-8) → team deconstruction →
+ratification per process.md. First artifact: produce `encounters.md` v0
+draft incorporating the three substrate commitments above.
 
 ### Naturalist's deeper biology-cognate work
 
@@ -157,6 +173,35 @@ substrate-currency tracking; promote to V0+1 when shape stabilizes.
 
 **Owner when active**: navigator (notice + log); team-lead (route to
 substrate-currency posture work).
+
+### Routing-stream-overtaken-by-events (new substrate-currency presentation type)
+
+**What**: A navigator message can describe state that was already overtaken
+by events before the message reached its recipient. The message is not wrong
+at time-of-send, but the routing stream has non-zero latency; a commit can
+land between send and receipt. The recipient who substrate-greps before acting
+on the message catches the phantom amendment before it corrupts ratified text.
+
+First named instance: aristotle's 2026-05-09 catch during encounters Phase
+1-8 — v3 amendment messages arrived after ADR-017 v5 + ADR-018 v3 were
+already ratified in commit 3ef4b9a. Aristotle's substrate-grep discipline
+("git log + git show before acting") caught it; no phantom amendments landed.
+
+This is a presentation type within the substrate-currency domain — a new
+angle on the same pattern: the routing stream is substrate-lagged, not
+substrate-current. Grounding actions in substrate (not routing-stream
+messages) is the invariant. "Routing-stream-as-substrate-currency" named
+earlier in the session; this is its most concrete instance yet.
+
+**Where it lives**: aristotle's 2026-05-09 catch (message in team routing
+stream); this entry.
+
+**Unblocked by**: recurrence (another instance of routing-stream-overtaken-
+by-events in a different context). Track for substrate-currency V0+1
+promotion.
+
+**Owner when active**: navigator (notice + log); substrate-currency posture
+thread when that matures.
 
 ### V0+1 candidates already in postures.md
 
@@ -286,3 +331,9 @@ drift; index makes the deferral durable.*
 *V1 updated 2026-05-09 by navigator: ADR-017 + ADR-018 ratified
 (commit 3ef4b9a); D1.5 moved to active (row removed from deferred);
 ATK-A3-009/007 marked now-unblocked; encounters-proposal marked tracked.*
+
+*V2 updated 2026-05-09 by navigator: encounters entry updated with three
+Tekgy framings as substrate commitments anchoring next full Phase 1-8.
+Routing-stream-overtaken-by-events added as new vocabulary candidate
+(presentation type within substrate-currency domain) per aristotle's catch
+and team-lead routing.*
