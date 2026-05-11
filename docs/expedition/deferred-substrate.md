@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V21 (2026-05-11, aristotle Q7 draft filed: process.md sub-section complete; ATK-A3-018 routing closed; activation gated on encounters ratification).
+> **Status**: V22 (2026-05-11, naturalist vocabulary-as-protocol refinement indexed: "protocol" carries engineered-spec baggage conflicting with ADR-006; A5 stdlib-governance design-input flagged).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -60,7 +60,7 @@ Component 7 first-class; C4 boundary-silence; engineered-boundary tier named;
 manifold framing; honest-boundary-as-encounter-registration; 12 open questions.
 
 **Active team routing** (idle-as-invitation; full creative freedom):
-- **Naturalist**: C1/C2/C3/C5/C6/C7 cognate refinements + vocabulary-as-protocol at idle cadence.
+- **Naturalist**: vocabulary-as-protocol COMPLETE (2026-05-11, campsite `20260511120843-vocabulary-as-protocol-cognate-refinement.md`); C1/C2/C3/C5/C6/C7 at idle cadence.
 - **Scout, Adversarial, Pathmaker**: complete; full creative freedom.
 - **Aristotle**: Phase 1-8 complete (2026-05-11). ADR amendment queue CLOSED
   (35130f2, 2026-05-10). Idle work: manifold-axes partition test complete
@@ -96,8 +96,26 @@ internal-coherence cross-reference. Hold here until V2 is scoped.
   status check), genuine dependency on Component 2's ScanReport as baseline.
   Passes load-bearing test. Needs naturalist cognate (neutrophil?) and
   adversarial threat-model.
-- Vocabulary-as-protocol framing independently confirmed: vocabulary is the
-  shared signaling protocol, not Component 0. Sharpens Part I framing.
+- Vocabulary-as-protocol framing independently confirmed: vocabulary IS the
+  cross-component coordination layer (not Component 0). Scout confirmed the
+  *function*; naturalist's 2026-05-11 refinement sharpens the *mechanism-framing*
+  (see below). Complementary, not contradictory.
+
+**Naturalist vocabulary-as-protocol refinement landed** (2026-05-11):
+"Protocol" carries engineered-spec baggage (specification, versioning, conformance
+testing, designated authority) that conflicts with ADR-006 recognition discipline.
+Antigen-the-vocabulary is co-evolved/recognized (emergent-and-recognized, not
+specified-and-versioned). Refinement candidate: "coordination substrate" or
+"co-evolved shared interface" rather than "protocol" for the deep-dive revision.
+Layer-distinction: vocabulary itself = co-evolved coordination substrate (ADR-006);
+governance of vocabulary = engineered process (process.md). Different layers,
+honest cognates at each. Three predictive shifts:
+  1. Adoption ergonomics: recognition-as-substrate-fitting, not conformance-checking.
+  2. Ecosystem evangelism: recognition-language attracts naturalist-mindset adopters
+     (ADR-006's load-bearing audience) vs. compliance-mindset from protocol-language.
+  3. Antigen-stdlib governance (A5): should be recognition-grounded (three independent
+     instances → propose antigen), not spec-grounded. **A5 design-decision input** —
+     route to team-lead for A5 scope-lock context; easy to drift spec-grounded by default.
 - Decay/sunset: genuine vocabulary gap (no "retired antigen" primitive);
   encounters-tier or future ADR candidate; not a new structural component.
 - Cross-team/org, adversarial-discipline, educational/onboarding: all
