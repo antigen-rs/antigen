@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V11 (2026-05-11, V1 committed; aristotle unblocked; encounter-registrations + vocabulary candidates added).
+> **Status**: V12 (2026-05-11, aristotle Phase 1-8 complete; Q6/Q7/Q8 calibrated; amendment queue active).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -59,16 +59,15 @@ integration, (4) knowledge-ecosystem integration, (5) version/lineage,
 Component 7 first-class; C4 boundary-silence; engineered-boundary tier named;
 manifold framing; honest-boundary-as-encounter-registration; 12 open questions.
 
-**Active team routing** (idle-as-invitation cadence; no rush):
-- **Naturalist**: C1/C2/C3/C5/C6 cognate refinements + vocabulary-as-protocol
-  at idle cadence. C4 and Q1 resolved.
-- **Scout**: complete. Idle-as-invitation.
-- **Adversarial**: complete. Idle-as-invitation.
-- **Aristotle**: **UNBLOCKED** — Q1 framing decision ratified by Tekgy (2026-05-11).
-  Phase 1-8 against V1. Special attention on Q6 (engineered-boundary family as
-  posture/encounter candidate), Q7 (honest-boundary-as-encounter-registration
-  as posture candidate), Q8 (manifold structure of enumeration). Apply Phase 8
-  forced-rejection to the layered framing itself.
+**Active team routing** (idle-as-invitation; full creative freedom):
+- **Naturalist**: C1/C2/C3/C5/C6/C7 cognate refinements + vocabulary-as-protocol at idle cadence.
+- **Scout, Adversarial, Pathmaker**: complete; full creative freedom.
+- **Aristotle**: Phase 1-8 complete (2026-05-11). Campsite:
+  `20260510-multi-component-immunity-phase-1-8.md`. V1 substrate-sound.
+  Q6 → encounter-tier (not posture; single-role, engineering-reason variance).
+  Q7 → process.md sub-section (workflow discipline, not architectural posture).
+  Q8 → encounter-tier observation (one instance, not yet generalized).
+  Now briefed on 5-item amendment queue; amendment drafting next at aristotle's cadence.
 
 **Scout findings landed** (2026-05-10):
 - **Component 7 confirmed**: real-time / CI feedback is structurally distinct
@@ -287,38 +286,39 @@ promotion.
 **Owner when active**: navigator (notice + log); substrate-currency posture
 thread when that matures.
 
-### Engineered-substrate-exceeds-biology (candidate posture/encounter-class)
+### Engineered-substrate-exceeds-biology (encounter-tier, held for cross-project)
 
-**What**: Three instances now named — W7 FormalProof tier (compile-time proof
-exceeds biological capability), ADR-017 trust-delegation (engineered cross-source
-authenticity exceeds intra-organism trust), C4 knowledge-ecosystem (organisms
-don't read their own scientific literature). ADR-006 threshold met for the
-*pattern itself* (three instances, independent discovery). Shape not yet stable
-enough for posture-class; held pending aristotle Q6 deconstruction + encounters-
-discipline fit-check.
+**What**: Three instances — W7 FormalProof tier, ADR-017 trust-delegation, C4
+knowledge-ecosystem. Count trigger fires (three instances) but second gate not
+yet met: single-role discovery (naturalist surfaced all three); engineering-
+reason variance across instances (shared surface-property, different load-bearing
+structures). **Aristotle Q6 calibration (2026-05-11)**: encounter-tier, not
+posture. Register with `held-for: cross-project-posture-if-generalizes`.
 
 **Where it lives**: naturalist C4 campsite 2026-05-10; V1 Part II;
-immune-system-primitive-map.md (W7 + ADR-017 entries).
+aristotle Phase 1-8 campsite `20260510-multi-component-immunity-phase-1-8.md`.
 
-**Unblocked by**: aristotle Q6 finding + encounters-discipline threshold check.
-**Owner when active**: aristotle Q6 → encounters-discipline fit → postures.md V0+1 if shape stabilizes.
+**Unblocked by**: cross-project recurrence (same pattern in a different project
+context) + multi-role discovery. Promote to V0+1 when both gates clear.
+**Owner when active**: navigator (notice recurrence) → postures.md V0+1.
 
-### Honest-boundary-as-encounter-registration (candidate posture/discipline)
+### Honest-boundary-as-encounter-registration (process.md discipline, not posture)
 
-**What**: When biology produces a clean silence at a design question, name
-the boundary honestly rather than forcing a cognate. The naming IS the
-structural memory. Formalized by Tekgy 2026-05-11: "register the known-unknown
-as an encounter so future-instances don't re-derive the same silence."
-One instance so far (C4); the discipline is the answer to "what do you do
-when the metaphor runs out?"
+**What**: When the metaphor produces clean silence, name the boundary honestly
+and register the known-unknown as an encounter. Formalized by Tekgy 2026-05-11.
+**Aristotle Q7 calibration (2026-05-11)**: workflow discipline, not architectural
+posture. Belongs in process.md sub-section. The discipline itself is the first
+encounter it produces (self-referential bootstrap). Five encounter-registrations
+in this index (cargo-level attacks, cross-crate witness gap, LLM hallucinated
+references, immunity laundering, stdlib trust hierarchy) are the first batch
+produced by the discipline.
 
-**Where it lives**: V1 Part V; Tekgy's 2026-05-11 framing in conversation dump;
-this index (registered-known-unknowns section above).
+**Where it lives**: V1 Part V; aristotle Phase 1-8 campsite; this index
+(registered-known-unknowns section).
 
-**Unblocked by**: aristotle Q7 finding + recurrence (another instance of
-honest-boundary-naming producing structural value). Single instance is not
-enough for posture-class promotion.
-**Owner when active**: aristotle Q7 → recurrence check → postures.md V0+1 if shape stabilizes.
+**Unblocked by**: aristotle amendment pass (process.md sub-section is item in
+that pass if bandwidth allows). No posture-class promotion warranted.
+**Owner when active**: aristotle → process.md sub-section.
 
 ### V0+1 candidates already in postures.md
 
@@ -575,3 +575,10 @@ Five encounter-registrations added (cargo-level attacks, cross-crate witness
 gap, LLM-hallucinated references, immunity laundering, stdlib trust hierarchy).
 Two new vocabulary candidates added (engineered-boundary family, honest-
 boundary-as-encounter-registration discipline).*
+
+*V12 updated 2026-05-11 by navigator: aristotle Phase 1-8 complete (campsite
+20260510-multi-component-immunity-phase-1-8.md). V1 substrate-sound. Q6 →
+encounter-tier not posture (single-role, engineering-reason variance); Q7 →
+process.md sub-section (workflow discipline); Q8 → encounter-tier observation
+(one instance). Vocabulary candidates updated to reflect aristotle calibrations.
+Amendment queue (5 items) briefed to aristotle; drafting next at aristotle's cadence.*
