@@ -18,11 +18,13 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V4 (2026-05-10, D1.5 complete).
+> **Status**: V5 (2026-05-10, multi-component incoming + ADR-018 Amendment 1 tracked).
 > V1: D1.5 active, ATK reframes unblocked, encounters tracked.
 > V2: encounters entry updated with three Tekgy framings; routing-stream-overtaken-by-events added.
 > V3: ATK-A3-007 + ATK-A3-009 rows removed (complete, 2026-05-10).
 > V4: A3-immediate section closed — D1.5 complete (commits 2eb8bec–b7712df, 235 passing).
+> V5: multi-component immunity framing added (active, team-lead producing); ADR-018
+> Amendment 1 added (deferred, aristotle when idle).
 
 ---
 
@@ -32,6 +34,36 @@ All A3-immediate items complete:
 - ~~ATK-A3-007~~: 4a1ed17 (adversarial)
 - ~~ATK-A3-009~~: bf44056 (adversarial)
 - ~~D1.5~~: 2eb8bec–b7712df (pathmaker); 235 passing, 23 ignored, all CI green
+
+---
+
+## Active incoming substrate (team-lead working)
+
+Items team-lead is actively producing; not deferred — in-flight.
+
+### Multi-component immunity framing
+
+**What**: Tekgy + team-lead conversation (2026-05-10) produced a substantial
+new framing: antigen as heterogeneous multi-component immune system. Six
+components identified: (1) dev-judgment, (2) passive scan/tools, (3) test
+integration, (4) knowledge-ecosystem integration, (5) version/lineage,
+(6) cross-crate/ecosystem.
+
+**In-flight artifacts**:
+1. Conversation dump → `docs/expedition/multi-component-immunity-conversation.md`
+   (team-lead writing now; raw substrate for team to consume)
+2. Deep-dive document (each of 6 components with cognates, discipline+tooling
+   sides, value-props) — team-lead drafts solo first; team Phase 1-8s afterward
+3. scope.md + vision-pitch.md weaving — after deep-dive lands
+
+**What unblocks team routing**:
+- Conversation dump lands on disk → navigator surfaces to naturalist first
+  (biology-cognate per-component), then aristotle (Phase 1-8 of multi-component
+  framing), then scout (find more components)
+- Deep-dive lands → team Phase 1-8 cycle
+
+**Owner**: team-lead (producing); naturalist (biology-cognate contributions);
+aristotle (Phase 1-8 of framing); scout (component search).
 
 ---
 
@@ -178,6 +210,25 @@ These are watched per their own thresholds; not duplicated here.
 Substrate explicitly deferred to A4+ or post-A5 by ratified ADRs or
 team-lead rulings.
 
+### ADR-018 Amendment 1 — diamond dedup prose clarification
+
+**What**: ADR-018 §Mechanics describes "second-visit triggers set-union"
+but the implementation uses a per-DFS-source `visited: HashSet` (defense-
+in-depth per ADR-018 Finding 4), meaning each ancestor is visited exactly
+once per descendant DFS. The dedup key `(antigen_type, item_target,
+canonical_path)` prevents cross-DFS duplicates. Behavior is correct and
+acceptance-tested; prose doesn't match mechanism. One paragraph in
+Amendment 1 closes the substrate-honesty gap.
+
+**Where it lives**: `docs/decisions.md` §ADR-018 §Mechanics; pathmaker's
+flag in D1.5 completion message; navigator's escalation to team-lead.
+
+**Unblocked by**: aristotle bandwidth. Low priority — acceptance tests are
+ground truth; this is documentation drift, not behavioral gap.
+
+**Owner when active**: aristotle drafts amendment → process.md Stage 3-6
+(minor amendment, no team Phase 1-8 required for prose clarification).
+
 ### A4+ substrate accumulating
 
 **What**: Cross-language tree-sitter scoping; cross-crate semver
@@ -303,3 +354,9 @@ active).*
 
 *V4 updated 2026-05-10 by navigator: D1.5 complete (commits 2eb8bec–b7712df,
 pathmaker). A3-immediate section fully closed. 235 passing, 23 ignored.*
+
+*V5 updated 2026-05-10 by navigator: multi-component immunity framing added
+(active incoming, team-lead producing conversation dump → deep-dive → scope.md
+weaving). ADR-018 Amendment 1 prose clarification added (deferred, aristotle
+when idle). Maintenance note: multi-component row moves to A3-sweep or
+cross-sweep sections once team-lead's artifacts land and team work begins.*
