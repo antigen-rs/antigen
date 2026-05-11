@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V18 (2026-05-10, adversarial committed 75a4c46; forward-routing notes for ATK-A3-017/018 indexed; seam-tier thread complete pending naturalist cognate).
+> **Status**: V19 (2026-05-10, seam-tier encounter CLOSED: retire-to-docs confirmed by three-role convergence; third disposition first confirmed instance; witness-tier asymmetry biology-grounded).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -307,10 +307,49 @@ revisit-window, concrete-artifact). Scout's and adversarial's analyses are
 consistent — adversarial's guards are the mechanism; scout's analysis is the
 structural reason those guards are needed.
 
+**Naturalist cognate check COMPLETE** (2026-05-10, campsite
+`20260510231118-seam-tier-type-tier-cognate-check.md`): SPLIT-DISPOSITION verdict.
+
+- **Seam-tier classification axis** → *retire-to-documentation* (confirmed).
+  Boundary-silence on all three bio-cognate candidates (hypermutation: shape
+  mismatch; Th1/Th2: shape mismatch; vaccinated-vs-natural: argument-mode
+  without boundary-silence). No clean immune-system cognate. Adjacent biology
+  candidates (cross-species PPI, bispecific antibodies) are non-immunology or
+  engineered; outside documented metaphor substrate.
+
+- **Type-tier classification axis** → *hold as recognition-substrate*.
+  MHC signature-recognition + ADR-013 phantom-type already substrate. Biology
+  cognate exists; ADR-006 threshold pending second/third instances.
+
+**Two-step instrument-mode confirmation** (witness-tier guarantee asymmetry):
+thymic negative selection (by-construction, structurally-cannot-attack-self) ↔
+FormalProof / compile-time certainty. Humoral affinity maturation (runtime,
+input-coverage-dependent) ↔ ExecutionVerified. Biology independently has this
+asymmetry; ADR-005 Amendment 3 independently ratifies it at witness-tier;
+ATK-A3-017 names the extension to antigen-classification-tier. Three independent
+convergences — instrument-mode, not argument-mode.
+
+**Layer clarification** (naturalist): the witness-tier guarantee asymmetry IS
+biology-substrate-grounded (above). The antigen-classification axis ABOVE the
+witness layer is the substrate-tier-crossing — fourth same-session instance of
+the engineered-substrate-exceeds-biology family; still recognition-substrate.
+
+**Usage-pattern doc content** (from retire-to-documentation operationalization):
+include witness-tier-guarantee-profile distinction explicitly — "seam-tier
+antigens have a runtime-coverage-dependent witness profile structurally different
+from type-tier's compile-time-by-construction profile." ATK-A3-017
+mis-classification attacks become teaching-grade cautions (biology-grounded:
+same shape as autoimmunity-via-bypassing-thymic-selection / molecular-mimicry-
+exploiting-runtime-only-verification).
+
+**First confirmed instance of retire-to-documentation disposition** (seam-tier =
+first concrete operationalization of V16 Item 2 third disposition).
+
 **Source**: team-lead, 2026-05-10, tambear math-researcher cross-pollination.
-**Revisit when**: second instance from different codebase context, OR naturalist
-cognate check returns; OR multi-target `#[presents]` gap surfaces two more
-instances triggering ADR consideration.
+**Status**: CLOSED on encounter-candidate side. Seam-tier → retire-to-docs.
+Type-tier → recognition-substrate. Usage-pattern doc content defined.
+**Owner when active**: scout/pathmaker for usage-pattern doc authoring; aristotle
+for retire-to-documentation process guards when encounters ratification opens.
 
 ### Third encounter-disposition: retire-to-documentation (encounter-candidate, meta-level)
 
@@ -332,6 +371,12 @@ toward vocabulary growth.
 `docs/where-to-look-for-antigens.md`; README examples; future "antigen adoption
 guide" / "applied antigen patterns" ecosystem-facing material; tutorials; blog
 posts; manuscript appendix material.
+
+**First confirmed instance** (2026-05-10): seam-tier antigen classification
+axis retired to documentation by naturalist cognate check. Three-role
+convergence: scout (retire-to-docs confirmed), naturalist (boundary-silence,
+no clean cognate), adversarial (ATK-A3-018 three process guards). This is the
+first complete cycle through the third disposition.
 
 **Meta-encounter (this entry itself)**: the pattern "usage-docs as encounter
 graveyard" is itself substrate worth registering. The discipline for what to do
@@ -758,3 +803,15 @@ irreversible-retirement problem); ATK-A3-017 downgrade direction → pathmaker
 when seam-tier vocabulary ADR drafts (tier-witness consistency checks must be
 day-one, not follow-on). Seam-tier thread complete on navigator/scout/adversarial
 side; naturalist cognate check the only remaining open thread.*
+
+*V19 updated 2026-05-10 by navigator: naturalist cognate check complete
+(campsite 20260510231118-seam-tier-type-tier-cognate-check.md, pre-halt,
+routed post-halt). SPLIT verdict: seam-tier → retire-to-documentation (boundary-
+silence, no immune-system cognate, fourth substrate-tier-crossing); type-tier →
+recognition-substrate (MHC cognate, ADR-013 phantom-type already substrate).
+Two-step instrument-mode confirmation: thymic-vs-affinity-maturation biology ↔
+FormalProof-vs-ExecutionVerified substrate ↔ ATK-A3-017 antigen-classification-tier
+— three independent convergences on witness-tier guarantee asymmetry. Usage-
+pattern doc content defined. First confirmed retire-to-documentation instance:
+three-role convergence (scout, naturalist, adversarial). Third disposition
+operational. Seam-tier encounter CLOSED.*
