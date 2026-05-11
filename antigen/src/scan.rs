@@ -867,45 +867,75 @@ impl ScanReport {
 /// become configurable via `[package.metadata.antigen]` in a follow-up.
 pub(crate) const MAX_LINEAGE_DEPTH: usize = 64;
 
-/// Emit one [`ParseFailure`] per duplicate `(child, parent)` pair found in
-/// `edges`. BUG-A3-001 (adversarial 2026-05-09).
+/// Deduplicate lineage edges by the ADR-018 four-tuple key and emit one
+/// [`ParseFailure`] per collapsed duplicate group. BUG-A3-001 fix +
+/// ADR-018 §"Edge-level dedup".
 ///
-/// Two `#[descended_from(B)]` attributes on the same struct `A` produce two
-/// identical `LineageEdge` entries. The DFS in [`detect_lineage_failures`]
-/// would silently swallow the second one (black-skip path), so duplicates
-/// never reach the user. Per ADR-004 implicit-to-explicit elevation, this
-/// pre-pass surfaces them as explicit diagnostics on the same channel as
-/// cycles + depth violations.
-fn detect_duplicate_lineage_edges(edges: &[LineageEdge]) -> Vec<ParseFailure> {
+/// The dedup key is `(child, parent, child_canonical_path,
+/// parent_canonical_path)`. Same-name edges at different
+/// `canonical_path` values are structurally distinct and NOT duplicates
+/// (a workspace depending on `foo@1.0.0::P` and `foo@2.0.0::P`
+/// legitimately has both edges).
+///
+/// Two `#[descended_from(B)]` attributes on the same struct `A` produce
+/// two identical `LineageEdge` entries. Without this pre-pass the DFS
+/// in [`detect_lineage_failures`] would silently swallow the second one
+/// (black-skip path), so duplicates would never reach the user. Per
+/// ADR-004 implicit-to-explicit elevation, dedup surfaces collapsed
+/// duplicates as explicit diagnostics on the `parse_failures` channel.
+///
+/// Returns the deduped edge `Vec` and the failure list. Both
+/// [`detect_lineage_failures`] (cycle/depth detection) AND the
+/// propagation walk (D1.5 commit 4) consume the deduped output —
+/// dedup is structurally upstream of both per ADR-018 §"Implementation
+/// order in `scan_workspace`".
+fn dedupe_lineage_edges(edges: &[LineageEdge]) -> (Vec<LineageEdge>, Vec<ParseFailure>) {
     use std::collections::{HashMap, HashSet};
 
-    let mut counts: HashMap<(&str, &str), usize> = HashMap::new();
-    for edge in edges {
-        *counts
-            .entry((edge.child.as_str(), edge.parent.as_str()))
-            .or_insert(0) += 1;
+    // Four-tuple key: (child, parent, child_canonical_path, parent_canonical_path).
+    // Borrow the inner string values; the lifetime of the returned
+    // Vec<LineageEdge> is independent (we clone on insert).
+    type DedupKey<'a> = (&'a str, &'a str, Option<&'a str>, Option<&'a str>);
+    fn key_of(edge: &LineageEdge) -> DedupKey<'_> {
+        (
+            edge.child.as_str(),
+            edge.parent.as_str(),
+            edge.child_canonical_path.as_deref(),
+            edge.parent_canonical_path.as_deref(),
+        )
     }
 
-    // Walk edges in source order, flag the first occurrence of each
-    // duplicate pair. Determinism preserved across hash-randomized runs.
-    let mut emitted: HashSet<(&str, &str)> = HashSet::new();
+    let mut counts: HashMap<DedupKey<'_>, usize> = HashMap::new();
+    for edge in edges {
+        *counts.entry(key_of(edge)).or_insert(0) += 1;
+    }
+
+    // Walk edges in source order: emit the first occurrence per key into
+    // the deduped slice, flag duplicates as parse_failures (one per
+    // duplicate group, anchored at the first occurrence).
+    let mut emitted: HashSet<DedupKey<'_>> = HashSet::new();
+    let mut deduped: Vec<LineageEdge> = Vec::with_capacity(edges.len());
     let mut failures: Vec<ParseFailure> = Vec::new();
     for edge in edges {
-        let key = (edge.child.as_str(), edge.parent.as_str());
-        if counts.get(&key).copied().unwrap_or(0) > 1 && emitted.insert(key) {
-            failures.push(ParseFailure {
-                file: edge.file.clone(),
-                error: format!(
-                    "duplicate #[descended_from({})] declarations on `{}` \
-                     (first at line {}); structural lies surface as \
-                     diagnostics rather than being silently collapsed \
-                     (ADR-004 implicit-to-explicit elevation)",
-                    edge.parent, edge.child, edge.line
-                ),
-            });
+        let key = key_of(edge);
+        let count = counts.get(&key).copied().unwrap_or(0);
+        if emitted.insert(key) {
+            deduped.push(edge.clone());
+            if count > 1 {
+                failures.push(ParseFailure {
+                    file: edge.file.clone(),
+                    error: format!(
+                        "duplicate #[descended_from({})] declarations on `{}` \
+                         (first at line {}); structural lies surface as \
+                         diagnostics rather than being silently collapsed \
+                         (ADR-004 implicit-to-explicit elevation)",
+                        edge.parent, edge.child, edge.line
+                    ),
+                });
+            }
         }
     }
-    failures
+    (deduped, failures)
 }
 
 /// Detect circular and over-deep `#[descended_from]` chains.
@@ -930,14 +960,13 @@ fn detect_duplicate_lineage_edges(edges: &[LineageEdge]) -> Vec<ParseFailure> {
 fn detect_lineage_failures(edges: &[LineageEdge], max_depth: usize) -> Vec<ParseFailure> {
     use std::collections::HashMap;
 
-    // BUG-A3-001 fix: detect duplicate `(child, parent)` pairs first and
-    // emit one parse_failure per duplicate group. Without this guard the
-    // DFS swallows duplicates silently — adjacency for `A` lists `B` twice,
-    // the first visit marks `B` black, the second hits the black-skip path,
-    // and the user gets no signal that they wrote `#[descended_from(B)]`
-    // twice on `A`. Per ADR-004 (implicit-to-explicit elevation): structural
-    // anomalies visible to the scanner must surface as explicit diagnostics.
-    let mut failures = detect_duplicate_lineage_edges(edges);
+    // BUG-A3-001 + ADR-018 §"Edge-level dedup": this function ASSUMES edges
+    // are already deduped (caller invariant). `scan_workspace` runs
+    // `dedupe_lineage_edges()` before calling here; unit-test callers that
+    // pass raw edges with duplicates may observe silent black-skip on the
+    // dup pair — that's by design at this layer. The dedup contract is
+    // tested separately against `dedupe_lineage_edges` directly.
+    let mut failures: Vec<ParseFailure> = Vec::new();
 
     // Build adjacency: child → list of (parent, edge-index). The edge-index
     // lets us recover the source location (file + line) of the closing edge
@@ -1192,6 +1221,15 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
     // Both are emitted into `parse_failures` because they prevent correct
     // scan completion (channel taxonomy: structural error, not semantic
     // warning — the latter is `orphaned_lineage_edges()`).
+    //
+    // ADR-018 §"Implementation order in scan_workspace": edge-level dedup
+    // (BUG-A3-001) MUST run before cycle detection AND propagation walk.
+    // The deduped edge set feeds both downstream consumers; the duplicate
+    // diagnostic accumulates into parse_failures alongside cycle/depth
+    // failures.
+    let (deduped_edges, dedup_failures) = dedupe_lineage_edges(&report.lineage_edges);
+    report.lineage_edges = deduped_edges;
+    report.parse_failures.extend(dedup_failures);
     let lineage_failures = detect_lineage_failures(&report.lineage_edges, MAX_LINEAGE_DEPTH);
     report.parse_failures.extend(lineage_failures);
 
@@ -2712,35 +2750,69 @@ mod tests {
 
     #[test]
     fn atk_a3_dup_duplicate_lineage_edge_is_diagnosed_not_silent() {
-        // ATK-A3-DUP: two `#[descended_from(B)]` on the same struct A produce
-        // two identical lineage edges (child="A", parent="B"). This is a user
-        // error (copy-paste or duplicate attribute) that current code silently
-        // swallows — adjacency["A"] gets two entries for B, DFS marks B black
-        // on first visit, skips it on second. No failure emitted.
+        // ATK-A3-DUP / BUG-A3-001: two `#[descended_from(B)]` on the same
+        // struct A produce two identical lineage edges. Without the dedup
+        // pass, the DFS in `detect_lineage_failures` silently swallows the
+        // duplicate (black-skip path). Per ADR-004 (implicit-to-explicit
+        // elevation), the dedup pass surfaces collapsed duplicates as
+        // explicit parse_failures.
         //
-        // Contract: duplicate (child, parent) pairs must produce at least one
-        // diagnostic. Silent acceptance allows structural lies — the user
-        // believes they have two distinct heritage claims (per ADR-004
-        // implicit-to-explicit elevation).
-        //
-        // Note: ADR-018 §"Edge-level dedup" ratifies that propagation dedupes
-        // edges by (child, parent, canonical_paths) tuple — but that dedup is
-        // also silent. The contract here applies to the earlier cycle-detection
-        // pass: a structural anomaly that reaches cycle detection must be
-        // surfaced, not swallowed. The diagnostic channel (parse_failure vs new
-        // query method) is a design question for pathmaker; this test asserts
-        // the minimum: at least one failure must emerge.
-        //
-        // STATUS: FAILING — fix in detect_lineage_failures or visitor.
+        // ADR-018 §"Implementation order in scan_workspace" ratifies that
+        // edge-level dedup runs as a separate pass before cycle detection
+        // AND the propagation walk. This test exercises the dedup
+        // function directly; the integration is verified in
+        // `scan_workspace` end-to-end via the BUG-A3-001 fixture (see
+        // atk_a3_fractal_preview.rs).
         let edges = vec![
             edge("A", "B"),
-            edge("A", "B"), // exact duplicate
+            edge("A", "B"), // exact duplicate (same canonical_path = None)
         ];
-        let failures = detect_lineage_failures(&edges, MAX_LINEAGE_DEPTH);
+        let (deduped, failures) = dedupe_lineage_edges(&edges);
+        assert_eq!(
+            deduped.len(),
+            1,
+            "duplicate edges must collapse to one in the deduped output"
+        );
         assert!(
             !failures.is_empty(),
             "duplicate lineage edge (A->B twice) must produce at least one \
              diagnostic; got: {failures:?}"
+        );
+    }
+
+    #[test]
+    fn dedupe_distinguishes_edges_by_canonical_path() {
+        // ADR-018 §"Edge-level dedup": dedup key is (child, parent,
+        // child_canonical_path, parent_canonical_path). Same-name edges
+        // with different canonical_paths are NOT duplicates (a workspace
+        // depending on `foo@1.0.0::P` and `foo@2.0.0::P` legitimately has
+        // both edges pointing at different identities).
+        let edge_v1 = LineageEdge {
+            child: "Child".to_string(),
+            parent: "Parent".to_string(),
+            file: PathBuf::from("test.rs"),
+            line: 1,
+            parent_canonical_path: Some("foo@1.0.0".to_string()),
+            child_canonical_path: None,
+        };
+        let edge_v2 = LineageEdge {
+            child: "Child".to_string(),
+            parent: "Parent".to_string(),
+            file: PathBuf::from("test.rs"),
+            line: 2,
+            parent_canonical_path: Some("foo@2.0.0".to_string()),
+            child_canonical_path: None,
+        };
+        let (deduped, failures) = dedupe_lineage_edges(&[edge_v1, edge_v2]);
+        assert_eq!(
+            deduped.len(),
+            2,
+            "edges differing in parent_canonical_path are distinct identities, \
+             not duplicates"
+        );
+        assert!(
+            failures.is_empty(),
+            "no dedup failure should fire for cross-version edges; got: {failures:?}"
         );
     }
 
