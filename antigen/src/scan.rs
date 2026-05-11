@@ -1579,7 +1579,14 @@ fn propagate_ancestors_to_descendant(
             let ancestor_pres = &presentations_snapshot[ancestor_pres_idx];
 
             // Three-tuple dedup key per ADR-018 §"Diamond dedup":
-            // (antigen_type, item_target, canonical_path).
+            // (antigen_type, item_target, canonical_path). Linear scan
+            // of `report.presentations` — fine at v0.1 fixture sizes
+            // (deepest fixture has ~10 entries). If realistic workspaces
+            // grow large lineage graphs, this is the spot to introduce
+            // an `(antigen_type, item_target_key, canonical_path)`
+            // index keyed by descendant antigen. Performance pressure
+            // is the recognition trigger (per ADR-006); no premature
+            // optimisation.
             let existing_idx = report.presentations.iter().position(|p| {
                 p.antigen_type == ancestor_pres.antigen_type
                     && p.canonical_path == ancestor_pres.canonical_path

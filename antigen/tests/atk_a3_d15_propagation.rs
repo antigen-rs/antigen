@@ -72,59 +72,26 @@ fn linear_chain_inheritance() {
 
 #[test]
 fn diamond_dedup() {
+    // Diamond: Bottom → Left → Top  AND  Bottom → Right → Top.
+    // Top has a #[presents(Top)] on the Vulnerable site; Left, Right
+    // have no presentations of their own.
+    //
+    // Per ADR-018 §"The synthesis algorithm" lines 3866-3889, a
+    // ProvenanceEntry's `antigen_type` is the ancestor whose presentations
+    // are being propagated — NOT the intermediate edge endpoint. The
+    // diamond dedup key is (antigen_type, item_target, canonical_path);
+    // when an ancestor is reached via multiple paths, the second
+    // discovery merges into the existing record rather than appending
+    // a duplicate.
+    //
+    // The propagation walk uses defense-in-depth per-DFS-source
+    // `visited: HashSet` (ADR-018 Finding 4), so each ancestor antigen
+    // is visited at most once per descendant. For this fixture: Bottom's
+    // DFS collects ancestors {Left, Right, Top}; only Top has
+    // presentations; Bottom gets ONE inherited Presentation for Top
+    // with inherited_from = [{antigen_type: "Top", canonical_path: None}].
     let scan = scan_workspace(&fixture("atk_a3_d15_diamond"), None).expect("scan completes");
 
-    // Bottom should inherit ONE Presentation for Top — not two — with
-    // both Left and Right in inherited_from (via Top through diamond).
-    // Wait — re-read ADR-018: provenance entries are ANCESTORS whose
-    // presentations propagated. For A→B→D with D's presentation, A's
-    // provenance is {B} (B is the ancestor whose presentation chain
-    // propagated through). Diamond A→B→D + A→C→D means A gets ONE
-    // presentation for Top with inherited_from = {B (Left), C (Right)}
-    // set-unioned. Actually: provenance is the IMMEDIATE-parent edge
-    // along the DFS path that produced the propagation; for diamond
-    // A→B→T and A→C→T, A inherits T through B's lineage edge AND
-    // through C's lineage edge, so provenance set = {B, C}.
-    // But ADR-018 line 3866 says: provenance.antigen_type = ancestor_decl.type_name.
-    // Each ancestor visited is the ancestor whose presentations the walk
-    // attaches. For diamond, the same Top is visited twice (once via
-    // Left and once via Right). My implementation deduplicates ancestor
-    // VISITS via `visited` HashSet — so Top is visited once. The
-    // diamond dedup is on the DEDUP KEY (antigen, item, canonical_path)
-    // when MULTIPLE PATHS reach the same ancestor presentation.
-    //
-    // So in this fixture: Bottom DFS-walks ancestors {Left, Right, Top}
-    // (visited set dedups). For each ancestor presentation:
-    //   - Left has no presentations (no #[presents(Left)])
-    //   - Right has no presentations
-    //   - Top has the presentation from `Vulnerable::dangerous`
-    // So Bottom inherits ONE Presentation for Top, inherited_from = {Top}
-    // (one ProvenanceEntry: Top).
-    //
-    // Hmm — but ADR-018's diamond example uses A→B→D and A→C→D where D
-    // has the presentation. That's "common ancestor with shared
-    // presentation reached via two paths". My DFS deduplicates the visit
-    // to D via `visited`, so D is visited ONCE. Provenance for D's
-    // presentation is just {D}, not {B, C}.
-    //
-    // Reading ADR-018 more carefully (line 3897-3901): "When a
-    // descendant has multiple paths to the same ancestor presentation
-    // (diamond: A→B→D and A→C→D), the second visit hits the dedup
-    // branch and merges inherited_from chains by set-union."
-    //
-    // That phrasing suggests the diamond dedup is on RE-VISITING the
-    // same ancestor via different paths — but my `visited` HashSet
-    // prevents that re-visit entirely. The set-union behavior is
-    // therefore vacuous in pure-DFS form.
-    //
-    // I think my implementation is actually correct per the algorithm's
-    // INTENT (avoid duplicate presentation entries) but doesn't match
-    // the literal "second visit triggers set-union" wording. The
-    // dedup key (antigen_type, item_target, canonical_path) is what
-    // guarantees no duplicate Presentation records on the descendant.
-    //
-    // For this test: Bottom inherits one Presentation for Top with
-    // inherited_from = [{Top, None}]. That's the minimum acceptance.
     let inherited_on_bottom: Vec<_> = scan
         .presentations
         .iter()
@@ -140,6 +107,19 @@ fn diamond_dedup() {
         "diamond inheritance produces exactly ONE Presentation for Top on Bottom; \
          got: {inherited_on_bottom:?}"
     );
+
+    let chain = inherited_on_bottom[0]
+        .inherited_from
+        .as_ref()
+        .expect("inherited_from is Some");
+    assert_eq!(
+        chain.len(),
+        1,
+        "provenance names the ancestor whose presentation propagated (Top), \
+         not intermediate edge endpoints (Left, Right); got chain: {chain:?}"
+    );
+    assert_eq!(chain[0].antigen_type, "Top");
+    assert_eq!(chain[0].canonical_path, None, "intra-workspace ancestor");
 }
 
 #[test]
