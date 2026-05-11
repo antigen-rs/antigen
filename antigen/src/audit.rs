@@ -171,6 +171,13 @@ pub enum AuditHint {
     /// Witness path's module prefix does not exist in the workspace
     /// (ATK-A2-011). The last segment was found but in an unrelated location.
     FabricatedPathPrefix,
+    /// Inherited Presentation lacks re-attestation on the descendant site
+    /// (state 7 of the 7-state matrix, ADR-018 `§"AuditHint integration"`).
+    /// Behavioral re-validation that the ancestor's witness applies to
+    /// the descendant is A4-A5 work; reachability-tier audit cannot
+    /// perform this check. The descendant should declare its own
+    /// `#[immune]` or `#[antigen_tolerance]`.
+    InheritedPresentationNotReAttested,
 }
 
 /// Result of auditing a single immunity declaration.
@@ -270,6 +277,26 @@ impl AuditHint {
     }
 }
 
+/// A diagnostic for state 7 of the 7-state interaction matrix:
+/// inherited Presentation that lacks immune or tolerance re-attestation
+/// on the descendant site. ADR-018 §"Audit diagnostic text".
+///
+/// Emitted at warn level by default; `--strict` promotes to error.
+/// The descendant inherited a presentation from one or more ancestors
+/// via `#[descended_from]` propagation; ADR-005 sub-clause F requires
+/// the descendant to re-attest the witness rather than silently
+/// extending the ancestor's trust.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InheritedUnaddressed {
+    /// The inherited presentation that lacks re-attestation.
+    pub presentation: crate::scan::Presentation,
+    /// The behavioral-tier audit hint per ADR-018 `§"AuditHint integration"`:
+    /// `inherited-presentation-not-re-attested`. Behavioral re-validation
+    /// (does the ancestor's witness actually apply to descendant?) is
+    /// A4-A5 work; reachability-tier audit cannot perform this check.
+    pub audit_hint: AuditHint,
+}
+
 /// Aggregate audit report for a workspace.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AuditReport {
@@ -286,6 +313,12 @@ pub struct AuditReport {
     pub broken_count: usize,
     /// Number of immunities with no witness identifier at all.
     pub missing_count: usize,
+    /// Inherited Presentations on a descendant that have no matching
+    /// Immunity or Toleration on the same site (state 7 of the 7-state
+    /// interaction matrix, ADR-018). Audit emits warn-level diagnostics
+    /// for each; `--strict` promotes to error.
+    #[serde(default)]
+    pub inherited_unaddressed: Vec<InheritedUnaddressed>,
 }
 
 impl AuditReport {
@@ -350,6 +383,21 @@ pub fn audit(report: &ScanReport, workspace_root: &Path) -> AuditReport {
             WitnessStatus::Ambiguous { .. } => audit_report.ambiguous_count += 1,
             WitnessStatus::NotFound { .. } => audit_report.broken_count += 1,
             WitnessStatus::Missing => audit_report.missing_count += 1,
+        }
+    }
+
+    // State 7 detection (ADR-018 §"7-state interaction matrix"): an
+    // inherited Presentation (inherited_from = Some(_)) without matching
+    // Immunity or Toleration on the descendant site is unaddressed.
+    // `unaddressed_presentations()` already encodes the "no matching
+    // immune/tolerance" check; we filter its output to the inherited
+    // subset.
+    for u in report.unaddressed_presentations() {
+        if u.presentation.inherited_from.is_some() {
+            audit_report.inherited_unaddressed.push(InheritedUnaddressed {
+                presentation: u.presentation,
+                audit_hint: AuditHint::InheritedPresentationNotReAttested,
+            });
         }
     }
 

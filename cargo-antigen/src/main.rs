@@ -469,7 +469,15 @@ fn run_audit(args: AuditArgs) -> ExitCode {
         },
     }
 
-    if args.strict && !audit_report.all_meet_tier(audit::WitnessTier::Reachability) {
+    // ADR-018 §"Audit diagnostic text" + §"7-state interaction matrix":
+    // `--strict` promotes state 7 (inherited + unaddressed) from warn to
+    // error. Without `--strict`, the audit reports state 7 as a warning
+    // but still exits 0.
+    let strict_state7_fails =
+        args.strict && !audit_report.inherited_unaddressed.is_empty();
+    let strict_witness_fails =
+        args.strict && !audit_report.all_meet_tier(audit::WitnessTier::Reachability);
+    if strict_state7_fails || strict_witness_fails {
         ExitCode::from(1)
     } else {
         ExitCode::SUCCESS
@@ -583,4 +591,55 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
              e) Tolerating the gap with `#[antigen_tolerance(...)]` if intentional"
         );
     }
+
+    print_state7_diagnostics(audit_report);
+}
+
+fn print_state7_diagnostics(audit_report: &audit::AuditReport) {
+    // ADR-018 §"Audit diagnostic text": state-7 warnings (inherited
+    // Presentations lacking re-attestation on the descendant site).
+    if audit_report.inherited_unaddressed.is_empty() {
+        return;
+    }
+    println!();
+    println!(
+        "⚠ {} inherited presentation(s) not re-attested on the descendant \
+         (state 7 of the 7-state interaction matrix):",
+        audit_report.inherited_unaddressed.len()
+    );
+    println!();
+    for iu in &audit_report.inherited_unaddressed {
+        let p = &iu.presentation;
+        let ancestors: Vec<String> = p
+            .inherited_from
+            .as_ref()
+            .map(|chain| chain.iter().map(|pe| pe.antigen_type.clone()).collect())
+            .unwrap_or_default();
+        println!(
+            "  warning: inherited presentation: `{}` flowed from {:?} \
+             to `{}` via `#[descended_from]`;",
+            p.antigen_type, ancestors, p.item_kind
+        );
+        println!(
+            "  the witness inherited from the ancestor has not been \
+             re-attested on the descendant."
+        );
+        println!(
+            "  Add `#[immune({}, witness = ...)]` or \
+             `#[antigen_tolerance({}, rationale = \"...\")]` on the \
+             descendant.",
+            p.antigen_type, p.antigen_type
+        );
+        println!("    --> {}:{}", p.file.display(), p.line);
+        println!();
+    }
+    println!(
+        "  Note: behavioral re-validation (does the ancestor's witness \
+         apply to the descendant?) is A4-A5 work; reachability-tier \
+         audit cannot perform this check."
+    );
+    println!(
+        "  Use `cargo antigen audit --strict` to promote state-7 \
+         warnings to errors for CI gating."
+    );
 }
