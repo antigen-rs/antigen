@@ -125,6 +125,7 @@ fn atk_a2_004_fabricated_external_witness_is_reachability_tier() {
         // W3: structural item-identity. Synthetic record for audit-only test;
         // any value works since this test doesn't exercise the matcher.
         item_target: antigen::scan::ItemTarget::Unknown { line: 10 },
+        canonical_path: None,
     };
     let mut report = ScanReport::default();
     report.immunities.push(immunity);
@@ -407,6 +408,7 @@ fn atk_a2_010_phantom_witness_type_param_mismatch_is_flagged() {
         line: 1,
         item_kind: "impl".to_string(),
         item_target: antigen::scan::ItemTarget::Unknown { line: 0 },
+        canonical_path: None,
     };
     let mut report = ScanReport::default();
     report.immunities.push(immunity);
@@ -673,6 +675,7 @@ fn atk_w7_002_fabricated_phantom_type_gets_formal_proof_tier() {
         line: 1,
         item_kind: "impl".to_string(),
         item_target: antigen::scan::ItemTarget::Unknown { line: 0 },
+        canonical_path: None,
     };
     let mut report = ScanReport::default();
     report.immunities.push(immunity);
@@ -740,6 +743,7 @@ fn atk_w7_003_nested_generic_in_phantom_witness_falls_through_to_not_found() {
         line: 1,
         item_kind: "impl".to_string(),
         item_target: antigen::scan::ItemTarget::Unknown { line: 0 },
+        canonical_path: None,
     };
     let mut report = ScanReport::default();
     report.immunities.push(immunity);
