@@ -5,8 +5,16 @@
 // Bottom #[descended_from(Left)] AND #[descended_from(Right)].
 //
 // After propagation, Bottom inherits EXACTLY ONE Presentation for Top
-// (not two), with inherited_from containing both Left and Right's
-// ProvenanceEntry (set-union via the diamond dedup logic).
+// (not two). Per ADR-018 §"The synthesis algorithm", ProvenanceEntry's
+// antigen_type is the ancestor whose PRESENTATIONS are being propagated
+// — so the chain is [{antigen_type: "Top", ...}], not [{Left}, {Right}].
+// Left and Right contribute no presentations of their own and appear
+// only as DFS intermediates; they don't surface in inherited_from.
+//
+// The diamond dedup key (antigen, item_target, canonical_path) +
+// per-DFS-source `visited` HashSet together guarantee one Presentation
+// record per descendant per ancestor-with-presentations, regardless
+// of how many paths reach that ancestor.
 
 #[antigen(name = "top", fingerprint = "item: struct")]
 pub struct Top;
