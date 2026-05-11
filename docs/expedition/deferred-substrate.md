@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V19 (2026-05-10, seam-tier encounter CLOSED: retire-to-docs confirmed by three-role convergence; third disposition first confirmed instance; witness-tier asymmetry biology-grounded).
+> **Status**: V20 (2026-05-11, seam-tier FULLY CLOSED: `docs/usage-patterns.md` artifact landed by scout; ATK-A3-018 third guard closed; README/main.rs staleness corrected by navigator).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -346,10 +346,10 @@ exploiting-runtime-only-verification).
 first concrete operationalization of V16 Item 2 third disposition).
 
 **Source**: team-lead, 2026-05-10, tambear math-researcher cross-pollination.
-**Status**: CLOSED on encounter-candidate side. Seam-tier → retire-to-docs.
-Type-tier → recognition-substrate. Usage-pattern doc content defined.
-**Owner when active**: scout/pathmaker for usage-pattern doc authoring; aristotle
-for retire-to-documentation process guards when encounters ratification opens.
+**Status**: FULLY CLOSED. Seam-tier → retired-to-docs (artifact: `docs/usage-patterns.md`,
+scout 2026-05-11; ATK-A3-018 third guard closed). Type-tier → recognition-substrate.
+**Owner when active**: aristotle for retire-to-documentation process guards when
+encounters ratification opens.
 
 ### Third encounter-disposition: retire-to-documentation (encounter-candidate, meta-level)
 
@@ -372,11 +372,12 @@ toward vocabulary growth.
 guide" / "applied antigen patterns" ecosystem-facing material; tutorials; blog
 posts; manuscript appendix material.
 
-**First confirmed instance** (2026-05-10): seam-tier antigen classification
+**First confirmed instance** (2026-05-10–11): seam-tier antigen classification
 axis retired to documentation by naturalist cognate check. Three-role
 convergence: scout (retire-to-docs confirmed), naturalist (boundary-silence,
-no clean cognate), adversarial (ATK-A3-018 three process guards). This is the
-first complete cycle through the third disposition.
+no clean cognate), adversarial (ATK-A3-018 three process guards). Concrete
+artifact: `docs/usage-patterns.md` (scout, 2026-05-11) — ATK-A3-018 third
+guard closed. This is the first complete cycle through the third disposition.
 
 **Meta-encounter (this entry itself)**: the pattern "usage-docs as encounter
 graveyard" is itself substrate worth registering. The discipline for what to do
@@ -400,9 +401,9 @@ might be the first concrete example of the third disposition applied to Item 1.
   direction (type→seam to avoid phantom-type work) is the easy mistake audit
   needs to catch from first ship.
 
-**Revisit when**: a second encounter is explicitly retired-to-documentation (not
-just not-promoted), confirming the disposition is a real workflow step; OR Q7
-process.md sub-section is drafted and third-disposition belongs there explicitly.
+**Revisit when**: Q7 process.md sub-section is drafted and third-disposition belongs
+there explicitly. (First concrete artifact landed: `docs/usage-patterns.md` closes the
+revisit-window for artifact-form question — usage-patterns.md is the correct register.)
 
 ---
 
