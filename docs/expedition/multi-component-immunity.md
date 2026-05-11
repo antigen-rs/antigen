@@ -1,44 +1,43 @@
 # Multi-Component Structural Immunity
 
-> **Status**: Deep-dive draft, V0 (2026-05-11). Authored by team-lead
-> (Claude Opus 4.7) following extended conversation with Tekgy preserved at
-> `multi-component-immunity-conversation.md`. Comprehensive best-read with
-> explicit seams for biology-cognate refinement (naturalist), additional
-> components (scout), attack-surface analysis (adversarial), and Phase 1-8
-> deconstruction (aristotle).
+> **Status**: Deep-dive draft, **V1** (2026-05-11). V0 authored by team-lead
+> (Claude Opus 4.7) from the 2026-05-11 conversation substrate. V1 revised
+> after team expansion pass: scout (vocabulary-as-protocol + Component 7),
+> naturalist (C4 boundary-silence finding + tier-structure), adversarial
+> (threat-model + amendment candidates + honest-boundary substrate).
+> Tekgy ratified revising cleanly before aristotle's Phase 1-8.
 >
 > **Where this lives in the lifecycle**: expedition substrate. Not project-
 > tier yet. Promoted to `docs/multi-component-immunity.md` after team Phase
 > 1-8 + ratification per `process.md`.
 >
-> **Status of enumeration**: PROVISIONAL. Six components currently named;
-> enumeration is explicitly open per recognition-not-design (ADR-006).
-> Future-readers and team-members are invited to find more components,
-> refine cognates, surface relationships, and identify what we haven't
-> named.
+> **Status of enumeration**: PROVISIONAL and OPEN at multiple axes. Seven
+> components currently named; enumeration may extend along multiple axes;
+> tier structure surfaced as one axis (biology-tier / engineered-boundary
+> tier); other axes may surface as we recurse. The structure of the
+> enumeration itself has structure.
 >
-> **Relationship to existing project framings**:
-> - Extends "antigen catches failure-class memory" without replacing it
->   (that framing remains valid as the floor concept).
-> - Extends "antigen is a tool" without replacing it (the tool component
->   is one of several).
-> - Extends "antigen composes with existing ecosystem tools" (ADR-002)
->   without replacing it (composition is the architectural property; the
->   component fabric is the architectural shape).
+> **Companion substrate**:
+> - `multi-component-immunity-conversation.md` — raw conversation that
+>   produced V0 framing.
+> - Scout finding: `campsites/antigen-A3/.../scout/20260510-adr-017-018-empirical-verification-and-component-candidates.md`
+> - Naturalist C4 finding: `campsites/antigen-A3/.../naturalist/20260510215459-c4-boundary-silence-finding.md`
+> - Adversarial threat model: `campsites/antigen-A3/.../adversarial/20260510-multi-component-threat-model.md`
 
 ---
 
-## Part I: The vocabulary as spine
+## Part I: The vocabulary as protocol
 
-Antigen is centrally a **vocabulary**. The macros, the cargo subcommand, the
-scan/audit logic, the cross-crate enumeration, the ADR-grounded discipline,
-the biology cognate — all of these are components hanging off a shared
-vocabulary. The vocabulary is what makes the components composable; the
-vocabulary is what makes the project co-native with both human and LLM
-collaborators; the vocabulary is what gives the project its coherent
-identity across instantiations.
+Antigen is centrally a **vocabulary**, and that vocabulary functions as a
+**protocol** — the shared signaling layer that wildly different components
+use to coordinate.
 
-**Why vocabulary first?**
+This is sharper than "vocabulary as spine." A spine supports; a protocol
+*operates*. Components don't just attach to the vocabulary; they actively
+*use* it to coordinate with each other across their wildly different
+mechanisms. (Scout's sharpening, V1 substrate.)
+
+**Why this matters architecturally:**
 
 A team can adopt the vocabulary without adopting any specific tooling. A
 single declaration of `#[antigen(name = "X", summary = "...")]` in a Rust
@@ -46,1225 +45,939 @@ file is antigen-the-vocabulary in operation — even with `cargo antigen scan`
 never run. The team has *named a failure class*; they have *given it
 structural memory*; they have made it *legible to future-readers including
 LLM collaborators*. The tool would extend this; the discipline would extend
-this; the ecosystem would extend this. But the floor is the vocabulary
-itself.
+this; the ecosystem would extend this. But the protocol is the floor.
 
-This is structurally different from how most software-engineering tools are
-described. Most tools are *primary*; the vocabulary they enable is
-*secondary*. Antigen inverts this: the vocabulary is primary; the tool is
-one component among several that operates on the vocabulary.
+The protocol carries:
+- *What* is being recognized (antigen declarations)
+- *Where* it's present (presentation marks)
+- *How* it's protected (immunity claims with witnesses)
+- *How* it inherits (descended_from edges)
+- *How* it's tolerated (rationale-required tolerance marks)
+- *Why* it matters (references + rationale fields)
+- *When* it was attested (verified_at temporal field)
+- *Across-version identity* (canonical_path at name@version)
 
-**What this means for the architecture:**
+Different components consume different parts of the protocol. Components
+don't need to know about each other; they need to know about the
+vocabulary.
 
-- The vocabulary is the *interface contract* between components. Component 1
-  (dev-judgment) and Component 2 (passive scan) both operate on the same
-  vocabulary. Component 3 (test-integration) reads witnesses from the
-  vocabulary. Component 4 (knowledge-ecosystem) attaches references to the
-  vocabulary's primitives. Etc.
-- New components compose with existing ones *through the vocabulary*. A
-  hypothetical future component (e.g., real-time CI feedback, or per-PR
-  antigen surface diff, or cross-organization antigen sharing) attaches to
-  the same vocabulary; doesn't require restructuring of existing components.
-- The vocabulary is the *thing the project ships*, not the tool. The
-  `antigen` and `antigen-macros` crates ship the vocabulary; `cargo-antigen`
-  ships one tool component; future crates may ship other components.
+**The biology cognate:**
 
-**The biology cognate**:
+The body's immune system shares MHC molecules + cytokine signaling as the
+*protocol* that wildly different cell types use to coordinate. B cells,
+T cells, NK cells, dendritic cells, macrophages don't all do the same
+thing — but they all *speak* the shared protocol. The protocol is what
+makes them an immune *system* rather than disconnected mechanisms.
 
-In biology, "the immune system" is not a single mechanism but a *protocol* —
-a set of shared molecular signals (MHC presentation, cytokine cascades,
-antibody isotypes) that wildly different cell types use to coordinate. The
-protocol is what makes innate and adaptive immunity composable; the
-protocol is what makes B cells, T cells, NK cells, dendritic cells, and
-macrophages able to cooperate despite their wildly different mechanisms.
+Antigen-the-vocabulary is the protocol layer. The components are the cell
+types. The protocol is not itself a cell type; it's the substrate of
+inter-cellular coordination.
 
-Antigen-the-vocabulary is the protocol. The components are the cell types.
-[NATURALIST: refine this cognate — is "protocol" the right word for what
-MHC + cytokine + antibody-isotype shared signaling actually IS in biology?
-Is there a sharper term?]
+[NATURALIST: V0 asked whether "protocol" is the right word in biology
+for what MHC + cytokine signaling IS. Scout independently surfaced the
+"protocol layer" framing; biology cognate now tight. Refinement: is
+"protocol" exactly right, or is "shared substrate" / "coordinated signaling"
+sharper? What about complement-system-as-protocol-amplifier — does that
+sharpen?]
 
 ---
 
-## Part II: The six components (provisional enumeration)
+## Part II: Tier structure of the enumeration
 
-### Component 1: Dev-in-the-loop immunity
+The enumeration is not flat. Naturalist's C4 finding surfaced this as a
+substrate-grounded answer to V0's Q1.
+
+**Two tiers observed (one axis among potentially many):**
+
+**Biology-tier** (substrate where biology metaphor is operationally
+load-bearing):
+- C1: Dev-in-the-loop immunity
+- C2: Passive scan/lint/tool immunity
+- C3: Test-integration immunity
+- C5: Cross-version / lineage immunity
+- C6: Cross-crate / ecosystem immunity
+- C7: Real-time / CI feedback immunity (promoted from candidate; scout)
+
+**Engineered-boundary tier** (substrate where engineering extends beyond
+biology's domain at honest boundaries):
+- C4: Knowledge-ecosystem immunity (references to PRs, ADRs, CVEs, papers)
+
+Why C4 lives in a different tier:
+
+References (PR threads, ADR files, CVE entries, papers) are artifacts of
+*human knowledge ecosystems*. In biology, organisms don't read their own
+scientific literature. Knowledge-about-the-organism lives in
+epidemiologists / public-health-institutions *outside* the organism. C4's
+failure modes are categorically different from C1-2-3-5-6-7 — they inherit
+from library science (link rot), academic integrity (citation
+fabrication), and info-warfare (source contamination). Different taxonomy
+entirely.
+
+This is metaphor-as-instrument operating at its sharpest. Biology going
+silent at C4 is *evidence*, not absence. The silence shows where
+engineering has built capabilities biology hasn't evolved — and tells us
+the relevant cognate-family lives elsewhere.
+
+### The "engineered-substrate-exceeds-biology" family
+
+Naturalist surfaced that C4 is the third member of a family with shared
+shape: **engineered substrate gains capabilities biology hasn't evolved,
+honestly bounded.**
+
+- **W7 FormalProof tier** — machine-verified proof; biology has no
+  formal-proof verification mechanism for immune-tier claims.
+- **ADR-017 trust-delegation** — cargo's checksum verification chain;
+  immunology has no analog at the dependency boundary.
+- **C4 knowledge-ecosystem** — references to lived-context artifacts;
+  organisms don't have knowledge-about-themselves outside themselves.
+
+Three instances of the same architectural shape. By ADR-006, threshold
+met for the pattern itself — though we hold ratification pending the
+encounters discipline shape.
+
+This family has a meta-discipline implication (see Part V).
+
+### The manifold framing — enumeration may have multiple axes
+
+Tier-structure (biology / engineered-boundary) is one axis. Other axes
+may exist:
+
+- *Production-vs-consumption* axis: which components produce vocabulary
+  artifacts (C1) vs consume them (C2, C3)?
+- *Static-vs-dynamic* axis: build-time vs runtime vs interactive?
+- *Individual-vs-population* axis: per-codebase vs cross-codebase?
+- *Implicit-vs-explicit* axis: what components encode implicit assumptions
+  vs make them structural?
+
+The enumeration's structure has structure. The structure of the
+structure has structure. *Recognition-not-design at the meta-meta level:
+hold the enumeration open in shape, not just open in count.*
+
+This is consistent with the contact-graph framework already in antigen
+substrate (`docs/contact-graph-and-recognition-tiers.md`) — a 3-tier ×
+7-mode matrix that is itself a manifold of recognition relationships.
+Multi-component immunity may also be a manifold; the tier-structure
+finding is one slice.
+
+Future-instances of the team finding new axes is expected, not a deviation.
+
+---
+
+## Part III: The seven components
+
+### Component 1: Dev-in-the-loop immunity (biology-tier)
 
 **What it does**
 
 The developer writes antigen declarations into their Rust code based on
 their judgment of what failure classes exist, where vulnerabilities sit,
-what's protected and how, and how the failure classes inherit. This is
-*production of immunity through human cognition* — the team knows
-something is dangerous, names it, and makes it structural.
+what's protected and how, and how the failure classes inherit. *Production
+of immunity through human cognition* — the team knows something is
+dangerous, names it, and makes it structural.
 
 **The five vocabulary primitives:**
 
-- `#[antigen(name = "...", summary = "...", references = [...])]` —
-  declares a failure class exists, with summary describing what it is and
-  references pointing to its lived context (CVEs, RFCs, ADRs, post-mortems).
-- `#[presents(antigen_name)]` — marks a code site as vulnerable to a
-  declared antigen. Acknowledges the failure-class memory at the point of
-  exposure.
-- `#[immune(antigen_name, witness = ...)]` — claims a code site is
-  protected against a declared antigen, with the witness identifying *what
-  protects it* (a test, a proptest, a formal proof, a phantom-type pattern,
-  a lint).
-- `#[descended_from(parent)]` — declares this antigen inherits structure
-  from a parent antigen; presentations and witnesses propagate.
-- `#[antigen_tolerance(antigen_name, rationale = "...", until = ...)]` —
-  team-acknowledged tolerance of a known antigen instance; declares "we
-  see this, we accept it for now, here's why."
+- `#[antigen(name = "...", summary = "...", references = [...])]`
+- `#[presents(antigen_name)]`
+- `#[immune(antigen_name, witness = ...)]`
+- `#[descended_from(parent)]`
+- `#[antigen_tolerance(antigen_name, rationale = "...", until = ...)]`
 
-**The discipline side**
+**Discipline + tooling sides**
 
-Dev-in-the-loop is *primarily* a discipline component. The developer's
-judgment is the production mechanism. The discipline trains the team to:
-- Notice failure-classes in their codebase before they bite
-- Name failure-classes in shared vocabulary (recognition-not-design)
-- Ground each declaration in real instances (ADR-006 threshold)
-- Provide rationale for tolerances (ADR-005 Amendment 2)
-- Maintain `descended_from` lineage as code evolves
-
-**The tooling side**
-
-The proc-macros (`antigen-macros` crate) provide the syntactic surface.
-The macros don't *produce* the declarations; they *parse* them, *validate*
-them, and *make them structurally present* to other components. The
-tooling is in service of the discipline, not in replacement.
+Primarily discipline. Macros parse, validate, make declarations
+structurally present to other components. Tooling in service of the
+discipline.
 
 **Floor / ceiling**
 
-- **Floor**: a single `#[antigen(...)]` declaration in a single file. The
-  team has named one failure class. That alone provides structural memory
-  that didn't exist before.
-- **Ceiling**: comprehensive antigen taxonomy with rich rationale, full
-  `descended_from` lineages, version-pinned references, every vulnerable
-  site marked `#[presents]`, every protected site marked `#[immune]`,
-  every accepted-known-risk marked `#[antigen_tolerance]`.
+- Floor: a single `#[antigen(...)]` declaration. Structural memory exists.
+- Ceiling: comprehensive antigen taxonomy with rich rationale, full
+  lineages, every site marked, every accepted-known-risk tolerance-marked.
 
 **Biology cognate**
 
-Closest to **deliberate vaccination + informed prior exposure**. The team
-*chooses* to develop immunity to specific failure classes based on
-informed judgment. This is humoral adaptive immunity at the deliberate
-end — the body (team) develops specific antibodies (antigens) based on
-exposure (lived experience) and prior knowledge (references).
+Closest to **deliberate vaccination + informed prior exposure**.
 
-[NATURALIST: refine. Is this closer to vaccination, to memory B-cell
-maintenance, to T-helper coordination of B-cell maturation? Is there a
-biology cognate for the *judgment* aspect — the cell deciding what
-warrants memory? Or is that the wrong question because biology doesn't
-have judgment?]
-
-**Value-prop**
-
-The team's collective judgment about danger becomes *durable structural
-memory* in the codebase. New team members inherit the failure-class
-awareness by reading the antigen declarations. LLM collaborators read
-the same declarations the same way humans do. Tribal knowledge becomes
-explicit and survives team turnover.
+[NATURALIST: V0 asked between vaccination / memory-B-cell / T-helper
+coordination. Open for refinement.]
 
 **Failure modes / attack surface**
 
-- **Mis-named antigen**: team declares an antigen for a failure-class
-  that's actually a different shape. Subsequent presentations are
-  miscategorized; immunity claims defend against wrong things.
-- **Speculative antigen**: team declares an antigen without grounding in
-  real instances. ADR-006 violation. The declaration becomes noise.
-- **Stale rationale**: `#[antigen_tolerance(... rationale = "X")]` where
-  X no longer applies. The tolerance becomes a "trust me" comment.
-- **Lineage drift**: `descended_from` chain that no longer reflects the
-  actual inheritance structure of failure-classes.
-
-[ADVERSARIAL: deeper attack-surface analysis. What about *malicious*
-antigen declarations — a contributor declares an antigen that's actually
-the inverse of the failure class, suppressing real bugs by mis-presenting?
-What about declaration injection through proc-macro generation
-(ADR-014 territory)?]
+- Mis-named antigen (declaration shape doesn't match real failure-class)
+- Speculative antigen (declared without instance grounding; ADR-006
+  violation)
+- Stale rationale on tolerance
+- Lineage drift across descended_from chains
+- Malicious antigen-declaration injection (proc-macro generation
+  territory, ADR-014)
 
 **Connection to other components**
 
-- Component 2 (passive scan) *recognizes* the declarations Component 1
-  produces; without recognition, the declarations are inert.
-- Component 3 (test-integration) *consumes* the `witness = Y` field
-  Component 1 sets.
-- Component 4 (knowledge-ecosystem) *follows* the `references = [...]`
-  Component 1 attaches.
-- Component 5 (version/lineage) *traverses* the `descended_from`
-  edges Component 1 declares.
-- Component 6 (cross-crate) *propagates* Component 1's declarations
-  across crate boundaries.
-
 Component 1 is the *production source* — most other components consume
-what it produces. Floor-mode antigen (vocabulary-only) is essentially
-Component 1 alone, with the other components mostly inactive.
+what it produces. Floor-mode antigen is essentially C1 alone, with the
+other components mostly inactive.
 
 **Substrate locations**
 
-- Macros: `antigen-macros/` crate
-- Parser: `antigen-macros/src/parse.rs`
-- Vocabulary lock: `docs/glossary.md`
-- Discipline references: ADR-001, ADR-004, ADR-005 Amendment 2, ADR-011,
-  ADR-014
+`antigen-macros/`, `antigen-macros/src/parse.rs`, `docs/glossary.md`,
+ADR-001, ADR-004, ADR-005 Amendment 2, ADR-011, ADR-014.
 
 ---
 
-### Component 2: Passive scan/lint/tool immunity
+### Component 2: Passive scan/lint/tool immunity (biology-tier)
 
 **What it does**
 
-Automated walks of the codebase find antigens, find presentations,
-verify witnesses, detect lineage cycles, surface unaddressed presentations,
-detect fingerprint matches in unmarked code. *Recognition through
-structural analysis* — the tool does what the team would have to do by
-hand, at scale, on every build.
+Automated walks find antigens, presentations, immunities, tolerances,
+lineage edges. Audit verifies witness validity at each immunity site.
+Fingerprint engine matches structural patterns against unmarked code.
+Cycle detection guards lineage. *Recognition through structural analysis.*
 
-**Concrete operations:**
+**Concrete operations**: `cargo antigen scan`, `cargo antigen audit`,
+fingerprint engine, cycle detection (ATK-A3-002), diamond inheritance
+dedup (ADR-018).
 
-- `cargo antigen scan` — walks workspace, collects all antigens,
-  presentations, immunities, tolerances, lineage edges; produces
-  `ScanReport` with structured data.
-- `cargo antigen audit` — verifies witness validity at each immunity
-  site; reports witness tier honestly (FormalProof / ExecutionVerified /
-  Reachability / ExternalUnvalidated / Missing per ADR-005 Amendment 3);
-  surfaces unaddressed presentations.
-- Fingerprint engine — matches structural patterns (item-level operators
-  via syn; body-level operators via ast-grep subprocess per ADR-015)
-  against unmarked code to surface *latent* presentations the team hasn't
-  yet marked.
-- Cycle detection — guards `#[descended_from]` from infinite loops
-  (ATK-A3-002).
-- Diamond inheritance dedup — handles multi-parent lineage correctly
-  (ADR-018).
+**Discipline + tooling sides**
 
-**The discipline side**
-
-Minimal. The tool runs; the team reads the output. Some discipline
-*around* the tool: read the audit report, address unaddressed presentations,
-respond to surfaced fingerprint matches. But the tool's value lands without
-team participation.
-
-**The tooling side**
-
-This is *primarily* a tooling component. The cargo subcommand, the scan
-walker, the audit logic, the fingerprint engine, the cycle detector — all
-shipped code that operates on the vocabulary Component 1 produces.
+Primarily tooling. Discipline lives around the tool (read the audit
+report; address unaddressed presentations; respond to fingerprint
+matches).
 
 **Floor / ceiling**
 
-- **Floor**: `cargo antigen scan` once, look at the report. Even without
-  any team action, the team now sees structural memory laid bare.
-- **Ceiling**: `cargo antigen scan` in CI, audit-gated PRs, fingerprint
-  matches surfaced inline, scan-failure rejects on commit, audit-report
-  diffs visible per-PR.
+- Floor: `cargo antigen scan` once. Structural memory laid bare.
+- Ceiling: scan in CI, audit-gated PRs, fingerprint matches inline,
+  scan-failure rejects on commit.
 
 **Biology cognate**
 
 Closest to **innate immunity** — generic pattern-recognition that operates
-automatically without specific prior exposure. The body's pattern-recognition
-receptors (PRRs) detect generic molecular patterns (PAMPs) without needing
-to have seen the specific pathogen before. Similarly, the fingerprint
-engine detects structural patterns in code without needing specific prior
-team-declaration of those patterns.
+automatically.
 
-[NATURALIST: refine. Is innate immunity the right cognate, or is this closer
-to complement system (constitutive surveillance)? Or to the cellular
-machinery (proteasome, MHC class I presentation) that constitutively
-processes any cellular protein for surface display? The latter would map
-to "the scanner walks the whole codebase by default" — a constitutive
-surveillance mechanism rather than a triggered one.]
-
-**Value-prop**
-
-Structural memory gets *operationalized* without team effort. The tool
-catches what the team would have to manually check on every build. The
-audit report becomes a structural truth about the codebase that's always
-current.
+[NATURALIST: V0 asked between innate / complement / constitutive MHC
+processing. Open for refinement.]
 
 **Failure modes / attack surface**
 
-- **Tool says clean when substrate is broken**: scan or audit fails to
-  surface a real failure-class instance. Sub-clause F violation.
-- **Fingerprint false-positive autoimmunity**: fingerprint matches against
-  non-vulnerable code, generating noise that drowns real signal.
-- **Audit tier over-claiming**: audit reports FormalProof tier when
-  underlying verification is only ExecutionVerified (ADR-005 Amendment 3
-  is the discipline against this).
-- **Cycle detection false-pass**: pathological input bypasses cycle guard
-  (ATK-A3-002 is the contract).
-- **Crash-resistance violation**: scan/audit crashes on legitimate-but-
-  pathological input (ADR-005 Amendment 3 mechanics §3).
-
-[ADVERSARIAL: deeper analysis. Trust boundary is at `enumerate_dep_crate_roots`
-post-ADR-017 — what attacks bypass it? What about poisoned `cargo metadata`
-output? What about race conditions between scan and source mutation?]
-
-**Connection to other components**
-
-- Consumes Component 1's declarations as input.
-- Provides input to Component 3 (test-integration reads witness fields
-  from scan output) and Component 4 (knowledge-ecosystem follows
-  references from scan output).
-- Operates on Component 5's lineage graph (cycle detection, propagation
-  walk).
-- Operates on Component 6's cross-crate substrate (cargo metadata
-  walk; canonical_path resolution).
+- Tool says clean when substrate is broken (sub-clause F violation)
+- Fingerprint false-positive autoimmunity
+- Audit tier over-claiming (ADR-005 Amendment 3 discipline)
+- Cycle detection false-pass (ATK-A3-002 contract)
+- Crash-resistance violation
+- Trust-boundary bypass via alternative path-discovery (ATK-A3-007)
 
 **Substrate locations**
 
-- Scanner: `antigen/src/scan.rs`
-- Auditor: `antigen/src/audit.rs`
-- Cargo subcommand: `cargo-antigen/`
-- Fingerprint engine: per ADR-015, evaluator-trait abstraction across
-  syn-based item operators (W6a) and ast-grep-subprocess body operators
-  (W6b; deferred to v0.2)
-- Discipline references: ADR-001, ADR-002, ADR-005, ADR-010, ADR-015,
-  ADR-017, ADR-018
+`antigen/src/scan.rs`, `antigen/src/audit.rs`, `cargo-antigen/`, ADR-001,
+ADR-002, ADR-005, ADR-010, ADR-015, ADR-017, ADR-018.
 
 ---
 
-### Component 3: Test-integration immunity
+### Component 3: Test-integration immunity (biology-tier)
 
 **What it does**
 
 Witnesses link to actual tests. Test history becomes immune history. The
-audit's verification of immunity claims grounds in real behavioral
-confirmation. *Verification through behavioral observation* — the
-structural memory connects to the runtime confirmation that the protection
-actually works.
+audit's verification grounds in real behavioral confirmation.
+*Verification through behavioral observation.*
 
-**The witness vocabulary:**
+**Witness vocabulary**: test, proptest, clippy lint, kani / prusti / verus
+/ creusot proof, phantom-type (ADR-013).
 
-- `witness = test::function_name` — links to a `#[test]` function whose
-  passing demonstrates the immunity.
-- `witness = proptest::function_name` — links to a property-based test
-  whose passing demonstrates the immunity across a generated input space.
-- `witness = clippy::lint_name` — delegates to a clippy lint whose absence
-  of warnings demonstrates the immunity (compose-don't-compete per
-  ADR-002).
-- `witness = kani::function_name` / `prusti::...` / `verus::...` /
-  `creusot::...` — delegates to formal-verification tools.
-- Phantom-type witnesses (ADR-013) — the witness IS the type structure
-  itself, not a separate verification artifact.
+**WitnessTier gradient** (ADR-005 Amendment 3): FormalProof /
+ExecutionVerified / Reachability / ExternalUnvalidated / Missing.
 
-**WitnessTier gradient** (per ADR-005 Amendment 3 + ADR-007):
+**Discipline + tooling sides**
 
-- **FormalProof** — mathematically verified by a formal-method tool
-- **ExecutionVerified** — passing runtime verification (test/proptest)
-- **Reachability** — function is in scope but not yet executed during
-  scan (covers static visibility without runtime check)
-- **ExternalUnvalidated** — witness type accepted but tool integration
-  not yet verified
-- **Missing** — no witness present or witness fails to resolve
-
-**The discipline side**
-
-The team must *write the tests* (or the proofs, or the proptests). The
-team must keep witnesses *aligned* with the antigens they defend against —
-when an antigen evolves, the witness may need to evolve too. The team must
-*honestly report tier* (audit-tier-honesty per ADR-005 Amendment 3).
-
-**The tooling side**
-
-The audit detects external tool prefixes, resolves witnesses, validates
-their existence and applicability, reports tier honestly. The tier
-gradient is enforced by audit logic; the audit doesn't *create* the
-verification — it *recognizes* what verification actually happened.
+Mixed. Team writes the tests / proofs; tool resolves witnesses, validates,
+reports tier honestly.
 
 **Floor / ceiling**
 
-- **Floor**: `#[immune(X, witness = test::tx_test)]` where `tx_test` is a
-  passing `#[test]`. Verification at ExecutionVerified tier; structural
-  memory connects to behavioral confirmation.
-- **Ceiling**: every immunity claim across the codebase has a tier-
-  appropriate witness; FormalProof tier where possible; coverage of all
-  declared antigens; cross-version witness validity tracked across
-  `#[descended_from]` boundaries (Component 5 territory); witness identity
-  is presentation-keyed (per ADR-018).
+- Floor: `#[immune(X, witness = test::tx_test)]`; verification at
+  ExecutionVerified tier.
+- Ceiling: tier-appropriate witness for every immunity; FormalProof where
+  possible; cross-version witness validity tracked through descended_from
+  (C5 territory); witness identity presentation-keyed (ADR-018).
 
 **Biology cognate**
 
-Closest to **memory B-cell binding confirmation**. A memory B-cell holds
-an antibody specificity (the witness), and the actual binding event
-(test execution) confirms the specificity is operationally correct against
-the antigen-as-encountered. Without the binding event, the antibody is
-*declared* but not *verified*. The binding event is what produces the
-calibrated confidence.
+Closest to **memory B-cell binding confirmation**.
 
-[NATURALIST: refine. Memory B-cells specifically? Or is this closer to
-the affinity-maturation cycle (B-cell hypermutation followed by selection
-against antigen)? Or is the binding confirmation closer to T-cell receptor
-recognition? What's the right resolution at biology's side for "behavioral
-confirmation that the structural memory matches reality"?]
-
-**Value-prop**
-
-Immunity claims become *verifiable*. The audit can answer "is this site
-actually protected?" with grounded tier information, not just declared
-intent. Tier-honesty (per ADR-005 Amendment 3) prevents the audit from
-producing false confidence.
+[NATURALIST: V0 asked between memory-B-cell / affinity-maturation /
+T-cell-receptor. Open for refinement.]
 
 **Failure modes / attack surface**
 
-- **Witness drift**: witness was valid when written, no longer applies as
-  antigen or function evolved. The audit may continue reporting "well-
-  formed" when the verification is stale.
-- **Tier over-claiming**: declaring FormalProof when underlying tool only
-  provides ExecutionVerified.
-- **Witness-as-placeholder**: writing `witness = test::todo_test` where
-  todo_test always passes. The audit reports well-formed but the
-  verification is theatrical.
-- **External-unvalidated proliferation**: writing `witness = kani::...`
-  without kani actually being run in CI. Tier should be ExternalUnvalidated;
-  if reported as FormalProof, audit-tier-honesty is violated.
-
-[ADVERSARIAL: deeper analysis. What about tests that pass but don't
-actually exercise the antigen's failure mode (test pass-but-not-meaningful)?
-This is the "test technically passes but no longer means what it should"
-class — possibly its own attack surface. ATK-A2-003/004/005/011/012
-covered this.]
-
-**Connection to other components**
-
-- Consumes Component 1's witness declarations.
-- Operates within Component 2's audit pipeline.
-- Witness *identity* is presentation-keyed (per ADR-018 Open Question 4 →
-  Tekgy ratification) which connects to Component 5's lineage propagation.
-- Cross-crate witnesses (Component 6) require canonical_path resolution.
+- Witness drift (valid when written, no longer applies)
+- Tier over-claiming
+- Witness-as-placeholder (always-passing test)
+- External-unvalidated proliferation
+- Test pass-but-not-meaningful (ATK-A2-003/004/005/011/012)
 
 **Substrate locations**
 
-- Audit logic: `antigen/src/audit.rs`
-- Witness recognition: `audit.rs::detect_external_tool`
-- WitnessTier definition: per ADR-005 Amendment 3, ADR-013
-- Discipline references: ADR-002, ADR-005, ADR-007, ADR-013, ADR-018
+`antigen/src/audit.rs`, `audit.rs::detect_external_tool`, ADR-002, ADR-005,
+ADR-007, ADR-013, ADR-018.
 
 ---
 
-### Component 4: Knowledge-ecosystem immunity
+### Component 4: Knowledge-ecosystem immunity (engineered-boundary tier)
 
 **What it does**
 
-References attached to antigen declarations point to the lived context
-where the failure-class was learned, discussed, decided about, fixed,
-documented. PR threads, post-mortem blog posts, git issues, manual pages,
-ADR/DEC files, internal tutorials, CVEs, RFCs, papers. *Contextual memory
-linking lived history* — the structural memory in code connects to the
-distributed knowledge across the team's communication ecosystem.
+References attached to antigen declarations point to lived context: PR
+threads, post-mortem blog posts, git issues, manual pages, ADR/DEC files,
+internal tutorials, CVEs, RFCs, papers. *Contextual memory linking lived
+history across heterogeneous knowledge substrates.*
 
-**Mechanism:**
+**Mechanism**: `#[antigen(..., references = [...])]` per ADR-009 Layer 2;
+rationale fields on tolerance/immunity; future bidirectional links.
 
-- `#[antigen(..., references = [...])]` — open-vocabulary list of pointers
-  per ADR-009 (Layer 2). Examples:
-  ```rust
-  #[antigen(
-      name = "PanickingInDrop",
-      summary = "Drop implementation that may panic, violating drop safety",
-      references = [
-          "rfc:RFC-1857",
-          "url:https://blog.rust-lang.org/drop-panic-postmortem.html",
-          "pr:owner/repo#1234",
-          "issue:owner/repo#567",
-          "adr:project/internal-ADR-042",
-      ],
-  )]
-  ```
-- Rationale fields on tolerance and immunity primitives — narrative
-  justification that lives next to the structural declaration.
-- Eventual: bidirectional links — the *referenced* artifact (PR, blog post)
-  can carry a back-link to the antigen declaration, making the connection
-  legible from both sides.
+**Discipline + tooling sides**
 
-**The discipline side**
-
-Team writes references when declaring antigens. Team keeps references
-*current* — when a referenced artifact moves, archives, or becomes
-superseded, the reference is updated. Team treats antigen declarations as
-*the connection point* between code and lived history; new failures get
-linked to existing artifacts rather than re-discussed in isolation.
-
-**The tooling side**
-
-Currently minimal in v0.1. The `references` field exists in the
-vocabulary; the scan collects it; the audit doesn't yet *validate* the
-references resolve or *follow* them. Future tooling could:
-- Validate URL references resolve (no dead links)
-- Cross-link with git issue trackers
-- Cross-link with Slack archives (if team chooses to expose them)
-- Cross-link with ADR/DEC directories
-- Surface "antigens that share references" — failure-class clusters that
-  the same lived context informs
+Currently primarily discipline. Vocabulary exists in v0.1; scan collects
+references; audit doesn't yet validate they resolve. Future tooling
+extensions (link-rot detection, bidirectional indexing, cluster-detection)
+are encounter-tier substrate.
 
 **Floor / ceiling**
 
-- **Floor**: any antigen declaration with at least one reference. The
-  failure class has a connection-point to lived context.
-- **Ceiling**: comprehensive bidirectional references; every antigen
-  links to its lived context; lived context links back to its antigen
-  declarations; cross-team antigens share references; references span
-  CVEs/RFCs/papers/internal-tickets/post-mortems/PRs.
+- Floor: one antigen with one reference. Connection-point to lived context.
+- Ceiling: comprehensive bidirectional references; antigens are knowledge-
+  graph nodes; cross-team / cross-organization shared references.
 
-**Biology cognate**
+**Why this is engineered-boundary tier**
 
-This one doesn't have a clean single cognate at my current resolution.
-Several candidates:
+References live in human knowledge ecosystems (CVE databases, RFC
+processes, blog posts, ticket systems, ADR conventions). Biology doesn't
+have this — organisms don't read their own scientific literature.
+Knowledge-about-the-organism lives in epidemiology / public-health
+institutions *outside* the organism. C4's failure-mode taxonomy comes from
+library science, academic integrity, and info-warfare disciplines — not
+from immunology.
 
-- **Cytokine signaling network** — the immune system's *messaging fabric*
-  that coordinates between cells. Chemokines, interleukins, interferons.
-  This produces *contextual coordination* — cells respond differently
-  based on signals from other cells about what's been seen elsewhere. The
-  knowledge-ecosystem framing maps loosely: antigen declarations carry
-  signals (references) from the broader knowledge environment.
-- **Complement system** — a cascade of plasma proteins that amplify
-  immune signals. Generic but context-amplifying.
-- **Lymphatic system architecture** — the *anatomy* of where immune
-  signals travel. Which lymph nodes drain which tissues. The
-  knowledge-ecosystem analog: the *architecture* of where lived knowledge
-  lives across the team's tools.
-- **Antigen presentation context (MHC class II)** — antigens are
-  presented IN CONTEXT (with co-stimulatory signals); presentation
-  without context is anergy. The reference list provides *context for
-  presentation*.
+**The boundary is honest, not a metaphor failure.** Biology going silent
+here is *evidence* that engineering has extended into a domain biology
+hasn't reached. C4 joins W7 (FormalProof tier) and ADR-017 (trust-
+delegation) as third member of the "engineered-substrate-exceeds-biology
+at honest boundaries" family.
 
-[NATURALIST: critical refinement wanted. This component's cognate is the
-loosest in the current enumeration. What's the right biology cognate for
-"distributed contextual memory across heterogeneous knowledge substrates"?
-Is there one? Or is this where biology goes silent (per the
-metaphor-as-instrument discipline)? Boundary-silence here would be data —
-biology may not have a sharp analog because human-knowledge-ecosystems
-don't have direct biological precedent.]
-
-**Value-prop**
-
-Antigen declarations stop being isolated structural facts and become
-*nodes in a knowledge graph* that connects to the team's full
-communication and decision substrate. Future developers (including LLM
-collaborators) can follow references to understand *why* an antigen exists,
-*what* the lived context produced it, *who* engaged with it. The
-"lived history of the code in brief, while maintaining the most rich
-context" property (Tekgy's framing) lands at this component specifically.
+[NATURALIST: V1 ratification of your C4 finding. Open: are there
+within-engineered-boundary cognates we should use instead — library
+science, citation networks, knowledge graphs? Is there an explicit
+analog from another domain (academic publishing? legal precedent
+citation?) that sharpens?]
 
 **Failure modes / attack surface**
 
-- **Stale references** — links to artifacts that no longer exist, moved,
-  or now describe different content.
-- **Fake references** — references that point to plausible-looking but
-  fabricated artifacts.
-- **Poisoned external references** — a CVE or RFC that's been
-  recategorized, redacted, or superseded.
-- **Reference noise** — too many references per antigen; signal drowns.
-- **Cross-reference loops** — antigen A references blog post that
-  references antigen A.
-
-[ADVERSARIAL: deeper analysis wanted. Knowledge-ecosystem is where most
-of the *trust* surface lives because the references are inherently external.
-What's the threat model for a malicious contributor who attaches misleading
-references to legitimate antigens? For a compromised external knowledge
-source? For an LLM collaborator that hallucinates references?]
+- Stale references (link rot)
+- Fake references (plausibly-named but fabricated)
+- Poisoned external references (CVE redacted/superseded)
+- Reference noise (signal drowning)
+- Cross-reference loops
+- **LLM-hallucinated references** (co-native attack surface: LLMs both
+  generate and consume references; hallucinated URLs look
+  calibrated-to-plausible — adversarial finding, A5 governance)
 
 **Connection to other components**
 
-- Consumes Component 1's `references = [...]` declarations.
-- Component 2's scan collects references; audit doesn't yet validate them
-  (potential future tooling extension).
-- Component 5's version/lineage interacts with references — a reference
-  may be version-specific (a CVE for a specific version of a dependency).
-- Component 6's cross-crate may carry references across crate boundaries.
+- Consumes C1's references field.
+- C2 collects but doesn't yet validate; future tooling extension.
+- C5 lineage may be version-specific.
+- C6 may carry references across crate boundaries.
 
 **Substrate locations**
 
-- Vocabulary: `#[antigen(..., references = [...])]` per ADR-009 Layer 2
-- Discipline references: ADR-001, ADR-004, ADR-005 Amendment 2, ADR-009
-- Future tooling extensions: deferred substrate / encounters-tier
+`#[antigen(..., references = [...])]` per ADR-009 Layer 2; ADR-001,
+ADR-004, ADR-005 Amendment 2, ADR-009.
 
 ---
 
-### Component 5: Cross-version / lineage immunity
+### Component 5: Cross-version / lineage immunity (biology-tier)
 
 **What it does**
 
-`#[descended_from]` chains track how failure-classes inherit, evolve, and
-specialize across antigen declarations. Temporal recognition surface
-(ADR-016) tracks *when* immunity was established, *what version* was
-verified, *how* immunity has evolved. Version-boundary-as-feature (ADR-017)
-treats version transitions as recognition opportunities. *Evolutionary
-memory across change.*
+`#[descended_from]` chains track inheritance, evolution, specialization
+across antigens. Temporal recognition surface (ADR-016) tracks *when*
+immunity was established, *what version* was verified, *how* immunity has
+evolved. Version-boundary-as-feature (ADR-017) treats version transitions
+as recognition opportunities. *Evolutionary memory across change.*
 
-**Mechanism:**
+**Mechanism**: `#[descended_from(parent)]`, diamond inheritance dedup
+(ADR-018), `verified_at` (ADR-016), `canonical_path` in `name@version`
+form (ADR-017), version-boundary-orphans-as-feature, ProvenanceEntry
+(ADR-018) on `inherited_from`.
 
-- `#[descended_from(parent_antigen)]` — child antigen inherits structural
-  shape from parent; presentations propagate; witnesses propagate (subject
-  to re-validation per ADR-005 Decision item 2); tolerances propagate.
-- Diamond inheritance dedup (ADR-018) — multi-parent lineage handled
-  correctly.
-- `verified_at` (ADR-016 temporal field) — when was immunity last
-  affirmed?
-- `canonical_path` in form `name@version` (ADR-017) — version-aware
-  identity at the cross-crate boundary.
-- Version-boundary-orphans-as-feature — when a dependency's antigen
-  declaration moves between versions, the orphan-lineage-edge isn't a bug;
-  it's an explicit signal that a recognition surface has changed.
+**Discipline + tooling sides**
 
-**The discipline side**
-
-Team maintains `descended_from` chains as failure-class taxonomy evolves.
-Team re-validates inherited witnesses at descendants (sub-clause F at the
-inheritance trust-boundary). Team treats version transitions as
-recognition opportunities, not just as compatibility-shim work.
-
-**The tooling side**
-
-Scan collects lineage edges. Cycle detection guards against infinite
-loops. Synthesis pass propagates presentations across descended_from
-(with diamond dedup). Audit validates inherited witnesses still apply.
-`orphaned_lineage_edges()` query method surfaces declarations whose
-parent no longer exists.
+Mixed. Team maintains descended_from chains, re-validates inherited
+witnesses, treats version transitions as recognition opportunities. Tool
+collects, propagates, dedups, surfaces orphans.
 
 **Floor / ceiling**
 
-- **Floor**: a single `#[descended_from(Parent)]` declaration. Failure-
-  class taxonomy starts.
-- **Ceiling**: rich inheritance trees, version-aware identity throughout,
-  temporal recognition surface tracking when verification last happened,
-  proper handling of version-boundary transitions, cross-version
-  re-validation, isotype-switching equivalent at the witness-evolution
-  level.
+- Floor: a single `#[descended_from(Parent)]`. Taxonomy starts.
+- Ceiling: rich inheritance trees, version-aware identity, temporal
+  recognition surface, cross-version re-validation, isotype-switching
+  equivalent at witness-evolution level.
 
 **Biology cognate**
 
-Multiple cognates converge here:
+Multiple cognates converge:
+- **Antibody class-switching** (isotype switching) — same lineage, different
+  specialized roles
+- **B-cell hypermutation** — small variations producing competing
+  specificities
+- **Memory vs plasma B-cell differentiation** — same lineage, different
+  active roles
 
-- **Antibody class-switching** (isotype switching, IgM → IgG → IgA → IgE) —
-  the same B-cell lineage produces different antibody forms specialized for
-  different roles while preserving recognition specificity. Cognate to
-  `descended_from` with refinement: the child antigen has the parent's
-  recognition shape but specialized application.
-- **B-cell hypermutation** (somatic hypermutation in affinity maturation) —
-  small variations in the antibody's CDR regions produce slightly different
-  specificities that compete for antigen binding. Cognate to fingerprint
-  refinement across `descended_from` lineages.
-- **Memory B-cell vs. plasma B-cell differentiation** — same lineage,
-  different roles. Memory B-cell retains the recognition for future
-  encounters; plasma cell produces antibody for current response. Cognate
-  to antigen-as-memory vs. presentation-as-instance.
+For version-boundary-as-feature specifically: **antigenic drift / shift**
+(naturalist's prior correction). Antigenic drift = small version updates;
+antigenic shift = major version boundary with genome reassortment producing
+categorically new recognition surface. Orphan-lineage-edge IS body
+recognizing previously-known antigen as no-longer-matching-memory because
+drift has been large enough.
 
-**Specifically for version-boundary-as-feature** (the recently surfaced
-naturalist correction from drift/shift):
-
-This is **antigenic drift / antigenic shift** in immunology. When a
-pathogen mutates enough to escape memory B-cell recognition, the immune
-system encounters it as new. Antigenic shift is *bigger* than drift —
-genome reassortment producing categorically new recognition surface. The
-cognate for version-boundary in antigen-the-project is most cleanly
-antigenic drift (small version updates) or antigenic shift (major version
-boundary). The orphan-lineage-edge IS the body recognizing a previously-
-known antigen as no-longer-matching-memory because the drift has been
-large enough.
-
-[NATURALIST: extend. The drift/shift framing was your prior correction —
-how deep does the cognate go? Are there other version-boundary phenomena
-in immunology beyond drift/shift? What about the body's *retraining*
-process when shift occurs — does it predict something we should be
-building in Component 5?]
-
-**Value-prop**
-
-Failure-class memory becomes *durable across change*. When code evolves,
-when dependencies version, when failure-classes specialize — the lineage
-structure preserves the connection between past and present
-recognition. Re-validation discipline (sub-clause F at the inheritance
-boundary) prevents inherited witnesses from going stale silently.
+[NATURALIST: depth-check on drift/shift cognate — how deep does it go?
+Are there other version-boundary phenomena beyond drift/shift?]
 
 **Failure modes / attack surface**
 
-- **Lineage cycle** — A descended from B descended from A; non-termination
-  attack (ATK-A3-002, guarded by cycle detection).
-- **Stale lineage** — `descended_from(Parent)` where Parent no longer
-  exists or has been semantically replaced.
-- **Witness staleness across descent** — inherited witness valid at parent
-  but no longer at descendant; ADR-005 Decision item 2 requires
-  re-validation.
-- **Diamond inheritance unintended-dedup** — two paths through diamond
-  that *should* produce distinct propagations (per ADR-018 ProvenanceEntry
-  with canonical_path) get collapsed; provenance destroyed.
-- **Version-boundary autoimmunity** — a version transition incorrectly
-  flagged as still-matching, causing immunity claims from old version to
-  be (wrongly) trusted against new version's antigen surface.
-
-[ADVERSARIAL: ATK-A3-006 (orphan edge canonical_path false resolution)
-and ATK-A3-010 (drift-vs-waning audit message category error) cover some
-of this surface. Are there attack-surface gaps for the diamond
-ProvenanceEntry mechanism specifically? For cross-version witness
-re-validation specifically?]
-
-**Connection to other components**
-
-- Operates on Component 1's `#[descended_from]` declarations.
-- Component 2's scan walks lineage; cycle detection guards.
-- Component 3's witness re-validation operates across lineage descents.
-- Component 4's references may be version-specific.
-- Component 6's cross-crate lineage edges carry canonical_path with
-  version (`name@version`).
+- Lineage cycle (ATK-A3-002)
+- Stale lineage
+- Witness staleness across descent (ADR-005 Decision item 2)
+- Diamond inheritance unintended-dedup (ADR-018 ProvenanceEntry)
+- Version-boundary autoimmunity
+- Orphan-on-version-change category error (ATK-A3-010 — drift, not waning)
 
 **Substrate locations**
 
-- Lineage edge type: `antigen/src/scan.rs::LineageEdge`
-- Propagation walk: `antigen/src/scan.rs` synthesis pass
-- Diamond dedup + ProvenanceEntry: per ADR-018
-- canonical_path name@version format: per ADR-017
-- Discipline references: ADR-001, ADR-005, ADR-007, ADR-008, ADR-016,
-  ADR-017, ADR-018
+`antigen/src/scan.rs::LineageEdge`, synthesis pass, ProvenanceEntry per
+ADR-018, canonical_path per ADR-017; ADR-001, ADR-005, ADR-007, ADR-008,
+ADR-016, ADR-017, ADR-018.
 
 ---
 
-### Component 6: Cross-crate / ecosystem immunity
+### Component 6: Cross-crate / ecosystem immunity (biology-tier)
 
 **What it does**
 
 Antigen declarations propagate across crate boundaries. Cross-crate scan
 via `.cargo/registry` source-walking reads antigens from dependencies.
-`antigen-stdlib` (post-A5) provides shared failure-class memory across the
-Rust ecosystem. Canonical-path identity (name@version per ADR-017)
-distinguishes same-named antigens across crates. Trust delegation to
-cargo's checksum chain (ADR-017) handles the supply-chain trust boundary.
-*Population-level immunity.*
+`antigen-stdlib` (post-A5) provides shared failure-class memory.
+Canonical-path identity (`name@version`) distinguishes same-named antigens.
+Trust delegation to cargo's checksum chain. *Population-level immunity.*
 
-**Mechanism:**
+**Mechanism**: `cargo antigen scan` walks workspace + deps,
+`enumerate_dep_crate_roots()` is the ONLY trust-delegated path-discovery
+mechanism (ADR-017), canonical_path on declarations, ProvenanceEntry
+preserves cross-crate provenance, future antigen-stdlib.
 
-- `cargo antigen scan` walks workspace + dependencies via cargo metadata
-  resolution.
-- `enumerate_dep_crate_roots()` (per ADR-017) is the ONLY trust-delegated
-  path-discovery mechanism; alternative path-discovery bypasses trust.
-- canonical_path on declarations carries `crate@version::Type` for
-  cross-crate identity disambiguation.
-- ProvenanceEntry (ADR-018 Option C) on `inherited_from` field preserves
-  cross-crate provenance through propagation.
-- Future antigen-stdlib (post-A5) ships standardized failure-class memory
-  for ecosystem-wide patterns.
+**Discipline + tooling sides**
 
-**The discipline side**
-
-Team uses dependencies' antigen declarations rather than re-declaring
-locally. Team contributes to antigen-stdlib when their per-project
-antigens accumulate to ecosystem-relevant patterns. Team treats
-cross-crate trust boundaries with proper validation discipline.
-
-**The tooling side**
-
-cargo metadata walking, registry path resolution, canonical_path stamping,
-cross-crate cycle detection, cross-crate diamond dedup, cross-crate
-witness resolution (re-exports = ATK-A3-001 territory; A4+).
+Mixed. Discipline of using deps' antigens vs re-declaring locally; of
+contributing to antigen-stdlib; of treating cross-crate trust boundaries
+properly. Tool walks, resolves, stamps canonical_path, detects cycles +
+diamonds across crates.
 
 **Floor / ceiling**
 
-- **Floor**: `cargo antigen scan --include-deps` reads any cross-crate
-  antigens that happen to be in dependencies.
-- **Ceiling**: antigen-stdlib widely adopted; ecosystem-shared failure-
-  class memory; cross-ecosystem trust boundaries (e.g., scoped antigens
-  for cryptographic safety classes, async-soundness classes,
-  drop-safety classes); per-organization antigen registries; antigen
-  declarations in CVE databases.
+- Floor: `cargo antigen scan --include-deps`.
+- Ceiling: antigen-stdlib widely adopted; per-organization registries;
+  antigen declarations in CVE databases; ecosystem-wide failure-class
+  memory.
 
 **Biology cognate**
 
-Multiple cognates:
+- **Herd immunity** — population-level protection
+- **MHC polymorphism** — population-level resilience through repertoire
+  diversity
+- **Microbiome / commensal organisms** — tolerance of beneficial organisms
 
-- **Herd immunity** — population-level protection where enough individuals
-  are immune that the pathogen can't propagate. antigen-stdlib's
-  ecosystem-wide adoption produces analogous protection: enough crates
-  have failure-class memory that ecosystem-level failures get caught
-  before they propagate widely.
-- **MHC polymorphism** — different individuals in a population present
-  different MHC alleles, producing population-level resilience to novel
-  pathogens (some individuals will recognize what others can't). Cognate
-  to ecosystem-level antigen diversity: different crates may carry
-  different per-project antigens; the union catches more than any
-  individual.
-- **Microbiome / commensal organisms** — the body's tolerance of beneficial
-  organisms while maintaining hostility to pathogens. Cognate to
-  `antigen_tolerance` at the ecosystem level: known-acceptable patterns
-  shared across the community.
-
-[NATURALIST: deepen. Population-level immunology has rich vocabulary —
-herd immunity thresholds, ring vaccination, sterilizing vs non-sterilizing
-immunity. Are any of these architecturally relevant to antigen-the-project's
-cross-crate component? What's the cognate for an *exclusion* — a
-known-bad pattern that the ecosystem agrees to refuse?]
-
-**Value-prop**
-
-Failure-class memory becomes *shared infrastructure*. New crates inherit
-the ecosystem's accumulated failure-class memory without re-discovering
-each pattern. Per-organization antigens scale up to industry-wide pattern
-sharing. Cross-team / cross-organization coordination becomes possible
-through a shared vocabulary.
+[NATURALIST: V0 asked among herd / MHC polymorphism / microbiome. Open
+for refinement. Also: cognate for ecosystem-level *exclusion* (a
+known-bad pattern that the ecosystem refuses)?]
 
 **Failure modes / attack surface**
 
-- **Trust-boundary bypass** — alternative path-discovery mechanism
-  (e.g., directly passing fake registry path to scan_workspace) bypasses
-  enumeration trust delegation (ATK-A3-007 covers this).
-- **Cross-crate name collision** — same-named antigens in different
-  crates without canonical_path disambiguation produce silent
-  false-suppression (ATK-A3-005, solved by Approach 3-revised /
-  ADR-017).
-- **Re-export false NotFound** — antigens re-exported across crates may
-  not resolve through bare-name lookup (ATK-A3-001, A4+ territory).
-- **Registry tampering** — files planted in `.cargo/registry/src/` after
-  cargo fetch; cargo's checksum chain doesn't cover post-fetch
-  manipulation (ATK-A3-007 covers detection at enumeration layer).
-- **Supply-chain antigen poisoning** — a malicious crate ships antigen
-  declarations that defend against the wrong things, suppressing real
-  vulnerabilities in dependents.
-
-[ADVERSARIAL: deeper analysis. Supply-chain attack surface is the
-biggest unstudied area. What's the threat model for a malicious crate
-that ships *plausible* antigens with *wrong* witnesses? What about
-version-pinning attacks (a malicious version of an otherwise-trusted
-crate)?]
-
-**Connection to other components**
-
-- Component 1's declarations cross crate boundaries.
-- Component 2's scan walks across dependencies; audit reports cross-crate
-  status.
-- Component 3's witnesses may be cross-crate (a dependency's test
-  function); witness resolution handles canonical_path.
-- Component 4's references may point to other crates' artifacts.
-- Component 5's lineage may span crates; canonical_path identity is
-  load-bearing here.
+- Trust-boundary bypass via alternative path-discovery (ATK-A3-007)
+- Cross-crate name collision (ATK-A3-005, solved by canonical_path)
+- Re-export false NotFound (ATK-A3-001, A4+ territory)
+- Registry tampering (cargo verifies fetch, not post-fetch manipulation)
+- Supply-chain antigen poisoning (malicious crate ships antigens that
+  defend against wrong things)
+- **Immunity laundering via newtype** (adversarial finding): wrapper crate
+  declares `#[immune(X)]` on a newtype wrapping a foreign type, with
+  theatrical witness; downstream consumers inherit ExecutionVerified
+  without independent verification. Structurally valid under current
+  trust model. Behavioral witness tier (A4-A5) is the right fix; possibly
+  also a "WrappedTypeImmunity" tier or different trust-boundary handling.
 
 **Substrate locations**
 
-- Cross-crate scan: `antigen/src/scan.rs::enumerate_dep_crate_roots`
-- canonical_path: `antigen/src/scan.rs` types
-- antigen-stdlib: deferred to post-A5
-- Discipline references: ADR-001 Amendment 1 (C7 cross-crate commitment),
-  ADR-002, ADR-005, ADR-017, ADR-018
+`antigen/src/scan.rs::enumerate_dep_crate_roots`, canonical_path types,
+antigen-stdlib (post-A5); ADR-001 Amendment 1 (C7), ADR-002, ADR-005,
+ADR-017, ADR-018.
 
 ---
 
-## Part III: Composition patterns
+### Component 7: Real-time / CI feedback immunity (biology-tier)
+
+**Promoted from candidate to first-class component per scout's empirical
+finding (V1 substrate).**
+
+**What it does**
+
+Surfacing antigen-surface diffs per PR; flagging when PR touches a
+vulnerable site marked `#[presents]`; surfacing fingerprint matches
+against unmarked changes; sub-acute feedback during code review rather
+than build-time recognition. *Recognition at the moment of change, not
+the moment of compilation.*
+
+**Why this is structurally distinct from C2:**
+
+- *Distinct audience*: PR author / reviewer vs workspace maintainer
+- *Distinct integration surface*: PR comment / status check / inline
+  review annotation vs `cargo antigen audit` in CI
+- *Distinct scope*: diff-scope (what this PR changed) vs workspace-scope
+  (everything currently visible)
+- *Structural dependency on C2*: consumes ScanReport as baseline; doesn't
+  re-scan
+- *Distinct latency requirement*: sub-second / per-commit-push vs
+  build-time
+
+C7 is downstream of C2's substrate but operates as its own immune-system
+mechanism with different protective role.
+
+**Discipline + tooling sides**
+
+Primarily tooling. Discipline: read the inline annotations; respond to
+diff-scope fingerprint matches; integrate with existing PR review
+practice.
+
+**Floor / ceiling**
+
+- Floor: simple bot that posts a comment when a PR touches `#[presents]`
+  sites.
+- Ceiling: rich integration with GitHub / GitLab / Bitbucket; per-file
+  inline annotations; diff-scope fingerprint engine; PR-blocking when
+  immunity would regress.
+
+**Biology cognate**
+
+Closest to **neutrophil response** — the body's rapid, sub-acute response
+to acute injury or pattern detection. Different from innate immunity's
+constitutive surveillance (C2 cognate); neutrophils are *recruited* in
+response to acute events.
+
+[NATURALIST: refine. Neutrophil cognate vs other rapid-response cells?
+Eosinophil? Mast cell? What's the right cognate for "fast diff-scope
+response triggered by acute change"?]
+
+**Failure modes / attack surface**
+
+- False-negative on subtle changes (fingerprint engine doesn't match
+  but failure-class is real)
+- False-positive autoimmunity at diff-scope (flagging legitimate changes
+  as if they regressed immunity)
+- Latency exceeds developer attention span (recognition arrives after
+  PR is merged)
+- Reviewer overload / alert fatigue
+- Integration-surface breakage (GitHub API changes; webhook drops)
+
+[ADVERSARIAL: deeper analysis wanted. C7 is the youngest component in the
+enumeration; the attack surface is least mapped. What about adversarial
+PR shaping to evade fingerprint detection? Time-of-check vs time-of-use?]
+
+**Connection to other components**
+
+- Consumes C2's ScanReport (baseline structural state).
+- May surface C4 references inline (showing reviewer the lived context).
+- May invoke C5 lineage propagation (showing reviewer what would
+  propagate from the change).
+- Cross-crate (C6) extension is open question.
+
+**Substrate locations**
+
+Not yet implemented. Substrate-seed: scout's empirical finding,
+20260510 campsite entry. Future sweep territory.
+
+---
+
+## Part IV: Composition patterns
 
 ### Cross-component flow
 
-Most teams will deploy *some* components and not others. The composition
-is *plural at its core* — not a single "antigen deployment" but a fabric
-of immune-system components the team selects from.
+Most teams will deploy *some* components and not others. Composition is
+*plural at its core* — not a single "antigen deployment" but a fabric of
+immune-system components the team selects from.
 
-Some likely composition patterns:
+**Likely composition patterns:**
 
-**Minimum viable (linter-mode)**: Component 2 alone. Team installs
-`cargo-antigen`, runs scan, gets passive structural memory of what's
-declared in their dependencies. Floor value, zero buy-in.
+- **Linter-mode** (C2 alone): structural memory of declared antigens; zero
+  buy-in.
+- **Pragmatic dev** (C1 + C2): team-written antigens + scan; most common
+  adoption shape.
+- **Pragmatic dev + tested immunity** (C1 + C2 + C3): witnesses linked to
+  tests; audit-tier-honesty.
+- **Bridged-knowledge** (C1 + C2 + C3 + C4): references attached;
+  knowledge-graph emerging.
+- **Lineage-aware** (C1 + C2 + C3 + C4 + C5): failure-class taxonomy
+  managed; version-boundary handling.
+- **Ecosystem participant** (C1-6): cross-crate; antigen-stdlib;
+  population-level coordination.
+- **Reviewer-integrated** (any of above + C7): real-time PR-scope
+  feedback; recognition at moment of change.
 
-**Pragmatic dev (linter + manual antigens)**: Components 1 + 2. Team
-writes some `#[antigen]` declarations for their own failure-classes;
-scan operationalizes them. Most common adoption shape.
+**Floor for each component is independent of all other components.** A
+team can deploy C5 without C4; C4 without C3; C7 without C5; etc.
+Composition is genuinely orthogonal in most cases.
 
-**Pragmatic dev + tested immunity**: Components 1 + 2 + 3. Team adds
-witnesses to their `#[immune]` claims; audit reports verification tier;
-team treats audit-tier-honesty as discipline.
+### Cross-component dependencies (real but minimal)
 
-**Bridged-knowledge organization**: Components 1 + 2 + 3 + 4. Team
-attaches references to lived context; antigens become knowledge graph
-nodes; cross-team coordination through shared vocabulary.
+- C5 + C6 tightly coupled through canonical_path identity. Cross-crate
+  lineage edges require both.
+- C3's witness re-validation across descent uses C5's lineage.
+- C2's audit-tier-honesty depends on C3's witness declarations.
+- C7 structurally depends on C2's ScanReport as baseline.
 
-**Lineage-aware long-lived codebase**: Components 1 + 2 + 3 + 4 + 5.
-Team manages failure-class taxonomy via descended_from; version-boundary
-transitions handled with proper re-validation; temporal recognition
-surface tracks immunity history.
-
-**Ecosystem participant**: All six components. Team contributes to
-antigen-stdlib, uses cross-crate scan, propagates per-project antigens
-to ecosystem-relevant patterns.
-
-**Floor for each component** is independent of all other components. A
-team can deploy Component 5 (lineage) without Component 4 (knowledge-
-ecosystem). A team can deploy Component 4 (knowledge-ecosystem) without
-Component 3 (test-integration). The composition is genuinely orthogonal,
-not hierarchical.
-
-### Cross-component dependencies (real, but minimal)
-
-Components are *almost* independent. A few real dependencies:
-
-- **Component 5 + Component 6** are tightly coupled through
-  canonical_path identity. Cross-crate lineage edges require both
-  components active.
-- **Component 3's witness re-validation across descent** uses Component
-  5's lineage. A team using Component 3 without Component 5 would have
-  flat immunity claims with no propagation.
-- **Component 2's audit-tier-honesty** depends on Component 3's witness
-  types being declared. Without witnesses, audit has nothing to evaluate.
-
-These dependencies are real but small. The architecture is *primarily*
-compositional, with a few cases where one component's full value lands
-only with another component active.
+These dependencies are real but small. Architecture is primarily
+compositional, with cases where one component's full value lands only
+with another active.
 
 ### Extend-not-replace at the component level
 
-Each component *extends* a baseline practice without *replacing* it.
+Each component *extends* a baseline practice without *replacing* it:
 
-- Component 1 extends developer judgment without replacing it (the macros
-  give judgment a vocabulary, not a substitute).
-- Component 2 extends manual code review without replacing it (the
-  scanner catches what review can't, doesn't substitute for review).
-- Component 3 extends testing without replacing it (witnesses link to
-  tests; they don't replace what tests do).
-- Component 4 extends knowledge management without replacing it (the
-  references point to existing artifacts; they don't replace the
-  artifacts).
-- Component 5 extends version-management without replacing it (lineage
-  tracks failure-class evolution alongside the existing semver / changelog
-  practice).
-- Component 6 extends ecosystem coordination without replacing it
-  (antigen-stdlib augments existing crates.io / docs.rs / RFCs
-  ecosystem).
+- C1 extends developer judgment.
+- C2 extends manual code review.
+- C3 extends testing.
+- C4 extends knowledge management.
+- C5 extends version management.
+- C6 extends ecosystem coordination.
+- C7 extends PR review.
 
-The architectural property *is* the extension at each level. Antigen
+The compositional property *is* the extension at each level. Antigen
 doesn't compete with any practice; it extends each practice with a
 structural-memory layer specific to that practice's failure modes.
 
 ---
 
-## Part IV: The architectural properties
+## Part V: Architectural properties
 
 ### Heterogeneous recursion
 
-The compositional property recurses through all scales. The mechanisms
-at each scale do not.
+The compositional property recurses through all scales. The mechanisms at
+each scale do not.
 
-- At the project-vs-ecosystem scale, antigen extends Rust without
-  replacing it; the project-tier mechanism is different from the
-  ecosystem-tier mechanism, but the compositional property is the same.
-- At the antigen-vs-practice scale, antigen extends testing / docs /
-  ADRs / etc. without replacing them; the mechanisms differ wildly, but
-  the compositional property is the same.
-- At the tool-vs-discipline scale (within antigen), tooling extends
-  discipline without replacing it; mechanisms differ, property is the
-  same.
-- At the component-vs-component scale (within antigen tooling and
-  discipline), components extend each other without replacing each other;
-  mechanisms differ, property is the same.
-- At the framing-vs-framing scale (in communication), the three
-  manuscript framings extend each other without replacing each other;
-  mechanisms differ (different audiences, different abstraction levels),
-  property is the same.
+Helper T cell ≠ macrophage ≠ NK cell ≠ B cell ≠ complement system ≠ MHC
+class I ≠ MHC class II. Each is wildly different in biology. Yet all
+participate in one architectural class. The property
+*structural-memory-without-going-stale* recurses through all of them. The
+mechanisms don't.
 
-The property: *extend-not-replace through composition under a shared
-vocabulary protocol.*
-
-The mechanisms: *wildly different at each scale — different cells,
-different signals, different time-courses, different anatomical
-locations (in biology) / different file types, different team practices,
-different tools, different abstraction levels (in software).*
-
-This is genuinely how biological immune systems compose. Helper T cells,
-NK cells, antibodies, MHC, complement, macrophages — different mechanisms,
-shared protocol (MHC presentation + cytokine signaling), unified
-architectural class (recognition-with-memory-and-inheritance).
+Antigen-the-project mirrors this: heterogeneous components (C1-C7)
+cooperating under the shared protocol (the vocabulary), unified
+architectural class (structural failure-class memory).
 
 ### Structural-tier vs. maintenance-tier
 
-Tests, documentation, ADRs, sprint planning, knowledge wikis, Slack —
-these are all **maintenance-tier** practices. Their currency depends on
-ongoing team effort. As soon as code evolves past them, they're stale
-until the team updates them.
+Tests, documentation, ADRs, sprint planning, knowledge wikis, Slack — all
+**maintenance-tier** practices. Their currency depends on ongoing team
+effort. Stale as soon as code evolves.
 
-Antigen operates at **structural-tier**. Its currency is enforced by the
-same machinery that enforces type-checking. When fingerprints fail to
-match, the antigen surface *notices* — not because someone updated a doc,
-but because the structural memory and the structural reality diverged
-and the compiler/scanner sees it.
+Antigen operates at **structural-tier**. Currency enforced by the same
+machinery that enforces type-checking. When fingerprints fail to match,
+the antigen surface notices — not because someone updated a doc, but
+because structural memory and structural reality diverged and the
+compiler/scanner sees it.
 
-This is the architectural property Tekgy named:
-
-> "It's the structural failure-class memory stuff but also it's a WAY to
-> keep low context, high value, always accurate lifecycle/evolution/
-> intent/design/architecture/connection/tracing/etc."
-
-The *always accurate* property comes from antigen being structurally
-present in the code, with currency enforced by the compilation/scan
-machinery. The other components extend this property in different
-directions:
-
-- Component 1's declarations stay current because they're in the code
-  alongside what they describe.
-- Component 2's scan surfaces drift immediately when the structural
-  memory and reality diverge.
-- Component 3's witness-tier reporting catches when verification claims
-  exceed actual verification work.
-- Component 4's references *can* go stale (this is where maintenance-tier
-  re-enters), but the antigen they're attached to stays structurally
-  current.
-- Component 5's lineage cycles get caught structurally; orphan-lineage
-  edges get surfaced structurally.
-- Component 6's canonical_path identity catches cross-crate
-  collisions structurally.
-
-The components vary in how much they extend the structural-tier property
-into adjacent practices. Component 4 (references) is the most
-maintenance-tier-prone; Components 1, 2, 5, 6 are most structural-tier.
+The components vary in how much they extend this property:
+- C1, C2, C5, C6, C7 are most structural-tier.
+- C4 has maintenance-tier elements (references can go stale; tooling
+  doesn't yet validate them); but the antigen they're attached to stays
+  structurally current. Honest-boundary at the references-side.
+- C3 inherits test-suite's maintenance-tier discipline but enforces
+  audit-tier-honesty structurally.
 
 ### Co-native with human and LLM collaborators
 
-The vocabulary is designed to be readable by both kinds of collaborators
-without translation. No specialized syntax that requires expert
-interpretation; no jargon-encrusted convention; no implicit knowledge
-required to parse declarations.
+The vocabulary is readable by both kinds of collaborators without
+translation. Biology metaphor is universal lived experience for humans;
+unambiguous semantic cognate for LLMs. Macro syntax follows existing Rust
+attribute conventions. Audit report is structured data; humans read
+human-readable version; LLMs consume JSON.
 
-This is structural, not stylistic:
+The co-native property is what makes encounters-the-discipline work in
+mixed-collaboration teams. Future versions of any team-member (human or
+LLM) inherit failure-class memory by reading what's already in the code.
 
-- The biology metaphor is universal lived experience for humans (everyone
-  has an immune system; everyone has had infections and recoveries).
-- The biology metaphor is unambiguous structural cognate for LLMs (clean
-  semantic structure; no project-specific jargon; consistent across the
-  vocabulary).
-- The macro syntax follows existing Rust attribute conventions; humans
-  read it like other Rust attributes; LLMs read it like other Rust
-  attributes.
-- The audit report is structured data (`ScanReport`); humans read the
-  human-readable version; LLMs consume the JSON. Both surfaces convey the
-  same information.
+**Co-native creates its own attack surface (C4 finding)**: LLMs both
+generate and consume references; hallucinated URLs look calibrated-to-
+plausible to other LLMs. This is registered as encounter-tier substrate
+(adversarial A5 governance finding).
 
-The co-native property is what makes encounters-the-discipline work in a
-mixed-collaboration team. Future versions of any team-member (human or
-LLM) can inherit failure-class memory by reading what's already in the
-code. The vocabulary is the bridge.
+### Honest-boundary as encounter-registration (discipline)
 
----
+Every "X is out of scope" statement is a first-encounter registration,
+not a terminal declaration.
 
-## Part V: Open enumeration — what we haven't named
+When we declare honest boundaries (cargo-level attacks out of scope per
+ADR-017 trust-scope amendment; cross-crate witness execution gap per
+ADR-005 Amendment 3 amendment; LLM-hallucinated-reference attack surface;
+immunity-laundering-via-newtype; antigen-stdlib trust-hierarchy
+single-point-of-failure), we are *noticing* something current antigen
+can't handle. That noticing IS the first encounter.
 
-The 6 components are provisional. The team should expect to find more as
-the project matures. Some candidates worth watching:
+The discipline:
+1. Make the boundary statement explicit (ADR amendment or equivalent).
+2. *Also* register the bounded-thing as an encounter.
+3. Periodically revisit: is there a structural-memory or immune-system-
+   component answer we haven't seen yet?
+4. If yes, the encounter promotes to V0+1 candidate or to a sweep-scope
+   work item.
+5. If no, the encounter stays in the catalog as a registered known-unknown.
 
-### Candidate component: Real-time / CI feedback immunity
+Today's substrate produced five such encounters:
+- Cargo-level attacks (CARGO_HOME override, Cargo.lock manipulation,
+  registry cache tampering)
+- Cross-crate witness execution gap
+- LLM-hallucinated references in co-native design
+- Immunity laundering via newtype (downstream-trust-without-independent-
+  verification)
+- antigen-stdlib trust hierarchy single-point-of-failure
 
-The current passive scan (Component 2) operates at build-time. A potential
-component is *real-time* recognition during PR review: surfacing antigen-
-surface diffs per PR; flagging when a PR touches a vulnerable site marked
-`#[presents]`; surfacing fingerprint matches against unmarked changes.
+The pattern of "honest-boundary as encounter-registration" is itself a
+candidate posture eventually (three or more recurrences of the pattern
+across vocabulary). For now: registered as discipline, watched for shape
+stability.
 
-This is *operationally distinct* from passive scan because the audience
-is different (the PR reviewer in-the-moment), the latency requirement is
-different (sub-second vs build-time), and the integration surface is
-different (GitHub/GitLab/etc. webhooks vs cargo subcommand).
+### The manifold property (V1 substrate)
 
-If this is a 7th component, it would map to *neutrophil response* in
-biology — the rapid, sub-acute response to acute injury / pattern
-detection.
+The enumeration's structure has structure. Tier-structure (biology-tier
+vs engineered-boundary tier) is one axis. Other axes may exist
+(production-vs-consumption, static-vs-dynamic, individual-vs-population,
+implicit-vs-explicit). Future-instances of the team finding new axes is
+expected.
 
-[SCOUT: investigate. Is this its own component or is it Component 2
-operating at a different latency tier?]
+Recognition-not-design at the meta-meta level: hold the enumeration open
+in *shape*, not just in *count*. The structure of the structure has
+structure. Don't lock prematurely.
 
-### Candidate component: Cross-team / organizational immunity
-
-Beyond cross-crate (Component 6), there's an *organizational* tier where
-teams within an organization share antigens not via crates.io but via
-internal registries, internal ADR conventions, internal knowledge bases.
-This is *between* Component 6 and the per-team Component 1 — neither
-fully ecosystem nor fully per-project.
-
-[SCOUT: investigate. Are teams adopting antigen across organizational
-boundaries doing something distinct from the cross-crate cargo mechanism?]
-
-### Candidate component: Adversarial / red-team immunity
-
-The adversarial discipline that finds antigen attack surfaces (currently
-tracked through ATK-* contracts) is itself a form of immunity production
-— but at a different level than the dev-judgment Component 1. The
-adversarial component *attacks* the antigen surface to surface weakness,
-which is closer to *T-cell memory testing* in biology (the body's
-deliberate maintenance of immune readiness through occasional re-exposure).
-
-[ADVERSARIAL: investigate. Is your role's discipline (Phase 8 forced-
-rejection, ATK contract authoring) its own immune-system component, or
-is it discipline that operates *within* Component 1 (dev-judgment)?]
-
-### Candidate component: Educational / onboarding immunity
-
-The discipline by which new team members (human or LLM) learn the
-team's failure-class taxonomy through reading antigen declarations is
-itself a form of immunity propagation. Cognate to *adaptive immune
-education* in the thymus — T-cell maturation, negative selection,
-acquisition of repertoire. The educational component is how new
-collaborators *acquire* the team's accumulated antigen surface.
-
-[NATURALIST: investigate. Is onboarding a distinct component or is it
-the natural propagation property of Components 1 + 4 working together?]
-
-### Other candidates worth watching
-
-- **Decay / sunset immunity**: antigens that should be retired because
-  their underlying failure-class no longer applies (the language evolved,
-  the dependency changed, the platform deprecated the API).
-- **Cross-language immunity**: antigen-the-vocabulary extending beyond
-  Rust to other languages with similar memory-safety / type-system
-  primitives.
-- **Cross-organism immunity**: antigen-the-vocabulary extending beyond
-  software to other engineering disciplines (hardware design, control
-  systems, financial systems, biology research workflows).
-
-These are speculative. They surface here as substrate for the team to
-notice if/when they recur in real instances.
+This is consistent with the contact-graph framework in antigen substrate
+(3-tier × 7-mode matrix as manifold of recognition relationships).
+Multi-component immunity may also be a manifold; tier-structure is one
+slice.
 
 ---
 
-## Part VI: What this changes
+## Part VI: Open enumeration — what we haven't named
+
+Scout's rulings on V0 candidates:
+
+- **Real-time / CI feedback** → CONFIRMED as Component 7 (load-bearing-
+  not-decorative test passed).
+- **Cross-team / organizational tier** → Component 6 at different
+  registry backend; feeds ADR-017 OQ1; not a new structural component.
+- **Adversarial discipline** → meta-component feeding C3; no direct
+  vocabulary primitives; not peer.
+- **Educational / onboarding** → vocabulary property (co-native
+  readability), not component.
+- **Decay / sunset** → vocabulary gap (no "retired antigen" primitive),
+  not new component. Encounter-tier or future ADR territory.
+
+Other candidates still worth watching (open per recognition-not-design):
+
+- **Cross-language tier**: antigen-vocabulary extending beyond Rust.
+  Engineered-boundary tier (other languages have different proc-macro /
+  attribute mechanisms).
+- **Cross-organism tier**: extending beyond software (hardware, control
+  systems, financial systems).
+- **Population-level governance**: distributed stdlib trust, multi-
+  maintainer attestation, threshold signatures (A5 governance encounter).
+- **Reference-validation tier**: separate component for validating
+  references resolve / detecting fabrication / detecting LLM
+  hallucination (C4 attack-surface encounter).
+
+Decay/sunset as vocabulary gap — could be addressed by either:
+- A new vocabulary primitive (`#[antigen_retired(rationale = ...)]`)
+- An extension of `#[antigen_tolerance]` semantics
+- A separate ADR
+
+To be ratified per encounters discipline once instances accumulate.
+
+---
+
+## Part VII: What this changes
 
 ### Adoption framing
 
-The "adoption flywheel" reframes around component selection rather than
-engagement-intensity. Not "how engaged is this team with antigen?" but
-"which immune-system components has this team composed?"
-
-Marketing / vision-pitch implications:
-
-- Lead with the vocabulary (the spine) — not with the tool.
-- Show the floor concept ("antigen catches failure-class memory") first.
-- Reveal the components progressively for audiences that want to compose.
-- Don't insist on full-fabric adoption; the floor-mode is genuinely
-  valuable on its own.
+Not "how engaged is this team with antigen?" but "which immune-system
+components has this team composed?" Marketing / vision-pitch:
+- Lead with vocabulary (the protocol layer).
+- Show floor concept first.
+- Reveal components progressively.
+- Don't insist on full-fabric adoption.
 
 ### Manuscript framing
 
-Three coexisting framings at three abstraction levels (per Tekgy's
-"both can work" ratification):
+Three coexisting framings at three abstraction levels (Tekgy's
+"both-can-work"):
+- **"Antigen catches failure-class memory"** — floor concept; v0.1.0
+- **"Antigen composes multiple kinds of structural immunity"** — V0.2.0+
+- **"Antigen is a vocabulary-as-protocol with a fabric of immune-system
+  components"** — paradigm-shift framing; post-A6
 
-- **Tool paper / v0.1.0 release**: "antigen catches failure-class memory"
-- **Foundational paper / v0.2.0+**: "antigen composes multiple kinds of
-  structural immunity in your codebase"
-- **Paradigm-shift paper / post-A6**: "antigen is a vocabulary with a
-  fabric of immune-system components; structural failure-class memory is
-  a new tier of software-engineering practice"
-
-The manuscript trajectory is *layered*, not sequenced. Each layer has its
-audience; each layer's substrate accumulates at its own rate.
+Manuscript trajectory is layered, not sequenced.
 
 ### scope.md / vision-pitch.md updates
 
-Both documents currently describe antigen primarily through the
-"failure-class memory" framing. They should be extended (not replaced)
-with the multi-component framing. Suggested cuts:
-
-- `scope.md` vision section: add a "components fabric" subsection after
-  the four-window convergence framing.
-- `scope.md` adoption section: reframe adoption-ergonomics in terms of
-  component selection rather than engagement.
-- `vision-pitch.md`: keep the failure-class memory framing as the first
-  paragraph. Add a multi-component paragraph after it. Add a "where you
-  start, and where you can grow" component-fabric paragraph.
-
-These edits land *after* this deep-dive ratifies; not in the same commit
-as this draft.
+Both should be extended (not replaced) with the multi-component framing
+*after* this deep-dive ratifies. Suggested:
+- scope.md vision: add components-fabric subsection after four-window
+  convergence.
+- scope.md adoption: reframe adoption-ergonomics in component-selection
+  terms.
+- vision-pitch.md: keep failure-class-memory framing first paragraph;
+  add multi-component paragraph; add "where you start, where you can
+  grow" paragraph.
 
 ### Project trajectory implications
 
-If the multi-component framing holds through team Phase 1-8, several
-follow-on substrate updates make sense:
+If multi-component framing holds through Phase 1-8:
+- `glossary.md`: add "component" + each component as vocabulary terms;
+  add "tier-structure" + "engineered-boundary" terms.
+- `README.md`: extend project description with components-fabric framing.
+- Future sweep planning around component-tier capabilities (A5 = C6
+  ecosystem-tier; future sweep for C7 real-time/CI; future sweep for
+  cross-language tier).
+- Encounters-tier substrate: each component is an encounter site;
+  honest-boundary statements become encounter-registrations.
 
-- `glossary.md`: add "component" as a vocabulary term, with each of the 6
-  components defined.
-- `README.md`: extend the project description with the components fabric
-  framing.
-- Future sweep planning: A4 / A5 / A6 sweeps can be planned around
-  component-tier capabilities (e.g., A5 = antigen-stdlib = Component 6
-  ecosystem-tier work; future sweep for CI/real-time = candidate
-  Component 7).
-- Encounters-tier substrate (when ratified): each component is a candidate
-  *encounter site* — instances of the component's operation that future-
-  encounters should recognize.
+### Aristotle's pending amendment queue (post-ratification of THIS doc)
+
+Five amendment items consolidated for aristotle's next pass:
+1. ADR-018 prose: diamond dedup mechanism (pathmaker)
+2. ADR-017 prose: workspace-internal exclusion in §Mechanics (scout)
+3. ADR-017 prose: diamond dedup same-version case (scout)
+4. ADR-017 NEW: trust-scope statement (cargo-level attacks out of
+   scope) (adversarial)
+5. ADR-018 / ADR-005 Amendment 3 NEW: cross-crate witness tier defaults
+   to ExternalUnvalidated unless consuming workspace can execute
+   (adversarial)
+
+Items 4-5 are architectural amendments (not just prose). Both are
+honest-boundary moves — making explicit what the project does NOT claim
+to defend against. Should be paired with encounter-registration per
+discipline above.
 
 ---
 
-## Open questions for team Phase 1-8
+## Open questions for aristotle's Phase 1-8
 
-Q1. **Enumeration coherence**: are these 6 components really *one
-abstraction at different scales*, or are some of them at categorically
-different abstraction levels than others? Specifically: is Component 4
-(knowledge-ecosystem) at the same abstraction level as Component 2
-(passive scan), or is Component 4 a *higher* tier that operates *on*
-Components 1-3-5-6?
+(Updated from V0; Q1 has substrate-grounded answer.)
 
-Q2. **Biology-cognate sharpness**: Component 4 (knowledge-ecosystem) has
-the loosest cognate. Is there a sharper biology analog, or is this where
-biology goes silent (boundary-silence-as-evidence per naturalist's
-discipline)?
+Q1. *RESOLVED (provisional)*: enumeration is layered (one axis among
+potentially many). Biology-tier: C1, C2, C3, C5, C6, C7. Engineered-
+boundary tier: C4. Manifold-framing: other axes may exist.
 
-Q3. **Component dependencies**: the doc says "almost independent" but
-lists three real dependencies (5+6 via canonical_path; 3 propagation via
-5; 2 audit-tier-honesty via 3). Are there more? Should some of these be
-classified differently — e.g., Component 5 as a meta-component that
-operates within Components 1-3?
+Q2. **Biology-cognate sharpness across components**: V0 listed loose
+cognates for C1-3 and C6; naturalist's expansion pass is in flight at
+idle cadence. What's the Phase 1-8 verdict on cognate-tightness across
+biology-tier components? Should the deep-dive cite specific cognates as
+load-bearing or hold them as substrate-watch?
 
-Q4. **Real-time / CI feedback**: is this a 7th component or is it
-Component 2 at a different latency tier?
+Q3. **Component dependencies**: are C2→C7, C5→C6, C3→C5, C2→C3 the only
+real dependencies? Or are there more? Should some dependencies be
+classified differently (e.g., C5 as meta-component operating within
+others)?
 
-Q5. **Adversarial discipline**: is the team's adversarial role's work
-(Phase 8 forced-rejection, ATK contract authoring) its own component
-or is it discipline operating within Component 1?
+Q4. **C7 cognate**: neutrophil cognate is V1 proposal. Confirm or refine.
 
-Q6. **Educational / onboarding**: is this a component or is it a
-property of the vocabulary itself (the co-native readability)?
+Q5. **Decay/sunset vocabulary gap**: separate primitive vs extension of
+existing tolerance vs separate ADR? Phase 1-8 the options before
+encounters-discipline ratifies the encounter.
 
-Q7. **Trade-offs of the multi-component framing**: does this framing
-make the project harder to explain to first-time audiences? Does the
-"floor / ceiling" framing serve better for first-contact, with the
-multi-component framing held for audiences who need more depth?
+Q6. **"Engineered-substrate-exceeds-biology at honest boundaries"
+family**: three instances (W7, ADR-017, C4); ADR-006 threshold met. Is
+this a candidate posture-class? Or encounters-tier first-recognition
+pending more instances?
 
-Q8. **Stability of the enumeration**: should the team commit to "six
-components in v1, with a clear extension mechanism" or stay genuinely
-open with the enumeration provisional? Recognition-not-design suggests
-staying open; communication clarity suggests at least naming what's
-stable vs. provisional.
+Q7. **"Honest-boundary as encounter-registration" discipline**: Tekgy's
+2026-05-11 framing. Is this a candidate posture-class? Or part of the
+encounters-discipline itself?
 
-Q9. **Cross-language extension**: does the multi-component framing
-break when antigen's vocabulary extends beyond Rust? Are some
-components Rust-specific (e.g., proc-macro-based Component 1)?
+Q8. **Manifold structure of enumeration**: how should the deep-dive
+treat the open-in-shape property? As an explicit V0+1 candidate? As a
+posture? As a property of recognition-not-design at meta-meta level?
+
+Q9. **Cross-language extension**: does multi-component framing break
+when antigen extends beyond Rust? Some components are Rust-specific
+(C1's proc-macros); others (C4 references, C6 trust delegation) may be
+language-agnostic. Phase 1-8 the question.
+
+Q10. **C4 within-engineered-boundary cognates**: V1 names library science,
+academic integrity, info-warfare. Naturalist asked: are there sharper
+cognates (academic publishing, legal precedent citation)? Worth Phase 1-8
+treatment.
+
+Q11. **Component 7 attack surface**: deep-dive flags as least-mapped.
+Adversarial wants to extend the threat model; Phase 1-8 should surface
+what's missing before A4+ scope-lock.
+
+Q12. **Manifold axes worth surfacing**: production-vs-consumption,
+static-vs-dynamic, individual-vs-population, implicit-vs-explicit. Are
+these real axes or convenient analytic cuts? Phase 1-8 deconstructs.
 
 ---
 
 ## What this document is NOT
 
-To prevent scope creep:
-
-- **Not a ratified framing**. This is a deep-dive draft for team
-  Phase 1-8. The framing here may be substantially modified or refined.
-- **Not a replacement for existing framings**. Per the conversation
-  substrate, the failure-class-memory framing remains valid; this
-  extends it for different audiences.
-- **Not an implementation roadmap**. Components are an architectural
-  framing, not a development plan. The team's current sweep plan
-  (A3 → A4 → A5) continues per existing process.
-- **Not authoritative on biology**. The biology cognates are my best
-  read; naturalist's refinements supersede where they conflict.
-- **Not exhaustive on attack surface**. The adversarial seams are
-  flagged for adversarial-role expansion; what's here is my best
-  read, not a comprehensive threat model.
+- Not a ratified framing. V1 draft for team Phase 1-8.
+- Not a replacement for existing framings. Per "extend-not-replace at
+  the framing level," failure-class-memory framing remains valid as
+  floor.
+- Not an implementation roadmap. Components are architectural framing,
+  not development plan.
+- Not authoritative on biology. Naturalist refinements supersede where
+  they conflict.
+- Not exhaustive on attack surface. Adversarial seams flagged; what's
+  here is best-read, not comprehensive threat model.
+- Not the final shape of the enumeration. New components, new axes,
+  new tiers may surface.
 
 ---
 
 ## Acknowledgments
 
-This deep-dive draft processes the substrate of the 2026-05-11
-conversation between Tekgy (Christopher Averill) and team-lead (Claude
-Opus 4.7), preserved verbatim at
-`multi-component-immunity-conversation.md`. The framing emerged in
-dialogue; this document is one step of processing it into project
-substrate.
+V1 processes substrate from:
+- 2026-05-11 conversation between Tekgy and team-lead
+  (`multi-component-immunity-conversation.md`)
+- Scout's empirical pass: ADR-017/018 verification + Component 7
+  promotion + vocabulary-as-protocol sharpening + candidate rulings +
+  ADR-017 Amendment 1 candidates
+- Naturalist's C4 boundary-silence finding + tier-structure framing +
+  "engineered-substrate-exceeds-biology" family naming
+- Adversarial's multi-component threat model: 8 findings + 5 amendment
+  candidates + four A4+ contracts (committed 6b8c527) + A5 governance
+  findings (held)
+- Pathmaker's A3 implementation closure (commit 937fa0d, 235 tests
+  passing) — the real-substrate grounding that this framing describes
 
-The team's parallel work during this same period — antigen-A3
-implementation completing through commit 937fa0d, 235 tests passing —
-provides the real-substrate grounding that this framing describes.
-Multi-component immunity isn't speculative architecture; it's the shape
-of what's actually been built and is being built.
+Tekgy's V1-decisive framings:
+- "Out-of-scope is first-encounter registration, not terminal
+  declaration"
+- "Could be flat and layered at the same time. Or multi-layered at
+  each layer. Not a line but a manifold, or many manifolds. Who knows."
 
 The recursion continues. There is no fixed point. We may find more
-components as we keep recursing. The enumeration is open.
+components as we keep recursing. The enumeration is open in shape, not
+just in count.
 
-*V0 authored 2026-05-11 by team-lead for antigen-A3 substrate. Open for
-team Phase 1-8 + biology-cognate refinement + attack-surface analysis +
-additional-component discovery. Subject to revision; not yet project-tier
-substrate.*
+*V1 authored 2026-05-11 by team-lead after team expansion pass and
+Tekgy ratification of revise-cleanly approach. Open for aristotle Phase
+1-8 + further naturalist refinements + adversarial-threat-model
+extension as candidate components surface + manifold-axis exploration.
+Subject to revision; not yet project-tier substrate.*
