@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V24 (2026-05-11, onboarding sweep activated: required-before-tag posture ratified; proposal substrate landed; two substrate-currency flags for aristotle Phase 1-8).
+> **Status**: V25 (2026-05-11, Phase 1 progress: CLI hide done; where-to-look-for-antigens.md committed; scout at creative-freedom; aristotle Phase 1-8 pending).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -158,10 +158,10 @@ actually exists now before documenting it.
 Team-lead leans A3.5 for continuity; no strong preference.
 
 **Phase 1 (scope-lock + foundation)**:
-- Aristotle: Phase 1-8 this proposal (bandwidth opening)
-- Pathmaker: hide `new`/`vaccinate` from CLI help
-- Team-lead: README rough draft (parallel; doesn't depend on scope-lock)
-- Scout: usage-patterns.md continuation
+- Aristotle: Phase 1-8 this proposal (bandwidth opening) — pending
+- Pathmaker: hide `new`/`vaccinate` from CLI help — **DONE** (ce75896, 2026-05-11)
+- Team-lead: README rough draft (parallel; doesn't depend on scope-lock) — in progress
+- Scout: usage-patterns.md continuation — DONE (seeded; `where-to-look-for-antigens.md` added 2026-05-11, closes gap #9)
 
 **Downstream**: `docs/usage-patterns.md` already seeded (scout, 2026-05-11).
 `docs/roadmap.md`, `docs/tutorial.md`, `docs/fingerprint-grammar.md`,
