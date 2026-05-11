@@ -18,16 +18,13 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V8 (2026-05-10, naturalist C4 finding + Q1 provisional answer).
-> V1: D1.5 active, ATK reframes unblocked, encounters tracked.
-> V2: encounters entry updated with three Tekgy framings; routing-stream-overtaken-by-events added.
-> V3: ATK-A3-007 + ATK-A3-009 rows removed (complete, 2026-05-10).
-> V4: A3-immediate section closed — D1.5 complete (commits 2eb8bec–b7712df, 235 passing).
-> V5: multi-component immunity framing added (active, team-lead producing); ADR-018 Amendment 1 added.
-> V6: multi-component substrate committed (ca812de); active team routing recorded per-role.
-> V7: scout findings landed — Component 7 confirmed, amendments consolidated.
-> V8: naturalist C4 boundary-silence confirmed (instrument-mode); Q1 provisional answer: layered;
-> aristotle Phase 1-8 holds pending team-lead/Tekgy ratification of layered framing.
+> **Status**: V9 (2026-05-10, adversarial threat model complete; 5-item amendment queue; 2 A5 governance findings).
+> V1-V4: D1.5 + A3-immediate closure.
+> V5-V6: multi-component substrate committed + team routing active.
+> V7: scout — Component 7 confirmed, 3 ADR prose gaps.
+> V8: naturalist C4 boundary-silence (instrument-mode); Q1 provisional answer: layered.
+> V9: adversarial complete — ADR amendment queue expanded to 5 items (2 substantive pre-rc.1);
+> 4 A4+ contracts filed (adversarial); 2 A5 governance findings held in campsite.
 
 ---
 
@@ -236,33 +233,43 @@ These are watched per their own thresholds; not duplicated here.
 Substrate explicitly deferred to A4+ or post-A5 by ratified ADRs or
 team-lead rulings.
 
-### Consolidated ADR prose amendments (aristotle, when idle)
+### Consolidated ADR amendments (aristotle, when idle — 5 items)
 
-Three small prose gaps, consolidated into one aristotle pass:
+Five items in one aristotle pass. Items 1-3 are prose drift; items 4-5 are
+substantive gaps that should land before v0.1.0-rc.1.
 
-**ADR-018 Amendment 1a — diamond dedup mechanism**: §Mechanics says "second-
-visit triggers set-union" but implementation uses per-DFS-source `visited:
-HashSet`; each ancestor visited once per descendant DFS; dedup key prevents
-cross-DFS duplicates. One paragraph. Source: pathmaker D1.5 flag.
+**ADR-018 Amendment 1a — diamond dedup mechanism** (prose drift): §Mechanics
+says "second-visit triggers set-union" but implementation uses per-DFS-source
+`visited: HashSet`. Source: pathmaker D1.5 flag.
 
-**ADR-018 Amendment 1b — same-version true-diamond**: cross-version case
-(different dedup keys → two presentations) is stated; same-version true-
-diamond case (same dedup key → collapses correctly) is not. One sentence.
-Source: scout empirical verification 2026-05-10.
+**ADR-018 Amendment 1b — same-version true-diamond** (prose drift): cross-
+version case stated; same-version collapse case not. Source: scout 2026-05-10.
 
-**ADR-017 Amendment 1 — workspace-internal exclusion**: `enumerate_dep_crate_roots`
-implicitly excludes workspace-internal crates (`source: null` in cargo metadata);
-should be explicit contract in §Mechanics. One sentence. Source: scout
-empirical verification 2026-05-10.
+**ADR-017 Amendment 1a — workspace-internal exclusion** (prose drift):
+`enumerate_dep_crate_roots` implicitly excludes workspace-internal crates
+(`source: null`); should be explicit contract. Source: scout 2026-05-10.
 
-**Where they live**: `docs/decisions.md` §ADR-017 §Mechanics; §ADR-018
-§Mechanics; scout campsite `20260510-adr-017-018-empirical-verification-and-component-candidates.md`.
+**ADR-017 Amendment 1b — trust scope statement** (substantive, pre-rc.1):
+ADR-017 doesn't state that cargo-level attacks (CARGO_HOME override, Cargo.lock
+manipulation, registry cache tampering) are out of antigen's trust scope. A
+consumer could over-read the guarantee. One sentence needed. Source: adversarial
+threat model 2026-05-10.
 
-**Unblocked by**: aristotle bandwidth. Low priority — all behavioral gaps are
-covered by acceptance tests; these are documentation drift, not behavioral gaps.
+**ADR-018 / ADR-005 Amendment — cross-crate witness tier** (substantive, pre-rc.1):
+`witness = dep_crate::some_test` cannot be executed by consuming workspace;
+`ExecutionVerified` would violate ADR-005 Amendment 3 tier-honesty. Cross-crate
+witnesses default to `ExternalUnvalidated` unless consuming workspace can run
+them. Enforcement A4-A5; rule named now. Source: adversarial threat model
+2026-05-10.
 
-**Owner when active**: aristotle drafts all three in one pass → process.md
-Stage 3-6 (minor amendments, no Phase 1-8 required for prose clarifications).
+**Where they live**: `docs/decisions.md`; scout campsite
+`20260510-adr-017-018-empirical-verification-and-component-candidates.md`;
+adversarial campsite `20260510-multi-component-threat-model.md`.
+
+**Unblocked by**: aristotle bandwidth + team-lead awareness (already
+established for items 4-5). Items 4-5 should land before v0.1.0-rc.1 tag.
+
+**Owner when active**: aristotle drafts all five → process.md Stage 3-6.
 
 ### A4+ substrate accumulating
 
@@ -300,6 +307,30 @@ in adoption.
 **Unblocked by**: deferred to v0.2 (per A2 close).
 
 **Owner when active**: pathmaker.
+
+### A5 governance findings (adversarial, 2026-05-10)
+
+Two governance-level findings from adversarial's multi-component threat model
+pass. Both need A5 ADR treatment.
+
+**Antigen-stdlib trust hierarchy**: ecosystem-wide immunity declarations
+(a compromised antigen-stdlib maintainer could declare `#[immune(X)]` on
+types throughout the ecosystem, suppressing local presentations without local
+opt-in). Single-point-of-failure risk. Requires A5 ADR governance model for
+stdlib-tier declarations.
+
+**LLM-as-both-generator-and-consumer**: LLMs generate references they'll
+later trust. Hallucinated URLs look calibrated-to-plausible but reliably 404.
+Co-native design problem: antigen is designed to be readable by LLM collaborators,
+but that same collaborator may have generated the reference in an earlier session.
+Needs co-native design consideration in how references are validated / annotated.
+
+**Where it lives**: adversarial campsite
+`20260510-multi-component-threat-model.md`.
+
+**Unblocked by**: A5 scope-lock.
+
+**Owner when active**: adversarial seeds → aristotle Phase 1-8 → ADR.
 
 ---
 
@@ -412,3 +443,10 @@ elsewhere in immune-system-primitive-map.md). Q1 provisional answer: layered
 not flat — C4 is knowledge-ecosystem-tier, C1-2-3-5-6 are biology-tier. C4
 joins W7/ADR-017 honest-boundary family. Aristotle Phase 1-8 holds pending
 team-lead + Tekgy ratification of layered framing decision.*
+
+*V9 updated 2026-05-10 by navigator: adversarial multi-component threat model
+complete. ADR amendment queue expanded from 3 to 5 items; items 4-5
+(ADR-017 trust scope + cross-crate witness tier) are substantive and pre-rc.1.
+Four A4+ pre-impl contracts filed by adversarial in atk_a3_fractal_preview.rs.
+Two A5 governance findings (stdlib trust hierarchy, LLM co-native design)
+held in adversarial campsite.*
