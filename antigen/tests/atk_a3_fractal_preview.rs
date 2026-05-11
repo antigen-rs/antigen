@@ -440,59 +440,68 @@ fn atk_a3_006_orphan_edge_canonical_path_false_resolution() {
 // ============================================================================
 // ATK-A3-007: fake registry path bypasses cross-crate trust delegation
 //
-// ADR-017 Enforcement §4 names this adversarial fixture explicitly.
-// The trust delegation model:
-//   1. Path reachable from `cargo metadata` resolution graph.
-//   2. Path matches expected registry layout (`<index>/<crate>-<version>/`).
+// REFRAMED (post-ADR-017 ratification, 2026-05-09): the trust boundary is at
+// `enumerate_dep_crate_roots`, not at `scan_workspace`. The original contract
+// targeted the wrong layer.
 //
 // Attack: create a directory at
 //   `.cargo/registry/src/<fake-index>/implausible-crate-9.9.9/`
 // containing a valid-looking `lib.rs` with `#[antigen]` declarations.
-// This directory passes the layout check (correct `<index>/<crate>-<version>/`
-// shape) but is NOT present in `cargo metadata` output (not a real resolved
-// dependency).
-//
-// If the scanner trusts layout check alone and skips the metadata-reachability
-// check, the fake antigen file is ingested and processed. A malicious dev
-// environment or compromised `.cargo/registry/` could inject antigens that
-// appear to the scan as real cross-crate declarations.
+// This directory passes the registry layout check but is NOT listed in the
+// workspace's Cargo.toml dependencies and therefore NOT reachable from
+// `cargo metadata`.
 //
 // The attack is distinct from cargo's supply-chain checksum verification —
 // cargo verifies the integrity of packages it FETCHED; it says nothing about
-// files planted manually in the registry directory after fetch.
+// files planted manually in the registry directory afterward.
 //
-// Impact: false injected antigens appear as real cross-crate declarations;
-// immunity claims against the injected antigens suppress legitimate
-// unaddressed-presentation warnings; audit reports become unreliable.
+// Impact: if a caller bypasses `enumerate_dep_crate_roots` and passes the
+// fake path directly to `scan_workspace`, injected antigens appear as real
+// cross-crate declarations. Immunity claims against them suppress legitimate
+// unaddressed-presentation warnings.
 //
-// Contract: `cargo antigen scan --include-deps` must:
-//   (a) skip paths not reachable from `cargo metadata` resolution graph,
-//   (b) emit a parse_failure noting the skipped-unreachable-registry-path.
+// Correct trust boundary (ADR-017 ratified): `enumerate_dep_crate_roots` is
+// the ONLY public mechanism that returns registry paths for scanning.
+// `scan_workspace` is a plain directory scanner — it has no trust logic and
+// is not the right layer for rejection. Trust enforcement lives entirely in
+// the enumeration layer.
 //
-// ADR-017 Enforcement §4: both preconditions MUST be enforced.
+// ADR-017 explicitly states: "Do not add alternative path-discovery mechanisms
+// that bypass `enumerate_dep_crate_roots` — doing so bypasses the sub-clause F
+// delegation and requires a separate trust argument. ATK-A3-007 enforces this
+// discipline."
 //
-// Status: #[ignore] until A3 D3 (cross-crate source walking) ships.
+// Correct contract: call `enumerate_dep_crate_roots` against a workspace where
+// a fake crate directory exists at `.cargo/registry/src/<index>/fake-9.9.9/`
+// but is NOT listed in the workspace's Cargo.toml dependencies. Assert the fake
+// path does NOT appear in the returned `Vec<DepCrateRoot>`. Trust is enforced
+// at enumeration time, not scan time.
+//
+// Status: #[ignore] — `enumerate_dep_crate_roots` is live (A3 D3 shipped) but
+// the real-workspace fixture for this specific fake-path case is not yet built.
 // ============================================================================
 
 #[test]
-#[ignore = "A3 pre-implementation contract; fake registry path bypasses trust \
-             delegation — remove ignore when cross-crate scanning lands (A3 D3)"]
+#[ignore = "A3 pre-implementation contract; fake registry path must not appear in \
+             enumerate_dep_crate_roots output — trust boundary is enumeration, not scan; \
+             remove ignore when fake-registry fixture is built"]
 fn atk_a3_007_fake_registry_path_not_in_cargo_metadata_is_rejected() {
-    // Contract: a path at `.cargo/registry/src/<index>/fake-crate-9.9.9/`
-    // that passes the layout check but is absent from `cargo metadata` output
-    // MUST be skipped, not ingested. The scanner emits a parse_failure for
-    // the skipped path so the user can see what was rejected.
+    // Contract: call `enumerate_dep_crate_roots` against a workspace that does
+    // NOT list `fake-crate` as a dependency. A directory planted at
+    // `.cargo/registry/src/<index>/fake-9.9.9/` MUST NOT appear in the returned
+    // Vec<DepCrateRoot>. The fake path is excluded at enumeration time because
+    // it is not reachable from `cargo metadata`'s resolution graph.
     //
-    // TODO(adversarial): build a fixture that:
-    //   1. Creates a fake `.cargo/registry/src/` directory tree with a
-    //      plausible-looking crate directory containing `#[antigen]` decls.
-    //   2. Runs scan_workspace (or the cross-crate scan path) against a
-    //      workspace that does NOT have the fake crate as a dependency.
-    //   3. Asserts: no AntigenDeclaration from the fake directory appears in
-    //      the report; at least one parse_failure names the skipped path.
+    // The test does NOT call scan_workspace on the fake path — that would bypass
+    // the trust boundary. This contract specifically exercises `enumerate_dep_crate_roots`
+    // as the sub-clause F delegation point (ADR-017).
+    //
+    // TODO(adversarial): build a fixture workspace with a planted fake registry
+    // directory and assert enumerate_dep_crate_roots excludes it.
     //
     // See ADR-017 §"The trust delegation" for the two-precondition model.
-    panic!("A3 pre-implementation contract");
+    // See also: git grep "enumerate_dep_crate_roots" antigen/ for the implementation.
+    panic!("A3 pre-implementation contract — trust boundary is enumerate_dep_crate_roots");
 }
 
 // ============================================================================
