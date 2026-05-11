@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V17 (2026-05-10, scout seam-tier rhyme check complete: retire-to-documentation confirmed; multi-target #[presents] gap registered; ATK-A3-015..018 filed).
+> **Status**: V18 (2026-05-10, adversarial committed 75a4c46; forward-routing notes for ATK-A3-017/018 indexed; seam-tier thread complete pending naturalist cognate).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -340,6 +340,20 @@ instances before ratification.
 
 **Source**: Tekgy, 2026-05-10, pressure-relief-valve insight. Item 2 itself
 might be the first concrete example of the third disposition applied to Item 1.
+
+**Forward-routing notes** (adversarial, 2026-05-10):
+- **ATK-A3-018 → aristotle** when encounters ratification opens: the three guards
+  (second-opinion, revisit-window, concrete-artifact) are named precisely enough
+  to lift into process.md sub-section without re-derivation. The revisit-window
+  guard is the structural fix — without it, retirement is irreversible by default,
+  which is backwards (closures should require active re-confirmation, not active
+  challenge).
+- **ATK-A3-017 downgrade direction → pathmaker** when seam-tier vocabulary ADR
+  drafts: tier-witness consistency checks (type-tier antigen + consistency-test
+  witness = audit warning; seam-tier antigen + phantom-type witness = audit error)
+  must be day-one in the seam-tier vocabulary, not a follow-on. The downgrade
+  direction (type→seam to avoid phantom-type work) is the easy mistake audit
+  needs to catch from first ship.
 
 **Revisit when**: a second encounter is explicitly retired-to-documentation (not
 just not-promoted), confirming the disposition is a real workflow step; OR Q7
@@ -736,3 +750,11 @@ instance; three needed for ADR). ADR-005/ADR-013 not organized around
 composition-site as axis. Adversarial ATK-A3-015..018 filed (encounter-candidate
 pre-impl, all #[ignore]). Seam-tier encounter-candidate entry updated to reflect
 scout verdict + adversarial contracts. Naturalist cognate check still pending.*
+
+*V18 updated 2026-05-10 by navigator: adversarial committed 75a4c46 (22 ignored,
+0 failing). Forward-routing notes indexed: ATK-A3-018 three guards → aristotle
+when encounters ratification opens (revisit-window guard is structural fix for
+irreversible-retirement problem); ATK-A3-017 downgrade direction → pathmaker
+when seam-tier vocabulary ADR drafts (tier-witness consistency checks must be
+day-one, not follow-on). Seam-tier thread complete on navigator/scout/adversarial
+side; naturalist cognate check the only remaining open thread.*
