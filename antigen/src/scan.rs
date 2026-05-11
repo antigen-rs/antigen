@@ -732,29 +732,31 @@ impl ScanReport {
     /// (cross-crate scan + `#[descended_from]` propagation).
     #[must_use]
     pub fn unaddressed_presentations(&self) -> Vec<UnaddressedPresentation> {
-        let known_antigens: std::collections::HashSet<&str> =
-            self.antigens.iter().map(|a| a.type_name.as_str()).collect();
+        // ADR-017 §addresses() semantics: known-antigen lookup uses the
+        // canonical_path-aware tuple `(type_name, canonical_path)`.
+        let known_antigens: std::collections::HashSet<(&str, Option<&str>)> = self
+            .antigens
+            .iter()
+            .map(|a| (a.type_name.as_str(), a.canonical_path.as_deref()))
+            .collect();
 
         let mut result = Vec::new();
         for p in &self.presentations {
-            let has_matching_immunity = self.immunities.iter().any(|i| {
-                i.antigen_type == p.antigen_type
-                    && i.file == p.file
-                    && i.item_target.addresses(&p.item_target)
-            });
+            let has_matching_immunity =
+                self.immunities.iter().any(|i| addresses_for_immunity(i, p));
             // W6a: tolerance acknowledges a presentation per ADR-011
             // §Mechanics. A site with `#[antigen_tolerance(X, ...)]` for
             // the same antigen on the same item is reported under
             // "tolerated", not "unaddressed".
-            let has_matching_tolerance = self.tolerances.iter().any(|t| {
-                t.antigen_type == p.antigen_type
-                    && t.file == p.file
-                    && t.item_target.addresses(&p.item_target)
-            });
+            let has_matching_tolerance = self
+                .tolerances
+                .iter()
+                .any(|t| addresses_for_tolerance(t, p));
             if !has_matching_immunity && !has_matching_tolerance {
                 result.push(UnaddressedPresentation {
                     presentation: p.clone(),
-                    antigen_known: known_antigens.contains(p.antigen_type.as_str()),
+                    antigen_known: known_antigens
+                        .contains(&(p.antigen_type.as_str(), p.canonical_path.as_deref())),
                 });
             }
         }
@@ -931,6 +933,56 @@ impl ScanReport {
             + self.immunities.len()
             + self.tolerances.len()
     }
+}
+
+/// Whether two records share the ADR-017 "same locus" identity.
+///
+/// Implements the combined locus check from ADR-017
+/// `§addresses()` semantics (decisions.md lines 3637-3645):
+///
+/// - intra-workspace (both `canonical_path` are `None`): same source file
+/// - cross-crate (both `Some`): same `canonical_path`
+/// - mixed (one `Some`, one `None`): NOT a match — different scan modalities
+fn locus_matches(
+    a_path: &std::path::Path,
+    a_canonical: Option<&str>,
+    b_path: &std::path::Path,
+    b_canonical: Option<&str>,
+) -> bool {
+    match (a_canonical, b_canonical) {
+        (None, None) => a_path == b_path,
+        (Some(x), Some(y)) => x == y,
+        _ => false,
+    }
+}
+
+/// Does this `Immunity` address this `Presentation`?
+///
+/// ADR-017 `§addresses()` — combined check of identity (`antigen_type` +
+/// `canonical_path`) + item (`ItemTarget::addresses`) + locus.
+fn addresses_for_immunity(i: &Immunity, p: &Presentation) -> bool {
+    i.antigen_type == p.antigen_type
+        && i.canonical_path == p.canonical_path
+        && i.item_target.addresses(&p.item_target)
+        && locus_matches(
+            i.file.as_path(),
+            i.canonical_path.as_deref(),
+            p.file.as_path(),
+            p.canonical_path.as_deref(),
+        )
+}
+
+/// Does this `Toleration` address this `Presentation`?
+fn addresses_for_tolerance(t: &Toleration, p: &Presentation) -> bool {
+    t.antigen_type == p.antigen_type
+        && t.canonical_path == p.canonical_path
+        && t.item_target.addresses(&p.item_target)
+        && locus_matches(
+            t.file.as_path(),
+            t.canonical_path.as_deref(),
+            p.file.as_path(),
+            p.canonical_path.as_deref(),
+        )
 }
 
 /// Hard depth limit for `#[descended_from]` lineage chains.
@@ -1355,7 +1407,215 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
         synthesis_pass(&parsed_files, &fingerprints, &mut report);
     }
 
+    // ---- Lineage propagation pass (ADR-018) ----
+    //
+    // Runs AFTER cycle detection (Ok ⇒ lineage_edges is a DAG by
+    // construction) AND after fingerprint synthesis (so that inherited
+    // presentations can dedup against fingerprint matches too).
+    //
+    // The pass walks transitive closure of lineage edges per child
+    // antigen, attaching ancestor presentations as inherited Presentations
+    // on the descendant. Diamond inheritance (two paths to the same
+    // ancestor) collapses to one Presentation per (antigen, item,
+    // canonical_path) tuple with set-unioned `inherited_from` chain.
+    //
+    // Orphaned + dangling edges are not walked through (ADR-018
+    // §Stale-lineage interaction).
+    synthesize_inherited_presentations(&mut report);
+
     Ok(report)
+}
+
+/// Walk transitive closure of `#[descended_from]` lineage edges and
+/// attach ancestor presentations as inherited Presentations on each
+/// descendant. ADR-018 §"The synthesis algorithm".
+///
+/// Pre-conditions assumed by caller:
+/// - `report.lineage_edges` has been deduped (ADR-018 §Edge-level dedup).
+/// - Cycle detection has run clean (the graph is a DAG).
+///
+/// Defense-in-depth: a per-source-node `visited` `HashSet` guards against
+/// any cycle the upstream check might have missed (ADR-018 Finding 4 —
+/// "trust the upstream cycle detection for correctness; this visited set
+/// is defense-in-depth against refactor accidents, not a correctness
+/// dependency").
+///
+/// Algorithm overview (per descendant antigen as DFS source):
+///   1. Build a presentations index `(antigen_type, canonical_path) → Vec<&Presentation>`.
+///   2. Build adjacency `(child_key) → Vec<(parent_key, was_orphan)>`.
+///   3. For each `AntigenDeclaration` with at least one outgoing lineage edge,
+///      collect transitive ancestor identities via DFS.
+///   4. For each ancestor's presentation, either:
+///      - merge `ProvenanceEntry` into an existing Presentation's
+///        `inherited_from` via set-union (diamond dedup),
+///      - or append a new inherited Presentation at the descendant's site.
+fn synthesize_inherited_presentations(report: &mut ScanReport) {
+    use std::collections::HashMap;
+
+    // Build (type_name, canonical_path) -> AntigenDeclaration index.
+    let antigen_by_key: HashMap<AntigenKey, AntigenDeclaration> = report
+        .antigens
+        .iter()
+        .map(|a| ((a.type_name.clone(), a.canonical_path.clone()), a.clone()))
+        .collect();
+
+    // Build adjacency: child antigen → list of parent antigen keys.
+    // Skip dangling-child edges (child not in antigen index) — the
+    // descendant has no record for inheritance to flow into.
+    // Skip orphaned edges (parent not in antigen index) — the propagation
+    // walk does not walk through unknown ancestors (ADR-018 §Stale-lineage).
+    let mut adjacency: LineageAdjacency = LineageAdjacency::new();
+    for e in &report.lineage_edges {
+        let child_key = (e.child.clone(), e.child_canonical_path.clone());
+        let parent_key = (e.parent.clone(), e.parent_canonical_path.clone());
+        if !antigen_by_key.contains_key(&child_key) || !antigen_by_key.contains_key(&parent_key) {
+            continue;
+        }
+        adjacency.entry(child_key).or_default().push(parent_key);
+    }
+
+    // Index of existing presentations by (antigen_type, canonical_path)
+    // for fast ancestor-presentation lookup. Cloned (immutable snapshot)
+    // — we'll modify report.presentations during the walk, and reading
+    // from a snapshot keeps the source-of-truth stable.
+    let presentations_snapshot: Vec<Presentation> = report.presentations.clone();
+    let mut presentations_by_antigen: HashMap<AntigenKey, Vec<usize>> = HashMap::new();
+    for (idx, p) in presentations_snapshot.iter().enumerate() {
+        presentations_by_antigen
+            .entry((p.antigen_type.clone(), p.canonical_path.clone()))
+            .or_default()
+            .push(idx);
+    }
+
+    // For each child antigen with outgoing edges, walk transitive
+    // ancestors and propagate their presentations.
+    //
+    // Iteration order: process antigens in declaration order for
+    // determinism. (HashMap iteration order is randomised.)
+    for child_decl in report.antigens.clone() {
+        let child_key = (
+            child_decl.type_name.clone(),
+            child_decl.canonical_path.clone(),
+        );
+        if !adjacency.contains_key(&child_key) {
+            continue;
+        }
+        let ancestors_in_order = transitive_ancestors_dfs(&adjacency, &child_key);
+        propagate_ancestors_to_descendant(
+            report,
+            &child_decl,
+            &ancestors_in_order,
+            &presentations_snapshot,
+            &presentations_by_antigen,
+        );
+    }
+}
+
+/// Antigen identity key used by the propagation walk: bare type name +
+/// `canonical_path`. Mirrors the ADR-017 `(type_name, canonical_path)`
+/// identity tuple.
+type AntigenKey = (String, Option<String>);
+
+/// Adjacency map from a child antigen key to its parent antigen keys, used
+/// during the propagation walk. Built from the (already-deduped) lineage
+/// edge set after orphan + dangling-child edges are filtered out.
+type LineageAdjacency = std::collections::HashMap<AntigenKey, Vec<AntigenKey>>;
+
+/// DFS over the lineage adjacency, returning transitive ancestor keys in
+/// discovery order. Defense-in-depth `visited` `HashSet` per call (ADR-018
+/// Finding 4) catches any cycle the upstream check might have missed.
+fn transitive_ancestors_dfs(
+    adjacency: &LineageAdjacency,
+    child_key: &AntigenKey,
+) -> Vec<AntigenKey> {
+    use std::collections::HashSet;
+    let mut visited: HashSet<AntigenKey> = HashSet::new();
+    let mut stack: Vec<AntigenKey> = adjacency.get(child_key).cloned().unwrap_or_default();
+    let mut ancestors_in_order: Vec<AntigenKey> = Vec::new();
+    while let Some(node) = stack.pop() {
+        if !visited.insert(node.clone()) {
+            continue;
+        }
+        ancestors_in_order.push(node.clone());
+        if let Some(parents) = adjacency.get(&node) {
+            for parent in parents.iter().rev() {
+                if !visited.contains(parent) {
+                    stack.push(parent.clone());
+                }
+            }
+        }
+    }
+    ancestors_in_order
+}
+
+/// Attach each ancestor's presentations to the descendant antigen, either
+/// merging provenance into an existing Presentation record (diamond dedup)
+/// or appending a new inherited Presentation. ADR-018 §"The synthesis
+/// algorithm" — the per-descendant body.
+///
+/// The descendant's item identity is its declaration site: antigens are
+/// unit-struct declarations per ADR-009 / ADR-010, so the synthesized
+/// Presentations land on `ItemTarget::Struct(type_name)`.
+fn propagate_ancestors_to_descendant(
+    report: &mut ScanReport,
+    child_decl: &AntigenDeclaration,
+    ancestors_in_order: &[AntigenKey],
+    presentations_snapshot: &[Presentation],
+    presentations_by_antigen: &std::collections::HashMap<AntigenKey, Vec<usize>>,
+) {
+    use std::collections::BTreeSet;
+    let descendant_item_target = ItemTarget::Struct(child_decl.type_name.clone());
+    let descendant_item_kind = "struct".to_string();
+
+    for ancestor_key in ancestors_in_order {
+        let provenance = ProvenanceEntry {
+            antigen_type: ancestor_key.0.clone(),
+            canonical_path: ancestor_key.1.clone(),
+        };
+        let Some(ancestor_pres_indices) = presentations_by_antigen.get(ancestor_key) else {
+            continue;
+        };
+        for &ancestor_pres_idx in ancestor_pres_indices {
+            let ancestor_pres = &presentations_snapshot[ancestor_pres_idx];
+
+            // Three-tuple dedup key per ADR-018 §"Diamond dedup":
+            // (antigen_type, item_target, canonical_path).
+            let existing_idx = report.presentations.iter().position(|p| {
+                p.antigen_type == ancestor_pres.antigen_type
+                    && p.canonical_path == ancestor_pres.canonical_path
+                    && p.item_target.addresses(&descendant_item_target)
+                    && locus_matches(
+                        p.file.as_path(),
+                        p.canonical_path.as_deref(),
+                        child_decl.file.as_path(),
+                        child_decl.canonical_path.as_deref(),
+                    )
+            });
+
+            if let Some(idx) = existing_idx {
+                let existing = &mut report.presentations[idx];
+                let mut chain: BTreeSet<ProvenanceEntry> = existing
+                    .inherited_from
+                    .take()
+                    .unwrap_or_default()
+                    .into_iter()
+                    .collect();
+                chain.insert(provenance.clone());
+                existing.inherited_from = Some(chain.into_iter().collect());
+            } else {
+                report.presentations.push(Presentation {
+                    antigen_type: ancestor_pres.antigen_type.clone(),
+                    file: child_decl.file.clone(),
+                    line: child_decl.line,
+                    item_kind: descendant_item_kind.clone(),
+                    item_target: descendant_item_target.clone(),
+                    match_kind: ancestor_pres.match_kind.clone(),
+                    canonical_path: ancestor_pres.canonical_path.clone(),
+                    inherited_from: Some(vec![provenance.clone()]),
+                });
+            }
+        }
+    }
 }
 
 // ============================================================================
