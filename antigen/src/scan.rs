@@ -773,11 +773,20 @@ impl ScanReport {
     /// v0.1 limitation.
     #[must_use]
     pub fn orphaned_tolerances(&self) -> Vec<&Toleration> {
-        let known: std::collections::HashSet<&str> =
-            self.antigens.iter().map(|a| a.type_name.as_str()).collect();
+        // ADR-017 + ADR-018 §Enforcement: orphan checks compare
+        // `(type_name, canonical_path)` tuples, NOT bare names.
+        // Two crates each declaring `Foo` would have the same `type_name`
+        // but distinct `canonical_path` values; a tolerance for
+        // `foo@1.0.0::Foo` is orphaned when only `foo@2.0.0::Foo` is in
+        // scope, even though "Foo" appears in `self.antigens`.
+        let known: std::collections::HashSet<(&str, Option<&str>)> = self
+            .antigens
+            .iter()
+            .map(|a| (a.type_name.as_str(), a.canonical_path.as_deref()))
+            .collect();
         self.tolerances
             .iter()
-            .filter(|t| !known.contains(t.antigen_type.as_str()))
+            .filter(|t| !known.contains(&(t.antigen_type.as_str(), t.canonical_path.as_deref())))
             .collect()
     }
 
@@ -805,11 +814,20 @@ impl ScanReport {
     /// (child missing rather than parent missing).
     #[must_use]
     pub fn orphaned_lineage_edges(&self) -> Vec<&LineageEdge> {
-        let known: std::collections::HashSet<&str> =
-            self.antigens.iter().map(|a| a.type_name.as_str()).collect();
+        // ADR-017 + ADR-018 §Enforcement: orphan check compares
+        // `(type_name, canonical_path)` tuples. An edge with
+        // `parent_canonical_path: Some("foo@1.0.0")` is satisfied ONLY by
+        // an AntigenDeclaration with matching `type_name` AND matching
+        // `canonical_path`. Bare-name equality alone allows cross-crate
+        // name collision to silently mask orphans (ATK-A3-006).
+        let known: std::collections::HashSet<(&str, Option<&str>)> = self
+            .antigens
+            .iter()
+            .map(|a| (a.type_name.as_str(), a.canonical_path.as_deref()))
+            .collect();
         self.lineage_edges
             .iter()
-            .filter(|e| !known.contains(e.parent.as_str()))
+            .filter(|e| !known.contains(&(e.parent.as_str(), e.parent_canonical_path.as_deref())))
             .collect()
     }
 
@@ -837,12 +855,72 @@ impl ScanReport {
     /// way it skips edges flagged by `orphaned_lineage_edges`.
     #[must_use]
     pub fn dangling_child_lineage_edges(&self) -> Vec<&LineageEdge> {
-        let known: std::collections::HashSet<&str> =
-            self.antigens.iter().map(|a| a.type_name.as_str()).collect();
+        // ADR-017 + ADR-018 §Enforcement: canonical_path-aware
+        // comparison. Symmetric to `orphaned_lineage_edges` — the child
+        // endpoint check uses the same tuple key.
+        let known: std::collections::HashSet<(&str, Option<&str>)> = self
+            .antigens
+            .iter()
+            .map(|a| (a.type_name.as_str(), a.canonical_path.as_deref()))
+            .collect();
         self.lineage_edges
             .iter()
-            .filter(|e| !known.contains(e.child.as_str()))
+            .filter(|e| !known.contains(&(e.child.as_str(), e.child_canonical_path.as_deref())))
             .collect()
+    }
+
+    /// Stamp `canonical_path` (and `parent_canonical_path` /
+    /// `child_canonical_path` on lineage edges) on every record in this
+    /// report that does not already have one.
+    ///
+    /// ADR-017 (Option A — caller stamps post-scan). Called by the
+    /// cargo-metadata-driven `--include-deps` driver after running
+    /// [`scan_workspace`] on a dependency crate root: the driver knows
+    /// the dependency's canonical path (`"<crate-name>@<version>"`), but
+    /// the directory scanner doesn't, so the driver stamps the canonical
+    /// path on every record post-scan.
+    ///
+    /// **Idempotent + non-overwriting**: records whose `canonical_path`
+    /// (or relevant lineage-edge endpoint) is already `Some(_)` are
+    /// left unchanged. This protects records that were stamped during
+    /// an earlier (e.g., nested) scan from being silently re-keyed.
+    ///
+    /// `crate_id` is expected to be in the ADR-017 format
+    /// `"<crate-name>@<version>"` (e.g., `"serde@1.0.193"`); the method
+    /// does not validate the format — that's the driver's responsibility.
+    pub fn stamp_canonical_path(&mut self, crate_id: &str) {
+        for a in &mut self.antigens {
+            if a.canonical_path.is_none() {
+                a.canonical_path = Some(crate_id.to_string());
+            }
+        }
+        for p in &mut self.presentations {
+            if p.canonical_path.is_none() {
+                p.canonical_path = Some(crate_id.to_string());
+            }
+        }
+        for i in &mut self.immunities {
+            if i.canonical_path.is_none() {
+                i.canonical_path = Some(crate_id.to_string());
+            }
+        }
+        for t in &mut self.tolerances {
+            if t.canonical_path.is_none() {
+                t.canonical_path = Some(crate_id.to_string());
+            }
+        }
+        for e in &mut self.lineage_edges {
+            // Both endpoints are stamped to the same crate_id when missing —
+            // they're both intra-crate by construction at this point
+            // (cross-crate edges land later when D1.5's propagation walk
+            // discovers them). Each endpoint is independently None-guarded.
+            if e.parent_canonical_path.is_none() {
+                e.parent_canonical_path = Some(crate_id.to_string());
+            }
+            if e.child_canonical_path.is_none() {
+                e.child_canonical_path = Some(crate_id.to_string());
+            }
+        }
     }
 
     /// Total count of antigen-related declarations found.
@@ -2925,5 +3003,61 @@ mod tests {
         );
         assert_eq!(dangling[0].child, "OrphanChild");
         assert_eq!(dangling[0].parent, "Parent");
+    }
+
+    // ========================================================================
+    // A3: stamp_canonical_path (ADR-017 Option A — caller stamps post-scan)
+    // ========================================================================
+
+    #[test]
+    fn stamp_canonical_path_sets_none_to_some() {
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_decl("Foo"));
+        report.lineage_edges.push(edge("Child", "Parent"));
+        report.stamp_canonical_path("crate-a@1.0.0");
+        assert_eq!(
+            report.antigens[0].canonical_path.as_deref(),
+            Some("crate-a@1.0.0"),
+            "antigens with canonical_path: None must be stamped"
+        );
+        assert_eq!(
+            report.lineage_edges[0].parent_canonical_path.as_deref(),
+            Some("crate-a@1.0.0")
+        );
+        assert_eq!(
+            report.lineage_edges[0].child_canonical_path.as_deref(),
+            Some("crate-a@1.0.0")
+        );
+    }
+
+    #[test]
+    fn stamp_canonical_path_does_not_overwrite_some() {
+        // ADR-017 Option A: stamp is non-overwriting. A record already
+        // stamped with `Some(_)` (e.g., during a nested scan) must NOT
+        // be silently re-keyed by a subsequent stamp call.
+        let mut a = antigen_decl("Foo");
+        a.canonical_path = Some("crate-a@1.0.0".to_string());
+        let mut report = ScanReport::default();
+        report.antigens.push(a);
+        report.stamp_canonical_path("crate-b@2.0.0");
+        assert_eq!(
+            report.antigens[0].canonical_path.as_deref(),
+            Some("crate-a@1.0.0"),
+            "pre-stamped Some(_) must NOT be overwritten by a later stamp call"
+        );
+    }
+
+    #[test]
+    fn stamp_canonical_path_is_idempotent() {
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_decl("Foo"));
+        report.stamp_canonical_path("crate-a@1.0.0");
+        let after_first = report.clone();
+        report.stamp_canonical_path("crate-a@1.0.0");
+        // Same stamp twice: identical output.
+        assert_eq!(
+            report.antigens[0].canonical_path, after_first.antigens[0].canonical_path,
+            "stamping with same crate_id twice must be idempotent"
+        );
     }
 }
