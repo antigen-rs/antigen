@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V14 (2026-05-10, 5-item ADR amendment queue CLOSED at 35130f2; substrate-currency correction on Item 5 documented).
+> **Status**: V15 (2026-05-10, manifold-axes partition test complete; Q12/Q13 answered; V2 inputs indexed).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -62,12 +62,32 @@ manifold framing; honest-boundary-as-encounter-registration; 12 open questions.
 **Active team routing** (idle-as-invitation; full creative freedom):
 - **Naturalist**: C1/C2/C3/C5/C6/C7 cognate refinements + vocabulary-as-protocol at idle cadence.
 - **Scout, Adversarial, Pathmaker**: complete; full creative freedom.
-- **Aristotle**: Phase 1-8 complete (2026-05-11). Campsite:
-  `20260510-multi-component-immunity-phase-1-8.md`. V1 substrate-sound.
-  Q6 → encounter-tier (not posture; single-role, engineering-reason variance).
-  Q7 → process.md sub-section (workflow discipline, not architectural posture).
-  Q8 → encounter-tier observation (one instance, not yet generalized).
-  Now briefed on 5-item amendment queue; amendment drafting next at aristotle's cadence.
+- **Aristotle**: Phase 1-8 complete (2026-05-11). ADR amendment queue CLOSED
+  (35130f2, 2026-05-10). Idle work: manifold-axes partition test complete
+  (campsite `20260510-manifold-axes-partition-test.md`, 2026-05-10).
+
+**Manifold-axes partition test results** (aristotle, idle work, 2026-05-10):
+Q12/Q13 now answered. Four candidate axes tested; 2 real, 2 convenient cuts.
+
+- **Axis 2 (static-vs-dynamic)**: real (6/7 clean). Load-bearing-reason:
+  currency-mechanism difference. Finding 4: V1 Part V's "structural-tier vs
+  maintenance-tier" IS Axis 2 at project-layer granularity; partition test shows
+  same axis within antigen at component-layer granularity. Two-scales-one-axis.
+- **Axis 3 (individual-vs-population)**: real but skewed (6/7 clean; C6 is
+  the special case). Load-bearing-reason: coordination-scope + trust-boundary
+  requirement (population side requires ADR-017; individual side doesn't).
+- **Axis 1 (production-vs-consumption)**: convenient cut. Applies to operations,
+  not components; components bundle operations, axis can't carve them cleanly.
+- **Axis 4 (implicit-vs-explicit)**: convenient cut. Antigen's posture pulls
+  everything toward explicit; axis describes project direction, not per-component
+  variance.
+
+**Q8 calibration sharpened**: meta-claim ("enumeration has structure") survives
+with three real axes (Q1 tier axis + Axes 2 + 3). V1's specific axis-listing is
+exploratory-not-authoritative; should be flagged as such when V1 promotes.
+
+**V2 inputs from partition test**: Axes 2/3 ratification + Finding 4
+internal-coherence cross-reference. Hold here until V2 is scoped.
 
 **Scout findings landed** (2026-05-10):
 - **Component 7 confirmed**: real-time / CI feedback is structurally distinct
@@ -599,3 +619,12 @@ currency correction on Item 5: navigator brief had ExternalUnvalidated tier
 "cross-crate-witness-not-locally-executable" audit_hint per existing Amendment 3
 mechanism. Memory record filed for future navigator briefs. Pre-rc.1 gates now
 met on amendment side.*
+
+*V15 updated 2026-05-10 by navigator: aristotle idle work — manifold-axes
+partition test complete (campsite 20260510-manifold-axes-partition-test.md).
+Q12/Q13 answered: 2 of 4 candidate axes real (Axis 2 static-vs-dynamic, Axis 3
+individual-vs-population); 2 convenient cuts (Axis 1 production-vs-consumption,
+Axis 4 implicit-vs-explicit). Finding 4: V1 Part V "structural-tier vs
+maintenance-tier" IS Axis 2 at project-layer granularity — same axis at two
+scales. Q8 meta-claim sharpened: three real axes (Q1 + Axes 2 + 3) survive;
+V1 axis-listing flagged exploratory-not-authoritative for V2. V2 inputs indexed.*
