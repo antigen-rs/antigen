@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V15 (2026-05-10, manifold-axes partition test complete; Q12/Q13 answered; V2 inputs indexed).
+> **Status**: V16 (2026-05-10, two new encounter-candidates: seam-tier/type-tier antigen classification + third encounter-disposition retire-to-documentation).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -256,6 +256,75 @@ opt-in, multi-party signing, antigen-council governance, etc.)
 
 **Source**: adversarial threat model 2026-05-10; A5 governance finding.
 **Revisit when**: A5 scope-lock opens antigen-stdlib governance design.
+
+### Seam-tier vs type-tier antigen classification (encounter-candidate, single instance)
+
+**What**: Tambear's math-researcher surfaced a structural distinction between
+two antigen classes: (1) **type-tier / signature-time antigens** — failure-class
+lives at API/signature surface; caught by phantom-type witnesses, type-system
+contracts; (2) **seam-tier / composition-time antigens** — failure-class lives
+at cross-implementation composition boundary; caught by cross-implementation
+consistency tests. Concrete instance: ExpKernelState's `(1 + expm1_r) << k`
+reconstruction meeting standalone exp.rs return value diverges from F13.C
+(signature-time mis-routing). Different mechanism, different witness shape.
+
+**Grounding note**: tambear is naive smoke-test consumer per
+`feedback_tambear_is_smoke_test_not_design_input.md`. HOWEVER, tambear's
+math-researcher encountered this in real mathematical practice (exp.rs
+Taylor-vs-Remez composition). That's substantively stronger grounding than
+tambear's general impl choices — the distinction is live from actual practice,
+not proposed speculatively.
+
+**What's genuinely new**: antigen's existing vocabulary can express the instance
+(declare as antigen; consistency-witness via proptest/test). The potentially-new
+substrate is the *organizing axis* — seam-tier vs type-tier as a way to classify
+antigens themselves. This would operate at antigen-taxonomy level, distinct from
+aristotle's manifold-axes partition test (which partitions immune-system
+components, not antigen types).
+
+**Retire-to-documentation flag** (per Item 2 below): this distinction might be
+usage-docs territory — "here's where mathematical code teams should watch for
+cross-implementation divergence; here's how to write this antigen; here are the
+witness patterns that work" — rather than vocabulary-extension territory. Both
+possibilities held explicitly.
+
+**Source**: team-lead, 2026-05-10, tambear math-researcher cross-pollination.
+**Revisit when**: second instance surfaces from a different codebase context
+(not tambear), OR scout structural-rhyme check / naturalist cognate check returns
+snag-free, OR the distinction earns retire-to-documentation disposition.
+
+### Third encounter-disposition: retire-to-documentation (encounter-candidate, meta-level)
+
+**What**: Encounters have THREE legitimate dispositions, not two. Current
+framing has promote (→ V0+1 → posture) and resolve (structural-memory answer
+surfaces). Missing: **retire-to-documentation** — encounter becomes usage
+pattern, adoption guide entry, or teaching content rather than vocabulary
+extension. The protocol stays stable; the encounter informs how practitioners
+use existing vocabulary.
+
+**Why it matters**: without the third disposition, encounter-registration creates
+implicit pressure-toward-promotion. Every registered encounter looks like a
+vocabulary-extension candidate waiting to ripen. With the third disposition,
+encounter tier is a waiting room with multiple legitimate exits — it holds
+findings until they earn the right disposition, rather than funneling everything
+toward vocabulary growth.
+
+**Artifact-forms for retire-to-documentation**: `docs/usage-patterns.md` /
+`docs/where-to-look-for-antigens.md`; README examples; future "antigen adoption
+guide" / "applied antigen patterns" ecosystem-facing material; tutorials; blog
+posts; manuscript appendix material.
+
+**Meta-encounter (this entry itself)**: the pattern "usage-docs as encounter
+graveyard" is itself substrate worth registering. The discipline for what to do
+with encounters that don't promote is new process.md territory. Accruing
+instances before ratification.
+
+**Source**: Tekgy, 2026-05-10, pressure-relief-valve insight. Item 2 itself
+might be the first concrete example of the third disposition applied to Item 1.
+
+**Revisit when**: a second encounter is explicitly retired-to-documentation (not
+just not-promoted), confirming the disposition is a real workflow step; OR Q7
+process.md sub-section is drafted and third-disposition belongs there explicitly.
 
 ---
 
@@ -628,3 +697,13 @@ Axis 4 implicit-vs-explicit). Finding 4: V1 Part V "structural-tier vs
 maintenance-tier" IS Axis 2 at project-layer granularity — same axis at two
 scales. Q8 meta-claim sharpened: three real axes (Q1 + Axes 2 + 3) survive;
 V1 axis-listing flagged exploratory-not-authoritative for V2. V2 inputs indexed.*
+
+*V16 updated 2026-05-10 by navigator: team-lead tambear cross-pollination routed.
+Two new encounter-candidates added: (1) seam-tier vs type-tier antigen
+classification (tambear math-researcher, single instance from exp.rs Taylor-vs-
+Remez; retire-to-documentation flag held explicitly); (2) third encounter-
+disposition retire-to-documentation (Tekgy insight; pressure-toward-promotion
+structural gap; meta-encounter on usage-docs-as-encounter-graveyard pattern).
+Team routing: naturalist (cognate check + snag-feel), scout (structural-rhyme
+falsification), adversarial (seam-tier attack surface). Aristotle not routed —
+single-instance, Phase 1-8 not warranted yet.*
