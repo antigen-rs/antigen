@@ -376,22 +376,61 @@ fn atk_a3_004_proc_macro_generated_witness_is_handled_not_silently_missing() {
 // ============================================================================
 
 #[test]
-#[ignore = "A3 pre-implementation contract; cross-crate name collision via naive file-guard removal — address when A3 designs cross-crate ItemTarget identity"]
 fn atk_a3_005_cross_crate_name_collision_not_suppressed_by_same_name_immunity() {
-    // Contract: an #[immune(X)] on `crate_a::MyType` must NOT suppress an
-    // unaddressed presentation for `crate_b::MyType`, even if both have
-    // ItemTarget::Struct("MyType"). The fix requires module-path-qualified
-    // identity in ItemTarget, not just name equality.
+    // Contract (now GREEN, D1.5 commit 4): per ADR-017 §addresses()
+    // semantics, an `#[immune(X)]` on `crate_a::MyType` must NOT suppress
+    // an unaddressed presentation for `crate_b::MyType`, even if both
+    // have `ItemTarget::Struct("MyType")`. The fix is canonical_path
+    // tuple identity, not module-path-qualified ItemTarget.
     //
-    // The failing scenario (naive cross-crate implementation):
-    //   1. crate-a declares #[immune(PanickingInDrop, witness = my_test)] on MyType
-    //   2. crate-b has a fingerprint-matched presentation on its own MyType
-    //   3. A3 relaxes the `i.file == p.file` guard to allow cross-crate matching
-    //   4. ItemTarget::Struct("MyType").addresses(ItemTarget::Struct("MyType")) = true
-    //   5. The crate-b presentation is silently suppressed — false green
+    // The fix shipped: `addresses_for_immunity()` requires
+    // `i.canonical_path == p.canonical_path` AND `locus_matches(...)`
+    // returns false when canonical_paths differ. So the crate-a immunity
+    // never addresses the crate-b presentation.
     //
-    // TODO(adversarial): write multi-crate fixture when A3 ships cross-crate scan.
-    panic!("A3 pre-implementation contract");
+    // Constructed-scan-report fixture (avoids the multi-crate fixture
+    // overhead): one Presentation with canonical_path = "crate_b@1.0.0",
+    // one Immunity with canonical_path = "crate_a@1.0.0", both with
+    // ItemTarget::Struct("MyType"). Verify the immunity does not
+    // suppress the presentation.
+    use antigen::scan::{Immunity, ItemTarget, Presentation, ScanReport};
+    use std::path::PathBuf;
+
+    let mut report = ScanReport::default();
+    // crate_b's presentation (unmarked vulnerability)
+    report.presentations.push(Presentation {
+        antigen_type: "PanickingInDrop".to_string(),
+        file: PathBuf::from("crate_b/lib.rs"),
+        line: 5,
+        item_kind: "struct".to_string(),
+        item_target: ItemTarget::Struct("MyType".to_string()),
+        match_kind: antigen::scan::MatchKind::ExplicitMarker,
+        canonical_path: Some("crate_b@1.0.0".to_string()),
+        inherited_from: None,
+    });
+    // crate_a's immunity (different canonical_path — different identity)
+    report.immunities.push(Immunity {
+        antigen_type: "PanickingInDrop".to_string(),
+        witness: "my_test".to_string(),
+        file: PathBuf::from("crate_a/lib.rs"),
+        line: 8,
+        item_kind: "struct".to_string(),
+        item_target: ItemTarget::Struct("MyType".to_string()),
+        canonical_path: Some("crate_a@1.0.0".to_string()),
+    });
+
+    let unaddressed = report.unaddressed_presentations();
+    assert_eq!(
+        unaddressed.len(),
+        1,
+        "crate_a's immunity must NOT suppress crate_b's presentation \
+         (different canonical_path); got: {unaddressed:?}"
+    );
+    assert_eq!(
+        unaddressed[0].presentation.canonical_path.as_deref(),
+        Some("crate_b@1.0.0"),
+        "the unaddressed presentation must be the crate_b one"
+    );
 }
 
 // ============================================================================
