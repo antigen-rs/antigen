@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V20 (2026-05-11, seam-tier FULLY CLOSED: `docs/usage-patterns.md` artifact landed by scout; ATK-A3-018 third guard closed; README/main.rs staleness corrected by navigator).
+> **Status**: V21 (2026-05-11, aristotle Q7 draft filed: process.md sub-section complete; ATK-A3-018 routing closed; activation gated on encounters ratification).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -388,12 +388,11 @@ instances before ratification.
 might be the first concrete example of the third disposition applied to Item 1.
 
 **Forward-routing notes** (adversarial, 2026-05-10):
-- **ATK-A3-018 → aristotle** when encounters ratification opens: the three guards
-  (second-opinion, revisit-window, concrete-artifact) are named precisely enough
-  to lift into process.md sub-section without re-derivation. The revisit-window
-  guard is the structural fix — without it, retirement is irreversible by default,
-  which is backwards (closures should require active re-confirmation, not active
-  challenge).
+- **ATK-A3-018 → aristotle** COMPLETE (2026-05-11): process.md sub-section draft
+  filed at `campsites/.../aristotle/20260511-q7-process-md-subsection-draft.md`.
+  Activation gated on encounters tier ratification. Migration-time cleanup needed:
+  first-confirmed-instance paragraph references "owner: scout/pathmaker" —
+  update to "artifact landed: `docs/usage-patterns.md`" at migration time.
 - **ATK-A3-017 downgrade direction → pathmaker** when seam-tier vocabulary ADR
   drafts: tier-witness consistency checks (type-tier antigen + consistency-test
   witness = audit warning; seam-tier antigen + phantom-type witness = audit error)
@@ -401,9 +400,9 @@ might be the first concrete example of the third disposition applied to Item 1.
   direction (type→seam to avoid phantom-type work) is the easy mistake audit
   needs to catch from first ship.
 
-**Revisit when**: Q7 process.md sub-section is drafted and third-disposition belongs
-there explicitly. (First concrete artifact landed: `docs/usage-patterns.md` closes the
-revisit-window for artifact-form question — usage-patterns.md is the correct register.)
+**Revisit when**: encounters tier ratification opens (full Phase 1-8 + ratification
+per process.md). Sub-section draft is substrate-ready; migrates to process.md as
+part of encounters ratification pass.
 
 ---
 
