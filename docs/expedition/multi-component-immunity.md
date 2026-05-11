@@ -26,16 +26,25 @@
 
 ---
 
-## Part I: The vocabulary as protocol
+## Part I: The vocabulary as emergent practice
 
-Antigen is centrally a **vocabulary**, and that vocabulary functions as a
-**protocol** — the shared signaling layer that wildly different components
-use to coordinate.
+Antigen is centrally a **vocabulary**, and that vocabulary functions as an
+**emergent practice** — the shared coordination layer of a community-of-
+practice. Heterogeneous components (dev-judgment, passive scan/tools, test
+integration, knowledge bridging, lineage tracking, cross-crate scanning,
+real-time feedback) participate in the same emergent practice even though
+they do wildly different things.
 
-This is sharper than "vocabulary as spine." A spine supports; a protocol
-*operates*. Components don't just attach to the vocabulary; they actively
-*use* it to coordinate with each other across their wildly different
-mechanisms. (Scout's sharpening, V1 substrate.)
+This is sharper than both "vocabulary as spine" and "vocabulary as
+protocol" (the V0 and earlier-V1 framings). A spine supports; a protocol
+*specifies*; an emergent practice *coordinates and grows*. Components don't
+just attach to the vocabulary; they actively *use* it — and the vocabulary's
+shape itself co-evolves with the practice as participants recognize new
+failure-classes, new witness shapes, new tier distinctions. (Scout's
+sharpening of the function 2026-05-11; naturalist's refinement of the
+genesis 2026-05-11 — see naturalist campsite
+`20260511120843-vocabulary-as-protocol-cognate-refinement.md` for the full
+substrate-grep and layer-distinction reasoning.)
 
 **Why this matters architecturally:**
 
@@ -45,9 +54,10 @@ file is antigen-the-vocabulary in operation — even with `cargo antigen scan`
 never run. The team has *named a failure class*; they have *given it
 structural memory*; they have made it *legible to future-readers including
 LLM collaborators*. The tool would extend this; the discipline would extend
-this; the ecosystem would extend this. But the protocol is the floor.
+this; the ecosystem would extend this. But the emergent practice is the
+floor.
 
-The protocol carries:
+The emergent practice carries:
 - *What* is being recognized (antigen declarations)
 - *Where* it's present (presentation marks)
 - *How* it's protected (immunity claims with witnesses)
@@ -57,28 +67,60 @@ The protocol carries:
 - *When* it was attested (verified_at temporal field)
 - *Across-version identity* (canonical_path at name@version)
 
-Different components consume different parts of the protocol. Components
+Different components consume different parts of the practice. Components
 don't need to know about each other; they need to know about the
 vocabulary.
+
+**The two layers** (naturalist's V1 layer-distinction):
+
+There's an important asymmetry worth naming explicitly:
+
+- **The vocabulary itself** is *emergent practice* — co-evolved through
+  ADR-006's recognition discipline. New antigens enter through observed
+  instances clearing the three-independent-instances threshold, not through
+  specification. The vocabulary's growth is recognition-driven; new
+  primitives recognize structure already in the substrate.
+
+- **The vocabulary's governance** is *engineered process* — `process.md`,
+  ADR lifecycle, amendment cycles, ratification commits. These are
+  explicitly specified, versioned through commit history, have conformance
+  criteria, and have a designated authority (the ratification process).
+  Engineered substrate.
+
+Both layers are real and serve different purposes. Recognition-discipline
+at the vocabulary layer; specified process at the governance layer.
+Conflating them — importing engineered-spec baggage to the vocabulary
+itself, or claiming recognition-discipline at the governance layer where
+explicit process is load-bearing — drifts the project's posture in
+unhelpful directions.
 
 **The biology cognate:**
 
 The body's immune system shares MHC molecules + cytokine signaling as the
-*protocol* that wildly different cell types use to coordinate. B cells,
-T cells, NK cells, dendritic cells, macrophages don't all do the same
-thing — but they all *speak* the shared protocol. The protocol is what
-makes them an immune *system* rather than disconnected mechanisms.
+*co-evolved coordination substrate* that wildly different cell types use
+to communicate. B cells, T cells, NK cells, dendritic cells, macrophages
+don't all do the same thing — but they all *speak* the shared substrate.
+The substrate is what makes them an immune *system* rather than
+disconnected mechanisms.
 
-Antigen-the-vocabulary is the protocol layer. The components are the cell
-types. The protocol is not itself a cell type; it's the substrate of
-inter-cellular coordination.
+Antigen-the-vocabulary is structurally analogous: the emergent practice
+layer that components use to coordinate. **Different genesis, same
+compositional function**: biology's substrate emerged through evolutionary
+pressure across millions of years; antigen's emerges through community
+recognition under ADR-006 discipline. Both are co-evolved-not-engineered at
+the vocabulary layer. Heterogeneous components coordinate around shared
+substrate without central authority specifying the coordination layer.
 
-[NATURALIST: V0 asked whether "protocol" is the right word in biology
-for what MHC + cytokine signaling IS. Scout independently surfaced the
-"protocol layer" framing; biology cognate now tight. Refinement: is
-"protocol" exactly right, or is "shared substrate" / "coordinated signaling"
-sharper? What about complement-system-as-protocol-amplifier — does that
-sharpen?]
+(The "protocol" framing — which earlier V1 used briefly and which scout
+sharpened from V0's "spine" — was structurally accurate at the *function*
+level but imported engineered-spec baggage at the *mechanism-framing*
+level. Naturalist's substrate-grep confirmed antigen substrate doesn't use
+"protocol" for this purpose elsewhere; the refinement to "emergent
+practice" honors ADR-006's recognition character and Wenger's
+community-of-practice framing without inheriting RFC-style spec-baggage.
+The refinement is in V1 deep-dive; future references to the layer should
+use "emergent practice" or "co-evolved coordination substrate" rather than
+"protocol".)
 
 ---
 

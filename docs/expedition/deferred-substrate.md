@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V22 (2026-05-11, naturalist vocabulary-as-protocol refinement indexed: "protocol" carries engineered-spec baggage conflicting with ADR-006; A5 stdlib-governance design-input flagged).
+> **Status**: V23 (2026-05-11, V1 Part I "emergent practice" revision committed; A5 stdlib-governance encounter registered; "protocol" → "emergent practice" Tekgy-ratified).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -114,8 +114,8 @@ honest cognates at each. Three predictive shifts:
   2. Ecosystem evangelism: recognition-language attracts naturalist-mindset adopters
      (ADR-006's load-bearing audience) vs. compliance-mindset from protocol-language.
   3. Antigen-stdlib governance (A5): should be recognition-grounded (three independent
-     instances → propose antigen), not spec-grounded. **A5 design-decision input** —
-     route to team-lead for A5 scope-lock context; easy to drift spec-grounded by default.
+     instances → propose antigen), not spec-grounded. Tekgy-ratified 2026-05-11;
+     registered as encounter below (held-for: A5-scope-lock-substrate).
 - Decay/sunset: genuine vocabulary gap (no "retired antigen" primitive);
   encounters-tier or future ADR candidate; not a new structural component.
 - Cross-team/org, adversarial-discipline, educational/onboarding: all
@@ -421,6 +421,44 @@ might be the first concrete example of the third disposition applied to Item 1.
 **Revisit when**: encounters tier ratification opens (full Phase 1-8 + ratification
 per process.md). Sub-section draft is substrate-ready; migrates to process.md as
 part of encounters ratification pass.
+
+### Antigen-stdlib contribution model: recognition-grounded vs spec-grounded (encounter-registered)
+
+**What**: The antigen-stdlib (post-A5) contribution model should be
+**recognition-grounded** (three independent instances of a candidate antigen across
+distinct codebases triggers proposal) rather than **spec-grounded** (propose spec →
+community vote → ratify). The spec-grounded model is the "obvious open-source default"
+(RFC/IETF-style), but it conflicts with ADR-006 recognition discipline at the vocabulary
+layer and imports engineered-protocol baggage that the vocabulary itself does not carry.
+
+**Substrate finding**: antigen-the-vocabulary emerges through recognition, not
+specification (ADR-006 recognition-not-design + naturalist's vocabulary-as-protocol
+cognate refinement, 2026-05-11). The stdlib contribution model should match the
+vocabulary's actual growth mechanism. Three-independent-instances is already how
+vocabulary grows within-project; stdlib contribution is the same discipline scaled
+to cross-project.
+
+**Why time-sensitive**: structural, not calendar. If A5 scope-lock defaults to
+spec-grounded (contribution templates, proposal formats, voting mechanisms built for
+RFC-style flow), the wrong model commits structurally before being noticed. Unwinding
+after structural choices have been made is expensive. Surface as named alternative NOW
+so it enters A5 substrate at scope-lock, not as a post-hoc correction.
+
+**Recognized choice**: recognition-grounded by default; spec-grounded as an anomaly
+that requires explicit justification (same asymmetry as ADR-006 recognition-not-design
+vs designed-by-specification).
+
+**Trace**: naturalist campsite `20260511120843-vocabulary-as-protocol-cognate-refinement.md`
+(parent finding — third predictive shift); honest-boundary-as-encounter-registration
+discipline (Q7); A5 governance threat-model items in adversarial campsite.
+
+**Held-for**: `A5-scope-lock-substrate`.
+
+**Source**: naturalist 2026-05-11 (third predictive shift); Tekgy ratified 2026-05-11.
+**Owner on activation**: aristotle (Phase 1-8 the governance model when A5 opens);
+scientist if manuscript work touches contribution-model framing earlier.
+
+**Revisit when**: A5 scope-lock approaches; or manuscript §contribution-model is drafted.
 
 ---
 
