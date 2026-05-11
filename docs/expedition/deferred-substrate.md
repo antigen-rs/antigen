@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V12 (2026-05-11, aristotle Phase 1-8 complete; Q6/Q7/Q8 calibrated; amendment queue active).
+> **Status**: V13 (2026-05-11, Q6/Q7/Q8 ratified by Tekgy; encounter-registrations updated; Q7 to process.md post-rc.1).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -152,9 +152,32 @@ manuscript drafting cycle when scientist re-engages.
 Structural gaps named during A3 multi-component pass. Each is a known-unknown:
 we see the boundary, we know what lives beyond it, we don't yet have the
 structural-memory answer. Per the "honest-boundary as encounter-registration"
-discipline (Tekgy 2026-05-11, V1 Part V): periodically revisit; ask if a
-structural-memory or component answer has surfaced; promote to V0+1 if shape
-stabilizes; remove from this index if resolved by an ADR or implementation.
+discipline (Tekgy 2026-05-11, V1 Part V; Q7 ratified 2026-05-11): periodically
+revisit; ask if a structural-memory or component answer has surfaced; promote
+to encounters-tier when discipline ratifies; remove if resolved by ADR or impl.
+
+**Additional encounter-registrations from Q6/Q7/Q8 ratification (2026-05-11):**
+
+### Engineered-substrate-exceeds-biology family (encounter-registered)
+
+Three instances: W7 FormalProof tier, ADR-017 trust-delegation, C4
+knowledge-ecosystem. Count trigger fires; second gate (multi-role + engineering-
+reason coherence) not yet met. `held-for: cross-project-posture-if-generalizes`.
+Registered per Q6 ratification.
+
+**Revisit when**: pattern surfaces in a second project context with different
+role discovering it, OR engineering-reason coherence across all three instances
+becomes clearer.
+
+### Manifold structure of antigen enumerations (encounter-registered)
+
+Observed in multi-component-immunity V1 enumeration. "Manifold" terminology
+is suggestive-not-technical. Generalization to other antigen enumerations
+(postures.md, decisions.md, 21-cell contact-graph matrix) unverified.
+Registered per Q8 ratification.
+
+**Revisit when**: another antigen enumeration is inspected and shows similar
+property. Accrue evidence; promote only when multiple enumerations confirm.
 
 ### Cargo-level attack boundary
 
@@ -302,23 +325,27 @@ aristotle Phase 1-8 campsite `20260510-multi-component-immunity-phase-1-8.md`.
 context) + multi-role discovery. Promote to V0+1 when both gates clear.
 **Owner when active**: navigator (notice recurrence) → postures.md V0+1.
 
-### Honest-boundary-as-encounter-registration (process.md discipline, not posture)
+### Honest-boundary-as-encounter-registration (RATIFIED: process.md, post-rc.1)
 
 **What**: When the metaphor produces clean silence, name the boundary honestly
 and register the known-unknown as an encounter. Formalized by Tekgy 2026-05-11.
-**Aristotle Q7 calibration (2026-05-11)**: workflow discipline, not architectural
-posture. Belongs in process.md sub-section. The discipline itself is the first
-encounter it produces (self-referential bootstrap). Five encounter-registrations
-in this index (cargo-level attacks, cross-crate witness gap, LLM hallucinated
-references, immunity laundering, stdlib trust hierarchy) are the first batch
-produced by the discipline.
+**Q7 ratified 2026-05-11**: workflow discipline → process.md sub-section (not
+postures.md). Self-referential bootstrap: the discipline itself is the first
+encounter it produces. First batch: five encounter-registrations in this index +
+two Q6/Q7/Q8 encounter-registrations above.
 
-**Where it lives**: V1 Part V; aristotle Phase 1-8 campsite; this index
-(registered-known-unknowns section).
+**Note on recursion** (Tekgy 2026-05-11): Q6/Q7/Q8 are themselves encounters
+of how to handle three kinds of substrate. We used the un-ratified encounters
+discipline on substrate from the encounters discipline being proposed. The
+recursion produces its own scaffolding. Q6/Q7/Q8 are the first batch of
+post-encounter-discipline-ratification substrate — they wait for the discipline
+to ratify, which waits for their substrate to mature. Clean structural coherence.
 
-**Unblocked by**: aristotle amendment pass (process.md sub-section is item in
-that pass if bandwidth allows). No posture-class promotion warranted.
-**Owner when active**: aristotle → process.md sub-section.
+**Where it lives**: V1 Part V; aristotle Phase 1-8 campsite; process.md when drafted.
+
+**Unblocked by**: encounters discipline ratification (full Phase 1-8 → ratification
+per process.md). Post-rc.1. Aristotle drafts process.md sub-section as part of Q7 work.
+**Owner when active**: aristotle → process.md sub-section → ratification.
 
 ### V0+1 candidates already in postures.md
 
@@ -582,3 +609,11 @@ encounter-tier not posture (single-role, engineering-reason variance); Q7 →
 process.md sub-section (workflow discipline); Q8 → encounter-tier observation
 (one instance). Vocabulary candidates updated to reflect aristotle calibrations.
 Amendment queue (5 items) briefed to aristotle; drafting next at aristotle's cadence.*
+
+*V13 updated 2026-05-11 by navigator: Q6/Q7/Q8 ratified by Tekgy. Q6
+(engineered-boundary family) → encounter-tier, held-for cross-project. Q7
+(honest-boundary discipline) → process.md sub-section post-rc.1; self-referential
+bootstrap noted; Q6/Q7/Q8 themselves the first post-encounter-discipline substrate.
+Q8 (manifold) → encounter-tier observation, accrue from other enumerations.
+Two new encounter-registrations added (engineered-boundary family; manifold
+observation). Q7 vocabulary candidate updated to reflect ratification.*
