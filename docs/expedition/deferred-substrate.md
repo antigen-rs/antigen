@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V13 (2026-05-11, Q6/Q7/Q8 ratified by Tekgy; encounter-registrations updated; Q7 to process.md post-rc.1).
+> **Status**: V14 (2026-05-10, 5-item ADR amendment queue CLOSED at 35130f2; substrate-currency correction on Item 5 documented).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -364,43 +364,17 @@ These are watched per their own thresholds; not duplicated here.
 Substrate explicitly deferred to A4+ or post-A5 by ratified ADRs or
 team-lead rulings.
 
-### Consolidated ADR amendments (aristotle, when idle — 5 items)
+### ~~Consolidated ADR amendments (aristotle, when idle — 5 items)~~ CLOSED (35130f2)
 
-Five items in one aristotle pass. Items 1-3 are prose drift; items 4-5 are
-substantive gaps that should land before v0.1.0-rc.1.
+All five amendments committed 2026-05-10 at `35130f2`. Items 1-3 prose drift;
+items 4-5 substantive pre-rc.1. **Substrate-currency correction on Item 5**:
+navigator brief had `ExternalUnvalidated` tier (does not exist in ratified W7
+strict four-tier enum). Aristotle corrected to `Reachability` +
+`audit_hint: "cross-crate-witness-not-locally-executable"` — same shape as
+`test-attribute-present-not-invoked` and `external-tool-prefix-recognized`.
 
-**ADR-018 Amendment 1a — diamond dedup mechanism** (prose drift): §Mechanics
-says "second-visit triggers set-union" but implementation uses per-DFS-source
-`visited: HashSet`. Source: pathmaker D1.5 flag.
-
-**ADR-018 Amendment 1b — same-version true-diamond** (prose drift): cross-
-version case stated; same-version collapse case not. Source: scout 2026-05-10.
-
-**ADR-017 Amendment 1a — workspace-internal exclusion** (prose drift):
-`enumerate_dep_crate_roots` implicitly excludes workspace-internal crates
-(`source: null`); should be explicit contract. Source: scout 2026-05-10.
-
-**ADR-017 Amendment 1b — trust scope statement** (substantive, pre-rc.1):
-ADR-017 doesn't state that cargo-level attacks (CARGO_HOME override, Cargo.lock
-manipulation, registry cache tampering) are out of antigen's trust scope. A
-consumer could over-read the guarantee. One sentence needed. Source: adversarial
-threat model 2026-05-10.
-
-**ADR-018 / ADR-005 Amendment — cross-crate witness tier** (substantive, pre-rc.1):
-`witness = dep_crate::some_test` cannot be executed by consuming workspace;
-`ExecutionVerified` would violate ADR-005 Amendment 3 tier-honesty. Cross-crate
-witnesses default to `ExternalUnvalidated` unless consuming workspace can run
-them. Enforcement A4-A5; rule named now. Source: adversarial threat model
-2026-05-10.
-
-**Where they live**: `docs/decisions.md`; scout campsite
-`20260510-adr-017-018-empirical-verification-and-component-candidates.md`;
-adversarial campsite `20260510-multi-component-threat-model.md`.
-
-**Unblocked by**: aristotle bandwidth + team-lead awareness (already
-established for items 4-5). Items 4-5 should land before v0.1.0-rc.1 tag.
-
-**Owner when active**: aristotle drafts all five → process.md Stage 3-6.
+Pre-rc.1 gates are now met. Remaining pre-rc.1 gate: confirm `cargo test
+--workspace` clean + `cargo clippy` clean before tagging.
 
 ### A4+ substrate accumulating
 
@@ -617,3 +591,11 @@ bootstrap noted; Q6/Q7/Q8 themselves the first post-encounter-discipline substra
 Q8 (manifold) → encounter-tier observation, accrue from other enumerations.
 Two new encounter-registrations added (engineered-boundary family; manifold
 observation). Q7 vocabulary candidate updated to reflect ratification.*
+
+*V14 updated 2026-05-10 by navigator: 5-item ADR amendment queue CLOSED
+(35130f2). Items 1-3 prose drift; items 4-5 substantive pre-rc.1. Substrate-
+currency correction on Item 5: navigator brief had ExternalUnvalidated tier
+(does not exist); aristotle corrected to Reachability +
+"cross-crate-witness-not-locally-executable" audit_hint per existing Amendment 3
+mechanism. Memory record filed for future navigator briefs. Pre-rc.1 gates now
+met on amendment side.*
