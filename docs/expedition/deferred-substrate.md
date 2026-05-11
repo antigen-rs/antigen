@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V25 (2026-05-11, Phase 1 progress: CLI hide done; where-to-look-for-antigens.md committed; scout at creative-freedom; aristotle Phase 1-8 pending).
+> **Status**: V26 (2026-05-11, aristotle A3.5 Phase 1-8 complete: 8 findings, 5 scope-lock amendments; adversarial gap-item #5 verification in flight; awaiting team-lead/Tekgy ratification).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -154,14 +154,24 @@ basic.rs" — that struct doesn't exist in current basic.rs (verified 2026-05-11
 Gap-item may be stale from pre-W3. Adversarial should verify what cross-reactivity
 actually exists now before documenting it.
 
-**Sweep name** (aristotle's call): A3.5 / OR-1 / Pre-RC / Onboarding.
-Team-lead leans A3.5 for continuity; no strong preference.
+**Sweep name**: A3.5 ("Onboarding") — aristotle's recommendation; team-lead/Tekgy ratify.
+
+**Five scope-lock-time amendments** (aristotle Phase 1-8, 2026-05-11):
+1. Phase 5 draws on convergence-check discipline (cross-check outputs, not independent reads)
+2. Phase 1 includes explicit dependency-mapping sub-task (navigator-coordinated)
+3. Criterion #3 mechanism = team-member-fresh-to-tutorial-content; imperfection named
+4. Gap item #5 reframed: DemoBrokenWitness in broken_witness.rs, not basic.rs; adversarial verifying
+5. V1 canonicalization coordination before weaving deliverable (team-lead decides timing)
+
+**Awaiting**: team-lead + Tekgy ratification of A3.5 + five amendments.
 
 **Phase 1 (scope-lock + foundation)**:
-- Aristotle: Phase 1-8 this proposal (bandwidth opening) — pending
-- Pathmaker: hide `new`/`vaccinate` from CLI help — **DONE** (ce75896, 2026-05-11)
-- Team-lead: README rough draft (parallel; doesn't depend on scope-lock) — in progress
-- Scout: usage-patterns.md continuation — DONE (seeded; `where-to-look-for-antigens.md` added 2026-05-11, closes gap #9)
+- Aristotle: Phase 1-8 COMPLETE (2026-05-11, campsite `20260511-pre-release-onboarding-sweep-phase-1-8.md`)
+- Pathmaker: hide `new`/`vaccinate` — DONE (ce75896, 2026-05-11)
+- Team-lead: README rough draft — in progress (parallel)
+- Scout: usage-patterns.md + where-to-look-for-antigens.md — DONE (closes gap #9)
+- Adversarial: gap item #5 cross-reactivity verification — IN FLIGHT
+- Navigator: dependency-mapping pass — pending scope-lock ratification
 
 **Downstream**: `docs/usage-patterns.md` already seeded (scout, 2026-05-11).
 `docs/roadmap.md`, `docs/tutorial.md`, `docs/fingerprint-grammar.md`,
