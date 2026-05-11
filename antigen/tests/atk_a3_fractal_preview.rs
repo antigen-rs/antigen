@@ -742,3 +742,269 @@ fn atk_a3_010_antigenic_drift_audit_message_must_not_use_memory_waning_language(
     //     textual distinction the test can assert against.
     panic!("A4+ pre-implementation contract — antigenic-drift audit message category");
 }
+
+// ============================================================================
+// ATK-A3-011: cross-crate witness tier overstated — theatrical dependency witness
+//             reported as ExecutionVerified when consuming workspace cannot run it
+//
+// A4+ pre-implementation contract. Gated on A4-A5 behavioral re-validation tier
+// and cross-crate witness resolution (A3 D3+).
+//
+// Attack vector: a dependency crate ships `#[immune(X, witness = test::stub_test)]`
+// where `stub_test` technically passes (resolves, compiles, produces no assertion
+// failure) but does not exercise antigen X's specific failure mode. The consuming
+// workspace calls `cargo antigen audit`; the audit resolves the witness to the
+// function in the dependency's source, reports `ExecutionVerified` tier, and
+// marks the site as addressed.
+//
+// The gap: the consuming workspace CANNOT execute the dependency's test. It can
+// confirm the function exists (source walk) and compiles (cargo check), but it
+// cannot run it. Reporting `ExecutionVerified` when the test hasn't been executed
+// in the consumer's CI violates ADR-005 Amendment 3 audit-tier-honesty.
+//
+// The correct tier for cross-crate witnesses where the function lives in a
+// dependency's test suite: `ExternalUnvalidated` — same as `witness = kani::...`
+// when kani isn't in the local CI pipeline. The consumer asserts existence, not
+// execution.
+//
+// The theatrical-witness amplification: a dependency that ships a witness designed
+// to pass without exercising the failure mode (e.g., `fn stub_test() {}`) will
+// receive `ExecutionVerified` in every consuming workspace's audit. The failure
+// mode is invisible at every layer because the audit reports tier from source
+// resolution alone.
+//
+// Contract: `cargo antigen audit` MUST report `ExternalUnvalidated` (not
+// `ExecutionVerified`) for any witness whose function definition lives in a
+// dependency crate's test suite, unless the consuming workspace has a mechanism
+// to execute that test locally (e.g., it is a dev-dependency re-run). The tier
+// distinction MUST appear in the AuditReport output and be grounded in whether
+// the consuming workspace's CI pipeline actually ran the witness.
+//
+// ADR-005 Amendment 3 amendment candidate: the cross-crate witness tier rule
+// should be named explicitly in the amendment text before v0.1.0-rc.1 ships.
+//
+// Status: #[ignore] until A4-A5 cross-crate witness resolution + tier computation
+// lands.
+// ============================================================================
+
+#[test]
+#[ignore = "A4+ pre-implementation contract; cross-crate witness reported as \
+             ExecutionVerified when consumer cannot run it — theatrical-witness \
+             attack vector; should be ExternalUnvalidated; remove ignore when \
+             A4-A5 cross-crate witness tier computation lands"]
+fn atk_a3_011_cross_crate_witness_reported_executed_when_consumer_cannot_run_it() {
+    // Contract: a ScanReport containing an Immunity whose witness function lives
+    // in a dependency crate's test suite MUST produce WitnessTier::ExternalUnvalidated
+    // in the audit output, not WitnessTier::ExecutionVerified.
+    //
+    // The fixture requires:
+    //   - A dependency crate with `#[immune(X, witness = test::stub_test)]` where
+    //     stub_test is defined in the dependency's test suite.
+    //   - A consuming workspace that scans --include-deps and audits.
+    //   - Assertion: the Immunity's WitnessTier in the audit output is ExternalUnvalidated.
+    //   - Anti-assertion: the tier is NOT ExecutionVerified (the consuming workspace
+    //     did not execute the test).
+    //
+    // TODO(adversarial): implement when A4-A5 cross-crate witness resolution lands.
+    // See also: campsite `20260510-multi-component-threat-model.md` §C6 for full attack.
+    panic!("A4+ pre-implementation contract — cross-crate witness tier");
+}
+
+// ============================================================================
+// ATK-A3-012: proc-macro generated immunity lacks source annotation —
+//             injected claims indistinguishable from hand-written claims
+//
+// A4+ pre-implementation contract. Gated on ADR-014 (#[antigen_generates]) landing.
+//
+// Attack vector: a compromised or malicious proc-macro dependency generates
+// `#[immune(X, witness = test::stub)]` declarations on items the user did not
+// intend to mark as immune. The proc-macro runs at compile time; its output is
+// syntactically indistinguishable from a developer-written `#[immune]` attribute.
+// `cargo antigen scan` collects the generated Immunity records. Audit reports the
+// sites as addressed. Real vulnerability sites are suppressed.
+//
+// The gap: the current ScanReport does not record the *source* of each declaration
+// (hand-written vs. `#[antigen_generates]`-produced vs. fingerprint-engine-inferred).
+// A consumer reading the audit output cannot distinguish a developer's deliberate
+// `#[immune]` from a proc-macro's injected immunity claim.
+//
+// This is structurally different from the C6 supply-chain attack (which targets
+// a crate's published declarations). The proc-macro injection attack operates
+// inside the user's own build pipeline — the compromised macro is a build
+// dependency, and its output appears in the user's own workspace scan.
+//
+// Contract: `cargo antigen scan` MUST record a `declaration_source` field on
+// Immunity (and Presentation) records indicating how the declaration was produced:
+//   - `HandWritten` — the attribute appears in source as written by a developer
+//   - `GeneratedByMacro(macro_name)` — produced by an `#[antigen_generates]` invocation
+//   - `FingerprintInferred` — inferred by the fingerprint engine, no source attribute
+//
+// `cargo antigen audit` MUST surface `GeneratedByMacro` source in its output,
+// distinguishing generated immunity claims from hand-written ones. Consumers
+// can apply appropriate scrutiny to macro-generated claims.
+//
+// Status: #[ignore] until ADR-014 (`#[antigen_generates]`) lands and
+// ScanReport gains declaration_source field.
+// ============================================================================
+
+#[test]
+#[ignore = "A4+ pre-implementation contract; proc-macro generated immunity has no \
+             source annotation — injected claims indistinguishable from hand-written; \
+             ScanReport needs declaration_source field; remove ignore when ADR-014 \
+             (#[antigen_generates]) lands"]
+fn atk_a3_012_proc_macro_generated_immunity_lacks_source_annotation() {
+    // Contract: an Immunity produced by an `#[antigen_generates]` invocation MUST
+    // carry declaration_source = GeneratedByMacro("macro_name") in the ScanReport.
+    // An Immunity written directly by a developer MUST carry declaration_source = HandWritten.
+    // The audit output MUST distinguish the two.
+    //
+    // The adversarial fixture requires:
+    //   - A proc-macro that generates `#[immune(X)]` on an item via #[antigen_generates].
+    //   - A scan of the workspace containing the generated attribute.
+    //   - Assertion: the Immunity record has declaration_source = GeneratedByMacro.
+    //   - Anti-assertion: a hand-written `#[immune(X)]` on the same item type produces
+    //     declaration_source = HandWritten, not GeneratedByMacro.
+    //
+    // TODO(adversarial): implement when ADR-014 lands and scan.rs tracks declaration source.
+    // See also: campsite `20260510-multi-component-threat-model.md` §C1 for full attack.
+    panic!("A4+ pre-implementation contract — proc-macro generated immunity source");
+}
+
+// ============================================================================
+// ATK-A3-013: diamond ProvenanceEntry set-union loses path structure —
+//             A4-A5 witness re-validation uses wrong ancestor's witness
+//
+// A4+ pre-implementation contract. Gated on A4-A5 behavioral re-validation tier.
+//
+// Background: ADR-018 Option C (ProvenanceEntry with canonical_path) is ratified.
+// Diamond dedup merges `inherited_from` by set-union of ProvenanceEntry tuples.
+// This correctly deduplicates presentations. But the merge loses path structure:
+// which diamond path contributed which ancestor is not preserved.
+//
+// Attack scenario:
+//
+//   Antigen hierarchy:
+//     GrandParent (canonical_path: Some("gp-crate@1.0.0"))
+//     ├── Parent1 (canonical_path: Some("p1-crate@1.0.0"))
+//     │     witness for GrandParent: test::thorough_test  (covers all cases)
+//     └── Parent2 (canonical_path: Some("p2-crate@1.0.0"))
+//           witness for GrandParent: test::stub_test       (passes, covers nothing)
+//     └── Child (inherits from both Parent1 and Parent2)
+//
+//   After diamond dedup:
+//     Child.inherited_from = Some([
+//       ProvenanceEntry { antigen_type: "GrandParent", canonical_path: Some("gp-crate@1.0.0") }
+//     ])
+//
+//   Both Parent1's thorough_test and Parent2's stub_test are ancestors of the
+//   GrandParent ProvenanceEntry. A4-A5 behavioral re-validation must evaluate
+//   which witness applies to Child's inherited GrandParent presentation.
+//
+// The gap: if A4-A5 implementation arbitrarily picks one ancestor's witness
+// (e.g., first in lineage_edges traversal order), it may pick stub_test.
+// Child's GrandParent immunity is reported as re-validated against stub_test —
+// the weaker witness. The thorough_test path is silently discarded.
+//
+// The correct behavior: A4-A5 witness re-validation against diamond descendants
+// MUST traverse the full `lineage_edges` substrate to reconstruct path structure,
+// not rely solely on the merged ProvenanceEntry set. Both ancestor witnesses must
+// be evaluated; the weaker tier (ExternalUnvalidated < ExecutionVerified) governs.
+//
+// Contract: for a diamond inheritance scenario where two paths to the same
+// ProvenanceEntry carry witnesses of different tiers, the audit MUST report the
+// LOWER (more conservative) tier, not the higher one. The implementation MUST
+// use `lineage_edges` for path reconstruction, not just `inherited_from`.
+//
+// Status: #[ignore] until A4-A5 behavioral re-validation tier lands.
+// ============================================================================
+
+#[test]
+#[ignore = "A4+ pre-implementation contract; diamond ProvenanceEntry set-union loses \
+             path structure — A4-A5 re-validation may pick weaker ancestor witness, \
+             must use lineage_edges not inherited_from alone; remove ignore when \
+             A4-A5 behavioral re-validation tier lands"]
+fn atk_a3_013_diamond_provenance_set_union_loses_path_witness_structure() {
+    // Contract: diamond inheritance where two paths to the same ProvenanceEntry
+    // carry different witnesses — the audit MUST evaluate all ancestor witnesses
+    // and report the most conservative (weakest) tier, not arbitrarily pick one.
+    //
+    // Fixture requires:
+    //   - GrandParent antigen with two intermediate parents, each with a different
+    //     witness (one thorough, one stub/theatrical).
+    //   - Child inheriting from both parents (diamond shape).
+    //   - After synthesis, Child's inherited_from has one ProvenanceEntry for GrandParent.
+    //   - A4-A5 audit: assert the reported tier is the weaker witness's tier, NOT
+    //     the stronger one. Assert that lineage_edges traversal is used, not
+    //     inherited_from alone.
+    //
+    // TODO(adversarial): implement when A4-A5 behavioral re-validation lands.
+    // See also: campsite `20260510-multi-component-threat-model.md` §C5 for full attack.
+    panic!("A4+ pre-implementation contract — diamond ProvenanceEntry path loss");
+}
+
+// ============================================================================
+// ATK-A3-014: reference tier annotation absent — LLM hallucinated references
+//             indistinguishable from validated references in audit output
+//
+// A4+ pre-implementation contract. Gated on `cargo antigen audit` reference
+// validation feature.
+//
+// Attack vector: LLM collaborators that help write antigen declarations
+// hallucinate plausible-looking but nonexistent references. The hallucinations
+// are calibrated to look real — RFC numbers in plausible ranges, blog URLs with
+// correct domain and path structure, CVE IDs in correct formats. All reliably
+// return 404 or redirect when fetched. The current v0.1 model stores references
+// as opaque strings; audit does not validate them. Hallucinated and real references
+// are structurally indistinguishable in the scan report.
+//
+// LLM double-trust amplification: the same LLM that hallucinated a reference
+// will trust it in a future session (reading `references = ["url:https://..."]`
+// and treating it as ground truth). The circular trust: LLM generates, then
+// validates against its own generation. The structural vocabulary makes this
+// trust feel warranted — the reference is "in the code."
+//
+// The shared-reference-cluster risk: multiple related antigens reference the same
+// external source. When that source is a hallucination (or later compromised via
+// domain expiry/squatting), a single resolution failure undermines the rationale
+// for a whole cluster of failure classes simultaneously.
+//
+// Contract: `cargo antigen audit` MUST produce a tier annotation per reference
+// entry in the `references = [...]` field:
+//   - `ValidatedReference` — URL resolves with expected content type (200 OK, HTML)
+//   - `UnvalidatedReference` — URL not checked (audit run without --validate-refs)
+//   - `DeadReference` — URL returns 4xx/5xx or does not parse as a valid URL
+//
+// The audit MUST surface `DeadReference` as a warning. Antigens with only
+// `DeadReference` entries have no validated lived-context grounding.
+//
+// Shared-reference cluster detection: when N antigens share the same external
+// reference URL, audit SHOULD surface the cluster size as metadata — "N antigens
+// share this reference; single-point failure risk."
+//
+// Status: #[ignore] until `cargo antigen audit --validate-refs` feature lands.
+// ============================================================================
+
+#[test]
+#[ignore = "A4+ pre-implementation contract; reference tier annotation absent — \
+             LLM hallucinated references (reliably 404) indistinguishable from \
+             real ones; audit needs ValidatedReference/DeadReference tier per entry; \
+             remove ignore when cargo antigen audit --validate-refs lands"]
+fn atk_a3_014_hallucinated_references_indistinguishable_from_validated() {
+    // Contract: an antigen declaration with a `references = [...]` entry that
+    // returns 404 when fetched MUST produce a DeadReference tier annotation in
+    // the audit output. A real reference that resolves MUST produce ValidatedReference.
+    // The two MUST be distinguishable in audit output.
+    //
+    // Fixture requires:
+    //   - An antigen with a `references = ["url:https://invalid.example.invalid/fake"]`
+    //     entry that reliably does not resolve.
+    //   - A scan + audit run with --validate-refs flag.
+    //   - Assertion: the audit output for this antigen includes a DeadReference tier
+    //     annotation for the entry.
+    //   - Shared-cluster fixture: N antigens sharing one dead reference URL → audit
+    //     surfaces cluster size N in its output for that reference.
+    //
+    // TODO(adversarial): implement when cargo antigen audit gains --validate-refs.
+    // See also: campsite `20260510-multi-component-threat-model.md` §C4 for full attack.
+    panic!("A4+ pre-implementation contract — reference tier annotation");
+}
