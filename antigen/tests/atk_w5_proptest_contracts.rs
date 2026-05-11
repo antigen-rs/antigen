@@ -104,6 +104,7 @@ fn atk_w5_002_multiple_proptest_functions_all_detected() {
         line: 1,
         item_kind: "impl".to_string(),
         item_target: antigen::scan::ItemTarget::Unknown { line: 0 },
+        canonical_path: None,
     };
     let mut report = ScanReport::default();
     report.immunities.push(immunity);
@@ -157,6 +158,7 @@ fn atk_w5_003_doc_comment_proptest_mention_does_not_over_classify() {
         line: 1,
         item_kind: "impl".to_string(),
         item_target: antigen::scan::ItemTarget::Unknown { line: 0 },
+        canonical_path: None,
     };
     let mut report = ScanReport::default();
     report.immunities.push(immunity);
@@ -202,6 +204,7 @@ fn atk_w5_004_plain_test_in_proptest_file_remains_test_kind() {
         line: 1,
         item_kind: "impl".to_string(),
         item_target: antigen::scan::ItemTarget::Unknown { line: 0 },
+        canonical_path: None,
     };
     let mut report = ScanReport::default();
     report.immunities.push(immunity);

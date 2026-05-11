@@ -246,6 +246,16 @@ pub struct AntigenDeclaration {
     /// match the structural pattern. `None` for antigens declared without
     /// a fingerprint (Layer 1 minimum-viable form, ADR-009).
     pub fingerprint: Option<String>,
+    /// Canonical declaration site of this antigen, in the
+    /// `"<crate-name>@<version>"` form (e.g., `"serde@1.0.193"`).
+    ///
+    /// ADR-017 (canonical declaration site identity). `None` for
+    /// intra-workspace declarations — the default for the workspace-only
+    /// scan path. Set by the cargo-metadata-driven `--include-deps`
+    /// pipeline after scanning a dependency crate root. The full identity
+    /// tuple at the cross-crate boundary is `(type_name, canonical_path)`.
+    #[serde(default)]
+    pub canonical_path: Option<String>,
 }
 
 /// Identity of the Rust item that an antigen-related attribute is applied to.
@@ -493,6 +503,29 @@ pub enum MatchKind {
     FingerprintMatch,
 }
 
+/// Provenance entry: the identity of one ancestor antigen whose
+/// presentations propagated to a descendant via `#[descended_from]`.
+///
+/// ADR-018 (propagation semantics). Each [`Presentation`] inherited via
+/// the lineage walk carries one [`ProvenanceEntry`] per transitive
+/// ancestor it inherited from. The entry fully identifies the ancestor
+/// via the same `(antigen_type, canonical_path)` tuple that
+/// [`unaddressed_presentations`](ScanReport::unaddressed_presentations)
+/// uses for antigen identity.
+///
+/// `Ord` is derived so a `BTreeSet<ProvenanceEntry>` can be used
+/// internally during propagation for O(log n) set-union; the serialised
+/// form is `Vec<ProvenanceEntry>` for JSON schema stability.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct ProvenanceEntry {
+    /// Antigen type name at the ancestor declaration site.
+    pub antigen_type: String,
+    /// Crate identity (`"<crate-name>@<version>"`) where the ancestor
+    /// antigen was originally declared. `None` if the ancestor is
+    /// intra-workspace.
+    pub canonical_path: Option<String>,
+}
+
 /// A `#[presents(antigen_type)]` declaration or synthetic fingerprint match
 /// discovered in source.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -512,6 +545,27 @@ pub struct Presentation {
     /// compatibility with serialized reports from before W6a.
     #[serde(default)]
     pub match_kind: MatchKind,
+    /// Canonical declaration site of the *antigen* referenced by this
+    /// presentation (not the presentation's own location). ADR-017.
+    /// `None` for intra-workspace antigens; `Some("<crate>@<version>")`
+    /// for cross-crate antigens (set by the `--include-deps` driver
+    /// after scanning the dependency crate root).
+    #[serde(default)]
+    pub canonical_path: Option<String>,
+    /// Provenance chain of ancestor antigens this presentation was
+    /// inherited from. ADR-018 (propagation semantics).
+    ///
+    /// - `None` = direct presentation (explicit marker or fingerprint match).
+    /// - `Some(chain)` = synthesized via the propagation walk; the chain
+    ///   names every transitive ancestor antigen whose presentation
+    ///   propagated here (set-union across diamond paths). Empty `Vec`
+    ///   inside `Some` is forbidden — normalised to `None` at construction.
+    ///
+    /// Audit emits a warn-level diagnostic for presentations with
+    /// `inherited_from = Some(_)` that lack a re-attested immunity or
+    /// tolerance on the descendant site (state 7 of the 7-state matrix).
+    #[serde(default)]
+    pub inherited_from: Option<Vec<ProvenanceEntry>>,
 }
 
 /// An `#[immune(antigen_type, witness = ...)]` declaration discovered in source.
@@ -529,6 +583,11 @@ pub struct Immunity {
     pub item_kind: String,
     /// Item identity for structural matching against `Presentation`. W3 (sweep A2).
     pub item_target: ItemTarget,
+    /// Canonical declaration site of the *antigen* referenced by this
+    /// immunity claim (not where the immunity is declared). ADR-017.
+    /// `None` for intra-workspace antigens.
+    #[serde(default)]
+    pub canonical_path: Option<String>,
 }
 
 /// An `#[antigen_tolerance(antigen, rationale = "...", until = "...", see = [...])]`
@@ -553,6 +612,10 @@ pub struct Toleration {
     pub item_kind: String,
     /// Item identity for structural matching against fingerprint matches.
     pub item_target: ItemTarget,
+    /// Canonical declaration site of the *antigen* this tolerance
+    /// addresses. ADR-017. `None` for intra-workspace antigens.
+    #[serde(default)]
+    pub canonical_path: Option<String>,
 }
 
 /// A file that failed to parse during a scan, with the associated error.
@@ -589,15 +652,27 @@ pub struct LineageEdge {
     /// Bare type name of the antigen bearing `#[descended_from]` (the child).
     pub child: String,
     /// Last path segment of the `#[descended_from]` argument (the parent
-    /// antigen type). Stored as the bare type name, mirroring how
-    /// [`Presentation::antigen_type`] and [`Immunity::antigen_type`] are
-    /// stored — A3 cross-crate identity (module-path qualification) is an
-    /// ADR-class question; until resolved, names are bare last-segment.
+    /// antigen type), stored as the bare type name. Cross-crate identity
+    /// at the parent endpoint lives in [`Self::parent_canonical_path`].
     pub parent: String,
     /// Source file path.
     pub file: PathBuf,
     /// Line number of the `#[descended_from]` attribute.
     pub line: usize,
+    /// Canonical declaration site of the *parent* antigen (the
+    /// `#[descended_from]` argument), `"<crate-name>@<version>"`.
+    /// ADR-017. `None` for intra-workspace ancestors.
+    ///
+    /// Two `parent_canonical_path` fields make cross-crate lineage edges
+    /// first-class: an intra-workspace child can declare descent from a
+    /// cross-crate parent, or vice-versa. The full lineage edge identity
+    /// is `(child, parent, child_canonical_path, parent_canonical_path)`.
+    #[serde(default)]
+    pub parent_canonical_path: Option<String>,
+    /// Canonical declaration site of the *child* antigen (the bearer of
+    /// `#[descended_from]`). ADR-017. `None` for intra-workspace.
+    #[serde(default)]
+    pub child_canonical_path: Option<String>,
 }
 
 /// Aggregate result of scanning a workspace.
@@ -726,7 +801,7 @@ impl ScanReport {
     /// cross-crate antigens may produce false positives here; that's
     /// the recognized v0.1 limitation.
     ///
-    /// See also [`ScanReport::dangling_lineage_edges`] for the dual case
+    /// See also [`ScanReport::dangling_child_lineage_edges`] for the dual case
     /// (child missing rather than parent missing).
     #[must_use]
     pub fn orphaned_lineage_edges(&self) -> Vec<&LineageEdge> {
@@ -761,7 +836,7 @@ impl ScanReport {
     /// The propagation walk skips edges flagged by this query the same
     /// way it skips edges flagged by `orphaned_lineage_edges`.
     #[must_use]
-    pub fn dangling_lineage_edges(&self) -> Vec<&LineageEdge> {
+    pub fn dangling_child_lineage_edges(&self) -> Vec<&LineageEdge> {
         let known: std::collections::HashSet<&str> =
             self.antigens.iter().map(|a| a.type_name.as_str()).collect();
         self.lineage_edges
@@ -1481,6 +1556,8 @@ fn synthesis_pass(
                     item_kind: kind_str.to_string(),
                     item_target: item_target.clone(),
                     match_kind: MatchKind::FingerprintMatch,
+                    canonical_path: None,
+                    inherited_from: None,
                 });
             }
         }
@@ -1567,6 +1644,7 @@ impl ScanVisitor<'_> {
                         family: args.family,
                         summary: args.summary,
                         fingerprint: args.fingerprint,
+                        canonical_path: None,
                     });
                 }
                 Err(_) => {
@@ -1580,6 +1658,7 @@ impl ScanVisitor<'_> {
                         family: None,
                         summary: None,
                         fingerprint: None,
+                        canonical_path: None,
                     });
                 }
             }
@@ -1626,6 +1705,8 @@ impl ScanVisitor<'_> {
             item_kind: item_kind.to_string(),
             item_target,
             match_kind: MatchKind::ExplicitMarker,
+            canonical_path: None,
+            inherited_from: None,
         });
     }
 
@@ -1662,6 +1743,7 @@ impl ScanVisitor<'_> {
                 line,
                 item_kind: item_kind.to_string(),
                 item_target,
+                canonical_path: None,
             });
         }
     }
@@ -1703,6 +1785,7 @@ impl ScanVisitor<'_> {
                 line,
                 item_kind: item_kind.to_string(),
                 item_target,
+                canonical_path: None,
             });
         }
     }
@@ -1770,6 +1853,8 @@ impl ScanVisitor<'_> {
             parent,
             file: self.file_path.clone(),
             line,
+            parent_canonical_path: None,
+            child_canonical_path: None,
         });
     }
 
@@ -2419,6 +2504,8 @@ mod tests {
             parent: parent.to_string(),
             file: PathBuf::from("test.rs"),
             line: 1,
+            parent_canonical_path: None,
+            child_canonical_path: None,
         }
     }
 
@@ -2588,6 +2675,7 @@ mod tests {
             family: None,
             summary: None,
             fingerprint: None,
+            canonical_path: None,
         }
     }
 
@@ -2727,9 +2815,9 @@ mod tests {
         // system without being a participant.
         //
         // Contract: this must be surfaced via SOME query channel —
-        // `dangling_lineage_edges()` (the chosen channel),
+        // `dangling_child_lineage_edges()` (the chosen channel),
         // `orphaned_lineage_edges()`, or `parse_failures`. Pathmaker chose
-        // a separate `dangling_lineage_edges()` method (parallel to
+        // a separate `dangling_child_lineage_edges()` method (parallel to
         // `orphaned_lineage_edges`) because the channel separation
         // is structurally cleaner per ADR-006 (recognition-not-design).
         //
@@ -2742,15 +2830,15 @@ mod tests {
         report.lineage_edges.push(edge("OrphanChild", "Parent"));
 
         let orphans = report.orphaned_lineage_edges();
-        let dangling = report.dangling_lineage_edges();
+        let dangling = report.dangling_child_lineage_edges();
         assert!(
             !orphans.is_empty() || !dangling.is_empty() || !report.parse_failures.is_empty(),
             "lineage edge whose child has no #[antigen] declaration must be \
-             surfaced via orphaned_lineage_edges, dangling_lineage_edges, or \
+             surfaced via orphaned_lineage_edges, dangling_child_lineage_edges, or \
              parse_failures; got orphans: {orphans:?}, dangling: {dangling:?}"
         );
 
-        // Specific assertion: pathmaker chose dangling_lineage_edges as the
+        // Specific assertion: pathmaker chose dangling_child_lineage_edges as the
         // channel. The orphan-channel must NOT also surface this case
         // (parent IS in antigens, so it's not a parent-orphan).
         assert!(
@@ -2761,7 +2849,7 @@ mod tests {
         assert_eq!(
             dangling.len(),
             1,
-            "child-missing must appear in dangling_lineage_edges, exactly one"
+            "child-missing must appear in dangling_child_lineage_edges, exactly one"
         );
         assert_eq!(dangling[0].child, "OrphanChild");
         assert_eq!(dangling[0].parent, "Parent");
