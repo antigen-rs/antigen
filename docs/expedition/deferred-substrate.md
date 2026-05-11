@@ -18,13 +18,13 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V5 (2026-05-10, multi-component incoming + ADR-018 Amendment 1 tracked).
+> **Status**: V6 (2026-05-10, multi-component substrate committed; team routing active).
 > V1: D1.5 active, ATK reframes unblocked, encounters tracked.
 > V2: encounters entry updated with three Tekgy framings; routing-stream-overtaken-by-events added.
 > V3: ATK-A3-007 + ATK-A3-009 rows removed (complete, 2026-05-10).
 > V4: A3-immediate section closed — D1.5 complete (commits 2eb8bec–b7712df, 235 passing).
-> V5: multi-component immunity framing added (active, team-lead producing); ADR-018
-> Amendment 1 added (deferred, aristotle when idle).
+> V5: multi-component immunity framing added (active, team-lead producing); ADR-018 Amendment 1 added.
+> V6: multi-component substrate committed (ca812de); active team routing recorded per-role.
 
 ---
 
@@ -49,21 +49,28 @@ components identified: (1) dev-judgment, (2) passive scan/tools, (3) test
 integration, (4) knowledge-ecosystem integration, (5) version/lineage,
 (6) cross-crate/ecosystem.
 
-**In-flight artifacts**:
-1. Conversation dump → `docs/expedition/multi-component-immunity-conversation.md`
-   (team-lead writing now; raw substrate for team to consume)
-2. Deep-dive document (each of 6 components with cognates, discipline+tooling
-   sides, value-props) — team-lead drafts solo first; team Phase 1-8s afterward
-3. scope.md + vision-pitch.md weaving — after deep-dive lands
+**Substrate committed** (2026-05-10, ca812de):
+- `docs/expedition/multi-component-immunity-conversation.md` — raw conversation (~530 lines)
+- `docs/expedition/multi-component-immunity.md` — deep-dive draft (~870 lines)
 
-**What unblocks team routing**:
-- Conversation dump lands on disk → navigator surfaces to naturalist first
-  (biology-cognate per-component), then aristotle (Phase 1-8 of multi-component
-  framing), then scout (find more components)
-- Deep-dive lands → team Phase 1-8 cycle
+**Active team routing** (idle-as-invitation cadence; no rush):
+- **Naturalist**: biology-cognate refinement per-component. Component 4
+  (knowledge-ecosystem) flagged as loosest cognate — possibly boundary-silence
+  as evidence; cytokine / complement / lymphatic-architecture / MHC-class-II
+  candidates open.
+- **Scout**: additional components — Component 7 candidates: real-time/CI
+  (neutrophil cognate?), cross-team tier, adversarial/red-team as component,
+  educational/onboarding, decay/sunset, cross-language.
+- **Adversarial**: threat-model expansion per [ADVERSARIAL: ...] seams in
+  deep-dive; Component 6 supply-chain + Component 4 reference poisoning sharpest.
+- **Aristotle**: Phase 1-8 after above three expand; Q1 (enumeration coherence)
+  + Q3 (component dependencies) most load-bearing of nine open questions.
 
-**Owner**: team-lead (producing); naturalist (biology-cognate contributions);
-aristotle (Phase 1-8 of framing); scout (component search).
+**Ratification cadence**: Tekgy + team-lead decide after team expansions surface.
+Not project-tier substrate yet — expedition/ staging area.
+
+**Owner**: naturalist + scout + adversarial (parallel expansion) → aristotle
+(Phase 1-8) → team-lead + Tekgy (ratification cadence).
 
 ---
 
@@ -360,3 +367,7 @@ pathmaker). A3-immediate section fully closed. 235 passing, 23 ignored.*
 weaving). ADR-018 Amendment 1 prose clarification added (deferred, aristotle
 when idle). Maintenance note: multi-component row moves to A3-sweep or
 cross-sweep sections once team-lead's artifacts land and team work begins.*
+
+*V6 updated 2026-05-10 by navigator: both multi-component artifacts committed
+(ca812de). Active team routing per-role recorded. Section header updated to
+reflect team routing is live (not just "incoming").*
