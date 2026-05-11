@@ -195,7 +195,6 @@ As of v0.1.0 substrate (release imminent):
 Future sweeps (per [`sweeps/`](sweeps/)):
 
 - W6b: body-level fingerprint operators via ast-grep subprocess (ADR-015)
-- W8: idiomatic refinement
 - W9: v0.1.0-rc.1 → v0.1.0 release prep
 - A3: cross-crate scan + `#[descended_from]` propagation across workspaces
 - A4: composition rules + witness-type pluralism completion (kani/prusti/verus/creusot harness invocation)
@@ -283,7 +282,7 @@ If you're a researcher or practitioner:
 
 ## Contributing
 
-The project is in active build (sweep A2 in flight as of 2026-05-08). Most
+The project is in active build (sweep A2 closed; A3 cross-crate substrate in progress). Most
 valuable contributions right now:
 
 - **Real-world failure-class proposals** — Rust failures that fit (or refine)
@@ -316,7 +315,7 @@ Dual-licensed under MIT or Apache-2.0. See [`LICENSE-MIT`](LICENSE-MIT) and
 - Repository: [github.com/antigen-rs/antigen](https://github.com/antigen-rs/antigen)
 - CI: cargo check + test + fmt + clippy (-D warnings) + doc (-D warnings) on
   every push and PR
-- Tests: 187 passing, 21 ignored across the workspace as of A2 (W1-W8) closure
+- Tests: 235 passing, 31 ignored across the workspace as of A2 (W1-W8) closure + A3 substrate
 - Tambear integration: live as of 2026-05-07 (commit `80a19b4` in tambear);
   exploratory adoption with three seed antigens
 

@@ -3,10 +3,10 @@
 //! Provides `cargo antigen scan` (and future `new`, `vaccinate`, `audit`)
 //! subcommands for working with antigen declarations in a Rust workspace.
 //!
-//! ## Status (v0.0.1)
+//! ## Status (v0.1.0-rc.1)
 //!
-//! Initial functional release of `scan`. Other subcommands are stubs printing
-//! design-phase notices.
+//! `scan` and `audit` are functional. `new` and `vaccinate` are stubs printing
+//! design-phase notices until A5.
 
 use std::path::PathBuf;
 use std::process::ExitCode;
