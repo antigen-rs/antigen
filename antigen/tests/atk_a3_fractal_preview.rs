@@ -1008,3 +1008,259 @@ fn atk_a3_014_hallucinated_references_indistinguishable_from_validated() {
     // See also: campsite `20260510-multi-component-threat-model.md` §C4 for full attack.
     panic!("A4+ pre-implementation contract — reference tier annotation");
 }
+
+// ============================================================================
+// ATK-A3-015: seam-tier consistency witness — oracle built from wrong implementation
+//
+// Encounter-candidate seam-tier framing (tambear math-researcher, single instance).
+// Gated: seam-tier antigen vocabulary ships (post-A3, taxonomy ADR territory).
+//
+// Background: seam-tier antigens (composition-time failures between two correct
+// implementations — e.g., ExpKernelState's `(1 + expm1_r) << k` diverging from
+// standalone exp.rs at the reconstruction seam) use cross-implementation
+// consistency tests as their canonical witness shape. This is structurally
+// different from type-tier witnesses (phantom-type, compile-time) and introduces
+// witness-specific attack surfaces type-system witnesses don't have.
+//
+// Attack vector: the consistency test compares impl_A(x) against impl_B(x).
+// If impl_A is chosen as the oracle and is itself wrong, the test confirms
+// wrong-matches-wrong and passes. WitnessTier reports ExecutionVerified.
+// Audit shows immunity. The seam-tier failure is not covered.
+//
+// Why this doesn't apply to type-system witnesses: a phantom-type witness
+// fails at compile time if the type contract isn't satisfied — it cannot
+// confirm a wrong answer. A consistency test can confirm consistent-but-wrong
+// if both implementations share the same systematic error.
+//
+// The specific mathematical shape: Taylor-vs-Remez implementations of exp()
+// may agree at easy inputs (small |x|, integer-adjacent values) and diverge
+// at precision boundaries (catastrophic cancellation range, denormal inputs).
+// A consistency test that samples from easy inputs confirms agreement at the
+// wrong domain; the seam failure lives in the hard domain.
+//
+// Contract: a seam-tier antigen's consistency witness MUST specify the
+// oracle implementation explicitly and provide rationale for why that
+// implementation is authoritative. Audit MUST surface "oracle: impl_A" as
+// a field in the witness record. An undifferentiated "both agree" witness
+// (no oracle designation) MUST produce ExternalUnvalidated tier, not
+// ExecutionVerified — the consistency proves agreement, not correctness.
+//
+// Status: #[ignore] gated on seam-tier vocabulary ADR.
+// ============================================================================
+
+#[test]
+#[ignore = "Encounter-candidate pre-impl contract; seam-tier consistency witness \
+             oracle built from wrong implementation — consistent-but-wrong passes \
+             audit; oracle must be designated and rationale-grounded; remove ignore \
+             when seam-tier antigen vocabulary ADR ships"]
+fn atk_a3_015_seam_tier_consistency_witness_wrong_oracle_passes_audit() {
+    // Contract: a cross-implementation consistency test where both implementations
+    // share a systematic error MUST NOT produce ExecutionVerified tier. The audit
+    // MUST require oracle designation; undifferentiated consistency (no oracle)
+    // MUST yield ExternalUnvalidated.
+    //
+    // Fixture: two exp() implementations that agree on easy inputs but both
+    // carry the same systematic bias on hard inputs. Consistency test at easy
+    // inputs passes. Audit reports ExecutionVerified. The seam-tier failure
+    // (precision boundary divergence) is uncovered.
+    //
+    // Anti-fixture: an explicitly designated oracle implementation with rationale
+    // ("reference implementation per IEEE 754 conformance suite") produces
+    // ExecutionVerified because the oracle claim is grounded.
+    //
+    // TODO(adversarial): implement when seam-tier antigen vocabulary ships.
+    // See deferred-substrate V16 §seam-tier and campsite 20260510-encounters-attack-surface.md.
+    panic!("Encounter-candidate pre-impl contract — seam-tier oracle wrong");
+}
+
+// ============================================================================
+// ATK-A3-016: seam-tier antigen declared at wrong seam —
+//             witness probes composition point that doesn't cover the failure
+//
+// Encounter-candidate seam-tier framing. Gated: seam-tier vocabulary ships.
+//
+// Attack vector (the ATK-A3-007 wrong-trust-layer pattern at the declaration
+// level): a seam-tier antigen is declared at a seam that LOOKS compositional
+// but doesn't actually cover where the failure lives. The consistency witness
+// probes impl_A ∘ impl_B at the declared seam; the actual failure lives at
+// impl_B ∘ impl_A (different composition order) or at impl_A ∘ impl_B ∘ impl_C
+// (N-ary composition not covered by binary test).
+//
+// Concrete mathematical instance: ExpKernelState's reconstruction seam is
+// `(1 + expm1_r) << k`. A consistency test that probes `exp.rs` API output
+// vs. `ExpKernelState.reconstruct()` output covers the API-level seam.
+// But if the actual divergence is inside the kernel's intermediate reduction
+// step (not at the public API), the consistency test at the API seam is blind
+// to it — it sees the final outputs, which may agree due to cancellation of
+// two errors in opposite directions.
+//
+// This is distinct from ATK-A3-015 (wrong oracle): here the oracle is correct
+// and the test is honest, but it's testing the wrong composition boundary.
+// The antigen declaration is at the wrong seam.
+//
+// Contract: seam-tier antigen declarations MUST specify the composition
+// boundary explicitly — which two (or N) implementations are being composed,
+// at what interface, in what order. The consistency witness MUST probe the
+// SAME composition boundary named in the antigen declaration, not a higher-
+// or lower-level abstraction of it. Audit MUST verify that the witness's
+// composition point matches the antigen's declared seam.
+//
+// Status: #[ignore] gated on seam-tier vocabulary ADR.
+// ============================================================================
+
+#[test]
+#[ignore = "Encounter-candidate pre-impl contract; seam-tier antigen at wrong seam — \
+             witness covers different composition boundary than where failure lives; \
+             wrong-trust-layer pattern at declaration level; remove ignore when \
+             seam-tier antigen vocabulary ADR ships"]
+fn atk_a3_016_seam_tier_antigen_declared_at_wrong_composition_boundary() {
+    // Contract: a seam-tier antigen where the consistency witness probes a
+    // different composition boundary than the failure-class lives at MUST be
+    // surfaced by audit as "seam mismatch: antigen declares boundary X; witness
+    // probes boundary Y." The immunity claim MUST NOT be honored across mismatched
+    // seams.
+    //
+    // Fixture: antigen declares seam at `exp_kernel ∘ exp_api`; witness tests
+    // `exp_api` output against reference. The kernel's internal intermediate
+    // seam (where divergence actually occurs) is never probed.
+    //
+    // TODO(adversarial): implement when seam-tier vocabulary ships.
+    panic!("Encounter-candidate pre-impl contract — seam-tier wrong composition boundary");
+}
+
+// ============================================================================
+// ATK-A3-017: type-tier / seam-tier mis-classification to evade witness strength
+//
+// Encounter-candidate seam-tier framing. Gated: seam-tier vocabulary ships.
+//
+// Attack vector: the two antigen classes carry different witness strength
+// guarantees. Type-tier failures caught by phantom-type witnesses have compile-
+// time enforcement — the type system is the verifier; the witness either
+// satisfies the type contract everywhere or nowhere. Seam-tier failures caught
+// by consistency tests have runtime, input-coverage-dependent enforcement.
+//
+// Mis-classification as tier downgrade:
+//   A type-tier failure (catchable at compile time via phantom-type witness)
+//   is mis-declared as seam-tier. The consistency-test witness required for
+//   seam-tier is weaker: runtime, input-selected, oracle-dependent. The team
+//   has traded a compile-time guarantee for a test-coverage-dependent one.
+//   No audit signal fires — the antigen is classified, the witness matches
+//   the classification, audit passes.
+//
+// Mis-classification as false upgrade (reverse direction):
+//   A seam-tier failure (lives at composition boundary; no type-level encoding)
+//   is declared as type-tier with a phantom-type witness. The phantom-type
+//   witness satisfies the type constraint without covering the composition
+//   boundary — theatrical at the seam. The type system cannot express the
+//   seam failure; the witness is structurally incapable of covering it.
+//   This failure mode is HARDER to exploit maliciously (it's structurally
+//   incoherent) but EASIER to do by mistake when a developer doesn't understand
+//   the tier distinction.
+//
+// Contract: the audit MUST validate that the witness shape is CONSISTENT with
+// the antigen's declared tier:
+//   - type-tier antigen + consistency-test witness → audit warning: "type-tier
+//     antigens should use compile-time witnesses; consistency test provides
+//     weaker guarantees"
+//   - seam-tier antigen + phantom-type witness → audit error: "phantom-type
+//     witnesses cannot cover composition-boundary failures; witness is
+//     structurally mismatched to antigen tier"
+//
+// Status: #[ignore] gated on seam-tier vocabulary ADR.
+// ============================================================================
+
+#[test]
+#[ignore = "Encounter-candidate pre-impl contract; type-tier/seam-tier mis-classification \
+             evades witness strength requirements — type-tier to seam-tier is silent \
+             downgrade from compile-time to runtime guarantee; remove ignore when \
+             seam-tier antigen vocabulary ADR ships"]
+fn atk_a3_017_tier_misclassification_evades_witness_strength_requirement() {
+    // Contract: audit MUST check witness shape consistency with antigen tier.
+    // type-tier + consistency-test → warning (downgrade from compile-time guarantee).
+    // seam-tier + phantom-type → error (structurally incapable of covering seam).
+    //
+    // Fixture A (downgrade): antigen declared type-tier; witness is a cross-
+    // implementation consistency test. Audit emits warning citing weaker coverage.
+    //
+    // Fixture B (structural mismatch): antigen declared seam-tier; witness is
+    // phantom-type. Audit emits error: phantom-type cannot cover composition boundary.
+    //
+    // TODO(adversarial): implement when seam-tier vocabulary ships.
+    panic!("Encounter-candidate pre-impl contract — tier mis-classification witness strength");
+}
+
+// ============================================================================
+// ATK-A3-018: retire-to-documentation as premature dismissal of real encounter-candidates
+//
+// Meta-level attack on the encounters discipline itself.
+// Gated: encounters tier ratification (aristotle Phase 1-8, process.md Q7).
+//
+// Background: the encounters-proposal adds a third encounter disposition:
+// retire-to-documentation — the encounter becomes usage docs / adoption guide
+// rather than vocabulary extension. This is correct and necessary (not every
+// pattern warrants vocabulary growth).
+//
+// Attack vector: retire-to-documentation is self-reported and requires no
+// structural verification. An encounter-candidate that someone finds
+// inconvenient to champion (requires difficult Phase 1-8, challenges existing
+// vocabulary, has no obvious owner) can be retired-to-documentation with
+// rationale "this is just a usage pattern" — even when it is a genuine
+// vocabulary-extension candidate.
+//
+// The adversarial shape: the retire-to-documentation disposition provides
+// legitimate cover for premature closure. It is structurally indistinguishable
+// from correct retirement (the rationale can always be written plausibly).
+// A pattern that should have promoted to V0+1 candidate is buried in usage
+// docs; no second instance ever accumulates because the pattern-as-pattern
+// is no longer watched.
+//
+// Note: this is not about bad faith. The failure mode can be fully honest —
+// a developer genuinely believes "this is just a usage pattern" and retires
+// it, when in fact the pattern has vocabulary-extension potential not yet
+// visible from one instance. The premature retirement is a category error,
+// not malice.
+//
+// Required guard (not currently in encounters-proposal):
+//   1. Retire-to-documentation requires a second opinion from a team member
+//      who did NOT file the original encounter — prevents the original filer
+//      from self-retiring without external check.
+//   2. Retired encounters are not deleted; they are marked retired-by(name)
+//      with rationale AND held in the register for one additional "revisit
+//      window" (e.g., one A-sweep). If a new instance of the pattern surfaces
+//      during the revisit window, the retirement is reversed automatically.
+//   3. The retirement rationale must specify the usage-docs artifact the
+//      encounter produces — "retire to docs/usage-patterns.md §seam-tier"
+//      not just "retire to documentation" in the abstract. An encounter with
+//      no concrete retirement artifact has not actually been retired.
+//
+// Contract (process-level, not code-level): encounters-proposal ratification
+// MUST include the three guards above before retire-to-documentation disposition
+// is operationally enabled. Without them, the third disposition is an evasion
+// surface for real candidates.
+//
+// Status: #[ignore] gated on encounters-tier ratification.
+// ============================================================================
+
+#[test]
+#[ignore = "Meta-level ATK on encounters discipline; retire-to-documentation lacks \
+             structural guard against premature dismissal — three guards required: \
+             second-opinion, revisit-window, concrete-artifact; remove ignore when \
+             encounters-tier ratification (aristotle Phase 1-8) addresses this"]
+fn atk_a3_018_retire_to_documentation_is_evasion_surface_without_guards() {
+    // This is a process-level contract, not a code contract. It cannot be
+    // activated by an implementation change alone — it activates when the
+    // encounters-tier ratification document (process.md Q7 sub-section or
+    // encounters.md) specifies the three guards:
+    //   1. Second-opinion requirement for retirement decisions
+    //   2. Revisit-window during which new instances reverse retirement
+    //   3. Concrete retirement artifact required (not abstract "to docs")
+    //
+    // The test body is intentionally inert — the "test" is the process
+    // discipline, not a code assertion. When the three guards land in the
+    // ratified encounters-tier document, this contract is closed.
+    //
+    // TODO(adversarial): close when encounters ratification addresses guards.
+    // See campsite `20260510-encounters-attack-surface.md` §Failure mode 5 for
+    // the full lifecycle analysis.
+    panic!("Meta-level process contract — retire-to-documentation guards");
+}
