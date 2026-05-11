@@ -1,9 +1,11 @@
 # Sweep A3 Scope-Lock
 
-> **Status**: ADR-017 + ADR-018 drafts filed; team review pass open; ratification
-> pending. D1+D2 landed (df72f9e). D3 in active implementation (pathmaker, green-lit
-> 2026-05-09). D1.5 waits for ADR ratification + BUG-A3-002 fix. BUG-A3-001
-> (duplicate edge silent) + BUG-A3-002 (child-without-antigen) in flight (pathmaker).
+> **Status**: **D1.5 COMPLETE** (2026-05-10, commits 2eb8bec–b7712df). All four
+> deliverables shipped. 235 passing, 23 ignored, 0 failed. ADR-017 + ADR-018
+> ratified. ATK-A3-005 + ATK-A3-006 activated. ATK-A3-008 kept `#[ignore]` with
+> updated reason (spirit satisfied by dedupe channel; literal assertion targets
+> different diagnostic path). ATK-A3-001/004 remain A4+ (witness-resolution,
+> not propagation scope).
 >
 > **Companion substrate**: scout's A3 seeds from A2 day-2 at
 > `campsites/antigen-A2/20260508145642-day2/scout/20260508150446-a3-scope-lock-seeds-from-scout-day-2.md`
@@ -25,14 +27,16 @@
 
 Four interlocking deliverables — ordered by dependency:
 
-1. **`#[descended_from]` propagation walk** — LANDED (commit df72f9e): LineageEdge
-   collection, cycle detection, orphaned_lineage_edges(). Remaining: propagation
-   walk (synthesis pass) + canonical_path field addition.
+1. **`#[descended_from]` propagation walk** — **COMPLETE** (D1 commit df72f9e +
+   D1.5 commits 2eb8bec–6dd1b06): LineageEdge collection, cycle detection,
+   `orphaned_lineage_edges()`, propagation walk (`synthesize_inherited_presentations`
+   with transitive DFS + diamond dedup + `BTreeSet<ProvenanceEntry>` set-union),
+   `unaddressed_presentations` locus rewrite, canonical_path field on all 5 types.
 
-1.5. **Diamond inheritance dedup** — synthesis pass dedup by `(antigen_type,
-   item_target)` key; `inherited_from: Option<Vec<String>>` provenance field on
-   Presentation. Identity-agnostic; waits for ADR ratification to confirm field
-   semantics.
+1.5. **Diamond inheritance dedup** — **COMPLETE** (2026-05-10, commit 6dd1b06):
+   `ProvenanceEntry { antigen_type, canonical_path }` + `inherited_from:
+   Option<Vec<ProvenanceEntry>>` on Presentation. Dedup key `(antigen_type,
+   item_target, canonical_path)`. 7 ADR-018 §Enforcement acceptance tests green.
 
 2. **Cycle detection (ATK-A3-002)** — LANDED (commit df72f9e). Both guards green:
    DFS white/gray/black + MAX_LINEAGE_DEPTH=64. ATK-A3-002 contract green.
@@ -115,7 +119,7 @@ not match-kind. Audit warns by default, errors on `--strict` (per ADR-008 Amendm
 ancestor set (full chain, not just immediate parent). See `campsites/.../aristotle/
 20260509180000-propagation-semantics-phase-1-8.md`.
 
-**Timing**: D1.5 implementation waits for ADR ratification (drafting by aristotle).
+**Timing**: **COMPLETE** 2026-05-10. All acceptance tests green; audit state-7 diagnostic + AuditHint shipped in commit 54af30b.
 
 ---
 
@@ -136,14 +140,16 @@ and synthesizes inherited presentations — see Deliverable 1.5 spec above.
 ```rust
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LineageEdge {
-    pub child: String,   // antigen type bearing #[descended_from]
-    pub parent: String,  // argument to #[descended_from] (bare last segment)
+    pub child: String,                            // antigen type bearing #[descended_from]
+    pub parent: String,                           // argument to #[descended_from]
     pub file: PathBuf,
     pub line: usize,
+    #[serde(default)] pub child_canonical_path: Option<String>,  // D1.5 (commit 2eb8bec)
+    #[serde(default)] pub parent_canonical_path: Option<String>, // D1.5 (commit 2eb8bec)
 }
 ```
 
-`ScanReport::lineage_edges: Vec<LineageEdge>` with `#[serde(default)]`.
+`ScanReport::lineage_edges: Vec<LineageEdge>` with `#[serde(default)]`. After D1.5, `lineage_edges` holds the **deduped** edge set (dedup runs in `scan_workspace` before cycle detection, per ADR-018 §Implementation order).
 
 ### Synthesis pass
 
@@ -370,10 +376,14 @@ The W6a addition pre-solved the A3 structural requirement.
 - [x] ATK-A3-010 — filed (drift vs waning audit message category, A4+ scope); commit 94fff1b
 - [x] **ADR-017 + ADR-018 — RATIFIED 2026-05-09; moved to decisions.md**
 - [x] `inherited_from: Option<Vec<ProvenanceEntry>>` on `Presentation` — RATIFIED Option C (Tekgy, 2026-05-09)
-- [ ] `canonical_path: Option<String>` on 5 types + LineageEdge — pending implementation (ADR-017 ratified)
-- [ ] D1.5 propagation walk + diamond dedup — **UNBLOCKED** (ADR-018 ratified; pathmaker to implement)
-- [ ] ATK-A3-001, ATK-A3-004, ATK-A3-005 — still `#[ignore]`; pending implementation
-- [ ] ATK-A3-009 — needs reframe (name@version format eliminates original attack surface; residual risk is alt-registry same-name@version collision)
+- [x] `canonical_path: Option<String>` on 5 types + LineageEdge — LANDED commit 2eb8bec
+- [x] D1.5 propagation walk + diamond dedup — **COMPLETE** commits 2eb8bec–6dd1b06; 235 passing
+- [x] ATK-A3-005 — **GREEN** (D1.5 commit b7712df; canonical_path-aware identity)
+- [x] ATK-A3-006 — **GREEN** (D1.5 commit 6e41785; stamp_canonical_path + canonical_path-aware queries)
+- [x] ATK-A3-007 — reframed to enumerate_dep_crate_roots trust boundary; commit 4a1ed17
+- [x] ATK-A3-008 — kept `#[ignore]`; ignore reason updated (spirit satisfied by dedupe_lineage_edges parse_failures; literal assertion targets different diagnostic path; A4+ if channel unification needed)
+- [x] ATK-A3-009 — disposed (commit bf44056; name@version eliminates name-only attack surface)
+- [ ] ATK-A3-001, ATK-A3-004 — remain `#[ignore]`; A4+ (witness-resolution through derive macros / re-exported witnesses, not propagation scope)
 
 ---
 

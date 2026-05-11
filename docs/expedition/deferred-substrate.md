@@ -18,34 +18,20 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V2 (2026-05-09, post-encounters-SMALL-PUSH + Tekgy framings).
+> **Status**: V4 (2026-05-10, D1.5 complete).
 > V1: D1.5 active, ATK reframes unblocked, encounters tracked.
-> V2: encounters entry updated with three Tekgy framings as substrate
-> commitments; routing-stream-overtaken-by-events added as new presentation
-> type in vocabulary-candidates section.
+> V2: encounters entry updated with three Tekgy framings; routing-stream-overtaken-by-events added.
+> V3: ATK-A3-007 + ATK-A3-009 rows removed (complete, 2026-05-10).
+> V4: A3-immediate section closed — D1.5 complete (commits 2eb8bec–b7712df, 235 passing).
 
 ---
 
-## A3-immediate (post-ratification cleanup)
+## ~~A3-immediate (post-ratification cleanup)~~ — CLOSED 2026-05-10
 
-Items that unblock when ADR-017 + ADR-018 ratification commit lands.
-
-**ADR-017 + ADR-018 ratified 2026-05-09, commit 3ef4b9a.**
-
-~~ATK-A3-007~~: reframed to enumerate_dep_crate_roots trust boundary —
-committed 4a1ed17 (adversarial, 2026-05-09). Row removed.
-
-~~ATK-A3-009~~: disposed — attack surface eliminated by name@version format;
-registry-collision residual deferred to ADR-017 OQ1. Committed bf44056
-(adversarial, 2026-05-09). Row removed.
-
-### ~~D1.5 implementation (propagation walk + diamond dedup)~~
-
-**MOVED TO ACTIVE** (2026-05-09, commit 3ef4b9a unblocked). Pathmaker
-owns implementation. ProvenanceEntry struct + `inherited_from:
-Option<Vec<ProvenanceEntry>>` on Presentation + propagation algorithm
-are all ratified in ADR-018. Algorithm is in decisions.md §ADR-018 §Mechanics.
-Removing from deferred index.
+All A3-immediate items complete:
+- ~~ATK-A3-007~~: 4a1ed17 (adversarial)
+- ~~ATK-A3-009~~: bf44056 (adversarial)
+- ~~D1.5~~: 2eb8bec–b7712df (pathmaker); 235 passing, 23 ignored, all CI green
 
 ---
 
@@ -314,3 +300,6 @@ and team-lead routing.*
 ATK-A3-009 (commit bf44056) confirmed complete. Rows removed from
 A3-immediate section; A3-immediate now closed except D1.5 (pathmaker
 active).*
+
+*V4 updated 2026-05-10 by navigator: D1.5 complete (commits 2eb8bec–b7712df,
+pathmaker). A3-immediate section fully closed. 235 passing, 23 ignored.*
