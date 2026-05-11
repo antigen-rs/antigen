@@ -721,7 +721,7 @@ participate in one architectural class. The property
 mechanisms don't.
 
 Antigen-the-project mirrors this: heterogeneous components (C1-C7)
-cooperating under the shared protocol (the vocabulary), unified
+cooperating under the shared emergent practice (the vocabulary), unified
 architectural class (structural failure-class memory).
 
 ### Structural-tier vs. maintenance-tier
@@ -858,7 +858,7 @@ To be ratified per encounters discipline once instances accumulate.
 
 Not "how engaged is this team with antigen?" but "which immune-system
 components has this team composed?" Marketing / vision-pitch:
-- Lead with vocabulary (the protocol layer).
+- Lead with vocabulary (the emergent practice layer).
 - Show floor concept first.
 - Reveal components progressively.
 - Don't insist on full-fabric adoption.
@@ -869,7 +869,7 @@ Three coexisting framings at three abstraction levels (Tekgy's
 "both-can-work"):
 - **"Antigen catches failure-class memory"** — floor concept; v0.1.0
 - **"Antigen composes multiple kinds of structural immunity"** — V0.2.0+
-- **"Antigen is a vocabulary-as-protocol with a fabric of immune-system
+- **"Antigen is a vocabulary-as-emergent-practice with a fabric of immune-system
   components"** — paradigm-shift framing; post-A6
 
 Manuscript trajectory is layered, not sequenced.
