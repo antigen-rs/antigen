@@ -18,14 +18,15 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V10 (2026-05-10, adversarial contracts committed 6b8c527; 235/27; expansion pass substrate-complete).
+> **Status**: V11 (2026-05-11, V1 committed; aristotle unblocked; encounter-registrations + vocabulary candidates added).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
-> V8: naturalist C4 boundary-silence (instrument-mode); Q1 provisional answer: layered.
+> V8: naturalist C4 boundary-silence; Q1 provisional answer: layered.
 > V9: adversarial — 5-item amendment queue, 2 A5 governance findings held.
-> V10: ATK-A3-011..014 committed (6b8c527); 235 passing, 27 ignored; expansion pass
-> substrate-complete; aristotle holds on Q1 framing decision.
+> V10: ATK-A3-011..014 committed; expansion pass substrate-complete.
+> V11: multi-component-immunity.md V1 committed (dd9c0bc); aristotle unblocked (Q1 ratified
+> by Tekgy); 5 encounter-registrations added; 2 new vocabulary candidates tracked.
 
 ---
 
@@ -54,20 +55,20 @@ integration, (4) knowledge-ecosystem integration, (5) version/lineage,
 - `docs/expedition/multi-component-immunity-conversation.md` — raw conversation (~530 lines)
 - `docs/expedition/multi-component-immunity.md` — deep-dive draft (~870 lines)
 
+**V1 committed** (2026-05-11, dd9c0bc): incorporates all expansion-pass findings.
+Component 7 first-class; C4 boundary-silence; engineered-boundary tier named;
+manifold framing; honest-boundary-as-encounter-registration; 12 open questions.
+
 **Active team routing** (idle-as-invitation cadence; no rush):
-- **Naturalist**: C4 boundary-silence finding complete (2026-05-10). C1/C2/C3/C5/C6
-  cognate refinements + vocabulary-as-protocol seam in progress at naturalist cadence.
-  **Q1 provisional answer**: layered (not flat) — C4 is knowledge-ecosystem-tier,
-  C1-2-3-5-6 are biology-tier. Awaits team-lead + Tekgy ratification before
-  aristotle Phase 1-8 runs.
-- **Scout**: complete (2026-05-10). Component 7 confirmed; candidates disposed;
-  vocabulary-as-protocol reinforced. Idle-as-invitation.
-- **Adversarial**: threat-model expansion per [ADVERSARIAL: ...] seams in
-  deep-dive; Component 6 supply-chain + Component 4 reference poisoning sharpest.
-  Still in expansion pass.
-- **Aristotle**: Phase 1-8 holds pending (a) team-lead + Tekgy ratification of
-  Q1 layered/flat framing decision and (b) adversarial expansion landing. Q3
-  (component dependencies) also load-bearing.
+- **Naturalist**: C1/C2/C3/C5/C6 cognate refinements + vocabulary-as-protocol
+  at idle cadence. C4 and Q1 resolved.
+- **Scout**: complete. Idle-as-invitation.
+- **Adversarial**: complete. Idle-as-invitation.
+- **Aristotle**: **UNBLOCKED** — Q1 framing decision ratified by Tekgy (2026-05-11).
+  Phase 1-8 against V1. Special attention on Q6 (engineered-boundary family as
+  posture/encounter candidate), Q7 (honest-boundary-as-encounter-registration
+  as posture candidate), Q8 (manifold structure of enumeration). Apply Phase 8
+  forced-rejection to the layered framing itself.
 
 **Scout findings landed** (2026-05-10):
 - **Component 7 confirmed**: real-time / CI feedback is structurally distinct
@@ -147,6 +148,75 @@ manuscript drafting cycle when scientist re-engages.
 
 ---
 
+## Registered known-unknowns (honest-boundary encounter-registrations)
+
+Structural gaps named during A3 multi-component pass. Each is a known-unknown:
+we see the boundary, we know what lives beyond it, we don't yet have the
+structural-memory answer. Per the "honest-boundary as encounter-registration"
+discipline (Tekgy 2026-05-11, V1 Part V): periodically revisit; ask if a
+structural-memory or component answer has surfaced; promote to V0+1 if shape
+stabilizes; remove from this index if resolved by an ADR or implementation.
+
+### Cargo-level attack boundary
+
+**What**: CARGO_HOME override, Cargo.lock manipulation, registry cache tampering.
+Antigen's trust model does not and cannot address these — they are pre-antigen.
+ADR-017 Amendment 1b will name the boundary explicitly ("predicated on cargo
+metadata integrity"). The known-unknown: what DOES address this tier? (cargo
+itself, supply-chain tooling, sigstore, etc.) Not antigen's domain, but worth
+knowing who owns it.
+
+**Source**: adversarial threat model 2026-05-10; ADR-017 Amendment 1b.
+**Revisit when**: cargo supply-chain tooling landscape clarifies or antigen
+stdlib governance (A5) surfaces an answer.
+
+### Cross-crate witness execution gap
+
+**What**: `witness = dep_crate::some_test` — consuming workspace cannot execute
+it. `ExternalUnvalidated` is the honest tier. The known-unknown: what WOULD
+make cross-crate witness execution possible? (republishing test suites as
+features, separate verification crates, formal proof artifacts.) ADR-005
+Amendment 3 update (aristotle queue item 5) names the gap; doesn't fill it.
+
+**Source**: adversarial threat model 2026-05-10; ATK-A3-011.
+**Revisit when**: A4-A5 behavioral witness tier implementation opens the design.
+
+### LLM-hallucinated references
+
+**What**: LLMs generating antigen references they'll later trust. Hallucinated
+URLs look calibrated-to-plausible but reliably 404. The known-unknown: what
+reference-validation tier would distinguish them? (ValidatedReference /
+DeadReference annotation per ATK-A3-014; shared-cluster detection for
+single-point-failure risk.) A5 governance territory.
+
+**Source**: adversarial threat model 2026-05-10; ATK-A3-014.
+**Revisit when**: A5 scope-lock opens reference-validation design.
+
+### Immunity laundering via newtype
+
+**What**: Wrapper crate declares `#[immune(X)]` on a newtype wrapping a
+foreign type, with a theatrical witness that passes without exercising X's
+actual failure mode. Downstream inherits `ExecutionVerified` without
+independent verification. Structurally valid under current trust model.
+The known-unknown: what behavioral witness tier would detect theatrical
+witnesses? (A4-A5 implementation concern per ATK-A3-011.)
+
+**Source**: adversarial threat model 2026-05-10; V1 §C6 failure modes.
+**Revisit when**: A4-A5 behavioral witness tier design opens.
+
+### Antigen-stdlib trust hierarchy
+
+**What**: Ecosystem-wide immunity declarations from a compromised stdlib
+maintainer could suppress local presentations without local opt-in.
+Single-point-of-failure at ecosystem scale. The known-unknown: what
+governance model makes ecosystem-tier declarations safe? (Per-crate
+opt-in, multi-party signing, antigen-council governance, etc.)
+
+**Source**: adversarial threat model 2026-05-10; A5 governance finding.
+**Revisit when**: A5 scope-lock opens antigen-stdlib governance design.
+
+---
+
 ## Vocabulary candidates — held below ratification thresholds
 
 Watched, but explicitly not yet ratified per ADR-006. Promoted to
@@ -216,6 +286,39 @@ promotion.
 
 **Owner when active**: navigator (notice + log); substrate-currency posture
 thread when that matures.
+
+### Engineered-substrate-exceeds-biology (candidate posture/encounter-class)
+
+**What**: Three instances now named — W7 FormalProof tier (compile-time proof
+exceeds biological capability), ADR-017 trust-delegation (engineered cross-source
+authenticity exceeds intra-organism trust), C4 knowledge-ecosystem (organisms
+don't read their own scientific literature). ADR-006 threshold met for the
+*pattern itself* (three instances, independent discovery). Shape not yet stable
+enough for posture-class; held pending aristotle Q6 deconstruction + encounters-
+discipline fit-check.
+
+**Where it lives**: naturalist C4 campsite 2026-05-10; V1 Part II;
+immune-system-primitive-map.md (W7 + ADR-017 entries).
+
+**Unblocked by**: aristotle Q6 finding + encounters-discipline threshold check.
+**Owner when active**: aristotle Q6 → encounters-discipline fit → postures.md V0+1 if shape stabilizes.
+
+### Honest-boundary-as-encounter-registration (candidate posture/discipline)
+
+**What**: When biology produces a clean silence at a design question, name
+the boundary honestly rather than forcing a cognate. The naming IS the
+structural memory. Formalized by Tekgy 2026-05-11: "register the known-unknown
+as an encounter so future-instances don't re-derive the same silence."
+One instance so far (C4); the discipline is the answer to "what do you do
+when the metaphor runs out?"
+
+**Where it lives**: V1 Part V; Tekgy's 2026-05-11 framing in conversation dump;
+this index (registered-known-unknowns section above).
+
+**Unblocked by**: aristotle Q7 finding + recurrence (another instance of
+honest-boundary-naming producing structural value). Single instance is not
+enough for posture-class promotion.
+**Owner when active**: aristotle Q7 → recurrence check → postures.md V0+1 if shape stabilizes.
 
 ### V0+1 candidates already in postures.md
 
@@ -464,3 +567,11 @@ held in adversarial campsite.*
 235 passing, 27 ignored. Multi-component expansion pass substrate-complete
 (scout + naturalist C4 + adversarial all done). Aristotle holds on Q1
 layered/flat framing decision from team-lead + Tekgy.*
+
+*V11 updated 2026-05-11 by navigator: multi-component-immunity.md V1
+committed (dd9c0bc) incorporating all expansion-pass findings. Aristotle
+unblocked — Tekgy ratified Q1 layered framing; Phase 1-8 against V1.
+Five encounter-registrations added (cargo-level attacks, cross-crate witness
+gap, LLM-hallucinated references, immunity laundering, stdlib trust hierarchy).
+Two new vocabulary candidates added (engineered-boundary family, honest-
+boundary-as-encounter-registration discipline).*
