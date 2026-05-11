@@ -143,7 +143,7 @@ fn run_scan(args: ScanArgs) -> ExitCode {
                 eprintln!("Scanning {} dependency crate(s)...", roots.len());
                 let mut out: Vec<DepScanResult> = Vec::with_capacity(roots.len());
                 for dep in roots {
-                    let r = match scan::scan_workspace(&dep.crate_root, None) {
+                    let mut r = match scan::scan_workspace(&dep.crate_root, None) {
                         Ok(r) => r,
                         Err(e) => {
                             eprintln!(
@@ -153,6 +153,14 @@ fn run_scan(args: ScanArgs) -> ExitCode {
                             continue;
                         }
                     };
+                    // ADR-017 Option A: stamp canonical_path post-scan in
+                    // the `"<crate-name>@<version>"` format. The
+                    // scan_workspace function is a pure directory scanner
+                    // and does not know which crate it just scanned; the
+                    // driver carries the crate-graph context and stamps
+                    // here.
+                    let crate_id = format!("{}@{}", dep.package_name, dep.version);
+                    r.stamp_canonical_path(&crate_id);
                     out.push(DepScanResult {
                         package_name: dep.package_name,
                         version: dep.version,

@@ -423,18 +423,51 @@ fn atk_a3_005_cross_crate_name_collision_not_suppressed_by_same_name_immunity() 
 // ============================================================================
 
 #[test]
-#[ignore = "A3 pre-implementation contract; canonical_path cross-crate orphan \
-             collision — remove ignore when canonical_path lands on AntigenDeclaration"]
 fn atk_a3_006_orphan_edge_canonical_path_false_resolution() {
-    // Contract: a lineage edge pointing to `crate_b::Foo` must NOT be
-    // resolved as non-orphaned because `crate_a::Foo` (different canonical
-    // path) is in the scan. The orphan query must use canonical_path equality
-    // when both sides carry it.
-    //
-    // TODO(adversarial): implement when canonical_path: Option<String> lands
-    // on AntigenDeclaration, LineageEdge, and orphaned_lineage_edges() uses
-    // canonical-path-aware comparison.
-    panic!("A3 pre-implementation contract");
+    // Contract (now GREEN, D1.5 commit 3): a lineage edge pointing to
+    // `foo@2.0.0::Foo` must NOT be resolved as non-orphaned because
+    // `foo@1.0.0::Foo` (different canonical_path) is in the scan. The
+    // orphan query uses (type_name, canonical_path) tuple comparison per
+    // ADR-017 + ADR-018 §Enforcement.
+    use antigen::scan::{AntigenDeclaration, LineageEdge, ScanReport};
+    use std::path::PathBuf;
+
+    let mut report = ScanReport::default();
+    // crate_a has `Foo` declared
+    report.antigens.push(AntigenDeclaration {
+        name: "foo".to_string(),
+        type_name: "Foo".to_string(),
+        file: PathBuf::from("crate_a/lib.rs"),
+        line: 1,
+        family: None,
+        summary: None,
+        fingerprint: None,
+        canonical_path: Some("foo@1.0.0".to_string()),
+    });
+    // Lineage edge points to `foo@2.0.0::Foo` — different canonical_path
+    // than the declared antigen. Must surface as orphan.
+    report.lineage_edges.push(LineageEdge {
+        child: "Bar".to_string(),
+        parent: "Foo".to_string(),
+        file: PathBuf::from("workspace/lib.rs"),
+        line: 5,
+        parent_canonical_path: Some("foo@2.0.0".to_string()),
+        child_canonical_path: None,
+    });
+
+    let orphans = report.orphaned_lineage_edges();
+    assert_eq!(
+        orphans.len(),
+        1,
+        "edge pointing at `foo@2.0.0::Foo` must be orphan even though \
+         `foo@1.0.0::Foo` is declared (different canonical_path); \
+         got: {orphans:?}"
+    );
+    assert_eq!(orphans[0].parent, "Foo");
+    assert_eq!(
+        orphans[0].parent_canonical_path.as_deref(),
+        Some("foo@2.0.0")
+    );
 }
 
 // ============================================================================
