@@ -1441,14 +1441,23 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
 /// dependency").
 ///
 /// Algorithm overview (per descendant antigen as DFS source):
-///   1. Build a presentations index `(antigen_type, canonical_path) → Vec<&Presentation>`.
-///   2. Build adjacency `(child_key) → Vec<(parent_key, was_orphan)>`.
-///   3. For each `AntigenDeclaration` with at least one outgoing lineage edge,
-///      collect transitive ancestor identities via DFS.
-///   4. For each ancestor's presentation, either:
+///   1. Build a `(type_name, canonical_path)` -> [`AntigenDeclaration`]
+///      index for parent/child endpoint validation.
+///   2. Build adjacency `child_key → Vec<parent_key>` from the deduped
+///      lineage edge set, *skipping* orphaned edges (parent not in
+///      antigen index) and dangling-child edges (child not in antigen
+///      index). The propagation walk never traverses those.
+///   3. Build a `(antigen_type, canonical_path) → Vec<presentation_idx>`
+///      index over a snapshot of `report.presentations`.
+///   4. For each `AntigenDeclaration` with at least one outgoing
+///      adjacency entry, collect transitive ancestor identities via
+///      iterative DFS (per-call `visited` `HashSet`, defense-in-depth).
+///   5. For each ancestor's presentation, either:
 ///      - merge `ProvenanceEntry` into an existing Presentation's
-///        `inherited_from` via set-union (diamond dedup),
-///      - or append a new inherited Presentation at the descendant's site.
+///        `inherited_from` via set-union (diamond dedup, keyed on the
+///        ADR-018 three-tuple `(antigen_type, item_target, canonical_path)`),
+///      - or append a new inherited Presentation at the descendant's
+///        site, preserving the ancestor's `match_kind`.
 fn synthesize_inherited_presentations(report: &mut ScanReport) {
     use std::collections::HashMap;
 
