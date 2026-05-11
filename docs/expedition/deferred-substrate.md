@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V23 (2026-05-11, V1 Part I "emergent practice" revision committed; A5 stdlib-governance encounter registered; "protocol" → "emergent practice" Tekgy-ratified).
+> **Status**: V24 (2026-05-11, onboarding sweep activated: required-before-tag posture ratified; proposal substrate landed; two substrate-currency flags for aristotle Phase 1-8).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -59,12 +59,14 @@ integration, (4) knowledge-ecosystem integration, (5) version/lineage,
 Component 7 first-class; C4 boundary-silence; engineered-boundary tier named;
 manifold framing; honest-boundary-as-encounter-registration; 12 open questions.
 
-**Active team routing** (idle-as-invitation; full creative freedom):
-- **Naturalist**: vocabulary-as-protocol COMPLETE (2026-05-11, campsite `20260511120843-vocabulary-as-protocol-cognate-refinement.md`); C1/C2/C3/C5/C6/C7 at idle cadence.
-- **Scout, Adversarial, Pathmaker**: complete; full creative freedom.
-- **Aristotle**: Phase 1-8 complete (2026-05-11). ADR amendment queue CLOSED
-  (35130f2, 2026-05-10). Idle work: manifold-axes partition test complete
-  (campsite `20260510-manifold-axes-partition-test.md`, 2026-05-10).
+**Part I "emergent practice" revision committed** (2026-05-11, 252c54e):
+"Protocol" → "emergent practice" (Tekgy-ratified after evaluating systems-thinking
+candidates). Layer-distinction now explicit in text. Sources scout + naturalist findings.
+
+**Active team routing** (onboarding sweep active; idle-as-invitation otherwise):
+- **Naturalist**: vocabulary-as-protocol COMPLETE (2026-05-11); C1/C2/C3/C5/C6/C7 at idle cadence.
+- **Scout, Adversarial, Pathmaker, Aristotle**: onboarding sweep work (see below).
+- **Team-lead**: README revision in parallel with aristotle Phase 1-8.
 
 **Manifold-axes partition test results** (aristotle, idle work, 2026-05-10):
 Q12/Q13 now answered. Four candidate axes tested; 2 real, 2 convenient cuts.
@@ -126,6 +128,51 @@ Not project-tier substrate yet — expedition/ staging area.
 
 **Owner**: naturalist + adversarial (still expanding) → aristotle (Phase 1-8
 after expansion) → team-lead + Tekgy (ratification cadence).
+
+---
+
+## Active: Onboarding sweep (pre-release required)
+
+**Posture** (Tekgy-ratified, 2026-05-11): onboarding is **required before any
+tag or rc**, not optional. Best-in-class, not merely sufficient. The architecture
+is good; the tooling works; the substrate is rich. What ships at v0.1.0-rc.1 is
+the welcoming first encounter of all of it.
+
+**Proposal substrate**: `docs/expedition/pre-release-onboarding-sweep-proposal.md`
+(team-lead, 2026-05-11). 11 deliverable categories, substrate-grounded verification
+criteria, proposed role distribution, 5-phase sequencing.
+
+**Substrate-currency note for aristotle Phase 1-8**: no git tag exists yet
+(confirmed: `git tag -l` returns empty). CHANGELOG and README reference
+`v0.1.0-rc.1` as prose, but no actual tag. Phase 5 "Tag v0.1.0-rc.1" produces
+the first tag. This is consistent with the sweep being pre-tag work — just flag
+it so aristotle's Phase 1-8 doesn't assume a tag already exists.
+
+**Substrate-currency note for adversarial gap-check**: proposal references
+"DemoBrokenWitness fires fingerprint matches on PanickingInDrop-shaped code in
+basic.rs" — that struct doesn't exist in current basic.rs (verified 2026-05-11).
+Gap-item may be stale from pre-W3. Adversarial should verify what cross-reactivity
+actually exists now before documenting it.
+
+**Sweep name** (aristotle's call): A3.5 / OR-1 / Pre-RC / Onboarding.
+Team-lead leans A3.5 for continuity; no strong preference.
+
+**Phase 1 (scope-lock + foundation)**:
+- Aristotle: Phase 1-8 this proposal (bandwidth opening)
+- Pathmaker: hide `new`/`vaccinate` from CLI help
+- Team-lead: README rough draft (parallel; doesn't depend on scope-lock)
+- Scout: usage-patterns.md continuation
+
+**Downstream**: `docs/usage-patterns.md` already seeded (scout, 2026-05-11).
+`docs/roadmap.md`, `docs/tutorial.md`, `docs/fingerprint-grammar.md`,
+`docs/witness-tiers.md`, `docs/output-formats.md`, `docs/macros.md` all NEW files
+from this sweep.
+
+**Risk flag** (risk #6 from proposal): when `new`/`vaccinate` eventually ship,
+they need to surface in `--help` correctly. Register now as deferred-substrate
+post-sweep entry: "restore `new`/`vaccinate` to CLI help when A5 ships them."
+
+**Owner**: team-lead (sweep coordination) + navigator (substrate-currency at doc tier).
 
 ---
 
