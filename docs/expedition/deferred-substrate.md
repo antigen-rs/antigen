@@ -30,42 +30,14 @@
 
 Items that unblock when ADR-017 + ADR-018 ratification commit lands.
 
-**ADR-017 + ADR-018 ratified 2026-05-09, commit 3ef4b9a.** Items below
-are now unblocked and awaiting teammate wake-up; D1.5 moved to active.
+**ADR-017 + ADR-018 ratified 2026-05-09, commit 3ef4b9a.**
 
-### ATK-A3-009 reframe
+~~ATK-A3-007~~: reframed to enumerate_dep_crate_roots trust boundary —
+committed 4a1ed17 (adversarial, 2026-05-09). Row removed.
 
-**What**: Original attack surface (name-only silent match) is structurally
-eliminated by ADR-017's name@version canonical_path format. Contract needs
-either reframing to the residual registry-collision risk (same-name@version
-from different registries — Open Question 1 in ADR-017) OR explicit closure
-with a note. ATK-A3-010 already absorbed the drift-vs-waning angle; this
-reframe covers only the identity-format angle.
-
-**Where it lives**: `antigen/tests/atk_a3_fractal_preview.rs` (the existing
-#[ignore] contract); scout's structural insight that superseded ADR-017 v3
-Option B; scope-lock §verification checklist (last entry).
-
-**Unblocked by**: ADR-017 ratified (commit 3ef4b9a). Now active.
-
-**Owner when active**: adversarial's call (scout proposed the reframe;
-adversarial decides whether to reframe to registry-collision risk or close).
-
-### ATK-A3-007 reframe
-
-**What**: Scout found the trust boundary is at enumeration, not scan.
-Test contract should assert `enumerate_dep_crate_roots` never returns
-paths not in cargo metadata's graph (not: `scan_workspace` rejects fake
-registry paths). Pre-impl contract update in `atk_a3_fractal_preview.rs`
-or a new fixture file.
-
-**Where it lives**: scout's findings during ADR-017 review; ADR-017
-§Trust delegation ("Do not add alternative path-discovery mechanisms");
-scope-lock §verification checklist.
-
-**Unblocked by**: ADR-017 + ADR-018 ratified (commit 3ef4b9a). Now active.
-
-**Owner when active**: adversarial's call.
+~~ATK-A3-009~~: disposed — attack surface eliminated by name@version format;
+registry-collision residual deferred to ADR-017 OQ1. Committed bf44056
+(adversarial, 2026-05-09). Row removed.
 
 ### ~~D1.5 implementation (propagation walk + diamond dedup)~~
 
@@ -337,3 +309,8 @@ Tekgy framings as substrate commitments anchoring next full Phase 1-8.
 Routing-stream-overtaken-by-events added as new vocabulary candidate
 (presentation type within substrate-currency domain) per aristotle's catch
 and team-lead routing.*
+
+*V3 updated 2026-05-10 by navigator: ATK-A3-007 (commit 4a1ed17) and
+ATK-A3-009 (commit bf44056) confirmed complete. Rows removed from
+A3-immediate section; A3-immediate now closed except D1.5 (pathmaker
+active).*
