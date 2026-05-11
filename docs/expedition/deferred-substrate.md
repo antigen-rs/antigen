@@ -18,15 +18,16 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V7 (2026-05-10, scout findings landed; Component 7 confirmed).
+> **Status**: V8 (2026-05-10, naturalist C4 finding + Q1 provisional answer).
 > V1: D1.5 active, ATK reframes unblocked, encounters tracked.
 > V2: encounters entry updated with three Tekgy framings; routing-stream-overtaken-by-events added.
 > V3: ATK-A3-007 + ATK-A3-009 rows removed (complete, 2026-05-10).
 > V4: A3-immediate section closed — D1.5 complete (commits 2eb8bec–b7712df, 235 passing).
 > V5: multi-component immunity framing added (active, team-lead producing); ADR-018 Amendment 1 added.
 > V6: multi-component substrate committed (ca812de); active team routing recorded per-role.
-> V7: scout findings landed — Component 7 confirmed, vocabulary-as-protocol reinforced, ADR
-> amendments consolidated, decay/sunset gap named.
+> V7: scout findings landed — Component 7 confirmed, amendments consolidated.
+> V8: naturalist C4 boundary-silence confirmed (instrument-mode); Q1 provisional answer: layered;
+> aristotle Phase 1-8 holds pending team-lead/Tekgy ratification of layered framing.
 
 ---
 
@@ -56,17 +57,19 @@ integration, (4) knowledge-ecosystem integration, (5) version/lineage,
 - `docs/expedition/multi-component-immunity.md` — deep-dive draft (~870 lines)
 
 **Active team routing** (idle-as-invitation cadence; no rush):
-- **Naturalist**: biology-cognate refinement per-component. Component 4
-  (knowledge-ecosystem) flagged as loosest cognate — possibly boundary-silence
-  as evidence; cytokine / complement / lymphatic-architecture / MHC-class-II
-  candidates open.
-- **Scout**: additional components — Component 7 candidates: real-time/CI
-  (neutrophil cognate?), cross-team tier, adversarial/red-team as component,
-  educational/onboarding, decay/sunset, cross-language.
+- **Naturalist**: C4 boundary-silence finding complete (2026-05-10). C1/C2/C3/C5/C6
+  cognate refinements + vocabulary-as-protocol seam in progress at naturalist cadence.
+  **Q1 provisional answer**: layered (not flat) — C4 is knowledge-ecosystem-tier,
+  C1-2-3-5-6 are biology-tier. Awaits team-lead + Tekgy ratification before
+  aristotle Phase 1-8 runs.
+- **Scout**: complete (2026-05-10). Component 7 confirmed; candidates disposed;
+  vocabulary-as-protocol reinforced. Idle-as-invitation.
 - **Adversarial**: threat-model expansion per [ADVERSARIAL: ...] seams in
   deep-dive; Component 6 supply-chain + Component 4 reference poisoning sharpest.
-- **Aristotle**: Phase 1-8 after above three expand; Q1 (enumeration coherence)
-  + Q3 (component dependencies) most load-bearing of nine open questions.
+  Still in expansion pass.
+- **Aristotle**: Phase 1-8 holds pending (a) team-lead + Tekgy ratification of
+  Q1 layered/flat framing decision and (b) adversarial expansion landing. Q3
+  (component dependencies) also load-bearing.
 
 **Scout findings landed** (2026-05-10):
 - **Component 7 confirmed**: real-time / CI feedback is structurally distinct
@@ -402,3 +405,10 @@ reflect team routing is live (not just "incoming").*
 Component 7 (real-time/CI) confirmed. Three ADR prose gaps consolidated into
 one aristotle pass. Decay/sunset vocabulary gap named. Vocabulary-as-protocol
 framing independently reinforced by scout.*
+
+*V8 updated 2026-05-10 by navigator: naturalist C4 boundary-silence finding
+confirmed instrument-mode (three of four cognate candidates already bound
+elsewhere in immune-system-primitive-map.md). Q1 provisional answer: layered
+not flat — C4 is knowledge-ecosystem-tier, C1-2-3-5-6 are biology-tier. C4
+joins W7/ADR-017 honest-boundary family. Aristotle Phase 1-8 holds pending
+team-lead + Tekgy ratification of layered framing decision.*
