@@ -18,13 +18,15 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V6 (2026-05-10, multi-component substrate committed; team routing active).
+> **Status**: V7 (2026-05-10, scout findings landed; Component 7 confirmed).
 > V1: D1.5 active, ATK reframes unblocked, encounters tracked.
 > V2: encounters entry updated with three Tekgy framings; routing-stream-overtaken-by-events added.
 > V3: ATK-A3-007 + ATK-A3-009 rows removed (complete, 2026-05-10).
 > V4: A3-immediate section closed — D1.5 complete (commits 2eb8bec–b7712df, 235 passing).
 > V5: multi-component immunity framing added (active, team-lead producing); ADR-018 Amendment 1 added.
 > V6: multi-component substrate committed (ca812de); active team routing recorded per-role.
+> V7: scout findings landed — Component 7 confirmed, vocabulary-as-protocol reinforced, ADR
+> amendments consolidated, decay/sunset gap named.
 
 ---
 
@@ -66,11 +68,25 @@ integration, (4) knowledge-ecosystem integration, (5) version/lineage,
 - **Aristotle**: Phase 1-8 after above three expand; Q1 (enumeration coherence)
   + Q3 (component dependencies) most load-bearing of nine open questions.
 
+**Scout findings landed** (2026-05-10):
+- **Component 7 confirmed**: real-time / CI feedback is structurally distinct
+  from Component 2 by scope (diff-scope vs workspace-scope), not just latency.
+  Distinct audience (PR author), distinct integration surface (PR comment /
+  status check), genuine dependency on Component 2's ScanReport as baseline.
+  Passes load-bearing test. Needs naturalist cognate (neutrophil?) and
+  adversarial threat-model.
+- Vocabulary-as-protocol framing independently confirmed: vocabulary is the
+  shared signaling protocol, not Component 0. Sharpens Part I framing.
+- Decay/sunset: genuine vocabulary gap (no "retired antigen" primitive);
+  encounters-tier or future ADR candidate; not a new structural component.
+- Cross-team/org, adversarial-discipline, educational/onboarding: all
+  disposed as non-peer-components per scout's empirical test.
+
 **Ratification cadence**: Tekgy + team-lead decide after team expansions surface.
 Not project-tier substrate yet — expedition/ staging area.
 
-**Owner**: naturalist + scout + adversarial (parallel expansion) → aristotle
-(Phase 1-8) → team-lead + Tekgy (ratification cadence).
+**Owner**: naturalist + adversarial (still expanding) → aristotle (Phase 1-8
+after expansion) → team-lead + Tekgy (ratification cadence).
 
 ---
 
@@ -217,24 +233,33 @@ These are watched per their own thresholds; not duplicated here.
 Substrate explicitly deferred to A4+ or post-A5 by ratified ADRs or
 team-lead rulings.
 
-### ADR-018 Amendment 1 — diamond dedup prose clarification
+### Consolidated ADR prose amendments (aristotle, when idle)
 
-**What**: ADR-018 §Mechanics describes "second-visit triggers set-union"
-but the implementation uses a per-DFS-source `visited: HashSet` (defense-
-in-depth per ADR-018 Finding 4), meaning each ancestor is visited exactly
-once per descendant DFS. The dedup key `(antigen_type, item_target,
-canonical_path)` prevents cross-DFS duplicates. Behavior is correct and
-acceptance-tested; prose doesn't match mechanism. One paragraph in
-Amendment 1 closes the substrate-honesty gap.
+Three small prose gaps, consolidated into one aristotle pass:
 
-**Where it lives**: `docs/decisions.md` §ADR-018 §Mechanics; pathmaker's
-flag in D1.5 completion message; navigator's escalation to team-lead.
+**ADR-018 Amendment 1a — diamond dedup mechanism**: §Mechanics says "second-
+visit triggers set-union" but implementation uses per-DFS-source `visited:
+HashSet`; each ancestor visited once per descendant DFS; dedup key prevents
+cross-DFS duplicates. One paragraph. Source: pathmaker D1.5 flag.
 
-**Unblocked by**: aristotle bandwidth. Low priority — acceptance tests are
-ground truth; this is documentation drift, not behavioral gap.
+**ADR-018 Amendment 1b — same-version true-diamond**: cross-version case
+(different dedup keys → two presentations) is stated; same-version true-
+diamond case (same dedup key → collapses correctly) is not. One sentence.
+Source: scout empirical verification 2026-05-10.
 
-**Owner when active**: aristotle drafts amendment → process.md Stage 3-6
-(minor amendment, no team Phase 1-8 required for prose clarification).
+**ADR-017 Amendment 1 — workspace-internal exclusion**: `enumerate_dep_crate_roots`
+implicitly excludes workspace-internal crates (`source: null` in cargo metadata);
+should be explicit contract in §Mechanics. One sentence. Source: scout
+empirical verification 2026-05-10.
+
+**Where they live**: `docs/decisions.md` §ADR-017 §Mechanics; §ADR-018
+§Mechanics; scout campsite `20260510-adr-017-018-empirical-verification-and-component-candidates.md`.
+
+**Unblocked by**: aristotle bandwidth. Low priority — all behavioral gaps are
+covered by acceptance tests; these are documentation drift, not behavioral gaps.
+
+**Owner when active**: aristotle drafts all three in one pass → process.md
+Stage 3-6 (minor amendments, no Phase 1-8 required for prose clarifications).
 
 ### A4+ substrate accumulating
 
@@ -371,3 +396,9 @@ cross-sweep sections once team-lead's artifacts land and team work begins.*
 *V6 updated 2026-05-10 by navigator: both multi-component artifacts committed
 (ca812de). Active team routing per-role recorded. Section header updated to
 reflect team routing is live (not just "incoming").*
+
+*V7 updated 2026-05-10 by navigator: scout findings landed (campsite
+20260510-adr-017-018-empirical-verification-and-component-candidates.md).
+Component 7 (real-time/CI) confirmed. Three ADR prose gaps consolidated into
+one aristotle pass. Decay/sunset vocabulary gap named. Vocabulary-as-protocol
+framing independently reinforced by scout.*
