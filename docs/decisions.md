@@ -928,10 +928,31 @@ The amendment operationalizes at three surfaces:
    | External-tool reference verified by tool invocation (deferred to A3+) | `Execution` | `external-tool-invoked` |
    | Phantom-type witness shape recognized | `FormalProof` | `phantom-type-shape-recognized` |
    | Phantom-type witness construction validated (deferred to future ADR) | `FormalProof` | `phantom-type-construction-validated` |
+   | Witness resolves to function in dependency crate (consuming workspace cannot execute via local cargo test) | `Reachability` | `cross-crate-witness-not-locally-executable` |
 
    The strict four-tier enum preserves W7's Ord-able CI gating;
    the audit_hint carries the additional information that
    compound names would have encoded.
+
+   **Cross-crate witness tier defaulting** (per ADR-005 Amendment 3
+   sub-amendment, 2026-05-10): when a witness identifier resolves to a
+   function in a dependency crate (path qualified by `canonical_path`,
+   or path prefix matches a dependency's crate name), the consuming
+   workspace cannot execute the witness via local `cargo test`. The
+   audit MUST report `Reachability` tier (identifier resolves) +
+   `audit_hint: "cross-crate-witness-not-locally-executable"`, NOT
+   `Execution` tier. Reporting `Execution` overstates the audit's
+   verification work and violates sub-clause F at the audit surface.
+
+   **Future-amendment door**: when antigen-stdlib + cross-crate test
+   orchestration matures (A4-A5 behavioral-tier work), a dependency's
+   test status may become locally introspectable (e.g., via a manifest
+   field declaring which tests are antigen-witnesses + a CI signal from
+   the dependency's release pipeline). At that point, cross-crate
+   witnesses with verified-passing dependency tests may earn `Execution`
+   tier + a different audit_hint. The current default reflects what the
+   consuming workspace's audit actually verifies in v0.1; the door is
+   preserved without commitment.
 
 3. **Crash-resistance at recognition surfaces** (per R-Crash:
    in-domain input defined explicitly): `cargo antigen audit` MUST
@@ -995,6 +1016,13 @@ The amendment operationalizes at three surfaces:
   - **ATK-Am3-Tier-1**: `witness_tier` field absent in JSON output
     is itself a sub-clause F violation. Test verifies field
     presence on every audit output.
+  - **ATK-A3-011**: cross-crate witness tier defaulting. Fixture:
+    workspace W depends on crate C; C declares
+    `#[immune(SomeAntigen, witness = some_test_in_C)]`; W scans with
+    `--include-deps`. Audit output for the dep's immunity MUST report
+    `Reachability` + `cross-crate-witness-not-locally-executable`, NOT
+    `Execution`. Pre-implementation contract; filed in
+    `atk_a3_fractal_preview.rs` with `#[ignore]` until A4 ships.
 
 ### Resolves
 
@@ -3692,11 +3720,43 @@ current `Option<String>` shape.
 not by runtime layout-check. The function is the only public mechanism for
 enumerating cross-crate scan targets, and every path it returns is sourced
 from `cargo metadata`'s output. Cargo verifies registry layout itself before
-populating that output.
+populating that output. Workspace-internal packages (`source: null` in cargo
+metadata) are explicitly excluded from `enumerate_dep_crate_roots`'s output —
+their antigens enter the scan via the workspace pass with `canonical_path =
+None`, not via the cross-crate pass. The filter is
+`package.source.is_some_and(|s| s.starts_with("registry+"))`.
 
 **Do not add alternative path-discovery mechanisms that bypass
 `enumerate_dep_crate_roots`** — doing so bypasses the sub-clause F delegation
 and requires a separate trust argument. ATK-A3-007 enforces this discipline.
+
+**Trust scope statement**: antigen's cross-crate trust model is predicated on
+cargo metadata integrity. The trust-delegation guarantee in this ADR extends
+*only* as far as cargo's own trust chain (cargo's checksum verification,
+cargo's resolution graph, cargo's registry-layout enforcement). Attacks against
+cargo itself are out of antigen's trust model:
+
+- **CARGO_HOME override**: an attacker who sets `CARGO_HOME` to a prepared
+  directory can substitute a malicious registry cache. `cargo metadata` will
+  resolve against the tampered cache; antigen will trust that resolution.
+- **Cargo.lock manipulation**: an attacker with write access to the workspace
+  can rewrite `Cargo.lock` to pin different versions of a dependency, including
+  versions with malicious antigen declarations.
+- **Registry cache tampering**: an attacker with filesystem write access to
+  `.cargo/registry/src/<index>/<crate-version>/` can modify source files
+  post-fetch (cargo verifies the original fetch, not subsequent filesystem
+  state).
+
+These are cargo-level attacks. They violate cargo's own trust assumptions, and
+antigen's trust delegation has no independent defense against them. Consumers
+who need a stronger guarantee require a stronger cargo (or a different
+dependency-management tier entirely); antigen's claim is *consistent with
+cargo's*, not *stronger than cargo's*.
+
+This is sub-clause F applied to the trust-delegation surface: antigen reports
+the strength of trust it actually extends. The honest-boundary is registered as
+an encounter-tier substrate (per Q7 honest-boundary-as-encounter-registration
+discipline, when ratified).
 
 The two preconditions (path reachable from cargo metadata's resolution graph;
 path's parent directory matches registry layout) are both honored by
@@ -3892,7 +3952,24 @@ For each child antigen with at least one outgoing lineage edge:
 The descendant inherits the ancestor's `match_kind`. Inheritance is provenance,
 not match-kind.
 
+**Mechanism note**: the `visited: HashSet<&str>` in the pseudocode is *scoped
+per descendant DFS*, not global to the propagation walk. Each descendant's DFS
+visits each transitive ancestor at most once (defense-in-depth against cycles
+bypassed at the lineage-safety layer). Diamond dedup operates at a different
+layer — the `(antigen_type, item_target, canonical_path)` dedup key on the
+resulting Presentation records ensures that even if two descendants' DFS walks
+reach the same ancestor presentation independently, the *Presentation* records
+produced are merged by set-union of `inherited_from`. Per-DFS visited-set
+prevents intra-descendant cycle traversal; per-Presentation dedup-key prevents
+cross-descendant duplication. Both layers operate; neither replaces the other.
+
 #### Diamond dedup
+
+**Same-version true-diamond is the dedup case the algorithm handles directly**:
+A→B→D and A→C→D where D's `canonical_path` is identical via both paths produces
+ONE Presentation record on A with both B and C unioned into `inherited_from`.
+The cross-version case below is *not* a diamond — it explicitly does NOT
+collapse, because `canonical_path` differs between paths.
 
 When a descendant has multiple paths to the same ancestor presentation
 (diamond: A→B→D and A→C→D), the second visit hits the dedup branch and merges
