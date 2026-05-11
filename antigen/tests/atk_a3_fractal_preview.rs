@@ -557,83 +557,51 @@ fn atk_a3_008_duplicate_edge_adr018_synthesis_dedup_emits_diagnostic() {
 // ATK-A3-009: multi-version same-crate antigen fingerprint divergence — silent
 // wrong immunity address
 //
-// ADR-017 §"How the path is computed" intentionally collapses two versions of
-// the same crate to the same canonical_path string (crate name only, no
-// version). If `foo v1.0` declares `PanickingInDrop` with fingerprint F1, and
-// `foo v2.0` (allowed in same dep tree under semver major splits) declares
-// `PanickingInDrop` with a breaking fingerprint change F2, the scanner sees:
+// DISPOSED (post-ADR-017 ratification, 2026-05-09): the original attack surface
+// is structurally eliminated by the ratified "name@version" canonical_path format.
 //
-//   AntigenDeclaration { type_name: "PanickingInDrop", canonical_path: Some("foo") }  // v1
-//   AntigenDeclaration { type_name: "PanickingInDrop", canonical_path: Some("foo") }  // v2
+// Original scenario (no longer possible):
+//   The draft had canonical_path = crate name only (e.g., Some("foo")).
+//   Two versions of the same antigen would both produce canonical_path = Some("foo"),
+//   causing an immunity validated against v1 to silently satisfy a v2 presentation.
 //
-// A user's `#[immune(PanickingInDrop, witness = my_test)]` validated against F1
-// addresses the v2 presentation (same canonical_path, same type_name) even
-// though the witness was never re-validated against F2's changed contract.
-// Audit shows "addressed" — silent wrong answer.
+// Why it's eliminated:
+//   ADR-017 ratified canonical_path = "name@version" (e.g., "foo@1.0.0"). With this
+//   format, "foo@1.0.0" ≠ "foo@1.1.0" at the identity level. The scanner produces two
+//   distinct AntigenDeclaration identities; an immunity against one canonical_path does
+//   not silently address presentations from the other. The silent match cannot occur.
 //
-// The ADR says "audit MAY surface version-divergence as a diagnostic." The
-// enforcement review flags this as too weak — "MAY" leaves a known silent
-// failure mode without committed detection. The failure is:
-//   1. Two AntigenDeclarations for the same canonical_path + type_name with
-//      DIFFERENT fingerprints — version divergence.
-//   2. An immunity that was validated against one version addresses the other.
-//   3. No diagnostic emitted.
+// Residual risk (deferred — not a contract here):
+//   Same name@version string from two different registries (e.g., crates.io foo@1.0.0
+//   vs alt-registry foo@1.0.0). canonical_path would be identical; antigen identities
+//   would collide. This is ADR-017 Open Question 1 (documented limitation). No
+//   separate contract is needed here — the deferred status lives in ADR-017 with its
+//   own adoption-pressure trigger.
 //
-// Contract: when the scan report contains two antigen declarations with the
-// same (canonical_path, type_name) but different fingerprints, the audit MUST
-// emit a diagnostic naming the divergence and flagging associated immunities
-// for re-attestation.
+// Biological cognate (naturalist, A3): this failure class is ANTIGENIC DRIFT, not
+// memory-waning. The drift-vs-waning audit message distinction is the live adversarial
+// concern for A4+; see ATK-A3-010 for that contract.
+//   - Memory-waning: claim-side decay. Target stable; titer wanes. Maps to ADR-016
+//     `verified_at` + re-attestation. User action: re-run same witness.
+//   - Antigenic drift: target-side movement. Antigen shape changed; claim is
+//     stable-but-stale-by-reference. User action: re-recognize vulnerability shape
+//     before re-running witness.
 //
-// Alternatively (if deferred): the limitation must be explicitly named as an
-// out-of-scope known failure with an adoption-pressure trigger (ADR-006
-// threshold: three independent instances). "MAY" is not sufficient — it
-// implies optionality where the structural consequence is a silent wrong answer.
-//
-// Biological cognate (naturalist, A3): this is ANTIGENIC DRIFT, not memory-waning.
-//   - Memory-waning: claim-side decay. Target stays stable; the claim ages (titer
-//     wanes). Maps to ADR-016 `verified_at` + re-attestation ("re-validate witness").
-//   - Antigenic drift: target-side movement. The antigen has changed shape; the
-//     claim references a stable-but-now-stale fingerprint version. Maps to this
-//     scenario ("re-recognize against new fingerprint").
-//
-// This distinction predicts different A4+ audit messages:
-//   - Memory-waning  → "your witness is stale; re-validate"
-//   - Antigenic drift → "the antigen you referenced has changed shape; re-recognize"
-//
-// The A4+ ATK to file: audit emitting memory-waning language for an antigenic-drift
-// failure is a silent category error — the user re-runs the same witness (which passes)
-// and believes the problem is solved, but the fingerprint mismatch remains unaddressed.
-//
-// See: adversarial enforcement-review campsite entry for full analysis.
-// See: ATK-A3-010 for the audit-message category-error contract (A4+ scope).
-//
-// Status: #[ignore] until ADR-017 Enforcement is amended to commit to
-// either detection or explicit deferral with a named trigger.
+// The test body is kept (panic) rather than deleted — a dormant contract is better
+// documentation than a gap in the numbering. The ignore reason explains the disposition.
 // ============================================================================
 
 #[test]
-#[ignore = "A3 pre-implementation contract; multi-version fingerprint divergence \
-             silent wrong immunity — remove ignore when ADR-017 version-collision \
-             enforcement is resolved (either detection or explicit deferral)"]
+#[ignore = "ATK-A3-009 disposed: attack surface eliminated by ADR-017 name@version format \
+             (foo@1.0.0 ≠ foo@1.1.0 at identity level); residual alt-registry collision \
+             deferred to ADR-017 Open Question 1; drift-vs-waning angle in ATK-A3-010"]
 fn atk_a3_009_multi_version_fingerprint_divergence_addressed_without_revalidation() {
-    // Contract: two antigen declarations for `foo::PanickingInDrop` (same
-    // canonical_path = "foo", same type_name, different fingerprints from v1 vs
-    // v2) with an immunity validated against only one version must NOT silently
-    // show "addressed" for the other version's presentation without a diagnostic.
+    // Original contract: two antigen declarations with same (canonical_path, type_name)
+    // but different fingerprints — immunity against one silently addresses the other.
+    // This scenario cannot arise under the ratified name@version canonical_path format.
     //
-    // The scenario requires a ScanReport with:
-    //   - Two AntigenDeclarations: same canonical_path + type_name, different fingerprints
-    //   - One Immunity referencing the antigen (canonical_path = "foo")
-    //   - Two Presentations for the same antigen (from v1 and v2 scans)
-    //
-    // Expected (per corrected enforcement):
-    //   - Either a parse_failure or audit diagnostic flagging version divergence
-    //   - OR explicit out-of-scope limitation documented in ScanReport.known_limitations
-    //     so callers can surface the gap rather than silently suppress it
-    //
-    // TODO(adversarial): implement when ADR-017 Enforcement §version-collision
-    // is resolved to MUST or explicit-deferred-with-trigger.
-    panic!("A3 pre-implementation contract");
+    // Kept as documentation. See comment block above for full disposition.
+    panic!("ATK-A3-009 disposed — see comment block");
 }
 
 // ============================================================================
