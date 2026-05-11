@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V16 (2026-05-10, two new encounter-candidates: seam-tier/type-tier antigen classification + third encounter-disposition retire-to-documentation).
+> **Status**: V17 (2026-05-10, scout seam-tier rhyme check complete: retire-to-documentation confirmed; multi-target #[presents] gap registered; ATK-A3-015..018 filed).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -282,16 +282,35 @@ antigens themselves. This would operate at antigen-taxonomy level, distinct from
 aristotle's manifold-axes partition test (which partitions immune-system
 components, not antigen types).
 
-**Retire-to-documentation flag** (per Item 2 below): this distinction might be
-usage-docs territory — "here's where mathematical code teams should watch for
-cross-implementation divergence; here's how to write this antigen; here are the
-witness patterns that work" — rather than vocabulary-extension territory. Both
-possibilities held explicitly.
+**Scout structural-rhyme check COMPLETE** (2026-05-10, pre-halt, campsite
+`20260510-seam-tier-type-tier-structural-rhyme-check.md`): retire-to-documentation
+disposition confirmed. Three rhymes fired (WitnessKind, `#[presents]` site
+selection, `#[immune]` location) — all locate the distinction at WHERE-TO-MARK-
+IN-EXISTING-VOCABULARY, not at need-new-primitive. Practitioner insight: for
+composition-site antigens, mark the consistency test (the test IS the seam-proxy
+in existing code). Existing vocabulary handles this; no ADR needed.
+
+**Real structural gap surfaced by scout**: multi-target `#[presents]` for two-
+sided seams (failure lives in the RELATIONSHIP between two code sites, not in
+either one). `ItemTarget` enum has no composition-relationship type. One instance;
+hold as registered-known-unknown until three independent instances.
+
+**ADR substrate**: seam-tier/type-tier distinction not latent as organizing axis
+in ADR-005 or ADR-013 — ADR-013 phantom-type is type-tier-adjacent but neither
+ADR uses composition-site as a concept. Audit behavior unchanged once right site
+is marked.
+
+**Adversarial ATK-A3-015..018**: four pre-impl contracts filed (oracle-wrong,
+wrong-seam, tier-mis-classification, retire-to-documentation guards). ATK-A3-018
+proposes three process guards for retire-to-documentation (second-opinion,
+revisit-window, concrete-artifact). Scout's and adversarial's analyses are
+consistent — adversarial's guards are the mechanism; scout's analysis is the
+structural reason those guards are needed.
 
 **Source**: team-lead, 2026-05-10, tambear math-researcher cross-pollination.
-**Revisit when**: second instance surfaces from a different codebase context
-(not tambear), OR scout structural-rhyme check / naturalist cognate check returns
-snag-free, OR the distinction earns retire-to-documentation disposition.
+**Revisit when**: second instance from different codebase context, OR naturalist
+cognate check returns; OR multi-target `#[presents]` gap surfaces two more
+instances triggering ADR consideration.
 
 ### Third encounter-disposition: retire-to-documentation (encounter-candidate, meta-level)
 
@@ -707,3 +726,13 @@ structural gap; meta-encounter on usage-docs-as-encounter-graveyard pattern).
 Team routing: naturalist (cognate check + snag-feel), scout (structural-rhyme
 falsification), adversarial (seam-tier attack surface). Aristotle not routed —
 single-instance, Phase 1-8 not warranted yet.*
+
+*V17 updated 2026-05-10 by navigator: scout structural-rhyme check landed
+pre-halt (campsite 20260510-seam-tier-type-tier-structural-rhyme-check.md).
+Retire-to-documentation disposition confirmed: three rhymes (WitnessKind,
+#[presents] site, #[immune] location) all locate at WHERE-TO-MARK, not at
+need-new-primitive. Multi-target #[presents] gap registered-known-unknown (one
+instance; three needed for ADR). ADR-005/ADR-013 not organized around
+composition-site as axis. Adversarial ATK-A3-015..018 filed (encounter-candidate
+pre-impl, all #[ignore]). Seam-tier encounter-candidate entry updated to reflect
+scout verdict + adversarial contracts. Naturalist cognate check still pending.*
