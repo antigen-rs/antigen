@@ -612,8 +612,9 @@ fn atk_a3_007_fake_registry_path_not_in_cargo_metadata_is_rejected() {
 // ============================================================================
 
 #[test]
-#[ignore = "A3 pre-implementation contract; ADR-018 duplicate edge dedup \
-             diagnostic channel — remove ignore when propagation pass lands (A3 D1.5+)"]
+#[ignore = "spirit satisfied by `dedupe_lineage_edges` parse_failures channel; \
+             literal assertion targets a different diagnostic path; defer to \
+             A4+ if channel unification is needed."]
 fn atk_a3_008_duplicate_edge_adr018_synthesis_dedup_emits_diagnostic() {
     // Contract: duplicate #[descended_from(B)] on struct A, after ADR-018
     // edge-level dedup collapses the two edges to one, must emit at least one
