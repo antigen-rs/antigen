@@ -18,13 +18,14 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V9 (2026-05-10, adversarial threat model complete; 5-item amendment queue; 2 A5 governance findings).
+> **Status**: V10 (2026-05-10, adversarial contracts committed 6b8c527; 235/27; expansion pass substrate-complete).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
 > V8: naturalist C4 boundary-silence (instrument-mode); Q1 provisional answer: layered.
-> V9: adversarial complete — ADR amendment queue expanded to 5 items (2 substantive pre-rc.1);
-> 4 A4+ contracts filed (adversarial); 2 A5 governance findings held in campsite.
+> V9: adversarial — 5-item amendment queue, 2 A5 governance findings held.
+> V10: ATK-A3-011..014 committed (6b8c527); 235 passing, 27 ignored; expansion pass
+> substrate-complete; aristotle holds on Q1 framing decision.
 
 ---
 
@@ -278,7 +279,15 @@ discipline; `#[descended_from]` inheritance semantics across version
 boundaries; doc-comment embedding path (verified-viable but ADR-001
 amendment territory); Eiffel D1/D2/D4 invariants from math-researcher.
 
-**Where it lives**: scout's seeds doc + various A2 campsite entries.
+**ATK contracts filed** (adversarial, 2026-05-10, commit 6b8c527 — 27 ignored total):
+- ATK-A3-011: cross-crate witness tier (ExecutionVerified → should be ExternalUnvalidated; theatrical-dependency-witness attack; ADR-005 Amendment 3 gap)
+- ATK-A3-012: proc-macro generated immunity source annotation (indistinguishable from hand-written; gated on ADR-014)
+- ATK-A3-013: diamond ProvenanceEntry set-union loses path witness structure (weaker-tier-governs invariant; A4-A5 re-validation must use lineage_edges)
+- ATK-A3-014: reference tier annotation absent (LLM hallucinated references indistinguishable from validated; ValidatedReference/DeadReference tier needed)
+
+ATK-A3-011 is the most actionable — it maps directly to the ADR-005 Amendment 3 language gap in the aristotle amendment queue (item 5).
+
+**Where it lives**: scout's seeds doc + various A2 campsite entries + adversarial campsite `20260510-multi-component-threat-model.md`.
 
 **Unblocked by**: A3 close → A4 scope-lock authoring.
 
@@ -450,3 +459,8 @@ complete. ADR amendment queue expanded from 3 to 5 items; items 4-5
 Four A4+ pre-impl contracts filed by adversarial in atk_a3_fractal_preview.rs.
 Two A5 governance findings (stdlib trust hierarchy, LLM co-native design)
 held in adversarial campsite.*
+
+*V10 updated 2026-05-10 by navigator: ATK-A3-011..014 committed (6b8c527);
+235 passing, 27 ignored. Multi-component expansion pass substrate-complete
+(scout + naturalist C4 + adversarial all done). Aristotle holds on Q1
+layered/flat framing decision from team-lead + Tekgy.*
