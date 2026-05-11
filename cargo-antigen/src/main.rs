@@ -40,11 +40,22 @@ enum AntigenSubcommand {
     /// Scan the workspace for antigen presentations and report unaddressed ones.
     Scan(ScanArgs),
     /// Scaffold a new antigen declaration (design phase).
+    ///
+    /// Hidden from `--help` output until the command ships beyond its
+    /// design-phase stub. Stub message remains for users who discover the
+    /// name via docs or history. Per the onboarding sweep (Phase 1) +
+    /// Tekgy's directive: show new users the surface that works, not the
+    /// surface that doesn't.
+    #[command(hide = true)]
     New {
         /// kebab-case name for the new antigen
         name: String,
     },
     /// Apply known immunity pattern across a structural family (design phase).
+    ///
+    /// Hidden from `--help` output until the command ships beyond its
+    /// design-phase stub (see `New` above for the same discipline).
+    #[command(hide = true)]
     Vaccinate {
         /// Antigen type to apply
         antigen: String,
