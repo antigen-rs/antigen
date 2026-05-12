@@ -1205,3 +1205,13 @@ PI-2 language corrected in decisions.md + fingerprint-grammar receiver-spacing c
 updated from "never matches" to "both forms accepted post-Amendment 5" (committed
 together). Remaining cascade item: tambear adoption log 7d9664a note — deferred to
 next tambear session (low urgency, separate repo, not pre-tag gate).*
+
+*V47 updated 2026-05-11 by navigator: C3 cognate refinement verdict (naturalist,
+campsite 20260511202037-c3-cognate-refinement-scale-distinction.md). Two-scale
+finding: memory-B-cell for per-claim, affinity-maturation for macro-scale tier
+hierarchy (both substrate-ratified; V1 C3 section understates the macro cognate).
+TCR removed from C3 candidate list (belongs to C2 per immune-system-primitive-map
+line 65). No new substrate-tier-crossing (count stays at 5). Deep-dive revision
+text written and substrate-durable at campsite. V2-HOLD: C3 is substrate-clarification
+(not boundary-silence), benefits from bundling with C1/vocabulary-as-protocol/C5-C6
+when team-lead drafts V2. Not pre-tag gate.*
