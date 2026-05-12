@@ -447,50 +447,91 @@ fn atk_w6a_012_any_of_all_arms_fail_returns_false_silently() {
 // ATK-W6a-013 — `has_method` signature whitespace normalization
 // ============================================================================
 
-/// ATK-W6a-013 — The `has_method` matcher uses `normalize_ws` to compare
-/// signatures. `normalize_ws` collapses internal whitespace, so patterns with
-/// extra spaces around tokens are equivalent to compact forms.
+/// ATK-W6a-013 — The `has_method` matcher canonicalizes signature patterns
+/// through `proc_macro2`'s tokenizer so user-natural `&self` / `&mut self`
+/// match the `proc_macro2`-rendered `& self` / `& mut self` form.
 ///
-/// **Silent mismatch hazard**: `proc_macro2::ToTokens` for a `&self` receiver
-/// renders as `"& self"` (space between `&` and `self`). A user writing
-/// `"(&self, T) -> U"` in their fingerprint will never match because the
-/// rendered form is `"(& self, T) -> U"`. After `normalize_ws`, both sides
-/// lose extra spaces BUT the content differs: `"(&self"` vs `"(& self"` —
-/// the `(` is attached to `&` in the user's pattern but `normalize_ws` only
-/// collapses runs of whitespace, it doesn't insert spaces between `(` and `&`.
+/// **History**: pre-A3.5, this test asserted the OPPOSITE — that `(&self, ...)`
+/// must NOT match because `normalize_ws` couldn't recover the missing space.
+/// That documented a real production footgun (tambear's `PanickingInDrop` was
+/// bitten by it — fixed at tambear commit 7d9664a). The A3.5 onboarding sweep
+/// addressed the underlying engine bug rather than living with the footgun:
+/// both the parser AND the matcher route their signature strings through
+/// `proc_macro2::TokenStream::from_str(_).to_string()` for symmetric
+/// canonicalization. After the fix, `&self`, `& self`, and `&  self` are all
+/// equivalent and all match the actual signature.
 ///
-/// The correct pattern for a `&self` receiver is `"(& self, T) -> U"`.
-/// This test documents both the normalization behavior AND the silent mismatch.
+/// This test asserts the corrected behavior. It is intentionally retained
+/// (rather than deleted) because the contract still expresses a meaningful
+/// invariant: user-natural Rust-style receiver syntax should match.
 #[test]
 fn atk_w6a_013_has_method_signature_whitespace_normalized() {
     let impl_src = "impl Lattice { fn meet(&self, other: Self) -> Self { unimplemented!() } }";
 
-    // Correct form: `& self` with a space — matches the token render of `&self`.
-    let fp_correct = parse_ok(r#"item = impl, has_method("meet", "(& self, Self) -> Self")"#);
+    // Canonical form: `& self` with a space — matches the token render of `&self`.
+    let fp_canonical = parse_ok(r#"item = impl, has_method("meet", "(& self, Self) -> Self")"#);
     assert!(
-        fp_correct.matches(&item(impl_src)),
-        "ATK-W6a-013: has_method with '& self' (space after &) must match"
+        fp_canonical.matches(&item(impl_src)),
+        "ATK-W6a-013: has_method with '& self' (canonical proc_macro2 spacing) must match"
     );
 
-    // normalize_ws collapses runs of whitespace within tokens but does NOT
-    // remove punctuation-adjacent spaces. `"(&  self,  Self) -> Self"` (extra
-    // internal spaces within the `& self` cluster) collapses correctly.
+    // Extra internal spaces collapse correctly via normalize_ws even after
+    // proc_macro2 canonicalization.
     let fp_extra_inner =
         parse_ok(r#"item = impl, has_method("meet", "(&  self,  Self)  ->  Self")"#);
     assert!(
         fp_extra_inner.matches(&item(impl_src)),
-        "ATK-W6a-013: has_method with extra spaces INSIDE tokens collapses via normalize_ws"
+        "ATK-W6a-013: extra spaces INSIDE tokens collapse via normalize_ws after canonicalization"
     );
 
-    // SILENT MISMATCH: `(&self, ...)` — no space after `&` — never matches.
-    // The token stream renders `&self` as `& self`; `(&self` != `(& self` after
-    // normalize_ws because normalize_ws doesn't insert the missing space.
-    // ATK-W6a-013 documents this as a known usability hazard.
-    let fp_wrong = parse_ok(r#"item = impl, has_method("meet", "(&self, Self) -> Self")"#);
+    // PREVIOUSLY-FAILING CASE (now GREEN per A3.5 engine fix):
+    // `(&self, ...)` — natural Rust syntax with no space after `&` — now
+    // matches because `normalize_signature_canonical` routes the pattern
+    // through proc_macro2's tokenizer, which inserts the canonical `& self`
+    // spacing. The matcher applies the same canonicalization to the actual
+    // signature for symmetric comparison.
+    let fp_natural = parse_ok(r#"item = impl, has_method("meet", "(&self, Self) -> Self")"#);
     assert!(
-        !fp_wrong.matches(&item(impl_src)),
-        "ATK-W6a-013 (silent mismatch): '(&self, ...)' without space after '&' must NOT match \
-         (ToTokens renders '& self' with space; normalize_ws cannot recover the missing space)"
+        fp_natural.matches(&item(impl_src)),
+        "ATK-W6a-013 (A3.5 engine fix): '(&self, ...)' MUST match — the engine canonicalizes \
+         user-natural `&self` to proc_macro2's `& self` form at parse time"
+    );
+}
+
+/// ATK-W6a-013b — `&mut self` receiver canonicalization (A3.5 engine fix).
+///
+/// The tambear production footgun: `has_method("drop", "(&mut self)")` against
+/// `impl Drop for T { fn drop(&mut self) { ... } }` produced zero matches
+/// before the A3.5 fix. `proc_macro2` renders `&mut self` as `& mut self`
+/// (space-separated tokens); plain `normalize_ws` on the pattern left it as
+/// `(&mut self)` which never equaled the matcher's `(& mut self)`.
+///
+/// Post-A3.5, the engine routes both pattern and matcher output through
+/// `proc_macro2::TokenStream::from_str(_).to_string()` for symmetric
+/// canonicalization. All three forms below now match correctly.
+#[test]
+fn atk_w6a_013b_has_method_mut_receiver_canonicalized() {
+    let impl_src = "impl Drop for T { fn drop(&mut self) { let _ = self; } }";
+
+    // Natural user form: `&mut self` (no extra spaces).
+    let fp_natural = parse_ok(r#"item = impl, has_method("drop", "(&mut self)")"#);
+    assert!(
+        fp_natural.matches(&item(impl_src)),
+        "natural `&mut self` syntax must match post-A3.5"
+    );
+
+    // proc_macro2 canonical form: `& mut self` (spaces between tokens).
+    let fp_canonical = parse_ok(r#"item = impl, has_method("drop", "(& mut self)")"#);
+    assert!(
+        fp_canonical.matches(&item(impl_src)),
+        "canonical `& mut self` form (matching matcher render) must match"
+    );
+
+    // Sloppy whitespace: `&  mut  self` (extra internal spaces).
+    let fp_sloppy = parse_ok(r#"item = impl, has_method("drop", "(&  mut  self)")"#);
+    assert!(
+        fp_sloppy.matches(&item(impl_src)),
+        "sloppy whitespace in `&mut self` cluster must canonicalize and match"
     );
 }
 

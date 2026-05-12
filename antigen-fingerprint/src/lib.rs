@@ -40,9 +40,12 @@
 //! - `name = matches("<glob>")` — `*` (any) and `?` (one) are the only
 //!   metachars; case-sensitive; whole-name match
 //! - `variants = M..=N` — inclusive range over enum variant count
-//! - `has_method("<name>", "<signature>")` — signature pre-parsed at load time;
-//!   use `"(& self, T) -> U"` (space after `&`) — `proc_macro2` renders `&self`
-//!   as `& self`, so `"(&self, ...)"` silently never matches
+//! - `has_method("<name>", "<signature>")` — signature canonicalized at load
+//!   time via `proc_macro2` round-trip. User-natural Rust syntax works:
+//!   `"(&mut self, T) -> U"`, `"(& mut self, T) -> U"`, and
+//!   `"(&  mut  self, T)  ->  U"` all canonicalize to the same form and
+//!   match the same signatures. (Pre-A3.5 the engine required the spaced
+//!   form `"(& self, ...)"` — that warning is now obsolete.)
 //! - `attr_present("<path>")` — outer attribute path matches (e.g.
 //!   `repr`, `clippy::panic`)
 //! - `doc_contains("<substring>")` — case-sensitive substring search in the
@@ -116,11 +119,12 @@ pub enum Constraint {
     /// `has_method("<name>", "<signature>")` — there exists an `impl` method
     /// with this name AND a signature whose shape matches `signature`.
     ///
-    /// Signatures are whitespace-normalized before comparison, so extra spaces
-    /// collapse. However, `proc_macro2` renders `&self` as `& self` (space
-    /// between `&` and `self`), so the correct pattern form is
-    /// `"(& self, T) -> U"`, not `"(&self, T) -> U"`. A missing space produces
-    /// a silent mismatch with no diagnostic (ATK-W6a-013).
+    /// Signatures are canonicalized at fingerprint-load time via
+    /// `proc_macro2`'s tokenizer, so user-natural Rust syntax works:
+    /// `"(&mut self, T) -> U"` and `"(& mut self, T) -> U"` and
+    /// `"(&  mut  self,  T)  ->  U"` all canonicalize to the same form and
+    /// match the same set of signatures. ATK-W6a-013 / ATK-W6a-013b
+    /// document the contract.
     HasMethod(MethodPattern),
 
     /// `attr_present("<path>")` — at least one outer attribute on the item
@@ -275,9 +279,9 @@ pub(crate) fn normalize_ws(s: &str) -> String {
     s.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-/// Canonicalize a `has_method` signature pattern through proc_macro2's
+/// Canonicalize a `has_method` signature pattern through `proc_macro2`'s
 /// tokenizer so user-written `&self` / `&mut self` matches the spacing
-/// that proc_macro2 produces when rendering the actual signature.
+/// that `proc_macro2` produces when rendering the actual signature.
 ///
 /// **The bug this fixes**: the matcher renders `syn::Signature` via
 /// `to_token_stream().to_string()`, which produces `"& self"` and
@@ -285,17 +289,17 @@ pub(crate) fn normalize_ws(s: &str) -> String {
 /// writes the natural-Rust shape `"(&mut self)"`, plain whitespace
 /// normalization leaves it as `"(&mut self)"` — and the string compare
 /// against the matcher's `"(& mut self)"` never matches. Silent failure,
-/// zero matches. (Tambear's PanickingInDrop was bitten by this — fixed at
+/// zero matches. (Tambear's `PanickingInDrop` was bitten by this — fixed at
 /// tambear commit 7d9664a; A3.5 onboarding sweep surfaced it as a
 /// production footgun worth fixing in the engine.)
 ///
 /// **The fix**: round-trip the user-provided string through
-/// `proc_macro2::TokenStream::from_str(_).to_string()`. proc_macro2 inserts
+/// `proc_macro2::TokenStream::from_str(_).to_string()`. `proc_macro2` inserts
 /// canonical spacing around `&`, `<`, `>`, etc. — the same spacing the
 /// matcher produces — so the round-trip is idempotent and canonicalizing.
 /// `"(&mut self)"` → `"(& mut self)"`; `"(& mut self)"` → `"(& mut self)"`.
 ///
-/// **Fallback**: if the input is not a valid proc_macro2 token stream
+/// **Fallback**: if the input is not a valid `proc_macro2` token stream
 /// (unbalanced parens, etc.), fall back to plain whitespace normalization.
 /// The parser already chooses lenience over rejection on broken sigs
 /// (`parse_has_method` accepts any non-empty string for v1 — see the

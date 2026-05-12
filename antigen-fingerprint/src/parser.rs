@@ -401,10 +401,17 @@ mod tests {
                 p.normalized_signature.is_some(),
                 "parser must populate normalized_signature at load time per ADR-010 Am3 PI-2",
             );
+            // Canonical form post-proc_macro2-tokenization: punctuation
+            // tokens (commas, ->) get whitespace inserted by proc_macro2's
+            // token rendering. The matcher routes its own output through
+            // the same canonicalization, so the comparison stays symmetric.
+            // A3.5 onboarding sweep canonicalization upgrade.
             assert_eq!(
                 p.normalized_signature.as_deref(),
-                Some("(Self, Self) -> Self"),
-                "v1 normalize collapses whitespace; the input is already canonical here",
+                Some("(Self , Self) -> Self"),
+                "post-tokenization canonical form: proc_macro2 inserts space \
+                 around `,` and other punctuation tokens; matcher applies the \
+                 same canonicalization so comparison is symmetric",
             );
         }
     }
@@ -412,14 +419,14 @@ mod tests {
     #[test]
     fn has_method_normalize_collapses_whitespace_at_parse_time() {
         // Pattern with sloppy whitespace; the normalized cache should be
-        // the canonical (single-spaced) form.
+        // the canonical (proc_macro2-tokenized) form.
         let fp = parse(r#"has_method("meet", "(Self,   Self)  ->   Self")"#).unwrap();
         let Constraint::HasMethod(p) = &fp.constraints[0] else {
             panic!("expected HasMethod");
         };
         assert_eq!(
             p.normalized_signature.as_deref(),
-            Some("(Self, Self) -> Self"),
+            Some("(Self , Self) -> Self"),
         );
     }
 
