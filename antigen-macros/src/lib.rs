@@ -1,15 +1,22 @@
 //! Procedural macros for the antigen crate.
 //!
-//! This crate provides the four core attribute macros that constitute the antigen
+//! This crate provides the five attribute macros that constitute the antigen
 //! API surface:
 //!
 //! - [`#[antigen(...)]`](macro@antigen) — declare a named failure-class with a
-//!   structural fingerprint
+//!   structural fingerprint (ADR-001, ADR-010)
 //! - [`#[presents(...)]`](macro@presents) — mark code as exhibiting an antigen's
 //!   structural pattern (vulnerability declaration)
 //! - [`#[immune(...)]`](macro@immune) — declare immunity with a witness reference
+//!   (test, proptest, phantom-type proof, or external-tool delegation)
 //! - [`#[descended_from(...)]`](macro@descended_from) — propagate antigen markers
-//!   through structural derivation
+//!   through an inheritance chain (ADR-013, ADR-018 §propagation)
+//! - [`#[antigen_tolerance(...)]`](macro@antigen_tolerance) — document an
+//!   intentional opt-out with required rationale (ADR-011)
+//!
+//! Users typically import these via the [`antigen`](https://docs.rs/antigen)
+//! crate (`use antigen::{antigen, presents, immune, descended_from,
+//! antigen_tolerance};`) rather than depending on `antigen-macros` directly.
 //!
 //! ## Design philosophy (v1)
 //!
@@ -26,12 +33,6 @@
 //!
 //! See ADR-010 (fingerprint grammar v1) and the project's `docs/expedition/`
 //! directory for the design rationale.
-//!
-//! ## Status
-//!
-//! `0.0.1` is a placeholder reserving the crate name. The macros below validate
-//! syntax and pass through; the full validation/scanning loop ships with the
-//! companion `cargo-antigen` crate.
 //!
 //! ## Known v1 limitations
 //!

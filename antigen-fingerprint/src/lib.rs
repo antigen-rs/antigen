@@ -1,8 +1,17 @@
 //! Fingerprint grammar parser + matcher for antigen failure-class declarations.
 //!
-//! See ADR-010 + Amendments 1-4 for the design substrate. This crate is the
-//! workspace-internal canonical implementation; both `antigen-macros` (for
-//! compile-time validation) and `antigen` (for scan-time matching) consume it.
+//! This crate is the canonical implementation of the structural-pattern DSL
+//! that appears inside `#[antigen(fingerprint = r#"..."#)]`. Both
+//! `antigen-macros` (compile-time validation) and the `antigen` library
+//! (scan-time matching) consume it as a workspace dependency.
+//!
+//! Most users interact with the fingerprint grammar through the
+//! [`#[antigen]`](https://docs.rs/antigen-macros) macro rather than this
+//! crate's API directly. The user-facing reference is
+//! [`docs/fingerprint-grammar.md`](https://github.com/antigen-rs/antigen/blob/main/docs/fingerprint-grammar.md);
+//! this module-level documentation is the implementer's-view summary.
+//!
+//! See ADR-010 + Amendments 1-4 for the design substrate.
 //!
 //! ## Grammar (v1)
 //!
