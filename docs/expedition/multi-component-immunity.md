@@ -544,16 +544,46 @@ diamonds across crates.
   antigen declarations in CVE databases; ecosystem-wide failure-class
   memory.
 
-**Biology cognate**
+**Biology cognate**: **epidemiological surveillance infrastructure**
+(per naturalist Q-C6 verification, 2026-05-12). The WHO flu surveillance
+network is the substrate-grounded cognate — five-axis structural match
+confirmed; three independent bindings already present in
+`contact-graph-and-recognition-tiers.md` (lines 16, 246, 317-318).
 
-- **Herd immunity** — population-level protection
-- **MHC polymorphism** — population-level resilience through repertoire
-  diversity
-- **Microbiome / commensal organisms** — tolerance of beneficial organisms
+Why surveillance-infrastructure rather than the V0 candidates:
 
-[NATURALIST: V0 asked among herd / MHC polymorphism / microbiome. Open
-for refinement. Also: cognate for ecosystem-level *exclusion* (a
-known-bad pattern that the ecosystem refuses)?]
+- **Herd immunity** — rejected. Predicts that population-level protection
+  emerges from many individuals being independently immune; antigen's
+  cross-crate propagation is *coordinated infrastructure*, not emergent
+  from individual adoption.
+- **MHC polymorphism** — rejected. Predicts the *opposite* architectural
+  value (diversity-for-resilience); ADR-017's canonical convergence
+  goes the other direction. Surfaces a real convergence-vs-diversity
+  tension worth naming in V2 (the team's multi-discipline composition
+  IS the project's MHC-polymorphism analog at the development-tier).
+- **Microbiome / commensal organisms** — rejected. Predicts tolerance
+  of beneficial organisms; antigen-stdlib is about shared *failure-class
+  memory*, not tolerated beneficial patterns.
+
+What surveillance-infrastructure predicts correctly:
+
+- Coordinated centralized identification of failure-class patterns
+- Cross-population sharing of recognized patterns (analogous to flu
+  strain announcements driving global vaccine production)
+- Recognition delays at boundaries (new strain → recognition → response
+  cascade; analogous to novel-failure-class → registration → stdlib
+  propagation)
+- Governance structure tied to recognition authority (WHO's role in
+  flu surveillance maps onto antigen-stdlib's contribution model;
+  recognition-grounded per A5 governance encounter)
+
+**Ecosystem-level exclusion cognate** (V0 placeholder question):
+**negative thymic selection** — the body's mechanism for refusing
+self-attacking T-cell clones before they enter circulation. Maps onto
+`cargo antigen forbid <pattern>` — declaration-formation-time exclusion,
+distinct from `#[antigen_tolerance]` (peripheral tolerance, applied
+case-by-case after declaration). Encounter-registration candidate;
+post-A5 territory (see deferred-substrate.md V54).
 
 **Failure modes / attack surface**
 
