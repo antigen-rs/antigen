@@ -52,10 +52,12 @@ Tracking work for v0.1.0 final. Cf. `sweeps/A3.5-onboarding/scope-lock.md`.
 
 #### Engine
 
-- `antigen-fingerprint`: `normalize_signature_canonical()` — round-trips user-provided
-  `has_method` signature strings through proc_macro2's tokenizer at parse time; eliminates
-  silent zero-match when user writes `"(&mut self)"` and engine renders `"(& mut self)"`
-  (tokenization-asymmetry footgun; first instance: tambear PanickingInDrop, A3.5 cross-check)
+- `antigen-fingerprint`: symmetric canonicalization of `has_method` signature strings via
+  proc_macro2 round-trip at parse time. User-natural Rust syntax works: `"(&mut self)"`,
+  `"(& mut self)"`, and sloppy-whitespace variants all canonicalize to the same form and
+  match the same signatures. Pre-A3.5 the engine required the spaced form `"(& self, ...)"`;
+  that footgun is eliminated. (ATK-W6a-013 / ATK-W6a-013b; first real instance:
+  tambear's PanickingInDrop, surfaced during A3.5 onboarding cross-check)
 
 #### CLI
 
@@ -65,6 +67,9 @@ Tracking work for v0.1.0 final. Cf. `sweeps/A3.5-onboarding/scope-lock.md`.
 #### Tests
 
 - 236 passing, 32 ignored (up from 187/18-suites at rc.1); 21 suites
+- ATK-W6a-013 inverted: was "must NOT match" (documenting bug); now "must match" (fix verified)
+- ATK-W6a-013b added: tambear footgun — `has_method("drop", "(&mut self)")` now matches
+  across natural/canonical/sloppy whitespace variants
 - ATK-A3-019 contract added (`#[ignore]`-gated): audit `resolved_count` conflates
   `FormalProof` and `Reachability` in human-readable output; fix pending
 
