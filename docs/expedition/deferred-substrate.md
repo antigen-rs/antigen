@@ -1215,3 +1215,15 @@ line 65). No new substrate-tier-crossing (count stays at 5). Deep-dive revision
 text written and substrate-durable at campsite. V2-HOLD: C3 is substrate-clarification
 (not boundary-silence), benefits from bundling with C1/vocabulary-as-protocol/C5-C6
 when team-lead drafts V2. Not pre-tag gate.*
+
+*V48 updated 2026-05-12 by navigator: antigen-applied-to-antigen substrate landed
+(docs/expedition/antigen-applied-to-antigen.md, 417 lines, team-lead + Tekgy).
+Six instances from A3.5 crossed ADR-006 threshold. Key framings: discipline-
+preceded-tool genesis, tool-as-discipline-scaffold (corrects "non-replicable"
+framing), three adopter tiers, cross-tier manifold (org → team → solo → LLM →
+tooling → language → code), multi-language extension, showcase-by-building.
+Eight open questions routed: Q2 (tool-as-discipline-scaffold cognate) → naturalist
+alongside C5/C6; Q8 (adversarial check on self-referential pathologies) →
+adversarial. Q1 (posture-class) → aristotle after Phase 5. Q3/Q4/Q5/Q6/Q7
+held for team-lead + Tekgy / V2 substrate accrual. Roadmap.md cross-tier +
+multi-language framing is a Phase 4 input when team-lead drafts.*
