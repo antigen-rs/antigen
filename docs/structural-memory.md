@@ -569,6 +569,103 @@ human members recognize, then add AI agents that don't share those
 recognitions. Or vice versa. The blind-spot patterns produce
 failure-classes that neither cognition catches.
 
+### 6.7 — False confidence from structural coverage (substrate-grounded)
+
+The structural shape: a `#[antigen]` declaration exists with a
+fingerprint that *looks* like it should match the failure-class
+shape, but the fingerprint silently matches nothing in the codebase
+because of a tokenization, serialization, or canonicalization
+asymmetry between the user-written pattern string and the actual
+engine-rendered output. The scan reports clean. The structural
+memory claims protection. The protection isn't actually operating.
+
+The failure mode: most insidious specifically *to antigen-using
+teams*, because the substrate that's supposed to be the prosthesis
+for crossing cognition boundaries is itself silently broken. False
+confidence in structural coverage is structurally worse than no
+structural coverage, because adopters trust the substrate.
+
+**Substrate-grounded instances** (both surfaced 2026-05-11 in
+antigen's own development):
+- Tambear's `PanickingInDrop` fingerprint used `"(&mut self)"` for
+  the receiver pattern; proc_macro2 renders it `"(& mut self)"` with
+  a space after `&`. Pattern silently matched zero `impl Drop` blocks
+  for four days until scout's tutorial cross-check surfaced it.
+- ADR-010 ratified text used `"(Self, Self) -> Self"` for
+  PolarityInvertedClassMeet's `meet` method; proc_macro2 distinguishes
+  receiver `self` from typed parameter `Self`. Pattern matched only
+  pure-static methods, not the by-value-receiver methods the
+  fingerprint was meant to catch.
+
+Both surfaced through scout's spec-vs-engine cross-check discipline
+(not through adversarial probing — the failure-class is
+specification-invisible). Resolved structurally by ADR-010 Amendment
+5 (pre-tokenize user pattern strings through proc_macro2 at parse
+time). The Amendment 5 substrate represents the project's response to
+this specific failure-class.
+
+Antigen substrate now defends against the spacing sub-mechanism
+structurally; the receiver-vs-type sub-mechanism remains
+docs-mitigated (per Amendment 5's triage discipline — semantic-
+distinction cases stay docs-mitigated since pure-tokenizer auto-
+bridging would change semantics).
+
+### 6.8 — Theatrical witness (substrate-grounded encounter-tier)
+
+The structural shape: an `#[immune(X, witness = some_test)]` claim
+references a witness function that exists (so audit reports
+`Reachability` tier with `FunctionResolves` hint) but the test
+passes trivially or doesn't exercise the failure-class shape.
+
+The failure mode: structural memory claims defense; audit reports
+witness exists; reality is that nothing actually verifies immunity.
+The theatrical witness fails open — adopters trust the immunity
+claim because the audit doesn't surface a problem.
+
+**Substrate-grounded instances** in antigen's own ATK contracts
+(ATK-A2-003/004/005/011/012 family from Sweep A2): adversarial
+contracts that codify "audit must surface tier limitations even when
+the witness function exists." The ATK family represents the
+discipline of catching this failure-class structurally at the
+audit-reporting tier.
+
+The defense is *audit-tier-honesty* (per ADR-005 Amendment 3): the
+audit reports the actual verification strength, never a stronger
+one. A witness function that exists but doesn't run gets
+`Reachability` (function resolves) not `Execution` (test passed) in
+v0.1.0-rc.1. Future A4-A5 harness invocation will distinguish
+"witness passes" from "witness exists" structurally.
+
+The theatrical witness problem isn't *fully* eliminated by audit-
+tier-honesty — the witness function could exist AND run AND pass
+without actually exercising the failure-class. That deeper
+sub-mechanism (witness execution that doesn't exercise the
+vulnerability) requires either property-based testing
+(`proptest::strategy` witness type) or behavioral-coverage analysis
+(post-A5 territory).
+
+### 6.9 — AI-AI coordination failure (ideated encounter-tier)
+
+The structural shape: in teams with multiple AI agents (multi-agent
+systems, JBD-style coordination, parallel pull-request authors), AI
+agents don't share session state with each other any more than they
+share with humans. Two AI agents working on the same codebase from
+different contexts can produce the same kinds of failures that human-
+AI hybrid teams produce — but at the AI-to-AI boundary, with even
+faster cycling.
+
+The failure mode: AI agent A in session N produces an architectural
+decision; AI agent B in session N+1 (different agent or same agent
+fresh context) makes a contradictory decision; the human team-lead
+catches the divergence by routing through shared substrate — which
+is where antigen lives.
+
+Antigen substrate enables disciplined multi-agent teams to recognize
+each agent's prior decisions structurally. This generalizes 6.1's
+pattern-regeneration framing: the discontinuity-of-cognition between
+sessions isn't unique to AI agents collaborating with humans; it
+recurs at AI-to-AI boundaries even more acutely.
+
 ---
 
 ## 7. Why structural memory is what hybrid teams need
@@ -620,6 +717,51 @@ Antigen fills the gap. It's not "the next testing tool" or "the next
 documentation framework"; it's a *different category* — structural
 failure-class memory that operates at a tier the existing carriers
 don't reach.
+
+### 7.1 — What antigen v0.1.0-rc.1 actually reaches
+
+Honest scope-qualification: section 6 names a family of failure-modes
+of hybrid-cognition teams across multiple tiers, not all of which
+antigen substrate directly addresses today. The reach of the
+v0.1.0-rc.1 substrate, per failure-mode:
+
+- **6.1 (pattern-regeneration)** — *directly addressed at code tier.*
+  `#[antigen]` + `cargo antigen scan` make failure-class memory
+  structural, so a fresh-context AI agent (or human) collides with
+  the failure-class structurally rather than relying on transferred
+  context.
+- **6.2 (lesson untransferable)** — *directly addressed at code
+  tier.* Structural memory IS the transfer carrier; lesson is
+  encoded in fingerprint + immune declarations.
+- **6.7 (false confidence from structural coverage)** — *partly
+  addressed structurally* (ADR-010 Amendment 5 pre-tokenization
+  closes spacing sub-mechanism; receiver-vs-type sub-mechanism
+  remains docs-mitigated by deliberate triage).
+- **6.8 (theatrical witness)** — *partly addressed* via audit-tier-
+  honesty (ADR-005 Amendment 3); deeper "witness runs but doesn't
+  exercise" sub-mechanism awaits A4-A5 harness invocation + property
+  strategies.
+- **6.3 (vocabulary divergence), 6.4 (review-loop asymmetry), 6.5
+  (codebase-as-context), 6.6 (recognition-scope asymmetry), 6.9
+  (AI-AI coordination)** — *not directly addressed at code tier in
+  v0.1.0-rc.1.* These motivate the structural-vision (chapter 11
+  roadmap) and inform the choice of vocabulary, biology cognate, and
+  five-macro shape. Cross-tier extensions (project-substrate-currency,
+  cognition-tier markers, identity-tier propagation) are post-v0.1.0
+  territory.
+
+The pattern is intentional. Antigen ships the failure-class memory
+substrate at the code tier first because the code tier is where
+existing tooling has the most leverage (proc-macros, cargo
+subcommands, type-system enforcement, CI gates). The cross-tier
+extensions inherit the discipline; they don't replace it.
+
+This honest reach-qualification is what distinguishes structural
+memory from a marketing claim. The substrate either addresses a
+failure-mode or it doesn't, at a specific tier, with a specific
+mechanism. Adopters can read this section and audit antigen's
+self-claims against their own substrate. (See also section 9 on
+limitations.)
 
 ---
 
