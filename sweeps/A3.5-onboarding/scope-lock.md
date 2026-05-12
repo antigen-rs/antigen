@@ -26,7 +26,7 @@ crates.io can follow to a working antigen declaration + passing scan + passing a
 
 ## Scope
 
-**In scope** (14 deliverables):
+**In scope** (15 deliverables):
 
 1. **README revision** — working quickstart, real output shown inline, multi-component-immunity
    framing woven in
@@ -50,6 +50,9 @@ crates.io can follow to a working antigen declaration + passing scan + passing a
 14. **JSON output schema-lock test** — `antigen/tests/atk_schema_lock.rs`; integration test
     asserting JSON field names and enum variant serializations (amendment 7; Tekgy-ratified
     2026-05-12)
+15. **Package footprint exclude config** — `antigen/Cargo.toml` `[package]` exclude/include
+    configuration; removes test fixtures and proptest-regressions from published crate;
+    verified via `cargo package --list` (amendment 8; Tekgy-ratified 2026-05-12)
 
 **Out of scope** (explicitly deferred):
 
@@ -65,7 +68,7 @@ crates.io can follow to a working antigen declaration + passing scan + passing a
 
 ## Scope-lock amendments (ratified)
 
-Seven amendments (five from aristotle Phase 1-8, ratified 2026-05-11; two from Phase 5 gap-check, ratified 2026-05-12):
+Eight amendments (five from aristotle Phase 1-8, ratified 2026-05-11; three from Phase 5 gap-check, ratified 2026-05-12):
 
 1. **Phase 5 convergence-check discipline** — Phase 5 final review uses convergence-check
    methodology: cross-check outputs from multiple roles rather than independent parallel reads.
@@ -110,6 +113,13 @@ Seven amendments (five from aristotle Phase 1-8, ratified 2026-05-11; two from P
    values; witness_status variant shapes. Makes reference-frame-drift (design-doc vs
    ratified-code) a CI failure rather than a doc-review question. Phase 5 additional
    deliverable; lands before tag with doc fixes.
+
+8. **Package footprint exclude config (pre-tag)** — Tekgy-ratified 2026-05-12. Deliverable 15
+   added: `antigen/Cargo.toml` exclude or include configuration for published crate. `cargo
+   package --list` showed 58 files including 34 test fixtures + proptest-regressions not
+   needed by downstream users. Exclude `tests/fixtures/**` and `proptest-regressions/` (or
+   equivalent include list). Verified via `cargo package --list` post-config. Phase 5
+   additional deliverable; lands before tag.
 
 ---
 

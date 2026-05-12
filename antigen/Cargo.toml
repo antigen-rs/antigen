@@ -11,6 +11,10 @@ homepage.workspace = true
 readme = "README.md"
 keywords.workspace = true
 categories.workspace = true
+exclude = [
+    "tests/fixtures/**",
+    "proptest-regressions/**",
+]
 
 [lib]
 path = "src/lib.rs"
@@ -19,8 +23,8 @@ path = "src/lib.rs"
 workspace = true
 
 [dependencies]
-antigen-macros = { version = "=0.1.0-rc.1", path = "../antigen-macros" }
-antigen-fingerprint = { version = "=0.1.0-rc.1", path = "../antigen-fingerprint" }
+antigen-macros = { path = "../antigen-macros" }  # TEMP: version pin removed during placeholder-publish window; revert to "=0.1.0-rc.1" post-publish
+antigen-fingerprint = { path = "../antigen-fingerprint" }  # TEMP: version pin removed during placeholder-publish window; revert to "=0.1.0-rc.1" post-publish
 syn = { workspace = true }
 quote = { workspace = true }
 proc-macro2 = { workspace = true, features = ["span-locations"] }
