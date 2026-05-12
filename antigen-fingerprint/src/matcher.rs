@@ -6,7 +6,7 @@
 //! `syn::Macro` invocations natively (per ADR-015 S2).
 
 use crate::{
-    normalize_signature_canonical, normalize_ws, Constraint, Fingerprint, ItemKind, MethodPattern,
+    normalize_signature_canonical, Constraint, Fingerprint, ItemKind, MethodPattern,
 };
 
 impl Fingerprint {
@@ -175,10 +175,11 @@ fn has_matching_method(item: &syn::Item, pattern: &MethodPattern) -> bool {
 /// canonicalization so the comparison is symmetric.
 ///
 /// The symmetric canonicalization matters because the rendered output
-/// mixes proc_macro2-tokenized parts (`& self`, `& mut self`) with
-/// manually-joined separators (`", "`). The pattern goes through proc_macro2
-/// wholesale at parse time. Without routing the actual output through the
-/// same canonicalization, a `(Self, Self)` pattern (proc_macro2 renders as
+/// mixes `proc_macro2`-tokenized parts (`& self`, `& mut self`) with
+/// manually-joined separators (`", "`). The pattern goes through
+/// `proc_macro2` wholesale at parse time. Without routing the actual output
+/// through the same canonicalization, a `(Self, Self)` pattern
+/// (`proc_macro2` renders as
 /// `(Self , Self)`) would never match the matcher's `(Self, Self)` (manual
 /// join). A3.5 onboarding sweep fix.
 fn signature_matches(sig: &syn::Signature, pattern_norm: &str) -> bool {
