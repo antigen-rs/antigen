@@ -7,7 +7,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Tracking work for v0.1.0 final + post-v0.1.0 sweeps. Cf. `sweeps/`.
+Tracking work for v0.1.0 final. Cf. `sweeps/A3.5-onboarding/scope-lock.md`.
+
+### A3.5 Onboarding sweep (in progress — pre-tag required)
+
+#### Documentation (new)
+
+- `docs/tutorial.md` — five-step narrative (declare → presents → scan → immune → audit);
+  real scan/audit output throughout; teaching point on `.expect()` vs `body_contains_macro`
+- `docs/fingerprint-grammar.md` — all 10 operators documented with behavior, examples,
+  and receiver-rendering reference table; explicit tokenization-asymmetry warning
+- `docs/troubleshooting.md` — all observable error categories from live scan+audit output;
+  856 fingerprint match count explained; 39 parse failure categories; quick diagnostic table
+
+#### Documentation (updated)
+
+- `docs/fingerprint-grammar.md` — receiver-rendering reference table; `has_method` item-kind
+  scope clarified (impl sites only); `"(self, Self)"` corrected throughout (was `"(Self, Self)"`)
+- `docs/decisions.md` — ADR-010 concrete example + ratified declaration corrected to
+  `"(self, Self) -> Self"` (Receiver token renders as `"self"`, not `"Self"`)
+- `docs/tutorial.md`, `docs/scope.md`, `docs/where-to-look-for-antigens.md`,
+  `docs/expedition/stdlib-seed-antigens.md`, `docs/expedition/case-study-determinism-class.md`
+  — same receiver-form correction
+- `README.md` — full narrative deep-draft replacing terse status block; what/what-not/
+  vocabulary/workflow/architecture/tambear-origin/v0.1.0-scope/setup/license
+- `docs/usage-patterns.md` — `#[antigen_tolerance]` decision tree + good/weak rationale
+  examples + `until` field usage
+- All four crate-level doc-comments improved; per-macro ADR references; stale "future"
+  references removed; `antigen-fingerprint` positioned as canonical-implementation crate
+
+#### Examples (new)
+
+- `antigen/examples/descended_from.rs` — inheritance chain; scan produces state-7 inherited
+  Presentation on `UseAfterFreeClass` with `inherited_from`
+- `antigen/examples/antigen_tolerance.rs` — opt-out pattern; tolerance absorbs cross-reactive
+  match; `until = "v0.2"` flags re-evaluation
+- `antigen/examples/phantom_witness.rs` — phantom-type witness; audit classifies as
+  `WitnessTier::FormalProof` with `PhantomTypeShapeRecognized` hint; `--format json` shows tier
+
+#### Examples (updated)
+
+- `antigen/examples/broken_witness.rs` — fingerprint narrowed to `matches("Looks*")`;
+  workspace-wide cross-reactivity eliminated; docstring teaches the lesson
+
+#### Engine
+
+- `antigen-fingerprint`: `normalize_signature_canonical()` — round-trips user-provided
+  `has_method` signature strings through proc_macro2's tokenizer at parse time; eliminates
+  silent zero-match when user writes `"(&mut self)"` and engine renders `"(& mut self)"`
+  (tokenization-asymmetry footgun; first instance: tambear PanickingInDrop, A3.5 cross-check)
+
+#### CLI
+
+- `cargo-antigen`: `new` and `vaccinate` subcommands hidden from `--help` (not yet
+  implemented; surface when A5 ships them)
+
+#### Tests
+
+- 236 passing, 32 ignored (up from 187/18-suites at rc.1); 21 suites
+- ATK-A3-019 contract added (`#[ignore]`-gated): audit `resolved_count` conflates
+  `FormalProof` and `Reachability` in human-readable output; fix pending
 
 ## [0.1.0-rc.1] — 2026-05-08
 
