@@ -260,7 +260,7 @@ better wiki." With it, the design space is fundamentally different.
 
 ---
 
-## 5. The cognitive asymmetry of human + AI teams
+## 5. Cognitions, boundaries, and shared prosthetic need
 
 Software teams now routinely include AI agents as first-class
 collaborators. This was true to a limited extent before 2024; it is
@@ -275,95 +275,222 @@ Software-engineering practices that crystallized in earlier eras
 review) assumed human-only teams. The assumptions are now structurally
 incomplete.
 
-The cognitive asymmetry between human and AI participants is
-significant. This section names some of the structural differences.
+### The shared structural property
 
-### Human cognition (as it operates in teams)
+The temptation when describing hybrid teams is to frame it as
+**cognitive asymmetry** — humans have property X, AI agents lack X
+(or vice versa); the asymmetry is the problem antigen solves. That
+framing reads naturally and produces useful contrasts. It also dates
+quickly: persistent-memory agents already exist (Letta, MemGPT, et
+al.); long-context models exceed a million tokens; multi-session
+agentic systems emerge regularly. Claims about "AI cognition" framed
+around current chat-LLM properties risk being read as outdated within
+12-18 months as the cognitive-architecture landscape evolves.
 
-- **Persistent identity across time.** A human team member who fixed
-  a bug last March remembers (often imperfectly, but in some form)
-  the fix and the lesson. The memory carries across days, weeks,
-  months, years.
-- **Embodied memory.** Lessons aren't just retrievable facts; they
-  shape the human's intuitions, what feels wrong, what gets noticed
-  during code review. The discipline operates pre-cognitively.
-- **Social transmission.** Lessons transfer to other humans through
-  apprenticeship, pair programming, mentorship, post-mortem
-  discussion. The transmission is often informal but real.
-- **Discipline-through-practice.** Senior developers operate
-  differently from junior developers in ways that reflect accumulated
-  recognition-practice. The practice itself is the substrate.
-- **Failure modes**: humans leave the team; humans forget; tribal
-  knowledge that lives in one person's head is fragile; senior
-  developers' recognition-practice doesn't transfer perfectly to
-  junior developers; teams reorganize and lose institutional memory.
+A more durable framing reads the structural property directly:
 
-### AI agent cognition (as it currently operates)
+**All cognitions need prosthetic substrate to extend recognition
+across boundaries that block them.** The boundaries differ by
+cognition architecture; the prosthesis-shape that solves them is
+invariant.
 
-- **Stateless per-session.** An AI agent at the start of a new
-  conversation has no memory of previous conversations unless that
-  memory has been encoded in a retrievable form the agent reads at
-  session start.
-- **Parameterized memory.** Whatever the agent "knows" comes from
-  training (which is months or years old) and from the current
-  context window (which is per-session). There's no continuous
-  identity that accumulates experience across sessions.
-- **Context-window-bound.** Within a session, the agent has access
+This is the property antigen actually addresses. The reason antigen
+matters for hybrid teams isn't that AI cognition is uniquely deficient
+— it's that every cognition (human and AI alike) has boundaries that
+block native recognition from carrying across, and structural-tier
+substrate is the prosthesis-shape that lets recognition extend past
+those boundaries regardless of which cognition is encountering it.
+
+### What boundaries block which cognitions
+
+Different cognitive architectures have different boundaries blocking
+native recognition transfer. Naming each honestly:
+
+**Human cognition's boundaries** are primarily *temporal and social*:
+
+- **Sleep and attention cycles** — recognition that operated yesterday
+  may not be available today; the human notices something different
+  this morning than they noticed last night.
+- **Forgetting and memory decay** — lessons learned six months ago
+  reach the present in partial form. Some preserved, some lost.
+- **Team rotation and generational handoff** — when the person who
+  fixed the bug leaves, their tacit recognition leaves with them.
+  Apprenticeship transfers some of it; post-mortems capture some;
+  much is lost.
+- **Individual scope** — what one human recognizes doesn't
+  automatically transfer to another human, even on the same team.
+  Code review catches some of this; tribal knowledge captures some;
+  much depends on which humans were present at which moments.
+- **Attention allocation** — humans recognize what they're looking
+  for; what they aren't actively scanning for tends to slip past.
+
+Human cognition's strength is *embodied recognition* and
+*social transmission*: lessons can shape intuition pre-cognitively,
+and apprenticeship transmits some of it. Its boundaries are where
+these strengths reach their limits.
+
+**Current chat-LLM cognition's boundaries** are primarily *session
+and parameterization-based*:
+
+- **Session boundaries** — at the start of a new conversation, an
+  agent has no memory of previous conversations unless the memory has
+  been encoded in retrievable form the agent reads at session start.
+- **Context-window limits** — within a session, the agent has access
   to whatever was loaded into context. Lessons learned in one session
   don't naturally carry to the next; the human collaborator has to
   reload them.
-- **Generation-time recognition.** AI agents recognize patterns from
-  training-data exposure. Patterns that weren't well-represented in
-  training, or that emerged after training, are not natively
-  recognized.
-- **Failure modes**: the agent generates code that the agent's prior
-  session would have flagged as problematic; the agent assumes
-  continuity that doesn't exist; the agent doesn't know what it
-  doesn't know about the team's specific failure-class memory.
+- **Training cutoff** — whatever the agent "knows" parametrically
+  comes from training (which is months or years old). Patterns that
+  emerged after training, or that weren't well-represented in training,
+  are not natively recognized.
+- **Generation-time scope** — the agent recognizes patterns from
+  training-data exposure. Patterns specific to one team's codebase,
+  or rare in the training distribution, are outside that scope.
 
-### The asymmetry's implications
+Current chat-LLM cognition's strength is *broad pattern recognition*
+across training-data distribution, *generation-time fluency*, and
+*pattern-matching at scale*. Its boundaries are session-end,
+context-window edge, and training-cutoff.
 
-These are not symmetric strengths-and-weaknesses. They're
-*structurally different cognitive substrates with different failure
-modes*. Some lessons that humans carry naturally (through
-apprenticeship, tribal knowledge, post-mortem rigor) cannot be carried
-by AI cognition at all without specific structural support. Some
-lessons that AI cognition picks up reliably (broadly-trained patterns,
-syntactic conventions) get carried whether the human team wants them
-or not.
+**Agentic-LLM cognition's boundaries** are *different again* and
+still evolving:
 
-For teams that include both, the question becomes: **what carrier of
-failure-class memory works for both cognition types?**
+- Persistent-memory systems (Letta, MemGPT, others) shift the
+  session-end boundary but don't eliminate it; memory consolidation,
+  retrieval, and capacity limits create new boundaries.
+- Long-context models (>1M tokens) extend the context-window boundary
+  but don't remove it; relevance-ranking, attention dispersion, and
+  cost create new ones.
+- Multi-agent systems shift coordination boundaries to inter-agent
+  communication.
 
-Documentation works for both (both can read prose), but suffers
-maintenance-tier drift for both (humans don't update docs; AI agents
-don't have read access to docs from prior sessions unless explicitly
-loaded). Tests work for both (both can verify behavior), but require
-the same maintenance discipline.
+The specific shape of agentic-cognition boundaries is evolving as
+the field develops. What stays invariant is the structural property:
+boundaries exist that block native recognition from carrying across,
+even when the specific boundaries differ from chat-LLM boundaries.
+
+### The shared prosthesis-shape
+
+For all three cognition types — human, current chat-LLM, agentic-LLM
+— the answer to "how does recognition cross the boundaries that block
+it" has the same structural shape: **prosthetic substrate that lives
+outside the cognition itself, readable by the cognition natively,
+durable across whatever boundary blocks the cognition's own continuity.**
+
+For humans, this is what documentation, ADRs, code comments, wikis,
+and codebases-themselves have always done — prosthesis for memory
+that wouldn't otherwise survive sleep, team rotation, generational
+handoff. But these carriers operate at maintenance tier; they drift.
+
+For chat-LLMs, the same prosthesis-need exists but operates more
+acutely because session boundaries are tighter than human forgetting.
+A maintenance-tier carrier (documentation that drifts) is even less
+viable for chat-LLM cognition than for human, because the LLM enters
+every session at the maintenance-tier carrier's current (possibly
+drifted) state, without the human's gradual accumulation of context.
+
+For agentic-LLM systems with persistent memory, the prosthesis-need
+shifts — persistent memory is *itself* a prosthesis — but the
+structural property holds: the cognition needs durable substrate to
+extend recognition across boundaries it can't natively bridge.
+
+**Antigen is the prosthesis-shape that operates at structural tier
+for all three cognition types.** The structural-tier property
+(currency enforced by machinery, not maintenance discipline) is
+what makes the prosthesis durable across whichever boundaries the
+specific cognition has.
+
+### Why this framing matters
+
+Three reasons the boundary-analysis framing is more substrate-honest
+than asymmetry framing:
+
+1. **It survives cognitive-architecture evolution.** When AI agents
+   develop better persistent memory or longer context windows, the
+   asymmetry framing becomes outdated. The boundary-analysis framing
+   adapts: the boundaries shifted; the prosthesis-need remains.
+2. **It defends against "but humans forget too" counter-arguments.**
+   The asymmetry framing invites: "humans also lose context; why is
+   antigen specifically about AI agents?" The boundary-analysis
+   framing pre-answers: antigen is *not* specifically about AI
+   agents; it's about the prosthesis-need all cognitions share, with
+   AI cognition's tighter boundaries making it most acutely needed.
+3. **It positions antigen correctly in the broader architectural
+   class.** Per section 8, recognition-with-memory-and-inheritance is
+   what many disciplines have independently developed. The
+   boundary-analysis framing places antigen in this class as
+   *the Rust ergonomic instantiation of cross-boundary prosthetic
+   substrate for failure-class memory*, not as a uniquely-LLM-focused
+   tool.
+
+### Why structural-tier prosthesis works for all three
+
+Documentation works for human cognition reasonably well (humans can
+read prose); works for chat-LLM cognition imperfectly (LLM enters
+each session at the doc's current state); works for agentic-LLM
+cognition similarly imperfectly.
+
+Tests work for human cognition (humans can verify behavior); work for
+chat-LLM cognition (LLMs can read test code); but require the same
+maintenance discipline both kinds of cognition fail to maintain
+durably.
 
 The **structural-tier** is different: claims encoded in the code
 itself, enforced by the same machinery that enforces type-checking,
-are equally accessible to human and AI cognition. A human reading
-the code sees `#[antigen(name = "panicking-in-drop", ...)]` and
-understands. An AI agent reading the code sees the same attribute
-and parses the same structure. Neither needs prior context; both
-inherit the team's accumulated failure-class memory by reading what's
-already in the substrate.
+are equally accessible to all three cognition types. A human reading
+code sees `#[antigen(name = "panicking-in-drop", ...)]` and
+understands. A chat-LLM agent reading the code parses the same
+structure. An agentic system with persistent memory reads the same
+substrate. Neither requires prior context; all three inherit the
+team's accumulated failure-class memory by reading what's already in
+the substrate.
 
-This is what makes antigen *co-native by design* rather than co-native
-by happy accident: the carrier of failure-class memory works equally
-for both cognitions because it operates at the tier (structural,
-in-code, machine-enforced) that both cognitions natively read.
+This is what makes antigen *co-native by design* — not co-native by
+happy accident: the carrier of failure-class memory works equally
+for all cognitions because it operates at the tier (structural,
+in-code, machine-enforced) that all cognitions natively read. The
+prosthesis-shape is boundary-agnostic; whichever boundaries any
+specific cognition has, the structural-tier substrate carries past
+them.
 
 ---
 
-## 6. The failure-class fingerprint of hybrid collaboration
+## 6. Ideated hybrid-collaboration failure-classes
 
-When human and AI cognition collaborate on the same codebase, specific
-failure-classes emerge that don't occur (or occur far less) in
-all-human teams. This section names some.
+When cognitions with different boundaries collaborate on the same
+codebase, specific failure-classes emerge at boundary-crossings that
+don't occur (or occur far less) in same-cognition-type teams. This
+section names some.
 
-### 6.1 — Pattern-regeneration across cognition discontinuity
+**A note on substrate-grounding**: per ADR-006's recognition-not-design
+discipline, named failure-classes typically require three independent
+substrate-grounded instances to clear the ratification threshold. The
+section below names six failure-classes; only the first (6.1 —
+pattern-regeneration) has a substrate-grounded instance (the tambear
+`DeterminismClass` / `CommutativityClass` pattern accelerated by
+AI-cognition cycling). The remaining five (6.2-6.6) are **ideated
+encounter-tier articulations** per ADR-006's
+*ideation-as-recognition* pathway: structural shapes that can be
+articulated clearly enough to register as encounter-tier substrate,
+even without three observed instances yet.
+
+The biology cognate is **vaccination-via-ideation**: the immune
+system can be primed against pathogen-shapes it hasn't encountered,
+through simulated exposure that lets the recognition machinery
+develop before the pathogen actually arrives. Articulating a
+failure-class structurally is a similar move at the failure-class
+level — building recognition machinery in advance of confirmed
+encounter.
+
+Operationally: antigen substrate **assists disciplined teams** with
+these failure-classes once teams declare specific antigens for the
+patterns they want defended. Antigen doesn't catch these patterns
+directly out of the box; the vocabulary lets teams *articulate them
+structurally* such that the team's own substrate-tier carriers
+recognize them. The reach-claim is honest: antigen is the prosthesis
+that lets the articulation become structurally checkable.
+
+### 6.1 — Pattern-regeneration across cognition discontinuity (substrate-grounded)
 
 The structural shape: an AI agent in session N produces code that
 *would have been flagged* by the same agent in session N-1 (or by a
@@ -382,7 +509,7 @@ DeterminismClass / CommutativityClass pattern from
 [`case-study.md`](case-study.md), but accelerated by AI-cognition's
 faster cycling.)
 
-### 6.2 — Continuity-assumption mismatch
+### 6.2 — Continuity-assumption mismatch (ideated encounter-tier)
 
 The structural shape: a human assumes the AI agent remembers a prior
 conversation, decision, or context. The agent does not. The human
@@ -394,7 +521,7 @@ The failure mode: subtle. The human asks "and now let's add X like
 we discussed" and the agent confabulates a plausible interpretation
 that may or may not match what was actually discussed.
 
-### 6.3 — Knowledge-locale ambiguity
+### 6.3 — Knowledge-locale ambiguity (ideated encounter-tier)
 
 The structural shape: in an all-human team, certain knowledge lives
 in certain humans' heads (tribal knowledge). In a hybrid team, the
@@ -407,7 +534,7 @@ The failure mode: critical knowledge becomes "where exactly did we
 agree on this?" — a meta-failure mode where the team can't even
 locate where their decisions live.
 
-### 6.4 — Generation-time blindness
+### 6.4 — Generation-time blindness (ideated encounter-tier)
 
 The structural shape: AI agents recognize patterns they've been
 trained on. Patterns specific to the team's codebase, emerging after
@@ -418,7 +545,7 @@ because the failure-class is outside its training-time recognition,
 even though the team's specific accumulated memory would have flagged
 it.
 
-### 6.5 — Speed asymmetry
+### 6.5 — Speed asymmetry (ideated encounter-tier)
 
 The structural shape: AI generation operates at orders-of-magnitude
 faster than human writing. The throughput of code-being-produced
@@ -430,7 +557,7 @@ code review get past faster-than-review AI generation. Quality
 discipline that assumed human-throughput-rates fails at AI-throughput-
 rates.
 
-### 6.6 — Witness-asymmetry on what each kind of cognition recognizes
+### 6.6 — Recognition-scope asymmetry between cognitions (ideated encounter-tier)
 
 The structural shape: humans recognize some patterns natively (those
 embodied through practice); AI agents recognize different patterns
@@ -505,47 +632,135 @@ structurally and the memory propagates through structural inheritance*
 
 The cross-domain map in
 [`docs/cross-domain-architectural-map.md`](cross-domain-architectural-map.md)
-catalogs sixteen-plus academic fields that have each developed
-versions of this architecture for their own domain:
+catalogs sixteen-plus academic fields where versions of this
+architecture have been developed. **But the cognate strength varies
+substantially** across these fields, and honest substrate-grounding
+requires classifying them rather than treating them as uniformly
+supporting evidence. Per the *consilience-of-inductions* discipline
+(robust conclusions emerge when independent methods converge through
+rigorous-mapping rather than topical-similarity), the fields below
+are classified by cognate-strength:
+
+### Strong cognates (rigorous structural-mapping; independent discovery through different methods)
+
+These five fields exhibit the architectural class through deep
+structural mapping; the convergence here is the substrate for the
+claim that recognition-with-memory-and-inheritance is a real
+architectural class:
 
 - **Immunology** (biology) — antibody recognition + B-cell memory +
-  clonal lineage
-- **Cognitive science** — memory consolidation + pattern recognition
-  + schema theory + transfer learning + expertise development
-- **Evolutionary biology** — adaptive radiation + convergent evolution
-  + selection pressure on fingerprint refinement
-- **Ecology** — niche partitioning + ecosystem resilience + population-
-  level recognition dynamics
-- **Information theory** — error-correcting codes + redundancy as
-  resilience + signal-vs-noise discrimination
-- **Linguistics / semiotics** — sign-to-symbol transitions + meaning-
-  making layers + signifying systems
-- **Knowledge management** — institutional learning + organizational
-  memory + tacit-to-explicit conversion (Nonaka SECI)
-- **Systems biology / complex adaptive systems** — distributed
-  coordination via shared substrate + emergent recognition
-- **Cybersecurity** — IDS signatures + threat intelligence +
-  detection-engineering practice
-- **Aviation safety** — incident-report propagation + crew resource
-  management + crash-investigation discipline
-- **Pattern languages (architecture)** — Christopher Alexander's
-  pattern catalog + the recognition-with-name discipline that
-  spread to software design patterns
-- **Cumulative cultural evolution** — Tomasello's ratchet effect +
-  intergenerational knowledge transfer
-- **Indigenous epistemologies** — multi-generational ecological
-  knowledge transfer + recognition of place-specific patterns
-- **Stigmergy** — coordination through environmental substrate
-  (literally: the substrate carries the coordination signal)
-- **Bayesian epistemology** — prior-updating + recognition as
-  posterior inference
-- **Philosophy of science** — Kuhnian paradigm shifts + Lakatos
-  research programs + Popperian falsification
+  clonal lineage. The most rigorous cognate; antigen explicitly
+  models on this substrate.
+- **Type theory / formal verification lineage** — Hoare (1969) →
+  Eiffel (1992) → Liquid Haskell → Flux. Structural specification
+  with named invariants and verification at the type/contract layer.
+- **Cognitive science (schema theory + transfer learning)** —
+  recognition-via-named-schemas + cross-domain pattern transfer.
+  Substrate-rigorous; arrived through experimental psychology +
+  educational research independently.
+- **Pattern languages (Christopher Alexander)** — explicit pattern
+  catalog with named instances and structural fingerprints. The
+  source of software design patterns; rigorous discipline of
+  pattern-as-named-recognition.
+- **Cybersecurity (IDS signatures + threat intelligence)** —
+  fingerprint-based recognition of attack patterns with named
+  signatures, propagated across organizations through CVE/threat-
+  feed substrate. Operationally identical architecture at the
+  infosec layer.
 
-Each field developed its version of *recognition with memory and
-inheritance* because the architectural class is what's actually
-required for any sufficiently mature system that needs to maintain
-recognition of patterns over time.
+### Medium cognates (real structural analogy; depth of fit varies)
+
+These fields exhibit aspects of the architecture meaningfully but
+the mapping is less complete than the strong cognates:
+
+- **Cumulative cultural evolution (Tomasello)** — the ratchet effect
+  of intergenerational knowledge transfer maps cleanly at the
+  recognition-with-memory level; the fingerprint-specificity level
+  is less direct.
+- **Knowledge management (Nonaka SECI)** — tacit-to-explicit knowledge
+  conversion is a real cognate at the structural-memory level; the
+  pattern-recognition-with-named-fingerprints mapping is looser.
+- **Information theory (error-correcting codes)** — signal-detection
+  with redundancy-as-resilience is a real cognate at the
+  recognition-with-noise-tolerance level; the failure-class-memory
+  mapping is partial.
+- **Indigenous epistemologies (multi-generational knowledge
+  transfer)** — multi-generational pattern transfer is a real cognate;
+  but the framing in these literatures emphasizes practice, ceremony,
+  and embodied transmission rather than structural-pattern-matching.
+  The mapping respects what these traditions actually emphasize.
+
+### Adjacent cognates (real but the architecture isn't the primary framing)
+
+These fields touch on aspects of the architecture but it's not the
+primary framing they use; they're noted as adjacent territory rather
+than as direct evidence:
+
+- **Evolutionary biology** — adaptive radiation + convergent evolution
+  are evolutionary mechanisms; the failure-class-memory framing is
+  metaphorical rather than the literature's own structural framing.
+- **Ecology** — niche partitioning + ecosystem resilience operate on
+  population dynamics; the recognition-with-memory mapping is partial.
+- **Linguistics / semiotics** — sign-to-symbol transitions describe
+  meaning-formation; the structural-pattern-matching with named
+  fingerprints framing is metaphorical.
+- **Systems biology / complex adaptive systems** — distributed
+  coordination via shared substrate is a real cognate; the named-
+  pattern-recognition specificity is more characteristic of antigen
+  than of CAS literature.
+- **Aviation safety** — incident-report propagation IS a real cognate
+  at the institutional-learning level; the fingerprint-pattern-matching
+  layer isn't the typical framing (aviation safety is more procedural
+  than pattern-recognitive).
+- **Stigmergy** — coordination via substrate is a real cognate; but
+  the fingerprint-specificity of antigen recognition isn't typically
+  how stigmergy is framed (it's about action-traces, not
+  pattern-recognition memory).
+- **Bayesian epistemology** — prior-updating is general inferential
+  framework; the recognition-with-structural-memory-and-inheritance
+  framing is metaphorical, not Bayesian-native.
+- **Philosophy of science (Kuhn, Lakatos, Popper)** — paradigm shifts
+  + research programs + falsification are meta-level frames about
+  how knowledge accumulates in scientific communities; the
+  fingerprint-recognition mapping is metaphorical-not-structural.
+
+### What the classification supports
+
+The honest claim is calibrated to the strength tier:
+
+- **The 5 strong cognates** are substrate for the load-bearing claim:
+  recognition-with-memory-and-inheritance is a real architectural
+  class with independent rigorous instantiations across mature
+  fields. Five independent rigorous methods converging is genuine
+  consilience-of-inductions evidence.
+- **The 4 medium cognates** are additional support but at reduced
+  weight: they extend the territory the architecture operates in
+  without serving as primary evidence.
+- **The 7 adjacent cognates** are noted as adjacent territory rather
+  than convergence evidence. They suggest the architecture's
+  ambient relevance across many fields without serving as rigorous
+  consilience evidence.
+
+This honest classification *strengthens* the convergence claim
+rather than weakening it. The flat-16 framing reads as enthusiasm;
+classified-by-strength reads as evidence-graded. Five strong
+cognates converging through independent rigorous methods is a more
+defensible substrate for the architectural-class claim than sixteen
+mixed-strength cognates of varying rigor.
+
+### What the convergence does and doesn't claim
+
+The convergence supports: **this architectural class is broadly
+useful across domains that need to maintain recognition of patterns
+over time.** That claim is well-supported by the five strong cognates.
+
+The convergence does *not* by itself support: **this architectural
+class is specifically what software engineering has been missing.**
+That stronger claim requires *software-engineering-specific*
+substrate (which exists in the form of testing's third-pillar
+absence, the AI-coding-era acute need, and antigen's own development
+experience as evidence of the gap). The convergence is one
+substrate-leg of the case; software-specific substrate is the other.
 
 Antigen is not an invention. It is an *instantiation* of this
 architectural class in the Rust programming language ecosystem. The
@@ -641,6 +856,50 @@ could degrade the substrate. The discipline (rationale required,
 witness verification, audit-tier-honesty) limits this; tooling
 (automated checks, code review) further limits this. But antigen is
 not a security mechanism against adversaries.
+
+### 9.7 — Temporal stability of cognitive-architecture framing
+
+Section 5's boundary-analysis framing is more durable than the
+asymmetry framing it replaced, but cognitive architectures are
+actively evolving. Persistent-memory agents (Letta, MemGPT, others),
+long-context models (>1M tokens), multi-agent systems with shared
+state — all shift the boundaries the section names. The
+*prosthesis-need-across-boundaries* framing survives this evolution
+because the structural property is boundary-agnostic; but specific
+claims about *what boundaries which cognition has* will date as the
+field develops. Future revisions should track cognitive-architecture
+landscape evolution and update the specific-boundary claims in
+section 5 accordingly, while preserving the boundary-analysis framing.
+
+### 9.8 — Cognate-strength variance in cross-domain convergence
+
+Section 8 classifies the 16+ field convergence by cognate strength
+(5 strong / 4 medium / 7 adjacent). The honest substrate is:
+*five rigorous independent instantiations of the architectural class
+across mature fields*, plus medium-strength fields that extend the
+territory, plus adjacent fields where the architecture is real but
+not the primary framing. This is more defensible than treating all
+sixteen as uniformly-supporting evidence, but it also means the
+convergence claim is calibrated rather than absolute. The
+classification itself may be revised as deeper substrate-grep
+surfaces fields the current classification has placed too strongly
+or too weakly. The convergence-as-evidence claim should be read at
+the strong-cognate-tier strength, with medium and adjacent serving
+as breadth-confirmation rather than depth-evidence.
+
+### 9.9 — Encounter-tier vs posture-tier framing in section 6
+
+Section 6 names six hybrid-collaboration failure-classes, of which
+only one (6.1 — pattern-regeneration) has a substrate-grounded
+observation. The other five are ideated encounter-tier articulations
+per ADR-006's ideation-as-recognition pathway. The honest substrate
+is: *one observed failure-class plus five articulable ones legitimate
+at encounter-tier; antigen substrate assists disciplined teams with
+all six once teams declare specific antigens for the patterns*. The
+section's reach-claim is qualified accordingly. Future substrate
+accumulation may promote some of 6.2-6.6 to posture-tier as
+substrate-grounded instances surface; until then, the framing
+remains encounter-tier.
 
 ---
 
