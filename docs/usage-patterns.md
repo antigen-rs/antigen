@@ -181,10 +181,13 @@ fn kernel_vs_standalone_proptest(input: f64) { ... }
 
 ### Witness tier profile
 
-Composition-boundary antigens get **ExecutionVerified** tier from proptest
-witnesses — stronger than a single-input `#[test]` because property-based
-testing explores the input space and is more likely to find edge cases where
-divergence occurs.
+Composition-boundary antigens with proptest witnesses currently report
+**Reachability** tier with hint `ProptestPresentNotInvoked` (v0.1 audit
+does not invoke the proptest harness; Execution tier ships at A4-A5
+when harness invocation lands). The proptest shape is still stronger
+than a single-input `#[test]` in practice because property-based
+testing, when invoked by CI, explores the input space and is more
+likely to find edge cases where divergence occurs.
 
 For mathematical implementations where the domain is bounded and the divergence
 profile is predictable, consider:
@@ -206,9 +209,11 @@ witness pattern.
 With the pattern above, `cargo antigen audit` reports:
 
 - The consistency test site as a **Presentation** (vulnerable to divergence)
-- The proptest witness as **ExecutionVerified** (proptest ran and passed)
-- The audit hint: "proptest witness — coverage depends on input strategy
-  quality; add focused edge-case inputs if divergence has been observed"
+- The proptest witness at **Reachability** tier with hint
+  `ProptestPresentNotInvoked` (v0.1 audit recognizes the proptest shape
+  but does not invoke the harness; CI is responsible for running the
+  proptest). A4-A5 promotes this to Execution tier when the harness
+  invocation lands.
 
 Without `#[immune]`, the audit reports the site as an unaddressed
 presentation: "this composition boundary has no verified consistency

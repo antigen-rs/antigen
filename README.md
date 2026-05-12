@@ -232,23 +232,25 @@ post-A3.5 sweep close).
   detection, cross-crate scanning via `.cargo/registry` source-walking,
   cycle detection on descended_from chains, diamond inheritance dedup
 - **`cargo antigen audit`** with `WitnessTier` gradient
-  (Reachability / Execution / FormalProof / ExternalUnvalidated /
-  Missing) — tier-honest reporting per ADR-005 Amendment 3
-- **Fingerprint grammar v1**: six item-level operators (`item`,
-  `name`, `variants`, `has_method`, `attr_present`, `doc_contains`)
-  plus composition (`all_of`, `any_of`, `not`). Full reference at
-  [`docs/fingerprint-grammar.md`](docs/fingerprint-grammar.md).
-- **Phantom-type witness recognition** (ADR-013): `Witnessed<T,W>`,
-  `typewit::TypeEq`, hand-rolled `PhantomData<T>` shapes recognized
-  at FormalProof tier
+  (None / Reachability / Execution / FormalProof) — tier-honest
+  reporting per ADR-005 Amendment 3
+- **Fingerprint grammar v1**: seven item-level operators (`item`,
+  `name`, `variants`, `has_method`, `attr_present`, `doc_contains`,
+  `body_contains_macro`) plus composition (`all_of`, `any_of`, `not`).
+  Full reference at [`docs/fingerprint-grammar.md`](docs/fingerprint-grammar.md).
+- **Phantom-type witness recognition** (ADR-013): witness expressions
+  using turbofish syntax (`Foo::<T>::constructor`) recognized as
+  phantom-type proofs at FormalProof tier with the
+  `PhantomTypeShapeRecognized` hint
 - **Cross-crate identity**: `canonical_path` at `name@version`
   granularity (ADR-017)
 - **Honest trust-delegation**: scan trusts cargo metadata; explicit
   out-of-scope statement for cargo-level attacks (ADR-017 trust scope)
 - **ProvenanceEntry** for inherited presentations preserves
   cross-version provenance (ADR-018)
-- **235 tests passing** across the workspace; substantial property-test
-  + trybuild coverage; span-aware error messages
+- **240 tests passing** (31 ignored as pre-impl contracts) across the
+  workspace; substantial property-test + trybuild coverage; span-aware
+  error messages
 
 Not yet shipped (in development; hidden from CLI):
 

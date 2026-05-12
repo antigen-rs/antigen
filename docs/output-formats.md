@@ -27,6 +27,7 @@ Scanned N files, found M antigen-related declarations:
   - N3 fingerprint matches (unmarked sites)
   - N4 tolerated sites (#[antigen_tolerance])
   - N5 immunity claims
+  - N6 parse failures (see --format json for details)
 
 N3 fingerprint match(es) — structurally similar to a declared antigen:
 
@@ -38,7 +39,7 @@ N3 fingerprint match(es) — structurally similar to a declared antigen:
     #[immune(<antigen>, witness = ...)] if defended,
     #[antigen_tolerance(<antigen>, rationale = "...")] to document intent.
 
-N6 unaddressed explicit presentation(s):
+N7 unaddressed explicit presentation(s):
 
   path/to/file.rs:LINE  AntigenType on <item-kind>
   ...
@@ -48,9 +49,16 @@ To address each site, use the antigen type shown above:
   OR #[antigen_tolerance(<antigen>, rationale = "...")]
 ```
 
-Sections appear conditionally — empty sections are omitted.
+Sections appear conditionally — the `fingerprint matches`, `tolerated
+sites`, and `parse failures` summary lines are emitted only when their
+counts are greater than zero. The `unaddressed explicit presentation(s)`
+section appears only when at least one explicit `#[presents]` lacks a
+matching `#[immune]` or `#[antigen_tolerance]`.
 
 ### JSON output (`--format json`)
+
+The top-level JSON object has two keys: `report` (the scan report) and
+`unaddressed` (the convenience-rendered unaddressed-presentations list).
 
 ```json
 {
@@ -84,7 +92,6 @@ Sections appear conditionally — empty sections are omitted.
         "inherited_from": null
       }
     ],
-    "fingerprint_matches": [ /* same shape as presentations; match_kind: "fingerprint" */ ],
     "immunities": [
       {
         "antigen_type": "PanickingInDrop",
@@ -101,6 +108,7 @@ Sections appear conditionally — empty sections are omitted.
         "antigen_type": "PanickingInDrop",
         "rationale": "Test fixture deliberately constructs the case.",
         "until": "2026-12-31",
+        "see": [],
         "file": "src/tests/fixtures.rs",
         "line": 100,
         "item_kind": "fn",
@@ -112,16 +120,33 @@ Sections appear conditionally — empty sections are omitted.
       {
         "child": "UseAfterFreeClass",
         "parent": "MemoryUnsafetyClass",
+        "child_canonical_path": null,
+        "parent_canonical_path": null,
         "file": "src/antigens.rs",
         "line": 47
       }
     ],
+    "files_scanned": 73,
     "parse_failures": [
-      [ "path/to/broken.rs", "syntax error: ..." ]
+      {
+        "file": "path/to/broken.rs",
+        "error": "syntax error: ..."
+      }
     ]
-  }
+  },
+  "unaddressed": [
+    {
+      "antigen_known": true,
+      "presentation": { /* full presentation record */ }
+    }
+  ]
 }
 ```
+
+**No top-level `fingerprint_matches` array.** Fingerprint matches appear
+as entries in `report.presentations[]` with `match_kind: "fingerprint_match"`
+(vs `"explicit_marker"` for `#[presents]` annotations). Discriminate via
+the `match_kind` field.
 
 ### Field reference
 
@@ -138,6 +163,10 @@ Sections appear conditionally — empty sections are omitted.
 | `fingerprint` | string | Fingerprint DSL (verbatim; canonicalized for matching) |
 | `canonical_path` | string \| null | Cross-crate identity at `crate@version::Type` granularity (ADR-017); null for intra-workspace declarations |
 
+Note: the `references = [...]` field accepted by `#[antigen(...)]` is
+parsed at scan time but is not currently emitted to the JSON output
+surface. Future versions may surface it.
+
 #### `presentations[]`
 
 | Field | Type | Meaning |
@@ -147,7 +176,7 @@ Sections appear conditionally — empty sections are omitted.
 | `line` | integer | Line number of the `#[presents]` attribute (or fingerprint match site) |
 | `item_kind` | string | One of: `fn`, `impl`, `struct`, `enum`, `trait`, `mod`, `type`, `const`, `static`, `use` |
 | `item_target` | object | Structured target identity (see "Item target shapes" below) |
-| `match_kind` | string | `explicit_marker` (from `#[presents]`) or `fingerprint` (passive detection) |
+| `match_kind` | string | `explicit_marker` (from `#[presents]`) or `fingerprint_match` (passive detection) |
 | `canonical_path` | string \| null | Cross-crate identity |
 | `inherited_from` | array of objects \| null | `ProvenanceEntry` array for inherited presentations (see "Provenance" below); null if not inherited |
 
@@ -170,6 +199,7 @@ Sections appear conditionally — empty sections are omitted.
 | `antigen_type` | string | Type name of antigen this tolerates |
 | `rationale` | string | Required narrative justification |
 | `until` | string \| null | Expiry condition (date, version, etc.); informational |
+| `see` | array of strings | Open-vocabulary cross-references (PR URLs, ADR IDs, design docs) |
 | `file`, `line` | string, integer | Site location |
 | `item_kind`, `item_target` | (same shapes) | |
 | `canonical_path` | string \| null | Cross-crate identity |
@@ -178,19 +208,45 @@ Sections appear conditionally — empty sections are omitted.
 
 | Field | Type | Meaning |
 |---|---|---|
-| `child` | string | Type name of the child antigen |
-| `parent` | string | Type name of the parent antigen |
+| `child` | string | Type name of the child antigen (from `#[descended_from]` site) |
+| `parent` | string | Type name of the parent antigen (last segment of `#[descended_from(...)]` argument) |
+| `child_canonical_path` | string \| null | Cross-crate identity for the child (ADR-017) |
+| `parent_canonical_path` | string \| null | Cross-crate identity for the parent |
 | `file`, `line` | string, integer | Where `#[descended_from]` was declared |
 
 Lineage edges enable inheritance propagation (ADR-018). Cycle detection
 runs on this graph; orphan edges (parent doesn't exist) surface via
-`orphaned_lineage_edges()` query method.
+`orphaned_lineage_edges()` query method; dangling edges (child not in
+antigen index) surface via `dangling_child_lineage_edges()`.
+
+#### `files_scanned`
+
+| Field | Type | Meaning |
+|---|---|---|
+| `files_scanned` | integer | Count of `.rs` files successfully parsed during the scan (excludes files in `target/`, `.git/`, `node_modules/`, and any other excluded directories) |
 
 #### `parse_failures[]`
 
-Array of `[file_path, error_message]` tuples. Structural errors that
-prevent correct scan completion (file IO, syntax errors, malformed
-fingerprints).
+| Field | Type | Meaning |
+|---|---|---|
+| `file` | string | Source file path where parsing failed |
+| `error` | string | Human-readable parse error message |
+
+Surfaces structural errors that prevent correct scan completion (file
+IO, syntax errors, malformed fingerprints, malformed attribute arguments,
+`#[descended_from]` cycles, lineage chain depth limits exceeded).
+
+#### `unaddressed[]` (top-level convenience array)
+
+The top-level `unaddressed` key is a pre-rendered convenience array
+listing all `#[presents]` sites that lack a matching `#[immune]` or
+`#[antigen_tolerance]`. Consumers can either filter `report.presentations`
+themselves or read this directly.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `antigen_known` | bool | Whether the antigen type is declared in the same scan |
+| `presentation` | object | Full `Presentation` record (same shape as `report.presentations[]`) |
 
 ### Item target shapes
 
@@ -241,66 +297,85 @@ tier-honest verification status.
 
 ### Human-readable output
 
+The audit prints a summary, an optional confirmed-claims block (claims
+at Execution tier or higher), an optional warnings block (claims below
+Execution tier), and an optional state-7 block (inherited presentations
+not re-attested).
+
 ```
 Auditing workspace: .
 
 Audited N immunity claim(s):
-  - N1 declared (witness identifier found in workspace — not yet semantically verified)
-  - N2 external (delegated to clippy/kani/prusti/etc. — not yet executed by antigen)
-  - N3 ambiguous (witness name resolves to multiple workspace functions)
-  - N4 broken (witness identifier not found)
-  - N5 missing (no witness identifier)
-  - N6 confirmed (FormalProof tier — phantom-type witness shape recognized)
+  - N_fp formal-proof (phantom-type or formal-verification tool — compile-time evidence)
+  - N_ex execution (test/proptest run confirmed by audit)
+  - N_re declared (witness identifier found in workspace — not yet semantically verified)
+  - N_external external (delegated to clippy/kani/prusti/etc. — not yet executed by antigen)
+  - N_amb ambiguous (witness name resolves to multiple workspace functions)
+  - N_broken broken (witness identifier not found)
+  - N_missing missing (no witness identifier)
 
-⚠ N₁₋₅ immunity claim(s) below Execution tier:
+✓ N_confirmed immunity claim(s) at Execution tier or higher:
+
+  path/to/file.rs:LINE  AntigenType (witness = `witness_expression`)
+    tier = FormalProof, hint = PhantomTypeShapeRecognized
+
+⚠ N_warn immunity claim(s) below Execution tier:
 
   path/to/file.rs:LINE  AntigenType (witness = `witness_name`)
     tier = <Tier>, hint = <AuditHint>
     → <diagnostic_text>
 
 Resolve below-Execution claims by either:
-  a) Adding test invocation that exercises the witness path
+  a) Adding test invocation that exercises the witness path (A4-A5 feature)
   b) Pointing the witness at a runnable test (#[test] without #[ignore])
   c) Renaming colliding functions or qualifying ambiguous witness paths
   d) Adding the witness function to the workspace if it's missing
   e) Tolerating the gap with `#[antigen_tolerance(...)]` if intentional
 
-✓ N₆ immunity claim(s) at FormalProof tier:
+⚠ N_state7 inherited presentation(s) not re-attested on the descendant (state 7 of the 7-state interaction matrix):
 
-  path/to/file.rs:LINE  AntigenType (witness = `witness_expression`)
-    tier = FormalProof, hint = PhantomTypeShapeRecognized
+  warning: inherited presentation: `AntigenType` flowed from ["AncestorType"] to `<item-kind>` via `#[descended_from]`;
+  the witness inherited from the ancestor has not been re-attested on the descendant.
+  Add `#[immune(AntigenType, witness = ...)]` or `#[antigen_tolerance(AntigenType, rationale = "...")]` on the descendant.
+    --> path/to/descendant.rs:LINE
+
+  Note: behavioral re-validation (does the ancestor's witness apply to the descendant?) is A4-A5 work; reachability-tier audit cannot perform this check.
+  Use `cargo antigen audit --strict` to promote state-7 warnings to errors for CI gating.
 ```
 
+The summary lines for `formal-proof` and `execution` are conditionally
+emitted only when the count is greater than zero. The confirmed-claims
+block (✓) and the warnings block (⚠) likewise appear only when their
+respective sets are non-empty. The state-7 block appears only when
+inherited Presentations exist that lack re-attestation on the descendant
+site.
+
 ### JSON output (`--format json`)
+
+The top-level audit JSON object has two keys: `scan` (the embedded scan
+report) and `audit` (the audit report).
 
 ```json
 {
   "scan": { /* full scan report — see above */ },
   "audit": {
-    "results": [
+    "audits": [
       {
         "immunity": { /* full immunity record */ },
         "witness_status": {
-          "status": "resolved" | "external" | "ambiguous" | "not_found" | "missing",
-          "location": "path/to/witness.rs" | "",
-          "reason": "diagnostic text if not resolved",
-          "witness_kind": {
-            "phantom_type": {
-              "proof_type": "NonPanickingProof",
-              "type_params": ["PhantomVerifiedDropImpl"],
-              "constructor": "verified"
-            }
-          }
+          "status": "resolved",
+          "location": "path/to/witness.rs",
+          "witness_kind": "function"
         },
-        "witness_tier": "formal_proof" | "execution" | "reachability" | "external_unvalidated" | "none",
-        "audit_hint": "phantom-type-shape-recognized" | "function-resolves" | "external-tool-delegated" | "witness-not-found" | "witness-ambiguous" | "witness-missing" | "none-applicable"
+        "witness_tier": "reachability",
+        "audit_hint": "function-resolves"
       }
     ],
-    "resolved_count": integer,
-    "external_count": integer,
-    "ambiguous_count": integer,
-    "broken_count": integer,
-    "missing_count": integer,
+    "resolved_count": 1,
+    "external_count": 0,
+    "ambiguous_count": 0,
+    "broken_count": 0,
+    "missing_count": 0,
     "inherited_unaddressed": [
       {
         "presentation": { /* full presentation record */ },
@@ -313,40 +388,62 @@ Resolve below-Execution claims by either:
 
 ### Audit field reference
 
-#### `audit.results[]`
+#### `audit.audits[]`
 
 | Field | Type | Meaning |
 |---|---|---|
-| `immunity` | object | Full immunity record (same shape as scan output) |
-| `witness_status` | object | Resolution status with diagnostic |
-| `witness_tier` | string | One of: `formal_proof`, `execution`, `reachability`, `external_unvalidated`, `none` |
-| `audit_hint` | string | Specific diagnostic hint (see [`witness-tiers.md`](witness-tiers.md) for full enumeration) |
+| `immunity` | object | Full immunity record (same shape as scan output's `immunities[]`) |
+| `witness_status` | object | Resolution status with diagnostic — see "witness_status variants" below |
+| `witness_tier` | string | One of: `formal_proof`, `execution`, `reachability`, `none` (snake_case-serialized `WitnessTier` enum; v0.1 has four tiers — see [`witness-tiers.md`](witness-tiers.md)) |
+| `audit_hint` | string | Specific diagnostic hint, kebab-case-serialized — see "audit_hint values" below |
 
-#### `witness_status` shapes
+#### `audit.audits[].witness_status` variants
 
-| `status` value | Shape | Tier |
+`witness_status` is a tagged enum on the `status` field. Each variant
+carries different sub-fields:
+
+| `status` value | Shape | Resulting `witness_tier` |
 |---|---|---|
-| `resolved` | `{status, location, witness_kind?}` | FormalProof / Execution / Reachability |
-| `external` | `{status, location: "", witness_kind: {external_tool: "name"}}` | ExternalUnvalidated |
-| `ambiguous` | `{status, candidates: ["path1", "path2"]}` | None (Missing tier) |
-| `not_found` | `{status, reason: "diagnostic text"}` | None (Missing tier) |
-| `missing` | `{status}` (no witness field on `#[immune]`) | None (Missing tier) |
+| `resolved` | `{status: "resolved", location: "<path>", witness_kind: <WitnessKind>}` | `formal_proof` (phantom-type), or `reachability` (test / ignored_test / proptest / function — v0.1 audit does not invoke harnesses) |
+| `external` | `{status: "external", tool_hint: "<string>"}` | `reachability` (with `external-tool-prefix-recognized` audit hint) |
+| `ambiguous` | `{status: "ambiguous", candidates: ["<path>", ...]}` | `none` |
+| `not_found` | `{status: "not_found", reason: "<diagnostic-text>"}` | `none` |
+| `missing` | `{status: "missing"}` (no other fields) | `none` |
 
-#### `witness_kind` variants
+#### `WitnessKind` values (sub-field of `Resolved` witness_status)
 
-Within `witness_status`, the `witness_kind` field describes what kind
-of witness was recognized:
+The `witness_kind` field inside a `Resolved` witness_status reports the
+recognized witness shape. Serialized snake_case per `#[serde(rename_all
+= "snake_case")]`:
 
-```json
-{ "test_function": "fn_name" }
-{ "proptest_function": "fn_name" }
-{ "external_tool": "clippy::lint_name" }
-{ "phantom_type": {
-    "proof_type": "ProofType",
-    "type_params": ["T", "U"],
-    "constructor": "constructor_method"
-} }
-```
+| Serialized value | Source enum variant | Meaning |
+|---|---|---|
+| `"test"` | `WitnessKind::Test` | `#[test]` function (not `#[ignore]`) |
+| `"ignored_test"` | `WitnessKind::IgnoredTest` | `#[test]` + `#[ignore]` — `cargo test` skips by default; audit reports Reachability tier per ATK-A2-012 |
+| `"proptest"` | `WitnessKind::Proptest` | A `proptest!` macro invocation |
+| `"function"` | `WitnessKind::Function` | Regular function (no testing attribute detected) |
+| `{"phantom_type": {"proof_type": "<base>", "type_params": [<str>...], "constructor": "<name>" \| null}}` | `WitnessKind::PhantomType {...}` | Turbofish witness recognized as phantom-type proof per ADR-013 |
+
+#### `audit_hint` values
+
+`AuditHint` is serialized kebab-case per `#[serde(rename_all = "kebab-case")]`
+(NOTE: distinct from `WitnessTier` / `WitnessStatus` / `WitnessKind`,
+which use snake_case). The complete v0.1.0-rc.1 hint set:
+
+| JSON value | Rust variant | Meaning |
+|---|---|---|
+| `"none-applicable"` | `NoneApplicable` | Status is Missing or NotFound; no further hint applicable |
+| `"function-resolves"` | `FunctionResolves` | Identifier resolves to a function; no further check performed |
+| `"test-attribute-present-not-invoked"` | `TestAttributePresentNotInvoked` | Function has `#[test]`; audit did not invoke `cargo test` |
+| `"test-attribute-present-ignore-skipped"` | `TestAttributePresentIgnoreSkipped` | Function has `#[test]` AND `#[ignore]`; `cargo test` would skip it |
+| `"proptest-present-not-invoked"` | `ProptestPresentNotInvoked` | `proptest!` macro invocation found; harness not invoked |
+| `"external-tool-prefix-recognized"` | `ExternalToolPrefixRecognized` | External-tool prefix recognized (`clippy::`, `kani::`, etc.); tool not invoked |
+| `"external-tool-invoked"` | `ExternalToolInvoked` | External tool actually invoked (A4+; not emitted in v0.1) |
+| `"phantom-type-shape-recognized"` | `PhantomTypeShapeRecognized` | Phantom-type witness shape recognized; constructor sealing not validated |
+| `"phantom-type-construction-validated"` | `PhantomTypeConstructionValidated` | Phantom-type construction validated (future; not emitted in v0.1) |
+| `"ambiguous-resolution"` | `AmbiguousResolution` | Witness name matches more than one workspace function (ATK-A2-005) |
+| `"fabricated-path-prefix"` | `FabricatedPathPrefix` | Witness path's module prefix does not exist in the workspace; last segment found but in an unrelated location (ATK-A2-011) |
+| `"inherited-presentation-not-re-attested"` | `InheritedPresentationNotReAttested` | Inherited Presentation lacks re-attestation on the descendant site (state 7 of the 7-state matrix; ADR-018) |
 
 #### `audit.inherited_unaddressed[]`
 

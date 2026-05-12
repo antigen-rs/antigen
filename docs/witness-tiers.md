@@ -25,15 +25,36 @@ would silently overclaim the weaker witnesses up to the strongest.
 ADR-005 Amendment 3 (audit-tier-honesty) requires the audit to report
 the *actual* strength of verification performed, never a stronger one.
 
-The five tiers in v0.1.0-rc.1:
+The four tiers in v0.1.0-rc.1 (per `WitnessTier` enum in
+`antigen/src/audit.rs`):
 
 | Tier | Strength | When it applies |
 |---|---|---|
-| **FormalProof** | Mathematical guarantee on all inputs in domain | Phantom-type witnesses (ADR-013); formal-verification tool witnesses with executed proof |
-| **Execution** | Empirically verified on tested inputs | `#[test]` or `proptest` witness function exists and is in scope |
-| **Reachability** | Function exists in scope; not yet executed | Bare-identifier witness resolves to a function but audit hasn't verified runtime behavior |
-| **ExternalUnvalidated** | External tool prefix accepted but execution not verified | `clippy::lint_name`, `kani::proof_fn` etc. where the consuming workspace can't execute the external tool |
-| **Missing** | No witness present or witness fails to resolve | Audit reports the gap honestly |
+| **FormalProof** | Mathematical guarantee on all inputs in the proven domain | Phantom-type witnesses (ADR-013) — turbofish pattern (`Foo::<T>::constructor`) recognized as a sealed type-system proof |
+| **Execution** | Empirically verified on tested inputs | Reserved for A4-A5: requires the audit to actually invoke `cargo test` / proptest harness and confirm the witness passes. Not emitted in v0.1 |
+| **Reachability** | Witness identifier resolves; audit has not verified runtime behavior | All v0.1 non-FormalProof resolutions: `#[test]` / `#[test]+#[ignore]` / `proptest!` / regular functions / external-tool prefixes (`clippy::`, `kani::`, etc.). The audit hint disambiguates which case |
+| **None** | No witness present or witness fails to resolve | `Missing`, `NotFound`, or `Ambiguous` witness status — audit reports the gap honestly |
+
+**Why only Reachability for `#[test]` in v0.1**: per ADR-005 Amendment 3
+(audit-tier-honesty), the audit reports the work the audit ACTUALLY
+PERFORMED. v0.1 walks the workspace and indexes functions; it does NOT
+invoke `cargo test`. A `#[test]` function whose run was not invoked sits
+at Reachability — its existence is verified, its passing is not.
+Promotion to Execution tier requires harness invocation, planned for A4-A5.
+
+**Disambiguating Reachability cases via audit hints**: although all
+non-FormalProof resolutions collapse to Reachability tier in v0.1, the
+parallel `AuditHint` field distinguishes them. The hint is what the
+human-readable diagnostic emits and what consumers should match on:
+
+| Witness shape | Tier | Audit hint |
+|---|---|---|
+| `#[test]` function (not ignored) | Reachability | `TestAttributePresentNotInvoked` |
+| `#[test]` + `#[ignore]` | Reachability | `TestAttributePresentIgnoreSkipped` |
+| `proptest!` macro | Reachability | `ProptestPresentNotInvoked` |
+| Bare function, no test attribute | Reachability | `FunctionResolves` |
+| External-tool prefix (`clippy::`, `kani::`, …) | Reachability | `ExternalToolPrefixRecognized` |
+| Phantom-type turbofish (`Foo::<T>::ctor`) | FormalProof | `PhantomTypeShapeRecognized` |
 
 ---
 
@@ -45,60 +66,88 @@ domain.
 **Recognized witnesses** (v0.1.0-rc.1):
 
 - **Phantom-type witnesses** (ADR-013) — the type system itself proves
-  immunity. Recognized shapes:
-  - `Witnessed<T, W>` pattern
-  - `typewit::TypeEq` pattern
-  - Hand-rolled `PhantomData<T>` patterns that follow the convention
+  immunity. Recognition shape: a path with turbofish syntax
+  (`Foo::<TypeParam>::constructor`). The audit's
+  `detect_phantom_type_witness` matches this shape and classifies as
+  `WitnessKind::PhantomType { proof_type, type_params, constructor }`.
 
 The witness IS the type structure; no runtime test needed because the
-proof lives in the compiler's type-checking pass.
+proof lives in the compiler's type-checking pass. Construction of the
+proof token can only happen via the sealed constructor, so if the code
+compiles, the proof holds.
 
-**Example**:
+**Example** (full version in `antigen/examples/phantom_witness.rs`):
 
 ```rust
 use antigen::immune;
 use std::marker::PhantomData;
-use crate::antigens::LatticeFrameInvariant;
 
-pub struct DeterminismClass<F = LatticeFrameInvariant> {
-    _frame: PhantomData<F>,
-    // ...
+pub struct NonPanickingProof<T> {
+    _marker: PhantomData<T>,
+    _seal: (),  // private field — only the sealed constructor can produce one
 }
 
+impl<T> NonPanickingProof<T> {
+    pub const fn verified() -> Self {
+        Self { _marker: PhantomData, _seal: () }
+    }
+}
+
+pub struct PhantomVerifiedDropImpl;
+
 #[immune(
-    LatticeFrameInvariant,
-    witness = phantom::DeterminismClass,
-    rationale = "PhantomData<LatticeFrameInvariant> enforces frame invariant at type level."
+    DropPanicClass,
+    witness = NonPanickingProof::<PhantomVerifiedDropImpl>::verified,
+    rationale = "Phantom-type token constructible only via the sealed `verified` constructor."
 )]
-impl DeterminismClass { /* ... */ }
+impl Drop for PhantomVerifiedDropImpl { /* ... */ }
 ```
 
-The `phantom::` prefix tells the audit "this witness is a phantom-type
-pattern; verify the structural shape." Audit reports FormalProof tier
-when the shape recognizes.
+The turbofish form (`::<>`) is what triggers phantom-type recognition.
+Audit reports FormalProof tier with the `PhantomTypeShapeRecognized`
+hint when the shape recognizes. (Recognition is shape-only; behavioral
+verification that the constructor IS sealed is the developer's
+responsibility — the audit recognizes the shape but cannot prove the
+constructor's soundness, so the hint name explicitly names the
+recognition-but-not-validation surface.)
 
 **Future tier extensions** (not v0.1.0-rc.1; see [`roadmap.md`](roadmap.md)):
 
 - `kani::proof_fn` / `prusti::specification` / `verus::proof` /
   `creusot::specification` witnesses where the consuming workspace
   actually executes the verifier and the proof passes. v0.1.0-rc.1
-  reports these as ExternalUnvalidated (see below) until A4 lands the
-  harness invocation.
+  reports these as Reachability tier with the
+  `ExternalToolPrefixRecognized` hint (see below); A4-A5 will ship the
+  harness invocation that can promote them to FormalProof tier when the
+  verifier confirms.
 
 ---
 
-## Execution tier
+## Execution tier (reserved for A4-A5)
 
-**Strength**: empirically verified on the inputs the test exercised.
+**Strength**: empirically verified by the audit actually invoking the
+witness harness and confirming a passing run.
 
-**Recognized witnesses**:
+**Status in v0.1.0-rc.1**: NOT EMITTED. The Execution tier exists in the
+`WitnessTier` enum as a forward-compatibility slot, but the v0.1 audit
+does not invoke `cargo test`, the proptest harness, or any external
+verifier. All test-function witnesses sit at `Reachability` tier with
+their corresponding `TestAttributePresentNotInvoked` /
+`ProptestPresentNotInvoked` / `TestAttributePresentIgnoreSkipped` hint.
 
-- `test::fn_name` — a `#[test]` function in the workspace
-- `proptest::fn_name` — a property-based test in the workspace
-- Bare identifier `fn_name` when the function resolves to a `#[test]`
-  function
+**When Execution tier ships (A4-A5 per [`roadmap.md`](roadmap.md))**:
 
-**Example**:
+- `#[test]` function whose `cargo test` invocation passed → promoted from
+  Reachability to Execution
+- `proptest!` function whose harness invocation completed without
+  property violation → promoted from Reachability to Execution
+- External-tool prefixes (`kani::`, `prusti::`, `verus::`, `creusot::`,
+  `flux::`) whose tool invocation produced a passing proof → promoted
+  from Reachability to FormalProof (the external tool produces the
+  guarantee; antigen recognizes the invocation result, not the proof
+  structure)
+
+**Example** (current v0.1 behavior — reports Reachability, not Execution):
 
 ```rust
 use antigen::immune;
@@ -118,14 +167,11 @@ fn safe_drop_no_panic_test() {
 }
 ```
 
-**Limitations**:
-
-- Coverage depends on test inputs. A test that exercises one path and
-  passes only verifies that path.
-- `proptest` witnesses get Execution tier; coverage breadth depends on
-  the Strategy quality.
-- Audit reports Execution tier when the function exists; it does NOT
-  run the test as part of the audit (that's CI's job).
+In v0.1: the audit reports `tier = Reachability`, `hint =
+TestAttributePresentNotInvoked` for this immunity claim — accurately
+reflecting that the function exists with a `#[test]` attribute but its
+run was not invoked by the audit. CI is responsible for actually running
+the test; the audit reports the work IT performed, not what CI might do.
 
 ---
 
@@ -159,10 +205,14 @@ function (or write a new test) and point the witness at it.
 
 ---
 
-## ExternalUnvalidated tier
+## External-tool witnesses (Reachability tier + ExternalToolPrefixRecognized hint)
 
-**Strength**: external tool prefix accepted as a witness name; audit
-hasn't executed the external tool.
+**Note**: there is no separate `ExternalUnvalidated` tier in v0.1.0-rc.1.
+External-tool witnesses resolve to `WitnessStatus::External { tool_hint }`,
+which the audit maps to `WitnessTier::Reachability` with the
+`ExternalToolPrefixRecognized` audit hint. The discipline is the same as
+the legacy "ExternalUnvalidated" framing (external delegation is weaker
+than execution); only the tier name differs.
 
 **When it applies**:
 
@@ -178,43 +228,51 @@ hasn't executed the external tool.
 impl Drop for SafeType { /* clippy lint covers this case */ }
 ```
 
-Audit reports ExternalUnvalidated tier with audit-hint
-`ExternalToolDelegated`. The witness IS recognized; antigen delegates
-the actual verification to clippy (compose-don't-compete per ADR-002),
-but clippy isn't executed inside antigen's audit pipeline in
-v0.1.0-rc.1.
+Audit reports `tier = Reachability, hint = ExternalToolPrefixRecognized`
+(JSON: `"reachability"` / `"external-tool-prefix-recognized"`). The
+witness IS recognized; antigen delegates the actual verification to
+clippy (compose-don't-compete per ADR-002), but clippy isn't executed
+inside antigen's audit pipeline in v0.1.0-rc.1.
 
 **Future upgrade** (per [`roadmap.md`](roadmap.md) Sweep A4): harness
 invocation will execute the external tool and upgrade resolved witnesses
-to Execution or FormalProof tier as appropriate.
+to Execution or FormalProof tier as appropriate. The
+`ExternalToolInvoked` hint exists in the enum as a forward-compatibility
+slot but is not emitted in v0.1.
 
 **Cross-crate witnesses**: when a witness like `dep_crate::test_fn`
 points to a function in a dependency that the consuming workspace can't
-execute, the witness reports ExternalUnvalidated by design (ADR-005
-Amendment 3 amendment from A3.5).
+execute, the witness reports Reachability tier with the
+`ExternalToolPrefixRecognized` hint by the same discipline (ADR-005
+Amendment 3, A3.5 substrate).
 
 ---
 
-## Missing tier
+## None tier
 
-**Strength**: no witness present or witness fails to resolve.
+**Strength**: no witness present or witness fails to resolve. The
+`WitnessTier::None` variant (serialized `"none"` in JSON).
 
 **When it applies**:
 
-- `#[immune]` without a `witness =` field (audit surfaces "missing witness")
-- `witness = fn_name` where `fn_name` doesn't exist in the workspace
-  (audit surfaces "broken witness")
-- `witness = fn_name` where multiple functions named `fn_name` exist
-  (audit surfaces "ambiguous witness")
+- `#[immune]` without a `witness =` field → `WitnessStatus::Missing` →
+  audit hint `NoneApplicable`
+- `witness = fn_name` where `fn_name` doesn't exist in the workspace →
+  `WitnessStatus::NotFound { reason }` → audit hint `NoneApplicable` (or
+  `FabricatedPathPrefix` when the path's module prefix doesn't exist —
+  ATK-A2-011)
+- `witness = fn_name` where multiple functions named `fn_name` exist →
+  `WitnessStatus::Ambiguous { candidates }` → audit hint `AmbiguousResolution`
 
-**Example (broken witness)**:
+**Example (witness not found)**:
 
 ```rust
 #[immune(MyAntigen, witness = nonexistent_test)]
 impl Drop for SafeType { /* ... */ }
 ```
 
-Audit reports Missing tier with audit-hint `WitnessNotFound`:
+Audit reports `tier = None, hint = NoneApplicable` and surfaces the
+diagnostic:
 
 ```
 ⚠ MyAntigen — witness `nonexistent_test` not found in workspace
@@ -233,23 +291,29 @@ e) Tolerate the gap with `#[antigen_tolerance(...)]` if intentional
 
 ## Audit hints
 
-Each tier carries a more-specific `AuditHint` that explains the exact
-case. The hints surface in JSON output (`audit --format json`) and
-inform the human-readable diagnostic.
+Each audit entry carries an `AuditHint` that explains the specific case
+behind its tier. The hint is what consumers should match on for routing
+logic — tier alone collapses several distinct shapes into the same value
+(particularly at `Reachability`).
 
-| Hint | Tier | Meaning |
-|---|---|---|
-| `PhantomTypeShapeRecognized` | FormalProof | Phantom-type witness shape matched (ADR-013) |
-| `ExternalProofExecuted` | FormalProof | External formal-verification tool executed proof (future; A4+) |
-| `TestFunctionPasses` | Execution | `#[test]` function verified passing |
-| `ProptestFunctionPasses` | Execution | `proptest` function verified passing |
-| `FunctionResolves` | Reachability | Workspace function exists; behavior not verified |
-| `ExternalToolDelegated` | ExternalUnvalidated | External tool prefix accepted; tool not executed |
-| `CrossCrateWitness` | ExternalUnvalidated | Witness in dependency; consuming workspace can't execute |
-| `WitnessNotFound` | Missing | Identifier doesn't resolve to any workspace function |
-| `WitnessAmbiguous` | Missing | Identifier resolves to multiple workspace functions |
-| `WitnessMissing` | Missing | No `witness =` field present on `#[immune]` |
-| `NoneApplicable` | Missing | (catch-all when no other hint applies) |
+`AuditHint` is serialized **kebab-case** in JSON (per `#[serde(rename_all
+= "kebab-case")]` in `antigen/src/audit.rs`); the Rust variant names are
+PascalCase. The table below lists both forms.
+
+| JSON hint | Rust variant | Resulting tier | Meaning |
+|---|---|---|---|
+| `phantom-type-shape-recognized` | `PhantomTypeShapeRecognized` | FormalProof | Turbofish phantom-type witness shape matched (ADR-013); constructor sealing not validated |
+| `phantom-type-construction-validated` | `PhantomTypeConstructionValidated` | FormalProof | Phantom-type construction validated (future; not emitted in v0.1) |
+| `test-attribute-present-not-invoked` | `TestAttributePresentNotInvoked` | Reachability | Function has `#[test]`; audit did not invoke `cargo test` |
+| `test-attribute-present-ignore-skipped` | `TestAttributePresentIgnoreSkipped` | Reachability | Function has `#[test]` AND `#[ignore]`; `cargo test` would skip it by default |
+| `proptest-present-not-invoked` | `ProptestPresentNotInvoked` | Reachability | `proptest!` macro invocation found; harness not invoked |
+| `function-resolves` | `FunctionResolves` | Reachability | Workspace function exists with no testing attribute; behavior not verified |
+| `external-tool-prefix-recognized` | `ExternalToolPrefixRecognized` | Reachability | External-tool prefix recognized (`clippy::`, `kani::`, …); tool not invoked |
+| `external-tool-invoked` | `ExternalToolInvoked` | (future) | External tool actually invoked (A4+; not emitted in v0.1) |
+| `ambiguous-resolution` | `AmbiguousResolution` | None | Witness name matches more than one workspace function (ATK-A2-005) |
+| `fabricated-path-prefix` | `FabricatedPathPrefix` | None | Witness path's module prefix doesn't exist; last segment found but in an unrelated location (ATK-A2-011) |
+| `none-applicable` | `NoneApplicable` | None | Catch-all for Missing / NotFound when no more-specific hint applies |
+| `inherited-presentation-not-re-attested` | `InheritedPresentationNotReAttested` | (state-7 diagnostic, separate channel) | Inherited Presentation lacks re-attestation on the descendant site; state 7 of the 7-state interaction matrix (ADR-018). Surfaces via `audit.inherited_unaddressed[]` rather than as a per-immunity audit entry |
 
 The complete hint set lives in `antigen/src/audit.rs::AuditHint`; this
 table reflects v0.1.0-rc.1 hint enumeration.
@@ -258,23 +322,28 @@ table reflects v0.1.0-rc.1 hint enumeration.
 
 ## Reading audit output
 
-Human-readable audit output groups by tier:
+Human-readable audit output groups by tier. The per-tier sub-counts
+(`formal-proof`, `execution`) are emitted only when their count is
+greater than zero; the conventional summary lines (`declared`,
+`external`, `ambiguous`, `broken`, `missing`) are always emitted.
 
 ```
 Auditing workspace: .
 
 Audited 12 immunity claim(s):
+  - 6 formal-proof (phantom-type or formal-verification tool — compile-time evidence)
   - 3 declared (witness identifier found in workspace — not yet semantically verified)
   - 1 external (delegated to clippy/kani/prusti/etc. — not yet executed by antigen)
   - 0 ambiguous (witness name resolves to multiple workspace functions)
   - 2 broken (witness identifier not found)
   - 0 missing (no witness identifier)
-  - 6 confirmed (FormalProof tier — phantom-type witness shape recognized)
 
-⚠ 6 immunity claim(s) below Execution tier:
+✓ 6 immunity claim(s) at Execution tier or higher:
+  path/to/file.rs:LINE  AntigenType (witness = `witness_expression`)
+    tier = FormalProof, hint = PhantomTypeShapeRecognized
   ...
 
-✓ 6 immunity claim(s) at FormalProof tier:
+⚠ 6 immunity claim(s) below Execution tier:
   ...
 ```
 
@@ -289,15 +358,20 @@ not silent classification.
 
 Per ADR-005 Amendment 3, the audit:
 
-- **Reports actual tier, not maximal tier**. If proptest is the witness,
-  audit reports Execution (not FormalProof).
-- **Surfaces below-Execution claims explicitly**. Reachability,
-  ExternalUnvalidated, and Missing tiers all produce ⚠ warnings.
+- **Reports actual tier, not maximal tier**. If `proptest` is the
+  witness, v0.1 audit reports Reachability with hint
+  `ProptestPresentNotInvoked` — not Execution, because the audit did
+  not invoke the proptest harness.
+- **Surfaces below-Execution claims explicitly**. All claims at
+  `Reachability` or `None` tier produce ⚠ warnings in human-readable
+  output.
 - **Never silently upgrades**. The witness shape determines the tier;
   the audit cannot promote a Reachability witness to Execution without
-  evidence.
-- **Reports cross-crate witnesses honestly**. A witness in a dependency
-  is ExternalUnvalidated unless the consuming workspace can execute it.
+  evidence (which v0.1 cannot produce).
+- **Reports external-tool delegation honestly**. A witness with an
+  external-tool prefix (`clippy::`, `kani::`, …) reports Reachability
+  tier with the `ExternalToolPrefixRecognized` hint — the prefix is
+  recognized, the tool is not invoked.
 
 This is sub-clause F (ADR-005) applied to the audit reporting surface:
 every trust claim requires validation at the strength it's claimed,
@@ -308,23 +382,26 @@ strength.
 
 ## Choosing a witness type
 
-Practical guidance:
+Practical guidance for v0.1.0-rc.1 (tier values reflect what the audit
+actually emits; future tier-promotion paths noted in parentheses):
 
-| If you have... | Use this witness | Tier |
+| If you have… | Use this witness | v0.1 tier (hint) |
 |---|---|---|
-| A passing `#[test]` exercising the failure-class | `witness = test_fn_name` | Execution |
-| A proptest covering broad input space | `witness = proptest::strategy_fn` | Execution |
-| A phantom-type pattern enforcing invariant at compile time | `witness = phantom::TypePattern` | FormalProof |
-| A clippy lint rule that catches the pattern | `witness = clippy::lint_name` | ExternalUnvalidated |
-| A formal proof in kani/prusti/verus/creusot/flux | `witness = kani::proof_fn` (etc.) | ExternalUnvalidated (v0.1) |
-| Just a helper function (not a test) | `witness = helper_fn` | Reachability |
-| Nothing yet — placeholder | `witness = todo` (or `#[antigen_tolerance]`) | Missing |
+| A `#[test]` function | `witness = test_fn_name` | Reachability (`TestAttributePresentNotInvoked`) — promotes to Execution at A4-A5 |
+| A `proptest!` covering broad input space | `witness = proptest_fn_name` | Reachability (`ProptestPresentNotInvoked`) — promotes to Execution at A4-A5 |
+| A phantom-type proof token | `witness = NonPanickingProof::<MyType>::verified` | FormalProof (`PhantomTypeShapeRecognized`) |
+| A clippy lint rule | `witness = clippy::lint_name` | Reachability (`ExternalToolPrefixRecognized`) — promotes to Execution at A4-A5 |
+| A formal proof in kani/prusti/verus/creusot/flux | `witness = kani::proof_fn` (etc.) | Reachability (`ExternalToolPrefixRecognized`) — promotes to FormalProof at A4-A5 |
+| Just a helper function (not a test) | `witness = helper_fn` | Reachability (`FunctionResolves`) |
+| Nothing yet — placeholder | `#[antigen_tolerance(...)]` with rationale | (tolerated; not an immunity claim) |
 
-Tier achievement is honest. A theatrical test that always passes will
-still report Execution tier — but won't actually verify anything. The
-[`troubleshooting.md`](troubleshooting.md) document covers the
-"witness passes but doesn't mean what it should" failure-class (the
-ATK-A2-003/004/005/011/012 family).
+The discipline is honest: a theatrical test that always passes still
+reports its tier honestly. The audit reports the shape it recognized,
+not whether the witness actually verifies the failure class — semantic
+verification (does the witness mean what it should?) is behavioral-tier
+work for A4-A5. The [`troubleshooting.md`](troubleshooting.md) document
+covers the "witness passes but doesn't mean what it should" failure-class
+family (ATK-A2-003/004/005/011/012).
 
 ---
 
