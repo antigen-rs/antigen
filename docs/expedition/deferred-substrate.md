@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V55 (2026-05-12, Phase 5 gap-check complete; schema-lock test finding filed).
+> **Status**: V56 (2026-05-12, A3.5 sweep closed; routing-loop encounter registered; outbox-state-as-substrate at routing-coordination tier filed).
 > V41 (2026-05-11, pathmaker Phase 2 complete: ATK-A3-019 shipped (83109c3, both options A+B); engine fix complete (00c35ed supersedes 35544cc); tutorial cold-read friction log filed; stale has_method troubleshooting entry fixed; 237 passing, 31 ignored; Amendment 5 in scout revision; tutorial output-format drift (#1-5) routed to scout).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
@@ -267,6 +267,30 @@ cadence. The user-facing piece is already shipped: fingerprint-grammar.md explic
   — integration test that asserts JSON output field names and enum variant serializations against
   the actual binary output. This is the structural fix that makes reference-frame-drift a compile
   failure rather than a doc-review question. Filed as A3.5 scope amendment 7.
+
+**ENCOUNTER REGISTERED (team-lead ratified, 2026-05-12)**: "outbox-state-as-substrate at routing-coordination tier"
+- **What**: navigator context replayed a stale brief snapshot between turns during context
+  compaction; routed the same already-shipped Phase 5 deliverable list to pathmaker 6-7 consecutive
+  times. Each deliverable was on main (git-verified). Pathmaker correctly refused to re-do
+  committed work, provided raw substrate evidence (git log hashes, cargo test output, file sizes),
+  and escalated to team-lead after the loop failed to self-correct.
+- **Failure mode**: navigator's outbox state (what was routed in the pre-compaction context)
+  treated as current substrate (what work remains). Identical failure class to A1 Validation 4
+  (team passing "ratification complete" signals on agent context rather than `git grep`), one
+  level up in the coordination hierarchy.
+- **V8 verifier-self-correction instance** (team-lead named it): pathmaker standing down with
+  substrate evidence rather than producing no-op duplicate commits IS the discipline working.
+  The catch required a role that substrate-checks before acting; social confirmation loops
+  (pathmaker saying "already done") don't break the loop if the loop driver (navigator) isn't
+  substrate-checking.
+- **Antigen-applied-to-antigen** (STRONG fit): pathmaker explicitly invoked "substrate truth"
+  + named the failure-class structurally. Recursion deepens — the project's coordination uses
+  antigen vocabulary to catch its own coordination failures.
+- **Structural fix**: substrate-check (`git log --oneline`) before every "do this work" routing
+  message, not just after a loop is already established. Navigator memory updated.
+- **Instance date**: 2026-05-12 (A3.5 Phase 5). Single instance; no threshold watch needed —
+  the failure class is already named (outbox-state vs substrate-state) and the structural fix
+  is the same substrate-over-memory discipline applied at routing tier.
 
 **Dependency map** (amendment #2 output, 2026-05-11):
 - Phase 2/3 items are almost entirely parallel; no blocking sequential chains within Phase 2

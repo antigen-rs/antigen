@@ -1,6 +1,6 @@
 # Sweep A3.5 — Onboarding
 
-> **Status**: Scope-locked (ratified 2026-05-11 by team-lead + Tekgy).
+> **Status**: CLOSED (ratified 2026-05-11; sweep-close ratified 2026-05-12 by team-lead).
 > **Owner**: team-lead (coordination) + navigator (substrate-currency).
 > **Predecessor**: Sweep A3 (cross-crate scan + descended_from + multi-component framing).
 > **Successors**: A4 (composition rules + body-level fingerprint grammar), v0.1.0-rc.1 tag.
