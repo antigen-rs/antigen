@@ -196,19 +196,48 @@ cadence. The user-facing piece is already shipped: fingerprint-grammar.md explic
 
 **ENCOUNTER REGISTERED (team-lead ratified, 2026-05-11)**: "fingerprint silent-failure from tokenization-asymmetry"
 - **What**: fingerprint operator compares user-written pattern strings against proc_macro2-rendered
-  strings; the two formats can differ silently (no error, zero matches). User writes natural
-  Rust `"(&mut self)"`; engine renders `"(& mut self)"`; plain whitespace normalization collapses
-  but does not insert the space proc_macro2 adds. Result: zero matches, no diagnostic.
-- **First substrate-grounded instance**: tambear's PanickingInDrop fingerprint; scout's A3.5
-  tutorial cross-check 2026-05-11.
+  strings; the two formats can differ silently (no error, zero matches). Two distinct mechanisms
+  confirmed:
+  - Mechanism A (whitespace): user writes `"(&mut self)"`; proc_macro2 renders `"(& mut self)"`;
+    plain normalize_ws collapses spaces but does not insert the space proc_macro2 adds.
+  - Mechanism B (token class): user writes `"(Self, Self) -> Self"` (type); proc_macro2 renders
+    Receiver tokens as `"self"` (lowercase literal) not `"Self"` (type name); the two are
+    non-interchangeable regardless of whitespace normalization.
+  Both mechanisms produce zero matches, no diagnostic.
+- **Substrate-grounded instances** (2 as of 2026-05-11; below V0+1 threshold of 3 + temporal independence):
+  - Instance 1 (Mechanism A): tambear's PanickingInDrop `"(&mut self)"` fingerprint; scout A3.5 tutorial cross-check
+  - Instance 2 (Mechanism B): all PolarityInvertedClassMeet `"(Self, Self) -> Self"` fingerprints;
+    ADR-010 ratified text included; scout Phase 3 coherence review. Fixed af4113c — also a
+    substantive ADR-tier substrate-currency catch: ratified text drifted from working substrate
+    for the entire post-ratification period, surfaced retroactively.
 - **Failure-class**: Component-2 (passive scan/tools) — structural protection silently doesn't
-  apply because engine and author are writing in different formats.
+  apply because engine and author are writing in different token-rendering formats.
+- **Engine improvement scope** (team-lead, 2026-05-11): ADR-010 Amendment 5 should target the
+  CLASS, not specific mechanism. Right framing: "pre-tokenize user pattern strings through
+  proc_macro2 at parse time to canonicalize against engine-rendered strings." Solves both
+  known instances + prevents future instances. Mechanism A already implemented (35544cc,
+  normalize_signature_canonical). Mechanism B is Receiver-vs-Type distinction — different
+  surface than whitespace; aristotle to determine if 35544cc covers it or separate amendment needed.
 - **Sub-items in flight**:
-  - Engine improvement proposal (`has_method` scope; scout drafting) closes the class for signature strings
-  - Adversarial may file ATK contract for this class (their call; flag during Phase 5 gap-check)
-  - Multi-component-immunity V1 Component-2 failure-modes section is candidate home for the framing
-- **Held-for**: engine improvement proposal (closes for `has_method`); broader operator audit if
-  same asymmetry confirmed for other operators; aristotle V1 integration when V1 next refines.
+  - Engine normalization (Mechanism A): implemented 35544cc; aristotle paper-trail check pending
+  - Engine normalization (Mechanism B): scope to be determined after aristotle Phase 1-8
+  - Scout: engine improvement proposal covering class-level fix (scoped by aristotle findings)
+  - Adversarial: may file ATK contract for the class (flag at Phase 5 gap-check)
+  - Multi-component-immunity V1 Component-2 failure-modes section is candidate home
+- **Held-for**: aristotle paper-trail check on 35544cc; class-level amendment scope settlement;
+  V1 integration when V1 next refines.
+
+**ENCOUNTER CANDIDATE (below threshold, watching)**: "spec-invisible silent failure caught only by spec-against-behavior cross-check"
+- **What**: a class of bugs invisible to specification-level review (the spec text is valid; no
+  linter catches it; only checking actual engine behavior against specific substrate instances
+  reveals the mismatch). Both tokenization-asymmetry instances today are of this class.
+  Adversarial discipline probes named attack surface; scout's cross-check discipline catches
+  spec-invisible mismatches. Complementary, non-overlapping coverage.
+- **First instance**: today's pair (2026-05-11, both tokenization-asymmetry mechanisms).
+- **Threshold**: needs 3 independent instances with temporal independence + load-bearing reason
+  before V0+1 promotion. Currently 1 (counting the pair as one encounter of this meta-class).
+- **Watch for**: any future case where a ratified ADR example, tutorial, or fingerprint declaration
+  passes spec review but silently misfires against engine behavior.
 
 **Dependency map** (amendment #2 output, 2026-05-11):
 - Phase 2/3 items are almost entirely parallel; no blocking sequential chains within Phase 2
