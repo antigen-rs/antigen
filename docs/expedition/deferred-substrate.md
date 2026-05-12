@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V26 (2026-05-11, aristotle A3.5 Phase 1-8 complete: 8 findings, 5 scope-lock amendments; adversarial gap-item #5 verification in flight; awaiting team-lead/Tekgy ratification).
+> **Status**: V29 (2026-05-11, Phase 2 launched: scout/adversarial/pathmaker routed with dependency map; key finding: almost all Phase 2/3 deliverables are fully parallel; single true sequentiality is scout tutorial-vs-fingerprint-grammar coherence review in Phase 3; 856 workspace-wide fingerprint matches surfaced as troubleshooting priority).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -138,40 +138,41 @@ tag or rc**, not optional. Best-in-class, not merely sufficient. The architectur
 is good; the tooling works; the substrate is rich. What ships at v0.1.0-rc.1 is
 the welcoming first encounter of all of it.
 
-**Proposal substrate**: `docs/expedition/pre-release-onboarding-sweep-proposal.md`
-(team-lead, 2026-05-11). 11 deliverable categories, substrate-grounded verification
-criteria, proposed role distribution, 5-phase sequencing.
+**Scope-lock**: `sweeps/A3.5-onboarding/scope-lock.md` (navigator, 2026-05-11).
+13 deliverables, 5-phase sequencing, 5 ratified amendments. Supersedes proposal substrate
+at `docs/expedition/pre-release-onboarding-sweep-proposal.md` as the authoritative scope reference.
 
-**Substrate-currency note for aristotle Phase 1-8**: no git tag exists yet
-(confirmed: `git tag -l` returns empty). CHANGELOG and README reference
-`v0.1.0-rc.1` as prose, but no actual tag. Phase 5 "Tag v0.1.0-rc.1" produces
-the first tag. This is consistent with the sweep being pre-tag work — just flag
-it so aristotle's Phase 1-8 doesn't assume a tag already exists.
+**Ratification** (team-lead + Tekgy, 2026-05-11):
+- A. Naming: A3.5 ("Onboarding") — RATIFIED
+- B. Criterion #3: team-member-fresh-to-tutorial-content (pathmaker reads scout's tutorial cold) — RATIFIED; imperfection named; new-Claude-instance flagged as future-amendment-eligible
+- C. V1 canonicalization: Option B (inline during weaving) — RATIFIED; V1 stays in expedition/ during sweep
 
-**Substrate-currency note for adversarial gap-check**: proposal references
-"DemoBrokenWitness fires fingerprint matches on PanickingInDrop-shaped code in
-basic.rs" — that struct doesn't exist in current basic.rs (verified 2026-05-11).
-Gap-item may be stale from pre-W3. Adversarial should verify what cross-reactivity
-actually exists now before documenting it.
+**Gap item #5**: DemoBrokenWitness declared in `antigen/examples/broken_witness.rs`;
+fingerprint matches fire at 7 sites in `antigen/examples/basic.rs`. Cross-reactivity
+verified real (adversarial, 2026-05-11). Disposition (fix OR explicitly-teach) during
+examples-directory work; both valid.
 
-**Sweep name**: A3.5 ("Onboarding") — aristotle's recommendation; team-lead/Tekgy ratify.
-
-**Five scope-lock-time amendments** (aristotle Phase 1-8, 2026-05-11):
-1. Phase 5 draws on convergence-check discipline (cross-check outputs, not independent reads)
-2. Phase 1 includes explicit dependency-mapping sub-task (navigator-coordinated)
-3. Criterion #3 mechanism = team-member-fresh-to-tutorial-content; imperfection named
-4. Gap item #5 reframed: DemoBrokenWitness in broken_witness.rs, not basic.rs; adversarial verifying
-5. V1 canonicalization coordination before weaving deliverable (team-lead decides timing)
-
-**Awaiting**: team-lead + Tekgy ratification of A3.5 + five amendments.
-
-**Phase 1 (scope-lock + foundation)**:
-- Aristotle: Phase 1-8 COMPLETE (2026-05-11, campsite `20260511-pre-release-onboarding-sweep-phase-1-8.md`)
-- Pathmaker: hide `new`/`vaccinate` — DONE (ce75896, 2026-05-11)
-- Team-lead: README rough draft — in progress (parallel)
+**Phase 1 (COMPLETE)**:
+- Aristotle: Phase 1-8 DONE (campsite `20260511-pre-release-onboarding-sweep-phase-1-8.md`)
+- Pathmaker: hide `new`/`vaccinate` — DONE (ce75896)
 - Scout: usage-patterns.md + where-to-look-for-antigens.md — DONE (closes gap #9)
-- Adversarial: gap item #5 cross-reactivity verification — IN FLIGHT
-- Navigator: dependency-mapping pass — pending scope-lock ratification
+- Adversarial: gap item #5 verification — DONE (outcome a: 7 sites)
+- Navigator: scope-lock.md formalized — DONE (sweeps/A3.5-onboarding/scope-lock.md)
+- Navigator: dependency-mapping pass — DONE (2026-05-11; Phase 2 team routed)
+- Team-lead: README rough draft — IN PROGRESS
+
+**Phase 2 (core docs — IN FLIGHT)**:
+- Scout: tutorial + fingerprint-grammar.md — OPEN (fully unblocked)
+- Pathmaker: crate-level doc-comments + examples expansion — OPEN (fully unblocked)
+- Adversarial: troubleshooting.md + gap-check + CHANGELOG verification — OPEN (fully unblocked)
+- Team-lead: README refinement + scope.md/vision-pitch.md weaving — IN PROGRESS
+
+**Dependency map** (amendment #2 output, 2026-05-11):
+- Phase 2/3 items are almost entirely parallel; no blocking sequential chains within Phase 2
+- One true sequential dependency: scout tutorial-vs-fingerprint-grammar coherence review (Phase 3); needs both to exist first
+- basic.rs cross-reactivity disposition has minor coordination point with README direction (fix vs teach) — not a blocker; both dispositions valid
+- Phase 4 roadmap.md benefits from Phase 2/3 docs existing (accurate "coming next" story); run after most Phase 2/3 lands or parallel with last Phase 3 items
+- 856 workspace-wide fingerprint matches flagged to adversarial as highest-priority troubleshooting surface
 
 **Downstream**: `docs/usage-patterns.md` already seeded (scout, 2026-05-11).
 `docs/roadmap.md`, `docs/tutorial.md`, `docs/fingerprint-grammar.md`,

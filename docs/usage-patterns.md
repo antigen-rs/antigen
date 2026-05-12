@@ -178,12 +178,182 @@ witness." That's the signal to write the consistency test.
 
 ---
 
+## When to use `#[antigen_tolerance]`
+
+**The fingerprint matched, but this site isn't actually vulnerable**
+
+### What this pattern is
+
+The fingerprint engine finds code matching an antigen's structural pattern —
+but the match is by design, not by vulnerability. A test that deliberately
+constructs the failure pattern to verify detection. A `Drop` impl that *must*
+call a function that *could* panic because the error has nowhere else to go.
+A type that matches a `frame-translation` fingerprint because it IS the
+translation layer.
+
+`#[antigen_tolerance]` is how you tell antigen: "I see the match; it's
+intentional; here's why."
+
+### The decision tree
+
+When the scan surfaces an unaddressed presentation on a site you own:
+
+```
+Is this site genuinely vulnerable?
+├── Yes → write a witness, add #[immune(X, witness = ...)]
+└── No → why not?
+    ├── The site matches by design (it's the translation layer, the test
+    │   fixture, the intentional construction) → #[antigen_tolerance]
+    ├── The failure-class doesn't apply to this site structurally, but the
+    │   fingerprint matched → investigate: is the fingerprint over-broad?
+    │   File an issue; use #[antigen_tolerance] with rationale explaining
+    │   the false positive while the fingerprint is refined.
+    └── You haven't gotten to it yet → leave the presentation unaddressed;
+        the audit warning is correct; this is the signal to come back
+```
+
+**Do not use `#[antigen_tolerance]` to silence warnings you haven't thought
+about.** The required `rationale` field is the guard: if you can't write a
+sentence explaining why this site is safe, you haven't thought about it.
+
+### Good rationale vs. weak rationale
+
+The `rationale` field is required by the parser. What it should contain:
+
+**Good**: explains the structural reason the failure-class doesn't apply here.
+
+```rust
+#[antigen_tolerance(
+    PolarityInvertedClassMeet,
+    rationale = "This is the test fixture that deliberately constructs the \
+                 inverted-polarity case to verify the fingerprint catches it. \
+                 The 'vulnerability' is the point of the test."
+)]
+fn test_fingerprint_detects_inverted_meet() { ... }
+```
+
+```rust
+#[antigen_tolerance(
+    PanickingInDrop,
+    rationale = "This Drop impl calls log::error! which cannot panic in \
+                 practice (the logging infrastructure is initialized before \
+                 any Drop runs). The fingerprint matches syntactically; the \
+                 structural risk doesn't obtain here because the call site \
+                 is panic-free by construction."
+)]
+impl Drop for ResourceHandle { ... }
+```
+
+**Weak** (rejected by reviewers, though not by the parser):
+
+```rust
+#[antigen_tolerance(
+    PanickingInDrop,
+    rationale = "This is fine"  // explains nothing
+)]
+```
+
+```rust
+#[antigen_tolerance(
+    PanickingInDrop,
+    rationale = "TODO: investigate later"  // this is not tolerance; this is deferral
+)]
+```
+
+The rationale should be legible to a future team member reading cold. "This is
+fine" doesn't survive team turnover. The structural reason does.
+
+### When to use `until`
+
+`#[antigen_tolerance]` accepts an optional `until` field for time-bounded
+tolerances:
+
+```rust
+#[antigen_tolerance(
+    ImplicitCouplingViaFeatureFlag,
+    rationale = "tokio feature is used transitively; refactoring to an \
+                 executor-agnostic design is tracked in issue #234. Accepted \
+                 until we complete the sansio migration.",
+    until = "2026-09-01"
+)]
+pub struct MyService { ... }
+```
+
+Use `until` when:
+- The tolerance is a known technical debt with a resolution plan
+- A refactoring is in progress and the warning would fire throughout the
+  transition period
+- A version upgrade will remove the failure-class from scope
+
+**Do not use `until` to create an expiry you have no intention of enforcing.**
+When `until` expires, `cargo antigen audit --strict` fails. The field creates a
+real deadline; treat it as one.
+
+Without `until`, the tolerance is permanent — which is correct for sites that
+match by design and will never be vulnerable.
+
+### Tolerance vs. not marking at all
+
+If a site has no `#[presents]` and no `#[antigen_tolerance]`, the scan reports
+it as an unaddressed presentation (state 2: passively detected). The audit
+warning is active and correct.
+
+`#[antigen_tolerance]` is different from simply not marking the site because:
+- It is **explicit**: a future reader knows someone thought about this
+- It is **grounded**: the rationale explains why it's not a vulnerability
+- It is **auditable**: `cargo antigen audit` lists all tolerances; reviewers
+  can verify the rationale still holds
+- It is **time-bounded if warranted**: `until` creates a real re-review trigger
+
+The alternative — deleting the `#[antigen]` declaration entirely or setting
+the fingerprint to exclude these sites — destroys the structural memory of why
+the fingerprint exists. Tolerance is preferable to exclusion because it
+preserves the signal while recording the exception.
+
+### Inherited tolerance
+
+`#[antigen_tolerance]` covers inherited presentations (state 4 absorbs
+state 6/7). If a child antigen inherits a presentation from a parent via
+`#[descended_from]` and the child's site is a legitimate match-by-design,
+mark the child's site with tolerance. The same rationale-required discipline
+applies; the same audit-visibility applies.
+
+### What the audit shows
+
+With `#[antigen_tolerance]`:
+
+```
+cargo antigen audit
+
+✓ 12 presentations addressed (immune)
+  3 presentations tolerated (antigen_tolerance)
+    - PolarityInvertedClassMeet on src/tests.rs:45
+      rationale: "Test fixture that constructs the failure pattern"
+      until: (no expiry)
+    - PanickingInDrop on src/resource.rs:112
+      rationale: "log::error! is panic-free by construction here"
+      until: (no expiry)
+    - ImplicitCouplingViaFeatureFlag on src/lib.rs:8
+      rationale: "Tracked in issue #234; sansio migration in progress"
+      until: 2026-09-01
+  0 presentations expired (tolerance past until date)
+  0 presentations unaddressed (no immune or tolerance)
+```
+
+The tolerated-count is visible and distinct from addressed. Reviewers who
+want to audit tolerance quality run `cargo antigen audit --list-tolerances`
+and read each rationale. The vocabulary makes the decision visible without
+hiding it.
+
+---
+
 ## References
 
 - [`docs/decisions.md`](decisions.md) — ADR-002 (compose-not-compete),
-  ADR-005 (sub-clause F + witness tier honesty), ADR-013 (phantom-type
+  ADR-005 (sub-clause F + witness tier honesty), ADR-011 (`#[antigen_tolerance]`
+  mechanics and rationale-as-required-field), ADR-013 (phantom-type
   witness recognition + WitnessTier gradient)
 - [`docs/testing-patterns.md`](testing-patterns.md) — property test
   conventions, failing-as-passing pattern
 - [`docs/glossary.md`](glossary.md) — antigen, presentation, immunity,
-  witness, WitnessTier
+  witness, WitnessTier, tolerance
