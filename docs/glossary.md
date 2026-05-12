@@ -749,6 +749,67 @@ identification). The biological cognate is immune-system scale-invariance —
 the same recognition shapes operate at every scale, by structural identity not
 analogy.
 
+### structural-tier vs maintenance-tier
+
+**Origin**: `structural-memory.md` whitepaper (A3.5 docs work, 2026-05-12);
+implicit throughout earlier substrate.
+
+**In antigen**: the distinction between two kinds of correctness-carrier in
+software. **Maintenance-tier** carriers (documentation, tests, comments, wiki
+pages) require ongoing human effort to stay current; they drift silently when
+maintenance lags. **Structural-tier** carriers (type signatures, trait impls,
+borrow-checker constraints, antigen declarations) have their currency enforced
+by the same machinery that compiles or scans the code; they cannot be silently
+wrong because the system itself fails to compile / scan / pass checks when the
+substrate diverges from reality. Antigen extends the structural tier to *memory
+of failure-classes*, which had previously only had maintenance-tier carriers
+(commit messages, post-mortems, ADRs, tribal knowledge).
+
+### co-native (by design)
+
+**Origin**: project posture from inception; explicit in
+`for-llm-collaborators.md`, `structural-memory.md`, `concepts.md` (A3.5 docs).
+
+**In antigen**: the property that both human developers and AI agents can read
+the same vocabulary natively, without translation. Declarations in code are
+readable as Rust syntax by humans and as parseable structured data by LLMs; the
+biological metaphor is universal lived experience for humans + unambiguous
+semantic cognate for LLMs; audit reports come in both human-readable and JSON
+forms; the vocabulary's structure is the same for both audiences. Co-native is
+load-bearing for hybrid teams because failure-class memory carried by tools that
+require translation between cognition types fails in either direction.
+
+### multi-component architecture
+
+**Origin**: `concepts.md` + `expedition/multi-component-immunity.md` (A3.5 docs
+work); first-principles framing surfaced 2026-05-10 in conversation with Tekgy.
+
+**In antigen**: the framing that antigen is not a single tool but a vocabulary
+that lets teams compose multiple kinds of structural immunity. Seven components
+currently named (enumeration is open per recognition-not-design): (1) dev-in-the-
+loop immunity, (2) passive scan/lint/tool, (3) test-integration, (4) knowledge-
+ecosystem (references), (5) cross-version/lineage, (6) cross-crate/ecosystem,
+(7) real-time/CI feedback. Components compose orthogonally; a team can adopt
+at the floor (component 2 alone) and grow as discipline matures. The components
+fabric is biology-tier (C1-C3, C5-C7) and engineered-boundary tier (C4, the
+knowledge-ecosystem references which extend past biology's domain).
+
+### encoded readiness (as memory type)
+
+**Origin**: `structural-memory.md` whitepaper, section 4; biological cognate.
+
+**In antigen**: a type of memory in which the *recognition machinery itself is
+the memory*, contrasted with **storage-and-retrieval memory** in which records
+are stored and fetched when needed. The biological immune system's B-cells and
+T-cells don't retrieve records of past pathogens; they ARE records — the cell's
+recognition machinery encodes the memory. Antigen operates on encoded-readiness
+memory: `#[antigen]` declarations don't store records of past bugs for retrieval,
+they encode the recognition machinery for the failure-class. The structural
+property differs from storage-and-retrieval: storage memory can become stale
+silently as the reality it describes drifts; encoded memory is structurally
+entangled with the system that enforces it, so divergence is visible as
+recognition mismatch rather than silent drift.
+
 ---
 
 ## Glossary maintenance
