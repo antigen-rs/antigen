@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V30 (2026-05-11, scout Phase 2 complete; tambear PanickingInDrop fingerprint bug found + fixed (7d9664a); engine improvement queued to pathmaker; tutorial + fingerprint-grammar.md landed).
+> **Status**: V31 (2026-05-11, adversarial Phase 2 complete; 2 example gaps fixed; CLI audit output gap (FormalProof confirmation) routed to pathmaker; troubleshooting.md done; CHANGELOG verified clean).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -164,16 +164,21 @@ examples-directory work; both valid.
 **Phase 2 (core docs — IN FLIGHT)**:
 - Scout: tutorial + fingerprint-grammar.md — DONE (2026-05-11); coherence review Phase 3
 - Pathmaker: crate-level doc-comments + examples expansion — IN PROGRESS; + engine fix sub-item
-- Adversarial: troubleshooting.md + gap-check + CHANGELOG verification — IN PROGRESS
+- Adversarial: troubleshooting.md + gap-check + CHANGELOG verification — DONE (2026-05-11)
 - Team-lead: README refinement + scope.md/vision-pitch.md weaving — IN PROGRESS
 
-**Engine improvement (Phase 2 sub-item)**: `has_method` signature normalization footgun.
+**Engine improvement (Phase 2 sub-item — pathmaker)**: `has_method` signature normalization.
 User-written `"(&mut self)"` normalizes via `normalize_ws` but proc_macro2 renders
 `&mut self` as `"(& mut self)"` — they never match (silent failure). Fix: normalize
 user-provided pattern string through proc_macro2 tokenization at parse time in
-`antigen-fingerprint/src/parser.rs`. Routed to pathmaker 2026-05-11. Tambear adoption
-log entry warranted (PanickingInDrop had this bug since declaration; caught by scout
-tutorial cross-check; fixed at tambear 7d9664a).
+`antigen-fingerprint/src/parser.rs`. Tambear adoption log entry warranted.
+
+**CLI improvement (Phase 2/3 sub-item — pathmaker's call)**: human-readable audit output
+shows warnings for below-Execution claims but emits no confirmation for FormalProof claims.
+Adversarial gap-check found this via `phantom_witness.rs` — phantom-type witness correctly
+classified in JSON but invisible in human output. Fix: add "confirmed claims" section
+for above-Execution-tier immunity claims. Example doc updated to use `--format json` as
+workaround (committed with example fixes). Pathmaker decides if this lands in A3.5 or defers.
 
 **Dependency map** (amendment #2 output, 2026-05-11):
 - Phase 2/3 items are almost entirely parallel; no blocking sequential chains within Phase 2
