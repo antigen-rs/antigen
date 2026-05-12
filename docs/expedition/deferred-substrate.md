@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V29 (2026-05-11, Phase 2 launched: scout/adversarial/pathmaker routed with dependency map; key finding: almost all Phase 2/3 deliverables are fully parallel; single true sequentiality is scout tutorial-vs-fingerprint-grammar coherence review in Phase 3; 856 workspace-wide fingerprint matches surfaced as troubleshooting priority).
+> **Status**: V30 (2026-05-11, scout Phase 2 complete; tambear PanickingInDrop fingerprint bug found + fixed (7d9664a); engine improvement queued to pathmaker; tutorial + fingerprint-grammar.md landed).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -162,10 +162,18 @@ examples-directory work; both valid.
 - Team-lead: README rough draft — IN PROGRESS
 
 **Phase 2 (core docs — IN FLIGHT)**:
-- Scout: tutorial + fingerprint-grammar.md — OPEN (fully unblocked)
-- Pathmaker: crate-level doc-comments + examples expansion — OPEN (fully unblocked)
-- Adversarial: troubleshooting.md + gap-check + CHANGELOG verification — OPEN (fully unblocked)
+- Scout: tutorial + fingerprint-grammar.md — DONE (2026-05-11); coherence review Phase 3
+- Pathmaker: crate-level doc-comments + examples expansion — IN PROGRESS; + engine fix sub-item
+- Adversarial: troubleshooting.md + gap-check + CHANGELOG verification — IN PROGRESS
 - Team-lead: README refinement + scope.md/vision-pitch.md weaving — IN PROGRESS
+
+**Engine improvement (Phase 2 sub-item)**: `has_method` signature normalization footgun.
+User-written `"(&mut self)"` normalizes via `normalize_ws` but proc_macro2 renders
+`&mut self` as `"(& mut self)"` — they never match (silent failure). Fix: normalize
+user-provided pattern string through proc_macro2 tokenization at parse time in
+`antigen-fingerprint/src/parser.rs`. Routed to pathmaker 2026-05-11. Tambear adoption
+log entry warranted (PanickingInDrop had this bug since declaration; caught by scout
+tutorial cross-check; fixed at tambear 7d9664a).
 
 **Dependency map** (amendment #2 output, 2026-05-11):
 - Phase 2/3 items are almost entirely parallel; no blocking sequential chains within Phase 2
