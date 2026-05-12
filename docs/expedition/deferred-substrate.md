@@ -186,15 +186,28 @@ are NOT amended — normalization strategy is implementation detail within exist
 - Two options documented: Option A (tier sub-counts in summary) vs Option B (confirmed-claims section)
 - Status: waiting for pathmaker to implement; not a correctness bug (JSON accurate), UX gap
 
-**Tambear adoption log (2b — holding)**: Tekgy deciding whether team-lead writes the
-R:/tambear-side entry or Tekgy writes it themselves. Antigen-side entry already committed
-(3b4c3f6, fingerprint-grammar.md warning + three lessons). No action until Tekgy answers.
+**Tambear adoption log (antigen-side bookkeeping — low priority)**: tambear is not an adopter;
+antigen-side entries (`case-study-determinism-class.md`, `tambear-adoption-log.md`) can absorb
+the real-instance (fingerprint malformation caught during A3.5 cross-check; fixed in tambear;
+motivates engine improvement) during Phase 5 or naturalist gardening cadence. No pre-tag
+pressure. The user-facing piece is already shipped: fingerprint-grammar.md explicit warning
+(scout, 3b4c3f6). The project-state piece is the encounter-registration below.
 
-**Encounter-registration question (pending team-lead answer)**: "fingerprint silent-failure
-from tokenization-asymmetry" — worth registering as encounter-candidate now, or hold until
-scout's engine-improvement proposal frames it precisely? Adversarial may also want ATK
-contract for this failure class. Multi-component-immunity V1 Component-2 failure-mode
-section is a candidate home.
+**ENCOUNTER REGISTERED (team-lead ratified, 2026-05-11)**: "fingerprint silent-failure from tokenization-asymmetry"
+- **What**: fingerprint operator compares user-written pattern strings against proc_macro2-rendered
+  strings; the two formats can differ silently (no error, zero matches). User writes natural
+  Rust `"(&mut self)"`; engine renders `"(& mut self)"`; plain whitespace normalization collapses
+  but does not insert the space proc_macro2 adds. Result: zero matches, no diagnostic.
+- **First substrate-grounded instance**: tambear's PanickingInDrop fingerprint; scout's A3.5
+  tutorial cross-check 2026-05-11.
+- **Failure-class**: Component-2 (passive scan/tools) — structural protection silently doesn't
+  apply because engine and author are writing in different formats.
+- **Sub-items in flight**:
+  - Engine improvement proposal (`has_method` scope; scout drafting) closes the class for signature strings
+  - Adversarial may file ATK contract for this class (their call; flag during Phase 5 gap-check)
+  - Multi-component-immunity V1 Component-2 failure-modes section is candidate home for the framing
+- **Held-for**: engine improvement proposal (closes for `has_method`); broader operator audit if
+  same asymmetry confirmed for other operators; aristotle V1 integration when V1 next refines.
 
 **Dependency map** (amendment #2 output, 2026-05-11):
 - Phase 2/3 items are almost entirely parallel; no blocking sequential chains within Phase 2
