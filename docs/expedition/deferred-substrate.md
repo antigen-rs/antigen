@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V33 (2026-05-11, scope-lock amendment 6 added: engine improvement pre-tag; ATK-A3-019 routed to pathmaker; adversarial findings package with team-lead; tambear adoption log holding for Tekgy; encounter-registration question pending team-lead answer).
+> **Status**: V34 (2026-05-11, Phase 3 complete: (self,Self) receiver-rendering bug fixed + committed (af4113c); engine canonicalization via proc_macro2 committed (35544cc, scope amendment 6 implemented — skipped proposal/ratification cycle because pathmaker had natural solution in session); README deep-draft + ATK-A3-019 contract committed (59555cf); tambear fix committed (tambear HEAD); 236 passing, 32 ignored).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -161,32 +161,30 @@ examples-directory work; both valid.
 - Navigator: dependency-mapping pass — DONE (2026-05-11; Phase 2 team routed)
 - Team-lead: README rough draft — IN PROGRESS
 
-**Phase 2 (core docs — IN FLIGHT)**:
-- Scout: tutorial + fingerprint-grammar.md — DONE (2026-05-11); coherence review Phase 3
-- Pathmaker: crate-level doc-comments + examples expansion — DONE (examples committed 3b4c3f6); engine fix + CLI improvement sub-items in progress
+**Phase 2 (core docs — COMPLETE)**:
+- Scout: tutorial + fingerprint-grammar.md — DONE (2026-05-11)
+- Pathmaker: crate-level doc-comments + examples expansion + engine normalization fix — DONE
 - Adversarial: troubleshooting.md + gap-check + CHANGELOG verification — DONE (2026-05-11)
-- Team-lead: README refinement + scope.md/vision-pitch.md weaving — IN PROGRESS
+- Team-lead: README deep-draft — DONE (59555cf)
 
-**Scope-lock amendment 6** (Tekgy-ratified, 2026-05-11): engine improvement included pre-tag.
-`has_method` tokenization-asymmetry fix is NOT a quick pathmaker bugfix — it's an
-engine-contract change (ADR-010/ADR-015 amendment territory) requiring proposal →
-Phase 1-8 → ratification → implementation. Scout is first-author of proposal (finding
-came from their cross-check discipline). Aristotle Phase 1-8 after proposal. Pathmaker
-implements after ratification. Lands before tag.
+**Phase 3 (coherence review — COMPLETE 2026-05-11)**:
+- Scout: tutorial-vs-grammar coherence review — DONE; found (self,Self) bug + structural fn cleanup bug
+- All (self,Self) fingerprint fixes committed (af4113c) across 7 docs
+- Tambear fix committed (crates/tambear/src/antigens.rs, CommutativityClass fingerprint)
 
-**Engine improvement (A3.5 sub-item — scope amendment 6)**:
-- Scout: draft proposal for `antigen-fingerprint` parser pre-tokenizing user pattern
-  strings via proc_macro2 at parse time. Ground in tambear bug. Identify ADR amendments.
-  Scope boundary: `has_method` signature strings; extend to other operators only if same
-  asymmetry confirmed. Status: OPEN (scout first-author, no-rush cadence).
-- Aristotle: Phase 1-8 after scout proposal lands.
-- Pathmaker: implement after ratification.
+**Scope-lock amendment 6 — IMPLEMENTED** (not via proposal/ratification cycle: pathmaker
+had the natural proc_macro2 solution in session and implemented it directly; ADR-010/ADR-015
+are NOT amended — normalization strategy is implementation detail within existing
+"pre-normalized at parse time" invariant, not a contract change):
+- `normalize_signature_canonical()` added to `antigen-fingerprint/src/lib.rs`
+- Called at parse time in `parser.rs` parse_has_method()
+- Matcher `matcher.rs` updated to use canonical normalization for serde fallback path
+- Committed 35544cc. Scope amendment 6 closed.
 
-**ATK-A3-019 (A3.5 sub-item — pathmaker)**: FormalProof invisible + mislabeled in human
-audit output. `cargo-antigen/src/main.rs:511` labels all `WitnessStatus::Resolved` entries
-"declared (not yet semantically verified)" regardless of tier — wrong for FormalProof.
-Fix: Option B confirmed-claims section for above-Execution-tier claims. Contract in
-`antigen/tests/atk_a3_fractal_preview.rs` is `#[ignore]`-gated. Status: ROUTED to pathmaker.
+**ATK-A3-019 (A3.5 sub-item — pathmaker)**:
+- Contract committed in `antigen/tests/atk_a3_fractal_preview.rs` (59555cf), `#[ignore]`-gated
+- Two options documented: Option A (tier sub-counts in summary) vs Option B (confirmed-claims section)
+- Status: waiting for pathmaker to implement; not a correctness bug (JSON accurate), UX gap
 
 **Tambear adoption log (2b — holding)**: Tekgy deciding whether team-lead writes the
 R:/tambear-side entry or Tekgy writes it themselves. Antigen-side entry already committed
