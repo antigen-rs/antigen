@@ -186,11 +186,12 @@ are NOT amended — normalization strategy is implementation detail within exist
 - Two options documented: Option A (tier sub-counts in summary) vs Option B (confirmed-claims section)
 - Status: waiting for pathmaker to implement; not a correctness bug (JSON accurate), UX gap
 
-**Tambear adoption log (antigen-side bookkeeping — low priority)**: tambear is not an adopter;
-antigen-side entries (`case-study-determinism-class.md`, `tambear-adoption-log.md`) can absorb
-the real-instance (fingerprint malformation caught during A3.5 cross-check; fixed in tambear;
-motivates engine improvement) during Phase 5 or naturalist gardening cadence. No pre-tag
-pressure. The user-facing piece is already shipped: fingerprint-grammar.md explicit warning
+**Tambear smoke-test archaeology (low priority, no pre-tag pressure)**: tambear is in
+pre-adoption smoke-test mode — imported but not yet used per docs. Post-v0.1.0 it becomes
+a real adopter. The malformed-fingerprint catches during A3.5 are smoke-test success (sharp
+edges surfaced pre-adoption). Antigen-side archaeology entries (`case-study-determinism-class.md`,
+`tambear-adoption-log.md`) can absorb a brief note during Phase 5 or naturalist gardening
+cadence. The user-facing piece is already shipped: fingerprint-grammar.md explicit warning
 (scout, 3b4c3f6). The project-state piece is the encounter-registration below.
 
 **ENCOUNTER REGISTERED (team-lead ratified, 2026-05-11)**: "fingerprint silent-failure from tokenization-asymmetry"
