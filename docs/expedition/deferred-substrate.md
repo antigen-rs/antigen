@@ -218,13 +218,14 @@ cadence. The user-facing piece is already shipped: fingerprint-grammar.md explic
   3. Mechanism B is NOT a normalization problem — semantic distinction; auto-bridging would change semantics; mitigation is docs + correct declarations
   4. Class-level Amendment 5 is the right framing: two sub-mechanisms, different mitigations; triage discipline for future sub-mechanisms
   Artifact: `campsites/.../aristotle/20260511-adr-010-amendment-5-audit.md`
+- **Aristotle Phase 1-8 COMPLETE** (2026-05-11): Approach 3 confirmed. Scout's proposal overclaimed Mechanism B scope — proc_macro2 tokenization does NOT bridge `Self` (type-alias identifier) vs `self` (receiver keyword); they are categorically distinct at lexer level. Overclaim is itself a V8 verifier-self-correction instance at proposal-drafting layer (Phase 1-8 catching what spec review missed). OQ resolutions: OQ1 fail at parse time with specific proc_macro2 diagnostic; OQ2 patch fix (loosens matching, no breakage); OQ3 scout's coverage confirmed + add Mechanism B negative test (`(Self, Self) -> Self` must NOT match `fn meet(self, other: Self)`). Cascade refinements: PI-2 update must say tokenization bridges whitespace NOT token-class; fingerprint-grammar.md receiver-spacing table (historical, A closed) needs splitting from Self-vs-self table (active, B guidance). Artifact: `campsites/.../aristotle/20260511-adr-010-amendment-5-phase-1-8.md`
 - **Sub-items status**:
-  - Engine normalization (Mechanism A): COMPLETE — 35544cc (partial) superseded by adversarial's 00c35ed (full: ATK-W6a-013 inverted, ATK-W6a-013b added, matcher serde fallback covered)
-  - Engine normalization (Mechanism B): CLOSED — not engine-bridgeable; mitigation shipped (af4113c + fingerprint-grammar.md receiver-rendering table)
-  - Scout: drafting ADR-010 Amendment 5 (class-level, retroactive) — routed 2026-05-11
-  - Adversarial: ATK contracts filed (00c35ed); Phase 5 gap inventory open
-  - Multi-component-immunity V1 Component-2 failure-modes: candidate home when V1 next refines
-- **Held-for**: scout Amendment 5 draft → team-lead ratification → committed to decisions.md before tag
+  - Engine normalization (Mechanism A): COMPLETE — 00c35ed (full: ATK-W6a-013 inverted, ATK-W6a-013b, matcher serde fallback covered)
+  - Engine normalization (Mechanism B): CLOSED — not engine-bridgeable; mitigation shipped (af4113c + fingerprint-grammar.md)
+  - Scout: revising Amendment 5 draft incorporating 8 aristotle findings — routed 2026-05-11
+  - Adversarial: Phase 5 gap inventory open; Mechanism B negative test to add when amendment lands
+  - Multi-component-immunity V1 Component-2: candidate home when V1 next refines
+- **Held-for**: scout revised draft → adversarial review → team-lead ratification → committed to decisions.md before tag
 
 **ENCOUNTER CANDIDATE (below threshold, watching)**: "spec-invisible silent failure caught only by spec-against-behavior cross-check"
 - **What**: a class of bugs invisible to specification-level review (the spec text is valid; no
