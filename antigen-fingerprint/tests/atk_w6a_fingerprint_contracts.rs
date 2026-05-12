@@ -34,6 +34,7 @@
 //! | W6a-014 | matcher | `node_kind` extraction from nested `all_of` | ACTIVE (dispatch optimization) |
 //! | W6a-015 | matcher | Serde-deserialized `MethodPattern` has `None` cache; still matches correctly | ACTIVE (correctness contract) |
 //! | W6a-016 | matcher | `PartialEq` on `MethodPattern` ignores normalized cache | ACTIVE (identity contract) |
+//! | W6a-017 | matcher | `(Self, Self) -> Self` does NOT match `fn meet(self, ...)` — Mechanism B preserved | ACTIVE (regression guard) |
 
 use antigen_fingerprint::{Fingerprint, ItemKind, MethodPattern, MAX_DEPTH, MAX_NODES};
 
@@ -535,6 +536,63 @@ fn atk_w6a_013b_has_method_mut_receiver_canonicalized() {
     );
 }
 
+/// ATK-W6a-017 — `Self`/`self` token-class distinction preserved through
+/// canonicalization (Amendment 5 Mechanism B negative test).
+///
+/// The A3.5 canonicalization fix (commit `00c35ed`) routes both pattern and
+/// matcher output through `proc_macro2`'s tokenizer for symmetric comparison.
+/// One thing that fix MUST NOT do is bridge the case distinction between
+/// `Self` (the type identifier) and `self` (the receiver keyword) — they
+/// tokenize as distinct idents, and the matcher relies on that distinction
+/// to correctly classify `fn meet(self, other: Self)` differently from
+/// `fn meet(other: Self, second: Self)`.
+///
+/// This is the negative-control for Amendment 5 Mechanism B: documents
+/// the docs-only mitigation (users must distinguish the two forms by
+/// writing the right shape) by asserting that the engine itself does NOT
+/// silently bridge them. If a future change bridges receiver-vs-typed
+/// distinction, this test fires.
+///
+/// Substrate: `proc_macro2` tokenizes `Self` and `self` as distinct idents.
+/// Canonicalization preserves the case; `(Self , Self) -> Self` and
+/// `(self , Self) -> Self` are different strings, do not compare equal.
+#[test]
+fn atk_w6a_017_self_receiver_does_not_bridge_typed_param() {
+    // Pattern: two typed `Self` parameters, returning `Self`. No receiver.
+    let fp_typed_param = parse_ok(r#"item = impl, has_method("meet", "(Self, Self) -> Self")"#);
+
+    // Impl with a `self` receiver + one typed `Self` parameter.
+    let impl_with_receiver = "impl Lattice { fn meet(self, other: Self) -> Self { unimplemented!() } }";
+    assert!(
+        !fp_typed_param.matches(&item(impl_with_receiver)),
+        "Mechanism B negative: `(Self, Self) -> Self` pattern MUST NOT match \
+         `fn meet(self, other: Self) -> Self` — the receiver `self` (keyword) \
+         and the typed parameter `Self` (identifier) tokenize as distinct \
+         idents; the engine must preserve that distinction"
+    );
+
+    // Positive control: pattern `(self, Self) -> Self` DOES match the same impl
+    // (receiver-shaped pattern matches receiver-shaped sig).
+    let fp_receiver = parse_ok(r#"item = impl, has_method("meet", "(self, Self) -> Self")"#);
+    assert!(
+        fp_receiver.matches(&item(impl_with_receiver)),
+        "positive control: pattern with `self` receiver MUST match impl with \
+         `self` receiver"
+    );
+
+    // Positive control: pattern `(Self, Self) -> Self` DOES match an impl
+    // whose method has two typed `Self` parameters (no receiver). Note:
+    // `fn` in `impl` blocks without `self` requires the method body to be
+    // callable as an associated function — Rust accepts this shape.
+    let impl_no_receiver =
+        "impl Lattice { fn meet(first: Self, other: Self) -> Self { unimplemented!() } }";
+    assert!(
+        fp_typed_param.matches(&item(impl_no_receiver)),
+        "positive control: pattern with two typed `Self` parameters MUST \
+         match impl with associated-fn shape (two typed Self params, no receiver)"
+    );
+}
+
 // ============================================================================
 // ATK-W6a-014 — `node_kind` dispatch with nested `all_of`
 // ============================================================================
@@ -675,5 +733,67 @@ fn atk_w6a_016_method_pattern_equality_ignores_normalized_cache() {
     assert_ne!(
         with_cache, different_sig,
         "ATK-W6a-016: MethodPatterns with different signatures must be unequal"
+    );
+}
+
+// ============================================================================
+// ATK-W6a-017 — Mechanism B: `(Self, Self) -> Self` does NOT match a
+//               receiver-method `fn meet(self, other: Self) -> Self`
+// ============================================================================
+
+/// ATK-W6a-017 — Regression guard for Sub-mechanism B (token-class asymmetry).
+///
+/// `Self` (capital S) is a type-alias identifier; `self` (lowercase) is a
+/// receiver keyword. These are categorically different tokens at the lexer level
+/// (T3-T5 from aristotle's ADR-010 Amendment 5 Phase 1-8). A user who writes
+/// `has_method("meet", "(Self, Self) -> Self")` intends to match a static-style
+/// method taking two typed `Self` parameters — not a receiver-method.
+///
+/// The engine MUST NOT silently bridge `Self` → `self`. This test ensures the
+/// token-class distinction is preserved through any future changes to
+/// `normalize_signature_canonical` or the matching path.
+///
+/// If this test ever fails, a change has introduced `Self`/`self` bridging,
+/// meaning:
+/// - Static-method fingerprints would spuriously match receiver methods
+/// - Mechanism B's docs-and-correct-declarations mitigation would be silently
+///   undermined
+///
+/// The positive case (static method matching) is tested in ATK-W6a-015.
+/// This test covers the negative case (receiver method must NOT match the
+/// static pattern), per OQ3 of ADR-010 Amendment 5.
+#[test]
+fn atk_w6a_017_mechanism_b_self_capital_does_not_match_receiver_method() {
+    // Pattern: two typed Self parameters (capital S). Intended for static methods.
+    let fp_static_pattern =
+        parse_ok(r#"item = impl, has_method("meet", "(Self, Self) -> Self")"#);
+
+    // Actual: receiver method — `self` keyword (lowercase) followed by typed `Self`.
+    let impl_with_receiver =
+        "impl Lattice { fn meet(self, other: Self) -> Self { unimplemented!() } }";
+
+    assert!(
+        !fp_static_pattern.matches(&item(impl_with_receiver)),
+        "ATK-W6a-017 (Mechanism B): `(Self, Self) -> Self` pattern must NOT match \
+         `fn meet(self, other: Self)` — `Self` (type alias) and `self` (receiver keyword) \
+         are categorically different tokens; the engine must not bridge them"
+    );
+
+    // Positive control: the correct receiver pattern DOES match.
+    let fp_receiver_pattern =
+        parse_ok(r#"item = impl, has_method("meet", "(self, Self) -> Self")"#);
+    assert!(
+        fp_receiver_pattern.matches(&item(impl_with_receiver)),
+        "ATK-W6a-017 positive control: `(self, Self) -> Self` pattern MUST match \
+         `fn meet(self, other: Self)` — confirming the receiver pattern is syntactically valid"
+    );
+
+    // Negative control: static-method pattern DOES match a static method.
+    let impl_static =
+        "impl Lattice { fn meet(a: Self, b: Self) -> Self { unimplemented!() } }";
+    assert!(
+        fp_static_pattern.matches(&item(impl_static)),
+        "ATK-W6a-017 negative control: `(Self, Self) -> Self` pattern MUST match \
+         `fn meet(a: Self, b: Self)` — the static-method pattern works for its intended use"
     );
 }
