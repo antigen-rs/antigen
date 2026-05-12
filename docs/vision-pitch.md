@@ -4,8 +4,10 @@
 > 1500-word read explaining what antigen is, why it matters, and what we're asking
 > the community to consider.
 >
-> *Updated 2026-05-08 to reflect v0.1.0 substrate: fourth-safety-property framing,
-> 16+ ratified ADRs, empirical defenses from Sweep A2.*
+> *Updated 2026-05-12 to reflect v0.1.0-rc.1 substrate: five macros (not six),
+> seven fingerprint operators, multi-component architecture, co-native cognitive-
+> asymmetry framing, 16+ field cross-domain convergence, ProvenanceEntry, A3.5
+> onboarding sweep close, 18 ratified ADRs + amendments.*
 
 ---
 
@@ -64,6 +66,8 @@ Antigen makes failure-class memory **structural and inheritable** through:
   prusti, etc.).
 - **`#[descended_from(parent)]`** — propagate antigen markers through derivation,
   copy-paste, or structural similarity.
+- **`#[antigen_tolerance(antigen, rationale = "...")]`** — explicitly tolerate
+  a fingerprint match the team has reviewed, with required rationale.
 
 Plus a cargo subcommand — `cargo antigen` — that scans for unaddressed presentations,
 applies known immunity patterns across structural families (vaccination), and audits
@@ -152,16 +156,31 @@ visible in tambear's own development: agents pre-loading context lose access to
 lessons that ratified DECs already encode. Antigen makes that knowledge structural,
 which is the only viable strategy for AI-only or mixed-team development.
 
+**The cognitive asymmetry in hybrid teams is structurally addressable.** Human
+collaborators carry tribal knowledge through embodied memory, social transmission,
+and discipline-through-practice. AI agents carry context within sessions but reset
+between sessions; their long-term memory lives in training (months old) and in
+explicit substrate (whatever loads into the context window). The carriers don't
+naturally overlap. Antigen sits at the structural-tier where both cognitions read
+the same vocabulary natively — declarations work as documentation for humans and as
+substrate for AI agents reading the same code. The discipline carries across the
+gap because the substrate is the same for both. See
+[`structural-memory.md`](structural-memory.md) for the foundational treatment, and
+[`for-llm-collaborators.md`](for-llm-collaborators.md) for the LLM-side protocol.
+
 ## Adoption pathway
 
 We're not asking the Rust community to adopt antigen all at once. The pathway has
 explicit phases:
 
-**Phase 1 (shipped): core macros + scan + audit.** v0.1.0-rc.1 ships the six macros
-(`#[antigen]`, `#[presents]`, `#[immune]`, `#[descended_from]`, `#[antigen_tolerance]`,
-`#[antigen_generates]`), `cargo antigen scan` with item-identity matching, `cargo antigen
-audit` with WitnessTier gradient, fingerprint grammar v1 (six item-level operators), and
-phantom-type witness recognition. Early adopters write their own antigens for
+**Phase 1 (shipped): core macros + scan + audit.** v0.1.0-rc.1 ships five macros
+(`#[antigen]`, `#[presents]`, `#[immune]`, `#[descended_from]`, `#[antigen_tolerance]`),
+`cargo antigen scan` with item-identity matching + cross-crate scanning via
+`.cargo/registry` source-walking, `cargo antigen audit` with WitnessTier gradient
+(FormalProof / Reachability / None — Execution reserved for A4-A5 per audit-tier-honesty
+discipline), fingerprint grammar v1 (seven item-level operators), phantom-type witness
+recognition with explicit FormalProof tier reporting, and ProvenanceEntry for inherited
+presentations with diamond dedup. Early adopters write their own antigens for
 project-specific failure classes. The [tambear](https://github.com/tambear-rs/tambear)
 codebase is the first adopter.
 
@@ -216,6 +235,51 @@ For AI-coding tool authors and AI-agent framework authors:
 2. **Consider antigen as a cross-session memory layer for your agents.** When agents
    declare `#[immune]` with witnesses, the immunity persists past their session
    boundaries. The substrate becomes shared memory.
+
+## The architectural class — why the design lands
+
+Antigen instantiates a broader architectural class: *recognition with memory and
+inheritance, where new instances of recognized patterns are caught structurally
+and memory propagates through structural inheritance*. This class has been
+independently re-invented across 16+ academic fields (immunology, cognitive
+science, evolutionary biology, ecology, information theory, semiotics, knowledge
+management, complex adaptive systems, cybersecurity IDS signatures, aviation
+safety, Christopher Alexander's pattern languages, cumulative cultural evolution,
+indigenous epistemologies, stigmergy, Bayesian epistemology, philosophy of
+science). The cross-domain convergence map at
+[`cross-domain-architectural-map.md`](cross-domain-architectural-map.md)
+catalogs the fields and their convergence on this architecture.
+
+The convergence matters because the architecture isn't speculation. It's what's
+actually required for any sufficiently mature system that needs to maintain
+recognition of patterns over time. Antigen is *one ergonomic instantiation* of
+this class in the Rust programming language ecosystem. Future instantiations for
+Python, JavaScript, TypeScript, framework-specific contexts are structurally
+available — the vocabulary is language-agnostic; per-language implementations
+specialize the recognition mechanism while sharing the abstract failure-class.
+
+## Multi-component architecture
+
+Antigen is not a single tool — it's a vocabulary that lets teams compose
+multiple kinds of structural immunity. Seven components currently named
+(enumeration is open per recognition-not-design):
+
+1. **Dev-in-the-loop immunity** — declarations authored by human judgment
+2. **Passive scan/lint/tool immunity** — automated walks find antigens and
+   verify witnesses
+3. **Test-integration immunity** — tests become structural memory through
+   witness binding
+4. **Knowledge-ecosystem immunity** — references attach antigens to PRs, ADRs,
+   CVEs, post-mortems
+5. **Cross-version / lineage immunity** — `#[descended_from]` + `canonical_path`
+6. **Cross-crate / ecosystem immunity** — antigen-stdlib + cross-crate scan
+7. **Real-time / CI feedback immunity** — PR-scope recognition at moment of change
+
+Each component composes orthogonally. A team can adopt at the floor (component
+2 alone — the linter) and grow as discipline matures. See
+[`concepts.md`](concepts.md) for the adopter-facing treatment and
+[`expedition/multi-component-immunity.md`](expedition/multi-component-immunity.md)
+for the architectural deep-dive.
 
 ## Empirical defenses — why we believe the architecture is right
 
