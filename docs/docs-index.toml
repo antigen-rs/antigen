@@ -1,0 +1,304 @@
+# Machine-readable documentation index for antigen.
+#
+# This file catalogs every doc with structured metadata so LLM tooling,
+# automated docs validation, and search systems can route queries to
+# the right document. Maintained alongside docs/index.md (the
+# human-readable equivalent).
+#
+# Schema: each [[doc]] entry has:
+#   path        — relative path from docs/
+#   title       — doc title
+#   purpose     — one-line description
+#   audience    — list: "human-developer" | "human-team-lead" | "human-researcher" | "llm-agent" | "any"
+#   category    — "concept" | "tutorial" | "reference" | "guide" | "vision" | "architecture" | "research-substrate" | "co-native"
+#   tier        — "user-facing" | "project-internal" | "research"
+#   stability   — "stable" | "evolving" | "draft"
+#   related     — list of paths to related docs
+
+schema_version = "0.1"
+last_updated   = "2026-05-12"
+
+[[doc]]
+path        = "index.md"
+title       = "Documentation Index"
+purpose     = "Front-door with audience-targeted entry paths and full doc map"
+audience    = ["any"]
+category    = "guide"
+tier        = "user-facing"
+stability   = "stable"
+related     = []
+
+[[doc]]
+path        = "quickstart.md"
+title       = "5-Minute Quickstart"
+purpose     = "Fastest path from zero to running antigen"
+audience    = ["human-developer", "llm-agent"]
+category    = "tutorial"
+tier        = "user-facing"
+stability   = "stable"
+related     = ["tutorial.md", "concepts.md"]
+
+[[doc]]
+path        = "tutorial.md"
+title       = "First 15 Minutes"
+purpose     = "End-to-end walkthrough: declare antigen, scan, immune, audit"
+audience    = ["human-developer", "llm-agent"]
+category    = "tutorial"
+tier        = "user-facing"
+stability   = "stable"
+related     = ["quickstart.md", "macros.md", "where-to-look-for-antigens.md"]
+
+[[doc]]
+path        = "concepts.md"
+title       = "Concepts"
+purpose     = "Architectural concepts: third pillar, vocabulary, components, biology cognate, adopter pathways"
+audience    = ["any"]
+category    = "concept"
+tier        = "user-facing"
+stability   = "stable"
+related     = ["expedition/multi-component-immunity.md", "diagrams.md", "for-llm-collaborators.md"]
+
+[[doc]]
+path        = "diagrams.md"
+title       = "Visual Reference"
+purpose     = "Mermaid diagrams: vocabulary, scan/audit flow, witness tiers, components, biology cognate, lifecycle"
+audience    = ["any"]
+category    = "concept"
+tier        = "user-facing"
+stability   = "stable"
+related     = ["concepts.md"]
+
+[[doc]]
+path        = "for-llm-collaborators.md"
+title       = "For LLM Collaborators"
+purpose     = "Co-native protocol for AI agents reading and writing antigen-using code"
+audience    = ["llm-agent", "human-team-lead"]
+category    = "co-native"
+tier        = "user-facing"
+stability   = "stable"
+related     = ["concepts.md", "macros.md", "witness-tiers.md"]
+
+[[doc]]
+path        = "macros.md"
+title       = "Macro Reference"
+purpose     = "Full reference for #[antigen], #[presents], #[immune], #[descended_from], #[antigen_tolerance]"
+audience    = ["any"]
+category    = "reference"
+tier        = "user-facing"
+stability   = "stable"
+related     = ["fingerprint-grammar.md", "witness-tiers.md"]
+
+[[doc]]
+path        = "fingerprint-grammar.md"
+title       = "Fingerprint Grammar Reference"
+purpose     = "DSL for structural pattern-matching in antigen declarations"
+audience    = ["any"]
+category    = "reference"
+tier        = "user-facing"
+stability   = "stable"
+related     = ["macros.md", "usage-patterns.md"]
+
+[[doc]]
+path        = "witness-tiers.md"
+title       = "Witness Tier Reference"
+purpose     = "WitnessTier gradient semantics: FormalProof / Execution / Reachability / None + audit hints"
+audience    = ["any"]
+category    = "reference"
+tier        = "user-facing"
+stability   = "stable"
+related     = ["macros.md", "output-formats.md"]
+
+[[doc]]
+path        = "output-formats.md"
+title       = "Output Formats Reference"
+purpose     = "cargo antigen scan + audit human and JSON output reference"
+audience    = ["any"]
+category    = "reference"
+tier        = "user-facing"
+stability   = "stable"
+related     = ["witness-tiers.md", "troubleshooting.md"]
+
+[[doc]]
+path        = "troubleshooting.md"
+title       = "Troubleshooting"
+purpose     = "Diagnostic guide for common audit/scan output and errors"
+audience    = ["any"]
+category    = "guide"
+tier        = "user-facing"
+stability   = "stable"
+related     = ["output-formats.md", "witness-tiers.md", "fingerprint-grammar.md"]
+
+[[doc]]
+path        = "where-to-look-for-antigens.md"
+title       = "Where to Look for Antigens"
+purpose     = "Conventions for locating antigen declarations in a Rust project"
+audience    = ["any"]
+category    = "guide"
+tier        = "user-facing"
+stability   = "stable"
+related     = ["usage-patterns.md", "macros.md"]
+
+[[doc]]
+path        = "usage-patterns.md"
+title       = "Usage Patterns"
+purpose     = "Common patterns / cookbook for applying antigen vocabulary to real failure-classes"
+audience    = ["any"]
+category    = "guide"
+tier        = "user-facing"
+stability   = "evolving"
+related     = ["macros.md", "where-to-look-for-antigens.md"]
+
+[[doc]]
+path        = "glossary.md"
+title       = "Glossary"
+purpose     = "Vocabulary anchor — every project term + biological referent + Rust analog"
+audience    = ["any"]
+category    = "reference"
+tier        = "user-facing"
+stability   = "stable"
+related     = []
+
+[[doc]]
+path        = "roadmap.md"
+title       = "Roadmap"
+purpose     = "Trajectory: shipped + planned + aspirational + adoption pathways"
+audience    = ["human-team-lead", "human-developer", "llm-agent"]
+category    = "vision"
+tier        = "user-facing"
+stability   = "stable"
+related     = ["concepts.md"]
+
+[[doc]]
+path        = "origin.md"
+title       = "Origin"
+purpose     = "The founding incident — tambear DeterminismClass / CommutativityClass post-mortem narrative"
+audience    = ["human-researcher", "human-team-lead"]
+category    = "vision"
+tier        = "user-facing"
+stability   = "stable"
+related     = ["scope.md", "vision-pitch.md"]
+
+[[doc]]
+path        = "scope.md"
+title       = "Scope"
+purpose     = "Comprehensive vision: project scope, multi-paper publication trajectory, cross-domain convergence"
+audience    = ["human-team-lead", "human-researcher"]
+category    = "vision"
+tier        = "user-facing"
+stability   = "stable"
+related     = ["origin.md", "roadmap.md", "vision-pitch.md"]
+
+[[doc]]
+path        = "vision-pitch.md"
+title       = "Vision Pitch"
+purpose     = "Ecosystem outreach pitch for adopters and partners"
+audience    = ["human-team-lead"]
+category    = "vision"
+tier        = "user-facing"
+stability   = "evolving"
+related     = ["scope.md", "concepts.md"]
+
+[[doc]]
+path        = "decisions.md"
+title       = "Decisions (ADRs)"
+purpose     = "Ratified Architectural Decision Records — ADR-001 through ADR-018 plus amendments"
+audience    = ["human-researcher", "llm-agent"]
+category    = "architecture"
+tier        = "project-internal"
+stability   = "stable"
+related     = ["postures.md", "process.md"]
+
+[[doc]]
+path        = "postures.md"
+title       = "Postures"
+purpose     = "Architectural postures threaded through ADRs (sub-clause F, recognition-not-design, etc.)"
+audience    = ["human-researcher", "llm-agent"]
+category    = "architecture"
+tier        = "project-internal"
+stability   = "stable"
+related     = ["decisions.md", "process.md"]
+
+[[doc]]
+path        = "process.md"
+title       = "Process"
+purpose     = "Formal ADR lifecycle and governance"
+audience    = ["human-researcher", "human-team-lead"]
+category    = "architecture"
+tier        = "project-internal"
+stability   = "stable"
+related     = ["decisions.md", "postures.md"]
+
+[[doc]]
+path        = "testing-patterns.md"
+title       = "Testing Patterns"
+purpose     = "When and how testing-and-antigen co-operate"
+audience    = ["human-developer"]
+category    = "guide"
+tier        = "user-facing"
+stability   = "stable"
+related     = ["witness-tiers.md", "usage-patterns.md"]
+
+[[doc]]
+path        = "cross-domain-architectural-map.md"
+title       = "Cross-Domain Architectural Map"
+purpose     = "16+ academic fields converging on antigen's architectural class"
+audience    = ["human-researcher"]
+category    = "research-substrate"
+tier        = "research"
+stability   = "evolving"
+related     = ["immune-system-primitive-map.md"]
+
+[[doc]]
+path        = "immune-system-primitive-map.md"
+title       = "Immune System Primitive Map"
+purpose     = "Comprehensive biology primitive catalog"
+audience    = ["human-researcher"]
+category    = "research-substrate"
+tier        = "research"
+stability   = "evolving"
+related     = ["cross-domain-architectural-map.md", "contact-graph-and-recognition-tiers.md"]
+
+[[doc]]
+path        = "contact-graph-and-recognition-tiers.md"
+title       = "Contact Graph and Recognition Tiers"
+purpose     = "3-tier × 7-mode recognition framework"
+audience    = ["human-researcher"]
+category    = "research-substrate"
+tier        = "research"
+stability   = "evolving"
+related     = ["immune-system-primitive-map.md"]
+
+# Expedition substrate (pre-ratification design material)
+# These are noted but not exhaustively catalogued — see expedition/ for the live list.
+
+[[doc]]
+path        = "expedition/multi-component-immunity.md"
+title       = "Multi-Component Immunity (deep-dive)"
+purpose     = "Architectural deep-dive on seven components, tier structure, manifold framing"
+audience    = ["human-researcher", "llm-agent"]
+category    = "research-substrate"
+tier        = "research"
+stability   = "draft"
+related     = ["concepts.md", "expedition/antigen-applied-to-antigen.md"]
+
+[[doc]]
+path        = "expedition/antigen-applied-to-antigen.md"
+title       = "Antigen Applied to Antigen — Recursive Self-Application"
+purpose     = "How antigen's vocabulary classifies its own failure modes"
+audience    = ["human-researcher"]
+category    = "research-substrate"
+tier        = "research"
+stability   = "draft"
+related     = ["expedition/multi-component-immunity.md"]
+
+# Notes for consumers of this index:
+#
+# - LLM tooling can query by audience: "give me docs for llm-agent" → filter
+# - Routing by purpose: text-match user query against `purpose` fields
+# - Stability: "stable" means user-facing canonical; "evolving" means
+#   substantively-valid-but-may-change; "draft" means pre-ratification
+# - tier="user-facing" docs are recommended for adopter queries
+# - tier="project-internal" docs are for those shaping the project
+# - tier="research" docs are for academic / cross-domain readers
+# - When this file and the actual docs/ directory differ, the directory
+#   is authoritative; please open an issue or submit a fix
