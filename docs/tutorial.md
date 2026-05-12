@@ -353,6 +353,9 @@ that the function isn't behind a `#[cfg]` gate that the scan can't see. Run
 **Witness reported as ambiguous**: two functions in the workspace have the same
 name. Qualify the witness path: `witness = my_module::resource_handle_drop_does_not_panic`.
 
-**`has_method` fingerprint not matching**: the `proc_macro2` tokenizer renders
-`&self` as `& self` (with a space). Write `"(& self, ...)"` not `"(&self, ...)"`.
-See [`docs/fingerprint-grammar.md`](fingerprint-grammar.md).
+**`has_method` fingerprint not matching**: check the receiver form. User-natural
+Rust syntax (`"(&mut self)"`, `"(&self)"`) works — the engine canonicalizes both
+sides via `proc_macro2` at parse time. If the pattern still doesn't match, the
+likely cause is a token-class distinction: `"(Self, Self)"` (type name) is not the
+same as `"(self, Self)"` (receiver keyword). See the receiver-rendering reference
+table in [`docs/fingerprint-grammar.md`](fingerprint-grammar.md).
