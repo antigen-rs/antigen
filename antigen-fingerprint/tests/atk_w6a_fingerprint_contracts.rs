@@ -562,7 +562,8 @@ fn atk_w6a_017_self_receiver_does_not_bridge_typed_param() {
     let fp_typed_param = parse_ok(r#"item = impl, has_method("meet", "(Self, Self) -> Self")"#);
 
     // Impl with a `self` receiver + one typed `Self` parameter.
-    let impl_with_receiver = "impl Lattice { fn meet(self, other: Self) -> Self { unimplemented!() } }";
+    let impl_with_receiver =
+        "impl Lattice { fn meet(self, other: Self) -> Self { unimplemented!() } }";
     assert!(
         !fp_typed_param.matches(&item(impl_with_receiver)),
         "Mechanism B negative: `(Self, Self) -> Self` pattern MUST NOT match \
@@ -814,8 +815,7 @@ fn atk_w6a_016_method_pattern_equality_ignores_normalized_cache() {
 #[test]
 fn atk_w6a_017_mechanism_b_self_capital_does_not_match_receiver_method() {
     // Pattern: two typed Self parameters (capital S). Intended for static methods.
-    let fp_static_pattern =
-        parse_ok(r#"item = impl, has_method("meet", "(Self, Self) -> Self")"#);
+    let fp_static_pattern = parse_ok(r#"item = impl, has_method("meet", "(Self, Self) -> Self")"#);
 
     // Actual: receiver method — `self` keyword (lowercase) followed by typed `Self`.
     let impl_with_receiver =
@@ -838,8 +838,7 @@ fn atk_w6a_017_mechanism_b_self_capital_does_not_match_receiver_method() {
     );
 
     // Negative control: static-method pattern DOES match a static method.
-    let impl_static =
-        "impl Lattice { fn meet(a: Self, b: Self) -> Self { unimplemented!() } }";
+    let impl_static = "impl Lattice { fn meet(a: Self, b: Self) -> Self { unimplemented!() } }";
     assert!(
         fp_static_pattern.matches(&item(impl_static)),
         "ATK-W6a-017 negative control: `(Self, Self) -> Self` pattern MUST match \

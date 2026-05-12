@@ -394,10 +394,12 @@ pub fn audit(report: &ScanReport, workspace_root: &Path) -> AuditReport {
     // subset.
     for u in report.unaddressed_presentations() {
         if u.presentation.inherited_from.is_some() {
-            audit_report.inherited_unaddressed.push(InheritedUnaddressed {
-                presentation: u.presentation,
-                audit_hint: AuditHint::InheritedPresentationNotReAttested,
-            });
+            audit_report
+                .inherited_unaddressed
+                .push(InheritedUnaddressed {
+                    presentation: u.presentation,
+                    audit_hint: AuditHint::InheritedPresentationNotReAttested,
+                });
         }
     }
 

@@ -5,9 +5,7 @@
 //! `body_contains_macro` operator walks the function/method body for
 //! `syn::Macro` invocations natively (per ADR-015 S2).
 
-use crate::{
-    normalize_signature_canonical, Constraint, Fingerprint, ItemKind, MethodPattern,
-};
+use crate::{normalize_signature_canonical, Constraint, Fingerprint, ItemKind, MethodPattern};
 
 impl Fingerprint {
     /// Match this fingerprint against a `syn::Item`.

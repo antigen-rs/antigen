@@ -36,7 +36,7 @@ use std::marker::PhantomData;
     name = "drop-panic-class",
     family = "boundary-violation",
     fingerprint = r#"name = matches("Phantom*DropImpl")"#,
-    summary = "Drop impls must not panic; panic-during-unwind aborts the process.",
+    summary = "Drop impls must not panic; panic-during-unwind aborts the process."
 )]
 pub struct DropPanicClass;
 
