@@ -151,10 +151,22 @@ fn has_matching_method(item: &syn::Item, pattern: &MethodPattern) -> bool {
     // (`normalize_signature_canonical`) — a plain `normalize_ws` here would
     // re-introduce the `&self` / `& self` spacing bug for serde-loaded
     // patterns. A3.5 onboarding sweep fix.
-    let pattern_norm: String = pattern
-        .normalized_signature
-        .clone()
-        .unwrap_or_else(|| normalize_signature_canonical(&pattern.signature));
+    //
+    // Amendment 5 OQ1 STRICT: when the lazy canonicalization fails
+    // (proc_macro2 can't tokenize the serde-loaded `signature` field),
+    // return `false` — no match. A malformed pattern cannot be brought
+    // to a canonical form, so by construction it cannot match any real
+    // signature. The matcher has no error channel; "never matches" is
+    // the structurally honest answer at this layer. The fingerprint
+    // parser (which DOES have an error channel) is the correct place
+    // for the user-visible diagnostic.
+    let pattern_norm = match pattern.normalized_signature.clone() {
+        Some(s) => s,
+        None => match normalize_signature_canonical(&pattern.signature) {
+            Some(s) => s,
+            None => return false,
+        },
+    };
     for impl_item in &imp.items {
         if let syn::ImplItem::Fn(f) = impl_item {
             if f.sig.ident == pattern.name && signature_matches(&f.sig, &pattern_norm) {
@@ -195,7 +207,12 @@ fn signature_matches(sig: &syn::Signature, pattern_norm: &str) -> bool {
     } else {
         format!("({inputs_rendered}) -> {output_rendered}")
     };
-    normalize_signature_canonical(&actual) == pattern_norm
+    // The `actual` string was just built from `to_token_stream()` output —
+    // by construction it's valid Rust syntax, so canonicalization should
+    // never return None here. The match arm preserves "no match" semantics
+    // defensively (if some future syn shape produces output that doesn't
+    // round-trip, we get a false negative rather than a panic).
+    normalize_signature_canonical(&actual).as_deref() == Some(pattern_norm)
 }
 
 fn render_inputs(sig: &syn::Signature) -> String {

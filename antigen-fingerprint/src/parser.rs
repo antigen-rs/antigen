@@ -154,15 +154,29 @@ fn parse_has_method(input: ParseStream) -> syn::Result<Constraint> {
                 // signature through proc_macro2's tokenizer so user-natural `&mut self`
                 // matches the `& mut self` spacing the matcher produces when rendering
                 // the actual `syn::Signature`. A3.5 onboarding sweep — see
-                // `normalize_signature_canonical` for the full rationale; the previous
-                // `normalize_ws`-only path silently dropped every `&self` / `&mut self`
-                // signature pattern that didn't include the proc_macro2 spacing
-                // (a real production footgun in tambear).
-    let normalized_signature = Some(crate::normalize_signature_canonical(&signature));
+                // `normalize_signature_canonical` for the full rationale.
+                //
+                // Amendment 5 OQ1 STRICT: when proc_macro2 cannot tokenize the
+                // signature string (unbalanced parens, unterminated string,
+                // etc.), surface a fingerprint parse error rather than silently
+                // falling back to plain `normalize_ws` (which would produce
+                // asymmetric normalization vs the strict-tokenized match-site
+                // path — exactly the spacing bug this canonicalization exists
+                // to eliminate).
+    let normalized_signature = crate::normalize_signature_canonical(&signature).ok_or_else(|| {
+        syn::Error::new(
+            sig_lit.span(),
+            format!(
+                "has_method signature `{signature}` is not a valid Rust token stream \
+                 (unbalanced delimiters, unterminated string, or invalid character); \
+                 the canonical form cannot be derived and matching cannot proceed"
+            ),
+        )
+    })?;
     Ok(Constraint::HasMethod(MethodPattern {
         name,
         signature,
-        normalized_signature,
+        normalized_signature: Some(normalized_signature),
     }))
 }
 

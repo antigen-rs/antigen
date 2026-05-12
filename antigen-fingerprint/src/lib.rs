@@ -299,19 +299,29 @@ pub(crate) fn normalize_ws(s: &str) -> String {
 /// matcher produces — so the round-trip is idempotent and canonicalizing.
 /// `"(&mut self)"` → `"(& mut self)"`; `"(& mut self)"` → `"(& mut self)"`.
 ///
-/// **Fallback**: if the input is not a valid `proc_macro2` token stream
-/// (unbalanced parens, etc.), fall back to plain whitespace normalization.
-/// The parser already chooses lenience over rejection on broken sigs
-/// (`parse_has_method` accepts any non-empty string for v1 — see the
-/// comment there).
+/// **Strict failure on un-tokenizable input** (Amendment 5 OQ1 STRICT
+/// ratification): when `proc_macro2` cannot tokenize the input (unbalanced
+/// parens, unterminated string, raw backtick, etc.), this function returns
+/// `None`. Callers MUST surface the failure:
+/// - The parser path (`parse_has_method`) maps `None` to a `syn::Error`
+///   with the signature literal's span so the user sees a fingerprint
+///   parse error pointing at the malformed signature string.
+/// - The matcher path (serde-deserialized `MethodPattern` with
+///   `normalized_signature: None`) returns `false` from `has_matching_method`
+///   on `None` — a malformed pattern cannot produce a canonical form that
+///   matches any real signature, so "never matches" is the structurally
+///   honest answer at the match layer.
+///
+/// The pre-Amendment-5 lenient fallback (silently fall back to plain
+/// `normalize_ws` on the raw input) produced asymmetric normalization
+/// against the strict-tokenized match-site path — exactly the spacing bug
+/// this canonicalization exists to eliminate. Strict failure is the only
+/// shape consistent with the symmetric-canonicalization invariant.
 #[must_use]
-pub(crate) fn normalize_signature_canonical(sig: &str) -> String {
+pub(crate) fn normalize_signature_canonical(sig: &str) -> Option<String> {
     use std::str::FromStr;
-    let canonical = proc_macro2::TokenStream::from_str(sig).map_or_else(
-        |_| sig.to_string(),
-        |stream| stream.to_string(),
-    );
-    normalize_ws(&canonical)
+    let stream = proc_macro2::TokenStream::from_str(sig).ok()?;
+    Some(normalize_ws(&stream.to_string()))
 }
 
 // ============================================================================
