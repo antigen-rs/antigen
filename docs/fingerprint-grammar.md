@@ -127,26 +127,24 @@ has_method("drop", "(& mut self)")            -- mutable reference receiver
 has_method("new", "() -> Self")               -- static constructor (no receiver)
 ```
 
-**The receiver spacing caveat** (ATK-W6a-013): `proc_macro2` renders
-receiver tokens with a space between `&` and `self`/`mut`. Write the
-space-separated form in your patterns:
+**Receiver spacing** (ATK-W6a-013, resolved by ADR-010 Amendment 5): `proc_macro2`
+renders receiver tokens with a space between `&` and `self`/`mut`. The engine
+canonicalizes user-provided pattern strings through proc_macro2 at parse time, so
+both the space-separated and compact forms work:
 
 ```
--- Correct:
+-- Both accepted (engine canonicalizes to same form):
 has_method("is_valid", "(& self) -> bool")
+has_method("is_valid", "(&self) -> bool")     -- also works post-Amendment 5
 has_method("drop", "(& mut self)")
-has_method("process", "(& mut self, data: T)")
-
--- Never matches (silent failure):
-has_method("is_valid", "(&self) -> bool")
-has_method("drop", "(&mut self)")
-has_method("process", "(&mut self, data: T)")
+has_method("drop", "(&mut self)")             -- also works post-Amendment 5
 ```
 
-The mismatch is silent — no error, just no matches. The whitespace
-normalization step collapses spaces but does NOT insert missing spaces, so
-`"(&mut self)"` normalizes to `"(&mut self)"` (no change) which never equals
-the rendered `"(& mut self)"` (with space).
+*Historical note*: before ADR-010 Amendment 5 (2026-05-11), the compact form
+`"(&mut self)"` produced silent zero matches because whitespace normalization could
+not insert missing spaces. The engine fix canonicalizes both forms to the same
+proc_macro2 token spacing at parse time. ATK-W6a-013 was inverted to assert the
+corrected behavior.
 
 **Receiver rendering reference** — how each receiver form appears in patterns:
 
