@@ -1279,3 +1279,31 @@ not explicitly mentioned. All three gaps included in adversarial routing (Phase 
 3). v0.1.0-rc.1 section confirmed frozen (no touch). Cargo.toml pre-check: workspace
 keywords, categories, and per-crate descriptions present; license/repository/readme and
 dry-run verification pending pathmaker.*
+
+*V53 updated 2026-05-12 by navigator: Phase 4 scope-currency catch. "Phase 4 complete"
+claim was premature. Scope-lock verification criteria (pre-release-onboarding-sweep-
+proposal.md lines 134-141) require witness-tiers.md, output-formats.md, and macros.md
+— none exist. These are NOT absorbed by any existing doc. Team-lead caught the gap;
+Phase 5 holds pending Tekgy's decision (draft-now vs scope-lock amendment). Navigator
+filed memory entry: scope-lock verification-criteria check required before phase-complete
+claims, not just deliverables-list check.*
+
+*V54 updated 2026-05-12 by navigator: C5+C6 depth verifications complete (naturalist,
+campsite files 20260512133134 + 20260512133309). All eight findings verified hold or
+confirmed reject. Encounter-registration candidates (pre-ratification; encounters.md
+not yet exists — file in deferred-substrate until encounters discipline ratifies):
+(1) Structural-inheritance OAS (C5 F1): root #[descended_from] definition imprecise
+from day one → all descendants carry imprecision silently; no re-recognition trigger.
+Different from temporal-drift OAS in primitive-map:451. Predicts lineage-depth/
+fingerprint-age check post-A4.
+(2) Re-recognition vs migration (C5 F2): major version shift needs "re-recognize
+dependency failure surface" flow distinct from cargo antigen migrate; predicted
+primitive cargo antigen recognize --dep foo@2.0.
+(3) Negative thymic selection → cargo antigen forbid (C6 F4): ecosystem-level
+exclusion enforced at declaration-formation time (compile time), not scan/audit time.
+Answers primitive-map line 542-543 explicit placeholder. Post-A5 stdlib-governance.
+Distinct from #[antigen_tolerance] (peripheral tolerance) — central vs peripheral.
+C6 cognate ADOPTED: epidemiological surveillance infrastructure (WHO flu network
+structural rhyme; five-axis match; three existing bindings in contact-graph doc).
+C6 dimensional finding: C5 findings are all temporal; C6 findings are all population.
+Clean symmetry worth naming in V2 component taxonomy framing.*
