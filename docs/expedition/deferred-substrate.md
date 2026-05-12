@@ -1180,3 +1180,15 @@ Adversarial pre-emptively wrote ATK-W6a-017 (Mechanism B negative test, three
 assertions; cd33c96); Finding B closed. Pathmaker implementing strict fallback
 fix. Scout incorporating D/E prose + Finding B reference (cd33c96). Ratification
 held until pathmaker strict fix lands. 239 passing, 31 ignored.*
+
+*V43 updated 2026-05-11 by navigator: deferred-substrate V20-V42 written to
+file (substrate-currency fix). V20-V42 had been recorded only in git commit
+messages, not in this file. Scout's Phase 2+3 doc work committed (8bce94d):
+tutorial friction notes #1-5 fixed, usage-patterns two new sections, fingerprint-
+grammar attr_present clarification.*
+
+*V44 updated 2026-05-11 by navigator: all Amendment 5 blockers resolved.
+Pathmaker landed bb22e56 (OQ1 STRICT: normalize_signature_canonical → Option<String>).
+Scout updated draft with strict Mechanics snippet + Finding B commit ref + status
+"Ready for ratification." 240 passing, 31 ignored. Amendment 5 routed to
+team-lead for final ratification + commit to docs/decisions.md.*
