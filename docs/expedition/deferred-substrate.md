@@ -1227,3 +1227,55 @@ alongside C5/C6; Q8 (adversarial check on self-referential pathologies) →
 adversarial. Q1 (posture-class) → aristotle after Phase 5. Q3/Q4/Q5/Q6/Q7
 held for team-lead + Tekgy / V2 substrate accrual. Roadmap.md cross-tier +
 multi-language framing is a Phase 4 input when team-lead drafts.*
+
+*V49 updated 2026-05-12 by navigator: Phase 4 items dispatched. Item 1 (roadmap.md,
+~286 lines) delivered by team-lead; navigator reviewed and committed with two
+substrate corrections: (a) "cross-crate scanning + diamond dedup" overstated as
+shipped — corrected to "workspace-wide scanning" with cross-crate propagation
+deferred to A3/v0.2, consistent with scan.rs 2026-05-09 scope-lock ruling and
+CHANGELOG Known Limitations; (b) fingerprint operator count six → seven
+(body_contains_macro present in CHANGELOG line 127 but missing from roadmap list).
+Item 2 (Cargo.toml metadata audit + cargo publish --dry-run) routed to pathmaker.
+Item 3 (CHANGELOG verification: Amendment 5 entry missing; test count stale 237→240)
+routed to adversarial with specific gaps named.*
+
+*V50 updated 2026-05-12 by navigator: Q8 (adversarial self-referential pathologies
+check on antigen-applied-to-antigen.md) complete. Four findings:
+Finding 1 (MEDIUM): "no fixed point" ambiguous between harmless-local-termination and
+infinite-regress; needs clarification that recursion terminates at substrate artifacts.
+Finding 2 (HIGH, blocks Q1): circular validation — all six instances are catches; no
+analysis of what discipline does NOT catch. Backtick compilation bug and 39 parse
+failures are real counterexamples not in document.
+Finding 3 (HIGH, blocks Q1): no falsification criterion — without naming what would NOT
+be an instance, concept risks vacuity. Proposed discriminator: genuine instances use
+antigen vocabulary (named failure-class, fingerprint, witness, provenance) at a
+meta-tier. Navigator applied discriminator to six instances: Instances 4+6 STRONG,
+Instance 2 MEDIUM, Instances 1+3+5 WEAK.
+Finding 4 (LOW): "discipline-preceded-tool" claim unfalsifiable; document partially
+handles via tool-as-discipline-scaffold section; needs one sentence acknowledging
+ambiguity.*
+
+*V51 updated 2026-05-12 by navigator: Q2 (naturalist vaccination falsification check)
+complete. Finding: vaccination cognate genuine but partial. Per-instance shape-fit
+across three adoption pathways: junior adopters → cognate BREAKS (biology has no
+"vaccinate a being with no immune system"; correct cognate is developmental immunology
+/ repertoire formation); senior adopters with partial discipline → cognate HOLDS (only
+pathway where vaccination is precisely correct); mature organizations → cognate
+REDUNDANT (need immune surveillance / checkable immunity, not vaccination). Tool-as-
+discipline-scaffold structurally accurate as unified concept; underlying biology is
+three mechanisms not one. Critical cross-binding: immune-system-primitive-map.md line 69
+already binds vaccination → cargo antigen vaccinate (planned A5); document's adoption-
+pathway invocation creates second sense. Connection to Q8 Finding 3: heterogeneous
+mechanisms across adoption tiers sharpens Finding 3's discriminator criterion. Both Q8
+and Q2 findings bundled and routed to team-lead; five-item amendment queue named for
+antigen-applied-to-antigen.md. Phase 5 not blocked; Q1 posture-class candidacy blocked
+pending Findings 2+3 resolution.*
+
+*V52 updated 2026-05-12 by navigator: CHANGELOG audit complete (navigator direct).
+Three gaps found: (1) test count stale 237→240; (2) Amendment 5 engine entry missing
+(normalize_signature_canonical → Option<String> strict fail; ATK-W6a-017 Self/self
+guard; ATK-W6a-018 malformed-signature None path); (3) cascade commits 691ec5c/bb22e56
+not explicitly mentioned. All three gaps included in adversarial routing (Phase 4 item
+3). v0.1.0-rc.1 section confirmed frozen (no touch). Cargo.toml pre-check: workspace
+keywords, categories, and per-crate descriptions present; license/repository/readme and
+dry-run verification pending pathmaker.*
