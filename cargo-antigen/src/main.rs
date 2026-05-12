@@ -1,12 +1,35 @@
 //! Cargo subcommand for antigen.
 //!
-//! Provides `cargo antigen scan` (and future `new`, `vaccinate`, `audit`)
-//! subcommands for working with antigen declarations in a Rust workspace.
+//! Provides the `cargo antigen <subcommand>` CLI for working with antigen
+//! declarations in a Rust workspace. After `cargo install cargo-antigen`,
+//! invoke as `cargo antigen scan` / `cargo antigen audit` from any directory
+//! containing a `Cargo.toml`.
 //!
-//! ## Status (v0.1.0-rc.1)
+//! ## Subcommands (v0.1.0-rc.1)
 //!
-//! `scan` and `audit` are functional. `new` and `vaccinate` are stubs printing
-//! design-phase notices until A5.
+//! - `cargo antigen scan` — walk the workspace, extract antigen-related
+//!   attributes, report unaddressed presentations + tolerated sites + parse
+//!   failures. Supports `--include-deps` for cross-crate enumeration
+//!   (ADR-017) and `--format json` for machine-readable output.
+//!   See `cargo antigen scan --help` for the full surface.
+//! - `cargo antigen audit` — validate each immunity declaration's witness
+//!   identifier against the workspace function index. Classifies witnesses
+//!   by `WitnessTier` (`Reachability` / `Execution` / `FormalProof` / `None`) and
+//!   emits state-7 diagnostics for inherited presentations lacking
+//!   re-attestation (ADR-018). `--strict` gates CI on tier minimums +
+//!   state-7 absence.
+//!
+//! Two additional subcommands (`new`, `vaccinate`) exist as design-phase
+//! stubs but are hidden from `--help` until they ship beyond stub state
+//! (per A3.5 onboarding sweep).
+//!
+//! ## See also
+//!
+//! - [`antigen`](https://docs.rs/antigen) — the library crate with the
+//!   attribute macros and the `scan` + `audit` modules this binary drives.
+//! - The project's
+//!   [`docs/tutorial.md`](https://github.com/antigen-rs/antigen/blob/main/docs/tutorial.md)
+//!   for the narrative walkthrough.
 
 use std::path::PathBuf;
 use std::process::ExitCode;
