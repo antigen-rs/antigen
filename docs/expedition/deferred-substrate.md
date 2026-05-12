@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V32 (2026-05-11, Phase 2 core deliverables committed at 3b4c3f6; tutorial self-review corrected 3 issues pre-pathmaker; all scout/adversarial Phase 2 work done; pathmaker doc-comments + sub-items in progress; Phase 3 coherence review ready when pathmaker clears).
+> **Status**: V33 (2026-05-11, scope-lock amendment 6 added: engine improvement pre-tag; ATK-A3-019 routed to pathmaker; adversarial findings package with team-lead; tambear adoption log holding for Tekgy; encounter-registration question pending team-lead answer).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -167,18 +167,36 @@ examples-directory work; both valid.
 - Adversarial: troubleshooting.md + gap-check + CHANGELOG verification — DONE (2026-05-11)
 - Team-lead: README refinement + scope.md/vision-pitch.md weaving — IN PROGRESS
 
-**Engine improvement (Phase 2 sub-item — pathmaker)**: `has_method` signature normalization.
-User-written `"(&mut self)"` normalizes via `normalize_ws` but proc_macro2 renders
-`&mut self` as `"(& mut self)"` — they never match (silent failure). Fix: normalize
-user-provided pattern string through proc_macro2 tokenization at parse time in
-`antigen-fingerprint/src/parser.rs`. Tambear adoption log entry warranted.
+**Scope-lock amendment 6** (Tekgy-ratified, 2026-05-11): engine improvement included pre-tag.
+`has_method` tokenization-asymmetry fix is NOT a quick pathmaker bugfix — it's an
+engine-contract change (ADR-010/ADR-015 amendment territory) requiring proposal →
+Phase 1-8 → ratification → implementation. Scout is first-author of proposal (finding
+came from their cross-check discipline). Aristotle Phase 1-8 after proposal. Pathmaker
+implements after ratification. Lands before tag.
 
-**CLI improvement (Phase 2/3 sub-item — pathmaker's call)**: human-readable audit output
-shows warnings for below-Execution claims but emits no confirmation for FormalProof claims.
-Adversarial gap-check found this via `phantom_witness.rs` — phantom-type witness correctly
-classified in JSON but invisible in human output. Fix: add "confirmed claims" section
-for above-Execution-tier immunity claims. Example doc updated to use `--format json` as
-workaround (committed with example fixes). Pathmaker decides if this lands in A3.5 or defers.
+**Engine improvement (A3.5 sub-item — scope amendment 6)**:
+- Scout: draft proposal for `antigen-fingerprint` parser pre-tokenizing user pattern
+  strings via proc_macro2 at parse time. Ground in tambear bug. Identify ADR amendments.
+  Scope boundary: `has_method` signature strings; extend to other operators only if same
+  asymmetry confirmed. Status: OPEN (scout first-author, no-rush cadence).
+- Aristotle: Phase 1-8 after scout proposal lands.
+- Pathmaker: implement after ratification.
+
+**ATK-A3-019 (A3.5 sub-item — pathmaker)**: FormalProof invisible + mislabeled in human
+audit output. `cargo-antigen/src/main.rs:511` labels all `WitnessStatus::Resolved` entries
+"declared (not yet semantically verified)" regardless of tier — wrong for FormalProof.
+Fix: Option B confirmed-claims section for above-Execution-tier claims. Contract in
+`antigen/tests/atk_a3_fractal_preview.rs` is `#[ignore]`-gated. Status: ROUTED to pathmaker.
+
+**Tambear adoption log (2b — holding)**: Tekgy deciding whether team-lead writes the
+R:/tambear-side entry or Tekgy writes it themselves. Antigen-side entry already committed
+(3b4c3f6, fingerprint-grammar.md warning + three lessons). No action until Tekgy answers.
+
+**Encounter-registration question (pending team-lead answer)**: "fingerprint silent-failure
+from tokenization-asymmetry" — worth registering as encounter-candidate now, or hold until
+scout's engine-improvement proposal frames it precisely? Adversarial may also want ATK
+contract for this failure class. Multi-component-immunity V1 Component-2 failure-mode
+section is a candidate home.
 
 **Dependency map** (amendment #2 output, 2026-05-11):
 - Phase 2/3 items are almost entirely parallel; no blocking sequential chains within Phase 2
