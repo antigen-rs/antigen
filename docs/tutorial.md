@@ -65,14 +65,17 @@ cargo antigen --help
 ```
 
 ```
-Cargo antigen — structural failure-class memory for Rust
+The "antigen" subcommand of cargo
 
 Usage: cargo antigen <COMMAND>
 
 Commands:
-  scan   Scan for antigen declarations and unaddressed presentations
-  audit  Audit immunity claims across the workspace
+  scan   Scan the workspace for antigen presentations and report unaddressed ones
+  audit  Comprehensive immunity coverage report — witness resolution and tier validation
   help   Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
 ```
 
 > **Note**: `new` and `vaccinate` are in development and hidden until they ship
@@ -170,20 +173,21 @@ Output:
 Scanning workspace: .
 
 Scanned 3 files, found 2 antigen-related declarations:
-  - 1 antigen declaration
-  - 1 explicit #[presents] marker
-  - 0 fingerprint matches (unmarked sites)
-  - 0 tolerated sites (#[antigen_tolerance])
+  - 1 antigen declarations
+  - 1 explicit #[presents] markers
   - 0 immunity claims
-  - 0 parse failures
 
-1 presentation(s) without immunity:
+1 unaddressed explicit presentation(s):
 
-  ./src/resource.rs:14  PanickingInDrop on impl [no immunity claim]
+  ./src/resource.rs:14  PanickingInDrop on impl
 ```
 
-The explicit `#[presents]` marker you wrote shows up as a presentation without
-immunity. The fingerprint shows 0 matches — this is correct: the fingerprint
+> Zero-count lines are suppressed: fingerprint matches, tolerated sites, and
+> parse failures only appear when nonzero. A clean project with no fingerprint
+> matches produces a shorter summary than one with matches.
+
+The explicit `#[presents]` marker you wrote shows up as an unaddressed explicit
+presentation. There are no fingerprint matches — this is expected: the fingerprint
 detects `panic!` and `unreachable!` macro invocations, but the `drop` body
 here uses `.expect(...)`, which is a method call, not a macro. Method-call
 panics aren't visible to v1 fingerprint matching. This is why explicit
@@ -260,10 +264,10 @@ Auditing workspace: .
 
 Audited 1 immunity claim(s):
   - 1 declared (witness identifier found in workspace — not yet semantically verified)
-  - 0 external
-  - 0 ambiguous
-  - 0 broken
-  - 0 missing
+  - 0 external (delegated to clippy/kani/prusti/etc. — not yet executed by antigen)
+  - 0 ambiguous (witness name resolves to multiple workspace functions)
+  - 0 broken (witness identifier not found)
+  - 0 missing (no witness identifier)
 
 ⚠ 1 immunity claim(s) below Execution tier:
 

@@ -11,6 +11,59 @@
 
 ---
 
+## Declaring a new antigen vs presenting an existing one
+
+**Is this a new failure-class, or a new site in a known failure-class?**
+
+When you recognize a structural vulnerability in your code, the first question
+is whether this is a *new* failure-class (needs an `#[antigen]` declaration)
+or a *new site* of a *known* failure-class (just needs `#[presents]` or
+will be caught by the existing fingerprint).
+
+### Use `#[presents]` (or expect the fingerprint to fire) when:
+
+- The failure-class already has an `#[antigen]` declaration, and your site
+  exhibits the same structural pattern
+- The code fits the existing fingerprint — `cargo antigen scan` already finds it
+- You're applying a known pattern from the antigen-stdlib or a dependency
+
+```rust
+// PanickingInDrop already exists. Your new Drop impl panics.
+// Just add #[presents] — or wait for scan to catch it.
+#[presents(PanickingInDrop)]
+impl Drop for MyResourceHandle {
+    fn drop(&mut self) {
+        self.cleanup(); // which might panic
+    }
+}
+```
+
+### Declare a new `#[antigen]` when:
+
+- You've encountered a failure-class with no existing structural name
+- The failure-class has a repeatable structural pattern (not just "this specific
+  code is wrong")
+- You have at least one concrete real-world instance of the failure to ground
+  the fingerprint
+
+The threshold is ADR-006 recognition-not-design: you're *recognizing* a pattern
+you've observed, not *designing* a hypothetical category. If you can point to
+a concrete instance and describe its structural shape, declare the antigen.
+
+### What "structural pattern" means in practice
+
+A structural fingerprint uses the antigen operators (`item`, `has_method`,
+`attr_present`, etc.) to describe the code shape — not its runtime behavior or
+logical correctness. A good fingerprint matches when the *structure* is present,
+regardless of whether the code happens to be correct in this specific instance.
+
+If you can't describe the failure in structural terms (`item = impl`, `impl Drop
+for`, `fn drop`, `body_contains_macro("panic")`), it may be a logic bug rather
+than a failure-class. Logic bugs are tests' job; antigen covers structural
+patterns.
+
+---
+
 ## Antigens at composition boundaries
 
 **When two independent implementations must agree**
@@ -175,6 +228,90 @@ witness." That's the signal to write the consistency test.
   check proves agreement at one point. Proptest gives broader coverage.
   For mathematical correctness, proptest or a formal tool is the right
   witness tier.
+
+---
+
+## Prospective antigens — declaring before there are vulnerable sites
+
+**You know the failure class exists; no site has it yet**
+
+### What this pattern is
+
+A prospective antigen is declared before the codebase has any `#[presents]`
+sites or fingerprint matches. You're codifying institutional memory of a
+failure-class that exists in the ecosystem, even though your project hasn't
+yet developed the structural pattern that triggers it.
+
+Example: a team that has seen "panicking in Drop leads to double-panic" in
+production adds a `PanickingInDrop` antigen at project initialization, before
+writing any `Drop` impls. When the first `Drop` impl appears, the scan catches
+it immediately.
+
+### When to use it
+
+Use a prospective antigen when:
+
+- You've seen the failure-class in another codebase or in production, and
+  recognize the structural pattern that enables it
+- The project's architecture or roadmap makes the vulnerable pattern likely
+  to appear (e.g., async runtime work → `Drop` implementations)
+- You want the structural memory committed *before* the vulnerable code exists,
+  so the first developer to write the risky pattern gets immediate feedback
+
+### The silent-failure risk
+
+Prospective antigens hide fingerprint bugs longer. A fingerprint that produces
+zero matches is indistinguishable from a prospective antigen that correctly
+has no matches *and* from a prospective antigen whose fingerprint is silently
+wrong.
+
+Mitigation: verify fingerprint examples against the engine while writing the
+antigen. Run `cargo antigen scan` against a minimal test file that contains the
+structural pattern the fingerprint should match, and confirm it fires. Don't
+wait for production code to validate the fingerprint.
+
+```rust
+// Before committing PanickingInDrop, verify the fingerprint fires
+// against a test impl in a scratch file:
+//
+// impl Drop for TestDrop {
+//     fn drop(&mut self) {
+//         panic!("deliberate");
+//     }
+// }
+//
+// Then run: cargo antigen scan --root /path/to/scratch
+// and confirm the match appears.
+```
+
+### What the scan output looks like
+
+When a prospective antigen has no fingerprint matches and no `#[presents]`
+sites:
+
+```
+antigen scan
+  Antigens declared:  1
+  Sites presenting:   0
+  Sites immune:       0
+
+  0 fingerprint matches (no matching items found).
+  0 presentations unaddressed (all immune or tolerated).
+```
+
+This is expected. The antigen is ready; no vulnerable code exists yet.
+
+### Relationship to tolerance
+
+Prospective antigens and `#[antigen_tolerance]` solve different problems:
+
+- **Prospective antigen**: declares a failure-class before vulnerable sites
+  exist; the expected audit result is "zero presentations"
+- **`#[antigen_tolerance]`**: explicitly exempts a specific site that
+  fingerprint-matches but is not actually vulnerable; the site exists
+
+Don't use tolerance to suppress fingerprint matches from a prospective antigen
+that hasn't been validated. Validate the fingerprint first.
 
 ---
 
@@ -349,6 +486,10 @@ hiding it.
 
 ## References
 
+- [`docs/tutorial.md`](tutorial.md) — end-to-end walkthrough of first antigen
+  declaration + scan + audit, starting from zero
+- [`docs/fingerprint-grammar.md`](fingerprint-grammar.md) — full operator
+  reference for the fingerprint DSL with worked examples
 - [`docs/decisions.md`](decisions.md) — ADR-002 (compose-not-compete),
   ADR-005 (sub-clause F + witness tier honesty), ADR-011 (`#[antigen_tolerance]`
   mechanics and rationale-as-required-field), ADR-013 (phantom-type
@@ -357,3 +498,5 @@ hiding it.
   conventions, failing-as-passing pattern
 - [`docs/glossary.md`](glossary.md) — antigen, presentation, immunity,
   witness, WitnessTier, tolerance
+- [`docs/where-to-look-for-antigens.md`](where-to-look-for-antigens.md) —
+  project layout conventions for antigen declarations and related files

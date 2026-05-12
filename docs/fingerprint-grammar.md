@@ -191,11 +191,15 @@ all_of([
 Matches an item that has an outer attribute whose path matches `path`. The
 match is against the last path segment OR the full path.
 
+The path is the *attribute name* — the identifier before any `(...)` content.
+For `#[derive(Serialize)]`, the attribute name is `derive`, not `Serialize`.
+There is no operator to match against derive-macro arguments.
+
 ```
-attr_present("repr")         -- matches #[repr(u8)], #[repr(C)], etc.
-attr_present("test")         -- matches #[test]
-attr_present("derive")       -- matches #[derive(...)]
-attr_present("cfg")          -- matches #[cfg(...)]
+attr_present("repr")          -- matches #[repr(u8)], #[repr(C)], etc.
+attr_present("test")          -- matches #[test]
+attr_present("derive")        -- matches #[derive(...)], any derive
+attr_present("cfg")           -- matches #[cfg(...)]
 attr_present("clippy::panic") -- matches by full path
 ```
 
