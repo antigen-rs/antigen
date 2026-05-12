@@ -1264,3 +1264,75 @@ fn atk_a3_018_retire_to_documentation_is_evasion_surface_without_guards() {
     // the full lifecycle analysis.
     panic!("Meta-level process contract — retire-to-documentation guards");
 }
+
+// ============================================================================
+// ATK-A3-019: audit `resolved_count` conflates FormalProof and Reachability
+//             under a single misleading label in human-readable output.
+//
+// Finding source: Phase 2 examples adversarial review (A3.5 onboarding sweep).
+// The phantom_witness.rs example promised "see WitnessTier::FormalProof in
+// the audit output" but the human-readable output showed nothing — the
+// FormalProof claim was silently subsumed into resolved_count and labeled
+// "declared (witness identifier found in workspace — not yet semantically
+// verified)".
+//
+// Root cause: cargo-antigen/src/main.rs:511 prints one label for all
+// WitnessStatus::Resolved entries regardless of WitnessTier. The tier
+// breakdown (Reachability vs FormalProof) exists in the data but is not
+// surfaced in the human-readable audit summary.
+//
+// Impact (MEDIUM):
+//   1. Users who add a phantom-type witness see no positive signal that the
+//      FormalProof tier was recognized. The audit output looks identical
+//      before and after they add the witness. Absence-of-warning is a weak
+//      feedback signal; a confirmation line is required for the feature to
+//      be pedagogically complete.
+//   2. The label "not yet semantically verified" is factually wrong for
+//      FormalProof witnesses: the audit HAS semantically classified them —
+//      it recognized the turbofish pattern and ascribed the strongest tier
+//      available at v0.1. Calling that "not yet semantically verified" is
+//      misleading.
+//   3. A user comparing two projects — one with Reachability witnesses,
+//      one with FormalProof witnesses — cannot distinguish them from the
+//      human-readable audit. Both show "N declared ... not yet semantically
+//      verified" with the same wording. The stronger guarantee is invisible.
+//
+// Proposed fix (two options, pathmaker decides):
+//   Option A (preferred): break resolved_count into tier sub-counts in the
+//   human-readable summary. Something like:
+//     - 1 declared at Reachability (test function found)
+//     - 1 declared at FormalProof (phantom-type pattern recognized)
+//
+//   Option B (minimal): add a confirmed-claims section to human-readable
+//   audit output listing above-Execution-tier claims with their tier name,
+//   parallel to the existing below-Execution-tier warning section. The
+//   phantom-type claim appears there, not in warnings.
+//
+// Note: this is NOT a correctness bug. The JSON output is accurate. This is
+// a UX/observability gap that makes the FormalProof feature invisible to
+// users relying on the default human-readable output.
+//
+// Status: #[ignore] gated on pathmaker deciding Option A vs B and
+// implementing the human-readable output change.
+// ============================================================================
+
+#[test]
+#[ignore = "ATK-A3-019: resolved_count conflates FormalProof and Reachability in human output; \
+             pathmaker to decide Option A (tier sub-counts in summary) vs Option B \
+             (confirmed-claims section); remove ignore when human-readable audit \
+             surfaces FormalProof separately from Reachability"]
+fn atk_a3_019_audit_resolved_count_conflates_formal_proof_and_reachability() {
+    // Contract: `cargo antigen audit --root antigen/examples` human-readable
+    // output MUST distinguish phantom-type witnesses (FormalProof tier) from
+    // function witnesses (Reachability tier) in the audit summary or in a
+    // dedicated confirmed-claims section.
+    //
+    // Test oracle: after the fix, running audit on the examples directory
+    // must produce output containing "FormalProof" or "formal proof" or
+    // equivalent tier-name text visible without --format json.
+    //
+    // Verified broken as of A3.5 Phase 2 (2026-05-11): phantom_witness.rs
+    // example's FormalProof claim produced zero positive signal in human
+    // output. Only --format json surfaced `"witness_tier": "formal_proof"`.
+    panic!("ATK-A3-019: FormalProof not distinguishable from Reachability in human audit output");
+}
