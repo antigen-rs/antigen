@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V34 (2026-05-11, Phase 3 complete: (self,Self) receiver-rendering bug fixed + committed (af4113c); engine canonicalization via proc_macro2 committed (35544cc, scope amendment 6 implemented — skipped proposal/ratification cycle because pathmaker had natural solution in session); README deep-draft + ATK-A3-019 contract committed (59555cf); tambear fix committed (tambear HEAD); 236 passing, 32 ignored).
+> **Status**: V41 (2026-05-11, pathmaker Phase 2 complete: ATK-A3-019 shipped (83109c3, both options A+B); engine fix complete (00c35ed supersedes 35544cc); tutorial cold-read friction log filed; stale has_method troubleshooting entry fixed; 237 passing, 31 ignored; Amendment 5 in scout revision; tutorial output-format drift (#1-5) routed to scout).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -172,19 +172,27 @@ examples-directory work; both valid.
 - All (self,Self) fingerprint fixes committed (af4113c) across 7 docs
 - Tambear fix committed (crates/tambear/src/antigens.rs, CommutativityClass fingerprint)
 
-**Scope-lock amendment 6 — IMPLEMENTED** (not via proposal/ratification cycle: pathmaker
-had the natural proc_macro2 solution in session and implemented it directly; ADR-010/ADR-015
-are NOT amended — normalization strategy is implementation detail within existing
-"pre-normalized at parse time" invariant, not a contract change):
-- `normalize_signature_canonical()` added to `antigen-fingerprint/src/lib.rs`
-- Called at parse time in `parser.rs` parse_has_method()
-- Matcher `matcher.rs` updated to use canonical normalization for serde fallback path
-- Committed 35544cc. Scope amendment 6 closed.
+**Scope-lock amendment 6 — COMPLETE**: engine fix fully implemented at 00c35ed (adversarial;
+supersedes 35544cc). Symmetric canonicalization: both pattern (parse time) and matcher output
+(per-match) through proc_macro2 round-trip. ATK-W6a-013 inverted; ATK-W6a-013b added. ADR-010
+Amendment 5 ratification in progress (scout revising draft; class-level scope confirmed by
+aristotle Phase 1-8). 237 passing, 31 ignored.
 
-**ATK-A3-019 (A3.5 sub-item — pathmaker)**:
-- Contract committed in `antigen/tests/atk_a3_fractal_preview.rs` (59555cf), `#[ignore]`-gated
-- Two options documented: Option A (tier sub-counts in summary) vs Option B (confirmed-claims section)
-- Status: waiting for pathmaker to implement; not a correctness bug (JSON accurate), UX gap
+**ATK-A3-019 — SHIPPED (pathmaker, 83109c3)**: both options implemented. Option A: per-tier
+sub-counts in resolved summary. Option B: confirmed-claims section parallel to warnings.
+Phantom-type witnesses now produce explicit positive signal in human output. Test activated
+(was #[ignore]); 237 passing.
+
+**Criterion #3 (tutorial cold-read) — COMPLETE**: pathmaker cold-read done. 9 friction notes
+filed. Friction note #7 (stale `has_method` entry) fixed directly (factual error post-00c35ed).
+Remaining 8 notes routed to scout for triage:
+- #1 (--help output synthesized vs real) — highest priority
+- #2 singular/plural label drift
+- #3 "presentation(s) without immunity" vs "unaddressed explicit presentation(s)"  
+- #4 zero-count lines suppressed in real output but shown in tutorial
+- #5 shortened audit labels vs real parenthetical explanations
+- #6 future note: confirmed-claims block for Execution+ examples
+- #8/#9 verified clean; no action
 
 **Tambear smoke-test archaeology (low priority, no pre-tag pressure)**: tambear is in
 pre-adoption smoke-test mode — imported but not yet used per docs. Post-v0.1.0 it becomes
