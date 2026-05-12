@@ -31,7 +31,7 @@ With antigen, the pattern is declared:
 #[antigen(
     name = "polarity-inverted-class-meet",
     family = "frame-translation",
-    fingerprint = r#"item = enum, name = matches("*Class"), has_method("meet", "(Self, Self) -> Self")"#,
+    fingerprint = r#"item = enum, name = matches("*Class"), has_method("meet", "(self, Self) -> Self")"#,
     summary = "Class enums with strongest-first discriminants must use max for meet, not min.",
 )]
 pub struct PolarityInvertedClassMeet;
@@ -138,15 +138,17 @@ pub struct ResourceHandle {
     pub id: u32,
 }
 
+impl ResourceHandle {
+    fn cleanup(&self) -> Result<(), String> {
+        Err("simulated failure".to_string())
+    }
+}
+
 #[presents(PanickingInDrop)]
 impl Drop for ResourceHandle {
     fn drop(&mut self) {
         // This panics if cleanup fails — which causes process abort during unwind.
         self.cleanup().expect("cleanup failed");
-    }
-
-    fn cleanup(&self) -> Result<(), String> {
-        Err("simulated failure".to_string())
     }
 }
 ```
@@ -231,10 +233,6 @@ impl Drop for ResourceHandle {
             // Log the error instead of panicking — this is the fix.
             eprintln!("ResourceHandle cleanup failed (id={}): {e}", self.id);
         }
-    }
-
-    fn cleanup(&self) -> Result<(), String> {
-        Err("simulated failure".to_string())
     }
 }
 ```

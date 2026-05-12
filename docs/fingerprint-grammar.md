@@ -117,13 +117,14 @@ item = enum, name = matches("*Class"), variants = 3..=8
 
 ### `has_method("<name>", "<signature>")`
 
-Matches an `impl` block (or an item in scope of an impl search) that has a
-method with the given name and signature shape.
+Matches an `impl` block that has a method with the given name and
+signature shape. Only `item = impl` sites are evaluated; this operator has
+no effect on struct, enum, trait, fn, or other item kinds.
 
 ```
-has_method("meet", "(Self, Self) -> Self")
-has_method("drop", "(& mut self)")
-has_method("new", "() -> Self")
+has_method("meet", "(self, Self) -> Self")   -- by-value receiver + one typed Self arg
+has_method("drop", "(& mut self)")            -- mutable reference receiver
+has_method("new", "() -> Self")               -- static constructor (no receiver)
 ```
 
 **The receiver spacing caveat** (ATK-W6a-013): `proc_macro2` renders
@@ -146,6 +147,18 @@ The mismatch is silent — no error, just no matches. The whitespace
 normalization step collapses spaces but does NOT insert missing spaces, so
 `"(&mut self)"` normalizes to `"(&mut self)"` (no change) which never equals
 the rendered `"(& mut self)"` (with space).
+
+**Receiver rendering reference** — how each receiver form appears in patterns:
+
+| Rust source | Pattern form |
+|---|---|
+| `fn f(self, ...)` | `"(self, ...)"` |
+| `fn f(&self, ...)` | `"(& self, ...)"` |
+| `fn f(&mut self, ...)` | `"(& mut self, ...)"` |
+| `fn f(a: T, b: T)` (no receiver) | `"(T, T)"` |
+
+Typed argument names are dropped; only types appear. `fn meet(self, other: Self)`
+renders as `"(self, Self)"`, not `"(Self, Self)"`.
 
 **Signature matching**: whitespace is normalized before comparison. Extra
 spaces collapse. The comparison is textual after normalization — it is not a
@@ -224,7 +237,7 @@ item = enum, doc_contains("lattice")
 item = enum,
 name = matches("*Class"),
 variants = 3..=8,
-has_method("meet", "(Self, Self) -> Self"),
+has_method("meet", "(self, Self) -> Self"),
 any_of([
     attr_present("repr"),
     doc_contains("strength"),
@@ -389,7 +402,7 @@ Does not match: `impl Drop for T { fn drop(&mut self) { self.cleanup().expect(".
 item = enum,
 name = matches("*Class"),
 variants = 3..=8,
-has_method("meet", "(Self, Self) -> Self"),
+has_method("meet", "(self, Self) -> Self"),
 any_of([
     attr_present("repr"),
     doc_contains("strength"),
@@ -399,7 +412,10 @@ any_of([
 ```
 
 Matches: a `DeterminismClass` enum with 4 variants, `#[repr(u8)]`, and a
-`meet(&self, other: Self) -> Self` method.
+`meet(self, other: Self) -> Self` method. The `"(self, Self) -> Self"` pattern
+matches a by-value receiver (`self`) plus one typed `Self` argument — the form
+tambear's class enums use. Use `"(& self, Self) -> Self"` for reference-receiver
+methods, or `"(Self, Self) -> Self"` for pure static methods with no receiver.
 
 The `any_of` clause anchors to explicit documentation or representation
 attributes, reducing false positives on arbitrary enums with `meet` methods

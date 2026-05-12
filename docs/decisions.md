@@ -1721,7 +1721,7 @@ Concrete syntax (subject to refinement during implementation):
         item: enum,
         name: matches('*Class'),
         variants: 3..=8,
-        has_method('meet', '(Self, Self) -> Self'),
+        has_method('meet', '(self, Self) -> Self'),
         all_of([
             attr_present('repr(u8)'),
             doc_contains('strength')
@@ -1841,7 +1841,7 @@ The current ADR-010 Decision section example becomes:
         item = enum,
         name = matches("*Class"),
         variants = 3..=8,
-        has_method("meet", "(Self, Self) -> Self"),
+        has_method("meet", "(self, Self) -> Self"),
         all_of([
             attr_present("repr(u8)"),
             doc_contains("strength")

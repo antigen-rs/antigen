@@ -59,7 +59,7 @@ use antigen::antigen;
 #[antigen(
     name = "polarity-inverted-class-meet",
     family = "frame-translation",
-    fingerprint = r#"item = enum, name = matches("*Class"), has_method("meet", "(Self, Self) -> Self")"#,
+    fingerprint = r#"item = enum, name = matches("*Class"), has_method("meet", "(self, Self) -> Self")"#,
     summary = "Class enums with strongest-first discriminants must use max (not \
                min) for lattice meet. ...",
     references = ["issue-123", "https://..."],
