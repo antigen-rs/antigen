@@ -331,6 +331,17 @@ conventions on organizing antigen declarations in larger projects.
 **Fingerprint syntax**: see [`docs/fingerprint-grammar.md`](fingerprint-grammar.md)
 for the full operator reference with worked examples.
 
+**Macro reference**: see [`docs/macros.md`](macros.md) for the complete
+attribute syntax, all fields, and discipline notes for every macro.
+
+**Witness tiers**: see [`docs/witness-tiers.md`](witness-tiers.md) for what
+each audit tier (`Reachability`, `Execution`, `FormalProof`) means and how to
+reach a higher tier.
+
+**Scan/audit output**: see [`docs/output-formats.md`](output-formats.md) for
+a field-by-field reference of human-readable and JSON output, including the
+full JSON schema.
+
 **Inheritance**: `#[descended_from]` propagates `#[presents]` and `#[immune]`
 through derived types, copy-paste relationships, and structural similarity. A
 type that inherits from a vulnerable type is itself flagged. See the

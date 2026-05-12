@@ -263,6 +263,8 @@ tells you *where* those annotations live.
 
 ## References
 
+- [`docs/macros.md`](macros.md) — full reference for all five attribute macros
+  with attribute syntax, examples, and field-by-field documentation
 - [`docs/decisions.md`](decisions.md) — ADR-004 (implicit-to-explicit elevation),
   ADR-009 (adoption gradient: Layer 1 through 4)
 - [`docs/usage-patterns.md`](usage-patterns.md) — when/how to apply each macro

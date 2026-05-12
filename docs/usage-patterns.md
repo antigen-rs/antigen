@@ -488,6 +488,12 @@ hiding it.
 
 - [`docs/tutorial.md`](tutorial.md) — end-to-end walkthrough of first antigen
   declaration + scan + audit, starting from zero
+- [`docs/macros.md`](macros.md) — full reference for all five attribute macros
+  with syntax, examples, and field-by-field documentation
+- [`docs/witness-tiers.md`](witness-tiers.md) — WitnessTier gradient reference
+  with per-tier semantics and expected audit output
+- [`docs/output-formats.md`](output-formats.md) — scan/audit output reference:
+  human-readable and JSON, field-by-field
 - [`docs/fingerprint-grammar.md`](fingerprint-grammar.md) — full operator
   reference for the fingerprint DSL with worked examples
 - [`docs/decisions.md`](decisions.md) — ADR-002 (compose-not-compete),
