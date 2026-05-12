@@ -1035,3 +1035,148 @@ FormalProof-vs-ExecutionVerified substrate ↔ ATK-A3-017 antigen-classification
 pattern doc content defined. First confirmed retire-to-documentation instance:
 three-role convergence (scout, naturalist, adversarial). Third disposition
 operational. Seam-tier encounter CLOSED.*
+
+*V20 updated 2026-05-11 by navigator: seam-tier encounter FULLY CLOSED. Scout
+landed docs/usage-patterns.md with antigen_tolerance pattern — the concrete
+artifact required by ATK-A3-018 third guard. Fingerprint syntax corrected to
+v1 grammar. README staleness fixed (W8 removed from future-sweeps, test count
+updated). cargo-antigen module doc version bumped v0.0.1 → v0.1.0-rc.1.*
+
+*V21 updated 2026-05-11 by navigator: aristotle Q7 draft indexed (campsite
+20260511-q7-process-md-subsection-draft.md). process.md sub-section for
+honest-boundary-as-encounter-registration filed. ATK-A3-018 forward-routing
+marked COMPLETE. Activation gated on encounters tier ratification.*
+
+*V22 updated 2026-05-11 by navigator: naturalist vocabulary-as-protocol
+refinement complete. "Protocol" carries engineered-spec baggage conflicting
+with ADR-006 recognition discipline. Refinement: vocabulary is co-evolved
+coordination substrate; governance of vocabulary is engineered process —
+different layers, honest cognates at each. A5 stdlib-governance design-input
+flagged for team-lead.*
+
+*V23 updated 2026-05-11 by navigator: multi-component-immunity.md V1 Part I
+revised — "emergent practice" replaces "protocol" (Tekgy-ratified). A5
+stdlib-governance contribution model registered as encounter-candidate
+(held-for A5-scope-lock-substrate). Recognition-grounded by default; spec-
+grounded requires explicit justification. Structural time-sensitivity noted.*
+
+*V24 updated 2026-05-11 by navigator: onboarding sweep activated.
+docs/expedition/pre-release-onboarding-sweep-proposal.md: 11 deliverables,
+substrate-grounded verification, role distribution, 5-phase sequencing.
+Tekgy posture: onboarding required before tag, not optional. Two substrate-
+currency flags for aristotle Phase 1-8: no git tag yet; DemoBrokenWitness
+reference may be stale from pre-W3 basic.rs.*
+
+*V25 updated 2026-05-11 by navigator: Phase 1 progress. CLI hide done
+(ce75896); where-to-look-for-antigens.md committed (gap #9 closed); scout
+at creative-freedom. Aristotle Phase 1-8 pending.*
+
+*V26 updated 2026-05-11 by navigator: A3.5 Phase 1-8 complete (aristotle
+campsite 20260511-pre-release-onboarding-sweep-phase-1-8.md). 8 findings,
+5 scope-lock-time amendments. Adversarial gap-item #5 cross-reactivity
+verification in flight. Awaiting team-lead + Tekgy A3.5 ratification.*
+
+*V29 updated 2026-05-11 by navigator: A3.5 ratification landed (3 answers
+from team-lead + Tekgy). Phase 1 fully complete. Phase 2 launched: scout
+(tutorial + fingerprint-grammar.md), pathmaker (doc-comments + examples),
+adversarial (troubleshooting + gap-check) — all parallel. Scope-lock.md
+committed (sweeps/A3.5-onboarding/). Dependency map recorded.*
+
+*V30 updated 2026-05-11 by navigator: scout Phase 2 complete. Tutorial and
+fingerprint-grammar.md done. PanickingInDrop has_method signature normalization
+footgun found (tambear/src/antigens.rs:88 used "(&mut self)"; proc_macro2
+renders as "& mut self") — fixed in tambear (7d9664a). Engine improvement
+queued to pathmaker: normalize user pattern strings via proc_macro2 round-trip
+at parse time in antigen-fingerprint/src/parser.rs.*
+
+*V31 updated 2026-05-11 by navigator: adversarial Phase 2 complete.
+troubleshooting.md done. Gap-check surfaced 2 issues both dispositioned:
+basic.rs doc-comment mismatch (fixed), phantom_witness.rs invisible FormalProof
+output (fixed via --format json redirect; CLI improvement routed to pathmaker).
+CHANGELOG verified clean. Two pathmaker sub-items registered.*
+
+*V32 updated 2026-05-11 by navigator: Phase 2 core committed. Tutorial
+self-review corrections noted for pathmaker.*
+
+*V33 updated 2026-05-11 by navigator: scope amendment 6 (ATK-A3-019:
+FormalProof-tier audit output missing) added to pathmaker queue. Tambear
+fingerprint bug in scope as engine improvement. ATK-A3-019 contract written.*
+
+*V34 updated 2026-05-11 by navigator: Phase 3 complete. Engine fix + (self,Self)
+corrections committed. 35544cc: normalize_signature_canonical added to
+antigen-fingerprint/src/lib.rs (proc_macro2 round-trip at parse time).
+All (Self, Self) → (self, Self) corrections shipped across docs + tambear.
+ADR-010 ratified text at lines 1724 + 1844 corrected (af4113c). Tambear
+commit 7d9664a confirmed non-load-bearing post-engine-fix.*
+
+*V35 updated 2026-05-11 by navigator: encounter registered.
+"fingerprint-silent-failure-from-tokenization-asymmetry": fingerprint operator
+compares user-written pattern strings against proc_macro2-rendered strings;
+format differences cause silent zero-match. First instance: tambear PanickingInDrop
+(A3.5 cross-check 2026-05-11). Component-2 failure-class. Team-lead ratified:
+register now, don't hold. Tambear adoption log holding question closed.*
+
+*V36 updated 2026-05-11 by navigator: tambear smoke-test framing (Tekgy).
+Tambear is pre-adoption smoke-test consumer, not a real adopter. Malformed-
+fingerprint catches during A3.5 are smoke-test success. Post-v0.1.0 tambear
+becomes real adopter following docs. Adoption-log entries are archaeology; no
+pre-tag pressure. Memory record updated.*
+
+*V37 updated 2026-05-11 by navigator: encounter expanded to 2 instances.
+Second instance: Mechanism B (Receiver keyword `self` vs Type-alias `Self`).
+Both sub-mechanisms produce silent zero matches. Engine improvement scope
+broadened to class-level: ADR-010 Amendment 5 targets "pre-tokenize user
+pattern strings via proc_macro2" at the class level, not individual mechanisms.
+ADR-tier catch: PolarityInvertedClassMeet ratified text carried malformed form
+for entire post-ratification period; fixed retroactively at af4113c. V8
+verifier-self-correction class. New encounter-candidate: "spec-invisible silent
+failure caught only by spec-against-behavior cross-check" — 1 instance pair,
+below threshold.*
+
+*V38 updated 2026-05-11 by navigator: C1 cognate partial-fit verdict complete
+(naturalist campsite 20260511192939-c1-cognate-refinement-judgment.md).
+Vaccination captures deliberation-leads-to-prepared-substrate but misses folded
+structure (developer is both meta-agent AND participant). Biology has no
+canonical cognate; Levin bioelectric territory is genuinely close but substrate-
+extending (ADR-006 threshold; filed as forward-cognate only). Vaccination stays
+as closest in-substrate cognate with layering mismatch named honestly.
+Engineered-substrate-exceeds-biology count updated to 5. C2/C3/C5/C6 pending
+at idle cadence.*
+
+*V39 updated 2026-05-11 by navigator: aristotle audit complete (campsite
+20260511-adr-010-amendment-5-audit.md). Four verdicts: 35544cc within ADR-010
+Invariant 2; no trust boundary; Mechanism B not normalization-bridgeable;
+class-level Amendment 5 is right framing. Engine normalization fully landed
+(00c35ed supersedes 35544cc — adversarial wrote substantially better
+implementation that also fixed backtick compile error from 35544cc). Scout
+revising draft with class-level scope + ADR-tier catch. Held for scout →
+adversarial → team-lead ratification.*
+
+*V40 updated 2026-05-11 by navigator: aristotle Phase 1-8 complete (campsite
+20260511-adr-010-amendment-5-phase-1-8.md). Scout's Amendment 5 proposal
+overclaimed Mechanism B scope — proc_macro2 round-trip does NOT bridge Self
+(type-alias identifier) vs self (receiver keyword); categorically distinct at
+lexer level. Overclaim is itself V8 verifier-self-correction (recursive).
+Approach 3 confirmed: two sub-mechanisms, different mitigations, triage
+discipline. Three OQ resolutions documented. Scout revising draft with 8
+aristotle findings. Process: scout revised draft → adversarial review →
+team-lead ratification → commit.*
+
+*V41 updated 2026-05-11 by navigator: pathmaker Phase 2 deliverables complete.
+ATK-A3-019 closed (83109c3) — FormalProof tier now surfaces in human audit
+output; Option A (per-tier sub-counts) + Option B (confirmed-claims section)
+both implemented; test activated. Engine fix complete (00c35ed by adversarial —
+backtick compile error from 35544cc fixed; substantially better implementation).
+Tutorial cold-read done; 8 friction notes routed to scout (#7 fixed directly).
+237 passing, 31 ignored.*
+
+*V42 updated 2026-05-11 by navigator: OQ1 adjudicated STRICT by team-lead.
+ADR-005 §1 sub-clause F violation on lenient fallback path — |_| sig.to_string()
+reintroduces broken path on proc_macro2-invalid inputs; match-site always uses
+canonical form → asymmetry preserved on degraded path. Adversarial Stage 3
+review complete (5 findings: A=HIGH lenient fallback, B=MEDIUM Mechanism B test
+absent, C=CLEAN, D=LOW triage criterion gap, E=LOW ATK-W6a-013 prose stale).
+Adversarial pre-emptively wrote ATK-W6a-017 (Mechanism B negative test, three
+assertions; cd33c96); Finding B closed. Pathmaker implementing strict fallback
+fix. Scout incorporating D/E prose + Finding B reference (cd33c96). Ratification
+held until pathmaker strict fix lands. 239 passing, 31 ignored.*
