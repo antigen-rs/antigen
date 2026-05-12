@@ -15,7 +15,7 @@
 //! hint reminding the user that the shape is recognized but the constructor's
 //! soundness is the developer's responsibility to seal.
 //!
-//! Run with JSON output to see the FormalProof tier classification:
+//! Run with JSON output to see the `FormalProof` tier classification:
 //!
 //! ```sh
 //! cargo run --bin cargo-antigen -- antigen audit --root antigen/examples --format json
@@ -23,7 +23,7 @@
 //!
 //! In the JSON output, look for an audit entry with `"witness_tier": "formal_proof"`
 //! and `"hint": "PhantomTypeShapeRecognized"`. The human-readable `audit` output
-//! only shows warnings for claims *below* Execution tier — a FormalProof claim
+//! only shows warnings for claims *below* Execution tier — a `FormalProof` claim
 //! does not appear in warnings because it is not a warning. Use `--format json` to
 //! inspect the full classification.
 
@@ -40,10 +40,12 @@ use std::marker::PhantomData;
 )]
 pub struct DropPanicClass;
 
-/// Phantom-type proof token: a value of `NonPanickingProof::<T>` exists ONLY
-/// if the (private) `verified()` constructor produced it. The constructor's
-/// existence is the proof. Callers cannot construct an instance directly
-/// because the field is private and there are no public free constructors.
+/// Phantom-type proof token: a value of `NonPanickingProof::<T>` exists
+/// ONLY if the `verified()` constructor produced it.
+///
+/// The constructor's existence is the proof. Callers cannot construct an
+/// instance directly because the field is private and there are no public
+/// free constructors.
 ///
 /// In real code the constructor would carry additional guarantees (e.g.,
 /// kani-verified, or a sealed-by-trait-bound invariant). This example shows
