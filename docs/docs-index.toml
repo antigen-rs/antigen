@@ -16,7 +16,7 @@
 #   related     — list of paths to related docs
 
 schema_version = "0.1"
-last_updated   = "2026-05-12"
+last_updated   = "2026-05-13"
 
 [[doc]]
 path        = "index.md"
@@ -147,6 +147,56 @@ category    = "guide"
 tier        = "user-facing"
 stability   = "evolving"
 related     = ["macros.md", "where-to-look-for-antigens.md"]
+
+[[doc]]
+path        = "anti-patterns.md"
+title       = "Anti-Patterns Gallery"
+purpose     = "Common mistakes when adopting antigen, with structural reason each is wrong and correct shape instead"
+audience    = ["any"]
+category    = "guide"
+tier        = "user-facing"
+stability   = "evolving"
+related     = ["troubleshooting.md", "usage-patterns.md", "witness-tiers.md"]
+
+[[doc]]
+path        = "case-study.md"
+title       = "Case Study"
+purpose     = "End-to-end narrative of a real failure-class: how it surfaced, how antigen names it, how the lesson persists"
+audience    = ["any"]
+category    = "concept"
+tier        = "user-facing"
+stability   = "evolving"
+related     = ["tutorial.md", "origin.md", "concepts.md"]
+
+[[doc]]
+path        = "composition.md"
+title       = "Composing With Your Existing Tools"
+purpose     = "How antigen composes with clippy, proptest, kani/prusti/verus/creusot, phantom types, tests, ADR culture, CI"
+audience    = ["any"]
+category    = "concept"
+tier        = "user-facing"
+stability   = "evolving"
+related     = ["witness-tiers.md", "macros.md", "concepts.md"]
+
+[[doc]]
+path        = "examples-guide.md"
+title       = "Examples Guide"
+purpose     = "Curated progressive walkthrough of the five examples in antigen/examples/"
+audience    = ["human-developer", "llm-agent"]
+category    = "tutorial"
+tier        = "user-facing"
+stability   = "evolving"
+related     = ["tutorial.md", "macros.md", "witness-tiers.md"]
+
+[[doc]]
+path        = "structural-memory.md"
+title       = "Structural Memory of Failure-Classes (Whitepaper)"
+purpose     = "V0 whitepaper: what antigen is, why it exists, what it means for human+AI software teams"
+audience    = ["human-team-lead", "human-researcher"]
+category    = "vision"
+tier        = "user-facing"
+stability   = "draft"
+related     = ["concepts.md", "scope.md", "vision-pitch.md", "origin.md"]
 
 [[doc]]
 path        = "glossary.md"

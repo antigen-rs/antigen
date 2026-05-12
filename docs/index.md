@@ -10,7 +10,15 @@ For the project's README (install, quickstart, project framing), see
 
 ## I just want to try antigen
 
-Five-minute path:
+For a five-minute taste before committing: **[`quickstart.md`](quickstart.md)**
+walks you through `cargo install cargo-antigen` → first scan → first
+`#[antigen]` declaration without leaving the page.
+
+Already past quickstart? Continue with **[`tutorial.md`](tutorial.md)**
+for the full first-15-minutes walkthrough (declare → scan → immune →
+audit, end-to-end).
+
+The shortest possible version, inline:
 
 ```sh
 cargo install cargo-antigen
@@ -19,15 +27,13 @@ cargo antigen scan
 ```
 
 On a fresh codebase with no antigens declared yet, this returns clean.
-Now add the dependency and declare your first antigen:
+Then add the dependency and declare your first antigen — quickstart
+shows you how:
 
 ```toml
 [dependencies]
 antigen = "=0.1.0-rc.1"
 ```
-
-Then follow **[`tutorial.md`](tutorial.md)** for the full first-15-
-minutes walkthrough.
 
 ---
 
@@ -39,14 +45,26 @@ Different starting points for different people.
 
 Read in order:
 
-1. **[`concepts.md`](concepts.md)** — what antigen is, the third
+1. **[`quickstart.md`](quickstart.md)** — 5-minute taste before
+   committing
+2. **[`concepts.md`](concepts.md)** — what antigen is, the third
    pillar framing, the vocabulary, the seven components, the biology
    cognate, the three adopter pathways
-2. **[`tutorial.md`](tutorial.md)** — your first 15 minutes, end-to-end
-3. **[`where-to-look-for-antigens.md`](where-to-look-for-antigens.md)**
+3. **[`tutorial.md`](tutorial.md)** — your first 15 minutes, end-to-end
+4. **[`case-study.md`](case-study.md)** — narrative walkthrough of a
+   real failure-class (less "follow these steps", more "here's what
+   actually happened")
+5. **[`examples-guide.md`](examples-guide.md)** — progressive
+   walkthrough of `antigen/examples/`
+6. **[`composition.md`](composition.md)** — how antigen fits with
+   clippy, proptest, kani/prusti/verus/creusot, phantom types, tests,
+   ADR culture, CI
+7. **[`where-to-look-for-antigens.md`](where-to-look-for-antigens.md)**
    — conventions for locating antigen declarations in your project
-4. **[`usage-patterns.md`](usage-patterns.md)** — common patterns for
+8. **[`usage-patterns.md`](usage-patterns.md)** — common patterns for
    real failure-classes
+9. **[`anti-patterns.md`](anti-patterns.md)** — common mistakes when
+   adopting antigen, with the structural reason each is wrong
 
 ### "I want a reference for a specific thing"
 
@@ -78,10 +96,17 @@ Read in order:
 - **[`../README.md`](../README.md)** — project framing + value
   proposition
 - **[`concepts.md`](concepts.md)** — architectural overview
+- **[`case-study.md`](case-study.md)** — what adopting antigen
+  actually looks like, narrated through a real failure-class
+- **[`composition.md`](composition.md)** — how antigen fits alongside
+  the tools you already use
 - **[`roadmap.md`](roadmap.md)** — trajectory and what's coming
 - **[`scope.md`](scope.md)** — comprehensive vision; multi-paper
   publication trajectory; cross-domain convergence
 - **[`vision-pitch.md`](vision-pitch.md)** — ecosystem-outreach pitch
+- **[`structural-memory.md`](structural-memory.md)** — whitepaper
+  (V0): what antigen is, why it exists, what it means for software
+  teams collaborating across human and AI cognition
 
 ### "I'm a researcher or want the design substrate"
 
@@ -128,10 +153,16 @@ A flat catalog of every doc with one-line purpose:
 
 | Doc | Purpose |
 |---|---|
+| [`quickstart.md`](quickstart.md) | 5-minute taste before committing |
 | [`concepts.md`](concepts.md) | What antigen is, architecturally |
 | [`tutorial.md`](tutorial.md) | First 15 minutes, end-to-end |
+| [`case-study.md`](case-study.md) | End-to-end narrative of a real failure-class |
+| [`examples-guide.md`](examples-guide.md) | Progressive walkthrough of `antigen/examples/` |
+| [`composition.md`](composition.md) | How antigen composes with clippy, proptest, kani/prusti/verus, etc. |
 | [`where-to-look-for-antigens.md`](where-to-look-for-antigens.md) | Placement conventions |
 | [`usage-patterns.md`](usage-patterns.md) | Common patterns / cookbook |
+| [`anti-patterns.md`](anti-patterns.md) | Common mistakes + correct shape |
+| [`diagrams.md`](diagrams.md) | Mermaid visuals for vocabulary, flow, architecture |
 
 ### User-facing reference
 
@@ -158,6 +189,7 @@ A flat catalog of every doc with one-line purpose:
 | [`origin.md`](origin.md) | The founding incident narrative |
 | [`scope.md`](scope.md) | Comprehensive vision |
 | [`vision-pitch.md`](vision-pitch.md) | Ecosystem outreach pitch |
+| [`structural-memory.md`](structural-memory.md) | Whitepaper: structural memory of failure-classes (V0) |
 
 ### Architecture + governance
 
@@ -183,21 +215,30 @@ A flat catalog of every doc with one-line purpose:
 
 Different docs for different jobs:
 
-- **Concepts** explains the *why* and *what*
-- **Tutorial** walks you through the *how*, end-to-end
+- **Quickstart** is the 5-minute taste; **tutorial** is the 15-minute
+  walkthrough
+- **Concepts** explains the *why* and *what*; **diagrams** is the
+  visual companion
+- **Case study** is the narrative version of "what adopting antigen
+  feels like"; **examples-guide** is the curated tour of the shipped
+  example code
 - **References** (macros, fingerprint-grammar, witness-tiers, output-
   formats) describe the *exact syntax and behavior*
-- **Patterns** (usage-patterns, where-to-look) describe *how to apply*
+- **Patterns** (usage-patterns, where-to-look) describe *how to apply*;
+  **anti-patterns** describes *what not to do*
+- **Composition** describes how antigen sits alongside the rest of
+  the Rust toolchain (clippy, proptest, kani/prusti/verus, phantom
+  types, tests, ADR culture, CI)
 - **Troubleshooting** helps when something goes wrong
-- **Vision** (scope, vision-pitch, roadmap) is for adopters and
-  partners deciding fit
+- **Vision** (scope, vision-pitch, roadmap, structural-memory) is for
+  adopters and partners deciding fit
 - **Architecture** (decisions, postures, process) is for those
   shaping the project itself
 - **Research substrate** (cross-domain, immune-system primitive,
   contact-graph, expedition) is for researchers and deep-dive readers
 
-Most adopters need: README + tutorial + macros + where-to-look. The
-rest is available when you need it.
+Most adopters need: README + quickstart + tutorial + macros + where-
+to-look. The rest is available when you need it.
 
 ---
 
