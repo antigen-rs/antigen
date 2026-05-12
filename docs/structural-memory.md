@@ -791,19 +791,33 @@ supporting evidence. Per the *consilience-of-inductions* discipline
 rigorous-mapping rather than topical-similarity), the fields below
 are classified by cognate-strength:
 
-### Strong cognates (rigorous structural-mapping; independent discovery through different methods)
+### Strong cognates — the originating substrate plus four independent convergences
 
-These five fields exhibit the architectural class through deep
-structural mapping; the convergence here is the substrate for the
-claim that recognition-with-memory-and-inheritance is a real
-architectural class:
+A precision the V1 reclassification deferred: **immunology is the
+originating substrate antigen explicitly modeled from, not a peer
+cognate that independently converged onto the architecture.** The
+real evidence structure is asymmetric and stronger when stated
+honestly — *four* mature fields independently converged through
+different methods *onto the architectural class instantiated in
+immunology*. Four-method-convergence-onto-immunology is genuine
+consilience-of-inductions evidence; flat-five framing reads as
+enthusiasm and obscures the actual evidentiary shape.
+
+**The originating substrate**:
 
 - **Immunology** (biology) — antibody recognition + B-cell memory +
-  clonal lineage. The most rigorous cognate; antigen explicitly
-  models on this substrate.
+  clonal lineage. Antigen explicitly models on this substrate; the
+  vocabulary is borrowed, the cognate is load-bearing per ADR-003.
+  This is not "evidence the architecture exists" — it is the
+  substrate the architecture exists *in*.
+
+**Four independent convergences onto the same architectural class**:
+
 - **Type theory / formal verification lineage** — Hoare (1969) →
   Eiffel (1992) → Liquid Haskell → Flux. Structural specification
   with named invariants and verification at the type/contract layer.
+  Arrived through logic + program-correctness mathematics, no
+  biological framing.
 - **Cognitive science (schema theory + transfer learning)** —
   recognition-via-named-schemas + cross-domain pattern transfer.
   Substrate-rigorous; arrived through experimental psychology +
@@ -811,12 +825,63 @@ architectural class:
 - **Pattern languages (Christopher Alexander)** — explicit pattern
   catalog with named instances and structural fingerprints. The
   source of software design patterns; rigorous discipline of
-  pattern-as-named-recognition.
+  pattern-as-named-recognition. Arrived through architectural
+  practice + design theory.
 - **Cybersecurity (IDS signatures + threat intelligence)** —
   fingerprint-based recognition of attack patterns with named
   signatures, propagated across organizations through CVE/threat-
   feed substrate. Operationally identical architecture at the
-  infosec layer.
+  infosec layer. Arrived through adversarial-system response, not
+  biology metaphor.
+
+### Where the immunology cognate goes silent (engineered substrate exceeds biology)
+
+The biology cognate operates as instrument (per the
+*metaphor-as-instrument* discipline): it predicts densely in its
+domain *and* falls silent at specific boundaries. The silences are
+diagnostic — they're places where antigen's engineered substrate
+exceeds what biology can model. Naming the boundaries here
+strengthens rather than weakens the convergence claim: it shows the
+metaphor operating with honest limits rather than papering over
+every difference.
+
+Five boundary-silences cataloged during the v0.1.0-rc.1 substrate
+work where the immunology cognate provides no native answer:
+
+1. **Compile-time formal proof** (`WitnessTier::FormalProof` per
+   ADR-005 Amendment 3, ADR-013 phantom types). Biology has no
+   equivalent of structurally-cannot-occur certainty established at
+   organism-construction time. Thymic negative selection is the
+   nearest cognate but operates at runtime selection, not
+   compile-time impossibility.
+2. **Cross-organism cryptographic trust delegation** (ADR-017
+   trust-delegation model). Biology has no immune-system primitive
+   for cryptographically verified inheritance of immunity across
+   organism boundaries; immune memory is intra-organism by
+   construction.
+3. **Knowledge-ecosystem references** (`references = [...]` field
+   on `#[antigen]` declarations carrying CVEs, RFCs, ADRs, blog
+   posts). Biology has no cognate for recognition machinery that
+   carries pointers to external substrate; immune cells don't cite
+   literature.
+4. **Cross-implementation composition-tier antigens** (seam-tier
+   antigen classification from Sweep A2; antigens whose failure-
+   class lives in the *relationship* between two code sites). No
+   biological equivalent for recognition spanning composition of
+   distinct organisms' machinery.
+5. **Folded-structure cognition with deliberating agent** (the
+   developer is part of the recognition loop; the immune system is
+   not). Biology's recognition machinery doesn't include a
+   deliberating agent who can re-classify antigens, author new
+   ones, or retire stale ones.
+
+These silences are encounter-tier substrate themselves
+(see [`docs/expedition/deferred-substrate.md`](expedition/deferred-substrate.md)
+on the engineered-substrate-exceeds-biology family). Their
+existence is not a critique of the cognate; it's evidence the
+cognate is operating in *instrument-mode* — producing testable
+predictions in its domain and remaining honestly silent at its
+boundaries.
 
 ### Medium cognates (real structural analogy; depth of fit varies)
 
@@ -878,11 +943,15 @@ than as direct evidence:
 
 The honest claim is calibrated to the strength tier:
 
-- **The 5 strong cognates** are substrate for the load-bearing claim:
-  recognition-with-memory-and-inheritance is a real architectural
-  class with independent rigorous instantiations across mature
-  fields. Five independent rigorous methods converging is genuine
-  consilience-of-inductions evidence.
+- **The originating substrate (immunology) + 4 independent
+  convergences** are the load-bearing evidence for the architectural-
+  class claim: recognition-with-memory-and-inheritance is a real
+  architectural class with rigorous instantiations across mature
+  fields, four of which converged onto it through independent
+  methods (logic + program-correctness, experimental psychology +
+  educational research, architectural practice + design theory,
+  adversarial-system response). Four-method-convergence-onto-
+  immunology is genuine consilience-of-inductions evidence.
 - **The 4 medium cognates** are additional support but at reduced
   weight: they extend the territory the architecture operates in
   without serving as primary evidence.
@@ -890,19 +959,26 @@ The honest claim is calibrated to the strength tier:
   than convergence evidence. They suggest the architecture's
   ambient relevance across many fields without serving as rigorous
   consilience evidence.
+- **The named immunology-cognate silences** (compile-time formal
+  proof; cross-organism cryptographic trust; knowledge-ecosystem
+  references; seam-tier composition; folded-structure cognition)
+  are diagnostic-not-falsifying: they show the cognate operating in
+  instrument-mode with honest boundaries rather than papering over
+  every difference.
 
 This honest classification *strengthens* the convergence claim
 rather than weakening it. The flat-16 framing reads as enthusiasm;
-classified-by-strength reads as evidence-graded. Five strong
-cognates converging through independent rigorous methods is a more
-defensible substrate for the architectural-class claim than sixteen
-mixed-strength cognates of varying rigor.
+originating-substrate + four-method-convergence + named-silences
+reads as evidence-graded. The latter is a more defensible substrate
+for the architectural-class claim than sixteen mixed-strength
+cognates of varying rigor.
 
 ### What the convergence does and doesn't claim
 
 The convergence supports: **this architectural class is broadly
 useful across domains that need to maintain recognition of patterns
-over time.** That claim is well-supported by the five strong cognates.
+over time.** That claim is well-supported by the four independent
+convergences onto immunology's substrate.
 
 The convergence does *not* by itself support: **this architectural
 class is specifically what software engineering has been missing.**
