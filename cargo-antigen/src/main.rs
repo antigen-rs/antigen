@@ -526,31 +526,16 @@ struct JsonAuditReport<'a> {
 
 fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::AuditReport) {
     println!();
-    // Per ADR-005 Amendment 3: tier counts report the work the audit ACTUALLY
-    // PERFORMED, never potential maximum evidence. A `#[test]` whose run was
-    // not invoked sits at Reachability, not Execution.
-    println!("Audited {} immunity claim(s):", audit_report.audits.len());
-    println!(
-        "  - {} declared (witness identifier found in workspace — not yet semantically verified)",
-        audit_report.resolved_count
-    );
-    println!(
-        "  - {} external (delegated to clippy/kani/prusti/etc. — not yet executed by antigen)",
-        audit_report.external_count
-    );
-    println!(
-        "  - {} ambiguous (witness name resolves to multiple workspace functions)",
-        audit_report.ambiguous_count
-    );
-    println!(
-        "  - {} broken (witness identifier not found)",
-        audit_report.broken_count
-    );
-    println!(
-        "  - {} missing (no witness identifier)",
-        audit_report.missing_count
-    );
+    print_audit_summary(audit_report);
     println!();
+
+    // ATK-A3-019 fix: confirmed-claims block, parallel to the warnings
+    // block below. Above-Execution-tier claims get an explicit positive
+    // confirmation; without it, a FormalProof witness is invisible in the
+    // human-readable output (the warnings block only lists claims BELOW
+    // Execution). The JSON output has always carried this; the human path
+    // was display-incomplete.
+    print_confirmed_immunity_claims(audit_report);
 
     let problematic = audit_report.problematic_audits();
 
@@ -559,7 +544,7 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
         println!(
             "  Note: semantic verification (does the witness actually test this failure class?)"
         );
-        println!("  requires fingerprint-aware audit, planned for Sweep A3+.");
+        println!("  requires fingerprint-aware audit, planned for Sweep A4-A5.");
         if scan_report.immunities.is_empty() {
             println!("  (No immunity declarations found in the workspace.)");
         }
@@ -618,7 +603,7 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
         println!();
         println!(
             "Resolve below-Execution claims by either:\n  \
-             a) Adding test invocation that exercises the witness path (A3+ feature)\n  \
+             a) Adding test invocation that exercises the witness path (A4-A5 feature)\n  \
              b) Pointing the witness at a runnable test (#[test] without #[ignore])\n  \
              c) Renaming colliding functions or qualifying ambiguous witness paths\n  \
              d) Adding the witness function to the workspace if it's missing\n  \
@@ -627,6 +612,107 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
     }
 
     print_state7_diagnostics(audit_report);
+}
+
+/// Audit summary with per-tier sub-counts per ATK-A3-019 (A3.5 onboarding sweep).
+///
+/// Per ADR-005 Amendment 3: tier counts report the work the audit ACTUALLY
+/// PERFORMED, never potential maximum evidence. A `#[test]` whose run was
+/// not invoked sits at Reachability, not Execution.
+///
+/// `resolved_count` is split into per-tier sub-counts so a `FormalProof`
+/// claim (phantom-type witness, type-system-encoded proof) does NOT get
+/// labeled "not yet semantically verified" — that label is true for
+/// `Reachability`-tier resolutions only. `FormalProof` is semantically
+/// verified at compile time; `Execution` is verified by an executed test run.
+fn print_audit_summary(audit_report: &audit::AuditReport) {
+    let formal_proof_count = audit_report
+        .audits
+        .iter()
+        .filter(|a| a.witness_tier == audit::WitnessTier::FormalProof)
+        .count();
+    let execution_count = audit_report
+        .audits
+        .iter()
+        .filter(|a| a.witness_tier == audit::WitnessTier::Execution)
+        .count();
+    // `Resolved` status entries that aren't FormalProof or Execution sit at
+    // Reachability — the original "declared but not semantically verified"
+    // case. resolved_count is the total of Resolved entries from the
+    // AuditReport bookkeeping; the remainder after subtracting the higher
+    // tiers is what stays at Reachability.
+    let reachability_resolved_count = audit_report
+        .resolved_count
+        .saturating_sub(formal_proof_count + execution_count);
+
+    println!("Audited {} immunity claim(s):", audit_report.audits.len());
+    if formal_proof_count > 0 {
+        println!(
+            "  - {formal_proof_count} formal-proof (phantom-type or formal-verification \
+             tool — compile-time evidence)"
+        );
+    }
+    if execution_count > 0 {
+        println!(
+            "  - {execution_count} execution (test/proptest run confirmed by audit)"
+        );
+    }
+    println!(
+        "  - {reachability_resolved_count} declared (witness identifier found in \
+         workspace — not yet semantically verified)"
+    );
+    println!(
+        "  - {} external (delegated to clippy/kani/prusti/etc. — not yet executed by antigen)",
+        audit_report.external_count
+    );
+    println!(
+        "  - {} ambiguous (witness name resolves to multiple workspace functions)",
+        audit_report.ambiguous_count
+    );
+    println!(
+        "  - {} broken (witness identifier not found)",
+        audit_report.broken_count
+    );
+    println!(
+        "  - {} missing (no witness identifier)",
+        audit_report.missing_count
+    );
+}
+
+/// Confirmed-immunity-claims block per ATK-A3-019 (A3.5 onboarding sweep).
+///
+/// Parallel to the warnings block but for the positive case: lists immunity
+/// claims whose witness reached `Execution` or `FormalProof` tier — the
+/// audit tiers that represent confirmed evidence rather than mere
+/// reachability. Without this block, a `FormalProof` claim (phantom-type
+/// witness) was invisible in human-readable output; the warnings block only
+/// surfaces below-Execution claims.
+fn print_confirmed_immunity_claims(audit_report: &audit::AuditReport) {
+    let confirmed: Vec<&audit::ImmunityAudit> = audit_report
+        .audits
+        .iter()
+        .filter(|a| a.witness_tier >= audit::WitnessTier::Execution)
+        .collect();
+    if confirmed.is_empty() {
+        return;
+    }
+    println!(
+        "✓ {} immunity claim(s) at Execution tier or higher:",
+        confirmed.len()
+    );
+    println!();
+    for a in &confirmed {
+        let i = &a.immunity;
+        println!(
+            "  {}:{}  {} (witness = `{}`)",
+            i.file.display(),
+            i.line,
+            i.antigen_type,
+            i.witness
+        );
+        println!("    tier = {:?}, hint = {:?}", a.witness_tier, a.audit_hint);
+    }
+    println!();
 }
 
 fn print_state7_diagnostics(audit_report: &audit::AuditReport) {
