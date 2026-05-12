@@ -64,14 +64,23 @@ Tracking work for v0.1.0 final. Cf. `sweeps/A3.5-onboarding/scope-lock.md`.
 - `cargo-antigen`: `new` and `vaccinate` subcommands hidden from `--help` (not yet
   implemented; surface when A5 ships them)
 
+#### Audit output
+
+- `cargo antigen audit` human-readable output now distinguishes `FormalProof` and
+  `Reachability` witnesses. Option A: per-tier sub-counts in the resolved summary
+  ("N formal-proof", "N execution", "N declared (Reachability)"). Option B:
+  confirmed-claims section parallel to warnings block, listing Execution+ tier claims
+  with tier name and audit hint. Phantom-type witnesses now produce explicit positive
+  feedback in human output. (ATK-A3-019)
+
 #### Tests
 
-- 236 passing, 32 ignored (up from 187/18-suites at rc.1); 21 suites
+- 237 passing, 31 ignored (up from 187/18-suites at rc.1); 21 suites
 - ATK-W6a-013 inverted: was "must NOT match" (documenting bug); now "must match" (fix verified)
 - ATK-W6a-013b added: tambear footgun — `has_method("drop", "(&mut self)")` now matches
   across natural/canonical/sloppy whitespace variants
-- ATK-A3-019 contract added (`#[ignore]`-gated): audit `resolved_count` conflates
-  `FormalProof` and `Reachability` in human-readable output; fix pending
+- ATK-A3-019 activated (was `#[ignore]`): asserts human audit output contains both
+  "FormalProof" (Option B confirmed-claims) and "formal-proof" (Option A summary)
 
 ## [0.1.0-rc.1] — 2026-05-08
 
