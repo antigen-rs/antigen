@@ -15,7 +15,6 @@ The grammar is a custom DSL parsed via `syn::parse::ParseBuffer` (Path C per
 ADR-010 Amendment 1) — NOT raw `syn::parse2::<syn::Expr>`, which cannot accept
 the DSL syntax.
 
-## Status
-
-`0.0.1` placeholder. Stabilizes for v0.1.0 alongside the rest of the antigen
-crate group.
+See [github.com/antigen-rs/antigen](https://github.com/antigen-rs/antigen) for the
+full project substrate and `docs/fingerprint-grammar.md` for the human-readable
+grammar reference.
