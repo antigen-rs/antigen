@@ -34,7 +34,7 @@ use antigen::{antigen, descended_from, presents};
     name = "memory-unsafety-class",
     family = "boundary-violation",
     fingerprint = r#"name = matches("MemoryUnsafetyClass")"#,
-    summary = "The parent class: any unsoundness around raw-pointer access.",
+    summary = "The parent class: any unsoundness around raw-pointer access."
 )]
 pub struct MemoryUnsafetyClass;
 
@@ -48,7 +48,7 @@ pub struct MemoryUnsafetyClass;
     name = "use-after-free-class",
     family = "boundary-violation",
     fingerprint = r#"name = matches("UseAfterFreeClass")"#,
-    summary = "A specific sub-class of memory unsafety: dangling-pointer dereference.",
+    summary = "A specific sub-class of memory unsafety: dangling-pointer dereference."
 )]
 #[descended_from(MemoryUnsafetyClass)]
 pub struct UseAfterFreeClass;

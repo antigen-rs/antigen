@@ -32,7 +32,7 @@ use antigen::{antigen, antigen_tolerance, presents};
     name = "intentional-panic-antigen",
     family = "boundary-violation",
     fingerprint = r#"name = matches("IntentionalPanicSite")"#,
-    summary = "Marks code that panics deliberately (assertion-style invariants in test scaffolding).",
+    summary = "Marks code that panics deliberately (assertion-style invariants in test scaffolding)."
 )]
 pub struct IntentionalPanicAntigen;
 
@@ -61,7 +61,10 @@ impl IntentionalPanicSite {
     /// the `PanickingInDrop` fingerprint's `body_contains_macro("panic")`
     /// constraint, and the whole point of this example is to demonstrate
     /// tolerance of a real fingerprint match.
-    #[allow(clippy::manual_assert, reason = "panic! literal required for fingerprint match")]
+    #[allow(
+        clippy::manual_assert,
+        reason = "panic! literal required for fingerprint match"
+    )]
     pub fn assert_invariant(condition: bool) {
         if !condition {
             panic!("invariant violated — this is intentional in test scaffolding");

@@ -507,8 +507,7 @@ fn run_audit(args: AuditArgs) -> ExitCode {
     // `--strict` promotes state 7 (inherited + unaddressed) from warn to
     // error. Without `--strict`, the audit reports state 7 as a warning
     // but still exits 0.
-    let strict_state7_fails =
-        args.strict && !audit_report.inherited_unaddressed.is_empty();
+    let strict_state7_fails = args.strict && !audit_report.inherited_unaddressed.is_empty();
     let strict_witness_fails =
         args.strict && !audit_report.all_meet_tier(audit::WitnessTier::Reachability);
     if strict_state7_fails || strict_witness_fails {
@@ -653,9 +652,7 @@ fn print_audit_summary(audit_report: &audit::AuditReport) {
         );
     }
     if execution_count > 0 {
-        println!(
-            "  - {execution_count} execution (test/proptest run confirmed by audit)"
-        );
+        println!("  - {execution_count} execution (test/proptest run confirmed by audit)");
     }
     println!(
         "  - {reachability_resolved_count} declared (witness identifier found in \

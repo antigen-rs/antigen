@@ -35,8 +35,7 @@ fn state7_unaddressed_inherited_emits_diagnostic() {
         .inherited_unaddressed
         .iter()
         .filter(|iu| {
-            iu.presentation.item_target
-                == antigen::scan::ItemTarget::Struct("Child".to_string())
+            iu.presentation.item_target == antigen::scan::ItemTarget::Struct("Child".to_string())
                 && iu.presentation.antigen_type == "Parent"
         })
         .collect();
@@ -65,8 +64,7 @@ fn state6_tolerance_covers_inherited_no_state7_diagnostic() {
         .inherited_unaddressed
         .iter()
         .filter(|iu| {
-            iu.presentation.item_target
-                == antigen::scan::ItemTarget::Struct("Child".to_string())
+            iu.presentation.item_target == antigen::scan::ItemTarget::Struct("Child".to_string())
         })
         .collect();
     assert!(

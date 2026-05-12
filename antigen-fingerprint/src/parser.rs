@@ -163,16 +163,17 @@ fn parse_has_method(input: ParseStream) -> syn::Result<Constraint> {
                 // asymmetric normalization vs the strict-tokenized match-site
                 // path — exactly the spacing bug this canonicalization exists
                 // to eliminate).
-    let normalized_signature = crate::normalize_signature_canonical(&signature).ok_or_else(|| {
-        syn::Error::new(
-            sig_lit.span(),
-            format!(
-                "has_method signature `{signature}` is not a valid Rust token stream \
+    let normalized_signature =
+        crate::normalize_signature_canonical(&signature).ok_or_else(|| {
+            syn::Error::new(
+                sig_lit.span(),
+                format!(
+                    "has_method signature `{signature}` is not a valid Rust token stream \
                  (unbalanced delimiters, unterminated string, or invalid character); \
                  the canonical form cannot be derived and matching cannot proceed"
-            ),
-        )
-    })?;
+                ),
+            )
+        })?;
     Ok(Constraint::HasMethod(MethodPattern {
         name,
         signature,
