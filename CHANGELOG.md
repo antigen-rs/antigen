@@ -58,6 +58,12 @@ Tracking work for v0.1.0 final. Cf. `sweeps/A3.5-onboarding/scope-lock.md`.
   match the same signatures. Pre-A3.5 the engine required the spaced form `"(& self, ...)"`;
   that footgun is eliminated. (ATK-W6a-013 / ATK-W6a-013b; first real instance:
   tambear's PanickingInDrop, surfaced during A3.5 onboarding cross-check)
+- `normalize_signature_canonical` now returns `Option<String>`; strict fail on malformed
+  signature string (proc_macro2 parse error → `None`, not silent fallback to plain
+  `normalize_ws(raw)`). Grounds: ADR-005 §1 sub-clause F — lenient fallback reintroduces
+  the spacing asymmetry the fix exists to eliminate. Malformed patterns surface a
+  compile-time parse error anchored at the offending literal. (Amendment 5 OQ1 ratified
+  strict; bb22e56)
 
 #### CLI
 
@@ -75,10 +81,15 @@ Tracking work for v0.1.0 final. Cf. `sweeps/A3.5-onboarding/scope-lock.md`.
 
 #### Tests
 
-- 237 passing, 31 ignored (up from 187/18-suites at rc.1); 21 suites
+- 240 passing, 31 ignored (up from 187/18-suites at rc.1); 21 suites
 - ATK-W6a-013 inverted: was "must NOT match" (documenting bug); now "must match" (fix verified)
 - ATK-W6a-013b added: tambear footgun — `has_method("drop", "(&mut self)")` now matches
   across natural/canonical/sloppy whitespace variants
+- ATK-W6a-017 added: Self/self token-class distinction guard — `"(Self, Self) -> Self"` must
+  NOT match `fn meet(self, other: Self)`; two positive controls included (receiver pattern matches
+  receiver sig; static pattern matches static sig) (cd33c96)
+- ATK-W6a-018 added: four malformed-signature cases verify the strict `None` path — unbalanced
+  open paren, extra closing paren, unterminated string literal, raw backtick (bb22e56)
 - ATK-A3-019 activated (was `#[ignore]`): asserts human audit output contains both
   "FormalProof" (Option B confirmed-claims) and "formal-proof" (Option A summary)
 
