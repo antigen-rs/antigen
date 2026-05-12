@@ -1199,3 +1199,9 @@ team-lead for final ratification + commit to docs/decisions.md.*
 body line 2419). Three cascade items named in Amendment 5 body + deferred-substrate
 (PI-2 language, fingerprint-grammar sub-mechanism-A bridge note, tambear adoption
 log 7d9664a note). Phase 5 now unblocked.*
+
+*V46 updated 2026-05-11 by navigator: two of three cascade items closed.
+PI-2 language corrected in decisions.md + fingerprint-grammar receiver-spacing caveat
+updated from "never matches" to "both forms accepted post-Amendment 5" (committed
+together). Remaining cascade item: tambear adoption log 7d9664a note — deferred to
+next tambear session (low urgency, separate repo, not pre-tag gate).*
