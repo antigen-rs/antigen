@@ -20,10 +20,23 @@ use antigen::{antigen, immune, presents};
 #[antigen(
     name = "demo-broken-witness",
     family = "boundary-violation",
-    // Minimal valid DSL fingerprint — the example's job is to exercise audit's
-    // broken-witness path, not the fingerprint matcher. `name = matches("*")`
-    // is the trivially-applicable shape.
-    fingerprint = r#"name = matches("*")"#,
+    // Narrowed fingerprint per A3.5 onboarding sweep: scoped to types
+    // beginning with `Looks` so the example doesn't pollute the workspace
+    // scan with cross-reactive hits on every named item.
+    //
+    // The original fingerprint was `name = matches("*")` — a deliberately-
+    // trivial pattern that satisfied #[antigen]'s required-field constraint
+    // (ADR-009 Layer 1) but matched everything in the workspace. That
+    // produced 7 cross-reactive hits in `basic.rs` and similar noise
+    // elsewhere — a poor first encounter for new users running `cargo
+    // antigen scan` on the examples directory.
+    //
+    // Lesson for fingerprint authors: prefer the narrowest shape that
+    // captures the failure class. "matches('*')" never does — real
+    // antigens recognize structural patterns, not "everything." See
+    // `basic.rs`'s `PanickingInDrop` fingerprint for a recall-tuned
+    // example that uses `body_contains_macro(...)` to narrow.
+    fingerprint = r#"name = matches("Looks*")"#,
     summary = "Demonstrates audit catching a broken witness identifier."
 )]
 pub struct DemoBrokenWitness;

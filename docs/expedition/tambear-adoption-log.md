@@ -317,6 +317,71 @@ these witnesses, the fix is to qualify the witness path with a module prefix
 (e.g., `witness = tests::ulp_wrapper_delegates_to_canonical_test`) so the name
 is unambiguous across the workspace. Tracked in antigen as ATK-A2-005.]
 
+### [2026-05-11] PanickingInDrop fingerprint silently failing — `&mut self` spacing bug
+
+**Why**: During the antigen team's A3.5 onboarding sweep, scout was writing
+`docs/fingerprint-grammar.md` and cross-checking all fingerprint examples
+against the matcher source. The `render_inputs()` function in
+`antigen-fingerprint/src/matcher.rs` uses `proc_macro2` tokenization to render
+receiver arguments: `&self` renders as `"& self"`, `&mut self` renders as
+`"& mut self"` (space between `&` and `self`/`mut` in both cases). This is
+documented as ATK-W6a-013.
+
+Tambear's `PanickingInDrop` declaration in `antigens.rs:88` used:
+```
+has_method("drop", "(&mut self)")
+```
+After whitespace normalization, this is `"(&mut self)"`. The matcher compares
+against the rendered form `"(& mut self)"`. These are not equal — the
+fingerprint was matching zero `impl Drop` blocks, silently.
+
+**What**:
+
+Fixed in antigen commit `7d9664a`:
+```
+has_method("drop", "(& mut self)")
+```
+
+**Result**:
+
+- The fix is one character (space after `&`)
+- There are zero `impl Drop` blocks in tambear today, so the behavioral
+  impact was zero — the fingerprint was prospective protection only, and
+  prospective protection that silently never fires is still no protection
+- `cargo antigen scan --root R:/tambear/crates` now correctly evaluates the
+  fingerprint against impl blocks (though it still finds zero matches, which
+  is correct — tambear has no Drop impls)
+
+**Verdict**: fixed. This category of silent mismatch is now documented in
+`docs/fingerprint-grammar.md` under the "receiver spacing caveat" section,
+with both `&self` → `"& self"` and `&mut self` → `"& mut self"` explicitly
+called out.
+
+**Lessons**:
+
+1. **Silent fingerprint failures are the hardest class of fingerprint bug**:
+   the scan runs, produces output, shows match counts — but the specific
+   fingerprint you care about never fires. No error, no diagnostic, just
+   structural protection that doesn't exist. This bug survived from the first
+   tambear integration (2026-05-07) to the onboarding sweep (2026-05-11)
+   because tambear has no `impl Drop` blocks to serve as a live check.
+2. **Cross-checking docs against matcher source pays off**: the bug was found
+   not by running the scan against code, but by reading the matcher's
+   `render_inputs()` implementation while writing the grammar reference. The
+   discipline of grounding docs in source rather than intuition is the check.
+3. **Prospective antigens hide mismatch bugs longer**: an active antigen with
+   real matches would have revealed this the first time a `has_method` check
+   was expected to fire but didn't. Tambear's zero-Drop-impl state meant
+   the mismatch was invisible.
+
+[antigen team note 2026-05-11]: `docs/fingerprint-grammar.md` now documents
+the receiver-spacing caveat explicitly. A future improvement would be for the
+parser to normalize receiver token forms at parse time rather than requiring
+users to know the `proc_macro2` rendering convention. Tracked as a known
+paper-cut; no ADR yet.
+
+---
+
 ### [pending] Phase 1-8 deconstruction of `PolarityInvertedClassMeet`, `PanickingInDrop`, and `UlpDistanceRolledByHand`
 
 (Aristotle thread, after JBD team launch. The antigens were declared without
