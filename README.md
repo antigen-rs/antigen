@@ -276,6 +276,12 @@ through v0.2+ and beyond.
 
 **If you want reference docs:**
 
+- [`docs/macros.md`](docs/macros.md) — full reference for all five
+  attribute macros with syntax, examples, and discipline notes
+- [`docs/witness-tiers.md`](docs/witness-tiers.md) — WitnessTier
+  gradient reference: what each tier means and when it applies
+- [`docs/output-formats.md`](docs/output-formats.md) — scan/audit
+  output reference: human-readable and JSON field-by-field
 - [`docs/fingerprint-grammar.md`](docs/fingerprint-grammar.md) — full
   fingerprint DSL reference
 - [`docs/glossary.md`](docs/glossary.md) — vocabulary anchor for every
