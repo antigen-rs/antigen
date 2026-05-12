@@ -465,10 +465,13 @@ section names some.
 **A note on substrate-grounding**: per ADR-006's recognition-not-design
 discipline, named failure-classes typically require three independent
 substrate-grounded instances to clear the ratification threshold. The
-section below names six failure-classes; only the first (6.1 —
-pattern-regeneration) has a substrate-grounded instance (the tambear
-`DeterminismClass` / `CommutativityClass` pattern accelerated by
-AI-cognition cycling). The remaining five (6.2-6.6) are **ideated
+section below names nine failure-classes; three (6.1, 6.7, 6.8) are
+substrate-grounded — 6.1 by the tambear `DeterminismClass` /
+`CommutativityClass` pattern accelerated by AI-cognition cycling; 6.7
+by antigen's own PanickingInDrop spacing-bug + ADR-010 receiver/type
+instances; 6.8 by the ATK-A2-003/004/005/011/012 family from Sweep
+A2 that catches the theatrical-witness failure-class at the audit-
+reporting tier. The remaining six (6.2-6.6, 6.9) are **ideated
 encounter-tier articulations** per ADR-006's
 *ideation-as-recognition* pathway: structural shapes that can be
 articulated clearly enough to register as encounter-tier substrate,
@@ -725,14 +728,18 @@ of hybrid-cognition teams across multiple tiers, not all of which
 antigen substrate directly addresses today. The reach of the
 v0.1.0-rc.1 substrate, per failure-mode:
 
-- **6.1 (pattern-regeneration)** — *directly addressed at code tier.*
-  `#[antigen]` + `cargo antigen scan` make failure-class memory
-  structural, so a fresh-context AI agent (or human) collides with
-  the failure-class structurally rather than relying on transferred
-  context.
-- **6.2 (lesson untransferable)** — *directly addressed at code
-  tier.* Structural memory IS the transfer carrier; lesson is
-  encoded in fingerprint + immune declarations.
+- **6.1 (pattern-regeneration across cognition discontinuity)** —
+  *directly addressed at code tier.* `#[antigen]` + `cargo antigen
+  scan` make failure-class memory structural, so a fresh-context AI
+  agent (or human) collides with the failure-class structurally
+  rather than relying on transferred context.
+- **6.2 (continuity-assumption mismatch)** — *partly addressed at
+  code tier.* Structural memory in the codebase is the shared anchor
+  the human-and-agent can both point to; when the human says "like
+  we discussed," the agent has on-disk substrate to ground against
+  rather than confabulating from context-window state alone. Does
+  not fully resolve the continuity-assumption — the human-side
+  expectation still mismatches the agent's session boundary.
 - **6.7 (false confidence from structural coverage)** — *partly
   addressed structurally* (ADR-010 Amendment 5 pre-tokenization
   closes spacing sub-mechanism; receiver-vs-type sub-mechanism
@@ -741,12 +748,13 @@ v0.1.0-rc.1 substrate, per failure-mode:
   honesty (ADR-005 Amendment 3); deeper "witness runs but doesn't
   exercise" sub-mechanism awaits A4-A5 harness invocation + property
   strategies.
-- **6.3 (vocabulary divergence), 6.4 (review-loop asymmetry), 6.5
-  (codebase-as-context), 6.6 (recognition-scope asymmetry), 6.9
-  (AI-AI coordination)** — *not directly addressed at code tier in
-  v0.1.0-rc.1.* These motivate the structural-vision (chapter 11
-  roadmap) and inform the choice of vocabulary, biology cognate, and
-  five-macro shape. Cross-tier extensions (project-substrate-currency,
+- **6.3 (knowledge-locale ambiguity), 6.4 (generation-time blindness),
+  6.5 (speed asymmetry), 6.6 (recognition-scope asymmetry between
+  cognitions), 6.9 (AI-AI coordination failure)** — *not directly
+  addressed at code tier in v0.1.0-rc.1.* These motivate the
+  structural-vision (chapter 10 — Vision; chapter 11 — Roadmap) and
+  inform the choice of vocabulary, biology cognate, and five-macro
+  shape. Cross-tier extensions (project-substrate-currency,
   cognition-tier markers, identity-tier propagation) are post-v0.1.0
   territory.
 
@@ -1031,17 +1039,35 @@ as breadth-confirmation rather than depth-evidence.
 
 ### 9.9 — Encounter-tier vs posture-tier framing in section 6
 
-Section 6 names six hybrid-collaboration failure-classes, of which
-only one (6.1 — pattern-regeneration) has a substrate-grounded
-observation. The other five are ideated encounter-tier articulations
-per ADR-006's ideation-as-recognition pathway. The honest substrate
-is: *one observed failure-class plus five articulable ones legitimate
-at encounter-tier; antigen substrate assists disciplined teams with
-all six once teams declare specific antigens for the patterns*. The
-section's reach-claim is qualified accordingly. Future substrate
-accumulation may promote some of 6.2-6.6 to posture-tier as
-substrate-grounded instances surface; until then, the framing
-remains encounter-tier.
+Section 6 names nine hybrid-collaboration failure-classes, of which
+three (6.1 — pattern-regeneration; 6.7 — false confidence from
+structural coverage; 6.8 — theatrical witness) have substrate-
+grounded observations. The other six (6.2-6.6, 6.9) are ideated
+encounter-tier articulations per ADR-006's ideation-as-recognition
+pathway. The honest substrate is: *three observed failure-classes
+plus six articulable ones legitimate at encounter-tier; antigen
+substrate assists disciplined teams with all nine once teams declare
+specific antigens for the patterns*. The section's reach-claim is
+qualified accordingly. Future substrate accumulation may promote
+some of 6.2-6.6 or 6.9 to posture-tier as substrate-grounded
+instances surface; until then, the framing remains encounter-tier.
+
+### 9.10 — Antigen's reach on §6.7 and §6.8 is partial, not complete
+
+§6.7 (false confidence from structural coverage) is structurally
+addressed only at the spacing sub-mechanism (ADR-010 Amendment 5
+pre-tokenization); the receiver-vs-type sub-mechanism remains
+docs-mitigated by deliberate semantic-distinction triage. §6.8
+(theatrical witness) is structurally addressed only at the
+witness-existence-vs-execution layer (audit reports `Reachability`
+when function resolves; reserves `Execution` for A4-A5 harness
+invocation); the deeper "witness runs but doesn't exercise the
+failure-class path" sub-mechanism awaits property-based strategies
+or behavioral-coverage analysis. The substrate-grounded status of
+6.7 and 6.8 does not entail full structural defense; it entails
+*partial structural defense with named-residual-territory*. Readers
+who skim to §9 should not infer that "substrate-grounded" means
+"completely addressed."
 
 ---
 
