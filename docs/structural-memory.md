@@ -258,6 +258,59 @@ specifically encoded-readiness memory, not storage-and-retrieval.
 Without that distinction, the design space looks the same as "a
 better wiki." With it, the design space is fundamentally different.
 
+### 4.1 — On a likely objection: "the tool does the recognizing"
+
+A philosophically sharp objection to the encoded-readiness framing
+runs as follows: *the `#[antigen]` declaration is just text in a
+.rs file. It doesn't recognize anything. The `cargo antigen scan`
+binary is what does the recognizing. So the claim that the
+declaration IS recognition machinery is hand-waving — really the
+tool is the recognition machinery, and the declaration is data the
+tool consults.*
+
+The objection mistakes a distinction without a difference for a
+load-bearing one. In the immune system, a B-cell's recognition
+receptor is also "just protein structure." Recognition happens when
+the receptor encounters an antigen and the binding affinity exceeds
+threshold. The receptor without the cellular machinery wouldn't
+recognize anything either — the binding-and-signaling cascade is
+what produces the recognition event. The receptor and the cellular
+machinery form a *compound*; neither is recognition machinery
+alone.
+
+Antigen instantiates the same compound structure. The `#[antigen]`
+declaration is the structural pattern (receptor-analog); the
+compiler proc-macro expansion + the `cargo antigen scan` walker +
+the audit subcommand collectively form the cellular machinery that
+enacts recognition when the declaration encounters matching code.
+The compound is the recognition machinery. Saying "the tool does
+the recognizing" is like saying "the cytoplasm does the
+recognizing" — true, but it misses that the receptor's structural
+specificity is what *makes* the cytoplasm capable of recognizing
+this specific pattern rather than every pattern indiscriminately.
+
+The deeper point: the encoded-readiness claim is *not* that the
+declaration is sufficient unto itself for recognition. It is that
+the *substrate* (declaration + tooling + compiler integration)
+forms a unified recognition apparatus that doesn't decouple
+"memory" from "recognition." There is no separate database the
+tool consults; the declarations and the recognition machinery are
+co-located in the same compilation unit and travel together. A
+fork of the codebase, a checkout of an old commit, an LLM agent
+reading the source in a session with no prior context — each
+inherits the recognition apparatus as a single substrate, not as
+two artifacts (data + retrieval engine) that could drift apart.
+
+This is what storage-and-retrieval memory cannot do. A bug
+database without the developer who knows to query it produces no
+recognition. A wiki without the reader produces no recognition.
+Encoded-readiness memory carries its own recognition apparatus
+because the substrate is structured such that the recognition
+machinery cannot exist without the declarations and the
+declarations cannot ship without the recognition machinery being
+applied. Drift between them is structurally observable, not
+silent.
+
 ---
 
 ## 5. Cognitions, boundaries, and shared prosthetic need
@@ -352,22 +405,84 @@ across training-data distribution, *generation-time fluency*, and
 *pattern-matching at scale*. Its boundaries are session-end,
 context-window edge, and training-cutoff.
 
-**Agentic-LLM cognition's boundaries** are *different again* and
-still evolving:
+**Agentic-LLM cognition's boundaries** are *different again* — and
+naming them honestly matters because agentic systems are where 2026's
+software-engineering practice is most rapidly reshaping. The
+boundaries are not the chat-LLM boundaries plus persistent memory;
+they're a structurally distinct set:
 
-- Persistent-memory systems (Letta, MemGPT, others) shift the
-  session-end boundary but don't eliminate it; memory consolidation,
-  retrieval, and capacity limits create new boundaries.
-- Long-context models (>1M tokens) extend the context-window boundary
-  but don't remove it; relevance-ranking, attention dispersion, and
-  cost create new ones.
-- Multi-agent systems shift coordination boundaries to inter-agent
-  communication.
+- **Memory consolidation lossiness.** Persistent-memory systems
+  (Letta, MemGPT, ChatGPT's memory feature, Claude's project
+  memory, custom RAG layers) shift the session-end boundary but
+  introduce a *consolidation* layer: what gets saved vs forgotten
+  is heuristic-driven, often opaque to the agent itself. The
+  agent's belief about what it remembers can diverge from what
+  the memory store actually contains. A failure-class lesson
+  "remembered" by the agent may not survive the consolidation
+  heuristic; or worse, it survives but isn't retrieved at the
+  recognition moment.
+- **Retrieval as selective re-activation.** Even when a lesson is
+  in persistent memory, retrieval is query-mediated — the agent
+  must ask the right question for the memory to surface.
+  Recognition that depended on *automatic* re-encounter (the way
+  a B-cell sees an antigen and binds without querying anything)
+  doesn't translate cleanly to retrieval-mediated memory; the
+  agent has to know to look.
+- **Long-context attention dispersion.** Long-context models (>1M
+  tokens) extend the context-window boundary but documented
+  effects like *lost-in-the-middle* (Liu et al. 2023) and
+  attention-decay-with-distance mean that loading the context is
+  not the same as recognizing what's in it. A failure-class
+  declaration sitting in token-position 500,000 may be in
+  context but not active in the recognition surface for code
+  being generated at token-position 950,000.
+- **Cost-truncated effective context.** Even with long-context
+  capacity, practical usage often truncates — the cost asymmetry
+  between full-context and selective-context queries pushes
+  systems toward retrieval-augmented patterns, which re-introduces
+  the retrieval-mediation boundary above.
+- **Multi-agent coordination boundaries.** When two agents
+  collaborate (multi-agent frameworks; JBD-style teams; pipeline
+  workflows where one agent's output is another's input), each
+  agent has its own context state. State synchronization across
+  agents requires shared substrate the agents both read — text
+  exchanges between them are no more durable than human
+  conversations. This is where antigen substrate is *exactly* the
+  right shape: shared substrate that both agents read natively,
+  same way a human team reads ADRs.
+- **Tool-history-vs-context divergence.** Agentic systems
+  accumulating tool-use history (file reads, shell commands,
+  search results) face the question of which observations are
+  integrated into the agent's recognition surface vs which sit in
+  history as queryable-but-not-active. "I read the antigen
+  declaration two tool-calls ago" is not the same as "the
+  declaration is shaping my generation."
+- **State drift between resumed sessions.** Multi-session agentic
+  systems that resume work face a substrate-over-memory problem
+  with their own past selves: the agent's last-saved state may
+  describe a world that no longer holds. *substrate-over-memory*
+  as a discipline (verify against the on-disk reality before
+  acting on remembered claims) becomes a load-bearing operational
+  invariant — and the substrate antigen ships is exactly the
+  kind of on-disk reality the discipline requires.
 
-The specific shape of agentic-cognition boundaries is evolving as
-the field develops. What stays invariant is the structural property:
-boundaries exist that block native recognition from carrying across,
-even when the specific boundaries differ from chat-LLM boundaries.
+These boundaries differ from chat-LLM boundaries in structural
+shape, not in fundamental presence. Some are *softer* than the
+chat-LLM equivalents (a persistent-memory agent's session boundary
+is softer than a stateless chat-LLM's); others are *harder* (the
+multi-agent coordination boundary at AI-AI seams introduces failure
+modes a single-agent system doesn't have, per §6.9). The mix shifts
+the design space without eliminating the shared structural property.
+
+The specific shape of agentic-cognition boundaries will continue
+evolving — persistent-memory architectures, long-context
+optimizations, multi-agent coordination protocols are all
+active-research territory. What stays invariant is the structural
+property: every cognition architecture has boundaries that block
+native recognition from carrying across, and structural-tier
+substrate is the prosthesis-shape that enables recognition to
+extend across those boundaries regardless of which specific
+boundary is in play.
 
 ### The shared prosthesis-shape
 
@@ -588,24 +703,34 @@ for crossing cognition boundaries is itself silently broken. False
 confidence in structural coverage is structurally worse than no
 structural coverage, because adopters trust the substrate.
 
-**Substrate-grounded instances** (both surfaced 2026-05-11 in
-antigen's own development):
-- Tambear's `PanickingInDrop` fingerprint used `"(&mut self)"` for
-  the receiver pattern; proc_macro2 renders it `"(& mut self)"` with
-  a space after `&`. Pattern silently matched zero `impl Drop` blocks
-  for four days until scout's tutorial cross-check surfaced it.
-- ADR-010 ratified text used `"(Self, Self) -> Self"` for
-  PolarityInvertedClassMeet's `meet` method; proc_macro2 distinguishes
-  receiver `self` from typed parameter `Self`. Pattern matched only
-  pure-static methods, not the by-value-receiver methods the
-  fingerprint was meant to catch.
+**Substrate-grounded instances** (both surfaced 2026-05-11):
 
-Both surfaced through scout's spec-vs-engine cross-check discipline
-(not through adversarial probing — the failure-class is
-specification-invisible). Resolved structurally by ADR-010 Amendment
-5 (pre-tokenize user pattern strings through proc_macro2 at parse
-time). The Amendment 5 substrate represents the project's response to
-this specific failure-class.
+- **External instance** (separate project consuming antigen as a
+  dependency): tambear's `PanickingInDrop` fingerprint used
+  `"(&mut self)"` for the receiver pattern; proc_macro2 renders it
+  `"(& mut self)"` with a space after `&`. Pattern silently matched
+  zero `impl Drop` blocks for four days until scout's tutorial
+  cross-check surfaced it. Tambear is a separate Rust project that
+  adopted antigen as a path dependency; its smoke-test consumption
+  surfaced the failure-class for an audience that wasn't antigen-
+  internal.
+- **Internal instance**: ADR-010 ratified text used
+  `"(Self, Self) -> Self"` for PolarityInvertedClassMeet's `meet`
+  method; proc_macro2 distinguishes receiver `self` from typed
+  parameter `Self`. Pattern matched only pure-static methods, not
+  the by-value-receiver methods the fingerprint was meant to catch.
+
+The external/internal pairing matters for substrate-grounding rigor:
+the tambear instance is independent confirmation that the failure-
+class isn't an artifact of antigen-developers-only thinking. A
+hostile reviewer asking "isn't this self-referential substrate?" has
+at least one external observation point. Both instances surfaced
+through scout's spec-vs-engine cross-check discipline (not through
+adversarial probing — the failure-class is specification-invisible).
+Resolved structurally by ADR-010 Amendment 5 (pre-tokenize user
+pattern strings through proc_macro2 at parse time). The Amendment 5
+substrate represents the project's response to this specific
+failure-class.
 
 Antigen substrate now defends against the spacing sub-mechanism
 structurally; the receiver-vs-type sub-mechanism remains
@@ -625,12 +750,25 @@ witness exists; reality is that nothing actually verifies immunity.
 The theatrical witness fails open — adopters trust the immunity
 claim because the audit doesn't surface a problem.
 
-**Substrate-grounded instances** in antigen's own ATK contracts
-(ATK-A2-003/004/005/011/012 family from Sweep A2): adversarial
-contracts that codify "audit must surface tier limitations even when
-the witness function exists." The ATK family represents the
-discipline of catching this failure-class structurally at the
-audit-reporting tier.
+**Substrate-grounded instances**:
+
+- **Internal instances**: antigen's own ATK contracts
+  (ATK-A2-003/004/005/011/012 family from Sweep A2): adversarial
+  contracts that codify "audit must surface tier limitations even
+  when the witness function exists." The ATK family represents the
+  discipline of catching this failure-class structurally at the
+  audit-reporting tier.
+- **Ecosystem-wide structural shape**: the broader testing
+  literature has documented this failure-class for decades under
+  varying names — "vacuous test" (Beck 2002), "happy-path-only
+  coverage" (Marick), "mutation-testing's existence-not-strength
+  problem" (PIT, Stryker, mutation-testing research broadly).
+  Antigen-specific substrate-grounding sits inside this ecosystem-
+  wide acknowledgment that witness-exists ≠ witness-exercises. The
+  testing literature has framed it as a coverage-quality problem;
+  antigen's contribution is making it a *structural* concern at the
+  audit-reporting tier, where the substrate doesn't claim more than
+  it can verify.
 
 The defense is *audit-tier-honesty* (per ADR-005 Amendment 3): the
 audit reports the actual verification strength, never a stronger
@@ -720,6 +858,90 @@ Antigen fills the gap. It's not "the next testing tool" or "the next
 documentation framework"; it's a *different category* — structural
 failure-class memory that operates at a tier the existing carriers
 don't reach.
+
+### Why three pillars rather than two or four
+
+The claim that testing + documentation + structural-failure-class-
+memory form a natural complete basis (rather than an arbitrary
+enumeration) rests on a specific structural argument: each pillar
+answers a different question about software-engineering memory, and
+together they cover the failure-class lifecycle without redundancy
+and without gap. Stated as the lifecycle:
+
+**Question 1 — Does this specific run of code do what we intended?**
+Tests answer this. They take a particular input, exercise the code,
+and assert against an expected output. The memory tests carry is
+*behavioral*: this specific behavior was verified on these specific
+inputs at the moment the test ran. Tests catch *novel logic errors
+on tested inputs*. They do not, by construction, carry memory of
+why-this-test-exists or which-failure-class-it-represents — those
+are different questions.
+
+**Question 2 — Why did we make the decisions we made?**
+Documentation, ADRs, code comments, and post-mortems answer this.
+The memory documentation carries is *intentional*: the rationale
+for the decision, the alternatives considered, the constraints
+that shaped the outcome. Documentation catches *why* — but it does
+not, by construction, recognize when *new code* re-creates a
+problem the original decision was meant to address. Documentation
+is read; documentation does not recognize.
+
+**Question 3 — Have we seen this *shape* of failure before, and if
+so, what defends against it?** This is the structural-failure-class
+question. The memory structural-failure-class-memory carries is
+*recognitive*: the structural pattern that previously failed,
+encoded such that *new code matching the pattern is recognized
+automatically*. Antigen catches *named failure-class shapes*
+without needing to be queried — the recognition is intrinsic to
+the substrate.
+
+These three questions are *orthogonal* — answering one does not
+answer the others. They are also *exhaustive* of software-
+engineering's memory needs at the failure-class level:
+
+- *Behavioral memory* without recognitive memory means the team
+  catches the bugs they wrote tests for but cannot recognize when
+  new code re-creates a known failure-class. (This is testing's
+  third-pillar absence: tests assert what *should* hold, not what
+  *shape* of failure to watch for.)
+- *Intentional memory* without recognitive memory means the team
+  has documented why old code was written a certain way but cannot
+  recognize when new code violates the principle the documentation
+  was meant to protect. (This is documentation drift: docs persist;
+  recognition does not.)
+- *Recognitive memory* without behavioral or intentional memory
+  means the team recognizes failure-class shapes but cannot verify
+  specific behaviors or explain decisions. (This is antigen
+  without testing or documentation: structurally insufficient.)
+
+A fourth pillar would have to answer a fourth orthogonal question
+about failure-class memory. Candidates we considered and rejected:
+
+- *Type-system memory* — already operates within the
+  recognition-machinery tier antigen sits at; type-tier antigens
+  use phantom-types as witnesses (per ADR-013). Not a separate
+  pillar; a witness-type within the recognition pillar.
+- *Static-analysis memory* — clippy and similar lint-tier tooling
+  is also within the recognition tier; antigen composes with
+  clippy as a witness-type. Not a separate pillar.
+- *Formal-verification memory* — kani, prusti, verus, creusot
+  operate at the recognition tier with FormalProof witness-type;
+  also within the recognition pillar, not a separate one.
+- *Runtime-monitoring memory* (logs, telemetry, observability)
+  — answers a different lifecycle question (*what is the system
+  doing right now in production*) that's outside the failure-class
+  memory scope this document addresses; it is a real fourth-tier
+  concern but operates at a different level of abstraction than
+  the failure-class lifecycle.
+
+The three-pillar framing is therefore not a marketing choice; it
+is a structural claim that *behavioral*, *intentional*, and
+*recognitive* memory are the three orthogonal carriers software-
+engineering practice needs for the failure-class lifecycle, and
+that the third has been structurally missing in a way the first
+two cannot fill in for. Antigen is the instantiation of the third
+carrier in the Rust ecosystem; cross-language and cross-tier
+extensions (chapter 10) instantiate it elsewhere.
 
 ### 7.1 — What antigen v0.1.0-rc.1 actually reaches
 
@@ -983,10 +1205,101 @@ convergences onto immunology's substrate.
 The convergence does *not* by itself support: **this architectural
 class is specifically what software engineering has been missing.**
 That stronger claim requires *software-engineering-specific*
-substrate (which exists in the form of testing's third-pillar
-absence, the AI-coding-era acute need, and antigen's own development
-experience as evidence of the gap). The convergence is one
-substrate-leg of the case; software-specific substrate is the other.
+substrate — external evidence that the failure-class-memory gap is
+real and acknowledged in the literature, not just internally to
+antigen.
+
+The external software-engineering substrate for the third-pillar
+claim comes in three forms:
+
+**External substrate-leg 1 — Documented "lessons-learned" failure
+modes in industrial software practice.** The pattern of *repeated
+failure-classes that ought-to-have-been-prevented but weren't*
+is a recurring theme in post-mortem literature:
+
+- Aviation-style incident-reporting research adapted to software
+  (Cook 1998's *How Complex Systems Fail*; the broader resilience
+  engineering tradition documented by Dekker, Hollnagel, Woods)
+  consistently surfaces the *organizational-memory-decay* failure
+  mode: lessons get learned and then forgotten between teams,
+  generations, and reorganizations.
+- The software-defect-tracking literature (Endres & Rombach 2003,
+  *A Handbook of Software and Systems Engineering*) documents that
+  *recurring defect patterns* are a major contributor to total
+  defect cost — not novel defects, but reappearances of failure-
+  classes the organization has seen before. The recognition that
+  this is a *memory* problem rather than a *carelessness* problem
+  is decades old.
+- CVE and CWE catalogs at MITRE / NIST exist precisely because
+  organizations need shared structural memory of security
+  failure-classes that individual codebases keep regenerating.
+  The CWE catalog is structurally an *external* antigen-style
+  fingerprint substrate; antigen's contribution at the language-
+  ecosystem tier is the natural extension of what the security
+  community already built at the cross-organizational tier.
+
+**External substrate-leg 2 — Tooling that partially addresses the
+gap without fully filling it.** The third-pillar shape is already
+visible in the negative space of existing tooling:
+
+- *Linters* (clippy, ESLint, RuboCop) operate at the recognition
+  tier but lack the *named-failure-class-with-references*
+  semantics — lints catch patterns but don't carry the lesson-
+  context that explains why this pattern matters.
+- *Static analyzers* (SonarQube, CodeQL, Semgrep) carry richer
+  pattern-recognition than linters but operate as external tools
+  whose memory lives outside the codebase — drift between the
+  analyzer's ruleset and the codebase's actual concerns is
+  silent.
+- *Type-system patterns* (phantom types, sealed traits, typestate)
+  carry structural memory but only for failure-classes
+  expressible as type-system invariants — a narrow slice of the
+  failure-class universe.
+- *ADR culture* and *post-mortem culture* carry the lesson-context
+  the linters lack but operate at maintenance tier — they drift,
+  and they require deliberate retrieval rather than automatic
+  recognition.
+
+None of these is "the missing pillar"; they are partial answers
+that, when assembled honestly, sketch the shape of what's missing:
+*named failure-class memory with recognition-tier integration into
+the codebase that operates without drift*. Antigen's contribution
+is recognizing this shape and instantiating it.
+
+**External substrate-leg 3 — The AI-coding-era acceleration.**
+Surveys of developer practice in 2024-2026 (GitHub's *Octoverse*,
+JetBrains *State of Developer Ecosystem*, Stack Overflow's annual
+survey) consistently report that AI-assisted code generation has
+moved from experimental to mainstream in the majority of
+professional codebases. The acceleration creates an empirical test:
+practices designed for human-throughput-rates encounter failure
+modes when applied at AI-throughput-rates. Reports of "AI-generated
+code regenerates bugs the team fixed last quarter" are now common
+enough to be a recognized industry concern; antigen's framing
+(§6.1 pattern-regeneration across cognition discontinuity) names
+the structural shape that practitioners have been encountering
+without yet having vocabulary for.
+
+These three external substrate-legs, combined with the
+software-engineering-specific substrate antigen has generated
+during its own development (the substrate-grounded failure-classes
+in §6.7 and §6.8), form the software-specific case for the third-
+pillar claim. The convergence-of-inductions evidence (from §8 strong-
+cognates) supports the *architectural class exists*; the external
+software-engineering substrate supports *software engineering needs
+the architectural class*; together they support the load-bearing
+third-pillar claim.
+
+A hostile reviewer will rightly note that the third-leg evidence
+(industry reports, post-mortem literature, partial-tooling negative
+space) is less rigorous than peer-reviewed empirical studies of
+specific antigen-style interventions in software practice. That
+work is genuinely missing — the field is new enough that
+intervention studies haven't been performed. The honest framing:
+the third-pillar claim is *plausible-and-substrate-grounded*, not
+*empirically-validated-at-the-RCT-tier*. The path from here is
+empirical validation as adoption produces measurable outcomes
+(roadmap territory; §11).
 
 Antigen is not an invention. It is an *instantiation* of this
 architectural class in the Rust programming language ecosystem. The
@@ -1144,6 +1457,43 @@ or behavioral-coverage analysis. The substrate-grounded status of
 *partial structural defense with named-residual-territory*. Readers
 who skim to §9 should not infer that "substrate-grounded" means
 "completely addressed."
+
+### 9.11 — `#[descended_from]` propagates identity; biological clonal expansion produces diversity
+
+The biology cognate breaks at the inheritance layer in a specific
+way worth naming. In immunology, when a B-cell encounters an antigen
+and produces clonal expansion, the *descendants* of the activated
+B-cell undergo somatic hypermutation — the population *diversifies*
+across the antigen-shape space, producing many variant receptors
+that bind the same antigen with different affinities. The
+inheritance carrier is the activation event; the inheritance content
+is *diversifying variation*.
+
+In antigen, `#[descended_from(ParentAntigen)]` propagates *shared
+structural identity* — the descendant antigen carries the same
+fingerprint-shape obligations as the parent, with refinements that
+narrow or extend the recognition surface. The inheritance is
+identity-preserving, not diversity-producing.
+
+These are opposite structural shapes at the inheritance layer. The
+biology cognate operates as instrument here, not as direct mapping:
+it predicts that *recognition with memory and inheritance* exists as
+an architectural class (which holds) but the specific inheritance
+mechanism in immunology (diversifying clonal expansion) is not the
+mechanism antigen instantiates (identity-preserving structural
+propagation). The honest framing: antigen's inheritance layer is
+*shape-inheritance*, distinct from biology's *diversification-via-
+activation*. Future substrate work on the
+*recognition-receptor-diversity* primitive
+(per [`docs/expedition/immune-system-primitive-map.md`](expedition/immune-system-primitive-map.md))
+may surface a separate antigen-side mechanism for variation-as-
+inheritance that's complementary to identity-propagation; the
+two-shapes-of-inheritance is one of the points where the biology
+cognate generates predictions antigen hasn't yet implemented.
+
+This isn't a defect — it's named instrument-mode boundary territory.
+But readers who treat `#[descended_from]` as "the antigen-analog of
+clonal expansion" should know the structural shape differs.
 
 ---
 
