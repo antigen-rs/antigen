@@ -593,6 +593,55 @@ fn atk_w6a_017_self_receiver_does_not_bridge_typed_param() {
     );
 }
 
+/// ATK-W6a-018 — Amendment 5 OQ1 STRICT: malformed `has_method` signature
+/// strings (not valid `proc_macro2` token streams) MUST surface as a
+/// fingerprint parse error rather than silently degrading to plain
+/// `normalize_ws` of the raw string.
+///
+/// Pre-Amendment-5 the engine fell back to `normalize_ws(raw)` when
+/// `proc_macro2::TokenStream::from_str` returned `Err`. The fallback
+/// produced asymmetric normalization vs the strict-tokenized match-site
+/// path — exactly the spacing bug the canonicalization exists to eliminate.
+/// Team-lead ratified OQ1 STRICT: surface the parse failure, do not silently
+/// degrade.
+///
+/// This test asserts the strict behavior across `proc_macro2`'s real reject
+/// cases: unbalanced parens, unterminated string literals, raw backticks.
+#[test]
+fn atk_w6a_018_malformed_signature_surfaces_parse_error() {
+    // Unbalanced open paren — proc_macro2 rejects with "cannot parse string
+    // into token stream".
+    let err = parse_err(r#"item = impl, has_method("drop", "(&mut self")"#);
+    assert!(
+        err.contains("not a valid Rust token stream"),
+        "unbalanced-paren signature must produce a clear diagnostic; \
+         got: {err}"
+    );
+
+    // Extra closing paren.
+    let err = parse_err(r#"item = impl, has_method("drop", "()) -> Self")"#);
+    assert!(
+        err.contains("not a valid Rust token stream"),
+        "extra-close-paren signature must produce a clear diagnostic; \
+         got: {err}"
+    );
+
+    // Unterminated string literal inside the signature.
+    let err = parse_err(r#"item = impl, has_method("drop", "(\"unterminated")"#);
+    assert!(
+        err.contains("not a valid Rust token stream"),
+        "unterminated-string signature must produce a clear diagnostic; \
+         got: {err}"
+    );
+
+    // Raw backtick — not valid Rust syntax.
+    let err = parse_err(r#"item = impl, has_method("drop", "(`backtick`)")"#);
+    assert!(
+        err.contains("not a valid Rust token stream"),
+        "raw-backtick signature must produce a clear diagnostic; got: {err}"
+    );
+}
+
 // ============================================================================
 // ATK-W6a-014 — `node_kind` dispatch with nested `all_of`
 // ============================================================================
