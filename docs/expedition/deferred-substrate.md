@@ -18,7 +18,8 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V41 (2026-05-11, pathmaker Phase 2 complete: ATK-A3-019 shipped (83109c3, both options A+B); engine fix complete (00c35ed supersedes 35544cc); tutorial cold-read friction log filed; stale has_method troubleshooting entry fixed; 237 passing, 31 ignored; Amendment 5 in scout revision; tutorial output-format drift (#1-5) routed to scout).
+> **Status**: V55 (2026-05-12, Phase 5 gap-check complete; schema-lock test finding filed).
+> V41 (2026-05-11, pathmaker Phase 2 complete: ATK-A3-019 shipped (83109c3, both options A+B); engine fix complete (00c35ed supersedes 35544cc); tutorial cold-read friction log filed; stale has_method troubleshooting entry fixed; 237 passing, 31 ignored; Amendment 5 in scout revision; tutorial output-format drift (#1-5) routed to scout).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -585,6 +586,52 @@ might be the first concrete example of the third disposition applied to Item 1.
 **Revisit when**: encounters tier ratification opens (full Phase 1-8 + ratification
 per process.md). Sub-section draft is substrate-ready; migrates to process.md as
 part of encounters ratification pass.
+
+---
+
+## A4 deferred: JSON output schema-lock test
+
+**What**: No automated test locks the JSON output schema of `cargo antigen scan/audit
+--format json` to the documentation. Phase 5 gap-check found multiple schema
+discrepancies (phantom `ExternalUnvalidated` tier, wrong field names, wrong
+`witness_kind` shapes, wrong `audit_hint` names) because the docs were authored against
+design-substrate rather than actual serialized output. A contract test would catch
+future drift at CI time rather than doc-review time.
+
+**Proposed form**: integration test in `antigen/tests/` (e.g., `schema_contract.rs`)
+that invokes the `cargo-antigen` binary via `std::process::Command`, parses the JSON
+output with `serde_json`, and asserts:
+- Top-level keys: `scan --format json` → `["report", "unaddressed"]`; `audit --format
+  json` → `["audit", "scan"]`
+- `audit.audits[0]` keys: `["audit_hint", "immunity", "witness_status", "witness_tier"]`
+- `witness_tier` values match `WitnessTier` snake_case serde names
+- `audit_hint` values match `AuditHint` kebab-case serde names
+- `witness_status` variant shapes match the five variants in `WitnessStatus`
+- `witness_kind` string values on `Resolved` match `WitnessKind` snake_case names
+
+**Why not a unit test**: the serialization is at the binary boundary; a unit test
+against the Rust types would test serde config but not the actual command-line output
+path. The contract test must go through the binary.
+
+**Source**: adversarial Phase 5 gap-check, 2026-05-12. Root cause finding: docs
+written against design-doc substrate produce semantically named fields that don't match
+the actual serde-generated names. Schema drift is a class of bug that only contract
+tests catch reliably.
+
+**Unblocked by**: A4 scope-lock opens.
+**Owner when active**: pathmaker (implementation); adversarial (test design).
+
+*V55 updated 2026-05-12 by navigator: Phase 5 adversarial schema-lock finding filed.
+Adversarial found 9 JSON schema discrepancies across output-formats.md and
+witness-tiers.md; all verified by navigator against actual tool output and source enums.
+Root cause: Phase 4 docs authored against design-substrate (expedition docs describing
+intended behavior) not code-substrate (actual serde-serialized output). ExternalUnvalidated
+phantom tier propagated through 5 docs; witness_kind shapes wrong; audit_hint names wrong.
+Phase 5 fixes routed to pathmaker. Schema-lock contract test filed here as A4 structural
+fix to prevent recurrence. Two aristotle findings also corrected (Amendment 5 IS ratified;
+A3/v0.2 boundary is accurate). Convergence-check synthesis: adversarial + aristotle
+independently converged on ExternalUnvalidated from different entry points — strongest
+single finding of the Phase 5 review.*
 
 ### Antigen-stdlib contribution model: recognition-grounded vs spec-grounded (encounter-registered)
 
