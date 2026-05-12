@@ -1192,3 +1192,10 @@ Pathmaker landed bb22e56 (OQ1 STRICT: normalize_signature_canonical → Option<S
 Scout updated draft with strict Mechanics snippet + Finding B commit ref + status
 "Ready for ratification." 240 passing, 31 ignored. Amendment 5 routed to
 team-lead for final ratification + commit to docs/decisions.md.*
+
+*V45 updated 2026-05-11 by navigator: ADR-010 Amendment 5 RATIFIED and committed
+(691ec5c). Team-lead ratified after substrate-currency check (four commits verified,
+240 tests green). Committed to docs/decisions.md as two-match entry (TOC line 57 +
+body line 2419). Three cascade items named in Amendment 5 body + deferred-substrate
+(PI-2 language, fingerprint-grammar sub-mechanism-A bridge note, tambear adoption
+log 7d9664a note). Phase 5 now unblocked.*
