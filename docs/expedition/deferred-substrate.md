@@ -18,7 +18,7 @@
 > patterns watched for posture-class promotion). This index tracks
 > *work* deferred, not patterns watched. The two are different shapes.
 >
-> **Status**: V31 (2026-05-11, adversarial Phase 2 complete; 2 example gaps fixed; CLI audit output gap (FormalProof confirmation) routed to pathmaker; troubleshooting.md done; CHANGELOG verified clean).
+> **Status**: V32 (2026-05-11, Phase 2 core deliverables committed at 3b4c3f6; tutorial self-review corrected 3 issues pre-pathmaker; all scout/adversarial Phase 2 work done; pathmaker doc-comments + sub-items in progress; Phase 3 coherence review ready when pathmaker clears).
 > V1-V4: D1.5 + A3-immediate closure.
 > V5-V6: multi-component substrate committed + team routing active.
 > V7: scout — Component 7 confirmed, 3 ADR prose gaps.
@@ -163,7 +163,7 @@ examples-directory work; both valid.
 
 **Phase 2 (core docs — IN FLIGHT)**:
 - Scout: tutorial + fingerprint-grammar.md — DONE (2026-05-11); coherence review Phase 3
-- Pathmaker: crate-level doc-comments + examples expansion — IN PROGRESS; + engine fix sub-item
+- Pathmaker: crate-level doc-comments + examples expansion — DONE (examples committed 3b4c3f6); engine fix + CLI improvement sub-items in progress
 - Adversarial: troubleshooting.md + gap-check + CHANGELOG verification — DONE (2026-05-11)
 - Team-lead: README refinement + scope.md/vision-pitch.md weaving — IN PROGRESS
 
