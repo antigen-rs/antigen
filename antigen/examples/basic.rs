@@ -6,20 +6,23 @@
 //! cargo run --example basic --package antigen
 //! ```
 //!
-//! Or, more interestingly, scan this example with cargo-antigen:
+//! Or, more interestingly, scan the examples directory with cargo-antigen:
 //!
 //! ```sh
-//! cargo run --bin cargo-antigen -- antigen scan
+//! cargo run --bin cargo-antigen -- antigen scan --root antigen/examples
 //! ```
 //!
-//! The scan should find:
-//! - 1 antigen declaration (`PanickingInDrop`)
-//! - 1 presentation (the `impl Drop` for `VulnerableType`)
-//! - 1 immunity claim (the `impl Drop` for `SafeType`)
+//! The scan will find declarations from all five example files together.
+//! For `basic.rs` specifically:
+//! - 1 antigen declaration (`PanickingInDrop`) — declared in this file
+//! - 1 explicit presentation (`#[presents(PanickingInDrop)]` on the `impl Drop` for `VulnerableType`)
+//! - 1 immunity claim (`#[immune(PanickingInDrop, ...)]` on the `impl Drop` for `SafeType`)
+//! - 1 unaddressed presentation — the deliberate `#[presents]` on `VulnerableType` with
+//!   no matching `#[immune]` on the same item
 //!
-//! And report 0 unaddressed presentations because each #[presents] has a
-//! corresponding #[immune] nearby (or in this minimal example, the
-//! presents-without-immune is intentional and would be flagged).
+//! Other example files contribute their own declarations to the scan total.
+//! See the other files in this directory for `descended_from`, `antigen_tolerance`,
+//! and phantom-type witness examples.
 
 use antigen::{antigen, immune, presents};
 
