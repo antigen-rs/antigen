@@ -2184,11 +2184,13 @@ review §16.
 >    file exactly once per invocation; all fingerprints are
 >    evaluated on the same pass via fan-out at the visitor level.
 > 2. **Pre-parsed pattern signatures**: signatures inside operators
->    like `has_method("meet", "(Self, Self) -> Self")` are parsed
->    once at fingerprint-load time and stored as `syn::Signature`
->    AST nodes, NOT re-parsed per match site. The naive
->    per-match-site re-parse is a documented 50× slowdown
->    (math-researcher §4.1).
+>    like `has_method("meet", "(self, Self) -> Self")` are
+>    canonicalized via proc_macro2 round-trip and stored as
+>    canonical strings at fingerprint-load time, NOT re-parsed per
+>    match site. The naive per-match-site re-parse is a documented
+>    50× slowdown (math-researcher §4.1). See ADR-010 Amendment 5
+>    for the canonicalization path; the `syn::Signature` AST
+>    comparison remains a future upgrade target.
 > 3. **Parse-time depth + node-count caps**: the fingerprint parser
 >    rejects fingerprints with AST depth > 10 OR total node count >
 >    256 (defaults; configurable in `[package.metadata.antigen]`).
