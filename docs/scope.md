@@ -343,7 +343,7 @@ When the original DeterminismClass bug was fixed, the PR includes one antigen:
 #[antigen(
     name = "polarity-inverted-class-meet",
     family = "frame-translation",
-    fingerprint = "item: enum, has_method('meet', '(Self, Self) -> Self'), \
+    fingerprint = "item: enum, has_method('meet', '(self, Self) -> Self'), \
                    variants: 3..=8, attr_present('repr(u8)'), doc_contains('strength')",
     references = ["GAP-BIT-EXACT-1", "DEC-030 §1.1", "commit bb918d2"],
     summary = "When class enum represents strength-of-claim with strongest-first \

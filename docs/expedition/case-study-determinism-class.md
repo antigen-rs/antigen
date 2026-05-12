@@ -62,7 +62,7 @@ use antigen::{antigen, presents, immune};
         item: enum,
         name: matches('*Class'),
         variants: 3..=8,
-        has_method('meet', '(Self, Self) -> Self'),
+        has_method('meet', '(self, Self) -> Self'),
         any_of([
             attr_present('repr(u8)'),
             doc_contains('strength'),
