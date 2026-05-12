@@ -148,10 +148,17 @@ fn parse_has_method(input: ParseStream) -> syn::Result<Constraint> {
     let _ = kw; // silence unused-warning; the keyword position carries the diagnostic span via the lit.
                 // ADR-010 Amendment 3 Performance Invariant 2: normalize the signature
                 // pattern ONCE at parse time so the matcher does not re-normalize per
-                // match site. This is the "pre-parsed signature" the invariant names —
-                // for v1 the canonical form is the whitespace-normalized string;
-                // future ADRs may upgrade to a parsed `syn::Signature` shape.
-    let normalized_signature = Some(crate::normalize_ws(&signature));
+                // match site. This is the "pre-parsed signature" the invariant names.
+                //
+                // Canonicalization beyond whitespace collapse: route the user-provided
+                // signature through proc_macro2's tokenizer so user-natural `&mut self`
+                // matches the `& mut self` spacing the matcher produces when rendering
+                // the actual `syn::Signature`. A3.5 onboarding sweep — see
+                // `normalize_signature_canonical` for the full rationale; the previous
+                // `normalize_ws`-only path silently dropped every `&self` / `&mut self`
+                // signature pattern that didn't include the proc_macro2 spacing
+                // (a real production footgun in tambear).
+    let normalized_signature = Some(crate::normalize_signature_canonical(&signature));
     Ok(Constraint::HasMethod(MethodPattern {
         name,
         signature,
