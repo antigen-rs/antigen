@@ -54,6 +54,7 @@
   - [ADR-010 Amendment 2 — Fingerprint semver + MSRV policy](#adr-010-amendment-2--fingerprint-semver--msrv-policy)
   - [ADR-010 Amendment 3 — Scan semantics + first-stdlib operators + matcher-engine location + filter framing + invariants](#adr-010-amendment-3--scan-semantics--first-stdlib-operators--matcher-engine-location--filter-framing--invariants)
   - [ADR-010 Amendment 4 — Filter/proof framing as architectural principle](#adr-010-amendment-4--filterproof-framing-as-architectural-principle)
+  - [ADR-010 Amendment 5 — `has_method` signature canonicalization via proc_macro2 (strict)](#adr-010-amendment-5--has_method-signature-canonicalization-via-proc_macro2-strict)
 - [ADR-011 — `#[antigen_tolerance(...)]`: opt-out for legitimate fingerprint matches](#adr-011-antigen_tolerance-opt-out-for-legitimate-fingerprint-matches)
 - [ADR-012 — ADR-010 Amendment 1: function-body patterns + match-context awareness](#adr-012-adr-010-amendment-1-function-body-patterns--match-context-awareness)
 - [ADR-013 — ADR-002 Amendment 1: phantom-type witness recognition + witness-validity tier mapping](#adr-013-adr-002-amendment-1-phantom-type-witness-recognition--witness-validity-tier-mapping)
@@ -2412,6 +2413,217 @@ involving the witness layer.
 - The future-ADR review gap: when a future amendment proposes
   expanding the filter, the question "does this belong in proof
   instead?" is now structural rather than ad-hoc.
+
+---
+
+## ADR-010 Amendment 5 — `has_method` signature canonicalization via proc_macro2 (strict)
+
+**Status**: Ratified 2026-05-11.
+
+**Amends**: ADR-010 (Fingerprint grammar v1), specifically Performance
+Invariant 2 in ADR-010 Amendment 3.
+
+**Participants**: scout (first author, A3.5 onboarding sweep); aristotle
+(Phase 1-8 audit + small-push audit); adversarial (Stage 3 review +
+ATK-W6a-017 Mechanism B negative test); pathmaker (OQ1 STRICT implementation
+at bb22e56); team-lead (OQ1 STRICT adjudication + ratification).
+
+**Related**: ADR-010 Amendment 3 (Performance Invariant 2 — pre-parsed
+signature storage); ADR-015 (grammar-vs-vocabulary cut + per-operator
+implementation principle); ADR-005 §1 sub-clause F (trust boundary
+validation — grounds the strict-fail decision).
+
+**Implements**:
+- `00c35ed` — initial engine canonicalization via proc_macro2 round-trip (lenient form, superseded by bb22e56)
+- `bb22e56` — OQ1 STRICT: `normalize_signature_canonical` → `Option<String>`, strict fail on proc_macro2 parse error
+- `af4113c` — fingerprint-declaration corrections including ADR-010 ratified text at lines 1724 + 1844
+- `cd33c96` — ATK-W6a-017: Mechanism B negative test, three assertions
+
+### Finding
+
+The `has_method` operator compares user-written pattern strings against
+proc_macro2-rendered method signature strings. The comparison uses whitespace
+normalization only, which is insufficient: token-level differences between
+natural Rust syntax and proc_macro2-rendered output survive whitespace
+normalization and cause silent mismatches (no error, no diagnostic — zero
+fingerprint matches returned).
+
+This failure-class — **user-pattern-string vs engine-rendered-string
+tokenization asymmetry** — has two known sub-mechanisms with different
+mitigations:
+
+**Sub-mechanism A (whitespace/spacing asymmetry)**: natural Rust groups
+tokens like `&mut` without intervening spaces; proc_macro2 renders them with
+spaces (`"& mut"`). Whitespace normalization collapses multi-space runs but
+cannot insert missing spaces. Example: `"(&mut self)"` → normalized →
+`"(&mut self)"`; engine renders → `"(& mut self)"`. These are not equal.
+
+**Sub-mechanism B (token-class distinction)**: `Self` (type alias, capital-S,
+`Ident` token) and `self` (receiver keyword, lowercase, `Ident` token with
+keyword semantics) are categorically different tokens. proc_macro2 preserves
+the distinction; `Self` cannot be silently bridged to `self` without changing
+semantics (a fingerprint targeting a static method taking two `Self`-typed
+parameters would be incorrectly re-shaped).
+
+Both sub-mechanisms were discovered during A3.5's Phase 3 coherence review
+by cross-checking doc examples against actual matcher behavior.
+
+**ADR-tier catch (V8 verifier-self-correction)**: the ratified ADR-010 text
+at lines 1724 and 1844 carried `"(Self, Self) -> Self"` for the
+`PolarityInvertedClassMeet` fingerprint for the entire post-ratification
+period. This is the correct form for a static method taking two `Self` typed
+parameters; the intended form (by-value receiver) is `"(self, Self) -> Self"`.
+The error was invisible at spec-review level; only cross-checking concrete
+engine behavior surfaced it. Fixed at `af4113c`.
+
+**Recursive V8 meta-finding**: the amendment's own proposal draft overclaimed
+scope — the "Failure-class eliminated" section listed sub-mechanism B as closed
+by proc_macro2 round-trip, but round-trip does NOT bridge token-class
+distinctions (Self/self are different tokens that remain different after
+tokenization). Aristotle's Phase 1-8 caught this overclaim during the review.
+
+### Decision
+
+#### Clause A — Operative principle: pre-tokenize `has_method` pattern strings
+
+User-provided signature strings in `has_method("name", "sig")` are
+canonicalized through proc_macro2's tokenizer at fingerprint-parse time. The
+canonical form is used for all comparisons against engine-rendered actual
+signatures.
+
+This is an upgrade to Performance Invariant 2 from ADR-010 Amendment 3.
+PI-2 ratified *when* (load-time) and *what is produced* (pre-parsed
+signatures). This clause specifies the normalization path: the user-provided
+string is run through `proc_macro2::TokenStream::from_str` before whitespace
+normalization, producing the same token spacing the matcher uses when rendering
+actual `syn::Signature` instances.
+
+**Strict fail on parse failure (OQ1, ratified strict, ADR-005 §1 sub-clause F)**:
+if proc_macro2 cannot tokenize the user's string (malformed, unbalanced
+delimiters), the engine returns an error — it does NOT fall back to plain
+whitespace normalization. The lenient fallback would reintroduce the spacing
+asymmetry on the degraded path (match-site always produces proc_macro2-canonical
+form; pattern side on fallback would produce only whitespace-normalized form —
+asymmetry preserved). This is an ADR-005 sub-clause F violation at the engine
+trust boundary: a pattern that cannot be canonicalized cannot be compared
+symmetrically against engine-rendered signatures. Valid v1 `has_method` signature
+strings are always tokenizable by proc_macro2; inputs that fail tokenization are
+already silently broken and must surface an error.
+
+#### Clause B — Sub-mechanism A: whitespace/spacing asymmetry (engine-side fix)
+
+Engine-side fix: proc_macro2 round-trip canonicalization (Clause A) closes
+sub-mechanism A entirely. After round-trip, `"(&mut self)"` and `"(& mut self)"`
+produce the same normalized form. Users may write either; the engine accepts both.
+
+Implemented as `normalize_signature_canonical()` in
+`antigen-fingerprint/src/lib.rs`. The fix is internal to the parse-time path;
+no external API change; no match-site change; fully non-regressive on
+previously-working fingerprints.
+
+#### Clause C — Sub-mechanism B: token-class asymmetry (docs-and-declarations)
+
+Engine cannot bridge this: `Self` → `self` auto-bridging would change semantics
+(silently re-shape fingerprints targeting static methods into
+receiver-shape fingerprints). Mitigation is documentation and correct
+declarations.
+
+Mitigations:
+- **Receiver-rendering reference table** in `docs/fingerprint-grammar.md`:
+  explicitly maps each receiver form (`self`, `&self`, `&mut self`, no receiver)
+  to its pattern form.
+- **Fingerprint-declaration corrections**: `PolarityInvertedClassMeet` in
+  tambear's `antigens.rs`, `docs/expedition/stdlib-seed-antigens.md`, and
+  the two ADR-010 ratified-text instances corrected from `"(Self, Self) -> Self"`
+  to `"(self, Self) -> Self"`.
+
+This distinction — `Self` (typed parameter) vs `self` (receiver keyword) — is
+a Rust grammar-level distinction, not a fingerprint-grammar-level limitation.
+
+#### Clause D — Triage discipline for future sub-mechanisms
+
+The two known sub-mechanisms establish the triage protocol for any future
+tokenization-asymmetry discovery:
+
+1. **Can a pure tokenizer (no semantic position analysis) close this gap?** If
+   the difference is surface formatting that tokenizes identically regardless of
+   grammatical role (whitespace, spacing between punctuation and identifiers)
+   → engine-bridgeable. If closing the gap requires knowing what grammatical
+   role a token plays (receiver position vs typed-parameter position, keyword vs
+   identifier in context) → semantic-distinction.
+
+2. If **engine-bridgeable**: apply engine-side fix at parse time. Update
+   `normalize_signature_canonical` or equivalent. Ship as patch (non-regressive
+   on valid inputs).
+
+3. If **semantic-distinction**: mitigation is docs and correct declarations.
+   Update `docs/fingerprint-grammar.md` with the distinction; update affected
+   fingerprint declarations. Do NOT auto-bridge in the engine.
+
+### Mechanics
+
+`normalize_signature_canonical` in `antigen-fingerprint/src/lib.rs`
+(as of `bb22e56`):
+
+```rust
+pub(crate) fn normalize_signature_canonical(sig: &str) -> Option<String> {
+    use std::str::FromStr;
+    let stream = proc_macro2::TokenStream::from_str(sig).ok()?;
+    Some(normalize_ws(&stream.to_string()))
+}
+```
+
+Returns `None` when proc_macro2 rejects the input. Callers surface `None` as
+a parse error with diagnostic context. Called from `parse_has_method()` in
+`antigen-fingerprint/src/parser.rs` at fingerprint-parse time.
+
+The match-site path (`render_inputs()`, `signature_matches()` in
+`antigen-fingerprint/src/matcher.rs`) is unchanged. The fix is entirely
+parse-time.
+
+### Scope boundary
+
+This amendment covers `has_method` signature strings only:
+
+- `name = matches("<glob>")` — glob on identifier strings; single tokens; no spacing variation
+- `attr_present("<path>")` — path-segment identity; no tokenization comparison
+- `doc_contains("<substring>")` — substring search in doc text; no tokenization
+- `body_contains_macro("<name>")` — last-segment match; no tokenization
+
+Does not extend to semantic comparison (resolving types, understanding `Self`
+in context). Comparison remains textual after normalization.
+
+### ATK contracts
+
+**ATK-W6a-013** (`antigen-fingerprint`): the `"(&self)"` / `"(&mut self)"`
+spacing footgun. Clause B closes this for the spacing variant; the test was
+inverted at `00c35ed` to assert corrected behavior.
+
+**ATK-W6a-013b** (new): `Self` vs `self` token-class distinction. Separate
+ATK number because the mitigation surface is different (docs, not engine).
+Mitigation at `af4113c`.
+
+**ATK-W6a-017** (Mechanism B negative test, `cd33c96`): three assertions:
+(1) `"(Self, Self) -> Self"` does NOT match `fn meet(self, other: Self)` —
+core guard for engine NOT bridging the distinction; (2) `"(self, Self) -> Self"`
+DOES match `fn meet(self, other: Self)` — positive control; (3) `"(& self,
+Self) -> Self"` DOES match `fn meet(&self, other: Self)` — reference-receiver
+positive control.
+
+### Amendment cascade (downstream consistency — not gating)
+
+1. **ADR-010 Amendment 3 PI-2**: "stored as `syn::Signature` AST nodes" →
+   "normalized via proc_macro2 round-trip at parse time; stored as canonical
+   string." The `syn::Signature` AST comparison remains a future upgrade path;
+   v1 contract is canonical string after proc_macro2 round-trip.
+
+2. **`docs/fingerprint-grammar.md`**: the receiver-spacing caveat section
+   ("Never matches (silent failure)" examples) should note that sub-mechanism A
+   is now engine-bridged — users may write either spacing form.
+
+3. **Tambear adoption log**: the PanickingInDrop fingerprint's `"(&mut self)"`
+   fix committed at `7d9664a` is no longer load-bearing post-Amendment 5; kept
+   for clarity.
 
 ---
 
