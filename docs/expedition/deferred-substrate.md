@@ -306,6 +306,29 @@ Approach 8 (epitope-class lattice) as biology-cognate post-A6 territory.
 Threads not yet woven into the manuscript trajectory or
 `immune-system-primitive-map.md`.
 
+**C1 cognate — COMPLETE (2026-05-11)**: partial-fit verdict. Vaccination captures
+deliberation-leads-to-prepared-substrate but misses folded structure: in vaccination
+the deliberating agent (human) is external to the responding substrate (immune cells);
+in dev-judgment, the developer is both the meta-agent shaping the substrate AND a
+participant in the substrate being shaped. Biology has no canonical cognate for this
+folded structure. Michael Levin's bioelectric-collective-intelligence territory is
+genuinely close structurally (agents within substrate coordinating via shared state
+carrying goal-like content) but is substrate-extending; filed as forward-cognate at
+ADR-006 threshold. Vaccination stays as closest in-substrate cognate with layering
+mismatch named honestly. Finding at:
+`campsites/antigen-A3/20260509163016-20260509080000-launch/naturalist/20260511192939-c1-cognate-refinement-judgment.md`
+
+Ready for deep-dive Phase 1-8 input: the layering mismatch should be named explicitly
+in any manuscript revision, not smoothed. Concrete revision text in the finding.
+
+**C2/C3/C5/C6** — pending; naturalist at idle-as-invitation cadence; none currently
+pulling. Will follow when they do.
+
+**Engineered-substrate-exceeds-biology count**: C1's folded-deliberation structure
+joins W7/ADR-017/C4/seam-tier as fifth same-session instance. Not ratifying (same-session
+density is not the threshold). Cross-session or cross-project recurrence is threshold.
+Recognition substrate continues.
+
 **Where it lives**: naturalist's A3 campsite entries; `cross-domain-architectural-map.md` V1 (academic-researcher's A2 work).
 
 **Unblocked by**: idle-as-invitation (naturalist's natural cadence);
@@ -328,9 +351,11 @@ to encounters-tier when discipline ratifies; remove if resolved by ADR or impl.
 
 ### Engineered-substrate-exceeds-biology family (encounter-registered)
 
-Three instances: W7 FormalProof tier, ADR-017 trust-delegation, C4
-knowledge-ecosystem. Count trigger fires; second gate (multi-role + engineering-
-reason coherence) not yet met. `held-for: cross-project-posture-if-generalizes`.
+Five same-session instances: W7 FormalProof tier, ADR-017 trust-delegation, C4
+knowledge-ecosystem, seam-tier, C1 folded-deliberation structure. Same-session
+density is not the threshold (cross-session or cross-project recurrence required).
+Count noted; second gate (multi-role + engineering-reason coherence across instances)
+not yet met. `held-for: cross-project-posture-if-generalizes`.
 Registered per Q6 ratification.
 
 **Revisit when**: pattern surfaces in a second project context with different
