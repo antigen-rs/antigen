@@ -294,11 +294,24 @@ matches).
 
 **Biology cognate**
 
-Closest to **innate immunity** — generic pattern-recognition that operates
-automatically.
+Closest to **PRR (pattern-recognition receptor) function + dendritic-cell
+processing within innate immunity** (per naturalist Q-C2 verification,
+2026-05-12 — Resolution B: surfaces both biology cognates already bound
+in `immune-system-primitive-map.md` lines 64 + 110, rather than collapsing
+to a single "innate immunity" framing that collides with clippy at the
+system-level posture).
 
-[NATURALIST: V0 asked between innate / complement / constitutive MHC
-processing. Open for refinement.]
+Two abstraction levels operate cleanly:
+- **System level**: clippy occupies "innate-immunity-system" posture
+- **Mechanism level (C2)**: PRR-pattern-recognition (fingerprint engine)
+  + dendritic-cell processing (audit pipeline) within the system
+
+**Boundary-silence note**: the PRR/dendritic-cell cognates go silent at
+fingerprint *authoring* — writing new fingerprints is closer to
+genome-editing-equivalent than innate-immunity-equivalent. Authoring
+lives in C1 territory (where developmental/vaccination/surveillance
+cognates apply); C1 and C2 are complementary, splitting authoring vs
+runtime recognition.
 
 **Failure modes / attack surface**
 
