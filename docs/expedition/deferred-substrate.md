@@ -212,20 +212,19 @@ cadence. The user-facing piece is already shipped: fingerprint-grammar.md explic
     for the entire post-ratification period, surfaced retroactively.
 - **Failure-class**: Component-2 (passive scan/tools) — structural protection silently doesn't
   apply because engine and author are writing in different token-rendering formats.
-- **Engine improvement scope** (team-lead, 2026-05-11): ADR-010 Amendment 5 should target the
-  CLASS, not specific mechanism. Right framing: "pre-tokenize user pattern strings through
-  proc_macro2 at parse time to canonicalize against engine-rendered strings." Solves both
-  known instances + prevents future instances. Mechanism A already implemented (35544cc,
-  normalize_signature_canonical). Mechanism B is Receiver-vs-Type distinction — different
-  surface than whitespace; aristotle to determine if 35544cc covers it or separate amendment needed.
-- **Sub-items in flight**:
-  - Engine normalization (Mechanism A): implemented 35544cc; aristotle paper-trail check pending
-  - Engine normalization (Mechanism B): scope to be determined after aristotle Phase 1-8
-  - Scout: engine improvement proposal covering class-level fix (scoped by aristotle findings)
-  - Adversarial: may file ATK contract for the class (flag at Phase 5 gap-check)
-  - Multi-component-immunity V1 Component-2 failure-modes section is candidate home
-- **Held-for**: aristotle paper-trail check on 35544cc; class-level amendment scope settlement;
-  V1 integration when V1 next refines.
+- **Aristotle audit COMPLETE** (2026-05-11): four verdicts:
+  1. 35544cc is implementation detail within ADR-010 Amendment 3 Invariant 2 — no retroactive amendment needed for the commit itself
+  2. No new trust boundary introduced (ADR-005 sub-clause F clean)
+  3. Mechanism B is NOT a normalization problem — semantic distinction; auto-bridging would change semantics; mitigation is docs + correct declarations
+  4. Class-level Amendment 5 is the right framing: two sub-mechanisms, different mitigations; triage discipline for future sub-mechanisms
+  Artifact: `campsites/.../aristotle/20260511-adr-010-amendment-5-audit.md`
+- **Sub-items status**:
+  - Engine normalization (Mechanism A): COMPLETE — 35544cc (partial) superseded by adversarial's 00c35ed (full: ATK-W6a-013 inverted, ATK-W6a-013b added, matcher serde fallback covered)
+  - Engine normalization (Mechanism B): CLOSED — not engine-bridgeable; mitigation shipped (af4113c + fingerprint-grammar.md receiver-rendering table)
+  - Scout: drafting ADR-010 Amendment 5 (class-level, retroactive) — routed 2026-05-11
+  - Adversarial: ATK contracts filed (00c35ed); Phase 5 gap inventory open
+  - Multi-component-immunity V1 Component-2 failure-modes: candidate home when V1 next refines
+- **Held-for**: scout Amendment 5 draft → team-lead ratification → committed to decisions.md before tag
 
 **ENCOUNTER CANDIDATE (below threshold, watching)**: "spec-invisible silent failure caught only by spec-against-behavior cross-check"
 - **What**: a class of bugs invisible to specification-level review (the spec text is valid; no
