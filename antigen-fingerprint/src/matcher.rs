@@ -5,7 +5,9 @@
 //! `body_contains_macro` operator walks the function/method body for
 //! `syn::Macro` invocations natively (per ADR-015 S2).
 
-use crate::{normalize_ws, Constraint, Fingerprint, ItemKind, MethodPattern};
+use crate::{
+    normalize_signature_canonical, normalize_ws, Constraint, Fingerprint, ItemKind, MethodPattern,
+};
 
 impl Fingerprint {
     /// Match this fingerprint against a `syn::Item`.
@@ -139,15 +141,20 @@ fn has_matching_method(item: &syn::Item, pattern: &MethodPattern) -> bool {
     };
     // PI-2: read the pattern's pre-normalized form computed at parse time.
     // Fallback for serde-deserialized patterns (where the cache is None):
-    // normalize_ws fires on every call — O(N items) per pattern on the serde
+    // canonicalize fires on every call — O(N items) per pattern on the serde
     // path vs O(1) for the parsed path. Acceptable in v0.1 because the scan
     // CLI always parses fingerprints from source; serde deserialization is not
     // the hot path. Fix when it bites: call ensure_normalized() on Fingerprint
     // before scanning, or change to &mut MethodPattern to write back on first use.
+    //
+    // The fallback MUST use the same canonicalization the parser uses
+    // (`normalize_signature_canonical`) — a plain `normalize_ws` here would
+    // re-introduce the `&self` / `& self` spacing bug for serde-loaded
+    // patterns. A3.5 onboarding sweep fix.
     let pattern_norm: String = pattern
         .normalized_signature
         .clone()
-        .unwrap_or_else(|| normalize_ws(&pattern.signature));
+        .unwrap_or_else(|| normalize_signature_canonical(&pattern.signature));
     for impl_item in &imp.items {
         if let syn::ImplItem::Fn(f) = impl_item {
             if f.sig.ident == pattern.name && signature_matches(&f.sig, &pattern_norm) {
@@ -161,11 +168,19 @@ fn has_matching_method(item: &syn::Item, pattern: &MethodPattern) -> bool {
 /// Compare a method signature's input/output shape against the pattern's
 /// pre-normalized form.
 ///
-/// The pattern arrives normalized (whitespace collapsed) per ADR-010
-/// Amendment 3 Performance Invariant 2 — the parser does the normalize ONCE
-/// at fingerprint-load time. The actual `syn::Signature` is rendered fresh
-/// per call (it's the per-match-site cost we cannot avoid) and normalized
-/// here for comparison.
+/// The pattern arrives canonicalized by `normalize_signature_canonical`
+/// at fingerprint-load time (ADR-010 Amendment 3 Performance Invariant 2).
+/// The actual `syn::Signature` is rendered fresh per call (it's the
+/// per-match-site cost we cannot avoid) and routed through the SAME
+/// canonicalization so the comparison is symmetric.
+///
+/// The symmetric canonicalization matters because the rendered output
+/// mixes proc_macro2-tokenized parts (`& self`, `& mut self`) with
+/// manually-joined separators (`", "`). The pattern goes through proc_macro2
+/// wholesale at parse time. Without routing the actual output through the
+/// same canonicalization, a `(Self, Self)` pattern (proc_macro2 renders as
+/// `(Self , Self)`) would never match the matcher's `(Self, Self)` (manual
+/// join). A3.5 onboarding sweep fix.
 fn signature_matches(sig: &syn::Signature, pattern_norm: &str) -> bool {
     use quote::ToTokens;
 
@@ -179,7 +194,7 @@ fn signature_matches(sig: &syn::Signature, pattern_norm: &str) -> bool {
     } else {
         format!("({inputs_rendered}) -> {output_rendered}")
     };
-    normalize_ws(&actual) == pattern_norm
+    normalize_signature_canonical(&actual) == pattern_norm
 }
 
 fn render_inputs(sig: &syn::Signature) -> String {

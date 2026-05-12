@@ -23,7 +23,7 @@
 //! item = enum,
 //! name = matches("*Class"),
 //! variants = 3..=8,
-//! has_method("meet", "(Self, Self) -> Self"),
+//! has_method("meet", "(self, Self) -> Self"),
 //! attr_present("repr(u8)"),
 //! doc_contains("strength"),
 //! all_of([
@@ -273,6 +273,41 @@ impl Eq for MethodPattern {}
 #[must_use]
 pub(crate) fn normalize_ws(s: &str) -> String {
     s.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// Canonicalize a `has_method` signature pattern through proc_macro2's
+/// tokenizer so user-written `&self` / `&mut self` matches the spacing
+/// that proc_macro2 produces when rendering the actual signature.
+///
+/// **The bug this fixes**: the matcher renders `syn::Signature` via
+/// `to_token_stream().to_string()`, which produces `"& self"` and
+/// `"& mut self"` (space between `&` and the next token). When a user
+/// writes the natural-Rust shape `"(&mut self)"`, plain whitespace
+/// normalization leaves it as `"(&mut self)"` — and the string compare
+/// against the matcher's `"(& mut self)"` never matches. Silent failure,
+/// zero matches. (Tambear's PanickingInDrop was bitten by this — fixed at
+/// tambear commit 7d9664a; A3.5 onboarding sweep surfaced it as a
+/// production footgun worth fixing in the engine.)
+///
+/// **The fix**: round-trip the user-provided string through
+/// `proc_macro2::TokenStream::from_str(_).to_string()`. proc_macro2 inserts
+/// canonical spacing around `&`, `<`, `>`, etc. — the same spacing the
+/// matcher produces — so the round-trip is idempotent and canonicalizing.
+/// `"(&mut self)"` → `"(& mut self)"`; `"(& mut self)"` → `"(& mut self)"`.
+///
+/// **Fallback**: if the input is not a valid proc_macro2 token stream
+/// (unbalanced parens, etc.), fall back to plain whitespace normalization.
+/// The parser already chooses lenience over rejection on broken sigs
+/// (`parse_has_method` accepts any non-empty string for v1 — see the
+/// comment there).
+#[must_use]
+pub(crate) fn normalize_signature_canonical(sig: &str) -> String {
+    use std::str::FromStr;
+    let canonical = proc_macro2::TokenStream::from_str(sig).map_or_else(
+        |_| sig.to_string(),
+        |stream| stream.to_string(),
+    );
+    normalize_ws(&canonical)
 }
 
 // ============================================================================
