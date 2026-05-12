@@ -12,7 +12,7 @@ readme = "README.md"
 keywords.workspace = true
 categories.workspace = true
 exclude = [
-    "tests/fixtures/**",
+    "tests/**",
     "proptest-regressions/**",
 ]
 
