@@ -186,17 +186,26 @@ Any Rust item; typically co-located with `#[presents]` at the defended site.
 
 ### Witness types
 
-| Witness form | Tier (per ADR-005 Amendment 3) | Example |
-|---|---|---|
-| `test::fn_name` | ExecutionVerified | `witness = test::no_panic_test` |
-| `proptest::fn_name` | ExecutionVerified | `witness = proptest::roundtrip_proptest` |
-| `kani::fn_name` | FormalProof | `witness = kani::no_panic_proof` |
-| `prusti::fn_name` | FormalProof | `witness = prusti::invariant_proof` |
-| `verus::fn_name` | FormalProof | `witness = verus::correctness_proof` |
-| `creusot::fn_name` | FormalProof | `witness = creusot::specification_proof` |
-| `clippy::lint_name` | ExternalUnvalidated | `witness = clippy::no_panic_in_drop` |
-| Phantom-type witness | FormalProof | `witness = phantom::LatticeFrameInvariant` |
-| Bare identifier | Reachability (workspace-resolved) | `witness = no_panic_test` |
+`WitnessTier` in v0.1.0-rc.1 has four variants: `None`, `Reachability`,
+`Execution`, `FormalProof`. The `Execution` tier requires the audit to
+invoke a harness (A4-A5 work); v0.1 does not invoke harnesses, so
+witnesses that *will* reach Execution in future versions sit at
+Reachability today, with audit hints disambiguating the case. The table
+below reports the **actual v0.1 tier** and the audit hint that
+distinguishes the witness shape.
+
+| Witness form | v0.1 tier (audit hint) | Example | Future promotion |
+|---|---|---|---|
+| `#[test]` function identifier | Reachability (`TestAttributePresentNotInvoked`) | `witness = no_panic_test` | Execution at A4-A5 (harness invocation) |
+| `#[test] + #[ignore]` function | Reachability (`TestAttributePresentIgnoreSkipped`) | `witness = skipped_test` | (stays Reachability — `cargo test` skips by default) |
+| `proptest!` function identifier | Reachability (`ProptestPresentNotInvoked`) | `witness = roundtrip_proptest` | Execution at A4-A5 (harness invocation) |
+| `kani::fn_name` | Reachability (`ExternalToolPrefixRecognized`) | `witness = kani::no_panic_proof` | FormalProof at A4-A5 (verifier-invocation) |
+| `prusti::fn_name` | Reachability (`ExternalToolPrefixRecognized`) | `witness = prusti::invariant_proof` | FormalProof at A4-A5 |
+| `verus::fn_name` | Reachability (`ExternalToolPrefixRecognized`) | `witness = verus::correctness_proof` | FormalProof at A4-A5 |
+| `creusot::fn_name` | Reachability (`ExternalToolPrefixRecognized`) | `witness = creusot::specification_proof` | FormalProof at A4-A5 |
+| `clippy::lint_name` | Reachability (`ExternalToolPrefixRecognized`) | `witness = clippy::no_panic_in_drop` | Execution at A4-A5 (lint-invocation) |
+| Phantom-type turbofish | FormalProof (`PhantomTypeShapeRecognized`) | `witness = NonPanickingProof::<MyType>::verified` | (already FormalProof) |
+| Bare identifier (no test attr) | Reachability (`FunctionResolves`) | `witness = my_helper_fn` | (stays Reachability) |
 
 See [`witness-tiers.md`](witness-tiers.md) for tier semantics and
 [`fingerprint-grammar.md`](fingerprint-grammar.md) for phantom-type
@@ -236,8 +245,10 @@ tier achieved, not the maximal one (ADR-005 Amendment 3 audit-tier-honesty).
 ### Discipline
 
 - **Witness must resolve**: audit surfaces broken/missing/ambiguous witnesses
-- **Tier honesty**: external-tool delegations (kani, prusti, etc.) report
-  ExternalUnvalidated unless the consuming workspace can execute them
+- **Tier honesty**: external-tool delegations (kani, prusti, clippy, etc.)
+  report Reachability tier with the `ExternalToolPrefixRecognized` hint
+  in v0.1; harness invocation (A4-A5) will promote them to Execution or
+  FormalProof when the tool actually runs and confirms
 - **Rationale recommended for production**: especially for tolerance-class
   decisions; the rationale field is the narrative justification
 

@@ -22,8 +22,8 @@ all live:
   matching (W3), fingerprint detection, tolerance recognition, and
   orphaned-tolerance reporting
 - **`cargo antigen audit`** with the `WitnessTier` gradient
-  (Reachability / Execution / FormalProof / ExternalUnvalidated /
-  Missing) — tier-honest reporting per ADR-005 Amendment 3
+  (None / Reachability / Execution / FormalProof) — tier-honest
+  reporting per ADR-005 Amendment 3
 - **Fingerprint grammar v1** — seven item-level operators (`item`,
   `name`, `variants`, `has_method`, `attr_present`, `doc_contains`,
   `body_contains_macro`) plus composition (`all_of`, `any_of`, `not`);

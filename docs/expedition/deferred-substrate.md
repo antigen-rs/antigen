@@ -243,11 +243,30 @@ cadence. The user-facing piece is already shipped: fingerprint-grammar.md explic
   reveals the mismatch). Both tokenization-asymmetry instances today are of this class.
   Adversarial discipline probes named attack surface; scout's cross-check discipline catches
   spec-invisible mismatches. Complementary, non-overlapping coverage.
-- **First instance**: today's pair (2026-05-11, both tokenization-asymmetry mechanisms).
+- **First instance**: 2026-05-11 pair (tokenization-asymmetry Mechanism A + B).
+- **Second instance**: 2026-05-12 Phase 5 gap-check (reference-frame-drift sub-mechanism):
+  `ExternalUnvalidated` phantom tier + audit-hint table invented names. These were not in any
+  ratified code file — they existed only in design-substrate (expedition docs, ADR prose
+  describing intended behavior). User-facing docs authored against design-substrate produce
+  semantically correct-looking but functionally wrong names. Reference-frame: design-doc vs
+  ratified-code. The two sub-mechanisms (tokenization-asymmetry + reference-frame-drift) have
+  complementary triggers: tokenization-asymmetry fires at engine-behavior-vs-spec cross-check;
+  reference-frame-drift fires at JSON-output-vs-doc cross-check. Both produce silent failures
+  (zero matches, wrong field names) with no error at authoring time.
 - **Threshold**: needs 3 independent instances with temporal independence + load-bearing reason
-  before V0+1 promotion. Currently 1 (counting the pair as one encounter of this meta-class).
+  before V0+1 promotion. Currently 2 — temporal independence confirmed (2026-05-11 vs
+  2026-05-12, different sessions, different roles discovering each). Second gate (load-bearing
+  reason coherence): both instances share "reference frame mismatch between authoring substrate
+  and runtime substrate." This is structurally the same as antigen's own failure-class concept
+  applied internally — the implicit assumption is "design doc = code" when the two can drift.
 - **Watch for**: any future case where a ratified ADR example, tutorial, or fingerprint declaration
-  passes spec review but silently misfires against engine behavior.
+  passes spec review but silently misfires against engine behavior, OR where docs are authored
+  against design-substrate and diverge from ratified-code. Third instance + load-bearing-reason
+  coherence → V0+1 promotion candidate.
+- **Schema-lock test** (pre-tag, Tekgy-ratified 2026-05-12): `antigen/tests/atk_schema_lock.rs`
+  — integration test that asserts JSON output field names and enum variant serializations against
+  the actual binary output. This is the structural fix that makes reference-frame-drift a compile
+  failure rather than a doc-review question. Filed as A3.5 scope amendment 7.
 
 **Dependency map** (amendment #2 output, 2026-05-11):
 - Phase 2/3 items are almost entirely parallel; no blocking sequential chains within Phase 2

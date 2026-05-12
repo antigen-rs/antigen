@@ -26,7 +26,7 @@ crates.io can follow to a working antigen declaration + passing scan + passing a
 
 ## Scope
 
-**In scope** (13 deliverables):
+**In scope** (14 deliverables):
 
 1. **README revision** — working quickstart, real output shown inline, multi-component-immunity
    framing woven in
@@ -47,6 +47,9 @@ crates.io can follow to a working antigen declaration + passing scan + passing a
 12. **CHANGELOG.md accuracy verification** — every v0.1.0-rc.1 claim checked against actual
     substrate
 13. **Code verification pass** — final review of every user-facing doc against current code state
+14. **JSON output schema-lock test** — `antigen/tests/atk_schema_lock.rs`; integration test
+    asserting JSON field names and enum variant serializations (amendment 7; Tekgy-ratified
+    2026-05-12)
 
 **Out of scope** (explicitly deferred):
 
@@ -62,7 +65,7 @@ crates.io can follow to a working antigen declaration + passing scan + passing a
 
 ## Scope-lock amendments (ratified)
 
-Five amendments from aristotle Phase 1-8, ratified 2026-05-11:
+Seven amendments (five from aristotle Phase 1-8, ratified 2026-05-11; two from Phase 5 gap-check, ratified 2026-05-12):
 
 1. **Phase 5 convergence-check discipline** — Phase 5 final review uses convergence-check
    methodology: cross-check outputs from multiple roles rather than independent parallel reads.
@@ -94,6 +97,19 @@ Five amendments from aristotle Phase 1-8, ratified 2026-05-11:
    `docs/multi-component-immunity.md` after team Phase 1-8 fully ratifies + outstanding
    refinements (C1-C7 cognates, engineered-substrate-exceeds-biology family, etc.) settle."
    Premature canonicalization would freeze substrate still actively producing refinements.
+
+6. **Phase 3 reference docs in Phase 4 window** — `docs/witness-tiers.md`,
+   `docs/output-formats.md`, and `docs/macros.md` were scoped as Phase 3 deliverables but
+   landed during Phase 4. Phase 5 verification criteria 5/6/7 apply to them as written.
+   Scope-lock deliverable count remains 13; this amendment records the phase-window shift.
+
+7. **JSON output schema-lock test (pre-tag)** — Tekgy-ratified 2026-05-12. Deliverable 14
+   added: `antigen/tests/atk_schema_lock.rs` — integration test asserting JSON output field
+   names and enum variant serializations against actual binary output. Catches: audit.audits
+   key name; WitnessTier 4-variant set; AuditHint 12-variant kebab-case set; match_kind
+   values; witness_status variant shapes. Makes reference-frame-drift (design-doc vs
+   ratified-code) a CI failure rather than a doc-review question. Phase 5 additional
+   deliverable; lands before tag with doc fixes.
 
 ---
 
