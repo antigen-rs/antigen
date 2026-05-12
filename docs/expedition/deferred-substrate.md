@@ -714,6 +714,82 @@ scientist if manuscript work touches contribution-model framing earlier.
 
 **Revisit when**: A5 scope-lock approaches; or manuscript §contribution-model is drafted.
 
+### Immunity-claim verified_at decay (encounter-registered, forward-prediction from whitepaper review)
+
+**What**: `#[immune(X, witness = Y)]` claims have no temporal anchoring. Once
+ratified, an immunity claim stays immune-claimed forever — until either the
+witness function is removed (audit downgrades to Missing) or the underlying
+code structure changes enough to drift the witness's coverage. There's no
+expiration, no `verified_at = "2026-05-12"` annotation, no decay function.
+Stigmergy cognate predicts otherwise: substrate-mediated coordination in
+biological systems decays unless reinforced (pheromone trails evaporate, gut
+microbiome composition shifts, antibody concentrations drop). Antigen's
+substrate is structurally permanent in a way biological substrates aren't.
+
+**Why surfaced now**: structural-memory.md V1 review (2026-05-12) flagged
+stigmergy as adjacent-cognate; the boundary-silence is at this specific
+point — biological coordination decays, antigen immunity claims don't. Not
+a defect today (witnesses re-validate on every CI run via audit), but a
+forward-prediction: as ecosystem-tier immunity declarations land (A5
+stdlib), some immunity claims may become substrate-stale in ways that no
+audit tier catches because the witness still resolves.
+
+**What it would look like**: optional `verified_at = "YYYY-MM-DD"` field on
+`#[immune]`; audit reports "stale-immunity" warnings beyond a threshold; or
+witness-staleness inferred from witness function's git blame age. Could
+also live at the antigen-declaration tier (the fingerprint itself, not the
+immunity claim, decays as the engine evolves — substrate-grounded by
+ADR-010 Amendment 5 spacing-bug retrospective).
+
+**Held-for**: `A5-stdlib-governance-substrate` or `post-A5-witness-tier-expansion`.
+
+**Source**: structural-memory.md V1 whitepaper review (aristotle Phase 1-8,
+2026-05-12, finding D — stigmergy boundary-silence).
+**Owner on activation**: aristotle (verified_at semantics design); naturalist
+(stigmergy substrate-grounding); adversarial (theatrical-decay attack
+contracts).
+**Revisit when**: A5 scope-lock opens stdlib-governance; OR three independent
+substrate-grounded instances of stale-but-resolving witnesses surface; OR
+witness-tier expansion design opens (A4-A5).
+
+### Common-knowledge semantics for ratified vocabulary (encounter-registered, forward-prediction from whitepaper review)
+
+**What**: When the team ratifies an antigen / posture / ADR, that ratification
+becomes "what the team knows now." Epistemic logic (Hintikka, Aumann) has
+formal semantics for this: common knowledge requires *everyone knows that
+everyone knows ... that everyone knows X*. Antigen has no formal semantics
+for what becomes common knowledge upon ratification — we lean on the ADR's
+status field and on substrate-currency discipline, but those are
+operational conventions, not formal semantics.
+
+**Why surfaced now**: structural-memory.md V1 review flagged epistemic logic
+as adjacent-cognate. The boundary-silence is at the formal-semantics layer:
+philosophy of science has produced formal frameworks for "what scientific
+communities come to know" that antigen doesn't engage with. Not a defect
+today (ratification is human-mediated, communicated via the campsite
+logbook and ADR commits), but a forward-prediction: as ecosystem-tier
+governance lands (A5 stdlib-antigen-council), the question of *what
+counts as ratified* will benefit from a formal-semantics anchor.
+
+**What it would look like**: per-antigen `ratification_status` with a
+formal-tier (proposed / accepted / ratified / superseded), modeled on
+modal-logic accessibility relations between knowing-states; or
+common-knowledge propagation rules ("an antigen ratified by stdlib is
+common knowledge in all downstream crates that depend transitively"); or
+governance-model formal-semantics for what `#[descended_from]` inheritance
+means across ratified-vs-proposed boundaries.
+
+**Held-for**: `A5-stdlib-governance-substrate`.
+
+**Source**: structural-memory.md V1 whitepaper review (aristotle Phase 1-8,
+2026-05-12, finding D — epistemic logic boundary-silence).
+**Owner on activation**: aristotle (formal-semantics design); academic-
+researcher (epistemic-logic literature cross-walk); pathmaker (ADR-tier
+governance model when A5 opens).
+**Revisit when**: A5 scope-lock opens stdlib-governance; OR cross-crate
+antigen propagation discipline requires formal semantics; OR manuscript
+work surfaces the formal-semantics gap explicitly.
+
 ---
 
 ## Vocabulary candidates — held below ratification thresholds

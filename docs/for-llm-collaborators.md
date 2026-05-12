@@ -73,6 +73,15 @@ references point at lived context — PRs, ADRs, CVEs, blog posts. If
 references are present and you can access them, they often contain the
 most accurate description of what the team is defending against.
 
+**If you can't access a reference** (URL behind a paywall, GitHub
+issue you don't have permission for, internal-only resource): treat
+the `summary` field as authoritative for in-session reasoning. The
+`summary` is intentionally written to stand alone for exactly this
+reason — references are *additional* substrate, not *required*
+substrate, for understanding the failure-class. If the summary is
+ambiguous and the reference is inaccessible, surface that to the
+human; don't fabricate the reference content or assume what it says.
+
 **Step 3**: When proposing changes that touch code marked `#[presents]`,
 respect the corresponding `#[immune]` claim. Read its `witness =
 fn_name` and inspect the witness function. If your proposed change
@@ -80,8 +89,20 @@ might invalidate the witness's coverage, surface that to the human.
 
 **Step 4**: Before generating new code in an antigen-using codebase,
 check whether your generated code might trip an existing fingerprint.
-Run `cargo antigen scan` mentally (or actually, if you have shell
-access). If a fingerprint match surfaces, decide:
+Two paths, depending on your tooling access:
+
+- **If you have shell access**: run `cargo antigen scan` and read the
+  output. This is the substrate-of-record; trust it over your
+  prediction.
+- **If you don't have shell access**: grep the codebase for
+  `#[presents(` and `#[antigen(` declarations. Read each antigen's
+  fingerprint. Manually check whether your generated code's tokens
+  could match any fingerprint operator. This is an approximation —
+  you may miss fingerprint matches the engine would catch, especially
+  for `has_method` and similar operators where tokenization
+  asymmetry matters (see ADR-010 Amendment 5).
+
+If a fingerprint match surfaces (or might surface), decide:
 
 - Should the new code carry `#[immune]` (with a witness you can
   construct)?
@@ -160,6 +181,27 @@ witness type the code doesn't actually have.
 If you don't know whether a witness is real, **find out before
 authoring** — grep for the function, read it, confirm it actually
 exercises the failure-class. Don't invent witness names.
+
+**Adversarial witness-checking** (per ADR-005 Amendment 3 +
+ATK-A2-003/004/005/011/012 substrate): a witness function that
+*exists* and *passes* is not automatically a real witness. Ask:
+
+- Does the witness function construct an input that would exhibit
+  the failure-class if the immunity claim were false?
+- Or does it just exercise the happy path that happens not to trip
+  the failure-class shape?
+- If the immunity claim were silently broken tomorrow (someone
+  removes a defense, changes a type), would this witness *fail*?
+
+A witness that would still pass with the immunity claim broken is
+**theatrical**, not real (see section 6.8 of
+[`structural-memory.md`](structural-memory.md)). When you propose a
+witness, name what the witness exercises explicitly. When you read
+someone else's immunity claim and the witness looks theatrical,
+surface that to the human rather than relying on the audit's
+`Reachability` tier to surface it for you (audit knows the function
+resolves; audit does not know if the function actually exercises the
+failure-class path).
 
 If no real witness exists, the honest move is one of:
 
