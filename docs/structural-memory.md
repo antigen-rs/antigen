@@ -1,10 +1,13 @@
 # Structural Memory of Failure-Classes
 ## A whitepaper on what antigen is, why it exists, and what it means for software teams collaborating across human and AI cognition
 
-> Status: V0 draft (2026-05-12). Authored by team-lead in conversation
-> with Tekgy. Awaits naturalist refinement (biology-cognate depth),
-> aristotle Phase 1-8 (structural soundness), optional scientist
-> manuscript-grade pass.
+> Status: V3 (2026-05-12). Authored by team-lead in conversation with
+> Tekgy. Naturalist biology-cognate refinement complete (V2.2 sharpenings
+> on §8); aristotle Phase 1-8 structural-soundness review complete
+> (drove V1 → V2 reframings); scientist manuscript-grade pass complete
+> (V2 report drove V3 substantial-findings work; V3 verification pass
+> closed all V2 blockers + V2 substantial findings + 4-of-5 V2 hostile-
+> reviewer concerns). arXiv preprint submission pending.
 >
 > This document is a foundational whitepaper, not adopter-facing
 > tutorial material. For tutorials, see [`tutorial.md`](tutorial.md).
@@ -760,15 +763,19 @@ claim because the audit doesn't surface a problem.
   audit-reporting tier.
 - **Ecosystem-wide structural shape**: the broader testing
   literature has documented this failure-class for decades under
-  varying names — "vacuous test" (Beck 2002), "happy-path-only
-  coverage" (Marick), "mutation-testing's existence-not-strength
-  problem" (PIT, Stryker, mutation-testing research broadly).
-  Antigen-specific substrate-grounding sits inside this ecosystem-
-  wide acknowledgment that witness-exists ≠ witness-exercises. The
-  testing literature has framed it as a coverage-quality problem;
-  antigen's contribution is making it a *structural* concern at the
-  audit-reporting tier, where the substrate doesn't claim more than
-  it can verify.
+  varying names — *vacuous tests* in formal-methods and testing
+  research (where a test's predicate is trivially satisfied without
+  exercising the system under test); *happy-path-only coverage* in
+  the testing-discipline tradition associated with Brian Marick's
+  writing on test-quality; and the *existence-vs-strength* problem
+  surfaced by mutation-testing tooling (PIT, Stryker, the broader
+  mutation-testing research lineage initiated by DeMillo, Lipton,
+  and Sayward in 1978). Antigen-specific substrate-grounding sits
+  inside this ecosystem-wide acknowledgment that witness-exists ≠
+  witness-exercises. The testing literature has framed it as a
+  coverage-quality problem; antigen's contribution is making it a
+  *structural* concern at the audit-reporting tier, where the
+  substrate doesn't claim more than it can verify.
 
 The defense is *audit-tier-honesty* (per ADR-005 Amendment 3): the
 audit reports the actual verification strength, never a stronger
@@ -1370,13 +1377,88 @@ CVE gets updated), tolerance rationales can become outdated.
 The structural tier shifts *which* maintenance burden remains: it's
 much smaller than maintaining documentation drift, but it isn't zero.
 
-### 9.4 — Cross-language gaps
+### 9.4 — Cross-language gaps (Rust-first, not Rust-only)
 
 In v0.1, antigen is Rust-only. Other languages can host antigen
 instantiations (per [`roadmap.md`](roadmap.md)), but those don't yet
 exist. Cross-language failure-classes (e.g., "destructors must not
 throw" recurs across Rust, C++, Python, JavaScript) are not yet
 captured by a shared substrate.
+
+**Why Rust first.** Rust is where antigen started because Rust is
+where antigen's authors were already working, and because the
+language and its ecosystem give the architecture an unusually
+favorable substrate to instantiate against. Specifically:
+
+- **Procedural macros** make `#[antigen]`, `#[presents]`, `#[immune]`,
+  `#[descended_from]`, and `#[antigen_tolerance]` first-class
+  attribute syntax — readable as natural Rust by humans, parseable
+  via `proc_macro2` by tooling, co-located with the code they
+  describe. No external annotation file, no separate registry, no
+  parallel sidecar. The declarations live where the code lives.
+- **The type system and trait coherence** carry phantom-type and
+  sealed-trait witness patterns (`WitnessTier::FormalProof` per
+  ADR-013) that give *compile-time* immunity-by-construction — the
+  language's existing strength becomes a witness-type the audit
+  recognizes.
+- **Cargo as the universal entry-point** makes `cargo antigen scan`
+  and `cargo antigen audit` natural cargo subcommands — adopters
+  reach for them through the same tooling they already use, with
+  zero new installation surface beyond a single `cargo install`.
+- **The ecosystem's discipline tradition** — clippy, proptest, kani,
+  prusti, verus, creusot, miri — gave antigen a deep witness-type
+  pluralism to compose with from day one (per ADR-002
+  *compose-don't-compete*). The community has already built the
+  verification primitives antigen integrates with; antigen didn't
+  have to reinvent them.
+- **The community itself.** Rust's culture of "discipline as a
+  shared value" — pedantic linting, sound-by-construction APIs,
+  explicit error handling, careful unsafe blocks, RFC-driven
+  evolution — is the cultural substrate that makes structural
+  failure-class memory feel like a natural extension rather than
+  an imposition. Antigen meets the community where it already
+  lives.
+
+These advantages compounded: each one made the next easier to land.
+Antigen-the-architecture isn't Rust-specific (per §8, the
+architectural class is universal), but antigen-the-instantiation
+benefits from each of these so much that Rust was the obvious place
+to ship first.
+
+**Why not Rust-only.** The cross-language roadmap is *not* "lazy
+ports" — copy the proc-macro syntax into Python/TypeScript/Go and
+call it done. The commitment is **full-parity, full-class
+implementations developed *for* each target language**, with each
+implementation respecting that language's idioms, type system,
+build tooling, and community discipline. What's shareable across
+languages is the *vocabulary* (antigen / presents / immune /
+descended_from / tolerance), the *witness-tier semantics* (Formal /
+Execution / Reachability / None), and where appropriate the
+*structural fingerprints* themselves (a "destructor must not throw"
+fingerprint has a translatable shape across Rust's `Drop`, C++'s
+destructors, Python's `__del__`, JavaScript's finalizers — same
+failure-class, different syntactic surface). What's instantiated
+fresh per language is the *attribute-syntax surface*, the *witness-
+type catalog* (each language's testing/static-analysis/formal-
+verification tooling), the *scan-and-audit subcommand* in the
+language's native build system, and the *type-system integration*
+where the host language affords it.
+
+The shareable-across-platforms substrate is the
+*structural-fingerprint translation layer* — a future component
+where a fingerprint declared in one language carries enough
+structure to be recognized in another, allowing failure-class
+memory to propagate across polyglot codebases. This is roadmap
+territory (`docs/expedition/future-extensions.md` and the
+multi-paper publication trajectory's cross-language theme); it
+does not exist in v0.1.0-rc.1.
+
+The honest framing: antigen started in Rust because Rust gave the
+architecture every advantage at once, and the team was already
+there. That is **first**, not **only**. The architectural class is
+universal; the cross-language commitment is real; the implementation
+order is determined by where the leverage is highest, not by any
+claim that the architecture belongs to one language.
 
 ### 9.5 — Cross-tier propagation aspirational
 
@@ -1413,9 +1495,11 @@ section 5 accordingly, while preserving the boundary-analysis framing.
 ### 9.8 — Cognate-strength variance in cross-domain convergence
 
 Section 8 classifies the 16+ field convergence by cognate strength
-(5 strong / 4 medium / 7 adjacent). The honest substrate is:
-*five rigorous independent instantiations of the architectural class
-across mature fields*, plus medium-strength fields that extend the
+(originating substrate + 4 independent convergences / 4 medium /
+7 adjacent). The honest substrate is: *one originating substrate
+(immunology) that antigen explicitly models from, plus four
+independent rigorous convergences onto the same architectural class
+from mature fields*, plus medium-strength fields that extend the
 territory, plus adjacent fields where the architecture is real but
 not the primary framing. This is more defensible than treating all
 sixteen as uniformly-supporting evidence, but it also means the
@@ -1423,8 +1507,9 @@ convergence claim is calibrated rather than absolute. The
 classification itself may be revised as deeper substrate-grep
 surfaces fields the current classification has placed too strongly
 or too weakly. The convergence-as-evidence claim should be read at
-the strong-cognate-tier strength, with medium and adjacent serving
-as breadth-confirmation rather than depth-evidence.
+the four-method-convergence-onto-originating-substrate strength,
+with medium and adjacent serving as breadth-confirmation rather
+than depth-evidence.
 
 ### 9.9 — Encounter-tier vs posture-tier framing in section 6
 
@@ -1641,8 +1726,11 @@ that helped catalyze the shift."
   evolution and the ratchet effect
 - Alexander, C. (1977). *A Pattern Language.* — pattern catalog
   discipline
-- Liu, Y. et al. (2026). Graph-based memory architectures for
-  long-horizon AI systems — recent ML literature on graph memory
+- Liu, N. F., Lin, K., Hewitt, J., Paranjape, A., Bevilacqua, M.,
+  Petroni, F., & Liang, P. (2023). Lost in the Middle: How Language
+  Models Use Long Contexts. arXiv:2307.03172 (published in TACL
+  2024) — long-context attention-dispersion empirical study cited
+  in §5 agentic-LLM boundary analysis
 - Hoare, C. A. R. (1969). An axiomatic basis for computer programming
   — foundational structural specification
 - Meyer, B. (1992). *Eiffel: The Language.* — design by contract
@@ -1653,14 +1741,18 @@ that helped catalyze the shift."
 
 ## Acknowledgments
 
-This whitepaper is V0 — substrate authored 2026-05-12 by team-lead
-in conversation with Tekgy. It synthesizes substrate from the
+This whitepaper reached V3 on 2026-05-12, authored by team-lead in
+conversation with Tekgy. It synthesizes substrate from the
 antigen-project's own development across sweeps A1, A2, A3, and A3.5,
-incorporating findings from naturalist's biology-cognate refinements,
-aristotle's Phase 1-8 deconstructions, scout's structural-rhyme
-discoveries, adversarial's threat-model work, and pathmaker's
-implementation discipline. The cross-domain map (academic-researcher
-in Sweep A2) anchors the convergence claim in section 8.
+incorporating findings from naturalist's biology-cognate refinements
+(V2.2 §8 sharpenings), aristotle's Phase 1-8 deconstructions (drove
+V1 → V2 reframings), scout's structural-rhyme discoveries,
+adversarial's threat-model work, and pathmaker's implementation
+discipline. The cross-domain map (academic-researcher in Sweep A2)
+anchors the convergence claim in section 8. Scientist's
+manuscript-grade pass on V2 surfaced the substantial findings driving
+V3; the V3 verification pass closed all V2 blockers, substantial
+findings, and 4-of-5 hostile-reviewer concerns.
 
 The framing of "the failure-class fingerprint of hybrid collaboration"
 in section 6 reflects observations from the project's own development
@@ -1668,9 +1760,10 @@ in section 6 reflects observations from the project's own development
 spawned agents working on the same codebase). The project's own
 substrate is evidence for the claims it makes.
 
-Open for refinement by naturalist (biology-cognate depth), aristotle
-(structural soundness Phase 1-8), and optional scientist
-manuscript-grade pass when bandwidth opens.
+Open for continued refinement as substrate accumulates — particularly
+as cross-language instantiations land, as empirical adoption produces
+intervention-tier evidence for the third-pillar claim, and as
+agentic-cognition architecture continues to evolve.
 
 ---
 
