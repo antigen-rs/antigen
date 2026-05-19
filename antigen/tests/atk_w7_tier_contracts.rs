@@ -33,6 +33,7 @@ fn synthetic_immunity(witness: &str) -> ScanReport {
         item_kind: "impl".to_string(),
         item_target: ItemTarget::Unknown { line: 10 },
         canonical_path: None,
+        requires_predicate: None,
     };
     let mut report = ScanReport::default();
     report.immunities.push(immunity);

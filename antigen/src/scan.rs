@@ -574,7 +574,14 @@ pub struct Immunity {
     /// The antigen type referenced.
     pub antigen_type: String,
     /// The witness expression as a string (validated lazily).
+    /// Empty string when `requires_predicate` is set (substrate-witness path).
     pub witness: String,
+    /// Substrate-witness predicate JSON, present when the immunity was
+    /// declared with `requires = <predicate>` (ADR-019 §P3b). The JSON
+    /// matches `serde_json::to_string(&antigen_attestation::Predicate)`.
+    /// Mutually exclusive with a non-empty `witness`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub requires_predicate: Option<String>,
     /// Source file path.
     pub file: PathBuf,
     /// Line number.
@@ -604,6 +611,10 @@ pub struct Toleration {
     /// Optional open-vocabulary references list (mirrors ADR-009's `references`
     /// field shape).
     pub see: Vec<String>,
+    /// Substrate-witness sidecar predicate JSON, present when the tolerance
+    /// was declared with `requires = <predicate>` (ADR-019 tolerance tier).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub requires_predicate: Option<String>,
     /// Source file path.
     pub file: PathBuf,
     /// Line number.
@@ -2102,7 +2113,13 @@ impl ScanVisitor<'_> {
         });
     }
 
-    fn extract_immune(&mut self, attr: &syn::Attribute, item_kind: &str, item_target: ItemTarget) {
+    fn extract_immune(
+        &mut self,
+        attr: &syn::Attribute,
+        all_attrs: &[syn::Attribute],
+        item_kind: &str,
+        item_target: ItemTarget,
+    ) {
         if let syn::Meta::List(list) = &attr.meta {
             // Scan records the witness expression verbatim; validity
             // classification (Test, Proptest, PhantomType, Function, External)
@@ -2127,10 +2144,15 @@ impl ScanVisitor<'_> {
                     return;
                 }
             };
+            // P3b: scan for `antigen:requires:v1:<json>` doc marker emitted
+            // by the `#[immune(requires = ...)` macro expansion. The marker
+            // is a sibling doc attribute on the same item.
+            let requires_predicate = extract_requires_predicate_from_attrs(all_attrs);
             let line = Self::line_of_attr(attr);
             self.report.immunities.push(Immunity {
                 antigen_type,
                 witness,
+                requires_predicate,
                 file: self.file_path.clone(),
                 line,
                 item_kind: item_kind.to_string(),
@@ -2143,6 +2165,7 @@ impl ScanVisitor<'_> {
     fn extract_tolerance(
         &mut self,
         attr: &syn::Attribute,
+        all_attrs: &[syn::Attribute],
         item_kind: &str,
         item_target: ItemTarget,
     ) {
@@ -2167,12 +2190,14 @@ impl ScanVisitor<'_> {
                 });
                 return;
             }
+            let requires_predicate = extract_requires_predicate_from_attrs(all_attrs);
             let line = Self::line_of_attr(attr);
             self.report.tolerances.push(Toleration {
                 antigen_type: args.antigen_type,
                 rationale: args.rationale,
                 until: args.until,
                 see: args.see,
+                requires_predicate,
                 file: self.file_path.clone(),
                 line,
                 item_kind: item_kind.to_string(),
@@ -2255,9 +2280,9 @@ impl ScanVisitor<'_> {
             if attr_is(attr, "presents") {
                 self.extract_presents(attr, item_kind, item_target.clone());
             } else if attr_is(attr, "immune") {
-                self.extract_immune(attr, item_kind, item_target.clone());
+                self.extract_immune(attr, attrs, item_kind, item_target.clone());
             } else if attr_is(attr, "antigen_tolerance") {
-                self.extract_tolerance(attr, item_kind, item_target.clone());
+                self.extract_tolerance(attr, attrs, item_kind, item_target.clone());
             } else if attr_is(attr, "descended_from") {
                 self.extract_descended_from(attr, item_target);
             }
@@ -2292,6 +2317,35 @@ fn render_type(ty: &syn::Type) -> String {
 fn attr_is(attr: &syn::Attribute, name: &str) -> bool {
     let path = attr.path();
     path.is_ident(name) || path.segments.last().is_some_and(|s| s.ident == name)
+}
+
+/// Extract the `antigen:requires:v1:<json>` predicate from a sibling doc attr.
+///
+/// The `#[immune(requires = ...)]` macro (P3b) emits:
+///   `#[doc = " antigen:requires:v1:<json>"]`
+/// as a sibling attribute on the annotated item. Scan finds it by looking
+/// for a doc attribute whose string value starts with the marker prefix.
+fn extract_requires_predicate_from_attrs(attrs: &[syn::Attribute]) -> Option<String> {
+    const MARKER_PREFIX: &str = "antigen:requires:v1:";
+    for attr in attrs {
+        if !attr.path().is_ident("doc") {
+            continue;
+        }
+        if let syn::Meta::NameValue(nv) = &attr.meta {
+            if let syn::Expr::Lit(syn::ExprLit {
+                lit: syn::Lit::Str(s),
+                ..
+            }) = &nv.value
+            {
+                let val = s.value();
+                let trimmed = val.trim();
+                if let Some(json) = trimmed.strip_prefix(MARKER_PREFIX) {
+                    return Some(json.to_string());
+                }
+            }
+        }
+    }
+    None
 }
 
 /// Render a `syn::Path` similarly. Used for the trait portion of

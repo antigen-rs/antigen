@@ -214,6 +214,19 @@ impl LeafExpr {
                 "requires: `signed_trailer(count = 0)` is vacuously true (NFA-9); \
                  use count >= 1 (default is 1)",
             )),
+            Self::RatifiedDoc { anchor: Some(a), .. } if a.is_empty() => Err(syn::Error::new(
+                span,
+                "requires: `ratified_doc(anchor = \"\")` is vacuously true (NFA-14); \
+                 str::contains(\"\") always succeeds — specify a non-empty anchor string",
+            )),
+            Self::RatifiedDoc {
+                min_version: Some(v),
+                ..
+            } if v.is_empty() => Err(syn::Error::new(
+                span,
+                "requires: `ratified_doc(min_version = \"\")` is vacuously true (NFA-15); \
+                 any versioned doc passes an empty floor — specify a non-empty version string",
+            )),
             _ => Ok(()),
         }
     }
@@ -1239,6 +1252,30 @@ mod requires_json_tests {
         let expr = RequiresExpr::Leaf(LeafExpr::Signers {
             required: vec![],
             against: SignerCurrencyExpr::Current,
+        });
+        assert!(expr.validate(span).is_err());
+    }
+
+    #[test]
+    fn requires_expr_validate_rejects_empty_anchor_nfa14() {
+        let span = proc_macro2::Span::call_site();
+        let expr = RequiresExpr::Leaf(LeafExpr::RatifiedDoc {
+            path: Some("docs/d.md".to_string()),
+            min_version: None,
+            anchor: Some(String::new()), // empty anchor — NFA-14
+            sibling_json: false,
+        });
+        assert!(expr.validate(span).is_err());
+    }
+
+    #[test]
+    fn requires_expr_validate_rejects_empty_min_version_nfa15() {
+        let span = proc_macro2::Span::call_site();
+        let expr = RequiresExpr::Leaf(LeafExpr::RatifiedDoc {
+            path: Some("docs/d.md".to_string()),
+            min_version: Some(String::new()), // empty min_version — NFA-15
+            anchor: None,
+            sibling_json: false,
         });
         assert!(expr.validate(span).is_err());
     }

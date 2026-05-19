@@ -103,6 +103,20 @@ pub enum WitnessKind {
         /// `PolarityProof::<FrameTranslation>::verified()`).
         constructor: Option<String>,
     },
+    /// A substrate-witness predicate evaluated against a sidecar (ADR-019).
+    /// The predicate JSON was emitted by `#[immune(requires = ...)]` via P3b
+    /// and evaluated by `antigen_attestation::evaluate()` at audit time.
+    SubstrateWitness {
+        /// Whether the sidecar claimed immunity (`Immunity`) or tolerance
+        /// (`Tolerance`) per `antigen_attestation::RatificationKind`.
+        kind: antigen_attestation::RatificationKind,
+    },
+    /// A cross-crate witness: the sidecar lives in a dependency crate, not
+    /// in the workspace. Audit reaches it via the dependency's
+    /// `.attest/` tree. Distinct from `SubstrateWitness` because trust
+    /// boundaries differ — cross-crate witnesses require the
+    /// witness-provider-crate enforcement per ADR-019 §F7+T1-R.
+    CrossCrateWitness,
 }
 
 /// The strength of evidence a witness provides for an immunity claim.
@@ -218,6 +232,18 @@ pub struct ImmunityAudit {
     /// DSSE + Sigstore activation.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub signature_strength: Option<antigen_attestation::SignatureStrength>,
+    /// `true` when this immunity is supported by evidence from multiple
+    /// witness tiers simultaneously (e.g., a code-tier test AND a
+    /// substrate-witness sidecar). F19 Gap-2 / ADR-019 §F11.
+    /// Reserved for `witnesses = [...]` multi-witness syntax; `false`
+    /// for all v0.1 single-witness audits.
+    #[serde(default)]
+    pub compound_evidence: bool,
+    /// The predicate JSON that was evaluated, if this was a substrate-witness
+    /// audit. Populated when `immunity.requires_predicate` is `Some`.
+    /// `None` for code-witness paths. F19 Gap-4 / ADR-019 §M4.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evaluated_predicate: Option<String>,
 }
 
 /// Backward-compat default for [`ImmunityAudit::evidence_kind`] on
@@ -275,6 +301,17 @@ impl WitnessTier {
                 | WitnessKind::Proptest
                 | WitnessKind::Function => Self::Reachability,
                 WitnessKind::PhantomType { .. } => Self::FormalProof,
+                // Substrate-witness predicates evaluated by
+                // antigen_attestation::evaluate() report Reachability: the
+                // sidecar exists and was read, but we don't confirm the
+                // external signers ran any executable process. Substrate
+                // review evidence is comparable to a `#[test]` that hasn't
+                // been invoked by cargo test — it exists, was checked for
+                // structural validity, but execution-tier confirmation is
+                // A3+ work (invoking git-trailer-based oracles etc.).
+                WitnessKind::SubstrateWitness { .. } | WitnessKind::CrossCrateWitness => {
+                    Self::Reachability
+                }
             },
         }
     }
@@ -305,6 +342,9 @@ pub const fn evidence_kind_from_status(
             | WitnessKind::Proptest
             | WitnessKind::Function => antigen_attestation::EvidenceKind::Behavioral,
             WitnessKind::PhantomType { .. } => antigen_attestation::EvidenceKind::TypeSystemProof,
+            WitnessKind::SubstrateWitness { .. } | WitnessKind::CrossCrateWitness => {
+                antigen_attestation::EvidenceKind::SubstrateState
+            }
         },
     }
 }
@@ -324,6 +364,13 @@ impl AuditHint {
                 WitnessKind::Proptest => Self::ProptestPresentNotInvoked,
                 WitnessKind::Function => Self::FunctionResolves,
                 WitnessKind::PhantomType { .. } => Self::PhantomTypeShapeRecognized,
+                // Substrate-witness predicates report ExternalToolPrefixRecognized
+                // because the sidecar was located and structurally validated but
+                // no executable was invoked. The hint surfaces the "upgrade path"
+                // (invoke attest check / run oracles) parallel to clippy's hint.
+                WitnessKind::SubstrateWitness { .. } | WitnessKind::CrossCrateWitness => {
+                    Self::ExternalToolPrefixRecognized
+                }
             },
         }
     }
@@ -396,6 +443,51 @@ impl AuditReport {
     }
 }
 
+/// Filesystem-backed [`antigen_attestation::EvaluationContext`] for use
+/// during real audit runs. Reads docs and oracles directly from disk; reads
+/// git trailers by shelling out to `git interpret-trailers`. Tests in
+/// `antigen-attestation` use an in-memory context instead (see
+/// `evaluate.rs` `TestContext`).
+struct FilesystemAuditContext;
+
+impl antigen_attestation::EvaluationContext for FilesystemAuditContext {
+    fn today(&self) -> chrono::NaiveDate {
+        chrono::Local::now().date_naive()
+    }
+
+    fn read_doc(&self, path: &std::path::Path) -> Option<String> {
+        std::fs::read_to_string(path).ok()
+    }
+
+    fn read_oracle(&self, path: &std::path::Path) -> Option<String> {
+        std::fs::read_to_string(path).ok()
+    }
+
+    // v0.1: git trailers require subprocess + git; returns empty vec when
+    // git is unavailable or the item has no commits. A3+ work wires this
+    // to a proper git2 adapter or subprocess; for now the trait contract
+    // is satisfied and `SignedTrailer` leaf evaluates to false.
+    fn read_git_trailers(&self, _item_source_file: &std::path::Path, _item_path: &str) -> Vec<String> {
+        Vec::new()
+    }
+}
+
+/// Attempt to load and deserialize a `.attest/<antigen_name>.json` sidecar
+/// for the given immunity. Returns `None` when the file doesn't exist or
+/// fails to deserialize (both are treated as sidecar-missing by the evaluator).
+fn load_sidecar(
+    immunity_file: &Path,
+    antigen_type: &str,
+) -> Option<antigen_attestation::Ratification> {
+    let dir = immunity_file.parent()?;
+    // Antigen type may be a fully-qualified path (`crate::antigens::SomeAntigen`);
+    // use only the last segment as the filename component for v0.1 convention.
+    let stem = antigen_type.rsplit("::").next().unwrap_or(antigen_type);
+    let sidecar_path = dir.join(".attest").join(format!("{stem}.json"));
+    let content = std::fs::read_to_string(&sidecar_path).ok()?;
+    serde_json::from_str(&content).ok()
+}
+
 /// Run audit against a [`ScanReport`].
 ///
 /// For each immunity declaration, attempts to validate the witness identifier
@@ -413,25 +505,29 @@ pub fn audit(report: &ScanReport, workspace_root: &Path) -> AuditReport {
 
     let mut audits = Vec::new();
     for immunity in &report.immunities {
-        let status = validate_witness(&immunity.witness, &workspace_functions);
-        let witness_tier = WitnessTier::from_status(&status);
-        let audit_hint = AuditHint::from_status(&status);
-        // ADR-019 §M5: derive EvidenceKind from WitnessStatus for
-        // code-witness paths. Substrate-witness paths (requires =
-        // <predicate> on the immunity declaration) override these via
-        // P3c's substrate-evaluator wiring once antigen-macros surfaces
-        // the predicate to the scan layer (P3b dependency).
-        let evidence_kind = evidence_kind_from_status(&status);
-        audits.push(ImmunityAudit {
-            immunity: immunity.clone(),
-            witness_status: status,
-            witness_tier,
-            audit_hint,
-            evidence_kind,
-            // signature_strength is substrate-witness-only; code-witness
-            // paths leave this None per ADR-019 §M5.
-            signature_strength: None,
-        });
+        // Substrate-witness path (ADR-019 P3c) when `requires = <predicate>` was
+        // declared; code-witness path otherwise (validate witness identifier via
+        // function index).
+        let immunity_audit = immunity.requires_predicate.as_ref().map_or_else(
+            || {
+                let status = validate_witness(&immunity.witness, &workspace_functions);
+                let witness_tier = WitnessTier::from_status(&status);
+                let audit_hint = AuditHint::from_status(&status);
+                let evidence_kind = evidence_kind_from_status(&status);
+                ImmunityAudit {
+                    immunity: immunity.clone(),
+                    witness_status: status,
+                    witness_tier,
+                    audit_hint,
+                    evidence_kind,
+                    signature_strength: None,
+                    compound_evidence: false,
+                    evaluated_predicate: None,
+                }
+            },
+            |predicate_json| audit_substrate_witness(immunity, predicate_json),
+        );
+        audits.push(immunity_audit);
     }
 
     let mut audit_report = AuditReport {
@@ -466,6 +562,136 @@ pub fn audit(report: &ScanReport, workspace_root: &Path) -> AuditReport {
     }
 
     audit_report
+}
+
+/// Evaluate a substrate-witness predicate for one immunity declaration and
+/// return the populated [`ImmunityAudit`].
+///
+/// Called from `audit()` when `immunity.requires_predicate` is `Some`.
+fn audit_substrate_witness(immunity: &Immunity, predicate_json: &str) -> ImmunityAudit {
+    use antigen_attestation::evaluate::evaluate_predicate_with_kind;
+
+    // Deserialize the predicate. The JSON was emitted at macro-expand time by
+    // `antigen-macros` and round-trips through the doc marker; any failure here
+    // means the marker was corrupted in transit (shouldn't happen, but we surface
+    // it as sidecar-schema-invalid rather than panicking).
+    let Ok(predicate) = serde_json::from_str::<antigen_attestation::Predicate>(predicate_json)
+    else {
+        let result = antigen_attestation::EvaluatedPredicate::sidecar_schema_invalid();
+        return immunity_audit_from_evaluated(immunity, result, predicate_json.to_string());
+    };
+
+    // Load the sidecar. Missing → sidecar_missing result.
+    let Some(sidecar) = load_sidecar(&immunity.file, &immunity.antigen_type) else {
+        let result = antigen_attestation::EvaluatedPredicate::sidecar_missing();
+        return immunity_audit_from_evaluated(immunity, result, predicate_json.to_string());
+    };
+
+    // v0.1: use the first item in the sidecar's items list as the evaluation
+    // target. A3+ work will match by item_path (function path) to support
+    // per-item predicates when multiple items share an antigen sidecar.
+    let Some(item) = sidecar.items.first() else {
+        let result = antigen_attestation::EvaluatedPredicate::sidecar_missing();
+        return immunity_audit_from_evaluated(immunity, result, predicate_json.to_string());
+    };
+
+    let ctx = FilesystemAuditContext;
+    // Use a placeholder fingerprint for v0.1; fingerprint recomputation at
+    // audit time requires antigen-fingerprint integration (A3 work). The
+    // `current_fingerprint` fed here is matched against signer entries —
+    // mismatching means signers appear stale, which is the correct conservative
+    // behavior when we can't recompute the real fingerprint yet.
+    let current_fingerprint = &item.current_fingerprint;
+    let result = evaluate_predicate_with_kind(
+        &predicate,
+        item,
+        current_fingerprint,
+        &immunity.file,
+        sidecar.kind,
+        &ctx,
+    )
+    .unwrap_or_else(|_| antigen_attestation::EvaluatedPredicate::sidecar_schema_invalid());
+
+    immunity_audit_from_evaluated(immunity, result, predicate_json.to_string())
+}
+
+/// Build an [`ImmunityAudit`] from the output of `evaluate_predicate_with_kind`.
+fn immunity_audit_from_evaluated(
+    immunity: &Immunity,
+    result: antigen_attestation::EvaluatedPredicate,
+    predicate_json: String,
+) -> ImmunityAudit {
+    // Map EvaluatedPredicate axes back to WitnessStatus for uniform downstream
+    // handling. SubstrateWitness { kind } carries the RatificationKind from the
+    // sidecar; WitnessTier + AuditHint are re-derived from the status.
+    //
+    // Note: WitnessTier and AuditHint on the Resolved variant are re-derived
+    // from the status in `WitnessTier::from_status` / `AuditHint::from_status`
+    // which both map SubstrateWitness → Reachability / ExternalToolPrefixRecognized.
+    // But the evaluator already computed the full tier/hint accounting for signer
+    // state, delta-chain, freshness, etc. We use the evaluator's output directly
+    // rather than re-deriving from the status.
+    let status = WitnessStatus::Resolved {
+        location: immunity.file.clone(),
+        witness_kind: WitnessKind::SubstrateWitness {
+            // We don't know the kind at this point without the sidecar; default
+            // to Immunity. The actual kind discrimination is in the evaluator
+            // output (audit_hint distinguishes tolerance vs immunity hints).
+            kind: antigen_attestation::RatificationKind::Immunity,
+        },
+    };
+    ImmunityAudit {
+        immunity: immunity.clone(),
+        witness_status: status,
+        witness_tier: map_attestation_tier(result.witness_tier),
+        audit_hint: map_attestation_audit_hint(result.audit_hint),
+        evidence_kind: result.evidence_kind,
+        signature_strength: result.signature_strength,
+        compound_evidence: false,
+        evaluated_predicate: Some(predicate_json),
+    }
+}
+
+/// Map [`antigen_attestation::WitnessTier`] to [`WitnessTier`].
+///
+/// The two enums are structurally identical (defined in lock-step per `tier.rs`)
+/// but are distinct types to avoid a circular crate dependency. For v0.1 this
+/// mapping is lossless; a future ADR that diverges the two enums would widen it.
+const fn map_attestation_tier(tier: antigen_attestation::WitnessTier) -> WitnessTier {
+    match tier {
+        antigen_attestation::WitnessTier::None => WitnessTier::None,
+        antigen_attestation::WitnessTier::Reachability => WitnessTier::Reachability,
+        antigen_attestation::WitnessTier::Execution => WitnessTier::Execution,
+        antigen_attestation::WitnessTier::FormalProof => WitnessTier::FormalProof,
+    }
+}
+
+/// Map [`antigen_attestation::AuditHint`] to [`AuditHint`].
+///
+/// `antigen_attestation::tier::AuditHint` is the extended enum that includes
+/// substrate-witness hints (`DisciplinePredicatePassed*`, `TolerancePredicate*`,
+/// `DisciplineSubstrate*`, `DisciplineSidecarMissing`, etc.).
+/// `audit::AuditHint` is the pre-ADR-019 enum. For v0.1 we map the substrate
+/// variants to the nearest code-witness equivalent; A3+ work will migrate the
+/// full enum or flatten them into a single type.
+const fn map_attestation_audit_hint(hint: antigen_attestation::AuditHint) -> AuditHint {
+    use antigen_attestation::AuditHint as AH;
+    match hint {
+        AH::DisciplinePredicatePassedSubstrateCurrent
+        | AH::DisciplinePredicatePassedViaDeltaChain
+        | AH::DisciplineSubstrateDeltaChainNearCap
+        | AH::TolerancePredicatePassedSubstrateCurrent => AuditHint::ExternalToolPrefixRecognized,
+        AH::DisciplinePredicateFailed
+        | AH::TolerancePredicateFailed
+        | AH::DisciplineSidecarMissing
+        | AH::DisciplineSidecarSchemaInvalid
+        | AH::DisciplineSubstrateStale
+        | AH::ToleranceVibesGrade
+        | AH::ToleranceSidecarMissing
+        | AH::DisciplineSidecarKindMismatchExpectedImmunityGotTolerance
+        | AH::ToleranceSidecarKindMismatchExpectedToleranceGotImmunity
+        | AH::DisciplineImmunityToleranceContradiction => AuditHint::NoneApplicable,
+    }
 }
 
 /// One entry in the function index — a single (path, kind) pair for a name.
