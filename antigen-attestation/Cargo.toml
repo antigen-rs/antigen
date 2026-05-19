@@ -1,0 +1,28 @@
+[package]
+name = "antigen-attestation"
+description = "Ratification schema + substrate-witness predicate evaluator for antigen discipline-witnesses (ADR-019)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+keywords.workspace = true
+categories.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { version = "0.4", default-features = false, features = ["serde", "std"] }
+
+[dev-dependencies]
+proptest = { workspace = true }
+tempfile = { workspace = true }

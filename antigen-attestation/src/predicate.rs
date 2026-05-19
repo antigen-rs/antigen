@@ -1,0 +1,461 @@
+//! Substrate-witness predicate language — closed combinator grammar
+//! over sealed leaf primitives (ADR-019 §M2).
+//!
+//! ## Grammar
+//!
+//! ```text
+//! predicate := leaf
+//!           | all_of([predicate, ...])
+//!           | any_of([predicate, ...])
+//!           | not(predicate)
+//! ```
+//!
+//! ## Leaf primitives (v0.1 sealed set)
+//!
+//! - [`Leaf::RatifiedDoc`] — discipline doc exists at path with optional
+//!   frontmatter-version floor + anchor + sibling-JSON
+//! - [`Leaf::Signers`] — sidecar `signers[]` contains required names,
+//!   optionally with roles, optionally against current fingerprint only
+//! - [`Leaf::SignedTrailer`] — `git interpret-trailers` reports matching
+//!   trailers on commits touching this item
+//! - [`Leaf::OraclesComplete`] — listed oracle files exist with status:
+//!   complete
+//! - [`Leaf::FreshWithinDays`] — most recent signature's date within N
+//!   days of audit time
+//!
+//! ## Closed-set bright-line rule (ADR-019 §Decision + T4-R)
+//!
+//! Adding a new leaf that invokes external tooling requires the 4-point
+//! rule: (1) binary named in leaf source; (2) has own release process;
+//! (3) does NOT execute user-supplied code; (4) invocation args fixed in
+//! leaf source except for declared substrate-parameters.
+//!
+//! v0.1 leaves: only [`Leaf::SignedTrailer`] invokes external tooling
+//! (`git interpret-trailers`); all four points satisfied.
+//!
+//! ## Schema invariants enforced at construction
+//!
+//! - `all_of([])` and `any_of([])` rejected at construction time
+//!   (refinement R-A6 — zero-leaf compositions are not meaningful).
+
+use std::path::PathBuf;
+
+use serde::{Deserialize, Serialize};
+
+/// Substrate-witness predicate AST.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum Predicate {
+    /// A single leaf primitive.
+    Leaf(Leaf),
+    /// `all_of([...])` — every child predicate must pass (co-stimulation
+    /// per naturalist R-N2; missing signal → anergy).
+    AllOf {
+        /// Child predicates; all must pass.
+        children: Vec<Self>,
+    },
+    /// `any_of([...])` — at least one child predicate must pass
+    /// (redundant pathways per naturalist R-N2; classical-vs-alternative
+    /// complement).
+    AnyOf {
+        /// Child predicates; at least one must pass.
+        children: Vec<Self>,
+    },
+    /// `not(...)` — child must NOT pass (inhibitory checkpoints per
+    /// naturalist R-N2; CTLA-4 / PD-1 / Tregs).
+    Not {
+        /// Child predicate to negate.
+        child: Box<Self>,
+    },
+}
+
+impl Predicate {
+    /// Build an `all_of` combinator. Rejects empty child lists.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PredicateParseError::ZeroLeafComposition`] if `children`
+    /// is empty.
+    pub fn all_of(children: Vec<Self>) -> Result<Self, PredicateParseError> {
+        if children.is_empty() {
+            return Err(PredicateParseError::ZeroLeafComposition {
+                combinator: "all_of",
+            });
+        }
+        Ok(Self::AllOf { children })
+    }
+
+    /// Build an `any_of` combinator. Rejects empty child lists.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PredicateParseError::ZeroLeafComposition`] if `children`
+    /// is empty.
+    pub fn any_of(children: Vec<Self>) -> Result<Self, PredicateParseError> {
+        if children.is_empty() {
+            return Err(PredicateParseError::ZeroLeafComposition {
+                combinator: "any_of",
+            });
+        }
+        Ok(Self::AnyOf { children })
+    }
+
+    /// Build a `not` combinator. (Named `not` to match the predicate-language
+    /// grammar; this is not the `std::ops::Not` trait method.)
+    #[must_use]
+    #[allow(clippy::should_implement_trait)]
+    pub fn not(child: Self) -> Self {
+        Self::Not {
+            child: Box::new(child),
+        }
+    }
+
+    /// Build a leaf-only predicate.
+    #[must_use]
+    pub const fn leaf(leaf: Leaf) -> Self {
+        Self::Leaf(leaf)
+    }
+
+    /// Walk the predicate tree post-order. Yields every node (combinators
+    /// and leaves) for inspection / validation by callers.
+    pub fn walk<F: FnMut(&Self)>(&self, f: &mut F) {
+        match self {
+            Self::Leaf(_) => f(self),
+            Self::AllOf { children } | Self::AnyOf { children } => {
+                for c in children {
+                    c.walk(f);
+                }
+                f(self);
+            }
+            Self::Not { child } => {
+                child.walk(f);
+                f(self);
+            }
+        }
+    }
+
+    /// Count the number of leaf primitives in this predicate tree.
+    #[must_use]
+    pub fn leaf_count(&self) -> usize {
+        let mut count: usize = 0;
+        self.walk(&mut |p| {
+            if matches!(p, Self::Leaf(_)) {
+                count = count.saturating_add(1);
+            }
+        });
+        count
+    }
+
+    /// Re-validate semantic invariants on a parsed-from-JSON predicate.
+    /// `Predicate::all_of` / `any_of` constructors enforce the no-empty-
+    /// children rule at construction, but a deserialized predicate could
+    /// carry empty children (raw serde doesn't run the constructor).
+    /// Call after deserialization.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first [`PredicateParseError::ZeroLeafComposition`]
+    /// encountered.
+    pub fn validate(&self) -> Result<(), PredicateParseError> {
+        let mut err: Option<PredicateParseError> = None;
+        self.walk(&mut |p| {
+            if err.is_some() {
+                return;
+            }
+            match p {
+                Self::AllOf { children } if children.is_empty() => {
+                    err = Some(PredicateParseError::ZeroLeafComposition {
+                        combinator: "all_of",
+                    });
+                }
+                Self::AnyOf { children } if children.is_empty() => {
+                    err = Some(PredicateParseError::ZeroLeafComposition {
+                        combinator: "any_of",
+                    });
+                }
+                _ => {}
+            }
+        });
+        err.map_or(Ok(()), Err)
+    }
+}
+
+/// The closed set of leaf primitives for v0.1.
+///
+/// Each variant carries its leaf-specific parameters as named fields.
+/// Adding a new leaf is a v0.2+ amendment to ADR-019 that MUST run the
+/// 4-point bright-line review (see module docs).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "name", rename_all = "snake_case")]
+pub enum Leaf {
+    /// `ratified_doc(path?, min_version?, anchor?, sibling_json?)` —
+    /// discipline doc exists; optional frontmatter `version >= min_version`;
+    /// optional `anchor` present in the doc; optional sibling JSON
+    /// (e.g., `<doc>.attest.json`) parses + matches schema.
+    ///
+    /// When `path` is absent, the leaf resolves the doc via the
+    /// sidecar's `ItemRatification::doc_ref` field (one indirection
+    /// allowed; ADR-019 §M2).
+    RatifiedDoc {
+        /// Explicit doc path. When absent, the leaf resolves via the
+        /// sidecar's `ItemRatification::doc_ref` field.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        path: Option<PathBuf>,
+        /// Minimum required version (read from doc's frontmatter
+        /// `version:` field).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        min_version: Option<String>,
+        /// Optional anchor substring that must be present in the doc
+        /// content (heading slug, named section, etc.).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        anchor: Option<String>,
+        /// `true` to require a sibling `<doc>.attest.json` exists +
+        /// parses. Sibling JSON content is opaque to this leaf (other
+        /// leaves can validate it via `oracles_complete` or similar).
+        #[serde(default)]
+        sibling_json: bool,
+    },
+
+    /// `signers(required, roles?, against?)` — sidecar `signers[]`
+    /// contains all `required` names; optional `roles` map asserts named
+    /// signers carry a specific role; `against = "current" | "any"`
+    /// (default `"current"`) controls whether stale signatures count.
+    Signers {
+        /// Required signer names. Set semantics; order doesn't matter.
+        required: Vec<String>,
+        /// Optional role assertion: signer name → expected role.
+        #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+        roles: std::collections::BTreeMap<String, String>,
+        /// Currency policy: against the current fingerprint only (default)
+        /// or any signature ever recorded for the signer at this item.
+        #[serde(default)]
+        against: SignerCurrency,
+    },
+
+    /// `signed_trailer(key, role?, count?)` — git log on commits
+    /// touching this item has `count` trailer entries matching `key`,
+    /// optionally with the trailer's role tag set to `role`.
+    ///
+    /// `git interpret-trailers` is the canonical parser (satisfies the
+    /// 4-point bright-line rule per ADR-019 §M2).
+    SignedTrailer {
+        /// Trailer key, e.g., `"Discipline-Verified-By"`.
+        key: String,
+        /// Optional role-tag constraint (e.g., `"math-researcher"`).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        role: Option<String>,
+        /// Required count of matching trailers; default 1.
+        #[serde(default = "default_trailer_count")]
+        count: u32,
+    },
+
+    /// `oracles_complete(files)` — listed oracle files exist with
+    /// `status: complete` in their YAML frontmatter (or sidecar JSON).
+    OraclesComplete {
+        /// Paths to oracle files, relative to workspace root.
+        files: Vec<PathBuf>,
+    },
+
+    /// `fresh_within_days(n)` — most recent signature in the sidecar
+    /// has a `date` field within `n` days of audit-evaluation time.
+    /// Tolerance-claims often use shorter `n` than immunity claims
+    /// (tolerance is more accountable; ADR-019 M2 example: 90 days for
+    /// tolerance vs 180 for immunity).
+    FreshWithinDays {
+        /// Maximum age in days.
+        days: u32,
+    },
+}
+
+/// Default for [`Leaf::SignedTrailer::count`].
+const fn default_trailer_count() -> u32 {
+    1
+}
+
+/// Signer currency policy (default for [`Leaf::Signers::against`]).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SignerCurrency {
+    /// Only count signatures whose `signed_against_fingerprint` matches
+    /// the current item fingerprint. Stale signatures don't count.
+    #[default]
+    Current,
+    /// Count any signature ever recorded for this signer at this item,
+    /// regardless of currency. Useful for "ever-signed-by" gates.
+    Any,
+}
+
+/// Build-time combinator name discriminator (used in error reporting).
+pub type CombinatorName = &'static str;
+
+/// Combinator kind — exported for callers that walk the predicate tree
+/// generically.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Combinator {
+    /// All children must pass.
+    AllOf,
+    /// At least one child must pass.
+    AnyOf,
+    /// Child must not pass (logical inversion).
+    Not,
+}
+
+/// Errors that can occur when constructing or validating a predicate.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PredicateParseError {
+    /// An `all_of([])` or `any_of([])` composition is meaningless and
+    /// rejected at parse time (refinement R-A6, ADR-019 §M2).
+    ZeroLeafComposition {
+        /// Which combinator carried the empty child list.
+        combinator: CombinatorName,
+    },
+}
+
+impl std::fmt::Display for PredicateParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ZeroLeafComposition { combinator } => write!(
+                f,
+                "predicate combinator `{combinator}` has no children; \
+                 zero-leaf compositions are rejected at parse time \
+                 (ADR-019 refinement R-A6)"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for PredicateParseError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn all_of_rejects_empty_children() {
+        let err = Predicate::all_of(vec![]).unwrap_err();
+        assert!(matches!(
+            err,
+            PredicateParseError::ZeroLeafComposition {
+                combinator: "all_of"
+            }
+        ));
+    }
+
+    #[test]
+    fn any_of_rejects_empty_children() {
+        let err = Predicate::any_of(vec![]).unwrap_err();
+        assert!(matches!(
+            err,
+            PredicateParseError::ZeroLeafComposition {
+                combinator: "any_of"
+            }
+        ));
+    }
+
+    #[test]
+    fn all_of_accepts_single_child() {
+        let leaf = Predicate::leaf(Leaf::FreshWithinDays { days: 90 });
+        let pred = Predicate::all_of(vec![leaf]).unwrap();
+        assert_eq!(pred.leaf_count(), 1);
+    }
+
+    #[test]
+    fn nested_predicate_leaf_count_correct() {
+        let pred = Predicate::all_of(vec![
+            Predicate::leaf(Leaf::FreshWithinDays { days: 90 }),
+            Predicate::any_of(vec![
+                Predicate::leaf(Leaf::OraclesComplete {
+                    files: vec![PathBuf::from("a.md")],
+                }),
+                Predicate::not(Predicate::leaf(Leaf::Signers {
+                    required: vec!["alice".to_string()],
+                    roles: std::collections::BTreeMap::new(),
+                    against: SignerCurrency::Current,
+                })),
+            ])
+            .unwrap(),
+        ])
+        .unwrap();
+        assert_eq!(pred.leaf_count(), 3);
+    }
+
+    #[test]
+    fn validate_catches_deserialized_empty_combinator() {
+        // Construct an empty `all_of` directly (bypassing the constructor) by
+        // round-tripping through JSON.
+        let pred_json = r#"{"kind":"all_of","children":[]}"#;
+        let pred: Predicate = serde_json::from_str(pred_json).unwrap();
+        let err = pred.validate().unwrap_err();
+        assert!(matches!(
+            err,
+            PredicateParseError::ZeroLeafComposition {
+                combinator: "all_of"
+            }
+        ));
+    }
+
+    #[test]
+    fn validate_passes_for_well_formed_predicate() {
+        let pred =
+            Predicate::all_of(vec![Predicate::leaf(Leaf::FreshWithinDays { days: 90 })]).unwrap();
+        assert!(pred.validate().is_ok());
+    }
+
+    #[test]
+    fn signers_currency_defaults_to_current() {
+        // Round-trip via JSON without explicit `against` field.
+        let json = r#"{"kind":"leaf","leaf":{"name":"signers","required":["alice"]}}"#;
+        // serde's tag-on-Predicate works on the outer Predicate; constructing
+        // the leaf direct is the cleaner path here.
+        let leaf_json = r#"{"name":"signers","required":["alice"]}"#;
+        let leaf: Leaf = serde_json::from_str(leaf_json).unwrap();
+        match leaf {
+            Leaf::Signers { against, .. } => assert_eq!(against, SignerCurrency::Current),
+            _ => panic!("expected Signers leaf"),
+        }
+        // The outer Predicate JSON form is also acceptable but takes different
+        // shape; tested in the round_trip test instead.
+        let _ = json;
+    }
+
+    #[test]
+    fn signed_trailer_count_defaults_to_one() {
+        let leaf_json = r#"{"name":"signed_trailer","key":"Discipline-Verified-By"}"#;
+        let leaf: Leaf = serde_json::from_str(leaf_json).unwrap();
+        match leaf {
+            Leaf::SignedTrailer { count, .. } => assert_eq!(count, 1),
+            _ => panic!("expected SignedTrailer leaf"),
+        }
+    }
+
+    #[test]
+    fn predicate_round_trip_via_serde_json() {
+        let pred = Predicate::all_of(vec![
+            Predicate::leaf(Leaf::Signers {
+                required: vec!["alice".to_string(), "bob".to_string()],
+                roles: std::collections::BTreeMap::new(),
+                against: SignerCurrency::Current,
+            }),
+            Predicate::leaf(Leaf::FreshWithinDays { days: 180 }),
+        ])
+        .unwrap();
+        let json = serde_json::to_string(&pred).unwrap();
+        let parsed: Predicate = serde_json::from_str(&json).unwrap();
+        assert_eq!(pred, parsed);
+    }
+
+    #[test]
+    fn walk_visits_all_nodes() {
+        let pred = Predicate::all_of(vec![
+            Predicate::leaf(Leaf::FreshWithinDays { days: 90 }),
+            Predicate::not(Predicate::leaf(Leaf::OraclesComplete {
+                files: vec![PathBuf::from("a.md")],
+            })),
+        ])
+        .unwrap();
+        let mut count = 0;
+        pred.walk(&mut |_| count += 1);
+        // 2 leaves + 1 not + 1 all_of = 4 nodes
+        assert_eq!(count, 4);
+    }
+}
