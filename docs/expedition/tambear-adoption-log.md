@@ -519,6 +519,18 @@ where tambear's adoption *informs* antigen's grammar/design rather than just
 *uses* it. The antigen team's call on Options 1/2/3 above shapes how tambear
 proceeds with its methodology-tier substrate.
 
+[antigen team note 2026-05-19]: **RESOLVED — Option 1 (Add Attestation tier)**.
+The discipline-witnesses JBD team (Phase 1, launched 2026-05-19) confirmed
+`doc_attested(doc, attested_by, at, rationale)` as a sixth v0.1 leaf primitive
+in the substrate-witness predicate family. Aristotle F14 (backed by tambear's
+three operational examples) concluded the separation is warranted: `discipline_doc`
+on `#[antigen]` retains its canonical-reference role (Job 1); `doc_attested` in
+the `requires = ...` predicate is the review-grounding mechanism (Job 2). The
+sidecar carries the attestation record (not inline) — biology-aligned. Workflow
+ergonomics addressed by `cargo antigen attest scaffold-anchor` (proposed v0.1 CLI).
+See ADR-019 when ratified. Tambear's Sub-patterns 5.10/5.11 and Pattern 23 examples
+were directly cited as the three-instances adoption substrate that substantiated F14.
+
 ---
 
 ### [pending] Phase 1-8 deconstruction of `PolarityInvertedClassMeet`, `PanickingInDrop`, and `UlpDistanceRolledByHand`
