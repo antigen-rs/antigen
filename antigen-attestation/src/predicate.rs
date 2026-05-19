@@ -215,6 +215,15 @@ impl Predicate {
                 Self::Leaf(Leaf::SignedTrailer { count, .. }) if *count == 0 => {
                     err = Some(PredicateParseError::ZeroTrailerCount);
                 }
+                Self::Leaf(Leaf::RatifiedDoc { anchor: Some(a), .. }) if a.is_empty() => {
+                    err = Some(PredicateParseError::EmptyAnchor);
+                }
+                Self::Leaf(Leaf::RatifiedDoc {
+                    min_version: Some(v),
+                    ..
+                }) if v.is_empty() => {
+                    err = Some(PredicateParseError::EmptyMinVersion);
+                }
                 _ => {}
             }
         });
@@ -372,6 +381,18 @@ pub enum PredicateParseError {
         /// The maximum nesting depth allowed.
         max_depth: usize,
     },
+    /// A `ratified_doc(anchor = "")` leaf carries an empty anchor string.
+    /// In Rust, `str::contains("")` is always `true`, so an empty anchor
+    /// vacuously bypasses the anchor-presence check — any doc passes
+    /// regardless of whether it contains the intended section marker
+    /// (adversarial NFA-14). Rejected at `validate()` time.
+    EmptyAnchor,
+    /// A `ratified_doc(min_version = "")` leaf carries an empty min-version
+    /// string. `compare_versions(any_version, "")` always returns Greater or
+    /// Equal, so an empty `min_version` vacuously passes the version floor check
+    /// for any document with a non-empty version field (adversarial NFA-15).
+    /// Rejected at `validate()` time.
+    EmptyMinVersion,
 }
 
 impl std::fmt::Display for PredicateParseError {
@@ -406,6 +427,18 @@ impl std::fmt::Display for PredicateParseError {
                 "predicate nesting depth exceeds maximum of {max_depth}; \
                  deep recursion in walk() can stack-overflow on crafted sidecars \
                  (adversarial NFA-11)"
+            ),
+            Self::EmptyAnchor => write!(
+                f,
+                "ratified_doc leaf has an empty anchor string; \
+                 str::contains('') is always true and vacuously bypasses the \
+                 anchor-presence check (adversarial NFA-14)"
+            ),
+            Self::EmptyMinVersion => write!(
+                f,
+                "ratified_doc leaf has an empty min_version string; \
+                 compare_versions(any_version, '') is always Greater or Equal and \
+                 vacuously bypasses the version floor check (adversarial NFA-15)"
             ),
         }
     }

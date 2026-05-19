@@ -1,0 +1,5 @@
+error: requires: `ratified_doc(min_version = "")` is vacuously true (NFA-15); any versioned doc passes an empty floor — specify a non-empty version string
+ --> tests/ui/immune_requires_empty_min_version.rs:8:24
+  |
+8 | #[immune(DummyAntigen, requires = ratified_doc(min_version = ""))]
+  |                        ^^^^^^^^

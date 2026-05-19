@@ -365,24 +365,23 @@ fn eval_signers(
         if candidates.is_empty() {
             return false;
         }
-        // Apply currency policy.
-        let any_current_enough = match against {
-            SignerCurrency::Current => candidates
-                .iter()
-                .any(|s| s.signed_against_fingerprint == current_fingerprint),
-            SignerCurrency::Any => true,
-        };
-        if !any_current_enough {
+        // Currency and role must be satisfied by the SAME candidate entry (NFA-13).
+        // Checking them independently allows a signer with the right role on a stale
+        // entry AND a current entry without the role to pass both checks separately
+        // — but no single entry satisfies both, so the predicate would be falsely
+        // reporting that the required signer-as-role has signed against the current
+        // fingerprint.
+        let expected_role = roles.get(needed);
+        let any_candidate_satisfies = candidates.iter().any(|s| {
+            let currency_ok = match against {
+                SignerCurrency::Current => s.signed_against_fingerprint == current_fingerprint,
+                SignerCurrency::Any => true,
+            };
+            let role_ok = expected_role.map_or(true, |r| s.role.as_deref() == Some(r.as_str()));
+            currency_ok && role_ok
+        });
+        if !any_candidate_satisfies {
             return false;
-        }
-        // Apply role assertion (if specified for this name).
-        if let Some(expected_role) = roles.get(needed) {
-            let any_role_match = candidates
-                .iter()
-                .any(|s| s.role.as_deref() == Some(expected_role.as_str()));
-            if !any_role_match {
-                return false;
-            }
         }
     }
     true
@@ -1115,6 +1114,186 @@ mod tests {
             r.witness_tier,
             WitnessTier::Execution,
             "CRLF-encoded oracle with status: complete must not be silently rejected"
+        );
+    }
+
+    #[test]
+    fn tolerance_stale_signer_emits_immunity_stale_hint_v02_gap() {
+        // DOCUMENTED LIMITATION (v0.2): `classify_passed_predicate` emits the
+        // IMMUNITY intermediate-state hints (`DisciplineSubstrateStale`,
+        // `DisciplineSubstrateDeltaChainNearCap`, `DisciplinePredicatePassedViaDeltaChain`)
+        // even for TOLERANCE sidecars. There are no `Tolerance*` equivalents for
+        // these intermediate states in the `AuditHint` enum.
+        //
+        // The kind-awareness from NFA-10 (fix: evaluate_predicate_with_kind) only
+        // reaches the passed/failed terminal hints, not the intermediate classification
+        // hints. A tolerance sidecar with a stale signer gets the immunity stale hint.
+        //
+        // Fix direction (v0.2): Add `ToleranceSubstrateStale`, `ToleranceDeltaChainNearCap`,
+        // `TolerancePredicatePassedViaDeltaChain` variants to AuditHint and thread
+        // `kind` through `classify_passed_predicate`'s intermediate-state branches.
+        //
+        // This test DOCUMENTS the current behavior so any future fix is immediately
+        // visible (the assertion will start failing when the hint is made tolerance-aware,
+        // serving as a prompt to update all callers).
+        let alice_stale = Signer {
+            name: "alice".to_string(),
+            role: None,
+            date: sample_date(),
+            signed_against_fingerprint: "fp-OLD".to_string(),
+            basis: SignerBasis::Fresh { reasoning: None },
+            signature: None,
+        };
+        let item = item_with(vec![alice_stale]);
+        let pred = Predicate::leaf(Leaf::Signers {
+            required: vec!["alice".to_string()],
+            roles: BTreeMap::new(),
+            against: SignerCurrency::Any,
+        });
+        let ctx = TestContext::new(sample_date());
+        // Evaluate as TOLERANCE kind.
+        let r = evaluate_predicate_with_kind(
+            &pred,
+            &item,
+            "fp-current",
+            Path::new("src/test.rs"),
+            RatificationKind::Tolerance,
+            &ctx,
+        )
+        .unwrap();
+        // Predicate passes (against=Any), all signers stale → classify fires stale branch.
+        // CURRENT BEHAVIOR: emits DisciplineSubstrateStale (immunity hint) not a tolerance
+        // equivalent. This documents the v0.2 gap.
+        assert_eq!(r.witness_tier, WitnessTier::Reachability);
+        assert_eq!(
+            r.audit_hint,
+            AuditHint::DisciplineSubstrateStale,
+            "v0.2 gap: tolerance sidecar with stale signer emits immunity stale hint; \
+             no ToleranceSubstrateStale variant exists yet"
+        );
+    }
+
+    #[test]
+    fn signers_role_currency_must_be_joint_not_independent_nfa13() {
+        // BUG REGRESSION TEST (adversarial NFA-13): `eval_signers` checks
+        // currency (against=Current) and role separately across the candidates
+        // list. Two independent `any(...)` checks: "does any alice have current
+        // fingerprint?" AND "does any alice have role=reviewer?". If alice has
+        // TWO entries — one current without the role, one stale with the role —
+        // both checks pass independently, so the predicate reports PASS. But no
+        // single alice entry is BOTH current AND has the required role. The predicate
+        // should FAIL: the signer-as-reviewer has not signed against the current
+        // fingerprint.
+        //
+        // This is a SILENT FAILURE: the predicate reports Execution-tier pass
+        // and implies "alice-as-reviewer has signed against current fingerprint"
+        // when in reality alice-as-reviewer only signed against a stale fingerprint.
+        //
+        // FIX DIRECTION: the role and currency filters must be evaluated jointly
+        // on each candidate, not independently across the set.
+        //
+        // This test FAILS against the current code.
+        let alice_current_no_role = Signer {
+            name: "alice".to_string(),
+            role: None, // no role on the current signature
+            date: sample_date(),
+            signed_against_fingerprint: "fp-current".to_string(),
+            basis: crate::schema::SignerBasis::Fresh { reasoning: None },
+            signature: None,
+        };
+        let alice_stale_with_role = Signer {
+            name: "alice".to_string(),
+            role: Some("reviewer".to_string()), // role on the STALE signature
+            date: sample_date(),
+            signed_against_fingerprint: "fp-STALE".to_string(),
+            basis: crate::schema::SignerBasis::Fresh { reasoning: None },
+            signature: None,
+        };
+        let item = item_with(vec![alice_current_no_role, alice_stale_with_role]);
+
+        let mut roles = BTreeMap::new();
+        roles.insert("alice".to_string(), "reviewer".to_string());
+        let pred = Predicate::leaf(Leaf::Signers {
+            required: vec!["alice".to_string()],
+            roles,
+            against: SignerCurrency::Current,
+        });
+
+        let ctx = TestContext::new(sample_date());
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+        // MUST FAIL: no single alice entry is both current AND has role=reviewer.
+        // alice-as-reviewer only signed against fp-STALE.
+        assert_eq!(
+            r.witness_tier,
+            WitnessTier::None,
+            "NFA-13: signers leaf must fail when currency and role are satisfied by \
+             DIFFERENT entries; alice-as-reviewer signed stale, not current"
+        );
+    }
+
+    #[test]
+    fn empty_min_version_string_vacuously_passes_version_check_nfa15() {
+        // BUG REGRESSION TEST (adversarial NFA-15): same class as NFA-14.
+        // `min_version: Some("")` enters the version check branch but `compare_versions`
+        // parses "" as `[(0, "")]` — the lowest possible version representation.
+        // Any document with a non-empty version field compares Greater than "" and passes.
+        // The check "document version >= ''" is vacuously true for any versioned doc.
+        //
+        // This is part of the convergent "empty/zero parameter vacuous bypass" class
+        // (NFA-7 empty Signers.required; NFA-8 empty OraclesComplete.files;
+        // NFA-9 SignedTrailer count=0; NFA-14 empty anchor).
+        //
+        // FIX DIRECTION: `Predicate::validate()` should reject `Leaf::RatifiedDoc`
+        // entries where `min_version == Some("")`. Add a new `PredicateParseError::EmptyMinVersion`
+        // variant and the corresponding check in the walk phase.
+        //
+        // This test FAILS until the fix is applied.
+        let pred = Predicate::leaf(Leaf::RatifiedDoc {
+            path: Some(PathBuf::from("docs/sinh.md")),
+            min_version: Some(String::new()), // empty — vacuously passes version check
+            anchor: None,
+            sibling_json: false,
+        });
+        let err = pred.validate();
+        assert!(
+            err.is_err(),
+            "NFA-15: validate() must reject RatifiedDoc with empty min_version string; \
+             compare_versions(any_version, '') is always Greater or Equal and provides \
+             no version floor guarantee"
+        );
+    }
+
+    #[test]
+    fn empty_anchor_string_vacuously_bypasses_anchor_check_nfa14() {
+        // BUG REGRESSION TEST (adversarial NFA-14): `eval_ratified_doc` performs
+        // the anchor check via `content.contains(anchor)`. In Rust, `str::contains("")`
+        // is always `true` for any string. An `anchor: Some("")` predicate therefore
+        // vacuously passes for ANY doc content — even a doc with no meaningful
+        // section anchors. This is a silent bypass of the anchor-presence requirement.
+        //
+        // The predicate claims "anchor '' is present in the doc" — which is
+        // trivially true and carries no information. The correct behaviour is to
+        // reject empty anchor strings at validation time (predicate.validate()).
+        //
+        // FIX DIRECTION: `Predicate::validate()` should reject `Leaf::RatifiedDoc`
+        // entries where `anchor == Some("")`. Add a `PredicateParseError::EmptyAnchor`
+        // variant and the corresponding check in the walk phase.
+        //
+        // This test FAILS against the current code because validate() does not
+        // catch the empty anchor, and the evaluator then accepts it vacuously.
+        let pred = Predicate::leaf(Leaf::RatifiedDoc {
+            path: Some(PathBuf::from("docs/sinh.md")),
+            min_version: None,
+            anchor: Some(String::new()), // empty anchor — should be rejected
+            sibling_json: false,
+        });
+        // This should fail validate() — empty anchor is a no-op that bypasses the check.
+        let err = pred.validate();
+        assert!(
+            err.is_err(),
+            "NFA-14: validate() must reject RatifiedDoc with empty anchor string; \
+             content.contains('') is always true and provides no anchor guarantee"
         );
     }
 
