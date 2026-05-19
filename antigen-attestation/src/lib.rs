@@ -49,7 +49,7 @@ pub mod predicate;
 pub mod schema;
 pub mod tier;
 
-pub use evaluate::{EvaluatedPredicate, EvaluationError};
+pub use evaluate::{EvaluatedPredicate, EvaluationContext, EvaluationError};
 pub use predicate::{Combinator, Leaf, Predicate, PredicateParseError};
 pub use schema::{
     AntigenIdentifier, DocRef, ItemRatification, OracleRef, Ratification, RatificationKind,
