@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "antigen",
+    "antigen-attestation",
     "antigen-fingerprint",
     "antigen-macros",
     "cargo-antigen",
