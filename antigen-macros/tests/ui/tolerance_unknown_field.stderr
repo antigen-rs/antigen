@@ -1,4 +1,4 @@
-error: unknown #[antigen_tolerance] field `bogus`; expected one of: rationale, until, see
+error: unknown #[antigen_tolerance] field `bogus`; expected one of: rationale, until, see, requires
   --> tests/ui/tolerance_unknown_field.rs:11:5
    |
 11 |     bogus = "y"

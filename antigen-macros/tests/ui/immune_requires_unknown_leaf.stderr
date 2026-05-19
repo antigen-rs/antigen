@@ -1,0 +1,5 @@
+error: unknown substrate-witness predicate leaf `doc_attested`; v0.1 sealed set: ratified_doc, signers, signed_trailer, oracles_complete, fresh_within_days
+ --> tests/ui/immune_requires_unknown_leaf.rs:8:35
+  |
+8 | #[immune(DummyAntigen, requires = doc_attested(path = "discipline.md"))]
+  |                                   ^^^^^^^^^^^^

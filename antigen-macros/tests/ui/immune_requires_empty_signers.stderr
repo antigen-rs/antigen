@@ -1,0 +1,5 @@
+error: signers(required = [...]) must include at least one name (NFA-7)
+ --> tests/ui/immune_requires_empty_signers.rs:8:35
+  |
+8 | #[immune(DummyAntigen, requires = signers(required = []))]
+  |                                   ^^^^^^^
