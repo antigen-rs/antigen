@@ -14,6 +14,7 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use antigen_attestation::{
+    evaluate::evaluate_predicate_with_kind,
     predicate::SignerCurrency,
     schema::{ValidationError, DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS},
     AntigenIdentifier, AuditHint, EvaluationContext, EvidenceKind, ItemRatification, Leaf,
@@ -259,4 +260,167 @@ fn workspace_chain_cap_floor_invariant_t2r_c() {
     ));
     // Default cap is valid.
     assert!(antigen_attestation::schema::validate_chain_cap(DEFAULT_DELTA_CHAIN_CAP).is_ok());
+}
+
+#[test]
+fn tolerance_predicate_pass_reports_tolerance_hint_not_immunity_hint_nfa10() {
+    // BUG REGRESSION TEST (adversarial NFA-10): evaluate_predicate() has no
+    // RatificationKind parameter. A Tolerance sidecar with a passing predicate
+    // returns DisciplinePredicatePassedSubstrateCurrent (an immunity hint)
+    // instead of TolerancePredicatePassedSubstrateCurrent. The tolerance-
+    // specific AuditHints are defined in tier.rs but never emitted because the
+    // evaluator cannot distinguish kind.
+    //
+    // Fix: add `kind: RatificationKind` parameter to evaluate_predicate() and
+    // thread it to classify_passed_predicate() for kind-specific hint selection.
+    //
+    // This test FAILS against the current code which returns the immunity hint.
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path().to_path_buf();
+
+    // Write a discipline doc.
+    std::fs::create_dir_all(root.join("docs")).unwrap();
+    std::fs::write(
+        root.join("docs/tolerance-basis.md"),
+        "---\nversion: 1.0\n---\n# Tolerance basis\nbody",
+    )
+    .unwrap();
+
+    let item = ItemRatification {
+        item_path: "overflow_fn".to_string(),
+        current_fingerprint: "fp-overflow".to_string(),
+        doc_ref: None,
+        signers: vec![fresh_signer("carol", sample_date(), "fp-overflow")],
+        oracles: vec![],
+        fresh_through: None,
+        extensions: BTreeMap::new(),
+    };
+    // Key: RatificationKind::Tolerance
+    let rat = Ratification {
+        schema_version: SchemaVersion::V1,
+        kind: RatificationKind::Tolerance,
+        antigen: AntigenIdentifier {
+            name: "SignedZeroDiscipline".to_string(),
+            defined_in: None,
+        },
+        source_file: std::path::PathBuf::from("src/numerics.rs"),
+        items: vec![item],
+    };
+    rat.validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS)
+        .expect("tolerance sidecar is valid");
+
+    let pred = Predicate::all_of(vec![
+        Predicate::leaf(Leaf::Signers {
+            required: vec!["carol".to_string()],
+            roles: BTreeMap::new(),
+            against: SignerCurrency::default(),
+        }),
+        Predicate::leaf(Leaf::RatifiedDoc {
+            path: Some(std::path::PathBuf::from("docs/tolerance-basis.md")),
+            min_version: Some("1.0".to_string()),
+            anchor: None,
+            sibling_json: false,
+        }),
+    ])
+    .unwrap();
+
+    let ctx = FsContext::new(root, sample_date());
+    let item = &rat.items[0];
+    // Use evaluate_predicate_with_kind so the evaluator knows this is a
+    // Tolerance sidecar and selects the correct hint variant.
+    let result = evaluate_predicate_with_kind(
+        &pred,
+        item,
+        "fp-overflow",
+        &std::path::PathBuf::from("src/numerics.rs"),
+        RatificationKind::Tolerance,
+        &ctx,
+    )
+    .unwrap();
+
+    // CRITICAL: tolerance sidecar must return tolerance-specific hint,
+    // not the immunity hint.
+    assert_eq!(
+        result.audit_hint,
+        antigen_attestation::AuditHint::TolerancePredicatePassedSubstrateCurrent,
+        "tolerance sidecar passing predicate must emit tolerance hint, not immunity hint"
+    );
+}
+
+#[test]
+fn signerless_predicate_reports_no_signature_strength() {
+    // BUG REGRESSION TEST (adversarial NFA-5): a predicate that passes via
+    // non-signer leaves only (ratified_doc + fresh_within_days, no `signers`
+    // leaf) must report `signature_strength: None`. There is no git-trust
+    // identity binding when no signer exists. The previous code incorrectly
+    // returned `Some(SignatureStrength::GitTrust)` for signerless items.
+    //
+    // This test FAILS against the buggy code at evaluate.rs:435 which
+    // unconditionally returns `Some(GitTrust)` when `item.signers.is_empty()`.
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path().to_path_buf();
+
+    // Write the discipline doc to disk.
+    std::fs::create_dir_all(root.join("docs")).unwrap();
+    std::fs::write(
+        root.join("docs/discipline.md"),
+        "---\nversion: 1.0\n---\n# Discipline doc\nbody",
+    )
+    .unwrap();
+
+    // Signerless item — no signers at all; freshness provided via fresh_through.
+    let item = ItemRatification {
+        item_path: "some_fn".to_string(),
+        current_fingerprint: "fp-abc".to_string(),
+        doc_ref: None,
+        signers: vec![], // no signers — predicate must not claim GitTrust
+        oracles: vec![],
+        fresh_through: Some(sample_date()), // fresh as of today
+        extensions: BTreeMap::new(),
+    };
+    let rat = Ratification {
+        schema_version: SchemaVersion::V1,
+        kind: RatificationKind::Immunity,
+        antigen: AntigenIdentifier {
+            name: "TestAntigen".to_string(),
+            defined_in: None,
+        },
+        source_file: std::path::PathBuf::from("src/lib.rs"),
+        items: vec![item],
+    };
+    rat.validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS)
+        .expect("signerless sidecar is structurally valid");
+
+    // Predicate: ratified_doc + fresh_within_days — zero signer requirements.
+    let pred = Predicate::all_of(vec![
+        Predicate::leaf(Leaf::RatifiedDoc {
+            path: Some(std::path::PathBuf::from("docs/discipline.md")),
+            min_version: Some("1.0".to_string()),
+            anchor: None,
+            sibling_json: false,
+        }),
+        Predicate::leaf(Leaf::FreshWithinDays { days: 30 }),
+    ])
+    .unwrap();
+
+    let ctx = FsContext::new(root, sample_date());
+    let item = &rat.items[0];
+    let result = antigen_attestation::evaluate::evaluate_predicate(
+        &pred,
+        item,
+        "fp-abc",
+        &std::path::PathBuf::from("src/lib.rs"),
+        &ctx,
+    )
+    .unwrap();
+
+    // Predicate should pass — doc exists with the right version, item is fresh.
+    assert_eq!(result.witness_tier, WitnessTier::Execution);
+    assert_eq!(result.evidence_kind, EvidenceKind::SubstrateState);
+
+    // CRITICAL: no signers → no git-trust identity binding → signature_strength must be None.
+    assert_eq!(
+        result.signature_strength, None,
+        "signerless predicate must not claim GitTrust — no signer exists to bind identity"
+    );
 }

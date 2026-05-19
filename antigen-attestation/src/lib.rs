@@ -19,7 +19,8 @@
 //! - **Evaluator** — reads sidecars + git log + named docs; returns
 //!   `(WitnessTier, AuditHint, EvidenceKind, Option<SignatureStrength>)`
 //!   per the state-mapping table in ADR-019 M5. See
-//!   [`evaluate::evaluate_predicate`].
+//!   [`evaluate::evaluate_predicate`] (immunity default) or
+//!   [`evaluate::evaluate_predicate_with_kind`] (kind-aware variant).
 //!
 //! ## Tier-honesty (ADR-005 Amendment 3, extended)
 //!
