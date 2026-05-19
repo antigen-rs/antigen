@@ -179,6 +179,47 @@ the operation the document describes.
 The recursion deepens by one tier: the catch on the document about the
 catches is itself a catch.
 
+### 8. ADR-011 tolerance-without-attestation self-diagnosis and cure — STRONG (added 2026-05-19)
+
+`#[antigen_tolerance(...)]` without attestation is exactly the failure class
+`attestation-void-discipline-claim`: a discipline claimed but not attested
+in verifiable substrate. No structured record of who approved the tolerance,
+when, against what review — just a rationale string.
+
+The failure class has documented real-world instances at the industry tier:
+Boeing 737 MAX MCAS (software review discipline claims without structured
+attestation of who reviewed which code against which requirements);
+Heartbleed/OpenSSL (code in the critical path reviewed by volunteers; no
+structured record of who reviewed which commits against which security
+requirements); Log4Shell (no structured review process for security-sensitive
+code paths despite critical-infrastructure status). ADR-006's
+three-independent-instances threshold is met for stdlib promotion eligibility.
+
+Antigen diagnosed `attestation-void-discipline-claim` in its own ADR-011
+mechanism and discipline-witnesses v3 cures it: `#[antigen_tolerance(X,
+sidecar = true)]` with the isomorphic Ratification schema, enforced by the
+`tolerance-vibes-grade` audit hint that fires for unattested tolerances.
+The structural fingerprint (tolerance attribute without sidecar), the witness
+(audit hint emitted at EvidenceKind::None tier), and the cure (sidecar opt-in
+with same schema as immunity sidecars) all use antigen vocabulary at a
+meta-tier.
+
+**Discriminator fit**: STRONG. Named failure-class (`attestation-void-discipline-
+claim`); structural fingerprint (the `#[antigen_tolerance]`-without-sidecar
+pattern); witness (the `tolerance-vibes-grade` audit hint). Antigen recognized
+its own failure class and shipped the remedy. This is stronger than instances
+4, 6, and 7 in one respect: those involve antigen-style thinking applied to
+the project's development process; this one involves the project shipping a
+tool feature that explicitly curates a failure class the project itself
+presented.
+
+**Long-arc note**: `attestation-void-discipline-claim` is ready to propose
+as a seed antigen for antigen-stdlib. Instances are documented (Boeing MCAS,
+Heartbleed, Log4Shell). Fingerprint: a codebase has a discipline-review claim
+(team policy, README, ADR prose, comment) but no machine-verifiable substrate
+backing the claim. This is the foundation-antigen for the discipline-witnesses
+feature area — the failure class discipline-witnesses exist to address.
+
 ---
 
 ### Tiered summary
@@ -188,17 +229,20 @@ catches is itself a catch.
 | 4. Amendment 5 triage | STRONG | Named failure-class vocabulary at engine layer |
 | 6. Tokenization encounter | STRONG | Encounters discipline at project-substrate tier |
 | 7. Q8+Q2 amendment catch | STRONG | Antigen vocabulary catching antigen-document overclaim |
+| 8. ADR-011 self-diagnosis + discipline-witnesses cure | STRONG | Named failure-class + fingerprint + witness at meta-tier; tool cures own failure class |
 | 2. Recursive V8 | MEDIUM | Phase 1-8 + postures §7 (mixed antigen + generic peer-review) |
 | 1. C1 folded structure | WEAK | Structural observation; no failure-class vocabulary at meta-tier |
 | 3. ADR-tier substrate-currency | WEAK | Generic spec-vs-code check; postures §7 framing is antigen |
 | 5. Scout's cross-check | WEAK | Substrate-currency vocabulary is antigen-adjacent; generic discipline |
 
-Three STRONG instances pass the discriminator clearly. Three WEAK
+Four STRONG instances pass the discriminator clearly. Three WEAK
 instances are antigen-style thinking applied to the project but don't
 use antigen vocabulary at a meta-tier. The recursion-is-architectural
 claim still holds — ADR-006's three-independent-instances threshold is
 met by the STRONG instances alone — but the document is no longer
-overclaiming "six uniform instances."
+overclaiming "six uniform instances." Instance 8 (added 2026-05-19) is
+the most structurally complete: it names a failure class with real-world
+ecosystem instances AND demonstrates the full cure via discipline-witnesses.
 
 ---
 
