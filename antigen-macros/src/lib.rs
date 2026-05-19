@@ -205,7 +205,20 @@ pub fn immune(args: TokenStream, input: TokenStream) -> TokenStream {
         return e.to_compile_error().into();
     }
 
-    quote! { #input }.into()
+    args.requires_json().map_or_else(
+        || quote! { #input }.into(),
+        |json| {
+            // Emit the predicate as a doc-attribute marker so `cargo antigen scan`
+            // can discover it via source walking without requiring a binary link.
+            // Format: `antigen:requires:v1:<json>` (ADR-019 §P3b).
+            let marker = format!(" antigen:requires:v1:{json}");
+            quote! {
+                #[doc = #marker]
+                #input
+            }
+            .into()
+        },
+    )
 }
 
 /// Propagate antigen markers from a parent function/type/method to a derived one.
@@ -275,5 +288,15 @@ pub fn antigen_tolerance(args: TokenStream, input: TokenStream) -> TokenStream {
         return e.to_compile_error().into();
     }
 
-    quote! { #input }.into()
+    args.requires_json().map_or_else(
+        || quote! { #input }.into(),
+        |json| {
+            let marker = format!(" antigen:requires:v1:{json}");
+            quote! {
+                #[doc = #marker]
+                #input
+            }
+            .into()
+        },
+    )
 }

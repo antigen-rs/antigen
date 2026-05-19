@@ -207,7 +207,7 @@ pub struct ImmunityAudit {
     ///
     /// Defaults to `EvidenceKind::None` for backward compatibility with
     /// pre-ADR-019 serialized audit reports. Existing code-witness paths
-    /// (Test / IgnoredTest / Proptest / Function) map to `Behavioral`;
+    /// (Test / `IgnoredTest` / Proptest / Function) map to `Behavioral`;
     /// `PhantomType` maps to `TypeSystemProof`. Substrate-witness audits
     /// (P3c integration) set this to `SubstrateState`.
     #[serde(default = "default_evidence_kind")]
@@ -283,8 +283,8 @@ impl WitnessTier {
 /// Derive [`antigen_attestation::EvidenceKind`] from a [`WitnessStatus`]
 /// per ADR-019 §M5.
 ///
-/// Code-witness paths (Test / IgnoredTest / Proptest / Function) map to
-/// `Behavioral` because they exercise the code at runtime. PhantomType
+/// Code-witness paths (Test / `IgnoredTest` / Proptest / Function) map to
+/// `Behavioral` because they exercise the code at runtime. `PhantomType`
 /// maps to `TypeSystemProof` (compile-time construction-is-the-proof).
 /// Substrate-witness paths (predicate-evaluated via
 /// `antigen_attestation::evaluate`) set `SubstrateState` directly when

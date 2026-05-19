@@ -13,7 +13,566 @@
 use proc_macro2::Span;
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
-use syn::{Expr, Ident, Lit, LitStr, Path, Token};
+use syn::{Expr, Ident, Lit, LitBool, LitInt, LitStr, Path, Token};
+
+// ============================================================================
+// RequiresExpr — local mirror of antigen_attestation::Predicate
+//
+// proc-macro crates cannot depend on antigen-attestation (circular dep risk
+// if antigen-attestation ever transitively imports antigen-macros; also
+// proc-macro crates can't link arbitrary libs at expansion time). Instead,
+// we mirror the predicate AST here and lower it to the same JSON serde
+// format that antigen_attestation::Predicate produces, so the scan layer
+// can round-trip via `serde_json::from_str::<Predicate>()`.
+//
+// JSON format (must match antigen_attestation::Predicate serde):
+//   AllOf  -> {"kind":"all_of","children":[...]}
+//   AnyOf  -> {"kind":"any_of","children":[...]}
+//   Not    -> {"kind":"not","child":{...}}
+//   Leaf   -> {"kind":"leaf","leaf":{"name":"<leaf_name>",...leaf_fields...}}
+//
+// Macro syntax parsed:
+//   requires = signers(required = ["alice"])
+//   requires = all_of([signers(required = ["alice"]), fresh_within_days(days = 90)])
+//   requires = any_of([...])
+//   requires = not(...)
+// ============================================================================
+
+/// Local predicate AST — mirrors `antigen_attestation::Predicate` without
+/// creating a crate dependency.
+#[derive(Debug, Clone)]
+pub enum RequiresExpr {
+    Leaf(LeafExpr),
+    AllOf(Vec<Self>),
+    AnyOf(Vec<Self>),
+    Not(Box<Self>),
+}
+
+/// Local leaf AST — mirrors `antigen_attestation::Leaf`.
+#[derive(Debug, Clone)]
+pub enum LeafExpr {
+    RatifiedDoc {
+        path: Option<String>,
+        min_version: Option<String>,
+        anchor: Option<String>,
+        sibling_json: bool,
+    },
+    Signers {
+        required: Vec<String>,
+        against: SignerCurrencyExpr,
+    },
+    SignedTrailer {
+        key: String,
+        role: Option<String>,
+        count: u32,
+    },
+    OraclesComplete {
+        files: Vec<String>,
+    },
+    FreshWithinDays {
+        days: u32,
+    },
+}
+
+/// Local mirror of `antigen_attestation::SignerCurrency`.
+#[derive(Debug, Clone, Copy, Default)]
+pub enum SignerCurrencyExpr {
+    #[default]
+    Current,
+    Any,
+}
+
+impl RequiresExpr {
+    /// Lower to the JSON string consumed by the scan layer.
+    ///
+    /// Format matches `serde_json::to_string(&antigen_attestation::Predicate)`.
+    pub fn to_json(&self) -> String {
+        match self {
+            Self::AllOf(children) => {
+                let kids: Vec<String> = children.iter().map(Self::to_json).collect();
+                format!("{{\"kind\":\"all_of\",\"children\":[{}]}}", kids.join(","))
+            }
+            Self::AnyOf(children) => {
+                let kids: Vec<String> = children.iter().map(Self::to_json).collect();
+                format!("{{\"kind\":\"any_of\",\"children\":[{}]}}", kids.join(","))
+            }
+            Self::Not(child) => {
+                format!("{{\"kind\":\"not\",\"child\":{}}}", child.to_json())
+            }
+            Self::Leaf(leaf) => {
+                format!("{{\"kind\":\"leaf\",\"leaf\":{}}}", leaf.to_json())
+            }
+        }
+    }
+
+    /// Validate semantic invariants at parse time (mirrors
+    /// `antigen_attestation::Predicate::validate`).
+    pub fn validate(&self, span: Span) -> syn::Result<()> {
+        match self {
+            Self::AllOf(children) if children.is_empty() => Err(syn::Error::new(
+                span,
+                "requires: `all_of([])` is a semantic no-op (R-A6); add at least one child",
+            )),
+            Self::AnyOf(children) if children.is_empty() => Err(syn::Error::new(
+                span,
+                "requires: `any_of([])` is a semantic no-op (R-A6); add at least one child",
+            )),
+            Self::AllOf(children) | Self::AnyOf(children) => {
+                for child in children {
+                    child.validate(span)?;
+                }
+                Ok(())
+            }
+            Self::Not(child) => child.validate(span),
+            Self::Leaf(leaf) => leaf.validate(span),
+        }
+    }
+}
+
+impl LeafExpr {
+    fn to_json(&self) -> String {
+        match self {
+            Self::RatifiedDoc {
+                path,
+                min_version,
+                anchor,
+                sibling_json,
+            } => {
+                let mut fields = vec![r#""name":"ratified_doc""#.to_string()];
+                if let Some(p) = path {
+                    fields.push(format!("\"path\":{}", json_string(p)));
+                }
+                if let Some(v) = min_version {
+                    fields.push(format!("\"min_version\":{}", json_string(v)));
+                }
+                if let Some(a) = anchor {
+                    fields.push(format!("\"anchor\":{}", json_string(a)));
+                }
+                if *sibling_json {
+                    fields.push("\"sibling_json\":true".to_string());
+                }
+                format!("{{{}}}", fields.join(","))
+            }
+            Self::Signers { required, against } => {
+                let req_arr: Vec<String> = required.iter().map(|s| json_string(s)).collect();
+                let mut s = format!(
+                    "{{\"name\":\"signers\",\"required\":[{}]",
+                    req_arr.join(",")
+                );
+                match against {
+                    SignerCurrencyExpr::Any => {
+                        s.push_str(",\"against\":\"any\"");
+                    }
+                    SignerCurrencyExpr::Current => {
+                        // "current" is the serde default — skip_serializing_if omits it
+                    }
+                }
+                s.push('}');
+                s
+            }
+            Self::SignedTrailer { key, role, count } => {
+                let mut fields = vec![
+                    r#""name":"signed_trailer""#.to_string(),
+                    format!("\"key\":{}", json_string(key)),
+                ];
+                if let Some(r) = role {
+                    fields.push(format!("\"role\":{}", json_string(r)));
+                }
+                if *count != 1 {
+                    // 1 is the serde default_trailer_count — omit when default
+                    fields.push(format!("\"count\":{count}"));
+                }
+                format!("{{{}}}", fields.join(","))
+            }
+            Self::OraclesComplete { files } => {
+                let arr: Vec<String> = files.iter().map(|f| json_string(f)).collect();
+                format!(
+                    "{{\"name\":\"oracles_complete\",\"files\":[{}]}}",
+                    arr.join(",")
+                )
+            }
+            Self::FreshWithinDays { days } => {
+                format!("{{\"name\":\"fresh_within_days\",\"days\":{days}}}")
+            }
+        }
+    }
+
+    fn validate(&self, span: Span) -> syn::Result<()> {
+        match self {
+            Self::Signers { required, .. } if required.is_empty() => Err(syn::Error::new(
+                span,
+                "requires: `signers(required = [])` is a semantic no-op (NFA-7); \
+                 add at least one required signer name",
+            )),
+            Self::OraclesComplete { files } if files.is_empty() => Err(syn::Error::new(
+                span,
+                "requires: `oracles_complete(files = [])` is a semantic no-op (NFA-8); \
+                 add at least one oracle file path",
+            )),
+            Self::SignedTrailer { count: 0, .. } => Err(syn::Error::new(
+                span,
+                "requires: `signed_trailer(count = 0)` is vacuously true (NFA-9); \
+                 use count >= 1 (default is 1)",
+            )),
+            _ => Ok(()),
+        }
+    }
+}
+
+/// Escape a string as a JSON string literal (double-quoted, inner
+/// quotes and backslashes escaped). No other escapes needed for the
+/// ASCII-safe content in predicate fields (paths, signer names, etc.).
+fn json_string(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + 2);
+    out.push('"');
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
+}
+
+// ============================================================================
+// RequiresExpr parsing
+// ============================================================================
+
+impl Parse for RequiresExpr {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let name: Ident = input.parse()?;
+        let name_str = name.to_string();
+        let span = name.span();
+
+        match name_str.as_str() {
+            "all_of" => {
+                let content;
+                syn::parenthesized!(content in input);
+                let inner;
+                syn::bracketed!(inner in content);
+                let children = parse_predicate_list(&inner)?;
+                if children.is_empty() {
+                    return Err(syn::Error::new(
+                        span,
+                        "all_of([]) is a semantic no-op (R-A6); add at least one child",
+                    ));
+                }
+                Ok(Self::AllOf(children))
+            }
+            "any_of" => {
+                let content;
+                syn::parenthesized!(content in input);
+                let inner;
+                syn::bracketed!(inner in content);
+                let children = parse_predicate_list(&inner)?;
+                if children.is_empty() {
+                    return Err(syn::Error::new(
+                        span,
+                        "any_of([]) is a semantic no-op (R-A6); add at least one child",
+                    ));
+                }
+                Ok(Self::AnyOf(children))
+            }
+            "not" => {
+                let content;
+                syn::parenthesized!(content in input);
+                let child: Self = content.parse()?;
+                Ok(Self::Not(Box::new(child)))
+            }
+            leaf_name => {
+                let leaf = parse_leaf(leaf_name, span, input)?;
+                Ok(Self::Leaf(leaf))
+            }
+        }
+    }
+}
+
+fn parse_predicate_list(input: ParseStream) -> syn::Result<Vec<RequiresExpr>> {
+    let mut children = Vec::new();
+    while !input.is_empty() {
+        children.push(input.parse::<RequiresExpr>()?);
+        if input.is_empty() {
+            break;
+        }
+        input.parse::<Token![,]>()?;
+    }
+    Ok(children)
+}
+
+fn parse_leaf(name: &str, span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
+    match name {
+        "ratified_doc" => parse_ratified_doc(span, input),
+        "signers" => parse_signers(span, input),
+        "signed_trailer" => parse_signed_trailer(span, input),
+        "oracles_complete" => parse_oracles_complete(span, input),
+        "fresh_within_days" => parse_fresh_within_days(span, input),
+        other => Err(syn::Error::new(
+            span,
+            format!(
+                "unknown substrate-witness predicate leaf `{other}`; \
+                 v0.1 sealed set: ratified_doc, signers, signed_trailer, \
+                 oracles_complete, fresh_within_days"
+            ),
+        )),
+    }
+}
+
+/// Parse a `key = value` pair inside a leaf's parentheses, returning the key
+/// ident and advancing past the `=`.
+fn parse_kv_key(input: ParseStream) -> syn::Result<Ident> {
+    let key: Ident = input.parse()?;
+    input.parse::<Token![=]>()?;
+    Ok(key)
+}
+
+/// Parse a `[str, str, ...]` bracketed string array (for `required`, `files`).
+fn parse_string_array(input: ParseStream) -> syn::Result<Vec<String>> {
+    let inner;
+    syn::bracketed!(inner in input);
+    let mut out = Vec::new();
+    while !inner.is_empty() {
+        let s: LitStr = inner.parse()?;
+        out.push(s.value());
+        if inner.is_empty() {
+            break;
+        }
+        inner.parse::<Token![,]>()?;
+    }
+    Ok(out)
+}
+
+fn parse_ratified_doc(_span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
+    let mut path: Option<String> = None;
+    let mut min_version: Option<String> = None;
+    let mut anchor: Option<String> = None;
+    let mut sibling_json = false;
+
+    // ratified_doc may be bare (no parens) or have named args
+    if input.peek(syn::token::Paren) {
+        let content;
+        syn::parenthesized!(content in input);
+        while !content.is_empty() {
+            let key = parse_kv_key(&content)?;
+            match key.to_string().as_str() {
+                "path" => {
+                    let s: LitStr = content.parse()?;
+                    path = Some(s.value());
+                }
+                "min_version" => {
+                    let s: LitStr = content.parse()?;
+                    min_version = Some(s.value());
+                }
+                "anchor" => {
+                    let s: LitStr = content.parse()?;
+                    anchor = Some(s.value());
+                }
+                "sibling_json" => {
+                    let b: LitBool = content.parse()?;
+                    sibling_json = b.value();
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown ratified_doc field `{other}`; \
+                             expected: path, min_version, anchor, sibling_json"
+                        ),
+                    ));
+                }
+            }
+            if content.is_empty() {
+                break;
+            }
+            content.parse::<Token![,]>()?;
+        }
+    }
+
+    Ok(LeafExpr::RatifiedDoc {
+        path,
+        min_version,
+        anchor,
+        sibling_json,
+    })
+}
+
+fn parse_signers(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
+    let mut required: Vec<String> = Vec::new();
+    let mut against = SignerCurrencyExpr::Current;
+
+    if input.peek(syn::token::Paren) {
+        let content;
+        syn::parenthesized!(content in input);
+        while !content.is_empty() {
+            let key = parse_kv_key(&content)?;
+            match key.to_string().as_str() {
+                "required" => {
+                    required = parse_string_array(&content)?;
+                }
+                "against" => {
+                    let s: LitStr = content.parse()?;
+                    against = match s.value().as_str() {
+                        "current" => SignerCurrencyExpr::Current,
+                        "any" => SignerCurrencyExpr::Any,
+                        other => {
+                            return Err(syn::Error::new(
+                                s.span(),
+                                format!(
+                                    "unknown signers `against` value `{other}`; \
+                                     expected \"current\" or \"any\""
+                                ),
+                            ))
+                        }
+                    };
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown signers field `{other}`; expected: required, against"
+                        ),
+                    ));
+                }
+            }
+            if content.is_empty() {
+                break;
+            }
+            content.parse::<Token![,]>()?;
+        }
+    }
+
+    if required.is_empty() {
+        return Err(syn::Error::new(
+            span,
+            "signers(required = [...]) must include at least one name (NFA-7)",
+        ));
+    }
+
+    Ok(LeafExpr::Signers { required, against })
+}
+
+fn parse_signed_trailer(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
+    let mut key: Option<String> = None;
+    let mut role: Option<String> = None;
+    let mut count: u32 = 1;
+
+    if input.peek(syn::token::Paren) {
+        let content;
+        syn::parenthesized!(content in input);
+        while !content.is_empty() {
+            let k = parse_kv_key(&content)?;
+            match k.to_string().as_str() {
+                "key" => {
+                    let s: LitStr = content.parse()?;
+                    key = Some(s.value());
+                }
+                "role" => {
+                    let s: LitStr = content.parse()?;
+                    role = Some(s.value());
+                }
+                "count" => {
+                    let n: LitInt = content.parse()?;
+                    count = n.base10_parse::<u32>()?;
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        k.span(),
+                        format!(
+                            "unknown signed_trailer field `{other}`; \
+                             expected: key, role, count"
+                        ),
+                    ));
+                }
+            }
+            if content.is_empty() {
+                break;
+            }
+            content.parse::<Token![,]>()?;
+        }
+    }
+
+    let key = key.ok_or_else(|| {
+        syn::Error::new(span, "signed_trailer requires `key = \"...\"` (the trailer key, e.g., \"Discipline-Verified-By\")")
+    })?;
+
+    if count == 0 {
+        return Err(syn::Error::new(
+            span,
+            "signed_trailer `count = 0` is vacuously true (NFA-9); use count >= 1",
+        ));
+    }
+
+    Ok(LeafExpr::SignedTrailer { key, role, count })
+}
+
+fn parse_oracles_complete(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
+    let mut files: Vec<String> = Vec::new();
+
+    if input.peek(syn::token::Paren) {
+        let content;
+        syn::parenthesized!(content in input);
+        while !content.is_empty() {
+            let key = parse_kv_key(&content)?;
+            match key.to_string().as_str() {
+                "files" => {
+                    files = parse_string_array(&content)?;
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!("unknown oracles_complete field `{other}`; expected: files"),
+                    ));
+                }
+            }
+            if content.is_empty() {
+                break;
+            }
+            content.parse::<Token![,]>()?;
+        }
+    }
+
+    if files.is_empty() {
+        return Err(syn::Error::new(
+            span,
+            "oracles_complete(files = [...]) must include at least one file path (NFA-8)",
+        ));
+    }
+
+    Ok(LeafExpr::OraclesComplete { files })
+}
+
+fn parse_fresh_within_days(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
+    let days = if input.peek(syn::token::Paren) {
+        let content;
+        syn::parenthesized!(content in input);
+        if content.peek(Ident) && content.peek2(Token![=]) {
+            // named: fresh_within_days(days = 90)
+            let key: Ident = content.parse()?;
+            if key != "days" {
+                return Err(syn::Error::new(
+                    key.span(),
+                    format!("unknown fresh_within_days field `{key}`; expected: days"),
+                ));
+            }
+            content.parse::<Token![=]>()?;
+        }
+        // positional or named — both end with a u32 literal
+        let n: LitInt = content.parse()?;
+        n.base10_parse::<u32>()?
+    } else {
+        return Err(syn::Error::new(
+            span,
+            "fresh_within_days requires a day count: `fresh_within_days(90)` or \
+             `fresh_within_days(days = 90)`",
+        ));
+    };
+
+    Ok(LeafExpr::FreshWithinDays { days })
+}
 
 /// Arguments to `#[antigen(...)]`.
 #[allow(dead_code)]
@@ -46,9 +605,15 @@ pub struct PresentsArgs {
 }
 
 /// Arguments to `#[immune(antigen_type, witness = ..., [rationale = ...])]`.
+///
+/// Accepts EITHER `witness = <expr>` (code-tier immunity) OR
+/// `requires = <predicate>` (substrate-witness predicate, ADR-019).
+/// Providing both or neither is a compile error.
 pub struct ImmuneArgs {
     pub antigen: Path,
     pub witness: Option<Expr>,
+    /// Substrate-witness predicate (ADR-019). Mutually exclusive with `witness`.
+    pub requires: Option<(RequiresExpr, Span)>,
     #[allow(dead_code)]
     pub rationale: Option<String>,
 }
@@ -62,7 +627,8 @@ pub struct DescendedFromArgs {
 /// Arguments to `#[antigen_tolerance(antigen, rationale = "...", until = "...", see = [...])]`.
 ///
 /// Per ADR-011: positional antigen, required `rationale` (non-empty),
-/// optional `until` (non-empty if present), optional `see` (open-vocab string array).
+/// optional `until` (non-empty if present), optional `see` (open-vocab string array),
+/// optional `requires = <predicate>` (substrate-witness sidecar predicate, ADR-019).
 pub struct ToleranceArgs {
     #[allow(dead_code)]
     pub antigen: Path,
@@ -72,6 +638,8 @@ pub struct ToleranceArgs {
     pub until_span: Option<Span>,
     #[allow(dead_code)]
     pub see: Vec<String>,
+    /// Optional substrate-witness sidecar predicate (ADR-019 tolerance tier).
+    pub requires: Option<(RequiresExpr, Span)>,
     pub args_span: Span,
 }
 
@@ -200,6 +768,7 @@ impl Parse for ImmuneArgs {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let antigen: Path = input.parse()?;
         let mut witness: Option<Expr> = None;
+        let mut requires: Option<(RequiresExpr, Span)> = None;
         let mut rationale: Option<String> = None;
 
         while !input.is_empty() {
@@ -208,10 +777,15 @@ impl Parse for ImmuneArgs {
                 break;
             }
             let key: Ident = input.parse()?;
+            let key_span = key.span();
             input.parse::<Token![=]>()?;
             match key.to_string().as_str() {
                 "witness" => {
                     witness = Some(input.parse()?);
+                }
+                "requires" => {
+                    let pred: RequiresExpr = input.parse()?;
+                    requires = Some((pred, key_span));
                 }
                 "rationale" => {
                     let lit: LitStr = input.parse()?;
@@ -221,7 +795,8 @@ impl Parse for ImmuneArgs {
                     return Err(syn::Error::new(
                         key.span(),
                         format!(
-                            "unknown #[immune] field `{other}`; expected one of: witness, rationale"
+                            "unknown #[immune] field `{other}`; expected one of: \
+                             witness, requires, rationale"
                         ),
                     ));
                 }
@@ -231,6 +806,7 @@ impl Parse for ImmuneArgs {
         Ok(Self {
             antigen,
             witness,
+            requires,
             rationale,
         })
     }
@@ -238,15 +814,29 @@ impl Parse for ImmuneArgs {
 
 impl ImmuneArgs {
     pub fn validate(&self) -> syn::Result<()> {
-        if self.witness.is_none() {
-            return Err(syn::Error::new_spanned(
+        match (&self.witness, &self.requires) {
+            (None, None) => Err(syn::Error::new_spanned(
                 &self.antigen,
-                "#[immune] requires `witness = ...` (a test, proptest, lint reference, \
-                 formal-verification proof, or phantom-type construction). \
+                "#[immune] requires either `witness = ...` (code-tier: a test, proptest, \
+                 lint reference, formal-verification proof, or phantom-type construction) \
+                 or `requires = <predicate>` (substrate-witness predicate, ADR-019). \
                  A marker without proof is not a claim.",
-            ));
+            )),
+            (Some(_), Some((_, span))) => Err(syn::Error::new(
+                *span,
+                "#[immune] accepts either `witness = ...` or `requires = ...`, not both. \
+                 For compound evidence across code-tier and substrate-tier, \
+                 use `witnesses = [...]` (multi-witness syntax, ADR-019 §F11).",
+            )),
+            (_, Some((pred, span))) => pred.validate(*span),
+            (Some(_), None) => Ok(()),
         }
-        Ok(())
+    }
+
+    /// If `requires` is set, return the JSON string for the predicate.
+    /// The scan layer reads this from the `antigen:requires:v1:` doc marker.
+    pub fn requires_json(&self) -> Option<String> {
+        self.requires.as_ref().map(|(pred, _)| pred.to_json())
     }
 }
 
@@ -274,6 +864,7 @@ impl Parse for ToleranceArgs {
         let mut until: Option<String> = None;
         let mut until_span: Option<Span> = None;
         let mut see: Vec<String> = Vec::new();
+        let mut requires: Option<(RequiresExpr, Span)> = None;
 
         while !input.is_empty() {
             input.parse::<Token![,]>()?;
@@ -281,6 +872,7 @@ impl Parse for ToleranceArgs {
                 break;
             }
             let key: Ident = input.parse()?;
+            let key_span = key.span();
             input.parse::<Token![=]>()?;
             match key.to_string().as_str() {
                 "rationale" => {
@@ -309,12 +901,16 @@ impl Parse for ToleranceArgs {
                         }
                     }
                 }
+                "requires" => {
+                    let pred: RequiresExpr = input.parse()?;
+                    requires = Some((pred, key_span));
+                }
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
                         format!(
                             "unknown #[antigen_tolerance] field `{other}`; expected one of: \
-                             rationale, until, see",
+                             rationale, until, see, requires",
                         ),
                     ));
                 }
@@ -328,6 +924,7 @@ impl Parse for ToleranceArgs {
             until,
             until_span,
             see,
+            requires,
             args_span,
         })
     }
@@ -337,6 +934,7 @@ impl ToleranceArgs {
     /// Trust-boundary checks per ADR-011 Mechanics:
     /// - rationale required and non-empty (claim without rationale is not a claim)
     /// - until non-empty if present (empty string indicates user error)
+    /// - requires predicate valid if present (semantic invariants per ADR-019 R-A6)
     pub fn validate(&self) -> syn::Result<()> {
         let Some(rationale) = self.rationale.as_deref() else {
             return Err(syn::Error::new_spanned(
@@ -361,7 +959,15 @@ impl ToleranceArgs {
                 ));
             }
         }
+        if let Some((pred, span)) = &self.requires {
+            pred.validate(*span)?;
+        }
         Ok(())
+    }
+
+    /// If `requires` is set, return the JSON string for the predicate.
+    pub fn requires_json(&self) -> Option<String> {
+        self.requires.as_ref().map(|(pred, _)| pred.to_json())
     }
 }
 
@@ -447,6 +1053,208 @@ fn is_kebab_case(s: &str) -> bool {
         && !s.starts_with('-')
         && !s.ends_with('-')
         && !s.contains("--")
+}
+
+// ============================================================================
+// RequiresExpr JSON lowering tests
+//
+// These tests lock the JSON format that RequiresExpr::to_json() produces
+// against the format that antigen_attestation::Predicate serde produces.
+// The canonical format is documented at:
+//   antigen-attestation/src/predicate.rs (serde attributes)
+//   antigen-attestation/src/predicate.rs:525 (leaf JSON form: {"kind":"leaf","leaf":{...}})
+//
+// When adding a new leaf or changing serde attributes, update these tests
+// AND verify the format matches via the predicate.rs round-trip test.
+// ============================================================================
+
+#[cfg(test)]
+mod requires_json_tests {
+    use super::*;
+    use proc_macro2::TokenStream;
+
+    fn parse_requires(input: &str) -> RequiresExpr {
+        let tokens: TokenStream = input.parse().expect("tokenize");
+        syn::parse2::<RequiresExpr>(tokens).expect("parse RequiresExpr")
+    }
+
+    #[test]
+    fn leaf_fresh_within_days_positional_json() {
+        let expr = parse_requires("fresh_within_days(90)");
+        let json = expr.to_json();
+        assert_eq!(
+            json,
+            r#"{"kind":"leaf","leaf":{"name":"fresh_within_days","days":90}}"#
+        );
+    }
+
+    #[test]
+    fn leaf_fresh_within_days_named_json() {
+        let expr = parse_requires("fresh_within_days(days = 180)");
+        let json = expr.to_json();
+        assert_eq!(
+            json,
+            r#"{"kind":"leaf","leaf":{"name":"fresh_within_days","days":180}}"#
+        );
+    }
+
+    #[test]
+    fn leaf_signers_current_against_omitted_in_json() {
+        // "current" is the serde default — must be omitted (skip_serializing_if)
+        let expr = parse_requires(r#"signers(required = ["alice", "bob"])"#);
+        let json = expr.to_json();
+        assert_eq!(
+            json,
+            r#"{"kind":"leaf","leaf":{"name":"signers","required":["alice","bob"]}}"#
+        );
+    }
+
+    #[test]
+    fn leaf_signers_any_against_present_in_json() {
+        let expr = parse_requires(r#"signers(required = ["alice"], against = "any")"#);
+        let json = expr.to_json();
+        assert_eq!(
+            json,
+            r#"{"kind":"leaf","leaf":{"name":"signers","required":["alice"],"against":"any"}}"#
+        );
+    }
+
+    #[test]
+    fn leaf_ratified_doc_bare_json() {
+        let expr = parse_requires("ratified_doc");
+        let json = expr.to_json();
+        assert_eq!(
+            json,
+            r#"{"kind":"leaf","leaf":{"name":"ratified_doc"}}"#
+        );
+    }
+
+    #[test]
+    fn leaf_ratified_doc_with_path_json() {
+        let expr = parse_requires(r#"ratified_doc(path = "docs/discipline.md")"#);
+        let json = expr.to_json();
+        assert_eq!(
+            json,
+            r#"{"kind":"leaf","leaf":{"name":"ratified_doc","path":"docs/discipline.md"}}"#
+        );
+    }
+
+    #[test]
+    fn leaf_ratified_doc_sibling_json_flag() {
+        let expr = parse_requires("ratified_doc(sibling_json = true)");
+        let json = expr.to_json();
+        assert_eq!(
+            json,
+            r#"{"kind":"leaf","leaf":{"name":"ratified_doc","sibling_json":true}}"#
+        );
+    }
+
+    #[test]
+    fn leaf_oracles_complete_json() {
+        let expr = parse_requires(r#"oracles_complete(files = ["a.md", "b.md"])"#);
+        let json = expr.to_json();
+        assert_eq!(
+            json,
+            r#"{"kind":"leaf","leaf":{"name":"oracles_complete","files":["a.md","b.md"]}}"#
+        );
+    }
+
+    #[test]
+    fn leaf_signed_trailer_default_count_omitted_json() {
+        // count=1 is the serde default — must be omitted
+        let expr = parse_requires(r#"signed_trailer(key = "Discipline-Verified-By")"#);
+        let json = expr.to_json();
+        assert_eq!(
+            json,
+            r#"{"kind":"leaf","leaf":{"name":"signed_trailer","key":"Discipline-Verified-By"}}"#
+        );
+    }
+
+    #[test]
+    fn leaf_signed_trailer_non_default_count_present_json() {
+        let expr = parse_requires(r#"signed_trailer(key = "Verified-By", count = 2)"#);
+        let json = expr.to_json();
+        assert_eq!(
+            json,
+            r#"{"kind":"leaf","leaf":{"name":"signed_trailer","key":"Verified-By","count":2}}"#
+        );
+    }
+
+    #[test]
+    fn combinator_all_of_json() {
+        let expr = parse_requires(
+            r#"all_of([fresh_within_days(90), signers(required = ["alice"])])"#,
+        );
+        let json = expr.to_json();
+        assert_eq!(
+            json,
+            r#"{"kind":"all_of","children":[{"kind":"leaf","leaf":{"name":"fresh_within_days","days":90}},{"kind":"leaf","leaf":{"name":"signers","required":["alice"]}}]}"#
+        );
+    }
+
+    #[test]
+    fn combinator_any_of_json() {
+        let expr = parse_requires(
+            r"any_of([fresh_within_days(30), fresh_within_days(90)])",
+        );
+        let json = expr.to_json();
+        assert_eq!(
+            json,
+            r#"{"kind":"any_of","children":[{"kind":"leaf","leaf":{"name":"fresh_within_days","days":30}},{"kind":"leaf","leaf":{"name":"fresh_within_days","days":90}}]}"#
+        );
+    }
+
+    #[test]
+    fn combinator_not_json() {
+        let expr = parse_requires(r"not(fresh_within_days(90))");
+        let json = expr.to_json();
+        assert_eq!(
+            json,
+            r#"{"kind":"not","child":{"kind":"leaf","leaf":{"name":"fresh_within_days","days":90}}}"#
+        );
+    }
+
+    #[test]
+    fn json_string_escapes_quotes_and_backslash() {
+        // Signer names with special chars must be safely JSON-escaped.
+        let expr = parse_requires(r#"signers(required = ["alice\"bob"])"#);
+        let json = expr.to_json();
+        // The name "alice\"bob" in Rust source is the string alice"bob,
+        // which in JSON is "alice\"bob".
+        assert!(json.contains(r#"\"alice\\\"bob\""#) || json.contains(r#"alice\"bob"#));
+    }
+
+    #[test]
+    fn requires_expr_validate_rejects_empty_all_of() {
+        // all_of([]) is caught at parse time (not validate time) but the
+        // validate() method must also reject it if somehow constructed.
+        let span = proc_macro2::Span::call_site();
+        let expr = RequiresExpr::AllOf(vec![]);
+        assert!(expr.validate(span).is_err());
+    }
+
+    #[test]
+    fn requires_expr_validate_rejects_empty_signers() {
+        let span = proc_macro2::Span::call_site();
+        let expr = RequiresExpr::Leaf(LeafExpr::Signers {
+            required: vec![],
+            against: SignerCurrencyExpr::Current,
+        });
+        assert!(expr.validate(span).is_err());
+    }
+
+    #[test]
+    fn requires_expr_validate_passes_well_formed() {
+        let span = proc_macro2::Span::call_site();
+        let expr = RequiresExpr::AllOf(vec![
+            RequiresExpr::Leaf(LeafExpr::Signers {
+                required: vec!["alice".to_string()],
+                against: SignerCurrencyExpr::Current,
+            }),
+            RequiresExpr::Leaf(LeafExpr::FreshWithinDays { days: 90 }),
+        ]);
+        assert!(expr.validate(span).is_ok());
+    }
 }
 
 // ============================================================================
