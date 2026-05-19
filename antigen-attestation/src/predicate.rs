@@ -42,6 +42,15 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
+/// Maximum nesting depth for predicate trees.
+///
+/// Adversarial NFA-11 guard. Predicates deeper than this are rejected at
+/// `validate()` time before the recursive `walk()` reaches dangerous
+/// stack depth. 64 is far beyond any legitimate predicate (real
+/// predicates rarely exceed depth 5) while protecting against crafted
+/// sidecars.
+pub const MAX_PREDICATE_DEPTH: usize = 64;
+
 /// Substrate-witness predicate AST.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
@@ -157,6 +166,30 @@ impl Predicate {
     /// Returns the first [`PredicateParseError::ZeroLeafComposition`]
     /// encountered.
     pub fn validate(&self) -> Result<(), PredicateParseError> {
+        // Phase 1: iterative depth check (avoids recursion for NFA-11 guard).
+        // Uses an explicit stack of (node, depth) pairs. Must run BEFORE walk()
+        // to protect the recursive walk() from stack overflow on deep predicates.
+        let mut stack: Vec<(&Self, usize)> = vec![(self, 0)];
+        while let Some((node, depth)) = stack.pop() {
+            if depth > MAX_PREDICATE_DEPTH {
+                return Err(PredicateParseError::NestingDepthExceeded {
+                    max_depth: MAX_PREDICATE_DEPTH,
+                });
+            }
+            match node {
+                Self::AllOf { children } | Self::AnyOf { children } => {
+                    for c in children {
+                        stack.push((c, depth + 1));
+                    }
+                }
+                Self::Not { child } => {
+                    stack.push((child, depth + 1));
+                }
+                Self::Leaf(_) => {}
+            }
+        }
+
+        // Phase 2: content validation via walk() (safe — depth already checked).
         let mut err: Option<PredicateParseError> = None;
         self.walk(&mut |p| {
             if err.is_some() {
@@ -172,6 +205,15 @@ impl Predicate {
                     err = Some(PredicateParseError::ZeroLeafComposition {
                         combinator: "any_of",
                     });
+                }
+                Self::Leaf(Leaf::Signers { required, .. }) if required.is_empty() => {
+                    err = Some(PredicateParseError::EmptySignersList);
+                }
+                Self::Leaf(Leaf::OraclesComplete { files }) if files.is_empty() => {
+                    err = Some(PredicateParseError::EmptyOraclesList);
+                }
+                Self::Leaf(Leaf::SignedTrailer { count, .. }) if *count == 0 => {
+                    err = Some(PredicateParseError::ZeroTrailerCount);
                 }
                 _ => {}
             }
@@ -309,6 +351,27 @@ pub enum PredicateParseError {
         /// Which combinator carried the empty child list.
         combinator: CombinatorName,
     },
+    /// A `signers(required = [])` leaf is a semantic no-op: it always passes
+    /// regardless of signer state, vacuously bypassing identity checks
+    /// (adversarial NFA-7). Rejected at the same layer as zero-leaf
+    /// compositions per R-A6.
+    EmptySignersList,
+    /// An `oracles_complete(files = [])` leaf is a semantic no-op: it always
+    /// passes (vacuous truth on an empty iterator), vacuously bypassing oracle
+    /// checks (adversarial NFA-8). Same class as `EmptySignersList`.
+    EmptyOraclesList,
+    /// A `signed_trailer(count = 0)` leaf always passes — "require zero
+    /// trailers" is vacuously true even with no trailers present (adversarial
+    /// NFA-9). Default count is 1; an explicit 0 bypasses the identity check.
+    ZeroTrailerCount,
+    /// Predicate tree nesting depth exceeds the allowed maximum (adversarial
+    /// NFA-11). Deep recursion in `walk()` can stack-overflow on pathologically
+    /// nested predicates deserialized from crafted sidecars. Rejected at
+    /// `validate()` time before the recursive walk reaches dangerous depth.
+    NestingDepthExceeded {
+        /// The maximum nesting depth allowed.
+        max_depth: usize,
+    },
 }
 
 impl std::fmt::Display for PredicateParseError {
@@ -319,6 +382,30 @@ impl std::fmt::Display for PredicateParseError {
                 "predicate combinator `{combinator}` has no children; \
                  zero-leaf compositions are rejected at parse time \
                  (ADR-019 refinement R-A6)"
+            ),
+            Self::EmptySignersList => write!(
+                f,
+                "signers leaf has an empty `required` list; \
+                 an empty-required signers leaf is a semantic no-op \
+                 that vacuously bypasses identity checks (ADR-019 R-A6)"
+            ),
+            Self::EmptyOraclesList => write!(
+                f,
+                "oracles_complete leaf has an empty `files` list; \
+                 an empty-files oracle leaf is a semantic no-op \
+                 that vacuously bypasses oracle checks (ADR-019 R-A6)"
+            ),
+            Self::ZeroTrailerCount => write!(
+                f,
+                "signed_trailer leaf has `count = 0`; \
+                 requiring zero trailers is vacuously true and bypasses \
+                 the trailer identity check (ADR-019 R-A6)"
+            ),
+            Self::NestingDepthExceeded { max_depth } => write!(
+                f,
+                "predicate nesting depth exceeds maximum of {max_depth}; \
+                 deep recursion in walk() can stack-overflow on crafted sidecars \
+                 (adversarial NFA-11)"
             ),
         }
     }
@@ -377,6 +464,37 @@ mod tests {
         ])
         .unwrap();
         assert_eq!(pred.leaf_count(), 3);
+    }
+
+    #[test]
+    fn validate_rejects_empty_signers_required_list_nfa7() {
+        // BUG REGRESSION TEST (adversarial NFA-7): `Signers { required: [] }`
+        // is a semantic no-op — it always passes regardless of signer state.
+        // This allows bypassing the signer check entirely via a vacuous leaf.
+        // The predicate grammar already rejects `all_of([])` and `any_of([])`
+        // for the same reason (R-A6); empty `required` must be rejected at the
+        // same layer.
+        //
+        // Constructing via JSON (deserialization bypasses any future constructor
+        // guard, so the validate() path is the canonical enforcement point).
+        //
+        // This test FAILS against the buggy code where validate() does not
+        // check for empty Signers.required.
+        // Construct via Rust (not JSON) to avoid serde tag-nesting complexity.
+        // The key invariant is that validate() catches the empty-required leaf
+        // regardless of how the predicate was built — construction or serde.
+        let pred = Predicate::leaf(Leaf::Signers {
+            required: vec![],
+            roles: std::collections::BTreeMap::new(),
+            against: SignerCurrency::Current,
+        });
+        let err = pred
+            .validate()
+            .expect_err("signers leaf with empty required list must be rejected by validate()");
+        assert!(
+            matches!(err, PredicateParseError::EmptySignersList),
+            "expected EmptySignersList, got {err:?}"
+        );
     }
 
     #[test]
@@ -442,6 +560,84 @@ mod tests {
         let json = serde_json::to_string(&pred).unwrap();
         let parsed: Predicate = serde_json::from_str(&json).unwrap();
         assert_eq!(pred, parsed);
+    }
+
+    #[test]
+    fn validate_rejects_excessive_nesting_depth_nfa11() {
+        // BUG REGRESSION TEST (adversarial NFA-11): `walk()` is recursive.
+        // A crafted sidecar with a pathologically nested predicate (thousands
+        // of `not(not(not(...)))` levels) would stack-overflow the audit
+        // process. validate() now runs an iterative depth check BEFORE the
+        // recursive walk() so deeply-nested predicates are rejected safely.
+        //
+        // Build a predicate at depth MAX_PREDICATE_DEPTH + 1 (one too deep).
+        let mut pred = Predicate::leaf(Leaf::FreshWithinDays { days: 1 });
+        for _ in 0..=MAX_PREDICATE_DEPTH {
+            pred = Predicate::not(pred);
+        }
+        // This is MAX_PREDICATE_DEPTH + 1 not-layers deep → must be rejected.
+        let err = pred
+            .validate()
+            .expect_err("predicate exceeding max depth must be rejected");
+        assert!(
+            matches!(
+                err,
+                PredicateParseError::NestingDepthExceeded {
+                    max_depth: MAX_PREDICATE_DEPTH
+                }
+            ),
+            "expected NestingDepthExceeded, got {err:?}"
+        );
+    }
+
+    #[test]
+    fn validate_accepts_predicate_at_max_depth() {
+        // A predicate at exactly MAX_PREDICATE_DEPTH nesting must be accepted.
+        let mut pred = Predicate::leaf(Leaf::FreshWithinDays { days: 1 });
+        for _ in 0..MAX_PREDICATE_DEPTH {
+            pred = Predicate::not(pred);
+        }
+        assert!(
+            pred.validate().is_ok(),
+            "predicate at exactly max depth must be accepted"
+        );
+    }
+
+    #[test]
+    fn validate_rejects_zero_trailer_count_nfa9() {
+        // BUG REGRESSION TEST (adversarial NFA-9): `SignedTrailer { count: 0 }`
+        // always passes — "require zero trailers" is vacuously true even with
+        // no trailers at all. Same class as NFA-7 (empty required) and NFA-8
+        // (empty files). The default is 1; an explicit 0 bypasses the check.
+        let pred = Predicate::leaf(Leaf::SignedTrailer {
+            key: "Discipline-Verified-By".to_string(),
+            role: None,
+            count: 0,
+        });
+        let err = pred
+            .validate()
+            .expect_err("signed_trailer with count=0 must be rejected by validate()");
+        assert!(
+            matches!(err, PredicateParseError::ZeroTrailerCount),
+            "expected ZeroTrailerCount, got {err:?}"
+        );
+    }
+
+    #[test]
+    fn validate_rejects_empty_oracles_files_list_nfa8() {
+        // BUG REGRESSION TEST (adversarial NFA-8): `OraclesComplete { files: [] }`
+        // is a semantic no-op — it always passes (vacuous truth on empty iterator).
+        // This is the same class as NFA-7 (empty Signers.required). An author
+        // who writes `oracles_complete([])` has checked zero oracles but the
+        // audit reports full oracle satisfaction.
+        let pred = Predicate::leaf(Leaf::OraclesComplete { files: vec![] });
+        let err = pred.validate().expect_err(
+            "oracles_complete leaf with empty files list must be rejected by validate()",
+        );
+        assert!(
+            matches!(err, PredicateParseError::EmptyOraclesList),
+            "expected EmptyOraclesList, got {err:?}"
+        );
     }
 
     #[test]

@@ -34,7 +34,7 @@ use std::path::Path;
 use chrono::NaiveDate;
 
 use crate::predicate::{Leaf, Predicate, SignerCurrency};
-use crate::schema::{ItemRatification, Signer};
+use crate::schema::{ItemRatification, RatificationKind, Signer};
 use crate::tier::{AuditHint, EvidenceKind, SignatureStrength, WitnessTier};
 
 /// The IO + clock surface the evaluator depends on. Implementations
@@ -174,6 +174,33 @@ pub fn evaluate_predicate<C: EvaluationContext>(
     item_source_file: &Path,
     ctx: &C,
 ) -> Result<EvaluatedPredicate, EvaluationError> {
+    evaluate_predicate_with_kind(
+        predicate,
+        item,
+        current_fingerprint,
+        item_source_file,
+        RatificationKind::Immunity,
+        ctx,
+    )
+}
+
+/// Kind-aware variant of [`evaluate_predicate`].
+///
+/// Pass the sidecar's `RatificationKind` so tolerance sidecars emit
+/// tolerance-specific audit hints (`TolerancePredicatePassedSubstrateCurrent`,
+/// `TolerancePredicateFailed`) instead of the immunity equivalents.
+///
+/// # Errors
+///
+/// Currently never returns Err (see [`evaluate_predicate`]).
+pub fn evaluate_predicate_with_kind<C: EvaluationContext>(
+    predicate: &Predicate,
+    item: &ItemRatification,
+    current_fingerprint: &str,
+    item_source_file: &Path,
+    kind: RatificationKind,
+    ctx: &C,
+) -> Result<EvaluatedPredicate, EvaluationError> {
     // 1. Validate the predicate is well-formed (no zero-leaf compositions
     //    snuck through deserialization).
     if predicate.validate().is_err() {
@@ -187,9 +214,13 @@ pub fn evaluate_predicate<C: EvaluationContext>(
     let predicate_passed = eval_pred(predicate, item, current_fingerprint, item_source_file, ctx);
 
     if !predicate_passed {
+        let failed_hint = match kind {
+            RatificationKind::Tolerance => AuditHint::TolerancePredicateFailed,
+            RatificationKind::Immunity => AuditHint::DisciplinePredicateFailed,
+        };
         return Ok(EvaluatedPredicate {
             witness_tier: WitnessTier::None,
-            audit_hint: AuditHint::DisciplinePredicateFailed,
+            audit_hint: failed_hint,
             evidence_kind: EvidenceKind::SubstrateState,
             signature_strength: None,
         });
@@ -197,8 +228,13 @@ pub fn evaluate_predicate<C: EvaluationContext>(
 
     // 3. Predicate passed. Derive tier + hint from the sidecar's signer
     //    state: stale signers; delta-chain-near-cap; via-delta-chain;
-    //    all-fresh. The state machine is the M5 table for immunity.
-    Ok(classify_passed_predicate(item, current_fingerprint, ctx))
+    //    all-fresh. The M5 table differs between immunity and tolerance.
+    Ok(classify_passed_predicate(
+        item,
+        current_fingerprint,
+        kind,
+        ctx,
+    ))
 }
 
 /// Recursive predicate evaluation. Returns `true` if the predicate
@@ -417,22 +453,29 @@ fn eval_fresh_within_days<C: EvaluationContext>(
 }
 
 /// Given a predicate that passed, classify the sidecar signer state
-/// into the audit hint per ADR-019 §M5 (immunity table).
+/// into the audit hint per ADR-019 §M5 (immunity or tolerance table).
 fn classify_passed_predicate<C: EvaluationContext>(
     item: &ItemRatification,
     current_fingerprint: &str,
+    kind: RatificationKind,
     ctx: &C,
 ) -> EvaluatedPredicate {
+    let passed_hint = match kind {
+        RatificationKind::Tolerance => AuditHint::TolerancePredicatePassedSubstrateCurrent,
+        RatificationKind::Immunity => AuditHint::DisciplinePredicatePassedSubstrateCurrent,
+    };
     // No signers at all = predicate passed via non-signer leaves only
     // (e.g., `ratified_doc + oracles_complete + fresh_within_days` with
     // no `signers` leaf). The result is Execution-tier substrate-current
-    // because all checked leaves passed.
+    // because all checked leaves passed, but there is NO git-trust identity
+    // binding — no signer exists to bind identity to, so signature_strength
+    // must be None, not Some(GitTrust).
     if item.signers.is_empty() {
         return EvaluatedPredicate {
             witness_tier: WitnessTier::Execution,
-            audit_hint: AuditHint::DisciplinePredicatePassedSubstrateCurrent,
+            audit_hint: passed_hint,
             evidence_kind: EvidenceKind::SubstrateState,
-            signature_strength: Some(SignatureStrength::GitTrust),
+            signature_strength: None,
         };
     }
 
@@ -483,7 +526,7 @@ fn classify_passed_predicate<C: EvaluationContext>(
     // All signers current and all Fresh — strongest v0.1 state.
     EvaluatedPredicate {
         witness_tier: WitnessTier::Execution,
-        audit_hint: AuditHint::DisciplinePredicatePassedSubstrateCurrent,
+        audit_hint: passed_hint,
         evidence_kind: EvidenceKind::SubstrateState,
         signature_strength: Some(SignatureStrength::GitTrust),
     }
@@ -494,12 +537,23 @@ fn classify_passed_predicate<C: EvaluationContext>(
 /// Parse `version: X.Y.Z` from the leading YAML frontmatter of a doc.
 /// Returns None if no frontmatter, no version field, or non-string value.
 fn parse_frontmatter_version(content: &str) -> Option<String> {
-    let stripped = content.strip_prefix("---\n")?;
+    parse_frontmatter_field(content, "version:")
+}
+
+/// Parse a named field from YAML frontmatter, tolerating both LF and CRLF.
+fn parse_frontmatter_field(content: &str, field_prefix: &str) -> Option<String> {
+    // Normalize CRLF → LF so Windows-authored files are not silently rejected.
+    let normalized: std::borrow::Cow<str> = if content.contains('\r') {
+        std::borrow::Cow::Owned(content.replace("\r\n", "\n").replace('\r', "\n"))
+    } else {
+        std::borrow::Cow::Borrowed(content)
+    };
+    let stripped = normalized.strip_prefix("---\n")?;
     let end = stripped.find("\n---\n")?;
     let frontmatter = &stripped[..end];
     for line in frontmatter.lines() {
         let line = line.trim();
-        if let Some(rest) = line.strip_prefix("version:") {
+        if let Some(rest) = line.strip_prefix(field_prefix) {
             return Some(rest.trim().trim_matches('"').trim_matches('\'').to_string());
         }
     }
@@ -508,16 +562,7 @@ fn parse_frontmatter_version(content: &str) -> Option<String> {
 
 /// Parse `status: <value>` from an oracle file's YAML frontmatter.
 fn parse_oracle_status(content: &str) -> Option<String> {
-    let stripped = content.strip_prefix("---\n")?;
-    let end = stripped.find("\n---\n")?;
-    let frontmatter = &stripped[..end];
-    for line in frontmatter.lines() {
-        let line = line.trim();
-        if let Some(rest) = line.strip_prefix("status:") {
-            return Some(rest.trim().trim_matches('"').trim_matches('\'').to_string());
-        }
-    }
-    None
+    parse_frontmatter_field(content, "status:")
 }
 
 /// Lexicographic comparison of semver-shaped version strings. Splits on
@@ -1042,5 +1087,58 @@ mod tests {
                 extensions: BTreeMap::new(),
             }],
         };
+    }
+
+    #[test]
+    fn oracle_crlf_line_endings_not_silently_rejected_nfa6() {
+        // BUG REGRESSION TEST (adversarial NFA-6): oracle files authored on
+        // Windows use CRLF (\r\n) line endings. `parse_oracle_status` uses
+        // `strip_prefix("---\n")` which fails on `---\r\n`, causing the oracle
+        // to be treated as missing/incomplete even when status IS "complete".
+        //
+        // This is a SILENT FAILURE — the predicate reports "failed" with no
+        // indication that CRLF normalization is the cause. Indistinguishable
+        // from a genuinely incomplete oracle at the audit layer.
+        //
+        // This test FAILS against the buggy code.
+        let item = item_with(vec![]);
+        let pred = Predicate::leaf(Leaf::OraclesComplete {
+            files: vec![PathBuf::from("docs/oracles/o.md")],
+        });
+        // Oracle content with CRLF line endings (as written on Windows).
+        let crlf_oracle = "---\r\nstatus: complete\r\n---\r\nbody";
+        let ctx = TestContext::new(sample_date()).with_oracle("docs/oracles/o.md", crlf_oracle);
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+        // An oracle with status: complete (even CRLF-encoded) must pass the leaf.
+        assert_eq!(
+            r.witness_tier,
+            WitnessTier::Execution,
+            "CRLF-encoded oracle with status: complete must not be silently rejected"
+        );
+    }
+
+    #[test]
+    fn doc_crlf_line_endings_not_silently_rejected_nfa6b() {
+        // Same CRLF silent failure in parse_frontmatter_version — a doc with
+        // CRLF line endings has its version silently dropped, causing
+        // RatifiedDoc to fail even when the version IS sufficient.
+        let item = item_with(vec![]);
+        let pred = Predicate::leaf(Leaf::RatifiedDoc {
+            path: Some(PathBuf::from("docs/sinh.md")),
+            min_version: Some("1.0".to_string()),
+            anchor: None,
+            sibling_json: false,
+        });
+        // Doc with CRLF — version: 2.0 is present but CRLF breaks parsing.
+        let crlf_doc = "---\r\nversion: 2.0\r\n---\r\n# Sinh discipline\r\nbody";
+        let ctx = TestContext::new(sample_date()).with_doc("docs/sinh.md", crlf_doc);
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+        assert_eq!(
+            r.witness_tier,
+            WitnessTier::Execution,
+            "CRLF-encoded doc with version: 2.0 must not be silently rejected"
+        );
     }
 }
