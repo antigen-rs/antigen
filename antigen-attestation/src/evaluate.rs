@@ -730,7 +730,7 @@ mod tests {
                 prior_fingerprint: "fp-prior".to_string(),
                 cumulative_root_fingerprint: "fp-root".to_string(),
                 chain_depth: 2, // cap=3 → 2 is cap-1; near-cap fires
-                rationale: "reviewed diff".to_string(),
+                rationale: "reviewed diff against prior; invariant-preserving".to_string(),
             },
             signature: None,
         };
@@ -761,7 +761,7 @@ mod tests {
                 prior_fingerprint: "fp-prior".to_string(),
                 cumulative_root_fingerprint: "fp-root".to_string(),
                 chain_depth: 1,
-                rationale: "reviewed diff".to_string(),
+                rationale: "reviewed diff against prior; invariant-preserving".to_string(),
             },
             signature: None,
         };
