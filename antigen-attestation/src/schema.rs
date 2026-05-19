@@ -319,6 +319,34 @@ pub enum ValidationError {
         /// The offending signer's name.
         signer_name: String,
     },
+    /// A `SignerBasis::DeltaFrom` carried a `rationale` shorter than the
+    /// configured minimum (default 20 chars). Per adversarial T2R-B:
+    /// non-empty alone permits rubber-stamp rationales — minimum-length
+    /// enforcement keeps the field carrying actual signal.
+    RationaleTooShort {
+        /// Item path the offending signer is recorded under.
+        item_path: String,
+        /// The offending signer's name.
+        signer_name: String,
+        /// Observed rationale character count.
+        actual_chars: usize,
+        /// Configured minimum.
+        min_chars: usize,
+    },
+    /// A workspace-configured value for an antigen-attestation knob is
+    /// out of the project-enforced hard-floor bounds. Per adversarial
+    /// T2R-C: workspaces can tighten anti-laundering caps but cannot
+    /// loosen them beyond a hardcoded floor.
+    WorkspaceConfigOutOfBounds {
+        /// Which config key violates the floor (e.g., `"delta_chain_cap"`).
+        key: &'static str,
+        /// The offending value.
+        value: u64,
+        /// Hard minimum permitted.
+        min: u64,
+        /// Hard maximum permitted (or `u64::MAX` if unbounded above).
+        max: u64,
+    },
 }
 
 impl std::fmt::Display for ValidationError {
@@ -353,6 +381,39 @@ impl std::fmt::Display for ValidationError {
                  with chain_depth = 0; chain_depth must be >= 1 for delta entries \
                  (chain_depth = 0 is reserved for Fresh basis)"
             ),
+            Self::RationaleTooShort {
+                item_path,
+                signer_name,
+                actual_chars,
+                min_chars,
+            } => write!(
+                f,
+                "signer `{signer_name}` at `{item_path}` has SignerBasis::DeltaFrom \
+                 with rationale of {actual_chars} chars; minimum is {min_chars} \
+                 (ADR-019 anti-laundering safeguard #3 — prevents rubber-stamp \
+                 rationales like 'ok' / 'fine' / 'reviewed')"
+            ),
+            Self::WorkspaceConfigOutOfBounds {
+                key,
+                value,
+                min,
+                max,
+            } if *max == u64::MAX => write!(
+                f,
+                "workspace config `{key} = {value}` violates hard floor: must be >= {min} \
+                 (ADR-019 anti-laundering safeguard — workspaces cannot loosen below floor)"
+            ),
+            Self::WorkspaceConfigOutOfBounds {
+                key,
+                value,
+                min,
+                max,
+            } => write!(
+                f,
+                "workspace config `{key} = {value}` out of bounds [{min}, {max}] \
+                 (ADR-019 anti-laundering safeguard — workspaces cannot exceed \
+                 project-enforced hard floor)"
+            ),
         }
     }
 }
@@ -363,11 +424,77 @@ impl std::error::Error for ValidationError {}
 /// `[package.metadata.antigen.attestation]` `delta_chain_cap`).
 pub const DEFAULT_DELTA_CHAIN_CAP: u32 = 3;
 
+/// Hard floor on chain-depth cap, NOT workspace-configurable.
+///
+/// Per adversarial T2R-C: workspaces can TIGHTEN the cap (set it lower than
+/// the default) but cannot LOOSEN it beyond this floor. The CLI refuses
+/// `[package.metadata.antigen.attestation] delta_chain_cap = N` when N > this
+/// constant. Without a hard floor, a workspace TOML edit defeats the entire
+/// anti-laundering safeguard.
+pub const HARD_DELTA_CHAIN_CAP_MAX: u32 = 10;
+
+/// Minimum hard floor on chain-depth cap. Workspaces cannot set the cap to
+/// 0 (which would disable delta-chain enforcement entirely — per T2R-C the
+/// CLI must refuse this).
+pub const HARD_DELTA_CHAIN_CAP_MIN: u32 = 1;
+
+/// Default minimum character count for `SignerBasis::DeltaFrom::rationale`.
+///
+/// Per adversarial T2R-B: non-empty alone permits rubber-stamp rationales
+/// like `"ok"`, `"fine"`, `"reviewed"`. Schema enforces a minimum length so
+/// the rationale carries actual signal. Workspaces can TIGHTEN via
+/// `[package.metadata.antigen.attestation] delta_rationale_min_chars = N`
+/// (subject to the hard floor below).
+pub const DEFAULT_DELTA_RATIONALE_MIN_CHARS: usize = 20;
+
+/// Minimum hard floor on rationale-length minimum. Workspaces cannot set
+/// `delta_rationale_min_chars` below this; CLI refuses lower values.
+pub const HARD_DELTA_RATIONALE_MIN_CHARS_FLOOR: usize = 10;
+
+/// Validate that a workspace-configured `delta_chain_cap` value is within
+/// the hard-floor bounds. Used by `cargo antigen` config-loading + by tests.
+///
+/// # Errors
+///
+/// Returns [`ValidationError::WorkspaceConfigOutOfBounds`] when the value
+/// is below the minimum or above the maximum hard-floor bound.
+pub fn validate_chain_cap(value: u32) -> Result<(), ValidationError> {
+    if !(HARD_DELTA_CHAIN_CAP_MIN..=HARD_DELTA_CHAIN_CAP_MAX).contains(&value) {
+        return Err(ValidationError::WorkspaceConfigOutOfBounds {
+            key: "delta_chain_cap",
+            value: u64::from(value),
+            min: u64::from(HARD_DELTA_CHAIN_CAP_MIN),
+            max: u64::from(HARD_DELTA_CHAIN_CAP_MAX),
+        });
+    }
+    Ok(())
+}
+
+/// Validate that a workspace-configured `delta_rationale_min_chars` value is
+/// within the hard-floor bounds.
+///
+/// # Errors
+///
+/// Returns [`ValidationError::WorkspaceConfigOutOfBounds`] when the value
+/// is below the hard floor.
+pub const fn validate_rationale_min_chars(value: usize) -> Result<(), ValidationError> {
+    if value < HARD_DELTA_RATIONALE_MIN_CHARS_FLOOR {
+        return Err(ValidationError::WorkspaceConfigOutOfBounds {
+            key: "delta_rationale_min_chars",
+            value: value as u64,
+            min: HARD_DELTA_RATIONALE_MIN_CHARS_FLOOR as u64,
+            max: u64::MAX,
+        });
+    }
+    Ok(())
+}
+
 impl Ratification {
     /// Validate semantic invariants beyond what serde catches.
     ///
     /// Currently checks:
     /// - non-empty rationale on every `SignerBasis::DeltaFrom`
+    /// - rationale length >= `rationale_min_chars` (default 20; T2R-B)
     /// - `chain_depth >= 1` on every `SignerBasis::DeltaFrom`
     /// - `chain_depth <= cap` on every `SignerBasis::DeltaFrom`
     ///
@@ -380,7 +507,7 @@ impl Ratification {
     /// # Errors
     ///
     /// Returns the first [`ValidationError`] encountered.
-    pub fn validate(&self, cap: u32) -> Result<(), ValidationError> {
+    pub fn validate(&self, cap: u32, rationale_min_chars: usize) -> Result<(), ValidationError> {
         for item in &self.items {
             for signer in &item.signers {
                 if let SignerBasis::DeltaFrom {
@@ -389,24 +516,37 @@ impl Ratification {
                     ..
                 } = &signer.basis
                 {
-                    if rationale.trim().is_empty() {
-                        return Err(ValidationError::EmptyDeltaRationale {
-                            item_path: item.item_path.clone(),
-                            signer_name: signer.name.clone(),
-                        });
-                    }
+                    // Structural invariants first (chain_depth = 0 is impossible
+                    // for DeltaFrom; Fresh uses chain_depth = 0 via is_fresh()).
                     if *chain_depth == 0 {
                         return Err(ValidationError::ZeroDeltaChainDepth {
                             item_path: item.item_path.clone(),
                             signer_name: signer.name.clone(),
                         });
                     }
+                    // Enforcement ratchet second (cap exceeded → must re-attest Fresh).
                     if *chain_depth > cap {
                         return Err(ValidationError::ChainDepthExceeded {
                             item_path: item.item_path.clone(),
                             signer_name: signer.name.clone(),
                             chain_depth: *chain_depth,
                             cap,
+                        });
+                    }
+                    // Quality gates last (rationale content checks).
+                    let trimmed = rationale.trim();
+                    if trimmed.is_empty() {
+                        return Err(ValidationError::EmptyDeltaRationale {
+                            item_path: item.item_path.clone(),
+                            signer_name: signer.name.clone(),
+                        });
+                    }
+                    if trimmed.chars().count() < rationale_min_chars {
+                        return Err(ValidationError::RationaleTooShort {
+                            item_path: item.item_path.clone(),
+                            signer_name: signer.name.clone(),
+                            actual_chars: trimmed.chars().count(),
+                            min_chars: rationale_min_chars,
                         });
                     }
                 }
@@ -477,7 +617,9 @@ mod tests {
         let date = NaiveDate::from_ymd_opt(2026, 5, 19).unwrap();
         let item = item_with_signers("test_item", vec![signer_fresh("alice", date, "fp-current")]);
         let rat = ratification_with_items(vec![item]);
-        assert!(rat.validate(DEFAULT_DELTA_CHAIN_CAP).is_ok());
+        assert!(rat
+            .validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS)
+            .is_ok());
     }
 
     #[test]
@@ -485,7 +627,9 @@ mod tests {
         let date = NaiveDate::from_ymd_opt(2026, 5, 19).unwrap();
         let item = item_with_signers("test_item", vec![signer_delta("alice", date, 1, "")]);
         let rat = ratification_with_items(vec![item]);
-        let err = rat.validate(DEFAULT_DELTA_CHAIN_CAP).unwrap_err();
+        let err = rat
+            .validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS)
+            .unwrap_err();
         assert!(matches!(err, ValidationError::EmptyDeltaRationale { .. }));
     }
 
@@ -497,19 +641,28 @@ mod tests {
             vec![signer_delta("alice", date, 1, "   \t\n  ")],
         );
         let rat = ratification_with_items(vec![item]);
-        let err = rat.validate(DEFAULT_DELTA_CHAIN_CAP).unwrap_err();
+        let err = rat
+            .validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS)
+            .unwrap_err();
         assert!(matches!(err, ValidationError::EmptyDeltaRationale { .. }));
     }
+
+    /// Test-fixture rationale text >= `DEFAULT_DELTA_RATIONALE_MIN_CHARS` so
+    /// the rationale-too-short rule (T2R-B) doesn't fire in tests that
+    /// aren't exercising it specifically.
+    const VALID_DELTA_RATIONALE: &str = "reviewed diff against prior; invariant-preserving change";
 
     #[test]
     fn delta_with_zero_chain_depth_rejected() {
         let date = NaiveDate::from_ymd_opt(2026, 5, 19).unwrap();
         let item = item_with_signers(
             "test_item",
-            vec![signer_delta("alice", date, 0, "valid rationale")],
+            vec![signer_delta("alice", date, 0, VALID_DELTA_RATIONALE)],
         );
         let rat = ratification_with_items(vec![item]);
-        let err = rat.validate(DEFAULT_DELTA_CHAIN_CAP).unwrap_err();
+        let err = rat
+            .validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS)
+            .unwrap_err();
         assert!(matches!(err, ValidationError::ZeroDeltaChainDepth { .. }));
     }
 
@@ -518,10 +671,12 @@ mod tests {
         let date = NaiveDate::from_ymd_opt(2026, 5, 19).unwrap();
         let item = item_with_signers(
             "test_item",
-            vec![signer_delta("alice", date, 4, "valid rationale")],
+            vec![signer_delta("alice", date, 4, VALID_DELTA_RATIONALE)],
         );
         let rat = ratification_with_items(vec![item]);
-        let err = rat.validate(DEFAULT_DELTA_CHAIN_CAP).unwrap_err();
+        let err = rat
+            .validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS)
+            .unwrap_err();
         let ValidationError::ChainDepthExceeded {
             chain_depth, cap, ..
         } = err
@@ -537,10 +692,87 @@ mod tests {
         let date = NaiveDate::from_ymd_opt(2026, 5, 19).unwrap();
         let item = item_with_signers(
             "test_item",
-            vec![signer_delta("alice", date, 3, "valid rationale")],
+            vec![signer_delta("alice", date, 3, VALID_DELTA_RATIONALE)],
         );
         let rat = ratification_with_items(vec![item]);
-        assert!(rat.validate(DEFAULT_DELTA_CHAIN_CAP).is_ok());
+        assert!(rat
+            .validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS)
+            .is_ok());
+    }
+
+    #[test]
+    fn delta_with_rubber_stamp_rationale_rejected_t2r_b() {
+        // Per adversarial T2R-B: "ok", "fine", "reviewed" all pass non-empty
+        // but the minimum-length floor catches them.
+        let date = NaiveDate::from_ymd_opt(2026, 5, 19).unwrap();
+        for rubber_stamp in &["ok", "fine", "reviewed", "changes are safe"] {
+            let item = item_with_signers(
+                "test_item",
+                vec![signer_delta("alice", date, 1, rubber_stamp)],
+            );
+            let rat = ratification_with_items(vec![item]);
+            let err = rat
+                .validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS)
+                .unwrap_err();
+            let ValidationError::RationaleTooShort {
+                actual_chars,
+                min_chars,
+                ..
+            } = err
+            else {
+                panic!("expected RationaleTooShort for `{rubber_stamp}`");
+            };
+            assert_eq!(min_chars, DEFAULT_DELTA_RATIONALE_MIN_CHARS);
+            assert!(actual_chars < DEFAULT_DELTA_RATIONALE_MIN_CHARS);
+        }
+    }
+
+    #[test]
+    fn validate_chain_cap_rejects_below_floor_t2r_c() {
+        let err = validate_chain_cap(0).unwrap_err();
+        assert!(matches!(
+            err,
+            ValidationError::WorkspaceConfigOutOfBounds {
+                key: "delta_chain_cap",
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn validate_chain_cap_rejects_above_floor_t2r_c() {
+        let err = validate_chain_cap(999).unwrap_err();
+        let ValidationError::WorkspaceConfigOutOfBounds { value, max, .. } = err else {
+            panic!("expected WorkspaceConfigOutOfBounds");
+        };
+        assert_eq!(value, 999);
+        assert_eq!(max, u64::from(HARD_DELTA_CHAIN_CAP_MAX));
+    }
+
+    #[test]
+    fn validate_chain_cap_accepts_within_bounds() {
+        assert!(validate_chain_cap(1).is_ok());
+        assert!(validate_chain_cap(DEFAULT_DELTA_CHAIN_CAP).is_ok());
+        assert!(validate_chain_cap(HARD_DELTA_CHAIN_CAP_MAX).is_ok());
+    }
+
+    #[test]
+    fn validate_rationale_min_chars_rejects_below_floor() {
+        let err = validate_rationale_min_chars(5).unwrap_err();
+        assert!(matches!(
+            err,
+            ValidationError::WorkspaceConfigOutOfBounds {
+                key: "delta_rationale_min_chars",
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn validate_rationale_min_chars_accepts_floor_and_above() {
+        assert!(validate_rationale_min_chars(HARD_DELTA_RATIONALE_MIN_CHARS_FLOOR).is_ok());
+        assert!(validate_rationale_min_chars(DEFAULT_DELTA_RATIONALE_MIN_CHARS).is_ok());
+        assert!(validate_rationale_min_chars(100).is_ok());
     }
 
     #[test]
@@ -550,7 +782,7 @@ mod tests {
             "test_item",
             vec![
                 signer_fresh("alice", date, "fp-current"),
-                signer_delta("bob", date, 2, "reviewed diff"),
+                signer_delta("bob", date, 2, VALID_DELTA_RATIONALE),
             ],
         );
         let rat = ratification_with_items(vec![item]);

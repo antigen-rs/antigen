@@ -173,6 +173,31 @@ pub enum SubstrateAuditHint {
     /// Tolerance sidecar exists, predicate passes, all signers current
     /// and Fresh. The strongest tolerance-attestation state in v0.1.
     TolerancePredicatePassedSubstrateCurrent,
+
+    // --- Kind-mismatch hints (per adversarial TOL-A / TOL-B) ---
+    /// `#[immune(X, requires = ...)]` site, sidecar exists with
+    /// `kind = Tolerance` instead of expected `Immunity`. Common cause:
+    /// site switched from `#[antigen_tolerance]` to `#[immune]` but the
+    /// sidecar wasn't regenerated. Audit reports `WitnessTier::None` —
+    /// the sidecar IS schema-valid but the kind doesn't match the
+    /// declaration; this is a semantic error distinct from `schema-invalid`.
+    DisciplineSidecarKindMismatchExpectedImmunityGotTolerance,
+    /// `#[antigen_tolerance(X, sidecar = true, requires = ...)]` site,
+    /// sidecar exists with `kind = Immunity` instead of expected
+    /// `Tolerance`. Symmetric to the immunity-side kind mismatch above.
+    ToleranceSidecarKindMismatchExpectedToleranceGotImmunity,
+
+    // --- Compound-claim contradiction (per adversarial T4-A) ---
+    /// Site declares BOTH `#[immune(X, ...)]` and
+    /// `#[antigen_tolerance(X, sidecar = true, ...)]` for the same antigen.
+    /// This is logically incoherent — a site cannot simultaneously be
+    /// immune (compliant) and tolerating (non-compliant). Audit emits
+    /// this hint at `WitnessTier::None` and the contradiction overrides
+    /// the individual tier reports. The proc-macro should ideally
+    /// reject this at compile time (TOL-C); the audit hint catches the
+    /// case where compile-time guard is bypassed or sidecars are
+    /// out-of-sync with declarations.
+    DisciplineImmunityToleranceContradiction,
 }
 
 /// Alias: the canonical [`AuditHint`] for `antigen-attestation` is
