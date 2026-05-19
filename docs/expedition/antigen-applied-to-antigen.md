@@ -220,6 +220,27 @@ Heartbleed, Log4Shell). Fingerprint: a codebase has a discipline-review claim
 backing the claim. This is the foundation-antigen for the discipline-witnesses
 feature area — the failure class discipline-witnesses exist to address.
 
+**Biological precedent** (naturalist-verified, 2026-05-19):
+`attestation-void-discipline-claim` parallels the clinical-infrastructure
+failure mode of vaccine attestation without titer verification. Self-reported
+vaccination claims accepted by schools/employers without antibody titer
+measurement IS the clinical analog — same failure shape (claim-without-backing-
+substrate), same cure structure (require substrate verification). The discipline-
+witnesses primitive is the antigen-side instantiation of what serological
+surveillance does for clinical records.
+
+**Biology-predicted scope**: naturalist's F3 scope-biology capture maps
+failure-class scope to biological scope hierarchy (site ↔ cellular; file ↔
+sub-tissue; crate ↔ organ-system; workspace ↔ systemic). The biology goes
+silent at the cellular layer for self-cataloguing of validation gaps — there
+is no cellular mechanism for "the body keeps track of what it hasn't been
+exposed to." Speech at clinical-infrastructure layer + silence at cellular
+layer predicts `AttestationVoidDisciplineClaim` naturally lives at coarser-
+than-site scope (workspace or crate level). If the Phase 6+ stdlib-seed
+proposal ends up naturally per-site, the biology rhyme breaks and the design
+should be re-examined. See capture:
+`docs/expedition/captures/discipline-witnesses-naturalist-self-recognition-biology-2026-05-19.md`
+
 ---
 
 ### Tiered summary

@@ -333,6 +333,23 @@ pub enum ValidationError {
         /// Configured minimum.
         min_chars: usize,
     },
+    /// A `SignerBasis::DeltaFrom` at `chain_depth=1` carries a
+    /// `cumulative_root_fingerprint` that differs from its `prior_fingerprint`.
+    /// At depth 1 these must be identical: the cumulative root IS the prior
+    /// (the last Fresh signature before this delta). A discrepancy means the
+    /// sidecar anchors cumulative-diff tracking (anti-laundering safeguard #2)
+    /// at a fingerprint that does not exist in this chain — indicating a
+    /// construction error or tamper.
+    InconsistentCumulativeRoot {
+        /// Item path the offending signer is recorded under.
+        item_path: String,
+        /// The offending signer's name.
+        signer_name: String,
+        /// The `prior_fingerprint` declared by this signer.
+        prior_fingerprint: String,
+        /// The `cumulative_root_fingerprint` that does not match `prior_fingerprint`.
+        cumulative_root_fingerprint: String,
+    },
     /// A workspace-configured value for an antigen-attestation knob is
     /// out of the project-enforced hard-floor bounds. Per adversarial
     /// T2R-C: workspaces can tighten anti-laundering caps but cannot
@@ -392,6 +409,18 @@ impl std::fmt::Display for ValidationError {
                  with rationale of {actual_chars} chars; minimum is {min_chars} \
                  (ADR-019 anti-laundering safeguard #3 — prevents rubber-stamp \
                  rationales like 'ok' / 'fine' / 'reviewed')"
+            ),
+            Self::InconsistentCumulativeRoot {
+                item_path,
+                signer_name,
+                prior_fingerprint,
+                cumulative_root_fingerprint,
+            } => write!(
+                f,
+                "signer `{signer_name}` at `{item_path}` has SignerBasis::DeltaFrom \
+                 chain_depth=1 where cumulative_root_fingerprint `{cumulative_root_fingerprint}` \
+                 != prior_fingerprint `{prior_fingerprint}`; at depth 1 these must be identical \
+                 (ADR-019 anti-laundering safeguard #2 — cumulative root must be the prior Fresh)"
             ),
             Self::WorkspaceConfigOutOfBounds {
                 key,
@@ -513,7 +542,8 @@ impl Ratification {
                 if let SignerBasis::DeltaFrom {
                     chain_depth,
                     rationale,
-                    ..
+                    prior_fingerprint,
+                    cumulative_root_fingerprint,
                 } = &signer.basis
                 {
                     // Structural invariants first (chain_depth = 0 is impossible
@@ -531,6 +561,19 @@ impl Ratification {
                             signer_name: signer.name.clone(),
                             chain_depth: *chain_depth,
                             cap,
+                        });
+                    }
+                    // Anti-laundering safeguard #2 consistency (NFA-12): at depth=1
+                    // the cumulative root IS the prior (the immediately preceding
+                    // Fresh signature). A discrepancy means the sidecar anchors its
+                    // cumulative-diff tracking to a fingerprint that doesn't exist in
+                    // this chain — a construction error or tamper indicator.
+                    if *chain_depth == 1 && cumulative_root_fingerprint != prior_fingerprint {
+                        return Err(ValidationError::InconsistentCumulativeRoot {
+                            item_path: item.item_path.clone(),
+                            signer_name: signer.name.clone(),
+                            prior_fingerprint: prior_fingerprint.clone(),
+                            cumulative_root_fingerprint: cumulative_root_fingerprint.clone(),
                         });
                     }
                     // Quality gates last (rationale content checks).
@@ -572,14 +615,23 @@ mod tests {
     }
 
     fn signer_delta(name: &str, date: NaiveDate, depth: u32, rationale: &str) -> Signer {
+        // For depth=1, cumulative_root_fingerprint must equal prior_fingerprint
+        // (NFA-12 invariant: at chain_depth=1 the root IS the prior).
+        // For depth>1 the root differs from the immediate prior; use a distinct fixture value.
+        let prior = "fp-prior".to_string();
+        let cumulative_root = if depth == 1 {
+            prior.clone()
+        } else {
+            "fp-root".to_string()
+        };
         Signer {
             name: name.to_string(),
             role: None,
             date,
             signed_against_fingerprint: "fp-current".to_string(),
             basis: SignerBasis::DeltaFrom {
-                prior_fingerprint: "fp-prior".to_string(),
-                cumulative_root_fingerprint: "fp-root".to_string(),
+                prior_fingerprint: prior,
+                cumulative_root_fingerprint: cumulative_root,
                 chain_depth: depth,
                 rationale: rationale.to_string(),
             },

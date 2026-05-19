@@ -212,7 +212,8 @@ fn delta_with_rubber_stamp_rationale_caught_post_deserialization_t2r_b() {
             signed_against_fingerprint: "fp-current".to_string(),
             basis: SignerBasis::DeltaFrom {
                 prior_fingerprint: "fp-prior".to_string(),
-                cumulative_root_fingerprint: "fp-root".to_string(),
+                // chain_depth=1 → cumulative_root must equal prior (NFA-12 invariant)
+                cumulative_root_fingerprint: "fp-prior".to_string(),
                 chain_depth: 1,
                 rationale: "ok".to_string(), // rubber-stamp; should be rejected
             },
@@ -422,5 +423,79 @@ fn signerless_predicate_reports_no_signature_strength() {
     assert_eq!(
         result.signature_strength, None,
         "signerless predicate must not claim GitTrust — no signer exists to bind identity"
+    );
+}
+
+#[test]
+fn delta_chain_depth1_inconsistent_cumulative_root_rejected_nfa12() {
+    // BUG REGRESSION TEST (adversarial NFA-12): `SignerBasis::DeltaFrom` carries
+    // `cumulative_root_fingerprint` documented as "Anti-laundering safeguard #2"
+    // (schema.rs §DeltaFrom). For chain_depth=1, `cumulative_root_fingerprint`
+    // MUST equal `prior_fingerprint` — they refer to the same event (the last
+    // Fresh signature IS the prior signature at depth 1). If they differ, the
+    // sidecar is internally inconsistent: the field that's supposed to anchor
+    // cumulative-diff tracking points at a different location than the chain root.
+    //
+    // CURRENT STATE: `Ratification::validate()` destructures `DeltaFrom` with `..`,
+    // ignoring both `prior_fingerprint` and `cumulative_root_fingerprint`. The
+    // evaluator never reads `cumulative_root_fingerprint` either. A sidecar with
+    // a completely fabricated `cumulative_root_fingerprint` passes validation,
+    // serializes, re-parses, and evaluates to `DisciplinePredicatePassedViaDeltaChain`
+    // with `SignatureStrength::GitTrust` — silently reporting a plausible-but-wrong
+    // anti-laundering state because safeguard #2 was never checked.
+    //
+    // FIX DIRECTION: `Ratification::validate()` should check that for chain_depth=1
+    // signers, `cumulative_root_fingerprint == prior_fingerprint` (they are the same
+    // event at depth 1; any divergence is a sidecar construction error or tamper).
+    //
+    // This test FAILS until the fix is applied.
+    let item = ItemRatification {
+        item_path: "sinh".to_string(),
+        current_fingerprint: "fp-current".to_string(),
+        doc_ref: None,
+        signers: vec![Signer {
+            name: "alice".to_string(),
+            role: None,
+            date: sample_date(),
+            signed_against_fingerprint: "fp-current".to_string(),
+            basis: SignerBasis::DeltaFrom {
+                prior_fingerprint: "fp-prior-real".to_string(),
+                // INCONSISTENT: at chain_depth=1 this must equal prior_fingerprint.
+                // A different value here is either a mistake or an attempt to anchor
+                // cumulative-diff tracking at a non-existent fingerprint.
+                cumulative_root_fingerprint: "fp-root-FABRICATED".to_string(),
+                chain_depth: 1,
+                rationale: "reviewed the diff carefully, no invariant impact".to_string(),
+            },
+            signature: None,
+        }],
+        oracles: vec![],
+        fresh_through: None,
+        extensions: BTreeMap::new(),
+    };
+    let rat = Ratification {
+        schema_version: SchemaVersion::V1,
+        kind: RatificationKind::Immunity,
+        antigen: AntigenIdentifier {
+            name: "TestAntigen".to_string(),
+            defined_in: None,
+        },
+        source_file: std::path::PathBuf::from("src/test.rs"),
+        items: vec![item],
+    };
+    let json = serde_json::to_string(&rat).unwrap();
+    let parsed: Ratification = serde_json::from_str(&json).unwrap();
+
+    // This SHOULD fail validation: cumulative_root_fingerprint != prior_fingerprint
+    // at chain_depth=1 is an internal inconsistency in the anti-laundering chain.
+    let err = parsed
+        .validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS)
+        .expect_err(
+            "NFA-12: validate() must reject chain_depth=1 sidecar where \
+             cumulative_root_fingerprint != prior_fingerprint",
+        );
+    assert!(
+        matches!(err, ValidationError::InconsistentCumulativeRoot { .. }),
+        "expected InconsistentCumulativeRoot, got {err:?}"
     );
 }
