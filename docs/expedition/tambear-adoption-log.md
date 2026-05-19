@@ -380,6 +380,145 @@ parser to normalize receiver token forms at parse time rather than requiring
 users to know the `proc_macro2` rendering convention. Tracked as a known
 paper-cut; no ADR yet.
 
+### [2026-05-18] Doc-witness gap surfaced by discipline-shaped antibodies
+
+**Why**: Tambear shipped three methodology patterns this day at the
+*antibody-tier* of its methodology doc (`R:/winrapids/docs/expedition/session-methodology-patterns.md`):
+
+- **Pattern 23** (five-type boundary taxonomy) — a *triage discipline* that
+  routes special-function precision regressions through five named failure
+  modes (Denominator-near-zero, Float-range overflow, Cancellation,
+  Discontinuity, Combinatorial-explosion). Used by scientist when an oracle
+  crossval reports a precision regression; the routing-language ("this is
+  Type-1 — use Reformulation") becomes the audit trail.
+- **Sub-pattern 5.10** (architecture-assumption antibody) — at anchor-construction
+  time, *verify the specific function signature* of every dependency claimed
+  in the anchor, not just that the named family exists. Example: an Airy
+  anchor that claims "uses fractional-nu Bessel" must grep `bessel_i.rs` for
+  `I_nu(f64)` not just confirm `bessel_i` exists. Used by math-researcher when
+  writing anchor docs.
+- **Sub-pattern 5.11** (anchor-stage value-check antibody) — at coefficient-anchor
+  time, *verify each load-bearing constant through an end-to-end value test
+  against an independent reference* (not just bit-pattern compile-tests against
+  a transcribed table). Math-researcher's 343-line `tautological-antibody-scan.md`
+  is the canonical instance: a retroactive audit of 7 shipped anchors against
+  this discipline.
+
+All three of these are checked *by humans against discipline docs at design/anchor
+time*, not by code at test-execution time. They are real failure-class memory
+(each was crystallized after operational evidence), but they cannot be expressed
+in antigen's current witness shapes:
+
+- `Test` / `Proptest` — these test *behavior*, not whether-the-discipline-was-applied
+- `Function` — same as Test, with one indirection
+- `PhantomType` — compile-time proof, but discipline application doesn't compile-fail
+  if skipped; the antibody fires when a reviewer notices the omission, not when
+  rustc rejects the code
+
+Concretely: if we wanted to declare an antigen for "alternating-series-near-zero
+premature termination" (the Type-1 boundary-taxonomy failure that produced the
+2026-05-18 airy bug `b3fbb0c`), we could ship the antigen, but we couldn't
+declare immunity on a new oscillatory-asymptotic recipe that *was vetted against
+the discipline doc* but has no executable test exercising the failure mode at
+the design-time check.
+
+**What**:
+
+Naturalist + navigator surfaced this gap during the 2026-05-18 antibody
+crystallization arc:
+
+1. Three antibody-tier patterns crystallized in one day, all operating at
+   design/anchor/review time rather than test-execution time.
+2. Math-researcher's tautological-antibody-scan (`R:/tambear/campsites/session-20260518/20260518123521-coordination/math-researcher/notebooks/` — specifically the retroactive 7-anchor audit) produced a doc-witness artifact: a written attestation that 7 specific recipes were checked against Sub-pattern 5.11 (anchor-stage value-check), with the check-and-result documented per recipe.
+3. The team has no way to claim immunity declaratively in `#[immune(...)]` syntax that references this attestation doc.
+
+Proposed shape (sketch — full proposal in adjacent FYI):
+
+```rust
+#[immune(
+    AlternatingSeriesNearZeroPrematureTermination,
+    witness = doc_attested(
+        doc = "R:/tambear/campsites/.../tautological-antibody-scan.md",
+        attested_by = "math-researcher",
+        at = "2026-05-18",
+        rationale = "audited under Sub-pattern 5.11 + Pattern 23 Type-1; \
+                     dispatch shoulder verified Chebyshev-optimal at x=5; \
+                     antibody battery includes envelope-max canary"
+    ),
+    rationale = "anchor doc + retroactive audit verify discipline application; \
+                 no executable test exercises this at design-time because \
+                 the failure-class is a design-discipline-omission, not a \
+                 runtime behavior"
+)]
+fn ai_asym_positive(x: f64) -> f64 { /* ... */ }
+```
+
+Witness-tier mapping (per ADR-001 Amendment 1 Change 4): this would be a new
+tier — call it **Attestation tier**, sitting parallel to Reachability /
+Execution / Behavioral-alignment / Formal-proof. Audit verifies the doc path
+exists + the attested_by/at fields parse + (optionally) the doc contains a
+machine-readable section asserting the recipe is in-scope of the discipline.
+
+**Result**:
+
+Not yet implemented in antigen. The gap is named; the proposal is sketched.
+Adjacent FYI doc at `R:/tambear/campsites/session-20260518/20260518123521-coordination/naturalist/insights/20260518-doc-witness-adr-proposal.md`
+contains the full ADR-amendment draft (with mechanics, sweep-consequences,
+enforcement, open-questions).
+
+**Verdict**: not yet sure. The proposal is naturalist-authored; ratification
+belongs to the antigen team. Three paths are visible:
+
+1. **Add Attestation tier to ADR-001 Amendment 1 Change 4** and `WitnessKind::DocAttested`
+   to ADR-013. Tambear's 5 antibody-tier patterns + math-researcher's anchor
+   audit become declarable.
+2. **Decline** — leave discipline-shaped antibodies outside antigen's scope; let
+   them remain as methodology-doc patterns + commit-message citations.
+   Tambear continues to operate without `#[immune]` claims on its methodology
+   discipline.
+3. **Extend `references` instead** — relax the gap by letting `references = [doc_path, ...]` carry the attestation, without a new witness type. Lower-friction
+   but loses the *trust-boundary* discipline of attested_by/at (ADR-005 sub-clause F).
+
+Naturalist's lean: Option 1, because tambear's antibody-tier patterns are
+*structurally guaranteed to keep growing* (Sub-patterns 5.5/5.10/5.11 are
+three instances in 4 days; the lane is open), and the team will keep needing
+to express "this recipe was vetted against this discipline" declaratively.
+ADR-007's anti-YAGNI says: if structure guarantees we'll need this, build it now.
+
+**Lessons**:
+
+1. **Discipline-shaped antibodies are a real witness shape**. Tambear's antibody
+   tier of its methodology doc has 5+ patterns operating at this shape; the
+   lane will only grow as the system matures. Antigen needs an expression for
+   it OR an explicit decision that it's out-of-scope.
+
+2. **The `references` field is load-bearing but not sufficient**. References
+   point at the *origin* of the antigen's failure-class memory; they don't
+   attest that *this specific recipe* was checked. Attestation is a different
+   semantic surface — it carries the audit-trail discipline (who, when, against
+   what doc, with what rationale).
+
+3. **The witness-tier ladder is climbed by adding tiers above, not below**.
+   Reachability → Execution → Behavioral-alignment → Formal-proof is a
+   strictness ladder (each tier subsumes the one below). Attestation doesn't
+   fit on this ladder cleanly — it's *orthogonal*, a different verification
+   axis (human attestation vs mechanical verification). Either the ladder
+   becomes a lattice, or Attestation becomes its own ladder.
+
+4. **Self-application is the validation**. The math-researcher's anchor audit
+   IS an instance of the proposed Attestation tier — it audits 7 specific
+   anchors against Sub-pattern 5.11 and produces a doc. If antigen had
+   `doc_attested(...)`, those 7 anchors would become immunity declarations
+   referencing the audit doc. The audit doc IS the witness; we have the
+   artifact but no syntax to claim immunity against it.
+
+[antigen team note pending]: this adoption-log entry is naturalist-authored
+2026-05-18 evening; the parallel FYI in the tambear naturalist insights folder
+contains the full ADR-amendment draft. Co-design routing: this is the lane
+where tambear's adoption *informs* antigen's grammar/design rather than just
+*uses* it. The antigen team's call on Options 1/2/3 above shapes how tambear
+proceeds with its methodology-tier substrate.
+
 ---
 
 ### [pending] Phase 1-8 deconstruction of `PolarityInvertedClassMeet`, `PanickingInDrop`, and `UlpDistanceRolledByHand`
