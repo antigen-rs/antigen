@@ -202,6 +202,29 @@ pub struct ImmunityAudit {
     /// Per-case verification-work disambiguation; carries the signal that
     /// the tier ordinal alone cannot.
     pub audit_hint: AuditHint,
+    /// What kind of evidence the witness produces (third axis added by
+    /// ADR-019 §M5 alongside `WitnessTier` and `AuditHint`).
+    ///
+    /// Defaults to `EvidenceKind::None` for backward compatibility with
+    /// pre-ADR-019 serialized audit reports. Existing code-witness paths
+    /// (Test / IgnoredTest / Proptest / Function) map to `Behavioral`;
+    /// `PhantomType` maps to `TypeSystemProof`. Substrate-witness audits
+    /// (P3c integration) set this to `SubstrateState`.
+    #[serde(default = "default_evidence_kind")]
+    pub evidence_kind: antigen_attestation::EvidenceKind,
+    /// Strength of the signer-identity binding for substrate-witness
+    /// audits. `None` for code-witness paths; `Some(GitTrust)` for v0.1
+    /// substrate-witnesses; `Some(CryptoSigned)` reserved for v0.4+
+    /// DSSE + Sigstore activation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signature_strength: Option<antigen_attestation::SignatureStrength>,
+}
+
+/// Backward-compat default for [`ImmunityAudit::evidence_kind`] on
+/// pre-ADR-019 serialized reports. New audits derive the kind via
+/// [`antigen_attestation::EvidenceKind::from_witness_kind`].
+const fn default_evidence_kind() -> antigen_attestation::EvidenceKind {
+    antigen_attestation::EvidenceKind::None
 }
 
 impl ImmunityAudit {
@@ -254,6 +277,35 @@ impl WitnessTier {
                 WitnessKind::PhantomType { .. } => Self::FormalProof,
             },
         }
+    }
+}
+
+/// Derive [`antigen_attestation::EvidenceKind`] from a [`WitnessStatus`]
+/// per ADR-019 §M5.
+///
+/// Code-witness paths (Test / IgnoredTest / Proptest / Function) map to
+/// `Behavioral` because they exercise the code at runtime. PhantomType
+/// maps to `TypeSystemProof` (compile-time construction-is-the-proof).
+/// Substrate-witness paths (predicate-evaluated via
+/// `antigen_attestation::evaluate`) set `SubstrateState` directly when
+/// the audit constructs the [`ImmunityAudit`] — they don't go through
+/// this mapping.
+#[must_use]
+pub const fn evidence_kind_from_status(
+    status: &WitnessStatus,
+) -> antigen_attestation::EvidenceKind {
+    match status {
+        WitnessStatus::Missing
+        | WitnessStatus::NotFound { .. }
+        | WitnessStatus::Ambiguous { .. } => antigen_attestation::EvidenceKind::None,
+        WitnessStatus::External { .. } => antigen_attestation::EvidenceKind::Behavioral,
+        WitnessStatus::Resolved { witness_kind, .. } => match witness_kind {
+            WitnessKind::Test
+            | WitnessKind::IgnoredTest
+            | WitnessKind::Proptest
+            | WitnessKind::Function => antigen_attestation::EvidenceKind::Behavioral,
+            WitnessKind::PhantomType { .. } => antigen_attestation::EvidenceKind::TypeSystemProof,
+        },
     }
 }
 
@@ -364,11 +416,21 @@ pub fn audit(report: &ScanReport, workspace_root: &Path) -> AuditReport {
         let status = validate_witness(&immunity.witness, &workspace_functions);
         let witness_tier = WitnessTier::from_status(&status);
         let audit_hint = AuditHint::from_status(&status);
+        // ADR-019 §M5: derive EvidenceKind from WitnessStatus for
+        // code-witness paths. Substrate-witness paths (requires =
+        // <predicate> on the immunity declaration) override these via
+        // P3c's substrate-evaluator wiring once antigen-macros surfaces
+        // the predicate to the scan layer (P3b dependency).
+        let evidence_kind = evidence_kind_from_status(&status);
         audits.push(ImmunityAudit {
             immunity: immunity.clone(),
             witness_status: status,
             witness_tier,
             audit_hint,
+            evidence_kind,
+            // signature_strength is substrate-witness-only; code-witness
+            // paths leave this None per ADR-019 §M5.
+            signature_strength: None,
         });
     }
 
