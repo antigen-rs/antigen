@@ -306,7 +306,7 @@ fn eval_leaf<C: EvaluationContext>(
             &item.item_path,
             ctx,
         ),
-        Leaf::OraclesComplete { files } => eval_oracles_complete(files, ctx),
+        Leaf::OraclesComplete { files } => eval_oracles_complete(files, item, ctx),
         Leaf::FreshWithinDays { days } => {
             eval_fresh_within_days(*days, item, current_fingerprint, ctx)
         }
@@ -439,8 +439,39 @@ fn eval_signed_trailer<C: EvaluationContext>(
     hits >= count
 }
 
-fn eval_oracles_complete<C: EvaluationContext>(files: &[std::path::PathBuf], ctx: &C) -> bool {
+fn eval_oracles_complete<C: EvaluationContext>(
+    files: &[std::path::PathBuf],
+    item: &ItemRatification,
+    ctx: &C,
+) -> bool {
+    use crate::schema::{OracleRef, OracleState};
     files.iter().all(|p| {
+        // NFA-26 fix: check Oracle artifact-class state before falling back to
+        // file-content check. If a matching Oracle entry exists in the sidecar,
+        // its state governs the evaluation — Draft blocks attestation,
+        // Revoked{invalidates=true} blocks attestation. Only Complete passes.
+        // For Deprecated, Retired, Revoked{false}: pass but the audit-hint layer
+        // will surface the lifecycle event (hint channel is a v0.2 extension;
+        // for v0.1 these non-blocking states fall through to the file check).
+        let oracle_state_blocks = item
+            .oracles
+            .iter()
+            .find(|o| matches!(&o.reference, OracleRef::LocalFile { path, .. } if path == p))
+            .is_some_and(|o| {
+                matches!(
+                    o.state,
+                    OracleState::Draft
+                        | OracleState::Revoked {
+                            invalidates_prior_attestations: true,
+                            ..
+                        }
+                )
+            });
+
+        if oracle_state_blocks {
+            return false;
+        }
+
         ctx.read_oracle(p)
             .is_some_and(|content| parse_oracle_status(&content).as_deref() == Some("complete"))
     })
@@ -654,8 +685,8 @@ mod tests {
     use super::*;
     use crate::predicate::SignerCurrency;
     use crate::schema::{
-        AntigenIdentifier, DocRef, ItemRatification, OracleRef, Ratification, RatificationKind,
-        SchemaVersion, Signer, SignerBasis,
+        AntigenIdentifier, DocRef, ItemRatification, Oracle, OracleRef, OracleState, OracleVersion,
+        Provenance, Ratification, RatificationKind, SchemaVersion, Signer, SignerBasis,
     };
     use std::collections::BTreeMap;
     use std::path::PathBuf;
@@ -1151,9 +1182,25 @@ mod tests {
                 current_fingerprint: "fp".to_string(),
                 doc_ref: None,
                 signers: vec![],
-                oracles: vec![OracleRef {
-                    path: PathBuf::from("o.md"),
-                    status: None,
+                oracles: vec![Oracle {
+                    id: "o.md".to_string(),
+                    reference: OracleRef::LocalFile {
+                        path: PathBuf::from("o.md"),
+                        status_field: None,
+                        expected_status: None,
+                    },
+                    state: OracleState::Complete,
+                    stewards: vec![],
+                    created: Provenance {
+                        recorded_by: "test".to_string(),
+                        at: sample_date(),
+                    },
+                    version: OracleVersion {
+                        pinned: "v0".to_string(),
+                        pinned_at: sample_date(),
+                    },
+                    transitions: vec![],
+                    extensions: BTreeMap::new(),
                 }],
                 fresh_through: None,
                 extensions: BTreeMap::new(),
@@ -1860,6 +1907,184 @@ mod tests {
             WitnessTier::Execution,
             "NFA-25b: oracle with status: complete and no trailing newline after closing --- \
              must not be silently treated as missing/incomplete"
+        );
+    }
+
+    #[test]
+    fn oracle_state_machine_draft_blocks_oracles_complete_predicate_nfa26() {
+        // DOCUMENTED GAP (evaluator NFA-26): `eval_oracles_complete` reads the
+        // oracle file on disk and checks `status: complete` in the frontmatter.
+        // It does NOT consult the Oracle artifact-class state machine in the sidecar.
+        //
+        // ADR-021 §D3: Draft oracles must block the `oracles_complete(...)` predicate.
+        // But the evaluator bypasses the sidecar's `item.oracles[*].state` entirely —
+        // the predicate evaluates against the raw file content, not the Oracle state.
+        //
+        // A sidecar that declares `oracle.state = Draft` with a corresponding file
+        // that has `status: complete` in its frontmatter would PASS the predicate —
+        // even though the oracle has not been authoritatively established (Draft state).
+        //
+        // This is a SILENT FAILURE: the Oracle state machine guard is unenforced
+        // at evaluation time. The implementation gap is in `eval_oracles_complete`,
+        // which needs to be updated to check `item.oracles[*].state` when a
+        // matching Oracle artifact-class entry exists.
+        //
+        // FIX DIRECTION (task #60/61): `eval_oracles_complete` must be extended to
+        // accept the `item` parameter and look up each file path in `item.oracles`
+        // by matching `oracle.reference` against the file path. If a matching Oracle
+        // is found and its state is NOT `Complete`, the leaf must return false
+        // (with an appropriate audit hint: `oracle-draft-blocks-attestation`,
+        // `oracle-deprecated`, `oracle-revoked`).
+        //
+        // This test DOCUMENTS the current behavior. It will start failing when the
+        // fix is applied (the assertion will change from Execution to None).
+        use crate::schema::{Oracle, OracleRef, OracleState, OracleVersion, Provenance, Steward};
+        use std::collections::BTreeMap as BM;
+
+        let draft_oracle = Oracle {
+            id: "test-oracle".to_string(),
+            reference: OracleRef::LocalFile {
+                path: PathBuf::from("docs/oracles/o.md"),
+                status_field: None,
+                expected_status: None,
+            },
+            state: OracleState::Draft, // NOT yet Complete
+            stewards: vec![
+                Steward {
+                    name: "alice".to_string(),
+                    role: None,
+                    authorization_basis: "domain authority".to_string(),
+                },
+                Steward {
+                    name: "bob".to_string(),
+                    role: None,
+                    authorization_basis: "tech-lead".to_string(),
+                },
+            ],
+            created: Provenance {
+                recorded_by: "alice".to_string(),
+                at: sample_date(),
+            },
+            version: OracleVersion {
+                pinned: "v0".to_string(),
+                pinned_at: sample_date(),
+            },
+            transitions: vec![],
+            extensions: BM::new(),
+        };
+        let mut item = item_with(vec![]);
+        item.oracles = vec![draft_oracle];
+
+        let pred = Predicate::leaf(Leaf::OraclesComplete {
+            files: vec![PathBuf::from("docs/oracles/o.md")],
+        });
+        // File exists and has status: complete — but oracle is in Draft state.
+        let ctx = TestContext::new(sample_date())
+            .with_oracle("docs/oracles/o.md", "---\nstatus: complete\n---\nbody");
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+
+        // NFA-26 FIX: Draft oracle state now blocks the oracles_complete predicate
+        // even when the underlying file has `status: complete`. The evaluator checks
+        // Oracle artifact-class state before falling back to file-content evaluation.
+        assert_eq!(
+            r.witness_tier,
+            WitnessTier::None,
+            "NFA-26: Draft oracle must block oracles_complete predicate; \
+             file content alone cannot satisfy the leaf when the oracle is in Draft state"
+        );
+        assert_eq!(
+            r.audit_hint,
+            AuditHint::DisciplinePredicateFailed,
+            "NFA-26: Draft-blocked predicate must emit DisciplinePredicateFailed hint"
+        );
+    }
+
+    #[test]
+    fn oracle_revoked_invalidates_true_blocks_predicate_nfa26b() {
+        // Revoked(invalidates=true) oracle must block — incorrect oracle,
+        // prior attestations retroactively demoted.
+        use crate::schema::{
+            Oracle, OracleRef, OracleState, OracleVersion, Provenance, Steward,
+        };
+        let revoked = Oracle {
+            id: "revoked".to_string(),
+            reference: OracleRef::LocalFile {
+                path: PathBuf::from("docs/oracles/rev.md"),
+                status_field: None,
+                expected_status: None,
+            },
+            state: OracleState::Revoked {
+                reason: "oracle discipline was incorrect".to_string(),
+                revoked_by: "alice".to_string(),
+                invalidates_prior_attestations: true,
+            },
+            stewards: vec![
+                Steward { name: "alice".to_string(), role: None, authorization_basis: "domain authority".to_string() },
+                Steward { name: "bob".to_string(), role: None, authorization_basis: "tech-lead".to_string() },
+            ],
+            created: Provenance { recorded_by: "alice".to_string(), at: sample_date() },
+            version: OracleVersion { pinned: "v0".to_string(), pinned_at: sample_date() },
+            transitions: vec![],
+            extensions: std::collections::BTreeMap::new(),
+        };
+        let mut item = item_with(vec![]);
+        item.oracles = vec![revoked];
+        let pred = Predicate::leaf(Leaf::OraclesComplete {
+            files: vec![PathBuf::from("docs/oracles/rev.md")],
+        });
+        let ctx = TestContext::new(sample_date())
+            .with_oracle("docs/oracles/rev.md", "---\nstatus: complete\n---\nbody");
+        let r = evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx)
+            .unwrap();
+        assert_eq!(
+            r.witness_tier,
+            WitnessTier::None,
+            "NFA-26b: Revoked(invalidates=true) oracle must block oracles_complete predicate"
+        );
+    }
+
+    #[test]
+    fn oracle_deprecated_allows_predicate_to_pass_nfa26c() {
+        // Deprecated oracle (superseded, not incorrect) passes — sign-time-validity:
+        // prior attestations honored at Execution tier with a deprecation hint.
+        use crate::schema::{
+            Oracle, OracleRef, OracleState, OracleVersion, Provenance, Steward,
+        };
+        let deprecated = Oracle {
+            id: "deprecated".to_string(),
+            reference: OracleRef::LocalFile {
+                path: PathBuf::from("docs/oracles/dep.md"),
+                status_field: None,
+                expected_status: None,
+            },
+            state: OracleState::Deprecated {
+                superseded_by: Some("new-oracle".to_string()),
+                reason: "superseded by updated oracle".to_string(),
+            },
+            stewards: vec![
+                Steward { name: "alice".to_string(), role: None, authorization_basis: "domain authority".to_string() },
+                Steward { name: "bob".to_string(), role: None, authorization_basis: "tech-lead".to_string() },
+            ],
+            created: Provenance { recorded_by: "alice".to_string(), at: sample_date() },
+            version: OracleVersion { pinned: "v1".to_string(), pinned_at: sample_date() },
+            transitions: vec![],
+            extensions: std::collections::BTreeMap::new(),
+        };
+        let mut item = item_with(vec![]);
+        item.oracles = vec![deprecated];
+        let pred = Predicate::leaf(Leaf::OraclesComplete {
+            files: vec![PathBuf::from("docs/oracles/dep.md")],
+        });
+        let ctx = TestContext::new(sample_date())
+            .with_oracle("docs/oracles/dep.md", "---\nstatus: complete\n---\nbody");
+        let r = evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx)
+            .unwrap();
+        // Deprecated = superseded, not incorrect → predicate passes (sign-time-validity).
+        assert_eq!(
+            r.witness_tier,
+            WitnessTier::Execution,
+            "NFA-26c: Deprecated oracle (superseded) must allow predicate to pass"
         );
     }
 }

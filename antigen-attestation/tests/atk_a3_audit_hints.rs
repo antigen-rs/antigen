@@ -53,7 +53,7 @@ impl Ctx {
             cap: DEFAULT_DELTA_CHAIN_CAP,
         }
     }
-    fn with_cap(mut self, cap: u32) -> Self {
+    const fn with_cap(mut self, cap: u32) -> Self {
         self.cap = cap;
         self
     }
