@@ -933,4 +933,39 @@ mod tests {
         assert!(!basis.is_fresh());
         assert!(basis.is_delta());
     }
+
+    #[test]
+    fn nfa_17_crypto_signed_without_signature_rejected() {
+        // BUG REGRESSION TEST (NFA-17): `strength = CryptoSigned` without a
+        // `signature` field is tier inflation — CryptoSigned requires a DSSE-PAE
+        // envelope. validate() must reject this before it reaches the audit,
+        // which would otherwise report the maximum tier with no cryptographic backing.
+        let date = NaiveDate::from_ymd_opt(2026, 5, 19).unwrap();
+        let signer = Signer {
+            name: "alice".to_string(),
+            role: None,
+            date,
+            signed_against_fingerprint: "fp-current".to_string(),
+            basis: SignerBasis::Fresh { reasoning: None },
+            strength: crate::tier::SignatureStrength::CryptoSigned,
+            signature: None, // NFA-17: CryptoSigned with no envelope
+        };
+        let item = item_with_signers("test_item", vec![signer]);
+        let rat = ratification_with_items(vec![item]);
+        let err = rat
+            .validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS)
+            .expect_err("CryptoSigned signer with no signature field must be rejected");
+        assert!(
+            matches!(err, ValidationError::StrengthSignatureMismatch { .. }),
+            "expected StrengthSignatureMismatch, got {err:?}"
+        );
+        // Lock the variant fields.
+        match err {
+            ValidationError::StrengthSignatureMismatch { item_path, signer_name } => {
+                assert_eq!(item_path, "test_item");
+                assert_eq!(signer_name, "alice");
+            }
+            other => panic!("expected StrengthSignatureMismatch, got {other:?}"),
+        }
+    }
 }

@@ -598,7 +598,11 @@ fn parse_frontmatter_field(content: &str, field_prefix: &str) -> Option<String> 
         std::borrow::Cow::Borrowed(content)
     };
     let stripped = normalized.strip_prefix("---\n")?;
-    let end = stripped.find("\n---\n")?;
+    // Accept both `\n---\n` (frontmatter followed by body) and `\n---` at EOF
+    // (NFA-25: docs without a trailing newline after the closing delimiter).
+    let end = stripped
+        .find("\n---\n")
+        .or_else(|| stripped.strip_suffix("\n---").map(|s| s.len()))?;
     let frontmatter = &stripped[..end];
     for line in frontmatter.lines() {
         let line = line.trim();
@@ -1673,12 +1677,12 @@ mod tests {
         //
         // This test DOCUMENTS the current behavior.
         let mut item = item_with(vec![]); // NO signers
-        // fresh_through = today; the freshness check reads this as "signed on today".
+                                          // fresh_through = today; the freshness check reads this as "signed on today".
         item.fresh_through = Some(sample_date());
         let pred = Predicate::leaf(Leaf::FreshWithinDays { days: 60 });
         let ctx = TestContext::new(sample_date()); // today = 2026-05-19
-        let r = evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx)
-            .unwrap();
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
         // CURRENT BEHAVIOR: fresh_through satisfies freshness with zero signers.
         // classify_passed_predicate sees empty signer list and returns Execution directly.
         // Documents the v0.2 gap — fresh_through with no signers is unanchored freshness.
@@ -1688,7 +1692,10 @@ mod tests {
             "NFA-23 documented gap: fresh_through with no signers satisfies freshness leaf; \
              nobody has reviewed the item but it appears 'fresh'; v0.2 fix: require signer co-presence"
         );
-        assert_eq!(r.signature_strength, None, "no signers → signature_strength must be None");
+        assert_eq!(
+            r.signature_strength, None,
+            "no signers → signature_strength must be None"
+        );
     }
 
     #[test]
@@ -1744,8 +1751,8 @@ mod tests {
             signature_prefer: None,
         });
         let ctx = TestContext::new(sample_date());
-        let r = evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx)
-            .unwrap();
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
         // CURRENT BEHAVIOR: the stale GitTrust entry satisfies both currency (Any=always true)
         // and strength (in allow-list), so the predicate PASSES even though alice's
         // current-fp attestation is TextStamp (below the allow-list). alice HAS a
@@ -1832,6 +1839,27 @@ mod tests {
             r.witness_tier,
             WitnessTier::Execution,
             "CRLF-encoded doc with version: 2.0 must not be silently rejected"
+        );
+    }
+
+    #[test]
+    fn oracle_without_trailing_newline_not_silently_rejected_nfa25b() {
+        // Same NFA-25 class as the doc variant above but for oracle files.
+        // `parse_oracle_status` uses the same `parse_frontmatter_field` function.
+        let item = item_with(vec![]);
+        let pred = Predicate::leaf(Leaf::OraclesComplete {
+            files: vec![PathBuf::from("docs/oracles/o.md")],
+        });
+        // Oracle with no trailing newline after closing `---`.
+        let no_trailing_nl = "---\nstatus: complete\n---";
+        let ctx = TestContext::new(sample_date()).with_oracle("docs/oracles/o.md", no_trailing_nl);
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+        assert_eq!(
+            r.witness_tier,
+            WitnessTier::Execution,
+            "NFA-25b: oracle with status: complete and no trailing newline after closing --- \
+             must not be silently treated as missing/incomplete"
         );
     }
 }
