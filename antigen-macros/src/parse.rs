@@ -108,6 +108,40 @@ impl RequiresExpr {
     /// Validate semantic invariants at parse time (mirrors
     /// `antigen_attestation::Predicate::validate`).
     pub fn validate(&self, span: Span) -> syn::Result<()> {
+        // Depth + node-count guard (mirrors antigen_attestation::Predicate::validate).
+        // NOTE: these run AFTER the parse tree is constructed; they do not prevent
+        // a stack overflow during parse of a truly pathological input. In practice,
+        // proc-macro stack depth is generous enough that parse-time overflow requires
+        // thousands of nesting levels — far beyond any legitimate predicate.
+        self.check_depth(0, span)?;
+        self.validate_inner(span)
+    }
+
+    fn check_depth(&self, depth: usize, span: Span) -> syn::Result<()> {
+        const MAX_DEPTH: usize = 64;
+        if depth > MAX_DEPTH {
+            return Err(syn::Error::new(
+                span,
+                format!(
+                    "requires: predicate nesting depth exceeds maximum of {MAX_DEPTH}; \
+                     deeply-nested predicates are rejected (mirrors antigen_attestation \
+                     MAX_PREDICATE_DEPTH guard)"
+                ),
+            ));
+        }
+        match self {
+            Self::AllOf(children) | Self::AnyOf(children) => {
+                for c in children {
+                    c.check_depth(depth + 1, span)?;
+                }
+                Ok(())
+            }
+            Self::Not(child) => child.check_depth(depth + 1, span),
+            Self::Leaf(_) => Ok(()),
+        }
+    }
+
+    fn validate_inner(&self, span: Span) -> syn::Result<()> {
         match self {
             Self::AllOf(children) if children.is_empty() => Err(syn::Error::new(
                 span,
@@ -119,11 +153,11 @@ impl RequiresExpr {
             )),
             Self::AllOf(children) | Self::AnyOf(children) => {
                 for child in children {
-                    child.validate(span)?;
+                    child.validate_inner(span)?;
                 }
                 Ok(())
             }
-            Self::Not(child) => child.validate(span),
+            Self::Not(child) => child.validate_inner(span),
             Self::Leaf(leaf) => leaf.validate(span),
         }
     }
@@ -1512,6 +1546,42 @@ mod tests {
             .unwrap();
         let args = syn::parse2::<ImmuneArgs>(tokens).unwrap();
         assert_eq!(args.rationale.as_deref(), Some("checked manually"));
+    }
+
+    #[test]
+    fn requires_expr_depth_guard_rejects_excessive_nesting() {
+        // Build a RequiresExpr at depth MAX_DEPTH+1 programmatically (bypassing
+        // the proc-macro parse path, which would stack-overflow for truly pathological
+        // depth). The validate() path runs the depth check post-parse.
+        const MAX_DEPTH: usize = 64;
+        let leaf = RequiresExpr::Leaf(LeafExpr::FreshWithinDays { days: 90 });
+        let mut pred = leaf;
+        // Wrap in MAX_DEPTH+1 levels of Not — one too many.
+        for _ in 0..=MAX_DEPTH {
+            pred = RequiresExpr::Not(Box::new(pred));
+        }
+        let err = pred
+            .validate(proc_macro2::Span::call_site())
+            .expect_err("depth exceeding MAX_DEPTH must be rejected by validate()");
+        assert!(
+            err.to_string().contains("depth") || err.to_string().contains("nesting"),
+            "error must mention depth/nesting: {err}"
+        );
+    }
+
+    #[test]
+    fn requires_expr_depth_guard_accepts_at_max_depth() {
+        // A predicate at exactly MAX_DEPTH nesting must be accepted.
+        const MAX_DEPTH: usize = 64;
+        let leaf = RequiresExpr::Leaf(LeafExpr::FreshWithinDays { days: 90 });
+        let mut pred = leaf;
+        for _ in 0..MAX_DEPTH {
+            pred = RequiresExpr::Not(Box::new(pred));
+        }
+        assert!(
+            pred.validate(proc_macro2::Span::call_site()).is_ok(),
+            "predicate at exactly MAX_DEPTH must be accepted"
+        );
     }
 }
 
