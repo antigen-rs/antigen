@@ -601,11 +601,22 @@ fn audit_substrate_witness(immunity: &Immunity, predicate_json: &str) -> Immunit
     };
 
     let ctx = FilesystemAuditContext;
-    // Use a placeholder fingerprint for v0.1; fingerprint recomputation at
-    // audit time requires antigen-fingerprint integration (A3 work). The
-    // `current_fingerprint` fed here is matched against signer entries —
-    // mismatching means signers appear stale, which is the correct conservative
-    // behavior when we can't recompute the real fingerprint yet.
+    // Audit-SF-1: stale-signer detection is SELF-REFERENTIAL in v0.1.
+    //
+    // `current_fingerprint` here is the sidecar's stored value, not the real
+    // fingerprint of the item as it exists on disk right now. The evaluator
+    // compares `s.signed_against_fingerprint == current_fingerprint` — both
+    // sides come from the same sidecar, so stale signers always appear current
+    // in `cargo antigen audit`.
+    //
+    // To detect real staleness: use `cargo antigen attest check --fingerprint <fp>`
+    // with the fingerprint from `cargo antigen scan --format json`.
+    //
+    // The correct fix (A3 work): integrate antigen-fingerprint recomputation at
+    // audit time so the real current fingerprint can be compared against sidecar
+    // entries. Until then, stale detection only fires when the sidecar was written
+    // with a fingerprint that differs from another sidecar entry — within-sidecar
+    // consistency is maintained but real-code-change drift is not detected.
     let current_fingerprint = &item.current_fingerprint;
     let result = evaluate_predicate_with_kind(
         &predicate,
