@@ -226,39 +226,60 @@ post-A3.5 sweep close).
 
 ## What's actually shipped in v0.1.0-rc.1
 
-- **Five core macros**: `#[antigen]`, `#[presents]`, `#[immune]`,
-  `#[descended_from]`, `#[antigen_tolerance]`
-- **`cargo antigen scan`** with item-identity matching, fingerprint
-  detection, cross-crate scanning via `.cargo/registry` source-walking,
-  cycle detection on descended_from chains, diamond inheritance dedup
-- **`cargo antigen audit`** with `WitnessTier` gradient
-  (None / Reachability / Execution / FormalProof) — tier-honest
-  reporting per ADR-005 Amendment 3
-- **Fingerprint grammar v1**: seven item-level operators (`item`,
-  `name`, `variants`, `has_method`, `attr_present`, `doc_contains`,
-  `body_contains_macro`) plus composition (`all_of`, `any_of`, `not`).
-  Full reference at [`docs/fingerprint-grammar.md`](docs/fingerprint-grammar.md).
-- **Phantom-type witness recognition** (ADR-013): witness expressions
-  using turbofish syntax (`Foo::<T>::constructor`) recognized as
-  phantom-type proofs at FormalProof tier with the
-  `PhantomTypeShapeRecognized` hint
-- **Cross-crate identity**: `canonical_path` at `name@version`
-  granularity (ADR-017)
-- **Honest trust-delegation**: scan trusts cargo metadata; explicit
-  out-of-scope statement for cargo-level attacks (ADR-017 trust scope)
-- **ProvenanceEntry** for inherited presentations preserves
-  cross-version provenance (ADR-018)
-- **240 tests passing** (31 ignored as pre-impl contracts) across the
-  workspace; substantial property-test + trybuild coverage; span-aware
-  error messages
+**Core macros**:
+- `#[antigen]`, `#[presents]`, `#[immune]`, `#[descended_from]`,
+  `#[antigen_tolerance]`
+- `requires = <predicate>` parameter on `#[immune]` for substrate-witness
+  predicates (ADR-019)
+- `attested = (who, allowed_types, why, scope)` parameter on any macro
+  for cross-cutting review attestation (ADR-020)
 
-Not yet shipped (in development; hidden from CLI):
+**Cargo subcommands**:
+- **`cargo antigen scan`** — item-identity fingerprint matching,
+  cross-crate scanning, cycle detection, diamond inheritance dedup
+- **`cargo antigen audit`** — `WitnessTier` gradient
+  (None / Reachability / Execution / FormalProof) with three-axis
+  output: `WitnessTier × AuditHint × EvidenceKind` (ADR-019)
+- **`cargo antigen attest`** — substrate-witness sidecar management:
+  `scaffold`, `sign`, `check`, `delta`, `list`, `gc`
+- **`cargo antigen tolerate`** — tolerance-ratification sidecar
+  management: `scaffold`, `sign`, `check`, `list`
 
+**Fingerprint grammar v1**: seven item-level operators (`item`,
+`name`, `variants`, `has_method`, `attr_present`, `doc_contains`,
+`body_contains_macro`) plus composition (`all_of`, `any_of`, `not`).
+Full reference at [`docs/fingerprint-grammar.md`](docs/fingerprint-grammar.md).
+
+**Substrate-witness predicate language** (ADR-019): closed combinator
+grammar (`all_of`, `any_of`, `not`) over five sealed leaf primitives
+(`ratified_doc`, `signers`, `signed_trailer`, `oracles_complete`,
+`fresh_within_days`). JSON sidecars at `.attest/<Antigen>.json`.
+
+**Anti-laundering safeguards**: `attest delta` enforces chain-depth
+cap (default 3), minimum rationale character count, and tracks
+cumulative-root fingerprint for drift detection.
+
+**Phantom-type witness recognition** (ADR-013): turbofish syntax
+recognized as FormalProof-tier witnesses.
+
+**Cross-crate identity** at `name@version` granularity (ADR-017).
+
+**`#[descended_from]` propagation** with tagged synthesis, diamond
+dedup, and 7-state inheritance state matrix (ADR-018).
+
+**495 tests passing** (31 ignored as pre-impl contracts) across the
+workspace; property-test + trybuild + adversarial precision tests;
+span-aware error messages.
+
+Not yet shipped (hidden from CLI with honest stubs):
+
+- `cargo antigen attest oracle` — oracle completion markers (blocked on
+  ADR-021 OracleRef generalization ratification)
+- `cargo antigen attest migrate` — resolves to no-op once ADR-021
+  additive-only schema evolution ratifies
 - `cargo antigen new` — scaffold an antigen declaration
-- `cargo antigen vaccinate` — bulk-apply known immunity across a
-  structural family
-- `antigen-stdlib` — ecosystem-wide failure-class memory library
-- Body-level fingerprint operators (via ast-grep subprocess)
+- `cargo antigen vaccinate` — bulk-apply immunity across a structural family
+- `antigen-stdlib` — ecosystem-wide failure-class library
 
 See [`docs/roadmap.md`](docs/roadmap.md) for the planned trajectory
 through v0.2+ and beyond.
