@@ -63,6 +63,7 @@
 - [ADR-016 — Temporal recognition surface: provenance + freshness primitives](#adr-016-temporal-recognition-surface-provenance--freshness-primitives-for-stale-context-and-premature-abstraction)
 - [ADR-017 — Antigen identity is canonical declaration site; cross-crate trust delegates to cargo](#adr-017-antigen-identity-is-canonical-declaration-site-cross-crate-trust-delegates-to-cargo)
 - [ADR-018 — `#[descended_from]` propagation: tagged synthesis + diamond dedup + inheritance state matrix](#adr-018-descended_from-propagation-tagged-synthesis--diamond-dedup--inheritance-state-matrix)
+- [ADR-019 — Substrate-witness predicate family](#adr-019-substrate-witness-predicate-family)
 
 ---
 
@@ -4394,6 +4395,233 @@ See [`docs/process.md`](process.md) for the complete process — including the
 recursive insight that **ADRs are antigen-in-document-form** (the original
 implementation of the structural-memory pattern that antigen-the-tool ships at the
 code level).
+
+---
+
+## [ADR-019] Substrate-witness predicate family
+
+**Status**: Ratified 2026-05-19.
+
+**Participants**: pathmaker (draft v0 + implementation + P3e test corpus), aristotle
+(F10-F19 Phase 1-8 arc, 16 findings), adversarial (ATK-019 Stages 1-3, all pre-named
+attack surfaces + FA-1/FA-3/FA-6 resolutions), naturalist (F3 scope-biology, F8
+EvidenceKind biology, framing-call, notary-arc B6, biology corroboration audit),
+observer (NB001-NB024, peer-review arc), scout (S1-S4, cross-domain pre-scouting),
+scientist (Stage 5 validation + prose-polish + whitepaper chapter), academic-researcher
+(Stage 4 prior-art alignment, 8 checks), navigator (coordinator, architectural call,
+Stage 4 + Stage 5 runs), Tekgy (trust).
+
+**Related**:
+- ADR-001 (structural memory = this ADR's application domain)
+- ADR-002 (compose-don't-compete; substrate-witness composes existing tooling)
+- ADR-003 (biology metaphor; B1-B8 grounding sections)
+- ADR-005 Amendment 2 (rationale-as-required-field; transverse sub-clause F)
+- ADR-005 Amendment 3 (WitnessTier × AuditHint; this ADR adds EvidenceKind as third axis)
+- ADR-006 (recognition-not-design; discipline-witnesses recognized from three-independent-instance evidence)
+- ADR-007 (anti-YAGNI; all 5 sealed leaf primitives ship v0.1 — structurally guaranteed)
+- ADR-009 (adoption gradient; Layer 1 works without sidecar infrastructure)
+- ADR-011 (tolerance-ratification gap this ADR plugs via isomorphic schema)
+- ADR-017 (antigen identity; `AntigenIdentifier` semantic name not Rust path)
+- ADR-018 (`descended_from`; `weakened_from` + `weakening_rationale` schema fields for predicate-weakening)
+
+### Finding
+
+Antigen's witness vocabulary (ADR-001 + ADR-002 + ADR-013) covers code-side substrate
+exclusively: `Test / IgnoredTest / Proptest / Function / PhantomType`. Each verifies
+the code itself via syntactic recognition or compile-time proof. A structural gap exists
+for **discipline failure-classes** — where the antigen is presented at a code site but
+the carrier of immunity is substrate *other than the code being audited*: a ratified
+discipline doc, team sign-off record, oracle-completion marker, signed git trailer.
+
+This gap is not hypothetical:
+
+1. **Direct adoption signal**: tambear independently sketched `witness = doc_attested(...)`
+   from three antibody-tier methodology patterns crystallized in one day
+   (2026-05-18) — independent design convergence with three architectural differences
+   (tooling friction, PR review visibility, code-drift defense).
+2. **ADR-011 open question**: `#[antigen_tolerance(X)]` without structured attestation
+   was named as an open question in ADR-011's own text. No resolution primitive existed.
+3. **F17 transverse principle**: six independent gap-instances share a unifying structure
+   (every attestation must carry an explicit WHY-record the audit can surface), named
+   as "rationale-as-visibility."
+
+The substrate-witness reframe: witnesses currently check code-side substrate. They should
+be extensible to check **substrate other than the code being audited** — as long as the
+audit remains tier-honest about what was actually verified.
+
+### Decision
+
+**Antigen ships a substrate-witness predicate family in v0.1-rc**: a closed declarative
+predicate language over typed substrate (predicate combinators + sealed leaf primitives),
+a ratification schema (`antigen-attestation` crate; serde-derived), JSON sidecars
+co-located with source under `.attest/` subfolders, and `cargo antigen attest` +
+`cargo antigen tolerate` CLI families.
+
+This is ONE ADR introducing ONE primitive — the substrate-witness predicate — covering
+both immunity claims and tolerance ratifications via isomorphic schema.
+
+The decision commits to:
+
+**Three-axis tier-honest reporting** (extends ADR-005 Amendment 3): `WitnessTier ×
+AuditHint × EvidenceKind`. `EvidenceKind` is a **parallel axis, NOT an ordered scale**
+(FA-6 resolution per ATK-019 Stage 3): `TypeSystemProof | Behavioral | SubstrateState`
+are different *types* of evidence, not different *strengths*. Per-kind ceilings:
+`TypeSystemProof` → `FormalProof`; `Behavioral` → `Execution`; `SubstrateState` →
+`Execution` (cannot reach `FormalProof`). `EvidenceKind::None` for pre-evaluation states
+and vibes-grade tolerance. CI gate pattern: exact-kind matching or `any_of` composition;
+never `>= Behavioral` (no ordering exists).
+
+**Closed predicate grammar** (5 sealed leaf primitives v0.1; 3 combinators):
+- `ratified_doc(path?, min_version?, anchor?, sibling_json?)` — doc exists + frontmatter check
+- `signers(required, roles?, against?, signature_allow?, signature_prefer?)` — sidecar signers check; `signature_allow` is categorical allow-set per ABO/Rh biology (B6)
+- `signed_trailer(key, role?, count?)` — git trailer via `git interpret-trailers`
+- `oracles_complete(files)` — oracle completion markers exist
+- `fresh_within_days(n)` — most recent current-fingerprint signer `.date` within N days (NFA-21: stale-fingerprint signer entries excluded)
+
+Combinators: `all_of` (co-stimulation biology B3), `any_of` (redundant-pathway biology),
+`not` (inhibitory-checkpoint biology). Schema rejects zero-leaf compositions at parse-time.
+
+**4-point bright-line rule** for leaf primitives invoking external binaries: (1) binary
+named in leaf source; (2) has own release process; (3) does NOT execute user-supplied
+code; (4) invocation args fixed except for declared substrate-parameters. Only
+`signed_trailer` invokes external tooling (`git interpret-trailers`); all four points
+satisfied.
+
+**Anti-laundering safeguards** on delta-attestation (`SignerBasis::DeltaFrom`): chain-depth
+cap (default 3; hard-floor constants `HARD_DELTA_CHAIN_CAP_MAX = 10`,
+`HARD_DELTA_CHAIN_CAP_MIN = 1`; enforced in v0.1 evaluator); cumulative-fingerprint
+`cumulative_root_fingerprint` field (schema present; threshold check deferred to v0.2);
+non-empty `rationale` schema-enforced. Chain-depth cap + non-empty rationale close the
+primary laundering channel in v0.1.
+
+**Tolerance-ratification via isomorphic schema**: same `Ratification` struct for
+`#[immune]` and `#[antigen_tolerance]` via `RatificationKind ∈ {Immunity, Tolerance}`
+discriminator. `tolerance-vibes-grade` hint surfaces the gap when consumers haven't
+opted into `sidecar = true`. v0.1 limitation: `ToleranceVibesGrade` maps to
+`AuditHint::NoneApplicable` at top-level API; named hint visible at substrate layer.
+Full enum migration is A3+ work.
+
+**Predicate weakening explicit-declaration requirement**: consumer crate's `#[descended_from(X)]`
+redeclaration using a weaker predicate must declare `weakened_from: AntigenIdentifier` +
+`weakening_rationale: String` (per Eiffel variance rule + ADR-018). Audit emits
+`discipline-predicate-weakening-undeclared` on silent weakening.
+
+**v0.1 fingerprint-under-scope semantic** (FA-3): `scope` is a metadata label in v0.1;
+item-level fingerprints used regardless of scope. File-scope hash-of-all-items is v0.2+.
+
+**Witness-provider-crate trust boundary**: v0.1 ships sealed leaf set. v0.2+ ADR MUST
+specify actual enforcement mechanism (WASM sandboxing, `no_std` + restricted-deps, or
+subprocess isolation) — documentation-trust insufficient (adversarial T5-R).
+
+**Discipline-vs-machinery unification asymmetry**: substrate-witnesses and cross-crate
+witnesses share discipline-level unification (tier-honesty; SubstrateState evidence kind;
+Execution ceiling) but NOT machinery (separate parsers, separate recognition pipelines).
+Enforced via in-code comment blocks + `atk_a3_unification_guardrail.rs` adversarial test.
+
+### Mechanics
+
+**Schema** (`antigen-attestation` crate; `schema.rs`):
+`Ratification { schema_version, kind, antigen, source_file, items: Vec<ItemRatification> }`
+where `ItemRatification { item_path, current_fingerprint, doc_ref?, signers, oracles, fresh_through?, extensions }`.
+`Signer { name, role?, date, signed_against_fingerprint, basis: SignerBasis, strength: SignatureStrength, signature? }`.
+`SignerBasis ∈ { Fresh, DeltaFrom { prior_fingerprint, cumulative_root_fingerprint, chain_depth, rationale } }`.
+`SignatureStrength ∈ { TextStamp, GitTrust, CryptoSigned }` (ordinal; retains `PartialOrd+Ord` for weakest-link reporting).
+Cross-language primitive: `.attest/` JSON sidecars, not proc-macro syntax.
+Schema-governance: JSON Schema backward compatibility required on any `schema_version` bump.
+
+**Sidecar location**: per-antigen-per-file under `.attest/` subfolder adjacent to source.
+`src/numerics.rs` carrying `SignedZeroDiscipline` on `sinh` → `src/numerics.attest/SignedZeroDiscipline.json`.
+
+**CLI families**:
+- `cargo antigen attest scaffold [--minimal] [--file F] [--antigen A] [--item I]`
+- `cargo antigen attest scaffold-anchor` — one-shot anchor (scaffold + sign + freeze)
+- `cargo antigen attest sign [--strength TextStamp|GitTrust|CryptoSigned]`
+- `cargo antigen attest check [--file F | --all]`
+- `cargo antigen attest delta [--from FP] [--as NAME] [--rationale R]`
+- `cargo antigen attest list [--orphan-scan]` — `--orphan-scan` walks `.attest/` independent of scan-side discovery
+- `cargo antigen attest gc` — report-only in v0.1 (bidirectional orphan detection)
+- `cargo antigen attest migrate --from v1 --to v2 [--acknowledge-scheme-migration] [--set-basis KIND]` — `--set-basis` defaults to `legacy_unknown` when prior sidecar lacked `basis` field (FA-1 tier-honest default)
+- `cargo antigen tolerate scaffold/sign/check/list` — parallel tolerance family
+
+### Enforcement
+
+**E1** — `cargo antigen audit` evaluates substrate-witness predicates against on-disk
+sidecars + git log + named docs. Failures produce `WitnessTier::None` or `Reachability`
+with specific hints; CI gates fail on `--min-tier execution` when predicate doesn't pass.
+
+**E2** — `Ratification` JSON sidecar validated against schema at parse-time. Empty
+rationale on `DeltaFrom` rejected. Zero-leaf compositions rejected at macro-parse time
+(trybuild fixture verifies error).
+
+**E3** — `attest delta` CLI refuses entries exceeding chain-depth cap, or carrying empty
+rationale. Distinct exit codes for CI routing.
+
+**E4** — Closed-set tool bright-line at leaf-design review; documented in
+`antigen-attestation/src/predicate.rs` module doc.
+
+**E5** — Discipline-vs-machinery unification guardrail: in-code comment blocks +
+`antigen-attestation/tests/atk_a3_unification_guardrail.rs` adversarial precision test.
+
+**E6** — Tier-honesty ratchet: `EvidenceKind` ceiling per-kind enforced at derivation;
+`SubstrateState` cannot reach `FormalProof`; `signature_strength` is `None` until
+DSSE/Sigstore activate (v0.4+).
+
+**E7** — Tambear-adoption smoke test (Phase 4): primitive exercises `SignedZeroDiscipline`
+on sinh/cosh. Adoption findings feed v0.2 amendment planning.
+
+### Resolves
+
+- **Discipline failure-class gap**: failure-classes with substrate witnesses now have
+  first-class declarative path (`requires = <predicate>` on `#[immune]`).
+- **ADR-011 vibes-grade tolerance gap**: `tolerance-vibes-grade` hint surfaces absence
+  at substrate layer; `WitnessTier::None` surfaces at top-level API.
+- **ADR-005 Amendment 3 three-axis extension**: `WitnessTier × AuditHint × EvidenceKind`.
+- **Delta-attestation laundering surface**: chain-depth cap + non-empty rationale enforced;
+  cumulative-fingerprint threshold in schema (evaluator enforcement v0.2).
+- **Closed-set tool boundary**: 4-point bright-line replaces vague "ecosystem tools."
+- **Discipline-vs-machinery unification drift risk**: comment + adversarial test prevents
+  silent shared-parser regression.
+- **Reviewer-not-committer PR workflow**: `signed_trailer` leaf for v0.1; v0.4+
+  crypto-signing via DSSE decouples from committer identity.
+
+### Biology grounding
+
+**B1** — Recognition vs evidence role-distinction: `requires = <predicate>` is recognition
+(B-cell receptor); `.attest/*.json` sidecar is evidence of attestation (antibody /
+cellular activation history). Biology mandates role-distinction; sidecar-as-evidence is
+architecture (code-drift defense via fingerprint pinning).
+
+**B2** — Somatic hypermutation → WHY-of-attestation: `SignerBasis::Fresh.reasoning`
+records WHY the signer signed (F17 transverse principle unifies six independent gap-instances).
+
+**B3** — Closed combinator grammar → immune-cell signal integration: `all_of` ↔
+co-stimulation; `any_of` ↔ redundant pathways; `not` ↔ inhibitory checkpoints.
+
+**B4** — Memory-cell waning → `fresh_within_days`: persistence + staleness doubly
+justified (engineering + biology).
+
+**B5** — `DeltaFrom` carry-forward → vaccination booster: re-attestation without
+full fresh review, with recorded rationale.
+
+**B6** — Civic notary 800-year arc → `SignatureStrength` escalation: `TextStamp` ↔
+pre-institutional peer testimony; `GitTrust` ↔ civic notary (workspace-bounded,
+institutionally accountable); `CryptoSigned` ↔ notary public with universal license
+(DSSE + Sigstore identity-binding, v0.4+).
+
+**B7** — MHC-presentation → `evidence_provenance`: structured data encoding ADR-006
+three-instances threshold; audit can verify `n >= 3` for stdlib-promotion eligibility.
+
+**B8** — Kinetic-proofreading minimum-across-signers: weakest-link aggregation when
+multiple individually-passing signers contribute to a collective tier.
+
+### Open questions carried to v0.2
+
+- CODEOWNERS interop (`signers(required_role = "math-team", ...)`) — Amendment 1
+- Leaf-provider extensibility with actual enforcement mechanism (WASM / `no_std` / subprocess) — v0.2 ADR
+- Coarser-scope sidecar location (module/crate/workspace) — per F21 coordination-substrate
+- Cumulative-fingerprint threshold evaluator enforcement — Amendment 1 or standalone
+- Fresh.reasoning promotion from `Option<String>` to required — v0.3 after adoption confirms
+- Compound-evidence list form (full list per item, not just `compound_evidence: bool`) — Amendment 1
 
 ---
 
