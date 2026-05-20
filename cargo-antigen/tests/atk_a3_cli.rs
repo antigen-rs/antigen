@@ -424,39 +424,40 @@ fn atk_a3_cli_attest_list_accepts_root_flag() {
     assert_eq!(code, 0, "`attest list --root .` must exit 0");
 }
 
+// `attest delta`: shipped (task #53); no longer a stub.
+// `attest move`: DROPPED entirely (commit 37b0eeb); gc + audit enforce the discipline.
+// `attest oracle`: now covered by atk_a3_cli_attest_oracle_renamed_for_f28_r2_collision_avoidance.
+
 #[test]
-fn atk_a3_cli_design_phase_attest_delta_returns_failure() {
-    let (code, stderr) = attest(&["delta"]);
+fn atk_a3_cli_attest_migrate_was_dropped_for_additive_only_schema() {
+    // Per ADR-021 §D2: additive-only schema evolution makes migration
+    // unnecessary. The `attest migrate` subcommand was removed entirely.
+    // Invoking it must fail with clap's "unknown subcommand" error
+    // (typically exit 2 or non-zero).
+    let (code, _stderr) = attest(&["migrate"]);
     assert_ne!(
         code, 0,
-        "design-phase `attest delta` MUST NOT report success (ADR-005 Am 3): stderr={stderr}"
+        "removed `attest migrate` MUST NOT report success; expect clap unknown-subcommand"
     );
 }
 
 #[test]
-fn atk_a3_cli_design_phase_attest_oracle_returns_failure() {
+fn atk_a3_cli_attest_oracle_renamed_for_f28_r2_collision_avoidance() {
+    // Per ADR-021 F28-R2: `attest oracle complete` renamed → `attest oracle
+    // mark` to disambiguate from top-level `cargo antigen oracle complete`
+    // (state-machine transition). The v0.1-rc stub is hidden in --help but
+    // still exits non-zero per ADR-005 Am 3 (tier-honesty: a stub MUST NOT
+    // report success).
     let (code, stderr) = attest(&["oracle"]);
     assert_ne!(
         code, 0,
-        "design-phase `attest oracle` MUST NOT report success (ADR-005 Am 3): stderr={stderr}"
+        "design-phase `attest oracle` (placeholder for `mark`) MUST NOT report success"
     );
-}
-
-#[test]
-fn atk_a3_cli_design_phase_attest_move_returns_failure() {
-    let (code, stderr) = attest(&["move"]);
-    assert_ne!(
-        code, 0,
-        "design-phase `attest move` MUST NOT report success (ADR-005 Am 3): stderr={stderr}"
-    );
-}
-
-#[test]
-fn atk_a3_cli_design_phase_attest_migrate_returns_failure() {
-    let (code, stderr) = attest(&["migrate"]);
-    assert_ne!(
-        code, 0,
-        "design-phase `attest migrate` MUST NOT report success (ADR-005 Am 3): stderr={stderr}"
+    assert!(
+        stderr.contains("attest oracle mark")
+            || stderr.contains("design phase")
+            || stderr.contains("not yet implemented"),
+        "stderr should reference the renamed verb or design-phase status: {stderr}"
     );
 }
 
