@@ -148,10 +148,10 @@ evaluates against on-disk substrate.
 | Primitive | Checks |
 |---|---|
 | `ratified_doc(path?, min_version?, anchor?, sibling_json?)` | Doc exists; frontmatter version ≥ min; anchor present; optional adjacent JSON for doc-level ratification (absorbs F2) |
-| `signers(required, roles?, against?)` | Sidecar `signers[]` includes required names (optionally with roles); `against = "current"\|"any"` (default `"current"`) |
+| `signers(required, roles?, against?, signature_allow?, signature_prefer?)` | Sidecar `signers[]` includes required names (optionally with roles); `against = "current"\|"any"` (default `"current"`); `signature_allow` = categorical allow-set of `SignatureStrength` variants each signer must carry (ABO/Rh biology, B6); `signature_prefer` = preferred tier (hint fires if below, but does not fail predicate) |
 | `signed_trailer(key, role?, count?)` | Git log on touching commits has matching trailer; uses `git interpret-trailers` for canonical parsing |
 | `oracles_complete(files)` | Listed oracle files exist with `status: complete` markers |
-| `fresh_within_days(n)` | Most recent signature/sidecar mtime within N days |
+| `fresh_within_days(n)` | Most recent current-fingerprint signer's structured `.date` field within N days (NFA-21: stale-fingerprint signer entries excluded from freshness computation; filesystem mtime is NOT used) |
 
 **Combinators (full set; closed)**: `all_of([...])`, `any_of([...])`, `not(...)`.
 Schema rejects zero-leaf compositions at parse-time.
@@ -412,9 +412,10 @@ Per aristotle F8, the honest model has THREE axes:
 |---|---|---|
 | `WitnessTier` | `None | Reachability | Execution | FormalProof` | existing (W7 enum) |
 | `AuditHint` | per-case verification-work disambiguation | existing (ADR-005 Am 3) |
-| `EvidenceKind` | `TypeSystemProof | Behavioral | SubstrateState` | NEW (F8) |
+| `EvidenceKind` | `None | TypeSystemProof | Behavioral | SubstrateState` | NEW (F8) |
 
 **Per-EvidenceKind ceiling**:
+- `None` → reaches `None` tier (no substrate consulted; used for vibes-grade tolerance states and error states where no evaluation occurred)
 - `TypeSystemProof` → reaches `FormalProof`
 - `Behavioral` → reaches `Execution` (after harness invocation; Reachability in v0.1)
 - `SubstrateState` → reaches `Execution` (when predicate passes + currency holds); cannot reach `FormalProof`

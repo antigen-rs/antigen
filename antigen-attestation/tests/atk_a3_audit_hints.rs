@@ -1,4 +1,4 @@
-//! Adversarial precision test: all 13 `SubstrateAuditHint` variants fire at
+//! Adversarial precision test: all 14 `SubstrateAuditHint` variants fire at
 //! the correct states, and the 4-group taxonomy is complete.
 //!
 //! ## What this test guards
@@ -13,8 +13,8 @@
 //!
 //! ## The completeness guard
 //!
-//! Test `all_13_hint_variants_are_explicitly_exercised` lists all 13 variants
-//! by name in an explicit array. If a future commit adds a 14th variant to
+//! Test `all_14_hint_variants_are_explicitly_exercised` lists all 14 variants
+//! by name in an explicit array. If a future commit adds a 15th variant to
 //! `SubstrateAuditHint` without updating this test, the match is NOT exhaustive
 //! — Rust's exhaustiveness-checking fires on the array construction and the
 //! test fails to compile, forcing the author to add a test case.

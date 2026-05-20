@@ -636,7 +636,7 @@ fn run_new(name: String) -> ExitCode {
          docs/expedition/conventions.md for naming guidance.\n",
         name
     );
-    ExitCode::SUCCESS
+    ExitCode::FAILURE
 }
 
 fn run_vaccinate(antigen: String, pattern: String) -> ExitCode {
@@ -652,7 +652,7 @@ fn run_vaccinate(antigen: String, pattern: String) -> ExitCode {
          For now, apply immunity manually per site.\n",
         antigen, pattern
     );
-    ExitCode::SUCCESS
+    ExitCode::FAILURE
 }
 
 fn run_audit(args: AuditArgs) -> ExitCode {
@@ -727,10 +727,12 @@ fn run_attest(cli: AttestCli) -> ExitCode {
         | AttestSubcommand::Migrate
         | AttestSubcommand::Gc => {
             eprintln!(
-                "This attest subcommand is in design phase.\n\
-                 It will be implemented in a future release."
+                "This attest subcommand is not implemented in v0.1-rc.\n\
+                 It is named in ADR-019 \u{a7}M4 as a v0.1-rc verb but \
+                 implementation is in design phase.\n\
+                 Operator scripts MUST NOT rely on this exit code as success."
             );
-            ExitCode::SUCCESS
+            ExitCode::FAILURE
         }
     }
 }
@@ -743,8 +745,13 @@ fn run_tolerate(cli: TolerateCli) -> ExitCode {
         TolerateSubcommand::Sign(args) => run_attest_sign(args),
         TolerateSubcommand::Check(args) => run_attest_check(args),
         TolerateSubcommand::List => {
-            eprintln!("tolerate list is in design phase.");
-            ExitCode::SUCCESS
+            eprintln!(
+                "tolerate list is not implemented in v0.1-rc.\n\
+                 It is named in ADR-019 \u{a7}M4 as a v0.1-rc verb but \
+                 implementation is in design phase.\n\
+                 Operator scripts MUST NOT rely on this exit code as success."
+            );
+            ExitCode::FAILURE
         }
     }
 }
