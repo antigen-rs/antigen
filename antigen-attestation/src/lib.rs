@@ -53,7 +53,8 @@ pub mod tier;
 pub use evaluate::{EvaluatedPredicate, EvaluationContext, EvaluationError};
 pub use predicate::{Combinator, Leaf, Predicate, PredicateParseError};
 pub use schema::{
-    AntigenIdentifier, DocRef, ItemRatification, OracleRef, Ratification, RatificationKind,
-    SchemaVersion, Signature, Signer, SignerBasis,
+    AntigenIdentifier, DocRef, ItemRatification, Oracle, OracleCompletionMarker, OracleRef,
+    OracleState, OracleVersion, Provenance, Ratification, RatificationKind, SchemaVersion,
+    Signature, Signer, SignerBasis, StateTransition, Steward,
 };
 pub use tier::{AuditHint, EvidenceKind, SignatureStrength, WitnessTier};
