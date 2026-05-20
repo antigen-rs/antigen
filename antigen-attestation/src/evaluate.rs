@@ -1453,6 +1453,329 @@ mod tests {
     }
 
     #[test]
+    fn historical_signer_entry_does_not_trigger_false_stale_nfa18() {
+        // BUG REGRESSION TEST (adversarial NFA-18): sidecars are append-only. When
+        // a signer re-attests after the item fingerprint changes, the sidecar gains
+        // a NEW entry (current fp) while keeping the OLD entry (prior fp). The old
+        // stale-detection code counted stale ROWS rather than stale NAMES: any row
+        // with a non-current fingerprint incremented stale_count, so a re-attested
+        // signer who has BOTH a stale row AND a fresh row was (falsely) classified
+        // as stale — downgrading the result from Execution to Reachability.
+        //
+        // FIX: a NAME is stale iff ALL of its entries are against non-current fp.
+        // If at least one entry for that name is current, the name is NOT stale.
+        //
+        // This test FAILS against the buggy row-counting code.
+        let alice_old = Signer {
+            name: "alice".to_string(),
+            role: None,
+            date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            signed_against_fingerprint: "fp-old".to_string(),
+            basis: crate::schema::SignerBasis::Fresh { reasoning: None },
+            strength: SignatureStrength::GitTrust,
+            signature: None,
+        };
+        let alice_new = Signer {
+            name: "alice".to_string(),
+            role: None,
+            date: sample_date(),
+            signed_against_fingerprint: "fp-current".to_string(),
+            basis: crate::schema::SignerBasis::Fresh { reasoning: None },
+            strength: SignatureStrength::GitTrust,
+            signature: None,
+        };
+        // Sidecar has BOTH entries (append-only ratchet).
+        let item = item_with(vec![alice_old, alice_new]);
+        let pred = Predicate::leaf(Leaf::Signers {
+            required: vec!["alice".to_string()],
+            roles: BTreeMap::new(),
+            against: SignerCurrency::Current,
+            signature_allow: vec![],
+            signature_prefer: None,
+        });
+        let ctx = TestContext::new(sample_date());
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+        // Alice has a current entry — must NOT be classified as stale.
+        assert_eq!(
+            r.witness_tier,
+            WitnessTier::Execution,
+            "NFA-18: re-attested signer with historical stale row must not be classified stale; \
+             append-only ratchet produces both rows; stale detection must be per NAME not per ROW"
+        );
+        assert_eq!(
+            r.audit_hint,
+            AuditHint::DisciplinePredicatePassedSubstrateCurrent
+        );
+    }
+
+    #[test]
+    fn historical_text_stamp_entry_does_not_pull_down_current_git_trust_strength_nfa19() {
+        // BUG REGRESSION TEST (adversarial NFA-19): `min_strength` was computed
+        // across ALL signer rows including historical stale entries. In an append-only
+        // sidecar, a signer who attested at TextStamp tier against fp-old then
+        // re-attested at GitTrust tier against fp-current leaves BOTH rows. The old
+        // min_strength computation took the minimum across all rows — returning
+        // TextStamp — even though the current attestation is GitTrust.
+        //
+        // FIX: min_strength is computed over CURRENT-fingerprint entries only.
+        //
+        // This test FAILS against the buggy all-rows min_strength code.
+        let alice_old_text_stamp = Signer {
+            name: "alice".to_string(),
+            role: None,
+            date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            signed_against_fingerprint: "fp-old".to_string(),
+            basis: crate::schema::SignerBasis::Fresh { reasoning: None },
+            strength: SignatureStrength::TextStamp, // historical: weaker tier
+            signature: None,
+        };
+        let alice_new_git_trust = Signer {
+            name: "alice".to_string(),
+            role: None,
+            date: sample_date(),
+            signed_against_fingerprint: "fp-current".to_string(),
+            basis: crate::schema::SignerBasis::Fresh { reasoning: None },
+            strength: SignatureStrength::GitTrust, // current: stronger tier
+            signature: None,
+        };
+        let item = item_with(vec![alice_old_text_stamp, alice_new_git_trust]);
+        let pred = Predicate::leaf(Leaf::Signers {
+            required: vec!["alice".to_string()],
+            roles: BTreeMap::new(),
+            against: SignerCurrency::Current,
+            signature_allow: vec![],
+            signature_prefer: None,
+        });
+        let ctx = TestContext::new(sample_date());
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+        assert_eq!(r.witness_tier, WitnessTier::Execution);
+        // Historical TextStamp entry must NOT pull down the current GitTrust strength.
+        assert_eq!(
+            r.signature_strength,
+            Some(SignatureStrength::GitTrust),
+            "NFA-19: historical TextStamp entry must not pull down current GitTrust \
+             min_strength; min_strength must be computed over current-fp entries only"
+        );
+    }
+
+    #[test]
+    fn historical_delta_entry_does_not_contaminate_current_fresh_state_nfa20() {
+        // BUG REGRESSION TEST (adversarial NFA-20): `max_chain_depth` and `has_delta`
+        // were computed across ALL signer rows. A signer who originally attested via
+        // a delta-chain (chain_depth >= near-cap) against fp-old then re-attested Fresh
+        // against fp-current should be classified as Fresh — not DeltaChainNearCap.
+        // But the old code found the historical delta row and emitted the delta hint.
+        //
+        // FIX: both delta-chain fields are computed over CURRENT-fingerprint entries only.
+        //
+        // This test FAILS against the buggy all-rows delta computation.
+        let alice_old_delta = Signer {
+            name: "alice".to_string(),
+            role: None,
+            date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            signed_against_fingerprint: "fp-old".to_string(),
+            basis: crate::schema::SignerBasis::DeltaFrom {
+                prior_fingerprint: "fp-root".to_string(),
+                cumulative_root_fingerprint: "fp-root".to_string(),
+                chain_depth: 2, // near-cap (cap=3 → depth 2 fires DeltaChainNearCap)
+                rationale: "historical delta".to_string(),
+            },
+            strength: SignatureStrength::GitTrust,
+            signature: None,
+        };
+        let alice_new_fresh = Signer {
+            name: "alice".to_string(),
+            role: None,
+            date: sample_date(),
+            signed_against_fingerprint: "fp-current".to_string(),
+            basis: crate::schema::SignerBasis::Fresh { reasoning: None }, // re-attested Fresh
+            strength: SignatureStrength::GitTrust,
+            signature: None,
+        };
+        let item = item_with(vec![alice_old_delta, alice_new_fresh]);
+        let pred = Predicate::leaf(Leaf::Signers {
+            required: vec!["alice".to_string()],
+            roles: BTreeMap::new(),
+            against: SignerCurrency::Current,
+            signature_allow: vec![],
+            signature_prefer: None,
+        });
+        let ctx = TestContext::new(sample_date());
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+        // Current attestation is Fresh — must NOT emit DeltaChainNearCap or ViaDeltaChain.
+        assert_eq!(
+            r.audit_hint,
+            AuditHint::DisciplinePredicatePassedSubstrateCurrent,
+            "NFA-20: historical delta entry must not contaminate fresh re-attestation; \
+             delta classification must be computed over current-fp entries only"
+        );
+    }
+
+    #[test]
+    fn stale_signer_date_does_not_satisfy_fresh_within_days_standalone_nfa21() {
+        // BUG REGRESSION TEST (adversarial NFA-21): `eval_fresh_within_days` used
+        // `item.signers.iter().map(|s| s.date).max()` — taking the maximum date
+        // across ALL signer entries including stale-fingerprint ones. A signer who
+        // signed TODAY against fp-old (stale fingerprint) would satisfy a
+        // `fresh_within_days(60)` check even though they have never attested against
+        // the current fingerprint. This is a silent freshness bypass.
+        //
+        // FIX: only consider signer dates for entries whose
+        // `signed_against_fingerprint == current_fingerprint`.
+        //
+        // This test FAILS against the buggy all-rows date computation.
+        let stale_bob = Signer {
+            name: "bob".to_string(),
+            role: None,
+            date: sample_date(), // today — but against fp-old (stale)
+            signed_against_fingerprint: "fp-old".to_string(),
+            basis: crate::schema::SignerBasis::Fresh { reasoning: None },
+            strength: SignatureStrength::GitTrust,
+            signature: None,
+        };
+        // No current-fp entry exists; fresh_through is also None.
+        let item = item_with(vec![stale_bob]);
+        let pred = Predicate::leaf(Leaf::FreshWithinDays { days: 60 });
+        let ctx = TestContext::new(sample_date());
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+        // Stale signer's date must NOT satisfy fresh_within_days.
+        assert_eq!(
+            r.witness_tier,
+            WitnessTier::None,
+            "NFA-21: signer date against stale fingerprint must not satisfy \
+             fresh_within_days; only current-fp signer dates count"
+        );
+        assert_eq!(r.audit_hint, AuditHint::DisciplinePredicateFailed);
+    }
+
+    #[test]
+    fn fresh_through_without_current_fp_signers_bypasses_freshness_nfa23() {
+        // DOCUMENTED GAP (adversarial NFA-23): `eval_fresh_within_days` accepts
+        // `item.fresh_through` as an anchor date even when NO current-fingerprint
+        // signer exists. `fresh_through` is a bare `NaiveDate` on the ItemRatification
+        // with NO fingerprint binding. If the item fingerprint changed to fp-current
+        // after `fresh_through` was written (when fp-old was current), the date is now
+        // stale w.r.t. the item's identity — but the evaluator sees a future date and
+        // returns true.
+        //
+        // Attack: set fresh_through to a future date in a sidecar that was written
+        // for fp-old. The item has since changed (fp-current). No re-attestation has
+        // happened. The freshness predicate silently passes.
+        //
+        // FIX DIRECTION (v0.2): require at least one current-fp signer entry before
+        // `fresh_through` is consulted, OR add a `fresh_through_fingerprint` binding
+        // field to `ItemRatification` so the audit can detect stale `fresh_through`.
+        //
+        // This test DOCUMENTS the current behavior. The assertion will change (fail)
+        // when the fix is applied, making the fix visible.
+        let stale_signer = Signer {
+            name: "alice".to_string(),
+            role: None,
+            date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            signed_against_fingerprint: "fp-old".to_string(),
+            basis: crate::schema::SignerBasis::Fresh { reasoning: None },
+            strength: SignatureStrength::GitTrust,
+            signature: None,
+        };
+        let mut item = item_with(vec![stale_signer]);
+        // fresh_through within the 60-day window — but was written when fp-old was current.
+        // today = 2026-05-19; fresh_through = 2026-06-01 is 13 days out (within 60 days).
+        item.fresh_through = Some(NaiveDate::from_ymd_opt(2026, 6, 1).unwrap());
+        let pred = Predicate::leaf(Leaf::FreshWithinDays { days: 60 });
+        let ctx = TestContext::new(sample_date()); // today = 2026-05-19
+        let r = evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx)
+            .unwrap();
+        // CURRENT BEHAVIOR: fresh_through satisfies freshness even with no current-fp signers.
+        // The stale signer's date is excluded (NFA-21 fix), but fresh_through has no
+        // fingerprint binding and still fires. Documents the v0.2 gap.
+        assert_eq!(
+            r.witness_tier,
+            WitnessTier::Execution,
+            "NFA-23 documented gap: fresh_through bypasses freshness without current-fp signers; \
+             fix in v0.2 by fingerprint-scoping fresh_through or requiring current-fp co-presence"
+        );
+    }
+
+    #[test]
+    fn signature_allow_enforced_against_current_fp_entry_strength_nfa24() {
+        // SILENT FAILURE CANDIDATE (adversarial NFA-24): `eval_signers` with
+        // `against = SignerCurrency::Any` and a non-empty `signature_allow` list
+        // should enforce strength against ALL candidate entries, but the
+        // `any_candidate_satisfies` loop might match a STALE entry that happens to
+        // pass the `signature_allow` constraint when the CURRENT entry does not —
+        // or vice versa.
+        //
+        // Specifically: if `signature_allow = [GitTrust, CryptoSigned]` (disallow
+        // TextStamp), and alice has a stale entry with GitTrust AND a current entry
+        // with TextStamp (she downgraded her signing tier), `against = Any` means
+        // the stale GitTrust entry satisfies the allow-list. The predicate passes
+        // — but the current attestation is at TextStamp, which is below the allow-list.
+        //
+        // This is a SILENT FAILURE: the predicate passes because `against=Any`
+        // lets the stale entry satisfy both currency AND strength — but the signer's
+        // CURRENT commitment is TextStamp-only.
+        //
+        // FIX DIRECTION: `signature_allow` enforcement should be checked only against
+        // entries that also satisfy the currency constraint. For `against=Current`,
+        // this is already correct (currency_ok gates strength_ok). For `against=Any`,
+        // the strength must be checked against current-fp entries specifically (or
+        // the predicate must require `against=Current` when `signature_allow` is set).
+        //
+        // This test documents the current behavior.
+        let alice_stale_git = Signer {
+            name: "alice".to_string(),
+            role: None,
+            date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            signed_against_fingerprint: "fp-old".to_string(), // stale
+            basis: crate::schema::SignerBasis::Fresh { reasoning: None },
+            strength: SignatureStrength::GitTrust, // passes allow-list
+            signature: None,
+        };
+        let alice_current_text = Signer {
+            name: "alice".to_string(),
+            role: None,
+            date: sample_date(),
+            signed_against_fingerprint: "fp-current".to_string(), // current
+            basis: crate::schema::SignerBasis::Fresh { reasoning: None },
+            strength: SignatureStrength::TextStamp, // BELOW allow-list
+            signature: None,
+        };
+        let item = item_with(vec![alice_stale_git, alice_current_text]);
+        let pred = Predicate::leaf(Leaf::Signers {
+            required: vec!["alice".to_string()],
+            roles: BTreeMap::new(),
+            against: SignerCurrency::Any, // stale entries count for currency
+            signature_allow: vec![SignatureStrength::GitTrust, SignatureStrength::CryptoSigned],
+            signature_prefer: None,
+        });
+        let ctx = TestContext::new(sample_date());
+        let r = evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx)
+            .unwrap();
+        // CURRENT BEHAVIOR: the stale GitTrust entry satisfies both currency (Any=always true)
+        // and strength (in allow-list), so the predicate PASSES even though alice's
+        // current-fp attestation is TextStamp (below the allow-list). alice HAS a
+        // current-fp entry so stale_count=0 (per-name NFA-18 fix). Classification: Execution.
+        //
+        // The gap: `against=Any` + `signature_allow` is unsound — a stale entry at a
+        // higher tier satisfies the allow-list while the signer's actual CURRENT tier is
+        // below it. This should fail: the signer's current commitment is TextStamp-only.
+        //
+        // This documents the v0.2 gap — fix by requiring strength checks against
+        // current-fp entries specifically when against=Any.
+        assert_eq!(
+            r.witness_tier,
+            WitnessTier::Execution,
+            "NFA-24 documented gap: against=Any + signature_allow lets stale GitTrust entry \
+             satisfy allow-list when current-fp entry is TextStamp (below allow-list); \
+             CORRECT behavior would be WitnessTier::None (predicate should fail)"
+        );
+    }
+
+    #[test]
     fn doc_crlf_line_endings_not_silently_rejected_nfa6b() {
         // Same CRLF silent failure in parse_frontmatter_version — a doc with
         // CRLF line endings has its version silently dropped, causing

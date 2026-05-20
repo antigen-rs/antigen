@@ -215,7 +215,9 @@ impl Predicate {
                 Self::Leaf(Leaf::SignedTrailer { count, .. }) if *count == 0 => {
                     err = Some(PredicateParseError::ZeroTrailerCount);
                 }
-                Self::Leaf(Leaf::RatifiedDoc { anchor: Some(a), .. }) if a.is_empty() => {
+                Self::Leaf(Leaf::RatifiedDoc {
+                    anchor: Some(a), ..
+                }) if a.is_empty() => {
                     err = Some(PredicateParseError::EmptyAnchor);
                 }
                 Self::Leaf(Leaf::RatifiedDoc {
