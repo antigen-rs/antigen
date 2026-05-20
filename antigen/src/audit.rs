@@ -583,13 +583,23 @@ fn audit_substrate_witness(immunity: &Immunity, predicate_json: &str) -> Immunit
     else {
         let result = antigen_attestation::EvaluatedPredicate::sidecar_schema_invalid();
         // Sidecar not yet loaded; default kind to Immunity (kind field on this path is unused).
-        return immunity_audit_from_evaluated(immunity, result, predicate_json.to_string(), antigen_attestation::RatificationKind::Immunity);
+        return immunity_audit_from_evaluated(
+            immunity,
+            result,
+            predicate_json.to_string(),
+            antigen_attestation::RatificationKind::Immunity,
+        );
     };
 
     // Load the sidecar. Missing → sidecar_missing result.
     let Some(sidecar) = load_sidecar(&immunity.file, &immunity.antigen_type) else {
         let result = antigen_attestation::EvaluatedPredicate::sidecar_missing();
-        return immunity_audit_from_evaluated(immunity, result, predicate_json.to_string(), antigen_attestation::RatificationKind::Immunity);
+        return immunity_audit_from_evaluated(
+            immunity,
+            result,
+            predicate_json.to_string(),
+            antigen_attestation::RatificationKind::Immunity,
+        );
     };
 
     // v0.1: use the first item in the sidecar's items list as the evaluation
@@ -597,7 +607,12 @@ fn audit_substrate_witness(immunity: &Immunity, predicate_json: &str) -> Immunit
     // per-item predicates when multiple items share an antigen sidecar.
     let Some(item) = sidecar.items.first() else {
         let result = antigen_attestation::EvaluatedPredicate::sidecar_missing();
-        return immunity_audit_from_evaluated(immunity, result, predicate_json.to_string(), sidecar.kind);
+        return immunity_audit_from_evaluated(
+            immunity,
+            result,
+            predicate_json.to_string(),
+            sidecar.kind,
+        );
     };
 
     let ctx = FilesystemAuditContext;
