@@ -164,9 +164,6 @@ enum AttestSubcommand {
     /// List all `.attest/` sidecars in the workspace.
     #[command(hide = true)]
     List,
-    /// Move a sidecar to a new location after refactoring (design phase).
-    #[command(hide = true)]
-    Move,
     /// Migrate a sidecar to a new schema version (design phase).
     #[command(hide = true)]
     Migrate,
@@ -723,7 +720,6 @@ fn run_attest(cli: AttestCli) -> ExitCode {
         AttestSubcommand::Delta
         | AttestSubcommand::Oracle
         | AttestSubcommand::List
-        | AttestSubcommand::Move
         | AttestSubcommand::Migrate
         | AttestSubcommand::Gc => {
             eprintln!(
