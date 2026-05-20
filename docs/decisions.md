@@ -64,6 +64,7 @@
 - [ADR-017 — Antigen identity is canonical declaration site; cross-crate trust delegates to cargo](#adr-017-antigen-identity-is-canonical-declaration-site-cross-crate-trust-delegates-to-cargo)
 - [ADR-018 — `#[descended_from]` propagation: tagged synthesis + diamond dedup + inheritance state matrix](#adr-018-descended_from-propagation-tagged-synthesis--diamond-dedup--inheritance-state-matrix)
 - [ADR-019 — Substrate-witness predicate family](#adr-019-substrate-witness-predicate-family)
+- [ADR-020 — Cross-cutting attestation primitive](#adr-020-cross-cutting-attestation-primitive)
 
 ---
 
@@ -4622,6 +4623,157 @@ multiple individually-passing signers contribute to a collective tier.
 - Cumulative-fingerprint threshold evaluator enforcement — Amendment 1 or standalone
 - Fresh.reasoning promotion from `Option<String>` to required — v0.3 after adoption confirms
 - Compound-evidence list form (full list per item, not just `compound_evidence: bool`) — Amendment 1
+
+---
+
+## [ADR-020] Cross-cutting attestation primitive
+
+**Status**: Ratified 2026-05-20.
+
+**Participants**: navigator (F25 architectural call + OQ pre-rulings), aristotle (F26
+Phase 1-8), adversarial (ATK-020, 10 findings), scientist (v0 + v1 + v2 draft arc),
+naturalist (ABO/Rh cognate + notary-arc extension), Tekgy (v0.1-rc timing verdict).
+
+**Related**:
+- ADR-009 (adoption gradient — architecture-deciding constraint for the SPLIT decision)
+- ADR-019 (substrate-witness predicate family — consumer of attestation data; ratified 03a36c0)
+- ADR-003 (biological metaphor; ABO/Rh + notary-arc B6 grounding)
+- ADR-005 Amendment 2 (rationale-as-required-field; explicit waiver for `why = optional`)
+- F11 (multi-witness lattice discipline; independent-axes reporting)
+
+**Implicit pattern elevated** (per ADR-004 Enforcement): the structural declaration
+layer `#[immune(X, witness = fn)]` captures the verification layer but not the review
+layer. A codebase where humans reviewed code before a test existed has no structural
+record of that review. This ADR elevates the review layer from implicit to explicit.
+
+### Finding
+
+F25 established two irreducible kernels: **attestation** (declare who should attest,
+static metadata at code-authoring time) and **substrate-witness predicate** (evaluate
+whether recorded attestation satisfies a condition, at audit time). These are producer
+and consumer of different kinds.
+
+ADR-009 adoption gradient is the architecture-deciding constraint: embedding attestation
+inside the predicate grammar would require sidecar infrastructure at Layer 1, violating
+Layer 1's "works without sidecar infrastructure" commitment. SPLIT is the only
+architecturally-honest choice. F26 confirms. ADR-020 IS the SPLIT.
+
+### Decision
+
+**`attested = (who, allowed_types, why, scope)` is a new macro parameter on any antigen
+macro, parsed at proc-macro time, written into the compiled artifact as static attestation
+metadata, and evaluated by `cargo antigen audit` independently of the sidecar predicate
+grammar.**
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `who` | `[name, ...]` | YES | Named reviewers expected to attest this item |
+| `allowed_types` | `[TextStamp \| GitTrust \| CryptoSigned]` | NO (absent = all) | Accepted signature strength categories |
+| `why` | `"..."` | NO (recommended) | Human-readable rationale |
+| `scope` | `site \| file \| package \| workspace` | NO (default `site`) | Attestation claim granularity |
+
+**`who` field constraints** (ATK-020-1, ATK-020-8):
+- Non-empty required
+- Names trimmed at proc-macro parse; whitespace-only names are compile error
+- Duplicate names are compile error
+- Set semantics enforced at compile time
+
+**`allowed_types` field constraints** (ATK-020-2):
+- ABSENT = all types accepted (O-negative universal-donor default)
+- EXPLICIT EMPTY `allowed_types = []` is a COMPILE ERROR — permanently unfulfillable;
+  joins the `EmptySignersList`, `ZeroTrailerCount`, `EmptyOraclesList` class of
+  vacuous-bypass guards
+
+**`why` field — Amendment 2 waiver**: `why` is optional per ADR-005 Amendment 2 waiver.
+Declarations are structural intent; review rationale lives at sidecar layer in
+`SignerBasis::Fresh.reasoning` (F17/F20). Compile-time `why` would duplicate or conflict.
+Recommended but not required; when present, static metadata only (no evaluation effect).
+
+**`scope = workspace` in v0.1**: does NOT provide coverage propagation. Every site
+requiring attestation coverage carries its own `attested = (...)`. Cross-site enforcement
+defers to v0.2+ (F21 coordination-substrate guidance).
+
+**Identity binding**: `who` list uses name-string equality. At TextStamp strength, anyone
+can configure any name. `allowed_types = [GitTrust, CryptoSigned]` strongly recommended
+alongside `who` where identity binding matters — `GitTrust` binds name to git commit
+authorship; `CryptoSigned` binds to cryptographic key. Without this, `who = ["alice"]`
+is documentation-quality intent, not a binding identity check.
+
+### Mechanics
+
+```rust
+#[immune(SignedZeroDiscipline,
+    witness = test_sinh_signed_zero,
+    attested = (
+        who = ["alice"],
+        allowed_types = [GitTrust, CryptoSigned],
+        why = "alice reviewed the sinh implementation against Higham 2002 §6.3",
+    ),
+)]
+pub fn sinh(x: f64) -> f64 { ... }
+```
+
+**Audit tier mapping** (current-fp filtering required per ATK-020-7 / NFA-21 pattern):
+
+| State | `WitnessTier` | `EvidenceKind` | `AuditHint` |
+|---|---|---|---|
+| Declared; no current-fp sidecar entry for any declared `who` | `Reachability` | `SubstrateState` | `attestation-declared-not-verified` |
+| Declared + current-fp entries for `who` match `allowed_types` | `Execution` | `SubstrateState` | (per existing sidecar hint) |
+| Declared; current-fp entry exists; signer strength NOT in `allowed_types` | `Reachability` | `SubstrateState` | `attestation-type-not-in-allowed-types` |
+| Declared; signer NOT in `who` (via `--force`) | `Reachability` | `SubstrateState` | `attestation-signer-not-in-declared-who` |
+| `scope = package \| workspace` in v0.1 | `Reachability` | `SubstrateState` | `attestation-scope-not-yet-enforced` |
+| Not declared | (per `witness =`) | (per witness) | (no change) |
+
+Stale signer entries (signed against prior fingerprint) do NOT satisfy the attestation
+declaration. Current-fp filtering is the same NFA-18/19/20/21 discipline applied
+throughout the evaluator.
+
+**Multi-axis composition** (F11; F26): when both `attested` and `witness` are declared,
+each reports independently. Audit emits `compound_evidence: true`. MUST NOT collapse to
+composite tier. `conservative_tier = MIN(attestation_tier, witness_tier)` is the
+recommended CI aggregation field for compound-evidence sites.
+
+**CI enforcement**: gate on BOTH hints for `who` compliance:
+```
+attestation-declared-not-verified == 0
+AND attestation-signer-not-in-declared-who == 0
+```
+Using only the first is insufficient — `--force` satisfies it while violating `who`.
+
+### Adoption gradient
+
+| Layer | Behavior | Infrastructure |
+|---|---|---|
+| 1 (naive) | Not declared | None |
+| 1+ (light-touch) | `attested = (who = ["alice"])` | None |
+| 2 (substrate) | `attested` + `cargo antigen attest sign` | Sidecar write |
+| 3 (predicate) | `attested` + `requires = all_of([signers(...)])` | Sidecar + predicate |
+
+### Biology grounding
+
+**ABO/Rh** (naturalist): `allowed_types` is categorical set membership. Scope limitations:
+no within-allow-list trust gradient; no emergency-override; no multi-recipient consensus.
+
+**Structural vs nominal recognition**: `GitTrust`/`CryptoSigned` in `allowed_types` adds
+structural binding analogous to epitope recognition. `TextStamp` without `allowed_types`
+specifying higher tiers is like recognizing by name label rather than molecular structure.
+
+**Notary arc (B6)**: cross-cutting domain-agnosticism grounds the "attest any macro"
+property. Attestation (notary witnessing) and predicate evaluation (clinical titer test)
+are complementary, not competing.
+
+### Resolves
+
+- "Humans reviewed this but there's no structural record" gap at Layer 1
+- SPLIT vs. widen ADR-019 (SPLIT, per F25 + F26)
+- `allowed_types` categorical-vs-ordinal (categorical, ABO/Rh)
+- Adoption gradient tension (Layer 1 compatible; no sidecar required at compile time)
+- `why` Amendment 2 compliance (waiver with explicit reasoning)
+- Scope v0.1 behavior (syntactic acceptance + non-enforcement hint)
+- `allowed_types = []` vacuous bypass (compile error)
+- CI gate gap for `--force` (dual-hint gate requirement)
+- Stale-fp entry inflating attestation tier (current-fp-only filtering)
+- Missing type-mismatch hint (`attestation-type-not-in-allowed-types`)
 
 ---
 
