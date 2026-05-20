@@ -823,5 +823,159 @@ matures, terms WILL drift in meaning. The discipline:
 3. Vocabulary drift is treated as a sub-clause E violation (coordinate-explicitness
    failure) and triggers a glossary review.
 
-Maintained by: the antigen team. Last updated: 2026-05-08 (A2 day-2: + depth-shift
-discipline).
+Maintained by: the antigen team. Last updated: 2026-05-20 (discipline-witnesses JBD
+team: + substrate-witness vocabulary from ADR-019 and ADR-020 ratification).
+
+---
+
+## Substrate-witness terms (ADR-019 + ADR-020)
+
+### substrate-witness
+
+**Origin**: ADR-019 substrate-witness predicate family.
+
+**Biological referent**: the immune system checks substrate other than the target cell
+itself — B-cell memory (germinal-center history), antibody secretion, oracle-completion
+markers, signed git trailers. The recognition reads the surrounding substrate, not just
+the immediate target.
+
+**Rust ecosystem analog**: a `requires = <predicate>` expression on `#[immune]` that
+evaluates substrate other than the code being audited — ratified docs, team sign-off
+records, oracle-completion markers.
+
+**In antigen**: a witness predicate that reads from `.attest/` JSON sidecars rather than
+from the Rust source AST. Extends the witness vocabulary (ADR-001, ADR-002) to discipline
+failure-classes whose immunity evidence lives outside the code.
+
+### ratification
+
+**Origin**: ADR-019 §M3 schema.
+
+**Biological referent**: germinal-center B-cells undergo somatic hypermutation and
+affinity-maturation — the resulting antibody lineage is "ratified" as effective by
+survival selection.
+
+**Rust ecosystem analog**: the JSON sidecar at `.attest/<Antigen>.json`. Serde-derived;
+single source of truth for audit/CLI/editor validation.
+
+**In antigen**: the structured on-disk record that a named discipline was reviewed. A
+`Ratification` struct carries `schema_version`, `kind` (Immunity or Tolerance),
+`antigen` identifier, and a list of `ItemRatification` entries (one per presented item).
+
+### attestation
+
+**Origin**: ADR-019 §M4 CLI; ADR-020 cross-cutting attestation primitive.
+
+**Biological referent**: the act of an immune cell recognizing and recording an encounter.
+
+**Rust ecosystem analog**: `cargo antigen attest sign` — adds a `Signer` entry to a
+sidecar, recording that a named reviewer verified the item against a stated fingerprint.
+
+**In antigen (ADR-019)**: the act of signing a sidecar at a specific fingerprint with
+stated identity-binding strength (`TextStamp | GitTrust | CryptoSigned`).
+
+**In antigen (ADR-020)**: the `attested = (who, allowed_types, why, scope)` macro
+parameter that declares review intent at code-authoring time, independent of any sidecar.
+Layer 1 compatible (no sidecar required at compile time).
+
+### signer-basis
+
+**Origin**: ADR-019 §M3 schema.
+
+**Biological referent**: affinity-maturation lineage — was this antibody produced by a
+fresh encounter (germinal-center reaction) or by carry-forward from a prior memory cell
+(anamnestic response)?
+
+**Rust ecosystem analog**: the `SignerBasis` enum in `antigen-attestation::schema`.
+`Fresh { reasoning }` = fresh review of the current state. `DeltaFrom { prior_fingerprint,
+cumulative_root_fingerprint, chain_depth, rationale }` = carry-forward from a prior
+attestation with explicit anti-laundering safeguards.
+
+### delta-chain
+
+**Origin**: ADR-019 §M4 anti-laundering safeguards.
+
+**Biological referent**: the chain of anamnestic (recall) responses between germinal-center
+reactions. Too many recall responses without a fresh encounter risks immune memory drift.
+
+**Rust ecosystem analog**: a sequence of `SignerBasis::DeltaFrom` entries for a single
+signer at a single item. The chain-depth cap (default 3) prevents laundering: gradual
+code drift via many small deltas that each look innocuous.
+
+**Anti-laundering safeguards**: chain-depth cap (enforced at write time and audit time);
+`cumulative_root_fingerprint` tracking (schema field); non-empty rationale required.
+
+### tolerance-ratification
+
+**Origin**: ADR-019 §Decision; closes ADR-011 open question.
+
+**Biological referent**: immune tolerance — the deliberate decision to NOT attack a
+self-antigen or harmless foreign antigen. Documented in the immune system's regulatory T-cell
+records.
+
+**Rust ecosystem analog**: `cargo antigen tolerate` CLI family; `RatificationKind::Tolerance`
+sidecar. The same `Ratification` schema as immunity, with `kind = tolerance` discriminator.
+
+**In antigen**: replaces the "vibes-grade" `#[antigen_tolerance(X, rationale = "...")]`
+inline annotation with a structured sidecar carrying `who`, `date`, and explicit rationale.
+`tolerance-vibes-grade` audit hint surfaces sites that haven't opted in.
+
+### evidence-kind
+
+**Origin**: ADR-019 §Decision third axis; ADR-005 Amendment 3 extension.
+
+**Biological referent**: the three arms of the immune system — innate/germline-encoded
+(TypeSystemProof), trained (Behavioral), adaptive/substrate (SubstrateState) — are parallel
+evidence kinds, not a ranked scale.
+
+**Rust ecosystem analog**: `EvidenceKind` enum: `None | TypeSystemProof | Behavioral |
+SubstrateState`. Third orthogonal axis on `ImmunityAudit` alongside `WitnessTier` and
+`AuditHint`.
+
+**Key property**: EvidenceKind is a parallel axis (NOT ordered scale). CI gates specify
+exact-kind requirements, not threshold comparisons. Per-kind ceilings: TypeSystemProof →
+FormalProof; Behavioral → Execution; SubstrateState → Execution.
+
+### signature-strength
+
+**Origin**: ADR-019 §Decision, grounded by naturalist notary-arc B6.
+
+**Biological referent**: notary arc — pre-institutional peer testimony (TextStamp), civic
+notary with place-bounded accountability (GitTrust), notary public with universal license
+and cryptographic sealing (CryptoSigned).
+
+**Rust ecosystem analog**: `SignatureStrength` enum: `TextStamp | GitTrust | CryptoSigned`.
+Ordinal (retains `PartialOrd + Ord` for weakest-link reporting). `TextStamp` = name +
+timestamp, no external verification. `GitTrust` = identity bound to `git config user.name
++ email`. `CryptoSigned` = DSSE-PAE-encoded with Sigstore identity (v0.4+).
+
+### discipline-vs-machinery unification
+
+**Origin**: ADR-019 §Decision asymmetry rule.
+
+**In antigen**: substrate-witnesses and cross-crate witnesses share discipline-level
+unification (tier-honesty; SubstrateState evidence kind; Execution ceiling) but NOT
+machinery (separate parsers, separate recognition pipelines). Enforced via in-code comment
+blocks and `atk_a3_unification_guardrail.rs` adversarial precision test.
+
+### closed-set tool bright-line
+
+**Origin**: ADR-019 §Decision §4; adversarial T4-R.
+
+**In antigen**: the 4-point rule for leaf primitives that invoke external binaries:
+(1) binary named in leaf source, (2) has own release process/package-managed, (3) does
+NOT execute user-supplied code, (4) invocation args fixed except for declared substrate
+parameters. Replaces vague "ecosystem tools" with a testable criterion at leaf-design review.
+
+### cross-cutting attestation
+
+**Origin**: ADR-020 cross-cutting attestation primitive.
+
+**Biological referent**: a notary witnesses any document regardless of domain — a civic
+notary doesn't specialize in property transfers vs wills; they witness any document
+presented to them. Grounded by B6 notary arc.
+
+**In antigen**: `attested = (who, allowed_types, why, scope)` as a macro parameter on ANY
+antigen macro (`#[antigen]`, `#[immune]`, `#[antigen_tolerance]`). Cross-cutting = applies
+across all macro types without domain specificity. Elevates the REVIEW layer from implicit
+to explicit. Layer 1 compatible: no sidecar required at compile time.
