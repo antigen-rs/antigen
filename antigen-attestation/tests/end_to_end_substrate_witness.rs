@@ -129,6 +129,8 @@ fn happy_path_immunity_predicate_passes_substrate_current() {
             required: vec!["alice".to_string(), "bob".to_string()],
             roles: BTreeMap::new(),
             against: SignerCurrency::default(),
+            signature_allow: vec![],
+            signature_prefer: None,
         }),
         Predicate::leaf(Leaf::RatifiedDoc {
             path: Some(std::path::PathBuf::from("docs/sinh.md")),
@@ -317,6 +319,8 @@ fn tolerance_predicate_pass_reports_tolerance_hint_not_immunity_hint_nfa10() {
             required: vec!["carol".to_string()],
             roles: BTreeMap::new(),
             against: SignerCurrency::default(),
+            signature_allow: vec![],
+            signature_prefer: None,
         }),
         Predicate::leaf(Leaf::RatifiedDoc {
             path: Some(std::path::PathBuf::from("docs/tolerance-basis.md")),
