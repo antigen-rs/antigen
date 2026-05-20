@@ -90,6 +90,22 @@ The phases:
    substrate documents, ecosystem assumptions) and what depends on it (downstream
    sweeps, future ADRs, code surfaces).
 
+   **Phase 3 sub-routine — Cross-ADR surface check**: for every named surface this ADR
+   introduces (CLI verbs, type names, sidecar keys, serde tags, audit hints, predicate
+   leaf names), substrate-grep all ratified and in-flight ADR drafts for that name before
+   §Mechanics-finalize. Surface collisions for explicit resolution before the draft
+   advances. Collisions caught at draft-time are zero-cost; collisions caught at
+   implementation-time require multi-ADR coordination + caller migration.
+
+   This is sub-clause F (ADR-005) applied at the cross-ADR level: named surfaces are
+   trust-boundaries that consumers of ratified ADRs rely on; a naming collision corrupts
+   the consumer-trust-extension chain silently until implementation surfaces it.
+
+   Empirical basis: F28 (aristotle) §Strip-E caught the `attest oracle complete` /
+   `oracle complete` verb collision only because Strip-E compared the new oracle CLI
+   surface against the existing `attest` CLI surface from ADR-019 §M4. Without the
+   comparison, both verbs would have shipped and required caller migration.
+
 4. **Phase 4 — Extract invariants**: name what must remain true after the change.
    These become enforcement clauses if not already explicit.
 
