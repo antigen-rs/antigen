@@ -961,7 +961,10 @@ mod tests {
         );
         // Lock the variant fields.
         match err {
-            ValidationError::StrengthSignatureMismatch { item_path, signer_name } => {
+            ValidationError::StrengthSignatureMismatch {
+                item_path,
+                signer_name,
+            } => {
                 assert_eq!(item_path, "test_item");
                 assert_eq!(signer_name, "alice");
             }

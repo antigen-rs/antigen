@@ -100,7 +100,10 @@ fn atk_a3_cli_scaffold_idempotency() {
         "--item-path",
         "sinh",
     ]);
-    assert_eq!(code, 1, "duplicate scaffold without --force must exit 1: {stderr}");
+    assert_eq!(
+        code, 1,
+        "duplicate scaffold without --force must exit 1: {stderr}"
+    );
     assert!(
         stderr.contains("already exists"),
         "error message should say 'already exists': {stderr}"
@@ -108,7 +111,10 @@ fn atk_a3_cli_scaffold_idempotency() {
 
     // Sidecar content unchanged.
     let before = std::fs::read_to_string(&sidecar).unwrap();
-    assert!(before.contains("SignedZero"), "sidecar must still name the antigen");
+    assert!(
+        before.contains("SignedZero"),
+        "sidecar must still name the antigen"
+    );
 }
 
 // ============================================================================
@@ -213,7 +219,10 @@ fn atk_a3_cli_sign_duplicate() {
 
     // Second sign with same signer+fingerprint must exit 0 with a warning.
     let (code2, stderr2) = attest(sign_args);
-    assert_eq!(code2, 0, "duplicate sign must exit 0 (idempotent): {stderr2}");
+    assert_eq!(
+        code2, 0,
+        "duplicate sign must exit 0 (idempotent): {stderr2}"
+    );
     assert!(
         stderr2.contains("already signed"),
         "must warn about duplicate: {stderr2}"
@@ -324,10 +333,7 @@ fn atk_a3_cli_check_passing_predicate() {
         "--predicate",
         predicate,
     ]);
-    assert_eq!(
-        code, 0,
-        "passing predicate must exit 0: {stderr}"
-    );
+    assert_eq!(code, 0, "passing predicate must exit 0: {stderr}");
 }
 
 // ============================================================================
