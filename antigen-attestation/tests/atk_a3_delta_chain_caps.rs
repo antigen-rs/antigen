@@ -32,12 +32,12 @@
 //! lock for the schema commitment.
 
 use antigen_attestation::{
-    Ratification, RatificationKind, SchemaVersion, SignatureStrength, Signer, SignerBasis,
     schema::{
-        AntigenIdentifier, DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS,
+        validate_chain_cap, validate_rationale_min_chars, AntigenIdentifier, ItemRatification,
+        ValidationError, DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS,
         HARD_DELTA_CHAIN_CAP_MAX, HARD_DELTA_CHAIN_CAP_MIN, HARD_DELTA_RATIONALE_MIN_CHARS_FLOOR,
-        ItemRatification, ValidationError, validate_chain_cap, validate_rationale_min_chars,
     },
+    Ratification, RatificationKind, SchemaVersion, SignatureStrength, Signer, SignerBasis,
 };
 use chrono::NaiveDate;
 use std::collections::BTreeMap;
@@ -48,7 +48,7 @@ fn sample_date() -> NaiveDate {
 }
 
 /// 20-char rationale — meets `DEFAULT_DELTA_RATIONALE_MIN_CHARS` exactly.
-const MIN_VALID_RATIONALE: &str = "reviewed; consistent";  // 20 chars trimmed
+const MIN_VALID_RATIONALE: &str = "reviewed; consistent"; // 20 chars trimmed
 
 /// Comfortable rationale used for tests not specifically exercising the
 /// length boundary.
@@ -127,7 +127,8 @@ fn t2r_a_chain_depth_at_cap_accepted() {
     );
     let rat = make_ratification(vec![signer]);
     assert!(
-        rat.validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS).is_ok(),
+        rat.validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS)
+            .is_ok(),
         "chain_depth == cap (boundary inside) was incorrectly rejected; \
          ADR-019 §M3 specifies <=, not <"
     );
@@ -219,7 +220,8 @@ fn t2r_b_rationale_at_min_length_accepted() {
     let signer = delta_signer("alice", sample_date(), 1, MIN_VALID_RATIONALE);
     let rat = make_ratification(vec![signer]);
     assert!(
-        rat.validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS).is_ok(),
+        rat.validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS)
+            .is_ok(),
         "rationale at exactly DEFAULT_DELTA_RATIONALE_MIN_CHARS was \
          rejected; ADR-019 T2R-B specifies >=, not >"
     );
@@ -339,7 +341,7 @@ fn all_three_safeguards_together_close_the_surface() {
         "alice",
         sample_date(),
         DEFAULT_DELTA_CHAIN_CAP, // at-cap, allowed
-        MIN_VALID_RATIONALE,      // at-min, allowed
+        MIN_VALID_RATIONALE,     // at-min, allowed
     );
     let rat = make_ratification(vec![signer]);
     let result = rat.validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS);
@@ -381,7 +383,8 @@ fn fresh_basis_signers_unaffected_by_delta_safeguards() {
     let fresh = fresh_signer("alice", sample_date(), "fp-current");
     let rat = make_ratification(vec![fresh]);
     assert!(
-        rat.validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS).is_ok(),
+        rat.validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS)
+            .is_ok(),
         "Fresh-basis signer was rejected by delta-safeguard validation; \
          the safeguards must NOT apply to Fresh entries"
     );
