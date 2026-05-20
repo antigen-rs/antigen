@@ -2004,9 +2004,7 @@ mod tests {
     fn oracle_revoked_invalidates_true_blocks_predicate_nfa26b() {
         // Revoked(invalidates=true) oracle must block — incorrect oracle,
         // prior attestations retroactively demoted.
-        use crate::schema::{
-            Oracle, OracleRef, OracleState, OracleVersion, Provenance, Steward,
-        };
+        use crate::schema::{Oracle, OracleRef, OracleState, OracleVersion, Provenance, Steward};
         let revoked = Oracle {
             id: "revoked".to_string(),
             reference: OracleRef::LocalFile {
@@ -2020,11 +2018,25 @@ mod tests {
                 invalidates_prior_attestations: true,
             },
             stewards: vec![
-                Steward { name: "alice".to_string(), role: None, authorization_basis: "domain authority".to_string() },
-                Steward { name: "bob".to_string(), role: None, authorization_basis: "tech-lead".to_string() },
+                Steward {
+                    name: "alice".to_string(),
+                    role: None,
+                    authorization_basis: "domain authority".to_string(),
+                },
+                Steward {
+                    name: "bob".to_string(),
+                    role: None,
+                    authorization_basis: "tech-lead".to_string(),
+                },
             ],
-            created: Provenance { recorded_by: "alice".to_string(), at: sample_date() },
-            version: OracleVersion { pinned: "v0".to_string(), pinned_at: sample_date() },
+            created: Provenance {
+                recorded_by: "alice".to_string(),
+                at: sample_date(),
+            },
+            version: OracleVersion {
+                pinned: "v0".to_string(),
+                pinned_at: sample_date(),
+            },
             transitions: vec![],
             extensions: std::collections::BTreeMap::new(),
         };
@@ -2035,8 +2047,8 @@ mod tests {
         });
         let ctx = TestContext::new(sample_date())
             .with_oracle("docs/oracles/rev.md", "---\nstatus: complete\n---\nbody");
-        let r = evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx)
-            .unwrap();
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
         assert_eq!(
             r.witness_tier,
             WitnessTier::None,
@@ -2048,9 +2060,7 @@ mod tests {
     fn oracle_deprecated_allows_predicate_to_pass_nfa26c() {
         // Deprecated oracle (superseded, not incorrect) passes — sign-time-validity:
         // prior attestations honored at Execution tier with a deprecation hint.
-        use crate::schema::{
-            Oracle, OracleRef, OracleState, OracleVersion, Provenance, Steward,
-        };
+        use crate::schema::{Oracle, OracleRef, OracleState, OracleVersion, Provenance, Steward};
         let deprecated = Oracle {
             id: "deprecated".to_string(),
             reference: OracleRef::LocalFile {
@@ -2063,11 +2073,25 @@ mod tests {
                 reason: "superseded by updated oracle".to_string(),
             },
             stewards: vec![
-                Steward { name: "alice".to_string(), role: None, authorization_basis: "domain authority".to_string() },
-                Steward { name: "bob".to_string(), role: None, authorization_basis: "tech-lead".to_string() },
+                Steward {
+                    name: "alice".to_string(),
+                    role: None,
+                    authorization_basis: "domain authority".to_string(),
+                },
+                Steward {
+                    name: "bob".to_string(),
+                    role: None,
+                    authorization_basis: "tech-lead".to_string(),
+                },
             ],
-            created: Provenance { recorded_by: "alice".to_string(), at: sample_date() },
-            version: OracleVersion { pinned: "v1".to_string(), pinned_at: sample_date() },
+            created: Provenance {
+                recorded_by: "alice".to_string(),
+                at: sample_date(),
+            },
+            version: OracleVersion {
+                pinned: "v1".to_string(),
+                pinned_at: sample_date(),
+            },
             transitions: vec![],
             extensions: std::collections::BTreeMap::new(),
         };
@@ -2078,8 +2102,8 @@ mod tests {
         });
         let ctx = TestContext::new(sample_date())
             .with_oracle("docs/oracles/dep.md", "---\nstatus: complete\n---\nbody");
-        let r = evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx)
-            .unwrap();
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
         // Deprecated = superseded, not incorrect → predicate passes (sign-time-validity).
         assert_eq!(
             r.witness_tier,
