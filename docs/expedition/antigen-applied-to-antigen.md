@@ -213,6 +213,44 @@ the project's development process; this one involves the project shipping a
 tool feature that explicitly curates a failure class the project itself
 presented.
 
+**The immune arc has completed in the substrate** (naturalist-framed, 2026-05-19):
+ADR-011 tolerance-without-attestation ran the full five-stage immune arc:
+
+1. **Encounters / innate recognition**: ADR-011 ratified vibes-grade tolerance
+   in v0.1 — the project encountered the gap without naming it as a failure
+   class. Innate pattern-recognition (PRR-equivalent): something here doesn't
+   have the right shape, but no specific recognition yet.
+2. **Trained immunity / reinforcement**: recurring friction over the tolerance
+   discipline across multiple sessions — "this rationale string is all that
+   backs the claim" kept surfacing. Epigenetic-equivalent reinforcement: the
+   same unresolved shape keeps triggering, strengthening recognition without
+   yet crystallizing into specific form. Still non-specific.
+3. **Antigen presentation / bridge**: scout S1 (prior pass, 2026-05-18)
+   crystallized the gap as a named failure class for the first time — the
+   moment `attestation-void-discipline-claim` got a name. This is the dendritic-
+   cell migration step: the gap leaves its site of encounter, migrates to
+   lymph-node-equivalent (team substrate), and is presented in a form that
+   enables specific recognition. ADR-006's three-instance threshold maps
+   here — presentation happens when the pattern is clear enough to generate
+   specific response.
+4. **Clonal selection / cure design**: v3 designed the substrate-witness
+   primitive with an isomorphic Ratification schema, tolerance-vibes-grade
+   audit hint, and `sidecar = true` opt-in. This is clonal selection — the
+   B-cell whose receptor matches THIS specific antigen shape proliferates
+   and differentiates. The cure has exactly the right shape for this gap.
+5. **Adaptive memory / implementation**: discipline-witnesses v3 implementation
+   + ADR-019 ratification + tambear adoption = adaptive memory. The cure is
+   now part of the project's immune repertoire — not just recognized once
+   but structurally encoded so future encounters are recognized immediately
+   at the correct tier.
+
+Instance 8 is the ONLY instance in this document where the **full arc has
+completed** — from innate encounter through memory formation. Instances 4, 6,
+and 7 document recognition events or catches; instance 8 documents an arc
+that ran from gap-encountered to gap-cured to cure-encoded-as-memory. The
+recursion does not merely observe the architecture — it instantiates it,
+all the way to the immune-memory formation step.
+
 **Long-arc note**: `attestation-void-discipline-claim` is ready to propose
 as a seed antigen for antigen-stdlib. Instances are documented (Boeing MCAS,
 Heartbleed, Log4Shell). Fingerprint: a codebase has a discipline-review claim
@@ -250,7 +288,7 @@ should be re-examined. See capture:
 | 4. Amendment 5 triage | STRONG | Named failure-class vocabulary at engine layer |
 | 6. Tokenization encounter | STRONG | Encounters discipline at project-substrate tier |
 | 7. Q8+Q2 amendment catch | STRONG | Antigen vocabulary catching antigen-document overclaim |
-| 8. ADR-011 self-diagnosis + discipline-witnesses cure | STRONG | Named failure-class + fingerprint + witness at meta-tier; tool cures own failure class |
+| 8. ADR-011 self-diagnosis + discipline-witnesses cure | STRONG | Named failure-class + fingerprint + witness at meta-tier; full five-stage immune arc completed in substrate |
 | 2. Recursive V8 | MEDIUM | Phase 1-8 + postures §7 (mixed antigen + generic peer-review) |
 | 1. C1 folded structure | WEAK | Structural observation; no failure-class vocabulary at meta-tier |
 | 3. ADR-tier substrate-currency | WEAK | Generic spec-vs-code check; postures §7 framing is antigen |
@@ -263,7 +301,11 @@ claim still holds — ADR-006's three-independent-instances threshold is
 met by the STRONG instances alone — but the document is no longer
 overclaiming "six uniform instances." Instance 8 (added 2026-05-19) is
 the most structurally complete: it names a failure class with real-world
-ecosystem instances AND demonstrates the full cure via discipline-witnesses.
+ecosystem instances AND demonstrates the full cure via discipline-witnesses,
+AND is the only instance where the full five-stage immune arc has completed —
+from vibes-grade innate encounter through crystallized naming through specific
+cure design through adaptive-memory formation in the project's own substrate.
+The recursion in instance 8 is not documentary — it is operational.
 
 ---
 
