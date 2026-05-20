@@ -281,6 +281,15 @@ pub enum Leaf {
         /// or any signature ever recorded for the signer at this item.
         #[serde(default)]
         against: SignerCurrency,
+        /// If non-empty, all signers must carry a `SignatureStrength` in this
+        /// allow-list; any other strength causes the predicate to fail.
+        /// Empty means all strengths are accepted (default).
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        signature_allow: Vec<crate::tier::SignatureStrength>,
+        /// If set, signers whose strength is below this level produce a
+        /// `SignatureTypeBelowPreferred` audit hint (predicate still passes).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        signature_prefer: Option<crate::tier::SignatureStrength>,
     },
 
     /// `signed_trailer(key, role?, count?)` — git log on commits
@@ -491,6 +500,8 @@ mod tests {
                     required: vec!["alice".to_string()],
                     roles: std::collections::BTreeMap::new(),
                     against: SignerCurrency::Current,
+                    signature_allow: vec![],
+                    signature_prefer: None,
                 })),
             ])
             .unwrap(),
@@ -520,6 +531,8 @@ mod tests {
             required: vec![],
             roles: std::collections::BTreeMap::new(),
             against: SignerCurrency::Current,
+            signature_allow: vec![],
+            signature_prefer: None,
         });
         let err = pred
             .validate()
@@ -586,6 +599,8 @@ mod tests {
                 required: vec!["alice".to_string(), "bob".to_string()],
                 roles: std::collections::BTreeMap::new(),
                 against: SignerCurrency::Current,
+                signature_allow: vec![],
+                signature_prefer: None,
             }),
             Predicate::leaf(Leaf::FreshWithinDays { days: 180 }),
         ])

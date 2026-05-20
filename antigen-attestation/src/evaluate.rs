@@ -287,7 +287,17 @@ fn eval_leaf<C: EvaluationContext>(
             required,
             roles,
             against,
-        } => eval_signers(required, roles, *against, item, current_fingerprint),
+            signature_allow,
+            signature_prefer,
+        } => eval_signers(
+            required,
+            roles,
+            *against,
+            signature_allow,
+            *signature_prefer,
+            item,
+            current_fingerprint,
+        ),
         Leaf::SignedTrailer { key, role, count } => eval_signed_trailer(
             key,
             role.as_deref(),
@@ -297,7 +307,9 @@ fn eval_leaf<C: EvaluationContext>(
             ctx,
         ),
         Leaf::OraclesComplete { files } => eval_oracles_complete(files, ctx),
-        Leaf::FreshWithinDays { days } => eval_fresh_within_days(*days, item, ctx),
+        Leaf::FreshWithinDays { days } => {
+            eval_fresh_within_days(*days, item, current_fingerprint, ctx)
+        }
     }
 }
 
@@ -357,6 +369,8 @@ fn eval_signers(
     required: &[String],
     roles: &std::collections::BTreeMap<String, String>,
     against: SignerCurrency,
+    signature_allow: &[crate::tier::SignatureStrength],
+    _signature_prefer: Option<crate::tier::SignatureStrength>,
     item: &ItemRatification,
     current_fingerprint: &str,
 ) -> bool {
@@ -378,7 +392,9 @@ fn eval_signers(
                 SignerCurrency::Any => true,
             };
             let role_ok = expected_role.map_or(true, |r| s.role.as_deref() == Some(r.as_str()));
-            currency_ok && role_ok
+            // If signature_allow is non-empty, the signer's strength must be in the list.
+            let strength_ok = signature_allow.is_empty() || signature_allow.contains(&s.strength);
+            currency_ok && role_ok && strength_ok
         });
         if !any_candidate_satisfies {
             return false;
@@ -433,10 +449,18 @@ fn eval_oracles_complete<C: EvaluationContext>(files: &[std::path::PathBuf], ctx
 fn eval_fresh_within_days<C: EvaluationContext>(
     days: u32,
     item: &ItemRatification,
+    current_fingerprint: &str,
     ctx: &C,
 ) -> bool {
-    // Most recent signer's date OR `fresh_through` — whichever is later.
-    let latest_signer = item.signers.iter().map(|s| s.date).max();
+    // Most recent CURRENT-fingerprint signer's date OR `fresh_through` — whichever is later.
+    // NFA-21: stale-fingerprint signer dates must not satisfy a freshness check — a signer
+    // who attested against fp-old months ago and never re-attested should not count as fresh.
+    let latest_signer = item
+        .signers
+        .iter()
+        .filter(|s| s.signed_against_fingerprint == current_fingerprint)
+        .map(|s| s.date)
+        .max();
     let candidate = match (latest_signer, item.fresh_through) {
         (Some(a), Some(b)) => Some(a.max(b)),
         (Some(a), None) => Some(a),
@@ -478,22 +502,31 @@ fn classify_passed_predicate<C: EvaluationContext>(
         };
     }
 
-    // Weakest-link: overall strength is limited by the weakest individual
-    // signer's identity binding. A single TextStamp signer pulls the whole
-    // attestation down to TextStamp regardless of other signers' strength.
+    // Weakest-link: strength is the minimum across CURRENT-fingerprint signers only
+    // (NFA-19: historical entries from prior fingerprints must not pull down the
+    // strength of a fresh re-attestation at the current fingerprint).
     let min_strength = item
         .signers
         .iter()
+        .filter(|s| s.signed_against_fingerprint == current_fingerprint)
         .map(|s| s.strength)
         .min()
         .unwrap_or(SignatureStrength::GitTrust);
 
-    // Some signers exist. Detect stale signers (signed against a
-    // non-current fingerprint).
-    let stale_count = item
-        .signers
+    // Stale detection: a NAME is stale iff ALL of its entries are against a
+    // non-current fingerprint (NFA-18: sidecars are append-only; a re-attested
+    // signer has both a historical stale entry AND a fresh current entry; counting
+    // stale ROWS instead of stale NAMES falsely marks them stale).
+    let all_names: std::collections::BTreeSet<&str> =
+        item.signers.iter().map(|s| s.name.as_str()).collect();
+    let stale_count = all_names
         .iter()
-        .filter(|s| s.signed_against_fingerprint != current_fingerprint)
+        .filter(|&&name| {
+            !item
+                .signers
+                .iter()
+                .any(|s| s.name == name && s.signed_against_fingerprint == current_fingerprint)
+        })
         .count();
     if stale_count > 0 {
         return EvaluatedPredicate {
@@ -504,15 +537,22 @@ fn classify_passed_predicate<C: EvaluationContext>(
         };
     }
 
-    // All signers current. Check delta-chain state.
+    // All signer NAMES have a current entry. Check delta-chain state among
+    // current-fingerprint entries only (NFA-20: historical delta entries must
+    // not contaminate the delta-chain classification of a fresh re-attestation).
     let cap = ctx.delta_chain_cap();
     let max_chain_depth = item
         .signers
         .iter()
+        .filter(|s| s.signed_against_fingerprint == current_fingerprint)
         .map(|s| s.basis.chain_depth())
         .max()
         .unwrap_or(0);
-    let has_delta = item.signers.iter().any(|s| s.basis.is_delta());
+    let has_delta = item
+        .signers
+        .iter()
+        .filter(|s| s.signed_against_fingerprint == current_fingerprint)
+        .any(|s| s.basis.is_delta());
 
     if max_chain_depth >= cap.saturating_sub(1) && max_chain_depth > 0 {
         return EvaluatedPredicate {
@@ -710,6 +750,8 @@ mod tests {
             required: vec!["alice".to_string()],
             roles: BTreeMap::new(),
             against: SignerCurrency::Current,
+            signature_allow: vec![],
+            signature_prefer: None,
         });
         let ctx = TestContext::new(sample_date());
         let r =
@@ -728,6 +770,8 @@ mod tests {
             required: vec!["bob".to_string()],
             roles: BTreeMap::new(),
             against: SignerCurrency::Current,
+            signature_allow: vec![],
+            signature_prefer: None,
         });
         let ctx = TestContext::new(sample_date());
         let r =
@@ -743,6 +787,8 @@ mod tests {
             required: vec!["alice".to_string()],
             roles: BTreeMap::new(),
             against: SignerCurrency::Any,
+            signature_allow: vec![],
+            signature_prefer: None,
         });
         let ctx = TestContext::new(sample_date());
         let r =
@@ -795,6 +841,8 @@ mod tests {
             required: vec!["alice".to_string()],
             roles: BTreeMap::new(),
             against: SignerCurrency::Current,
+            signature_allow: vec![],
+            signature_prefer: None,
         });
         let ctx = TestContext::new(sample_date());
         let r =
@@ -827,6 +875,8 @@ mod tests {
             required: vec!["alice".to_string()],
             roles: BTreeMap::new(),
             against: SignerCurrency::Current,
+            signature_allow: vec![],
+            signature_prefer: None,
         });
         let ctx = TestContext::new(sample_date());
         let r =
@@ -1007,6 +1057,8 @@ mod tests {
                 required: vec!["alice".to_string()],
                 roles: BTreeMap::new(),
                 against: SignerCurrency::Current,
+                signature_allow: vec![],
+                signature_prefer: None,
             }),
             Predicate::leaf(Leaf::OraclesComplete {
                 files: vec![PathBuf::from("nonexistent.md")],
@@ -1032,6 +1084,8 @@ mod tests {
                 required: vec!["alice".to_string()],
                 roles: BTreeMap::new(),
                 against: SignerCurrency::Current,
+                signature_allow: vec![],
+                signature_prefer: None,
             }),
         ])
         .unwrap();
@@ -1048,6 +1102,8 @@ mod tests {
             required: vec!["alice".to_string()],
             roles: BTreeMap::new(),
             against: SignerCurrency::Current,
+            signature_allow: vec![],
+            signature_prefer: None,
         }));
         let ctx = TestContext::new(sample_date());
         let r =
@@ -1163,6 +1219,8 @@ mod tests {
             required: vec!["alice".to_string()],
             roles: BTreeMap::new(),
             against: SignerCurrency::Any,
+            signature_allow: vec![],
+            signature_prefer: None,
         });
         let ctx = TestContext::new(sample_date());
         // Evaluate as TOLERANCE kind.
@@ -1233,6 +1291,8 @@ mod tests {
             required: vec!["alice".to_string()],
             roles,
             against: SignerCurrency::Current,
+            signature_allow: vec![],
+            signature_prefer: None,
         });
 
         let ctx = TestContext::new(sample_date());
@@ -1366,6 +1426,8 @@ mod tests {
             required: vec!["alice".to_string()],
             roles: BTreeMap::new(),
             against: SignerCurrency::Current,
+            signature_allow: vec![],
+            signature_prefer: None,
         });
         let ctx = TestContext::new(sample_date());
         let r = evaluate_predicate_with_kind(
