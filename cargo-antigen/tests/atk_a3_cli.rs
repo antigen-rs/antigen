@@ -400,3 +400,89 @@ fn atk_a3_cli_tolerate_kind_override() {
         "must NOT contain immunity: {content}"
     );
 }
+
+// ============================================================================
+// atk_a3_cli_design_phase_subcommands_return_failure
+// ============================================================================
+//
+// ADR-005 Amendment 3 (audit-tier-honesty) requires that operations that did
+// NOT do their stated work MUST report failure, never success. The v0.1-rc
+// CLI verbs `delta`, `oracle`, `list`, `move`, `migrate`, `gc` (per ADR-019
+// §M4) are not yet implemented; their stubs MUST exit non-zero so operator
+// scripts cannot interpret a no-op as completion.
+//
+// Originally the stubs returned `ExitCode::SUCCESS` — that was a silent-
+// failure trap: `cargo antigen attest list | xargs -I{} ...` would silently
+// pipe nothing. The fix flipped them to `ExitCode::FAILURE` with an explicit
+// "not implemented in v0.1-rc" message.
+
+#[test]
+fn atk_a3_cli_design_phase_attest_list_returns_failure() {
+    let (code, stderr) = attest(&["list"]);
+    assert_ne!(
+        code, 0,
+        "design-phase `attest list` MUST NOT report success (ADR-005 Am 3): stderr={stderr}"
+    );
+    assert!(
+        stderr.contains("not implemented in v0.1-rc") || stderr.contains("design phase"),
+        "stderr must explain why the operation did not run: {stderr}"
+    );
+}
+
+#[test]
+fn atk_a3_cli_design_phase_attest_delta_returns_failure() {
+    let (code, stderr) = attest(&["delta"]);
+    assert_ne!(
+        code, 0,
+        "design-phase `attest delta` MUST NOT report success (ADR-005 Am 3): stderr={stderr}"
+    );
+}
+
+#[test]
+fn atk_a3_cli_design_phase_attest_oracle_returns_failure() {
+    let (code, stderr) = attest(&["oracle"]);
+    assert_ne!(
+        code, 0,
+        "design-phase `attest oracle` MUST NOT report success (ADR-005 Am 3): stderr={stderr}"
+    );
+}
+
+#[test]
+fn atk_a3_cli_design_phase_attest_move_returns_failure() {
+    let (code, stderr) = attest(&["move"]);
+    assert_ne!(
+        code, 0,
+        "design-phase `attest move` MUST NOT report success (ADR-005 Am 3): stderr={stderr}"
+    );
+}
+
+#[test]
+fn atk_a3_cli_design_phase_attest_migrate_returns_failure() {
+    let (code, stderr) = attest(&["migrate"]);
+    assert_ne!(
+        code, 0,
+        "design-phase `attest migrate` MUST NOT report success (ADR-005 Am 3): stderr={stderr}"
+    );
+}
+
+#[test]
+fn atk_a3_cli_design_phase_attest_gc_returns_failure() {
+    let (code, stderr) = attest(&["gc"]);
+    assert_ne!(
+        code, 0,
+        "design-phase `attest gc` MUST NOT report success (ADR-005 Am 3): stderr={stderr}"
+    );
+}
+
+#[test]
+fn atk_a3_cli_design_phase_tolerate_list_returns_failure() {
+    let (code, stderr) = tolerate(&["list"]);
+    assert_ne!(
+        code, 0,
+        "design-phase `tolerate list` MUST NOT report success (ADR-005 Am 3): stderr={stderr}"
+    );
+    assert!(
+        stderr.contains("not implemented in v0.1-rc") || stderr.contains("design phase"),
+        "stderr must explain why the operation did not run: {stderr}"
+    );
+}
