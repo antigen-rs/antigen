@@ -99,6 +99,13 @@ enum AntigenSubcommand {
     Attest(AttestCli),
     /// Manage tolerance-ratification sidecars (ADR-019 §tolerance tier).
     Tolerate(TolerateCli),
+    /// Manage Oracle artifact-class records (ADR-021 §D3).
+    ///
+    /// Oracles are structurally-distinguished discipline artifacts with lifecycle
+    /// state (Draft → Complete → Deprecated/Retired/Revoked), dedicated stewards,
+    /// and provenance tracking. `cargo antigen oracle` manages the Oracle JSON
+    /// records and their state-machine transitions.
+    Oracle(OracleCli),
 }
 
 #[derive(Debug, Parser)]
@@ -386,6 +393,175 @@ enum TolerateSubcommand {
     List(AttestListArgs),
 }
 
+// ============================================================================
+// cargo antigen oracle subcommand family (ADR-021 oracle-as-artifact-class)
+// ============================================================================
+
+#[derive(Debug, Parser)]
+struct OracleCli {
+    #[command(subcommand)]
+    command: OracleSubcommand,
+}
+
+#[derive(Debug, Subcommand)]
+enum OracleSubcommand {
+    /// List all Oracle artifact records in the workspace.
+    List(OracleListArgs),
+    /// Show current state, stewards, transitions, and attestations for one oracle.
+    Status(OracleStatusArgs),
+    /// Create a new Oracle in DRAFT state.
+    Declare(OracleDeclareArgs),
+    /// Transition an oracle from DRAFT to COMPLETE (steward-authorized).
+    ///
+    /// Signers may attest against Complete oracles; Draft oracles block
+    /// the `oracles_complete(...)` predicate per ADR-021 §D3.
+    Complete(OracleCompleteArgs),
+    /// Transition an oracle from COMPLETE to DEPRECATED (steward-authorized).
+    ///
+    /// Existing attestations honored at Execution tier (sign-time-validity D4).
+    /// For INCORRECT oracles use `oracle revoke` instead.
+    Deprecate(OracleDeprecateArgs),
+    /// Permanently retire an oracle (steward-authorized).
+    ///
+    /// All prior attestations honored. Use only when oracle is gone for reasons
+    /// other than incorrectness. For incorrect oracles use `oracle revoke`.
+    Retire(OracleRetireArgs),
+    /// Revoke an oracle for incorrectness or fraud (steward-authorized).
+    ///
+    /// `--invalidates-prior true` retroactively demotes prior attestations to
+    /// Reachability. `--invalidates-prior false` preserves prior attestation tiers.
+    Revoke(OracleRevokeArgs),
+}
+
+#[derive(Debug, Parser)]
+struct OracleListArgs {
+    /// Workspace root (default: current directory).
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+    /// Output format.
+    #[arg(long, default_value = "human")]
+    format: OutputFormat,
+}
+
+#[derive(Debug, Parser)]
+struct OracleStatusArgs {
+    /// Oracle ID.
+    #[arg(long)]
+    id: String,
+    /// Workspace root (default: current directory).
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+}
+
+#[derive(Debug, Parser)]
+struct OracleDeclareArgs {
+    /// Stable oracle identifier.
+    #[arg(long)]
+    id: String,
+    /// Reference kind: `local-file`, `url`, `doi`, `arxiv`, `github-issue`, `other`.
+    #[arg(long)]
+    kind: OracleRefKindArg,
+    /// Reference value (file path, URL, DOI, arXiv ID, `owner/repo#N`, or free-form).
+    #[arg(long)]
+    reference: String,
+    /// Steward name (defaults to git config user.name). Pass twice for 2 stewards.
+    #[arg(long, action = clap::ArgAction::Append)]
+    steward: Vec<String>,
+    /// WHY this oracle is being declared (required non-empty per Amendment 2).
+    #[arg(long)]
+    rationale: String,
+    /// Version pin at declaration time.
+    #[arg(long)]
+    version: Option<String>,
+    /// Workspace root (default: current directory).
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+}
+
+#[derive(Debug, Clone, clap::ValueEnum)]
+#[clap(rename_all = "kebab-case")]
+enum OracleRefKindArg {
+    LocalFile,
+    Url,
+    Doi,
+    Arxiv,
+    GithubIssue,
+    Other,
+}
+
+#[derive(Debug, Parser)]
+struct OracleCompleteArgs {
+    /// Oracle ID to transition Draft→Complete.
+    #[arg(long)]
+    id: String,
+    /// Authorizing steward (defaults to git config user.name).
+    #[arg(long)]
+    steward: Option<String>,
+    /// Version pin at completion time.
+    #[arg(long)]
+    version: String,
+    /// WHY completing (required non-empty per Amendment 2).
+    #[arg(long)]
+    rationale: String,
+    /// Workspace root (default: current directory).
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+}
+
+#[derive(Debug, Parser)]
+struct OracleDeprecateArgs {
+    /// Oracle ID to deprecate.
+    #[arg(long)]
+    id: String,
+    /// Authorizing steward (defaults to git config user.name).
+    #[arg(long)]
+    steward: Option<String>,
+    /// Optional successor oracle ID.
+    #[arg(long)]
+    superseded_by: Option<String>,
+    /// WHY deprecating (required non-empty per Amendment 2).
+    #[arg(long)]
+    rationale: String,
+    /// Workspace root (default: current directory).
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+}
+
+#[derive(Debug, Parser)]
+struct OracleRetireArgs {
+    /// Oracle ID to retire.
+    #[arg(long)]
+    id: String,
+    /// Authorizing steward (defaults to git config user.name).
+    #[arg(long)]
+    steward: Option<String>,
+    /// WHY retiring (required non-empty per Amendment 2).
+    #[arg(long)]
+    rationale: String,
+    /// Workspace root (default: current directory).
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+}
+
+#[derive(Debug, Parser)]
+struct OracleRevokeArgs {
+    /// Oracle ID to revoke.
+    #[arg(long)]
+    id: String,
+    /// Authorizing steward (defaults to git config user.name).
+    #[arg(long)]
+    steward: Option<String>,
+    /// WHY revoking (required non-empty per Amendment 2).
+    #[arg(long)]
+    rationale: String,
+    /// Whether to retroactively demote prior attestations to Reachability.
+    #[arg(long)]
+    invalidates_prior: bool,
+    /// Workspace root (default: current directory).
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+}
+
 #[derive(Debug, Clone, clap::ValueEnum)]
 enum OutputFormat {
     Human,
@@ -403,7 +579,460 @@ fn main() -> ExitCode {
         AntigenSubcommand::Audit(args) => run_audit(args),
         AntigenSubcommand::Attest(cli) => run_attest(cli),
         AntigenSubcommand::Tolerate(cli) => run_tolerate(cli),
+        AntigenSubcommand::Oracle(cli) => run_oracle(cli),
     }
+}
+
+// ============================================================================
+// cargo antigen oracle handlers (ADR-021 oracle-as-artifact-class)
+// ============================================================================
+
+fn run_oracle(cli: OracleCli) -> ExitCode {
+    match cli.command {
+        OracleSubcommand::List(args) => run_oracle_list(args),
+        OracleSubcommand::Status(args) => run_oracle_status(args),
+        OracleSubcommand::Declare(args) => run_oracle_declare(args),
+        OracleSubcommand::Complete(args) => run_oracle_complete(args),
+        OracleSubcommand::Deprecate(args) => run_oracle_deprecate(args),
+        OracleSubcommand::Retire(args) => run_oracle_retire(args),
+        OracleSubcommand::Revoke(args) => run_oracle_revoke(args),
+    }
+}
+
+fn oracle_json_path(root: &std::path::Path, id: &str) -> std::path::PathBuf {
+    root.join(".antigen")
+        .join("oracles")
+        .join(format!("{id}.oracle.json"))
+}
+
+fn load_oracle(
+    root: &std::path::Path,
+    id: &str,
+) -> Result<antigen_attestation::schema::Oracle, String> {
+    let path = oracle_json_path(root, id);
+    let content = std::fs::read_to_string(&path).map_err(|e| {
+        format!(
+            "error: oracle `{id}` not found at `{}`: {e}",
+            path.display()
+        )
+    })?;
+    serde_json::from_str(&content)
+        .map_err(|e| format!("error: oracle `{id}` is not valid Oracle JSON: {e}"))
+}
+
+fn save_oracle(
+    root: &std::path::Path,
+    oracle: &antigen_attestation::schema::Oracle,
+) -> Result<(), String> {
+    // Tier-honesty: validate schema invariants BEFORE persisting to disk
+    // (ADR-021 §D3 + Oracle::validate). Persisting an invalid oracle would
+    // mean the audit later refuses to parse what the CLI wrote — a silent
+    // tier-inversion. Catch at write time so the operator sees the
+    // validation error immediately instead of at next audit.
+    oracle
+        .validate()
+        .map_err(|e| format!("error: oracle validation failed: {e}"))?;
+    let dir = root.join(".antigen").join("oracles");
+    std::fs::create_dir_all(&dir).map_err(|e| {
+        format!(
+            "error: could not create oracle directory `{}`: {e}",
+            dir.display()
+        )
+    })?;
+    let path = oracle_json_path(root, &oracle.id);
+    let json = serde_json::to_string_pretty(oracle)
+        .map_err(|e| format!("error: failed to serialize oracle: {e}"))?;
+    std::fs::write(&path, &json)
+        .map_err(|e| format!("error: failed to write oracle `{}`: {e}", path.display()))?;
+    Ok(())
+}
+
+fn resolve_steward_name(explicit: Option<&str>) -> Result<String, String> {
+    match explicit {
+        Some(s) => Ok(s.to_owned()),
+        None => {
+            let out = std::process::Command::new("git")
+                .args(["config", "user.name"])
+                .output();
+            match out {
+                Ok(o) if o.status.success() => {
+                    Ok(String::from_utf8_lossy(&o.stdout).trim().to_owned())
+                }
+                _ => Err(
+                    "error: --steward not provided and `git config user.name` failed".to_owned(),
+                ),
+            }
+        }
+    }
+}
+
+fn run_oracle_list(args: OracleListArgs) -> ExitCode {
+    let oracle_dir = args.root.join(".antigen").join("oracles");
+    if !oracle_dir.exists() {
+        eprintln!("No oracle records found under `{}`.", args.root.display());
+        return ExitCode::SUCCESS;
+    }
+    let entries = match std::fs::read_dir(&oracle_dir) {
+        Ok(e) => e,
+        Err(e) => {
+            eprintln!("error: could not read oracle directory: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    let mut found = 0usize;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().map_or(false, |e| e == "json") {
+            let content = match std::fs::read_to_string(&path) {
+                Ok(s) => s,
+                Err(_) => continue,
+            };
+            if let Ok(oracle) =
+                serde_json::from_str::<antigen_attestation::schema::Oracle>(&content)
+            {
+                match args.format {
+                    OutputFormat::Human => {
+                        println!(
+                            "{} [{:?}] — {} steward(s)",
+                            oracle.id,
+                            oracle.state,
+                            oracle.stewards.len()
+                        );
+                    }
+                    OutputFormat::Json => {
+                        let obj = serde_json::json!({ "id": oracle.id, "state": format!("{:?}", oracle.state) });
+                        println!("{obj}");
+                    }
+                }
+                found += 1;
+            }
+        }
+    }
+    if found == 0 {
+        eprintln!("No oracle records found under `{}`.", args.root.display());
+    } else {
+        eprintln!("{found} oracle(s) listed.");
+    }
+    ExitCode::SUCCESS
+}
+
+fn run_oracle_status(args: OracleStatusArgs) -> ExitCode {
+    match load_oracle(&args.root, &args.id) {
+        Ok(oracle) => {
+            println!("Oracle: {}", oracle.id);
+            println!("State:  {:?}", oracle.state);
+            println!("Stewards ({}):", oracle.stewards.len());
+            for s in &oracle.stewards {
+                println!("  {} ({})", s.name, s.authorization_basis);
+            }
+            println!("Transitions ({}):", oracle.transitions.len());
+            for t in &oracle.transitions {
+                println!(
+                    "  {} → {} by {} on {} — {}",
+                    t.from, t.to, t.authorized_by, t.at, t.rationale
+                );
+            }
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("{e}");
+            ExitCode::from(1)
+        }
+    }
+}
+
+fn run_oracle_declare(args: OracleDeclareArgs) -> ExitCode {
+    use antigen_attestation::schema::{
+        Oracle, OracleRef, OracleState, OracleVersion, Provenance, Steward,
+    };
+    use chrono::Local;
+
+    if args.rationale.trim().is_empty() {
+        eprintln!("error: --rationale must be non-empty (Amendment 2 discipline)");
+        return ExitCode::from(1);
+    }
+
+    // Resolve stewards: either from --steward flags or git config.
+    let mut steward_names = args.steward.clone();
+    if steward_names.is_empty() {
+        match resolve_steward_name(None) {
+            Ok(name) => steward_names.push(name),
+            Err(e) => {
+                eprintln!("{e}");
+                return ExitCode::from(1);
+            }
+        }
+    }
+    if steward_names.len() < 2 {
+        eprintln!(
+            "warning: only {} steward(s) declared; minimum 2 required for oracle to be transitioned \
+             to Complete (ATK-021-13 succession mitigation). Add a second steward via --steward.",
+            steward_names.len()
+        );
+    }
+
+    let stewards: Vec<Steward> = steward_names
+        .iter()
+        .map(|name| Steward {
+            name: name.clone(),
+            role: None,
+            authorization_basis: args.rationale.clone(),
+        })
+        .collect();
+
+    let reference = match args.kind {
+        OracleRefKindArg::LocalFile => OracleRef::LocalFile {
+            path: std::path::PathBuf::from(&args.reference),
+            status_field: None,
+            expected_status: None,
+        },
+        OracleRefKindArg::Url => OracleRef::Url {
+            url: args.reference.clone(),
+            label: None,
+        },
+        OracleRefKindArg::Doi => OracleRef::Doi {
+            doi: args.reference.clone(),
+            section: None,
+        },
+        OracleRefKindArg::Arxiv => OracleRef::Arxiv {
+            arxiv_id: args.reference.clone(),
+            section: None,
+        },
+        OracleRefKindArg::GithubIssue => {
+            let parts: Vec<&str> = args.reference.splitn(2, '#').collect();
+            if parts.len() != 2 {
+                eprintln!("error: github-issue reference must be `owner/repo#N`");
+                return ExitCode::from(1);
+            }
+            let issue: u32 = match parts[1].parse() {
+                Ok(n) => n,
+                Err(_) => {
+                    eprintln!("error: issue number must be a positive integer");
+                    return ExitCode::from(1);
+                }
+            };
+            OracleRef::GitHubIssue {
+                repo: parts[0].to_owned(),
+                issue,
+            }
+        }
+        OracleRefKindArg::Other => OracleRef::Other {
+            subkind: "other".to_owned(),
+            reference: args.reference.clone(),
+            label: None,
+        },
+    };
+
+    let today = Local::now().date_naive();
+    // Declare does NOT write a creation-as-transition. The creation event is
+    // recorded by `created: Provenance` (recorded_by + at). The transitions log
+    // captures STATE-MACHINE TRANSITIONS only — Draft is the constructor state,
+    // so the first transition entry is the eventual Draft→Complete written by
+    // `oracle complete`. The schema validator (Oracle::validate) enforces that
+    // the first transition's `from` matches the implicit initial state
+    // `"draft"`; a synthetic `none → draft` creation-transition would fail
+    // validation. ATK-021 schema-CLI integration test:
+    // atk_a3_oracle_cli_declare_initial_state_is_draft + ..._full_lifecycle_round_trip.
+    let oracle = Oracle {
+        id: args.id.clone(),
+        reference,
+        state: OracleState::Draft,
+        stewards,
+        created: Provenance {
+            recorded_by: steward_names[0].clone(),
+            at: today,
+        },
+        version: OracleVersion {
+            pinned: args.version.unwrap_or_else(|| format!("declared-{today}")),
+            pinned_at: today,
+        },
+        transitions: vec![],
+        extensions: Default::default(),
+    };
+
+    match save_oracle(&args.root, &oracle) {
+        Ok(()) => {
+            eprintln!("Oracle `{}` created in DRAFT state.", args.id);
+            eprintln!("Path: {}", oracle_json_path(&args.root, &args.id).display());
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("{e}");
+            ExitCode::from(2)
+        }
+    }
+}
+
+fn oracle_state_discriminant(state: &antigen_attestation::schema::OracleState) -> &'static str {
+    use antigen_attestation::schema::OracleState;
+    match state {
+        OracleState::Draft => "draft",
+        OracleState::Complete => "complete",
+        OracleState::Deprecated { .. } => "deprecated",
+        OracleState::Retired { .. } => "retired",
+        OracleState::Revoked { .. } => "revoked",
+    }
+}
+
+fn run_oracle_transition(
+    root: &std::path::Path,
+    id: &str,
+    steward: Option<String>,
+    rationale: &str,
+    new_state: antigen_attestation::schema::OracleState,
+) -> ExitCode {
+    use antigen_attestation::schema::StateTransition;
+    use chrono::Local;
+
+    if rationale.trim().is_empty() {
+        eprintln!("error: --rationale must be non-empty (Amendment 2 discipline)");
+        return ExitCode::from(1);
+    }
+    let steward_name = match resolve_steward_name(steward.as_deref()) {
+        Ok(n) => n,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(1);
+        }
+    };
+    let mut oracle = match load_oracle(root, id) {
+        Ok(o) => o,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(1);
+        }
+    };
+    // Validate steward is in the steward list (ATK-021-15).
+    if !oracle.stewards.iter().any(|s| s.name == steward_name) {
+        eprintln!(
+            "error: `{steward_name}` is not a declared steward of oracle `{id}`.\n\
+             Declared stewards: {}",
+            oracle
+                .stewards
+                .iter()
+                .map(|s| s.name.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+        return ExitCode::from(1);
+    }
+    // Derive the `from` label from the oracle's CURRENT state (not a hardcoded
+    // string per call-site). This is what the schema validator expects per
+    // ADR-021 §D3 — the `from` of transition N must match the `to` of
+    // transition N-1 (or the implicit "draft" initial state when N=1).
+    let from_label = oracle_state_discriminant(&oracle.state).to_owned();
+    let to_label = oracle_state_discriminant(&new_state).to_owned();
+    let today = Local::now().date_naive();
+    oracle.transitions.push(StateTransition {
+        from: from_label.clone(),
+        to: to_label.clone(),
+        authorized_by: steward_name.clone(),
+        at: today,
+        rationale: rationale.to_owned(),
+    });
+    oracle.state = new_state;
+    match save_oracle(root, &oracle) {
+        Ok(()) => {
+            eprintln!("Oracle `{id}` transitioned {from_label}→{to_label} by {steward_name}.");
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("{e}");
+            ExitCode::from(2)
+        }
+    }
+}
+
+fn run_oracle_complete(args: OracleCompleteArgs) -> ExitCode {
+    use antigen_attestation::schema::{OracleState, OracleVersion};
+    use chrono::Local;
+
+    // Load oracle to update version pin at completion time.
+    let mut oracle = match load_oracle(&args.root, &args.id) {
+        Ok(o) => o,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(1);
+        }
+    };
+    oracle.version = OracleVersion {
+        pinned: args.version.clone(),
+        pinned_at: Local::now().date_naive(),
+    };
+    match save_oracle(&args.root, &oracle) {
+        Ok(()) => {}
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(2);
+        }
+    }
+    run_oracle_transition(
+        &args.root,
+        &args.id,
+        args.steward,
+        &args.rationale,
+        OracleState::Complete,
+    )
+}
+
+fn run_oracle_deprecate(args: OracleDeprecateArgs) -> ExitCode {
+    use antigen_attestation::schema::OracleState;
+    let new_state = OracleState::Deprecated {
+        superseded_by: args.superseded_by,
+        reason: args.rationale.clone(),
+    };
+    run_oracle_transition(
+        &args.root,
+        &args.id,
+        args.steward,
+        &args.rationale,
+        new_state,
+    )
+}
+
+fn run_oracle_retire(args: OracleRetireArgs) -> ExitCode {
+    use antigen_attestation::schema::OracleState;
+    let steward_name = match resolve_steward_name(args.steward.as_deref()) {
+        Ok(n) => n,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(1);
+        }
+    };
+    let new_state = OracleState::Retired {
+        reason: args.rationale.clone(),
+        retired_by: steward_name.clone(),
+    };
+    run_oracle_transition(
+        &args.root,
+        &args.id,
+        Some(steward_name),
+        &args.rationale,
+        new_state,
+    )
+}
+
+fn run_oracle_revoke(args: OracleRevokeArgs) -> ExitCode {
+    use antigen_attestation::schema::OracleState;
+    let steward_name = match resolve_steward_name(args.steward.as_deref()) {
+        Ok(n) => n,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(1);
+        }
+    };
+    let new_state = OracleState::Revoked {
+        reason: args.rationale.clone(),
+        revoked_by: steward_name.clone(),
+        invalidates_prior_attestations: args.invalidates_prior,
+    };
+    run_oracle_transition(
+        &args.root,
+        &args.id,
+        Some(steward_name),
+        &args.rationale,
+        new_state,
+    )
 }
 
 fn run_scan(args: ScanArgs) -> ExitCode {
@@ -496,7 +1125,17 @@ fn run_scan(args: ScanArgs) -> ExitCode {
         },
     }
 
-    if args.strict && (!unaddressed.is_empty() || !report.orphaned_tolerances().is_empty()) {
+    // --strict gates only on unaddressed EXPLICIT presentations (match_kind == ExplicitMarker)
+    // and orphaned tolerances. Fingerprint matches are informational — they're potential
+    // vulnerabilities that require human triage, not CI-enforced gates.
+    // Gating on ALL unaddressed (including FingerprintMatch) produces a silent mismatch:
+    // the output says "All explicit presentations are addressed" but exits 1 because of
+    // fingerprint matches, causing CI to fail with a confusing human-readable message.
+    let unaddressed_explicit_count = unaddressed
+        .iter()
+        .filter(|u| u.presentation.match_kind == antigen::scan::MatchKind::ExplicitMarker)
+        .count();
+    if args.strict && (unaddressed_explicit_count > 0 || !report.orphaned_tolerances().is_empty()) {
         ExitCode::from(1)
     } else {
         ExitCode::SUCCESS
