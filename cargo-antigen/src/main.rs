@@ -715,7 +715,9 @@ fn run_audit(args: AuditArgs) -> ExitCode {
 
 fn run_attest(cli: AttestCli) -> ExitCode {
     match cli.command {
-        AttestSubcommand::Scaffold(args) => run_attest_scaffold(args, antigen_attestation::RatificationKind::Immunity),
+        AttestSubcommand::Scaffold(args) => {
+            run_attest_scaffold(args, antigen_attestation::RatificationKind::Immunity)
+        }
         AttestSubcommand::Sign(args) => run_attest_sign(args),
         AttestSubcommand::Check(args) => run_attest_check(args),
         AttestSubcommand::Delta
@@ -735,7 +737,9 @@ fn run_attest(cli: AttestCli) -> ExitCode {
 
 fn run_tolerate(cli: TolerateCli) -> ExitCode {
     match cli.command {
-        TolerateSubcommand::Scaffold(args) => run_attest_scaffold(args, antigen_attestation::RatificationKind::Tolerance),
+        TolerateSubcommand::Scaffold(args) => {
+            run_attest_scaffold(args, antigen_attestation::RatificationKind::Tolerance)
+        }
         TolerateSubcommand::Sign(args) => run_attest_sign(args),
         TolerateSubcommand::Check(args) => run_attest_check(args),
         TolerateSubcommand::List => {
@@ -746,7 +750,10 @@ fn run_tolerate(cli: TolerateCli) -> ExitCode {
 }
 
 /// `attest scaffold` / `tolerate scaffold`: create a new `.attest/<Antigen>.json` sidecar.
-fn run_attest_scaffold(args: AttestScaffoldArgs, kind_override: antigen_attestation::RatificationKind) -> ExitCode {
+fn run_attest_scaffold(
+    args: AttestScaffoldArgs,
+    kind_override: antigen_attestation::RatificationKind,
+) -> ExitCode {
     use antigen_attestation::{
         AntigenIdentifier, ItemRatification, Ratification, RatificationKind, SchemaVersion,
     };
@@ -842,7 +849,10 @@ fn run_attest_sign(args: AttestSignArgs) -> ExitCode {
     let content = match std::fs::read_to_string(&args.sidecar) {
         Ok(c) => c,
         Err(e) => {
-            eprintln!("error: failed to read sidecar {}: {e}", args.sidecar.display());
+            eprintln!(
+                "error: failed to read sidecar {}: {e}",
+                args.sidecar.display()
+            );
             return ExitCode::from(2);
         }
     };
@@ -864,15 +874,21 @@ fn run_attest_sign(args: AttestSignArgs) -> ExitCode {
             "error: no item with path `{}` in sidecar.\n\
              Available item paths: {}",
             args.item_path,
-            ratification.items.iter().map(|i| i.item_path.as_str()).collect::<Vec<_>>().join(", ")
+            ratification
+                .items
+                .iter()
+                .map(|i| i.item_path.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
         );
         return ExitCode::from(1);
     };
 
     // Check for duplicate signer + fingerprint combo.
-    let already_signed = item.signers.iter().any(|s| {
-        s.name == args.signer && s.signed_against_fingerprint == args.fingerprint
-    });
+    let already_signed = item
+        .signers
+        .iter()
+        .any(|s| s.name == args.signer && s.signed_against_fingerprint == args.fingerprint);
     if already_signed {
         eprintln!(
             "warning: signer `{}` has already signed this item against fingerprint `{}`.\n\
@@ -888,7 +904,9 @@ fn run_attest_sign(args: AttestSignArgs) -> ExitCode {
         role: args.role.clone(),
         date: today,
         signed_against_fingerprint: args.fingerprint.clone(),
-        basis: SignerBasis::Fresh { reasoning: args.reasoning.clone() },
+        basis: SignerBasis::Fresh {
+            reasoning: args.reasoning.clone(),
+        },
         strength: antigen_attestation::SignatureStrength::from(args.strength),
         signature: None,
     });
@@ -934,7 +952,11 @@ impl antigen_attestation::EvaluationContext for CheckContext {
         std::fs::read_to_string(path).ok()
     }
 
-    fn read_git_trailers(&self, _item_source_file: &std::path::Path, _item_path: &str) -> Vec<String> {
+    fn read_git_trailers(
+        &self,
+        _item_source_file: &std::path::Path,
+        _item_path: &str,
+    ) -> Vec<String> {
         Vec::new()
     }
 }
@@ -947,7 +969,10 @@ fn run_attest_check(args: AttestCheckArgs) -> ExitCode {
     let content = match std::fs::read_to_string(&args.sidecar) {
         Ok(c) => c,
         Err(e) => {
-            eprintln!("error: failed to read sidecar {}: {e}", args.sidecar.display());
+            eprintln!(
+                "error: failed to read sidecar {}: {e}",
+                args.sidecar.display()
+            );
             return ExitCode::from(2);
         }
     };

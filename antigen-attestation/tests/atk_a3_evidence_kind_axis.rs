@@ -35,7 +35,10 @@ use antigen_attestation::{EvidenceKind, WitnessTier};
 
 #[test]
 fn evidence_kind_substrate_state_ceiling_is_execution() {
-    assert_eq!(EvidenceKind::SubstrateState.max_tier(), WitnessTier::Execution);
+    assert_eq!(
+        EvidenceKind::SubstrateState.max_tier(),
+        WitnessTier::Execution
+    );
 }
 
 #[test]

@@ -214,7 +214,9 @@ impl LeafExpr {
                 "requires: `signed_trailer(count = 0)` is vacuously true (NFA-9); \
                  use count >= 1 (default is 1)",
             )),
-            Self::RatifiedDoc { anchor: Some(a), .. } if a.is_empty() => Err(syn::Error::new(
+            Self::RatifiedDoc {
+                anchor: Some(a), ..
+            } if a.is_empty() => Err(syn::Error::new(
                 span,
                 "requires: `ratified_doc(anchor = \"\")` is vacuously true (NFA-14); \
                  str::contains(\"\") always succeeds — specify a non-empty anchor string",
@@ -445,9 +447,7 @@ fn parse_signers(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
-                        format!(
-                            "unknown signers field `{other}`; expected: required, against"
-                        ),
+                        format!("unknown signers field `{other}`; expected: required, against"),
                     ));
                 }
             }
@@ -1136,10 +1136,7 @@ mod requires_json_tests {
     fn leaf_ratified_doc_bare_json() {
         let expr = parse_requires("ratified_doc");
         let json = expr.to_json();
-        assert_eq!(
-            json,
-            r#"{"kind":"leaf","leaf":{"name":"ratified_doc"}}"#
-        );
+        assert_eq!(json, r#"{"kind":"leaf","leaf":{"name":"ratified_doc"}}"#);
     }
 
     #[test]
@@ -1195,9 +1192,8 @@ mod requires_json_tests {
 
     #[test]
     fn combinator_all_of_json() {
-        let expr = parse_requires(
-            r#"all_of([fresh_within_days(90), signers(required = ["alice"])])"#,
-        );
+        let expr =
+            parse_requires(r#"all_of([fresh_within_days(90), signers(required = ["alice"])])"#);
         let json = expr.to_json();
         assert_eq!(
             json,
@@ -1207,9 +1203,7 @@ mod requires_json_tests {
 
     #[test]
     fn combinator_any_of_json() {
-        let expr = parse_requires(
-            r"any_of([fresh_within_days(30), fresh_within_days(90)])",
-        );
+        let expr = parse_requires(r"any_of([fresh_within_days(30), fresh_within_days(90)])");
         let json = expr.to_json();
         assert_eq!(
             json,

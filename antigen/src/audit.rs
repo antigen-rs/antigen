@@ -467,7 +467,11 @@ impl antigen_attestation::EvaluationContext for FilesystemAuditContext {
     // git is unavailable or the item has no commits. A3+ work wires this
     // to a proper git2 adapter or subprocess; for now the trait contract
     // is satisfied and `SignedTrailer` leaf evaluates to false.
-    fn read_git_trailers(&self, _item_source_file: &std::path::Path, _item_path: &str) -> Vec<String> {
+    fn read_git_trailers(
+        &self,
+        _item_source_file: &std::path::Path,
+        _item_path: &str,
+    ) -> Vec<String> {
         Vec::new()
     }
 }
