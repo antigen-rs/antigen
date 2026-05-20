@@ -63,6 +63,7 @@
 - [ADR-016 — Temporal recognition surface: provenance + freshness primitives](#adr-016-temporal-recognition-surface-provenance--freshness-primitives-for-stale-context-and-premature-abstraction)
 - [ADR-017 — Antigen identity is canonical declaration site; cross-crate trust delegates to cargo](#adr-017-antigen-identity-is-canonical-declaration-site-cross-crate-trust-delegates-to-cargo)
 - [ADR-018 — `#[descended_from]` propagation: tagged synthesis + diamond dedup + inheritance state matrix](#adr-018-descended_from-propagation-tagged-synthesis--diamond-dedup--inheritance-state-matrix)
+  - [ADR-018 Amendment 1 — Inheritance is provenance, not substitutability](#adr-018-amendment-1--inheritance-is-provenance-not-substitutability)
 - [ADR-019 — Substrate-witness predicate family](#adr-019-substrate-witness-predicate-family)
 - [ADR-020 — Cross-cutting attestation primitive](#adr-020-cross-cutting-attestation-primitive)
 - [ADR-021 — OracleRef generalization + additive-only schema evolution + oracle-as-artifact-class](#adr-021-oracleref-generalization--additive-only-schema-evolution--oracle-as-artifact-class)
@@ -4347,6 +4348,43 @@ to ancestor immunity declarations to help the user evaluate re-attestation.
    surfaced by state 7 + AuditHint). Includes the multi-version case: with
    `ProvenanceEntry` carrying canonical_path, A4-A5 ancestor lookup is O(1) —
    this open question is substantially simplified vs bare-string Option A.
+
+---
+
+## ADR-018 Amendment 1 — Inheritance is provenance, not substitutability
+
+**Status**: Ratified 2026-05-20.
+
+**Amends**: ADR-018 §Decision "The descendant inherits the ancestor's match_kind.
+Inheritance is provenance, not match-kind."
+
+**Reason**: Observer NB017 (F24 peer review) surfaced a precision gap in the
+ratified text: "not match-kind" correctly names what inheritance does NOT preserve
+from a match-semantics perspective, but does not name the stronger claim that
+`descended_from` makes no substitutability guarantee. ADR-024 (F24 aristotle
+Phase 1-8 on substitutability vs provenance) established this as a load-bearing
+distinction that future implementers and consumers need to read explicitly.
+
+**Change**: Extend the Decision text from:
+
+> "The descendant inherits the ancestor's `match_kind`. Inheritance is provenance,
+> not match-kind."
+
+to:
+
+> "The descendant inherits the ancestor's `match_kind`. Inheritance is provenance,
+> not match-kind **and not substitutability**. `#[descended_from(X)]` records that
+> the declaring type is structurally related to X's failure-class by lineage; it
+> does NOT assert that the descendant satisfies X's immunity witness, that the
+> descendant's context is semantically equivalent to X's, or that the descendant
+> can be substituted for X in any behavioral sense. Substitutability is the subject
+> of A4-A5 behavioral-tier work (open question 5 above); A3's job is to surface the
+> inheritance state in a form A4-A5 can consume."
+
+**Resolves**: F24 (aristotle Phase 1-8 on substitutability vs provenance) finding
+that the ratified text left implicit the non-substitutability guarantee. Explicit
+statement prevents implementers from inferring substitutability from `descended_from`
+declarations.
 
 ---
 
