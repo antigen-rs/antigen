@@ -604,7 +604,10 @@ Specific boundaries and their checks:
 
 2. **Inheritance propagation**: `cargo antigen scan` walks `#[descended_from]` chains and
    re-checks that inherited witnesses still apply to descendants. Signature divergence
-   or behavioral change invalidates the inheritance.
+   or behavioral change invalidates the inheritance. (At reachability tier: topological
+   re-attestation check, surfaces as state 7 `InheritedPresentationNotReAttested` hint
+   per ADR-018. At behavioral tier: semantic witness re-validation against the descendant
+   site — A4-A5 work, not yet implemented in v0.1.)
 
 3. **Vaccination application**: `cargo antigen vaccinate` requires confirmation before
    applying patterns; the pattern's match against each target site is logged for audit.
