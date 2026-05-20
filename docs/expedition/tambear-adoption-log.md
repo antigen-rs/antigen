@@ -635,3 +635,107 @@ case. See ADR-NNN for the design rationale.
 
 This builds the bidirectional feedback loop that makes the
 "antigen-graduates-from-tambear" relationship work in practice.
+
+---
+
+### [2026-05-20] Phase 4 sinh/cosh signed-zero discipline — end-to-end substrate-witness flow
+
+**Why**: per Phase 4 readiness check (entry above, 2026-05-19), seed work
+was to add a `SignedZeroDiscipline` antigen and exercise the substrate-witness
+primitive against tambear's sinh/cosh sites. This entry records the experience.
+
+**What landed**:
+
+1. **`SignedZeroDiscipline` antigen declared** at `crates/tambear/src/antigens.rs:156`.
+   Family: `forgotten-lesson`. Fingerprint matches `f64 → f64` functions
+   whose names match odd-function patterns (`sinh*`, `tanh*`, `sin*`, `asin*`,
+   `atan*`, `asinh*`, `atanh*`). Summary names the IEEE 754 odd-function
+   contract: `f(-0.0)` MUST return `-0.0` (sign-bit preserved), not `+0.0`.
+   References cite `docs/origin.md` (this is THE motivating failure-class for
+   antigen itself) plus `tanh.rs` and `sinh.rs` as canonical exemplars.
+
+2. **`#[presents(SignedZeroDiscipline)]` markers added** at
+   `crates/tambear/src/recipes/elementary/sinh.rs:46` and
+   `crates/tambear/src/recipes/elementary/tanh.rs:48`. Both functions have
+   pre-existing `if x == 0.0 { return x; }` short-circuits at the top of
+   their P0 implementations + tests locking the bit-exact `to_bits()` contract.
+
+3. **Sidecar scaffolded + signed** at
+   `crates/tambear/src/recipes/elementary/.attest/SignedZeroDiscipline.json`.
+   One `pathmaker` signer with role `math-researcher`, basis Fresh, strength
+   GitTrust, reasoning cites the explicit short-circuit + locked test.
+
+4. **End-to-end check verified**:
+   ```
+   $ cargo antigen attest check --sidecar <...>.json --predicate \
+       '{"kind":"leaf","name":"signers","required":["pathmaker"],"against":"current"}' \
+       --item-path sinh --fingerprint placeholder-fp-sinh
+
+   Result:
+     witness_tier:      Execution
+     audit_hint:        DisciplinePredicatePassedSubstrateCurrent
+     evidence_kind:     SubstrateState
+     signature_strength: Some(GitTrust)
+   ```
+
+**Scan result delta**: with the new antigen + markers, `cargo antigen scan
+--root R:/tambear/crates` reports:
+- **47 unaddressed `SignedZeroDiscipline` matches** across tambear's test
+  files (`sweep_37_payne_hanek_breakdown.rs`, `sweep_37_trig_consistency.rs`,
+  `trig_oracle_crossval.rs`, etc.) — these are tests that exercise odd-
+  function discipline; the fingerprint catches them because the function
+  names start with `sin`/`tan`/`asin`/`atan`. **This is too broad** — see
+  adoption-feedback below.
+- **2 unaddressed explicit presentations** at the two `#[presents]` sites
+  I added (sinh.rs, tanh.rs) — these are the operator-facing prompt to
+  attach a witness, which I then did via `attest scaffold` + `attest sign`.
+- **The audit then sees sinh's sidecar at Execution tier** — the
+  end-to-end substrate-witness primitive is operational.
+
+**Adoption-feedback observations** (these go to antigen-side as v0.2 work):
+
+1. **`#[presents(T)]` triggers `unused_imports` warning** on the marker
+   type. The proc-macro doesn't emit a reference to the type, so the
+   `use crate::antigens::SignedZeroDiscipline;` looks unused. Today's
+   workaround: `#[allow(unused_imports)]` on the import. Cleaner v0.2 fix:
+   either have `#[presents]` emit a `let _: T;` typecheck anchor, OR
+   accept the type as a string literal and emit no import need.
+
+2. **Fingerprint by name-pattern is too coarse** — the `SignedZeroDiscipline`
+   fingerprint matches test functions whose names happen to contain `sin`/
+   `tan` substrings (e.g., a test named `sin_high_precision_above_pi_over_2`
+   matches `name = matches("sin*")`). The fingerprint surfaces real
+   presentations alongside many false-positives at test-site granularity.
+   The v0.2 fix is to add a `path_excludes("tests/**")` or
+   `kingdom = recipe` qualifier to the fingerprint DSL so the antigen can
+   target source recipes, not adjacent test files.
+
+3. **`has_signature("(f64) -> f64")` DSL operator does not exist**
+   (build error attempted to use it). Available operators per the parser
+   error message: `item, name, variants, has_method, attr_present,
+   doc_contains, body_contains_macro, all_of, any_of, not`. A signature
+   shape predicate would substantially sharpen `SignedZeroDiscipline`'s
+   fingerprint — current workaround is name-pattern only. v0.2 candidate.
+
+4. **No `--root` for `attest scaffold`** — `attest scaffold` requires
+   `--source-file <path>`; cannot scaffold against an antigen across the
+   workspace without spelling out paths. Minor; the current API is fine
+   for the path-known case but a `scaffold-by-presents` convenience would
+   close the loop with the scan output.
+
+5. **The Phase 4 seed work was small (∼30 minutes of operator time)** —
+   add antigen declaration, add two `#[presents]` markers, scaffold sidecar,
+   sign, check. This is the right friction level for the v0.1-rc target
+   "make the discipline discoverable at the declaration site."
+
+**Verdict**: Phase 4 sinh/cosh seed work complete. The substrate-witness
+primitive (ADR-019) is operational end-to-end against tambear: declare
+antigen → mark presenting sites → scaffold sidecar → sign → audit verifies
+at Execution tier. The five adoption-feedback observations above are v0.2
+candidates, not v0.1-rc blockers — operator path works today.
+
+[antigen team note 2026-05-20]: Phase 4 seed work landed in tambear at
+`SignedZeroDiscipline` antigen + sinh.rs/tanh.rs `#[presents]` markers
++ scaffolded sidecar at `crates/tambear/src/recipes/elementary/.attest/
+SignedZeroDiscipline.json`. Five adoption-feedback observations captured
+above as v0.2 candidates; none are v0.1-rc blockers.
