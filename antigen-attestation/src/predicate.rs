@@ -288,8 +288,10 @@ pub enum Leaf {
         /// Empty means all strengths are accepted (default).
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         signature_allow: Vec<crate::tier::SignatureStrength>,
-        /// If set, signers whose strength is below this level produce a
-        /// `SignatureTypeBelowPreferred` audit hint (predicate still passes).
+        /// If set, declares a preferred strength tier. When a signer's strength
+        /// is below this level, the predicate still passes but an informational
+        /// hint is emitted. v0.1: field is accepted and stored; hint emission
+        /// is deferred to v0.2 (currently the field has no runtime effect).
         #[serde(default, skip_serializing_if = "Option::is_none")]
         signature_prefer: Option<crate::tier::SignatureStrength>,
     },
