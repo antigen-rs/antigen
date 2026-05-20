@@ -1328,14 +1328,47 @@ impl antigen_attestation::EvaluationContext for CheckContext {
 
     fn read_git_trailers(
         &self,
-        _item_source_file: &std::path::Path,
+        item_source_file: &std::path::Path,
         _item_path: &str,
     ) -> Vec<String> {
-        // CLI-SF-2: git trailer resolution is not yet wired in the check command.
-        // Predicates using `Leaf::SignedTrailer` will always fail here — not a
-        // predicate error, just "no trailers found." The audit command has the same
-        // gap. v0.2 wires real `git interpret-trailers` invocation.
-        Vec::new()
+        // Invoke `git log --format=%B -- <file>` to collect all commit messages
+        // touching the item's source file, then pipe through `git interpret-trailers
+        // --parse` to extract structured trailers. This satisfies the signed_trailer
+        // leaf contract (ADR-019 §Decision §4 bright-line rule: git is named, has own
+        // release process, does not execute user code, args are fixed).
+        //
+        // If git is unavailable or the file has no commits, returns Vec::new()
+        // (tier-honest: no trailers found → signed_trailer predicate fails → None tier).
+        let log_output = std::process::Command::new("git")
+            .args(["log", "--format=%B", "--", item_source_file.to_str().unwrap_or("")])
+            .output();
+        let log_bytes = match log_output {
+            Ok(o) if o.status.success() => o.stdout,
+            _ => return Vec::new(),
+        };
+
+        let trailer_output = std::process::Command::new("git")
+            .args(["interpret-trailers", "--parse"])
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .spawn()
+            .and_then(|mut child| {
+                use std::io::Write;
+                if let Some(stdin) = child.stdin.take() {
+                    let mut stdin = stdin;
+                    let _ = stdin.write_all(&log_bytes);
+                }
+                child.wait_with_output()
+            });
+
+        match trailer_output {
+            Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout)
+                .lines()
+                .map(|l| l.trim().to_owned())
+                .filter(|l| !l.is_empty())
+                .collect(),
+            _ => Vec::new(),
+        }
     }
 }
 
@@ -1393,9 +1426,12 @@ fn run_attest_check(args: AttestCheckArgs) -> ExitCode {
     // --fingerprint from `cargo antigen scan --format json` for accurate stale detection.
     if args.fingerprint.is_none() {
         eprintln!(
-            "note: --fingerprint not supplied; using sidecar's stored current_fingerprint.\n\
-             Stale-signer detection requires the real current fingerprint.\n\
-             Run `cargo antigen scan --format json` to get the item fingerprint."
+            "warning: --fingerprint not supplied; using sidecar's stored \
+             current_fingerprint for stale-signer detection.\n\
+             If the item's code has changed since the sidecar was written, stale \
+             signers will appear current. Supply --fingerprint from \
+             `cargo antigen scan --format json` for accurate stale detection.\n\
+             (CLI-SF-1: self-referential fingerprint cannot detect real staleness)"
         );
     }
     let current_fingerprint = args
