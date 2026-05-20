@@ -1093,14 +1093,28 @@ fn run_attest_delta(args: AttestDeltaArgs) -> ExitCode {
         return ExitCode::from(1);
     };
 
-    // Count existing delta chain depth for this signer since last Fresh.
-    let chain_depth = item
+    // Count existing delta chain depth for this signer since their last Fresh entry.
+    // CLI-SF-4 fix: take_while on reversed list stops at the first non-(name+delta) entry,
+    // undercounting when other signers have entries interleaved. Correct computation:
+    // find the last Fresh entry for this signer, then count all subsequent delta entries
+    // for this signer regardless of interleaving.
+    let last_fresh_index = item
         .signers
         .iter()
-        .rev()
-        .take_while(|s| s.name == signer_name && s.basis.is_delta())
-        .count() as u32
-        + 1;
+        .enumerate()
+        .filter(|(_, s)| s.name == signer_name && s.basis.is_fresh())
+        .map(|(i, _)| i)
+        .last();
+    let chain_depth = match last_fresh_index {
+        Some(fresh_idx) => {
+            item.signers[fresh_idx + 1..]
+                .iter()
+                .filter(|s| s.name == signer_name && s.basis.is_delta())
+                .count() as u32
+                + 1
+        }
+        None => 1, // No Fresh entry — guard above already caught this; unreachable here
+    };
 
     // Anti-laundering safeguard: enforce chain-depth cap (default 3; hard max = HARD_DELTA_CHAIN_CAP_MAX).
     // Project TOML config may tighten; tighter caps also enforced at audit time by evaluator.
