@@ -18,6 +18,14 @@
 //!   emits state-7 diagnostics for inherited presentations lacking
 //!   re-attestation (ADR-018). `--strict` gates CI on tier minimums +
 //!   state-7 absence.
+//! - `cargo antigen attest` — manage `.attest/<Antigen>.json` substrate-witness
+//!   sidecars (ADR-019). Subcommands: `scaffold` (create sidecar), `sign`
+//!   (add signer entry), `check` (evaluate predicate against sidecar).
+//!   Further subcommands (`delta`, `oracle`, `list`, `move`, `migrate`, `gc`)
+//!   are design-phase stubs hidden from `--help`.
+//! - `cargo antigen tolerate` — manage tolerance-ratification sidecars (ADR-019
+//!   §tolerance tier). Subcommands: `scaffold`, `sign`, `check`, `list` (stubs
+//!   pending tambear Phase 4 adoption feedback).
 //!
 //! Two additional subcommands (`new`, `vaccinate`) exist as design-phase
 //! stubs but are hidden from `--help` until they ship beyond stub state
@@ -87,6 +95,10 @@ enum AntigenSubcommand {
     },
     /// Comprehensive immunity coverage report — witness resolution and tier validation.
     Audit(AuditArgs),
+    /// Manage `.attest/<Antigen>.json` substrate-witness sidecars (ADR-019).
+    Attest(AttestCli),
+    /// Manage tolerance-ratification sidecars (ADR-019 §tolerance tier).
+    Tolerate(TolerateCli),
 }
 
 #[derive(Debug, Parser)]
@@ -125,6 +137,158 @@ struct AuditArgs {
     strict: bool,
 }
 
+// ============================================================================
+// cargo antigen attest subcommand family (ADR-019 substrate-witness sidecars)
+// ============================================================================
+
+#[derive(Debug, Parser)]
+struct AttestCli {
+    #[command(subcommand)]
+    command: AttestSubcommand,
+}
+
+#[derive(Debug, Subcommand)]
+enum AttestSubcommand {
+    /// Create a new `.attest/<Antigen>.json` sidecar file adjacent to the source file.
+    Scaffold(AttestScaffoldArgs),
+    /// Add a fresh signer entry to an existing `.attest/<Antigen>.json` sidecar.
+    Sign(AttestSignArgs),
+    /// Evaluate a substrate-witness predicate against a sidecar and report the result.
+    Check(AttestCheckArgs),
+    /// Add a delta-attestation entry (design phase — sidecar must be signed first).
+    #[command(hide = true)]
+    Delta,
+    /// Register an oracle completion marker (design phase).
+    #[command(hide = true)]
+    Oracle,
+    /// List all `.attest/` sidecars in the workspace.
+    #[command(hide = true)]
+    List,
+    /// Move a sidecar to a new location after refactoring (design phase).
+    #[command(hide = true)]
+    Move,
+    /// Migrate a sidecar to a new schema version (design phase).
+    #[command(hide = true)]
+    Migrate,
+    /// Garbage-collect stale sidecar entries (design phase).
+    #[command(hide = true)]
+    Gc,
+}
+
+#[derive(Debug, Parser)]
+struct AttestScaffoldArgs {
+    /// The antigen type name (e.g., `SignedZeroCancellation`).
+    #[arg(long)]
+    antigen: String,
+    /// The source file the `#[immune]` declaration lives in. The sidecar is
+    /// created at `<source-file-dir>/.attest/<antigen>.json`.
+    #[arg(long)]
+    source_file: PathBuf,
+    /// The item path within the source file (e.g., `sinh`, `cosh`, `MyStruct::method`).
+    /// Used as the `item_path` field in the sidecar's `items` array.
+    #[arg(long, default_value = "")]
+    item_path: String,
+    /// The current structural fingerprint of the item. Use the fingerprint from
+    /// `cargo antigen scan --format json` or compute via `antigen-fingerprint`.
+    /// If omitted the sidecar uses an empty placeholder — update before signing.
+    #[arg(long, default_value = "")]
+    fingerprint: String,
+    /// Ratification kind: `immunity` (default) or `tolerance`.
+    #[arg(long, default_value = "immunity")]
+    kind: RatificationKindArg,
+    /// Overwrite an existing sidecar without prompting.
+    #[arg(long)]
+    force: bool,
+}
+
+#[derive(Debug, Parser)]
+struct AttestSignArgs {
+    /// Path to the `.attest/<Antigen>.json` sidecar to update.
+    #[arg(long)]
+    sidecar: PathBuf,
+    /// The item path within the sidecar's `items` array to add the signer to.
+    /// Must match an existing `item_path` in the sidecar.
+    #[arg(long)]
+    item_path: String,
+    /// Signer's display name (e.g., `alice`).
+    #[arg(long)]
+    signer: String,
+    /// The current structural fingerprint of the item (must match the sidecar's
+    /// `current_fingerprint` for the item). This is the value that `signed_against_fingerprint`
+    /// records — `cargo antigen audit` compares it against the item's real fingerprint
+    /// to detect staleness.
+    #[arg(long)]
+    fingerprint: String,
+    /// Optional role for this signer (e.g., `math-reviewer`, `security-reviewer`).
+    #[arg(long)]
+    role: Option<String>,
+    /// Optional free-text reasoning for this signature. Records WHY the signer
+    /// attested to discipline compliance at this moment.
+    #[arg(long)]
+    reasoning: Option<String>,
+}
+
+#[derive(Debug, Parser)]
+struct AttestCheckArgs {
+    /// Path to the `.attest/<Antigen>.json` sidecar to evaluate against.
+    #[arg(long)]
+    sidecar: PathBuf,
+    /// The predicate JSON to evaluate. Must match the `antigen_attestation::Predicate`
+    /// serde format. Example: `{"kind":"leaf","leaf":{"name":"signers","required":["alice"]}}`
+    #[arg(long)]
+    predicate: String,
+    /// The item path within the sidecar's `items` array to evaluate.
+    /// If omitted, evaluates the first item.
+    #[arg(long)]
+    item_path: Option<String>,
+    /// The current structural fingerprint of the item, for stale-signer detection.
+    /// If omitted, uses the sidecar's stored `current_fingerprint`.
+    #[arg(long)]
+    fingerprint: Option<String>,
+}
+
+/// CLI representation of `antigen_attestation::RatificationKind`.
+#[derive(Debug, Clone, clap::ValueEnum)]
+enum RatificationKindArg {
+    Immunity,
+    Tolerance,
+}
+
+impl From<RatificationKindArg> for antigen_attestation::RatificationKind {
+    fn from(k: RatificationKindArg) -> Self {
+        match k {
+            RatificationKindArg::Immunity => Self::Immunity,
+            RatificationKindArg::Tolerance => Self::Tolerance,
+        }
+    }
+}
+
+// ============================================================================
+// cargo antigen tolerate subcommand family (ADR-019 tolerance sidecars)
+// ============================================================================
+
+#[derive(Debug, Parser)]
+struct TolerateCli {
+    #[command(subcommand)]
+    command: TolerateSubcommand,
+}
+
+#[derive(Debug, Subcommand)]
+enum TolerateSubcommand {
+    /// Create a new tolerance sidecar at `.attest/<Antigen>.json` adjacent to source.
+    ///
+    /// Equivalent to `attest scaffold --kind tolerance`. Tolerance sidecars share
+    /// the same `Ratification` schema — the `kind` discriminator distinguishes them.
+    Scaffold(AttestScaffoldArgs),
+    /// Add a fresh signer entry to an existing tolerance sidecar.
+    Sign(AttestSignArgs),
+    /// Evaluate a substrate-witness predicate against a tolerance sidecar.
+    Check(AttestCheckArgs),
+    /// List all tolerance sidecars in the workspace (design phase).
+    #[command(hide = true)]
+    List,
+}
+
 #[derive(Debug, Clone, clap::ValueEnum)]
 enum OutputFormat {
     Human,
@@ -140,6 +304,8 @@ fn main() -> ExitCode {
         AntigenSubcommand::New { name } => run_new(name),
         AntigenSubcommand::Vaccinate { antigen, pattern } => run_vaccinate(antigen, pattern),
         AntigenSubcommand::Audit(args) => run_audit(args),
+        AntigenSubcommand::Attest(cli) => run_attest(cli),
+        AntigenSubcommand::Tolerate(cli) => run_tolerate(cli),
     }
 }
 
@@ -511,6 +677,321 @@ fn run_audit(args: AuditArgs) -> ExitCode {
     let strict_witness_fails =
         args.strict && !audit_report.all_meet_tier(audit::WitnessTier::Reachability);
     if strict_state7_fails || strict_witness_fails {
+        ExitCode::from(1)
+    } else {
+        ExitCode::SUCCESS
+    }
+}
+
+// ============================================================================
+// cargo antigen attest handlers
+// ============================================================================
+
+fn run_attest(cli: AttestCli) -> ExitCode {
+    match cli.command {
+        AttestSubcommand::Scaffold(args) => run_attest_scaffold(args, antigen_attestation::RatificationKind::Immunity),
+        AttestSubcommand::Sign(args) => run_attest_sign(args),
+        AttestSubcommand::Check(args) => run_attest_check(args),
+        AttestSubcommand::Delta
+        | AttestSubcommand::Oracle
+        | AttestSubcommand::List
+        | AttestSubcommand::Move
+        | AttestSubcommand::Migrate
+        | AttestSubcommand::Gc => {
+            eprintln!(
+                "This attest subcommand is in design phase.\n\
+                 It will be implemented in a future release."
+            );
+            ExitCode::SUCCESS
+        }
+    }
+}
+
+fn run_tolerate(cli: TolerateCli) -> ExitCode {
+    match cli.command {
+        TolerateSubcommand::Scaffold(args) => run_attest_scaffold(args, antigen_attestation::RatificationKind::Tolerance),
+        TolerateSubcommand::Sign(args) => run_attest_sign(args),
+        TolerateSubcommand::Check(args) => run_attest_check(args),
+        TolerateSubcommand::List => {
+            eprintln!("tolerate list is in design phase.");
+            ExitCode::SUCCESS
+        }
+    }
+}
+
+/// `attest scaffold` / `tolerate scaffold`: create a new `.attest/<Antigen>.json` sidecar.
+fn run_attest_scaffold(args: AttestScaffoldArgs, kind_override: antigen_attestation::RatificationKind) -> ExitCode {
+    use antigen_attestation::{
+        AntigenIdentifier, ItemRatification, Ratification, RatificationKind, SchemaVersion,
+    };
+    use std::collections::BTreeMap;
+
+    // The effective kind: --kind arg on the scaffold command, but `run_tolerate`
+    // forces Tolerance regardless of the --kind arg (tolerate scaffold implies it).
+    let kind = if matches!(kind_override, RatificationKind::Immunity) {
+        args.kind.into()
+    } else {
+        kind_override
+    };
+
+    // Derive the antigen's last segment as the sidecar filename stem.
+    let stem = args.antigen.rsplit("::").next().unwrap_or(&args.antigen);
+    let Some(source_dir_ref) = args.source_file.parent() else {
+        eprintln!("error: source-file has no parent directory");
+        return ExitCode::from(2);
+    };
+    let source_dir = source_dir_ref.to_path_buf();
+    let attest_dir = source_dir.join(".attest");
+    let sidecar_path = attest_dir.join(format!("{stem}.json"));
+
+    if sidecar_path.exists() && !args.force {
+        eprintln!(
+            "error: sidecar already exists: {}\n\
+             Use --force to overwrite.",
+            sidecar_path.display()
+        );
+        return ExitCode::from(1);
+    }
+
+    if let Err(e) = std::fs::create_dir_all(&attest_dir) {
+        eprintln!("error: failed to create .attest/ directory: {e}");
+        return ExitCode::from(2);
+    }
+
+    let ratification = Ratification {
+        schema_version: SchemaVersion::V1,
+        kind,
+        antigen: AntigenIdentifier {
+            name: stem.to_string(),
+            defined_in: None,
+        },
+        source_file: args.source_file.clone(),
+        items: vec![ItemRatification {
+            item_path: args.item_path.clone(),
+            current_fingerprint: args.fingerprint.clone(),
+            doc_ref: None,
+            signers: vec![],
+            oracles: vec![],
+            fresh_through: None,
+            extensions: BTreeMap::new(),
+        }],
+    };
+
+    let json = match serde_json::to_string_pretty(&ratification) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("error: failed to serialize sidecar: {e}");
+            return ExitCode::from(2);
+        }
+    };
+
+    if let Err(e) = std::fs::write(&sidecar_path, &json) {
+        eprintln!("error: failed to write sidecar: {e}");
+        return ExitCode::from(2);
+    }
+
+    eprintln!("Created sidecar: {}", sidecar_path.display());
+    if args.fingerprint.is_empty() {
+        eprintln!(
+            "  note: fingerprint is empty — update `current_fingerprint` before signing.\n\
+             \n\
+             Get the item fingerprint from:\n\
+             \n  cargo antigen scan --format json | jq '.immunities[] | select(.antigen_type==\"{}\") | .requires_predicate'\n",
+            stem
+        );
+    }
+    eprintln!(
+        "\nNext: `cargo antigen attest sign --sidecar {} --item-path \"{}\" --signer <name> --fingerprint <fp>`",
+        sidecar_path.display(),
+        args.item_path
+    );
+    ExitCode::SUCCESS
+}
+
+/// `attest sign` / `tolerate sign`: add a signer entry to an existing sidecar.
+fn run_attest_sign(args: AttestSignArgs) -> ExitCode {
+    use antigen_attestation::{Ratification, Signer, SignerBasis};
+
+    // Load the existing sidecar.
+    let content = match std::fs::read_to_string(&args.sidecar) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("error: failed to read sidecar {}: {e}", args.sidecar.display());
+            return ExitCode::from(2);
+        }
+    };
+    let mut ratification: Ratification = match serde_json::from_str(&content) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: sidecar is not valid JSON (Ratification schema): {e}");
+            return ExitCode::from(2);
+        }
+    };
+
+    // Find the target item.
+    let item = ratification
+        .items
+        .iter_mut()
+        .find(|i| i.item_path == args.item_path);
+    let Some(item) = item else {
+        eprintln!(
+            "error: no item with path `{}` in sidecar.\n\
+             Available item paths: {}",
+            args.item_path,
+            ratification.items.iter().map(|i| i.item_path.as_str()).collect::<Vec<_>>().join(", ")
+        );
+        return ExitCode::from(1);
+    };
+
+    // Check for duplicate signer + fingerprint combo.
+    let already_signed = item.signers.iter().any(|s| {
+        s.name == args.signer && s.signed_against_fingerprint == args.fingerprint
+    });
+    if already_signed {
+        eprintln!(
+            "warning: signer `{}` has already signed this item against fingerprint `{}`.\n\
+             No entry added.",
+            args.signer, args.fingerprint
+        );
+        return ExitCode::SUCCESS;
+    }
+
+    let today = chrono::Local::now().date_naive();
+    item.signers.push(Signer {
+        name: args.signer.clone(),
+        role: args.role.clone(),
+        date: today,
+        signed_against_fingerprint: args.fingerprint.clone(),
+        basis: SignerBasis::Fresh { reasoning: args.reasoning.clone() },
+        signature: None,
+    });
+
+    let json = match serde_json::to_string_pretty(&ratification) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("error: failed to serialize updated sidecar: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    if let Err(e) = std::fs::write(&args.sidecar, &json) {
+        eprintln!("error: failed to write updated sidecar: {e}");
+        return ExitCode::from(2);
+    }
+
+    eprintln!(
+        "Signed: {} added to `{}` item `{}` against fingerprint `{}`",
+        args.signer,
+        args.sidecar.display(),
+        args.item_path,
+        args.fingerprint
+    );
+    if let Some(role) = &args.role {
+        eprintln!("  role: {role}");
+    }
+    ExitCode::SUCCESS
+}
+
+/// Filesystem-backed evaluation context for the CLI check commands.
+struct CheckContext;
+
+impl antigen_attestation::EvaluationContext for CheckContext {
+    fn today(&self) -> chrono::NaiveDate {
+        chrono::Local::now().date_naive()
+    }
+
+    fn read_doc(&self, path: &std::path::Path) -> Option<String> {
+        std::fs::read_to_string(path).ok()
+    }
+
+    fn read_oracle(&self, path: &std::path::Path) -> Option<String> {
+        std::fs::read_to_string(path).ok()
+    }
+
+    fn read_git_trailers(&self, _item_source_file: &std::path::Path, _item_path: &str) -> Vec<String> {
+        Vec::new()
+    }
+}
+
+/// `attest check` / `tolerate check`: evaluate a predicate against a sidecar.
+fn run_attest_check(args: AttestCheckArgs) -> ExitCode {
+    use antigen_attestation::{evaluate::evaluate_predicate_with_kind, Predicate, Ratification};
+
+    // Load sidecar.
+    let content = match std::fs::read_to_string(&args.sidecar) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("error: failed to read sidecar {}: {e}", args.sidecar.display());
+            return ExitCode::from(2);
+        }
+    };
+    let ratification: Ratification = match serde_json::from_str(&content) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: sidecar schema invalid: {e}");
+            return ExitCode::from(2);
+        }
+    };
+
+    // Deserialize the predicate.
+    let predicate: Predicate = match serde_json::from_str(&args.predicate) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("error: predicate JSON invalid: {e}");
+            return ExitCode::from(2);
+        }
+    };
+
+    // Find the target item (first, or by item_path).
+    let item = if let Some(ref path) = args.item_path {
+        match ratification.items.iter().find(|i| i.item_path == *path) {
+            Some(i) => i,
+            None => {
+                eprintln!("error: no item with path `{path}` in sidecar.");
+                return ExitCode::from(1);
+            }
+        }
+    } else {
+        match ratification.items.first() {
+            Some(i) => i,
+            None => {
+                eprintln!("error: sidecar has no items.");
+                return ExitCode::from(1);
+            }
+        }
+    };
+
+    let current_fingerprint = args
+        .fingerprint
+        .as_deref()
+        .unwrap_or(&item.current_fingerprint);
+
+    let result = match evaluate_predicate_with_kind(
+        &predicate,
+        item,
+        current_fingerprint,
+        &args.sidecar,
+        ratification.kind,
+        &CheckContext,
+    ) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: evaluation error: {e}");
+            return ExitCode::from(2);
+        }
+    };
+
+    eprintln!("Sidecar:   {}", args.sidecar.display());
+    eprintln!("Item path: {}", item.item_path);
+    eprintln!("Kind:      {:?}", ratification.kind);
+    eprintln!();
+    eprintln!("Result:");
+    eprintln!("  witness_tier:      {:?}", result.witness_tier);
+    eprintln!("  audit_hint:        {:?}", result.audit_hint);
+    eprintln!("  evidence_kind:     {:?}", result.evidence_kind);
+    eprintln!("  signature_strength:{:?}", result.signature_strength);
+
+    // Exit 1 if predicate failed (tier = None means failed or missing-sidecar).
+    if result.witness_tier == antigen_attestation::WitnessTier::None {
         ExitCode::from(1)
     } else {
         ExitCode::SUCCESS
