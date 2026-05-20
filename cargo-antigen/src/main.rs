@@ -948,6 +948,18 @@ fn run_attest_sign(args: AttestSignArgs) -> ExitCode {
         return ExitCode::SUCCESS;
     }
 
+    // Warn if signing against a fingerprint that doesn't match the sidecar's stored
+    // current_fingerprint — the resulting entry will be immediately stale at audit time.
+    if !item.current_fingerprint.is_empty() && args.fingerprint != item.current_fingerprint {
+        eprintln!(
+            "warning: --fingerprint `{}` does not match sidecar's stored \
+             current_fingerprint `{}`. The new signer entry will be immediately \
+             stale at audit time. Update the sidecar's current_fingerprint first, \
+             or re-run `cargo antigen scan --format json` to get the current fingerprint.",
+            args.fingerprint, item.current_fingerprint
+        );
+    }
+
     let today = chrono::Local::now().date_naive();
     item.signers.push(Signer {
         name: args.signer.clone(),
@@ -1030,9 +1042,25 @@ fn run_attest_delta(args: AttestDeltaArgs) -> ExitCode {
         }
     };
 
-    if args.rationale.trim().is_empty() {
-        eprintln!("error: --rationale must be non-empty (anti-laundering safeguard)");
-        return ExitCode::from(1);
+    // Anti-laundering T2R-B: enforce minimum rationale character count at CLI layer.
+    // The schema validate() also enforces this at audit time, but catching it here
+    // prevents writing a sidecar that immediately fails validation (CLI-SF-3).
+    {
+        use antigen_attestation::schema::DEFAULT_DELTA_RATIONALE_MIN_CHARS;
+        let trimmed = args.rationale.trim();
+        if trimmed.is_empty() {
+            eprintln!("error: --rationale must be non-empty (anti-laundering safeguard T2R-C)");
+            return ExitCode::from(1);
+        }
+        if trimmed.chars().count() < DEFAULT_DELTA_RATIONALE_MIN_CHARS {
+            eprintln!(
+                "error: --rationale is too short ({} chars); minimum is {} chars \
+                 (anti-laundering safeguard T2R-B). Rubber-stamp rationales are rejected.",
+                trimmed.chars().count(),
+                DEFAULT_DELTA_RATIONALE_MIN_CHARS,
+            );
+            return ExitCode::from(1);
+        }
     }
 
     let item = ratification
