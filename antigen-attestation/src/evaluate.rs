@@ -466,7 +466,7 @@ fn classify_passed_predicate<C: EvaluationContext>(
     // No signers at all = predicate passed via non-signer leaves only
     // (e.g., `ratified_doc + oracles_complete + fresh_within_days` with
     // no `signers` leaf). The result is Execution-tier substrate-current
-    // because all checked leaves passed, but there is NO git-trust identity
+    // because all checked leaves passed, but there is NO identity
     // binding — no signer exists to bind identity to, so signature_strength
     // must be None, not Some(GitTrust).
     if item.signers.is_empty() {
@@ -477,6 +477,16 @@ fn classify_passed_predicate<C: EvaluationContext>(
             signature_strength: None,
         };
     }
+
+    // Weakest-link: overall strength is limited by the weakest individual
+    // signer's identity binding. A single TextStamp signer pulls the whole
+    // attestation down to TextStamp regardless of other signers' strength.
+    let min_strength = item
+        .signers
+        .iter()
+        .map(|s| s.strength)
+        .min()
+        .unwrap_or(SignatureStrength::GitTrust);
 
     // Some signers exist. Detect stale signers (signed against a
     // non-current fingerprint).
@@ -490,7 +500,7 @@ fn classify_passed_predicate<C: EvaluationContext>(
             witness_tier: WitnessTier::Reachability,
             audit_hint: AuditHint::DisciplineSubstrateStale,
             evidence_kind: EvidenceKind::SubstrateState,
-            signature_strength: Some(SignatureStrength::GitTrust),
+            signature_strength: Some(min_strength),
         };
     }
 
@@ -509,7 +519,7 @@ fn classify_passed_predicate<C: EvaluationContext>(
             witness_tier: WitnessTier::Execution,
             audit_hint: AuditHint::DisciplineSubstrateDeltaChainNearCap,
             evidence_kind: EvidenceKind::SubstrateState,
-            signature_strength: Some(SignatureStrength::GitTrust),
+            signature_strength: Some(min_strength),
         };
     }
 
@@ -518,7 +528,7 @@ fn classify_passed_predicate<C: EvaluationContext>(
             witness_tier: WitnessTier::Execution,
             audit_hint: AuditHint::DisciplinePredicatePassedViaDeltaChain,
             evidence_kind: EvidenceKind::SubstrateState,
-            signature_strength: Some(SignatureStrength::GitTrust),
+            signature_strength: Some(min_strength),
         };
     }
 
@@ -527,7 +537,7 @@ fn classify_passed_predicate<C: EvaluationContext>(
         witness_tier: WitnessTier::Execution,
         audit_hint: passed_hint,
         evidence_kind: EvidenceKind::SubstrateState,
-        signature_strength: Some(SignatureStrength::GitTrust),
+        signature_strength: Some(min_strength),
     }
 }
 
@@ -688,6 +698,7 @@ mod tests {
             date,
             signed_against_fingerprint: fp.to_string(),
             basis: crate::schema::SignerBasis::Fresh { reasoning: None },
+            strength: SignatureStrength::GitTrust,
             signature: None,
         }
     }
@@ -776,6 +787,7 @@ mod tests {
                 chain_depth: 2, // cap=3 → 2 is cap-1; near-cap fires
                 rationale: "reviewed diff against prior; invariant-preserving".to_string(),
             },
+            strength: SignatureStrength::GitTrust,
             signature: None,
         };
         let item = item_with(vec![signer]);
@@ -807,6 +819,7 @@ mod tests {
                 chain_depth: 1,
                 rationale: "reviewed diff against prior; invariant-preserving".to_string(),
             },
+            strength: SignatureStrength::GitTrust,
             signature: None,
         };
         let item = item_with(vec![signer]);
@@ -1142,6 +1155,7 @@ mod tests {
             date: sample_date(),
             signed_against_fingerprint: "fp-OLD".to_string(),
             basis: SignerBasis::Fresh { reasoning: None },
+            strength: SignatureStrength::GitTrust,
             signature: None,
         };
         let item = item_with(vec![alice_stale]);
@@ -1199,6 +1213,7 @@ mod tests {
             date: sample_date(),
             signed_against_fingerprint: "fp-current".to_string(),
             basis: crate::schema::SignerBasis::Fresh { reasoning: None },
+            strength: SignatureStrength::GitTrust,
             signature: None,
         };
         let alice_stale_with_role = Signer {
@@ -1207,6 +1222,7 @@ mod tests {
             date: sample_date(),
             signed_against_fingerprint: "fp-STALE".to_string(),
             basis: crate::schema::SignerBasis::Fresh { reasoning: None },
+            strength: SignatureStrength::GitTrust,
             signature: None,
         };
         let item = item_with(vec![alice_current_no_role, alice_stale_with_role]);
@@ -1294,6 +1310,83 @@ mod tests {
             err.is_err(),
             "NFA-14: validate() must reject RatifiedDoc with empty anchor string; \
              content.contains('') is always true and provides no anchor guarantee"
+        );
+    }
+
+    #[test]
+    fn text_stamp_signer_silently_inflated_to_git_trust_nfa16() {
+        // BUG REGRESSION TEST (adversarial NFA-16): `classify_passed_predicate`
+        // hardcodes `signature_strength: Some(SignatureStrength::GitTrust)` for
+        // all signer-present paths. The `Signer` schema carries no
+        // `strength: SignatureStrength` field, so the evaluator cannot distinguish
+        // a TextStamp signer (name + timestamp only; no identity verification) from
+        // a GitTrust signer (git config identity; fingerprint pin).
+        //
+        // Attack: an LLM agent or non-git-configured human writes a sidecar with
+        // a `Signer` entry (no `signature` field — TextStamp tier). The audit reports
+        // `signature_strength: Some(GitTrust)` — inflated by one tier. A CI gate
+        // requiring `min_signature_strength >= GitTrust` silently passes despite
+        // the actual identity binding being TextStamp (minimal, unverifiable).
+        //
+        // This is a SILENT tier-honesty violation. The output looks correct but the
+        // strength claim is wrong.
+        //
+        // ROOT CAUSE: Two-layer gap:
+        // (1) `schema::Signer` has no `strength: SignatureStrength` field — there is
+        //     no way to record which tier a signer used when writing the sidecar.
+        // (2) `classify_passed_predicate` hardcodes `Some(SignatureStrength::GitTrust)`
+        //     instead of reading per-signer strength and taking the minimum.
+        //
+        // FIX DIRECTION:
+        // (1) Add `strength: SignatureStrength` field to `schema::Signer` (default
+        //     `SignatureStrength::GitTrust` for backward compat with existing sidecars
+        //     that were written before TextStamp existed).
+        // (2) `classify_passed_predicate` reads each signer's `strength` field and
+        //     reports `min(signer.strength for all signers)` in the result. Minimum
+        //     is correct: the overall attestation strength is limited by the weakest
+        //     individual signer's identity binding (weakest-link principle).
+        //
+        // This test FAILS against the current code because the evaluator returns
+        // GitTrust regardless of what strength the signer carries.
+        //
+        // NOTE: Once (1) is fixed, the sidecar schema gains a new optional field with
+        // `#[serde(default)]` so existing sidecars without the field default to
+        // `SignatureStrength::GitTrust` (backward-compatible).
+        let alice_text_stamp = Signer {
+            name: "alice".to_string(),
+            role: None,
+            date: sample_date(),
+            signed_against_fingerprint: "fp-current".to_string(),
+            basis: crate::schema::SignerBasis::Fresh { reasoning: None },
+            strength: SignatureStrength::TextStamp,
+            signature: None,
+        };
+        let item = item_with(vec![alice_text_stamp]);
+        let pred = Predicate::leaf(Leaf::Signers {
+            required: vec!["alice".to_string()],
+            roles: BTreeMap::new(),
+            against: SignerCurrency::Current,
+        });
+        let ctx = TestContext::new(sample_date());
+        let r = evaluate_predicate_with_kind(
+            &pred,
+            &item,
+            "fp-current",
+            Path::new("src/test.rs"),
+            RatificationKind::Immunity,
+            &ctx,
+        )
+        .unwrap();
+        // Predicate passes (alice is current + required).
+        assert_eq!(r.witness_tier, WitnessTier::Execution);
+        // BUG: currently reports GitTrust — should be TextStamp once schema
+        // carries per-signer strength and evaluator reads it.
+        // This assertion FAILS (returns Some(GitTrust)) until the fix is applied:
+        assert_eq!(
+            r.signature_strength,
+            Some(SignatureStrength::TextStamp),
+            "NFA-16: TextStamp signer must not be silently inflated to GitTrust in audit output; \
+             CI gates requiring >= GitTrust would silently pass on TextStamp-only attestations"
         );
     }
 

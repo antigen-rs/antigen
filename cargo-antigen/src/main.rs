@@ -226,6 +226,14 @@ struct AttestSignArgs {
     /// attested to discipline compliance at this moment.
     #[arg(long)]
     reasoning: Option<String>,
+    /// Identity-binding strength of this signature.
+    ///
+    /// `text-stamp` — name + timestamp only; no external identity verification;
+    /// suitable for LLM agents or reviewers without git config.
+    /// `git-trust` — identity bound to `git config user.name/email` (default).
+    /// `crypto-signed` — cryptographic identity binding (v0.4+ activation path).
+    #[arg(long, default_value = "git-trust")]
+    strength: SignatureStrengthArg,
 }
 
 #[derive(Debug, Parser)]
@@ -259,6 +267,24 @@ impl From<RatificationKindArg> for antigen_attestation::RatificationKind {
         match k {
             RatificationKindArg::Immunity => Self::Immunity,
             RatificationKindArg::Tolerance => Self::Tolerance,
+        }
+    }
+}
+
+/// CLI representation of `antigen_attestation::SignatureStrength`.
+#[derive(Debug, Clone, clap::ValueEnum)]
+enum SignatureStrengthArg {
+    TextStamp,
+    GitTrust,
+    CryptoSigned,
+}
+
+impl From<SignatureStrengthArg> for antigen_attestation::SignatureStrength {
+    fn from(s: SignatureStrengthArg) -> Self {
+        match s {
+            SignatureStrengthArg::TextStamp => Self::TextStamp,
+            SignatureStrengthArg::GitTrust => Self::GitTrust,
+            SignatureStrengthArg::CryptoSigned => Self::CryptoSigned,
         }
     }
 }
@@ -863,6 +889,7 @@ fn run_attest_sign(args: AttestSignArgs) -> ExitCode {
         date: today,
         signed_against_fingerprint: args.fingerprint.clone(),
         basis: SignerBasis::Fresh { reasoning: args.reasoning.clone() },
+        strength: antigen_attestation::SignatureStrength::from(args.strength),
         signature: None,
     });
 
@@ -943,21 +970,17 @@ fn run_attest_check(args: AttestCheckArgs) -> ExitCode {
 
     // Find the target item (first, or by item_path).
     let item = if let Some(ref path) = args.item_path {
-        match ratification.items.iter().find(|i| i.item_path == *path) {
-            Some(i) => i,
-            None => {
-                eprintln!("error: no item with path `{path}` in sidecar.");
-                return ExitCode::from(1);
-            }
+        if let Some(i) = ratification.items.iter().find(|i| i.item_path == *path) {
+            i
+        } else {
+            eprintln!("error: no item with path `{path}` in sidecar.");
+            return ExitCode::from(1);
         }
+    } else if let Some(i) = ratification.items.first() {
+        i
     } else {
-        match ratification.items.first() {
-            Some(i) => i,
-            None => {
-                eprintln!("error: sidecar has no items.");
-                return ExitCode::from(1);
-            }
-        }
+        eprintln!("error: sidecar has no items.");
+        return ExitCode::from(1);
     };
 
     let current_fingerprint = args

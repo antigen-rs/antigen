@@ -72,6 +72,7 @@ fn fresh_signer(name: &str, date: NaiveDate, fp: &str) -> Signer {
         date,
         signed_against_fingerprint: fp.to_string(),
         basis: SignerBasis::Fresh { reasoning: None },
+        strength: SignatureStrength::GitTrust,
         signature: None,
     }
 }
@@ -217,6 +218,7 @@ fn delta_with_rubber_stamp_rationale_caught_post_deserialization_t2r_b() {
                 chain_depth: 1,
                 rationale: "ok".to_string(), // rubber-stamp; should be rejected
             },
+            strength: SignatureStrength::GitTrust,
             signature: None,
         }],
         oracles: vec![],
@@ -467,6 +469,7 @@ fn delta_chain_depth1_inconsistent_cumulative_root_rejected_nfa12() {
                 chain_depth: 1,
                 rationale: "reviewed the diff carefully, no invariant impact".to_string(),
             },
+            strength: SignatureStrength::GitTrust,
             signature: None,
         }],
         oracles: vec![],
