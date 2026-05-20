@@ -157,14 +157,20 @@ enum AttestSubcommand {
     Check(AttestCheckArgs),
     /// Add a delta-attestation entry to an existing sidecar.
     Delta(AttestDeltaArgs),
-    /// Register an oracle completion marker (design phase).
-    #[command(hide = true)]
+    /// Per-attestation oracle marker (design phase; v0.1-rc stub).
+    ///
+    /// Renamed from `oracle complete` per F28-R2 cross-ADR collision-avoidance:
+    /// `cargo antigen oracle complete` (top-level) is the steward-authorized
+    /// oracle-state transition Draft→Complete; this verb (`attest oracle mark`)
+    /// is the per-attestation marker recording that a signer reviewed an
+    /// oracle reference at this attestation. Distinct semantics, distinct
+    /// CLI families. Implementation gated on ADR-021 OracleRef schema
+    /// (now ratified — Task 1 shipped; this verb's handler is design-phase
+    /// pending the `OracleCompletionMarker` schema field plumbing).
+    #[command(hide = true, name = "oracle")]
     Oracle,
     /// List all `.attest/` sidecars in the workspace.
     List(AttestListArgs),
-    /// Migrate a sidecar to a new schema version (design phase).
-    #[command(hide = true)]
-    Migrate,
     /// Garbage-collect orphaned sidecar entries (report-only in v0.1).
     Gc(AttestGcArgs),
 }
@@ -1005,13 +1011,16 @@ fn run_attest_sign(args: AttestSignArgs) -> ExitCode {
 /// anti-laundering safeguards (ADR-019 §Decision §E3), and writes the new
 /// DeltaFrom entry back.
 fn run_attest_delta(args: AttestDeltaArgs) -> ExitCode {
-    use antigen_attestation::{Ratification, Signer, SignerBasis};
     use antigen_attestation::schema::HARD_DELTA_CHAIN_CAP_MAX;
+    use antigen_attestation::{Ratification, Signer, SignerBasis};
 
     let content = match std::fs::read_to_string(&args.sidecar) {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("error: could not read sidecar `{}`: {e}", args.sidecar.display());
+            eprintln!(
+                "error: could not read sidecar `{}`: {e}",
+                args.sidecar.display()
+            );
             return ExitCode::from(2);
         }
     };
@@ -1031,9 +1040,7 @@ fn run_attest_delta(args: AttestDeltaArgs) -> ExitCode {
                 .args(["config", "user.name"])
                 .output();
             match out {
-                Ok(o) if o.status.success() => {
-                    String::from_utf8_lossy(&o.stdout).trim().to_owned()
-                }
+                Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).trim().to_owned(),
                 _ => {
                     eprintln!("error: --signer not provided and `git config user.name` failed");
                     return ExitCode::from(1);
@@ -1171,7 +1178,10 @@ fn run_attest_list(args: AttestListArgs) -> ExitCode {
 
     let sidecars = collect_sidecars(&args.root);
     if sidecars.is_empty() {
-        eprintln!("No .attest/ sidecars found under `{}`.", args.root.display());
+        eprintln!(
+            "No .attest/ sidecars found under `{}`.",
+            args.root.display()
+        );
         return ExitCode::SUCCESS;
     }
 
@@ -1187,13 +1197,14 @@ fn run_attest_list(args: AttestListArgs) -> ExitCode {
         let rat: Ratification = match serde_json::from_str(&content) {
             Ok(r) => r,
             Err(e) => {
-                eprintln!("warning: `{}` is not valid Ratification JSON: {e}", path.display());
+                eprintln!(
+                    "warning: `{}` is not valid Ratification JSON: {e}",
+                    path.display()
+                );
                 continue;
             }
         };
-        if args.tolerance_only
-            && rat.kind != antigen_attestation::RatificationKind::Tolerance
-        {
+        if args.tolerance_only && rat.kind != antigen_attestation::RatificationKind::Tolerance {
             continue;
         }
 
@@ -1234,7 +1245,11 @@ fn run_attest_list(args: AttestListArgs) -> ExitCode {
             if let Ok(rat) = serde_json::from_str::<Ratification>(&content) {
                 for item in &rat.items {
                     if item.signers.is_empty() {
-                        println!("ORPHAN-CANDIDATE: {} item `{}` has no signers", path.display(), item.item_path);
+                        println!(
+                            "ORPHAN-CANDIDATE: {} item `{}` has no signers",
+                            path.display(),
+                            item.item_path
+                        );
                     }
                 }
             }
@@ -1267,7 +1282,10 @@ fn run_attest_gc(args: AttestGcArgs) -> ExitCode {
     }
 
     if orphans.is_empty() {
-        eprintln!("No orphaned sidecars found under `{}`.", args.root.display());
+        eprintln!(
+            "No orphaned sidecars found under `{}`.",
+            args.root.display()
+        );
         return ExitCode::SUCCESS;
     }
 
@@ -1298,11 +1316,16 @@ fn run_attest_gc(args: AttestGcArgs) -> ExitCode {
 /// Walk `root` recursively and return all `.attest/*.json` files found.
 fn collect_sidecars(root: &std::path::Path) -> Vec<std::path::PathBuf> {
     let mut result = Vec::new();
-    let Ok(entries) = std::fs::read_dir(root) else { return result; };
+    let Ok(entries) = std::fs::read_dir(root) else {
+        return result;
+    };
     for entry in entries.flatten() {
         let path = entry.path();
         if path.is_dir() {
-            if path.file_name().map_or(false, |n| n.to_string_lossy().ends_with(".attest")) {
+            if path
+                .file_name()
+                .map_or(false, |n| n.to_string_lossy().ends_with(".attest"))
+            {
                 // Collect JSON files inside .attest/ directories.
                 if let Ok(inner) = std::fs::read_dir(&path) {
                     for inner_entry in inner.flatten() {
@@ -1354,7 +1377,12 @@ impl antigen_attestation::EvaluationContext for CheckContext {
         // If git is unavailable or the file has no commits, returns Vec::new()
         // (tier-honest: no trailers found → signed_trailer predicate fails → None tier).
         let log_output = std::process::Command::new("git")
-            .args(["log", "--format=%B", "--", item_source_file.to_str().unwrap_or("")])
+            .args([
+                "log",
+                "--format=%B",
+                "--",
+                item_source_file.to_str().unwrap_or(""),
+            ])
             .output();
         let log_bytes = match log_output {
             Ok(o) if o.status.success() => o.stdout,
