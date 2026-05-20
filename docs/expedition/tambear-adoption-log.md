@@ -531,6 +531,18 @@ ergonomics addressed by `cargo antigen attest scaffold-anchor` (proposed v0.1 CL
 See ADR-019 when ratified. Tambear's Sub-patterns 5.10/5.11 and Pattern 23 examples
 were directly cited as the three-instances adoption substrate that substantiated F14.
 
+[antigen team note 2026-05-19, update — F14 reversed by F20]: **REVISED — `doc_attested`
+is NOT a sixth leaf primitive.** Aristotle F20 (same session, Phase 1-8) demonstrated
+that `doc_attested(doc, attested_by, at, rationale)` is a bijection of existing
+primitives: `ratified_doc(path = doc, ...)` + `signers(required = [attested_by])`
++ `Fresh.reasoning = rationale`. Shipping a redundant primitive would violate the
+closed-set discipline. **The leaf set stays at 5.** Option 1 (Attestation tier) is
+still achieved — via composition, not a new primitive. CLI ergonomics for the
+anchor-workflow use case: `attest sign --against-doc <path> --reasoning "..."` (populates
+`Fresh.reasoning` automatically). See F20 notebook at
+`campsites/antigen-discipline-witnesses/20260519130704-team-launch/aristotle/notebooks/F20-sidecar-resolves-f14.md`.
+ADR-019 v1+2 reflects this correction.
+
 ---
 
 ### [pending] Phase 1-8 deconstruction of `PolarityInvertedClassMeet`, `PanickingInDrop`, and `UlpDistanceRolledByHand`

@@ -18,6 +18,8 @@
 
 use std::{collections::BTreeMap, path::PathBuf};
 
+use crate::tier::SignatureStrength;
+
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
@@ -166,6 +168,20 @@ pub struct Signer {
     /// Basis: fresh attestation, or carry-forward delta (with anti-
     /// laundering safeguards). See [`SignerBasis`].
     pub basis: SignerBasis,
+    /// Identity-binding strength of this signer's attestation.
+    ///
+    /// `TextStamp` — name + timestamp only; no external identity verification;
+    /// used by LLM agents or non-git-configured reviewers.
+    /// `GitTrust` — identity bound to `git config user.name + user.email`;
+    /// v0.1 default for human reviewers.
+    /// `CryptoSigned` — identity bound cryptographically; requires `signature`
+    /// field; v0.4+ activation path.
+    ///
+    /// Defaults to `GitTrust` on deserialization for backward compatibility
+    /// with sidecars written before this field existed. New sidecars MUST
+    /// record the actual strength used at sign time.
+    #[serde(default = "SignatureStrength::default_git_trust")]
+    pub strength: SignatureStrength,
     /// Optional cryptographic signature (v0.4+; DSSE-PAE-encoded).
     /// `None` in v0.1 (git-trust basis only).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -350,6 +366,16 @@ pub enum ValidationError {
         /// The `cumulative_root_fingerprint` that does not match `prior_fingerprint`.
         cumulative_root_fingerprint: String,
     },
+    /// A signer declared `strength = CryptoSigned` but carries no `signature`
+    /// field. `CryptoSigned` requires a DSSE-PAE-encoded signature envelope
+    /// (v0.4+ activation); claiming the tier without the payload is tier
+    /// inflation with no cryptographic backing (NFA-17).
+    StrengthSignatureMismatch {
+        /// Item path the offending signer is recorded under.
+        item_path: String,
+        /// The offending signer's name.
+        signer_name: String,
+    },
     /// A workspace-configured value for an antigen-attestation knob is
     /// out of the project-enforced hard-floor bounds. Per adversarial
     /// T2R-C: workspaces can tighten anti-laundering caps but cannot
@@ -421,6 +447,15 @@ impl std::fmt::Display for ValidationError {
                  chain_depth=1 where cumulative_root_fingerprint `{cumulative_root_fingerprint}` \
                  != prior_fingerprint `{prior_fingerprint}`; at depth 1 these must be identical \
                  (ADR-019 anti-laundering safeguard #2 — cumulative root must be the prior Fresh)"
+            ),
+            Self::StrengthSignatureMismatch {
+                item_path,
+                signer_name,
+            } => write!(
+                f,
+                "signer `{signer_name}` at `{item_path}` claims `strength = CryptoSigned` \
+                 but carries no `signature` field; CryptoSigned requires a DSSE-PAE \
+                 cryptographic signature envelope (NFA-17 — tier inflation without backing)"
             ),
             Self::WorkspaceConfigOutOfBounds {
                 key,
@@ -526,6 +561,7 @@ impl Ratification {
     /// - rationale length >= `rationale_min_chars` (default 20; T2R-B)
     /// - `chain_depth >= 1` on every `SignerBasis::DeltaFrom`
     /// - `chain_depth <= cap` on every `SignerBasis::DeltaFrom`
+    /// - `strength == CryptoSigned` implies `signature.is_some()` (NFA-17)
     ///
     /// Returns the first failure encountered. Callers wanting all failures
     /// should walk `items` + `signers` directly. (For audit reporting, the
@@ -593,6 +629,18 @@ impl Ratification {
                         });
                     }
                 }
+                // NFA-17: CryptoSigned tier requires the `signature` field to be present.
+                // A signer claiming CryptoSigned without a cryptographic signature
+                // envelope is tier inflation — the audit would report the max tier
+                // without any cryptographic backing.
+                if signer.strength == crate::tier::SignatureStrength::CryptoSigned
+                    && signer.signature.is_none()
+                {
+                    return Err(ValidationError::StrengthSignatureMismatch {
+                        item_path: item.item_path.clone(),
+                        signer_name: signer.name.clone(),
+                    });
+                }
             }
         }
         Ok(())
@@ -610,6 +658,7 @@ mod tests {
             date,
             signed_against_fingerprint: fp.to_string(),
             basis: SignerBasis::Fresh { reasoning: None },
+            strength: crate::tier::SignatureStrength::GitTrust,
             signature: None,
         }
     }
@@ -635,6 +684,7 @@ mod tests {
                 chain_depth: depth,
                 rationale: rationale.to_string(),
             },
+            strength: crate::tier::SignatureStrength::GitTrust,
             signature: None,
         }
     }

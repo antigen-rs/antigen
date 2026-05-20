@@ -146,6 +146,15 @@ pub enum SignatureStrength {
     CryptoSigned = 2,
 }
 
+impl SignatureStrength {
+    /// Serde default function for `Signer::strength`. Returns `GitTrust` so
+    /// sidecars written before this field existed deserialize with the correct
+    /// default (`GitTrust` was the only strength tier before `TextStamp` was added).
+    pub const fn default_git_trust() -> Self {
+        Self::GitTrust
+    }
+}
+
 /// Per-case audit-hint disambiguation for substrate-witness results
 /// (ADR-019 §M5 state-mapping tables). Parallel to (and additive to)
 /// `antigen::audit::AuditHint`; both can fire on the same audit result.
@@ -300,5 +309,31 @@ mod tests {
         let hint = SubstrateAuditHint::ToleranceVibesGrade;
         let json = serde_json::to_string(&hint).unwrap();
         assert_eq!(json, "\"tolerance-vibes-grade\"");
+    }
+
+    #[test]
+    fn signer_strength_field_defaults_to_git_trust_for_old_sidecars_nfa16_backcompat() {
+        // Backward-compatibility lock for NFA-16 fix: sidecars written before
+        // `strength` was added to `Signer` omit the field. The serde default
+        // must deserialize those legacy entries as `SignatureStrength::GitTrust`
+        // (the only tier that existed before TextStamp was ratified).
+        //
+        // Without this default, any existing sidecar would fail to deserialize
+        // and the entire antigen-attestation surface would be broken on first
+        // upgrade. The default is deliberately GitTrust (not TextStamp) because
+        // pre-existing signers used git config identity — TextStamp is for new
+        // entries created by non-git-configured reviewers.
+        let json_without_strength = r#"{
+            "name": "alice",
+            "date": "2026-05-19",
+            "signed_against_fingerprint": "fp-current",
+            "basis": { "kind": "fresh" }
+        }"#;
+        let signer: crate::schema::Signer = serde_json::from_str(json_without_strength).unwrap();
+        assert_eq!(
+            signer.strength,
+            SignatureStrength::GitTrust,
+            "NFA-16 backward-compat: Signer without strength field must default to GitTrust"
+        );
     }
 }
