@@ -781,9 +781,13 @@ fn run_attest(cli: AttestCli) -> ExitCode {
         AttestSubcommand::Delta(args) => run_attest_delta(args),
         AttestSubcommand::List(args) => run_attest_list(args),
         AttestSubcommand::Gc(args) => run_attest_gc(args),
-        AttestSubcommand::Oracle | AttestSubcommand::Migrate => {
+        AttestSubcommand::Oracle => {
             eprintln!(
-                "This attest subcommand is not implemented in v0.1-rc.\n\
+                "`attest oracle mark` is not yet implemented in v0.1-rc.\n\
+                 Renamed from `attest oracle complete` per ADR-021 F28-R2 to \
+                 disambiguate from the top-level `cargo antigen oracle complete` \
+                 state-machine verb. Implementation pending OracleCompletionMarker \
+                 schema field plumbing.\n\
                  Operator scripts MUST NOT rely on this exit code as success."
             );
             ExitCode::FAILURE
