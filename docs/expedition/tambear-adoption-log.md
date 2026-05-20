@@ -583,6 +583,41 @@ inheritance from canonical recipes, and immunity can propagate automatically.)
 
 ---
 
+### [2026-05-19] Phase 4 readiness check — scan against tambear produces 120 findings
+
+**Why**: ADR-019 E7 commits antigen to a tambear adoption smoke test. Now that
+the substrate-witness primitive is ratified (ADR-019) and implemented, Phase 4
+can start.
+
+**What**: ran `cargo antigen scan --root R:/tambear/crates` from the antigen
+repo (with tambear as a path dependency). Scan ran cleanly and produced 120
+unaddressed-presentation findings — all `UlpDistanceRolledByHand` pattern
+matches across test files.
+
+**Result**: scan works correctly against tambear's codebase. The 120 findings
+represent real unaddressed presentations — sites that match the fingerprint but
+lack `#[presents]` / `#[immune]` / `#[antigen_tolerance]` markers.
+
+**Phase 4 concrete next steps**:
+1. Add `#[presents(UlpDistanceRolledByHand)]` to a representative set of sites
+   in tambear's test files (or acknowledge as tolerance with rationale)
+2. Add `SignedZeroDiscipline` antigen to `crates/tambear/src/antigens.rs` —
+   the original motivating failure-class from the post-mortem that spawned antigen
+3. Add `#[presents(SignedZeroDiscipline)]` to the sinh/cosh sites in accumulate.rs
+4. Create a substrate-witness sidecar for one `#[immune]` claim using
+   `cargo antigen attest scaffold`
+5. Sign the sidecar: `cargo antigen attest sign --sidecar ... --signer ...`
+6. Run `cargo antigen audit` and confirm the substrate-witness path works end-to-end
+
+**Verdict**: Phase 4 is ready to start. CLI is operational; scan is working;
+the substrate-witness infrastructure (ADR-019) is ratified and implemented.
+
+[antigen team note 2026-05-19]: ADR-019 ratified at commit 03a36c0. Substrate-
+witness CLI (scaffold/sign/check/delta/list/gc) implemented. `cargo antigen scan`
+operational against tambear. Phase 4 can begin.
+
+---
+
 ## Updates from antigen-team to this log
 
 When the antigen JBD team takes actions on tambear's behalf (e.g., adapting
