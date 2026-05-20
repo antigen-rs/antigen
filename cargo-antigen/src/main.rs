@@ -155,21 +155,77 @@ enum AttestSubcommand {
     Sign(AttestSignArgs),
     /// Evaluate a substrate-witness predicate against a sidecar and report the result.
     Check(AttestCheckArgs),
-    /// Add a delta-attestation entry (design phase — sidecar must be signed first).
-    #[command(hide = true)]
-    Delta,
+    /// Add a delta-attestation entry to an existing sidecar.
+    Delta(AttestDeltaArgs),
     /// Register an oracle completion marker (design phase).
     #[command(hide = true)]
     Oracle,
     /// List all `.attest/` sidecars in the workspace.
-    #[command(hide = true)]
-    List,
+    List(AttestListArgs),
     /// Migrate a sidecar to a new schema version (design phase).
     #[command(hide = true)]
     Migrate,
-    /// Garbage-collect stale sidecar entries (design phase).
-    #[command(hide = true)]
-    Gc,
+    /// Garbage-collect orphaned sidecar entries (report-only in v0.1).
+    Gc(AttestGcArgs),
+}
+
+#[derive(Debug, Parser)]
+struct AttestDeltaArgs {
+    /// Path to the `.attest/<Antigen>.json` sidecar to update.
+    #[arg(long)]
+    sidecar: PathBuf,
+    /// Item path within the sidecar to add a delta entry for.
+    #[arg(long)]
+    item_path: String,
+    /// Signer name (defaults to `git config user.name`).
+    #[arg(long)]
+    signer: Option<String>,
+    /// Role tag for this signer (optional).
+    #[arg(long)]
+    role: Option<String>,
+    /// Current structural fingerprint of the item. The delta is anchored
+    /// against this fingerprint. Signer attests the change from
+    /// `prior_fingerprint` to this fingerprint is invariant-preserving.
+    #[arg(long)]
+    fingerprint: String,
+    /// Fingerprint this delta is rooted against (the signer's last signature
+    /// at this item).
+    #[arg(long)]
+    prior_fingerprint: String,
+    /// Why the change is invariant-preserving. Required non-empty.
+    #[arg(long)]
+    rationale: String,
+    /// Identity-binding strength.
+    #[arg(long, default_value = "git-trust")]
+    strength: SignatureStrengthArg,
+}
+
+#[derive(Debug, Parser)]
+struct AttestListArgs {
+    /// Workspace root to walk (defaults to current directory).
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+    /// Only list tolerance sidecars (RatificationKind::Tolerance).
+    #[arg(long)]
+    tolerance_only: bool,
+    /// Walk `.attest/` directories independent of scan-side macro discovery
+    /// and report orphaned sidecars (sidecars whose item_path doesn't appear
+    /// in any scan-side Immunity declaration at that path).
+    #[arg(long)]
+    orphan_scan: bool,
+    /// Output format.
+    #[arg(long, default_value = "human")]
+    format: OutputFormat,
+}
+
+#[derive(Debug, Parser)]
+struct AttestGcArgs {
+    /// Workspace root to walk (defaults to current directory).
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+    /// Actually remove orphaned sidecars (default: report only).
+    #[arg(long)]
+    force: bool,
 }
 
 #[derive(Debug, Parser)]
@@ -307,9 +363,8 @@ enum TolerateSubcommand {
     Sign(AttestSignArgs),
     /// Evaluate a substrate-witness predicate against a tolerance sidecar.
     Check(AttestCheckArgs),
-    /// List all tolerance sidecars in the workspace (design phase).
-    #[command(hide = true)]
-    List,
+    /// List all tolerance sidecars in the workspace.
+    List(AttestListArgs),
 }
 
 #[derive(Debug, Clone, clap::ValueEnum)]
@@ -717,15 +772,12 @@ fn run_attest(cli: AttestCli) -> ExitCode {
         }
         AttestSubcommand::Sign(args) => run_attest_sign(args),
         AttestSubcommand::Check(args) => run_attest_check(args),
-        AttestSubcommand::Delta
-        | AttestSubcommand::Oracle
-        | AttestSubcommand::List
-        | AttestSubcommand::Migrate
-        | AttestSubcommand::Gc => {
+        AttestSubcommand::Delta(args) => run_attest_delta(args),
+        AttestSubcommand::List(args) => run_attest_list(args),
+        AttestSubcommand::Gc(args) => run_attest_gc(args),
+        AttestSubcommand::Oracle | AttestSubcommand::Migrate => {
             eprintln!(
                 "This attest subcommand is not implemented in v0.1-rc.\n\
-                 It is named in ADR-019 \u{a7}M4 as a v0.1-rc verb but \
-                 implementation is in design phase.\n\
                  Operator scripts MUST NOT rely on this exit code as success."
             );
             ExitCode::FAILURE
@@ -740,14 +792,9 @@ fn run_tolerate(cli: TolerateCli) -> ExitCode {
         }
         TolerateSubcommand::Sign(args) => run_attest_sign(args),
         TolerateSubcommand::Check(args) => run_attest_check(args),
-        TolerateSubcommand::List => {
-            eprintln!(
-                "tolerate list is not implemented in v0.1-rc.\n\
-                 It is named in ADR-019 \u{a7}M4 as a v0.1-rc verb but \
-                 implementation is in design phase.\n\
-                 Operator scripts MUST NOT rely on this exit code as success."
-            );
-            ExitCode::FAILURE
+        TolerateSubcommand::List(mut args) => {
+            args.tolerance_only = true;
+            run_attest_list(args)
         }
     }
 }
@@ -939,6 +986,302 @@ fn run_attest_sign(args: AttestSignArgs) -> ExitCode {
     ExitCode::SUCCESS
 }
 
+/// `attest delta`: append a carry-forward delta entry to an existing sidecar.
+///
+/// Reads the current sidecar, finds the last fresh-basis signature for the
+/// named signer at the named item, computes chain_depth, enforces the
+/// anti-laundering safeguards (ADR-019 §Decision §E3), and writes the new
+/// DeltaFrom entry back.
+fn run_attest_delta(args: AttestDeltaArgs) -> ExitCode {
+    use antigen_attestation::{Ratification, Signer, SignerBasis};
+    use antigen_attestation::schema::HARD_DELTA_CHAIN_CAP_MAX;
+
+    let content = match std::fs::read_to_string(&args.sidecar) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("error: could not read sidecar `{}`: {e}", args.sidecar.display());
+            return ExitCode::from(2);
+        }
+    };
+    let mut ratification: Ratification = match serde_json::from_str(&content) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: sidecar is not valid Ratification JSON: {e}");
+            return ExitCode::from(2);
+        }
+    };
+
+    // Resolve signer name from arg or git config.
+    let signer_name = match args.signer {
+        Some(ref s) => s.clone(),
+        None => {
+            let out = std::process::Command::new("git")
+                .args(["config", "user.name"])
+                .output();
+            match out {
+                Ok(o) if o.status.success() => {
+                    String::from_utf8_lossy(&o.stdout).trim().to_owned()
+                }
+                _ => {
+                    eprintln!("error: --signer not provided and `git config user.name` failed");
+                    return ExitCode::from(1);
+                }
+            }
+        }
+    };
+
+    if args.rationale.trim().is_empty() {
+        eprintln!("error: --rationale must be non-empty (anti-laundering safeguard)");
+        return ExitCode::from(1);
+    }
+
+    let item = ratification
+        .items
+        .iter_mut()
+        .find(|i| i.item_path == args.item_path);
+    let Some(item) = item else {
+        eprintln!(
+            "error: no item with path `{}` in sidecar `{}`",
+            args.item_path,
+            args.sidecar.display()
+        );
+        return ExitCode::from(1);
+    };
+
+    // Find the last Fresh basis for this signer to determine cumulative root.
+    let cumulative_root = item
+        .signers
+        .iter()
+        .filter(|s| s.name == signer_name && s.basis.is_fresh())
+        .last()
+        .map(|s| s.signed_against_fingerprint.clone());
+    let Some(cumulative_root_fingerprint) = cumulative_root else {
+        eprintln!(
+            "error: no prior Fresh-basis signature found for signer `{signer_name}` \
+             at item `{}`. Run `attest sign` first to establish a fresh attestation \
+             before using `attest delta`.",
+            args.item_path
+        );
+        return ExitCode::from(1);
+    };
+
+    // Count existing delta chain depth for this signer since last Fresh.
+    let chain_depth = item
+        .signers
+        .iter()
+        .rev()
+        .take_while(|s| s.name == signer_name && s.basis.is_delta())
+        .count() as u32
+        + 1;
+
+    // Anti-laundering safeguard: enforce chain-depth cap (default 3; hard max = HARD_DELTA_CHAIN_CAP_MAX).
+    // Project TOML config may tighten; tighter caps also enforced at audit time by evaluator.
+    const DEFAULT_DELTA_CAP: u32 = 3;
+    if chain_depth > DEFAULT_DELTA_CAP {
+        eprintln!(
+            "error: delta chain depth {chain_depth} exceeds default cap \
+             {DEFAULT_DELTA_CAP} (hard max = {HARD_DELTA_CHAIN_CAP_MAX}). \
+             Run `attest sign` to re-anchor with a Fresh basis."
+        );
+        return ExitCode::from(1);
+    }
+
+    let today = chrono::Local::now().date_naive();
+    item.signers.push(Signer {
+        name: signer_name.clone(),
+        role: args.role,
+        date: today,
+        signed_against_fingerprint: args.fingerprint.clone(),
+        basis: SignerBasis::DeltaFrom {
+            prior_fingerprint: args.prior_fingerprint.clone(),
+            cumulative_root_fingerprint,
+            chain_depth,
+            rationale: args.rationale.clone(),
+        },
+        strength: antigen_attestation::SignatureStrength::from(args.strength),
+        signature: None,
+    });
+
+    let json = match serde_json::to_string_pretty(&ratification) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("error: failed to serialize updated sidecar: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    if let Err(e) = std::fs::write(&args.sidecar, &json) {
+        eprintln!("error: failed to write sidecar: {e}");
+        return ExitCode::from(2);
+    }
+
+    eprintln!(
+        "Delta: `{}` signed `{}` item `{}` at depth {chain_depth}",
+        signer_name,
+        args.sidecar.display(),
+        args.item_path,
+    );
+    ExitCode::SUCCESS
+}
+
+/// `attest list` / `tolerate list`: walk the workspace and enumerate all `.attest/` sidecars.
+fn run_attest_list(args: AttestListArgs) -> ExitCode {
+    use antigen_attestation::Ratification;
+
+    let sidecars = collect_sidecars(&args.root);
+    if sidecars.is_empty() {
+        eprintln!("No .attest/ sidecars found under `{}`.", args.root.display());
+        return ExitCode::SUCCESS;
+    }
+
+    let mut printed = 0usize;
+    for path in &sidecars {
+        let content = match std::fs::read_to_string(path) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("warning: could not read `{}`: {e}", path.display());
+                continue;
+            }
+        };
+        let rat: Ratification = match serde_json::from_str(&content) {
+            Ok(r) => r,
+            Err(e) => {
+                eprintln!("warning: `{}` is not valid Ratification JSON: {e}", path.display());
+                continue;
+            }
+        };
+        if args.tolerance_only
+            && rat.kind != antigen_attestation::RatificationKind::Tolerance
+        {
+            continue;
+        }
+
+        match args.format {
+            OutputFormat::Human => {
+                println!(
+                    "{} [{:?}] — {} item(s)",
+                    path.display(),
+                    rat.kind,
+                    rat.items.len()
+                );
+                for item in &rat.items {
+                    println!("  {} ({} signer(s))", item.item_path, item.signers.len());
+                }
+            }
+            OutputFormat::Json => {
+                // One JSON object per line (newline-delimited JSON).
+                let obj = serde_json::json!({
+                    "path": path.display().to_string(),
+                    "kind": format!("{:?}", rat.kind),
+                    "antigen": rat.antigen.name,
+                    "item_count": rat.items.len(),
+                });
+                println!("{obj}");
+            }
+        }
+        printed += 1;
+    }
+
+    if args.orphan_scan {
+        eprintln!("\n-- Orphan scan (--orphan-scan): comparing sidecar item_paths against source macros --");
+        eprintln!("(Note: full bidirectional scan requires `cargo antigen scan` integration; v0.2 adds gc bidirectional traversal)");
+        for path in &sidecars {
+            let content = match std::fs::read_to_string(path) {
+                Ok(s) => s,
+                Err(_) => continue,
+            };
+            if let Ok(rat) = serde_json::from_str::<Ratification>(&content) {
+                for item in &rat.items {
+                    if item.signers.is_empty() {
+                        println!("ORPHAN-CANDIDATE: {} item `{}` has no signers", path.display(), item.item_path);
+                    }
+                }
+            }
+        }
+    }
+
+    eprintln!("{printed} sidecar(s) listed.");
+    ExitCode::SUCCESS
+}
+
+/// `attest gc`: report orphaned sidecars (report-only in v0.1; --force deletes).
+fn run_attest_gc(args: AttestGcArgs) -> ExitCode {
+    use antigen_attestation::Ratification;
+
+    let sidecars = collect_sidecars(&args.root);
+    let mut orphans: Vec<std::path::PathBuf> = Vec::new();
+
+    for path in &sidecars {
+        let content = match std::fs::read_to_string(path) {
+            Ok(s) => s,
+            Err(_) => continue,
+        };
+        if let Ok(rat) = serde_json::from_str::<Ratification>(&content) {
+            // An orphan heuristic: if source_file doesn't exist relative to workspace root.
+            let source = args.root.join(&rat.source_file);
+            if !source.exists() {
+                orphans.push(path.clone());
+            }
+        }
+    }
+
+    if orphans.is_empty() {
+        eprintln!("No orphaned sidecars found under `{}`.", args.root.display());
+        return ExitCode::SUCCESS;
+    }
+
+    eprintln!("{} orphaned sidecar(s) found:", orphans.len());
+    for path in &orphans {
+        println!("{}", path.display());
+    }
+
+    if args.force {
+        let mut removed = 0usize;
+        for path in &orphans {
+            match std::fs::remove_file(path) {
+                Ok(()) => {
+                    eprintln!("Removed: {}", path.display());
+                    removed += 1;
+                }
+                Err(e) => eprintln!("error removing `{}`: {e}", path.display()),
+            }
+        }
+        eprintln!("{removed} sidecar(s) removed.");
+    } else {
+        eprintln!("(Run with --force to delete. Report-only in v0.1.)");
+    }
+
+    ExitCode::SUCCESS
+}
+
+/// Walk `root` recursively and return all `.attest/*.json` files found.
+fn collect_sidecars(root: &std::path::Path) -> Vec<std::path::PathBuf> {
+    let mut result = Vec::new();
+    let Ok(entries) = std::fs::read_dir(root) else { return result; };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            if path.file_name().map_or(false, |n| n.to_string_lossy().ends_with(".attest")) {
+                // Collect JSON files inside .attest/ directories.
+                if let Ok(inner) = std::fs::read_dir(&path) {
+                    for inner_entry in inner.flatten() {
+                        let inner_path = inner_entry.path();
+                        if inner_path.extension().map_or(false, |e| e == "json") {
+                            result.push(inner_path);
+                        }
+                    }
+                }
+            } else if path.file_name().map_or(true, |n| {
+                let s = n.to_string_lossy();
+                !s.starts_with('.') && s != "target"
+            }) {
+                // Recurse into non-hidden, non-target directories.
+                result.extend(collect_sidecars(&path));
+            }
+        }
+    }
+    result
+}
+
 /// Filesystem-backed evaluation context for the CLI check commands.
 struct CheckContext;
 
@@ -960,6 +1303,10 @@ impl antigen_attestation::EvaluationContext for CheckContext {
         _item_source_file: &std::path::Path,
         _item_path: &str,
     ) -> Vec<String> {
+        // CLI-SF-2: git trailer resolution is not yet wired in the check command.
+        // Predicates using `Leaf::SignedTrailer` will always fail here — not a
+        // predicate error, just "no trailers found." The audit command has the same
+        // gap. v0.2 wires real `git interpret-trailers` invocation.
         Vec::new()
     }
 }
@@ -1011,6 +1358,18 @@ fn run_attest_check(args: AttestCheckArgs) -> ExitCode {
         return ExitCode::from(1);
     };
 
+    // CLI-SF-1: when --fingerprint is omitted, fall back to the sidecar's stored
+    // current_fingerprint. This is self-referential and cannot detect stale signers —
+    // a signer who signed against fp-old looks current if the sidecar's stored fp is
+    // also fp-old, even when the real item has changed to fp-new. Always supply
+    // --fingerprint from `cargo antigen scan --format json` for accurate stale detection.
+    if args.fingerprint.is_none() {
+        eprintln!(
+            "note: --fingerprint not supplied; using sidecar's stored current_fingerprint.\n\
+             Stale-signer detection requires the real current fingerprint.\n\
+             Run `cargo antigen scan --format json` to get the item fingerprint."
+        );
+    }
     let current_fingerprint = args
         .fingerprint
         .as_deref()

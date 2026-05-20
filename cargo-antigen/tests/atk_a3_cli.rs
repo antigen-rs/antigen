@@ -417,16 +417,11 @@ fn atk_a3_cli_tolerate_kind_override() {
 // "not implemented in v0.1-rc" message.
 
 #[test]
-fn atk_a3_cli_design_phase_attest_list_returns_failure() {
-    let (code, stderr) = attest(&["list"]);
-    assert_ne!(
-        code, 0,
-        "design-phase `attest list` MUST NOT report success (ADR-005 Am 3): stderr={stderr}"
-    );
-    assert!(
-        stderr.contains("not implemented in v0.1-rc") || stderr.contains("design phase"),
-        "stderr must explain why the operation did not run: {stderr}"
-    );
+fn atk_a3_cli_attest_list_accepts_root_flag() {
+    // `attest list` is now implemented (task #53). Passing a valid root
+    // exits 0 whether or not sidecars are found.
+    let (code, _stderr) = attest(&["list", "--root", "."]);
+    assert_eq!(code, 0, "`attest list --root .` must exit 0");
 }
 
 #[test]
@@ -466,23 +461,15 @@ fn atk_a3_cli_design_phase_attest_migrate_returns_failure() {
 }
 
 #[test]
-fn atk_a3_cli_design_phase_attest_gc_returns_failure() {
-    let (code, stderr) = attest(&["gc"]);
-    assert_ne!(
-        code, 0,
-        "design-phase `attest gc` MUST NOT report success (ADR-005 Am 3): stderr={stderr}"
-    );
+fn atk_a3_cli_attest_gc_accepts_root_flag() {
+    // `attest gc` is now implemented (task #53). Report-only by default.
+    let (code, _stderr) = attest(&["gc", "--root", "."]);
+    assert_eq!(code, 0, "`attest gc --root .` must exit 0");
 }
 
 #[test]
-fn atk_a3_cli_design_phase_tolerate_list_returns_failure() {
-    let (code, stderr) = tolerate(&["list"]);
-    assert_ne!(
-        code, 0,
-        "design-phase `tolerate list` MUST NOT report success (ADR-005 Am 3): stderr={stderr}"
-    );
-    assert!(
-        stderr.contains("not implemented in v0.1-rc") || stderr.contains("design phase"),
-        "stderr must explain why the operation did not run: {stderr}"
-    );
+fn atk_a3_cli_tolerate_list_accepts_root_flag() {
+    // `tolerate list` is now implemented (task #53).
+    let (code, _stderr) = tolerate(&["list", "--root", "."]);
+    assert_eq!(code, 0, "`tolerate list --root .` must exit 0");
 }
