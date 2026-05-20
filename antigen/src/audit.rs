@@ -582,13 +582,14 @@ fn audit_substrate_witness(immunity: &Immunity, predicate_json: &str) -> Immunit
     let Ok(predicate) = serde_json::from_str::<antigen_attestation::Predicate>(predicate_json)
     else {
         let result = antigen_attestation::EvaluatedPredicate::sidecar_schema_invalid();
-        return immunity_audit_from_evaluated(immunity, result, predicate_json.to_string());
+        // Sidecar not yet loaded; default kind to Immunity (kind field on this path is unused).
+        return immunity_audit_from_evaluated(immunity, result, predicate_json.to_string(), antigen_attestation::RatificationKind::Immunity);
     };
 
     // Load the sidecar. Missing → sidecar_missing result.
     let Some(sidecar) = load_sidecar(&immunity.file, &immunity.antigen_type) else {
         let result = antigen_attestation::EvaluatedPredicate::sidecar_missing();
-        return immunity_audit_from_evaluated(immunity, result, predicate_json.to_string());
+        return immunity_audit_from_evaluated(immunity, result, predicate_json.to_string(), antigen_attestation::RatificationKind::Immunity);
     };
 
     // v0.1: use the first item in the sidecar's items list as the evaluation
@@ -596,7 +597,7 @@ fn audit_substrate_witness(immunity: &Immunity, predicate_json: &str) -> Immunit
     // per-item predicates when multiple items share an antigen sidecar.
     let Some(item) = sidecar.items.first() else {
         let result = antigen_attestation::EvaluatedPredicate::sidecar_missing();
-        return immunity_audit_from_evaluated(immunity, result, predicate_json.to_string());
+        return immunity_audit_from_evaluated(immunity, result, predicate_json.to_string(), sidecar.kind);
     };
 
     let ctx = FilesystemAuditContext;
@@ -616,7 +617,7 @@ fn audit_substrate_witness(immunity: &Immunity, predicate_json: &str) -> Immunit
     )
     .unwrap_or_else(|_| antigen_attestation::EvaluatedPredicate::sidecar_schema_invalid());
 
-    immunity_audit_from_evaluated(immunity, result, predicate_json.to_string())
+    immunity_audit_from_evaluated(immunity, result, predicate_json.to_string(), sidecar.kind)
 }
 
 /// Build an [`ImmunityAudit`] from the output of `evaluate_predicate_with_kind`.
@@ -624,25 +625,11 @@ fn immunity_audit_from_evaluated(
     immunity: &Immunity,
     result: antigen_attestation::EvaluatedPredicate,
     predicate_json: String,
+    sidecar_kind: antigen_attestation::RatificationKind,
 ) -> ImmunityAudit {
-    // Map EvaluatedPredicate axes back to WitnessStatus for uniform downstream
-    // handling. SubstrateWitness { kind } carries the RatificationKind from the
-    // sidecar; WitnessTier + AuditHint are re-derived from the status.
-    //
-    // Note: WitnessTier and AuditHint on the Resolved variant are re-derived
-    // from the status in `WitnessTier::from_status` / `AuditHint::from_status`
-    // which both map SubstrateWitness → Reachability / ExternalToolPrefixRecognized.
-    // But the evaluator already computed the full tier/hint accounting for signer
-    // state, delta-chain, freshness, etc. We use the evaluator's output directly
-    // rather than re-deriving from the status.
     let status = WitnessStatus::Resolved {
         location: immunity.file.clone(),
-        witness_kind: WitnessKind::SubstrateWitness {
-            // We don't know the kind at this point without the sidecar; default
-            // to Immunity. The actual kind discrimination is in the evaluator
-            // output (audit_hint distinguishes tolerance vs immunity hints).
-            kind: antigen_attestation::RatificationKind::Immunity,
-        },
+        witness_kind: WitnessKind::SubstrateWitness { kind: sidecar_kind },
     };
     ImmunityAudit {
         immunity: immunity.clone(),
