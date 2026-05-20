@@ -65,6 +65,7 @@
 - [ADR-018 — `#[descended_from]` propagation: tagged synthesis + diamond dedup + inheritance state matrix](#adr-018-descended_from-propagation-tagged-synthesis--diamond-dedup--inheritance-state-matrix)
 - [ADR-019 — Substrate-witness predicate family](#adr-019-substrate-witness-predicate-family)
 - [ADR-020 — Cross-cutting attestation primitive](#adr-020-cross-cutting-attestation-primitive)
+- [ADR-021 — OracleRef generalization + additive-only schema evolution + oracle-as-artifact-class](#adr-021-oracleref-generalization--additive-only-schema-evolution--oracle-as-artifact-class)
 
 ---
 
@@ -4774,6 +4775,158 @@ are complementary, not competing.
 - CI gate gap for `--force` (dual-hint gate requirement)
 - Stale-fp entry inflating attestation tier (current-fp-only filtering)
 - Missing type-mismatch hint (`attestation-type-not-in-allowed-types`)
+
+---
+
+## [ADR-021] OracleRef generalization + additive-only schema evolution + oracle-as-artifact-class
+
+**Status**: Ratified 2026-05-20.
+
+**Participants**: Tekgy (two architectural reframes + slice-e commitment), navigator
+(F25-equivalent architectural call; R1/R2 reframes), aristotle (F27 Model B Phase 1-8;
+F28 oracle CLI Phase 1-8), adversarial (ATK-021 1-10 initial; ATK-021-11 through -18
+Model B), naturalist (B-021-1 through B-021-5, all Class 1), scientist (v0 through v4
+draft arc).
+
+**Related**:
+- ADR-019 (substrate-witness predicate family; ratified 03a36c0; `oracles_complete` leaf
+  consumer of this ADR's Oracle artifact-class)
+- ADR-020 (cross-cutting attestation; ratified bb3b2b9; sign-time-validity principle
+  shared discipline)
+- ADR-007 (anti-YAGNI; oracle lifecycle CLI confirmed structurally-required)
+- ADR-005 Amendment 2 (rationale-as-required-field; `Steward.authorization_basis` and
+  `StateTransition.rationale` both inherit Amendment 2 discipline)
+- ADR-009 (adoption gradient; Layer 1 preserved; oracle CLI is Layer-2+ machinery)
+
+### Finding
+
+**R1 (Tekgy)**: Audit NEVER reads oracle content. Substantive judgment ("does the code
+satisfy what the oracle specifies?") is human/LLM work done at sign-time. Audit validates
+structural well-formedness + oracle state + completion marker + version-pin.
+
+**R2 (Tekgy)**: The current `OracleRef { path, status }` struct is insufficient. An oracle
+is not a typed pointer carrying a completion marker — it is a **structurally distinguished
+artifact-class** with its own state machine, dedicated stewards, provenance, and lifecycle
+tracking. Without lifecycle structure, discipline degrades to convention — the exact failure
+mode antigen exists to solve.
+
+**Reframe composition** (aristotle F27): R1 (content-blindness) + R2 (richer metadata)
+compose cleanly. Richer metadata + no content access = stronger schema-enforceable
+discipline than content access + weaker metadata would produce.
+
+### Decision
+
+**D1 — OracleRef becomes a tagged union** (last breaking schema change before additive-only
+commits):
+
+```
+OracleRef: LocalFile | Url | Doi | Arxiv | GitHubIssue | Other
+```
+
+All variants behave identically to the audit (content-blindness). Audit validates
+structural well-formedness (URL parses, DOI matches format) + completion marker +
+version-pin. No network calls.
+
+**D2 — Additive-only schema evolution**: core fields invariant; new fields always optional
+with `serde(default)` matching prior behavior; `extensions: BTreeMap<String, Value>`;
+`schema_version` informational only; `Other { kind, reference }` escape hatch. `attest
+migrate` verb: DROPPED (additive-only makes migration unnecessary; old `OracleRef { path,
+status }` sidecars parsed via two-pass deserialization with `oracle-ref-needs-migration`
+hint).
+
+**D3 — Oracle as artifact-class** (Model B; aristotle F27; adversarial ATK-021-11 through -18):
+
+Oracle struct: `id`, `reference: OracleRef`, `state: OracleState`, `stewards: Vec<Steward>`,
+`created: Provenance`, `version: OracleVersion`, `transitions: Vec<StateTransition>`,
+`extensions`.
+
+State machine (monotonic; backward transitions prohibited):
+- `Draft` — not yet authoritatively established; signers CANNOT attest against Draft oracles
+- `Complete` — authoritatively established; signers may attest
+- `Deprecated { superseded_by, reason }` — superseded; prior attestations honored at Execution
+- `Retired { reason, retired_by }` — permanently gone; prior attestations honored at Execution
+- `Revoked { reason, revoked_by, invalidates_prior_attestations: bool }` — compromised or
+  incorrect; `invalidates_prior=true` retroactively demotes prior attestations to Reachability
+
+`Steward` struct: `name`, `role?`, `authorization_basis: String` (REQUIRED non-empty per
+Amendment 2 — WHY this person has steward authority).
+
+`StateTransition` struct: `from`, `to`, `authorized_by` (must appear in `stewards[*].name`),
+`at: NaiveDate`, `rationale: String` (REQUIRED non-empty per Amendment 2).
+
+Minimum 2 stewards at creation (ATK-021-13: succession mitigation). GitTrust minimum for
+state transitions (ATK-021-15). Steward set is APPEND-ONLY in v0.1 (F28-R1).
+
+**D4 — Sign-time-validity principle** (elevated from implicit mechanics; ATK-021-11):
+
+> An attestation's evidentiary tier is determined by the oracle's state AT SIGN TIME,
+> not at audit time.
+
+Oracle state changes AFTER a valid attestation produce audit hints only — MUST NOT degrade
+the signer's attested tier. Exceptions: (1) `Revoked(invalidates_prior=true)` — explicit
+steward decision to invalidate; demotes prior attestations to Reachability. (2) Fraudulent
+state transition (TextStamp-authorized) — transition flagged but attestation preserved.
+
+### Mechanics
+
+**Oracle CLI subfamily** (all five slices ship in v0.1-rc per Tekgy):
+- `cargo antigen oracle list` — workspace oracle inventory
+- `cargo antigen oracle status <id>` — state + transitions + stewards + attestations
+- `cargo antigen oracle declare --as steward --reference <ref> --rationale <r>` — create DRAFT
+- `cargo antigen oracle complete --as steward --id <id> --version <v> --rationale <r>` — DRAFT→COMPLETE
+- `cargo antigen oracle deprecate --as steward --id <id> --superseded-by <id?> --rationale <r>`
+- `cargo antigen oracle retire --as steward --id <id> --rationale <r>`
+- `cargo antigen oracle revoke --as steward --id <id> --reason <r> --invalidates-prior {true|false}`
+
+**CLI is friction-layer; schema is enforcement-layer** (F28-R3). Hand-edited sidecars that
+don't violate schema invariants are valid; CLI captures steward's git-trust identity at
+invocation. Parallel to `attest sign` discipline.
+
+**Naming disambiguation** (F28-R2): `cargo antigen attest oracle complete` (per-attestation:
+marks signer reviewed the oracle) renamed → `cargo antigen attest oracle mark`. Distinct
+from `cargo antigen oracle complete` (per-oracle state transition: steward moves DRAFT→COMPLETE).
+
+**Draft state scope**: Draft-blocking applies ONLY to `oracles_complete(...)` predicate leaf.
+`ratified_doc(...)`, `signers(...)`, and other leaves are not affected by oracle state machine.
+Oracle curation (state) and document ratification are separate discipline layers.
+
+**Adoption gradient**:
+- Layer 1: `oracles_complete([...])` without sidecar → `oracle-no-sidecar-information` at Reachability
+- Layer 1+: `oracle declare` one-time entry point → Layer 2 operational
+- Layer 2+: full oracle lifecycle CLI active
+- Layer 3: `requires = all_of([oracles_complete([...]), signers(...)])` per F11
+
+### Enforcement
+
+- Schema parse-time: minimum 2 stewards; `authorization_basis` non-empty; transition `rationale`
+  non-empty; chronological monotonicity; authorized_by in stewards list; Draft blocks
+  `oracles_complete` leaf evaluation
+- Audit-time: sign-time-validity (D4) applied throughout; state-change hints emitted; tier
+  degradation only on Revoked+invalidates=true
+- CLI: steward git-trust identity captured at invocation; TextStamp-level transitions rejected
+
+### Biology grounding
+
+**B-021-1** (temporal axis — immune memory): tier persists independent of oracle reachability.
+**B-021-2** (substrate axis — BCR direct recognition): uniform behavior across oracle kinds.
+**B-021-3** (evolution axis — V(D)J recombination): additive-only schema.
+**B-021-4** (role-separation axis — FDC stewardship): FDCs are of stromal origin, different
+lineage from B-cells. Steward/signer structural separation is biology-predicted, not convention.
+**B-021-5** (state-machine axis): pre-B cell gating (Draft-blocks-signers); germinal-center
+exit decisions (authorized transitions); memory senescence (Retired preserves historical evidence).
+
+### Resolves
+
+- `oracles_complete` leaf restricted to local files → all substrate-addressable oracle
+  references (file, URL, DOI, arXiv, GitHub, Other)
+- Discipline-as-convention oracle lifecycle → structurally enforced lifecycle via state machine
+  + stewardship
+- Missing Retired/Revoked distinction → five-state machine with explicit trust-impact semantics
+- `attest migrate` verb → DROPPED (additive-only makes migration unnecessary)
+- `attest move` verb → DROPPED (discipline enforced by gc/audit)
+- Orphaned-steward risk → minimum-2-stewards at creation + append-only steward set in v0.1
+- Post-sign-time oracle state changes → sign-time-validity principle (D4)
+- `attest oracle complete` naming collision → renamed to `attest oracle mark`
 
 ---
 
