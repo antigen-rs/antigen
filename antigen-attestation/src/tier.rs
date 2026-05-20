@@ -111,19 +111,39 @@ impl EvidenceKind {
 
 /// Strength of the signer-identity binding on a substrate-witness signer.
 ///
-/// `None` for non-substrate witnesses; `Some(GitTrust)` for v0.1
-/// substrate-witnesses (identity from `git config user.name + user.email`,
-/// fingerprint pin via `signed_against_fingerprint`); `Some(CryptoSigned)`
-/// reserved for v0.4+ DSSE + Sigstore activation.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+/// Three tiers (basic/mid/advanced) per Tekgy verdict 2026-05-19. Not
+/// every approver has git config or crypto tooling — concrete case: a
+/// JBD team of LLM agents signing each other's attestations has neither.
+/// `TextStamp` is the basic tier any reviewer can produce; `GitTrust`
+/// is the mid tier for git-configured humans; `CryptoSigned` is the
+/// advanced tier reserved for v0.4+ activation. CI gates can require
+/// any threshold (e.g., "all signers must be `GitTrust` or above").
+///
+/// `None` for non-substrate witnesses; `Some(<tier>)` for v0.1
+/// substrate-witnesses per the signer's actual identity-binding.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum SignatureStrength {
-    /// Identity bound to git config + fingerprint pin. v0.1 default.
-    GitTrust,
-    /// Identity bound cryptographically (DSSE-PAE-encoded; Sigstore
-    /// transparency log). v0.4+ activation path; reserved on schema
-    /// + tier types so activation does not require incompatible bump.
-    CryptoSigned,
+    /// **Basic tier** — name + timestamp; no external validation; no
+    /// `signature` field on the `Signer`. Any reviewer can produce this
+    /// (LLM agents, non-git-configured humans, ad-hoc approvers). The
+    /// audit reports this faithfully so consumers know the identity-
+    /// binding strength is minimal. Biology rhyme: basic recognition-
+    /// marker (the antigen was seen by this name at this time; no
+    /// cellular identity verification).
+    TextStamp = 0,
+    /// **Mid tier** — identity from `git config user.name + user.email`
+    /// at sign time; fingerprint pin via `signed_against_fingerprint`.
+    /// v0.1 default for git-configured reviewers. Biology rhyme:
+    /// recognition with cellular identity (the git config bound name
+    /// to the signing commit's repo context).
+    GitTrust = 1,
+    /// **Advanced tier** — identity bound cryptographically (DSSE-PAE-
+    /// encoded; Sigstore transparency log). v0.4+ activation path;
+    /// reserved on schema + tier types so activation does not require
+    /// incompatible bump. Biology rhyme: MHC-presentation-verified
+    /// (sealed structural proof of identity).
+    CryptoSigned = 2,
 }
 
 /// Per-case audit-hint disambiguation for substrate-witness results
@@ -216,6 +236,26 @@ mod tests {
         assert!(WitnessTier::None < WitnessTier::Reachability);
         assert!(WitnessTier::Reachability < WitnessTier::Execution);
         assert!(WitnessTier::Execution < WitnessTier::FormalProof);
+    }
+
+    #[test]
+    fn signature_strength_three_tier_ord_is_monotonic() {
+        // Per Tekgy verdict 2026-05-19: basic/mid/advanced tier ordering
+        // lets CI gates require minimum tiers (e.g., "all signers must be
+        // GitTrust or above" via `>= GitTrust` comparison).
+        assert!(SignatureStrength::TextStamp < SignatureStrength::GitTrust);
+        assert!(SignatureStrength::GitTrust < SignatureStrength::CryptoSigned);
+    }
+
+    #[test]
+    fn signature_strength_text_stamp_serializes_kebab_case() {
+        // The new basic tier — verify serialization shape so CI configs
+        // and downstream consumers can pin the wire format.
+        let s = SignatureStrength::TextStamp;
+        let json = serde_json::to_string(&s).unwrap();
+        assert_eq!(json, "\"text_stamp\"");
+        let parsed: SignatureStrength = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed, SignatureStrength::TextStamp);
     }
 
     #[test]
