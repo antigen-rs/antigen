@@ -380,6 +380,218 @@ strength.
 
 ---
 
+## Substrate-witness tier (ADR-019)
+
+ADR-019 (discipline-witnesses) introduces a fourth `EvidenceKind`:
+`SubstrateState` — evidence derived from on-disk substrate (JSON
+sidecars, git trailers, oracle files) rather than from code-level
+witnesses. Substrate witnesses use the same `WitnessTier` enum but
+have a different ceiling, different hint vocabulary, and different
+CLI interaction surface (`cargo antigen attest / check`).
+
+### EvidenceKind and tier ceilings
+
+| `EvidenceKind` | What produces it | Max `WitnessTier` |
+|---|---|---|
+| `TypeSystemProof` | Phantom-type witnesses (ADR-013) | `FormalProof` |
+| `Behavioral` | `#[test]`, proptest, external tools | `Execution` (at A4-A5; `Reachability` in v0.1) |
+| `SubstrateState` | Substrate-witness predicates (ADR-019) | `Execution` — ceiling by design |
+| `None` | No witness / witness fails | `None` |
+
+**Why SubstrateState cannot reach FormalProof**: a JSON sidecar is
+empirical on-disk state — it's the strongest assertion a human
+reviewer can produce about a discipline decision, but it does not
+constitute a mathematical guarantee covering all possible inputs.
+The ceiling at `Execution` is structurally exact: the sidecar plus a
+passing predicate means the discipline decision was empirically made
+and recorded, which is Execution-strength evidence.
+
+### Signature tiers
+
+Substrate-witness signatures carry a `SignatureStrength` that records
+identity-binding fidelity of each signer. Three tiers in v0.1:
+
+| `SignatureStrength` | Serde value | Identity binding | When to use |
+|---|---|---|---|
+| `TextStamp` | `"text_stamp"` | Name + timestamp only; no external validation | LLM agents, reviewers without git config |
+| `GitTrust` | `"git_trust"` | `git config user.name + user.email` at sign time; fingerprint-pinned | Default for git-configured humans |
+| `CryptoSigned` | `"crypto_signed"` | Cryptographic binding (DSSE-PAE + Sigstore transparency log) | v0.4+ activation path; schema-reserved in v0.1 |
+
+The `signature_allow` field on the `signers` predicate leaf declares
+which strengths the project accepts for this antigen. Default (empty
+list) accepts all three. The `signature_prefer` field, when set,
+generates an informational hint when signers use a lower-than-preferred
+strength but does not fail the predicate.
+
+### Predicate grammar (sealed leaf set)
+
+Substrate-witness predicates are composed from five sealed leaf
+primitives using three combinators:
+
+**Combinators**: `all_of([...])`, `any_of([...])`, `not(...)`
+
+**Leaf primitives**:
+
+| Leaf | Key assertion |
+|---|---|
+| `ratified_doc(path, anchor?)` | Named doc file exists with YAML frontmatter `status: ratified`; optional anchor section present |
+| `signers(required, roles?, against?, signature_allow?, signature_prefer?)` | Sidecar `signers[]` contains all required names with optional role/currency/strength constraints |
+| `signed_trailer(key, role?, count?)` | Git log on commits touching this item has matching trailer entries |
+| `oracles_complete(files)` | Listed oracle files exist with `status: complete` |
+| `fresh_within_days(days)` | Newest current-fingerprint signature is within `days` of today |
+
+### Substrate-witness audit hints
+
+Substrate-witness evaluation uses `SubstrateAuditHint` (also aliased as
+`AuditHint` within `antigen-attestation`) — a parallel vocabulary to the
+code-witness `AuditHint` in `antigen/src/audit.rs`. Both can fire on the
+same audit result.
+
+`SubstrateAuditHint` is serialized **kebab-case** (per
+`#[serde(rename_all = "kebab-case")]`). The 13 variants, grouped by
+claim kind:
+
+**Immunity-claim substrate hints** (7 variants):
+
+| JSON hint | Rust variant | Tier | Meaning |
+|---|---|---|---|
+| `discipline-sidecar-missing` | `DisciplineSidecarMissing` | None | No `.attest/` directory or no sidecar for this antigen |
+| `discipline-sidecar-schema-invalid` | `DisciplineSidecarSchemaInvalid` | None | Sidecar exists but did not parse as valid `Ratification` schema |
+| `discipline-predicate-failed` | `DisciplinePredicateFailed` | None | Sidecar parsed but substrate-witness predicate failed |
+| `discipline-substrate-stale` | `DisciplineSubstrateStale` | Reachability | Predicate passes but ≥1 signature is stale relative to the current fingerprint |
+| `discipline-substrate-delta-chain-near-cap` | `DisciplineSubstrateDeltaChainNearCap` | Execution | Predicate passes, all current, but a signer's chain depth is near the cap — next delta will be refused |
+| `discipline-predicate-passed-via-delta-chain` | `DisciplinePredicatePassedViaDeltaChain` | Execution | Predicate passes, all current; ≥1 signer's basis is `DeltaFrom` (within caps) — informational carry-forward note |
+| `discipline-predicate-passed-substrate-current` | `DisciplinePredicatePassedSubstrateCurrent` | Execution | Predicate passes, all current, all signers' bases are `Fresh` — the strongest substrate-witness state in v0.1 |
+
+**Tolerance-claim substrate hints** (4 variants):
+
+| JSON hint | Rust variant | Tier | Meaning |
+|---|---|---|---|
+| `tolerance-vibes-grade` | `ToleranceVibesGrade` | — | `#[antigen_tolerance]` declared without `sidecar = true`; ADR-011 vibes-grade gap |
+| `tolerance-sidecar-missing` | `ToleranceSidecarMissing` | None | `sidecar = true` but no sidecar found |
+| `tolerance-predicate-failed` | `TolerancePredicateFailed` | None | Tolerance sidecar exists, predicate failed |
+| `tolerance-predicate-passed-substrate-current` | `TolerancePredicatePassedSubstrateCurrent` | Execution | Tolerance sidecar exists, predicate passes, all signers current and Fresh |
+
+**Kind-mismatch hints** (2 variants):
+
+| JSON hint | Rust variant | Tier | Meaning |
+|---|---|---|---|
+| `discipline-sidecar-kind-mismatch-expected-immunity-got-tolerance` | `DisciplineSidecarKindMismatchExpectedImmunityGotTolerance` | None | `#[immune]` site but sidecar `kind = Tolerance` — site was converted from `#[antigen_tolerance]` without regenerating the sidecar |
+| `tolerance-sidecar-kind-mismatch-expected-tolerance-got-immunity` | `ToleranceSidecarKindMismatchExpectedToleranceGotImmunity` | None | `#[antigen_tolerance]` site but sidecar `kind = Immunity` |
+
+**Compound contradiction** (1 variant):
+
+| JSON hint | Rust variant | Tier | Meaning |
+|---|---|---|---|
+| `discipline-immunity-tolerance-contradiction` | `DisciplineImmunityToleranceContradiction` | None | Site declares both `#[immune]` and `#[antigen_tolerance]` for the same antigen — logically incoherent |
+
+### Quick-disambiguation: substrate-witness state to tier
+
+| Situation | Tier | `SubstrateAuditHint` |
+|---|---|---|
+| No sidecar or unparseable sidecar | None | `discipline-sidecar-missing` / `discipline-sidecar-schema-invalid` |
+| Sidecar parses, predicate fails | None | `discipline-predicate-failed` |
+| Predicate passes, stale signature present | Reachability | `discipline-substrate-stale` |
+| Predicate passes, all Fresh | Execution | `discipline-predicate-passed-substrate-current` |
+| Predicate passes, has DeltaFrom basis | Execution | `discipline-predicate-passed-via-delta-chain` |
+| Predicate passes, chain depth near cap | Execution | `discipline-substrate-delta-chain-near-cap` |
+
+### Examples
+
+**Basic** — a single TextStamp signer, all-strengths allowed:
+
+```json
+// .attest/SignedZeroDiscipline.json
+{
+  "kind": "Immunity",
+  "antigen": "SignedZeroDiscipline",
+  "predicate": {
+    "name": "signers",
+    "required": ["alice"]
+  },
+  "signers": [
+    {
+      "name": "alice",
+      "role": "math-reviewer",
+      "strength": "text_stamp",
+      "signed_at": "2026-05-19T12:00:00Z",
+      "signed_against_fingerprint": "abc123",
+      "basis": { "type": "Fresh", "reasoning": "Verified sinh/cosh signed-zero behavior in PR #47." }
+    }
+  ]
+}
+```
+
+Resulting audit hint: `discipline-predicate-passed-substrate-current`
+at `Execution` tier (all signers Fresh, predicate passes).
+
+**Mid** — two signers required, git-trust-only project policy:
+
+```json
+// .attest/SafeDropDiscipline.json
+{
+  "kind": "Immunity",
+  "antigen": "SafeDropDiscipline",
+  "predicate": {
+    "name": "all_of",
+    "children": [
+      {
+        "name": "signers",
+        "required": ["alice", "bob"],
+        "signature_allow": ["git_trust", "crypto_signed"]
+      },
+      { "name": "fresh_within_days", "days": 90 }
+    ]
+  },
+  "signers": [ /* ... */ ]
+}
+```
+
+If alice signed with `text_stamp` but `signature_allow` only permits
+`git_trust`/`crypto_signed`, the predicate fails →
+`discipline-predicate-failed` at `None` tier.
+
+**Advanced** — delta-chain anti-laundering on a carry-forward:
+
+```json
+{
+  "name": "alice",
+  "strength": "git_trust",
+  "signed_against_fingerprint": "def456",
+  "basis": {
+    "type": "DeltaFrom",
+    "parent_fingerprint": "abc123",
+    "rationale": "Re-verified: refactor preserved all signed-zero behavior; no semantic delta.",
+    "chain_depth": 1,
+    "cumulative_fingerprint": "deadbeef"
+  }
+}
+```
+
+Hint: `discipline-predicate-passed-via-delta-chain` at `Execution` tier.
+If `chain_depth` reaches the configured cap, the next delta is refused
+and `discipline-substrate-delta-chain-near-cap` fires while still passing.
+
+### What SubstrateState does NOT do
+
+- **Does not replace tests**. A passing `signers` predicate means a
+  human attested they reviewed the discipline decision — it does not
+  verify that the code actually upholds the discipline at runtime.
+  Use code-level witnesses for behavioral verification; use substrate
+  witnesses for discipline-decision attestation.
+- **Does not produce FormalProof tier**. On-disk empirical state
+  cannot constitute a mathematical guarantee regardless of how many
+  signers or how strong their signatures.
+- **Does not validate signature authenticity in v0.1**. `GitTrust`
+  records the git-config identity at sign time; it does not verify
+  that the git config itself was accurate. `CryptoSigned` (v0.4+)
+  provides cryptographic binding. `TextStamp` is self-declared.
+- **Does not cache**. The evaluator reads the sidecar fresh from disk
+  on every audit invocation (no-cache discipline per ADR-019 §M2).
+  The sidecar is the substrate; the substrate is the source of truth.
+
+---
+
 ## Choosing a witness type
 
 Practical guidance for v0.1.0-rc.1 (tier values reflect what the audit
@@ -393,6 +605,7 @@ actually emits; future tier-promotion paths noted in parentheses):
 | A clippy lint rule | `witness = clippy::lint_name` | Reachability (`ExternalToolPrefixRecognized`) — promotes to Execution at A4-A5 |
 | A formal proof in kani/prusti/verus/creusot/flux | `witness = kani::proof_fn` (etc.) | Reachability (`ExternalToolPrefixRecognized`) — promotes to FormalProof at A4-A5 |
 | Just a helper function (not a test) | `witness = helper_fn` | Reachability (`FunctionResolves`) |
+| A discipline decision sidecar (ADR-019) | `#[immune(..., requires = signers(["alice"]))]` | Execution if predicate passes and all Fresh (`DisciplinePredicatePassedSubstrateCurrent`) |
 | Nothing yet — placeholder | `#[antigen_tolerance(...)]` with rationale | (tolerated; not an immunity claim) |
 
 The discipline is honest: a theatrical test that always passes still
@@ -412,6 +625,7 @@ family (ATK-A2-003/004/005/011/012).
 - ADR-005 Amendment 3 (audit-tier-honesty)
 - ADR-007 (anti-YAGNI: all witness families committed)
 - ADR-013 (phantom-type witness recognition)
+- ADR-019 (discipline-witnesses: substrate-witness predicate family)
 - [`macros.md`](macros.md) — `#[immune]` macro reference
 - [`fingerprint-grammar.md`](fingerprint-grammar.md) — fingerprint DSL
 - [`output-formats.md`](output-formats.md) — full audit output reference

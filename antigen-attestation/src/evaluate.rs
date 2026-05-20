@@ -1653,51 +1653,42 @@ mod tests {
     }
 
     #[test]
-    fn fresh_through_without_current_fp_signers_bypasses_freshness_nfa23() {
+    fn fresh_through_with_no_signers_at_all_bypasses_freshness_nfa23() {
         // DOCUMENTED GAP (adversarial NFA-23): `eval_fresh_within_days` accepts
-        // `item.fresh_through` as an anchor date even when NO current-fingerprint
-        // signer exists. `fresh_through` is a bare `NaiveDate` on the ItemRatification
-        // with NO fingerprint binding. If the item fingerprint changed to fp-current
-        // after `fresh_through` was written (when fp-old was current), the date is now
-        // stale w.r.t. the item's identity — but the evaluator sees a future date and
-        // returns true.
+        // `item.fresh_through` as an anchor date even when the sidecar has NO signers.
+        // A sidecar with `signers = []` but `fresh_through` set to a recent date will
+        // satisfy the freshness leaf — nobody has attested, but the item appears "fresh."
         //
-        // Attack: set fresh_through to a future date in a sidecar that was written
-        // for fp-old. The item has since changed (fp-current). No re-attestation has
-        // happened. The freshness predicate silently passes.
+        // Note: when signers ARE present but stale, `classify_passed_predicate` catches
+        // them via the per-name stale detection and returns Reachability, not Execution.
+        // The gap is strongest when there are NO signers at all and fresh_through is set
+        // — the signer list is empty, classify returns Execution with no signers.
         //
-        // FIX DIRECTION (v0.2): require at least one current-fp signer entry before
-        // `fresh_through` is consulted, OR add a `fresh_through_fingerprint` binding
-        // field to `ItemRatification` so the audit can detect stale `fresh_through`.
+        // Attack: create a sidecar with no signers and fresh_through = today. The item
+        // is claimed "fresh" by the freshness leaf even though nobody has reviewed it.
         //
-        // This test DOCUMENTS the current behavior. The assertion will change (fail)
-        // when the fix is applied, making the fix visible.
-        let stale_signer = Signer {
-            name: "alice".to_string(),
-            role: None,
-            date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-            signed_against_fingerprint: "fp-old".to_string(),
-            basis: crate::schema::SignerBasis::Fresh { reasoning: None },
-            strength: SignatureStrength::GitTrust,
-            signature: None,
-        };
-        let mut item = item_with(vec![stale_signer]);
-        // fresh_through within the 60-day window — but was written when fp-old was current.
-        // today = 2026-05-19; fresh_through = 2026-06-01 is 13 days out (within 60 days).
-        item.fresh_through = Some(NaiveDate::from_ymd_opt(2026, 6, 1).unwrap());
+        // FIX DIRECTION (v0.2): `eval_fresh_within_days` should require at least one
+        // signer entry to be meaningful — fresh_through alone (without a signer to
+        // anchor the freshness claim) should not satisfy the leaf.
+        //
+        // This test DOCUMENTS the current behavior.
+        let mut item = item_with(vec![]); // NO signers
+        // fresh_through = today; the freshness check reads this as "signed on today".
+        item.fresh_through = Some(sample_date());
         let pred = Predicate::leaf(Leaf::FreshWithinDays { days: 60 });
         let ctx = TestContext::new(sample_date()); // today = 2026-05-19
         let r = evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx)
             .unwrap();
-        // CURRENT BEHAVIOR: fresh_through satisfies freshness even with no current-fp signers.
-        // The stale signer's date is excluded (NFA-21 fix), but fresh_through has no
-        // fingerprint binding and still fires. Documents the v0.2 gap.
+        // CURRENT BEHAVIOR: fresh_through satisfies freshness with zero signers.
+        // classify_passed_predicate sees empty signer list and returns Execution directly.
+        // Documents the v0.2 gap — fresh_through with no signers is unanchored freshness.
         assert_eq!(
             r.witness_tier,
             WitnessTier::Execution,
-            "NFA-23 documented gap: fresh_through bypasses freshness without current-fp signers; \
-             fix in v0.2 by fingerprint-scoping fresh_through or requiring current-fp co-presence"
+            "NFA-23 documented gap: fresh_through with no signers satisfies freshness leaf; \
+             nobody has reviewed the item but it appears 'fresh'; v0.2 fix: require signer co-presence"
         );
+        assert_eq!(r.signature_strength, None, "no signers → signature_strength must be None");
     }
 
     #[test]
@@ -1772,6 +1763,51 @@ mod tests {
             "NFA-24 documented gap: against=Any + signature_allow lets stale GitTrust entry \
              satisfy allow-list when current-fp entry is TextStamp (below allow-list); \
              CORRECT behavior would be WitnessTier::None (predicate should fail)"
+        );
+    }
+
+    #[test]
+    fn doc_without_trailing_newline_after_closing_frontmatter_silently_fails_nfa25() {
+        // SILENT FAILURE (adversarial NFA-25): `parse_frontmatter_field` uses
+        // `stripped.find("\n---\n")` to locate the closing delimiter. If the doc
+        // ends immediately after `---` with no trailing newline — which is a
+        // common authoring pattern — the terminator `\n---\n` never matches and
+        // the function returns None. The doc version/anchor is silently dropped,
+        // and `RatifiedDoc` fails the version/anchor check even when the content
+        // IS correct.
+        //
+        // Example: "---\nversion: 2.0\n---" (no trailing newline) → None.
+        // Correct:  "---\nversion: 2.0\n---\n" (trailing newline) → Some("2.0").
+        //
+        // This is a SILENT FAILURE: the audit reports "doc fails version check"
+        // with no indication that a missing trailing newline is the cause.
+        //
+        // FIX DIRECTION: also try `find("\n---")` at end-of-string (i.e., the
+        // closing delimiter may be at EOF without a subsequent newline). A simple
+        // fix: also check if the frontmatter ends with `\n---` at end-of-string.
+        // Or normalize content by appending `\n` if absent before parsing.
+        //
+        // This test FAILS against the current code because the closing `---` has
+        // no trailing newline and find("\n---\n") returns None.
+        let item = item_with(vec![]);
+        let pred = Predicate::leaf(Leaf::RatifiedDoc {
+            path: Some(PathBuf::from("docs/sinh.md")),
+            min_version: Some("1.0".to_string()),
+            anchor: None,
+            sibling_json: false,
+        });
+        // No trailing newline after the closing `---`.
+        let no_trailing_nl = "---\nversion: 2.0\n---";
+        let ctx = TestContext::new(sample_date()).with_doc("docs/sinh.md", no_trailing_nl);
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+        // The version IS 2.0 (satisfies min 1.0), but the parser fails to find
+        // the frontmatter due to the missing trailing newline. The predicate fails silently.
+        assert_eq!(
+            r.witness_tier,
+            WitnessTier::Execution,
+            "NFA-25: doc with version 2.0 and no trailing newline after closing --- \
+             must not silently fail the version check; parser must handle EOF-terminated frontmatter"
         );
     }
 
