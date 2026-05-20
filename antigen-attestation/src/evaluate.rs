@@ -602,7 +602,7 @@ fn parse_frontmatter_field(content: &str, field_prefix: &str) -> Option<String> 
     // (NFA-25: docs without a trailing newline after the closing delimiter).
     let end = stripped
         .find("\n---\n")
-        .or_else(|| stripped.strip_suffix("\n---").map(|s| s.len()))?;
+        .or_else(|| stripped.strip_suffix("\n---").map(str::len))?;
     let frontmatter = &stripped[..end];
     for line in frontmatter.lines() {
         let line = line.trim();
