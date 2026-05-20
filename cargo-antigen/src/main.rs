@@ -167,6 +167,19 @@ enum AttestSubcommand {
     /// CLI families. Implementation gated on ADR-021 OracleRef schema
     /// (now ratified — Task 1 shipped; this verb's handler is design-phase
     /// pending the `OracleCompletionMarker` schema field plumbing).
+    ///
+    /// **ATK-021-19 implementation requirement** (per navigator routing
+    /// 2026-05-20): the CLI MUST write
+    /// `OracleCompletionMarker { oracle_state_at_attestation: <current
+    /// oracle state at sign time>, .. }` into the sidecar at every
+    /// invocation. Without the sign-time-state anchor, sign-time-validity
+    /// (ADR-021 §D4) cannot be structurally enforced — the audit cannot
+    /// distinguish "signer attested when oracle was Complete, oracle later
+    /// Deprecated" (hint-only, tier preserved) from "signer attested when
+    /// oracle was already Deprecated" (tier reject). The audit's fallback
+    /// for legacy sidecars without this field is the
+    /// `oracle-sign-time-state-unknown` hint at Execution+advisory tier;
+    /// new sidecars written by this verb MUST always populate it.
     #[command(hide = true, name = "oracle")]
     Oracle,
     /// List all `.attest/` sidecars in the workspace.
@@ -786,8 +799,12 @@ fn run_attest(cli: AttestCli) -> ExitCode {
                 "`attest oracle mark` is not yet implemented in v0.1-rc.\n\
                  Renamed from `attest oracle complete` per ADR-021 F28-R2 to \
                  disambiguate from the top-level `cargo antigen oracle complete` \
-                 state-machine verb. Implementation pending OracleCompletionMarker \
-                 schema field plumbing.\n\
+                 state-machine verb. Implementation pending: must write \
+                 `OracleCompletionMarker {{ oracle_state_at_attestation, .. }}` \
+                 at sign time per ADR-021 §D4 + ATK-021-19 (without the \
+                 sign-time-state anchor, sign-time-validity cannot be \
+                 structurally enforced — the audit cannot distinguish post-\
+                 sign-time deprecation from pre-sign-time deprecation).\n\
                  Operator scripts MUST NOT rely on this exit code as success."
             );
             ExitCode::FAILURE
