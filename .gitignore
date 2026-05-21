@@ -14,7 +14,9 @@ Cargo.lock
 *~
 
 # Campsite logbook (SQLite database; ephemeral team coordination state)
-campsites/
+# Anchored to repo root (`/campsites/`) so that `camp/src/campsites/`
+# (the camp crate's campsite source modules) is NOT excluded.
+/campsites/
 
 # Scheduled-task lock dir (project-local Claude harness state; ephemeral)
 .claude/
