@@ -1,0 +1,39 @@
+{
+  "schema_version": "v1",
+  "kind": "immunity",
+  "antigen": {
+    "name": "CampsiteOpen"
+  },
+  "source_file": "camp/src/campsites/build_camp.rs",
+  "items": [
+    {
+      "item_path": "camp::campsites::build_camp::done",
+      "current_fingerprint": "build_camp-done-v0.0.0",
+      "signers": [
+        {
+          "name": "tekgy",
+          "role": "tekgy",
+          "date": "2026-05-21",
+          "signed_against_fingerprint": "build_camp-done-v0.0.0",
+          "basis": {
+            "kind": "fresh",
+            "reasoning": "Camp scaffold compiles against antigen 0.1.0-rc.2 from crates.io; CampsiteOpen antigen declared; build_camp.rs written with correct substrate-witness predicate; scan/audit pipeline verified end-to-end by observer."
+          },
+          "strength": "git_trust"
+        },
+        {
+          "name": "team-lead",
+          "role": "team-lead",
+          "date": "2026-05-21",
+          "signed_against_fingerprint": "build_camp-done-v0.0.0",
+          "basis": {
+            "kind": "fresh",
+            "reasoning": "Camp crate scaffold verified: compiles clean from crates.io deps (cold build 7.51s), scan finds CampsiteOpen + done() presentation, audit pipeline wired correctly. Observer baseline verification complete with Bug #1, #2, #3 documented and corrected recipe verified. Recursive proof flow confirmed end-to-end."
+          },
+          "strength": "text_stamp"
+        }
+      ],
+      "oracles": []
+    }
+  ]
+}
