@@ -46,6 +46,8 @@
 #![forbid(unsafe_code)]
 
 pub mod evaluate;
+#[cfg(feature = "parser")]
+pub mod parser;
 pub mod predicate;
 pub mod schema;
 pub mod tier;

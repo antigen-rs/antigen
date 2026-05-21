@@ -5,6 +5,62 @@ All notable changes to the antigen project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-rc.2] — 2026-05-20
+
+Hotfix release: wire the substrate-witness pipeline end-to-end. ADR-019's
+`#[immune(X, requires = <predicate>)]` form parsed and emitted a JSON
+marker at macro-expansion time, but scan walks **written source** via
+`syn::parse_file` and never saw the post-expansion doc marker. Every
+substrate-witness immunity reported `tier = None, hint = NoneApplicable`
+("missing witness identifier") — even the shipped
+`antigen/examples/substrate_witness.rs` example. Surfaced via the camp/
+dogfood (`camp/` Rust crate now tracked as canonical dogfood content per
+the updated `.gitignore`).
+
+### Fixed
+
+- **Substrate-witness pipeline wiring**: scan now parses
+  `requires = <predicate>` directly from `#[immune]` /
+  `#[antigen_tolerance]` source attributes via a shared parser. The doc-
+  marker channel survives as a fallback for rc.1-compiled code, but
+  discovery no longer depends on macro expansion. (Token-level diff:
+  audit on `antigen/examples` now reports `tier = None, hint =
+  DisciplineSidecarMissing` for substrate-witness sites without sidecars,
+  routing correctly through `audit_substrate_witness` instead of
+  falling through to the code-witness branch.)
+- **`RequiresExpr::to_json` wire format**: rc.1 hand-rolled JSON with the
+  shape `{"kind":"leaf","leaf":{...}}` which `Predicate` serde rejected
+  as schema-invalid. rc.2 routes through the real `Predicate` type so
+  the JSON is byte-identical to what the audit evaluator deserializes
+  (locked by `parser::requires_json_tests::json_shape_is_flat_not_nested`).
+- **`AuditHint` collapse**: rc.1 mapped every substrate-witness hint
+  variant to `NoneApplicable` / `ExternalToolPrefixRecognized`, hiding
+  the substrate-pipeline diagnosis from the user. rc.2 surfaces 14 new
+  variants 1:1 with `antigen_attestation::SubstrateAuditHint`, so the
+  user-facing hint names the actual state (sidecar-missing,
+  predicate-failed, substrate-stale, etc.).
+
+### Added
+
+- New `parser` feature on `antigen-attestation` exposes the
+  source-attribute parser; off by default (runtime crate stays syn-free).
+  Both `antigen-macros` and `antigen` turn it on.
+- `antigen_attestation::parser::RequiresExpr::to_predicate()` returns
+  the runtime `Predicate` directly (the new load-bearing lowering).
+- `atk_a3_substrate_witness_pipeline.rs` — regression test that pins
+  the three pipeline wirings (scan capture, audit routing, hint
+  surfacing). Would have caught the rc.1 bug at scan-write time.
+
+### Internal
+
+- `Option::expect` is const since Rust 1.83; helper `fn sample_date()`
+  test fixtures in `antigen-attestation/tests/*` lifted to `const fn`
+  (clippy 1.95 `missing_const_for_fn`).
+- `f64::midpoint` used in `tolerance_attested.rs` example
+  (clippy 1.95 `manual_midpoint`).
+- `Option::is_none_or` replaces `Option::map_or(true, ...)` per clippy
+  1.95 `unnecessary_map_or`.
+
 ## [0.1.0-rc.1] — 2026-05-20
 
 First release candidate. Consolidates A2 (core macros + scan + audit completion)

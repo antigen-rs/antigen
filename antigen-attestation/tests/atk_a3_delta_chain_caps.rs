@@ -43,8 +43,9 @@ use chrono::NaiveDate;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-fn sample_date() -> NaiveDate {
-    NaiveDate::from_ymd_opt(2026, 5, 19).unwrap()
+const fn sample_date() -> NaiveDate {
+    // chrono ≥ 0.4.40 makes from_ymd_opt const; MSRV is 1.85 so we lean on it.
+    NaiveDate::from_ymd_opt(2026, 5, 19).expect("hard-coded valid date")
 }
 
 /// 20-char rationale — meets `DEFAULT_DELTA_RATIONALE_MIN_CHARS` exactly.

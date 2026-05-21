@@ -152,7 +152,7 @@ pub fn newton_iterate_sidecar_attested(initial: f64, target: f64) -> f64 {
     if (initial - target).abs() < 1e-12 {
         return initial;
     }
-    let next = (initial + target) / 2.0;
+    let next = f64::midpoint(initial, target);
     newton_iterate_sidecar_attested(next, target)
 }
 

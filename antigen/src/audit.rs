@@ -192,6 +192,70 @@ pub enum AuditHint {
     /// perform this check. The descendant should declare its own
     /// `#[immune]` or `#[antigen_tolerance]`.
     InheritedPresentationNotReAttested,
+
+    // ------------------------------------------------------------------
+    // Substrate-witness hints (ADR-019). These exist as legacy-enum echoes
+    // of `antigen_attestation::SubstrateAuditHint` so the user-facing
+    // audit output names the actual state the substrate-witness pipeline
+    // reached. Mapped from the attestation enum by
+    // [`map_attestation_audit_hint`].
+    //
+    // History: rc.1 mapped every substrate hint to `NoneApplicable` /
+    // `ExternalToolPrefixRecognized` — collapsing real diagnostic
+    // information. rc.2 surfaces the substrate hints natively so the user
+    // can distinguish `discipline-sidecar-missing` (no proof yet) from
+    // `discipline-predicate-failed` (proof attempted and failed) from
+    // `discipline-substrate-stale` (proof attempted and is now expired).
+    // ------------------------------------------------------------------
+    /// `#[immune(X, requires = ...)]` declared but no `.attest/<X>.json`
+    /// sidecar exists. The substrate-witness pipeline engaged; no
+    /// substrate to evaluate.
+    DisciplineSidecarMissing,
+    /// `.attest/<X>.json` exists but did not deserialize as a valid
+    /// `Ratification`. Treat as a hard failure — the sidecar is the
+    /// load-bearing trust artifact; a corrupt one cannot back a claim.
+    DisciplineSidecarSchemaInvalid,
+    /// Sidecar parsed but the substrate-witness predicate failed
+    /// evaluation (a leaf returned false). Per-leaf detail surfaces
+    /// elsewhere in the audit output.
+    DisciplinePredicateFailed,
+    /// Predicate passes but ≥1 signer's recorded fingerprint diverges
+    /// from the current item fingerprint, AND the leaf used
+    /// `against = "current"`. Re-attestation required.
+    DisciplineSubstrateStale,
+    /// Predicate passes via a delta chain whose depth is at or near the
+    /// configured cap (`chain_depth >= cap - 1`). Informational; the next
+    /// delta will be refused.
+    DisciplineSubstrateDeltaChainNearCap,
+    /// Predicate passes, all current, ≥1 signer's basis is `DeltaFrom`
+    /// (within caps). Carry-forward attestation rather than fresh.
+    DisciplinePredicatePassedViaDeltaChain,
+    /// Predicate passes, all current, all signers Fresh. Strongest
+    /// substrate-witness state available in v0.1.
+    DisciplinePredicatePassedSubstrateCurrent,
+    /// `#[antigen_tolerance(X)]` declared without `sidecar = true`
+    /// opt-in. Vibes-grade tolerance — no substrate consulted.
+    ToleranceVibesGrade,
+    /// `#[antigen_tolerance(X, sidecar = true)]` declared but no sidecar
+    /// exists at the expected `.attest/<X>.json` location.
+    ToleranceSidecarMissing,
+    /// Tolerance sidecar exists but predicate failed.
+    TolerancePredicateFailed,
+    /// Tolerance sidecar exists, predicate passes, all signers current
+    /// and Fresh. Strongest tolerance-attestation state in v0.1.
+    TolerancePredicatePassedSubstrateCurrent,
+    /// `#[immune(X, requires = ...)]` site but the sidecar's `kind` is
+    /// `Tolerance`. Likely a stale sidecar from a prior `#[antigen_tolerance]`
+    /// declaration; regenerate the sidecar.
+    DisciplineSidecarKindMismatchExpectedImmunityGotTolerance,
+    /// `#[antigen_tolerance(X, sidecar = true, requires = ...)]` site but
+    /// the sidecar's `kind` is `Immunity`. Symmetric to the immunity-side
+    /// mismatch above.
+    ToleranceSidecarKindMismatchExpectedToleranceGotImmunity,
+    /// Site declares BOTH `#[immune(X, ...)]` and
+    /// `#[antigen_tolerance(X, sidecar = true, ...)]` for the same
+    /// antigen. Logically incoherent — overrides individual tier reports.
+    DisciplineImmunityToleranceContradiction,
 }
 
 /// Result of auditing a single immunity declaration.
@@ -685,29 +749,45 @@ const fn map_attestation_tier(tier: antigen_attestation::WitnessTier) -> Witness
 
 /// Map [`antigen_attestation::AuditHint`] to [`AuditHint`].
 ///
-/// `antigen_attestation::tier::AuditHint` is the extended enum that includes
-/// substrate-witness hints (`DisciplinePredicatePassed*`, `TolerancePredicate*`,
-/// `DisciplineSubstrate*`, `DisciplineSidecarMissing`, etc.).
-/// `audit::AuditHint` is the pre-ADR-019 enum. For v0.1 we map the substrate
-/// variants to the nearest code-witness equivalent; A3+ work will migrate the
-/// full enum or flatten them into a single type.
+/// 1:1 mapping — every substrate-witness hint variant in the attestation
+/// crate has a peer in [`AuditHint`]. The two enums are deliberately
+/// duplicated so the runtime crate stays serde-stable for the on-disk
+/// audit format while the attestation crate can evolve the substrate-
+/// witness vocabulary independently.
+///
+/// rc.1 collapsed substrate hints into `NoneApplicable` /
+/// `ExternalToolPrefixRecognized`, which made it impossible to read what
+/// the substrate-witness pipeline actually found. rc.2 surfaces the real
+/// state — the hint a CI gate or reviewer reads now names the case.
 const fn map_attestation_audit_hint(hint: antigen_attestation::AuditHint) -> AuditHint {
     use antigen_attestation::AuditHint as AH;
     match hint {
-        AH::DisciplinePredicatePassedSubstrateCurrent
-        | AH::DisciplinePredicatePassedViaDeltaChain
-        | AH::DisciplineSubstrateDeltaChainNearCap
-        | AH::TolerancePredicatePassedSubstrateCurrent => AuditHint::ExternalToolPrefixRecognized,
-        AH::DisciplinePredicateFailed
-        | AH::TolerancePredicateFailed
-        | AH::DisciplineSidecarMissing
-        | AH::DisciplineSidecarSchemaInvalid
-        | AH::DisciplineSubstrateStale
-        | AH::ToleranceVibesGrade
-        | AH::ToleranceSidecarMissing
-        | AH::DisciplineSidecarKindMismatchExpectedImmunityGotTolerance
-        | AH::ToleranceSidecarKindMismatchExpectedToleranceGotImmunity
-        | AH::DisciplineImmunityToleranceContradiction => AuditHint::NoneApplicable,
+        AH::DisciplineSidecarMissing => AuditHint::DisciplineSidecarMissing,
+        AH::DisciplineSidecarSchemaInvalid => AuditHint::DisciplineSidecarSchemaInvalid,
+        AH::DisciplinePredicateFailed => AuditHint::DisciplinePredicateFailed,
+        AH::DisciplineSubstrateStale => AuditHint::DisciplineSubstrateStale,
+        AH::DisciplineSubstrateDeltaChainNearCap => AuditHint::DisciplineSubstrateDeltaChainNearCap,
+        AH::DisciplinePredicatePassedViaDeltaChain => {
+            AuditHint::DisciplinePredicatePassedViaDeltaChain
+        }
+        AH::DisciplinePredicatePassedSubstrateCurrent => {
+            AuditHint::DisciplinePredicatePassedSubstrateCurrent
+        }
+        AH::ToleranceVibesGrade => AuditHint::ToleranceVibesGrade,
+        AH::ToleranceSidecarMissing => AuditHint::ToleranceSidecarMissing,
+        AH::TolerancePredicateFailed => AuditHint::TolerancePredicateFailed,
+        AH::TolerancePredicatePassedSubstrateCurrent => {
+            AuditHint::TolerancePredicatePassedSubstrateCurrent
+        }
+        AH::DisciplineSidecarKindMismatchExpectedImmunityGotTolerance => {
+            AuditHint::DisciplineSidecarKindMismatchExpectedImmunityGotTolerance
+        }
+        AH::ToleranceSidecarKindMismatchExpectedToleranceGotImmunity => {
+            AuditHint::ToleranceSidecarKindMismatchExpectedToleranceGotImmunity
+        }
+        AH::DisciplineImmunityToleranceContradiction => {
+            AuditHint::DisciplineImmunityToleranceContradiction
+        }
     }
 }
 

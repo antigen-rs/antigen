@@ -33,10 +33,18 @@ sweeps/
 # Empty/transient working dirs
 .captured-shape/
 
-# Camp coordination substrate (per-project Rust crate; future antigen-native
-# replacement for the campsite SQLite skill — see ~/.claude/skills/camp/
-# SKILL.md). Treated like campsites/ above: ephemeral team coordination state.
-camp/
+# Camp coordination substrate — the camp/ Rust crate IS canonical dogfood
+# content (antigen using antigen for its own team coordination), so the
+# source + Cargo.toml + sidecars stay tracked. The per-role substrate
+# folders (notebooks/insights/journals/etc.) hold team-ephemeral content
+# and stay local-only.
+camp/target/
+camp/**/notebooks/
+camp/**/insights/
+camp/**/journals/
+camp/**/random-thoughts/
+camp/**/feature-ideas/
+camp/**/experiments/
 
 # OS
 .DS_Store

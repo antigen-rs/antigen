@@ -391,7 +391,7 @@ fn eval_signers(
                 SignerCurrency::Current => s.signed_against_fingerprint == current_fingerprint,
                 SignerCurrency::Any => true,
             };
-            let role_ok = expected_role.map_or(true, |r| s.role.as_deref() == Some(r.as_str()));
+            let role_ok = expected_role.is_none_or(|r| s.role.as_deref() == Some(r.as_str()));
             // If signature_allow is non-empty, the signer's strength must be in the list.
             let strength_ok = signature_allow.is_empty() || signature_allow.contains(&s.strength);
             currency_ok && role_ok && strength_ok

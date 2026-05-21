@@ -69,8 +69,8 @@ impl EvaluationContext for ScopeCtx {
     }
 }
 
-fn sample_date() -> NaiveDate {
-    NaiveDate::from_ymd_opt(2026, 5, 19).unwrap()
+const fn sample_date() -> NaiveDate {
+    NaiveDate::from_ymd_opt(2026, 5, 19).expect("hard-coded valid date")
 }
 
 fn current_signer(name: &str, fp: &str) -> Signer {

@@ -210,6 +210,7 @@ fn schema_lock_audit_witness_tier_variants() {
 #[test]
 fn schema_lock_audit_hint_variants() {
     const ALLOWED_HINTS: &[&str] = &[
+        // Code-witness hints (rc.1 original set).
         "none-applicable",
         "function-resolves",
         "test-attribute-present-not-invoked",
@@ -222,6 +223,23 @@ fn schema_lock_audit_hint_variants() {
         "ambiguous-resolution",
         "fabricated-path-prefix",
         "inherited-presentation-not-re-attested",
+        // Substrate-witness hints (rc.2 — surfaces real states the
+        // substrate-witness pipeline reaches; mirror of
+        // antigen_attestation::SubstrateAuditHint).
+        "discipline-sidecar-missing",
+        "discipline-sidecar-schema-invalid",
+        "discipline-predicate-failed",
+        "discipline-substrate-stale",
+        "discipline-substrate-delta-chain-near-cap",
+        "discipline-predicate-passed-via-delta-chain",
+        "discipline-predicate-passed-substrate-current",
+        "tolerance-vibes-grade",
+        "tolerance-sidecar-missing",
+        "tolerance-predicate-failed",
+        "tolerance-predicate-passed-substrate-current",
+        "discipline-sidecar-kind-mismatch-expected-immunity-got-tolerance",
+        "tolerance-sidecar-kind-mismatch-expected-tolerance-got-immunity",
+        "discipline-immunity-tolerance-contradiction",
     ];
 
     let json = run_and_parse("audit");
@@ -234,9 +252,11 @@ fn schema_lock_audit_hint_variants() {
             .unwrap_or_else(|| panic!("audit[{i}] missing `audit_hint` string"));
         assert!(
             ALLOWED_HINTS.contains(&hint),
-            "audit[{i}].audit_hint `{hint}` is not in the v0.1.0-rc.1 12-variant set — \
-             if a new hint was added, update this allowlist AND docs/output-formats.md \
-             AND docs/witness-tiers.md in the same change. Current allowed: {ALLOWED_HINTS:?}"
+            "audit[{i}].audit_hint `{hint}` is not in the v0.1.0-rc.2 \
+             {n}-variant set — if a new hint was added, update this allowlist \
+             AND docs/output-formats.md AND docs/witness-tiers.md in the same \
+             change. Current allowed: {ALLOWED_HINTS:?}",
+            n = ALLOWED_HINTS.len()
         );
     }
 }

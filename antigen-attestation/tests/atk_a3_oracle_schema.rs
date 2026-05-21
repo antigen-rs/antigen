@@ -21,8 +21,8 @@ use antigen_attestation::{
 };
 use chrono::NaiveDate;
 
-fn sample_date() -> NaiveDate {
-    NaiveDate::from_ymd_opt(2026, 5, 19).unwrap()
+const fn sample_date() -> NaiveDate {
+    NaiveDate::from_ymd_opt(2026, 5, 19).expect("hard-coded valid date")
 }
 
 fn two_stewards() -> Vec<Steward> {

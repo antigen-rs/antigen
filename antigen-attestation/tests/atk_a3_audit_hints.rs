@@ -47,9 +47,9 @@ struct Ctx {
 }
 
 impl Ctx {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self {
-            today: NaiveDate::from_ymd_opt(2026, 5, 19).unwrap(),
+            today: NaiveDate::from_ymd_opt(2026, 5, 19).expect("hard-coded valid date"),
             cap: DEFAULT_DELTA_CHAIN_CAP,
         }
     }
@@ -79,8 +79,8 @@ impl EvaluationContext for Ctx {
 
 // --- Builders ------------------------------------------------------------
 
-fn sample_date() -> NaiveDate {
-    NaiveDate::from_ymd_opt(2026, 5, 19).unwrap()
+const fn sample_date() -> NaiveDate {
+    NaiveDate::from_ymd_opt(2026, 5, 19).expect("hard-coded valid date")
 }
 
 fn fresh_signer(name: &str, fp: &str) -> Signer {
