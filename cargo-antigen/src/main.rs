@@ -2232,7 +2232,7 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
                 i.antigen_type,
                 i.witness
             );
-            println!("    tier = {:?}, hint = {:?}", a.witness_tier, a.audit_hint,);
+            println!("    tier = {:?}, hint = {:?}", a.witness_tier, a.audit_hint);
             match &a.witness_status {
                 audit::WitnessStatus::NotFound { reason } => {
                     println!("    → broken: {reason}");
