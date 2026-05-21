@@ -19,6 +19,25 @@ campsites/
 # Scheduled-task lock dir (project-local Claude harness state; ephemeral)
 .claude/
 
+# AI-collaborator orientation file. Each developer may keep their own
+# CLAUDE.md locally with paths/conventions tailored to their setup.
+# README.md is the canonical project-orient for both humans and AI agents.
+CLAUDE.md
+
+# Design substrate. Lives locally for ongoing team development; not part of
+# the published surface. Future externalization (sibling repo / GH Pages /
+# etc.) is an open decision; for now substrate stays local.
+docs/expedition/
+sweeps/
+
+# Empty/transient working dirs
+.captured-shape/
+
+# Camp coordination substrate (per-project Rust crate; future antigen-native
+# replacement for the campsite SQLite skill — see ~/.claude/skills/camp/
+# SKILL.md). Treated like campsites/ above: ephemeral team coordination state.
+camp/
+
 # OS
 .DS_Store
 Thumbs.db
