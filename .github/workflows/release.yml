@@ -49,7 +49,8 @@ jobs:
         env:
           RUSTDOCFLAGS: "-D warnings"
 
-  # Publish topologically: fingerprint → macros → antigen → cargo-antigen.
+  # Publish topologically:
+  #   fingerprint → attestation → macros → antigen → cargo-antigen
   # Each step waits for the previous to land on crates.io's index (sleep 30s)
   # before continuing — crates.io has a small index-replication delay.
 
@@ -64,8 +65,8 @@ jobs:
       - name: Publish antigen-fingerprint
         run: cargo publish -p antigen-fingerprint --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-  publish-antigen-macros:
-    name: Publish antigen-macros
+  publish-antigen-attestation:
+    name: Publish antigen-attestation
     needs: publish-antigen-fingerprint
     runs-on: ubuntu-latest
     steps:
@@ -73,6 +74,19 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Wait for antigen-fingerprint on crates.io index
+        run: sleep 30
+      - name: Publish antigen-attestation
+        run: cargo publish -p antigen-attestation --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  publish-antigen-macros:
+    name: Publish antigen-macros
+    needs: publish-antigen-attestation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Wait for antigen-attestation on crates.io index
         run: sleep 30
       - name: Publish antigen-macros
         run: cargo publish -p antigen-macros --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
@@ -107,6 +121,7 @@ jobs:
     name: Create GitHub release
     needs:
       - publish-antigen-fingerprint
+      - publish-antigen-attestation
       - publish-antigen-macros
       - publish-antigen
       - publish-cargo-antigen

@@ -5,11 +5,131 @@ All notable changes to the antigen project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0-rc.1] — 2026-05-20
 
-Tracking work for v0.1.0 final. Cf. `sweeps/A3.5-onboarding/scope-lock.md`.
+First release candidate. Consolidates A2 (core macros + scan + audit completion)
++ A3.5 (onboarding sweep) + the discipline-witnesses arc (ADR-019, ADR-020,
+ADR-021) into a single shipped rc. The earlier 2026-05-08 `[0.1.0-rc.1]` entry
+below documents preliminary substrate that was planned but never shipped to
+crates.io — its content is absorbed here.
 
-### A3.5 Onboarding sweep (in progress — pre-tag required)
+### Discipline-witnesses arc (NEW — 2026-05-19/20 session)
+
+#### ADR-019 — Substrate-witness predicate family (RATIFIED)
+
+Extends witness vocabulary beyond code-side substrate (test_fn / proptest! /
+clippy:: / phantom-type) to **substrate other than the code being audited**:
+ratified docs, sign-off records, signed git trailers, oracle completion
+markers, attestation sidecars. Closed combinator grammar (`all_of` / `any_of`
+/ `not`) over sealed leaf primitives (`signers`, `ratified_doc`,
+`signed_trailer`, `oracles_complete`, `fresh_within_days`). Tier-honesty
+preserved via three-axis output (`WitnessTier × AuditHint × EvidenceKind`).
+ADR-005 Amendment 3 extended to substrate-witness recognition surface;
+ratchet-asymmetry property named explicitly; bounded audit-of-audit recursion
+named explicitly.
+
+#### ADR-020 — Cross-cutting attestation primitive (RATIFIED)
+
+`attested = (who, allowed_types, why, scope)` available as a macro parameter
+on any antigen-related macro (`#[antigen]`, `#[immune]`, `#[antigen_tolerance]`,
+possibly `#[descended_from]`). Distinct from `requires =` substrate-witness
+predicates — attestation is the *declaration* of who attests; substrate-witness
+predicates *evaluate* against that declaration. Layer 1 adoption gradient
+(ADR-009) compliance: light-touch attestation reaches every adopter without
+requiring the full predicate language. Notary-arc biology grounding (B6 from
+naturalist work).
+
+#### ADR-021 — OracleRef generalization + Oracle artifact-class (RATIFIED)
+
+Oracle as **structurally distinguished artifact** (Model B per Tekgy decision)
+rather than typed pointer. Five-state lifecycle:
+`Draft → Complete → {Deprecated, Retired, Revoked}`. Dedicated stewardship
+role separate from signers. State transitions are steward-authorized events
+with provenance trail. Signers cannot attest against DRAFT oracles
+(`oracle_state_at_attestation` field enforces). OracleRef as tagged union
+covers LocalFile, Url, Doi, Arxiv, GitHubIssue, Other — same structural
+treatment regardless of physical location. Audit validates metadata +
+completion-marker + version-pin but **never reads/interprets oracle content**
+(substantive judgment lives at sign-time human/LLM work; tier-honesty caps
+oracles at Execution tier). Additive-only schema evolution discipline ratified
+(no migration framework needed). Five Class-1 biology cognates including
+immune-memory + V(D)J recombination.
+
+#### Tolerance-ratification (scout S1 — plugs ADR-011 vibes-grade gap)
+
+`#[antigen_tolerance(X, sidecar = true)]` opt-in enables structured
+attestation for tolerance claims; schema **isomorphic to immunity sidecars**.
+Audit emits new `tolerance-vibes-grade` hint with `EvidenceKind::None` for
+unattested tolerance — makes the tier-honesty gap visible.
+
+#### Three signature tiers
+
+`SignatureStrength = TextStamp | GitTrust | CryptoSigned`. Categorical, NOT
+ordinal — trust is project-declared per-antigen, not inherent in the enum.
+TextStamp (name + timestamp; no infra required) opens adoption to LLM agents
+and reviewers without git config. GitTrust (git config user.name/email +
+fingerprint pin) is the v0.1 default for human teams. CryptoSigned slot
+reserved for v0.4+ DSSE envelope + Sigstore identity-bound activation path.
+
+#### Delta-attestation with anti-laundering safeguards
+
+`cargo antigen attest delta` records `SignerBasis::DeltaFrom { ... }` carrying
+chain-depth cap (default 3, hard max enforced), cumulative-fingerprint
+tracking (to last Fresh-basis signature), and required non-empty rationale
+(minimum char count enforced at CLI + schema). Closes the laundering surface
+where small carry-forwards could smuggle substantive change.
+
+#### Process discipline: cross-ADR substrate-grep sub-routine
+
+`docs/process.md` amended with Phase 3 cross-ADR surface check — prevents
+naming collisions (e.g., F28-R2 where `attest oracle complete` would have
+collided with `oracle complete` lifecycle verb). Caught at draft-time rather
+than ship-time.
+
+### Implementation (v0.1-rc shipping)
+
+#### New crate
+
+- `antigen-attestation` — Ratification schema + substrate-witness predicate
+  evaluator. Separate workspace member; `serde_json` + `chrono` deps only.
+  Includes Oracle schema (5-state lifecycle), SignerBasis enum (Fresh /
+  DeltaFrom with anti-laundering fields), OracleRef tagged union (6 variants),
+  Provenance struct, StateTransition event log. v0.0.1 name reserved on
+  crates.io 2026-05-20 prior to this ship.
+
+#### CLI families
+
+- `cargo antigen attest scaffold | sign | check | delta | list | gc` — full
+  immunity-sidecar lifecycle. `attest delta` enforces anti-laundering caps
+  + rationale minimum at CLI layer.
+- `cargo antigen tolerate scaffold | sign | check | list` — parallel family
+  for tolerance ratifications via isomorphic schema.
+- `cargo antigen oracle list | status | declare | complete | deprecate |
+  retire | revoke` — full Oracle artifact-class lifecycle CLI (slice e per
+  ADR-021).
+- Removed: `attest migrate` (additive-only schema discipline obviates), `attest
+  move` (error-path enforcement via gc + scan/audit yelling provides discipline
+  through consequences; convenience verb unneeded).
+
+#### Audit output extensions
+
+- `EvidenceKind` enum (TypeSystemProof | Behavioral | SubstrateState) as
+  third audit-output axis.
+- `signature_strength` field per signer on audit output (git-trust default;
+  text-stamp + crypto-signed as Tekgy verdict 2026-05-20).
+- New hints: `discipline-predicate-passed-substrate-current`,
+  `discipline-substrate-stale`, `discipline-predicate-passed-via-delta-chain`,
+  `discipline-substrate-delta-chain-near-cap`, `tolerance-vibes-grade`,
+  `oracle-in-draft`, `oracle-completion-attested`, `oracle-reference-malformed`,
+  + others. Tier-honesty mapping documented in `docs/witness-tiers.md`.
+
+#### Tambear adoption (Phase 4 shipped)
+
+Tambear's sinh/cosh signed-zero discipline declared and substrate-witnessed
+end-to-end against the v0.1-rc primitives. First-user adoption arc closed
+against the originating motivation.
+
+### A3.5 Onboarding sweep
 
 #### Documentation (new)
 
