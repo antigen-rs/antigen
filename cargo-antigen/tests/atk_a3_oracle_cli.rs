@@ -14,16 +14,16 @@
 //!   selection
 //! - `oracle status` — existing oracle round-trip, missing oracle (exit 1)
 //! - `oracle complete` — Draft→Complete happy path, must have ≥2 stewards
-//!   (validation enforced via schema::Oracle::validate), wrong steward,
+//!   (validation enforced via `schema::Oracle::validate`), wrong steward,
 //!   empty rationale
 //! - `oracle deprecate` — Complete→Deprecated happy path, optional
-//!   superseded_by field
+//!   `superseded_by` field
 //! - `oracle retire` — Deprecated→Retired happy path, can also retire from
 //!   Complete
 //! - `oracle revoke` — `--invalidates-prior true|false` semantics distinguish
 //!   from Retired (§D3)
 //!
-//! Exit code contract (parallel to atk_a3_cli.rs):
+//! Exit code contract (parallel to `atk_a3_cli.rs)`:
 //!   0 = success
 //!   1 = user-visible validation failure (oracle not found, predicate fails)
 //!   2 = IO / parse error
@@ -594,7 +594,7 @@ fn atk_a3_oracle_cli_revoke_with_invalidates_prior_true_serializes_flag() {
     assert_eq!(
         state
             .get("invalidates_prior_attestations")
-            .and_then(|v| v.as_bool()),
+            .and_then(serde_json::Value::as_bool),
         Some(true),
         "invalidates_prior_attestations flag must be true: {content}"
     );
@@ -637,7 +637,7 @@ fn atk_a3_oracle_cli_revoke_without_invalidates_prior_defaults_false() {
     assert_eq!(
         state
             .get("invalidates_prior_attestations")
-            .and_then(|v| v.as_bool()),
+            .and_then(serde_json::Value::as_bool),
         Some(false),
         "no --invalidates-prior flag → false (preserves prior attestations): {content}"
     );

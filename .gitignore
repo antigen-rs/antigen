@@ -16,6 +16,9 @@ Cargo.lock
 # Campsite logbook (SQLite database; ephemeral team coordination state)
 campsites/
 
+# Scheduled-task lock dir (project-local Claude harness state; ephemeral)
+.claude/
+
 # OS
 .DS_Store
 Thumbs.db
