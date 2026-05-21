@@ -248,7 +248,239 @@ ran and passed" is the v0.1 limitation.
 
 ---
 
-## Quick diagnostic table
+## Discipline-witness audit hints
+
+When `cargo antigen audit` evaluates a substrate-witness predicate (`requires = ...`
+on `#[immune]` or `#[antigen_tolerance]`), it reads the `.attest/` sidecar and
+evaluates the predicate against on-disk evidence. Every result carries a
+`hint` field that names exactly what the audit found. Here is every hint, what
+caused it, and how to fix it.
+
+### Immunity-claim hints
+
+#### `discipline-predicate-passed-substrate-current`
+
+**What it means**: everything is correct. The sidecar was read, the predicate
+passed, and every signer's fingerprint matches the current code. This is the
+highest tier available from on-disk substrate evidence.
+
+**No action needed.**
+
+---
+
+#### `discipline-predicate-passed-via-delta-chain`
+
+**What it means**: the predicate passed, but at least one signer's basis is
+`DeltaFrom` rather than `Fresh`. The attestation is a carry-forward from a prior
+signature, not a full re-review. Tier is still `Execution` — the carry-forward
+is valid — but the audit surfaces it so you know.
+
+**When to act**: if the cumulative drift since the last Fresh attestation is
+significant enough that the carry-forward rationale no longer covers the
+current code, ask the signer to do a Fresh re-attestation.
+
+---
+
+#### `discipline-substrate-delta-chain-near-cap`
+
+**What it means**: the predicate passed, but a signer's delta chain depth is at
+`cap - 1`. The *next* delta will be refused; the signer must do a Fresh
+re-attestation before they can continue carry-forwarding.
+
+**Fix**: the signer runs `cargo antigen attest sign` (not `attest delta`) against
+the current code.
+
+---
+
+#### `discipline-substrate-stale`
+
+**What it means**: the predicate uses `against = "current"` (the default), and
+at least one signer's `signed_against_fingerprint` does not match the current
+code fingerprint. The signer attested a previous version; the code has changed
+since.
+
+**What to check**: what changed? If it's a meaningful change to the algorithm or
+discipline being attested, the signer needs to re-review. If it's a cosmetic
+change (variable rename, comment), the signer can use `attest delta` with a
+rationale explaining why the change preserves the discipline.
+
+**Fix**: either `cargo antigen attest sign` (fresh review) or `cargo antigen
+attest delta --from <old-fingerprint> --rationale "..."` (carry-forward for
+minor changes).
+
+---
+
+#### `discipline-sidecar-missing`
+
+**What it means**: `#[immune]` declared `requires = <predicate>`, but no sidecar
+exists at the expected location: `<source_file_stem>.attest/<AntigenName>.json`.
+
+**Fix**:
+
+```sh
+cargo antigen attest scaffold \
+    --file src/numerics.rs \
+    --antigen SignedZeroDiscipline \
+    --item sinh
+```
+
+Then sign the scaffolded sidecar.
+
+---
+
+#### `discipline-sidecar-schema-invalid`
+
+**What it means**: a sidecar file exists but didn't parse as a valid
+`Ratification` JSON schema — missing required fields, wrong type, or JSON
+syntax error.
+
+**Fix**: run `cargo antigen audit --format json` to see the parse error.
+Common causes:
+- Missing `"schema_version"` field (must be `"v1"`)
+- Missing `"kind"` field (must be `"immunity"` or `"tolerance"`)
+- Malformed fingerprint value (not a string)
+- Editing the JSON by hand and introducing a typo
+
+The fastest fix is usually `cargo antigen attest scaffold` to rebuild the
+sidecar from scratch, then re-sign.
+
+---
+
+#### `discipline-predicate-failed`
+
+**What it means**: the sidecar was read and is schema-valid, but the predicate
+evaluated to false. The per-leaf details will appear in the full audit output
+(`--format json` or the `detail` field).
+
+**What to check**: which leaf failed?
+- `signers(required = ["alice"])` failed → alice is not in the sidecar's
+  signers list, or alice's entry is stale and `against = "current"` is set
+- `ratified_doc(path = "docs/discipline.md")` failed → the file doesn't
+  exist, or the version is below `min_version`, or the anchor isn't present
+- `fresh_within_days(90)` failed → the most recent current-fingerprint signer
+  is more than 90 days old
+
+**Fix**: address the specific failed leaf. Add the missing signer, update the
+discipline document, or arrange a re-attestation.
+
+---
+
+### Tolerance-claim hints
+
+#### `tolerance-vibes-grade`
+
+**What it means**: `#[antigen_tolerance(X)]` was declared without the
+`sidecar = true` opt-in. The tolerance is "vibes-grade" — an inline rationale
+with no on-disk attestation. The audit reports `WitnessTier::None` and
+`EvidenceKind::None` for this site.
+
+This is the default state for all tolerance claims. It's not an error, but
+it means the tolerance is unstructured — no one has formally attested it.
+
+**When to act**: if your CI policy requires structured tolerance attestation,
+enable `sidecar = true` and follow the tolerance attestation workflow (see
+`cargo antigen tolerate scaffold`). If vibes-grade tolerance is acceptable in
+your project, no action is needed.
+
+---
+
+#### `tolerance-sidecar-missing`
+
+**What it means**: `#[antigen_tolerance(X, sidecar = true)]` opted into
+structured attestation, but no sidecar exists at the expected location.
+
+**Fix**:
+
+```sh
+cargo antigen tolerate scaffold \
+    --file src/numerics.rs \
+    --antigen SignedZeroDiscipline \
+    --item legacy_sinh
+```
+
+---
+
+#### `tolerance-predicate-failed`
+
+**What it means**: the tolerance sidecar exists but the predicate failed. Same
+class as `discipline-predicate-failed` — consult the per-leaf details.
+
+A failing tolerance predicate means the tolerance isn't actually attested. Fix
+the specific predicate failure or re-sign the sidecar.
+
+---
+
+#### `tolerance-predicate-passed-substrate-current`
+
+**What it means**: structured tolerance is fully attested. Predicate passed, all
+signers are current Fresh. Tier is `Execution`.
+
+**No action needed.** The tolerance is formally attested and current.
+
+---
+
+### Kind-mismatch hints
+
+These appear when the sidecar's `"kind"` field doesn't match what the macro
+declaration expects.
+
+#### `discipline-sidecar-kind-mismatch-expected-immunity-got-tolerance`
+
+**What it means**: `#[immune(X, requires = ...)]` found a sidecar with
+`"kind": "tolerance"`. The site switched from `#[antigen_tolerance]` to
+`#[immune]` but the sidecar wasn't regenerated.
+
+**Fix**: delete the old sidecar and scaffold a new one with `attest scaffold`.
+The kind is set at scaffold time; it can't be changed by editing the JSON
+(the sidecar would pass schema validation but produce this hint).
+
+---
+
+#### `tolerance-sidecar-kind-mismatch-expected-tolerance-got-immunity`
+
+**What it means**: `#[antigen_tolerance(X, sidecar = true, requires = ...)]`
+found a sidecar with `"kind": "immunity"`. The symmetric case: site switched
+from `#[immune]` to `#[antigen_tolerance]` but the sidecar wasn't regenerated.
+
+**Fix**: delete the old sidecar and scaffold a new one with `tolerate scaffold`.
+
+---
+
+### Compound-contradiction hint
+
+#### `discipline-immunity-tolerance-contradiction`
+
+**What it means**: both `#[immune(X)]` and `#[antigen_tolerance(X, sidecar =
+true)]` are declared on the same site for the same antigen. A site cannot be
+simultaneously immune (compliant) and tolerating (non-compliant). The audit
+reports `WitnessTier::None` and overrides both individual tier reports.
+
+**Fix**: decide which declaration is correct and remove the other. If the site
+is genuinely immune, remove the tolerance. If it's genuinely tolerating (known
+gap, accepted), remove the immunity claim.
+
+---
+
+### Discipline-witness hint quick reference
+
+| Hint | Tier | Meaning | Fix |
+|---|---|---|---|
+| `discipline-predicate-passed-substrate-current` | Execution | All current, all Fresh — clean | None |
+| `discipline-predicate-passed-via-delta-chain` | Execution | Carry-forward active — informational | Fresh re-sign if drift is significant |
+| `discipline-substrate-delta-chain-near-cap` | Execution | Next delta will be refused | Fresh re-sign now |
+| `discipline-substrate-stale` | Reachability | Code changed since last sign | `attest sign` or `attest delta` |
+| `discipline-sidecar-missing` | None | No sidecar file | `attest scaffold`, then sign |
+| `discipline-sidecar-schema-invalid` | None | Sidecar JSON malformed | Fix JSON or `attest scaffold` fresh |
+| `discipline-predicate-failed` | None | Predicate evaluated false | Fix the failing leaf |
+| `tolerance-vibes-grade` | None | Tolerance unattested (no sidecar opt-in) | Add `sidecar = true` and `tolerate scaffold` if needed |
+| `tolerance-sidecar-missing` | None | Opted into sidecar, file missing | `tolerate scaffold`, then sign |
+| `tolerance-predicate-failed` | None | Tolerance predicate false | Fix the failing leaf |
+| `tolerance-predicate-passed-substrate-current` | Execution | Tolerance fully attested | None |
+| `discipline-sidecar-kind-mismatch-expected-immunity-got-tolerance` | None | Sidecar kind wrong | `attest scaffold` fresh |
+| `tolerance-sidecar-kind-mismatch-expected-tolerance-got-immunity` | None | Sidecar kind wrong | `tolerate scaffold` fresh |
+| `discipline-immunity-tolerance-contradiction` | None | Both `#[immune]` and `#[antigen_tolerance]` on same site | Remove one declaration |
+
+---
 
 | Symptom | Likely cause | Action |
 |---|---|---|
