@@ -74,18 +74,37 @@ pub struct BuildCamp;
 /// yet") when the required signers have attested. Required signers:
 /// `tekgy` + `team-lead`.
 ///
-/// To attest:
+/// To attest (requires two steps — scaffold first, then sign):
+///
+/// Step 1 — scaffold the sidecar (creates the `.attest/CampsiteOpen.json` file):
+///
+/// ```sh
+/// cargo run --release --bin cargo-antigen -- antigen attest scaffold \
+///   --antigen CampsiteOpen \
+///   --source-file camp/src/campsites/build_camp.rs \
+///   --item-path camp::campsites::build_camp::done \
+///   --fingerprint ""
+/// ```
+///
+/// Step 2 — sign (run once per required signer):
 ///
 /// ```sh
 /// cargo run --release --bin cargo-antigen -- antigen attest sign \
 ///   --sidecar camp/src/campsites/.attest/CampsiteOpen.json \
 ///   --item-path camp::campsites::build_camp::done \
 ///   --signer tekgy --role tekgy \
-///   --fingerprint <from scan output>
+///   --strength git-trust \
+///   --fingerprint ""
 /// ```
 ///
-/// (Substitute `--signer team-lead --role team-lead` for the second
-/// attestation.)
+/// (Substitute `--signer team-lead --role team-lead --strength text-stamp`
+/// for the second attestation.)
+///
+/// Note: `--fingerprint` is a user-provided string stored in the sidecar.
+/// In v0.1, scan does not output per-item fingerprint hashes; use `""` or
+/// a descriptive placeholder (e.g., `"build_camp-done-v0.0.0"`). Both
+/// signers must use the same value. See `antigen/src/audit.rs` "Audit-SF-1"
+/// comment for the v0.1 stale-detection limitation.
 ///
 /// To check tier:
 ///
