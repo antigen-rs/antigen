@@ -790,7 +790,8 @@ fn validate_delta_rationale(rationale: &str) -> Result<(), ExitCode> {
     Ok(())
 }
 
-/// Build an [`OracleRef`] from CLI args. Extracted from `run_oracle_declare`
+/// Build an [`antigen_attestation::schema::OracleRef`] from CLI args.
+/// Extracted from `run_oracle_declare`
 /// to keep that function under clippy's `too_many_lines` threshold. Returns
 /// `Err(ExitCode)` on user-facing parse errors so the caller can propagate.
 fn build_oracle_ref(

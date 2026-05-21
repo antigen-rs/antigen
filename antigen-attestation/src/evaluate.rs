@@ -1,6 +1,6 @@
 //! Substrate-witness predicate evaluator (ADR-019 §M5).
 //!
-//! Given a [`Predicate`] + a [`Ratification`] sidecar + an evaluation
+//! Given a [`Predicate`] + a [`crate::schema::Ratification`] sidecar + an evaluation
 //! context (substrate IO + audit-time clock + workspace config), produces
 //! a [`(WitnessTier, AuditHint, EvidenceKind, Option<SignatureStrength>)`]
 //! per the state-mapping table in ADR-019 §M5.
