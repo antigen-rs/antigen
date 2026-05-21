@@ -42,6 +42,108 @@ See [`CHANGELOG.md`](../CHANGELOG.md) for the full v0.1.0-rc.1 manifest.
 
 ---
 
+## Path to 0.1.0 (drop the `-rc.N` suffix)
+
+`0.1.0-rc.1` is a release candidate: the API shape we believe will be
+0.1.0 final, pending validation against real adoption. Promoting to
+`0.1.0` (no rc qualifier) means committing to:
+
+- **Schema stability** (additive-only per ADR-021)
+- **Five leaf primitives sealed at use-site** (`signers`, `ratified_doc`,
+  `signed_trailer`, `oracles_complete`, `fresh_within_days`)
+- **Three combinators closed** (`all_of`, `any_of`, `not`)
+- **Three-axis audit output frozen** (`WitnessTier × AuditHint ×
+  EvidenceKind`) + `signature_strength`
+- **Five-state Oracle lifecycle frozen** (Draft / Complete / Deprecated
+  / Retired / Revoked)
+- **CLI subcommand surface frozen** (`scan / audit / attest * /
+  tolerate * / oracle *`)
+- **Sidecar location conventions frozen** (`.attest/<AntigenName>.json`
+  + `.antigen/oracles/<OracleId>.json`)
+
+### Trinity of self-adoption (the 0.1.0 readiness gate)
+
+Rather than wait for a non-us external adopter as a gate, antigen
+proves its shape via **three independent self-adoption streams** that
+each exercise the WHOLE primitive stack on different stress profiles:
+
+1. **Layer 1 — antigen on its own source.** Add `#[antigen]` declarations
+   for failure-classes antigen DEFENDS AGAINST in its own code
+   (infinite-recursion in predicate walker, path-traversal in sidecar
+   read, silent arithmetic overflow in chain_depth, etc.); use
+   `#[immune(...)]` for the spots already addressed. Add Oracle
+   declarations for our own design decisions; coordination claims with
+   multi-signer `requires`; discipline-attestation for schema
+   commitments. The WHOLE primitive stack against ONE codebase.
+   Source-code-as-canonical-reference: every defensive declaration
+   doubles as a worked example.
+2. **Camp build.** Per-project Rust crate (`<project>/camp/`) where
+   each campsite is a module declaring an Oracle with required
+   signers + state machine. `cargo check` IS the team-status query.
+   Camp's whole purpose is dogfooding antigen for team coordination —
+   the WHOLE stack against multi-crate workflow + multi-role signers +
+   real lifecycle state transitions. Adds the cross-crate dimension
+   (camp crate depends on antigen crate from crates.io).
+2. **Tambear discipline + numerical-correctness adoption.** Tambear's
+   Phase 4 work (sinh/cosh signed-zero) extends to more numeric
+   functions + more disciplines + Oracle lifecycle for the numerics
+   specs. Cross-crate trust extension between tambear → antigen at the
+   external-adopter API. The WHOLE stack against cross-project
+   adoption + a real numerical-correctness domain.
+
+Each leg of the trinity exercises every primitive (predicate /
+audit / oracle / lifecycle / signers / coordination / discipline /
+feature-specific defenses) but on different substrate. **Three
+independent witnesses of "yes this primitive holds up."** Cross-crate
+machinery only exercises under camp + tambear; it's not theoretical.
+
+### Additional 0.1.0 readiness items
+
+Alongside the trinity:
+
+1. **T4 resolved** (compound evidence overclaim surface) — when
+   immune+tolerance attestations land on the same site, can we report
+   that without users misreading "two attestations = stronger
+   evidence"? Aristotle F11 flagged this. Either ship a resolution or
+   explicitly document the surface as "do not depend on
+   additive-evidence interpretation."
+2. **T6 resolved** (severity-class scout substrate-grep) — was anything
+   in ADR-008 Amendment 1 about severity ever wired into scan output?
+   Quick mechanical check; if YES we document, if NO we defer to v0.2
+   explicitly.
+3. **A "production deployment" guide** in `docs/` — how does a team
+   actually integrate antigen into their release cadence? Currently
+   tutorial covers "how the primitive works"; a deployment guide
+   covers "how to integrate this into CI / PR review / release flow."
+4. **Any rc-cycle bug fixes** — anything the trinity surfaces that
+   reveals breaking-change pressure gets resolved before 0.1.0 ships.
+   If breaking changes are needed, they roll into rc.2.
+5. **README install snippet** — current `cargo add antigen` resolves
+   to the v0.0.1 placeholder (since rc.N is pre-release per semver).
+   Either accept this until 0.1.0 final ships (so `cargo add antigen`
+   works without flags), or document `cargo add antigen --version
+   "0.1.0-rc.N"` explicitly in README. Current decision: accept-as-is;
+   resolved naturally when 0.1.0 ships.
+
+### Realistic timeline
+
+The trinity work is days-scale, not months-scale. The three legs can
+build in parallel:
+
+- Layer 1 source-dogfood: days to first declarations; sessions to full
+  coverage
+- Camp build: weeks to MVP; depends on adoption shape but the
+  underlying primitives exist
+- Tambear discipline expansion: ongoing as tambear's numerics team
+  hits more failure-classes worth attesting
+
+If all three converge without surfacing breaking changes + the
+additional items close, we promote rc.N → 0.1.0. If breaking changes
+are needed, they ship as rc.N+1. The rhythm is "build + use + cycle
+rc's as needed; promote when shape is stable across all three witnesses."
+
+---
+
 ## Planned for v0.2
 
 Items committed by structural necessity (ADR-007 anti-YAGNI:
@@ -64,6 +166,98 @@ ordering may shift.
   ADR-010 Amendment 5 pre-tokenization pattern extends to other
   string-comparison operators where tokenization asymmetries surface
   in practice (recognition-not-design: lands when substrate-grounded).
+
+### Deferred from v0.1-rc.1 — warm handoff substrate
+
+Items the rc.1 work surfaced + deliberately scoped to v0.2 or later.
+What we know going in:
+
+- **T2: CODEOWNERS interop UX** — `signers(required = [...])` accepts
+  literal names today. v0.2 adds `required_role` for CODEOWNERS-style
+  role resolution. Open question is whether to (a) parse the project's
+  CODEOWNERS file at audit time and resolve role names against it, or
+  (b) just accept role strings as opaque labels and let the team's own
+  tooling resolve them. Forge-side coupling (a) is convenient but
+  couples antigen to GitHub specifically; (b) is forge-agnostic but
+  shifts ergonomic burden to adopters. Probably ship (b) first, add (a)
+  as an opt-in feature flag if pressure surfaces.
+
+- **T5: Leaf-contract enforcement mechanism for witness-provider crates** —
+  v0.1 sealed leaf set is structurally required per F7 + T1-R. v0.2+
+  ADR specifies leaf-contract (deterministic / terminating /
+  side-effect-bounded / declared-tier) + default-cap at Reachability +
+  workspace-config opt-in for higher tiers. Three enforcement
+  mechanisms to choose between: WASM sandbox (robust, expensive),
+  `no_std` + restricted-deps build-time check (pre-screen only),
+  subprocess isolation with timeout + memory cap (runtime, medium
+  cost). Adversarial T1-R confirmed docs-only insufficient — must be
+  ACTUAL enforcement, not just contract documentation. The choice
+  shapes which kinds of leaf-provider crates become possible.
+
+- **T7 / FA-2: Fingerprint-scheme evolution across version bumps** —
+  when antigen ships v0.2 with a refined fingerprint scheme, existing
+  sidecars with `signed_against_fingerprint` from v0.1 become
+  stale-mismatched. Need cross-version migration story. Options:
+  audit treats v0.1 fingerprints as legacy + emits hint;
+  `attest migrate-fingerprints` CLI rebases pins to new scheme;
+  schema carries `fingerprint_scheme_version` field. Aristotle F12
+  worked this; needs concrete-pressure trigger (first fingerprint
+  scheme bump) to ratify.
+
+- **T8 / FA-5: descended_from predicate inheritance** — can a
+  consuming crate declare `#[descended_from = "A::X"]` but supply a
+  WEAKER `requires` predicate than A's? Tier-honesty implications.
+  Aristotle F10 + adversarial FA-5 worked this; resolution likely
+  uses Eiffel-style variance rules (precondition-weakening prohibited;
+  postcondition-strengthening allowed). Scout's Eiffel rhyme already
+  surfaced in academic-context.md as candidate design. Lands when
+  cross-crate descended_from sees real adoption pressure.
+
+- **DSSE envelope + Sigstore identity-bound signatures (v0.4+ target)** —
+  `Signer.signature: Option<Signature>` slot exists today; activation
+  via DSSE pre-authentication-encoding (don't roll our own envelope —
+  PAE is non-obvious) + Sigstore Fulcio + Rekor transparency log
+  follows the notary-institution 800-year design arc (git-trust →
+  OIDC + transparency log). Compose-don't-compete with the existing
+  ecosystem.
+
+- **Lifetime on discipline claims** — `permanent | temporal(cadence) |
+  transitional(condition)`. v0.1 ships with implicit "permanent"
+  semantics; v0.2 adds explicit lifetime so disciplines that should
+  re-attest periodically (e.g., security review every 90 days) can
+  express that structurally. Scout flagged this in expedition substrate.
+
+- **`--prioritized` flag for `attest list --pending`** — annotation-
+  fatigue mitigation. Sort pending attestations by antigen-severity +
+  fingerprint-confidence so adopters see the load-bearing items first.
+  Cross-domain rhyme from software-ergonomics literature (scout S4).
+  Useful when teams have many in-flight attestation surfaces.
+
+- **TUF k-of-n threshold signatures** — `signers(required_threshold =
+  K, candidates = [...])`. Cross-domain analog from TUF specification;
+  scout S4 + CAP-theorem framing makes this a principled extension of
+  current `required = [...]` shape. Useful when teams want "any 3 of
+  these 5 reviewers" rather than "all of these 3."
+
+- **T3: `discipline_doc` field dual-jobs separation** — aristotle F9
+  frontier-flag. Current field does Job 1 (canonical reference) AND
+  Job 2 (review-grounded binding). Future amendment might split into
+  `canonical_reference` + `review_grounded` so the claims can vary
+  independently. Deferred until adoption substrate accumulates enough
+  to tell us whether the dual-jobs actually need to vary in practice.
+
+- **Camp skill build** — antigen-native team coordination crate;
+  per-project Rust crate where campsites are modules with Oracle
+  declarations. Designed; not yet built. Will become a 0.1.0
+  promotion-gate input (one of the trinity-of-self-adoption legs).
+  Design substrate at `~/.claude/skills/camp/SKILL.md` (locally) +
+  prior session captured the architecture decisions.
+
+- **Layer 1 source dogfood + Layer 4 ADR-as-Oracle** — antigen using
+  antigen on antigen's own code (Layer 1) and treating ADRs as
+  Oracles (Layer 4). Layer 1 is a 0.1.0-readiness item; Layer 4 is
+  a deeper recursion that grows naturally once Layer 1 + camp are
+  established. Both deepen the dogfood story significantly.
 
 ---
 
