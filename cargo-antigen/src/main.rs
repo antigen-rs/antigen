@@ -171,7 +171,7 @@ enum AttestSubcommand {
     /// oracle-state transition Draft→Complete; this verb (`attest oracle mark`)
     /// is the per-attestation marker recording that a signer reviewed an
     /// oracle reference at this attestation. Distinct semantics, distinct
-    /// CLI families. Implementation gated on ADR-021 OracleRef schema
+    /// CLI families. Implementation gated on ADR-021 `OracleRef` schema
     /// (now ratified — Task 1 shipped; this verb's handler is design-phase
     /// pending the `OracleCompletionMarker` schema field plumbing).
     ///
@@ -231,11 +231,11 @@ struct AttestListArgs {
     /// Workspace root to walk (defaults to current directory).
     #[arg(long, default_value = ".")]
     root: PathBuf,
-    /// Only list tolerance sidecars (RatificationKind::Tolerance).
+    /// Only list tolerance sidecars (`RatificationKind::Tolerance`).
     #[arg(long)]
     tolerance_only: bool,
     /// Walk `.attest/` directories independent of scan-side macro discovery
-    /// and report orphaned sidecars (sidecars whose item_path doesn't appear
+    /// and report orphaned sidecars (sidecars whose `item_path` doesn't appear
     /// in any scan-side Immunity declaration at that path).
     #[arg(long)]
     orphan_scan: bool,
@@ -648,9 +648,8 @@ fn save_oracle(
 }
 
 fn resolve_steward_name(explicit: Option<&str>) -> Result<String, String> {
-    match explicit {
-        Some(s) => Ok(s.to_owned()),
-        None => {
+    explicit.map_or_else(
+        || {
             let out = std::process::Command::new("git")
                 .args(["config", "user.name"])
                 .output();
@@ -662,8 +661,9 @@ fn resolve_steward_name(explicit: Option<&str>) -> Result<String, String> {
                     "error: --steward not provided and `git config user.name` failed".to_owned(),
                 ),
             }
-        }
-    }
+        },
+        |s| Ok(s.to_owned()),
+    )
 }
 
 fn run_oracle_list(args: OracleListArgs) -> ExitCode {
@@ -682,10 +682,9 @@ fn run_oracle_list(args: OracleListArgs) -> ExitCode {
     let mut found = 0usize;
     for entry in entries.flatten() {
         let path = entry.path();
-        if path.extension().map_or(false, |e| e == "json") {
-            let content = match std::fs::read_to_string(&path) {
-                Ok(s) => s,
-                Err(_) => continue,
+        if path.extension().is_some_and(|e| e == "json") {
+            let Ok(content) = std::fs::read_to_string(&path) else {
+                continue;
             };
             if let Ok(oracle) =
                 serde_json::from_str::<antigen_attestation::schema::Oracle>(&content)
@@ -741,10 +740,107 @@ fn run_oracle_status(args: OracleStatusArgs) -> ExitCode {
     }
 }
 
+/// Count the existing delta-chain depth for this signer since their last
+/// Fresh-basis entry. CLI-SF-4 fix: a naive `take_while` on the reversed list
+/// stops at the first non-(name+delta) entry, undercounting when other
+/// signers have interleaved entries. Correct computation: find the last
+/// Fresh entry for this signer, then count all subsequent delta entries
+/// for this signer regardless of interleaving. Extracted from
+/// `run_attest_delta` to keep that function under clippy's `too_many_lines`
+/// threshold.
+fn compute_delta_chain_depth(signers: &[antigen_attestation::Signer], signer_name: &str) -> u32 {
+    let last_fresh_index = signers
+        .iter()
+        .enumerate()
+        .filter(|(_, s)| s.name == signer_name && s.basis.is_fresh())
+        .map(|(i, _)| i)
+        .next_back();
+    // No-Fresh case: caller's guard above already rejected this path; the `1`
+    // here is defensive and unreachable in practice.
+    last_fresh_index.map_or(1, |fresh_idx| {
+        let count = signers[fresh_idx + 1..]
+            .iter()
+            .filter(|s| s.name == signer_name && s.basis.is_delta())
+            .count();
+        u32::try_from(count).unwrap_or(u32::MAX).saturating_add(1)
+    })
+}
+
+/// Anti-laundering T2R-B/T2R-C: enforce minimum rationale character count at
+/// CLI layer for delta attestations. The schema `validate()` also enforces
+/// this at audit time, but catching here prevents writing a sidecar that
+/// immediately fails validation (CLI-SF-3). Extracted from `run_attest_delta`
+/// to keep that function under clippy's `too_many_lines` threshold.
+fn validate_delta_rationale(rationale: &str) -> Result<(), ExitCode> {
+    use antigen_attestation::schema::DEFAULT_DELTA_RATIONALE_MIN_CHARS;
+    let trimmed = rationale.trim();
+    if trimmed.is_empty() {
+        eprintln!("error: --rationale must be non-empty (anti-laundering safeguard T2R-C)");
+        return Err(ExitCode::from(1));
+    }
+    if trimmed.chars().count() < DEFAULT_DELTA_RATIONALE_MIN_CHARS {
+        eprintln!(
+            "error: --rationale is too short ({} chars); minimum is {} chars \
+             (anti-laundering safeguard T2R-B). Rubber-stamp rationales are rejected.",
+            trimmed.chars().count(),
+            DEFAULT_DELTA_RATIONALE_MIN_CHARS,
+        );
+        return Err(ExitCode::from(1));
+    }
+    Ok(())
+}
+
+/// Build an [`OracleRef`] from CLI args. Extracted from `run_oracle_declare`
+/// to keep that function under clippy's `too_many_lines` threshold. Returns
+/// `Err(ExitCode)` on user-facing parse errors so the caller can propagate.
+fn build_oracle_ref(
+    kind: OracleRefKindArg,
+    reference: &str,
+) -> Result<antigen_attestation::schema::OracleRef, ExitCode> {
+    use antigen_attestation::schema::OracleRef;
+    match kind {
+        OracleRefKindArg::LocalFile => Ok(OracleRef::LocalFile {
+            path: std::path::PathBuf::from(reference),
+            status_field: None,
+            expected_status: None,
+        }),
+        OracleRefKindArg::Url => Ok(OracleRef::Url {
+            url: reference.to_owned(),
+            label: None,
+        }),
+        OracleRefKindArg::Doi => Ok(OracleRef::Doi {
+            doi: reference.to_owned(),
+            section: None,
+        }),
+        OracleRefKindArg::Arxiv => Ok(OracleRef::Arxiv {
+            arxiv_id: reference.to_owned(),
+            section: None,
+        }),
+        OracleRefKindArg::GithubIssue => {
+            let parts: Vec<&str> = reference.splitn(2, '#').collect();
+            if parts.len() != 2 {
+                eprintln!("error: github-issue reference must be `owner/repo#N`");
+                return Err(ExitCode::from(1));
+            }
+            let Ok(issue) = parts[1].parse::<u32>() else {
+                eprintln!("error: issue number must be a positive integer");
+                return Err(ExitCode::from(1));
+            };
+            Ok(OracleRef::GitHubIssue {
+                repo: parts[0].to_owned(),
+                issue,
+            })
+        }
+        OracleRefKindArg::Other => Ok(OracleRef::Other {
+            subkind: "other".to_owned(),
+            reference: reference.to_owned(),
+            label: None,
+        }),
+    }
+}
+
 fn run_oracle_declare(args: OracleDeclareArgs) -> ExitCode {
-    use antigen_attestation::schema::{
-        Oracle, OracleRef, OracleState, OracleVersion, Provenance, Steward,
-    };
+    use antigen_attestation::schema::{Oracle, OracleState, OracleVersion, Provenance, Steward};
     use chrono::Local;
 
     if args.rationale.trim().is_empty() {
@@ -780,47 +876,9 @@ fn run_oracle_declare(args: OracleDeclareArgs) -> ExitCode {
         })
         .collect();
 
-    let reference = match args.kind {
-        OracleRefKindArg::LocalFile => OracleRef::LocalFile {
-            path: std::path::PathBuf::from(&args.reference),
-            status_field: None,
-            expected_status: None,
-        },
-        OracleRefKindArg::Url => OracleRef::Url {
-            url: args.reference.clone(),
-            label: None,
-        },
-        OracleRefKindArg::Doi => OracleRef::Doi {
-            doi: args.reference.clone(),
-            section: None,
-        },
-        OracleRefKindArg::Arxiv => OracleRef::Arxiv {
-            arxiv_id: args.reference.clone(),
-            section: None,
-        },
-        OracleRefKindArg::GithubIssue => {
-            let parts: Vec<&str> = args.reference.splitn(2, '#').collect();
-            if parts.len() != 2 {
-                eprintln!("error: github-issue reference must be `owner/repo#N`");
-                return ExitCode::from(1);
-            }
-            let issue: u32 = match parts[1].parse() {
-                Ok(n) => n,
-                Err(_) => {
-                    eprintln!("error: issue number must be a positive integer");
-                    return ExitCode::from(1);
-                }
-            };
-            OracleRef::GitHubIssue {
-                repo: parts[0].to_owned(),
-                issue,
-            }
-        }
-        OracleRefKindArg::Other => OracleRef::Other {
-            subkind: "other".to_owned(),
-            reference: args.reference.clone(),
-            label: None,
-        },
+    let reference = match build_oracle_ref(args.kind, &args.reference) {
+        Ok(r) => r,
+        Err(code) => return code,
     };
 
     let today = Local::now().date_naive();
@@ -847,7 +905,7 @@ fn run_oracle_declare(args: OracleDeclareArgs) -> ExitCode {
             pinned_at: today,
         },
         transitions: vec![],
-        extensions: Default::default(),
+        extensions: std::collections::BTreeMap::default(),
     };
 
     match save_oracle(&args.root, &oracle) {
@@ -863,7 +921,9 @@ fn run_oracle_declare(args: OracleDeclareArgs) -> ExitCode {
     }
 }
 
-fn oracle_state_discriminant(state: &antigen_attestation::schema::OracleState) -> &'static str {
+const fn oracle_state_discriminant(
+    state: &antigen_attestation::schema::OracleState,
+) -> &'static str {
     use antigen_attestation::schema::OracleState;
     match state {
         OracleState::Draft => "draft",
@@ -1667,12 +1727,17 @@ fn run_attest_sign(args: AttestSignArgs) -> ExitCode {
 /// `attest delta`: append a carry-forward delta entry to an existing sidecar.
 ///
 /// Reads the current sidecar, finds the last fresh-basis signature for the
-/// named signer at the named item, computes chain_depth, enforces the
+/// named signer at the named item, computes `chain_depth`, enforces the
 /// anti-laundering safeguards (ADR-019 §Decision §E3), and writes the new
-/// DeltaFrom entry back.
+/// `DeltaFrom` entry back.
 fn run_attest_delta(args: AttestDeltaArgs) -> ExitCode {
     use antigen_attestation::schema::HARD_DELTA_CHAIN_CAP_MAX;
     use antigen_attestation::{Ratification, Signer, SignerBasis};
+
+    // Anti-laundering safeguard: enforce chain-depth cap (default 3; hard max
+    // = HARD_DELTA_CHAIN_CAP_MAX). Project TOML config may tighten; tighter
+    // caps also enforced at audit time by evaluator.
+    const DEFAULT_DELTA_CAP: u32 = 3;
 
     let content = match std::fs::read_to_string(&args.sidecar) {
         Ok(s) => s,
@@ -1693,41 +1758,16 @@ fn run_attest_delta(args: AttestDeltaArgs) -> ExitCode {
     };
 
     // Resolve signer name from arg or git config.
-    let signer_name = match args.signer {
-        Some(ref s) => s.clone(),
-        None => {
-            let out = std::process::Command::new("git")
-                .args(["config", "user.name"])
-                .output();
-            match out {
-                Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).trim().to_owned(),
-                _ => {
-                    eprintln!("error: --signer not provided and `git config user.name` failed");
-                    return ExitCode::from(1);
-                }
-            }
+    let signer_name = match resolve_steward_name(args.signer.as_deref()) {
+        Ok(n) => n,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(1);
         }
     };
 
-    // Anti-laundering T2R-B: enforce minimum rationale character count at CLI layer.
-    // The schema validate() also enforces this at audit time, but catching it here
-    // prevents writing a sidecar that immediately fails validation (CLI-SF-3).
-    {
-        use antigen_attestation::schema::DEFAULT_DELTA_RATIONALE_MIN_CHARS;
-        let trimmed = args.rationale.trim();
-        if trimmed.is_empty() {
-            eprintln!("error: --rationale must be non-empty (anti-laundering safeguard T2R-C)");
-            return ExitCode::from(1);
-        }
-        if trimmed.chars().count() < DEFAULT_DELTA_RATIONALE_MIN_CHARS {
-            eprintln!(
-                "error: --rationale is too short ({} chars); minimum is {} chars \
-                 (anti-laundering safeguard T2R-B). Rubber-stamp rationales are rejected.",
-                trimmed.chars().count(),
-                DEFAULT_DELTA_RATIONALE_MIN_CHARS,
-            );
-            return ExitCode::from(1);
-        }
+    if let Err(code) = validate_delta_rationale(&args.rationale) {
+        return code;
     }
 
     let item = ratification
@@ -1747,8 +1787,7 @@ fn run_attest_delta(args: AttestDeltaArgs) -> ExitCode {
     let cumulative_root = item
         .signers
         .iter()
-        .filter(|s| s.name == signer_name && s.basis.is_fresh())
-        .last()
+        .rfind(|s| s.name == signer_name && s.basis.is_fresh())
         .map(|s| s.signed_against_fingerprint.clone());
     let Some(cumulative_root_fingerprint) = cumulative_root else {
         eprintln!(
@@ -1760,32 +1799,8 @@ fn run_attest_delta(args: AttestDeltaArgs) -> ExitCode {
         return ExitCode::from(1);
     };
 
-    // Count existing delta chain depth for this signer since their last Fresh entry.
-    // CLI-SF-4 fix: take_while on reversed list stops at the first non-(name+delta) entry,
-    // undercounting when other signers have entries interleaved. Correct computation:
-    // find the last Fresh entry for this signer, then count all subsequent delta entries
-    // for this signer regardless of interleaving.
-    let last_fresh_index = item
-        .signers
-        .iter()
-        .enumerate()
-        .filter(|(_, s)| s.name == signer_name && s.basis.is_fresh())
-        .map(|(i, _)| i)
-        .last();
-    let chain_depth = match last_fresh_index {
-        Some(fresh_idx) => {
-            item.signers[fresh_idx + 1..]
-                .iter()
-                .filter(|s| s.name == signer_name && s.basis.is_delta())
-                .count() as u32
-                + 1
-        }
-        None => 1, // No Fresh entry — guard above already caught this; unreachable here
-    };
+    let chain_depth = compute_delta_chain_depth(&item.signers, &signer_name);
 
-    // Anti-laundering safeguard: enforce chain-depth cap (default 3; hard max = HARD_DELTA_CHAIN_CAP_MAX).
-    // Project TOML config may tighten; tighter caps also enforced at audit time by evaluator.
-    const DEFAULT_DELTA_CAP: u32 = 3;
     if chain_depth > DEFAULT_DELTA_CAP {
         eprintln!(
             "error: delta chain depth {chain_depth} exceeds default cap \
@@ -1898,9 +1913,8 @@ fn run_attest_list(args: AttestListArgs) -> ExitCode {
         eprintln!("\n-- Orphan scan (--orphan-scan): comparing sidecar item_paths against source macros --");
         eprintln!("(Note: full bidirectional scan requires `cargo antigen scan` integration; v0.2 adds gc bidirectional traversal)");
         for path in &sidecars {
-            let content = match std::fs::read_to_string(path) {
-                Ok(s) => s,
-                Err(_) => continue,
+            let Ok(content) = std::fs::read_to_string(path) else {
+                continue;
             };
             if let Ok(rat) = serde_json::from_str::<Ratification>(&content) {
                 for item in &rat.items {
@@ -1928,9 +1942,8 @@ fn run_attest_gc(args: AttestGcArgs) -> ExitCode {
     let mut orphans: Vec<std::path::PathBuf> = Vec::new();
 
     for path in &sidecars {
-        let content = match std::fs::read_to_string(path) {
-            Ok(s) => s,
-            Err(_) => continue,
+        let Ok(content) = std::fs::read_to_string(path) else {
+            continue;
         };
         if let Ok(rat) = serde_json::from_str::<Ratification>(&content) {
             // An orphan heuristic: if source_file doesn't exist relative to workspace root.
@@ -1984,13 +1997,13 @@ fn collect_sidecars(root: &std::path::Path) -> Vec<std::path::PathBuf> {
         if path.is_dir() {
             if path
                 .file_name()
-                .map_or(false, |n| n.to_string_lossy().ends_with(".attest"))
+                .is_some_and(|n| n.to_string_lossy().ends_with(".attest"))
             {
                 // Collect JSON files inside .attest/ directories.
                 if let Ok(inner) = std::fs::read_dir(&path) {
                     for inner_entry in inner.flatten() {
                         let inner_path = inner_entry.path();
-                        if inner_path.extension().map_or(false, |e| e == "json") {
+                        if inner_path.extension().is_some_and(|e| e == "json") {
                             result.push(inner_path);
                         }
                     }
