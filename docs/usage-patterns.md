@@ -495,6 +495,35 @@ Discipline-witnesses (`requires = <predicate>` on `#[immune]`) express that a
 human — not a test — validated something the code can't verify for itself.
 These patterns guide which predicate leaf to reach for in common situations.
 
+### `witness = fn` vs `requires = all_of([...])`
+
+| Mechanism | What it asserts | Audit tier | When to use |
+|---|---|---|---|
+| `witness = test_fn` | The test function exists and has `#[test]` | `Reachability` | Behavioral verification — the code does the right thing |
+| `requires = signers(...)` | A named human reviewed this version of the code | `Execution` (when current + Fresh) | Human expertise required — math correctness, protocol compliance, security review |
+| `requires = all_of([signers(...), ratified_doc(...)])` | Multiple forms of evidence all satisfied | `Execution` | Belt-and-suspenders: behavioral test + human review + governing document |
+
+**Reach for `witness = fn`** when the discipline can be verified computationally —
+a property test, a unit test, a comparison against a reference implementation.
+Tests are fast, cheap, and run in CI. They're the right answer when "running the
+code proves the invariant."
+
+**Reach for `requires = ...`** when the discipline cannot be verified by running
+code — when the claim is "a person who understands the domain reviewed this and
+confirmed it is correct." Math correctness, floating-point discipline, cryptographic
+protocol compliance, domain-specific invariants — these require a human expert, not
+a test runner. `requires =` binds the attestation to the code fingerprint; if the
+code changes, the attestation goes stale and the audit surfaces it.
+
+Both can coexist on the same site:
+
+```rust
+#[immune(SignedZeroDiscipline,
+    witness = sinh_preserves_signed_zero,   // test: does it produce the right answer?
+    requires = signers(required = ["alice"], against = "current")  // human: did a domain expert review the algorithm?
+)]
+```
+
 ### `signers` vs `ratified_doc` vs `oracles_complete`
 
 | Goal | Use |
