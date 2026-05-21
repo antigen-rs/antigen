@@ -248,7 +248,7 @@ pub struct ImmunityAudit {
 
 /// Backward-compat default for [`ImmunityAudit::evidence_kind`] on
 /// pre-ADR-019 serialized reports. New audits derive the kind via
-/// [`antigen_attestation::EvidenceKind::from_witness_kind`].
+/// [`evidence_kind_from_status`].
 const fn default_evidence_kind() -> antigen_attestation::EvidenceKind {
     antigen_attestation::EvidenceKind::None
 }

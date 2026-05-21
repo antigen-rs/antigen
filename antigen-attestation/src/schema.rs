@@ -13,8 +13,7 @@
 //! source file. For `src/numerics.rs` carrying `SignedZeroDiscipline` on
 //! `sinh`, the sidecar lives at
 //! `src/numerics.attest/SignedZeroDiscipline.json`. Granularity follows
-//! the antigen's [`scope` field](Self::source_file) — site / file / package /
-//! workspace.
+//! the antigen's `scope` field — site / file / package / workspace.
 
 use std::{collections::BTreeMap, path::PathBuf};
 
