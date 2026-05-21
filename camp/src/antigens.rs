@@ -24,7 +24,7 @@ use antigen::antigen;
 ///
 /// | Sidecar state | Tier | Hint |
 /// |---|---|---|
-/// | No `.attest/CampsiteOpen.json` for the campsite | `Reachability` | `discipline-sidecar-missing` |
+/// | No `.attest/CampsiteOpen.json` for the campsite | `None` | `discipline-sidecar-missing` |
 /// | Predicate fails (missing signers, etc.) | `None` | `discipline-predicate-failed` |
 /// | All required signers attested, current fingerprint | `Execution` | `discipline-predicate-passed-substrate-current` |
 ///
