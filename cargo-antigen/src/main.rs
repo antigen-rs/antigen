@@ -2009,7 +2009,7 @@ fn collect_sidecars(root: &std::path::Path) -> Vec<std::path::PathBuf> {
                         }
                     }
                 }
-            } else if path.file_name().map_or(true, |n| {
+            } else if path.file_name().is_none_or(|n| {
                 let s = n.to_string_lossy();
                 !s.starts_with('.') && s != "target"
             }) {

@@ -118,10 +118,16 @@ impl Parse for ScanAntigenArgs {
 struct ScanImmuneArgs {
     antigen_type: String,
     witness: String,
+    /// Substrate-witness predicate parsed straight from the source
+    /// attribute (ADR-019 §P3b). When present, scan threads this JSON to
+    /// the audit evaluator directly — independent of macro expansion.
+    /// `None` when the declaration uses code-tier `witness = ...` only.
+    requires_predicate: Option<String>,
 }
 
 impl Parse for ScanImmuneArgs {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use antigen_attestation::parser::RequiresExpr;
         use syn::{Ident, Path, Token};
         // First token is the antigen path.
         let antigen_path: Path = input.parse()?;
@@ -132,6 +138,7 @@ impl Parse for ScanImmuneArgs {
             .unwrap_or_default();
 
         let mut witness = String::new();
+        let mut requires_predicate: Option<String> = None;
         while !input.is_empty() {
             input.parse::<Token![,]>()?;
             if input.is_empty() {
@@ -139,36 +146,60 @@ impl Parse for ScanImmuneArgs {
             }
             let key: Ident = input.parse()?;
             input.parse::<Token![=]>()?;
-            let val: syn::Expr = input.parse()?;
-            if key == "witness" {
-                // Render the witness expression as its token string — this is the
-                // identifier or path the user wrote, e.g. `my_test_fn` or
-                // `clippy::no_panic_in_drop`. We use `quote::ToTokens` to get
-                // a canonical rendering without depending on string heuristics.
-                use quote::ToTokens;
-                witness = val.to_token_stream().to_string();
+            match key.to_string().as_str() {
+                "witness" => {
+                    // Render the witness expression as its token string — this is the
+                    // identifier or path the user wrote, e.g. `my_test_fn` or
+                    // `clippy::no_panic_in_drop`. We use `quote::ToTokens` to get
+                    // a canonical rendering without depending on string heuristics.
+                    use quote::ToTokens;
+                    let val: syn::Expr = input.parse()?;
+                    witness = val.to_token_stream().to_string();
+                }
+                "requires" => {
+                    // Substrate-witness predicate (ADR-019). Reuse the shared
+                    // parser from antigen-attestation so the JSON the scan
+                    // layer ships is byte-identical to what the macro side
+                    // would emit. Failing to parse here is a hard error: a
+                    // malformed predicate is silent suppression of immunity
+                    // intent, which is exactly the failure-class ADR-005
+                    // sub-clause F was built to catch.
+                    let pred: RequiresExpr = input.parse()?;
+                    requires_predicate = Some(pred.to_json());
+                }
+                _ => {
+                    // Unknown / rationale / other fields: consume the value
+                    // silently. Forward-compat per ADR-009 adoption gradient.
+                    let _: syn::Expr = input.parse()?;
+                }
             }
-            // rationale and other fields: consume silently.
         }
 
         Ok(Self {
             antigen_type,
             witness,
+            requires_predicate,
         })
     }
 }
 
 /// Scan-time parse of `#[antigen_tolerance(antigen, rationale = "...",
-/// until = "...", see = [...])]`. Per ADR-011.
+/// until = "...", see = [...], requires = <predicate>)]`. Per ADR-011 +
+/// ADR-019 (tolerance-side substrate-witness predicates).
 struct ScanToleranceArgs {
     antigen_type: String,
     rationale: String,
     until: Option<String>,
     see: Vec<String>,
+    /// Tolerance-side substrate-witness predicate (ADR-019 tolerance tier),
+    /// parsed straight from the source attribute. Same rationale as
+    /// `ScanImmuneArgs::requires_predicate`.
+    requires_predicate: Option<String>,
 }
 
 impl Parse for ScanToleranceArgs {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use antigen_attestation::parser::RequiresExpr;
         use syn::{Expr, Ident, Lit, LitStr, Path, Token};
         let antigen_path: Path = input.parse()?;
         let antigen_type = antigen_path
@@ -180,6 +211,7 @@ impl Parse for ScanToleranceArgs {
         let mut rationale = String::new();
         let mut until: Option<String> = None;
         let mut see: Vec<String> = Vec::new();
+        let mut requires_predicate: Option<String> = None;
 
         while !input.is_empty() {
             input.parse::<Token![,]>()?;
@@ -208,6 +240,10 @@ impl Parse for ScanToleranceArgs {
                         }
                     }
                 }
+                "requires" => {
+                    let pred: RequiresExpr = input.parse()?;
+                    requires_predicate = Some(pred.to_json());
+                }
                 _ => {
                     // Unknown field: consume silently (forward-compat per
                     // ADR-009 adoption-gradient tolerance).
@@ -221,6 +257,7 @@ impl Parse for ScanToleranceArgs {
             rationale,
             until,
             see,
+            requires_predicate,
         })
     }
 }
@@ -2128,8 +2165,8 @@ impl ScanVisitor<'_> {
             // audit module's responsibility. ADR-005 sub-clause F: the
             // trust boundary at "immunity claim" is checked by audit, not
             // by scan — scan provides the substrate, audit decides validity.
-            let (antigen_type, witness) = match syn::parse2::<ScanImmuneArgs>(list.tokens.clone()) {
-                Ok(args) => (args.antigen_type, args.witness),
+            let args = match syn::parse2::<ScanImmuneArgs>(list.tokens.clone()) {
+                Ok(args) => args,
                 Err(e) => {
                     // Malformed #[immune] args: record a parse failure rather
                     // than silently inserting a ghost immunity record with empty
@@ -2145,14 +2182,25 @@ impl ScanVisitor<'_> {
                     return;
                 }
             };
-            // P3b: scan for `antigen:requires:v1:<json>` doc marker emitted
-            // by the `#[immune(requires = ...)` macro expansion. The marker
-            // is a sibling doc attribute on the same item.
-            let requires_predicate = extract_requires_predicate_from_attrs(all_attrs);
+            // ADR-019 §P3b: substrate-witness discovery has two channels.
+            // The primary channel parses `requires = <predicate>` directly
+            // from the source attribute (`args.requires_predicate`). The
+            // fallback channel reads the `antigen:requires:v1:<json>` doc
+            // marker the macro emits — useful when scanning crates already
+            // compiled with rc.1 macros, or in any case the source attribute
+            // didn't survive a build-script rewrite. Source wins because the
+            // doc marker is only present POST macro expansion, and `syn`
+            // parses the WRITTEN source. This is the rc.2 fix: rc.1 relied
+            // exclusively on the doc-marker channel, which never engaged
+            // because scan walks written source.
+            let requires_predicate = args
+                .requires_predicate
+                .clone()
+                .or_else(|| extract_requires_predicate_from_attrs(all_attrs));
             let line = Self::line_of_attr(attr);
             self.report.immunities.push(Immunity {
-                antigen_type,
-                witness,
+                antigen_type: args.antigen_type,
+                witness: args.witness,
                 requires_predicate,
                 file: self.file_path.clone(),
                 line,
@@ -2191,7 +2239,13 @@ impl ScanVisitor<'_> {
                 });
                 return;
             }
-            let requires_predicate = extract_requires_predicate_from_attrs(all_attrs);
+            // Same two-channel discovery as immunity (source-attr primary,
+            // doc-marker fallback). See `extract_immune` for the full
+            // rationale — this branch is the tolerance-side mirror.
+            let requires_predicate = args
+                .requires_predicate
+                .clone()
+                .or_else(|| extract_requires_predicate_from_attrs(all_attrs));
             let line = Self::line_of_attr(attr);
             self.report.tolerances.push(Toleration {
                 antigen_type: args.antigen_type,

@@ -1,0 +1,41 @@
+# Camp — team coordination substrate for the antigen project.
+#
+# This crate is intentionally NOT a member of the antigen workspace.
+# It depends on antigen + antigen-attestation FROM crates.io (not via
+# path-deps) so that camp serves as a real external-adopter validation
+# of the published primitives, not a privileged internal consumer.
+#
+# Camp is per-project: each project that uses antigen for team coordination
+# has its own camp/ at the project root. The package name "camp" is local
+# (never published); each project's camp imports antigen by its real
+# package name.
+
+[workspace]
+# Empty workspace table — camp is a STANDALONE crate, intentionally not
+# a member of the antigen workspace. This preserves the "real external
+# adopter" property: camp resolves antigen + antigen-attestation from
+# crates.io, not via path-deps to a sibling workspace member.
+
+[package]
+name = "camp"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.85"
+publish = false
+license = "MIT OR Apache-2.0"
+description = "Team-coordination substrate for the antigen project using antigen primitives"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+# Real-external-adopter posture: pull from crates.io, not from sibling
+# antigen workspace via path-dep. Validates that the published primitives
+# work without privileged workspace access.
+antigen = "0.1.0-rc.2"
+antigen-attestation = "0.1.0-rc.2"
+
+[lints.rust]
+# Camp is dogfood, not library code shipped to other adopters; warnings
+# allowed but not denied. Real validation comes from cargo antigen audit.
+unsafe_code = "forbid"

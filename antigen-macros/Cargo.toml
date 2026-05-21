@@ -22,7 +22,13 @@ workspace = true
 syn = { workspace = true }
 quote = { workspace = true }
 proc-macro2 = { workspace = true }
-antigen-fingerprint = { version = "=0.1.0-rc.1", path = "../antigen-fingerprint" }
+antigen-fingerprint = { version = "=0.1.0-rc.2", path = "../antigen-fingerprint" }
+# Substrate-witness predicate parser is shared with the scan layer via the
+# `parser` feature on antigen-attestation. The macro side only uses it for
+# compile-time syntax validation + JSON lowering of `requires = <predicate>`;
+# the scan side re-parses the same syntax directly from source attributes so
+# the substrate-witness pipeline does not depend on macro expansion order.
+antigen-attestation = { version = "=0.1.0-rc.2", path = "../antigen-attestation", features = ["parser"] }
 
 [dev-dependencies]
 proptest = { workspace = true }
