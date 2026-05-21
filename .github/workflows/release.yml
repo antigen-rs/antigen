@@ -68,7 +68,7 @@ jobs:
           OUT=$(cargo publish -p antigen-fingerprint --token ${{ secrets.CARGO_REGISTRY_TOKEN }} 2>&1)
           RC=$?
           echo "$OUT"
-          if [ $RC -ne 0 ] && echo "$OUT" | grep -q "already uploaded"; then
+          if [ $RC -ne 0 ] && echo "$OUT" | grep -qE "already (exists|uploaded)"; then
             echo "::notice::antigen-fingerprint version already on crates.io; skipping (idempotent retry)"
             exit 0
           fi
@@ -90,7 +90,7 @@ jobs:
           OUT=$(cargo publish -p antigen-attestation --token ${{ secrets.CARGO_REGISTRY_TOKEN }} 2>&1)
           RC=$?
           echo "$OUT"
-          if [ $RC -ne 0 ] && echo "$OUT" | grep -q "already uploaded"; then
+          if [ $RC -ne 0 ] && echo "$OUT" | grep -qE "already (exists|uploaded)"; then
             echo "::notice::antigen-attestation version already on crates.io; skipping (idempotent retry)"
             exit 0
           fi
@@ -112,7 +112,7 @@ jobs:
           OUT=$(cargo publish -p antigen-macros --token ${{ secrets.CARGO_REGISTRY_TOKEN }} 2>&1)
           RC=$?
           echo "$OUT"
-          if [ $RC -ne 0 ] && echo "$OUT" | grep -q "already uploaded"; then
+          if [ $RC -ne 0 ] && echo "$OUT" | grep -qE "already (exists|uploaded)"; then
             echo "::notice::antigen-macros version already on crates.io; skipping (idempotent retry)"
             exit 0
           fi
@@ -134,7 +134,7 @@ jobs:
           OUT=$(cargo publish -p antigen --token ${{ secrets.CARGO_REGISTRY_TOKEN }} 2>&1)
           RC=$?
           echo "$OUT"
-          if [ $RC -ne 0 ] && echo "$OUT" | grep -q "already uploaded"; then
+          if [ $RC -ne 0 ] && echo "$OUT" | grep -qE "already (exists|uploaded)"; then
             echo "::notice::antigen version already on crates.io; skipping (idempotent retry)"
             exit 0
           fi
@@ -156,7 +156,7 @@ jobs:
           OUT=$(cargo publish -p cargo-antigen --token ${{ secrets.CARGO_REGISTRY_TOKEN }} 2>&1)
           RC=$?
           echo "$OUT"
-          if [ $RC -ne 0 ] && echo "$OUT" | grep -q "already uploaded"; then
+          if [ $RC -ne 0 ] && echo "$OUT" | grep -qE "already (exists|uploaded)"; then
             echo "::notice::cargo-antigen version already on crates.io; skipping (idempotent retry)"
             exit 0
           fi
