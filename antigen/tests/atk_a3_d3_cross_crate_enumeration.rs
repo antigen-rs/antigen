@@ -17,7 +17,7 @@ use antigen::scan::{enumerate_dep_crate_roots, scan_workspace, CrateOrigin};
 use std::path::{Path, PathBuf};
 
 fn workspace_root() -> PathBuf {
-    // The antigen crate's CARGO_MANIFEST_DIR is `R:\antigen\antigen\`; the
+    // The antigen crate's CARGO_MANIFEST_DIR is `<workspace>/antigen/`; the
     // workspace root is its parent.
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
@@ -214,7 +214,7 @@ fn d3_enumerate_then_scan_per_crate_produces_independent_reports() {
 
 #[test]
 fn d3_enumerate_returns_err_on_nonexistent_workspace() {
-    let bad_root = PathBuf::from("R:/antigen-nonexistent-workspace-xyz");
+    let bad_root = PathBuf::from("/nonexistent-antigen-workspace-xyz");
     let result = enumerate_dep_crate_roots(&bad_root, false);
     assert!(
         result.is_err(),

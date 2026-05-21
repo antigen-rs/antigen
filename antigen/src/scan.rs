@@ -1867,9 +1867,10 @@ pub fn enumerate_dep_crate_roots(
 
         // Path-or-workspace deps: `source` is null. Some are workspace
         // members (already excluded above by id); the rest are path-deps to
-        // sibling workspaces (e.g., tambear's path-dep to `R:\antigen`).
-        // Skip by default — those workspaces are normally scanned on their
-        // own — but allow opt-in for full transitive coverage.
+        // sibling workspaces (e.g., a consuming crate's path-dep to a
+        // separately-maintained antigen workspace checkout). Skip by default
+        // — those workspaces are normally scanned on their own — but allow
+        // opt-in for full transitive coverage.
         if matches!(origin, CrateOrigin::PathOrWorkspace) && !include_path_workspace {
             continue;
         }
