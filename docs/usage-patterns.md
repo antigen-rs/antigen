@@ -489,7 +489,166 @@ hiding it.
 
 ---
 
-## References
+## Patterns for substrate-witness predicates
+
+Discipline-witnesses (`requires = <predicate>` on `#[immune]`) express that a
+human — not a test — validated something the code can't verify for itself.
+These patterns guide which predicate leaf to reach for in common situations.
+
+### `signers` vs `ratified_doc` vs `oracles_complete`
+
+| Goal | Use |
+|---|---|
+| Record that named reviewers signed off on this code | `signers(required = ["alice", "bob"])` |
+| Assert a discipline document exists and is versioned | `ratified_doc(path = "docs/discipline.md", min_version = "1.0")` |
+| Assert external evidence was reviewed and attested | `oracles_complete([oracle-id])` |
+
+**Use `signers` when** the evidence is "this specific person reviewed this specific
+version of the code." The signature is tied to the code fingerprint — if the code
+changes, the signature goes stale and the audit says so. This is the right leaf
+for code review as a discipline.
+
+**Use `ratified_doc` when** the evidence is "this discipline is governed by a
+document that the team maintains." The document needs to exist, be versioned (so
+you can floor on `min_version`), and optionally contain an anchor (a section that
+must be present). Use this when the discipline is stable and lives in prose rather
+than code.
+
+**Use `oracles_complete` when** the evidence is "someone attested they reviewed
+an external reference — a paper, a standard, a specification." Oracles are oracle
+artifacts with their own lifecycle (`Draft`/`Complete`/`Deprecated`/`Retired`).
+The oracle system is heavier than a simple `ratified_doc`; use it when the
+evidence source itself needs lifecycle management.
+
+### `against = "current"` vs `against = "any"`
+
+```
+signers(required = ["alice"], against = "current")  // default
+signers(required = ["alice"], against = "any")
+```
+
+**`against = "current"` (default)**: alice's signature must be against the
+*current* code fingerprint. If the code changes after alice signs, alice's
+signature is stale and the audit surfaces `discipline-substrate-stale`. This
+is the right policy for most cases — you want re-attestation when the code
+changes.
+
+**`against = "any"`**: alice need only have signed *at some point* in the
+history of this item, regardless of fingerprint. Use this for "ever-reviewed"
+gates where the accumulated history of review matters and staleness is expected
+(e.g., a long-running research project where domain experts review periodically
+but not on every code change).
+
+The `against` field is a lease policy, not a security boundary. Both variants
+can be attested falsely by anyone with git write access; the difference is what
+the audit considers current.
+
+### Delta-attestation vs Fresh: when has the code changed enough?
+
+When code changes are minor — a variable rename, a comment update, a refactor
+that preserves the mathematical structure — asking a domain expert to re-sign
+from scratch is friction without value. Delta-attestation covers this:
+
+```sh
+cargo antigen attest delta \
+    --file src/numerics.rs \
+    --antigen SignedZeroDiscipline \
+    --item sinh \
+    --from <prior-fingerprint> \
+    --rationale "Renamed internal variable; algebraic structure unchanged"
+```
+
+The `attest delta` command records that the signer reviewed the *diff* between
+the prior fingerprint and the current one, found it preserved the discipline, and
+carried their attestation forward. The audit tracks chain depth (default cap: 3)
+— after 3 carry-forwards, a Fresh re-attestation is required regardless of how
+small each individual change was.
+
+**Use delta-attestation when**: the diff is a refactor that a domain expert can
+confirm preserves the invariant with a quick review.
+
+**Use Fresh attestation when**: the algorithm changed, the mathematical approach
+changed, or the diff requires the same depth of analysis as the original review.
+
+The non-empty `rationale` is required — the audit rejects empty rationales at
+parse time. The rationale is the domain expert saying in their own words why the
+carry-forward is valid.
+
+### Oracles vs `ratified_doc`: which has lifecycle?
+
+```
+ratified_doc(path = "docs/ieee754-compliance.md")
+oracles_complete(["ieee-754-sincos-section-6-3"])
+```
+
+`ratified_doc` says "this file exists and has `min_version >= X` in its
+frontmatter." The file's lifecycle is managed by your team through normal git
+commits. Simple and low-overhead.
+
+`oracles_complete` says "this oracle artifact — which has its own declared
+stewards, lifecycle state, and transition history — is in Complete state and
+someone attested they reviewed it." The oracle system is appropriate when:
+
+- The evidence source is shared across multiple antigens (e.g., "the IEEE 754
+  standard" as a single oracle referenced by many `signers` predicates)
+- You need to track who is responsible for maintaining the reference (stewards)
+- The reference could become Deprecated or Retired (e.g., an internal spec that
+  gets superseded)
+- You need version-pinning that records exactly which version was reviewed
+
+For most single-antigen documentation, `ratified_doc` is simpler. Reach for
+`oracles_complete` when the evidence source has its own organizational lifecycle.
+
+### Signature-tier choice
+
+The `signature_allow` field on a `signers` leaf is a categorical allow-list —
+not an ordinal threshold. A signer with `TextStamp` strength against
+`allow = [CryptoSigned]` fails not because they are "weaker" but because they
+are the wrong type.
+
+| Tier | How recorded | Identity binding | When to require |
+|---|---|---|---|
+| `TextStamp` | Name + date, no cryptographic binding | Minimal — anyone can write any name | Soft attestation, internal teams with high trust |
+| `GitTrust` | Git commit authorship (git config `user.name/email`) | Bound to committer identity | Standard discipline-witness; default recommendation |
+| `CryptoSigned` | DSSE envelope with cryptographic signature | Strongest available in v0.1 (v0.4+ full activation) | Cross-org attestation, safety-critical claims |
+
+**Recommendation**: use `GitTrust` minimum for any meaningful discipline claim.
+`signature_allow = [GitTrust, CryptoSigned]` is the pattern that binds the signer's
+identity to their git commit history while allowing stronger signatures when
+available.
+
+`TextStamp` alone is documentation-quality intent — it records that someone said
+they reviewed something, but it doesn't bind the claim to a verifiable identity.
+Use it only for low-stakes claims or internal workflows where git identity is
+impractical.
+
+### Combining leaves: `all_of` and `any_of`
+
+```rust
+#[immune(SignedZeroDiscipline, requires = all_of([
+    signers(required = ["alice"], against = "current"),
+    ratified_doc(path = "docs/ieee754-discipline.md", min_version = "1.0"),
+    fresh_within_days(180),
+]))]
+```
+
+**`all_of`**: all child predicates must pass. Use for "must have both a signer
+AND a governing document AND be reasonably fresh." This is co-stimulation —
+all signals required, missing one → anergy (predicate fails).
+
+**`any_of`**: at least one child must pass. Use for "either alice OR bob has
+reviewed" or "either a test OR a signer attestation." This is redundant pathway
+coverage — one strong signal is sufficient.
+
+**`not`**: the child must NOT pass. Rarely needed in practice; useful for
+"this site must NOT have been signed by the legacy reviewer whose credentials
+we no longer trust."
+
+Zero-leaf `all_of([])` and `any_of([])` are rejected at parse time — they are
+semantic no-ops that vacuously pass. If you want "no predicate," don't add
+`requires =` at all.
+
+---
 
 - [`docs/tutorial.md`](tutorial.md) — end-to-end walkthrough of first antigen
   declaration + scan + audit, starting from zero
