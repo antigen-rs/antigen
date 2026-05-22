@@ -5181,6 +5181,81 @@ exit decisions (authorized transitions); memory senescence (Retired preserves hi
 
 ---
 
+## [ADR-022] Stdlib-vs-Extension: Two Disciplines, One Public API
+
+**Status**: Ratified 2026-05-22.
+
+**Participants**: aristotle (draft + Phase 1-8); Tekgy (lock 2026-05-21 night); naturalist (biology-validation: gate passed — biology-as-discovery feeds stdlib growth via ADR-003 Amendment 1); adversarial (no blocking findings).
+
+**Related**: ADR-006 Amendment 1 (recognition discipline scoped to adopter); ADR-003 Amendment 1 (biology); ADR-007 (anti-YAGNI); ADR-009 (adoption gradient); ADR-021 (additive-only schema evolution).
+
+**Implicit pattern elevated** (per ADR-004): the dual-discipline architecture is currently implicit in the project structure (stdlib crate separate from extension surfaces) but never named at the ADR layer.
+
+### Finding
+
+Antigen has two growth layers structurally:
+
+1. **Stdlib growth** (`antigen-stdlib` crate): comprehensive coverage of the failure landscape; ships canonical primitives all adopters consume.
+2. **Adopter extension growth** (per-consumer-crate): domain-specific antigens, witnesses, predicates, fingerprints declared against stdlib primitives.
+
+These layers have DIFFERENT growth disciplines (per ADR-006 Amendment 1): stdlib = research; adopter = recognition. They have DIFFERENT substrate-grounding requirements. They have DIFFERENT cadences. But they SHARE a public API — the primitive machinery adopters consume. The contract BETWEEN stdlib and extension is itself part of the public API.
+
+### Decision
+
+**Antigen ships two architectural layers with distinct growth disciplines but a unified public API. The extension contract is first-class: changes to the stdlib primitive interface are semver breaks; adopters can rely on the contract across stdlib releases.**
+
+**The stdlib layer ships**: (1) comprehensive PRIMITIVES (immune-system machinery: cells, signals, states, responses); (2) canonical antigens for failure-classes worth defending across all software development; (3) documentation of extension patterns; (4) extension tooling (cargo-antigen recognizes custom antigens identically to stdlib).
+
+**The extension contract is part of the public API**:
+- Primitive macro names (`#[antigen]`, `#[immune]`, etc.) are stable; rename = major-version-break
+- Sidecar schema field-names + types are stable; change = semver-break
+- Audit hint vocabulary is stable for adopter consumption; new variants ship additively (per ADR-021)
+- Composition rules (how custom antigens compose with stdlib via `requires =` predicates) are stable
+
+**The extension contract is NOT**: the specific stdlib antigens shipped (additive after v1.0); the internal evaluator implementation; the specific failure-classes covered (stdlib grows toward comprehensive coverage).
+
+### Mechanics
+
+**Crate organization**:
+- `antigen` (macros + core types) — primitive machinery; semver-stable
+- `antigen-attestation` (sidecar schema) — extension contract; semver-stable
+- `antigen-stdlib` (canonical antigens) — research-discipline grown; additive after v1.0
+- `antigen-extensions-<domain>` (adopter or community-ratified extension drops) — recognition-discipline grown
+
+**Extension contract documentation**:
+- `docs/extension-contract.md` — first-class doc enumerating what adopters can rely on
+- `docs/extension-patterns/` — directory of canonical extension patterns
+
+**Versioning**: `antigen` + `antigen-attestation` follow semver strictly; `antigen-stdlib` versions independently; `antigen-extensions-<domain>` crates version per maintainer.
+
+### Sweep-level consequences
+
+- Stdlib team plans research-arc drops (quarterly cadence)
+- Extension-contract changes require ADR-level ratification
+- Adopter crates can be authored with confidence that the primitive surface is stable
+- Community extension crates (`antigen-async`, `antigen-embedded`, `antigen-wasm`, `antigen-ffi`, `antigen-sqlx`, `antigen-http`, `antigen-cloud`) become viable
+
+### Enforcement
+
+- Extension contract sections marked `[CONTRACT]` in docs/code-comments
+- CI test: parse + recompile downstream adopter crate fixture against the contract; any breaking change fails the test
+- Semver-checks at release time enforce the contract boundary
+
+### Resolves
+
+- The implicit-architecture failure mode (stdlib-vs-extension separation was load-bearing but never named at ADR layer)
+- The "what can adopters rely on?" question (now: the contract; new stdlib antigens are not the contract)
+- The growth-discipline question for stdlib (separate ADR-006 Amendment 1)
+- The growth-discipline question for extensions (preserved per original ADR-006)
+
+### What this ADR does NOT do
+
+- Does NOT define the stdlib research discipline (that's ADR-006 Amendment 1)
+- Does NOT enumerate the canonical extension patterns (that's `docs/extension-patterns/`)
+- Does NOT permit extension-contract changes without semver-break ceremony
+
+---
+
 ## Convention notes
 
 - **ADR vs. DEC**: this project uses "ADR" (Architecture Decision Record) following
