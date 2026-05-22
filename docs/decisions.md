@@ -5502,3 +5502,90 @@ pub enum SeedKind {
 
 ---
 
+## [ADR-025] Supply-Chain Defense Family: Antigens for Dependency-Boundary Risk in the 2026+ Threat Landscape
+
+**Status**: Ratified 2026-05-22.
+
+**Participants**: aristotle (draft + Phase 1-8 + revision); Tekgy (named family; reframed from basophil/eosinophil to supply-chain in drill); adversarial (11 attacks, 4 BLOCKING absorbed); naturalist (cognate reframed to distributed-boundary-innate-immunity — NON-NEGOTIABLE); scout (supply-chain threat landscape research arc).
+
+**Related**: ADR-001 Amendment 1 (structural memory); ADR-002 Amendment 2 (compose-or-compete); ADR-005 Amendments 2 & 3; ADR-009 (adoption gradient); ADR-019 (substrate-witness); ADR-020 (attestation); ADR-021 (oracle); ADR-022 (Stdlib-vs-Extension); ADR-027 (Mucosal boundary); ADR-028 (antigen-category).
+
+**Implicit pattern elevated** (per ADR-004): the supply-chain trust boundary has been implicit in dev culture.
+
+### Finding
+
+**The 2026 supply-chain threat landscape**: chalk/debug/eslint-config incidents (2025) involved **content replacement at fixed version** — Cargo.lock pins VERSION but not CONTENT-HASH; lockfile pinning alone would not have prevented these. Proc-macro attack surface: proc macros execute at compile time with arbitrary code execution; compromised proc-macro is MORE dangerous than compromised regular dependency. AI-pair-generated `cargo add` adds dependencies without human review.
+
+**Compose vs compete decision** (per AMEND-ADR-002 four-item substrate):
+1. Adjacent tools: cargo-vet, cargo-deny, cargo-audit, cargo-crev, cargo-supply-chain, Sigstore, SLSA
+2. Cohesion reason: unified failure-class-memory vocabulary vs fragmented cargo-vet/cargo-deny/cargo-audit translation
+3. Adopter-experience differential segmented: (a) all-in antigen: 4-vs-1 differential; (b) antigen + cargo-audit: 2-vs-1; (c) non-antigen: irrelevant
+4. Alternative path preserved: cargo-vet/cargo-deny/cargo-audit/cargo-crev continue for non-antigen adopters
+
+**Decision**: COMPETE for segments (a) and (b); alternative preserved for (c).
+
+### Decision
+
+**Antigen ships a Supply-Chain Defense Family of 11 v0.2 stdlib antigens, a `cargo antigen verify` CLI subfamily, substrate-witness leaves over Cargo.toml/Cargo.lock/content-hash-registry/crates.io-metadata, and a tooling-phase progression from static-checks (v0.2) through behavioral-fingerprinting (v0.5+).**
+
+**Eleven v0.2 stdlib antigens**:
+1. `UnpinnedDependency` — Cargo.toml dep without exact-pin `=` version specifier
+2. `UnpinnedTransitiveDependency` *(narrowed per B9-R)* — direct dep with `*`/`?` for its OWN dependencies (NOT "any transitive dep with non-exact pins" — ~100% false-positive avoided)
+3. `UnattestedDependencyInclusion` — new dep added without team-attestation in commit history
+4. `DependencyUpgradeWithoutDiffReview` — version bump without diff-reviewed attestation
+5. `AutoDependencyChainWithoutPinning` — `?` or `*` anywhere in dependency tree
+6. `MaintainerChangeWithoutReattestation` — crate ownership change; CI sequencing constraint: `verify maintainer-changes` MUST run BEFORE `cargo update`
+7. `SuddenDependencyExpansion` — version bump with large LOC delta; complements `DependencyUpgradeWithoutDiffReview` for account-compromise defense
+8. `UnsandboxedBuildScript` — `build.rs` from external dep not audited in sandbox
+9. `UnsandboxedProcMacro` *(NEW per B3-R)* — external proc-macro dep not audited in sandbox; higher-risk than build.rs (runs in-rustc)
+10. `PostInstallScriptInDependency` — external code running at install/build time
+11. `ContentHashMismatch` *(NEW per B1-R, NON-NEGOTIABLE)* — content hash of published dep at recorded version differs from first-attestation hash. **This is the antigen for the chalk/debug/eslint-config attack**: Cargo.lock pins VERSION not CONTENT-HASH. Requires proactive first-attestation via `cargo antigen verify content-hash record` to activate.
+
+**`cargo antigen verify` CLI subfamily** (cross-ADR substrate-grep verified clean): `deps`, `maintainer-changes`, `dep-attest <crate@version> --reviewable-artifact <PATH>` (REQUIRED), `dep-pin`, `content-hash <crate@version>`, `proc-macro-sandbox` (v0.4+), `sandbox` (v0.4+), `behavioral-diff` (v0.5+).
+
+**Substrate-witness leaves** (additive per ADR-021): `dep_pinned(crate?)`, `dep_attested(crate, version, exact_version: bool = true)` *(default version-specific; requires non-empty `reviewable_artifact`)*, `maintainer_unchanged(crate, since_version)`, `content_hash_matches(crate, version)` *(NEW)*, `sandbox_clean(crate, sandbox_kind = "build" | "proc-macro")` *(NEW kind discriminator)*, `behavioral_diff_within` (v0.5+).
+
+**Tooling-phase progression**:
+
+| Phase | Version | Tooling |
+|---|---|---|
+| 1 | v0.2 | Static checks + content-hash recording/verification |
+| 2 | v0.3 | Dependency-change diff display + sign-on-review + crates.io metadata |
+| 3 | v0.4 | Sandboxed pre-update (build.rs + proc-macro) |
+| 4 | v0.5+ | Behavioral fingerprinting + federated trust (Sigstore/SLSA) |
+
+**Schema additions** (additive per ADR-021): `.attest/supply-chain/` for dep-attestation sidecars; `.attest/supply-chain/content-hash/<crate>@<version>.json`; `DepAttestation` schema with required `reviewable_artifact: PathBuf`; `ReviewScope ∈ { Full | Diff | BuildScriptOnly | ProcMacroOnly | MetadataOnly }`; `ContentHashRecord`.
+
+**Audit-hint vocabulary** (15 total; cross-ADR substrate-grep verified): `unpinned-dependency`, `unattested-dependency-inclusion`, `dependency-upgrade-without-diff-review`, `maintainer-change-without-reattestation`, `maintainer-change-detected-after-cargo-update`, `sudden-dependency-expansion`, `unsandboxed-build-script`, `unsandboxed-proc-macro`, `post-install-script-in-dependency`, `content-hash-mismatch`, `content-hash-no-attestation`, `dep-attest-without-reviewable-artifact`, `crates-io-metadata-query-failed`, `dep-attestation-stale`, `auto-dependency-chain-without-pinning`.
+
+**§Enforcement-Surface**:
+
+| Mechanism | Enforcement-Tier | Enforcement-Scope | Bypass risk + mitigation |
+|---|---|---|---|
+| `UnpinnedDependency` detection | scan-time | client | suppression via `#[antigen_tolerance]` requires rationale |
+| `ContentHashMismatch` first-attestation | CLI-time (record) | client | requires proactive attestation; gap named |
+| `ContentHashMismatch` verification | audit-time | client + CI | CI gate enforces |
+| `MaintainerChangeWithoutReattestation` | audit-time | client + CI | CI sequencing constraint: must run BEFORE `cargo update` |
+| `dep_attested` signing | CLI-time | client | requires `--reviewable-artifact`; rubber-stamp limitation named |
+| `UnsandboxedBuildScript` + `UnsandboxedProcMacro` | audit-time (v0.4+) | client + CI | sandbox-detection limitations named |
+
+**Biology grounding** (per naturalist reframe — NON-NEGOTIABLE): **Distributed-Boundary Innate-Immunity family** — multi-cell-type integrated system, NOT basophil/eosinophil (wrong shape). Per-primitive cognates: `UnpinnedDependency` ↔ PRR specificity discipline; `ContentHashMismatch` ↔ antigenic identity verification; `MaintainerChangeWithoutReattestation` ↔ transplant immunology re-attestation; `SuddenDependencyExpansion` ↔ Trojan-horse + MHC-I internal antigen presentation; `UnsandboxedBuildScript/ProcMacro` ↔ macrophage phagosome containment.
+
+**Known limitations**: (1) rubber-stamp attestation; (2) solo-developer single-signer; (3) first-attestation gap for ContentHashMismatch; (4) sandbox-detection limitations (time-bomb attacks, environment-detection); (5) account-compromise without ownership change; (6) git-trust signing baseline; (7) maintainer-change detection timing; (8) dependency-confusion attacks (v0.3+ roadmap); (9) typosquatting partial (v0.3+ roadmap).
+
+### Resolves
+
+- The implicit-memory failure mode at the dependency boundary
+- The supply-chain coverage gap in antigen-cohesion
+- The AI-pair-generated `cargo add` failure pattern
+- The content-replacement-at-fixed-version attack pattern (chalk/debug/eslint-config)
+- The proc-macro attack surface gap
+
+### What this ADR does NOT do
+
+- Does NOT deprecate cargo-vet/cargo-deny/cargo-audit/cargo-crev
+- Does NOT solve all supply-chain attacks (gaps acknowledged above)
+- Does NOT enforce supply-chain discipline at Rust-compile time
+
+---
+
