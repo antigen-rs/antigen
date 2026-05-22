@@ -5589,3 +5589,90 @@ pub enum SeedKind {
 
 ---
 
+## [ADR-026] VCS-Information-Loss Family: Structural Defense Against Git-History-Erasing Operations + Rollback-as-Triage Discipline
+
+**Status**: Ratified 2026-05-22.
+
+**Participants**: aristotle (draft + Phase 1-8 + revision); Tekgy (named family + rollback-as-triage discipline in drill #74); adversarial (3 BLOCKING attacks absorbed: D1 commit-time detection, D2 force-with-lease coverage, D3 friction-vs-structural explicit choice); naturalist (cognate broadened to immune-memory-loss-mechanisms class; ForcePushErasingHistory ↔ Immune Amnesia centralized; dual-axis grounding for rollback-as-triage — NON-NEGOTIABLE).
+
+**Related**: ADR-001 Amendment 1 (structural memory; preserving through VCS ops); ADR-002 Amendment 2 (compose-or-compete); ADR-005 Amendments 2 & 3; ADR-019 (substrate-witness, VCS-trailer-based); ADR-022 (Stdlib-vs-Extension); ADR-023 (rollback-as-triage uses `#[orient]`-shape); ADR-028 (antigen-category — most members substrate-alignment).
+
+**Implicit pattern elevated** (per ADR-004): git operations that erase information have been governed by team-convention; the structural why-this-was-done lives in commit messages that get rewritten.
+
+### Finding
+
+Modern git workflows include force-push, branch-deletion, rebase, squash-merge, amend — each has legitimate use cases AND can erase load-bearing history.
+
+**The central cognate: ForcePushErasingHistory ↔ Immune Amnesia (measles)** (Mina et al. 2015, Science): measles virus infects memory lymphocytes; post-measles patients show increased susceptibility to other pathogens for 2-3 years. CATASTROPHIC LOSS of MEMORY-CARRYING substrates with DOCUMENTED HARM and STRUCTURAL DEFENSE patterns. Biology PREDICTS the failure mode and defense pattern.
+
+**Rollback-as-triage discipline** (per drill #74): rollback-as-treatment requires triage-commit-first discipline: commit triage decision THEN do rollback. **Dual-axis grounding** (per naturalist): this discipline is CLINICAL-MEDICINE grounded (informed consent + chart documentation). Immune biology has NO analog to "log rationale before acting." This honest dual-axis acknowledgement parallels ADR-024's grounding split.
+
+**Detection model** (per adversarial D1): `RollbackWithoutTriageCommit` cannot be detected by post-hoc history inspection (`git reset --hard` removes traces). MUST operate at COMMIT-TIME via hooks.
+
+**Enforcement model** (per adversarial D3): client-side hooks are bypassable via plumbing commands. The ADR ships:
+- **Friction-only mode** (default v0.2): client-side hooks + audit-time; makes bad behavior DELIBERATE rather than ACCIDENTAL; explicitly NOT preventive
+- **Structural mode** (server-side; v0.2.1+): pre-receive hooks; requires adopter to control git remote
+
+### Decision
+
+**Antigen ships an 11-antigen VCS-Information-Loss Family + rollback-as-triage discipline (via extended `#[orient]`) + git-trailer-based substrate-witnesses + commit-hook detection mechanism + `cargo antigen vcs` CLI subfamily. Detection is friction-only by default; server-side enforcement is the path to structural-mode.**
+
+**Eleven v0.2 stdlib antigens**: `RollbackWithoutTriageCommit`, `RefactorWithoutPreservationOfWhy`, `BranchDeletionWithoutAttestation`, `ForcePushErasingHistory` (covers both `--force` AND `--force-with-lease` per D2), `SquashMergeLosingIntermediateState`, `CherryPickLosingOriginalContext`, `RebaseRewritingHistoryWithoutLog`, `UnpushedBranchWithSubstantiveWork`, `StashedWorkAbandoned`, `MergeConflictResolutionWithoutAttestation`, `AmendedCommitWithoutOldHashPreservation`.
+
+**Biology per-primitive cognates**: `ForcePushErasingHistory` ↔ **Immune amnesia (measles)** — central foundational family cognate; `RefactorWithoutPreservationOfWhy` ↔ Original antigenic sin; `SquashMergeLosingIntermediateState` ↔ Affinity maturation history loss; `CherryPickLosingOriginalContext` ↔ Class-switching context loss; `RebaseRewritingHistoryWithoutLog` ↔ V(D)J recombination without per-cell record; `StashedWorkAbandoned` ↔ Anergy/primed-without-activation.
+
+**Rollback-as-triage primitive** (extends `#[orient]` from ADR-023):
+
+```rust
+#[orient(
+    triage_decision = TriageDecision::Red,
+    rollback_target = "abc1234",
+    triaged_by = "navigator",
+    rationale = "vital metric regression confirmed via #84; rolling back to last-known-good",
+    rollback_due_within_minutes = 30,
+)]
+fn _triage_marker_do_not_remove() {}
+// Followed by rollback commit with: Triage-Decision: <triage-commit-sha>
+```
+
+**Schema additions** (additive per ADR-021): `TriageDecision` enum (`Black | Red | Yellow | Green | White`); `VcsAttestation`; `.attest/vcs/` convention; `ServerSideEnforcementMode` enum (`FrictionOnly | Structural`).
+
+**Git-trailer-based substrate-witnesses** (per ADR-019): `vcs_trailer_present(trailer_name)`, `vcs_attest_branch_deletion(branch, by_role)`, `vcs_rollback_triage_chain(commit)` (commit-time; per D1), `vcs_server_side_enforcement_active(repo, antigen_name)` *(NEW — checks remote configuration)*.
+
+**CLI subfamily** (cross-ADR substrate-grep clean): `cargo antigen vcs {scan, check-commit, attest, rollback-prepare, branch-archive, install-hooks, install-server-hooks}`.
+
+**Audit-hint vocabulary** (12 new hints prefixed `vcs-`): `vcs-rollback-without-triage-commit`, `vcs-force-push-erased-substantive-history` (covers both --force and --force-with-lease), `vcs-enforcement-friction-only-no-server-hook`, and others.
+
+**§Enforcement-Surface**:
+
+| Mechanism | Enforcement-Tier | Enforcement-Scope | Bypass risk + mitigation |
+|---|---|---|---|
+| `RollbackWithoutTriageCommit` | commit-time (pre-commit hook) | client (friction) OR server (structural) | client-side bypassable via `git commit --no-verify` |
+| `ForcePushErasingHistory` (incl. --force-with-lease) | push-time | client (friction) OR server (structural) | `receive.denyNonFastForwards = true` on remote for structural |
+| `BranchDeletionWithoutAttestation` | branch-delete-time | client OR server | `git update-ref -d` bypasses client-side |
+| Other 8 members | audit-time + commit-time | client (friction) + audit visibility | friction-only; audit-time hint surfaces loss |
+
+### Sweep-level consequences
+
+- v0.2 stdlib gains 11 VCS-info-loss antigens
+- `#[orient]` extended with rollback-as-triage fields
+- Adopter rollback discipline: triage-commit-before-rollback becomes structural practice
+- Connection to camp `triage` primitive
+
+### Resolves
+
+- The git-information-loss failure mode (reflog + reviewer memory only)
+- The rollback-without-structural-why pattern
+- The detection-via-history-inspection fundamental flaw (commit-time hook required per D1)
+- The --force vs --force-with-lease false distinction (both covered uniformly per D2)
+- The client-side hook bypass overclaim (friction-only named explicitly + server-side path provided)
+
+### What this ADR does NOT do
+
+- Does NOT prevent VCS operations
+- Does NOT replace `git reflog` for local recovery
+- Does NOT enforce structural mode without adopter setup
+- Does NOT overclaim — v0.2 default is friction-only, named explicitly
+
+---
+
