@@ -11,6 +11,18 @@
 
 ---
 
+## Shipped (v0.2.0-alpha.1, unreleased)
+
+### Deferred-Defense Family (ADR-023)
+- **`#[anergy]`** — deferred-but-muted posture; `until` REQUIRED; 20-char minimum reason; aging escalation
+- **`#[immunosuppress]`** — surgical silencing with duration cap enforced at parse time (default 90d)
+- **`#[poxparty]`** — intentional exposure with structural cfg-gate isolation; `antigen-poxparty` feature
+- **`#[orient]`** — see-also context; all fields optional; lightest-weight deferred-defense primitive
+- `audit_deferred_defenses()` function + `DeferredDefenseAuditReport`; feeds `cargo antigen defer status`
+- 16 new `AuditHint` variants; `ScanReport::deferred_defenses` field (additive, serde compat)
+
+---
+
 ## Shipped (v0.1.0-rc.3)
 
 The core vocabulary, scan + audit tooling, substrate-witness pipeline, Oracle artifact lifecycle, and team-coordination tooling are all live across 5 crates on crates.io (`antigen`, `antigen-macros`, `antigen-attestation`, `antigen-fingerprint`, `cargo-antigen`).

@@ -5,6 +5,62 @@ All notable changes to the antigen project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased — v0.2.0-alpha.1]
+
+Deferred-Defense Family: loudness-as-discipline for intentional non-immunity.
+Implements all four primitives ratified by ADR-023. Aging escalation, parse-time
+cap enforcement, and structural isolation for poxparty sites.
+
+### Added
+
+- **`#[anergy(reason, until, ...)]`** — deferred-but-muted posture with required
+  time-bound (A5: `until` is not optional; anergy without time-bound degrades to
+  silent tolerance). `reason` minimum 20 characters. Audit emits `anergy-active` /
+  `anergy-co-stimulation-not-arrived` / `anergy-stale` hints. Optional
+  `expected_co_stimulation` field (advisory-only; not machine-verified).
+
+- **`#[immunosuppress(rationale, until, ...)]`** — surgical family-of-checks
+  silencing with hard duration cap enforced at **parse time** (A4 absorbed).
+  Compile error emitted if `until - since > duration_cap` (default 90d; workspace
+  config `immunosuppress_duration_cap`). `rationale` minimum 20 characters.
+  Audit emits `immunosuppress-active` / `immunosuppress-expired`.
+
+- **`#[poxparty(exercise_type, until, ...)]`** — intentional exposure with
+  structural isolation via `antigen-poxparty` Cargo feature (A3 absorbed).
+  Primary isolation: items inside inactive `#[cfg(feature = "antigen-poxparty")]`
+  blocks never reach macro expansion. Secondary: `CARGO_FEATURE_ANTIGEN_POXPARTY`
+  env var check (best-effort; Cargo propagation to proc-macro expansion is
+  version-dependent — named limitation). `exercise_type` minimum 20 characters.
+  `antigen-poxparty` feature NOT in default set. Audit emits `poxparty-active` /
+  `poxparty-outcome-pending` / `poxparty-outside-isolation`.
+
+- **`#[orient(see, adr, attestation_optional)]`** — see-also context without
+  antigen claim; lightest-weight deferred-defense primitive. All fields optional;
+  bare `#[orient]` with no arguments is valid. ADR-026 rollback-as-triage sites
+  use this shape. Audit emits `orient-active`.
+
+- `antigen-poxparty` Cargo feature on `antigen` + `antigen-macros` (propagated
+  so enabling on `antigen` flows through to `antigen-macros` expansion).
+- `ScanReport::deferred_defenses: Vec<DeferredDefense>` — additive serde field
+  (`#[serde(default)]`) for pre-v0.2 report compat.
+- `DeferredDefenseKind` enum, `DeferredDefense` struct in scan module.
+- 16 new `AuditHint` variants for the deferred-defense family.
+- `DeferredDefenseAudit`, `DeferredDefenseAuditReport` structs in audit module.
+- `audit_deferred_defenses()` function: evaluates deferred-defense declarations
+  against UTC date to produce aging hints; feeds `cargo antigen defer status`.
+- Four examples: `deferred_defense_anergy.rs`, `deferred_defense_immunosuppress.rs`,
+  `deferred_defense_poxparty.rs`, `deferred_defense_orient.rs`.
+
+### Known limitation (A3 poxparty)
+
+Cargo does not reliably propagate `CARGO_FEATURE_*` to proc-macro expansion
+environments in standard builds. The env var check is best-effort. Primary
+structural isolation is the `#[cfg(feature = "antigen-poxparty")]` gate —
+items inside inactive cfg blocks never reach macro expansion. This limitation
+is tracked for a future ADR amendment when Cargo propagation behavior stabilizes.
+
+---
+
 ## [0.1.0-rc.3] — 2026-05-22
 
 Small CLI patch: expose `--version` (and `-V`) on the `cargo antigen`

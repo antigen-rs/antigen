@@ -425,6 +425,71 @@ is ratified.
 
 **Introduced in**: ADR-014 (2026-05-08).
 
+### #[anergy]
+
+**Definition** (per ADR-023): declares a site as in a deferred-but-muted posture
+toward a known failure-class. `until` is REQUIRED — anergy without a time-bound
+degrades to silent tolerance (A5). `reason` minimum 20 characters.
+
+**Biological referent**: T-cell or B-cell anergy — the cell encounters its antigen
+but fails to respond due to lack of co-stimulation. Alive but unresponsive;
+reversible when co-stimulation arrives.
+
+**Distinguishes from `#[antigen_tolerance]`**: tolerance is "this site is correct
+despite the fingerprint match." Anergy is "I know I'm not immune; here's why I'm
+deferring and what will re-engage the response."
+
+**Introduced in**: ADR-023 (2026-05-22). Shipped in v0.2.0-alpha.1.
+
+### #[immunosuppress]
+
+**Definition** (per ADR-023): declares a site as under surgical silencing — a
+specific check family is deliberately muted for a bounded duration. Duration cap
+enforced at **parse time** (compile error if `until - since > cap`). `rationale`
+minimum 20 characters.
+
+**Biological referent**: pharmacological or pathological immunosuppression —
+the immune system deliberately reduced to prevent rejection or autoimmune damage.
+Time-bounded; expected to be revisited.
+
+**Distinguishes from `#[anergy]`**: immunosuppress is active, systemic, deliberate
+intervention. Anergy is receptor-level unresponsiveness. Both are time-bounded;
+immunosuppress has a machine-enforced duration cap.
+
+**Introduced in**: ADR-023 (2026-05-22). Shipped in v0.2.0-alpha.1.
+
+### #[poxparty]
+
+**Definition** (per ADR-023): declares a controlled-exposure exercise — chaos
+test, fault injection, or red-team exercise targeting a known failure-class.
+Structurally isolated via `antigen-poxparty` Cargo feature (NOT in default
+feature set). `exercise_type` minimum 20 characters. `until` required.
+
+**Biological referent**: pox parties — intentional exposure to a pathogen to
+build immunity in a controlled setting. Deliberate, bounded, expected to produce
+a trained response.
+
+**Structural isolation**: primary via `#[cfg(feature = "antigen-poxparty")]`
+gate (items inside inactive blocks never reach macro expansion). Secondary via
+`CARGO_FEATURE_ANTIGEN_POXPARTY` env var check (best-effort).
+
+**Introduced in**: ADR-023 (2026-05-22). Shipped in v0.2.0-alpha.1.
+
+### #[orient]
+
+**Definition** (per ADR-023): declares an orientation period — explicit
+acknowledgment that the site lacks immunity during an orientation phase. The
+lightest-weight deferred-defense primitive. All fields optional; bare `#[orient]`
+with no arguments is valid.
+
+**Biological referent**: orientation period — immune system present but not yet
+trained to recognize a specific threat. Building up response repertoire.
+
+**ADR-026 use case**: rollback-as-triage sites use `#[orient]`-shape to declare
+that a rollback is a triage action, not an immunity claim.
+
+**Introduced in**: ADR-023 (2026-05-22). Shipped in v0.2.0-alpha.1.
+
 ---
 
 ## Architectural patterns
