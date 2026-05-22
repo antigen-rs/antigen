@@ -3,6 +3,14 @@
 > The formal process by which architectural decisions, sweeps, and code in the antigen
 > project get drafted, validated, ratified, and govern downstream work. Inherited from
 > the tambear DEC discipline; adapted for antigen.
+>
+> **Audience**: this doc is internal-team-facing. It documents how the antigen team
+> coordinates the ADR lifecycle (campsite-based working files, Phase 1-8 deconstruction,
+> aristotle / adversarial / scientist review roles, ratification ceremonies). External
+> contributors don't need this — see [`../CONTRIBUTING.md`](../CONTRIBUTING.md) for the
+> contributor-facing surface. When you submit a PR, the antigen team takes it through
+> the discipline described here; you don't have to set up campsites or run the phases
+> yourself.
 
 ## The recursion: ADRs are antigen-in-document-form
 
