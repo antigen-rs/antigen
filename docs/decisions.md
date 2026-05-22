@@ -5676,3 +5676,73 @@ fn _triage_marker_do_not_remove() {}
 
 ---
 
+## [ADR-027] Mucosal Boundary Taxonomy + Mapping Discipline
+
+**Status**: Ratified 2026-05-22.
+
+**Participants**: aristotle (draft + Phase 1-8 + revision); Tekgy (named boundary taxonomy + mapping discipline in drill); adversarial (E1 + E2 absorbed: `#[mucosal_delegate]` primitive + missing boundary types); naturalist (don't overclaim per-variant biology grounding — NON-NEGOTIABLE; trafficking-integration as v0.3+ research arc); scout (prior-art on boundary mapping).
+
+**Related**: ADR-002 Amendment 2 (compete decision); ADR-003 Amendment 1 (biology); ADR-006 Amendment 1 (stdlib); ADR-019 (substrate-witness); ADR-022 (Stdlib-vs-Extension); ADR-025 (supply-chain — `DependencyImport` boundary); ADR-028 (antigen-category — most members substrate-alignment).
+
+**Implicit pattern elevated** (per ADR-004): codebases have boundaries adopters don't enumerate. Unknown boundaries are where attacks land.
+
+### Finding
+
+**Boundary types in modern software** (v0.2 + v0.3+ scope marks): Imports/exports, APIs (HTTP/gRPC), MCPs, External links, iframes, Databases, Cross-service, Cross-computer executables, Untrusted 3rd party code (see ADR-025), PRs with external-boundary touch, User input — plus NEW per adversarial E1: **Filesystem/path construction** (path-traversal via user input), **Environment variables** (env-var injection), **Shell argument construction** (user-input → shell arg). WebSocket + CI/CD pipeline inputs deferred to v0.3+.
+
+**The critical insight**: sanitization presence ≠ correctness. Discipline fires at boundary regardless.
+
+**The split-defense problem** (per adversarial E2): `#[mucosal]` declared on the outermost function (the actual boundary), but sanitization performed by an inner callee. Without explicit delegation primitive, audit might falsely report the boundary as defended. Resolution: `#[mucosal_delegate]` primitive.
+
+### Decision
+
+**Antigen ships a Mucosal Boundary Taxonomy (15 variants in v0.2; 2 more documented for v0.3+) + `cargo antigen mucosal-map` discovery tool + `#[mucosal]` and `#[mucosal_delegate]` macros + per-boundary stdlib antigens. Per-variant tissue-mapping IS NOT biology-grounded (per naturalist); biology grounds the tier-claim + 4 functional disciplines.**
+
+**`#[mucosal(kind = MucosalKind::..., rationale = "...")]`** — declarative marker for boundary defense.
+
+**`#[mucosal_delegate(boundary = MucosalKind::..., handled_by = "...", rationale = "...")]`** *(NEW per E2-R)* — when boundary discipline is delegated to a callee. The delegate handler MUST itself carry `#[mucosal(...)]`. Audit emits `mucosal-discipline-delegate-target-missing` if handler doesn't exist; `mucosal-discipline-delegate-target-not-mucosal` if target lacks corresponding declaration.
+
+**`MucosalKind` enum** (sealed v0.2 set; per ADR-001 Amendment 1 C6): `Import, ApiRequest, ApiResponse, McpInvocation, ExternalLink, Iframe, DatabaseQuery, CrossService, SubprocessLaunch, DependencyImport, PrBoundary, UserInput, FilesystemPath, EnvironmentVariable, ShellArgument` (15 variants; v0.3+ adds `WebSocketStream`, `CiCdPipelineInput`).
+
+**`cargo antigen mucosal-map`**: `mucosal-map`, `mucosal-map --kind <kind>`, `mucosal-map --undefended` — walks codebase; surfaces boundaries.
+
+**Schema additions** (additive per ADR-021): `MucosalDeclaration { kind, rationale, handled_by? }`; `.attest/mucosal/map.json`.
+
+**Audit-hint vocabulary** (cross-ADR substrate-grep verified): `mucosal-boundary-undefended`, `mucosal-kind-mismatch`, `mucosal-discipline-delegated`, `mucosal-discipline-delegate-target-missing`, `mucosal-discipline-delegate-target-not-mucosal`, `mucosal-rationale-insufficient`.
+
+**§Enforcement-Surface**:
+
+| Mechanism | Enforcement-Tier | Enforcement-Scope | Bypass risk + mitigation |
+|---|---|---|---|
+| `#[mucosal]` declaration | parse-time + audit-time | client + CI | absent declaration surfaces via `mucosal-map --undefended` |
+| `#[mucosal_delegate]` delegate-target check | audit-time | client + CI | substrate-witness validates handler exists + is mucosal-declared |
+| Boundary detection | scan-time | client | static analysis best-effort; missed boundaries = false-negatives |
+| MucosalKind set | parse-time (enum check) | — | adding kinds requires ADR amendment per ADR-001 Amendment 1 C6 |
+
+**Biology grounding** (per naturalist — NON-NEGOTIABLE): the 15-variant MucosalKind taxonomy is **software-engineering scope-selection**, NOT biology-grounded. Biology has ~5-7 anatomical mucosal sites organized by ANATOMICAL LOCATION; the software taxonomy is organized by DATA-FLOW TYPE. Per-variant tissue-mapping (GALT-to-DatabaseQuery, etc.) fails at every cell.
+
+**What biology DOES ground (Class 1)**: (1) mucosal-tier-as-distinct discipline; (2) tolerogenic-by-default + selective-response; (3) prevention-at-boundary (secretory-IgA-style exclusion); (4) trafficking-integration insight (CCR9/CCR10 link GALT and respiratory immunity — opens v0.3+ research arc for cross-MucosalKind shared validation libraries).
+
+**Compose vs compete decision**: COMPETE per AMEND-ADR-002 (cohesion + opinion + integrated vocabulary; alternative path preserved).
+
+### Sweep-level consequences
+
+- v0.2 stdlib gains `#[mucosal]` + `#[mucosal_delegate]` macros
+- MucosalKind enum with 15 variants
+- `cargo antigen mucosal-map` CLI tool
+- Cross-reference to ADR-025 for DependencyImport boundary
+
+### Resolves
+
+- The missing-boundary-enumeration failure mode
+- The false-positive defense claim pattern (per E2: explicit delegate primitive)
+- The missing boundary types gap (per E1: filesystem/path, env vars, shell-args v0.2; WebSocket + CI/CD v0.3+)
+
+### What this ADR does NOT do
+
+- Does NOT claim per-variant biology grounding (honest silence about anatomy-vs-data-flow mismatch)
+- Does NOT ship trafficking-integration in v0.2 (v0.3+ research arc)
+- Does NOT claim sanitization-presence implies correctness
+
+---
+
