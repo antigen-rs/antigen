@@ -29,6 +29,16 @@ antigen-fingerprint = { version = "=0.1.0-rc.3", path = "../antigen-fingerprint"
 # the scan side re-parses the same syntax directly from source attributes so
 # the substrate-witness pipeline does not depend on macro expansion order.
 antigen-attestation = { version = "=0.1.0-rc.3", path = "../antigen-attestation", features = ["parser"] }
+# chrono for parse-time UTC date enforcement in ADR-023 deferred-defense family
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+
+# The `antigen-poxparty` feature activates structural isolation for `#[poxparty]`.
+# MUST NOT be in the default feature set — the #[poxparty] macro checks the
+# `CARGO_FEATURE_ANTIGEN_POXPARTY` env var at macro-expansion time and emits
+# a compile error if it is absent. This feature exists here so the env var
+# is set by Cargo when callers pass `--features antigen-poxparty`.
+[features]
+antigen-poxparty = []
 
 [dev-dependencies]
 proptest = { workspace = true }

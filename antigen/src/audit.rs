@@ -256,6 +256,59 @@ pub enum AuditHint {
     /// `#[antigen_tolerance(X, sidecar = true, ...)]` for the same
     /// antigen. Logically incoherent — overrides individual tier reports.
     DisciplineImmunityToleranceContradiction,
+
+    // ------------------------------------------------------------------
+    // Deferred-Defense Family hints (ADR-023).
+    // These are emitted by `cargo antigen audit` / `cargo antigen defer status`
+    // for sites annotated with the deferred-defense primitives.
+    // ------------------------------------------------------------------
+
+    // --- Anergy hints ---
+    /// `#[anergy]` present; `until` date has not passed. Anergy is active;
+    /// the deferred defense is intentionally muted.
+    AnergyActive,
+    /// `#[anergy]` past its `until` date; `expected_co_stimulation` has not
+    /// arrived. Time to re-evaluate immunity or re-declare with a new `until`.
+    AnergyCostimulationNotArrived,
+    /// `#[anergy]` significantly past its `until` date (past grace period).
+    /// Escalates to warning-level. Structural memory says immunity was
+    /// supposed to be revisited.
+    AnergyStale,
+
+    // --- Immunosuppress hints ---
+    /// `#[immunosuppress]` present; `until` date has not passed.
+    ImmunosuppressActive,
+    /// `#[immunosuppress]` past its `until` date. Suppression has expired;
+    /// re-evaluate and re-declare or restore immunity checks.
+    ImmunosuppressExpired,
+    /// `#[immunosuppress]` duration exceeded the workspace cap. Should not
+    /// appear post-compile (parse-time enforced), but retained for audit
+    /// re-evaluation of pre-cap-enforcement code in the repo.
+    ImmunosuppressDurationCapExceeded,
+
+    // --- Poxparty hints ---
+    /// `#[poxparty]` present; exercise in progress (`until` not passed).
+    PoxpartyActive,
+    /// `#[poxparty]` past `until`; outcome not yet recorded.
+    PoxpartyOutcomePending,
+    /// `#[poxparty]` past `until`; outcome attestation has been recorded.
+    PoxpartyOutcomeRecorded,
+    /// `#[poxparty]` site found outside expected cfg-gated isolation scope.
+    /// Indicates the `antigen-poxparty` feature isolation may be bypassed.
+    PoxpartyOutsideIsolation,
+
+    // --- Orient hints ---
+    /// `#[orient]` present; orientation in progress.
+    OrientActive,
+    /// `#[orient]` past its deadline (if `until` added in future versions).
+    /// Currently `#[orient]` does not require `until`, so this is reserved.
+    OrientPendingActionRequired,
+
+    // --- Cross-cutting deferred-defense hint ---
+    /// A deferred-defense hint (e.g., `anergy-active`) was suppressed in
+    /// workspace config without a non-empty rationale. Per ADR-023
+    /// hint-fatigue-protection: suppression requires rationale.
+    DeferredDefenseHintSuppressedWithoutRationale,
 }
 
 /// Result of auditing a single immunity declaration.
@@ -505,6 +558,145 @@ impl AuditReport {
     pub fn problematic_audits(&self) -> Vec<&ImmunityAudit> {
         self.audits.iter().filter(|a| !a.is_well_formed()).collect()
     }
+}
+
+// ============================================================================
+// Deferred-Defense Family audit (ADR-023)
+// ============================================================================
+
+/// Audit result for a single deferred-defense declaration.
+///
+/// Each deferred-defense site is evaluated against the current UTC date
+/// and the relevant workspace config caps to produce a hint that reflects
+/// its current state in the loudness-as-discipline lifecycle.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeferredDefenseAudit {
+    /// The original deferred-defense declaration from the scan.
+    pub declaration: crate::scan::DeferredDefense,
+    /// The hint code reflecting this declaration's current state.
+    pub hint: AuditHint,
+}
+
+/// Aggregate deferred-defense audit report.
+///
+/// Consumed by `cargo antigen defer status` and `cargo antigen audit`
+/// to surface the loudness-as-discipline state of all deferred defenses.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DeferredDefenseAuditReport {
+    /// Per-declaration audit results.
+    pub audits: Vec<DeferredDefenseAudit>,
+    /// Count of active (not yet expired) deferred defenses.
+    pub active_count: usize,
+    /// Count of expired deferred defenses past their `until` date.
+    pub expired_count: usize,
+    /// Count of stale deferred defenses (significantly past `until`).
+    pub stale_count: usize,
+}
+
+/// Evaluate all deferred-defense declarations in a `ScanReport` against
+/// the current UTC date, producing a `DeferredDefenseAuditReport`.
+///
+/// This is the v0.2 audit implementation. All date comparisons use UTC
+/// per ADR-023 §Enforcement-Surface.
+///
+/// `stale_grace_days`: how many days past `until` before `anergy-stale`
+/// (vs `anergy-co-stimulation-not-arrived`). Default 30 days.
+#[must_use]
+pub fn audit_deferred_defenses(
+    scan: &crate::scan::ScanReport,
+    stale_grace_days: i64,
+) -> DeferredDefenseAuditReport {
+    use chrono::Utc;
+
+    let today = Utc::now().date_naive();
+    let mut audits = Vec::new();
+    let mut active_count = 0usize;
+    let mut expired_count = 0usize;
+    let mut stale_count = 0usize;
+
+    for decl in &scan.deferred_defenses {
+        let hint = evaluate_deferred_defense_hint(decl, today, stale_grace_days);
+
+        // Tally
+        match &hint {
+            AuditHint::AnergyActive
+            | AuditHint::ImmunosuppressActive
+            | AuditHint::PoxpartyActive
+            | AuditHint::OrientActive => {
+                active_count += 1;
+            }
+            AuditHint::AnergyCostimulationNotArrived
+            | AuditHint::ImmunosuppressExpired
+            | AuditHint::PoxpartyOutcomePending => {
+                expired_count += 1;
+            }
+            AuditHint::AnergyStale => {
+                stale_count += 1;
+            }
+            _ => {}
+        }
+
+        audits.push(DeferredDefenseAudit {
+            declaration: decl.clone(),
+            hint,
+        });
+    }
+
+    DeferredDefenseAuditReport {
+        audits,
+        active_count,
+        expired_count,
+        stale_count,
+    }
+}
+
+/// Derive the `AuditHint` for a single deferred-defense declaration.
+///
+/// UTC date comparison throughout per ADR-023.
+fn evaluate_deferred_defense_hint(
+    decl: &crate::scan::DeferredDefense,
+    today: chrono::NaiveDate,
+    stale_grace_days: i64,
+) -> AuditHint {
+    use crate::scan::DeferredDefenseKind;
+
+    match &decl.kind {
+        DeferredDefenseKind::Anergy => {
+            match parse_iso_date(decl.until.as_deref().unwrap_or("")) {
+                Some(until) if until >= today => AuditHint::AnergyActive,
+                Some(until) => {
+                    let days_past = (today - until).num_days();
+                    if days_past > stale_grace_days {
+                        AuditHint::AnergyStale
+                    } else {
+                        AuditHint::AnergyCostimulationNotArrived
+                    }
+                }
+                None => AuditHint::AnergyActive, // No parseable date = treat as active
+            }
+        }
+        DeferredDefenseKind::Immunosuppress => {
+            match parse_iso_date(decl.until.as_deref().unwrap_or("")) {
+                Some(until) if until >= today => AuditHint::ImmunosuppressActive,
+                Some(_) => AuditHint::ImmunosuppressExpired,
+                None => AuditHint::ImmunosuppressActive,
+            }
+        }
+        DeferredDefenseKind::Poxparty => {
+            match parse_iso_date(decl.until.as_deref().unwrap_or("")) {
+                Some(until) if until >= today => AuditHint::PoxpartyActive,
+                Some(_) => AuditHint::PoxpartyOutcomePending,
+                None => AuditHint::PoxpartyActive,
+            }
+        }
+        DeferredDefenseKind::Orient => AuditHint::OrientActive,
+    }
+}
+
+/// Parse an ISO-8601 date string for audit-time UTC comparison.
+/// Returns `None` if the string is not a valid date.
+fn parse_iso_date(s: &str) -> Option<chrono::NaiveDate> {
+    chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").ok()
 }
 
 /// Filesystem-backed [`antigen_attestation::EvaluationContext`] for use

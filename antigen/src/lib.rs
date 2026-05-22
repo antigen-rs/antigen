@@ -86,6 +86,17 @@
 //! - [`#[antigen_tolerance(...)]`](macro@antigen_tolerance) — document an
 //!   intentional opt-out with rationale on the page (ADR-011)
 //!
+//! ### Deferred-Defense Family (ADR-023)
+//!
+//! - [`#[anergy(...)]`](macro@anergy) — deferred-but-muted posture; `until`
+//!   REQUIRED; aging escalation via `anergy-active` / `anergy-stale` hints
+//! - [`#[immunosuppress(...)]`](macro@immunosuppress) — surgical silencing
+//!   with hard duration cap enforced at parse time (A4)
+//! - [`#[poxparty(...)]`](macro@poxparty) — intentional exposure with
+//!   structural compile-time isolation (A3; `antigen-poxparty` feature)
+//! - [`#[orient(...)]`](macro@orient) — see-also context; lightest-weight
+//!   deferred-defense primitive; all fields optional
+//!
 //! ## Modules
 //!
 //! - [`scan`] — workspace scanner. `scan_workspace()` walks `.rs` files,
@@ -123,6 +134,11 @@
 // Re-export the proc-macros from antigen-macros so users can `use antigen::antigen`,
 // `use antigen::presents`, etc.
 pub use antigen_macros::{antigen, antigen_tolerance, descended_from, immune, presents};
+
+// Deferred-Defense Family (ADR-023): loudness-as-discipline for intentional
+// non-immunity. Four structurally distinct postures — anergy, immunosuppress,
+// poxparty, orient — each with parse-time enforcement and aging escalation.
+pub use antigen_macros::{anergy, immunosuppress, orient, poxparty};
 
 pub mod audit;
 pub mod scan;

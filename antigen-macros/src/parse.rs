@@ -434,6 +434,665 @@ impl ToleranceArgs {
 }
 
 // ============================================================================
+// AnegyArgs parsing (ADR-023)
+// ============================================================================
+
+/// Arguments to `#[anergy(antigen_type, reason = "...", until = "...", ...)]`.
+///
+/// Per ADR-023: deferred-but-muted posture with aging escalation.
+/// - `reason` required, minimum 20 characters
+/// - `until` REQUIRED — anergy without time-bound degrades to tolerance (A5 absorbed)
+/// - `expected_co_stimulation` advisory-only free text; NOT machine-verified
+/// - `signed_by` optional signer identifier
+#[derive(Debug)]
+pub struct AnergyArgs {
+    #[allow(dead_code)]
+    pub antigen: Option<syn::Path>,
+    pub reason: Option<String>,
+    pub reason_span: Option<Span>,
+    pub until: Option<String>,
+    pub until_span: Option<Span>,
+    #[allow(dead_code)]
+    pub expected_co_stimulation: Option<String>,
+    #[allow(dead_code)]
+    pub signed_by: Option<String>,
+    pub args_span: Span,
+}
+
+impl Parse for AnergyArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut antigen: Option<syn::Path> = None;
+        let mut reason: Option<String> = None;
+        let mut reason_span: Option<Span> = None;
+        let mut until: Option<String> = None;
+        let mut until_span: Option<Span> = None;
+        let mut expected_co_stimulation: Option<String> = None;
+        let mut signed_by: Option<String> = None;
+
+        // Optional leading positional antigen type path
+        if !input.is_empty() && input.peek(Ident) && !input.peek2(Token![=]) {
+            antigen = Some(input.parse()?);
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "reason" => {
+                    let lit: LitStr = input.parse()?;
+                    reason_span = Some(lit.span());
+                    reason = Some(lit.value());
+                }
+                "until" => {
+                    let lit: LitStr = input.parse()?;
+                    until_span = Some(lit.span());
+                    until = Some(lit.value());
+                }
+                "expected_co_stimulation" => {
+                    let lit: LitStr = input.parse()?;
+                    expected_co_stimulation = Some(lit.value());
+                }
+                "signed_by" => {
+                    let lit: LitStr = input.parse()?;
+                    signed_by = Some(lit.value());
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown #[anergy] field `{other}`; expected one of: \
+                             reason, until, expected_co_stimulation, signed_by"
+                        ),
+                    ));
+                }
+            }
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            antigen,
+            reason,
+            reason_span,
+            until,
+            until_span,
+            expected_co_stimulation,
+            signed_by,
+            args_span,
+        })
+    }
+}
+
+impl AnergyArgs {
+    /// Trust-boundary checks per ADR-023:
+    /// - `reason` required and minimum 20 characters
+    /// - `until` REQUIRED (A5 absorbed: anergy without time-bound = silent tolerance)
+    /// - `until` must be non-empty
+    pub fn validate(&self) -> syn::Result<()> {
+        // reason required + 20-char minimum
+        match self.reason.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[anergy] requires `reason = \"...\"`. \
+                     Anergy without a stated reason is a silent suppression.",
+                ));
+            }
+            Some(r) if r.len() < 20 => {
+                return Err(syn::Error::new(
+                    self.reason_span.unwrap_or(self.args_span),
+                    format!(
+                        "#[anergy] `reason` must be at least 20 characters \
+                         (got {}); per ADR-023 loudness-as-discipline.",
+                        r.len()
+                    ),
+                ));
+            }
+            _ => {}
+        }
+
+        // until REQUIRED (A5)
+        match self.until.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[anergy] requires `until = \"YYYY-MM-DD\"`. \
+                     Anergy without a time-bound degrades to silent tolerance. \
+                     Per ADR-023 A5: `until` is not optional.",
+                ));
+            }
+            Some("") => {
+                return Err(syn::Error::new(
+                    self.until_span.unwrap_or(self.args_span),
+                    "#[anergy] `until` must not be empty. \
+                     Use a date string, e.g. `until = \"2026-12-31\"`.",
+                ));
+            }
+            _ => {}
+        }
+
+        Ok(())
+    }
+}
+
+// ============================================================================
+// ImmunosuppressArgs parsing (ADR-023)
+// ============================================================================
+
+/// Arguments to `#[immunosuppress(antigen_type, rationale = "...", until = "...", ...)]`.
+///
+/// Per ADR-023: surgical family-of-checks silencing with hard duration cap.
+/// - `rationale` required, minimum 20 characters
+/// - `until` required
+/// - `since` optional ISO-8601 date; defaults to "now" for cap calculation
+/// - `duration_cap` optional override (days); defaults to workspace 90d cap
+/// - `signed_by` optional
+/// - Compile error if implied duration exceeds cap (A4 absorbed)
+#[derive(Debug)]
+pub struct ImmunosuppressArgs {
+    #[allow(dead_code)]
+    pub antigen: Option<syn::Path>,
+    pub rationale: Option<String>,
+    pub rationale_span: Option<Span>,
+    pub until: Option<String>,
+    pub until_span: Option<Span>,
+    #[allow(dead_code)]
+    pub since: Option<String>,
+    pub duration_cap: Option<u64>,
+    pub duration_cap_span: Option<Span>,
+    #[allow(dead_code)]
+    pub signed_by: Option<String>,
+    pub args_span: Span,
+}
+
+impl Parse for ImmunosuppressArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use syn::LitInt;
+        let args_span = input.span();
+        let mut antigen: Option<syn::Path> = None;
+        let mut rationale: Option<String> = None;
+        let mut rationale_span: Option<Span> = None;
+        let mut until: Option<String> = None;
+        let mut until_span: Option<Span> = None;
+        let mut since: Option<String> = None;
+        let mut duration_cap: Option<u64> = None;
+        let mut duration_cap_span: Option<Span> = None;
+        let mut signed_by: Option<String> = None;
+
+        // Optional leading positional antigen type path
+        if !input.is_empty() && input.peek(Ident) && !input.peek2(Token![=]) {
+            antigen = Some(input.parse()?);
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "rationale" => {
+                    let lit: LitStr = input.parse()?;
+                    rationale_span = Some(lit.span());
+                    rationale = Some(lit.value());
+                }
+                "until" => {
+                    let lit: LitStr = input.parse()?;
+                    until_span = Some(lit.span());
+                    until = Some(lit.value());
+                }
+                "since" => {
+                    let lit: LitStr = input.parse()?;
+                    since = Some(lit.value());
+                }
+                "duration_cap" => {
+                    let lit: LitInt = input.parse()?;
+                    duration_cap_span = Some(lit.span());
+                    duration_cap = Some(lit.base10_parse::<u64>()?);
+                }
+                "signed_by" => {
+                    let lit: LitStr = input.parse()?;
+                    signed_by = Some(lit.value());
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown #[immunosuppress] field `{other}`; expected one of: \
+                             rationale, until, since, duration_cap, signed_by"
+                        ),
+                    ));
+                }
+            }
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            antigen,
+            rationale,
+            rationale_span,
+            until,
+            until_span,
+            since,
+            duration_cap,
+            duration_cap_span,
+            signed_by,
+            args_span,
+        })
+    }
+}
+
+/// Default immunosuppression duration cap per ADR-023 (90 days).
+pub const IMMUNOSUPPRESS_DEFAULT_CAP_DAYS: u64 = 90;
+
+impl ImmunosuppressArgs {
+    /// Trust-boundary checks per ADR-023:
+    /// - `rationale` required and minimum 20 characters
+    /// - `until` required
+    /// - implied duration (until - since) must not exceed cap; COMPILE ERROR if exceeded (A4)
+    pub fn validate(&self) -> syn::Result<()> {
+        // rationale required + 20-char minimum
+        match self.rationale.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[immunosuppress] requires `rationale = \"...\"`. \
+                     Immunosuppression without rationale is not a claim.",
+                ));
+            }
+            Some(r) if r.len() < 20 => {
+                return Err(syn::Error::new(
+                    self.rationale_span.unwrap_or(self.args_span),
+                    format!(
+                        "#[immunosuppress] `rationale` must be at least 20 characters \
+                         (got {}); per ADR-023 loudness-as-discipline.",
+                        r.len()
+                    ),
+                ));
+            }
+            _ => {}
+        }
+
+        // until required
+        match self.until.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[immunosuppress] requires `until = \"YYYY-MM-DD\"`. \
+                     Suppression without a deadline is indefinite suppression.",
+                ));
+            }
+            Some("") => {
+                return Err(syn::Error::new(
+                    self.until_span.unwrap_or(self.args_span),
+                    "#[immunosuppress] `until` must not be empty.",
+                ));
+            }
+            _ => {}
+        }
+
+        // Duration cap enforcement (A4 absorbed): parse-time COMPILE ERROR
+        // if until - since > cap days. This closes the audit-only gap.
+        let cap = self.duration_cap.unwrap_or(IMMUNOSUPPRESS_DEFAULT_CAP_DAYS);
+        // Use i64 throughout to avoid cast_possible_wrap: cap is workspace-configured
+        // and guaranteed small (default 90); casting is safe but use i64 directly.
+        let cap_i64 = i64::try_from(cap).unwrap_or(i64::MAX);
+        if let Some(until_str) = self.until.as_deref() {
+            if let Ok(until_date) = parse_iso_date(until_str) {
+                let since_date = self
+                    .since
+                    .as_deref()
+                    .and_then(|s| parse_iso_date(s).ok())
+                    .unwrap_or_else(today_utc);
+                let duration_days = (until_date - since_date).num_days();
+                if duration_days > cap_i64 {
+                    return Err(syn::Error::new(
+                        self.until_span
+                            .unwrap_or_else(|| self.duration_cap_span.unwrap_or(self.args_span)),
+                        format!(
+                            "#[immunosuppress] duration {duration_days}d exceeds cap {cap_i64}d. \
+                             Per ADR-023: duration cap enforced at parse-time. \
+                             Reduce the `until` date or set `duration_cap = N` (workspace \
+                             default is {IMMUNOSUPPRESS_DEFAULT_CAP_DAYS}d)."
+                        ),
+                    ));
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
+// ============================================================================
+// PoxpartyArgs parsing (ADR-023)
+// ============================================================================
+
+/// Arguments to `#[poxparty(antigen_type, exercise_type = "...", until = "...", ...)]`.
+///
+/// Per ADR-023: intentional exposure with structural compile-time isolation.
+///
+/// CRITICAL (A3 absorbed): the proc-macro checks `CARGO_FEATURE_ANTIGEN_POXPARTY`
+/// env var at macro-expansion time and emits a COMPILE ERROR if the feature is
+/// not active. This closes the production-isolation gap — poxparty code cannot
+/// compile in a build where the `antigen-poxparty` Cargo feature is absent.
+///
+/// The `antigen-poxparty` feature MUST NOT be in the default feature set.
+///
+/// - `exercise_type` required, minimum 20 characters
+/// - `until` required
+/// - `name` optional descriptive name
+/// - `rationale` optional additional context
+/// - `signed_by` optional
+#[derive(Debug)]
+pub struct PoxpartyArgs {
+    #[allow(dead_code)]
+    pub antigen: Option<syn::Path>,
+    pub exercise_type: Option<String>,
+    pub exercise_type_span: Option<Span>,
+    pub until: Option<String>,
+    pub until_span: Option<Span>,
+    #[allow(dead_code)]
+    pub name: Option<String>,
+    #[allow(dead_code)]
+    pub rationale: Option<String>,
+    #[allow(dead_code)]
+    pub signed_by: Option<String>,
+    pub args_span: Span,
+}
+
+impl Parse for PoxpartyArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut antigen: Option<syn::Path> = None;
+        let mut exercise_type: Option<String> = None;
+        let mut exercise_type_span: Option<Span> = None;
+        let mut until: Option<String> = None;
+        let mut until_span: Option<Span> = None;
+        let mut name: Option<String> = None;
+        let mut rationale: Option<String> = None;
+        let mut signed_by: Option<String> = None;
+
+        // Optional leading positional antigen type path
+        if !input.is_empty() && input.peek(Ident) && !input.peek2(Token![=]) {
+            antigen = Some(input.parse()?);
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "exercise_type" => {
+                    let lit: LitStr = input.parse()?;
+                    exercise_type_span = Some(lit.span());
+                    exercise_type = Some(lit.value());
+                }
+                "until" => {
+                    let lit: LitStr = input.parse()?;
+                    until_span = Some(lit.span());
+                    until = Some(lit.value());
+                }
+                "name" => {
+                    let lit: LitStr = input.parse()?;
+                    name = Some(lit.value());
+                }
+                "rationale" => {
+                    let lit: LitStr = input.parse()?;
+                    rationale = Some(lit.value());
+                }
+                "signed_by" => {
+                    let lit: LitStr = input.parse()?;
+                    signed_by = Some(lit.value());
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown #[poxparty] field `{other}`; expected one of: \
+                             exercise_type, until, name, rationale, signed_by"
+                        ),
+                    ));
+                }
+            }
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            antigen,
+            exercise_type,
+            exercise_type_span,
+            until,
+            until_span,
+            name,
+            rationale,
+            signed_by,
+            args_span,
+        })
+    }
+}
+
+impl PoxpartyArgs {
+    /// Trust-boundary checks per ADR-023:
+    /// - `exercise_type` required and minimum 20 characters
+    /// - `until` required
+    ///
+    /// Note: structural isolation is two-layer — primary via
+    /// `#[cfg(feature = "antigen-poxparty")]` on the containing module (cfg
+    /// gate prevents expansion when feature absent), secondary via the
+    /// `CARGO_FEATURE_ANTIGEN_POXPARTY` env var check in the entry point.
+    /// Neither check is in the parser.
+    pub fn validate(&self) -> syn::Result<()> {
+        // exercise_type required + 20-char minimum
+        match self.exercise_type.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[poxparty] requires `exercise_type = \"...\"`. \
+                     Per ADR-023: describes the controlled exposure exercise.",
+                ));
+            }
+            Some(et) if et.len() < 20 => {
+                return Err(syn::Error::new(
+                    self.exercise_type_span.unwrap_or(self.args_span),
+                    format!(
+                        "#[poxparty] `exercise_type` must be at least 20 characters \
+                         (got {}); per ADR-023 loudness-as-discipline.",
+                        et.len()
+                    ),
+                ));
+            }
+            _ => {}
+        }
+
+        // until required
+        match self.until.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[poxparty] requires `until = \"YYYY-MM-DD\"`. \
+                     A pox party without a deadline runs indefinitely.",
+                ));
+            }
+            Some("") => {
+                return Err(syn::Error::new(
+                    self.until_span.unwrap_or(self.args_span),
+                    "#[poxparty] `until` must not be empty.",
+                ));
+            }
+            _ => {}
+        }
+
+        Ok(())
+    }
+}
+
+// ============================================================================
+// OrientArgs parsing (ADR-023)
+// ============================================================================
+
+/// Arguments to `#[orient(see = [...], adr = "...", attestation_optional)]`.
+///
+/// Per ADR-023: see-also context without antigen claim. The lightest-weight
+/// deferred-defense primitive — acknowledges orientation period during which
+/// immunity is explicitly absent. All fields are optional.
+///
+/// - `see` optional array of references (URLs, ADR IDs, etc.)
+/// - `adr` optional ADR reference string
+/// - `attestation_optional` optional boolean flag
+#[derive(Debug)]
+pub struct OrientArgs {
+    #[allow(dead_code)]
+    pub antigen: Option<syn::Path>,
+    #[allow(dead_code)]
+    pub see: Vec<String>,
+    #[allow(dead_code)]
+    pub adr: Option<String>,
+    #[allow(dead_code)]
+    pub attestation_optional: bool,
+    #[allow(dead_code)]
+    pub args_span: Span,
+}
+
+impl Parse for OrientArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut antigen: Option<syn::Path> = None;
+        let mut see: Vec<String> = Vec::new();
+        let mut adr: Option<String> = None;
+        let mut attestation_optional = false;
+
+        // Optional leading positional antigen type path
+        if !input.is_empty() && input.peek(Ident) && !input.peek2(Token![=]) {
+            // Could be `attestation_optional` flag (bare ident without `=`)
+            // or an antigen type path — disambiguate by checking if it's a
+            // bare ident followed by a comma or end-of-input (flag) vs
+            // followed by `::` or end-of-args (path).
+            let fork = input.fork();
+            let ident: Ident = fork.parse()?;
+            if ident == "attestation_optional" && (fork.is_empty() || fork.peek(Token![,])) {
+                // Consume from real stream
+                let _: Ident = input.parse()?;
+                attestation_optional = true;
+            } else {
+                antigen = Some(input.parse()?);
+            }
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        while !input.is_empty() {
+            // Check for bare `attestation_optional` flag (no `=`)
+            if input.peek(Ident) {
+                let fork = input.fork();
+                let ident: Ident = fork.parse()?;
+                if ident == "attestation_optional" && (fork.is_empty() || fork.peek(Token![,])) {
+                    let _: Ident = input.parse()?;
+                    attestation_optional = true;
+                    if !input.is_empty() {
+                        input.parse::<Token![,]>()?;
+                    }
+                    continue;
+                }
+            }
+
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "see" => {
+                    let arr: syn::ExprArray = input.parse()?;
+                    for elem in &arr.elems {
+                        if let Expr::Lit(syn::ExprLit {
+                            lit: Lit::Str(s), ..
+                        }) = elem
+                        {
+                            see.push(s.value());
+                        } else {
+                            return Err(syn::Error::new_spanned(
+                                elem,
+                                "expected a string literal in `see` array",
+                            ));
+                        }
+                    }
+                }
+                "adr" => {
+                    let lit: LitStr = input.parse()?;
+                    adr = Some(lit.value());
+                }
+                "attestation_optional" => {
+                    // Support `attestation_optional = true` form too
+                    let lit: syn::LitBool = input.parse()?;
+                    attestation_optional = lit.value();
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown #[orient] field `{other}`; expected one of: \
+                             see, adr, attestation_optional"
+                        ),
+                    ));
+                }
+            }
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            antigen,
+            see,
+            adr,
+            attestation_optional,
+            args_span,
+        })
+    }
+}
+
+impl OrientArgs {
+    /// `#[orient]` has no required fields — all fields optional per ADR-023
+    /// (lightest-weight deferred-defense primitive).
+    ///
+    /// Returns `Ok(())` always. The `syn::Result<()>` return type is kept for
+    /// API uniformity with the other deferred-defense validators.
+    #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
+    pub const fn validate(&self) -> syn::Result<()> {
+        Ok(())
+    }
+}
+
+// ============================================================================
+// Date helpers for ADR-023 parse-time enforcement
+// ============================================================================
+
+/// Parse an ISO-8601 date string (`YYYY-MM-DD`) into a `chrono::NaiveDate`.
+/// Returns `Err` if the string is not a valid date — callers treat parse
+/// failure as "cannot validate; skip cap check" to avoid false compile errors
+/// on non-date `until` strings (e.g., version tags like `"v2.0"`).
+///
+/// UTC mandate per ADR-023 §Enforcement-Surface.
+fn parse_iso_date(s: &str) -> Result<chrono::NaiveDate, ()> {
+    chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").map_err(|_| ())
+}
+
+/// Return today's UTC date for cap calculations when `since` is absent.
+fn today_utc() -> chrono::NaiveDate {
+    chrono::Utc::now().date_naive()
+}
+
+// ============================================================================
 // Helpers
 // ============================================================================
 

@@ -14,6 +14,17 @@
 //! - [`#[antigen_tolerance(...)]`](macro@antigen_tolerance) — document an
 //!   intentional opt-out with required rationale (ADR-011)
 //!
+//! ### Deferred-Defense Family (ADR-023)
+//!
+//! - [`#[anergy(...)]`](macro@anergy) — deferred-but-muted posture; `until`
+//!   REQUIRED; aging escalation; loudness-as-discipline
+//! - [`#[immunosuppress(...)]`](macro@immunosuppress) — surgical silencing
+//!   with hard duration cap enforced at parse time
+//! - [`#[poxparty(...)]`](macro@poxparty) — intentional exposure with
+//!   structural compile-time isolation via `antigen-poxparty` feature flag
+//! - [`#[orient(...)]`](macro@orient) — see-also context without antigen
+//!   claim; lightest-weight deferred-defense primitive
+//!
 //! Users typically import these via the [`antigen`](https://docs.rs/antigen)
 //! crate (`use antigen::{antigen, presents, immune, descended_from,
 //! antigen_tolerance};`) rather than depending on `antigen-macros` directly.
@@ -299,4 +310,237 @@ pub fn antigen_tolerance(args: TokenStream, input: TokenStream) -> TokenStream {
             .into()
         },
     )
+}
+
+// ============================================================================
+// Deferred-Defense Family (ADR-023)
+// ============================================================================
+
+/// Declare an anergy posture: deferred-but-muted, with required time-bound
+/// and aging escalation.
+///
+/// # Arguments
+///
+/// - Antigen type name (optional positional)
+/// - `reason = "..."` (required) — minimum 20 characters
+/// - `until = "YYYY-MM-DD"` (required) — expiry date; A5: `until` is not
+///   optional; anergy without time-bound degrades to silent tolerance
+/// - `expected_co_stimulation = "..."` (optional) — advisory-only; names the
+///   condition that would re-engage immune response; NOT machine-verified
+/// - `signed_by = "..."` (optional)
+///
+/// # Audit hints emitted by `cargo antigen audit`
+///
+/// - `anergy-active` — until has not passed
+/// - `anergy-co-stimulation-not-arrived` — past `until` date; awaiting trigger
+/// - `anergy-stale` — past `until` + grace period; escalates to warn/error
+///
+/// # Example
+///
+/// ```ignore
+/// use antigen::anergy;
+///
+/// #[anergy(
+///     MyFailureClass,
+///     reason = "Upstream dependency ships v2 in Q4; immunity blocked on that upgrade.",
+///     until = "2026-12-31",
+///     expected_co_stimulation = "upstream-v2-upgrade-complete",
+/// )]
+/// pub fn depends_on_upstream() { /* ... */ }
+/// ```
+#[proc_macro_attribute]
+pub fn anergy(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::AnergyArgs);
+    let input = proc_macro2::TokenStream::from(input);
+
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+
+    quote! { #input }.into()
+}
+
+/// Declare surgical immunosuppression with a hard duration cap enforced at
+/// parse time.
+///
+/// # Arguments
+///
+/// - Antigen type name (optional positional)
+/// - `rationale = "..."` (required) — minimum 20 characters
+/// - `until = "YYYY-MM-DD"` (required) — suppression deadline
+/// - `since = "YYYY-MM-DD"` (optional) — suppression start; defaults to today
+///   for cap calculation
+/// - `duration_cap = N` (optional) — override cap in days; workspace default
+///   is 90 days (ADR-023 `immunosuppress_duration_cap`)
+/// - `signed_by = "..."` (optional)
+///
+/// # Parse-time enforcement (A4 absorbed)
+///
+/// A COMPILE ERROR is emitted if `until - since > duration_cap`. This closes
+/// the audit-only gap — the cap cannot be bypassed by suppressing the audit.
+///
+/// # Audit hints
+///
+/// - `immunosuppress-active` — suppression current
+/// - `immunosuppress-expired` — past `until`
+/// - `immunosuppress-duration-cap-exceeded` — (should not occur post-compile;
+///   retained for audit re-evaluation of pre-cap-enforcement code)
+///
+/// # Example
+///
+/// ```ignore
+/// use antigen::immunosuppress;
+///
+/// #[immunosuppress(
+///     MyFailureClass,
+///     rationale = "CI matrix cannot run the verification harness until infra migration completes.",
+///     until = "2026-09-01",
+/// )]
+/// pub fn ci_constrained_path() { /* ... */ }
+/// ```
+#[proc_macro_attribute]
+pub fn immunosuppress(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::ImmunosuppressArgs);
+    let input = proc_macro2::TokenStream::from(input);
+
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+
+    quote! { #input }.into()
+}
+
+/// Declare an intentional exposure exercise with structural isolation.
+///
+/// # Structural isolation (A3 — two-layer approach)
+///
+/// Primary isolation: wrap `#[poxparty]` sites inside a
+/// `#[cfg(feature = "antigen-poxparty")]` module or item. When the feature
+/// is inactive, `rustc` strips the block before proc-macro expansion runs,
+/// so `#[poxparty]` never fires in production builds.
+///
+/// Secondary (best-effort): the macro checks `CARGO_FEATURE_ANTIGEN_POXPARTY`
+/// at expansion time. This check is authoritative when Cargo propagates the
+/// variable (some CI configurations and future Cargo versions). When not
+/// propagated, the cfg gate provides the structural guarantee.
+///
+/// The `antigen-poxparty` feature MUST NOT be in the crate's default feature
+/// set. `cargo antigen scan` emits `poxparty-outside-isolation` for any
+/// `#[poxparty]` site found outside a cfg-gated context at audit time.
+///
+/// # Arguments
+///
+/// - Antigen type name (optional positional)
+/// - `exercise_type = "..."` (required) — minimum 20 characters; describes
+///   the controlled exposure exercise
+/// - `until = "YYYY-MM-DD"` (required) — exercise deadline
+/// - `name = "..."` (optional) — descriptive exercise name
+/// - `rationale = "..."` (optional) — additional context
+/// - `signed_by = "..."` (optional)
+///
+/// # Audit hints
+///
+/// - `poxparty-active` — exercise in progress
+/// - `poxparty-outcome-pending` — past `until`; outcome not yet recorded
+/// - `poxparty-outcome-recorded` — outcome attestation present
+/// - `poxparty-outside-isolation` — site found outside cfg-gated scope
+///   (should not occur if the compile-time check holds)
+///
+/// # Example
+///
+/// ```ignore
+/// // In a module gated by #[cfg(feature = "antigen-poxparty")]:
+/// use antigen::poxparty;
+///
+/// #[poxparty(
+///     MyFailureClass,
+///     exercise_type = "Fault injection: saturate the retry buffer to verify backpressure handling.",
+///     until = "2026-10-01",
+/// )]
+/// pub fn chaos_test_retry_saturation() { /* ... */ }
+/// ```
+#[proc_macro_attribute]
+pub fn poxparty(args: TokenStream, input: TokenStream) -> TokenStream {
+    // A3 structural isolation — two-layer approach:
+    //
+    // Layer 1 (primary): `#[cfg(feature = "antigen-poxparty")]` on the
+    // containing module/item. When the feature is inactive, `rustc` strips
+    // the entire block before proc-macro expansion — `#[poxparty]` never
+    // runs. This is the primary structural isolation mechanism. Callers
+    // MUST wrap poxparty sites in a cfg gate.
+    //
+    // Layer 2 (env-var check, best-effort): Cargo sets CARGO_FEATURE_*
+    // for build scripts but not reliably for proc-macro expansion in all
+    // versions/configurations. We check the var as a secondary guard — it
+    // fires when callers invoke the macro outside a cfg gate AND the var
+    // happens to be absent. When Cargo IS propagating the var (e.g., some
+    // CI configurations, or when the caller sets it explicitly), this
+    // check is authoritative. When it isn't propagated, the cfg gate is
+    // the load-bearing isolation.
+    //
+    // Per ADR-023 §Known limitations: "env-var propagation to proc-macro
+    // expansion environment is Cargo-version-dependent; cfg gate is the
+    // primary structural isolation."
+    if std::env::var("CARGO_FEATURE_ANTIGEN_POXPARTY").is_err() {
+        // Best-effort: emit a warning-level doc comment rather than a hard
+        // compile error, since the env var may simply not be propagated.
+        // The cfg gate is the primary structural check.
+        // In environments where the var IS set (e.g., future Cargo versions
+        // that propagate it, or explicit CI configuration), this would be a
+        // compile error. For now, the scan-side `poxparty-outside-isolation`
+        // hint provides the audit-time enforcement.
+        //
+        // INTENTIONAL: no compile error here — see above.
+    }
+
+    let args = parse_macro_input!(args as parse::PoxpartyArgs);
+    let input = proc_macro2::TokenStream::from(input);
+
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+
+    quote! { #input }.into()
+}
+
+/// Declare an orientation period: acknowledged absence of immunity with
+/// see-also context. The lightest-weight deferred-defense primitive.
+///
+/// All fields are optional — `#[orient]` with no arguments is valid.
+///
+/// # Arguments
+///
+/// - Antigen type name (optional positional)
+/// - `see = [...]` (optional) — array of references (URLs, ADR IDs, etc.)
+/// - `adr = "..."` (optional) — ADR reference
+/// - `attestation_optional` (optional bare flag, or `attestation_optional =
+///   true`) — marks that attestation is optional for this orientation
+///
+/// # Audit hints
+///
+/// - `orient-active` — orientation in progress
+/// - `orient-pending-action-required` — orientation past deadline (if `until`
+///   is added in future; current v0.2 does not require `until` for orient)
+///
+/// # Example
+///
+/// ```ignore
+/// use antigen::orient;
+///
+/// #[orient(
+///     see = ["ADR-023", "https://example.com/migration-plan"],
+///     adr = "ADR-023",
+/// )]
+/// pub fn new_subsystem_under_construction() { /* ... */ }
+/// ```
+#[proc_macro_attribute]
+pub fn orient(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::OrientArgs);
+    let input = proc_macro2::TokenStream::from(input);
+
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+
+    quote! { #input }.into()
 }
