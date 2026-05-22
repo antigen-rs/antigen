@@ -9,20 +9,25 @@
 
 ## What antigen is
 
-Antigen makes **structural memory of failure-classes** part of your
-codebase.
+Antigen makes **structural memory of failure-classes** part of your codebase.
 
-When you fix a bug, you learn something about *why* a class of code
-fails. Most of that lesson lives in implicit carriers — your head, a
-commit message, a Slack thread, a docstring that drifts. None of those
-carriers are drift-resistant. Six months later, the same shape of bug
-appears in code written by someone (human or LLM) who never saw the
-lesson.
+When you fix a bug, you learn something about *why* a class of code fails. Most of that lesson lives in implicit carriers — your head, a commit message, a Slack thread, a docstring that drifts. None of those carriers are drift-resistant. Six months later, the same shape of bug appears in code written by someone (human or LLM) who never saw the lesson.
 
-Antigen names the lesson, gives it a structural fingerprint, and
-makes it checkable by cargo tooling. The lesson survives developer
-turnover, AI agent context cycling, time, and refactors — because it
-lives in the type system, not in human memory.
+Antigen names the lesson, gives it a structural fingerprint, and makes it checkable by cargo tooling. The lesson survives developer turnover, AI agent context cycling, time, and refactors — because it lives in the type system, not in human memory.
+
+### Why now: the generation-inspection asymmetry
+
+Modern software development is characterized by a **structural asymmetry**: generation throughput vastly exceeds inspection throughput for all actor types.
+
+- Humans can't read all the code they ship (especially in AI-pair workflows)
+- Vibe coders generate code via prompting that they may not fully understand
+- LLM agents can't track across sessions — context resets; summarization drifts
+- Human-LLM teams have throughput advantages, but the inspection bottleneck stays bounded by both actor types
+- Docs / comments / ADRs / Slack ship faster than they're read
+
+This asymmetry is at a **historic maximum in 2026** and growing. The historical assumption that "the team has read everything" hasn't held in years; it now fails catastrophically.
+
+Antigen's whole reason for existing: the asymmetry guarantees passive memory (docs, comments, "last reviewed" stamps) will fail; the only viable alternative is **structural memory that surfaces itself** at compile time and audit time. See [`vision-pitch.md`](vision-pitch.md) for the deeper articulation.
 
 ---
 
@@ -61,22 +66,25 @@ against it*.
 
 ## The vocabulary
 
-Antigen's vocabulary is five attribute macros. Together they form a
-*shared coordination layer* — the protocol the various antigen
-components use to coordinate.
+Antigen's vocabulary is five attribute macros + one cross-cutting parameter. Together they form a *shared coordination layer* — the protocol the various antigen components use to coordinate.
 
-| Macro | Purpose |
+| Macro / parameter | Purpose |
 |---|---|
 | `#[antigen(name = ..., fingerprint = ..., ...)]` | Declare a named failure-class with a structural fingerprint |
 | `#[presents(AntigenName)]` | Mark code as vulnerable to a declared failure-class |
-| `#[immune(AntigenName, witness = ...)]` | Claim immunity backed by a named witness (test, proptest, formal proof, lint, phantom-type) |
+| `#[immune(AntigenName, witness = ...)]` | Claim immunity backed by a named code witness (test, proptest, formal proof, lint, phantom-type) |
+| `#[immune(AntigenName, requires = <predicate>)]` | Substrate-witness form (v0.1+, ADR-019): claim immunity backed by a *sidecar predicate* (signers / freshness / Oracle state / etc.) |
 | `#[descended_from(Parent)]` | Declare inheritance between failure-classes |
 | `#[antigen_tolerance(AntigenName, rationale = ...)]` | Explicitly tolerate a fingerprint match |
+| `attested = (who, allowed_types, why, scope)` | Cross-cutting attestation parameter (ADR-020) — adds attestation context to any of the above |
 
-Plus two cargo subcommands:
+Plus five cargo subcommands:
 
 - `cargo antigen scan` — find every site exhibiting a declared failure-class
 - `cargo antigen audit` — verify immunity claims with tier-honest reporting
+- `cargo antigen attest` — manage `.attest/<Antigen>.json` substrate-witness sidecars (v0.1+, ADR-019)
+- `cargo antigen tolerate` — manage tolerance-ratification sidecars (v0.1+, ADR-019 §tolerance tier)
+- `cargo antigen oracle` — manage Oracle artifact-class records (v0.1+, ADR-021)
 
 The five primitives describe a structure that doesn't depend on Rust.
 Each could be implemented for other languages (Python, JavaScript,
@@ -204,6 +212,57 @@ post-A3.5 ratification).
 
 ---
 
+## Substrate-witness pipeline (v0.1+)
+
+Some disciplines can't be witnessed by a single in-tree function. Examples:
+
+- "I reviewed this code against Higham §6.3" — the witness is a human review, not a function
+- "The discipline holds because signers A, B, and C attested" — multi-signer attestation
+- "This is valid for 180 days after last review" — temporal freshness
+- "This claim depends on Oracle X being in `Complete` state" — depends on a separate artifact's lifecycle
+
+The **substrate-witness pipeline** (ADR-019) makes these checkable at audit time. The `#[immune(X, requires = <predicate>)]` form names a predicate over a `.attest/<Antigen>.json` sidecar file co-located with the declaration. The predicate is composed from five leaf operators:
+
+- `signers(required = [...])` — the sidecar must contain signatures from named identities
+- `fresh_within_days(N)` — the most recent signature must be within N days
+- `ratified_doc(reference = ...)` — pointer to a ratified ADR or external doc
+- `oracles_complete(required = [...])` — depends on named Oracle records being in `Complete` state
+- `signed_trailer(...)` — git-trust-style commit-signed integration
+
+Plus three combinators: `all_of(...)`, `any_of(...)`, `not(...)`.
+
+The audit reports the predicate's evaluation result with **three-tier SignatureStrength** (WORKSPACE-LOCAL / OIDC-IDENTITY / KEY-SIGNED) for each signature, so the *strength of evidence* is visible — not just yes/no.
+
+See [`witness-tiers.md`](witness-tiers.md) for the full tier model. Worked example: [`substrate_witness.rs`](../antigen/examples/substrate_witness.rs).
+
+---
+
+## Oracle artifacts (v0.1+, ADR-021)
+
+When your discipline depends on an *external reference* — a paper, an ADR, a spec — Oracle artifacts make that reference first-class:
+
+- **5-state lifecycle**: Draft → Complete → Deprecated / Retired / Revoked (+ Reopened)
+- **Stewardship**: each Oracle has signers who attested and stewards who maintain the reference
+- **Audit integration**: `oracles_complete(required = [...])` checks Oracle state at audit time
+- **Provenance trail**: who declared, who transitioned states, when, why
+
+This closes the "URLs go stale" problem at the substrate level. The reference is stewarded, versioned, lifecycle-tracked — and immunity claims that depend on it stay honest as the reference evolves.
+
+Worked example: [`oracle_lifecycle.rs`](../antigen/examples/oracle_lifecycle.rs).
+
+---
+
+## Antigen category — substrate-alignment vs functional-correctness
+
+A v0.2 distinction (ratifying via NEW-ADR-028): antigens come in two structural categories.
+
+- **Substrate-alignment antigens** — when the *representation* of state diverges from actual state. Substrate-witness; scan/commit-time; observer-role catches. Examples: `UnanchoredGitignorePattern` (git's view of disk ≠ disk), `DocClaimVsCodeImplementationMismatch` (docs drift), `RollbackWithoutTriageCommit` (history drift).
+- **Functional-correctness antigens** — when a *verb produces wrong output*. Code-witness; test/runtime; adversarial + scientist roles catch. Examples: `PanickingInDrop` (Drop produces process abort), `SignedZeroDiscipline` (sinh produces wrong sign at -0.0), `SilentCliCommandFailure` (CLI exit code lies).
+
+The category metadata shapes witness type, audit layer, lifecycle phase, and responder role. Many of v0.1's antigens are functional-correctness; v0.2 substantially expands substrate-alignment via supply-chain, VCS-info-loss, mucosal-boundary, and the antigen-category metadata itself.
+
+---
+
 ## The biology cognate
 
 The biological metaphor is **load-bearing, not decorative**. The
@@ -300,26 +359,29 @@ for the second; formalized through the tool for the third.
 
 ---
 
-## Recognition-not-design
+## Recognition-not-design (amended for two disciplines)
 
-The project operates under a discipline named in ADR-006:
+The project operates under a discipline named in ADR-006, **amended** in the v0.2 ratification ceremony to formalize a two-disciplines architecture (NEW-ADR-022).
 
-> When uncertain whether to design something or recognize something,
-> lean toward recognition. New antigens, new witness types, new
-> composition rules are added when they recognize existing structure
-> in the substrate — not when they extend the design speculatively.
+### For ADOPTER extensions: recognition discipline
 
-This shapes both how the project grows and how you should adopt it:
+When *you* are adding antigens for your team's codebase:
 
-- **Don't design speculative antigens.** Wait until you've encountered
-  the failure-class in real code (yours or a dependency's). The
-  discipline catches premature abstraction.
-- **The vocabulary itself grows by recognition.** New primitives in
-  antigen-the-project land when three independent substrate-grounded
-  instances surface. The same threshold applies to your team's antigens.
-- **Recognition leaves substrate**: when you declare an antigen, point
-  to references that ground it. When you tolerate a fingerprint match,
-  rationale is required at parse time. The discipline is structural.
+> When uncertain whether to design something or recognize something, lean toward recognition. New antigens, new witness types, new composition rules are added when they recognize existing structure in the substrate — not when they extend the design speculatively.
+
+- **Don't design speculative antigens.** Wait until you've encountered the failure-class in real code (yours or a dependency's). The discipline catches premature abstraction.
+- **Adopter additions land when three independent substrate-grounded instances surface.**
+- **Recognition leaves substrate**: when you declare an antigen, point to references that ground it. When you tolerate a fingerprint match, rationale is required at parse time. The discipline is structural.
+
+### For STDLIB growth: research-driven discipline
+
+When *antigen-the-project* expands its core vocabulary:
+
+> Stdlib growth is research-driven, deliberately comprehensive. New primitives are substrate-citable from postmortems / literature / training-data / predictive analysis / biological-component-mapping — not constrained to "wait for the third instance."
+
+The biological immune system serves as the systematic discovery framework. Each unused immune-system component is a research-arc prompt. v0.2's macro family expansions (~50+ primitives across 9 tiers per the [biological discovery framework](expedition/biological-component-discovery-framework.md)) are research-driven, not recognition-gated.
+
+This split matters because the two disciplines have different cost asymmetries. Speculative *adopter* extensions bloat noise; speculative *stdlib* extensions cover failure-classes adopters haven't yet hit but should be protected against. The amended ADR-006 + new ADR-022 formalize this split.
 
 ---
 

@@ -1,7 +1,13 @@
 # Antigen — Examples Guide
 
-> Curated walkthrough of the five examples in `antigen/examples/`,
+> Curated walkthrough of the nine examples in `antigen/examples/`,
 > ordered for progressive learning. Each lesson builds on the prior.
+>
+> Lessons 1–5 cover the core vocabulary (`#[antigen]` / `#[presents]` /
+> `#[immune]` / `#[antigen_tolerance]` / `#[descended_from]`) + the
+> witness model. Lessons 6–9 cover the substrate-witness pipeline
+> (ADR-019), Oracle artifact lifecycle (ADR-021), delta-chained
+> attestations, and attested-vs-vibes-grade tolerance.
 >
 > For the full tutorial narrative, see [`tutorial.md`](tutorial.md).
 > For pattern recipes, see [`usage-patterns.md`](usage-patterns.md).
@@ -213,18 +219,132 @@ audit confirms the proof structure is recognized.
 
 ---
 
-## After the five lessons
+## Lesson 6 — `substrate_witness.rs`: discipline-witness via sidecar
 
-By now you've encountered the five core macros and all the basic
-concepts:
+**File**: [`antigen/examples/substrate_witness.rs`](../antigen/examples/substrate_witness.rs)
+
+**Concept introduced**: substrate-witness predicates. Some disciplines (signed-zero preservation across odd functions, structural invariants reviewed against external math literature) can't be witnessed by a single in-tree function — the verification lives in a *human review* recorded as a sidecar file. The substrate-witness pipeline (ADR-019) makes that review checkable at audit time.
+
+**What's in the file** (the story is in the docstring; read it):
+- A `SignedZeroDiscipline` antigen for the class "every odd function must preserve sign at signed zero"
+- Two implementations: `signed_zero_preserving_sinh` (correct) and `naive_sinh_loses_sign_at_zero` (the bug)
+- An `#[immune(SignedZeroDiscipline, requires = all_of([signers(required = [...]), fresh_within_days(180)]))]` claim
+- The `requires` predicate names what the sidecar file must contain for the immunity claim to hold
+
+**What to learn**:
+- Substrate-witness leaves: `signers(required = [...])`, `fresh_within_days(N)`, `ratified_doc(reference = ...)`, `oracles_complete(required = [...])`, `signed_trailer(...)`
+- Combinators: `all_of`, `any_of`, `not`
+- The sidecar lives at `.attest/<AntigenName>.json` co-located with the declaration
+- Audit tier climbs from `None` → `Reachability` → `Execution` as the sidecar gets scaffolded, then signed by required signers
+- This is how to verify disciplines that have NO in-tree witness function (e.g., "I reviewed this against Higham §6.3")
+
+**Try this**:
+```sh
+cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
+# See the audit hint progression as you scaffold + sign the sidecar:
+cargo run --bin cargo-antigen -- antigen attest scaffold --root antigen/examples SignedZeroDiscipline
+cargo run --bin cargo-antigen -- antigen attest sign --root antigen/examples SignedZeroDiscipline --signer "you@example.com"
+cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
+```
+
+---
+
+## Lesson 7 — `oracle_lifecycle.rs`: Oracle 5-state artifact lifecycle
+
+**File**: [`antigen/examples/oracle_lifecycle.rs`](../antigen/examples/oracle_lifecycle.rs)
+
+**Concept introduced**: Oracle artifacts. When your discipline depends on an *external reference* (a published paper, a ratified ADR, a versioned spec), you want signers to attest against that exact reference — not a free-text URL that goes stale. Oracle records first-class the reference + its stewardship + its lifecycle state.
+
+**What's in the file**:
+- Oracle declared via `cargo antigen oracle declare ...` with steward + provenance
+- Antigen with `#[immune(..., requires = oracles_complete(required = ["higham-2002-section-6-3"]))]`
+- Lifecycle transitions: Draft → Complete (signers attest the Oracle's content matches the reference) → Deprecated (the reference still exists but newer guidance supersedes) → Retired / Revoked
+
+**What to learn**:
+- Oracle 5-state machine (Draft / Complete / Deprecated / Retired / Revoked + Reopened)
+- `oracles_complete(...)` predicate checks Oracle state at audit time
+- Oracle records have signers (who attested), stewards (who maintains the reference link), and provenance
+- The audit treats `Complete` as the load-bearing tier; `Deprecated` triggers a "use with caution" hint; `Retired`/`Revoked` fail audit
+- This closes the "URLs go stale" problem at the substrate level
+
+**Try this**:
+```sh
+cargo run --bin cargo-antigen -- antigen oracle list --root antigen/examples
+cargo run --bin cargo-antigen -- antigen oracle status --root antigen/examples higham-2002-section-6-3
+cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
+```
+
+---
+
+## Lesson 8 — `delta_attestation.rs`: chained signatures with anti-laundering
+
+**File**: [`antigen/examples/delta_attestation.rs`](../antigen/examples/delta_attestation.rs)
+
+**Concept introduced**: delta-chained attestations. When a function body changes (e.g., refactor that preserves the signed-zero discipline), the reviewer can sign a `Delta` saying "I reviewed fp-A → fp-B and it preserves the invariant" — avoiding a full re-review while keeping the signature chain auditable. ADR-019 §M3 + adversarial T2-R safeguards prevent laundering.
+
+**What's in the file**:
+- `NumericStabilityDiscipline` antigen on `stable_kahan_sum`
+- Fresh signature against `fp-A`; refactor produces `fp-B`; reviewer signs a Delta(`fp-A`, `fp-B`)
+- Three-layer anti-laundering safeguards (per adversarial T2-R)
+- Demonstrates that the audit collapses the chain to current-state signers but preserves the provenance trail
+
+**What to learn**:
+- `SignerBasis` distinguishes Fresh vs Delta in the sidecar
+- Delta has anti-laundering safeguards: bounded chain length, fingerprint-pinning, signer-identity-binding
+- When the chain breaks (e.g., body changes substantively), the next signature MUST be Fresh
+- The audit reports `chain_depth` as part of `SignatureStrength`
+- This solves the "small refactor invalidates all my signatures" problem WITHOUT enabling rubber-stamp laundering
+
+**Try this**:
+```sh
+cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
+# Look for the chain_depth field on NumericStabilityDiscipline's audit entry
+```
+
+---
+
+## Lesson 9 — `tolerance_attested.rs`: vibes-grade vs sidecar-attested tolerance
+
+**File**: [`antigen/examples/tolerance_attested.rs`](../antigen/examples/tolerance_attested.rs)
+
+**Concept introduced**: attested tolerance. Tolerance comes in tiers. A one-line `rationale = "fine for now"` is vibes-grade. The same antigen tolerated with a sidecar capturing an hour-long review with a math expert is qualitatively stronger evidence. ADR-019 §tolerance tier surfaces this distinction.
+
+**What's in the file**:
+- An `UncheckedRecursion` antigen
+- `walk_config_tree_vibes_grade` — tolerated with one-line rationale
+- `newton_iterate_sidecar_attested` — tolerated with a sidecar capturing the review
+- Side-by-side comparison in audit output
+
+**What to learn**:
+- Both forms are tolerance (both opt out of immunity); audit treats them differently
+- Vibes-grade tolerance reports at `Reachability` tier with `RationaleOnly` hint
+- Sidecar-attested tolerance reports at `Execution` tier (or higher with signer attestation)
+- The discipline scales: teams can require sidecar-attested tolerance for certain antigens via workspace config
+- This closes the "tolerance is a back door" problem — tolerance can be as strong as immunity when the evidence justifies it
+
+**Try this**:
+```sh
+cargo run --bin cargo-antigen -- antigen tolerate list --root antigen/examples
+cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
+```
+
+---
+
+## After the nine lessons
+
+By now you've encountered the five core macros, the four witness tiers, the substrate-witness pipeline, the Oracle 5-state lifecycle, delta-chained signatures, and the attested-vs-vibes-grade tolerance distinction:
 
 | Lesson | Concept |
 |---|---|
 | 1 — basic | declare, present, immune (three core moves) |
 | 2 — broken_witness | audit-tier-honesty + None tier |
-| 3 — antigen_tolerance | explicit tolerance + rationale |
+| 3 — antigen_tolerance | explicit tolerance + required rationale |
 | 4 — descended_from | inheritance + re-attestation discipline |
 | 5 — phantom_witness | FormalProof tier via type-system proof |
+| 6 — substrate_witness | substrate-witness predicates + sidecar pipeline |
+| 7 — oracle_lifecycle | Oracle 5-state artifact lifecycle + stewardship |
+| 8 — delta_attestation | chained signatures + anti-laundering safeguards |
+| 9 — tolerance_attested | sidecar-attested vs vibes-grade tolerance |
 
 **Where to go next**:
 
@@ -319,5 +439,5 @@ a real codebase with declared antigens.
 ---
 
 *The examples are real. The patterns are universal. Once you've
-worked through the five lessons, you've encountered every core
-concept antigen ships in v0.1.0-rc.1.*
+worked through the nine lessons, you've encountered every core
+concept antigen ships in v0.1.0-rc.3.*

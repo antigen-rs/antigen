@@ -11,40 +11,51 @@
 
 ---
 
-## Shipped (v0.1.0-rc.1)
+## Shipped (v0.1.0-rc.3)
 
-The core vocabulary, scan + audit tooling, and discipline substrate are
-all live:
+The core vocabulary, scan + audit tooling, substrate-witness pipeline, Oracle artifact lifecycle, and team-coordination tooling are all live across 5 crates on crates.io (`antigen`, `antigen-macros`, `antigen-attestation`, `antigen-fingerprint`, `cargo-antigen`).
 
-- **Five macros**: `#[antigen]`, `#[presents]`, `#[immune]`,
-  `#[descended_from]`, `#[antigen_tolerance]`
-- **`cargo antigen scan`** with workspace-wide scanning, item-identity
-  matching (W3), fingerprint detection, tolerance recognition, and
-  orphaned-tolerance reporting
-- **`cargo antigen audit`** with the `WitnessTier` gradient
-  (None / Reachability / Execution / FormalProof) — tier-honest
-  reporting per ADR-005 Amendment 3
-- **Fingerprint grammar v1** — seven item-level operators (`item`,
-  `name`, `variants`, `has_method`, `attr_present`, `doc_contains`,
-  `body_contains_macro`) plus composition (`all_of`, `any_of`, `not`);
-  proc_macro2 canonicalization per ADR-010 Amendment 5
-- **Phantom-type witness recognition** (ADR-013) — `Witnessed<T,W>`,
-  `typewit::TypeEq`, hand-rolled `PhantomData<T>` shapes recognized at
-  FormalProof tier with explicit human-readable output
-- **Cross-crate identity infrastructure** — `canonical_path` at
-  `name@version` granularity (ADR-017); cross-crate `#[descended_from]`
-  propagation and registry source-walking land in A3 (v0.2)
-- **Documentation**: tutorial, fingerprint grammar reference,
-  usage-patterns cookbook, where-to-look conventions, troubleshooting,
-  origin narrative, comprehensive ADR substrate
+### Vocabulary + macros
+- **Five macros**: `#[antigen]`, `#[presents]`, `#[immune]`, `#[descended_from]`, `#[antigen_tolerance]`
+- **Cross-cutting attestation parameter**: `attested = (who, allowed_types, why, scope)` per ADR-020
+- **Phantom-type witness recognition** (ADR-013) — `Witnessed<T,W>`, `typewit::TypeEq`, hand-rolled `PhantomData<T>` shapes recognized at FormalProof tier
+- **Cross-crate identity** — `canonical_path` at `name@version` granularity (ADR-017); cross-crate `#[descended_from]` propagation in v0.2
 
-See [`CHANGELOG.md`](../CHANGELOG.md) for the full v0.1.0-rc.1 manifest.
+### CLI surface (`cargo antigen ...`)
+- **`scan`** — workspace-wide scanning, item-identity matching (W3), fingerprint detection, tolerance recognition, orphaned-tolerance reporting
+- **`audit`** — `WitnessTier` gradient (None / Reachability / Execution / FormalProof) per ADR-005 Amendment 3; substrate-witness pipeline wired end-to-end via the rc.2 hotfix
+- **`attest`** subcommands — manage `.attest/<Antigen>.json` substrate-witness sidecars (ADR-019): `scaffold`, `sign`, `check`, plus design-phase `list`, `delta`, `gc`
+- **`tolerate`** subcommands — manage tolerance-ratification sidecars (ADR-019 §tolerance tier)
+- **`oracle`** subcommands — manage Oracle artifact-class records (ADR-021 §D3): `list`, `status`, `declare`, `complete`, `deprecate`, `retire`, `revoke`
+- **`--version`** flag (rc.3) — introspects the installed `cargo-antigen` version for tooling integration
+
+### Fingerprint engine
+- **Fingerprint grammar v1** — seven item-level operators (`item`, `name`, `variants`, `has_method`, `attr_present`, `doc_contains`, `body_contains_macro`) plus composition (`all_of`, `any_of`, `not`); proc_macro2 canonicalization per ADR-010 Amendment 5
+
+### Substrate-witness machinery (ADR-019)
+- **`#[immune(X, requires = <predicate>)]`** form with substrate-witness leaves: `signers(required = [...])`, `fresh_within_days(N)`, `ratified_doc(reference = ...)`, `oracles_complete(required = [...])`, `signed_trailer(...)`
+- **Predicate combinators** — `all_of`, `any_of`, `not`
+- **Three-tier SignatureStrength** (per ADR-019 v1+3): WORKSPACE-LOCAL, OIDC-IDENTITY, KEY-SIGNED with explicit audit-time reporting
+- **Sidecar discovery** — `.attest/<Antigen>.json` co-located with declaration
+
+### Oracle 5-state lifecycle (ADR-021)
+- **`#[oracle]` artifact-class** with full state machine: Draft → Complete → Deprecated/Retired/Revoked + Reopened
+- **Per-Oracle signers + stewards + provenance trail**
+- **Audit integration** — `oracles_complete(...)` predicate checks Oracle state at audit time
+
+### Documentation
+- **Adopter-facing**: README, quickstart, tutorial, examples-guide, witness-tiers, usage-patterns, fingerprint-grammar, where-to-look-for-antigens, anti-patterns, troubleshooting
+- **Conceptual**: concepts, structural-memory, postures, immune-system-primitive-map, vision-pitch, scope, origin narrative
+- **Process**: decisions (ADRs), process, glossary, roadmap, contributing
+- **LLM-collaborator protocol**: `for-llm-collaborators.md`
+
+See [`CHANGELOG.md`](../CHANGELOG.md) for the full release manifest.
 
 ---
 
 ## Path to 0.1.0 (drop the `-rc.N` suffix)
 
-`0.1.0-rc.1` is a release candidate: the API shape we believe will be
+`0.1.0-rc.3` is a release candidate: the API shape we believe will be
 0.1.0 final, pending validation against real adoption. Promoting to
 `0.1.0` (no rc qualifier) means committing to:
 
@@ -77,14 +88,14 @@ each exercise the WHOLE primitive stack on different stress profiles:
    commitments. The WHOLE primitive stack against ONE codebase.
    Source-code-as-canonical-reference: every defensive declaration
    doubles as a worked example.
-2. **Camp build.** Per-project Rust crate (`<project>/camp/`) where
-   each campsite is a module declaring an Oracle with required
-   signers + state machine. `cargo check` IS the team-status query.
-   Camp's whole purpose is dogfooding antigen for team coordination —
-   the WHOLE stack against multi-crate workflow + multi-role signers +
-   real lifecycle state transitions. Adds the cross-crate dimension
-   (camp crate depends on antigen crate from crates.io).
-2. **Tambear discipline + numerical-correctness adoption.** Tambear's
+2. **External adopters.** Independent projects built on antigen via the
+   public API (subprocess composition or library link per ADR-002)
+   provide leg-2 evidence: antigen's primitives hold up to real downstream
+   needs. External adopters are tracked in their own release histories,
+   not antigen's roadmap — antigen's promotion gate considers their
+   substrate as evidence of API durability without claiming their
+   milestones as antigen's.
+3. **Tambear discipline + numerical-correctness adoption.** Tambear's
    Phase 4 work (sinh/cosh signed-zero) extends to more numeric
    functions + more disciplines + Oracle lifecycle for the numerics
    specs. Cross-crate trust extension between tambear → antigen at the
@@ -95,7 +106,7 @@ Each leg of the trinity exercises every primitive (predicate /
 audit / oracle / lifecycle / signers / coordination / discipline /
 feature-specific defenses) but on different substrate. **Three
 independent witnesses of "yes this primitive holds up."** Cross-crate
-machinery only exercises under camp + tambear; it's not theoretical.
+machinery only exercises under real external adopters; it's not theoretical.
 
 ### Additional 0.1.0 readiness items
 
@@ -132,8 +143,8 @@ build in parallel:
 
 - Layer 1 source-dogfood: days to first declarations; sessions to full
   coverage
-- Camp build: weeks to MVP; depends on adoption shape but the
-  underlying primitives exist
+- External adopter feedback: ongoing as adopters exercise antigen's API
+  surface and surface real-world friction signal
 - Tambear discipline expansion: ongoing as tambear's numerics team
   hits more failure-classes worth attesting
 
@@ -146,26 +157,49 @@ rc's as needed; promote when shape is stable across all three witnesses."
 
 ## Planned for v0.2
 
-Items committed by structural necessity (ADR-007 anti-YAGNI:
-structurally-guaranteed-need). Each lands when its substrate matures;
-ordering may shift.
+The v0.2 cycle is structured around an **architectural-posture-shift ratification event** — 10 ADRs ratifying together (one process.md amendment alongside) committing antigen to a **comprehensive immune-system stdlib** rather than the narrower v0.1 framing.
 
-- **Body-level fingerprint operators** via ast-grep subprocess
-  (per ADR-015). Enables fingerprints that match against function
-  bodies, not just item-level signatures. Closes the recall-tuned-filter
-  gap for failure-classes whose structural pattern lives in
-  implementation, not declaration.
-- **`cargo antigen new`** — scaffold a new antigen declaration with
-  guided prompts. Tooling for first-time-adopter ergonomics; reduces
-  the friction of authoring well-formed fingerprints from scratch.
-- **`cargo antigen vaccinate`** — apply known immunity pattern across
-  a structural family. Bulk-applies `#[presents]` and `#[immune]`
-  annotations to sites matching a known antigen's fingerprint, with
-  human review of the proposed change-set.
-- **Engine-canonicalization for operators beyond `has_method`** — the
-  ADR-010 Amendment 5 pre-tokenization pattern extends to other
-  string-comparison operators where tokenization asymmetries surface
-  in practice (recognition-not-design: lands when substrate-grounded).
+This shift is grounded in the **generation-inspection asymmetry** that characterizes modern dev (humans + LLM agents + human-LLM teams generate code faster than any can inspect). Antigen's role is **memory-to-structure transformation**: convert passive memory (TODOs, comments, ADRs, Slack decisions) into co-native structure (compile-checked, audit-surfaced, stale-aware, sign-required) that surfaces itself. See [`docs/expedition/the-comprehensive-vision.md`](expedition/the-comprehensive-vision.md) for the full synthesis.
+
+### Ratified architectural commitments (v0.2 ceremony)
+
+- **AMEND-ADR-002** (compose-or-compete amended) — antigen owns surfaces where cohesion-within-antigen serves adopters better; composition stays the default for external expertise + low integration cost
+- **AMEND-ADR-003** (biology dual-role) — the immune-system metaphor is BOTH a teaching tool AND a systematic discovery framework for stdlib coverage; each unused immune-system component is a research-arc prompt
+- **AMEND-ADR-006** (recognition-not-design split) — recognition discipline for ADOPTER extensions; research-driven discipline for STDLIB growth (substrate-citable from postmortems / literature / training-data / predictive analysis / biological-component-mapping)
+- **NEW-ADR-022** (stdlib-vs-extension two-disciplines) — formalizes the dual architecture. Extension contract = first-class public API (semver-stable). Stdlib growth = research-driven, deliberately comprehensive
+- **NEW-ADR-023** (deferred-defense family) — `#[anergy]`, `#[immunosuppress]`, `#[poxparty]`, `#[orient]` as primitives; loudness-as-discipline; 5-mode matrix; cfg-gated structural isolation for `#[poxparty]` via Cargo feature env var
+- **NEW-ADR-024** (convergent / recurrent / prescriptive families) — three sibling primitive families covering 21 new macros
+- **NEW-ADR-025** (supply-chain defense family) — `ContentHashMismatch`, `UnsandboxedProcMacro`, `UnpinnedTransitiveDependency` (narrow definition); biology grounding via distributed-boundary-innate-immunity (multi-cell-type system)
+- **NEW-ADR-026** (VCS-information-loss family) — `ForcePushErasingHistory`, `RollbackWithoutTriageCommit`, etc.; central cognate is measles-induced immune amnesia (catastrophic memory-loss); rollback-as-triage discipline
+- **NEW-ADR-027** (mucosal boundary taxonomy + mapping discipline) — `#[mucosal_delegate]` primitive; `cargo antigen mucosal-map` tool; v0.2 covers filesystem / env-vars / shell-args; WebSocket / CI-CD deferred to v0.3+
+- **NEW-ADR-028** (substrate-alignment vs functional-correctness antigen-category) — first-class category metadata on antigen declarations; shapes witness type, audit layer, lifecycle phase, responder role
+- **process.md amendment** — Phase-3 sub-routine requiring each ADR to specify enforcement-tier × enforcement-scope via §Enforcement-Surface table (resolves the cross-ADR enforcement-mechanism-ambiguity 3rd-instance convergence finding)
+
+### Macro family expansions (~50+ primitives total when fully shipped)
+
+Per the comprehensive vision §7, v0.2 ships major chunks of the macro vocabulary:
+
+- **Honest-debt / deferred-defense family**: `#[anergy]`, `#[immunosuppress]`, `#[poxparty]`, `#[orient]`, `#[vaccinate]` — loudness-as-discipline; aging escalation; structural isolation
+- **Convergent evidence family**: `#[diagnostic]`, `#[clonal]`, `#[igg]`, `#[crossreactive]`, `#[polyclonal]`, `#[monoclonal]`, `#[adcc]` — independent-modality convergence, repeated derivation, historical re-attestation
+- **Recurrent emergence family**: `#[itch]`, `#[recurrence_anchor]`, `#[crystallize]`, `#[chronic]`, `#[saturate]`, `#[strand]` — below-threshold notice, threshold-crossing, ideation maturation; multi-layer subsystem with future git/MemPalace/chat integration
+- **Prescriptive (work-orchestration) family**: `#[panel]`, `#[ddx]`, `#[rx]`, `#[triage]`, `#[refer]`, `#[biopsy]`, `#[culture]`, `#[titer]`, `#[quarantine]` — substrate-resident team coordination (Asana-as-substrate); multi-axis triage (priority + level-of-care + treatment-kind + outcome-acceptance)
+- **Supply-chain defense family** (Arc 9 — URGENT given chalk/debug/eslint-config landscape)
+- **VCS-information-loss family** (Arc 10 — rollback-as-triage)
+- **Mucosal boundary taxonomy** (Arc 11)
+
+### Tooling
+
+- **`#[cfg(feature = "antigen-poxparty")]`** structural isolation with proc-macro env-var check; feature NOT in default set
+- **`cargo antigen mucosal-map`** — enumerate input boundaries; map to mucosal taxonomy
+- **`cargo antigen verify content-hash`** (supply-chain defense)
+- **`cargo antigen migrate categories`** — soft-default migration for v0.1 antigen carryover (v0.2.1+ polish)
+- **Body-level fingerprint operators** via ast-grep subprocess (per ADR-015)
+- **`cargo antigen new`** — scaffold a new antigen declaration with guided prompts
+- **`cargo antigen vaccinate`** — apply known immunity pattern across a structural family with human review
+
+### Engine refinements
+
+- **Engine-canonicalization for operators beyond `has_method`** — ADR-010 Amendment 5 pre-tokenization pattern extended to other string-comparison operators where tokenization asymmetries surface in practice (recognition-not-design: lands when substrate-grounded)
 
 ### Deferred from v0.1-rc.1 — warm handoff substrate
 
@@ -246,18 +280,22 @@ What we know going in:
   independently. Deferred until adoption substrate accumulates enough
   to tell us whether the dual-jobs actually need to vary in practice.
 
-- **Camp skill build** — antigen-native team coordination crate;
-  per-project Rust crate where campsites are modules with Oracle
-  declarations. Designed; not yet built. Will become a 0.1.0
-  promotion-gate input (one of the trinity-of-self-adoption legs).
-  Design substrate at `~/.claude/skills/camp/SKILL.md` (locally) +
-  prior session captured the architecture decisions.
-
 - **Layer 1 source dogfood + Layer 4 ADR-as-Oracle** — antigen using
   antigen on antigen's own code (Layer 1) and treating ADRs as
   Oracles (Layer 4). Layer 1 is a 0.1.0-readiness item; Layer 4 is
-  a deeper recursion that grows naturally once Layer 1 + camp are
-  established. Both deepen the dogfood story significantly.
+  a deeper recursion that grows naturally once Layer 1 + adopter
+  validation are established. Initial seed: 8 empirical fail-classes from antigen's
+  own git fix history (UnanchoredGitignorePattern,
+  MsrvAccidentallyRaisedByTransitiveDep, NonIdempotentReleaseStep,
+  CratesIoPublishBlockerMissingMetadata, BrokenIntraDocLink,
+  SilentCliCommandFailure, UnboundedRecursionInProcMacro,
+  MacroEmittedSubstrateNotSeenBySourceScan) are catch-once-build-antigen
+  candidates per the internal-tooling memory. Layered approach:
+  identified-spots first, then walk the codebase for additional sites,
+  then `examples/` directory for curated demos of every primitive
+  (Tier-A in-source for real fail-classes; Tier-B in-source for
+  natural educational coverage; Tier-C in `examples/` for primitives
+  that don't fit antigen's source naturally).
 
 ---
 
@@ -475,6 +513,11 @@ co-evolutionary pathway that produced the tool itself.
 
 ---
 
-*Roadmap authored 2026-05-12 as Phase 4 deliverable of Sweep A3.5
-(Onboarding). Subject to revision as substrate matures. The trajectory
-is real; the destination is recursive.*
+*Roadmap originally authored 2026-05-12 as Phase 4 deliverable of Sweep A3.5
+(Onboarding). Substantially expanded 2026-05-22 to reflect v0.2 comprehensive
+vision direction, the 10 ADRs ratifying together as architectural-posture-shift
+event, antigen rc.3 published, and the layered dogfood approach (Tier-A/B/C).
+External adopter validation milestones are tracked in those projects' own
+release histories — antigen's roadmap notes them as adopter-evidence under
+the trinity-of-self-adoption section, not as antigen deliverables. Subject to revision as substrate matures. The trajectory is
+real; the destination is recursive.*
