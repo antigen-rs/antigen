@@ -35,18 +35,14 @@ sweeps/
 # Empty/transient working dirs
 .captured-shape/
 
-# Camp coordination substrate — the camp/ Rust crate IS canonical dogfood
-# content (antigen using antigen for its own team coordination), so the
-# source + Cargo.toml + sidecars stay tracked. The per-role substrate
-# folders (notebooks/insights/journals/etc.) hold team-ephemeral content
-# and stay local-only.
-camp/target/
-camp/**/notebooks/
-camp/**/insights/
-camp/**/journals/
-camp/**/random-thoughts/
-camp/**/feature-ideas/
-camp/**/experiments/
+# Camp per-project crate — externalized from public surface 2026-05-22
+# alongside docs/expedition/ and campsites/. Lives locally as canonical
+# dogfood (antigen using antigen for its own team coordination), but not
+# part of the published repo. Future-anyone reading antigen's source
+# won't see camp/; the canonical adopter-facing camp lives at
+# ~/.claude/skills/camp/ (camp-rs Rust source + dist binary) and in the
+# camp documentation when published.
+/camp/
 
 # OS
 .DS_Store
