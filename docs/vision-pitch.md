@@ -1,372 +1,248 @@
 # Antigen — Vision Pitch
 
-> **For Rust ecosystem maintainers, library authors, and tooling-aware engineers.** A
-> 1500-word read explaining what antigen is, why it matters, and what we're asking
-> the community to consider.
+> **For Rust ecosystem maintainers, library authors, tooling-aware engineers, and
+> anyone building in the era where AI-assisted development is standard practice.**
+> A ~2000-word read explaining what antigen is, why it matters now, and what we're
+> asking the community to consider.
 >
-> *Updated 2026-05-12 to reflect v0.1.0-rc.1 substrate: five macros (not six),
-> seven fingerprint operators, multi-component architecture, co-native cognitive-
-> asymmetry framing, 16+ field cross-domain convergence, ProvenanceEntry, A3.5
-> onboarding sweep close, 18 ratified ADRs + amendments.*
+> *Updated 2026-05-22 to reflect the comprehensive vision synthesized after camp v0.1
+> ship: the asymmetry-era framing, memory-to-structure transformation as primary
+> mechanism, co-native structural memory as approach, and comprehensive immune-system
+> vocabulary as the full scope. v0.1.0-rc.2 substrate: Oracle 5-state lifecycle,
+> substrate-witness predicate language, 495 tests passing, camp v0.1 recursive proof
+> closed.*
 
 ---
 
-## The problem in one sentence
+## The condition antigen addresses
 
-When a Rust project fixes a structural bug, the test for THAT bug ships — but the
-*lesson* about the failure-class generally doesn't, so structurally-similar new code
-gets bitten by the same pattern, and the team re-derives the lesson from scratch.
+Modern software development is characterized by a structural asymmetry: **generation throughput vastly exceeds inspection throughput for all actor types.** This asymmetry is at a historic maximum in 2026.
 
-The Rust safety story currently provides three structural properties: **memory safety**
-(no use-after-free, enforced by the ownership system), **type safety** (type mismatches
-caught at compile time), and **thread safety** (data races prevented by `Send`/`Sync`).
-Each makes an implicit contract structural and machine-checkable.
+- Humans can't read all the code they ship, especially in AI-pair workflows. Read-speed is bounded; generation isn't.
+- Vibe coders generate code they may not fully understand. The tooling that helped them generate has to help them validate.
+- LLM agents can't track across sessions. Context resets; summarization drifts; the lesson from last session's fix isn't present for this session's code.
+- Human-LLM teams have throughput advantages but the inspection bottleneck stays bounded by both actor types.
+- Docs, comments, ADRs, and Slack decisions ship faster than they're read. The historical assumption that "the team has read everything" hasn't held in years; it now fails catastrophically.
 
-A fourth property of the same character has never been made structural: **domain-
-knowledge-memory safety** — the lessons learned about why classes of code fail. That
-memory lives in commit messages, developer heads, and session context windows. None of
-those carriers are drift-resistant. When the memory decays, the same failure-class
-re-emerges in slightly different costume.
+There is no scaling solution within passive memory. More docs means less reading per doc. More comments means less attention per comment. RAG and vector embedding are probabilistic compensations — useful for retrieval, inadequate for *binding* discipline: deciding what's required, what's stale, who needs to attest, what's blocking.
 
-This is the implicit-memory failure mode. It hits AI-assisted development especially
-hard because agents lose context between sessions; lessons that humans tacitly carry
-have nowhere persistent to live.
+**Antigen's reason for existing**: the asymmetry guarantees passive memory will fail. The only viable alternative is structural memory that surfaces itself.
+
+---
+
+## The mechanism: memory-to-structure transformation
+
+What antigen does at the mechanism level is convert passive memory into active structure.
+
+**Memory** (the current state of most dev tooling): docs, comments, READMEs, ADRs, Slack messages, meeting notes, code review comments, TODOs, FIXMEs, "last reviewed" stamps. **Passive. Drift-by-default. Non-surfacing. Trust-based-on-recency.**
+
+**Structure** (what antigen converts to): macros embedded in the code where the discipline applies, attestations in sidecars, witness predicates, oracle states. **Active. Compile-time and tool-surfaced. Stale-aware via fingerprint-pinning. Trust bound to specific state.**
+
+The transformation: anything you'd write as a doc or comment to convey decision, intent, or discipline can be expressed as antigen structure that doesn't rot the same way.
+
+The table below shows the full transformation vocabulary. Entries marked `*` ship in v0.1; the rest are in the v0.2 vocabulary. The right-side stays current OR fails loudly when stale — that property is what makes structural memory work at all.
+
+| Memory form | Structure form |
+|---|---|
+| `/// assumes X never panics` | `#[immune(X, requires = ...)]` * |
+| README "we follow Y discipline" | `#[antigen(Y)]` + per-site `#[immune(Y, ...)]` * |
+| `// Last reviewed: 2024-01-15` | `#[immune(..., requires = fresh_within_days(N))]` * |
+| `// intentional, don't touch` | `#[antigen_tolerance(rationale = "...")]` * |
+| Generated-code provenance | `#[immune(GeneratedCodeWithoutHumanAttestation, signers([reviewer]))]` * |
+| `// TODO: refactor this` | `#[itch(...)]` or `#[panel(...)]` |
+| `// FIXME: hack` | `#[anergy(rationale = "...")]` |
+| `// HACK: until Q3` | `#[poxparty(until = "...")]` |
+| Code review "did you consider Z?" | `#[ddx(rule_out = [Z, ...])]` |
+| `// see ADR-017` | `#[orient(adr = "017")]` |
+| Recurring Slack mention | `#[recurrence_anchor(...)]` |
+| `// blocks on Bob's signoff` | `#[panel(reviewed_by = "bob")]` |
+| Asana ticket assignment | `#[panel(filled_by = "alice", reviewed_by = "bob")]` |
+| "We keep hitting this in standup" | `#[recurrence_anchor(surfaced_in = [...])]` |
+
+Every left-side rots. Every right-side stays current OR fails loudly when stale. The approach is **co-native**: the structural form works natively for both humans and AI agents — substrate-resident, compiler-checked, exact — without RAG, without fuzzy matching, without an external dashboard drifting from the code it describes.
+
+---
 
 ## A concrete instance from the project that motivated antigen
 
-In April 2026, the [tambear](https://github.com/tambear-rs/tambear) project — a
-Windows-native GPU-accelerated mathematical computing toolkit — discovered a polarity
-inversion in its `DeterminismClass` enum's `meet` method. The discriminants were
-ordered strongest-first; the lattice ordering is reverse-strictness; `meet =
-std::cmp::min` therefore returned the *strongest* class instead of the weakest. The
-bug was named GAP-BIT-EXACT-1 and fixed: `meet = max` is correct.
+In April 2026, the [tambear](https://github.com/tambear-rs/tambear) project — a Windows-native GPU-accelerated mathematical computing toolkit — discovered a polarity inversion in its `DeterminismClass` enum's `meet` method. The discriminants were ordered strongest-first; the lattice ordering is reverse-strictness; `meet = std::cmp::min` therefore returned the *strongest* class instead of the weakest. The bug was named GAP-BIT-EXACT-1 and fixed: `meet = max` is correct.
 
-Two months later, an unrelated DEC introduced `CommutativityClass` — structurally
-identical shape, independently designed, by different agents on a different team.
-The polarity inversion shipped again with `meet = std::cmp::min`. The same illness,
-re-derived from scratch, narrowly caught by adversarial pre-implementation
-verification.
+Two months later, an unrelated change introduced `CommutativityClass` — structurally identical shape, independently designed, by different agents on a different team. The polarity inversion shipped again with `meet = std::cmp::min`. The same illness, re-derived from scratch, narrowly caught by adversarial pre-implementation verification.
 
-The healing didn't propagate. The lesson lived in the corrected `DeterminismClass`
-file, in the GAP-BIT-EXACT-1 issue, and in dev memory. None of those reached
-`CommutativityClass` until the team manually re-derived the lesson.
+The healing didn't propagate. The lesson lived in the corrected `DeterminismClass` file, in the GAP-BIT-EXACT-1 issue, and in dev memory. None of those reached `CommutativityClass` until the team manually re-derived the lesson.
 
-This is documented in [`docs/origin.md`](origin.md). It's one instance of a pattern
-that recurs across every project that fixes structural bugs.
+This is documented in [`docs/origin.md`](origin.md). It's one instance of a pattern that recurs across every project that fixes structural bugs — and the pattern accelerates in AI-assisted workflows, where session-boundary resets mean lessons re-learned on a weekly basis rather than a generational one.
 
-## What antigen does
-
-Antigen makes failure-class memory **structural and inheritable** through:
-
-- **`#[antigen(name = "...", fingerprint = "...")]`** — declare a named failure-class
-  with a structural pattern that matches vulnerable code shapes.
-- **`#[presents(antigen)]`** — mark code as exhibiting the structural pattern.
-- **`#[immune(antigen, witness = ...)]`** — declare immunity, with a witness that
-  proves the immunity by delegating to existing tools (proptest, clippy, kani,
-  prusti, etc.).
-- **`#[descended_from(parent)]`** — propagate antigen markers through derivation,
-  copy-paste, or structural similarity.
-- **`#[antigen_tolerance(antigen, rationale = "...")]`** — explicitly tolerate
-  a fingerprint match the team has reviewed, with required rationale.
-
-Plus a cargo subcommand — `cargo antigen` — that scans for unaddressed presentations,
-applies known immunity patterns across structural families (vaccination), and audits
-overall coverage.
-
-Concretely: had antigen existed during tambear's `DeterminismClass` fix, the team
-would have declared:
+Had antigen existed during that cycle, the team would have declared:
 
 ```rust
 #[antigen(
     name = "polarity-inverted-class-meet",
     family = "frame-translation",
-    fingerprint = "enum *Class with strongest-first discriminants and meet method",
+    fingerprint = r#"item = enum, name = "*Class", has_method("meet", "(Self, Self) -> Self")"#,
     references = ["GAP-BIT-EXACT-1"],
 )]
 pub struct PolarityInvertedClassMeet;
 ```
 
-When `CommutativityClass` was introduced months later, `cargo antigen scan` would
-have flagged the structural match in CI. The pathmaker would have seen the
-diagnostic, written the suggested witness proptest, watched it fail, and fixed the
-polarity before the code merged.
+When `CommutativityClass` was introduced months later, `cargo antigen scan` would have flagged the structural match in CI. The pathmaker would have seen the diagnostic, written the suggested witness proptest, watched it fail, and fixed the polarity before the code merged. The illness would have been cured before it appeared.
 
-The illness would have been cured before it appeared. The full case study is in
-[`docs/expedition/case-study-determinism-class.md`](expedition/case-study-determinism-class.md).
+---
 
 ## What's genuinely new vs synthesized from existing tools
 
-Antigen is **architecturally a synthesis**, not a new verification technique. Most
-of its primitives exist somewhere in the Rust ecosystem:
+Antigen is **architecturally a synthesis**, not a new verification technique. Most of its primitives exist somewhere in the Rust ecosystem:
 
 - The deprecation system handles memory of one specific kind of fix.
 - clippy provides structural pattern recognition via lints.
-- proptest, quickcheck, and cargo-mutants provide property-based and mutation
-  witnesses.
+- proptest, quickcheck, and cargo-mutants provide property-based and mutation witnesses.
 - kani, prusti, creusot, verus provide formal verification witnesses.
-- cargo-careful, miri, cargo-deny address adjacent concerns.
 
-What antigen contributes — verified through the academic-context survey at
-[`docs/expedition/academic-context.md`](expedition/academic-context.md) — is:
+What antigen contributes — verified through the academic-context survey at [`docs/expedition/academic-context.md`](expedition/academic-context.md) — is:
 
-1. **Failure-class names as inherited first-class artifacts.** Existing tools detect
-   patterns; antigen NAMES the failure class structurally and inherits the immunity
-   declaration through `#[descended_from]`. This shape doesn't exist in any current
-   Rust tool. Eiffel inherits predicates; CWE has names without inheritance; Koka
-   inherits effects. None inherits *named failure-classes* through structural
-   derivation with witness re-validation.
+**1. Failure-class names as inherited first-class artifacts.** Existing tools detect patterns; antigen NAMES the failure class structurally and inherits the immunity declaration through `#[descended_from]`. This shape doesn't exist in any current Rust tool. Eiffel inherits predicates; CWE has names without inheritance; Koka inherits effects. None inherits *named failure-classes* through structural derivation with witness re-validation.
 
-2. **Vaccination as a developer-facing bulk transform.** `cargo antigen vaccinate
-   <antigen> <pattern>` applies known immunity across a structural family in one
-   command. Closest analogs (cargo fix; Coq's `Hint Resolve`) are per-site or
-   proof-internal; antigen's vaccinate is a bulk operation on the failure-class
-   graph.
+**2. Vaccination as a developer-facing bulk transform.** `cargo antigen vaccinate <antigen> <pattern>` applies known immunity across a structural family in one command. Closest analogs (cargo fix; Coq's Hint Resolve) are per-site or proof-internal; antigen's vaccinate is a bulk operation on the failure-class graph.
 
-3. **Witness-shape pluralism under one vocabulary.** `#[immune(X, witness = ...)]`
-   accepts proptest blocks, clippy lints, kani proofs, prusti annotations, phantom-
-   type constructions, or test functions — all valid as witnesses for the same
-   antigen. Why3's multi-prover architecture is the closest cousin but unifies under
-   a single specification language; antigen unifies under failure-class names while
-   leaving witness mechanisms heterogeneous.
+**3. Witness-shape pluralism under one vocabulary.** `#[immune(X, witness = ...)]` accepts proptest blocks, clippy lints, kani proofs, prusti annotations, phantom-type constructions, or test functions — all valid witnesses for the same antigen. Why3's multi-prover architecture is the closest cousin but unifies under a single specification language; antigen unifies under failure-class names while leaving witness mechanisms heterogeneous.
 
-The defensible novelty claim is *composition*, *inheritance*, *vaccination*, and
-*ecosystem orchestration* — not new verification.
+**4. Memory-to-structure transformation as primary mechanism.** The shift from passive memory (docs, comments, TODOs) to active structure (compile-checked, stale-aware, self-surfacing) is not a feature any existing tool provides. It's the mechanism that makes antigen viable against the generation-inspection asymmetry — passive memory cannot keep pace, structural memory surfaces itself.
 
-## Why this is timely for Rust
+The defensible novelty claim is *composition, inheritance, vaccination, and ecosystem orchestration* — not new verification.
 
-Three forces converge on Rust as the right substrate at the right time:
+---
 
-**Rich type system + mature procedural macros + cargo-extension pattern.** Antigen's
-declarations are syn-based proc-macros. Its tooling is a `cargo` subcommand. The
-infrastructure is stable and idiomatic.
+## What antigen is NOT
 
-**Strong safety culture, vibrant verification ecosystem.** Rust developers expect
-tooling to enforce invariants. Adopting clippy, kani, prusti, miri without
-resistance. Antigen threads this existing fabric — DELEGATES to it via witnesses —
-rather than competing.
+**Not more tests.** Tests verify *this code does X*. Antigen declares *this class of code has historically failed in this structural way* — a named pattern with an inheritable fingerprint. Tests and antigens are complementary; antigen witnesses ARE tests, but the antigen declaration is the structural carrier that makes the correct test discoverable for future code.
 
-**The implicit/explicit boundary is increasingly load-bearing.** Lifetime variance,
-async coloring, Send/Sync auto-traits, ownership boundaries — Rust has more
-implicit-but-load-bearing structure than most languages. As Rust adoption broadens
-to less Rust-fluent contributors AND as AI agents become major contributors,
-making this implicit structure *legible at the failure-class level* matters more.
+**Not another linter.** Clippy's lints are innate immunity — always-on, broad-spectrum, global. Antigen's declarations are adaptive memory — learned, specific, site-annotated, witnessed. Clippy cannot be adaptive; antigen cannot be always-on. **They are complementary by structure, not by convention.**
 
-The "AI-coding amplifies the implicit-memory problem" claim isn't speculation. It's
-visible in tambear's own development: agents pre-loading context lose access to
-lessons that ratified DECs already encode. Antigen makes that knowledge structural,
-which is the only viable strategy for AI-only or mixed-team development.
+**Not documentation.** Documentation drifts; antigen declarations are machine-checked by `cargo antigen scan`. A stale docstring is invisible to CI. A stale fingerprint produces a scan-time discrepancy. The memory is enforced because it is structural.
 
-**The cognitive asymmetry in hybrid teams is structurally addressable.** Human
-collaborators carry tribal knowledge through embodied memory, social transmission,
-and discipline-through-practice. AI agents carry context within sessions but reset
-between sessions; their long-term memory lives in training (months old) and in
-explicit substrate (whatever loads into the context window). The carriers don't
-naturally overlap. Antigen sits at the structural-tier where both cognitions read
-the same vocabulary natively — declarations work as documentation for humans and as
-substrate for AI agents reading the same code. The discipline carries across the
-gap because the substrate is the same for both. See
-[`structural-memory.md`](structural-memory.md) for the foundational treatment, and
-[`for-llm-collaborators.md`](for-llm-collaborators.md) for the LLM-side protocol.
+**Not RAG or an external dashboard.** RAG gives you "probably the relevant doc"; antigen gives you "the binding decision is either here or not." An Asana board drifts from code; `#[panel(filled_by = "alice", reviewed_by = "bob")]` IS the coordination, co-located where the work happens.
+
+---
+
+## Why this is timely
+
+Three forces make 2026 the right moment:
+
+**The generation-inspection asymmetry is at historic maximum.** AI-generated code volume rises faster than any inspection-capacity enhancement. The tooling that compensates must be structural — probabilistic alternatives (RAG, embedding) aren't sufficient for binding discipline. Antigen is the structural-memory layer the asymmetry era requires.
+
+**Rust's ecosystem is the right substrate.** Rich type system + mature procedural macros + cargo-extension pattern + strong safety culture + vibrant verification ecosystem. Antigen threads this existing fabric — delegates to it via witnesses — rather than competing. The infrastructure is stable and idiomatic; five years ago this would have been a research project.
+
+**The cognitive asymmetry in hybrid teams is structurally addressable.** Human collaborators carry tribal knowledge through embodied memory and social transmission. AI agents carry context within sessions but reset between them; their long-term memory lives in training and in explicit substrate. The carriers don't naturally overlap. Antigen sits at the structural tier where both cognitions read the same vocabulary natively — declarations work as documentation for humans and as substrate for AI agents reading the same code. The discipline carries across the gap because the substrate is the same for both.
+
+---
+
+## The comprehensive vision
+
+Antigen v0.1 ships the core of structural failure-class memory: five macros, fingerprint grammar, scan + audit + attest CLI, substrate-witness predicates, Oracle lifecycle, camp v0.1. This is one branch of the comprehensive immune-system framework.
+
+The biological immune system is the systematic discovery framework for what the full vocabulary needs to be — each immune-system component maps to a code discipline with its own primitive. We've mapped approximately 10% of the metaphor; each remaining component is a research-arc prompt.
+
+The full vocabulary through v0.4 includes:
+
+- **Honest-debt / deferred-defense family** (`#[anergy]`, `#[immunosuppress]`, `#[poxparty]`): deferred defenses made loud rather than silently suppressed
+- **Prescriptive / work-orchestration family** (`#[panel]`, `#[ddx]`, `#[rx]`, `#[triage]`): team coordination substrate directly in code
+- **Recurrence-detection family** (`#[itch]`, `#[recurrence_anchor]`, `#[crystallize]`): noticing-without-commitment that accumulates across sessions and agents
+- **Biological-component family** (`#[macrophage]`, `#[neutrophil]`, `#[treg]`, `#[complement]`, ~30 more): each mapped to a real code discipline
+- **Research arcs** covering agentic dev, vibe coders, AI-pair programming, modern infra, long-context AI, supply-chain, VCS-information-loss, and more
+
+The research-driven stdlib aims at *comprehensiveness* — covering the full failure landscape the way the biological immune system covers the full pathogen landscape. Adopter extension crates (`antigen-async`, `antigen-embedded`, `antigen-db`, etc.) build domain-specific antigens against this comprehensive stdlib.
+
+Full vocabulary and roadmap: [`docs/expedition/the-comprehensive-vision.md`](expedition/the-comprehensive-vision.md).
+
+---
+
+## For whom
+
+- **Teams shipping faster than they can manually review** — structural memory carries the lessons review can't catch at throughput
+- **Adopters of AI coding assistants** — antigen makes failure-class memory survive session boundaries
+- **Multi-agent dev workflows** — shared co-native substrate both humans and agents read without translation
+- **Long-running codebases where institutional memory rots** — antigen declarations don't rot the same way docs and comments do
+- **Open-source maintainers managing contribution review at scale** — known failure-classes encoded structurally; new contributors collide with them before merge
+- **Anyone fighting docs/code drift** — the transformation table above is the tool
+
+---
 
 ## Adoption pathway
 
-We're not asking the Rust community to adopt antigen all at once. The pathway has
-explicit phases:
+We're not asking for adoption all at once. The pathway has explicit phases:
 
-**Phase 1 (shipped): core macros + scan + audit.** v0.1.0-rc.1 ships five macros
-(`#[antigen]`, `#[presents]`, `#[immune]`, `#[descended_from]`, `#[antigen_tolerance]`),
-`cargo antigen scan` with item-identity matching + cross-crate scanning via
-`.cargo/registry` source-walking, `cargo antigen audit` with WitnessTier gradient
-(FormalProof / Reachability / None — Execution reserved for A4-A5 per audit-tier-honesty
-discipline), fingerprint grammar v1 (seven item-level operators), phantom-type witness
-recognition with explicit FormalProof tier reporting, and ProvenanceEntry for inherited
-presentations with diamond dedup. Early adopters write their own antigens for
-project-specific failure classes. The [tambear](https://github.com/tambear-rs/tambear)
-codebase is the first adopter.
+**Phase 1 (shipped)**: core macros + scan + audit + attest. `v0.1.0-rc.2` is available. Early adopters write their own antigens for project-specific failure classes. [Tambear](https://github.com/tambear-rs/tambear) is the first adopter.
 
-**Phase 2: antigen-stdlib.** A companion crate provides 10-20 ready-made antigens for
-common Rust failure classes. Adoption barrier drops significantly because users get
-value without writing antigens themselves — the way clippy ships default lints.
+**Phase 2: antigen-stdlib.** A companion crate provides ready-made antigens for common Rust failure classes. Adoption barrier drops significantly — value without authoring antigens yourself, the way clippy ships default lints.
 
-**Phase 3: cross-crate + vaccination.** `cargo antigen vaccinate` applies known immunity
-across a structural family in one command. `#[descended_from]` propagation works across
-workspace boundaries. Cross-crate antigen versioning is worked out.
+**Phase 3: cross-crate + vaccination.** `cargo antigen vaccinate` applies known immunity across a structural family in one command. `#[descended_from]` propagation works across workspace boundaries.
 
-**Phase 4: ecosystem composition matures.** Kani/prusti/verus/creusot harness invocation.
-IDE integration via rust-analyzer (real-time fingerprint match surfacing as you type).
+**Phase 4: ecosystem composition matures.** Kani/prusti/verus/creusot harness invocation. IDE integration via rust-analyzer.
 
-**Phase 5: community library.** Projects publish domain-specific antigens
-(`tambear-antigens`, `tokio-antigens`, etc.) to crates.io. Cross-project failure-class
-patterns become visible and shareable.
+**Phase 5: community library.** Projects publish domain-specific antigens to crates.io. Cross-project failure-class patterns become visible and shareable.
 
 Each phase delivers value independently.
+
+---
 
 ## What we're asking for
 
 For Rust ecosystem maintainers and tooling-aware engineers:
 
-1. **Read the design substrate** (start with [`origin.md`](origin.md) and
-   [`design-intent.md`](expedition/design-intent.md), ~30 minutes total) and tell us
-   where the design is wrong, over-claiming, or missing considerations.
-2. **Surface prior art** we haven't covered. The
-   [`academic-context.md`](expedition/academic-context.md) and
-   [`ecosystem-composition.md`](expedition/ecosystem-composition.md) docs are the
-   landing pages for survey gaps.
-3. **Propose failure-classes** that should be in `antigen-stdlib`, with real-world
-   instance evidence (not speculation). Issue templates at
-   [`.github/ISSUE_TEMPLATE`](.github/ISSUE_TEMPLATE) accept these.
-4. **Tell us if you'd be an early adopter.** Real adoption stories shape the project's
-   priorities far more than maintainer guesses. Open a GitHub Discussion thread if
-   antigen would address a pain point in your codebase.
+1. **Read the design substrate** (start with [`origin.md`](origin.md) and [`docs/expedition/the-comprehensive-vision.md`](expedition/the-comprehensive-vision.md)) and tell us where the design is wrong, over-claiming, or missing considerations.
+2. **Surface prior art** we haven't covered. The [`academic-context.md`](expedition/academic-context.md) and [`ecosystem-composition.md`](expedition/ecosystem-composition.md) docs are the landing pages for survey gaps.
+3. **Propose failure-classes** that should be in `antigen-stdlib`, with real-world instance evidence. Issue templates at [`.github/ISSUE_TEMPLATE`](.github/ISSUE_TEMPLATE) accept these.
+4. **Tell us if you'd be an early adopter.** Real adoption stories shape priorities far more than maintainer guesses. Open a GitHub Discussion thread if antigen would address a pain point in your codebase.
 
 For tool authors (clippy, kani, prusti, verus, cargo-mutants, etc.):
 
-1. **Tell us your integration surface.** Antigen wants to delegate witnesses to
-   your tool. The mechanics for `#[immune(X, witness = clippy::lint_name)]` need
-   your input.
-2. **Help us avoid friction at delegation boundaries.** When clippy adds new lints,
-   antigen's witness adapters should track them automatically.
+1. **Tell us your integration surface.** Antigen wants to delegate witnesses to your tool; the mechanics for `#[immune(X, witness = clippy::lint_name)]` need your input.
+2. **Help us avoid friction at delegation boundaries.** When clippy adds new lints, antigen's witness adapters should track them automatically.
 
 For AI-coding tool authors and AI-agent framework authors:
 
-1. **Help us understand AI-coding-specific failure classes.** What patterns recur in
-   agent-produced code that human-only code doesn't exhibit? These are antigen
-   candidates.
-2. **Consider antigen as a cross-session memory layer for your agents.** When agents
-   declare `#[immune]` with witnesses, the immunity persists past their session
-   boundaries. The substrate becomes shared memory.
+1. **Help us understand AI-coding-specific failure classes.** What patterns recur in agent-produced code that human-only code doesn't exhibit? These are antigen candidates.
+2. **Consider antigen as a cross-session memory layer for your agents.** When agents declare `#[immune]` with witnesses, the immunity persists past their session boundaries. The substrate becomes shared memory.
 
-## The architectural class — why the design lands
+---
 
-Antigen instantiates a broader architectural class: *recognition with memory and
-inheritance, where new instances of recognized patterns are caught structurally
-and memory propagates through structural inheritance*. This class has been
-independently re-invented across 16+ academic fields (immunology, cognitive
-science, evolutionary biology, ecology, information theory, semiotics, knowledge
-management, complex adaptive systems, cybersecurity IDS signatures, aviation
-safety, Christopher Alexander's pattern languages, cumulative cultural evolution,
-indigenous epistemologies, stigmergy, Bayesian epistemology, philosophy of
-science). The cross-domain convergence map at
-[`cross-domain-architectural-map.md`](cross-domain-architectural-map.md)
-catalogs the fields and their convergence on this architecture.
+## Empirical defenses
 
-The convergence matters because the architecture isn't speculation. It's what's
-actually required for any sufficiently mature system that needs to maintain
-recognition of patterns over time. Antigen is *one ergonomic instantiation* of
-this class in the Rust programming language ecosystem. Future instantiations for
-Python, JavaScript, TypeScript, framework-specific contexts are structurally
-available — the vocabulary is language-agnostic; per-language implementations
-specialize the recognition mechanism while sharing the abstract failure-class.
+Antigen's development produced three measurable properties that support the architecture's correctness:
 
-## Multi-component architecture
+**Biology-as-search-heuristic precision/recall.** Predictions about where implementation would fail — derived from biological cognates before implementation — were tested against independent adversarial bug-finding. Result: 5/5 predicted defect types confirmed (100% precision); ~64% recall with domain-appropriate asymmetry.
 
-Antigen is not a single tool — it's a vocabulary that lets teams compose
-multiple kinds of structural immunity. Seven components currently named
-(enumeration is open per recognition-not-design):
+**Colonization ratio 8/5 (160%).** During Sweep A2, 8 structural-antigen-pattern instances surfaced for every 5 deliberately authored. The recognition architecture finds more failure-class patterns than were consciously targeted.
 
-1. **Dev-in-the-loop immunity** — declarations authored by human judgment
-2. **Passive scan/lint/tool immunity** — automated walks find antigens and
-   verify witnesses
-3. **Test-integration immunity** — tests become structural memory through
-   witness binding
-4. **Knowledge-ecosystem immunity** — references attach antigens to PRs, ADRs,
-   CVEs, post-mortems
-5. **Cross-version / lineage immunity** — `#[descended_from]` + `canonical_path`
-6. **Cross-crate / ecosystem immunity** — antigen-stdlib + cross-crate scan
-7. **Real-time / CI feedback immunity** — PR-scope recognition at moment of change
+**Scale-invariance of the failure mode.** The pattern antigen exists to prevent recurred at three independent tiers of the project's own operation: the events tier (bug recurrence in the motivating codebase), the coordination tier (team's own ratification process), and the implementation tier (antigen's own attribute-parser). Three tiers, same pattern, independently observed.
 
-Each component composes orthogonally. A team can adopt at the floor (component
-2 alone — the linter) and grow as discipline matures. See
-[`concepts.md`](concepts.md) for the adopter-facing treatment and
-[`expedition/multi-component-immunity.md`](expedition/multi-component-immunity.md)
-for the architectural deep-dive.
+These are early signals from one project's development process, not controlled studies. Adoption depends on engineering quality, ergonomics, and the gradual proof that structural failure-class memory delivers compounding value as antigen-stdlib grows.
 
-## Empirical defenses — why we believe the architecture is right
+---
 
-Antigen's development produced three measurable properties:
+## The architectural class
 
-**Biology-as-search-heuristic precision/recall.** The fingerprint grammar was designed
-using the biological immune-system metaphor as a search heuristic. Predictions about
-where the implementation would fail — derived from biological cognates before
-implementation — were tested against independent adversarial bug-finding. Result: 5/5
-predicted defect types confirmed (100% precision); ~64% recall with domain-appropriate
-asymmetry (high on recognition-mechanism failure modes, silent on engineering-hygiene
-bugs). A heuristic that correctly predicts failure modes before they occur is load-
-bearing, not decorative.
+Antigen instantiates a broader architectural class: *recognition with memory and inheritance, where new instances of recognized patterns are caught structurally and memory propagates through structural inheritance*. This class has been independently re-invented across 16+ academic fields, with four particularly rigorous independent convergences through different methods: the type-theory lineage (Hoare 1969 → Eiffel → Liquid Haskell → Flux), cognitive schema theory, Christopher Alexander's pattern languages, and cybersecurity IDS signature systems. The biological immune system is the originating substrate antigen explicitly models on — not a peer cognate, but the empirical implementation of this architecture refined over 500 million years of evolutionary pressure. The cross-domain convergence is cataloged at [`cross-domain-architectural-map.md`](cross-domain-architectural-map.md).
 
-**Colonization ratio 8/5 (160%).** During Sweep A2, 8 structural-antigen-pattern
-instances surfaced for every 5 deliberately authored. The recognition architecture
-finds more failure-class patterns than were consciously targeted — because the
-underlying failure class recurs regardless of what we deliberately look for.
-
-**Scale-invariance of the failure mode.** The pattern antigen exists to prevent
-(recognition mechanism that admits structural variants of what it recognizes) recurred
-at three independent tiers of the project's own operation: the events tier (bug
-recurrence in the motivating codebase), the coordination tier (team's own ratification
-process), and the implementation tier (antigen's own attribute-parser). Three tiers,
-same pattern, independently observed. The architecture is addressing something real.
-
-## What antigen is NOT
-
-**Not more tests.** Tests verify *this code does X*. Antigen declares *this class of
-code has historically failed in this structural way* — a named pattern with an
-inheritable fingerprint. Tests and antigens are complementary; antigen witnesses ARE
-tests, but the antigen declaration is the structural carrier that makes the correct
-test discoverable for future code.
-
-**Not another linter.** Clippy's lints are innate immunity — always-on, broad-spectrum,
-global. Antigen's declarations are adaptive memory — learned, specific, site-annotated,
-witnessed. Clippy cannot be adaptive; antigen cannot be always-on. **They are
-complementary by structure, not by convention.**
-
-**Not documentation.** Documentation drifts; antigen declarations are machine-checked
-by `cargo antigen scan`. A stale docstring is invisible to CI. A stale fingerprint
-produces a scan-time discrepancy. The memory is enforced because it is structural.
-
-## What we're NOT asking for
-
-We're not asking for endorsement before evidence. We're not asking for adoption
-before v0.1.0. We're not asking the Rust core team to adopt antigen as part of the
-language. We're not competing with clippy, kani, prusti, or any existing tool —
-antigen composes them.
-
-The project is ambitious in scope but humble in claim. The composition is novel; the
-underlying primitives are mostly familiar. The empirical defenses above are early
-signals from one project's development process, not controlled studies. Adoption
-depends on engineering quality, ergonomics, and the gradual proof that structural
-failure-class memory delivers compounding value as antigen-stdlib grows.
+---
 
 ## In one phrase
 
-**Antigen makes the lessons learned by one Rust project, automatically available to
-every project that follows.** Not by writing better documentation. Not by mandatory
-process. By moving the memory itself — from human heads, commit messages, and
-documentation that drifts — into the type system, where the compiler and `cargo`
-can enforce that the lessons stay applied.
+**Antigen converts the things your team currently writes as comments, docs, and Slack decisions — which rot — into structural memory that surfaces itself, fails loudly when stale, and travels with the codebase to every developer and AI agent who reads it.**
 
-The illness already healed once. Let's not heal it again next year, and the year
-after, in every Rust project that ships a similar shape. Let's heal it once and
-inoculate everyone.
+Not by writing better documentation. Not by mandatory process. By moving the memory itself — from passive carriers that drift — into the substrate, where the compiler and `cargo` can enforce that the lessons stay applied.
+
+The illness already healed once. Let's not heal it again next year, and the year after, in every project that ships a similar shape. Let's heal it once and inoculate everyone.
 
 ---
 
 ## Where to read more
 
-- **The story**: [`docs/origin.md`](origin.md) — the post-mortem narrative motivating
-  the project.
-- **The scope**: [`docs/scope.md`](scope.md) — comprehensive vision: what antigen does
-  today, what it's becoming, the full immune-system primitive map, AI dev tooling
-  implications, multiple-paper trajectory.
-- **The architecture**: [`docs/decisions.md`](decisions.md) — ADR-001 through ADR-016
-  + amendments (16+ ratified architectural decisions).
-- **The postures**: [`docs/postures.md`](postures.md) — 7 architectural postures
-  threaded through the ADRs (sub-clause F, recognition-not-design, compose-don't-
-  compete, anti-YAGNI, implicit-to-explicit, rationale-as-required-field, depth-shift).
-- **The process**: [`docs/process.md`](process.md) — ADR lifecycle and governance.
-- **The case study**: [`docs/expedition/case-study-determinism-class.md`](expedition/case-study-determinism-class.md)
-  — full walkthrough of how antigen would have caught the originating bug pattern.
-- **The academic context**: [`docs/expedition/academic-context.md`](expedition/academic-context.md)
-  — relationship to refinement types, design-by-contract, named-effect type systems,
-  and the Rust verification cohort.
+- **The story**: [`docs/origin.md`](origin.md) — the post-mortem narrative motivating the project
+- **The comprehensive vision**: [`docs/expedition/the-comprehensive-vision.md`](expedition/the-comprehensive-vision.md) — full scope, all families, research arcs, roadmap
+- **The whitepaper**: [`docs/structural-memory.md`](structural-memory.md) — foundational treatment of what structural memory means and why it matters for human-AI hybrid teams
+- **The architecture**: [`docs/decisions.md`](decisions.md) — ratified ADRs and amendments
+- **The postures**: [`docs/postures.md`](postures.md) — architectural postures threaded through the ADRs
+- **The case study**: [`docs/expedition/case-study-determinism-class.md`](expedition/case-study-determinism-class.md) — full walkthrough of how antigen would have caught the originating bug pattern
 
 If anything here resonates, please [open a Discussion](https://github.com/antigen-rs/antigen/discussions).

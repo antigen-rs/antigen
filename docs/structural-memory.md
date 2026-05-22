@@ -1,19 +1,28 @@
 # Structural Memory of Failure-Classes
 ## A whitepaper on what antigen is, why it exists, and what it means for software teams collaborating across human and AI cognition
 
-> Status: V3 (2026-05-12). Authored by team-lead in conversation with
-> Tekgy. Naturalist biology-cognate refinement complete (V2.2 sharpenings
-> on §8); aristotle Phase 1-8 structural-soundness review complete
-> (drove V1 → V2 reframings); scientist manuscript-grade pass complete
-> (V2 report drove V3 substantial-findings work; V3 verification pass
-> closed all V2 blockers + V2 substantial findings + 4-of-5 V2 hostile-
-> reviewer concerns). arXiv preprint submission pending.
+> Status: V3.1 (2026-05-22). V3 closed all V2 blockers + V2 substantial findings
+> + 4-of-5 V2 hostile-reviewer concerns. V3.1 updates cross-references to reflect
+> the comprehensive vision synthesized 2026-05-22. The comprehensive vision at
+> [`docs/expedition/the-comprehensive-vision.md`](expedition/the-comprehensive-vision.md)
+> extends this whitepaper's §10 (Vision) substantially — full macro vocabulary,
+> research arcs, lifecycle map, and YAWNI commitment. The whitepaper's §2-§9
+> (structural argument, failure-class analysis, cognition-boundary framing,
+> three-pillar framing, architectural class) are canonical and unaffected.
+> arXiv preprint submission pending.
 >
-> This document is a foundational whitepaper, not adopter-facing
-> tutorial material. For tutorials, see [`tutorial.md`](tutorial.md).
-> For the architectural concepts in adopter form, see
-> [`concepts.md`](concepts.md). For the LLM-collaborator protocol,
-> see [`for-llm-collaborators.md`](for-llm-collaborators.md).
+> The comprehensive vision also refines the framing of §1 and §5: the condition
+> antigen addresses is now named as "generation-inspection asymmetry" rather than
+> "cognitive asymmetry"; the mechanism is named as "memory-to-structure
+> transformation." These refinements extend, not contradict, the whitepaper's
+> existing framing.
+>
+> This document is a foundational whitepaper, not adopter-facing tutorial material.
+> For tutorials, see [`tutorial.md`](tutorial.md). For the architectural concepts
+> in adopter form, see [`concepts.md`](concepts.md). For the LLM-collaborator
+> protocol, see [`for-llm-collaborators.md`](for-llm-collaborators.md). For the
+> full comprehensive vision of antigen's scope, see
+> [`docs/expedition/the-comprehensive-vision.md`](expedition/the-comprehensive-vision.md).
 
 ---
 
@@ -1584,6 +1593,15 @@ clonal expansion" should know the structural shape differs.
 
 ## 10. Vision
 
+> **2026-05-22 note**: The comprehensive vision synthesized at
+> [`docs/expedition/the-comprehensive-vision.md`](expedition/the-comprehensive-vision.md)
+> substantially extends this section. For the full roadmap — complete macro
+> vocabulary (30+ primitives across 9 biological tiers), 8 research arcs,
+> biological lifecycle map, and YAWNI commitment — read the comprehensive vision.
+> The sub-sections below (10.1–10.5) are the whitepaper's scope articulation and
+> remain accurate; they're one branch of the comprehensive vision, not the full
+> tree.
+
 What antigen *aspires* to, beyond what currently ships:
 
 ### 10.1 — Cross-language vocabulary
@@ -1667,6 +1685,13 @@ that helped catalyze the shift."
 ---
 
 ## 11. Further reading
+
+### The comprehensive vision
+
+- [`docs/expedition/the-comprehensive-vision.md`](expedition/the-comprehensive-vision.md) —
+  canonical synthesis of the full scope: asymmetry-era framing, memory-to-structure
+  transformation, complete vocabulary through v0.4, 8 research arcs, biological
+  lifecycle map, YAWNI commitment, positioning, roadmap
 
 ### Adopter-facing
 
