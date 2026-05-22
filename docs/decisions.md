@@ -1293,6 +1293,76 @@ every antigen in stdlib must have its source pattern documented there.
 
 ---
 
+## ADR-006 Amendment 1 — Recognition discipline scoped to adopter-extension; stdlib growth is research-discipline
+
+**Status**: Ratified 2026-05-22.
+
+**Amends**: ADR-006 (Recognition, not design) — ratified 2026-05-07.
+
+**Participants**: aristotle (draft + Phase 1-8); Tekgy (lock 2026-05-21 night); naturalist (biology-validation; gate passed); adversarial (no blocking findings on this amendment).
+
+**Related**: ADR-003 Amendment 1 (biology-as-discovery-framework), ADR-006, ADR-007 (anti-YAGNI unchanged), ADR-022 (Stdlib-vs-Extension formalizes the separation this amendment creates).
+
+### Finding
+
+ADR-006 ratified "recognition-not-design" as a single discipline applied across ALL antigen development. This was structurally correct for the adopter-extension layer and structurally INCORRECT for the stdlib-growth layer.
+
+The conflation arose because at ratification time (2026-05-07), antigen's scope was still being elaborated. The Tekgy reframe (2026-05-21): antigen ships a FULL immune system as core stdlib — every immune-component earns primitive status via **research + substrate-grounding from beyond direct encounter**.
+
+The original framing — "recognize patterns that already exist in real-world Rust codebases" — is too narrow for two reasons: (1) biology metaphor actively predicts primitives no Rust codebase has yet encountered; (2) 2026+ dev contexts (agentic teams, vibe coders, AI-pair) produce failure-classes that wait-for-encounter cannot reach in safety-critical timelines.
+
+### Decision
+
+**ADR-006 is amended to apply recognition discipline at the ADOPTER EXTENSION layer; stdlib growth follows a separate RESEARCH discipline formalized in ADR-022.**
+
+**Stdlib (research discipline)**:
+- Trigger: research arc identifies a fail-class worth defending across all software development
+- Source: biological-immune-component mapping; field knowledge (postmortems, RFCs, books, talks, training data, predictive analysis of 2026+ dev contexts); direct encounter is legitimate but NOT privileged
+- Substrate-citability: every stdlib antigen carries non-empty `references = [...]` field at parse time
+- Cadence: regular research-driven drops adding 10-30 antigens per arc
+- Scope: comprehensive — aim at saturating the failure landscape per biological metaphor coverage check
+
+**Adopter extension (recognition discipline, unchanged)**:
+- Trigger: adopter project encounters domain-specific fail-class
+- Source: direct encounter, bug history, lived team experience
+- Cadence: organic per-project; their own versioning
+- Scope: narrow — only what the domain needs
+
+### Mechanics
+
+ADR-006 §Mechanics amended:
+- The naturalist role guards recognition discipline at the ADOPTER extension layer
+- For stdlib additions: the discipline check is "what substrate grounds this antigen?" not "what direct encounter recognizes this?"
+- Stdlib antigens MUST cite at least one substrate reference in `#[antigen(..., references = [...])]`; declaration without references is a parse-time error for `antigen-stdlib`
+
+### Sweep-level consequences
+
+- Stdlib aims at hundreds of antigens via research-arc drops, not organic 30-50 over years
+- Biological metaphor coverage becomes the completeness check (per ADR-003 Amendment 1)
+- Adopter-extension surface treated as first-class public API (per ADR-022)
+- Code-review checklists branch on stdlib-vs-extension
+
+### Enforcement
+
+**Stdlib**: every antigen declaration requires non-empty `references = [...]` field at parse time; every antigen includes biological-component mapping in documentation.
+
+**Adopter extension**: no mandatory references field; recognition-not-design check at adopter's code review per original ADR-006 enforcement.
+
+### Resolves
+
+- The over-restriction of antigen's stdlib growth (would have capped scope at ~30-50 antigens)
+- The conflation of "extension recognition discipline" with "stdlib research discipline"
+- The implicit assumption that stdlib grows organically from direct encounter
+- The foreclosure of biology's discovery role (per ADR-003 Amendment 1)
+
+### What this amendment does NOT do
+
+- Does NOT abandon recognition discipline; preserves it at the adopter-extension layer
+- Does NOT permit speculative stdlib additions; research-grounding is the substitute discipline
+- Does NOT change ADR-007 anti-YAGNI commitment
+
+---
+
 ## [ADR-007] Anti-YAGNI: structurally-guaranteed need
 
 **Status**: Ratified 2026-05-07 (foundational; pre-team).
