@@ -5746,3 +5746,92 @@ fn _triage_marker_do_not_remove() {}
 
 ---
 
+## [ADR-028] Antigen-Category Taxonomy: Substrate-Alignment vs Functional-Correctness as First-Class Distinction
+
+**Status**: Ratified 2026-05-22.
+
+**Participants**: aristotle (draft + Phase 1-8 + revision); Tekgy (named the distinction in drill); observer (substrate-alignment discipline source); naturalist (operational-substrate-primary correction; biology-as-documentation-cognate clarified — NON-NEGOTIABLE); adversarial (F1 + F2 absorbed: hybrid miscategorization defense + strict enforcement chosen).
+
+**Related**: ADR-001 Amendment 1 (structural memory carriers); ADR-005 Amendment 2 (rationale as trust-extension); ADR-019 (substrate-witness vs code-witness already operationalizes this split); ADR-022 (Stdlib-vs-Extension); and all v0.2 family ADRs (ADR-023 through ADR-027 carry category metadata).
+
+**Implicit pattern elevated** (per ADR-004): substrate-alignment vs functional-correctness has been implicit in antigen's architecture from day one — `cargo antigen scan` does substrate-alignment work, `cargo antigen audit` does functional-correctness work, observer-role catches substrate-alignment failures, adversarial+scientist+pathmaker roles catch functional-correctness failures.
+
+### Finding
+
+**The two categories**:
+- **SubstrateAlignment**: antigen fires when a REPRESENTATION diverges from actual state. "This says X but actual state is Y." Witness checks the substrate. Example: `UnpinnedDependency` — Cargo.toml says `dep = "^1.0"` when it should say `dep = "=1.0.3"`.
+- **FunctionalCorrectness**: antigen fires when a VERB produces the wrong output. "This claims to do X but produces Y." Witness exercises behavior. Example: `PanickingInDrop` — Drop impl panics under some inputs.
+
+Hybrid: `CampsiteOpen` (sidecar must exist AND signatures must cryptographically validate); `UnsandboxedBuildScript` / `UnsandboxedProcMacro` (no sandbox attestation AND the code might actually do bad things).
+
+### Decision
+
+**Antigen declarations gain a REQUIRED `category` field carrying one or both of `AntigenCategory::SubstrateAlignment` / `AntigenCategory::FunctionalCorrectness`. The category is STRUCTURALLY ENFORCED (Option A STRICT): category determines minimum witness requirements. Hybrid antigens require BOTH witness types verified for full immunity.**
+
+**Enforcement-model — Option A (STRICT) chosen** (per F2-R): advisory category makes "first-class metadata shaping witness type, audit layer, lifecycle phase, responder role" an overclaim.
+
+- `category = SubstrateAlignment` requires at least one substrate-witness predicate leaf
+- `category = FunctionalCorrectness` requires at least one code-witness predicate leaf
+- Hybrid requires BOTH witness types
+- Category mismatch vs predicates FAILS validation at parse-time / audit-time
+
+**Hybrid miscategorization defense** (per F1-R): parse-time category-vs-witness-type cross-check emits `antigen-category-claim-inconsistent-with-predicate-type` if declared category doesn't match predicate type. Hybrid antigens require BOTH axes EVALUATED at audit time; missing axis = UNVERIFIED.
+
+**Per-site `category_required` escape hatch is REMOVED** in this revision — escape hatches defeat the strict-enforcement value.
+
+**v0.2 backward-compat**: v0.1 antigens lacking `category` field default to `vec![FunctionalCorrectness]` + emit `antigen-category-defaulted-implicit-functional` migration hint. v0.2+ NEW declarations: `category` REQUIRED at parse-time; absence is hard-error. Migration tool: `cargo antigen migrate categories` (v0.2.1+ polish; v0.2 ships strict-enforcement for new declarations + soft default for v0.1 carryover).
+
+**Macro syntax**:
+
+```rust
+#[antigen(
+    name = "UnpinnedDependency",
+    category = AntigenCategory::SubstrateAlignment,
+    family = "supply-chain",
+    references = [...],
+)]
+
+#[antigen(
+    name = "UnsandboxedBuildScript",
+    category = [AntigenCategory::SubstrateAlignment, AntigenCategory::FunctionalCorrectness],
+    family = "supply-chain",
+    references = [...],
+)]
+```
+
+**Schema additions** (additive per ADR-021): `AntigenCategory` enum: `SubstrateAlignment | FunctionalCorrectness` (sealed; variants require ADR amendment per ADR-001 Amendment 1 C6); `Antigen.category: Vec<AntigenCategory>` (required; non-empty; parse-time validation).
+
+**Audit-hint vocabulary** (cross-ADR substrate-grep verified): `antigen-category-defaulted-implicit-functional`, `antigen-category-missing-explicit`, `antigen-category-mismatch-witness-type`, `antigen-category-claim-inconsistent-with-predicate-type`, `antigen-category-hybrid-incomplete-evidence`.
+
+**CLI integration**: `cargo antigen scan --category substrate-alignment`, `cargo antigen audit --category functional-correctness`, `cargo antigen migrate categories` (v0.2.1+).
+
+**§Enforcement-Surface**:
+
+| Mechanism | Enforcement-Tier | Enforcement-Scope | Bypass risk + mitigation |
+|---|---|---|---|
+| `category` field on `#[antigen]` (v0.2+) | parse-time (HARD ERROR if missing) | client | per F2 strict choice; clear error message + migration tool |
+| Category-vs-predicate-type cross-check | parse-time (hint) + audit-time | client + CI | per F1-R |
+| Hybrid both-witness-types | audit-time (UNVERIFIED if missing axis) | client + CI | hybrid antigens explicit; audit reports gaps |
+| v0.1 backward-compat default | parse-time (warning) | client | migration hint; v0.3+ deprecation removes default |
+
+**Biology grounding** (per naturalist — NON-NEGOTIABLE): the category distinction is **OPERATIONALLY substrate-grounded**, NOT biology-grounded. Biology provides an approximate documentation cognate (Class 2-3): pattern-recognition (PRRs, BCRs, TCRs) ↔ substrate-alignment; effector-function (cytokine release, cell killing) ↔ functional-correctness. The biology cognate is documentation-aid, not load-bearing prediction. The OPERATIONAL substrate is: observer-role catches substrate-alignment; adversarial+scientist+pathmaker catch functional-correctness; substrate-witnesses vs code-witnesses (ADR-019) already operationalize this split.
+
+### Sweep-level consequences
+
+- v0.2+ new declarations REQUIRE explicit category (hard error at parse-time)
+- v0.1 carryover backward-compat with migration hint + tool
+- Hybrid antigens require both witness types verified at audit-time
+- Category becomes the primary routing metadata for team roles and tooling
+
+### Resolves
+
+- The unnamed-but-load-bearing distinction between substrate-alignment and functional-correctness
+- Hybrid miscategorization escape (per F1: category-vs-predicate cross-check)
+- Advisory-vs-structural category enforcement choice (per F2: Option A STRICT chosen)
+
+### What this ADR does NOT do
+
+- Does NOT claim biology grounds the category mechanic as primary substrate (operational substrate is primary)
+- Does NOT permit advisory-only category declarations
+- Does NOT permit per-site `category_required` escape hatches (removed in revision)
+
