@@ -1,39 +1,39 @@
 {
-  "schema_version": "v1",
-  "kind": "immunity",
   "antigen": {
     "name": "CampsiteOpen"
   },
-  "source_file": "camp/src/campsites/build_camp.rs",
   "items": [
     {
-      "item_path": "camp::campsites::build_camp::done",
       "current_fingerprint": "build_camp-done-v0.0.0",
+      "item_path": "camp::campsites::build_camp::done",
+      "oracles": [],
       "signers": [
         {
-          "name": "tekgy",
-          "role": "tekgy",
-          "date": "2026-05-21",
-          "signed_against_fingerprint": "build_camp-done-v0.0.0",
           "basis": {
             "kind": "fresh",
-            "reasoning": "Camp scaffold compiles against antigen 0.1.0-rc.2 from crates.io; CampsiteOpen antigen declared; build_camp.rs written with correct substrate-witness predicate; scan/audit pipeline verified end-to-end by observer."
+            "reasoning": "Camp v0.1 is the camp we wanted. The team (navigator + pathmaker + observer + naturalist + scout + aristotle + outsider) executed cleanly on the multi-day campaign in a single overnight session — async substrate-surfaces-pending model worked end-to-end, all seven agents shipped substantive findings without serial dispatch. The shipped binary's bones are right: standalone Rust crate subprocessing cargo-antigen per ADR-002 compose-don't-compete, ~10 verbs landing on the locked vocabulary (sign/status/init/new/block/unblock/reopen/list/role/note + audit/scan passthroughs), camp wake as first-command-on-wake. The discipline-witnesses machinery underneath is the same v0.1.0-rc.2 that passed its own dogfood. Known polish items (scout's slug-hyphen normalization, outsider's antigen-vocabulary-leakage in user-facing surfaces, the cargo-antigen-on-PATH documentation gap) are real but small; the architecture isn't being revisited. This integrates cleanly with antigen-the-project: camp unblocks JBD teams in current harness era, which unblocks Layer 1 source-dogfood and tambear discipline expansion, which closes the trinity-of-self-adoption gate for antigen 0.1.0. Attesting as team-lead Claude (main thread) in genuine ratification, not agent-proxy."
           },
-          "strength": "git_trust"
-        },
-        {
+          "date": "2026-05-21",
           "name": "team-lead",
           "role": "team-lead",
-          "date": "2026-05-21",
           "signed_against_fingerprint": "build_camp-done-v0.0.0",
+          "strength": "text_stamp"
+        },
+        {
           "basis": {
             "kind": "fresh",
-            "reasoning": "Camp crate scaffold verified: compiles clean from crates.io deps (cold build 7.51s), scan finds CampsiteOpen + done() presentation, audit pipeline wired correctly. Observer baseline verification complete with Bug #1, #2, #3 documented and corrected recipe verified. Recursive proof flow confirmed end-to-end."
+            "reasoning": "matches shape I think we want, and sets the stage for building additional features to get parity and frictionless use as per discussions"
           },
-          "strength": "text_stamp"
+          "date": "2026-05-21",
+          "name": "tekgy",
+          "role": "tekgy",
+          "signed_against_fingerprint": "build_camp-done-v0.0.0",
+          "strength": "git_trust"
         }
-      ],
-      "oracles": []
+      ]
     }
-  ]
+  ],
+  "kind": "immunity",
+  "schema_version": "v1",
+  "source_file": "camp/src/campsites/build_camp.rs"
 }
