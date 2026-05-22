@@ -5,6 +5,21 @@ All notable changes to the antigen project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-rc.3] — 2026-05-22
+
+Small CLI patch: expose `--version` (and `-V`) on the `cargo antigen`
+subcommand. The flag is what camp v0.1.1's version-mismatch warning
+sub-step depends on — without it, camp cannot introspect the installed
+`cargo-antigen` version from a subprocess invocation.
+
+### Added
+
+- `cargo antigen --version` / `cargo antigen -V` print the workspace-
+  pinned package version (clap's standard `version` attribute on both the
+  `cargo-antigen` parser and the `antigen` sub-parser).
+- `atk_version_flag.rs` integration test locks down the contract: exit 0
+  and stdout contains the workspace version string.
+
 ## [0.1.0-rc.2] — 2026-05-20
 
 Hotfix release: wire the substrate-witness pipeline end-to-end. ADR-019's
