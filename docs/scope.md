@@ -1,12 +1,25 @@
 # Antigen — Scope
 
-> The comprehensive vision: what antigen does today, what it is becoming, why
-> the architecture matters beyond the Rust ecosystem, and how the project's
-> work-streams ladder toward standard-practice adoption.
+> **Updated 2026-05-22**: The canonical synthesis of the comprehensive vision
+> now lives at [`docs/expedition/the-comprehensive-vision.md`](expedition/the-comprehensive-vision.md).
+> Read that document for: the asymmetry-era framing, memory-to-structure transformation
+> as primary mechanism, the full macro vocabulary through v0.4, research arcs across
+> 8 dev-context categories, the complete lifecycle map (prevention → diagnosis →
+> monitoring → active function → aftercare → long-term memory → systems memory →
+> dysregulation → adaptive learning), and the YAWNI commitment (comprehensive vocabulary
+> per ADR-007).
 >
-> This document is **scope at depth**. The README is the GitHub front door;
-> [`origin.md`](origin.md) is the founding-incident narrative; this document
-> articulates the project's full ambition.
+> This document retains value as **scope at depth** for the architectural class
+> (four independent convergences), the adoption flywheel, the AI dev tooling
+> implications, and the multi-paper publication trajectory. Where this document
+> diverges from the comprehensive vision (e.g., the ADR list below reflects
+> pre-v0.2 state; the "recognition, not design" posture has since been amended to
+> distinguish stdlib-research-discipline from adopter-recognition-discipline per
+> NEW-ADR-022), the comprehensive vision takes precedence.
+>
+> The README is the GitHub front door; [`origin.md`](origin.md) is the founding-incident
+> narrative; this document articulates the architectural class and adoption strategy;
+> the comprehensive vision is the full scope synthesis.
 
 ---
 
