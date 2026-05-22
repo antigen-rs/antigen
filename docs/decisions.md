@@ -5389,3 +5389,116 @@ The unifying property: **loudness IS the discipline**. Silently-deferred defense
 
 ---
 
+## [ADR-024] Three Sibling Families: Convergent Evidence + Recurrent Emergence + Prescriptive Work-Orchestration
+
+**Status**: Ratified 2026-05-22.
+
+**Participants**: aristotle (draft + Phase 1-8 + revision); Tekgy (named three families + temporal-arc framing in drill #74); naturalist (3 refinements: dual-axis grounding honesty; MHC routing-fix; temporal-arc forward-pointer); adversarial (3 HIGH attacks absorbed: WitnessClass, SeedKind, disambiguation table).
+
+**Related**: ADR-002 Amendment 2 (compose-vs-compete per family); ADR-003 Amendment 1 (biology); ADR-006 Amendment 1 (stdlib); ADR-007 (anti-YAGNI); ADR-019 (substrate-witness); ADR-022 (Stdlib-vs-Extension); ADR-023 (Deferred-Defense — itch/anergy disambiguation); ADR-028 (antigen-category).
+
+**Implicit pattern elevated** (per ADR-004): antigen's v0.1 vocabulary covers DECLARATION + CHECKING but doesn't structurally cover the TEMPORAL discipline of evidence-aggregation, recurrence-detection, or work-orchestration.
+
+### Finding
+
+Drill #74 substrate identified three primitive families covering the temporal arc:
+
+**Family 1: Convergent Evidence (backward-looking)** — `#[diagnostic]`, `#[clonal]`, `#[igg]`, `#[crossreactive]`, `#[polyclonal]`, `#[monoclonal]`, `#[adcc]`
+
+**Family 2: Recurrent Emergence (present-looking)** — `#[itch]`, `#[recurrence_anchor]`, `#[crystallize]`, `#[chronic]`, `#[saturate]`, `#[strand]`
+
+**Family 3: Prescriptive Work-Orchestration (forward-looking)** — `#[panel]`, `#[ddx]`, `#[rx]`, `#[triage]`, `#[refer]`, `#[biopsy]`, `#[culture]`, `#[titer]`, `#[quarantine]`
+
+### Decision
+
+**Antigen ships three sibling primitive families as a single ratification per temporal-arc cohesion. WitnessClass enum + non-deterministic seed requirement + family disambiguation table address adversarial findings. Biology grounding is dual-axis (immunology + clinical-medicine + cognitive) per naturalist's refinement.**
+
+**Convergent Evidence Family** ships v0.2 macros (6 members); `WitnessClass` enum for independence-checking; `SeedKind` enum for non-deterministic seed enforcement.
+
+**Recurrent Emergence Family** ships v0.2 macros + camp integration; cross-substrate intelligence layers phased v0.3+.
+
+**Prescriptive Work-Orchestration Family** ships v0.2 macros (9 members) + camp integration.
+
+**WitnessClass enum** (per adversarial C1: `min_independent` = distinct CLASSES not distinct witnesses):
+
+```rust
+pub enum WitnessClass {
+    StaticAnalysis, PropertyTest, FormalVerification,
+    ManualReview, RuntimeFuzz, SubstrateWitness,
+}
+```
+
+**SeedKind enum** (per adversarial C2: non-deterministic seed required for `#[clonal]`):
+
+```rust
+pub enum SeedKind {
+    Random, EntropyFromCi, TimestampSeeded,
+    Fixed(u64),  // REJECTED for #[clonal]; emits compile-time error or audit-time fail
+}
+```
+
+**IgG identity-collapse limitation** (per adversarial C3): `#[igg]` source-independence is NOMINAL (different signer identity strings) not STRUCTURAL. Same limitation as ADR-025 dep_attested B6-C.
+
+**Disambiguation table** (per adversarial C4; load-bearing — adopter-misuse defeats discipline):
+
+| If your situation is... | Use... | Not... |
+|---|---|---|
+| "Multiple independent witnesses converge on confirming defense (backward evidence)" | `#[diagnostic]` | `#[panel]` |
+| "Need to ORDER a battery of diagnostic tests with role-workflow" | `#[panel]` | `#[diagnostic]` |
+| "Pattern noticed below threshold; no commitment yet" | `#[itch]` | `#[anergy]` (ADR-023) |
+| "Intentionally not defending while waiting for upstream condition" | `#[anergy]` (ADR-023) | `#[itch]` |
+| "Cross-substrate recurrence; threshold reached; want to surface for action" | `#[recurrence_anchor]` | `#[chronic]` |
+| "Low-level persistent signal NOT cross-substrate" | `#[chronic]` | `#[recurrence_anchor]` |
+| "Differential diagnosis: rule-out workflow" | `#[ddx]` | `#[panel]` |
+
+**Biology grounding — dual-axis honesty** (per naturalist refinement 1):
+- **Immunology-proper** (7 primitives): `#[clonal]`, `#[igg]`, `#[crossreactive]`, `#[polyclonal]`, `#[monoclonal]`, `#[adcc]`, `#[chronic]`, `#[titer]`
+- **Clinical-medicine** (10 primitives): `#[diagnostic]`, `#[panel]`, `#[ddx]`, `#[rx]`, `#[triage]`, `#[refer]`, `#[biopsy]`, `#[culture]`, `#[quarantine]`, `#[recurrence_anchor]`
+- **Cognitive-organizational** (4 primitives): `#[itch]`, `#[saturate]`, `#[crystallize]`, `#[strand]`
+
+**MHC routing-error correction** (per naturalist refinement 2): no primitive in ADR-024 maps to MHC. The MHC cognate is `#[presents]` in ADR-001.
+
+**Temporal-arc forward-pointer** (per naturalist refinement 3): other principles may ground different family-groupings (specificity-arc, location-arc, duration-arc, layer-of-immune-response-arc). This ADR ratifies the temporal-arc grouping; future ADRs extend the recursion.
+
+**Compose vs compete decision**: Convergent COMPOSES with proptest/kani/clippy; COMPETES on aggregation discipline. Recurrent COMPETES (no existing tool covers cross-substrate recurrence with antigen's structural vocabulary). Prescriptive COMPETES (Asana/Jira/Linear/Notion alternatives; antigen-cohesion serves antigen-adopters better).
+
+**Antigen-category** (per ADR-028): Convergent = mostly FunctionalCorrectness; Recurrent = mostly SubstrateAlignment; Prescriptive = mostly SubstrateAlignment with some FunctionalCorrectness.
+
+### Mechanics
+
+**Schema additions** (additive per ADR-021): new family-tagged macro variants per member set; `WitnessClass` + `SeedKind` enums; new schema structs (`DiagnosticEvidence`, `RecurrenceAnchor`, `PanelDeclaration`, etc.); camp integration via new sidecar conventions for prescriptive family.
+
+**Audit-hint vocabulary** (~30 new hints; cross-ADR substrate-grep verified; examples): `diagnostic-modality-insufficient`, `diagnostic-modalities-class-collapsed`, `clonal-fixed-seed-detected`, `igg-identity-collapse-warning`, `itch-noticed-not-anchored`, `recurrence-threshold-reached-no-action`, `panel-needs-unfulfilled`, `ddx-rule-out-pending`, `rx-treatment-not-applied`, `triage-decision-stale`, `quarantine-still-active-past-until`.
+
+**§Enforcement-Surface**:
+
+| Mechanism | Enforcement-Tier | Enforcement-Scope | Bypass risk + mitigation |
+|---|---|---|---|
+| WitnessClass independence count | audit-time | client + CI | configurable; suppression requires rationale per ADR-005 Amendment 2 |
+| `clonal-fixed-seed-detected` | parse-time OR audit-time | client | static analysis at parse/audit; flag if witness config has fixed seed |
+| `#[igg]` temporal-independence | audit-time | client + CI | mechanical; signers must have ≥ min_span timestamps |
+| `#[igg]` source-independence | NONE (named limitation) | — | nominal-only |
+| Prescriptive role-authorization | audit-time | client + CI | per ADR-020 attested_by discipline |
+
+### Sweep-level consequences
+
+- v0.2 stdlib gains ~21 new family primitives (6 + 6 + 9)
+- Camp gains substantial coordination vocabulary (prescriptive family)
+- Three families together replace much of Slack/Asana/Jira/Linear/Notion translation tax
+- `WitnessClass` and `SeedKind` enums added to antigen-core (new types)
+
+### Resolves
+
+- The temporal-arc gap in antigen's v0.1 vocabulary
+- Independence-claim unenforceability (WitnessClass mechanizes the check)
+- Fixed-seed bypass of `#[clonal]` (SeedKind enum + static analysis)
+- Family overlap confusion (disambiguation table)
+
+### What this ADR does NOT do
+
+- Does NOT mechanically verify source-independence of `#[igg]` signers (nominal-only; known limitation)
+- Does NOT claim biology proper grounds all 21 primitives uniformly (dual-axis honesty per naturalist)
+- Does NOT claim temporal-arc is the only valid organizing principle
+
+---
+
