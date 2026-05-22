@@ -48,7 +48,7 @@ use antigen::{audit, scan};
 
 /// Cargo subcommand for antigen.
 #[derive(Debug, Parser)]
-#[command(name = "cargo-antigen", bin_name = "cargo")]
+#[command(name = "cargo-antigen", bin_name = "cargo", version)]
 struct CargoCli {
     #[command(subcommand)]
     command: CargoSubcommand,
@@ -61,6 +61,7 @@ enum CargoSubcommand {
 }
 
 #[derive(Debug, Parser)]
+#[command(version)]
 struct AntigenCli {
     #[command(subcommand)]
     command: AntigenSubcommand,
