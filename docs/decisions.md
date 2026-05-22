@@ -566,6 +566,64 @@ analog.
 
 ---
 
+## ADR-003 Amendment 1 — Biology is BOTH teaching tool AND discovery framework
+
+**Status**: Ratified 2026-05-22.
+
+**Amends**: ADR-003 (Biological metaphor is load-bearing, not decorative) — ratified 2026-05-07.
+
+**Participants**: aristotle (draft + Phase 1-8); Tekgy (lock 2026-05-21 night); naturalist (biology-validation; gate passed, no major refinement needed).
+
+**Related**: ADR-003, ADR-006 Amendment 1 (stdlib research-discipline), ADR-022 (Stdlib-vs-Extension).
+
+### Finding
+
+ADR-003 ratifies the biological metaphor as load-bearing for two roles: (1) teaching tool and (2) architectural-insight predictor. What the original text does NOT surface explicitly — and what the Tekgy lock makes clear — is a third role: **discovery framework for stdlib growth**.
+
+The Tekgy lock (2026-05-21): "Each unused biological component is a research prompt. Mucosal immunity → input boundary defenses. MHC presentation → scope/visibility of declaration. Complement cascade → compound multi-step defenses. We've used ~10% of the metaphor. Each remaining component is a research arc."
+
+### Decision
+
+**ADR-003 is amended to make explicit that the biological metaphor is BOTH (1) a teaching tool for adopters AND (2) a discovery framework for stdlib growth. Coverage of the metaphor's immune-system components is the completeness check for stdlib comprehensiveness.**
+
+**Discovery framework**: each immune-system component (T-cell, B-cell, macrophage, NK, dendritic, anergy, immunosuppress, vaccinate, complement, opsonize, Treg, autoimmune, lysozyme, mast, mucosal-IgA, etc.) is a research prompt. The naturalist role maintains `docs/expedition/biology-coverage-map.md` identifying which components have stdlib primitive equivalents and which are unmapped research-arc candidates. Stdlib completeness check: biological-metaphor coverage map IS the completeness measure.
+
+**Teaching tool** (preserved from original ADR-003): documentation uses biological language freely; API documentation uses precise Rust terms with biological analogies cross-referenced; glossary anchors every term.
+
+### Mechanics
+
+ADR-003 §Mechanics extended:
+- The naturalist role responsibility extends to maintaining `docs/expedition/biology-coverage-map.md`
+- Stdlib research-arc planning consults the coverage map for candidate research prompts
+- Stdlib ratification reviews include "where does this fit on the biology coverage map?" as a check
+- Coverage map records trichotomy: MAPPED / UNMAPPED / INVESTIGATED-BUT-NOT-MAPPED
+
+### Sweep-level consequences
+
+- Biology coverage map becomes the discovery substrate for stdlib research arcs
+- Naturalist role is BOTH metaphor-honesty guardian AND discovery-framework maintainer
+- Stdlib completeness has a measurable target: coverage of the biological metaphor
+
+### Enforcement
+
+- New stdlib antigens cite their biological-component mapping in documentation
+- Biology coverage map updated as part of stdlib research-arc drops
+- Naturalist review at stdlib ratification time includes coverage-map consultation
+
+### Resolves
+
+- The implicit-discovery-role failure mode (biology was load-bearing but the discovery role wasn't explicit; research arcs were ad-hoc rather than systematic)
+- The completeness question for stdlib: biology coverage map IS the measure
+- The "what's a stdlib research arc?" question: unmapped immune-system component = candidate arc
+
+### What this amendment does NOT do
+
+- Does NOT abandon the teaching-tool role; preserves + strengthens it
+- Does NOT require EVERY immune-system component to have a primitive (some components may not have software-engineering analogs; the coverage map names all three states)
+- Does NOT make biology the ONLY discovery substrate; field knowledge, literature, postmortems, predictive analysis remain valid per ADR-006 Amendment 1
+
+---
+
 ## [ADR-004] Implicit-to-explicit elevation as architectural posture
 
 **Status**: Ratified 2026-05-07 (foundational; pre-team).
