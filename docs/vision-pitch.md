@@ -5,12 +5,11 @@
 > A ~2000-word read explaining what antigen is, why it matters now, and what we're
 > asking the community to consider.
 >
-> *Updated 2026-05-22 to reflect the comprehensive vision synthesized after camp v0.1
-> ship: the asymmetry-era framing, memory-to-structure transformation as primary
-> mechanism, co-native structural memory as approach, and comprehensive immune-system
-> vocabulary as the full scope. v0.1.0-rc.2 substrate: Oracle 5-state lifecycle,
-> substrate-witness predicate language, 495 tests passing, camp v0.1 recursive proof
-> closed.*
+> *Updated 2026-05-22 to reflect the comprehensive vision: the asymmetry-era framing,
+> memory-to-structure transformation as primary mechanism, co-native structural memory
+> as approach, and comprehensive immune-system vocabulary as the full scope. v0.1.0-rc.3
+> substrate: Oracle 5-state lifecycle, substrate-witness predicate language, 554 tests
+> passing, end-to-end substrate-witness pipeline wired.*
 
 ---
 
@@ -138,7 +137,7 @@ Three forces make 2026 the right moment:
 
 ## The comprehensive vision
 
-Antigen v0.1 ships the core of structural failure-class memory: five macros, fingerprint grammar, scan + audit + attest CLI, substrate-witness predicates, Oracle lifecycle, camp v0.1. This is one branch of the comprehensive immune-system framework.
+Antigen v0.1 ships the core of structural failure-class memory: five macros, fingerprint grammar, scan + audit + attest + tolerate + oracle CLI, substrate-witness predicates, Oracle 5-state lifecycle, cross-cutting attestation. This is one branch of the comprehensive immune-system framework.
 
 The biological immune system is the systematic discovery framework for what the full vocabulary needs to be — each immune-system component maps to a code discipline with its own primitive. We've mapped approximately 10% of the metaphor; each remaining component is a research-arc prompt.
 

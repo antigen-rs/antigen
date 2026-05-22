@@ -32,7 +32,7 @@ shows you how:
 
 ```toml
 [dependencies]
-antigen = "=0.1.0-rc.1"
+antigen = "=0.1.0-rc.3"
 ```
 
 ---
@@ -69,15 +69,16 @@ Read in order:
 ### "I want a reference for a specific thing"
 
 - **[`macros.md`](macros.md)** — full reference for `#[antigen]`,
-  `#[presents]`, `#[immune]`, `#[descended_from]`,
-  `#[antigen_tolerance]`
+  `#[presents]`, `#[immune]` (both witness and requires forms),
+  `#[descended_from]`, `#[antigen_tolerance]`, plus the cross-cutting
+  `attested = (...)` parameter
 - **[`fingerprint-grammar.md`](fingerprint-grammar.md)** — fingerprint
-  DSL (six operators + composition)
+  DSL (seven item-level operators + composition)
 - **[`witness-tiers.md`](witness-tiers.md)** — `WitnessTier` gradient
-  semantics (FormalProof / Execution / Reachability / None) + audit
-  hints
-- **[`output-formats.md`](output-formats.md)** — `cargo antigen scan`
-  and `cargo antigen audit` human + JSON output reference
+  semantics (FormalProof / Execution / Reachability / None), three-tier
+  `SignatureStrength` for substrate-witness signatures, and audit hints
+- **[`output-formats.md`](output-formats.md)** — `cargo antigen scan` /
+  `audit` / `attest` / `tolerate` / `oracle` human + JSON output reference
 - **[`glossary.md`](glossary.md)** — every project term anchored to
   its biological referent and Rust analog
 
@@ -113,7 +114,8 @@ Read in order:
 - **[`origin.md`](origin.md)** — the founding incident; the
   tambear `DeterminismClass` / `CommutativityClass` post-mortem
 - **[`decisions.md`](decisions.md)** — ratified ADRs (through
-  ADR-018 + amendments)
+  ADR-018 + amendments + the v0.2 architectural-posture-shift batch:
+  AMEND-002/003/006 + NEW-022/023/024/025/026/027/028)
 - **[`postures.md`](postures.md)** — architectural postures (seven
   postures threaded through the ADRs)
 - **[`process.md`](process.md)** — formal ADR lifecycle and
@@ -257,8 +259,9 @@ issue or submit a fix; substrate-over-memory is the discipline (see
 
 Per ADR-006 (recognition-not-design), the project maintains a
 distinction between **documentation** (these `.md` files) and
-**substrate** (the code, the ADRs, the campsites, the sweep records).
-Documentation describes substrate; substrate is the source of truth.
+**substrate** (the code, the ratified ADRs, the workspace
+configuration). Documentation describes substrate; substrate is the
+source of truth.
 
 When this index and the actual `docs/` directory contents differ, the
 directory contents are authoritative — this index is corrected.

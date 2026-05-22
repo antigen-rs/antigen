@@ -4,9 +4,9 @@
 
 Comprehensive, co-native, structural memory of fail-classes, defenses, attestations, and coordination — accessible natively to both human and AI agents. Built for the age of agentic dev, vibe-coding, and human-LLM collaboration.
 
-> **Status**: v0.1.0-rc.2 — release candidate. Core macros, fingerprint grammar,
-> scan + audit + attest + tolerate CLI, Oracle 5-state lifecycle, cross-cutting
-> attestation, substrate-witness predicates, camp v0.1 shipped. Pinning `=0.1.0-rc.2`
+> **Status**: v0.1.0-rc.3 — release candidate. Core macros, fingerprint grammar,
+> scan + audit + attest + tolerate + oracle CLI, Oracle 5-state lifecycle,
+> cross-cutting attestation, substrate-witness predicates. Pinning `=0.1.0-rc.3`
 > lets early adopters validate before v0.1.0 final. See [`CHANGELOG.md`](CHANGELOG.md)
 > for the full manifest.
 
@@ -214,9 +214,7 @@ When the biology predicts a primitive, the project builds it. See [`docs/decisio
 
 **Anti-laundering safeguards**: chain-depth cap, minimum rationale character count, cumulative-root fingerprint for drift detection.
 
-**Camp v0.1**: team coordination substrate on antigen primitives — the recursive proof (camp coordinating its own development) closed 2026-05-21.
-
-**552 tests passing** (31 ignored as pre-impl contracts) across the workspace.
+**554 tests passing** (31 ignored as pre-impl contracts) across the workspace.
 
 Not yet shipped (honest stubs in CLI): `cargo antigen attest oracle`, `cargo antigen attest migrate`, `cargo antigen new`, `cargo antigen vaccinate`, `antigen-stdlib`.
 
@@ -265,12 +263,11 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for detail.
 
 ## Status
 
-- crates.io: [`antigen`](https://crates.io/crates/antigen), [`cargo-antigen`](https://crates.io/crates/cargo-antigen), [`antigen-macros`](https://crates.io/crates/antigen-macros), [`antigen-fingerprint`](https://crates.io/crates/antigen-fingerprint) — v0.1.0-rc.2
+- crates.io: [`antigen`](https://crates.io/crates/antigen), [`cargo-antigen`](https://crates.io/crates/cargo-antigen), [`antigen-macros`](https://crates.io/crates/antigen-macros), [`antigen-fingerprint`](https://crates.io/crates/antigen-fingerprint), [`antigen-attestation`](https://crates.io/crates/antigen-attestation) — v0.1.0-rc.3
 - Repository: [github.com/antigen-rs/antigen](https://github.com/antigen-rs/antigen)
 - CI: cargo check + test + fmt + clippy (-D warnings) + doc (-D warnings) on every push and PR
-- Tests: 552 passing (31 ignored as pre-impl contracts) across the workspace
+- Tests: 554 passing (31 ignored as pre-impl contracts) across the workspace
 - Tambear integration: live since 2026-05-07; first real adoption exercising the substrate (see [`docs/expedition/tambear-adoption-log.md`](docs/expedition/tambear-adoption-log.md))
-- Camp v0.1: shipped 2026-05-21; recursive proof closed
 
 ---
 
