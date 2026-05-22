@@ -488,6 +488,56 @@ independently across three or more codebases, propose to stdlib.
 
 ---
 
+## Anti-pattern 12 — Macro-emitted marker assumed visible to source-walking scan
+
+**What it looks like**:
+
+Designing a feature where a proc-macro expands an attribute into a structured comment or doc-attribute (e.g., emitting JSON metadata as a doc-comment), then expecting a source-walking scanner (one that uses `syn::parse_file` to read WRITTEN source) to discover that emitted marker.
+
+**Why it's an anti-pattern**: proc-macro expansion happens at compile time; source-walking tools read the source file before expansion runs. The emitted marker exists in the expanded TokenStream but not in the file on disk. The scanner walks past it, finds nothing, reports "no antigen-related declarations here."
+
+**The cost**: silent feature breakage. The feature compiles (macro expands fine), the tests pass (if they invoke the macro), but the user-facing tooling reports the feature isn't present. This is precisely the substrate-alignment failure-class antigen is designed to catch in OTHER codebases.
+
+**Real instance**: antigen's own rc.2 hotfix. ADR-019's `#[immune(X, requires = <predicate>)]` form parsed correctly and emitted a JSON marker at macro-expansion time. But `cargo antigen scan` walks written source via `syn::parse_file` and never saw the post-expansion doc marker. Every substrate-witness immunity reported `tier = None, hint = NoneApplicable` — even the shipped `antigen/examples/substrate_witness.rs` example. Caught via dogfood (`camp/` exercising the substrate); fixed by routing both macro and scan through a shared `antigen-attestation::parser` so both halves read from the same representation.
+
+**Correct shape**: when a feature bridges proc-macro expansion and source-walking tools, route BOTH through the same parser. Don't rely on macro-emission to a side-channel that the scanner can't read. The shared parser is the single source of truth.
+
+---
+
+## Anti-pattern 13 — Unanchored gitignore pattern silently hiding source
+
+**What it looks like**:
+
+A `.gitignore` entry without a leading `/` that's intended to match a specific directory at the repo root, but which (per gitignore semantics) actually matches at ANY depth. Example: `campsites/` (no leading slash) excludes `<repo>/campsites/`, `<repo>/subproject/campsites/`, and `<repo>/anything/anywhere/campsites/`.
+
+**Why it's an anti-pattern**: git's view of disk diverges from disk silently. Build tools see all files (they read disk); git sees a subset (it filters through gitignore). The discrepancy survives every CI run until someone clones fresh and the missing files become user-visible.
+
+**The cost**: catastrophic at rare moments. A fresh agent waking up to a cloned repo finds an empty directory where the build expected files. Recursive proofs, witness machinery, source modules — anything in the silently-excluded directory simply isn't there in the cloned tree, even though it was there on the original machine.
+
+**Real instance**: antigen's camp build campaign near-miss. `.gitignore` had `campsites/` (no anchor) intended to exclude only the top-level `<repo>/campsites/` (project coordination state). It silently matched `<repo>/camp/src/campsites/` (the per-project camp crate's source modules) and would have erased the entire recursive proof + module imports + attestation sidecar from any fresh clone. Caught by an observer-role substrate-alignment audit after the build succeeded.
+
+**Correct shape**: gitignore patterns intended to apply only at repo root need an explicit `/` prefix. Audit `.gitignore` periodically against expected substrate. Treat gitignore as substrate-alignment-critical — what git knows differs from what disk has, and that gap is invisible from inside the implementation lane.
+
+**Antigen primitive**: `UnanchoredGitignorePattern` is a candidate stdlib antigen in the v0.2+ supply-chain / substrate-alignment families.
+
+---
+
+## Anti-pattern 14 — Cross-project conflation in adopter-facing docs
+
+**What it looks like**:
+
+Your tool has sibling tools that USE it (e.g., a downstream coordination CLI that composes with your library via subprocess). You list those sibling tools in your tool's "Shipped" block, roadmap, or status section — as if their shipping is part of your tool's manifest.
+
+**Why it's an anti-pattern**: each project's adopter-facing surface should be about that project ONLY. Adopters scanning your docs and seeing a sibling tool's name might think "is this a macro? a feature? do I need to install something?" Cross-project conflation costs comprehension; readers spend cycles untangling what's part of YOUR tool vs what's a separate dependency.
+
+**The cost**: cognitive load on first-encounter readers; documentation drift as the sibling tool's release cadence diverges from yours; ambiguity about scope and boundaries.
+
+**Real instance**: antigen's roadmap and README briefly listed "Camp v0.1 shipped" alongside antigen's macros and CLI surface. Camp is a downstream tool that composes with antigen via subprocess (ADR-002) — its own repo, its own release history. Listing it as if it were an antigen deliverable confused the architecture. Caught + corrected in the same docs masterpiece pass that introduced it.
+
+**Correct shape**: each project's adopter-facing docs talk about that project only. Sibling tools, if mentioned at all, go in clearly-marked ecosystem sections — never in shipping manifests. Cross-references to sibling tools belong in their own dedicated doc (e.g., an "ecosystem.md") if substrate justifies; otherwise readers discover sibling tools through their own search rather than through your docs.
+
+---
+
 ## Meta anti-pattern — Discipline drift
 
 **What it looks like**:
@@ -530,7 +580,8 @@ substrate.
 - [`fingerprint-grammar.md`](fingerprint-grammar.md) — fingerprint DSL
   reference; helps avoid anti-pattern 4 and 9
 - [`decisions.md`](decisions.md) — ratified ADRs that ground the
-  discipline (ADR-005, ADR-006, ADR-010, ADR-011, ADR-013)
+  discipline (ADR-005, ADR-006, ADR-010, ADR-011, ADR-013, ADR-019,
+  ADR-021, ADR-028)
 
 ---
 

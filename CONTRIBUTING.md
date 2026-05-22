@@ -2,129 +2,115 @@
 
 Thank you for your interest in antigen — structural memory of failure-classes for Rust.
 
-> **Status: Design phase.** The project is in active design. Code contributions are
-> premature until the design phase resolves and v0.1 ships. Until then, the most
-> valuable contributions are: design feedback, prior-art surfacing, and proposing
-> failure-classes for the eventual stdlib library.
+> **Status: actively shipping.** v0.1.0-rc.3 is published on crates.io; the substrate-witness pipeline, Oracle 5-state lifecycle, and cross-cutting attestation are all live. The architectural-posture-shift event that opened v0.2 ratified ten ADRs as the v0.2 direction lock. We welcome substantive contributions across multiple paths.
 
-## What we welcome right now
+---
 
-### 1. Design feedback
+## How to contribute
 
-The design substrate lives in [`docs/expedition/`](docs/expedition/). Read:
-- [`design-intent.md`](docs/expedition/design-intent.md) — what antigen IS, what it ISN'T, why now
-- [`api-shape.md`](docs/expedition/api-shape.md) — sketch of macros and cargo subcommands
-- [`revolutionary-and-not.md`](docs/expedition/revolutionary-and-not.md) — honest claims and limits
-- [`origin.md`](docs/origin.md) — the post-mortem narrative that motivated the project
-- [`decisions.md`](docs/decisions.md) — ratified ADRs (foundational)
-- [`process.md`](docs/process.md) — formal lifecycle: how decisions get drafted, reviewed, ratified, and govern downstream work
+### Failure-class proposals (most valuable right now)
 
-If you spot a design flaw, an over-claim, an under-claim, an ambiguity, or a missing
-consideration — open an issue with the `design-discussion` template.
+Antigen's stdlib grows from real-world failure-class encounters. If you've hit a Rust failure that:
 
-### 2. Prior-art surfacing
+- Doesn't fit any of the eight first-principles classes (Frame-translation, Forgotten-lesson, Implicit-coupling, Stale-context, Premature-abstraction, Incompatible-merger, Boundary-violation, Optionality-collapse), OR
+- Fits one of the classes and you think it belongs in the eventual `antigen-stdlib` library,
 
-Antigen aims to compose existing Rust ecosystem tools, not compete with them. If you
-know of a tool we haven't surveyed in [`docs/expedition/ecosystem-composition.md`](docs/expedition/ecosystem-composition.md),
-please tell us — open an issue with `prior-art-surfacing` in the title.
+please open an issue with the `failure-class-proposal` template. Include:
 
-If you know of academic work that's directly relevant (refinement types, design-by-
-contract, named-effect type systems, lightweight verification), please tell us too —
-[`docs/expedition/academic-context.md`](docs/expedition/academic-context.md) is the
-landing page.
+- A minimal reproduction or a real-world commit where it surfaced
+- The structural shape (item kind, key methods, attribute patterns) — enough to derive a fingerprint
+- The witness you used (test, proptest, formal proof, type-system shape, external lint)
+- References (PR threads, post-mortems, RFCs, CVEs) if any exist
 
-### 3. Failure-class proposals
+Failure-class proposals are the single highest-impact contribution path. Each accepted proposal becomes a candidate for the v0.2+ stdlib expansion.
 
-The 8 first-principles failure classes are:
-1. Frame-translation
-2. Forgotten-lesson
-3. Implicit-coupling
-4. Stale-context
-5. Premature-abstraction
-6. Incompatible-merger
-7. Boundary-violation
-8. Optionality-collapse
+### Code PRs
 
-If you've encountered a real-world Rust failure that doesn't seem to fit any of these
-classes, propose either (a) a refinement to an existing class, or (b) a new class.
-Open an issue with the `failure-class-proposal` template.
+PRs are welcome against `main`. We'll guide them through our internal architectural discipline (see "What happens to your PR" below). You don't need to know our internal tooling to contribute.
 
-If you've encountered a real-world Rust failure that DOES fit one of the classes and
-you think it's worth including in the eventual `antigen-stdlib` library, propose it
-via the `antigen-stdlib-candidate` template.
+Before opening a substantive PR:
 
-### 4. Use-case stories
+1. **Open a discussion or issue first** if the change is non-trivial. This avoids you doing significant work on something we'd want to reshape during review.
+2. **Run the local gates**:
+   ```sh
+   cargo fmt --all -- --check
+   cargo clippy --workspace --all-targets -- -D warnings
+   cargo test --workspace
+   RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
+   ```
+   CI runs these on every push.
+3. **Write tests** for new behavior. The workspace currently runs 554 tests; new public API should add coverage.
+4. **Match existing conventions** — rustfmt-default style; comments explain non-obvious *why*, not redundant *what*.
 
-If you're working on a Rust codebase that has the failure-class-memory problem
-described in [`docs/origin.md`](docs/origin.md), and you'd like to be an early adopter
-when antigen ships, please introduce yourself via a Discussions thread. Real adoption
-stories shape the project's trajectory.
+### Prior-art surfacing
 
-## What we don't welcome right now
+Antigen composes existing Rust ecosystem tools rather than competing where composition serves adopters (ADR-002 Amendment 2). If you know of a tool, RFC, or academic work we haven't engaged with, open an issue tagged `prior-art-surfacing`.
 
-### Code PRs against the placeholder crates
+Particularly valuable: refinement types, design-by-contract, named-effect type systems, lightweight verification frameworks, supply-chain integrity tooling, version-boundary recognition work.
 
-The `0.0.1` versions of `antigen` and `cargo-antigen` are namespace placeholders. They
-will be substantially rewritten when the design phase resolves. Code PRs against them
-are unlikely to land — please contribute design feedback instead.
+### Discussions
 
-### Premature optimization or extension
+For broader questions — use cases, design rationale, where antigen fits in your workflow, ecosystem positioning — use GitHub Discussions rather than issues.
 
-Until the v1 design ratifies (expected after the antigen JBD team completes its first
-sweeps), proposing API extensions or optimizations is premature. The design substrate
-documents many open questions; those are the right surface for input now.
+If you disagree with a ratified ADR, GitHub Discussions is the right surface. Decisions are tracked in [`docs/decisions.md`](docs/decisions.md); changes go through the amendment process. Disagreement framed as bug reports gets reframed as discussion.
 
-### Disagreement framed as bug reports
+---
 
-If you disagree with a design decision (e.g., "the biological metaphor is silly,"
-"this should be a clippy plugin not its own crate"), please open a Discussions thread,
-not a bug report. The decisions are ratified ADRs (see `docs/decisions.md`); changes
-go through the amendment process described in that file.
+## What happens to your PR
 
-## The formal process
+Antigen has a formal internal architectural process inherited from the tambear project. **You don't need to interact with it directly.** When you submit a PR, the antigen team takes it through our discipline:
 
-Antigen has a formal architectural process inherited from the tambear project, captured
-in [`docs/process.md`](docs/process.md). Highlights:
+1. **First-principles review** — an aristotle-role agent (or maintainer) deconstructs the change against the ratified ADRs, surfaces any hidden assumptions, identifies cross-cutting concerns
+2. **Adversarial review** — failure-mode hunting; what's the worst input? what silent failures could pass tests?
+3. **Substrate validation** — does the change match what the codebase actually does? are claims in the PR description accurate?
+4. **Merge or revision request** — clean PRs land; revision requests come with specific findings
 
-- **ADR lifecycle**: Draft → Phase 1-8 deconstruction (the witness) → Adversarial review → Math/systems review → Scientist validation → Ratification → Enforcement → Reference and propagation
-- **Sweep planning**: larger units of work that ratify or implement multiple ADRs together. Sweep READMEs cite blocking work-streams, unlocked downstreams, and ADRs operated under
-- **ADRs govern code, sweeps, and other ADRs** through cross-references. Drift in any direction surfaces via the cross-references.
-- **Team roles** (when the JBD team is active): pathmaker, navigator, scout, naturalist, observer, math/systems-researcher, adversarial, scientist, aristotle. Each has process responsibilities.
+This typically takes a few days for non-trivial changes. Your PR description is the primary substrate we work from — clearer description = faster review.
 
-When the project ships its first real version, this CONTRIBUTING.md will be updated
-with:
-- Code-style guidelines (rustfmt + clippy strict)
-- Test requirements (every public API has tests; every antigen has property tests)
-- PR review process (at least one maintainer approval; CI must pass)
-- Antigen-stdlib contribution process (failure-class evidence, fingerprint precision,
-  witness coverage)
-- Witness type extension process (for adding new witness providers)
-- Release cadence and versioning policy
+If you're curious about the internal discipline itself (the ADR lifecycle, sweep planning, role responsibilities), see [`docs/process.md`](docs/process.md). It documents how the antigen team coordinates internally — not what we ask of contributors.
 
-For now: design feedback, prior-art surfacing, and failure-class proposals are the
-highest-value contributions.
+---
+
+## What we don't merge
+
+- **Premature optimization** before the relevant subsystem stabilizes. v0.2 work is substantively in flight; optimization PRs to surfaces still under design will be deferred.
+- **Speculative API extensions** without substrate. Per ADR-006 Amendment 1, adopter-side extensions need substrate-grounded encounters; stdlib growth is research-driven (different discipline, different criteria — see ADR-022).
+- **Cosmetic or scope-creep changes** mixed into substantive PRs. One concern per PR keeps the review graph clean.
+
+---
+
+## Code style + test requirements
+
+- **rustfmt** with workspace default config (`cargo fmt --all -- --check` must pass)
+- **clippy** with workspace pedantic + nursery lints (`cargo clippy --workspace --all-targets -- -D warnings` must pass)
+- **All new public API has tests.** Property tests via proptest are encouraged for parser/grammar surfaces.
+- **Rustdoc warnings** treated as errors (`RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps`)
+- **No `unsafe`** in this workspace (`unsafe_code = "forbid"` at workspace level)
+- **No `.unwrap()` in non-test code** (`unwrap_used = "deny"`)
+- **MSRV is 1.85** (edition 2024 in transitive deps)
+
+CI gates all of the above.
+
+---
 
 ## Releases
 
-Releases happen via git tag. Tag a commit `v<version>` (e.g., `v0.0.2`), push the tag,
-and GitHub Actions publishes both crates to crates.io and creates a GitHub release.
-The CHANGELOG.md must have an entry for the released version. See
-[`.github/workflows/release.yml`](.github/workflows/release.yml) for the workflow
-mechanics.
+Releases happen via git tag. Tag a commit `v<version>` (e.g., `v0.1.0-rc.4`), push the tag, and GitHub Actions publishes all five crates to crates.io and creates a GitHub release. CHANGELOG.md must have an entry for the released version. See [`.github/workflows/release.yml`](.github/workflows/release.yml) for the workflow mechanics.
 
-Only maintainers can push tags. Contributors propose version bumps via PR; tagging
-follows merge.
+Only maintainers can push tags. Contributors propose version bumps via PR; tagging follows merge.
+
+---
 
 ## Code of Conduct
 
-This project follows the [Rust Code of Conduct](CODE_OF_CONDUCT.md). Adopt the same
-standards in all communication: be welcoming, be considerate, be respectful, be
-careful in the words you choose, when we disagree try to understand why.
+This project follows the [Rust Code of Conduct](CODE_OF_CONDUCT.md). Adopt the same standards in all communication: be welcoming, be considerate, be respectful, be careful in the words you choose, when we disagree try to understand why.
+
+---
 
 ## Communication channels
 
-- **GitHub Issues**: design discussions, failure-class proposals, prior-art surfacing
-- **GitHub Discussions**: introductions, use-case stories, broad questions
-- **PRs**: only for documentation typos and clear design-doc improvements until v0.1
+- **GitHub Issues**: failure-class proposals, prior-art surfacing, bug reports, design questions
+- **GitHub Discussions**: introductions, use-case stories, broad questions, disagreement with ratified decisions
+- **Pull Requests**: code changes, doc improvements, test additions
 
 Thank you for contributing to building structural memory for the Rust ecosystem.

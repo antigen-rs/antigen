@@ -49,7 +49,7 @@ Add antigen to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-antigen = "0.1.0-rc.1"
+antigen = "=0.1.0-rc.3"
 ```
 
 Install the cargo subcommand:
@@ -70,16 +70,19 @@ The "antigen" subcommand of cargo
 Usage: cargo antigen <COMMAND>
 
 Commands:
-  scan   Scan the workspace for antigen presentations and report unaddressed ones
-  audit  Comprehensive immunity coverage report — witness resolution and tier validation
-  help   Print this message or the help of the given subcommand(s)
+  scan      Scan the workspace for antigen presentations and report unaddressed ones
+  audit     Comprehensive immunity coverage report — witness resolution and tier validation
+  attest    Manage `.attest/<Antigen>.json` substrate-witness sidecars (ADR-019)
+  tolerate  Manage tolerance-ratification sidecars (ADR-019 §tolerance tier)
+  oracle    Manage Oracle artifact-class records (ADR-021 §D3)
+  help      Print this message or the help of the given subcommand(s)
 
 Options:
-  -h, --help  Print help
+  -h, --help     Print help
+  -V, --version  Print version
 ```
 
-> **Note**: `new` and `vaccinate` are in development and hidden until they ship
-> in a future release. `scan` and `audit` are what you need for now.
+> **Note**: `scan` and `audit` are what you need for this tutorial. `attest`, `tolerate`, and `oracle` cover advanced workflows (substrate-witness sidecars, tolerance ratification, Oracle artifact lifecycle) — see [`witness-tiers.md`](witness-tiers.md) and the substrate-witness section later in this tutorial. `new` and `vaccinate` are in development and hidden until they ship in a future release.
 
 ---
 
