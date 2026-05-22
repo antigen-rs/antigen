@@ -262,6 +262,309 @@ impl Parse for ScanToleranceArgs {
     }
 }
 
+// ============================================================================
+// Deferred-Defense Family scan-time parsers (ADR-023)
+//
+// These mirror the macro-side parsers in antigen-macros/src/parse.rs but live
+// here for scan-time source walking. Unknown fields are consumed silently for
+// forward-compat (adoption-gradient per ADR-009). Required-field validation is
+// intentionally lenient on the scan side — the macro side is the parse-time
+// enforcer; the scan side records what it finds.
+// ============================================================================
+
+struct ScanAnergyArgs {
+    antigen_type: Option<String>,
+    reason: String,
+    until: String,
+    expected_co_stimulation: Option<String>,
+    signed_by: Option<String>,
+}
+
+impl Parse for ScanAnergyArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use syn::{Expr, Ident, LitStr, Path, Token};
+        let mut antigen_type: Option<String> = None;
+        let mut reason = String::new();
+        let mut until = String::new();
+        let mut expected_co_stimulation: Option<String> = None;
+        let mut signed_by: Option<String> = None;
+
+        // Optional leading positional antigen type path
+        if !input.is_empty() && input.peek(Ident) && !input.peek2(Token![=]) {
+            let path: Path = input.parse()?;
+            antigen_type = path.segments.last().map(|s| s.ident.to_string());
+            if !input.is_empty() {
+                let _ = input.parse::<Token![,]>();
+            }
+        }
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            let _ = input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "reason" => {
+                    let lit: LitStr = input.parse()?;
+                    reason = lit.value();
+                }
+                "until" => {
+                    let lit: LitStr = input.parse()?;
+                    until = lit.value();
+                }
+                "expected_co_stimulation" => {
+                    let lit: LitStr = input.parse()?;
+                    expected_co_stimulation = Some(lit.value());
+                }
+                "signed_by" => {
+                    let lit: LitStr = input.parse()?;
+                    signed_by = Some(lit.value());
+                }
+                _ => {
+                    let _: Expr = input.parse()?;
+                }
+            }
+            if !input.is_empty() {
+                let _ = input.parse::<Token![,]>();
+            }
+        }
+        Ok(Self {
+            antigen_type,
+            reason,
+            until,
+            expected_co_stimulation,
+            signed_by,
+        })
+    }
+}
+
+struct ScanImmunosuppressArgs {
+    antigen_type: Option<String>,
+    rationale: String,
+    until: String,
+    since: Option<String>,
+    duration_cap: Option<u64>,
+    signed_by: Option<String>,
+}
+
+impl Parse for ScanImmunosuppressArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use syn::{Expr, Ident, LitInt, LitStr, Path, Token};
+        let mut antigen_type: Option<String> = None;
+        let mut rationale = String::new();
+        let mut until = String::new();
+        let mut since: Option<String> = None;
+        let mut duration_cap: Option<u64> = None;
+        let mut signed_by: Option<String> = None;
+
+        if !input.is_empty() && input.peek(Ident) && !input.peek2(Token![=]) {
+            let path: Path = input.parse()?;
+            antigen_type = path.segments.last().map(|s| s.ident.to_string());
+            if !input.is_empty() {
+                let _ = input.parse::<Token![,]>();
+            }
+        }
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            let _ = input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "rationale" => {
+                    let lit: LitStr = input.parse()?;
+                    rationale = lit.value();
+                }
+                "until" => {
+                    let lit: LitStr = input.parse()?;
+                    until = lit.value();
+                }
+                "since" => {
+                    let lit: LitStr = input.parse()?;
+                    since = Some(lit.value());
+                }
+                "duration_cap" => {
+                    let lit: LitInt = input.parse()?;
+                    duration_cap = lit.base10_parse::<u64>().ok();
+                }
+                "signed_by" => {
+                    let lit: LitStr = input.parse()?;
+                    signed_by = Some(lit.value());
+                }
+                _ => {
+                    let _: Expr = input.parse()?;
+                }
+            }
+            if !input.is_empty() {
+                let _ = input.parse::<Token![,]>();
+            }
+        }
+        Ok(Self {
+            antigen_type,
+            rationale,
+            until,
+            since,
+            duration_cap,
+            signed_by,
+        })
+    }
+}
+
+struct ScanPoxpartyArgs {
+    antigen_type: Option<String>,
+    exercise_type: String,
+    until: String,
+    name: Option<String>,
+    rationale: Option<String>,
+    signed_by: Option<String>,
+}
+
+impl Parse for ScanPoxpartyArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use syn::{Expr, Ident, LitStr, Path, Token};
+        let mut antigen_type: Option<String> = None;
+        let mut exercise_type = String::new();
+        let mut until = String::new();
+        let mut name: Option<String> = None;
+        let mut rationale: Option<String> = None;
+        let mut signed_by: Option<String> = None;
+
+        if !input.is_empty() && input.peek(Ident) && !input.peek2(Token![=]) {
+            let path: Path = input.parse()?;
+            antigen_type = path.segments.last().map(|s| s.ident.to_string());
+            if !input.is_empty() {
+                let _ = input.parse::<Token![,]>();
+            }
+        }
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            let _ = input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "exercise_type" => {
+                    let lit: LitStr = input.parse()?;
+                    exercise_type = lit.value();
+                }
+                "until" => {
+                    let lit: LitStr = input.parse()?;
+                    until = lit.value();
+                }
+                "name" => {
+                    let lit: LitStr = input.parse()?;
+                    name = Some(lit.value());
+                }
+                "rationale" => {
+                    let lit: LitStr = input.parse()?;
+                    rationale = Some(lit.value());
+                }
+                "signed_by" => {
+                    let lit: LitStr = input.parse()?;
+                    signed_by = Some(lit.value());
+                }
+                _ => {
+                    let _: Expr = input.parse()?;
+                }
+            }
+            if !input.is_empty() {
+                let _ = input.parse::<Token![,]>();
+            }
+        }
+        Ok(Self {
+            antigen_type,
+            exercise_type,
+            until,
+            name,
+            rationale,
+            signed_by,
+        })
+    }
+}
+
+struct ScanOrientArgs {
+    antigen_type: Option<String>,
+    see: Vec<String>,
+    adr: Option<String>,
+    #[allow(dead_code)]
+    attestation_optional: bool,
+}
+
+impl Parse for ScanOrientArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use syn::{Expr, Ident, Lit, LitStr, Path, Token};
+        let mut antigen_type: Option<String> = None;
+        let mut see: Vec<String> = Vec::new();
+        let mut adr: Option<String> = None;
+        let mut attestation_optional = false;
+
+        if !input.is_empty() && input.peek(Ident) && !input.peek2(Token![=]) {
+            // Check if bare `attestation_optional` flag
+            let fork = input.fork();
+            let ident: Ident = fork
+                .parse()
+                .unwrap_or_else(|_| Ident::new("_", proc_macro2::Span::call_site()));
+            if ident == "attestation_optional" && (fork.is_empty() || fork.peek(Token![,])) {
+                let _: Ident = input.parse()?;
+                attestation_optional = true;
+            } else {
+                let path: Path = input.parse()?;
+                antigen_type = path.segments.last().map(|s| s.ident.to_string());
+            }
+            if !input.is_empty() {
+                let _ = input.parse::<Token![,]>();
+            }
+        }
+
+        while !input.is_empty() {
+            if input.peek(Ident) {
+                let fork = input.fork();
+                let ident: Ident = fork
+                    .parse()
+                    .unwrap_or_else(|_| Ident::new("_", proc_macro2::Span::call_site()));
+                if ident == "attestation_optional" && (fork.is_empty() || fork.peek(Token![,])) {
+                    let _: Ident = input.parse()?;
+                    attestation_optional = true;
+                    if !input.is_empty() {
+                        let _ = input.parse::<Token![,]>();
+                    }
+                    continue;
+                }
+            }
+
+            let key: Ident = input.parse()?;
+            let _ = input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "see" => {
+                    let arr: syn::ExprArray = input.parse()?;
+                    for elem in &arr.elems {
+                        if let Expr::Lit(syn::ExprLit {
+                            lit: Lit::Str(s), ..
+                        }) = elem
+                        {
+                            see.push(s.value());
+                        }
+                    }
+                }
+                "adr" => {
+                    let lit: LitStr = input.parse()?;
+                    adr = Some(lit.value());
+                }
+                "attestation_optional" => {
+                    let lit: syn::LitBool = input.parse()?;
+                    attestation_optional = lit.value();
+                }
+                _ => {
+                    let _: Expr = input.parse()?;
+                }
+            }
+            if !input.is_empty() {
+                let _ = input.parse::<Token![,]>();
+            }
+        }
+        Ok(Self {
+            antigen_type,
+            see,
+            adr,
+            attestation_optional,
+        })
+    }
+}
+
 /// A single antigen declaration discovered in source.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AntigenDeclaration {
@@ -666,6 +969,62 @@ pub struct Toleration {
     pub canonical_path: Option<String>,
 }
 
+// ============================================================================
+// Deferred-Defense Family output types (ADR-023)
+// ============================================================================
+
+/// Which of the four deferred-defense postures was declared.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum DeferredDefenseKind {
+    /// `#[anergy]` — deferred-but-muted; until required.
+    Anergy,
+    /// `#[immunosuppress]` — surgical silencing with duration cap.
+    Immunosuppress,
+    /// `#[poxparty]` — intentional controlled exposure; cfg-gated.
+    Poxparty,
+    /// `#[orient]` — see-also context; lightest-weight.
+    Orient,
+}
+
+/// A deferred-defense declaration discovered in source (ADR-023).
+///
+/// Covers all four primitives: `#[anergy]`, `#[immunosuppress]`,
+/// `#[poxparty]`, `#[orient]`. The `kind` field distinguishes them.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeferredDefense {
+    /// Which deferred-defense posture was declared.
+    pub kind: DeferredDefenseKind,
+    /// Antigen type referenced, if a positional argument was provided.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub antigen_type: Option<String>,
+    /// Primary text field: `rationale` (immunosuppress), `reason` (anergy),
+    /// `exercise_type` (poxparty), or empty string (orient).
+    /// For anergy: `reason`; for immunosuppress: `rationale`;
+    /// for poxparty: `exercise_type`; for orient: empty string.
+    pub text: String,
+    /// Expiry date string (`until` field), if present.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub until: Option<String>,
+    /// Optional co-stimulation hint (anergy only; advisory).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expected_co_stimulation: Option<String>,
+    /// Optional signer identifier.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signed_by: Option<String>,
+    /// See-also references (orient; also poxparty name field stored here).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub see: Vec<String>,
+    /// Source file path.
+    pub file: PathBuf,
+    /// Line number.
+    pub line: usize,
+    /// Item kind that was annotated (fn, impl, struct, etc.).
+    pub item_kind: String,
+    /// Item identity for structural cross-referencing.
+    pub item_target: ItemTarget,
+}
+
 /// A file that failed to parse during a scan, with the associated error.
 ///
 /// Serializes as `{"file": "...", "error": "..."}` — named fields, consistent
@@ -742,6 +1101,12 @@ pub struct ScanReport {
     /// cleanly with an empty edge list (additive change, not breaking).
     #[serde(default)]
     pub lineage_edges: Vec<LineageEdge>,
+    /// All discovered deferred-defense declarations: `#[anergy]`,
+    /// `#[immunosuppress]`, `#[poxparty]`, `#[orient]`. ADR-023.
+    ///
+    /// `#[serde(default)]` so pre-v0.2 reports deserialize cleanly.
+    #[serde(default)]
+    pub deferred_defenses: Vec<DeferredDefense>,
     /// Files scanned successfully.
     pub files_scanned: usize,
     /// Files that failed to parse.
@@ -2262,6 +2627,191 @@ impl ScanVisitor<'_> {
         }
     }
 
+    // ============================================================================
+    // Deferred-Defense Family extraction methods (ADR-023)
+    // ============================================================================
+
+    fn extract_anergy(&mut self, attr: &syn::Attribute, item_kind: &str, item_target: ItemTarget) {
+        if let syn::Meta::List(list) = &attr.meta {
+            let args = match syn::parse2::<ScanAnergyArgs>(list.tokens.clone()) {
+                Ok(a) => a,
+                Err(e) => {
+                    self.report.parse_failures.push(ParseFailure {
+                        file: self.file_path.clone(),
+                        error: format!("malformed #[anergy] attribute: {e}"),
+                    });
+                    return;
+                }
+            };
+            let line = Self::line_of_attr(attr);
+            self.report.deferred_defenses.push(DeferredDefense {
+                kind: DeferredDefenseKind::Anergy,
+                antigen_type: args.antigen_type,
+                text: args.reason,
+                until: if args.until.is_empty() {
+                    None
+                } else {
+                    Some(args.until)
+                },
+                expected_co_stimulation: args.expected_co_stimulation,
+                signed_by: args.signed_by,
+                see: Vec::new(),
+                file: self.file_path.clone(),
+                line,
+                item_kind: item_kind.to_string(),
+                item_target,
+            });
+        }
+    }
+
+    fn extract_immunosuppress(
+        &mut self,
+        attr: &syn::Attribute,
+        item_kind: &str,
+        item_target: ItemTarget,
+    ) {
+        if let syn::Meta::List(list) = &attr.meta {
+            let args = match syn::parse2::<ScanImmunosuppressArgs>(list.tokens.clone()) {
+                Ok(a) => a,
+                Err(e) => {
+                    self.report.parse_failures.push(ParseFailure {
+                        file: self.file_path.clone(),
+                        error: format!("malformed #[immunosuppress] attribute: {e}"),
+                    });
+                    return;
+                }
+            };
+            let mut see = Vec::new();
+            if let Some(since) = &args.since {
+                // Store since as a see-ref for audit correlation
+                see.push(format!("since:{since}"));
+            }
+            if let Some(cap) = args.duration_cap {
+                see.push(format!("duration_cap:{cap}d"));
+            }
+            let line = Self::line_of_attr(attr);
+            self.report.deferred_defenses.push(DeferredDefense {
+                kind: DeferredDefenseKind::Immunosuppress,
+                antigen_type: args.antigen_type,
+                text: args.rationale,
+                until: if args.until.is_empty() {
+                    None
+                } else {
+                    Some(args.until)
+                },
+                expected_co_stimulation: None,
+                signed_by: args.signed_by,
+                see,
+                file: self.file_path.clone(),
+                line,
+                item_kind: item_kind.to_string(),
+                item_target,
+            });
+        }
+    }
+
+    fn extract_poxparty(
+        &mut self,
+        attr: &syn::Attribute,
+        item_kind: &str,
+        item_target: ItemTarget,
+    ) {
+        if let syn::Meta::List(list) = &attr.meta {
+            let args = match syn::parse2::<ScanPoxpartyArgs>(list.tokens.clone()) {
+                Ok(a) => a,
+                Err(e) => {
+                    self.report.parse_failures.push(ParseFailure {
+                        file: self.file_path.clone(),
+                        error: format!("malformed #[poxparty] attribute: {e}"),
+                    });
+                    return;
+                }
+            };
+            let mut see = Vec::new();
+            if let Some(name) = &args.name {
+                see.push(format!("exercise:{name}"));
+            }
+            if let Some(rationale) = &args.rationale {
+                see.push(format!("rationale:{rationale}"));
+            }
+            let line = Self::line_of_attr(attr);
+            self.report.deferred_defenses.push(DeferredDefense {
+                kind: DeferredDefenseKind::Poxparty,
+                antigen_type: args.antigen_type,
+                text: args.exercise_type,
+                until: if args.until.is_empty() {
+                    None
+                } else {
+                    Some(args.until)
+                },
+                expected_co_stimulation: None,
+                signed_by: args.signed_by,
+                see,
+                file: self.file_path.clone(),
+                line,
+                item_kind: item_kind.to_string(),
+                item_target,
+            });
+        }
+    }
+
+    fn extract_orient(&mut self, attr: &syn::Attribute, item_kind: &str, item_target: ItemTarget) {
+        // #[orient] with no args (bare attribute) is valid — acknowledge
+        // orientation period with zero configuration.
+        match &attr.meta {
+            syn::Meta::List(list) => {
+                let args = match syn::parse2::<ScanOrientArgs>(list.tokens.clone()) {
+                    Ok(a) => a,
+                    Err(e) => {
+                        self.report.parse_failures.push(ParseFailure {
+                            file: self.file_path.clone(),
+                            error: format!("malformed #[orient] attribute: {e}"),
+                        });
+                        return;
+                    }
+                };
+                let line = Self::line_of_attr(attr);
+                let mut adr_see = args.see.clone();
+                if let Some(adr) = &args.adr {
+                    adr_see.push(format!("adr:{adr}"));
+                }
+                self.report.deferred_defenses.push(DeferredDefense {
+                    kind: DeferredDefenseKind::Orient,
+                    antigen_type: args.antigen_type,
+                    text: String::new(),
+                    until: None,
+                    expected_co_stimulation: None,
+                    signed_by: None,
+                    see: adr_see,
+                    file: self.file_path.clone(),
+                    line,
+                    item_kind: item_kind.to_string(),
+                    item_target,
+                });
+            }
+            syn::Meta::Path(_) => {
+                // Bare `#[orient]` — valid, record with empty fields.
+                let line = Self::line_of_attr(attr);
+                self.report.deferred_defenses.push(DeferredDefense {
+                    kind: DeferredDefenseKind::Orient,
+                    antigen_type: None,
+                    text: String::new(),
+                    until: None,
+                    expected_co_stimulation: None,
+                    signed_by: None,
+                    see: Vec::new(),
+                    file: self.file_path.clone(),
+                    line,
+                    item_kind: item_kind.to_string(),
+                    item_target,
+                });
+            }
+            syn::Meta::NameValue(_) => {
+                // `#[orient = value]` is not a valid orient invocation; ignore.
+            }
+        }
+    }
+
     fn extract_descended_from(&mut self, attr: &syn::Attribute, item_target: &ItemTarget) {
         // ADR-013: `#[descended_from]` is meaningful only on antigen-type
         // declarations (unit `struct` and class-shaped `enum`). Other
@@ -2340,6 +2890,15 @@ impl ScanVisitor<'_> {
                 self.extract_tolerance(attr, attrs, item_kind, item_target.clone());
             } else if attr_is(attr, "descended_from") {
                 self.extract_descended_from(attr, item_target);
+            // Deferred-Defense Family (ADR-023)
+            } else if attr_is(attr, "anergy") {
+                self.extract_anergy(attr, item_kind, item_target.clone());
+            } else if attr_is(attr, "immunosuppress") {
+                self.extract_immunosuppress(attr, item_kind, item_target.clone());
+            } else if attr_is(attr, "poxparty") {
+                self.extract_poxparty(attr, item_kind, item_target.clone());
+            } else if attr_is(attr, "orient") {
+                self.extract_orient(attr, item_kind, item_target.clone());
             }
         }
     }

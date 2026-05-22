@@ -19,6 +19,17 @@ exclude = [
 [lib]
 path = "src/lib.rs"
 
+# The `antigen-poxparty` feature activates structural isolation for
+# `#[poxparty]` sites. Per ADR-023: this feature MUST NOT be in the default
+# feature set — production builds must not accidentally enable pox-party
+# exercise code. Enable it in `[dev-dependencies]` or a dedicated feature gate.
+[features]
+# The antigen-poxparty feature propagates to antigen-macros so the proc-macro
+# expansion environment receives CARGO_FEATURE_ANTIGEN_POXPARTY. Without this
+# propagation, the macro's env-var check fires even when the adopter enables
+# the feature on their antigen dependency.
+antigen-poxparty = ["antigen-macros/antigen-poxparty"]
+
 [lints]
 workspace = true
 
