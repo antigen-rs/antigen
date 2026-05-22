@@ -106,6 +106,39 @@ The phases:
    surface against the existing `attest` CLI surface from ADR-019 §M4. Without the
    comparison, both verbs would have shipped and required caller migration.
 
+   **Phase 3 sub-routine — Enforcement-Mechanism specification** (ratified 2026-05-22):
+
+   For every gate, check, or validation that the ADR introduces, the draft MUST specify:
+
+   1. **Enforcement-Tier** — at which tier the check happens:
+      - **parse-time**: macro expansion / compile-time / build script — typically produces a compile error
+      - **scan-time**: `cargo antigen scan` walks substrate; non-blocking by default but can be CI-gated
+      - **audit-time**: `cargo antigen audit` evaluates witness predicates; CI-gated
+      - **CLI-time**: explicit operator invocation of a `cargo antigen ...` subcommand; user-initiated
+      - **commit-time**: pre-commit / post-commit hooks; runs at git operation
+      - **push-time**: pre-push / pre-receive hooks; runs at git push or remote ref update
+      - **build-time**: Cargo feature resolution; compile-time conditional inclusion
+      - **runtime**: per-execution check; lowest-friction, lowest-discipline tier
+      - **NONE (named limitation)**: explicitly NOT enforced; relies on cultural / documentation discipline
+
+   2. **Enforcement-Scope** — where the check runs:
+      - **client**: runs on developer's machine; bypassable by configuration drift or deliberate skip
+      - **server**: runs on git remote / CI server / centralized authority; not bypassable by client config
+      - **client + CI**: both client (developer feedback) and CI (gate)
+      - **process**: enforced via ADR-Phase-1-8 and ratification ceremony; meta-level
+
+   3. **Bypass risk + mitigation** — for each mechanism, name the realistic bypass path and its mitigation.
+
+   This information lives in a **§Enforcement-Surface table** in the ADR draft, with columns: Mechanism | Enforcement-Tier | Enforcement-Scope | Bypass risk + mitigation.
+
+   **Friction-vs-structural disclosure requirement**: when the chosen enforcement-tier is friction-only (client-side; bypassable), the ADR MUST explicitly state this. The default text:
+
+   > This ADR enforces [X] at friction-only level by default (client-side hooks + audit-time hints). Friction-only means the discipline makes bad behavior DELIBERATE rather than ACCIDENTAL, but does NOT prevent determined bypass. Adopters requiring structural mode must [specific path].
+
+   **Empirical basis**: cross-ADR systemic finding from v0.2 ratification team campaign (2026-05-22) — adversarial gates on 6 independent ADRs (ADR-023 through ADR-028) all surfaced the same enforcement-mechanism-ambiguity gap independently. ADRs specified WHAT should be enforced without specifying the HOW precisely enough to prevent bypass. Specifying enforcement-surface at draft-time closes the gap before adversarial review needs to discover it.
+
+   **Relationship to Cross-ADR surface check**: complementary sub-routines. Cross-ADR surface check catches naming collisions; this sub-routine catches mechanism-ambiguity gaps. Both run before §Mechanics-finalize.
+
 4. **Phase 4 — Extract invariants**: name what must remain true after the change.
    These become enforcement clauses if not already explicit.
 
