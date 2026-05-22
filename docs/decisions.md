@@ -38,13 +38,16 @@
 
 - [ADR-001 — Failure-class memory is structural, not documentary](#adr-001--failure-class-memory-is-structural-not-documentary)
   - [ADR-001 Amendment 1 — Carrier-strength hierarchy + passive/active surfaces + structural commitments C1–C8](#adr-001-amendment-1--carrier-strength-hierarchy--passiveactive-surfaces--structural-commitments-c1c8)
-- [ADR-002 — Compose, don't compete](#adr-002--compose-dont-compete) *(amended by ADR-013, ADR-015)*
-- [ADR-003 — Biological metaphor is load-bearing, not decorative](#adr-003--biological-metaphor-is-load-bearing-not-decorative)
+- [ADR-002 — Compose, don't compete](#adr-002--compose-dont-compete) *(amended by ADR-013, ADR-015, Amendment 2)*
+  - [ADR-002 Amendment 2 — Compose where external expertise serves; compete where antigen cohesion serves](#adr-002-amendment-2--compose-where-external-expertise-serves-compete-where-antigen-cohesion-serves)
+- [ADR-003 — Biological metaphor is load-bearing, not decorative](#adr-003--biological-metaphor-is-load-bearing-not-decorative) *(amended by Amendment 1)*
+  - [ADR-003 Amendment 1 — Biology is BOTH teaching tool AND discovery framework](#adr-003-amendment-1--biology-is-both-teaching-tool-and-discovery-framework)
 - [ADR-004 — Implicit-to-explicit elevation as architectural posture](#adr-004--implicit-to-explicit-elevation-as-architectural-posture)
 - [ADR-005 — Sub-clause F at every trust boundary](#adr-005--sub-clause-f-at-every-trust-boundary)
   - [ADR-005 Amendment 2 — Rationale-as-required-field as transverse sub-clause F discipline](#adr-005-amendment-2--rationale-as-required-field-as-transverse-sub-clause-f-discipline)
   - [ADR-005 Amendment 3 — Audit reports its own tier honestly](#adr-005-amendment-3--audit-reports-its-own-tier-honestly)
-- [ADR-006 — Recognition, not design](#adr-006--recognition-not-design)
+- [ADR-006 — Recognition, not design](#adr-006--recognition-not-design) *(amended by Amendment 1)*
+  - [ADR-006 Amendment 1 — Recognition discipline scoped to adopter-extension; stdlib growth is research-discipline](#adr-006-amendment-1--recognition-discipline-scoped-to-adopter-extension-stdlib-growth-is-research-discipline)
 - [ADR-007 — Anti-YAGNI: structurally-guaranteed need](#adr-007--anti-yagni-structurally-guaranteed-need)
 - [ADR-008 — Named-observer position as terminal stratum](#adr-008--named-observer-position-as-terminal-stratum)
   - [ADR-008 Amendment 1 — Multi-contributor workflow + scan severity defaults](#adr-008-amendment-1--multi-contributor-workflow--scan-severity-defaults)
@@ -67,6 +70,13 @@
 - [ADR-019 — Substrate-witness predicate family](#adr-019-substrate-witness-predicate-family)
 - [ADR-020 — Cross-cutting attestation primitive](#adr-020-cross-cutting-attestation-primitive)
 - [ADR-021 — OracleRef generalization + additive-only schema evolution + oracle-as-artifact-class](#adr-021-oracleref-generalization--additive-only-schema-evolution--oracle-as-artifact-class)
+- [ADR-022 — Stdlib-vs-Extension: Two Disciplines, One Public API](#adr-022--stdlib-vs-extension-two-disciplines-one-public-api)
+- [ADR-023 — Deferred-Defense Family: Loudness-as-Discipline for Intentional Non-Immunity](#adr-023--deferred-defense-family-loudness-as-discipline-for-intentional-non-immunity)
+- [ADR-024 — Three Sibling Families: Convergent Evidence + Recurrent Emergence + Prescriptive Work-Orchestration](#adr-024--three-sibling-families-convergent-evidence--recurrent-emergence--prescriptive-work-orchestration)
+- [ADR-025 — Supply-Chain Defense Family: Antigens for Dependency-Boundary Risk in the 2026+ Threat Landscape](#adr-025--supply-chain-defense-family-antigens-for-dependency-boundary-risk-in-the-2026-threat-landscape)
+- [ADR-026 — VCS-Information-Loss Family: Structural Defense Against Git-History-Erasing Operations + Rollback-as-Triage Discipline](#adr-026--vcs-information-loss-family-structural-defense-against-git-history-erasing-operations--rollback-as-triage-discipline)
+- [ADR-027 — Mucosal Boundary Taxonomy + Mapping Discipline](#adr-027--mucosal-boundary-taxonomy--mapping-discipline)
+- [ADR-028 — Antigen-Category Taxonomy: Substrate-Alignment vs Functional-Correctness as First-Class Distinction](#adr-028--antigen-category-taxonomy-substrate-alignment-vs-functional-correctness-as-first-class-distinction)
 
 ---
 
@@ -400,6 +410,78 @@ The `witness` parameter on `#[immune(...)]` accepts:
 - Ecosystem fragmentation risk
 - "Yet-another-lint" criticism
 - Reinventing-the-wheel engineering cost
+
+---
+
+## ADR-002 Amendment 2 — Compose where external expertise serves; compete where antigen cohesion serves
+
+**Status**: Ratified 2026-05-22.
+
+**Amends**: ADR-002 (Compose, don't compete) — ratified 2026-05-07; previously amended by ADR-013 (Amendment 1).
+
+**Participants**: aristotle (draft + Phase 1-8 + revision); Tekgy (named the amendment + locked 2026-05-21 night); naturalist (biology-grounding upgrade per Class-1 immune-system parallel-surface prediction); adversarial (B11 partial-lands; resolved via ADR-025 adopter-segmentation, not this amendment).
+
+**Related**: ADR-002, ADR-003 (biology-as-discovery-framework strengthens this), ADR-013 (Amendment 1), NEW-ADR-022 (Stdlib-vs-Extension), NEW-ADR-025 (supply-chain compete decision).
+
+### Finding
+
+ADR-002's "default compose" became a project-wide constraint when its load-bearing reason (v0.1 ship discipline) had a narrower scope. The amended default is **substrate-grounded design choice**, not categorical-default. The Tekgy reframe identifies a clamping artifact: antigen needs its own surfaces at cohesion-critical points, exactly as the immune system evolved its own integrated vocabulary at surfaces where adjacent-system tools would have caused translation losses.
+
+### Decision
+
+**ADR-002 is amended to replace the "default compose" posture with a substrate-grounded design choice between composing and competing. The choice is made per primitive, per surface, per amendment — applying a distinguishing test, not a categorical default.**
+
+The principle, stated normatively:
+
+> When antigen considers a new primitive, witness type, tooling surface, or family, the design choice is between (a) COMPOSING with an existing tool (delegating the work + accepting the tool's vocabulary as part of antigen's contract) and (b) COMPETING by owning the equivalent surface (with antigen's opinions, vocabulary, integration, and cohesion). The choice is made by applying the **distinguishing test** below to the specific substrate; neither default is privileged.
+
+**Compose when**:
+- The external tool's specific expertise is hard to match
+- Integration cost is low + maintenance burden low
+- The tool's vocabulary doesn't conflict with antigen's
+- Adopters benefit from access to the broader ecosystem
+
+**Compete when**:
+- Adopters in antigen's ecosystem benefit more from cohesion-within-antigen
+- Antigen's opinions improve on the alternative
+- The adjacent tool's vocabulary conflicts with antigen's (composing forces awkward translation)
+- Owning the surface lets antigen evolve it in lockstep with the rest of the immune system
+
+**The four-item substrate-citation requirement**: each compete decision requires substrate-citation naming (1) adjacent tools, (2) cohesion/opinion/vocabulary load-bearing reason, (3) measurable adopter-experience differential, and (4) that the alternative path is preserved.
+
+### Biology grounding
+
+The immune system has evolved its **own integrated vocabulary** at every surface where adjacent-system tools would have caused translation losses that break integrated response. The immune system did NOT compose with the endocrine system for cytokine signaling; it evolved its own. It did NOT borrow neural memory machinery; it evolved its own (B-cell/T-cell memory). It did NOT defer to stomach acid + skin barrier for antimicrobial chemistry; it evolved its own (defensins, complement, lysozyme).
+
+This amendment's compose-vs-compete posture is **biology-predicted at the outcome level** (Class 1): knowing only immune biology, you would predict that antigen (committed to immune-system-as-tool) will need to own some surfaces. Biology is **silent** on the four-item substrate-citation mechanic itself (that's software-engineering invention); it grounds the structural necessity of competing at cohesion-critical surfaces.
+
+### Mechanics
+
+**§Enforcement-Surface**:
+
+| Mechanism | Enforcement-Tier | Enforcement-Scope | Bypass risk + mitigation |
+|---|---|---|---|
+| Four-item substrate-citation requirement | ADR-Phase-3 (during Strip) + ratification ceremony | process | hand-wavy citations caught at gates |
+| Distinguishing-test application | ADR-Phase-3 + Phase-4 | process | future ADRs apply per-primitive; pattern reuse across ADR drafts |
+| Alternative-path-preserved check | ADR-Phase-3 §What-this-ADR-does-NOT-do | process | ratified amendments explicitly state non-deprecation |
+
+### Sweep-level consequences
+
+- Biology cognate upgraded: cytokine signaling + memory machinery + antimicrobial chemistry as parallel-surfaces; substrate-cited
+- Honest dual-axis grounding named: biology grounds outcome; software-engineering grounds process
+- Each compete decision in a new ADR carries the four-item substrate-citation (verified by naturalist + adversarial gates)
+
+### Resolves
+
+- The "default compose" clamping artifact (per Tekgy lock 2026-05-21)
+- The hand-wavy biology framing: Class-1 outcome-level grounding replaces "competition + cooperation coexist" generic claim
+- The compose-default that fragmented supply-chain adopter experience (per ADR-025 compete decision)
+
+### What this amendment does NOT do
+
+- Does NOT abandon compose discipline; preserves it where external expertise + low integration cost warrant it
+- Does NOT claim biology grounds the four-item substrate-citation mechanic (honest silence; software-engineering invention)
+- Does NOT preclude future ADRs from surfacing additional compose-vs-compete decision mechanisms
 
 ---
 
