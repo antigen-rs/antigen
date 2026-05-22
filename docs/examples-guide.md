@@ -424,6 +424,77 @@ a real codebase with declared antigens.
 
 ---
 
+## Deferred-Defense Family (v0.2.0-alpha.1) — ADR-023
+
+These four examples demonstrate the loudness-as-discipline family: primitives
+for intentional non-immunity. Each has a structurally distinct posture with
+parse-time enforcement.
+
+### Lesson: `#[anergy]` — time-bounded deferral with co-stimulation trigger
+
+**File**: `antigen/examples/deferred_defense_anergy.rs`
+
+`#[anergy]` is for "I know this failure-class applies, and I cannot address it
+right now, and here is my time-bound and the trigger that will re-engage." The
+`until` field is REQUIRED — anergy without a time-bound is silent tolerance.
+
+Key enforcement: `reason` minimum 20 characters; `until` required (A5 absorbed);
+past `until`: hint escalates to `anergy-co-stimulation-not-arrived` / `anergy-stale`.
+
+```sh
+cargo run --example deferred_defense_anergy --package antigen
+```
+
+### Lesson: `#[immunosuppress]` — surgical silencing with parse-time duration cap
+
+**File**: `antigen/examples/deferred_defense_immunosuppress.rs`
+
+`#[immunosuppress]` is for "I am deliberately muting this check family for a
+bounded duration." Duration cap enforced at **parse time** — compile error if
+`until - since > duration_cap` (A4 absorbed). Default cap 90d; `duration_cap = N`
+overrides per-site.
+
+Key enforcement: `rationale` minimum 20 characters; `until` required; compile error
+on cap violation.
+
+```sh
+cargo run --example deferred_defense_immunosuppress --package antigen
+```
+
+### Lesson: `#[poxparty]` — controlled exposure with structural isolation
+
+**File**: `antigen/examples/deferred_defense_poxparty.rs`
+
+`#[poxparty]` is for chaos tests, fault injection, red-team exercises. Structural
+isolation via `antigen-poxparty` Cargo feature — items inside inactive
+`#[cfg(feature = "antigen-poxparty")]` blocks never reach macro expansion. Feature
+MUST NOT be in default set.
+
+Key enforcement: `exercise_type` minimum 20 characters; `until` required;
+`#[cfg]` gate is primary isolation; `CARGO_FEATURE_ANTIGEN_POXPARTY` env var
+check is secondary (best-effort; A3 absorbed).
+
+```sh
+# Production (structural isolation active):
+cargo run --example deferred_defense_poxparty --package antigen
+# Exercises visible:
+cargo run --example deferred_defense_poxparty --package antigen --features antigen-poxparty
+```
+
+### Lesson: `#[orient]` — acknowledged orientation with see-also context
+
+**File**: `antigen/examples/deferred_defense_orient.rs`
+
+`#[orient]` is the lightest-weight deferred-defense primitive. All fields optional.
+Bare `#[orient]` with no arguments is valid. For ported code, design-flux periods,
+or rollback-as-triage sites (ADR-026). No minimum lengths, no required fields.
+
+```sh
+cargo run --example deferred_defense_orient --package antigen
+```
+
+---
+
 ## See also
 
 - [`tutorial.md`](tutorial.md) — guided walkthrough
