@@ -5267,3 +5267,125 @@ These layers have DIFFERENT growth disciplines (per ADR-006 Amendment 1): stdlib
 - **Pre-team ADRs (1-8)**: these were ratified by Tekgy + Claude in the pre-team
   scaffolding session. They are foundational and should not be casually amended; major
   amendments require explicit deconstruction by the antigen team.
+
+---
+
+## [ADR-023] Deferred-Defense Family: Loudness-as-Discipline for Intentional Non-Immunity
+
+**Status**: Ratified 2026-05-22.
+
+**Participants**: aristotle (draft + Phase 1-8 + revision); Tekgy (named the family); naturalist (biology grounding sound at per-primitive level; no major refinement); adversarial (5 BLOCKING + 3 non-blocking attacks, all absorbed).
+
+**Related**: ADR-005 Amendments 2 & 3 (sub-clause F); ADR-006 Amendment 1 (stdlib); ADR-007 (anti-YAGNI); ADR-011 (`#[antigen_tolerance]` closest relative); ADR-022 (Stdlib-vs-Extension); ADR-023 deferred-defense family; ADR-026 (VCS — rollback-as-triage uses `#[orient]`-shape declarations).
+
+**Implicit pattern elevated** (per ADR-004): deferred defenses have been captured via inline comments, `// TODO`, or tolerance-without-distinction. This ADR elevates the richer vocabulary of intentional non-immunity to structural primitives.
+
+### Finding
+
+ADR-011 ships `#[antigen_tolerance]` as the escape valve for intentional non-immunity. Biology has a richer vocabulary:
+
+- **Anergy**: T-cell or B-cell encounters antigen but fails to respond due to lack of co-stimulation. Alive but unresponsive. Reversible if co-stimulation arrives.
+- **Immunosuppression**: pharmacological/pathological reduction of immune response. Time-bounded; expected to be revisited.
+- **Pox party**: pre-emptive controlled exposure to build immunity (chaos engineering, fault injection, red-team exercises).
+- **Orient**: explicit orientation period during which systems acknowledge they LACK immunity.
+
+These are STRUCTURALLY DISTINCT from tolerance:
+
+| Mechanism | Posture | Loudness | Aging | Escalation | In ADR-023? |
+|---|---|---|---|---|---|
+| `#[antigen_tolerance]` | Compliance | Quiet | None | None | No (per ADR-011) |
+| `#[anergy]` | Deferred-but-muted | Medium-loud | Yes | Yes — auto-re-engage | YES |
+| `#[immunosuppress]` | Deliberately-muted | Loud | Yes | Yes — expires | YES |
+| `#[poxparty]` | Pre-emptive-controlled-exposure | Loud | Bounded | Outcome-feedback | YES |
+| `#[orient]` | Pre-immunity-acknowledged | Loud | Yes | Auto-escalate | YES |
+| `#[vaccinate]` | Active-immunity-building | Loud at invocation | None after | N/A | NO (ADR-007 standalone) |
+
+The unifying property: **loudness IS the discipline**. Silently-deferred defense becomes silently-broken defense.
+
+### Decision
+
+**Antigen ships a Deferred-Defense Family of FOUR declarative primitives — `#[anergy]`, `#[immunosuppress]`, `#[poxparty]`, `#[orient]` — each capturing a structurally distinct mode of intentional non-immunity. The family is governed by loudness-as-discipline: each primitive's audit visibility is structurally proportionate to its mode's risk profile. Aging + escalation mechanics prevent silent permanence. Cap-enforcement happens at PARSE-TIME. Poxparty has STRUCTURAL compile-time isolation.**
+
+`#[vaccinate]` is REMOVED from this family — vaccinate is active-immunity-building, not deferred-defense. It remains in scope per ADR-007 commitment as a standalone primitive.
+
+**`#[anergy(X, reason, expected_co_stimulation, until)]`**:
+- `until` is REQUIRED (removed `?` from prior draft); anergy without time-bound degrades to tolerance
+- `expected_co_stimulation` is ADVISORY ONLY — NOT machine-verified; field names the trigger for future-readers
+- Audit emits `anergy-active` hint at Reachability tier; `anergy-co-stimulation-not-arrived` after `until`; `anergy-stale` past grace
+
+**`#[immunosuppress(X, duration, rationale, signed_by)]`**:
+- `duration` validated at PARSE TIME against workspace-config cap; default cap = 90d
+- COMPILE ERROR emitted for `duration > cap`
+- `rationale` minimum 20 characters; UTC date comparison
+- Workspace config: `immunosuppress_duration_cap`
+
+**`#[poxparty(X, exercise_type, rationale, signed_by)]`**:
+- STRUCTURAL ISOLATION REQUIREMENT: code annotated with `#[poxparty]` MUST be inside `#[cfg(feature = "antigen-poxparty")]` scope OR `#[cfg(test)]`
+- Proc-macro reads `CARGO_FEATURE_ANTIGEN_POXPARTY` env var at macro-expansion time; emits COMPILE ERROR if feature not active
+- `antigen-poxparty` feature MUST NOT be in default feature set; production builds cannot accidentally enable it
+- `exercise_type` field minimum 20-char; outcome-feedback required
+
+**`#[orient(X, learning_path, until)]`**:
+- `until` validated at parse time against `deferred_defense_max_horizon` (default 180d)
+- Dates beyond `now + max_horizon` REJECTED at parse time; UTC comparison
+- Cannot ship to production with `orient-active` past `until` per CI gate
+
+### Mechanics
+
+**Schema additions** (additive per ADR-021): `DeferredDefenseKind` enum: `Anergy | Immunosuppress | Poxparty | Orient` (vaccinate removed); per-kind metadata structs; `signed_by` per ADR-005 Amendment 2.
+
+**Workspace config**: `immunosuppress_duration_cap`, `deferred_defense_max_horizon`, `deferred_defense_default_cap`.
+
+**Audit-hint vocabulary** (cross-ADR substrate-grep verified clean):
+- `anergy-active`, `anergy-co-stimulation-not-arrived`, `anergy-stale`
+- `immunosuppress-active`, `immunosuppress-expired`, `immunosuppress-duration-cap-exceeded`
+- `poxparty-active`, `poxparty-outcome-pending`, `poxparty-outcome-recorded`, `poxparty-outside-isolation`
+- `orient-active`, `orient-pending-action-required`
+- `deferred-defense-hint-suppressed-without-rationale`
+
+**Hint-fatigue protection**: deferred-defense hint suppression in workspace config requires non-empty rationale; `cargo antigen defer status` provides separate deferred-defense report; adopters cannot silently filter deferred-defense hints.
+
+**CLI additions** (cross-ADR substrate-grep clean): `cargo antigen defer {status, suppress, suppress-expire, anergy, anergy-clear, poxparty start, poxparty outcome, orient, orient-complete}`.
+
+**§Enforcement-Surface**:
+
+| Mechanism | Enforcement-Tier | Enforcement-Scope | Bypass risk + mitigation |
+|---|---|---|---|
+| Duration cap on `#[immunosuppress]` | parse-time + audit-time | client | parse-time = compile error; audit-time = additional gate |
+| `until` cap on `#[anergy]` / `#[orient]` | parse-time + audit-time | client | parse-time = compile error; max-horizon configurable per workspace |
+| `#[poxparty]` cfg-gated isolation | parse-time (macro reads CARGO_FEATURE_ANTIGEN_POXPARTY env var) | client + CI | compile error when feature not active; feature absent from default feature set |
+| Rationale 20-char minimum | parse-time | client | uniform across reason/rationale/learning_path/exercise_type |
+| Aging escalation | parse-time + audit-time | client | compile-time progression; grace period configurable |
+| UTC date comparison | parse-time + audit-time | client | timezone-independent; reproducible across CI runners |
+| Hint-suppression-requires-rationale | parse-time + audit-time | client | per ADR-005 Amendment 2 |
+| Solo-developer single-signer | NONE (named limitation) | — | culturally enforced; workspace `min_signers = 2` option |
+
+### Known limitations
+
+1. **Solo-developer single-signer**: `signed_by` reduces to "you committed to this explicitly" without independent review.
+2. **`expected_co_stimulation` not machine-verified**: free-text; advisory only.
+3. **Hint-fatigue at scale**: separate defer-status report + structural-suppression-with-rationale mitigates.
+
+### Sweep-level consequences
+
+- Stdlib gains FOUR new declarative primitives (vaccinate standalone in ADR-007)
+- Parse-time enforcement of caps + rationale length + date horizons
+- Structural cfg-gated isolation for poxparty (compile-error if violated)
+
+### Resolves
+
+- The implicit-deferred-defense failure mode (inline `// TODO` / comment-only suppression; invisible to audit)
+- The single-shape-fits-all problem (tolerance was the only declarative primitive)
+- The loudness-is-discipline architectural pattern (now structurally expressed)
+- Workspace-config cap parse-time bypass (parse-time enforcement closes audit-only gap)
+- Poxparty production isolation gap (structural cfg-gated isolation; CI gate)
+
+### What this ADR does NOT do
+
+- Does NOT replace `#[antigen_tolerance]` (compliance-acknowledged cases remain valid)
+- Does NOT cover `#[vaccinate]` (moved to ADR-007 standalone commitment)
+- Does NOT permit indefinite deferral (workspace caps + aging required; parse-time enforcement)
+- Does NOT silently allow poxparty in production (structural cfg-gated; compile-error if violated)
+
+---
+
