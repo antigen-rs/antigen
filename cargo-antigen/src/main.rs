@@ -107,6 +107,16 @@ enum AntigenSubcommand {
     /// and provenance tracking. `cargo antigen oracle` manages the Oracle JSON
     /// records and their state-machine transitions.
     Oracle(OracleCli),
+    /// Drive Supply-Chain Defense Family verifications (ADR-025).
+    ///
+    /// Eight subcommands cover dep-pinning, dep-attestation, content-hash
+    /// recording/verification, maintainer snapshots, and (v0.4+ stubs)
+    /// sandbox/behavioral checks. The `cargo antigen verify` family backs
+    /// the supply-chain stdlib antigens declared in
+    /// `antigen::stdlib::supply_chain` — `cargo antigen audit` walks
+    /// `requires = ...` substrate-witness predicates and routes them
+    /// through these handlers.
+    Verify(VerifyCli),
 }
 
 #[derive(Debug, Parser)]
@@ -569,6 +579,504 @@ enum OutputFormat {
     Json,
 }
 
+// ============================================================================
+// cargo antigen verify — Supply-Chain Defense Family CLI (ADR-025)
+// ============================================================================
+
+#[derive(Debug, Parser)]
+struct VerifyCli {
+    #[command(subcommand)]
+    command: VerifySubcommand,
+}
+
+#[derive(Debug, Subcommand)]
+enum VerifySubcommand {
+    /// Check `Cargo.toml` for unpinned + unattested dependencies.
+    Deps(VerifyDepsArgs),
+    /// Detect crate-ownership changes since the last attested snapshot.
+    ///
+    /// **CI sequencing constraint (load-bearing)**: this subcommand MUST
+    /// run BEFORE `cargo update`. After `cargo update` the new
+    /// maintainer's code has already landed in `Cargo.lock`; the gate
+    /// has effectively already passed. Document the sequencing in
+    /// CI scripts. Per ADR-025 §Decision.
+    MaintainerChanges(VerifyMaintainerChangesArgs),
+    /// Record a dep-attestation sidecar.
+    ///
+    /// `--reviewable-artifact <PATH>` is REQUIRED — empty/missing
+    /// values produce a rubber-stamp sidecar that the audit will
+    /// flag with `dep-attest-without-reviewable-artifact`. Per
+    /// ADR-025 §Schema-additions.
+    DepAttest(VerifyDepAttestArgs),
+    /// Bulk-pin every unpinned `Cargo.toml` dep with the current
+    /// resolved version (advisory v0.2: prints suggested edits;
+    /// in-place rewrite is v0.3+).
+    DepPin(VerifyDepPinArgs),
+    /// Record or check a content-hash for `<crate@version>`.
+    ///
+    /// **THE NON-NEGOTIABLE CHALK/DEBUG DEFENSE**. First-attestation:
+    /// `cargo antigen verify content-hash record <crate@version>`.
+    /// Verification: `cargo antigen verify content-hash <crate@version>`.
+    /// Per ADR-025 §Decision + B1-R.
+    ContentHash(VerifyContentHashArgs),
+    /// v0.4+: sandbox-execute a proc-macro dep and report observations.
+    /// Currently a stub that surfaces the "tooling not yet available"
+    /// awareness signal per ADR-005 Amendment 2 honest-tier-naming.
+    #[command(name = "proc-macro-sandbox")]
+    ProcMacroSandbox,
+    /// v0.4+: sandbox-execute a `build.rs` and report observations.
+    /// Currently a stub (see `proc-macro-sandbox`).
+    Sandbox,
+    /// v0.5+: compare behavioral fingerprints across dep versions.
+    /// Currently a stub.
+    BehavioralDiff,
+}
+
+#[derive(Debug, Parser)]
+struct VerifyDepsArgs {
+    /// Workspace root (default: current directory).
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+    /// Output format: human or json.
+    #[arg(long, default_value = "human")]
+    format: OutputFormat,
+    /// Optional crate name to scope the check (default: every dep).
+    #[arg(long)]
+    crate_name: Option<String>,
+    /// Exit non-zero when any unpinned/unattested dep is found.
+    #[arg(long)]
+    strict: bool,
+}
+
+#[derive(Debug, Parser)]
+struct VerifyMaintainerChangesArgs {
+    /// Workspace root.
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+    /// Crate to check.
+    #[arg(long)]
+    crate_name: String,
+    /// Anchor version. The snapshot at
+    /// `.attest/supply-chain/maintainer/<crate>.json` must match.
+    #[arg(long)]
+    since_version: String,
+}
+
+#[derive(Debug, Parser)]
+struct VerifyDepAttestArgs {
+    /// Workspace root.
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+    /// `<crate>@<version>` positional argument.
+    crate_at_version: String,
+    /// **REQUIRED** non-empty path to the human-reviewable artifact
+    /// that documents the review (Markdown, ADR, PR comment export,
+    /// etc.). Empty values are rejected outright.
+    #[arg(long, required = true)]
+    reviewable_artifact: PathBuf,
+    /// Review scope: `full` | `diff` | `build-script-only` |
+    /// `proc-macro-only` | `metadata-only`.
+    #[arg(long, default_value = "metadata-only")]
+    review_scope: String,
+    /// Whether the attestation applies only to this exact version
+    /// (default `true`).
+    #[arg(long, default_value_t = true)]
+    exact_version: bool,
+    /// Signer name (defaults to `git config user.name`).
+    #[arg(long)]
+    signed_by: Option<String>,
+    /// Optional human rationale.
+    #[arg(long)]
+    rationale: Option<String>,
+}
+
+#[derive(Debug, Parser)]
+struct VerifyDepPinArgs {
+    /// Workspace root.
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+}
+
+#[derive(Debug, Parser)]
+struct VerifyContentHashArgs {
+    #[command(subcommand)]
+    command: VerifyContentHashSubcommand,
+}
+
+#[derive(Debug, Subcommand)]
+enum VerifyContentHashSubcommand {
+    /// Record the current `Cargo.lock` checksum as the first-attestation
+    /// hash for `<crate@version>`.
+    Record(VerifyContentHashRecordArgs),
+    /// Compare the current `Cargo.lock` checksum for `<crate@version>`
+    /// against the recorded first-attestation hash.
+    Check(VerifyContentHashCheckArgs),
+}
+
+#[derive(Debug, Parser)]
+struct VerifyContentHashRecordArgs {
+    /// Workspace root.
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+    /// `<crate>@<version>` positional argument.
+    crate_at_version: String,
+    /// Signer name (defaults to `git config user.name`).
+    #[arg(long)]
+    signed_by: Option<String>,
+}
+
+#[derive(Debug, Parser)]
+struct VerifyContentHashCheckArgs {
+    /// Workspace root.
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+    /// `<crate>@<version>` positional argument.
+    crate_at_version: String,
+}
+
+fn run_verify(cli: VerifyCli) -> ExitCode {
+    match cli.command {
+        VerifySubcommand::Deps(args) => run_verify_deps(args),
+        VerifySubcommand::MaintainerChanges(args) => run_verify_maintainer_changes(args),
+        VerifySubcommand::DepAttest(args) => run_verify_dep_attest(args),
+        VerifySubcommand::DepPin(args) => run_verify_dep_pin(args),
+        VerifySubcommand::ContentHash(args) => match args.command {
+            VerifyContentHashSubcommand::Record(a) => run_verify_content_hash_record(a),
+            VerifyContentHashSubcommand::Check(a) => run_verify_content_hash_check(a),
+        },
+        VerifySubcommand::ProcMacroSandbox => run_verify_stub(
+            "proc-macro-sandbox",
+            "v0.4+",
+            "Active proc-macro sandboxing (ADR-025 tooling-phase 3).",
+        ),
+        VerifySubcommand::Sandbox => run_verify_stub(
+            "sandbox",
+            "v0.4+",
+            "Active build.rs sandboxing (ADR-025 tooling-phase 3).",
+        ),
+        VerifySubcommand::BehavioralDiff => run_verify_stub(
+            "behavioral-diff",
+            "v0.5+",
+            "Behavioral-fingerprint comparison across versions (ADR-025 tooling-phase 4).",
+        ),
+    }
+}
+
+fn run_verify_deps(args: VerifyDepsArgs) -> ExitCode {
+    use antigen::supply_chain::evaluate::evaluate_dep_pinned;
+    use antigen::supply_chain::witness::DepPinnedState;
+    let state = evaluate_dep_pinned(&args.root, args.crate_name.as_deref());
+    let unpinned_names = match &state {
+        DepPinnedState::AllPinned => Vec::new(),
+        DepPinnedState::Unpinned { unpinned_deps } => unpinned_deps.clone(),
+        DepPinnedState::NotInManifest { crate_name } => vec![crate_name.clone()],
+    };
+    match args.format {
+        OutputFormat::Human => {
+            if unpinned_names.is_empty() {
+                println!("verify deps: all checked dependencies are exact-pinned.");
+            } else {
+                println!(
+                    "verify deps: {n} dep(s) without exact-pin `=` specifiers:",
+                    n = unpinned_names.len()
+                );
+                for n in &unpinned_names {
+                    println!("  - {n}");
+                }
+                println!();
+                println!("To fix:");
+                println!("  edit Cargo.toml; change each entry to `<name> = \"=X.Y.Z\"`.");
+                println!("Per ADR-025 §UnpinnedDependency — exact-pin is the discipline.");
+            }
+        }
+        OutputFormat::Json => {
+            println!(
+                "{}",
+                serde_json::to_string(&serde_json::json!({
+                    "subcommand": "verify-deps",
+                    "unpinned_deps": unpinned_names,
+                    "passed": unpinned_names.is_empty(),
+                }))
+                .unwrap_or_else(|_| "{}".to_string())
+            );
+        }
+    }
+    if args.strict && !unpinned_names.is_empty() {
+        ExitCode::from(1)
+    } else {
+        ExitCode::SUCCESS
+    }
+}
+
+fn run_verify_maintainer_changes(args: VerifyMaintainerChangesArgs) -> ExitCode {
+    use antigen::supply_chain::evaluate::evaluate_maintainer_unchanged;
+    use antigen::supply_chain::witness::MaintainerState;
+    println!(
+        "verify maintainer-changes: checking {crate_name} @ {since_version}",
+        crate_name = args.crate_name,
+        since_version = args.since_version,
+    );
+    println!();
+    println!("WARNING: this subcommand MUST run BEFORE `cargo update`. After");
+    println!("`cargo update`, the new maintainer's code is already in Cargo.lock");
+    println!("and the gate has effectively already passed. Per ADR-025.");
+    println!();
+    let state = evaluate_maintainer_unchanged(&args.root, &args.crate_name, &args.since_version);
+    match state {
+        MaintainerState::Unchanged => {
+            println!("result: maintainer-unchanged (snapshot matches)");
+            ExitCode::SUCCESS
+        }
+        MaintainerState::Changed { added, removed } => {
+            println!("result: MAINTAINER-CHANGE-WITHOUT-REATTESTATION");
+            println!("  added owners: {added:?}");
+            println!("  removed owners: {removed:?}");
+            ExitCode::from(1)
+        }
+        MaintainerState::SnapshotMissing => {
+            println!("result: snapshot missing");
+            println!(
+                "  expected: .attest/supply-chain/maintainer/{crate_name}.json",
+                crate_name = args.crate_name
+            );
+            println!("  (v0.2: snapshot is operator-managed; v0.3+ adds live crates.io query)");
+            ExitCode::from(1)
+        }
+        MaintainerState::CratesIoQueryUnavailable => {
+            println!("result: crates.io query unavailable (v0.2 limitation per ADR-025)");
+            ExitCode::from(2)
+        }
+    }
+}
+
+fn run_verify_dep_attest(args: VerifyDepAttestArgs) -> ExitCode {
+    use antigen::supply_chain::evaluate::dep_attest_path;
+    use antigen::supply_chain::schema::{DepAttestation, ReviewScope};
+
+    if args.reviewable_artifact.as_os_str().is_empty()
+        || args.reviewable_artifact.to_string_lossy().trim().is_empty()
+    {
+        eprintln!(
+            "error: --reviewable-artifact must be a non-empty, non-whitespace path. \
+             Empty values create a rubber-stamp sidecar that the audit will flag with \
+             dep-attest-without-reviewable-artifact. Per ADR-025 + ATK-SC-1-A."
+        );
+        return ExitCode::from(2);
+    }
+
+    let Some((crate_name, version)) = parse_crate_at_version(&args.crate_at_version) else {
+        eprintln!("error: argument must be `<crate>@<version>` (e.g., `serde@1.0.197`)");
+        return ExitCode::from(2);
+    };
+
+    let scope = match args.review_scope.as_str() {
+        "full" => ReviewScope::Full,
+        "diff" => ReviewScope::Diff,
+        "build-script-only" | "build_script_only" => ReviewScope::BuildScriptOnly,
+        "proc-macro-only" | "proc_macro_only" => ReviewScope::ProcMacroOnly,
+        "metadata-only" | "metadata_only" => ReviewScope::MetadataOnly,
+        other => {
+            eprintln!(
+                "error: --review-scope must be one of: full, diff, build-script-only, \
+                 proc-macro-only, metadata-only (got `{other}`)"
+            );
+            return ExitCode::from(2);
+        }
+    };
+
+    let signed_by = match resolve_steward_name(args.signed_by.as_deref()) {
+        Ok(n) => n,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(2);
+        }
+    };
+    let date = chrono::Utc::now().format("%Y-%m-%d").to_string();
+
+    let attest = DepAttestation {
+        crate_name: crate_name.clone(),
+        version: version.clone(),
+        exact_version: args.exact_version,
+        reviewable_artifact: args.reviewable_artifact,
+        review_scope: scope,
+        signed_by,
+        date,
+        rationale: args.rationale,
+    };
+
+    let path = dep_attest_path(&args.root, &crate_name, &version);
+    if let Some(parent) = path.parent() {
+        if let Err(e) = std::fs::create_dir_all(parent) {
+            eprintln!("error: could not create {}: {e}", parent.display());
+            return ExitCode::from(2);
+        }
+    }
+    let json = match serde_json::to_string_pretty(&attest) {
+        Ok(j) => j,
+        Err(e) => {
+            eprintln!("error: serialize attestation: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    if let Err(e) = std::fs::write(&path, &json) {
+        eprintln!("error: write {}: {e}", path.display());
+        return ExitCode::from(2);
+    }
+    println!("recorded dep-attestation at {}", path.display());
+    ExitCode::SUCCESS
+}
+
+fn run_verify_dep_pin(args: VerifyDepPinArgs) -> ExitCode {
+    use antigen::supply_chain::evaluate::evaluate_dep_pinned;
+    use antigen::supply_chain::witness::DepPinnedState;
+    let state = evaluate_dep_pinned(&args.root, None);
+    match state {
+        DepPinnedState::AllPinned => {
+            println!("verify dep-pin: all Cargo.toml deps already exact-pinned. No edits needed.");
+            ExitCode::SUCCESS
+        }
+        DepPinnedState::Unpinned { unpinned_deps } => {
+            println!(
+                "verify dep-pin: {n} unpinned dep(s) detected. Suggested edits:",
+                n = unpinned_deps.len()
+            );
+            for name in &unpinned_deps {
+                println!("  - in Cargo.toml [dependencies]: pin `{name}` to `=<RESOLVED_VERSION>`");
+            }
+            println!();
+            println!(
+                "v0.2: this subcommand prints suggested edits. In-place \
+                 rewriting is deferred to v0.3+ (needs a real toml parser to \
+                 preserve formatting + comments)."
+            );
+            ExitCode::SUCCESS
+        }
+        DepPinnedState::NotInManifest { crate_name } => {
+            eprintln!("error: crate `{crate_name}` not found in manifest");
+            ExitCode::from(2)
+        }
+    }
+}
+
+fn run_verify_content_hash_record(args: VerifyContentHashRecordArgs) -> ExitCode {
+    use antigen::supply_chain::evaluate::{current_hash_from_lockfile, save_content_hash_record};
+    use antigen::supply_chain::schema::ContentHashRecord;
+
+    let Some((crate_name, version)) = parse_crate_at_version(&args.crate_at_version) else {
+        eprintln!("error: argument must be `<crate>@<version>`");
+        return ExitCode::from(2);
+    };
+
+    let lockfile = args.root.join("Cargo.lock");
+    let Some(checksum) = current_hash_from_lockfile(&lockfile, &crate_name, &version) else {
+        eprintln!(
+            "error: no `[[package]] name = \"{crate_name}\" version = \"{version}\" checksum = ...` \
+             entry in {}. The crate must be in the lockfile with a checksum.",
+            lockfile.display()
+        );
+        return ExitCode::from(2);
+    };
+
+    let signed_by = match resolve_steward_name(args.signed_by.as_deref()) {
+        Ok(n) => n,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(2);
+        }
+    };
+    let date = chrono::Utc::now().format("%Y-%m-%d").to_string();
+
+    let record = ContentHashRecord {
+        crate_name,
+        version,
+        content_hash: checksum,
+        hash_source: "cargo-lock-checksum".to_string(),
+        signed_by,
+        date,
+    };
+
+    match save_content_hash_record(&args.root, &record) {
+        Ok(p) => {
+            println!("recorded content-hash at {}", p.display());
+            println!("  hash-source: cargo-lock-checksum (v0.2; tarball SHA-256 is v0.3+)");
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("error: write record: {e}");
+            ExitCode::from(2)
+        }
+    }
+}
+
+fn run_verify_content_hash_check(args: VerifyContentHashCheckArgs) -> ExitCode {
+    use antigen::supply_chain::evaluate::evaluate_content_hash_matches;
+    use antigen::supply_chain::witness::ContentHashState;
+
+    let Some((crate_name, version)) = parse_crate_at_version(&args.crate_at_version) else {
+        eprintln!("error: argument must be `<crate>@<version>`");
+        return ExitCode::from(2);
+    };
+
+    let state = evaluate_content_hash_matches(&args.root, &crate_name, &version);
+    match state {
+        ContentHashState::Matches => {
+            println!("content-hash: MATCH for {crate_name}@{version}");
+            ExitCode::SUCCESS
+        }
+        ContentHashState::Mismatch { recorded, current } => {
+            println!("content-hash: MISMATCH for {crate_name}@{version}");
+            println!("  recorded: {recorded}");
+            println!("  current:  {current}");
+            println!();
+            println!("This is the chalk/debug/eslint-config attack signal. Investigate before");
+            println!("re-recording — if the change is legitimate, re-attest with a fresh");
+            println!("signer + review artifact. Per ADR-025 §ContentHashMismatch.");
+            ExitCode::from(1)
+        }
+        ContentHashState::NoAttestation => {
+            println!("content-hash: no first-attestation for {crate_name}@{version}");
+            println!("  run: cargo antigen verify content-hash record {crate_name}@{version}");
+            ExitCode::from(1)
+        }
+        ContentHashState::CrateNotInLockfile { crate_name: cn } => {
+            eprintln!("error: crate `{cn}` not found in Cargo.lock (no checksum to compare)");
+            ExitCode::from(2)
+        }
+        ContentHashState::SidecarMalformed { error } => {
+            eprintln!(
+                "error: content-hash sidecar exists but did NOT deserialize cleanly. \
+                 Per ATK-SC-2-A this is distinct from no-attestation — corrupting the \
+                 sidecar to silently downgrade a Mismatch into a NoAttestation is exactly \
+                 the attack the audit blocks. Inspect the file and re-record. \
+                 Parse error: {error}"
+            );
+            ExitCode::from(1)
+        }
+    }
+}
+
+fn run_verify_stub(name: &str, version_target: &str, description: &str) -> ExitCode {
+    println!("cargo antigen verify {name}: {version_target} stub");
+    println!();
+    println!("  {description}");
+    println!();
+    println!("Per ADR-005 Amendment 2 honest-tier-naming: this subcommand is");
+    println!("a deliberate stub. It does NOT silently pass — the supply-chain");
+    println!("audit hints surface the un-evaluated witness as the appropriate");
+    println!("unsandboxed-* hint, NOT as a passing evaluation.");
+    ExitCode::from(2)
+}
+
+/// Parse `<crate>@<version>` into `(crate, version)`. Returns `None` on
+/// any of: no `@`, empty crate, empty version, multiple `@`s.
+fn parse_crate_at_version(s: &str) -> Option<(String, String)> {
+    let (c, v) = s.split_once('@')?;
+    if c.is_empty() || v.is_empty() || v.contains('@') {
+        return None;
+    }
+    Some((c.to_string(), v.to_string()))
+}
+
 fn main() -> ExitCode {
     let cli = CargoCli::parse();
     let CargoSubcommand::Antigen(antigen_cli) = cli.command;
@@ -581,6 +1089,7 @@ fn main() -> ExitCode {
         AntigenSubcommand::Attest(cli) => run_attest(cli),
         AntigenSubcommand::Tolerate(cli) => run_tolerate(cli),
         AntigenSubcommand::Oracle(cli) => run_oracle(cli),
+        AntigenSubcommand::Verify(cli) => run_verify(cli),
     }
 }
 

@@ -5,6 +5,119 @@ All notable changes to the antigen project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased — v0.2.0-alpha.2]
+
+Supply-Chain Defense Family + Convergent-Evidence Family: structural memory of
+dependency-boundary risk (ADR-025) and backward-looking evidence aggregation
+(ADR-024). Includes adversarial-verified correctness fixes (ATK-SC-1-A rubber-
+stamp bypass, ATK-SC-2-A sidecar corruption downgrade, ATK-SC-AUDIT-1 any_of
+semantics, ATK-CE-3-B IgG unique-count enforcement).
+
+### Added
+
+- **Supply-Chain Defense Family (ADR-025)** — 11 stdlib antigens for
+  dependency-boundary risk in the 2026+ threat landscape.
+  Biology cognate: Distributed-Boundary Innate-Immunity family.
+
+  - `ContentHashMismatch` — **NON-NEGOTIABLE**: content-replacement-at-fixed-version
+    attack (chalk/debug/eslint-config 2025 pattern). Cargo.lock pins VERSION not
+    CONTENT-HASH. Requires proactive first-attestation via `cargo antigen verify
+    content-hash record <crate@version>`. Antigenic-identity-verification cognate.
+  - `UnsandboxedProcMacro` — external proc-macro dep runs in-rustc; HIGHER RISK
+    than `UnsandboxedBuildScript`. Macrophage phagosome containment cognate.
+  - `UnpinnedDependency` — Cargo.toml dep without `=X.Y.Z` exact-pin.
+    PRR specificity discipline cognate.
+  - `UnpinnedTransitiveDependency` — NARROW: direct dep with `*`/`?` for ITS OWN
+    deps (NOT "any transitive dep with non-exact pins" — 100% FP avoided per B9-R).
+  - `UnattestedDependencyInclusion`, `DependencyUpgradeWithoutDiffReview`,
+    `AutoDependencyChainWithoutPinning`, `SuddenDependencyExpansion`
+    (Trojan-horse + MHC-I internal-antigen-presentation cognate),
+    `UnsandboxedBuildScript`, `PostInstallScriptInDependency`,
+    `MaintainerChangeWithoutReattestation` (CI sequencing: `verify
+    maintainer-changes` MUST run BEFORE `cargo update`; transplant-immunology
+    re-attestation cognate).
+
+- **17 supply-chain `AuditHint` variants** — emitted by `audit_supply_chain()`:
+  15 ADR-required hints + `unpinned-transitive-dependency` + `content-hash-sidecar-malformed`.
+
+- **`audit_supply_chain()` function** with combinator-aware predicate evaluation:
+  `AnyOf` semantics correctly discharge failing-sibling hints when any branch passes
+  (ATK-SC-AUDIT-1 fix). `AllOf` + `Not` handled correctly.
+
+- **Supply-chain substrate-witness runtime** (`antigen::supply_chain`):
+  - `schema`: `DepAttestation` (rubber-stamp guard: `reviewable_artifact` required
+    non-empty + whitespace-rejected per ATK-SC-1-A), `ContentHashRecord` (v0.2:
+    `Cargo.lock` checksum source; v0.3+ crates.io tarball), `MaintainerSnapshot`,
+    `ReviewScope`, `SandboxKind`.
+  - `witness`: `DepPinnedState`, `DepAttestedState` (incl. `AttestedWithoutReviewableArtifact`),
+    `MaintainerState` (incl. `CratesIoQueryUnavailable` for v0.2 soft-fail),
+    `ContentHashState` (incl. `SidecarMalformed` — malformed sidecar MUST NOT
+    silently downgrade to `NoAttestation`, per ATK-SC-2-A),
+    `SandboxState` (incl. `ToolingNotYetAvailable` for v0.4+ stub).
+  - `evaluate`: per-leaf evaluators; `eval_supply_chain_predicate` (combinator-aware).
+  - `manifest`: hand-rolled Cargo.toml dep scanner (no toml dep — ADR-002 Amendment 2).
+
+- **5 new `antigen_attestation::Leaf` variants** for supply-chain substrate-witness
+  predicates: `DepPinned`, `DepAttested`, `MaintainerUnchanged`, `ContentHashMatches`,
+  `SandboxClean` — `SandboxClean.sandbox_kind` validated at parse time against
+  `{"build", "proc-macro"}`. Standard evaluator returns `false` (honest-tier-naming
+  per ADR-005 Amendment 2 + ATK-AUDIT note). `antigen_attestation::Leaf` sealed-set
+  exhaustivity test updated from 5 → 10 variants.
+
+- **`antigen::stdlib::supply_chain`** — 11 antigen declarations as re-importable
+  stdlib members; adopters use `#[presents(antigen::stdlib::supply_chain::ContentHashMismatch)]`.
+
+- **3 supply-chain examples**: `supply_chain_content_hash.rs`, `supply_chain_unpinned.rs`,
+  `supply_chain_unsandboxed_proc_macro.rs`.
+
+- **Convergent-Evidence Family (ADR-024)** — 7 macros for backward-looking evidence
+  aggregation (temporal-arc first family).
+
+  - `#[diagnostic(modalities = [WitnessClass::X, ...], min_independent = N)]` —
+    **clinical-medicine grounding** (differential diagnosis). Counts distinct
+    WitnessClass CATEGORIES for `min_independent` (not raw witness count, per C1).
+    Parse-time error if `min_independent` exceeds distinct categories supplied.
+  - `#[clonal(witness = ..., iterations = N, seed = SeedKind::...)]` —
+    iterated witness evaluation; B-cell clonal expansion cognate.
+    `SeedKind::Fixed(_)` is **COMPILE ERROR** at parse time (C2).
+  - `#[igg(witnesses = [...], historical_span = N, min_reattestations = N)]` —
+    re-attestation history; IgG-class cognate. Source-independence is NOMINAL only
+    (different identity strings, not structural). Unique signer count enforced for
+    `min_reattestations` (ATK-CE-3-B fix — raw count bypass rejected).
+  - `#[crossreactive(fingerprints = [...])]` — one defense covers related antigens.
+  - `#[polyclonal]`, `#[monoclonal]`, `#[adcc]` — marker primitives (no required args).
+
+- **`antigen::WitnessClass`** enum — 6 variants: `StaticAnalysis`, `PropertyTest`,
+  `FormalVerification`, `ManualReview`, `RuntimeFuzz`, `SubstrateWitness`. Public,
+  re-exported from `antigen`. Used in `#[diagnostic]` `modalities` argument.
+
+- **`antigen::SeedKind`** enum — 4 variants: `Random`, `EntropyFromCi`,
+  `TimestampSeeded`, `Fixed(u64)`. Public, re-exported from `antigen`.
+  `Fixed(u64)` rejected for `#[clonal]` at parse time (COMPILE ERROR).
+
+- **11 convergent-evidence `AuditHint` variants** — emitted by `audit_convergent_evidence()`:
+  `diagnostic-modality-insufficient`, `diagnostic-modalities-class-collapsed`,
+  `diagnostic-modalities-empty`, `clonal-fixed-seed-detected`,
+  `clonal-iterations-below-threshold`, `igg-identity-collapse-warning`,
+  `igg-span-too-short`, `igg-reattestations-insufficient`,
+  `crossreactive-fingerprint-unresolved`, `polyclonal-insufficient-lineages`,
+  `adcc-single-mechanism-only`.
+
+- **`audit_convergent_evidence()` function** + `ConvergentEvidenceAudit`,
+  `ConvergentEvidenceAuditReport` types.
+
+- **`ScanReport::convergent_evidences: Vec<ConvergentEvidence>`** — additive
+  serde field (`#[serde(default)]`) for pre-v0.2 report compat.
+  `ConvergentEvidenceKind` enum (7 variants), `ConvergentEvidence` struct.
+
+- **3 convergent-evidence examples**: `convergent_diagnostic.rs`, `convergent_clonal.rs`,
+  `convergent_igg.rs`.
+
+- **Trybuild compile-fail fixtures** for CE enforcement:
+  `clonal_fixed_seed_rejected.rs` (CE-2) + `diagnostic_class_collapsed.rs` (CE-1).
+
+---
+
 ## [Unreleased — v0.2.0-alpha.1]
 
 Deferred-Defense Family: loudness-as-discipline for intentional non-immunity.

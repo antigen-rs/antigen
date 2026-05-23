@@ -11,6 +11,53 @@
 
 ---
 
+## Shipped (v0.2.0-alpha.2, unreleased)
+
+### Supply-Chain Defense Family (ADR-025)
+
+Makes the supply-chain trust boundary first-class structural memory. Eleven stdlib
+antigens targeting the 2026+ threat landscape; adversarial-verified correctness
+(ATK-SC-1-A, ATK-SC-2-A, ATK-SC-AUDIT-1 fixes).
+
+- **`ContentHashMismatch`** — defends the chalk/debug/eslint-config (2025) content-
+  replacement-at-fixed-version attack. Cargo.lock pins VERSION not CONTENT-HASH.
+  Requires proactive first-attestation. **The NON-NEGOTIABLE antigen.**
+- **`UnsandboxedProcMacro`** — external proc-macro dep executes in-rustc; higher risk
+  than `build.rs`.
+- **`UnpinnedDependency`**, `UnpinnedTransitiveDependency` (NARROW: direct dep
+  with `*/?` for its own deps), `UnattestedDependencyInclusion`,
+  `DependencyUpgradeWithoutDiffReview`, `AutoDependencyChainWithoutPinning`,
+  `MaintainerChangeWithoutReattestation` (CI sequencing constraint: BEFORE `cargo update`),
+  `SuddenDependencyExpansion`, `UnsandboxedBuildScript`, `PostInstallScriptInDependency`.
+- **17 `AuditHint` variants** + `audit_supply_chain()` with combinator-aware
+  `AnyOf`/`AllOf` predicate evaluation.
+- **`antigen::supply_chain`** runtime: schema, witness, evaluate, manifest modules.
+- **5 new `antigen_attestation::Leaf` variants** for supply-chain predicates.
+- **3 examples**: `supply_chain_content_hash`, `supply_chain_unpinned`,
+  `supply_chain_unsandboxed_proc_macro`.
+
+### Convergent-Evidence Family (ADR-024)
+
+First family of the temporal-arc cohort. Seven macros for backward-looking evidence
+aggregation; adversarial-verified correctness (ATK-CE-1, ATK-CE-2, ATK-CE-3-B fixes).
+
+- **`#[diagnostic]`** — clinical-medicine grounding (differential diagnosis). Counts
+  distinct `WitnessClass` CATEGORIES for `min_independent` (not raw witness count).
+  Parse-time error if `min_independent` exceeds distinct categories.
+- **`#[clonal]`** — B-cell clonal expansion analog. `SeedKind::Fixed(_)` is COMPILE ERROR.
+- **`#[igg]`** — IgG affinity-matured evidence with temporal span + unique reattestation
+  count enforcement (ATK-CE-3-B: unique signers, not raw count).
+- **`#[crossreactive]`**, **`#[polyclonal]`**, **`#[monoclonal]`**, **`#[adcc]`** —
+  marker + structural primitives.
+- **`antigen::WitnessClass`** enum (6 variants) — public, re-exported.
+- **`antigen::SeedKind`** enum (4 variants, `Fixed(u64)` rejected) — public, re-exported.
+- **11 `AuditHint` variants** + `audit_convergent_evidence()`.
+- **`ScanReport::convergent_evidences`** (additive, serde compat).
+- **3 examples**: `convergent_diagnostic`, `convergent_clonal`, `convergent_igg`.
+- **Trybuild fixtures** for compile-time enforcement (CE-1 class-collapse, CE-2 fixed seed).
+
+---
+
 ## Shipped (v0.2.0-alpha.1, unreleased)
 
 ### Deferred-Defense Family (ADR-023)

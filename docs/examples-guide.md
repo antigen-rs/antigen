@@ -330,9 +330,112 @@ cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
 
 ---
 
-## After the nine lessons
+## Lesson 10 — `supply_chain_content_hash.rs`: proactive content-hash attestation workflow
 
-By now you've encountered the five core macros, the four witness tiers, the substrate-witness pipeline, the Oracle 5-state lifecycle, delta-chained signatures, and the attested-vs-vibes-grade tolerance distinction:
+**File**: [`antigen/examples/supply_chain_content_hash.rs`](../antigen/examples/supply_chain_content_hash.rs)
+
+**Concept introduced**: supply-chain defense via substrate-witness. The `ContentHashMismatch`
+antigen defends against the 2025 chalk/debug/eslint-config attack: content replacement at
+a fixed Cargo.lock version. The defense requires *proactive first-attestation* — you must
+record the expected hash before it can detect divergence.
+
+**What's in the file**:
+- `ContentHashMismatch` stdlib antigen import from `antigen::stdlib::supply_chain`
+- A service function marked `#[presents(ContentHashMismatch)]` (vulnerable: uses a dep
+  that hasn't been content-hash attested yet)
+- An immune version with `requires = content_hash_matches("serde", "1.0.200")` substrate
+  witness — claims immunity once the first-attestation sidecar exists
+- Comments walking through the workflow: `cargo antigen verify content-hash record` → 
+  first-attestation sidecar created → audit passes → `cargo antigen verify content-hash`
+  for subsequent checks
+
+**What to learn**:
+- Cargo.lock pins VERSION but not CONTENT-HASH; lockfile pinning alone doesn't prevent
+  this attack class
+- The `content_hash_matches(crate, version)` substrate-witness leaf backs `ContentHashMismatch` immunity
+- `content-hash-no-attestation` hint fires before first-attestation; `content-hash-mismatch`
+  fires if the sidecar hash and current Cargo.lock diverge
+- Named limitation: v0.2 hash-source is the Cargo.lock checksum; crates.io tarball
+  verification is v0.3+
+
+---
+
+## Lesson 11 — `supply_chain_unpinned.rs`: exact-pin enforcement
+
+**File**: [`antigen/examples/supply_chain_unpinned.rs`](../antigen/examples/supply_chain_unpinned.rs)
+
+**Concept introduced**: substrate-witness over Cargo.toml dep specs. The `UnpinnedDependency`
+antigen fires on any dep without `=X.Y.Z` exact-pin specifier.
+
+**What's in the file**:
+- A service with range-pinned deps (`^1.x`) marked `#[presents(UnpinnedDependency)]`
+- An immune version with `requires = dep_pinned()` substrate witness
+- The NARROW `UnpinnedTransitiveDependency` definition demonstrated:
+  CORRECT = "direct dep with `*/?` for its own deps" (fires here);
+  INCORRECT = "any transitive dep with non-exact pins" (would 100% false-positive)
+
+**What to learn**:
+- `dep_pinned()` leaf checks all deps; `dep_pinned("serde")` checks a single dep
+- The NARROW definition of `UnpinnedTransitiveDependency` is load-bearing — the wide
+  definition has ~100% false-positive rate (Cargo.lock resolution makes most transitive
+  deps stable despite non-exact upstream specs)
+- `cargo antigen verify dep-pin` pins unpinned deps in one sweep
+
+---
+
+## Lesson 12 — `convergent_diagnostic.rs`: multi-modality independence discipline
+
+**File**: [`antigen/examples/convergent_diagnostic.rs`](../antigen/examples/convergent_diagnostic.rs)
+
+**Concept introduced**: convergent evidence via `#[diagnostic]`. Multiple *independent*
+witness classes converge on a defense claim — independence means distinct `WitnessClass`
+CATEGORIES, not raw witness count.
+
+**What's in the file**:
+- A `#[diagnostic(modalities = [WitnessClass::PropertyTest, WitnessClass::FormalVerification], min_independent = 2)]`
+  annotation asserting two-category convergent evidence
+- A class-collapse case: `[WitnessClass::StaticAnalysis, WitnessClass::StaticAnalysis]` with
+  `min_independent = 2` — two witnesses of the same class don't satisfy 2-class independence
+  (compile error at parse time, per ADR-024 C1)
+- The six `WitnessClass` variants and when to use each
+
+**What to learn**:
+- `min_independent` counts distinct CATEGORIES, not witnesses.
+  Running clippy three times doesn't add evidence — it's still one `StaticAnalysis` class.
+- Parse-time error prevents vacuously-unsatisfiable claims
+- Audit hint `diagnostic-modalities-class-collapsed` fires on pre-compiled code that
+  bypassed parse-time enforcement (defense in depth)
+
+---
+
+## Lesson 13 — `convergent_clonal.rs`: iterated witness with non-deterministic seed
+
+**File**: [`antigen/examples/convergent_clonal.rs`](../antigen/examples/convergent_clonal.rs)
+
+**Concept introduced**: `#[clonal]` for iterated witness evaluation with explicit
+iteration count and non-deterministic seed discipline.
+
+**What's in the file**:
+- `#[clonal(witness = property_test_fn, iterations = 1_000, seed = SeedKind::Random)]` —
+  claims 1000 independent randomized iterations of a property test
+- A rejected case: `seed = SeedKind::Fixed(42)` → COMPILE ERROR (fixed seed makes
+  "independent iterations" a contradiction; per ADR-024 C2)
+- `SeedKind` variants explained: `Random`, `EntropyFromCi`, `TimestampSeeded`, `Fixed(u64)`
+
+**What to learn**:
+- `SeedKind::Fixed(_)` is rejected at parse time (same mechanism as `#[immunosuppress]`
+  duration-cap enforcement)
+- `iterations` is required and must be > 0
+- The `clonal-iterations-below-threshold` audit hint fires when `iterations` is below
+  the workspace floor (default 100)
+
+---
+
+## After the thirteen lessons
+
+By now you've encountered the core vocabulary, four witness tiers, substrate-witness
+pipeline, Oracle lifecycle, delta-chained signatures, tolerance tiers, and the v0.2
+families (supply-chain defense + convergent-evidence):
 
 | Lesson | Concept |
 |---|---|
@@ -345,6 +448,10 @@ By now you've encountered the five core macros, the four witness tiers, the subs
 | 7 — oracle_lifecycle | Oracle 5-state artifact lifecycle + stewardship |
 | 8 — delta_attestation | chained signatures + anti-laundering safeguards |
 | 9 — tolerance_attested | sidecar-attested vs vibes-grade tolerance |
+| 10 — supply_chain_content_hash | proactive content-hash attestation workflow (ADR-025) |
+| 11 — supply_chain_unpinned | exact-pin enforcement + NARROW transitive definition (ADR-025) |
+| 12 — convergent_diagnostic | multi-modality independence + WitnessClass discipline (ADR-024) |
+| 13 — convergent_clonal | iterated witness + SeedKind::Fixed rejection (ADR-024) |
 
 **Where to go next**:
 
