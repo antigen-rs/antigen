@@ -1074,6 +1074,550 @@ impl OrientArgs {
 }
 
 // ============================================================================
+// Convergent-Evidence Family argument parsers (ADR-024)
+// ============================================================================
+
+/// Arguments to `#[diagnostic(modalities = [...], min_independent = N)]`.
+///
+/// Per ADR-024 §Decision + adversarial C1:
+/// - `modalities` is a list of `WitnessClass::X` paths
+/// - `min_independent` is REQUIRED and measured in distinct CLASSES
+#[derive(Debug)]
+pub struct DiagnosticArgs {
+    /// The witness-class paths, captured as their final ident only.
+    /// E.g., `WitnessClass::StaticAnalysis` → `"StaticAnalysis"`.
+    pub modality_classes: Vec<String>,
+    /// The list of modality spans for span-anchored error messages.
+    pub modality_span: Option<Span>,
+    /// Required minimum distinct classes.
+    pub min_independent: Option<u64>,
+    /// Span anchor for `min_independent` for span-anchored error messages.
+    pub min_independent_span: Option<Span>,
+    /// Span of the macro's argument list.
+    pub args_span: Span,
+}
+
+impl Parse for DiagnosticArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        use syn::LitInt;
+        let args_span = input.span();
+        let mut modality_classes: Vec<String> = Vec::new();
+        let mut modality_span: Option<Span> = None;
+        let mut min_independent: Option<u64> = None;
+        let mut min_independent_span: Option<Span> = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "modalities" => {
+                    let arr: syn::ExprArray = input.parse()?;
+                    modality_span = Some(arr.bracket_token.span.join());
+                    for elem in &arr.elems {
+                        if let Expr::Path(p) = elem {
+                            if let Some(seg) = p.path.segments.last() {
+                                modality_classes.push(seg.ident.to_string());
+                                continue;
+                            }
+                        }
+                        return Err(syn::Error::new_spanned(
+                            elem,
+                            "expected a `WitnessClass::*` path in `modalities` array",
+                        ));
+                    }
+                }
+                "min_independent" => {
+                    let lit: LitInt = input.parse()?;
+                    min_independent_span = Some(lit.span());
+                    min_independent = Some(lit.base10_parse::<u64>()?);
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown #[diagnostic] field `{other}`; expected: modalities, min_independent"
+                        ),
+                    ));
+                }
+            }
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            modality_classes,
+            modality_span,
+            min_independent,
+            min_independent_span,
+            args_span,
+        })
+    }
+}
+
+impl DiagnosticArgs {
+    /// Per ADR-024 + adversarial C1: `min_independent` is REQUIRED;
+    /// `modalities` must be non-empty; `min_independent` must not exceed
+    /// the number of distinct modality classes (otherwise the claim is
+    /// vacuously unsatisfiable).
+    pub fn validate(&self) -> syn::Result<()> {
+        if self.modality_classes.is_empty() {
+            return Err(syn::Error::new(
+                self.modality_span.unwrap_or(self.args_span),
+                "#[diagnostic] requires non-empty `modalities = [WitnessClass::X, ...]` \
+                 (ADR-024 §Decision; an empty modality set has no evidence to converge).",
+            ));
+        }
+        let Some(min) = self.min_independent else {
+            return Err(syn::Error::new(
+                self.args_span,
+                "#[diagnostic] requires `min_independent = N` (ADR-024 §Decision; \
+                 N counts distinct WitnessClass categories per adversarial C1).",
+            ));
+        };
+        if min == 0 {
+            return Err(syn::Error::new(
+                self.min_independent_span.unwrap_or(self.args_span),
+                "#[diagnostic] `min_independent` must be at least 1 (a 0-floor is \
+                 vacuously true and structurally meaningless).",
+            ));
+        }
+        // Count distinct classes (per C1: classes, not raw count)
+        let mut distinct: Vec<&String> = Vec::new();
+        for c in &self.modality_classes {
+            if !distinct.contains(&c) {
+                distinct.push(c);
+            }
+        }
+        if u64::try_from(distinct.len()).unwrap_or(u64::MAX) < min {
+            return Err(syn::Error::new(
+                self.min_independent_span.unwrap_or(self.args_span),
+                format!(
+                    "#[diagnostic] `min_independent = {min}` exceeds the number of \
+                     distinct WitnessClass categories supplied ({}). Per ADR-024 \
+                     adversarial C1, min_independent counts CLASSES not witnesses — \
+                     duplicate classes don't add independence. Increase distinct \
+                     modalities or lower the floor.",
+                    distinct.len()
+                ),
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Arguments to `#[clonal(witness = ..., iterations = N, seed = SeedKind::...)]`.
+///
+/// Per ADR-024 §Decision + adversarial C2:
+/// - `witness` is REQUIRED — references the per-iteration function/test
+/// - `iterations` is REQUIRED — explicit non-zero count
+/// - `seed = SeedKind::Fixed(_)` is REJECTED at parse time
+#[derive(Debug)]
+pub struct ClonalArgs {
+    #[allow(dead_code)]
+    pub witness: Option<Expr>,
+    pub witness_span: Option<Span>,
+    pub iterations: Option<u64>,
+    pub iterations_span: Option<Span>,
+    /// The final ident of the `seed = SeedKind::X(...)` path. `None` if
+    /// no seed argument supplied (defaults to `Random`). Captured for
+    /// scan-side introspection / future audit-hint refinement.
+    #[allow(dead_code)]
+    pub seed_kind: Option<String>,
+    pub seed_span: Option<Span>,
+    /// True if the seed expression was `SeedKind::Fixed(...)`.
+    pub seed_is_fixed: bool,
+    pub args_span: Span,
+}
+
+impl Parse for ClonalArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        use syn::LitInt;
+        let args_span = input.span();
+        let mut witness: Option<Expr> = None;
+        let mut witness_span: Option<Span> = None;
+        let mut iterations: Option<u64> = None;
+        let mut iterations_span: Option<Span> = None;
+        let mut seed_kind: Option<String> = None;
+        let mut seed_span: Option<Span> = None;
+        let mut seed_is_fixed = false;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "witness" => {
+                    let e: Expr = input.parse()?;
+                    witness_span = Some(syn::spanned::Spanned::span(&e));
+                    witness = Some(e);
+                }
+                "iterations" => {
+                    let lit: LitInt = input.parse()?;
+                    iterations_span = Some(lit.span());
+                    iterations = Some(lit.base10_parse::<u64>()?);
+                }
+                "seed" => {
+                    let e: Expr = input.parse()?;
+                    seed_span = Some(syn::spanned::Spanned::span(&e));
+                    // Extract the final ident: SeedKind::Random / SeedKind::Fixed(...).
+                    if let Expr::Path(p) = &e {
+                        if let Some(seg) = p.path.segments.last() {
+                            let name = seg.ident.to_string();
+                            seed_kind = Some(name);
+                        }
+                    } else if let Expr::Call(c) = &e {
+                        if let Expr::Path(p) = &*c.func {
+                            if let Some(seg) = p.path.segments.last() {
+                                let name = seg.ident.to_string();
+                                if name == "Fixed" {
+                                    seed_is_fixed = true;
+                                }
+                                seed_kind = Some(name);
+                            }
+                        }
+                    }
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown #[clonal] field `{other}`; expected: witness, iterations, seed"
+                        ),
+                    ));
+                }
+            }
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            witness,
+            witness_span,
+            iterations,
+            iterations_span,
+            seed_kind,
+            seed_span,
+            seed_is_fixed,
+            args_span,
+        })
+    }
+}
+
+impl ClonalArgs {
+    /// Trust-boundary checks per ADR-024:
+    /// - `witness` REQUIRED
+    /// - `iterations` REQUIRED and > 0
+    /// - `seed = SeedKind::Fixed(_)` REJECTED with COMPILE ERROR (C2)
+    pub fn validate(&self) -> syn::Result<()> {
+        if self.witness.is_none() {
+            return Err(syn::Error::new(
+                self.witness_span.unwrap_or(self.args_span),
+                "#[clonal] requires `witness = <identifier>` referencing the \
+                 per-iteration function/test (ADR-024 §Decision).",
+            ));
+        }
+        let Some(iters) = self.iterations else {
+            return Err(syn::Error::new(
+                self.args_span,
+                "#[clonal] requires `iterations = N` (ADR-024 §Decision; \
+                 explicit iteration count is the structural memory of how \
+                 much independence the witness is claiming).",
+            ));
+        };
+        if iters == 0 {
+            return Err(syn::Error::new(
+                self.iterations_span.unwrap_or(self.args_span),
+                "#[clonal] `iterations` must be > 0 (zero iterations means \
+                 no evidence).",
+            ));
+        }
+        if self.seed_is_fixed {
+            return Err(syn::Error::new(
+                self.seed_span.unwrap_or(self.args_span),
+                "#[clonal] rejects `seed = SeedKind::Fixed(_)` — a fixed seed \
+                 makes 'iterations' a misnomer (every iteration replays the same \
+                 RNG state). Use SeedKind::Random, SeedKind::EntropyFromCi, or \
+                 SeedKind::TimestampSeeded. \
+                 Per ADR-024 adversarial C2: COMPILE-TIME enforcement.",
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Arguments to `#[igg(witnesses = [...], historical_span = N, min_reattestations = N)]`.
+///
+/// Per ADR-024 §Decision + adversarial C3:
+/// - `witnesses` REQUIRED non-empty
+/// - `historical_span` REQUIRED (days)
+/// - `min_reattestations` REQUIRED
+/// - Source-independence is NOMINAL — different signer-identity strings
+///   don't structurally prove independent sources (named limitation)
+#[derive(Debug)]
+pub struct IggArgs {
+    #[allow(dead_code)]
+    pub witnesses: Vec<Expr>,
+    pub witnesses_span: Option<Span>,
+    pub historical_span: Option<u64>,
+    pub historical_span_span: Option<Span>,
+    pub min_reattestations: Option<u64>,
+    pub min_reattestations_span: Option<Span>,
+    pub args_span: Span,
+}
+
+impl Parse for IggArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        use syn::LitInt;
+        let args_span = input.span();
+        let mut witnesses: Vec<Expr> = Vec::new();
+        let mut witnesses_span: Option<Span> = None;
+        let mut historical_span: Option<u64> = None;
+        let mut historical_span_span: Option<Span> = None;
+        let mut min_reattestations: Option<u64> = None;
+        let mut min_reattestations_span: Option<Span> = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "witnesses" => {
+                    let arr: syn::ExprArray = input.parse()?;
+                    witnesses_span = Some(arr.bracket_token.span.join());
+                    for elem in &arr.elems {
+                        witnesses.push(elem.clone());
+                    }
+                }
+                "historical_span" => {
+                    let lit: LitInt = input.parse()?;
+                    historical_span_span = Some(lit.span());
+                    historical_span = Some(lit.base10_parse::<u64>()?);
+                }
+                "min_reattestations" => {
+                    let lit: LitInt = input.parse()?;
+                    min_reattestations_span = Some(lit.span());
+                    min_reattestations = Some(lit.base10_parse::<u64>()?);
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown #[igg] field `{other}`; expected: \
+                             witnesses, historical_span, min_reattestations"
+                        ),
+                    ));
+                }
+            }
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            witnesses,
+            witnesses_span,
+            historical_span,
+            historical_span_span,
+            min_reattestations,
+            min_reattestations_span,
+            args_span,
+        })
+    }
+}
+
+impl IggArgs {
+    pub fn validate(&self) -> syn::Result<()> {
+        if self.witnesses.is_empty() {
+            return Err(syn::Error::new(
+                self.witnesses_span.unwrap_or(self.args_span),
+                "#[igg] requires non-empty `witnesses = [...]` (ADR-024 §Decision).",
+            ));
+        }
+        let Some(span) = self.historical_span else {
+            return Err(syn::Error::new(
+                self.args_span,
+                "#[igg] requires `historical_span = N` (days; ADR-024 §Decision).",
+            ));
+        };
+        if span == 0 {
+            return Err(syn::Error::new(
+                self.historical_span_span.unwrap_or(self.args_span),
+                "#[igg] `historical_span` must be > 0 days.",
+            ));
+        }
+        let Some(min) = self.min_reattestations else {
+            return Err(syn::Error::new(
+                self.args_span,
+                "#[igg] requires `min_reattestations = N` (ADR-024 §Decision).",
+            ));
+        };
+        if min == 0 {
+            return Err(syn::Error::new(
+                self.min_reattestations_span.unwrap_or(self.args_span),
+                "#[igg] `min_reattestations` must be > 0.",
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Arguments to `#[crossreactive(fingerprints = [...])]`.
+///
+/// Declares one defense addresses multiple related antigens (cross-
+/// reactive immune response).
+#[derive(Debug)]
+pub struct CrossreactiveArgs {
+    #[allow(dead_code)]
+    pub fingerprints: Vec<String>,
+    pub fingerprints_span: Option<Span>,
+    pub args_span: Span,
+}
+
+impl Parse for CrossreactiveArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut fingerprints: Vec<String> = Vec::new();
+        let mut fingerprints_span: Option<Span> = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "fingerprints" => {
+                    let arr: syn::ExprArray = input.parse()?;
+                    fingerprints_span = Some(arr.bracket_token.span.join());
+                    for elem in &arr.elems {
+                        if let Expr::Lit(syn::ExprLit {
+                            lit: Lit::Str(s), ..
+                        }) = elem
+                        {
+                            fingerprints.push(s.value());
+                        } else {
+                            return Err(syn::Error::new_spanned(
+                                elem,
+                                "expected a string literal fingerprint in `fingerprints` array",
+                            ));
+                        }
+                    }
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!("unknown #[crossreactive] field `{other}`; expected: fingerprints"),
+                    ));
+                }
+            }
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            fingerprints,
+            fingerprints_span,
+            args_span,
+        })
+    }
+}
+
+impl CrossreactiveArgs {
+    pub fn validate(&self) -> syn::Result<()> {
+        if self.fingerprints.is_empty() {
+            return Err(syn::Error::new(
+                self.fingerprints_span.unwrap_or(self.args_span),
+                "#[crossreactive] requires non-empty `fingerprints = [...]` \
+                 (a defense that covers no related antigens isn't crossreactive).",
+            ));
+        }
+        for f in &self.fingerprints {
+            if f.is_empty() {
+                return Err(syn::Error::new(
+                    self.fingerprints_span.unwrap_or(self.args_span),
+                    "#[crossreactive] `fingerprints` entries must be non-empty strings.",
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Arguments to `#[polyclonal]` — many independent lineages.
+/// No required fields per ADR-024 §Decision.
+#[derive(Debug)]
+pub struct PolyclonalArgs {
+    #[allow(dead_code)]
+    pub args_span: Span,
+}
+
+impl Parse for PolyclonalArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        // Accept arbitrary trailing args for forward compat — discard them.
+        while !input.is_empty() {
+            let _: proc_macro2::TokenTree = input.parse()?;
+        }
+        Ok(Self { args_span })
+    }
+}
+
+impl PolyclonalArgs {
+    #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
+    pub const fn validate(&self) -> syn::Result<()> {
+        Ok(())
+    }
+}
+
+/// Arguments to `#[monoclonal]` — single independent lineage. No required
+/// fields per ADR-024 §Decision.
+#[derive(Debug)]
+pub struct MonoclonalArgs {
+    #[allow(dead_code)]
+    pub args_span: Span,
+}
+
+impl Parse for MonoclonalArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        while !input.is_empty() {
+            let _: proc_macro2::TokenTree = input.parse()?;
+        }
+        Ok(Self { args_span })
+    }
+}
+
+impl MonoclonalArgs {
+    #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
+    pub const fn validate(&self) -> syn::Result<()> {
+        Ok(())
+    }
+}
+
+/// Arguments to `#[adcc]` — antibody + cellular effector (multi-mechanism).
+/// No required fields per ADR-024 §Decision.
+#[derive(Debug)]
+pub struct AdccArgs {
+    #[allow(dead_code)]
+    pub args_span: Span,
+}
+
+impl Parse for AdccArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        while !input.is_empty() {
+            let _: proc_macro2::TokenTree = input.parse()?;
+        }
+        Ok(Self { args_span })
+    }
+}
+
+impl AdccArgs {
+    #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
+    pub const fn validate(&self) -> syn::Result<()> {
+        Ok(())
+    }
+}
+
+// ============================================================================
 // Date helpers for ADR-023 parse-time enforcement
 // ============================================================================
 

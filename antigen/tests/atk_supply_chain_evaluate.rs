@@ -392,6 +392,117 @@ proptest = "1.0"
 }
 
 // ============================================================================
+// ATK-SC-AUDIT-1: any_of semantics broken in audit_supply_chain
+//
+// ATTACK: collect_leaves() flattens ALL leaves from both any_of AND all_of
+// combinators identically. For any_of, the predicate passes if ANY child passes.
+// But the audit emits failure hints for ALL failed children, even in any_of.
+//
+// Scenario:
+//   any_of([
+//     content_hash_matches("serde", "1.0.197"),  -- has matching sidecar (PASS)
+//     content_hash_matches("serde", "1.0.196"),  -- no sidecar (FAIL)
+//   ])
+//
+// EXPECTED: any_of is satisfied → all_pass() = true (zero failure hints)
+// CURRENT: both leaves evaluated → 1.0.196 emits ContentHashNoAttestation →
+//          fail_count = 1 → all_pass() = false (FALSE POSITIVE)
+//
+// This is a logical error in collect_leaves: it doesn't distinguish
+// AllOf from AnyOf semantics. For any_of, a single passing child
+// should suppress failure hints from sibling children.
+// ============================================================================
+
+#[test]
+fn atk_sc_audit1_any_of_emits_false_positive_for_passing_branch() {
+    use antigen::audit::{audit_supply_chain, AuditHint};
+    use antigen::scan::{Immunity, ItemTarget, ScanReport};
+    use antigen_attestation::{Leaf, Predicate};
+
+    let tmp = TempDir::new().unwrap();
+
+    // Set up sidecar for serde@1.0.197 WITH matching hash
+    let record = ContentHashRecord {
+        crate_name: "serde".to_string(),
+        version: "1.0.197".to_string(),
+        content_hash: "goodhash".to_string(),
+        hash_source: "cargo-lock-checksum".to_string(),
+        signed_by: "alice".to_string(),
+        date: "2026-05-22".to_string(),
+    };
+    save_content_hash_record(tmp.path(), &record).unwrap();
+
+    // Cargo.lock with matching hash for 1.0.197
+    std::fs::write(
+        tmp.path().join("Cargo.lock"),
+        "[[package]]\nname = \"serde\"\nversion = \"1.0.197\"\nchecksum = \"goodhash\"\n",
+    )
+    .unwrap();
+    // NO sidecar for serde@1.0.196 — that branch will fail
+
+    // Build any_of([content_hash_matches("serde", "1.0.197"),
+    //               content_hash_matches("serde", "1.0.196")])
+    let pred = Predicate::any_of(vec![
+        Predicate::leaf(Leaf::ContentHashMatches {
+            crate_name: "serde".to_string(),
+            version: "1.0.197".to_string(),
+        }),
+        Predicate::leaf(Leaf::ContentHashMatches {
+            crate_name: "serde".to_string(),
+            version: "1.0.196".to_string(),
+        }),
+    ])
+    .unwrap();
+
+    let pred_json = serde_json::to_string(&pred).unwrap();
+
+    // Create synthetic scan report with the any_of immunity
+    let immunity = Immunity {
+        antigen_type: "ContentHashMismatch".to_string(),
+        witness: String::new(),
+        file: std::path::PathBuf::from("src/lib.rs"),
+        line: 10,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Fn("check_serde".to_string()),
+        canonical_path: None,
+        requires_predicate: Some(pred_json),
+    };
+    let mut scan = ScanReport::default();
+    scan.immunities.push(immunity);
+
+    let report = audit_supply_chain(&scan, tmp.path());
+
+    let failure_hints: Vec<_> = report
+        .audits
+        .iter()
+        .filter(|a| a.hint != AuditHint::FunctionResolves)
+        .collect();
+
+    // ADVERSARIAL PATTERN: this test FAILS when the bug EXISTS.
+    // When pathmaker fixes any_of semantics, the test passes.
+    //
+    // Correct behavior: any_of is satisfied by the 1.0.197 branch (PASS).
+    // No failure hints should be emitted for sibling branches that failed.
+    //
+    // Bug: collect_leaves() treats AllOf and AnyOf identically, evaluating
+    // ALL children and emitting failure hints for ANY failed leaf,
+    // even when another sibling leaf passed and the any_of is satisfied.
+    assert!(
+        report.all_pass(),
+        "ATK-SC-AUDIT-1: any_of([match_197(PASS), no_sidecar_196(FAIL)]) MUST pass \
+         because the 1.0.197 branch satisfies the any_of predicate. \
+         \n\nBUG: collect_leaves() treats AllOf and AnyOf identically. For any_of, \
+         if any child passes, sibling failures MUST NOT produce audit hints. \
+         \n\ncurrent fail_count={}, failure_hints={:?} \
+         \n\nFix: propagate predicate-structure context (allOf vs anyOf) through \
+         collect_leaves. For anyOf nodes, suppress sibling failure hints when \
+         any child passes.",
+        report.fail_count,
+        failure_hints.iter().map(|a| &a.hint).collect::<Vec<_>>()
+    );
+}
+
+// ============================================================================
 // ATK-SC-4-B: Workspace inheritance vacuously exact-pinned
 //
 // A dep with workspace = true has version = None, which is_exact_pinned()

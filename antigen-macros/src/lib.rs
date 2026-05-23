@@ -503,6 +503,208 @@ pub fn poxparty(args: TokenStream, input: TokenStream) -> TokenStream {
     quote! { #input }.into()
 }
 
+// ============================================================================
+// Convergent-Evidence Family (ADR-024)
+// ============================================================================
+
+/// Declare convergent multi-modality evidence backing a defense claim.
+///
+/// `#[diagnostic(modalities = [...], min_independent = N)]` asserts that
+/// at least `N` distinct [`WitnessClass`](https://docs.rs/antigen) categories
+/// converge on this defense. Per ADR-024 §Decision + adversarial C1, the
+/// count is over distinct CLASSES, not raw witness count — running the
+/// same kind of test in triplicate doesn't add evidence.
+///
+/// # Arguments
+///
+/// - `modalities = [WitnessClass::X, ...]` (required) — non-empty list
+/// - `min_independent = N` (required, > 0) — distinct-class floor; the
+///   parser rejects `min_independent` exceeding the number of distinct
+///   classes (vacuously unsatisfiable claim).
+///
+/// # Audit hints
+///
+/// - `diagnostic-modality-insufficient` — fewer modalities than the floor
+/// - `diagnostic-modalities-class-collapsed` — all witnesses share one class
+/// - `diagnostic-modalities-empty` — empty modalities list
+///
+/// # Example
+///
+/// ```ignore
+/// use antigen::{antigen, diagnostic, WitnessClass};
+///
+/// #[diagnostic(
+///     modalities = [WitnessClass::PropertyTest, WitnessClass::FormalVerification],
+///     min_independent = 2,
+/// )]
+/// pub fn checked_arithmetic_sum(a: i64, b: i64) -> Option<i64> {
+///     a.checked_add(b)
+/// }
+/// ```
+#[proc_macro_attribute]
+pub fn diagnostic(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::DiagnosticArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
+/// Declare iterated witness evaluation (B-cell clonal expansion analog).
+///
+/// `#[clonal(witness = ..., iterations = N, seed = SeedKind::...)]`
+/// asserts that a witness is run with many independent iterations.
+/// Per ADR-024 §Decision + adversarial C2, `seed = SeedKind::Fixed(_)`
+/// is a COMPILE ERROR — a fixed seed makes "independent iterations" a
+/// contradiction.
+///
+/// # Arguments
+///
+/// - `witness = <ident>` (required) — per-iteration witness function
+/// - `iterations = N` (required, > 0)
+/// - `seed = SeedKind::X` (optional; default `Random`) — non-deterministic
+///   variants accepted: `Random`, `EntropyFromCi`, `TimestampSeeded`.
+///   `SeedKind::Fixed(_)` rejected at parse time.
+///
+/// # Audit hints
+///
+/// - `clonal-fixed-seed-detected` — parse-time error (above)
+/// - `clonal-iterations-below-threshold` — N below workspace floor
+///
+/// # Example
+///
+/// ```ignore
+/// use antigen::{clonal, SeedKind};
+///
+/// #[clonal(witness = sum_property, iterations = 10_000, seed = SeedKind::Random)]
+/// pub fn checked_arithmetic_sum(a: i64, b: i64) -> Option<i64> {
+///     a.checked_add(b)
+/// }
+/// ```
+#[proc_macro_attribute]
+pub fn clonal(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::ClonalArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
+/// Declare IgG-class affinity-matured evidence (re-attestation history).
+///
+/// `#[igg(witnesses = [...], historical_span = N, min_reattestations = N)]`
+/// asserts that the defense has been re-attested across a time span.
+/// Per ADR-024 §Decision + adversarial C3, source-independence is
+/// NOMINAL only — different signer identity strings are not structural
+/// proof of independent sources.
+///
+/// # Arguments
+///
+/// - `witnesses = [...]` (required non-empty)
+/// - `historical_span = N` (required, > 0; days)
+/// - `min_reattestations = N` (required, > 0)
+///
+/// # Audit hints
+///
+/// - `igg-identity-collapse-warning` — same signer across reattestations
+/// - `igg-span-too-short` — historical span below floor
+/// - `igg-reattestations-insufficient` — fewer reattestations than floor
+#[proc_macro_attribute]
+pub fn igg(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::IggArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
+/// Declare crossreactive coverage — one defense covers related antigens.
+///
+/// `#[crossreactive(fingerprints = [...])]` asserts that the annotated
+/// item's defense applies to multiple antigen fingerprints simultaneously
+/// (analogous to a crossreactive antibody binding related epitopes).
+///
+/// # Arguments
+///
+/// - `fingerprints = [...]` (required non-empty list of strings)
+///
+/// # Audit hints
+///
+/// - `crossreactive-fingerprint-unresolved` — fingerprint doesn't match
+///   any known antigen
+#[proc_macro_attribute]
+pub fn crossreactive(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::CrossreactiveArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
+/// Declare polyclonal evidence — many independent lineages converge.
+///
+/// `#[polyclonal]` is a marker primitive (no required args) declaring
+/// that the defense rests on multiple independent witness lineages.
+/// Distinct from `#[diagnostic]`: polyclonal emphasizes LINEAGE diversity
+/// (different witness derivations) rather than MODALITY diversity
+/// (different witness classes).
+///
+/// # Audit hints
+///
+/// - `polyclonal-insufficient-lineages` — fewer lineages than configured
+///   floor
+#[proc_macro_attribute]
+pub fn polyclonal(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::PolyclonalArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
+/// Declare monoclonal evidence — single independent lineage.
+///
+/// `#[monoclonal]` is the structural contrast to `#[polyclonal]`. The
+/// monoclonal posture is honest about resting on a single lineage; the
+/// audit treats it as a documentary acknowledgement rather than a
+/// failing.
+#[proc_macro_attribute]
+pub fn monoclonal(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::MonoclonalArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
+/// Declare ADCC (antibody-dependent cellular cytotoxicity) — multi-
+/// mechanism convergent defense.
+///
+/// `#[adcc]` asserts that the defense combines antibody-style witness
+/// (declaration + check) AND cellular-effector witness (runtime
+/// behavioral check) via different mechanisms. The marker primitive
+/// surfaces the structural commitment to multi-mechanism defense.
+///
+/// # Audit hints
+///
+/// - `adcc-single-mechanism-only` — only one of the two mechanisms
+///   detectable on the site
+#[proc_macro_attribute]
+pub fn adcc(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::AdccArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
 /// Declare an orientation period: acknowledged absence of immunity with
 /// see-also context. The lightest-weight deferred-defense primitive.
 ///

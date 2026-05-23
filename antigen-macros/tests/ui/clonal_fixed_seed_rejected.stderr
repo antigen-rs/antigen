@@ -1,0 +1,5 @@
+error: #[clonal] rejects `seed = SeedKind::Fixed(_)` — a fixed seed makes 'iterations' a misnomer (every iteration replays the same RNG state). Use SeedKind::Random, SeedKind::EntropyFromCi, or SeedKind::TimestampSeeded. Per ADR-024 adversarial C2: COMPILE-TIME enforcement.
+  --> tests/ui/clonal_fixed_seed_rejected.rs:18:12
+   |
+18 |     seed = SeedKind::Fixed(42)
+   |            ^^^^^^^^

@@ -140,6 +140,12 @@ pub use antigen_macros::{antigen, antigen_tolerance, descended_from, immune, pre
 // poxparty, orient — each with parse-time enforcement and aging escalation.
 pub use antigen_macros::{anergy, immunosuppress, orient, poxparty};
 
+// Convergent-Evidence Family (ADR-024): seven primitives for backward-
+// looking evidence aggregation plus the two public enums (WitnessClass +
+// SeedKind) adopters supply as macro arguments.
+pub use antigen_macros::{adcc, clonal, crossreactive, diagnostic, igg, monoclonal, polyclonal};
+pub use convergent::{SeedKind, WitnessClass};
+
 pub mod audit;
 pub mod scan;
 
@@ -152,6 +158,14 @@ pub mod scan;
 /// See [`stdlib::supply_chain`] for the v0.2 Supply-Chain Defense Family
 /// (ADR-025).
 pub mod stdlib;
+
+/// Public types for the Convergent-Evidence Family (ADR-024).
+///
+/// Hosts [`convergent::WitnessClass`] (independence-checking categories
+/// for `#[diagnostic]`) and [`convergent::SeedKind`] (non-deterministic
+/// seed enforcement for `#[clonal]`). These are first-class public types
+/// — adopters use them in macro arguments.
+pub mod convergent;
 
 /// Runtime substrate for the Supply-Chain Defense Family (ADR-025).
 ///
