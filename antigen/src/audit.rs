@@ -309,6 +309,96 @@ pub enum AuditHint {
     /// workspace config without a non-empty rationale. Per ADR-023
     /// hint-fatigue-protection: suppression requires rationale.
     DeferredDefenseHintSuppressedWithoutRationale,
+
+    // ------------------------------------------------------------------
+    // Supply-Chain Defense Family hints (ADR-025).
+    //
+    // 15 hints covering the v0.2 supply-chain antigens. Emitted by
+    // `audit_supply_chain()` (NOT by the standard `audit()` pipeline,
+    // which evaluates substrate-witness predicates). The supply-chain
+    // audit drives the witness-leaf evaluators in
+    // `crate::supply_chain::evaluate` and maps the resulting states
+    // onto these hints.
+    // ------------------------------------------------------------------
+    /// A dependency in `Cargo.toml` is not exact-pinned (`=X.Y.Z`).
+    /// Backs `UnpinnedDependency`.
+    UnpinnedDependency,
+    /// A direct dep declares `*`/`?` ranges for its own transitive
+    /// dependencies — NARROW form per ADR-025 B9-R. Backs
+    /// `UnpinnedTransitiveDependency`. v0.2: emitted only when the
+    /// direct dep's manifest is accessible; v0.3+ broadens coverage.
+    UnpinnedTransitiveDependency,
+    /// A new dependency was added without a dep-attest sidecar at
+    /// `.attest/supply-chain/dep-attest/<crate>@<version>.json`.
+    /// Backs `UnattestedDependencyInclusion`.
+    UnattestedDependencyInclusion,
+    /// A dep upgrade was attested only at `MetadataOnly` or
+    /// `BuildScriptOnly` scope — not diff-reviewed. Backs
+    /// `DependencyUpgradeWithoutDiffReview`. Account-compromise control.
+    DependencyUpgradeWithoutDiffReview,
+    /// A crate's maintainer set has changed (or query unavailable) and
+    /// no fresh re-attestation has landed. Backs
+    /// `MaintainerChangeWithoutReattestation`. CI sequencing constraint:
+    /// the verifying CLI MUST run BEFORE `cargo update`.
+    MaintainerChangeWithoutReattestation,
+    /// Variant of `MaintainerChangeWithoutReattestation` surfaced AFTER
+    /// `cargo update` has already incorporated the new maintainer's
+    /// code. The check has effectively already-failed; document the
+    /// sequencing for next time.
+    MaintainerChangeDetectedAfterCargoUpdate,
+    /// A dep version bump grew the source tree (LOC) or transitive-dep
+    /// count significantly. Backs `SuddenDependencyExpansion`.
+    /// Account-compromise complement to
+    /// `DependencyUpgradeWithoutDiffReview`.
+    SuddenDependencyExpansion,
+    /// An external dep ships a `build.rs` that ran at compile time
+    /// without sandbox containment. Backs `UnsandboxedBuildScript`.
+    /// v0.4+ sandbox execution.
+    UnsandboxedBuildScript,
+    /// An external proc-macro dep ran in-rustc at compile time without
+    /// sandbox containment. Backs `UnsandboxedProcMacro`. HIGHER risk
+    /// than `unsandboxed-build-script`.
+    UnsandboxedProcMacro,
+    /// An external dep declares install-time scripts (post-install
+    /// hooks, vendored binary downloads, FFI bridges). Backs
+    /// `PostInstallScriptInDependency`.
+    PostInstallScriptInDependency,
+    /// The recorded `.attest/supply-chain/content-hash/<crate>@<version>.json`
+    /// hash DIFFERS from the current `Cargo.lock` checksum. **The
+    /// chalk/debug/eslint-config attack signal.** Backs
+    /// `ContentHashMismatch`.
+    ContentHashMismatch,
+    /// No `.attest/supply-chain/content-hash/<crate>@<version>.json`
+    /// record exists for this dep. The antigen is dormant until
+    /// first-attestation lands via `cargo antigen verify content-hash
+    /// record <crate@version>`. Surfaces explicitly per ATK-SC-2 (NOT
+    /// a silent pass).
+    ContentHashNoAttestation,
+    /// The dep-attest sidecar exists but `reviewable_artifact` is empty
+    /// or whitespace-only — a rubber-stamp. Per ATK-SC-1-A.
+    /// Backs the rubber-stamp limitation named in ADR-025.
+    DepAttestWithoutReviewableArtifact,
+    /// A `cargo antigen verify maintainer-changes` query to crates.io
+    /// failed (network, rate-limit, or v0.2 stub). CI should treat this
+    /// as a soft-fail, not a green light. Backs the
+    /// `MaintainerChangeWithoutReattestation` named limitation.
+    CratesIoMetadataQueryFailed,
+    /// A dep-attest sidecar's recorded version is older than the
+    /// requested version (and `exact_version = true`). Re-attestation
+    /// needed before the upgrade lands.
+    DepAttestationStale,
+    /// A `*` or `?` version specifier exists somewhere in the
+    /// dependency tree, allowing automatic chain-of-updates with no
+    /// human gate. Backs `AutoDependencyChainWithoutPinning`.
+    AutoDependencyChainWithoutPinning,
+    /// `evaluate_content_hash_matches` returned `SidecarMalformed` —
+    /// the `.attest/supply-chain/content-hash/<crate>@<version>.json`
+    /// file exists but does NOT deserialize cleanly. **Per ATK-SC-2-A,
+    /// this MUST be a distinct hint from `content-hash-no-attestation`**:
+    /// an attacker who can write to the sidecar should not be able to
+    /// downgrade a Mismatch (alert) into a `NoAttestation` (warning) by
+    /// corrupting the file.
+    ContentHashSidecarMalformed,
 }
 
 /// Result of auditing a single immunity declaration.
@@ -1340,6 +1430,329 @@ fn detect_external_tool(witness: &str) -> Option<&'static str> {
     } else {
         None
     }
+}
+
+// ============================================================================
+// Supply-Chain Defense Family audit (ADR-025)
+// ============================================================================
+
+/// One result of evaluating a supply-chain witness leaf against a workspace.
+///
+/// Each entry carries the source-side identity (file + line where the
+/// `#[immune(X, requires = <supply-chain-leaf>)]` was declared), the
+/// antigen type it backs, and the [`AuditHint`] the evaluation produced.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SupplyChainAudit {
+    /// The antigen type the leaf is backing (`ContentHashMismatch`,
+    /// `UnpinnedDependency`, etc.). Mirrors `Immunity::antigen_type`.
+    pub antigen_type: String,
+    /// Source file the immunity declaration lives in.
+    pub file: PathBuf,
+    /// Line number of the immunity attribute.
+    pub line: usize,
+    /// Crate name the leaf targeted (extracted from leaf args).
+    pub crate_name: String,
+    /// Crate version the leaf targeted (if applicable). Empty for
+    /// leaves that don't take a version (e.g., `dep_pinned`).
+    pub version: String,
+    /// The audit hint the evaluation produced.
+    pub hint: AuditHint,
+    /// Optional structured detail (e.g., for `ContentHashMismatch`,
+    /// the recorded vs current hash strings).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
+}
+
+/// Aggregate result of [`audit_supply_chain`].
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SupplyChainAuditReport {
+    /// Per-immunity audit entries (one per supply-chain leaf encountered).
+    pub audits: Vec<SupplyChainAudit>,
+    /// Count of entries whose hint denotes the leaf evaluation passed.
+    pub pass_count: usize,
+    /// Count of entries whose hint denotes a failure (mismatch,
+    /// malformed sidecar, missing attestation, rubber-stamp, etc.).
+    pub fail_count: usize,
+}
+
+impl SupplyChainAuditReport {
+    /// True when no failure hints were emitted.
+    #[must_use]
+    pub const fn all_pass(&self) -> bool {
+        self.fail_count == 0
+    }
+}
+
+/// Audit supply-chain substrate-witness leaves across a scan report.
+///
+/// Walks every [`crate::scan::Immunity`] in the report. When the immunity
+/// has a `requires_predicate` containing one or more of the five
+/// supply-chain leaves (`dep_pinned`, `dep_attested`,
+/// `maintainer_unchanged`, `content_hash_matches`, `sandbox_clean`), the
+/// audit evaluates each leaf via
+/// [`crate::supply_chain::evaluate`] against `workspace_root` and emits a
+/// [`SupplyChainAudit`] entry per leaf.
+///
+/// **Why the standard `audit()` doesn't do this**: the standard
+/// substrate-witness pipeline returns `false` for the supply-chain leaves
+/// (honest-tier-naming per ADR-005 Amendment 2). The supply-chain audit
+/// is the dedicated evaluator that knows how to drive
+/// `evaluate_content_hash_matches` against `Cargo.lock` +
+/// `.attest/supply-chain/content-hash/`, etc. Callers SHOULD invoke
+/// both `audit()` and `audit_supply_chain()` for full coverage.
+#[must_use]
+pub fn audit_supply_chain(report: &ScanReport, workspace_root: &Path) -> SupplyChainAuditReport {
+    let mut audits: Vec<SupplyChainAudit> = Vec::new();
+
+    for immunity in &report.immunities {
+        let Some(json) = &immunity.requires_predicate else {
+            continue;
+        };
+        let Ok(predicate) = serde_json::from_str::<antigen_attestation::Predicate>(json) else {
+            continue;
+        };
+
+        let mut leaves: Vec<&antigen_attestation::Leaf> = Vec::new();
+        collect_leaves(&predicate, &mut leaves);
+
+        for leaf in leaves {
+            if let Some(audit) = audit_supply_chain_leaf(
+                leaf,
+                workspace_root,
+                &immunity.antigen_type,
+                &immunity.file,
+                immunity.line,
+            ) {
+                audits.push(audit);
+            }
+        }
+    }
+
+    let mut pass_count = 0usize;
+    let mut fail_count = 0usize;
+    for a in &audits {
+        if is_supply_chain_pass_hint(&a.hint) {
+            pass_count += 1;
+        } else {
+            fail_count += 1;
+        }
+    }
+
+    SupplyChainAuditReport {
+        audits,
+        pass_count,
+        fail_count,
+    }
+}
+
+/// Pre-order traversal collecting every `Leaf` in a `Predicate` tree.
+fn collect_leaves<'a>(
+    pred: &'a antigen_attestation::Predicate,
+    out: &mut Vec<&'a antigen_attestation::Leaf>,
+) {
+    use antigen_attestation::Predicate;
+    match pred {
+        Predicate::Leaf(l) => out.push(l),
+        Predicate::AllOf { children } | Predicate::AnyOf { children } => {
+            for c in children {
+                collect_leaves(c, out);
+            }
+        }
+        Predicate::Not { child } => collect_leaves(child, out),
+    }
+}
+
+/// Evaluate a single supply-chain leaf and produce a [`SupplyChainAudit`]
+/// entry. Returns `None` for non-supply-chain leaves.
+fn audit_supply_chain_leaf(
+    leaf: &antigen_attestation::Leaf,
+    workspace_root: &Path,
+    antigen_type: &str,
+    file: &Path,
+    line: usize,
+) -> Option<SupplyChainAudit> {
+    use antigen_attestation::Leaf;
+
+    let (crate_name, version, hint, detail) = match leaf {
+        Leaf::DepPinned { crate_name } => {
+            eval_dep_pinned_to_hint(workspace_root, crate_name.as_deref())
+        }
+        Leaf::DepAttested {
+            crate_name,
+            version,
+            exact_version,
+            ..
+        } => eval_dep_attested_to_hint(workspace_root, crate_name, version, *exact_version),
+        Leaf::MaintainerUnchanged {
+            crate_name,
+            since_version,
+        } => eval_maintainer_unchanged_to_hint(workspace_root, crate_name, since_version),
+        Leaf::ContentHashMatches {
+            crate_name,
+            version,
+        } => eval_content_hash_matches_to_hint(workspace_root, crate_name, version),
+        Leaf::SandboxClean {
+            crate_name,
+            sandbox_kind,
+        } => eval_sandbox_clean_to_hint(crate_name, sandbox_kind),
+        // Non-supply-chain leaves: not our pipeline's responsibility.
+        Leaf::RatifiedDoc { .. }
+        | Leaf::Signers { .. }
+        | Leaf::SignedTrailer { .. }
+        | Leaf::OraclesComplete { .. }
+        | Leaf::FreshWithinDays { .. } => return None,
+    };
+
+    Some(SupplyChainAudit {
+        antigen_type: antigen_type.to_string(),
+        file: file.to_path_buf(),
+        line,
+        crate_name,
+        version,
+        hint,
+        detail,
+    })
+}
+
+/// Return `(crate, version, hint, detail)` for `dep_pinned`.
+fn eval_dep_pinned_to_hint(
+    workspace_root: &Path,
+    crate_name: Option<&str>,
+) -> (String, String, AuditHint, Option<String>) {
+    use crate::supply_chain::{evaluate, witness::DepPinnedState};
+    let state = evaluate::evaluate_dep_pinned(workspace_root, crate_name);
+    let (hint, detail) = match &state {
+        DepPinnedState::AllPinned => (AuditHint::FunctionResolves, None),
+        DepPinnedState::Unpinned { unpinned_deps } => (
+            AuditHint::UnpinnedDependency,
+            Some(format!("unpinned: {unpinned_deps:?}")),
+        ),
+        DepPinnedState::NotInManifest { crate_name: cn } => (
+            AuditHint::UnpinnedDependency,
+            Some(format!("crate not in manifest: {cn}")),
+        ),
+    };
+    (
+        crate_name.map_or_else(|| "*".to_string(), str::to_string),
+        String::new(),
+        hint,
+        detail,
+    )
+}
+
+/// Return `(crate, version, hint, detail)` for `dep_attested`.
+fn eval_dep_attested_to_hint(
+    workspace_root: &Path,
+    crate_name: &str,
+    version: &str,
+    exact_version: bool,
+) -> (String, String, AuditHint, Option<String>) {
+    use crate::supply_chain::{evaluate, witness::DepAttestedState};
+    let state = evaluate::evaluate_dep_attested(workspace_root, crate_name, version, exact_version);
+    let (hint, detail) = match &state {
+        DepAttestedState::Attested { .. } => (AuditHint::FunctionResolves, None),
+        DepAttestedState::AttestedWithoutReviewableArtifact => {
+            (AuditHint::DepAttestWithoutReviewableArtifact, None)
+        }
+        DepAttestedState::SidecarMissing => (AuditHint::UnattestedDependencyInclusion, None),
+        DepAttestedState::SidecarMalformed { error } => (
+            AuditHint::UnattestedDependencyInclusion,
+            Some(format!("sidecar malformed: {error}")),
+        ),
+        DepAttestedState::AttestationStale {
+            attested_version,
+            requested_version,
+        } => (
+            AuditHint::DepAttestationStale,
+            Some(format!(
+                "attested: {attested_version}; requested: {requested_version}"
+            )),
+        ),
+    };
+    (crate_name.to_string(), version.to_string(), hint, detail)
+}
+
+/// Return `(crate, since_version, hint, detail)` for `maintainer_unchanged`.
+fn eval_maintainer_unchanged_to_hint(
+    workspace_root: &Path,
+    crate_name: &str,
+    since_version: &str,
+) -> (String, String, AuditHint, Option<String>) {
+    use crate::supply_chain::{evaluate, witness::MaintainerState};
+    let state = evaluate::evaluate_maintainer_unchanged(workspace_root, crate_name, since_version);
+    let (hint, detail) = match &state {
+        MaintainerState::Unchanged => (AuditHint::FunctionResolves, None),
+        MaintainerState::Changed { added, removed } => (
+            AuditHint::MaintainerChangeWithoutReattestation,
+            Some(format!("added: {added:?}; removed: {removed:?}")),
+        ),
+        MaintainerState::SnapshotMissing => (
+            AuditHint::MaintainerChangeWithoutReattestation,
+            Some("snapshot missing".to_string()),
+        ),
+        MaintainerState::CratesIoQueryUnavailable => (AuditHint::CratesIoMetadataQueryFailed, None),
+    };
+    (
+        crate_name.to_string(),
+        since_version.to_string(),
+        hint,
+        detail,
+    )
+}
+
+/// Return `(crate, version, hint, detail)` for `content_hash_matches`.
+fn eval_content_hash_matches_to_hint(
+    workspace_root: &Path,
+    crate_name: &str,
+    version: &str,
+) -> (String, String, AuditHint, Option<String>) {
+    use crate::supply_chain::{evaluate, witness::ContentHashState};
+    let state = evaluate::evaluate_content_hash_matches(workspace_root, crate_name, version);
+    let (hint, detail) = match &state {
+        ContentHashState::Matches => (AuditHint::FunctionResolves, None),
+        ContentHashState::Mismatch { recorded, current } => (
+            AuditHint::ContentHashMismatch,
+            Some(format!("recorded: {recorded}; current: {current}")),
+        ),
+        ContentHashState::NoAttestation => (AuditHint::ContentHashNoAttestation, None),
+        ContentHashState::CrateNotInLockfile { crate_name: cn } => (
+            AuditHint::ContentHashNoAttestation,
+            Some(format!("crate not in Cargo.lock: {cn}")),
+        ),
+        ContentHashState::SidecarMalformed { error } => (
+            AuditHint::ContentHashSidecarMalformed,
+            Some(format!("malformed: {error}")),
+        ),
+    };
+    (crate_name.to_string(), version.to_string(), hint, detail)
+}
+
+/// Return `(crate, version, hint, detail)` for `sandbox_clean`. v0.2:
+/// tooling not available — emit the awareness hint.
+fn eval_sandbox_clean_to_hint(
+    crate_name: &str,
+    sandbox_kind: &str,
+) -> (String, String, AuditHint, Option<String>) {
+    let hint = if sandbox_kind == "proc-macro" {
+        AuditHint::UnsandboxedProcMacro
+    } else {
+        AuditHint::UnsandboxedBuildScript
+    };
+    (
+        crate_name.to_string(),
+        String::new(),
+        hint,
+        Some(format!(
+            "v0.2 sandbox tooling not yet available; kind={sandbox_kind}"
+        )),
+    )
+}
+
+/// Distinguish supply-chain pass hints from fail hints. `FunctionResolves`
+/// is the borrowed-from-standard-audit "predicate passed" hint that the
+/// supply-chain audit emits for clean evaluations.
+const fn is_supply_chain_pass_hint(hint: &AuditHint) -> bool {
+    matches!(hint, AuditHint::FunctionResolves)
 }
 
 #[cfg(test)]
