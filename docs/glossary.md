@@ -490,6 +490,98 @@ that a rollback is a triage action, not an immunity claim.
 
 **Introduced in**: ADR-023 (2026-05-22). Shipped in v0.2.0-alpha.1.
 
+### ContentHashMismatch
+
+**Definition** (per ADR-025): the NON-NEGOTIABLE stdlib antigen for the
+content-replacement-at-fixed-version attack class. `Cargo.lock` pins VERSION but not
+CONTENT-HASH — a compromised registry can serve different content at the same pinned
+version. Requires proactive first-attestation via `cargo antigen verify content-hash record`.
+
+**Biological referent**: antigenic-identity verification. The immune system identifies
+pathogens by molecular shape (antigen epitopes); if the shape changes while the label
+stays the same, identity verification catches the substitution. The Cargo version field
+is the "label"; the content hash is the "molecular shape."
+
+**Attack pattern**: chalk/debug/eslint-config (2025) — publisher replaces tarball at
+a fixed version without changing the version string. Cargo.lock checksum is recorded at
+first-resolve time and is NOT re-verified if version is unchanged.
+
+**Named limitations**:
+- First-attestation gap: the antigen is dormant until `cargo antigen verify content-hash record` creates the sidecar. Absence of sidecar emits `content-hash-no-attestation` (not a silent pass).
+- v0.2 hash-source is Cargo.lock checksum; crates.io tarball SHA-256 verification is v0.3+.
+
+**Introduced in**: ADR-025 (2026-05-22). Shipped in v0.2.0-alpha.2.
+
+### WitnessClass
+
+**Definition** (per ADR-024): a public enum enumerating the categorical type of
+witness backing a defense claim. Used as the element type for `#[diagnostic]`'s
+`modalities` argument.
+
+**Six variants**: `StaticAnalysis` (clippy, custom lints), `PropertyTest` (proptest, quickcheck),
+`FormalVerification` (Kani, Prusti, Verus), `ManualReview` (PR review, ADR substrate),
+`RuntimeFuzz` (cargo-fuzz, AFL), `SubstrateWitness` (`.attest/` sidecar predicates).
+
+**Independence discipline (ADR-024 C1)**: `#[diagnostic]`'s `min_independent` counts
+distinct `WitnessClass` CATEGORIES, not raw witness count. Two proptest property tests
+are both `PropertyTest` class — they count as one independent class, not two. The compile-
+time enforcement prevents vacuously-unsatisfiable claims (min_independent > distinct categories).
+
+**Introduced in**: ADR-024 (2026-05-22). Shipped in v0.2.0-alpha.2 as `antigen::WitnessClass`.
+
+### SeedKind
+
+**Definition** (per ADR-024): a public enum discriminating the RNG-seed policy for
+`#[clonal]`-style iterated witness evaluation.
+
+**Four variants**: `Random` (thread_rng), `EntropyFromCi` (CI environment variables),
+`TimestampSeeded` (millisecond-precision wall clock), `Fixed(u64)` — **REJECTED for `#[clonal]`
+at compile time** (per adversarial C2: a fixed seed means iterations are NOT independent;
+"independent iterations with fixed seed" is a contradiction).
+
+**Biological referent**: B-cell clonal expansion — each daughter cell is an independent
+activation of the same template. Fixed seed defeats the independence claim; every
+iteration replays the same RNG path.
+
+**Introduced in**: ADR-024 (2026-05-22). Shipped in v0.2.0-alpha.2 as `antigen::SeedKind`.
+
+### SupplyChainDefenseFamily
+
+**Definition** (per ADR-025): the eleven-antigen stdlib family targeting the 2026+
+dependency-boundary threat landscape. Groups antigens that share the Distributed-Boundary
+Innate-Immunity biological cognate.
+
+**Biology cognate**: Distributed-Boundary Innate-Immunity — a multi-cell-type integrated
+system (NOT basophil/eosinophil, which was the original framing before naturalist reframe).
+The family covers the dependency trust boundary in its entirety: version pinning, content
+verification, maintainer attestation, build-script containment.
+
+**Members**: `ContentHashMismatch`, `UnsandboxedProcMacro`, `UnpinnedDependency`,
+`UnpinnedTransitiveDependency` (NARROW), `UnattestedDependencyInclusion`,
+`DependencyUpgradeWithoutDiffReview`, `AutoDependencyChainWithoutPinning`,
+`MaintainerChangeWithoutReattestation`, `SuddenDependencyExpansion`,
+`UnsandboxedBuildScript`, `PostInstallScriptInDependency`.
+
+**Introduced in**: ADR-025 (2026-05-22). Shipped in v0.2.0-alpha.2.
+
+### ConvergentEvidenceFamily
+
+**Definition** (per ADR-024): the seven-macro first family of the temporal-arc cohort
+(backward-looking evidence aggregation). Groups macros for structuring how independent
+witnesses converge on a defense claim over time.
+
+**Biology cognate (dual-axis)**:
+- Immunology-proper (`#[clonal]`, `#[igg]`, `#[crossreactive]`, `#[polyclonal]`,
+  `#[monoclonal]`, `#[adcc]`): mapped to B-cell and antibody biology.
+- Clinical-medicine (`#[diagnostic]`): mapped to differential diagnosis workflows.
+  Per ADR-024 naturalist dual-axis honesty: not all convergent primitives are
+  immunology-grounded; `#[diagnostic]` is clinical-medicine.
+
+**Sibling families** (ratified in ADR-024 but shipped in later alphas): Recurrent
+Emergence Family (present-looking), Prescriptive Work-Orchestration Family (forward-looking).
+
+**Introduced in**: ADR-024 (2026-05-22). Shipped in v0.2.0-alpha.2.
+
 ---
 
 ## Architectural patterns
@@ -888,8 +980,9 @@ matures, terms WILL drift in meaning. The discipline:
 3. Vocabulary drift is treated as a sub-clause E violation (coordinate-explicitness
    failure) and triggers a glossary review.
 
-Maintained by: the antigen team. Last updated: 2026-05-20 (discipline-witnesses JBD
-team: + substrate-witness vocabulary from ADR-019 and ADR-020 ratification).
+Maintained by: the antigen team. Last updated: 2026-05-22 (v0.2 supply-chain +
+convergent-evidence campaign: added ContentHashMismatch, WitnessClass, SeedKind,
+SupplyChainDefenseFamily, ConvergentEvidenceFamily carrier entries).
 
 ---
 
