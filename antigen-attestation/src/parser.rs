@@ -115,6 +115,50 @@ pub enum LeafExpr {
         /// Maximum age in days for the most recent signature.
         days: u32,
     },
+    /// `dep_pinned(crate?)` — ADR-025 supply-chain leaf. See
+    /// [`crate::Leaf::DepPinned`] for semantics.
+    DepPinned {
+        /// Optional crate name to scope the check (positional first arg
+        /// or `crate = "..."`).
+        crate_name: Option<String>,
+    },
+    /// `dep_attested("crate", "version", exact_version=true,
+    /// reviewable_artifact="...")` — ADR-025 supply-chain leaf. See
+    /// [`crate::Leaf::DepAttested`].
+    DepAttested {
+        /// Crate name.
+        crate_name: String,
+        /// Version string.
+        version: String,
+        /// Whether the sidecar's version must match exactly.
+        exact_version: bool,
+        /// Optional specific reviewable-artifact path to require.
+        reviewable_artifact: Option<String>,
+    },
+    /// `maintainer_unchanged("crate", "since_version")` — ADR-025
+    /// supply-chain leaf. See [`crate::Leaf::MaintainerUnchanged`].
+    MaintainerUnchanged {
+        /// Crate name.
+        crate_name: String,
+        /// Anchor version.
+        since_version: String,
+    },
+    /// `content_hash_matches("crate", "version")` — ADR-025 NON-NEGOTIABLE
+    /// supply-chain leaf. See [`crate::Leaf::ContentHashMatches`].
+    ContentHashMatches {
+        /// Crate name.
+        crate_name: String,
+        /// Crate version.
+        version: String,
+    },
+    /// `sandbox_clean("crate", sandbox_kind = "build"|"proc-macro")`
+    /// — ADR-025 supply-chain leaf. See [`crate::Leaf::SandboxClean`].
+    SandboxClean {
+        /// Crate name.
+        crate_name: String,
+        /// Sandbox kind: `"build"` or `"proc-macro"`.
+        sandbox_kind: String,
+    },
 }
 
 /// Local mirror of [`crate::predicate::SignerCurrency`].
@@ -275,6 +319,41 @@ impl LeafExpr {
                 files: files.iter().map(std::path::PathBuf::from).collect(),
             },
             Self::FreshWithinDays { days } => crate::Leaf::FreshWithinDays { days: *days },
+            Self::DepPinned { crate_name } => crate::Leaf::DepPinned {
+                crate_name: crate_name.clone(),
+            },
+            Self::DepAttested {
+                crate_name,
+                version,
+                exact_version,
+                reviewable_artifact,
+            } => crate::Leaf::DepAttested {
+                crate_name: crate_name.clone(),
+                version: version.clone(),
+                exact_version: *exact_version,
+                reviewable_artifact: reviewable_artifact.clone(),
+            },
+            Self::MaintainerUnchanged {
+                crate_name,
+                since_version,
+            } => crate::Leaf::MaintainerUnchanged {
+                crate_name: crate_name.clone(),
+                since_version: since_version.clone(),
+            },
+            Self::ContentHashMatches {
+                crate_name,
+                version,
+            } => crate::Leaf::ContentHashMatches {
+                crate_name: crate_name.clone(),
+                version: version.clone(),
+            },
+            Self::SandboxClean {
+                crate_name,
+                sandbox_kind,
+            } => crate::Leaf::SandboxClean {
+                crate_name: crate_name.clone(),
+                sandbox_kind: sandbox_kind.clone(),
+            },
         }
     }
 
@@ -310,6 +389,44 @@ impl LeafExpr {
                 "requires: `ratified_doc(min_version = \"\")` is vacuously true (NFA-15); \
                  any versioned doc passes an empty floor — specify a non-empty version string",
             )),
+            // ADR-025 supply-chain leaves — empty-string semantic-no-op guards.
+            Self::DepAttested {
+                crate_name,
+                version,
+                ..
+            } if crate_name.is_empty() || version.is_empty() => Err(syn::Error::new(
+                span,
+                "requires: `dep_attested` requires non-empty crate name and version; \
+                 empty fields are semantically meaningless (ADR-025).",
+            )),
+            Self::MaintainerUnchanged {
+                crate_name,
+                since_version,
+            } if crate_name.is_empty() || since_version.is_empty() => Err(syn::Error::new(
+                span,
+                "requires: `maintainer_unchanged` requires non-empty crate name and since_version; \
+                 empty fields are semantically meaningless (ADR-025).",
+            )),
+            Self::ContentHashMatches {
+                crate_name,
+                version,
+            } if crate_name.is_empty() || version.is_empty() => Err(syn::Error::new(
+                span,
+                "requires: `content_hash_matches` requires non-empty crate name and version; \
+                 empty fields are semantically meaningless (ADR-025 NON-NEGOTIABLE).",
+            )),
+            Self::SandboxClean {
+                crate_name,
+                sandbox_kind,
+            } if crate_name.is_empty()
+                || (sandbox_kind != "build" && sandbox_kind != "proc-macro") =>
+            {
+                Err(syn::Error::new(
+                    span,
+                    "requires: `sandbox_clean` requires non-empty crate name AND \
+                     sandbox_kind ∈ {\"build\", \"proc-macro\"} (ADR-025 §Substrate-witness-leaves).",
+                ))
+            }
             _ => Ok(()),
         }
     }
@@ -387,15 +504,343 @@ fn parse_leaf(name: &str, span: Span, input: ParseStream) -> syn::Result<LeafExp
         "signed_trailer" => parse_signed_trailer(span, input),
         "oracles_complete" => parse_oracles_complete(span, input),
         "fresh_within_days" => parse_fresh_within_days(span, input),
+        // ADR-025 supply-chain leaves
+        "dep_pinned" => parse_dep_pinned(span, input),
+        "dep_attested" => parse_dep_attested(span, input),
+        "maintainer_unchanged" => parse_maintainer_unchanged(span, input),
+        "content_hash_matches" => parse_content_hash_matches(span, input),
+        "sandbox_clean" => parse_sandbox_clean(span, input),
         other => Err(syn::Error::new(
             span,
             format!(
                 "unknown substrate-witness predicate leaf `{other}`; \
-                 v0.1 sealed set: ratified_doc, signers, signed_trailer, \
-                 oracles_complete, fresh_within_days"
+                 v0.2 set: ratified_doc, signers, signed_trailer, \
+                 oracles_complete, fresh_within_days, \
+                 dep_pinned, dep_attested, maintainer_unchanged, \
+                 content_hash_matches, sandbox_clean"
             ),
         )),
     }
+}
+
+// ============================================================================
+// Supply-Chain leaf parsers (ADR-025)
+//
+// Calling convention: positional string args, then optional key=value.
+// Examples:
+//   dep_pinned                          // all deps must be exact-pinned
+//   dep_pinned("serde")                 // only serde must be exact-pinned
+//   dep_attested("serde", "1.0.197")    // version exact
+//   dep_attested("serde", "1.0.197", exact_version = false)
+//   maintainer_unchanged("serde", "1.0.197")
+//   content_hash_matches("serde", "1.0.197")
+//   sandbox_clean("serde", sandbox_kind = "proc-macro")
+// ============================================================================
+
+fn parse_dep_pinned(_span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
+    if !input.peek(syn::token::Paren) {
+        return Ok(LeafExpr::DepPinned { crate_name: None });
+    }
+    let content;
+    syn::parenthesized!(content in input);
+
+    let mut crate_name: Option<String> = None;
+    // Positional first arg (string literal)?
+    if content.peek(LitStr) {
+        let s: LitStr = content.parse()?;
+        crate_name = Some(s.value());
+        if !content.is_empty() {
+            content.parse::<Token![,]>()?;
+        }
+    }
+    // Optional `crate = "..."` keyed form.
+    while !content.is_empty() {
+        let key = parse_kv_key(&content)?;
+        match key.to_string().as_str() {
+            "crate" | "crate_name" => {
+                let s: LitStr = content.parse()?;
+                crate_name = Some(s.value());
+            }
+            other => {
+                return Err(syn::Error::new(
+                    key.span(),
+                    format!(
+                        "unknown dep_pinned field `{other}`; expected: crate (positional or `crate = \"...\"`)"
+                    ),
+                ));
+            }
+        }
+        if content.is_empty() {
+            break;
+        }
+        content.parse::<Token![,]>()?;
+    }
+
+    Ok(LeafExpr::DepPinned { crate_name })
+}
+
+fn parse_dep_attested(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
+    let content;
+    syn::parenthesized!(content in input);
+
+    let mut crate_name: Option<String> = None;
+    let mut version: Option<String> = None;
+    let mut exact_version = true;
+    let mut reviewable_artifact: Option<String> = None;
+
+    // Up to two positional string args (crate, version)
+    let mut positional_taken = 0;
+    while positional_taken < 2 && content.peek(LitStr) {
+        let s: LitStr = content.parse()?;
+        match positional_taken {
+            0 => crate_name = Some(s.value()),
+            1 => version = Some(s.value()),
+            _ => unreachable!(),
+        }
+        positional_taken += 1;
+        if !content.is_empty() {
+            content.parse::<Token![,]>()?;
+        }
+    }
+    while !content.is_empty() {
+        let key = parse_kv_key(&content)?;
+        match key.to_string().as_str() {
+            "crate" | "crate_name" => {
+                let s: LitStr = content.parse()?;
+                crate_name = Some(s.value());
+            }
+            "version" => {
+                let s: LitStr = content.parse()?;
+                version = Some(s.value());
+            }
+            "exact_version" => {
+                let b: LitBool = content.parse()?;
+                exact_version = b.value();
+            }
+            "reviewable_artifact" => {
+                let s: LitStr = content.parse()?;
+                reviewable_artifact = Some(s.value());
+            }
+            other => {
+                return Err(syn::Error::new(
+                    key.span(),
+                    format!(
+                        "unknown dep_attested field `{other}`; \
+                         expected: crate, version, exact_version, reviewable_artifact"
+                    ),
+                ));
+            }
+        }
+        if content.is_empty() {
+            break;
+        }
+        content.parse::<Token![,]>()?;
+    }
+
+    let crate_name = crate_name.ok_or_else(|| {
+        syn::Error::new(
+            span,
+            "dep_attested requires `crate` (positional string or `crate = \"...\"`)",
+        )
+    })?;
+    let version = version.ok_or_else(|| {
+        syn::Error::new(
+            span,
+            "dep_attested requires `version` (positional string or `version = \"...\"`)",
+        )
+    })?;
+
+    Ok(LeafExpr::DepAttested {
+        crate_name,
+        version,
+        exact_version,
+        reviewable_artifact,
+    })
+}
+
+fn parse_maintainer_unchanged(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
+    let content;
+    syn::parenthesized!(content in input);
+
+    let mut crate_name: Option<String> = None;
+    let mut since_version: Option<String> = None;
+
+    let mut positional_taken = 0;
+    while positional_taken < 2 && content.peek(LitStr) {
+        let s: LitStr = content.parse()?;
+        match positional_taken {
+            0 => crate_name = Some(s.value()),
+            1 => since_version = Some(s.value()),
+            _ => unreachable!(),
+        }
+        positional_taken += 1;
+        if !content.is_empty() {
+            content.parse::<Token![,]>()?;
+        }
+    }
+    while !content.is_empty() {
+        let key = parse_kv_key(&content)?;
+        match key.to_string().as_str() {
+            "crate" | "crate_name" => {
+                let s: LitStr = content.parse()?;
+                crate_name = Some(s.value());
+            }
+            "since_version" => {
+                let s: LitStr = content.parse()?;
+                since_version = Some(s.value());
+            }
+            other => {
+                return Err(syn::Error::new(
+                    key.span(),
+                    format!(
+                        "unknown maintainer_unchanged field `{other}`; \
+                         expected: crate, since_version"
+                    ),
+                ));
+            }
+        }
+        if content.is_empty() {
+            break;
+        }
+        content.parse::<Token![,]>()?;
+    }
+
+    let crate_name = crate_name
+        .ok_or_else(|| syn::Error::new(span, "maintainer_unchanged requires `crate` argument"))?;
+    let since_version = since_version.ok_or_else(|| {
+        syn::Error::new(
+            span,
+            "maintainer_unchanged requires `since_version` argument",
+        )
+    })?;
+
+    Ok(LeafExpr::MaintainerUnchanged {
+        crate_name,
+        since_version,
+    })
+}
+
+fn parse_content_hash_matches(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
+    let content;
+    syn::parenthesized!(content in input);
+
+    let mut crate_name: Option<String> = None;
+    let mut version: Option<String> = None;
+
+    let mut positional_taken = 0;
+    while positional_taken < 2 && content.peek(LitStr) {
+        let s: LitStr = content.parse()?;
+        match positional_taken {
+            0 => crate_name = Some(s.value()),
+            1 => version = Some(s.value()),
+            _ => unreachable!(),
+        }
+        positional_taken += 1;
+        if !content.is_empty() {
+            content.parse::<Token![,]>()?;
+        }
+    }
+    while !content.is_empty() {
+        let key = parse_kv_key(&content)?;
+        match key.to_string().as_str() {
+            "crate" | "crate_name" => {
+                let s: LitStr = content.parse()?;
+                crate_name = Some(s.value());
+            }
+            "version" => {
+                let s: LitStr = content.parse()?;
+                version = Some(s.value());
+            }
+            other => {
+                return Err(syn::Error::new(
+                    key.span(),
+                    format!(
+                        "unknown content_hash_matches field `{other}`; \
+                         expected: crate, version"
+                    ),
+                ));
+            }
+        }
+        if content.is_empty() {
+            break;
+        }
+        content.parse::<Token![,]>()?;
+    }
+
+    let crate_name = crate_name.ok_or_else(|| {
+        syn::Error::new(
+            span,
+            "content_hash_matches requires `crate` argument (NON-NEGOTIABLE per ADR-025 B1-R)",
+        )
+    })?;
+    let version = version.ok_or_else(|| {
+        syn::Error::new(
+            span,
+            "content_hash_matches requires `version` argument (NON-NEGOTIABLE per ADR-025 B1-R)",
+        )
+    })?;
+
+    Ok(LeafExpr::ContentHashMatches {
+        crate_name,
+        version,
+    })
+}
+
+fn parse_sandbox_clean(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
+    let content;
+    syn::parenthesized!(content in input);
+
+    let mut crate_name: Option<String> = None;
+    let mut sandbox_kind: Option<String> = None;
+
+    // First positional is crate name; sandbox_kind is keyword.
+    if content.peek(LitStr) {
+        let s: LitStr = content.parse()?;
+        crate_name = Some(s.value());
+        if !content.is_empty() {
+            content.parse::<Token![,]>()?;
+        }
+    }
+    while !content.is_empty() {
+        let key = parse_kv_key(&content)?;
+        match key.to_string().as_str() {
+            "crate" | "crate_name" => {
+                let s: LitStr = content.parse()?;
+                crate_name = Some(s.value());
+            }
+            "sandbox_kind" => {
+                let s: LitStr = content.parse()?;
+                sandbox_kind = Some(s.value());
+            }
+            other => {
+                return Err(syn::Error::new(
+                    key.span(),
+                    format!(
+                        "unknown sandbox_clean field `{other}`; \
+                         expected: crate, sandbox_kind"
+                    ),
+                ));
+            }
+        }
+        if content.is_empty() {
+            break;
+        }
+        content.parse::<Token![,]>()?;
+    }
+
+    let crate_name = crate_name
+        .ok_or_else(|| syn::Error::new(span, "sandbox_clean requires `crate` argument"))?;
+    let sandbox_kind = sandbox_kind.ok_or_else(|| {
+        syn::Error::new(
+            span,
+            "sandbox_clean requires `sandbox_kind = \"build\"` or `sandbox_kind = \"proc-macro\"`",
+        )
+    })?;
+
+    Ok(LeafExpr::SandboxClean {
+        crate_name,
+        sandbox_kind,
+    })
 }
 
 /// Parse a `key = value` pair inside a leaf's parentheses, returning the key

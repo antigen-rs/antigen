@@ -142,3 +142,23 @@ pub use antigen_macros::{anergy, immunosuppress, orient, poxparty};
 
 pub mod audit;
 pub mod scan;
+
+/// Stdlib of curated, ratified antigen declarations.
+///
+/// Per ADR-022 (stdlib-vs-extension): stdlib growth is research-driven and
+/// deliberately comprehensive. Adopters import these declarations the same
+/// way they would locally-declared antigens.
+///
+/// See [`stdlib::supply_chain`] for the v0.2 Supply-Chain Defense Family
+/// (ADR-025).
+pub mod stdlib;
+
+/// Runtime substrate for the Supply-Chain Defense Family (ADR-025).
+///
+/// Hosts the sidecar schema types (`DepAttestation`, `ContentHashRecord`,
+/// `MaintainerSnapshot`, `ReviewScope`, `SandboxKind`), the substrate-
+/// witness state types (`DepPinnedState`, `DepAttestedState`,
+/// `ContentHashState`, `MaintainerState`, `SandboxState`), the minimal
+/// Cargo-manifest reader, and the per-witness evaluator functions that
+/// `cargo antigen verify` and the supply-chain audit pipeline drive.
+pub mod supply_chain;

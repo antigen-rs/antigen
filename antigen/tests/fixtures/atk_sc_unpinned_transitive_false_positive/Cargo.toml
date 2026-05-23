@@ -1,0 +1,23 @@
+[package]
+name = "atk-sc-unpinned-transitive-false-positive"
+version = "0.1.0"
+edition = "2021"
+
+# ATK-SC-4 FALSE POSITIVE GUARD
+#
+# This fixture models the case where ONLY transitive dependencies have
+# non-exact-pinned versions. The direct dependency (`serde`) is exactly
+# pinned. UnpinnedTransitiveDependency should NOT fire here.
+#
+# Per ADR-025 B9-R: NARROW definition only.
+# CORRECT: direct dep with `*`/`?` for ITS OWN deps (should fire).
+# INCORRECT: "any transitive dep with non-exact pins" (100% false positive).
+#
+# If antigen fires UnpinnedTransitiveDependency for this workspace,
+# it has the WRONG definition of the antigen.
+
+[dependencies]
+# Direct dependency is EXACTLY pinned — no issue here.
+serde = { version = "=1.0.200", features = ["derive"] }
+# serde itself transitively depends on serde_derive with ^X.Y — that is NOT
+# our responsibility to pin. Firing here is the false-positive.

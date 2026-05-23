@@ -329,6 +329,99 @@ pub enum Leaf {
         /// Maximum age in days.
         days: u32,
     },
+
+    // ------------------------------------------------------------------
+    // Supply-Chain Defense Family leaves (ADR-025).
+    //
+    // These leaves are evaluated against substrate that lives OUTSIDE
+    // the standard `.attest/<Antigen>.json` sidecar: Cargo.toml,
+    // Cargo.lock, `.attest/supply-chain/dep-attest/*.json`,
+    // `.attest/supply-chain/content-hash/*.json`, and the
+    // `.attest/supply-chain/maintainer/*.json` snapshots.
+    //
+    // v0.2 standard-predicate evaluation returns the
+    // `supply-chain-leaf-needs-supply-chain-audit` hint, signalling that
+    // the standard `audit()` pipeline cannot evaluate these leaves —
+    // callers must drive `audit_supply_chain()` separately. This is the
+    // honest-tier-naming posture per ADR-005 Amendment 2 + ADR-025
+    // §Enforcement-Surface.
+    // ------------------------------------------------------------------
+    /// `dep_pinned(crate?)` — workspace Cargo.toml `[dependencies]` use
+    /// exact-pin `=X.Y.Z` specifiers. When `crate` is `None`, all deps
+    /// must be exact-pinned; when `Some`, only the named dep is checked.
+    DepPinned {
+        /// Optional crate name to scope the check.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        crate_name: Option<String>,
+    },
+
+    /// `dep_attested(crate, version, exact_version?, reviewable_artifact?)`
+    /// — `.attest/supply-chain/dep-attest/<crate>@<version>.json`
+    /// exists with non-empty `reviewable_artifact`.
+    ///
+    /// `exact_version = true` (default) requires the sidecar's version
+    /// match the requested version; `false` accepts any version's
+    /// attestation. `reviewable_artifact` argument: when `Some`, the
+    /// sidecar's `reviewable_artifact` field must equal this path
+    /// (string compare); when `None`, any non-empty value is accepted.
+    DepAttested {
+        /// Crate name being attested.
+        crate_name: String,
+        /// Crate version being attested.
+        version: String,
+        /// Whether the sidecar's recorded version must match exactly.
+        /// Default `true`.
+        #[serde(default = "default_true_da")]
+        exact_version: bool,
+        /// Optional specific artifact path to require.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        reviewable_artifact: Option<String>,
+    },
+
+    /// `maintainer_unchanged(crate, since_version)` —
+    /// `.attest/supply-chain/maintainer/<crate>.json` snapshot matches
+    /// the requested `since_version`. v0.2 cannot live-query
+    /// crates.io; emits `crates-io-metadata-query-failed` for any
+    /// version-mismatch case.
+    MaintainerUnchanged {
+        /// Crate name being checked.
+        crate_name: String,
+        /// Version anchor for the snapshot.
+        since_version: String,
+    },
+
+    /// `content_hash_matches(crate, version)` — current `Cargo.lock`
+    /// checksum for `<crate>@<version>` matches the recorded
+    /// `.attest/supply-chain/content-hash/<crate>@<version>.json`.
+    ///
+    /// **THE LOAD-BEARING LEAF for the chalk/debug attack class.**
+    /// When no first-attestation exists, emits
+    /// `content-hash-no-attestation` (NOT silent pass — that would
+    /// bypass the defense).
+    ContentHashMatches {
+        /// Crate name.
+        crate_name: String,
+        /// Crate version.
+        version: String,
+    },
+
+    /// `sandbox_clean(crate, sandbox_kind)` — sandbox execution of the
+    /// crate's `build.rs` (`Build`) or proc-macro (`ProcMacro`) reports
+    /// no out-of-bounds behavior.
+    ///
+    /// **v0.4+ feature**: v0.2 returns `ToolingNotYetAvailable`; the
+    /// `unsandboxed-build-script` / `unsandboxed-proc-macro` hint
+    /// surfaces as the awareness signal.
+    SandboxClean {
+        /// Crate name.
+        crate_name: String,
+        /// Which sandbox check this is — `build` or `proc-macro`.
+        sandbox_kind: String,
+    },
+}
+
+const fn default_true_da() -> bool {
+    true
 }
 
 /// Default for [`Leaf::SignedTrailer::count`].
