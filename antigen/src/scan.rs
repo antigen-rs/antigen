@@ -565,6 +565,197 @@ impl Parse for ScanOrientArgs {
     }
 }
 
+// ============================================================================
+// Convergent-Evidence Family scan-side arg parsers (ADR-024)
+// ============================================================================
+
+struct ScanDiagnosticArgs {
+    modality_classes: Vec<String>,
+    min_independent: Option<u64>,
+}
+
+impl Parse for ScanDiagnosticArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use syn::{Expr, Ident, LitInt, Token};
+        let mut modality_classes = Vec::new();
+        let mut min_independent: Option<u64> = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            let _ = input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "modalities" => {
+                    let arr: syn::ExprArray = input.parse()?;
+                    for elem in &arr.elems {
+                        if let Expr::Path(p) = elem {
+                            if let Some(seg) = p.path.segments.last() {
+                                modality_classes.push(seg.ident.to_string());
+                            }
+                        }
+                    }
+                }
+                "min_independent" => {
+                    let lit: LitInt = input.parse()?;
+                    min_independent = lit.base10_parse::<u64>().ok();
+                }
+                _ => {
+                    let _: Expr = input.parse()?;
+                }
+            }
+            if !input.is_empty() {
+                let _ = input.parse::<Token![,]>();
+            }
+        }
+        Ok(Self {
+            modality_classes,
+            min_independent,
+        })
+    }
+}
+
+struct ScanClonalArgs {
+    witness: Option<String>,
+    iterations: Option<u64>,
+    seed_kind: Option<String>,
+}
+
+impl Parse for ScanClonalArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use quote::ToTokens;
+        use syn::{Expr, Ident, LitInt, Token};
+        let mut witness: Option<String> = None;
+        let mut iterations: Option<u64> = None;
+        let mut seed_kind: Option<String> = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            let _ = input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "witness" => {
+                    let e: Expr = input.parse()?;
+                    witness = Some(e.to_token_stream().to_string());
+                }
+                "iterations" => {
+                    let lit: LitInt = input.parse()?;
+                    iterations = lit.base10_parse::<u64>().ok();
+                }
+                "seed" => {
+                    let e: Expr = input.parse()?;
+                    if let Expr::Path(p) = &e {
+                        if let Some(seg) = p.path.segments.last() {
+                            seed_kind = Some(seg.ident.to_string());
+                        }
+                    } else if let Expr::Call(c) = &e {
+                        if let Expr::Path(p) = &*c.func {
+                            if let Some(seg) = p.path.segments.last() {
+                                seed_kind = Some(seg.ident.to_string());
+                            }
+                        }
+                    }
+                }
+                _ => {
+                    let _: Expr = input.parse()?;
+                }
+            }
+            if !input.is_empty() {
+                let _ = input.parse::<Token![,]>();
+            }
+        }
+        Ok(Self {
+            witness,
+            iterations,
+            seed_kind,
+        })
+    }
+}
+
+struct ScanIggArgs {
+    witnesses: Vec<String>,
+    historical_span: Option<u64>,
+    min_reattestations: Option<u64>,
+}
+
+impl Parse for ScanIggArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use quote::ToTokens;
+        use syn::{Expr, Ident, LitInt, Token};
+        let mut witnesses = Vec::new();
+        let mut historical_span: Option<u64> = None;
+        let mut min_reattestations: Option<u64> = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            let _ = input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "witnesses" => {
+                    let arr: syn::ExprArray = input.parse()?;
+                    for elem in &arr.elems {
+                        witnesses.push(elem.to_token_stream().to_string());
+                    }
+                }
+                "historical_span" => {
+                    let lit: LitInt = input.parse()?;
+                    historical_span = lit.base10_parse::<u64>().ok();
+                }
+                "min_reattestations" => {
+                    let lit: LitInt = input.parse()?;
+                    min_reattestations = lit.base10_parse::<u64>().ok();
+                }
+                _ => {
+                    let _: Expr = input.parse()?;
+                }
+            }
+            if !input.is_empty() {
+                let _ = input.parse::<Token![,]>();
+            }
+        }
+        Ok(Self {
+            witnesses,
+            historical_span,
+            min_reattestations,
+        })
+    }
+}
+
+struct ScanCrossreactiveArgs {
+    fingerprints: Vec<String>,
+}
+
+impl Parse for ScanCrossreactiveArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use syn::{Expr, Ident, Lit, LitStr, Token};
+        let mut fingerprints = Vec::new();
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            let _ = input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "fingerprints" => {
+                    let arr: syn::ExprArray = input.parse()?;
+                    for elem in &arr.elems {
+                        if let Expr::Lit(syn::ExprLit {
+                            lit: Lit::Str(s), ..
+                        }) = elem
+                        {
+                            fingerprints.push(s.value());
+                        }
+                    }
+                }
+                _ => {
+                    if input.peek(LitStr) {
+                        let _: LitStr = input.parse()?;
+                    } else {
+                        let _: Expr = input.parse()?;
+                    }
+                }
+            }
+            if !input.is_empty() {
+                let _ = input.parse::<Token![,]>();
+            }
+        }
+        Ok(Self { fingerprints })
+    }
+}
+
 /// A single antigen declaration discovered in source.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AntigenDeclaration {
@@ -1025,6 +1216,80 @@ pub struct DeferredDefense {
     pub item_target: ItemTarget,
 }
 
+// ============================================================================
+// Convergent-Evidence Family output types (ADR-024)
+// ============================================================================
+
+/// Which of the seven convergent-evidence primitives was declared.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ConvergentEvidenceKind {
+    /// `#[diagnostic(modalities = [...], min_independent = N)]`.
+    Diagnostic,
+    /// `#[clonal(witness = ..., iterations = N, seed = SeedKind::...)]`.
+    Clonal,
+    /// `#[igg(witnesses = [...], historical_span = N, min_reattestations = N)]`.
+    Igg,
+    /// `#[crossreactive(fingerprints = [...])]`.
+    Crossreactive,
+    /// `#[polyclonal]` marker.
+    Polyclonal,
+    /// `#[monoclonal]` marker.
+    Monoclonal,
+    /// `#[adcc]` marker.
+    Adcc,
+}
+
+/// A convergent-evidence declaration discovered in source (ADR-024).
+///
+/// Covers all seven primitives. The `kind` field distinguishes them; the
+/// rest of the fields are loosely-typed string captures shared across
+/// kinds for forward-compat with the adoption gradient (per ADR-009).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConvergentEvidence {
+    /// Which convergent-evidence primitive was declared.
+    pub kind: ConvergentEvidenceKind,
+    /// `#[diagnostic]` modality classes — the final segment of each
+    /// `WitnessClass::*` path, e.g., `"StaticAnalysis"`. Empty for
+    /// other kinds.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub modality_classes: Vec<String>,
+    /// `#[diagnostic]` `min_independent` value.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_independent: Option<u64>,
+    /// `#[clonal]` `witness` identifier (token string).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub witness: Option<String>,
+    /// `#[clonal]` `iterations` value.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub iterations: Option<u64>,
+    /// `#[clonal]` `seed` final ident (e.g., `"Random"`, `"Fixed"`).
+    /// `Fixed` here is itself a bug-signal — the proc-macro rejects it
+    /// at parse time, but a scan over older source can still surface it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub seed_kind: Option<String>,
+    /// `#[igg]` historical span in days.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub historical_span: Option<u64>,
+    /// `#[igg]` minimum re-attestations.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_reattestations: Option<u64>,
+    /// `#[igg]` witness identifier strings.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub witnesses: Vec<String>,
+    /// `#[crossreactive]` fingerprint strings.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub fingerprints: Vec<String>,
+    /// Source file path.
+    pub file: PathBuf,
+    /// Line number.
+    pub line: usize,
+    /// Item kind that was annotated (fn, impl, struct, etc.).
+    pub item_kind: String,
+    /// Item identity for structural cross-referencing.
+    pub item_target: ItemTarget,
+}
+
 /// A file that failed to parse during a scan, with the associated error.
 ///
 /// Serializes as `{"file": "...", "error": "..."}` — named fields, consistent
@@ -1107,6 +1372,13 @@ pub struct ScanReport {
     /// `#[serde(default)]` so pre-v0.2 reports deserialize cleanly.
     #[serde(default)]
     pub deferred_defenses: Vec<DeferredDefense>,
+    /// All discovered convergent-evidence declarations: `#[diagnostic]`,
+    /// `#[clonal]`, `#[igg]`, `#[crossreactive]`, `#[polyclonal]`,
+    /// `#[monoclonal]`, `#[adcc]`. ADR-024.
+    ///
+    /// `#[serde(default)]` so pre-v0.2 reports deserialize cleanly.
+    #[serde(default)]
+    pub convergent_evidences: Vec<ConvergentEvidence>,
     /// Files scanned successfully.
     pub files_scanned: usize,
     /// Files that failed to parse.
@@ -2899,8 +3171,205 @@ impl ScanVisitor<'_> {
                 self.extract_poxparty(attr, item_kind, item_target.clone());
             } else if attr_is(attr, "orient") {
                 self.extract_orient(attr, item_kind, item_target.clone());
+            // Convergent-Evidence Family (ADR-024)
+            } else if attr_is(attr, "diagnostic") {
+                self.extract_diagnostic(attr, item_kind, item_target.clone());
+            } else if attr_is(attr, "clonal") {
+                self.extract_clonal(attr, item_kind, item_target.clone());
+            } else if attr_is(attr, "igg") {
+                self.extract_igg(attr, item_kind, item_target.clone());
+            } else if attr_is(attr, "crossreactive") {
+                self.extract_crossreactive(attr, item_kind, item_target.clone());
+            } else if attr_is(attr, "polyclonal") {
+                self.extract_convergent_marker(
+                    attr,
+                    item_kind,
+                    item_target.clone(),
+                    ConvergentEvidenceKind::Polyclonal,
+                );
+            } else if attr_is(attr, "monoclonal") {
+                self.extract_convergent_marker(
+                    attr,
+                    item_kind,
+                    item_target.clone(),
+                    ConvergentEvidenceKind::Monoclonal,
+                );
+            } else if attr_is(attr, "adcc") {
+                self.extract_convergent_marker(
+                    attr,
+                    item_kind,
+                    item_target.clone(),
+                    ConvergentEvidenceKind::Adcc,
+                );
             }
         }
+    }
+
+    fn extract_diagnostic(
+        &mut self,
+        attr: &syn::Attribute,
+        item_kind: &str,
+        item_target: ItemTarget,
+    ) {
+        if let syn::Meta::List(list) = &attr.meta {
+            let args = match syn::parse2::<ScanDiagnosticArgs>(list.tokens.clone()) {
+                Ok(a) => a,
+                Err(e) => {
+                    self.report.parse_failures.push(ParseFailure {
+                        file: self.file_path.clone(),
+                        error: format!("malformed #[diagnostic] attribute: {e}"),
+                    });
+                    return;
+                }
+            };
+            let line = Self::line_of_attr(attr);
+            self.report.convergent_evidences.push(ConvergentEvidence {
+                kind: ConvergentEvidenceKind::Diagnostic,
+                modality_classes: args.modality_classes,
+                min_independent: args.min_independent,
+                witness: None,
+                iterations: None,
+                seed_kind: None,
+                historical_span: None,
+                min_reattestations: None,
+                witnesses: Vec::new(),
+                fingerprints: Vec::new(),
+                file: self.file_path.clone(),
+                line,
+                item_kind: item_kind.to_string(),
+                item_target,
+            });
+        }
+    }
+
+    fn extract_clonal(&mut self, attr: &syn::Attribute, item_kind: &str, item_target: ItemTarget) {
+        if let syn::Meta::List(list) = &attr.meta {
+            let args = match syn::parse2::<ScanClonalArgs>(list.tokens.clone()) {
+                Ok(a) => a,
+                Err(e) => {
+                    self.report.parse_failures.push(ParseFailure {
+                        file: self.file_path.clone(),
+                        error: format!("malformed #[clonal] attribute: {e}"),
+                    });
+                    return;
+                }
+            };
+            let line = Self::line_of_attr(attr);
+            self.report.convergent_evidences.push(ConvergentEvidence {
+                kind: ConvergentEvidenceKind::Clonal,
+                modality_classes: Vec::new(),
+                min_independent: None,
+                witness: args.witness,
+                iterations: args.iterations,
+                seed_kind: args.seed_kind,
+                historical_span: None,
+                min_reattestations: None,
+                witnesses: Vec::new(),
+                fingerprints: Vec::new(),
+                file: self.file_path.clone(),
+                line,
+                item_kind: item_kind.to_string(),
+                item_target,
+            });
+        }
+    }
+
+    fn extract_igg(&mut self, attr: &syn::Attribute, item_kind: &str, item_target: ItemTarget) {
+        if let syn::Meta::List(list) = &attr.meta {
+            let args = match syn::parse2::<ScanIggArgs>(list.tokens.clone()) {
+                Ok(a) => a,
+                Err(e) => {
+                    self.report.parse_failures.push(ParseFailure {
+                        file: self.file_path.clone(),
+                        error: format!("malformed #[igg] attribute: {e}"),
+                    });
+                    return;
+                }
+            };
+            let line = Self::line_of_attr(attr);
+            self.report.convergent_evidences.push(ConvergentEvidence {
+                kind: ConvergentEvidenceKind::Igg,
+                modality_classes: Vec::new(),
+                min_independent: None,
+                witness: None,
+                iterations: None,
+                seed_kind: None,
+                historical_span: args.historical_span,
+                min_reattestations: args.min_reattestations,
+                witnesses: args.witnesses,
+                fingerprints: Vec::new(),
+                file: self.file_path.clone(),
+                line,
+                item_kind: item_kind.to_string(),
+                item_target,
+            });
+        }
+    }
+
+    fn extract_crossreactive(
+        &mut self,
+        attr: &syn::Attribute,
+        item_kind: &str,
+        item_target: ItemTarget,
+    ) {
+        if let syn::Meta::List(list) = &attr.meta {
+            let args = match syn::parse2::<ScanCrossreactiveArgs>(list.tokens.clone()) {
+                Ok(a) => a,
+                Err(e) => {
+                    self.report.parse_failures.push(ParseFailure {
+                        file: self.file_path.clone(),
+                        error: format!("malformed #[crossreactive] attribute: {e}"),
+                    });
+                    return;
+                }
+            };
+            let line = Self::line_of_attr(attr);
+            self.report.convergent_evidences.push(ConvergentEvidence {
+                kind: ConvergentEvidenceKind::Crossreactive,
+                modality_classes: Vec::new(),
+                min_independent: None,
+                witness: None,
+                iterations: None,
+                seed_kind: None,
+                historical_span: None,
+                min_reattestations: None,
+                witnesses: Vec::new(),
+                fingerprints: args.fingerprints,
+                file: self.file_path.clone(),
+                line,
+                item_kind: item_kind.to_string(),
+                item_target,
+            });
+        }
+    }
+
+    /// Common extractor for the three marker primitives (no required
+    /// args): `#[polyclonal]`, `#[monoclonal]`, `#[adcc]`. Records the
+    /// site with `kind = <kind>` and all other fields default.
+    fn extract_convergent_marker(
+        &mut self,
+        attr: &syn::Attribute,
+        item_kind: &str,
+        item_target: ItemTarget,
+        kind: ConvergentEvidenceKind,
+    ) {
+        let line = Self::line_of_attr(attr);
+        self.report.convergent_evidences.push(ConvergentEvidence {
+            kind,
+            modality_classes: Vec::new(),
+            min_independent: None,
+            witness: None,
+            iterations: None,
+            seed_kind: None,
+            historical_span: None,
+            min_reattestations: None,
+            witnesses: Vec::new(),
+            fingerprints: Vec::new(),
+            file: self.file_path.clone(),
+            line,
+            item_kind: item_kind.to_string(),
+            item_target,
+        });
     }
 }
 

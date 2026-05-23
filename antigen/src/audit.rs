@@ -399,6 +399,48 @@ pub enum AuditHint {
     /// downgrade a Mismatch (alert) into a `NoAttestation` (warning) by
     /// corrupting the file.
     ContentHashSidecarMalformed,
+
+    // ------------------------------------------------------------------
+    // Convergent-Evidence Family hints (ADR-024).
+    //
+    // 11 hints covering the seven convergent primitives. Emitted by
+    // `audit_convergent_evidence()`.
+    // ------------------------------------------------------------------
+    /// `#[diagnostic]` has fewer distinct `WitnessClass` categories than
+    /// `min_independent` requires. Per ADR-024 §Decision + adversarial C1.
+    DiagnosticModalityInsufficient,
+    /// `#[diagnostic]` modalities all share a single `WitnessClass` —
+    /// the `min_independent` floor is structurally unmet even if the
+    /// raw count matches. Per adversarial C1 (class-collapse).
+    DiagnosticModalitiesClassCollapsed,
+    /// `#[diagnostic]` declared with no modalities. Empty modality
+    /// list is structurally meaningless.
+    DiagnosticModalitiesEmpty,
+    /// `#[clonal]` declared with `seed = SeedKind::Fixed(_)`. The
+    /// proc-macro rejects this at parse time; this hint is for the
+    /// audit-time re-evaluation of pre-cap-enforcement source.
+    ClonalFixedSeedDetected,
+    /// `#[clonal]` `iterations` below the configured workspace
+    /// threshold. Default threshold: 100 iterations.
+    ClonalIterationsBelowThreshold,
+    /// `#[igg]` all re-attestations share the same signer identity —
+    /// nominal source-independence collapses to identity-collapse.
+    /// Per adversarial C3 named limitation.
+    IggIdentityCollapseWarning,
+    /// `#[igg]` `historical_span` shorter than the configured workspace
+    /// threshold.
+    IggSpanTooShort,
+    /// `#[igg]` `min_reattestations` not met by available signatures.
+    IggReattestationsInsufficient,
+    /// `#[crossreactive]` references a fingerprint string that doesn't
+    /// match any known antigen in the scan report.
+    CrossreactiveFingerprintUnresolved,
+    /// `#[polyclonal]` site has fewer independent witness lineages than
+    /// the configured floor (default: 2).
+    PolyclonalInsufficientLineages,
+    /// `#[adcc]` site has only one of the two committed mechanisms
+    /// (antibody-style + cellular-effector-style) detectable.
+    AdccSingleMechanismOnly,
 }
 
 /// Result of auditing a single immunity declaration.
@@ -1512,20 +1554,19 @@ pub fn audit_supply_chain(report: &ScanReport, workspace_root: &Path) -> SupplyC
             continue;
         };
 
-        let mut leaves: Vec<&antigen_attestation::Leaf> = Vec::new();
-        collect_leaves(&predicate, &mut leaves);
-
-        for leaf in leaves {
-            if let Some(audit) = audit_supply_chain_leaf(
-                leaf,
-                workspace_root,
-                &immunity.antigen_type,
-                &immunity.file,
-                immunity.line,
-            ) {
-                audits.push(audit);
-            }
-        }
+        // Evaluate the predicate tree as a whole so combinator semantics
+        // hold: a Mismatch inside `any_of([match_X, no_attest_Y])` does
+        // NOT surface if `match_X` passes (ATK-SC-AUDIT-1). The
+        // evaluator returns the per-leaf audit entries that should be
+        // surfaced after combinator-aware pruning.
+        let entries = eval_supply_chain_predicate(
+            &predicate,
+            workspace_root,
+            &immunity.antigen_type,
+            &immunity.file,
+            immunity.line,
+        );
+        audits.extend(entries.entries);
     }
 
     let mut pass_count = 0usize;
@@ -1545,20 +1586,108 @@ pub fn audit_supply_chain(report: &ScanReport, workspace_root: &Path) -> SupplyC
     }
 }
 
-/// Pre-order traversal collecting every `Leaf` in a `Predicate` tree.
-fn collect_leaves<'a>(
-    pred: &'a antigen_attestation::Predicate,
-    out: &mut Vec<&'a antigen_attestation::Leaf>,
-) {
+/// Result of evaluating a sub-predicate over supply-chain leaves.
+///
+/// The combinator-aware evaluator returns both the boolean predicate
+/// outcome AND the per-leaf audit entries that should be surfaced.
+/// Per ATK-SC-AUDIT-1: leaf-fail entries inside a satisfied `any_of`
+/// MUST NOT surface — the sibling pass discharges them.
+struct SupplyChainEval {
+    /// Whether the sub-predicate evaluated to logical-true.
+    passed: bool,
+    /// Per-leaf audit entries to surface for this sub-tree, AFTER
+    /// combinator-aware pruning. Per ATK-SC-AUDIT-1 / the `any_of`-
+    /// discharge rule: only entries that contribute to the
+    /// load-bearing answer should appear here.
+    entries: Vec<SupplyChainAudit>,
+}
+
+/// Combinator-aware evaluator over supply-chain leaves.
+///
+/// Per ATK-SC-AUDIT-1: a satisfied `any_of` discharges its losing
+/// children's audit hints. The naive "collect every leaf and emit
+/// every fail" approach surfaces false positives when a sibling
+/// branch passes.
+fn eval_supply_chain_predicate(
+    pred: &antigen_attestation::Predicate,
+    workspace_root: &Path,
+    antigen_type: &str,
+    file: &Path,
+    line: usize,
+) -> SupplyChainEval {
     use antigen_attestation::Predicate;
     match pred {
-        Predicate::Leaf(l) => out.push(l),
-        Predicate::AllOf { children } | Predicate::AnyOf { children } => {
-            for c in children {
-                collect_leaves(c, out);
+        Predicate::Leaf(l) => {
+            // Per-leaf evaluation. Pass entries through unconditionally
+            // at the leaf level; combinator parents prune.
+            let entry = audit_supply_chain_leaf(l, workspace_root, antigen_type, file, line);
+            let passed = entry
+                .as_ref()
+                .is_some_and(|e| is_supply_chain_pass_hint(&e.hint));
+            // Non-supply-chain leaves return None — treat them as
+            // logically-true for the supply-chain sub-evaluation (the
+            // standard substrate-witness audit handles them). This
+            // means a `requires = all_of([content_hash_matches(...),
+            // ratified_doc(...)])` still surfaces the supply-chain
+            // half's verdict correctly.
+            let logical_passed = entry.as_ref().is_none_or(|_| passed);
+            SupplyChainEval {
+                passed: logical_passed,
+                entries: entry.into_iter().collect(),
             }
         }
-        Predicate::Not { child } => collect_leaves(child, out),
+        Predicate::AllOf { children } => {
+            let mut entries = Vec::new();
+            let mut all_pass = true;
+            for c in children {
+                let sub = eval_supply_chain_predicate(c, workspace_root, antigen_type, file, line);
+                if !sub.passed {
+                    all_pass = false;
+                }
+                entries.extend(sub.entries);
+            }
+            SupplyChainEval {
+                passed: all_pass,
+                entries,
+            }
+        }
+        Predicate::AnyOf { children } => {
+            // Per ATK-SC-AUDIT-1: evaluate each child; if ANY passes,
+            // discharge the others' fail entries (keep only the
+            // passing entries for documentation). If none pass,
+            // surface every child's failure entries.
+            let mut pass_entries = Vec::new();
+            let mut fail_entries = Vec::new();
+            let mut any_pass = false;
+            for c in children {
+                let sub = eval_supply_chain_predicate(c, workspace_root, antigen_type, file, line);
+                if sub.passed {
+                    any_pass = true;
+                    pass_entries.extend(sub.entries);
+                } else {
+                    fail_entries.extend(sub.entries);
+                }
+            }
+            let entries = if any_pass { pass_entries } else { fail_entries };
+            SupplyChainEval {
+                passed: any_pass,
+                entries,
+            }
+        }
+        Predicate::Not { child } => {
+            // `not(P)` — the supply-chain audit cannot meaningfully
+            // surface "the failed leaf" because the failure is the
+            // intended outcome. We invert `passed` and DROP the inner
+            // entries (they describe what we WANTED to fail; surfacing
+            // them as hints would be misleading). v0.2 supports `not`
+            // structurally but emits no documentary entries from the
+            // negated sub-tree.
+            let sub = eval_supply_chain_predicate(child, workspace_root, antigen_type, file, line);
+            SupplyChainEval {
+                passed: !sub.passed,
+                entries: Vec::new(),
+            }
+        }
     }
 }
 
@@ -1753,6 +1882,176 @@ fn eval_sandbox_clean_to_hint(
 /// supply-chain audit emits for clean evaluations.
 const fn is_supply_chain_pass_hint(hint: &AuditHint) -> bool {
     matches!(hint, AuditHint::FunctionResolves)
+}
+
+// ============================================================================
+// Convergent-Evidence Family audit (ADR-024)
+// ============================================================================
+
+/// Default workspace floor for `#[clonal]` iterations. Configurable via
+/// `[package.metadata.antigen.clonal_iterations_floor]` in a future
+/// amendment.
+pub const CLONAL_ITERATIONS_DEFAULT_FLOOR: u64 = 100;
+
+/// Default workspace floor for `#[igg]` historical span (days).
+pub const IGG_HISTORICAL_SPAN_DEFAULT_FLOOR: u64 = 30;
+
+/// One result of auditing a convergent-evidence declaration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConvergentEvidenceAudit {
+    /// The original declaration from the scan.
+    pub declaration: crate::scan::ConvergentEvidence,
+    /// The hint(s) the audit emitted for this declaration. A single
+    /// declaration may surface multiple hints (e.g., `#[diagnostic]`
+    /// can be both class-collapsed AND modality-insufficient).
+    pub hints: Vec<AuditHint>,
+}
+
+/// Aggregate convergent-evidence audit report.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ConvergentEvidenceAuditReport {
+    /// Per-declaration audit results.
+    pub audits: Vec<ConvergentEvidenceAudit>,
+    /// Count of declarations whose hint set is empty (clean).
+    pub clean_count: usize,
+    /// Count of declarations whose hint set is non-empty (concerns
+    /// surfaced).
+    pub concern_count: usize,
+}
+
+impl ConvergentEvidenceAuditReport {
+    /// True when no concerns were surfaced.
+    #[must_use]
+    pub const fn all_clean(&self) -> bool {
+        self.concern_count == 0
+    }
+}
+
+/// Audit convergent-evidence declarations across a scan report.
+///
+/// Walks every [`crate::scan::ConvergentEvidence`] in the report and
+/// produces [`ConvergentEvidenceAudit`] entries surfacing the relevant
+/// audit hints per ADR-024 §Audit-hint-vocabulary.
+#[must_use]
+pub fn audit_convergent_evidence(report: &ScanReport) -> ConvergentEvidenceAuditReport {
+    let known_antigen_names: std::collections::HashSet<&str> = report
+        .antigens
+        .iter()
+        .map(|a| a.type_name.as_str())
+        .collect();
+
+    let mut audits: Vec<ConvergentEvidenceAudit> = Vec::new();
+
+    for decl in &report.convergent_evidences {
+        let hints = evaluate_convergent_evidence_hints(decl, &known_antigen_names);
+        audits.push(ConvergentEvidenceAudit {
+            declaration: decl.clone(),
+            hints,
+        });
+    }
+
+    let mut clean_count = 0usize;
+    let mut concern_count = 0usize;
+    for a in &audits {
+        if a.hints.is_empty() {
+            clean_count += 1;
+        } else {
+            concern_count += 1;
+        }
+    }
+
+    ConvergentEvidenceAuditReport {
+        audits,
+        clean_count,
+        concern_count,
+    }
+}
+
+fn evaluate_convergent_evidence_hints(
+    decl: &crate::scan::ConvergentEvidence,
+    known_antigen_names: &std::collections::HashSet<&str>,
+) -> Vec<AuditHint> {
+    use crate::scan::ConvergentEvidenceKind;
+
+    let mut hints = Vec::new();
+    match decl.kind {
+        ConvergentEvidenceKind::Diagnostic => {
+            if decl.modality_classes.is_empty() {
+                hints.push(AuditHint::DiagnosticModalitiesEmpty);
+                return hints;
+            }
+            let distinct: std::collections::HashSet<&str> =
+                decl.modality_classes.iter().map(String::as_str).collect();
+            // Class-collapse: many entries, all same class (per C1)
+            if distinct.len() == 1 && decl.modality_classes.len() > 1 {
+                hints.push(AuditHint::DiagnosticModalitiesClassCollapsed);
+            }
+            if let Some(min) = decl.min_independent {
+                if u64::try_from(distinct.len()).unwrap_or(u64::MAX) < min {
+                    hints.push(AuditHint::DiagnosticModalityInsufficient);
+                }
+            }
+        }
+        ConvergentEvidenceKind::Clonal => {
+            // Fixed-seed in scan output: the proc-macro rejects this at
+            // parse time, but the scan walks raw source — pre-cap source
+            // can surface here. Surface the hint explicitly.
+            if matches!(decl.seed_kind.as_deref(), Some("Fixed")) {
+                hints.push(AuditHint::ClonalFixedSeedDetected);
+            }
+            if let Some(iters) = decl.iterations {
+                if iters < CLONAL_ITERATIONS_DEFAULT_FLOOR {
+                    hints.push(AuditHint::ClonalIterationsBelowThreshold);
+                }
+            }
+        }
+        ConvergentEvidenceKind::Igg => {
+            if let Some(span) = decl.historical_span {
+                if span < IGG_HISTORICAL_SPAN_DEFAULT_FLOOR {
+                    hints.push(AuditHint::IggSpanTooShort);
+                }
+            }
+            // Per ATK-CE-3-B: count UNIQUE witnesses, not raw count.
+            // The same identity signing twice doesn't add reattestation
+            // independence — the discipline is about independent re-
+            // verification, not raw signature count. Raw-count check
+            // (`witnesses.len() >= min_re`) is misleading because
+            // duplicate identities inflate the apparent count.
+            let unique_count: std::collections::HashSet<&str> =
+                decl.witnesses.iter().map(String::as_str).collect();
+            if let Some(min_re) = decl.min_reattestations {
+                if u64::try_from(unique_count.len()).unwrap_or(u64::MAX) < min_re {
+                    hints.push(AuditHint::IggReattestationsInsufficient);
+                }
+            }
+            // Identity-collapse: best-effort at scan time — if the
+            // recorded witnesses all collapse to one identity, surface
+            // the warning. Real signer-identity tracking is v0.3+.
+            if decl.witnesses.len() > 1 && unique_count.len() == 1 {
+                hints.push(AuditHint::IggIdentityCollapseWarning);
+            }
+        }
+        ConvergentEvidenceKind::Crossreactive => {
+            for fp in &decl.fingerprints {
+                if !known_antigen_names.contains(fp.as_str()) {
+                    hints.push(AuditHint::CrossreactiveFingerprintUnresolved);
+                    break;
+                }
+            }
+        }
+        ConvergentEvidenceKind::Polyclonal
+        | ConvergentEvidenceKind::Monoclonal
+        | ConvergentEvidenceKind::Adcc => {
+            // v0.2: marker primitives. Lineage-count enforcement
+            // (polyclonal) and mechanism-pairing detection (adcc)
+            // require co-located witness sites; deferred to v0.3+ when
+            // the scan layer cross-links convergent declarations with
+            // their on-item witness companions. monoclonal is
+            // documentary by definition. v0.2 emits no automatic
+            // concerns for any of the three.
+        }
+    }
+    hints
 }
 
 #[cfg(test)]

@@ -1,0 +1,5 @@
+error: #[diagnostic] `min_independent = 2` exceeds the number of distinct WitnessClass categories supplied (1). Per ADR-024 adversarial C1, min_independent counts CLASSES not witnesses — duplicate classes don't add independence. Increase distinct modalities or lower the floor.
+  --> tests/ui/diagnostic_class_collapsed.rs:15:23
+   |
+15 |     min_independent = 2
+   |                       ^
