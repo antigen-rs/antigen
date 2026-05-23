@@ -618,16 +618,18 @@ fn leaf_tag_fresh_within_days_serializes_snake_case() {
 }
 
 // ============================================================================
-// Leaf set exhaustivity: exactly five variants exist
+// Leaf set exhaustivity: exactly ten variants exist (v0.2)
 // ============================================================================
 //
-// A future amendment that adds a 6th leaf MUST update ADR-019 §Decision, this
-// test, the unification guardrail test, and every parser/evaluator branch.
-// The match below is `exhaustive` (no _ pattern) so the compiler forces the
-// review.
+// Per ADR-019 §Decision (v0.1 sealed at 5 primitives) AND ADR-025 §Substrate-
+// witness-leaves (+5 supply-chain primitives in v0.2), the leaf set is now
+// exactly 10. A future amendment that adds an 11th leaf MUST update the
+// relevant ADR, this test, the unification guardrail test, and every
+// parser/evaluator branch. The match below is `exhaustive` (no _ pattern)
+// so the compiler forces the review.
 
 #[test]
-fn leaf_set_exhaustivity_five_variants() {
+fn leaf_set_exhaustivity_ten_variants() {
     let leaves = [
         Leaf::RatifiedDoc {
             path: None,
@@ -649,11 +651,31 @@ fn leaf_set_exhaustivity_five_variants() {
         },
         Leaf::OraclesComplete { files: vec![] },
         Leaf::FreshWithinDays { days: 0 },
+        // ADR-025 Supply-Chain Defense Family additions
+        Leaf::DepPinned { crate_name: None },
+        Leaf::DepAttested {
+            crate_name: "serde".to_string(),
+            version: "1.0.0".to_string(),
+            exact_version: true,
+            reviewable_artifact: None,
+        },
+        Leaf::MaintainerUnchanged {
+            crate_name: "serde".to_string(),
+            since_version: "1.0.0".to_string(),
+        },
+        Leaf::ContentHashMatches {
+            crate_name: "serde".to_string(),
+            version: "1.0.0".to_string(),
+        },
+        Leaf::SandboxClean {
+            crate_name: "serde".to_string(),
+            sandbox_kind: "build".to_string(),
+        },
     ];
     assert_eq!(
         leaves.len(),
-        5,
-        "ADR-019 v0.1 seals leaf set at exactly five primitives"
+        10,
+        "ADR-019 v0.1 (5 primitives) + ADR-025 v0.2 supply-chain (5 primitives) = 10"
     );
     for leaf in &leaves {
         // Exhaustive match — any new variant breaks compilation here.
@@ -662,7 +684,12 @@ fn leaf_set_exhaustivity_five_variants() {
             | Leaf::Signers { .. }
             | Leaf::SignedTrailer { .. }
             | Leaf::OraclesComplete { .. }
-            | Leaf::FreshWithinDays { .. } => {}
+            | Leaf::FreshWithinDays { .. }
+            | Leaf::DepPinned { .. }
+            | Leaf::DepAttested { .. }
+            | Leaf::MaintainerUnchanged { .. }
+            | Leaf::ContentHashMatches { .. }
+            | Leaf::SandboxClean { .. } => {}
         }
     }
 }

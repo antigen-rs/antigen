@@ -310,6 +310,21 @@ fn eval_leaf<C: EvaluationContext>(
         Leaf::FreshWithinDays { days } => {
             eval_fresh_within_days(*days, item, current_fingerprint, ctx)
         }
+        // Supply-chain leaf types (ADR-025). These cannot be evaluated by the
+        // standard predicate evaluator — they require reading Cargo.lock, dep-
+        // attestation sidecars, or (v0.4+) sandbox execution. The standard
+        // `audit()` pipeline skips them; callers must drive `audit_supply_chain()`
+        // in `antigen::supply_chain::evaluate` separately.
+        //
+        // Per ADR-005 Amendment 2 (honest-tier-naming): returning `false` here
+        // is correct — these leaves do NOT pass in the standard path, and the
+        // supply-chain audit layer is responsible for their evaluation. An
+        // implicit-pass (`true`) would be worse than an implicit-fail.
+        Leaf::DepPinned { .. }
+        | Leaf::DepAttested { .. }
+        | Leaf::MaintainerUnchanged { .. }
+        | Leaf::ContentHashMatches { .. }
+        | Leaf::SandboxClean { .. } => false,
     }
 }
 
