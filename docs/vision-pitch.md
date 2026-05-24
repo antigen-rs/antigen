@@ -62,6 +62,20 @@ Every left-side rots. Every right-side stays current OR fails loudly when stale.
 
 ---
 
+## Why tests can't reach this
+
+The most common first objection is *isn't this just tests — why not write more tests?* The answer is structural, not a matter of degree.
+
+The failures antigen is built for are predominantly **substrate-alignment failures**: a representation diverging from the actual state it is meant to mirror. The doc says X; the code does Y. The ADR ratified A; the implementation shipped B. The tracker says "done"; the substrate says "unshipped."
+
+A test asserts a property of **one artifact** in **one execution** — given this input, the code produces that output. That is exactly right for *functional-correctness* failures (a wrong number, a mishandled branch), and tests catch those the moment they run. But alignment-drift is not a property of one artifact. It is a **relationship between two** — doc↔code, spec↔impl, tracker↔reality — and no single test spans both sides, because each side is written, inspected, and trusted by a different tool at a different time. The test passes (the code does Y, correctly); the drift (Y ≠ what the doc promised) sails through, because nothing was watching the *relationship*.
+
+You can have 100% behavioral coverage and still ship a codebase whose every doc, spec, and tracker quietly lies about it. "Write more tests" adds assertions about behavior and zero assertions about representation-vs-reality alignment. The failure mode is *orthogonal* to what tests measure — you cannot test your way across a gap your tests live entirely on one side of.
+
+Antigen's substrate-witnesses watch that relationship: they read the representation (the declaration, the ADR, the tracker) and compare it to actual substrate state, failing loudly on divergence. That is the side of the gap tests can't stand on — which is why antigen doesn't compete with your test suite; it covers the failure mode your test suite structurally cannot. (This is the structural reason behind the complementarity noted in *What antigen is NOT → Not more tests*, below.)
+
+---
+
 ## A concrete instance from the project that motivated antigen
 
 In April 2026, the [tambear](https://github.com/tambear-rs/tambear) project — a Windows-native GPU-accelerated mathematical computing toolkit — discovered a polarity inversion in its `DeterminismClass` enum's `meet` method. The discriminants were ordered strongest-first; the lattice ordering is reverse-strictness; `meet = std::cmp::min` therefore returned the *strongest* class instead of the weakest. The bug was named GAP-BIT-EXACT-1 and fixed: `meet = max` is correct.
@@ -214,6 +228,8 @@ Antigen's development produced three measurable properties that support the arch
 **Colonization ratio 8/5 (160%).** During Sweep A2, 8 structural-antigen-pattern instances surfaced for every 5 deliberately authored. The recognition architecture finds more failure-class patterns than were consciously targeted.
 
 **Scale-invariance of the failure mode.** The pattern antigen exists to prevent recurred at three independent tiers of the project's own operation: the events tier (bug recurrence in the motivating codebase), the coordination tier (team's own ratification process), and the implementation tier (antigen's own attribute-parser). Three tiers, same pattern, independently observed.
+
+It recurred again during v0.2 development, and the second occurrence is the more telling one: while a human-plus-AI team was building *and documenting* the substrate-alignment failure-class `ParallelStateTrackersDiverge`, that exact failure-class happened to them — at three further layers, none of which the tool was pointed at. A task-tracker diverged from the coordination substrate (work marked "done" while unshipped); message attribution diverged from authorship; an agent-identity collision diverged the who-owns-this tracking and produced two independent implementations of one failure-class. Each was unbidden, none anticipated, each caught not by a test but by the team's own substrate-currency reflexes — the very reflexes antigen exists to make structural rather than vigilance-dependent. The point is not that a tidy demo confirmed the thesis; it is that the builders of the failure-class-memory tool could not avoid the failure-class through expertise or care, *while thinking about it directly* — which is the strongest evidence available that the failure mode is real, pervasive, and beyond the reach of attention alone. It is not a curiosity of one tier; it is the texture of how distributed (human + AI) work drifts.
 
 These are early signals from one project's development process, not controlled studies. Adoption depends on engineering quality, ergonomics, and the gradual proof that structural failure-class memory delivers compounding value as antigen-stdlib grows.
 
