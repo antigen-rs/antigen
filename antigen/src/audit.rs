@@ -2301,7 +2301,7 @@ fn is_version_tag(s: &str) -> bool {
 /// [`crate::stdlib::dogfood::AuditHintWithNoUpstreamPreconditionCheck`].
 #[immune(
     AuditHintWithNoUpstreamPreconditionCheck,
-    witness = "atk_recurrent_2_recurrence_anchor_without_matching_itch_emits_hint",
+    witness = "atk_recurrent_2_recurrence_anchor_without_matching_itch_emits_hint"
 )]
 fn evaluate_recurrent_hints(
     decl: &crate::scan::RecurrentDeclaration,
@@ -2416,14 +2416,13 @@ const MUCOSAL_TOLERANT_RATIONALE_FLOOR: usize = 40;
 ///
 /// Implements the Change-5 three-tier delegate diagnosis via set-membership
 /// kind-matching against the handler functions' `#[mucosal]` declarations.
-#[must_use]
-/// Audit mucosal boundary declarations in the scan report.
 ///
 /// **Residual risk**: `handler_kinds` is built from intra-crate `#[mucosal]`
 /// declarations only. Cross-crate handlers are not in the index; delegates
 /// pointing at them will false-positive as `MucosalDisciplineDelegateTargetMissing`.
 /// See [`crate::stdlib::agentic_coordination::DelegateCrossCrateResolutionGap`].
 /// Structural fix is v0.3+ scope (multi-crate scan pass).
+#[must_use]
 #[presents(DelegateCrossCrateResolutionGap)]
 pub fn audit_mucosal(report: &ScanReport) -> MucosalAuditReport {
     use crate::scan::{ItemTarget, MucosalKindTag};
@@ -3442,5 +3441,134 @@ mod tests {
         let s =
             serde_json::to_string(&AuditHint::AntigenCategoryDefaultedImplicitFunctional).unwrap();
         assert_eq!(s, "\"antigen-category-defaulted-implicit-functional\"");
+    }
+
+    // ========================================================================
+    // G2 category↔witness-type cross-check (ADR-028 + Amendment 2)
+    // ========================================================================
+
+    /// Build an immunity addressing `antigen_type`. `substrate` selects the
+    /// witness type: `true` → substrate-witness (`requires = <predicate>`,
+    /// empty `witness`); `false` → code-witness (non-empty `witness`).
+    fn immunity_for(antigen_type: &str, substrate: bool) -> crate::scan::Immunity {
+        crate::scan::Immunity {
+            antigen_type: antigen_type.to_string(),
+            witness: if substrate {
+                String::new()
+            } else {
+                "some_test".to_string()
+            },
+            requires_predicate: if substrate {
+                Some("{\"leaf\":\"doc\"}".to_string())
+            } else {
+                None
+            },
+            file: std::path::PathBuf::from("test.rs"),
+            line: 1,
+            item_kind: "fn".to_string(),
+            item_target: crate::scan::ItemTarget::Fn("witness_site".to_string()),
+            canonical_path: None,
+        }
+    }
+
+    #[test]
+    fn g2_substrate_alignment_with_only_code_witness_is_mismatch() {
+        use crate::category::AntigenCategory;
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_decl(
+            "DriftAntigen",
+            vec![AntigenCategory::SubstrateAlignment],
+        ));
+        // Code-witness immunity only — wrong type for a substrate-alignment
+        // category, which needs a substrate-witness.
+        report.immunities.push(immunity_for("DriftAntigen", false));
+        let out = audit_category(&report);
+        assert_eq!(out.mismatch_count, 1);
+        assert!(!out.no_category_witness_mismatch());
+        assert!(out.audits[0]
+            .hints
+            .contains(&AuditHint::AntigenCategoryClaimInconsistentWithPredicateType));
+    }
+
+    #[test]
+    fn g2_functional_correctness_with_only_substrate_witness_is_mismatch() {
+        use crate::category::AntigenCategory;
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_decl(
+            "BugAntigen",
+            vec![AntigenCategory::FunctionalCorrectness],
+        ));
+        report.immunities.push(immunity_for("BugAntigen", true));
+        let out = audit_category(&report);
+        assert_eq!(out.mismatch_count, 1);
+        assert!(out.audits[0]
+            .hints
+            .contains(&AuditHint::AntigenCategoryClaimInconsistentWithPredicateType));
+    }
+
+    #[test]
+    fn g2_matching_witness_type_is_clean() {
+        use crate::category::AntigenCategory;
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_decl(
+            "DriftAntigen",
+            vec![AntigenCategory::SubstrateAlignment],
+        ));
+        report.immunities.push(immunity_for("DriftAntigen", true));
+        let out = audit_category(&report);
+        assert_eq!(out.mismatch_count, 0);
+        assert!(out.no_category_witness_mismatch());
+        assert!(out.audits.is_empty());
+    }
+
+    #[test]
+    fn g2_hybrid_needs_both_witness_types() {
+        use crate::category::AntigenCategory;
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_decl(
+            "HybridAntigen",
+            vec![
+                AntigenCategory::SubstrateAlignment,
+                AntigenCategory::FunctionalCorrectness,
+            ],
+        ));
+        // Only a substrate-witness — missing the code-witness axis.
+        report.immunities.push(immunity_for("HybridAntigen", true));
+        let out = audit_category(&report);
+        assert_eq!(
+            out.mismatch_count, 1,
+            "hybrid with only one axis is a mismatch"
+        );
+
+        // Add the code-witness axis — now clean.
+        report.immunities.push(immunity_for("HybridAntigen", false));
+        let out = audit_category(&report);
+        assert_eq!(out.mismatch_count, 0, "hybrid with both axes is clean");
+    }
+
+    #[test]
+    fn g2_no_immunity_is_not_a_mismatch() {
+        use crate::category::AntigenCategory;
+        let mut report = ScanReport::default();
+        // Explicit category but zero immunities addressing it — that's a
+        // coverage gap, not a category↔witness-type mismatch.
+        report.antigens.push(antigen_decl(
+            "UncoveredAntigen",
+            vec![AntigenCategory::SubstrateAlignment],
+        ));
+        let out = audit_category(&report);
+        assert_eq!(out.mismatch_count, 0);
+        assert!(out.audits.is_empty());
+    }
+
+    #[test]
+    fn g2_hint_serializes_kebab_case() {
+        let s =
+            serde_json::to_string(&AuditHint::AntigenCategoryClaimInconsistentWithPredicateType)
+                .unwrap();
+        assert_eq!(
+            s,
+            "\"antigen-category-claim-inconsistent-with-predicate-type\""
+        );
     }
 }
