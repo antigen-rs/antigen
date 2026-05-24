@@ -4939,7 +4939,7 @@ This is consistent with Amendment 2's principle: the witness-layer requirement i
 
 | Mechanism | Enforcement-Tier | Enforcement-Scope | Status |
 |---|---|---|---|
-| `category` field on `#[antigen]` (v0.2+) | parse-time: migration hint for v0.1 carryover; hard error for new declarations (v0.2.x) | client | v0.2 ships hint; hard error deferred pending migration tool |
+| `category` field on `#[antigen]` (v0.2+) | audit-time: migration hint for v0.1 carryover; hard error for new declarations (v0.2.x) | client | v0.2 ships hint; hard error deferred pending migration tool |
 | Category-vs-witness-type cross-check | audit-time (ADVISORY; CI-gateable) | client + CI | v0.2 shipped (Amendment 3: structural reason audit-time is correct layer) |
 | Hybrid incomplete-evidence | audit-time (partial coverage signal) | client + CI | v0.2 shipped |
 | v0.1 backward-compat default | parse-time migration hint | client | v0.2 ships; v0.3+ deprecation removes default |
@@ -6229,7 +6229,7 @@ Hybrid: `CampsiteOpen` (sidecar must exist AND signatures must cryptographically
 
 | Mechanism | Enforcement-Tier | Enforcement-Scope | Status |
 |---|---|---|---|
-| `category` field on `#[antigen]` (v0.2+) | parse-time: migration hint for v0.1 carryover; hard error for new declarations (v0.2.x) | client | v0.2 ships hint; hard error deferred pending migration tool *(Amd 4)* |
+| `category` field on `#[antigen]` (v0.2+) | audit-time: migration hint for v0.1 carryover; hard error for new declarations (v0.2.x) | client | v0.2 ships hint; hard error deferred pending migration tool *(Amd 4)* |
 | Category-vs-witness-type cross-check | audit-time (ADVISORY; CI-gateable) | client + CI | v0.2 shipped at audit layer (Amendment 3) *(Amd 3+4)* |
 | Hybrid incomplete-evidence | audit-time (partial coverage signal) | client + CI | v0.2 shipped (G3) *(Amd 4)* |
 | v0.1 backward-compat default | parse-time migration hint | client | v0.2 ships; v0.3+ deprecation removes default |
