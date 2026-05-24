@@ -74,7 +74,11 @@
 - [ADR-023 — Deferred-Defense Family: Loudness-as-Discipline for Intentional Non-Immunity](#adr-023--deferred-defense-family-loudness-as-discipline-for-intentional-non-immunity)
 - [ADR-024 — Three Sibling Families: Convergent Evidence + Recurrent Emergence + Prescriptive Work-Orchestration](#adr-024--three-sibling-families-convergent-evidence--recurrent-emergence--prescriptive-work-orchestration)
 - [ADR-025 — Supply-Chain Defense Family: Antigens for Dependency-Boundary Risk in the 2026+ Threat Landscape](#adr-025--supply-chain-defense-family-antigens-for-dependency-boundary-risk-in-the-2026-threat-landscape)
-- [ADR-026 — VCS-Information-Loss Family: Structural Defense Against Git-History-Erasing Operations + Rollback-as-Triage Discipline](#adr-026--vcs-information-loss-family-structural-defense-against-git-history-erasing-operations--rollback-as-triage-discipline)
+- [ADR-026 — VCS-Information-Loss Family: Structural Defense Against Git-History-Erasing Operations + Rollback-as-Triage Discipline](#adr-026--vcs-information-loss-family-structural-defense-against-git-history-erasing-operations--rollback-as-triage-discipline) *(amended by Amendments 1–4)*
+  - [ADR-026 Amendment 1 — rollback-as-triage uses `#[triage_commit]`, not `#[orient]` extension](#adr-026-amendment-1--rollback-as-triage-uses-triage_commit-not-orient-extension)
+  - [ADR-026 Amendment 2 — TriageDecision variant-semantic backfill + camp::triage connection-claim discipline](#adr-026-amendment-2--triagedecision-variant-semantic-backfill--camptriage-connection-claim-discipline)
+  - [ADR-026 Amendment 3 — rollback detection algorithm (AUTHOR-DECLARATION) + structural enforcement verification requirement](#adr-026-amendment-3--rollback-detection-algorithm-author-declaration--structural-enforcement-verification-requirement)
+  - [ADR-026 Amendment 4 — Rollback detection step-2 signal: commit-trailer not codebase-presence](#adr-026-amendment-4--rollback-detection-step-2-signal-commit-trailer-not-codebase-presence)
 - [ADR-027 — Mucosal Boundary Taxonomy + Mapping Discipline](#adr-027--mucosal-boundary-taxonomy--mapping-discipline)
 - [ADR-028 — Antigen-Category Taxonomy: Substrate-Alignment vs Functional-Correctness as First-Class Distinction](#adr-028--antigen-category-taxonomy-substrate-alignment-vs-functional-correctness-as-first-class-distinction)
 
@@ -4659,13 +4663,31 @@ This honors outsider's resolve recommendation (b1 with v0.3 commitment named) an
 
 **Reason**: Adversarial ATK-VCS-1 (rollback detection algorithm not specified) and ATK-VCS-4 (structural enforcement verification not required at audit-time) identified held-implementation-spec-depth-gap instances. Aristotle Phase 1-8 (campsite `v02-impl-vcs-info-loss`) established the correct resolution for both. The ADR previously stated detection MUST be at commit-time (§D1) without specifying HOW the hook recognizes a rollback commit. The enforcement model accepted Structural mode declarations without verifying the remote configuration via substrate-witness.
 
-**Change 1 — Rollback detection algorithm (ATK-VCS-1)**: Specifies AUTHOR-DECLARATION (Algorithm C) as the detection algorithm. The commit-time hook applies a three-step decision tree: (1) git-revert metadata present + no `Triage-Decision:` trailer → fire `RollbackWithoutTriageCommit`; (2) `#[triage_commit]` declared → fire `vcs-rollback-triage-chain` witness check; (3) otherwise → audit defers. Residual risk from manual inverse cherry-picks (undetectable without author declaration) is NAMED and EXPLICIT per friction-only philosophy. Diff-similarity detection (Algorithm B) is opt-in via `cargo antigen vcs --diff-similarity-check` (v0.3+ experimental).
+**Change 1 — Rollback detection algorithm (ATK-VCS-1)**: Specifies AUTHOR-DECLARATION (Algorithm C) as the detection algorithm. The commit-time hook applies a three-step decision tree: (1) git-revert metadata present + no `Triage-Decision:` trailer → fire `RollbackWithoutTriageCommit`; (2) commit carries a `Triage-Decision: <value>` trailer → validate value is a `TriageDecision` enum variant; fire `vcs-rollback-triage-chain` witness check *(Amendment 4 corrects step 2 from codebase-presence to commit-trailer signal)*; (3) otherwise → audit defers. Residual risk from manual inverse cherry-picks (undetectable without author declaration) is NAMED and EXPLICIT per friction-only philosophy. Diff-similarity detection (Algorithm B) is opt-in via `cargo antigen vcs --diff-similarity-check` (v0.3+ experimental).
 
 **Change 2 — Structural enforcement verification (ATK-VCS-4)**: When `ServerSideEnforcementMode::Structural` is declared, the audit pipeline MUST evaluate `vcs_server_side_enforcement_active(repo, antigen_name)` at audit-time. False return → emit `vcs-enforcement-structural-mode-declared-but-not-active` + demote to FrictionOnly for that antigen. Network error during evaluation → emit `vcs-server-config-check-failed` (distinct from structural-not-active). This witness is v0.2.1+ alongside Structural mode; v0.2 ships friction-only only.
 
 **Change 3 — Two new audit hints**: `vcs-enforcement-structural-mode-declared-but-not-active` (emitted when Structural declared but remote config not verified) and `vcs-server-config-check-failed` (emitted on network error during structural verification). Total audit-hint count: 12 → 14.
 
 **Resolves**: ATK-VCS-1 (rollback detection algorithm gap) and ATK-VCS-4 (structural enforcement unverified claim gap) from adversarial pre-attack pass on `v02-impl-vcs-info-loss` campsite. Observer's network-dependent-witness tier concern (1bb4f0c7) addressed by the two-error-mode split.
+
+---
+
+## ADR-026 Amendment 4 — Rollback detection step-2 signal: commit-trailer not codebase-presence
+
+**Status**: Ratified 2026-05-24.
+
+**Amends**: ADR-026 Amendment 3 Change 1 §Decision-tree step 2 (inline parenthetical at §Finding Detection model paragraph).
+
+**Reason**: ATK-VCS-A2 (adversarial post-ratification finding on Amendment 3, campsite `adr026-amendment-4-step2-commit-trailer`): Amendment 3 step 2 specified "commit declares `#[triage_commit]`" as the detection signal. This is codebase-presence semantics — does the codebase contain the attribute anywhere, not does THIS commit declare a triage decision. Three failure modes: (a) rollback commit on a codebase that already has `#[triage_commit]` elsewhere fires step 2 by coincidence; (b) rollback commit on a codebase with zero `#[triage_commit]` declarations falls silently to step 3; (c) two identical rollback commits on different codebases receive different audit behavior. The structural mechanism for commit-intent is already specified in ADR-026 §M3: the `Triage-Decision: <value>` git trailer on the commit itself.
+
+**Change — Step-2 signal corrected**: Step 2 of the AUTHOR-DECLARATION decision tree is: commit carries a `Triage-Decision: <value>` trailer → validate value is a `TriageDecision` enum variant; fire `vcs-rollback-triage-chain` witness check. This is commit-intent semantics (does THIS commit declare its triage decision?), consistent with ADR-026 §M3 trailer schema.
+
+**Scope**: This correction affects the `install-hooks` and `install-server-hooks` CLI verbs (which write the pre-commit/pre-push hook that executes the decision tree). It does NOT affect the witness evaluators (`vcs_trailer_present`, `vcs_rollback_triage_chain`, `vcs_attest_branch_deletion`, `vcs_server_side_enforcement_active`) or the observation-side CLI verbs (`scan`, `check-commit`, `attest`, `rollback-prepare`, `branch-archive`). Per aristotle F1 ratification (campsite `adr026-amendment-4-step2-commit-trailer`): witness layer + observation CLI proceed in parallel; hook-installation verbs defer until this amendment ratifies.
+
+**Participants**: adversarial (ATK-VCS-A2 finding); aristotle (Phase 1-8 ratification of two-layer separation principle — witness independence from decision-tree text); scientist (Amendment 4 draft + inline correction).
+
+**Related**: ADR-026 Amendment 3 Change 1 (the amended text); ADR-026 §M3 (`Triage-Decision:` trailer schema); ADR-010 (witness independence from scan-layer decisions); ADR-019 (substrate-witness reads substrate, not ADR text).
 
 ---
 
@@ -5942,7 +5964,7 @@ Modern git workflows include force-push, branch-deletion, rebase, squash-merge, 
 
 **Detection model** (per adversarial D1): `RollbackWithoutTriageCommit` cannot be detected by post-hoc history inspection (`git reset --hard` removes traces). MUST operate at COMMIT-TIME via hooks.
 
-*(Amendment 3 — 2026-05-24: rollback detection uses AUTHOR-DECLARATION (Algorithm C), not diff-similarity (Algorithm B). The commit-time hook applies a three-step decision tree: (1) commit message contains git-revert metadata (`This-reverts-commit-X` or `Revert-Of:` trailer) AND no `Triage-Decision:` trailer → fire `RollbackWithoutTriageCommit` hint; (2) commit declares `#[triage_commit]` → fire `vcs-rollback-triage-chain` witness check; (3) otherwise → audit defers; residual risk is that manual inverse cherry-picks without any declaration are undetectable at commit-time. This residual risk is NAMED and EXPLICIT per friction-only philosophy: making bad behavior deliberate rather than impossible. Adopters requiring diff-similarity detection must opt in via `cargo antigen vcs --diff-similarity-check` (v0.3+ experimental path). Campsite: `v02-impl-vcs-info-loss`.)*
+*(Amendment 3 — 2026-05-24: rollback detection uses AUTHOR-DECLARATION (Algorithm C), not diff-similarity (Algorithm B). The commit-time hook applies a three-step decision tree: (1) commit message contains git-revert metadata (`This-reverts-commit-X` or `Revert-Of:` trailer) AND no `Triage-Decision:` trailer → fire `RollbackWithoutTriageCommit` hint; (2) commit carries a `Triage-Decision: <value>` trailer → validate value is a `TriageDecision` enum variant; fire `vcs-rollback-triage-chain` witness check *(Amendment 4 — 2026-05-24: corrected from "commit declares `#[triage_commit]`" — codebase-presence semantics; trailer-on-commit is the correct commit-intent signal per ADR-026 §M3)*; (3) otherwise → audit defers; residual risk is that manual inverse cherry-picks without any declaration are undetectable at commit-time. This residual risk is NAMED and EXPLICIT per friction-only philosophy: making bad behavior deliberate rather than impossible. Adopters requiring diff-similarity detection must opt in via `cargo antigen vcs --diff-similarity-check` (v0.3+ experimental path). Campsite: `v02-impl-vcs-info-loss`.)*
 
 **Enforcement model** (per adversarial D3): client-side hooks are bypassable via plumbing commands. The ADR ships:
 - **Friction-only mode** (default v0.2): client-side hooks + audit-time; makes bad behavior DELIBERATE rather than ACCIDENTAL; explicitly NOT preventive
