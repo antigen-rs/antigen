@@ -7,338 +7,207 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased — v0.2.0-alpha.4]
 
-Recurrent-Emergence Family + Mucosal Boundary Family complete with adversarial
-validation. ADR-028 G1 + G2 live enforcement. Dogfood pivot: antigen's own
-codebase now carries `#[presents]` and `#[immune]` markers at real failure sites.
-Includes ATK-RECURRENT-2 production fix (orphan-anchor-no-itch precondition check).
+Internal development state for the v0.2 line (not published to crates.io; no tag).
+This section reconciles the v0.2.0-alpha.1 → alpha.4 development arc into one
+coherent surface. The full v0.2 surface is complete: five stdlib families
+(deferred-defense, supply-chain, convergent-evidence, recurrent-emergence,
+mucosal-boundary) plus the agentic-coordination and dogfood families; the
+ADR-028 `AntigenCategory` taxonomy with G1/G2/G3 enforcement; and antigen's own
+codebase dogfooding the primitives at real failure sites. 797 tests.
 
-### Added
+### Added — stdlib families
 
-- **Recurrent-Emergence Family (ADR-024 §Family 2)** — scan + audit + stdlib antigens
-  + worked example. Three primitives tracking canonical cross-lifetime failure classes:
-  `MsrvCreepAfterMajorVersionBump`, `GitignorePatternDriftOverReleases`,
-  `LockfileChurnFromUnpinnedTooling`. Six recurrent-declaration kinds:
-  `#[itch]`, `#[recurrence_anchor]`, `#[crystallize]`, `#[chronic]`,
-  `#[saturate]`, `#[strand]`. Audit hints: `ItchNoticedNotAnchored`,
+- **Deferred-Defense Family (ADR-023)** — loudness-as-discipline for intentional
+  non-immunity; all four primitives ratified by ADR-023.
+  - `#[anergy(reason, until, ...)]` — deferred-but-muted posture; `until` REQUIRED
+    (A5: anergy without time-bound degrades to silent tolerance); `reason` ≥20 chars;
+    optional advisory `expected_co_stimulation`. Hints: `anergy-active` /
+    `anergy-co-stimulation-not-arrived` / `anergy-stale`.
+  - `#[immunosuppress(rationale, until, ...)]` — surgical silencing with hard
+    duration cap enforced at **parse time** (default 90d; workspace config
+    `immunosuppress_duration_cap`); `rationale` ≥20 chars. Hints:
+    `immunosuppress-active` / `immunosuppress-expired`.
+  - `#[poxparty(exercise_type, until, ...)]` — intentional exposure with structural
+    isolation via the `antigen-poxparty` Cargo feature (not in the default set);
+    `exercise_type` ≥20 chars. Hints: `poxparty-active` / `poxparty-outcome-pending`
+    / `poxparty-outside-isolation`. (See Known limitations.)
+  - `#[orient(see, adr, attestation_optional)]` — lightest-weight deferred-defense
+    primitive; all fields optional; bare `#[orient]` valid. Hint: `orient-active`.
+  - `ScanReport::deferred_defenses` (additive `#[serde(default)]`),
+    `DeferredDefenseKind` enum, `DeferredDefense` struct, 16 deferred-defense
+    `AuditHint` variants, `audit_deferred_defenses()` (UTC-date aging; feeds
+    `cargo antigen defer status`), four worked examples.
+
+- **Supply-Chain Defense Family (ADR-025)** — 11 stdlib antigens for
+  dependency-boundary risk in the 2026+ threat landscape. Biology cognate:
+  Distributed-Boundary Innate-Immunity.
+  - `ContentHashMismatch` (**NON-NEGOTIABLE** — content-replacement-at-fixed-version;
+    Cargo.lock pins VERSION not CONTENT-HASH; proactive first-attestation via
+    `cargo antigen verify content-hash record <crate@version>`),
+    `UnsandboxedProcMacro` (in-rustc; higher risk than build-script),
+    `UnpinnedDependency`, `UnpinnedTransitiveDependency` (NARROW per B9-R — direct
+    dep with `*`/`?` for its own deps), `UnattestedDependencyInclusion`,
+    `DependencyUpgradeWithoutDiffReview`, `AutoDependencyChainWithoutPinning`,
+    `SuddenDependencyExpansion`, `UnsandboxedBuildScript`,
+    `PostInstallScriptInDependency`, `MaintainerChangeWithoutReattestation`.
+  - `audit_supply_chain()` with combinator-aware predicate evaluation (`AnyOf`
+    discharges failing siblings when a branch passes — ATK-SC-AUDIT-1 fix);
+    17 supply-chain `AuditHint` variants; substrate-witness runtime
+    (`schema` / `witness` / `evaluate` / hand-rolled `manifest` scanner, no toml
+    dep per ADR-002 Amendment 2); 5 new `antigen_attestation::Leaf` variants
+    (`DepPinned`, `DepAttested`, `MaintainerUnchanged`, `ContentHashMatches`,
+    `SandboxClean`; sealed-set exhaustivity 5→10); `antigen::stdlib::supply_chain`
+    re-importable members; 3 examples.
+
+- **Convergent-Evidence Family (ADR-024)** — 7 macros for backward-looking evidence
+  aggregation.
+  - `#[diagnostic]` (clinical differential-diagnosis grounding; counts distinct
+    WitnessClass CATEGORIES per C1), `#[clonal]` (`SeedKind::Fixed(_)` is a COMPILE
+    ERROR per C2), `#[igg]` (unique signer count enforced per ATK-CE-3-B),
+    `#[crossreactive]`, `#[polyclonal]`, `#[monoclonal]`, `#[adcc]`.
+  - `antigen::WitnessClass` (6 variants), `antigen::SeedKind` (4 variants),
+    11 convergent-evidence `AuditHint` variants, `audit_convergent_evidence()` +
+    report types, `ScanReport::convergent_evidences` (additive), 3 examples,
+    trybuild compile-fail fixtures (CE-1, CE-2).
+
+- **VCS-Information-Loss Family (ADR-026)** — 11 stdlib antigens for
+  git-history-erasing operations. Biology cognate: Immune Amnesia
+  (`ForcePushErasingHistory` ↔ measles memory-lymphocyte depletion; Mina et al.
+  2015). Includes `RollbackWithoutTriageCommit` (AUTHOR-DECLARATION detection,
+  Algorithm C), `RefactorWithoutPreservationOfWhy`, `BranchDeletionWithoutAttestation`,
+  `SquashMergeLosingIntermediateState`, `CherryPickLosingOriginalContext`,
+  `RebaseRewritingHistoryWithoutLog`, `UnpushedBranchWithSubstantiveWork`,
+  `StashedWorkAbandoned`, `MergeConflictResolutionWithoutAttestation`,
+  `AmendedCommitWithoutOldHashPreservation`.
+  - `#[triage_commit]` decisional macro (rollback-as-triage; distinct from passive
+    `#[orient]`; required `triage_decision` / `rollback_target` / `triaged_by` /
+    `rationale` ≥20 chars / `rollback_due_within_minutes` >0). `TriageDecision` enum
+    (`Black|Red|Yellow|Green|White`; `mandates_rollback()`, `parse_decision()`).
+    `ServerSideEnforcementMode` enum (`FrictionOnly` default | `Structural` v0.2.1+).
+    14 `vcs-` audit hint variants.
+
+- **Recurrent-Emergence Family (ADR-024 §Family 2)** — scan + audit + stdlib +
+  worked example. `MsrvCreepAfterMajorVersionBump`,
+  `GitignorePatternDriftOverReleases`, `LockfileChurnFromUnpinnedTooling`. Six
+  recurrent-declaration kinds: `#[itch]`, `#[recurrence_anchor]`, `#[crystallize]`,
+  `#[chronic]`, `#[saturate]`, `#[strand]`. Hints: `ItchNoticedNotAnchored`,
   `RecurrenceThresholdReachedNoAction`, `RecurrenceAnchorNoItchPrecondition`,
   `ChronicManagedByRequired`, `ChronicSinceNotADate`, `CrystallizeWithoutSource`.
 
-- **Mucosal Boundary Family (ADR-027 + Amendment 1)** — scan + audit + stdlib antigens
-  + `cargo antigen mucosal-map` CLI. Three primitives: `#[mucosal]`,
-  `#[mucosal_delegate]`, `#[mucosal_tolerant]`. 13-variant `MucosalKind` enum.
-  Three-tier delegate kind-mismatch diagnosis (target-missing, no-kinds, kind-mismatch).
-  Stdlib antigens: `UndefendedTrustBoundary`, `DelegatedDefenseWithoutMatchingHandler`,
-  `ToleratedBoundaryWithoutReview`.
+- **Mucosal Boundary Family (ADR-027 + Amendment 1)** — scan + audit + stdlib +
+  `cargo antigen mucosal-map` CLI. `#[mucosal]`, `#[mucosal_delegate]`,
+  `#[mucosal_tolerant]`; 13-variant `MucosalKind`; three-tier delegate
+  kind-mismatch diagnosis. Stdlib: `UndefendedTrustBoundary`,
+  `DelegatedDefenseWithoutMatchingHandler`, `ToleratedBoundaryWithoutReview`.
 
-- **ADR-028 G1 — live category-defaulted hint emission** — `cargo antigen audit`
-  now emits `antigen-category-defaulted-implicit-functional` for each `#[antigen]`
-  declaration missing an explicit `category =` field. 17 example-site hits confirmed.
+- **Agentic-Coordination Family** — coordination-layer failure-classes from
+  multi-session / multi-agent workflows. `AgentWakeWithoutSubstrateDeltaInjection`
+  (agent resumes without reading the substrate delta accumulated while idle;
+  stale context → wrong routing) and `DelegateCrossCrateResolutionGap` (mucosal
+  handler-kinds index is intra-crate only; cross-crate delegates false-positive
+  as target-missing — residual risk at v0.2; multi-crate scan is v0.3+). Kept in
+  v0.2 on team-readiness judgment; further coordination-layer fail-classes are a
+  v0.3 research arc.
 
-- **ADR-028 G2 — category-vs-witness-type cross-check at audit time** — `audit_category()`
-  joins explicit-category antigens against their `#[immune]` witnesses. Fires
-  `AntigenCategoryClaimInconsistentWithPredicateType` when a `SubstrateAlignment`
-  antigen has only code-witnesses, a `FunctionalCorrectness` antigen has only
-  substrate-witnesses, or a hybrid antigen is missing either witness type.
+- **Dogfood Family** — antigen's own codebase carries live markers at real
+  failure sites (the Layer-1 dogfood). Stdlib antigens:
+  `AntigenDeclarationMissingCategory`, `DelegatedHandlerKindMismatch`,
+  `WitnessClaimWithoutImplementation`, `VecCardinalityMasqueradingAsSet`,
+  `AuditHintWithNoUpstreamPreconditionCheck`, `RatifiedSpecDriftFromImpl`,
+  `UnvalidatedSealedEnumAcceptance`, `FingerprintStringWithoutDslValidation`,
+  `SilentArgumentDiscard`, `ScannerBoundaryFalseNegative`. Live in-source markers:
+  `#[presents(DelegateCrossCrateResolutionGap)]` on `audit_mucosal`,
+  `#[immune(AuditHintWithNoUpstreamPreconditionCheck)]` on `evaluate_recurrent_hints`
+  (witness → adversarial fixture), `#[presents(ScannerBoundaryFalseNegative)]` on
+  `scan_workspace`.
 
-- **Agentic-Coordination stdlib family** — two antigens encoding failure-classes
-  from multi-session / multi-agent workflows:
-  - `AgentWakeWithoutSubstrateDeltaInjection` — agent resumes without reading
-    substrate delta accumulated during idle gap; stale context produces wrong routing.
-  - `DelegateCrossCrateResolutionGap` — mucosal handler-kinds index is intra-crate
-    only; cross-crate delegates false-positive as target-missing. Residual risk at
-    v0.2; structural fix is v0.3+ scope (multi-crate scan pass).
+### Added — AntigenCategory taxonomy + enforcement (ADR-028)
 
-- **Dogfood family expansion** — antigen's own codebase now carries live markers:
-  - `#[presents(DelegateCrossCrateResolutionGap)]` on `audit_mucosal` (residual risk)
-  - `#[immune(AuditHintWithNoUpstreamPreconditionCheck)]` on `evaluate_recurrent_hints`
-    (ATK-RECURRENT-2 fix, witness pointing to adversarial fixture)
-  - `#[presents(ScannerBoundaryFalseNegative)]` on `scan_workspace` (scope limitation:
-    scanner only finds explicit `#[mucosal]` declarations, not implicit boundaries)
-  - `ScannerBoundaryFalseNegative` stdlib antigen added to `dogfood` family.
+- **`AntigenCategory` enum** — `SubstrateAlignment | FunctionalCorrectness`
+  (sealed; variants require an ADR amendment). Optional `category` field on
+  `#[antigen]`; hybrid antigens accept both variants. `MacroAntigenCategory` is
+  the proc-macro-side mirror (avoids an `antigen` ↔ `antigen-macros` cycle).
 
-### Fixed
+- **G1 — v0.1-carryover migration hint** — absent `category` emits
+  `antigen-category-defaulted-implicit-functional` at scan/audit time (soft default
+  to `FunctionalCorrectness`). Per the ratified G1 decision the v0.2 enforcement is
+  **scan-time-only**; the parse-time hard error for new declarations + the v0.1/v0.2
+  migration-record discriminator are **deferred to v0.2.x** (ADR-028 Amendment 4).
+  17 example-site hits confirmed.
 
-- **ATK-RECURRENT-2 production fix** (`dd51d4b`) — `RecurrenceAnchor` audit arm
-  checked downstream action (`acted_on`) but not upstream precondition (matching
-  `#[itch]` declared). Added `AuditHint::RecurrenceAnchorNoItchPrecondition` + threaded
-  `itch_antigen_types: HashSet<&str>` into `evaluate_recurrent_hints`. Both positive
-  (hint fires for orphan anchor) and clearing (suppressed when matching itch exists)
-  cases tested in adversarial fixture.
+- **G2 — category-vs-witness-type cross-check at AUDIT time** (ADR-028 Amendment 3
+  records why audit-time, not parse-time: a single `#[antigen]` cannot see its
+  separately-declared `#[immune]`s at macro-expand time; the antigen-immunity join
+  only exists once the scan report assembles). `audit_category()` reads the witness
+  type structurally from each immunity (`requires_predicate.is_some()` =
+  substrate-witness; non-empty `witness` = code-witness) and fires
+  `antigen-category-claim-inconsistent-with-predicate-type` when a single-axis
+  category has no matching witness (or a hybrid has zero axes witnessed). Zero
+  immunities is not flagged (orthogonal coverage gap).
 
-## [Unreleased — v0.2.0-alpha.3]
+- **G3 — hybrid-incomplete-evidence + `--category` CLI filter.** A hybrid
+  `[SubstrateAlignment, FunctionalCorrectness]` with exactly one axis witnessed
+  emits `antigen-category-hybrid-incomplete-evidence` (partial coverage, distinct
+  from the full-violation `claim-inconsistent`). `cargo antigen scan --category` /
+  `cargo antigen audit --category <substrate-alignment|functional-correctness>`
+  filter by category (hybrid matches either; absent-category defaults to
+  functional-correctness; unrecognized value exits 2).
 
-VCS-Information-Loss Family: structural memory of git-history-erasing operations
-and rollback-as-triage discipline (ADR-026). AntigenCategory taxonomy: first-class
-`SubstrateAlignment` vs `FunctionalCorrectness` distinction enforced at parse time
-(ADR-028). Includes adversarial-verified bug fix (ATK-VCS-5 whitespace-only field
-silent acceptance) and five ADR amendments ratified (ADR-024 Amd 1, ADR-026 Amds
-1–3, ADR-027 Amd 1, ADR-028 Amd 2).
-
-### Added
-
-- **VCS-Information-Loss Family (ADR-026)** — 11 stdlib antigens for git-history-
-  erasing operations. Biology cognate: Immune Amnesia class (`ForcePushErasingHistory`
-  ↔ measles-induced memory lymphocyte depletion; Mina et al. 2015, Science).
-
-  - `ForcePushErasingHistory` — covers both `--force` AND `--force-with-lease`
-    (ADR-026 Amendment 1 adversarial D2). Central family cognate.
-  - `RollbackWithoutTriageCommit` — rollback without prior triage-commit declaration;
-    detected via AUTHOR-DECLARATION (Algorithm C, three-step decision tree, ADR-026
-    Amendment 3).
-  - `RefactorWithoutPreservationOfWhy`, `BranchDeletionWithoutAttestation`,
-    `SquashMergeLosingIntermediateState`, `CherryPickLosingOriginalContext`,
-    `RebaseRewritingHistoryWithoutLog`, `UnpushedBranchWithSubstantiveWork`,
-    `StashedWorkAbandoned`, `MergeConflictResolutionWithoutAttestation`,
-    `AmendedCommitWithoutOldHashPreservation`.
-
-- **`#[triage_commit]` decisional macro (ADR-026 Amendment 1)** — rollback-as-triage
-  discipline primitive. Structurally distinct from `#[orient]` (orient is passive
-  context; triage_commit is decisional/committal). Required fields: `triage_decision`
-  (`TriageDecision` enum), `rollback_target` (non-empty, non-whitespace-only),
-  `triaged_by` (non-empty, non-whitespace-only), `rationale` (≥20 chars),
-  `rollback_due_within_minutes` (>0 u64). Dual-axis grounding: CLINICAL-MEDICINE
-  grounds the commit-rationale discipline; immune biology has no analog to
-  "log rationale before acting."
-
-- **`TriageDecision` enum** — `Black | Red | Yellow | Green | White` (5-color
-  clinical-field-triage analogously; START protocol color-tagged). Includes
-  `mandates_rollback()` predicate and `parse_decision()` for trailer parsing.
-  Serde: kebab-case.
-
-- **`ServerSideEnforcementMode` enum** — `FrictionOnly` (default v0.2) |
-  `Structural` (server-side pre-receive hooks; v0.2.1+). When Structural declared,
-  audit evaluates `vcs_server_side_enforcement_active()` at audit-time; false →
-  emits `vcs-enforcement-structural-mode-declared-but-not-active` + demotes to
-  FrictionOnly for that antigen.
-
-- **14 VCS audit hint variants** (`vcs-` prefix) including
-  `vcs-rollback-without-triage-commit`, `vcs-force-push-erased-substantive-history`,
-  `vcs-enforcement-friction-only-no-server-hook`,
-  `vcs-enforcement-structural-mode-declared-but-not-active` (Amendment 3),
-  `vcs-server-config-check-failed` (Amendment 3).
-
-- **`AntigenCategory` enum (ADR-028)** — `SubstrateAlignment | FunctionalCorrectness`
-  (sealed; variants require ADR amendment). Required `category` field on `#[antigen]`
-  declarations (v0.2+; hard error at parse time for new declarations; soft default
-  `FunctionalCorrectness` for v0.1 carryover with `antigen-category-defaulted-
-  implicit-functional` migration hint). Hybrid antigens accept both variants.
-
-- **Category enforcement (ADR-028 Option A STRICT)** — parse-time hard error if
-  category absent on new declarations; category-vs-predicate-type cross-check emits
-  `antigen-category-claim-inconsistent-with-predicate-type` hint (G2 campsite tracks
-  full parse-time cross-check implementation). Hybrid antigens require BOTH witness
-  types verified at audit-time; missing axis = `antigen-category-hybrid-incomplete-
-  evidence`.
-
-- **5 AntigenCategory audit hint variants** — `antigen-category-defaulted-implicit-
-  functional`, `antigen-category-missing-explicit`, `antigen-category-mismatch-
-  witness-type`, `antigen-category-claim-inconsistent-with-predicate-type`,
-  `antigen-category-hybrid-incomplete-evidence`.
-
-- **`MacroAntigenCategory`** — proc-macro-side mirror of `AntigenCategory`; avoids
-  circular dependency between `antigen` and `antigen-macros`.
+- **AntigenCategory audit-hint tiering** (per ADR-028 Amendment 4): shipped in
+  v0.2 — `antigen-category-defaulted-implicit-functional`,
+  `antigen-category-claim-inconsistent-with-predicate-type`,
+  `antigen-category-hybrid-incomplete-evidence`. Deferred to v0.2.x with named
+  dependencies — `antigen-category-missing-explicit` (needs the v0.1/v0.2
+  migration-record discriminator) and `antigen-category-mismatch-witness-type`
+  (advisory soft-smell layer; lands after the hard-violation hint proves out).
 
 ### Fixed
 
-- **ATK-VCS-5 (whitespace-only field silent acceptance)** — `#[triage_commit]` with
-  `rollback_target = "   "` or `triaged_by = "   "` previously parsed silently; now
-  rejected at parse time with clear error message. `Some("")` guard widened to
-  `Some(s) if s.trim().is_empty()` in `antigen-macros/src/parse.rs`.
+- **ATK-RECURRENT-2** (`dd51d4b`) — `RecurrenceAnchor` audit arm checked the
+  downstream action (`acted_on`) but not the upstream precondition (a matching
+  `#[itch]`). Added `AuditHint::RecurrenceAnchorNoItchPrecondition` + threaded
+  `itch_antigen_types` into `evaluate_recurrent_hints`; positive + clearing cases
+  tested in the adversarial fixture.
+- **ATK-VCS-5** (whitespace-only field silent acceptance) — `#[triage_commit]` with
+  `rollback_target = "   "` / `triaged_by = "   "` parsed silently; now rejected at
+  parse time (`Some("")` guard widened to `Some(s) if s.trim().is_empty()`).
+- **ATK-SC-1-A** (rubber-stamp bypass), **ATK-SC-2-A** (sidecar-corruption
+  downgrade — malformed sidecar must NOT silently become `NoAttestation`),
+  **ATK-SC-AUDIT-1** (`any_of` semantics), **ATK-CE-3-B** (IgG raw-count bypass →
+  unique signer count enforced).
 
-### Documentation
+### Documentation (ADR amendments ratified this arc)
 
-- ADR-024 Amendment 1: `#[titer]` biology-grounding axis reassignment — operational
-  substrate is primary; biology is approximate documentation cognate.
-- ADR-026 Amendment 1: rollback-as-triage uses `#[triage_commit]`, not `#[orient]`
-  extension; ADR-023 §orient semantics preserved unchanged.
-- ADR-026 Amendment 2: `TriageDecision` variant-semantic backfill (Black=dead/
-  unrecoverable; Red=critical/immediate rollback; Yellow=degraded/monitored;
-  Green=stable/no-action; White=unknown/more-info). `camp::triage` connection is
-  RHYME-tier (conceptual only); cross-tool schema alignment is v0.3+ research arc.
-  START-attribution honesty: color-tagged "analogously to clinical field-triage
-  protocols (e.g., START)" — not a direct START implementation.
-- ADR-026 Amendment 3: AUTHOR-DECLARATION (Algorithm C) rollback detection — three-
-  step decision tree; `vcs_server_side_enforcement_active()` guard for Structural
-  mode; two new audit hints added.
-- ADR-027 Amendment 1: mucosal taxonomy disambiguation — 15→13 `MucosalKind` variants
-  (PrBoundary removed: process event not data; Import removed: ambiguous scope);
-  inclusion-discipline (type-of-data-crossing-boundary axis, not processing-step
-  axis); `handled_by` as `syn::Path`; delegate kind-matching three-tier audit;
-  `#[mucosal_tolerant]` primitive; 6→11 audit hints.
-- ADR-028 Amendment 2: predicate-leaf requirement applies to WITNESS layer (audit-
-  pipeline evaluator that reads substrate state), NOT fingerprint scan-side pattern.
-  `doc_contains("ADR-025")` is a valid scan-side fingerprint for a SubstrateAlignment
-  antigen whose witness is `dep_pinned()`. Category-vs-predicate cross-check is
-  advisory at parse-time until `v02-impl-category-witness-cross-check` ships.
+- **ADR-024 Amendment 1** — `#[titer]` biology-grounding axis reassignment;
+  operational substrate primary, biology approximate cognate.
+- **ADR-026 Amendments 1–3** — rollback-as-triage uses `#[triage_commit]` not an
+  `#[orient]` extension (1); `TriageDecision` variant-semantic backfill + `camp::triage`
+  RHYME-tier connection + START-attribution honesty (2); AUTHOR-DECLARATION
+  (Algorithm C) rollback detection + `vcs_server_side_enforcement_active()` guard (3).
+- **ADR-027 Amendment 1** — mucosal taxonomy disambiguation (15→13 `MucosalKind`;
+  type-of-data-crossing-boundary axis; `handled_by` as `syn::Path`; delegate
+  three-tier audit; `#[mucosal_tolerant]`; 6→11 hints).
+- **ADR-028 Amendment 2** — predicate-leaf requirement applies to the WITNESS layer,
+  NOT the fingerprint scan-side pattern (`doc_contains(...)` is a valid scan-side
+  fingerprint for a SubstrateAlignment antigen whose witness reads substrate).
+- **ADR-028 Amendment 3** — the category-vs-predicate-type cross-check is
+  AUDIT-time, not parse-time (the antigen-immunity join only exists once the scan
+  report assembles); resolves the G2 campsite.
+- **ADR-028 Amendment 4** — §Enforcement-Surface re-sync post G1/G2/G3: table row 1
+  corrected from "parse-time HARD ERROR" to "v0.2 migration hint; hard error v0.2.x";
+  cross-check row → audit-time-only; audit-hint vocabulary tiered (v0.2 shipped vs
+  v0.2.x deferred with named deps); inline backward-compat annotation fixed.
 
----
+### Known limitations
 
-## [Unreleased — v0.2.0-alpha.2]
-
-Supply-Chain Defense Family + Convergent-Evidence Family: structural memory of
-dependency-boundary risk (ADR-025) and backward-looking evidence aggregation
-(ADR-024). Includes adversarial-verified correctness fixes (ATK-SC-1-A rubber-
-stamp bypass, ATK-SC-2-A sidecar corruption downgrade, ATK-SC-AUDIT-1 any_of
-semantics, ATK-CE-3-B IgG unique-count enforcement).
-
-### Added
-
-- **Supply-Chain Defense Family (ADR-025)** — 11 stdlib antigens for
-  dependency-boundary risk in the 2026+ threat landscape.
-  Biology cognate: Distributed-Boundary Innate-Immunity family.
-
-  - `ContentHashMismatch` — **NON-NEGOTIABLE**: content-replacement-at-fixed-version
-    attack (chalk/debug/eslint-config 2025 pattern). Cargo.lock pins VERSION not
-    CONTENT-HASH. Requires proactive first-attestation via `cargo antigen verify
-    content-hash record <crate@version>`. Antigenic-identity-verification cognate.
-  - `UnsandboxedProcMacro` — external proc-macro dep runs in-rustc; HIGHER RISK
-    than `UnsandboxedBuildScript`. Macrophage phagosome containment cognate.
-  - `UnpinnedDependency` — Cargo.toml dep without `=X.Y.Z` exact-pin.
-    PRR specificity discipline cognate.
-  - `UnpinnedTransitiveDependency` — NARROW: direct dep with `*`/`?` for ITS OWN
-    deps (NOT "any transitive dep with non-exact pins" — 100% FP avoided per B9-R).
-  - `UnattestedDependencyInclusion`, `DependencyUpgradeWithoutDiffReview`,
-    `AutoDependencyChainWithoutPinning`, `SuddenDependencyExpansion`
-    (Trojan-horse + MHC-I internal-antigen-presentation cognate),
-    `UnsandboxedBuildScript`, `PostInstallScriptInDependency`,
-    `MaintainerChangeWithoutReattestation` (CI sequencing: `verify
-    maintainer-changes` MUST run BEFORE `cargo update`; transplant-immunology
-    re-attestation cognate).
-
-- **17 supply-chain `AuditHint` variants** — emitted by `audit_supply_chain()`:
-  15 ADR-required hints + `unpinned-transitive-dependency` + `content-hash-sidecar-malformed`.
-
-- **`audit_supply_chain()` function** with combinator-aware predicate evaluation:
-  `AnyOf` semantics correctly discharge failing-sibling hints when any branch passes
-  (ATK-SC-AUDIT-1 fix). `AllOf` + `Not` handled correctly.
-
-- **Supply-chain substrate-witness runtime** (`antigen::supply_chain`):
-  - `schema`: `DepAttestation` (rubber-stamp guard: `reviewable_artifact` required
-    non-empty + whitespace-rejected per ATK-SC-1-A), `ContentHashRecord` (v0.2:
-    `Cargo.lock` checksum source; v0.3+ crates.io tarball), `MaintainerSnapshot`,
-    `ReviewScope`, `SandboxKind`.
-  - `witness`: `DepPinnedState`, `DepAttestedState` (incl. `AttestedWithoutReviewableArtifact`),
-    `MaintainerState` (incl. `CratesIoQueryUnavailable` for v0.2 soft-fail),
-    `ContentHashState` (incl. `SidecarMalformed` — malformed sidecar MUST NOT
-    silently downgrade to `NoAttestation`, per ATK-SC-2-A),
-    `SandboxState` (incl. `ToolingNotYetAvailable` for v0.4+ stub).
-  - `evaluate`: per-leaf evaluators; `eval_supply_chain_predicate` (combinator-aware).
-  - `manifest`: hand-rolled Cargo.toml dep scanner (no toml dep — ADR-002 Amendment 2).
-
-- **5 new `antigen_attestation::Leaf` variants** for supply-chain substrate-witness
-  predicates: `DepPinned`, `DepAttested`, `MaintainerUnchanged`, `ContentHashMatches`,
-  `SandboxClean` — `SandboxClean.sandbox_kind` validated at parse time against
-  `{"build", "proc-macro"}`. Standard evaluator returns `false` (honest-tier-naming
-  per ADR-005 Amendment 2 + ATK-AUDIT note). `antigen_attestation::Leaf` sealed-set
-  exhaustivity test updated from 5 → 10 variants.
-
-- **`antigen::stdlib::supply_chain`** — 11 antigen declarations as re-importable
-  stdlib members; adopters use `#[presents(antigen::stdlib::supply_chain::ContentHashMismatch)]`.
-
-- **3 supply-chain examples**: `supply_chain_content_hash.rs`, `supply_chain_unpinned.rs`,
-  `supply_chain_unsandboxed_proc_macro.rs`.
-
-- **Convergent-Evidence Family (ADR-024)** — 7 macros for backward-looking evidence
-  aggregation (temporal-arc first family).
-
-  - `#[diagnostic(modalities = [WitnessClass::X, ...], min_independent = N)]` —
-    **clinical-medicine grounding** (differential diagnosis). Counts distinct
-    WitnessClass CATEGORIES for `min_independent` (not raw witness count, per C1).
-    Parse-time error if `min_independent` exceeds distinct categories supplied.
-  - `#[clonal(witness = ..., iterations = N, seed = SeedKind::...)]` —
-    iterated witness evaluation; B-cell clonal expansion cognate.
-    `SeedKind::Fixed(_)` is **COMPILE ERROR** at parse time (C2).
-  - `#[igg(witnesses = [...], historical_span = N, min_reattestations = N)]` —
-    re-attestation history; IgG-class cognate. Source-independence is NOMINAL only
-    (different identity strings, not structural). Unique signer count enforced for
-    `min_reattestations` (ATK-CE-3-B fix — raw count bypass rejected).
-  - `#[crossreactive(fingerprints = [...])]` — one defense covers related antigens.
-  - `#[polyclonal]`, `#[monoclonal]`, `#[adcc]` — marker primitives (no required args).
-
-- **`antigen::WitnessClass`** enum — 6 variants: `StaticAnalysis`, `PropertyTest`,
-  `FormalVerification`, `ManualReview`, `RuntimeFuzz`, `SubstrateWitness`. Public,
-  re-exported from `antigen`. Used in `#[diagnostic]` `modalities` argument.
-
-- **`antigen::SeedKind`** enum — 4 variants: `Random`, `EntropyFromCi`,
-  `TimestampSeeded`, `Fixed(u64)`. Public, re-exported from `antigen`.
-  `Fixed(u64)` rejected for `#[clonal]` at parse time (COMPILE ERROR).
-
-- **11 convergent-evidence `AuditHint` variants** — emitted by `audit_convergent_evidence()`:
-  `diagnostic-modality-insufficient`, `diagnostic-modalities-class-collapsed`,
-  `diagnostic-modalities-empty`, `clonal-fixed-seed-detected`,
-  `clonal-iterations-below-threshold`, `igg-identity-collapse-warning`,
-  `igg-span-too-short`, `igg-reattestations-insufficient`,
-  `crossreactive-fingerprint-unresolved`, `polyclonal-insufficient-lineages`,
-  `adcc-single-mechanism-only`.
-
-- **`audit_convergent_evidence()` function** + `ConvergentEvidenceAudit`,
-  `ConvergentEvidenceAuditReport` types.
-
-- **`ScanReport::convergent_evidences: Vec<ConvergentEvidence>`** — additive
-  serde field (`#[serde(default)]`) for pre-v0.2 report compat.
-  `ConvergentEvidenceKind` enum (7 variants), `ConvergentEvidence` struct.
-
-- **3 convergent-evidence examples**: `convergent_diagnostic.rs`, `convergent_clonal.rs`,
-  `convergent_igg.rs`.
-
-- **Trybuild compile-fail fixtures** for CE enforcement:
-  `clonal_fixed_seed_rejected.rs` (CE-2) + `diagnostic_class_collapsed.rs` (CE-1).
-
----
-
-## [Unreleased — v0.2.0-alpha.1]
-
-Deferred-Defense Family: loudness-as-discipline for intentional non-immunity.
-Implements all four primitives ratified by ADR-023. Aging escalation, parse-time
-cap enforcement, and structural isolation for poxparty sites.
-
-### Added
-
-- **`#[anergy(reason, until, ...)]`** — deferred-but-muted posture with required
-  time-bound (A5: `until` is not optional; anergy without time-bound degrades to
-  silent tolerance). `reason` minimum 20 characters. Audit emits `anergy-active` /
-  `anergy-co-stimulation-not-arrived` / `anergy-stale` hints. Optional
-  `expected_co_stimulation` field (advisory-only; not machine-verified).
-
-- **`#[immunosuppress(rationale, until, ...)]`** — surgical family-of-checks
-  silencing with hard duration cap enforced at **parse time** (A4 absorbed).
-  Compile error emitted if `until - since > duration_cap` (default 90d; workspace
-  config `immunosuppress_duration_cap`). `rationale` minimum 20 characters.
-  Audit emits `immunosuppress-active` / `immunosuppress-expired`.
-
-- **`#[poxparty(exercise_type, until, ...)]`** — intentional exposure with
-  structural isolation via `antigen-poxparty` Cargo feature (A3 absorbed).
-  Primary isolation: items inside inactive `#[cfg(feature = "antigen-poxparty")]`
-  blocks never reach macro expansion. Secondary: `CARGO_FEATURE_ANTIGEN_POXPARTY`
-  env var check (best-effort; Cargo propagation to proc-macro expansion is
-  version-dependent — named limitation). `exercise_type` minimum 20 characters.
-  `antigen-poxparty` feature NOT in default set. Audit emits `poxparty-active` /
-  `poxparty-outcome-pending` / `poxparty-outside-isolation`.
-
-- **`#[orient(see, adr, attestation_optional)]`** — see-also context without
-  antigen claim; lightest-weight deferred-defense primitive. All fields optional;
-  bare `#[orient]` with no arguments is valid. ADR-026 rollback-as-triage sites
-  use this shape. Audit emits `orient-active`.
-
-- `antigen-poxparty` Cargo feature on `antigen` + `antigen-macros` (propagated
-  so enabling on `antigen` flows through to `antigen-macros` expansion).
-- `ScanReport::deferred_defenses: Vec<DeferredDefense>` — additive serde field
-  (`#[serde(default)]`) for pre-v0.2 report compat.
-- `DeferredDefenseKind` enum, `DeferredDefense` struct in scan module.
-- 16 new `AuditHint` variants for the deferred-defense family.
-- `DeferredDefenseAudit`, `DeferredDefenseAuditReport` structs in audit module.
-- `audit_deferred_defenses()` function: evaluates deferred-defense declarations
-  against UTC date to produce aging hints; feeds `cargo antigen defer status`.
-- Four examples: `deferred_defense_anergy.rs`, `deferred_defense_immunosuppress.rs`,
-  `deferred_defense_poxparty.rs`, `deferred_defense_orient.rs`.
-
-### Known limitation (A3 poxparty)
-
-Cargo does not reliably propagate `CARGO_FEATURE_*` to proc-macro expansion
-environments in standard builds. The env var check is best-effort. Primary
-structural isolation is the `#[cfg(feature = "antigen-poxparty")]` gate —
-items inside inactive cfg blocks never reach macro expansion. This limitation
-is tracked for a future ADR amendment when Cargo propagation behavior stabilizes.
+- **Poxparty isolation (A3)** — Cargo does not reliably propagate `CARGO_FEATURE_*`
+  to proc-macro expansion environments. The env-var check is best-effort; the
+  load-bearing isolation is the `#[cfg(feature = "antigen-poxparty")]` gate (items
+  inside an inactive cfg block never reach macro expansion). Tracked for a future
+  ADR amendment when Cargo's propagation behavior stabilizes.
+- **Cross-crate mucosal delegates** — `DelegateCrossCrateResolutionGap`: the
+  handler-kinds index is intra-crate only; cross-crate delegates false-positive as
+  target-missing. Residual risk at v0.2; the multi-crate scan pass is v0.3+.
 
 ---
 
