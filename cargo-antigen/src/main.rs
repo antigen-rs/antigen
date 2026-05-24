@@ -2084,19 +2084,17 @@ fn run_oracle_revoke(args: OracleRevokeArgs) -> ExitCode {
 fn parse_category_filter(
     raw: Option<&str>,
 ) -> Result<Option<antigen::category::AntigenCategory>, ()> {
-    match raw {
-        None => Ok(None),
-        Some(s) => match antigen::category::AntigenCategory::parse_category(s) {
-            Some(c) => Ok(Some(c)),
-            None => {
-                eprintln!(
-                    "error: unrecognized --category `{s}`; \
-                     expected `substrate-alignment` or `functional-correctness`"
-                );
-                Err(())
-            }
-        },
-    }
+    let Some(s) = raw else {
+        return Ok(None);
+    };
+    antigen::category::AntigenCategory::parse_category(s)
+        .map(Some)
+        .ok_or_else(|| {
+            eprintln!(
+                "error: unrecognized --category `{s}`; \
+                 expected `substrate-alignment` or `functional-correctness`"
+            );
+        })
 }
 
 /// Filter a scan report in place to antigen declarations of `cat` (ADR-028
@@ -2148,9 +2146,8 @@ fn run_scan(args: ScanArgs) -> ExitCode {
     }
 
     // ADR-028 §CLI integration: --category filters to a single category.
-    let category_filter = match parse_category_filter(args.category.as_deref()) {
-        Ok(c) => c,
-        Err(()) => return ExitCode::from(2),
+    let Ok(category_filter) = parse_category_filter(args.category.as_deref()) else {
+        return ExitCode::from(2);
     };
 
     eprintln!("Scanning workspace: {}", args.root.display());
@@ -2489,9 +2486,8 @@ fn run_audit(args: AuditArgs) -> ExitCode {
     }
 
     // ADR-028 §CLI integration: --category filters the audit to a single category.
-    let category_filter = match parse_category_filter(args.category.as_deref()) {
-        Ok(c) => c,
-        Err(()) => return ExitCode::from(2),
+    let Ok(category_filter) = parse_category_filter(args.category.as_deref()) else {
+        return ExitCode::from(2);
     };
 
     eprintln!("Auditing workspace: {}", args.root.display());
@@ -2525,67 +2521,7 @@ fn run_audit(args: AuditArgs) -> ExitCode {
     match args.format {
         OutputFormat::Human => {
             print_audit_human(&scan_report, &audit_report);
-            if !category_report.all_explicit() {
-                println!();
-                println!(
-                    "antigen-category: {} declaration(s) with absent category \
-                     (defaulted to FunctionalCorrectness):",
-                    category_report.defaulted_count
-                );
-                for ca in &category_report.audits {
-                    if ca
-                        .hints
-                        .contains(&audit::AuditHint::AntigenCategoryDefaultedImplicitFunctional)
-                    {
-                        println!(
-                            "  - {} ({}:{}) — antigen-category-defaulted-implicit-functional",
-                            ca.antigen_type,
-                            ca.file.display(),
-                            ca.line
-                        );
-                    }
-                }
-                println!(
-                    "  Add `category = AntigenCategory::...` per ADR-028. (v0.2: \
-                     scan-time hint; v0.2.x: parse-time hard-error for new decls.)"
-                );
-            }
-            if !category_report.no_category_witness_mismatch() {
-                println!();
-                println!(
-                    "antigen-category: {} declaration(s) whose category is not \
-                     backed by a matching witness type:",
-                    category_report.mismatch_count
-                );
-                for ca in &category_report.audits {
-                    if ca.hints.contains(
-                        &audit::AuditHint::AntigenCategoryClaimInconsistentWithPredicateType,
-                    ) {
-                        println!(
-                            "  - {} ({}:{}) — antigen-category-claim-inconsistent-with-predicate-type",
-                            ca.antigen_type,
-                            ca.file.display(),
-                            ca.line
-                        );
-                    } else if ca
-                        .hints
-                        .contains(&audit::AuditHint::AntigenCategoryHybridIncompleteEvidence)
-                    {
-                        println!(
-                            "  - {} ({}:{}) — antigen-category-hybrid-incomplete-evidence",
-                            ca.antigen_type,
-                            ca.file.display(),
-                            ca.line
-                        );
-                    }
-                }
-                println!(
-                    "  SubstrateAlignment needs a `requires = ...` immunity; \
-                     FunctionalCorrectness needs a `witness = ...` immunity; \
-                     hybrid needs both (one axis present → \
-                     hybrid-incomplete-evidence; ADR-028 §Schema)."
-                );
-            }
+            print_category_audit_human(&category_report);
         }
         OutputFormat::Json => match serde_json::to_string_pretty(&JsonAuditReport {
             scan: &scan_report,
@@ -3418,6 +3354,70 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
     }
 
     print_state7_diagnostics(audit_report);
+}
+
+fn print_category_audit_human(category_report: &audit::CategoryAuditReport) {
+    if !category_report.all_explicit() {
+        println!();
+        println!(
+            "antigen-category: {} declaration(s) with absent category \
+             (defaulted to FunctionalCorrectness):",
+            category_report.defaulted_count
+        );
+        for ca in &category_report.audits {
+            if ca
+                .hints
+                .contains(&audit::AuditHint::AntigenCategoryDefaultedImplicitFunctional)
+            {
+                println!(
+                    "  - {} ({}:{}) — antigen-category-defaulted-implicit-functional",
+                    ca.antigen_type,
+                    ca.file.display(),
+                    ca.line
+                );
+            }
+        }
+        println!(
+            "  Add `category = AntigenCategory::...` per ADR-028. (v0.2: \
+             scan-time hint; v0.2.x: parse-time hard-error for new decls.)"
+        );
+    }
+    if !category_report.no_category_witness_mismatch() {
+        println!();
+        println!(
+            "antigen-category: {} declaration(s) whose category is not \
+             backed by a matching witness type:",
+            category_report.mismatch_count
+        );
+        for ca in &category_report.audits {
+            if ca.hints.contains(
+                &audit::AuditHint::AntigenCategoryClaimInconsistentWithPredicateType,
+            ) {
+                println!(
+                    "  - {} ({}:{}) — antigen-category-claim-inconsistent-with-predicate-type",
+                    ca.antigen_type,
+                    ca.file.display(),
+                    ca.line
+                );
+            } else if ca
+                .hints
+                .contains(&audit::AuditHint::AntigenCategoryHybridIncompleteEvidence)
+            {
+                println!(
+                    "  - {} ({}:{}) — antigen-category-hybrid-incomplete-evidence",
+                    ca.antigen_type,
+                    ca.file.display(),
+                    ca.line
+                );
+            }
+        }
+        println!(
+            "  SubstrateAlignment needs a `requires = ...` immunity; \
+             FunctionalCorrectness needs a `witness = ...` immunity; \
+             hybrid needs both (one axis present → \
+             hybrid-incomplete-evidence; ADR-028 §Schema)."
+        );
+    }
 }
 
 /// Audit summary with per-tier sub-counts per ATK-A3-019 (A3.5 onboarding sweep).
