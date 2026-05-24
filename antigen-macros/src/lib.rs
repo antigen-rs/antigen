@@ -515,6 +515,22 @@ pub fn poxparty(args: TokenStream, input: TokenStream) -> TokenStream {
 /// count is over distinct CLASSES, not raw witness count — running the
 /// same kind of test in triplicate doesn't add evidence.
 ///
+/// # Biology grounding
+///
+/// `#[diagnostic]` is grounded in **clinical medicine**, not immunology
+/// proper. The metaphor is the diagnostic workup pattern from
+/// differential-diagnosis literature: a clinician confirms a diagnosis
+/// when independent modalities (history, physical, imaging, labs)
+/// converge on the same finding. A single modality is suggestive; the
+/// convergence is what carries clinical confidence. Per ADR-024 §Biology
+/// grounding — dual-axis honesty, `#[diagnostic]` sits on the
+/// clinical-medicine axis alongside `#[panel]`, `#[ddx]`, `#[rx]`,
+/// `#[triage]`, `#[refer]`, `#[biopsy]`, `#[culture]`, `#[quarantine]`,
+/// and `#[recurrence_anchor]`. The convergent-evidence family draws on
+/// both immunology (clonal expansion, IgG class-switching) and clinical
+/// medicine (diagnostic workup) — the dual axis is acknowledged
+/// explicitly rather than collapsed.
+///
 /// # Arguments
 ///
 /// - `modalities = [WitnessClass::X, ...]` (required) — non-empty list
