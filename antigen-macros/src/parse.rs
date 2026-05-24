@@ -1428,10 +1428,10 @@ impl TriageCommitArgs {
                      (commit sha pointing to last-known-good state).",
                 ));
             }
-            Some("") => {
+            Some(s) if s.trim().is_empty() => {
                 return Err(syn::Error::new(
                     self.rollback_target_span.unwrap_or(self.args_span),
-                    "#[triage_commit] `rollback_target` cannot be empty. \
+                    "#[triage_commit] `rollback_target` cannot be empty or whitespace-only. \
                      A rollback without a target is not a rollback.",
                 ));
             }
@@ -1446,10 +1446,10 @@ impl TriageCommitArgs {
                      grounding, informed-consent requires an authoring identity.",
                 ));
             }
-            Some("") => {
+            Some(s) if s.trim().is_empty() => {
                 return Err(syn::Error::new(
                     self.triaged_by_span.unwrap_or(self.args_span),
-                    "#[triage_commit] `triaged_by` cannot be empty.",
+                    "#[triage_commit] `triaged_by` cannot be empty or whitespace-only.",
                 ));
             }
             Some(_) => {}
@@ -2905,11 +2905,10 @@ mod tests {
     }
 
     #[test]
-    fn triage_commit_validate_whitespace_only_rollback_target_is_currently_accepted() {
-        // ADVERSARIAL FINDING: rollback_target = "   " (whitespace-only) is NOT
-        // caught by the empty-string check. The validator checks `Some("")` but
-        // "   " is not empty. A whitespace-only SHA is not a valid git ref.
-        // This test PINS the current behavior; a future fix should trim+check.
+    fn triage_commit_validate_whitespace_only_rollback_target_is_rejected() {
+        // ATK-VCS-5 fix: rollback_target = "   " (whitespace-only) is now
+        // caught by trim().is_empty() check. A whitespace-only string is not
+        // a valid git ref.
         let tokens: TokenStream = r#"triage_decision = TriageDecision::Red,
             rollback_target = "   ",
             triaged_by = "navigator",
@@ -2919,9 +2918,10 @@ mod tests {
             .unwrap();
         let args = syn::parse2::<TriageCommitArgs>(tokens).unwrap();
         assert_eq!(args.rollback_target.as_deref(), Some("   "));
+        let err = args.validate().unwrap_err();
         assert!(
-            args.validate().is_ok(),
-            "whitespace-only rollback_target currently accepted (no trim+check); pins behavior"
+            err.to_string().contains("rollback_target"),
+            "error should mention rollback_target field"
         );
     }
 

@@ -4623,6 +4623,24 @@ The inline code example was changed from `#[orient(...)]` to `#[triage_commit(..
 
 ---
 
+## ADR-026 Amendment 3 — rollback detection algorithm (AUTHOR-DECLARATION) + structural enforcement verification requirement
+
+**Status**: Ratified 2026-05-24.
+
+**Amends**: ADR-026 §Finding (Detection model paragraph) and §Finding (Enforcement model paragraph); adds two audit hints to §Decision audit-hint vocabulary.
+
+**Reason**: Adversarial ATK-VCS-1 (rollback detection algorithm not specified) and ATK-VCS-4 (structural enforcement verification not required at audit-time) identified held-implementation-spec-depth-gap instances. Aristotle Phase 1-8 (campsite `v02-impl-vcs-info-loss`) established the correct resolution for both. The ADR previously stated detection MUST be at commit-time (§D1) without specifying HOW the hook recognizes a rollback commit. The enforcement model accepted Structural mode declarations without verifying the remote configuration via substrate-witness.
+
+**Change 1 — Rollback detection algorithm (ATK-VCS-1)**: Specifies AUTHOR-DECLARATION (Algorithm C) as the detection algorithm. The commit-time hook applies a three-step decision tree: (1) git-revert metadata present + no `Triage-Decision:` trailer → fire `RollbackWithoutTriageCommit`; (2) `#[triage_commit]` declared → fire `vcs-rollback-triage-chain` witness check; (3) otherwise → audit defers. Residual risk from manual inverse cherry-picks (undetectable without author declaration) is NAMED and EXPLICIT per friction-only philosophy. Diff-similarity detection (Algorithm B) is opt-in via `cargo antigen vcs --diff-similarity-check` (v0.3+ experimental).
+
+**Change 2 — Structural enforcement verification (ATK-VCS-4)**: When `ServerSideEnforcementMode::Structural` is declared, the audit pipeline MUST evaluate `vcs_server_side_enforcement_active(repo, antigen_name)` at audit-time. False return → emit `vcs-enforcement-structural-mode-declared-but-not-active` + demote to FrictionOnly for that antigen. Network error during evaluation → emit `vcs-server-config-check-failed` (distinct from structural-not-active). This witness is v0.2.1+ alongside Structural mode; v0.2 ships friction-only only.
+
+**Change 3 — Two new audit hints**: `vcs-enforcement-structural-mode-declared-but-not-active` (emitted when Structural declared but remote config not verified) and `vcs-server-config-check-failed` (emitted on network error during structural verification). Total audit-hint count: 12 → 14.
+
+**Resolves**: ATK-VCS-1 (rollback detection algorithm gap) and ATK-VCS-4 (structural enforcement unverified claim gap) from adversarial pre-attack pass on `v02-impl-vcs-info-loss` campsite. Observer's network-dependent-witness tier concern (1bb4f0c7) addressed by the two-error-mode split.
+
+---
+
 ## ADR-028 Amendment 2 — predicate-leaf requirement applies to witness layer, not fingerprint scan-side
 
 **Status**: Ratified 2026-05-24.
@@ -5651,9 +5669,13 @@ Modern git workflows include force-push, branch-deletion, rebase, squash-merge, 
 
 **Detection model** (per adversarial D1): `RollbackWithoutTriageCommit` cannot be detected by post-hoc history inspection (`git reset --hard` removes traces). MUST operate at COMMIT-TIME via hooks.
 
+*(Amendment 3 — 2026-05-24: rollback detection uses AUTHOR-DECLARATION (Algorithm C), not diff-similarity (Algorithm B). The commit-time hook applies a three-step decision tree: (1) commit message contains git-revert metadata (`This-reverts-commit-X` or `Revert-Of:` trailer) AND no `Triage-Decision:` trailer → fire `RollbackWithoutTriageCommit` hint; (2) commit declares `#[triage_commit]` → fire `vcs-rollback-triage-chain` witness check; (3) otherwise → audit defers; residual risk is that manual inverse cherry-picks without any declaration are undetectable at commit-time. This residual risk is NAMED and EXPLICIT per friction-only philosophy: making bad behavior deliberate rather than impossible. Adopters requiring diff-similarity detection must opt in via `cargo antigen vcs --diff-similarity-check` (v0.3+ experimental path). Campsite: `v02-impl-vcs-info-loss`.)*
+
 **Enforcement model** (per adversarial D3): client-side hooks are bypassable via plumbing commands. The ADR ships:
 - **Friction-only mode** (default v0.2): client-side hooks + audit-time; makes bad behavior DELIBERATE rather than ACCIDENTAL; explicitly NOT preventive
 - **Structural mode** (server-side; v0.2.1+): pre-receive hooks; requires adopter to control git remote
+
+*(Amendment 3 — 2026-05-24: when `ServerSideEnforcementMode::Structural` is declared, the audit pipeline MUST evaluate `vcs_server_side_enforcement_active(repo, antigen_name)` at audit-time. If the witness returns false, emit `vcs-enforcement-structural-mode-declared-but-not-active` hint and demote the audit-tier to FrictionOnly for that antigen. Without this guard, Structural mode is an UNVERIFIED CLAIM. Network error during witness evaluation emits a separate `vcs-server-config-check-failed` hint (network-error != structural-not-active). This witness is v0.2.1+ alongside Structural mode itself; v0.2 ships friction-only only. Campsite: `v02-impl-vcs-info-loss`.)*
 
 ### Decision
 
@@ -5685,7 +5707,7 @@ fn _triage_marker_do_not_remove() {}
 
 **CLI subfamily** (cross-ADR substrate-grep clean): `cargo antigen vcs {scan, check-commit, attest, rollback-prepare, branch-archive, install-hooks, install-server-hooks}`.
 
-**Audit-hint vocabulary** (12 new hints prefixed `vcs-`): `vcs-rollback-without-triage-commit`, `vcs-force-push-erased-substantive-history` (covers both --force and --force-with-lease), `vcs-enforcement-friction-only-no-server-hook`, and others.
+**Audit-hint vocabulary** (14 new hints prefixed `vcs-`; Amendment 3 adds 2): `vcs-rollback-without-triage-commit`, `vcs-force-push-erased-substantive-history` (covers both --force and --force-with-lease), `vcs-enforcement-friction-only-no-server-hook`, `vcs-enforcement-structural-mode-declared-but-not-active` *(Amendment 3)*, `vcs-server-config-check-failed` *(Amendment 3)*, and others.
 
 **§Enforcement-Surface**:
 
