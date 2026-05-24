@@ -467,6 +467,13 @@ pub enum AuditHint {
     /// `#[chronic]` whose `since` date is far enough in the past (past the
     /// configured review horizon) that the chronic state warrants re-review.
     ChronicSignalPastReviewDate,
+    /// `#[chronic]` whose `since` value is neither a parseable ISO-8601 date
+    /// NOR a recognizable version tag (e.g., `"not-a-date"`). Per ATK-RECURRENT-4a:
+    /// ISO dates enforce the review horizon; version tags are tolerated (the
+    /// chronic state is anchored to a release, not a calendar); but an
+    /// unparseable garbage string is a malformed anchor — the `since` claims
+    /// a temporal/version origin that resolves to nothing.
+    ChronicSinceNotADate,
     /// `#[saturate]` declared with no `contributing_to` target — saturation
     /// evidence accumulating toward nothing nameable.
     SaturateNoAnchor,
@@ -2165,6 +2172,35 @@ pub fn audit_recurrent(report: &ScanReport) -> RecurrentAuditReport {
     }
 }
 
+/// Heuristic: is `s` a recognizable version tag (vs. a calendar date or
+/// garbage)? Per ATK-RECURRENT-4a the chronic `since` field tolerates
+/// version anchors but flags unparseable strings. A version tag is an
+/// optional leading `v`/`V` followed by at least one dot-separated numeric
+/// component (e.g. `v0.2.0`, `1.4`, `2.0.0-rc.1`). Pre-release/build
+/// suffixes after the numeric core are allowed.
+fn is_version_tag(s: &str) -> bool {
+    let had_v_prefix = s.starts_with(['v', 'V']);
+    let core = if had_v_prefix { &s[1..] } else { s };
+    // The numeric core runs until the first `-`/`+` (where a pre-release or
+    // build suffix like `-rc.1` or `+build` begins).
+    let numeric_core: &str = core.split(['-', '+']).next().unwrap_or("");
+    if numeric_core.is_empty() {
+        return false;
+    }
+    // Every dot-separated component of the numeric core must be all digits.
+    let mut component_count = 0usize;
+    for part in numeric_core.split('.') {
+        if part.is_empty() || !part.bytes().all(|b| b.is_ascii_digit()) {
+            return false;
+        }
+        component_count += 1;
+    }
+    // A version tag is either `v`-prefixed (e.g. `v3`, `v0.2.0`) OR has at
+    // least major.minor structure (≥2 dot-separated numeric components).
+    // A bare single integer like `"3"` is ambiguous garbage, not a version.
+    had_v_prefix || component_count >= 2
+}
+
 fn evaluate_recurrent_hints(
     decl: &crate::scan::RecurrentDeclaration,
     acted_on: &std::collections::HashSet<&str>,
@@ -2197,15 +2233,22 @@ fn evaluate_recurrent_hints(
             if decl.managed_by.is_none() {
                 hints.push(AuditHint::ChronicSignalUnmanaged);
             }
-            // Past-review-date: only when `since` parses as an ISO date and
-            // is older than the review horizon. Non-date `since` (version
-            // tags like "v0.2.0") skip this check — no false positives.
+            // Three-path `since` resolution per ATK-RECURRENT-4a:
+            //   (1) ISO-8601 date → enforce the review horizon
+            //       (past-horizon → past-review-date hint).
+            //   (2) version tag (e.g. "v0.2.0", "1.4.3-rc.1") → tolerate;
+            //       the chronic state is anchored to a release, not a
+            //       calendar, so no date check applies.
+            //   (3) neither → `since` is a malformed anchor; emit
+            //       chronic-since-not-a-date.
             if let Some(since) = decl.since.as_deref() {
                 if let Ok(since_date) = chrono::NaiveDate::parse_from_str(since, "%Y-%m-%d") {
                     let age = chrono::Utc::now().date_naive() - since_date;
                     if age.num_days() > CHRONIC_REVIEW_HORIZON_DAYS {
                         hints.push(AuditHint::ChronicSignalPastReviewDate);
                     }
+                } else if !is_version_tag(since) {
+                    hints.push(AuditHint::ChronicSinceNotADate);
                 }
             }
         }
@@ -2578,7 +2621,7 @@ mod tests {
     #[test]
     fn audit_recurrent_chronic_version_since_skips_date_check() {
         // Non-ISO `since` (version tag) must NOT false-positive the
-        // past-review-date check.
+        // past-review-date check AND must NOT emit not-a-date.
         let mut report = ScanReport::default();
         let mut decl = recurrent_decl(crate::scan::RecurrentKind::Chronic, Some("X"));
         decl.managed_by = Some("team".to_string());
@@ -2588,6 +2631,56 @@ mod tests {
         assert!(!out.audits[0]
             .hints
             .contains(&AuditHint::ChronicSignalPastReviewDate));
+        assert!(!out.audits[0]
+            .hints
+            .contains(&AuditHint::ChronicSinceNotADate));
+    }
+
+    #[test]
+    fn audit_recurrent_chronic_garbage_since_emits_not_a_date() {
+        // Per ATK-RECURRENT-4a: `since` that is neither ISO date nor
+        // version tag → chronic-since-not-a-date.
+        let mut report = ScanReport::default();
+        let mut decl = recurrent_decl(crate::scan::RecurrentKind::Chronic, Some("X"));
+        decl.managed_by = Some("team".to_string());
+        decl.since = Some("not-a-date".to_string());
+        report.recurrent_declarations.push(decl);
+        let out = audit_recurrent(&report);
+        assert!(out.audits[0]
+            .hints
+            .contains(&AuditHint::ChronicSinceNotADate));
+    }
+
+    #[test]
+    fn is_version_tag_recognizes_versions_rejects_garbage() {
+        assert!(is_version_tag("v0.2.0"));
+        assert!(is_version_tag("V1.4.3"));
+        assert!(is_version_tag("1.4"));
+        assert!(is_version_tag("2.0.0-rc.1"));
+        assert!(is_version_tag("1.0.0+build42"));
+        // Rejections — these should emit chronic-since-not-a-date.
+        assert!(!is_version_tag("not-a-date"));
+        assert!(!is_version_tag("yesterday"));
+        assert!(!is_version_tag("v"));
+        assert!(!is_version_tag(""));
+        assert!(!is_version_tag("release-2"));
+        // A bare integer "3" has no dot-separated structure → not a version.
+        assert!(!is_version_tag("3"));
+    }
+
+    #[test]
+    fn audit_recurrent_chronic_iso_date_not_flagged_not_a_date() {
+        // Recent ISO date: no past-review-date AND no not-a-date.
+        let mut report = ScanReport::default();
+        let mut decl = recurrent_decl(crate::scan::RecurrentKind::Chronic, Some("X"));
+        decl.managed_by = Some("team".to_string());
+        let recent = (chrono::Utc::now().date_naive() - chrono::Duration::days(10))
+            .format("%Y-%m-%d")
+            .to_string();
+        decl.since = Some(recent);
+        report.recurrent_declarations.push(decl);
+        let out = audit_recurrent(&report);
+        assert!(out.audits[0].hints.is_empty());
     }
 
     #[test]
