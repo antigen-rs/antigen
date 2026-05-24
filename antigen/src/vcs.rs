@@ -7,8 +7,9 @@
 //!
 //! - [`TriageDecision`] — the 5-color triage classification carried by
 //!   `#[triage_commit]` declarations (Black | Red | Yellow | Green | White),
-//!   modeled on the START field-triage protocol from disaster medicine
-//!   (chart-documentation cognate per ADR-026 §Rollback-as-triage discipline).
+//!   color-tagged analogously to clinical field-triage protocols (e.g., START
+//!   from disaster medicine); the rollback-as-triage discipline grounds in the
+//!   chart-documentation cognate per ADR-026 §Rollback-as-triage discipline.
 //! - [`ServerSideEnforcementMode`] — whether the VCS-info-loss antigens
 //!   operate in `FrictionOnly` (client-side hooks, bypassable per D3) or
 //!   `Structural` (server-side hooks; requires adopter to control remote)
