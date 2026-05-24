@@ -4671,6 +4671,8 @@ This honors outsider's resolve recommendation (b1 with v0.3 commitment named) an
 
 **Resolves**: ATK-VCS-1 (rollback detection algorithm gap) and ATK-VCS-4 (structural enforcement unverified claim gap) from adversarial pre-attack pass on `v02-impl-vcs-info-loss` campsite. Observer's network-dependent-witness tier concern (1bb4f0c7) addressed by the two-error-mode split.
 
+**What this amendment does NOT do**: Does not add a `vcs-rollback-coverage-partial` hint for step-3 commits (ATK-VCS-A1 partial residual — see adversarial campsite note). The hint would fire on every commit that falls through to step 3, making the partial-coverage zone visible at audit-time per ADR-005 Amendment 3 tier-honesty discipline. Deferred to v0.2.x alongside `install-hooks`/`install-server-hooks` CLI verbs, which provide the infrastructure through which the hint would be emitted.
+
 ---
 
 ## ADR-026 Amendment 4 — Rollback detection step-2 signal: commit-trailer not codebase-presence
