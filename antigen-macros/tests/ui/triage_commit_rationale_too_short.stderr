@@ -1,0 +1,5 @@
+error: #[triage_commit] `rationale` must be at least 20 characters (got 15); per ADR-023 loudness-as-discipline applied to clinical-medicine chart-documentation.
+  --> tests/ui/triage_commit_rationale_too_short.rs:10:17
+   |
+10 |     rationale = "short rationale",
+   |                 ^^^^^^^^^^^^^^^^^

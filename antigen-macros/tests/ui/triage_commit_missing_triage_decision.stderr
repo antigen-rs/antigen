@@ -1,0 +1,5 @@
+error: #[triage_commit] requires `triage_decision = TriageDecision::X` (one of Black, Red, Yellow, Green, White). Per ADR-026 §Rollback-as-triage, the loud-acknowledgment IS the discipline.
+ --> tests/ui/triage_commit_missing_triage_decision.rs:6:5
+  |
+6 |     rollback_target = "abc1234",
+  |     ^^^^^^^^^^^^^^^

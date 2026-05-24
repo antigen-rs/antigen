@@ -1,0 +1,5 @@
+error: #[triage_commit] `rollback_due_within_minutes` must be > 0. A zero deadline degrades to no-deadline; per ADR-026 §Rollback-as-triage the time-bound carries discipline.
+  --> tests/ui/triage_commit_zero_deadline.rs:11:35
+   |
+11 |     rollback_due_within_minutes = 0,
+   |                                   ^
