@@ -45,7 +45,7 @@ use antigen_attestation::parser::LeafExpr;
 // ============================================================================
 
 /// Parse-time antigen-category variant (mirrors `antigen::AntigenCategory`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MacroAntigenCategory {
     SubstrateAlignment,
     FunctionalCorrectness,
@@ -254,6 +254,21 @@ impl AntigenArgs {
                 ),
             ));
         }
+        // ADR-028: category is a SET (SubstrateAlignment | FunctionalCorrectness | both).
+        // Vec<MacroAntigenCategory> must not contain duplicate entries — duplicates
+        // look like hybrid antigens (len == 2) but are not.
+        {
+            let mut seen = std::collections::HashSet::new();
+            for cat in &self.category {
+                if !seen.insert(cat) {
+                    return Err(syn::Error::new(
+                        self.args_span,
+                        "duplicate AntigenCategory variant in `category` array; \
+                         each category variant may appear at most once",
+                    ));
+                }
+            }
+        }
         Ok(())
     }
 }
@@ -334,8 +349,11 @@ impl ImmuneArgs {
             (Some(_), Some((_, span))) => Err(syn::Error::new(
                 *span,
                 "#[immune] accepts either `witness = ...` or `requires = ...`, not both. \
-                 For compound evidence across code-tier and substrate-tier, \
-                 use `witnesses = [...]` (multi-witness syntax, ADR-019 §F11).",
+                 For compound evidence across code-tier and substrate-tier (e.g., \
+                 hybrid antigens per ADR-028), stack two `#[immune]` attributes on \
+                 the same item — one with `witness = ...`, one with `requires = ...`. \
+                 Audit treats stacked `#[immune]` attributes as independent coverage \
+                 entries.",
             )),
             (_, Some((pred, span))) => pred.validate(*span),
             (Some(_), None) => Ok(()),
@@ -2574,41 +2592,36 @@ mod tests {
     // -------------------------------------------------------------------------
 
     #[test]
-    fn antigen_parser_duplicate_category_in_array_is_currently_accepted() {
-        // ADVERSARIAL FINDING: [SubstrateAlignment, SubstrateAlignment] is NOT
-        // rejected at parse time. The 2-element result looks like a hybrid
-        // but contains duplicates. Downstream code that checks `len() == 2`
-        // to detect hybrid will be fooled. This test PINS the current (no-validation)
-        // behavior. A future validate() check should reject duplicates with
-        // `antigen-category-hybrid-incomplete-evidence` or a new hint.
-        //
-        // See: camp note v02-impl-antigen-category-metadata
+    fn antigen_parser_duplicate_category_in_array_is_rejected() {
+        // [SubstrateAlignment, SubstrateAlignment] must be rejected by validate():
+        // duplicate entries look like hybrid (len == 2) but contain only one
+        // distinct variant. Fixed by dedup-check in AntigenArgs::validate() per
+        // aristotle Phase 1-8 ratification (ADR-028).
         let tokens: TokenStream = r#"name = "x", fingerprint = "item = fn", category = [AntigenCategory::SubstrateAlignment, AntigenCategory::SubstrateAlignment]"#
             .parse()
             .unwrap();
         let args = syn::parse2::<AntigenArgs>(tokens).unwrap();
-        assert_eq!(
-            args.category,
-            vec![
-                MacroAntigenCategory::SubstrateAlignment,
-                MacroAntigenCategory::SubstrateAlignment,
-            ],
-            "currently accepted: duplicate categories in array not rejected at parse time"
+        let err = args.validate().unwrap_err().to_string();
+        assert!(
+            err.contains("duplicate") && err.contains("category"),
+            "validate() must reject duplicate category entries; got: {err:?}"
         );
     }
 
     #[test]
-    fn antigen_parser_three_element_category_array_is_currently_accepted() {
-        // ADVERSARIAL FINDING: [SA, FC, SA] (3 elements) is NOT rejected.
-        // ADR-028 §Schema says the vec is hybrid when it contains BOTH variants;
-        // it does not cap the vec at 2. But 3+ element arrays are spec-silent:
-        // no mention of what happens with more than 2 elements. This test pins
-        // the current permissive behavior.
+    fn antigen_parser_three_element_category_array_with_duplicate_is_rejected() {
+        // [SA, FC, SA] must be rejected: SA appears twice.
+        // Even though FC is present (making it look hybrid), the duplicate SA
+        // is structurally incorrect.
         let tokens: TokenStream = r#"name = "x", fingerprint = "item = fn", category = [AntigenCategory::SubstrateAlignment, AntigenCategory::FunctionalCorrectness, AntigenCategory::SubstrateAlignment]"#
             .parse()
             .unwrap();
         let args = syn::parse2::<AntigenArgs>(tokens).unwrap();
-        assert_eq!(args.category.len(), 3, "3-element array currently accepted");
+        let err = args.validate().unwrap_err().to_string();
+        assert!(
+            err.contains("duplicate") && err.contains("category"),
+            "validate() must reject duplicate category entries; got: {err:?}"
+        );
     }
 
     #[test]
