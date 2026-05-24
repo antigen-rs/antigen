@@ -2975,10 +2975,9 @@ mod tests {
     fn orient_parser_accepts_learning_path() {
         // STEP 2: learning_path is Optional at v0.2 (audit emits
         // orient-learning-path-absent hint when missing; not a parse error).
-        let tokens: TokenStream =
-            r#"learning_path = "Audit Drop impls before v0.3 cliff""#
-                .parse()
-                .unwrap();
+        let tokens: TokenStream = r#"learning_path = "Audit Drop impls before v0.3 cliff""#
+            .parse()
+            .unwrap();
         let args = syn::parse2::<OrientArgs>(tokens).unwrap();
         assert_eq!(
             args.learning_path.as_deref(),
@@ -3020,10 +3019,9 @@ mod tests {
     fn orient_parser_still_accepts_deprecated_see_for_v02_compat() {
         // STEP 3: deprecated v0.2, removed v0.3. Parser still accepts at v0.2;
         // audit emits orient-see-field-deprecated. No parse error.
-        let tokens: TokenStream =
-            r#"see = ["ADR-023", "https://example.com/migration"]"#
-                .parse()
-                .unwrap();
+        let tokens: TokenStream = r#"see = ["ADR-023", "https://example.com/migration"]"#
+            .parse()
+            .unwrap();
         let args = syn::parse2::<OrientArgs>(tokens).unwrap();
         assert_eq!(args.see.len(), 2);
         args.validate().unwrap();
@@ -3043,7 +3041,7 @@ mod tests {
         // STEP 3: deprecated v0.2, removed v0.3. This field inverts ADR-023
         // loudness-as-discipline (per aristotle F2) so the audit hint is the
         // loudest of the deprecation set.
-        let tokens: TokenStream = r#"attestation_optional"#.parse().unwrap();
+        let tokens: TokenStream = "attestation_optional".parse().unwrap();
         let args = syn::parse2::<OrientArgs>(tokens).unwrap();
         assert!(args.attestation_optional);
         args.validate().unwrap();
