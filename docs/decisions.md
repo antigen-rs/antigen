@@ -5732,9 +5732,9 @@ pub enum SeedKind {
 | "Low-level persistent signal NOT cross-substrate" | `#[chronic]` | `#[recurrence_anchor]` |
 | "Differential diagnosis: rule-out workflow" | `#[ddx]` | `#[panel]` |
 
-**Biology grounding — dual-axis honesty** (per naturalist refinement 1):
-- **Immunology-proper** (7 primitives): `#[clonal]`, `#[igg]`, `#[crossreactive]`, `#[polyclonal]`, `#[monoclonal]`, `#[adcc]`, `#[chronic]`, `#[titer]`
-- **Clinical-medicine** (10 primitives): `#[diagnostic]`, `#[panel]`, `#[ddx]`, `#[rx]`, `#[triage]`, `#[refer]`, `#[biopsy]`, `#[culture]`, `#[quarantine]`, `#[recurrence_anchor]`
+**Biology grounding — dual-axis honesty** (per naturalist refinement 1; `#[titer]` reassigned per Amendment 1):
+- **Immunology-proper** (7 primitives): `#[clonal]`, `#[igg]`, `#[crossreactive]`, `#[polyclonal]`, `#[monoclonal]`, `#[adcc]`, `#[chronic]`
+- **Clinical-medicine** (11 primitives): `#[diagnostic]`, `#[panel]`, `#[ddx]`, `#[rx]`, `#[triage]`, `#[refer]`, `#[biopsy]`, `#[culture]`, `#[titer]`, `#[quarantine]`, `#[recurrence_anchor]`
 - **Cognitive-organizational** (4 primitives): `#[itch]`, `#[saturate]`, `#[crystallize]`, `#[strand]`
 
 **MHC routing-error correction** (per naturalist refinement 2): no primitive in ADR-024 maps to MHC. The MHC cognate is `#[presents]` in ADR-001.
@@ -5780,6 +5780,58 @@ pub enum SeedKind {
 - Does NOT mechanically verify source-independence of `#[igg]` signers (nominal-only; known limitation)
 - Does NOT claim biology proper grounds all 21 primitives uniformly (dual-axis honesty per naturalist)
 - Does NOT claim temporal-arc is the only valid organizing principle
+
+## ADR-024 Amendment 1 — `#[titer]` biology-grounding axis reassignment
+
+**Status**: Ratified 2026-05-24.
+
+**Amends**: ADR-024.
+
+**Reason**: Outsider dust-finding (`3a3fada0`) surfaced a count drift in the
+§Biology grounding block: header declared "(7 primitives)" for
+immunology-proper but the list contained 8 entries. Naturalist (original
+author of refinement 1 dual-axis honesty) evaluated the axis assignment for
+the eighth entry, `#[titer]`, and judged it belongs in clinical-medicine,
+not immunology-proper.
+
+**Participants**: outsider (`3a3fada0` count-drift dust-finding); naturalist
+(axis-assignment evaluation + amendment draft); aristotle (`aa805ca5`
+process call: substantive axis-assignment changes warrant amendment, not
+silent-fix).
+
+**Related**: ADR-003 (biology metaphor); ADR-024 §Biology grounding
+(parent dual-axis honesty refinement);
+process-adr-spec-depth-amendment §Amendment-vs-silent-fix-criteria.
+
+### Finding
+
+The §Biology grounding block carried a count drift since ratification
+(2026-05-22): immunology-proper header declared 7 primitives but the list
+contained 8 entries. The header count was correct; the LIST miscounted by
+erroneously including `#[titer]`. Total counts cross-check: convergent (7)
++ recurrent (6) + prescriptive (9) = 22 primitives. After amendment:
+immunology-proper (7) + clinical-medicine (11) + cognitive-organizational
+(4) = 22. Pre-amendment sum was 8 + 10 + 4 = 22 — the sum-to-22 invariant
+was preserved accidentally; the axis assignment for `#[titer]` was the
+underlying error.
+
+### Decision
+
+**`#[titer]` is biology-grounded in clinical-medicine, not
+immunology-proper.** Its operational discipline is prescriptive —
+chart-documented monitoring of antibody concentration over time. Clinicians
+ORDER titer tests to monitor specific patient cohorts. This is clinical-
+medicine usage, not immunology-proper antibody-binding-affinity measurement.
+The §Biology grounding lists at lines 5735–5737 are updated per this
+amendment.
+
+### What this amendment does NOT do
+
+- Does NOT change `#[titer]`'s macro semantics, arg signature, or
+  implementation.
+- Does NOT modify the family-grouping of `#[titer]` (still Family 3
+  Prescriptive Work-Orchestration).
+- Does NOT reassess axis assignments for other primitives.
 
 ---
 
