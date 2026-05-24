@@ -5777,6 +5777,8 @@ Hybrid: `CampsiteOpen` (sidecar must exist AND signatures must cryptographically
 - Hybrid requires BOTH witness types
 - Category mismatch vs predicates FAILS validation at parse-time / audit-time
 
+*(Amendment 2 — 2026-05-24: The "substrate-witness predicate leaf" requirement above applies to the WITNESS layer — either an audit-pipeline evaluator that reads substrate state directly (e.g., `DepPinnedState`, `ContentHashState`), or a fingerprint using substrate-witness leaves from ADR-019's grammar. It does NOT require the fingerprint scan-side pattern itself to be a substrate-witness leaf. Fingerprint finds the declaration sites; witness evaluates substrate state. Concretely: `doc_contains("ADR-025")` is a valid scan-side fingerprint for a `SubstrateAlignment` antigen whose witness is the `dep_pinned()` audit-pipeline evaluator — the fingerprint locates the antigen declaration, not the vulnerability site. This interpretation was confirmed by team-lead 2026-05-24; campsite `adr028-predicate-leaf-clarification`.)*
+
 **Hybrid miscategorization defense** (per F1-R): parse-time category-vs-witness-type cross-check emits `antigen-category-claim-inconsistent-with-predicate-type` if declared category doesn't match predicate type. Hybrid antigens require BOTH axes EVALUATED at audit time; missing axis = UNVERIFIED.
 
 **Per-site `category_required` escape hatch is REMOVED** in this revision — escape hatches defeat the strict-enforcement value.

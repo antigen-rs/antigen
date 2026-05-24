@@ -1,0 +1,5 @@
+error: duplicate AntigenCategory variant in `category` array; each category variant may appear at most once
+ --> tests/ui/category_duplicate_in_array.rs:8:5
+  |
+8 |     name = "test-antigen",
+  |     ^^^^
