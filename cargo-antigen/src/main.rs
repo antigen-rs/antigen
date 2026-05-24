@@ -159,6 +159,11 @@ struct ScanArgs {
     /// for backward compatibility.
     #[arg(long)]
     include_deps: bool,
+    /// Filter to antigen declarations of a single category (ADR-028 §CLI
+    /// integration). Accepts `substrate-alignment` or `functional-correctness`.
+    /// A hybrid antigen (both categories) matches either filter.
+    #[arg(long)]
+    category: Option<String>,
 }
 
 #[derive(Debug, Parser)]
@@ -175,6 +180,11 @@ struct AuditArgs {
     /// integration.
     #[arg(long)]
     strict: bool,
+    /// Filter the category audit to a single category (ADR-028 §CLI
+    /// integration). Accepts `substrate-alignment` or `functional-correctness`.
+    /// A hybrid antigen (both categories) matches either filter.
+    #[arg(long)]
+    category: Option<String>,
 }
 
 // ============================================================================
@@ -2067,6 +2077,63 @@ fn run_oracle_revoke(args: OracleRevokeArgs) -> ExitCode {
     )
 }
 
+/// Parse the `--category` CLI argument (ADR-028 §CLI integration). Returns
+/// `Ok(None)` when no filter was supplied, `Ok(Some(cat))` for a valid
+/// category string, and `Err(())` (after printing a diagnostic) for an
+/// unrecognized value.
+fn parse_category_filter(
+    raw: Option<&str>,
+) -> Result<Option<antigen::category::AntigenCategory>, ()> {
+    match raw {
+        None => Ok(None),
+        Some(s) => match antigen::category::AntigenCategory::parse_category(s) {
+            Some(c) => Ok(Some(c)),
+            None => {
+                eprintln!(
+                    "error: unrecognized --category `{s}`; \
+                     expected `substrate-alignment` or `functional-correctness`"
+                );
+                Err(())
+            }
+        },
+    }
+}
+
+/// Filter a scan report in place to antigen declarations of `cat` (ADR-028
+/// §CLI integration). A hybrid antigen (both categories) matches either
+/// filter. Antigens with an absent category default to `FunctionalCorrectness`
+/// per ADR-028 §v0.2-backward-compat, so they match the functional-correctness
+/// filter. Presentations, immunities, and tolerations addressing a dropped
+/// antigen are pruned so the filtered view stays internally consistent.
+fn filter_report_by_category(
+    report: &mut scan::ScanReport,
+    cat: antigen::category::AntigenCategory,
+) {
+    use antigen::category::AntigenCategory;
+
+    let matches = |decl_category: &[AntigenCategory]| -> bool {
+        if decl_category.is_empty() {
+            // Absent category defaults to FunctionalCorrectness.
+            cat == AntigenCategory::FunctionalCorrectness
+        } else {
+            decl_category.contains(&cat)
+        }
+    };
+
+    report.antigens.retain(|a| matches(&a.category));
+    let kept: std::collections::HashSet<String> = report
+        .antigens
+        .iter()
+        .map(|a| a.type_name.clone())
+        .collect();
+
+    report
+        .presentations
+        .retain(|p| kept.contains(&p.antigen_type));
+    report.immunities.retain(|i| kept.contains(&i.antigen_type));
+    report.tolerances.retain(|t| kept.contains(&t.antigen_type));
+}
+
 fn run_scan(args: ScanArgs) -> ExitCode {
     if !args.root.exists() {
         eprintln!("error: path does not exist: {}", args.root.display());
@@ -2079,15 +2146,26 @@ fn run_scan(args: ScanArgs) -> ExitCode {
         );
         return ExitCode::from(2);
     }
+
+    // ADR-028 §CLI integration: --category filters to a single category.
+    let category_filter = match parse_category_filter(args.category.as_deref()) {
+        Ok(c) => c,
+        Err(()) => return ExitCode::from(2),
+    };
+
     eprintln!("Scanning workspace: {}", args.root.display());
 
-    let report = match scan::scan_workspace(&args.root, None) {
+    let mut report = match scan::scan_workspace(&args.root, None) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("error: scan failed: {e}");
             return ExitCode::from(2);
         }
     };
+
+    if let Some(cat) = category_filter {
+        filter_report_by_category(&mut report, cat);
+    }
 
     let unaddressed = report.unaddressed_presentations();
 
@@ -2409,15 +2487,26 @@ fn run_audit(args: AuditArgs) -> ExitCode {
         );
         return ExitCode::from(2);
     }
+
+    // ADR-028 §CLI integration: --category filters the audit to a single category.
+    let category_filter = match parse_category_filter(args.category.as_deref()) {
+        Ok(c) => c,
+        Err(()) => return ExitCode::from(2),
+    };
+
     eprintln!("Auditing workspace: {}", args.root.display());
 
-    let scan_report = match scan::scan_workspace(&args.root, None) {
+    let mut scan_report = match scan::scan_workspace(&args.root, None) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("error: scan failed: {e}");
             return ExitCode::from(2);
         }
     };
+
+    if let Some(cat) = category_filter {
+        filter_report_by_category(&mut scan_report, cat);
+    }
 
     let audit_report = audit::audit(&scan_report, &args.root);
 
