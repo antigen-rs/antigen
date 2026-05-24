@@ -1,0 +1,5 @@
+error: unknown AntigenCategory `AntigenCategory::Hybrid`; expected `AntigenCategory::SubstrateAlignment` or `AntigenCategory::FunctionalCorrectness`
+ --> tests/ui/category_unknown_variant.rs:6:76
+  |
+6 | #[antigen(name = "test-antigen", fingerprint = "item = struct", category = AntigenCategory::Hybrid)]
+  |                                                                            ^^^^^^^^^^^^^^^^^^^^^^^
