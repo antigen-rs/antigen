@@ -73,6 +73,7 @@ breaks the posture's wording), the catalog is corrected.
 5. [Implicit-to-explicit elevation](#5-implicit-to-explicit-elevation)
 6. [Rationale-as-required-field](#6-rationale-as-required-field)
 7. [Depth-shift discipline](#7-depth-shift-discipline)
+8. [Substrate-currency](#8-substrate-currency)
 
 ---
 
@@ -622,6 +623,110 @@ operational layers.
 
 ---
 
+## 8. Substrate-currency
+
+> **INTERIM mitigation — terminal fix is structural.** This posture is
+> ratified as a necessary-but-insufficient discipline layer. The terminal fix
+> is a JBD/camp wake-reconcile primitive: tooling-emitted substrate-delta on
+> agent wake, so alignment is pushed rather than remembered. See aristotle
+> ratification F1 on campsite `substrate-currency-ratification` (2026-05-24).
+
+### Posture
+
+> "Work is complete" means the substrate reflects the work — not that the
+> working agent believes the work is done. A completion signal carries weight
+> only when accompanied by a substrate-grounded check: a named command that a
+> separate agent can run to verify the claim independently. Completion signals
+> backed only by agent-context state (drafts in campsites, tasks marked
+> complete, routing messages sent) are outbox-state, not substrate-state, and
+> must not be acted on as if they were substrate-grounded.
+
+### Why
+
+Agent context drifts from substrate. Multiple agents can simultaneously hold
+contradictory beliefs about what is "done" — each accurate within their context
+window, collectively incoherent with the on-disk record. The failure mode is not
+lying; it is the implicit conflation of "I believe X is complete" with "X is
+complete on disk." The conflation is invisible within a single agent context;
+it becomes catastrophic when routed between agents, each of whom accepts the
+prior agent's outbox-state as substrate-truth.
+
+The discipline-layer posture (name the substrate check) is ratified as INTERIM
+mitigation. It reduces the gap at the margin but cannot eliminate it: the
+check relies on the agent remembering to self-police the faculty (context-currency)
+that is compromised. Empirical record (v02-completion-arc expedition 2026-05-24):
+discipline-layer intervention (agent-file "substrate-currency before sending"
+section) was added mid-expedition and instances recurred after it. The failing
+faculty cannot reliably detect its own failure.
+
+The terminal fix is structural: a wake-reconcile primitive where the coordination
+tool pushes a substrate-delta into context on agent wake — campsites changed,
+commits landed, tasks closed. The agent reconciles against current substrate
+instead of its frozen snapshot. This is antigen's own thesis (implicit memory
+fails; structural memory required) applied to team coordination: substrate-
+currency is a substrate-alignment antigen at the coordination layer.
+
+A2 Validation 4 named the canonical failure concretely: three agents each issued
+"ratification complete" signals on the basis of campsites and task-list state.
+No ratification commit existed on disk. Recovery required a `git grep ADR-011
+docs/decisions.md` that the routing chain had not performed.
+
+### Where ratified
+
+Path-2 entry. Three-tier substrate-currency taxonomy (tracker / reporter /
+claim-propagation) ratified by aristotle Phase 1-8 deconstruction on campsite
+`substrate-currency-ratification` (2026-05-24). All three ratification conditions
+met: cross-session temporal independence, same-layer repetition (claim-propagation
+tier 5+ instances), concept stops surprising trackers (predictable: fires
+post-compaction when pending-state-list diverges from camp substrate).
+
+Most load-bearing canonical instance: A1 CLOSURE.md Validation 4 — the team
+passed three "ratification complete" signals through its routing chain on the
+basis of agent context rather than substrate. Recovery required `git grep
+ADR-011 docs/decisions.md`.
+
+Three confirmed tiers:
+
+1. **Coordination tier (tracker)**: A1 Validation 4 — agent reports completion
+   on outbox state without substrate check.
+2. **Implementation tier (reporter)**: agent begins implementation on substrate
+   already updated, caught mid-action.
+3. **Claim-propagation tier**: navigator routes a finding without independent
+   verification; receiving agent acts on the routed claim as if it were
+   substrate-grounded.
+
+Empirical falsification of discipline-sufficiency: five or more claim-propagation
+instances in v02-completion-arc expedition AFTER discipline-layer intervention
+was applied. The intervention did not eliminate recurrence; it confirmed the
+discipline-layer is insufficient as terminal fix.
+
+### How to apply
+
+When routing any "X is complete" signal — task completion, ratification, test
+passage, deployment, closure — name the substrate check in the signal:
+
+- "W7 complete — `cargo test --workspace` returns 0 failures, `git log --oneline
+  -1` shows commit `XXXXXXX`."
+- "Ratification complete — `git grep ADR-011 docs/decisions.md` returns matches
+  in the Finding and Decision sections."
+- "Case study update complete — `grep -c 'Update — 2026-05-08'
+  docs/expedition/case-study-determinism-class.md` returns 1."
+
+The substrate check is not optional documentation; it is the completion claim.
+A signal without a named substrate check is an outbox-state assertion, not a
+substrate-state assertion, and the receiving agent should ask for the check
+before acting.
+
+When receiving a completion signal without a named substrate check: run the
+obvious check yourself before acting. If the check contradicts the signal,
+the signal was outbox-state; report the discrepancy to the sender.
+
+When receiving routing that asserts a campsite-state ("campsite X is at 1/2
+signed"): run `camp status` or `git log --oneline` before acting on the claim.
+The campsite state in the sender's context may be stale (compaction artifact).
+
+---
+
 ## What postures.md is NOT
 
 To prevent scope creep:
@@ -668,10 +773,10 @@ ADR-006:
   accept (sub-clause F violation) or reject (forward-compat block). One
   ratified ADR-016 instance + one A2 verified_at instance; awaiting third.
 
-- **substrate-currency** — the temporal sub-pattern of substrate-over-memory:
-  substrate-as-of-author-time ≠ substrate-as-of-consumer-time; a claim or
-  finding is authoritative only if verified against the substrate at the
-  time of consumption, not the time of authorship.
+- ~~**substrate-currency**~~ — **RATIFIED as §8** (2026-05-24, aristotle
+  ratification F1). Three-tier taxonomy ratified; discipline posture ratified
+  as INTERIM; structural wake-reconcile direction named as terminal fix. See
+  §8 above.
 
   *Evolution of framing — preserved here as inoculation against premature
   vocabulary closure on a still-extending concept.*
