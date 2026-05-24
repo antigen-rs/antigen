@@ -458,6 +458,11 @@ pub enum AuditHint {
     /// in the workspace addresses the anchored antigen — the recurrence
     /// crossed threshold but no action followed.
     RecurrenceThresholdReachedNoAction,
+    /// `#[recurrence_anchor]` declared but no `#[itch]` declarations in the
+    /// workspace reference the same antigen type — the anchor has no upstream
+    /// noticing precondition. The temporal progression (itch → anchor →
+    /// crystallize) is bypassed: commitment declared without prior noticing.
+    RecurrenceAnchorNoItchPrecondition,
     /// `#[crystallize]` declared with no `antigen` path AND no `from_itches`
     /// — a crystallization event with nothing it crystallized FROM or INTO.
     CrystallizeWithoutAntigen,
@@ -2181,9 +2186,18 @@ pub fn audit_recurrent(report: &ScanReport) -> RecurrentAuditReport {
         .chain(report.presentations.iter().map(|p| p.antigen_type.as_str()))
         .collect();
 
+    // Antigen-type names declared by #[itch] entries. Used to check that
+    // #[recurrence_anchor] has upstream noticing preconditions (ATK-RECURRENT-2).
+    let itch_antigen_types: std::collections::HashSet<&str> = report
+        .recurrent_declarations
+        .iter()
+        .filter(|d| d.kind == crate::scan::RecurrentKind::Itch)
+        .filter_map(|d| d.antigen_type.as_deref())
+        .collect();
+
     let mut audits: Vec<RecurrentAudit> = Vec::new();
     for decl in &report.recurrent_declarations {
-        let hints = evaluate_recurrent_hints(decl, &acted_on);
+        let hints = evaluate_recurrent_hints(decl, &acted_on, &itch_antigen_types);
         audits.push(RecurrentAudit {
             declaration: decl.clone(),
             hints,
@@ -2239,6 +2253,7 @@ fn is_version_tag(s: &str) -> bool {
 fn evaluate_recurrent_hints(
     decl: &crate::scan::RecurrentDeclaration,
     acted_on: &std::collections::HashSet<&str>,
+    itch_antigen_types: &std::collections::HashSet<&str>,
 ) -> Vec<AuditHint> {
     use crate::scan::RecurrentKind;
 
@@ -2250,8 +2265,13 @@ fn evaluate_recurrent_hints(
             }
         }
         RecurrentKind::RecurrenceAnchor => {
-            // Anchor crossed threshold but nothing downstream addresses it.
+            // Anchor has no upstream itch preconditions — temporal progression
+            // (itch → anchor → crystallize) bypassed (ATK-RECURRENT-2).
             if let Some(antigen) = decl.antigen_type.as_deref() {
+                if decl.from_itches.is_empty() && !itch_antigen_types.contains(antigen) {
+                    hints.push(AuditHint::RecurrenceAnchorNoItchPrecondition);
+                }
+                // Anchor crossed threshold but nothing downstream addresses it.
                 if !acted_on.contains(antigen) {
                     hints.push(AuditHint::RecurrenceThresholdReachedNoAction);
                 }
