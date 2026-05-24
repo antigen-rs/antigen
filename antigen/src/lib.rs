@@ -159,6 +159,13 @@ pub use convergent::{SeedKind, WitnessClass};
 // immunology-proper + clinical-medicine dual-axis grounding.
 pub use antigen_macros::{chronic, crystallize, itch, recurrence_anchor, saturate, strand};
 
+// Mucosal Boundary Family (ADR-027 + Amendment 1): three boundary-discipline
+// primitives — active defense (mucosal), delegated defense (mucosal_delegate),
+// active tolerance (mucosal_tolerant). Selective-permeability trust boundaries;
+// biology grounds the tier-claim + 4 functional disciplines.
+pub use antigen_macros::{mucosal, mucosal_delegate, mucosal_tolerant};
+pub use mucosal::MucosalKind;
+
 pub mod audit;
 pub mod scan;
 
@@ -208,3 +215,11 @@ pub use vcs::{ServerSideEnforcementMode, TriageDecision};
 /// scan/audit CLI filtering.
 pub mod category;
 pub use category::AntigenCategory;
+
+/// Public types for the Mucosal Boundary Family (ADR-027 + Amendment 1).
+///
+/// Hosts [`mucosal::MucosalKind`] — the sealed 13-variant enum of
+/// data-flow-crossing-boundary types that the `#[mucosal]`,
+/// `#[mucosal_delegate]`, and `#[mucosal_tolerant]` macros take as their
+/// `kind` / `boundary` argument.
+pub mod mucosal;

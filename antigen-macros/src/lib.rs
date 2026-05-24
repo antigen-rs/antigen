@@ -932,6 +932,131 @@ pub fn strand(args: TokenStream, input: TokenStream) -> TokenStream {
     quote! { #input }.into()
 }
 
+// ============================================================================
+// Mucosal Boundary Family (ADR-027 + Amendment 1)
+//
+// Three primitives: #[mucosal], #[mucosal_delegate], #[mucosal_tolerant].
+// MucosalKind sealed 13-variant set. Biology grounds the tier-claim + 4
+// functional disciplines (NOT per-variant tissue mapping per ADR-027
+// NON-NEGOTIABLE). Three response states: active defense / active tolerance
+// / undecided — parallel to ADR-016 immune/tolerance/undeclared triad.
+// ============================================================================
+
+/// Declare a trust boundary is actively defended at this site (ADR-027).
+///
+/// `#[mucosal(kind = MucosalKind::X, rationale = "...")]` marks a function
+/// as the defended boundary for a kind of data/control flow crossing the
+/// trust surface.
+///
+/// # Biology grounding
+///
+/// Per ADR-027 §Biology grounding (NON-NEGOTIABLE): biology grounds the
+/// TIER-CLAIM (mucosal surfaces are a distinct immune tier with selective
+/// permeability) + the prevention-at-boundary discipline (secretory-IgA-style
+/// exclusion). It does NOT ground per-variant tissue mapping — the
+/// `MucosalKind` taxonomy is software-engineering scope-selection by
+/// data-flow type, not anatomy.
+///
+/// # Arguments
+///
+/// - `kind = MucosalKind::X` (required) — the boundary type (one of 13
+///   sealed-set variants)
+/// - `rationale = "..."` (required, ≥20 chars) — why this boundary is
+///   defended
+///
+/// # Audit hints
+///
+/// - `mucosal-boundary-undefended`, `mucosal-kind-mismatch`,
+///   `mucosal-rationale-insufficient`
+#[proc_macro_attribute]
+pub fn mucosal(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::MucosalArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
+/// Declare boundary discipline is delegated to a named handler (ADR-027 +
+/// Amendment 1).
+///
+/// `#[mucosal_delegate(boundary = MucosalKind::X, handled_by = path::to::fn,
+/// rationale = "...")]` declares that the boundary defense is performed by a
+/// callee. Per ADR-027 Amendment 1 Change 4 `handled_by` is a path
+/// expression (not a string) so typos fail at parse-time. Per Change 5 the
+/// handler MUST carry a matching `#[mucosal(kind = X)]` — enforced at
+/// audit-time via the three-tier diagnosis.
+///
+/// # Arguments
+///
+/// - `boundary = MucosalKind::X` (required) — the delegated boundary kind
+/// - `handled_by = <path>` (required) — path to the handler function
+/// - `rationale = "..."` (required, ≥20 chars)
+///
+/// # Audit hints (three-tier diagnosis per Change 5)
+///
+/// - `mucosal-discipline-delegate-target-missing` — handler path doesn't
+///   resolve
+/// - `mucosal-discipline-delegate-target-not-mucosal` — handler has no
+///   `#[mucosal]`
+/// - `mucosal-discipline-delegate-target-kind-mismatch` — handler's
+///   `#[mucosal(kind)]` set doesn't include `boundary`
+#[proc_macro_attribute]
+pub fn mucosal_delegate(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::MucosalDelegateArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
+/// Declare a boundary is INTENTIONALLY permitted — active tolerance, not
+/// absence of defense (ADR-027 Amendment 1 Change 6).
+///
+/// `#[mucosal_tolerant(kind, rationale, accepts, reviewed_by?, until?)]`
+/// declares that a boundary deliberately accepts input without the full
+/// `#[mucosal]` defense discipline, and documents WHY that's acceptable.
+/// Without this primitive, intentional-tolerance boundaries are
+/// indistinguishable from undefended ones in `mucosal-map --undefended`.
+///
+/// # Biology grounding
+///
+/// Per ADR-027 Amendment 1: biology distinguishes THREE mucosal response
+/// states — active defense (`#[mucosal]`), active tolerance
+/// (`#[mucosal_tolerant]`), and undecided (no declaration). Active
+/// tolerance is NOT absence of response — it is antigen-specific
+/// Treg-mediated suppression with its own cellular machinery (oral
+/// tolerance, fetal-maternal interface). Parallel to ADR-016
+/// `#[antigen_tolerance]` but at the BOUNDARY tier rather than the
+/// failure-class tier.
+///
+/// # Arguments
+///
+/// - `kind = MucosalKind::X` (required)
+/// - `rationale = "..."` (required, **≥40 chars** — higher than
+///   `#[mucosal]`'s ≥20; tolerance is the riskier declaration)
+/// - `accepts = "..."` (required, non-empty) — what the boundary accepts
+///   as legitimate input
+/// - `reviewed_by = "..."` (optional v0.2; recommended v0.2.1+)
+/// - `until = "<RFC-3339 date>"` (optional) — review deadline
+///
+/// # Audit hints
+///
+/// - `mucosal-tolerant-rationale-insufficient`, `mucosal-tolerant-accepts-empty`,
+///   `mucosal-tolerant-past-review-date`, `mucosal-tolerant-without-reviewer`
+///   (v0.2.1+ migration hint)
+#[proc_macro_attribute]
+pub fn mucosal_tolerant(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::MucosalTolerantArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
 /// Declare an orientation period: acknowledged absence of immunity with
 /// see-also context. The lightest-weight deferred-defense primitive.
 ///
