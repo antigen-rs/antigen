@@ -2421,13 +2421,41 @@ fn run_audit(args: AuditArgs) -> ExitCode {
 
     let audit_report = audit::audit(&scan_report, &args.root);
 
+    // ADR-028 G1 (scan-time-only enforcement): surface the
+    // antigen-category-defaulted-implicit-functional migration hint for every
+    // antigen declaration with an absent category. This is the load-bearing
+    // signal (per adversarial's G1 ratification) that makes absent-category
+    // visible rather than a silent false-green.
+    let category_report = audit::audit_category(&scan_report);
+
     match args.format {
         OutputFormat::Human => {
             print_audit_human(&scan_report, &audit_report);
+            if !category_report.all_explicit() {
+                println!();
+                println!(
+                    "antigen-category: {} declaration(s) with absent category \
+                     (defaulted to FunctionalCorrectness):",
+                    category_report.defaulted_count
+                );
+                for ca in &category_report.audits {
+                    println!(
+                        "  - {} ({}:{}) — antigen-category-defaulted-implicit-functional",
+                        ca.antigen_type,
+                        ca.file.display(),
+                        ca.line
+                    );
+                }
+                println!(
+                    "  Add `category = AntigenCategory::...` per ADR-028. (v0.2: \
+                     scan-time hint; v0.2.x: parse-time hard-error for new decls.)"
+                );
+            }
         }
         OutputFormat::Json => match serde_json::to_string_pretty(&JsonAuditReport {
             scan: &scan_report,
             audit: &audit_report,
+            category: &category_report,
         }) {
             Ok(s) => println!("{s}"),
             Err(e) => {
@@ -3163,6 +3191,8 @@ fn run_attest_check(args: AttestCheckArgs) -> ExitCode {
 struct JsonAuditReport<'a> {
     scan: &'a scan::ScanReport,
     audit: &'a audit::AuditReport,
+    /// ADR-028 G1 antigen-category coverage (defaulted-implicit-functional).
+    category: &'a audit::CategoryAuditReport,
 }
 
 fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::AuditReport) {

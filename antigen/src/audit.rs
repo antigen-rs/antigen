@@ -520,6 +520,26 @@ pub enum AuditHint {
     MucosalTolerantAcceptsEmpty,
     /// `#[mucosal_tolerant]` with no `reviewed_by` (v0.2.1+ migration hint).
     MucosalTolerantWithoutReviewer,
+
+    // ------------------------------------------------------------------
+    // Antigen-Category hints (ADR-028).
+    //
+    // G1 deliverable: the category-defaulted migration hint, emitted at
+    // scan/audit time for antigen declarations with an absent (empty)
+    // `category` field. Per adversarial's G1 ratification (scan-time-only
+    // for v0.2), this hint is the load-bearing signal that makes
+    // absent-category VISIBLE rather than a silent false-green. The
+    // parse-time hard-error + v0.1/v0.2 discrimination (migration-record)
+    // are deferred to v0.2.x.
+    // ------------------------------------------------------------------
+    /// An `#[antigen]` declaration has no `category = AntigenCategory::X`
+    /// field. Per ADR-028 §v0.2-backward-compat, absent category defaults to
+    /// `[FunctionalCorrectness]` + this migration hint. v0.2 ships scan-time
+    /// emission (this hint); parse-time hard-error for v0.2+-new declarations
+    /// is the v0.2.x migration-record slice. The hint fires equally for v0.1
+    /// carry-overs and new v0.2 declarations until that discrimination lands
+    /// — both should migrate to an explicit category.
+    AntigenCategoryDefaultedImplicitFunctional,
 }
 
 /// Result of auditing a single immunity declaration.
@@ -2490,6 +2510,82 @@ fn evaluate_mucosal_hints(
     hints
 }
 
+// ============================================================================
+// Antigen-Category audit (ADR-028 — G1 scan-time-only enforcement)
+// ============================================================================
+
+/// Per-declaration antigen-category audit result.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CategoryAudit {
+    /// The antigen declaration's `type_name` (for cross-referencing).
+    pub antigen_type: String,
+    /// Source file path.
+    pub file: std::path::PathBuf,
+    /// Line number.
+    pub line: usize,
+    /// Hints surfaced for this declaration (may be empty = clean).
+    pub hints: Vec<AuditHint>,
+}
+
+/// Aggregate antigen-category audit report.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CategoryAuditReport {
+    /// Per-declaration audit results (only declarations with concerns are
+    /// recorded; clean declarations are counted but not listed).
+    pub audits: Vec<CategoryAudit>,
+    /// Count of antigen declarations with an explicit (non-empty) category.
+    pub explicit_count: usize,
+    /// Count of antigen declarations with an absent (empty) category — each
+    /// surfaced the `antigen-category-defaulted-implicit-functional` hint.
+    pub defaulted_count: usize,
+}
+
+impl CategoryAuditReport {
+    /// True when every antigen declaration carries an explicit category.
+    #[must_use]
+    pub const fn all_explicit(&self) -> bool {
+        self.defaulted_count == 0
+    }
+}
+
+/// Audit antigen-category coverage across a scan report (ADR-028, G1
+/// scan-time-only enforcement per adversarial's ratification).
+///
+/// Walks every [`crate::scan::AntigenDeclaration`] and emits
+/// [`AuditHint::AntigenCategoryDefaultedImplicitFunctional`] for any whose
+/// `category` field is empty (absent). This is the load-bearing signal that
+/// makes absent-category VISIBLE in v0.2 — without it, the soft-default to
+/// `[FunctionalCorrectness]` would be a silent false-green. v0.1/v0.2
+/// discrimination + parse-time hard-error are the v0.2.x migration-record
+/// slice; for v0.2 the hint fires for ALL absent-category declarations
+/// (both carry-overs and new), since both should migrate.
+#[must_use]
+pub fn audit_category(report: &ScanReport) -> CategoryAuditReport {
+    let mut audits = Vec::new();
+    let mut explicit_count = 0usize;
+    let mut defaulted_count = 0usize;
+
+    for decl in &report.antigens {
+        if decl.category.is_empty() {
+            defaulted_count += 1;
+            audits.push(CategoryAudit {
+                antigen_type: decl.type_name.clone(),
+                file: decl.file.clone(),
+                line: decl.line,
+                hints: vec![AuditHint::AntigenCategoryDefaultedImplicitFunctional],
+            });
+        } else {
+            explicit_count += 1;
+        }
+    }
+
+    CategoryAuditReport {
+        audits,
+        explicit_count,
+        defaulted_count,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3152,5 +3248,79 @@ mod tests {
         let s =
             serde_json::to_string(&AuditHint::MucosalDisciplineDelegateTargetKindMismatch).unwrap();
         assert_eq!(s, "\"mucosal-discipline-delegate-target-kind-mismatch\"");
+    }
+
+    // ========================================================================
+    // Antigen-Category audit (ADR-028 — G1 scan-time-only)
+    // ========================================================================
+
+    fn antigen_decl(
+        type_name: &str,
+        category: Vec<crate::category::AntigenCategory>,
+    ) -> crate::scan::AntigenDeclaration {
+        crate::scan::AntigenDeclaration {
+            name: type_name.to_lowercase(),
+            type_name: type_name.to_string(),
+            file: std::path::PathBuf::from("test.rs"),
+            line: 1,
+            family: None,
+            summary: None,
+            fingerprint: None,
+            canonical_path: None,
+            category,
+        }
+    }
+
+    #[test]
+    fn audit_category_flags_absent_category() {
+        let mut report = ScanReport::default();
+        report
+            .antigens
+            .push(antigen_decl("LegacyAntigen", Vec::new()));
+        let out = audit_category(&report);
+        assert_eq!(out.defaulted_count, 1);
+        assert_eq!(out.explicit_count, 0);
+        assert!(!out.all_explicit());
+        assert!(out.audits[0]
+            .hints
+            .contains(&AuditHint::AntigenCategoryDefaultedImplicitFunctional));
+    }
+
+    #[test]
+    fn audit_category_clean_when_explicit() {
+        use crate::category::AntigenCategory;
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_decl(
+            "PinnedDep",
+            vec![AntigenCategory::SubstrateAlignment],
+        ));
+        let out = audit_category(&report);
+        assert_eq!(out.explicit_count, 1);
+        assert_eq!(out.defaulted_count, 0);
+        assert!(out.all_explicit());
+        assert!(out.audits.is_empty());
+    }
+
+    #[test]
+    fn audit_category_mixed_counts() {
+        use crate::category::AntigenCategory;
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_decl("A", Vec::new()));
+        report.antigens.push(antigen_decl(
+            "B",
+            vec![AntigenCategory::FunctionalCorrectness],
+        ));
+        report.antigens.push(antigen_decl("C", Vec::new()));
+        let out = audit_category(&report);
+        assert_eq!(out.defaulted_count, 2);
+        assert_eq!(out.explicit_count, 1);
+        assert_eq!(out.audits.len(), 2);
+    }
+
+    #[test]
+    fn audit_category_hint_serializes_kebab_case() {
+        let s =
+            serde_json::to_string(&AuditHint::AntigenCategoryDefaultedImplicitFunctional).unwrap();
+        assert_eq!(s, "\"antigen-category-defaulted-implicit-functional\"");
     }
 }
