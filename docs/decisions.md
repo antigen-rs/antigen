@@ -5615,16 +5615,18 @@ Modern git workflows include force-push, branch-deletion, rebase, squash-merge, 
 
 ### Decision
 
-**Antigen ships an 11-antigen VCS-Information-Loss Family + rollback-as-triage discipline (via extended `#[orient]`) + git-trailer-based substrate-witnesses + commit-hook detection mechanism + `cargo antigen vcs` CLI subfamily. Detection is friction-only by default; server-side enforcement is the path to structural-mode.**
+**Antigen ships an 11-antigen VCS-Information-Loss Family + rollback-as-triage discipline (via new `#[triage_commit]` primitive) + git-trailer-based substrate-witnesses + commit-hook detection mechanism + `cargo antigen vcs` CLI subfamily. Detection is friction-only by default; server-side enforcement is the path to structural-mode.**
+
+*(Amendment 1 — 2026-05-24: rollback-as-triage uses a dedicated `#[triage_commit]` macro, NOT an `#[orient]` extension. The orient-dual-signature analysis [see fixup-orient-dual-signature campsite] established that #[orient] is passive-context-only; decisional/committal fields require a structurally distinct primitive. ADR-023 §orient semantics are preserved unchanged.)*
 
 **Eleven v0.2 stdlib antigens**: `RollbackWithoutTriageCommit`, `RefactorWithoutPreservationOfWhy`, `BranchDeletionWithoutAttestation`, `ForcePushErasingHistory` (covers both `--force` AND `--force-with-lease` per D2), `SquashMergeLosingIntermediateState`, `CherryPickLosingOriginalContext`, `RebaseRewritingHistoryWithoutLog`, `UnpushedBranchWithSubstantiveWork`, `StashedWorkAbandoned`, `MergeConflictResolutionWithoutAttestation`, `AmendedCommitWithoutOldHashPreservation`.
 
 **Biology per-primitive cognates**: `ForcePushErasingHistory` ↔ **Immune amnesia (measles)** — central foundational family cognate; `RefactorWithoutPreservationOfWhy` ↔ Original antigenic sin; `SquashMergeLosingIntermediateState` ↔ Affinity maturation history loss; `CherryPickLosingOriginalContext` ↔ Class-switching context loss; `RebaseRewritingHistoryWithoutLog` ↔ V(D)J recombination without per-cell record; `StashedWorkAbandoned` ↔ Anergy/primed-without-activation.
 
-**Rollback-as-triage primitive** (extends `#[orient]` from ADR-023):
+**Rollback-as-triage primitive** (new `#[triage_commit]` macro; structurally distinct from `#[orient]` per Amendment 1):
 
 ```rust
-#[orient(
+#[triage_commit(
     triage_decision = TriageDecision::Red,
     rollback_target = "abc1234",
     triaged_by = "navigator",
@@ -5655,7 +5657,7 @@ fn _triage_marker_do_not_remove() {}
 ### Sweep-level consequences
 
 - v0.2 stdlib gains 11 VCS-info-loss antigens
-- `#[orient]` extended with rollback-as-triage fields
+- New `#[triage_commit]` primitive carries rollback-as-triage fields (Amendment 1: `#[orient]` NOT extended)
 - Adopter rollback discipline: triage-commit-before-rollback becomes structural practice
 - Connection to camp `triage` primitive
 
