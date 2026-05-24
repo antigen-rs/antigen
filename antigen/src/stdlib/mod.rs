@@ -15,6 +15,9 @@
 //!   VCS-Information-Loss Family (ADR-026), 11 antigens covering
 //!   modern-git-workflow failure modes that erase load-bearing history.
 //!   Central cognate: Immune amnesia (measles).
+//! - [`recurrent`](crate::stdlib::recurrent) — the Recurrent-Emergence
+//!   Family (ADR-024 §Family 2), canonical failure-classes that re-emerge
+//!   across project lifetimes (MSRV-creep, gitignore-drift, lockfile-churn).
 //!
 //! ## How adopters use these
 //!
@@ -41,5 +44,6 @@
 //! `cargo antigen verify` CLI subfamily + the substrate-witness pipeline,
 //! NOT in source-walking fingerprint matching.
 
+pub mod recurrent;
 pub mod supply_chain;
 pub mod vcs_info_loss;
