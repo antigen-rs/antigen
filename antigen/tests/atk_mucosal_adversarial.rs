@@ -181,7 +181,11 @@ fn atk_mucosal_4_duplicate_mucosal_declarations_on_same_function() {
 
     // Must not panic; both declarations should be clean (valid rationale/kind).
     let out = audit_mucosal(&report);
-    assert_eq!(out.audits.len(), 2, "both declarations should produce audit entries");
+    assert_eq!(
+        out.audits.len(),
+        2,
+        "both declarations should produce audit entries"
+    );
     for audit in &out.audits {
         assert!(
             audit.hints.is_empty(),
@@ -203,9 +207,11 @@ fn atk_mucosal_4_duplicate_mucosal_declarations_on_same_function() {
 fn atk_mucosal_5_rationale_too_short_should_emit_hint() {
     // rationale = "x" is 1 char — below the ≥20-char floor for #[mucosal].
     let mut report = ScanReport::default();
-    report
-        .mucosal_declarations
-        .push(mucosal_decl(MucosalKindTag::Mucosal, Some("UserInput"), Some("x")));
+    report.mucosal_declarations.push(mucosal_decl(
+        MucosalKindTag::Mucosal,
+        Some("UserInput"),
+        Some("x"),
+    ));
     let out = audit_mucosal(&report);
     assert!(
         out.audits[0]
