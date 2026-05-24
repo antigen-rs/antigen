@@ -140,6 +140,12 @@ pub use antigen_macros::{antigen, antigen_tolerance, descended_from, immune, pre
 // poxparty, orient — each with parse-time enforcement and aging escalation.
 pub use antigen_macros::{anergy, immunosuppress, orient, poxparty};
 
+// Rollback-as-Triage primitive (ADR-026 §Rollback-as-triage discipline):
+// sibling to the deferred-defense family per aristotle's fixup-orient-dual-
+// signature resolution. Names a triage decision + commit to rollback within
+// a tight time-bound; clinical-medicine grounded.
+pub use antigen_macros::triage_commit;
+
 // Convergent-Evidence Family (ADR-024): seven primitives for backward-
 // looking evidence aggregation plus the two public enums (WitnessClass +
 // SeedKind) adopters supply as macro arguments.

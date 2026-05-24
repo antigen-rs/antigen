@@ -1121,6 +1121,322 @@ impl OrientArgs {
 }
 
 // ============================================================================
+// MacroTriageDecision — local mirror of antigen::TriageDecision (ADR-026)
+//
+// proc-macro crates cannot depend on the `antigen` library crate (circular
+// dependency), so we maintain a local parse-time mirror — same pattern as
+// MacroAntigenCategory for ADR-028. The two enums stay in sync; extending
+// either requires an ADR amendment per ADR-001 Amendment 1 C6.
+// ============================================================================
+
+/// Parse-time triage-decision variant (mirrors `antigen::vcs::TriageDecision`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MacroTriageDecision {
+    /// System-down / data-loss imminent / catastrophic regression confirmed.
+    Black,
+    /// Vital-metric regression confirmed; tight-time-window rollback.
+    Red,
+    /// Concerning signal; investigation pending; rollback decision deferred.
+    Yellow,
+    /// No functional regression; analysis chain attests non-regression.
+    Green,
+    /// Out of scope for this triage event; explicit non-action chart entry.
+    White,
+}
+
+impl MacroTriageDecision {
+    /// Parse from path-style expression strings and common aliases.
+    fn from_path_str(s: &str) -> Option<Self> {
+        match s {
+            "Black" | "TriageDecision::Black" | "black" => Some(Self::Black),
+            "Red" | "TriageDecision::Red" | "red" => Some(Self::Red),
+            "Yellow" | "TriageDecision::Yellow" | "yellow" => Some(Self::Yellow),
+            "Green" | "TriageDecision::Green" | "green" => Some(Self::Green),
+            "White" | "TriageDecision::White" | "white" => Some(Self::White),
+            _ => None,
+        }
+    }
+
+    /// Kebab-case string form mirroring `antigen::vcs::TriageDecision::as_str()`.
+    ///
+    /// Reserved for future audit-hint emission paths — kept on the parse-time
+    /// mirror so the proc-macro crate doesn't need to import `antigen`
+    /// (circular dep) when hint detail strings grow.
+    #[allow(dead_code)]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Black => "black",
+            Self::Red => "red",
+            Self::Yellow => "yellow",
+            Self::Green => "green",
+            Self::White => "white",
+        }
+    }
+}
+
+// ============================================================================
+// TriageCommitArgs parsing (ADR-026 §Rollback-as-triage primitive)
+//
+// `#[triage_commit]` is the rollback-as-triage primitive ratified by ADR-026
+// §Decision. Per aristotle's fixup-orient-dual-signature F1-F5 resolution
+// (camp note 55a161e7), `#[triage_commit]` is a SIBLING primitive to
+// `#[orient]`, NOT an extension — orient names a failure-class (acknowledged
+// pre-immunity); triage_commit names a system-state-classification + commit
+// to a rollback action within a time-bound. The clinical-medicine grounding
+// (chart documentation + informed consent before procedure) is dual-axis-
+// acknowledged per ADR-024 + ADR-026 dual-axis discipline.
+// ============================================================================
+
+/// Arguments to `#[triage_commit(triage_decision = ..., rollback_target = ...,
+/// triaged_by = ..., rationale = ..., rollback_due_within_minutes = ...)]`.
+///
+/// All five fields are REQUIRED per ADR-026 §Decision rollback-as-triage
+/// primitive. Per ADR-026 §Rollback-as-triage discipline (NON-NEGOTIABLE
+/// per naturalist): the chart-documentation cognate demands the rationale +
+/// `triaged_by` + time-bound be present before the action commits, NOT after.
+///
+/// Loudness-as-discipline (ADR-023 central pattern applied here): missing
+/// fields are compile-time errors so a triage commit that elides documentation
+/// cannot reach `git push`.
+#[derive(Debug)]
+pub struct TriageCommitArgs {
+    pub triage_decision: Option<MacroTriageDecision>,
+    /// Span of the `triage_decision` value (path expression). Reserved for
+    /// future audit-hint emission paths that need to point error reports at
+    /// the variant token; presently unused.
+    #[allow(dead_code)]
+    pub triage_decision_span: Option<Span>,
+    pub rollback_target: Option<String>,
+    pub rollback_target_span: Option<Span>,
+    pub triaged_by: Option<String>,
+    pub triaged_by_span: Option<Span>,
+    pub rationale: Option<String>,
+    pub rationale_span: Option<Span>,
+    pub rollback_due_within_minutes: Option<u32>,
+    pub rollback_due_within_minutes_span: Option<Span>,
+    pub args_span: Span,
+}
+
+/// Parse `triage_decision = TriageDecision::X` from a path expression.
+/// Extracted from `Parse for TriageCommitArgs` to keep that impl under 100 lines.
+fn parse_triage_decision_expr(
+    input: syn::parse::ParseStream,
+    expr: &Expr,
+) -> syn::Result<(MacroTriageDecision, Span)> {
+    let expr_span = match expr {
+        Expr::Path(p) => p
+            .path
+            .segments
+            .first()
+            .map_or_else(|| input.span(), |s| s.ident.span()),
+        _ => input.span(),
+    };
+    let s = match expr {
+        Expr::Path(p) => {
+            let segs: Vec<String> = p
+                .path
+                .segments
+                .iter()
+                .map(|seg| seg.ident.to_string())
+                .collect();
+            segs.join("::")
+        }
+        _ => {
+            return Err(syn::Error::new_spanned(
+                expr,
+                "expected `TriageDecision::Black`, `TriageDecision::Red`, \
+                 `TriageDecision::Yellow`, `TriageDecision::Green`, or \
+                 `TriageDecision::White`",
+            ));
+        }
+    };
+    let decision = MacroTriageDecision::from_path_str(&s).ok_or_else(|| {
+        syn::Error::new_spanned(
+            expr,
+            format!(
+                "unknown TriageDecision `{s}`; expected one of: Black, Red, \
+                 Yellow, Green, White"
+            ),
+        )
+    })?;
+    Ok((decision, expr_span))
+}
+
+impl Parse for TriageCommitArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut triage_decision: Option<MacroTriageDecision> = None;
+        let mut triage_decision_span: Option<Span> = None;
+        let mut rollback_target: Option<String> = None;
+        let mut rollback_target_span: Option<Span> = None;
+        let mut triaged_by: Option<String> = None;
+        let mut triaged_by_span: Option<Span> = None;
+        let mut rationale: Option<String> = None;
+        let mut rationale_span: Option<Span> = None;
+        let mut rollback_due_within_minutes: Option<u32> = None;
+        let mut rollback_due_within_minutes_span: Option<Span> = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "triage_decision" => {
+                    let expr: Expr = input.parse()?;
+                    let (decision, span) = parse_triage_decision_expr(input, &expr)?;
+                    triage_decision = Some(decision);
+                    triage_decision_span = Some(span);
+                }
+                "rollback_target" => {
+                    let lit: LitStr = input.parse()?;
+                    rollback_target_span = Some(lit.span());
+                    rollback_target = Some(lit.value());
+                }
+                "triaged_by" => {
+                    let lit: LitStr = input.parse()?;
+                    triaged_by_span = Some(lit.span());
+                    triaged_by = Some(lit.value());
+                }
+                "rationale" => {
+                    let lit: LitStr = input.parse()?;
+                    rationale_span = Some(lit.span());
+                    rationale = Some(lit.value());
+                }
+                "rollback_due_within_minutes" => {
+                    let lit: syn::LitInt = input.parse()?;
+                    rollback_due_within_minutes_span = Some(lit.span());
+                    rollback_due_within_minutes = Some(lit.base10_parse::<u32>()?);
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown #[triage_commit] field `{other}`; expected one of: \
+                             triage_decision, rollback_target, triaged_by, rationale, \
+                             rollback_due_within_minutes"
+                        ),
+                    ));
+                }
+            }
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            triage_decision,
+            triage_decision_span,
+            rollback_target,
+            rollback_target_span,
+            triaged_by,
+            triaged_by_span,
+            rationale,
+            rationale_span,
+            rollback_due_within_minutes,
+            rollback_due_within_minutes_span,
+            args_span,
+        })
+    }
+}
+
+impl TriageCommitArgs {
+    /// Trust-boundary checks per ADR-026 §Decision rollback-as-triage:
+    /// - `triage_decision` REQUIRED — the loud-acknowledgment IS the discipline
+    /// - `rollback_target` REQUIRED, non-empty — sha pointer to last-known-good
+    /// - `triaged_by` REQUIRED, non-empty — informed-consent author identity
+    /// - `rationale` REQUIRED, minimum 20 characters — chart-documentation
+    ///   discipline per naturalist's clinical-medicine grounding
+    ///   (parallel to `#[anergy]` 20-char floor)
+    /// - `rollback_due_within_minutes` REQUIRED, positive — tight time-bound
+    ///   carrier; 0 would mean immediate-or-never and degrades discipline
+    pub fn validate(&self) -> syn::Result<()> {
+        if self.triage_decision.is_none() {
+            return Err(syn::Error::new(
+                self.args_span,
+                "#[triage_commit] requires `triage_decision = TriageDecision::X` \
+                 (one of Black, Red, Yellow, Green, White). Per ADR-026 \
+                 §Rollback-as-triage, the loud-acknowledgment IS the discipline.",
+            ));
+        }
+        match self.rollback_target.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[triage_commit] requires `rollback_target = \"<sha>\"` \
+                     (commit sha pointing to last-known-good state).",
+                ));
+            }
+            Some("") => {
+                return Err(syn::Error::new(
+                    self.rollback_target_span.unwrap_or(self.args_span),
+                    "#[triage_commit] `rollback_target` cannot be empty. \
+                     A rollback without a target is not a rollback.",
+                ));
+            }
+            Some(_) => {}
+        }
+        match self.triaged_by.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[triage_commit] requires `triaged_by = \"<role|name>\"`. \
+                     Per ADR-026 §Rollback-as-triage clinical-medicine \
+                     grounding, informed-consent requires an authoring identity.",
+                ));
+            }
+            Some("") => {
+                return Err(syn::Error::new(
+                    self.triaged_by_span.unwrap_or(self.args_span),
+                    "#[triage_commit] `triaged_by` cannot be empty.",
+                ));
+            }
+            Some(_) => {}
+        }
+        match self.rationale.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[triage_commit] requires `rationale = \"...\"` \
+                     (chart-documentation; minimum 20 characters). Per ADR-026 \
+                     §Rollback-as-triage: rationale before action, not after.",
+                ));
+            }
+            Some(s) if s.len() < 20 => {
+                return Err(syn::Error::new(
+                    self.rationale_span.unwrap_or(self.args_span),
+                    format!(
+                        "#[triage_commit] `rationale` must be at least 20 \
+                         characters (got {}); per ADR-023 loudness-as-discipline \
+                         applied to clinical-medicine chart-documentation.",
+                        s.len()
+                    ),
+                ));
+            }
+            Some(_) => {}
+        }
+        match self.rollback_due_within_minutes {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[triage_commit] requires `rollback_due_within_minutes = N` \
+                     (positive integer; e.g., 30 for a Red triage per ADR-026 example).",
+                ));
+            }
+            Some(0) => {
+                return Err(syn::Error::new(
+                    self.rollback_due_within_minutes_span
+                        .unwrap_or(self.args_span),
+                    "#[triage_commit] `rollback_due_within_minutes` must be > 0. \
+                     A zero deadline degrades to no-deadline; per ADR-026 \
+                     §Rollback-as-triage the time-bound carries discipline.",
+                ));
+            }
+            Some(_) => {}
+        }
+        Ok(())
+    }
+}
+
+// ============================================================================
 // Convergent-Evidence Family argument parsers (ADR-024)
 // ============================================================================
 
@@ -2206,6 +2522,390 @@ mod tests {
                 Some(variant)
             );
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Adversarial tests (added by adversarial role)
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn antigen_parser_duplicate_category_in_array_is_currently_accepted() {
+        // ADVERSARIAL FINDING: [SubstrateAlignment, SubstrateAlignment] is NOT
+        // rejected at parse time. The 2-element result looks like a hybrid
+        // but contains duplicates. Downstream code that checks `len() == 2`
+        // to detect hybrid will be fooled. This test PINS the current (no-validation)
+        // behavior. A future validate() check should reject duplicates with
+        // `antigen-category-hybrid-incomplete-evidence` or a new hint.
+        //
+        // See: camp note v02-impl-antigen-category-metadata
+        let tokens: TokenStream = r#"name = "x", fingerprint = "item = fn", category = [AntigenCategory::SubstrateAlignment, AntigenCategory::SubstrateAlignment]"#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<AntigenArgs>(tokens).unwrap();
+        assert_eq!(
+            args.category,
+            vec![
+                MacroAntigenCategory::SubstrateAlignment,
+                MacroAntigenCategory::SubstrateAlignment,
+            ],
+            "currently accepted: duplicate categories in array not rejected at parse time"
+        );
+    }
+
+    #[test]
+    fn antigen_parser_three_element_category_array_is_currently_accepted() {
+        // ADVERSARIAL FINDING: [SA, FC, SA] (3 elements) is NOT rejected.
+        // ADR-028 §Schema says the vec is hybrid when it contains BOTH variants;
+        // it does not cap the vec at 2. But 3+ element arrays are spec-silent:
+        // no mention of what happens with more than 2 elements. This test pins
+        // the current permissive behavior.
+        let tokens: TokenStream = r#"name = "x", fingerprint = "item = fn", category = [AntigenCategory::SubstrateAlignment, AntigenCategory::FunctionalCorrectness, AntigenCategory::SubstrateAlignment]"#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<AntigenArgs>(tokens).unwrap();
+        assert_eq!(args.category.len(), 3, "3-element array currently accepted");
+    }
+
+    #[test]
+    fn antigen_parser_rejects_string_literal_as_category() {
+        // String literals are NOT accepted as category values; path expressions
+        // are required for compile-time discoverability (per expect_antigen_category).
+        let tokens: TokenStream =
+            r#"name = "x", fingerprint = "item = fn", category = "substrate-alignment""#
+                .parse()
+                .unwrap();
+        let result = syn::parse2::<AntigenArgs>(tokens);
+        assert!(
+            result.is_err(),
+            "string literal category should be rejected; got Ok"
+        );
+    }
+
+    #[test]
+    fn antigen_parser_rejects_integer_as_category() {
+        // Non-path non-array expressions (integers, etc.) should be rejected.
+        let tokens: TokenStream = r#"name = "x", fingerprint = "item = fn", category = 42"#
+            .parse()
+            .unwrap();
+        let result = syn::parse2::<AntigenArgs>(tokens);
+        assert!(
+            result.is_err(),
+            "integer category should be rejected; got Ok"
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // #[triage_commit] tests (ADR-026 §Rollback-as-triage primitive)
+    // -------------------------------------------------------------------------
+
+    fn valid_triage_commit_tokens() -> TokenStream {
+        r#"triage_decision = TriageDecision::Red,
+           rollback_target = "abc1234",
+           triaged_by = "navigator",
+           rationale = "vital metric regression confirmed via #84; rolling back",
+           rollback_due_within_minutes = 30"#
+            .parse()
+            .unwrap()
+    }
+
+    #[test]
+    fn triage_commit_parser_accepts_canonical_form() {
+        let args = syn::parse2::<TriageCommitArgs>(valid_triage_commit_tokens()).unwrap();
+        assert_eq!(args.triage_decision, Some(MacroTriageDecision::Red));
+        assert_eq!(args.rollback_target.as_deref(), Some("abc1234"));
+        assert_eq!(args.triaged_by.as_deref(), Some("navigator"));
+        assert_eq!(args.rollback_due_within_minutes, Some(30));
+        args.validate().unwrap();
+    }
+
+    #[test]
+    fn triage_commit_parser_accepts_bare_variant_ident() {
+        let tokens: TokenStream = r#"triage_decision = Black,
+            rollback_target = "deadbeef",
+            triaged_by = "oncall",
+            rationale = "system-down: payment processor pod crashlooping",
+            rollback_due_within_minutes = 5"#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<TriageCommitArgs>(tokens).unwrap();
+        assert_eq!(args.triage_decision, Some(MacroTriageDecision::Black));
+        args.validate().unwrap();
+    }
+
+    #[test]
+    fn triage_commit_parser_accepts_all_five_variants() {
+        for (variant_text, expected) in [
+            ("TriageDecision::Black", MacroTriageDecision::Black),
+            ("TriageDecision::Red", MacroTriageDecision::Red),
+            ("TriageDecision::Yellow", MacroTriageDecision::Yellow),
+            ("TriageDecision::Green", MacroTriageDecision::Green),
+            ("TriageDecision::White", MacroTriageDecision::White),
+        ] {
+            let src = format!(
+                r#"triage_decision = {variant_text},
+                   rollback_target = "abc1234",
+                   triaged_by = "navigator",
+                   rationale = "twenty-character-rationale-text-here",
+                   rollback_due_within_minutes = 30"#
+            );
+            let tokens: TokenStream = src.parse().unwrap();
+            let args = syn::parse2::<TriageCommitArgs>(tokens).unwrap();
+            assert_eq!(args.triage_decision, Some(expected));
+            args.validate().unwrap();
+        }
+    }
+
+    #[test]
+    fn triage_commit_parser_rejects_unknown_variant() {
+        let tokens: TokenStream = r#"triage_decision = TriageDecision::Purple,
+            rollback_target = "abc1234",
+            triaged_by = "navigator",
+            rationale = "twenty-character-rationale-text-here",
+            rollback_due_within_minutes = 30"#
+            .parse()
+            .unwrap();
+        let result = syn::parse2::<TriageCommitArgs>(tokens);
+        assert!(result.is_err(), "unknown variant should be rejected");
+    }
+
+    #[test]
+    fn triage_commit_parser_rejects_string_literal_triage_decision() {
+        let tokens: TokenStream = r#"triage_decision = "red",
+            rollback_target = "abc1234",
+            triaged_by = "navigator",
+            rationale = "twenty-character-rationale-text-here",
+            rollback_due_within_minutes = 30"#
+            .parse()
+            .unwrap();
+        let result = syn::parse2::<TriageCommitArgs>(tokens);
+        assert!(
+            result.is_err(),
+            "string literal triage_decision should be rejected"
+        );
+    }
+
+    #[test]
+    fn triage_commit_validate_rejects_missing_triage_decision() {
+        let tokens: TokenStream = r#"rollback_target = "abc1234",
+            triaged_by = "navigator",
+            rationale = "twenty-character-rationale-text-here",
+            rollback_due_within_minutes = 30"#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<TriageCommitArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn triage_commit_validate_rejects_empty_rollback_target() {
+        let tokens: TokenStream = r#"triage_decision = TriageDecision::Red,
+            rollback_target = "",
+            triaged_by = "navigator",
+            rationale = "twenty-character-rationale-text-here",
+            rollback_due_within_minutes = 30"#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<TriageCommitArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn triage_commit_validate_rejects_empty_triaged_by() {
+        let tokens: TokenStream = r#"triage_decision = TriageDecision::Red,
+            rollback_target = "abc1234",
+            triaged_by = "",
+            rationale = "twenty-character-rationale-text-here",
+            rollback_due_within_minutes = 30"#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<TriageCommitArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn triage_commit_validate_rejects_short_rationale() {
+        let tokens: TokenStream = r#"triage_decision = TriageDecision::Red,
+            rollback_target = "abc1234",
+            triaged_by = "navigator",
+            rationale = "too short",
+            rollback_due_within_minutes = 30"#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<TriageCommitArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn triage_commit_validate_rejects_zero_minutes() {
+        let tokens: TokenStream = r#"triage_decision = TriageDecision::Red,
+            rollback_target = "abc1234",
+            triaged_by = "navigator",
+            rationale = "twenty-character-rationale-text-here",
+            rollback_due_within_minutes = 0"#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<TriageCommitArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn triage_commit_parser_rejects_unknown_field() {
+        let tokens: TokenStream = r#"triage_decision = TriageDecision::Red,
+            rollback_target = "abc1234",
+            triaged_by = "navigator",
+            rationale = "twenty-character-rationale-text-here",
+            rollback_due_within_minutes = 30,
+            bogus = "value""#
+            .parse()
+            .unwrap();
+        let result = syn::parse2::<TriageCommitArgs>(tokens);
+        assert!(result.is_err(), "unknown field should be rejected");
+    }
+
+    #[test]
+    fn macro_triage_decision_as_str_roundtrip() {
+        for (variant, expected) in [
+            (MacroTriageDecision::Black, "black"),
+            (MacroTriageDecision::Red, "red"),
+            (MacroTriageDecision::Yellow, "yellow"),
+            (MacroTriageDecision::Green, "green"),
+            (MacroTriageDecision::White, "white"),
+        ] {
+            assert_eq!(variant.as_str(), expected);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Adversarial tests for #[triage_commit] (added by adversarial role)
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn triage_commit_validate_rationale_exactly_20_chars_passes() {
+        // Boundary case: rationale of EXACTLY 20 chars must pass (>= 20, not > 20).
+        // "20characterrational!" is exactly 20 chars.
+        let tokens: TokenStream = r#"triage_decision = TriageDecision::Red,
+            rollback_target = "abc1234",
+            triaged_by = "navigator",
+            rationale = "20characterrationale",
+            rollback_due_within_minutes = 30"#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<TriageCommitArgs>(tokens).unwrap();
+        assert_eq!(
+            args.rationale.as_deref().map(|s| s.len()),
+            Some(20),
+            "fixture must be exactly 20 chars"
+        );
+        assert!(
+            args.validate().is_ok(),
+            "exactly 20 chars should pass rationale validation"
+        );
+    }
+
+    #[test]
+    fn triage_commit_validate_rationale_19_chars_fails() {
+        // Just below the 20-char minimum: must fail.
+        let tokens: TokenStream = r#"triage_decision = TriageDecision::Red,
+            rollback_target = "abc1234",
+            triaged_by = "navigator",
+            rationale = "19characterrational",
+            rollback_due_within_minutes = 30"#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<TriageCommitArgs>(tokens).unwrap();
+        assert_eq!(
+            args.rationale.as_deref().map(|s| s.len()),
+            Some(19),
+            "fixture must be exactly 19 chars"
+        );
+        assert!(
+            args.validate().is_err(),
+            "19-char rationale should fail validation"
+        );
+    }
+
+    #[test]
+    fn triage_commit_validate_absurdly_large_deadline_is_currently_accepted() {
+        // ADVERSARIAL FINDING: rollback_due_within_minutes = u32::MAX is accepted.
+        // Semantically absurd (5.3 million hours = 600 years). The validate()
+        // method only checks for 0; there is no upper cap. This test PINS the
+        // current behavior. A future check could warn/error on deadline > 10080
+        // (one week in minutes) per operational discipline.
+        let tokens: TokenStream = r#"triage_decision = TriageDecision::Yellow,
+            rollback_target = "abc1234",
+            triaged_by = "navigator",
+            rationale = "twenty-character-rationale-text",
+            rollback_due_within_minutes = 4294967295"#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<TriageCommitArgs>(tokens).unwrap();
+        assert_eq!(args.rollback_due_within_minutes, Some(4294967295));
+        assert!(
+            args.validate().is_ok(),
+            "u32::MAX deadline currently accepted (no upper cap); this pins that behavior"
+        );
+    }
+
+    #[test]
+    fn triage_commit_validate_whitespace_only_rollback_target_is_currently_accepted() {
+        // ADVERSARIAL FINDING: rollback_target = "   " (whitespace-only) is NOT
+        // caught by the empty-string check. The validator checks `Some("")` but
+        // "   " is not empty. A whitespace-only SHA is not a valid git ref.
+        // This test PINS the current behavior; a future fix should trim+check.
+        let tokens: TokenStream = r#"triage_decision = TriageDecision::Red,
+            rollback_target = "   ",
+            triaged_by = "navigator",
+            rationale = "twenty-character-rationale-text",
+            rollback_due_within_minutes = 30"#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<TriageCommitArgs>(tokens).unwrap();
+        assert_eq!(args.rollback_target.as_deref(), Some("   "));
+        assert!(
+            args.validate().is_ok(),
+            "whitespace-only rollback_target currently accepted (no trim+check); pins behavior"
+        );
+    }
+
+    #[test]
+    fn triage_commit_validate_non_sha_rollback_target_is_currently_accepted() {
+        // ADVERSARIAL FINDING: rollback_target accepts arbitrary non-SHA strings.
+        // ADR-026 says "commit sha" but no format validation is enforced.
+        // "not-a-sha-at-all" is accepted. This is intentional forward-compat
+        // (refs like branch names may also be valid rollback targets), but
+        // the gap is that completely arbitrary text passes.
+        let tokens: TokenStream = r#"triage_decision = TriageDecision::Red,
+            rollback_target = "not-a-sha-at-all-just-text",
+            triaged_by = "navigator",
+            rationale = "twenty-character-rationale-text",
+            rollback_due_within_minutes = 30"#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<TriageCommitArgs>(tokens).unwrap();
+        assert!(
+            args.validate().is_ok(),
+            "non-SHA rollback_target currently accepted; pins that no format validation exists"
+        );
+    }
+
+    #[test]
+    fn triage_commit_validate_green_triage_with_tight_deadline_is_accepted() {
+        // Green means "no regression detected" — no rollback planned.
+        // A tight rollback_due_within_minutes = 1 on a Green triage is
+        // semantically odd (no rollback needed but one is mandated within 1 min).
+        // The validator does NOT check for this semantic inconsistency.
+        let tokens: TokenStream = r#"triage_decision = TriageDecision::Green,
+            rollback_target = "abc1234",
+            triaged_by = "navigator",
+            rationale = "no regression detected in twenty chars",
+            rollback_due_within_minutes = 1"#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<TriageCommitArgs>(tokens).unwrap();
+        assert!(
+            args.validate().is_ok(),
+            "Green triage with tight deadline currently accepted; no semantic inconsistency check"
+        );
     }
 }
 
