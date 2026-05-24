@@ -563,6 +563,17 @@ pub enum AuditHint {
     /// error) per Amendment 2's "enforced at audit-time" disclosure; CI-gating
     /// the audit preserves the strict-enforcement value.
     AntigenCategoryClaimInconsistentWithPredicateType,
+
+    /// A hybrid antigen (`category = [SubstrateAlignment, FunctionalCorrectness]`)
+    /// has exactly ONE of its two axes witnessed at audit time — one axis is
+    /// backed by a matching immunity, the other is unwitnessed. Per aristotle's
+    /// G3 F1 ruling, this is distinct from
+    /// [`Self::AntigenCategoryClaimInconsistentWithPredicateType`]: a hybrid
+    /// with one axis covered is INCOMPLETE (partial evidence), not a full
+    /// structural violation (which is the zero-axes case, still reported as
+    /// claim-inconsistent). ADR-028 §Schema: "hybrid antigen; one axis
+    /// unwitnessed at audit-time."
+    AntigenCategoryHybridIncompleteEvidence,
 }
 
 /// Result of auditing a single immunity declaration.
@@ -2682,19 +2693,36 @@ pub fn audit_category(report: &ScanReport) -> CategoryAuditReport {
         let wants_code = decl
             .category
             .contains(&AntigenCategory::FunctionalCorrectness);
+        let is_hybrid = wants_substrate && wants_code;
 
         let substrate_satisfied = !wants_substrate || has_substrate_witness;
         let code_satisfied = !wants_code || has_code_witness;
 
-        if !substrate_satisfied || !code_satisfied {
-            mismatch_count += 1;
-            audits.push(CategoryAudit {
-                antigen_type: decl.type_name.clone(),
-                file: decl.file.clone(),
-                line: decl.line,
-                hints: vec![AuditHint::AntigenCategoryClaimInconsistentWithPredicateType],
-            });
+        if substrate_satisfied && code_satisfied {
+            continue;
         }
+
+        // Per aristotle's G3 F1 ruling, the emission is three-way:
+        //   - hybrid [SA, FC] with exactly ONE axis witnessed → incomplete
+        //     evidence (partial coverage, not a full violation)
+        //   - hybrid with ZERO axes witnessed → claim-inconsistent (full
+        //     structural violation, same as single-axis)
+        //   - single-axis category with no matching witness → claim-inconsistent
+        let hybrid_one_axis_witnessed = is_hybrid && (has_substrate_witness ^ has_code_witness);
+
+        let hint = if hybrid_one_axis_witnessed {
+            AuditHint::AntigenCategoryHybridIncompleteEvidence
+        } else {
+            AuditHint::AntigenCategoryClaimInconsistentWithPredicateType
+        };
+
+        mismatch_count += 1;
+        audits.push(CategoryAudit {
+            antigen_type: decl.type_name.clone(),
+            file: decl.file.clone(),
+            line: decl.line,
+            hints: vec![hint],
+        });
     }
 
     CategoryAuditReport {
@@ -3532,18 +3560,66 @@ mod tests {
                 AntigenCategory::FunctionalCorrectness,
             ],
         ));
-        // Only a substrate-witness — missing the code-witness axis.
+        // Only a substrate-witness — missing the code-witness axis. Per
+        // aristotle's G3 F1 ruling, a hybrid with exactly one axis witnessed
+        // is INCOMPLETE evidence, not a full claim-inconsistent violation.
         report.immunities.push(immunity_for("HybridAntigen", true));
         let out = audit_category(&report);
         assert_eq!(
             out.mismatch_count, 1,
             "hybrid with only one axis is a mismatch"
         );
+        assert!(
+            out.audits[0]
+                .hints
+                .contains(&AuditHint::AntigenCategoryHybridIncompleteEvidence),
+            "hybrid with one axis witnessed → hybrid-incomplete-evidence"
+        );
 
         // Add the code-witness axis — now clean.
         report.immunities.push(immunity_for("HybridAntigen", false));
         let out = audit_category(&report);
         assert_eq!(out.mismatch_count, 0, "hybrid with both axes is clean");
+    }
+
+    #[test]
+    fn g3_hybrid_with_zero_axes_is_claim_inconsistent_not_incomplete() {
+        use crate::category::AntigenCategory;
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_decl(
+            "HybridAntigen",
+            vec![
+                AntigenCategory::SubstrateAlignment,
+                AntigenCategory::FunctionalCorrectness,
+            ],
+        ));
+        // An immunity exists but is... neither: simulate a declared-but-empty
+        // immunity by giving it neither a predicate nor a witness. (Both axes
+        // unwitnessed → full violation, not partial.)
+        report.immunities.push(crate::scan::Immunity {
+            antigen_type: "HybridAntigen".to_string(),
+            witness: String::new(),
+            requires_predicate: None,
+            file: std::path::PathBuf::from("test.rs"),
+            line: 1,
+            item_kind: "fn".to_string(),
+            item_target: crate::scan::ItemTarget::Fn("witness_site".to_string()),
+            canonical_path: None,
+        });
+        let out = audit_category(&report);
+        assert_eq!(out.mismatch_count, 1);
+        assert!(
+            out.audits[0]
+                .hints
+                .contains(&AuditHint::AntigenCategoryClaimInconsistentWithPredicateType),
+            "hybrid with ZERO axes witnessed → claim-inconsistent (full violation)"
+        );
+    }
+
+    #[test]
+    fn g3_hybrid_incomplete_evidence_hint_serializes_kebab_case() {
+        let s = serde_json::to_string(&AuditHint::AntigenCategoryHybridIncompleteEvidence).unwrap();
+        assert_eq!(s, "\"antigen-category-hybrid-incomplete-evidence\"");
     }
 
     #[test]
