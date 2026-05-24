@@ -2421,11 +2421,16 @@ fn run_audit(args: AuditArgs) -> ExitCode {
 
     let audit_report = audit::audit(&scan_report, &args.root);
 
-    // ADR-028 G1 (scan-time-only enforcement): surface the
-    // antigen-category-defaulted-implicit-functional migration hint for every
-    // antigen declaration with an absent category. This is the load-bearing
-    // signal (per adversarial's G1 ratification) that makes absent-category
-    // visible rather than a silent false-green.
+    // ADR-028 category audit (audit-time):
+    //   G1 (scan-time-only enforcement): surface the
+    //   antigen-category-defaulted-implicit-functional migration hint for every
+    //   antigen declaration with an absent category — the load-bearing signal
+    //   (per adversarial's G1 ratification) that makes absent-category visible
+    //   rather than a silent false-green.
+    //   G2 (category↔witness-type cross-check): surface
+    //   antigen-category-claim-inconsistent-with-predicate-type for any
+    //   explicit-category declaration whose immunities are the wrong witness
+    //   type for the declared category (per Amendment 2 + aristotle F1).
     let category_report = audit::audit_category(&scan_report);
 
     match args.format {
@@ -2439,16 +2444,46 @@ fn run_audit(args: AuditArgs) -> ExitCode {
                     category_report.defaulted_count
                 );
                 for ca in &category_report.audits {
-                    println!(
-                        "  - {} ({}:{}) — antigen-category-defaulted-implicit-functional",
-                        ca.antigen_type,
-                        ca.file.display(),
-                        ca.line
-                    );
+                    if ca
+                        .hints
+                        .contains(&audit::AuditHint::AntigenCategoryDefaultedImplicitFunctional)
+                    {
+                        println!(
+                            "  - {} ({}:{}) — antigen-category-defaulted-implicit-functional",
+                            ca.antigen_type,
+                            ca.file.display(),
+                            ca.line
+                        );
+                    }
                 }
                 println!(
                     "  Add `category = AntigenCategory::...` per ADR-028. (v0.2: \
                      scan-time hint; v0.2.x: parse-time hard-error for new decls.)"
+                );
+            }
+            if !category_report.no_category_witness_mismatch() {
+                println!();
+                println!(
+                    "antigen-category: {} declaration(s) whose category is not \
+                     backed by a matching witness type:",
+                    category_report.mismatch_count
+                );
+                for ca in &category_report.audits {
+                    if ca.hints.contains(
+                        &audit::AuditHint::AntigenCategoryClaimInconsistentWithPredicateType,
+                    ) {
+                        println!(
+                            "  - {} ({}:{}) — antigen-category-claim-inconsistent-with-predicate-type",
+                            ca.antigen_type,
+                            ca.file.display(),
+                            ca.line
+                        );
+                    }
+                }
+                println!(
+                    "  SubstrateAlignment needs a `requires = ...` immunity; \
+                     FunctionalCorrectness needs a `witness = ...` immunity; \
+                     hybrid needs both (ADR-028 §Schema)."
                 );
             }
         }
