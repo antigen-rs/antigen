@@ -459,3 +459,78 @@ pub struct SilentArgumentDiscard;
     references = ["ADR-027", "ADR-027#Amendment-1"]
 )]
 pub struct ScannerBoundaryFalseNegative;
+
+// ============================================================================
+// 11. BiologyGroundingClaimDrift
+// ============================================================================
+
+/// A biology-grounding doc-comment claims an axis or a claim-tier that diverges
+/// from the ratified ADR §Biology grounding for that primitive.
+///
+/// Antigen's biological metaphor is load-bearing, not decorative (ADR-003): the
+/// 17 `# Biology grounding` doc-comment blocks in `antigen-macros` plus the
+/// per-family stdlib module headers each assert a specific **grounding axis**
+/// (immunology-proper / clinical-medicine / cognitive-organizational /
+/// software-engineering) and a specific **claim-tier** on the
+/// IDENTITY → MODELED-ON → ANALOGOUS → RHYMES ladder. When an ADR amendment
+/// changes the ratified axis or tier, the doc-comments can drift out of sync
+/// with the ADR, and nothing fires: rustdoc builds clean, tests pass.
+///
+/// **Observed instance** (2026-05-24, caught at sign-time on
+/// `adr026-amendment-1-triage-commit-naming`): ADR-026 Amendment 1 loosened the
+/// START attribution from IDENTITY-tier ("modeled on") to RHYME-tier
+/// ("analogous to"). The loosening was applied at the `TriageDecision` enum
+/// doc-comment but MISSED at the module-level doc-comment in the same file
+/// (`vcs.rs:10` still read "modeled on the START field-triage protocol"). No
+/// tool caught it; only naturalist attention at sign-time did. The site has
+/// since been corrected — this antigen locks in the now-clean state so a future
+/// re-drift fires.
+///
+/// **Sibling fail-class**: `RatifiedSpecDriftFromImpl`. Both are
+/// `SubstrateAlignment` members of the **substrate-divergence** family, but they
+/// are siblings, not the same antigen, because their witnesses have DIFFERENT
+/// STRUCTURE (the discriminator per aristotle's recognition ruling):
+/// `RatifiedSpecDriftFromImpl`'s witness is a SET-COMPARISON (does the realized
+/// field-set equal the ratified field-set? binary-per-element).
+/// `BiologyGroundingClaimDrift`'s witness is an AXIS-MATCH plus an
+/// ORDINAL TIER-COMPARISON (is the claim on the right axis AND not exceeding the
+/// ratified tier on the IDENTITY→RHYMES ladder?). A set-comparison witness sees
+/// "biology paragraph present = present" and PASSES — it cannot catch the
+/// IDENTITY-vs-RHYME overclaim that was the lived failure. Different witness
+/// structure = sibling.
+///
+/// **One antigen, two hints**: the two failure modes (axis-mismatch and
+/// tier-overclaim) share the witness entry-point — read the biology-grounding
+/// block, extract axis + tier, compare to the ratified ADR — and branch only at
+/// emission (`biology-grounding-axis-mismatch` vs
+/// `biology-grounding-claim-tier-overclaim`). Same shape as the G3
+/// claim-inconsistent-vs-hybrid-incomplete cross-check: one entry-point,
+/// branching emission.
+///
+/// **The mechanization path**: v0.2 ships this antigen with an advisory,
+/// recall-tuned substrate-witness — a tier-honest-verb check that catches the
+/// gross case (a biology block using only IDENTITY-tier verbs where the ADR
+/// ratified a RHYME-tier claim), which is exactly the lived failure. Two named
+/// v0.2.x gaps (per adversarial ATK-BIOLOGY-1/2): sentence-structure overclaim
+/// (a RHYME verb up front smuggling an IDENTITY claim in a subordinate clause)
+/// and dual-axis false positives (a correctly-stated multi-axis claim must be
+/// checked per claim-sentence, not per block). Full mechanization — machine
+/// comparison against the ratified axis/tier — lands when ADRs carry a
+/// structured §Biology-grounding table (axis + claim-tier per primitive), the
+/// same process-amendment substrate that mechanizes the whole
+/// substrate-divergence family. Same recall-scan / precision-witness split as
+/// ADR-010.
+///
+/// **Category**: `SubstrateAlignment` — the doc-comment is a representation of
+/// the ratified biology-grounding claim; the ADR §Biology grounding is the
+/// actual ratified state. Divergence is a representation-vs-state split, not a
+/// computation-correctness failure.
+#[antigen(
+    name = "biology-grounding-claim-drift",
+    category = AntigenCategory::SubstrateAlignment,
+    fingerprint = r#"doc_contains("Biology grounding")"#,
+    family = "dogfood",
+    summary = "A biology-grounding doc-comment claims an axis or a claim-tier (IDENTITY/MODELED-ON/ANALOGOUS/RHYMES) that diverges from the ratified ADR §Biology grounding; load-bearing metaphor (ADR-003) drifts silently when an amendment changes the ratified axis/tier.",
+    references = ["ADR-003", "ADR-024", "ADR-024#Amendment-1", "ADR-026", "ADR-026#Amendment-1", "ADR-027"]
+)]
+pub struct BiologyGroundingClaimDrift;
