@@ -117,6 +117,19 @@ enum AntigenSubcommand {
     /// `requires = ...` substrate-witness predicates and routes them
     /// through these handlers.
     Verify(VerifyCli),
+    /// Drive VCS-Information-Loss Family observations (ADR-026).
+    ///
+    /// Observation subcommands (v0.2): `scan` (surface VCS-info-loss risk
+    /// across the repo), `check-commit` (evaluate one commit's trailers
+    /// against the rollback-triage chain), `attest` (record a branch-archive
+    /// or rollback-triage attestation sidecar), `rollback-prepare` (scaffold
+    /// a triage-commit before a rollback), `branch-archive` (attest a branch
+    /// deletion). These OBSERVE the git substrate via the
+    /// `antigen::vcs_witness` evaluators; they do not install hooks.
+    /// `install-hooks` / `install-server-hooks` (the enforcement layer that
+    /// executes the detection decision tree) defer to v0.2.x post-ADR-026
+    /// Amendment 4 ratification per the witness-layer-independence split.
+    Vcs(VcsCli),
 }
 
 #[derive(Debug, Parser)]
@@ -1067,6 +1080,311 @@ fn run_verify_stub(name: &str, version_target: &str, description: &str) -> ExitC
     ExitCode::from(2)
 }
 
+// ============================================================================
+// cargo antigen vcs subcommand family (VCS-Information-Loss Family, ADR-026)
+//
+// Observation layer (v0.2): reads git substrate (commit trailers, branch
+// state) and routes through the `antigen::vcs_witness` evaluators. Git is
+// invoked via fixed-arg subprocess per the ADR-019 §Decision §4 bright-line
+// rule (git is named, has its own release process, does not execute user
+// code, args are fixed). The enforcement layer (install-hooks /
+// install-server-hooks that EXECUTE the detection decision tree) defers to
+// v0.2.x post-ADR-026 Amendment 4 per witness-layer-independence.
+// ============================================================================
+
+#[derive(Debug, Parser)]
+struct VcsCli {
+    #[command(subcommand)]
+    command: VcsSubcommand,
+}
+
+#[derive(Debug, Subcommand)]
+enum VcsSubcommand {
+    /// Evaluate a single commit's `Triage-Decision:` trailer against the
+    /// rollback-triage chain (ADR-026 Amendment 4 commit-trailer signal).
+    CheckCommit(VcsCheckCommitArgs),
+    /// Surface VCS-info-loss risk across recent history (v0.2: reports the
+    /// rollback-triage state of revert/reset commits in the recent log).
+    Scan(VcsScanArgs),
+    /// Record a branch-deletion attestation sidecar before deleting a branch
+    /// (`.attest/vcs/branch-archive/<branch>.json`). v0.2: prints the sidecar
+    /// JSON the adopter should commit; in-place write is v0.2.x.
+    BranchArchive(VcsBranchArchiveArgs),
+    /// Scaffold the `#[triage_commit]` + `Triage-Decision:` trailer guidance
+    /// for a rollback (v0.2 advisory: prints the trailer line to add).
+    RollbackPrepare(VcsRollbackPrepareArgs),
+    /// v0.2.x: record a generic VCS attestation sidecar. Currently a stub
+    /// surfacing the tooling-not-yet-available awareness signal per
+    /// ADR-005 Amendment 2 honest-tier-naming.
+    Attest,
+}
+
+#[derive(Debug, Parser)]
+struct VcsCheckCommitArgs {
+    /// Commit-ish to check (default: HEAD).
+    #[arg(long, default_value = "HEAD")]
+    commit: String,
+    /// Output format: human or json.
+    #[arg(long, default_value = "human")]
+    format: OutputFormat,
+    /// Exit non-zero if the rollback-triage chain is absent/malformed.
+    #[arg(long)]
+    strict: bool,
+}
+
+#[derive(Debug, Parser)]
+struct VcsScanArgs {
+    /// How many recent commits to inspect.
+    #[arg(long, default_value = "50")]
+    depth: usize,
+    /// Output format: human or json.
+    #[arg(long, default_value = "human")]
+    format: OutputFormat,
+}
+
+#[derive(Debug, Parser)]
+struct VcsBranchArchiveArgs {
+    /// Branch name being archived (attested before deletion).
+    branch: String,
+    /// Role or name attesting the deletion.
+    #[arg(long)]
+    by: String,
+    /// Rationale for the deletion (non-empty).
+    #[arg(long)]
+    rationale: String,
+}
+
+#[derive(Debug, Parser)]
+struct VcsRollbackPrepareArgs {
+    /// Triage decision (black|red|yellow|green|white).
+    #[arg(long)]
+    decision: String,
+    /// Commit sha to roll back to.
+    #[arg(long)]
+    target: String,
+}
+
+fn run_vcs(cli: VcsCli) -> ExitCode {
+    match cli.command {
+        VcsSubcommand::CheckCommit(args) => run_vcs_check_commit(args),
+        VcsSubcommand::Scan(args) => run_vcs_scan(args),
+        VcsSubcommand::BranchArchive(args) => run_vcs_branch_archive(args),
+        VcsSubcommand::RollbackPrepare(args) => run_vcs_rollback_prepare(args),
+        VcsSubcommand::Attest => run_vcs_attest_stub(),
+    }
+}
+
+/// Read a single commit's message and parse its trailers via
+/// `git show --format=%B -s <commit>` piped through
+/// `git interpret-trailers --parse`. Fixed-arg subprocess per the ADR-019
+/// bright-line rule. Returns `(name, value)` pairs; empty on any git failure
+/// (tier-honest: no trailers → chain reads as absent).
+fn read_commit_trailers(commit: &str) -> Vec<(String, String)> {
+    let body = std::process::Command::new("git")
+        .args(["show", "--no-patch", "--format=%B", commit])
+        .output();
+    let body_bytes = match body {
+        Ok(o) if o.status.success() => o.stdout,
+        _ => return Vec::new(),
+    };
+    let parsed = std::process::Command::new("git")
+        .args(["interpret-trailers", "--parse"])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .and_then(|mut child| {
+            use std::io::Write;
+            if let Some(stdin) = child.stdin.take() {
+                let mut stdin = stdin;
+                let _ = stdin.write_all(&body_bytes);
+            }
+            child.wait_with_output()
+        });
+    match parsed {
+        Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout)
+            .lines()
+            .filter_map(|l| {
+                let (k, v) = l.split_once(':')?;
+                Some((k.trim().to_owned(), v.trim().to_owned()))
+            })
+            .collect(),
+        _ => Vec::new(),
+    }
+}
+
+fn run_vcs_check_commit(args: VcsCheckCommitArgs) -> ExitCode {
+    use antigen::vcs_witness::RollbackTriageState;
+    let trailers = read_commit_trailers(&args.commit);
+    let state = RollbackTriageState::evaluate(&trailers);
+    match args.format {
+        OutputFormat::Json => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&state).unwrap_or_else(|_| "{}".to_string())
+            );
+        }
+        OutputFormat::Human => match &state {
+            RollbackTriageState::ChainPresent { decision } => {
+                println!(
+                    "commit {}: rollback-triage chain present (Triage-Decision: {})",
+                    args.commit,
+                    decision.as_str()
+                );
+            }
+            RollbackTriageState::ChainMalformed { value } => {
+                println!(
+                    "commit {}: Triage-Decision trailer present but value {value:?} is not a \
+                     valid triage decision (black|red|yellow|green|white)",
+                    args.commit
+                );
+            }
+            RollbackTriageState::ChainAbsent => {
+                println!(
+                    "commit {}: no Triage-Decision trailer — backs \
+                     vcs-rollback-without-triage-commit if this is a rollback",
+                    args.commit
+                );
+            }
+        },
+    }
+    if args.strict && !state.is_pass() {
+        return ExitCode::from(1);
+    }
+    ExitCode::SUCCESS
+}
+
+fn run_vcs_scan(args: VcsScanArgs) -> ExitCode {
+    use antigen::vcs_witness::RollbackTriageState;
+    // List recent commit shas + subjects; flag revert/reset-shaped commits
+    // whose rollback-triage chain is absent.
+    let log = std::process::Command::new("git")
+        .args(["log", &format!("-{}", args.depth), "--format=%H%x1f%s"])
+        .output();
+    let log_text = match log {
+        Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).into_owned(),
+        _ => {
+            eprintln!("cargo antigen vcs scan: git log unavailable (not a repo, or git missing)");
+            return ExitCode::from(2);
+        }
+    };
+    let mut flagged = 0usize;
+    let mut entries: Vec<(String, String, RollbackTriageState)> = Vec::new();
+    for line in log_text.lines() {
+        let Some((sha, subject)) = line.split_once('\u{1f}') else {
+            continue;
+        };
+        // A revert-shaped subject is the v0.2 heuristic for "candidate
+        // rollback" — the commit-trailer chain is then the real signal.
+        let looks_like_rollback = subject.to_lowercase().contains("revert")
+            || subject.to_lowercase().contains("rollback");
+        if !looks_like_rollback {
+            continue;
+        }
+        let state = RollbackTriageState::evaluate(&read_commit_trailers(sha));
+        if !state.is_pass() {
+            flagged += 1;
+        }
+        entries.push((sha.to_owned(), subject.to_owned(), state));
+    }
+    match args.format {
+        OutputFormat::Json => {
+            // Minimal JSON: array of {sha, subject, chain_pass}.
+            let arr: Vec<_> = entries
+                .iter()
+                .map(|(sha, subject, state)| {
+                    serde_json::json!({
+                        "sha": sha,
+                        "subject": subject,
+                        "chain_pass": state.is_pass(),
+                    })
+                })
+                .collect();
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&arr).unwrap_or_else(|_| "[]".to_string())
+            );
+        }
+        OutputFormat::Human => {
+            if entries.is_empty() {
+                println!(
+                    "cargo antigen vcs scan: no revert/rollback-shaped commits in the last {} \
+                     commits",
+                    args.depth
+                );
+            } else {
+                for (sha, subject, state) in &entries {
+                    let short = &sha[..sha.len().min(8)];
+                    let mark = if state.is_pass() { "ok " } else { "!! " };
+                    println!("{mark}{short} {subject}");
+                }
+                println!();
+                println!(
+                    "{flagged} rollback-shaped commit(s) without a valid Triage-Decision chain"
+                );
+            }
+        }
+    }
+    ExitCode::SUCCESS
+}
+
+fn run_vcs_branch_archive(args: VcsBranchArchiveArgs) -> ExitCode {
+    if args.rationale.trim().is_empty() {
+        eprintln!("cargo antigen vcs branch-archive: --rationale cannot be empty");
+        return ExitCode::from(1);
+    }
+    // v0.2 advisory: print the sidecar JSON the adopter commits to
+    // `.attest/vcs/branch-archive/<branch>.json` before deleting the branch.
+    let sidecar = serde_json::json!({
+        "branch": args.branch,
+        "by_role": args.by,
+        "rationale": args.rationale,
+        "attested_at": chrono::Utc::now().to_rfc3339(),
+    });
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&sidecar).unwrap_or_else(|_| "{}".to_string())
+    );
+    eprintln!();
+    eprintln!(
+        "Write this to .attest/vcs/branch-archive/{}.json and commit it BEFORE \
+         deleting the branch (v0.2 advisory; in-place write is v0.2.x).",
+        args.branch
+    );
+    ExitCode::SUCCESS
+}
+
+fn run_vcs_rollback_prepare(args: VcsRollbackPrepareArgs) -> ExitCode {
+    use antigen::vcs::TriageDecision;
+    if TriageDecision::parse_decision(&args.decision).is_none() {
+        eprintln!(
+            "cargo antigen vcs rollback-prepare: --decision {:?} is not a valid triage \
+             decision (black|red|yellow|green|white)",
+            args.decision
+        );
+        return ExitCode::from(1);
+    }
+    println!("Add this trailer to your rollback commit message (ADR-026 Amendment 4):");
+    println!();
+    println!("    Triage-Decision: {}", args.decision.to_lowercase());
+    println!();
+    println!(
+        "Rolling back to {}. The Triage-Decision trailer is the commit-intent signal \
+         the rollback-triage chain reads — NOT a source-code scan.",
+        args.target
+    );
+    ExitCode::SUCCESS
+}
+
+fn run_vcs_attest_stub() -> ExitCode {
+    println!("cargo antigen vcs attest: v0.2.x stub");
+    println!();
+    println!("Generic VCS attestation-sidecar recording lands in v0.2.x. For now,");
+    println!("use `branch-archive` (branch-deletion attestation) or `rollback-prepare`");
+    println!("(triage-commit trailer scaffolding). Per ADR-005 Amendment 2 honest-tier-");
+    println!("naming: this stub does NOT silently pass.");
+    ExitCode::from(2)
+}
+
 /// Parse `<crate>@<version>` into `(crate, version)`. Returns `None` on
 /// any of: no `@`, empty crate, empty version, multiple `@`s.
 fn parse_crate_at_version(s: &str) -> Option<(String, String)> {
@@ -1090,6 +1408,7 @@ fn main() -> ExitCode {
         AntigenSubcommand::Tolerate(cli) => run_tolerate(cli),
         AntigenSubcommand::Oracle(cli) => run_oracle(cli),
         AntigenSubcommand::Verify(cli) => run_verify(cli),
+        AntigenSubcommand::Vcs(cli) => run_vcs(cli),
     }
 }
 
