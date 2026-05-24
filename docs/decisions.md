@@ -4922,6 +4922,41 @@ This is consistent with Amendment 2's principle: the witness-layer requirement i
 
 ---
 
+## ADR-028 Amendment 4 — enforcement-surface re-sync post G1/G2/G3
+
+**Status**: Ratified 2026-05-24.
+
+**Amends**: ADR-028 §Enforcement-Surface table + §Decision backward-compat paragraph + §Audit-hint vocabulary.
+
+**Reason**: The G1→G2→G3 implementation arc (campsites `v02-impl-category-v01-discriminator`, `v02-impl-category-witness-cross-check`, `v02-impl-category-audit-hints`) shipped with two deliberate differences from the original ADR-028 text:
+1. G1 ships the v0.1-carryover default as a **migration hint** (`antigen-category-defaulted-implicit-functional`), not a parse-time hard error. Hard error for NEW declarations is v0.2.x scope once the migration tool exists.
+2. G2 ships the category-vs-witness-type cross-check at **audit-time only** (Amendment 3 records the structural reason). The §Enforcement-Surface table still said "parse-time (hint) + audit-time."
+3. G3 ships two of the four named hints; the other two are deferred to v0.2.x with named blocking reasons. The audit-hint vocabulary paragraph listed all four without tiering.
+
+**Change**:
+
+*§Enforcement-Surface table* (lines 6195–6200 in decisions.md at Amendment-4 time) — replace rows with:
+
+| Mechanism | Enforcement-Tier | Enforcement-Scope | Status |
+|---|---|---|---|
+| `category` field on `#[antigen]` (v0.2+) | parse-time: migration hint for v0.1 carryover; hard error for new declarations (v0.2.x) | client | v0.2 ships hint; hard error deferred pending migration tool |
+| Category-vs-witness-type cross-check | audit-time (ADVISORY; CI-gateable) | client + CI | v0.2 shipped (Amendment 3: structural reason audit-time is correct layer) |
+| Hybrid incomplete-evidence | audit-time (partial coverage signal) | client + CI | v0.2 shipped |
+| v0.1 backward-compat default | parse-time migration hint | client | v0.2 ships; v0.3+ deprecation removes default |
+
+*§Audit-hint vocabulary* — tiered as shipped:
+
+- **v0.2 (shipped)**: `antigen-category-defaulted-implicit-functional` (G1), `antigen-category-claim-inconsistent-with-predicate-type` (G2), `antigen-category-hybrid-incomplete-evidence` (G3).
+- **v0.2.x (deferred — named blocking reasons)**:
+  - `antigen-category-missing-explicit` — requires the v0.1/v0.2 migration-record discriminator (deferred in G1 aristotle F1 ruling).
+  - `antigen-category-mismatch-witness-type` — advisory soft-smell layer atop claim-inconsistent; distinct softer signal; lands after claim-inconsistent proves in the field.
+
+*§Decision backward-compat paragraph* inline annotation — remove the phrase "v0.2+ NEW declarations: `category` REQUIRED at parse-time; absence is hard-error" and replace with "v0.2+ NEW declarations: absence emits `antigen-category-defaulted-implicit-functional` migration hint; parse-time hard error is v0.2.x once migration tooling exists."
+
+**Resolves**: Stale enforcement-surface table and hint vocabulary that described the original design rather than the shipped v0.2 state. Aristotle's finding on `v02-impl-category-audit-hints` campsite.
+
+---
+
 ## Amendment template
 
 When an ADR needs to be amended (not superseded), add an Amendment section:
@@ -6164,7 +6199,7 @@ Hybrid: `CampsiteOpen` (sidecar must exist AND signatures must cryptographically
 
 **Per-site `category_required` escape hatch is REMOVED** in this revision — escape hatches defeat the strict-enforcement value.
 
-**v0.2 backward-compat**: v0.1 antigens lacking `category` field default to `vec![FunctionalCorrectness]` + emit `antigen-category-defaulted-implicit-functional` migration hint. v0.2+ NEW declarations: `category` REQUIRED at parse-time; absence is hard-error. Migration tool: `cargo antigen migrate categories` (v0.2.1+ polish; v0.2 ships strict-enforcement for new declarations + soft default for v0.1 carryover).
+**v0.2 backward-compat**: v0.1 antigens lacking `category` field default to `vec![FunctionalCorrectness]` + emit `antigen-category-defaulted-implicit-functional` migration hint. v0.2+ NEW declarations: absence emits the same migration hint at audit time; parse-time hard error is v0.2.x once the migration tool (`cargo antigen migrate categories`) exists. *(Amendment 4 — 2026-05-24: corrected "absence is hard-error" to reflect shipped G1 behavior: migration hint, not hard error. Hard error deferred to v0.2.x.)*
 
 **Macro syntax**:
 
@@ -6192,12 +6227,12 @@ Hybrid: `CampsiteOpen` (sidecar must exist AND signatures must cryptographically
 
 **§Enforcement-Surface**:
 
-| Mechanism | Enforcement-Tier | Enforcement-Scope | Bypass risk + mitigation |
+| Mechanism | Enforcement-Tier | Enforcement-Scope | Status |
 |---|---|---|---|
-| `category` field on `#[antigen]` (v0.2+) | parse-time (HARD ERROR if missing) | client | per F2 strict choice; clear error message + migration tool |
-| Category-vs-predicate-type cross-check | parse-time (hint) + audit-time | client + CI | per F1-R |
-| Hybrid both-witness-types | audit-time (UNVERIFIED if missing axis) | client + CI | hybrid antigens explicit; audit reports gaps |
-| v0.1 backward-compat default | parse-time (warning) | client | migration hint; v0.3+ deprecation removes default |
+| `category` field on `#[antigen]` (v0.2+) | parse-time: migration hint for v0.1 carryover; hard error for new declarations (v0.2.x) | client | v0.2 ships hint; hard error deferred pending migration tool *(Amd 4)* |
+| Category-vs-witness-type cross-check | audit-time (ADVISORY; CI-gateable) | client + CI | v0.2 shipped at audit layer (Amendment 3) *(Amd 3+4)* |
+| Hybrid incomplete-evidence | audit-time (partial coverage signal) | client + CI | v0.2 shipped (G3) *(Amd 4)* |
+| v0.1 backward-compat default | parse-time migration hint | client | v0.2 ships; v0.3+ deprecation removes default |
 
 **Biology grounding** (per naturalist — NON-NEGOTIABLE): the category distinction is **OPERATIONALLY substrate-grounded**, NOT biology-grounded. Biology provides an approximate documentation cognate (Class 2-3): pattern-recognition (PRRs, BCRs, TCRs) ↔ substrate-alignment; effector-function (cytokine release, cell killing) ↔ functional-correctness. The biology cognate is documentation-aid, not load-bearing prediction. The OPERATIONAL substrate is: observer-role catches substrate-alignment; adversarial+scientist+pathmaker catch functional-correctness; substrate-witnesses vs code-witnesses (ADR-019) already operationalize this split.
 
