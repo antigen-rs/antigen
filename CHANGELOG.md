@@ -5,6 +5,66 @@ All notable changes to the antigen project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased — v0.2.0-alpha.4]
+
+Recurrent-Emergence Family + Mucosal Boundary Family complete with adversarial
+validation. ADR-028 G1 + G2 live enforcement. Dogfood pivot: antigen's own
+codebase now carries `#[presents]` and `#[immune]` markers at real failure sites.
+Includes ATK-RECURRENT-2 production fix (orphan-anchor-no-itch precondition check).
+
+### Added
+
+- **Recurrent-Emergence Family (ADR-024 §Family 2)** — scan + audit + stdlib antigens
+  + worked example. Three primitives tracking canonical cross-lifetime failure classes:
+  `MsrvCreepAfterMajorVersionBump`, `GitignorePatternDriftOverReleases`,
+  `LockfileChurnFromUnpinnedTooling`. Six recurrent-declaration kinds:
+  `#[itch]`, `#[recurrence_anchor]`, `#[crystallize]`, `#[chronic]`,
+  `#[saturate]`, `#[strand]`. Audit hints: `ItchNoticedNotAnchored`,
+  `RecurrenceThresholdReachedNoAction`, `RecurrenceAnchorNoItchPrecondition`,
+  `ChronicManagedByRequired`, `ChronicSinceNotADate`, `CrystallizeWithoutSource`.
+
+- **Mucosal Boundary Family (ADR-027 + Amendment 1)** — scan + audit + stdlib antigens
+  + `cargo antigen mucosal-map` CLI. Three primitives: `#[mucosal]`,
+  `#[mucosal_delegate]`, `#[mucosal_tolerant]`. 13-variant `MucosalKind` enum.
+  Three-tier delegate kind-mismatch diagnosis (target-missing, no-kinds, kind-mismatch).
+  Stdlib antigens: `UndefendedTrustBoundary`, `DelegatedDefenseWithoutMatchingHandler`,
+  `ToleratedBoundaryWithoutReview`.
+
+- **ADR-028 G1 — live category-defaulted hint emission** — `cargo antigen audit`
+  now emits `antigen-category-defaulted-implicit-functional` for each `#[antigen]`
+  declaration missing an explicit `category =` field. 17 example-site hits confirmed.
+
+- **ADR-028 G2 — category-vs-witness-type cross-check at audit time** — `audit_category()`
+  joins explicit-category antigens against their `#[immune]` witnesses. Fires
+  `AntigenCategoryClaimInconsistentWithPredicateType` when a `SubstrateAlignment`
+  antigen has only code-witnesses, a `FunctionalCorrectness` antigen has only
+  substrate-witnesses, or a hybrid antigen is missing either witness type.
+
+- **Agentic-Coordination stdlib family** — two antigens encoding failure-classes
+  from multi-session / multi-agent workflows:
+  - `AgentWakeWithoutSubstrateDeltaInjection` — agent resumes without reading
+    substrate delta accumulated during idle gap; stale context produces wrong routing.
+  - `DelegateCrossCrateResolutionGap` — mucosal handler-kinds index is intra-crate
+    only; cross-crate delegates false-positive as target-missing. Residual risk at
+    v0.2; structural fix is v0.3+ scope (multi-crate scan pass).
+
+- **Dogfood family expansion** — antigen's own codebase now carries live markers:
+  - `#[presents(DelegateCrossCrateResolutionGap)]` on `audit_mucosal` (residual risk)
+  - `#[immune(AuditHintWithNoUpstreamPreconditionCheck)]` on `evaluate_recurrent_hints`
+    (ATK-RECURRENT-2 fix, witness pointing to adversarial fixture)
+  - `#[presents(ScannerBoundaryFalseNegative)]` on `scan_workspace` (scope limitation:
+    scanner only finds explicit `#[mucosal]` declarations, not implicit boundaries)
+  - `ScannerBoundaryFalseNegative` stdlib antigen added to `dogfood` family.
+
+### Fixed
+
+- **ATK-RECURRENT-2 production fix** (`dd51d4b`) — `RecurrenceAnchor` audit arm
+  checked downstream action (`acted_on`) but not upstream precondition (matching
+  `#[itch]` declared). Added `AuditHint::RecurrenceAnchorNoItchPrecondition` + threaded
+  `itch_antigen_types: HashSet<&str>` into `evaluate_recurrent_hints`. Both positive
+  (hint fires for orphan anchor) and clearing (suppressed when matching itch exists)
+  cases tested in adversarial fixture.
+
 ## [Unreleased — v0.2.0-alpha.3]
 
 VCS-Information-Loss Family: structural memory of git-history-erasing operations
