@@ -37,6 +37,7 @@
 
 use std::path::{Path, PathBuf};
 
+use antigen_macros::presents;
 use serde::{Deserialize, Serialize};
 use syn::parse::Parse;
 use syn::visit::Visit;
@@ -964,6 +965,7 @@ impl Parse for ScanCrossreactiveArgs {
 
 /// A single antigen declaration discovered in source.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[presents(VecCardinalityMasqueradingAsSet)]
 pub struct AntigenDeclaration {
     /// The kebab-case antigen name from `#[antigen(name = "...")]`.
     pub name: String,
