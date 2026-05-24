@@ -217,11 +217,6 @@ pub use vcs::{ServerSideEnforcementMode, TriageDecision};
 /// [`vcs_witness::BranchAttestState`], [`vcs_witness::ServerEnforcementState`].
 pub mod vcs_witness;
 
-/// Dogfood antigen declarations — the antigen codebase applying v0.2
-/// primitives to itself (adversarial-informed; campsite
-/// `dogfood-layer1-antigen-self-application`).
-pub mod dogfood;
-
 /// Antigen-Category taxonomy (ADR-028).
 ///
 /// Hosts [`AntigenCategory`] — the first-class two-variant enum

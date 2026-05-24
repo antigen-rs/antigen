@@ -90,9 +90,10 @@ fn atk_recurrent_2_recurrence_anchor_without_matching_itch_emits_hint() {
     // (itch → anchor → crystallize) is bypassed.
     // Should emit RecurrenceAnchorNoItchPrecondition.
     let mut report = ScanReport::default();
-    report
-        .recurrent_declarations
-        .push(base_decl(RecurrentKind::RecurrenceAnchor, Some("SomeAntigen")));
+    report.recurrent_declarations.push(base_decl(
+        RecurrentKind::RecurrenceAnchor,
+        Some("SomeAntigen"),
+    ));
     let out = audit_recurrent(&report);
     assert!(
         out.audits[0]
@@ -106,9 +107,10 @@ fn atk_recurrent_2_recurrence_anchor_without_matching_itch_emits_hint() {
     report_with_itch
         .recurrent_declarations
         .push(base_decl(RecurrentKind::Itch, Some("SomeAntigen")));
-    report_with_itch
-        .recurrent_declarations
-        .push(base_decl(RecurrentKind::RecurrenceAnchor, Some("SomeAntigen")));
+    report_with_itch.recurrent_declarations.push(base_decl(
+        RecurrentKind::RecurrenceAnchor,
+        Some("SomeAntigen"),
+    ));
     let out_with_itch = audit_recurrent(&report_with_itch);
     let anchor_audit = out_with_itch
         .audits
