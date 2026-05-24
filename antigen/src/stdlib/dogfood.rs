@@ -423,7 +423,7 @@ pub struct SilentArgumentDiscard;
 ///
 /// Antigen's mucosal scanner (`cargo antigen mucosal-map --undefended`) detects
 /// trust boundaries by matching function parameter types against a set of
-/// recognized patterns (e.g., actix_web `Path<T>`, axum `Json<T>`,
+/// recognized patterns (e.g., `actix_web` `Path<T>`, axum `Json<T>`,
 /// `HttpRequest`, etc.). A handler that uses a *custom* request type — one the
 /// heuristic does not recognize — will not be surfaced as an undefended boundary.
 /// The `--undefended` flag then reports "0 undefended boundaries" when there is
