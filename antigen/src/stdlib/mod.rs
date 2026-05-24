@@ -18,6 +18,9 @@
 //! - [`recurrent`](crate::stdlib::recurrent) — the Recurrent-Emergence
 //!   Family (ADR-024 §Family 2), canonical failure-classes that re-emerge
 //!   across project lifetimes (MSRV-creep, gitignore-drift, lockfile-churn).
+//! - [`mucosal`](crate::stdlib::mucosal) — the Mucosal Boundary Family
+//!   (ADR-027 + Amendment 1), trust-boundary failure-classes (undefended
+//!   boundary, mis-delegated defense, stale tolerance).
 //!
 //! ## How adopters use these
 //!
@@ -44,6 +47,7 @@
 //! `cargo antigen verify` CLI subfamily + the substrate-witness pipeline,
 //! NOT in source-walking fingerprint matching.
 
+pub mod mucosal;
 pub mod recurrent;
 pub mod supply_chain;
 pub mod vcs_info_loss;
