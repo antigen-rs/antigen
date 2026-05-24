@@ -480,6 +480,41 @@ pub enum AuditHint {
     /// `#[strand]` declared with no `anchored_by` entries — a thread of
     /// noticing that anchors nothing.
     StrandNoAnchors,
+
+    // ------------------------------------------------------------------
+    // Mucosal Boundary Family hints (ADR-027 + Amendment 1).
+    //
+    // Pre-authorized under ADR-027 §Audit-hint vocabulary "examples:"
+    // open-set framing per aristotle F7. Emitted by `audit_mucosal()`.
+    // ------------------------------------------------------------------
+    /// A boundary surfaced by scan carries no `#[mucosal]` /
+    /// `#[mucosal_tolerant]` declaration. (v0.2: emitted by
+    /// `mucosal-map --undefended`; retained for vocabulary completeness.)
+    MucosalBoundaryUndefended,
+    /// `#[mucosal]` / `#[mucosal_delegate]` declared with no recognized
+    /// `kind` / `boundary` — the `MucosalKind` didn't resolve.
+    MucosalKindMismatch,
+    /// `#[mucosal]` rationale missing or below the ≥20-char floor.
+    MucosalRationaleInsufficient,
+    /// `#[mucosal_delegate]` whose `handled_by` path does not resolve to any
+    /// function in the workspace. Three-tier diagnosis tier 1 (Change 5a).
+    MucosalDisciplineDelegateTargetMissing,
+    /// `#[mucosal_delegate]` whose `handled_by` target exists but carries no
+    /// `#[mucosal]` declaration. Three-tier diagnosis tier 2 (Change 5b).
+    MucosalDisciplineDelegateTargetNotMucosal,
+    /// `#[mucosal_delegate]` whose handler carries `#[mucosal]` but none of
+    /// its `kind`s match the delegate's `boundary` (set-membership, NOT
+    /// exact-equality). Three-tier diagnosis tier 3 (Change 5c).
+    MucosalDisciplineDelegateTargetKindMismatch,
+    /// `#[mucosal_tolerant]` rationale missing or below the ≥40-char floor
+    /// (higher than `#[mucosal]` — tolerance is the riskier declaration).
+    MucosalTolerantRationaleInsufficient,
+    /// `#[mucosal_tolerant]` whose `until` review-deadline has passed.
+    MucosalTolerantPastReviewDate,
+    /// `#[mucosal_tolerant]` with an empty/missing `accepts` description.
+    MucosalTolerantAcceptsEmpty,
+    /// `#[mucosal_tolerant]` with no `reviewed_by` (v0.2.1+ migration hint).
+    MucosalTolerantWithoutReviewer,
 }
 
 /// Result of auditing a single immunity declaration.
@@ -2266,6 +2301,175 @@ fn evaluate_recurrent_hints(
     hints
 }
 
+// ============================================================================
+// Mucosal Boundary audit (ADR-027 + Amendment 1)
+// ============================================================================
+
+/// Per-declaration mucosal-boundary audit result.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MucosalAudit {
+    /// The original declaration from the scan.
+    pub declaration: crate::scan::MucosalDeclaration,
+    /// Hints surfaced for this declaration (may be empty = clean).
+    pub hints: Vec<AuditHint>,
+}
+
+/// Aggregate mucosal-boundary audit report.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct MucosalAuditReport {
+    /// Per-declaration audit results.
+    pub audits: Vec<MucosalAudit>,
+    /// Count of declarations whose hint set is empty (clean).
+    pub clean_count: usize,
+    /// Count of declarations whose hint set is non-empty.
+    pub concern_count: usize,
+}
+
+impl MucosalAuditReport {
+    /// True when no concerns were surfaced.
+    #[must_use]
+    pub const fn all_clean(&self) -> bool {
+        self.concern_count == 0
+    }
+}
+
+/// Minimum rationale lengths per ADR-027 + Amendment 1 Change 6 (risk-
+/// proportionate: tolerance is riskier than defense, so its floor is higher).
+const MUCOSAL_RATIONALE_FLOOR: usize = 20;
+const MUCOSAL_TOLERANT_RATIONALE_FLOOR: usize = 40;
+
+/// Audit mucosal-boundary declarations across a scan report (ADR-027 +
+/// Amendment 1).
+///
+/// Implements the Change-5 three-tier delegate diagnosis via set-membership
+/// kind-matching against the handler functions' `#[mucosal]` declarations.
+#[must_use]
+pub fn audit_mucosal(report: &ScanReport) -> MucosalAuditReport {
+    use crate::scan::{ItemTarget, MucosalKindTag};
+
+    // Build handler-function → set-of-mucosal-kinds index from every
+    // `#[mucosal]` declaration sitting on a function. The delegate
+    // kind-matching (Change 5c) is set-membership against this index;
+    // hybrid handlers (multiple `#[mucosal(kind = X)]`) contribute multiple
+    // kinds to their function's set.
+    let mut handler_kinds: std::collections::HashMap<&str, std::collections::HashSet<&str>> =
+        std::collections::HashMap::new();
+    for decl in &report.mucosal_declarations {
+        if decl.tag == MucosalKindTag::Mucosal {
+            if let ItemTarget::Fn(fn_name) = &decl.item_target {
+                if let Some(kind) = decl.boundary_kind.as_deref() {
+                    handler_kinds
+                        .entry(fn_name.as_str())
+                        .or_default()
+                        .insert(kind);
+                }
+            }
+        }
+    }
+
+    let mut audits: Vec<MucosalAudit> = Vec::new();
+    for decl in &report.mucosal_declarations {
+        let hints = evaluate_mucosal_hints(decl, &handler_kinds);
+        audits.push(MucosalAudit {
+            declaration: decl.clone(),
+            hints,
+        });
+    }
+
+    let mut clean_count = 0usize;
+    let mut concern_count = 0usize;
+    for a in &audits {
+        if a.hints.is_empty() {
+            clean_count += 1;
+        } else {
+            concern_count += 1;
+        }
+    }
+
+    MucosalAuditReport {
+        audits,
+        clean_count,
+        concern_count,
+    }
+}
+
+fn evaluate_mucosal_hints(
+    decl: &crate::scan::MucosalDeclaration,
+    handler_kinds: &std::collections::HashMap<&str, std::collections::HashSet<&str>>,
+) -> Vec<AuditHint> {
+    use crate::scan::MucosalKindTag;
+
+    let mut hints = Vec::new();
+    match decl.tag {
+        MucosalKindTag::Mucosal => {
+            if decl.boundary_kind.is_none() {
+                hints.push(AuditHint::MucosalKindMismatch);
+            }
+            if decl
+                .rationale
+                .as_deref()
+                .is_none_or(|r| r.len() < MUCOSAL_RATIONALE_FLOOR)
+            {
+                hints.push(AuditHint::MucosalRationaleInsufficient);
+            }
+        }
+        MucosalKindTag::MucosalDelegate => {
+            if decl.boundary_kind.is_none() {
+                hints.push(AuditHint::MucosalKindMismatch);
+            }
+            // Change 5 three-tier diagnosis on the delegate handler.
+            match decl.handled_by.as_deref() {
+                None => hints.push(AuditHint::MucosalDisciplineDelegateTargetMissing),
+                Some(handler) => match handler_kinds.get(handler) {
+                    // Tier 1: handler doesn't resolve to any #[mucosal]-fn.
+                    None => hints.push(AuditHint::MucosalDisciplineDelegateTargetMissing),
+                    Some(kinds) if kinds.is_empty() => {
+                        // Tier 2: resolves but carries no mucosal kind.
+                        hints.push(AuditHint::MucosalDisciplineDelegateTargetNotMucosal);
+                    }
+                    Some(kinds) => {
+                        // Tier 3: set-membership kind match (NOT exact-equality).
+                        let matches = decl
+                            .boundary_kind
+                            .as_deref()
+                            .is_some_and(|b| kinds.contains(b));
+                        if !matches {
+                            hints.push(AuditHint::MucosalDisciplineDelegateTargetKindMismatch);
+                        }
+                    }
+                },
+            }
+        }
+        MucosalKindTag::MucosalTolerant => {
+            if decl.boundary_kind.is_none() {
+                hints.push(AuditHint::MucosalKindMismatch);
+            }
+            if decl
+                .rationale
+                .as_deref()
+                .is_none_or(|r| r.len() < MUCOSAL_TOLERANT_RATIONALE_FLOOR)
+            {
+                hints.push(AuditHint::MucosalTolerantRationaleInsufficient);
+            }
+            if decl.accepts.as_deref().is_none_or(|a| a.trim().is_empty()) {
+                hints.push(AuditHint::MucosalTolerantAcceptsEmpty);
+            }
+            if decl.reviewed_by.is_none() {
+                hints.push(AuditHint::MucosalTolerantWithoutReviewer);
+            }
+            // Past-review-date: only when `until` parses as an ISO date.
+            if let Some(until) = decl.until.as_deref() {
+                if let Ok(until_date) = chrono::NaiveDate::parse_from_str(until, "%Y-%m-%d") {
+                    if chrono::Utc::now().date_naive() > until_date {
+                        hints.push(AuditHint::MucosalTolerantPastReviewDate);
+                    }
+                }
+            }
+        }
+    }
+    hints
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2709,5 +2913,224 @@ mod tests {
         assert_eq!(s, "\"itch-noticed-not-anchored\"");
         let s2 = serde_json::to_string(&AuditHint::ChronicSignalPastReviewDate).unwrap();
         assert_eq!(s2, "\"chronic-signal-past-review-date\"");
+    }
+
+    // ========================================================================
+    // Mucosal Boundary audit (ADR-027 + Amendment 1)
+    // ========================================================================
+
+    fn mucosal_decl(
+        tag: crate::scan::MucosalKindTag,
+        boundary_kind: Option<&str>,
+        rationale: Option<&str>,
+        target_fn: &str,
+    ) -> crate::scan::MucosalDeclaration {
+        crate::scan::MucosalDeclaration {
+            tag,
+            boundary_kind: boundary_kind.map(str::to_string),
+            rationale: rationale.map(str::to_string),
+            handled_by: None,
+            accepts: None,
+            reviewed_by: None,
+            until: None,
+            file: std::path::PathBuf::from("test.rs"),
+            line: 1,
+            item_kind: "fn".to_string(),
+            item_target: crate::scan::ItemTarget::Fn(target_fn.to_string()),
+        }
+    }
+
+    #[test]
+    fn audit_mucosal_clean_when_kind_and_rationale_present() {
+        use crate::scan::MucosalKindTag;
+        let mut report = ScanReport::default();
+        report.mucosal_declarations.push(mucosal_decl(
+            MucosalKindTag::Mucosal,
+            Some("UserInput"),
+            Some("public form input; sanitized at template-render layer"),
+            "handle_form",
+        ));
+        let out = audit_mucosal(&report);
+        assert!(out.all_clean());
+    }
+
+    #[test]
+    fn audit_mucosal_short_rationale_flags_insufficient() {
+        use crate::scan::MucosalKindTag;
+        let mut report = ScanReport::default();
+        report.mucosal_declarations.push(mucosal_decl(
+            MucosalKindTag::Mucosal,
+            Some("UserInput"),
+            Some("short"),
+            "f",
+        ));
+        let out = audit_mucosal(&report);
+        assert!(out.audits[0]
+            .hints
+            .contains(&AuditHint::MucosalRationaleInsufficient));
+    }
+
+    #[test]
+    fn audit_mucosal_delegate_missing_handler_flags_tier1() {
+        use crate::scan::MucosalKindTag;
+        let mut report = ScanReport::default();
+        let mut d = mucosal_decl(
+            MucosalKindTag::MucosalDelegate,
+            Some("UserInput"),
+            Some("delegated to sanitizer module for central handling"),
+            "outer",
+        );
+        d.handled_by = Some("nonexistent_handler".to_string());
+        report.mucosal_declarations.push(d);
+        let out = audit_mucosal(&report);
+        assert!(out.audits[0]
+            .hints
+            .contains(&AuditHint::MucosalDisciplineDelegateTargetMissing));
+    }
+
+    #[test]
+    fn audit_mucosal_delegate_kind_mismatch_flags_tier3() {
+        use crate::scan::MucosalKindTag;
+        // Handler `sanitize_db` carries #[mucosal(kind = DatabaseQuery)] only;
+        // the delegate points UserInput at it → tier-3 kind-mismatch.
+        let mut report = ScanReport::default();
+        report.mucosal_declarations.push(mucosal_decl(
+            MucosalKindTag::Mucosal,
+            Some("DatabaseQuery"),
+            Some("parameterized queries enforced at this data-access layer"),
+            "sanitize_db",
+        ));
+        let mut delegate = mucosal_decl(
+            MucosalKindTag::MucosalDelegate,
+            Some("UserInput"),
+            Some("delegated to the shared sanitizer used across endpoints"),
+            "outer",
+        );
+        delegate.handled_by = Some("sanitize_db".to_string());
+        report.mucosal_declarations.push(delegate);
+        let out = audit_mucosal(&report);
+        let delegate_audit = out
+            .audits
+            .iter()
+            .find(|a| a.declaration.tag == MucosalKindTag::MucosalDelegate)
+            .unwrap();
+        assert!(delegate_audit
+            .hints
+            .contains(&AuditHint::MucosalDisciplineDelegateTargetKindMismatch));
+    }
+
+    #[test]
+    fn audit_mucosal_delegate_matching_kind_is_clean() {
+        use crate::scan::MucosalKindTag;
+        // Handler carries the matching kind → delegate is clean (set-membership).
+        let mut report = ScanReport::default();
+        report.mucosal_declarations.push(mucosal_decl(
+            MucosalKindTag::Mucosal,
+            Some("UserInput"),
+            Some("central user-input sanitizer; escapes + length-bounds"),
+            "sanitize_input",
+        ));
+        let mut delegate = mucosal_decl(
+            MucosalKindTag::MucosalDelegate,
+            Some("UserInput"),
+            Some("delegated to the central user-input sanitizer routine"),
+            "outer",
+        );
+        delegate.handled_by = Some("sanitize_input".to_string());
+        report.mucosal_declarations.push(delegate);
+        let out = audit_mucosal(&report);
+        let delegate_audit = out
+            .audits
+            .iter()
+            .find(|a| a.declaration.tag == MucosalKindTag::MucosalDelegate)
+            .unwrap();
+        assert!(
+            delegate_audit.hints.is_empty(),
+            "matching-kind delegate must be clean; got {:?}",
+            delegate_audit.hints
+        );
+    }
+
+    #[test]
+    fn audit_mucosal_delegate_hybrid_handler_set_membership() {
+        use crate::scan::MucosalKindTag;
+        // Hybrid handler carries TWO #[mucosal(kind)] on the same fn — the
+        // delegate matches via set-membership, not first-declaration-only.
+        let mut report = ScanReport::default();
+        report.mucosal_declarations.push(mucosal_decl(
+            MucosalKindTag::Mucosal,
+            Some("UserInput"),
+            Some("hybrid handler: user-input branch sanitized here"),
+            "hybrid_handler",
+        ));
+        report.mucosal_declarations.push(mucosal_decl(
+            MucosalKindTag::Mucosal,
+            Some("ShellArgument"),
+            Some("hybrid handler: shell-arg branch escaped here"),
+            "hybrid_handler",
+        ));
+        let mut delegate = mucosal_decl(
+            MucosalKindTag::MucosalDelegate,
+            Some("ShellArgument"),
+            Some("delegated to the hybrid handler covering both kinds"),
+            "outer",
+        );
+        delegate.handled_by = Some("hybrid_handler".to_string());
+        report.mucosal_declarations.push(delegate);
+        let out = audit_mucosal(&report);
+        let delegate_audit = out
+            .audits
+            .iter()
+            .find(|a| a.declaration.tag == MucosalKindTag::MucosalDelegate)
+            .unwrap();
+        assert!(
+            delegate_audit.hints.is_empty(),
+            "hybrid-handler set-membership must match ShellArgument; got {:?}",
+            delegate_audit.hints
+        );
+    }
+
+    #[test]
+    fn audit_mucosal_tolerant_floors_and_fields() {
+        use crate::scan::MucosalKindTag;
+        let mut report = ScanReport::default();
+        let mut d = mucosal_decl(
+            MucosalKindTag::MucosalTolerant,
+            Some("UserInput"),
+            Some("twenty-five char rationale!!"), // < 40
+            "intake",
+        );
+        d.accepts = None; // missing
+        d.reviewed_by = None; // missing
+        report.mucosal_declarations.push(d);
+        let out = audit_mucosal(&report);
+        let h = &out.audits[0].hints;
+        assert!(h.contains(&AuditHint::MucosalTolerantRationaleInsufficient));
+        assert!(h.contains(&AuditHint::MucosalTolerantAcceptsEmpty));
+        assert!(h.contains(&AuditHint::MucosalTolerantWithoutReviewer));
+    }
+
+    #[test]
+    fn audit_mucosal_tolerant_complete_is_clean() {
+        use crate::scan::MucosalKindTag;
+        let mut report = ScanReport::default();
+        let mut d = mucosal_decl(
+            MucosalKindTag::MucosalTolerant,
+            Some("ApiRequest"),
+            Some("internal admin endpoint behind VPN; trusted-network assumption documented"),
+            "admin_intake",
+        );
+        d.accepts = Some("admin-panel form posts".to_string());
+        d.reviewed_by = Some("security-team".to_string());
+        report.mucosal_declarations.push(d);
+        let out = audit_mucosal(&report);
+        assert!(out.all_clean());
+    }
+
+    #[test]
+    fn audit_mucosal_hint_serializes_kebab_case() {
+        let s =
+            serde_json::to_string(&AuditHint::MucosalDisciplineDelegateTargetKindMismatch).unwrap();
+        assert_eq!(s, "\"mucosal-discipline-delegate-target-kind-mismatch\"");
     }
 }

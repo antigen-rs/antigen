@@ -416,6 +416,68 @@ impl Parse for ScanRecurrentArgs {
     }
 }
 
+/// Scan-time loose capture for all three mucosal-boundary primitives
+/// (ADR-027 + Amendment 1). Every field optional; per-kind required-field
+/// validation is the audit layer's job. `kind`/`boundary` both populate
+/// `boundary_kind` (final path segment); `handled_by` captures the
+/// delegate handler's final path segment.
+#[derive(Default)]
+struct ScanMucosalArgs {
+    boundary_kind: Option<String>,
+    rationale: Option<String>,
+    handled_by: Option<String>,
+    accepts: Option<String>,
+    reviewed_by: Option<String>,
+    until: Option<String>,
+}
+
+impl Parse for ScanMucosalArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use syn::{Expr, Ident, LitStr, Path, Token};
+        let mut out = Self::default();
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            let _ = input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "kind" | "boundary" => {
+                    // MucosalKind::X path expression → final segment.
+                    let path: Path = input.parse()?;
+                    out.boundary_kind = path.segments.last().map(|s| s.ident.to_string());
+                }
+                "rationale" => {
+                    let lit: LitStr = input.parse()?;
+                    out.rationale = Some(lit.value());
+                }
+                "handled_by" => {
+                    // syn::Path per Amendment 1 Change 4 → final segment.
+                    let path: Path = input.parse()?;
+                    out.handled_by = path.segments.last().map(|s| s.ident.to_string());
+                }
+                "accepts" => {
+                    let lit: LitStr = input.parse()?;
+                    out.accepts = Some(lit.value());
+                }
+                "reviewed_by" => {
+                    let lit: LitStr = input.parse()?;
+                    out.reviewed_by = Some(lit.value());
+                }
+                "until" => {
+                    let lit: LitStr = input.parse()?;
+                    out.until = Some(lit.value());
+                }
+                _ => {
+                    let _: Expr = input.parse()?;
+                }
+            }
+            if !input.is_empty() {
+                let _ = input.parse::<Token![,]>();
+            }
+        }
+        Ok(out)
+    }
+}
+
 struct ScanAnergyArgs {
     antigen_type: Option<String>,
     reason: String,
@@ -1515,6 +1577,60 @@ pub struct RecurrentDeclaration {
     pub item_target: ItemTarget,
 }
 
+/// Which mucosal-boundary primitive was declared (ADR-027 + Amendment 1).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum MucosalKindTag {
+    /// `#[mucosal]` — active boundary defense.
+    Mucosal,
+    /// `#[mucosal_delegate]` — defense delegated to a named handler.
+    MucosalDelegate,
+    /// `#[mucosal_tolerant]` — boundary intentionally permitted.
+    MucosalTolerant,
+}
+
+/// A mucosal-boundary declaration discovered in source (ADR-027 + Amendment 1).
+///
+/// Covers all three primitives. The `tag` distinguishes them; the rest are
+/// loosely-typed optional captures shared across kinds (forward-compat per
+/// ADR-009), mirroring [`RecurrentDeclaration`]. `boundary_kind` holds the
+/// final segment of the `MucosalKind::X` path (`"UserInput"` etc.).
+/// All members are antigen-category `SubstrateAlignment` per ADR-028.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MucosalDeclaration {
+    /// Which primitive was declared.
+    pub tag: MucosalKindTag,
+    /// `MucosalKind::X` final segment — the boundary kind (`kind` on
+    /// `#[mucosal]`/`#[mucosal_tolerant]`, `boundary` on `#[mucosal_delegate]`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub boundary_kind: Option<String>,
+    /// `rationale` text (all three primitives).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rationale: Option<String>,
+    /// `#[mucosal_delegate]` `handled_by` path rendered to its final segment
+    /// (the handler function name). Audit-time kind-matching (Change 5)
+    /// resolves this against the workspace function index.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub handled_by: Option<String>,
+    /// `#[mucosal_tolerant]` `accepts` description.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub accepts: Option<String>,
+    /// `#[mucosal_tolerant]` `reviewed_by`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reviewed_by: Option<String>,
+    /// `#[mucosal_tolerant]` `until` review-deadline.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub until: Option<String>,
+    /// Source file path.
+    pub file: PathBuf,
+    /// Line number.
+    pub line: usize,
+    /// Item kind that was annotated.
+    pub item_kind: String,
+    /// Item identity for structural cross-referencing.
+    pub item_target: ItemTarget,
+}
+
 /// A file that failed to parse during a scan, with the associated error.
 ///
 /// Serializes as `{"file": "...", "error": "..."}` — named fields, consistent
@@ -1611,6 +1727,12 @@ pub struct ScanReport {
     /// `#[serde(default)]` so pre-recurrent reports deserialize cleanly.
     #[serde(default)]
     pub recurrent_declarations: Vec<RecurrentDeclaration>,
+    /// All discovered mucosal-boundary declarations: `#[mucosal]`,
+    /// `#[mucosal_delegate]`, `#[mucosal_tolerant]`. ADR-027 + Amendment 1.
+    ///
+    /// `#[serde(default)]` so pre-mucosal reports deserialize cleanly.
+    #[serde(default)]
+    pub mucosal_declarations: Vec<MucosalDeclaration>,
     /// Files scanned successfully.
     pub files_scanned: usize,
     /// Files that failed to parse.
@@ -3440,41 +3562,115 @@ impl ScanVisitor<'_> {
                     item_target.clone(),
                     ConvergentEvidenceKind::Adcc,
                 );
-            // Recurrent-Emergence Family (ADR-024 §Family 2)
-            } else if attr_is(attr, "itch") {
-                self.extract_recurrent(attr, item_kind, item_target.clone(), RecurrentKind::Itch);
-            } else if attr_is(attr, "recurrence_anchor") {
-                self.extract_recurrent(
-                    attr,
-                    item_kind,
-                    item_target.clone(),
-                    RecurrentKind::RecurrenceAnchor,
-                );
-            } else if attr_is(attr, "crystallize") {
-                self.extract_recurrent(
-                    attr,
-                    item_kind,
-                    item_target.clone(),
-                    RecurrentKind::Crystallize,
-                );
-            } else if attr_is(attr, "chronic") {
-                self.extract_recurrent(
-                    attr,
-                    item_kind,
-                    item_target.clone(),
-                    RecurrentKind::Chronic,
-                );
-            } else if attr_is(attr, "saturate") {
-                self.extract_recurrent(
-                    attr,
-                    item_kind,
-                    item_target.clone(),
-                    RecurrentKind::Saturate,
-                );
-            } else if attr_is(attr, "strand") {
-                self.extract_recurrent(attr, item_kind, item_target.clone(), RecurrentKind::Strand);
+            } else {
+                // v0.2 families (recurrent-emergence + mucosal-boundary)
+                // dispatch in a sibling helper to keep check_attrs concise.
+                self.check_v02_family_attr(attr, item_kind, item_target);
             }
         }
+    }
+
+    /// Dispatch the v0.2 recurrent-emergence + mucosal-boundary attribute
+    /// families (ADR-024 §Family 2, ADR-027). Split out of `check_attrs` so
+    /// the primary attribute matcher stays readable.
+    fn check_v02_family_attr(
+        &mut self,
+        attr: &syn::Attribute,
+        item_kind: &str,
+        item_target: &ItemTarget,
+    ) {
+        // Recurrent-Emergence Family (ADR-024 §Family 2)
+        if attr_is(attr, "itch") {
+            self.extract_recurrent(attr, item_kind, item_target.clone(), RecurrentKind::Itch);
+        } else if attr_is(attr, "recurrence_anchor") {
+            self.extract_recurrent(
+                attr,
+                item_kind,
+                item_target.clone(),
+                RecurrentKind::RecurrenceAnchor,
+            );
+        } else if attr_is(attr, "crystallize") {
+            self.extract_recurrent(
+                attr,
+                item_kind,
+                item_target.clone(),
+                RecurrentKind::Crystallize,
+            );
+        } else if attr_is(attr, "chronic") {
+            self.extract_recurrent(attr, item_kind, item_target.clone(), RecurrentKind::Chronic);
+        } else if attr_is(attr, "saturate") {
+            self.extract_recurrent(
+                attr,
+                item_kind,
+                item_target.clone(),
+                RecurrentKind::Saturate,
+            );
+        } else if attr_is(attr, "strand") {
+            self.extract_recurrent(attr, item_kind, item_target.clone(), RecurrentKind::Strand);
+        // Mucosal Boundary Family (ADR-027 + Amendment 1)
+        } else if attr_is(attr, "mucosal") {
+            self.extract_mucosal(
+                attr,
+                item_kind,
+                item_target.clone(),
+                MucosalKindTag::Mucosal,
+            );
+        } else if attr_is(attr, "mucosal_delegate") {
+            self.extract_mucosal(
+                attr,
+                item_kind,
+                item_target.clone(),
+                MucosalKindTag::MucosalDelegate,
+            );
+        } else if attr_is(attr, "mucosal_tolerant") {
+            self.extract_mucosal(
+                attr,
+                item_kind,
+                item_target.clone(),
+                MucosalKindTag::MucosalTolerant,
+            );
+        }
+    }
+
+    /// Scan-extract a mucosal-boundary declaration (ADR-027 + Amendment 1).
+    /// All three primitives share the loosely-typed `ScanMucosalArgs`
+    /// capture; per-primitive required-field + delegate-kind-matching
+    /// validation is the audit layer's job (Change 5 three-tier diagnosis).
+    fn extract_mucosal(
+        &mut self,
+        attr: &syn::Attribute,
+        item_kind: &str,
+        item_target: ItemTarget,
+        tag: MucosalKindTag,
+    ) {
+        let line = Self::line_of_attr(attr);
+        let args = match &attr.meta {
+            syn::Meta::List(list) => match syn::parse2::<ScanMucosalArgs>(list.tokens.clone()) {
+                Ok(a) => a,
+                Err(e) => {
+                    self.report.parse_failures.push(ParseFailure {
+                        file: self.file_path.clone(),
+                        error: format!("malformed mucosal-boundary attribute: {e}"),
+                    });
+                    return;
+                }
+            },
+            syn::Meta::Path(_) => ScanMucosalArgs::default(),
+            syn::Meta::NameValue(_) => return,
+        };
+        self.report.mucosal_declarations.push(MucosalDeclaration {
+            tag,
+            boundary_kind: args.boundary_kind,
+            rationale: args.rationale,
+            handled_by: args.handled_by,
+            accepts: args.accepts,
+            reviewed_by: args.reviewed_by,
+            until: args.until,
+            file: self.file_path.clone(),
+            line,
+            item_kind: item_kind.to_string(),
+            item_target,
+        });
     }
 
     /// Scan-extract a recurrent-emergence declaration (ADR-024 §Family 2).
@@ -4438,6 +4634,55 @@ mod tests {
                 .unwrap();
         let args = syn::parse2::<ScanRecurrentArgs>(tokens).unwrap();
         assert_eq!(args.contributing_to.as_deref(), Some("msrv-creep-anchor"));
+    }
+
+    // ========================================================================
+    // Mucosal Boundary Family scan-side parsing (ADR-027 + Amendment 1)
+    // ========================================================================
+
+    #[test]
+    fn scan_mucosal_captures_kind_and_rationale() {
+        let tokens: proc_macro2::TokenStream =
+            r#"kind = MucosalKind::UserInput, rationale = "public form; sanitized at render""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<ScanMucosalArgs>(tokens).unwrap();
+        assert_eq!(args.boundary_kind.as_deref(), Some("UserInput"));
+        assert!(args.rationale.as_deref().unwrap().contains("sanitized"));
+    }
+
+    #[test]
+    fn scan_mucosal_delegate_captures_boundary_and_handled_by_last_segment() {
+        let tokens: proc_macro2::TokenStream =
+            r#"boundary = MucosalKind::UserInput, handled_by = crate::sanitize::user_input, rationale = "delegated to central sanitizer""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<ScanMucosalArgs>(tokens).unwrap();
+        assert_eq!(args.boundary_kind.as_deref(), Some("UserInput"));
+        // handled_by path → final segment.
+        assert_eq!(args.handled_by.as_deref(), Some("user_input"));
+    }
+
+    #[test]
+    fn scan_mucosal_tolerant_captures_accepts_reviewed_until() {
+        let tokens: proc_macro2::TokenStream = r#"kind = MucosalKind::ApiRequest, rationale = "internal admin endpoint behind VPN; trusted network", accepts = "admin form posts", reviewed_by = "security-team", until = "2026-12-31""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<ScanMucosalArgs>(tokens).unwrap();
+        assert_eq!(args.boundary_kind.as_deref(), Some("ApiRequest"));
+        assert_eq!(args.accepts.as_deref(), Some("admin form posts"));
+        assert_eq!(args.reviewed_by.as_deref(), Some("security-team"));
+        assert_eq!(args.until.as_deref(), Some("2026-12-31"));
+    }
+
+    #[test]
+    fn scan_mucosal_tolerates_unknown_fields() {
+        let tokens: proc_macro2::TokenStream =
+            r#"kind = MucosalKind::Iframe, rationale = "embedded trusted widget context", future_field = "ignored""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<ScanMucosalArgs>(tokens).unwrap();
+        assert_eq!(args.boundary_kind.as_deref(), Some("Iframe"));
     }
 
     // ========================================================================
