@@ -102,12 +102,43 @@ fn atk_recurrent_1_itch_threshold_empty_string_emits_hint() {
 // ============================================================================
 
 #[test]
-#[ignore = "recurrent family not yet implemented — remove ignore when v02-impl-recurrent-emergence ships"]
 fn atk_recurrent_2_recurrence_anchor_without_matching_itch_emits_hint() {
-    // Workspace has #[recurrence_anchor(pattern = "X", ...)] but zero #[itch]
-    // declarations. The temporal progression is short-circuited.
-    // Should emit recurrence-anchor-no-itch-precondition.
-    todo!("implement when recurrent family ships; verify orphan anchor is flagged");
+    // Workspace has #[recurrence_anchor(antigen_type = "SomeAntigen")] but
+    // zero #[itch] declarations reference SomeAntigen. The temporal progression
+    // (itch → anchor → crystallize) is bypassed.
+    // Should emit RecurrenceAnchorNoItchPrecondition.
+    let mut report = ScanReport::default();
+    report
+        .recurrent_declarations
+        .push(base_decl(RecurrentKind::RecurrenceAnchor, Some("SomeAntigen")));
+    let out = audit_recurrent(&report);
+    assert!(
+        out.audits[0]
+            .hints
+            .contains(&AuditHint::RecurrenceAnchorNoItchPrecondition),
+        "expected RecurrenceAnchorNoItchPrecondition for anchor with no upstream itch"
+    );
+
+    // Confirm: adding a matching itch clears the hint.
+    let mut report_with_itch = ScanReport::default();
+    report_with_itch
+        .recurrent_declarations
+        .push(base_decl(RecurrentKind::Itch, Some("SomeAntigen")));
+    report_with_itch
+        .recurrent_declarations
+        .push(base_decl(RecurrentKind::RecurrenceAnchor, Some("SomeAntigen")));
+    let out_with_itch = audit_recurrent(&report_with_itch);
+    let anchor_audit = out_with_itch
+        .audits
+        .iter()
+        .find(|a| a.declaration.kind == RecurrentKind::RecurrenceAnchor)
+        .unwrap();
+    assert!(
+        !anchor_audit
+            .hints
+            .contains(&AuditHint::RecurrenceAnchorNoItchPrecondition),
+        "must NOT emit RecurrenceAnchorNoItchPrecondition when matching itch exists"
+    );
 }
 
 // ============================================================================
