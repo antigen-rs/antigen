@@ -310,6 +310,112 @@ impl Parse for ScanToleranceArgs {
 // enforcer; the scan side records what it finds.
 // ============================================================================
 
+/// Scan-time loose capture for all six recurrent-emergence primitives
+/// (ADR-024 §Family 2). Mirrors `ScanAntigenArgs`'s forward-compat posture:
+/// every field is optional; per-kind required-field validation is the audit
+/// layer's job (scan is recall-tuned per ADR-010). `from_itches` /
+/// `anchored_by` arrays capture path-expression idents as final segments.
+#[derive(Default)]
+struct ScanRecurrentArgs {
+    name: Option<String>,
+    antigen_type: Option<String>,
+    description: Option<String>,
+    instances: Option<u64>,
+    since: Option<String>,
+    rationale: Option<String>,
+    from_itches: Vec<String>,
+    anchored_by: Vec<String>,
+    managed_by: Option<String>,
+    contributing_to: Option<String>,
+}
+
+impl Parse for ScanRecurrentArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use syn::{Expr, Ident, LitInt, LitStr, Path, Token};
+        let mut out = Self::default();
+
+        // Optional leading positional antigen-type path (recurrence_anchor,
+        // chronic accept it positionally; others use `antigen = ...`).
+        if !input.is_empty() && input.peek(Ident) && !input.peek2(Token![=]) {
+            let path: Path = input.parse()?;
+            out.antigen_type = path.segments.last().map(|s| s.ident.to_string());
+            if !input.is_empty() {
+                let _ = input.parse::<Token![,]>();
+            }
+        }
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            let _ = input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "name" => {
+                    let lit: LitStr = input.parse()?;
+                    out.name = Some(lit.value());
+                }
+                "antigen" => {
+                    let path: Path = input.parse()?;
+                    out.antigen_type = path.segments.last().map(|s| s.ident.to_string());
+                }
+                "description" | "summary" => {
+                    let lit: LitStr = input.parse()?;
+                    out.description = Some(lit.value());
+                }
+                "instances" => {
+                    let lit: LitInt = input.parse()?;
+                    out.instances = lit.base10_parse::<u64>().ok();
+                }
+                "since" => {
+                    let lit: LitStr = input.parse()?;
+                    out.since = Some(lit.value());
+                }
+                "rationale" => {
+                    let lit: LitStr = input.parse()?;
+                    out.rationale = Some(lit.value());
+                }
+                "from_itches" => {
+                    let arr: syn::ExprArray = input.parse()?;
+                    for elem in &arr.elems {
+                        if let Expr::Path(p) = elem {
+                            if let Some(seg) = p.path.segments.last() {
+                                out.from_itches.push(seg.ident.to_string());
+                            }
+                        }
+                    }
+                }
+                "anchored_by" => {
+                    let arr: syn::ExprArray = input.parse()?;
+                    for elem in &arr.elems {
+                        if let Expr::Path(p) = elem {
+                            if let Some(seg) = p.path.segments.last() {
+                                out.anchored_by.push(seg.ident.to_string());
+                            }
+                        }
+                    }
+                }
+                "managed_by" => {
+                    let lit: LitStr = input.parse()?;
+                    out.managed_by = Some(lit.value());
+                }
+                "contributing_to" => {
+                    let lit: LitStr = input.parse()?;
+                    out.contributing_to = Some(lit.value());
+                }
+                // Forward-compat: known-but-not-captured fields (threshold,
+                // status) + any unknown field are consumed silently per the
+                // ADR-009 adoption gradient. Audit handles required-field
+                // validation; scan is recall-tuned (ADR-010).
+                _ => {
+                    let _: Expr = input.parse()?;
+                }
+            }
+            if !input.is_empty() {
+                let _ = input.parse::<Token![,]>();
+            }
+        }
+        Ok(out)
+    }
+}
+
 struct ScanAnergyArgs {
     antigen_type: Option<String>,
     reason: String,
@@ -1336,6 +1442,79 @@ pub struct ConvergentEvidence {
     pub item_target: ItemTarget,
 }
 
+/// Which recurrent-emergence primitive was declared (ADR-024 §Family 2).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum RecurrentKind {
+    /// `#[itch]` — below-threshold noticing (cognitive-organizational).
+    Itch,
+    /// `#[recurrence_anchor]` — cross-substrate recurrence formally anchored
+    /// (clinical-medicine).
+    RecurrenceAnchor,
+    /// `#[crystallize]` — itch-cluster promotion to named failure-class
+    /// (cognitive-organizational).
+    Crystallize,
+    /// `#[chronic]` — low-level persistent NON-cross-substrate signal
+    /// (immunology-proper).
+    Chronic,
+    /// `#[saturate]` — accumulating saturation evidence
+    /// (cognitive-organizational).
+    Saturate,
+    /// `#[strand]` — thread of related noticing (cognitive-organizational).
+    Strand,
+}
+
+/// A recurrent-emergence declaration discovered in source (ADR-024 §Family 2).
+///
+/// Covers all six primitives. The `kind` field distinguishes them; the rest
+/// are loosely-typed optional captures shared across kinds for forward-compat
+/// with the adoption gradient (per ADR-009), mirroring [`ConvergentEvidence`].
+/// All members are antigen-category `SubstrateAlignment` per ADR-028.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecurrentDeclaration {
+    /// Which recurrent primitive was declared.
+    pub kind: RecurrentKind,
+    /// `name` slug — `#[itch]`, `#[crystallize]`, `#[strand]`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Antigen-type path final segment — `#[recurrence_anchor]`,
+    /// `#[chronic]`, optional on `#[itch]`/`#[crystallize]`/`#[saturate]`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub antigen_type: Option<String>,
+    /// `description` / `summary` text — the human-facing noticing/rationale.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// `#[recurrence_anchor]` instance count.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub instances: Option<u64>,
+    /// `since` date-or-version — `#[recurrence_anchor]`, `#[chronic]`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub since: Option<String>,
+    /// `#[recurrence_anchor]` rationale text.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rationale: Option<String>,
+    /// `#[crystallize]` `from_itches` ident strings.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub from_itches: Vec<String>,
+    /// `#[strand]` `anchored_by` ident strings.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub anchored_by: Vec<String>,
+    /// `#[chronic]` `managed_by` role/team.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub managed_by: Option<String>,
+    /// `#[saturate]` `contributing_to` slug.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contributing_to: Option<String>,
+    /// Source file path.
+    pub file: PathBuf,
+    /// Line number.
+    pub line: usize,
+    /// Item kind that was annotated.
+    pub item_kind: String,
+    /// Item identity for structural cross-referencing.
+    pub item_target: ItemTarget,
+}
+
 /// A file that failed to parse during a scan, with the associated error.
 ///
 /// Serializes as `{"file": "...", "error": "..."}` — named fields, consistent
@@ -1425,6 +1604,13 @@ pub struct ScanReport {
     /// `#[serde(default)]` so pre-v0.2 reports deserialize cleanly.
     #[serde(default)]
     pub convergent_evidences: Vec<ConvergentEvidence>,
+    /// All discovered recurrent-emergence declarations: `#[itch]`,
+    /// `#[recurrence_anchor]`, `#[crystallize]`, `#[chronic]`,
+    /// `#[saturate]`, `#[strand]`. ADR-024 §Family 2.
+    ///
+    /// `#[serde(default)]` so pre-recurrent reports deserialize cleanly.
+    #[serde(default)]
+    pub recurrent_declarations: Vec<RecurrentDeclaration>,
     /// Files scanned successfully.
     pub files_scanned: usize,
     /// Files that failed to parse.
@@ -3254,8 +3440,93 @@ impl ScanVisitor<'_> {
                     item_target.clone(),
                     ConvergentEvidenceKind::Adcc,
                 );
+            // Recurrent-Emergence Family (ADR-024 §Family 2)
+            } else if attr_is(attr, "itch") {
+                self.extract_recurrent(attr, item_kind, item_target.clone(), RecurrentKind::Itch);
+            } else if attr_is(attr, "recurrence_anchor") {
+                self.extract_recurrent(
+                    attr,
+                    item_kind,
+                    item_target.clone(),
+                    RecurrentKind::RecurrenceAnchor,
+                );
+            } else if attr_is(attr, "crystallize") {
+                self.extract_recurrent(
+                    attr,
+                    item_kind,
+                    item_target.clone(),
+                    RecurrentKind::Crystallize,
+                );
+            } else if attr_is(attr, "chronic") {
+                self.extract_recurrent(
+                    attr,
+                    item_kind,
+                    item_target.clone(),
+                    RecurrentKind::Chronic,
+                );
+            } else if attr_is(attr, "saturate") {
+                self.extract_recurrent(
+                    attr,
+                    item_kind,
+                    item_target.clone(),
+                    RecurrentKind::Saturate,
+                );
+            } else if attr_is(attr, "strand") {
+                self.extract_recurrent(attr, item_kind, item_target.clone(), RecurrentKind::Strand);
             }
         }
+    }
+
+    /// Scan-extract a recurrent-emergence declaration (ADR-024 §Family 2).
+    ///
+    /// All six primitives share the loosely-typed `ScanRecurrentArgs` capture
+    /// (mirroring `ScanAntigenArgs`'s forward-compat posture per ADR-009).
+    /// The `kind` discriminant is supplied by the dispatch site; per-kind
+    /// required-field validation is the audit layer's job, not scan's
+    /// (scan is recall-tuned per ADR-010; precision lives in audit).
+    fn extract_recurrent(
+        &mut self,
+        attr: &syn::Attribute,
+        item_kind: &str,
+        item_target: ItemTarget,
+        kind: RecurrentKind,
+    ) {
+        let line = Self::line_of_attr(attr);
+        let args = match &attr.meta {
+            syn::Meta::List(list) => match syn::parse2::<ScanRecurrentArgs>(list.tokens.clone()) {
+                Ok(a) => a,
+                Err(e) => {
+                    self.report.parse_failures.push(ParseFailure {
+                        file: self.file_path.clone(),
+                        error: format!("malformed recurrent-emergence attribute: {e}"),
+                    });
+                    return;
+                }
+            },
+            // Bare `#[chronic]` etc. without args — recall it with empty
+            // fields; audit surfaces the missing-required-field condition.
+            syn::Meta::Path(_) => ScanRecurrentArgs::default(),
+            syn::Meta::NameValue(_) => return,
+        };
+        self.report
+            .recurrent_declarations
+            .push(RecurrentDeclaration {
+                kind,
+                name: args.name,
+                antigen_type: args.antigen_type,
+                description: args.description,
+                instances: args.instances,
+                since: args.since,
+                rationale: args.rationale,
+                from_itches: args.from_itches,
+                anchored_by: args.anchored_by,
+                managed_by: args.managed_by,
+                contributing_to: args.contributing_to,
+                file: self.file_path.clone(),
+                line,
+                item_kind: item_kind.to_string(),
+                item_target,
+            });
     }
 
     fn extract_diagnostic(
@@ -4074,6 +4345,99 @@ mod tests {
                     "qualified antigen path {:?} must yield bare last-segment antigen_type", qualified);
             }
         }
+    }
+
+    // ========================================================================
+    // Recurrent-Emergence Family scan-side parsing (ADR-024 §Family 2)
+    // ========================================================================
+
+    #[test]
+    fn scan_recurrent_itch_captures_name_and_description() {
+        let tokens: proc_macro2::TokenStream =
+            r#"name = "drop-rhyme", description = "noticed Drop panics rhyme with unwrap-in-cleanup""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<ScanRecurrentArgs>(tokens).unwrap();
+        assert_eq!(args.name.as_deref(), Some("drop-rhyme"));
+        assert!(args.description.as_deref().unwrap().contains("Drop panics"));
+    }
+
+    #[test]
+    fn scan_recurrent_anchor_captures_positional_antigen_and_instances() {
+        let tokens: proc_macro2::TokenStream = r#"MsrvCreep, instances = 3, since = "v0.1.0", rationale = "MSRV crept thrice across major bumps""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<ScanRecurrentArgs>(tokens).unwrap();
+        assert_eq!(args.antigen_type.as_deref(), Some("MsrvCreep"));
+        assert_eq!(args.instances, Some(3));
+        assert_eq!(args.since.as_deref(), Some("v0.1.0"));
+    }
+
+    #[test]
+    fn scan_recurrent_anchor_extracts_qualified_antigen_last_segment() {
+        let tokens: proc_macro2::TokenStream = r#"antigen = crate::antigens::MsrvCreep, instances = 2, since = "v1", rationale = "twenty-char rationale text""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<ScanRecurrentArgs>(tokens).unwrap();
+        assert_eq!(args.antigen_type.as_deref(), Some("MsrvCreep"));
+    }
+
+    #[test]
+    fn scan_recurrent_crystallize_captures_from_itches_idents() {
+        let tokens: proc_macro2::TokenStream =
+            r#"name = "x", from_itches = [DropPanicItch, CleanupUnwrapItch], summary = "crystallized from two""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<ScanRecurrentArgs>(tokens).unwrap();
+        assert_eq!(args.from_itches, vec!["DropPanicItch", "CleanupUnwrapItch"]);
+        // `summary` maps to the shared `description` capture.
+        assert!(args
+            .description
+            .as_deref()
+            .unwrap()
+            .contains("crystallized"));
+    }
+
+    #[test]
+    fn scan_recurrent_chronic_captures_managed_by() {
+        let tokens: proc_macro2::TokenStream =
+            r#"FlakeyStep, since = "v0.2.0", managed_by = "ci-team""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<ScanRecurrentArgs>(tokens).unwrap();
+        assert_eq!(args.antigen_type.as_deref(), Some("FlakeyStep"));
+        assert_eq!(args.managed_by.as_deref(), Some("ci-team"));
+    }
+
+    #[test]
+    fn scan_recurrent_strand_captures_anchored_by() {
+        let tokens: proc_macro2::TokenStream = r#"name = "vcs-thread", anchored_by = [ForcePushItch, SquashItch], description = "history-loss thread""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<ScanRecurrentArgs>(tokens).unwrap();
+        assert_eq!(args.anchored_by, vec!["ForcePushItch", "SquashItch"]);
+    }
+
+    #[test]
+    fn scan_recurrent_tolerates_unknown_and_missing_fields() {
+        // Scan is recall-tuned (ADR-010): unknown fields consumed, missing
+        // required fields tolerated; audit handles required-field validation.
+        let tokens: proc_macro2::TokenStream =
+            r#"name = "x", threshold = "5", bogus_future_field = "ignored""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<ScanRecurrentArgs>(tokens).unwrap();
+        assert_eq!(args.name.as_deref(), Some("x"));
+    }
+
+    #[test]
+    fn scan_recurrent_saturate_captures_contributing_to() {
+        let tokens: proc_macro2::TokenStream =
+            r#"description = "evidence accumulating", contributing_to = "msrv-creep-anchor""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<ScanRecurrentArgs>(tokens).unwrap();
+        assert_eq!(args.contributing_to.as_deref(), Some("msrv-creep-anchor"));
     }
 
     // ========================================================================
