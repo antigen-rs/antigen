@@ -4601,6 +4601,48 @@ declarations.
 
 ---
 
+## ADR-026 Amendment 1 — rollback-as-triage uses `#[triage_commit]`, not `#[orient]` extension
+
+**Status**: Ratified 2026-05-24.
+
+**Amends**: ADR-026 §Decision (the sentence "rollback-as-triage discipline (via new `#[triage_commit]` primitive)") and §Sweep-level consequences bullet 2.
+
+**Reason**: The orient-dual-signature analysis (campsite `fixup-orient-dual-signature`) established that `#[orient]` is passive-context-only: it annotates code with contextual understanding but carries no decisional or committal semantics. Rollback-as-triage is a DECISIONAL act (triage decision, rollback target, rationale, due-within) that requires a structurally distinct primitive. Extending `#[orient]` with decisional fields would violate ADR-023's semantic boundary. The `#[triage_commit]` macro (shipped in commit 94f088d) implements the five required fields.
+
+**Change**: The §Decision text originally read (at ratification):
+
+> "rollback-as-triage discipline (via extended `#[orient]` primitive)"
+
+Amended to:
+
+> "rollback-as-triage discipline (via new `#[triage_commit]` primitive)"
+
+The inline code example was changed from `#[orient(...)]` to `#[triage_commit(...)]` with five REQUIRED fields: `triage_decision`, `rollback_target`, `triaged_by`, `rationale` (≥ 20 chars), `rollback_due_within_minutes` (> 0). §Sweep-level consequences bullet 2 updated to read "New `#[triage_commit]` primitive carries rollback-as-triage fields (Amendment 1: `#[orient]` NOT extended)".
+
+**Resolves**: Orient-dual-signature campsite finding that decisional/committal fields require structural distinction from passive-context `#[orient]`. ADR-023 §orient semantics preserved unchanged.
+
+---
+
+## ADR-028 Amendment 2 — predicate-leaf requirement applies to witness layer, not fingerprint scan-side
+
+**Status**: Ratified 2026-05-24.
+
+**Amends**: ADR-028 §Decision enforcement bullet: "`category = SubstrateAlignment` requires at least one substrate-witness predicate leaf".
+
+**Reason**: Observer audit of the supply-chain category backfill (campsite `adr028-predicate-leaf-clarification`) surfaced an ambiguity: does "substrate-witness predicate leaf" apply to the FINGERPRINT scan-side pattern, or to the WITNESS evaluator? The two are structurally different. Fingerprint patterns locate declaration sites; witnesses evaluate substrate state at audit time. Requiring the fingerprint itself to be a substrate-witness leaf would prohibit valid scan-side patterns like `doc_contains("ADR-025")` that correctly locate antigen declarations but do not themselves read substrate state. Team-lead confirmed Interpretation 2: the requirement applies to the witness layer.
+
+**Change**: The enforcement bullet previously read (implicitly):
+
+> "`category = SubstrateAlignment` requires at least one substrate-witness predicate leaf [in the fingerprint]"
+
+Clarified (inline annotation at §Decision, line 5780) to:
+
+> The "substrate-witness predicate leaf" requirement applies to the WITNESS layer — either an audit-pipeline evaluator that reads substrate state directly (e.g., `DepPinnedState`, `ContentHashState`), or a fingerprint using substrate-witness leaves from ADR-019's grammar. It does NOT require the fingerprint scan-side pattern itself to be a substrate-witness leaf. Fingerprint finds the declaration sites; witness evaluates substrate state.
+
+**Resolves**: Ambiguity that would have required `doc_contains("ADR-025")` to be replaced with a substrate-witness leaf at scan time — an overconstrained requirement that conflates fingerprint location semantics with witness evaluation semantics.
+
+---
+
 ## Amendment template
 
 When an ADR needs to be amended (not superseded), add an Amendment section:
