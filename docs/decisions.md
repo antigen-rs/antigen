@@ -4669,6 +4669,197 @@ This honors outsider's resolve recommendation (b1 with v0.3 commitment named) an
 
 ---
 
+## ADR-027 Amendment 1 — Mucosal taxonomy disambiguation + delegate-kind-matching + tolerance primitive
+
+**Status**: Ratified 2026-05-24.
+
+**Amends**: ADR-027.
+
+**Reason**: The v02-completion-arc team surfaced six spec-depth gaps in
+ADR-027 before pathmaker could implement the mucosal family. The gaps are
+independent in origin (naturalist biology-prediction, scout adversarial-test,
+outsider naive-question) but converge on the same root: ADR-027 §Decision
+specifies WHAT the mucosal primitives are without specifying HOW their
+argument shape, variant inclusion, and audit logic resolve at impl time.
+This amendment closes the gaps to unblock implementation. Filed as instance
+(v) of held-implementation-spec-depth-gap pattern; absorbed into
+process-adr-spec-depth-amendment §Standing-Adversarial-Checklist.
+
+**Participants**: aristotle (Phase 1-8 deconstruction F1+F2); naturalist
+(biology grounding refinement; `#[mucosal_tolerant]` primitive; amendment
+text draft); scout (ATK-MUCOSAL-3 adversarial test, `c7ae5990` handled_by
+typing); outsider (`1bb7c7b6` enum chaos dust-finding); adversarial
+(ATK-MUCOSAL-3 pre-implementation test encoding the spec gap).
+
+**Related**: ADR-001 Amendment 1 C6 (sealed enum amendment process);
+ADR-003 Amendment 1 (biology grounding); ADR-016 (tolerance discipline);
+ADR-019 (substrate-witness); ADR-028 (antigen-category);
+process-adr-spec-depth-amendment (sibling workstream).
+
+### Change 1 — MucosalKind inclusion-discipline named
+
+**Finding**: ADR-027 §Decision ships a sealed 15-variant MucosalKind enum
+(per ADR-001 Amendment 1 C6) but does not state the inclusion criterion.
+Adopters proposing new variants (e.g., 'WebhookEndpoint',
+'PluginEntryPoint') have no decision rule; ADR amendment process is named
+but amendment-criteria are not.
+
+**Decision**: The MucosalKind axis is **type-of-data-crossing-boundary**.
+A variant belongs in MucosalKind iff:
+
+(a) it names a kind of data/control flow crossing a trust boundary at
+runtime;
+(b) the data-flow type is meaningfully distinct from other variants in
+terms of sanitization vocabulary (no isomorphism with an existing variant);
+(c) the boundary surfaces in a way `#[mucosal]` can attach to (a
+function/method receiving the data).
+
+Process events (PR creation, CI hook firing, code-review approval) are NOT
+data-flow types — they are software-engineering-process events that occur
+AROUND the boundary, not AT it. These belong in a sibling axis if needed
+(deferred to v0.3+ research).
+
+### Change 2 — PrBoundary removed from MucosalKind
+
+**Finding**: 'PrBoundary' fails the Change 1 criterion: it is a process
+event, not a runtime data-flow. `#[mucosal(kind = PrBoundary)]` has no
+defined attachment site. Inclusion is incoherent.
+
+**Decision**: Remove `PrBoundary` from the sealed v0.2 MucosalKind set.
+PR-boundary concerns are addressed at the data-flow level through existing
+variants (a PR-arrival webhook carries `ApiRequest` + `UserInput`; the PR
+body content carries `UserInput`; etc).
+
+### Change 3 — Import vs DependencyImport disambiguation
+
+**Finding**: ADR-027 §Decision lists both `Import` and `DependencyImport`
+as variants without disambiguation. 'Import' reads as `use foo::bar`
+(in-language symbol import); 'DependencyImport' as `cargo dep`
+(supply-chain dependency intake). The ADR is silent on the distinction.
+
+**Decision**: `Import` is REMOVED from the v0.2 sealed set as
+redundant/ambiguous. `DependencyImport` remains; its meaning is the
+cargo-dep-intake boundary (data flow: 3rd-party crate code → workspace,
+per ADR-025 supply-chain family). In-language `use` statements do NOT
+cross trust boundaries in Rust's model.
+
+After Changes 2 and 3, the v0.2 sealed MucosalKind set becomes **13
+variants**: `ApiRequest, ApiResponse, McpInvocation, ExternalLink, Iframe,
+DatabaseQuery, CrossService, SubprocessLaunch, DependencyImport,
+UserInput, FilesystemPath, EnvironmentVariable, ShellArgument`.
+
+### Change 4 — handled_by typed as syn::Path
+
+**Finding**: ADR-027 §Decision says `handled_by = "..."` (string) but
+does not specify the string format. Scout flagged (`c7ae5990`); aristotle
+confirmed. Free-form string allows typos to silently produce broken
+delegations.
+
+**Decision**: `handled_by` parses as a Rust path expression (`syn::Path`),
+not a string literal. Syntax:
+
+```rust
+#[mucosal_delegate(
+    boundary = MucosalKind::UserInput,
+    handled_by = crate::sanitize::user_input_sanitizer,
+    rationale = "...",
+)]
+```
+
+Path resolution at audit-time follows standard Rust visibility +
+module-graph rules.
+
+### Change 5 — Delegate kind-matching semantics
+
+**Finding** (scout ATK-MUCOSAL-3): 'corresponding declaration' in
+§Decision is ambiguous. Reading A (any `#[mucosal]` on target suffices)
+is an attack surface: `#[mucosal_delegate(boundary = UserInput,
+handled_by = sanitize_db)]` passes when `sanitize_db` carries only
+`#[mucosal(kind = DatabaseQuery)]`.
+
+**Decision**: Kind-matching semantics (Reading B) required. Audit logic
+per `#[mucosal_delegate]`:
+
+(a) Resolve `handled_by` path. If not found: emit `mucosal-discipline-delegate-target-missing`.
+(b) If path resolves but no `#[mucosal]` present: emit `mucosal-discipline-delegate-target-not-mucosal`.
+(c) If `#[mucosal]` present but no `kind = X` matches delegate's boundary kind: emit `mucosal-discipline-delegate-target-kind-mismatch` (NEW).
+
+The three hints form a precise three-tier diagnosis: missing-handler →
+handler-undefended → handler-wrong-defense. Hybrid handlers (one function
+carrying multiple `#[mucosal(kind = X)]` declarations) satisfy
+kind-matching via set-membership (NOT exact-equality).
+
+### Change 6 — #[mucosal_tolerant] primitive added
+
+**Finding** (naturalist `fab2b234`): biology distinguishes THREE response
+states at mucosal sites — active defense, active tolerance (Tregs /
+oral tolerance), and undecided. ADR-027 ships primitives for state 1 only;
+states 2 and 3 are both treated as 'undefended'. Adopters with intentional
+unauthenticated endpoints have no honest declaration option.
+
+**Decision**: Ship `#[mucosal_tolerant]` in v0.2 alongside `#[mucosal]`
+and `#[mucosal_delegate]`.
+
+```rust
+#[mucosal_tolerant(
+    kind = MucosalKind::...,
+    rationale = "<≥40-char string>",
+    accepts = "<description of what passes through>",
+    reviewed_by = "<role-or-name>",   // optional v0.2; required v0.2.1+
+    until = "<RFC-3339 date>",         // optional; review-deadline
+)]
+```
+
+Field requirements: `kind` REQUIRED; `rationale` REQUIRED ≥40 chars
+(higher than `#[mucosal]`'s ≥20 — tolerance is the riskier declaration;
+per ADR-005 Amendment 2 risk-proportionate length floors); `accepts`
+REQUIRED non-empty; `reviewed_by` OPTIONAL v0.2; `until` OPTIONAL
+RFC-3339 date.
+
+`mucosal-map --undefended` EXCLUDES boundaries carrying `#[mucosal_tolerant]`.
+New sub-flag: `mucosal-map --tolerant` lists all tolerance declarations.
+
+Biology: three active states with distinct cellular substrates (active
+tolerance = Treg-mediated antigen-specific suppression via tolerogenic
+DCs — NOT absence of response). Parallel to ADR-016 `#[antigen_tolerance]`
+at boundary tier rather than failure-class tier.
+
+### Change 7 — Audit-hint vocabulary refresh
+
+The full §Audit-hint vocabulary for the mucosal family becomes 11 hints:
+`mucosal-boundary-undefended`, `mucosal-kind-mismatch`,
+`mucosal-rationale-insufficient`, `mucosal-discipline-delegated`,
+`mucosal-discipline-delegate-target-missing`,
+`mucosal-discipline-delegate-target-not-mucosal`,
+`mucosal-discipline-delegate-target-kind-mismatch` *(NEW)*,
+`mucosal-tolerant-rationale-insufficient` *(NEW)*,
+`mucosal-tolerant-past-review-date` *(NEW)*,
+`mucosal-tolerant-accepts-empty` *(NEW)*,
+`mucosal-tolerant-without-reviewer` *(NEW; v0.2.1+)*.
+
+### Mechanics
+
+- Sealed MucosalKind set: 15 → 13 variants (PrBoundary + Import removed).
+- New primitive `#[mucosal_tolerant]` alongside `#[mucosal]` and `#[mucosal_delegate]`.
+- `handled_by` typed as `syn::Path`, not string literal.
+- §Audit logic per `#[mucosal_delegate]` gains three-tier diagnosis (Change 5).
+- §Audit-hint vocabulary gains 5 new hints (Changes 5+6+7).
+
+### Resolves
+
+- Six spec-depth gaps surfaced by v02-completion-arc team (Changes 1-6).
+- The 'corresponding declaration' ambiguity enabling silent miscategorization defenses.
+- The 'no way to declare intentional tolerance' friction for adopters with public-intake endpoints.
+
+### What this amendment does NOT do
+
+- Does NOT introduce a sibling axis for process-event boundaries (PrBoundary class). Deferred v0.3+.
+- Does NOT ship the three additional metaphor-predicted primitives from naturalist `dd2732e8` (M-cell, goblet, tolerance-breakdown). Deferred v0.3+.
+- Does NOT make `reviewed_by` required in v0.2; that lands v0.2.1+ with a migration hint.
+- Does NOT mechanically verify 'accepts' content matches actual runtime boundary behavior. Deferred v0.3+.
+
+---
+
 ## ADR-028 Amendment 2 — predicate-leaf requirement applies to witness layer, not fingerprint scan-side
 
 **Status**: Ratified 2026-05-24.
@@ -5800,11 +5991,15 @@ fn _triage_marker_do_not_remove() {}
 
 **`MucosalKind` enum** (sealed v0.2 set; per ADR-001 Amendment 1 C6): `Import, ApiRequest, ApiResponse, McpInvocation, ExternalLink, Iframe, DatabaseQuery, CrossService, SubprocessLaunch, DependencyImport, PrBoundary, UserInput, FilesystemPath, EnvironmentVariable, ShellArgument` (15 variants; v0.3+ adds `WebSocketStream`, `CiCdPipelineInput`).
 
+*(Amendment 1 — 2026-05-24: sealed set revised to 13 variants: `Import` removed (redundant/ambiguous vs `DependencyImport`); `PrBoundary` removed (process event, not runtime data-flow). Authoritative 13-variant set: `ApiRequest, ApiResponse, McpInvocation, ExternalLink, Iframe, DatabaseQuery, CrossService, SubprocessLaunch, DependencyImport, UserInput, FilesystemPath, EnvironmentVariable, ShellArgument`. Inclusion discipline: type-of-data-crossing-boundary axis; see structured Amendment 1 block for criteria.)*
+
 **`cargo antigen mucosal-map`**: `mucosal-map`, `mucosal-map --kind <kind>`, `mucosal-map --undefended` — walks codebase; surfaces boundaries.
 
 **Schema additions** (additive per ADR-021): `MucosalDeclaration { kind, rationale, handled_by? }`; `.attest/mucosal/map.json`.
 
 **Audit-hint vocabulary** (cross-ADR substrate-grep verified): `mucosal-boundary-undefended`, `mucosal-kind-mismatch`, `mucosal-discipline-delegated`, `mucosal-discipline-delegate-target-missing`, `mucosal-discipline-delegate-target-not-mucosal`, `mucosal-rationale-insufficient`.
+
+*(Amendment 1 — 2026-05-24: 5 new hints; handled_by typed as syn::Path; delegate audit logic gains three-tier kind-matching diagnosis; #[mucosal_tolerant] primitive added with 4 tolerance-specific hints + mucosal-map --tolerant flag. Full 11-hint vocabulary in Amendment 1 structured block.)*
 
 **§Enforcement-Surface**:
 
@@ -5823,9 +6018,9 @@ fn _triage_marker_do_not_remove() {}
 
 ### Sweep-level consequences
 
-- v0.2 stdlib gains `#[mucosal]` + `#[mucosal_delegate]` macros
-- MucosalKind enum with 15 variants
-- `cargo antigen mucosal-map` CLI tool
+- v0.2 stdlib gains `#[mucosal]` + `#[mucosal_delegate]` + `#[mucosal_tolerant]` macros (Amendment 1 adds `#[mucosal_tolerant]`)
+- MucosalKind enum with 13 variants (Amendment 1: 15 → 13; Import + PrBoundary removed)
+- `cargo antigen mucosal-map` CLI tool (Amendment 1 adds `--tolerant` sub-flag)
 - Cross-reference to ADR-025 for DependencyImport boundary
 
 ### Resolves
