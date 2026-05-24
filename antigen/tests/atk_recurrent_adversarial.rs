@@ -44,45 +44,27 @@ fn chronic_decl(since: Option<&str>) -> RecurrentDeclaration {
 }
 
 // ============================================================================
-// ATK-RECURRENT-1: #[itch] threshold field accepts semantically-empty strings
+// ATK-RECURRENT-1: #[itch] threshold field accepts empty/whitespace strings
 //
 // ADR-024 §Mechanics: #[itch(threshold = "...")] notates a recurrence-awareness
 // threshold as descriptive text. threshold is typed as Option<String> (LitStr
 // at parse time), NOT a typed integer — "3 occurrences across 2 releases" is
-// the intended usage.
+// the intended usage. Free-text is the correct type by ratified design.
 //
-// ATTACK (revised after substrate-check 2026-05-24):
-//   `threshold = 0` (integer literal) → syntax error at parse time (expected
-//   string literal). This straw-man attack is already handled by the type.
-//
-//   The REAL attack surface is `threshold = "0"` or `threshold = ""` —
-//   semantically-empty string thresholds that parse fine but carry no
-//   discipline. An #[itch] with threshold = "" or threshold = "0" looks like
-//   declared threshold-awareness but is structurally meaningless — the same
-//   silent-failure class as description = "x" (below the length floor).
-//
-// DESIGN QUESTION: should the audit layer emit `itch-threshold-meaningless`
-// for threshold values that are blank or trivially non-quantitative ("0", ""),
-// or is threshold fully unvalidated (adopter-responsibility per string-field
-// philosophy)?
-//
-// Adversarial position: at minimum, empty-string threshold should emit a hint.
-// "0" as a string is harder to validate (may be shorthand for "not yet
-// threshold-aware"). Length floor (e.g., ≥ 3 chars) matching description
-// discipline would cover the trivial cases.
-//
-// Expected: audit emits `itch-threshold-meaningless` for threshold = ""
-// (and optionally threshold = "0"); does NOT fire for substantive descriptions.
+// DESIGN DECISION (ratified with pathmaker 2026-05-24, option a):
+//   Parse-time reject empty/whitespace-only threshold (parallel to
+//   description/rationale). Audit-time hint for richer semantic vacuity
+//   ("once pigs fly") is optional/deferred — parse-time cannot judge it.
+// Expected: proc-macro compile error for threshold = "" or threshold = "  ".
 // ============================================================================
 
 #[test]
-#[ignore = "pending design decision: should audit validate threshold string content? See campsite v02-impl-recurrent-emergence"]
-fn atk_recurrent_1_itch_threshold_empty_string_emits_hint() {
-    // #[itch(threshold = "", description = "pattern noticed N times")]
-    // An empty threshold string parses fine but is semantically meaningless.
-    // Should emit itch-threshold-meaningless at audit time (or equivalent).
-    // Separately: threshold = "0" is a judgment call — may be deferred.
-    todo!("pending design decision on threshold string validation; implement once decided");
+#[ignore = "pending pathmaker implementation: parse-time reject empty/whitespace threshold (option-a design decision)"]
+fn atk_recurrent_1_itch_threshold_empty_string_is_compile_error() {
+    // threshold = "" is unambiguously vacuous — no condition declared.
+    // Proc-macro must reject with a message indicating threshold, if present,
+    // must be a non-empty non-whitespace string.
+    todo!("implement once pathmaker ships parse-time empty-threshold rejection");
 }
 
 // ============================================================================
