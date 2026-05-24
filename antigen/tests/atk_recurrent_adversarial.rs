@@ -238,9 +238,7 @@ fn atk_recurrent_5_saturate_anchor_nonexistent_emits_hint() {
         .push(base_decl(RecurrentKind::Saturate, None));
     let out = audit_recurrent(&report);
     assert!(
-        out.audits[0]
-            .hints
-            .contains(&AuditHint::SaturateNoAnchor),
+        out.audits[0].hints.contains(&AuditHint::SaturateNoAnchor),
         "expected SaturateNoAnchor for saturate with no contributing_to"
     );
     assert_eq!(out.concern_count, 1);
