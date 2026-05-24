@@ -44,36 +44,45 @@ fn chronic_decl(since: Option<&str>) -> RecurrentDeclaration {
 }
 
 // ============================================================================
-// ATK-RECURRENT-1: #[itch] threshold = 0 is a silent no-op
+// ATK-RECURRENT-1: #[itch] threshold field accepts semantically-empty strings
 //
-// ADR-024 §Mechanics: #[itch(threshold = N)] notates a recurrence-awareness
-// threshold. A threshold of 0 means "never fires" — the antigen is declared
-// but structurally can never trigger the itch-noticed-not-anchored hint.
+// ADR-024 §Mechanics: #[itch(threshold = "...")] notates a recurrence-awareness
+// threshold as descriptive text. threshold is typed as Option<String> (LitStr
+// at parse time), NOT a typed integer — "3 occurrences across 2 releases" is
+// the intended usage.
 //
-// ATTACK: threshold = 0 should be rejected at PROC-MACRO PARSE TIME (compile
-// error). It is a structural impossibility — the declaration claims to track
-// recurrence but can never accumulate a count that triggers action. This is
-// self-contained within the single attribute (no cross-reference needed), so
-// compile-time rejection is correct and has zero false-positive risk.
+// ATTACK (revised after substrate-check 2026-05-24):
+//   `threshold = 0` (integer literal) → syntax error at parse time (expected
+//   string literal). This straw-man attack is already handled by the type.
 //
-// DESIGN DECISION (adversarial 2026-05-24): proc-macro compile error, NOT
-// audit-time hint. Audit-time is too late — green compile on broken discipline
-// is the silent-failure class this test exists to catch. Same class as
-// rejecting negative rollback_due_within_minutes: value makes declaration
-// structurally meaningless.
+//   The REAL attack surface is `threshold = "0"` or `threshold = ""` —
+//   semantically-empty string thresholds that parse fine but carry no
+//   discipline. An #[itch] with threshold = "" or threshold = "0" looks like
+//   declared threshold-awareness but is structurally meaningless — the same
+//   silent-failure class as description = "x" (below the length floor).
 //
-// Expected: proc-macro compile error with message indicating threshold=0
-// makes the itch unable to trigger.
+// DESIGN QUESTION: should the audit layer emit `itch-threshold-meaningless`
+// for threshold values that are blank or trivially non-quantitative ("0", ""),
+// or is threshold fully unvalidated (adopter-responsibility per string-field
+// philosophy)?
+//
+// Adversarial position: at minimum, empty-string threshold should emit a hint.
+// "0" as a string is harder to validate (may be shorthand for "not yet
+// threshold-aware"). Length floor (e.g., ≥ 3 chars) matching description
+// discipline would cover the trivial cases.
+//
+// Expected: audit emits `itch-threshold-meaningless` for threshold = ""
+// (and optionally threshold = "0"); does NOT fire for substantive descriptions.
 // ============================================================================
 
 #[test]
-#[ignore = "recurrent family not yet implemented — remove ignore when v02-impl-recurrent-emergence ships; proc-macro must reject threshold=0 at compile time"]
-fn atk_recurrent_1_itch_threshold_zero_is_compile_error() {
-    // #[itch(threshold = 0, description = "pattern noticed")]
-    // Must produce a proc-macro compile error — threshold=0 means the itch
-    // can never be noticed, making the declaration structurally meaningless.
-    // Use trybuild or compile_fail to assert the error fires at compile time.
-    todo!("implement when recurrent family ships; assert proc-macro rejects threshold=0 via trybuild compile_fail test");
+#[ignore = "pending design decision: should audit validate threshold string content? See campsite v02-impl-recurrent-emergence"]
+fn atk_recurrent_1_itch_threshold_empty_string_emits_hint() {
+    // #[itch(threshold = "", description = "pattern noticed N times")]
+    // An empty threshold string parses fine but is semantically meaningless.
+    // Should emit itch-threshold-meaningless at audit time (or equivalent).
+    // Separately: threshold = "0" is a judgment call — may be deferred.
+    todo!("pending design decision on threshold string validation; implement once decided");
 }
 
 // ============================================================================
