@@ -21,6 +21,13 @@
 //! - [`mucosal`](crate::stdlib::mucosal) — the Mucosal Boundary Family
 //!   (ADR-027 + Amendment 1), trust-boundary failure-classes (undefended
 //!   boundary, mis-delegated defense, stale tolerance).
+//! - [`agentic_coordination`](crate::stdlib::agentic_coordination) — the
+//!   Agentic-Coordination Failure-Class Family, failure-classes that emerge
+//!   specifically in multi-session / multi-agent / human-LLM-collab workflows.
+//!   Biology cognate: immunological memory loss during session gap.
+//! - [`dogfood`](crate::stdlib::dogfood) — antigen-internal dogfood antigens,
+//!   failure-classes observed directly in antigen's own development and
+//!   coordination substrate (v0.2 completion arc, 2026-05-24).
 //!
 //! ## How adopters use these
 //!
@@ -47,6 +54,8 @@
 //! `cargo antigen verify` CLI subfamily + the substrate-witness pipeline,
 //! NOT in source-walking fingerprint matching.
 
+pub mod agentic_coordination;
+pub mod dogfood;
 pub mod mucosal;
 pub mod recurrent;
 pub mod supply_chain;
