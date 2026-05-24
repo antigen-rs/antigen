@@ -3108,7 +3108,9 @@ impl MucosalDelegateArgs {
 /// Treg-mediated active tolerance (oral tolerance, fetal-maternal interface).
 /// Parallel to ADR-016 `#[antigen_tolerance]` but at the boundary tier. The
 /// rationale floor is ≥40 chars (higher than `#[mucosal]`'s ≥20) — tolerance
-/// is the riskier declaration, so the loudness threshold is raised.
+/// errors are silent/latent (no acute signal catches a bad tolerance decision),
+/// so the up-front declaration carries a higher loudness floor to compensate
+/// for the detection asymmetry.
 #[derive(Debug)]
 pub struct MucosalTolerantArgs {
     pub kind: Option<MacroMucosalKind>,
@@ -3213,8 +3215,9 @@ impl MucosalTolerantArgs {
                 return Err(syn::Error::new(
                     self.args_span,
                     "#[mucosal_tolerant] requires `rationale = \"...\"` (≥40 \
-                     characters — tolerance is riskier than defense, so the \
-                     loudness floor is raised above #[mucosal]'s ≥20).",
+                     characters — tolerance errors are silent/latent, so the \
+                     up-front declaration carries a higher loudness floor than \
+                     #[mucosal]'s ≥20 to compensate for the detection asymmetry).",
                 ));
             }
             Some(s) if s.len() < 40 => {
@@ -3222,9 +3225,10 @@ impl MucosalTolerantArgs {
                     self.rationale_span.unwrap_or(self.args_span),
                     format!(
                         "#[mucosal_tolerant] `rationale` must be at least 40 \
-                         characters (got {}); per ADR-027 Amendment 1 the \
-                         tolerance floor is risk-proportionately higher than \
-                         #[mucosal]'s ≥20.",
+                         characters (got {}); per ADR-027 Amendment 1 the floor \
+                         is higher than #[mucosal]'s ≥20 because tolerance errors \
+                         are silent/latent — no acute signal catches a bad \
+                         tolerance decision.",
                         s.len()
                     ),
                 ));

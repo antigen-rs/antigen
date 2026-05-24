@@ -1036,7 +1036,9 @@ pub fn mucosal_delegate(args: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// - `kind = MucosalKind::X` (required)
 /// - `rationale = "..."` (required, **≥40 chars** — higher than
-///   `#[mucosal]`'s ≥20; tolerance is the riskier declaration)
+///   `#[mucosal]`'s ≥20; tolerance-errors are silent/latent — no acute
+///   signal catches a bad tolerance decision, so the up-front declaration
+///   must carry more justification to compensate for the detection asymmetry)
 /// - `accepts = "..."` (required, non-empty) — what the boundary accepts
 ///   as legitimate input
 /// - `reviewed_by = "..."` (optional v0.2; recommended v0.2.1+)
