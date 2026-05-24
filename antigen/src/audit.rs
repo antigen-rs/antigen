@@ -29,7 +29,7 @@
 
 use std::path::{Path, PathBuf};
 
-use antigen_macros::presents;
+use antigen_macros::{immune, presents};
 use serde::{Deserialize, Serialize};
 
 use crate::scan::{Immunity, ScanReport};
@@ -541,6 +541,28 @@ pub enum AuditHint {
     /// carry-overs and new v0.2 declarations until that discrimination lands
     /// — both should migrate to an explicit category.
     AntigenCategoryDefaultedImplicitFunctional,
+
+    // ------------------------------------------------------------------
+    // G2 deliverable (ADR-028 + Amendment 2 + aristotle F1 on
+    // v02-impl-category-witness-cross-check): the category-vs-witness-type
+    // cross-check, emitted at AUDIT time (not parse time). A single
+    // `#[antigen]` cannot see its `#[immune]` declarations at macro-expand
+    // time — the immunities are separate declarations, joined only when the
+    // scan report assembles. So the check that an antigen's declared
+    // `category` is backed by the right witness TYPE lives here, where the
+    // antigen↔immunity join exists. The witness-type is read structurally
+    // from each immunity: `requires_predicate.is_some()` is a substrate-
+    // witness; a non-empty `witness` is a code-witness.
+    // ------------------------------------------------------------------
+    /// An antigen's declared `category` is not backed by an immunity of the
+    /// matching witness type. Per ADR-028 §Schema: `SubstrateAlignment`
+    /// requires ≥1 substrate-witness immunity (`requires = <predicate>`);
+    /// `FunctionalCorrectness` requires ≥1 code-witness immunity
+    /// (`witness = <fn>`); a hybrid `[SubstrateAlignment, FunctionalCorrectness]`
+    /// requires both. The mismatch is advisory (an audit hint, not a hard
+    /// error) per Amendment 2's "enforced at audit-time" disclosure; CI-gating
+    /// the audit preserves the strict-enforcement value.
+    AntigenCategoryClaimInconsistentWithPredicateType,
 }
 
 /// Result of auditing a single immunity declaration.
@@ -2271,6 +2293,16 @@ fn is_version_tag(s: &str) -> bool {
     had_v_prefix || component_count >= 2
 }
 
+/// Evaluate hints for a single recurrent declaration.
+///
+/// **ATK-RECURRENT-2 fix (dd51d4b)**: this function now checks BOTH the
+/// upstream precondition (`itch_antigen_types` contains anchor's antigen type)
+/// AND the downstream action (`acted_on` contains the antigen type). See
+/// [`crate::stdlib::dogfood::AuditHintWithNoUpstreamPreconditionCheck`].
+#[immune(
+    AuditHintWithNoUpstreamPreconditionCheck,
+    witness = "atk_recurrent_2_recurrence_anchor_without_matching_itch_emits_hint",
+)]
 fn evaluate_recurrent_hints(
     decl: &crate::scan::RecurrentDeclaration,
     acted_on: &std::collections::HashSet<&str>,
@@ -2547,6 +2579,12 @@ pub struct CategoryAuditReport {
     /// Count of antigen declarations with an absent (empty) category — each
     /// surfaced the `antigen-category-defaulted-implicit-functional` hint.
     pub defaulted_count: usize,
+    /// Count of explicit-category declarations whose category is NOT backed by
+    /// an immunity of the matching witness type (G2 cross-check) — each
+    /// surfaced the `antigen-category-claim-inconsistent-with-predicate-type`
+    /// hint.
+    #[serde(default)]
+    pub mismatch_count: usize,
 }
 
 impl CategoryAuditReport {
@@ -2555,24 +2593,50 @@ impl CategoryAuditReport {
     pub const fn all_explicit(&self) -> bool {
         self.defaulted_count == 0
     }
+
+    /// True when no explicit-category declaration has a category↔witness-type
+    /// mismatch (G2 cross-check is clean).
+    #[must_use]
+    pub const fn no_category_witness_mismatch(&self) -> bool {
+        self.mismatch_count == 0
+    }
 }
 
-/// Audit antigen-category coverage across a scan report (ADR-028, G1
-/// scan-time-only enforcement per adversarial's ratification).
+/// Audit antigen-category coverage across a scan report (ADR-028).
 ///
-/// Walks every [`crate::scan::AntigenDeclaration`] and emits
-/// [`AuditHint::AntigenCategoryDefaultedImplicitFunctional`] for any whose
-/// `category` field is empty (absent). This is the load-bearing signal that
-/// makes absent-category VISIBLE in v0.2 — without it, the soft-default to
-/// `[FunctionalCorrectness]` would be a silent false-green. v0.1/v0.2
-/// discrimination + parse-time hard-error are the v0.2.x migration-record
-/// slice; for v0.2 the hint fires for ALL absent-category declarations
-/// (both carry-overs and new), since both should migrate.
+/// Two checks, both at audit time:
+///
+/// **G1 (scan-time-only enforcement per adversarial's ratification)**: emits
+/// [`AuditHint::AntigenCategoryDefaultedImplicitFunctional`] for any
+/// [`crate::scan::AntigenDeclaration`] whose `category` field is empty
+/// (absent). This is the load-bearing signal that makes absent-category
+/// VISIBLE in v0.2 — without it, the soft-default to `[FunctionalCorrectness]`
+/// would be a silent false-green. v0.1/v0.2 discrimination + parse-time
+/// hard-error are the v0.2.x migration-record slice; for v0.2 the hint fires
+/// for ALL absent-category declarations (both carry-overs and new), since
+/// both should migrate.
+///
+/// **G2 (category↔witness-type cross-check, per Amendment 2 + aristotle F1)**:
+/// for each explicit-category declaration, joins the immunities addressing it
+/// ([`crate::scan::Immunity::antigen_type`] == the declaration's `type_name`)
+/// and emits [`AuditHint::AntigenCategoryClaimInconsistentWithPredicateType`]
+/// when the declared category is not backed by an immunity of the matching
+/// witness type. The witness-type is read structurally from each immunity:
+/// `requires_predicate.is_some()` is a substrate-witness; a non-empty
+/// `witness` is a code-witness. This check lives at audit time because the
+/// antigen↔immunity join only exists once the scan report assembles — a
+/// single `#[antigen]` cannot see its separately-declared `#[immune]`s at
+/// macro-expand time. A declaration with NO immunities addressing it is not a
+/// mismatch (the immunity coverage gap is a separate concern); the check only
+/// fires when immunities exist but are of the wrong type for the category.
 #[must_use]
 pub fn audit_category(report: &ScanReport) -> CategoryAuditReport {
+    use crate::category::AntigenCategory;
+
     let mut audits = Vec::new();
     let mut explicit_count = 0usize;
     let mut defaulted_count = 0usize;
+    let mut mismatch_count = 0usize;
 
     for decl in &report.antigens {
         if decl.category.is_empty() {
@@ -2583,8 +2647,54 @@ pub fn audit_category(report: &ScanReport) -> CategoryAuditReport {
                 line: decl.line,
                 hints: vec![AuditHint::AntigenCategoryDefaultedImplicitFunctional],
             });
-        } else {
-            explicit_count += 1;
+            continue;
+        }
+
+        explicit_count += 1;
+
+        // G2 cross-check. Read the witness-types present across all immunities
+        // addressing this antigen. An immunity is a substrate-witness when it
+        // carries a `requires = <predicate>` (requires_predicate is Some); it
+        // is a code-witness when it carries a non-empty `witness = <fn>`.
+        let mut has_substrate_witness = false;
+        let mut has_code_witness = false;
+        let mut has_any_immunity = false;
+        for imm in &report.immunities {
+            if imm.antigen_type != decl.type_name {
+                continue;
+            }
+            has_any_immunity = true;
+            if imm.requires_predicate.is_some() {
+                has_substrate_witness = true;
+            }
+            if !imm.witness.is_empty() {
+                has_code_witness = true;
+            }
+        }
+
+        // No immunities addressing this antigen is not a category mismatch —
+        // it's an (orthogonal) coverage gap. Only flag when immunities exist
+        // but lack the witness type the declared category requires.
+        if !has_any_immunity {
+            continue;
+        }
+
+        let wants_substrate = decl.category.contains(&AntigenCategory::SubstrateAlignment);
+        let wants_code = decl
+            .category
+            .contains(&AntigenCategory::FunctionalCorrectness);
+
+        let substrate_satisfied = !wants_substrate || has_substrate_witness;
+        let code_satisfied = !wants_code || has_code_witness;
+
+        if !substrate_satisfied || !code_satisfied {
+            mismatch_count += 1;
+            audits.push(CategoryAudit {
+                antigen_type: decl.type_name.clone(),
+                file: decl.file.clone(),
+                line: decl.line,
+                hints: vec![AuditHint::AntigenCategoryClaimInconsistentWithPredicateType],
+            });
         }
     }
 
@@ -2592,6 +2702,7 @@ pub fn audit_category(report: &ScanReport) -> CategoryAuditReport {
         audits,
         explicit_count,
         defaulted_count,
+        mismatch_count,
     }
 }
 
