@@ -4906,6 +4906,22 @@ Clarified (inline annotation at §Decision, line 5780) to:
 
 ---
 
+## ADR-028 Amendment 3 — category-vs-predicate-type cross-check is audit-time, not parse-time
+
+**Status**: Ratified 2026-05-24.
+
+**Amends**: ADR-028 §Enforcement (G2 deliverable): "G2: category-vs-predicate-type cross-check."
+
+**Reason**: The G2 campsite spec originally implied a parse-time check — `AntigenArgs::validate()` reading the category field and enforcing witness-type consistency at macro-expand time. aristotle's F1 finding on `v02-impl-category-witness-cross-check` identified the structural blocker: a single `#[antigen]` macro cannot see the `#[immune]` declarations that address it. Those declarations are on different items, potentially in different files. The antigen-immunity join only exists once `cargo antigen scan` assembles the full `ScanReport`. A parse-time check cannot be implemented without an inversion of the macro execution model.
+
+**Change**: G2 is an AUDIT-TIME cross-check in `audit_category()`, not a parse-time check in `AntigenArgs::validate()`. Implementation: `audit_category()` joins each explicit-category `AntigenDeclaration` against every `Immunity` where `immunity.antigen_type == decl.type_name`. Witness type is read structurally from the immunity: `requires_predicate.is_some()` identifies a substrate-witness; a non-empty `witness` field identifies a code-witness. The mismatch hint (`AntigenCategoryClaimInconsistentWithPredicateType`) is advisory at audit time and CI-gateable per Amendment 2. Zero immunities is not flagged (orthogonal coverage gap).
+
+This is consistent with Amendment 2's principle: the witness-layer requirement is evaluated at audit time where full scan context is available, not at parse time where only the single item is visible.
+
+**Resolves**: The campsite `v02-impl-category-witness-cross-check` enforcement gap named in Amendment 2. The cross-check is now implemented at the correct architectural layer (commit `114af45`).
+
+---
+
 ## Amendment template
 
 When an ADR needs to be amended (not superseded), add an Amendment section:
