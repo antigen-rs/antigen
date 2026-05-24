@@ -762,3 +762,78 @@ pub fn orient(args: TokenStream, input: TokenStream) -> TokenStream {
 
     quote! { #input }.into()
 }
+
+/// Declare a rollback-as-triage commit: classify system state + commit to
+/// rollback within a tight time-bound (ADR-026 §Rollback-as-triage).
+///
+/// Per aristotle's fixup-orient-dual-signature resolution (camp note
+/// 55a161e7): `#[triage_commit]` is a SIBLING primitive to `#[orient]`, NOT
+/// an extension. Orient names a failure-class with see-also context;
+/// `triage_commit` names a triage decision + a rollback action. The two are
+/// different speech acts in the deferred-defense family.
+///
+/// # Biology grounding
+///
+/// Dual-axis per ADR-026 + ADR-024 §Biology grounding — dual-axis honesty:
+/// the rollback-as-triage discipline is **clinical-medicine** grounded
+/// (chart documentation + informed consent before procedure), NOT immunology
+/// proper. Immune biology has no analog to "log rationale before acting."
+/// The clinical-medicine axis was named explicitly during ADR-026
+/// ratification (naturalist NON-NEGOTIABLE). The five-color triage
+/// classification (Black/Red/Yellow/Green/White) maps to disaster medicine's
+/// START field-triage protocol.
+///
+/// # Arguments
+///
+/// All five fields are REQUIRED per ADR-026 §Decision:
+///
+/// - `triage_decision = TriageDecision::X` — five-color triage classification
+///   (one of `Black`, `Red`, `Yellow`, `Green`, `White`). See
+///   [`antigen::vcs::TriageDecision`](https://docs.rs/antigen) for variant
+///   semantics.
+/// - `rollback_target = "<sha>"` — commit sha pointing to the last-known-good
+///   state. Non-empty.
+/// - `triaged_by = "<role|name>"` — informed-consent author identity (role
+///   slug like `"navigator"` or a personal name). Non-empty.
+/// - `rationale = "..."` — chart-documentation; minimum 20 characters per
+///   ADR-023 loudness-as-discipline applied to clinical-medicine
+///   chart-documentation. Records WHY the rollback was decided before the
+///   action commits.
+/// - `rollback_due_within_minutes = N` — tight time-bound (positive `u32`).
+///   Carries the discipline that triage-commits are followed by action in
+///   bounded time; a zero deadline degrades the loudness pattern.
+///
+/// # Audit hints
+///
+/// - `vcs-rollback-without-triage-commit` — a rollback commit not preceded by
+///   a `#[triage_commit]` declaration with `Triage-Decision: <sha>` trailer
+/// - `vcs-rollback-due-window-exceeded` — `rollback_due_within_minutes`
+///   elapsed without the rollback commit landing
+///
+/// # Example
+///
+/// ```ignore
+/// use antigen::{triage_commit, TriageDecision};
+///
+/// #[triage_commit(
+///     triage_decision = TriageDecision::Red,
+///     rollback_target = "abc1234",
+///     triaged_by = "navigator",
+///     rationale = "vital metric regression confirmed via #84; rolling back to last-known-good",
+///     rollback_due_within_minutes = 30,
+/// )]
+/// fn _triage_marker_do_not_remove() {}
+/// // Followed by rollback commit with trailer:
+/// //   Triage-Decision: <sha-of-this-triage-commit-marker>
+/// ```
+#[proc_macro_attribute]
+pub fn triage_commit(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::TriageCommitArgs);
+    let input = proc_macro2::TokenStream::from(input);
+
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+
+    quote! { #input }.into()
+}
