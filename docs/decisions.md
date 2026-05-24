@@ -4623,6 +4623,34 @@ The inline code example was changed from `#[orient(...)]` to `#[triage_commit(..
 
 ---
 
+## ADR-026 Amendment 2 — TriageDecision variant-semantic backfill + camp::triage connection-claim discipline
+
+**Status**: Ratified 2026-05-24.
+
+**Amends**: ADR-026 §Decision (Schema additions paragraph — backfills variant semantics into the ratified contract); ADR-026 §Sweep-level consequences (camp::triage connection-claim loosening from STRUCTURAL claim to conceptual-alignment-now / structural-v0.3+).
+
+**Reason**: Outsider's connection-claim discipline analysis (`820a710a`, `fd7ff496`, `b095f9c3`) surfaced two related issues: (1) ADR-026 §Decision named `TriageDecision` as an enum (`Black | Red | Yellow | Green | White`) but did not define the variant semantics — those were documented only in `antigen/src/vcs.rs` doc-comments, creating a documentation-tier inversion where the implementation is more rigorous than the ratified contract; (2) the §Sweep-level "Connection to camp `triage` primitive" line was a STRUCTURAL claim with decorative-tier delivery — no cross-tool schema commitment exists today, and the honest state is "conceptual alignment now; structural alignment v0.3+." Per scientist's framing and outsider's resolve recommendation (b1 with v0.3 commitment named).
+
+**Change 1 — TriageDecision variant semantics backfill (`fd7ff496`)**: The §Schema additions paragraph is extended with explicit variant semantics so the ADR itself is the authoritative source. The five variants carry the following semantics in the rollback-as-triage software-engineering use-case (analogous to but not identical with clinical field-triage protocols — see Amendment 2 Change 3 below on the connection-claim tier):
+
+- `Black` — system-down / data-loss imminent / catastrophic regression confirmed; rollback is the immediate action.
+- `Red` — vital-metric regression confirmed; rollback within tight time window (typical `rollback_due_within_minutes` ≤ 30).
+- `Yellow` — concerning signal but not vital-metric-blocking; investigation pending; rollback decision deferred.
+- `Green` — no functional regression detected; the `#[triage_commit]` carries the analysis chain attesting non-regression.
+- `White` — out of scope for this triage event (e.g., the change is unrelated to the suspected regression); explicit non-action chart entry. **`White` is software-engineering-introduced** — clinical START protocols ship as 4-color (Black/Red/Yellow/Green); the 5th variant is added for the rollback-as-triage use-case where explicit-non-action chart entries carry their own audit value.
+
+**Change 2 — camp::triage connection-claim loosening (`b095f9c3`)**: The §Sweep-level consequences bullet "Connection to camp `triage` primitive" is loosened from a structural-claim phrasing to:
+
+> "Conceptual alignment with camp `triage` primitive — both classify state into 5-color taxonomy with rollback/treatment-discipline semantics. Cross-tool schema alignment (shared `TriageDecision` type across antigen + camp) is deferred to v0.3+ research arc; no schema commitment is made in v0.2."
+
+This honors outsider's resolve recommendation (b1 with v0.3 commitment named) and avoids the documentation-tier inversion of claiming structural alignment that does not yet exist.
+
+**Change 3 — START attribution loosening (`a87e4245`)**: The `#[triage_commit]` doc-comment and the `TriageDecision` doc-comment in `antigen/src/vcs.rs` previously claimed "Modeled on the START field-triage protocol" (IDENTITY-tier connection-claim per outsider's discipline taxonomy). Loosened to "Color-tagged analogously to clinical field-triage protocols (e.g., START — Simple Triage And Rapid Treatment, US emergency-medicine standard since 1983)" — RHYME-tier connection-claim. The substantive structural rhyme is preserved (5-color schema + treatment-decision discipline); the IDENTITY overclaim is removed (clinical START doesn't have `White`; the protocol's diagnostic protocol per se is not what `#[triage_commit]` implements). The corresponding doc-comment edits ship in the same commit as this amendment.
+
+**Resolves**: Connection-claim discipline gaps surfaced by outsider's audit during the v02-completion-arc expedition. Adopters reading ADR-026 in isolation now have authoritative variant semantics in the ratified contract; the camp::triage connection-claim accurately reflects current state (conceptual alignment) and named future commitment (v0.3+ structural alignment); the START attribution preserves the substantive rhyme without IDENTITY overclaim.
+
+---
+
 ## ADR-026 Amendment 3 — rollback detection algorithm (AUTHOR-DECLARATION) + structural enforcement verification requirement
 
 **Status**: Ratified 2026-05-24.
@@ -5725,7 +5753,7 @@ fn _triage_marker_do_not_remove() {}
 - v0.2 stdlib gains 11 VCS-info-loss antigens
 - New `#[triage_commit]` primitive carries rollback-as-triage fields (Amendment 1: `#[orient]` NOT extended)
 - Adopter rollback discipline: triage-commit-before-rollback becomes structural practice
-- Connection to camp `triage` primitive
+- Conceptual alignment with camp `triage` primitive (5-color taxonomy + treatment-discipline semantics); cross-tool schema alignment is v0.3+ research arc (per Amendment 2)
 
 ### Resolves
 

@@ -50,10 +50,10 @@ use serde::{Deserialize, Serialize};
 /// capture explicit-non-action chart entries on commit-time triage (no
 /// clinical analog). The rollback-as-triage discipline (ADR-026 §Decision)
 /// is clinical-medicine grounded at the OUTCOME tier: chart documentation
-/// + informed consent before procedure. The dual-axis grounding
-/// (clinical-medicine grounds outcome; software-engineering grounds
-/// process) is acknowledged explicitly per ADR-026 §Rollback-as-triage
-/// discipline + §Finding line 5650's NON-NEGOTIABLE naturalist refinement.
+/// plus informed consent before procedure. The dual-axis grounding —
+/// clinical-medicine grounds outcome, software-engineering grounds
+/// process — is acknowledged explicitly per ADR-026 §Rollback-as-triage
+/// discipline (NON-NEGOTIABLE naturalist refinement).
 ///
 /// The variant set is the v0.2 sealed-set; future findings can extend it via
 /// additive ADR amendment per ADR-001 Amendment 1 C6.
