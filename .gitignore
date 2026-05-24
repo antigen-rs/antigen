@@ -18,6 +18,11 @@ Cargo.lock
 # (the camp crate's campsite source modules) is NOT excluded.
 /campsites/
 
+# Camp v0.2 expeditions/ directory — substrate-resident team coordination
+# (campsite metadata, signatures, activity log, field-track entries).
+# Local-only by design; mirrors campsites/ exclusion above.
+/expeditions/
+
 # Scheduled-task lock dir (project-local Claude harness state; ephemeral)
 .claude/
 
