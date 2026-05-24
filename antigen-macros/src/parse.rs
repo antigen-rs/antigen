@@ -36,6 +36,46 @@ pub use antigen_attestation::parser::RequiresExpr;
 #[cfg(test)]
 use antigen_attestation::parser::LeafExpr;
 
+// ============================================================================
+// MacroAntigenCategory — local mirror of antigen::AntigenCategory (ADR-028)
+//
+// proc-macro crates cannot depend on the `antigen` library crate (circular
+// dependency), so we maintain a local parse-time mirror. The two enums stay
+// in sync; extending either requires an ADR amendment per ADR-001 C6.
+// ============================================================================
+
+/// Parse-time antigen-category variant (mirrors `antigen::AntigenCategory`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MacroAntigenCategory {
+    SubstrateAlignment,
+    FunctionalCorrectness,
+}
+
+impl MacroAntigenCategory {
+    /// Parse from path-style expression strings and common aliases.
+    fn from_path_str(s: &str) -> Option<Self> {
+        match s {
+            "SubstrateAlignment"
+            | "AntigenCategory::SubstrateAlignment"
+            | "substrate-alignment"
+            | "substrate_alignment" => Some(Self::SubstrateAlignment),
+            "FunctionalCorrectness"
+            | "AntigenCategory::FunctionalCorrectness"
+            | "functional-correctness"
+            | "functional_correctness" => Some(Self::FunctionalCorrectness),
+            _ => None,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::SubstrateAlignment => "substrate-alignment",
+            Self::FunctionalCorrectness => "functional-correctness",
+        }
+    }
+}
+
 /// Arguments to `#[antigen(...)]`.
 #[allow(dead_code)]
 // family/summary/references are captured for validation but
@@ -49,6 +89,10 @@ pub struct AntigenArgs {
     pub family: Option<String>,
     pub summary: Option<String>,
     pub references: Vec<String>,
+    /// Antigen-category (ADR-028). Optional at parse time for backward-compat
+    /// with v0.1 antigens; absence emits `antigen-category-defaulted-implicit-functional`
+    /// at audit time. v0.2+ new declarations SHOULD supply this explicitly.
+    pub category: Vec<MacroAntigenCategory>,
     /// Span of the `name`'s string literal value.
     /// `None` only when the field was missing — see [`AntigenArgs::validate`].
     pub name_span: Option<Span>,
@@ -120,6 +164,7 @@ impl Parse for AntigenArgs {
         let mut family: Option<String> = None;
         let mut summary: Option<String> = None;
         let mut references: Vec<String> = Vec::new();
+        let mut category: Vec<MacroAntigenCategory> = Vec::new();
 
         let pairs: Punctuated<MetaPair, Token![,]> =
             input.parse_terminated(MetaPair::parse, Token![,])?;
@@ -139,12 +184,13 @@ impl Parse for AntigenArgs {
                 "family" => family = Some(pair.expect_string()?),
                 "summary" => summary = Some(pair.expect_string()?),
                 "references" => references = pair.expect_string_array()?,
+                "category" => category = pair.expect_antigen_category()?,
                 other => {
                     return Err(syn::Error::new(
                         pair.key.span(),
                         format!(
                             "unknown #[antigen] field `{other}`; expected one of: \
-                                 name, fingerprint, family, summary, references"
+                                 name, fingerprint, family, summary, references, category"
                         ),
                     ))
                 }
@@ -163,6 +209,7 @@ impl Parse for AntigenArgs {
             family,
             summary,
             references,
+            category,
             name_span,
             fingerprint_span,
             args_span,
@@ -1709,6 +1756,66 @@ impl MetaPair {
             ))
         }
     }
+
+    /// Parse `category = AntigenCategory::X` (single) or
+    /// `category = [AntigenCategory::X, AntigenCategory::Y]` (hybrid).
+    ///
+    /// Accepts path expressions like `AntigenCategory::SubstrateAlignment` or
+    /// plain idents like `SubstrateAlignment`. String literals are NOT
+    /// accepted — the category must be a path expression for compile-time
+    /// discoverability.
+    fn expect_antigen_category(&self) -> syn::Result<Vec<MacroAntigenCategory>> {
+        fn parse_single(expr: &Expr) -> syn::Result<MacroAntigenCategory> {
+            // Convert the expression to a string representation and then match
+            let s = match expr {
+                Expr::Path(p) => {
+                    // Reconstruct the path string: "AntigenCategory::SubstrateAlignment"
+                    // or just "SubstrateAlignment"
+                    let segments: Vec<String> = p
+                        .path
+                        .segments
+                        .iter()
+                        .map(|seg| seg.ident.to_string())
+                        .collect();
+                    segments.join("::")
+                }
+                _ => {
+                    return Err(syn::Error::new_spanned(
+                        expr,
+                        "expected `AntigenCategory::SubstrateAlignment` or \
+                         `AntigenCategory::FunctionalCorrectness`",
+                    ));
+                }
+            };
+            MacroAntigenCategory::from_path_str(&s).ok_or_else(|| {
+                syn::Error::new_spanned(
+                    expr,
+                    format!(
+                        "unknown AntigenCategory `{s}`; expected \
+                         `AntigenCategory::SubstrateAlignment` or \
+                         `AntigenCategory::FunctionalCorrectness`"
+                    ),
+                )
+            })
+        }
+
+        match &self.value {
+            Expr::Array(arr) => {
+                let mut out = Vec::new();
+                for elem in &arr.elems {
+                    out.push(parse_single(elem)?);
+                }
+                if out.is_empty() {
+                    return Err(syn::Error::new_spanned(
+                        &self.value,
+                        "`category` array must not be empty",
+                    ));
+                }
+                Ok(out)
+            }
+            single => Ok(vec![parse_single(single)?]),
+        }
+    }
 }
 
 fn is_kebab_case(s: &str) -> bool {
@@ -1879,6 +1986,7 @@ mod tests {
             family: None,
             summary: None,
             references: Vec::new(),
+            category: Vec::new(),
             name_span: Some(proc_macro2::Span::call_site()),
             fingerprint_span: Some(proc_macro2::Span::call_site()),
             args_span: proc_macro2::Span::call_site(),
@@ -1986,6 +2094,118 @@ mod tests {
             pred.validate(proc_macro2::Span::call_site()).is_ok(),
             "predicate at exactly MAX_DEPTH must be accepted"
         );
+    }
+
+    // ========================================================================
+    // AntigenCategory parsing tests (ADR-028)
+    // ========================================================================
+
+    #[test]
+    fn antigen_parser_accepts_category_single_substrate_alignment() {
+        let tokens: TokenStream =
+            r#"name = "x", fingerprint = "item = fn", category = AntigenCategory::SubstrateAlignment"#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<AntigenArgs>(tokens).unwrap();
+        assert_eq!(
+            args.category,
+            vec![MacroAntigenCategory::SubstrateAlignment]
+        );
+    }
+
+    #[test]
+    fn antigen_parser_accepts_category_single_functional_correctness() {
+        let tokens: TokenStream =
+            r#"name = "x", fingerprint = "item = fn", category = AntigenCategory::FunctionalCorrectness"#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<AntigenArgs>(tokens).unwrap();
+        assert_eq!(
+            args.category,
+            vec![MacroAntigenCategory::FunctionalCorrectness]
+        );
+    }
+
+    #[test]
+    fn antigen_parser_accepts_category_hybrid_array() {
+        let tokens: TokenStream = r#"name = "x", fingerprint = "item = fn", category = [AntigenCategory::SubstrateAlignment, AntigenCategory::FunctionalCorrectness]"#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<AntigenArgs>(tokens).unwrap();
+        assert_eq!(
+            args.category,
+            vec![
+                MacroAntigenCategory::SubstrateAlignment,
+                MacroAntigenCategory::FunctionalCorrectness
+            ]
+        );
+    }
+
+    #[test]
+    fn antigen_parser_accepts_bare_path_without_type_prefix() {
+        // Accept `SubstrateAlignment` without `AntigenCategory::` prefix
+        let tokens: TokenStream =
+            r#"name = "x", fingerprint = "item = fn", category = SubstrateAlignment"#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<AntigenArgs>(tokens).unwrap();
+        assert_eq!(
+            args.category,
+            vec![MacroAntigenCategory::SubstrateAlignment]
+        );
+    }
+
+    #[test]
+    fn antigen_parser_accepts_absent_category_for_compat() {
+        // v0.1 backward-compat: absent category is fine at parse time
+        let tokens: TokenStream = r#"name = "x", fingerprint = "item = fn""#.parse().unwrap();
+        let args = syn::parse2::<AntigenArgs>(tokens).unwrap();
+        assert!(
+            args.category.is_empty(),
+            "absent category should yield empty vec"
+        );
+    }
+
+    #[test]
+    fn antigen_parser_rejects_unknown_category_variant() {
+        let tokens: TokenStream =
+            r#"name = "x", fingerprint = "item = fn", category = AntigenCategory::Unknown"#
+                .parse()
+                .unwrap();
+        let result = syn::parse2::<AntigenArgs>(tokens);
+        assert!(
+            result.is_err(),
+            "unknown category variant should be rejected"
+        );
+    }
+
+    #[test]
+    fn antigen_parser_rejects_empty_category_array() {
+        let tokens: TokenStream = r#"name = "x", fingerprint = "item = fn", category = []"#
+            .parse()
+            .unwrap();
+        let result = syn::parse2::<AntigenArgs>(tokens);
+        assert!(result.is_err(), "empty category array should be rejected");
+    }
+
+    #[test]
+    fn macro_antigen_category_as_str_roundtrip() {
+        for (variant, expected) in [
+            (
+                MacroAntigenCategory::SubstrateAlignment,
+                "substrate-alignment",
+            ),
+            (
+                MacroAntigenCategory::FunctionalCorrectness,
+                "functional-correctness",
+            ),
+        ] {
+            assert_eq!(variant.as_str(), expected);
+            assert_eq!(
+                MacroAntigenCategory::from_path_str(variant.as_str()),
+                Some(variant)
+            );
+        }
     }
 }
 

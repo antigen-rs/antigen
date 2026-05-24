@@ -527,7 +527,7 @@ pub fn poxparty(args: TokenStream, input: TokenStream) -> TokenStream {
 /// clinical-medicine axis alongside `#[panel]`, `#[ddx]`, `#[rx]`,
 /// `#[triage]`, `#[refer]`, `#[biopsy]`, `#[culture]`, `#[quarantine]`,
 /// and `#[recurrence_anchor]`. The convergent-evidence family draws on
-/// both immunology (clonal expansion, IgG class-switching) and clinical
+/// both immunology (clonal expansion, `IgG` class-switching) and clinical
 /// medicine (diagnostic workup) — the dual axis is acknowledged
 /// explicitly rather than collapsed.
 ///
