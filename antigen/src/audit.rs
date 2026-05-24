@@ -441,6 +441,38 @@ pub enum AuditHint {
     /// `#[adcc]` site has only one of the two committed mechanisms
     /// (antibody-style + cellular-effector-style) detectable.
     AdccSingleMechanismOnly,
+
+    // ------------------------------------------------------------------
+    // Recurrent-Emergence Family hints (ADR-024 §Family 2).
+    //
+    // Pre-authorized under ADR-024 §5471 "~30 examples:" open-set wording
+    // per aristotle Reading-A (744471a3): family-prefixed, substrate-grep-
+    // clean, semantically within the recurrent audit taxonomy. Emitted by
+    // `audit_recurrent()`.
+    // ------------------------------------------------------------------
+    /// `#[itch]` declared with no `antigen` path — an unlinked noticing.
+    /// The pattern was noticed but never tied to a failure-class, so it
+    /// can't graduate via `#[crystallize]`. Informational, not a failure.
+    ItchNoticedNotAnchored,
+    /// `#[recurrence_anchor]` declared but no `#[immune]` / `#[presents]`
+    /// in the workspace addresses the anchored antigen — the recurrence
+    /// crossed threshold but no action followed.
+    RecurrenceThresholdReachedNoAction,
+    /// `#[crystallize]` declared with no `antigen` path AND no `from_itches`
+    /// — a crystallization event with nothing it crystallized FROM or INTO.
+    CrystallizeWithoutAntigen,
+    /// `#[chronic]` declared with no `managed_by` — a persistent signal
+    /// with no owning role/team. Surfaces drift toward unmanaged chronicity.
+    ChronicSignalUnmanaged,
+    /// `#[chronic]` whose `since` date is far enough in the past (past the
+    /// configured review horizon) that the chronic state warrants re-review.
+    ChronicSignalPastReviewDate,
+    /// `#[saturate]` declared with no `contributing_to` target — saturation
+    /// evidence accumulating toward nothing nameable.
+    SaturateNoAnchor,
+    /// `#[strand]` declared with no `anchored_by` entries — a thread of
+    /// noticing that anchors nothing.
+    StrandNoAnchors,
 }
 
 /// Result of auditing a single immunity declaration.
@@ -2054,6 +2086,143 @@ fn evaluate_convergent_evidence_hints(
     hints
 }
 
+// ============================================================================
+// Recurrent-Emergence audit (ADR-024 §Family 2)
+// ============================================================================
+
+/// Per-declaration recurrent-emergence audit result.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecurrentAudit {
+    /// The original declaration from the scan.
+    pub declaration: crate::scan::RecurrentDeclaration,
+    /// Hints surfaced for this declaration (may be empty = clean).
+    pub hints: Vec<AuditHint>,
+}
+
+/// Aggregate recurrent-emergence audit report.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RecurrentAuditReport {
+    /// Per-declaration audit results.
+    pub audits: Vec<RecurrentAudit>,
+    /// Count of declarations whose hint set is empty (clean).
+    pub clean_count: usize,
+    /// Count of declarations whose hint set is non-empty (concerns surfaced).
+    pub concern_count: usize,
+}
+
+impl RecurrentAuditReport {
+    /// True when no concerns were surfaced.
+    #[must_use]
+    pub const fn all_clean(&self) -> bool {
+        self.concern_count == 0
+    }
+}
+
+/// Default review horizon (days) past which a `#[chronic]` `since` date
+/// surfaces `chronic-signal-past-review-date`. One year — chronic states
+/// older than this warrant explicit re-review per ADR-024 recurrent
+/// discipline. Configurable via workspace config in v0.3+.
+const CHRONIC_REVIEW_HORIZON_DAYS: i64 = 365;
+
+/// Audit recurrent-emergence declarations across a scan report (ADR-024
+/// §Family 2). Walks every [`crate::scan::RecurrentDeclaration`] and
+/// surfaces the relevant hints per the recurrent audit taxonomy.
+#[must_use]
+pub fn audit_recurrent(report: &ScanReport) -> RecurrentAuditReport {
+    // Antigen-type names that have downstream action (an #[immune] or
+    // #[presents] referencing them). Used for the recurrence-anchor
+    // threshold-reached-no-action check.
+    let acted_on: std::collections::HashSet<&str> = report
+        .immunities
+        .iter()
+        .map(|i| i.antigen_type.as_str())
+        .chain(report.presentations.iter().map(|p| p.antigen_type.as_str()))
+        .collect();
+
+    let mut audits: Vec<RecurrentAudit> = Vec::new();
+    for decl in &report.recurrent_declarations {
+        let hints = evaluate_recurrent_hints(decl, &acted_on);
+        audits.push(RecurrentAudit {
+            declaration: decl.clone(),
+            hints,
+        });
+    }
+
+    let mut clean_count = 0usize;
+    let mut concern_count = 0usize;
+    for a in &audits {
+        if a.hints.is_empty() {
+            clean_count += 1;
+        } else {
+            concern_count += 1;
+        }
+    }
+
+    RecurrentAuditReport {
+        audits,
+        clean_count,
+        concern_count,
+    }
+}
+
+fn evaluate_recurrent_hints(
+    decl: &crate::scan::RecurrentDeclaration,
+    acted_on: &std::collections::HashSet<&str>,
+) -> Vec<AuditHint> {
+    use crate::scan::RecurrentKind;
+
+    let mut hints = Vec::new();
+    match decl.kind {
+        RecurrentKind::Itch => {
+            if decl.antigen_type.is_none() {
+                hints.push(AuditHint::ItchNoticedNotAnchored);
+            }
+        }
+        RecurrentKind::RecurrenceAnchor => {
+            // Anchor crossed threshold but nothing downstream addresses it.
+            if let Some(antigen) = decl.antigen_type.as_deref() {
+                if !acted_on.contains(antigen) {
+                    hints.push(AuditHint::RecurrenceThresholdReachedNoAction);
+                }
+            }
+        }
+        RecurrentKind::Crystallize => {
+            // A crystallization with neither a formal antigen NOR source
+            // itches crystallized nothing into anything.
+            if decl.antigen_type.is_none() && decl.from_itches.is_empty() {
+                hints.push(AuditHint::CrystallizeWithoutAntigen);
+            }
+        }
+        RecurrentKind::Chronic => {
+            if decl.managed_by.is_none() {
+                hints.push(AuditHint::ChronicSignalUnmanaged);
+            }
+            // Past-review-date: only when `since` parses as an ISO date and
+            // is older than the review horizon. Non-date `since` (version
+            // tags like "v0.2.0") skip this check — no false positives.
+            if let Some(since) = decl.since.as_deref() {
+                if let Ok(since_date) = chrono::NaiveDate::parse_from_str(since, "%Y-%m-%d") {
+                    let age = chrono::Utc::now().date_naive() - since_date;
+                    if age.num_days() > CHRONIC_REVIEW_HORIZON_DAYS {
+                        hints.push(AuditHint::ChronicSignalPastReviewDate);
+                    }
+                }
+            }
+        }
+        RecurrentKind::Saturate => {
+            if decl.contributing_to.is_none() {
+                hints.push(AuditHint::SaturateNoAnchor);
+            }
+        }
+        RecurrentKind::Strand => {
+            if decl.anchored_by.is_empty() {
+                hints.push(AuditHint::StrandNoAnchors);
+            }
+        }
+    }
+    hints
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2301,5 +2470,151 @@ mod tests {
             detect_phantom_type_witness("PolarityProof::<FrameTranslation>::verified"),
             Some(WitnessKind::PhantomType { .. }),
         ));
+    }
+
+    // ========================================================================
+    // Recurrent-Emergence audit (ADR-024 §Family 2)
+    // ========================================================================
+
+    fn recurrent_decl(
+        kind: crate::scan::RecurrentKind,
+        antigen_type: Option<&str>,
+    ) -> crate::scan::RecurrentDeclaration {
+        crate::scan::RecurrentDeclaration {
+            kind,
+            name: None,
+            antigen_type: antigen_type.map(str::to_string),
+            description: None,
+            instances: None,
+            since: None,
+            rationale: None,
+            from_itches: Vec::new(),
+            anchored_by: Vec::new(),
+            managed_by: None,
+            contributing_to: None,
+            file: std::path::PathBuf::from("test.rs"),
+            line: 1,
+            item_kind: "fn".to_string(),
+            item_target: crate::scan::ItemTarget::Fn("t".to_string()),
+        }
+    }
+
+    #[test]
+    fn audit_recurrent_itch_without_antigen_flags_not_anchored() {
+        let mut report = ScanReport::default();
+        report
+            .recurrent_declarations
+            .push(recurrent_decl(crate::scan::RecurrentKind::Itch, None));
+        let out = audit_recurrent(&report);
+        assert_eq!(out.concern_count, 1);
+        assert!(out.audits[0]
+            .hints
+            .contains(&AuditHint::ItchNoticedNotAnchored));
+    }
+
+    #[test]
+    fn audit_recurrent_itch_with_antigen_is_clean() {
+        let mut report = ScanReport::default();
+        report.recurrent_declarations.push(recurrent_decl(
+            crate::scan::RecurrentKind::Itch,
+            Some("SomeAntigen"),
+        ));
+        let out = audit_recurrent(&report);
+        assert!(out.all_clean());
+    }
+
+    #[test]
+    fn audit_recurrent_anchor_without_downstream_action_flags() {
+        let mut report = ScanReport::default();
+        report.recurrent_declarations.push(recurrent_decl(
+            crate::scan::RecurrentKind::RecurrenceAnchor,
+            Some("MsrvCreep"),
+        ));
+        let out = audit_recurrent(&report);
+        assert!(out.audits[0]
+            .hints
+            .contains(&AuditHint::RecurrenceThresholdReachedNoAction));
+    }
+
+    #[test]
+    fn audit_recurrent_crystallize_empty_flags_without_antigen() {
+        let mut report = ScanReport::default();
+        report.recurrent_declarations.push(recurrent_decl(
+            crate::scan::RecurrentKind::Crystallize,
+            None,
+        ));
+        let out = audit_recurrent(&report);
+        assert!(out.audits[0]
+            .hints
+            .contains(&AuditHint::CrystallizeWithoutAntigen));
+    }
+
+    #[test]
+    fn audit_recurrent_chronic_without_managed_by_flags_unmanaged() {
+        let mut report = ScanReport::default();
+        report.recurrent_declarations.push(recurrent_decl(
+            crate::scan::RecurrentKind::Chronic,
+            Some("FlakeyStep"),
+        ));
+        let out = audit_recurrent(&report);
+        assert!(out.audits[0]
+            .hints
+            .contains(&AuditHint::ChronicSignalUnmanaged));
+    }
+
+    #[test]
+    fn audit_recurrent_chronic_old_iso_since_flags_past_review_date() {
+        let mut report = ScanReport::default();
+        let mut decl = recurrent_decl(crate::scan::RecurrentKind::Chronic, Some("X"));
+        decl.managed_by = Some("team".to_string());
+        decl.since = Some("2020-01-01".to_string()); // far past horizon
+        report.recurrent_declarations.push(decl);
+        let out = audit_recurrent(&report);
+        assert!(out.audits[0]
+            .hints
+            .contains(&AuditHint::ChronicSignalPastReviewDate));
+    }
+
+    #[test]
+    fn audit_recurrent_chronic_version_since_skips_date_check() {
+        // Non-ISO `since` (version tag) must NOT false-positive the
+        // past-review-date check.
+        let mut report = ScanReport::default();
+        let mut decl = recurrent_decl(crate::scan::RecurrentKind::Chronic, Some("X"));
+        decl.managed_by = Some("team".to_string());
+        decl.since = Some("v0.2.0".to_string());
+        report.recurrent_declarations.push(decl);
+        let out = audit_recurrent(&report);
+        assert!(!out.audits[0]
+            .hints
+            .contains(&AuditHint::ChronicSignalPastReviewDate));
+    }
+
+    #[test]
+    fn audit_recurrent_saturate_without_contributing_to_flags() {
+        let mut report = ScanReport::default();
+        report
+            .recurrent_declarations
+            .push(recurrent_decl(crate::scan::RecurrentKind::Saturate, None));
+        let out = audit_recurrent(&report);
+        assert!(out.audits[0].hints.contains(&AuditHint::SaturateNoAnchor));
+    }
+
+    #[test]
+    fn audit_recurrent_strand_without_anchors_flags() {
+        let mut report = ScanReport::default();
+        report
+            .recurrent_declarations
+            .push(recurrent_decl(crate::scan::RecurrentKind::Strand, None));
+        let out = audit_recurrent(&report);
+        assert!(out.audits[0].hints.contains(&AuditHint::StrandNoAnchors));
+    }
+
+    #[test]
+    fn audit_recurrent_hint_serializes_kebab_case() {
+        let s = serde_json::to_string(&AuditHint::ItchNoticedNotAnchored).unwrap();
+        assert_eq!(s, "\"itch-noticed-not-anchored\"");
+        let s2 = serde_json::to_string(&AuditHint::ChronicSignalPastReviewDate).unwrap();
+        assert_eq!(s2, "\"chronic-signal-past-review-date\"");
     }
 }
