@@ -2567,12 +2567,23 @@ fn run_audit(args: AuditArgs) -> ExitCode {
                             ca.file.display(),
                             ca.line
                         );
+                    } else if ca
+                        .hints
+                        .contains(&audit::AuditHint::AntigenCategoryHybridIncompleteEvidence)
+                    {
+                        println!(
+                            "  - {} ({}:{}) — antigen-category-hybrid-incomplete-evidence",
+                            ca.antigen_type,
+                            ca.file.display(),
+                            ca.line
+                        );
                     }
                 }
                 println!(
                     "  SubstrateAlignment needs a `requires = ...` immunity; \
                      FunctionalCorrectness needs a `witness = ...` immunity; \
-                     hybrid needs both (ADR-028 §Schema)."
+                     hybrid needs both (one axis present → \
+                     hybrid-incomplete-evidence; ADR-028 §Schema)."
                 );
             }
         }
