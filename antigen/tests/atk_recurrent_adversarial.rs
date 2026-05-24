@@ -11,9 +11,37 @@
 //! Written by adversarial role as preemptive attack surface documentation.
 //! Campsite: v02-impl-recurrent-emergence
 
-// When the module exists, add:
-// use antigen::recurrent::{RecurrenceAnchor, ItchDeclaration};
-// use antigen::scan::{ScanReport, scan_workspace};
+use antigen::audit::{audit_recurrent, AuditHint};
+use antigen::scan::{ItemTarget, RecurrentDeclaration, RecurrentKind, ScanReport};
+use std::path::PathBuf;
+
+fn base_decl(kind: RecurrentKind, antigen_type: Option<&str>) -> RecurrentDeclaration {
+    RecurrentDeclaration {
+        kind,
+        name: None,
+        antigen_type: antigen_type.map(str::to_owned),
+        description: None,
+        instances: None,
+        since: None,
+        rationale: None,
+        from_itches: Vec::new(),
+        anchored_by: Vec::new(),
+        managed_by: None,
+        contributing_to: None,
+        file: PathBuf::from("test.rs"),
+        line: 1,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Fn("t".to_string()),
+    }
+}
+
+fn chronic_decl(since: Option<&str>) -> RecurrentDeclaration {
+    RecurrentDeclaration {
+        managed_by: Some("team".to_string()),
+        since: since.map(str::to_owned),
+        ..base_decl(RecurrentKind::Chronic, Some("SomeSignal"))
+    }
+}
 
 // ============================================================================
 // ATK-RECURRENT-1: #[itch] threshold = 0 is a silent no-op
@@ -90,12 +118,23 @@ fn atk_recurrent_2_recurrence_anchor_without_matching_itch_emits_hint() {
 // ============================================================================
 
 #[test]
-#[ignore = "recurrent family not yet implemented — remove ignore when v02-impl-recurrent-emergence ships"]
 fn atk_recurrent_3_crystallize_into_nonexistent_antigen_emits_hint() {
     // #[crystallize(into = "NonExistentAntigenName", pattern = "foo")]
     // The named antigen doesn't exist anywhere in the workspace.
-    // Should emit crystallize-without-antigen at audit time.
-    todo!("implement when recurrent family ships; verify dangling crystallize reference is caught");
+    // audit.rs Crystallize arm: if antigen_type is None AND from_itches is empty → CrystallizeWithoutAntigen.
+    // This models the case where crystallize has no backing antigen reference.
+    let mut report = ScanReport::default();
+    report
+        .recurrent_declarations
+        .push(base_decl(RecurrentKind::Crystallize, None));
+    let out = audit_recurrent(&report);
+    assert!(
+        out.audits[0]
+            .hints
+            .contains(&AuditHint::CrystallizeWithoutAntigen),
+        "expected CrystallizeWithoutAntigen for crystallize with no antigen_type"
+    );
+    assert_eq!(out.concern_count, 1);
 }
 
 // ============================================================================
@@ -127,22 +166,49 @@ fn atk_recurrent_3_crystallize_into_nonexistent_antigen_emits_hint() {
 // ============================================================================
 
 #[test]
-#[ignore = "recurrent family not yet implemented — remove ignore when audit hints ship; chronic-since-not-a-date hint required"]
 fn atk_recurrent_4a_chronic_review_date_non_date_string_emits_hint() {
-    // #[chronic(signal = "memory leak in retry loop", review_date = "not-a-date")]
-    // Should emit chronic-since-not-a-date at audit time.
     // "not-a-date" fails ISO-8601 parse AND does not match version-tag pattern
     // (v\d+\.\d+.*), so it falls into the hint-emitting path.
-    // Separately verify: review_date = "v0.2.0" does NOT emit the hint (tolerated).
-    todo!("implement when recurrent audit hints ship; assert chronic-since-not-a-date fires for 'not-a-date', NOT for 'v0.2.0'");
+    let mut report_bad = ScanReport::default();
+    report_bad
+        .recurrent_declarations
+        .push(chronic_decl(Some("not-a-date")));
+    let out_bad = audit_recurrent(&report_bad);
+    assert!(
+        out_bad.audits[0]
+            .hints
+            .contains(&AuditHint::ChronicSinceNotADate),
+        "expected ChronicSinceNotADate for since = 'not-a-date'"
+    );
+
+    // Version-tag-shaped strings are TOLERATED silently — no hint.
+    let mut report_vtag = ScanReport::default();
+    report_vtag
+        .recurrent_declarations
+        .push(chronic_decl(Some("v0.2.0")));
+    let out_vtag = audit_recurrent(&report_vtag);
+    assert!(
+        !out_vtag.audits[0]
+            .hints
+            .contains(&AuditHint::ChronicSinceNotADate),
+        "v0.2.0 is a version-tag; must NOT emit ChronicSinceNotADate"
+    );
 }
 
 #[test]
-#[ignore = "recurrent family not yet implemented — remove ignore when v02-impl-recurrent-emergence ships"]
 fn atk_recurrent_4b_chronic_past_review_date_emits_hint() {
-    // #[chronic(signal = "memory leak in retry loop", review_date = "2020-01-01")]
-    // Date is valid format but in the past. Should emit chronic-signal-past-review-date.
-    todo!("implement when recurrent family ships; verify past review_date triggers hint");
+    // "2020-01-01" is a valid ISO-8601 date far in the past (> CHRONIC_REVIEW_HORIZON_DAYS).
+    let mut report = ScanReport::default();
+    report
+        .recurrent_declarations
+        .push(chronic_decl(Some("2020-01-01")));
+    let out = audit_recurrent(&report);
+    assert!(
+        out.audits[0]
+            .hints
+            .contains(&AuditHint::ChronicSignalPastReviewDate),
+        "expected ChronicSignalPastReviewDate for since = '2020-01-01'"
+    );
 }
 
 // ============================================================================
@@ -163,12 +229,21 @@ fn atk_recurrent_4b_chronic_past_review_date_emits_hint() {
 // ============================================================================
 
 #[test]
-#[ignore = "recurrent family not yet implemented — remove ignore when v02-impl-recurrent-emergence ships"]
 fn atk_recurrent_5_saturate_anchor_nonexistent_emits_hint() {
-    // #[saturate(anchor = "NonExistentPattern", evidence = "many occurrences")]
-    // The referenced anchor doesn't exist anywhere in the workspace.
-    // Should emit saturate-no-anchor at audit time.
-    todo!("implement when recurrent family ships; verify dangling saturate anchor is caught");
+    // #[saturate(anchor = "NonExistentPattern")] with contributing_to = None.
+    // audit.rs Saturate arm: if contributing_to is None → SaturateNoAnchor.
+    let mut report = ScanReport::default();
+    report
+        .recurrent_declarations
+        .push(base_decl(RecurrentKind::Saturate, None));
+    let out = audit_recurrent(&report);
+    assert!(
+        out.audits[0]
+            .hints
+            .contains(&AuditHint::SaturateNoAnchor),
+        "expected SaturateNoAnchor for saturate with no contributing_to"
+    );
+    assert_eq!(out.concern_count, 1);
 }
 
 // ============================================================================
