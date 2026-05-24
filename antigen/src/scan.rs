@@ -61,6 +61,11 @@ struct ScanAntigenArgs {
     fingerprint: Option<String>,
     family: Option<String>,
     summary: Option<String>,
+    /// Category strings parsed from `category = AntigenCategory::X` or
+    /// `category = [AntigenCategory::X, ...]` (ADR-028). Stored as strings
+    /// for forward-compat; callers map to `AntigenCategory` via
+    /// `AntigenCategory::parse_category`.
+    category: Vec<String>,
 }
 
 impl Parse for ScanAntigenArgs {
@@ -70,6 +75,7 @@ impl Parse for ScanAntigenArgs {
         let mut fingerprint: Option<String> = None;
         let mut family: Option<String> = None;
         let mut summary: Option<String> = None;
+        let mut category: Vec<String> = Vec::new();
 
         while !input.is_empty() {
             let key: Ident = input.parse()?;
@@ -95,6 +101,37 @@ impl Parse for ScanAntigenArgs {
                     // Consume the array without storing (not used in scan output yet).
                     let _arr: syn::ExprArray = input.parse()?;
                 }
+                "category" => {
+                    // Parse path expression(s): single or array form.
+                    fn path_to_string(expr: &syn::Expr) -> Option<String> {
+                        if let syn::Expr::Path(p) = expr {
+                            let segs: Vec<String> = p
+                                .path
+                                .segments
+                                .iter()
+                                .map(|s| s.ident.to_string())
+                                .collect();
+                            Some(segs.join("::"))
+                        } else {
+                            None
+                        }
+                    }
+                    let val: syn::Expr = input.parse()?;
+                    match &val {
+                        syn::Expr::Array(arr) => {
+                            for elem in &arr.elems {
+                                if let Some(s) = path_to_string(elem) {
+                                    category.push(s);
+                                }
+                            }
+                        }
+                        single => {
+                            if let Some(s) = path_to_string(single) {
+                                category.push(s);
+                            }
+                        }
+                    }
+                }
                 _ => {
                     // Unknown field: consume the value expression and continue.
                     let _: syn::Expr = input.parse()?;
@@ -110,6 +147,7 @@ impl Parse for ScanAntigenArgs {
             fingerprint,
             family,
             summary,
+            category,
         })
     }
 }
@@ -787,6 +825,14 @@ pub struct AntigenDeclaration {
     /// tuple at the cross-crate boundary is `(type_name, canonical_path)`.
     #[serde(default)]
     pub canonical_path: Option<String>,
+    /// Category variants from `category = AntigenCategory::X` (ADR-028).
+    ///
+    /// Empty vec means absent (v0.1 backward-compat; audit tool emits
+    /// `antigen-category-defaulted-implicit-functional` migration hint).
+    /// Single-element = pure substrate-alignment or functional-correctness.
+    /// Two elements = hybrid antigen requiring both witness types.
+    #[serde(default)]
+    pub category: Vec<crate::category::AntigenCategory>,
 }
 
 /// Identity of the Rust item that an antigen-related attribute is applied to.
@@ -2714,6 +2760,11 @@ impl ScanVisitor<'_> {
         if let syn::Meta::List(list) = &attr.meta {
             match syn::parse2::<ScanAntigenArgs>(list.tokens.clone()) {
                 Ok(args) => {
+                    let category: Vec<crate::category::AntigenCategory> = args
+                        .category
+                        .iter()
+                        .filter_map(|s| crate::category::AntigenCategory::parse_category(s))
+                        .collect();
                     self.report.antigens.push(AntigenDeclaration {
                         name: args.name,
                         type_name,
@@ -2723,6 +2774,7 @@ impl ScanVisitor<'_> {
                         summary: args.summary,
                         fingerprint: args.fingerprint,
                         canonical_path: None,
+                        category,
                     });
                 }
                 Err(_) => {
@@ -2737,6 +2789,7 @@ impl ScanVisitor<'_> {
                         summary: None,
                         fingerprint: None,
                         canonical_path: None,
+                        category: Vec::new(),
                     });
                 }
             }
@@ -4205,6 +4258,7 @@ mod tests {
             summary: None,
             fingerprint: None,
             canonical_path: None,
+            category: Vec::new(),
         }
     }
 

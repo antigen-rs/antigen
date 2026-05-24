@@ -176,3 +176,22 @@ pub mod convergent;
 /// Cargo-manifest reader, and the per-witness evaluator functions that
 /// `cargo antigen verify` and the supply-chain audit pipeline drive.
 pub mod supply_chain;
+
+/// Public types for the VCS-Information-Loss Family (ADR-026).
+///
+/// Hosts [`vcs::TriageDecision`] (the 5-color triage classification for
+/// `#[triage_commit]` declarations) and [`vcs::ServerSideEnforcementMode`]
+/// (friction-only vs structural enforcement). The 11 stdlib antigens, the
+/// substrate-witness evaluators, and the `cargo antigen vcs` CLI integration
+/// land alongside this module as ADR-026 implementation completes.
+pub mod vcs;
+pub use vcs::{ServerSideEnforcementMode, TriageDecision};
+
+/// Antigen-Category taxonomy (ADR-028).
+///
+/// Hosts [`AntigenCategory`] — the first-class two-variant enum
+/// (`SubstrateAlignment` | `FunctionalCorrectness`) that qualifies every
+/// antigen declaration and shapes witness requirements, audit routing, and
+/// scan/audit CLI filtering.
+pub mod category;
+pub use category::AntigenCategory;
