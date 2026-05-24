@@ -3390,9 +3390,10 @@ fn print_category_audit_human(category_report: &audit::CategoryAuditReport) {
             category_report.mismatch_count
         );
         for ca in &category_report.audits {
-            if ca.hints.contains(
-                &audit::AuditHint::AntigenCategoryClaimInconsistentWithPredicateType,
-            ) {
+            if ca
+                .hints
+                .contains(&audit::AuditHint::AntigenCategoryClaimInconsistentWithPredicateType)
+            {
                 println!(
                     "  - {} ({}:{}) — antigen-category-claim-inconsistent-with-predicate-type",
                     ca.antigen_type,

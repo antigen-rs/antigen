@@ -25,10 +25,10 @@
 //!
 //! | Leaf | State type | Backs antigen(s) |
 //! |---|---|---|
-//! | `vcs_trailer_present(trailer_name)` | [`TrailerState`] | most family members (attestation-trailer presence) |
-//! | `vcs_rollback_triage_chain(commit)` | [`RollbackTriageState`] | `RollbackWithoutTriageCommit` |
-//! | `vcs_attest_branch_deletion(branch, by_role)` | [`BranchAttestState`] | `BranchDeletionWithoutAttestation` |
-//! | `vcs_server_side_enforcement_active(repo, antigen)` | [`ServerEnforcementState`] | structural-mode antigens (v0.2.1+) |
+//! | `vcs_trailer_present(trailer_name)` | [`TrailerState`](crate::vcs_witness::TrailerState) | most family members (attestation-trailer presence) |
+//! | `vcs_rollback_triage_chain(commit)` | [`RollbackTriageState`](crate::vcs_witness::RollbackTriageState) | `RollbackWithoutTriageCommit` |
+//! | `vcs_attest_branch_deletion(branch, by_role)` | [`BranchAttestState`](crate::vcs_witness::BranchAttestState) | `BranchDeletionWithoutAttestation` |
+//! | `vcs_server_side_enforcement_active(repo, antigen)` | [`ServerEnforcementState`](crate::vcs_witness::ServerEnforcementState) | structural-mode antigens (v0.2.1+) |
 
 use serde::{Deserialize, Serialize};
 
