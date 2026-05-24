@@ -207,6 +207,16 @@ pub mod supply_chain;
 pub mod vcs;
 pub use vcs::{ServerSideEnforcementMode, TriageDecision};
 
+/// Substrate-witness evaluators for the VCS-Information-Loss Family
+/// (ADR-026 §M6).
+///
+/// Pure (no git subprocess) — takes already-read git substrate (commit
+/// trailers, branch state, remote config) as input; the `cargo antigen vcs`
+/// CLI performs the actual `git` reads. Hosts
+/// [`vcs_witness::TrailerState`], [`vcs_witness::RollbackTriageState`],
+/// [`vcs_witness::BranchAttestState`], [`vcs_witness::ServerEnforcementState`].
+pub mod vcs_witness;
+
 /// Antigen-Category taxonomy (ADR-028).
 ///
 /// Hosts [`AntigenCategory`] — the first-class two-variant enum
