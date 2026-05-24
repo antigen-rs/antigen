@@ -1,0 +1,5 @@
+error: expected `AntigenCategory::SubstrateAlignment` or `AntigenCategory::FunctionalCorrectness`
+ --> tests/ui/category_string_literal.rs:7:76
+  |
+7 | #[antigen(name = "test-antigen", fingerprint = "item = struct", category = "substrate-alignment")]
+  |                                                                            ^^^^^^^^^^^^^^^^^^^^^

@@ -1,0 +1,5 @@
+error: `category` array must not be empty
+ --> tests/ui/category_empty_array.rs:6:76
+  |
+6 | #[antigen(name = "test-antigen", fingerprint = "item = struct", category = [])]
+  |                                                                            ^^
