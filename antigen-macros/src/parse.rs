@@ -2044,6 +2044,751 @@ impl AdccArgs {
 }
 
 // ============================================================================
+// Recurrent-Emergence Family argument parsers (ADR-024 + scientist HOW-spec
+// cf2a2317 + aristotle Reading-A pre-authorization 744471a3)
+//
+// Six present-looking primitives per ADR-024 §Family 2: #[itch],
+// #[recurrence_anchor], #[crystallize], #[chronic], #[saturate], #[strand].
+// Cognitive-organizational grounding for itch/saturate/crystallize/strand;
+// immunology-proper for chronic; clinical-medicine for recurrence_anchor.
+// All members declare antigen-category = SubstrateAlignment per ADR-028
+// (representation of recurring pattern diverges from actual state).
+// ============================================================================
+
+/// Arguments to `#[itch(name, antigen?, description, threshold?)]`.
+///
+/// Cognitive-organizational primitive: "pattern noticed below threshold;
+/// no commitment yet" per ADR-024 §Disambiguation table. Distinct from
+/// `#[anergy]` (ADR-023, intentional non-defense while waiting): itch is
+/// a pre-commitment NOTICING, anergy is a deliberate DEFER.
+#[derive(Debug)]
+pub struct ItchArgs {
+    pub name: Option<String>,
+    pub name_span: Option<Span>,
+    #[allow(dead_code)]
+    pub antigen: Option<syn::Path>,
+    pub description: Option<String>,
+    pub description_span: Option<Span>,
+    #[allow(dead_code)]
+    pub threshold: Option<String>,
+    pub args_span: Span,
+}
+
+impl Parse for ItchArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut name: Option<String> = None;
+        let mut name_span: Option<Span> = None;
+        let mut antigen: Option<syn::Path> = None;
+        let mut description: Option<String> = None;
+        let mut description_span: Option<Span> = None;
+        let mut threshold: Option<String> = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "name" => {
+                    let lit: LitStr = input.parse()?;
+                    name_span = Some(lit.span());
+                    name = Some(lit.value());
+                }
+                "antigen" => {
+                    antigen = Some(input.parse()?);
+                }
+                "description" => {
+                    let lit: LitStr = input.parse()?;
+                    description_span = Some(lit.span());
+                    description = Some(lit.value());
+                }
+                "threshold" => {
+                    let lit: LitStr = input.parse()?;
+                    threshold = Some(lit.value());
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown #[itch] field `{other}`; expected one of: \
+                             name, antigen, description, threshold"
+                        ),
+                    ));
+                }
+            }
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            name,
+            name_span,
+            antigen,
+            description,
+            description_span,
+            threshold,
+            args_span,
+        })
+    }
+}
+
+impl ItchArgs {
+    /// Per scientist HOW-spec: name + description required; description ≥10 chars.
+    pub fn validate(&self) -> syn::Result<()> {
+        match self.name.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[itch] requires `name = \"<slug>\"` (kebab-case identifier).",
+                ));
+            }
+            Some(s) if s.trim().is_empty() => {
+                return Err(syn::Error::new(
+                    self.name_span.unwrap_or(self.args_span),
+                    "#[itch] `name` cannot be empty.",
+                ));
+            }
+            Some(_) => {}
+        }
+        match self.description.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[itch] requires `description = \"...\"` (what is being noticed; \
+                     minimum 10 characters).",
+                ));
+            }
+            Some(s) if s.len() < 10 => {
+                return Err(syn::Error::new(
+                    self.description_span.unwrap_or(self.args_span),
+                    format!(
+                        "#[itch] `description` must be at least 10 characters \
+                         (got {}); per cognitive-organizational discipline a noticing \
+                         needs enough text to be useful next-time.",
+                        s.len()
+                    ),
+                ));
+            }
+            Some(_) => {}
+        }
+        Ok(())
+    }
+}
+
+/// Arguments to `#[recurrence_anchor(antigen, instances, since, rationale)]`.
+///
+/// Clinical-medicine primitive: "cross-substrate recurrence; threshold
+/// reached; want to surface for action" per ADR-024 §Disambiguation. The
+/// recurrence-anchor commits to FORMAL recognition of a pattern that has
+/// crossed the substrate-evidence threshold — analogous to a clinical
+/// diagnosis after recurrent symptoms.
+#[derive(Debug)]
+pub struct RecurrenceAnchorArgs {
+    #[allow(dead_code)]
+    pub antigen: Option<syn::Path>,
+    pub instances: Option<u32>,
+    pub instances_span: Option<Span>,
+    pub since: Option<String>,
+    pub since_span: Option<Span>,
+    pub rationale: Option<String>,
+    pub rationale_span: Option<Span>,
+    pub args_span: Span,
+}
+
+impl Parse for RecurrenceAnchorArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut antigen: Option<syn::Path> = None;
+        let mut instances: Option<u32> = None;
+        let mut instances_span: Option<Span> = None;
+        let mut since: Option<String> = None;
+        let mut since_span: Option<Span> = None;
+        let mut rationale: Option<String> = None;
+        let mut rationale_span: Option<Span> = None;
+
+        // Optional leading positional antigen path
+        if !input.is_empty() && input.peek(Ident) && !input.peek2(Token![=]) {
+            antigen = Some(input.parse()?);
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "antigen" => {
+                    antigen = Some(input.parse()?);
+                }
+                "instances" => {
+                    let lit: syn::LitInt = input.parse()?;
+                    instances_span = Some(lit.span());
+                    instances = Some(lit.base10_parse::<u32>()?);
+                }
+                "since" => {
+                    let lit: LitStr = input.parse()?;
+                    since_span = Some(lit.span());
+                    since = Some(lit.value());
+                }
+                "rationale" => {
+                    let lit: LitStr = input.parse()?;
+                    rationale_span = Some(lit.span());
+                    rationale = Some(lit.value());
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown #[recurrence_anchor] field `{other}`; expected \
+                             one of: antigen, instances, since, rationale"
+                        ),
+                    ));
+                }
+            }
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            antigen,
+            instances,
+            instances_span,
+            since,
+            since_span,
+            rationale,
+            rationale_span,
+            args_span,
+        })
+    }
+}
+
+impl RecurrenceAnchorArgs {
+    /// Per scientist HOW-spec: antigen + instances (> 0) + since + rationale
+    /// (≥20 chars) all REQUIRED.
+    pub fn validate(&self) -> syn::Result<()> {
+        if self.antigen.is_none() {
+            return Err(syn::Error::new(
+                self.args_span,
+                "#[recurrence_anchor] requires an `antigen` path (the failure-class \
+                 being formally anchored as a cross-substrate recurrence).",
+            ));
+        }
+        match self.instances {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[recurrence_anchor] requires `instances = N` (positive \
+                     integer; how many recurrences have been observed).",
+                ));
+            }
+            Some(0) => {
+                return Err(syn::Error::new(
+                    self.instances_span.unwrap_or(self.args_span),
+                    "#[recurrence_anchor] `instances` must be > 0; an anchor at \
+                     zero observed instances is structurally premature.",
+                ));
+            }
+            Some(_) => {}
+        }
+        match self.since.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[recurrence_anchor] requires `since = \"<date-or-version>\"` \
+                     (first detected instance anchor).",
+                ));
+            }
+            Some(s) if s.trim().is_empty() => {
+                return Err(syn::Error::new(
+                    self.since_span.unwrap_or(self.args_span),
+                    "#[recurrence_anchor] `since` cannot be empty.",
+                ));
+            }
+            Some(_) => {}
+        }
+        match self.rationale.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[recurrence_anchor] requires `rationale = \"...\"` \
+                     (≥20 characters; why this recurrence warrants action).",
+                ));
+            }
+            Some(s) if s.len() < 20 => {
+                return Err(syn::Error::new(
+                    self.rationale_span.unwrap_or(self.args_span),
+                    format!(
+                        "#[recurrence_anchor] `rationale` must be at least 20 \
+                         characters (got {}); clinical-diagnosis-grade rationale \
+                         per ADR-024 clinical-medicine grounding.",
+                        s.len()
+                    ),
+                ));
+            }
+            Some(_) => {}
+        }
+        Ok(())
+    }
+}
+
+/// Arguments to `#[crystallize(name, from_itches?, antigen?, summary)]`.
+///
+/// Cognitive-organizational primitive: "itch cluster crosses threshold
+/// into named failure-class." The promotion event from below-threshold
+/// noticing to formal recognition; parallel to `crystallize` in the camp
+/// field-track substrate.
+#[derive(Debug)]
+pub struct CrystallizeArgs {
+    pub name: Option<String>,
+    pub name_span: Option<Span>,
+    #[allow(dead_code)]
+    pub from_itches: Vec<syn::Path>,
+    #[allow(dead_code)]
+    pub antigen: Option<syn::Path>,
+    pub summary: Option<String>,
+    pub summary_span: Option<Span>,
+    pub args_span: Span,
+}
+
+impl Parse for CrystallizeArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut name: Option<String> = None;
+        let mut name_span: Option<Span> = None;
+        let mut from_itches: Vec<syn::Path> = Vec::new();
+        let mut antigen: Option<syn::Path> = None;
+        let mut summary: Option<String> = None;
+        let mut summary_span: Option<Span> = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "name" => {
+                    let lit: LitStr = input.parse()?;
+                    name_span = Some(lit.span());
+                    name = Some(lit.value());
+                }
+                "from_itches" => {
+                    let arr: syn::ExprArray = input.parse()?;
+                    for elem in &arr.elems {
+                        if let Expr::Path(p) = elem {
+                            from_itches.push(p.path.clone());
+                        } else {
+                            return Err(syn::Error::new_spanned(
+                                elem,
+                                "expected a path expression in `from_itches` array",
+                            ));
+                        }
+                    }
+                }
+                "antigen" => {
+                    antigen = Some(input.parse()?);
+                }
+                "summary" => {
+                    let lit: LitStr = input.parse()?;
+                    summary_span = Some(lit.span());
+                    summary = Some(lit.value());
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown #[crystallize] field `{other}`; expected \
+                             one of: name, from_itches, antigen, summary"
+                        ),
+                    ));
+                }
+            }
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            name,
+            name_span,
+            from_itches,
+            antigen,
+            summary,
+            summary_span,
+            args_span,
+        })
+    }
+}
+
+impl CrystallizeArgs {
+    /// Per scientist HOW-spec: name + summary required; summary ≥10 chars.
+    pub fn validate(&self) -> syn::Result<()> {
+        match self.name.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[crystallize] requires `name = \"<slug>\"`.",
+                ));
+            }
+            Some(s) if s.trim().is_empty() => {
+                return Err(syn::Error::new(
+                    self.name_span.unwrap_or(self.args_span),
+                    "#[crystallize] `name` cannot be empty.",
+                ));
+            }
+            Some(_) => {}
+        }
+        match self.summary.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[crystallize] requires `summary = \"...\"` (≥10 characters).",
+                ));
+            }
+            Some(s) if s.len() < 10 => {
+                return Err(syn::Error::new(
+                    self.summary_span.unwrap_or(self.args_span),
+                    format!(
+                        "#[crystallize] `summary` must be at least 10 characters \
+                         (got {}); per cognitive-organizational discipline a \
+                         crystallization event needs enough text to be useful.",
+                        s.len()
+                    ),
+                ));
+            }
+            Some(_) => {}
+        }
+        Ok(())
+    }
+}
+
+/// Arguments to `#[chronic(antigen, since, status?, managed_by?)]`.
+///
+/// Immunology-proper primitive: "low-level persistent signal NOT
+/// cross-substrate" per ADR-024 §Disambiguation. Distinct from
+/// `#[recurrence_anchor]` (cross-substrate, threshold reached): chronic
+/// is a SUSTAINED single-substrate signal — analogous to a chronic
+/// inflammatory state without acute recurrence.
+#[derive(Debug)]
+pub struct ChronicArgs {
+    #[allow(dead_code)]
+    pub antigen: Option<syn::Path>,
+    pub since: Option<String>,
+    pub since_span: Option<Span>,
+    #[allow(dead_code)]
+    pub status: Option<String>,
+    #[allow(dead_code)]
+    pub managed_by: Option<String>,
+    pub args_span: Span,
+}
+
+impl Parse for ChronicArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut antigen: Option<syn::Path> = None;
+        let mut since: Option<String> = None;
+        let mut since_span: Option<Span> = None;
+        let mut status: Option<String> = None;
+        let mut managed_by: Option<String> = None;
+
+        // Optional leading positional antigen path
+        if !input.is_empty() && input.peek(Ident) && !input.peek2(Token![=]) {
+            antigen = Some(input.parse()?);
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "antigen" => {
+                    antigen = Some(input.parse()?);
+                }
+                "since" => {
+                    let lit: LitStr = input.parse()?;
+                    since_span = Some(lit.span());
+                    since = Some(lit.value());
+                }
+                "status" => {
+                    let lit: LitStr = input.parse()?;
+                    status = Some(lit.value());
+                }
+                "managed_by" => {
+                    let lit: LitStr = input.parse()?;
+                    managed_by = Some(lit.value());
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown #[chronic] field `{other}`; expected one of: \
+                             antigen, since, status, managed_by"
+                        ),
+                    ));
+                }
+            }
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            antigen,
+            since,
+            since_span,
+            status,
+            managed_by,
+            args_span,
+        })
+    }
+}
+
+impl ChronicArgs {
+    /// Per scientist HOW-spec: antigen + since both REQUIRED.
+    pub fn validate(&self) -> syn::Result<()> {
+        if self.antigen.is_none() {
+            return Err(syn::Error::new(
+                self.args_span,
+                "#[chronic] requires an `antigen` path (the failure-class \
+                 being marked chronic).",
+            ));
+        }
+        match self.since.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[chronic] requires `since = \"<date-or-version>\"` (when \
+                     the chronic signal was first observed).",
+                ));
+            }
+            Some(s) if s.trim().is_empty() => {
+                return Err(syn::Error::new(
+                    self.since_span.unwrap_or(self.args_span),
+                    "#[chronic] `since` cannot be empty.",
+                ));
+            }
+            Some(_) => {}
+        }
+        Ok(())
+    }
+}
+
+/// Arguments to `#[saturate(antigen?, contributing_to?, description)]`.
+///
+/// Cognitive-organizational primitive: "accumulating saturation evidence
+/// toward a recurrence threshold." A saturation event names a contribution
+/// to a recognized recurrence pattern; without a `contributing_to` target
+/// the audit emits `saturate-no-anchor`.
+#[derive(Debug)]
+pub struct SaturateArgs {
+    #[allow(dead_code)]
+    pub antigen: Option<syn::Path>,
+    #[allow(dead_code)]
+    pub contributing_to: Option<String>,
+    pub description: Option<String>,
+    pub description_span: Option<Span>,
+    pub args_span: Span,
+}
+
+impl Parse for SaturateArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut antigen: Option<syn::Path> = None;
+        let mut contributing_to: Option<String> = None;
+        let mut description: Option<String> = None;
+        let mut description_span: Option<Span> = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "antigen" => {
+                    antigen = Some(input.parse()?);
+                }
+                "contributing_to" => {
+                    let lit: LitStr = input.parse()?;
+                    contributing_to = Some(lit.value());
+                }
+                "description" => {
+                    let lit: LitStr = input.parse()?;
+                    description_span = Some(lit.span());
+                    description = Some(lit.value());
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown #[saturate] field `{other}`; expected one of: \
+                             antigen, contributing_to, description"
+                        ),
+                    ));
+                }
+            }
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            antigen,
+            contributing_to,
+            description,
+            description_span,
+            args_span,
+        })
+    }
+}
+
+impl SaturateArgs {
+    /// Per scientist HOW-spec: description required (≥10 chars).
+    pub fn validate(&self) -> syn::Result<()> {
+        match self.description.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[saturate] requires `description = \"...\"` (≥10 characters; \
+                     what evidence is saturating).",
+                ));
+            }
+            Some(s) if s.len() < 10 => {
+                return Err(syn::Error::new(
+                    self.description_span.unwrap_or(self.args_span),
+                    format!(
+                        "#[saturate] `description` must be at least 10 characters \
+                         (got {}).",
+                        s.len()
+                    ),
+                ));
+            }
+            Some(_) => {}
+        }
+        Ok(())
+    }
+}
+
+/// Arguments to `#[strand(name, anchored_by?, description)]`.
+///
+/// Cognitive-organizational primitive: "thread of related noticing; may
+/// spawn `#[itch]` or `#[recurrence_anchor]`." A strand groups noticings
+/// across multiple substrates that share a structural rhyme but haven't
+/// yet crystallized.
+#[derive(Debug)]
+pub struct StrandArgs {
+    pub name: Option<String>,
+    pub name_span: Option<Span>,
+    #[allow(dead_code)]
+    pub anchored_by: Vec<syn::Path>,
+    pub description: Option<String>,
+    pub description_span: Option<Span>,
+    pub args_span: Span,
+}
+
+impl Parse for StrandArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut name: Option<String> = None;
+        let mut name_span: Option<Span> = None;
+        let mut anchored_by: Vec<syn::Path> = Vec::new();
+        let mut description: Option<String> = None;
+        let mut description_span: Option<Span> = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "name" => {
+                    let lit: LitStr = input.parse()?;
+                    name_span = Some(lit.span());
+                    name = Some(lit.value());
+                }
+                "anchored_by" => {
+                    let arr: syn::ExprArray = input.parse()?;
+                    for elem in &arr.elems {
+                        if let Expr::Path(p) = elem {
+                            anchored_by.push(p.path.clone());
+                        } else {
+                            return Err(syn::Error::new_spanned(
+                                elem,
+                                "expected a path expression in `anchored_by` array",
+                            ));
+                        }
+                    }
+                }
+                "description" => {
+                    let lit: LitStr = input.parse()?;
+                    description_span = Some(lit.span());
+                    description = Some(lit.value());
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown #[strand] field `{other}`; expected one of: \
+                             name, anchored_by, description"
+                        ),
+                    ));
+                }
+            }
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            name,
+            name_span,
+            anchored_by,
+            description,
+            description_span,
+            args_span,
+        })
+    }
+}
+
+impl StrandArgs {
+    /// Per scientist HOW-spec: name + description both REQUIRED (≥10 chars).
+    pub fn validate(&self) -> syn::Result<()> {
+        match self.name.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[strand] requires `name = \"<slug>\"`.",
+                ));
+            }
+            Some(s) if s.trim().is_empty() => {
+                return Err(syn::Error::new(
+                    self.name_span.unwrap_or(self.args_span),
+                    "#[strand] `name` cannot be empty.",
+                ));
+            }
+            Some(_) => {}
+        }
+        match self.description.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[strand] requires `description = \"...\"` (≥10 characters; \
+                     what threads of noticing this strand groups).",
+                ));
+            }
+            Some(s) if s.len() < 10 => {
+                return Err(syn::Error::new(
+                    self.description_span.unwrap_or(self.args_span),
+                    format!(
+                        "#[strand] `description` must be at least 10 characters \
+                         (got {}).",
+                        s.len()
+                    ),
+                ));
+            }
+            Some(_) => {}
+        }
+        Ok(())
+    }
+}
+
+// ============================================================================
 // Date helpers for ADR-023 parse-time enforcement
 // ============================================================================
 
@@ -3065,6 +3810,162 @@ mod tests {
         let tokens: TokenStream = r#"bogus = "value""#.parse().unwrap();
         let result = syn::parse2::<OrientArgs>(tokens);
         assert!(result.is_err(), "unknown field should still be rejected");
+    }
+
+    // -------------------------------------------------------------------------
+    // Recurrent-Emergence Family tests (ADR-024 + scientist HOW-spec cf2a2317)
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn itch_parser_accepts_minimal() {
+        let tokens: TokenStream =
+            r#"name = "drop-panic-rhyme", description = "noticed Drop panics rhyming with unwrap-in-cleanup""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<ItchArgs>(tokens).unwrap();
+        assert_eq!(args.name.as_deref(), Some("drop-panic-rhyme"));
+        args.validate().unwrap();
+    }
+
+    #[test]
+    fn itch_validate_rejects_missing_name() {
+        let tokens: TokenStream = r#"description = "noticed something worth ten chars""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<ItchArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn itch_validate_rejects_short_description() {
+        let tokens: TokenStream = r#"name = "x", description = "short""#.parse().unwrap();
+        let args = syn::parse2::<ItchArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn itch_parser_rejects_unknown_field() {
+        let tokens: TokenStream = r#"name = "x", description = "long enough text", bogus = 1"#
+            .parse()
+            .unwrap();
+        assert!(syn::parse2::<ItchArgs>(tokens).is_err());
+    }
+
+    #[test]
+    fn recurrence_anchor_parser_accepts_canonical() {
+        let tokens: TokenStream = r#"MsrvCreep, instances = 3, since = "v0.1.0", rationale = "MSRV crept three times across major bumps""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<RecurrenceAnchorArgs>(tokens).unwrap();
+        assert!(args.antigen.is_some());
+        assert_eq!(args.instances, Some(3));
+        args.validate().unwrap();
+    }
+
+    #[test]
+    fn recurrence_anchor_validate_rejects_zero_instances() {
+        let tokens: TokenStream =
+            r#"X, instances = 0, since = "v1", rationale = "twenty character rationale here""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<RecurrenceAnchorArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn recurrence_anchor_validate_rejects_missing_antigen() {
+        let tokens: TokenStream =
+            r#"instances = 2, since = "v1", rationale = "twenty character rationale here""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<RecurrenceAnchorArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn recurrence_anchor_validate_rejects_short_rationale() {
+        let tokens: TokenStream = r#"X, instances = 2, since = "v1", rationale = "too short""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<RecurrenceAnchorArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn crystallize_parser_accepts_with_from_itches() {
+        let tokens: TokenStream = r#"name = "drop-panic", from_itches = [DropPanicItch, CleanupUnwrapItch], summary = "crystallized from two itches""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<CrystallizeArgs>(tokens).unwrap();
+        assert_eq!(args.from_itches.len(), 2);
+        args.validate().unwrap();
+    }
+
+    #[test]
+    fn crystallize_validate_rejects_missing_summary() {
+        let tokens: TokenStream = r#"name = "x""#.parse().unwrap();
+        let args = syn::parse2::<CrystallizeArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn chronic_parser_accepts_canonical() {
+        let tokens: TokenStream = r#"FlakeyCiStep, since = "v0.2.0", managed_by = "ci-team""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<ChronicArgs>(tokens).unwrap();
+        assert!(args.antigen.is_some());
+        args.validate().unwrap();
+    }
+
+    #[test]
+    fn chronic_validate_rejects_missing_since() {
+        let tokens: TokenStream = "X".parse().unwrap();
+        let args = syn::parse2::<ChronicArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn chronic_validate_rejects_missing_antigen() {
+        let tokens: TokenStream = r#"since = "v1""#.parse().unwrap();
+        let args = syn::parse2::<ChronicArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn saturate_parser_accepts_minimal() {
+        let tokens: TokenStream =
+            r#"description = "evidence accumulating toward MSRV-creep anchor""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<SaturateArgs>(tokens).unwrap();
+        args.validate().unwrap();
+    }
+
+    #[test]
+    fn saturate_validate_rejects_short_description() {
+        let tokens: TokenStream = r#"description = "short""#.parse().unwrap();
+        let args = syn::parse2::<SaturateArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn strand_parser_accepts_with_anchored_by() {
+        let tokens: TokenStream = r#"name = "vcs-loss-thread", anchored_by = [ForcePushItch, SquashMergeItch], description = "thread of history-loss noticings""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<StrandArgs>(tokens).unwrap();
+        assert_eq!(args.anchored_by.len(), 2);
+        args.validate().unwrap();
+    }
+
+    #[test]
+    fn strand_validate_rejects_missing_name() {
+        let tokens: TokenStream = r#"description = "thread of related noticings here""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<StrandArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
     }
 }
 

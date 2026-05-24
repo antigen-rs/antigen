@@ -721,6 +721,217 @@ pub fn adcc(args: TokenStream, input: TokenStream) -> TokenStream {
     quote! { #input }.into()
 }
 
+// ============================================================================
+// Recurrent-Emergence Family (ADR-024 + scientist HOW-spec cf2a2317 +
+// aristotle Reading-A pre-authorization 744471a3)
+//
+// Six present-looking primitives: #[itch], #[recurrence_anchor],
+// #[crystallize], #[chronic], #[saturate], #[strand]. Cognitive-organizational
+// grounding for itch/saturate/crystallize/strand; immunology-proper for
+// chronic; clinical-medicine for recurrence_anchor.
+// ============================================================================
+
+/// Declare a below-threshold noticing of a pattern (ADR-024 recurrent family).
+///
+/// `#[itch(name, antigen?, description, threshold?)]` marks a
+/// cognitive-organizational observation: a pattern has been noticed but
+/// has not yet crossed the threshold into a formal antigen declaration.
+/// Per ADR-024 §Disambiguation: distinct from `#[anergy]` (ADR-023,
+/// intentional non-defense while waiting) — itch is pre-commitment
+/// noticing, anergy is deliberate defer.
+///
+/// # Biology grounding
+///
+/// **Cognitive-organizational** axis per ADR-024 §Biology grounding —
+/// dual-axis honesty. Not an immunology-proper cognate; the metaphor is
+/// drawn from how teams notice patterns before formalizing them.
+///
+/// # Arguments
+///
+/// - `name = "<slug>"` (required) — kebab-case identifier
+/// - `antigen = <Path>` (optional) — failure-class path, if known
+/// - `description = "..."` (required, ≥10 chars) — what is being noticed
+/// - `threshold = "..."` (optional) — what would cause crystallize-promotion
+///
+/// # Audit hints
+///
+/// - `itch-noticed-not-anchored` — no antigen path; unlinked observation
+#[proc_macro_attribute]
+pub fn itch(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::ItchArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
+/// Declare formal recognition of a cross-substrate recurrent failure-class
+/// (ADR-024 recurrent family).
+///
+/// `#[recurrence_anchor(antigen, instances, since, rationale)]` commits to
+/// formal recognition of a pattern that has crossed the substrate-evidence
+/// threshold. Per ADR-024 §Disambiguation: distinct from `#[chronic]`
+/// (low-level persistent, NOT cross-substrate) — `recurrence_anchor` is
+/// cross-substrate-threshold-reached.
+///
+/// # Biology grounding
+///
+/// **Clinical-medicine** axis per ADR-024 §Biology grounding. Analogous
+/// to a clinical diagnosis after recurrent symptoms cross the threshold
+/// for formal recognition.
+///
+/// # Arguments
+///
+/// All four fields REQUIRED:
+/// - `antigen = <Path>` — failure-class path being anchored
+/// - `instances = N` (positive `u32`) — how many recurrences observed
+/// - `since = "<date-or-version>"` — first detected instance anchor
+/// - `rationale = "..."` (≥20 chars) — clinical-diagnosis-grade rationale
+///
+/// # Audit hints
+///
+/// - `recurrence-threshold-reached-no-action` — anchor declared but no
+///   downstream `#[immune]`/`#[presents]` registered
+#[proc_macro_attribute]
+pub fn recurrence_anchor(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::RecurrenceAnchorArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
+/// Declare the promotion event from itch-cluster to formal failure-class
+/// (ADR-024 recurrent family).
+///
+/// `#[crystallize(name, from_itches?, antigen?, summary)]` records the
+/// moment a pattern of noticings crystallizes into a formal antigen.
+/// Parallel to camp's field-track `crystallize` verb.
+///
+/// # Biology grounding
+///
+/// **Cognitive-organizational** axis per ADR-024 §Biology grounding.
+///
+/// # Arguments
+///
+/// - `name = "<slug>"` (required)
+/// - `from_itches = [Ident, ...]` (optional) — `#[itch]` idents this
+///   crystallizes from
+/// - `antigen = <Path>` (optional) — the formal antigen this crystallizes
+///   into
+/// - `summary = "..."` (required, ≥10 chars)
+///
+/// # Audit hints
+///
+/// - `crystallize-without-antigen` — crystallized but no formal antigen
+///   path registered yet
+#[proc_macro_attribute]
+pub fn crystallize(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::CrystallizeArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
+/// Declare a low-level persistent failure-class signal (ADR-024 recurrent
+/// family).
+///
+/// `#[chronic(antigen, since, status?, managed_by?)]` marks a sustained
+/// signal that has NOT crossed the cross-substrate-recurrence threshold
+/// per ADR-024 §Disambiguation. Distinct from `#[recurrence_anchor]`.
+///
+/// # Biology grounding
+///
+/// **Immunology-proper** axis per ADR-024 §Biology grounding — chronic
+/// inflammation is the biology cognate: sustained low-level immune
+/// activity without acute recurrence.
+///
+/// # Arguments
+///
+/// - `antigen = <Path>` (required) — failure-class being marked chronic
+/// - `since = "<date-or-version>"` (required) — when first observed
+/// - `status = "..."` (optional) — current status description
+/// - `managed_by = "..."` (optional) — team or role managing the state
+///
+/// # Audit hints
+///
+/// - `chronic-signal-unmanaged` — no `managed_by` after N versions
+/// - `chronic-signal-past-review-date`
+#[proc_macro_attribute]
+pub fn chronic(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::ChronicArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
+/// Declare a saturation-evidence contribution toward a recurrence threshold
+/// (ADR-024 recurrent family).
+///
+/// `#[saturate(antigen?, contributing_to?, description)]` accumulates
+/// evidence toward an anchor or itch without (yet) committing to either.
+///
+/// # Biology grounding
+///
+/// **Cognitive-organizational** axis per ADR-024 §Biology grounding.
+///
+/// # Arguments
+///
+/// - `antigen = <Path>` (optional)
+/// - `contributing_to = "<slug>"` (optional) — `#[recurrence_anchor]` or
+///   `#[itch]` slug this contributes to
+/// - `description = "..."` (required, ≥10 chars)
+///
+/// # Audit hints
+///
+/// - `saturate-no-anchor` — no `contributing_to` target named
+#[proc_macro_attribute]
+pub fn saturate(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::SaturateArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
+/// Declare a thread of related noticing across substrates (ADR-024
+/// recurrent family).
+///
+/// `#[strand(name, anchored_by?, description)]` groups noticings that
+/// share a structural rhyme but haven't yet crystallized. May spawn
+/// `#[itch]` or `#[recurrence_anchor]` as the strand thickens.
+///
+/// # Biology grounding
+///
+/// **Cognitive-organizational** axis per ADR-024 §Biology grounding.
+///
+/// # Arguments
+///
+/// - `name = "<slug>"` (required)
+/// - `anchored_by = [Ident, ...]` (optional) — `#[itch]` or
+///   `#[recurrence_anchor]` idents this strand spans
+/// - `description = "..."` (required, ≥10 chars)
+///
+/// # Audit hints
+///
+/// - `strand-no-anchors` — nothing anchors this strand
+#[proc_macro_attribute]
+pub fn strand(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::StrandArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
 /// Declare an orientation period: acknowledged absence of immunity with
 /// see-also context. The lightest-weight deferred-defense primitive.
 ///

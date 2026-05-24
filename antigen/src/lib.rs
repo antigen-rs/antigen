@@ -152,6 +152,13 @@ pub use antigen_macros::triage_commit;
 pub use antigen_macros::{adcc, clonal, crossreactive, diagnostic, igg, monoclonal, polyclonal};
 pub use convergent::{SeedKind, WitnessClass};
 
+// Recurrent-Emergence Family (ADR-024 §Family 2 + scientist HOW-spec
+// cf2a2317 + aristotle Reading-A pre-authorization 744471a3): six
+// present-looking primitives for noticing-and-anchoring recurring
+// failure-classes across substrates. Cognitive-organizational +
+// immunology-proper + clinical-medicine dual-axis grounding.
+pub use antigen_macros::{chronic, crystallize, itch, recurrence_anchor, saturate, strand};
+
 pub mod audit;
 pub mod scan;
 
