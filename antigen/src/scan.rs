@@ -2306,6 +2306,13 @@ fn canonicalise_cycle(bare: &[&str]) -> Vec<String> {
 /// the walk; the default is `["target", ".git", "node_modules"]` if `None` is
 /// passed.
 ///
+/// **Mucosal boundary detection scope**: this scan ONLY finds explicitly
+/// declared `#[mucosal]` / `#[mucosal_delegate]` / `#[mucosal_tolerant]`
+/// annotations. Trust-boundary sites that lack an explicit annotation are
+/// not surfaced — the scan cannot infer implicit boundaries from parameter
+/// types or call sites. See
+/// [`crate::stdlib::dogfood::ScannerBoundaryFalseNegative`].
+///
 /// # Errors
 ///
 /// Currently never returns `Err` — IO errors during the walk (unreadable
@@ -2316,6 +2323,7 @@ fn canonicalise_cycle(bare: &[&str]) -> Vec<String> {
 /// unreadable file, or an out-of-memory cap on `parsed_files` cache size).
 /// Callers should treat any `Err` as a hard scan failure and surface the
 /// error to the user.
+#[presents(ScannerBoundaryFalseNegative)]
 pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::Result<ScanReport> {
     let default_exclusions = ["target", ".git", "node_modules"];
     let exclusions = excluded_dirs.unwrap_or(&default_exclusions);

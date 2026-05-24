@@ -395,3 +395,49 @@ pub struct FingerprintStringWithoutDslValidation;
     references = ["ADR-024"]
 )]
 pub struct SilentArgumentDiscard;
+
+// ============================================================================
+// 10. ScannerBoundaryFalseNegative
+// ============================================================================
+
+/// A static-heuristic boundary scanner misses a trust boundary because the
+/// boundary expression uses a non-standard input type.
+///
+/// Antigen's mucosal scanner (`cargo antigen mucosal-map --undefended`) detects
+/// trust boundaries by matching function parameter types against a set of
+/// recognized patterns (e.g., actix_web `Path<T>`, axum `Json<T>`,
+/// `HttpRequest`, etc.). A handler that uses a *custom* request type — one the
+/// heuristic does not recognize — will not be surfaced as an undefended boundary.
+/// The `--undefended` flag then reports "0 undefended boundaries" when there is
+/// actually 1 (or more).
+///
+/// **Why this is structural, not a bug**: static-analysis-based boundary
+/// detection can never be complete for a Turing-complete language. The heuristic
+/// can be extended (adding recognized patterns), but it cannot be made exact.
+/// This is not a bug to fix; it is a residual risk to document and monitor.
+///
+/// **Observed instance** (ATK-MUCOSAL-6, 2026-05-24): the adversarial fixture
+/// for this case is `#[ignore]` pending mucosal scanner maturation. The test
+/// itself correctly documents that the expected behavior is "0 detected
+/// boundaries" for a custom type — i.e., the scanner's representation of
+/// boundary sites diverges from the actual set.
+///
+/// **Defense**: document the heuristic's scope explicitly (which types are
+/// recognized). Provide a way for adopters to annotate custom boundary types as
+/// `#[mucosal]` directly so the scanner can include them. The ATK-MUCOSAL-6
+/// fixture, when un-ignored, pins the expected-gap behavior so regressions are
+/// not silent.
+///
+/// **Category**: `SubstrateAlignment` — the scanner's representation (detected
+/// boundary set) diverges from the actual substrate state (all trust-boundary
+/// sites in the codebase). The divergence is not a runtime error; it is a silent
+/// false negative in the scan output.
+#[antigen(
+    name = "scanner-boundary-false-negative",
+    category = AntigenCategory::SubstrateAlignment,
+    fingerprint = r#"doc_contains("mucosal-map")"#,
+    family = "dogfood",
+    summary = "Static-heuristic boundary scanner misses trust boundaries expressed with non-standard input types; --undefended reports 0 when boundaries exist. Structural residual risk, not a fixable bug.",
+    references = ["ADR-027", "ADR-027#Amendment-1"]
+)]
+pub struct ScannerBoundaryFalseNegative;
