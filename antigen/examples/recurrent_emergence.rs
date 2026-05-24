@@ -43,6 +43,12 @@
 //! cargo run --bin cargo-antigen -- antigen scan   # surfaces the markers
 //! ```
 
+// The marker functions below are illustration sites for the recurrent
+// attributes; their bodies are intentionally empty (the attribute is the
+// point, not the runtime behavior), which trips missing_const_for_fn. The
+// allow is example-scoped and does not affect the library crate.
+#![allow(clippy::missing_const_for_fn)]
+
 use antigen::{antigen, chronic, crystallize, itch, recurrence_anchor, saturate, strand};
 
 // ============================================================================
