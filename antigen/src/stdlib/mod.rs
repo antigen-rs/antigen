@@ -11,9 +11,10 @@
 //! - [`supply_chain`] — the Supply-Chain Defense Family (ADR-025),
 //!   11 antigens covering the 2026+ dependency-boundary threat landscape.
 //!   Biology cognate: Distributed-Boundary Innate-Immunity.
-//! - [`vcs_info_loss`] — the VCS-Information-Loss Family (ADR-026),
-//!   11 antigens covering modern-git-workflow failure modes that erase
-//!   load-bearing history. Central cognate: Immune amnesia (measles).
+//! - [`vcs_info_loss`](crate::stdlib::vcs_info_loss) — the
+//!   VCS-Information-Loss Family (ADR-026), 11 antigens covering
+//!   modern-git-workflow failure modes that erase load-bearing history.
+//!   Central cognate: Immune amnesia (measles).
 //!
 //! ## How adopters use these
 //!
