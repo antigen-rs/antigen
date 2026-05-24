@@ -22,21 +22,30 @@
 // threshold. A threshold of 0 means "never fires" — the antigen is declared
 // but structurally can never trigger the itch-noticed-not-anchored hint.
 //
-// ATTACK: threshold = 0 should be rejected at parse time (or at least emit
-// a warning). An #[itch] with threshold=0 looks like declared discipline but
-// produces zero audit signal — exactly the silent-failure class adversarial
-// exists to catch.
+// ATTACK: threshold = 0 should be rejected at PROC-MACRO PARSE TIME (compile
+// error). It is a structural impossibility — the declaration claims to track
+// recurrence but can never accumulate a count that triggers action. This is
+// self-contained within the single attribute (no cross-reference needed), so
+// compile-time rejection is correct and has zero false-positive risk.
 //
-// Expected: parse-time error OR audit-time hint `itch-zero-threshold-is-never`
+// DESIGN DECISION (adversarial 2026-05-24): proc-macro compile error, NOT
+// audit-time hint. Audit-time is too late — green compile on broken discipline
+// is the silent-failure class this test exists to catch. Same class as
+// rejecting negative rollback_due_within_minutes: value makes declaration
+// structurally meaningless.
+//
+// Expected: proc-macro compile error with message indicating threshold=0
+// makes the itch unable to trigger.
 // ============================================================================
 
 #[test]
-#[ignore = "recurrent family not yet implemented — remove ignore when v02-impl-recurrent-emergence ships"]
-fn atk_recurrent_1_itch_threshold_zero_is_rejected_or_warned() {
+#[ignore = "recurrent family not yet implemented — remove ignore when v02-impl-recurrent-emergence ships; proc-macro must reject threshold=0 at compile time"]
+fn atk_recurrent_1_itch_threshold_zero_is_compile_error() {
     // #[itch(threshold = 0, description = "pattern noticed")]
-    // Should reject at parse time or emit itch-zero-threshold-is-never at audit.
-    // A zero threshold means the itch can never be noticed — no-op discipline.
-    todo!("implement when recurrent family ships; verify threshold=0 is not silently accepted");
+    // Must produce a proc-macro compile error — threshold=0 means the itch
+    // can never be noticed, making the declaration structurally meaningless.
+    // Use trybuild or compile_fail to assert the error fires at compile time.
+    todo!("implement when recurrent family ships; assert proc-macro rejects threshold=0 via trybuild compile_fail test");
 }
 
 // ============================================================================
@@ -98,8 +107,14 @@ fn atk_recurrent_3_crystallize_into_nonexistent_antigen_emits_hint() {
 // `chronic-signal-past-review-date`.
 //
 // ATTACK (two sub-cases):
-//   (a) review_date = "not-a-date" — if parsed as raw string, passes validate().
-//       Expected: parse-time error for unparseable date format.
+//   (a) review_date = "not-a-date" — unambiguous non-date string.
+//       Expected: audit emits `chronic-since-not-a-date` hint.
+//       NOTE: version-tag-shaped strings like "v0.2.0" are TOLERATED silently
+//       (informal use; no hint). Only unambiguous garbage triggers the hint.
+//       DESIGN DECISION (adversarial 2026-05-24): audit-time hint, NOT
+//       parse-time error. The scan layer is recall-tuned (ADR-010); the audit
+//       layer applies the two-path logic: ISO-8601 parseable → enforce;
+//       version-tag-shaped (v\d+\.\d+.*) → tolerate; everything else → hint.
 //   (b) review_date = "2020-01-01" — past date, valid format.
 //       Expected: audit emits `chronic-signal-past-review-date` (pre-authorized
 //       per aristotle F1 on v02-impl-recurrent-emergence campsite).
@@ -112,11 +127,14 @@ fn atk_recurrent_3_crystallize_into_nonexistent_antigen_emits_hint() {
 // ============================================================================
 
 #[test]
-#[ignore = "recurrent family not yet implemented — remove ignore when v02-impl-recurrent-emergence ships"]
-fn atk_recurrent_4a_chronic_review_date_non_date_string_is_rejected() {
+#[ignore = "recurrent family not yet implemented — remove ignore when audit hints ship; chronic-since-not-a-date hint required"]
+fn atk_recurrent_4a_chronic_review_date_non_date_string_emits_hint() {
     // #[chronic(signal = "memory leak in retry loop", review_date = "not-a-date")]
-    // Should produce a parse-time error: review_date must be parseable as YYYY-MM-DD.
-    todo!("implement when recurrent family ships; verify review_date format validation");
+    // Should emit chronic-since-not-a-date at audit time.
+    // "not-a-date" fails ISO-8601 parse AND does not match version-tag pattern
+    // (v\d+\.\d+.*), so it falls into the hint-emitting path.
+    // Separately verify: review_date = "v0.2.0" does NOT emit the hint (tolerated).
+    todo!("implement when recurrent audit hints ship; assert chronic-since-not-a-date fires for 'not-a-date', NOT for 'v0.2.0'");
 }
 
 #[test]
