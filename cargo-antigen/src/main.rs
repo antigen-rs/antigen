@@ -130,6 +130,15 @@ enum AntigenSubcommand {
     /// executes the detection decision tree) defer to v0.2.x post-ADR-026
     /// Amendment 4 ratification per the witness-layer-independence split.
     Vcs(VcsCli),
+    /// Map mucosal trust boundaries across the workspace (ADR-027 + Amd 1).
+    ///
+    /// Walks the scan report's mucosal declarations and runs the
+    /// `audit_mucosal` pipeline (incl. the Change-5 three-tier delegate
+    /// kind-matching diagnosis). `--undefended` lists boundaries with no
+    /// `#[mucosal]` / `#[mucosal_tolerant]` declaration; `--tolerant` lists
+    /// the active-tolerance boundaries for periodic reviewer audit;
+    /// `--kind <kind>` filters to one `MucosalKind`.
+    MucosalMap(MucosalMapArgs),
 }
 
 #[derive(Debug, Parser)]
@@ -1385,6 +1394,138 @@ fn run_vcs_attest_stub() -> ExitCode {
     ExitCode::from(2)
 }
 
+// ============================================================================
+// cargo antigen mucosal-map (Mucosal Boundary Family, ADR-027 + Amendment 1)
+// ============================================================================
+
+#[derive(Debug, Parser)]
+struct MucosalMapArgs {
+    /// Workspace root (default: current directory).
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+    /// Output format: human or json.
+    #[arg(long, default_value = "human")]
+    format: OutputFormat,
+    /// List only declarations whose audit surfaced a concern.
+    #[arg(long)]
+    undefended: bool,
+    /// List only `#[mucosal_tolerant]` (active-tolerance) declarations for
+    /// periodic reviewer audit.
+    #[arg(long)]
+    tolerant: bool,
+    /// Filter to a single `MucosalKind` (kebab-case, e.g. `user-input`).
+    #[arg(long)]
+    kind: Option<String>,
+}
+
+fn run_mucosal_map(args: MucosalMapArgs) -> ExitCode {
+    use antigen::mucosal::MucosalKind;
+    use antigen::scan::MucosalKindTag;
+
+    if !args.root.is_dir() {
+        eprintln!("error: expected a directory: {}", args.root.display());
+        return ExitCode::from(2);
+    }
+    let report = match scan::scan_workspace(&args.root, None) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: scan failed: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    let mucosal_audit = audit::audit_mucosal(&report);
+
+    // Optional kind filter (validated against the sealed set).
+    let kind_filter: Option<MucosalKind> = match args.kind.as_deref() {
+        None => None,
+        Some(k) => {
+            let Some(mk) = MucosalKind::parse_kind(k) else {
+                eprintln!(
+                    "error: unknown MucosalKind {k:?}; expected a kebab-case variant \
+                     (e.g. user-input, database-query, shell-argument)"
+                );
+                return ExitCode::from(2);
+            };
+            Some(mk)
+        }
+    };
+
+    let entries: Vec<&antigen::audit::MucosalAudit> = mucosal_audit
+        .audits
+        .iter()
+        .filter(|a| {
+            if args.tolerant && a.declaration.tag != MucosalKindTag::MucosalTolerant {
+                return false;
+            }
+            if args.undefended && a.hints.is_empty() {
+                return false;
+            }
+            if let Some(kf) = kind_filter {
+                // The scan stores the PascalCase final segment ("UserInput");
+                // parse it back to a MucosalKind and compare enum values so
+                // the --kind filter accepts any input form.
+                let decl_kind = a
+                    .declaration
+                    .boundary_kind
+                    .as_deref()
+                    .and_then(MucosalKind::parse_kind);
+                if decl_kind != Some(kf) {
+                    return false;
+                }
+            }
+            true
+        })
+        .collect();
+
+    match args.format {
+        OutputFormat::Json => {
+            let arr: Vec<_> = entries
+                .iter()
+                .map(|a| {
+                    serde_json::json!({
+                        "tag": a.declaration.tag,
+                        "boundary_kind": a.declaration.boundary_kind,
+                        "file": a.declaration.file,
+                        "line": a.declaration.line,
+                        "hints": a.hints,
+                    })
+                })
+                .collect();
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&arr).unwrap_or_else(|_| "[]".to_string())
+            );
+        }
+        OutputFormat::Human => {
+            if entries.is_empty() {
+                println!("cargo antigen mucosal-map: no matching mucosal declarations");
+            } else {
+                for a in &entries {
+                    let kind = a.declaration.boundary_kind.as_deref().unwrap_or("?");
+                    let mark = if a.hints.is_empty() { "ok " } else { "!! " };
+                    let file = a.declaration.file.display();
+                    println!(
+                        "{mark}{:<18} {kind:<20} {file}:{}",
+                        format!("{:?}", a.declaration.tag),
+                        a.declaration.line
+                    );
+                    for hint in &a.hints {
+                        println!("       - {hint:?}");
+                    }
+                }
+                println!();
+                println!(
+                    "{} declaration(s); {} clean, {} with concerns",
+                    entries.len(),
+                    entries.iter().filter(|a| a.hints.is_empty()).count(),
+                    entries.iter().filter(|a| !a.hints.is_empty()).count(),
+                );
+            }
+        }
+    }
+    ExitCode::SUCCESS
+}
+
 /// Parse `<crate>@<version>` into `(crate, version)`. Returns `None` on
 /// any of: no `@`, empty crate, empty version, multiple `@`s.
 fn parse_crate_at_version(s: &str) -> Option<(String, String)> {
@@ -1409,6 +1550,7 @@ fn main() -> ExitCode {
         AntigenSubcommand::Oracle(cli) => run_oracle(cli),
         AntigenSubcommand::Verify(cli) => run_verify(cli),
         AntigenSubcommand::Vcs(cli) => run_vcs(cli),
+        AntigenSubcommand::MucosalMap(args) => run_mucosal_map(args),
     }
 }
 
