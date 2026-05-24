@@ -43,11 +43,17 @@ use serde::{Deserialize, Serialize};
 /// Five-color triage classification for `#[triage_commit]` declarations
 /// (ADR-026).
 ///
-/// Modeled on the START field-triage protocol from disaster medicine —
-/// the rollback-as-triage discipline (ADR-026 §Decision) is clinical-medicine
-/// grounded: chart documentation + informed consent before procedure. The
-/// dual-axis grounding (immunology + clinical-medicine) is acknowledged
-/// explicitly per ADR-026 §Rollback-as-triage discipline.
+/// Color-tagged analogously to clinical field-triage protocols (e.g., START
+/// — Simple Triage And Rapid Treatment, US emergency-medicine standard
+/// since 1983). The 4-color clinical schema (Black/Red/Yellow/Green) maps
+/// cleanly; the 5th variant `White` is software-engineering-introduced to
+/// capture explicit-non-action chart entries on commit-time triage (no
+/// clinical analog). The rollback-as-triage discipline (ADR-026 §Decision)
+/// is clinical-medicine grounded at the OUTCOME tier: chart documentation
+/// + informed consent before procedure. The dual-axis grounding
+/// (clinical-medicine grounds outcome; software-engineering grounds
+/// process) is acknowledged explicitly per ADR-026 §Rollback-as-triage
+/// discipline + §Finding line 5650's NON-NEGOTIABLE naturalist refinement.
 ///
 /// The variant set is the v0.2 sealed-set; future findings can extend it via
 /// additive ADR amendment per ADR-001 Amendment 1 C6.

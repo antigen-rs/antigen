@@ -772,16 +772,48 @@ pub fn orient(args: TokenStream, input: TokenStream) -> TokenStream {
 /// `triage_commit` names a triage decision + a rollback action. The two are
 /// different speech acts in the deferred-defense family.
 ///
-/// # Biology grounding
+/// # Biology grounding — dual-axis honesty
 ///
-/// Dual-axis per ADR-026 + ADR-024 §Biology grounding — dual-axis honesty:
-/// the rollback-as-triage discipline is **clinical-medicine** grounded
-/// (chart documentation + informed consent before procedure), NOT immunology
-/// proper. Immune biology has no analog to "log rationale before acting."
-/// The clinical-medicine axis was named explicitly during ADR-026
-/// ratification (naturalist NON-NEGOTIABLE). The five-color triage
-/// classification (Black/Red/Yellow/Green/White) maps to disaster medicine's
-/// START field-triage protocol.
+/// The `#[triage_commit]` primitive carries DUAL-AXIS grounding per ADR-026
+/// §Finding (NON-NEGOTIABLE per naturalist); neither axis is decorative.
+///
+/// **Clinical-medicine axis grounds the OUTCOME**: triage as a discipline
+/// comes from clinical emergency-response medicine — the practice of
+/// classifying patients by acuity before deciding treatment order. The
+/// 5-color taxonomy (Black/Red/Yellow/Green/White) rhymes with clinical
+/// field-triage protocols (e.g., START — Simple Triage And Rapid
+/// Treatment), but `#[triage_commit]` is not a clinical-medicine
+/// implementation: the rollback-as-treatment use-case extends the
+/// protocol's shape with software-specific cases (`White` for non-incident
+/// triages, no clinical analog). Clinical-medicine grounds the
+/// COMMIT-DECISION-BEFORE-ACTION discipline: informed consent + chart
+/// documentation precede the procedure; structurally isomorphic to
+/// triage-commit-before-rollback.
+///
+/// **Software-engineering axis grounds the PROCESS**:
+/// rollback-as-mandated-by-triage-tag is software-engineering invention.
+/// Immune biology has NO analog to "log rationale before acting" (per
+/// ADR-026 §Finding). The `triaged_by` + `rationale` +
+/// `rollback_due_within_minutes` fields operate at the
+/// software-engineering tier; their structural enforcement (parse-time
+/// validation, audit-time substrate-witness via git-trailer per ADR-019)
+/// is software-engineering machinery composed under the clinical-medicine
+/// outcome framing.
+///
+/// **What biology DOES ground (Class 1, outcome-level)**: the
+/// `ForcePushErasingHistory` ↔ Immune Amnesia (measles) cognate (ADR-026
+/// §Finding) is the central immune-biology grounding for the broader
+/// VCS-info-loss family — catastrophic loss of memory-carrying substrates
+/// with documented harm. `#[triage_commit]` is the prescribed defense at
+/// the rollback boundary: biology predicts that memory-loss requires
+/// structural defense; clinical-medicine prescribes the form
+/// (triage-decision documented before action).
+///
+/// This is the same dual-axis honesty ADR-024 ratified for the
+/// temporal-arc families — antigen draws from MULTIPLE grounding
+/// disciplines, naming which axis grounds which property. Overclaim "this
+/// is immune biology" would be dishonest; underclaim "this is decorative"
+/// would lose the predictive power. Dual-axis is the right shape.
 ///
 /// # Arguments
 ///
