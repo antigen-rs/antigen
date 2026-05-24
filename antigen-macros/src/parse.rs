@@ -2789,6 +2789,470 @@ impl StrandArgs {
 }
 
 // ============================================================================
+// MacroMucosalKind — local mirror of antigen::MucosalKind (ADR-027 + Amd 1)
+//
+// proc-macro crates cannot depend on the `antigen` library crate (circular
+// dependency); local parse-time mirror — same pattern as MacroAntigenCategory
+// (ADR-028) and MacroTriageDecision (ADR-026). Sealed 13-variant set; extending
+// requires an ADR amendment per ADR-001 Amendment 1 C6.
+// ============================================================================
+
+/// Parse-time mucosal-kind variant (mirrors `antigen::mucosal::MucosalKind`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MacroMucosalKind {
+    ApiRequest,
+    ApiResponse,
+    McpInvocation,
+    ExternalLink,
+    Iframe,
+    DatabaseQuery,
+    CrossService,
+    SubprocessLaunch,
+    DependencyImport,
+    UserInput,
+    FilesystemPath,
+    EnvironmentVariable,
+    ShellArgument,
+}
+
+impl MacroMucosalKind {
+    /// Parse from path-style expression strings and common aliases. Strips
+    /// an optional `MucosalKind::` prefix.
+    fn from_path_str(s: &str) -> Option<Self> {
+        let bare = s.strip_prefix("MucosalKind::").unwrap_or(s);
+        match bare {
+            "ApiRequest" | "api-request" | "api_request" => Some(Self::ApiRequest),
+            "ApiResponse" | "api-response" | "api_response" => Some(Self::ApiResponse),
+            "McpInvocation" | "mcp-invocation" | "mcp_invocation" => Some(Self::McpInvocation),
+            "ExternalLink" | "external-link" | "external_link" => Some(Self::ExternalLink),
+            "Iframe" | "iframe" => Some(Self::Iframe),
+            "DatabaseQuery" | "database-query" | "database_query" => Some(Self::DatabaseQuery),
+            "CrossService" | "cross-service" | "cross_service" => Some(Self::CrossService),
+            "SubprocessLaunch" | "subprocess-launch" | "subprocess_launch" => {
+                Some(Self::SubprocessLaunch)
+            }
+            "DependencyImport" | "dependency-import" | "dependency_import" => {
+                Some(Self::DependencyImport)
+            }
+            "UserInput" | "user-input" | "user_input" => Some(Self::UserInput),
+            "FilesystemPath" | "filesystem-path" | "filesystem_path" => Some(Self::FilesystemPath),
+            "EnvironmentVariable" | "environment-variable" | "environment_variable" => {
+                Some(Self::EnvironmentVariable)
+            }
+            "ShellArgument" | "shell-argument" | "shell_argument" => Some(Self::ShellArgument),
+            _ => None,
+        }
+    }
+}
+
+/// Shared helper: parse a `kind = MucosalKind::X` value (path expr, not
+/// string literal) into a `MacroMucosalKind`. Used by all three mucosal
+/// parsers per ADR-027 Amendment 1 path-expression discipline.
+fn parse_mucosal_kind_expr(expr: &Expr) -> syn::Result<MacroMucosalKind> {
+    let s = match expr {
+        Expr::Path(p) => p
+            .path
+            .segments
+            .iter()
+            .map(|seg| seg.ident.to_string())
+            .collect::<Vec<_>>()
+            .join("::"),
+        _ => {
+            return Err(syn::Error::new_spanned(
+                expr,
+                "expected a `MucosalKind::X` path expression (e.g., \
+                 `MucosalKind::UserInput`), not a string literal",
+            ));
+        }
+    };
+    MacroMucosalKind::from_path_str(&s).ok_or_else(|| {
+        syn::Error::new_spanned(
+            expr,
+            format!(
+                "unknown MucosalKind `{s}`; expected one of the 13 sealed-set \
+                 variants (ApiRequest, ApiResponse, McpInvocation, ExternalLink, \
+                 Iframe, DatabaseQuery, CrossService, SubprocessLaunch, \
+                 DependencyImport, UserInput, FilesystemPath, EnvironmentVariable, \
+                 ShellArgument). Note: PrBoundary + Import were removed in ADR-027 \
+                 Amendment 1."
+            ),
+        )
+    })
+}
+
+// ============================================================================
+// Mucosal Boundary Family argument parsers (ADR-027 + Amendment 1)
+//
+// Three primitives: #[mucosal], #[mucosal_delegate], #[mucosal_tolerant].
+// All declare antigen-category = SubstrateAlignment per ADR-028.
+// ============================================================================
+
+/// Arguments to `#[mucosal(kind, rationale)]`.
+///
+/// Declares a trust boundary is actively defended at this site. Per ADR-027
+/// the biology grounds the tier-claim (mucosal surfaces are a distinct
+/// immune tier) + the prevention-at-boundary discipline (secretory-IgA-style
+/// exclusion).
+#[derive(Debug)]
+pub struct MucosalArgs {
+    pub kind: Option<MacroMucosalKind>,
+    #[allow(dead_code)]
+    pub kind_span: Option<Span>,
+    pub rationale: Option<String>,
+    pub rationale_span: Option<Span>,
+    pub args_span: Span,
+}
+
+impl Parse for MucosalArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut kind: Option<MacroMucosalKind> = None;
+        let mut kind_span: Option<Span> = None;
+        let mut rationale: Option<String> = None;
+        let mut rationale_span: Option<Span> = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "kind" => {
+                    let expr: Expr = input.parse()?;
+                    kind_span = Some(input.span());
+                    kind = Some(parse_mucosal_kind_expr(&expr)?);
+                }
+                "rationale" => {
+                    let lit: LitStr = input.parse()?;
+                    rationale_span = Some(lit.span());
+                    rationale = Some(lit.value());
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown #[mucosal] field `{other}`; expected one of: \
+                             kind, rationale"
+                        ),
+                    ));
+                }
+            }
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            kind,
+            kind_span,
+            rationale,
+            rationale_span,
+            args_span,
+        })
+    }
+}
+
+impl MucosalArgs {
+    /// Per ADR-027: kind + rationale REQUIRED; rationale ≥20 chars.
+    pub fn validate(&self) -> syn::Result<()> {
+        if self.kind.is_none() {
+            return Err(syn::Error::new(
+                self.args_span,
+                "#[mucosal] requires `kind = MucosalKind::X` (the boundary type \
+                 being defended).",
+            ));
+        }
+        match self.rationale.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[mucosal] requires `rationale = \"...\"` (≥20 characters; \
+                     why this boundary is defended).",
+                ));
+            }
+            Some(s) if s.len() < 20 => {
+                return Err(syn::Error::new(
+                    self.rationale_span.unwrap_or(self.args_span),
+                    format!(
+                        "#[mucosal] `rationale` must be at least 20 characters \
+                         (got {}); per ADR-027 boundary-defense discipline.",
+                        s.len()
+                    ),
+                ));
+            }
+            Some(_) => {}
+        }
+        Ok(())
+    }
+}
+
+/// Arguments to `#[mucosal_delegate(boundary, handled_by, rationale)]`.
+///
+/// Declares the boundary discipline is delegated to a named handler. Per
+/// ADR-027 Amendment 1 Change 4, `handled_by` is a `syn::Path` (not a
+/// string), so typos are caught at parse-time and resolution follows
+/// standard Rust visibility rules at audit-time. Per Change 5, the handler
+/// must carry a `#[mucosal(kind = X)]` where X matches `boundary`.
+#[derive(Debug)]
+pub struct MucosalDelegateArgs {
+    pub boundary: Option<MacroMucosalKind>,
+    #[allow(dead_code)]
+    pub boundary_span: Option<Span>,
+    #[allow(dead_code)]
+    pub handled_by: Option<syn::Path>,
+    pub rationale: Option<String>,
+    pub rationale_span: Option<Span>,
+    pub args_span: Span,
+}
+
+impl Parse for MucosalDelegateArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut boundary: Option<MacroMucosalKind> = None;
+        let mut boundary_span: Option<Span> = None;
+        let mut handled_by: Option<syn::Path> = None;
+        let mut rationale: Option<String> = None;
+        let mut rationale_span: Option<Span> = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "boundary" => {
+                    let expr: Expr = input.parse()?;
+                    boundary_span = Some(input.span());
+                    boundary = Some(parse_mucosal_kind_expr(&expr)?);
+                }
+                "handled_by" => {
+                    // ADR-027 Amendment 1 Change 4: handled_by is a path
+                    // expression, not a string literal.
+                    handled_by = Some(input.parse()?);
+                }
+                "rationale" => {
+                    let lit: LitStr = input.parse()?;
+                    rationale_span = Some(lit.span());
+                    rationale = Some(lit.value());
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown #[mucosal_delegate] field `{other}`; expected \
+                             one of: boundary, handled_by, rationale"
+                        ),
+                    ));
+                }
+            }
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            boundary,
+            boundary_span,
+            handled_by,
+            rationale,
+            rationale_span,
+            args_span,
+        })
+    }
+}
+
+impl MucosalDelegateArgs {
+    /// Per ADR-027 Amendment 1: boundary + `handled_by` + rationale REQUIRED;
+    /// rationale ≥20 chars. Kind-matching against the handler's `#[mucosal]`
+    /// is an audit-time check (Change 5), not parse-time.
+    pub fn validate(&self) -> syn::Result<()> {
+        if self.boundary.is_none() {
+            return Err(syn::Error::new(
+                self.args_span,
+                "#[mucosal_delegate] requires `boundary = MucosalKind::X` (the \
+                 boundary kind being delegated).",
+            ));
+        }
+        if self.handled_by.is_none() {
+            return Err(syn::Error::new(
+                self.args_span,
+                "#[mucosal_delegate] requires `handled_by = <path>` (the handler \
+                 function that carries the matching `#[mucosal(kind = X)]`). Per \
+                 ADR-027 Amendment 1 this is a path expression, not a string.",
+            ));
+        }
+        match self.rationale.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[mucosal_delegate] requires `rationale = \"...\"` (≥20 chars).",
+                ));
+            }
+            Some(s) if s.len() < 20 => {
+                return Err(syn::Error::new(
+                    self.rationale_span.unwrap_or(self.args_span),
+                    format!(
+                        "#[mucosal_delegate] `rationale` must be at least 20 \
+                         characters (got {}).",
+                        s.len()
+                    ),
+                ));
+            }
+            Some(_) => {}
+        }
+        Ok(())
+    }
+}
+
+/// Arguments to `#[mucosal_tolerant(kind, rationale, accepts, reviewed_by?,
+/// until?)]`.
+///
+/// Declares a boundary is INTENTIONALLY permitted — active tolerance, not
+/// absence of defense (ADR-027 Amendment 1 Change 6). The biology cognate is
+/// Treg-mediated active tolerance (oral tolerance, fetal-maternal interface).
+/// Parallel to ADR-016 `#[antigen_tolerance]` but at the boundary tier. The
+/// rationale floor is ≥40 chars (higher than `#[mucosal]`'s ≥20) — tolerance
+/// is the riskier declaration, so the loudness threshold is raised.
+#[derive(Debug)]
+pub struct MucosalTolerantArgs {
+    pub kind: Option<MacroMucosalKind>,
+    #[allow(dead_code)]
+    pub kind_span: Option<Span>,
+    pub rationale: Option<String>,
+    pub rationale_span: Option<Span>,
+    pub accepts: Option<String>,
+    pub accepts_span: Option<Span>,
+    #[allow(dead_code)]
+    pub reviewed_by: Option<String>,
+    #[allow(dead_code)]
+    pub until: Option<String>,
+    pub args_span: Span,
+}
+
+impl Parse for MucosalTolerantArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut kind: Option<MacroMucosalKind> = None;
+        let mut kind_span: Option<Span> = None;
+        let mut rationale: Option<String> = None;
+        let mut rationale_span: Option<Span> = None;
+        let mut accepts: Option<String> = None;
+        let mut accepts_span: Option<Span> = None;
+        let mut reviewed_by: Option<String> = None;
+        let mut until: Option<String> = None;
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "kind" => {
+                    let expr: Expr = input.parse()?;
+                    kind_span = Some(input.span());
+                    kind = Some(parse_mucosal_kind_expr(&expr)?);
+                }
+                "rationale" => {
+                    let lit: LitStr = input.parse()?;
+                    rationale_span = Some(lit.span());
+                    rationale = Some(lit.value());
+                }
+                "accepts" => {
+                    let lit: LitStr = input.parse()?;
+                    accepts_span = Some(lit.span());
+                    accepts = Some(lit.value());
+                }
+                "reviewed_by" => {
+                    let lit: LitStr = input.parse()?;
+                    reviewed_by = Some(lit.value());
+                }
+                "until" => {
+                    let lit: LitStr = input.parse()?;
+                    until = Some(lit.value());
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown #[mucosal_tolerant] field `{other}`; expected \
+                             one of: kind, rationale, accepts, reviewed_by, until. \
+                             (For failure-class-tier tolerance see \
+                             `#[antigen_tolerance]`; this is the BOUNDARY-tier \
+                             tolerance primitive.)"
+                        ),
+                    ));
+                }
+            }
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Self {
+            kind,
+            kind_span,
+            rationale,
+            rationale_span,
+            accepts,
+            accepts_span,
+            reviewed_by,
+            until,
+            args_span,
+        })
+    }
+}
+
+impl MucosalTolerantArgs {
+    /// Per ADR-027 Amendment 1 Change 6: kind + rationale (≥40) + accepts
+    /// (non-empty) REQUIRED; `reviewed_by` + until optional v0.2.
+    pub fn validate(&self) -> syn::Result<()> {
+        if self.kind.is_none() {
+            return Err(syn::Error::new(
+                self.args_span,
+                "#[mucosal_tolerant] requires `kind = MucosalKind::X`. (For \
+                 failure-class-tier tolerance see `#[antigen_tolerance]`; this \
+                 is the BOUNDARY-tier tolerance primitive.)",
+            ));
+        }
+        match self.rationale.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[mucosal_tolerant] requires `rationale = \"...\"` (≥40 \
+                     characters — tolerance is riskier than defense, so the \
+                     loudness floor is raised above #[mucosal]'s ≥20).",
+                ));
+            }
+            Some(s) if s.len() < 40 => {
+                return Err(syn::Error::new(
+                    self.rationale_span.unwrap_or(self.args_span),
+                    format!(
+                        "#[mucosal_tolerant] `rationale` must be at least 40 \
+                         characters (got {}); per ADR-027 Amendment 1 the \
+                         tolerance floor is risk-proportionately higher than \
+                         #[mucosal]'s ≥20.",
+                        s.len()
+                    ),
+                ));
+            }
+            Some(_) => {}
+        }
+        match self.accepts.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[mucosal_tolerant] requires `accepts = \"...\"` (non-empty; \
+                     description of what the boundary accepts as legitimate input).",
+                ));
+            }
+            Some(s) if s.trim().is_empty() => {
+                return Err(syn::Error::new(
+                    self.accepts_span.unwrap_or(self.args_span),
+                    "#[mucosal_tolerant] `accepts` cannot be empty. Audit emits \
+                     mucosal-tolerant-accepts-empty.",
+                ));
+            }
+            Some(_) => {}
+        }
+        Ok(())
+    }
+}
+
+// ============================================================================
 // Date helpers for ADR-023 parse-time enforcement
 // ============================================================================
 
@@ -3966,6 +4430,155 @@ mod tests {
             .unwrap();
         let args = syn::parse2::<StrandArgs>(tokens).unwrap();
         assert!(args.validate().is_err());
+    }
+
+    // -------------------------------------------------------------------------
+    // Mucosal Boundary Family tests (ADR-027 + Amendment 1)
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn mucosal_parser_accepts_canonical() {
+        let tokens: TokenStream =
+            r#"kind = MucosalKind::UserInput, rationale = "public comment form; XSS sanitized at render""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<MucosalArgs>(tokens).unwrap();
+        assert_eq!(args.kind, Some(MacroMucosalKind::UserInput));
+        args.validate().unwrap();
+    }
+
+    #[test]
+    fn mucosal_parser_accepts_bare_variant() {
+        let tokens: TokenStream =
+            r#"kind = DatabaseQuery, rationale = "parameterized queries only at this layer""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<MucosalArgs>(tokens).unwrap();
+        assert_eq!(args.kind, Some(MacroMucosalKind::DatabaseQuery));
+        args.validate().unwrap();
+    }
+
+    #[test]
+    fn mucosal_validate_rejects_missing_kind() {
+        let tokens: TokenStream = r#"rationale = "twenty character rationale here padding""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<MucosalArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn mucosal_validate_rejects_short_rationale() {
+        let tokens: TokenStream = r#"kind = MucosalKind::UserInput, rationale = "short""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<MucosalArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn mucosal_parser_rejects_removed_pr_boundary_variant() {
+        // PrBoundary was removed in ADR-027 Amendment 1.
+        let tokens: TokenStream =
+            r#"kind = MucosalKind::PrBoundary, rationale = "twenty character rationale text""#
+                .parse()
+                .unwrap();
+        assert!(syn::parse2::<MucosalArgs>(tokens).is_err());
+    }
+
+    #[test]
+    fn mucosal_parser_rejects_string_literal_kind() {
+        let tokens: TokenStream =
+            r#"kind = "user-input", rationale = "twenty character rationale text""#
+                .parse()
+                .unwrap();
+        assert!(syn::parse2::<MucosalArgs>(tokens).is_err());
+    }
+
+    #[test]
+    fn mucosal_delegate_parser_accepts_canonical() {
+        let tokens: TokenStream = r#"boundary = MucosalKind::UserInput, handled_by = crate::sanitize::user_input, rationale = "delegated to central sanitizer module""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<MucosalDelegateArgs>(tokens).unwrap();
+        assert_eq!(args.boundary, Some(MacroMucosalKind::UserInput));
+        assert!(args.handled_by.is_some());
+        args.validate().unwrap();
+    }
+
+    #[test]
+    fn mucosal_delegate_validate_rejects_missing_handled_by() {
+        let tokens: TokenStream =
+            r#"boundary = MucosalKind::UserInput, rationale = "twenty character rationale text""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<MucosalDelegateArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn mucosal_delegate_rejects_string_handled_by() {
+        // handled_by is a path expression, not a string (Amendment 1 Change 4).
+        // A string literal where a syn::Path is expected fails to parse.
+        let tokens: TokenStream = r#"boundary = MucosalKind::UserInput, handled_by = "sanitize_fn", rationale = "twenty character rationale text""#
+            .parse()
+            .unwrap();
+        assert!(
+            syn::parse2::<MucosalDelegateArgs>(tokens).is_err(),
+            "string-literal handled_by must be rejected (path expression required)"
+        );
+    }
+
+    #[test]
+    fn mucosal_tolerant_parser_accepts_canonical() {
+        let tokens: TokenStream = r#"kind = MucosalKind::UserInput, rationale = "public firehose intake endpoint accepts anonymous submissions by design", accepts = "anonymous JSON payloads up to 64KB""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<MucosalTolerantArgs>(tokens).unwrap();
+        assert_eq!(args.kind, Some(MacroMucosalKind::UserInput));
+        args.validate().unwrap();
+    }
+
+    #[test]
+    fn mucosal_tolerant_validate_rejects_rationale_under_40() {
+        // Tolerance floor is ≥40 (vs #[mucosal]'s ≥20).
+        let tokens: TokenStream = r#"kind = MucosalKind::UserInput, rationale = "twenty-five char rationale", accepts = "anything""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<MucosalTolerantArgs>(tokens).unwrap();
+        assert!(
+            args.validate().is_err(),
+            "25-char rationale must fail the ≥40 tolerance floor"
+        );
+    }
+
+    #[test]
+    fn mucosal_tolerant_validate_rejects_empty_accepts() {
+        let tokens: TokenStream = r#"kind = MucosalKind::UserInput, rationale = "this rationale is definitely longer than forty characters", accepts = "   ""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<MucosalTolerantArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn mucosal_tolerant_validate_rejects_missing_accepts() {
+        let tokens: TokenStream = r#"kind = MucosalKind::UserInput, rationale = "this rationale is definitely longer than forty characters""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<MucosalTolerantArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn mucosal_tolerant_accepts_optional_reviewed_by_and_until() {
+        let tokens: TokenStream = r#"kind = MucosalKind::ApiRequest, rationale = "internal admin endpoint behind VPN; trusted-network assumption documented", accepts = "admin-panel form posts", reviewed_by = "security-team", until = "2026-12-31""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<MucosalTolerantArgs>(tokens).unwrap();
+        assert_eq!(args.reviewed_by.as_deref(), Some("security-team"));
+        assert_eq!(args.until.as_deref(), Some("2026-12-31"));
+        args.validate().unwrap();
     }
 }
 
