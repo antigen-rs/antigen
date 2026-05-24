@@ -247,8 +247,9 @@ pub struct AuditHintWithNoUpstreamPreconditionCheck;
 /// diverge silently, the spec becomes aspirational documentation rather than
 /// a binding contract.
 ///
-/// **Two substrate-grounded instances from the v0.2 completion arc
-/// (2026-05-24)**:
+/// **Four substrate-grounded instances from the v0.2 completion arc
+/// (2026-05-24)** — each caught by substrate-grep-before-implementing, none by
+/// a test:
 ///
 /// 1. *orient drift (aristotle F4)*: ADR-023 §Decision specified
 ///    `#[orient(antigen, learning_path, until)]` with parse-time horizon
@@ -256,13 +257,30 @@ pub struct AuditHintWithNoUpstreamPreconditionCheck;
 ///    `#[orient(antigen, see, adr, attestation_optional)]` — two of three
 ///    enforcement mechanisms unrealized at the landing commit. Spec-vs-code.
 ///
-/// 2. *G2 spec-drift*: ADR-028 Amendment 2 clarified that the
+/// 2. *G2 fingerprint spec-drift*: ADR-028 Amendment 2 clarified that the
 ///    substrate-witness-leaf requirement does NOT apply to the fingerprint
 ///    predicate tree (Interpretation 2). A downstream campsite spec (written
 ///    citing aristotle's F2 before Amendment 2 corrected the layer) said "walk
 ///    the fingerprint predicate tree at parse-time" — directly contradicting
-///    the amended ADR. Pathmaker caught it at impl-time via substrate-grep.
-///    Spec-vs-spec (amendment vs downstream-spec).
+///    the amended ADR. Caught at impl-time via substrate-grep. Spec-vs-spec
+///    (amendment vs downstream-spec).
+///
+/// 3. *G3 §Enforcement-Surface-table drift*: ADR-028's §Enforcement-Surface
+///    table row 1 said "category missing → parse-time HARD ERROR," but the
+///    later G1 ratification softened that to scan-time-only-for-v0.2. The table
+///    was never re-synced, so the G3 spec inherited a hint vocabulary that
+///    contradicted the ratified G1/G2 decisions. Caught at impl-time;
+///    re-synced in ADR-028 Amendment 4. Spec-vs-spec (table vs later
+///    amendment).
+///
+/// 4. *agent-identity collision*: during this expedition, a coordination-layer
+///    instance — an agent's post-compaction self-model diverged from its
+///    registered team identity (the substrate `team-config.json`), producing a
+///    duplicated implementation of one failure-class across two modules. The
+///    representation (who-the-agent-thinks-it-is) diverged from the actual
+///    state (the roster). Caught by substrate-check (team-config + a verbatim
+///    message-loop). This is the failure-class one layer out — drift between a
+///    self-model and the substrate that defines it.
 ///
 /// **The generalization**: spec-vs-realization drift occurs at multiple
 /// spec-layers (ADR vs code, amendment vs downstream-spec, process-doc vs
@@ -293,7 +311,7 @@ pub struct AuditHintWithNoUpstreamPreconditionCheck;
     fingerprint = r#"doc_contains("ADR-")"#,
     family = "dogfood",
     summary = "A ratified ADR or spec expresses one contract; the implementation ships a narrower or different contract with no structural check catching the divergence at landing time.",
-    references = ["ADR-023", "ADR-028", "ADR-028#Amendment-2"]
+    references = ["ADR-023", "ADR-028", "ADR-028#Amendment-2", "ADR-028#Amendment-4"]
 )]
 pub struct RatifiedSpecDriftFromImpl;
 
