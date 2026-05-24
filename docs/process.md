@@ -458,6 +458,101 @@ The propagation is visible in the cross-reference graph. The substrate accumulat
 
 ---
 
+## Substrate-resident review cycle
+
+When a reviewer surfaces R-findings on a draft or implementation, the following
+discipline applies to every reviewer-author pair with substrate-write access. The
+pattern is positional (who-reviews / who-authors-the-fix), not identity-bound —
+it holds for aristotle-scientist, adversarial-pathmaker, naturalist-pathmaker, or
+any other pair.
+
+**The cycle:**
+
+1. **Reviewer deposits R-findings** on the campsite as named findings (R-1, R-2, …).
+   Each finding names the concern clearly; ambiguity at deposit-time computes forward
+   into ambiguity at disposition-time.
+
+2. **Author ships** the substantive fix immediately (atomic commit addressing the
+   load-bearing concern). Procedural / content / scope concerns may arrive in
+   follow-on atomic commits or be documented on the campsite as explicit
+   chosen-alternative paths.
+
+3. **Reviewer verifies each R-finding is still live** before applying the
+   disposition trichotomy:
+   - If the R-finding's **premise has dissolved** (substrate moved, or reviewer
+     misread the state): the reviewer RETRACTS via a campsite note naming
+     `R-N: RETRACTED — premise dissolved because [reason]`. Retraction is a
+     substrate artifact (not silent omission). No disposition needed.
+   - If the R-finding is **still live**: apply the disposition trichotomy.
+
+4. **Reviewer attests disposition per live R-finding** (via campsite note — see
+   NOTE on attestation vs signature below):
+
+   **(a) FULLY ADDRESSED** — clean attestation. The shipped fix matches the
+   R-finding's intended direction.
+
+   **(b) DIVERGED-BUT-ACCEPTABLE** — attest WITH BOTH:
+   - (i) WHAT diverged (the shipped fix's departure from the R-finding's intended
+     direction)
+   - (ii) WHY the divergence is acceptable (the reviewer's named accept-reasoning)
+
+   Absence of (ii) makes the attestation indistinguishable from
+   reviewer-missed-divergence on the substrate trail — both produce the same
+   artifact (attestation + named divergence). Component (ii) carries the semantic
+   content that distinguishes saw-and-accepted from missed-it-but-mentioned-it.
+   A (b) attestation without (ii) is **forbidden**; it degrades to the
+   silent-false-green failure mode at one remove.
+
+   **(c) DIVERGED-UNACCEPTABLE** — decline attestation. Re-open the R-finding
+   naming exactly what's still unaddressed.
+
+5. **SILENCE IS NOT A CO-SIGN.** Attestation-by-omission is forbidden. Every
+   live R-finding at co-sign time carries an explicit disposition — (a), (b), or
+   (c). Silently skipping a live R-finding leaves substrate-pollution: a future
+   reader sees an open finding that was never resolved.
+
+**Granularity**: per-R-finding. A review covering N live R-findings carries N
+dispositions. Partial addressing is NOT a fourth case — it resolves to per-R-finding
+(b) or (c). The trichotomy is exhaustive at R-finding granularity.
+
+**NOTE — attestation vs campsite signature**: the reviewer's R-finding attestation
+(steps 3–5 above) lives in a campsite NOTE, not necessarily in a campsite SIGNATURE.
+The reviewer-attestation role (did this R-finding get addressed?) and the
+campsite-signer role (is this campsite complete?) often belong to the same person,
+but they are SEPARATE acts with separate required-signers discipline. A reviewer not
+on the required-signers list can still fully attest their R-findings via campsite
+notes — they just cannot contribute to the campsite-completion signature count.
+
+**NOTE — self-review**: the sub-clause permits self-review structurally (nothing
+requires reviewer ≠ author). However, self-review of **substantive-direction**
+R-findings is valid only when the R-finding is low-ambiguity (e.g., a typo fix,
+a renamed variable). For direction-level findings, self-review makes the
+(b) DIVERGED-BUT-ACCEPTABLE path dangerous: the "why acceptable" reasoning becomes
+circular ("I accept it because I wrote it"). Substantive-direction R-findings require
+independent reviewers.
+
+**Decoupling**: the cycle decouples substantive-fix-velocity from
+procedural-refinement. The author ships the fix immediately — no serial
+wait-for-reviewer-acknowledgment. The reviewer attests asynchronously. The protocol
+prevents silent-false-green at two removes:
+
+- **F10**: a co-sign attesting symptom-removal rather than structural-fix (the
+  "reviewer-missed-divergence" failure mode)
+- **F10-R**: a divergence that's named but without accept-reasoning (indistinguishable
+  from missed-it-but-mentioned-it on the substrate trail)
+- **Retraction gap**: a moot R-finding forced into (a) FULLY-ADDRESSED claiming
+  credit for a fix that never happened
+
+**Empirical basis**: ratified from six clean cycles in the v02-completion-arc
+expedition (aristotle-scientist, aristotle-naturalist, aristotle-pathmaker,
+naturalist-pathmaker) + the ADR-026 Amendment 3 disposition-(b) instance (network-
+witness-tier concern: surface text addressed; mechanism deferred to v0.2.1; accept-
+reasoning named explicitly). The retraction path and reviewer-attestation-vs-signature
+distinction were surface by adversarial's generalization + trichotomy-exhaustiveness
+attack on the original sub-clause.
+
+---
+
 ## Drift detection
 
 Process drift happens. The discipline catches it:
