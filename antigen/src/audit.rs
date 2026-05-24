@@ -29,6 +29,7 @@
 
 use std::path::{Path, PathBuf};
 
+use antigen_macros::presents;
 use serde::{Deserialize, Serialize};
 
 use crate::scan::{Immunity, ScanReport};
@@ -2384,6 +2385,14 @@ const MUCOSAL_TOLERANT_RATIONALE_FLOOR: usize = 40;
 /// Implements the Change-5 three-tier delegate diagnosis via set-membership
 /// kind-matching against the handler functions' `#[mucosal]` declarations.
 #[must_use]
+/// Audit mucosal boundary declarations in the scan report.
+///
+/// **Residual risk**: `handler_kinds` is built from intra-crate `#[mucosal]`
+/// declarations only. Cross-crate handlers are not in the index; delegates
+/// pointing at them will false-positive as `MucosalDisciplineDelegateTargetMissing`.
+/// See [`crate::stdlib::agentic_coordination::DelegateCrossCrateResolutionGap`].
+/// Structural fix is v0.3+ scope (multi-crate scan pass).
+#[presents(DelegateCrossCrateResolutionGap)]
 pub fn audit_mucosal(report: &ScanReport) -> MucosalAuditReport {
     use crate::scan::{ItemTarget, MucosalKindTag};
 
