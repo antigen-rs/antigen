@@ -74,50 +74,7 @@ use crate::antigen;
 pub struct AgentWakeWithoutSubstrateDeltaInjection;
 
 // ============================================================================
-// 2. AuditHintWithNoUpstreamPreconditionCheck
-// ============================================================================
-
-/// An audit arm checks one direction of a temporal progression (downstream
-/// consequence) but not the upstream precondition, silently passing sites
-/// where the precondition was bypassed.
-///
-/// **The lived failure pattern (from ATK-RECURRENT-2)**:
-/// The `RecurrenceAnchor` audit arm checked that the anchor's antigen type
-/// was in the `acted_on` set (downstream: was it addressed?) but did NOT
-/// check that any `#[itch]` declarations existed for the same pattern
-/// (upstream: was the pattern ever noticed?). An engineer could declare
-/// `#[recurrence_anchor]` without ever having declared `#[itch]` — bypassing
-/// the `itch → anchor → crystallize` temporal progression entirely. The audit
-/// passed green. No error. No hint. The bypass was invisible.
-///
-/// **Why it matters**: antigen's temporal family primitives
-/// (`#[itch]`/`#[recurrence_anchor]`/`#[crystallize]`, `#[triage_commit]`/
-/// rollback, mucosal delegate chains) all model TEMPORAL PROGRESSIONS with
-/// precondition → action → consequence structure. An audit arm that only
-/// checks "was the consequence present?" without "was the precondition met?"
-/// silently accepts bypass. The audit passes; the discipline is fiction.
-///
-/// **Category**: `FunctionalCorrectness` — the audit function produces wrong
-/// output (green where it should be yellow) when the precondition direction
-/// is unimplemented.
-///
-/// **Defense**: for every audit arm over a temporal primitive, enumerate
-/// BOTH the precondition check (upstream) AND the consequence check
-/// (downstream). Missing one is a structural gap, not a partial impl.
-/// Pattern: add both positive-case + clearing-case to the adversarial
-/// fixture (ATK-2 fix at dd51d4b is the canonical example).
-#[antigen(
-    name = "audit-hint-with-no-upstream-precondition-check",
-    category = AntigenCategory::FunctionalCorrectness,
-    fingerprint = r#"doc_contains("temporal")"#,
-    family = "agentic-coordination",
-    summary = "Audit arm checks downstream consequence of a temporal progression but not the upstream precondition; sites that bypass the progression pass green. Pattern: RecurrenceAnchor arm (fixed dd51d4b).",
-    references = ["ADR-024", "ADR-005"]
-)]
-pub struct AuditHintWithNoUpstreamPreconditionCheck;
-
-// ============================================================================
-// 3. DelegateCrossCrateResolutionGap
+// 2. DelegateCrossCrateResolutionGap
 // ============================================================================
 
 /// A delegate-target resolution mechanism resolves handler references using
