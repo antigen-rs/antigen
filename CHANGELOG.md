@@ -5,6 +5,114 @@ All notable changes to the antigen project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased — v0.2.0-alpha.3]
+
+VCS-Information-Loss Family: structural memory of git-history-erasing operations
+and rollback-as-triage discipline (ADR-026). AntigenCategory taxonomy: first-class
+`SubstrateAlignment` vs `FunctionalCorrectness` distinction enforced at parse time
+(ADR-028). Includes adversarial-verified bug fix (ATK-VCS-5 whitespace-only field
+silent acceptance) and five ADR amendments ratified (ADR-024 Amd 1, ADR-026 Amds
+1–3, ADR-027 Amd 1, ADR-028 Amd 2).
+
+### Added
+
+- **VCS-Information-Loss Family (ADR-026)** — 11 stdlib antigens for git-history-
+  erasing operations. Biology cognate: Immune Amnesia class (`ForcePushErasingHistory`
+  ↔ measles-induced memory lymphocyte depletion; Mina et al. 2015, Science).
+
+  - `ForcePushErasingHistory` — covers both `--force` AND `--force-with-lease`
+    (ADR-026 Amendment 1 adversarial D2). Central family cognate.
+  - `RollbackWithoutTriageCommit` — rollback without prior triage-commit declaration;
+    detected via AUTHOR-DECLARATION (Algorithm C, three-step decision tree, ADR-026
+    Amendment 3).
+  - `RefactorWithoutPreservationOfWhy`, `BranchDeletionWithoutAttestation`,
+    `SquashMergeLosingIntermediateState`, `CherryPickLosingOriginalContext`,
+    `RebaseRewritingHistoryWithoutLog`, `UnpushedBranchWithSubstantiveWork`,
+    `StashedWorkAbandoned`, `MergeConflictResolutionWithoutAttestation`,
+    `AmendedCommitWithoutOldHashPreservation`.
+
+- **`#[triage_commit]` decisional macro (ADR-026 Amendment 1)** — rollback-as-triage
+  discipline primitive. Structurally distinct from `#[orient]` (orient is passive
+  context; triage_commit is decisional/committal). Required fields: `triage_decision`
+  (`TriageDecision` enum), `rollback_target` (non-empty, non-whitespace-only),
+  `triaged_by` (non-empty, non-whitespace-only), `rationale` (≥20 chars),
+  `rollback_due_within_minutes` (>0 u64). Dual-axis grounding: CLINICAL-MEDICINE
+  grounds the commit-rationale discipline; immune biology has no analog to
+  "log rationale before acting."
+
+- **`TriageDecision` enum** — `Black | Red | Yellow | Green | White` (5-color
+  clinical-field-triage analogously; START protocol color-tagged). Includes
+  `mandates_rollback()` predicate and `parse_decision()` for trailer parsing.
+  Serde: kebab-case.
+
+- **`ServerSideEnforcementMode` enum** — `FrictionOnly` (default v0.2) |
+  `Structural` (server-side pre-receive hooks; v0.2.1+). When Structural declared,
+  audit evaluates `vcs_server_side_enforcement_active()` at audit-time; false →
+  emits `vcs-enforcement-structural-mode-declared-but-not-active` + demotes to
+  FrictionOnly for that antigen.
+
+- **14 VCS audit hint variants** (`vcs-` prefix) including
+  `vcs-rollback-without-triage-commit`, `vcs-force-push-erased-substantive-history`,
+  `vcs-enforcement-friction-only-no-server-hook`,
+  `vcs-enforcement-structural-mode-declared-but-not-active` (Amendment 3),
+  `vcs-server-config-check-failed` (Amendment 3).
+
+- **`AntigenCategory` enum (ADR-028)** — `SubstrateAlignment | FunctionalCorrectness`
+  (sealed; variants require ADR amendment). Required `category` field on `#[antigen]`
+  declarations (v0.2+; hard error at parse time for new declarations; soft default
+  `FunctionalCorrectness` for v0.1 carryover with `antigen-category-defaulted-
+  implicit-functional` migration hint). Hybrid antigens accept both variants.
+
+- **Category enforcement (ADR-028 Option A STRICT)** — parse-time hard error if
+  category absent on new declarations; category-vs-predicate-type cross-check emits
+  `antigen-category-claim-inconsistent-with-predicate-type` hint (G2 campsite tracks
+  full parse-time cross-check implementation). Hybrid antigens require BOTH witness
+  types verified at audit-time; missing axis = `antigen-category-hybrid-incomplete-
+  evidence`.
+
+- **5 AntigenCategory audit hint variants** — `antigen-category-defaulted-implicit-
+  functional`, `antigen-category-missing-explicit`, `antigen-category-mismatch-
+  witness-type`, `antigen-category-claim-inconsistent-with-predicate-type`,
+  `antigen-category-hybrid-incomplete-evidence`.
+
+- **`MacroAntigenCategory`** — proc-macro-side mirror of `AntigenCategory`; avoids
+  circular dependency between `antigen` and `antigen-macros`.
+
+### Fixed
+
+- **ATK-VCS-5 (whitespace-only field silent acceptance)** — `#[triage_commit]` with
+  `rollback_target = "   "` or `triaged_by = "   "` previously parsed silently; now
+  rejected at parse time with clear error message. `Some("")` guard widened to
+  `Some(s) if s.trim().is_empty()` in `antigen-macros/src/parse.rs`.
+
+### Documentation
+
+- ADR-024 Amendment 1: `#[titer]` biology-grounding axis reassignment — operational
+  substrate is primary; biology is approximate documentation cognate.
+- ADR-026 Amendment 1: rollback-as-triage uses `#[triage_commit]`, not `#[orient]`
+  extension; ADR-023 §orient semantics preserved unchanged.
+- ADR-026 Amendment 2: `TriageDecision` variant-semantic backfill (Black=dead/
+  unrecoverable; Red=critical/immediate rollback; Yellow=degraded/monitored;
+  Green=stable/no-action; White=unknown/more-info). `camp::triage` connection is
+  RHYME-tier (conceptual only); cross-tool schema alignment is v0.3+ research arc.
+  START-attribution honesty: color-tagged "analogously to clinical field-triage
+  protocols (e.g., START)" — not a direct START implementation.
+- ADR-026 Amendment 3: AUTHOR-DECLARATION (Algorithm C) rollback detection — three-
+  step decision tree; `vcs_server_side_enforcement_active()` guard for Structural
+  mode; two new audit hints added.
+- ADR-027 Amendment 1: mucosal taxonomy disambiguation — 15→13 `MucosalKind` variants
+  (PrBoundary removed: process event not data; Import removed: ambiguous scope);
+  inclusion-discipline (type-of-data-crossing-boundary axis, not processing-step
+  axis); `handled_by` as `syn::Path`; delegate kind-matching three-tier audit;
+  `#[mucosal_tolerant]` primitive; 6→11 audit hints.
+- ADR-028 Amendment 2: predicate-leaf requirement applies to WITNESS layer (audit-
+  pipeline evaluator that reads substrate state), NOT fingerprint scan-side pattern.
+  `doc_contains("ADR-025")` is a valid scan-side fingerprint for a SubstrateAlignment
+  antigen whose witness is `dep_pinned()`. Category-vs-predicate cross-check is
+  advisory at parse-time until `v02-impl-category-witness-cross-check` ships.
+
+---
+
 ## [Unreleased — v0.2.0-alpha.2]
 
 Supply-Chain Defense Family + Convergent-Evidence Family: structural memory of
