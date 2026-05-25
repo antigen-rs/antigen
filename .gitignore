@@ -37,6 +37,11 @@ CLAUDE.md
 docs/expedition/
 sweeps/
 
+# Adopter / internal-dev feedback notes. Local dev substrate (like
+# docs/expedition/), not part of the published surface; the dogfood team
+# reads them locally. Externalization is a future decision.
+agent-feedback/
+
 # Empty/transient working dirs
 .captured-shape/
 
