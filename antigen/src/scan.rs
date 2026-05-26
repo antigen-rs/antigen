@@ -3183,6 +3183,7 @@ fn item_line(item: &syn::Item) -> usize {
 }
 
 /// AST visitor that extracts antigen-related attributes.
+#[presents(ScanVisitorDigestAssignmentOmission)]
 struct ScanVisitor<'a> {
     file_path: PathBuf,
     report: &'a mut ScanReport,

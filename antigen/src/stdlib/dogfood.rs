@@ -1085,3 +1085,62 @@ pub struct AntigenFingerprintDivergesFromClassExtension;
     references = ["ADR-004", "ADR-028"]
 )]
 pub struct ParallelStateTrackersDiverge;
+
+// ============================================================================
+// 19. ScanVisitorDigestAssignmentOmission
+// ============================================================================
+
+/// A `ScanVisitor` `visit_*` method calls `check_attrs` without first setting
+/// `self.current_item_digest`, causing the preceding item's digest to bleed into
+/// the new item's fingerprint.
+///
+/// `ScanVisitor` maintains a `current_item_digest: String` field that holds the
+/// structural digest of the item currently being visited. Every `visit_*` method
+/// that routes attributes through `check_attrs` MUST set this field first —
+/// `self.current_item_digest = antigen_fingerprint::structural_digest(item)` —
+/// or the scan output carries the PREVIOUS item's digest, producing non-empty but
+/// wrong fingerprints that silently pass all schema checks.
+///
+/// **Observed instances** (2026-05-26, antigen-dx-dogfood expedition, fe6a3a0):
+/// Three new visitor methods (`visit_item_const`, `visit_item_static`,
+/// `visit_impl_item_const`) were added to cover previously-blind item kinds.
+/// Each correctly called `check_attrs` but omitted the mandatory
+/// `self.current_item_digest = …` prefix. The bug produced contaminated
+/// fingerprints — wrong, not empty — that passed every downstream assertion.
+/// No compile error, no test failure at addition time; only an explicit
+/// adversarial ATK pass detected the contamination.
+///
+/// **Why preemptive**: this antigen is declared before the next occurrence, not
+/// after. The visitor-extension pattern is structurally guaranteed to recur:
+/// `ScanVisitor` adds a new item kind → developer copies the `visit_*` template →
+/// the `check_attrs` call comes from the template, but the digest assignment
+/// requires knowing the invariant. The coupling between "calls check_attrs" and
+/// "must first set current_item_digest" is an ordering constraint with no
+/// compile-time enforcement. A proc-macro or derive-helper approach could enforce
+/// it structurally; until then, this antigen is the class's memory.
+///
+/// **The fingerprint**: `doc_contains("check_attrs")` — every future visitor
+/// method that routes attributes through `check_attrs` is a candidate site.
+/// The witness (`atk-digest-1-antigen-owned-attrs-incomplete`, closed) verified
+/// the contamination mechanism directly: two visitor methods with and without the
+/// digest assignment, with an ATK fixture exercising both, confirmed the bleed.
+///
+/// **Internal-tooling discipline**: per `feedback_internal_tool_antigens_preemptive`,
+/// internal-tooling antigens are declared preemptively from analog patterns and
+/// predictable-from-shape fail-classes, not from post-occurrence recovery. No
+/// biology analogue is required (see dogfood module header: "internal-tooling
+/// dogfood antigens rely on structural prediction rather than biological metaphor").
+///
+/// **Category**: `FunctionalCorrectness` — the visitor produces wrong output
+/// (contaminated fingerprint) rather than diverging representation-vs-state.
+/// The error is a computation-correctness failure at scan time, not a
+/// substrate-alignment gap.
+#[antigen(
+    name = "scan-visitor-digest-assignment-omission",
+    category = AntigenCategory::FunctionalCorrectness,
+    fingerprint = r#"doc_contains("check_attrs")"#,
+    family = "dogfood",
+    summary = "A ScanVisitor visit_* method calls check_attrs without first setting self.current_item_digest, causing the preceding item's digest to contaminate the new item's fingerprint. The ordering constraint (digest-then-attrs) has no compile enforcement; the bug produces wrong but non-empty fingerprints that pass schema checks silently.",
+    references = ["ADR-010"]
+)]
+pub struct ScanVisitorDigestAssignmentOmission;
