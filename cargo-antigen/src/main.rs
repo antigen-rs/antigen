@@ -39,7 +39,7 @@
 //!   [`docs/tutorial.md`](https://github.com/antigen-rs/antigen/blob/main/docs/tutorial.md)
 //!   for the narrative walkthrough.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
@@ -2616,6 +2616,81 @@ fn run_tolerate(cli: TolerateCli) -> ExitCode {
 }
 
 /// `attest scaffold` / `tolerate scaffold`: create a new `.attest/<Antigen>.json` sidecar.
+/// Attempt to auto-fill the `current_fingerprint` for a scaffold whose
+/// `--fingerprint` was omitted, by scanning the source file's crate subtree and
+/// matching the immunity/presentation the operator named.
+///
+/// Composes with the existing scan machinery (ADR-002 compose-don't-compete)
+/// rather than re-deriving the item-walk: scan already finds every immune/
+/// presents site and computes its `structural_fingerprint`. We scan the source
+/// file's directory subtree (a tight, predictable radius — the operator told us
+/// which file the declaration lives in), then match on the antigen's last path
+/// segment plus, if the operator passed one, the item path (against
+/// [`scan::ItemTarget::label`]).
+///
+/// Returns:
+/// - `Ok(Some(fp))` — exactly one match with a non-empty fingerprint.
+/// - `Ok(None)` — no usable match (zero matches, or only matches with empty
+///   fingerprints, e.g. explicit-marker presentations). Caller keeps the
+///   empty-placeholder behavior; auto-fill is a convenience, never a hard fail.
+/// - `Err(reason)` — ambiguous: multiple distinct fingerprints matched and the
+///   operator didn't disambiguate with `--item-path`. Caller surfaces the
+///   reason so the operator can narrow it.
+fn autofill_fingerprint(
+    source_file: &Path,
+    antigen_stem: &str,
+    item_path: &str,
+) -> Result<Option<String>, String> {
+    let scan_root = source_file.parent().unwrap_or_else(|| Path::new("."));
+    let Ok(report) = scan::scan_workspace(scan_root, None) else {
+        // A scan failure is not the operator's problem to solve here — fall
+        // back to the placeholder path silently.
+        return Ok(None);
+    };
+
+    let item_filter = (!item_path.is_empty()).then_some(item_path);
+    let matches = |antigen_type: &str, target: &scan::ItemTarget| {
+        antigen_type == antigen_stem && item_filter.is_none_or(|p| target.label() == p)
+    };
+
+    // Immunities always carry a fingerprint; presentations only for
+    // fingerprint-matches (explicit markers leave it empty). Prefer immunities,
+    // then fall back to presentations with a non-empty fingerprint.
+    let mut fingerprints: Vec<String> = report
+        .immunities
+        .iter()
+        .filter(|i| matches(&i.antigen_type, &i.item_target))
+        .map(|i| i.structural_fingerprint.clone())
+        .filter(|fp| !fp.is_empty())
+        .collect();
+    if fingerprints.is_empty() {
+        fingerprints = report
+            .presentations
+            .iter()
+            .filter(|p| matches(&p.antigen_type, &p.item_target))
+            .map(|p| p.structural_fingerprint.clone())
+            .filter(|fp| !fp.is_empty())
+            .collect();
+    }
+
+    fingerprints.sort();
+    fingerprints.dedup();
+    match fingerprints.as_slice() {
+        [] => Ok(None),
+        [single] => Ok(Some(single.clone())),
+        many => Err(format!(
+            "auto-fill found {} distinct fingerprints for antigen `{antigen_stem}`\
+             {} — pass `--item-path` to disambiguate, or `--fingerprint` explicitly.",
+            many.len(),
+            if item_filter.is_some() {
+                format!(" at item `{item_path}`")
+            } else {
+                String::new()
+            }
+        )),
+    }
+}
+
 fn run_attest_scaffold(
     args: AttestScaffoldArgs,
     kind_override: antigen_attestation::RatificationKind,
@@ -2657,6 +2732,26 @@ fn run_attest_scaffold(
         return ExitCode::from(2);
     }
 
+    // When `--fingerprint` is omitted, try to auto-fill it by scanning the
+    // source file's crate subtree for the immunity/presentation the operator
+    // named. This removes the manual `scan --format json | jq` + hand-edit
+    // dance the placeholder note otherwise prescribes.
+    let mut fingerprint = args.fingerprint.clone();
+    let mut autofilled = false;
+    if fingerprint.is_empty() {
+        match autofill_fingerprint(&args.source_file, stem, &args.item_path) {
+            Ok(Some(fp)) => {
+                fingerprint = fp;
+                autofilled = true;
+            }
+            Ok(None) => {}
+            Err(reason) => {
+                eprintln!("error: {reason}");
+                return ExitCode::from(1);
+            }
+        }
+    }
+
     let ratification = Ratification {
         schema_version: SchemaVersion::V1,
         kind,
@@ -2667,7 +2762,7 @@ fn run_attest_scaffold(
         source_file: args.source_file.clone(),
         items: vec![ItemRatification {
             item_path: args.item_path.clone(),
-            current_fingerprint: args.fingerprint.clone(),
+            current_fingerprint: fingerprint.clone(),
             doc_ref: None,
             signers: vec![],
             oracles: vec![],
@@ -2690,17 +2785,25 @@ fn run_attest_scaffold(
     }
 
     eprintln!("Created sidecar: {}", sidecar_path.display());
-    if args.fingerprint.is_empty() {
+    if autofilled {
+        eprintln!("  fingerprint auto-filled from scan: {fingerprint}");
+    } else if fingerprint.is_empty() {
         eprintln!(
-            "  note: fingerprint is empty — update `current_fingerprint` before signing.\n\
+            "  note: fingerprint is empty — auto-fill found no matching scanned site, so \
+             update `current_fingerprint` before signing.\n\
              \n\
              Get the item fingerprint from:\n\
              \n  cargo antigen scan --format json | jq '.report.immunities[] | select(.antigen_type==\"{}\") | .structural_fingerprint'\n",
             stem
         );
     }
+    let next_fp = if fingerprint.is_empty() {
+        "<fp>".to_string()
+    } else {
+        fingerprint
+    };
     eprintln!(
-        "\nNext: `cargo antigen attest sign --sidecar {} --item-path \"{}\" --signer <name> --fingerprint <fp>`",
+        "\nNext: `cargo antigen attest sign --sidecar {} --item-path \"{}\" --signer <name> --fingerprint {next_fp}`",
         sidecar_path.display(),
         args.item_path
     );
