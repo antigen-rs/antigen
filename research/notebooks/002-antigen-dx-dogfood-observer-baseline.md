@@ -1099,3 +1099,46 @@ Three substrate-alignment gaps found in one audit pass:
 **Observation**: These three gaps share a structural shape — a hand-maintained artifact that should be derived automatically from a canonical source. `ANTIGEN_OWNED_ATTRS` (26 macros by hand), `ADR025_AUDIT_HINTS` (16 enum variants by hand), tutorial limitation text (feature shipped but doc not updated). The recurring pattern: manual maintenance creates drift-windows that automation would close. Antigen's own `AuditHintWithNoUpstreamPreconditionCheck` class is adjacent — a test that passes but doesn't enforce the invariant its comment promises.
 
 **Additional finding (Step 25b)**: Working-tree `audit.rs` has uncommitted `#[presents(DeclaredCapabilityWithNoProductionPath)]` markers on `PolyclonalInsufficientLineages` and `AdccSingleMechanismOnly` enum variants. If committed as-is, `RUSTDOCFLAGS="-D warnings" cargo doc` FAILS: "expected non-macro attribute, found attribute macro `presents`". Verified: committed HEAD doc build is clean (stash-test). Root cause: rustdoc errors on proc-macro attributes on enum variants in documented pub enums. Pathmaker needs to resolve before committing. This is a new sub-class of the scanner-blind-spot fix having unintended doc consequences — the scanner can now *find* `#[presents]` on enum variants, but rustdoc errors when documenting them. Navigator and pathmaker notified.
+
+---
+
+## Step 26: Comprehensive Coverage Gate State + Scanner Arc Assessment
+
+**Time**: 2026-05-26 ~07:40 UTC  
+**HEAD**: `24975fd` (lab notebook step 25b addendum)  
+**Test state**: 868 passing (workspace, committed HEAD); working tree has uncommitted adversarial ATK tests
+
+### Comprehensive Coverage Gate
+
+Gate (`dogfood/comprehensive-antigen-coverage`) requires observer + pathmaker + naturalist signatures. Observer sign-condition: 5 coverage sub-campsites complete + at least one `#[immune]` with real witness in production code.
+
+**Current state** (verified against camp status):
+- `coverage-antigen-attestation`: COMPLETE (1/6)
+- `coverage-antigen-macros-lib`: open, waiting on pathmaker (0/6 complete)
+- `coverage-antigen-macros-parse`: open, waiting on pathmaker
+- `coverage-cargo-antigen-binary`: open, waiting on pathmaker
+- `coverage-fingerprint-tightening`: open, waiting on pathmaker
+- `coverage-supply-chain-module`: open, waiting on pathmaker
+
+**Production `#[immune]`** with real witness in non-fixture, non-test code: **zero** (grep confirmed). Three production `#[presents]` markers exist (scan.rs:968, scan.rs:2429, audit.rs:2511), all unaddressed.
+
+**Observer sign-gate: NOT SATISFIED.** This campsite is correctly gated on pathmaker completing the 5 remaining coverage sub-campsites + a production immune declaration.
+
+### Scanner Blind-Spot Arc — Current State
+
+The adversarial scanner arc is still running. Each round:
+- **Closed rounds**: enum-variant, impl-const, trait-const, top-level const, static, use-item, macro-rules, extern-crate, foreign-mod, mod, trait-alias, union (all fixed across multiple commits)
+- **New pending round in working tree**: `visit_impl_item_type` (associated type in impl block) + `visit_trait_item_type` (associated type in trait body)
+
+Pattern: `syn::ImplItem` and `syn::TraitItem` have the same partial-coverage gap `syn::Item` had. Every fix round reveals the next sub-variant. The structural fix would be: enumerate all `syn::Item`, `syn::ImplItem`, `syn::TraitItem` variants and verify each has a `visit_*` override. A meta-test that enumerates these (adversarial noticed this in camp activity) would close the arc permanently rather than finding gaps one by one.
+
+### CI-Gate State Summary (committed HEAD)
+
+| Gate | Status |
+|------|--------|
+| `cargo test --workspace` | PASS (868/0 fail) |
+| `cargo clippy -- -D warnings` | PASS |
+| `cargo fmt -- --check` | FAIL (9 violations) |
+| `RUSTDOCFLAGS=-D warnings cargo doc` | PASS (committed HEAD) |
+
+The fmt violations in committed code (`b1f6886`) are the one active CI-gate failure. Pathmaker fix needed.
