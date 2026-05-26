@@ -127,6 +127,7 @@ fn atk_a2_004_fabricated_external_witness_is_reachability_tier() {
         item_target: antigen::scan::ItemTarget::Unknown { line: 10 },
         canonical_path: None,
         requires_predicate: None,
+        structural_fingerprint: String::new(),
     };
     let mut report = ScanReport::default();
     report.immunities.push(immunity);
@@ -411,6 +412,7 @@ fn atk_a2_010_phantom_witness_type_param_mismatch_is_flagged() {
         item_target: antigen::scan::ItemTarget::Unknown { line: 0 },
         canonical_path: None,
         requires_predicate: None,
+        structural_fingerprint: String::new(),
     };
     let mut report = ScanReport::default();
     report.immunities.push(immunity);
@@ -679,6 +681,7 @@ fn atk_w7_002_fabricated_phantom_type_gets_formal_proof_tier() {
         item_target: antigen::scan::ItemTarget::Unknown { line: 0 },
         canonical_path: None,
         requires_predicate: None,
+        structural_fingerprint: String::new(),
     };
     let mut report = ScanReport::default();
     report.immunities.push(immunity);
@@ -748,6 +751,7 @@ fn atk_w7_003_nested_generic_in_phantom_witness_falls_through_to_not_found() {
         item_target: antigen::scan::ItemTarget::Unknown { line: 0 },
         canonical_path: None,
         requires_predicate: None,
+        structural_fingerprint: String::new(),
     };
     let mut report = ScanReport::default();
     report.immunities.push(immunity);

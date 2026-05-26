@@ -466,6 +466,7 @@ fn atk_sc_audit1_any_of_emits_false_positive_for_passing_branch() {
         item_target: ItemTarget::Fn("check_serde".to_string()),
         canonical_path: None,
         requires_predicate: Some(pred_json),
+        structural_fingerprint: String::new(),
     };
     let mut scan = ScanReport::default();
     scan.immunities.push(immunity);

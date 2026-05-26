@@ -418,6 +418,7 @@ fn atk_a3_005_cross_crate_name_collision_not_suppressed_by_same_name_immunity() 
         item_target: ItemTarget::Struct("MyType".to_string()),
         canonical_path: Some("crate_a@1.0.0".to_string()),
         requires_predicate: None,
+        structural_fingerprint: String::new(),
     });
 
     let unaddressed = report.unaddressed_presentations();

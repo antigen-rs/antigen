@@ -3496,6 +3496,7 @@ mod tests {
             item_kind: "fn".to_string(),
             item_target: crate::scan::ItemTarget::Fn("witness_site".to_string()),
             canonical_path: None,
+            structural_fingerprint: String::new(),
         }
     }
 
@@ -3605,6 +3606,7 @@ mod tests {
             item_kind: "fn".to_string(),
             item_target: crate::scan::ItemTarget::Fn("witness_site".to_string()),
             canonical_path: None,
+            structural_fingerprint: String::new(),
         });
         let out = audit_category(&report);
         assert_eq!(out.mismatch_count, 1);
