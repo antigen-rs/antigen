@@ -1461,3 +1461,119 @@ Navigator notified. Pathmaker routing pending.
 ### Summary
 
 Step 29 closed the F3 campsite with corrected diagnosis. 894 tests green. The expedition is in active flight with 18 open campsites across coverage, docs, and ceremony lanes. Observer's primary contribution this step: correcting a prior diagnostic error before it propagated further into the team's understanding.
+
+---
+
+## Step 30: Active-Landing Audit — New P0, Beta-Readiness Assessment, Instrument Reliability
+
+**Time**: 2026-05-26 ~23:00 UTC
+**HEAD evolving**: `6eb21f7` at start; more commits landing during observation
+
+### Before
+
+**Hypothesis**: After the lab notebook step 29 commit, the expedition has moved significantly. Need to: (1) verify all gate conditions for beta-readiness-v020 signature, (2) identify any new failing tests from commits landing during prior observation cycle.
+
+**Design**: Read activity log, run workspace tests at clean-tree HEAD, audit beta-readiness criteria, check new commits.
+
+### Results
+
+**New commits since step 29**:
+- `be0df53` — bijection-guard AuditHint const (ATK-HINT-1) — outsider's supply_chain_correctness.rs committed
+- `28f5fca` — adversarial: whitespace-rationale regression guards for 4 deferred-defense macros
+- `91b625a` — fix(tests): FIXTURE_SIDECAR_MUTEX to serialize F3 sidecar write
+- `07812e6` — dogfood(antigen): declare ParallelStateTrackersDiverge (#18)
+- `f8f158e` — docs: meta-finding loop doc committed
+- `73bb703` — dogfood(antigen): declare ScanVisitorDigestAssignmentOmission (#19)
+- `6a17036` — adversarial: ATK-A2-IMPL/TRAIT-ITEM-MACRO failing tests (NO #[ignore])
+- `6eb21f7` — docs: meta-finding naturalist biology-check
+
+**Key observation: two failing tests committed without `#[ignore]`** (6a17036):
+- `atk_a2_impl_item_macro_presents_is_not_silently_ignored`
+- `atk_a2_trait_item_macro_presents_is_not_silently_ignored`
+
+Both are TDD pins for `dogfood/scanner-impl-trait-macro-blindspot` — a known scan gap (ScanVisitor has no `visit_impl_item_macro` or `visit_trait_item_macro` override). Without `#[ignore]`, these tests make `cargo test --workspace` exit non-zero.
+
+### Observer Diagnostic Error — Premature "All Green" Assessment
+
+Between the clean working tree at `73bb703` and the dirty-tree period when `6a17036` was landing, I observed 5 consecutive workspace test passes. I prematurely concluded the workspace was stable. Then `6a17036` landed with intentionally failing tests, breaking the suite again.
+
+This is an observer methodology weakness: 5 clean runs on a clean tree is not a sufficient sample for "stable CI" when commits are still landing at high velocity. The correct discipline: run workspace tests at the COMMITTED HEAD that will be tagged, not at any intermediate point during active team flight.
+
+### Beta-Readiness Gate Assessment
+
+**Criterion 1 — Examples per public family**: COMPLETE
+- 25 examples committed across all 7 public families
+- agentic_coordination, antigen_category, triage_commit, vcs_info_loss all signed 2/2
+
+**Criterion 2 — Learning path covers v0.2**: COMPLETE
+- `docs-learning-path-currency-v02` closed at 3/3 signers
+- tutorial.md + quickstart.md + examples-guide.md all updated
+
+**Criterion 3 — Gates green**: NOT MET (P0)
+- `cargo test --workspace` fails due to two uncommitted-as-non-ignored TDD pins in 6a17036
+- Fix: pathmaker must add `#[ignore]` to both failing tests
+- Secondary: once those tests are ignored, beta-readiness CI gate needs one clean run
+
+**Observer sign criteria** (per note deposited on beta-readiness-v020):
+1. docs-learning-path-currency-v02 closes — MET
+2. F3 test isolation fully resolved — MET (intra-binary mutex sufficient; no other binary audits fixture path)
+3. cargo test --workspace clean at committed HEAD — NOT MET (6a17036 failing tests)
+
+### New Campsites / Findings from Activity Log
+
+**`dogfood/scanner-impl-trait-macro-blindspot`** (BLOCKED — adversarial):
+- ScanVisitor missing `visit_impl_item_macro` + `visit_trait_item_macro` overrides
+- Two TDD pin tests fail at HEAD
+- Fix: add overrides parallel to fn/const/type pattern in scan.rs
+
+**`forward/audit-hint-exhaustive-match-completeness`** (OPEN — pathmaker):
+- v0.3 option: exhaustive match over AuditHint forcing classification at compile time
+- Not v0.2 urgent; bijection covers the live drift
+
+**`dogfood/description-tier-grows-by-witness-split`** (PARTIAL 1/2):
+- Naturalist heuristic: description-tier fail-classes grow as parent + witness-mechanism split children
+- Awaiting aristotle co-sign
+
+**ParallelStateTrackersDiverge declared as typed antigen** (`07812e6`):
+- The session's recurring meta-pattern is now a first-class antigen
+- Canonical instance: ADR025_AUDIT_HINTS const ↔ AuditHint enum drift (bijection witness)
+- Additional instances: WitnessTier dual-enum (atk_witness_tier_parity test), version string across docs
+- The meta-finding becoming a primitive is the structural closure the session was building toward
+
+**ScanVisitorDigestAssignmentOmission declared** (`73bb703`):
+- Preemptive (build-ahead, ADR-007): visitor-extension pattern structurally guaranteed to recur
+- Instance: visit_item_const/static/impl_item_const all omitted digest assignment in d97c204
+
+**meta-finding-pattern.md committed** (`f8f158e`):
+- Adopter-facing doc teaching the notice→name→declare→witness→guard loop
+- Uses ParallelStateTrackersDiverge as worked example
+- Section on "when NOT to declare" + pattern at team coordination layer
+
+### F3 Root Cause — Final Reconstruction
+
+After full investigation across this step and step 29, the complete timeline:
+
+| Commit | Change | F3 Effect |
+|--------|--------|-----------|
+| `8bb3a4d` | Added `code_witness_sidecar_ignored` (no companion check) | Test should pass; implementation correct |
+| `19e018f` | Added `has_companion_requires` check missing `file` dimension | Test FAILS — cross-file requires= suppresses warning |
+| `d97c204` | Added `other.file == immunity.file` to companion check | Test passes — bug fixed |
+| `91b625a` | Added FIXTURE_SIDECAR_MUTEX (intra-binary serialization) | Additional safety; the actual race risk was minimal |
+
+My step 28 diagnosis (parallelism) was wrong; the real cause was a logic bug (cross-file suppression). My step 29 correction was right but I then prematurely raised a "residual race" concern based on a test failure that occurred during a dirty-tree compile state, not a real race. The correction-to-the-correction was also right. This sequence illustrates observer's substrate-currency discipline applied to observer's OWN claims: every claim needs the right instrument.
+
+### Observer Methodology Lessons from Step 30
+
+1. **"5 clean runs" is not "stable CI" during active landing**. When commits are arriving at high velocity, a sample of passes means only "passes at that snapshot." The correct gate is "passes at the committed tag candidate HEAD."
+
+2. **Dirty-tree test failures are confounds**. When teammates have staged files or in-progress changes, `cargo test` may compile against an inconsistent state. Always check `git status` before treating a test failure as real.
+
+3. **F3 test failure on dirty tree was a compilation artifact, not a race**. The two root-cause diagnoses (logic bug, compilation artifact) were both correct for their respective failure events. The first failure (workspace run before d97c204) was a logic bug. The second failure (workspace run during dirty-tree state) was a compile artifact. The residual-race concern was wrong.
+
+4. **TDD pins without `#[ignore]` are a recurring class**. This happened with `89f8108` (enum-variant) and `6a17036` (impl/trait-item-macro). The pattern: adversarial commits failing tests to document a gap, without ignoring, making CI red. Observer should flag this immediately whenever it appears.
+
+### Discussion
+
+The session arc from step 28 to step 30 is a microcosm of observer's core value: catch the gap between what's claimed ("F3 is fully resolved") and what the substrate says ("2 failing tests at HEAD"). The claim travels faster than the evidence. Observer's job is to slow down the claim, check the substrate, and correct the record — including correcting observer's OWN prematurely-settled claims.
+
+**Next**: sign beta-readiness-v020 once the 6a17036 failing tests are #[ignore]d and a clean workspace run is confirmed at that HEAD. Do not sign earlier.
