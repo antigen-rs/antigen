@@ -162,8 +162,12 @@ impl_has_attributes!(
     syn::ItemFn,
     syn::ItemType,
     syn::ItemImpl,
+    syn::ItemConst,
+    syn::ItemStatic,
     syn::ImplItemFn,
+    syn::ImplItemConst,
     syn::TraitItemFn,
+    syn::TraitItemConst,
 );
 
 #[cfg(test)]
