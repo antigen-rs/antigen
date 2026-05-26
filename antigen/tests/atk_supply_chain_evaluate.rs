@@ -572,7 +572,10 @@ fn atk_sc5_path_traversal_in_maintainer_crate_name_is_blocked() {
     let workspace_root = tmp.path();
 
     // Create the expected supply-chain directory structure so the normal path exists.
-    let supply_chain_dir = workspace_root.join(".attest").join("supply-chain").join("maintainer");
+    let supply_chain_dir = workspace_root
+        .join(".attest")
+        .join("supply-chain")
+        .join("maintainer");
     std::fs::create_dir_all(&supply_chain_dir).unwrap();
 
     // Place a valid-looking maintainer snapshot OUTSIDE the supply-chain directory.
