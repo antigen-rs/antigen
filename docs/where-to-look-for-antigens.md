@@ -19,6 +19,62 @@
 
 ---
 
+## Where a marker can physically go (placement rules)
+
+Before *which* file: there's a hard constraint on *which Rust position* a marker
+can sit on. `#[antigen]`, `#[presents]`, `#[immune]`, `#[antigen_tolerance]`, and
+`#[descended_from]` are **attribute proc-macros**, and Rust only allows
+attribute-macro invocations on **item-level** positions. The matrix
+(each row `cargo build`-verified):
+
+| Position | `#[presents]` / `#[immune]` / … | Why |
+|---|---|---|
+| `struct` / `enum` (the **type**) | ✅ compiles, scans, docs-clean | item position |
+| `fn` | ✅ compiles | item position |
+| `impl` block | ✅ compiles | item position |
+| **enum variant** (`Foo::Bar`) | ❌ **compile error** | proc-macro attrs forbidden on variants |
+| **struct field** | ❌ **compile error** | proc-macro attrs forbidden on fields |
+
+Putting a marker on a variant or field produces, at `cargo build`:
+
+```
+error: expected non-macro attribute, found attribute macro `presents`
+```
+
+Only *inert* attributes (`#[cfg]`, `#[deprecated]`, `#[doc]`) are allowed on
+variants and fields — proc-macro attributes are not. So:
+
+- **Mark the enclosing type.** A failure-class that lives in one enum variant or
+  one struct field is marked on the whole `enum` / `struct`. If you need to point
+  at the specific variant/field, say so in the antigen's `summary` or the doc
+  comment, not with a marker on the variant/field itself.
+- **Or use fingerprint-scan for sub-type granularity.** A fingerprint can match
+  at finer granularity than a marker can be placed (the scanner reads variant and
+  field syntax even though a *marker* can't compile there). When you need
+  variant/field-level recognition, lean on the fingerprint, not a direct marker.
+
+> **The trap worth knowing** (it has bitten this project's own contributors):
+> `cargo antigen scan` *can read* a `#[presents]` written on an enum variant in a
+> parse-only test fixture — the scanner parses source via `syn`, which accepts the
+> attribute *syntax*. That does **not** mean the marker compiles. `rustc` rejects
+> it at attribute resolution. **Scanner-reads-it ≠ it-compiles.** A green scanner
+> test on a fixture is not evidence a real adopter can use the marker; only
+> `cargo build` on a real crate is. If you're deciding "can a marker go here?",
+> compile a minimal crate — don't trust a parse/scan test.
+
+### Foundation crates can't carry markers at all
+
+Crates *upstream* of `antigen` in the dependency graph — for antigen's own
+workspace, that's `antigen-macros` and `antigen-fingerprint` — cannot depend on
+`antigen` (it would be a dependency cycle), so the marker macros aren't even in
+scope there. A failure-class that lives in such a foundation crate is defended by
+**fingerprint-scan + structural evidence** (a test that pins the invariant),
+recognized via the antigen's `summary` / doc-comment rather than an in-situ
+marker. Antigen's own `BiologyGroundingClaimDrift` (defended fingerprint-only) is
+the worked example of this pattern.
+
+---
+
 ## Antigen declarations: `src/antigens.rs`
 
 The canonical location for a crate's own antigen declarations is a dedicated
