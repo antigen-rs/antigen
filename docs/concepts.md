@@ -225,8 +225,8 @@ The **substrate-witness pipeline** (ADR-019) makes these checkable at audit time
 
 - `signers(required = [...])` — the sidecar must contain signatures from named identities
 - `fresh_within_days(N)` — the most recent signature must be within N days
-- `ratified_doc(reference = ...)` — pointer to a ratified ADR or external doc
-- `oracles_complete(required = [...])` — depends on named Oracle records being in `Complete` state
+- `ratified_doc(path = ...)` — pointer to a ratified ADR or external doc
+- `oracles_complete(files = [...])` — depends on named Oracle records being in `Complete` state
 - `signed_trailer(...)` — git-trust-style commit-signed integration
 
 Plus three combinators: `all_of(...)`, `any_of(...)`, `not(...)`.
@@ -243,7 +243,7 @@ When your discipline depends on an *external reference* — a paper, an ADR, a s
 
 - **5-state lifecycle**: Draft → Complete → Deprecated / Retired / Revoked (+ Reopened)
 - **Stewardship**: each Oracle has signers who attested and stewards who maintain the reference
-- **Audit integration**: `oracles_complete(required = [...])` checks Oracle state at audit time
+- **Audit integration**: `oracles_complete(files = [...])` checks Oracle state at audit time
 - **Provenance trail**: who declared, who transitioned states, when, why
 
 This closes the "URLs go stale" problem at the substrate level. The reference is stewarded, versioned, lifecycle-tracked — and immunity claims that depend on it stay honest as the reference evolves.
