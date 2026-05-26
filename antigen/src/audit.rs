@@ -136,7 +136,11 @@ pub enum WitnessKind {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 pub enum WitnessTier {
-    /// No witness or unresolved witness. Immunity asserted without evidence.
+    /// No *passing* evidence. Either no witness / unresolved witness (immunity
+    /// asserted without evidence), or — for substrate-witnesses — a sidecar that
+    /// is missing, schema-invalid, or whose predicate was evaluated and failed.
+    /// The parallel [`AuditHint`] carries which case. Kept in lock-step with
+    /// `antigen_attestation::tier::WitnessTier::None`.
     None = 0,
     /// Witness identifier resolves but no execution-level verification
     /// happened. Evidence: "this code path / tool reference exists."
@@ -437,10 +441,13 @@ pub enum AuditHint {
     /// match any known antigen in the scan report.
     CrossreactiveFingerprintUnresolved,
     /// `#[polyclonal]` site has fewer independent witness lineages than
-    /// the configured floor (default: 2).
+    /// the configured floor (default: 2). **Planned — not yet emitted at v0.2**:
+    /// no lineage-counting audit pass exists; do not rely on this hint firing.
     PolyclonalInsufficientLineages,
     /// `#[adcc]` site has only one of the two committed mechanisms
-    /// (antibody-style + cellular-effector-style) detectable.
+    /// (antibody-style + cellular-effector-style) detectable. **Planned — not yet
+    /// emitted at v0.2**: no mechanism-detection pass exists; do not rely on this
+    /// hint firing.
     AdccSingleMechanismOnly,
 
     // ------------------------------------------------------------------
