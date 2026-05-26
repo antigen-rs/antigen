@@ -673,6 +673,26 @@ impl AnergyArgs {
             _ => {}
         }
 
+        // Past-date rejection: an expired anergy window means the suppression
+        // should have been re-evaluated but wasn't. Parallels OrientArgs (53d2bab).
+        if let Some(until_str) = self.until.as_deref() {
+            if let Ok(until_date) = parse_iso_date(until_str) {
+                let horizon_days = (until_date - today_utc()).num_days();
+                if horizon_days < 0 {
+                    return Err(syn::Error::new(
+                        self.until_span.unwrap_or(self.args_span),
+                        format!(
+                            "#[anergy] `until` ({until_str}) is {} day(s) in the past — \
+                             an already-expired anergy window is silent suppression with \
+                             no accountability. Set a future `until` date or remove the \
+                             #[anergy] marker.",
+                            -horizon_days
+                        ),
+                    ));
+                }
+            }
+        }
+
         Ok(())
     }
 }
@@ -854,6 +874,19 @@ impl ImmunosuppressArgs {
                     .and_then(|s| parse_iso_date(s).ok())
                     .unwrap_or_else(today_utc);
                 let duration_days = (until_date - since_date).num_days();
+                if duration_days < 0 {
+                    return Err(syn::Error::new(
+                        self.until_span.unwrap_or(self.args_span),
+                        format!(
+                            "#[immunosuppress] `until` ({}) is {} day(s) in the past — \
+                             an expired suppression window is silent check-disabling with \
+                             no accountability. Set a future `until` date or remove the \
+                             #[immunosuppress] marker.",
+                            until_str,
+                            -duration_days
+                        ),
+                    ));
+                }
                 if duration_days > cap_i64 {
                     return Err(syn::Error::new(
                         self.until_span
@@ -1034,6 +1067,26 @@ impl PoxpartyArgs {
                 ));
             }
             _ => {}
+        }
+
+        // Past-date rejection: an expired pox-party window is stale controlled
+        // exposure with no accountability. Parallels OrientArgs (53d2bab).
+        if let Some(until_str) = self.until.as_deref() {
+            if let Ok(until_date) = parse_iso_date(until_str) {
+                let horizon_days = (until_date - today_utc()).num_days();
+                if horizon_days < 0 {
+                    return Err(syn::Error::new(
+                        self.until_span.unwrap_or(self.args_span),
+                        format!(
+                            "#[poxparty] `until` ({until_str}) is {} day(s) in the past — \
+                             an expired pox-party exercise is stale controlled exposure with \
+                             no accountability. Set a future `until` date or remove the \
+                             #[poxparty] marker.",
+                            -horizon_days
+                        ),
+                    ));
+                }
+            }
         }
 
         Ok(())
@@ -4710,6 +4763,109 @@ mod tests {
         assert_eq!(args.reviewed_by.as_deref(), Some("security-team"));
         assert_eq!(args.until.as_deref(), Some("2026-12-31"));
         args.validate().unwrap();
+    }
+
+    // -------------------------------------------------------------------------
+    // Adversarial tests for #[immunosuppress] and #[anergy] — past until date
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn immunosuppress_validate_rejects_until_in_the_past() {
+        // ATK-IMMUNOSUPPRESS-PAST-DATE: #[immunosuppress] with `until` in the
+        // past should fail validation — the suppression window has expired.
+        //
+        // ImmunosuppressArgs::validate() parses the date for duration cap
+        // enforcement (duration_days > cap) but does NOT check until < today.
+        // A past `until` date produces duration_days < 0 which is NOT > cap_i64(90),
+        // so the cap check passes silently. Expired immunosuppression stays in
+        // the codebase without a compile error.
+        //
+        // STATUS: FAILING — validate() only checks duration > cap; past dates
+        // produce negative duration that is not > cap, so they pass silently.
+        // Fix: add if duration_days < 0 { return Err(...) } after computing
+        // duration_days, parallel to the orient/anergy fix pattern.
+        let yesterday = (today_utc() - chrono::Duration::days(1))
+            .format("%Y-%m-%d")
+            .to_string();
+        let tokens: TokenStream = format!(
+            r#"PanickingInDrop,
+            rationale = "Suppressing while we wait for proptest infrastructure build",
+            until = "{yesterday}""#
+        )
+        .parse()
+        .unwrap();
+        let args = syn::parse2::<ImmunosuppressArgs>(tokens).unwrap();
+        assert!(
+            args.validate().is_err(),
+            "ATK-IMMUNOSUPPRESS-PAST-DATE: #[immunosuppress] with until in the past must fail \
+             validation — expired suppression is silent check-disabling with no accountability. \
+             Got Ok(()) for until={yesterday}. \
+             Fix: add duration_days < 0 check in ImmunosuppressArgs::validate() at ~line 856."
+        );
+    }
+
+    #[test]
+    fn poxparty_validate_rejects_until_in_the_past() {
+        // ATK-POXPARTY-PAST-DATE: #[poxparty] with `until` in the past should fail
+        // validation — an expired pox-party window means a controlled-exposure exercise
+        // is still referenced in code but its deadline has passed. Silent expired
+        // poxparty is the same class as expired immunosuppress and anergy.
+        //
+        // STATUS: FAILING — validate() only checks until != None && until != ""
+        // Fix: add parse_iso_date() + horizon_days < 0 check to PoxpartyArgs::validate(),
+        // paralleling the fix applied to OrientArgs::validate() in commit 53d2bab.
+        let yesterday = (today_utc() - chrono::Duration::days(1))
+            .format("%Y-%m-%d")
+            .to_string();
+        let tokens: TokenStream = format!(
+            r#"PanickingInDrop,
+            exercise_type = "Trigger deliberate Drop panic and measure detection lag",
+            until = "{yesterday}""#
+        )
+        .parse()
+        .unwrap();
+        let args = syn::parse2::<PoxpartyArgs>(tokens).unwrap();
+        assert!(
+            args.validate().is_err(),
+            "ATK-POXPARTY-PAST-DATE: #[poxparty] with until in the past must fail validation — \
+             an expired pox-party exercise represents stale controlled-exposure with no accountability. \
+             Got Ok(()) for until={yesterday}. \
+             Fix: add parse_iso_date() + horizon_days < 0 check to PoxpartyArgs::validate()."
+        );
+    }
+
+    #[test]
+    fn anergy_validate_rejects_until_in_the_past() {
+        // ATK-ANERGY-PAST-DATE: #[anergy] with `until` in the past should fail
+        // validation — an already-expired anergy window means the suppression
+        // should have been re-evaluated but wasn't. Silent expired anergy is
+        // worse than orient: it silently suppresses checks for a failure-class
+        // on an item where the anergy contract has lapsed.
+        //
+        // Current behavior: validate() only checks non-empty, so past dates pass.
+        //
+        // STATUS: FAILING — validate() only checks until != None && until != ""
+        // Fix: add parse_iso_date() + horizon_days < 0 check to AnergyArgs::validate(),
+        // paralleling the fix applied to OrientArgs::validate() in commit 53d2bab.
+        let yesterday = (today_utc() - chrono::Duration::days(1))
+            .format("%Y-%m-%d")
+            .to_string();
+        let tokens: TokenStream = format!(
+            r#"PanickingInDrop,
+            reason = "Suppressing until we audit all Drop impls in the codebase",
+            until = "{yesterday}""#
+        )
+        .parse()
+        .unwrap();
+        let args = syn::parse2::<AnergyArgs>(tokens).unwrap();
+        assert!(
+            args.validate().is_err(),
+            "ATK-ANERGY-PAST-DATE: #[anergy] with until in the past must fail validation — \
+             an expired anergy window represents silent check-suppression with no accountability. \
+             Got Ok(()) for until={yesterday}. \
+             Fix: add parse_iso_date() + horizon_days < 0 check to AnergyArgs::validate() \
+             parallel to OrientArgs commit 53d2bab."
+        );
     }
 }
 
