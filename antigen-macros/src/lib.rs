@@ -734,10 +734,14 @@ pub fn crossreactive(args: TokenStream, input: TokenStream) -> TokenStream {
 /// (different witness derivations) rather than MODALITY diversity
 /// (different witness classes).
 ///
-/// # Audit hints
+/// # Audit hints (planned — not yet emitted)
 ///
-/// - `polyclonal-insufficient-lineages` — fewer lineages than configured
-///   floor
+/// - `polyclonal-insufficient-lineages` — fewer lineages than a configured
+///   floor. **Not implemented at v0.2**: `#[polyclonal]` is a pure
+///   documentation marker today; the `PolyclonalInsufficientLineages`
+///   `AuditHint` variant exists but is never produced (no lineage-counting
+///   audit pass yet). This hint is a forward-plan, not current behavior — do
+///   not rely on it firing.
 #[proc_macro_attribute]
 pub fn polyclonal(args: TokenStream, input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(args as parse::PolyclonalArgs);
@@ -772,10 +776,14 @@ pub fn monoclonal(args: TokenStream, input: TokenStream) -> TokenStream {
 /// behavioral check) via different mechanisms. The marker primitive
 /// surfaces the structural commitment to multi-mechanism defense.
 ///
-/// # Audit hints
+/// # Audit hints (planned — not yet emitted)
 ///
 /// - `adcc-single-mechanism-only` — only one of the two mechanisms
-///   detectable on the site
+///   detectable on the site. **Not implemented at v0.2**: `#[adcc]` is a pure
+///   documentation marker today; the `AdccSingleMechanismOnly` `AuditHint`
+///   variant exists but is never produced (no mechanism-detection audit pass
+///   yet). This hint is a forward-plan, not current behavior — do not rely on
+///   it firing.
 #[proc_macro_attribute]
 pub fn adcc(args: TokenStream, input: TokenStream) -> TokenStream {
     let args = parse_macro_input!(args as parse::AdccArgs);
