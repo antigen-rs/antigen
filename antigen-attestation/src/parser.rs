@@ -896,13 +896,28 @@ fn signature_strength_from_str(s: &LitStr) -> syn::Result<crate::tier::Signature
         "text-stamp" => Ok(crate::tier::SignatureStrength::TextStamp),
         "git-trust" => Ok(crate::tier::SignatureStrength::GitTrust),
         "crypto-signed" => Ok(crate::tier::SignatureStrength::CryptoSigned),
-        other => Err(syn::Error::new(
-            s.span(),
-            format!(
-                "unknown signature strength `{other}`; \
-                 expected \"text-stamp\", \"git-trust\", or \"crypto-signed\""
-            ),
-        )),
+        // The same value is spelled three ways across surfaces: PascalCase
+        // (the Rust type), snake_case (the serde sidecar-JSON wire form), and
+        // kebab-case (the `--strength` CLI flag AND this DSL). An adopter who
+        // reaches for the wrong-surface spelling — most likely the snake_case
+        // wire form seen in a sidecar — should get a redirect, not an opaque
+        // miss (aristotle's F1/F5 affordance-trap ruling; the per-leaf-
+        // diagnostic discipline applied to this cross-surface seam).
+        other => {
+            let snake_case_hint = if other.contains('_') {
+                " (note: kebab-case, matching the `cargo antigen --strength` flag \
+                 — not the snake_case sidecar-JSON wire form)"
+            } else {
+                ""
+            };
+            Err(syn::Error::new(
+                s.span(),
+                format!(
+                    "unknown signature strength `{other}`; expected one of: \
+                     \"text-stamp\", \"git-trust\", \"crypto-signed\"{snake_case_hint}"
+                ),
+            ))
+        }
     }
 }
 
