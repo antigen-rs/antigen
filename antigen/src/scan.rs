@@ -3075,6 +3075,8 @@ fn synthesis_pass(
                 syn::Item::Impl(_) => Some(antigen_fingerprint::ItemKind::Impl),
                 syn::Item::Type(_) => Some(antigen_fingerprint::ItemKind::Type),
                 syn::Item::Mod(_) => Some(antigen_fingerprint::ItemKind::Mod),
+                syn::Item::Const(_) => Some(antigen_fingerprint::ItemKind::Const),
+                syn::Item::Static(_) => Some(antigen_fingerprint::ItemKind::Static),
                 _ => None,
             };
 
@@ -3131,6 +3133,8 @@ fn synthesis_pass(
                     syn::Item::Fn(i) => antigen_fingerprint::structural_digest(i),
                     syn::Item::Type(i) => antigen_fingerprint::structural_digest(i),
                     syn::Item::Impl(i) => antigen_fingerprint::structural_digest(i),
+                    syn::Item::Const(i) => antigen_fingerprint::structural_digest(i),
+                    syn::Item::Static(i) => antigen_fingerprint::structural_digest(i),
                     _ => String::new(),
                 };
 
@@ -3170,7 +3174,9 @@ fn item_kind_and_target(item: &syn::Item) -> Option<(&'static str, ItemTarget)> 
                 },
             ))
         }
-        // `mod` items are not yet modeled in `ItemTarget`; skip for synthesis.
+        syn::Item::Const(c) => Some(("const", ItemTarget::Const(c.ident.to_string()))),
+        syn::Item::Static(s) => Some(("static", ItemTarget::Static(s.ident.to_string()))),
+        // `mod` items and other unmodeled kinds are skipped for synthesis.
         _ => None,
     }
 }

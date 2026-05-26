@@ -50,6 +50,8 @@ const fn item_kind_matches(item: &syn::Item, kind: ItemKind) -> bool {
             | (syn::Item::Impl(_), ItemKind::Impl)
             | (syn::Item::Type(_), ItemKind::Type)
             | (syn::Item::Mod(_), ItemKind::Mod)
+            | (syn::Item::Const(_), ItemKind::Const)
+            | (syn::Item::Static(_), ItemKind::Static)
     )
 }
 
@@ -61,6 +63,8 @@ fn item_name(item: &syn::Item) -> Option<String> {
         syn::Item::Fn(f) => Some(f.sig.ident.to_string()),
         syn::Item::Type(t) => Some(t.ident.to_string()),
         syn::Item::Mod(m) => Some(m.ident.to_string()),
+        syn::Item::Const(c) => Some(c.ident.to_string()),
+        syn::Item::Static(s) => Some(s.ident.to_string()),
         // `impl` blocks have no name; for `impl T for U` we use U's ident if
         // it's a single-segment path. Most users will combine
         // `item = impl` with other constraints rather than `name = matches`.
@@ -81,6 +85,8 @@ fn item_attrs(item: &syn::Item) -> &[syn::Attribute] {
         syn::Item::Impl(i) => &i.attrs,
         syn::Item::Type(t) => &t.attrs,
         syn::Item::Mod(m) => &m.attrs,
+        syn::Item::Const(c) => &c.attrs,
+        syn::Item::Static(s) => &s.attrs,
         _ => &[],
     }
 }

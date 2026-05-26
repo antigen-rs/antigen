@@ -184,6 +184,10 @@ pub enum ItemKind {
     Type,
     /// `mod m { ... }`
     Mod,
+    /// `const NAME: T = ...;` — free-standing const item.
+    Const,
+    /// `static NAME: T = ...;` — free-standing static item.
+    Static,
 }
 
 impl ItemKind {
@@ -197,6 +201,8 @@ impl ItemKind {
             "impl" => Self::Impl,
             "type" => Self::Type,
             "mod" => Self::Mod,
+            "const" => Self::Const,
+            "static" => Self::Static,
             _ => return None,
         })
     }
@@ -212,6 +218,8 @@ impl ItemKind {
             Self::Impl => "impl",
             Self::Type => "type",
             Self::Mod => "mod",
+            Self::Const => "const",
+            Self::Static => "static",
         }
     }
 }
