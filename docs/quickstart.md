@@ -152,9 +152,7 @@ You declared a named failure-class with a structural fingerprint. `cargo antigen
 
 For each surfaced site, you have three choices:
 
-- **`#[immune(PanickingInDrop, ...)]`** — claim the site is protected. The evidence takes one of two forms, and **the quick test is: can a test execute the thing you're defending?**
-  - **Yes → `witness = some_test`** — the failure-class is about behavior, so a test/proptest/lint/proof exercises it. (`PanickingInDrop` is this: a test that drops the value and checks it doesn't panic.)
-  - **No → `requires = signers(...)` / `requires = ratified_doc(...)`** — the failure-class is about substrate state that could diverge from reality (a stale doc, an unpinned dependency, an un-reviewed discipline); the evidence lives *outside the code* as a sign-off or ratified record. See the substrate-witness section of [`tutorial.md`](tutorial.md).
+- **`#[immune(PanickingInDrop, ...)]`** — claim the site is protected. Quick test: **can a test execute the thing you're defending?** Yes → `witness = some_test` (a test/proptest/proof exercises the behavior — e.g. drop and check no panic); No → `requires = signers(...)` or `requires = ratified_doc(...)` (evidence lives outside the code: a stale doc, an unpinned dep, an un-reviewed discipline). Full substrate-witness path: [`tutorial.md`](tutorial.md).
 - **`#[antigen_tolerance(PanickingInDrop, rationale = "...")]`** — acknowledge the match is intentional or accepted, with required justification
 - **Refactor** — eliminate the failure-class shape
 
