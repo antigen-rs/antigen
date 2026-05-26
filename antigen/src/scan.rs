@@ -4226,6 +4226,31 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
         syn::visit::visit_impl_item_type(self, item);
     }
 
+    fn visit_impl_item_macro(&mut self, item: &'ast syn::ImplItemMacro) {
+        // ATK-A2-IMPL-ITEM-MACRO: route a macro invocation inside an impl block
+        // through check_attrs so `#[presents]` on patterns like
+        // `#[presents(X)] delegate!()` is not silently ignored.
+        // Same blind-spot class as impl_item_fn/const/type — the attrs field
+        // exists and is valid, but without this override it is never visited.
+        let mac_name = item
+            .mac
+            .path
+            .segments
+            .last()
+            .map_or_else(|| "(macro)".to_string(), |s| s.ident.to_string());
+        let target = self.impl_stack.last().map_or_else(
+            || ItemTarget::Fn(mac_name.clone()),
+            |(trait_path, target_type)| ItemTarget::ImplConst {
+                trait_path: trait_path.clone(),
+                target_type: target_type.clone(),
+                const_name: mac_name.clone(),
+            },
+        );
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.check_attrs(&item.attrs, "impl_macro", &target);
+        syn::visit::visit_impl_item_macro(self, item);
+    }
+
     fn visit_item_trait(&mut self, item: &'ast syn::ItemTrait) {
         let target = ItemTarget::Trait(item.ident.to_string());
         self.current_item_digest = antigen_fingerprint::structural_digest(item);
@@ -4279,6 +4304,29 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
         self.current_item_digest = antigen_fingerprint::structural_digest(item);
         self.check_attrs(&item.attrs, "trait_type", &target);
         syn::visit::visit_trait_item_type(self, item);
+    }
+
+    fn visit_trait_item_macro(&mut self, item: &'ast syn::TraitItemMacro) {
+        // ATK-A2-TRAIT-ITEM-MACRO: route a macro invocation inside a trait body
+        // through check_attrs so `#[presents]` on trait-body macro expansions
+        // (blanket-impl helpers, proc-macro trait-body generators) is not silently
+        // ignored. Same blind-spot class as trait_item_fn/const/type.
+        let mac_name = item
+            .mac
+            .path
+            .segments
+            .last()
+            .map_or_else(|| "(macro)".to_string(), |s| s.ident.to_string());
+        let target = self.trait_stack.last().map_or_else(
+            || ItemTarget::Fn(mac_name.clone()),
+            |trait_name| ItemTarget::TraitFn {
+                trait_name: trait_name.clone(),
+                fn_name: mac_name.clone(),
+            },
+        );
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.check_attrs(&item.attrs, "trait_macro", &target);
+        syn::visit::visit_trait_item_macro(self, item);
     }
 
     fn visit_item_type(&mut self, item: &'ast syn::ItemType) {

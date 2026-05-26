@@ -196,6 +196,8 @@ impl_has_attributes!(
     syn::ItemMod,
     syn::ItemTraitAlias,
     syn::ItemUnion,
+    syn::ImplItemMacro,
+    syn::TraitItemMacro,
 );
 
 #[cfg(test)]
