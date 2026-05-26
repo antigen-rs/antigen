@@ -218,7 +218,12 @@ item = fn, attr_present("test")
 ### `doc_contains("<substring>")`
 
 Matches an item whose doc-comment text contains the given substring.
-Case-sensitive. Searches across all `///` doc comments on the item.
+Case-sensitive. Searches across all `///` doc comments on the item itself.
+
+**Scope note**: reads the item's own doc attributes only — not doc comments on
+fields inside a struct body, not doc comments on methods inside an `impl` block.
+To surface items that *have a method* containing specific text, pair `item = impl`
+with `has_method` rather than `doc_contains`.
 
 ```
 doc_contains("lattice")
