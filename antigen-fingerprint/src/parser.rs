@@ -126,10 +126,10 @@ fn parse_has_method(input: ParseStream) -> syn::Result<Constraint> {
     parenthesized!(content in input);
     let name_lit: LitStr = content.parse()?;
     let name = name_lit.value();
-    if name.is_empty() {
+    if name.trim().is_empty() {
         return Err(syn::Error::new(
             name_lit.span(),
-            "has_method name must not be empty",
+            "has_method name must not be empty or whitespace-only",
         ));
     }
     content.parse::<Token![,]>()?;
@@ -209,10 +209,10 @@ fn parse_doc_contains(input: ParseStream) -> syn::Result<Constraint> {
     parenthesized!(content in input);
     let lit: LitStr = content.parse()?;
     let needle = lit.value();
-    if needle.is_empty() {
+    if needle.trim().is_empty() {
         return Err(syn::Error::new(
             lit.span(),
-            "doc_contains substring must not be empty",
+            "doc_contains substring must not be empty or whitespace-only",
         ));
     }
     Ok(Constraint::DocContains(needle))
@@ -631,5 +631,72 @@ mod tests {
     fn node_kind_none_when_unconstrained() {
         let fp = parse(r#"name = matches("*")"#).unwrap();
         assert_eq!(fp.node_kind(), None);
+    }
+
+    #[test]
+    fn rejects_double_negation_not_inside_not() {
+        // ATK-FP-DOUBLE-NOT: not(not(X)) is equivalent to X but the ADR requires
+        // explicit positive form. Per check_not_placement line 342: not inside not
+        // is NOT in legal all_of context — rejected.
+        let err = parse(r#"all_of([not(not(item = enum)), item = struct])"#)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            err.contains("not"),
+            "ATK-FP-DOUBLE-NOT: not(not(item = enum)) inside all_of should be rejected. Got: {err}"
+        );
+    }
+
+    #[test]
+    fn rejects_whitespace_only_has_method_name() {
+        // ATK-FP-WHITESPACE-HM: has_method name guard uses is_empty() (line 129)
+        // not trim().is_empty() — a whitespace-only method name " " would be accepted.
+        // Consistent with other parsers (attr_present, body_contains_macro use trim()).
+        // Practically: matching a method named " " would never fire (no such method
+        // exists), making this a silent miss rather than a false positive. Still wrong.
+        //
+        // NOTE: This test verifies the inconsistency exists. If it PASSES, the fix
+        // landed. If it fails with "called unwrap_err on Ok", the gap is real.
+        let result = parse(r#"has_method(" ", "() -> ()")"#);
+        assert!(
+            result.is_err(),
+            "ATK-FP-WHITESPACE-HM: has_method(' ', '() -> ()') with whitespace-only name \
+             should be rejected (consistent with attr_present/body_contains_macro which use \
+             trim().is_empty()). parse_has_method line 129 uses is_empty() not trim().is_empty(). \
+             Accepted: {:?}",
+            result.ok()
+        );
+    }
+
+    #[test]
+    fn rejects_whitespace_only_doc_contains() {
+        // ATK-FP-WHITESPACE-DOC: a whitespace-only doc_contains pattern (e.g.,
+        // " " or "\t") passes the non-empty check but acts as a near-universal
+        // matcher — most doc strings contain spaces, so doc_contains(" ") matches
+        // almost every struct/fn with a doc comment. This is an adversarial input
+        // that produces a fingerprint with effectively zero specificity, silently
+        // raising false positives for every site that has any doc comment.
+        //
+        // The parser accepts empty-string and rejects it (line 212). It must also
+        // reject strings that are all-whitespace after trim().
+        let err_space = parse(r#"doc_contains(" ")"#)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            err_space.contains("empty") || err_space.contains("whitespace"),
+            "ATK-FP-WHITESPACE-DOC: doc_contains(' ') (single space) must be rejected. \
+             A whitespace-only needle matches any doc string with a space, making the \
+             fingerprint a near-universal matcher with zero specificity. \
+             Parser should reject needles that are all-whitespace (trim().is_empty()). \
+             Got error: {err_space}"
+        );
+        let err_tab = parse(r#"doc_contains("\t")"#)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            err_tab.contains("empty") || err_tab.contains("whitespace"),
+            "ATK-FP-WHITESPACE-DOC: doc_contains('\\t') (tab) must also be rejected. \
+             Got error: {err_tab}"
+        );
     }
 }
