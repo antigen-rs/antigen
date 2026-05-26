@@ -537,4 +537,98 @@ Campsites: 54 total — 21 open, 2 partial, 29 complete, 2 blocked
 
 **Peer-review flag dropped**: F5's `required=NAMES` decision was inherited from impl, not deliberate design. Observer note on campsite points this out for the ADR record.
 
+**Block-staleness question**: Routed to navigator (camp question `952ae25e`).
+
+---
+
+## Step 14: Post-Navigator-Update — Coverage Terrain Audit
+
+**Date**: 2026-05-26 (second wake, after navigator message)  
+**Git HEAD**: `8408838`  
+**Commits since sleep**: 10 new commits (f2270fe through 8408838)  
+**Test count**: 819 passed, 48 ignored — all green
+
+### Summary of Commits Since Sleep
+
+| Commit | Content |
+|---|---|
+| `f2270fe` | dogfood: #[immune] AuditFingerprintSelfReferential + fix string-literal witnesses |
+| `9ab47bc` | fix(dx): DSL roles= field, witness string-literal guard, example drift (F3+F5+F7 in commit message — F7 here = DSL capability, not per-leaf diagnostics) |
+| `21e7687` | fix(macros): reject string-literal #[immune] witness with a clear error |
+| `57cf56e` | test(macros): trybuild fixture for witness string-literal rejection guard |
+| `259c13d` | test(dx): mark f3 audit-warning test ignored pending fix |
+| `8bb3a4d` | fix(dx): Finding 3 — warn when code-witness site has orphan substrate sidecar |
+| `2d0718e` | dogfood: declare SilentSemanticMismatchAtTrustBoundary antigen (#14) |
+| `f21ba1f` | docs(readme): explicit antibody→witness bridge + requires= row in metaphor map |
+| `3200ad5` | docs(adr): draft ADR-028 Amendment 5 — encounter-status axis |
+| `8408838` | docs(macros): mark #[polyclonal]/#[adcc] audit hints as planned, not emitted |
+
+### Key State Change vs Prior Session
+
+**F3, F5 now CLOSED** (per campsite substrate verification):
+- `findings/sidecar-witness-disconnect-warning` — COMPLETE (2/2)
+- `findings/signers-name-vs-role-and-example-drift` — still PARTIAL (2/3); pathmaker needs to sign
+
+**New antigens declared**: #14 `SilentSemanticMismatchAtTrustBoundary`
+
+**New campsite**: `findings/dsl-signers-capability-omission`, `findings/eval-leaf-not-evaluated-arm` (explicit completion, navigator note only)
+
+### Coverage Terrain Assessment
+
+**Zero production `#[immune]`/`#[presents]` usage**: Verified by grep — no actual antigen markers in any non-example, non-dogfood source file. The comprehensive-coverage goal is at 0%.
+
+**Working tree state**: `parser.rs` (120 lines) + `audit.rs` (6 lines) + `docs/immune-system-primitive-map.md` in progress. The parser.rs changes are `signature_allow`/`signature_prefer` DSL extension (dsl-signers-capability-omission follow-up), not EvalNode/F7.
+
+**Coverage gaps verified from scout terrain notes**:
+
+1. **`antigen-macros/src/lib.rs`**: Zero immune/presents markers. `polyclonal()` and `adcc()` functions present `DeclaredCapabilityWithNoProductionPath` — the promised audit hints never fire. Macro rustdoc fixed in `8408838`, but NO `#[presents]` marker yet. The `DeclaredCapabilityWithNoProductionPath` antigen (dogfood.rs:763) exists to be pointed at; no one is pointing at it.
+
+2. **`antigen/src/audit.rs:443-448`**: `PolyclonalInsufficientLineages` and `AdccSingleMechanismOnly` enum variants have doc comments describing active behavior, zero construction sites. The macros doc was fixed in `8408838` but audit.rs doc was deferred. These variants now also deserve `#[presents(DeclaredCapabilityWithNoProductionPath)]`.
+
+3. **`antigen-macros/src/parse.rs:339`** (`ImmuneArgs::validate()`): No `#[immune(WitnessClaimWithoutImplementation)]` despite the scout identifying this as the defense site for string-literal witnesses. The `immune_witness_string_literal` trybuild fixture (`57cf56e`) is the witness, but the `#[immune]` pointing to it from `ImmuneArgs::validate()` doesn't exist.
+
+4. **`antigen/src/supply_chain/evaluate.rs:27-42`**: Path construction from user-supplied `crate_name` without sanitization. `dep_attest_path()`, `content_hash_path()`, `maintainer_path()` all format `crate_name` directly into paths. Crate names from crates.io can't contain `/` by convention, but the function signature doesn't enforce this. A `#[presents]` on the path-building functions would make this constraint explicit.
+
+5. **`signature_allow`/`signature_prefer` DSL extension** (in working tree): The parser.rs working tree change adds these fields. Once committed, they enable the parser coverage that was previously missing for Leaf::Signers. The corresponding `#[immune]` on `parse_signers()` or `to_leaf()` for `CapabilityOmissionAtLowering` isn't drafted yet.
+
+### Observer Finding: EvalNode/F7 Status Clarification
+
+The "7" in commit `9ab47bc`'s "findings 3+5+7" refers to the DSL capability omission (aristotle's F7 internal numbering = DSL fields missing from signers DSL). This is DIFFERENT from my F7 = `attest-check-per-leaf-diagnostics` (EvaluatedPredicate per-leaf traces). The per-leaf diagnostics campsite (`findings/attest-check-per-leaf-diagnostics`) is still at 0/2 — not started.
+
+Navigator confirmed pathmaker is "building EvalNode" — but the working tree shows `signature_allow`/`signature_prefer` DSL work, not EvalNode. Either EvalNode work hasn't started yet, or it's in a different location. Observer notes: the `findings/eval-leaf-not-evaluated-arm` campsite (seeded by navigator at 03:10) documents that when EvalNode lands, it needs a `NotEvaluatedHere` third arm to avoid supply-chain leaves lying about failure vs not-evaluated. This dependency is documented in the campsite.
+
+### Highest-Value Observer Actions
+
+1. **Watch for EvalNode landing** — verify it has `NotEvaluatedHere` arm per `eval-leaf-not-evaluated-arm` campsite
+2. **audit.rs dead variants doc update** — low-friction, unblocked; observer can note to pathmaker
+3. **`#[presents]` marking coverage** — when pathmaker completes F7, the presenting sites are: `polyclonal()`/`adcc()` functions, `PolyclonalInsufficientLineages`/`AdccSingleMechanismOnly` enum variants, `dep_attest_path()` and siblings, `ImmuneArgs::validate()` site
+4. **`dogfood/comprehensive-antigen-coverage`** — observer should NOT sign until #[presents] markers are added to at least some production code and at least one Execution-tier substrate-witness claim exists
+
+---
+
+## Step 15: Critical Gap — Ratified-But-Unimplemented Antigen Family
+
+**Hypothesis**: The team's camp notes contain ratified antigen declarations that have not been committed to dogfood.rs.
+
+**Verification**:
+- grep for `SilentIntentNullification`, `ActiveArgumentDiscard`, `CapabilityOmissionAtLowering`, `DeferredIntentNullification`, `AntigenFingerprintDivergesFromClassExtension` in dogfood.rs → **zero matches**
+- `SilentArgumentDiscard` still present at line 415 (not renamed to `ActiveArgumentDiscard`)
+- Total declared antigens in dogfood.rs: **15** (verified via pub struct count)
+
+**Ratified-but-uncommitted** (all from aristotle F5/F8 notes + naturalist convergence, 02:18-02:32 UTC):
+
+1. **`SilentIntentNullification`** — parent antigen for the nullification family; rational: the summary in dogfood.rs for `SilentArgumentDiscard` already described this parent scope before anyone named it explicitly
+2. **`ActiveArgumentDiscard`** — rename of existing `SilentArgumentDiscard`; `#[descended_from(SilentIntentNullification)]`; behavioral witness
+3. **`CapabilityOmissionAtLowering`** — new child; `#[descended_from(SilentIntentNullification)]`; site = `parse_signers()` → `to_leaf()` lowering; structural parity-test witness
+4. **`DeferredIntentNullification`** — predicted 3rd child; vaccinated state; held awaiting first instance
+5. **`AntigenFingerprintDivergesFromClassExtension`** — meta-antigen; rename from `AntigenFingerprintUnderCoversItsOwnClass` (which itself was never declared); scope-comparison witness
+
+**Conclusion**: Camp substrate ratification records a design decision; code substrate is the authoritative source. Until these are committed, the ratification is fragile — it lives only in camp notes, not in git history.
+
+**Observer action**: Camp note dropped on `dogfood/fingerprint-extension-not-instance-shape` and `dogfood/antigen-on-antigen-continuous` to surface this to pathmaker. Navigator notified via camp question `b5e405d0` (convergence pattern note).
+
+**Sequencing dependency**: `CapabilityOmissionAtLowering` requires the F2 parity-test witness to exist first (the test needs to be written before the `#[immune]` marker can be added to `to_leaf()`).
+
+**Observer sign-gate update**: Observer will NOT sign `dogfood/fingerprint-extension-not-instance-shape` until at minimum items 2-3 are committed (parent + the two concrete children). Items 4-5 can lag.
+
 **Block-staleness question**: Routed to navigator (camp question `952ae25e`) — what's the protocol for adversarial to clear stale blocks?

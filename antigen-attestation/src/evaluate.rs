@@ -87,6 +87,12 @@ pub struct EvaluatedPredicate {
     /// v0.1; `None` when no signers exist (e.g., predicate failed
     /// before signer-check).
     pub signature_strength: Option<SignatureStrength>,
+    /// Per-leaf evaluation outcomes (Finding 7), in evaluation order. Lets
+    /// `attest check` / `audit` render which leaf passed/failed and why —
+    /// `expected X, found Y` — instead of an opaque tree-level
+    /// `DisciplinePredicateFailed`. Empty for the infrastructure-failure
+    /// constructors (`sidecar_missing` etc.) where no predicate walk occurred.
+    pub leaf_outcomes: Vec<LeafOutcome>,
 }
 
 impl EvaluatedPredicate {
@@ -99,6 +105,7 @@ impl EvaluatedPredicate {
             audit_hint: AuditHint::DisciplineSidecarMissing,
             evidence_kind: EvidenceKind::SubstrateState,
             signature_strength: None,
+            leaf_outcomes: Vec::new(),
         }
     }
 
@@ -110,6 +117,7 @@ impl EvaluatedPredicate {
             audit_hint: AuditHint::DisciplineSidecarSchemaInvalid,
             evidence_kind: EvidenceKind::SubstrateState,
             signature_strength: None,
+            leaf_outcomes: Vec::new(),
         }
     }
 
@@ -123,6 +131,88 @@ impl EvaluatedPredicate {
             audit_hint: AuditHint::ToleranceVibesGrade,
             evidence_kind: EvidenceKind::None,
             signature_strength: None,
+            leaf_outcomes: Vec::new(),
+        }
+    }
+}
+
+/// The outcome of evaluating a single predicate **leaf**, carrying both the
+/// pass/fail verdict and a human-readable reason (Finding 7).
+///
+/// The reason is always populated — on PASS it states what was satisfied, on
+/// FAIL it states expected-vs-found — so a failing compound predicate can be
+/// explained leaf-by-leaf instead of collapsing to an opaque
+/// `DisciplinePredicateFailed`. Debugging the name-vs-role confusion (Finding
+/// 5) previously required reading the evaluator source; with this the audit
+/// says `signers(required=["camp-maintainer"]): FAIL — no signer named
+/// "camp-maintainer" (found names: ["Claude"])`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LeafOutcome {
+    /// Short leaf label, e.g. `signers(required=["alice"])` or
+    /// `fresh_within_days(90)`. Identifies which leaf this outcome is for.
+    pub label: String,
+    /// Whether the leaf passed.
+    pub passed: bool,
+    /// Human-readable reason. On FAIL: expected-vs-found. On PASS: what was
+    /// satisfied. Never empty.
+    pub reason: String,
+}
+
+/// The evaluation of a predicate (sub)tree, mirroring [`Predicate`]'s shape so
+/// that per-leaf diagnostics retain their `all_of` / `any_of` / `not` context
+/// (Finding 7).
+///
+/// This is the **single** evaluation path: [`Self::passed`] is the boolean the
+/// tier/hint classification consumes, and [`Self::leaf_outcomes`] is the
+/// per-leaf diagnostic stream rendered by `attest check` / `audit`. There is no
+/// separate "explain pass" — the verdict and the explanation are produced by
+/// the same walk, so they cannot drift (a `RatifiedSpecDriftFromImpl` shape
+/// that a parallel explain-pass would have risked).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum EvalNode {
+    /// A leaf evaluation with its outcome.
+    Leaf(LeafOutcome),
+    /// `all_of` — passes iff every child passes.
+    AllOf(Vec<Self>),
+    /// `any_of` — passes iff at least one child passes.
+    AnyOf(Vec<Self>),
+    /// `not` — passes iff the child does not.
+    Not(Box<Self>),
+}
+
+impl EvalNode {
+    /// The boolean verdict for this (sub)tree. Equivalent to the bare-`bool`
+    /// the pre-Finding-7 evaluator returned.
+    #[must_use]
+    pub fn passed(&self) -> bool {
+        match self {
+            Self::Leaf(o) => o.passed,
+            Self::AllOf(children) => children.iter().all(Self::passed),
+            Self::AnyOf(children) => children.iter().any(Self::passed),
+            Self::Not(child) => !child.passed(),
+        }
+    }
+
+    /// Flatten the tree to its leaf outcomes in evaluation order, for
+    /// rendering. Composites (`all_of`/`any_of`/`not`) contribute their
+    /// children's leaves; the verdict of a composite is derivable from its
+    /// leaves plus the combinator, so the renderer can reconstruct context.
+    #[must_use]
+    pub fn leaf_outcomes(&self) -> Vec<LeafOutcome> {
+        let mut out = Vec::new();
+        self.collect_leaves(&mut out);
+        out
+    }
+
+    fn collect_leaves(&self, out: &mut Vec<LeafOutcome>) {
+        match self {
+            Self::Leaf(o) => out.push(o.clone()),
+            Self::AllOf(children) | Self::AnyOf(children) => {
+                for c in children {
+                    c.collect_leaves(out);
+                }
+            }
+            Self::Not(child) => child.collect_leaves(out),
         }
     }
 }
@@ -208,12 +298,13 @@ pub fn evaluate_predicate_with_kind<C: EvaluationContext>(
     }
 
     // 2. Recursively evaluate the predicate. The recursive evaluator
-    //    returns just bool (predicate-pass result); axis derivation
-    //    happens after we know the boolean result + the per-signer
-    //    delta-chain + freshness state of the sidecar.
-    let predicate_passed = eval_pred(predicate, item, current_fingerprint, item_source_file, ctx);
+    //    returns an EvalNode tree carrying both the pass/fail verdict and
+    //    per-leaf reasons (Finding 7: single eval path, no separate explain-pass).
+    //    Axis classification happens after we know the verdict + per-signer state.
+    let predicate_node = eval_pred(predicate, item, current_fingerprint, item_source_file, ctx);
+    let leaf_outcomes = predicate_node.leaf_outcomes();
 
-    if !predicate_passed {
+    if !predicate_node.passed() {
         let failed_hint = match kind {
             RatificationKind::Tolerance => AuditHint::TolerancePredicateFailed,
             RatificationKind::Immunity => AuditHint::DisciplinePredicateFailed,
@@ -223,42 +314,57 @@ pub fn evaluate_predicate_with_kind<C: EvaluationContext>(
             audit_hint: failed_hint,
             evidence_kind: EvidenceKind::SubstrateState,
             signature_strength: None,
+            leaf_outcomes,
         });
     }
 
     // 3. Predicate passed. Derive tier + hint from the sidecar's signer
     //    state: stale signers; delta-chain-near-cap; via-delta-chain;
     //    all-fresh. The M5 table differs between immunity and tolerance.
-    Ok(classify_passed_predicate(
-        item,
-        current_fingerprint,
-        kind,
-        ctx,
-    ))
+    let mut passed = classify_passed_predicate(item, current_fingerprint, kind, ctx);
+    passed.leaf_outcomes = leaf_outcomes;
+    Ok(passed)
 }
 
-/// Recursive predicate evaluation. Returns `true` if the predicate
-/// passes against the sidecar + IO context. Pure-bool result; axis
-/// classification happens in the caller after we know the bool plus
-/// the per-signer state.
+/// Recursive predicate evaluation. Returns an [`EvalNode`] tree carrying both
+/// the pass/fail verdict (via [`EvalNode::passed`]) and per-leaf reasons (via
+/// [`EvalNode::leaf_outcomes`]). Axis classification happens in the caller after
+/// we know the verdict plus the per-signer state (Finding 7: single eval path,
+/// no separate explain-pass).
 fn eval_pred<C: EvaluationContext>(
     p: &Predicate,
     item: &ItemRatification,
     current_fingerprint: &str,
     item_source_file: &Path,
     ctx: &C,
-) -> bool {
+) -> EvalNode {
     match p {
-        Predicate::Leaf(leaf) => eval_leaf(leaf, item, current_fingerprint, item_source_file, ctx),
-        Predicate::AllOf { children } => children
-            .iter()
-            .all(|c| eval_pred(c, item, current_fingerprint, item_source_file, ctx)),
-        Predicate::AnyOf { children } => children
-            .iter()
-            .any(|c| eval_pred(c, item, current_fingerprint, item_source_file, ctx)),
-        Predicate::Not { child } => {
-            !eval_pred(child, item, current_fingerprint, item_source_file, ctx)
-        }
+        Predicate::Leaf(leaf) => EvalNode::Leaf(eval_leaf(
+            leaf,
+            item,
+            current_fingerprint,
+            item_source_file,
+            ctx,
+        )),
+        Predicate::AllOf { children } => EvalNode::AllOf(
+            children
+                .iter()
+                .map(|c| eval_pred(c, item, current_fingerprint, item_source_file, ctx))
+                .collect(),
+        ),
+        Predicate::AnyOf { children } => EvalNode::AnyOf(
+            children
+                .iter()
+                .map(|c| eval_pred(c, item, current_fingerprint, item_source_file, ctx))
+                .collect(),
+        ),
+        Predicate::Not { child } => EvalNode::Not(Box::new(eval_pred(
+            child,
+            item,
+            current_fingerprint,
+            item_source_file,
+            ctx,
+        ))),
     }
 }
 
@@ -268,7 +374,7 @@ fn eval_leaf<C: EvaluationContext>(
     current_fingerprint: &str,
     item_source_file: &Path,
     ctx: &C,
-) -> bool {
+) -> LeafOutcome {
     match leaf {
         Leaf::RatifiedDoc {
             path,
@@ -324,7 +430,15 @@ fn eval_leaf<C: EvaluationContext>(
         | Leaf::DepAttested { .. }
         | Leaf::MaintainerUnchanged { .. }
         | Leaf::ContentHashMatches { .. }
-        | Leaf::SandboxClean { .. } => false,
+        | Leaf::SandboxClean { .. } => LeafOutcome {
+            label: "supply-chain-leaf".to_string(),
+            passed: false,
+            reason: "supply-chain leaves are not evaluated by the standard \
+                     predicate evaluator; drive `cargo antigen verify` (the \
+                     supply-chain audit layer) instead. Reported as FAIL here \
+                     per honest-tier-naming (ADR-005 Amd 2)."
+                .to_string(),
+        },
     }
 }
 
@@ -335,28 +449,45 @@ fn eval_ratified_doc<C: EvaluationContext>(
     sibling_json: bool,
     item: &ItemRatification,
     ctx: &C,
-) -> bool {
-    // Resolve the doc path: prefer explicit `path`, fall back to item's
-    // `doc_ref.path` (one indirection).
-    let path = match explicit_path {
-        Some(p) => p.to_path_buf(),
-        None => match &item.doc_ref {
-            Some(dr) => dr.path.clone(),
-            None => return false, // no doc to check
-        },
+) -> LeafOutcome {
+    let label = "ratified_doc".to_string();
+    let fail = |reason: String| LeafOutcome {
+        label: label.clone(),
+        passed: false,
+        reason,
     };
 
+    // Resolve the doc path: prefer explicit `path`, fall back to item's
+    // `doc_ref.path` (one indirection).
+    let path =
+        match explicit_path {
+            Some(p) => p.to_path_buf(),
+            None => match &item.doc_ref {
+                Some(dr) => dr.path.clone(),
+                None => return fail(
+                    "no doc to check — neither an explicit `path` nor an item `doc_ref` was set"
+                        .to_string(),
+                ),
+            },
+        };
+
     let Some(content) = ctx.read_doc(&path) else {
-        return false;
+        return fail(format!("doc not found or unreadable: `{}`", path.display()));
     };
 
     // Frontmatter version check (if min_version is requested).
     if let Some(min) = min_version {
         let Some(found_version) = parse_frontmatter_version(&content) else {
-            return false;
+            return fail(format!(
+                "doc `{}` has no parseable frontmatter version (required min_version `{min}`)",
+                path.display()
+            ));
         };
         if compare_versions(&found_version, min) == std::cmp::Ordering::Less {
-            return false;
+            return fail(format!(
+                "doc `{}` version `{found_version}` is below required min_version `{min}`",
+                path.display()
+            ));
         }
     }
 
@@ -365,7 +496,10 @@ fn eval_ratified_doc<C: EvaluationContext>(
     // markdown-heading-slug-aware checking.
     if let Some(a) = anchor {
         if !content.contains(a) {
-            return false;
+            return fail(format!(
+                "doc `{}` does not contain required anchor `{a}`",
+                path.display()
+            ));
         }
     }
 
@@ -373,11 +507,19 @@ fn eval_ratified_doc<C: EvaluationContext>(
     if sibling_json {
         let sibling = sibling_json_path(&path);
         if ctx.read_doc(&sibling).is_none() {
-            return false;
+            return fail(format!(
+                "required sibling JSON `{}` not found next to doc `{}`",
+                sibling.display(),
+                path.display()
+            ));
         }
     }
 
-    true
+    LeafOutcome {
+        label,
+        passed: true,
+        reason: format!("doc `{}` satisfied all checks", path.display()),
+    }
 }
 
 fn eval_signers(
@@ -388,11 +530,38 @@ fn eval_signers(
     _signature_prefer: Option<crate::tier::SignatureStrength>,
     item: &ItemRatification,
     current_fingerprint: &str,
-) -> bool {
+) -> LeafOutcome {
+    let label = format!("signers(required={required:?})");
+    let present_names: Vec<&str> = item.signers.iter().map(|s| s.name.as_str()).collect();
+    let fail = |reason: String| LeafOutcome {
+        label: label.clone(),
+        passed: false,
+        reason,
+    };
+
     for needed in required {
         let candidates: Vec<&Signer> = item.signers.iter().filter(|s| s.name == *needed).collect();
         if candidates.is_empty() {
-            return false;
+            // The Finding-5 case: `required` is matched against signer NAME, not
+            // role. If `needed` happens to be a role one of the present signers
+            // holds, say so explicitly — that is the exact confusion that cost a
+            // 20-minute source dive.
+            let role_held_by_someone = item
+                .signers
+                .iter()
+                .any(|s| s.role.as_deref() == Some(needed.as_str()));
+            let hint = if role_held_by_someone {
+                format!(
+                    " — note: `{needed}` is a signer ROLE here, not a name; \
+                     `required=[...]` matches signer NAMES. Did you mean \
+                     `roles={{<name> = \"{needed}\"}}`?"
+                )
+            } else {
+                String::new()
+            };
+            return fail(format!(
+                "no signer named `{needed}` (found names: {present_names:?}){hint}"
+            ));
         }
         // Currency and role must be satisfied by the SAME candidate entry (NFA-13).
         // Checking them independently allows a signer with the right role on a stale
@@ -412,10 +581,60 @@ fn eval_signers(
             currency_ok && role_ok && strength_ok
         });
         if !any_candidate_satisfies {
-            return false;
+            // Build a specific reason: which sub-constraint failed for `needed`?
+            // Report the first unmet axis across the candidate entries.
+            let mut reasons: Vec<String> = Vec::new();
+            if matches!(against, SignerCurrency::Current)
+                && !candidates
+                    .iter()
+                    .any(|s| s.signed_against_fingerprint == current_fingerprint)
+            {
+                reasons.push(format!(
+                    "no entry for `{needed}` signed against the current fingerprint \
+                     (against=\"current\"; current=`{current_fingerprint}`)"
+                ));
+            }
+            if let Some(r) = expected_role {
+                if !candidates
+                    .iter()
+                    .any(|s| s.role.as_deref() == Some(r.as_str()))
+                {
+                    let found_roles: Vec<Option<&str>> =
+                        candidates.iter().map(|s| s.role.as_deref()).collect();
+                    reasons.push(format!(
+                        "`{needed}` is required to hold role `{r}` but its entries' \
+                         roles are {found_roles:?}"
+                    ));
+                }
+            }
+            if !signature_allow.is_empty()
+                && !candidates
+                    .iter()
+                    .any(|s| signature_allow.contains(&s.strength))
+            {
+                let found_strengths: Vec<_> = candidates.iter().map(|s| s.strength).collect();
+                reasons.push(format!(
+                    "`{needed}` signed at strengths {found_strengths:?} but \
+                     signature_allow requires one of {signature_allow:?}"
+                ));
+            }
+            let detail = if reasons.is_empty() {
+                "no single entry satisfied currency + role + strength together \
+                 (NFA-13: must be the SAME entry)"
+                    .to_string()
+            } else {
+                reasons.join("; ")
+            };
+            return fail(format!(
+                "signer `{needed}` present but unsatisfied: {detail}"
+            ));
         }
     }
-    true
+    LeafOutcome {
+        label,
+        passed: true,
+        reason: format!("all required signers satisfied: {required:?}"),
+    }
 }
 
 fn eval_signed_trailer<C: EvaluationContext>(
@@ -425,10 +644,11 @@ fn eval_signed_trailer<C: EvaluationContext>(
     item_source_file: &Path,
     item_path: &str,
     ctx: &C,
-) -> bool {
+) -> LeafOutcome {
+    let label = format!("signed_trailer(key={key:?})");
     let trailers = ctx.read_git_trailers(item_source_file, item_path);
     let mut hits: u32 = 0;
-    for line in trailers {
+    for line in &trailers {
         // Trailer format: `"Key: value"`. Match by key prefix.
         let Some((found_key, value)) = line.split_once(':') else {
             continue;
@@ -447,20 +667,35 @@ fn eval_signed_trailer<C: EvaluationContext>(
             }
         }
         hits = hits.saturating_add(1);
-        if hits >= count {
-            return true;
+    }
+    let role_clause = role.map_or(String::new(), |r| format!(" with role `{r}`"));
+    if hits >= count {
+        LeafOutcome {
+            label,
+            passed: true,
+            reason: format!("found {hits} matching `{key}` trailer(s){role_clause} (need {count})"),
+        }
+    } else {
+        LeafOutcome {
+            label,
+            passed: false,
+            reason: format!(
+                "found {hits} matching `{key}` trailer(s){role_clause} across \
+                 {} git trailer line(s); need {count}",
+                trailers.len()
+            ),
         }
     }
-    hits >= count
 }
 
 fn eval_oracles_complete<C: EvaluationContext>(
     files: &[std::path::PathBuf],
     item: &ItemRatification,
     ctx: &C,
-) -> bool {
+) -> LeafOutcome {
     use crate::schema::{OracleRef, OracleState};
-    files.iter().all(|p| {
+    let label = "oracles_complete".to_string();
+    let check = |p: &std::path::PathBuf| -> Result<(), String> {
         // NFA-26 fix: check Oracle artifact-class state before falling back to
         // file-content check. If a matching Oracle entry exists in the sidecar,
         // its state governs the evaluation — Draft blocks attestation,
@@ -484,12 +719,39 @@ fn eval_oracles_complete<C: EvaluationContext>(
             });
 
         if oracle_state_blocks {
-            return false;
+            return Err(format!(
+                "oracle `{}` is Draft or Revoked(invalidates=true) — blocks attestation",
+                p.display()
+            ));
         }
 
-        ctx.read_oracle(p)
+        if ctx
+            .read_oracle(p)
             .is_some_and(|content| parse_oracle_status(&content).as_deref() == Some("complete"))
-    })
+        {
+            Ok(())
+        } else {
+            Err(format!(
+                "oracle `{}` is missing or its status is not `complete`",
+                p.display()
+            ))
+        }
+    };
+
+    for p in files {
+        if let Err(reason) = check(p) {
+            return LeafOutcome {
+                label,
+                passed: false,
+                reason,
+            };
+        }
+    }
+    LeafOutcome {
+        label,
+        passed: true,
+        reason: format!("all {} oracle(s) complete", files.len()),
+    }
 }
 
 fn eval_fresh_within_days<C: EvaluationContext>(
@@ -497,7 +759,8 @@ fn eval_fresh_within_days<C: EvaluationContext>(
     item: &ItemRatification,
     current_fingerprint: &str,
     ctx: &C,
-) -> bool {
+) -> LeafOutcome {
+    let label = format!("fresh_within_days({days})");
     // Most recent CURRENT-fingerprint signer's date OR `fresh_through` — whichever is later.
     // NFA-21: stale-fingerprint signer dates must not satisfy a freshness check — a signer
     // who attested against fp-old months ago and never re-attested should not count as fresh.
@@ -514,11 +777,29 @@ fn eval_fresh_within_days<C: EvaluationContext>(
         (None, None) => None,
     };
     let Some(latest) = candidate else {
-        return false;
+        return LeafOutcome {
+            label,
+            passed: false,
+            reason: "no current-fingerprint signer date and no `fresh_through` — \
+                     nothing to measure freshness against (NFA-21: stale-fingerprint \
+                     dates are excluded)"
+                .to_string(),
+        };
     };
     let today = ctx.today();
     let diff_days = (today - latest).num_days();
-    diff_days >= 0 && i128::from(diff_days) <= i128::from(days)
+    let fresh = diff_days >= 0 && i128::from(diff_days) <= i128::from(days);
+    LeafOutcome {
+        label,
+        passed: fresh,
+        reason: if fresh {
+            format!("latest attestation {latest} is {diff_days} day(s) old (≤ {days})")
+        } else if diff_days < 0 {
+            format!("latest attestation {latest} is in the future relative to {today}")
+        } else {
+            format!("latest attestation {latest} is {diff_days} day(s) old (> {days})")
+        },
+    }
 }
 
 /// Given a predicate that passed, classify the sidecar signer state
@@ -545,6 +826,7 @@ fn classify_passed_predicate<C: EvaluationContext>(
             audit_hint: passed_hint,
             evidence_kind: EvidenceKind::SubstrateState,
             signature_strength: None,
+            leaf_outcomes: Vec::new(),
         };
     }
 
@@ -580,6 +862,7 @@ fn classify_passed_predicate<C: EvaluationContext>(
             audit_hint: AuditHint::DisciplineSubstrateStale,
             evidence_kind: EvidenceKind::SubstrateState,
             signature_strength: Some(min_strength),
+            leaf_outcomes: Vec::new(),
         };
     }
 
@@ -606,6 +889,7 @@ fn classify_passed_predicate<C: EvaluationContext>(
             audit_hint: AuditHint::DisciplineSubstrateDeltaChainNearCap,
             evidence_kind: EvidenceKind::SubstrateState,
             signature_strength: Some(min_strength),
+            leaf_outcomes: Vec::new(),
         };
     }
 
@@ -615,6 +899,7 @@ fn classify_passed_predicate<C: EvaluationContext>(
             audit_hint: AuditHint::DisciplinePredicatePassedViaDeltaChain,
             evidence_kind: EvidenceKind::SubstrateState,
             signature_strength: Some(min_strength),
+            leaf_outcomes: Vec::new(),
         };
     }
 
@@ -624,6 +909,7 @@ fn classify_passed_predicate<C: EvaluationContext>(
         audit_hint: passed_hint,
         evidence_kind: EvidenceKind::SubstrateState,
         signature_strength: Some(min_strength),
+        leaf_outcomes: Vec::new(),
     }
 }
 
