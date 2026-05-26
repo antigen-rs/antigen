@@ -10,7 +10,7 @@
 //! it covers. Do NOT remove passing tests — they are regressions guards.
 
 use antigen::audit::{audit, AuditHint, WitnessKind, WitnessStatus, WitnessTier};
-use antigen::scan::{scan_workspace, Immunity, ScanReport};
+use antigen::scan::{scan_workspace, Immunity, MatchKind, ScanReport};
 use std::path::{Path, PathBuf};
 
 fn fixture(name: &str) -> PathBuf {
@@ -1674,5 +1674,58 @@ fn atk_a2_trait_item_macro_presents_is_not_silently_ignored() {
          Fix: add visit_trait_item_macro override to ScanVisitor (parallel to \
          visit_trait_item_fn/const/type).",
         report.presentations.len()
+    );
+}
+
+// ============================================================================
+// ATK-A2-CONST-SYNTHESIS-MISS: fingerprint synthesis silently skips const items.
+//
+// synthesis_pass() calls item_kind_and_target(syn_item) for each top-level item.
+// For syn::Item::Const the function returns None (caught by `_ => None`), causing
+// `continue` — the const is never evaluated against any fingerprint.
+//
+// Consequence: a fingerprint without an `item = <kind>` pin (e.g. only
+// `name = matches("SENTINEL_*")`) should fire for BOTH struct and const items
+// matching the glob. It fires for the struct (ItemTarget::Struct goes through
+// item_kind_and_target), but NOT for the const (silently skipped).
+//
+// This is the ParallelStateTrackersDiverge anti-pattern at the scanner's own
+// design level: Pass 1 (attribute scanning) has visit_item_const; Pass 2
+// (fingerprint synthesis) lacks the matching arm.
+//
+// STATUS: FAILING — synthesis produces 1 match (struct) but must produce 2
+// (struct + const). THREE-WAY gap: (1) item_kind_and_target must handle Const,
+// (2) item_kind_for_dispatch must map Item::Const to ItemKind::Const, AND
+// (3) item_name() in matcher.rs must return the const ident. All three must land.
+// ============================================================================
+
+#[test]
+fn atk_a2_const_synthesis_fingerprint_miss_is_silent() {
+    let report = scan_workspace(&fixture("atk_a2_const_synthesis_miss"), None).unwrap();
+
+    // The fixture declares SentinelSilentMiss with fingerprint `name = matches("SENTINEL_*")`.
+    // Two items match: SENTINEL_StructSite (struct) and SENTINEL_CONST_SITE (const).
+    // Both should appear as FingerprintMatch presentations — but synthesis skips consts.
+    let fp_matches: Vec<_> = report
+        .presentations
+        .iter()
+        .filter(|p| p.match_kind == MatchKind::FingerprintMatch)
+        .collect();
+
+    assert_eq!(
+        fp_matches.len(),
+        2,
+        "ATK-A2-CONST-SYNTHESIS-MISS: fingerprint `name = matches(\"SENTINEL_*\")` \
+         must fire for BOTH SENTINEL_StructSite (struct) AND SENTINEL_CONST_SITE (const). \
+         Got {} FingerprintMatch presentations. \
+         THREE-WAY gap — all three must be fixed together: \
+         (1) item_kind_and_target() must return Some for syn::Item::Const; \
+         (2) item_kind_for_dispatch block in synthesis_pass must map Item::Const to ItemKind::Const; \
+         (3) item_name() in antigen-fingerprint/src/matcher.rs must return const ident. \
+         Currently gap (3) causes name=matches() to return None for const items even \
+         after gaps (1) and (2) are patched. ParallelStateTrackersDiverge at the scanner's \
+         own design level: three separately-maintained const-handling sites with no \
+         compile-time enforcement that they stay in sync.",
+        fp_matches.len()
     );
 }
