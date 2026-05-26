@@ -12,9 +12,8 @@ scaffold and sign `.attest/` sidecars, and run `cargo antigen scan` / `audit`
 end-to-end on day one.
 
 The honest news: there are about eight specific points where a first-time
-adopter trips. Most are now fixed in the macro layer or documented
-prominently in the canonical example. Two remain open as v0.2 silent-failure
-modes — listed here so you can route around them.
+adopter trips. All eight are now fixed in v0.2 — either at the source (macro
+or audit layer) or documented prominently in the canonical example.
 
 This page is the antigen team's audit of its own developer experience.
 
@@ -87,11 +86,43 @@ is reachable.
 '.report.immunities[0].structural_fingerprint'` — returns an `fnv1a64:...`
 string per item.
 
-> **Open subgap:** see "What's still open" below. The fingerprint *is* in the
-> JSON, but a per-item *selector* (e.g. by `item_path`) isn't yet ergonomic —
-> the scan JSON doesn't carry an item-name field on the immunity entry. For
-> the common case (`attest scaffold` already knows `--source-file` and
-> `--item-path`), see the auto-fill discussion below.
+### Signed sidecar on a `witness =` site now warns at audit time
+
+**The trap (older versions):** if you scaffolded and signed an `.attest/`
+sidecar for an antigen whose `#[immune]` site uses `witness = <test>` (the
+code-witness form), `audit` would **silently ignore** the sidecar — reporting
+Reachability tier as if the sidecar weren't there, with no warning.
+
+**The fix:** audit now emits an explicit warning when a sidecar is present
+at a `witness =` immune site, explaining that the sidecar is present but
+uncredited because the site uses the code-witness channel, not the
+substrate-witness channel.
+
+**The choosing rule** (the simple version): can a *test* execute the thing
+you're defending? Yes → `witness = <test>`. No (it's about substrate state a
+test can't verify — a stale doc, an unpinned dependency, an un-reviewed
+discipline) → `requires = <predicate>` and sign a sidecar. See
+[`tutorial.md`](tutorial.md) and the `#[immune]` macro doc for the full
+contrast.
+
+**Verify on your end:** scaffold and sign a sidecar for an `#[immune(X,
+witness = some_test)]` site, then run `cargo antigen audit` — the output now
+names the sidecar and explains it is not being credited.
+
+### Empty placeholder fingerprint now warns at sign time
+
+**The trap (older versions):** `attest scaffold` without `--fingerprint`
+wrote `current_fingerprint: ""` and printed a note saying "update before
+signing." But `attest sign` would happily sign against the empty string, and
+then `audit` would fail the `against = "current"` predicate silently.
+
+**The fix:** `attest sign` now warns (or refuses with non-zero exit) when
+the sidecar's `current_fingerprint` is empty and the predicate is
+`against = "current"`. The footgun is caught at sign time, not silently
+at audit time.
+
+**Verify on your end:** `attest scaffold` without `--fingerprint`, then
+`attest sign` — the sign command now warns about the empty fingerprint.
 
 ### `attest check` per-leaf diagnostics: failed predicates explain themselves
 
@@ -138,61 +169,6 @@ predicate.
 **Verify on your end:** copy the four-step substrate-witness workflow from
 `examples/substrate_witness.rs` verbatim — it runs clean and the audit
 reports Execution tier.
-
----
-
-## What's still open (known silent-failure modes — route around them)
-
-These two haven't landed yet. They aren't fatal — adoption works around them
-— but knowing the failure mode saves the debugging time.
-
-### 1. Signed sidecar on a `witness =` site is silently uncredited
-
-**The shape:** if you scaffold + sign an `.attest/` sidecar for an antigen
-whose `#[immune]` site uses `witness = <test>` (the code-witness form),
-`audit` will **silently ignore** the sidecar. `attest list` shows the sidecar
-+ signatures correctly, but the immunity gets reported at Reachability tier
-as if the sidecar weren't there. Nothing warns you that the sidecar can
-never be credited because the immune syntax is `witness =` not `requires =`.
-
-**Why:** substrate-witness sidecars are credited only by `requires = <predicate>`
-immunities (the predicate is what reads the sidecar). A `witness = <test>`
-immunity is a code-witness — it's checked by running the test, not by reading
-a sidecar. The two channels are mutually exclusive, but the silent disconnect
-isn't called out at scaffold/sign time.
-
-**The choosing rule** (the simple version): can a *test* execute the thing
-you're defending? Yes → `witness = <test>`. No (it's about substrate state a
-test can't verify — a stale doc, an unpinned dependency, an un-reviewed
-discipline) → `requires = <predicate>` and sign a sidecar. See
-[`tutorial.md`](tutorial.md) and the `#[immune]` macro doc for the full
-contrast.
-
-**Route around it:** if you've scaffolded a sidecar, the immune site at that
-path **must** use `requires = ...`. If you wrote `witness = ...` and signed
-a sidecar, change one or the other — they can also coexist as two separate
-`#[immune]` attributes on the same item (one with each form).
-
-### 2. Empty placeholder fingerprint signs without warning
-
-**The shape:** `attest scaffold` without `--fingerprint` writes
-`current_fingerprint: ""` (an empty placeholder) and prints a note saying
-"update before signing." But `attest sign` happily signs against the empty
-string, and then `audit` fails the `against = "current"` predicate with no
-indication that the empty fingerprint is the cause.
-
-**Why:** the guard ("refuse to sign when the sidecar's `current_fingerprint`
-is empty and the predicate is `against = "current"`") isn't in place yet.
-The empty placeholder is a footgun.
-
-**Route around it:** always pass `--fingerprint` to `attest scaffold` (and
-keep it consistent on `attest sign`). Get the value from
-`cargo antigen scan --format json | jq '.report.immunities[] |
-.structural_fingerprint'` for the relevant item. (See the open subgap on F6
-above: the JSON has the fingerprint but selecting one specific item by
-`item_path` isn't ergonomic yet — for now, scan the file in isolation or
-pick the entry by line number, or wait for the `attest scaffold` auto-fill
-that's in flight.)
 
 ---
 
