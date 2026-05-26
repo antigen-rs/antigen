@@ -1057,4 +1057,43 @@ This is a fourth instance of the **incomplete-completion** pattern (complement t
 - The fail-class: when a new antigen macro ships, it must be added to `ANTIGEN_OWNED_ATTRS` or it will corrupt signed items. This is a missing **structural invariant enforcement** — the connection between "new macro exists" and "must appear in exclusion list" is nowhere enforced.
 - Possible structural fix: derive `ANTIGEN_OWNED_ATTRS` from the proc_macro registrations rather than maintaining the list by hand. This is the same class of fix as `audit-hint-const-shadows-enum` (derive from enum variants rather than hand-maintaining a const).
 
-**Next**: Assess `dogfood/layer1-production-presents-markers` campsite closure, then write Step 25 on comprehensive coverage gate status.
+**Next**: CI-gate fmt audit, tutorial verification, audit-hint drift confirmation.
+
+---
+
+## Step 25: CI-Gate Fmt Violations + Tutorial Verification + Audit-Hint Drift
+
+**Time**: 2026-05-26 ~07:15 UTC  
+**HEAD**: `06ab9bd` (lab notebook step 24)  
+**Test state**: 868 passing, 48 ignored
+
+### Before
+
+**Hypothesis**: Navigator flagged two potential drift areas — (1) CommittedArtifactViolatesUnrunGate for clippy/fmt on recent commits, (2) tutorial-attest-commands-drift fix may be working-tree only. Also want to verify audit-hint-const-shadows-enum is actually drifted (not just a stale campsite claim).
+
+### Results
+
+**CI-gate fmt audit**: `cargo fmt --all -- --check` FAILS on committed HEAD. 9 violations across 5 files:
+- `antigen/tests/atk_a2_adversarial.rs` (2 spots) — from scanner-round-3 commit `b1f6886`
+- `antigen/tests/atk_supply_chain_evaluate.rs` (1 spot)
+- `antigen-fingerprint/src/digest.rs` (3 spots)
+- `antigen-fingerprint/src/parser.rs` (2 spots)
+- `antigen-macros/src/parse.rs` (1 spot)
+
+`cargo clippy -- -D warnings` is CLEAN. Only fmt is broken.
+
+**Tutorial verification**: `670242d` confirmed committed. Flag names verified against live CLI: scaffold uses `--antigen`/`--source-file`/`--item-path`/`--fingerprint`; sign uses `--sidecar`/`--item-path`/`--signer`/`--role`/`--fingerprint`. All correct. **Secondary finding**: tutorial.md:409 still says "Known limitation (v0.2)" about fingerprint selection being hard — but `f48ff20` (auto-fill) + `94ee01e` (fingerprint subcommand) shipped this same expedition and close that gap. The limitation text is stale. Not blocking campsite sign; it's a polish item.
+
+**audit-hint-const-shadows-enum drift — confirmed live**: `AuditHint` enum has 16 supply-chain variants; `ADR025_AUDIT_HINTS` hand-maintained const has 15. Missing: `UnpinnedTransitiveDependency`. The `adr025_audit_hints_count_is_fifteen` test PASSES because it checks `len()==15`, not contents. This is the exact green-while-drifted class.
+
+### Discussion
+
+Three substrate-alignment gaps found in one audit pass:
+
+1. **CI fmt gate** (`ci-gate-fmt-violations-in-committed-code`): Mechanical fix — `cargo fmt --all` then commit. Seeded campsite; pathmaker lane.
+
+2. **Tutorial stale limitation text**: Stale-document-after-feature-shipped. Tutorial correctly described state when written; auto-fill + fingerprint subcommand closed the gap mid-expedition. Tutorial polish item for docs lane.
+
+3. **Audit-hint count drift** (`audit-hint-const-shadows-enum`): `comment-says-must-match` pattern — test enforces count=15 but comment says "must match enum". Count-equality doesn't imply content-equality when enum grows. Missing: `UnpinnedTransitiveDependency`. Pathmaker's derive-from-enum fix resolves it.
+
+**Observation**: These three gaps share a structural shape — a hand-maintained artifact that should be derived automatically from a canonical source. `ANTIGEN_OWNED_ATTRS` (26 macros by hand), `ADR025_AUDIT_HINTS` (16 enum variants by hand), tutorial limitation text (feature shipped but doc not updated). The recurring pattern: manual maintenance creates drift-windows that automation would close. Antigen's own `AuditHintWithNoUpstreamPreconditionCheck` class is adjacent — a test that passes but doesn't enforce the invariant its comment promises.
