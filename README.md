@@ -165,7 +165,8 @@ The biological metaphor is **load-bearing, not decorative**. The immune system i
 | Pathogen Recognition Receptors (PRRs) | structural pattern matchers in `cargo antigen scan` |
 | MHC Class I/II presentation | `#[presents(antigen)]` |
 | B-cell memory (pattern layer) | `#[antigen(name = "...")]` declarations |
-| Antibody | test, proptest, phantom-type witness, lint reference |
+| Antibody | `witness =` in `#[immune]` — test, proptest, phantom-type, lint reference (the API word for antibody is *witness*; see glossary) |
+| Substrate sensing (germinal-center history, signed records) | `requires =` substrate-witness predicate — B-cell memory, commit trailers, oracle markers (ADR-019) |
 | Antibody titer (currency layer) | `verified_at` (ADR-016) |
 | B-cell lineage (clonal expansion) | `#[descended_from]` propagation |
 | Peripheral tolerance / Tregs | `#[antigen_tolerance]` for legitimate matches |
