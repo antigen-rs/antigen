@@ -1342,6 +1342,15 @@ pub struct Immunity {
     /// `None` for intra-workspace antigens.
     #[serde(default)]
     pub canonical_path: Option<String>,
+    /// Structural digest of the defended item's source, computed via
+    /// [`antigen_fingerprint::structural_digest`]. This is the value an
+    /// adopter signs against (`signed_against_fingerprint`); audit recomputes
+    /// it to detect drift for `against = "current"` / `fresh_within_days`
+    /// (ADR-019). Distinct from the antigen *pattern* fingerprint — this is a
+    /// per-item content hash of the immune site. Empty only on the legacy
+    /// deserialization path (pre-this-field reports); always populated by scan.
+    #[serde(default)]
+    pub structural_fingerprint: String,
 }
 
 /// An `#[antigen_tolerance(antigen, rationale = "...", until = "...", see = [...])]`
@@ -1374,6 +1383,11 @@ pub struct Toleration {
     /// addresses. ADR-017. `None` for intra-workspace antigens.
     #[serde(default)]
     pub canonical_path: Option<String>,
+    /// Structural digest of the tolerated item's source — the
+    /// `signed_against_fingerprint` value for substrate-witness tolerance
+    /// sidecars (ADR-019 tolerance tier). Mirrors [`Immunity::structural_fingerprint`].
+    #[serde(default)]
+    pub structural_fingerprint: String,
 }
 
 // ============================================================================
@@ -2367,6 +2381,7 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
                     report: &mut report,
                     impl_stack: Vec::new(),
                     trait_stack: Vec::new(),
+                    current_item_digest: String::new(),
                 };
                 visitor.visit_file(&file);
                 report.files_scanned += 1;
@@ -3051,6 +3066,12 @@ struct ScanVisitor<'a> {
     /// for `visit_trait_item_fn` so trait methods carry the enclosing
     /// trait identifier in `ItemTarget::TraitFn`.
     trait_stack: Vec<String>,
+    /// Structural digest of the item currently being visited, set by each
+    /// `visit_item_*` before it calls [`Self::check_attrs`] so that
+    /// `extract_immune` / `extract_tolerance` can stamp the defended item's
+    /// digest onto the substrate-witness record without threading it through
+    /// every `check_attrs` call site. Empty between items.
+    current_item_digest: String,
 }
 
 impl ScanVisitor<'_> {
@@ -3215,6 +3236,7 @@ impl ScanVisitor<'_> {
                 item_kind: item_kind.to_string(),
                 item_target,
                 canonical_path: None,
+                structural_fingerprint: self.current_item_digest.clone(),
             });
         }
     }
@@ -3266,6 +3288,7 @@ impl ScanVisitor<'_> {
                 item_kind: item_kind.to_string(),
                 item_target,
                 canonical_path: None,
+                structural_fingerprint: self.current_item_digest.clone(),
             });
         }
     }
@@ -3978,6 +4001,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
             }
         }
         let target = ItemTarget::Struct(item.ident.to_string());
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
         self.check_attrs(&item.attrs, "struct", &target);
         syn::visit::visit_item_struct(self, item);
     }
@@ -3989,6 +4013,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
             trait_path: trait_path.clone(),
             target_type: target_type.clone(),
         };
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
         self.check_attrs(&item.attrs, "impl", &target);
         // Push impl context so visit_impl_item_fn can build ImplFn targets.
         self.impl_stack.push((trait_path, target_type));
@@ -3998,6 +4023,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
 
     fn visit_item_fn(&mut self, item: &'ast syn::ItemFn) {
         let target = ItemTarget::Fn(item.sig.ident.to_string());
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
         self.check_attrs(&item.attrs, "fn", &target);
         syn::visit::visit_item_fn(self, item);
     }
@@ -4011,12 +4037,14 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
                 fn_name: item.sig.ident.to_string(),
             },
         );
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
         self.check_attrs(&item.attrs, "impl_fn", &target);
         syn::visit::visit_impl_item_fn(self, item);
     }
 
     fn visit_item_trait(&mut self, item: &'ast syn::ItemTrait) {
         let target = ItemTarget::Trait(item.ident.to_string());
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
         self.check_attrs(&item.attrs, "trait", &target);
         // Push trait context so visit_trait_item_fn produces TraitFn targets
         // identifying the enclosing trait.
@@ -4033,6 +4061,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
                 fn_name: item.sig.ident.to_string(),
             },
         );
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
         self.check_attrs(&item.attrs, "trait_fn", &target);
         syn::visit::visit_trait_item_fn(self, item);
     }
@@ -4044,6 +4073,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
         // on equality. Tracking the alias name keeps each alias as its own
         // distinct match target.
         let target = ItemTarget::TypeAlias(item.ident.to_string());
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
         self.check_attrs(&item.attrs, "type_alias", &target);
         syn::visit::visit_item_type(self, item);
     }
@@ -4073,6 +4103,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
             }
         }
         let target = ItemTarget::Enum(item.ident.to_string());
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
         self.check_attrs(&item.attrs, "enum", &target);
         syn::visit::visit_item_enum(self, item);
     }

@@ -68,15 +68,26 @@
 //!   item kind (or `None` if the fingerprint is shape-only) so consumers can
 //!   skip evaluating fingerprints whose top-level `item:` constraint cannot
 //!   match the current AST node
+//!
+//! ## Two distinct "fingerprint" concepts (do not conflate)
+//!
+//! - **[`Fingerprint`]** (this module's headline) — a failure-class *pattern*
+//!   that recognizes a shape across many items.
+//! - **[`digest::structural_digest`]** — a single item's *content hash*, used
+//!   as the `signed_against_fingerprint` / `current_fingerprint` value in the
+//!   substrate-witness sign/audit cycle (ADR-019). It changes when the item's
+//!   code drifts. See [`digest`] for the stability contract.
 
 use proc_macro2::TokenStream;
 use serde::{Deserialize, Serialize};
 use syn::parse::{Parse, ParseStream};
 
+pub mod digest;
 mod glob;
 mod matcher;
 mod parser;
 
+pub use digest::{structural_digest, HasAttributes};
 pub use glob::glob_match_ident;
 
 /// Maximum fingerprint AST depth (per ADR-010 OQ4). Configurable via
