@@ -448,6 +448,27 @@ mod tests {
         );
     }
 
+    // ATK-FP-HAS-METHOD-TRAIT-SILENT-MISS: has_method returns false for item = trait.
+    // has_matching_method() only handles syn::Item::Impl; for trait definitions it
+    // early-returns false. A fingerprint all_of([item = trait, has_method("drop")])
+    // would NEVER match any trait — has_method always fails for traits.
+    // This is a documented limitation (not a bug to fix now): has_method is
+    // impl-block-scoped. Test locks in the behavior so a future fix doesn't
+    // accidentally land without detection.
+    #[test]
+    fn has_method_on_trait_item_always_returns_false() {
+        let fp = fp(r#"all_of([item = trait, has_method("drop", "(&mut self)")])"#);
+        // A trait that defines exactly `fn drop(&mut self)` — structurally matches
+        // the method pattern IF has_matching_method checked traits. It doesn't.
+        let i = item("trait Droppable { fn drop(&mut self); }");
+        assert!(
+            !fp.matches(&i),
+            "ATK-FP-HAS-METHOD-TRAIT: has_method must return false for item = trait \
+             (has_matching_method only handles Item::Impl, not Item::Trait). \
+             If this fails, has_method now supports trait defs — document the new capability."
+        );
+    }
+
     #[test]
     fn all_of_matches() {
         let fp = fp(r#"all_of([item = enum, name = matches("*Class")])"#);
