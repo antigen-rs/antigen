@@ -1516,6 +1516,44 @@ fn atk_a2_impl_item_type_digest_not_contaminated_by_preceding_item() {
 }
 
 // ============================================================================
+// ATK-A2-TRAIT-TYPE-FP-CONTAMINATION: proactive contamination guard.
+//
+// Proactive guard: visit_trait_item_type MUST assign current_item_digest before
+// check_attrs, or the preceding item's digest bleeds into the associated type's
+// fingerprint (same contamination class as visit_item_const and impl_item_type).
+// Two trait associated types with different bounds must produce DIFFERENT
+// structural fingerprints.
+// ============================================================================
+
+#[test]
+fn atk_a2_trait_item_type_digest_not_contaminated_by_preceding_item() {
+    let report =
+        scan_workspace(&fixture("atk_a2_trait_type_fp_contamination"), None).expect("scan");
+
+    assert_eq!(
+        report.presentations.len(),
+        2,
+        "fixture must find exactly 2 presentations (Output + Error types); got: {:?}",
+        report.presentations,
+    );
+
+    let fp0 = &report.presentations[0].structural_fingerprint;
+    let fp1 = &report.presentations[1].structural_fingerprint;
+
+    assert_ne!(
+        fp0, fp1,
+        "ATK-A2-TRAIT-TYPE-FP: two associated types with different bounds must produce \
+         DIFFERENT structural fingerprints. Both got {:?} — digest contamination: \
+         visit_trait_item_type was added WITHOUT self.current_item_digest assignment \
+         before check_attrs, so the preceding item's digest bleeds into the \
+         associated-type presentation. \
+         Fix: verify 'self.current_item_digest = antigen_fingerprint::structural_digest(item);' \
+         is the FIRST statement of visit_trait_item_type, before check_attrs.",
+        fp0,
+    );
+}
+
+// ============================================================================
 // ATK-A2-SCAN-NONEXISTENT-PATH: scan_workspace on a nonexistent path returns
 // Ok with an empty report (0 files scanned, no error signal).
 //
