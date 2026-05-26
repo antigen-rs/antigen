@@ -1243,10 +1243,60 @@ The one-line pin fix (README:152) is in outsider's working tree, uncommitted. Th
 | `tutorial-attest-commands-drift` | OPEN | Pathmaker + outsider must sign (fix at 670242d confirmed correct) |
 
 **Working-tree dirty files** (all teammate-owned, not observer's):
-- `README.md` — outsider's version-pin fix (+1 line rc.2→rc.3)
+- `README.md` — outsider's version-pin fix (+1 line rc.2→rc.3) — may be committed by ca6de95
 - `antigen-fingerprint/src/matcher.rs` — unknown owner (not observer's lane)
 - `antigen/tests/atk_a2_adversarial.rs` — adversarial's new impl/trait assoc-type tests (+95 lines)
 - `antigen/tests/supply_chain_correctness.rs` — outsider's bidirectional bijection fix (uncommitted at this check, may be committed by now)
 - Untracked fixture dirs: `atk_a2_impl_type_fp_contamination/`, `atk_a2_impl_type_presents/`, `atk_a2_trait_type_presents/`
 
 **Observer lane**: no dirty files (confirmed clean). Lab notebook pending commit.
+
+---
+
+## Step 28: P0 Regression — F3 Test Failing at Committed HEAD
+
+**Time**: 2026-05-26 ~20:30 UTC  
+**HEAD**: `ca6de95` (single-source version strings + requires= at first #[immune])  
+**Discovery**: Full workspace test run shows 1 failing test
+
+### Finding
+
+`atk_dx_f3_audit_warns_on_sidecar_for_witness_site` (cargo-antigen/tests/atk_dx_findings.rs:151) FAILS in workspace run.
+
+**Severity: P0** — committed test failure, CI gate (cargo test) trips on next tag push.
+
+**History**: The test was previously `#[ignore = "...pending fix..."]`. Commit `8bb3a4d` (17 hours ago) removed the ignore AND added the implementation (`ImmunityAudit::code_witness_sidecar_ignored` + printer output). But the test is still failing.
+
+**Failure message** (from test output):
+> "audit output for the witness= immune site must warn about the .attest/ sidecar being ignored (not credited). Currently the output shows only 'tier = Reachability, hint = FunctionResolves' with no mention of the present sidecar."
+
+**Test passes in isolation**: `cargo test -p cargo-antigen atk_dx_f3_audit_warns_on_sidecar_for_witness_site` → 1 passed.  
+**Test fails in full run**: `cargo test --workspace` → FAILED (4 tests in atk_dx_findings binary run concurrently).
+
+### Root Cause Analysis
+
+Parallelism within `cargo-antigen/tests/atk_dx_findings.rs`. The 4 tests run concurrently:
+1. `atk_dx_f8_sign_empty_fp_must_warn` — tempdir, no fixture interaction
+2. `atk_dx_f8_sign_empty_fp_any_passes` — tempdir, no fixture interaction  
+3. `atk_dx_f3_audit_warns_on_sidecar_for_witness_site` — creates `.attest/PanickingInDrop.json` in `atk_a2_003_empty_witness`, runs workspace audit, cleans up
+4. `atk_dx_f3_jq_hint_uses_correct_field` — tempdir, no fixture interaction
+5. `atk_dx_f6_presentation_entry_has_fingerprint` — runs `cargo antigen scan --format json` on workspace concurrently
+
+F6 runs a full workspace scan CONCURRENTLY with F3 creating the sidecar and running audit. The concurrent subprocess interaction could cause a race: the F6 scan may interfere with filesystem state, or the sidecar file might be written after the audit process has already passed that directory in its scan.
+
+**Implementation appears correct** (code inspection):
+- `audit.rs:1093-1094`: `let code_witness_sidecar_ignored = !has_companion_requires && load_sidecar(&immunity.file, &immunity.antigen_type).is_some()`
+- `main.rs:3753-3762`: `if a.code_witness_sidecar_ignored { println!("→ sidecar ignored: ...") }`
+- `load_sidecar` uses `immunity_file.parent()` + `.attest/PanickingInDrop.json`
+
+**Most likely root cause**: test parallelism race condition — the sidecar file may not be present when `load_sidecar` is called during the concurrent test run.
+
+### Fix Path
+
+Pathmaker's lane. Options:
+1. Add `#[serial]` attribute (using `serial_test` crate) to `atk_dx_f3_audit_warns_on_sidecar_for_witness_site` to prevent parallel execution with the audit subprocess
+2. Use a per-test-run unique sidecar directory instead of the shared fixture directory
+3. Re-ignore the test with an accurate ignore message while the parallel-execution fix is developed
+
+Campsite: `findings/f3-audit-sidecar-warning-test-regression` (BLOCKED).
+Navigator notified. Pathmaker routing pending.
