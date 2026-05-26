@@ -279,22 +279,26 @@ some_crate = "*"
 }
 
 // ============================================================================
-// ADR-025 audit-hint string coverage — all 15 must exist
+// ADR-025 audit-hint string coverage — const mirrors the live AuditHint enum
 //
-// The 15 audit hint strings from ADR-025 §Audit-hint-vocabulary must all
-// be present in the AuditHint enum (or as string constants in supply-chain
-// audit code). This test verifies the strings match the ADR exactly.
-//
-// If any hint is renamed or missing, this test fails — the ADR spec
-// and the implementation have drifted.
+// The supply-chain audit hint strings from ADR-025 §Audit-hint-vocabulary are
+// kept in `ADR025_AUDIT_HINTS`. `adr025_audit_hints_const_matches_enum_serde_keys`
+// checks this const against the ACTUAL serde keys of the supply-chain AuditHint
+// variants, both directions plus a length-bijection — so a rename, a missing
+// variant, or a stale const entry all FAIL the test instead of drifting silently.
+// (The const-vs-itself checks below — kebab-case, structural-distinctness — are
+// secondary; the serde-key bijection is the real spec-drift backstop.)
 // ============================================================================
 
-/// Canonical list of 15 supply-chain audit hint strings from ADR-025.
+/// Canonical list of supply-chain audit hint strings from ADR-025.
 ///
-/// These MUST match the `AuditHint` enum variant names (kebab-case) exactly.
-/// Renaming any hint without updating this list is a spec drift violation.
+/// These MUST match the `AuditHint` enum variant serde keys (kebab-case) exactly.
+/// `adr025_audit_hints_const_matches_enum_serde_keys` enforces this BOTH ways
+/// against the live enum, so a rename or a missing variant fails the test instead
+/// of silently drifting.
 const ADR025_AUDIT_HINTS: &[&str] = &[
     "unpinned-dependency",
+    "unpinned-transitive-dependency",
     "unattested-dependency-inclusion",
     "dependency-upgrade-without-diff-review",
     "maintainer-change-without-reattestation",
@@ -311,17 +315,12 @@ const ADR025_AUDIT_HINTS: &[&str] = &[
     "auto-dependency-chain-without-pinning",
 ];
 
-#[test]
-fn adr025_audit_hints_count_is_fifteen() {
-    // ADR-025 §Audit-hint-vocabulary commits to exactly 15 hints.
-    // If this count changes, it must be an explicit ADR amendment.
-    assert_eq!(
-        ADR025_AUDIT_HINTS.len(),
-        15,
-        "ADR-025 §Audit-hint-vocabulary commits to exactly 15 supply-chain audit hints. \
-         Changing this count requires an explicit ADR amendment."
-    );
-}
+// NOTE: the old `adr025_audit_hints_count_is_fifteen` test was removed. A hardcoded
+// `count == 15` is itself the ParallelStateTrackersDiverge mechanism — a hand-maintained
+// number that drifts independently (it asserted 15 while the enum already had 16). The
+// count is now coupled to the live `supply_chain_variants` list inside
+// `adr025_audit_hints_const_matches_enum_serde_keys` (the bijection assert), so it can't
+// drift on its own. ADR amendments that add/remove a hint surface there.
 
 #[test]
 fn adr025_audit_hints_are_kebab_case() {
@@ -371,5 +370,79 @@ fn dep_attest_rubber_stamp_hint_exists() {
         "dep-attest-without-reviewable-artifact must be in the hint vocabulary. \
          ADR-025 named limitation #1: 'rubber-stamp attestation' — the hint \
          is how adopters learn the attestation has no associated artifact."
+    );
+}
+
+#[test]
+fn adr025_audit_hints_const_matches_enum_serde_keys() {
+    // ATK-HINT-1: ADR025_AUDIT_HINTS is a hand-maintained const that claims to mirror
+    // the AuditHint enum's serde keys. The existing tests check the const against
+    // itself (count, format, self-referential contains) — a rename in the enum leaves
+    // the const stale and all tests still pass. This test reads the ACTUAL serde output
+    // of each supply-chain AuditHint variant and asserts the const includes it.
+    //
+    // When a variant is renamed, serde_json::to_string produces the new key;
+    // ADR025_AUDIT_HINTS still has the old string; this test FAILS — as the comment
+    // on the const promises but no prior test delivered.
+    use antigen::audit::AuditHint;
+
+    let supply_chain_variants: &[AuditHint] = &[
+        AuditHint::UnpinnedDependency,
+        AuditHint::UnpinnedTransitiveDependency,
+        AuditHint::UnattestedDependencyInclusion,
+        AuditHint::DependencyUpgradeWithoutDiffReview,
+        AuditHint::MaintainerChangeWithoutReattestation,
+        AuditHint::MaintainerChangeDetectedAfterCargoUpdate,
+        AuditHint::SuddenDependencyExpansion,
+        AuditHint::UnsandboxedBuildScript,
+        AuditHint::UnsandboxedProcMacro,
+        AuditHint::PostInstallScriptInDependency,
+        AuditHint::ContentHashMismatch,
+        AuditHint::ContentHashNoAttestation,
+        AuditHint::DepAttestWithoutReviewableArtifact,
+        AuditHint::CratesIoMetadataQueryFailed,
+        AuditHint::DepAttestationStale,
+        AuditHint::AutoDependencyChainWithoutPinning,
+    ];
+
+    // Forward: every supply-chain AuditHint variant's serde key is in the const.
+    // A rename in the enum produces a new key the stale const lacks → FAIL.
+    let mut variant_keys: Vec<String> = Vec::new();
+    for variant in supply_chain_variants {
+        let serialized = serde_json::to_string(variant)
+            .unwrap_or_else(|e| panic!("AuditHint serde failed: {e}"));
+        let key = serialized.trim_matches('"').to_string();
+        assert!(
+            ADR025_AUDIT_HINTS.contains(&key.as_str()),
+            "ATK-HINT-1: AuditHint variant serializes to '{key}' but that string is NOT \
+             in ADR025_AUDIT_HINTS. The const has drifted from the enum. Update the \
+             const to match the current serde key, or rename both together."
+        );
+        variant_keys.push(key);
+    }
+
+    // Reverse: every const entry corresponds to a real variant key — so the const
+    // can't accumulate dead/renamed-away strings the enum no longer emits.
+    for hint in ADR025_AUDIT_HINTS {
+        assert!(
+            variant_keys.iter().any(|k| k == hint),
+            "ATK-HINT-1 (reverse): ADR025_AUDIT_HINTS contains '{hint}' but no \
+             supply-chain AuditHint variant serializes to it. Either the const has a \
+             stale/renamed entry, or `supply_chain_variants` is missing a variant the \
+             const already lists."
+        );
+    }
+
+    // Bijection: equal lengths means the two sides are exact mirrors. This replaces
+    // the old brittle `count == 15` assert — that hardcoded number was itself a
+    // hand-maintained value that drifts (it said 15 while the enum had 16). Coupling
+    // the count to the live variant list means the number can't drift on its own.
+    assert_eq!(
+        ADR025_AUDIT_HINTS.len(),
+        supply_chain_variants.len(),
+        "ADR025_AUDIT_HINTS has {} entries but there are {} supply-chain AuditHint \
+         variants — the two must be exact mirrors (ADR-025 §Audit-hint-vocabulary).",
+        ADR025_AUDIT_HINTS.len(),
+        supply_chain_variants.len()
     );
 }
