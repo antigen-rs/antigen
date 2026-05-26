@@ -19,8 +19,8 @@
 //! rollback; here is my rationale." The `Triage-Decision:` git commit trailer
 //! is the substrate-witness that links the triage commit to the rollback commit.
 //!
-//! `#[triage_commit]` is NOT `#[orient]`: orient says "I don't have a defense
-//! yet, I'll get one by <date>." triage_commit says "I have diagnosed this as
+//! `#[triage_commit]` is NOT `#[orient]`: `orient` says "I don't have a defense
+//! yet, I'll get one by <date>." `triage_commit` says "I have diagnosed this as
 //! needing rollback NOW, here is why." Different speech-acts, different scopes.
 //!
 //! ## Run this example
@@ -48,7 +48,7 @@ use antigen::{immune, presents, triage_commit, TriageDecision};
 
 /// Reset the repository to a known-good snapshot.
 ///
-/// VULNERABLE: this rollback function has no #[triage_commit] annotation.
+/// VULNERABLE: this rollback function has no `#[triage_commit]` annotation.
 /// The WHY-we-rolled-back lives only in the rolling-back-developer's head;
 /// once this commit lands, the rationale is gone. Future developers who grep
 /// git log for "why did we reset to snapshot X" will find nothing.

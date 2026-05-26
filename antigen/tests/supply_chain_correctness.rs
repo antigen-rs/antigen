@@ -314,6 +314,7 @@ const ADR025_AUDIT_HINTS: &[&str] = &[
     "post-install-script-in-dependency",
     "content-hash-mismatch",
     "content-hash-no-attestation",
+    "content-hash-sidecar-malformed",
     "dep-attest-without-reviewable-artifact",
     "crates-io-metadata-query-failed",
     "dep-attestation-stale",
@@ -404,6 +405,7 @@ fn adr025_audit_hints_const_matches_enum_serde_keys() {
         AuditHint::PostInstallScriptInDependency,
         AuditHint::ContentHashMismatch,
         AuditHint::ContentHashNoAttestation,
+        AuditHint::ContentHashSidecarMalformed,
         AuditHint::DepAttestWithoutReviewableArtifact,
         AuditHint::CratesIoMetadataQueryFailed,
         AuditHint::DepAttestationStale,
@@ -467,9 +469,8 @@ fn adr025_audit_hints_const_matches_enum_serde_keys() {
 // — it will FAIL until both ADR025_AUDIT_HINTS and supply_chain_variants are
 // updated to include ContentHashSidecarMalformed.
 //
-// STATUS: FAILING — "content-hash-sidecar-malformed" not in ADR025_AUDIT_HINTS.
-// Fix: add "content-hash-sidecar-malformed" to ADR025_AUDIT_HINTS, and add
-// AuditHint::ContentHashSidecarMalformed to supply_chain_variants in the parity test.
+// STATUS: FIXED — "content-hash-sidecar-malformed" added to ADR025_AUDIT_HINTS and
+// AuditHint::ContentHashSidecarMalformed added to supply_chain_variants in the parity test.
 // ============================================================================
 
 #[test]

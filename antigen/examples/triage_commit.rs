@@ -71,7 +71,7 @@ use antigen::{immune, orient, triage_commit, TriageDecision};
     learning_path = "Review auth module against session-fixation failure-class before v1 tag",
     until = "2026-11-01"
 )]
-pub fn new_auth_handler(token: &str) -> Result<(), String> {
+pub const fn new_auth_handler(token: &str) -> Result<(), String> {
     // Simplified auth handling.
     Ok(())
 }
@@ -134,7 +134,7 @@ pub fn rollback_payment_processor(snapshot_sha: &str) -> Result<(), String> {
 ///
 /// Yellow is not a rollback: the decision is deferred while investigation
 /// continues. `rollback_due_within_minutes` reflects the investigation window.
-/// This is still a triage_commit — the non-rollback decision is chart-documented.
+/// This is still a `triage_commit` — the non-rollback decision is chart-documented.
 #[triage_commit(
     triage_decision = TriageDecision::Yellow,
     rollback_target = "HEAD",
