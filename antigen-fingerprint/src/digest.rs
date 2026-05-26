@@ -185,8 +185,10 @@ impl_has_attributes!(
     syn::ItemStatic,
     syn::ImplItemFn,
     syn::ImplItemConst,
+    syn::ImplItemType,
     syn::TraitItemFn,
     syn::TraitItemConst,
+    syn::TraitItemType,
     syn::ItemMacro,
     syn::ItemUse,
     syn::ItemExternCrate,
@@ -295,9 +297,11 @@ mod tests {
         let with_mucosal: syn::ItemStruct = syn::parse2(quote! {
             #[mucosal(boundary_type = "actix-web")]
             struct Foo { x: u8 }
-        }).expect("parse");
+        })
+        .expect("parse");
         assert_eq!(
-            bare, structural_digest(&with_mucosal),
+            bare,
+            structural_digest(&with_mucosal),
             "ATK-DIGEST-1: #[mucosal] must not change digest — it is an antigen \
              macro but is NOT in ANTIGEN_OWNED_ATTRS; adding it to a signed item \
              would silently invalidate the signature"
@@ -307,9 +311,11 @@ mod tests {
         let with_polyclonal: syn::ItemStruct = syn::parse2(quote! {
             #[polyclonal]
             struct Foo { x: u8 }
-        }).expect("parse");
+        })
+        .expect("parse");
         assert_eq!(
-            bare, structural_digest(&with_polyclonal),
+            bare,
+            structural_digest(&with_polyclonal),
             "ATK-DIGEST-1: #[polyclonal] must not change digest — missing from ANTIGEN_OWNED_ATTRS"
         );
 
@@ -317,9 +323,11 @@ mod tests {
         let with_itch: syn::ItemStruct = syn::parse2(quote! {
             #[itch(antigen = "SomeClass", description = "tracked recurrence")]
             struct Foo { x: u8 }
-        }).expect("parse");
+        })
+        .expect("parse");
         assert_eq!(
-            bare, structural_digest(&with_itch),
+            bare,
+            structural_digest(&with_itch),
             "ATK-DIGEST-1: #[itch] must not change digest — missing from ANTIGEN_OWNED_ATTRS"
         );
     }

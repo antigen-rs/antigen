@@ -4212,6 +4212,19 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
         syn::visit::visit_impl_item_const(self, item);
     }
 
+    fn visit_impl_item_type(&mut self, item: &'ast syn::ImplItemType) {
+        // ATK-A2-IMPL-ITEM-TYPE: an impl-block associated type
+        // (`type Foo = Bar;`) carries attrs too — `#[presents]` on it was
+        // silently dropped (same blind-spot class as impl_item_const). Route it
+        // through check_attrs. Target is the associated-type name (reusing
+        // TypeAlias rather than minting a near-duplicate variant, mirroring how
+        // visit_trait_item_const reuses ImplConst).
+        let target = ItemTarget::TypeAlias(item.ident.to_string());
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.check_attrs(&item.attrs, "impl_type", &target);
+        syn::visit::visit_impl_item_type(self, item);
+    }
+
     fn visit_item_trait(&mut self, item: &'ast syn::ItemTrait) {
         let target = ItemTarget::Trait(item.ident.to_string());
         self.current_item_digest = antigen_fingerprint::structural_digest(item);
@@ -4253,6 +4266,18 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
         self.current_item_digest = antigen_fingerprint::structural_digest(item);
         self.check_attrs(&item.attrs, "trait_const", &target);
         syn::visit::visit_trait_item_const(self, item);
+    }
+
+    fn visit_trait_item_type(&mut self, item: &'ast syn::TraitItemType) {
+        // ATK-A2-TRAIT-ITEM-TYPE: a trait associated-type declaration
+        // (`type Item;`) carries attrs too — `#[presents]` on it was silently
+        // dropped (same blind-spot class as trait_item_const). These are real
+        // contract sites (e.g. a mucosal boundary like `Iterator::Item`). Route
+        // through check_attrs with the associated-type name as target.
+        let target = ItemTarget::TypeAlias(item.ident.to_string());
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.check_attrs(&item.attrs, "trait_type", &target);
+        syn::visit::visit_trait_item_type(self, item);
     }
 
     fn visit_item_type(&mut self, item: &'ast syn::ItemType) {
