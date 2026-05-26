@@ -2937,6 +2937,16 @@ fn run_attest_scaffold(
         }
     }
 
+    // An explicitly-passed --fingerprint may be malformed (auto-filled values
+    // come from scan and are always valid, so this only fires for operator
+    // input). A malformed digest scaffolds a sidecar whose current_fingerprint
+    // can never match the item's real digest at audit — warn loudly rather than
+    // bake a dead value silently. (FingerprintDigestWithoutFormatValidation —
+    // the same cross-site guard run at the sign site.)
+    if !autofilled {
+        warn_if_empty_fingerprint(&fingerprint);
+    }
+
     let ratification = Ratification {
         schema_version: SchemaVersion::V1,
         kind,
@@ -3237,6 +3247,13 @@ fn run_attest_delta(args: AttestDeltaArgs) -> ExitCode {
         );
         return ExitCode::from(1);
     }
+
+    // Both delta fingerprints are digests that must match real item digests at
+    // audit (the new signed-against and the prior it carries forward from). A
+    // malformed value silently breaks the chain — warn at the boundary
+    // (FingerprintDigestWithoutFormatValidation, same guard as sign/scaffold).
+    warn_if_empty_fingerprint(&args.fingerprint);
+    warn_if_empty_fingerprint(&args.prior_fingerprint);
 
     let today = chrono::Local::now().date_naive();
     item.signers.push(Signer {
@@ -3576,6 +3593,13 @@ fn run_attest_check(args: AttestCheckArgs) -> ExitCode {
              `cargo antigen scan --format json` for accurate stale detection.\n\
              (CLI-SF-1: self-referential fingerprint cannot detect real staleness)"
         );
+    } else if let Some(fp) = args.fingerprint.as_deref() {
+        // A supplied --fingerprint is compared against signers' signed-against
+        // digests; a malformed one mis-reports staleness either way. Warn at the
+        // boundary (FingerprintDigestWithoutFormatValidation, same guard as
+        // sign/scaffold/delta). Empty is impossible here (it's Some), so only the
+        // format branch can fire.
+        warn_if_empty_fingerprint(fp);
     }
     let current_fingerprint = args
         .fingerprint

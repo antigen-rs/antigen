@@ -1,4 +1,4 @@
-//! `attest sign --fingerprint` digest-format guard.
+//! `--fingerprint` digest-format guard across the attest verbs.
 //!
 //! The `--fingerprint` arg holds a structural DIGEST (`fnv1a64:` + 16 hex), not
 //! the fingerprint DSL grammar. Before, `sign` only warned on an EMPTY
@@ -11,9 +11,13 @@
 //! `fnv1a64:`-prefixed 16-hex digest, matching the empty-case posture and
 //! tolerating a future digest scheme while making the dead signature loud.
 //!
-//! These tests pin: malformed → warning, valid → no warning, empty → warning
-//! (preserved). The sign still succeeds (exit 0) — the value is the operator's
-//! to commit; we only make the consequence visible.
+//! The guard is run at EVERY digest-accepting attest verb — sign, scaffold,
+//! delta, check — closing the cross-site inconsistency that earned the
+//! `FingerprintDigestWithoutFormatValidation` class (it was a 1-of-N spread:
+//! only `sign` was guarded). These tests pin: malformed → warning, valid → no
+//! warning, empty → warning (preserved), at the sign + scaffold + delta sites.
+//! The verb still succeeds (exit 0) — the value is the operator's to commit; we
+//! only make the consequence visible.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -126,5 +130,123 @@ fn sign_warns_on_uppercase_hex() {
     assert!(
         stderr.contains("does not look like a structural digest"),
         "uppercase hex must warn — digests are lowercase: {stderr}"
+    );
+}
+
+// ============================================================================
+// Cross-site: the same guard fires at scaffold and delta, not just sign.
+// ============================================================================
+
+#[test]
+fn scaffold_warns_on_explicit_malformed_fingerprint() {
+    let tmp = tempfile::tempdir().unwrap();
+    let src = tmp.path().join("src");
+    std::fs::create_dir_all(&src).unwrap();
+    std::fs::write(src.join("lib.rs"), "// placeholder").unwrap();
+
+    // Explicit malformed --fingerprint (not auto-filled, so the guard applies).
+    let out = Command::new(bin())
+        .args([
+            "antigen",
+            "attest",
+            "scaffold",
+            "--antigen",
+            "Demo",
+            "--source-file",
+            src.join("lib.rs").to_str().unwrap(),
+            "--item-path",
+            "foo",
+            "--fingerprint",
+            "garbage-not-a-digest",
+        ])
+        .output()
+        .expect("scaffold");
+    assert_eq!(out.status.code(), Some(0), "scaffold still succeeds");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("does not look like a structural digest"),
+        "scaffold must warn on a malformed explicit --fingerprint (cross-site \
+         consistency with sign): {stderr}"
+    );
+}
+
+#[test]
+fn scaffold_does_not_warn_on_valid_explicit_fingerprint() {
+    let tmp = tempfile::tempdir().unwrap();
+    let src = tmp.path().join("src");
+    std::fs::create_dir_all(&src).unwrap();
+    std::fs::write(src.join("lib.rs"), "// placeholder").unwrap();
+
+    let out = Command::new(bin())
+        .args([
+            "antigen",
+            "attest",
+            "scaffold",
+            "--antigen",
+            "Demo",
+            "--source-file",
+            src.join("lib.rs").to_str().unwrap(),
+            "--item-path",
+            "foo",
+            "--fingerprint",
+            "fnv1a64:beecdcd530c6269c",
+        ])
+        .output()
+        .expect("scaffold");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        !stderr.contains("does not look like a structural digest"),
+        "a valid digest must not trigger the scaffold format warning: {stderr}"
+    );
+}
+
+#[test]
+fn delta_warns_on_malformed_fingerprint() {
+    // Stage a sidecar with a prior fresh signature so delta has a chain root.
+    let (_tmp, sidecar) = staged_sidecar();
+    let valid = "fnv1a64:beecdcd530c6269c";
+    let sign = Command::new(bin())
+        .args([
+            "antigen",
+            "attest",
+            "sign",
+            "--sidecar",
+            sidecar.to_str().unwrap(),
+            "--item-path",
+            "foo",
+            "--signer",
+            "alice",
+            "--fingerprint",
+            valid,
+        ])
+        .output()
+        .expect("seed sign");
+    assert_eq!(sign.status.code(), Some(0), "seed sign must succeed");
+
+    // Delta with a malformed new --fingerprint must warn.
+    let out = Command::new(bin())
+        .args([
+            "antigen",
+            "attest",
+            "delta",
+            "--sidecar",
+            sidecar.to_str().unwrap(),
+            "--item-path",
+            "foo",
+            "--signer",
+            "alice",
+            "--fingerprint",
+            "garbage-not-a-digest",
+            "--prior-fingerprint",
+            valid,
+            "--rationale",
+            "carry-forward after a whitespace-only reformat of the item body",
+        ])
+        .output()
+        .expect("delta");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("does not look like a structural digest"),
+        "delta must warn on a malformed --fingerprint (cross-site consistency): {stderr}"
     );
 }
