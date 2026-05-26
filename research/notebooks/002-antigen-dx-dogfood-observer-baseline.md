@@ -1000,3 +1000,61 @@ Verified `scan-output-floods-newcomer` claim independently. `print_fingerprint_m
 3. `extract_presentation` fingerprint — `extract_immune` wired, `extract_presentation` not. Fixed `d9c251f`.
 
 Three instances from one expedition. The fail-class is: a symmetric refactoring applied to N of N+1 symmetric targets — exactly what `CapabilityOmissionAtLowering` antigen #16 names at the DSL level. The pattern generalizes: when two symmetric functions diverge on one feature, both need the same treatment.
+
+---
+
+## Step 24: Context Resumption After Compaction + ATK-DIGEST-1 Fix
+
+**Time**: 2026-05-26 ~07:00 UTC  
+**HEAD at wake**: `b861b43` (fix: warn on malformed --fingerprint digest, not just empty)  
+**Previous HEAD (Step 23)**: `d9c251f`  
+**Test state**: 1 failing (workspace), 867 passing before fix
+
+### Before (orientation after compaction)
+
+**Hypothesis**: Resuming from compaction — current substrate may differ significantly from the Step 23 snapshot. Several teammate work cycles happened during the sleep. Primary concern: the 3 failing adversarial tests (mod/union/foreign_mod) may have been fixed; new findings may have landed.
+
+**Design**: Wake protocol — `camp wake`, `camp activity`, `git log`, then targeted substrate verification.
+
+### Results: What Landed While Observer Slept
+
+Key commits between `d9c251f` (Step 23 HEAD) and `b861b43` (current HEAD):
+
+- `c6ae87a` — deferred-defense rejects past until dates (anergy/immunosuppress/poxparty `horizon_days < 0` check)
+- `53d2bab` — orient rejects past `until` date
+- `aeb39fc` — ADR-023 Option-A hard break (`learning_path + until REQUIRED`)
+- `28a8f1a` — supply-chain path-traversal guard in `evaluate_maintainer_unchanged` (path-traversal gap partially fixed)
+- `50ea6d2`, `f4165d0` — fmt fix + examples CI workflow integrity test
+- `254fc63` — fingerprint: strip parameter names from `has_method` patterns at parse time
+- `f48ff20` — scaffold auto-fill fingerprint from scan
+- `9a18e4e` — schema-lock fingerprint regression guard + path-traversal test for maintainer
+- `94ee01e` — `cargo antigen fingerprint` subcommand (new)
+- `b2bac81` — scan output cap + reframe (P0 onboarding DX; outsider verified + signed)
+- `f516265` — align summary-line framing with candidate-site reframe
+- `b861b43` — warn on malformed `--fingerprint` digest (format guard)
+
+**Three prior-session failing adversarial tests**: All FIXED. `25 passed` in `atk_a2_adversarial`. The `visit_item_mod`, `visit_item_union`, `visit_item_foreign_mod` overrides landed (verified: 25 pass in current suite vs 22 prior session).
+
+**Active incomplete in working tree**: `atk_a2_adversarial.rs` (+180 lines), `antigen/src/scan.rs` (+91 lines), `antigen-fingerprint/src/digest.rs` (+73 lines), `antigen/tests/atk_schema_lock.rs` (+19 lines), `docs/tutorial.md` (+34 lines), `antigen/examples/deferred_defense_orient.rs`. Eight untracked fixture dirs. This is adversarial's scanner-round-3 in-progress work: new tests for use-item, union, foreign_mod, mod, trait_alias, extern_crate, plus `impl_has_attributes!` expansion.
+
+### ATK-DIGEST-1: ANTIGEN_OWNED_ATTRS Incomplete
+
+**Finding**: 1 test failing in the workspace: `digest::tests::all_antigen_macros_do_not_change_digest` in `antigen-fingerprint`. The adversarial-planted test reveals that `ANTIGEN_OWNED_ATTRS` (the list of macros excluded from structural digest computation) had 11 of 26 antigen macros. The missing 15: `mucosal`, `mucosal_delegate`, `mucosal_tolerant`, `polyclonal`, `monoclonal`, `adcc`, `clonal`, `igg`, `diagnostic`, `itch`, `recurrence_anchor`, `crystallize`, `chronic`, `saturate`, `strand`.
+
+**Effect of the gap**: Adding any of these macros to a signed item would change the item's structural digest, silently invalidating the previously-recorded signature at audit time. The invariant "antigen attestation macros do not change the structural digest" was violated for 58% of the macro surface (15 of 26).
+
+**Fix**: Added all 15 missing macros to `ANTIGEN_OWNED_ATTRS` in `antigen-fingerprint/src/digest.rs`, grouped by family (mucosal, witness/audit-classification, recurrent-pattern).
+
+**After fix**: `868 passed, 48 ignored` across workspace. All suites green.
+
+**Coordination note**: The fix is in the working tree alongside adversarial's scanner-round-3 in-progress work. Both touch `digest.rs`. Pathmaker should commit `antigen-fingerprint/src/digest.rs` together with the scanner-round-3 bundle (fixture dirs + `atk_a2_adversarial.rs` additions). Campsite seeded: `atk-digest-1-antigen-owned-attrs-incomplete`. Navigator notified.
+
+### Discussion
+
+This is a fourth instance of the **incomplete-completion** pattern (complement to the symmetric-function partial-wiring pattern):
+
+- `ANTIGEN_OWNED_ATTRS` grew from the original 5 core macros to 11 as deferred-defense and triage-commit landed — but the additions were not systematic.
+- The fail-class: when a new antigen macro ships, it must be added to `ANTIGEN_OWNED_ATTRS` or it will corrupt signed items. This is a missing **structural invariant enforcement** — the connection between "new macro exists" and "must appear in exclusion list" is nowhere enforced.
+- Possible structural fix: derive `ANTIGEN_OWNED_ATTRS` from the proc_macro registrations rather than maintaining the list by hand. This is the same class of fix as `audit-hint-const-shadows-enum` (derive from enum variants rather than hand-maintaining a const).
+
+**Next**: Assess `dogfood/layer1-production-presents-markers` campsite closure, then write Step 25 on comprehensive coverage gate status.
