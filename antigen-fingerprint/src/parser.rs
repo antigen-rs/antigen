@@ -671,7 +671,7 @@ mod tests {
         // ATK-FP-DOUBLE-NOT: not(not(X)) is equivalent to X but the ADR requires
         // explicit positive form. Per check_not_placement line 342: not inside not
         // is NOT in legal all_of context — rejected.
-        let err = parse(r#"all_of([not(not(item = enum)), item = struct])"#)
+        let err = parse(r"all_of([not(not(item = enum)), item = struct])")
             .unwrap_err()
             .to_string();
         assert!(

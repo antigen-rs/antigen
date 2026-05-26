@@ -1115,6 +1115,11 @@ pub enum ItemTarget {
     /// the same scanner blind-spot class — a missing `visit_item_static`
     /// override would otherwise let the attribute pass unscanned).
     Static(String),
+    /// A C-like `union` item carrying its own attribute (e.g.
+    /// `#[presents] union Layout { … }`). Closed alongside const/static
+    /// as the same scanner blind-spot class applies — a missing
+    /// `visit_item_union` override let the attribute pass unscanned.
+    Union(String),
     /// Visitor fallback for shapes we don't yet model (e.g., free
     /// constants, modules with attribute-bearing macro-expansion).
     /// Kept rather than asserted so scans never panic on third-party
@@ -1141,7 +1146,8 @@ impl ItemTarget {
             | Self::Fn(n)
             | Self::TypeAlias(n)
             | Self::Const(n)
-            | Self::Static(n) => n.clone(),
+            | Self::Static(n)
+            | Self::Union(n) => n.clone(),
             Self::Impl {
                 trait_path: Some(t),
                 target_type,
@@ -1223,7 +1229,8 @@ impl ItemTarget {
             | (Self::Fn(a), Self::Fn(b))
             | (Self::TypeAlias(a), Self::TypeAlias(b))
             | (Self::Const(a), Self::Const(b))
-            | (Self::Static(a), Self::Static(b)) => a == b,
+            | (Self::Static(a), Self::Static(b))
+            | (Self::Union(a), Self::Union(b)) => a == b,
             (
                 Self::Impl {
                     target_type: t1, ..
@@ -3077,6 +3084,7 @@ fn synthesis_pass(
                 syn::Item::Mod(_) => Some(antigen_fingerprint::ItemKind::Mod),
                 syn::Item::Const(_) => Some(antigen_fingerprint::ItemKind::Const),
                 syn::Item::Static(_) => Some(antigen_fingerprint::ItemKind::Static),
+                syn::Item::Union(_) => Some(antigen_fingerprint::ItemKind::Union),
                 _ => None,
             };
 
@@ -3135,6 +3143,7 @@ fn synthesis_pass(
                     syn::Item::Impl(i) => antigen_fingerprint::structural_digest(i),
                     syn::Item::Const(i) => antigen_fingerprint::structural_digest(i),
                     syn::Item::Static(i) => antigen_fingerprint::structural_digest(i),
+                    syn::Item::Union(i) => antigen_fingerprint::structural_digest(i),
                     _ => String::new(),
                 };
 
@@ -3176,6 +3185,7 @@ fn item_kind_and_target(item: &syn::Item) -> Option<(&'static str, ItemTarget)> 
         }
         syn::Item::Const(c) => Some(("const", ItemTarget::Const(c.ident.to_string()))),
         syn::Item::Static(s) => Some(("static", ItemTarget::Static(s.ident.to_string()))),
+        syn::Item::Union(u) => Some(("union", ItemTarget::Union(u.ident.to_string()))),
         // `mod` items and other unmodeled kinds are skipped for synthesis.
         _ => None,
     }
