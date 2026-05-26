@@ -98,6 +98,12 @@ pub enum LeafExpr {
         roles: std::collections::BTreeMap<String, String>,
         /// Whether to require currency against the live fingerprint.
         against: SignerCurrencyExpr,
+        /// Optional categorical allow-set of acceptable signature strengths
+        /// (per ABO/Rh biology, decisions.md §grammar B6). Empty = any
+        /// strength accepted.
+        signature_allow: Vec<crate::tier::SignatureStrength>,
+        /// Optional preferred signature strength (advisory; does not gate).
+        signature_prefer: Option<crate::tier::SignatureStrength>,
     },
     /// `signed_trailer(key = "...", role = "...", count = N)`.
     SignedTrailer {
@@ -307,6 +313,8 @@ impl LeafExpr {
                 required,
                 roles,
                 against,
+                signature_allow,
+                signature_prefer,
             } => crate::Leaf::Signers {
                 required: required.clone(),
                 roles: roles.clone(),
@@ -314,8 +322,8 @@ impl LeafExpr {
                     SignerCurrencyExpr::Current => crate::predicate::SignerCurrency::Current,
                     SignerCurrencyExpr::Any => crate::predicate::SignerCurrency::Any,
                 },
-                signature_allow: Vec::new(),
-                signature_prefer: None,
+                signature_allow: signature_allow.clone(),
+                signature_prefer: *signature_prefer,
             },
             Self::SignedTrailer { key, role, count } => crate::Leaf::SignedTrailer {
                 key: key.clone(),
@@ -874,6 +882,46 @@ fn parse_string_array(input: ParseStream) -> syn::Result<Vec<String>> {
     Ok(out)
 }
 
+/// Map a DSL signature-strength string to a [`crate::tier::SignatureStrength`].
+///
+/// Accepts the canonical kebab-case spellings the CLI's `--strength` flag uses
+/// (`text-stamp`, `git-trust`, `crypto-signed`). Returns a parse error naming
+/// the valid set on an unknown spelling — the trust-boundary loud-failure
+/// (ADR-005 sub-clause F) rather than a silent default.
+fn signature_strength_from_str(s: &LitStr) -> syn::Result<crate::tier::SignatureStrength> {
+    match s.value().as_str() {
+        "text-stamp" => Ok(crate::tier::SignatureStrength::TextStamp),
+        "git-trust" => Ok(crate::tier::SignatureStrength::GitTrust),
+        "crypto-signed" => Ok(crate::tier::SignatureStrength::CryptoSigned),
+        other => Err(syn::Error::new(
+            s.span(),
+            format!(
+                "unknown signature strength `{other}`; \
+                 expected \"text-stamp\", \"git-trust\", or \"crypto-signed\""
+            ),
+        )),
+    }
+}
+
+/// Parse a `[str, str, ...]` bracketed array of signature-strength strings
+/// (for `signature_allow`).
+fn parse_signature_strength_array(
+    input: ParseStream,
+) -> syn::Result<Vec<crate::tier::SignatureStrength>> {
+    let inner;
+    syn::bracketed!(inner in input);
+    let mut out = Vec::new();
+    while !inner.is_empty() {
+        let s: LitStr = inner.parse()?;
+        out.push(signature_strength_from_str(&s)?);
+        if inner.is_empty() {
+            break;
+        }
+        inner.parse::<Token![,]>()?;
+    }
+    Ok(out)
+}
+
 /// Parse a `{key = "val", ...}` brace-delimited string-to-string map (for `roles`).
 fn parse_string_string_map(
     input: ParseStream,
@@ -952,6 +1000,8 @@ fn parse_signers(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
     let mut required: Vec<String> = Vec::new();
     let mut roles: std::collections::BTreeMap<String, String> = std::collections::BTreeMap::new();
     let mut against = SignerCurrencyExpr::Current;
+    let mut signature_allow: Vec<crate::tier::SignatureStrength> = Vec::new();
+    let mut signature_prefer: Option<crate::tier::SignatureStrength> = None;
 
     if input.peek(syn::token::Paren) {
         let content;
@@ -981,11 +1031,19 @@ fn parse_signers(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
                         }
                     };
                 }
+                "signature_allow" => {
+                    signature_allow = parse_signature_strength_array(&content)?;
+                }
+                "signature_prefer" => {
+                    let s: LitStr = content.parse()?;
+                    signature_prefer = Some(signature_strength_from_str(&s)?);
+                }
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
                         format!(
-                            "unknown signers field `{other}`; expected: required, roles, against"
+                            "unknown signers field `{other}`; expected: required, roles, \
+                             against, signature_allow, signature_prefer"
                         ),
                     ));
                 }
@@ -1023,6 +1081,8 @@ fn parse_signers(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
         required,
         roles,
         against,
+        signature_allow,
+        signature_prefer,
     })
 }
 
@@ -1309,6 +1369,8 @@ mod requires_json_tests {
             required: vec![],
             roles: std::collections::BTreeMap::new(),
             against: SignerCurrencyExpr::Current,
+            signature_allow: vec![],
+            signature_prefer: None,
         });
         assert!(expr.validate(span).is_err());
     }
@@ -1345,6 +1407,8 @@ mod requires_json_tests {
                 required: vec!["alice".to_string()],
                 roles: std::collections::BTreeMap::new(),
                 against: SignerCurrencyExpr::Current,
+                signature_allow: vec![],
+                signature_prefer: None,
             }),
             RequiresExpr::Leaf(LeafExpr::FreshWithinDays { days: 90 }),
         ]);
@@ -1405,5 +1469,61 @@ mod requires_json_tests {
             result.is_err(),
             "roles key not in required must panic/reject at parse time (sub-clause F)"
         );
+    }
+
+    // ATK: DslSurfaceOmitsRuntimeField — `signature_allow` and `signature_prefer` are
+    // evaluated by eval_signers (evaluate.rs:410-411) but are inexpressible via the DSL.
+    // The DSL `signers(...)` hardcodes `signature_allow: Vec::new()` in to_leaf()
+    // (parser.rs:317), silently allowing any strength. An adopter who needs to restrict
+    // attestation to `CryptoSigned` entries has no way to express it and gets no warning.
+    //
+    // This test FAILS until parser.rs exposes `signature_allow = [...]` in the DSL
+    // and to_leaf() propagates the list.
+    //
+    // Root: aristotle finding F2 from comprehensive-antigen-coverage campsite:
+    //   Leaf::Signers has 5 fields; LeafExpr::Signers exposes 3 (after roles= fix).
+    //   signature_allow and signature_prefer are still dead surface (parser.rs:317-318).
+    #[test]
+    fn atk_dsl_signers_signature_allow_expressible_and_round_trips() {
+        // ATK: verify signature_allow survives DSL → to_leaf() → JSON round-trip.
+        // Was broken: to_leaf() hardcoded Vec::new() for signature_allow (parser.rs:317).
+        // Now fixed: parse_signers() parses the DSL field and to_leaf() propagates it.
+        let p = round_trip(r#"signers(required = ["alice"], signature_allow = ["crypto-signed"])"#);
+        if let crate::Predicate::Leaf(crate::Leaf::Signers {
+            signature_allow, ..
+        }) = p
+        {
+            assert_eq!(
+                signature_allow,
+                vec![crate::tier::SignatureStrength::CryptoSigned],
+                "signature_allow must survive DSL → to_leaf() round-trip; \
+                 currently to_leaf() hardcodes Vec::new() regardless of DSL input"
+            );
+        } else {
+            panic!("expected Signers leaf");
+        }
+    }
+
+    // ATK: verify that the DSL `signers(required=["alice"])` produces
+    // `signature_allow: []` in the runtime Leaf — confirming that the CURRENT
+    // behavior (Vec::new() default) is preserved and not accidentally changed
+    // to a non-empty restriction. An empty `signature_allow` means any strength
+    // is accepted; this is the correct CONTROL for the `atk_dsl_signers_signature_allow_expressible`
+    // test above.
+    #[test]
+    fn atk_dsl_signers_no_signature_allow_preserves_empty_list() {
+        let p = round_trip(r#"signers(required = ["alice"])"#);
+        if let crate::Predicate::Leaf(crate::Leaf::Signers {
+            signature_allow, ..
+        }) = p
+        {
+            assert!(
+                signature_allow.is_empty(),
+                "signers() without signature_allow must produce an empty allow-list \
+                 (any strength accepted); got: {signature_allow:?}"
+            );
+        } else {
+            panic!("expected Signers leaf");
+        }
     }
 }
