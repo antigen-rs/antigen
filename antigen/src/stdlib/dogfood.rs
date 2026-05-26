@@ -534,3 +534,57 @@ pub struct ScannerBoundaryFalseNegative;
     references = ["ADR-003", "ADR-024", "ADR-024#Amendment-1", "ADR-026", "ADR-026#Amendment-1", "ADR-027"]
 )]
 pub struct BiologyGroundingClaimDrift;
+
+// ============================================================================
+// 12. UnstableHashAsPersistedValue
+// ============================================================================
+
+/// A value that is *persisted and later compared for equality* is produced by
+/// an unstable hash.
+///
+/// "Unstable" means the hash carries no cross-run / cross-machine /
+/// cross-version stability guarantee — most commonly
+/// [`std::hash::DefaultHasher`] or any `Hash`-derived digest whose algorithm
+/// the standard library is free to change.
+///
+/// The value looks correct the moment it is written: the producer runs, emits
+/// bytes, the bytes are stored. The divergence is *temporal* — it appears only
+/// when the value is recomputed under a different toolchain, a different
+/// platform, or a future stdlib release, and the recomputed digest no longer
+/// equals the stored one. Every equality check that was meant to mean "this is
+/// the same thing I recorded" silently flips to "different," with no
+/// compile-time or write-time signal.
+///
+/// **Observed instance** (2026-05-26, this expedition): the substrate-witness
+/// `signed_against_fingerprint` / `current_fingerprint` machinery (ADR-019)
+/// compares a *persisted* item digest to a freshly recomputed one for
+/// `against = "current"` / `fresh_within_days`. The producer
+/// (`antigen-fingerprint::digest::structural_digest`) was authored to hash with
+/// FNV-1a *specifically* to avoid this class: `DefaultHasher`'s output is
+/// documented as unstable across Rust versions, so a digest signed today could
+/// stop matching after a toolchain bump — silently breaking every signature.
+/// The digest also carries a `fnv1a64:` version prefix so a future algorithm
+/// change can be detected and migrated rather than producing a silent
+/// mismatch.
+///
+/// **Defense**: for any hash whose output is persisted and later compared, use
+/// a fixed-specification algorithm (FNV-1a, a SHA family, blake3) — never
+/// `DefaultHasher` or an unversioned `Hash`-derived value. Prefix the stored
+/// value with an algorithm tag so an algorithm change is recognizable, not
+/// silent. The defended producer in this crate is `#[immune]` below with a test
+/// witness that pins FNV-1a to its published vector.
+///
+/// **Category**: `SubstrateAlignment` — the persisted digest is a
+/// *representation* of an item's structure; an unstable hash makes that
+/// representation diverge from what recomputation produces, even though the
+/// item itself never changed. The failure is representation-vs-state drift over
+/// time, not a wrong computation at a single point.
+#[antigen(
+    name = "unstable-hash-as-persisted-value",
+    category = AntigenCategory::SubstrateAlignment,
+    fingerprint = r#"doc_contains("DefaultHasher")"#,
+    family = "dogfood",
+    summary = "A persisted-and-later-compared value is produced by a hash with no cross-run/version stability guarantee (e.g. DefaultHasher); the stored digest silently stops matching recomputation under a different toolchain — representation drifts from state over time.",
+    references = ["ADR-019", "ADR-005"]
+)]
+pub struct UnstableHashAsPersistedValue;
