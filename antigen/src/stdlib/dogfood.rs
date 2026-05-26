@@ -719,3 +719,53 @@ pub struct AuditFingerprintSelfReferential;
     references = ["ADR-005", "ADR-019", "ADR-024"]
 )]
 pub struct SilentSemanticMismatchAtTrustBoundary;
+
+// ============================================================================
+// 15. DeclaredCapabilityWithNoProductionPath
+// ============================================================================
+
+/// A capability is declared in the type system or documentation but no code path can ever make it fire.
+///
+/// The structural shape: **declare → no-impl → silent-void**. Something is named and typed as
+/// a real capability (a witness, an audit hint, a DSL field, a documented behavior), but the
+/// implementation path that would exercise it either was never written or was silently removed.
+/// The declaration compiles, tools report no error, and callers proceed under the assumption
+/// that the capability is live — but it never fires.
+///
+/// This is antigen's own generation-inspection asymmetry turned inward: antigen's type surface
+/// grows faster than the production paths that exercise it, exactly as agentic dev generates
+/// code faster than teams can inspect it. The fail-class antigen exists to prevent IN ADOPTERS
+/// is the fail-class most likely to hit antigen's own codebase through the same mechanism.
+///
+/// **Four observed instances (pathmaker structural rhyme, 2026-05-26)**:
+/// - **Never-resolving witness**: `#[immune(X, witness = "fn_name")]` compiles; audit can
+///   never resolve a string to a function reference. Silent void from compile-time forward.
+/// - **Never-credited sidecar**: a signed `.attest/` sidecar exists for a `witness=` site;
+///   the audit code-witness branch never reads sidecars, so the attestation is never credited.
+/// - **Never-reachable DSL field**: `Leaf::Signers` had `signature_allow` and `signature_prefer`
+///   fields; `parse_signers()` didn't expose them, so no adopter expression could ever set them.
+/// - **Never-emitted `AuditHint` variant**: `PolyclonalInsufficientLineages` and
+///   `AdccSingleMechanismOnly` exist in the `AuditHint` enum but are never constructed anywhere
+///   in the codebase; the rustdoc described them as real behavior.
+///
+/// **Defense posture**:
+/// 1. **Dead-declaration sweep**: at audit time, verify every `AuditHint` variant is constructed
+///    somewhere; every DSL field is reachable from the public macro surface; every witness
+///    identifier resolves to a real fn; every sidecar that exists for an immune site is read.
+/// 2. **No-overclaim in rustdoc**: when a feature is planned but not emitted, say so explicitly
+///    ("planned — not yet emitted at v0.2"); do not describe future behavior as present behavior.
+/// 3. **Production-path test**: for every declared capability, a test must exercise the code
+///    path that makes it fire (not just that it compiles).
+///
+/// **Category**: `SubstrateAlignment` — the representation (type declaration, rustdoc, `AuditHint`
+/// variant) diverges from the actual production state (never fires). The declared surface and the
+/// executed surface are out of alignment.
+#[antigen(
+    name = "declared-capability-with-no-production-path",
+    category = AntigenCategory::SubstrateAlignment,
+    fingerprint = r#"doc_contains("planned")"#,
+    family = "dogfood",
+    summary = "A capability (witness, DSL field, audit hint, documented behavior) is declared in the type system or docs but no code path can ever make it fire; the declaration compiles and reports no error while the capability is permanently void.",
+    references = ["ADR-004", "ADR-006", "ADR-019"]
+)]
+pub struct DeclaredCapabilityWithNoProductionPath;
