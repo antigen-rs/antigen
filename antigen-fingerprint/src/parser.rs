@@ -615,6 +615,39 @@ mod tests {
         assert!(err.contains("depth"), "got: {err}");
     }
 
+    // ATK-FP-MAX-NODES: a wide all_of with MAX_NODES+1 leaves must be rejected.
+    // Attack: instead of DEEP nesting (which hits MAX_DEPTH), use WIDE all_of to
+    // create many nodes at the same depth — bypasses MAX_DEPTH but hits MAX_NODES.
+    #[test]
+    fn enforces_max_nodes() {
+        // MAX_NODES=256. Build all_of([item=struct, item=struct, ...]) with 260 leaves.
+        // Each leaf is 1 node; the all_of wrapper is 1 node; total = 261 > 256.
+        let leaves: Vec<String> = (0..260).map(|_| "item = struct".to_string()).collect();
+        let s = format!("all_of([{}])", leaves.join(", "));
+        let err = parse(&s).unwrap_err().to_string();
+        assert!(
+            err.contains("node"),
+            "ATK-FP-MAX-NODES: fingerprint with 260 all_of leaves must hit MAX_NODES limit. \
+             Got: {err}"
+        );
+    }
+
+    // ATK-FP-MAX-NODES-BOUNDARY: exactly MAX_NODES nodes must be accepted.
+    // Verify the limit is exclusive (> MAX_NODES rejected, == MAX_NODES allowed).
+    // MAX_NODES=256: the root has 1 node (the all_of), plus 255 leaves = 256 total.
+    #[test]
+    fn accepts_exactly_max_nodes() {
+        // all_of with 255 leaves: 1 (all_of node) + 255 (leaves) = 256 = MAX_NODES.
+        let leaves: Vec<String> = (0..255).map(|_| "item = struct".to_string()).collect();
+        let s = format!("all_of([{}])", leaves.join(", "));
+        // This should PARSE successfully (exactly at the limit, not over).
+        assert!(
+            parse(&s).is_ok(),
+            "ATK-FP-MAX-NODES-BOUNDARY: exactly {MAX_NODES} nodes must be accepted. \
+             all_of with 255 leaves = 256 total nodes."
+        );
+    }
+
     #[test]
     fn node_kind_dispatch_top_level() {
         let fp = parse("item = enum, name = matches(\"*Class\")").unwrap();
