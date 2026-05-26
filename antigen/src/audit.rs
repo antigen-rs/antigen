@@ -133,6 +133,16 @@ pub enum WitnessKind {
 ///
 /// `cargo antigen audit --min-tier execution` fails if any immunity claim
 /// is below Execution tier.
+// `WitnessTier` is one half of a parallel pair with
+// `antigen_attestation::tier::WitnessTier`; the two are hand-maintained-in-sync
+// because the dep-DAG keeps them in separate crates. That hand-maintained
+// parallelism is exactly the `ParallelStateTrackersDiverge` shape — the
+// comment-promised "lock-step" enforces nothing; only the
+// `atk_witness_tier_parity` test catches drift on derives, discriminants, or
+// audit-side-only variants. The peer in `tier.rs` is in a foundation crate
+// that can't carry the marker (dep-DAG barrier); fingerprint-scan recall via
+// the `doc_contains("lock-step")` pattern provides cross-site coverage there.
+#[presents(ParallelStateTrackersDiverge)]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum WitnessTier {
@@ -1267,9 +1277,22 @@ fn immunity_audit_from_evaluated(
 
 /// Map [`antigen_attestation::WitnessTier`] to [`WitnessTier`].
 ///
-/// The two enums are structurally identical (defined in lock-step per `tier.rs`)
-/// but are distinct types to avoid a circular crate dependency. For v0.1 this
-/// mapping is lossless; a future ADR that diverges the two enums would widen it.
+/// The two enums are intended to stay in lock-step (defined as peers per
+/// `tier.rs`) but are distinct types to avoid a circular crate dependency.
+///
+/// What enforces that lock-step — and what does NOT:
+/// - **Enforced by the compiler (one direction only):** adding a variant to
+///   `antigen_attestation::WitnessTier` breaks the exhaustive `match` below.
+/// - **Enforced by test, not the compiler:** adding a variant *here* without a
+///   peer there, derive parity (e.g. `Hash` on one side and not the other),
+///   discriminant parity, and variant-doc parity are guarded by
+///   `antigen/tests/atk_witness_tier_parity.rs`. The compiler does not catch
+///   any of those — only the parity test does. (This is the
+///   `ParallelStateTrackersDiverge` shape, mirroring the framing in
+///   `tier.rs`'s WitnessTier doc-comment.)
+///
+/// For v0.1 the mapping is lossless; a future ADR that intentionally diverges
+/// the two enums would widen it.
 const fn map_attestation_tier(tier: antigen_attestation::WitnessTier) -> WitnessTier {
     match tier {
         antigen_attestation::WitnessTier::None => WitnessTier::None,
