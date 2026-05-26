@@ -184,6 +184,39 @@ declaration creates a kind of T-cell-receptor analog in the cargo tooling.
 
 **Introduced in**: `design-intent.md`.
 
+### original antigenic sin
+
+**Biological referent**: the immune system's bias toward recall of a previously-encountered
+antigen when it meets a *variant*. The memory receptor, imprinted on the first-seen strain,
+preferentially fires on the original epitope and under-binds the new one — so a known memory
+is present but its recognition is fitted too tightly to the first instance to serve the
+variant. (Also: antigenic imprinting. The seasonal-flu-vaccine reformulation problem is the
+canonical case.)
+
+**Rust ecosystem analog**: a recognition surface fitted to the *shape of its first observed
+instance* rather than to the *extension of its class* — so a later instance the surface
+should match escapes it. A **cross-family cognate**: it grounds failure-classes in two
+families.
+
+- **VCS-info-loss family** — [`RefactorWithoutPreservationOfWhy`](../antigen/src/stdlib/vcs_info_loss.rs):
+  the known-but-uncontextualized memory of the corrected code biases future developers toward
+  re-deriving the original bug (the "first antigen" is the original failure-context; the clean
+  refactor is the variant the imprinted memory under-serves).
+- **Recognition-scope (meta) family** — the fingerprint-scope meta-antigen (name ratified as
+  `AntigenFingerprintDivergesFromClassExtension`, pending declaration): a declared antigen's
+  fingerprint, fitted to instance #1, diverges from the class its summary claims (under- *or*
+  over-coverage; divergence is symmetric).
+
+**Paired remedy**: **affinity maturation** (somatic hypermutation) — the receptor is broadened
+and refined to bind the variant; survival-selection ratifies the matured lineage. Already
+glossary-grounded as the biological referent of [ratification](#ratification). The division of
+labor is biology-faithful: **recall lives in the germline-encoded broad receptor (the
+fingerprint), precision in the affinity-matured receptor (the structural witness)** — broaden
+the fingerprint to the class's extension, and let the witness carry precision.
+
+**Introduced in**: inline in `vcs_info_loss.rs` + `docs/decisions.md` (per-primitive cognates);
+recognized as a cross-family cognate and lifted here during the `antigen-dx-dogfood` arc.
+
 ---
 
 ## Response terms

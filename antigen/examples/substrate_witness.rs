@@ -95,9 +95,10 @@ pub struct SignedZeroDiscipline;
 ///
 /// The `#[immune]` claim binds the function to a compound predicate:
 ///
-/// - `signers(required = ["math-researcher"])` — at least one signer with
-///   role `math-researcher` must have reviewed (audit-time check against
-///   the sidecar's `signers` list)
+/// - `signers(required = ["alice"], roles = {alice = "math-researcher"})` —
+///   signer `alice` must have reviewed with role `math-researcher` (audit-time
+///   check against the sidecar's `signers` list; `roles` asserts role identity,
+///   not just name presence)
 /// - `ratified_doc(path = "docs/disciplines/ieee754-odd-functions.md",
 ///    min_version = "1.0")` — a discipline doc at that path must exist
 ///   with frontmatter `version >= 1.0`
@@ -117,7 +118,7 @@ pub struct SignedZeroDiscipline;
 #[immune(
     SignedZeroDiscipline,
     requires = all_of([
-        signers(required = ["math-researcher"]),
+        signers(required = ["alice"], roles = {alice = "math-researcher"}),
         ratified_doc(path = "docs/disciplines/ieee754-odd-functions.md", min_version = "1.0"),
         fresh_within_days(days = 180),
     ])
@@ -216,7 +217,7 @@ fn main() {
     println!("     cargo run --bin cargo-antigen -- antigen attest sign \\");
     println!("       --sidecar antigen/examples/.attest/SignedZeroDiscipline.json \\");
     println!("       --item-path signed_zero_preserving_sinh \\");
-    println!("       --signer alice --role math-researcher \\");
+    println!("       --signer alice --role math-researcher    # role matches roles = {{alice = \"math-researcher\"}} \\");
     println!("       --fingerprint <same-as-scaffold> \\");
     println!("       --reasoning \"reviewed sinh body: explicit x == 0.0 short-circuit \\");
     println!("                    preserves sign bit; bit-exact test locks contract\"");

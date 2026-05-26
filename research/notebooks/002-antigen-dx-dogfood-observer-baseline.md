@@ -431,7 +431,7 @@ Evidence:
 - UNTRACKED: `cargo-antigen/tests/atk_dx_findings.rs` — the DX findings test file (never committed)
 - UNTRACKED: `research/notebooks/002-antigen-dx-dogfood-observer-baseline.md` — this notebook
 
-**CRITICAL OBSERVATION**: The DX findings test file `cargo-antigen/tests/atk_dx_findings.rs` is **UNTRACKED** — it has never been committed to git. This is a methodological gap. The adversarial TDD tests that govern the entire dogfood arc live outside git history. If the working tree is wiped or lost, the test evidence disappears.
+**CORRECTION (verified post-session-start)**: The 4 modified files and the untracked test file ALL landed in commit `d46a044` (dogfood: declare AuditFingerprintSelfReferential). The commit was authored Mon May 25 21:36:28 2026 -0500, but the git status at session start caught a state where my context showed 6-ahead while the commit had just landed, resulting in apparent working-tree changes. After dropping camp notes, the git status resolved to clean. All fixes are committed.
 
 ### Commits landed since prior session end (new since `a82f802`):
 
@@ -473,6 +473,6 @@ Campsites: 54 total — 21 open, 2 partial, 29 complete, 2 blocked
 
 **Finding B (untracked test file)**: The adversarial TDD test file governing this expedition's completion criteria (`cargo-antigen/tests/atk_dx_findings.rs`) has never been committed. 5 tests, 275 lines, covering F3/F6/F8 — all untracked. If pathmaker runs `git checkout .` the test gates disappear silently.
 
-**Finding C (WitnessTier::None docs still not fixed)**: `docs/witness-tiers.md:36` still defines `None` as "Missing/NotFound/Ambiguous" — missing the 4th case (evaluated-and-failed). Observer dropped camp notice `12be4202` about this in prior session; checking if it's been acted on.
+**Finding C (WitnessTier::None docs — RETRACTED)**: Prior session observer notice `12be4202` flagged `docs/witness-tiers.md:36` as missing the 4th None case. RETRACTION: the fix was already present in commit `852314b` (2026-05-19), predating this expedition entirely. The line now reads: "Two distinct sub-channels collapse to None: (a) witness-resolution gap...; (b) predicate-evaluation outcome — a requires= substrate-witness predicate was evaluated and failed." Observer's prior notice was a false positive. Methodological note: I flagged a gap in something I had already verified contained the correct definition — possible the prior session read an older cached state or I misread. Camp notice remains in substrate; its resolution is that the docs were already correct.
 
 **Finding D (encounter-status axis is LARGE)**: Aristotle's analysis is comprehensive (ADR-028 amendment with three-axis state-space). The encounter-status finding will not resolve quickly — it's an ADR amendment requiring navigator ceremony. Observer should watch whether this enters the process lifecycle before becoming drift.

@@ -89,10 +89,13 @@ pub enum LeafExpr {
         /// Whether to require a sibling JSON file at the same path.
         sibling_json: bool,
     },
-    /// `signers(required = [...], against = "current"|"any")`.
+    /// `signers(required = [...], roles = {name = "role"}, against = "current"|"any")`.
     Signers {
         /// Required signer names (non-empty per NFA-7).
         required: Vec<String>,
+        /// Optional role assertions: signer name → expected role.
+        /// Every key must appear in `required` (sub-clause F).
+        roles: std::collections::BTreeMap<String, String>,
         /// Whether to require currency against the live fingerprint.
         against: SignerCurrencyExpr,
     },
@@ -300,9 +303,13 @@ impl LeafExpr {
                 anchor: anchor.clone(),
                 sibling_json: *sibling_json,
             },
-            Self::Signers { required, against } => crate::Leaf::Signers {
+            Self::Signers {
+                required,
+                roles,
+                against,
+            } => crate::Leaf::Signers {
                 required: required.clone(),
-                roles: std::collections::BTreeMap::new(),
+                roles: roles.clone(),
                 against: match against {
                     SignerCurrencyExpr::Current => crate::predicate::SignerCurrency::Current,
                     SignerCurrencyExpr::Any => crate::predicate::SignerCurrency::Any,
@@ -362,7 +369,7 @@ impl LeafExpr {
             Self::Signers { required, .. } if required.is_empty() => Err(syn::Error::new(
                 span,
                 "requires: `signers(required = [])` is a semantic no-op (NFA-7); \
-                 add at least one required signer name",
+                 add at least one required signer name"
             )),
             Self::OraclesComplete { files } if files.is_empty() => Err(syn::Error::new(
                 span,
@@ -867,6 +874,26 @@ fn parse_string_array(input: ParseStream) -> syn::Result<Vec<String>> {
     Ok(out)
 }
 
+/// Parse a `{key = "val", ...}` brace-delimited string-to-string map (for `roles`).
+fn parse_string_string_map(
+    input: ParseStream,
+) -> syn::Result<std::collections::BTreeMap<String, String>> {
+    let inner;
+    syn::braced!(inner in input);
+    let mut out = std::collections::BTreeMap::new();
+    while !inner.is_empty() {
+        let key: Ident = inner.parse()?;
+        inner.parse::<Token![=]>()?;
+        let val: LitStr = inner.parse()?;
+        out.insert(key.to_string(), val.value());
+        if inner.is_empty() {
+            break;
+        }
+        inner.parse::<Token![,]>()?;
+    }
+    Ok(out)
+}
+
 fn parse_ratified_doc(_span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
     let mut path: Option<String> = None;
     let mut min_version: Option<String> = None;
@@ -923,6 +950,7 @@ fn parse_ratified_doc(_span: Span, input: ParseStream) -> syn::Result<LeafExpr> 
 
 fn parse_signers(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
     let mut required: Vec<String> = Vec::new();
+    let mut roles: std::collections::BTreeMap<String, String> = std::collections::BTreeMap::new();
     let mut against = SignerCurrencyExpr::Current;
 
     if input.peek(syn::token::Paren) {
@@ -933,6 +961,9 @@ fn parse_signers(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
             match key.to_string().as_str() {
                 "required" => {
                     required = parse_string_array(&content)?;
+                }
+                "roles" => {
+                    roles = parse_string_string_map(&content)?;
                 }
                 "against" => {
                     let s: LitStr = content.parse()?;
@@ -953,7 +984,9 @@ fn parse_signers(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
-                        format!("unknown signers field `{other}`; expected: required, against"),
+                        format!(
+                            "unknown signers field `{other}`; expected: required, roles, against"
+                        ),
                     ));
                 }
             }
@@ -971,7 +1004,26 @@ fn parse_signers(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
         ));
     }
 
-    Ok(LeafExpr::Signers { required, against })
+    // Sub-clause F: every key in `roles` must name a signer in `required`.
+    // A role assertion for an absent signer is a dead constraint — it can
+    // never fire — and almost always indicates a typo.
+    for role_name in roles.keys() {
+        if !required.contains(role_name) {
+            return Err(syn::Error::new(
+                span,
+                format!(
+                    "signers: roles key `{role_name}` is not in `required` \
+                     (sub-clause F: every role assertion must name a required signer)"
+                ),
+            ));
+        }
+    }
+
+    Ok(LeafExpr::Signers {
+        required,
+        roles,
+        against,
+    })
 }
 
 fn parse_signed_trailer(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
@@ -1255,6 +1307,7 @@ mod requires_json_tests {
         let span = proc_macro2::Span::call_site();
         let expr = RequiresExpr::Leaf(LeafExpr::Signers {
             required: vec![],
+            roles: std::collections::BTreeMap::new(),
             against: SignerCurrencyExpr::Current,
         });
         assert!(expr.validate(span).is_err());
@@ -1290,6 +1343,7 @@ mod requires_json_tests {
         let expr = RequiresExpr::AllOf(vec![
             RequiresExpr::Leaf(LeafExpr::Signers {
                 required: vec!["alice".to_string()],
+                roles: std::collections::BTreeMap::new(),
                 against: SignerCurrencyExpr::Current,
             }),
             RequiresExpr::Leaf(LeafExpr::FreshWithinDays { days: 90 }),
@@ -1303,7 +1357,7 @@ mod requires_json_tests {
         // Predicate type. This locks the two ASTs together — any divergence
         // (renamed variant, new field, changed serde tag) breaks the test.
         let cases = [
-            r#"signers(required = ["math-researcher"])"#,
+            r#"signers(required = ["alice"], roles = {alice = "math-researcher"})"#,
             r#"all_of([signers(required = ["alice"]), fresh_within_days(180)])"#,
             r"any_of([fresh_within_days(30), fresh_within_days(90)])",
             r"not(fresh_within_days(90))",
@@ -1317,5 +1371,39 @@ mod requires_json_tests {
                 panic!("JSON `{json}` from `{input}` failed Predicate round-trip: {e}")
             });
         }
+    }
+
+    #[test]
+    fn leaf_signers_roles_round_trips() {
+        // Ensure roles field parses and survives the JSON round-trip.
+        let input = r#"signers(required = ["alice", "bob"], roles = {alice = "math-researcher", bob = "reviewer"})"#;
+        let json = parse_requires(input).to_json();
+        let p: crate::Predicate =
+            serde_json::from_str(&json).expect("roles round-trip must succeed");
+        if let crate::Predicate::Leaf(crate::Leaf::Signers {
+            required, roles, ..
+        }) = p
+        {
+            assert_eq!(required, vec!["alice".to_string(), "bob".to_string()]);
+            assert_eq!(
+                roles.get("alice").map(String::as_str),
+                Some("math-researcher")
+            );
+            assert_eq!(roles.get("bob").map(String::as_str), Some("reviewer"));
+        } else {
+            panic!("expected Signers leaf, got: {json}");
+        }
+    }
+
+    #[test]
+    fn leaf_signers_roles_subset_f_rejects_unknown_name() {
+        // Sub-clause F: role key not in required must be rejected at parse time.
+        let result = std::panic::catch_unwind(|| {
+            parse_requires(r#"signers(required = ["alice"], roles = {bob = "reviewer"})"#)
+        });
+        assert!(
+            result.is_err(),
+            "roles key not in required must panic/reject at parse time (sub-clause F)"
+        );
     }
 }
