@@ -949,3 +949,35 @@ Verified `scan-output-floods-newcomer` claim independently. `print_fingerprint_m
 | `findings/signer-name-role-confusion-unrepresentable` | pathmaker lane | R5 design (tagged constructors) |
 | `scan-output-floods-newcomer` | pathmaker lane | Adversarial gate (failing test first) |
 | `antigen-dx-dogfood/v02-impl-stdlib-category-backfill` | navigator routing | Scope misdescribed |
+
+---
+
+## Step 22: Navigator-Routed Field Entry Verifications
+
+**Time**: 2026-05-26 ~06:10 UTC
+
+### Item 1 — quickstart.md Version (field 04f766eb)
+
+**Hypothesis**: quickstart.md:26 may show a stale or incorrect version string.
+
+**Verification**:
+- `cargo search cargo-antigen` → `0.1.0-rc.3` (published on crates.io)
+- Local `cargo antigen --version` → `cargo-antigen-antigen 0.2.0-alpha.4`
+- `quickstart.md:26` shows `cargo-antigen-antigen 0.1.0-rc.3`
+
+**Verdict**: Correct. The doc matches the published crates.io release. The double-antigen format (`cargo-antigen-antigen`) is not a typo — it is clap's output format for a cargo subcommand: `<binary-name>-<subcommand> <version>`. The workspace is at `0.2.0-alpha.4` (unpublished alpha); quickstart targets the published `rc.3`.
+
+### Item 2 — Path Traversal Risk (field 5cd20a94)
+
+**Hypothesis**: `dep_attest_path`, `content_hash_path`, `maintainer_path` concatenate user-supplied strings without validation, enabling path traversal.
+
+**Verification**:
+- `parse_crate_at_version` (main.rs:1541): checks non-empty + no double `@`. Does NOT validate character set.
+- `format!("{crate_name}@{version}.json")` in path functions: no sanitization.
+- `../../../etc/passwd@1.0` parses successfully; `dep_attest_path` would produce `.attest/supply-chain/dep-attest/../../../etc/passwd@1.0.json`.
+- Audit evaluation path: `crate_name` comes from DSL-parsed `#[immune]` predicate (adopter's own code). Lower-risk but same code path.
+- **NOT from Cargo.lock** — the evaluate functions consume DSL leaves, not lockfile entries.
+
+**Verdict**: Real gap. CLI write path (`run_verify_dep_attest`, main.rs:939) has exploitable path traversal if user passes adversarial `crate@version` string. Seeded `dogfood/supply-chain-path-traversal-guard` (pathmaker). Fix: character-set guard in `parse_crate_at_version` (alphanumeric + `-_.`, reject `..`).
+
+**Secondary observation**: `parse_crate_at_version` is a candidate for `#[presents(UnvalidatedSealedEnumAcceptance)]` — accepts any `@`-split string without type-level validation of the crate name format.
