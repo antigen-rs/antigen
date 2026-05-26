@@ -277,7 +277,13 @@ Ratifying ADR-001 commits the project to:
   antigens declared in one crate applying to consumers. Cross-crate trust-boundary
   mechanics defer to ADR-005's enforcement clauses and ADR-010 OQ1; the
   *commitment* is foundational here. ADR-009 governs how cross-crate references
-  render at the named-observer stratum.
+  render at the named-observer stratum. **Scanner activation status:** v0.2's
+  `cargo antigen scan --include-deps` scans each crate *independently* (per-crate
+  `dep_reports`, `canonical_path` stamping per ADR-017) — it does NOT yet do
+  cross-crate `addresses()` matching or fingerprint synthesis. The activation
+  path that realizes this commitment in the scanner is tracked in
+  [`roadmap.md`](roadmap.md) under "Cross-crate scan reachability (ADR-001 C7
+  activation path)"; deferred from v0.1 by the Sweep A3 scope-lock.
 - **C8 — `[package.metadata.antigen]` is part of the structural memory.**
   Required-list, ADR registry pointer, audit strictness — all project-level
   structural. CI gates can read this metadata and enforce.
