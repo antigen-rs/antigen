@@ -16,6 +16,7 @@
 //!
 //! ADR-025: Supply-Chain Defense Family (ratified 2026-05-22).
 
+use antigen::immune;
 use antigen::supply_chain::evaluate::{
     evaluate_content_hash_matches, evaluate_dep_pinned_against, save_content_hash_record,
 };
@@ -296,6 +297,10 @@ some_crate = "*"
 /// `adr025_audit_hints_const_matches_enum_serde_keys` enforces this BOTH ways
 /// against the live enum, so a rename or a missing variant fails the test instead
 /// of silently drifting.
+#[immune(
+    ParallelStateTrackersDiverge,
+    witness = adr025_audit_hints_const_matches_enum_serde_keys
+)]
 const ADR025_AUDIT_HINTS: &[&str] = &[
     "unpinned-dependency",
     "unpinned-transitive-dependency",
