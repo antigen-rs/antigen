@@ -1537,10 +1537,17 @@ fn run_mucosal_map(args: MucosalMapArgs) -> ExitCode {
 }
 
 /// Parse `<crate>@<version>` into `(crate, version)`. Returns `None` on
-/// any of: no `@`, empty crate, empty version, multiple `@`s.
+/// any of: no `@`, empty crate, empty version, multiple `@`s, or characters
+/// that could escape the `.attest/supply-chain/` directory (path traversal
+/// guard: crate names must be `[a-zA-Z0-9_-]`, versions `[a-zA-Z0-9._+-]`).
 fn parse_crate_at_version(s: &str) -> Option<(String, String)> {
     let (c, v) = s.split_once('@')?;
     if c.is_empty() || v.is_empty() || v.contains('@') {
+        return None;
+    }
+    let crate_ok = c.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '-');
+    let version_ok = v.chars().all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '-' | '+'));
+    if !crate_ok || !version_ok {
         return None;
     }
     Some((c.to_string(), v.to_string()))
