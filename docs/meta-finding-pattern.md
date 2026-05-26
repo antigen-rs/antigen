@@ -48,6 +48,14 @@ Each step earns its place; skipping one collapses the loop:
 - **Skip *guard*** is what happens when a witness exists but doesn't run in
   CI; the discipline is "the witness is structural, not aspirational."
 
+> **The loop is linear on first encounter; iterative in practice.** A
+> declaration's fingerprint typically gets refined over multiple instances —
+> when a second adopter, a scout pass, or an adversarial sweep finds a site
+> the original fingerprint missed, you're not failing the loop, you're in its
+> *affinity-maturation* phase. See
+> [`AntigenFingerprintDivergesFromClassExtension`](decisions.md) for the
+> under-coverage / over-coverage refinement discipline.
+
 ---
 
 ## A worked example: `ParallelStateTrackersDiverge`
@@ -211,7 +219,7 @@ moment of flagging, hold.
 
 ---
 
-## The pattern applies to *team coordination*, not just code
+## The pattern tiles upward: code, then team coordination
 
 `ParallelStateTrackersDiverge` was first noticed in code (consts, enums,
 version strings). But the *same shape* recurs at the coordination layer —
@@ -223,11 +231,18 @@ mechanism:
 - A routing decision's framing vs the substrate-recorded ruling.
 - A "we agreed X" assertion vs the campsite log of who actually agreed.
 
-When you catch these at the coordination layer, the same loop applies:
-notice, name, design a substrate-level check (a campsite review, a git-log
-gate, a pre-routing substrate-grep), guard. The witness moves from "test
-that reads two surfaces" to "discipline that reads two surfaces" — but
-the shape is the same, and the loop is the same.
+Not by coincidence: this is the *generation-outpaces-inspection asymmetry*
+tiling upward. The asymmetry is scale-invariant — its three faces (detection,
+retention, verification, per [`vision-pitch.md`](vision-pitch.md)) recur at
+every rung where generation outpaces inspection of itself. Code-defects need
+structures outside the generating act because the generating act can't
+inspect itself; multi-agent coordination needs structures outside the
+coordinating-act for the same reason. The *same structural cause* produces
+each rung's `ParallelStateTrackersDiverge`, which is why the same loop
+applies: notice, name, design a substrate-level check (a campsite review,
+a git-log gate, a pre-routing substrate-grep), guard. The witness moves from
+"test that reads two surfaces" to "discipline that reads two surfaces" — but
+the shape, and the loop, are the same because the asymmetry is the same.
 
 This is part of why `ParallelStateTrackersDiverge` lives in the dogfood
 family: it's a class that crosses the code/coordination boundary, and the
