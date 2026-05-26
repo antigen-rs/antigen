@@ -407,6 +407,7 @@ fn atk_a3_005_cross_crate_name_collision_not_suppressed_by_same_name_immunity() 
         match_kind: antigen::scan::MatchKind::ExplicitMarker,
         canonical_path: Some("crate_b@1.0.0".to_string()),
         inherited_from: None,
+        structural_fingerprint: String::new(),
     });
     // crate_a's immunity (different canonical_path — different identity)
     report.immunities.push(Immunity {

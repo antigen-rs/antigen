@@ -593,3 +593,54 @@ pub struct BiologyGroundingClaimDrift;
     references = ["ADR-019", "ADR-005"]
 )]
 pub struct UnstableHashAsPersistedValue;
+
+// ============================================================================
+// 13. AuditFingerprintSelfReferential
+// ============================================================================
+
+/// A staleness-detection mechanism compares a stored value against *itself*
+/// rather than against the actual current state.
+///
+/// The classic instance: an audit reads `current_fingerprint` from a stored
+/// sidecar and compares each signer's `signed_against_fingerprint` to it — but
+/// both sides come from the *same file*. A signer who signed against an old
+/// fingerprint is compared to that same old fingerprint, so the staleness check
+/// always clears. The mechanism looks like it detects drift; it structurally
+/// cannot, because nothing in the comparison ever touches the live code.
+///
+/// This is distinct from [`UnstableHashAsPersistedValue`]: there the *hash* is
+/// the problem (an unstable algorithm makes a stable comparison wrong over
+/// time); here the *comparison topology* is the problem (a self-referential
+/// comparison is wrong even with a perfectly stable hash). It is also a cousin
+/// of [`AuditHintWithNoUpstreamPreconditionCheck`] — both check only one side
+/// of a relationship — but the witness shape differs: that one omits an
+/// upstream edge; this one folds both ends of the comparison onto one source.
+///
+/// **Observed instance** (2026-05-26, this expedition; resolved same day): the
+/// substrate-witness audit (`audit_substrate_witness` in `antigen/src/audit.rs`)
+/// originally passed the sidecar's stored `current_fingerprint` into the
+/// predicate evaluator, so `signed_against_fingerprint == current_fingerprint`
+/// compared the sidecar to itself — "Audit-SF-1." Real code drift was never
+/// detected. The fix (A3) feeds the *scan-recomputed* `structural_fingerprint`
+/// (from `antigen_fingerprint::structural_digest`, which reads the item on disk)
+/// instead, so a signer who signed against stale code is now correctly rejected.
+///
+/// **Defense**: a staleness or drift check must compare the stored value
+/// against a value *recomputed from the live source*, never against a sibling
+/// field of the same stored record. Audit it: if both operands of the
+/// comparison trace back to the same file with no disk read between, the check
+/// is self-referential and vacuous.
+///
+/// **Category**: `FunctionalCorrectness` — the audit produces a *wrong result*
+/// (staleness always clears, false-green), not a representation-vs-state layer
+/// split. The verb's output is incorrect; that is correctness, not
+/// substrate-alignment.
+#[antigen(
+    name = "audit-fingerprint-self-referential",
+    category = AntigenCategory::FunctionalCorrectness,
+    fingerprint = r#"doc_contains("Audit-SF-1")"#,
+    family = "dogfood",
+    summary = "A staleness-detection mechanism reads the comparison's 'current' value from the same stored record as the signed-against value (rather than recomputing from live code), so the check compares a value against itself and staleness always clears — false-green.",
+    references = ["ADR-019", "ADR-005"]
+)]
+pub struct AuditFingerprintSelfReferential;
