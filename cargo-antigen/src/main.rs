@@ -139,6 +139,15 @@ enum AntigenSubcommand {
     /// the active-tolerance boundaries for periodic reviewer audit;
     /// `--kind <kind>` filters to one `MucosalKind`.
     MucosalMap(MucosalMapArgs),
+    /// Print the structural fingerprint of a scanned item.
+    ///
+    /// The same digest `attest scaffold`/`sign` need and `scan --format json`
+    /// surfaces, exposed as a first-class verb so an operator can obtain a
+    /// fingerprint WITHOUT scaffolding first — for the `sign` step, for
+    /// hand-editing a sidecar, or for scripting. Scans the `--root` subtree and
+    /// prints the `structural_fingerprint` of every immune/presents site,
+    /// optionally narrowed by `--antigen` and/or `--item-path`.
+    Fingerprint(FingerprintArgs),
 }
 
 #[derive(Debug, Parser)]
@@ -185,6 +194,25 @@ struct AuditArgs {
     /// A hybrid antigen (both categories) matches either filter.
     #[arg(long)]
     category: Option<String>,
+}
+
+#[derive(Debug, Parser)]
+struct FingerprintArgs {
+    /// Workspace (or crate) root to scan (default: current directory).
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+    /// Only report sites whose antigen type matches (last path segment, e.g.
+    /// `SignedZeroDiscipline`). Omit to report every scanned immune/presents site.
+    #[arg(long)]
+    antigen: Option<String>,
+    /// Only report the site at this item path (matched against the item's
+    /// rendered label, e.g. `sinh`, `Type::method`). Requires the named site to
+    /// exist in the scanned root.
+    #[arg(long)]
+    item_path: Option<String>,
+    /// Output format: human or json.
+    #[arg(long, default_value = "human")]
+    format: OutputFormat,
 }
 
 // ============================================================================
@@ -1580,6 +1608,7 @@ fn main() -> ExitCode {
         AntigenSubcommand::Verify(cli) => run_verify(cli),
         AntigenSubcommand::Vcs(cli) => run_vcs(cli),
         AntigenSubcommand::MucosalMap(args) => run_mucosal_map(args),
+        AntigenSubcommand::Fingerprint(args) => run_fingerprint(args),
     }
 }
 
@@ -2489,6 +2518,119 @@ fn run_vaccinate(antigen: String, pattern: String) -> ExitCode {
         antigen, pattern
     );
     ExitCode::FAILURE
+}
+
+/// One scanned site's fingerprint, for `cargo antigen fingerprint` output.
+#[derive(serde::Serialize)]
+struct FingerprintMatch {
+    antigen_type: String,
+    item_path: String,
+    /// `"immune"` or `"presents"` — which kind of declaration this site is.
+    site_kind: &'static str,
+    structural_fingerprint: String,
+    file: String,
+    line: usize,
+}
+
+fn run_fingerprint(args: FingerprintArgs) -> ExitCode {
+    if !args.root.exists() {
+        eprintln!("error: path does not exist: {}", args.root.display());
+        return ExitCode::from(2);
+    }
+
+    let report = match scan::scan_workspace(&args.root, None) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: scan failed: {e}");
+            return ExitCode::from(2);
+        }
+    };
+
+    let antigen_filter = args.antigen.as_deref();
+    let item_filter = args.item_path.as_deref();
+    let keep = |antigen_type: &str, target: &scan::ItemTarget| {
+        antigen_filter.is_none_or(|a| antigen_type == a)
+            && item_filter.is_none_or(|p| target.label() == p)
+    };
+
+    // Immunities always carry a fingerprint; presentations carry one only for
+    // fingerprint-matches (explicit markers leave it empty). Report immune
+    // sites first, then presentations whose fingerprint is non-empty.
+    let mut matches: Vec<FingerprintMatch> = report
+        .immunities
+        .iter()
+        .filter(|i| keep(&i.antigen_type, &i.item_target))
+        .map(|i| FingerprintMatch {
+            antigen_type: i.antigen_type.clone(),
+            item_path: i.item_target.label(),
+            site_kind: "immune",
+            structural_fingerprint: i.structural_fingerprint.clone(),
+            file: i.file.display().to_string(),
+            line: i.line,
+        })
+        .collect();
+    matches.extend(
+        report
+            .presentations
+            .iter()
+            .filter(|p| keep(&p.antigen_type, &p.item_target))
+            .filter(|p| !p.structural_fingerprint.is_empty())
+            .map(|p| FingerprintMatch {
+                antigen_type: p.antigen_type.clone(),
+                item_path: p.item_target.label(),
+                site_kind: "presents",
+                structural_fingerprint: p.structural_fingerprint.clone(),
+                file: p.file.display().to_string(),
+                line: p.line,
+            }),
+    );
+
+    match args.format {
+        OutputFormat::Json => match serde_json::to_string_pretty(&matches) {
+            Ok(s) => println!("{s}"),
+            Err(e) => {
+                eprintln!("error: failed to serialize fingerprints: {e}");
+                return ExitCode::from(2);
+            }
+        },
+        OutputFormat::Human => {
+            if matches.is_empty() {
+                let scope = match (antigen_filter, item_filter) {
+                    (Some(a), Some(p)) => format!(" for antigen `{a}` at item `{p}`"),
+                    (Some(a), None) => format!(" for antigen `{a}`"),
+                    (None, Some(p)) => format!(" at item `{p}`"),
+                    (None, None) => String::new(),
+                };
+                eprintln!(
+                    "no immune/presents site with an obtainable fingerprint found{scope} \
+                     under {}.",
+                    args.root.display()
+                );
+            } else {
+                for m in &matches {
+                    println!(
+                        "{}  {} [{}] on {}  {}:{}",
+                        m.structural_fingerprint,
+                        m.antigen_type,
+                        m.site_kind,
+                        m.item_path,
+                        m.file,
+                        m.line
+                    );
+                }
+            }
+        }
+    }
+
+    // A requested-but-not-found site is a user-visible failure (exit 1) so
+    // scripts (e.g. `FP=$(cargo antigen fingerprint --antigen X --item-path y)`)
+    // don't silently capture an empty value. An unfiltered empty workspace is
+    // not a failure.
+    if matches.is_empty() && (antigen_filter.is_some() || item_filter.is_some()) {
+        ExitCode::from(1)
+    } else {
+        ExitCode::SUCCESS
+    }
 }
 
 fn run_audit(args: AuditArgs) -> ExitCode {
