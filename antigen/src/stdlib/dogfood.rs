@@ -769,3 +769,58 @@ pub struct SilentSemanticMismatchAtTrustBoundary;
     references = ["ADR-004", "ADR-006", "ADR-019"]
 )]
 pub struct DeclaredCapabilityWithNoProductionPath;
+
+// ============================================================================
+// 16. CapabilityOmissionAtLowering
+// ============================================================================
+
+/// A surface field is accepted but silently dropped at lowering.
+///
+/// The layer that translates the surface form into the runtime form hardcodes a
+/// default instead of threading the parsed value through, so a field that
+/// parses and type-checks never reaches the engine.
+///
+/// The shape: **surface accepts → lowering discards → runtime sees the default**.
+/// Distinct from [`DeclaredCapabilityWithNoProductionPath`] (#15), which is the
+/// read-side "a declared capability can never *fire*"; this is the write-side
+/// "a parsed value never *reaches* the runtime because the lowering omits it."
+/// The adopter's input vanishes between the surface and the engine, with no
+/// parse error and no warning — the most insidious form because the surface
+/// *looks* like it accepted the value.
+///
+/// Per aristotle's F5 ratification this is a child of `SilentIntentNullification`
+/// (parent not yet declared in this layer; `#[descended_from(...)]` will be added
+/// once it lands), distinguished from its sibling `ActiveArgumentDiscard` by
+/// witness-structure: `ActiveArgumentDiscard` *loudly rejects at parse*; this one
+/// *silently drops at lowering*.
+///
+/// **Observed instance** (2026-05-25, this expedition; fixed in commit c237101):
+/// the `signers()` substrate-witness DSL did not parse `signature_allow` /
+/// `signature_prefer`, and `to_leaf()` hardcoded `signature_allow = Vec::new()`
+/// / `signature_prefer = None` regardless of input (parser.rs:317-318).
+/// decisions.md:5085 RATIFIES the grammar as `signers(required, roles?,
+/// against?, signature_allow?, signature_prefer?)` — five fields — so two
+/// ratified fields were silently inexpressible: a `RatifiedSpecDriftFromImpl`
+/// against decisions.md:5085 AND this capability-omission-at-lowering. The fix
+/// added the parse arms + threaded both fields through the lowering.
+///
+/// **Defense**: a parity guard — construct a runtime value with EVERY field set
+/// to a non-default, render it to the surface form, parse + lower it back, and
+/// assert equality. Any field the lowering drops breaks the test at the parser,
+/// not at an adopter whose value vanished. The witness is
+/// `atk_dsl_signers_every_field_reachable_and_lowered_no_omission` in
+/// `antigen-attestation::parser` tests.
+///
+/// **Category**: `FunctionalCorrectness` — the lowering *computes a wrong
+/// (lossy) value*: it produces a runtime form that does not faithfully represent
+/// the parsed surface. This is a wrong-output failure, not a
+/// representation-vs-state layer split.
+#[antigen(
+    name = "capability-omission-at-lowering",
+    category = AntigenCategory::FunctionalCorrectness,
+    fingerprint = r#"doc_contains("to_leaf")"#,
+    family = "dogfood",
+    summary = "A surface field parses + type-checks but the lowering step hardcodes a default instead of threading the parsed value through; the adopter's input is silently dropped between surface and runtime, with no parse error. Child of SilentIntentNullification (F5), sibling of ActiveArgumentDiscard (loud-reject vs silent-drop).",
+    references = ["ADR-007", "ADR-019", "decisions.md:5085"]
+)]
+pub struct CapabilityOmissionAtLowering;
