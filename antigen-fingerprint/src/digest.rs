@@ -68,6 +68,7 @@ fn fnv1a_64(bytes: &[u8]) -> u64 {
 /// attestation action, not a structural change to the defended item, so it
 /// must not invalidate a signed-against digest.
 const ANTIGEN_OWNED_ATTRS: &[&str] = &[
+    // Core attestation macros.
     "antigen",
     "immune",
     "presents",
@@ -81,6 +82,24 @@ const ANTIGEN_OWNED_ATTRS: &[&str] = &[
     "orient",
     // Rollback-as-triage (ADR-026).
     "triage_commit",
+    // Mucosal boundary family.
+    "mucosal",
+    "mucosal_delegate",
+    "mucosal_tolerant",
+    // Witness / audit classification macros.
+    "polyclonal",
+    "monoclonal",
+    "adcc",
+    "clonal",
+    "igg",
+    "diagnostic",
+    // Recurrent-pattern family.
+    "itch",
+    "recurrence_anchor",
+    "crystallize",
+    "chronic",
+    "saturate",
+    "strand",
 ];
 
 /// Returns `true` if an attribute's path is one antigen owns (and therefore
@@ -170,6 +189,11 @@ impl_has_attributes!(
     syn::TraitItemConst,
     syn::ItemMacro,
     syn::ItemUse,
+    syn::ItemExternCrate,
+    syn::ItemForeignMod,
+    syn::ItemMod,
+    syn::ItemTraitAlias,
+    syn::ItemUnion,
 );
 
 #[cfg(test)]
@@ -248,6 +272,55 @@ mod tests {
             bare,
             structural_digest(&with_presents),
             "#[presents] must not change the defended item's digest"
+        );
+    }
+
+    // ATK-DIGEST-1: ANTIGEN_OWNED_ATTRS is incomplete — 15 of 26 antigen macros
+    // are NOT in the exclusion list. Adding #[mucosal], #[itch], #[polyclonal],
+    // etc. to an item CHANGES its structural digest, invalidating existing
+    // signatures. The "antigen attrs don't change digest" invariant is violated
+    // for these macros.
+    //
+    // STATUS: FAILING — mucosal, polyclonal, monoclonal, adcc, itch,
+    // recurrence_anchor, crystallize, chronic, saturate, strand, mucosal_delegate,
+    // mucosal_tolerant, clonal, igg, diagnostic are all missing from
+    // ANTIGEN_OWNED_ATTRS and therefore DO change the digest.
+    //
+    // Fix: add all 15 missing macro names to ANTIGEN_OWNED_ATTRS in digest.rs.
+    #[test]
+    fn all_antigen_macros_do_not_change_digest() {
+        let bare = struct_digest(quote! { struct Foo { x: u8 } });
+
+        // mucosal family
+        let with_mucosal: syn::ItemStruct = syn::parse2(quote! {
+            #[mucosal(boundary_type = "actix-web")]
+            struct Foo { x: u8 }
+        }).expect("parse");
+        assert_eq!(
+            bare, structural_digest(&with_mucosal),
+            "ATK-DIGEST-1: #[mucosal] must not change digest — it is an antigen \
+             macro but is NOT in ANTIGEN_OWNED_ATTRS; adding it to a signed item \
+             would silently invalidate the signature"
+        );
+
+        // polyclonal family (ActiveArgumentDiscard witness class)
+        let with_polyclonal: syn::ItemStruct = syn::parse2(quote! {
+            #[polyclonal]
+            struct Foo { x: u8 }
+        }).expect("parse");
+        assert_eq!(
+            bare, structural_digest(&with_polyclonal),
+            "ATK-DIGEST-1: #[polyclonal] must not change digest — missing from ANTIGEN_OWNED_ATTRS"
+        );
+
+        // itch (recurrent family)
+        let with_itch: syn::ItemStruct = syn::parse2(quote! {
+            #[itch(antigen = "SomeClass", description = "tracked recurrence")]
+            struct Foo { x: u8 }
+        }).expect("parse");
+        assert_eq!(
+            bare, structural_digest(&with_itch),
+            "ATK-DIGEST-1: #[itch] must not change digest — missing from ANTIGEN_OWNED_ATTRS"
         );
     }
 

@@ -4342,6 +4342,47 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
         self.check_attrs(&item.attrs, "use", &target);
         syn::visit::visit_item_use(self, item);
     }
+
+    fn visit_item_extern_crate(&mut self, item: &'ast syn::ItemExternCrate) {
+        let name = item.ident.to_string();
+        let target = ItemTarget::Const(name);
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.check_attrs(&item.attrs, "extern crate", &target);
+        syn::visit::visit_item_extern_crate(self, item);
+    }
+
+    fn visit_item_foreign_mod(&mut self, item: &'ast syn::ItemForeignMod) {
+        use quote::ToTokens;
+        let abi_str = item.abi.to_token_stream().to_string();
+        let target = ItemTarget::Const(abi_str);
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.check_attrs(&item.attrs, "foreign mod", &target);
+        syn::visit::visit_item_foreign_mod(self, item);
+    }
+
+    fn visit_item_mod(&mut self, item: &'ast syn::ItemMod) {
+        let name = item.ident.to_string();
+        let target = ItemTarget::Const(name);
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.check_attrs(&item.attrs, "mod", &target);
+        syn::visit::visit_item_mod(self, item);
+    }
+
+    fn visit_item_trait_alias(&mut self, item: &'ast syn::ItemTraitAlias) {
+        let name = item.ident.to_string();
+        let target = ItemTarget::Const(name);
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.check_attrs(&item.attrs, "trait alias", &target);
+        syn::visit::visit_item_trait_alias(self, item);
+    }
+
+    fn visit_item_union(&mut self, item: &'ast syn::ItemUnion) {
+        let name = item.ident.to_string();
+        let target = ItemTarget::Const(name);
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.check_attrs(&item.attrs, "union", &target);
+        syn::visit::visit_item_union(self, item);
+    }
 }
 
 #[cfg(test)]
@@ -5108,6 +5149,56 @@ mod tests {
         assert!(
             failures.iter().any(|f| f.error.contains("maximum depth")),
             "depth limit must fire on long linear chain, got: {failures:?}"
+        );
+    }
+
+    // ATK-LINEAGE-BOUNDARY: characterize exact boundary behavior of the depth limit.
+    //
+    // MAX_LINEAGE_DEPTH = 64. The check is `path.len() > max_depth`, where
+    // path.len() is the number of NODES (not edges). So:
+    //   - N+1 nodes (N edges): path.len() = N+1. Fires when N+1 > 64, i.e. N >= 64.
+    //   - A chain of exactly 64 edges (65 nodes) fires the limit.
+    //   - A chain of exactly 63 edges (64 nodes) is accepted.
+    //
+    // The constant is named MAX_LINEAGE_DEPTH but the effective limit is
+    // MAX_LINEAGE_DEPTH-1 edges — naming and semantics are off by one.
+    //
+    // This test pins the actual behavior. If this test passes, the boundary
+    // is as described. If it fails (both assertions fail together), the
+    // implementation changed.
+    #[test]
+    fn lineage_depth_limit_boundary_exactly_at_max() {
+        // Chain of MAX_LINEAGE_DEPTH nodes (MAX_LINEAGE_DEPTH-1 edges) — ACCEPTED.
+        let accepted_edges: Vec<LineageEdge> = (0..MAX_LINEAGE_DEPTH - 1)
+            .map(|i| edge(&format!("N{i}"), &format!("N{}", i + 1)))
+            .collect();
+        let failures = detect_lineage_failures(&accepted_edges, MAX_LINEAGE_DEPTH);
+        assert!(
+            failures.is_empty(),
+            "ATK-LINEAGE-BOUNDARY: a chain of {}-1={} edges ({} nodes) must be \
+             accepted by the depth limit (path.len()={} is NOT > {}). \
+             Got failures: {failures:?}",
+            MAX_LINEAGE_DEPTH,
+            MAX_LINEAGE_DEPTH - 1,
+            MAX_LINEAGE_DEPTH,
+            MAX_LINEAGE_DEPTH,
+            MAX_LINEAGE_DEPTH,
+        );
+
+        // Chain of MAX_LINEAGE_DEPTH edges (MAX_LINEAGE_DEPTH+1 nodes) — REJECTED.
+        let rejected_edges: Vec<LineageEdge> = (0..MAX_LINEAGE_DEPTH)
+            .map(|i| edge(&format!("M{i}"), &format!("M{}", i + 1)))
+            .collect();
+        let failures = detect_lineage_failures(&rejected_edges, MAX_LINEAGE_DEPTH);
+        assert!(
+            failures.iter().any(|f| f.error.contains("maximum depth")),
+            "ATK-LINEAGE-BOUNDARY: a chain of {} edges ({} nodes) must fire the \
+             depth limit (path.len()={} IS > {}). \
+             Got: {failures:?}",
+            MAX_LINEAGE_DEPTH,
+            MAX_LINEAGE_DEPTH + 1,
+            MAX_LINEAGE_DEPTH + 1,
+            MAX_LINEAGE_DEPTH,
         );
     }
 
