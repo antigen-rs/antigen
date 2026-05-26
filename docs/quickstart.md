@@ -152,7 +152,9 @@ You declared a named failure-class with a structural fingerprint. `cargo antigen
 
 For each surfaced site, you have three choices:
 
-- **`#[immune(PanickingInDrop, witness = some_function)]`** — claim the site is protected, name a witness (test, proptest, formal proof, lint, phantom-type) that verifies it
+- **`#[immune(PanickingInDrop, ...)]`** — claim the site is protected. The evidence takes one of two forms, and **the quick test is: can a test execute the thing you're defending?**
+  - **Yes → `witness = some_test`** — the failure-class is about behavior, so a test/proptest/lint/proof exercises it. (`PanickingInDrop` is this: a test that drops the value and checks it doesn't panic.)
+  - **No → `requires = signers(...)` / `requires = ratified_doc(...)`** — the failure-class is about substrate state that could diverge from reality (a stale doc, an unpinned dependency, an un-reviewed discipline); the evidence lives *outside the code* as a sign-off or ratified record. See the substrate-witness section of [`tutorial.md`](tutorial.md).
 - **`#[antigen_tolerance(PanickingInDrop, rationale = "...")]`** — acknowledge the match is intentional or accepted, with required justification
 - **Refactor** — eliminate the failure-class shape
 
@@ -173,7 +175,7 @@ Each immunity claim is classified by **witness tier**:
 - **`Reachability`** — the witness function is reachable from a test entry-point
 - **`Execution`** — the witness function is actually exercised by tests
 - **`FormalProof`** — the witness is a formal proof artifact (e.g., a Kani harness)
-- **`None`** — the witness is missing or doesn't resolve
+- **`None`** — no *passing* evidence: either no witness resolved, or a `requires =` predicate was evaluated and failed (the `audit_hint` says which)
 
 This makes the strength of every defense honest and visible. No more "we have tests" hand-waving — audit tells you which sites have *what kind* of evidence behind them.
 
