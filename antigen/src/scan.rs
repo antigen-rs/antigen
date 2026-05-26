@@ -3306,7 +3306,7 @@ impl ScanVisitor<'_> {
             match_kind: MatchKind::ExplicitMarker,
             canonical_path: None,
             inherited_from: None,
-            structural_fingerprint: String::new(),
+            structural_fingerprint: self.current_item_digest.clone(),
         });
     }
 
