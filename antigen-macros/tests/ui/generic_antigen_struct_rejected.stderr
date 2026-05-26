@@ -1,0 +1,5 @@
+error: #[antigen] must be applied to a non-generic unit struct; a failure-class marker carries no type parameters
+  --> tests/ui/generic_antigen_struct_rejected.rs:16:29
+   |
+16 | pub struct GenericAntigenAtk<T: std::fmt::Debug>;
+   |                             ^^^^^^^^^^^^^^^^^^^^
