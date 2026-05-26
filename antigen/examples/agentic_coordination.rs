@@ -168,7 +168,9 @@ fn main() {
     println!();
     println!("1. AgentWakeWithoutSubstrateDeltaInjection");
     println!("   Category: SubstrateAlignment");
-    println!("   The agent's context snapshot diverges from substrate state across session boundary.");
+    println!(
+        "   The agent's context snapshot diverges from substrate state across session boundary."
+    );
     println!();
 
     // Demonstrate the vulnerable path
@@ -193,12 +195,10 @@ fn main() {
     println!();
 
     let report = ScanReport {
-        delegates: vec![
-            Delegate {
-                item_path: "api::process_request".to_string(),
-                target: "sanitizer_crate::sanitize_request".to_string(), // cross-crate
-            },
-        ],
+        delegates: vec![Delegate {
+            item_path: "api::process_request".to_string(),
+            target: "sanitizer_crate::sanitize_request".to_string(), // cross-crate
+        }],
         local_handlers: vec![
             "local_sanitize".to_string(), // only local handlers indexed
         ],
@@ -208,7 +208,9 @@ fn main() {
         "   audit_mucosal_delegates (PRESENTS — cross-crate handler {:?} reported missing):",
         findings.iter().map(|f| f.hint.as_str()).collect::<Vec<_>>()
     );
-    println!("   → false MucosalDisciplineDelegateTargetMissing despite handler existing cross-crate.");
+    println!(
+        "   → false MucosalDisciplineDelegateTargetMissing despite handler existing cross-crate."
+    );
     println!();
 
     println!("Scan for presentations:");
