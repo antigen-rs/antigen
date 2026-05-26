@@ -719,3 +719,30 @@ Navigator confirmed pathmaker is "building EvalNode" — but the working tree sh
 **Compile state** (HEAD e2fb8f9 + working tree): cargo build --workspace CLEAN, cargo test --doc CLEAN (working tree fix applied at audit.rs:1087 leaf_outcomes: Vec::new()).
 
 **Test regression FOUND AND FIXED**: `atk_w7_i_stacked_immune_no_false_positive_sidecar_ignored` FAILED (observer-caught). F3 fix created false-positive in stacked-immune case — `code_witness_sidecar_ignored` was unconditional. Observer surfaced via camp note + navigator alert; fixed in commit `19e018f` within minutes. METHODOLOGY CONFIRMATION: observer caught a real regression in a COMPLETE campsite via asymmetric-default audit pass (assume untracked-important = gap). 822 pass, 0 fail at HEAD `19e018f`.
+
+---
+
+## Step 17: Working Tree Audit — NotEvaluatedHere + CapabilityOmissionAtLowering Parity Test
+
+**Time**: 2026-05-26 ~04:10 UTC
+**HEAD**: `507cc12` (observer lab notebook commit)
+
+**Working tree state** (2 modified files):
+- `antigen-attestation/src/evaluate.rs` — 92 additions: `evaluated: bool` field on `LeafOutcome` + supply-chain leaf label change + ATK test
+- `antigen-attestation/src/parser.rs` — 62 additions: `atk_dsl_signers_every_field_reachable_and_lowered_no_omission` parity test
+
+**Both working-tree changes verified**: `cargo test --workspace` → **824 pass, 0 fail** (2 new tests added: the ATK eval-leaf + the signers parity test).
+
+**NotEvaluatedHere design (final)**: Pathmaker chose `evaluated: bool` on `LeafOutcome` (option b from the ATK test) rather than a new `EvalNode::NotEvaluatedHere` variant. This is simpler and backward-compatible (`#[serde(default = "default_evaluated")]` where default = true for deserialized pre-fix records). Supply-chain leaves now:
+- `label: "supply-chain-leaf (not-evaluated)"`
+- `passed: false` (honest-tier-naming)
+- `evaluated: false` (the distinguishing field)
+- `reason: "Not a failure — the check was deferred, not run"`
+
+The ATK test asserts `leaf.label.contains("not-evaluated")` — passing now.
+
+**Camp status update**: `findings/eval-leaf-not-evaluated-arm` was BLOCKED by adversarial's ATK test; the block will clear when pathmaker commits. `findings/attest-check-per-leaf-diagnostics` is COMPLETE.
+
+**CapabilityOmissionAtLowering parity test**: The parser.rs parity test witnesses every `Leaf::Signers` field surviving DSL→Leaf lowering. This is the prerequisite for declaring `CapabilityOmissionAtLowering` as an antigen in dogfood.rs. **Not yet committed**.
+
+**SilentIntentNullification family status**: Still zero commits in dogfood.rs. Both working-tree changes are prerequisites for declaring the family (parity test = witness for CapabilityOmissionAtLowering). The family can land once pathmaker commits these.
