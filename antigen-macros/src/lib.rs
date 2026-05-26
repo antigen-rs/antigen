@@ -1132,24 +1132,35 @@ pub fn mucosal_tolerant(args: TokenStream, input: TokenStream) -> TokenStream {
     quote! { #input }.into()
 }
 
-/// Declare an orientation period: acknowledged absence of immunity with
-/// see-also context. The lightest-weight deferred-defense primitive.
+/// Declare an orientation period — a time-bounded acknowledged absence of immunity.
 ///
-/// All fields are optional — `#[orient]` with no arguments is valid.
+/// An acknowledged, time-bounded absence of immunity with an explicit path
+/// forward. A loud deferred-defense primitive (ADR-023) — *not* the
+/// lightest-weight one; loudness is the discipline.
+///
+/// `learning_path` and `until` are **both REQUIRED** (ADR-023 §Decision +
+/// the Option-A hard-break ruling). An orient without an explicit path-out and
+/// a time-bound is silent deferred non-immunity — structurally identical to
+/// tolerance, which this primitive exists to be loudly distinct from. A bare
+/// `#[orient]` is a compile error.
 ///
 /// # Arguments
 ///
 /// - Antigen type name (optional positional)
-/// - `see = [...]` (optional) — array of references (URLs, ADR IDs, etc.)
-/// - `adr = "..."` (optional) — ADR reference
-/// - `attestation_optional` (optional bare flag, or `attestation_optional =
-///   true`) — marks that attestation is optional for this orientation
+/// - `learning_path = "..."` (REQUIRED, ≥ 20 chars) — the explicit path out of
+///   the learning period
+/// - `until = "YYYY-MM-DD"` (REQUIRED) — orientation horizon; UTC, within
+///   `deferred_defense_max_horizon` (180d). A date beyond that is a compile error.
+///
+/// The pre-restoration drift fields (`see`, `adr`, `attestation_optional`) were
+/// removed — they were never in the ADR-023 spec. Fold any see-also context
+/// into the `learning_path` text or `references = [...]` on the antigen
+/// declaration.
 ///
 /// # Audit hints
 ///
 /// - `orient-active` — orientation in progress
-/// - `orient-pending-action-required` — orientation past deadline (if `until`
-///   is added in future; current v0.2 does not require `until` for orient)
+/// - `orient-pending-action-required` — orientation past its `until` horizon
 ///
 /// # Example
 ///
@@ -1157,8 +1168,9 @@ pub fn mucosal_tolerant(args: TokenStream, input: TokenStream) -> TokenStream {
 /// use antigen::orient;
 ///
 /// #[orient(
-///     see = ["ADR-023", "https://example.com/migration-plan"],
-///     adr = "ADR-023",
+///     PanickingInDrop,
+///     learning_path = "Audit every Drop impl for unwrap/panic before the v1 tag",
+///     until = "2026-09-01",
 /// )]
 /// pub fn new_subsystem_under_construction() { /* ... */ }
 /// ```

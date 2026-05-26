@@ -789,6 +789,11 @@ impl Parse for ImmunosuppressArgs {
 /// Default immunosuppression duration cap per ADR-023 (90 days).
 pub const IMMUNOSUPPRESS_DEFAULT_CAP_DAYS: u64 = 90;
 
+/// Default `#[orient]` orientation-period horizon per ADR-023
+/// (`deferred_defense_max_horizon`, 180 days). `until` dates beyond
+/// `now + this` are rejected at parse time.
+pub const ORIENT_DEFAULT_MAX_HORIZON_DAYS: i64 = 180;
+
 impl ImmunosuppressArgs {
     /// Trust-boundary checks per ADR-023:
     /// - `rationale` required and minimum 20 characters
@@ -1039,52 +1044,43 @@ impl PoxpartyArgs {
 // OrientArgs parsing (ADR-023)
 // ============================================================================
 
-/// Arguments to `#[orient]`.
+/// Arguments to `#[orient(antigen, learning_path, until)]`.
 ///
-/// Per ADR-023 + aristotle's fixup-orient-dual-signature resolution (camp
-/// note 55a161e7): orient names a failure-class with see-also context. The
-/// ADR-023 spec is `(antigen, learning_path, until)`; v0.2 admits Optional
-/// presence on `learning_path` + `until` (with audit-hint loud-warnings on
-/// absence) and v0.3 cliff makes them REQUIRED.
+/// Per ADR-023 §Decision + aristotle's `orient-field-optionality-ruling`
+/// (Option A, hard break): orient acknowledges a pre-immunity learning period
+/// and `learning_path` + `until` are **both REQUIRED** — they are the
+/// accountability fields the primitive exists to impose. Making them optional
+/// would collapse `#[orient]` to structurally-identical-to-silent-tolerance,
+/// the exact A5 failure the deferred-defense family was built to prevent
+/// (loudness-as-discipline). A bare `#[orient]` is therefore a parse error.
+///
+/// The pre-restoration drift-form fields (`see`, `adr`, `attestation_optional`)
+/// are NOT in the ADR-023 spec — they were the drift — and are REMOVED
+/// entirely (a hard parse error, not a deprecation window).
 ///
 /// Decisional rollback-as-triage uses are handled by `#[triage_commit]`
 /// (sibling primitive per ADR-026 Amendment 1), NOT by `#[orient]`.
 ///
 /// - `<antigen-path>` (optional positional) — failure-class antigen path
-/// - `learning_path = "..."` (optional v0.2; REQUIRED v0.3) — explicit path
-///   forward; audit emits `orient-learning-path-absent` if missing at v0.2
-/// - `until = "YYYY-MM-DD"` (optional v0.2; REQUIRED v0.3) — orientation
-///   period horizon; audit emits `orient-until-absent` if missing at v0.2
-/// - `see = [...]` (DEPRECATED v0.2; REMOVED v0.3) — audit emits
-///   `orient-see-field-deprecated`; migrate to `learning_path` text or
-///   `references = [...]` on the antigen declaration
-/// - `adr = "..."` (DEPRECATED v0.2; REMOVED v0.3) — audit emits
-///   `orient-adr-field-deprecated`; migrate to `learning_path` with ADR ref
-/// - `attestation_optional` (DEPRECATED v0.2; REMOVED v0.3) — audit emits
-///   `orient-attestation-optional-deprecated`; this field inverts ADR-023's
-///   loudness-as-discipline pattern
+/// - `learning_path = "..."` (REQUIRED, 20-char-min, rationale-class) — the
+///   explicit path forward out of the learning period
+/// - `until = "YYYY-MM-DD"` (REQUIRED) — orientation-period horizon; non-empty,
+///   UTC, parse-validated, rejected if beyond `now + deferred_defense_max_horizon`
+///   (180d default)
 #[derive(Debug)]
 pub struct OrientArgs {
     #[allow(dead_code)]
     pub antigen: Option<syn::Path>,
     #[allow(dead_code)]
     pub learning_path: Option<String>,
-    /// Span of the `learning_path` value, used for audit-hint span anchoring
-    /// when the loud-warning surfaces absence. Reserved for the scan/audit
-    /// pipeline; presently unused by the proc-macro layer.
+    /// Span of the `learning_path` value, for anchoring validation errors.
     #[allow(dead_code)]
     pub learning_path_span: Option<Span>,
     #[allow(dead_code)]
     pub until: Option<String>,
-    /// Span of the `until` value (similar to `learning_path_span`).
+    /// Span of the `until` value (for anchoring validation errors).
     #[allow(dead_code)]
     pub until_span: Option<Span>,
-    #[allow(dead_code)]
-    pub see: Vec<String>,
-    #[allow(dead_code)]
-    pub adr: Option<String>,
-    #[allow(dead_code)]
-    pub attestation_optional: bool,
     #[allow(dead_code)]
     pub args_span: Span,
 }
@@ -1097,45 +1093,16 @@ impl Parse for OrientArgs {
         let mut learning_path_span: Option<Span> = None;
         let mut until: Option<String> = None;
         let mut until_span: Option<Span> = None;
-        let mut see: Vec<String> = Vec::new();
-        let mut adr: Option<String> = None;
-        let mut attestation_optional = false;
 
-        // Optional leading positional antigen type path
+        // Optional leading positional antigen type path.
         if !input.is_empty() && input.peek(Ident) && !input.peek2(Token![=]) {
-            // Could be `attestation_optional` flag (bare ident without `=`)
-            // or an antigen type path — disambiguate by checking if it's a
-            // bare ident followed by a comma or end-of-input (flag) vs
-            // followed by `::` or end-of-args (path).
-            let fork = input.fork();
-            let ident: Ident = fork.parse()?;
-            if ident == "attestation_optional" && (fork.is_empty() || fork.peek(Token![,])) {
-                // Consume from real stream
-                let _: Ident = input.parse()?;
-                attestation_optional = true;
-            } else {
-                antigen = Some(input.parse()?);
-            }
+            antigen = Some(input.parse()?);
             if !input.is_empty() {
                 input.parse::<Token![,]>()?;
             }
         }
 
         while !input.is_empty() {
-            // Check for bare `attestation_optional` flag (no `=`)
-            if input.peek(Ident) {
-                let fork = input.fork();
-                let ident: Ident = fork.parse()?;
-                if ident == "attestation_optional" && (fork.is_empty() || fork.peek(Token![,])) {
-                    let _: Ident = input.parse()?;
-                    attestation_optional = true;
-                    if !input.is_empty() {
-                        input.parse::<Token![,]>()?;
-                    }
-                    continue;
-                }
-            }
-
             let key: Ident = input.parse()?;
             input.parse::<Token![=]>()?;
             match key.to_string().as_str() {
@@ -1149,37 +1116,28 @@ impl Parse for OrientArgs {
                     until_span = Some(lit.span());
                     until = Some(lit.value());
                 }
-                "see" => {
-                    let arr: syn::ExprArray = input.parse()?;
-                    for elem in &arr.elems {
-                        if let Expr::Lit(syn::ExprLit {
-                            lit: Lit::Str(s), ..
-                        }) = elem
-                        {
-                            see.push(s.value());
-                        } else {
-                            return Err(syn::Error::new_spanned(
-                                elem,
-                                "expected a string literal in `see` array",
-                            ));
-                        }
-                    }
-                }
-                "adr" => {
-                    let lit: LitStr = input.parse()?;
-                    adr = Some(lit.value());
-                }
-                "attestation_optional" => {
-                    // Support `attestation_optional = true` form too
-                    let lit: syn::LitBool = input.parse()?;
-                    attestation_optional = lit.value();
+                // The drift-form fields (see/adr/attestation_optional) are NOT
+                // in the ADR-023 spec; restoration removes them. A clear error
+                // names the migration target rather than silently accepting.
+                "see" | "adr" | "attestation_optional" => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "#[orient] field `{key}` was removed in the ADR-023 restoration \
+                             (it was never in the spec). The orient spec is \
+                             `#[orient(<antigen>, learning_path = \"...\", until = \"YYYY-MM-DD\")]`. \
+                             Migrate `see`/`adr` context into the `learning_path` text (or \
+                             `references = [...]` on the antigen declaration); \
+                             `attestation_optional` inverted loudness-as-discipline and has no \
+                             replacement."
+                        ),
+                    ));
                 }
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
                         format!(
-                            "unknown #[orient] field `{other}`; expected one of: \
-                             learning_path, until, see, adr, attestation_optional"
+                            "unknown #[orient] field `{other}`; expected: learning_path, until"
                         ),
                     ));
                 }
@@ -1195,22 +1153,92 @@ impl Parse for OrientArgs {
             learning_path_span,
             until,
             until_span,
-            see,
-            adr,
-            attestation_optional,
             args_span,
         })
     }
 }
 
 impl OrientArgs {
-    /// `#[orient]` has no required fields — all fields optional per ADR-023
-    /// (lightest-weight deferred-defense primitive).
+    /// Trust-boundary checks per ADR-023 §Decision + the Option-A
+    /// (hard-break) ruling:
+    /// - `learning_path` REQUIRED, minimum 20 characters (rationale-class).
+    /// - `until` REQUIRED, non-empty, UTC-parseable, and within
+    ///   `now + ORIENT_DEFAULT_MAX_HORIZON_DAYS` (180d) — a horizon beyond that
+    ///   is a parse-time COMPILE ERROR.
     ///
-    /// Returns `Ok(())` always. The `syn::Result<()>` return type is kept for
-    /// API uniformity with the other deferred-defense validators.
-    #[allow(clippy::unnecessary_wraps, clippy::unused_self)]
-    pub const fn validate(&self) -> syn::Result<()> {
+    /// A bare `#[orient]` (neither field) fails on the first check. Optionality
+    /// is rejected on first principles: an orient without an explicit path-out
+    /// and a time-bound is silent deferred non-immunity — exactly tolerance,
+    /// which this loud primitive exists to be distinct from.
+    pub fn validate(&self) -> syn::Result<()> {
+        // learning_path required + 20-char minimum.
+        match self.learning_path.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[orient] requires `learning_path = \"...\"`. An orientation period \
+                     without an explicit path forward is silent deferred non-immunity \
+                     (= tolerance); orient exists to be loud about it (ADR-023).",
+                ));
+            }
+            Some(p) if p.len() < 20 => {
+                return Err(syn::Error::new(
+                    self.learning_path_span.unwrap_or(self.args_span),
+                    format!(
+                        "#[orient] `learning_path` must be at least 20 characters (got {}); \
+                         per ADR-023 loudness-as-discipline (rationale-class field).",
+                        p.len()
+                    ),
+                ));
+            }
+            _ => {}
+        }
+
+        // until required + non-empty.
+        let until_str = match self.until.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[orient] requires `until = \"YYYY-MM-DD\"`. An orientation period \
+                     without a time-bound is indefinite; orient must escalate at a horizon.",
+                ));
+            }
+            Some("") => {
+                return Err(syn::Error::new(
+                    self.until_span.unwrap_or(self.args_span),
+                    "#[orient] `until` must not be empty.",
+                ));
+            }
+            Some(s) => s,
+        };
+
+        // Horizon enforcement: until must parse as a UTC date and must not be
+        // beyond now + max_horizon (180d default). Parse-time COMPILE ERROR.
+        match parse_iso_date(until_str) {
+            Err(()) => {
+                return Err(syn::Error::new(
+                    self.until_span.unwrap_or(self.args_span),
+                    format!(
+                        "#[orient] `until` must be an ISO-8601 date (YYYY-MM-DD); got `{until_str}`."
+                    ),
+                ));
+            }
+            Ok(until_date) => {
+                let horizon_days = (until_date - today_utc()).num_days();
+                if horizon_days > ORIENT_DEFAULT_MAX_HORIZON_DAYS {
+                    return Err(syn::Error::new(
+                        self.until_span.unwrap_or(self.args_span),
+                        format!(
+                            "#[orient] `until` is {horizon_days}d out, beyond the \
+                             {ORIENT_DEFAULT_MAX_HORIZON_DAYS}d orientation-period horizon \
+                             (deferred_defense_max_horizon). An orientation period this long \
+                             is not orientation — shorten `until` or address the failure-class."
+                        ),
+                    ));
+                }
+            }
+        }
+
         Ok(())
     }
 }
@@ -4215,94 +4243,116 @@ mod tests {
     // #[orient] tests (ADR-023 + fixup-orient-dual-signature STEP 2-3 fields)
     // -------------------------------------------------------------------------
 
+    // Helper: an `until` date safely inside the 180d horizon (today + ~90d),
+    // computed at test time so the suite never goes stale as the clock advances.
+    fn orient_until_within_horizon() -> String {
+        (today_utc() + chrono::Duration::days(90))
+            .format("%Y-%m-%d")
+            .to_string()
+    }
+
     #[test]
-    fn orient_parser_accepts_bare_form() {
-        // Bare #[orient] (no args) remains valid per ADR-023.
+    fn orient_parser_bare_form_is_a_validate_error() {
+        // Option-A hard break: bare #[orient] is invalid — learning_path + until
+        // are REQUIRED (an orient without them is silent deferred non-immunity).
         let tokens: TokenStream = "".parse().unwrap();
         let args = syn::parse2::<OrientArgs>(tokens).unwrap();
-        assert!(args.antigen.is_none());
-        assert!(args.learning_path.is_none());
-        assert!(args.until.is_none());
-        assert!(args.see.is_empty());
-        assert!(args.adr.is_none());
-        assert!(!args.attestation_optional);
-        args.validate().unwrap();
-    }
-
-    #[test]
-    fn orient_parser_accepts_learning_path() {
-        // STEP 2: learning_path is Optional at v0.2 (audit emits
-        // orient-learning-path-absent hint when missing; not a parse error).
-        let tokens: TokenStream = r#"learning_path = "Audit Drop impls before v0.3 cliff""#
-            .parse()
-            .unwrap();
-        let args = syn::parse2::<OrientArgs>(tokens).unwrap();
-        assert_eq!(
-            args.learning_path.as_deref(),
-            Some("Audit Drop impls before v0.3 cliff")
+        assert!(
+            args.validate().is_err(),
+            "bare #[orient] must fail validation (learning_path + until required)"
         );
-        args.validate().unwrap();
-    }
-
-    #[test]
-    fn orient_parser_accepts_until() {
-        // STEP 2: until is Optional at v0.2 (audit emits orient-until-absent
-        // hint when missing; not a parse error). Format is ISO-8601 YYYY-MM-DD.
-        let tokens: TokenStream = r#"until = "2026-06-30""#.parse().unwrap();
-        let args = syn::parse2::<OrientArgs>(tokens).unwrap();
-        assert_eq!(args.until.as_deref(), Some("2026-06-30"));
-        args.validate().unwrap();
     }
 
     #[test]
     fn orient_parser_accepts_canonical_adr023_form() {
-        // ADR-023 §Decision spec: #[orient(antigen, learning_path, until)].
-        // Positional antigen + both fields. This is the v0.3-cliff canonical form.
-        let tokens: TokenStream = r#"PanickingInDrop,
+        // ADR-023 §Decision spec: #[orient(antigen, learning_path, until)],
+        // both fields REQUIRED. learning_path >= 20 chars; until within horizon.
+        let until = orient_until_within_horizon();
+        let tokens: TokenStream = format!(
+            r#"PanickingInDrop,
             learning_path = "Audit Drop impls before alpha tag",
-            until = "2026-06-30""#
-            .parse()
-            .unwrap();
+            until = "{until}""#
+        )
+        .parse()
+        .unwrap();
         let args = syn::parse2::<OrientArgs>(tokens).unwrap();
         assert!(args.antigen.is_some());
         assert_eq!(
             args.learning_path.as_deref(),
             Some("Audit Drop impls before alpha tag")
         );
-        assert_eq!(args.until.as_deref(), Some("2026-06-30"));
+        assert_eq!(args.until.as_deref(), Some(until.as_str()));
         args.validate().unwrap();
     }
 
     #[test]
-    fn orient_parser_still_accepts_deprecated_see_for_v02_compat() {
-        // STEP 3: deprecated v0.2, removed v0.3. Parser still accepts at v0.2;
-        // audit emits orient-see-field-deprecated. No parse error.
-        let tokens: TokenStream = r#"see = ["ADR-023", "https://example.com/migration"]"#
+    fn orient_parser_requires_learning_path() {
+        let until = orient_until_within_horizon();
+        let tokens: TokenStream = format!(r#"until = "{until}""#).parse().unwrap();
+        let args = syn::parse2::<OrientArgs>(tokens).unwrap();
+        assert!(
+            args.validate().is_err(),
+            "until without learning_path must fail validation"
+        );
+    }
+
+    #[test]
+    fn orient_parser_requires_until() {
+        let tokens: TokenStream = r#"learning_path = "Audit Drop impls before the alpha tag""#
             .parse()
             .unwrap();
         let args = syn::parse2::<OrientArgs>(tokens).unwrap();
-        assert_eq!(args.see.len(), 2);
-        args.validate().unwrap();
+        assert!(
+            args.validate().is_err(),
+            "learning_path without until must fail validation"
+        );
     }
 
     #[test]
-    fn orient_parser_still_accepts_deprecated_adr_for_v02_compat() {
-        // STEP 3: deprecated v0.2, removed v0.3.
-        let tokens: TokenStream = r#"adr = "ADR-023""#.parse().unwrap();
+    fn orient_parser_learning_path_min_20_chars() {
+        let until = orient_until_within_horizon();
+        let tokens: TokenStream = format!(r#"learning_path = "too short", until = "{until}""#)
+            .parse()
+            .unwrap();
         let args = syn::parse2::<OrientArgs>(tokens).unwrap();
-        assert_eq!(args.adr.as_deref(), Some("ADR-023"));
-        args.validate().unwrap();
+        assert!(
+            args.validate().is_err(),
+            "learning_path under 20 chars must fail (rationale-class minimum)"
+        );
     }
 
     #[test]
-    fn orient_parser_still_accepts_deprecated_attestation_optional_for_v02_compat() {
-        // STEP 3: deprecated v0.2, removed v0.3. This field inverts ADR-023
-        // loudness-as-discipline (per aristotle F2) so the audit hint is the
-        // loudest of the deprecation set.
-        let tokens: TokenStream = "attestation_optional".parse().unwrap();
+    fn orient_parser_rejects_until_beyond_horizon() {
+        // until far beyond now + 180d is a parse-time (validate) error.
+        let far = (today_utc() + chrono::Duration::days(400))
+            .format("%Y-%m-%d")
+            .to_string();
+        let tokens: TokenStream =
+            format!(r#"learning_path = "Audit Drop impls before the alpha tag", until = "{far}""#)
+                .parse()
+                .unwrap();
         let args = syn::parse2::<OrientArgs>(tokens).unwrap();
-        assert!(args.attestation_optional);
-        args.validate().unwrap();
+        assert!(
+            args.validate().is_err(),
+            "until beyond the 180d orientation horizon must fail validation"
+        );
+    }
+
+    #[test]
+    fn orient_parser_drift_fields_are_parse_errors() {
+        // The pre-restoration drift-form fields (see/adr/attestation_optional)
+        // are removed entirely — a hard parse error, not a deprecation warning.
+        for drift in [
+            r#"see = ["ADR-023"]"#,
+            r#"adr = "ADR-023""#,
+            "attestation_optional = true",
+        ] {
+            let tokens: TokenStream = drift.parse().unwrap();
+            assert!(
+                syn::parse2::<OrientArgs>(tokens).is_err(),
+                "drift-form field must be a parse error: {drift}"
+            );
+        }
     }
 
     #[test]
