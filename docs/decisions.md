@@ -4957,6 +4957,38 @@ This is consistent with Amendment 2's principle: the witness-layer requirement i
 
 ---
 
+## ADR-028 Amendment 5 — encounter-status axis (vaccinated / encountered / affinity-matured)
+
+**Status**: DRAFT — pending ceremony (navigator + naturalist signatures). Held behind live 8-findings work per aristotle's explicit instruction. Ready when F7 per-leaf diagnostics lands.
+
+**Amends**: ADR-028 §Decision (category metadata surface) + §Audit-hint vocabulary. Cross-references ADR-003 Amendment 1 (biology-as-discovery), ADR-006 Amendment 1 / ADR-022 (prospective vs retrospective growth discipline), ADR-016 (anergy / tolerance), ADR-023 (deferred-defense family).
+
+**Reason**: The category-metadata surface (ADR-028) describes failure-class properties but omits a dimension the immune-system metaphor requires: whether a fail-class has been ENCOUNTERED in the wild yet. This distinction is already implicit in two ratified places — ADR-006-Am1/ADR-022 split stdlib growth into prospective (research-declared, no live instance required) and retrospective (adopter-extension, triggered by real encounter) — but it is purely policy-level, with no per-antigen typed field. The project's own preemptive-bias discipline (feedback memory `feedback_internal_tool_antigens_preemptive.md`) and the dogfood stdlib already contain vaccinated-state antigens (declared from shape-prediction, no live instance), making the implicit policy visible. Recognition-not-design (ADR-006): the encounter-status axis already exists as implicit policy + biology prediction; this amendment makes it EXPLICIT as typed metadata.
+
+Biology grounding (naturalist ruling, 2026-05-26): The vaccination cognate (`cargo antigen vaccinate` verb, glossary:43) already encodes the "weakened antigen for advance memory" concept. A fail-class declared from forward-compat reasoning IS the germline-naive / vaccinated state. Anergy (ADR-016) presupposes encounter and is RESPONSE-POSTURE on a separate axis, not a fourth encounter-state. Biology is silent on how to witness a vaccinated antigen (no live input), which predicts the hard sub-clause-F constraint that Vaccinated antigens may not claim Behavioral witnesses.
+
+**Change**:
+
+*§Decision — add encounter_status field to antigen declaration:*
+
+- Add `encounter_status: EncounterStatus` as an optional field on `#[antigen(...)].` Default: `Vaccinated` for research-stdlib antigens (the common case for preemptive declarations); explicit-required for adopter-extension antigens (where the encounter is the trigger per ADR-022).
+- Sealed enum `EncounterStatus`: `Vaccinated` (declared from research/shape-prediction; no live instance), `Encountered` (first instance seen in production), `AffinityMatured` (witness refined post-encounter; `#[descended_from]` lineage typically present).
+- Sub-clause F invariant 1 (parse-time hard): a `Vaccinated` antigen **MAY NOT** claim a `Behavioral` witness (`EvidenceKind::Behavioral`). No live input exists to behave on. Biology-mandated; violation is a structural contradiction.
+- Sub-clause F invariant 2 (parse-time): response-posture attributes (`#[anergy]`, `#[immunosuppress]`, `#[poxparty]`, `#[orient]`) from the deferred-defense family (ADR-023) are only valid when `encounter_status != Vaccinated`. You cannot defer-respond to something never encountered.
+- The deferred-defense family of four (ADR-023) is RECOGNIZED as the response-posture axis, gated on encounter. This amendment does NOT redefine them — it names their structural relationship to encounter-status as an axis constraint.
+
+*§Audit-hint vocabulary — add encounter-axis hints:*
+
+- `antigen-encounter-vaccinated-behavioral-witness` — emitted when `encounter_status = Vaccinated` AND a Behavioral witness is claimed. Hard block (sub-clause F invariant 1).
+- `antigen-encounter-vaccinated-deferred-posture` — emitted when `encounter_status = Vaccinated` AND a deferred-defense macro is applied. Hard block (sub-clause F invariant 2).
+- `antigen-encounter-status-coordinate` — informational; emitted in audit output as `[vaccinated|encountered|matured] × [None|Reachability|Execution|FormalProof]` so the full two-axis coordinate is visible. Not a gate; enables informed triage.
+
+*Anergy cross-link (explicit naming):* `anergic = encountered + deliberately-not-defended (ADR-016 tolerance)`. This is a (EncounterStatus::Encountered, response_posture::Anergic) coordinate in the product space, not a separate encounter state. The cross-link from encounter-status to ADR-016 is now named rather than implicit.
+
+**Resolves**: aristotle finding F6 (antigen-dx-dogfood expedition, 2026-05-26). The three-axis state-space — encounter-status × witness-tier × response-posture (posture gated on encounter) — was always implicit in the ratified surface; this amendment makes it explicit and sub-clause-F enforced. Naturalist biology-confirmed: silence on Behavioral-witness-for-vaccinated IS the constraint made structural; three-axis product-not-chain resolves the VecCardinalityMasqueradingAsSet error in aristotle's prior skeleton.
+
+---
+
 ## Amendment template
 
 When an ADR needs to be amended (not superseded), add an Amendment section:
