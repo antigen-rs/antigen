@@ -1729,3 +1729,49 @@ fn atk_a2_const_synthesis_fingerprint_miss_is_silent() {
         fp_matches.len()
     );
 }
+
+// ============================================================================
+// ATK-A2-MOD-INNER-SYNTHESIS-MISS: fingerprint synthesis does not descend into
+// inline mod blocks.
+//
+// synthesis_pass() iterates syn::File::items (top-level items only). A
+// syn::Item::Mod with an inline body is a top-level item — but item_kind_and_target()
+// returns None for it (Mod is in the `_ => None` arm), so synthesis skips it.
+// Even if Mod were handled, synthesis_pass doesn't iterate the mod's inner items.
+//
+// Consequence: items declared inside `pub mod inner { ... }` are invisible to
+// fingerprint synthesis. A fingerprint that would match an inner struct never
+// fires — silent miss.
+//
+// This documents the CURRENT behavior (0 synthesis matches for mod-inner items)
+// so the limitation is visible and any future fix is detectable.
+//
+// STATUS: PASSING (asserting the known-limitation behavior — 0 matches for inner items).
+// When synthesis gains mod-descent, the assertion should become 1 match.
+// ============================================================================
+
+#[test]
+fn atk_a2_mod_inner_item_is_invisible_to_synthesis() {
+    let report = scan_workspace(&fixture("atk_a2_mod_inner_synthesis_miss"), None).unwrap();
+
+    let fp_matches: Vec<_> = report
+        .presentations
+        .iter()
+        .filter(|p| p.match_kind == MatchKind::FingerprintMatch)
+        .collect();
+
+    // CURRENT BEHAVIOR: synthesis finds 0 fingerprint matches.
+    // The fingerprint `name = matches("INNER_*")` would match INNER_StructSite
+    // inside `mod inner { ... }` if synthesis descended into the mod — it doesn't.
+    // If this assertion starts FAILING (finds 1+), synthesis has gained mod-descent
+    // and the limit is no longer valid — update accordingly.
+    assert_eq!(
+        fp_matches.len(),
+        0,
+        "ATK-A2-MOD-INNER-SYNTHESIS-MISS: synthesis_pass does not descend into inline mod \
+         blocks. Expected 0 fingerprint matches for items inside `pub mod inner {{ ... }}`. \
+         Got {}. If this fails, synthesis gained mod-descent — document the new capability \
+         and update this test to assert 1 match (INNER_StructSite).",
+        fp_matches.len()
+    );
+}
