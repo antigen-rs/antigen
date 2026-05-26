@@ -1576,3 +1576,65 @@ fn atk_a2_scan_nonexistent_path_returns_empty_report_silently() {
         report.parse_failures,
     );
 }
+
+// ============================================================================
+// ATK-A2-IMPL-ITEM-MACRO: #[presents] on an impl-block macro invocation is
+// silently ignored.
+//
+// ScanVisitor overrides visit_impl_item_fn, visit_impl_item_const, and
+// visit_impl_item_type, but has no visit_impl_item_macro override. A macro
+// invocation inside an impl block annotated with #[presents(X)] (e.g.,
+// `#[presents(MacroExpansionHazard)] forward_to_inner!()`) is silently
+// dropped — the attrs field on ImplItemMacro is never routed through
+// check_attrs.
+//
+// STATUS: FAILING until visit_impl_item_macro override is added.
+// ============================================================================
+
+#[test]
+fn atk_a2_impl_item_macro_presents_is_not_silently_ignored() {
+    let report = scan_workspace(&fixture("atk_a2_impl_macro_presents"), None).unwrap();
+    assert_eq!(
+        report.presentations.len(),
+        1,
+        "ATK-A2-IMPL-ITEM-MACRO: scanning a file with #[presents(MacroExpansionHazard)] \
+         on an impl-block macro invocation must find exactly 1 presentation. \
+         Got {} presentations. \
+         Root cause: ScanVisitor has no visit_impl_item_macro override — ImplItemMacro \
+         attrs are never routed through check_attrs. \
+         Fix: add visit_impl_item_macro override to ScanVisitor (parallel to \
+         visit_impl_item_fn/const/type).",
+        report.presentations.len()
+    );
+}
+
+// ============================================================================
+// ATK-A2-TRAIT-ITEM-MACRO: #[presents] on a trait-body macro invocation is
+// silently ignored.
+//
+// ScanVisitor overrides visit_trait_item_fn, visit_trait_item_const, and
+// visit_trait_item_type, but has no visit_trait_item_macro override. A macro
+// invocation inside a trait body annotated with #[presents(X)] (e.g.,
+// `#[presents(TraitContractViolation)] blanket_requirements!()`) is silently
+// dropped — the attrs field on TraitItemMacro is never routed through
+// check_attrs.
+//
+// STATUS: FAILING until visit_trait_item_macro override is added.
+// ============================================================================
+
+#[test]
+fn atk_a2_trait_item_macro_presents_is_not_silently_ignored() {
+    let report = scan_workspace(&fixture("atk_a2_trait_macro_presents"), None).unwrap();
+    assert_eq!(
+        report.presentations.len(),
+        1,
+        "ATK-A2-TRAIT-ITEM-MACRO: scanning a file with #[presents(TraitContractViolation)] \
+         on a trait-body macro invocation must find exactly 1 presentation. \
+         Got {} presentations. \
+         Root cause: ScanVisitor has no visit_trait_item_macro override — TraitItemMacro \
+         attrs are never routed through check_attrs. \
+         Fix: add visit_trait_item_macro override to ScanVisitor (parallel to \
+         visit_trait_item_fn/const/type).",
+        report.presentations.len()
+    );
+}
