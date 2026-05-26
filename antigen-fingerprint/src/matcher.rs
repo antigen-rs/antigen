@@ -409,6 +409,45 @@ mod tests {
         assert!(!fp.matches(&i));
     }
 
+    // ATK-FP-BODY-MACRO-ALIAS: body_contains_macro uses last-segment ident matching.
+    // A macro renamed via `use panic as p; p!()` invokes as path `[p]`, so
+    // body_contains_macro("panic") returns false for `p!()`.
+    // This is documented behavior (last-segment match), NOT a bug to fix — but
+    // it IS a documented limitation that adopters must understand: fingerprints
+    // using body_contains_macro("panic") will NOT fire when the macro is aliased.
+    // This test asserts the current behavior so it doesn't silently change.
+    #[test]
+    fn body_contains_macro_aliased_invocation_is_not_detected() {
+        let fp = fp(r#"body_contains_macro("panic")"#);
+        // `p` is an alias for `panic!` — invoked as single-segment path.
+        // Last segment is `p`, not `panic` — body_contains_macro("panic") returns false.
+        let i = item("fn f() { use std::panic as p; p!(\"aliased panic\"); }");
+        // CURRENT BEHAVIOR: false (aliased invocation not detected).
+        // If this assertion starts FAILING, it means aliased macros are now detected —
+        // update the documented limitation in the fingerprint grammar docs.
+        assert!(
+            !fp.matches(&i),
+            "ATK-FP-BODY-MACRO-ALIAS: body_contains_macro('panic') must NOT fire for \
+             aliased macro invocation `p!()` (alias of panic!). If this fails, \
+             the implementation now detects aliases — document the new capability."
+        );
+    }
+
+    // ATK-FP-BODY-MACRO-QUALIFIED: body_contains_macro uses last-segment ident.
+    // A qualified path like `std::panic!()` has last segment `panic` — MATCHES.
+    // This tests that qualified invocations DO fire (correct behavior).
+    #[test]
+    fn body_contains_macro_qualified_path_matches_on_last_segment() {
+        let fp = fp(r#"body_contains_macro("panic")"#);
+        // std::panic!() — last segment is `panic` — SHOULD match.
+        let i = item("fn f() { std::panic!(\"qualified panic\"); }");
+        assert!(
+            fp.matches(&i),
+            "ATK-FP-BODY-MACRO-QUALIFIED: body_contains_macro('panic') must fire for \
+             qualified invocation std::panic!() since last segment is 'panic'."
+        );
+    }
+
     #[test]
     fn all_of_matches() {
         let fp = fp(r#"all_of([item = enum, name = matches("*Class")])"#);
