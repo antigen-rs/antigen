@@ -644,3 +644,78 @@ pub struct UnstableHashAsPersistedValue;
     references = ["ADR-019", "ADR-005"]
 )]
 pub struct AuditFingerprintSelfReferential;
+
+// ============================================================================
+// 14. SilentSemanticMismatchAtTrustBoundary
+// ============================================================================
+
+/// Accept→bind-wrong→succeed→fail-downstream: trust-boundary input silently bound to the wrong slot.
+///
+/// A trust-boundary input is accepted (no parse or validation error) but is
+/// silently bound to a slot where it produces no semantic effect — or the wrong
+/// one — with failure surfaced only much later as an opaque downstream error.
+///
+/// The defining shape: **accept → bind-wrong → succeed → fail-downstream**.
+///
+/// 1. The tool accepts the input at the trust boundary (scaffold/sign/compile).
+/// 2. The input is bound to a slot where the semantic contract is different from
+///    what the adopter intended (e.g., a role string bound to a signer-name slot,
+///    an empty string bound to a fingerprint slot where the predicate requires a
+///    real digest, a field name that doesn't exist in the schema).
+/// 3. The immediate verb reports success — no error, no warning.
+/// 4. Audit (or a later read) fails with an opaque error
+///    (`DisciplinePredicateFailed`, `NoSignersRequired`, `SignerNotFound`) that
+///    names the downstream symptom, not the root cause.
+///
+/// This is ADR-005 sub-clause F applied recursively: trust must not be extended
+/// at a boundary before the input is validated into an *honorable shape*. An
+/// input that PARSES but carries the *wrong semantic meaning for the intended
+/// slot* is not yet in an honorable shape.
+///
+/// **Five observed instances in this expedition (aristotle convergence, 2026-05-26)**:
+/// - **Finding 3**: a signed `.attest/` sidecar is accepted for a `witness=`
+///   immune site; the sidecar binds to a slot that audit's code-witness branch
+///   never reads, so the attestation is silently uncredited.
+/// - **Finding 5**: `signers(required = ["math-researcher"])` — the role string
+///   is bound to the signer-name slot; audit matches by name, not role, so the
+///   predicate always fails with no hint that the name/role confusion is the cause.
+/// - **Finding 6**: `attest scaffold --fingerprint ""` — empty string accepted;
+///   the predicate later fails because an empty fingerprint can never match a
+///   real digest, with no diagnostic linking the cause.
+/// - **Finding 7** (meta-instance): `attest check` reports only
+///   `DisciplinePredicateFailed` at the tree level; per-leaf `expected/found`
+///   is absent, so adopters cannot distinguish which of the above cases is their
+///   root cause. This is the *diagnostic gap* that makes the other four silent.
+/// - **Finding 8**: `attest sign --fingerprint ""` — empty fingerprint accepted,
+///   the signer entry is written; a subsequent `against="current"` predicate
+///   will always fail because the stored digest cannot match.
+///
+/// **Why F7 is the meta-instance**: the other four failures produce WRONG DATA
+/// at the boundary; F7 produces MISSING DIAGNOSTICS at audit time. F7 built
+/// first turns the others from "20-minute source dive" into "5-second read" —
+/// `signers(required=[X]): FAIL — no signer named X (found: [...]; X is a role?)`
+/// is the kind of per-leaf message that makes the root cause self-describing.
+///
+/// **Defense posture**:
+/// 1. **Validate the semantic contract at the trust boundary**, not just the
+///    parse-level shape. An empty fingerprint is syntactically valid; it is
+///    semantically wrong for any `against="current"` slot.
+/// 2. **Emit a per-leaf expected-vs-found diagnostic** at audit time so the
+///    failure is named where it was introduced, not buried in a tree-level fail.
+/// 3. **Sub-clause F at every new slot**: when adding a field that binds
+///    user-supplied input, enumerate the honorable shapes and reject everything
+///    outside that set at acceptance time, not at audit time.
+///
+/// **Category**: `FunctionalCorrectness` — the tool produces an incorrect
+/// result (silent success, then opaque failure), not a representation-alignment
+/// failure. The input binding is wrong; the downstream failure is the observable
+/// consequence.
+#[antigen(
+    name = "silent-semantic-mismatch-at-trust-boundary",
+    category = AntigenCategory::FunctionalCorrectness,
+    fingerprint = r#"all_of([item = fn, doc_contains("trust boundary")])"#,
+    family = "dogfood",
+    summary = "A trust-boundary input is accepted (no parse error) but bound to a semantically wrong slot; the immediate verb succeeds, and failure surfaces only downstream as an opaque DisciplinePredicateFailed or similar, with no link back to the root cause at the boundary.",
+    references = ["ADR-005", "ADR-019", "ADR-024"]
+)]
+pub struct SilentSemanticMismatchAtTrustBoundary;
