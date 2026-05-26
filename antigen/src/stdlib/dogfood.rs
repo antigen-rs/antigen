@@ -571,8 +571,13 @@ pub struct BiologyGroundingClaimDrift;
 /// a fixed-specification algorithm (FNV-1a, a SHA family, blake3) — never
 /// `DefaultHasher` or an unversioned `Hash`-derived value. Prefix the stored
 /// value with an algorithm tag so an algorithm change is recognizable, not
-/// silent. The defended producer in this crate is `#[immune]` below with a test
-/// witness that pins FNV-1a to its published vector.
+/// silent. The defending producer (`antigen_fingerprint::digest::fnv1a_64`) lives
+/// in `antigen-fingerprint` which cannot depend on `antigen` (circular dep), so
+/// no `#[immune]` attribute can reach it directly. The structural evidence is
+/// `antigen_fingerprint::digest::fnv1a_known_vector` (pins FNV-1a to its
+/// published vector) and `digest_is_deterministic` (pins cross-run stability).
+/// Call-sites in `antigen::scan` that invoke `structural_digest` carry the
+/// downstream evidence.
 ///
 /// **Category**: `SubstrateAlignment` — the persisted digest is a
 /// *representation* of an item's structure; an unstable hash makes that
