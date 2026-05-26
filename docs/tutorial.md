@@ -395,12 +395,24 @@ reviewed the new path.
 
 ```sh
 cargo antigen attest scaffold \
-    --file src/numerics.rs \
     --antigen SignedZeroDiscipline \
-    --item sinh
+    --source-file src/numerics.rs \
+    --item-path sinh \
+    --fingerprint <item-fingerprint>
 ```
 
-This creates `src/numerics.attest/SignedZeroDiscipline.json`:
+> `attest scaffold` takes `--antigen`, `--source-file`, `--item-path`, and an
+> optional `--fingerprint`. The fingerprint is the item's current structural
+> fingerprint; `cargo antigen scan --format json` emits a `structural_fingerprint`
+> on each immunity entry. **Known limitation (v0.2)**: the scan JSON doesn't yet
+> expose a per-item *selector* to pick out one item's fingerprint cleanly — if you
+> omit `--fingerprint`, the sidecar gets an empty placeholder, and `against = "current"`
+> / `fresh_within_days` predicates can't pass against it. Until item-fingerprint
+> selection lands, the `against = "any"` predicate form (no staleness check) is the
+> reliably-reachable path.
+
+This creates `src/.attest/SignedZeroDiscipline.json` (the sidecar lives in a
+`.attest/` directory next to the source file, named for the antigen):
 
 ```json
 {
@@ -432,11 +444,19 @@ correctness runs:
 
 ```sh
 cargo antigen attest sign \
-    --file src/numerics.rs \
-    --antigen SignedZeroDiscipline \
-    --item sinh \
-    --role math-researcher
+    --sidecar src/.attest/SignedZeroDiscipline.json \
+    --item-path sinh \
+    --signer alice \
+    --role math-researcher \
+    --fingerprint <same-fingerprint-you-scaffolded-with>
 ```
+
+> `--signer` and `--fingerprint` are both required flags. `--signer alice` is the
+> name the `signers(required = ["alice"])` predicate matches against — it matches
+> the signer NAME, which is why the predicate below uses `["alice"]`, not
+> `["math-researcher"]` (the role is a separate, optional tag). `--fingerprint`
+> must match the sidecar's `current_fingerprint` (the value from scaffold), so
+> `against = "current"` can confirm the signature is against the present code.
 
 This adds their entry to the sidecar:
 

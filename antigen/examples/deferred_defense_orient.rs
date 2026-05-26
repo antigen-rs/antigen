@@ -32,7 +32,7 @@
 //! cargo run --example deferred_defense_orient --package antigen
 //! ```
 
-use antigen::{orient, triage_commit, TriageDecision};
+use antigen::{orient, triage_commit};
 
 // ============================================================================
 // Form 1: Canonical orient — the ADR-023 spec form.
@@ -101,9 +101,10 @@ pub fn experimental_feature_alpha(config: &str) -> Option<String> {
 // in a bounded window; that is the triage_commit primitive, not orient.
 // ============================================================================
 
-/// Emergency rollback handler — a triage path that reverts to a prior state
-/// when the primary path is failing. Per ADR-026 this is a triage commitment,
-/// not an orientation period, so it carries `#[triage_commit]`.
+/// Emergency rollback handler — reverts to a prior state when the primary path fails.
+///
+/// Per ADR-026 this is a triage commitment, not an orientation period, so it
+/// carries `#[triage_commit]`.
 #[triage_commit(
     triage_decision = TriageDecision::Red,
     rollback_target = "abc1234",
