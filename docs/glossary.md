@@ -298,6 +298,15 @@ pattern (see `phantom witness / phantom-type witness` below), not typewit-style
 type-witnesses. The vocabulary collision is real and worth flagging in user-facing
 docs to prevent ecosystem-wide drift.
 
+**The `witness =` vs `requires =` choice** (the two proof channels on `#[immune]`):
+- Use **`witness = fn_name`** when the immunity evidence is a Rust function, test, or
+  formal-verification entry-point *in the source tree*. The audit resolves the name to
+  a live symbol. This is the code-witness path.
+- Use **`requires = <predicate>`** when the immunity evidence lives in substrate *outside*
+  the source tree — a ratified doc, a team sign-off sidecar, oracle-completion markers.
+  This is the substrate-witness path (see `substrate-witness` below). The two channels
+  are mutually exclusive; the antigen audit detects which is present and routes accordingly.
+
 **Introduced in**: `api-shape.md`. Vocabulary-disambiguation note added 2026-05-08
 after scout's substrate-verification of `witnessed`/`bear_witness`/`typewit` crates.
 
