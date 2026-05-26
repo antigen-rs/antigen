@@ -204,6 +204,15 @@ and has no immunity. That's the signal to write a witness.
 
 ## Step 4: Write a witness and claim immunity
 
+> **Two forms of immunity.** Before writing the witness, know the choice you're
+> making: `#[immune]` takes evidence in one of two forms. The quick test is
+> **can a test execute the thing you're defending?** If *yes* — the failure-class
+> is about behavior — use `witness =` (this step). If *no* — the failure-class is
+> about substrate state a test can't verify (a stale doc, an unpinned dependency,
+> an un-reviewed discipline) — use `requires =` instead, covered in the
+> [Discipline-witnesses](#discipline-witnesses-when-the-witness-lives-outside-the-code)
+> section below. `PanickingInDrop` is the first kind, so we use `witness =` here.
+
 A **witness** is evidence that the failure-class doesn't obtain at this
 site — typically a test that verifies the invariant. Add it to your test module:
 
@@ -403,13 +412,20 @@ cargo antigen attest scaffold \
 
 > `attest scaffold` takes `--antigen`, `--source-file`, `--item-path`, and an
 > optional `--fingerprint`. The fingerprint is the item's current structural
-> fingerprint; `cargo antigen scan --format json` emits a `structural_fingerprint`
-> on each immunity entry. **Known limitation (v0.2)**: the scan JSON doesn't yet
-> expose a per-item *selector* to pick out one item's fingerprint cleanly — if you
-> omit `--fingerprint`, the sidecar gets an empty placeholder, and `against = "current"`
-> / `fresh_within_days` predicates can't pass against it. Until item-fingerprint
-> selection lands, the `against = "any"` predicate form (no staleness check) is the
-> reliably-reachable path.
+> digest. **You usually don't need to pass it**: if you omit `--fingerprint`,
+> scaffold scans the source file's crate and auto-fills the matching item's
+> digest for you. To obtain a digest explicitly — for the `sign` step, for
+> scripting, or to hand-edit a sidecar — use the dedicated verb:
+>
+> ```sh
+> cargo antigen fingerprint --antigen SignedZeroDiscipline --item-path sinh
+> # or, JSON for scripting:  cargo antigen fingerprint ... --format json
+> ```
+>
+> (`cargo antigen scan --format json` also emits a `structural_fingerprint` on
+> each immunity entry.) With a real digest in place — auto-filled or explicit —
+> the `against = "current"` / `fresh_within_days` predicates evaluate against it
+> at audit time.
 
 This creates `src/.attest/SignedZeroDiscipline.json` (the sidecar lives in a
 `.attest/` directory next to the source file, named for the antigen):

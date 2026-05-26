@@ -149,7 +149,7 @@ Add antigen as a dependency:
 
 ```toml
 [dependencies]
-antigen = "=0.1.0-rc.2"
+antigen = "=0.1.0-rc.3"
 ```
 
 Now declare your first antigen. The full walkthrough lives in [`docs/tutorial.md`](docs/tutorial.md) — your first 15 minutes, end-to-end, with a real failure-class.
@@ -201,7 +201,11 @@ When the biology predicts a primitive, the project builds it. See [`docs/decisio
 
 ---
 
-## What's actually shipped in v0.1.0-rc.2
+## What's actually shipped
+
+> For the current published version, see [crates.io](https://crates.io/crates/antigen)
+> and the [GitHub releases](https://github.com/antigen-rs/antigen/releases) — those
+> are the single source of truth, not this page.
 
 **Core macros**: `#[antigen]`, `#[presents]`, `#[immune]`, `#[descended_from]`, `#[antigen_tolerance]`, plus `requires = <predicate>` on `#[immune]` for substrate-witness predicates (ADR-019), plus `attested = (who, allowed_types, why, scope)` for cross-cutting attestation (ADR-020).
 
@@ -215,7 +219,7 @@ When the biology predicts a primitive, the project builds it. See [`docs/decisio
 
 **Anti-laundering safeguards**: chain-depth cap, minimum rationale character count, cumulative-root fingerprint for drift detection.
 
-**554 tests passing** (31 ignored as pre-impl contracts) across the workspace.
+**Test coverage**: a broad workspace suite (unit + adversarial ATK + trybuild UI) gates every change in CI. See the CI badge / Actions for the live count.
 
 Not yet shipped (honest stubs in CLI): `cargo antigen attest oracle`, `cargo antigen attest migrate`, `cargo antigen new`, `cargo antigen vaccinate`, `antigen-stdlib`.
 
