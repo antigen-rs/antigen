@@ -811,3 +811,91 @@ fn atk_a2_enum_variant_presents_is_not_silently_ignored() {
         p.antigen_type,
     );
 }
+
+// ============================================================================
+// ATK-A2-IMPL-CONST: #[presents] on an impl-block const is silently ignored
+//
+// `ScanVisitor` has `visit_impl_item_fn` but NO `visit_impl_item_const`
+// override. When `syn::visit::visit_item_impl` delegates to the visitor's
+// impl-item traversal, `ImplItemConst` nodes pass through with their attrs
+// unchecked. A `#[presents(SomeAntigen)]` on an associated constant
+// compiles cleanly but produces zero scan output — identical blindspot to
+// the enum variant case.
+//
+// This is the same class of bug as ATK-A2-ENUM-VARIANT (no visit_* override
+// for the item kind), now on an impl-block const.
+//
+// STATUS: FAILING — scanner has no visit_impl_item_const override
+// BUG: ImplItemConst.attrs never routed through check_attrs
+// ============================================================================
+
+#[test]
+fn atk_a2_impl_const_presents_is_not_silently_ignored() {
+    let report =
+        scan_workspace(&fixture("atk_a2_impl_const_presents"), None).expect("scan completes");
+
+    assert_eq!(
+        report.presentations.len(),
+        1,
+        "ATK-A2-IMPL-CONST: #[presents(BoundaryViolation)] on `Parser::MAX_INPUT_BYTES` \
+         impl-block const must produce exactly one presentation record in scan output. \
+         Instead the scanner silently ignored it — no visit_impl_item_const override \
+         in ScanVisitor means ImplItemConst.attrs are never routed through check_attrs. \
+         Found presentations: {:?}. \
+         Fix: add visit_impl_item_const to ScanVisitor that calls check_attrs on \
+         ImplItemConst.attrs with an appropriate ItemTarget (ImplFn pattern for the \
+         containing impl's type + const name, or a new ItemTarget::ImplConst variant).",
+        report.presentations,
+    );
+
+    let p = &report.presentations[0];
+    assert_eq!(
+        p.antigen_type, "BoundaryViolation",
+        "ATK-A2-IMPL-CONST: presentation antigen_type must be 'BoundaryViolation'; got {:?}",
+        p.antigen_type,
+    );
+}
+
+// ============================================================================
+// ATK-A2-TOPLEVEL-CONST: #[presents] on a top-level const is silently ignored
+//
+// `ScanVisitor` has `visit_item_fn` and `visit_item_struct` but NO
+// `visit_item_const` override. A `#[presents(X)]` on a top-level `const`
+// compiles cleanly (the proc-macro passes through any item) but the scanner
+// never calls `check_attrs` on the const's attrs — same gap as the enum
+// variant and impl-const cases.
+//
+// Top-level constants are real vulnerability sites: `const MAX_SIZE: usize`
+// that bounds buffer allocation, `const TIMEOUT_SECS: u64` at a network
+// boundary — these are legitimate presentation sites for overflow/timeout
+// failure classes.
+//
+// STATUS: FAILING — scanner has no visit_item_const override
+// BUG: ItemConst.attrs never routed through check_attrs
+// ============================================================================
+
+#[test]
+fn atk_a2_toplevel_const_presents_is_not_silently_ignored() {
+    let report =
+        scan_workspace(&fixture("atk_a2_toplevel_const_presents"), None).expect("scan completes");
+
+    assert_eq!(
+        report.presentations.len(),
+        1,
+        "ATK-A2-TOPLEVEL-CONST: #[presents(BoundaryViolation)] on top-level const \
+         MAX_REQUEST_SIZE must produce exactly one presentation record in scan output. \
+         Instead the scanner silently ignored it — no visit_item_const override in \
+         ScanVisitor means ItemConst.attrs are never routed through check_attrs. \
+         Found presentations: {:?}. \
+         Fix: add visit_item_const to ScanVisitor that calls check_attrs with \
+         ItemTarget::Fn(const_name) or a new ItemTarget::Const(name) variant.",
+        report.presentations,
+    );
+
+    let p = &report.presentations[0];
+    assert_eq!(
+        p.antigen_type, "BoundaryViolation",
+        "ATK-A2-TOPLEVEL-CONST: antigen_type must be 'BoundaryViolation'; got {:?}",
+        p.antigen_type,
+    );
+}

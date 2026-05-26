@@ -1076,6 +1076,45 @@ pub enum ItemTarget {
         /// The method name.
         fn_name: String,
     },
+    /// An enum variant carrying its own attribute (e.g. `#[presents]` on the
+    /// `External` variant of `enum RequestKind`). Holds the enclosing enum
+    /// identifier and the variant identifier so two variants of the same name
+    /// on different enums do not collide. ATK-A2-ENUM-VARIANT: without a
+    /// `visit_variant` override the scanner silently ignored variant-level
+    /// attributes — a presentation invisible to failure-class memory.
+    EnumVariant {
+        /// The enclosing enum identifier.
+        enum_name: String,
+        /// The variant identifier.
+        variant_name: String,
+    },
+    /// An associated `const` inside an `impl` block (e.g.
+    /// `#[presents]` on `impl Parser { const MAX_INPUT_BYTES … }`). Mirrors
+    /// [`Self::ImplFn`]: carries the enclosing impl's trait (if any) + type +
+    /// the const name. ATK-A2-IMPL-CONST: without a `visit_impl_item_const`
+    /// override the scanner silently ignored impl-const attributes — the same
+    /// blind-spot class as [`Self::EnumVariant`].
+    ImplConst {
+        /// Trait of the enclosing impl, if any.
+        trait_path: Option<String>,
+        /// Type of the enclosing impl.
+        target_type: String,
+        /// The associated-const name.
+        const_name: String,
+    },
+    /// A free-standing (top-level or module-level) `const` item carrying its own
+    /// attribute (e.g. `#[presents] const MAX_REQUEST_SIZE: usize = …`). Holds
+    /// the const identifier. ATK-A2-TOPLEVEL-CONST: same scanner blind-spot
+    /// class as [`Self::EnumVariant`] / [`Self::ImplConst`] — a missing
+    /// `visit_item_const` override let the attribute pass unscanned.
+    Const(String),
+    /// A free-standing `static` item carrying its own attribute (e.g.
+    /// `#[presents] static GLOBAL_LIMIT: usize = …`). Distinct from
+    /// [`Self::Const`] so a `static` and a `const` of the same name do not
+    /// collide. Closed preemptively alongside the const cases (ADR-007:
+    /// the same scanner blind-spot class — a missing `visit_item_static`
+    /// override would otherwise let the attribute pass unscanned).
+    Static(String),
     /// Visitor fallback for shapes we don't yet model (e.g., free
     /// constants, modules with attribute-bearing macro-expansion).
     /// Kept rather than asserted so scans never panic on third-party
@@ -1096,9 +1135,13 @@ impl ItemTarget {
     #[must_use]
     pub fn label(&self) -> String {
         match self {
-            Self::Struct(n) | Self::Enum(n) | Self::Trait(n) | Self::Fn(n) | Self::TypeAlias(n) => {
-                n.clone()
-            }
+            Self::Struct(n)
+            | Self::Enum(n)
+            | Self::Trait(n)
+            | Self::Fn(n)
+            | Self::TypeAlias(n)
+            | Self::Const(n)
+            | Self::Static(n) => n.clone(),
             Self::Impl {
                 trait_path: Some(t),
                 target_type,
@@ -1121,6 +1164,20 @@ impl ItemTarget {
                 trait_name,
                 fn_name,
             } => format!("trait {trait_name}::{fn_name}"),
+            Self::EnumVariant {
+                enum_name,
+                variant_name,
+            } => format!("{enum_name}::{variant_name}"),
+            Self::ImplConst {
+                trait_path: Some(t),
+                target_type,
+                const_name,
+            } => format!("<{target_type} as {t}>::{const_name}"),
+            Self::ImplConst {
+                trait_path: None,
+                target_type,
+                const_name,
+            } => format!("{target_type}::{const_name}"),
             Self::Unknown { line } => format!("<unknown at line {line}>"),
         }
     }
@@ -1164,7 +1221,9 @@ impl ItemTarget {
             | (Self::Enum(a), Self::Enum(b))
             | (Self::Trait(a), Self::Trait(b))
             | (Self::Fn(a), Self::Fn(b))
-            | (Self::TypeAlias(a), Self::TypeAlias(b)) => a == b,
+            | (Self::TypeAlias(a), Self::TypeAlias(b))
+            | (Self::Const(a), Self::Const(b))
+            | (Self::Static(a), Self::Static(b)) => a == b,
             (
                 Self::Impl {
                     target_type: t1, ..
@@ -1217,6 +1276,28 @@ impl ItemTarget {
                     fn_name: f2,
                 },
             ) => t1 == t2 && f1 == f2,
+            (
+                Self::EnumVariant {
+                    enum_name: e1,
+                    variant_name: v1,
+                },
+                Self::EnumVariant {
+                    enum_name: e2,
+                    variant_name: v2,
+                },
+            ) => e1 == e2 && v1 == v2,
+            (
+                Self::ImplConst {
+                    target_type: t1,
+                    const_name: c1,
+                    ..
+                },
+                Self::ImplConst {
+                    target_type: t2,
+                    const_name: c2,
+                    ..
+                },
+            ) => normalize_type_name(t1) == normalize_type_name(t2) && c1 == c2,
             _ => false,
         }
     }
@@ -4070,6 +4151,26 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
         self.impl_stack.pop();
     }
 
+    fn visit_item_const(&mut self, item: &'ast syn::ItemConst) {
+        // ATK-A2-TOPLEVEL-CONST: route a free-standing const's attrs through
+        // check_attrs so `#[presents]` on a top-level/module const is not
+        // silently ignored (same blind-spot class as enum variants + impl
+        // consts).
+        let target = ItemTarget::Const(item.ident.to_string());
+        self.check_attrs(&item.attrs, "const", &target);
+        syn::visit::visit_item_const(self, item);
+    }
+
+    fn visit_item_static(&mut self, item: &'ast syn::ItemStatic) {
+        // Same blind-spot class as visit_item_const: route a free-standing
+        // `static`'s attrs through check_attrs so `#[presents]` on it is not
+        // silently ignored. Closed preemptively (ADR-007) — the fixture
+        // atk_a2_static_presents proves the need.
+        let target = ItemTarget::Static(item.ident.to_string());
+        self.check_attrs(&item.attrs, "static", &target);
+        syn::visit::visit_item_static(self, item);
+    }
+
     fn visit_item_fn(&mut self, item: &'ast syn::ItemFn) {
         let target = ItemTarget::Fn(item.sig.ident.to_string());
         self.current_item_digest = antigen_fingerprint::structural_digest(item);
@@ -4089,6 +4190,23 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
         self.current_item_digest = antigen_fingerprint::structural_digest(item);
         self.check_attrs(&item.attrs, "impl_fn", &target);
         syn::visit::visit_impl_item_fn(self, item);
+    }
+
+    fn visit_impl_item_const(&mut self, item: &'ast syn::ImplItemConst) {
+        // ATK-A2-IMPL-CONST: route an associated const's attrs through
+        // check_attrs so `#[presents]` on an impl-block const is not silently
+        // ignored (the same blind-spot as enum variants). Falls back to a bare
+        // Fn target if somehow visited outside an impl (shouldn't happen).
+        let target = self.impl_stack.last().map_or_else(
+            || ItemTarget::Fn(item.ident.to_string()),
+            |(trait_path, target_type)| ItemTarget::ImplConst {
+                trait_path: trait_path.clone(),
+                target_type: target_type.clone(),
+                const_name: item.ident.to_string(),
+            },
+        );
+        self.check_attrs(&item.attrs, "impl_const", &target);
+        syn::visit::visit_impl_item_const(self, item);
     }
 
     fn visit_item_trait(&mut self, item: &'ast syn::ItemTrait) {
@@ -4154,6 +4272,23 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
         let target = ItemTarget::Enum(item.ident.to_string());
         self.current_item_digest = antigen_fingerprint::structural_digest(item);
         self.check_attrs(&item.attrs, "enum", &target);
+
+        // ATK-A2-ENUM-VARIANT: descend into variants so a variant-level
+        // attribute (e.g. `#[presents(X)]` on one variant) is not silently
+        // ignored. `syn::visit::visit_item_enum` walks the variants but never
+        // routes their attrs through `check_attrs`, so without this loop the
+        // presentation is invisible to failure-class memory. The enclosing-enum
+        // digest stands in for each variant (a variant has no independent
+        // structural digest of its own).
+        let enum_name = item.ident.to_string();
+        for variant in &item.variants {
+            let variant_target = ItemTarget::EnumVariant {
+                enum_name: enum_name.clone(),
+                variant_name: variant.ident.to_string(),
+            };
+            self.check_attrs(&variant.attrs, "enum_variant", &variant_target);
+        }
+
         syn::visit::visit_item_enum(self, item);
     }
 }
