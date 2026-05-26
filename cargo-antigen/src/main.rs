@@ -841,8 +841,16 @@ fn run_verify_deps(args: VerifyDepsArgs) -> ExitCode {
 }
 
 fn run_verify_maintainer_changes(args: VerifyMaintainerChangesArgs) -> ExitCode {
-    use antigen::supply_chain::evaluate::evaluate_maintainer_unchanged;
+    use antigen::supply_chain::evaluate::{evaluate_maintainer_unchanged, is_valid_crate_name};
     use antigen::supply_chain::witness::MaintainerState;
+    if !is_valid_crate_name(&args.crate_name) {
+        eprintln!(
+            "error: --crate-name must contain only ASCII alphanumeric characters, `_`, or `-` \
+             (got `{}`). Path traversal sequences are not permitted.",
+            args.crate_name
+        );
+        return ExitCode::from(2);
+    }
     println!(
         "verify maintainer-changes: checking {crate_name} @ {since_version}",
         crate_name = args.crate_name,
