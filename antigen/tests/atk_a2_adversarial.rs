@@ -899,3 +899,286 @@ fn atk_a2_toplevel_const_presents_is_not_silently_ignored() {
         p.antigen_type,
     );
 }
+
+// ============================================================================
+// ATK-A2-PRES-FP: extract_presentation always emits empty structural_fingerprint
+//
+// `extract_immune` (the immunity path) correctly uses `self.current_item_digest`
+// for `structural_fingerprint`. But `extract_presentation` always emits
+// `String::new()` — even for structs, functions, and impls where the visitor
+// sets `self.current_item_digest` before calling `check_attrs`.
+//
+// This is a silent failure: the fingerprint is the drift-detection baseline.
+// An empty fingerprint means:
+//   1. Audit cannot detect that a #[presents]-marked item changed shape.
+//   2. `cargo antigen scan --format json` output misleadingly shows `""` for
+//      every explicit presentation — adopters inspecting the JSON see no
+//      fingerprint data even when the item IS fingerprintable.
+//   3. The schema lock's fingerprint field is effectively dead for presentations.
+//
+// Root cause: `extract_presentation` in scan.rs does not read
+// `self.current_item_digest`. The fix: change `String::new()` to
+// `self.current_item_digest.clone()` in `extract_presentation`, matching what
+// `extract_immune` already does.
+//
+// STATUS: FAILING — extract_presentation always emits String::new() for
+//   structural_fingerprint, even for structs/fns/impls where current_item_digest
+//   is populated by the visitor before check_attrs is called.
+// ============================================================================
+
+#[test]
+fn atk_a2_pres_fp_struct_explicit_marker_has_non_empty_fingerprint() {
+    // Fixture: #[presents] on an impl block (the 001 fixture reuses an impl,
+    // which has current_item_digest computed in visit_item_impl before check_attrs).
+    // Any item kind with a visitor that sets current_item_digest before calling
+    // check_attrs exposes this bug.
+    //
+    // We use the toplevel const fixture here because it's the simplest item kind
+    // that calls check_attrs. The bug is universal: ALL item kinds produce empty
+    // fingerprints for presentations. We use a struct fixture to show the bug on
+    // an item that definitely HAS a computable fingerprint.
+    //
+    // Fixture for struct: create a dedicated fixture that is a struct with #[presents].
+    // For now, use atk_a2_001 (impl with #[presents]) — impls have fingerprints.
+    let report =
+        scan_workspace(&fixture("atk_a2_001_presents_qualified_path"), None).expect("scan completes");
+
+    assert_eq!(
+        report.presentations.len(),
+        1,
+        "fixture must have exactly one presentation; got: {:?}",
+        report.presentations,
+    );
+
+    let p = &report.presentations[0];
+
+    assert!(
+        !p.structural_fingerprint.is_empty(),
+        "ATK-A2-PRES-FP: #[presents] on an impl block must produce a non-empty \
+         structural_fingerprint in the scan output. The impl visitor sets \
+         self.current_item_digest via antigen_fingerprint::structural_digest(item) \
+         BEFORE calling check_attrs — but extract_presentation always emits \
+         String::new() instead of self.current_item_digest.clone(). \
+         Immunity records correctly use self.current_item_digest (see extract_immune). \
+         Fix: change extract_presentation structural_fingerprint from String::new() \
+         to self.current_item_digest.clone(). \
+         Got structural_fingerprint = {:?}",
+        p.structural_fingerprint,
+    );
+}
+
+// ATK-A2-PRES-FP-CONST: #[presents] on const has WRONG fingerprint (contamination).
+// extract_presentation now uses current_item_digest — but visit_item_const never
+// SETS current_item_digest. It gets whatever the previous item set. Two consts
+// with different values get the same fingerprint (the preceding struct's digest).
+//
+// STATUS: FAILING — two different consts produce identical fingerprints because
+// neither visit_item_const, visit_item_static, nor visit_impl_item_const sets
+// self.current_item_digest before calling check_attrs. The digest from a prior
+// item bleeds into subsequent const/static presentations.
+// Fix: add structural_digest calls in visit_item_const, visit_item_static,
+// visit_impl_item_const, visit_trait_item_const, and the enum variant loop.
+// Requires adding HasAttributes impls for these types in antigen-fingerprint.
+#[test]
+fn atk_a2_pres_fp_two_consts_with_different_values_have_different_fingerprints() {
+    // Fixture has two consts: SMALL_LIMIT=1024 and LARGE_LIMIT=65536.
+    // If fingerprints are contaminated (using the preceding struct's digest),
+    // both fingerprints will be IDENTICAL — the struct digest bleeds into both.
+    // If fingerprints correctly capture each const's own content, they must DIFFER.
+    let report =
+        scan_workspace(&fixture("atk_a2_const_fp_contamination"), None).expect("scan completes");
+
+    assert_eq!(
+        report.presentations.len(),
+        2,
+        "fixture must have exactly two presentations (SMALL_LIMIT + LARGE_LIMIT); got: {:?}",
+        report.presentations,
+    );
+
+    let fp0 = &report.presentations[0].structural_fingerprint;
+    let fp1 = &report.presentations[1].structural_fingerprint;
+
+    assert_ne!(
+        fp0, fp1,
+        "ATK-A2-PRES-FP-CONST: two const items with different values must produce DIFFERENT \
+         structural_fingerprints. Both got {:?} — proving fingerprint contamination: \
+         visit_item_const does not set self.current_item_digest, so the preceding \
+         struct's digest bleeds into all subsequent const presentations in the file. \
+         Fix: (1) add HasAttributes for syn::ItemConst/ItemStatic/ImplItemConst/TraitItemConst \
+         in antigen-fingerprint/src/digest.rs; (2) set self.current_item_digest = \
+         antigen_fingerprint::structural_digest(item) in each new visitor before \
+         calling check_attrs.",
+        fp0,
+    );
+}
+
+// ============================================================================
+// ATK-A2-FINGERPRINT-MISS: ActiveArgumentDiscard fingerprint misses its own
+// declared instance because doc_contains only searches `///` doc attributes,
+// not `//` regular comments.
+//
+// The ActiveArgumentDiscard antigen (dogfood.rs) declares fingerprint:
+//   `all_of([item = impl, doc_contains("forward compat")])`
+//
+// The real instance in antigen-macros/src/parse.rs has:
+//   impl Parse for PolyclonalArgs {
+//       // Accept arbitrary trailing args for forward compat — discard them.
+//       while !input.is_empty() { ... }
+//   }
+//
+// The text "forward compat" appears in a `//` regular comment, NOT in a
+// `///` doc attribute. `doc_contains` searches `#[doc = "..."]` attributes
+// (desugared from `///`). Regular `//` comments are invisible to syn's AST
+// representation — they're discarded by the tokenizer.
+//
+// Impact: the antigen's own fingerprint doesn't fire on its own named instance.
+// Passive detection is broken for this family. Any adopter scanning a codebase
+// with the discard-loop pattern will NOT see it flagged unless they add an
+// explicit #[presents(ActiveArgumentDiscard)] marker.
+//
+// Fix options:
+//   1. Change the fingerprint to a body-structural predicate:
+//      body_contains_macro("parse") won't work. Use signature-level matching:
+//      has_method("parse") + item = impl would be more robust.
+//   2. Add `/// forward compat` doc comment to the impl block so doc_contains fires.
+//   3. Use body_contains_macro or another predicate that matches the actual pattern.
+//
+// STATUS: FAILING — scanning antigen-macros produces 0 ActiveArgumentDiscard
+//   fingerprint matches for PolyclonalArgs::parse, MonoclonalArgs::parse,
+//   AdccArgs::parse.
+// ============================================================================
+
+#[test]
+fn atk_a2_fingerprint_miss_active_argument_discard_matches_its_instance() {
+    // Scan the workspace root so the fingerprints declared in antigen/ are
+    // visible. The synthesis pass uses fingerprints found in the scanned tree;
+    // scanning antigen-macros alone cannot see ActiveArgumentDiscard (declared
+    // in antigen/src/stdlib/dogfood.rs). Filter results to files under
+    // antigen-macros/ to confirm the match fires on the intended instance.
+    let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("workspace root");
+    let macros_prefix = workspace_root.join("antigen-macros");
+
+    let report = scan_workspace(workspace_root, None).expect("workspace scan completes");
+
+    let found_active_arg_discard = report.presentations.iter().any(|p| {
+        p.antigen_type == "ActiveArgumentDiscard" && p.file.starts_with(&macros_prefix)
+    });
+
+    assert!(
+        found_active_arg_discard,
+        "ATK-A2-FINGERPRINT-MISS: scanning the workspace should find at least one \
+         ActiveArgumentDiscard fingerprint match in antigen-macros/ \
+         (PolyclonalArgs::parse, MonoclonalArgs::parse, or AdccArgs::parse — they all \
+         use the discard-loop). Got 0 matches in antigen-macros/. \
+         The fingerprint 'all_of([item = impl, has_method(\"parse\", \"(ParseStream) -> \
+         syn::Result<Self>\")])' should match these impl Parse blocks. \
+         Fingerprint scanning is workspace-level: the antigen declaration (in antigen/) \
+         must be visible alongside the instance (in antigen-macros/) for synthesis to fire.",
+    );
+}
+
+// ============================================================================
+// ATK-A2-FINGERPRINT-MISS-2: CapabilityOmissionAtLowering fingerprint misses
+// its own declared instance for the same reason as ActiveArgumentDiscard.
+//
+// The CapabilityOmissionAtLowering antigen (dogfood.rs) declares:
+//   fingerprint = r#"doc_contains("to_leaf")"#
+//
+// The real instance is `LeafExpr::to_leaf()` in antigen-attestation/src/parser.rs.
+// The impl block at line 299 has:
+//   /// Convert to the runtime [`crate::Leaf`]. Mirror of ...
+//
+// That doc string does NOT contain the literal "to_leaf" — it says "to the
+// runtime" — so doc_contains("to_leaf") produces 0 matches.
+//
+// The antigen describes instances where a lowering step (`to_leaf`) hardcodes
+// defaults instead of threading parsed values through. The text "to_leaf"
+// appears only in // comments inside test bodies, not in any #[doc = ...] attr.
+//
+// Impact: identical to ActiveArgumentDiscard — passive fingerprint detection
+// is broken. This is the SECOND instance of the same `doc_contains` vs `//`
+// comment class miss (AntigenFingerprintDivergesFromClassExtension).
+//
+// STATUS: FAILING — scanning antigen-attestation produces 0
+//   CapabilityOmissionAtLowering fingerprint matches.
+// ============================================================================
+
+#[test]
+fn atk_a2_fingerprint_miss_capability_omission_at_lowering_matches_its_instance() {
+    // Scan the workspace root so the fingerprints declared in antigen/ are
+    // visible alongside the instance in antigen-attestation/. Filter to files
+    // under antigen-attestation/ to confirm the fingerprint fires there.
+    let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("workspace root");
+    let attestation_prefix = workspace_root.join("antigen-attestation");
+
+    let report = scan_workspace(workspace_root, None).expect("workspace scan completes");
+
+    let found_capability_omission = report.presentations.iter().any(|p| {
+        p.antigen_type == "CapabilityOmissionAtLowering" && p.file.starts_with(&attestation_prefix)
+    });
+
+    assert!(
+        found_capability_omission,
+        "ATK-A2-FINGERPRINT-MISS-2: scanning the workspace should find at least one \
+         CapabilityOmissionAtLowering fingerprint match in antigen-attestation/ \
+         (LeafExpr::to_leaf in parser.rs is the declared instance). Got 0 matches \
+         in antigen-attestation/. \
+         The fingerprint 'all_of([item = impl, has_method(\"to_leaf\", \
+         \"(&self) -> crate::Leaf\")])' should match the impl LeafExpr block. \
+         Fingerprint scanning is workspace-level: the antigen declaration (in antigen/) \
+         must be visible alongside the instance (in antigen-attestation/) for synthesis \
+         to fire.",
+    );
+}
+
+// ============================================================================
+// ATK-A2-MACRO-RULES: #[presents] on a macro_rules! item is silently ignored.
+//
+// The ScanVisitor overrides visit_item_struct, visit_item_impl, visit_item_const,
+// visit_item_static, visit_item_fn, visit_impl_item_fn, visit_impl_item_const,
+// visit_item_trait, visit_trait_item_fn, visit_trait_item_const, visit_item_type,
+// and visit_item_enum — but NOT visit_item_macro (macro_rules! items).
+//
+// When syn walks a file and encounters a `macro_rules!` declaration, it calls
+// the default visit_item_macro which does nothing with attributes. The
+// ScanVisitor never calls check_attrs for macro items, so any #[presents(X)]
+// on a macro_rules! block is silently dropped.
+//
+// This is the same blind-spot class as the enum-variant and impl-const fixes
+// (the scanner has a default-visitng gap for an item kind it doesn't handle).
+//
+// PROOF: Scan a fixture with #[presents(SilentIntentNullification)] on a
+// macro_rules! item. The report must contain one presentation. If it contains
+// zero, the blind spot is confirmed.
+//
+// STATUS: FAILING — visit_item_macro is not overridden; macro_rules! attrs
+// are never routed through check_attrs.
+//
+// Fix: add visit_item_macro override to ScanVisitor that routes item.attrs
+// through check_attrs with an ItemTarget::Macro (or falls back to an existing
+// target kind). Add ItemTarget::Macro variant if not present.
+// ============================================================================
+
+#[test]
+fn atk_a2_macro_rules_presents_is_not_silently_ignored() {
+    let report = scan_workspace(&fixture("atk_a2_macro_rules_presents"), None).unwrap();
+
+    assert_eq!(
+        report.presentations.len(),
+        1,
+        "ATK-A2-MACRO-RULES: scanning a file with #[presents(SilentIntentNullification)] \
+         on a macro_rules! item must find exactly 1 presentation. \
+         Got {} presentations. \
+         Root cause: ScanVisitor overrides visit_item_struct/impl/const/static/fn/etc \
+         but does NOT override visit_item_macro. syn's default walker does not call \
+         check_attrs for macro_rules! items — the #[presents] attribute is silently \
+         dropped. Same blind-spot class as enum-variant (fixed) and impl-const (fixed). \
+         Fix: add visit_item_macro override to ScanVisitor that routes item.attrs \
+         through check_attrs with an ItemTarget::Macro(name) target.",
+        report.presentations.len()
+    );
+}

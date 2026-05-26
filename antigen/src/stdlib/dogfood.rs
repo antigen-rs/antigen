@@ -439,6 +439,22 @@ pub struct SilentIntentNullification;
 /// document the forward-compat contract explicitly so the discard behavior is a
 /// named, bounded decision rather than a silent footgun.
 ///
+/// **Fingerprint note** (this antigen ate its own dog food — it was an instance
+/// of [`AntigenFingerprintDivergesFromClassExtension`] (#17)). The original
+/// fingerprint `doc_contains("forward compat")` could not match ANY of its own
+/// instances: the "forward compat" text lives in a `//` comment in
+/// `PolyclonalArgs`/`MonoclonalArgs`/`AdccArgs::parse`, and `syn` discards `//`
+/// comments — only `///` doc-attrs reach `doc_contains`. A fingerprint fitted to
+/// an instance-artifact (an expected doc string) under-covered its own class
+/// (the F4/under-coverage direction). The fix applies the F8 recall/precision
+/// split: a BROAD structural recall-fingerprint (`item = impl` + a `parse`
+/// method of the `Parse`-impl shape) catches the class; the precise
+/// discriminator (is the body actually a token-discard-loop?) is the WITNESS's
+/// job, not the fingerprint's. The discard-loop body itself is not expressible
+/// in the v0.2 predicate grammar (no body-expression predicate;
+/// `body_contains_macro` doesn't fire — the loop has no macro), which is exactly
+/// why precision must live in the witness rather than a doc-string proxy.
+///
 /// **Category**: `FunctionalCorrectness` — the macro produces a result (no
 /// constraints) that contradicts the adopter's declared intent (constraints
 /// supplied).
@@ -446,10 +462,10 @@ pub struct SilentIntentNullification;
 #[antigen(
     name = "active-argument-discard",
     category = AntigenCategory::FunctionalCorrectness,
-    fingerprint = r#"all_of([item = impl, doc_contains("forward compat")])"#,
+    fingerprint = r#"all_of([item = impl, has_method("parse", "(ParseStream) -> syn::Result<Self>")])"#,
     family = "dogfood",
-    summary = "A proc-macro Parse impl actively swallows all arguments in a discard-loop; adopter-supplied arguments are silently nullified with no error, making the macro appear to accept constraints it ignores. Behavioral-witness child of SilentIntentNullification; sibling of CapabilityOmissionAtLowering (parse-swallow vs lowering-drop, both silent).",
-    references = ["ADR-024"]
+    summary = "A proc-macro Parse impl actively swallows all arguments in a discard-loop; adopter-supplied arguments are silently nullified with no error, making the macro appear to accept constraints it ignores. Behavioral-witness child of SilentIntentNullification; sibling of CapabilityOmissionAtLowering (parse-swallow vs lowering-drop, both silent). Fingerprint is broad-recall (Parse-impl shape); precision lives in the witness (F8 recall/precision split).",
+    references = ["ADR-024", "ADR-010"]
 )]
 pub struct ActiveArgumentDiscard;
 
@@ -864,7 +880,12 @@ pub struct DeclaredCapabilityWithNoProductionPath;
 #[antigen(
     name = "capability-omission-at-lowering",
     category = AntigenCategory::FunctionalCorrectness,
-    fingerprint = r#"doc_contains("to_leaf")"#,
+    // Structural recall-fingerprint: the lowering site is the impl block that
+    // defines `to_leaf` (e.g. `impl LeafExpr { fn to_leaf(&self) -> Leaf }`).
+    // The earlier `doc_contains("to_leaf")` under-covered the class — "to_leaf"
+    // lives in the method name, not in any /// doc attr, so it matched nothing
+    // (its own AntigenFingerprintDivergesFromClassExtension, caught by ATK).
+    fingerprint = r#"all_of([item = impl, has_method("to_leaf", "(&self) -> crate::Leaf")])"#,
     family = "dogfood",
     summary = "A surface field parses + type-checks but the lowering step hardcodes a default instead of threading the parsed value through; the adopter's input is silently dropped between surface and runtime, with no parse error. Child of SilentIntentNullification (F5), sibling of ActiveArgumentDiscard — both silent, differing by witness-structure (parse-swallow/behavioral vs lowering-drop/structural).",
     references = ["ADR-007", "ADR-019", "decisions.md:5085"]
