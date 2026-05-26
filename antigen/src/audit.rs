@@ -1076,12 +1076,18 @@ pub fn audit(report: &ScanReport, workspace_root: &Path) -> AuditReport {
                 // case the sidecar is legitimately owned by the companion
                 // `requires =` record — flagging the `witness =` record as
                 // "sidecar ignored" would be a false positive (ATK-W7-I). Only
-                // warn when no companion `requires =` immunity on the same
-                // (antigen_type, item_target) claims the sidecar.
+                // warn when no companion `requires =` immunity on the SAME ITEM
+                // claims the sidecar. "Same item" = same file AND item_target
+                // AND antigen_type — the file dimension is load-bearing: a
+                // `requires =` immunity for the same antigen in a DIFFERENT file
+                // (e.g. another test fixture) is NOT a companion, and omitting
+                // the file check let an unrelated workspace immunity suppress the
+                // warning across files (a regression the f3 test caught).
                 let has_companion_requires = report.immunities.iter().any(|other| {
                     other.requires_predicate.is_some()
                         && other.antigen_type == immunity.antigen_type
                         && other.item_target == immunity.item_target
+                        && other.file == immunity.file
                 });
                 let code_witness_sidecar_ignored = !has_companion_requires
                     && load_sidecar(&immunity.file, &immunity.antigen_type).is_some();
