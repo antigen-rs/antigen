@@ -1658,3 +1658,43 @@ The session arc from step 28 to step 30 is a microcosm of observer's core value:
 4. `dogfood/comprehensive-antigen-coverage` — observer is one of 3 required signers; gated on coverage sub-campsites (all pathmaker lane).
 
 **Next**: Sleep. The session's work is documented and the record is accurate.
+
+---
+
+## Step 33: 3rd Committed P0 — const synthesis test at 477aeef without #[ignore]
+
+### Before (write BEFORE running)
+
+**Time**: Immediately after step 32 sleep note + receiving navigator's stale-context message  
+**Hypothesis**: The `atk_a2_const_synthesis` test in dirty tree from step 32 will commit without `#[ignore]`, repeating the P0 pattern from 6a17036.  
+**Design**: Monitor `git log` after the commit lands; stash dirty tree; confirm test fails at committed HEAD.  
+**Rationale**: Observer's explicit watch-item from step 32 sleep note: "check if atk_a2_const_synthesis committed with or without #[ignore]."
+
+### Results (write IMMEDIATELY after)
+
+**Commit landed**: `477aeef` — "test(adversarial): ATK-A2-CONST-SYNTHESIS-MISS — failing test for const fingerprint silence"  
+**`#[ignore]` present?**: NO. `#[test]` immediately before `fn atk_a2_const_synthesis_fingerprint_miss_is_silent()`, no `#[ignore]`.  
+**Stash test**: cargo test at committed HEAD (dirty tree stashed) → `FAILED. 0 passed; 1 failed` — test error message says "Got 1 FingerprintMatch presentations" (expected 2).  
+**Dirty tree fix**: Uncommitted changes in `antigen-fingerprint/src/lib.rs` (+8 lines: `Const` + `Static` variants in `ItemKind`), `antigen-fingerprint/src/matcher.rs` (+6 lines: `item_kind_matches`, `item_name`, `item_attrs`), `antigen/src/scan.rs` (+7 lines: `synthesis_pass` + `item_kind_and_target` arms for `Const` and `Static`), `cargo-antigen/tests/atk_dx_findings.rs` (+5 lines: FIXTURE_SIDECAR_MUTEX in `atk_dx_f3_jq_hint_uses_correct_field`).
+
+**Workspace with dirty tree**: 898 passed, 48 ignored, 0 failing (fix compiles in, masking the break).  
+**Workspace at committed HEAD (stash)**: 1 FAILED (the new const synthesis test).
+
+**Structural finding in commit message**: "THREE-WAY gap — item_kind_and_target(), item_kind_for_dispatch, AND item_name() in matcher.rs must all be updated together." This is ParallelStateTrackersDiverge at the scanner's own design: three separately-maintained const-handling sites, no compile-time enforcement of their sync.
+
+**Surprise?**: The fix also covers `Static` items (symmetric treatment with `Const`). The dirty tree adds `Const` and `Static` together — smart: the same three-way gap existed for both. The fix is clean; only the commit sequencing is wrong.
+
+### Discussion
+
+**What we learned**: 3rd consecutive committed P0 in this expedition:
+1. `89f8108`: enum-variant presents blind spot — committed FAILING; fixed at d97c204
+2. `6a17036`: impl/trait-item-macro — committed FAILING; fixed at 931ae89  
+3. `477aeef`: const synthesis miss — committed FAILING; fix in dirty tree, not yet committed
+
+The pattern is consistent: adversarial commits the TDD pin test, fix follows in dirty tree shortly after, fix commits. The gap between pin and fix is minutes. But during that gap, HEAD is red. The discipline gap is specifically "commit the pin AND the fix atomically, OR #[ignore] the pin until the fix is ready."
+
+**The three-way gap itself is noteworthy.** The `synthesis_pass` → `item_kind_and_target()` → `item_name()` → `item_kind_matches()` chain has four separately-maintained tables of which `syn::Item` variants are handled. No compile-time enforcement makes them stay in sync. This is the same shape as the `ADR025_AUDIT_HINTS` drift — and it's structurally guaranteed to recur every time a new item kind is added. The `forward/structural-completeness-via-exhaustive-match` campsite (seeded by pathmaker) names exactly this: an exhaustive match that compile-enforces coverage would catch every new `syn::Item` variant at compile time.
+
+**Observer action taken**: P0 flagged to navigator via SendMessage. Note deposited on `forward/tdd-pin-without-ignore-recurring` (now 3 committed P0s documented). Fix is in dirty tree; pathmaker must commit.
+
+**Next**: Monitor for the fix commit. When it lands, verify workspace is clean at committed HEAD (no stash needed). Update this step with the fix commit hash.
