@@ -431,11 +431,11 @@ iteration count and non-deterministic seed discipline.
 
 ---
 
-## After the thirteen lessons
+## After all the lessons
 
 By now you've encountered the core vocabulary, four witness tiers, substrate-witness
-pipeline, Oracle lifecycle, delta-chained signatures, tolerance tiers, and the v0.2
-families (supply-chain defense + convergent-evidence):
+pipeline, Oracle lifecycle, delta-chained signatures, tolerance tiers, and the full
+v0.2 family surface:
 
 | Lesson | Concept |
 |---|---|
@@ -452,6 +452,13 @@ families (supply-chain defense + convergent-evidence):
 | 11 — supply_chain_unpinned | exact-pin enforcement + NARROW transitive definition (ADR-025) |
 | 12 — convergent_diagnostic | multi-modality independence + WitnessClass discipline (ADR-024) |
 | 13 — convergent_clonal | iterated witness + SeedKind::Fixed rejection (ADR-024) |
+| 14 — deferred_defense_orient | `#[orient]` + `#[triage_commit]` speech-act contrast (ADR-023/026) |
+| 15 — recurrent_emergence | failure-class return through structural similarity (ADR-022) |
+| 16 — mucosal_boundary | boundary defense + delegate centralization (ADR-027) |
+| 17 — vcs_info_loss | git history as immune substrate — four erasure patterns (ADR-026) |
+| 18 — agentic_coordination | session/agent boundary SubstrateAlignment failures (ADR-028) |
+| 19 — antigen_category | SubstrateAlignment vs FunctionalCorrectness taxonomy (ADR-028) |
+| 20 — triage_commit | decisional rollback — 5-color scale + orient contrast (ADR-026) |
 
 **Where to go next**:
 
@@ -588,16 +595,186 @@ cargo run --example deferred_defense_poxparty --package antigen
 cargo run --example deferred_defense_poxparty --package antigen --features antigen-poxparty
 ```
 
-### Lesson: `#[orient]` — acknowledged orientation with see-also context
+### Lesson: `#[orient]` — acknowledged orientation with explicit path-out
 
 **File**: `antigen/examples/deferred_defense_orient.rs`
 
-`#[orient]` is the lightest-weight deferred-defense primitive. All fields optional.
-Bare `#[orient]` with no arguments is valid. For ported code, design-flux periods,
-or rollback-as-triage sites (ADR-026). No minimum lengths, no required fields.
+`#[orient]` is for "I acknowledge this gap. I will close it by `<date>`." Both
+`learning_path` (the explicit path-out) and `until` (the horizon) are **REQUIRED**
+per ADR-023 Option-A — a bare `#[orient]` with no arguments is a compile error.
+An orientation without a path-out and time-bound is silent deferred non-immunity,
+which is just tolerance; `#[orient]` exists to be loud about it.
+
+For decisional rollback sites, use `#[triage_commit]` (ADR-026), not `#[orient]`.
+The distinction: orient = deferral; triage_commit = decision. Both are shown as
+Form 3 (orient) and Form 4 (triage_commit) in `deferred_defense_orient.rs`.
 
 ```sh
 cargo run --example deferred_defense_orient --package antigen
+```
+
+---
+
+## Recurrent-Emergence Family (v0.2.0-alpha) — ADR-022
+
+### Lesson: `recurrent_emergence` — the return of solved problems
+
+**File**: `antigen/examples/recurrent_emergence.rs`
+
+Recurrent failures are failure-classes that return after being solved — because the
+defense is re-introduced in a refactored form, or because the structural condition
+that produced them recurs. `#[descended_from]` propagates the failure-class memory
+through structural similarity; if a new type is flagged as descended from a type
+that `#[presents]` a known failure-class, the new type is automatically scanned.
+
+Key concept: **the immune system's memory must survive refactors**. If a function
+that presents `SignedOverflow` is rewritten into a new struct, the new struct
+carries the same failure risk — but without `#[descended_from]`, the connection
+is lost. This is the structural root of re-introduced bugs.
+
+```sh
+cargo run --example recurrent_emergence --package antigen
+```
+
+---
+
+## Mucosal-Boundary Family (v0.2.0-alpha) — ADR-027
+
+### Lesson: `mucosal_boundary` — defense at the boundary, not the interior
+
+**File**: `antigen/examples/mucosal_boundary.rs`
+
+Mucosal discipline says: sanitize at the boundary, not inside. The `#[mucosal]`
+marker declares that a function is a boundary function that sanitizes inputs.
+Functions inside the boundary don't need to re-sanitize; functions OUTSIDE the
+boundary must never be called without going through the mucosal function first.
+
+`#[mucosal_delegate]` centralizes delegation: if you have a mucosal handler for
+`XssInHtmlOutput`, all delegate sites point to a single handler that owns the
+discipline. Cross-crate delegate targets that exist but can't be reached by the
+intra-crate index are a known limitation (see `DelegateCrossCrateResolutionGap`
+in `agentic_coordination.rs`).
+
+```sh
+cargo run --example mucosal_boundary --package antigen
+```
+
+---
+
+## VCS-Information-Loss Family (v0.2.0-alpha) — ADR-026
+
+### Lesson: `vcs_info_loss` — git history as immune substrate
+
+**File**: `antigen/examples/vcs_info_loss.rs`
+
+Git operations that rewrite or erase history remove the structural memory of WHY
+decisions were made. `git reset --hard`, `git push --force`, squash-merges, and
+unrecorded rollbacks are the most common vectors. These are `SubstrateAlignment`
+failures: the git-history representation diverges from the actual state of
+why-this-was-done.
+
+The four patterns covered:
+
+| Pattern | Antigen | Defense |
+|---------|---------|---------|
+| Force-reset without record | `RollbackWithoutTriageCommit` | `#[triage_commit]` + `Triage-Decision:` trailer |
+| Force-push erasing history | `ForcePushErasingHistory` | `Force-Push-Attestation:` trailer |
+| Refactor losing context | `RefactorWithoutPreservationOfWhy` | `Preserves-Why:` trailer |
+| Squash-merge losing trail | `SquashMergeLosingIntermediateState` | preserve-branch or merge commit |
+
+The substrate-witness for all three trailer patterns is `signed_trailer(key = "...")` —
+the `requires =` predicate that evaluates whether the named trailer is present.
+
+The biology cognate for `ForcePushErasingHistory` is immune amnesia (Mina et al. 2015,
+Science) — measles infects memory lymphocytes, erasing immunological memory. Force-push
+erases commit memory. The structural rhyme is the central insight of the family.
+
+```sh
+cargo run --example vcs_info_loss --package antigen
+```
+
+---
+
+## Agentic-Coordination Family (v0.2.0-alpha) — ADR-028
+
+### Lesson: `agentic_coordination` — failures at session and agent boundaries
+
+**File**: `antigen/examples/agentic_coordination.rs`
+
+Multi-session, multi-agent, and human-LLM-collaboration workflows produce
+`SubstrateAlignment` failures that are rare in single-developer, single-session
+work. Two patterns:
+
+**`AgentWakeWithoutSubstrateDeltaInjection`**: an agent that resumes from a context
+snapshot without first reading the substrate delta (git log, camp status, pending
+work) will route stale claims. The fix is the `camp wake` + `git log` discipline,
+enforced via `ratified_doc(path = "docs/agentic-wake-protocol.md")`.
+
+**`DelegateCrossCrateResolutionGap`**: a mucosal audit that resolves delegate
+handlers using an intra-crate index silently produces false `MucosalDiscipline
+DelegateTargetMissing` for cross-crate handlers that exist but aren't reachable
+by the index.
+
+Both are `SubstrateAlignment` category: the failure is in what the agent BELIEVES
+is true, not what the code COMPUTES. The computation is correct given its inputs;
+the inputs are stale.
+
+```sh
+cargo run --example agentic_coordination --package antigen
+```
+
+---
+
+## Antigen-Category (v0.2.0-alpha) — ADR-028
+
+### Lesson: `antigen_category` — SubstrateAlignment vs FunctionalCorrectness
+
+**File**: `antigen/examples/antigen_category.rs`
+
+Every antigen has a `category` field that classifies HOW the failure-class fires.
+The two categories shape witness type, audit layer, and responder role:
+
+**`FunctionalCorrectness`**: the verb produces the wrong output. Evidence is
+behavioral — a test, proptest, formal proof, or lint exercises the verb. Use
+`witness =`. Example: `NanInCleanedOutput`.
+
+**`SubstrateAlignment`**: a representation diverges from actual state. Evidence
+lives outside the code — a sign-off, a ratified doc, an un-reviewed record. Use
+`requires =`. Example: `UnsignedSecurityPolicy`.
+
+The quick test: *can a test exercise the thing you're defending?* If yes →
+`FunctionalCorrectness` + `witness =`. If no → `SubstrateAlignment` + `requires =`.
+
+```sh
+cargo run --example antigen_category --package antigen
+```
+
+---
+
+## Triage-Commit (v0.2.0-alpha) — ADR-026
+
+### Lesson: `triage_commit` — decisional rollback as a speech-act
+
+**File**: `antigen/examples/triage_commit.rs`
+
+`#[triage_commit]` is the speech-act that turns a rollback function into a chart
+entry. It carries five required fields (all compile-time enforced):
+
+| Field | What it records |
+|-------|----------------|
+| `triage_decision` | Color (Black/Red/Yellow/Green/White) |
+| `rollback_target` | SHA of last-known-good snapshot |
+| `triaged_by` | Identity of the person/role who diagnosed |
+| `rationale` | Chart-documentation (>= 20 chars) |
+| `rollback_due_within_minutes` | Bounded time window (> 0) |
+
+The 5-color scale: Black = system-down; Red = vital-metric regression; Yellow =
+decision pending; Green = no regression (non-action documented); White = out of
+scope (non-action documented). All five are valid outcomes — Green and White make
+invisible non-action decisions visible in the git substrate.
+
+```sh
+cargo run --example triage_commit --package antigen
 ```
 
 ---
@@ -617,5 +794,9 @@ cargo run --example deferred_defense_orient --package antigen
 ---
 
 *The examples are real. The patterns are universal. Once you've
-worked through the nine lessons, you've encountered every core
-concept antigen ships in v0.1.0-rc.3.*
+worked through the twenty lessons, you've encountered every core
+concept antigen ships — from the basic three-move vocabulary through
+the full v0.2 family surface: substrate-witness, Oracle lifecycle,
+supply-chain defense, convergent evidence, deferred defense, recurrent
+emergence, mucosal boundary, VCS information loss, agentic coordination,
+category taxonomy, and decisional triage.*

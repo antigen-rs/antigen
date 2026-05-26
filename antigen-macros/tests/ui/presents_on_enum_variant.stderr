@@ -1,0 +1,5 @@
+error: expected non-macro attribute, found attribute macro `presents`
+  --> tests/ui/presents_on_enum_variant.rs:16:7
+   |
+16 |     #[presents(BoundaryViolation)]
+   |       ^^^^^^^^ not a non-macro attribute
