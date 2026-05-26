@@ -4313,6 +4313,35 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
 
         syn::visit::visit_item_enum(self, item);
     }
+
+    fn visit_item_macro(&mut self, item: &'ast syn::ItemMacro) {
+        // ATK-A2-MACRO-RULES: route a macro_rules! item's attrs through
+        // check_attrs so #[presents] on a macro definition is not silently
+        // ignored. Same blind-spot class as enum variants and impl consts.
+        // ItemTarget::Const reuses an existing string-carrying target variant;
+        // the name is the macro identifier or "(anonymous)" for unnamed macros.
+        let name = item
+            .ident
+            .as_ref()
+            .map_or_else(|| "(anonymous)".to_string(), ToString::to_string);
+        let target = ItemTarget::Const(name);
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.check_attrs(&item.attrs, "macro", &target);
+        syn::visit::visit_item_macro(self, item);
+    }
+
+    fn visit_item_use(&mut self, item: &'ast syn::ItemUse) {
+        // ATK-A2-USE-ITEM: route a use/re-export item's attrs through check_attrs
+        // so #[presents] on a use declaration (e.g. a dangerous capability re-export
+        // at a trust boundary) is not silently ignored. Same blind-spot class as
+        // macro_rules! (above), enum variants, and impl consts.
+        use quote::ToTokens;
+        let path_str = item.tree.to_token_stream().to_string();
+        let target = ItemTarget::Const(path_str);
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.check_attrs(&item.attrs, "use", &target);
+        syn::visit::visit_item_use(self, item);
+    }
 }
 
 #[cfg(test)]
