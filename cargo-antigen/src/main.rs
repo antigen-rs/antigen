@@ -1553,8 +1553,12 @@ fn parse_crate_at_version(s: &str) -> Option<(String, String)> {
     if c.is_empty() || v.is_empty() || v.contains('@') {
         return None;
     }
-    let crate_ok = c.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '-');
-    let version_ok = v.chars().all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '-' | '+'));
+    let crate_ok = c
+        .chars()
+        .all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '-');
+    let version_ok = v
+        .chars()
+        .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '-' | '+'));
     if !crate_ok || !version_ok {
         return None;
     }
