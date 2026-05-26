@@ -332,6 +332,11 @@ fn atk_dx_f3_jq_hint_uses_correct_field() {
 /// first adding an #[immune] macro and re-scanning — a chicken-and-egg problem.
 #[test]
 fn atk_dx_f6_presentation_entry_has_fingerprint() {
+    // Serialize against F3 tests that write sidecars to the shared workspace fixture
+    // directory while this test scans it. Without the mutex, F3's sidecar write races
+    // with this scan, producing partial/missing structural_fingerprint fields.
+    let _guard = FIXTURE_SIDECAR_MUTEX.lock().unwrap();
+
     // Run scan on antigen's own workspace (has presentations)
     let workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
