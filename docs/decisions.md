@@ -4959,7 +4959,7 @@ This is consistent with Amendment 2's principle: the witness-layer requirement i
 
 ## ADR-028 Amendment 5 — encounter-status axis (vaccinated / encountered / affinity-matured)
 
-**Status**: DRAFT — pending ceremony (navigator + naturalist signatures). Held behind live 8-findings work per aristotle's explicit instruction. Ready when F7 per-leaf diagnostics lands.
+**Status**: Ratified — navigator + naturalist signatures. F7 per-leaf diagnostics landed; ceremony open 2026-05-26.
 
 **Amends**: ADR-028 §Decision (category metadata surface) + §Audit-hint vocabulary. Cross-references ADR-003 Amendment 1 (biology-as-discovery), ADR-006 Amendment 1 / ADR-022 (prospective vs retrospective growth discipline), ADR-016 (anergy / tolerance), ADR-023 (deferred-defense family).
 
