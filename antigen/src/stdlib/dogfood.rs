@@ -380,6 +380,52 @@ pub struct UnvalidatedSealedEnumAcceptance;
 )]
 pub struct FingerprintStringWithoutDslValidation;
 
+/// A field holding a structural DIGEST is accepted without format-validation
+/// that a sibling site runs — the digest-format sibling of
+/// [`FingerprintStringWithoutDslValidation`].
+///
+/// Both share the parent shape: *a fingerprint-accepting field skips the
+/// format-validation a sibling site runs, so malformed values pass silently*
+/// (cross-site trust-boundary inconsistency, sub-clause F). They split by the
+/// **kind of validation** missing — the same witness-structure discriminator
+/// that separates `ActiveArgumentDiscard` (behavioral) from
+/// `CapabilityOmissionAtLowering` (structural):
+///
+/// - [`FingerprintStringWithoutDslValidation`] — the field holds the fingerprint
+///   **DSL grammar** (`item = fn`, `all_of([...])`); the missing check is
+///   `Fingerprint::parse()`.
+/// - `FingerprintDigestWithoutFormatValidation` (this one) — the field holds a
+///   structural **digest** (`fnv1a64:<16 hex>`, e.g. from `cargo antigen scan
+///   --format json`); the missing check is the digest *shape*
+///   (`fnv1a64:`-prefix + 16 lowercase-hex). `Fingerprint::parse()` cannot apply
+///   — a hash is not grammar — so DSL-validation is the wrong defense here.
+///
+/// **Observed instance** (2026-05-26): the `cargo antigen attest`
+/// `--fingerprint` args hold digests. The `sign` site format-guarded them
+/// (`looks_like_structural_digest`) but `scaffold`/`delta`/`check` did not — a
+/// 1-of-N cross-site spread where a malformed digest at the unguarded sites was
+/// recorded as `signed_against_fingerprint` and silently never matched the
+/// item's real digest at audit (dead-on-arrival). Closed by running the guard at
+/// every digest-accepting verb.
+///
+/// **Defense**: route every digest-accepting field through the same format check
+/// (`fnv1a64:` + 16 lowercase-hex). Cross-site consistency at a trust boundary
+/// is sub-clause F (ADR-005) applied to the digest contract — the same discipline
+/// the DSL sibling applies to the grammar contract.
+///
+/// **Category**: `FunctionalCorrectness` — a validation that should reject
+/// malformed input silently accepts it, diverging from the sibling site's
+/// contract (identical to its DSL sibling).
+#[antigen(
+    name = "fingerprint-digest-without-format-validation",
+    category = AntigenCategory::FunctionalCorrectness,
+    fingerprint = r#"all_of([item = impl, doc_contains("fnv1a64")])"#,
+    family = "dogfood",
+    summary = "A field holding a structural digest (fnv1a64:<hex>) is accepted without format-validation that a sibling site runs; malformed digests pass silently at the inconsistent site and never match at audit. The digest-format sibling of FingerprintStringWithoutDslValidation (same cross-site-inconsistency parent, split by validation-kind: digest-format vs DSL-grammar).",
+    references = ["ADR-005", "ADR-019"]
+)]
+pub struct FingerprintDigestWithoutFormatValidation;
+
 // ============================================================================
 // 9. SilentIntentNullification (parent) + ActiveArgumentDiscard (child)
 // ============================================================================
