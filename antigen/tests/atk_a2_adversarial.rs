@@ -771,3 +771,43 @@ fn atk_w7_003_nested_generic_in_phantom_witness_falls_through_to_not_found() {
     assert_eq!(a.witness_tier, WitnessTier::None);
     assert!(!a.is_well_formed());
 }
+
+// ============================================================================
+// ATK-A2-ENUM-VARIANT: #[presents] on an enum variant is silently ignored
+//
+// `ScanVisitor` has `visit_item_enum` which calls `check_attrs` on the enum
+// itself and then delegates to `syn::visit::visit_item_enum`. The syn
+// visitor traverses variants, but because there is no `visit_variant`
+// override in `ScanVisitor`, `check_attrs` is NEVER called on
+// `variant.attrs`. A `#[presents(SomeAntigen)]` on an enum variant
+// compiles cleanly (the proc-macro layer accepts it) but produces zero
+// scan output — the presentation is invisible to failure-class memory.
+//
+// STATUS: FAILING — scanner has no visit_variant override
+// BUG: No ItemTarget::EnumVariant exists; scanner ignores variant-level attrs
+// ============================================================================
+
+#[test]
+fn atk_a2_enum_variant_presents_is_not_silently_ignored() {
+    let report =
+        scan_workspace(&fixture("atk_a2_enum_variant_presents"), None).expect("scan completes");
+
+    assert_eq!(
+        report.presentations.len(),
+        1,
+        "ATK-A2-ENUM-VARIANT: #[presents(BoundaryViolation)] on the `External` enum variant \
+         must produce exactly one presentation record in the scan output. \
+         Instead the scanner silently ignored it — no visit_variant override in ScanVisitor \
+         means check_attrs is never called on variant.attrs. \
+         Found presentations: {:?}. \
+         Fix: add visit_variant to ScanVisitor and add ItemTarget::EnumVariant(enum_name, variant_name).",
+        report.presentations,
+    );
+
+    let p = &report.presentations[0];
+    assert_eq!(
+        p.antigen_type, "BoundaryViolation",
+        "ATK-A2-ENUM-VARIANT: presentation antigen_type must be 'BoundaryViolation'; got {:?}",
+        p.antigen_type,
+    );
+}

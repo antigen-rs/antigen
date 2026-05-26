@@ -133,7 +133,7 @@ pub enum WitnessKind {
 ///
 /// `cargo antigen audit --min-tier execution` fails if any immunity claim
 /// is below Execution tier.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum WitnessTier {
     /// No *passing* evidence. Either no witness / unresolved witness (immunity
