@@ -156,6 +156,22 @@ pub struct LeafOutcome {
     /// Human-readable reason. On FAIL: expected-vs-found. On PASS: what was
     /// satisfied. Never empty.
     pub reason: String,
+    /// Whether this leaf was actually *evaluated* here. `true` for every leaf
+    /// the standard evaluator runs. `false` for supply-chain leaves
+    /// (`dep_pinned`, `dep_attested`, etc.) which the standard path does NOT
+    /// evaluate — they're driven by `cargo antigen verify`. A not-evaluated
+    /// leaf has `passed: false` (honest-tier-naming: it did not pass HERE), but
+    /// the renderer must show `NOT-EVALUATED`, not `FAIL`, so an adopter does
+    /// not mistake "the check was deferred" for "the check ran and failed"
+    /// (ATK-eval-leaf-not-evaluated).
+    #[serde(default = "default_evaluated")]
+    pub evaluated: bool,
+}
+
+/// Backward-compat default for [`LeafOutcome::evaluated`] on pre-this-field
+/// serialized reports: assume a recorded leaf was evaluated.
+const fn default_evaluated() -> bool {
+    true
 }
 
 /// The evaluation of a predicate (sub)tree, mirroring [`Predicate`]'s shape so
@@ -431,12 +447,13 @@ fn eval_leaf<C: EvaluationContext>(
         | Leaf::MaintainerUnchanged { .. }
         | Leaf::ContentHashMatches { .. }
         | Leaf::SandboxClean { .. } => LeafOutcome {
-            label: "supply-chain-leaf".to_string(),
+            label: "supply-chain-leaf (not-evaluated)".to_string(),
             passed: false,
+            evaluated: false,
             reason: "supply-chain leaves are not evaluated by the standard \
                      predicate evaluator; drive `cargo antigen verify` (the \
-                     supply-chain audit layer) instead. Reported as FAIL here \
-                     per honest-tier-naming (ADR-005 Amd 2)."
+                     supply-chain audit layer) instead. Not a failure — the \
+                     check was deferred, not run (ATK-eval-leaf-not-evaluated)."
                 .to_string(),
         },
     }
@@ -454,6 +471,7 @@ fn eval_ratified_doc<C: EvaluationContext>(
     let fail = |reason: String| LeafOutcome {
         label: label.clone(),
         passed: false,
+        evaluated: true,
         reason,
     };
 
@@ -518,6 +536,7 @@ fn eval_ratified_doc<C: EvaluationContext>(
     LeafOutcome {
         label,
         passed: true,
+        evaluated: true,
         reason: format!("doc `{}` satisfied all checks", path.display()),
     }
 }
@@ -536,6 +555,7 @@ fn eval_signers(
     let fail = |reason: String| LeafOutcome {
         label: label.clone(),
         passed: false,
+        evaluated: true,
         reason,
     };
 
@@ -633,6 +653,7 @@ fn eval_signers(
     LeafOutcome {
         label,
         passed: true,
+        evaluated: true,
         reason: format!("all required signers satisfied: {required:?}"),
     }
 }
@@ -673,12 +694,14 @@ fn eval_signed_trailer<C: EvaluationContext>(
         LeafOutcome {
             label,
             passed: true,
+            evaluated: true,
             reason: format!("found {hits} matching `{key}` trailer(s){role_clause} (need {count})"),
         }
     } else {
         LeafOutcome {
             label,
             passed: false,
+            evaluated: true,
             reason: format!(
                 "found {hits} matching `{key}` trailer(s){role_clause} across \
                  {} git trailer line(s); need {count}",
@@ -743,6 +766,7 @@ fn eval_oracles_complete<C: EvaluationContext>(
             return LeafOutcome {
                 label,
                 passed: false,
+                evaluated: true,
                 reason,
             };
         }
@@ -750,6 +774,7 @@ fn eval_oracles_complete<C: EvaluationContext>(
     LeafOutcome {
         label,
         passed: true,
+        evaluated: true,
         reason: format!("all {} oracle(s) complete", files.len()),
     }
 }
@@ -780,6 +805,7 @@ fn eval_fresh_within_days<C: EvaluationContext>(
         return LeafOutcome {
             label,
             passed: false,
+            evaluated: true,
             reason: "no current-fingerprint signer date and no `fresh_through` — \
                      nothing to measure freshness against (NFA-21: stale-fingerprint \
                      dates are excluded)"
@@ -792,6 +818,7 @@ fn eval_fresh_within_days<C: EvaluationContext>(
     LeafOutcome {
         label,
         passed: fresh,
+        evaluated: true,
         reason: if fresh {
             format!("latest attestation {latest} is {diff_days} day(s) old (≤ {days})")
         } else if diff_days < 0 {
@@ -2463,6 +2490,72 @@ mod tests {
             r.witness_tier,
             WitnessTier::Execution,
             "NFA-26c: Deprecated oracle (superseded) must allow predicate to pass"
+        );
+    }
+
+    // ========================================================================
+    // ATK-eval-leaf-not-evaluated: supply-chain leaves in standard evaluator
+    //
+    // Supply-chain leaves (dep_pinned, dep_attested, etc.) cannot be evaluated
+    // by the standard predicate evaluator — they require Cargo.lock + sidecar
+    // reading that only `cargo antigen audit --supply-chain` provides.
+    //
+    // BUG: eval_leaf() currently returns `LeafOutcome { passed: false, label:
+    // "supply-chain-leaf", reason: "supply-chain leaves are not evaluated..." }`.
+    // This is a LIE: `passed: false` implies the check ran and failed. It didn't.
+    // The CLI renders this as `FAIL: supply-chain-leaf — ...` which is
+    // indistinguishable from a genuine failure like "dep_pinned check ran and
+    // found non-exact pins." An adopter debugging their immunity will see a FAIL
+    // and assume they need to fix Cargo.lock, not that they need to run a
+    // different audit command.
+    //
+    // DESIRED: supply-chain leaf outcomes must be clearly distinguishable from
+    // genuine evaluation failures. Options:
+    //   (a) Add `EvalNode::NotEvaluatedHere(LeafOutcome)` variant so the CLI
+    //       can render NOT-EVALUATED differently from FAIL.
+    //   (b) Add `evaluated: bool` field to LeafOutcome.
+    //   (c) Use a reserved label prefix like "not-evaluated:" or an enum kind.
+    //
+    // STATUS: FAILING — LeafOutcome has no way to express "not evaluated here";
+    // supply-chain leaves report `passed: false` which is indistinguishable from
+    // a genuine evaluation failure at the LeafOutcome level.
+    //
+    // Fix: add a third arm to EvalNode (NotEvaluatedHere) OR a `evaluated: bool`
+    // field to LeafOutcome. The CLI must then render "NOT-EVALUATED" not "FAIL"
+    // for these leaves. See campsite findings/eval-leaf-not-evaluated-arm.
+    // ========================================================================
+
+    #[test]
+    fn atk_eval_leaf_supply_chain_leaf_is_not_evaluated_not_failed() {
+        use crate::predicate::{Leaf, Predicate};
+        // dep_pinned() is a supply-chain leaf — cannot be evaluated by standard evaluator.
+        let pred = Predicate::Leaf(Leaf::DepPinned { crate_name: None });
+        let item = item_with(vec![]);
+        let ctx = TestContext::new(sample_date());
+
+        let r = evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx)
+            .expect("evaluation must not error");
+
+        // The predicate should report "not evaluated" — not "failed".
+        // At the leaf_outcomes level, the supply-chain leaf outcome must be
+        // distinguishable from a genuine evaluation failure.
+        assert_eq!(r.leaf_outcomes.len(), 1, "one leaf outcome expected");
+        let leaf = &r.leaf_outcomes[0];
+
+        // The leaf must have evaluated=false so the CLI can render NOT-EVALUATED
+        // rather than FAIL. A passed=false + evaluated=false pair is the honest
+        // representation: the check was deferred, not run-and-failed.
+        assert!(
+            !leaf.evaluated,
+            "ATK-eval-leaf-not-evaluated: supply-chain leaf (dep_pinned) must have \
+             evaluated=false so the CLI distinguishes 'not evaluated here' from a \
+             genuine failure. Current: label={:?}, passed={}, evaluated={}. \
+             The `passed: false, evaluated: true` combination implies the check ran \
+             and failed, but it never ran — only the supply-chain audit pass can \
+             evaluate dep_pinned leaves. \
+             Fix: set `evaluated: false` in the supply-chain leaf arm of eval_leaf(). \
+             See campsite findings/eval-leaf-not-evaluated-arm.",
+            leaf.label, leaf.passed, leaf.evaluated,
         );
     }
 }

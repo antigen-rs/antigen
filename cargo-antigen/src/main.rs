@@ -3338,7 +3338,13 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
             // Finding 7: per-leaf expected-vs-found, so a failed substrate-witness
             // predicate is legible without reading evaluator source.
             for leaf in &a.leaf_outcomes {
-                let mark = if leaf.passed { "PASS" } else { "FAIL" };
+                let mark = if !leaf.evaluated {
+                    "NOT-EVALUATED"
+                } else if leaf.passed {
+                    "PASS"
+                } else {
+                    "FAIL"
+                };
                 println!("      {}: {} — {}", leaf.label, mark, leaf.reason);
             }
             match &a.witness_status {
