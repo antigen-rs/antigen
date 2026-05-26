@@ -6,6 +6,7 @@
 //! [`Constraint`]-shaped tree.
 
 use proc_macro2::Span;
+use quote::ToTokens;
 use syn::bracketed;
 use syn::ext::IdentExt;
 use syn::parenthesized;
@@ -163,7 +164,7 @@ fn parse_has_method(input: ParseStream) -> syn::Result<Constraint> {
                 // asymmetric normalization vs the strict-tokenized match-site
                 // path — exactly the spacing bug this canonicalization exists
                 // to eliminate).
-    let normalized_signature =
+    let tokenized =
         crate::normalize_signature_canonical(&signature).ok_or_else(|| {
             syn::Error::new(
                 sig_lit.span(),
@@ -174,6 +175,14 @@ fn parse_has_method(input: ParseStream) -> syn::Result<Constraint> {
                 ),
             )
         })?;
+    // Strip parameter names from the normalized pattern so that `(input: ParseStream)`
+    // matches the same form as `(ParseStream)`. `render_inputs` in the matcher strips
+    // names from the actual signature; we must do the same for the pattern to keep
+    // comparison symmetric. Wrap in `fn __pat__` to parse as a syn::Signature, then
+    // rebuild with only types (no ident: prefix). Falls back to raw tokenized form on
+    // parse failure (e.g. shorthand `Self` types that aren't valid syn::Type alone).
+    let normalized_signature = strip_param_names_in_sig_pattern(&tokenized)
+        .unwrap_or(tokenized);
     Ok(Constraint::HasMethod(MethodPattern {
         name,
         signature,
@@ -362,6 +371,46 @@ fn check_not_placement(c: &Constraint, in_legal_all_of: bool) -> syn::Result<()>
         }
         _ => Ok(()),
     }
+}
+
+/// Strip parameter names from a `has_method` signature pattern so that user-written
+/// `(input: ParseStream)` matches the same canonical form as `(ParseStream)`.
+///
+/// `render_inputs` in the matcher strips names when rendering the actual `syn::Signature`
+/// (typed args emit only their type). The pattern must go through the same transformation
+/// at parse time to keep comparison symmetric.
+///
+/// Strategy: wrap the pattern in `fn __pat__<placeholder>` + parse as `syn::Signature`,
+/// then rebuild inputs using only types (no `ident :` prefix), matching `render_inputs`.
+/// Falls back to `sig` unchanged if the wrapped string doesn't parse (e.g. shorthand
+/// `Self` types, or pattern syntax that is valid tokens but not a valid sig — the caller
+/// in `parse_has_method` then uses the raw tokenized form).
+fn strip_param_names_in_sig_pattern(sig: &str) -> Option<String> {
+    use std::str::FromStr;
+
+    let wrapped = format!("fn __pat__{sig}");
+    let tokens = proc_macro2::TokenStream::from_str(&wrapped).ok()?;
+    let parsed: syn::Signature = syn::parse2(tokens).ok()?;
+
+    let parts: Vec<String> = parsed
+        .inputs
+        .iter()
+        .map(|input| match input {
+            syn::FnArg::Receiver(r) => r.to_token_stream().to_string(),
+            syn::FnArg::Typed(pt) => pt.ty.to_token_stream().to_string(),
+        })
+        .collect();
+    let inputs_rendered = parts.join(", ");
+    let output_rendered = match &parsed.output {
+        syn::ReturnType::Default => String::new(),
+        syn::ReturnType::Type(_, ty) => ty.to_token_stream().to_string(),
+    };
+    let rebuilt = if output_rendered.is_empty() {
+        format!("({inputs_rendered})")
+    } else {
+        format!("({inputs_rendered}) -> {output_rendered}")
+    };
+    crate::normalize_signature_canonical(&rebuilt)
 }
 
 #[cfg(test)]
