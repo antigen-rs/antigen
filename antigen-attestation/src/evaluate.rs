@@ -146,7 +146,7 @@ impl EvaluatedPredicate {
 /// 5) previously required reading the evaluator source; with this the audit
 /// says `signers(required=["camp-maintainer"]): FAIL — no signer named
 /// "camp-maintainer" (found names: ["Claude"])`.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct LeafOutcome {
     /// Short leaf label, e.g. `signers(required=["alice"])` or
     /// `fresh_within_days(90)`. Identifies which leaf this outcome is for.
@@ -1114,6 +1114,59 @@ mod tests {
             evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
         assert_eq!(r.witness_tier, WitnessTier::None);
         assert_eq!(r.audit_hint, AuditHint::DisciplinePredicateFailed);
+    }
+
+    // Finding 7: a failed predicate must carry a per-leaf reason, and the
+    // name-vs-role confusion (Finding 5) must be named explicitly rather than
+    // collapsing to an opaque DisciplinePredicateFailed.
+    #[test]
+    fn signers_leaf_failure_reports_per_leaf_reason() {
+        let item = item_with(vec![alice_fresh(sample_date(), "fp-current")]);
+        let pred = Predicate::leaf(Leaf::Signers {
+            required: vec!["bob".to_string()],
+            roles: BTreeMap::new(),
+            against: SignerCurrency::Current,
+            signature_allow: vec![],
+            signature_prefer: None,
+        });
+        let ctx = TestContext::new(sample_date());
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+        assert_eq!(r.leaf_outcomes.len(), 1, "one signers leaf → one outcome");
+        let leaf = &r.leaf_outcomes[0];
+        assert!(!leaf.passed);
+        assert!(
+            leaf.reason.contains("no signer named `bob`") && leaf.reason.contains("alice"),
+            "leaf reason must state expected-vs-found: {}",
+            leaf.reason
+        );
+    }
+
+    #[test]
+    fn signers_leaf_failure_names_the_role_vs_name_confusion() {
+        // Finding 5: alice holds the ROLE "math-researcher"; an adopter who puts
+        // the role into `required` (instead of `roles={alice="math-researcher"}`)
+        // must get a reason that points at the confusion, not silence.
+        let mut alice = alice_fresh(sample_date(), "fp-current");
+        alice.role = Some("math-researcher".to_string());
+        let item = item_with(vec![alice]);
+        let pred = Predicate::leaf(Leaf::Signers {
+            required: vec!["math-researcher".to_string()],
+            roles: BTreeMap::new(),
+            against: SignerCurrency::Current,
+            signature_allow: vec![],
+            signature_prefer: None,
+        });
+        let ctx = TestContext::new(sample_date());
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+        let leaf = &r.leaf_outcomes[0];
+        assert!(!leaf.passed);
+        assert!(
+            leaf.reason.contains("ROLE") && leaf.reason.contains("roles="),
+            "leaf reason must name the name-vs-role confusion and suggest roles={{...}}: {}",
+            leaf.reason
+        );
     }
 
     #[test]

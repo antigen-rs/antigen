@@ -343,6 +343,130 @@ fn atk_w7_g_immunity_audit_round_trips() {
 }
 
 // ============================================================================
+// ATK-W7-I: stacked #[immune] false-positive — code_witness_sidecar_ignored
+//
+// When an item has BOTH `#[immune(X, witness = ...)]` AND
+// `#[immune(X, requires = ...)]`, audit produces two `ImmunityAudit` records.
+// The `requires=` audit legitimately uses the `.attest/X.json` sidecar.
+//
+// BUG: the `witness=` audit also calls `load_sidecar()` and sets
+// `code_witness_sidecar_ignored = true`, even though the sidecar is legitimately
+// consumed by the companion `requires=` record. This is a false positive —
+// the adopter sees a spurious "sidecar ignored" warning on their correctly-stacked
+// hybrid immunity.
+//
+// STATUS: FAILING — `audit()` at audit.rs:1073 checks for any sidecar for the
+// antigen name, regardless of whether a companion `requires=` immunity exists.
+//
+// Fix: before setting `code_witness_sidecar_ignored = true` for a `witness=`
+// immunity, check whether any OTHER immunity in the report for the same
+// antigen_type + item_target also uses `requires_predicate = Some(...)`. If so,
+// the sidecar is legitimately owned by the `requires=` record and the warning
+// is a false positive.
+// ============================================================================
+
+#[test]
+fn atk_w7_i_stacked_immune_no_false_positive_sidecar_ignored() {
+    use std::io::Write;
+
+    // Create a temp workspace directory: src/lib.rs + src/.attest/TestAntigenStacked.json
+    let dir = tempfile::TempDir::new().expect("tempdir");
+    let src_dir = dir.path().join("src");
+    std::fs::create_dir_all(&src_dir).expect("create src");
+
+    // Write a minimal sidecar. load_sidecar() only needs to deserialize Ratification.
+    let attest_dir = src_dir.join(".attest");
+    std::fs::create_dir_all(&attest_dir).expect("create .attest");
+    let sidecar_path = attest_dir.join("TestAntigenStacked.json");
+    let mut f = std::fs::File::create(&sidecar_path).expect("create sidecar");
+    write!(
+        f,
+        r#"{{
+  "schema_version": "v1",
+  "kind": "immunity",
+  "antigen": {{ "name": "TestAntigenStacked" }},
+  "source_file": "src/lib.rs",
+  "items": [
+    {{
+      "item_path": "stacked_fn",
+      "current_fingerprint": "fnv1a64:0000000000000001",
+      "signers": [],
+      "oracles": []
+    }}
+  ]
+}}"#
+    )
+    .expect("write sidecar");
+    drop(f);
+
+    let src_file = src_dir.join("lib.rs");
+    std::fs::write(&src_file, "// placeholder").expect("write lib.rs");
+
+    // Build a ScanReport with two immunity records for the same antigen+item:
+    // one witness= and one requires= (stacked on the same item).
+    let witness_immunity = Immunity {
+        antigen_type: "TestAntigenStacked".to_string(),
+        witness: "my_test_fn".to_string(),
+        requires_predicate: None,
+        file: src_file.clone(),
+        line: 5,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Fn("stacked_fn".to_string()),
+        canonical_path: None,
+        structural_fingerprint: "fnv1a64:0000000000000001".to_string(),
+    };
+    let requires_immunity = Immunity {
+        antigen_type: "TestAntigenStacked".to_string(),
+        witness: String::new(),
+        // Minimal fresh_within_days predicate JSON
+        requires_predicate: Some(
+            r#"{"kind":"leaf","name":"fresh_within_days","days":9999}"#.to_string(),
+        ),
+        file: src_file,
+        line: 4,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Fn("stacked_fn".to_string()),
+        canonical_path: None,
+        structural_fingerprint: "fnv1a64:0000000000000001".to_string(),
+    };
+
+    let mut report = ScanReport::default();
+    report.immunities.push(witness_immunity);
+    report.immunities.push(requires_immunity);
+
+    let audit_report = audit(&report, dir.path());
+
+    // Expect exactly two audit results.
+    assert_eq!(
+        audit_report.audits.len(),
+        2,
+        "stacked immune must produce 2 independent audit records; got {}",
+        audit_report.audits.len()
+    );
+
+    // Find the audit for the witness= record.
+    let witness_audit = audit_report
+        .audits
+        .iter()
+        .find(|a| a.immunity.requires_predicate.is_none())
+        .expect("must have a witness= audit record");
+
+    // The sidecar IS present and IS legitimately used by the companion requires= record.
+    // The witness= audit must NOT falsely flag code_witness_sidecar_ignored = true.
+    assert!(
+        !witness_audit.code_witness_sidecar_ignored,
+        "ATK-W7-I: witness= audit must NOT set code_witness_sidecar_ignored when \
+         a companion requires= immunity on the same item legitimately owns the sidecar. \
+         The current code calls load_sidecar() unconditionally for every witness= record \
+         and flags any present sidecar as 'ignored' — even when the sidecar is correctly \
+         owned by a stacked requires= record on the same item. \
+         Fix: in audit(), before setting code_witness_sidecar_ignored, check whether \
+         any other Immunity in report.immunities uses requires_predicate = Some(_) for \
+         the same antigen_type + item_target combination."
+    );
+}
+
+// ============================================================================
 // ATK-W7-H: phantom-type witness end-to-end — scan path produces spaced form
 //
 // The unit tests in ATK-W7-B call `audit_single("PolarityProof::<T>::verified")`
@@ -363,12 +487,9 @@ fn atk_w7_g_immunity_audit_round_trips() {
 // scan report is the spaced ToTokens form; `detect_phantom_type_witness`
 // must handle it.
 //
-// STATUS: FAILING — `detect_phantom_type_witness` uses `contains("::<")`
-// which does not match the spaced ToTokens rendering.
-//
-// Fix: normalize whitespace in `detect_phantom_type_witness` before the
-// sentinel check (strip spaces around `::<` and `>`) — or use a regex /
-// split-on-whitespace approach that is insensitive to spacing.
+// STATUS: FIXED in commit 068670d — `detect_phantom_type_witness` now
+// normalizes whitespace before the `::<` sentinel check, so the spaced
+// ToTokens rendering matches correctly. Test passes.
 // ============================================================================
 
 #[test]

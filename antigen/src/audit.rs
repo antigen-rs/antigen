@@ -643,6 +643,14 @@ pub struct ImmunityAudit {
     /// witness kind). `false` for the common case (no orphan sidecar).
     #[serde(default)]
     pub code_witness_sidecar_ignored: bool,
+    /// Per-leaf substrate-witness evaluation outcomes (Finding 7), in
+    /// evaluation order. Populated for `requires = ...` (substrate-witness)
+    /// audits so `cargo antigen audit` / `attest check` can render which leaf
+    /// of a compound predicate passed or failed and why (expected-vs-found),
+    /// rather than only the tree-level hint. Empty for code-witness audits and
+    /// for pre-Finding-7 serialized reports.
+    #[serde(default)]
+    pub leaf_outcomes: Vec<antigen_attestation::LeafOutcome>,
 }
 
 /// Backward-compat default for [`ImmunityAudit::evidence_kind`] on
@@ -1074,6 +1082,9 @@ pub fn audit(report: &ScanReport, workspace_root: &Path) -> AuditReport {
                     compound_evidence: false,
                     evaluated_predicate: None,
                     code_witness_sidecar_ignored,
+                    // Code-witness path: no substrate-witness predicate was
+                    // evaluated, so there are no per-leaf outcomes (Finding 7).
+                    leaf_outcomes: Vec::new(),
                 }
             },
             |predicate_json| audit_substrate_witness(immunity, predicate_json),
@@ -1230,6 +1241,7 @@ fn immunity_audit_from_evaluated(
         // `requires =` path), so the code-witness-orphan-sidecar warning does
         // not apply.
         code_witness_sidecar_ignored: false,
+        leaf_outcomes: result.leaf_outcomes,
     }
 }
 

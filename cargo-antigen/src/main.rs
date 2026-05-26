@@ -3268,6 +3268,17 @@ fn run_attest_check(args: AttestCheckArgs) -> ExitCode {
     eprintln!("  evidence_kind:     {:?}", result.evidence_kind);
     eprintln!("  signature_strength:{:?}", result.signature_strength);
 
+    // Finding 7: per-leaf pass/fail with expected-vs-found, so a failed compound
+    // predicate is debuggable from the CLI output alone (no evaluator source dive).
+    if !result.leaf_outcomes.is_empty() {
+        eprintln!();
+        eprintln!("Per-leaf:");
+        for leaf in &result.leaf_outcomes {
+            let mark = if leaf.passed { "PASS" } else { "FAIL" };
+            eprintln!("  {}: {} — {}", leaf.label, mark, leaf.reason);
+        }
+    }
+
     // Exit 1 if predicate failed (tier = None means failed or missing-sidecar).
     if result.witness_tier == antigen_attestation::WitnessTier::None {
         ExitCode::from(1)
@@ -3324,6 +3335,12 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
                 i.witness
             );
             println!("    tier = {:?}, hint = {:?}", a.witness_tier, a.audit_hint);
+            // Finding 7: per-leaf expected-vs-found, so a failed substrate-witness
+            // predicate is legible without reading evaluator source.
+            for leaf in &a.leaf_outcomes {
+                let mark = if leaf.passed { "PASS" } else { "FAIL" };
+                println!("      {}: {} — {}", leaf.label, mark, leaf.reason);
+            }
             match &a.witness_status {
                 audit::WitnessStatus::NotFound { reason } => {
                     println!("    → broken: {reason}");
