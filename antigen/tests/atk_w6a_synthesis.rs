@@ -429,3 +429,75 @@ struct TargetStruct;
         fp_matches.len()
     );
 }
+
+// ============================================================================
+// ATK-W6a-SYN-005: a declaration's own struct is suppressed from its own
+//                   fingerprint-match report, but other matching items are not
+//                   (DX finding 4 — scan-fingerprint-self-match)
+//
+// An `#[antigen]` declaration's fingerprint frequently matches the declaration
+// struct itself (e.g. a `name = matches("Foo*")` fingerprint matches the
+// `FooAntigen` struct that carries it). That self-match carries no signal — the
+// declaration is not a *presentation* of its own failure-class — so synthesis
+// must suppress it. But it must suppress ONLY the exact declaration struct:
+// other items that legitimately match the same fingerprint must still surface.
+// ============================================================================
+
+#[test]
+fn atk_w6a_syn_005_declaration_self_match_suppressed_other_matches_kept() {
+    let dir = tempfile::TempDir::new().expect("tempdir");
+    let src_path = dir.path().join("lib.rs");
+    let mut f = std::fs::File::create(&src_path).expect("create lib.rs");
+    // The fingerprint `name = matches("Foo*")` matches both the declaration
+    // struct `FooAntigen` (self-match, must be suppressed) and `FooWidget`
+    // (a legitimate unmarked match, must be reported).
+    write!(
+        f,
+        r#"
+use antigen::antigen;
+
+#[antigen(
+    name = "foo-antigen",
+    fingerprint = "item = struct, name = matches(\"Foo*\")",
+    summary = "matches anything starting with Foo, including its own decl struct",
+)]
+struct FooAntigen;
+
+struct FooWidget;
+"#
+    )
+    .expect("write lib.rs");
+    drop(f);
+
+    let report = scan_workspace(dir.path(), None).unwrap();
+
+    assert_eq!(report.antigens.len(), 1, "expected one antigen declaration");
+
+    let fp_matches: Vec<_> = report
+        .presentations
+        .iter()
+        .filter(|p| p.match_kind == MatchKind::FingerprintMatch && p.antigen_type == "FooAntigen")
+        .collect();
+
+    // The declaration struct `FooAntigen` must NOT appear as a self-match.
+    let self_match = fp_matches.iter().any(
+        |p| matches!(&p.item_target, antigen::scan::ItemTarget::Struct(s) if s == "FooAntigen"),
+    );
+    assert!(
+        !self_match,
+        "ATK-W6a-SYN-005: the declaration struct `FooAntigen` matched its own \
+         fingerprint and was reported as a self-match — synthesis must suppress \
+         a declaration's match against itself.\nMatches: {fp_matches:#?}"
+    );
+
+    // `FooWidget` is a legitimate unmarked match and MUST still be reported.
+    let widget_match = fp_matches.iter().any(
+        |p| matches!(&p.item_target, antigen::scan::ItemTarget::Struct(s) if s == "FooWidget"),
+    );
+    assert!(
+        widget_match,
+        "ATK-W6a-SYN-005: self-match suppression over-reached — `FooWidget` is a \
+         legitimate unmarked fingerprint match and must still surface.\n\
+         Matches: {fp_matches:#?}"
+    );
+}

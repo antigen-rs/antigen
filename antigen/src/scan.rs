@@ -2468,7 +2468,18 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
     report.parse_failures.extend(fp_parse_failures);
 
     if !fingerprints.is_empty() {
-        synthesis_pass(&parsed_files, &fingerprints, &mut report);
+        // Build declaration-site set for self-match suppression (DX finding 4).
+        let declaration_sites: std::collections::HashSet<(String, PathBuf)> = report
+            .antigens
+            .iter()
+            .map(|ag| (ag.type_name.clone(), ag.file.clone()))
+            .collect();
+        synthesis_pass(
+            &parsed_files,
+            &fingerprints,
+            &declaration_sites,
+            &mut report,
+        );
     }
 
     // ---- Lineage propagation pass (ADR-018) ----
@@ -2946,9 +2957,15 @@ pub fn enumerate_dep_crate_roots(
 /// cached `(path, syn::File)` pairs from pass 1 — no re-reading or re-parsing.
 /// Only top-level items are checked (`syn::File::items`); descent into `impl`
 /// methods and `trait` methods is deferred to W6b/A3.
+///
+/// `declaration_sites` is the set of `(type_name, file)` pairs identifying
+/// antigen declaration structs themselves. These are suppressed from
+/// fingerprint-match reports — a declaration's own struct always matches its
+/// own `doc_contains` fingerprint, producing noise with no signal (DX finding 4).
 fn synthesis_pass(
     parsed_files: &[(PathBuf, syn::File)],
     fingerprints: &[(String, antigen_fingerprint::Fingerprint)],
+    declaration_sites: &std::collections::HashSet<(String, PathBuf)>,
     report: &mut ScanReport,
 ) {
     for (file_path, parsed) in parsed_files {
@@ -2981,6 +2998,17 @@ fn synthesis_pass(
                 }
 
                 if !fp.matches(syn_item) {
+                    continue;
+                }
+
+                // Self-match suppression: skip when the item IS the antigen's
+                // own declaration struct (DX finding 4). The struct that carries
+                // #[antigen] always matches its own fingerprint; this match has
+                // no signal. Only suppress the exact struct, not other items in
+                // the same file that legitimately match the fingerprint.
+                let is_self_decl = matches!(&item_target, ItemTarget::Struct(s) if s == antigen_type)
+                    && declaration_sites.contains(&(antigen_type.clone(), file_path.clone()));
+                if is_self_decl {
                     continue;
                 }
 
