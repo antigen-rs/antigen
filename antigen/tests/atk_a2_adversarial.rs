@@ -1775,3 +1775,50 @@ fn atk_a2_mod_inner_item_is_invisible_to_synthesis() {
         fp_matches.len()
     );
 }
+
+// ============================================================================
+// ATK-A2-UNION-SYNTHESIS-MISS: fingerprint matching is silently skipped for
+// union items in synthesis_pass.
+//
+// item_kind_and_target() returns None for syn::Item::Union, causing synthesis_pass
+// to skip all union items before fingerprint matching. A fingerprint like
+// `name = matches("UNSAFE_*")` will find UNSAFE_StructSite (struct) but silently
+// miss UNSAFE_Layout (union) even though the name matches identically.
+//
+// This is a SILENT FAILURE: the scan returns 1 match instead of 2 with no warning.
+// Unions are high-risk (unsafe memory reinterpretation). Failing to synthesize
+// fingerprint matches against them means vulnerability sites can propagate undetected.
+//
+// This is the same THREE-WAY gap as ATK-A2-CONST-SYNTHESIS-MISS but for union:
+// (1) item_kind_and_target() must return Some for syn::Item::Union
+// (2) item_kind_for_dispatch block must map Item::Union to ItemKind
+// (3) item_name() in antigen-fingerprint/src/matcher.rs must return union ident
+//
+// STATUS: FAILING — synthesis_pass returns 1 FingerprintMatch (struct only),
+// union site is silently missed.
+// ============================================================================
+
+#[test]
+fn atk_a2_union_synthesis_fingerprint_miss_is_silent() {
+    let report = scan_workspace(&fixture("atk_a2_union_synthesis_miss"), None).unwrap();
+    let fp_matches: Vec<_> = report
+        .presentations
+        .iter()
+        .filter(|p| matches!(p.match_kind, MatchKind::FingerprintMatch))
+        .collect();
+    assert_eq!(
+        fp_matches.len(),
+        2,
+        "ATK-A2-UNION-SYNTHESIS-MISS: a `name = matches(\"UNSAFE_*\")` fingerprint must \
+         match BOTH UNSAFE_StructSite (struct) AND UNSAFE_Layout (union). \
+         Got {} FingerprintMatch presentations. \
+         THREE-WAY gap — all three must be fixed together: \
+         (1) item_kind_and_target() must return Some for syn::Item::Union; \
+         (2) item_kind_for_dispatch block in synthesis_pass must map Item::Union to ItemKind::Union; \
+         (3) item_name() in antigen-fingerprint/src/matcher.rs must return union ident. \
+         This is the same pattern as ATK-A2-CONST-SYNTHESIS-MISS but for unsafe memory layouts. \
+         Unions are high-risk (unsafe memory reinterpretation) — missing them in synthesis \
+         means vulnerability sites propagate undetected.",
+        fp_matches.len()
+    );
+}
