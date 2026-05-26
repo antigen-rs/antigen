@@ -882,8 +882,7 @@ impl ImmunosuppressArgs {
                              an expired suppression window is silent check-disabling with \
                              no accountability. Set a future `until` date or remove the \
                              #[immunosuppress] marker.",
-                            until_str,
-                            -duration_days
+                            until_str, -duration_days
                         ),
                     ));
                 }
@@ -1712,11 +1711,33 @@ impl Parse for DiagnosticArgs {
     }
 }
 
+/// The `WitnessClass` variant names this crate recognizes for `#[diagnostic]`
+/// `modalities`. Mirrors `antigen::convergent::WitnessClass` (the sealed enum).
+///
+/// Held as a LOCAL allowlist because `antigen-macros` cannot depend on
+/// `antigen` (circular: `antigen` depends on `antigen-macros`), so the macro
+/// crate can't name the real enum at parse time. If `WitnessClass` gains a
+/// variant, this list must grow in lockstep — itself a
+/// `ParallelStateTrackersDiverge` site (two hand-maintained copies of one
+/// variant set); the divergence surfaces the first time a new variant is used
+/// in `modalities` and rejected here.
+const KNOWN_WITNESS_CLASSES: &[&str] = &[
+    "StaticAnalysis",
+    "PropertyTest",
+    "FormalVerification",
+    "ManualReview",
+    "RuntimeFuzz",
+    "SubstrateWitness",
+];
+
 impl DiagnosticArgs {
     /// Per ADR-024 + adversarial C1: `min_independent` is REQUIRED;
     /// `modalities` must be non-empty; `min_independent` must not exceed
     /// the number of distinct modality classes (otherwise the claim is
-    /// vacuously unsatisfiable).
+    /// vacuously unsatisfiable). Each modality must also name a real
+    /// `WitnessClass` variant — a sealed enum accepted as an arbitrary ident
+    /// is `UnvalidatedSealedEnumAcceptance` (sub-clause F: validate the
+    /// trust-boundary input against the closed set it claims to be).
     pub fn validate(&self) -> syn::Result<()> {
         if self.modality_classes.is_empty() {
             return Err(syn::Error::new(
@@ -1724,6 +1745,24 @@ impl DiagnosticArgs {
                 "#[diagnostic] requires non-empty `modalities = [WitnessClass::X, ...]` \
                  (ADR-024 §Decision; an empty modality set has no evidence to converge).",
             ));
+        }
+        // Sub-clause F: reject idents that don't name a real WitnessClass
+        // variant. Without this, `modalities = [WitnessClass::Nonsense]` (or
+        // any `Foo::Bar`) is silently captured as a bogus class string and the
+        // distinct-count math runs on garbage.
+        for class in &self.modality_classes {
+            if !KNOWN_WITNESS_CLASSES.contains(&class.as_str()) {
+                return Err(syn::Error::new(
+                    self.modality_span.unwrap_or(self.args_span),
+                    format!(
+                        "#[diagnostic] `modalities` entry `{class}` is not a known \
+                         WitnessClass variant; expected one of: {}. \
+                         (A modality that names no real witness class is dead evidence — \
+                         it can never converge.)",
+                        KNOWN_WITNESS_CLASSES.join(", ")
+                    ),
+                ));
+            }
         }
         let Some(min) = self.min_independent else {
             return Err(syn::Error::new(
@@ -3781,6 +3820,60 @@ mod tests {
             .unwrap();
         let args = syn::parse2::<ImmuneArgs>(tokens).unwrap();
         assert_eq!(args.rationale.as_deref(), Some("checked manually"));
+    }
+
+    // Witness for #[immune(UnvalidatedSealedEnumAcceptance, ...)] on
+    // DiagnosticArgs::validate — the sealed WitnessClass set is enforced at
+    // parse/validate time; a non-variant ident must be rejected, not silently
+    // counted as a valid modality.
+
+    #[test]
+    fn diagnostic_validate_rejects_unknown_witness_class() {
+        // `WitnessClass::Nonsense` is not one of the 6 ratified variants.
+        // Before the fix, this was captured as the string "Nonsense" and
+        // counted toward the distinctness check (UnvalidatedSealedEnumAcceptance).
+        let tokens: TokenStream = r"modalities = [WitnessClass::Nonsense], min_independent = 1"
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<DiagnosticArgs>(tokens).unwrap();
+        let err = args
+            .validate()
+            .expect_err("an unknown WitnessClass variant must be rejected")
+            .to_string();
+        assert!(
+            err.contains("Nonsense") && err.contains("WitnessClass"),
+            "error must name the offending ident + the valid set: {err}"
+        );
+    }
+
+    #[test]
+    fn diagnostic_validate_rejects_non_witness_class_path() {
+        // Any `Foo::Bar` path is captured as its last ident; it must not pass
+        // as a modality just because it parses as a path.
+        let tokens: TokenStream = r"modalities = [Foo::Bar], min_independent = 1"
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<DiagnosticArgs>(tokens).unwrap();
+        assert!(
+            args.validate().is_err(),
+            "a non-WitnessClass path must be rejected, not counted as a modality"
+        );
+    }
+
+    #[test]
+    fn diagnostic_validate_accepts_all_known_witness_classes() {
+        // The 6 ratified variants must all pass — the allowlist must not be
+        // narrower than the real WitnessClass enum (a too-strict allowlist
+        // would reject valid modalities).
+        let tokens: TokenStream = "modalities = [WitnessClass::StaticAnalysis, \
+             WitnessClass::PropertyTest, WitnessClass::FormalVerification, \
+             WitnessClass::ManualReview, WitnessClass::RuntimeFuzz, \
+             WitnessClass::SubstrateWitness], min_independent = 6"
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<DiagnosticArgs>(tokens).unwrap();
+        args.validate()
+            .expect("all 6 ratified WitnessClass variants must validate");
     }
 
     #[test]
