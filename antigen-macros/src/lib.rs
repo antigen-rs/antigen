@@ -76,6 +76,11 @@ mod parse;
 /// - `summary = "..."` (optional) — human-readable description
 /// - `references = [...]` (optional) — open-vocabulary list of references
 ///   (URLs, ADR/DEC IDs, CVE numbers, RFC numbers, etc.)
+/// - `category = AntigenCategory::X` (optional) — `SubstrateAlignment` or
+///   `FunctionalCorrectness` (ADR-028). **Do not import `AntigenCategory`** —
+///   the macro reads this as a token path, so `use antigen::AntigenCategory;`
+///   triggers `unused_imports` under `-D warnings`. Write the path directly
+///   without importing.
 ///
 /// # Examples
 ///
@@ -131,9 +136,27 @@ pub fn antigen(args: TokenStream, input: TokenStream) -> TokenStream {
          `cargo antigen audit` to validate witness coverage."
     );
 
+    // DX finding 1: in a *binary* crate, `#[antigen] pub struct Foo;` trips
+    // `dead_code` because `pub` does not exempt items with no external API
+    // surface, and antigen uses the marker type as a declaration token, never
+    // constructs it. Rather than `#[allow(dead_code)]` (which would also mask
+    // legitimate dead-code on the item), emit a zero-cost use-token that makes
+    // the type genuinely "used" from the compiler's view:
+    //
+    //   const _: fn() = || { let _x: Foo; };
+    //
+    // The `const _` is anonymous (no namespace pollution), is always compiled
+    // (not `#[cfg(test)]`-gated, so it works under any conditional compilation),
+    // and the closure body is never invoked — the binding only references the
+    // type. Zero runtime cost; honours lib.rs's "pure pass-through with zero
+    // overhead" contract at runtime while satisfying the dead_code analysis.
+    let marker_ident = &input.ident;
     let expanded = quote! {
         #[doc = #attr_doc]
         #input
+        const _: fn() = || {
+            let _antigen_use_token: #marker_ident;
+        };
     };
 
     expanded.into()
@@ -177,32 +200,53 @@ pub fn presents(args: TokenStream, input: TokenStream) -> TokenStream {
     quote! { #input }.into()
 }
 
-/// Declare immunity to a known antigen, with a witness that proves the immunity.
+/// Declare immunity to a known antigen, backed by evidence that proves it.
 ///
 /// # Arguments
 ///
 /// - The antigen type name (positional)
-/// - `witness = ...` (required) — reference to a test, proptest, lint, formal-
-///   verification proof, or phantom-type construction that proves immunity
+/// - **Exactly one of** `witness = ...` **or** `requires = ...` (mutually
+///   exclusive; one is required):
+///   - `witness = <ident>` — **code-tier** immunity. A reference to a test,
+///     proptest, lint, formal-verification proof, or phantom-type construction
+///     that proves immunity. Reach for this when the immunity is provable from
+///     the code itself (the typical `FunctionalCorrectness` case).
+///   - `requires = <predicate>` — **substrate-witness** immunity (ADR-019). A
+///     predicate evaluated against a signed `.attest/` sidecar rather than the
+///     code AST (e.g. `signers(...)`, `ratified_doc(...)`, `fresh_within_days(...)`).
+///     Reach for this when the immunity evidence lives *outside* the code —
+///     a review record, a ratified discipline doc, a sign-off (the typical
+///     `SubstrateAlignment` case). See the `substrate_witness` example.
 /// - `rationale = "..."` (optional) — human-readable description of why the
-///   witness applies
+///   evidence applies
 ///
 /// # Example
 ///
 /// ```ignore
 /// use antigen::immune;
 ///
+/// // code-tier: a test proves it
 /// #[immune(
 ///     PanickingInDrop,
 ///     witness = no_panic_in_drop_test,
 ///     rationale = "SafeType::drop uses Result-returning paths only.",
 /// )]
 /// impl Drop for SafeType { ... }
+///
+/// // substrate-witness: a ratified discipline doc records it
+/// #[immune(
+///     ParallelStateTrackersDiverge,
+///     requires = ratified_doc(path = "docs/disciplines/state-reconciliation.md"),
+/// )]
+/// fn reconcile_state() { ... }
 /// ```
 ///
-/// `cargo antigen scan` validates that the witness identifier resolves to a real
-/// test/proptest/lint/proof. Witnesses that don't exist or don't run successfully
-/// invalidate the immunity claim.
+/// For `witness =`, `cargo antigen scan` validates that the witness identifier
+/// resolves to a real test/proptest/lint/proof; witnesses that don't exist or
+/// don't run successfully invalidate the immunity claim. For `requires =`,
+/// `cargo antigen audit` evaluates the predicate against the `.attest/` sidecar
+/// — a substrate-witness sidecar is credited *only* for a `requires =` immunity,
+/// never a `witness =` one.
 ///
 /// `#[immune]` does not require `#[presents]` on the same item. Pre-emptive
 /// immunity is acceptable: declaring immunity to ensure future modifications stay
