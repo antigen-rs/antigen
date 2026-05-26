@@ -4233,6 +4233,24 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
         syn::visit::visit_trait_item_fn(self, item);
     }
 
+    fn visit_trait_item_const(&mut self, item: &'ast syn::TraitItemConst) {
+        // Same blind-spot class as the impl/top-level const cases: route a
+        // trait-associated const's attrs through check_attrs. Reuses
+        // ItemTarget::ImplConst with the trait as the target type (an
+        // associated const on a named type/trait) to avoid a near-duplicate
+        // variant — label renders as `Trait::CONST`.
+        let target = self.trait_stack.last().map_or_else(
+            || ItemTarget::Const(item.ident.to_string()),
+            |trait_name| ItemTarget::ImplConst {
+                trait_path: None,
+                target_type: trait_name.clone(),
+                const_name: item.ident.to_string(),
+            },
+        );
+        self.check_attrs(&item.attrs, "trait_const", &target);
+        syn::visit::visit_trait_item_const(self, item);
+    }
+
     fn visit_item_type(&mut self, item: &'ast syn::ItemType) {
         // Type aliases (`type Foo = ...;`) carry attributes too. ATK-W3-005:
         // without this handler, attributes on type aliases would fall back
