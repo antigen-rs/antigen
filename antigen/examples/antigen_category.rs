@@ -64,7 +64,7 @@ pub struct NanInCleanedOutput;
 
 /// A data cleaner that should never produce NaN.
 ///
-/// VULNERABLE: missing NaN guard — f64::sqrt(-1.0) produces NaN silently.
+/// VULNERABLE: missing NaN guard — `f64::sqrt(-1.0)` produces NaN silently.
 #[presents(NanInCleanedOutput)]
 pub struct DataCleaner {
     /// Raw float values to clean.
@@ -81,7 +81,7 @@ impl DataCleaner {
 
 /// A corrected cleaner with a NaN guard.
 ///
-/// DEFENDED: clean_values_safe() is covered by the property test
+/// DEFENDED: `clean_values_safe()` is covered by the property test
 /// `test_clean_values_no_nan` which exercises a range of float inputs and
 /// asserts the output contains no NaN. The witness resolves the claim.
 pub struct DataCleanerSafe {
@@ -154,7 +154,7 @@ pub fn gate_release_unverified(version: &str) -> Result<(), String> {
 /// before this release gate is crossed. `cargo antigen audit` evaluates the
 /// predicate; unsigned = `DisciplinePredicateFailed`.
 ///
-/// The defense is SubstrateAlignment: the thing being checked is not whether
+/// The defense is `SubstrateAlignment`: the thing being checked is not whether
 /// `gate_release` *computes* correctly, but whether the *sign-off record*
 /// (a substrate artifact) is present and current. No test can run the
 /// security team's sign-off; only `cargo antigen audit` can check the sidecar.

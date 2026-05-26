@@ -39,7 +39,7 @@
 //! cargo run --bin cargo-antigen -- antigen scan --root antigen/examples
 //! ```
 
-#![allow(dead_code, unused_variables)]
+#![allow(dead_code, unused_variables, unused_imports)]
 
 use antigen::stdlib::agentic_coordination::{
     AgentWakeWithoutSubstrateDeltaInjection, DelegateCrossCrateResolutionGap,
@@ -61,6 +61,7 @@ pub struct WorkSubstrate {
 }
 
 impl WorkSubstrate {
+    /// Returns a `WorkSubstrate` whose delta has not yet been injected — simulates a stale session-start.
     pub fn new_stale_snapshot() -> Self {
         Self {
             pending_items: vec![
@@ -71,6 +72,7 @@ impl WorkSubstrate {
         }
     }
 
+    /// Simulates reading the substrate delta and removing work items that shipped while idle.
     pub fn inject_delta(&mut self) {
         // In real usage: read git log, camp status, substrate delta.
         // Here: simulate discovering that "feature X" was actually shipped.
@@ -149,17 +151,25 @@ pub fn audit_mucosal_delegates(report: &ScanReport) -> Vec<AuditFinding> {
 
 /// Stub types for the audit example above.
 pub struct ScanReport {
+    /// Mucosal delegate declarations found by the scanner.
     pub delegates: Vec<Delegate>,
+    /// Handler names resolvable within the current crate.
     pub local_handlers: Vec<String>,
 }
 
+/// A mucosal delegate declaration — an item that routes to a handler in another crate.
 pub struct Delegate {
+    /// Source path of the item that declares the delegate.
     pub item_path: String,
+    /// Fully-qualified handler target (may be cross-crate).
     pub target: String,
 }
 
+/// A single audit finding emitted when a delegate target cannot be resolved.
 pub struct AuditFinding {
+    /// Source item that produced the finding.
     pub item: String,
+    /// Audit hint string for the finding.
     pub hint: String,
 }
 
