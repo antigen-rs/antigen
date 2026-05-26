@@ -45,11 +45,13 @@ agent-feedback/
 # Empty/transient working dirs
 .captured-shape/
 
-# Ad-hoc scan/audit JSON dumps at the repo root (e.g.
-# `cargo antigen scan --format json > scan_out.json`). Large transient
-# debugging artifacts, not part of the source surface.
-/scan_out.json
-/audit_out.json
+# Ad-hoc scan/audit JSON dumps + captured build/error logs at the repo root
+# (e.g. `cargo antigen scan --format json > scan_out.json`, or a teammate
+# redirecting cargo stderr to scan_out_obs.json). Transient debugging
+# artifacts, not part of the source surface. Glob covers numbered/suffixed
+# variants (scan_out_obs.json, scan_out2.json, ...).
+/scan_out*.json
+/audit_out*.json
 /*.scan.json
 
 # Camp per-project crate — externalized from public surface 2026-05-22
