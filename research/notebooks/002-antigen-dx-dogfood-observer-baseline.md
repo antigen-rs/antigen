@@ -866,3 +866,46 @@ Gate condition requires: "(b) AntigenFingerprintDivergesFromClassExtension antig
 ### Observer Sign-Gate Status (unchanged)
 
 `dogfood/comprehensive-antigen-coverage` — NOT signed. Still 0 production `#[presents]` markers in non-dogfood, non-example, non-test codebase. 17 antigens declared; none pointed at from production code. Gate condition: this campsite's name implies comprehensive coverage, which is not yet achieved.
+
+---
+
+## Step 20: Scanner Blindspot Fix Arc + Post-Fix Audit
+
+**Time**: 2026-05-26 ~05:25 UTC  
+**HEAD**: `83f26a5` (5th scanner blind spot: trait-associated consts)  
+**Test state**: 831 pass, 48 ignored  
+
+### Scanner Fix Arc — Five Blind Spots, Three Commits
+
+While I was auditing the working tree (noting the fix as verified-clean), the arc completed in git:
+
+| Commit | Content |
+|--------|---------|
+| `d97c204` | 4 overrides: visit_variant (EnumVariant), visit_impl_item_const (ImplConst), visit_item_const (Const), visit_item_static (Static preemptive) |
+| `83f26a5` | 5th override: visit_trait_item_const (reuses ImplConst target, renders Trait::CONST) |
+
+audit.rs gained `&& other.file == immunity.file` in `has_companion_requires` (F3 cross-file suppression gap — third-order F3 fix). 831 pass, 48 ignored (the formerly-ignored enum-variant ATK test is now un-ignorable: passing).
+
+**Pattern — original-antigenic-sin on campsite name**: `dogfood/scanner-enum-variant-blindspot` named for the first-seen instance; the fix covered the full class (5 item kinds with missing visitor overrides). The campsite name fits instance #1, not the class extension — `AntigenFingerprintDivergesFromClassExtension` demonstrated on camp substrate nomenclature.
+
+### Production #[presents] Markers — State Update
+
+The "ZERO production #[presents] markers" from Steps 14/15 is stale. Current committed state at HEAD `83f26a5`:
+
+| Location | Antigen |
+|----------|---------|
+| `antigen/src/scan.rs:968` | `VecCardinalityMasqueradingAsSet` |
+| `antigen/src/scan.rs:2429` | `ScannerBoundaryFalseNegative` |
+| `antigen/src/audit.rs:2511` | `DelegateCrossCrateResolutionGap` |
+
+3 committed production markers. With the scanner fix committed, `audit.rs:446` (`PolyclonalInsufficientLineages`) and `audit.rs:451` (`AdccSingleMechanismOnly`) can now receive `#[presents(DeclaredCapabilityWithNoProductionPath)]` — both have "Planned — not yet emitted at v0.2" in their doc comments.
+
+**Observer sign-gate update for comprehensive-antigen-coverage**: Original gate ("zero markers") CLEARED. Revised gate: 5 coverage sub-campsites must reach complete AND at least one `#[immune]` with real witness in production code (not just `#[presents]`).
+
+### stdlib Category Backfill Audit
+
+All existing stdlib modules have complete category fields (supply_chain 11/11, vcs_info_loss 11/11, mucosal 3/3, recurrent 3/3, agentic_coordination 2/2). Campsite `v02-impl-stdlib-category-backfill` references `convergent.rs, ~8 antigens` which does not exist. Either the backfill is complete or the scope is misdescribed. Navigator notified.
+
+### SilentIntentNullification Family — Still Uncommitted
+
+`SilentArgumentDiscard` (#9) remains as original name. `SilentIntentNullification` parent, `ActiveArgumentDiscard` rename, `DeferredIntentNullification` — none committed. 5 audit steps (15, 16, 18, 19, 20) have noted this gap. The family is ratified in camp substrate, absent from git substrate.
