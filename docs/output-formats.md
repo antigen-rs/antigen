@@ -257,16 +257,25 @@ themselves or read this directly.
 { "Struct": "StructName" }
 { "Enum": "EnumName" }
 { "Trait": "TraitName" }
-{ "Mod": "module_name" }
-{ "Type": "TypeAlias" }
+{ "TypeAlias": "AliasName" }
 { "Const": "CONSTANT_NAME" }
 { "Static": "STATIC_NAME" }
-{ "Use": "imported_path" }
+{ "EnumVariant": { "enum_name": "EnumName", "variant_name": "VariantName" } }
 { "Impl": { "trait_path": "TraitName" | null, "target_type": "TypeName" } }
+{ "ImplFn": { "trait_path": "TraitName" | null, "target_type": "TypeName", "fn_name": "method" } }
+{ "ImplConst": { "trait_path": "TraitName" | null, "target_type": "TypeName", "const_name": "ASSOC_CONST" } }
+{ "TraitFn": { "trait_name": "TraitName", "fn_name": "method" } }
+{ "Unknown": { "line": 42 } }
 ```
 
 For `impl` blocks, both inherent impls and trait impls are captured;
-`trait_path` is null for inherent impls.
+`trait_path` is null for inherent impls. `EnumVariant`, `ImplConst`, `Const`,
+and `Static` carry attributes on positions the scanner descends into so a
+`#[presents]` / `#[immune]` on a variant, an associated const, or a free
+const/static is not silently dropped (ScannerBoundaryFalseNegative). A
+trait-associated const reuses the `ImplConst` shape with the trait as
+`target_type`. `Unknown` is the fallback for item shapes not yet modelled and
+carries the source line so distinct unhandled items don't collide.
 
 ### Provenance (inherited_from)
 

@@ -299,3 +299,108 @@ fn schema_lock_audit_resolved_status_shape() {
         );
     }
 }
+
+// ============================================================================
+// ATK-SCHEMA-ITEM-TARGET: docs/output-formats.md must document every
+// item_target discriminant that can appear in cargo antigen scan JSON output.
+//
+// The existing schema_lock_* tests exercise the `examples/` directory which
+// uses only a small subset of ItemTarget variants (Fn, Struct, Impl, ImplFn).
+// After ATK-A2-ENUM-VARIANT/IMPL-CONST/TOPLEVEL-CONST fixes, the scanner
+// now emits EnumVariant, ImplConst, Const, and Static — none of which are
+// documented in output-formats.md's "Item target shapes" section.
+//
+// This test runs cargo antigen scan on a fixture that exercises all new item
+// kinds and asserts that each discriminant key ("EnumVariant", "ImplConst",
+// "Const", "Static") appears in docs/output-formats.md.
+//
+// STATUS: FAILING — output-formats.md is missing the new ItemTarget variants
+// ============================================================================
+
+#[test]
+fn schema_lock_item_target_new_variants_are_documented() {
+    // Run cargo antigen scan --format json on the fixtures that produce the
+    // new item_target variants.
+    let fixture_root = workspace_root()
+        .join("antigen")
+        .join("tests")
+        .join("fixtures");
+
+    // Run a scan across multiple fixtures to get all new variant kinds.
+    // EnumVariant comes from atk_a2_enum_variant_presents.
+    // Const comes from atk_a2_toplevel_const_presents.
+    // Static comes from atk_a2_static_presents.
+    // ImplConst comes from atk_a2_impl_const_presents.
+    let variants_to_check = [
+        ("EnumVariant", "atk_a2_enum_variant_presents"),
+        ("Const", "atk_a2_toplevel_const_presents"),
+        ("Static", "atk_a2_static_presents"),
+        ("ImplConst", "atk_a2_impl_const_presents"),
+    ];
+
+    let output_formats_doc =
+        std::fs::read_to_string(workspace_root().join("docs").join("output-formats.md"))
+            .expect("docs/output-formats.md must be readable");
+
+    for (variant_name, fixture_name) in &variants_to_check {
+        let fixture_path = fixture_root.join(fixture_name);
+
+        let output = Command::new(env!("CARGO"))
+            .current_dir(workspace_root())
+            .args([
+                "run",
+                "--quiet",
+                "--bin",
+                "cargo-antigen",
+                "--",
+                "antigen",
+                "scan",
+                "--format",
+                "json",
+                "--root",
+                fixture_path.to_str().unwrap(),
+            ])
+            .output()
+            .unwrap_or_else(|e| {
+                panic!("failed to invoke cargo-antigen scan on {fixture_name}: {e}")
+            });
+
+        let stdout =
+            String::from_utf8(output.stdout).expect("cargo-antigen scan stdout is valid UTF-8");
+        let scan_json: Value = serde_json::from_str(&stdout).unwrap_or_else(|e| {
+            panic!("failed to parse scan JSON for {fixture_name}: {e}\nstdout: {stdout}")
+        });
+
+        // Verify the fixture actually produces the expected variant.
+        let presentations = scan_json["report"]["presentations"]
+            .as_array()
+            .expect("presentations must be an array");
+        let has_variant = presentations.iter().any(|p| {
+            p["item_target"]
+                .as_object()
+                .map(|obj| obj.contains_key(*variant_name))
+                .unwrap_or(false)
+        });
+        assert!(
+            has_variant,
+            "ATK-SCHEMA-ITEM-TARGET: fixture '{fixture_name}' must produce an \
+             item_target with discriminant '{variant_name}' in scan JSON. \
+             Got: {:?}",
+            presentations
+                .iter()
+                .map(|p| &p["item_target"])
+                .collect::<Vec<_>>()
+        );
+
+        // Verify the variant is documented.
+        assert!(
+            output_formats_doc.contains(variant_name),
+            "ATK-SCHEMA-ITEM-TARGET: ItemTarget variant '{variant_name}' appears in \
+             cargo antigen scan JSON output (produced by fixture '{fixture_name}') but \
+             is NOT documented in docs/output-formats.md §'Item target shapes'. \
+             This violates the schema-lock contract: any variant reachable from scan \
+             must appear in the user-facing format documentation. \
+             Fix: add '{variant_name}' to the item_target shapes table in output-formats.md."
+        );
+    }
+}
