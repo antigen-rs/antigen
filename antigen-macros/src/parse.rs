@@ -676,17 +676,28 @@ impl AnergyArgs {
         // Past-date rejection: an expired anergy window means the suppression
         // should have been re-evaluated but wasn't. Parallels OrientArgs (53d2bab).
         if let Some(until_str) = self.until.as_deref() {
-            if let Ok(until_date) = parse_iso_date(until_str) {
-                let horizon_days = (until_date - today_utc()).num_days();
-                if horizon_days < 0 {
+            match parse_iso_date(until_str) {
+                Ok(until_date) => {
+                    let horizon_days = (until_date - today_utc()).num_days();
+                    if horizon_days < 0 {
+                        return Err(syn::Error::new(
+                            self.until_span.unwrap_or(self.args_span),
+                            format!(
+                                "#[anergy] `until` ({until_str}) is {} day(s) in the past — \
+                                 an already-expired anergy window is silent suppression with \
+                                 no accountability. Set a future `until` date or remove the \
+                                 #[anergy] marker.",
+                                -horizon_days
+                            ),
+                        ));
+                    }
+                }
+                Err(()) => {
                     return Err(syn::Error::new(
                         self.until_span.unwrap_or(self.args_span),
                         format!(
-                            "#[anergy] `until` ({until_str}) is {} day(s) in the past — \
-                             an already-expired anergy window is silent suppression with \
-                             no accountability. Set a future `until` date or remove the \
-                             #[anergy] marker.",
-                            -horizon_days
+                            "#[anergy] `until` value {until_str:?} is not a valid ISO-8601 \
+                             date. Use YYYY-MM-DD format, e.g. `until = \"2026-12-31\"`."
                         ),
                     ));
                 }
@@ -867,34 +878,45 @@ impl ImmunosuppressArgs {
         // and guaranteed small (default 90); casting is safe but use i64 directly.
         let cap_i64 = i64::try_from(cap).unwrap_or(i64::MAX);
         if let Some(until_str) = self.until.as_deref() {
-            if let Ok(until_date) = parse_iso_date(until_str) {
-                let since_date = self
-                    .since
-                    .as_deref()
-                    .and_then(|s| parse_iso_date(s).ok())
-                    .unwrap_or_else(today_utc);
-                let duration_days = (until_date - since_date).num_days();
-                if duration_days < 0 {
+            match parse_iso_date(until_str) {
+                Ok(until_date) => {
+                    let since_date = self
+                        .since
+                        .as_deref()
+                        .and_then(|s| parse_iso_date(s).ok())
+                        .unwrap_or_else(today_utc);
+                    let duration_days = (until_date - since_date).num_days();
+                    if duration_days < 0 {
+                        return Err(syn::Error::new(
+                            self.until_span.unwrap_or(self.args_span),
+                            format!(
+                                "#[immunosuppress] `until` ({}) is {} day(s) in the past — \
+                                 an expired suppression window is silent check-disabling with \
+                                 no accountability. Set a future `until` date or remove the \
+                                 #[immunosuppress] marker.",
+                                until_str, -duration_days
+                            ),
+                        ));
+                    }
+                    if duration_days > cap_i64 {
+                        return Err(syn::Error::new(
+                            self.until_span
+                                .unwrap_or_else(|| self.duration_cap_span.unwrap_or(self.args_span)),
+                            format!(
+                                "#[immunosuppress] duration {duration_days}d exceeds cap {cap_i64}d. \
+                                 Per ADR-023: duration cap enforced at parse-time. \
+                                 Reduce the `until` date or set `duration_cap = N` (workspace \
+                                 default is {IMMUNOSUPPRESS_DEFAULT_CAP_DAYS}d)."
+                            ),
+                        ));
+                    }
+                }
+                Err(()) => {
                     return Err(syn::Error::new(
                         self.until_span.unwrap_or(self.args_span),
                         format!(
-                            "#[immunosuppress] `until` ({}) is {} day(s) in the past — \
-                             an expired suppression window is silent check-disabling with \
-                             no accountability. Set a future `until` date or remove the \
-                             #[immunosuppress] marker.",
-                            until_str, -duration_days
-                        ),
-                    ));
-                }
-                if duration_days > cap_i64 {
-                    return Err(syn::Error::new(
-                        self.until_span
-                            .unwrap_or_else(|| self.duration_cap_span.unwrap_or(self.args_span)),
-                        format!(
-                            "#[immunosuppress] duration {duration_days}d exceeds cap {cap_i64}d. \
-                             Per ADR-023: duration cap enforced at parse-time. \
-                             Reduce the `until` date or set `duration_cap = N` (workspace \
-                             default is {IMMUNOSUPPRESS_DEFAULT_CAP_DAYS}d)."
+                            "#[immunosuppress] `until` value {until_str:?} is not a valid \
+                             ISO-8601 date. Use YYYY-MM-DD format, e.g. `until = \"2026-12-31\"`."
                         ),
                     ));
                 }
@@ -1071,17 +1093,28 @@ impl PoxpartyArgs {
         // Past-date rejection: an expired pox-party window is stale controlled
         // exposure with no accountability. Parallels OrientArgs (53d2bab).
         if let Some(until_str) = self.until.as_deref() {
-            if let Ok(until_date) = parse_iso_date(until_str) {
-                let horizon_days = (until_date - today_utc()).num_days();
-                if horizon_days < 0 {
+            match parse_iso_date(until_str) {
+                Ok(until_date) => {
+                    let horizon_days = (until_date - today_utc()).num_days();
+                    if horizon_days < 0 {
+                        return Err(syn::Error::new(
+                            self.until_span.unwrap_or(self.args_span),
+                            format!(
+                                "#[poxparty] `until` ({until_str}) is {} day(s) in the past — \
+                                 an expired pox-party exercise is stale controlled exposure with \
+                                 no accountability. Set a future `until` date or remove the \
+                                 #[poxparty] marker.",
+                                -horizon_days
+                            ),
+                        ));
+                    }
+                }
+                Err(()) => {
                     return Err(syn::Error::new(
                         self.until_span.unwrap_or(self.args_span),
                         format!(
-                            "#[poxparty] `until` ({until_str}) is {} day(s) in the past — \
-                             an expired pox-party exercise is stale controlled exposure with \
-                             no accountability. Set a future `until` date or remove the \
-                             #[poxparty] marker.",
-                            -horizon_days
+                            "#[poxparty] `until` value {until_str:?} is not a valid ISO-8601 \
+                             date. Use YYYY-MM-DD format, e.g. `until = \"2026-12-31\"`."
                         ),
                     ));
                 }
@@ -4958,6 +4991,70 @@ mod tests {
              Got Ok(()) for until={yesterday}. \
              Fix: add parse_iso_date() + horizon_days < 0 check to AnergyArgs::validate() \
              parallel to OrientArgs commit 53d2bab."
+        );
+    }
+
+    #[test]
+    fn anergy_validate_rejects_invalid_date_format() {
+        // ATK-ANERGY-INVALID-DATE: #[anergy] with a syntactically invalid `until`
+        // date silently passes validation. When parse_iso_date returns Err(()),
+        // the `if let Ok(...)` arm is not entered and no error is produced.
+        //
+        // A user who writes `until = "not-a-date"` or `until = "v2.0"` gets a
+        // silently accepted macro — the anergy window is unbounded (no parseable
+        // date means no past-date check, no expiry). This is worse than a past date.
+        //
+        // validate() must reject unparseable `until` values explicitly.
+        let tokens: TokenStream =
+            r#"PanickingInDrop, reason = "Suppressing until we audit all Drop impls in the codebase", until = "not-a-date""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<AnergyArgs>(tokens).unwrap();
+        assert!(
+            args.validate().is_err(),
+            "ATK-ANERGY-INVALID-DATE: #[anergy] with until = 'not-a-date' must fail validation. \
+             parse_iso_date returns Err(()), so the if-let-Ok arm is skipped — no error returned. \
+             An unparseable until date is an unbounded anergy window (no expiry ever fires). \
+             Fix: after the parse_iso_date call, also return Err if parsing FAILED — \
+             invalid dates should be rejected, not silently accepted."
+        );
+    }
+
+    #[test]
+    fn immunosuppress_validate_rejects_invalid_date_format() {
+        // ATK-IMMUNOSUPPRESS-INVALID-DATE: same gap as anergy — unparseable `until`
+        // silently passes. ImmunosuppressArgs::validate() uses the same if-let-Ok pattern.
+        let tokens: TokenStream =
+            r#"PanickingInDrop, rationale = "Suppressing this check until we audit all Drop impls", until = "2999-13-01""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<ImmunosuppressArgs>(tokens).unwrap();
+        assert!(
+            args.validate().is_err(),
+            "ATK-IMMUNOSUPPRESS-INVALID-DATE: #[immunosuppress] with until = '2999-13-01' \
+             (invalid month 13) must fail validation. parse_iso_date returns Err(()), \
+             so the if-let-Ok arm is skipped — no error returned. \
+             An unparseable until date is an unbounded suppression window. \
+             Fix: treat parse_iso_date failure as a validation error."
+        );
+    }
+
+    #[test]
+    fn poxparty_validate_rejects_invalid_date_format() {
+        // ATK-POXPARTY-INVALID-DATE: same gap as anergy/immunosuppress. PoxpartyArgs
+        // uses the same if-let-Ok(parse_iso_date) pattern — invalid dates silently pass.
+        let tokens: TokenStream =
+            r#"PanickingInDrop, exercise_type = "Trigger deliberate Drop panic and measure detection lag", until = "v2.0-release""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<PoxpartyArgs>(tokens).unwrap();
+        assert!(
+            args.validate().is_err(),
+            "ATK-POXPARTY-INVALID-DATE: #[poxparty] with until = 'v2.0-release' \
+             must fail validation. parse_iso_date returns Err(()), so the if-let-Ok \
+             arm is skipped — no error returned. A version tag as until date creates \
+             an unbounded poxparty window that never expires. \
+             Fix: treat parse_iso_date failure as a validation error."
         );
     }
 }
