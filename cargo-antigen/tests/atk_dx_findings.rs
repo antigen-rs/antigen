@@ -18,11 +18,10 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Mutex;
 
-// Serialize tests that write sidecars to the shared fixture directory.
-// The F3 sidecar test must write to the real workspace path (so audit --root
-// finds it during its scan) but that creates a race with parallel audit calls
-// from other tests. This mutex serializes all tests in the file that touch
-// the shared fixture sidecar path.
+// Serialize tests that scan the real workspace and may race with F6.
+// Only atk_dx_f6_presentation_entry_has_fingerprint and
+// atk_dx_jq_hint_uses_correct_field use this; the F3 sidecar test was
+// refactored to use a tempdir so it no longer touches shared workspace state.
 static FIXTURE_SIDECAR_MUTEX: Mutex<()> = Mutex::new(());
 
 fn bin() -> PathBuf {
@@ -158,35 +157,32 @@ fn atk_dx_f8_sign_empty_fp_any_passes() {
 #[test]
 fn atk_dx_f3_audit_warns_on_sidecar_for_witness_site() {
     use std::io::Write;
-    // Serialize against other tests that share this fixture directory.
-    // The sidecar must live at the real workspace path so `cargo antigen audit`
-    // finds it during its scan — we cannot use a temp copy because audit resolves
-    // sidecar paths relative to the scanned source tree. FIXTURE_SIDECAR_MUTEX
-    // prevents the parallel-write race that intermittently caused this test to fail
-    // when run as part of `cargo test --workspace`.
-    let _guard = FIXTURE_SIDECAR_MUTEX.lock().unwrap();
+    // Use a tempdir that mirrors the fixture path so audit resolves the sidecar
+    // relative to the copied lib.rs without touching shared workspace state.
+    // This eliminates the inter-binary race that FIXTURE_SIDECAR_MUTEX cannot fix
+    // (each test binary has its own static mutex; parallel binaries race freely).
+    let tmp = tempfile::tempdir().unwrap();
 
-    // The fixture directory that has a witness= immune site.
-    let fixture_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .unwrap()
-        .join("antigen")
+    // Mirror: <tmp>/antigen/tests/fixtures/atk_a2_003_empty_witness/lib.rs
+    let fixture_relative = PathBuf::from("antigen")
         .join("tests")
         .join("fixtures")
         .join("atk_a2_003_empty_witness");
+    let fixture_copy_dir = tmp.path().join(&fixture_relative);
+    std::fs::create_dir_all(&fixture_copy_dir).unwrap();
 
-    assert!(
-        fixture_dir.exists(),
-        "fixture dir must exist: {}",
-        fixture_dir.display()
-    );
+    // Copy the real fixture source into the tempdir.
+    let real_fixture_lib = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join(&fixture_relative)
+        .join("lib.rs");
+    std::fs::copy(&real_fixture_lib, fixture_copy_dir.join("lib.rs")).unwrap();
 
-    // Scaffold a sidecar for the witness= immune site in the fixture.
-    let attest_dir = fixture_dir.join(".attest");
+    // Write a sidecar into the tempdir next to the copied lib.rs.
+    let attest_dir = fixture_copy_dir.join(".attest");
     std::fs::create_dir_all(&attest_dir).unwrap();
     let sidecar_path = attest_dir.join("PanickingInDrop.json");
-
-    // Write a minimal sidecar manually (scaffold would work too, but this is deterministic)
     let sidecar_content = r#"{
   "schema_version": "v1",
   "kind": "immunity",
@@ -215,23 +211,17 @@ fn atk_dx_f3_audit_warns_on_sidecar_for_witness_site() {
         .write_all(sidecar_content.as_bytes())
         .unwrap();
 
-    // Run audit on the antigen workspace.
-    let workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .unwrap()
-        .to_path_buf();
-
+    // Run audit rooted at the tempdir. scan_workspace walks it and finds the
+    // copied lib.rs; audit resolves the sidecar at lib.rs's parent/.attest/.
+    // No shared workspace state is written.
     let out = Command::new(bin())
         .arg("antigen")
         .arg("audit")
         .arg("--root")
-        .arg(&workspace_root)
+        .arg(tmp.path())
         .output()
         .expect("failed to run cargo-antigen audit");
-
-    // Clean up before asserting (so a failing assert doesn't leave the sidecar)
-    let _ = std::fs::remove_file(&sidecar_path);
-    let _ = std::fs::remove_dir(&attest_dir);
+    // tmp drops here, cleaning up automatically.
 
     let stdout = String::from_utf8_lossy(&out.stdout).into_owned();
     let stderr = String::from_utf8_lossy(&out.stderr).into_owned();
