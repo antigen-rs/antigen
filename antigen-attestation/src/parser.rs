@@ -41,7 +41,10 @@
 //!         | not(predicate)
 //!
 //! leaf := ratified_doc[(path=..., min_version=..., anchor=..., sibling_json=...)]
-//!       | signers(required = [...], against = "current"|"any")
+//!       | signers(required = [...], roles = {name = "role"},
+//!                against = "current"|"any",
+//!                signature_allow = ["text-stamp"|"git-trust"|"crypto-signed", ...],
+//!                signature_prefer = "text-stamp"|"git-trust"|"crypto-signed")
 //!       | signed_trailer(key = "...", role = "...", count = N)
 //!       | oracles_complete(files = ["...", ...])
 //!       | fresh_within_days(N) | fresh_within_days(days = N)

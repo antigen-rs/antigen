@@ -467,6 +467,52 @@ fingerprint-versioning and migration tooling.
 **Tooling shape**: `cargo antigen migrate <antigen>` for fingerprint version
 bumps; immunity-claim re-validation pass.
 
+**Note (2026-05-26, dx-dogfood)**: original-antigenic-sin is a **cross-family
+cognate** — it also grounds the *fingerprint-scope* failure (a fingerprint fitted
+to instance #1 diverges from the class's extension; `AntigenFingerprintDiverges-
+FromClassExtension`) and the VCS `RefactorWithoutPreservationOfWhy`. See the
+ratified glossary entry (`docs/glossary.md`, Recognition terms) for the general
+definition + both families + the affinity-maturation remedy. The fingerprint-
+versioning instantiation above is one of three uses; the cognate is more general
+than this entry alone.
+
+---
+
+### Idiotype network / anti-idiotype (recognition recognizing recognition)
+
+**Biology**: antibody variable regions carry **idiotopes** — determinants that are
+themselves antigenic. **Anti-idiotype antibodies** recognize *other antibodies'*
+recognition-regions; the immune system's recognition-apparatus is itself an antigen
+to the system. Jerne's network theory (Nobel 1984): the idiotype network self-
+regulates the repertoire (anti-idiotypes balance responses). Crucially, this is
+recognition-of-recognition **across cells** — anti-idiotype binds *another* antibody,
+not itself — so self-reach is a **network** property, not reflexive single-molecule
+self-binding (see "Where biology goes silent").
+
+**Potential antigen instantiation**: the **description-tier** of the F10
+fundamentality-test — a fail-class whose subject IS the description-referent relation
+(spec-vs-impl, receptor-vs-class) can have its own *declaration* (a description)
+exhibit the class. The tier marker `{object | description}` (ratified F10) is the
+local projection; the network-level form is the standing **taxonomy-completeness-
+pressure** (does the 8-class taxonomy, a description of the failure landscape, cover
+the landscape including its own description?). Anti-idiotype regulation balancing the
+repertoire ↔ the taxonomy regulating its own coverage.
+
+**What would trigger instantiation**: a `tier` metadata field on antigen declarations
+(F10 (b), separate ratification unit — does NOT ride the F6 encounter-status
+amendment; different subject) + the taxonomy-completeness audit (F10 (c)). The
+per-antigen tier marker is the local shadow of the network-level completeness-pressure
+— they are one property at two scales, not two findings.
+
+**Tooling shape**: tier derivation by the self-reach check at ratification time;
+audit surfaces description-tier antigens for extra self-scrutiny on their own
+name/fingerprint/witness (which is exactly the F8 rename + F9 glossary-catch,
+systematized). The completeness-pressure is a standing posture (comprehensive-vision
+research-driven growth IS the maturation), not a single tool.
+
+**Recognized**: dx-dogfood arc (2026-05-26), F10 fundamentality-test ruling. Biology
+answer co-authored in `docs/expedition/aristotle-f10-fundamentality-test.md`.
+
 ---
 
 ### Vaccine hesitancy / non-adoption (social-cultural friction)
@@ -994,6 +1040,16 @@ Boundaries where biology has no analog (or only weak analogs):
   hygiene boundaries.
 - **Build-time vs runtime** — biology is all runtime; the concept of
   build-time recognition has no biological cognate.
+- **Reflexive single-unit self-binding** — biology does recognition-of-
+  recognition at the **network** level (anti-idiotype antibodies bind *other*
+  antibodies' recognition-regions; see Idiotype network above), but NOT as a
+  single antibody binding *itself*. This silence is load-bearing: it located the
+  F10 self-reach test at the taxonomy/network tier rather than the single-
+  declaration tier ("does a class reach its own declaration" = "does it appear in
+  the network that includes its declaration"). The metaphor's partial silence
+  named which tier the test lives at — dense where biology answers (network self-
+  reach), precisely silent where it doesn't (reflexive self-binding), and the
+  silence is the finding. (dx-dogfood, F10.)
 
 These boundaries are themselves load-bearing. Don't force-fit a biology
 analog where biology doesn't have one — the silence is honesty.
