@@ -1225,6 +1225,24 @@ impl OrientArgs {
             }
             Ok(until_date) => {
                 let horizon_days = (until_date - today_utc()).num_days();
+                // A past `until` is an already-expired orientation window: it
+                // says "we never addressed this failure-class AND the
+                // accountability horizon has already passed" — silent expired
+                // non-immunity, the exact thing orient's loudness prevents. The
+                // too-far-future check below uses `> MAX`, which is false for
+                // negative values, so a past date would otherwise pass silently.
+                if horizon_days < 0 {
+                    return Err(syn::Error::new(
+                        self.until_span.unwrap_or(self.args_span),
+                        format!(
+                            "#[orient] `until` ({until_str}) is {} day(s) in the past — an \
+                             already-expired orientation window. Set a future horizon, or if \
+                             the period has genuinely lapsed, resolve the failure-class \
+                             (declare immunity/tolerance) rather than leave an expired orient.",
+                            -horizon_days
+                        ),
+                    ));
+                }
                 if horizon_days > ORIENT_DEFAULT_MAX_HORIZON_DAYS {
                     return Err(syn::Error::new(
                         self.until_span.unwrap_or(self.args_span),
@@ -4335,6 +4353,33 @@ mod tests {
         assert!(
             args.validate().is_err(),
             "until beyond the 180d orientation horizon must fail validation"
+        );
+    }
+
+    #[test]
+    fn orient_parser_rejects_until_in_the_past() {
+        // A past `until` date is an already-expired orientation window — it
+        // silently represents "we never dealt with this failure-class AND the
+        // accountability horizon already passed."  validate() must reject it.
+        //
+        // ATK: horizon_days = (past_date - today) < 0 — the existing check is
+        // `if horizon_days > 180` which is false for negative values, so a past
+        // date passes validation silently.  This test FAILS until the check
+        // `if horizon_days < 0` is added.
+        let yesterday = (today_utc() - chrono::Duration::days(1))
+            .format("%Y-%m-%d")
+            .to_string();
+        let tokens: TokenStream = format!(
+            r#"learning_path = "Audit Drop impls before the alpha tag", until = "{yesterday}""#
+        )
+        .parse()
+        .unwrap();
+        let args = syn::parse2::<OrientArgs>(tokens).unwrap();
+        assert!(
+            args.validate().is_err(),
+            "ATK-ORIENT-PAST-DATE: until in the past must fail validation — \
+             an already-expired orientation period represents hidden unresolved \
+             deferred non-immunity with no accountability; got Ok(()) for until={yesterday}"
         );
     }
 
