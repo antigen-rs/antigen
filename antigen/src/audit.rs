@@ -1289,7 +1289,7 @@ fn immunity_audit_from_evaluated(
 ///   `antigen/tests/atk_witness_tier_parity.rs`. The compiler does not catch
 ///   any of those — only the parity test does. (This is the
 ///   `ParallelStateTrackersDiverge` shape, mirroring the framing in
-///   `tier.rs`'s WitnessTier doc-comment.)
+///   `tier.rs`'s `WitnessTier` doc-comment.)
 ///
 /// For v0.1 the mapping is lossless; a future ADR that intentionally diverges
 /// the two enums would widen it.
