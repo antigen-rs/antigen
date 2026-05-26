@@ -650,6 +650,14 @@ impl AnergyArgs {
                     ),
                 ));
             }
+            Some(r) if r.trim().is_empty() => {
+                return Err(syn::Error::new(
+                    self.reason_span.unwrap_or(self.args_span),
+                    "#[anergy] `reason` must not be whitespace-only; \
+                     a blank reason bypasses the loudness-as-discipline \
+                     requirement (ADR-023).",
+                ));
+            }
             _ => {}
         }
 
@@ -848,6 +856,14 @@ impl ImmunosuppressArgs {
                          (got {}); per ADR-023 loudness-as-discipline.",
                         r.len()
                     ),
+                ));
+            }
+            Some(r) if r.trim().is_empty() => {
+                return Err(syn::Error::new(
+                    self.rationale_span.unwrap_or(self.args_span),
+                    "#[immunosuppress] `rationale` must not be whitespace-only; \
+                     a blank rationale bypasses the loudness-as-discipline \
+                     requirement (ADR-023).",
                 ));
             }
             _ => {}
@@ -1069,6 +1085,14 @@ impl PoxpartyArgs {
                     ),
                 ));
             }
+            Some(et) if et.trim().is_empty() => {
+                return Err(syn::Error::new(
+                    self.exercise_type_span.unwrap_or(self.args_span),
+                    "#[poxparty] `exercise_type` must not be whitespace-only; \
+                     a blank exercise type bypasses the loudness-as-discipline \
+                     requirement (ADR-023).",
+                ));
+            }
             _ => {}
         }
 
@@ -1274,6 +1298,14 @@ impl OrientArgs {
                          per ADR-023 loudness-as-discipline (rationale-class field).",
                         p.len()
                     ),
+                ));
+            }
+            Some(p) if p.trim().is_empty() => {
+                return Err(syn::Error::new(
+                    self.learning_path_span.unwrap_or(self.args_span),
+                    "#[orient] `learning_path` must not be whitespace-only; \
+                     a blank learning path bypasses the loudness-as-discipline \
+                     requirement (ADR-023).",
                 ));
             }
             _ => {}
@@ -5097,6 +5129,86 @@ mod tests {
              arm is skipped — no error returned. A version tag as until date creates \
              an unbounded poxparty window that never expires. \
              Fix: treat parse_iso_date failure as a validation error."
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // ATK-WHITESPACE-RATIONALE: deferred-defense macros (anergy/immunosuppress/
+    // poxparty/orient) have the same whitespace-stuffing gap as triage_commit did
+    // (which was fixed at line 1640). The len() < 20 check passes for all-space
+    // strings. These tests will FAIL until the trim().is_empty() guards are added
+    // to the four deferred-defense validate() methods.
+    //
+    // The systemic root: ADR-023 loudness-as-discipline implemented as min-length
+    // but whitespace-stuffing was not considered. triage_commit got fixed first
+    // (via the hook in response to adversarial's failing test); these four remain.
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn anergy_validate_rejects_whitespace_only_reason_of_20_chars() {
+        let tokens: TokenStream =
+            r#"PanickingInDrop, reason = "                    ", until = "2099-12-31""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<AnergyArgs>(tokens).unwrap();
+        assert_eq!(args.reason.as_deref().map(str::len), Some(20));
+        assert!(
+            args.validate().is_err(),
+            "ATK-WHITESPACE-RATIONALE: #[anergy] reason of 20 spaces must fail validation. \
+             AnergyArgs::validate() line 643 uses r.len() < 20 but not trim().is_empty(). \
+             Fix: add 'Some(r) if r.trim().is_empty() => Err(...)' arm to the reason match, \
+             parallel to triage_commit's fix at line 1640."
+        );
+    }
+
+    #[test]
+    fn immunosuppress_validate_rejects_whitespace_only_rationale_of_20_chars() {
+        let tokens: TokenStream =
+            r#"PanickingInDrop, rationale = "                    ", until = "2099-12-31""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<ImmunosuppressArgs>(tokens).unwrap();
+        assert_eq!(args.rationale.as_deref().map(str::len), Some(20));
+        assert!(
+            args.validate().is_err(),
+            "ATK-WHITESPACE-RATIONALE: #[immunosuppress] rationale of 20 spaces must fail. \
+             ImmunosuppressArgs::validate() line 843 uses r.len() < 20 without trim(). \
+             Fix: add trim().is_empty() arm parallel to triage_commit fix at line 1640."
+        );
+    }
+
+    #[test]
+    fn poxparty_validate_rejects_whitespace_only_exercise_type_of_20_chars() {
+        let tokens: TokenStream =
+            r#"PanickingInDrop, exercise_type = "                    ", until = "2099-12-31""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<PoxpartyArgs>(tokens).unwrap();
+        assert_eq!(args.exercise_type.as_deref().map(str::len), Some(20));
+        assert!(
+            args.validate().is_err(),
+            "ATK-WHITESPACE-RATIONALE: #[poxparty] exercise_type of 20 spaces must fail. \
+             PoxpartyArgs::validate() line 1062 uses et.len() < 20 without trim(). \
+             Fix: add trim().is_empty() arm parallel to triage_commit fix at line 1640."
+        );
+    }
+
+    #[test]
+    fn orient_validate_rejects_whitespace_only_learning_path_of_20_chars() {
+        let until = (today_utc() + chrono::Duration::days(90))
+            .format("%Y-%m-%d")
+            .to_string();
+        let src = format!(
+            r#"PanickingInDrop, learning_path = "                    ", until = "{until}""#
+        );
+        let tokens: TokenStream = src.parse().unwrap();
+        let args = syn::parse2::<OrientArgs>(tokens).unwrap();
+        assert_eq!(args.learning_path.as_deref().map(str::len), Some(20));
+        assert!(
+            args.validate().is_err(),
+            "ATK-WHITESPACE-RATIONALE: #[orient] learning_path of 20 spaces must fail. \
+             OrientArgs::validate() line 1269 uses p.len() < 20 without trim(). \
+             Fix: add trim().is_empty() arm parallel to triage_commit fix at line 1640."
         );
     }
 }
