@@ -2370,8 +2370,21 @@ fn print_human_report(report: &scan::ScanReport, unaddressed: &[scan::Unaddresse
     print_unaddressed(unaddressed);
 }
 
+/// Human scan output shows at most this many fingerprint-match detail lines per
+/// antigen type, then a "+N more" summary pointing at `--format json`.
+///
+/// Fingerprint matches are the FILTER half of antigen's filter/proof split
+/// (glossary): expected, noisy *candidate* sites the witness layer refines —
+/// not a TODO list. On antigen's own tree these number ~18K; an unbounded
+/// per-site wall teaches a newcomer the tool is noise (the opposite of
+/// onboarding). The cap mirrors rustc's "...and N more" and clippy's per-lint
+/// grouping. `--format json` stays exhaustive for CI gates.
+const MAX_FINGERPRINT_MATCHES_PER_ANTIGEN: usize = 10;
+
 fn print_fingerprint_matches(report: &scan::ScanReport) {
     use antigen::scan::MatchKind;
+    use std::collections::BTreeMap;
+
     let fp_matches: Vec<_> = report
         .presentations
         .iter()
@@ -2380,22 +2393,52 @@ fn print_fingerprint_matches(report: &scan::ScanReport) {
     if fp_matches.is_empty() {
         return;
     }
+
+    // Group by antigen type so the cap is per-antigen (one noisy antigen can't
+    // crowd out the others), and so the summary reads per the design role.
+    let mut by_antigen: BTreeMap<&str, Vec<&&scan::Presentation>> = BTreeMap::new();
+    for p in &fp_matches {
+        by_antigen
+            .entry(p.antigen_type.as_str())
+            .or_default()
+            .push(p);
+    }
+
     println!(
-        "{} fingerprint match(es) — structurally similar to a declared antigen:",
-        fp_matches.len()
+        "{} fingerprint match(es) across {} antigen type(s) — candidate sites \
+         (expected noise; the witness layer refines them, per the filter/proof split). \
+         Not a TODO list.",
+        fp_matches.len(),
+        by_antigen.len()
     );
     println!();
-    for p in &fp_matches {
-        println!(
-            "  {}:{}  {} on {} [fingerprint match]",
-            p.file.display(),
-            p.line,
-            p.antigen_type,
-            p.item_kind
-        );
+
+    for (antigen_type, sites) in &by_antigen {
+        for p in sites.iter().take(MAX_FINGERPRINT_MATCHES_PER_ANTIGEN) {
+            println!(
+                "  {}:{}  {} on {} [fingerprint match]",
+                p.file.display(),
+                p.line,
+                p.antigen_type,
+                p.item_kind
+            );
+        }
+        if let Some(extra) = sites
+            .len()
+            .checked_sub(MAX_FINGERPRINT_MATCHES_PER_ANTIGEN)
+            .filter(|n| *n > 0)
+        {
+            println!(
+                "  … +{extra} more `{antigen_type}` candidate(s) — `cargo antigen scan \
+                 --format json` for the full list."
+            );
+        }
     }
     println!();
-    println!("  To acknowledge each site, use the antigen type shown above:");
+    println!(
+        "  These are CANDIDATES, not failures. If a site genuinely presents the \
+         failure-class, acknowledge it:"
+    );
     println!("    #[presents(<antigen>)] to mark explicitly,");
     println!("    #[immune(<antigen>, witness = ...)] if defended,");
     println!("    #[antigen_tolerance(<antigen>, rationale = \"...\")] to document intent.");
