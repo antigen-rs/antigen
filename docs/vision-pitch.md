@@ -208,7 +208,7 @@ Full vocabulary and roadmap: [`docs/expedition/the-comprehensive-vision.md`](exp
 
 We're not asking for adoption all at once. The pathway has explicit phases:
 
-**Phase 1 (shipped)**: core macros + scan + audit + attest. `v0.1.0-rc.2` is available. Early adopters write their own antigens for project-specific failure classes. [Tambear](https://github.com/tambear-rs/tambear) is the first adopter.
+**Phase 1 (shipped)**: core macros + scan + audit + attest, published on [crates.io](https://crates.io/crates/antigen). Early adopters write their own antigens for project-specific failure classes. [Tambear](https://github.com/tambear-rs/tambear) is the first adopter.
 
 **Phase 2: antigen-stdlib.** A companion crate provides ready-made antigens for common Rust failure classes. Adoption barrier drops significantly — value without authoring antigens yourself, the way clippy ships default lints.
 
