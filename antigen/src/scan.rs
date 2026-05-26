@@ -4157,6 +4157,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
         // silently ignored (same blind-spot class as enum variants + impl
         // consts).
         let target = ItemTarget::Const(item.ident.to_string());
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
         self.check_attrs(&item.attrs, "const", &target);
         syn::visit::visit_item_const(self, item);
     }
@@ -4167,6 +4168,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
         // silently ignored. Closed preemptively (ADR-007) — the fixture
         // atk_a2_static_presents proves the need.
         let target = ItemTarget::Static(item.ident.to_string());
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
         self.check_attrs(&item.attrs, "static", &target);
         syn::visit::visit_item_static(self, item);
     }
@@ -4205,6 +4207,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
                 const_name: item.ident.to_string(),
             },
         );
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
         self.check_attrs(&item.attrs, "impl_const", &target);
         syn::visit::visit_impl_item_const(self, item);
     }
@@ -4247,6 +4250,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
                 const_name: item.ident.to_string(),
             },
         );
+        self.current_item_digest = antigen_fingerprint::structural_digest(item);
         self.check_attrs(&item.attrs, "trait_const", &target);
         syn::visit::visit_trait_item_const(self, item);
     }
