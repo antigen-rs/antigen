@@ -164,6 +164,17 @@ pub struct LeafOutcome {
     /// the renderer must show `NOT-EVALUATED`, not `FAIL`, so an adopter does
     /// not mistake "the check was deferred" for "the check ran and failed"
     /// (ATK-eval-leaf-not-evaluated).
+    ///
+    /// CARDINALITY WATCH-ITEM (aristotle): this `bool` collapses three logical
+    /// eval-states into two — `evaluated-here` (pass/fail), `not-here-but-
+    /// elsewhere` (supply-chain → `cargo antigen verify`), and
+    /// `not-evaluable-anywhere` (a genuine gap). At v0.2 every non-evaluated
+    /// leaf is state-2 (its elsewhere is `verify`), so `false` unambiguously
+    /// means "deferred elsewhere" and the bool is honest. If a leaf ever becomes
+    /// un-evaluable by ANY layer (state-3), the bool would force it to
+    /// masquerade as deferred-elsewhere (a `VecCardinalityMasqueradingAsSet`
+    /// shadow) — that is the trigger to upgrade this field to a 3-state enum,
+    /// not to add another `false` case.
     #[serde(default = "default_evaluated")]
     pub evaluated: bool,
 }
