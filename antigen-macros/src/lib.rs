@@ -129,6 +129,22 @@ pub fn antigen(args: TokenStream, input: TokenStream) -> TokenStream {
         .into();
     }
 
+    // An antigen marker is a failure-class identity token: it carries no data
+    // and no type-level parameterization. A generic marker (`struct Foo<T>;`)
+    // is semantically meaningless — which failure-class does `Foo<T>` name? —
+    // and would break the dead_code use-token below (a bare `let _x: Foo;`
+    // reference needs type arguments, producing a cryptic E0107 pointing at the
+    // declaration). Reject it here with a clear, on-point error instead.
+    if !input.generics.params.is_empty() {
+        return syn::Error::new_spanned(
+            &input.generics,
+            "#[antigen] must be applied to a non-generic unit struct; a \
+             failure-class marker carries no type parameters",
+        )
+        .to_compile_error()
+        .into();
+    }
+
     let name_string = &args.name;
     let attr_doc = format!(
         " antigen `{name_string}` — declares a named failure-class.\n\n Use \
@@ -151,6 +167,11 @@ pub fn antigen(args: TokenStream, input: TokenStream) -> TokenStream {
     // type. Zero runtime cost; honours lib.rs's "pure pass-through with zero
     // overhead" contract at runtime while satisfying the dead_code analysis.
     let marker_ident = &input.ident;
+    // The use-token references the type by bare name (`let _x: Foo;`). That is
+    // safe here precisely because the generics check above already rejected any
+    // parameterized marker — so `#marker_ident` always names a concrete,
+    // arg-free type. (Adversarial flagged use-tokens-under-generics; the guard,
+    // not an assumption about E0392, is what makes this sound.)
     let expanded = quote! {
         #[doc = #attr_doc]
         #input
