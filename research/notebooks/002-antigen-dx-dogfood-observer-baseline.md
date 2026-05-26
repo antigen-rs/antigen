@@ -1715,3 +1715,52 @@ The pattern is consistent: adversarial commits the TDD pin test, fix follows in 
 **Observer's discipline gap**: "5 consecutive clean runs" ≠ "no race." Low-frequency races require controlled experiments (single-threaded mode, many samples) to characterize. `--test-threads=1` is the right instrument for this claim. Observer applied the wrong instrument multiple times to the same claim.
 
 **Next**: The F3 inter-binary race is the remaining unfixed item. Correct fix is to copy fixture workspace to temp dir per test rather than using shared fixture path. Logged on F3 campsite. The campsite is marked COMPLETE for the logic-bug fix; the test flakiness is a separate remaining issue.
+
+---
+
+## Step 34: F3 Fixed, FailingTestWithoutIgnorePin Declared, 4th P0 Immediately Arrives
+
+### Before (write BEFORE running)
+
+**Time**: After navigator's message confirming c078069 F3 tempdir fix + 907 green  
+**Hypothesis**: c078069 genuinely fixes the F3 race; 907 is stable. Also expecting new commits including FailingTestWithoutIgnorePin declaration.  
+**Design**: Verify 907; check new commits; run second workspace pass.  
+**Rationale**: Navigator claims 907 green, 2 runs. Observer must independently verify.
+
+### Results (write IMMEDIATELY after)
+
+**Run 1**: 907 passed, 48 ignored, 0 failing.  
+**Run 2**: FAILED — `atk_a2_union_synthesis_fingerprint_miss_is_silent`. HEAD is `bdbf29e`.
+
+**Commits between step 33 and bdbf29e** (5):
+- `6126e91`: ATK-FP-VARIANTS-ZERO — fingerprint variants zero-range test
+- `41d2892`: **2 cargo-antigen `#[presents]` markers** — `AttestSubcommand::DeclaredCapabilityWithNoProductionPath` + `VerifyDepAttestArgs::UnvalidatedSealedEnumAcceptance`. The two naturalist-candidate sites from `layer1-production-presents-markers`. Now 8 total production markers.
+- `4772dd4`: **`FailingTestWithoutIgnorePin` declared as antigen #20** — `SubstrateAlignment`, `doc_contains("STATUS: FAILING")`. From 3 confirmed instances. Observer's forward campsite → declared antigen in one arc.
+- `09fed19`: ATK-FP-MAX-NODES boundary contracts for fingerprint parser
+- `bdbf29e`: **4th committed TDD-pin-without-ignore P0** — `atk_a2_union_synthesis_fingerprint_miss_is_silent` committed WITHOUT `#[ignore]`. Same three-way gap as const synthesis but for `syn::Item::Union`.
+
+**Surprise?**: `FailingTestWithoutIgnorePin` declared at `4772dd4`; `bdbf29e` (next commit) is the 4th instance of the same class. The antigen names the pattern; the pattern immediately recurs. Fastest possible validation that the class is real and ongoing.
+
+The 2 cargo-antigen markers at `41d2892` close the naturalist-candidate question retroactively — those sites are now defended. `layer1-production-presents-markers` closure was correct; 8 markers is where it actually landed.
+
+### Discussion
+
+**F3 analysis is now complete**. c078069 tempdir isolation is the correct structural fix — no shared state, no mutex needed for the f3 test. Navigator confirmed the sidecar-warning feature IS implemented; prior failures were race-only.
+
+**Observer's F3 instrument-mismatch history** (6 diagnosis points, 3 correct / 3 wrong, alternating):
+1. Step 28 — "parallelism" → WRONG (logic bug)  
+2. Step 29 — "logic bug" → CORRECT  
+3. Step 30 — "race still live" → CORRECT  
+4. Step 31 — "race was false alarm" → WRONG  
+5. Step 33 — "race confirmed by PoisonError" → CORRECT  
+6. Step 34 — "c078069 fixes the race" → CONFIRMED  
+
+The lesson: `--test-threads=1` is the race characterization instrument. "N clean runs" is a sample, not proof.
+
+**FailingTestWithoutIgnorePin (#20) cycle is now 4 instances**:
+- 3 instances → antigen declared (`4772dd4`)
+- 4th instance arrived in the next commit (`bdbf29e`)
+- Each pin is red for minutes; fix follows
+- Structural fix: commit pin + fix atomically, or `#[ignore]` pin until fix ready
+
+**Next**: Wait for union synthesis fix. Monitor for the 4th consecutive red-then-green cycle.
