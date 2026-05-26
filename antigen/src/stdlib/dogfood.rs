@@ -783,6 +783,11 @@ pub struct SilentSemanticMismatchAtTrustBoundary;
 ///   the audit code-witness branch never reads sidecars, so the attestation is never credited.
 /// - **Never-reachable DSL field**: `Leaf::Signers` had `signature_allow` and `signature_prefer`
 ///   fields; `parse_signers()` didn't expose them, so no adopter expression could ever set them.
+///   (This instance is shared with [`CapabilityOmissionAtLowering`] (#16): the *same* defect seen
+///   from two layers — #15 read-side "the field is never *reachable* from the surface" ∩ #16
+///   write-side "a parsed value never *reaches* the runtime because lowering omits it". One defect,
+///   two class-memberships — the F10 fundamentality-test's predicted multi-membership for
+///   description-tier classes; evidence both classes are real, not redundant.)
 /// - **Never-emitted `AuditHint` variant**: `PolyclonalInsufficientLineages` and
 ///   `AdccSingleMechanismOnly` exist in the `AuditHint` enum but are never constructed anywhere
 ///   in the codebase; the rustdoc described them as real behavior.
