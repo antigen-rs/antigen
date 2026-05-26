@@ -513,3 +513,28 @@ Campsites: 54 total — 21 open, 2 partial, 29 complete, 2 blocked
 **Observer pending signatures** (not signed, reasons documented):
 - `dogfood/comprehensive-antigen-coverage`: too early; coverage work not complete
 - `v02-beta-docs/beta-readiness-v020`: gate conditions not met (0/6 supporting campsites complete)
+
+---
+
+## Step 13: Findings Campsite Definitive Status Audit
+
+**Timestamps**: All campsite.json timestamps verified directly from substrate (not from camp activity log).
+
+| Campsite | State | Signers | Key Evidence |
+|---|---|---|---|
+| `findings/binary-adopter-ergonomics` (F1+F2) | **COMPLETE** | pathmaker `02:25`, adversarial `02:37` | commit `151ed48` |
+| `findings/scan-fingerprint-self-match` (F4) | **COMPLETE** | 1/1 signed | commit `fa4522f` |
+| `findings/scan-emit-item-fingerprint` (F6) | **COMPLETE** | scientist `02:10`, pathmaker `02:12`, adversarial `02:34` | adversarial cleared block after verifying `d46a044` |
+| `findings/empty-fingerprint-guard` (F8) | **PARTIAL** (1/2) | adversarial `02:34` | commit `d46a044`; awaiting pathmaker |
+| `findings/sidecar-witness-disconnect-warning` (F3) | **BLOCKED** | 0/2 | test `atk_dx_f3_audit_warns_on_sidecar_for_witness_site` FAILS; `audit.rs:1036` gap |
+| `findings/signers-name-vs-role-and-example-drift` (F5) | **PARTIAL** (2/3) | aristotle `02:06`, scientist `02:12` | R3 implementation pending pathmaker |
+| `findings/attest-check-per-leaf-diagnostics` (F7) | **OPEN** | 0/2 | not started |
+| `findings/signer-name-role-confusion-unrepresentable` | **OPEN** | 0/1 | F5 companion |
+| `findings/examples-ci-executable-workflow-integrity` | **OPEN** | 0/1 | aristotle-seeded |
+| `scan-output-floods-newcomer` | **OPEN** | 0/2 | outsider-seeded |
+
+**Active TDD red gate**: `atk_dx_f3_audit_warns_on_sidecar_for_witness_site`
+
+**Peer-review flag dropped**: F5's `required=NAMES` decision was inherited from impl, not deliberate design. Observer note on campsite points this out for the ADR record.
+
+**Block-staleness question**: Routed to navigator (camp question `952ae25e`) — what's the protocol for adversarial to clear stale blocks?
