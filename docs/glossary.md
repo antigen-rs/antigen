@@ -307,6 +307,11 @@ docs to prevent ecosystem-wide drift.
   This is the substrate-witness path (see `substrate-witness` below). The two channels
   are mutually exclusive; the antigen audit detects which is present and routes accordingly.
 
+  Quick heuristic: **can a test execute the thing you're defending?** Yes → `witness =`;
+  no (it's about substrate state a test can't verify) → `requires =`. These are co-equal
+  siblings, not basic vs advanced. Category-mapping (ADR-028): `FunctionalCorrectness` →
+  `witness =`; `SubstrateAlignment` → `requires =`.
+
 **Introduced in**: `api-shape.md`. Vocabulary-disambiguation note added 2026-05-08
 after scout's substrate-verification of `witnessed`/`bear_witness`/`typewit` crates.
 
