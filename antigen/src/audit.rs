@@ -162,6 +162,7 @@ pub enum WitnessTier {
 /// `AuditHint` — for example, an unrun `#[test]` and an external clippy
 /// reference both sit at `Reachability` (zero confirmed assertions about
 /// this site) but the disambiguation tells the user how to upgrade.
+#[presents(DeclaredCapabilityWithNoProductionPath)]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum AuditHint {
