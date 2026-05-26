@@ -940,8 +940,8 @@ fn atk_a2_pres_fp_struct_explicit_marker_has_non_empty_fingerprint() {
     //
     // Fixture for struct: create a dedicated fixture that is a struct with #[presents].
     // For now, use atk_a2_001 (impl with #[presents]) — impls have fingerprints.
-    let report =
-        scan_workspace(&fixture("atk_a2_001_presents_qualified_path"), None).expect("scan completes");
+    let report = scan_workspace(&fixture("atk_a2_001_presents_qualified_path"), None)
+        .expect("scan completes");
 
     assert_eq!(
         report.presentations.len(),
@@ -1062,9 +1062,10 @@ fn atk_a2_fingerprint_miss_active_argument_discard_matches_its_instance() {
 
     let report = scan_workspace(workspace_root, None).expect("workspace scan completes");
 
-    let found_active_arg_discard = report.presentations.iter().any(|p| {
-        p.antigen_type == "ActiveArgumentDiscard" && p.file.starts_with(&macros_prefix)
-    });
+    let found_active_arg_discard = report
+        .presentations
+        .iter()
+        .any(|p| p.antigen_type == "ActiveArgumentDiscard" && p.file.starts_with(&macros_prefix));
 
     assert!(
         found_active_arg_discard,
@@ -1360,5 +1361,99 @@ fn atk_a2_trait_alias_presents_is_not_silently_ignored() {
          Root cause: ScanVisitor did not override visit_item_trait_alias. \
          Fix: add visit_item_trait_alias override to ScanVisitor.",
         report.presentations.len()
+    );
+}
+
+// ============================================================================
+// ATK-A2-IMPL-ITEM-TYPE: #[presents] on an impl-block associated type is
+// silently ignored.
+//
+// ScanVisitor overrides visit_impl_item_fn and visit_impl_item_const, but has
+// no visit_impl_item_type override. A `#[presents(X)] type Foo = Bar;` inside
+// an impl block is silently dropped — associated types are real code sites that
+// can present failure classes (e.g., a type alias that narrows or widens a
+// capability boundary).
+//
+// STATUS: FAILING — visit_impl_item_type is not overridden.
+// ============================================================================
+
+#[test]
+fn atk_a2_impl_item_type_presents_is_not_silently_ignored() {
+    let report = scan_workspace(&fixture("atk_a2_impl_type_presents"), None).unwrap();
+    assert_eq!(
+        report.presentations.len(),
+        1,
+        "ATK-A2-IMPL-ITEM-TYPE: scanning a file with #[presents(NullabilityViolation)] \
+         on an impl-block associated type must find exactly 1 presentation. \
+         Got {} presentations. \
+         Root cause: ScanVisitor does NOT override visit_impl_item_type. \
+         Associated type items (`type Foo = Bar;` inside impl blocks) annotated \
+         with #[presents] are silently dropped — same blind-spot class as \
+         impl_item_const before its fix. \
+         Fix: add visit_impl_item_type override to ScanVisitor.",
+        report.presentations.len()
+    );
+}
+
+// ============================================================================
+// ATK-A2-TRAIT-ITEM-TYPE: #[presents] on a trait associated type declaration
+// is silently ignored.
+//
+// ScanVisitor overrides visit_trait_item_fn and visit_trait_item_const, but has
+// no visit_trait_item_type override. A `#[presents(X)] type Item;` inside a
+// trait body is silently dropped — trait associated type declarations are real
+// code sites (especially mucosal boundary contracts like Iterator::Item).
+//
+// STATUS: FAILING — visit_trait_item_type is not overridden.
+// ============================================================================
+
+#[test]
+fn atk_a2_trait_item_type_presents_is_not_silently_ignored() {
+    let report = scan_workspace(&fixture("atk_a2_trait_type_presents"), None).unwrap();
+    assert_eq!(
+        report.presentations.len(),
+        1,
+        "ATK-A2-TRAIT-ITEM-TYPE: scanning a file with #[presents(AssociatedTypeViolation)] \
+         on a trait associated type declaration must find exactly 1 presentation. \
+         Got {} presentations. \
+         Root cause: ScanVisitor does NOT override visit_trait_item_type. \
+         Trait associated type items (`type Item;`) annotated with #[presents] are \
+         silently dropped — same blind-spot class as trait_item_const before its fix. \
+         Fix: add visit_trait_item_type override to ScanVisitor.",
+        report.presentations.len()
+    );
+}
+
+// ============================================================================
+// ATK-A2-IMPL-TYPE-FP-CONTAMINATION: proactive contamination guard.
+//
+// Proactive guard: visit_impl_item_type MUST assign current_item_digest before
+// check_attrs, or the preceding item's digest bleeds into the associated type's
+// fingerprint (same contamination class as visit_item_const, fixed in fe6a3a0).
+// ============================================================================
+
+#[test]
+fn atk_a2_impl_item_type_digest_not_contaminated_by_preceding_item() {
+    let report = scan_workspace(&fixture("atk_a2_impl_type_fp_contamination"), None).expect("scan");
+
+    assert_eq!(
+        report.presentations.len(),
+        2,
+        "fixture must find exactly 2 presentations (type A + type B); got: {:?}",
+        report.presentations,
+    );
+
+    let fp0 = &report.presentations[0].structural_fingerprint;
+    let fp1 = &report.presentations[1].structural_fingerprint;
+
+    assert_ne!(
+        fp0, fp1,
+        "ATK-A2-IMPL-TYPE-FP: two associated types with different bodies must produce \
+         DIFFERENT structural fingerprints. Both got {:?} — digest contamination: \
+         visit_impl_item_type was added WITHOUT self.current_item_digest assignment, \
+         so the preceding item's digest bleeds into both associated-type presentations. \
+         Fix: add 'self.current_item_digest = antigen_fingerprint::structural_digest(item);' \
+         as the FIRST line of visit_impl_item_type.",
+        fp0,
     );
 }

@@ -522,4 +522,86 @@ mod tests {
              OR add a validation error when named params are detected in the pattern."
         );
     }
+
+    #[test]
+    fn has_method_named_self_type_param_matches() {
+        // ATK-HM-2: pattern with a named param whose TYPE is `Self` (no &self receiver).
+        // `strip_param_names_in_sig_pattern` wraps as `fn __pat__(x: Self) -> Self` and
+        // calls syn::parse2 — in a non-impl context syn may reject `Self` as a param
+        // type, causing parse failure and fallback to the raw tokenized form
+        // "(x : Self) -> Self". But render_inputs produces "(Self) -> Self" for the
+        // actual sig, so the match would fail silently.
+        let fp = fp(r#"has_method("clone_self", "(x: Self) -> Self")"#);
+        let i = item(
+            "impl Foo {
+                fn clone_self(x: Self) -> Self { x }
+            }",
+        );
+        assert!(
+            fp.matches(&i),
+            "ATK-HM-2: pattern '(x: Self) -> Self' must match 'fn clone_self(x: Self) -> Self'. \
+             If syn rejects 'fn __pat__(x: Self) -> Self' (Self not valid outside impl/trait), \
+             strip_param_names_in_sig_pattern returns None and the fallback tokenized form \
+             '(x : Self) -> Self' does not match render_inputs' '(Self) -> Self'. \
+             Silent miss — the fallback path does not handle named params with Self types."
+        );
+    }
+
+    #[test]
+    fn has_method_mut_self_receiver_with_named_params_matches() {
+        // ATK-HM-3: &mut self receiver + named typed param. Receiver path is
+        // symmetric (both strip_param_names and render_inputs use to_token_stream
+        // for Receiver). But verify there's no off-by-one or spacing issue.
+        let fp = fp(r#"has_method("push", "(&mut self, value: u32)")"#);
+        let i = item(
+            "impl Stack {
+                fn push(&mut self, value: u32) { let _ = value; }
+            }",
+        );
+        assert!(
+            fp.matches(&i),
+            "ATK-HM-3: pattern '(&mut self, value: u32)' must match \
+             'fn push(&mut self, value: u32)'. Receiver should survive unchanged \
+             through both strip_param_names and render_inputs; typed param name \
+             'value:' must be stripped by strip_param_names_in_sig_pattern."
+        );
+    }
+
+    #[test]
+    fn has_method_named_params_no_self_all_primitive_types_matches() {
+        // ATK-HM-4: no self receiver, named params with primitive types.
+        // strip_param_names_in_sig_pattern should strip 'a:' and 'b:' leaving only types.
+        let fp = fp(r#"has_method("add", "(a: u32, b: u32) -> u32")"#);
+        let i = item(
+            "impl Calc {
+                fn add(a: u32, b: u32) -> u32 { a + b }
+            }",
+        );
+        assert!(
+            fp.matches(&i),
+            "ATK-HM-4: pattern '(a: u32, b: u32) -> u32' must match \
+             'fn add(a: u32, b: u32) -> u32'. strip_param_names_in_sig_pattern \
+             must strip both 'a:' and 'b:' leaving '(u32, u32) -> u32'."
+        );
+    }
+
+    #[test]
+    fn has_method_lifetime_param_in_signature_matches() {
+        // ATK-HM-5: lifetime in signature pattern.
+        // strip_param_names_in_sig_pattern wraps as fn __pat__<'a>(&'a self, x: &'a str) -> &'a str
+        // Both the Receiver (&'a self) and the typed param (&'a str) go through to_token_stream.
+        // If lifetime breaks the pattern → name strip path → silent miss.
+        let fp = fp(r#"has_method("as_str", "(&self, extra: &str) -> &str")"#);
+        let i = item(
+            "impl Wrapper {
+                fn as_str(&self, extra: &str) -> &str { extra }
+            }",
+        );
+        assert!(
+            fp.matches(&i),
+            "ATK-HM-5: pattern '(&self, extra: &str) -> &str' must match \
+             'fn as_str(&self, extra: &str) -> &str'. Named param 'extra:' must \
+             be stripped; reference types '&str' should survive normalization."
+        );
+    }
 }
