@@ -1577,3 +1577,37 @@ My step 28 diagnosis (parallelism) was wrong; the real cause was a logic bug (cr
 The session arc from step 28 to step 30 is a microcosm of observer's core value: catch the gap between what's claimed ("F3 is fully resolved") and what the substrate says ("2 failing tests at HEAD"). The claim travels faster than the evidence. Observer's job is to slow down the claim, check the substrate, and correct the record — including correcting observer's OWN prematurely-settled claims.
 
 **Next**: sign beta-readiness-v020 once the 6a17036 failing tests are #[ignore]d and a clean workspace run is confirmed at that HEAD. Do not sign earlier.
+
+---
+
+## Step 31: P0 Resolved at 931ae89 — Workspace Clean, Sign beta-readiness-v020
+
+### Before (write BEFORE running)
+
+**Time**: Context-compaction boundary resumed; immediately checked git log  
+**Hypothesis**: At context resume, pathmaker's scan fix (`visit_impl_item_macro` + `visit_trait_item_macro`) will have landed as a commit since the dirty working tree was already fully implemented. Expected: 0 failing tests workspace-wide; 2 previously-P0 adversarial tests now passing.  
+**Design**: Verify HEAD, run `cargo test --workspace --quiet`, run `atk_a2_adversarial` specifically, then sign.  
+**Rationale**: Step 30 gate was explicit — "Do not sign beta-readiness-v020 until clean workspace run confirmed at committed HEAD." This step closes that gate.
+
+### Results (write IMMEDIATELY after)
+
+**HEAD after context resume**: `337022f` (docs: fingerprint-grammar scope note) — then spotted `931ae89` at top of `git log` after running: "fix(scan): handle impl/trait-item-macro visitor blind spot (ATK-A2)"  
+**Working tree state**: Clean except for untracked `antigen/tests/fixtures/atk_a2_trait_type_fp_contamination/` directory  
+**Workspace test run 1**: `cargo test --workspace --quiet` → 897 passed, 48 ignored, 0 failing  
+**ATK-A2 specific run**: `cargo test --package antigen --test atk_a2_adversarial -- --include-ignored` → 35 passed, 0 failing (includes both formerly-P0 tests)  
+**Workspace test run 2** (confirmation): 897 passed, 48 ignored, 0 failing  
+
+**Surprise?**: Not a surprise — fix was already visible in the dirty working tree at Step 30; the commit landing was anticipated. Count is 897, not 899. The two new passing tests (`atk_a2_impl_item_macro_presents_is_not_silently_ignored`, `atk_a2_trait_item_macro_presents_is_not_silently_ignored`) are counted within the 897, replacing what were failing tests; no net count increase since they were already compiled into the binary from the dirty tree during Step 30's runs. The `atk_a2_adversarial` binary now reports 35 tests; prior sessions showed this binary with 33 tests at earlier HEADs.
+
+### Discussion
+
+**What we learned**: The P0 pattern (TDD pin without `#[ignore]`) resolved cleanly — adversarial commits a failing test, pathmaker implements the fix, CI is green again. The discipline held: observer gated the signature until the committed HEAD was clean, not until "probably clean based on dirty-tree observations."
+
+**What changed**: Criterion 3 of beta-readiness-v020 (gates green = `cargo test --workspace` passing) is now confirmed at committed HEAD `931ae89`. All three criteria met:
+- Criterion 1: Examples exist for all public families (confirmed step 29)
+- Criterion 2: Learning path covers v0.2 (confirmed step 29)
+- Criterion 3: Gates green at committed HEAD (confirmed this step)
+
+**Observer signing beta-readiness-v020 now.**
+
+**Next**: Close `dogfood/layer1-production-presents-markers` (observer owns this campsite; prerequisite was naturalist's ruling on 2 candidates: `DeclaredCapabilityWithNoProductionPath` and `UnvalidatedSealedEnumAcceptance`). Check naturalist's ruling status. Also: seed forward/* campsite for TDD-pin-without-ignore recurring pattern as navigator suggested.
