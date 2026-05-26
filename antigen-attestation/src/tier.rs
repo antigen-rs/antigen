@@ -23,11 +23,22 @@ use serde::{Deserialize, Serialize};
 /// The strength of evidence a witness provides for an immunity (or
 /// tolerance) claim.
 ///
-/// Re-defined here (in lock-step with `antigen::audit::WitnessTier`) so
-/// `antigen-attestation` can return it without a circular dep. The two
-/// definitions MUST stay structurally identical; the integration in
-/// `antigen::audit` re-exports this one and the public crate-surface
-/// remains stable.
+/// **Intentionally duplicated** with `antigen::audit::WitnessTier` (NOT
+/// re-exported) so `antigen-attestation` can return a tier without a circular
+/// dep and `antigen::audit` keeps a serde-stable on-disk surface that can
+/// evolve independently. The two definitions must stay structurally identical.
+///
+/// What enforces that lock-step, and what does NOT:
+/// - **Enforced by the compiler (one direction):** adding a variant *here*
+///   breaks the exhaustive `match` in `antigen::audit::map_attestation_tier`.
+/// - **Enforced by test, not the compiler:** discriminant parity, variant-count
+///   parity, and derive parity (e.g. both deriving `Hash`) are guarded by
+///   `antigen/tests/atk_witness_tier_parity.rs`. The compiler does NOT catch a
+///   variant added to `audit::WitnessTier` without a peer here, nor a derive
+///   that drifts between the two — that parity test is the only thing that does.
+///   (This is the `ParallelStateTrackersDiverge` shape; a future
+///   `#[immune(..., requires = ...)]` cross-type substrate-witness would make it
+///   structural rather than test-guarded.)
 ///
 /// Discriminants are stable per ADR-005 Amendment 3 (room for
 /// `BehavioralAlignment` at 3 reserved for a future ADR).
