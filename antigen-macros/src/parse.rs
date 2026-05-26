@@ -1637,6 +1637,14 @@ impl TriageCommitArgs {
                     ),
                 ));
             }
+            Some(s) if s.trim().is_empty() => {
+                return Err(syn::Error::new(
+                    self.rationale_span.unwrap_or(self.args_span),
+                    "#[triage_commit] `rationale` must not be whitespace-only; \
+                     a blank rationale bypasses chart-documentation discipline \
+                     (ADR-026 §Rollback-as-triage: rationale before action, not after).",
+                ));
+            }
             Some(_) => {}
         }
         match self.rollback_due_within_minutes {
@@ -4392,6 +4400,40 @@ mod tests {
         assert!(
             err.to_string().contains("rollback_target"),
             "error should mention rollback_target field"
+        );
+    }
+
+    #[test]
+    fn triage_commit_validate_whitespace_only_rationale_of_20_chars_should_fail() {
+        // ATK-TRIAGE-WHITESPACE-RATIONALE: the rationale length check uses
+        // s.len() < 20 — a 20-space string has len == 20 and passes. But 20
+        // spaces contains zero meaningful content. The rationale check should
+        // also verify that the string is not all-whitespace (trim().is_empty()).
+        //
+        // This is the same gap as the pre-fix parse_doc_contains: is_empty() vs
+        // trim().is_empty(). A blank rationale bypasses the chart-documentation
+        // discipline (ADR-026 §Rollback-as-triage: rationale before action, not after).
+        let tokens: TokenStream = r#"triage_decision = TriageDecision::Red,
+            rollback_target = "abc1234",
+            triaged_by = "navigator",
+            rationale = "                    ",
+            rollback_due_within_minutes = 30"#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<TriageCommitArgs>(tokens).unwrap();
+        assert_eq!(
+            args.rationale.as_deref().map(str::len),
+            Some(20),
+            "fixture must be exactly 20 spaces"
+        );
+        assert!(
+            args.validate().is_err(),
+            "ATK-TRIAGE-WHITESPACE-RATIONALE: rationale of 20 spaces must fail validation. \
+             The 20-char length check (s.len() < 20) passes for '                    ' because \
+             len==20. But trim().is_empty() reveals it contains no meaningful content. \
+             A blank rationale bypasses chart-documentation discipline. \
+             Fix: after the len < 20 check, add trim().is_empty() check — same pattern as \
+             rollback_target's whitespace guard."
         );
     }
 
