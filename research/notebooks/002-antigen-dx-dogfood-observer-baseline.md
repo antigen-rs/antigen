@@ -1300,3 +1300,164 @@ Pathmaker's lane. Options:
 
 Campsite: `findings/f3-audit-sidecar-warning-test-regression` (BLOCKED).
 Navigator notified. Pathmaker routing pending.
+
+---
+
+## Step 29: Post-Sleep Catch-Up — F3 Root-Cause Correction + Expedition State Audit
+
+**Time**: 2026-05-26 ~20:30 UTC (after context compaction + sleep)
+**HEAD**: `bdd1187` (triage_commit whitespace rationale fix, 894 tests)
+**Context**: Context compacted during prior session. Waking to camp wake + logbook catch-up.
+
+### Before
+
+**Hypothesis**: The F3 regression was a parallelism race (Step 28 diagnosis). Need to verify whether it was fixed, still failing, or my hypothesis was wrong.
+
+**Design**: Read camp wake note, check git log for new commits, run test suite, inspect the commits that modified audit.rs to trace the actual root cause.
+
+### Results
+
+**Test suite at HEAD**: 894 passing, 48 ignored, 0 failing. All green.
+
+**New commits since Step 28's HEAD (`ca6de95`)**:
+- `faf3d05` — lab notebook step 28 (observer)
+- `b008b70` — placement-rules doc (outsider)
+- `d54652c` — compile-fail fixture for enum-variant marker rejection (adversarial)
+- `81c2cc3` — fmt fix (triage_commit example + parser.rs)
+- `28f0754` — adversarial: enum-variant multi-presents + scan-nonexistent-path + impl/trait type fixtures
+- `b6a6cf2` — triage_commit example (examples lane)
+- `1109b77` — fingerprint: has_method + doc_contains whitespace guards
+- `b3c56c5` — antigen-category example
+- `ca6de95` — single-source version strings + requires= tutorial note
+
+**Pre-Step 28 commits** (now visible, landed while I was in prior session):
+- `0533a05` — vcs_info_loss example
+- `ffc9693` — lab notebook step 27
+- `c8dcebb` — fmt fix (agentic_coordination)
+- `ef9ac10` — quickstart compress
+- `b55ef66` — adversarial: ATK-HM-2..5 edge cases + impl/trait-item-type guards
+- `a1ce606` — glossary witness category-mapping
+- `7d8578a` — fix: reject invalid ISO-8601 dates in anergy/immunosuppress/poxparty (stale-blocker resolution)
+- `0fd3e81` — agentic_coordination example
+- `a5f9bd6` — FingerprintDigestWithoutFormatValidation sibling
+- `ff6eaaf` — teach witness= vs requires= at all 4 first-contact surfaces
+- `c85802d` — FingerprintDigestWithoutFormatValidation antigen declaration
+- And earlier: `d97c204`, `89f8108`, `19e018f`, `832e5f6`, `dbd9cab`, `e51b247`, `8bb3a4d`
+
+**F3 test state**: PASSING (3 consecutive runs of `atk_dx_findings.rs` binary, 2 full workspace runs). No intermittent behavior observed.
+
+### Root-Cause Correction: My Step 28 Parallelism Hypothesis Was Wrong
+
+**Corrected diagnosis**: The F3 test was failing due to a genuine implementation bug, not test parallelism.
+
+**Exact bug trace**:
+
+1. `8bb3a4d` added `code_witness_sidecar_ignored` with simple logic:
+   ```rust
+   let code_witness_sidecar_ignored =
+       load_sidecar(&immunity.file, &immunity.antigen_type).is_some();
+   ```
+   No companion check. This was correct for the initial MVP.
+
+2. `19e018f` (`fix(audit): no false-positive sidecar-ignored on stacked witness=/requires=`) introduced `has_companion_requires` to handle the case where a witness= and requires= immunity are STACKED on the same item — without the file dimension:
+   ```rust
+   let has_companion_requires = report.immunities.iter().any(|other| {
+       other.requires_predicate.is_some()
+           && other.antigen_type == immunity.antigen_type
+           && other.item_target == immunity.item_target
+       // MISSING: && other.file == immunity.file
+   });
+   ```
+   This caused an unrelated `requires=` immunity in a DIFFERENT workspace file (same antigen type, same item_target name) to suppress the sidecar warning for the fixture site. The F3 test runs workspace-level audit and thus sees ALL immunities across all files — the cross-file suppression made the warning disappear.
+
+3. `d97c204` (`fix(scan): scan #[presents] on enum variants, impl consts, top-level const/static`) fixed it:
+   ```rust
+   // the file dimension is load-bearing: a requires= immunity for the same antigen
+   // in a DIFFERENT file (e.g. another test fixture) is NOT a companion
+   let has_companion_requires = report.immunities.iter().any(|other| {
+       other.requires_predicate.is_some()
+           && other.antigen_type == immunity.antigen_type
+           && other.item_target == immunity.item_target
+           && other.file == immunity.file  // ← ADDED, closes the cross-file suppression bug
+   });
+   ```
+   The commit message explicitly noted "the f3 test caught it."
+
+**Why my parallelism hypothesis was wrong**: The test WAS passing in isolation even before `d97c204` — that's consistent with the actual bug. When run in isolation, there may be no workspace-level `requires=` immunity for the same antigen+target in a different file (or the parallel scans don't happen). The workspace run adds more immunities visible to the audit, making the cross-file suppression trigger.
+
+**Assessment of observer methodology**: I correctly identified that "passes in isolation, fails in workspace" was the behavior pattern, but misdiagnosed the cause. I focused on filesystem race (sidecar file timing) rather than asking "what additional state does the workspace run introduce vs. isolation run?" The workspace run adds immunities from other crates/fixtures that a single-crate run doesn't see — that was the variable. The test was a correct and effective regression pin for the implementation bug.
+
+### Expedition State at Step 29
+
+**Test suite**: 894 passing, 48 ignored, 0 failing.
+
+**Campsites resolved since Step 28**:
+| Campsite | New State | How |
+|----------|-----------|-----|
+| `findings/anergy-invalid-date-silently-accepted` | COMPLETE | Adversarial unblocked after verifying 7d8578a fix at HEAD |
+| `findings/f3-audit-sidecar-warning-test-regression` | COMPLETE | Observer unblocked — d97c204 fixed implementation bug; corrected diagnosis deposited |
+| `findings/triage-commit-whitespace-rationale` | COMPLETE | bdd1187 + 28f5fca — trim().is_empty() guards across all 12+ min-length validators |
+| `forward/placement-rules-doc-section` | COMPLETE | b008b70 (outsider draft) + aristotle co-sign |
+| `tutorial-attest-commands-drift` | COMPLETE | pathmaker 2nd sign at 670242d |
+| `dogfood/witness-requires-onboarding-posture` | COMPLETE | ff6eaaf + navigator closed |
+
+**New campsites seeded since Step 28**:
+| Campsite | State | What |
+|----------|-------|------|
+| `antigen-dx-dogfood/atk-dx-f3-test-uses-real-workspace` | OPEN | Scientist finding: test writes to real workspace fixture dir, structural isolation issue remains |
+| `forward/audit-hint-exhaustive-match-completeness` | OPEN (wake delta) | New campsite appeared on wake — details TBD |
+| `dogfood/description-tier-grows-by-witness-split` | PARTIAL (1/2) | Naturalist crystallized heuristic, needs aristotle co-sign |
+
+**Key open campsites**:
+| Campsite | State | Blocker |
+|----------|-------|---------|
+| `audit-hint-const-shadows-enum` | OPEN | Pathmaker fix needed (derive from enum serde keys) |
+| `dogfood/comprehensive-antigen-coverage` | OPEN | 5 sub-campsites need pathmaker |
+| `dogfood/coverage-antigen-macros-lib` | OPEN | Pathmaker |
+| `dogfood/coverage-antigen-macros-parse` | OPEN | Pathmaker |
+| `dogfood/coverage-cargo-antigen-binary` | OPEN | Pathmaker |
+| `dogfood/layer1-production-presents-markers` | OPEN | 4 cargo-antigen candidates pending naturalist ruling |
+
+### Key Findings from logbook catch-up
+
+**Placement-rules barrier triangulated** (`d54652c` + aristotle + outsider + pathmaker):
+- proc-macro attrs (`#[presents]`, `#[immune]`) CANNOT go on enum VARIANTS or struct FIELDS — rustc rejects with "expected non-macro attribute, found attribute macro"
+- Type-level (struct/enum/fn/impl) COMPILES and is doc-clean
+- The scanner CAN read variant markers via `syn::parse_file` (text parse) — but parse ≠ compile; adopter-facing docs now warn about this trap
+- `b008b70` committed `docs/where-to-look-for-antigens.md` with the full matrix
+
+**Instrument-correctness lesson surfaced**: outsider initially retracted the correct ruling based on a scan-test passing (wrong instrument for a "does-it-compile" claim). pathmaker caught it with `cargo build`. The lesson: for compile-claims, the evidence MUST be a real cargo build, not a parser/scanner test. Aristotle ran their own build to independently verify. Multiple instances of this lesson landing in memory across observer, outsider, pathmaker, aristotle this session.
+
+**Adversarial whitespace-stuffing attack class** (`findings/triage-commit-whitespace-rationale` → COMPLETE):
+- Root class: any `len() < N` minimum-length validator without `trim().is_empty()` guard admits whitespace-stuffed strings
+- ADR-023 loudness-as-discipline was implemented as min-length but the whitespace bypass was never considered
+- `bdd1187` + `28f5fca` closed all 12+ instances across parse.rs (anergy.reason, immunosuppress.rationale, poxparty.exercise_type, orient.learning_path, triage_commit.rationale, recurrence_anchor.rationale, mucosal.rationale, mucosal_delegate.rationale, + more)
+- Systemic fix, not a one-site patch
+
+**Scan blindspot closures** (`d97c204`):
+- Four new item positions now scanned: enum variant, impl const, top-level const, top-level static
+- Added `ItemTarget::EnumVariant`, `ImplConst`, `Const`, `Static` variants
+- Each gets label + addresses arms
+
+**Description-tier witness-split heuristic** (naturalist, `dogfood/description-tier-grows-by-witness-split`):
+- When recognizing a fail-class, if it's description-tier AND has sibling instances under a shared parent differing by witness mechanism → declare parent + children, not standalone
+- 4 instances enumerated: SilentIntentNullification, cross-site-validation-inconsistency, witness-evidence-failure, fingerprint-scope (3 clean + 1 thinner)
+- Predicts: object-tier = flat, description-tier = splits — falsifiable
+
+### Discussion
+
+**What changed**: The F3 regression is closed with a corrected diagnosis. My Step 28 parallelism hypothesis was wrong — the actual cause was a logic bug (missing file dimension in has_companion_requires). The test itself was doing exactly what a good regression test should: catching a real implementation gap by running workspace-level audit and seeing cross-file state.
+
+**Methodological note**: "passes in isolation, fails in workspace" should trigger the question "what ADDITIONAL STATE does the workspace run introduce?" not just "what TIMING does the workspace run introduce?" Both are valid hypotheses but the state-addition hypothesis is closer to root cause for an audit-function that iterates all immunities.
+
+**Observer error class**: This was a diagnostic error — reasoning from behavioral pattern (passes/fails) to mechanism (parallelism) without exhausting the state-introduction hypothesis first. Filed as methodology gap in observer's own tracking.
+
+**Next pull for observer**:
+1. Audit `forward/audit-hint-exhaustive-match-completeness` (new campsite from wake delta — TBD)
+2. Check if scientist + outsider need signatures on examples campsites
+3. Verify `dogfood/atk-dx-f3-test-uses-real-workspace` campsite — the structural isolation issue (writing to real workspace fixture dir) remains even though the F3 test now passes; this is a latent test-hygiene gap worth noting
+4. Check whether the `atk_a2_enum_variant_presents` test is now un-ignored (d97c204 scans enum variants now, so the scanner test should pass)
+
+### Summary
+
+Step 29 closed the F3 campsite with corrected diagnosis. 894 tests green. The expedition is in active flight with 18 open campsites across coverage, docs, and ceremony lanes. Observer's primary contribution this step: correcting a prior diagnostic error before it propagated further into the team's understanding.
