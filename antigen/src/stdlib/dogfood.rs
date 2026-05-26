@@ -32,7 +32,7 @@
 //! families (mucosal, supply-chain) per ADR-027 NON-NEGOTIABLE; it does not
 //! require biology analogues for internal-tooling dogfood antigens.
 
-use crate::antigen;
+use crate::{antigen, descended_from};
 
 // ============================================================================
 // 1. AntigenDeclarationMissingCategory
@@ -381,8 +381,39 @@ pub struct UnvalidatedSealedEnumAcceptance;
 pub struct FingerprintStringWithoutDslValidation;
 
 // ============================================================================
-// 9. SilentArgumentDiscard
+// 9. SilentIntentNullification (parent) + ActiveArgumentDiscard (child)
 // ============================================================================
+
+/// Parent of the intent-nullification family: a surface appears to accept or
+/// honor an adopter's declared intent but does not realize it.
+///
+/// The adopter supplies something meaningful (arguments, a field, a constraint)
+/// and the surface neither errors nor effects it — the intent is silently
+/// nullified between declaration and realization, while the surface *looks* like
+/// it accepted the input. Per aristotle's F5 ratification the family has two
+/// children distinguished by **witness-structure** (not by loud-vs-silent —
+/// both are silent at their layer):
+///
+/// - [`ActiveArgumentDiscard`] (#9, below): the parse step actively swallows
+///   tokens in a discard-loop without examining them. Witness is BEHAVIORAL —
+///   feed unexpected args and assert a compile-error (which it currently does
+///   NOT produce; that is the defect).
+/// - [`CapabilityOmissionAtLowering`] (#16): the parse step accepts the value
+///   but the lowering omits it (no AST arm + hardcoded default). Witness is
+///   STRUCTURAL — the parse-arm/target-field parity test.
+///
+/// **Category**: `FunctionalCorrectness` — the produced result (no effect)
+/// contradicts the adopter's declared intent (effect supplied). The summary
+/// tier of both children.
+#[antigen(
+    name = "silent-intent-nullification",
+    category = AntigenCategory::FunctionalCorrectness,
+    fingerprint = r#"doc_contains("silently nullified")"#,
+    family = "dogfood",
+    summary = "A surface appears to accept or honor an adopter's declared intent but does not realize it; the intent is silently nullified between declaration and effect. Parent of ActiveArgumentDiscard (parse-side, behavioral witness) and CapabilityOmissionAtLowering (lowering-side, structural witness), which differ by witness-structure — both are silent.",
+    references = ["ADR-024", "ADR-007"]
+)]
+pub struct SilentIntentNullification;
 
 /// A proc-macro `Parse` impl discards all input tokens without examining them.
 ///
@@ -397,6 +428,13 @@ pub struct FingerprintStringWithoutDslValidation;
 /// added, every existing call site that passed arguments will silently stop
 /// having its old arguments honored.
 ///
+/// **Witness-structure** (the F5 sibling discriminator): this child *silently
+/// swallows* tokens at parse (`while !input.is_empty() { input.parse()? }`) —
+/// it does NOT loudly reject. Its witness is BEHAVIORAL: feed unexpected args,
+/// assert a compile-error. Its sibling [`CapabilityOmissionAtLowering`] silently
+/// drops at lowering and is caught by a STRUCTURAL parity test. Both silent;
+/// they differ by witness-structure.
+///
 /// **Defense**: either reject unexpected tokens at parse-time (strict), or
 /// document the forward-compat contract explicitly so the discard behavior is a
 /// named, bounded decision rather than a silent footgun.
@@ -404,15 +442,16 @@ pub struct FingerprintStringWithoutDslValidation;
 /// **Category**: `FunctionalCorrectness` — the macro produces a result (no
 /// constraints) that contradicts the adopter's declared intent (constraints
 /// supplied).
+#[descended_from(SilentIntentNullification)]
 #[antigen(
-    name = "silent-argument-discard",
+    name = "active-argument-discard",
     category = AntigenCategory::FunctionalCorrectness,
     fingerprint = r#"all_of([item = impl, doc_contains("forward compat")])"#,
     family = "dogfood",
-    summary = "A proc-macro Parse impl discards all arguments in a loop; adopter-supplied arguments are silently nullified with no error, making the macro appear to accept constraints it ignores.",
+    summary = "A proc-macro Parse impl actively swallows all arguments in a discard-loop; adopter-supplied arguments are silently nullified with no error, making the macro appear to accept constraints it ignores. Behavioral-witness child of SilentIntentNullification; sibling of CapabilityOmissionAtLowering (parse-swallow vs lowering-drop, both silent).",
     references = ["ADR-024"]
 )]
-pub struct SilentArgumentDiscard;
+pub struct ActiveArgumentDiscard;
 
 // ============================================================================
 // 10. ScannerBoundaryFalseNegative
@@ -788,11 +827,12 @@ pub struct DeclaredCapabilityWithNoProductionPath;
 /// parse error and no warning — the most insidious form because the surface
 /// *looks* like it accepted the value.
 ///
-/// Per aristotle's F5 ratification this is a child of `SilentIntentNullification`
-/// (parent not yet declared in this layer; `#[descended_from(...)]` will be added
-/// once it lands), distinguished from its sibling `ActiveArgumentDiscard` by
-/// witness-structure: `ActiveArgumentDiscard` *loudly rejects at parse*; this one
-/// *silently drops at lowering*.
+/// Per aristotle's F5 ratification this is a child of [`SilentIntentNullification`],
+/// distinguished from its sibling [`ActiveArgumentDiscard`] by witness-structure:
+/// `ActiveArgumentDiscard` *silently swallows tokens at parse* (behavioral witness:
+/// feed args, assert compile-error); this one *silently drops at lowering*
+/// (structural witness: the parity test). Both are silent — they differ by
+/// witness-structure, not by loud-vs-silent.
 ///
 /// **Observed instance** (2026-05-25, this expedition; fixed in commit c237101):
 /// the `signers()` substrate-witness DSL did not parse `signature_allow` /
@@ -815,12 +855,13 @@ pub struct DeclaredCapabilityWithNoProductionPath;
 /// (lossy) value*: it produces a runtime form that does not faithfully represent
 /// the parsed surface. This is a wrong-output failure, not a
 /// representation-vs-state layer split.
+#[descended_from(SilentIntentNullification)]
 #[antigen(
     name = "capability-omission-at-lowering",
     category = AntigenCategory::FunctionalCorrectness,
     fingerprint = r#"doc_contains("to_leaf")"#,
     family = "dogfood",
-    summary = "A surface field parses + type-checks but the lowering step hardcodes a default instead of threading the parsed value through; the adopter's input is silently dropped between surface and runtime, with no parse error. Child of SilentIntentNullification (F5), sibling of ActiveArgumentDiscard (loud-reject vs silent-drop).",
+    summary = "A surface field parses + type-checks but the lowering step hardcodes a default instead of threading the parsed value through; the adopter's input is silently dropped between surface and runtime, with no parse error. Child of SilentIntentNullification (F5), sibling of ActiveArgumentDiscard — both silent, differing by witness-structure (parse-swallow/behavioral vs lowering-drop/structural).",
     references = ["ADR-007", "ADR-019", "decisions.md:5085"]
 )]
 pub struct CapabilityOmissionAtLowering;
@@ -841,7 +882,7 @@ pub struct CapabilityOmissionAtLowering;
 ///
 /// Two divergence directions, both observed live:
 ///
-/// - **Under-coverage (too narrow)**: `SilentArgumentDiscard`'s fingerprint
+/// - **Under-coverage (too narrow)**: `ActiveArgumentDiscard`'s fingerprint
 ///   (`all_of([item = impl, doc_contains("forward compat")])`) was fitted to
 ///   the `*Args::parse` discard-loop. It cannot match `parse_signers()` — a
 ///   real second instance of the same class — because `parse_signers` is a
@@ -869,7 +910,7 @@ pub struct CapabilityOmissionAtLowering;
 /// **Observed instances** (2026-05-26, antigen-dx-dogfood expedition, camp's
 /// binary-adopter coverage sweep): both directions surfaced when a second body
 /// (camp's coverage sweep) reached instances the self-application path had
-/// never walked. The under-coverage case (`SilentArgumentDiscard`) was found
+/// never walked. The under-coverage case (`ActiveArgumentDiscard`) was found
 /// by the scout's systematic coverage pass; the over-coverage case
 /// (`RatifiedSpecDriftFromImpl`) was identified by outsider's signal-vs-noise
 /// analysis of scan output.
