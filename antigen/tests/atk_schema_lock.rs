@@ -404,3 +404,60 @@ fn schema_lock_item_target_new_variants_are_documented() {
         );
     }
 }
+
+// ============================================================================
+// ATK-SCHEMA-PRES-FP: presentations in scan JSON must have non-empty
+// structural_fingerprint for fingerprintable item kinds.
+//
+// After the extract_presentation fingerprint fix (commits d9c251f/fe6a3a0),
+// #[presents] on an impl/struct/fn/const/enum produces a real fingerprint.
+// The schema lock does NOT currently assert this — an accidental revert
+// of the fix (String::new() instead of current_item_digest.clone()) would
+// produce empty fingerprints silently, with all schema_lock tests still
+// passing. This test closes the regression gap.
+//
+// We use the examples/ fixture (struct + impl + fn presentation sites) and
+// assert that at least ONE presentation has a non-empty structural_fingerprint.
+// If ALL are empty, the fix has regressed.
+//
+// STATUS: PASSING once commits d9c251f/fe6a3a0 land. If this test FAILS,
+// the extract_presentation fingerprint fix was reverted.
+// ============================================================================
+
+#[test]
+fn schema_lock_scan_presentation_fingerprint_non_empty() {
+    let json = run_and_parse("scan");
+    let presentations = json["report"]["presentations"]
+        .as_array()
+        .expect("`presentations` is an array");
+    assert!(
+        !presentations.is_empty(),
+        "antigen/examples fixture should yield at least one presentation"
+    );
+
+    let non_empty: Vec<_> = presentations
+        .iter()
+        .filter(|p| {
+            p["structural_fingerprint"]
+                .as_str()
+                .map(|s| !s.is_empty())
+                .unwrap_or(false)
+        })
+        .collect();
+
+    assert!(
+        !non_empty.is_empty(),
+        "ATK-SCHEMA-PRES-FP: at least one presentation in scan JSON must have \
+         a non-empty `structural_fingerprint`. All are empty — this indicates \
+         extract_presentation regression (the fix that changed String::new() to \
+         self.current_item_digest.clone() was reverted). \
+         Presentations: {:?}",
+        presentations
+            .iter()
+            .map(|p| (
+                p["antigen_type"].as_str().unwrap_or("?"),
+                p["structural_fingerprint"].as_str().unwrap_or("MISSING"),
+            ))
+            .collect::<Vec<_>>()
+    );
+}

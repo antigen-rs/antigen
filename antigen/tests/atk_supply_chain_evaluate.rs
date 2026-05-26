@@ -11,10 +11,11 @@
 //! Tests that FAIL indicate a real implementation gap (a bug).
 
 use antigen::supply_chain::evaluate::{
-    dep_attest_path, evaluate_content_hash_matches, evaluate_dep_attested, save_content_hash_record,
+    dep_attest_path, evaluate_content_hash_matches, evaluate_dep_attested,
+    evaluate_maintainer_unchanged, save_content_hash_record,
 };
 use antigen::supply_chain::schema::{ContentHashRecord, DepAttestation, ReviewScope};
-use antigen::supply_chain::witness::{ContentHashState, DepAttestedState};
+use antigen::supply_chain::witness::{ContentHashState, DepAttestedState, MaintainerState};
 use std::path::PathBuf;
 use tempfile::TempDir;
 
@@ -535,5 +536,77 @@ serde = { workspace = true }
          An adopter with workspace.dependencies that have non-exact pins \
          won't get flagged at the member-crate level. \
          The workspace Cargo.toml must be checked separately."
+    );
+}
+
+// ============================================================================
+// ATK-SC-5: Path traversal in evaluate_maintainer_unchanged via crate_name
+//
+// ATTACK: crate_name = "../../../secret" causes maintainer_path() to construct
+// .attest/supply-chain/maintainer/../../../secret.json — escaping the intended
+// directory and reading an arbitrary file from the filesystem.
+//
+// The fix in 476b300 added character-set validation to parse_crate_at_version
+// (the `crate@version` CLI entry point), but run_verify_maintainer_changes
+// uses `--crate-name` and `--since-version` as SEPARATE arguments — these
+// go directly to evaluate_maintainer_unchanged WITHOUT going through
+// parse_crate_at_version. No validation guards that code path.
+//
+// PROOF: Create a tempdir. Place a valid maintainer snapshot JSON at a path
+// outside the supply-chain directory (via a traversal). Call
+// evaluate_maintainer_unchanged with a crate_name that traverses to it.
+// If it returns Unchanged or CratesIoQueryUnavailable (i.e., it READ the file),
+// the traversal succeeded — FAIL.
+// If it returns SnapshotMissing regardless, the traversal is blocked — PASS.
+//
+// STATUS: FAILING — evaluate_maintainer_unchanged passes crate_name directly
+//   to maintainer_path which does .join(format!("{crate_name}.json")) with no
+//   character-set or path-canonicalization guard.
+// ============================================================================
+
+#[test]
+fn atk_sc5_path_traversal_in_maintainer_crate_name_is_blocked() {
+    use antigen::supply_chain::schema::MaintainerSnapshot;
+
+    let tmp = TempDir::new().unwrap();
+    let workspace_root = tmp.path();
+
+    // Create the expected supply-chain directory structure so the normal path exists.
+    let supply_chain_dir = workspace_root.join(".attest").join("supply-chain").join("maintainer");
+    std::fs::create_dir_all(&supply_chain_dir).unwrap();
+
+    // Place a valid-looking maintainer snapshot OUTSIDE the supply-chain directory.
+    // A path traversal via crate_name = "../../../outside" would construct:
+    //   .attest/supply-chain/maintainer/../../../outside.json
+    // which resolves to: <workspace_root>/outside.json
+    let outside_snapshot = MaintainerSnapshot {
+        crate_name: "outside".to_string(),
+        since_version: "1.0.0".to_string(),
+        owners: vec!["attacker".to_string()],
+        signed_by: "attacker".to_string(),
+        date: "2026-01-01".to_string(),
+    };
+    let outside_json = serde_json::to_string(&outside_snapshot).unwrap();
+    std::fs::write(workspace_root.join("outside.json"), &outside_json).unwrap();
+
+    // Attempt path traversal: the traversal crate_name resolves to the file above.
+    // Three levels: maintainer/ -> .attest/supply-chain/ -> .attest/ -> workspace_root
+    let traversal_name = "../../../outside";
+    let state = evaluate_maintainer_unchanged(workspace_root, traversal_name, "1.0.0");
+
+    assert_eq!(
+        state,
+        MaintainerState::SnapshotMissing,
+        "ATK-SC-5: evaluate_maintainer_unchanged with crate_name='../../../outside' \
+         must return SnapshotMissing — it must NOT read a file outside \
+         .attest/supply-chain/maintainer/. The path traversal succeeded: \
+         maintainer_path() constructed a path escaping the supply-chain directory. \
+         Fix: add character-set validation in evaluate_maintainer_unchanged \
+         (reject crate names with '/', '..', '\\', etc.) OR canonicalize the \
+         constructed path and assert it starts with the supply-chain root. \
+         The 476b300 fix only guards parse_crate_at_version (the crate@version \
+         combined-arg CLI path); the --crate-name separate-arg path is unguarded. \
+         Got state = {:?}",
+        state,
     );
 }
