@@ -824,3 +824,73 @@ pub struct DeclaredCapabilityWithNoProductionPath;
     references = ["ADR-007", "ADR-019", "decisions.md:5085"]
 )]
 pub struct CapabilityOmissionAtLowering;
+
+// ============================================================================
+// 17. AntigenFingerprintDivergesFromClassExtension
+// ============================================================================
+
+/// A failure-class fingerprint is fitted to the shape of the first observed
+/// instance rather than to the full extension of the class.
+///
+/// When a fingerprint is authored on the *self-application path* — the path
+/// the author already walks — it is shaped to the instances that path reaches.
+/// The fingerprint binds those instances precisely, while silently missing
+/// every instance in the *geometric complement* of the author's path. The
+/// match-set (what the fingerprint selects) diverges from the class's true
+/// extension (every site that genuinely presents the fail-class).
+///
+/// Two divergence directions, both observed live:
+///
+/// - **Under-coverage (too narrow)**: `SilentArgumentDiscard`'s fingerprint
+///   (`all_of([item = impl, doc_contains("forward compat")])`) was fitted to
+///   the `*Args::parse` discard-loop. It cannot match `parse_signers()` — a
+///   real second instance of the same class — because `parse_signers` is a
+///   `fn` item with no "forward compat" in its docs.
+///
+/// - **Over-coverage (too broad)**: `RatifiedSpecDriftFromImpl`'s fingerprint
+///   (`doc_contains("ADR-")`) matches all 21 examples regardless of drift-risk.
+///   It is fitted to the doc-mention, not the drift-risk, so it fires as noise
+///   at the 20 non-drifted examples and the adopter cannot distinguish signal
+///   from recall.
+///
+/// The biological cognate is **original antigenic sin**: a recognition receptor
+/// imprinted on the first-seen antigen strain binds that strain with high
+/// affinity while under-binding the variant. The immune system's answer is
+/// *affinity maturation* under exposure to multiple strains; antigen's answer
+/// is the same — recruit a second body (a structurally different adopter, an
+/// adversarial sweep, a coverage pass) whose incidental finds are an unbiased
+/// sample of the class's true reach.
+///
+/// **Why this is hard to catch on the self-application path**: the fingerprint
+/// author's fluency and the fingerprint's blind spot share a body — you cannot
+/// see the geometric complement from inside. See `docs/testing-patterns.md §
+/// Fingerprint authoring discipline` for the discipline.
+///
+/// **Observed instances** (2026-05-26, antigen-dx-dogfood expedition, camp's
+/// binary-adopter coverage sweep): both directions surfaced when a second body
+/// (camp's coverage sweep) reached instances the self-application path had
+/// never walked. The under-coverage case (`SilentArgumentDiscard`) was found
+/// by the scout's systematic coverage pass; the over-coverage case
+/// (`RatifiedSpecDriftFromImpl`) was identified by outsider's signal-vs-noise
+/// analysis of scan output.
+///
+/// **Defense**: author fingerprints to the *class's extension* (the full set
+/// of sites that present the class), not to the first instance. Use a broad
+/// recall-fingerprint + precise witness (the structural parity-test that does
+/// the exact discrimination) rather than a precise fingerprint that mistakes
+/// instance-shape for class-shape. Recruit a second body for coverage review.
+///
+/// **Category**: `SubstrateAlignment` — the fingerprint is a *representation*
+/// of the class's extension; a fingerprint shaped to instance-#1 misrepresents
+/// the extension (it says "these and only these sites present the class" when
+/// the actual extension is larger or differently bounded). The mismatch is
+/// representation-vs-state, not a computation-correctness failure.
+#[antigen(
+    name = "antigen-fingerprint-diverges-from-class-extension",
+    category = AntigenCategory::SubstrateAlignment,
+    fingerprint = r#"doc_contains("fingerprint")"#,
+    family = "dogfood",
+    summary = "A failure-class fingerprint is fitted to the shape of the first observed instance rather than to the full extension of the class, producing silent under-coverage (too narrow) or noisy over-coverage (too broad). The match-set (what the fingerprint selects) diverges from the class's true extension.",
+    references = ["ADR-006", "ADR-010", "docs/testing-patterns.md"]
+)]
+pub struct AntigenFingerprintDivergesFromClassExtension;

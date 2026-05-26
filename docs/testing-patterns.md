@@ -259,6 +259,57 @@ the team explicitly catches.
 
 ---
 
+## Fingerprint authoring discipline (declare by extension, not instance-shape)
+
+When you author an antigen's `fingerprint`, you are writing a recognition surface
+for a *class* of sites. The failure mode — observed live across the project's own
+dogfood antigens — is fitting the fingerprint to the **shape of the first instance
+you saw** rather than to the **extension of the class**. A fingerprint shaped to
+instance #1 binds instance #1 perfectly and silently misses the variant.
+
+Concrete instances from antigen's own codebase:
+- `silent-argument-discard`'s fingerprint (`all_of([item = impl, doc_contains("forward
+  compat")])`) was fitted to the `*Args::parse` discard-loop. It cannot match
+  `parse_signers` — a real second instance of the same class — because that's a `fn`
+  with no "forward compat" in its docs (too narrow / under-coverage).
+- `ratified-spec-drift-from-impl`'s fingerprint (`doc_contains("ADR-")`) matches all
+  21 examples regardless of drift-risk — it's fitted to the doc-*mention*, not the
+  *risk* (too broad / over-coverage).
+
+Both directions are the same failure (the meta-antigen tracks it as
+`AntigenFingerprintDivergesFromClassExtension`): the match-set diverges from the
+class's true extension. The biological cognate is **original antigenic sin** — a
+recognition receptor imprinted on the first-seen strain under-binds the variant
+(see `docs/glossary.md`).
+
+**Why this is hard to catch yourself**: a fingerprint authored *on the
+self-application path* is shaped to the instances that path walks — and those are
+exactly the instances the author's own fluency reaches. The blind spot (the class's
+other instances) is the geometric complement of the author's path. You cannot see
+it from inside.
+
+**The discipline**:
+1. **Declare the class by its extension, not by the shape of the first instance.**
+   Ask "what is the full set of sites that present this class?" — not "what does the
+   one I'm looking at look like?"
+2. **Put recall in the fingerprint, precision in the witness.** A broad fingerprint
+   (high recall, accepts false positives) + a precise structural witness (the
+   parity-test / scope-check that does the exact discrimination) mirrors the immune
+   system's germline-recall / affinity-matured-precision division of labor. Don't
+   make the fingerprint do the precise work; that's what fits it to instance-shape.
+3. **Recruit a second body.** The reliable way to find the class's extension is a
+   reviewer whose fluencies differ from yours — a stranger-adopter, an adversarial
+   pass, or a systematic coverage-sweep. Their incidental finds (instances they hit
+   without hunting for your class) are the unbiased sample of the class's true reach.
+   Self-review cannot substitute: the author and the blind spot share a body.
+
+This discipline is *why* dogfooding antigen against a structurally-different adopter
+(a binary crate; a coverage sweep) surfaces fresh instances of *already-declared*
+classes — the fold of a self-applying tool is the under-covered region of its own
+declared fingerprints, reachable only from the complement.
+
+---
+
 ## References
 
 - [`docs/decisions.md`](decisions.md) — ratified ADRs (ADR-001 through ADR-010)
