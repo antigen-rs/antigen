@@ -1114,8 +1114,8 @@ pub struct ParallelStateTrackersDiverge;
 /// after. The visitor-extension pattern is structurally guaranteed to recur:
 /// `ScanVisitor` adds a new item kind → developer copies the `visit_*` template →
 /// the `check_attrs` call comes from the template, but the digest assignment
-/// requires knowing the invariant. The coupling between "calls check_attrs" and
-/// "must first set current_item_digest" is an ordering constraint with no
+/// requires knowing the invariant. The coupling between "calls `check_attrs`" and
+/// "must first set `current_item_digest`" is an ordering constraint with no
 /// compile-time enforcement. A proc-macro or derive-helper approach could enforce
 /// it structurally; until then, this antigen is the class's memory.
 ///
@@ -1144,3 +1144,70 @@ pub struct ParallelStateTrackersDiverge;
     references = ["ADR-010"]
 )]
 pub struct ScanVisitorDigestAssignmentOmission;
+
+// ============================================================================
+// 20. FailingTestWithoutIgnorePin
+// ============================================================================
+
+/// A failing adversarial test committed to `HEAD` without `#[ignore]`, breaking
+/// `cargo test --workspace` for the whole team until the fix lands.
+///
+/// **The discipline**: adversarial tests document blind spots by asserting what
+/// SHOULD be true — and intentionally failing until the gap is closed. The
+/// correct commit pattern is one of:
+///
+/// 1. `#[ignore]` at commit time, `#[ignore]` removed with the fix commit.
+/// 2. Test + fix committed atomically (single commit, no intermediate red state).
+///
+/// Committing a failing test without `#[ignore]` produces a red HEAD that blocks
+/// every other team member's `cargo test --workspace` until the fix lands — even
+/// if the fix is in a dirty working tree or in-flight on a different agent.
+///
+/// **Observed instances** (2026-05-26, antigen-dx-dogfood expedition, three
+/// consecutive P0s):
+///
+/// 1. `89f8108` — enum-variant presents blind spot. Test committed FAILING;
+///    fixed at `d97c204`.
+/// 2. `6a17036` — impl/trait-item-macro presents blind spot. Both
+///    `atk_a2_impl_item_macro` and `atk_a2_trait_item_macro` committed FAILING;
+///    fixed at `931ae89`.
+/// 3. `477aeef` — const-synthesis fingerprint miss. Test committed FAILING;
+///    fix was in the dirty working tree; fixed in the same session.
+///
+/// All three are the same shape: the adversarial intent is correct ("pin the
+/// gap"), the mechanism is wrong ("break CI for the team"). The pattern recurred
+/// three times in a single expedition despite all three being avoidable with the
+/// same one-line fix (`#[ignore]`).
+///
+/// **Category**: `SubstrateAlignment` — the committed substrate (`git log`) claims
+/// `cargo test --workspace` is green; it is not. The representation (committed
+/// test suite) diverges from the actual verification state (broken workspace).
+///
+/// **Fingerprint**: `doc_contains("STATUS: FAILING")` — adversarial tests that
+/// follow the ATK convention of documenting their intended-failing state in the
+/// doc comment are surfaced. Combined with manual review of whether `#[ignore]`
+/// is present, this provides partial passive recall.
+///
+/// **Fingerprint limitation** (v0.2): the ideal fingerprint is
+/// `all_of([doc_contains("STATUS: FAILING"), not(has_attribute("ignore"))])` —
+/// but `not(has_attribute(...))` is not yet in the v0.2 DSL. The current
+/// fingerprint fires on ALL "STATUS: FAILING" tests, including correctly
+/// `#[ignore]`d ones. Correctly-handled sites should carry
+/// `#[immune(FailingTestWithoutIgnorePin, witness = ...)]`. The
+/// `not(has_attribute)` predicate is the v0.3 fingerprint tightening path.
+///
+/// **Internal-tooling discipline**: per `feedback-internal-tool-antigens-preemptive`,
+/// declared preemptively from the three confirmed instances rather than waiting
+/// for a fourth.
+#[antigen(
+    name = "failing-test-without-ignore-pin",
+    category = AntigenCategory::SubstrateAlignment,
+    fingerprint = r#"doc_contains("STATUS: FAILING")"#,
+    family = "dogfood",
+    summary = "A failing adversarial test is committed to HEAD without #[ignore], \
+               breaking cargo test --workspace for the team until the fix lands. \
+               The correct discipline is #[ignore] at commit time, removed atomically \
+               with the fix, or test+fix in a single atomic commit.",
+    references = ["ADR-028"]
+)]
+pub struct FailingTestWithoutIgnorePin;
