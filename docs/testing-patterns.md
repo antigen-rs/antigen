@@ -310,6 +310,54 @@ declared fingerprints, reachable only from the complement.
 
 ---
 
+## Exhaustive-match as structural backstop
+
+When a finite enumerable set has a **manually-maintained subset classification**
+that must stay correct as the set grows, use an exhaustive `match` (or equivalent)
+at the classification boundary — not a comment, not a lint, not a convention.
+
+**The pattern applies when all three hold:**
+1. A finite enumerable set exists (enum variants, `syn::Item` variants, etc.)
+2. A manual subset classification must agree with the full set (supply-chain
+   variants, "needs-visiting" items, permitted audit hints)
+3. The classification sites are in the **same crate or compilation unit** — the
+   `match` can force coverage
+
+**The payoff:** the Rust compiler enforces that every new element of the set
+causes a compile error at every classification site, making silent omissions
+impossible.
+
+**Antigen instances (intra-crate):**
+- `AuditHint` supply-chain variants in `antigen/tests/supply_chain_correctness.rs` —
+  a `supply_chain_variants` match forces explicit opt-in when a new supply-chain
+  `AuditHint` is added
+- `syn::Item` handling in `synthesis_pass` — extending the dispatch match for
+  `Item::Const`, `Item::Static`, `Item::Union` to cover new item kinds
+
+**The cross-crate limit:** exhaustive match enforces **intra-match completeness
+only**. If the N-tuple of classification sites spans multiple crates (e.g.,
+dispatch logic in `antigen` must agree with matching logic in `antigen-fingerprint`),
+a compile-time match cannot enforce agreement between them. The correct backstop
+for cross-crate cases is an **integration test that exercises the whole path**
+and catches the missing arm at test time (not compile time). This is a sibling
+pattern, not the same one.
+
+**The cross-crate form is a `ParallelStateTrackersDiverge` instance** — the
+two (or N) classification sites are parallel state that must stay in sync. Annotate
+them with `#[presents(ParallelStateTrackersDiverge)]` and defend with a
+cross-exercising integration test (`#[immune(ParallelStateTrackersDiverge,
+witness = integration_test_name)]`).
+
+**This is a testing practice, not a stdlib antigen.** The failure it prevents
+(silent escape when a new variant is added) is `FunctionalCorrectness` and
+`Object`-tier, but it has no general-enough fingerprint to be a universal antigen
+class — the intra-crate exhaustive-match is compiler-enforced rather than
+antigen-enforced. Declare `#[presents(ParallelStateTrackersDiverge)]` at the
+classification sites if they are parallel state; use the exhaustive match as the
+structural backstop that removes the need for `#[immune]` at those sites.
+
+---
+
 ## References
 
 - [`docs/decisions.md`](decisions.md) — ratified ADRs (ADR-001 through ADR-010)
