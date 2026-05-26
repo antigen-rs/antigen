@@ -1136,9 +1136,9 @@ Pattern: `syn::ImplItem` and `syn::TraitItem` have the same partial-coverage gap
 
 | Gate | Status |
 |------|--------|
-| `cargo test --workspace` | PASS (868/0 fail) |
+| `cargo test --workspace` | PASS (879/0 fail) — updated after e3120e3+832e5f6+4601fbb |
 | `cargo clippy -- -D warnings` | PASS |
-| `cargo fmt -- --check` | FAIL (9 violations) |
-| `RUSTDOCFLAGS=-D warnings cargo doc` | PASS (committed HEAD) |
+| `cargo fmt -- --check` | PASS — fixed at 4601fbb |
+| `RUSTDOCFLAGS=-D warnings cargo doc` | PASS — enum-variant presents resolved cleanly |
 
-The fmt violations in committed code (`b1f6886`) are the one active CI-gate failure. Pathmaker fix needed.
+**Post-Step-26 resolution**: All CI gates closed rapidly. `e3120e3` fixed the two new associated-type blind spots (`visit_impl_item_type` + `visit_trait_item_type`). `832e5f6` committed the enum-variant `#[presents]` markers on `PolyclonalInsufficientLineages` + `AdccSingleMechanismOnly` WITHOUT breaking doc build (pathmaker resolved the rustdoc incompatibility before committing). `4601fbb` fixed remaining fmt violations. 879 tests passing. `ci-gate-fmt-violations-in-committed-code` campsite COMPLETE.
