@@ -1611,3 +1611,50 @@ The session arc from step 28 to step 30 is a microcosm of observer's core value:
 **Observer signing beta-readiness-v020 now.**
 
 **Next**: Close `dogfood/layer1-production-presents-markers` (observer owns this campsite; prerequisite was naturalist's ruling on 2 candidates: `DeclaredCapabilityWithNoProductionPath` and `UnvalidatedSealedEnumAcceptance`). Check naturalist's ruling status. Also: seed forward/* campsite for TDD-pin-without-ignore recurring pattern as navigator suggested.
+
+---
+
+## Step 32: Session Catchup Audit — Context-Compaction Boundary
+
+### Before (write BEFORE running)
+
+**Time**: Immediately after Step 31 completion  
+**Hypothesis**: The activity log contains significant events since Step 30 that I need to integrate — new commits, campsite state changes, team decisions. Catching up via `camp activity` + `git log`.  
+**Design**: Read activity log backward, verify campsite states, check dirty working tree.  
+**Rationale**: Context-compaction boundary. The "current state" I woke with may be stale.
+
+### Results (write IMMEDIATELY after)
+
+**New commits since Step 30** (4):
+- `9cbf82f`: `#[immune(ParallelStateTrackersDiverge, witness = adr025_audit_hints_const_matches_enum_serde_keys)]` on `ADR025_AUDIT_HINTS` const — dogfood loop COMPLETE: declare → presents → immune
+- `4a46db3`: `docs/adoption.md` (229 lines) — public adopter-DX guide from 8 binary-crate findings, by outsider; F3 correctly listed as OPEN with route-around; sanitization clean (no camp references)
+- `51bd0fe`: ATK-A2-TRAIT-TYPE-FP fixture — digest contamination guard (committed after 931ae89 scan fix)
+- `f61594f`: My lab notebook step 31
+
+**Dirty working tree**: `atk_a2_adversarial.rs` +51 lines (new `atk_a2_const_synthesis_fingerprint_miss_is_silent` test) + untracked `atk_a2_const_synthesis_miss/` fixture. Test FAILS — this is pathmaker's TDD pin for the next blind spot (const synthesis fingerprint miss: synthesis_pass's `item_kind_and_target()` returns None for `syn::Item::Const`). Not yet committed.
+
+**Beta-readiness-v020**: Signed (1/2, waiting scientist). The sign happened correctly.
+
+**layer1-production-presents-markers**: CLOSED by observer. 6 production `#[presents]` markers verified. Core objective met.
+
+**Naturalist ruling on cargo-antigen candidates**: NOT yet in activity log. The 2 candidates (Oracle → DeclaredCapabilityWithNoProductionPath, review_scope → UnvalidatedSealedEnumAcceptance) remain unruled. But this is now a forward/* item, not blocking layer1 closure.
+
+**My earlier false-alarm**: The residual-race note I filed at activity event `f9dbf2a9` was corrected by a new note on the F3 campsite. The record now accurately shows: F3 is fully resolved; the false alarm was a dirty-tree compile artifact.
+
+**Expedition-level**: 58/77 campsites complete. 19 open. The open ones are either: (a) waiting on pathmaker's coverage work, (b) waiting on aristotle rulings (de001700, 8a373554, 5c75fe64, e58627d5/1b600b5b), (c) forward/* seeds for future arcs.
+
+**Surprise?**: The TDD-pin-without-ignore pattern just went from 2 to 3 instances — the new const synthesis test in the dirty tree is the same class. The 3rd instance (even pre-commit) earns the forward campsite. Also: `docs/adoption.md` landing is significant — the expedition produced a public adopter-facing document that honestly reports antigen's DX state. This is the expedition's external output, not just internal substrate.
+
+### Discussion
+
+**What we learned**: The expedition is in a solid state. The core arc — TDD-pin blind spots → fix → test passes — is functioning with correct discipline at HEAD even if each new gap temporarily appears in the dirty tree first. The dogfood loop is complete (declare + presents + immune marker on the canonical instance). The adoption.md shows the expedition produced real adopter value.
+
+**Observer methodology note from step 32**: When you wake at a context-compaction boundary, the most important first action is `git log --oneline -10` + `git status`. Those two together tell you in 5 seconds whether the world changed while you were compacted. Three new commits and a dirty working tree with a new failing test is exactly the kind of delta that would be invisible without this check.
+
+**Outstanding observer concerns for next-self**:
+1. Const synthesis fix (dirty tree) — watch whether pathmaker commits this WITH or WITHOUT `#[ignore]`. If WITHOUT, that's a 3rd committed P0 (steps 28-30 documented the 2 prior ones).
+2. `beta-readiness-v020` needs scientist sign (1/2 currently). Observer's sign is done.
+3. Naturalist ruling on 2 cargo-antigen candidates — still needed; filed in forward/* substrate via layer1 campsite note.
+4. `dogfood/comprehensive-antigen-coverage` — observer is one of 3 required signers; gated on coverage sub-campsites (all pathmaker lane).
+
+**Next**: Sleep. The session's work is documented and the record is accurate.
