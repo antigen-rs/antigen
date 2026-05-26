@@ -164,25 +164,23 @@ fn parse_has_method(input: ParseStream) -> syn::Result<Constraint> {
                 // asymmetric normalization vs the strict-tokenized match-site
                 // path — exactly the spacing bug this canonicalization exists
                 // to eliminate).
-    let tokenized =
-        crate::normalize_signature_canonical(&signature).ok_or_else(|| {
-            syn::Error::new(
-                sig_lit.span(),
-                format!(
-                    "has_method signature `{signature}` is not a valid Rust token stream \
+    let tokenized = crate::normalize_signature_canonical(&signature).ok_or_else(|| {
+        syn::Error::new(
+            sig_lit.span(),
+            format!(
+                "has_method signature `{signature}` is not a valid Rust token stream \
                  (unbalanced delimiters, unterminated string, or invalid character); \
                  the canonical form cannot be derived and matching cannot proceed"
-                ),
-            )
-        })?;
+            ),
+        )
+    })?;
     // Strip parameter names from the normalized pattern so that `(input: ParseStream)`
     // matches the same form as `(ParseStream)`. `render_inputs` in the matcher strips
     // names from the actual signature; we must do the same for the pattern to keep
     // comparison symmetric. Wrap in `fn __pat__` to parse as a syn::Signature, then
     // rebuild with only types (no ident: prefix). Falls back to raw tokenized form on
     // parse failure (e.g. shorthand `Self` types that aren't valid syn::Type alone).
-    let normalized_signature = strip_param_names_in_sig_pattern(&tokenized)
-        .unwrap_or(tokenized);
+    let normalized_signature = strip_param_names_in_sig_pattern(&tokenized).unwrap_or(tokenized);
     Ok(Constraint::HasMethod(MethodPattern {
         name,
         signature,
