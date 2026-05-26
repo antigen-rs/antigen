@@ -908,4 +908,44 @@ All existing stdlib modules have complete category fields (supply_chain 11/11, v
 
 ### SilentIntentNullification Family — Still Uncommitted
 
-`SilentArgumentDiscard` (#9) remains as original name. `SilentIntentNullification` parent, `ActiveArgumentDiscard` rename, `DeferredIntentNullification` — none committed. 5 audit steps (15, 16, 18, 19, 20) have noted this gap. The family is ratified in camp substrate, absent from git substrate.
+`SilentArgumentDiscard` (#9) remains as original name. `SilentIntentNullification` parent, `ActiveArgumentDiscard` rename, `DeferredIntentNullification` — none committed. 5 audit steps (15, 16, 18, 19, 20) have noted this gap. The family is ratified in camp substrate, absent from git substrate. Camp question `2b8abbfd` routed to pathmaker.
+
+---
+
+## Step 21: Remaining Open Campsites Audit + Scan-Flood Severity Update
+
+**Time**: 2026-05-26 ~05:45 UTC  
+**HEAD**: `3cdcfe5` (lab notebook step 20)  
+**Test state**: 831 pass, 48 ignored
+
+### Schema-Lock Test — A New Structural Guard
+
+Commit `6bcfef0` (doc: document new ItemTarget variants) added `atk_schema_lock.rs` — a test that scans each fixture and asserts every emitted `ItemTarget` discriminant appears in `docs/output-formats.md`. This is structurally significant:
+
+- First test in the codebase that asserts *documentation matches behavior* (not just behavior matches spec)
+- Removed "never-emitted" variants (Mod/Use/Type) from the doc — `DeclaredCapabilityWithNoProductionPath` applied to docs themselves
+- The test is a CODE witness for the claim "docs/output-formats.md accurately describes the emitted schema"
+
+This demonstrates antigen's dogfood reaching a new tier: substrate-alignment verified by a test that fails when docs drift from behavior.
+
+### Scan-Flood Severity Update — WORSE After Scanner Fix
+
+Verified `scan-output-floods-newcomer` claim independently. `print_fingerprint_matches` (cargo-antigen/src/main.rs:2340) confirms: `for p in &fp_matches` with NO cap. Adversarial's finding holds.
+
+**Important amplification**: The scanner fix (d97c204, 83f26a5) added 5 new item kinds (enum variants, impl consts, top-level consts, static, trait consts) to fingerprint matching. The fingerprint match count on antigen's own codebase is now LARGER than outsider's ~16K measurement at f6e3846f. The flood problem is worse after the scanner correctness fix, not better. Pathmaker needs the cap before any public release — the correctness and UX concerns are now directly coupled.
+
+### R3 Landed — R5 Now Unblocked
+
+`findings/signer-name-role-confusion-unrepresentable` (R5: tagged constructors making name/role confusion a parse error) was blocked waiting for R3. Verified `roles=` field exists in parser at line 1034. R3 has landed. R5 is now unblocked in principle; pathmaker to implement when prioritized.
+
+### Open Campsites Without Observer Action Needed
+
+| Campsite | Status | Note |
+|----------|--------|------|
+| `dogfood/coverage-*` (5 campsites) | pathmaker lane | Waiting for implementation |
+| `dogfood/fingerprint-extension-not-instance-shape` | gated | Naturalist gate-satisfy pending |
+| `findings/examples-ci-executable-workflow-integrity` | pathmaker lane | Executable-workflow CI test |
+| `findings/orient-field-optionality-ruling` | pathmaker lane | R5 unblocked per R3 landing |
+| `findings/signer-name-role-confusion-unrepresentable` | pathmaker lane | R5 design (tagged constructors) |
+| `scan-output-floods-newcomer` | pathmaker lane | Adversarial gate (failing test first) |
+| `antigen-dx-dogfood/v02-impl-stdlib-category-backfill` | navigator routing | Scope misdescribed |
