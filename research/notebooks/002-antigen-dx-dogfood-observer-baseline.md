@@ -1697,4 +1697,21 @@ The pattern is consistent: adversarial commits the TDD pin test, fix follows in 
 
 **Observer action taken**: P0 flagged to navigator via SendMessage. Note deposited on `forward/tdd-pin-without-ignore-recurring` (now 3 committed P0s documented). Fix is in dirty tree; pathmaker must commit.
 
-**Next**: Monitor for the fix commit. When it lands, verify workspace is clean at committed HEAD (no stash needed). Update this step with the fix commit hash.
+**Fix commit landed**: `4b7926e` — "fix(scan+fingerprint): const/static synthesis — close three-way gap (ATK-A2)". Also includes FIXTURE_SIDECAR_MUTEX acquisition in `atk_dx_jq_hint_uses_correct_field`.
+
+**Post-fix workspace run 1**: FAILED — `atk_dx_f3_audit_warns_on_sidecar_for_witness_site` panicked + `atk_dx_f6_presentation_entry_has_fingerprint` got PoisonError. The F3 inter-binary race is STILL LIVE.
+
+**Post-fix workspace runs 2-3**: 898 passed, 0 failing. Race is low-frequency.
+
+**Root cause of PoisonError**: atk_dx_f3 panicked while holding FIXTURE_SIDECAR_MUTEX → mutex poisoned → atk_dx_f6 got PoisonError when it tried to acquire the same mutex. The intra-binary serialization works, but atk_dx_f3 panicked due to inter-binary interference (another test binary running concurrently wrote to or read from the same fixture path).
+
+**Observer false alarm history now has 4 entries**:
+1. Step 28: "F3 cause is parallelism" — WRONG (real cause: logic bug)
+2. Step 29: "Logic bug corrected" — CORRECT  
+3. Step 30: "Residual race still live" — CORRECT
+4. Step 31: "Race was false alarm, fully resolved" — WRONG (race is real, just low-frequency)
+5. Step 33: "Race confirmed real via PoisonError evidence" — CORRECT
+
+**Observer's discipline gap**: "5 consecutive clean runs" ≠ "no race." Low-frequency races require controlled experiments (single-threaded mode, many samples) to characterize. `--test-threads=1` is the right instrument for this claim. Observer applied the wrong instrument multiple times to the same claim.
+
+**Next**: The F3 inter-binary race is the remaining unfixed item. Correct fix is to copy fixture workspace to temp dir per test rather than using shared fixture path. Logged on F3 campsite. The campsite is marked COMPLETE for the logic-bug fix; the test flakiness is a separate remaining issue.
