@@ -202,10 +202,10 @@ families.
   the known-but-uncontextualized memory of the corrected code biases future developers toward
   re-deriving the original bug (the "first antigen" is the original failure-context; the clean
   refactor is the variant the imprinted memory under-serves).
-- **Recognition-scope (meta) family** — the fingerprint-scope meta-antigen (name ratified as
-  `AntigenFingerprintDivergesFromClassExtension`, pending declaration): a declared antigen's
-  fingerprint, fitted to instance #1, diverges from the class its summary claims (under- *or*
-  over-coverage; divergence is symmetric).
+- **Recognition-scope (meta) family** — the fingerprint-scope meta-antigen
+  [`AntigenFingerprintDivergesFromClassExtension`](../antigen/src/stdlib/dogfood.rs): a declared
+  antigen's fingerprint, fitted to instance #1, diverges from the class its summary claims (under-
+  *or* over-coverage; divergence is symmetric).
 
 **Paired remedy**: **affinity maturation** (somatic hypermutation) — the receptor is broadened
 and refined to bind the variant; survival-selection ratifies the matured lineage. Already
@@ -1046,6 +1046,11 @@ records, oracle-completion markers.
 **In antigen**: a witness predicate that reads from `.attest/` JSON sidecars rather than
 from the Rust source AST. Extends the witness vocabulary (ADR-001, ADR-002) to discipline
 failure-classes whose immunity evidence lives outside the code.
+
+**The `witness =` vs `requires =` choice**: substrate-witness (`requires=`) is one of two
+proof channels on `#[immune]`; the other is the code-witness channel (`witness=`). See the
+`witness =` vs `requires =` guidance under [`### witness`](#witness) (§Composition terms)
+for the full contrast-pair and choosing-heuristic. The two channels are mutually exclusive.
 
 ### ratification
 
