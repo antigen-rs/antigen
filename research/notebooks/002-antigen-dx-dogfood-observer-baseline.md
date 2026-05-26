@@ -746,3 +746,36 @@ The ATK test asserts `leaf.label.contains("not-evaluated")` — passing now.
 **CapabilityOmissionAtLowering parity test**: The parser.rs parity test witnesses every `Leaf::Signers` field surviving DSL→Leaf lowering. This is the prerequisite for declaring `CapabilityOmissionAtLowering` as an antigen in dogfood.rs. **Not yet committed**.
 
 **SilentIntentNullification family status**: Still zero commits in dogfood.rs. Both working-tree changes are prerequisites for declaring the family (parity test = witness for CapabilityOmissionAtLowering). The family can land once pathmaker commits these.
+
+---
+
+## Convergence Assessment — 2026-05-26 04:20 UTC
+
+Three expedition-wide patterns converging from multiple independent observations:
+
+### Pattern A — Generation leads inspection at every scale
+
+Evidence:
+- F7 commit: `leaf_outcomes` field added to 3/4 construction sites, 1 missed (code-witness path at audit.rs:1075) — caught by observer, fixed within minutes
+- F3 fix: orphan-sidecar check covered primary case, missed stacked-immune case — caught by observer via test suite, fixed by pathmaker (`19e018f`)
+- Scanner blind spot: `visit_item_enum` checks enum-level attrs, never calls `check_attrs` on variant attrs — scout found, observer confirmed
+- SilentIntentNullification family: ratified in camp notes at aristotle+naturalist level, zero commits in dogfood.rs — 5 antigens in camp substrate but not in git substrate
+
+The pattern: scope expands, coverage doesn't keep up. Exactly the generation-inspection asymmetry antigen exists to address — turned inward on antigen itself.
+
+### Pattern B — Complete campsites have latent scope gaps
+
+Evidence:
+- `findings/sidecar-witness-disconnect-warning` COMPLETE → F3 stacked-immune regression found afterward
+- `findings/attest-check-per-leaf-diagnostics` COMPLETE → `eval-leaf-not-evaluated-arm` BLOCKED (supply-chain leaves not distinguished from genuine failures)
+
+Implication: "complete" records fix coverage at time T for scope S. Neither T nor S is perpetual. Observer's role includes post-completion audits on completed campsites, especially when new adjacent cases emerge.
+
+### Pattern C — Biology predictions are accurate substrate predictions
+
+Evidence:
+- `findings/eval-leaf-not-evaluated-arm` seeded from observer's biology analysis ("bare false = lie at finer granularity once F7 lands") → adversarial added ATK test → fix landed (`evaluated: bool` field)
+- `dogfood/fingerprint-extension-not-instance-shape` seeded from naturalist's recognition-requires-a-second-body framing → connected to original-antigenic-sin → real antigen nomination pending
+- `encounter-status axis` from naturalist's biology reading → ADR-028 Amendment 5 ratified
+
+The biology metaphor is operating as a predictive instrument, not just post-hoc labeling.
