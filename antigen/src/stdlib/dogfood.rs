@@ -1017,3 +1017,71 @@ pub struct CapabilityOmissionAtLowering;
     references = ["ADR-006", "ADR-010", "docs/testing-patterns.md"]
 )]
 pub struct AntigenFingerprintDivergesFromClassExtension;
+
+// ============================================================================
+// 18. ParallelStateTrackersDiverge
+// ============================================================================
+
+/// Two (or more) hand-maintained representations of the same fact are kept "in
+/// sync" by convention rather than by a mechanism, and they drift.
+///
+/// One source of truth is duplicated into a second tracker — a mirrored enum, a
+/// string-const shadowing an enum's serde keys, a version string copied across
+/// docs, a doc cross-reference pointing at content that must exist elsewhere —
+/// with a comment promising the two "must stay in sync." But a comment enforces
+/// nothing. Nothing fails when they diverge; the drift is silent until a reader
+/// trusts the stale copy.
+///
+/// **Observed instances** (2026-05-26, antigen-dx-dogfood expedition; the
+/// recurrence that motivated declaring this class):
+///
+/// - **const ↔ enum (the canonical instance)**: `ADR025_AUDIT_HINTS` (a
+///   hand-typed `&[&str]` of supply-chain hint strings) shadowed the `AuditHint`
+///   enum's serde keys with only a "MUST match … exactly" comment. It had
+///   *already* drifted — the const listed 15 entries while the enum had 16
+///   supply-chain variants — and no test caught it (the prior tests checked the
+///   const against itself). The fix is this antigen's witness (below).
+/// - **enum ↔ enum**: `antigen::audit::WitnessTier` is hand-mirrored from
+///   `antigen_attestation::tier::WitnessTier` (deliberate, to keep the on-disk
+///   audit format serde-stable while the attestation crate evolves) — `tier.rs`
+///   even names "the `ParallelStateTrackersDiverge` shape." A test
+///   (`atk_witness_tier_parity`) is what actually enforces it; the comment alone
+///   did not (the two had drifted on the `Hash` derive).
+/// - **doc-string ↔ docs**: a version string hand-copied across README /
+///   quickstart / tutorial drifted (README pinned `rc.2` while the others said
+///   `rc.3`); a glossary cross-reference promised category-mapping content the
+///   target entry did not yet carry.
+///
+/// **The shared shape**: a comment ("must stay in sync", "kept in lock-step",
+/// "see X for Y") substitutes for a mechanism. The comment is a *promise of
+/// enforcement that delivers none*. Antigen's whole posture is moving failure-
+/// class memory from comment-tier (drift-prone) to structural-tier (enforced) —
+/// so a comment-enforced mirror in antigen's own substrate is the project
+/// failing to eat its own cooking. That recursion is why it earns declaration.
+///
+/// **Defense (the witness)**: replace the hope-comment with a test that reads
+/// *both* sides and asserts they agree. The canonical witness is
+/// `adr025_audit_hints_const_matches_enum_serde_keys` (a serde-key *bijection*:
+/// every enum variant's key is in the const, every const entry maps to a real
+/// variant, and the lengths are coupled) — a rename, a missing entry, or a dead
+/// entry now FAILS the test instead of drifting silently. The general defense:
+/// derive the second tracker from the first where a derive macro can express the
+/// relation, or — where the relation needs human classification a derive can't
+/// capture — a bijection/parity test that reads both sides. A "MUST stay in
+/// sync" comment with no such test is the un-defended shape.
+///
+/// **Category**: `SubstrateAlignment` — each tracker is a *representation*; when
+/// the copies diverge, one representation no longer matches the fact the other
+/// asserts. The failure is representation-vs-state divergence, not a
+/// computation-correctness error. Recognized fingerprint-only (like
+/// `BiologyGroundingClaimDrift`): the "in sync / lock-step" comment is the
+/// recall surface; the bijection/parity test is the precision witness.
+#[antigen(
+    name = "parallel-state-trackers-diverge",
+    category = AntigenCategory::SubstrateAlignment,
+    fingerprint = r#"doc_contains("lock-step")"#,
+    family = "dogfood",
+    summary = "Two hand-maintained representations of the same fact (a mirrored enum, a const shadowing an enum's serde keys, a version string copied across docs, a doc cross-reference) are kept in sync by a comment rather than a mechanism, and drift silently. A comment promising 'must stay in sync' enforces nothing; only a test reading both sides catches the divergence.",
+    references = ["ADR-004", "ADR-028"]
+)]
+pub struct ParallelStateTrackersDiverge;
