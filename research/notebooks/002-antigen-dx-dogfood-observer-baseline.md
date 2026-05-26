@@ -981,3 +981,22 @@ Verified `scan-output-floods-newcomer` claim independently. `print_fingerprint_m
 **Verdict**: Real gap. CLI write path (`run_verify_dep_attest`, main.rs:939) has exploitable path traversal if user passes adversarial `crate@version` string. Seeded `dogfood/supply-chain-path-traversal-guard` (pathmaker). Fix: character-set guard in `parse_crate_at_version` (alphanumeric + `-_.`, reject `..`).
 
 **Secondary observation**: `parse_crate_at_version` is a candidate for `#[presents(UnvalidatedSealedEnumAcceptance)]` — accepts any `@`-split string without type-level validation of the crate name format.
+
+---
+
+## Step 23: ATK-A2-PRES-FP Fix — Presentation Fingerprint Gap
+
+**Time**: 2026-05-26 ~06:20 UTC  
+**HEAD**: `d9c251f` (fix: emit structural_fingerprint in extract_presentation)  
+**Test state**: 833 pass, 48 ignored
+
+**Fix**: `extract_presentation` in `scan.rs` was emitting `String::new()` for `structural_fingerprint` while `extract_immune` correctly emitted `self.current_item_digest.clone()`. One-line change. ATK test `atk_a2_pres_fp_struct_explicit_marker_has_non_empty_fingerprint` caught it.
+
+**Why this matters for F6**: F6 (scan-emit-item-fingerprint) was marked COMPLETE for immunity entries. The `against="current"` substrate-witness workflow needs structural fingerprints. If presentation entries from explicit `#[presents]` markers had empty fingerprints, any `fresh_within_days` delta comparison would have silently compared against an empty string. The fix closes F6 fully — both immunity and presentation entries now emit correct digests.
+
+**Third instance of symmetric-function partial wiring** (Pattern A + B convergence):
+1. `ImmunityAudit::leaf_outcomes` — 3/4 construction sites wired. Fixed `dbd9cab`.
+2. `has_companion_requires` — `antigen_type + item_target` but not `file`. Fixed `d97c204`.
+3. `extract_presentation` fingerprint — `extract_immune` wired, `extract_presentation` not. Fixed `d9c251f`.
+
+Three instances from one expedition. The fail-class is: a symmetric refactoring applied to N of N+1 symmetric targets — exactly what `CapabilityOmissionAtLowering` antigen #16 names at the DSL level. The pattern generalizes: when two symmetric functions diverge on one feature, both need the same treatment.
