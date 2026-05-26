@@ -16,6 +16,14 @@
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::Mutex;
+
+// Serialize tests that write sidecars to the shared fixture directory.
+// The F3 sidecar test must write to the real workspace path (so audit --root
+// finds it during its scan) but that creates a race with parallel audit calls
+// from other tests. This mutex serializes all tests in the file that touch
+// the shared fixture sidecar path.
+static FIXTURE_SIDECAR_MUTEX: Mutex<()> = Mutex::new(());
 
 fn bin() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_cargo-antigen"))
@@ -150,6 +158,13 @@ fn atk_dx_f8_sign_empty_fp_any_passes() {
 #[test]
 fn atk_dx_f3_audit_warns_on_sidecar_for_witness_site() {
     use std::io::Write;
+    // Serialize against other tests that share this fixture directory.
+    // The sidecar must live at the real workspace path so `cargo antigen audit`
+    // finds it during its scan — we cannot use a temp copy because audit resolves
+    // sidecar paths relative to the scanned source tree. FIXTURE_SIDECAR_MUTEX
+    // prevents the parallel-write race that intermittently caused this test to fail
+    // when run as part of `cargo test --workspace`.
+    let _guard = FIXTURE_SIDECAR_MUTEX.lock().unwrap();
 
     // The fixture directory that has a witness= immune site.
     let fixture_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
