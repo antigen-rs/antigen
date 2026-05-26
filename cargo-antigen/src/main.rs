@@ -2997,6 +2997,28 @@ fn run_attest_scaffold(
 
 /// DX finding 8 guard: warn when signing against empty fingerprint.
 /// Extracted to keep `run_attest_sign` under clippy's `too_many_lines` threshold.
+/// Whether a string has the shape of a structural digest: the self-describing
+/// `fnv1a64:` version prefix followed by 16 lowercase-hex chars (see
+/// `antigen_fingerprint::digest`). A digest that doesn't match this shape can
+/// never equal an item's real digest, so a substrate-witness predicate bound to
+/// it silently fails at audit forever.
+fn looks_like_structural_digest(fingerprint: &str) -> bool {
+    let Some(hex) = fingerprint.strip_prefix("fnv1a64:") else {
+        return false;
+    };
+    hex.len() == 16
+        && hex
+            .bytes()
+            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+}
+
+/// DX finding 8 + the digest-format gap: warn when signing against a fingerprint
+/// that can't be a real structural digest — empty, OR present-but-malformed
+/// (e.g. a DSL grammar string, an unprefixed hash, or a typo). Both cases record
+/// a `signed_against_fingerprint` that never matches the item's real digest, so
+/// the signature is dead-on-arrival at audit. A warning (not a hard error) keeps
+/// the empty-case posture and tolerates a future digest scheme, but makes the
+/// dead-signature loud instead of silent.
 fn warn_if_empty_fingerprint(fingerprint: &str) {
     if fingerprint.is_empty() {
         eprintln!(
@@ -3007,6 +3029,16 @@ fn warn_if_empty_fingerprint(fingerprint: &str) {
              fingerprint from `cargo antigen scan --format json` (the \
              `structural_fingerprint` field on the immunity/presentation entry) \
              and pass it via `--fingerprint`."
+        );
+    } else if !looks_like_structural_digest(fingerprint) {
+        eprintln!(
+            "warning: `--fingerprint {fingerprint}` does not look like a structural \
+             digest (expected `fnv1a64:` + 16 lowercase-hex chars). It will be \
+             recorded as the signed-against fingerprint, but a substrate-witness \
+             predicate bound to `against = \"current\"` will never match the item's \
+             real digest at audit time — the signature is dead-on-arrival. Obtain \
+             the digest from `cargo antigen fingerprint` (or `scan --format json`) \
+             and pass that value."
         );
     }
 }
