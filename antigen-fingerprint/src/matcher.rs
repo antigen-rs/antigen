@@ -469,6 +469,29 @@ mod tests {
         );
     }
 
+    // ATK-FP-DOC-MULTILINE: doc_contains works across multiple doc comment lines.
+    #[test]
+    fn doc_contains_multiline_doc_comment() {
+        let fp = fp(r#"doc_contains("SENTINEL")"#);
+        // Three doc lines — needle appears in the second.
+        let i = item("/// First line.\n/// Contains SENTINEL here.\n/// Third line.\nstruct S;");
+        assert!(
+            fp.matches(&i),
+            "doc_contains must match across multiple doc lines"
+        );
+    }
+
+    // ATK-FP-DOC-RAW-ATTR: doc_contains works with #[doc = "..."] attribute form.
+    #[test]
+    fn doc_contains_raw_doc_attribute() {
+        let fp = fp(r#"doc_contains("SENTINEL")"#);
+        let i = item(r#"#[doc = "Contains SENTINEL."] struct S;"#);
+        assert!(
+            fp.matches(&i),
+            "doc_contains must match raw #[doc = \"...\"] attributes"
+        );
+    }
+
     #[test]
     fn all_of_matches() {
         let fp = fp(r#"all_of([item = enum, name = matches("*Class")])"#);
