@@ -476,3 +476,40 @@ Campsites: 54 total — 21 open, 2 partial, 29 complete, 2 blocked
 **Finding C (WitnessTier::None docs — RETRACTED)**: Prior session observer notice `12be4202` flagged `docs/witness-tiers.md:36` as missing the 4th None case. RETRACTION: the fix was already present in commit `852314b` (2026-05-19), predating this expedition entirely. The line now reads: "Two distinct sub-channels collapse to None: (a) witness-resolution gap...; (b) predicate-evaluation outcome — a requires= substrate-witness predicate was evaluated and failed." Observer's prior notice was a false positive. Methodological note: I flagged a gap in something I had already verified contained the correct definition — possible the prior session read an older cached state or I misread. Camp notice remains in substrate; its resolution is that the docs were already correct.
 
 **Finding D (encounter-status axis is LARGE)**: Aristotle's analysis is comprehensive (ADR-028 amendment with three-axis state-space). The encounter-status finding will not resolve quickly — it's an ADR amendment requiring navigator ceremony. Observer should watch whether this enters the process lifecycle before becoming drift.
+
+**Finding E (F3 test implemented, now RED)**: The committed version of `atk_dx_f3_audit_warns_on_sidecar_for_witness_site` is a full implementation (not the placeholder `return;` I read in prior session). It creates a real sidecar for the `atk_a2_003_empty_witness` fixture and runs audit. Test FAILS because `audit.rs:1036` code-witness branch never checks for sidecar presence. This is the correct TDD posture — the test documents the gap accurately.
+
+**Finding F (commit attribution)**: `d46a044` includes `research/notebooks/002-antigen-dx-dogfood-observer-baseline.md`. The observer lab notebook is now tracked in git. Future edits should be committed. This creates a signal about continuity: the lab notebook is part of the project substrate, not just local observer memory.
+
+---
+
+## Final Verified Status — Wake Pass Complete
+
+**Git HEAD**: `d46a044` (dogfood: declare AuditFingerprintSelfReferential)  
+**Ahead of origin**: 8 commits  
+**Working tree**: clean (only `research/notebooks/002...md` modified — this session's edits)
+
+**Test count (committed state)**: 815 pass, 48 ignored, **1 FAILING** (`atk_dx_f3_audit_warns_on_sidecar_for_witness_site`)
+
+**8 Findings — definitive status at wake**:
+
+| Finding | Status | Evidence |
+|---|---|---|
+| F1 — binary dead_code | FIXED + COMMITTED | `151ed48` |
+| F2 — AntigenCategory unused_imports | FIXED + COMMITTED | `151ed48` |
+| F3 — sidecar-witness disconnect silence | **NOT IMPLEMENTED (RED GATE)** | test fails; `audit.rs:1036` missing sidecar check |
+| F4 — scan fingerprint self-match | FIXED + COMMITTED | `fa4522f` |
+| F5 — signers name-vs-role example drift | ARISTOTLE RATIFIED; **example fix pending** | pathmaker needs `substrate_witness.rs` update |
+| F6 — scan emits no fingerprint | FIXED + COMMITTED | `2165720` (immunity), `d46a044` (presentation + Audit-SF-1) |
+| F7 — attest check no per-leaf diagnostic | **NOT IMPLEMENTED** | `EvaluatedPredicate` is still flat; no test gate yet |
+| F8 — empty fingerprint signed silently | FIXED + COMMITTED | `d46a044` (warn_if_empty_fingerprint) |
+
+**Campsite blocks still active (stale as of wake)**:
+- `findings/scan-emit-item-fingerprint` — adversarial block predates `d46a044`; condition resolved
+- `findings/empty-fingerprint-guard` — adversarial block predates `d46a044`; condition resolved
+
+**Active TDD red gate**: `atk_dx_f3_audit_warns_on_sidecar_for_witness_site`
+
+**Observer pending signatures** (not signed, reasons documented):
+- `dogfood/comprehensive-antigen-coverage`: too early; coverage work not complete
+- `v02-beta-docs/beta-readiness-v020`: gate conditions not met (0/6 supporting campsites complete)
