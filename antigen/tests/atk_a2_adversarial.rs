@@ -1182,3 +1182,183 @@ fn atk_a2_macro_rules_presents_is_not_silently_ignored() {
         report.presentations.len()
     );
 }
+
+// ============================================================================
+// ATK-A2-USE-ITEM: #[presents] on a `use` (re-export) item is silently ignored.
+//
+// ScanVisitor does not override visit_item_use. A #[presents(X)] on a `use`
+// item (e.g., a dangerous re-export that exposes a capability at a trust
+// boundary) is silently dropped — 0 presentations found.
+//
+// This is the same scanner blind-spot class as macro_rules! (above), enum
+// variant, and impl const. Every item kind without an explicit visit_item_*
+// override is invisible to the scanner.
+//
+// STATUS: FAILING — visit_item_use is not overridden.
+//
+// Fix: add visit_item_use override to ScanVisitor that routes item.attrs
+// through check_attrs with an ItemTarget naming the re-exported path.
+// ============================================================================
+
+#[test]
+fn atk_a2_use_item_presents_is_not_silently_ignored() {
+    let report = scan_workspace(&fixture("atk_a2_use_presents"), None).unwrap();
+
+    assert_eq!(
+        report.presentations.len(),
+        1,
+        "ATK-A2-USE-ITEM: scanning a file with #[presents(SilentIntentNullification)] \
+         on a `use` declaration must find exactly 1 presentation. \
+         Got {} presentations. \
+         Root cause: ScanVisitor does NOT override visit_item_use. A dangerous \
+         re-export marked with #[presents] (e.g., a module that surfaces an \
+         unsafe capability at a trust boundary) is invisible to the scanner. \
+         Same blind-spot class as macro_rules! (ATK-A2-MACRO-RULES), enum-variant \
+         (fixed), and impl-const (fixed). \
+         Fix: add visit_item_use override to ScanVisitor that routes item.attrs \
+         through check_attrs.",
+        report.presentations.len()
+    );
+}
+
+// ============================================================================
+// ATK-A2-UNION: #[presents] on a `union` declaration is silently ignored.
+//
+// ScanVisitor does not override visit_item_union. Union declarations with
+// #[presents] are invisible to the scanner — same blind-spot class as
+// macro_rules! and use items (both fixed) but not yet addressed for unions.
+//
+// Union declarations are high-risk (unsafe memory reinterpretation) and
+// exactly the kind of site that should carry explicit failure-class markers.
+//
+// STATUS: FAILING — visit_item_union is not overridden.
+// ============================================================================
+
+#[test]
+fn atk_a2_union_presents_is_not_silently_ignored() {
+    let report = scan_workspace(&fixture("atk_a2_union_presents"), None).unwrap();
+    assert_eq!(
+        report.presentations.len(),
+        1,
+        "ATK-A2-UNION: scanning a file with #[presents(BoundaryViolation)] \
+         on a union declaration must find exactly 1 presentation. \
+         Got {} presentations. \
+         Root cause: ScanVisitor does NOT override visit_item_union. Union \
+         declarations (which are inherently unsafe memory-reinterpretation) \
+         with #[presents] attrs are silently dropped. \
+         Same blind-spot class as macro_rules! and use-item. \
+         Fix: add visit_item_union override to ScanVisitor.",
+        report.presentations.len()
+    );
+}
+
+// ============================================================================
+// ATK-A2-FOREIGN-MOD: #[presents] on an `extern` block is silently ignored.
+//
+// ScanVisitor does not override visit_item_foreign_mod. An `extern "C" { ... }`
+// block annotated with #[presents] to mark the FFI boundary as presenting a
+// trust-boundary failure class is invisible to the scanner.
+//
+// FFI extern blocks are high-priority mucosal boundary sites — exactly where
+// BoundaryViolation and similar antigens should fire.
+//
+// STATUS: FAILING — visit_item_foreign_mod is not overridden.
+// ============================================================================
+
+#[test]
+fn atk_a2_foreign_mod_presents_is_not_silently_ignored() {
+    let report = scan_workspace(&fixture("atk_a2_foreign_mod_presents"), None).unwrap();
+    assert_eq!(
+        report.presentations.len(),
+        1,
+        "ATK-A2-FOREIGN-MOD: scanning a file with #[presents(BoundaryViolation)] \
+         on an extern block must find exactly 1 presentation. \
+         Got {} presentations. \
+         Root cause: ScanVisitor does NOT override visit_item_foreign_mod. FFI \
+         extern blocks annotated with #[presents] (e.g., marking an entire C \
+         interface as a mucosal trust-boundary site) are silently dropped. \
+         Fix: add visit_item_foreign_mod override to ScanVisitor.",
+        report.presentations.len()
+    );
+}
+
+// ============================================================================
+// ATK-A2-MOD: #[presents] ON a `mod` declaration itself is silently ignored.
+//
+// ScanVisitor does not override visit_item_mod. While items INSIDE a mod{}
+// block are reached by recursion (syn::visit::visit_item_mod descends), the
+// attribute ON the mod declaration itself is never routed through check_attrs.
+//
+// STATUS: FAILING — visit_item_mod is not overridden for the mod's own attrs.
+// ============================================================================
+
+#[test]
+fn atk_a2_mod_declaration_presents_is_not_silently_ignored() {
+    let report = scan_workspace(&fixture("atk_a2_mod_presents"), None).unwrap();
+    assert_eq!(
+        report.presentations.len(),
+        1,
+        "ATK-A2-MOD: scanning a file with #[presents(BoundaryViolation)] \
+         on a mod declaration must find exactly 1 presentation. \
+         Got {} presentations. \
+         Root cause: ScanVisitor does NOT override visit_item_mod. While \
+         items inside the mod are recursively visited, the attribute ON the \
+         mod declaration itself is never routed through check_attrs. \
+         Fix: add visit_item_mod override to ScanVisitor that checks item.attrs \
+         before calling syn::visit::visit_item_mod for recursion.",
+        report.presentations.len()
+    );
+}
+
+// ============================================================================
+// ATK-A2-EXTERN-CRATE: #[presents] on an `extern crate` declaration is silently
+// ignored.
+//
+// ScanVisitor does not override visit_item_extern_crate. An `extern crate foo;`
+// annotated with #[presents] to mark an external dependency as a known risk site
+// is invisible to the scanner.
+//
+// STATUS: FAILING before fix — visit_item_extern_crate not overridden.
+// ============================================================================
+
+#[test]
+fn atk_a2_extern_crate_presents_is_not_silently_ignored() {
+    let report = scan_workspace(&fixture("atk_a2_extern_crate_presents"), None).unwrap();
+    assert_eq!(
+        report.presentations.len(),
+        1,
+        "ATK-A2-EXTERN-CRATE: scanning a file with #[presents(ExternalDependencyRisk)] \
+         on an extern crate declaration must find exactly 1 presentation. \
+         Got {} presentations. \
+         Root cause: ScanVisitor did not override visit_item_extern_crate. \
+         Fix: add visit_item_extern_crate override to ScanVisitor.",
+        report.presentations.len()
+    );
+}
+
+// ============================================================================
+// ATK-A2-TRAIT-ALIAS: #[presents] on a trait alias declaration is silently
+// ignored.
+//
+// ScanVisitor does not override visit_item_trait_alias. A trait alias annotated
+// with #[presents] (e.g., marking a capability-narrowing alias as a boundary site)
+// is invisible to the scanner. Fixture uses nightly syntax; syn parses it
+// regardless of stable/nightly (syn supports the full Rust grammar).
+//
+// STATUS: FAILING before fix — visit_item_trait_alias not overridden.
+// ============================================================================
+
+#[test]
+fn atk_a2_trait_alias_presents_is_not_silently_ignored() {
+    let report = scan_workspace(&fixture("atk_a2_trait_alias_presents"), None).unwrap();
+    assert_eq!(
+        report.presentations.len(),
+        1,
+        "ATK-A2-TRAIT-ALIAS: scanning a file with #[presents(AliasCapabilityLeak)] \
+         on a trait alias declaration must find exactly 1 presentation. \
+         Got {} presentations. \
+         Root cause: ScanVisitor did not override visit_item_trait_alias. \
+         Fix: add visit_item_trait_alias override to ScanVisitor.",
+        report.presentations.len()
+    );
+}
