@@ -328,6 +328,21 @@ mod tests {
         assert!(!fp.matches(&item("struct S;")));
     }
 
+    // ATK-FP-VARIANTS-ZERO: variants = 0..=0 is valid and matches an empty enum.
+    // Empty enums (`enum Never {}`) are a real pattern in Rust for unreachable types.
+    #[test]
+    fn variants_zero_range_matches_empty_enum() {
+        let fp = fp("variants = 0..=0");
+        assert!(
+            fp.matches(&item("enum Never {}")),
+            "variants = 0..=0 must match an empty enum"
+        );
+        assert!(
+            !fp.matches(&item("enum E { A }")),
+            "variants = 0..=0 must NOT match a one-variant enum"
+        );
+    }
+
     #[test]
     fn has_method_matches_simple_signature() {
         let fp = fp(r#"has_method("meet", "(& self, other: Self) -> Self")"#);
