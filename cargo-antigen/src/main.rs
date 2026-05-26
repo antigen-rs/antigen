@@ -44,7 +44,7 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 
-use antigen::{audit, scan};
+use antigen::{audit, presents, scan};
 
 /// Cargo subcommand for antigen.
 #[derive(Debug, Parser)]
@@ -225,6 +225,16 @@ struct AttestCli {
     command: AttestSubcommand,
 }
 
+// AttestSubcommand carries the `Oracle` variant (hidden stub) which is a
+// declared CLI surface whose implementation is gated on ADR-021 plumbing not
+// yet written — a DeclaredCapabilityWithNoProductionPath instance at the
+// type-system level (the variant exists in the enum and surfaces in clap, but
+// invoking it returns the design-phase error rather than executing the
+// promised behavior). Type-level placement on the enclosing enum because Rust
+// forbids proc-macro attribute macros on variants directly (variant-position
+// placement does not compile — see compile-fail fixture in antigen-macros
+// tests/ui/presents_on_enum_variant.rs).
+#[presents(antigen::stdlib::dogfood::DeclaredCapabilityWithNoProductionPath)]
 #[derive(Debug, Subcommand)]
 enum AttestSubcommand {
     /// Create a new `.attest/<Antigen>.json` sidecar file adjacent to the source file.
@@ -722,6 +732,16 @@ struct VerifyMaintainerChangesArgs {
     since_version: String,
 }
 
+// `review_scope: String` (below) is the UnvalidatedSealedEnumAcceptance site:
+// the arg accepts an arbitrary String at clap parse-time and is matched in
+// run_verify_dep_attest against 5 valid ReviewScope variants + an `other`
+// fallthrough — the sealed-enum vocabulary lives in the type system
+// (`antigen::supply_chain::schema::ReviewScope`) but the CLI never enforces
+// membership at the boundary. A typo or invented value parses fine and falls
+// into the `other` arm with no signal. Type-level placement on the enclosing
+// struct (Rust forbids proc-macro attrs on struct fields directly — same
+// compile barrier as variants; see compile-fail fixture).
+#[presents(antigen::stdlib::dogfood::UnvalidatedSealedEnumAcceptance)]
 #[derive(Debug, Parser)]
 struct VerifyDepAttestArgs {
     /// Workspace root.
