@@ -451,3 +451,52 @@ fn adr025_audit_hints_const_matches_enum_serde_keys() {
         supply_chain_variants.len()
     );
 }
+
+// ============================================================================
+// ATK-HINT-2: ContentHashSidecarMalformed is missing from ADR025_AUDIT_HINTS
+//             and from supply_chain_variants in the parity test above.
+//
+// The parity test `adr025_audit_hints_const_matches_enum_serde_keys` checks
+// the const against a HAND-MAINTAINED `supply_chain_variants` list. When
+// `ContentHashSidecarMalformed` was added to AuditHint, it was NOT added to
+// `supply_chain_variants` — so the parity test passes even though the const
+// is missing the new variant. The witness for ParallelStateTrackersDiverge
+// has the same shape as the failure it defends against.
+//
+// This test directly asserts that the const includes `content-hash-sidecar-malformed`
+// — it will FAIL until both ADR025_AUDIT_HINTS and supply_chain_variants are
+// updated to include ContentHashSidecarMalformed.
+//
+// STATUS: FAILING — "content-hash-sidecar-malformed" not in ADR025_AUDIT_HINTS.
+// Fix: add "content-hash-sidecar-malformed" to ADR025_AUDIT_HINTS, and add
+// AuditHint::ContentHashSidecarMalformed to supply_chain_variants in the parity test.
+// ============================================================================
+
+#[test]
+fn atk_hint_2_content_hash_sidecar_malformed_is_in_audit_hints_const() {
+    // ATK-SC-2-A states that a sidecar-corrupted file MUST be a distinct hint
+    // from content-hash-no-attestation. The variant exists in the enum but its
+    // serde key is absent from ADR025_AUDIT_HINTS — the parity test cannot
+    // catch this because supply_chain_variants is also hand-maintained and
+    // was not updated when the variant was added to the enum.
+    use antigen::audit::AuditHint;
+    let serialized = serde_json::to_string(&AuditHint::ContentHashSidecarMalformed)
+        .expect("AuditHint::ContentHashSidecarMalformed must serialize");
+    let key = serialized.trim_matches('"');
+    assert_eq!(
+        key, "content-hash-sidecar-malformed",
+        "ATK-HINT-2: AuditHint::ContentHashSidecarMalformed must serialize to \
+         'content-hash-sidecar-malformed' (rename_all = kebab-case). \
+         Got '{key}'. If this changed, update the const entry too."
+    );
+    assert!(
+        ADR025_AUDIT_HINTS.contains(&"content-hash-sidecar-malformed"),
+        "ATK-HINT-2: 'content-hash-sidecar-malformed' is missing from ADR025_AUDIT_HINTS. \
+         AuditHint::ContentHashSidecarMalformed was added to the enum (ATK-SC-2-A: \
+         sidecar corruption must be distinct from missing attestation) but the const \
+         was not updated. The parity test also misses it because supply_chain_variants \
+         is hand-maintained. Fix: add 'content-hash-sidecar-malformed' to ADR025_AUDIT_HINTS \
+         AND add AuditHint::ContentHashSidecarMalformed to supply_chain_variants in \
+         adr025_audit_hints_const_matches_enum_serde_keys."
+    );
+}
