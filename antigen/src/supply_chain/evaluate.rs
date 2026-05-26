@@ -45,6 +45,16 @@ pub fn maintainer_path(workspace_root: &Path, crate_name: &str) -> PathBuf {
         .join(format!("{crate_name}.json"))
 }
 
+/// Returns `true` iff `name` is a safe crate name: only ASCII alphanumeric, `_`, or `-`.
+/// Rejects path traversal sequences (`..`, `/`, `\`) and other shell-special characters.
+#[must_use]
+pub fn is_valid_crate_name(name: &str) -> bool {
+    !name.is_empty()
+        && name
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '-')
+}
+
 // ============================================================================
 // dep_pinned
 // ============================================================================
@@ -343,6 +353,9 @@ pub fn evaluate_maintainer_unchanged(
     crate_name: &str,
     since_version: &str,
 ) -> MaintainerState {
+    if !is_valid_crate_name(crate_name) {
+        return MaintainerState::SnapshotMissing;
+    }
     let Some(snap) = load_maintainer_snapshot(workspace_root, crate_name) else {
         return MaintainerState::SnapshotMissing;
     };
