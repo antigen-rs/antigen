@@ -813,6 +813,63 @@ fn atk_a2_enum_variant_presents_is_not_silently_ignored() {
 }
 
 // ============================================================================
+// ATK-A2-ENUM-VARIANT-MULTI: two enum variants with different #[presents]
+// annotations share the same structural fingerprint (the enclosing enum's
+// digest). A consumer using structural_fingerprint as a unique key would
+// silently deduplicate or conflate the two presentations.
+//
+// This tests that BOTH presentations survive in the scan report with distinct
+// antigen_type fields — i.e., the shared fingerprint does not cause one to
+// shadow the other in the report.
+// ============================================================================
+
+#[test]
+fn atk_a2_enum_variant_multi_presents_both_survive_in_report() {
+    let report =
+        scan_workspace(&fixture("atk_a2_enum_variant_multi_presents"), None).expect("scan");
+
+    assert_eq!(
+        report.presentations.len(),
+        2,
+        "ATK-A2-ENUM-VARIANT-MULTI: two enum variants with different #[presents] annotations \
+         must both appear in scan output. Both share the enclosing enum's structural fingerprint \
+         (the enclosing-enum digest stands in for variants per scan.rs comment at ~4330). \
+         A consumer using structural_fingerprint as a unique key would silently lose one. \
+         Got {} presentations: {:?}.",
+        report.presentations.len(),
+        report.presentations,
+    );
+
+    let types: Vec<&str> = report
+        .presentations
+        .iter()
+        .map(|p| p.antigen_type.as_str())
+        .collect();
+    assert!(
+        types.contains(&"BoundaryViolation"),
+        "ATK-A2-ENUM-VARIANT-MULTI: BoundaryViolation presentation missing; got {:?}",
+        types,
+    );
+    assert!(
+        types.contains(&"CapabilityEscape"),
+        "ATK-A2-ENUM-VARIANT-MULTI: CapabilityEscape presentation missing; got {:?}",
+        types,
+    );
+
+    // Structural fingerprints for enum variants share the enclosing enum's digest.
+    // If they're EQUAL, that's by design (comment says "enclosing-enum digest stands in
+    // for each variant") — but it must be DOCUMENTED and not silently cause deduplication.
+    let fp0 = &report.presentations[0].structural_fingerprint;
+    let fp1 = &report.presentations[1].structural_fingerprint;
+    assert_eq!(
+        fp0, fp1,
+        "ATK-A2-ENUM-VARIANT-MULTI: two variants of the same enum SHOULD share the enum's \
+         structural fingerprint (the enclosing-enum digest stands in for each variant per \
+         scan.rs comment). If this fails, the design changed — update the test and docs.",
+    );
+}
+
+// ============================================================================
 // ATK-A2-IMPL-CONST: #[presents] on an impl-block const is silently ignored
 //
 // `ScanVisitor` has `visit_impl_item_fn` but NO `visit_impl_item_const`
@@ -1455,5 +1512,67 @@ fn atk_a2_impl_item_type_digest_not_contaminated_by_preceding_item() {
          Fix: add 'self.current_item_digest = antigen_fingerprint::structural_digest(item);' \
          as the FIRST line of visit_impl_item_type.",
         fp0,
+    );
+}
+
+// ============================================================================
+// ATK-A2-SCAN-NONEXISTENT-PATH: scan_workspace on a nonexistent path returns
+// Ok with an empty report (0 files scanned, no error signal).
+//
+// scan_workspace uses WalkDir::new(root) and silently skips all walk errors
+// via `let Ok(entry) = entry else { continue }`. This means a typo in the
+// scan root produces a successful-looking empty report. An adopter who calls
+// `cargo antigen scan --root /typo/path` sees zero presentations with no
+// indication that nothing was scanned. The scan SHOULD distinguish between
+// "scanned, found nothing" and "couldn't scan at all."
+//
+// This test documents the current behavior (Ok empty report) and asserts
+// that files_scanned == 0 — callers must check this field to detect a
+// misconfigured root. A future fix could return Err or warn in parse_failures.
+// ============================================================================
+
+#[test]
+fn atk_a2_scan_nonexistent_path_returns_empty_report_silently() {
+    let nonexistent = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("fixtures")
+        .join("__this_path_does_not_exist__");
+    assert!(
+        !nonexistent.exists(),
+        "test precondition: path must not exist"
+    );
+
+    let result = scan_workspace(&nonexistent, None);
+
+    assert!(
+        result.is_ok(),
+        "ATK-A2-SCAN-NONEXISTENT-PATH: scan_workspace on a nonexistent path currently \
+         returns Ok (not Err). This test documents the CURRENT behavior — if this assertion \
+         fails, scan_workspace now returns Err for nonexistent paths, which is BETTER behavior. \
+         Update this test to verify the Err is descriptive."
+    );
+
+    let report = result.unwrap();
+    assert_eq!(
+        report.files_scanned, 0,
+        "ATK-A2-SCAN-NONEXISTENT-PATH: an empty-path scan must yield files_scanned == 0. \
+         Callers must check this field to distinguish 'scanned and found nothing' from \
+         'path was invalid and nothing was scanned'. Got files_scanned = {}.",
+        report.files_scanned,
+    );
+    assert!(
+        report.presentations.is_empty(),
+        "ATK-A2-SCAN-NONEXISTENT-PATH: nonexistent path scan must produce no presentations. \
+         Got: {:?}",
+        report.presentations,
+    );
+    assert!(
+        report.parse_failures.is_empty(),
+        "ATK-A2-SCAN-NONEXISTENT-PATH: current behavior emits no parse_failure for a \
+         nonexistent root — walk errors are silently discarded (line 2452 of scan.rs: \
+         'let Ok(entry) = entry else {{ continue }}'). \
+         A future improvement could add a parse_failure entry for 'root path not found'. \
+         Got: {:?}",
+        report.parse_failures,
     );
 }
