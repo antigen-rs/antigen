@@ -148,10 +148,6 @@ fn atk_dx_f8_sign_empty_fp_any_passes() {
 /// The camp live reproducer: `R:/camp/src/schema/.attest/VacuousCompletionFalseGreen.json`
 /// was signed for an immune site using `witness=` — audit ignored the sidecar completely.
 #[test]
-#[ignore = "Finding 3 audit-side fix not yet shipped — code-witness branch (audit.rs ~1036) \
-            never checks for sidecar presence when requires_predicate is None; \
-            jq hint half is fixed, audit warning half is not. Remove ignore when the \
-            warn-ignored-sidecar path lands in audit_code_witness."]
 fn atk_dx_f3_audit_warns_on_sidecar_for_witness_site() {
     use std::io::Write;
 

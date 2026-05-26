@@ -3359,6 +3359,21 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
                     // The hint already says which case applies.
                 }
             }
+            // DX finding 3: a code-witness (`witness = ...`) site that also has
+            // a `.attest/` sidecar on disk. The sidecar is silently uncredited
+            // — substrate-witness sidecars are evaluated only on the
+            // `requires = ...` path — so warn rather than let the adopter
+            // believe a signed sidecar attests this site.
+            if a.code_witness_sidecar_ignored {
+                println!(
+                    "    → sidecar ignored: a `.attest/` substrate-witness sidecar exists \
+                     for this antigen, but this site uses `witness = ...`, not \
+                     `requires = ...`. Substrate-witness sidecars are credited only for \
+                     `requires =` immunities, so the sidecar can never be counted here. \
+                     Either switch this site to `requires = <predicate>` to use the \
+                     sidecar, or remove the orphan sidecar."
+                );
+            }
         }
         println!();
         println!(

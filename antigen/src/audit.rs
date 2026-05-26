@@ -626,6 +626,16 @@ pub struct ImmunityAudit {
     /// `None` for code-witness paths. F19 Gap-4 / ADR-019 §M4.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub evaluated_predicate: Option<String>,
+    /// `true` when this is a *code-witness* immunity (`witness = ...`, not
+    /// `requires = ...`) for which a `.attest/<antigen>.json` substrate-witness
+    /// sidecar nonetheless exists on disk. The sidecar can never be credited:
+    /// substrate-witness sidecars are evaluated only for `requires = ...`
+    /// immunities, so a sidecar scaffolded + signed against a `witness = ...`
+    /// site is silently dead. Audit surfaces this as a warning (DX finding 3 —
+    /// the silent disconnect between the attestation surface and the declared
+    /// witness kind). `false` for the common case (no orphan sidecar).
+    #[serde(default)]
+    pub code_witness_sidecar_ignored: bool,
 }
 
 /// Backward-compat default for [`ImmunityAudit::evidence_kind`] on
@@ -1039,6 +1049,14 @@ pub fn audit(report: &ScanReport, workspace_root: &Path) -> AuditReport {
                 let witness_tier = WitnessTier::from_status(&status);
                 let audit_hint = AuditHint::from_status(&status);
                 let evidence_kind = evidence_kind_from_status(&status);
+                // DX finding 3: this is a code-witness site (no `requires =`).
+                // If a `.attest/<antigen>.json` sidecar exists for it anyway,
+                // the adopter scaffolded + signed a substrate-witness sidecar
+                // that audit will NEVER credit (sidecars are evaluated only on
+                // the `requires =` path). Detect it so the printer can warn,
+                // rather than letting the adopter believe they've attested.
+                let code_witness_sidecar_ignored =
+                    load_sidecar(&immunity.file, &immunity.antigen_type).is_some();
                 ImmunityAudit {
                     immunity: immunity.clone(),
                     witness_status: status,
@@ -1048,6 +1066,7 @@ pub fn audit(report: &ScanReport, workspace_root: &Path) -> AuditReport {
                     signature_strength: None,
                     compound_evidence: false,
                     evaluated_predicate: None,
+                    code_witness_sidecar_ignored,
                 }
             },
             |predicate_json| audit_substrate_witness(immunity, predicate_json),
@@ -1200,6 +1219,10 @@ fn immunity_audit_from_evaluated(
         signature_strength: result.signature_strength,
         compound_evidence: false,
         evaluated_predicate: Some(predicate_json),
+        // Substrate-witness path: the sidecar IS credited here (this is the
+        // `requires =` path), so the code-witness-orphan-sidecar warning does
+        // not apply.
+        code_witness_sidecar_ignored: false,
     }
 }
 
