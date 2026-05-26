@@ -899,6 +899,16 @@ pub struct CapabilityOmissionAtLowering;
 ///   at the 20 non-drifted examples and the adopter cannot distinguish signal
 ///   from recall.
 ///
+/// **The two directions are NOT equally severe** (the F8 severity-asymmetry, the
+/// one thing the symmetric name "Diverges" must not flatten): under-coverage is a
+/// **false negative — HIGH severity**. A real instance escapes the fingerprint and
+/// ships undefended; a missed fail-class shipping silently is the exact thing
+/// antigen exists to prevent. Over-coverage is a **false positive — advisory
+/// severity**. It is noise (flag for tightening) and costs adopter trust, but it
+/// is *safe* — nothing ships undefended. Audit support should rank under-coverage
+/// above over-coverage accordingly (direction-discriminated hints, under = HIGH /
+/// over = advisory).
+///
 /// The biological cognate is **original antigenic sin**: a recognition receptor
 /// imprinted on the first-seen antigen strain binds that strain with high
 /// affinity while under-binding the variant. The immune system's answer is
