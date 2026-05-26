@@ -378,6 +378,39 @@ the direction even where the implementation lands later.
   presentations + immunity status; recognition at the moment of
   authorship rather than build time. Maps to Component 7 (real-time /
   CI feedback) of multi-component immunity.
+- **Cross-crate scan reachability (ADR-001 C7 activation path)** —
+  what `cargo antigen scan --include-deps` does *today* (v0.2) is
+  scan each dependency crate **independently**: every dep's antigens
+  appear in their own `dep_reports` entry, with `canonical_path`
+  stamped to `name@version` (ADR-017 identity model). It does **not**
+  yet do cross-crate *matching*: a dependency's `#[presents]` site is
+  not resolved against the consuming workspace's `#[immune]`
+  declarations, and a fingerprint declared in crate A is not
+  synthesized against items in crate B. Each crate's report stays its
+  own bag of antigens.
+
+  The activation path — **cross-crate `addresses()` matching +
+  cross-crate fingerprint synthesis** — is what realizes ADR-001
+  Amendment 1 C7's commitment ("cross-crate consumption is in-scope for
+  v1+") into the scanner. Two realizations, smallest-first:
+  - *Workspace-internal cross-crate* (the dogfood case): scan the whole
+    antigen workspace as one root so every in-repo `#[antigen]`
+    declaration is in fingerprint-scope for every in-repo item. This is
+    what makes antigen-on-antigen self-scanning reach instances that
+    live in a different workspace crate than their declaration (e.g. an
+    antigen declared in `antigen::stdlib::dogfood` matching a
+    `#[presents]`/fingerprint instance in `antigen-macros`).
+  - *True cross-registry-crate* (the full ADR-001 C7 build): apply a
+    dependency crate's declared fingerprints to the consumer's items
+    via the `cargo metadata`-driven dep walk, honoring the ADR-017
+    `name@version` trust boundary.
+
+  Deferred from v0.1 by the Sweep A3 scope-lock (deliberate, not
+  unbuilt). Reopening it is an ADR-scope decision, not an incremental
+  scanner tweak — the per-crate-isolation model is load-bearing for the
+  current trust-boundary semantics. Tracked because the commitment is
+  foundational (ADR-001 C7) and the dogfood self-scan case makes the
+  workspace-internal realization concretely useful before v1.
 
 ---
 
