@@ -1048,9 +1048,16 @@ from the Rust source AST. Extends the witness vocabulary (ADR-001, ADR-002) to d
 failure-classes whose immunity evidence lives outside the code.
 
 **The `witness =` vs `requires =` choice**: substrate-witness (`requires=`) is one of two
-proof channels on `#[immune]`; the other is the code-witness channel (`witness=`). See the
-`witness =` vs `requires =` guidance under [`### witness`](#witness) (§Composition terms)
-for the full contrast-pair and choosing-heuristic. The two channels are mutually exclusive.
+proof channels on `#[immune]`; the other is the code-witness channel (`witness=`). The two
+channels are mutually exclusive. Quick heuristic: **can a test execute the thing you're defending?** If yes,
+reach for `witness =` (code-witness path — a test, proptest, lint, or formal-proof runs it).
+If no — the failure-class is about substrate state that a test can't verify (a sign-off record,
+a ratified doc, an unpinned dependency, an un-reviewed discipline) — reach for `requires =`
+(substrate-witness path — `cargo antigen audit` evaluates the predicate against the `.attest/`
+sidecar). These are co-equal siblings, not basic vs advanced; the choice is driven by what kind
+of failure-class you're defending against. See [`### witness`](#witness) (§Composition terms)
+for the full contrast-pair with category-mapping (FunctionalCorrectness → `witness=`;
+SubstrateAlignment → `requires=`).
 
 ### ratification
 

@@ -223,6 +223,11 @@ pub fn presents(args: TokenStream, input: TokenStream) -> TokenStream {
 
 /// Declare immunity to a known antigen, backed by evidence that proves it.
 ///
+/// **Choosing `witness =` vs `requires =`**: can a test *execute* the thing you're defending?
+/// If yes, use `witness =` (the code runs, so a test/proptest/proof/lint can verify it). If no
+/// — the failure-class is about substrate state that code execution can't verify (a stale
+/// document, an unpinned dependency, an un-reviewed discipline sign-off) — use `requires =`.
+///
 /// # Arguments
 ///
 /// - The antigen type name (positional)

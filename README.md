@@ -98,7 +98,7 @@ Five macros form antigen's core vocabulary:
 
 - **`#[antigen(...)]`** — declare a named failure-class with a structural fingerprint
 - **`#[presents(AntigenName)]`** — mark code as vulnerable to a known failure-class
-- **`#[immune(AntigenName, witness = ...)]`** — claim the code is protected, naming the witness (test, proptest, formal proof, lint, phantom-type) that verifies it
+- **`#[immune(AntigenName, witness = ...)]`** or **`#[immune(AntigenName, requires = ...)]`** — claim the code is protected. Use `witness =` when a *test can run the defense* (the failure-class is about behavior — a test, proptest, formal proof, lint, or phantom-type exercises it); use `requires =` when the evidence lives *outside the code* (the failure-class is about substrate state — a sign-off, a ratified doc, a signed record, evaluated by `cargo antigen audit`)
 - **`#[descended_from(Parent)]`** — declare structural inheritance between failure-classes
 - **`#[antigen_tolerance(AntigenName, rationale = ...)]`** — explicitly tolerate a fingerprint match the team has reviewed
 
