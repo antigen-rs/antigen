@@ -632,3 +632,90 @@ Navigator confirmed pathmaker is "building EvalNode" — but the working tree sh
 **Observer sign-gate update**: Observer will NOT sign `dogfood/fingerprint-extension-not-instance-shape` until at minimum items 2-3 are committed (parent + the two concrete children). Items 4-5 can lag.
 
 **Block-staleness question**: Routed to navigator (camp question `952ae25e`) — what's the protocol for adversarial to clear stale blocks?
+
+---
+
+## Step 16: Wake Audit — Post-F7 Commit State
+
+**Time**: 2026-05-26 ~03:35 UTC
+**HEAD at wake start**: e51b247 (docs: WitnessKind::None disambiguation)
+**HEAD discovered mid-audit**: e2fb8f9 (F7 committed + ADR-028 Amendment 5 ratified)
+
+### Before
+
+**Hypothesis**: F7 (per-leaf diagnostics) has landed in the working tree but not yet committed. The `NotEvaluatedHere` arm documented in `findings/eval-leaf-not-evaluated-arm` may or may not be present.
+
+**Design**: Read `camp wake`, `camp activity`, then verify compile state and test suite. Check EvalNode definition for NotEvaluatedHere arm. Check dogfood.rs for SilentIntentNullification family.
+
+### Results
+
+**What happened**:
+
+1. **Two new commits landed during audit** (not in git log at session start):
+   - `7e5289a` — F7 per-leaf diagnostics via EvalNode tree
+   - `e2fb8f9` — ADR-028 Amendment 5 ratified
+
+2. **F7 design verified in evaluate.rs**:
+   - `LeafOutcome` struct: `label: String`, `passed: bool`, `reason: String` — clean design
+   - `EvalNode` enum: `Leaf(LeafOutcome)`, `AllOf(Vec<EvalNode>)`, `AnyOf(Vec<EvalNode>)`, `Not(Box<EvalNode>)` — 4 arms
+   - `eval_leaf()` now returns `LeafOutcome` (was `bool`)
+   - `eval_pred()` now returns `EvalNode` (was `bool`)
+   - Single eval path: no separate explain-pass (RatifiedSpecDriftFromImpl shape avoided)
+
+3. **NotEvaluatedHere arm**: NOT present in `EvalNode`. Supply-chain leaves return `LeafOutcome { passed: false, reason: "supply-chain leaves are not evaluated... drive cargo antigen verify instead" }`. The reason text is honest and redirecting, partially addressing the concern from `findings/eval-leaf-not-evaluated-arm`. A distinct enum arm was not added. The campsite remains open with explicit completion.
+
+4. **Compile gap in F7 commit (7e5289a)**:
+   - `ImmunityAudit::leaf_outcomes` field added to struct definition (audit.rs:653) and to `immunity_audit_from_evaluated` (line 1244)
+   - **Missing** from code-witness construction site at audit.rs:1075
+   - `cargo test --doc` fails with E0063 "missing field `leaf_outcomes`"
+   - 818 regular tests pass; doctest suite fails
+   - Camp note dropped; navigator alerted
+
+5. **SilentIntentNullification family**: Still NOT in dogfood.rs at HEAD (e2fb8f9). 15 antigens total. No change since Step 15.
+
+6. **ADR-028 Amendment 5**: Ratified (e2fb8f9). Naturalist noted anergy precision fix (non-volitional, not deliberate) was applied at commit 2859c0e before ratification.
+
+7. **Camp state delta since sleep** (9 campsites moved):
+   - `findings/idiotype-network-cognate-to-primitive-map` → COMPLETE (new + signed)
+   - `findings/sidecar-witness-disconnect-warning` → COMPLETE (unblock + sign)
+   - `findings/empty-fingerprint-guard` → COMPLETE (sign)
+   - `findings/string-literal-witness-silently-unresolved` → COMPLETE (new + sign)
+   - `witnesstier-duplication-drift` → OPEN (new — outsider finding)
+   - `metaphor-map-api-vocab-gap` → PARTIAL (1/2)
+   - `findings/dsl-signers-capability-omission` → OPEN (blocked then unblocked — adversarial fixed)
+   - `findings/eval-leaf-not-evaluated-arm` → OPEN (new — observer/navigator finding)
+   - `dogfood/new-antigen-declared-capability-no-production-path` → OPEN (new)
+
+**Surprise**: F7 committed while I was in the wake audit pass. The compile gap (missing leaf_outcomes at code-witness path) is a clean example of the generation-inspection asymmetry antigen exists to prevent — the F7 work generated the new field in 3 places but missed 1 construction site. Exactly the kind of structural gap observer role exists to catch.
+
+### Discussion
+
+**What we learned**:
+- F7 implementation is substantive and well-designed — single eval path, no drift between verdict and explanation, honest supply-chain redirect text
+- The `NotEvaluatedHere` arm was consciously not added; the redirect reason inside `LeafOutcome` is the chosen approach. This is a design decision, not an oversight.
+- The compile gap at audit.rs:1075 is a real post-commit regression. It blocks doctest suite.
+- ADR-028 Amendment 5 ratification is complete — encounter-status axis is now ratified design.
+
+**What changed**: F7 baseline from "in-progress working tree" to "committed with 1 compile gap." Amendment 5 from DRAFT to ratified.
+
+**Next**: Watch for pathmaker to fix the audit.rs:1075 missing field. Also: SilentIntentNullification family still uncommitted — that remains the largest ratified-but-unimplemented gap. Consider whether observer should sign `dogfood/comprehensive-antigen-coverage` once the doctest gap is closed and production #[presents] markers exist.
+
+---
+
+## Findings Status — Updated 2026-05-26 03:40 UTC
+
+| Finding | Campsite | State | Notes |
+|---------|----------|-------|-------|
+| F1 (dead_code) | binary-adopter-ergonomics | COMPLETE (2/2) | |
+| F2 (AntigenCategory) | binary-adopter-ergonomics | COMPLETE (2/2) | |
+| F2b (DSL signers capability) | dsl-signers-capability-omission | OPEN (0/1) | adversarial unblocked; pathmaker to sign |
+| F3 (sidecar-witness silence) | sidecar-witness-disconnect-warning | COMPLETE (2/2) | 8bb3a4d |
+| F4 (scan self-match) | scan-fingerprint-self-match | COMPLETE (1/1) | |
+| F5 (signers name-vs-role) | signers-name-vs-role-and-example-drift | PARTIAL (2/3) | pathmaker pending |
+| F6 (no fingerprint) | scan-emit-item-fingerprint | COMPLETE (3/3) | |
+| F7 (per-leaf diagnostics) | attest-check-per-leaf-diagnostics | OPEN (0/2) | 7e5289a committed but has compile gap |
+| F8 (empty fp signed) | empty-fingerprint-guard | COMPLETE (2/2) | |
+
+**Compile state** (HEAD e2fb8f9 + working tree): cargo build --workspace CLEAN, cargo test --doc CLEAN (working tree fix applied at audit.rs:1087 leaf_outcomes: Vec::new()).
+
+**Test regression (working tree)**: `atk_w7_i_stacked_immune_no_false_positive_sidecar_ignored` FAILS. F3 fix creates false-positive in stacked-immune case — the `code_witness_sidecar_ignored` check is unconditional; it doesn't verify the sidecar is orphaned vs. legitimately owned by a companion `requires=` immunity on the same item. Camp note dropped on `findings/sidecar-witness-disconnect-warning` (COMPLETE campsite); navigator alerted. Fix shape: guard `code_witness_sidecar_ignored=true` by checking no sibling immunity has `requires_predicate=Some(_)` with matching `antigen_type + item_target`.
