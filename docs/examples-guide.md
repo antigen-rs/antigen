@@ -232,7 +232,7 @@ audit confirms the proof structure is recognized.
 - The `requires` predicate names what the sidecar file must contain for the immunity claim to hold
 
 **What to learn**:
-- Substrate-witness leaves: `signers(required = [...])`, `fresh_within_days(N)`, `ratified_doc(reference = ...)`, `oracles_complete(required = [...])`, `signed_trailer(...)`
+- Substrate-witness leaves: `signers(required = [...])`, `fresh_within_days(N)`, `ratified_doc(path = ...)`, `oracles_complete(files = [...])`, `signed_trailer(...)`
 - Combinators: `all_of`, `any_of`, `not`
 - The sidecar lives at `.attest/<AntigenName>.json` co-located with the declaration
 - Audit tier climbs from `None` → `Reachability` → `Execution` as the sidecar gets scaffolded, then signed by required signers
@@ -257,7 +257,7 @@ cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
 
 **What's in the file**:
 - Oracle declared via `cargo antigen oracle declare ...` with steward + provenance
-- Antigen with `#[immune(..., requires = oracles_complete(required = ["higham-2002-section-6-3"]))]`
+- Antigen with `#[immune(..., requires = oracles_complete(files = ["higham-2002-section-6-3"]))]`
 - Lifecycle transitions: Draft → Complete (signers attest the Oracle's content matches the reference) → Deprecated (the reference still exists but newer guidance supersedes) → Retired / Revoked
 
 **What to learn**:

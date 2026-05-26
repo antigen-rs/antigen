@@ -92,7 +92,7 @@ The core vocabulary, scan + audit tooling, substrate-witness pipeline, Oracle ar
 - **Fingerprint grammar v1** — seven item-level operators (`item`, `name`, `variants`, `has_method`, `attr_present`, `doc_contains`, `body_contains_macro`) plus composition (`all_of`, `any_of`, `not`); proc_macro2 canonicalization per ADR-010 Amendment 5
 
 ### Substrate-witness machinery (ADR-019)
-- **`#[immune(X, requires = <predicate>)]`** form with substrate-witness leaves: `signers(required = [...])`, `fresh_within_days(N)`, `ratified_doc(reference = ...)`, `oracles_complete(required = [...])`, `signed_trailer(...)`
+- **`#[immune(X, requires = <predicate>)]`** form with substrate-witness leaves: `signers(required = [...])`, `fresh_within_days(N)`, `ratified_doc(path = ...)`, `oracles_complete(files = [...])`, `signed_trailer(...)`
 - **Predicate combinators** — `all_of`, `any_of`, `not`
 - **Three-tier SignatureStrength** (per ADR-019 v1+3): WORKSPACE-LOCAL, OIDC-IDENTITY, KEY-SIGNED with explicit audit-time reporting
 - **Sidecar discovery** — `.attest/<Antigen>.json` co-located with declaration
