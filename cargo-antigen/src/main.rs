@@ -2348,7 +2348,7 @@ fn print_human_report(report: &scan::ScanReport, unaddressed: &[scan::Unaddresse
     println!("  - {} antigen declarations", report.antigens.len());
     println!("  - {} explicit #[presents] markers", explicit_count);
     if fingerprint_count > 0 {
-        println!("  - {fingerprint_count} fingerprint matches (unmarked sites)");
+        println!("  - {fingerprint_count} fingerprint matches (candidate sites — see below)");
     }
     if !report.tolerances.is_empty() {
         println!(
