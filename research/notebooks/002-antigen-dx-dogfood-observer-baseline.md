@@ -817,3 +817,52 @@ The biology metaphor is operating as a predictive instrument, not just post-hoc 
 - `ActiveArgumentDiscard` (rename of `SilentArgumentDiscard`)
 - `DeferredIntentNullification` (3rd child)
 - `AntigenFingerprintDivergesFromClassExtension` (meta-antigen)
+
+---
+
+## Step 19: Post-Sleep Wake Audit — #17 Landed
+
+**Time**: 2026-05-26 ~05:00 UTC  
+**HEAD at wake**: `89f8108` (`AntigenFingerprintDivergesFromClassExtension` #17 + WitnessTier parity)  
+**Test state at wake**: 828 pass, 48 ignored  
+**Camp state delta since sleep**: 4 campsites moved: `dogfood/scanner-enum-variant-blindspot` → COMPLETE (explicit), `dogfood/layer1-production-presents-markers` → OPEN (new), `findings/dsl-signers-capability-omission` → COMPLETE (1/1), `witnesstier-duplication-drift` → PARTIAL (1/2, block+unblock+sign)
+
+### What Landed at 89f8108
+
+Three bundled changes:
+
+1. **`AntigenFingerprintDivergesFromClassExtension` (#17) committed** — meta-antigen at `dogfood.rs:829-896`. `SubstrateAlignment` category. Two divergence directions documented in docstring with biological cognate (original antigenic sin). Summary: "the fingerprint's match-set diverges from the class's true extension." References `ADR-006`, `ADR-010`, `docs/testing-patterns.md`.
+
+2. **`audit::WitnessTier` gained `Hash` derive** — `antigen_attestation::WitnessTier` already derived `Hash`; `audit::WitnessTier` did not. `atk_witness_tier_parity.rs` was authored to FAIL until this fix. Now 828 pass. The `#[ignore]` on `atk_a2_enum_variant_presents_is_not_silently_ignored` means 48 ignored (was 1 fail, now properly ignored as TDD pin awaiting scanner fix).
+
+3. **Testing infrastructure cleanup** — `docs/testing-patterns.md` fingerprint-authoring-discipline section committed (was in working tree), `atk_witness_tier_parity.rs` clippy warnings cleaned, `atk_a2_adversarial.rs` enum-variant test properly `#[ignore]`'d, `atk_a2_impl_const_presents` specimen fixture committed.
+
+### Stale Regression Flag Resolution
+
+The F3 stacked-immune regression I flagged in the lab notebook (Step 16/17) was caught and fixed at commit `19e018f` **before my sleep** — I wrote the flag from pre-fix context. Navigator confirmed both campsites (`findings/sidecar-witness-disconnect-warning`, `findings/stacked-immune-sidecar-false-positive`) stand as closed. The flag was correct at the time of writing; the fix crossed in flight. No action needed.
+
+### Gate Audit: dogfood/fingerprint-extension-not-instance-shape
+
+Gate condition requires: "(b) AntigenFingerprintDivergesFromClassExtension antigen in stdlib/dogfood.rs with **2 severity-discriminated hints** (under-covers=HIGH/false-negative, over-covers=advisory)."
+
+**What shipped**: The committed #17 antigen documents two divergence directions in its docstring ("silent under-coverage", "noisy over-coverage") and summary ("producing silent under-coverage... or noisy over-coverage"), but does NOT use the explicit HIGH/advisory severity labels the gate condition specifies.
+
+**Key severity asymmetry** (from naturalist's note at 02:43 in campsite story): UNDER-coverage = false negative (real instance escapes, HIGH severity — defeats the tool's purpose). OVER-coverage = false positive (noise, advisory — flags non-risk sites). The asymmetry IS documented in the campsite story and in naturalist's notes, but NOT reflected in the committed antigen's macro attributes or summary text as explicit severity labels.
+
+**Observer finding**: The "2 severity-discriminated hints" gate condition uses "hints" in the sense of labeled severity discriminators, not the antigen macro's `hints=` field (which doesn't exist as a macro attribute). Whether the committed docstring language ("silent" vs "noisy") satisfies this gate is naturalist's judgment to make, not observer's to decide. Camp note dropped on campsite, routed to naturalist.
+
+**Remaining unresolved**: `SilentIntentNullification` family (parent + `ActiveArgumentDiscard` rename + `DeferredIntentNullification`) still not in dogfood.rs. These 3 items remain the largest ratified-but-uncommitted gap.
+
+### Antigen Count Update
+
+| # | Name | Status |
+|---|------|--------|
+| 1-15 | (prior arc) | Committed |
+| 16 | `CapabilityOmissionAtLowering` | Committed (`aaea684`) |
+| 17 | `AntigenFingerprintDivergesFromClassExtension` | Committed (`89f8108`) |
+
+**Total committed**: 17 antigens in dogfood.rs. SilentIntentNullification family (parent + 2 descendants + 1 holding for first instance) remains uncommitted.
+
+### Observer Sign-Gate Status (unchanged)
+
+`dogfood/comprehensive-antigen-coverage` — NOT signed. Still 0 production `#[presents]` markers in non-dogfood, non-example, non-test codebase. 17 antigens declared; none pointed at from production code. Gate condition: this campsite's name implies comprehensive coverage, which is not yet achieved.
