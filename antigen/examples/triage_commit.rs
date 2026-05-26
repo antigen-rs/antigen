@@ -190,7 +190,9 @@ fn main() {
     println!("  triage_commit: 'I have diagnosed this. Acting NOW. Here is why.' (DECISION)");
     println!();
     println!("new_auth_handler:            #[orient] — training gap, not a live incident");
-    println!("rollback_auth_to_last_clean: #[triage_commit] Red — active exploit, bounded rollback");
+    println!(
+        "rollback_auth_to_last_clean: #[triage_commit] Red — active exploit, bounded rollback"
+    );
     println!();
     println!("The 5-color triage scale:");
     println!("  Black  — system-down; catastrophic; 5min window");
