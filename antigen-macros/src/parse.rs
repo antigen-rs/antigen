@@ -356,7 +356,39 @@ impl ImmuneArgs {
                  entries.",
             )),
             (_, Some((pred, span))) => pred.validate(*span),
-            (Some(_), None) => Ok(()),
+            (Some(witness), None) => {
+                // A witness must be a bare identifier or path to the verifying
+                // item (a test fn, lint reference, proof, or phantom-type
+                // construction). A STRING LITERAL (`witness = "my_test"`) is
+                // accepted by `Expr` parsing but silently never resolves: the
+                // audit-time resolver compares fn names against the witness
+                // token, and a string literal carries its quote characters, so
+                // it searches for a fn literally named `"my_test"` and always
+                // reports "broken: no function found." Reject it loudly here —
+                // the macro is the earliest, clearest place to catch the
+                // mis-shape (ADR-005 sub-clause F: a trust-boundary input
+                // accepted in an unhonorable shape is not a valid claim).
+                if let Expr::Lit(syn::ExprLit {
+                    lit: syn::Lit::Str(s),
+                    ..
+                }) = witness
+                {
+                    return Err(syn::Error::new_spanned(
+                        witness,
+                        format!(
+                            "#[immune] `witness` must be a bare identifier or path to the \
+                             verifying item (e.g. `witness = my_test`), not a string literal. \
+                             `witness = \"{}\"` silently never resolves at audit time because \
+                             the resolver matches function names against the token, and a \
+                             string literal carries its quotes. Drop the quotes: \
+                             `witness = {}`.",
+                            s.value(),
+                            s.value()
+                        ),
+                    ));
+                }
+                Ok(())
+            }
         }
     }
 

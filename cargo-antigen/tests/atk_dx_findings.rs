@@ -133,35 +133,131 @@ fn atk_dx_f8_sign_empty_fp_any_passes() {
 // Finding 3 — sidecar/witness= disconnect warning
 // ============================================================================
 
-/// FAILING: `audit` against a codebase where an immune site uses `witness=` but
-/// has a signed `.attest/` sidecar must warn that the sidecar is ignored.
+/// FAILING: `audit` against a workspace where an immune site uses `witness=` but
+/// has a signed `.attest/` sidecar must warn that the sidecar is being ignored.
 ///
-/// Currently: audit sees the sidecar but uses only the `witness=` code-witness
-/// and emits no signal that the sidecar is being bypassed. The adopter believes
-/// they've attested; audit disagrees silently.
+/// Currently: audit takes the code-witness branch (`validate_witness`) when
+/// `requires_predicate` is None, never checks for a sidecar, and emits no signal.
+/// The adopter believes they've attested; audit disagrees silently.
 ///
-/// This test documents the gap at the audit surface. The scaffold-layer warning
-/// is a complementary fix (harder to implement — scaffold doesn't parse source).
+/// Reproducer: `antigen/tests/fixtures/atk_a2_003_empty_witness` has
+/// `#[immune(PanickingInDrop, witness = empty_witness)]`. We scaffold+sign a sidecar
+/// adjacent to that file, run audit --root on the antigen workspace, and assert
+/// the output warns about the ignored sidecar.
 ///
-/// Reproducer (from camp expedition):
-///   - camp has `SubstrateAlignment` antigens with `witness=` in `#[immune]`
-///   - camp signed sidecars via `attest sign` for those sites
-///   - `audit` output was completely unchanged; sidecar contribution: zero
-///   - nothing in audit output said "sidecar X is not credited because witness= site"
+/// The camp live reproducer: `R:/camp/src/schema/.attest/VacuousCompletionFalseGreen.json`
+/// was signed for an immune site using `witness=` — audit ignored the sidecar completely.
 #[test]
 fn atk_dx_f3_audit_warns_on_sidecar_for_witness_site() {
-    // Build a fixture workspace with: an antigen declared, an #[immune] using witness=,
-    // and a signed .attest/ sidecar for that site.
-    // Then run audit and assert a warning mentions the sidecar/witness= disconnect.
+    use std::io::Write;
+
+    // The fixture directory that has a witness= immune site.
+    let fixture_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join("antigen")
+        .join("tests")
+        .join("fixtures")
+        .join("atk_a2_003_empty_witness");
+
+    assert!(
+        fixture_dir.exists(),
+        "fixture dir must exist: {}",
+        fixture_dir.display()
+    );
+
+    // Scaffold a sidecar for the witness= immune site in the fixture.
+    let attest_dir = fixture_dir.join(".attest");
+    std::fs::create_dir_all(&attest_dir).unwrap();
+    let sidecar_path = attest_dir.join("PanickingInDrop.json");
+
+    // Write a minimal sidecar manually (scaffold would work too, but this is deterministic)
+    let sidecar_content = r#"{
+  "schema_version": "v1",
+  "kind": "immunity",
+  "antigen": { "name": "PanickingInDrop" },
+  "source_file": "antigen/tests/fixtures/atk_a2_003_empty_witness/lib.rs",
+  "items": [
+    {
+      "item_path": "SomeType::drop",
+      "current_fingerprint": "test-fp",
+      "signers": [
+        {
+          "name": "test-adversarial",
+          "role": "adversarial",
+          "date": "2026-05-25",
+          "signed_against_fingerprint": "test-fp",
+          "basis": { "kind": "fresh", "reasoning": "ATK test signer - this sidecar should be warned about" },
+          "strength": "text_stamp"
+        }
+      ],
+      "oracles": []
+    }
+  ]
+}"#;
+    std::fs::File::create(&sidecar_path)
+        .unwrap()
+        .write_all(sidecar_content.as_bytes())
+        .unwrap();
+
+    // Run audit on the antigen workspace.
+    let workspace_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .to_path_buf();
+
+    let out = Command::new(bin())
+        .arg("antigen")
+        .arg("audit")
+        .arg("--root")
+        .arg(&workspace_root)
+        .output()
+        .expect("failed to run cargo-antigen audit");
+
+    // Clean up before asserting (so a failing assert doesn't leave the sidecar)
+    let _ = std::fs::remove_file(&sidecar_path);
+    let _ = std::fs::remove_dir(&attest_dir);
+
+    let stdout = String::from_utf8_lossy(&out.stdout).into_owned();
+    let stderr = String::from_utf8_lossy(&out.stderr).into_owned();
+    let combined = format!("{stdout}\n{stderr}");
+
+    // The specific audit output line for the witness= fixture site:
+    // "atk_a2_003_empty_witness/lib.rs:4  PanickingInDrop (witness = `empty_witness`)"
+    // followed by tier/hint info.
     //
-    // NOTE: This test is intentionally skipped pending the fixture scaffold.
-    // The camp DX finding is documented in `atk_dx_findings.rs` as the durable
-    // adversarial artifact. The companion `camp block` entry is the substrate-visible stop.
+    // The hint line for THIS SPECIFIC SITE must mention the sidecar being ignored/bypassed.
+    // It must NOT be "FunctionResolves" without any sidecar note — that's the silent failure.
     //
-    // TODO(adversarial): build the fixture crate and wire the assertion.
-    // For now this test compiles and is ignored to preserve the finding in source.
-    #[allow(clippy::needless_return)]
-    return; // placeholder — remove when fixture is built
+    // Find the block for the atk_a2_003 fixture in the output:
+    let fixture_block_start = combined.find("atk_a2_003_empty_witness");
+    assert!(
+        fixture_block_start.is_some(),
+        "audit output must mention the atk_a2_003_empty_witness fixture; got:\n{}",
+        &combined[..combined.len().min(2000)]
+    );
+
+    let fixture_context = &combined[fixture_block_start.unwrap()..];
+    // Take only the first ~300 chars (one campsite's output block)
+    let site_output = &fixture_context[..fixture_context.len().min(300)];
+
+    // The output for this site must warn about the sidecar being ignored.
+    // Currently it says: "tier = Reachability, hint = FunctionResolves" — NO sidecar mention.
+    // After the fix, it should say something like "sidecar present but ignored" or similar.
+    let site_warns_about_sidecar = site_output.to_lowercase().contains("sidecar")
+        && (site_output.to_lowercase().contains("witness")
+            || site_output.to_lowercase().contains("ignored")
+            || site_output.to_lowercase().contains("credited")
+            || site_output.to_lowercase().contains("requires"));
+
+    assert!(
+        site_warns_about_sidecar,
+        "audit output for the witness= immune site must warn about the .attest/ sidecar \
+         being ignored (not credited). Currently the output shows only \
+         'tier = Reachability, hint = FunctionResolves' with no mention of the present sidecar. \
+         See audit.rs:1036 — the code-witness branch never checks for sidecar presence. \
+         site audit output:\n{site_output}"
+    );
 }
 
 /// FAILING: the jq hint emitted by `attest scaffold` references `.requires_predicate`
