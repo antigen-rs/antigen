@@ -547,6 +547,31 @@ will surface through attestation staleness. Both signals matter.
 
 ---
 
+**v0.2 stdlib families**: antigen ships 7 stdlib families beyond the core vocabulary.
+Each demonstrates a distinct failure mode with worked examples:
+
+| Family | What it covers | Example |
+|--------|---------------|---------|
+| Deferred-Defense (ADR-023) | `#[anergy]`, `#[immunosuppress]`, `#[poxparty]`, `#[orient]` — loudness-as-discipline primitives for intentional non-immunity | `deferred_defense_*.rs` |
+| Recurrent-Emergence (ADR-022) | Failure-classes that return after being solved via `#[descended_from]` propagation | `recurrent_emergence.rs` |
+| Mucosal-Boundary (ADR-027) | Boundary defense + delegate centralization via `#[mucosal]` / `#[mucosal_delegate]` | `mucosal_boundary.rs` |
+| Supply-Chain (ADR-025) | Exact-pin enforcement, content-hash attestation, proc-macro sandboxing | `supply_chain_*.rs` |
+| VCS-Information-Loss (ADR-026) | Git history as immune substrate — rollback-without-triage, force-push amnesia, refactor-losing-WHY | `vcs_info_loss.rs` |
+| Agentic-Coordination (ADR-028) | Session/agent boundary `SubstrateAlignment` failures (wake without delta injection, cross-crate delegate gaps) | `agentic_coordination.rs` |
+| Convergent-Evidence (ADR-024) | Multi-modality independence discipline, iterated witnesses | `convergent_*.rs` |
+
+**Antigen category**: every antigen carries a `category` field — `SubstrateAlignment`
+(representation diverges from actual state; use `requires =`) or `FunctionalCorrectness`
+(verb produces wrong output; use `witness =`). See `antigen_category.rs` and
+`docs/examples-guide.md` for the full taxonomy. The quick test: *can a test exercise
+the thing you're defending?* If yes → `FunctionalCorrectness`. If no → `SubstrateAlignment`.
+
+**Triage-commit vs orient**: `#[triage_commit]` is the decisional rollback primitive
+(ADR-026) — carries triage classification, target SHA, author identity, rationale,
+and time-bound. `#[orient]` is the deferral primitive (ADR-023) — carries a path-out
+and a horizon. Different speech-acts. See `triage_commit.rs` for the full 5-color
+scale and contrast.
+
 **More failure-classes to declare**: the 8-class failure taxonomy
 (`docs/expedition/design-intent.md`) gives you the vocabulary. The seed catalog
 (`docs/expedition/stdlib-seed-antigens.md`) has 10 concrete antigens with
