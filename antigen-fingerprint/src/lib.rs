@@ -188,6 +188,8 @@ pub enum ItemKind {
     Const,
     /// `static NAME: T = ...;` — free-standing static item.
     Static,
+    /// `union Name { ... }` — C-like union for unsafe memory reinterpretation.
+    Union,
 }
 
 impl ItemKind {
@@ -203,6 +205,7 @@ impl ItemKind {
             "mod" => Self::Mod,
             "const" => Self::Const,
             "static" => Self::Static,
+            "union" => Self::Union,
             _ => return None,
         })
     }
@@ -220,6 +223,7 @@ impl ItemKind {
             Self::Mod => "mod",
             Self::Const => "const",
             Self::Static => "static",
+            Self::Union => "union",
         }
     }
 }
