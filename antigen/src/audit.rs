@@ -1093,6 +1093,17 @@ pub fn audit(report: &ScanReport, workspace_root: &Path) -> AuditReport {
 /// return the populated [`ImmunityAudit`].
 ///
 /// Called from `audit()` when `immunity.requires_predicate` is `Some`.
+///
+/// Defends [`crate::stdlib::dogfood::AuditFingerprintSelfReferential`]: this
+/// function previously compared a signer's `signed_against_fingerprint` to the
+/// sidecar's own stored `current_fingerprint` (Audit-SF-1 — self-referential,
+/// staleness always cleared). It now feeds the scan-recomputed
+/// `immunity.structural_fingerprint` (read from the item on disk) so real drift
+/// is detected. The witness pins that fix.
+#[immune(
+    AuditFingerprintSelfReferential,
+    witness = audit_sf1_scan_fingerprint_overrides_sidecar_stored_fingerprint
+)]
 fn audit_substrate_witness(immunity: &Immunity, predicate_json: &str) -> ImmunityAudit {
     use antigen_attestation::evaluate::evaluate_predicate_with_kind;
 
@@ -2314,7 +2325,7 @@ fn is_version_tag(s: &str) -> bool {
 /// [`crate::stdlib::dogfood::AuditHintWithNoUpstreamPreconditionCheck`].
 #[immune(
     AuditHintWithNoUpstreamPreconditionCheck,
-    witness = "atk_recurrent_2_recurrence_anchor_without_matching_itch_emits_hint"
+    witness = atk_recurrent_2_recurrence_anchor_without_matching_itch_emits_hint
 )]
 fn evaluate_recurrent_hints(
     decl: &crate::scan::RecurrentDeclaration,
