@@ -1529,4 +1529,66 @@ mod requires_json_tests {
             panic!("expected Signers leaf");
         }
     }
+
+    // Witness for the `CapabilityOmissionAtLowering` dogfood antigen (F5 family,
+    // a child of SilentIntentNullification): the parity guard that every runtime
+    // `Leaf::Signers` field is REACHABLE from the DSL and survives lowering. A
+    // DSL string exercising ALL FIVE fields with non-default values must lower to
+    // a Leaf whose every field carries that value — never a hardcoded default.
+    //
+    // This is the regression shield against the exact drift fixed in c237101:
+    // before the fix, to_leaf() hardcoded signature_allow=Vec::new() and
+    // signature_prefer=None regardless of DSL input (parser.rs:317-318), so two
+    // ratified grammar fields (decisions.md:5085) were silently inexpressible.
+    // If any future field is added to Leaf::Signers without a DSL arm + lowering,
+    // this test fails — the capability-omission is caught at the parser, not by
+    // an adopter whose value vanished.
+    #[test]
+    fn atk_dsl_signers_every_field_reachable_and_lowered_no_omission() {
+        use crate::tier::SignatureStrength;
+        // Every field non-default: required (2 names), roles (a role assertion),
+        // against = "any" (non-default; default is Current), signature_allow
+        // (a non-empty allow-set), signature_prefer (a single strength).
+        let p = round_trip(
+            r#"signers(
+                required = ["alice", "bob"],
+                roles = {alice = "math-researcher"},
+                against = "any",
+                signature_allow = ["git-trust", "crypto-signed"],
+                signature_prefer = "crypto-signed"
+            )"#,
+        );
+        let crate::Predicate::Leaf(crate::Leaf::Signers {
+            required,
+            roles,
+            against,
+            signature_allow,
+            signature_prefer,
+        }) = p
+        else {
+            panic!("expected Signers leaf");
+        };
+        assert_eq!(required, vec!["alice".to_string(), "bob".to_string()]);
+        assert_eq!(
+            roles.get("alice").map(String::as_str),
+            Some("math-researcher"),
+            "roles field must survive lowering"
+        );
+        assert_eq!(
+            against,
+            crate::predicate::SignerCurrency::Any,
+            "against=\"any\" must survive lowering (not reset to the Current default)"
+        );
+        assert_eq!(
+            signature_allow,
+            vec![SignatureStrength::GitTrust, SignatureStrength::CryptoSigned],
+            "signature_allow must survive lowering — the field the c237101 fix \
+             added; before, to_leaf() hardcoded Vec::new() (CapabilityOmissionAtLowering)"
+        );
+        assert_eq!(
+            signature_prefer,
+            Some(SignatureStrength::CryptoSigned),
+            "signature_prefer must survive lowering — before, to_leaf() hardcoded None"
+        );
+    }
 }
