@@ -779,3 +779,41 @@ Evidence:
 - `encounter-status axis` from naturalist's biology reading → ADR-028 Amendment 5 ratified
 
 The biology metaphor is operating as a predictive instrument, not just post-hoc labeling.
+
+---
+
+## Step 18: Final Arc Assessment — 2026-05-26 04:45 UTC
+
+**HEAD**: `aaea684` (`CapabilityOmissionAtLowering` #16 committed)
+**Test state**: 824 pass, 0 fail
+
+**Antigen count**: 16 declared in dogfood.rs (1-15 + CapabilityOmissionAtLowering)
+
+**8 DX Findings** — final status:
+
+| Finding | Status | Fix commit |
+|---------|--------|-----------|
+| F1 — dead_code in binary | COMPLETE | binary-adopter-ergonomics |
+| F2 — AntigenCategory unused_imports | COMPLETE | binary-adopter-ergonomics |
+| F3 — sidecar-witness silence | COMPLETE + regression fixed | 8bb3a4d + 19e018f |
+| F4 — scan fingerprint self-match | COMPLETE | |
+| F5 — signers name-vs-role | COMPLETE | 9ab47bc + c237101 |
+| F6 — scan emits no fingerprint | COMPLETE | |
+| F7 — per-leaf diagnostics | COMPLETE + not-evaluated arm | 7e5289a + 166d609 |
+| F8 — empty fingerprint signed | COMPLETE | |
+
+**Key expedition additions beyond 8 original findings**:
+- ADR-028 Amendment 5 (encounter-status axis) — ratified
+- `evaluated: bool` on `LeafOutcome` — supply-chain leaves properly distinguished
+- `CapabilityOmissionAtLowering` antigen #16 committed
+- Scanner enum-variant blindspot identified (visit_variant override missing)
+- F3 stacked-immune regression caught + fixed by observer
+
+**Observer sign-gates still holding**:
+- `dogfood/comprehensive-antigen-coverage` — NOT signed. Still 0 production `#[presents]` markers. 16 antigens declared but no production use of the annotation vocabulary outside dogfood.rs itself.
+
+**Remaining SilentIntentNullification family** (unresolved):
+- `SilentIntentNullification` parent
+- `ActiveArgumentDiscard` (rename of `SilentArgumentDiscard`)
+- `DeferredIntentNullification` (3rd child)
+- `AntigenFingerprintDivergesFromClassExtension` (meta-antigen)
