@@ -1144,3 +1144,109 @@ Pattern: `syn::ImplItem` and `syn::TraitItem` have the same partial-coverage gap
 **Post-Step-26 resolution**: All CI gates closed rapidly. `e3120e3` fixed the two new associated-type blind spots (`visit_impl_item_type` + `visit_trait_item_type`). `832e5f6` committed the enum-variant `#[presents]` markers WITHOUT breaking doc build — pathmaker correctly placed the marker on the `AuditHint` enum type itself (audit.rs:165), not on individual variants, because Rust forbids proc-macro attributes on enum variants (only derive helper attributes are allowed there). This is the correct granularity; the scanner finds it correctly. `4601fbb` fixed remaining fmt violations. 879 tests passing. `ci-gate-fmt-violations-in-committed-code` campsite COMPLETE.
 
 **Key structural insight (step 26 observation)**: The scanner's `visit_item_enum` variant-level coverage (from b1f6886) handles the structural case correctly — it CAN find attributes on enum variants. But the Rust compiler itself prevents placing proc-macro attributes on individual variants in real code. The invariant: scanner coverage is structurally complete; real dogfood usage must use enum-level markers for proc-macro annotations. Both halves are correct; they operate at different layers.
+
+---
+
+## Step 27: Post-Compaction Catch-Up Audit
+
+**Time**: 2026-05-26 ~20:00 UTC  
+**HEAD**: `a5f9bd6` (dogfood: declare FingerprintDigestWithoutFormatValidation sibling)  
+**Test state**: 884 passing (workspace, cargo test --workspace). Working tree dirty: README.md (+1 version-pin line), antigen-fingerprint/src/matcher.rs, antigen-macros/src/parse.rs (but parse.rs shows clean per git status — not currently dirty), antigen/tests/atk_a2_adversarial.rs (+95 lines of new tests), antigen/tests/supply_chain_correctness.rs (outsider's bidirectional fix), docs/glossary.md, docs/quickstart.md. Note: git diff showed quickstart.md + glossary.md are CLEAN (committed in ff6eaaf); README.md has only a 1-line version-pin fix (outsider's uncommitted work).
+
+### Hypothesis
+
+Between context compaction and this wake: several arcs completed. I expect to find (1) `audit-hint-const-shadows-enum` fix landed by outsider, (2) FingerprintDigestWithoutFormatValidation sibling declared, (3) teach-witness-vs-requires bundle committed, (4) scanner assoc-type blind spots CLOSED. Possible: new findings opened that may already be stale.
+
+### Results
+
+**Commits that landed during compaction window** (in order, post-d2a2067):
+
+| Commit | What landed |
+|--------|-------------|
+| `5fcfe05` | Lab notebook step 26 addendum — CI gates resolved |
+| `4601fbb` | fmt violations fixed (supply_chain_evaluate + parser) |
+| `832e5f6` | AuditHint enum `#[presents(DeclaredCapabilityWithNoProductionPath)]` at TYPE level |
+| `e3120e3` | Scanner: close impl/trait associated-type blind spots (visit_impl_item_type + visit_trait_item_type) |
+| `5115568` | docs(vision-pitch): three-faces-of-one-asymmetry root structure |
+| `ba626a6` | fix(diagnostic): validate modalities against sealed WitnessClass set |
+| `8762bdd` | lab notebook step 25 |
+| `7e9deda` | docs(roadmap): cross-crate scan reachability as ADR-001-C7 activation path |
+| `670242d` | fix(docs+tests): tutorial CLI flag corrections |
+| `b1f6886` | fix(scan+digest): close remaining syn::Item blind spots |
+| `b861b43` | fix(sign): warn on malformed --fingerprint digest |
+| `f516265`, `58a736d` | Additional scan fixes |
+| `7d8578a` | fix(deferred-defense): reject invalid ISO-8601 dates in anergy/immunosuppress/poxparty |
+| `c85802d` | fix(attest): digest-format guard at scaffold/delta/check (not just sign) |
+| `ff6eaaf` | docs: teach witness= vs requires= at all 4 first-contact surfaces |
+| `a5f9bd6` | dogfood: declare FingerprintDigestWithoutFormatValidation sibling |
+
+**Test trajectory**: 868 (pre-compaction) → 879 (e3120e3+832e5f6+4601fbb) → 884 (current HEAD).
+
+### Finding 27-A: anergy-invalid-date-silently-accepted campsite is stale
+
+**Claim (adversarial campsite, 19:43 UTC)**: Tests FAIL — `AnergyArgs::validate()` and `ImmunosuppressArgs::validate()` use `if let Ok(until_date) = parse_iso_date(until_str)` without an `else Err` branch. Invalid dates create unbounded suppression windows.
+
+**Observer verification**: Substrate check at committed HEAD. `7d8578a` ('fix(deferred-defense): reject invalid ISO-8601 dates', committed 2026-05-26 **19:50 UTC**) added `Err(())` branches to ALL THREE validators — 7 minutes AFTER the campsite was created.
+
+Verified at HEAD:
+- `AnergyArgs::validate()` — parse.rs:695-704: `Err(()) => { return Err(syn::Error::new(..., format!("#[anergy] \`until\` value ... is not a valid ISO-8601 date...")))` — PRESENT
+- `ImmunosuppressArgs::validate()` — parse.rs:914-923: same pattern — PRESENT  
+- `PoxpartyArgs::validate()` — parse.rs:1112-1120: same pattern — PRESENT
+
+**Conclusion**: The campsite blocker describes code that was fixed AFTER the campsite was seeded. At committed HEAD, the described failure mode no longer exists. The campsite should be UNBLOCKED and the new tests (if they test the corrected behavior: invalid date → Err) should PASS.
+
+Observer note deposited on campsite. Navigator notified.
+
+**Meta-pattern**: This is the same substrate-alignment drift class as the context-held-belief going stale across agents. An agent seeded a campsite describing state T, another agent fixed the state at T+7min, but the campsite remained BLOCKED because no agent ran the cross-check "does this blocker still describe the code?" Observer's role: catch exactly this gap.
+
+### Finding 27-B: FingerprintDigestWithoutFormatValidation arc closed cleanly
+
+**Observation**: Two commits form a clean fix-then-declare sequence:
+- `c85802d` — closed the 1-of-N spread: digest-format guard applied at scaffold/delta/check (was only at sign)
+- `a5f9bd6` — declared the sibling antigen (`FingerprintDigestWithoutFormatValidation` in `antigen/src/stdlib/dogfood.rs`)
+
+The commit message for `a5f9bd6` correctly names the naturalist's recognition chain and the c85802d fix. This is the preemptive-internal-tooling pattern applied correctly: fix the sites FIRST, then declare the class (so the declaration doesn't immediately dogfood its own class by having undefended sites).
+
+**Assessment**: Clean sequence. No methodology gap. The class is in `dogfood.rs` alongside its sibling `FingerprintStringWithoutDslValidation`. Both share the parent shape (cross-site trust-boundary inconsistency, sub-clause F) and split by the KIND of validation missing — the same witness-structure discriminator that separated `ActiveArgumentDiscard` from `CapabilityOmissionAtLowering`. This is the witness-split taxonomy pattern the naturalist has been tracking.
+
+### Finding 27-C: teach-witness-vs-requires bundle committed correctly
+
+**Verification**: `ff6eaaf` committed all 4 first-contact surfaces: README.md, docs/quickstart.md, docs/glossary.md, antigen-macros/src/lib.rs. All changes are clean at HEAD (quickstart and glossary confirmed by git diff HEAD — empty diff). Working tree shows README.md dirty by 1 line — that is outsider's SEPARATE version-pin fix (rc.2 → rc.3 at README:152), which is NOT part of the teach bundle.
+
+**Substrate-alignment drift note**: outsider's sleep note correctly describes README.md as dirty with the version-pin change (not the teach bundle). The teach bundle and the version-pin fix are two separate uncommitted chunks in the working tree that happen to both touch README.md. `ff6eaaf` committed only the `#[immune]` macro description change in README; outsider's rc.2→rc.3 pin fix is still staged separately. This is working correctly — the two changes are in different lines; git will track them separately when committed.
+
+### Finding 27-C2: README version-currency drift (outsider finding)
+
+Outsider noticed (via `cargo search`) that README.md has stale rc.2-era labels while rc.3 is the actual published version:
+- `README:152` — dependency pin `=0.1.0-rc.2` (outsider's dirty-tree fix: rc.3)
+- `README:204` — section header "What's actually shipped in v0.1.0-rc.2" — NOT fixed (release-owner territory)
+- `README:218` — "554 tests passing" — NOT fixed (now 800+; release-state claim)
+- `docs/vision-pitch.md:211` — "v0.1.0-rc.2 is available" — NOT fixed
+
+The one-line pin fix (README:152) is in outsider's working tree, uncommitted. The section-header + test-count + vision-pitch stale labels are flagged for release-owner (whoever updates the rc.3 release notes). This is correctly scoped — the feature surface in README:204 is mostly accurate for rc.3; only the version LABEL and test COUNT drifted.
+
+**Observer structural note**: This is `ParallelStateTrackersDiverge` at the docs layer — version string is hand-copied to N places (README, quickstart, tutorial, vision-pitch) rather than deriving from a single canonical source. A `version = "..."` constant substituted during doc generation would prevent this class. Outsider named this correctly.
+
+### State Summary at Step 27
+
+**Test suite**: 884 passing, 48 ignored, 0 failing.  
+**CI gates**: All PASS (fmt, clippy, doc, test).
+
+**Active open campsites of interest**:
+| Campsite | State | Blocker |
+|----------|-------|---------|
+| `anergy-invalid-date-silently-accepted` | BLOCKED — stale blocker | Fix already committed at 7d8578a; needs adversarial to unblock |
+| `audit-hint-const-shadows-enum` | OPEN | Outsider fix in dirty working tree; pathmaker must sign |
+| `dogfood/supply-chain-path-traversal-guard` | OPEN | Pathmaker signature needed |
+| `dogfood/layer1-production-presents-markers` | OPEN | 4 cargo-antigen candidates pending naturalist ruling |
+| `dogfood/comprehensive-antigen-coverage` | OPEN | 5/6 sub-campsites still need pathmaker |
+| `tutorial-attest-commands-drift` | OPEN | Pathmaker + outsider must sign (fix at 670242d confirmed correct) |
+
+**Working-tree dirty files** (all teammate-owned, not observer's):
+- `README.md` — outsider's version-pin fix (+1 line rc.2→rc.3)
+- `antigen-fingerprint/src/matcher.rs` — unknown owner (not observer's lane)
+- `antigen/tests/atk_a2_adversarial.rs` — adversarial's new impl/trait assoc-type tests (+95 lines)
+- `antigen/tests/supply_chain_correctness.rs` — outsider's bidirectional bijection fix (uncommitted at this check, may be committed by now)
+- Untracked fixture dirs: `atk_a2_impl_type_fp_contamination/`, `atk_a2_impl_type_presents/`, `atk_a2_trait_type_presents/`
+
+**Observer lane**: no dirty files (confirmed clean). Lab notebook pending commit.
