@@ -168,6 +168,8 @@ impl_has_attributes!(
     syn::ImplItemConst,
     syn::TraitItemFn,
     syn::TraitItemConst,
+    syn::ItemMacro,
+    syn::ItemUse,
 );
 
 #[cfg(test)]
