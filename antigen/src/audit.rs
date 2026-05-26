@@ -1070,8 +1070,21 @@ pub fn audit(report: &ScanReport, workspace_root: &Path) -> AuditReport {
                 // that audit will NEVER credit (sidecars are evaluated only on
                 // the `requires =` path). Detect it so the printer can warn,
                 // rather than letting the adopter believe they've attested.
-                let code_witness_sidecar_ignored =
-                    load_sidecar(&immunity.file, &immunity.antigen_type).is_some();
+                //
+                // BUT: a `witness =` and a `requires =` immunity can be STACKED
+                // on the same item (ADR-028 hybrid / compound evidence). In that
+                // case the sidecar is legitimately owned by the companion
+                // `requires =` record — flagging the `witness =` record as
+                // "sidecar ignored" would be a false positive (ATK-W7-I). Only
+                // warn when no companion `requires =` immunity on the same
+                // (antigen_type, item_target) claims the sidecar.
+                let has_companion_requires = report.immunities.iter().any(|other| {
+                    other.requires_predicate.is_some()
+                        && other.antigen_type == immunity.antigen_type
+                        && other.item_target == immunity.item_target
+                });
+                let code_witness_sidecar_ignored = !has_companion_requires
+                    && load_sidecar(&immunity.file, &immunity.antigen_type).is_some();
                 ImmunityAudit {
                     immunity: immunity.clone(),
                     witness_status: status,
