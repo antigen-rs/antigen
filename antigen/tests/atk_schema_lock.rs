@@ -378,8 +378,7 @@ fn schema_lock_item_target_new_variants_are_documented() {
         let has_variant = presentations.iter().any(|p| {
             p["item_target"]
                 .as_object()
-                .map(|obj| obj.contains_key(*variant_name))
-                .unwrap_or(false)
+                .is_some_and(|obj| obj.contains_key(*variant_name))
         });
         assert!(
             has_variant,
@@ -435,18 +434,14 @@ fn schema_lock_scan_presentation_fingerprint_non_empty() {
         "antigen/examples fixture should yield at least one presentation"
     );
 
-    let non_empty: Vec<_> = presentations
-        .iter()
-        .filter(|p| {
-            p["structural_fingerprint"]
-                .as_str()
-                .map(|s| !s.is_empty())
-                .unwrap_or(false)
-        })
-        .collect();
+    let has_non_empty = presentations.iter().any(|p| {
+        p["structural_fingerprint"]
+            .as_str()
+            .is_some_and(|s| !s.is_empty())
+    });
 
     assert!(
-        !non_empty.is_empty(),
+        has_non_empty,
         "ATK-SCHEMA-PRES-FP: at least one presentation in scan JSON must have \
          a non-empty `structural_fingerprint`. All are empty — this indicates \
          extract_presentation regression (the fix that changed String::new() to \
