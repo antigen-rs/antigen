@@ -679,9 +679,7 @@ mod tests {
         //
         // The parser accepts empty-string and rejects it (line 212). It must also
         // reject strings that are all-whitespace after trim().
-        let err_space = parse(r#"doc_contains(" ")"#)
-            .unwrap_err()
-            .to_string();
+        let err_space = parse(r#"doc_contains(" ")"#).unwrap_err().to_string();
         assert!(
             err_space.contains("empty") || err_space.contains("whitespace"),
             "ATK-FP-WHITESPACE-DOC: doc_contains(' ') (single space) must be rejected. \
@@ -690,9 +688,7 @@ mod tests {
              Parser should reject needles that are all-whitespace (trim().is_empty()). \
              Got error: {err_space}"
         );
-        let err_tab = parse(r#"doc_contains("\t")"#)
-            .unwrap_err()
-            .to_string();
+        let err_tab = parse(r#"doc_contains("\t")"#).unwrap_err().to_string();
         assert!(
             err_tab.contains("empty") || err_tab.contains("whitespace"),
             "ATK-FP-WHITESPACE-DOC: doc_contains('\\t') (tab) must also be rejected. \
