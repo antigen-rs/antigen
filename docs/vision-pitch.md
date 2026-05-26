@@ -29,6 +29,30 @@ There is no scaling solution within passive memory. More docs means less reading
 
 ---
 
+## The shape of the asymmetry: three faces, three surfaces
+
+The generation-outpaces-inspection asymmetry is not one problem — it has **three faces**, because "inspection" is really three distinct things a generating actor cannot keep pace with. Generation outpaces **detection** (noticing what's there), **retention** (holding what was generated), and **verification** (trusting that a claim matches reality). Each face demands the same kind of answer: *a structure outside the generating act*, because the generating act — fast, fluent, forgetful, over-confident — can neither see itself, nor hold itself, nor verify itself.
+
+| Face of the asymmetry | What the generating actor can't do alone | The structure outside the act | Antigen's surface |
+|---|---|---|---|
+| **Detection** | See its own blind spots — the seeing-apparatus and the seen-thing share a body | a *second body* at structural distance (a stranger-adopter, an adversarial pass, a coverage sweep) whose incidental finds sample what self-review can't reach | `cargo antigen scan` — a recognizer that walks the codebase from outside the author's fluency |
+| **Retention** | Re-derive what it generated faster than it generated it | *durable structural memory* that doesn't decay and surfaces itself | `#[antigen]` declarations — failure-class memory that persists across sessions, agents, and refactors |
+| **Verification** | Trust a claim faster than it can check the claim against substrate | *attestation bound to state* — a claim checked against what's actually on disk, stale-aware | `#[immune]` witnesses + `cargo antigen audit` — evidence the defense executes, pinned to a fingerprint |
+
+This is why antigen has exactly the three surfaces it has: **scan, declaration, and witness+audit are the three faces of the asymmetry instantiated.** The tool's structure is the asymmetry's structure. Each surface is a structure placed outside the generating act, addressing the face the act can't address from inside.
+
+Three consequences hang off this root, and they sharpen the pitch from "a memory tool" to "the structural answer to a structural problem":
+
+- **A second body is required for detection, at every scale, and its distance bounds its reach.** A self-applying tool cannot find its own blind spots — the blind spot is exactly the region the author's fluency covers. This is not a cognitive bias to overcome with effort ("remember the novice's view"); it is *structural* (a library never executes the binary-adopter's path; an author never reads code the way a stranger does). The remedy is structural too: recruit a second body whose fluencies differ. Antigen *is* that second body for the codebase — and the more an adopter differs from the tool-author (a different crate-kind, a different mindset), the more of the blind spot they map. **Adopter diversity expands failure-class coverage**: each structurally-different adopter reaches instances the tool-author's self-application path never could.
+
+- **The asymmetry tiles upward — it is the same fractal at every scale.** Code-defects → antigen (this rung). Ideas → build-ahead instead of defer-and-lose (anti-YAGNI: building IS persisting an idea in the most durable substrate, working code). Values and tools → co-native vigilance. Compute-economics → the industry token-saving pressure that erodes all of the above. *Generation outpaces recovery/inspection/audit at scale X → structural persistence is required at X → optimizing the locally-scarce resource creates a loss visible only one scale up.* Antigen is one rung of a scale-invariant pattern; recognizing the rung is recognizing the pattern.
+
+- **Biology is the instrument because the immune system solves this exact asymmetry — and it solves it structurally, not by effort.** The immune system is a memory-maintenance-under-change system: it recognizes (binds, or doesn't), remembers (the repertoire persists), and refines (affinity maturation), all without any individual cell "trying harder." Recognition is binding-or-selection, never willpower. That is why the biological metaphor is *load-bearing rather than decorative* precisely where antigen's problem is memory-maintenance mechanism — and honestly silent where the problem is something the immune system never does (it has no audience to make claims to, so it offers no cognate for, e.g., a CLI surface that oversells). The metaphor's calibrated domain is itself evidence the mapping is real, not paint.
+
+The sections that follow are this root, expanded: the **memory-to-structure transformation** below is the *retention* face in detail; **why tests can't reach this** is the *verification* face; the comprehensive immune-system vocabulary is the *detection*-and-recognition repertoire growing toward completeness.
+
+---
+
 ## The mechanism: memory-to-structure transformation
 
 What antigen does at the mechanism level is convert passive memory into active structure.
