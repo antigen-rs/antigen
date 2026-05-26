@@ -33,7 +33,7 @@ The four tiers in v0.1.0-rc.1 (per `WitnessTier` enum in
 | **FormalProof** | Mathematical guarantee on all inputs in the proven domain | Phantom-type witnesses (ADR-013) — turbofish pattern (`Foo::<T>::constructor`) recognized as a sealed type-system proof |
 | **Execution** | Empirically verified on tested inputs | Reserved for A4-A5: requires the audit to actually invoke `cargo test` / proptest harness and confirm the witness passes. Not emitted in v0.1 |
 | **Reachability** | Witness identifier resolves; audit has not verified runtime behavior | All v0.1 non-FormalProof resolutions: `#[test]` / `#[test]+#[ignore]` / `proptest!` / regular functions / external-tool prefixes (`clippy::`, `kani::`, etc.). The audit hint disambiguates which case |
-| **None** | No witness present or witness fails to resolve | `Missing`, `NotFound`, or `Ambiguous` witness status — audit reports the gap honestly |
+| **None** | No *passing* evidence — either no witness resolved, or a predicate resolved and failed | Two distinct sub-channels collapse to `None`: (a) **witness-resolution** gap — `Missing`, `NotFound`, or `Ambiguous` witness status (no witness to evaluate); (b) **predicate-evaluation** outcome — a `requires =` substrate-witness predicate was evaluated and *failed* (`DisciplinePredicateFailed`). Tier reports only strength-of-*passing*-evidence, so both non-pass cases share `None`; the `AuditHint` carries which sub-channel and why |
 
 **Why only Reachability for `#[test]` in v0.1**: per ADR-005 Amendment 3
 (audit-tier-honesty), the audit reports the work the audit ACTUALLY
@@ -250,10 +250,18 @@ Amendment 3, A3.5 substrate).
 
 ## None tier
 
-**Strength**: no witness present or witness fails to resolve. The
-`WitnessTier::None` variant (serialized `"none"` in JSON).
+**Strength**: no *passing* evidence. The `WitnessTier::None` variant
+(serialized `"none"` in JSON). Tier reports strength-of-*passing*-evidence
+only, so every non-pass shares `None` regardless of *why* it didn't pass —
+the `AuditHint` is the channel that carries the why.
 
-**When it applies**:
+`None` collapses two structurally-distinct sub-channels. **(1) Witness-resolution
+gaps** — there was no evidence to evaluate. **(2) Predicate-evaluation failures**
+— a `requires =` substrate-witness predicate *was* evaluated and *failed*. These
+are opposites (absence-of-evidence vs evidence-of-absence) and call for opposite
+fixes, so reading the `AuditHint` is mandatory to tell them apart.
+
+**When it applies — (1) witness-resolution gaps**:
 
 - `#[immune]` without a `witness =` field → `WitnessStatus::Missing` →
   audit hint `NoneApplicable`
@@ -263,6 +271,16 @@ Amendment 3, A3.5 substrate).
   ATK-A2-011)
 - `witness = fn_name` where multiple functions named `fn_name` exist →
   `WitnessStatus::Ambiguous { candidates }` → audit hint `AmbiguousResolution`
+
+**When it applies — (2) predicate-evaluation failures**:
+
+- `requires = <predicate>` where the substrate-witness predicate was
+  evaluated against the `.attest/` sidecar and did not pass → audit hint
+  `DisciplinePredicateFailed` (or `TolerancePredicateFailed` for a
+  tolerance sidecar). Unlike the resolution gaps above, the evidence
+  *exists and was checked* — it just didn't satisfy the predicate. Per-leaf
+  detail on *which* leaf failed and *why* is the diagnostic the audit hint
+  alone cannot yet carry (a known DX gap; see the per-leaf-diagnostics work).
 
 **Example (witness not found)**:
 

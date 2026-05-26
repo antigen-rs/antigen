@@ -2676,7 +2676,7 @@ fn run_attest_scaffold(
             "  note: fingerprint is empty — update `current_fingerprint` before signing.\n\
              \n\
              Get the item fingerprint from:\n\
-             \n  cargo antigen scan --format json | jq '.immunities[] | select(.antigen_type==\"{}\") | .requires_predicate'\n",
+             \n  cargo antigen scan --format json | jq '.report.immunities[] | select(.antigen_type==\"{}\") | .structural_fingerprint'\n",
             stem
         );
     }
@@ -2686,6 +2686,22 @@ fn run_attest_scaffold(
         args.item_path
     );
     ExitCode::SUCCESS
+}
+
+/// DX finding 8 guard: warn when signing against empty fingerprint.
+/// Extracted to keep `run_attest_sign` under clippy's `too_many_lines` threshold.
+fn warn_if_empty_fingerprint(fingerprint: &str) {
+    if fingerprint.is_empty() {
+        eprintln!(
+            "warning: signing against an empty fingerprint. A substrate-witness \
+             predicate bound to `against = \"current\"` (or `fresh_within_days`) \
+             will fail at audit time because the signed-against fingerprint `` \
+             cannot match the item's real structural digest. Obtain the item's \
+             fingerprint from `cargo antigen scan --format json` (the \
+             `structural_fingerprint` field on the immunity/presentation entry) \
+             and pass it via `--fingerprint`."
+        );
+    }
 }
 
 /// `attest sign` / `tolerate sign`: add a signer entry to an existing sidecar.
@@ -2744,6 +2760,8 @@ fn run_attest_sign(args: AttestSignArgs) -> ExitCode {
         );
         return ExitCode::SUCCESS;
     }
+
+    warn_if_empty_fingerprint(&args.fingerprint);
 
     // Warn if signing against a fingerprint that doesn't match the sidecar's stored
     // current_fingerprint — the resulting entry will be immediately stale at audit time.

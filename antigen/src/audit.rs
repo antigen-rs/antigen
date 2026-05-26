@@ -1137,23 +1137,25 @@ fn audit_substrate_witness(immunity: &Immunity, predicate_json: &str) -> Immunit
     };
 
     let ctx = FilesystemAuditContext;
-    // Audit-SF-1: stale-signer detection is SELF-REFERENTIAL in v0.1.
+    // Audit-SF-1 (RESOLVED): stale-signer detection uses the scan-computed
+    // structural digest rather than the sidecar's stored value.
     //
-    // `current_fingerprint` here is the sidecar's stored value, not the real
-    // fingerprint of the item as it exists on disk right now. The evaluator
-    // compares `s.signed_against_fingerprint == current_fingerprint` — both
-    // sides come from the same sidecar, so stale signers always appear current
-    // in `cargo antigen audit`.
+    // `immunity.structural_fingerprint` is populated at scan time by
+    // `antigen_fingerprint::structural_digest` and reflects the item's current
+    // code on disk. The evaluator compares `s.signed_against_fingerprint ==
+    // current_fingerprint` — using the scan-time digest means a signer who
+    // signed against an old fingerprint is now correctly detected as stale when
+    // the item's code has changed.
     //
-    // To detect real staleness: use `cargo antigen attest check --fingerprint <fp>`
-    // with the fingerprint from `cargo antigen scan --format json`.
-    //
-    // The correct fix (A3 work): integrate antigen-fingerprint recomputation at
-    // audit time so the real current fingerprint can be compared against sidecar
-    // entries. Until then, stale detection only fires when the sidecar was written
-    // with a fingerprint that differs from another sidecar entry — within-sidecar
-    // consistency is maintained but real-code-change drift is not detected.
-    let current_fingerprint = &item.current_fingerprint;
+    // Fallback for the legacy deserialization path (sidecars serialized before
+    // this field was added): if structural_fingerprint is empty, fall back to the
+    // sidecar's stored value (the old self-referential behavior). This preserves
+    // backwards-compat for pre-existing sidecars without forcing a re-sign.
+    let current_fingerprint: &str = if immunity.structural_fingerprint.is_empty() {
+        &item.current_fingerprint
+    } else {
+        &immunity.structural_fingerprint
+    };
     let result = evaluate_predicate_with_kind(
         &predicate,
         item,
@@ -3648,5 +3650,209 @@ mod tests {
             s,
             "\"antigen-category-claim-inconsistent-with-predicate-type\""
         );
+    }
+
+    // ========================================================================
+    // Audit-SF-1 regression (structural_fingerprint from scan overrides
+    // sidecar's stored current_fingerprint for staleness detection)
+    // ========================================================================
+
+    #[test]
+    fn audit_sf1_scan_fingerprint_overrides_sidecar_stored_fingerprint() {
+        // This test confirms Audit-SF-1 is resolved: before the fix, audit
+        // used the sidecar's stored current_fingerprint for stale-signer
+        // detection. A signer who signed against "fp-old" looked current
+        // because both sides of the comparison came from the same sidecar
+        // (self-referential). After the fix, audit uses the scan-computed
+        // structural_fingerprint — so a signer at "fp-old" is correctly
+        // detected as stale when the real item digest is "fp-new".
+        use antigen_attestation::predicate::{Leaf, SignerCurrency};
+        use antigen_attestation::schema::{
+            AntigenIdentifier, ItemRatification, Ratification, RatificationKind, SchemaVersion,
+            Signer, SignerBasis,
+        };
+        use chrono::NaiveDate;
+        use std::collections::BTreeMap;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let source_file = tmp.path().join("src").join("lib.rs");
+        std::fs::create_dir_all(source_file.parent().unwrap()).unwrap();
+        // The actual source file doesn't need to exist for this test —
+        // we only need the sidecar to be loadable from .attest/.
+        let attest_dir = tmp.path().join("src").join(".attest");
+        std::fs::create_dir_all(&attest_dir).unwrap();
+
+        // Sidecar: signer signed against "fp-old". The sidecar stores
+        // current_fingerprint: "fp-old" — under the old self-referential
+        // behavior the signer would appear current (both sides == "fp-old").
+        let sidecar = Ratification {
+            schema_version: SchemaVersion::V1,
+            kind: RatificationKind::Immunity,
+            antigen: AntigenIdentifier {
+                name: "DriftTestAntigen".to_string(),
+                defined_in: None,
+            },
+            source_file: source_file.clone(),
+            items: vec![ItemRatification {
+                item_path: "the_fn".to_string(),
+                current_fingerprint: "fp-old".to_string(),
+                doc_ref: None,
+                signers: vec![Signer {
+                    name: "alice".to_string(),
+                    role: None,
+                    date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    signed_against_fingerprint: "fp-old".to_string(),
+                    basis: SignerBasis::Fresh {
+                        reasoning: Some("reviewed".to_string()),
+                    },
+                    strength: antigen_attestation::tier::SignatureStrength::TextStamp,
+                    signature: None,
+                }],
+                oracles: vec![],
+                fresh_through: None,
+                extensions: BTreeMap::new(),
+            }],
+        };
+        let sidecar_json = serde_json::to_string_pretty(&sidecar).unwrap();
+        std::fs::write(attest_dir.join("DriftTestAntigen.json"), sidecar_json).unwrap();
+
+        // Predicate: alice must be current (signed against the item's live digest).
+        let pred = antigen_attestation::Predicate::leaf(Leaf::Signers {
+            required: vec!["alice".to_string()],
+            roles: BTreeMap::new(),
+            against: SignerCurrency::Current,
+            signature_allow: vec![],
+            signature_prefer: None,
+        });
+        let pred_json = serde_json::to_string(&pred).unwrap();
+
+        // Immunity: structural_fingerprint = "fp-new" (the code has drifted from
+        // what alice signed — she signed fp-old but the item is now fp-new).
+        let immunity = crate::scan::Immunity {
+            antigen_type: "DriftTestAntigen".to_string(),
+            witness: String::new(),
+            requires_predicate: Some(pred_json),
+            file: source_file,
+            line: 1,
+            item_kind: "fn".to_string(),
+            item_target: crate::scan::ItemTarget::Fn("the_fn".to_string()),
+            canonical_path: None,
+            structural_fingerprint: "fp-new".to_string(),
+        };
+
+        let pred_json_ref = immunity.requires_predicate.as_deref().unwrap();
+        let result = audit_substrate_witness(&immunity, pred_json_ref);
+
+        // The signer is stale: alice signed fp-old but the item is now fp-new.
+        // Audit-SF-1 fix: structural_fingerprint wins, not sidecar's stored value.
+        //
+        // With against=Current, eval_signers compares signed_against_fingerprint
+        // against the live structural_fingerprint ("fp-new"). Alice signed "fp-old"
+        // which does not match "fp-new", so the predicate fails. Under the OLD
+        // self-referential behavior (sidecar's stored current_fingerprint = "fp-old"),
+        // alice's "fp-old" would have matched — falsely passing the predicate.
+        // DisciplinePredicateFailed IS the correct staleness signal here (the
+        // predicate correctly rejects alice because she's stale vs the live code).
+        assert_eq!(
+            result.audit_hint,
+            AuditHint::DisciplinePredicateFailed,
+            "Audit-SF-1: scan-computed structural_fingerprint (fp-new) must override \
+             sidecar's stored current_fingerprint (fp-old) for staleness detection. \
+             Alice signed fp-old but the item is now fp-new → predicate correctly fails. \
+             Old behavior: sidecar's fp-old == alice's fp-old → false-green. Got: {result:?}"
+        );
+        assert_eq!(
+            result.witness_tier,
+            WitnessTier::None,
+            "failed predicate maps to tier=None"
+        );
+    }
+
+    #[test]
+    fn audit_sf1_legacy_path_no_structural_fingerprint_uses_sidecar_stored() {
+        // When structural_fingerprint is empty (legacy sidecar / pre-SF-1 report),
+        // audit falls back to the sidecar's stored current_fingerprint. This
+        // preserves backwards-compatibility and avoids falsely marking all
+        // existing sidecars as stale.
+        use antigen_attestation::predicate::{Leaf, SignerCurrency};
+        use antigen_attestation::schema::{
+            AntigenIdentifier, ItemRatification, Ratification, RatificationKind, SchemaVersion,
+            Signer, SignerBasis,
+        };
+        use chrono::NaiveDate;
+        use std::collections::BTreeMap;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let source_file = tmp.path().join("src").join("lib.rs");
+        std::fs::create_dir_all(source_file.parent().unwrap()).unwrap();
+        let attest_dir = tmp.path().join("src").join(".attest");
+        std::fs::create_dir_all(&attest_dir).unwrap();
+
+        // Signer signed against "fp-consistent" and sidecar stores it.
+        let sidecar = Ratification {
+            schema_version: SchemaVersion::V1,
+            kind: RatificationKind::Immunity,
+            antigen: AntigenIdentifier {
+                name: "LegacyAntigen".to_string(),
+                defined_in: None,
+            },
+            source_file: source_file.clone(),
+            items: vec![ItemRatification {
+                item_path: "legacy_fn".to_string(),
+                current_fingerprint: "fp-consistent".to_string(),
+                doc_ref: None,
+                signers: vec![Signer {
+                    name: "alice".to_string(),
+                    role: None,
+                    date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    signed_against_fingerprint: "fp-consistent".to_string(),
+                    basis: SignerBasis::Fresh {
+                        reasoning: Some("reviewed".to_string()),
+                    },
+                    strength: antigen_attestation::tier::SignatureStrength::TextStamp,
+                    signature: None,
+                }],
+                oracles: vec![],
+                fresh_through: None,
+                extensions: BTreeMap::new(),
+            }],
+        };
+        let sidecar_json = serde_json::to_string_pretty(&sidecar).unwrap();
+        std::fs::write(attest_dir.join("LegacyAntigen.json"), sidecar_json).unwrap();
+
+        let pred = antigen_attestation::Predicate::leaf(Leaf::Signers {
+            required: vec!["alice".to_string()],
+            roles: BTreeMap::new(),
+            against: SignerCurrency::Current,
+            signature_allow: vec![],
+            signature_prefer: None,
+        });
+        let pred_json = serde_json::to_string(&pred).unwrap();
+
+        // Empty structural_fingerprint → legacy path (use sidecar's stored value).
+        let immunity = crate::scan::Immunity {
+            antigen_type: "LegacyAntigen".to_string(),
+            witness: String::new(),
+            requires_predicate: Some(pred_json),
+            file: source_file,
+            line: 1,
+            item_kind: "fn".to_string(),
+            item_target: crate::scan::ItemTarget::Fn("legacy_fn".to_string()),
+            canonical_path: None,
+            structural_fingerprint: String::new(),
+        };
+
+        let pred_json_ref = immunity.requires_predicate.as_deref().unwrap();
+        let result = audit_substrate_witness(&immunity, pred_json_ref);
+
+        // Alice is current under the legacy (self-referential) path:
+        // sidecar stores fp-consistent; alice signed fp-consistent → match.
+        assert_eq!(
+            result.audit_hint,
+            AuditHint::DisciplinePredicatePassedSubstrateCurrent,
+            "legacy path: empty structural_fingerprint falls back to sidecar's stored \
+             current_fingerprint for backwards-compat. Got: {result:?}"
+        );
+        assert_eq!(result.witness_tier, WitnessTier::Execution);
     }
 }

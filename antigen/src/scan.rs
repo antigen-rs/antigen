@@ -1313,6 +1313,14 @@ pub struct Presentation {
     /// tolerance on the descendant site (state 7 of the 7-state matrix).
     #[serde(default)]
     pub inherited_from: Option<Vec<ProvenanceEntry>>,
+    /// FNV-1a structural digest of the presented item at scan time.
+    /// Populated for `FingerprintMatch` presentations; empty string for
+    /// `ExplicitMarker` presentations and inherited presentations where the
+    /// ancestor was an explicit marker. Allows adopters to pass this value
+    /// directly to `attest scaffold --fingerprint` without needing an
+    /// `#[immune]` marker first (DX finding 6).
+    #[serde(default)]
+    pub structural_fingerprint: String,
 }
 
 /// An `#[immune(antigen_type, witness = ...)]` declaration discovered in source.
@@ -2703,6 +2711,7 @@ fn propagate_ancestors_to_descendant(
                     match_kind: ancestor_pres.match_kind.clone(),
                     canonical_path: ancestor_pres.canonical_path.clone(),
                     inherited_from: Some(vec![provenance.clone()]),
+                    structural_fingerprint: ancestor_pres.structural_fingerprint.clone(),
                 });
             }
         }
@@ -3034,6 +3043,16 @@ fn synthesis_pass(
                 // Compute line from the item's first attribute or item span.
                 let line = item_line(syn_item);
 
+                let structural_fingerprint = match syn_item {
+                    syn::Item::Struct(i) => antigen_fingerprint::structural_digest(i),
+                    syn::Item::Enum(i) => antigen_fingerprint::structural_digest(i),
+                    syn::Item::Trait(i) => antigen_fingerprint::structural_digest(i),
+                    syn::Item::Fn(i) => antigen_fingerprint::structural_digest(i),
+                    syn::Item::Type(i) => antigen_fingerprint::structural_digest(i),
+                    syn::Item::Impl(i) => antigen_fingerprint::structural_digest(i),
+                    _ => String::new(),
+                };
+
                 report.presentations.push(Presentation {
                     antigen_type: antigen_type.clone(),
                     file: file_path.clone(),
@@ -3043,6 +3062,7 @@ fn synthesis_pass(
                     match_kind: MatchKind::FingerprintMatch,
                     canonical_path: None,
                     inherited_from: None,
+                    structural_fingerprint,
                 });
             }
         }
@@ -3205,6 +3225,7 @@ impl ScanVisitor<'_> {
             match_kind: MatchKind::ExplicitMarker,
             canonical_path: None,
             inherited_from: None,
+            structural_fingerprint: String::new(),
         });
     }
 
