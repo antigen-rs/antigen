@@ -501,3 +501,125 @@ struct FooWidget;
          Matches: {fp_matches:#?}"
     );
 }
+
+// ============================================================================
+// ATK-W6a-SYN-006: synthesis fires for all supported item kinds
+//
+// item_kind_and_target gates Pass 2 synthesis — only the item kinds it
+// handles will ever produce FingerprintMatch records. This test pins the
+// contract: one antigen per currently-supported kind, one item of that kind
+// in a fixture, assert exactly one FingerprintMatch per kind.
+//
+// When a new kind is added to item_kind_and_target, a row should be added
+// here. When a kind that currently returns None is upgraded to return Some,
+// the corresponding #[ignore]d row in atk_w6a_syn_002 (or a new test) should
+// become un-ignored. Together these two tests define the synthesis surface.
+//
+// Currently supported: struct, enum, trait, fn, type (alias), impl, const,
+//                       static, union.
+// Currently unsupported (Pass 1 attribute-scan works; Pass 2 synthesis skips):
+//   mod, extern_crate, use, foreign_mod, trait_alias, macro, verbatim.
+// ============================================================================
+
+#[test]
+fn atk_w6a_syn_006_synthesis_covers_all_supported_item_kinds() {
+    let dir = tempfile::TempDir::new().expect("tempdir");
+    let src_path = dir.path().join("lib.rs");
+    let mut f = std::fs::File::create(&src_path).expect("create lib.rs");
+    // One antigen per supported item kind; each uses name = matches("TARGET_*")
+    // so the corresponding item in the fixture fires exactly once.
+    write!(
+        f,
+        r#"
+use antigen::antigen;
+
+#[antigen(name = "struct-kind", fingerprint = "item = struct, name = matches(\"TARGET_*\")", summary = "struct kind")]
+struct StructKindAntigen;
+
+#[antigen(name = "enum-kind", fingerprint = "item = enum, name = matches(\"TARGET_*\")", summary = "enum kind")]
+struct EnumKindAntigen;
+
+#[antigen(name = "trait-kind", fingerprint = "item = trait, name = matches(\"TARGET_*\")", summary = "trait kind")]
+struct TraitKindAntigen;
+
+#[antigen(name = "fn-kind", fingerprint = "item = fn, name = matches(\"TARGET_*\")", summary = "fn kind")]
+struct FnKindAntigen;
+
+#[antigen(name = "type-kind", fingerprint = "item = type, name = matches(\"TARGET_*\")", summary = "type kind")]
+struct TypeKindAntigen;
+
+#[antigen(name = "const-kind", fingerprint = "item = const, name = matches(\"TARGET_*\")", summary = "const kind")]
+struct ConstKindAntigen;
+
+#[antigen(name = "static-kind", fingerprint = "item = static, name = matches(\"TARGET_*\")", summary = "static kind")]
+struct StaticKindAntigen;
+
+#[antigen(name = "union-kind", fingerprint = "item = union, name = matches(\"TARGET_*\")", summary = "union kind")]
+struct UnionKindAntigen;
+
+// Target items — one of each kind. impl has no standalone name so we use a
+// type-alias approach: name the target type TARGET_Impl.
+struct TARGET_Struct {{}}
+enum TARGET_Enum {{ A }}
+trait TARGET_Trait {{}}
+fn TARGET_fn() {{}}
+type TARGET_Type = u32;
+const TARGET_CONST: u32 = 1;
+static TARGET_STATIC: u32 = 2;
+union TARGET_Union {{ x: u32, y: f32 }}
+"#
+    )
+    .expect("write lib.rs");
+    drop(f);
+
+    let report = scan_workspace(dir.path(), None).unwrap();
+
+    // 8 antigens declared.
+    assert_eq!(
+        report.antigens.len(),
+        8,
+        "expected 8 antigen declarations (one per supported item kind)"
+    );
+
+    // Helper: count FingerprintMatch records for a given antigen name.
+    let count_fp = |antigen_name: &str| -> usize {
+        report
+            .presentations
+            .iter()
+            .filter(|p| {
+                p.match_kind == MatchKind::FingerprintMatch && p.antigen_type == antigen_name
+            })
+            .count()
+    };
+
+    let kinds = [
+        ("StructKindAntigen", "struct"),
+        ("EnumKindAntigen", "enum"),
+        ("TraitKindAntigen", "trait"),
+        ("FnKindAntigen", "fn"),
+        ("TypeKindAntigen", "type"),
+        ("ConstKindAntigen", "const"),
+        ("StaticKindAntigen", "static"),
+        ("UnionKindAntigen", "union"),
+    ];
+
+    for (antigen_name, kind_label) in &kinds {
+        let n = count_fp(antigen_name);
+        assert_eq!(
+            n,
+            1,
+            "ATK-W6a-SYN-006: expected exactly 1 FingerprintMatch for item kind '{kind_label}' \
+             (antigen '{antigen_name}'), got {n}. \
+             If this fails for a newly-added kind, ensure item_kind_and_target returns Some for \
+             syn::Item::{} and add the item kind to item_kind_for_dispatch / item_name / \
+             item_attrs / item_kind_matches in matcher.rs.",
+            kind_label
+                .chars()
+                .next()
+                .unwrap()
+                .to_uppercase()
+                .to_string()
+                + &kind_label[1..]
+        );
+    }
+}
