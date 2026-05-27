@@ -164,21 +164,28 @@ fn audit_json(root: &Path) -> serde_json::Value {
 
 #[test]
 fn atk_suppression_human_output_silent_about_anergy() {
-    // DOCUMENTS THE GAP: human output contains no mention of anergy, the
-    // reason, or the until date. The dev receives zero signal that an active
-    // deferred defense exists.
+    // DELIVERY ARM WIRED (pathmaker): human output now LOUDLY announces the
+    // active anergy declaration — naming the keyword, the reason, and a
+    // deferred-defense section. The dev gets a clear signal the gap exists.
     let (_tmp, root) = staged_with_anergy();
     let (_exit, output) = audit_human(&root);
 
-    let mentions_anergy = output.to_lowercase().contains("anergy")
-        || output.contains("no energy for this")
-        || output.to_lowercase().contains("deferred");
-
     assert!(
-        !mentions_anergy,
-        "ATK-suppression-delivery-arm: human audit output now mentions anergy! \
-        The delivery arm has been fixed -- update this test to assert the LOUD \
-        announcement IS present. Output:\n{}",
+        output.to_lowercase().contains("anergy"),
+        "ATK-suppression-delivery-arm: human audit output must LOUDLY mention the \
+        active #[anergy] declaration. Output:\n{}",
+        output
+    );
+    assert!(
+        output.contains("no energy for this"),
+        "ATK-suppression-delivery-arm: the anergy reason must be surfaced (LOUD). \
+        Output:\n{}",
+        output
+    );
+    assert!(
+        output.to_lowercase().contains("deferred"),
+        "ATK-suppression-delivery-arm: output must carry the deferred-defense \
+        section header. Output:\n{}",
         output
     );
 }
@@ -191,18 +198,16 @@ fn atk_suppression_human_output_silent_about_immunosuppress() {
     let (_tmp, root) = staged_with_immunosuppress();
     let (_exit, output) = audit_human(&root);
 
-    // NOTE: do NOT check for "suppressed" -- the fixture struct is named
-    // "SuppressedGap" which contains "suppressed" as a substring. Check for
-    // the actual suppression VOCABULARY the audit should emit: "immunosuppress"
-    // (the antigen keyword) and the rationale text.
+    // DELIVERY ARM WIRED: human output now announces the active immunosuppress.
+    // NOTE: "suppressed" alone is ambiguous (fixture struct is "SuppressedGap");
+    // assert on the keyword "immunosuppress" + the rationale text the audit emits.
     let mentions_immunosuppress =
-        output.to_lowercase().contains("immunosuppress") || output.contains("mid-refactor");
+        output.to_lowercase().contains("immunosuppress") && output.contains("mid-refactor");
 
     assert!(
-        !mentions_immunosuppress,
-        "ATK-suppression-delivery-arm: human audit output now mentions immunosuppress! \
-        The delivery arm has been fixed -- update this test to assert the LOUD \
-        announcement IS present. Output:\n{}",
+        mentions_immunosuppress,
+        "ATK-suppression-delivery-arm: human audit output must LOUDLY announce the \
+        active #[immunosuppress] (keyword + rationale 'mid-refactor'). Output:\n{}",
         output
     );
 }
@@ -213,22 +218,23 @@ fn atk_suppression_human_output_silent_about_immunosuppress() {
 
 #[test]
 fn atk_suppression_json_output_has_no_deferred_defense_audit_field() {
-    // DOCUMENTS THE GAP: the JSON audit output has no `deferred_defense_audit`
-    // field -- the DeferredDefenseAuditReport is computed in the library but
-    // never serialized into CLI output.
+    // DELIVERY ARM WIRED: the JSON audit output now carries the
+    // `deferred_defense_audit` field (the DeferredDefenseAuditReport), with the
+    // anergy declaration reflected in the counts.
     let (_tmp, root) = staged_with_anergy();
     let doc = audit_json(&root);
 
-    let has_deferred_field = doc.get("deferred_defense_audit").is_some()
-        || doc.get("deferred_defenses").is_some()
-        || doc.get("anergy").is_some();
-
+    let deferred = doc
+        .get("deferred_defense_audit")
+        .expect("audit JSON must carry deferred_defense_audit (the delivery arm)");
     assert!(
-        !has_deferred_field,
-        "ATK-suppression-delivery-arm: audit JSON now contains a deferred_defense_audit \
-        field! Delivery arm fixed -- update this test to assert the field IS present \
-        and contains the anergy declaration. Got doc keys: {:?}",
-        doc.as_object().map(|m| m.keys().collect::<Vec<_>>())
+        deferred["audits"].as_array().is_some_and(|a| !a.is_empty()),
+        "deferred_defense_audit.audits must contain the anergy declaration; got {deferred:?}"
+    );
+    assert_eq!(
+        deferred["active_count"].as_u64(),
+        Some(1),
+        "the active anergy declaration must be counted active; got {deferred:?}"
     );
 }
 
@@ -250,17 +256,19 @@ fn atk_suppression_anergy_workspace_is_silent_in_audit_output() {
     let (_exit_a, output_anergy) = audit_human(&root_anergy);
     let (_exit_c, output_clean) = audit_human(&root_clean);
 
-    // Neither output mentions anergy -- the delivery arm is severed for both.
+    // DELIVERY ARM WIRED: the anergy workspace is now DISTINGUISHABLE from clean.
+    // The anergy output announces the suppression; the clean output stays silent
+    // (the LOUD invariant: zero deferred defenses = silent, ≥1 = announced).
     assert!(
-        !output_anergy.to_lowercase().contains("anergy"),
-        "ATK-suppression-delivery-arm: anergy workspace audit output now contains \
-        anergy -- delivery arm fixed! Update this test. Output:\n{}",
+        output_anergy.to_lowercase().contains("anergy"),
+        "ATK-suppression-delivery-arm: anergy workspace audit output must announce \
+        the anergy declaration. Output:\n{}",
         output_anergy
     );
     assert!(
         !output_clean.to_lowercase().contains("anergy"),
-        "ATK-suppression-delivery-arm: clean workspace audit output unexpectedly \
-        contains anergy: {}",
+        "ATK-suppression-delivery-arm: clean workspace (no deferred defenses) must \
+        stay silent — LOUD only when present, not noise when absent: {}",
         output_clean
     );
 }
@@ -304,16 +312,17 @@ pub struct StaleImmunoPresentsSite;
 
     let (_exit, output) = audit_human(&src_dir);
 
-    // DOCUMENTS THE GAP: stale rationale is indistinguishable from fresh.
-    // No mention of the suppression in audit output.
-    let mentions_suppression = output.to_lowercase().contains("immunosuppress")
-        || output.contains("temp fix")
-        || output.contains("PR1");
+    // DELIVERY ARM WIRED: the stale immunosuppress can no longer hide. The audit
+    // LOUDLY surfaces it (keyword + rationale), so accumulated old suppressions
+    // are visible debt, not silent. (team-lead's named adversarial scenario —
+    // "can you hide a gap behind an old immunosuppress?" — now answered NO.)
+    let mentions_suppression =
+        output.to_lowercase().contains("immunosuppress") && output.contains("temp fix");
 
     assert!(
-        !mentions_suppression,
-        "ATK-suppression-hide: audit now surfaces the stale immunosuppress -- \
-        delivery arm fixed! Update this test. Output:\n{}",
+        mentions_suppression,
+        "ATK-suppression-hide: audit must surface the stale immunosuppress (keyword \
+        + rationale) so it cannot hide a defense gap as silent debt. Output:\n{}",
         output
     );
 }
