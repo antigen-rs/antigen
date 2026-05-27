@@ -74,6 +74,7 @@
 - [ADR-022 — Stdlib-vs-Extension: Two Disciplines, One Public API](#adr-022--stdlib-vs-extension-two-disciplines-one-public-api)
 - [ADR-023 — Deferred-Defense Family: Loudness-as-Discipline for Intentional Non-Immunity](#adr-023--deferred-defense-family-loudness-as-discipline-for-intentional-non-immunity)
 - [ADR-024 — Three Sibling Families: Convergent Evidence + Recurrent Emergence + Prescriptive Work-Orchestration](#adr-024--three-sibling-families-convergent-evidence--recurrent-emergence--prescriptive-work-orchestration)
+  - [ADR-024 Amendment 2 — Recurrent Emergence macro arg-signatures (shipped shapes from parse.rs)](#adr-024-amendment-2--recurrent-emergence-macro-arg-signatures-shipped-shapes-from-parsers)
 - [ADR-025 — Supply-Chain Defense Family: Antigens for Dependency-Boundary Risk in the 2026+ Threat Landscape](#adr-025--supply-chain-defense-family-antigens-for-dependency-boundary-risk-in-the-2026-threat-landscape)
 - [ADR-026 — VCS-Information-Loss Family: Structural Defense Against Git-History-Erasing Operations + Rollback-as-Triage Discipline](#adr-026--vcs-information-loss-family-structural-defense-against-git-history-erasing-operations--rollback-as-triage-discipline) *(amended by Amendments 1–4)*
   - [ADR-026 Amendment 1 — rollback-as-triage uses `#[triage_commit]`, not `#[orient]` extension](#adr-026-amendment-1--rollback-as-triage-uses-triage_commit-not-orient-extension)
@@ -83,6 +84,7 @@
 - [ADR-027 — Mucosal Boundary Taxonomy + Mapping Discipline](#adr-027--mucosal-boundary-taxonomy--mapping-discipline)
 - [ADR-028 — Antigen-Category Taxonomy: Substrate-Alignment vs Functional-Correctness as First-Class Distinction](#adr-028--antigen-category-taxonomy-substrate-alignment-vs-functional-correctness-as-first-class-distinction)
   - [ADR-028 Amendment 6 — tier marker (object | description): relationship to own declaration](#adr-028-amendment-6--tier-marker-object--description-relationship-to-own-declaration)
+  - [ADR-028 Amendment 7 — silence-generator witness-selection guidance + witness-locus split within SubstrateAlignment](#adr-028-amendment-7--silence-generator-witness-selection-guidance--witness-locus-split-within-substratalignment)
 - [ADR-029 — Immunity Is Observed, Not Declared: `#[defended_by]` + `#[presents]` Evidence Extension](#adr-029--immunity-is-observed-not-declared-defended_by--presents-evidence-extension)
 
 ---
@@ -5150,6 +5152,104 @@ The product space, not a chain. Each axis is independent; all four corners of th
 
 ---
 
+## ADR-028 Amendment 7 — silence-generator witness-selection guidance + witness-locus split within SubstrateAlignment
+
+**Status**: Ratified 2026-05-27.
+
+**Amends**: ADR-028 §Decision. Adds (a) `§Witness-selection-guidance` subsection and (b) `§SubstrateAlignment witness-locus discriminator` subsection.
+
+**Participants**: naturalist (silence-generator section draft; campsite `forward/silence-taxonomy-substrate-alignment`); aristotle (witness-locus split Phase-1-8 deconstruction; campsite `findings/category-witness-crosscheck-vs-fingerprint-only-stdlib`); scientist (consistency review: both additions validated; 2x2 ceiling prediction confirmed; convergence finding verified); outsider (convergence note: recursive irony — `ParallelStateTrackersDiverge` is itself a `ParallelStateTrackersDiverge` instance across the category/witness split, the medicine demonstrating the disease in the diagnosing organ); 4 independent roles converged on the witness-locus gap within ~24 hours of expedition work (recurrence-anchor threshold).
+
+**Related**: ADR-028 Amendment 2 (substrate-witness predicate leaf requirement at the witness layer); ADR-028 Amendment 3 (category-vs-predicate-type cross-check); ADR-006 (recognition-not-design); ADR-019 B1 (recognition-vs-evidence role distinction); ADR-004 (implicit-to-explicit); `findings/category-witness-crosscheck-vs-fingerprint-only-stdlib`.
+
+**Two-part reason:**
+
+**Part A (silence-generator)**: ADR-028 made SubstrateAlignment vs FunctionalCorrectness a first-class category because the category predicts the witness *layer*. The antigen-dx-dogfood expedition surfaced a finer recurring structure *inside* SubstrateAlignment: these antigens differ by their **silence-generator** — the specific mechanism by which the failure fails to announce itself. Four generators recurred across the stdlib + dogfood antigens, each biologically distinct, and each implying a different witness shape. The silence-generator is therefore witness-selection guidance: name how the failure stays silent, and the witness that breaks the silence follows. This is recognition (ADR-006): the four generators were read off existing antigens, not invented.
+
+**Part B (witness-locus split)**: ADR-028 Amendment 2's "substrate-witness reads substrate state" correctly covers external-substrate-divergence (representation vs external sidecar/git/doc) but silently excludes in-repo-parity-divergence (two code artifacts in the same repo that must agree). `ParallelStateTrackersDiverge` is SubstrateAlignment by failure-KIND (representation-diverges-from-state), yet its correct witness is a bijection/parity code-test (not a substrate-predicate), because the "state" is an in-repo enum rather than external substrate. G2's cross-check faithfully implements Amendment 2 — the gap is the ADR's model, not G2's code. The fix: name the discriminator within SubstrateAlignment explicitly. Recognition-not-design (ADR-006): the distinction already exists in the substrate (the witness type itself carries the locus information); this amendment makes it explicit in the category model.
+
+**Aristotelian convergence** (aristotle, `findings/category-witness-crosscheck-vs-fingerprint-only-stdlib`): three deconstructions this expedition cycle converged on one structural signature — *a typed model collapses a distinction the substrate already carries*: (1) the `witness` word in ADR-029-V2 collapses runtime-witness vs audit-time-predicate; (2) `EvalNode::passed():bool` collapses Passed/Failed/Indeterminate (e58627d5 fix); (3) `category=SubstrateAlignment` collapses external-substrate-divergence vs in-repo-parity-divergence. This is `VecCardinalityMasqueradingAsSet` at the model-type layer — the recurring shape where the typed verdict/category/word is coarser than the substrate distinction it claims to represent.
+
+### Change A: §Witness-selection-guidance subsection
+
+*Added to ADR-028 §Decision, after the category/encounter-status/tier three-axis summary:*
+
+**Silence-generator: witness-selection guidance for SubstrateAlignment antigens**
+
+SubstrateAlignment failures are, by definition, representations diverging from the state they model *without announcing the divergence*. Within SubstrateAlignment, the **silence-generator** classifies how the non-announcement happens. Naming the generator points directly at the witness shape required to break the silence.
+
+**This is guidance, not a new declared field.** The silence-generator is the author's diagnostic question ("how does this failure stay silent?") whose answer points at a witness. No `#[antigen(silence = …)]` field is added — the guidance is operational. (Anti-YAGNI note: a stored field would need a consumer; the guidance has its consumer today — the antigen author choosing a witness.)
+
+Four generators have cleared the recurrence threshold (each observed in multiple stdlib + dogfood antigens; biology cognates verified by naturalist):
+
+**1. Silence-by-absence** — no enforcement mechanism exists; a comment substitutes for one. Nothing fires when representations drift because nothing was ever wired to fire.
+
+- *Canonical instance*: `ParallelStateTrackersDiverge` — a "MUST match exactly" comment shadowing an enum's serde keys; the comment promises synchronization but enforces none.
+- *Biology cognate*: no immune memory was ever formed for the class; the system has no receptor for this divergence.
+- *Witness to reach for*: **parity / bijection test** that reads *both* representations and asserts they agree.
+- *Critical refinement*: the absence-generator's true signature is NOT "two representations disagree at this instant" — that would false-positive on every legitimate deferred state (a pre-ratification ADR draft, a migration in progress, a CI parity test scheduled for next release). The fail-class is *gap + no-mechanism*: a divergence where the only thing promising closure is prose that schedules nothing. The absence-witness must assert *the closure-mechanism exists*, not merely that the two sides happen to agree right now.
+
+**2. Silence-by-masking** — an enforcement-substitute *actively manufactures* a plausible-but-wrong value; the failure never reaches a detection surface. Detection = 0, but "all clear" signal emitted.
+
+- *Canonical instance*: `SerdeDefaultMaskingStructLiteralBreak` — `#[serde(default)]` makes stale fixture JSON deserialize successfully into a default-filled value; the missing field never registers as a problem.
+- *Biology cognate*: active immune suppression — regulatory T-cells, IL-10 / TGF-β, checkpoint inhibition. The danger signal is prevented from propagating.
+- *Witness to reach for*: **reject-the-default-at-the-boundary** — assert that the construction/deserialization path cannot manufacture a plausible value for a slot that should have been explicitly migrated. Pair with `#[non_exhaustive]` for external-crate construction sites.
+
+**3. Silence-by-missing-diagnostic** — the wrong value *is* produced and surfaces loudly downstream, but no per-leaf message traces the failure back to the boundary that introduced it. Detection = 1; localization = 0.
+
+- *Canonical instance*: `SilentSemanticMismatchAtTrustBoundary` (dogfood #14), F7 meta-instance — `DisciplinePredicateFailed` fires at the tree level with no per-leaf expected/found, so the adopter cannot tell which boundary passed the wrong value through.
+- *Biology cognate*: the signal fires (inflammation is present) but is not localized — the system knows something is wrong without knowing where.
+- *Witness to reach for*: **per-leaf diagnostic emit** — surface expected-vs-found at each leaf so the failure is named where it was introduced.
+
+**4. Silence-by-wrong-weighting** — the failure *is* detected and *is* surfaced, but at the wrong confidence / priority / urgency. The distinction that should change the downstream response is collapsed. Detection = 1; confidence-metadata = wrong.
+
+- *Canonical instance*: `unaddressed_presentations()` treating a `FingerprintMatch` at equal urgency to an `ExplicitMarker` — the low-specificity inferred match and the high-specificity declared marker land in the same bucket, collapsing the `PresentationSource` gradient.
+- *Biology cognate*: autoimmunity / cytokine-storm. The two-signal confidence-graded model (Matzinger danger model) deliberately down-weights innate detection (low-specificity, broad) relative to adaptive detection (affinity-matured, high-specificity). Collapsing that gradient — acting on a low-specificity match as if it were confirmed-specific — is the autoimmune pathology. `FingerprintMatch` IS the innate/germline-recall surface; `ExplicitMarker` IS the adaptive/affinity-matured declaration; the `PresentationSource` enum IS the innate/adaptive gradient, and the bug collapses it.
+- *Witness to reach for*: **confidence-discrimination test** — assert the model outputs *distinct* values for distinct confidence tiers, not just that detection occurred.
+
+**Summary table:**
+
+| Silence-generator | What's broken | Biology cognate | Witness to reach for |
+|---|---|---|---|
+| absence | no mechanism; comment substitutes | no immune memory formed | parity / bijection test |
+| masking | substitute manufactures plausible-wrong value (detection=0) | active suppression (Treg, IL-10) | reject-default-at-boundary + `#[non_exhaustive]` |
+| missing-diagnostic | wrong value loud downstream, untraced (localization=0) | signal fires but unlocalized | per-leaf expected/found emit |
+| wrong-weighting | detected but confidence gradient collapsed | autoimmunity (innate ≠ adaptive, collapsed) | confidence-discrimination test |
+
+The four generators cleared the recurrence threshold as of 2026-05-27. A fifth may surface; amend this section when it does. The 2x2 structure (detection-survives? × confidence-correct?) provides a falsifiable ceiling: a 5th generator would require a third boolean axis (scientist, 2026-05-27).
+
+### Change B: §SubstrateAlignment witness-locus discriminator
+
+*Added to ADR-028 §Decision, as a subsection of the SubstrateAlignment category description:*
+
+**SubstrateAlignment witness-locus: external-substrate vs in-repo-parity**
+
+ADR-028 Amendment 2 established that SubstrateAlignment antigens should carry a substrate-witness predicate leaf. This is correct for **external-substrate-divergence** — where a code representation diverges from external state (sidecar, Cargo.lock, git history, remote registry). The substrate-predicate reads that external state.
+
+It is *incomplete* for **in-repo-parity-divergence** — where two code artifacts in the same repository (a const, an enum, a doc-string, a test fixture) must agree, and the failure is their disagreement. For these, the defense is a **bijection/parity code-test** that reads both in-repo artifacts and asserts they agree. No substrate-predicate can be written for two same-crate artifacts — there is no external substrate to check.
+
+Both are SubstrateAlignment by failure-KIND (representation-diverges-from-state). The discriminator is **witness-locus**:
+
+| Witness-locus | Divergence type | Correct witness form | Example antigen |
+|---|---|---|---|
+| external-substrate | code representation vs external state (sidecar / Cargo.lock / git) | substrate-predicate (`requires =` on `#[presents]`) | `UnpinnedDependency` |
+| in-repo-parity | two in-repo artifacts that must agree | bijection/parity code-test (`#[defended_by(X)]` on a test fn) | `ParallelStateTrackersDiverge` |
+
+**G2 cross-check behavior**: G2 (`antigen-category-mismatch-witness-type`) fires when a SubstrateAlignment antigen carries a code-witness. This correctly catches external-substrate-divergence defended by a code-test (wrong). It SHOULD NOT fire for in-repo-parity-divergence defended by a bijection/parity code-test (correct, per this amendment). G2 should accept a code-witness as satisfying SubstrateAlignment WHEN the divergence is in-repo-parity.
+
+**Near-term implementation** (v0.2.x): G2's cross-check accepts a code-witness for SubstrateAlignment antigens that carry an explicit in-repo-parity rationale (via `requires =` absent AND a declared `#[defended_by]` with a parity-test naming convention, or a new `witness_locus = in_repo_parity` advisory hint). Until mechanized: `ParallelStateTrackersDiverge` and `BiologyGroundingClaimDrift` carry known-advisory-flag comments documenting this as the correct in-repo-parity witness pattern (per navigator sequencing decision, `findings/category-witness-crosscheck-vs-fingerprint-only-stdlib`).
+
+**Recursive irony** (outsider, 2026-05-27): `ParallelStateTrackersDiverge` (#18) is itself a `ParallelStateTrackersDiverge` instance across the category/witness split — `category=SubstrateAlignment` (the two-tracker claim in the declared model) diverges from `witness=code-bijection-test` (the evidence the implementation actually uses to defend it). The antigen about the failure-class is the poster-child for the gap in the rule that classifies it.
+
+### Resolves
+
+- `forward/silence-taxonomy-substrate-alignment` (absorbed; campsite closes as "absorbed-into-ADR-028-Amendment-7")
+- `findings/category-witness-crosscheck-vs-fingerprint-only-stdlib` (witness-locus discriminator named; G2 behavior specified)
+- The advisory-stopgap comments on `ParallelStateTrackersDiverge` and `BiologyGroundingClaimDrift` in dogfood.rs (the amendment formally ratifies what those comments named as pending)
+- The implicit assumption that all SubstrateAlignment antigens require external-substrate predicates (witness-locus split makes the assumption explicit and corrects the over-constraint)
+
+---
+
 ## Amendment template
 
 When an ADR needs to be amended (not superseded), add an Amendment section:
@@ -6100,6 +6200,92 @@ amendment.
 - Does NOT modify the family-grouping of `#[titer]` (still Family 3
   Prescriptive Work-Orchestration).
 - Does NOT reassess axis assignments for other primitives.
+
+---
+
+## ADR-024 Amendment 2 — Recurrent Emergence macro arg-signatures (shipped shapes from parse.rs)
+
+**Status**: Ratified 2026-05-27.
+
+**Amends**: ADR-024 §Mechanics. Documents the concrete arg-signature shapes for the 6 Recurrent Emergence family macros as shipped in `antigen-macros/src/parse.rs`.
+
+**Participants**: scientist (substrate read + amendment draft; navigator activity-log reference `936e678e`). Source of truth: `antigen-macros/src/parse.rs` struct definitions, NOT scout's narrower inference.
+
+**Reason**: ADR-024 §Mechanics says "new schema structs (`DiagnosticEvidence`, `RecurrenceAnchor`, `PanelDeclaration`, etc.)" without documenting the concrete field shapes that shipped. The field-level arg signatures are load-bearing for adopters writing `#[itch]`, `#[recurrence_anchor]`, `#[crystallize]`, `#[chronic]`, `#[saturate]`, `#[strand]`. Documenting what shipped makes the ratified surface legible from the ADR alone.
+
+### Change: document shipped arg shapes for Recurrent Emergence family
+
+All six structs read from `antigen-macros/src/parse.rs` at HEAD:
+
+**`#[itch(...)]`** — notice a potential recurrence pattern below the threshold for anchoring.
+```
+ItchArgs {
+    name: Option<String>,         // human-readable label for this itch
+    antigen: Option<syn::Path>,   // the antigen class this may be an instance of
+    description: Option<String>,  // optional description of the observed pattern
+    threshold: Option<String>,    // threshold hint (advisory; audit may use)
+}
+```
+All fields optional. Positional leading antigen path accepted. Parse line: `parse.rs:2355`.
+
+**`#[recurrence_anchor(...)]`** — cross-substrate recurrence threshold reached; surface for action.
+```
+RecurrenceAnchorArgs {
+    antigen: Option<syn::Path>,   // positional-or-named antigen path
+    instances: Option<u32>,       // count of observed instances
+    since: Option<String>,        // date string (ISO 8601 recommended)
+    rationale: Option<String>,    // why this constitutes a recurrence anchor
+}
+```
+Leading positional antigen path accepted (peek-not-eq-sign detection). Parse line: `parse.rs:2476`.
+
+**`#[crystallize(...)]`** — pattern has crystallized from itches into a named class.
+```
+CrystallizeArgs {
+    name: Option<String>,                 // proposed class name
+    from_itches: Vec<syn::Path>,          // the itch annotations that triggered this
+    antigen: Option<syn::Path>,           // the antigen being crystallized toward
+    summary: Option<String>,             // one-line summary of the class
+}
+```
+Parse line: `parse.rs:2633`.
+
+**`#[chronic(...)]`** — low-level persistent signal; NOT yet cross-substrate.
+```
+ChronicArgs {
+    antigen: Option<syn::Path>,   // positional-or-named antigen path
+    since: Option<String>,        // date string when first observed
+    status: Option<String>,       // current management status
+    managed_by: Option<String>,   // who/what is managing this chronic signal
+}
+```
+Leading positional antigen path accepted. Parse line: `parse.rs:2762`.
+
+**`#[saturate(...)]`** — a contributing signal that adds to a convergent-evidence cluster.
+```
+SaturateArgs {
+    antigen: Option<syn::Path>,       // the antigen being saturated toward
+    contributing_to: Option<String>,  // the cluster/anchor this contributes to
+    description: Option<String>,      // description of this specific contribution
+}
+```
+Parse line: `parse.rs:2874`.
+
+**`#[strand(...)]`** — a named thread connecting multiple recurrence instances.
+```
+StrandArgs {
+    name: Option<String>,           // strand name
+    anchored_by: Vec<syn::Path>,    // the recurrence_anchor markers that anchor this strand
+    description: Option<String>,    // description of the strand's through-line
+}
+```
+Parse line: `parse.rs:2967`.
+
+### What this amendment does NOT do
+
+- Does NOT change any macro semantics, parse behavior, or audit behavior.
+- Does NOT add new fields (pure documentation of shipped state).
+- Does NOT supersede the §Mechanics paragraph in ADR-024 — it supplements it.
 
 ---
 
