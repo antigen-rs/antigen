@@ -645,6 +645,14 @@ pub struct ScannerBoundaryFalseNegative;
 /// the ratified biology-grounding claim; the ADR §Biology grounding is the
 /// actual ratified state. Divergence is a representation-vs-state split, not a
 /// computation-correctness failure.
+// ADVISORY: when the canonical axis-match + tier-comparison witness lands as an
+// in-repo immunity, G2 will fire antigen-category-claim-inconsistent — same
+// locus as ParallelStateTrackersDiverge. The canonical witness is a code-test
+// (reads the biology block + compares to the ratified ADR axis/tier), not an
+// external-substrate predicate. ADR-028 Amendment 2 doesn't model this locus.
+// Pending ADR-028 Amendment (v0.2.x): SubstrateAlignment splits on
+// witness-locus = {external-substrate (predicate) | in-repo-parity (test)}.
+// See findings/category-witness-crosscheck-vs-fingerprint-only-stdlib.
 #[antigen(
     name = "biology-grounding-claim-drift",
     category = AntigenCategory::SubstrateAlignment,
@@ -1113,6 +1121,15 @@ pub struct AntigenFingerprintDivergesFromClassExtension;
 /// computation-correctness error. Recognized fingerprint-only (like
 /// `BiologyGroundingClaimDrift`): the "in sync / lock-step" comment is the
 /// recall surface; the bijection/parity test is the precision witness.
+// ADVISORY: G2 fires antigen-category-claim-inconsistent because the canonical
+// witness is a bijection/parity test (in-repo-parity code-witness), not an
+// external-substrate predicate. ADR-028 Amendment 2 defines substrate-witness
+// as reading external substrate state; it did not anticipate in-repo
+// representation-divergence defended by a code-test. G2 is correct per the
+// ratified ADR; the ratified ADR is incomplete on this locus.
+// Pending ADR-028 Amendment (v0.2.x): SubstrateAlignment splits on
+// witness-locus = {external-substrate (predicate) | in-repo-parity (test)}.
+// See findings/category-witness-crosscheck-vs-fingerprint-only-stdlib.
 #[antigen(
     name = "parallel-state-trackers-diverge",
     category = AntigenCategory::SubstrateAlignment,
