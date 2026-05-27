@@ -783,8 +783,8 @@ fn atk_w7_003_nested_generic_in_phantom_witness_falls_through_to_not_found() {
 // compiles cleanly (the proc-macro layer accepts it) but produces zero
 // scan output — the presentation is invisible to failure-class memory.
 //
-// STATUS: FAILING — scanner has no visit_variant override
-// BUG: No ItemTarget::EnumVariant exists; scanner ignores variant-level attrs
+// STATUS: FIXED — visit_item_enum now iterates variants and calls check_attrs per variant.
+// ItemTarget::EnumVariant added; enum variant #[presents] is no longer silently ignored.
 // ============================================================================
 
 #[test]
@@ -882,8 +882,7 @@ fn atk_a2_enum_variant_multi_presents_both_survive_in_report() {
 // This is the same class of bug as ATK-A2-ENUM-VARIANT (no visit_* override
 // for the item kind), now on an impl-block const.
 //
-// STATUS: FAILING — scanner has no visit_impl_item_const override
-// BUG: ImplItemConst.attrs never routed through check_attrs
+// STATUS: FIXED — visit_impl_item_const override added to ScanVisitor.
 // ============================================================================
 
 #[test]
@@ -927,8 +926,7 @@ fn atk_a2_impl_const_presents_is_not_silently_ignored() {
 // boundary — these are legitimate presentation sites for overflow/timeout
 // failure classes.
 //
-// STATUS: FAILING — scanner has no visit_item_const override
-// BUG: ItemConst.attrs never routed through check_attrs
+// STATUS: FIXED — visit_item_const override added to ScanVisitor.
 // ============================================================================
 
 #[test]
@@ -978,9 +976,8 @@ fn atk_a2_toplevel_const_presents_is_not_silently_ignored() {
 // `self.current_item_digest.clone()` in `extract_presentation`, matching what
 // `extract_immune` already does.
 //
-// STATUS: FAILING — extract_presentation always emits String::new() for
-//   structural_fingerprint, even for structs/fns/impls where current_item_digest
-//   is populated by the visitor before check_attrs is called.
+// STATUS: FIXED — extract_presentation now uses self.current_item_digest.clone()
+//   (matching extract_immune), correctly propagating the structural fingerprint.
 // ============================================================================
 
 #[test]
@@ -1029,13 +1026,9 @@ fn atk_a2_pres_fp_struct_explicit_marker_has_non_empty_fingerprint() {
 // SETS current_item_digest. It gets whatever the previous item set. Two consts
 // with different values get the same fingerprint (the preceding struct's digest).
 //
-// STATUS: FAILING — two different consts produce identical fingerprints because
-// neither visit_item_const, visit_item_static, nor visit_impl_item_const sets
-// self.current_item_digest before calling check_attrs. The digest from a prior
-// item bleeds into subsequent const/static presentations.
-// Fix: add structural_digest calls in visit_item_const, visit_item_static,
-// visit_impl_item_const, visit_trait_item_const, and the enum variant loop.
-// Requires adding HasAttributes impls for these types in antigen-fingerprint.
+// STATUS: FIXED — all visit_item_const, visit_item_static, visit_impl_item_const,
+// visit_trait_item_const overrides now set self.current_item_digest via structural_digest
+// before calling check_attrs. Digest contamination from prior items eliminated.
 #[test]
 fn atk_a2_pres_fp_two_consts_with_different_values_have_different_fingerprints() {
     // Fixture has two consts: SMALL_LIMIT=1024 and LARGE_LIMIT=65536.
@@ -1100,9 +1093,8 @@ fn atk_a2_pres_fp_two_consts_with_different_values_have_different_fingerprints()
 //   2. Add `/// forward compat` doc comment to the impl block so doc_contains fires.
 //   3. Use body_contains_macro or another predicate that matches the actual pattern.
 //
-// STATUS: FAILING — scanning antigen-macros produces 0 ActiveArgumentDiscard
-//   fingerprint matches for PolyclonalArgs::parse, MonoclonalArgs::parse,
-//   AdccArgs::parse.
+// STATUS: FIXED — workspace scan now finds ActiveArgumentDiscard fingerprint
+//   matches in antigen-macros (PolyclonalArgs::parse etc.).
 // ============================================================================
 
 #[test]
@@ -1159,8 +1151,8 @@ fn atk_a2_fingerprint_miss_active_argument_discard_matches_its_instance() {
 // is broken. This is the SECOND instance of the same `doc_contains` vs `//`
 // comment class miss (AntigenFingerprintDivergesFromClassExtension).
 //
-// STATUS: FAILING — scanning antigen-attestation produces 0
-//   CapabilityOmissionAtLowering fingerprint matches.
+// STATUS: FIXED — workspace scan now finds CapabilityOmissionAtLowering
+//   fingerprint matches in antigen-attestation.
 // ============================================================================
 
 #[test]
@@ -1213,12 +1205,8 @@ fn atk_a2_fingerprint_miss_capability_omission_at_lowering_matches_its_instance(
 // macro_rules! item. The report must contain one presentation. If it contains
 // zero, the blind spot is confirmed.
 //
-// STATUS: FAILING — visit_item_macro is not overridden; macro_rules! attrs
-// are never routed through check_attrs.
-//
-// Fix: add visit_item_macro override to ScanVisitor that routes item.attrs
-// through check_attrs with an ItemTarget::Macro (or falls back to an existing
-// target kind). Add ItemTarget::Macro variant if not present.
+// STATUS: FIXED — visit_item_macro override added to ScanVisitor; macro_rules!
+// attrs are now routed through check_attrs.
 // ============================================================================
 
 #[test]
@@ -1252,10 +1240,7 @@ fn atk_a2_macro_rules_presents_is_not_silently_ignored() {
 // variant, and impl const. Every item kind without an explicit visit_item_*
 // override is invisible to the scanner.
 //
-// STATUS: FAILING — visit_item_use is not overridden.
-//
-// Fix: add visit_item_use override to ScanVisitor that routes item.attrs
-// through check_attrs with an ItemTarget naming the re-exported path.
+// STATUS: FIXED — visit_item_use override added to ScanVisitor.
 // ============================================================================
 
 #[test]
@@ -1289,7 +1274,7 @@ fn atk_a2_use_item_presents_is_not_silently_ignored() {
 // Union declarations are high-risk (unsafe memory reinterpretation) and
 // exactly the kind of site that should carry explicit failure-class markers.
 //
-// STATUS: FAILING — visit_item_union is not overridden.
+// STATUS: FIXED — visit_item_union override added to ScanVisitor.
 // ============================================================================
 
 #[test]
@@ -1404,7 +1389,7 @@ fn atk_a2_extern_crate_presents_is_not_silently_ignored() {
 // is invisible to the scanner. Fixture uses nightly syntax; syn parses it
 // regardless of stable/nightly (syn supports the full Rust grammar).
 //
-// STATUS: FAILING before fix — visit_item_trait_alias not overridden.
+// STATUS: FIXED — visit_item_trait_alias override added to ScanVisitor.
 // ============================================================================
 
 #[test]
@@ -1432,7 +1417,7 @@ fn atk_a2_trait_alias_presents_is_not_silently_ignored() {
 // can present failure classes (e.g., a type alias that narrows or widens a
 // capability boundary).
 //
-// STATUS: FAILING — visit_impl_item_type is not overridden.
+// STATUS: FIXED — visit_impl_item_type override added to ScanVisitor.
 // ============================================================================
 
 #[test]
@@ -1462,7 +1447,7 @@ fn atk_a2_impl_item_type_presents_is_not_silently_ignored() {
 // trait body is silently dropped — trait associated type declarations are real
 // code sites (especially mucosal boundary contracts like Iterator::Item).
 //
-// STATUS: FAILING — visit_trait_item_type is not overridden.
+// STATUS: FIXED — visit_trait_item_type override added to ScanVisitor.
 // ============================================================================
 
 #[test]
@@ -1694,10 +1679,9 @@ fn atk_a2_trait_item_macro_presents_is_not_silently_ignored() {
 // design level: Pass 1 (attribute scanning) has visit_item_const; Pass 2
 // (fingerprint synthesis) lacks the matching arm.
 //
-// STATUS: FAILING — synthesis produces 1 match (struct) but must produce 2
-// (struct + const). THREE-WAY gap: (1) item_kind_and_target must handle Const,
-// (2) item_kind_for_dispatch must map Item::Const to ItemKind::Const, AND
-// (3) item_name() in matcher.rs must return the const ident. All three must land.
+// STATUS: FIXED — all three legs of the THREE-WAY gap addressed: item_kind_and_target
+// handles Const, item_kind_for_dispatch maps Item::Const to ItemKind::Const, and
+// item_name() returns the const ident. Synthesis now finds both struct + const.
 // ============================================================================
 
 #[test]
@@ -1795,8 +1779,9 @@ fn atk_a2_mod_inner_item_is_invisible_to_synthesis() {
 // (2) item_kind_for_dispatch block must map Item::Union to ItemKind
 // (3) item_name() in antigen-fingerprint/src/matcher.rs must return union ident
 //
-// STATUS: FAILING — synthesis_pass returns 1 FingerprintMatch (struct only),
-// union site is silently missed.
+// STATUS: FIXED — THREE-WAY gap addressed: item_kind_and_target handles Union,
+// item_kind_for_dispatch maps Item::Union to ItemKind::Union, item_name() returns
+// union ident. Synthesis now finds both struct + union.
 // ============================================================================
 
 #[test]

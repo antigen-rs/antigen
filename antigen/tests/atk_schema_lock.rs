@@ -314,7 +314,7 @@ fn schema_lock_audit_resolved_status_shape() {
 // kinds and asserts that each discriminant key ("EnumVariant", "ImplConst",
 // "Const", "Static") appears in docs/output-formats.md.
 //
-// STATUS: FAILING — output-formats.md is missing the new ItemTarget variants
+// STATUS: FIXED — output-formats.md now documents EnumVariant, Const, Static, ImplConst.
 // ============================================================================
 
 #[test]
