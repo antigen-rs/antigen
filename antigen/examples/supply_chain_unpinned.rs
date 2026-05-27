@@ -1,3 +1,7 @@
+// ADR-029 deprecation-window: uses the deprecated-but-functional #[immune] API;
+// full migration to #[defended_by]/#[presents(requires=)] is a tracked follow-on.
+#![allow(deprecated)]
+
 //! Example: `UnpinnedDependency` — exact-pin discipline.
 //!
 //! ADR-025 supply-chain defense family. `UnpinnedDependency` makes

@@ -1,3 +1,7 @@
+// ADR-029 deprecation-window: uses the deprecated-but-functional #[immune] API;
+// full migration to #[defended_by]/#[presents(requires=)] is a tracked follow-on.
+#![allow(deprecated)]
+
 //! Example: `#[triage_commit]` — decisional rollback-as-triage (ADR-026).
 //!
 //! `#[triage_commit]` is the SPEECH-ACT that turns a rollback function into a

@@ -1,3 +1,7 @@
+// ADR-029 deprecation-window: uses the deprecated-but-functional #[immune] API;
+// full migration to #[defended_by]/#[presents(requires=)] is a tracked follow-on.
+#![allow(deprecated)]
+
 //! Example: `ContentHashMismatch` — the chalk/debug/eslint-config
 //! attack defense.
 //!

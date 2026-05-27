@@ -14,6 +14,11 @@
 //! Expected output: 1 broken witness (`nonexistent_test`).
 
 #![allow(dead_code)]
+// This example intentionally demonstrates the (deprecated, still-functional)
+// #[immune] API — broken_witness exists to show #[immune]'s broken-witness
+// failure mode, so it must keep using #[immune]. ADR-029 deprecates #[immune];
+// the deprecation warning is allowed here deliberately.
+#![allow(deprecated)]
 
 use antigen::{antigen, immune, presents};
 

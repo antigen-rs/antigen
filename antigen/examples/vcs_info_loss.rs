@@ -1,3 +1,7 @@
+// ADR-029 deprecation-window: uses the deprecated-but-functional #[immune] API;
+// full migration to #[defended_by]/#[presents(requires=)] is a tracked follow-on.
+#![allow(deprecated)]
+
 //! Example: VCS-information-loss family (ADR-026).
 //!
 //! Eleven stdlib antigens covering modern-git-workflow failure modes that

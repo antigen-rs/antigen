@@ -1,3 +1,7 @@
+// ADR-029 deprecation-window: uses the deprecated-but-functional #[immune] API;
+// full migration to #[defended_by]/#[presents(requires=)] is a tracked follow-on.
+#![allow(deprecated)]
+
 //! Substrate-witness example — declare a discipline-antigen with a compound
 //! `requires` predicate, scaffold a sidecar, sign it, and watch the audit
 //! tier climb. (ADR-019 substrate-witness predicate family.)

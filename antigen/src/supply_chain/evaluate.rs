@@ -5,7 +5,7 @@
 
 use std::path::{Path, PathBuf};
 
-use antigen_macros::immune;
+use antigen_macros::presents;
 
 use super::manifest::{read_manifest_deps, DepEntry};
 use super::schema::{ContentHashRecord, DepAttestation, MaintainerSnapshot, SandboxKind};
@@ -37,10 +37,11 @@ pub fn supply_chain_root(workspace_root: &Path) -> PathBuf {
 ///
 /// Defends [`crate::stdlib::dogfood::PathTraversalViaUnvalidatedComponent`].
 #[must_use]
-#[immune(
-    PathTraversalViaUnvalidatedComponent,
-    witness = path_builders_reject_traversal_crate_name
-)]
+// ADR-029 migration: this path-builder `#[presents]` PathTraversalViaUnvalidatedComponent
+// (a `pub fn` reachable by callers that don't pre-validate). The test
+// `path_builders_reject_traversal_crate_name` declares it defends the class via
+// `#[defended_by]`; the audit cross-references and observes the verdict.
+#[presents(PathTraversalViaUnvalidatedComponent)]
 pub fn dep_attest_path(workspace_root: &Path, crate_name: &str, version: &str) -> PathBuf {
     let dir = supply_chain_root(workspace_root).join("dep-attest");
     if !is_valid_crate_name(crate_name) || !is_valid_version(version) {
@@ -55,10 +56,11 @@ pub fn dep_attest_path(workspace_root: &Path, crate_name: &str, version: &str) -
 /// resolves to the content-hash directory (in-root, non-escaping), never an
 /// attacker-controlled traversal.
 #[must_use]
-#[immune(
-    PathTraversalViaUnvalidatedComponent,
-    witness = path_builders_reject_traversal_crate_name
-)]
+// ADR-029 migration: this path-builder `#[presents]` PathTraversalViaUnvalidatedComponent
+// (a `pub fn` reachable by callers that don't pre-validate). The test
+// `path_builders_reject_traversal_crate_name` declares it defends the class via
+// `#[defended_by]`; the audit cross-references and observes the verdict.
+#[presents(PathTraversalViaUnvalidatedComponent)]
 pub fn content_hash_path(workspace_root: &Path, crate_name: &str, version: &str) -> PathBuf {
     let dir = supply_chain_root(workspace_root).join("content-hash");
     if !is_valid_crate_name(crate_name) || !is_valid_version(version) {
@@ -72,10 +74,11 @@ pub fn content_hash_path(workspace_root: &Path, crate_name: &str, version: &str)
 /// Same defense-in-depth as [`dep_attest_path`]: invalid `crate_name` resolves
 /// to the maintainer directory (in-root, non-escaping).
 #[must_use]
-#[immune(
-    PathTraversalViaUnvalidatedComponent,
-    witness = path_builders_reject_traversal_crate_name
-)]
+// ADR-029 migration: this path-builder `#[presents]` PathTraversalViaUnvalidatedComponent
+// (a `pub fn` reachable by callers that don't pre-validate). The test
+// `path_builders_reject_traversal_crate_name` declares it defends the class via
+// `#[defended_by]`; the audit cross-references and observes the verdict.
+#[presents(PathTraversalViaUnvalidatedComponent)]
 pub fn maintainer_path(workspace_root: &Path, crate_name: &str) -> PathBuf {
     let dir = supply_chain_root(workspace_root).join("maintainer");
     if !is_valid_crate_name(crate_name) {
@@ -451,7 +454,10 @@ pub const fn evaluate_sandbox_clean(_crate_name: &str, sandbox_kind: SandboxKind
 #[cfg(test)]
 mod tests {
     use super::*;
+    // `#[defended_by]` (ADR-029) is used only on the witness test below; import
+    // it here rather than at module scope (where it would be unused).
     use crate::supply_chain::schema::ReviewScope;
+    use antigen_macros::defended_by;
     use tempfile::TempDir;
 
     fn write_manifest(dir: &Path, content: &str) {
@@ -660,6 +666,7 @@ checksum = "swapped-hash"
     /// supply-chain root. The guarded path-builder resolves it to the in-root
     /// directory instead of joining the traversal component.
     #[test]
+    #[defended_by(PathTraversalViaUnvalidatedComponent)]
     fn path_builders_reject_traversal_crate_name() {
         let root = Path::new("/ws");
         let sc_root = supply_chain_root(root);

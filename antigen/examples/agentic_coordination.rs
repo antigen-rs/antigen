@@ -1,3 +1,9 @@
+// ADR-029 deprecation-window: this example uses the deprecated-but-functional
+// #[immune] API (and antigen fns that present migrated antigens). Full migration
+// to the #[defended_by]/#[presents(requires=)] idiom is a tracked follow-on
+// examples-quality pass; allow the deprecation here meanwhile.
+#![allow(deprecated)]
+
 //! Example: agentic-coordination failure-classes.
 //!
 //! Failure-classes that emerge specifically in multi-session, multi-agent,

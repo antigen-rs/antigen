@@ -29,7 +29,7 @@
 
 use std::path::{Path, PathBuf};
 
-use antigen_macros::{antigen_tolerance, immune, presents};
+use antigen_macros::{antigen_tolerance, presents};
 use serde::{Deserialize, Serialize};
 
 use crate::scan::{Immunity, ScanReport};
@@ -1351,7 +1351,16 @@ fn compute_presentation_verdicts(
         });
         let site_requires_tier = site_requires_eval.filter(|t| *t != WitnessTier::None);
 
-        let best_tier = [code_tier, immune_tier, site_requires_tier]
+        // Phantom-tier evidence folded onto the presents-site (ADR-029 R5):
+        // `#[presents(X, proof = <expr>)]`. The proof is a type-system
+        // construction whose mere existence is the evidence — it compiled, so
+        // the construction is valid (FormalProof). No sidecar/runtime evaluation:
+        // the presence of `proof` IS the witness, recognized structurally (same
+        // posture as the deprecated `#[immune(witness = <phantom>)]` path, which
+        // graded `WitnessKind::PhantomType` → FormalProof).
+        let site_proof_tier = p.proof.as_ref().map(|_| WitnessTier::FormalProof);
+
+        let best_tier = [code_tier, immune_tier, site_requires_tier, site_proof_tier]
             .into_iter()
             .flatten()
             .max_by_key(|t| *t as u8);
@@ -1410,10 +1419,13 @@ fn immune_audit_is_substrate_gap(a: &ImmunityAudit) -> bool {
 /// staleness always cleared). It now feeds the scan-recomputed
 /// `immunity.structural_fingerprint` (read from the item on disk) so real drift
 /// is detected. The witness pins that fix.
-#[immune(
-    AuditFingerprintSelfReferential,
-    witness = audit_sf1_scan_fingerprint_overrides_sidecar_stored_fingerprint
-)]
+// ADR-029 migration: this fn IS the failure-locus for AuditFingerprintSelfReferential
+// (it once compared a signer's fingerprint to the sidecar's own stored value);
+// it `#[presents]` that class. The test
+// `audit_sf1_scan_fingerprint_overrides_sidecar_stored_fingerprint` declares it
+// defends the class via `#[defended_by]`. `cargo antigen audit` cross-references
+// the two and observes the verdict — immunity is observed, not declared.
+#[presents(AuditFingerprintSelfReferential)]
 fn audit_substrate_witness(immunity: &Immunity, predicate_json: &str) -> ImmunityAudit {
     use antigen_attestation::evaluate::evaluate_predicate_with_kind;
 
@@ -2652,10 +2664,12 @@ fn is_version_tag(s: &str) -> bool {
 /// upstream precondition (`itch_antigen_types` contains anchor's antigen type)
 /// AND the downstream action (`acted_on` contains the antigen type). See
 /// [`crate::stdlib::dogfood::AuditHintWithNoUpstreamPreconditionCheck`].
-#[immune(
-    AuditHintWithNoUpstreamPreconditionCheck,
-    witness = atk_recurrent_2_recurrence_anchor_without_matching_itch_emits_hint
-)]
+// ADR-029 migration: this fn `#[presents]` AuditHintWithNoUpstreamPreconditionCheck
+// (it once emitted the hint without checking the upstream precondition). The
+// integration test `atk_recurrent_2_recurrence_anchor_without_matching_itch_emits_hint`
+// (tests/atk_recurrent_adversarial.rs) declares it defends the class via
+// `#[defended_by]`; the audit cross-references and observes the verdict.
+#[presents(AuditHintWithNoUpstreamPreconditionCheck)]
 fn evaluate_recurrent_hints(
     decl: &crate::scan::RecurrentDeclaration,
     acted_on: &std::collections::HashSet<&str>,
@@ -3088,6 +3102,9 @@ pub fn audit_category(report: &ScanReport) -> CategoryAuditReport {
 #[cfg(test)]
 mod tests {
     use super::*;
+    // `#[defended_by]` (ADR-029) is used only on witness tests in this module;
+    // import it here rather than at crate-module scope (where it would be unused).
+    use antigen_macros::defended_by;
 
     #[test]
     fn detect_clippy_external_tool() {
@@ -4008,6 +4025,7 @@ mod tests {
     // ========================================================================
 
     #[test]
+    #[defended_by(AuditFingerprintSelfReferential)]
     fn audit_sf1_scan_fingerprint_overrides_sidecar_stored_fingerprint() {
         // This test confirms Audit-SF-1 is resolved: before the fix, audit
         // used the sidecar's stored current_fingerprint for stale-signer
