@@ -1598,3 +1598,90 @@ pub struct PathTraversalViaUnvalidatedComponent;
     references = ["ADR-005", "ADR-022"]
 )]
 pub struct AffordanceTrapInAttestationDSL;
+
+// ============================================================================
+// 25. AuditVerdictComputedButNotDelivered
+// ============================================================================
+
+/// An audit computation produces a correct verdict (or a structured report).
+///
+/// But no code path delivers that verdict to a human-readable output surface,
+/// so the verdict is informationally identical to never having been computed.
+///
+/// This is the **delivery-arm severance** fail-class: the audit pipeline has
+/// three stages — recognize (collect markers), decide (compute verdicts), and
+/// deliver (render to output). A severed delivery stage makes the decide stage
+/// invisible to adopters; the tool produces no actionable signal for a class
+/// of findings it knows about. The failure stays silent not because nothing
+/// fired, but because nothing reached the adopter.
+///
+/// **Observed instances** in antigen itself (aristotle, 2026-05-27):
+/// Five of eight `AuditReport` families are computed by public `audit_*`
+/// functions and exercised by tests, but have zero CLI render paths in
+/// `cargo-antigen/src/main.rs`:
+/// - `audit_deferred_defense()` → `DeferredDefenseAudit` — no `print_deferred_defense`
+/// - `audit_supply_chain()` → `SupplyChainAudit` — no `print_supply_chain_audit`
+/// - `audit_convergent_evidence()` → `ConvergentEvidenceAudit` — no render
+/// - `audit_recurrent_emergence()` → `RecurrentEmergenceAudit` — no render
+/// - `audit_mucosal_boundary()` → `MucosalAudit` — no render
+///
+/// Three of eight families DO render: immune-state (ADR-029 implementation),
+/// antigen-category (scan output), and witness (audit hints). The severed
+/// five are computed + tested but never displayed.
+///
+/// **Also observed at scan layer** (observer, scout, 2026-05-27):
+/// `orphaned_lineage_edges()` and `dangling_child_lineage_edges()` in
+/// `scan.rs` are computed but have no CLI output paths — the same delivery-arm
+/// severance at the scan stage for `#[descended_from]` structural verification
+/// (campsite `forward/descended-from-structural-verification`).
+///
+/// **Silence-generator**: silence-by-absence — the delivery mechanism was
+/// never wired, so the verdict never reaches a detection surface. The enforcer
+/// (the CLI render path) was never created.
+///
+/// **Why the 2x2 silence-taxonomy ceiling holds** (aristotle): delivery-arm
+/// severance is NOT a fifth silence-generator on the acute evasion axis.
+/// The 2x2 (silence-by-absence / silence-by-masking / silence-by-missing-diagnostic /
+/// silence-by-wrong-weighting) classifies how a FAILURE stays silent; delivery-arm
+/// severance is a different subject — how a CORRECT VERDICT stays silent after
+/// the tool has already done the right thing. Different subject, different axis:
+/// the regulatory meta-arm (suppression-density) and memory meta-arm (staleness)
+/// are the other orthogonal axes; delivery-arm severance is efferent-execution
+/// silence within the acute axis.
+///
+/// **Biology cognate**: leukocyte adhesion deficiency (LAD) — neutrophils
+/// compute the right response (recognize, activate, degranulate) but
+/// cannot adhere and migrate to the infection site, so the response never
+/// arrives. The immune machinery fires correctly; the delivery fails.
+///
+/// **Fix shape**: for each severed `audit_*` function, wire its output into
+/// the CLI render path. The witness is: `pub fn audit_X()` → `print_X_audit()`
+/// called in `main.rs`; CI exercises the render path.
+///
+/// **Fingerprint**: a `pub fn audit_*` that produces a structured report
+/// type (`*Audit`, `*Verdict`, etc.) and has test coverage in the integration
+/// test suite, but has no corresponding `print_*` or `render_*` call site
+/// in the binary's main output path.
+///
+/// **Internal-tooling discipline**: per
+/// `feedback-internal-tool-antigens-preemptive`, declared from confirmed
+/// instances (5 severed report families + 2 scan-layer outputs). The pattern
+/// is structural — any new `audit_*` family added without a paired render path
+/// silently reintroduces this fail-class.
+///
+/// **Category**: `FunctionalCorrectness` — the tool claims to audit a class
+/// but never surfaces the verdict; the adopter observes nothing, which is
+/// functionally indistinguishable from the audit not being implemented at all.
+#[antigen(
+    name = "audit-verdict-computed-but-not-delivered",
+    category = AntigenCategory::FunctionalCorrectness,
+    fingerprint = r#"doc_contains("delivery-arm")"#,
+    family = "dogfood",
+    summary = "A `pub fn audit_*` function correctly computes a verdict but no CLI \
+               render path exists, so the verdict is invisible to adopters. Silence \
+               of a correct output is informationally identical to never computing it. \
+               Fix: pair every audit_* function with a print_*() render path that is \
+               exercised end-to-end in the CLI integration test suite.",
+    references = ["ADR-005", "ADR-028"]
+)]
+pub struct AuditVerdictComputedButNotDelivered;
