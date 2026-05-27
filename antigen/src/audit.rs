@@ -3233,9 +3233,21 @@ pub fn audit_category(report: &ScanReport) -> CategoryAuditReport {
         // overclaim). Plain equality — None matches None only, Some(x) matches
         // Some(x) only. `stamp_canonical_path` runs all-or-nothing per scan, so
         // (None defense, Some decl) is always cross-boundary and must not match.
-        if report.defenses.iter().any(|d| {
-            d.antigen_type == decl.type_name && d.canonical_path == decl.canonical_path
-        }) {
+        //
+        // Clippy's `suspicious_operation_groupings` flags
+        // `d.antigen_type == decl.type_name && d.canonical_path == decl.canonical_path`
+        // because the first pair compares fields with different names (`antigen_type`
+        // vs `type_name`). The asymmetry is deliberate: `Defense.antigen_type` and
+        // `AntigenDeclaration.type_name` are the same identity field under different
+        // historical names. The lint is a false positive here. (The
+        // `scan::defense_addresses` site is structurally identical but uses
+        // `Presentation::antigen_type`, so the symmetric names don't trip the lint.)
+        #[allow(clippy::suspicious_operation_groupings)]
+        if report
+            .defenses
+            .iter()
+            .any(|d| d.antigen_type == decl.type_name && d.canonical_path == decl.canonical_path)
+        {
             has_any_immunity = true;
             has_code_witness = true;
         }
@@ -5727,7 +5739,9 @@ mod tests {
             "P",
             r#"any_of([doc_contains("A"), doc_contains("B")])"#,
         ));
-        report.antigens.push(antigen_with_fp("C", r#"doc_contains("A")"#));
+        report
+            .antigens
+            .push(antigen_with_fp("C", r#"doc_contains("A")"#));
         report.lineage_edges.push(lineage_edge("C", "P"));
 
         let out = audit_lineage_fidelity(&report);
@@ -5779,12 +5793,10 @@ mod tests {
         // Child is WIDER than parent — NOT a refinement. But any_of → no kind hint →
         // item-kind check skipped → advisory stays silent (false negative, known limitation).
         let mut report = ScanReport::default();
-        report
-            .antigens
-            .push(antigen_with_fp("P", "item = struct"));
+        report.antigens.push(antigen_with_fp("P", "item = struct"));
         report.antigens.push(antigen_with_fp(
             "C",
-            r#"any_of([item = struct, item = enum])"#,
+            r"any_of([item = struct, item = enum])",
         ));
         report.lineage_edges.push(lineage_edge("C", "P"));
 
