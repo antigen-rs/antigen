@@ -1281,15 +1281,21 @@ fn compute_presentation_verdicts(
         //
         // The witness MUST be a function: `#[defended_by]` is scoped to
         // `#[test]` / proptest functions (ADR-029 §Scope) — a runnable code-tier
-        // witness. A `#[defended_by]` on a struct/enum/impl is a misuse: a struct
-        // cannot be executed as a test, so it provides no evidence and must not
-        // grant a Defended verdict (ADR-005 sub-clause F — a non-runnable witness
-        // is not a witness). Scan records it (recall-tuned); audit is the trust
-        // boundary that refuses to credit it.
+        // witness. Both free functions (scan `item_kind == "fn"`) and methods
+        // inside an `impl` block (`"impl_fn"` — a `#[test] fn` in an
+        // `impl Tests {}`) are runnable witnesses. A `#[defended_by]` on a
+        // struct/enum/impl-block/trait is a misuse: a non-fn item cannot be
+        // executed as a test, so it provides no evidence and must not grant a
+        // Defended verdict (ADR-005 sub-clause F — a non-runnable witness is not
+        // a witness). Scan records it (recall-tuned); audit is the trust boundary
+        // that refuses to credit it.
         let code_witnesses: Vec<&crate::scan::Defense> = report
             .defenses
             .iter()
-            .filter(|d| d.antigen_type == p.antigen_type && d.item_kind == "fn")
+            .filter(|d| {
+                d.antigen_type == p.antigen_type
+                    && (d.item_kind == "fn" || d.item_kind == "impl_fn")
+            })
             .collect();
 
         // Deprecated declared-immunity path: a same-item `#[immune]` audit for
@@ -1320,18 +1326,47 @@ fn compute_presentation_verdicts(
             .map(|a| a.witness_tier)
             .filter(|t| *t != WitnessTier::None);
 
-        let best_tier = [code_tier, immune_tier]
+        // Substrate-tier evidence folded onto the presents-site (ADR-029 R5):
+        // `#[presents(X, requires = P)]`. Evaluate the predicate against the
+        // `.attest/` sidecar exactly as the deprecated `#[immune(requires=P)]`
+        // path does — reusing `audit_substrate_witness` via a LOCAL adapter
+        // Immunity. The adapter never enters `report.immunities` (it is not a
+        // ghost record polluting any count) — it is purely the evaluation input
+        // shape the existing pipeline expects. A passing predicate grades the
+        // site Defended at the substrate tier; a non-passing one is a
+        // substrate-gap (intent present, substrate drifted).
+        let site_requires_eval = p.requires_predicate.as_ref().map(|json| {
+            let adapter = Immunity {
+                antigen_type: p.antigen_type.clone(),
+                witness: String::new(),
+                requires_predicate: Some(json.clone()),
+                file: p.file.clone(),
+                line: p.line,
+                item_kind: p.item_kind.clone(),
+                item_target: p.item_target.clone(),
+                canonical_path: p.canonical_path.clone(),
+                structural_fingerprint: p.structural_fingerprint.clone(),
+            };
+            audit_substrate_witness(&adapter, json).witness_tier
+        });
+        let site_requires_tier = site_requires_eval.filter(|t| *t != WitnessTier::None);
+
+        let best_tier = [code_tier, immune_tier, site_requires_tier]
             .into_iter()
             .flatten()
             .max_by_key(|t| *t as u8);
 
         let verdict = match best_tier {
             Some(tier) => ImmuneVerdict::Defended { tier },
-            // No defending evidence. An immune(requires=) that engaged the
-            // substrate-witness pipeline but did not pass is a substrate gap
-            // (defense intent present; substrate drifted) — distinguished from
-            // undefended (no intent at all).
-            None if immune_audit.is_some_and(immune_audit_is_substrate_gap) => {
+            // No PASSING evidence. Defense intent that engaged the substrate-
+            // witness pipeline but did not pass is a substrate gap (intent
+            // present; substrate drifted) — distinguished from undefended (no
+            // intent at all). Either a site-attached requires= (ADR-029 R5) or a
+            // deprecated #[immune(requires=)] can be the engaged-but-failing
+            // intent.
+            None if site_requires_eval.is_some()
+                || immune_audit.is_some_and(immune_audit_is_substrate_gap) =>
+            {
                 ImmuneVerdict::SubstrateGap
             }
             None => ImmuneVerdict::Undefended,
@@ -4191,6 +4226,8 @@ mod tests {
             canonical_path: None,
             inherited_from: None,
             structural_fingerprint: String::new(),
+            requires_predicate: None,
+            proof: None,
         }
     }
 
