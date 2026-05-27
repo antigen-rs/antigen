@@ -151,7 +151,7 @@ Add antigen as a dependency:
 
 ```toml
 [dependencies]
-antigen = "=0.1.0-rc.3"
+antigen = "=0.1.0-rc.3"   # current published; v0.2 not yet published to crates.io
 ```
 
 Now declare your first antigen. The full walkthrough lives in [`docs/tutorial.md`](docs/tutorial.md) — your first 15 minutes, end-to-end, with a real failure-class.
@@ -209,7 +209,7 @@ When the biology predicts a primitive, the project builds it. See [`docs/decisio
 > and the [GitHub releases](https://github.com/antigen-rs/antigen/releases) — those
 > are the single source of truth, not this page.
 
-**Core macros**: `#[antigen]`, `#[presents]`, `#[immune]`, `#[descended_from]`, `#[antigen_tolerance]`, plus `requires = <predicate>` on `#[immune]` for substrate-witness predicates (ADR-019), plus `attested = (who, allowed_types, why, scope)` for cross-cutting attestation (ADR-020).
+**Core macros**: `#[antigen]`, `#[presents]`, `#[defended_by]`, `#[descended_from]`, `#[antigen_tolerance]`, plus extended `#[presents(X, requires = P, proof = P, min_tier = T)]` for substrate-witness predicates (ADR-019/ADR-029), plus `attested = (who, allowed_types, why, scope)` for cross-cutting attestation (ADR-020). `#[immune]` (v0.1) is deprecated — use `#[defended_by]` on tests for code-tier witnesses.
 
 **Cargo subcommands**: `cargo antigen scan` (item-identity fingerprint matching, cross-crate scanning, cycle detection, diamond inheritance dedup); `cargo antigen audit` (`WitnessTier` gradient with `WitnessTier × AuditHint × EvidenceKind` output); `cargo antigen attest` (substrate-witness sidecar management); `cargo antigen tolerate` (tolerance-ratification sidecar management).
 
@@ -270,10 +270,10 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for detail.
 
 ## Status
 
-- crates.io: [`antigen`](https://crates.io/crates/antigen), [`cargo-antigen`](https://crates.io/crates/cargo-antigen), [`antigen-macros`](https://crates.io/crates/antigen-macros), [`antigen-fingerprint`](https://crates.io/crates/antigen-fingerprint), [`antigen-attestation`](https://crates.io/crates/antigen-attestation) — v0.1.0-rc.3
+- crates.io: [`antigen`](https://crates.io/crates/antigen), [`cargo-antigen`](https://crates.io/crates/cargo-antigen), [`antigen-macros`](https://crates.io/crates/antigen-macros), [`antigen-fingerprint`](https://crates.io/crates/antigen-fingerprint), [`antigen-attestation`](https://crates.io/crates/antigen-attestation) — v0.1.0-rc.3 published; v0.2 in active development
 - Repository: [github.com/antigen-rs/antigen](https://github.com/antigen-rs/antigen)
 - CI: cargo check + test + fmt + clippy (-D warnings) + doc (-D warnings) on every push and PR
-- Tests: 554 passing (31 ignored as pre-impl contracts) across the workspace
+- Tests: 797+ passing across the workspace (see CI badge for live count)
 - Tambear integration: live since 2026-05-07; first real adoption exercising the substrate (see [`docs/expedition/tambear-adoption-log.md`](docs/expedition/tambear-adoption-log.md))
 
 ---
