@@ -12,6 +12,7 @@
 //! Campsite: v02-impl-recurrent-emergence
 
 use antigen::audit::{audit_recurrent, AuditHint};
+use antigen::defended_by;
 use antigen::scan::{ItemTarget, RecurrentDeclaration, RecurrentKind, ScanReport};
 use std::path::PathBuf;
 
@@ -84,6 +85,7 @@ fn atk_recurrent_1_itch_threshold_empty_string_is_compile_error() {
 // ============================================================================
 
 #[test]
+#[defended_by(AuditHintWithNoUpstreamPreconditionCheck)]
 fn atk_recurrent_2_recurrence_anchor_without_matching_itch_emits_hint() {
     // Workspace has #[recurrence_anchor(antigen_type = "SomeAntigen")] but
     // zero #[itch] declarations reference SomeAntigen. The temporal progression

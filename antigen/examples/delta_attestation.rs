@@ -1,3 +1,7 @@
+// ADR-029 deprecation-window: uses the deprecated-but-functional #[immune] API;
+// full migration to #[defended_by]/#[presents(requires=)] is a tracked follow-on.
+#![allow(deprecated)]
+
 //! Delta-attestation example — Fresh + chained Delta with anti-laundering safeguards.
 //! (ADR-019 §M3 `SignerBasis` + adversarial T2-R three-layer safeguard set.)
 //!

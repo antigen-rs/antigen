@@ -16,13 +16,13 @@
 //!
 //! ADR-025: Supply-Chain Defense Family (ratified 2026-05-22).
 
-use antigen::immune;
 use antigen::supply_chain::evaluate::{
     evaluate_content_hash_matches, evaluate_dep_pinned_against, save_content_hash_record,
 };
 use antigen::supply_chain::manifest::parse_manifest_deps;
 use antigen::supply_chain::schema::ContentHashRecord;
 use antigen::supply_chain::witness::{ContentHashState, DepPinnedState};
+use antigen::{defended_by, presents};
 use tempfile::TempDir;
 
 // ============================================================================
@@ -297,10 +297,11 @@ some_crate = "*"
 /// `adr025_audit_hints_const_matches_enum_serde_keys` enforces this BOTH ways
 /// against the live enum, so a rename or a missing variant fails the test instead
 /// of silently drifting.
-#[immune(
-    ParallelStateTrackersDiverge,
-    witness = adr025_audit_hints_const_matches_enum_serde_keys
-)]
+// ADR-029 migration: this const `#[presents]` ParallelStateTrackersDiverge (it
+// hand-mirrors the live AuditHint enum serde keys — a parallel tracker). The
+// test `adr025_audit_hints_const_matches_enum_serde_keys` declares it defends
+// the class via `#[defended_by]`; the audit cross-references and observes.
+#[presents(ParallelStateTrackersDiverge)]
 const ADR025_AUDIT_HINTS: &[&str] = &[
     "unpinned-dependency",
     "unpinned-transitive-dependency",
@@ -380,6 +381,7 @@ fn dep_attest_rubber_stamp_hint_exists() {
 }
 
 #[test]
+#[defended_by(ParallelStateTrackersDiverge)]
 fn adr025_audit_hints_const_matches_enum_serde_keys() {
     // ATK-HINT-1: ADR025_AUDIT_HINTS is a hand-maintained const that claims to mirror
     // the AuditHint enum's serde keys. The existing tests check the const against
