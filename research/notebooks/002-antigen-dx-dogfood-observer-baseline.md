@@ -3031,3 +3031,48 @@ The detect-ability-tier collapse-test result matters more than the test count su
 - `ImmunosuppressDurationCapExceeded`: confirmed unreachable (zero emission sites)
 - Detectability-tier axis: NOT co-extensive with category (collapse-test result)
 - Auto-role hook: main-session users still require `--as`; subagent auto-role unverified empirically
+
+---
+
+## Step 54: Navigator Correction — immune_missing_deprecation_warning.rs Committed at e16b473
+
+### Before
+
+**Time**: 2026-05-27, received after sleep note deposited
+
+**Hypothesis**: The lab notebook's account of the `immune_missing_deprecation_warning.rs` sequence was complete (eb5f32d fixed it; fixture was untracked until then).
+
+### Results
+
+Navigator substrate-checked and corrected: the fixture is committed at current HEAD (870daf7) and has been since e16b473 — NOT a stale untracked file issue at any point after that commit.
+
+The sequence as it actually happened:
+
+1. **eb5f32d** (Slice 4): `#[immune]` macro emits `#[deprecated]`. This was the initial implementation. It surfaced two bugs when camp (an external adopter) used stacked `#[immune]` attributes: (a) two `#[deprecated]` attrs on one item → hard compile error ("multiple deprecated attributes"), and (b) the deprecated fires at CALLERS of the annotated item, not at the `#[immune]` author.
+
+2. **e16b473** (navigator, const-block fix): Replaced `#[deprecated]-on-item` with a `const _: () = { #[deprecated] struct __AntigenImmuneDeprecated; let _ = __AntigenImmuneDeprecated; };` block. This fires at the `#[immune]` call site (the macro invocation), stacks without collision (each block is scoped), and callers of the annotated item see nothing. MSRV 1.85 supports `let _` in const blocks.
+
+   e16b473 also updated AND committed `antigen-macros/tests/ui/immune_missing_deprecation_warning.rs` and its `.stderr` companion — the error now fires at line 29 (the `#[immune]` attribute line), not at a use site of the annotated type.
+
+   Additionally: migrated `basic.rs`, `phantom_witness.rs`, `antigen_category.rs` examples from `#[immune]` to ADR-029 patterns (these were the last `#[immune]` usages in non-test/fixture production code). Total: 975 tests passing after this commit.
+
+The lab notebook's step 50 correctly described eb5f32d's contribution but did not record e16b473 as a distinct step. The fixture was always part of the Slice 4 work; e16b473 finalized it by fixing the two bugs and updating the fixture to match the corrected behavior.
+
+### Observer Assessment
+
+This is a two-commit story compressed into one step in the record. The compression wasn't wrong (eb5f32d did implement Slice 4; e16b473 fixed two bugs in it); it just omitted the bug-discovery story, which is substantively important.
+
+The bug-discovery story IS the point: camp-as-external-adopter found what dogfood couldn't. Antigen has no single item with two stacked `#[immune]` attributes — so the stacking collision never surfaced in the dogfood scan. The adoption gap (what dogfood misses, external adopters find) is exactly what the tambear-as-smoke-test posture is designed to surface. camp surfaced it faster.
+
+The caller-targeting bug is similarly instructive: the `#[deprecated]` attribute's semantics (fires at call sites of the item, not at the annotation site) aren't what the team intended. The const-block solution is the correct instrument because it fires at the annotation site — which is where the author of `#[immune]` lives, not where callers of the annotated function live.
+
+### Discipline Failure (observer)
+
+Observer's sleep note characterized the working-tree changes as "adversarial's G2 fix" based on matching file name (`audit.rs`) to adversarial's stated plan, without reading the diff content. The actual content was pathmaker's ADR-023/duration-cap work. This is the match-by-header-not-content failure mode — the same instrument-mismatch discipline from `feedback_match_verification_method_to_claim_type`. Correcting camp note deposited on `forward/audit-delivery-completeness-antigen`.
+
+### Metrics
+
+- e16b473: committed fixture + fixed 2 bugs in Slice 4 deprecation + migrated 3 examples
+- 28 trybuild compile_fail fixtures, all green at 870daf7
+- The camp-as-adopter bug-discovery: stacking collision + caller-targeting — both unreachable by dogfood
+- Observer misidentification of working-tree changes: instrument-mismatch failure, corrected
