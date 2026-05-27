@@ -78,17 +78,23 @@ impl AntigenCategory {
         }
     }
 
-    /// Parse from the kebab-case, `snake_case`, or `PascalCase` forms used in
-    /// CLI arguments and serde-deserialized strings.
+    /// Parse from the kebab-case, `PascalCase`, or path-qualified forms.
+    ///
+    /// Accepted sources:
+    /// - kebab (`substrate-alignment`) — CLI `--category` flag and serde-deserialized JSON
+    /// - Pascal (`SubstrateAlignment`) — scanner reading unqualified `category =` path
+    /// - path-qualified (`AntigenCategory::SubstrateAlignment`) — scanner reading qualified form
+    ///
+    /// Snake-case (`substrate_alignment`) is intentionally NOT accepted: no real
+    /// input source produces it (serde/CLI use kebab; the macro scanner produces
+    /// Pascal/path from Rust path tokens).
     #[must_use]
     pub fn parse_category(s: &str) -> Option<Self> {
         match s {
             "substrate-alignment"
-            | "substrate_alignment"
             | "SubstrateAlignment"
             | "AntigenCategory::SubstrateAlignment" => Some(Self::SubstrateAlignment),
             "functional-correctness"
-            | "functional_correctness"
             | "FunctionalCorrectness"
             | "AntigenCategory::FunctionalCorrectness" => Some(Self::FunctionalCorrectness),
             _ => None,
@@ -114,27 +120,44 @@ mod tests {
 
     #[test]
     fn category_parses_all_forms() {
+        // kebab — CLI/serde canonical
+        assert_eq!(
+            AntigenCategory::parse_category("substrate-alignment"),
+            Some(AntigenCategory::SubstrateAlignment)
+        );
+        // Pascal — scanner unqualified path
         assert_eq!(
             AntigenCategory::parse_category("SubstrateAlignment"),
             Some(AntigenCategory::SubstrateAlignment)
         );
-        assert_eq!(
-            AntigenCategory::parse_category("substrate_alignment"),
-            Some(AntigenCategory::SubstrateAlignment)
-        );
+        // path-qualified — scanner qualified path
         assert_eq!(
             AntigenCategory::parse_category("AntigenCategory::SubstrateAlignment"),
             Some(AntigenCategory::SubstrateAlignment)
         );
         assert_eq!(
-            AntigenCategory::parse_category("FunctionalCorrectness"),
+            AntigenCategory::parse_category("functional-correctness"),
             Some(AntigenCategory::FunctionalCorrectness)
         );
         assert_eq!(
-            AntigenCategory::parse_category("functional_correctness"),
+            AntigenCategory::parse_category("FunctionalCorrectness"),
             Some(AntigenCategory::FunctionalCorrectness)
         );
         assert_eq!(AntigenCategory::parse_category("unknown"), None);
+    }
+
+    #[test]
+    fn category_rejects_snake_case() {
+        // No real input source produces snake_case — serde/CLI use kebab,
+        // macro scanner produces Pascal/path from Rust path tokens.
+        assert_eq!(
+            AntigenCategory::parse_category("substrate_alignment"),
+            None
+        );
+        assert_eq!(
+            AntigenCategory::parse_category("functional_correctness"),
+            None
+        );
     }
 
     #[test]
@@ -165,7 +188,6 @@ mod tests {
 
     #[test]
     fn category_rejects_mixed_separator() {
-        // "substrate_alignment" (snake) is accepted. "substrate-Alignment" (mixed) is NOT.
         assert_eq!(AntigenCategory::parse_category("substrate-Alignment"), None);
         assert_eq!(AntigenCategory::parse_category("Substrate-alignment"), None);
     }
