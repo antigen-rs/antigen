@@ -343,6 +343,31 @@ fn signers_signature_allow_filter_rejects_disallowed_strength() {
     );
 }
 
+// ATK-A3-SIGNATURE-PREFER-NOOP: v0.1 documents `signature_prefer` as advisory
+// (accepted, stored, no runtime effect). This test locks that contract so a
+// future refactor cannot silently promote it to a hard gate.
+#[test]
+fn signers_signature_prefer_has_no_runtime_effect_v01() {
+    // signature_prefer = CryptoSigned, but signer only has GitTrust strength.
+    // If signature_prefer were enforced, this would fail. It must pass.
+    let pred = Predicate::leaf(Leaf::Signers {
+        required: vec!["alice".to_string()],
+        roles: BTreeMap::new(),
+        against: SignerCurrency::Current,
+        signature_allow: vec![],
+        signature_prefer: Some(SignatureStrength::CryptoSigned),
+    });
+    let item = item_with(vec![current_signer("alice", sample_date())]);
+    let ctx = LeafCtx::new(sample_date());
+    assert!(
+        passes(&pred, &item, &ctx),
+        "ATK-A3-SIGNATURE-PREFER-NOOP: signature_prefer=CryptoSigned must not \
+         gate a GitTrust signer in v0.1; it is advisory-only. If this fails, \
+         signature_prefer was silently promoted to a hard gate — that is a \
+         behavior change requiring an ADR and explicit version bump."
+    );
+}
+
 // ============================================================================
 // Leaf 3: signed_trailer
 // ============================================================================
