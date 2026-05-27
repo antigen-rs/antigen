@@ -4469,4 +4469,176 @@ mod tests {
         assert_eq!(out.expired_count, 1);
         assert_eq!(out.active_count, 0);
     }
+
+    // ========================================================================
+    // ATK — orient degenerate inputs (adversarial probe, 2026-05-27)
+    //
+    // The bf60e5d fix correctly branches on `until >= today`, but three edge
+    // paths in evaluate_deferred_defense_hint need adversarial coverage:
+    //
+    //   (a) until = None  →  parse_iso_date("") → None → OrientActive (grace path)
+    //   (b) until = Some("not-a-date")  →  parse_iso_date → None → OrientActive
+    //   (c) until = Some("9999-99-99")  →  parse_iso_date → None → OrientActive
+    //   (d) two orient decls on same item, one past + one future → both evaluated
+    //       independently; counts must both be individually correct
+    //
+    // (a) is the SILENT-FOREVER-GREEN path: a hand-built DeferredDefense with
+    // until=None never escalates. The comment says this is intentional for
+    // legacy records, but it means any record that escapes the macro parse-gate
+    // (fuzz, JSON injection, or future code path that constructs DeferredDefense
+    // directly) gets permanent OrientActive with no escalation. This test
+    // documents the behavior so any future change to the None arm is visible.
+    // ========================================================================
+
+    fn orient_decl_no_until() -> crate::scan::DeferredDefense {
+        crate::scan::DeferredDefense {
+            kind: crate::scan::DeferredDefenseKind::Orient,
+            antigen_type: Some("SomeClass".to_string()),
+            text: String::new(),
+            until: None, // deliberately absent — legacy/hand-built record
+            expected_co_stimulation: None,
+            signed_by: None,
+            see: Vec::new(),
+            file: PathBuf::from("src/lib.rs"),
+            line: 1,
+            item_kind: "fn".to_string(),
+            item_target: crate::scan::ItemTarget::Fn("t".to_string()),
+        }
+    }
+
+    #[test]
+    fn atk_orient_none_until_is_silently_active_forever() {
+        // ATK-orient(a): until=None → grace path → OrientActive regardless of
+        // how long ago the record was created. This is the silent-forever-green
+        // failure mode for hand-built or fuzz-generated records.
+        //
+        // BEHAVIOR IS INTENTIONAL per the comment in evaluate_deferred_defense_hint,
+        // but documenting it as a test ensures any future change to the None arm
+        // is immediately visible as a failing test.
+        let mut report = ScanReport::default();
+        report.deferred_defenses.push(orient_decl_no_until());
+        let out = audit_deferred_defenses(&report, 30);
+        assert_eq!(out.audits.len(), 1);
+        assert_eq!(
+            out.audits[0].hint,
+            AuditHint::OrientActive,
+            "ATK-orient(a): orient with until=None must land in OrientActive (grace path for \
+             hand-built/legacy records). If this changes, the None arm's escalation logic must \
+             be deliberately designed, not accidental."
+        );
+        assert_eq!(
+            out.active_count, 1,
+            "ATK-orient(a): None-until orient counts as active"
+        );
+        assert_eq!(out.expired_count, 0);
+    }
+
+    #[test]
+    fn atk_orient_invalid_date_string_is_silently_active() {
+        // ATK-orient(b): until="not-a-date" → parse_iso_date returns None →
+        // same grace path as None. A typo in the `until` field (e.g. "2099/01/01"
+        // with slashes instead of hyphens) silently grants permanent OrientActive
+        // rather than surfacing the parse failure. No diagnostic is emitted.
+        let mut report = ScanReport::default();
+        let mut decl = orient_decl("not-a-date");
+        // Ensure the string is exactly as typed (not a valid ISO date)
+        decl.until = Some("not-a-date".to_string());
+        report.deferred_defenses.push(decl);
+        let out = audit_deferred_defenses(&report, 30);
+        assert_eq!(out.audits.len(), 1);
+        assert_eq!(
+            out.audits[0].hint,
+            AuditHint::OrientActive,
+            "ATK-orient(b): orient with unparseable until date must land in OrientActive \
+             (same grace path as None). SILENT GAP: a typo like '2099/01/01' never escalates \
+             and emits no parse-failure diagnostic — the author believes they set a deadline \
+             but the deadline is invisible to the audit."
+        );
+        assert_eq!(out.active_count, 1);
+    }
+
+    #[test]
+    fn atk_orient_slash_date_format_typo_is_silently_active() {
+        // ATK-orient(c): a plausible typo — ISO format with slashes instead of
+        // hyphens. "2099/01/01" looks like a future date to a human; parse_iso_date
+        // rejects it and falls through to OrientActive. No escalation, no warning.
+        let mut report = ScanReport::default();
+        let mut decl = orient_decl("2099-01-01"); // valid baseline
+        decl.until = Some("2099/01/01".to_string()); // slash typo — should fail parse
+        report.deferred_defenses.push(decl);
+        let out = audit_deferred_defenses(&report, 30);
+        assert_eq!(
+            out.audits[0].hint,
+            AuditHint::OrientActive,
+            "ATK-orient(c): '2099/01/01' (slash format) must not parse as a valid date; \
+             falls to OrientActive. This is the silent typo trap: a future-looking but \
+             unparseable date behaves identically to a past-expired date that parsed as None."
+        );
+    }
+
+    #[test]
+    fn atk_orient_two_decls_one_past_one_future_counted_independently() {
+        // ATK-orient(d): two orient decls on the same item — one past (expired),
+        // one future (active). Both must be evaluated independently.
+        // Degenerate input: what if someone mistakenly adds two orients? The audit
+        // must not short-circuit on the first match.
+        let mut report = ScanReport::default();
+        report.deferred_defenses.push(orient_decl("2000-01-01")); // expired
+        report.deferred_defenses.push(orient_decl("2999-12-31")); // active
+        let out = audit_deferred_defenses(&report, 30);
+        assert_eq!(
+            out.audits.len(),
+            2,
+            "ATK-orient(d): both decls must be evaluated"
+        );
+        assert_eq!(out.active_count, 1, "ATK-orient(d): one active orient");
+        assert_eq!(out.expired_count, 1, "ATK-orient(d): one expired orient");
+        // Verify which is which (order preserved from push order)
+        assert_eq!(
+            out.audits[0].hint,
+            AuditHint::OrientPendingActionRequired,
+            "ATK-orient(d): past orient must escalate"
+        );
+        assert_eq!(
+            out.audits[1].hint,
+            AuditHint::OrientActive,
+            "ATK-orient(d): future orient must stay active"
+        );
+    }
+
+    #[test]
+    fn atk_orient_extreme_past_1970_escalates() {
+        // ATK-orient(e): Unix epoch — the most extreme past date representable
+        // in common date libraries. Must escalate, not crash.
+        let mut report = ScanReport::default();
+        report.deferred_defenses.push(orient_decl("1970-01-01"));
+        let out = audit_deferred_defenses(&report, 30);
+        assert_eq!(
+            out.audits[0].hint,
+            AuditHint::OrientPendingActionRequired,
+            "ATK-orient(e): epoch date (1970-01-01) must escalate to OrientPendingActionRequired"
+        );
+    }
+
+    #[test]
+    fn atk_orient_empty_string_until_is_silently_active() {
+        // ATK-orient(f): until=Some("") — an explicitly empty string. This is
+        // different from until=None but falls through the same parse_iso_date("")
+        // → None → OrientActive path. The macro should reject this, but a
+        // hand-built record could have it.
+        //
+        // NOTE: orient_decl("") produces this — verify the existing helper and
+        // the grace-path behavior are consistent.
+        let mut report = ScanReport::default();
+        report.deferred_defenses.push(orient_decl(""));
+        let out = audit_deferred_defenses(&report, 30);
+        assert_eq!(
+            out.audits[0].hint,
+            AuditHint::OrientActive,
+            "ATK-orient(f): orient with until=Some(\"\") (empty string) lands in OrientActive \
+             via the same None-parse grace path. SILENT GAP: an empty string looks like \
+             'field was set' but behaves like 'field was absent'."
+        );
+        assert_eq!(out.active_count, 1);
+    }
 }

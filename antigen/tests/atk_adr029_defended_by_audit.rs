@@ -773,7 +773,7 @@ fn atk_adr029_16_proof_field_grants_formal_proof_without_compile_validation() {
     // Rust code in the generated output; the FormalProof tier should be earned by
     // compile-time verification, not by string presence.
     //
-    // ATK-ADR029-16: this PASSES under the current code — proving the validation gap.
+    // ATK-ADR029-16: this PASSES under the current code -- proving the validation gap.
     // A correct implementation would either:
     //   (a) reject proof= values that don't compile (macro emits the expr into the output), or
     //   (b) demote unvalidated proof= to Reachability tier (weaker than FormalProof)
@@ -787,6 +787,91 @@ fn atk_adr029_16_proof_field_grants_formal_proof_without_compile_validation() {
         "ATK-ADR029-16 documented gap: proof= grants FormalProof without compile-time \
          validation of the expression; even \"invalid nonsense 42 !!\" produces \
          Defended{{FormalProof}}. Got: {:?}",
+        v.verdict
+    );
+}
+
+// ATK-ADR029-17: #[defended_by(DescendantType)] does NOT defend inherited
+// presentations of AncestorType.
+//
+// When antigen ChildClass descends from ParentClass, a #[presents(ParentClass)]
+// site is inherited by ChildClass as an inherited Presentation with
+// antigen_type == "ParentClass". The audit's verdict computation matches
+// defenses by antigen_type (audit.rs:1314: d.antigen_type == p.antigen_type).
+//
+// The trap: a developer who writes #[defended_by(ChildClass)] on their test,
+// intending to defend "ChildClass including its inherited vulnerabilities",
+// gets a false Undefended verdict for the inherited ParentClass presentation.
+// The developer's mental model (defend the child type, cover everything) does
+// NOT match the audit's model (defense is class-level; inherited presentations
+// keep their ancestor's antigen_type).
+//
+// This is the ADR-029 + ADR-018 intersection gap. The correct defense for an
+// inherited presentation of ParentClass on a ChildClass site is
+// #[defended_by(ParentClass)], not #[defended_by(ChildClass)].
+//
+// This test documents the gap so that any future change to inherited-presentation
+// verdict computation triggers a test update.
+#[test]
+fn atk_adr029_17_defended_by_descendant_type_does_not_cover_inherited_ancestor_presentation() {
+    use antigen::scan::{Defense, ItemTarget, MatchKind, Presentation, ScanReport};
+
+    let mut report = ScanReport::default();
+
+    // Inherited presentation: ChildClass site inherits ParentClass's vulnerability.
+    // antigen_type is ParentClass (the ancestor), NOT ChildClass (the descendant).
+    report.presentations.push(Presentation {
+        antigen_type: "ParentClass".to_string(),
+        file: PathBuf::from("src/lib.rs"),
+        line: 10,
+        item_kind: "struct".to_string(),
+        item_target: ItemTarget::Struct("ChildSite".to_string()),
+        match_kind: MatchKind::ExplicitMarker,
+        canonical_path: None,
+        inherited_from: Some(vec![antigen::scan::ProvenanceEntry {
+            antigen_type: "ParentClass".to_string(),
+            canonical_path: None,
+        }]),
+        structural_fingerprint: String::new(),
+        requires_predicate: None,
+        proof: None,
+    });
+
+    // Defense registered for ChildClass -- the developer intended this to cover
+    // ChildClass including its inherited vulnerabilities. But the audit matches
+    // by antigen_type == p.antigen_type == "ParentClass", so this defense for
+    // "ChildClass" does NOT apply.
+    report.defenses.push(Defense {
+        antigen_type: "ChildClass".to_string(), // WRONG: inherited pres has antigen_type="ParentClass"
+        file: PathBuf::from("tests/test.rs"),
+        line: 5,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Fn("test_child_class".to_string()),
+    });
+
+    let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap();
+    let audit_result = audit(&report, workspace_root);
+
+    // DOCUMENTS THE GAP: the inherited presentation of ParentClass is Undefended,
+    // even though the developer registered a defense for ChildClass.
+    // The defense for ChildClass does not cross-reference to the inherited
+    // ParentClass presentation because antigen_type mismatch.
+    assert_eq!(
+        audit_result.presentation_verdicts.len(),
+        1,
+        "ATK-ADR029-17: exactly one verdict for the inherited presentation"
+    );
+    let v = &audit_result.presentation_verdicts[0];
+    assert!(
+        matches!(v.verdict, ImmuneVerdict::Undefended),
+        "ATK-ADR029-17: inherited ParentClass presentation on ChildSite is Undefended \
+        even with a #[defended_by(ChildClass)] registered. The developer's intended \
+        defense (ChildClass covers inherited vulnerabilities) does not match the audit's \
+        model (defenses are antigen_type-keyed; inherited presentations keep ancestor type). \
+        The correct defense is #[defended_by(ParentClass)], not #[defended_by(ChildClass)]. \
+        Got: {:?}",
         v.verdict
     );
 }
