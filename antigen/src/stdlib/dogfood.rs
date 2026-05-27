@@ -23,6 +23,25 @@
 //!   `#[immune]` declaration names a witness that does not execute a
 //!   meaningful verification; the immunity claim and the actual verification
 //!   state diverge.
+//! - `MarkerStructDeadCodeInBinary` — `FunctionalCorrectness`: an `#[antigen]`
+//!   marker struct trips `dead_code` in a binary-crate adopter because `pub`
+//!   does not exempt never-constructed declaration tokens there; the macro's
+//!   `const _: fn()` use-token emit is the corrected verb behavior.
+//!
+//! ## Proc-macro-crate markability boundary
+//!
+//! A structural fact several of these antigens surface: `antigen-macros` is a
+//! proc-macro crate that **cannot carry `#[antigen]` / `#[presents]` /
+//! `#[immune]` markers** — it does not (and cannot) depend on `antigen` (the
+//! reverse dependency would be a cycle), so the marker types are unreachable,
+//! and a proc-macro crate cannot self-apply its own attribute macros. The crate
+//! that *implements* a defense (e.g. the `MarkerStructDeadCodeInBinary`
+//! use-token in `antigen-macros/src/lib.rs`) is therefore the crate that
+//! *cannot mark* it. Coverage for macros-crate sites lives at the
+//! fingerprint-recall layer instead: the dogfood declarations here carry
+//! fingerprints (e.g. `ActiveArgumentDiscard`'s `Parse`-impl recall) that
+//! `cargo antigen scan` matches against the macros-crate source passively, with
+//! no explicit marker required at the site.
 //!
 //! ## Biology grounding
 //!
@@ -1245,3 +1264,68 @@ pub struct ScanVisitorDigestAssignmentOmission;
     references = ["ADR-028"]
 )]
 pub struct FailingTestWithoutIgnorePin;
+
+// ============================================================================
+// 21. MarkerStructDeadCodeInBinary
+// ============================================================================
+
+/// An `#[antigen]` marker struct trips `dead_code` when an adopter declares it
+/// in a *binary* crate, because the marker is a declaration token that antigen
+/// never constructs and `pub` does not exempt it.
+///
+/// A marker struct (`#[antigen] pub struct Foo;`) carries no data and is used
+/// purely as a failure-class identity token — its `TypeId` / name is the value,
+/// never an instance. In a library crate `pub` exempts it from `dead_code`
+/// (it is part of the external API surface). In a *binary* crate there is no
+/// external API surface, so `pub` does not exempt it, and the never-constructed
+/// marker trips the `dead_code` lint — which is `-D warnings` in any adopter
+/// running a strict clippy/CI gate. The adopter did nothing wrong; the macro's
+/// emitted output broke their build.
+///
+/// **Observed instance** (2026-05-22 → 2026-05-24, camp's adoption of antigen):
+/// camp is a binary crate. Its first `#[antigen]` declarations tripped
+/// `dead_code` on every marker struct — Finding 1 of camp's hardcore-adoption
+/// dogfood. The fix lives in the `#[antigen]` macro itself
+/// (`antigen-macros/src/lib.rs`): the expansion emits a zero-cost use-token
+/// alongside the marker —
+///
+/// ```ignore
+/// const _: fn() = || { let _antigen_use_token: Foo; };
+/// ```
+///
+/// The `const _` is anonymous (no namespace pollution), always compiled (not
+/// `#[cfg(test)]`-gated), and the closure body is never invoked — the binding
+/// only references the type, so the marker is genuinely "used" from the
+/// compiler's view at zero runtime cost. This is strictly better than
+/// `#[allow(dead_code)]`, which would also mask legitimate dead-code elsewhere
+/// on the item.
+///
+/// **Category**: `FunctionalCorrectness` — the `#[antigen]` macro is a verb
+/// (code generator); the fail-class is the verb producing output that breaks
+/// the adopter's build (a `dead_code` warning under `-D warnings`). The
+/// use-token emit is the corrected verb behavior. This is a generated-code
+/// correctness property, not a representation-divergence.
+///
+/// **Defense / witness**: the use-token in the macro expansion. The defending
+/// site is the `expanded` quote block in the `antigen()` proc-macro at
+/// `antigen-macros/src/lib.rs`; it is marked `#[immune(MarkerStructDeadCodeInBinary,
+/// witness = binary_marker_dead_code)]` once the macro crate can reference this
+/// declaration. The witness is the UI/build test that a binary-crate adopter's
+/// marker compiles clean under `-D warnings`.
+///
+/// **Internal-tooling discipline**: per `feedback-internal-tool-antigens-preemptive`,
+/// declared from the confirmed camp-adoption instance — the fix shipped in the
+/// macro before this declaration existed, leaving the defending code
+/// unmarkable. This declaration closes that declaration-layer gap.
+#[antigen(
+    name = "marker-struct-dead-code-in-binary",
+    category = AntigenCategory::FunctionalCorrectness,
+    fingerprint = r#"doc_contains("dead_code")"#,
+    family = "dogfood",
+    summary = "An #[antigen] marker struct trips dead_code in a binary-crate adopter \
+               because pub does not exempt never-constructed declaration tokens there. \
+               The macro emits a zero-cost `const _: fn()` use-token so the marker is \
+               genuinely used from the compiler's view, fixing the adopter's build.",
+    references = ["ADR-003"]
+)]
+pub struct MarkerStructDeadCodeInBinary;

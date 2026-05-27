@@ -681,8 +681,8 @@ impl Drop for PanickingInDrop {{
 
 #[test]
 fn atk_w7_j_stale_cross_reference_witness_resolves_despite_semantic_drift() {
-    use std::io::Write;
     use antigen::scan::scan_workspace;
+    use std::io::Write;
 
     let dir = tempfile::TempDir::new().expect("tempdir");
     let src_path = dir.path().join("lib.rs");
@@ -727,7 +727,7 @@ pub fn process_value(v: u32) -> u32 {{
     assert_eq!(
         immunity_audit.witness_status,
         WitnessStatus::Resolved {
-            location: src_path.clone(),
+            location: src_path,
             witness_kind: WitnessKind::Function,
         },
         "ATK-W7-J: STALE-CROSS-REFERENCE: witness 'check_for_overflow' must be Resolved \

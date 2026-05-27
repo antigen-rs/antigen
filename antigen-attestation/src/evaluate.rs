@@ -2666,8 +2666,7 @@ mod tests {
         let item = item_with(vec![]);
         let ctx = TestContext::new(sample_date());
 
-        let node =
-            eval_pred(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx);
+        let node = eval_pred(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx);
         assert_eq!(
             node.verdict(),
             CompositeVerdict::Indeterminate,

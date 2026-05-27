@@ -676,8 +676,8 @@ checksum = "swapped-hash"
         }
     }
 
-    /// A malicious `version` is also blocked (dep_attest/content_hash compose it
-    /// into the filename).
+    /// A malicious `version` is also blocked (`dep_attest`/`content_hash` compose
+    /// it into the filename).
     #[test]
     fn path_builders_reject_traversal_version() {
         let root = Path::new("/ws");
@@ -693,7 +693,7 @@ checksum = "swapped-hash"
         }
     }
 
-    /// Control: a VALID crate_name + version still composes the real sidecar
+    /// Control: a VALID `crate_name` + version still composes the real sidecar
     /// path (the guard must not over-reject legitimate input).
     #[test]
     fn path_builders_compose_valid_names() {
