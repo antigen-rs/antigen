@@ -1241,13 +1241,10 @@ pub struct ScanVisitorDigestAssignmentOmission;
 /// doc comment are surfaced. Combined with manual review of whether `#[ignore]`
 /// is present, this provides partial passive recall.
 ///
-/// **Fingerprint limitation** (v0.2): the ideal fingerprint is
-/// `all_of([doc_contains("STATUS: FAILING"), not(has_attribute("ignore"))])` —
-/// but `not(has_attribute(...))` is not yet in the v0.2 DSL. The current
-/// fingerprint fires on ALL "STATUS: FAILING" tests, including correctly
-/// `#[ignore]`d ones. Correctly-handled sites should carry
-/// `#[immune(FailingTestWithoutIgnorePin, witness = ...)]`. The
-/// `not(has_attribute)` predicate is the v0.3 fingerprint tightening path.
+/// **Fingerprint**: `all_of([doc_contains("STATUS: FAILING"), not(attr_present("ignore"))])` —
+/// fires only on tests that are documented as failing but not yet pinned with `#[ignore]`.
+/// Correctly-pinned sites that remain failing long-term should carry
+/// `#[immune(FailingTestWithoutIgnorePin, witness = ...)]`.
 ///
 /// **Internal-tooling discipline**: per `feedback-internal-tool-antigens-preemptive`,
 /// declared preemptively from the three confirmed instances rather than waiting
@@ -1255,7 +1252,7 @@ pub struct ScanVisitorDigestAssignmentOmission;
 #[antigen(
     name = "failing-test-without-ignore-pin",
     category = AntigenCategory::SubstrateAlignment,
-    fingerprint = r#"doc_contains("STATUS: FAILING")"#,
+    fingerprint = r#"all_of([doc_contains("STATUS: FAILING"), not(attr_present("ignore"))])"#,
     family = "dogfood",
     summary = "A failing adversarial test is committed to HEAD without #[ignore], \
                breaking cargo test --workspace for the team until the fix lands. \
@@ -1418,3 +1415,90 @@ pub struct MarkerStructDeadCodeInBinary;
     references = ["ADR-028", "ADR-007"]
 )]
 pub struct SerdeDefaultMaskingStructLiteralBreak;
+
+// ============================================================================
+// 23. PathTraversalViaUnvalidatedComponent
+// ============================================================================
+
+/// A `pub` path-building primitive composes a caller-supplied component into a
+/// filesystem path without validating it, so a traversal sequence escapes root.
+///
+/// A path-builder whose contract is "produce a path inside root R" silently
+/// breaks that contract when an unvalidated component carries `..` or a
+/// separator: the composed path resolves outside R, and a subsequent read/write
+/// touches an attacker-chosen location. The representation (the builder's
+/// in-root contract) diverges from the actual state (an escaped path).
+///
+/// **Observed instance** (2026-05-26, supply-chain path-traversal guard,
+/// `d635d21`): `dep_attest_path` / `content_hash_path` / `maintainer_path` in
+/// `antigen/src/supply_chain/evaluate.rs` each compose `crate_name` (and
+/// `version`) into a sidecar path under `supply_chain_root`. Callers
+/// (`evaluate_dep_attested`, `load_content_hash_record`) reached the builders
+/// without pre-validating, so a traversal `crate_name` would have escaped the
+/// `.attest/supply-chain/` root. The fix validates at the builder: an invalid
+/// component resolves to the bare in-root directory (a safe miss) instead of
+/// being joined.
+///
+/// **Why this is NOT a sibling of the validation-gap family**
+/// ([`FingerprintStringWithoutDslValidation`] /
+/// [`FingerprintDigestWithoutFormatValidation`], #7/#8): those are
+/// *receptor-disagreement* — N known call-sites validate inconsistently, and
+/// the remedy is harmonize-the-sites. This is *barrier-breach* — a `pub`
+/// primitive with UNBOUNDED external callers trusts its input, and the remedy
+/// is validate-at-the-primitive-boundary (you can never enumerate every caller,
+/// so site-consistency is unachievable). Different remedy-structure = different
+/// class. (Per naturalist's recognition ruling, 2026-05-26: barrier-integrity /
+/// innate-immune arm vs adaptive-receptor arm — biologically distinct defense
+/// classes, so standalone, not sibling.)
+///
+/// **Biology cognate**: barrier-integrity failure — untrusted input escaping a
+/// containment boundary is a pathogen breaching the epithelial barrier (skin,
+/// gut lining) through an unvalidated entry point. An INNATE-barrier failure
+/// (the boundary itself fails to contain), distinct from the adaptive-arm
+/// receptor-disagreement of the validation-gap family.
+///
+/// **Category**: `SubstrateAlignment` — the path-builder's contract represents
+/// the composed path as in-root/safe; an unvalidated component makes the actual
+/// path escape. Representation-vs-state divergence (a security-flavored
+/// substrate-alignment; barrier-integrity IS a security primitive in biology).
+///
+/// **Known advisory hint** (`antigen-category-claim-inconsistent-with-predicate-type`):
+/// this antigen is `SubstrateAlignment` by recognition (representation-vs-state),
+/// but its witness is the behavioral traversal test — a *code-witness*, not a
+/// `requires = ...` *substrate-witness* predicate, which ADR-028 STRICT wants for
+/// a `SubstrateAlignment` claim. The v0.2 substrate-witness DSL has no predicate
+/// that expresses "the composed path is contained within root," so a code-witness
+/// is the only available instrument; the audit hint fires advisory (audit still
+/// exits 0). This is the same accepted state as [`ParallelStateTrackersDiverge`]
+/// (also `SubstrateAlignment` witnessed by a bijection/behavioral test). A
+/// path-containment substrate-witness predicate is a v0.3 DSL enrichment that
+/// would let the witness-type match the category.
+///
+/// **Defense**: validate the component at the PRIMITIVE, not the call-site, when
+/// the primitive is `pub` (unbounded callers). This is the generalizable
+/// discipline and exactly what distinguishes this from the validation-gap
+/// family: site-level validation cannot guard a primitive whose callers you
+/// cannot enumerate, so the boundary must guard itself (defense-in-depth,
+/// sub-clause F at the primitive). The witness is behavioral: feed traversal
+/// input to the builder and assert the result stays within the containment root
+/// and carries no `..` component.
+///
+/// **Internal-tooling discipline**: per `feedback-internal-tool-antigens-preemptive`,
+/// declared from the confirmed supply-chain instance — it recurs (this is THE
+/// canonical web/CLI security shape: every `pub` path-builder taking external
+/// components has it), there is a real instance plus an executable witness, so
+/// it earns durable structural memory that guards every future `pub`
+/// path-builder.
+#[antigen(
+    name = "path-traversal-via-unvalidated-component",
+    category = AntigenCategory::SubstrateAlignment,
+    fingerprint = r#"doc_contains("path-traversal")"#,
+    family = "dogfood",
+    summary = "A pub path-building primitive composes a caller-supplied component into a filesystem path \
+               without validating it, so a traversal sequence escapes the containment root. Barrier-breach \
+               (innate-immune arm), NOT a sibling of the validation-gap family (receptor-disagreement, \
+               adaptive arm): the remedy is validate-at-the-unbounded-primitive, not harmonize-known-call-\
+               sites. SubstrateAlignment: the builder's in-root contract diverges from the escaped path.",
+    references = ["ADR-005", "ADR-025"]
+)]
+pub struct PathTraversalViaUnvalidatedComponent;
