@@ -510,6 +510,39 @@ mod tests {
         );
     }
 
+    // ATK-FP-NOT-DOC-UNDOCUMENTED: not(doc_contains("X")) matches items with NO docs.
+    //
+    // doc_contains("X") returns false for undocumented items (empty doc text doesn't
+    // contain "X"). Therefore not(doc_contains("X")) returns TRUE for undocumented items.
+    // This is CORRECT behavior but potentially surprising for adopters who write:
+    //   all_of([item = struct, not(doc_contains("unsafe"))])
+    // expecting to match only "structs with docs that omit 'unsafe'" — but actually
+    // matching ALL structs with no docs as well. This test locks the behavior.
+    #[test]
+    fn not_doc_contains_matches_undocumented_item() {
+        let fp = fp(r#"all_of([item = struct, not(doc_contains("unsafe"))])"#);
+        // A struct with no doc comment at all: doc_contains returns false, not() inverts to true.
+        assert!(
+            fp.matches(&item("pub struct NoDoc;")),
+            "ATK-FP-NOT-DOC-UNDOCUMENTED: all_of([item=struct, not(doc_contains('unsafe'))]) \
+             must match an undocumented struct — empty doc text doesn't contain 'unsafe', \
+             so not(doc_contains) is true. Adopters should be aware this matches ALL structs \
+             without 'unsafe' in docs, including those with NO docs at all."
+        );
+        // A struct with docs that DO contain "unsafe": not(doc_contains) is false.
+        assert!(
+            !fp.matches(&item("/// This is unsafe usage.\npub struct DocUnsafe;")),
+            "ATK-FP-NOT-DOC-UNDOCUMENTED: all_of([item=struct, not(doc_contains('unsafe'))]) \
+             must NOT match a struct whose doc contains 'unsafe'."
+        );
+        // A struct with docs that DON'T contain "unsafe": not(doc_contains) is true.
+        assert!(
+            fp.matches(&item("/// Safe to use always.\npub struct DocSafe;")),
+            "ATK-FP-NOT-DOC-UNDOCUMENTED: all_of([item=struct, not(doc_contains('unsafe'))]) \
+             must match a struct whose doc does NOT contain 'unsafe'."
+        );
+    }
+
     #[test]
     fn all_of_matches() {
         let fp = fp(r#"all_of([item = enum, name = matches("*Class")])"#);
