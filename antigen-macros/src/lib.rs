@@ -309,13 +309,34 @@ pub fn immune(args: TokenStream, input: TokenStream) -> TokenStream {
     // ADR-029 §Mechanics: #[immune] is deprecated; emit a compiler warning pointing
     // toward the new #[defended_by] (code-tier) / #[presents(requires=...)]
     // (substrate-tier) model so adopters receive a migration nudge at compile time.
+    //
+    // Carrier choice: we do NOT emit `#[deprecated]` on the annotated item itself.
+    // That design has two defects:
+    //   1. Stacking — two `#[immune]` on one item produces two `#[deprecated]` attrs,
+    //      which is a hard compile error ("multiple deprecated attributes").
+    //   2. Target mis-match — `#[deprecated]` on the item fires at CALLERS, not at
+    //      the `#[immune]` author; adopters writing valid code that calls a
+    //      `#[immune]`-annotated function would see spurious migration warnings.
+    //
+    // Instead: emit a `const _: () = { ... }` block containing a deprecated unit
+    // struct that is immediately used inside the block (firing the lint) and then
+    // discarded. The block is scoped so no name leaks; `const _` items are always
+    // anonymous and stack without collision; the lint fires at the `#[immune]`
+    // call site (the macro invocation), which is exactly where the author is.
+    // Callers of the annotated item see no warning — only the #[immune] author does.
+    // Antigen's own uses suppress with #[allow(deprecated)] per the migration plan.
+    // MSRV 1.85 supports `let _` in const blocks.
     let deprecated_note = "use #[defended_by] on tests (code-tier) or #[presents(requires=...)] \
          for substrate evidence — ADR-029";
 
     args.requires_json().map_or_else(
         || {
             quote! {
-                #[deprecated(note = #deprecated_note)]
+                const _: () = {
+                    #[deprecated(note = #deprecated_note)]
+                    struct __AntigenImmuneDeprecated;
+                    let _ = __AntigenImmuneDeprecated;
+                };
                 #input
             }
             .into()
@@ -326,7 +347,11 @@ pub fn immune(args: TokenStream, input: TokenStream) -> TokenStream {
             // Format: `antigen:requires:v1:<json>` (ADR-019 §P3b).
             let marker = format!(" antigen:requires:v1:{json}");
             quote! {
-                #[deprecated(note = #deprecated_note)]
+                const _: () = {
+                    #[deprecated(note = #deprecated_note)]
+                    struct __AntigenImmuneDeprecated;
+                    let _ = __AntigenImmuneDeprecated;
+                };
                 #[doc = #marker]
                 #input
             }
