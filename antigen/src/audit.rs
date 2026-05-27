@@ -3229,11 +3229,12 @@ pub fn audit_category(report: &ScanReport) -> CategoryAuditReport {
         // Canonical-path-aware (mirrors `scan::defense_addresses`, but matched
         // against the declaration's canonical_path rather than a presentation's):
         // a `#[defended_by(Foo)]` from a DIFFERENT crate must not satisfy this
-        // crate's `Foo` G2 check (ATK-G2-22 cross-crate overclaim). A defense
-        // with canonical_path=None matches any (backward-compat).
+        // crate's `Foo` G2 check (ATK-G2-22 / ATK-ADR029-23 cross-crate
+        // overclaim). Plain equality — None matches None only, Some(x) matches
+        // Some(x) only. `stamp_canonical_path` runs all-or-nothing per scan, so
+        // (None defense, Some decl) is always cross-boundary and must not match.
         if report.defenses.iter().any(|d| {
-            d.antigen_type == decl.type_name
-                && (d.canonical_path.is_none() || d.canonical_path == decl.canonical_path)
+            d.antigen_type == decl.type_name && d.canonical_path == decl.canonical_path
         }) {
             has_any_immunity = true;
             has_code_witness = true;
@@ -5679,6 +5680,130 @@ mod tests {
              to crate-A's struct Foo deterministically — a valid refinement, no divergence. \
              A non-zero result means the cross-crate Foo collided back in. Got: {:?}",
             out.divergences
+        );
+    }
+
+    // ATK-LF-4: naive fix for ATK-LF-2 would false-positive on any_of-nested doc_contains.
+    //
+    // The proposed fix for ATK-LF-2 (collect doc_contains from nested constraints inside
+    // AllOf) carries a hazard: a naive implementation that collects from ANY nested combinator
+    // — including AnyOf — would require the child to cover doc_contains strings from OR-arms
+    // that the child is NOT required to satisfy.
+    //
+    // CONCRETE CASE:
+    //   Parent: any_of([doc_contains("A"), doc_contains("B")])
+    //   Child:  doc_contains("A")
+    //
+    // The child IS a valid refinement: everything that matches the child (docs containing "A")
+    // also satisfies the parent (docs contain "A" OR "B"). Child.matches ⊆ parent.matches.
+    //
+    // But a naive "collect all doc_contains from any nested combinator" fix would see the parent
+    // has "A" and "B" requirements (from AnyOf arms), demand the child cover both, and fire
+    // DescendedFromFingerprintDivergence spuriously — a false positive.
+    //
+    // The CORRECT fix for ATK-LF-2 is ALL-OF-ONLY descent: collect doc_contains from AllOf
+    // children only (every AllOf child must be satisfied, so the parent requirement is real).
+    // AnyOf children are OR-branches — the parent is satisfied by ANY one; collecting all
+    // would over-require the child. Not/leaf are irrelevant to doc_contains.
+    //
+    // This test CURRENTLY passes (no advisory fires — correct: child IS a refinement).
+    // It guards against a future regression where the ATK-LF-2 fix naively descends into
+    // AnyOf and fires a spurious advisory for this valid refinement.
+    //
+    // If this test FAILS after the ATK-LF-2 fix lands: the fix descended into AnyOf and
+    // introduced a false-positive. The fix is too broad — restrict descent to AllOf only.
+    #[test]
+    fn atk_lf_4_any_of_nested_doc_contains_must_not_false_positive() {
+        // Parent: any_of([doc_contains("A"), doc_contains("B")])
+        //   → matches docs containing "A" OR "B"
+        // Child:  doc_contains("A")
+        //   → matches docs containing "A" (strict subset of parent — valid refinement)
+        //
+        // A naive fix that collects ALL doc_contains from nested combinators would see parent
+        // requires "A" AND "B" (from the two any_of arms), demand the child cover both, and
+        // fire a spurious DescendedFromFingerprintDivergence. The CORRECT behavior: silence.
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_with_fp(
+            "P",
+            r#"any_of([doc_contains("A"), doc_contains("B")])"#,
+        ));
+        report.antigens.push(antigen_with_fp("C", r#"doc_contains("A")"#));
+        report.lineage_edges.push(lineage_edge("C", "P"));
+
+        let out = audit_lineage_fidelity(&report);
+
+        // CORRECT BEHAVIOR NOW AND AFTER FIX: no divergence (child IS a valid refinement).
+        // If this fires: the ATK-LF-2 fix descended into AnyOf and false-positived.
+        // Restrict descent to AllOf only.
+        assert_eq!(
+            out.divergences.len(),
+            0,
+            "ATK-LF-4: a child with doc_contains('A') IS a valid refinement of a parent with \
+             any_of([doc_contains('A'), doc_contains('B')]) — the child's match-set is a subset \
+             of the parent's OR-union. No DescendedFromFingerprintDivergence should fire. \
+             If this assertion FAILS after ATK-LF-2 fix landed: the fix naively descends into \
+             AnyOf and requires the child to cover both arms — a false positive. Restrict \
+             doc_contains collection to AllOf children only."
+        );
+    }
+
+    // ATK-LF-5: child has any_of over item-kinds — parent-item-kind check must stay silent.
+    //
+    // The proposed fix for ATK-LF-1 (use node_kind_hint() to find item-kind inside AllOf)
+    // must NOT fire when the child uses any_of over item kinds, because the child is BROADER
+    // than a single-kind pin (not necessarily narrower).
+    //
+    // CONCRETE CASE:
+    //   Parent: item = struct
+    //   Child:  any_of([item = struct, item = enum])   (a WIDENING, not a refinement)
+    //
+    // This is NOT a refinement (child.matches ⊃ parent.matches — child matches both structs
+    // and enums, parent only matches structs). The advisory SHOULD fire here.
+    //
+    // But: node_kind_hint() returns None for AnyOf (line 407: "any_of: no kind hint").
+    // So child_top_item_kind() (after the fix) would return None for the child → the item-kind
+    // check's `if let (Some(pk), Some(ck))` guard fails → advisory stays SILENT.
+    //
+    // This is a FALSE NEGATIVE for the widening case. After the ATK-LF-1 fix, widening via
+    // any_of is still undetectable. This test pins that behavior as a KNOWN LIMITATION:
+    // the advisory correctly errs toward silence on the undecidable / complex case.
+    //
+    // IMPORTANT: this is NOT a bug in the fix direction — the advisory is explicitly
+    // conservative ("only flag unambiguous non-refinements"). AnyOf-over-item-kinds is
+    // genuinely undecidable at the level of static kind-matching. The test documents this
+    // known limitation so future work doesn't mistakenly think the case is handled.
+    #[test]
+    fn atk_lf_5_any_of_item_kind_widening_not_detectable_known_limitation() {
+        // Parent: item = struct  (matches only structs)
+        // Child:  any_of([item = struct, item = enum])  (matches structs AND enums)
+        // Child is WIDER than parent — NOT a refinement. But any_of → no kind hint →
+        // item-kind check skipped → advisory stays silent (false negative, known limitation).
+        let mut report = ScanReport::default();
+        report
+            .antigens
+            .push(antigen_with_fp("P", "item = struct"));
+        report.antigens.push(antigen_with_fp(
+            "C",
+            r#"any_of([item = struct, item = enum])"#,
+        ));
+        report.lineage_edges.push(lineage_edge("C", "P"));
+
+        let out = audit_lineage_fidelity(&report);
+
+        // KNOWN LIMITATION: advisory stays silent even though child is wider.
+        // node_kind_hint() returns None for AnyOf → item-kind check skipped.
+        // The advisory is conservative — it only fires on the unambiguous cases.
+        // If this PASSES (no divergence): expected — known limitation documented.
+        // If this FAILS (divergence fires) AFTER ATK-LF-1 fix: the fix somehow caught
+        // the any_of case; verify it's not a false positive on a different scenario.
+        assert_eq!(
+            out.divergences.len(),
+            0,
+            "ATK-LF-5 (KNOWN LIMITATION): child `any_of([item=struct, item=enum])` is wider \
+             than parent `item=struct` — not a refinement — but node_kind_hint() returns None \
+             for AnyOf so the item-kind check cannot detect this widening. Advisory stays silent. \
+             This is the CONSERVATIVE posture: erring toward silence on undecidable cases. \
+             If divergences.len() != 0: an unexpected code path fired — verify it's intentional."
         );
     }
 }
