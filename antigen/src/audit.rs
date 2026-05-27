@@ -209,6 +209,27 @@ pub enum AuditHint {
     /// `#[immune]` or `#[antigen_tolerance]`.
     InheritedPresentationNotReAttested,
 
+    /// A `#[descended_from(Parent)]` lineage edge whose CHILD antigen's
+    /// structural fingerprint is detectably NOT a refinement of the PARENT's
+    /// (lineage-fidelity check; scientist severity ruling 2026-05-27: ADVISORY
+    /// for v0.3, hard-fail deferred to a future ADR).
+    ///
+    /// A child fingerprint *refines* its parent's when every item matching the
+    /// child also matches the parent (`child.matches ⊆ parent.matches`) — the
+    /// child is at-least-as-specific. This hint fires only on the conservative,
+    /// statically-decidable NON-refinement cases (no false positives):
+    /// - the child's top-level `item = <kind>` differs from the parent's, or
+    /// - the parent requires a `doc_contains(s)` substring that no child
+    ///   `doc_contains` contains.
+    ///
+    /// Glob-containment for `name = matches(...)` is deferred (the harder case).
+    ///
+    /// Biology cognate: MHC restriction / negative selection — a lineage claim
+    /// that doesn't survive the structural check is a mis-matched TCR. Negative
+    /// selection is strict (the autoreactive clone is deleted), so the eventual
+    /// posture is hard-fail; v0.3 advisory is the AIRE testing window.
+    DescendedFromFingerprintDivergence,
+
     // ------------------------------------------------------------------
     // Substrate-witness hints (ADR-019). These exist as legacy-enum echoes
     // of `antigen_attestation::SubstrateAuditHint` so the user-facing
@@ -3187,6 +3208,175 @@ pub fn audit_category(report: &ScanReport) -> CategoryAuditReport {
     }
 }
 
+// ============================================================================
+// Lineage-fidelity audit (DescendedFromFingerprintDivergence) — ADVISORY
+//
+// scientist severity ruling 2026-05-27: advisory for v0.3, hard-fail deferred to
+// a future ADR. For each `#[descended_from(Parent)]` edge, check whether the
+// CHILD antigen's structural fingerprint *refines* the PARENT's (child.matches ⊆
+// parent.matches — the child is at-least-as-specific). Emits an advisory hint on
+// the conservative, statically-decidable NON-refinement cases only (no false
+// positives). Biology: MHC restriction / negative selection.
+// ============================================================================
+
+/// One lineage edge's fidelity verdict (advisory).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LineageFidelityAudit {
+    /// Child antigen type name (bears `#[descended_from]`).
+    pub child: String,
+    /// Parent antigen type name (the `#[descended_from]` argument).
+    pub parent: String,
+    /// Source file of the `#[descended_from]` edge.
+    pub file: PathBuf,
+    /// Line of the `#[descended_from]` edge.
+    pub line: usize,
+    /// Advisory hint — `DescendedFromFingerprintDivergence` when the child's
+    /// fingerprint is detectably NOT a refinement of the parent's; the
+    /// human-readable reason is in `detail`.
+    pub hint: AuditHint,
+    /// Why the divergence was detected (e.g. "child item-kind `enum` differs
+    /// from parent `struct`").
+    pub detail: String,
+}
+
+/// Aggregate lineage-fidelity audit report.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LineageFidelityAuditReport {
+    /// Edges whose child fingerprint is detectably not a refinement (advisory).
+    pub divergences: Vec<LineageFidelityAudit>,
+}
+
+/// Audit `#[descended_from]` lineage fidelity (ADVISORY, scientist 2026-05-27).
+///
+/// Only flags edges where BOTH endpoints have a parseable fingerprint AND the
+/// child is detectably NOT a refinement of the parent. Edges where either
+/// fingerprint is absent (verify-only antigens, ADR-009 Amendment 1) or
+/// unparseable are skipped — the refinement question is undefined there, and an
+/// advisory must not produce false positives. Orphaned/dangling edges (missing
+/// parent/child declaration) are a separate concern (`orphaned_lineage_edges` /
+/// `dangling_child_lineage_edges`) — they are not re-flagged here.
+#[must_use]
+pub fn audit_lineage_fidelity(report: &ScanReport) -> LineageFidelityAuditReport {
+    use std::collections::HashMap;
+
+    // Index declarations by type_name → parsed fingerprint (skip absent/unparseable).
+    let fingerprints: HashMap<&str, antigen_fingerprint::Fingerprint> = report
+        .antigens
+        .iter()
+        .filter_map(|a| {
+            let raw = a.fingerprint.as_deref()?;
+            antigen_fingerprint::Fingerprint::parse(raw)
+                .ok()
+                .map(|fp| (a.type_name.as_str(), fp))
+        })
+        .collect();
+
+    let mut divergences = Vec::new();
+    for edge in &report.lineage_edges {
+        let (Some(child_fp), Some(parent_fp)) = (
+            fingerprints.get(edge.child.as_str()),
+            fingerprints.get(edge.parent.as_str()),
+        ) else {
+            // One or both endpoints lack a parseable fingerprint — refinement is
+            // undefined; advisory stays silent (no false positive).
+            continue;
+        };
+        if let Some(detail) = fingerprint_nonrefinement_reason(child_fp, parent_fp) {
+            divergences.push(LineageFidelityAudit {
+                child: edge.child.clone(),
+                parent: edge.parent.clone(),
+                file: edge.file.clone(),
+                line: edge.line,
+                hint: AuditHint::DescendedFromFingerprintDivergence,
+                detail,
+            });
+        }
+    }
+    LineageFidelityAuditReport { divergences }
+}
+
+/// Conservative, statically-decidable NON-refinement detector (scientist
+/// refinement note 2026-05-27). Returns `Some(reason)` when the child is
+/// detectably NOT a refinement of the parent, `None` otherwise (including all
+/// undecidable cases — the advisory errs toward silence, never a false positive).
+///
+/// A child fingerprint refines its parent's when `child.matches ⊆ parent.matches`.
+/// We detect two unambiguous violations of that on the TOP-LEVEL constraints:
+/// - **item-kind**: the parent pins `item = <K>` and the child pins a DIFFERENT
+///   `item = <K'>` → disjoint match sets → not a refinement.
+/// - **`doc_contains`**: the parent requires `doc_contains(s)` but NO child
+///   `doc_contains` substring contains `s` → an item can match the child without
+///   matching the parent → not a refinement.
+///
+/// `name = matches(glob)` containment is deferred (the harder case scout/scientist
+/// flagged); glob-subset is not attempted here, so a glob mismatch is NOT flagged
+/// (silence, not a false positive). Nested combinators (`all_of` / `any_of` /
+/// `not`) are not descended into for v0.3 — only top-level constraints compared.
+fn fingerprint_nonrefinement_reason(
+    child: &antigen_fingerprint::Fingerprint,
+    parent: &antigen_fingerprint::Fingerprint,
+) -> Option<String> {
+    use antigen_fingerprint::Constraint;
+
+    // (1) item-kind divergence: parent pins one kind, child pins a different one.
+    let parent_kind = child_top_item_kind(&parent.constraints);
+    let child_kind = child_top_item_kind(&child.constraints);
+    if let (Some(pk), Some(ck)) = (parent_kind, child_kind) {
+        if pk != ck {
+            return Some(format!(
+                "child `item = {ck:?}` differs from parent `item = {pk:?}` \
+                 — disjoint item kinds cannot be a refinement"
+            ));
+        }
+    }
+
+    // (2) doc_contains divergence: a parent-required substring that no child
+    // doc_contains contains. (If the child contains a SUPERSTRING of the parent's
+    // needle, that IS a refinement — child requires more, matches a subset.)
+    let child_docs: Vec<&str> = child
+        .constraints
+        .iter()
+        .filter_map(|c| match c {
+            Constraint::DocContains(s) => Some(s.as_str()),
+            _ => None,
+        })
+        .collect();
+    for c in &parent.constraints {
+        if let Constraint::DocContains(parent_needle) = c {
+            let covered = child_docs
+                .iter()
+                .any(|cd| cd.contains(parent_needle.as_str()));
+            if !covered {
+                return Some(format!(
+                    "parent requires `doc_contains({parent_needle:?})` but no child \
+                     `doc_contains` includes it — child can match where parent does not"
+                ));
+            }
+        }
+    }
+
+    None
+}
+
+/// The single top-level `item = <kind>` of a fingerprint, if exactly one is
+/// present. (Multiple top-level item constraints, or none, → `None`: the
+/// item-kind refinement check only applies to the unambiguous single-kind case.)
+fn child_top_item_kind(
+    constraints: &[antigen_fingerprint::Constraint],
+) -> Option<antigen_fingerprint::ItemKind> {
+    use antigen_fingerprint::Constraint;
+    let mut found = None;
+    for c in constraints {
+        if let Constraint::Item(kind) = c {
+            if found.is_some() {
+                return None; // ambiguous — more than one top-level item kind
+            }
+            found = Some(*kind);
+        }
+    }
+    found
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -4943,6 +5133,225 @@ mod tests {
             out.stale_count, 0,
             "ATK-IMMUNOSUPPRESS-MALFORMED-SINCE: stale_count is 0 -- the cap-exceeded \
             path was never reached because since parse failed silently"
+        );
+    }
+
+    // ========================================================================
+    // Lineage-fidelity audit (DescendedFromFingerprintDivergence) — ADVISORY
+    // ========================================================================
+
+    fn antigen_with_fp(type_name: &str, fingerprint: &str) -> crate::scan::AntigenDeclaration {
+        crate::scan::AntigenDeclaration {
+            fingerprint: Some(fingerprint.to_string()),
+            ..antigen_decl(type_name, Vec::new())
+        }
+    }
+
+    fn lineage_edge(child: &str, parent: &str) -> crate::scan::LineageEdge {
+        crate::scan::LineageEdge {
+            child: child.to_string(),
+            parent: parent.to_string(),
+            file: PathBuf::from("src/lib.rs"),
+            line: 1,
+            parent_canonical_path: None,
+            child_canonical_path: None,
+        }
+    }
+
+    #[test]
+    fn lineage_fidelity_flags_item_kind_divergence() {
+        // Parent pins `item = struct`; child pins `item = enum` — disjoint kinds,
+        // so the child is NOT a refinement. Advisory hint fires.
+        let mut report = ScanReport::default();
+        report
+            .antigens
+            .push(antigen_with_fp("Parent", "item = struct"));
+        report
+            .antigens
+            .push(antigen_with_fp("Child", "item = enum"));
+        report.lineage_edges.push(lineage_edge("Child", "Parent"));
+
+        let out = audit_lineage_fidelity(&report);
+        assert_eq!(out.divergences.len(), 1);
+        assert_eq!(
+            out.divergences[0].hint,
+            AuditHint::DescendedFromFingerprintDivergence
+        );
+        assert!(out.divergences[0].detail.contains("item"));
+    }
+
+    #[test]
+    fn lineage_fidelity_flags_missing_parent_doc_substring() {
+        // Parent requires doc_contains("error"); child's doc_contains("panic")
+        // does NOT include "error" → child can match where parent can't → not a
+        // refinement.
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_with_fp(
+            "P",
+            r#"item = struct, doc_contains("error")"#,
+        ));
+        report.antigens.push(antigen_with_fp(
+            "C",
+            r#"item = struct, doc_contains("panic")"#,
+        ));
+        report.lineage_edges.push(lineage_edge("C", "P"));
+
+        let out = audit_lineage_fidelity(&report);
+        assert_eq!(out.divergences.len(), 1);
+        assert!(out.divergences[0].detail.contains("doc_contains"));
+    }
+
+    #[test]
+    fn lineage_fidelity_clean_when_child_refines_parent() {
+        // Same item-kind + child doc_contains SUPERSTRING of parent's needle
+        // (child requires "parse error" ⊇ parent's "error") → child matches a
+        // subset of parent → a genuine refinement → no advisory.
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_with_fp(
+            "P",
+            r#"item = struct, doc_contains("error")"#,
+        ));
+        report.antigens.push(antigen_with_fp(
+            "C",
+            r#"item = struct, doc_contains("parse error")"#,
+        ));
+        report.lineage_edges.push(lineage_edge("C", "P"));
+
+        let out = audit_lineage_fidelity(&report);
+        assert!(
+            out.divergences.is_empty(),
+            "a genuine refinement (same kind + superstring doc) must not flag; got: {:?}",
+            out.divergences
+        );
+    }
+
+    #[test]
+    fn lineage_fidelity_silent_when_a_fingerprint_is_absent() {
+        // ADR-009 Amendment 1: a verify-only antigen has no fingerprint.
+        // Refinement is undefined → the advisory stays silent (no false positive).
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_with_fp("P", "item = struct"));
+        report.antigens.push(antigen_decl("C", Vec::new())); // fingerprint: None
+        report.lineage_edges.push(lineage_edge("C", "P"));
+
+        let out = audit_lineage_fidelity(&report);
+        assert!(
+            out.divergences.is_empty(),
+            "an absent (verify-only) fingerprint must not produce a divergence advisory"
+        );
+    }
+
+    // ATK-LF-1: parent item-kind nested inside all_of — child_top_item_kind() misses it
+    //
+    // `child_top_item_kind()` iterates only `Constraint::Item` at the TOP LEVEL of
+    // the fingerprint's constraints Vec. But a fingerprint like
+    // `all_of(item = struct, doc_contains("error"))` places `item = struct` inside
+    // an `AllOf` constraint, not at the top level.
+    //
+    // `child_top_item_kind` returns `None` for both parent and child → the item-kind
+    // check is skipped entirely (the `if let (Some(pk), Some(ck))` guard fails).
+    //
+    // A child with `all_of(item = enum, doc_contains("error"))` does NOT refine a
+    // parent with `all_of(item = struct, doc_contains("error"))` — enum and struct
+    // are disjoint item-kinds. But the advisory stays SILENT, producing a false
+    // negative.
+    //
+    // Contrast: `antigen_fingerprint::Fingerprint::node_kind()` DOES descend into
+    // `AllOf` via `Constraint::node_kind_hint()` (fingerprint/src/lib.rs:399-403).
+    // `child_top_item_kind` diverges from this behavior, creating a coverage gap.
+    //
+    // Fix direction: `child_top_item_kind` should use the same `node_kind_hint()`
+    // traversal as `Fingerprint::node_kind()`, or delegate to it directly.
+    //
+    // This test pins CURRENT BROKEN BEHAVIOR (no divergence emitted for nested
+    // item-kind mismatch). When the fix lands, the assertion should invert:
+    // expect divergences.len() == 1 with DescendedFromFingerprintDivergence.
+    #[test]
+    fn atk_lf_1_item_kind_nested_in_all_of_silently_bypasses_divergence_check() {
+        // Parent: all_of(item = struct, doc_contains("error"))
+        // Child:  all_of(item = enum,   doc_contains("error"))
+        // The item-kind divergence (struct vs enum) is NOT at the top level —
+        // it's nested inside an all_of. child_top_item_kind returns None for both,
+        // skipping the item-kind check. Advisory stays silent — false negative.
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_with_fp(
+            "P",
+            r#"all_of([item = struct, doc_contains("error")])"#,
+        ));
+        report.antigens.push(antigen_with_fp(
+            "C",
+            r#"all_of([item = enum, doc_contains("error")])"#,
+        ));
+        report.lineage_edges.push(lineage_edge("C", "P"));
+
+        let out = audit_lineage_fidelity(&report);
+
+        // CURRENT BROKEN BEHAVIOR: divergences is EMPTY (no advisory fires).
+        // The struct-vs-enum mismatch is inside all_of, child_top_item_kind()
+        // returns None for both → item-kind check skipped → false negative.
+        //
+        // When fix lands (child_top_item_kind descends into AllOf):
+        //   assert_eq!(out.divergences.len(), 1, "item-kind nested in all_of must fire advisory");
+        //   assert_eq!(out.divergences[0].hint, AuditHint::DescendedFromFingerprintDivergence);
+        assert_eq!(
+            out.divergences.len(),
+            0,
+            "ATK-LF-1 (CURRENT BROKEN BEHAVIOR): parent `all_of(item=struct, ...)` and \
+             child `all_of(item=enum, ...)` should fire DescendedFromFingerprintDivergence \
+             (disjoint item-kinds), but child_top_item_kind() only checks top-level constraints \
+             and misses item-kind nested inside all_of. Advisory stays silent — false negative. \
+             When this assertion fails (divergences.len() != 0): fix landed. Invert to expect 1."
+        );
+    }
+
+    // ATK-LF-2: doc_contains nested in all_of — parent requirement missed
+    //
+    // The doc_contains check in `fingerprint_nonrefinement_reason` iterates
+    // `parent.constraints` for top-level `Constraint::DocContains`. If the parent
+    // has `all_of(item = struct, doc_contains("error"))`, the `doc_contains("error")`
+    // is nested inside AllOf — not a top-level `Constraint::DocContains`.
+    //
+    // The loop at audit.rs:3344 `for c in &parent.constraints` iterates the
+    // outer Vec, finding only `AllOf(...)` — not the nested `DocContains`. The
+    // parent's doc-substring requirement is missed entirely.
+    //
+    // A child with `item = struct` (no doc_contains at all) is NOT a refinement
+    // of `all_of(item = struct, doc_contains("error"))`. But the advisory stays
+    // SILENT — false negative.
+    //
+    // Fix direction: the doc_contains iteration should also look inside AllOf
+    // constraints to collect all required doc substrings from parent.
+    //
+    // This test pins CURRENT BROKEN BEHAVIOR. Invert when fix lands.
+    #[test]
+    fn atk_lf_2_parent_doc_contains_nested_in_all_of_silently_bypasses_divergence_check() {
+        // Parent: all_of(item = struct, doc_contains("error"))
+        // Child:  item = struct  (no doc_contains requirement — broader match set)
+        // The child can match structs WITHOUT "error" in their doc → NOT a refinement.
+        // But the parent's doc_contains is nested inside all_of → missed.
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_with_fp(
+            "P",
+            r#"all_of([item = struct, doc_contains("error")])"#,
+        ));
+        report.antigens.push(antigen_with_fp("C", "item = struct"));
+        report.lineage_edges.push(lineage_edge("C", "P"));
+
+        let out = audit_lineage_fidelity(&report);
+
+        // CURRENT BROKEN BEHAVIOR: divergences is EMPTY.
+        // Parent's doc_contains("error") is inside all_of → not visited by the
+        // top-level constraint loop → advisory stays silent → false negative.
+        //
+        // When fix lands (doc_contains check descends into AllOf):
+        //   assert_eq!(out.divergences.len(), 1, "nested doc_contains requirement missed by child");
+        assert_eq!(
+            out.divergences.len(),
+            0,
+            "ATK-LF-2 (CURRENT BROKEN BEHAVIOR): parent `all_of(item=struct, doc_contains('error'))` \
+             has a doc_contains requirement nested inside all_of. The top-level constraint loop \
+             misses it — child `item = struct` (no doc_contains) is NOT a refinement but the \
+             advisory stays silent. False negative. When this assertion fails: fix landed. Invert."
         );
     }
 }

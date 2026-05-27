@@ -2628,6 +2628,43 @@ fn print_recurrent_concerns(report: &audit::RecurrentAuditReport) {
     println!();
 }
 
+/// Render the `#[descended_from]` lineage-fidelity advisory (scientist
+/// 2026-05-27: ADVISORY for v0.3). Flags edges where the child antigen's
+/// fingerprint is detectably NOT a refinement of the parent's. Non-blocking —
+/// it does NOT affect the exit code; it surfaces a lineage claim that doesn't
+/// survive the structural check (the MHC-restriction / negative-selection
+/// cognate). Quiet when no divergences (advisory = signal, not noise).
+fn print_lineage_fidelity_advisory(report: &audit::LineageFidelityAuditReport) {
+    if report.divergences.is_empty() {
+        return;
+    }
+    println!(
+        "ℹ {} #[descended_from] lineage(s) whose child fingerprint does not refine \
+         the parent (ADVISORY — lineage-fidelity, ADR-029-adjacent):",
+        report.divergences.len()
+    );
+    println!();
+    for d in &report.divergences {
+        println!(
+            "  {}:{}  {} ⟶ {} — {}",
+            d.file.display(),
+            d.line,
+            d.child,
+            d.parent,
+            d.detail
+        );
+    }
+    println!();
+    println!(
+        "  A `#[descended_from(Parent)]` claims the child is a more-specific case of \
+         the parent's failure-class; if the child's fingerprint matches items the \
+         parent's does not, the lineage is structurally unsound. Advisory only in \
+         v0.3 (hard-fail deferred to a future ADR — biology: negative selection is \
+         strict). Tighten the child's fingerprint, or correct the lineage edge."
+    );
+    println!();
+}
+
 /// Macro-keyword string for a convergent-evidence kind (display only).
 const fn convergent_kind_str(kind: &antigen::scan::ConvergentEvidenceKind) -> &'static str {
     use antigen::scan::ConvergentEvidenceKind as K;
@@ -3045,6 +3082,11 @@ fn run_audit(args: AuditArgs) -> ExitCode {
     // the adopter.
     let convergent_report = audit::audit_convergent_evidence(&scan_report);
     let recurrent_report = audit::audit_recurrent(&scan_report);
+    // ADVISORY (scientist 2026-05-27): #[descended_from] lineage-fidelity —
+    // flag (advisory, non-blocking) where a child antigen's fingerprint is
+    // detectably NOT a refinement of its parent's. Delivered here so the
+    // computed verdict reaches the adopter (the delivery-arm discipline).
+    let lineage_fidelity_report = audit::audit_lineage_fidelity(&scan_report);
 
     match args.format {
         OutputFormat::Human => {
@@ -3052,6 +3094,7 @@ fn run_audit(args: AuditArgs) -> ExitCode {
             print_deferred_defenses_loud(&deferred_report);
             print_convergent_evidence_concerns(&convergent_report);
             print_recurrent_concerns(&recurrent_report);
+            print_lineage_fidelity_advisory(&lineage_fidelity_report);
             print_category_audit_human(&category_report);
         }
         OutputFormat::Json => match serde_json::to_string_pretty(&JsonAuditReport {
@@ -3061,6 +3104,7 @@ fn run_audit(args: AuditArgs) -> ExitCode {
             deferred_defense_audit: &deferred_report,
             convergent_evidence_audit: &convergent_report,
             recurrent_audit: &recurrent_report,
+            lineage_fidelity_audit: &lineage_fidelity_report,
         }) {
             Ok(s) => println!("{s}"),
             Err(e) => {
@@ -4026,6 +4070,10 @@ struct JsonAuditReport<'a> {
     /// per-declaration concern hints + clean/concern counts. Delivered here so
     /// the computed verdict reaches consumers (was a severed delivery arm).
     recurrent_audit: &'a audit::RecurrentAuditReport,
+    /// `#[descended_from]` lineage-fidelity advisory (scientist 2026-05-27):
+    /// edges where the child antigen's fingerprint is detectably NOT a
+    /// refinement of the parent's. ADVISORY (non-blocking) for v0.3.
+    lineage_fidelity_audit: &'a audit::LineageFidelityAuditReport,
 }
 
 fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::AuditReport) {
