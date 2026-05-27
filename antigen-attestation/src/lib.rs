@@ -53,8 +53,7 @@ pub mod schema;
 pub mod tier;
 
 pub use evaluate::{
-    CompositeVerdict, EvalNode, EvaluatedPredicate, EvaluationContext, EvaluationError,
-    LeafOutcome,
+    CompositeVerdict, EvalNode, EvaluatedPredicate, EvaluationContext, EvaluationError, LeafOutcome,
 };
 pub use predicate::{Combinator, Leaf, Predicate, PredicateParseError};
 pub use schema::{
