@@ -616,6 +616,60 @@ here too.
 
 ---
 
+## Pre-sign verification ritual
+
+Before signing any campsite or claiming "CI is green," run these gates in order using
+`command cargo` (raw — not `cargo` through rtk or any wrapper that rewrites output):
+
+```sh
+# 1. Build gate — all targets, all workspace members
+command cargo build --workspace --all-targets
+
+# 2. Test gate
+command cargo test --workspace
+
+# 3. Clippy gate — -D warnings is the real gate; check $? after
+command cargo clippy --workspace --all-targets -- -D warnings; echo $?
+
+# 4. Format gate
+command cargo fmt --all -- --check
+
+# 5. Doc gate
+RUSTDOCFLAGS="-D warnings" command cargo doc --workspace --no-deps
+```
+
+All five must exit 0. A "green" claim is only valid when the claimant names which
+of these they ran and saw exit 0. "Ran clippy" without `-- -D warnings` is NOT the
+gate; `--all-targets` without `--workspace` is NOT the gate.
+
+**Why `command cargo` not `cargo`**: rtk and similar wrappers rewrite cargo output
+and can return exit 0 on summarized output while the underlying command failed.
+`command cargo` bypasses shell function lookup and invokes the binary directly.
+
+**Verifying HEAD-itself (not WIP)**: if there are uncommitted changes in the working
+tree, the gate is verifying WIP, not the campsite's committed state. To verify the
+committed HEAD:
+
+```sh
+git stash push -u          # stash all local changes (including untracked)
+<run the five gates above>
+git stash pop              # restore WIP
+```
+
+**`-D deprecated` is part of `-D warnings`**: any use of a deprecated item triggers
+a deprecation warning; `-- -D warnings` promotes ALL warnings to errors, including
+deprecation. A file that `#[deny(deprecated)]` would also fail WILL fail the clippy
+gate. Don't infer green from "no clippy-specific lints" — run the gate and read $?.
+
+**Empirical basis** (2026-05-27): the report-vs-gate divergence surfaced three times
+in one session — slice-4 commit message, scout terrain check, navigator relays — each
+relaying "deprecation = warnings not errors, fine until X" while the real gate (exit
+101, -D warnings flagging deprecated items) was red. The shared mental model of
+"CI-green" had diverged from the actual gate. This ritual closes the gap by naming
+the exact commands and flags required for a valid "green" claim.
+
+---
+
 ## Process maintenance
 
 This process document is itself a process artifact. It can be amended like any other
