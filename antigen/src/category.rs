@@ -150,14 +150,54 @@ mod tests {
     fn category_rejects_snake_case() {
         // No real input source produces snake_case — serde/CLI use kebab,
         // macro scanner produces Pascal/path from Rust path tokens.
-        assert_eq!(
-            AntigenCategory::parse_category("substrate_alignment"),
-            None
-        );
+        assert_eq!(AntigenCategory::parse_category("substrate_alignment"), None);
         assert_eq!(
             AntigenCategory::parse_category("functional_correctness"),
             None
         );
+    }
+
+    #[test]
+    fn category_lib_parser_is_intentional_superset_of_macro_parser() {
+        // The lib parser (`parse_category`, here) and the macro parser
+        // (`MacroAntigenCategory::from_path_str` in antigen-macros) accept
+        // DIFFERENT form-sets BY DESIGN — they serve different input sources:
+        //   - macro from_path_str: {Pascal, path} — reads Rust path tokens from
+        //     `category = <value>` at proc-macro expand time.
+        //   - lib parse_category:  {Pascal, path, kebab} — the same scanner forms
+        //     PLUS kebab, because it also backs the `--category` CLI flag and
+        //     serde-deserialized JSON, both of which emit kebab (via `as_str`).
+        // The ONE intentional divergence is kebab: the lib superset accepts it,
+        // the macro subset deliberately rejects it (kebab is not a valid Rust
+        // path token). This is NOT ParallelStateTrackersDiverge — the divergence
+        // is load-bearing (three input sources, two parsers), not accidental
+        // drift. This test pins the boundary so a future "harmonize the parsers"
+        // change can't silently collapse the by-design difference and break the
+        // scanner (which depends on the lib parser accepting Pascal/path).
+        for variant in [
+            AntigenCategory::SubstrateAlignment,
+            AntigenCategory::FunctionalCorrectness,
+        ] {
+            // Shared overlap with the macro parser: Pascal + path-qualified.
+            let pascal = match variant {
+                AntigenCategory::SubstrateAlignment => "SubstrateAlignment",
+                AntigenCategory::FunctionalCorrectness => "FunctionalCorrectness",
+            };
+            let path = match variant {
+                AntigenCategory::SubstrateAlignment => "AntigenCategory::SubstrateAlignment",
+                AntigenCategory::FunctionalCorrectness => "AntigenCategory::FunctionalCorrectness",
+            };
+            assert_eq!(AntigenCategory::parse_category(pascal), Some(variant));
+            assert_eq!(AntigenCategory::parse_category(path), Some(variant));
+            // The lib-only form (the intentional divergence): kebab. The scanner
+            // never produces this, but CLI/serde do — so the lib parser MUST
+            // accept it and the macro parser MUST NOT.
+            assert_eq!(
+                AntigenCategory::parse_category(variant.as_str()),
+                Some(variant),
+                "lib parser must accept its own kebab `as_str` output (CLI/serde form)"
+            );
+        }
     }
 
     #[test]
