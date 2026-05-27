@@ -135,6 +135,13 @@
 // `use antigen::presents`, etc.
 pub use antigen_macros::{antigen, antigen_tolerance, descended_from, immune, presents};
 
+// Code-tier witness registration (ADR-029): a `#[test]`/proptest function
+// declares which failure-class it defends. `cargo antigen audit` cross-
+// references the witness to the `#[presents]` sites it covers and issues the
+// verdict — immunity is observed, not declared. Migration target for the
+// `witness = fn` channel of the now-deprecated `#[immune]`.
+pub use antigen_macros::defended_by;
+
 // Deferred-Defense Family (ADR-023): loudness-as-discipline for intentional
 // non-immunity. Four structurally distinct postures — anergy, immunosuppress,
 // poxparty, orient — each with parse-time enforcement and aging escalation.

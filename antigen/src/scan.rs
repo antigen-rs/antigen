@@ -1462,6 +1462,32 @@ pub struct Immunity {
     pub structural_fingerprint: String,
 }
 
+/// A `#[defended_by(antigen_type)]` code-tier witness registration discovered
+/// in source (ADR-029).
+///
+/// Where [`Immunity`] (the deprecated `#[immune]`) bundled the immunity-claim
+/// (a verdict) with the witness pointer at the *defended site*, a `Defense`
+/// carries only the registration: "this test/proptest function declares it
+/// defends failure-class X." The verdict — whether the witness actually defends
+/// a `#[presents(X)]` site, and at what tier — is computed by
+/// `cargo antigen audit` cross-referencing the registration to the sites it
+/// covers. Immunity is observed, not declared.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Defense {
+    /// The antigen type the witness declares it defends (last path segment).
+    pub antigen_type: String,
+    /// Source file path of the witness function.
+    pub file: PathBuf,
+    /// Line number of the `#[defended_by]` attribute.
+    pub line: usize,
+    /// Item kind that was annotated (typically `fn`).
+    pub item_kind: String,
+    /// Item identity of the witness function. For a `#[defended_by]` site this
+    /// is the *witness*, not the defended site — the cross-reference to defended
+    /// sites is computed at audit time.
+    pub item_target: ItemTarget,
+}
+
 /// An `#[antigen_tolerance(antigen, rationale = "...", until = "...", see = [...])]`
 /// declaration discovered in source. Per ADR-011.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1858,6 +1884,15 @@ pub struct ScanReport {
     /// `#[serde(default)]` so pre-mucosal reports deserialize cleanly.
     #[serde(default)]
     pub mucosal_declarations: Vec<MucosalDeclaration>,
+    /// All discovered `#[defended_by(X)]` code-tier witness registrations
+    /// (ADR-029). Each records that a test/proptest function declares it
+    /// defends a failure-class; `cargo antigen audit` cross-references these
+    /// to the `#[presents(X)]` sites they cover to compute the immune-state
+    /// verdict. Immunity is observed, not declared.
+    ///
+    /// `#[serde(default)]` so pre-ADR-029 reports deserialize cleanly.
+    #[serde(default)]
+    pub defenses: Vec<Defense>,
     /// Files scanned successfully.
     pub files_scanned: usize,
     /// Files that failed to parse.
@@ -3448,6 +3483,63 @@ impl ScanVisitor<'_> {
         }
     }
 
+    /// Extract a `#[defended_by(antigen_type)]` code-tier witness registration
+    /// (ADR-029). Mirrors `extract_presents`'s single-positional-`syn::Path`
+    /// parse: the body is the bare antigen type the witness defends. The
+    /// cross-reference to the `#[presents]` sites it covers is computed at
+    /// audit time — scan only records the registration.
+    fn extract_defended_by(
+        &mut self,
+        attr: &syn::Attribute,
+        item_kind: &str,
+        item_target: ItemTarget,
+    ) {
+        let antigen_type = if let syn::Meta::List(list) = &attr.meta {
+            match syn::parse2::<syn::Path>(list.tokens.clone()) {
+                Ok(path) => path
+                    .segments
+                    .last()
+                    .map(|s| s.ident.to_string())
+                    .unwrap_or_default(),
+                Err(e) => {
+                    self.report.parse_failures.push(ParseFailure {
+                        file: self.file_path.clone(),
+                        error: format!("malformed #[defended_by] attribute: {e}"),
+                    });
+                    return;
+                }
+            }
+        } else {
+            // No `(...)` body: a bare `#[defended_by]` with no antigen is not a
+            // registration — it declares a witness for nothing. Surface it
+            // rather than recording a ghost defense with an empty antigen_type.
+            self.report.parse_failures.push(ParseFailure {
+                file: self.file_path.clone(),
+                error: "#[defended_by] requires an antigen type argument, \
+                        e.g. #[defended_by(ParallelStateTrackersDiverge)]"
+                    .to_string(),
+            });
+            return;
+        };
+
+        if antigen_type.is_empty() {
+            self.report.parse_failures.push(ParseFailure {
+                file: self.file_path.clone(),
+                error: "#[defended_by] antigen type resolved to an empty path".to_string(),
+            });
+            return;
+        }
+
+        let line = Self::line_of_attr(attr);
+        self.report.defenses.push(Defense {
+            antigen_type,
+            file: self.file_path.clone(),
+            line,
+            item_kind: item_kind.to_string(),
+            item_target,
+        });
+    }
+
     fn extract_tolerance(
         &mut self,
         attr: &syn::Attribute,
@@ -3763,6 +3855,8 @@ impl ScanVisitor<'_> {
                 self.extract_tolerance(attr, attrs, item_kind, item_target.clone());
             } else if attr_is(attr, "descended_from") {
                 self.extract_descended_from(attr, item_target);
+            } else if attr_is(attr, "defended_by") {
+                self.extract_defended_by(attr, item_kind, item_target.clone());
             // Deferred-Defense Family (ADR-023)
             } else if attr_is(attr, "anergy") {
                 self.extract_anergy(attr, item_kind, item_target.clone());
@@ -5651,6 +5745,98 @@ mod tests {
         assert_eq!(
             report.antigens[0].canonical_path, after_first.antigens[0].canonical_path,
             "stamping with same crate_id twice must be idempotent"
+        );
+    }
+
+    // ========================================================================
+    // ADR-029: #[defended_by] code-tier witness registration discovery
+    // ========================================================================
+
+    /// Parse `src` as a Rust file and run the scan visitor over it, returning
+    /// the assembled report. In-module helper (`ScanVisitor` is private); the
+    /// integration-test path is `scan_workspace` against fixture dirs.
+    fn scan_source(src: &str) -> ScanReport {
+        let file = syn::parse_file(src).expect("test source parses");
+        let mut report = ScanReport::default();
+        let mut visitor = ScanVisitor {
+            file_path: std::path::PathBuf::from("test.rs"),
+            report: &mut report,
+            impl_stack: Vec::new(),
+            trait_stack: Vec::new(),
+            current_item_digest: String::new(),
+        };
+        visitor.visit_file(&file);
+        report
+    }
+
+    #[test]
+    fn scan_discovers_defended_by_registration() {
+        // The genuinely-new ADR-029 primitive: a #[test] fn declares which
+        // failure-class it defends. Scan records the registration; the verdict
+        // (does it actually defend a #[presents] site?) is audit-time work.
+        let report = scan_source(
+            r"
+            #[test]
+            #[defended_by(ParallelStateTrackersDiverge)]
+            fn bijection_audit_hints_const_matches_enum() {}
+            ",
+        );
+        assert_eq!(
+            report.defenses.len(),
+            1,
+            "exactly one #[defended_by] registration expected; got: {:?}",
+            report.defenses
+        );
+        let d = &report.defenses[0];
+        assert_eq!(d.antigen_type, "ParallelStateTrackersDiverge");
+        assert_eq!(d.item_kind, "fn");
+        // The recorded item_target is the WITNESS function, not a defended site
+        // — the cross-reference is computed at audit time (ADR-029).
+        assert_eq!(
+            d.item_target,
+            ItemTarget::Fn("bijection_audit_hints_const_matches_enum".to_string())
+        );
+    }
+
+    #[test]
+    fn scan_defended_by_accepts_qualified_path_uses_last_segment() {
+        // Like #[presents], the antigen is recorded by its last path segment so
+        // a qualified `crate::antigens::Foo` and a bare `Foo` register identically.
+        let report = scan_source(
+            r"
+            #[test]
+            #[defended_by(crate::antigens::DropPanicClass)]
+            fn no_panic_in_drop() {}
+            ",
+        );
+        assert_eq!(report.defenses.len(), 1);
+        assert_eq!(report.defenses[0].antigen_type, "DropPanicClass");
+    }
+
+    #[test]
+    fn scan_bare_defended_by_without_antigen_is_parse_failure_not_ghost() {
+        // A bare #[defended_by] (no antigen) declares a witness for nothing.
+        // Surface it as a parse failure rather than recording a ghost defense
+        // with an empty antigen_type (ADR-005 sub-clause F: a registration
+        // without a subject is not a registration).
+        let report = scan_source(
+            r"
+            #[defended_by]
+            fn witness_for_nothing() {}
+            ",
+        );
+        assert!(
+            report.defenses.is_empty(),
+            "bare #[defended_by] must not record a ghost defense; got: {:?}",
+            report.defenses
+        );
+        assert!(
+            report
+                .parse_failures
+                .iter()
+                .any(|f| f.error.contains("#[defended_by] requires an antigen type")),
+            "expected a parse failure naming the missing antigen type; got: {:?}",
+            report.parse_failures
         );
     }
 }

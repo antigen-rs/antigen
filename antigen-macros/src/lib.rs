@@ -330,6 +330,68 @@ pub fn descended_from(args: TokenStream, input: TokenStream) -> TokenStream {
     quote! { #input }.into()
 }
 
+/// Register a code-tier witness: declare that this test/proptest function
+/// defends against a known failure-class (ADR-029).
+///
+/// # Arguments
+///
+/// Single positional argument: the antigen type the witness defends.
+///
+/// # Example
+///
+/// ```ignore
+/// use antigen::defended_by;
+///
+/// #[test]
+/// #[defended_by(ParallelStateTrackersDiverge)]
+/// fn bijection_audit_hints_const_matches_enum() {
+///     // exercises both sides of the parallel state
+/// }
+/// ```
+///
+/// # Immunity is observed, not declared
+///
+/// `#[defended_by(X)]` is a *registration of evidence*, not a verdict. The test
+/// declares **what it defends**; `cargo antigen audit` determines **whether it
+/// defends it** — by cross-referencing the registered witness to the
+/// `#[presents(X)]` sites it covers and grading the witness tier. No code site
+/// ever claims "I am immune to X"; the audit tool is the single authoritative
+/// voice that reports `defended` / `undefended` / `substrate-gap`. This is the
+/// migration target for the code-tier (`witness = fn`) channel of the deprecated
+/// `#[immune]` macro.
+///
+/// # Scope
+///
+/// `#[defended_by]` is for **code-tier witnesses only** — `#[test]` functions
+/// and proptest properties. Site-attached evidence (a substrate predicate or a
+/// phantom-type proof) folds into `#[presents]` via `requires =` / `proof =`,
+/// not here (ADR-029 R5 discriminator: evidence belongs where it is).
+///
+/// Like the other antigen markers this is a pure identity transform plus a
+/// discoverable `#[doc = " antigen:defended_by:v1:<antigen>"]` marker that
+/// `cargo antigen scan` reads to register the witness.
+#[proc_macro_attribute]
+pub fn defended_by(args: TokenStream, input: TokenStream) -> TokenStream {
+    let parsed = parse_macro_input!(args as parse::DefendedByArgs);
+    let input = proc_macro2::TokenStream::from(input);
+
+    // Emit a discoverable doc marker carrying the bare antigen type name, so
+    // `cargo antigen scan` can register the witness via source-walking without
+    // a binary link — the same channel `#[immune(requires=...)]` uses for its
+    // predicate JSON (ADR-019 §P3b), here carrying just the failure-class name.
+    let antigen_name = parsed
+        .antigen
+        .segments
+        .last()
+        .map_or_else(String::new, |s| s.ident.to_string());
+    let marker = format!(" antigen:defended_by:v1:{antigen_name}");
+    quote! {
+        #[doc = #marker]
+        #input
+    }
+    .into()
+}
+
 /// Mark a site as a deliberate, non-vulnerable match against an antigen's
 /// fingerprint. Per ADR-011.
 ///

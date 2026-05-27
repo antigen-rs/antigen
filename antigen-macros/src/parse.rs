@@ -135,6 +135,21 @@ pub struct DescendedFromArgs {
     pub parent: Path,
 }
 
+/// Arguments to `#[defended_by(antigen_type)]` (ADR-029).
+///
+/// Code-tier witness registration: a `#[test]` / proptest function declares
+/// *what failure-class it defends*. The cross-reference to the presents-sites
+/// it covers — and whether it actually defends them — is computed by
+/// `cargo antigen audit`, not asserted here. Immunity is observed, not declared.
+///
+/// Single positional argument: the antigen type path (e.g.
+/// `ParallelStateTrackersDiverge` or `crate::antigens::Foo`).
+#[derive(Debug)]
+pub struct DefendedByArgs {
+    #[allow(dead_code)]
+    pub antigen: Path,
+}
+
 /// Arguments to `#[antigen_tolerance(antigen, rationale = "...", until = "...", see = [...])]`.
 ///
 /// Per ADR-011: positional antigen, required `rationale` (non-empty),
@@ -412,6 +427,34 @@ impl Parse for DescendedFromArgs {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let parent: Path = input.parse()?;
         Ok(Self { parent })
+    }
+}
+
+// ============================================================================
+// DefendedByArgs parsing (ADR-029)
+// ============================================================================
+
+impl Parse for DefendedByArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let antigen: Path = input.parse()?;
+        if !input.is_empty() {
+            // `#[defended_by]` is a pure code-tier witness registration: it
+            // carries only the failure-class it defends. Site-attached evidence
+            // (`requires=`, `proof=`) folds into `#[presents]` instead (ADR-029
+            // R5 discriminator: evidence belongs where it is). Reject trailing
+            // tokens loudly so a developer who reaches for `#[defended_by(X,
+            // witness = ...)]` (the old `#[immune]` shape) is pointed at the
+            // right primitive rather than having the extra args silently dropped.
+            return Err(syn::Error::new(
+                input.span(),
+                "#[defended_by] takes exactly one positional argument: the antigen \
+                 type it defends, e.g. `#[defended_by(ParallelStateTrackersDiverge)]`. \
+                 It registers a code-tier witness (a test/proptest); it does NOT carry \
+                 `witness =`/`requires =`/`proof =`. Site-attached evidence folds into \
+                 `#[presents]` (ADR-029).",
+            ));
+        }
+        Ok(Self { antigen })
     }
 }
 
@@ -5565,5 +5608,55 @@ mod parser_props {
             let err = args.validate().unwrap_err().to_string();
             prop_assert!(err.contains("witness"), "validate must mention `witness`, got: {err:?}");
         }
+    }
+
+    // ========================================================================
+    // DefendedByArgs (ADR-029) — code-tier witness registration
+    // ========================================================================
+
+    #[test]
+    fn defended_by_parses_bare_antigen_path() {
+        let tokens: proc_macro2::TokenStream = "ParallelStateTrackersDiverge".parse().unwrap();
+        let args = syn::parse2::<DefendedByArgs>(tokens).expect("bare path parses");
+        assert_eq!(
+            args.antigen.segments.last().unwrap().ident.to_string(),
+            "ParallelStateTrackersDiverge"
+        );
+    }
+
+    #[test]
+    fn defended_by_parses_qualified_path() {
+        let tokens: proc_macro2::TokenStream = "crate::antigens::DropPanicClass".parse().unwrap();
+        let args = syn::parse2::<DefendedByArgs>(tokens).expect("qualified path parses");
+        assert_eq!(
+            args.antigen.segments.last().unwrap().ident.to_string(),
+            "DropPanicClass"
+        );
+    }
+
+    #[test]
+    fn defended_by_rejects_trailing_witness_args() {
+        // The old #[immune] shape (`X, witness = fn`) must NOT silently parse:
+        // #[defended_by] carries only the failure-class. Site-attached evidence
+        // folds into #[presents] (ADR-029 R5). Reject loudly with guidance.
+        let tokens: proc_macro2::TokenStream =
+            "DropPanicClass, witness = some_test".parse().unwrap();
+        let err = syn::parse2::<DefendedByArgs>(tokens)
+            .expect_err("trailing args must be rejected")
+            .to_string();
+        assert!(
+            err.contains("exactly one positional argument"),
+            "error must explain the single-arg shape; got: {err:?}"
+        );
+    }
+
+    #[test]
+    fn defended_by_rejects_empty() {
+        // A bare `#[defended_by]` (no antigen) is a witness for nothing.
+        let tokens = proc_macro2::TokenStream::new();
+        assert!(
+            syn::parse2::<DefendedByArgs>(tokens).is_err(),
+            "empty #[defended_by] body must be rejected"
+        );
     }
 }
