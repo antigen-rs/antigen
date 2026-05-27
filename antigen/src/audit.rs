@@ -3187,11 +3187,26 @@ pub fn audit_category(report: &ScanReport) -> CategoryAuditReport {
         // addressing this antigen. An immunity is a substrate-witness when it
         // carries a `requires = <predicate>` (requires_predicate is Some); it
         // is a code-witness when it carries a non-empty `witness = <fn>`.
+        //
+        // Canonical-path-aware (same discipline as the `report.defenses` loop
+        // below, and as `scan::defense_addresses`): a `#[immune(Foo)]` /
+        // `#[presents(Foo)]` from a DIFFERENT crate must not satisfy this
+        // crate's `Foo` cross-check. Without the guard, a dependency's
+        // code-tier immunity for a same-bare-name antigen sets
+        // `has_any_immunity`/`has_code_witness` on THIS crate's antigen — a
+        // cross-crate overclaim (ATK-G2-24) that both fires a spurious G2
+        // mismatch AND silences the silence-no-witness advisory for an antigen
+        // that genuinely has no local witness (ATK-G2-25). An immunity with
+        // `canonical_path = None` matches any (backward-compat, mirrors the
+        // defense loop).
         let mut has_substrate_witness = false;
         let mut has_code_witness = false;
         let mut has_any_immunity = false;
         for imm in &report.immunities {
             if imm.antigen_type != decl.type_name {
+                continue;
+            }
+            if imm.canonical_path.is_some() && imm.canonical_path != decl.canonical_path {
                 continue;
             }
             has_any_immunity = true;

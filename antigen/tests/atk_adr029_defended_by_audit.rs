@@ -1567,29 +1567,20 @@ fn atk_g2_24_cross_crate_immunity_triggers_spurious_g2_hint_for_wrong_antigen() 
 
     let category_report = audit_category(&report);
 
-    // CURRENT BROKEN BEHAVIOR: mismatch_count == 1, spurious G2 hint fires.
-    //
-    // G2 sees the dep's immunity (canonical_path = dep-crate@1.0.0) with
-    // requires_predicate → sets has_any_immunity=true, has_substrate_witness=true.
-    // Primary Reactor is FunctionalCorrectness → substrate witness is wrong type
-    // → AntigenCategoryClaimInconsistentWithPredicateType fires.
-    //
-    // This is SPURIOUS: the dep's immunity belongs to a completely different Reactor.
-    // The primary Reactor has NO real immunity addressing it. G2 should have seen
-    // zero immunities (no canonical_path match) → has_any_immunity=false → skip
-    // per the "No immunities/defenses addressing this antigen" early-continue.
-    //
-    // When the fix lands (canonical_path guard in immunity loop):
-    //   assert_eq!(category_report.mismatch_count, 0, "no spurious mismatch after fix");
-    //   assert!(!has_g2_hint, "no spurious hint after fix");
+    // FIXED BEHAVIOR (canonical_path guard in the G2 immunity loop): the dep's
+    // immunity (canonical_path = dep-crate@1.0.0) does NOT match the primary
+    // workspace Reactor (canonical_path = None), so it is skipped. The primary
+    // Reactor sees zero addressing immunities → has_any_immunity=false → G2's
+    // "no immunities/defenses addressing this antigen" early-continue → no
+    // spurious mismatch hint. (Primary is FunctionalCorrectness, so the
+    // silence-no-witness advisory — SA-only — does not fire either.)
     assert_eq!(
-        category_report.mismatch_count, 1,
-        "ATK-G2-24 (CURRENT BROKEN BEHAVIOR): G2 immunity loop uses bare antigen_type \
-         match — the dep's Reactor immunity (canonical_path=Some('dep-crate@1.0.0')) \
-         fires has_substrate_witness=true for the primary workspace's Reactor \
-         (FunctionalCorrectness). A spurious G2 mismatch hint fires. When this assertion \
-         fails (mismatch_count==0): the immunity loop was fixed to check canonical_path. \
-         Invert: expect 0 and no hint. Got: {}",
+        category_report.mismatch_count, 0,
+        "ATK-G2-24 (FIXED): G2 immunity loop is canonical_path-aware — the dep's Reactor \
+         immunity (canonical_path=Some('dep-crate@1.0.0')) must NOT contribute \
+         substrate-witness evidence to the primary workspace's Reactor (canonical_path=None). \
+         No spurious mismatch. If this regresses (mismatch_count==1): the immunity loop's \
+         canonical_path guard was removed. Got: {}",
         category_report.mismatch_count
     );
     let has_g2_hint = category_report.audits.iter().any(|a| {
@@ -1597,11 +1588,10 @@ fn atk_g2_24_cross_crate_immunity_triggers_spurious_g2_hint_for_wrong_antigen() 
             .contains(&AuditHint::AntigenCategoryClaimInconsistentWithPredicateType)
     });
     assert!(
-        has_g2_hint,
-        "ATK-G2-24 (CURRENT BROKEN BEHAVIOR): the spurious G2 hint must fire when the \
-         dep's immunity incorrectly contributes substrate-witness evidence to the primary \
-         workspace's Reactor. When this assertion fails (no hint): fix landed. \
-         Invert: assert!(!has_g2_hint)."
+        !has_g2_hint,
+        "ATK-G2-24 (FIXED): no spurious G2 hint — the dep's cross-crate immunity must not \
+         contribute evidence to the same-bare-name primary antigen. If this regresses (hint \
+         fires): the canonical_path guard in the immunity loop was removed."
     );
 }
 
@@ -1660,14 +1650,22 @@ fn atk_g2_25_cross_crate_code_immunity_silences_silence_no_witness_advisory() {
     });
     let has_g2_mismatch = category_report.mismatch_count > 0;
 
-    // CURRENT BROKEN: dep overclaim suppresses no-witness advisory; spurious G2 mismatch fires.
-    // After ATK-G2-24 fix: no-witness advisory fires; G2 mismatch suppressed.
+    // FIXED (canonical_path guard in the G2 immunity loop): the dep's code
+    // immunity (canonical_path=dep@1.0) does not match the primary SA antigen
+    // (canonical_path=None), so has_any_immunity stays false. The primary
+    // antigen genuinely has no local witness → the silence-no-witness advisory
+    // fires, and no spurious G2 mismatch is emitted.
     assert!(
-        !has_no_witness_advisory,
-        "ATK-G2-25 CURRENT BROKEN: dep code immunity (canonical_path=dep@1.0) overclaims          has_any_immunity=true for primary SA antigen, suppressing no-witness advisory.          After fix: advisory fires. Invert assertion."
+        has_no_witness_advisory,
+        "ATK-G2-25 (FIXED): the silence-no-witness advisory must fire for a primary SA \
+         antigen with no LOCAL witness — a dep's cross-crate code immunity must not \
+         silence it. If this regresses (advisory absent): the immunity loop's \
+         canonical_path guard was removed."
     );
     assert!(
-        has_g2_mismatch,
-        "ATK-G2-25 CURRENT BROKEN: spurious G2 mismatch fires because dep immunity          makes primary SA antigen look code-witnessed-only. After fix: mismatch_count=0.          Invert assertion."
+        !has_g2_mismatch,
+        "ATK-G2-25 (FIXED): no spurious G2 mismatch — the dep's cross-crate code immunity \
+         must not make the primary SA antigen look code-witnessed-only. If this regresses \
+         (mismatch fires): the canonical_path guard in the immunity loop was removed."
     );
 }
