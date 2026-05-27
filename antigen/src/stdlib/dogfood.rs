@@ -1119,10 +1119,26 @@ pub struct ParallelStateTrackersDiverge;
 /// compile-time enforcement. A proc-macro or derive-helper approach could enforce
 /// it structurally; until then, this antigen is the class's memory.
 ///
-/// **The fingerprint**: `doc_contains("check_attrs")` — every future visitor
-/// method that routes attributes through `check_attrs` is a candidate site.
-/// The witness (`atk-digest-1-antigen-owned-attrs-incomplete`, closed) verified
-/// the contamination mechanism directly: two visitor methods with and without the
+/// **The fingerprint — and its v0.2 limit (recall is via the explicit marker
+/// only)**: `doc_contains("check_attrs")` is a recall PLACEHOLDER, not a working
+/// structural matcher for this class. Verified against `cargo antigen scan` (the
+/// right gate): it produces ZERO independent fingerprint matches — the one match
+/// on `ScanVisitor` is the explicit `#[presents]` marker (the doc string
+/// `check_attrs` lives in field/method docs that `doc_text()` does not read, and
+/// the `check_attrs` call sites are method *bodies*, not item docs). So coverage
+/// of this class rests entirely on the explicit `#[presents]` marker on
+/// `ScanVisitor`, NOT on fingerprint synthesis. That is honest for v0.2: the real
+/// recall target — "a `visit_*` method that calls `check_attrs` *without first*
+/// calling `structural_digest`" — is a body-content-with-ordering-and-negation
+/// pattern the v0.2 fingerprint DSL cannot express (the leaves are item-shape +
+/// `has_method` + `doc_contains`, with no `body_contains_call` or call-ordering
+/// predicate). `has_method("check_attrs")` would not help — it matches the single
+/// *definer*, not the ~14 *callers*. The grammar extension that would make
+/// structural recall real is tracked at
+/// `forward/fingerprint-grammar-body-content-with-negation`; refine this
+/// fingerprint when it lands. The witness
+/// (`atk-digest-1-antigen-owned-attrs-incomplete`, closed) verified the
+/// contamination MECHANISM directly: two visitor methods with and without the
 /// digest assignment, with an ATK fixture exercising both, confirmed the bleed.
 ///
 /// **Internal-tooling discipline**: per `feedback_internal_tool_antigens_preemptive`,
