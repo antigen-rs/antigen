@@ -1204,3 +1204,101 @@ fn atk_adr029_21_defense_matches_cross_crate_presentation_with_same_type_name() 
     // If this test STARTS FAILING (defense no longer matches cross-crate presentation):
     // the canonical_path-aware fix has landed. Update to assert Undefended here.
 }
+
+// ========================================================================
+// ATK-G2-22: G2 defense check inherits the cross-crate bare-name overclaim
+// (2026-05-27, adversarial)
+//
+// The G2 fix (5cdbad9) uses `d.antigen_type == decl.type_name` (bare-name)
+// when checking whether a #[defended_by] registration contributes code-tier
+// evidence to an antigen. This is the same canonical_path-less comparison
+// as ATK-ADR029-21, applied to a new location (audit.rs:3100 in audit_category).
+//
+// ATTACK SCENARIO (false positive):
+//   - Crate A declares SubstrateAlignment antigen `Foo`
+//     (canonical_path = "crate_a::Foo").
+//   - Crate B has `#[test] #[defended_by(Foo)]` for crate B's own `Foo`
+//     (canonical_path = "crate_b::Foo") — a completely different failure class.
+//   - In a cross-crate scan, G2 sees the crate_b defense and sets
+//     has_code_witness=true for crate_a::Foo, then correctly emits
+//     AntigenCategoryClaimInconsistentWithPredicateType.
+//
+// BUT: the hint is SPURIOUS. Crate A's SubstrateAlignment `Foo` has NO
+// code-tier evidence; the matching defense belongs to a different antigen.
+// The G2 hint fires based on a wrong-crate defense.
+//
+// ATTACK SCENARIO (false negative, harder to construct):
+//   - SubstrateAlignment antigen with no real evidence, but a same-name
+//     defense exists in a different crate. G2 fires the wrong hint but
+//     does not report the REAL gap (no actual evidence for this antigen).
+//
+// Root cause: same as ATK-ADR029-21. Fix: audit_category's defense lookup
+// should use (antigen_type, canonical_path) tuple matching, parallel to the
+// immunity lookup's existing canonical_path handling.
+// ========================================================================
+#[test]
+fn atk_g2_22_cross_crate_defense_triggers_spurious_g2_hint() {
+    use antigen::audit::{audit_category, AuditHint};
+    use antigen::scan::{AntigenDeclaration, Defense, ScanReport};
+    use antigen::category::AntigenCategory;
+
+    let mut report = ScanReport::default();
+
+    // Crate A: SubstrateAlignment antigen "Foo" (external crate).
+    report.antigens.push(AntigenDeclaration {
+        type_name: "Foo".to_string(),
+        name: "foo".to_string(),
+        fingerprint: None,
+        canonical_path: Some("crate_a::antigens::Foo".to_string()),
+        file: std::path::PathBuf::from("src/antigens.rs"),
+        line: 1,
+        summary: Some("A substrate-alignment failure class.".to_string()),
+        category: vec![AntigenCategory::SubstrateAlignment],
+        family: None,
+    });
+
+    // Crate B: a `#[defended_by(Foo)]` for a DIFFERENT Foo — same bare name,
+    // different canonical_path. This defense belongs to crate_b::Foo, not
+    // crate_a::Foo, but the bare-name comparison at audit.rs:3100 cannot tell.
+    report.defenses.push(Defense {
+        antigen_type: "Foo".to_string(), // same bare name as crate_a::Foo
+        file: std::path::PathBuf::from("tests/crate_b_tests.rs"),
+        line: 5,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Fn("defends_crate_b_foo".to_string()),
+    });
+
+    let category_report = audit_category(&report);
+
+    // CURRENT BEHAVIOR (overclaim): G2 sees the crate_b defense, sets
+    // has_code_witness=true for crate_a's SubstrateAlignment antigen, and
+    // emits AntigenCategoryClaimInconsistentWithPredicateType.
+    // This is SPURIOUS -- the defense belongs to a different antigen entirely.
+    //
+    // audit_category() returns CategoryAuditReport { audits, mismatch_count, ... }.
+    // A spurious G2 hint appears in audits[0].hints.
+    //
+    // If this assertion STARTS FAILING (mismatch_count == 0):
+    // the canonical_path-aware fix has landed. Update to assert mismatch_count == 0
+    // and audits is empty (no spurious G2 hint when only cross-crate defenses exist).
+    assert_eq!(
+        category_report.mismatch_count,
+        1,
+        "ATK-G2-22 (OVERCLAIM): audit_category() fires G2 mismatch because it matches \
+         defense by bare antigen_type only (no canonical_path check). crate_b's defense \
+         for crate_b::Foo is counted as evidence for crate_a::Foo, triggering a spurious \
+         AntigenCategoryClaimInconsistentWithPredicateType hint. When fixed, mismatch_count \
+         should be 0 (no real evidence for crate_a::Foo exists). CURRENT BROKEN BEHAVIOR \
+         pinned as regression anchor."
+    );
+    let has_g2_hint = category_report.audits.iter().any(|a| {
+        a.hints
+            .contains(&AuditHint::AntigenCategoryClaimInconsistentWithPredicateType)
+    });
+    assert!(
+        has_g2_hint,
+        "ATK-G2-22: spurious G2 hint must appear in audits when only a cross-crate \
+         bare-name-matching defense exists"
+    );
+}
+
