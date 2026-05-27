@@ -4105,7 +4105,10 @@ mod tests {
                 "expected SubstrateAlignment from {s:?}"
             );
         }
-        for s in ["FunctionalCorrectness", "AntigenCategory::FunctionalCorrectness"] {
+        for s in [
+            "FunctionalCorrectness",
+            "AntigenCategory::FunctionalCorrectness",
+        ] {
             assert_eq!(
                 MacroAntigenCategory::from_path_str(s),
                 Some(MacroAntigenCategory::FunctionalCorrectness),
