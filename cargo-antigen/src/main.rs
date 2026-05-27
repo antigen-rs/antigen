@@ -2767,7 +2767,13 @@ fn run_audit(args: AuditArgs) -> ExitCode {
     let strict_state7_fails = args.strict && !audit_report.inherited_unaddressed.is_empty();
     let strict_witness_fails =
         args.strict && !audit_report.all_meet_tier(audit::WitnessTier::Reachability);
-    if strict_state7_fails || strict_witness_fails {
+    // ADR-029 §Enforcement: under --strict, an undefended presents-site fails the
+    // gate. Immunity is observed: a presents-site with no #[defended_by] witness
+    // and no passing requires= predicate is an open defense circuit. (substrate-gap
+    // is NOT gated here — the intent exists; it warrants a warning, not a hard
+    // fail, until per-antigen severity lands in a later slice.)
+    let strict_undefended_fails = args.strict && !audit_report.undefended_verdicts().is_empty();
+    if strict_state7_fails || strict_witness_fails || strict_undefended_fails {
         ExitCode::from(1)
     } else {
         ExitCode::SUCCESS
@@ -3793,6 +3799,75 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
     }
 
     print_state7_diagnostics(audit_report);
+    print_immune_state_verdicts(audit_report);
+}
+
+/// Render the per-presents-site immune-state verdicts (ADR-029: Immunity Is
+/// Observed, Not Declared). This is the audit's authoritative voice on immune
+/// state — it reports `defended` / `undefended` / `substrate-gap` per site and
+/// NEVER says "immune to X." The verdict describes the state of the defense
+/// circuit, not whether the failure mode can fire.
+fn print_immune_state_verdicts(audit_report: &audit::AuditReport) {
+    use audit::ImmuneVerdict;
+
+    if audit_report.presentation_verdicts.is_empty() {
+        return;
+    }
+
+    println!();
+    println!("Immune-state verdicts (ADR-029 — observed, not declared):");
+
+    let undefended = audit_report.undefended_verdicts();
+    let defended_count = audit_report
+        .presentation_verdicts
+        .iter()
+        .filter(|v| matches!(v.verdict, ImmuneVerdict::Defended { .. }))
+        .count();
+    let gap_count = audit_report
+        .presentation_verdicts
+        .iter()
+        .filter(|v| matches!(v.verdict, ImmuneVerdict::SubstrateGap))
+        .count();
+
+    println!(
+        "  {} defended, {} undefended, {} substrate-gap \
+         (across {} presents-site(s))",
+        defended_count,
+        undefended.len(),
+        gap_count,
+        audit_report.presentation_verdicts.len()
+    );
+
+    for v in &audit_report.presentation_verdicts {
+        let site = format!("{}:{}", v.presentation.file.display(), v.presentation.line);
+        match &v.verdict {
+            ImmuneVerdict::Defended { tier } => {
+                let witnesses = if v.defended_by.is_empty() {
+                    String::new()
+                } else {
+                    format!(" by {}", v.defended_by.join(", "))
+                };
+                println!(
+                    "  ✓ {site}  {} — defended at {tier:?}{witnesses}",
+                    v.antigen_type
+                );
+            }
+            ImmuneVerdict::Undefended => {
+                println!(
+                    "  ✗ {site}  {} — undefended (no #[defended_by] witness, \
+                     no passing requires= predicate)",
+                    v.antigen_type
+                );
+            }
+            ImmuneVerdict::SubstrateGap => {
+                println!(
+                    "  ⚠ {site}  {} — substrate-gap (defense intent present; \
+                     current substrate does not satisfy the requires= predicate)",
+                    v.antigen_type
+                );
+            }
+        }
+    }
 }
 
 fn print_category_audit_human(category_report: &audit::CategoryAuditReport) {

@@ -1260,16 +1260,36 @@ fn compute_presentation_verdicts(
     report: &ScanReport,
     immunity_audits: &[ImmunityAudit],
 ) -> Vec<PresentationVerdict> {
-    let mut verdicts = Vec::with_capacity(report.presentations.len());
+    let mut verdicts = Vec::new();
 
     for p in &report.presentations {
+        // ADR-029 verdicts grade DECLARED defense intent: only explicit
+        // `#[presents(X)]` markers, never fingerprint-inferred matches. An
+        // inferred match is the scan's broad triage signal (see
+        // `ScanReport::partitioned_presentations` — `inferred` is triage-first,
+        // not CI-gateable); grading it `undefended` would flood the verdict
+        // surface with structural-pattern noise the developer never declared.
+        // The developer who wrote `#[presents]` declared the site; the audit
+        // observes its defense.
+        if p.match_kind != crate::scan::MatchKind::ExplicitMarker {
+            continue;
+        }
+
         // Code-tier witnesses: `#[defended_by(X)]` registrations matching this
         // site's failure-class. Class-level match (ADR-029) — strict on
         // antigen_type so a wrong-class witness cannot pollute the verdict.
+        //
+        // The witness MUST be a function: `#[defended_by]` is scoped to
+        // `#[test]` / proptest functions (ADR-029 §Scope) — a runnable code-tier
+        // witness. A `#[defended_by]` on a struct/enum/impl is a misuse: a struct
+        // cannot be executed as a test, so it provides no evidence and must not
+        // grant a Defended verdict (ADR-005 sub-clause F — a non-runnable witness
+        // is not a witness). Scan records it (recall-tuned); audit is the trust
+        // boundary that refuses to credit it.
         let code_witnesses: Vec<&crate::scan::Defense> = report
             .defenses
             .iter()
-            .filter(|d| d.antigen_type == p.antigen_type)
+            .filter(|d| d.antigen_type == p.antigen_type && d.item_kind == "fn")
             .collect();
 
         // Deprecated declared-immunity path: a same-item `#[immune]` audit for
@@ -4295,5 +4315,32 @@ mod tests {
             ImmuneVerdict::Undefended,
             "an unresolvable #[immune] witness must not grant a defended verdict"
         );
+    }
+
+    #[test]
+    fn verdict_skips_fingerprint_inferred_presentations() {
+        // ADR-029 verdicts grade DECLARED intent only. A fingerprint-inferred
+        // presentation (MatchKind::FingerprintMatch) is the scan's broad triage
+        // signal — it must NOT get a verdict, or the surface floods with
+        // structural-pattern noise the developer never declared.
+        let mut report = ScanReport::default();
+        let mut inferred = presents_site("SomeClass", "src/lib.rs", 10);
+        inferred.match_kind = crate::scan::MatchKind::FingerprintMatch;
+        report.presentations.push(inferred);
+        // An explicit marker for a different class, to prove the filter is
+        // per-presentation (not all-or-nothing).
+        report
+            .presentations
+            .push(presents_site("ExplicitClass", "src/lib.rs", 20));
+
+        let out = audit(&report, Path::new("."));
+        assert_eq!(
+            out.presentation_verdicts.len(),
+            1,
+            "only the explicit presents-site gets a verdict; the fingerprint-\
+             inferred match is skipped. got: {:?}",
+            out.presentation_verdicts
+        );
+        assert_eq!(out.presentation_verdicts[0].antigen_type, "ExplicitClass");
     }
 }

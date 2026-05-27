@@ -1969,7 +1969,19 @@ impl ScanReport {
                 .tolerances
                 .iter()
                 .any(|t| addresses_for_tolerance(t, p));
-            if !has_matching_immunity && !has_matching_tolerance {
+            // ADR-029: a `#[defended_by(X)]` code-tier witness addresses a
+            // `#[presents(X)]` site at the CLASS level (the witness declares it
+            // defends X; it covers every X presents-site — same matching the
+            // audit verdict uses). Without this, `unaddressed_presentations()`
+            // and `audit().presentation_verdicts` DIVERGE: the verdict says
+            // "defended" while this surface says "unaddressed" — the exact
+            // `ParallelStateTrackersDiverge` shape. The two notions of
+            // "addressed" must agree.
+            let has_matching_defense = self
+                .defenses
+                .iter()
+                .any(|d| d.antigen_type == p.antigen_type);
+            if !has_matching_immunity && !has_matching_tolerance && !has_matching_defense {
                 result.push(UnaddressedPresentation {
                     presentation: p.clone(),
                     antigen_known: known_antigens
