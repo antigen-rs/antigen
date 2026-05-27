@@ -1732,28 +1732,45 @@ fn run_oracle_list(args: OracleListArgs) -> ExitCode {
     for entry in entries.flatten() {
         let path = entry.path();
         if path.extension().is_some_and(|e| e == "json") {
-            let Ok(content) = std::fs::read_to_string(&path) else {
-                continue;
-            };
-            if let Ok(oracle) =
-                serde_json::from_str::<antigen_attestation::schema::Oracle>(&content)
-            {
-                match args.format {
-                    OutputFormat::Human => {
-                        println!(
-                            "{} [{:?}] — {} steward(s)",
-                            oracle.id,
-                            oracle.state,
-                            oracle.stewards.len()
-                        );
-                    }
-                    OutputFormat::Json => {
-                        let obj = serde_json::json!({ "id": oracle.id, "state": format!("{:?}", oracle.state) });
-                        println!("{obj}");
-                    }
+            // Warn-and-continue on unreadable / corrupt oracle records rather
+            // than silently skipping them. A silent skip lets a corrupt `.json`
+            // collapse into the same "No oracle records found" + exit 0 as a
+            // genuinely-empty directory — the adopter gets zero signal their
+            // oracle data is broken (ATK-oracle-corrupt-json). Mirrors the
+            // `attest list` warn-and-continue model.
+            let content = match std::fs::read_to_string(&path) {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("warning: could not read `{}`: {e}", path.display());
+                    continue;
                 }
-                found += 1;
+            };
+            let oracle = match serde_json::from_str::<antigen_attestation::schema::Oracle>(&content)
+            {
+                Ok(o) => o,
+                Err(e) => {
+                    eprintln!(
+                        "warning: `{}` is not valid Oracle JSON: {e}",
+                        path.display()
+                    );
+                    continue;
+                }
+            };
+            match args.format {
+                OutputFormat::Human => {
+                    println!(
+                        "{} [{:?}] — {} steward(s)",
+                        oracle.id,
+                        oracle.state,
+                        oracle.stewards.len()
+                    );
+                }
+                OutputFormat::Json => {
+                    let obj = serde_json::json!({ "id": oracle.id, "state": format!("{:?}", oracle.state) });
+                    println!("{obj}");
+                }
             }
+            found += 1;
         }
     }
     if found == 0 {
@@ -3706,15 +3723,35 @@ fn run_attest_gc(args: AttestGcArgs) -> ExitCode {
     let mut orphans: Vec<std::path::PathBuf> = Vec::new();
 
     for path in &sidecars {
-        let Ok(content) = std::fs::read_to_string(path) else {
-            continue;
-        };
-        if let Ok(rat) = serde_json::from_str::<Ratification>(&content) {
-            // An orphan heuristic: if source_file doesn't exist relative to workspace root.
-            let source = args.root.join(&rat.source_file);
-            if !source.exists() {
-                orphans.push(path.clone());
+        // Warn-and-continue on unreadable / corrupt sidecars (same fix as
+        // `oracle list` / the `attest list` model). A silently-skipped corrupt
+        // sidecar can never be gc'd AND gives the operator no signal it's broken
+        // — it just vanishes from the orphan scan (ATK-oracle-corrupt-json,
+        // gc-side). A corrupt sidecar can't have its source_file checked, so it
+        // is neither confirmed-orphan nor confirmed-live; surface it loudly.
+        let content = match std::fs::read_to_string(path) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("warning: could not read `{}`: {e}", path.display());
+                continue;
             }
+        };
+        let rat: Ratification = match serde_json::from_str(&content) {
+            Ok(r) => r,
+            Err(e) => {
+                eprintln!(
+                    "warning: `{}` is not valid Ratification JSON: {e} \
+                     (corrupt sidecar — cannot evaluate for gc; surfaced rather than \
+                     silently skipped)",
+                    path.display()
+                );
+                continue;
+            }
+        };
+        // An orphan heuristic: if source_file doesn't exist relative to workspace root.
+        let source = args.root.join(&rat.source_file);
+        if !source.exists() {
+            orphans.push(path.clone());
         }
     }
 

@@ -765,24 +765,21 @@ fn atk_oracle_list_silently_skips_corrupt_json_file() {
 
     let (code, stdout, stderr) = oracle(&["list", "--root", tmp.path().to_str().unwrap()]);
 
-    // CURRENT BROKEN BEHAVIOR: exit 0, no parse-error diagnostic.
-    // The tool says "No oracle records found" — indistinguishable from empty workspace.
-    // When fixed, this assertion must be inverted: `assert_eq!(code, 2)`.
+    // FIXED (findings/oracle-corrupt-json-silent-skip): a corrupt oracle file is
+    // now WARNED about on stderr (not silently skipped), mirroring the
+    // `attest list` warn-and-continue model. `oracle list` stays exit 0 (a
+    // corrupt file is not fatal to a list operation — you list what you can and
+    // surface what you can't), but the adopter now gets a clear signal.
     assert_eq!(
         code, 0,
-        "ATK-oracle-corrupt-json: when this STARTS FAILING (code != 0), \
-         the fix has landed -- update to assert code == 2. stderr={stderr}"
+        "oracle list stays exit 0 (warn-and-continue, like attest list); stderr={stderr}"
     );
     assert!(
-        !stderr.to_lowercase().contains("parse")
-            && !stderr.to_lowercase().contains("corrupt")
-            && !stderr.to_lowercase().contains("invalid"),
-        "ATK-oracle-corrupt-json: when this STARTS FAILING (stderr mentions parse/corrupt), \
-         the fix has landed -- update to assert the diagnostic IS present. \
-         Current stderr (no diagnostic):\n{stderr}"
+        stderr.contains("not valid Oracle JSON") && stderr.contains("corrupted.oracle.json"),
+        "oracle list must WARN about the corrupt file (naming it) rather than silently \
+         skipping it into a 'No oracle records found' result. stderr:\n{stderr}"
     );
-    // The stdout is empty or shows "No oracle records found" -- no corruption signal.
-    let _ = stdout; // Documented: no output about the corrupt file.
+    let _ = stdout;
 }
 
 #[test]
@@ -805,13 +802,12 @@ fn atk_oracle_list_corrupt_file_among_valid_silently_excluded() {
         stdout.contains("valid-oracle"),
         "the valid oracle must appear in the list: {stdout}"
     );
-    // CURRENT BROKEN BEHAVIOR: no mention of the corrupt file.
-    // When fixed: stderr should mention the corrupt file path so the adopter
-    // knows something was skipped.
+    // FIXED: the corrupt file is now warned about on stderr (named), so an
+    // adopter debugging "why fewer oracles than expected" gets the hint — while
+    // the valid oracle still lists. Warn-and-continue, not silent-exclude.
     assert!(
-        !stderr.contains("corrupted.oracle.json"),
-        "ATK-oracle-corrupt-json: when this STARTS FAILING, the fix has landed -- \
-         update to assert the corrupt file IS mentioned in stderr. \
+        stderr.contains("corrupted.oracle.json") && stderr.contains("not valid Oracle JSON"),
+        "the corrupt file must be named in stderr alongside the listed valid oracle. \
          Current stderr:\n{stderr}"
     );
 }
