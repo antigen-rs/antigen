@@ -1583,8 +1583,7 @@ fn atk_g2_24_cross_crate_immunity_triggers_spurious_g2_hint_for_wrong_antigen() 
     //   assert_eq!(category_report.mismatch_count, 0, "no spurious mismatch after fix");
     //   assert!(!has_g2_hint, "no spurious hint after fix");
     assert_eq!(
-        category_report.mismatch_count,
-        1,
+        category_report.mismatch_count, 1,
         "ATK-G2-24 (CURRENT BROKEN BEHAVIOR): G2 immunity loop uses bare antigen_type \
          match — the dep's Reactor immunity (canonical_path=Some('dep-crate@1.0.0')) \
          fires has_substrate_witness=true for the primary workspace's Reactor \
@@ -1603,5 +1602,72 @@ fn atk_g2_24_cross_crate_immunity_triggers_spurious_g2_hint_for_wrong_antigen() 
          dep's immunity incorrectly contributes substrate-witness evidence to the primary \
          workspace's Reactor. When this assertion fails (no hint): fix landed. \
          Invert: assert!(!has_g2_hint)."
+    );
+}
+
+// ATK-G2-25: cross-crate code-tier immunity silences silence-no-witness advisory.
+//
+// ATK-G2-24 (bare-name overclaim in G2 immunity loop) causes a dep's code-tier
+// immunity (canonical_path=Some("dep@1.0")) to contribute has_any_immunity=true
+// to a primary-workspace SubstrateAlignment antigen. The audit_category() guard
+// at audit.rs:3240 (!has_any_immunity) then SKIPS the
+// AntigenWitnessShapeMismatchForSilenceNoWitness path.
+//
+// The primary antigen has NO real witness (silence-by-absence is the real problem),
+// but the dep's immunity makes it look code-witnessed -> G2 fires a spurious
+// AntigenCategoryClaimInconsistentWithPredicateType instead.
+//
+// After ATK-G2-24 fix (canonical_path guard in immunity loop):
+//   has_any_immunity=false -> no-witness advisory fires; G2 mismatch suppressed.
+#[test]
+fn atk_g2_25_cross_crate_code_immunity_silences_silence_no_witness_advisory() {
+    use antigen::audit::{audit_category, AuditHint};
+    use antigen::category::AntigenCategory;
+    use antigen::scan::{AntigenDeclaration, Immunity, ItemTarget, ScanReport};
+
+    let mut report = ScanReport::default();
+
+    report.antigens.push(AntigenDeclaration {
+        type_name: "Sonar".to_string(),
+        name: "sonar".to_string(),
+        fingerprint: None,
+        canonical_path: None, // primary workspace
+        file: std::path::PathBuf::from("src/antigens.rs"),
+        line: 1,
+        summary: None,
+        category: vec![AntigenCategory::SubstrateAlignment],
+        family: None,
+    });
+
+    // Dep immunity: code-tier (witness=fn), stamped canonical_path
+    report.immunities.push(Immunity {
+        antigen_type: "Sonar".to_string(),
+        witness: "dep_test_fn".to_string(), // non-empty = code-tier
+        file: std::path::PathBuf::from("dep/tests.rs"),
+        line: 5,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Fn("dep_test_fn".to_string()),
+        canonical_path: Some("dep-crate@1.0.0".to_string()),
+        requires_predicate: None,
+        structural_fingerprint: String::new(),
+    });
+
+    let category_report = audit_category(&report);
+
+    let has_no_witness_advisory = category_report.audits.iter().any(|a| {
+        a.hints
+            .contains(&AuditHint::AntigenWitnessShapeMismatchForSilenceNoWitness)
+    });
+    let has_g2_mismatch = category_report.mismatch_count > 0;
+
+    // CURRENT BROKEN: dep overclaim suppresses no-witness advisory; spurious G2 mismatch fires.
+    // After ATK-G2-24 fix: no-witness advisory fires; G2 mismatch suppressed.
+    assert!(
+        !has_no_witness_advisory,
+        "ATK-G2-25 CURRENT BROKEN: dep code immunity (canonical_path=dep@1.0) overclaims          has_any_immunity=true for primary SA antigen, suppressing no-witness advisory.          After fix: advisory fires. Invert assertion."
+    );
+    assert!(
+        has_g2_mismatch,
+        "ATK-G2-25 CURRENT BROKEN: spurious G2 mismatch fires because dep immunity          makes primary SA antigen look code-witnessed-only. After fix: mismatch_count=0.          Invert assertion."
     );
 }
