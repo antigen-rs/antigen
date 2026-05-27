@@ -1,0 +1,11 @@
+error: use of deprecated struct `DefendedSite`: use #[defended_by] on tests (code-tier) or #[presents(requires=...)] for substrate evidence — ADR-029
+  --> tests/ui/immune_missing_deprecation_warning.rs:26:12
+   |
+26 |     let _: DefendedSite;
+   |            ^^^^^^^^^^^^
+   |
+note: the lint level is defined here
+  --> tests/ui/immune_missing_deprecation_warning.rs:12:9
+   |
+12 | #![deny(deprecated)]
+   |         ^^^^^^^^^^
