@@ -3086,10 +3086,26 @@ pub fn audit_category(report: &ScanReport) -> CategoryAuditReport {
                 has_code_witness = true;
             }
         }
+        // ADR-029: a `#[defended_by(X)]` registration is a CODE-TIER witness for
+        // X — the migration target for `#[immune(X, witness=fn)]`. G2 must
+        // consult `report.defenses` too, or every adopter who moves from
+        // `#[immune]` to `#[defended_by]` silently bypasses this witness-type
+        // cross-check (a SubstrateAlignment antigen defended ONLY by a code-tier
+        // `#[defended_by]` would go unflagged — the wrong witness type for the
+        // declared category). A matching defense counts as code-tier evidence
+        // addressing this antigen, exactly as a `witness=` immunity does.
+        if report
+            .defenses
+            .iter()
+            .any(|d| d.antigen_type == decl.type_name)
+        {
+            has_any_immunity = true;
+            has_code_witness = true;
+        }
 
-        // No immunities addressing this antigen is not a category mismatch —
-        // it's an (orthogonal) coverage gap. Only flag when immunities exist
-        // but lack the witness type the declared category requires.
+        // No immunities/defenses addressing this antigen is not a category
+        // mismatch — it's an (orthogonal) coverage gap. Only flag when evidence
+        // exists but lacks the witness type the declared category requires.
         if !has_any_immunity {
             continue;
         }
@@ -4059,37 +4075,34 @@ mod tests {
     }
 
     // ========================================================================
-    // ATK-G2-adr029-migration: G2 cross-check is dead for post-ADR-029 witnesses
+    // ATK-G2-adr029-migration: G2 cross-check wired for post-ADR-029 witnesses
     //
-    // audit_category() reads report.immunities to determine witness type
-    // (substrate vs code). ADR-029 witnesses use report.defenses (#[defended_by])
-    // instead of report.immunities (#[immune]). When a SubstrateAlignment antigen
-    // is defended only via #[defended_by] (the encouraged ADR-029 path), the
-    // G2 cross-check sees has_any_immunity=false and early-returns (line 3072:
-    // "No immunities addressing this antigen is not a category mismatch").
+    // FIXED (findings/g2-crosscheck-blind-to-adr029-witnesses): audit_category()
+    // now consults report.defenses (#[defended_by] registrations) in addition to
+    // report.immunities (#[immune] declarations) when computing has_code_witness.
     //
-    // The G2 cross-check is therefore silently disabled for any adopter who has
-    // migrated from #[immune] to #[defended_by]. A SubstrateAlignment antigen
-    // defended by a code-tier #[defended_by] test (WRONG witness type for SA)
-    // passes G2 with no hint, because defenses don't populate has_code_witness.
+    // Prior gap: ADR-029 witnesses use report.defenses, not report.immunities.
+    // When a SubstrateAlignment antigen was defended only via #[defended_by], the
+    // G2 cross-check saw has_any_immunity=false and early-returned without a hint.
+    // Any adopter migrating from #[immune] to #[defended_by] silently bypassed G2.
     //
-    // This is the same computed-not-delivered pattern: the G2 cross-check
-    // computes correctly when immunities are present, but the immunities
-    // collection is empty for ADR-029-style attestation.
-    //
-    // FIX DIRECTION: audit_category() must also consult report.defenses when
-    // computing has_code_witness. A #[defended_by(X)] registration is a
-    // code-tier witness for class X, equivalent to #[immune(X, witness=fn)]
-    // for the purpose of G2's witness-type cross-check.
+    // Fix: a matching Defense (by antigen_type) now sets has_any_immunity=true and
+    // has_code_witness=true in the category loop, exactly as a witness=fn immunity
+    // did before. SubstrateAlignment antigens defended only by code-tier
+    // #[defended_by] witnesses now correctly receive AntigenCategoryClaimInconsistentWithPredicateType.
     // ========================================================================
 
     #[test]
-    fn atk_g2_substrate_alignment_with_only_defended_by_bypasses_g2_check() {
-        // ATK-G2-migration: a SubstrateAlignment antigen defended by #[defended_by]
-        // (not #[immune]) silently bypasses the G2 witness-type cross-check.
-        // The check sees has_any_immunity=false and early-returns without a hint,
-        // even though the #[defended_by] code-tier defense is the wrong witness
-        // type for SubstrateAlignment (which needs a substrate-witness).
+    fn atk_g2_substrate_alignment_with_only_defended_by_triggers_g2_hint() {
+        // ATK-G2-migration (FIXED): a SubstrateAlignment antigen defended ONLY by
+        // `#[defended_by]` (code-tier, ADR-029 style) now correctly triggers G2's
+        // witness-type cross-check. Before the fix, G2 read `report.immunities`
+        // only and silently passed SubstrateAlignment antigens defended via
+        // `report.defenses`. The fix: `audit_category()` consults `report.defenses`
+        // too, setting `has_any_immunity=true` and `has_code_witness=true` when a
+        // matching `Defense` is found — which correctly triggers the
+        // `AntigenCategoryClaimInconsistentWithPredicateType` hint for a
+        // SubstrateAlignment antigen with a code-tier-only witness.
         use crate::category::AntigenCategory;
         let mut report = ScanReport::default();
         report.antigens.push(antigen_decl(
@@ -4097,8 +4110,8 @@ mod tests {
             vec![AntigenCategory::SubstrateAlignment],
         ));
         // ADR-029 style: #[defended_by(DriftAntigen)] on a test function.
-        // This is a CODE-TIER witness -- wrong for SubstrateAlignment.
-        // But G2 never sees it because it reads report.immunities, not report.defenses.
+        // This is a CODE-TIER witness — wrong for SubstrateAlignment.
+        // After the fix, G2 consults report.defenses and correctly flags this.
         report.defenses.push(crate::scan::Defense {
             antigen_type: "DriftAntigen".to_string(),
             file: std::path::PathBuf::from("tests/test.rs"),
@@ -4108,21 +4121,20 @@ mod tests {
         });
         let out = audit_category(&report);
 
-        // DOCUMENTS THE GAP: G2 reports no mismatch because it never reads
-        // report.defenses. The SubstrateAlignment antigen with only a code-tier
-        // #[defended_by] witness passes the cross-check silently. After the fix,
-        // this should report mismatch_count=1 with AntigenCategoryClaimInconsistentWithPredicateType.
+        // FIXED: G2 now reports a mismatch — report.defenses is consulted.
         assert_eq!(
-            out.mismatch_count, 0,
-            "ATK-G2-migration: SubstrateAlignment antigen with only #[defended_by] \
-            (code-tier) witness silently bypasses G2 cross-check -- no mismatch reported \
-            even though the witness type is wrong for SubstrateAlignment. G2 reads \
-            report.immunities only; report.defenses is not consulted. After fix, \
-            mismatch_count should be 1."
+            out.mismatch_count, 1,
+            "ATK-G2-migration (fixed): SubstrateAlignment antigen with only a \
+            code-tier #[defended_by] witness must trigger AntigenCategoryClaimInconsistentWithPredicateType. \
+            audit_category() now consults report.defenses alongside report.immunities."
+        );
+        assert_eq!(
+            out.audits.len(), 1,
+            "ATK-G2-migration (fixed): exactly one audit entry for the wrong-type ADR-029 witness"
         );
         assert!(
-            out.audits.is_empty(),
-            "ATK-G2-migration: no hint emitted for wrong-type ADR-029 witness"
+            out.audits[0].hints.contains(&AuditHint::AntigenCategoryClaimInconsistentWithPredicateType),
+            "ATK-G2-migration (fixed): the audit entry must include the category-mismatch hint"
         );
     }
 
