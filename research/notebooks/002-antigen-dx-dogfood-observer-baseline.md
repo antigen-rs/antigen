@@ -1810,7 +1810,7 @@ ATK-HINT-2 is a methodological finding for observer: when auditing a witness, au
 
 ---
 
-## Step 36 — dogfood-antigen-self-audit: substrate verification of adversarial's category/witness finding
+## Step 36 — dogfood-antigen-self-audit: substrate verification + narrative accuracy pass + design tension identification
 
 **Date**: 2026-05-26 (UTC, resumed after rate-limit hard-stop)
 **HEAD**: `515c906`
@@ -1872,10 +1872,26 @@ Adversarial claims `cargo antigen audit` on the workspace finds two stdlib antig
 3. Check expedition status — `dogfood/comprehensive-antigen-coverage` still blocked; observer's lane is otherwise clear
 4. Consider seeding a campsite for the G2-mapping-oversimplification design tension (or camp-question to navigator)
 
+### Secondary findings this step (beyond self-audit)
+
+**Narrative piece accuracy pass** (`forward/recursive-find-narrative-piece`):
+- All quantitative claims verified against substrate (89 variants, 16 at find time, line numbers)
+- Publication-blocking accuracy finding: body line 189 says audit "verifies the witness... **runs**" — `audit.rs:714` confirms audit does NOT run witnesses in v0.1/v0.2; returns `Reachability`, not `Execution`. Sent to navigator; campsite note deposited.
+- Scientist's pending corrections (sixteen→seventeen, five others→six others) already in disk state — correction already applied by scout. Note deposited to prevent redundant double-correction.
+
+**`forward/fingerprint-as-substrate-predicate`** (scientist-seeded, observer deposit):
+- G2's `SubstrateAlignment → requires substrate-witness` mapping is too strict for parity-test defenses. A bijection test (code-witness checking both representations) IS a substrate-alignment defense, just expressed as a test function. The real question is: does a code-witness implementing a bijection/parity test satisfy SubstrateAlignment at the defense tier? Observer deposited framing note to sharpen aristotle's deconstruction target.
+- Design gap: G2 conflates detection-tier (antigen declaration + fingerprint) and defense-tier (immunity declaration + witness type). Scientist framed well; observer's note adds precision on WHERE the locus is (immunity's witness-type, not antigen declaration's fingerprint presence).
+
+**Path-traversal guard** (`dogfood/supply-chain-path-traversal-guard`): committed at `d635d21`, signed, campsite complete. Observer's prior-session finding fully implemented.
+
+**Handoff campsite gap**: `antigen-dx-dogfood/audit-hint-const-shadows-enum` remains open (0/1 signers, required signer: pathmaker). Work completed at `be0df53` (bijection fix), navigator confirmed done, but the handoff wrapper campsite was never signed. Stale-open substrate-alignment gap.
+
 ### Metrics
 
-- Commits since last lab notebook entry: 3 (`515c906`, `ad4b820`, `7e59865` — beyond the 12 in step 35)
-- Audit hints verified: 2 (both adversarial claims confirmed)
+- Commits since step 35 lab notebook: 4 (`515c906`, `ad4b820`, `7e59865`, `d635d21`)
+- Audit hints verified: 2 (both adversarial self-audit claims confirmed)
 - False alarms this step: 0
-- Tests at HEAD: 913 passed, 0 failed (from navigator's wake call)
-- Open observer terrain: `dogfood/comprehensive-antigen-coverage` (blocked, awaiting pathmaker)
+- Tests at HEAD: 919 passed, 48 ignored, 0 failed (up from 913 at navigator wake call)
+- Expedition: 84 campsites total, 71 complete, 13 open
+- Open observer terrain: `dogfood/comprehensive-antigen-coverage` (2/3 sub-campsites now complete via pathmaker; `coverage-antigen-macros-lib`, `coverage-fingerprint-tightening`, `coverage-supply-chain-module` still open)
