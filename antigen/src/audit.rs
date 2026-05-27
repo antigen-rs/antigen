@@ -1108,15 +1108,15 @@ fn evaluate_deferred_defense_hint(
                 // (the macro parse-gate requires a valid `until`). Legacy grace
                 // path — don't fabricate an escalation.
                 None | Some("") => AuditHint::OrientActive,
+                // Future deadline → still active. Everything else for a PRESENT
+                // `until` escalates: a past date is an elapsed orientation, and a
+                // present-but-unparseable date (typo like "2026-13-99", "2099/01/01",
+                // or "soon") is an INTENDED-but-broken deadline that resolves to
+                // nothing. Both are unresolved orientations needing action — not a
+                // grace. (Only an ABSENT until takes the legacy grace path above.)
                 Some(s) => match parse_iso_date(s) {
                     Some(until) if until >= today => AuditHint::OrientActive,
-                    Some(_) => AuditHint::OrientPendingActionRequired,
-                    // Present-but-unparseable `until` (a typo like "2026-13-99"
-                    // or "soon"): the author INTENDED a deadline but it resolves
-                    // to nothing. Escalate to action-required rather than
-                    // silently treating it as no-deadline — a broken deadline is
-                    // an unresolved orientation, not a grace.
-                    None => AuditHint::OrientPendingActionRequired,
+                    _ => AuditHint::OrientPendingActionRequired,
                 },
             }
         }
@@ -4153,11 +4153,14 @@ mod tests {
             audit_category() now consults report.defenses alongside report.immunities."
         );
         assert_eq!(
-            out.audits.len(), 1,
+            out.audits.len(),
+            1,
             "ATK-G2-migration (fixed): exactly one audit entry for the wrong-type ADR-029 witness"
         );
         assert!(
-            out.audits[0].hints.contains(&AuditHint::AntigenCategoryClaimInconsistentWithPredicateType),
+            out.audits[0]
+                .hints
+                .contains(&AuditHint::AntigenCategoryClaimInconsistentWithPredicateType),
             "ATK-G2-migration (fixed): the audit entry must include the category-mismatch hint"
         );
     }
@@ -4663,45 +4666,44 @@ mod tests {
     }
 
     #[test]
-    fn atk_orient_invalid_date_string_is_silently_active() {
-        // ATK-orient(b): until="not-a-date" → parse_iso_date returns None →
-        // same grace path as None. A typo in the `until` field (e.g. "2099/01/01"
-        // with slashes instead of hyphens) silently grants permanent OrientActive
-        // rather than surfacing the parse failure. No diagnostic is emitted.
+    fn atk_orient_invalid_date_string_escalates_not_silently_active() {
+        // FIXED (findings/orient-unparseable-until-silent-green): until="not-a-date"
+        // is a PRESENT-but-unparseable deadline — the author intended a deadline
+        // but it resolves to nothing. The audit now escalates to
+        // OrientPendingActionRequired rather than collapsing into the absent-date
+        // grace path (which would silently grant permanent OrientActive).
         let mut report = ScanReport::default();
         let mut decl = orient_decl("not-a-date");
-        // Ensure the string is exactly as typed (not a valid ISO date)
         decl.until = Some("not-a-date".to_string());
         report.deferred_defenses.push(decl);
         let out = audit_deferred_defenses(&report, 30);
         assert_eq!(out.audits.len(), 1);
         assert_eq!(
             out.audits[0].hint,
-            AuditHint::OrientActive,
-            "ATK-orient(b): orient with unparseable until date must land in OrientActive \
-             (same grace path as None). SILENT GAP: a typo like '2099/01/01' never escalates \
-             and emits no parse-failure diagnostic — the author believes they set a deadline \
-             but the deadline is invisible to the audit."
+            AuditHint::OrientPendingActionRequired,
+            "a present-but-unparseable orient `until` must escalate (the author \
+             intended a deadline; a broken one is unresolved, not a grace)"
         );
-        assert_eq!(out.active_count, 1);
+        assert_eq!(out.active_count, 0);
     }
 
     #[test]
-    fn atk_orient_slash_date_format_typo_is_silently_active() {
-        // ATK-orient(c): a plausible typo — ISO format with slashes instead of
-        // hyphens. "2099/01/01" looks like a future date to a human; parse_iso_date
-        // rejects it and falls through to OrientActive. No escalation, no warning.
+    fn atk_orient_slash_date_format_typo_escalates_not_silently_active() {
+        // FIXED: "2099/01/01" (slash format) looks like a future date to a human
+        // but parse_iso_date rejects it. It's a present-but-unparseable deadline
+        // → escalates to OrientPendingActionRequired, not silent OrientActive. The
+        // typo trap (future-looking but unparseable behaving like no-deadline) is
+        // closed: present-but-broken now reads loudly as action-required.
         let mut report = ScanReport::default();
         let mut decl = orient_decl("2099-01-01"); // valid baseline
-        decl.until = Some("2099/01/01".to_string()); // slash typo — should fail parse
+        decl.until = Some("2099/01/01".to_string()); // slash typo — fails parse
         report.deferred_defenses.push(decl);
         let out = audit_deferred_defenses(&report, 30);
         assert_eq!(
             out.audits[0].hint,
-            AuditHint::OrientActive,
-            "ATK-orient(c): '2099/01/01' (slash format) must not parse as a valid date; \
-             falls to OrientActive. This is the silent typo trap: a future-looking but \
-             unparseable date behaves identically to a past-expired date that parsed as None."
+            AuditHint::OrientPendingActionRequired,
+            "a slash-format (unparseable) orient `until` must escalate to \
+             action-required, not silently fall to OrientActive"
         );
     }
 
@@ -4927,8 +4929,7 @@ mod tests {
         // The stale_count is 0 (the suppression appears active from audit's perspective,
         // not stale). This confirms the cap-exceeded path was never reached.
         assert_eq!(
-            out.stale_count,
-            0,
+            out.stale_count, 0,
             "ATK-IMMUNOSUPPRESS-MALFORMED-SINCE: stale_count is 0 -- the cap-exceeded \
             path was never reached because since parse failed silently"
         );
