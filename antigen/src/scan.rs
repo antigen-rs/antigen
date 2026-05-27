@@ -6186,4 +6186,43 @@ mod tests {
              no fingerprint and no explicit detection_model=verify_only annotation."
         );
     }
+
+    // ========================================================================
+    // ADR-023: #[immunosuppress(since=, duration_cap=)] → typed DeferredDefense
+    // fields (since/duration_cap), so the audit can enforce the cap. Previously
+    // these lived only as unparsed see[] string tags — the
+    // ImmunosuppressDurationCapExceeded-unreachable root cause (d72dacf).
+    // ========================================================================
+
+    #[test]
+    fn scan_immunosuppress_captures_since_and_duration_cap_as_typed_fields() {
+        let report = scan_source(
+            r#"
+            #[immunosuppress(rationale = "mid-refactor, defense lands in PR42", since = "2020-01-01", duration_cap = 30)]
+            fn suppressed_site() {}
+            "#,
+        );
+        assert_eq!(report.deferred_defenses.len(), 1);
+        let d = &report.deferred_defenses[0];
+        assert_eq!(d.kind, crate::scan::DeferredDefenseKind::Immunosuppress);
+        assert_eq!(
+            d.since.as_deref(),
+            Some("2020-01-01"),
+            "since must be captured as a typed field, not a see[] string tag"
+        );
+        assert_eq!(
+            d.duration_cap,
+            Some(30),
+            "duration_cap must be captured as a typed field"
+        );
+        // The old string-tag encoding must be gone — see[] should not carry
+        // since/duration_cap anymore (the audit reads the typed fields).
+        assert!(
+            !d.see
+                .iter()
+                .any(|s| s.starts_with("since:") || s.starts_with("duration_cap:")),
+            "since/duration_cap must NOT be stuffed into see[] as string tags; got: {:?}",
+            d.see
+        );
+    }
 }
