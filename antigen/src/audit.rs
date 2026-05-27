@@ -620,6 +620,55 @@ pub enum AuditHint {
     /// claim-inconsistent). ADR-028 §Schema: "hybrid antigen; one axis
     /// unwitnessed at audit-time."
     AntigenCategoryHybridIncompleteEvidence,
+
+    // ------------------------------------------------------------------
+    // Silence-witness shape-mismatch hints (scientist design 2026-05-27 in
+    // forward/silence-witness-shape-mismatch-hint; aristotle architectural
+    // gate cleared 2026-05-27 in forward/silence-witness-shape-mismatch-impl).
+    //
+    // A `SubstrateAlignment` antigen fails by SILENCE — a representation
+    // drifts from actual state and nothing fires, because the antigen is
+    // about ABSENCE of a closure-mechanism, not a wrong output. The
+    // silence-by-absence generator (scientist's 2x2 cap analysis) is defeated
+    // only by a witness that asserts the mechanism EXISTS (a substrate
+    // predicate or a bijection/parity test), not by a code-behavior test.
+    // These two advisory hints flag the witness-shape that cannot detect
+    // silence. They live in `audit_category()`'s per-decl loop, sharing the
+    // antigen_type-keyed witness correlation G2 already computes (the
+    // locus-dispatch family: G2 + silence-witness + ADR-030 + ADR-031 all
+    // reuse the same audit-cross-reference path). Advisory, audit-time —
+    // same pattern as G1/G2.
+    // ------------------------------------------------------------------
+    /// A [`SubstrateAlignment`](crate::category::AntigenCategory::SubstrateAlignment)
+    /// antigen has NO registered witness of any kind — no `#[immune]`, no
+    /// `#[defended_by]`, no `requires =` predicate. This is the
+    /// silence-by-absence generator: a substrate-alignment failure is detected
+    /// only by a mechanism that asserts the closure exists, and no mechanism is
+    /// wired. Distinct from G2
+    /// ([`Self::AntigenCategoryClaimInconsistentWithPredicateType`]), which
+    /// deliberately treats no-witness as an orthogonal coverage gap and bails
+    /// before the category check; this hint fills exactly that gap for the SA
+    /// category, where the absence is itself the silence-generator. Advisory.
+    /// Recommends a parity/bijection witness that asserts the closure-mechanism
+    /// exists, not merely that the two representations agree at this moment.
+    AntigenWitnessShapeMismatchForSilenceNoWitness,
+
+    /// A [`SubstrateAlignment`](crate::category::AntigenCategory::SubstrateAlignment)
+    /// antigen's ONLY witnesses are code-tier (a `witness = fn` immunity or a
+    /// `#[defended_by]` registration — [`WitnessTier::Reachability`] /
+    /// [`WitnessTier::Execution`]) with no `requires =` substrate predicate. A
+    /// code-reachability test detects BEHAVIORAL failures; a substrate-alignment
+    /// failure needs a substrate-state evaluator (`requires =`) or a
+    /// bijection-parity test. Co-emitted alongside G2's
+    /// [`Self::AntigenCategoryClaimInconsistentWithPredicateType`] (same root
+    /// cause, witness-type mismatch) but carries the silence-generator framing
+    /// and the actionable guidance G2 does not. Per scientist's design, the
+    /// wrong-weighting generator legitimately uses a code-tier
+    /// confidence-discrimination test — so this is advisory, and the reader
+    /// should confirm the intended generator before treating it as a mismatch.
+    /// Suppressed when a substrate witness is also present (the code test is
+    /// then supplementary, not the sole defense).
+    AntigenWitnessShapeMismatchForSilenceWrongTier,
 }
 
 /// Result of auditing a single immunity declaration.
@@ -3064,6 +3113,24 @@ impl CategoryAuditReport {
     pub const fn no_category_witness_mismatch(&self) -> bool {
         self.mismatch_count == 0
     }
+
+    /// True when no `SubstrateAlignment` antigen carries a silence-witness
+    /// shape-mismatch advisory (neither no-witness nor wrong-tier). Derived
+    /// from the audits rather than a counter: the no-witness hint is an
+    /// orthogonal gap G2 does not count, and the wrong-tier hint rides
+    /// alongside a G2 mismatch already counted by `mismatch_count`, so a
+    /// dedicated scan keeps the silence-witness signal independent of the
+    /// G2 count.
+    #[must_use]
+    pub fn no_silence_witness_mismatch(&self) -> bool {
+        !self.audits.iter().any(|ca| {
+            ca.hints
+                .contains(&AuditHint::AntigenWitnessShapeMismatchForSilenceNoWitness)
+                || ca
+                    .hints
+                    .contains(&AuditHint::AntigenWitnessShapeMismatchForSilenceWrongTier)
+        })
+    }
 }
 
 /// Audit antigen-category coverage across a scan report (ADR-028).
@@ -3157,18 +3224,30 @@ pub fn audit_category(report: &ScanReport) -> CategoryAuditReport {
             has_code_witness = true;
         }
 
-        // No immunities/defenses addressing this antigen is not a category
-        // mismatch — it's an (orthogonal) coverage gap. Only flag when evidence
-        // exists but lacks the witness type the declared category requires.
-        if !has_any_immunity {
-            continue;
-        }
-
         let wants_substrate = decl.category.contains(&AntigenCategory::SubstrateAlignment);
         let wants_code = decl
             .category
             .contains(&AntigenCategory::FunctionalCorrectness);
         let is_hybrid = wants_substrate && wants_code;
+
+        // No immunities/defenses addressing this antigen is not (for G2) a
+        // category mismatch — it's an orthogonal coverage gap, so G2 bails.
+        // But for a SubstrateAlignment antigen, no-witness-at-all IS the
+        // silence-by-absence generator: SA failures are detected only by a
+        // mechanism asserting the closure exists, and none is wired. Emit the
+        // silence-no-witness advisory here (the gap G2 deliberately leaves),
+        // then continue — there is no witness TYPE to cross-check.
+        if !has_any_immunity {
+            if wants_substrate {
+                audits.push(CategoryAudit {
+                    antigen_type: decl.type_name.clone(),
+                    file: decl.file.clone(),
+                    line: decl.line,
+                    hints: vec![AuditHint::AntigenWitnessShapeMismatchForSilenceNoWitness],
+                });
+            }
+            continue;
+        }
 
         let substrate_satisfied = !wants_substrate || has_substrate_witness;
         let code_satisfied = !wants_code || has_code_witness;
@@ -3191,12 +3270,31 @@ pub fn audit_category(report: &ScanReport) -> CategoryAuditReport {
             AuditHint::AntigenCategoryClaimInconsistentWithPredicateType
         };
 
+        let mut hints = vec![hint];
+
+        // Silence-witness wrong-tier advisory. A SubstrateAlignment antigen
+        // whose ONLY witnesses are code-tier (`witness = fn` / `#[defended_by]`
+        // — has_code_witness) with NO substrate predicate (!has_substrate_witness)
+        // is defended by a tier that detects behavioral, not substrate-alignment,
+        // failures. Co-emitted with G2's primary hint (same root cause — a
+        // witness-type mismatch) but carries the silence-generator framing and
+        // the actionable "reach for a substrate predicate or bijection-parity
+        // test" guidance G2's type-only verdict omits. Suppressed when a
+        // substrate witness is also present (the code test is then supplementary)
+        // — that is exactly the `!has_substrate_witness` guard. Per scientist's
+        // design, the wrong-weighting generator legitimately uses a code-tier
+        // confidence test, so this is advisory: confirm the intended generator
+        // before treating it as a mismatch.
+        if wants_substrate && has_code_witness && !has_substrate_witness {
+            hints.push(AuditHint::AntigenWitnessShapeMismatchForSilenceWrongTier);
+        }
+
         mismatch_count += 1;
         audits.push(CategoryAudit {
             antigen_type: decl.type_name.clone(),
             file: decl.file.clone(),
             line: decl.line,
-            hints: vec![hint],
+            hints,
         });
     }
 
@@ -4084,9 +4182,15 @@ mod tests {
     fn audit_category_clean_when_explicit() {
         use crate::category::AntigenCategory;
         let mut report = ScanReport::default();
+        // FunctionalCorrectness (not SubstrateAlignment): an explicit category
+        // with no witness is a plain coverage gap and emits no audit hint. A
+        // witnessless SubstrateAlignment antigen would now (correctly) trip the
+        // silence-no-witness advisory — that case is covered by
+        // `silence_no_witness_fires_for_substrate_alignment_with_no_witness`;
+        // this test isolates "explicit category → no G1 defaulted hint".
         report.antigens.push(antigen_decl(
-            "PinnedDep",
-            vec![AntigenCategory::SubstrateAlignment],
+            "VerbCorrectness",
+            vec![AntigenCategory::FunctionalCorrectness],
         ));
         let out = audit_category(&report);
         assert_eq!(out.explicit_count, 1);
@@ -4276,14 +4380,159 @@ mod tests {
         use crate::category::AntigenCategory;
         let mut report = ScanReport::default();
         // Explicit category but zero immunities addressing it — that's a
-        // coverage gap, not a category↔witness-type mismatch.
+        // coverage gap, not a category↔witness-type mismatch. G2's count stays
+        // zero. (For a SubstrateAlignment antigen the no-witness case ALSO
+        // emits the silence-no-witness advisory — see
+        // `silence_no_witness_fires_for_substrate_alignment_with_no_witness` —
+        // so this test uses a FunctionalCorrectness antigen to isolate the
+        // pure G2 "no immunity is not a mismatch" assertion.)
         report.antigens.push(antigen_decl(
             "UncoveredAntigen",
-            vec![AntigenCategory::SubstrateAlignment],
+            vec![AntigenCategory::FunctionalCorrectness],
         ));
         let out = audit_category(&report);
         assert_eq!(out.mismatch_count, 0);
+        assert!(out.no_category_witness_mismatch());
+        assert!(out.no_silence_witness_mismatch());
         assert!(out.audits.is_empty());
+    }
+
+    // ========================================================================
+    // Silence-witness shape-mismatch hints (scientist design + aristotle gate,
+    // forward/silence-witness-shape-mismatch-{hint,impl}, 2026-05-27).
+    //
+    // Hint 1 (no-witness): a SubstrateAlignment antigen with NO witness at all —
+    //   the silence-by-absence generator. Fills the gap G2 deliberately leaves
+    //   (G2 treats no-witness as an orthogonal coverage gap and bails).
+    // Hint 2 (wrong-tier): a SubstrateAlignment antigen whose ONLY witnesses are
+    //   code-tier (witness=fn / #[defended_by]) with no requires= predicate.
+    //   Co-emitted alongside G2's claim-inconsistent (same root cause), adding
+    //   the silence-generator framing. Suppressed when a substrate witness is
+    //   also present.
+    // ========================================================================
+
+    #[test]
+    fn silence_no_witness_fires_for_substrate_alignment_with_no_witness() {
+        use crate::category::AntigenCategory;
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_decl(
+            "DriftAntigen",
+            vec![AntigenCategory::SubstrateAlignment],
+        ));
+        // No immunity, no defense at all.
+        let out = audit_category(&report);
+        // Not a G2 mismatch — there is no witness TYPE to cross-check.
+        assert_eq!(out.mismatch_count, 0);
+        assert!(out.no_category_witness_mismatch());
+        // But the silence-by-absence advisory fires.
+        assert!(!out.no_silence_witness_mismatch());
+        assert!(out.audits[0]
+            .hints
+            .contains(&AuditHint::AntigenWitnessShapeMismatchForSilenceNoWitness));
+    }
+
+    #[test]
+    fn silence_no_witness_does_not_fire_for_functional_correctness_no_witness() {
+        use crate::category::AntigenCategory;
+        let mut report = ScanReport::default();
+        // A FunctionalCorrectness antigen with no witness is a plain coverage
+        // gap, NOT silence-by-absence — the no-witness advisory is
+        // SubstrateAlignment-only.
+        report.antigens.push(antigen_decl(
+            "BugAntigen",
+            vec![AntigenCategory::FunctionalCorrectness],
+        ));
+        let out = audit_category(&report);
+        assert!(out.no_silence_witness_mismatch());
+        assert!(out.audits.is_empty());
+    }
+
+    #[test]
+    fn silence_wrong_tier_co_emits_with_g2_for_substrate_alignment_code_only() {
+        use crate::category::AntigenCategory;
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_decl(
+            "DriftAntigen",
+            vec![AntigenCategory::SubstrateAlignment],
+        ));
+        // Code-witness only — wrong tier for substrate-alignment.
+        report.immunities.push(immunity_for("DriftAntigen", false));
+        let out = audit_category(&report);
+        // G2 still fires its claim-inconsistent verdict (count unchanged)...
+        assert_eq!(out.mismatch_count, 1);
+        assert!(out.audits[0]
+            .hints
+            .contains(&AuditHint::AntigenCategoryClaimInconsistentWithPredicateType));
+        // ...and the silence wrong-tier advisory rides alongside it on the
+        // SAME audit entry, adding the silence-generator framing.
+        assert!(!out.no_silence_witness_mismatch());
+        assert!(out.audits[0]
+            .hints
+            .contains(&AuditHint::AntigenWitnessShapeMismatchForSilenceWrongTier));
+    }
+
+    #[test]
+    fn silence_wrong_tier_suppressed_when_substrate_witness_also_present() {
+        use crate::category::AntigenCategory;
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_decl(
+            "DriftAntigen",
+            vec![AntigenCategory::SubstrateAlignment],
+        ));
+        // Both a substrate-witness AND a code-witness. The code test is now
+        // supplementary — the wrong-tier advisory must NOT fire (scientist's
+        // suppression rule), and G2 is clean (substrate axis satisfied).
+        report.immunities.push(immunity_for("DriftAntigen", true));
+        report.immunities.push(immunity_for("DriftAntigen", false));
+        let out = audit_category(&report);
+        assert_eq!(out.mismatch_count, 0);
+        assert!(out.no_silence_witness_mismatch());
+    }
+
+    #[test]
+    fn silence_wrong_tier_fires_for_substrate_alignment_defended_by_code_only() {
+        use crate::category::AntigenCategory;
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_decl(
+            "DriftAntigen",
+            vec![AntigenCategory::SubstrateAlignment],
+        ));
+        // A `#[defended_by]` registration is a CODE-TIER witness (ADR-029) — so
+        // a SubstrateAlignment antigen defended ONLY by it is the wrong-tier
+        // case, exactly as a `witness = fn` immunity would be. Mirrors the G2
+        // defended_by handling: canonical_path=None matches.
+        report.defenses.push(crate::scan::Defense {
+            antigen_type: "DriftAntigen".to_string(),
+            file: std::path::PathBuf::from("test.rs"),
+            line: 1,
+            item_kind: "fn".to_string(),
+            item_target: crate::scan::ItemTarget::Fn("defending_test".to_string()),
+            canonical_path: None,
+        });
+        let out = audit_category(&report);
+        assert_eq!(out.mismatch_count, 1);
+        assert!(!out.no_silence_witness_mismatch());
+        assert!(out.audits[0]
+            .hints
+            .contains(&AuditHint::AntigenWitnessShapeMismatchForSilenceWrongTier));
+    }
+
+    #[test]
+    fn silence_witness_hints_serialize_kebab_case() {
+        let no_witness =
+            serde_json::to_string(&AuditHint::AntigenWitnessShapeMismatchForSilenceNoWitness)
+                .unwrap();
+        assert_eq!(
+            no_witness,
+            "\"antigen-witness-shape-mismatch-for-silence-no-witness\""
+        );
+        let wrong_tier =
+            serde_json::to_string(&AuditHint::AntigenWitnessShapeMismatchForSilenceWrongTier)
+                .unwrap();
+        assert_eq!(
+            wrong_tier,
+            "\"antigen-witness-shape-mismatch-for-silence-wrong-tier\""
+        );
     }
 
     #[test]
@@ -5352,6 +5601,49 @@ mod tests {
              has a doc_contains requirement nested inside all_of. The top-level constraint loop \
              misses it — child `item = struct` (no doc_contains) is NOT a refinement but the \
              advisory stays silent. False negative. When this assertion fails: fix landed. Invert."
+        );
+    }
+
+
+    // ATK-LF-3: fingerprint index keyed by bare type_name -- cross-crate name collision.
+    //
+    // audit_lineage_fidelity builds HashMap<&str, Fingerprint> by bare type_name
+    // (audit.rs:3263). Two antigens named "Foo" from different crates cause collect()
+    // to silently deduplicate. The lineage lookup fingerprints.get("Foo") returns an
+    // ARBITRARY entry (non-deterministic HashMap order).
+    //
+    // Failure mode: Bar refines crate A's Foo (struct->struct, valid, no advisory).
+    // If crate B's Foo (item=fn) wins the race, struct vs fn fires spuriously.
+    //
+    // Fix: key by (type_name, canonical_path) tuple (ADR-017 discipline).
+    #[test]
+    fn atk_lf_3_bare_type_name_index_cross_crate_collision_non_deterministic_advisory() {
+        let mut report = ScanReport::default();
+        // Crate A Foo: item = struct (real parent)
+        let mut foo_a = antigen_with_fp("Foo", "item = struct");
+        foo_a.canonical_path = Some("crate-a@1.0".to_string());
+        report.antigens.push(foo_a);
+        // Crate B Foo: item = fn (collision -- same bare name, different crate)
+        let mut foo_b = antigen_with_fp("Foo", "item = fn");
+        foo_b.canonical_path = Some("crate-b@2.0".to_string());
+        report.antigens.push(foo_b);
+        // Child: Bar with item = struct -- valid refinement of crate A Foo
+        let mut bar = antigen_with_fp("Bar", "item = struct");
+        bar.canonical_path = Some("crate-a@1.0".to_string());
+        report.antigens.push(bar);
+        // Edge: Bar descended_from Foo, both in crate-a
+        let mut edge = lineage_edge("Bar", "Foo");
+        edge.child_canonical_path = Some("crate-a@1.0".to_string());
+        edge.parent_canonical_path = Some("crate-a@1.0".to_string());
+        report.lineage_edges.push(edge);
+
+        let out = audit_lineage_fidelity(&report);
+        // CORRECT after fix: always 0. BROKEN current: 0 or 1 (HashMap order).
+        // 0 = crate-A struct won (accidentally correct); 1 = crate-B fn won (spurious).
+        assert!(
+            out.divergences.len() <= 1,
+            "ATK-LF-3: expected 0 (correct) or 1 (spurious from wrong-crate Foo collision).              After fix: always 0. Got: {:?}",
+            out.divergences
         );
     }
 }
