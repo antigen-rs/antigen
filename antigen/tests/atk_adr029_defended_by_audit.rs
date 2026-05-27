@@ -966,3 +966,62 @@ fn atk_adr029_18_v1_void_failing_requires_masked_by_passing_defended_by() {
         v.verdict
     );
 }
+
+// ATK-ADR029-19: malformed JSON in requires_predicate yields SubstrateGap (not Undefended)
+//
+// When `requires_predicate` holds syntactically invalid JSON, `serde_json::from_str`
+// fails inside `audit_substrate_witness`. The function returns
+// `EvaluatedPredicate::sidecar_schema_invalid()` which has `witness_tier = WitnessTier::None`.
+// This flows into `site_requires_eval = Some(WitnessTier::None)` -- which means
+// `site_requires_eval.is_some()` is `true`, triggering the SubstrateGap arm at
+// audit.rs:1394 even though the tier is None.
+//
+// The correct verdict: SubstrateGap (not Undefended). A malformed predicate has
+// declared defensive intent (requires_predicate is Some); the schema failure is a
+// substrate issue, not an absence of intent. SubstrateGap accurately signals
+// "intent is present; substrate cannot be evaluated."
+//
+// DEGENERATE INPUT: requires_predicate = "this is not json at all"
+#[test]
+fn atk_adr029_19_malformed_requires_predicate_json_yields_substrate_gap() {
+    let mut report = ScanReport::default();
+
+    report.presentations.push(Presentation {
+        antigen_type: "TestClass".to_string(),
+        file: PathBuf::from("src/lib.rs"),
+        line: 42,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Unknown { line: 42 },
+        match_kind: MatchKind::ExplicitMarker,
+        canonical_path: None,
+        inherited_from: None,
+        structural_fingerprint: String::new(),
+        // Malformed JSON -- serde_json::from_str will fail.
+        requires_predicate: Some("this is not json at all".to_string()),
+        proof: None,
+    });
+
+    let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap();
+    let audit_result = audit(&report, workspace_root);
+
+    assert_eq!(
+        audit_result.presentation_verdicts.len(),
+        1,
+        "ATK-ADR029-19: exactly one verdict for the presentation"
+    );
+    let v = &audit_result.presentation_verdicts[0];
+
+    // Malformed JSON predicate -> sidecar_schema_invalid -> WitnessTier::None
+    // -> site_requires_eval = Some(None-tier) -> is_some() triggers SubstrateGap.
+    // Must NOT be Undefended (intent was declared, even if unparseable).
+    assert!(
+        matches!(v.verdict, ImmuneVerdict::SubstrateGap),
+        "ATK-ADR029-19: malformed requires_predicate JSON must yield SubstrateGap, \
+        not Undefended. The author declared intent (Some(...)); the JSON failure is a \
+        substrate problem (DisciplineSidecarSchemaInvalid), not an absence of intent. \
+        Got: {:?}",
+        v.verdict
+    );
+}
