@@ -2535,6 +2535,119 @@ fn print_deferred_defenses_loud(report: &audit::DeferredDefenseAuditReport) {
     println!();
 }
 
+/// Render concern hints for ADR-024 convergent-evidence declarations
+/// (`#[diagnostic]` / `#[clonal]` / `#[igg]` / `#[crossreactive]` / etc.). The
+/// library computes these (modality-insufficient, class-collapsed, clonal
+/// fixed-seed, igg identity-collapse, …) but the CLI never delivered them — the
+/// `AuditVerdictComputedButNotDelivered` severance. Render only declarations with
+/// concerns; a clean convergent declaration is background, not a TODO.
+fn print_convergent_evidence_concerns(report: &audit::ConvergentEvidenceAuditReport) {
+    if report.concern_count == 0 {
+        return;
+    }
+    println!(
+        "⚠ {} convergent-evidence declaration(s) with concerns (ADR-024):",
+        report.concern_count
+    );
+    println!();
+    for a in &report.audits {
+        if a.hints.is_empty() {
+            continue;
+        }
+        let d = &a.declaration;
+        let hints = a
+            .hints
+            .iter()
+            .map(audit_hint_kebab)
+            .collect::<Vec<_>>()
+            .join(", ");
+        println!(
+            "  {}:{}  #[{}] — {hints}",
+            d.file.display(),
+            d.line,
+            convergent_kind_str(&d.kind)
+        );
+    }
+    println!();
+}
+
+/// Render concern hints for ADR-024 recurrent-emergence declarations
+/// (`#[itch]` / `#[recurrence_anchor]` / `#[crystallize]` / `#[chronic]` /
+/// `#[saturate]` / `#[strand]`). Same severance fix as the convergent surface:
+/// the library computes the hints (recurrence-anchor-no-itch-precondition,
+/// chronic-signal-past-review-date, …); deliver them. Concerns only.
+fn print_recurrent_concerns(report: &audit::RecurrentAuditReport) {
+    if report.concern_count == 0 {
+        return;
+    }
+    println!(
+        "⚠ {} recurrent-emergence declaration(s) with concerns (ADR-024):",
+        report.concern_count
+    );
+    println!();
+    for a in &report.audits {
+        if a.hints.is_empty() {
+            continue;
+        }
+        let d = &a.declaration;
+        let hints = a
+            .hints
+            .iter()
+            .map(audit_hint_kebab)
+            .collect::<Vec<_>>()
+            .join(", ");
+        let label = d
+            .antigen_type
+            .as_deref()
+            .or(d.name.as_deref())
+            .unwrap_or("(unlinked)");
+        println!(
+            "  {}:{}  #[{}] `{label}` — {hints}",
+            d.file.display(),
+            d.line,
+            recurrent_kind_str(d.kind)
+        );
+    }
+    println!();
+}
+
+/// Macro-keyword string for a convergent-evidence kind (display only).
+const fn convergent_kind_str(kind: &antigen::scan::ConvergentEvidenceKind) -> &'static str {
+    use antigen::scan::ConvergentEvidenceKind as K;
+    match kind {
+        K::Diagnostic => "diagnostic",
+        K::Clonal => "clonal",
+        K::Igg => "igg",
+        K::Crossreactive => "crossreactive",
+        K::Polyclonal => "polyclonal",
+        K::Monoclonal => "monoclonal",
+        K::Adcc => "adcc",
+    }
+}
+
+/// Macro-keyword string for a recurrent-emergence kind (display only).
+const fn recurrent_kind_str(kind: antigen::scan::RecurrentKind) -> &'static str {
+    use antigen::scan::RecurrentKind as K;
+    match kind {
+        K::Itch => "itch",
+        K::RecurrenceAnchor => "recurrence_anchor",
+        K::Crystallize => "crystallize",
+        K::Chronic => "chronic",
+        K::Saturate => "saturate",
+        K::Strand => "strand",
+    }
+}
+
+/// Render an `AuditHint` as its serde kebab-case key for human concern lines.
+/// (The hint's `Serialize` impl is kebab-case; reuse it so the human string
+/// matches the JSON + the ADR vocabulary exactly.)
+fn audit_hint_kebab(hint: &audit::AuditHint) -> String {
+    serde_json::to_value(hint)
+        .ok()
+        .and_then(|v| v.as_str().map(str::to_owned))
+        .unwrap_or_else(|| format!("{hint:?}"))
+}
+
 /// Human scan output shows at most this many fingerprint-match detail lines per
 /// antigen type, then a "+N more" summary pointing at `--format json`.
 ///
@@ -2906,10 +3019,22 @@ fn run_audit(args: AuditArgs) -> ExitCode {
     // surface). 30-day default stale-grace per the library contract.
     let deferred_report = audit::audit_deferred_defenses(&scan_report, 30);
 
+    // ADR-024 convergent-evidence (#[diagnostic]/#[clonal]/#[igg]/...) +
+    // recurrent-emergence (#[itch]/#[recurrence_anchor]/#[crystallize]/...)
+    // audits. Both were computed by the library + populated by scan but NEVER
+    // delivered by any CLI command (the AuditVerdictComputedButNotDelivered
+    // severance — same shape as the lineage + deferred-defense surfaces). Wire
+    // their concern-hints into the audit output so the verdict actually reaches
+    // the adopter.
+    let convergent_report = audit::audit_convergent_evidence(&scan_report);
+    let recurrent_report = audit::audit_recurrent(&scan_report);
+
     match args.format {
         OutputFormat::Human => {
             print_audit_human(&scan_report, &audit_report);
             print_deferred_defenses_loud(&deferred_report);
+            print_convergent_evidence_concerns(&convergent_report);
+            print_recurrent_concerns(&recurrent_report);
             print_category_audit_human(&category_report);
         }
         OutputFormat::Json => match serde_json::to_string_pretty(&JsonAuditReport {
@@ -2917,6 +3042,8 @@ fn run_audit(args: AuditArgs) -> ExitCode {
             audit: &audit_report,
             category: &category_report,
             deferred_defense_audit: &deferred_report,
+            convergent_evidence_audit: &convergent_report,
+            recurrent_audit: &recurrent_report,
         }) {
             Ok(s) => println!("{s}"),
             Err(e) => {
@@ -3854,6 +3981,14 @@ struct JsonAuditReport<'a> {
     /// (forward/suppression-loud-must-be-removed): intentional defense gaps must
     /// never be silently invisible.
     deferred_defense_audit: &'a audit::DeferredDefenseAuditReport,
+    /// ADR-024 convergent-evidence audit (#[diagnostic]/#[clonal]/#[igg]/...):
+    /// per-declaration concern hints + clean/concern counts. Delivered here so
+    /// the computed verdict reaches consumers (was a severed delivery arm).
+    convergent_evidence_audit: &'a audit::ConvergentEvidenceAuditReport,
+    /// ADR-024 recurrent-emergence audit (`#[itch]`/`#[recurrence_anchor]`/...):
+    /// per-declaration concern hints + clean/concern counts. Delivered here so
+    /// the computed verdict reaches consumers (was a severed delivery arm).
+    recurrent_audit: &'a audit::RecurrentAuditReport,
 }
 
 fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::AuditReport) {
