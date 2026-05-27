@@ -4974,16 +4974,7 @@ mod tests {
         // ATK-IMMUNOSUPPRESS-PAST-DATE: #[immunosuppress] with `until` in the
         // past should fail validation — the suppression window has expired.
         //
-        // ImmunosuppressArgs::validate() parses the date for duration cap
-        // enforcement (duration_days > cap) but does NOT check until < today.
-        // A past `until` date produces duration_days < 0 which is NOT > cap_i64(90),
-        // so the cap check passes silently. Expired immunosuppression stays in
-        // the codebase without a compile error.
-        //
-        // STATUS: FAILING — validate() only checks duration > cap; past dates
-        // produce negative duration that is not > cap, so they pass silently.
-        // Fix: add if duration_days < 0 { return Err(...) } after computing
-        // duration_days, parallel to the orient/anergy fix pattern.
+        // FIXED: validate() now rejects past dates (duration_days < 0 check added).
         let yesterday = (today_utc() - chrono::Duration::days(1))
             .format("%Y-%m-%d")
             .to_string();
@@ -5011,9 +5002,7 @@ mod tests {
         // is still referenced in code but its deadline has passed. Silent expired
         // poxparty is the same class as expired immunosuppress and anergy.
         //
-        // STATUS: FAILING — validate() only checks until != None && until != ""
-        // Fix: add parse_iso_date() + horizon_days < 0 check to PoxpartyArgs::validate(),
-        // paralleling the fix applied to OrientArgs::validate() in commit 53d2bab.
+        // FIXED: validate() now rejects past dates (parse_iso_date() + horizon_days < 0 check added).
         let yesterday = (today_utc() - chrono::Duration::days(1))
             .format("%Y-%m-%d")
             .to_string();
@@ -5042,11 +5031,7 @@ mod tests {
         // worse than orient: it silently suppresses checks for a failure-class
         // on an item where the anergy contract has lapsed.
         //
-        // Current behavior: validate() only checks non-empty, so past dates pass.
-        //
-        // STATUS: FAILING — validate() only checks until != None && until != ""
-        // Fix: add parse_iso_date() + horizon_days < 0 check to AnergyArgs::validate(),
-        // paralleling the fix applied to OrientArgs::validate() in commit 53d2bab.
+        // FIXED: validate() now rejects past dates (parse_iso_date() + horizon_days < 0 check added).
         let yesterday = (today_utc() - chrono::Duration::days(1))
             .format("%Y-%m-%d")
             .to_string();

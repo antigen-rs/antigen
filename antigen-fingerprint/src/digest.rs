@@ -279,18 +279,8 @@ mod tests {
         );
     }
 
-    // ATK-DIGEST-1: ANTIGEN_OWNED_ATTRS is incomplete — 15 of 26 antigen macros
-    // are NOT in the exclusion list. Adding #[mucosal], #[itch], #[polyclonal],
-    // etc. to an item CHANGES its structural digest, invalidating existing
-    // signatures. The "antigen attrs don't change digest" invariant is violated
-    // for these macros.
-    //
-    // STATUS: FAILING — mucosal, polyclonal, monoclonal, adcc, itch,
-    // recurrence_anchor, crystallize, chronic, saturate, strand, mucosal_delegate,
-    // mucosal_tolerant, clonal, igg, diagnostic are all missing from
-    // ANTIGEN_OWNED_ATTRS and therefore DO change the digest.
-    //
-    // Fix: add all 15 missing macro names to ANTIGEN_OWNED_ATTRS in digest.rs.
+    // FIXED: all 26 antigen macro names are now in ANTIGEN_OWNED_ATTRS;
+    // adding any antigen attr to an item does not change its structural digest.
     #[test]
     fn all_antigen_macros_do_not_change_digest() {
         let bare = struct_digest(quote! { struct Foo { x: u8 } });
