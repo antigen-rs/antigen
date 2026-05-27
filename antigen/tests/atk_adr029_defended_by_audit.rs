@@ -1675,3 +1675,136 @@ fn atk_g2_25_cross_crate_code_immunity_silences_silence_no_witness_advisory() {
          (mismatch fires): the canonical_path guard in the immunity loop was removed."
     );
 }
+
+// ========================================================================
+// ATK-G2-26: immunity loop uses None-wildcard; defense loop uses strict equality.
+// Semantic inconsistency documented (2026-05-28, adversarial).
+//
+// After the ATK-G2-24 fix, the G2 immunity loop guard is:
+//   if imm.canonical_path.is_some() && imm.canonical_path != decl.canonical_path {
+//       continue;
+//   }
+// This means: an intra-workspace immunity (canonical_path=None) ALWAYS passes through
+// for ANY antigen declaration, including stamped dep declarations.
+//
+// In contrast, the G2 defense loop (and defense_addresses() at scan.rs:2376) uses:
+//   d.canonical_path == decl.canonical_path
+// This means: None matches None only; None does NOT match Some(dep).
+//
+// The inconsistency: an intra-workspace #[immune(X)] addresses a dep crate's antigen
+// 'X' in the G2 cross-check (None immunity wildcard), but an intra-workspace
+// #[defended_by(X)] does NOT address a dep crate's antigen 'X' in G2 (strict equality).
+//
+// This test DOCUMENTS current behavior (the inconsistency). Whether the immunity
+// None-wildcard is intentional ("class-level evidence for X regardless of where X is
+// declared") or a residual gap needs a design ruling before the shared
+// `forward/shared-canonical-path-addresses-helper` is extracted.
+//
+// The design question: should an intra-workspace immunity contribute to the G2
+// cross-check for a dep's same-named antigen?
+//   - If YES (intentional): the immunity None-wildcard is by design; the shared helper
+//     needs a `wildcard_none: bool` parameter to cover both sites.
+//   - If NO (gap): the immunity loop should use strict equality (same as defense), and
+//     the shared helper encodes strict equality uniformly.
+//
+// Test format: TWO PARALLEL SCENARIOS — one with immunity (None-wildcard), one with
+// defense (strict equality) — on the SAME dep antigen. Shows the asymmetry.
+// ========================================================================
+#[test]
+fn atk_g2_26_immunity_none_wildcard_vs_defense_strict_equality_asymmetry() {
+    use antigen::audit::{audit_category, AuditHint};
+    use antigen::category::AntigenCategory;
+    use antigen::scan::{AntigenDeclaration, Defense, Immunity, ItemTarget, ScanReport};
+
+    // SCENARIO A: intra-workspace immunity for a dep-stamped antigen.
+    // immunity.canonical_path = None (intra-workspace, unstamped)
+    // decl.canonical_path = Some("dep@1.0")  (dep, stamped)
+    // Expected under None-wildcard: immunity PASSES through → has_any_immunity=true.
+    let mut report_a = ScanReport::default();
+    report_a.antigens.push(AntigenDeclaration {
+        type_name: "Widget".to_string(),
+        name: "widget".to_string(),
+        fingerprint: None,
+        canonical_path: Some("dep@1.0".to_string()), // stamped dep antigen
+        file: std::path::PathBuf::from("dep/src/lib.rs"),
+        line: 1,
+        summary: None,
+        category: vec![AntigenCategory::SubstrateAlignment],
+        family: None,
+    });
+    report_a.immunities.push(Immunity {
+        antigen_type: "Widget".to_string(),
+        witness: "my_substrate_pred".to_string(),
+        file: std::path::PathBuf::from("src/tests.rs"),
+        line: 10,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Fn("my_substrate_pred".to_string()),
+        canonical_path: None, // intra-workspace immunity, NOT stamped
+        requires_predicate: Some("bijection_parity".to_string()),
+        structural_fingerprint: String::new(),
+    });
+    let report_a_result = audit_category(&report_a);
+    let scenario_a_has_any_immunity = !report_a_result
+        .audits
+        .iter()
+        .any(|ca| ca.hints.contains(&AuditHint::AntigenWitnessShapeMismatchForSilenceNoWitness));
+
+    // SCENARIO B: intra-workspace defense for the SAME dep-stamped antigen.
+    // defense.canonical_path = None (intra-workspace, unstamped)
+    // decl.canonical_path = Some("dep@1.0") (dep, stamped)
+    // Expected under strict equality: defense does NOT pass (None != Some) → has_code_witness=false.
+    let mut report_b = ScanReport::default();
+    report_b.antigens.push(AntigenDeclaration {
+        type_name: "Widget".to_string(),
+        name: "widget".to_string(),
+        fingerprint: None,
+        canonical_path: Some("dep@1.0".to_string()),
+        file: std::path::PathBuf::from("dep/src/lib.rs"),
+        line: 1,
+        summary: None,
+        category: vec![AntigenCategory::SubstrateAlignment],
+        family: None,
+    });
+    report_b.defenses.push(Defense {
+        antigen_type: "Widget".to_string(),
+        file: std::path::PathBuf::from("src/tests.rs"),
+        line: 10,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Fn("my_test".to_string()),
+        canonical_path: None, // intra-workspace defense, NOT stamped
+    });
+    let report_b_result = audit_category(&report_b);
+    // Strict equality: None defense != Some("dep@1.0") decl → defense NOT counted.
+    // SA antigen with no counted witnesses → silence-no-witness advisory fires.
+    let scenario_b_no_witness_advisory = report_b_result
+        .audits
+        .iter()
+        .any(|ca| ca.hints.contains(&AuditHint::AntigenWitnessShapeMismatchForSilenceNoWitness));
+
+    // DOCUMENT THE ASYMMETRY:
+    // Scenario A: intra-workspace immunity (None) DOES contribute to dep antigen's G2 check.
+    // Scenario B: intra-workspace defense (None) does NOT contribute to dep antigen's G2 check.
+    //
+    // These are DIFFERENT behaviors for the same cross-crate identity question.
+    // The design ruling (is the None-wildcard in immunity intentional?) determines
+    // which should change (if either) for the shared-helper extraction.
+    assert!(
+        scenario_a_has_any_immunity,
+        "ATK-G2-26 SCENARIO A: intra-workspace immunity (canonical_path=None) DOES contribute \
+         to G2 cross-check for dep antigen (canonical_path=Some). None-wildcard semantics. \
+         If this fails (advisory fires): the immunity loop changed to strict equality, \
+         update this test + update the shared-helper-design ruling."
+    );
+    assert!(
+        scenario_b_no_witness_advisory,
+        "ATK-G2-26 SCENARIO B: intra-workspace defense (canonical_path=None) does NOT contribute \
+         to G2 cross-check for dep antigen (canonical_path=Some). Strict equality. The dep \
+         antigen's silence-no-witness advisory fires because the defense is filtered out. \
+         If this fails (advisory absent): the defense loop changed to None-wildcard semantics \
+         (or vice versa), update this test + update the shared-helper-design ruling."
+    );
+    // Together these two asserts document the semantic ASYMMETRY between the immunity and
+    // defense loops. This is not an assertion about correct behavior — it's an assertion
+    // about CURRENT behavior that must be explicitly ruled upon before the shared
+    // forward/shared-canonical-path-addresses-helper is extracted.
+}
