@@ -2290,6 +2290,8 @@ fn run_scan(args: ScanArgs) -> ExitCode {
         OutputFormat::Json => match serde_json::to_string_pretty(&JsonReport {
             report: &report,
             unaddressed: &unaddressed,
+            orphaned_lineage_edges: report.orphaned_lineage_edges(),
+            dangling_child_lineage_edges: report.dangling_child_lineage_edges(),
             dep_reports: dep_reports.as_deref(),
         }) {
             Ok(s) => println!("{s}"),
@@ -2310,7 +2312,17 @@ fn run_scan(args: ScanArgs) -> ExitCode {
         .iter()
         .filter(|u| u.presentation.match_kind == antigen::scan::MatchKind::ExplicitMarker)
         .count();
-    if args.strict && (unaddressed_explicit_count > 0 || !report.orphaned_tolerances().is_empty()) {
+    // Orphaned/dangling lineage edges are structural defects (a #[descended_from]
+    // pointing at a non-existent parent, or on a non-antigen child) — gate on them
+    // under --strict alongside unaddressed explicit presentations and orphaned
+    // tolerances.
+    let lineage_broken = !report.orphaned_lineage_edges().is_empty()
+        || !report.dangling_child_lineage_edges().is_empty();
+    if args.strict
+        && (unaddressed_explicit_count > 0
+            || !report.orphaned_tolerances().is_empty()
+            || lineage_broken)
+    {
         ExitCode::from(1)
     } else {
         ExitCode::SUCCESS
@@ -2387,7 +2399,67 @@ fn print_human_report(report: &scan::ScanReport, unaddressed: &[scan::Unaddresse
 
     print_fingerprint_matches(report);
     print_orphaned_tolerances(report);
+    print_lineage_integrity(report);
     print_unaddressed(unaddressed);
+}
+
+/// Render `#[descended_from]` lineage-integrity defects: edges whose parent
+/// antigen is not declared in the workspace (orphaned) and edges whose child is
+/// not an `#[antigen]` declaration (dangling). Both are computed by the scan
+/// layer (`orphaned_lineage_edges` / `dangling_child_lineage_edges`) but were
+/// never rendered — the `AuditVerdictComputedButNotDelivered` delivery-arm
+/// severance (same shape as dogfood antigen #25). A `#[descended_from(P)]` that
+/// names a parent the workspace doesn't declare is a structurally-broken lineage
+/// claim; surfacing it is the whole point of the check.
+fn print_lineage_integrity(report: &scan::ScanReport) {
+    let orphaned = report.orphaned_lineage_edges();
+    let dangling = report.dangling_child_lineage_edges();
+    if orphaned.is_empty() && dangling.is_empty() {
+        return;
+    }
+    if !orphaned.is_empty() {
+        println!(
+            "{} orphaned lineage edge(s) — #[descended_from] names a parent antigen \
+             not declared in the workspace:",
+            orphaned.len()
+        );
+        println!();
+        for e in &orphaned {
+            println!(
+                "  {}:{}  {} ⟶ {} [parent antigen `{}` not found]",
+                e.file.display(),
+                e.line,
+                e.child,
+                e.parent,
+                e.parent
+            );
+        }
+        println!();
+    }
+    if !dangling.is_empty() {
+        println!(
+            "{} dangling lineage edge(s) — the child of a #[descended_from] is not \
+             itself an #[antigen] declaration:",
+            dangling.len()
+        );
+        println!();
+        for e in &dangling {
+            println!(
+                "  {}:{}  {} ⟶ {} [child `{}` has no #[antigen] declaration]",
+                e.file.display(),
+                e.line,
+                e.child,
+                e.parent,
+                e.child
+            );
+        }
+        println!();
+    }
+    println!(
+        "  A lineage claim must resolve to real declarations on both ends. Either \
+         declare the missing antigen, or remove/correct the #[descended_from] edge."
+    );
+    println!();
 }
 
 /// Human scan output shows at most this many fingerprint-match detail lines per
@@ -2528,6 +2600,15 @@ fn print_unaddressed(unaddressed: &[scan::UnaddressedPresentation]) {
 struct JsonReport<'a> {
     report: &'a scan::ScanReport,
     unaddressed: &'a [scan::UnaddressedPresentation],
+    /// `#[descended_from]` edges whose parent antigen is not declared in the
+    /// workspace (orphaned) — a structurally-broken lineage claim. Computed via
+    /// `ScanReport::orphaned_lineage_edges()` and attached here (sibling to
+    /// `unaddressed`, same computed-then-attached pattern) so the JSON surface
+    /// DELIVERS the verdict the scan layer computes. Empty vec when sound.
+    orphaned_lineage_edges: Vec<&'a scan::LineageEdge>,
+    /// `#[descended_from]` edges whose child is not itself an `#[antigen]`
+    /// declaration (dangling). Computed via `dangling_child_lineage_edges()`.
+    dangling_child_lineage_edges: Vec<&'a scan::LineageEdge>,
     /// A3 D3: when `--include-deps` is set, one entry per scanned dep
     /// crate. `None` (skipped in JSON output via `skip_serializing_if`)
     /// when the flag wasn't passed — preserves byte-identical output for
