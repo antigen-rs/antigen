@@ -2462,6 +2462,79 @@ fn print_lineage_integrity(report: &scan::ScanReport) {
     println!();
 }
 
+/// Render deferred-defense declarations (`#[anergy]` / `#[immunosuppress]` /
+/// `#[poxparty]` / `#[orient]`) LOUDLY (ADR-023 + forward/suppression-loud-must-
+/// be-removed). These are intentional dev permissions to proceed with a known
+/// defense gap — they do NOT block the build and do NOT auto-expire, but the
+/// audit must ALWAYS announce active ones prominently so they cannot become
+/// silent accumulated debt. `audit_deferred_defenses` computes the state; this
+/// is its delivery arm (it was computed in the library but never reached the
+/// CLI — the `AuditVerdictComputedButNotDelivered` severance). Each must be
+/// EXPLICITLY REMOVED to resolve; the audit keeps surfacing it until then.
+fn print_deferred_defenses_loud(report: &audit::DeferredDefenseAuditReport) {
+    use antigen::audit::AuditHint;
+    use antigen::scan::DeferredDefenseKind;
+
+    if report.audits.is_empty() {
+        return;
+    }
+
+    println!(
+        "⚠ {} deferred-defense declaration(s) — intentional, accepted defense gaps \
+         (NOT blocking; must be EXPLICITLY removed to resolve):",
+        report.audits.len()
+    );
+    println!(
+        "  {} active · {} past-deadline · {} stale",
+        report.active_count, report.expired_count, report.stale_count
+    );
+    println!();
+
+    for a in &report.audits {
+        let d = &a.declaration;
+        let kind = match d.kind {
+            DeferredDefenseKind::Anergy => "anergy",
+            DeferredDefenseKind::Immunosuppress => "immunosuppress",
+            DeferredDefenseKind::Poxparty => "poxparty",
+            DeferredDefenseKind::Orient => "orient",
+        };
+        let antigen = d.antigen_type.as_deref().unwrap_or("(unlinked)");
+        // State marker from the audit hint — past-deadline/stale states are
+        // louder so an accumulated old suppression stands out from a fresh one.
+        let state = match a.hint {
+            AuditHint::AnergyStale => "STALE — long past review",
+            AuditHint::AnergyCostimulationNotArrived
+            | AuditHint::ImmunosuppressExpired
+            | AuditHint::PoxpartyOutcomePending
+            | AuditHint::OrientPendingActionRequired => "PAST DEADLINE — action required",
+            // All active hints (AnergyActive / ImmunosuppressActive /
+            // PoxpartyActive / OrientActive) — and any future deferred-defense
+            // hint not yet classified expired/stale — read as active.
+            _ => "active",
+        };
+        println!(
+            "  {}:{}  #[{kind}] on `{antigen}` — {state}",
+            d.file.display(),
+            d.line
+        );
+        if !d.text.trim().is_empty() {
+            println!("      reason: {}", d.text.trim());
+        }
+        if let Some(until) = d.until.as_deref() {
+            if !until.is_empty() {
+                println!("      until: {until}");
+            }
+        }
+    }
+    println!();
+    println!(
+        "  These suppress the BLOCK, never the GAP — the failure-class is still \
+         present and undefended at these sites. Remove the declaration when the \
+         defense lands (or the gap is genuinely accepted forever)."
+    );
+    println!();
+}
+
 /// Human scan output shows at most this many fingerprint-match detail lines per
 /// antigen type, then a "+N more" summary pointing at `--format json`.
 ///
@@ -2823,15 +2896,27 @@ fn run_audit(args: AuditArgs) -> ExitCode {
     //   type for the declared category (per Amendment 2 + aristotle F1).
     let category_report = audit::audit_category(&scan_report);
 
+    // ADR-023 + team-lead reframe (forward/suppression-loud-must-be-removed):
+    // #[anergy] / #[immunosuppress] are intentional dev permissions to proceed
+    // with a known defense gap. They must be LOUD — the audit ALWAYS announces
+    // active ones prominently so they cannot become silent accumulated debt.
+    // `audit_deferred_defenses` computes the state; this is the delivery arm
+    // (it was computed in the library but never reached the CLI — the
+    // AuditVerdictComputedButNotDelivered severance, same shape as the lineage
+    // surface). 30-day default stale-grace per the library contract.
+    let deferred_report = audit::audit_deferred_defenses(&scan_report, 30);
+
     match args.format {
         OutputFormat::Human => {
             print_audit_human(&scan_report, &audit_report);
+            print_deferred_defenses_loud(&deferred_report);
             print_category_audit_human(&category_report);
         }
         OutputFormat::Json => match serde_json::to_string_pretty(&JsonAuditReport {
             scan: &scan_report,
             audit: &audit_report,
             category: &category_report,
+            deferred_defense_audit: &deferred_report,
         }) {
             Ok(s) => println!("{s}"),
             Err(e) => {
@@ -3763,6 +3848,12 @@ struct JsonAuditReport<'a> {
     audit: &'a audit::AuditReport,
     /// ADR-028 G1 antigen-category coverage (defaulted-implicit-functional).
     category: &'a audit::CategoryAuditReport,
+    /// ADR-023 deferred-defense state (anergy / immunosuppress / poxparty /
+    /// orient): active/expired/stale counts + per-declaration hints. Always
+    /// present so consumers can detect active suppressions — the LOUD invariant
+    /// (forward/suppression-loud-must-be-removed): intentional defense gaps must
+    /// never be silently invisible.
+    deferred_defense_audit: &'a audit::DeferredDefenseAuditReport,
 }
 
 fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::AuditReport) {
