@@ -5604,7 +5604,6 @@ mod tests {
         );
     }
 
-
     // ATK-LF-3: fingerprint index keyed by bare type_name -- cross-crate name collision.
     //
     // audit_lineage_fidelity builds HashMap<&str, Fingerprint> by bare type_name
