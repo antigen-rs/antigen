@@ -52,17 +52,22 @@ pub enum MacroAntigenCategory {
 }
 
 impl MacroAntigenCategory {
-    /// Parse from path-style expression strings and common aliases.
+    /// Parse from path-style expression strings produced by the proc-macro parser.
+    ///
+    /// Accepted forms match what a developer can write in `category = <value>`:
+    /// - `SubstrateAlignment` (Pascal ident, unqualified import)
+    /// - `AntigenCategory::SubstrateAlignment` (fully-qualified path)
+    ///
+    /// Kebab and snake are NOT accepted: they are not valid Rust path tokens and
+    /// no proc-macro input source produces them.
     fn from_path_str(s: &str) -> Option<Self> {
         match s {
-            "SubstrateAlignment"
-            | "AntigenCategory::SubstrateAlignment"
-            | "substrate-alignment"
-            | "substrate_alignment" => Some(Self::SubstrateAlignment),
-            "FunctionalCorrectness"
-            | "AntigenCategory::FunctionalCorrectness"
-            | "functional-correctness"
-            | "functional_correctness" => Some(Self::FunctionalCorrectness),
+            "SubstrateAlignment" | "AntigenCategory::SubstrateAlignment" => {
+                Some(Self::SubstrateAlignment)
+            }
+            "FunctionalCorrectness" | "AntigenCategory::FunctionalCorrectness" => {
+                Some(Self::FunctionalCorrectness)
+            }
             _ => None,
         }
     }
@@ -4078,21 +4083,46 @@ mod tests {
     }
 
     #[test]
-    fn macro_antigen_category_as_str_roundtrip() {
-        for (variant, expected) in [
-            (
-                MacroAntigenCategory::SubstrateAlignment,
-                "substrate-alignment",
-            ),
-            (
-                MacroAntigenCategory::FunctionalCorrectness,
-                "functional-correctness",
-            ),
-        ] {
-            assert_eq!(variant.as_str(), expected);
+    fn macro_antigen_category_as_str() {
+        assert_eq!(
+            MacroAntigenCategory::SubstrateAlignment.as_str(),
+            "substrate-alignment"
+        );
+        assert_eq!(
+            MacroAntigenCategory::FunctionalCorrectness.as_str(),
+            "functional-correctness"
+        );
+    }
+
+    #[test]
+    fn macro_antigen_category_from_path_str_accepts_path_forms() {
+        // from_path_str handles macro-input path tokens (Pascal or qualified path).
+        // Kebab is NOT valid Rust path syntax — no macro author writes it.
+        for s in ["SubstrateAlignment", "AntigenCategory::SubstrateAlignment"] {
             assert_eq!(
-                MacroAntigenCategory::from_path_str(variant.as_str()),
-                Some(variant)
+                MacroAntigenCategory::from_path_str(s),
+                Some(MacroAntigenCategory::SubstrateAlignment),
+                "expected SubstrateAlignment from {s:?}"
+            );
+        }
+        for s in ["FunctionalCorrectness", "AntigenCategory::FunctionalCorrectness"] {
+            assert_eq!(
+                MacroAntigenCategory::from_path_str(s),
+                Some(MacroAntigenCategory::FunctionalCorrectness),
+                "expected FunctionalCorrectness from {s:?}"
+            );
+        }
+        // Kebab and snake are rejected.
+        for s in [
+            "substrate-alignment",
+            "substrate_alignment",
+            "functional-correctness",
+            "functional_correctness",
+        ] {
+            assert_eq!(
+                MacroAntigenCategory::from_path_str(s),
+                None,
+                "expected None (not a valid macro-input path token) for {s:?}"
             );
         }
     }
