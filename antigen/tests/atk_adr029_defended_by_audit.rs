@@ -2,40 +2,34 @@
 //!
 //! ADR-029 (Immunity Is Observed, Not Declared) introduces `#[defended_by(X)]`
 //! as the code-tier witness registration: a test/proptest declares what
-//! failure-class it defends. `cargo antigen audit` is supposed to cross-reference
-//! those registrations to `#[presents(X)]` sites and issue verdicts.
+//! failure-class it defends. `cargo antigen audit` cross-references those
+//! registrations to `#[presents(X)]` sites and issues verdicts.
 //!
 //! **The silent failure this file defends against**:
-//! `ScanReport::defenses` is populated correctly by scan, but `audit()` in
-//! audit.rs iterates only `report.immunities` — it never reads `report.defenses`.
-//! A `#[defended_by]`-annotated test registers correctly but is silently ignored
-//! by the audit verdict computation. All corresponding presents-sites appear
-//! absent from audit output (not even `undefended`) — they fall through with no
-//! verdict at all.
+//! `ScanReport::defenses` is populated by scan, but `audit()` could iterate only
+//! `report.immunities` and never read `report.defenses` — a `#[defended_by]`
+//! test would register correctly yet be silently ignored by the verdict
+//! computation, leaving its presents-sites with no verdict at all.
 //!
-//! These tests will FAIL until `audit()` is updated to cross-reference
-//! `report.defenses` when computing immunity verdicts for presents-sites.
+//! ADR-029 implementation (pathmaker, 2026-05-27): `audit()` computes a
+//! per-presents-site verdict surface, `AuditReport::presentation_verdicts:
+//! Vec<PresentationVerdict>`, with `verdict: ImmuneVerdict =
+//! Defended { tier } | Undefended | SubstrateGap`. The verdict is
+//! **presents-keyed**, not immunity-keyed: a `#[defended_by(X)]` witness is
+//! class-level (it defends ALL `#[presents(X)]` sites), so it cannot map to a
+//! single `Immunity`. The legacy `audits: Vec<ImmunityAudit>` stays
+//! immunity-keyed (backward-compat — `#[immune]` deprecated but still honored).
+//! These tests target `presentation_verdicts`; ATK-ADR029-4 also pins that the
+//! `#[immune]` `audits` surface is unaffected.
 //!
 //! Substrate check:
 //!   `cargo test --package antigen --test atk_adr029_defended_by_audit`
 
-use antigen::audit::{audit, WitnessTier};
+use antigen::audit::{audit, ImmuneVerdict, WitnessTier};
 use antigen::scan::{Defense, Immunity, ItemTarget, MatchKind, Presentation, ScanReport};
 use std::path::PathBuf;
 
-// ============================================================================
-// ATK-ADR029-1: A presents-site with a matching defended_by registration
-//               must produce a non-None verdict in the audit output.
-//
-// Before ADR-029 implementation in audit.rs: audit() only iterates immunities.
-// A report with only `defenses` (no `immunities`) produces zero audits.
-// After implementation: audit() must cross-reference defenses to presentations
-// and produce at least one verdict for matching antigen_type pairs.
-//
-// This test asserts what SHOULD be true. It FAILS until audit.rs is updated.
-// ============================================================================
-
-/// Synthesize a minimal ScanReport with:
+/// Synthesize a minimal `ScanReport` with:
 /// - one `#[presents(FailureClass)]` site at src/lib.rs:10
 /// - one `#[defended_by(FailureClass)]` test at src/tests.rs:5
 /// - no `#[immune]` declarations (old model not used)
@@ -67,13 +61,14 @@ fn report_with_defended_by_only() -> ScanReport {
     report
 }
 
-// ATK-ADR029-1: defended_by registration must produce at least one audit entry
+// ATK-ADR029-1: a defended_by registration must produce a verdict
 //
 // When scan has a Defense with antigen_type "FailureClass" and a Presentation
-// with the same antigen_type, audit() must produce at least one verdict.
-// Currently produces zero (audit ignores defenses entirely).
+// with the same antigen_type, audit() must cross-reference them and emit a
+// per-presents-site verdict. The silent failure (audit ignores report.defenses)
+// would leave presentation_verdicts empty.
 #[test]
-fn atk_adr029_1_defended_by_produces_audit_entry() {
+fn atk_adr029_1_defended_by_produces_verdict() {
     let report = report_with_defended_by_only();
     let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
@@ -81,30 +76,36 @@ fn atk_adr029_1_defended_by_produces_audit_entry() {
 
     let audit_result = audit(&report, workspace_root);
 
-    // EXPECTED (after ADR-029 impl): audit_result.audits is non-empty because
-    // audit() cross-references defenses to presentations.
-    //
-    // ACTUAL (before impl): audit_result.audits is empty because audit() only
-    // iterates report.immunities, which is empty in this report.
     assert!(
-        !audit_result.audits.is_empty(),
-        "ATK-ADR029-1 FAILING: audit() ignores report.defenses. \
-         A presents-site with only a #[defended_by] witness produces no audit \
-         entries at all. Fix: audit() must cross-reference report.defenses to \
-         report.presentations and issue per-presentation verdicts. \
+        !audit_result.presentation_verdicts.is_empty(),
+        "ATK-ADR029-1: audit() must cross-reference report.defenses to \
+         report.presentations and emit a per-presents-site verdict. \
          report.defenses.len() = {}, report.presentations.len() = {}, \
-         audit_result.audits.len() = {}",
+         presentation_verdicts.len() = {}",
         report.defenses.len(),
         report.presentations.len(),
-        audit_result.audits.len(),
+        audit_result.presentation_verdicts.len(),
+    );
+    // The single FailureClass site must be Defended (a matching witness exists).
+    let v = audit_result
+        .presentation_verdicts
+        .iter()
+        .find(|v| v.antigen_type == "FailureClass")
+        .expect("a verdict for the FailureClass presents-site");
+    assert!(
+        matches!(v.verdict, ImmuneVerdict::Defended { .. }),
+        "ATK-ADR029-1: a presents-site with a matching #[defended_by] witness \
+         must be Defended; got {:?}",
+        v.verdict
     );
 }
 
 // ATK-ADR029-2: defended_by must produce at least Reachability tier
 //
-// After ADR-029 implementation, a registered #[defended_by] witness (test fn)
-// must produce WitnessTier >= Reachability. Tier::None means "no evidence" —
-// a registered defense that produces None tier is a silent failure.
+// A registered #[defended_by] witness (test fn) must produce
+// WitnessTier >= Reachability. Tier::None / Undefended means "no evidence" — a
+// registered defense that produces None tier is a silent failure. v0.3 audit
+// does not invoke coverage, so the honest tier is exactly Reachability.
 #[test]
 fn atk_adr029_2_defended_by_produces_at_least_reachability() {
     let report = report_with_defended_by_only();
@@ -114,22 +115,21 @@ fn atk_adr029_2_defended_by_produces_at_least_reachability() {
 
     let audit_result = audit(&report, workspace_root);
 
-    // Precondition: this test only fires meaningfully once ATK-ADR029-1 passes.
-    // If no audits, skip — ATK-ADR029-1 handles the absent-audit case.
-    if audit_result.audits.is_empty() {
-        // Still counts as a failure since the whole suite is about implementation
-        // completeness, but let ATK-ADR029-1 carry the primary failure message.
-        return;
-    }
-
-    for audit_entry in &audit_result.audits {
-        assert!(
-            audit_entry.witness_tier >= WitnessTier::Reachability,
-            "ATK-ADR029-2: #[defended_by] witness must produce >= Reachability tier; \
-             got {:?}. A registered defense with None tier means the defense circuit \
-             is wired but produces no evidence.",
-            audit_entry.witness_tier
-        );
+    let v = audit_result
+        .presentation_verdicts
+        .iter()
+        .find(|v| v.antigen_type == "FailureClass")
+        .expect("a verdict for the FailureClass presents-site");
+    match &v.verdict {
+        ImmuneVerdict::Defended { tier } => assert!(
+            *tier >= WitnessTier::Reachability,
+            "ATK-ADR029-2: #[defended_by] witness must produce >= Reachability \
+             tier; got {tier:?}. A registered defense with None tier means the \
+             defense circuit is wired but produces no evidence."
+        ),
+        other => {
+            panic!("ATK-ADR029-2: FailureClass site must be Defended at a tier; got {other:?}")
+        }
     }
 }
 
@@ -137,8 +137,7 @@ fn atk_adr029_2_defended_by_produces_at_least_reachability() {
 //
 // A #[defended_by(WrongClass)] test must not grant a defense verdict to a
 // RightClass presents-site. Cross-antigen contamination is a silent failure
-// where one test accidentally satisfies an unrelated presents-site's defense
-// requirement.
+// where one test accidentally satisfies an unrelated presents-site's defense.
 #[test]
 fn atk_adr029_3_wrong_antigen_defended_by_does_not_pollute() {
     let mut report = ScanReport::default();
@@ -170,32 +169,35 @@ fn atk_adr029_3_wrong_antigen_defended_by_does_not_pollute() {
         .unwrap();
     let audit_result = audit(&report, workspace_root);
 
-    // After ADR-029 impl: RightClass presents-site must appear as undefended
-    // (WrongClass defense does not cross-reference to RightClass).
-    // We verify: no audit entry has tier > None for the RightClass site.
-    for audit_entry in &audit_result.audits {
-        // The audit entry's immunity's antigen_type must be checked;
-        // if it's for RightClass it must be undefended or None tier.
-        if audit_entry.immunity.antigen_type == "RightClass" {
-            assert_eq!(
-                audit_entry.witness_tier,
-                WitnessTier::None,
-                "ATK-ADR029-3: WrongClass defense must not grant RightClass a defense verdict. \
-                 got tier {:?}",
-                audit_entry.witness_tier
-            );
-        }
-    }
+    // The RightClass presents-site must be Undefended (WrongClass defense does
+    // not cross-reference to RightClass).
+    let v = audit_result
+        .presentation_verdicts
+        .iter()
+        .find(|v| v.antigen_type == "RightClass")
+        .expect("a verdict for the RightClass presents-site");
+    assert_eq!(
+        v.verdict,
+        ImmuneVerdict::Undefended,
+        "ATK-ADR029-3: WrongClass defense must not grant RightClass a defense \
+         verdict; got {:?}",
+        v.verdict
+    );
+    assert!(
+        v.defended_by.is_empty(),
+        "ATK-ADR029-3: RightClass verdict must list no defending witnesses; got {:?}",
+        v.defended_by
+    );
 }
 
-// ATK-ADR029-4: immune path still works alongside defended_by
+// ATK-ADR029-4: immune path (audits surface) still works alongside defended_by
 //
-// Regression guard: the existing #[immune] path must not be broken when
-// defended_by cross-reference is added. A report with both an immunity
-// (old model) and a defense (new model) for different sites must produce
-// audit entries for the immunity path as before.
+// Regression guard: the existing #[immune] `audits` surface must not be broken
+// when the defended_by cross-reference is added. A report with both an immunity
+// (old model) and a defense (new model) for different antigens must still
+// produce an immunity audit entry for the immune path.
 #[test]
-fn atk_adr029_4_immune_path_unaffected_by_defended_by_changes() {
+fn atk_adr029_4_immune_audits_unaffected_by_defended_by() {
     let mut report = ScanReport::default();
 
     // Old-model: #[immune] on site
@@ -225,7 +227,8 @@ fn atk_adr029_4_immune_path_unaffected_by_defended_by_changes() {
         .unwrap();
     let audit_result = audit(&report, workspace_root);
 
-    // The immunity audit must still produce an entry for PanickingInDrop.
+    // The immunity audit must still produce an entry for PanickingInDrop — the
+    // legacy audits surface is unaffected by the new presentation_verdicts pass.
     assert!(
         !audit_result.audits.is_empty(),
         "ATK-ADR029-4: audit() must still process #[immune] entries when defenses are present"
