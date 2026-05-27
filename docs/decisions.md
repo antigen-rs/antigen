@@ -6712,6 +6712,19 @@ fn bijection_test_audit_hints_const_matches_enum() {
 `cargo antigen audit` scans for these markers and cross-references to the presents-sites
 they cover. The test declares *what it defends*; the audit determines *whether it defends it*.
 
+**Why `#[defended_by(X)]` is declared, not computed** (aristotle discriminator, 2026-05-27):
+Detection is structural — the vulnerability's shape IS the vulnerability; a fingerprint recovers
+which failure-class a site presents because presentation is identity-with-structure. Defense is
+semantic — a test's *intent toward a failure-mode* is not carried by its structure; coverage
+recovers "this test touches X-presenting code," not "this test *exercises the failure-mode* X."
+The §honest-semantic-gap proves this: a hollow-wrapper test and a genuine defense have the same
+structural signature. `#[defended_by(X)]` declares the irreducibly-human input (intent,
+unrecoverable from structure); the audit still issues the verdict (defended/undefended) by
+checking whether the intent's circuit is wired. This is NOT `#[immune]`'s dust moved one node:
+`#[immune]` asserted the verdict ("I am immune"), usurping the audit's job; `#[defended_by(X)]`
+asserts the intent ("this test aims at X"), which is irreducibly human. The audit still owns
+the verdict. Division of labor is exactly ADR-029's principle, correctly placed.
+
 **Scope**: `#[defended_by(X)]` applies to **code-tier witnesses only** — `#[test]` functions
 and proptest properties. Phantom-type witnesses (type-system-resident, `WitnessTier::FormalProof`)
 do NOT use this attribute; see §ADR-013.
