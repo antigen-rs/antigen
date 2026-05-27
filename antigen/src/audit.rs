@@ -3372,23 +3372,35 @@ pub struct LineageFidelityAuditReport {
 pub fn audit_lineage_fidelity(report: &ScanReport) -> LineageFidelityAuditReport {
     use std::collections::HashMap;
 
-    // Index declarations by type_name → parsed fingerprint (skip absent/unparseable).
-    let fingerprints: HashMap<&str, antigen_fingerprint::Fingerprint> = report
+    // Index declarations by (type_name, canonical_path) → parsed fingerprint
+    // (skip absent/unparseable). Keying by the bare type_name alone collides
+    // cross-crate: two antigens named "Foo" from different crates would let
+    // `.collect()` silently keep an arbitrary one, so a lineage lookup could
+    // resolve to the WRONG crate's "Foo" and fire a non-deterministic spurious
+    // divergence (ATK-LF-3). The full antigen identity is (type_name,
+    // canonical_path) per ADR-017 — same cross-crate discipline as the G2
+    // immunity/defense loops (ATK-G2-24). Intra-workspace declarations carry
+    // `canonical_path = None`, so `(name, None)` keys match the `None`-pathed
+    // lineage edges they pair with (backward-compat).
+    let fingerprints: HashMap<(&str, Option<&str>), antigen_fingerprint::Fingerprint> = report
         .antigens
         .iter()
         .filter_map(|a| {
             let raw = a.fingerprint.as_deref()?;
             antigen_fingerprint::Fingerprint::parse(raw)
                 .ok()
-                .map(|fp| (a.type_name.as_str(), fp))
+                .map(|fp| ((a.type_name.as_str(), a.canonical_path.as_deref()), fp))
         })
         .collect();
 
     let mut divergences = Vec::new();
     for edge in &report.lineage_edges {
+        // Resolve each endpoint by its OWN canonical path (the edge carries
+        // child/parent canonical paths independently — a cross-crate child can
+        // descend from an intra-workspace parent or vice-versa).
         let (Some(child_fp), Some(parent_fp)) = (
-            fingerprints.get(edge.child.as_str()),
-            fingerprints.get(edge.parent.as_str()),
+            fingerprints.get(&(edge.child.as_str(), edge.child_canonical_path.as_deref())),
+            fingerprints.get(&(edge.parent.as_str(), edge.parent_canonical_path.as_deref())),
         ) else {
             // One or both endpoints lack a parseable fingerprint — refinement is
             // undefined; advisory stays silent (no false positive).
@@ -5652,11 +5664,20 @@ mod tests {
         report.lineage_edges.push(edge);
 
         let out = audit_lineage_fidelity(&report);
-        // CORRECT after fix: always 0. BROKEN current: 0 or 1 (HashMap order).
-        // 0 = crate-A struct won (accidentally correct); 1 = crate-B fn won (spurious).
-        assert!(
-            out.divergences.len() <= 1,
-            "ATK-LF-3: expected 0 (correct) or 1 (spurious from wrong-crate Foo collision).              After fix: always 0. Got: {:?}",
+        // FIXED: the fingerprint index is keyed by (type_name, canonical_path),
+        // so Bar's parent edge (Foo @ crate-a) resolves DETERMINISTICALLY to
+        // crate-A's `item = struct` Foo — a valid refinement of Bar's
+        // `item = struct` → zero divergences. crate-B's `item = fn` Foo
+        // (@ crate-b) is a different key and is never confused for the parent.
+        // Pre-fix this was 0-or-1 depending on HashMap iteration order; now it
+        // is always 0. If this regresses (len == 1): the index key dropped
+        // canonical_path and the wrong-crate Foo collided back in.
+        assert_eq!(
+            out.divergences.len(),
+            0,
+            "ATK-LF-3 (FIXED): (type_name, canonical_path)-keyed index resolves Bar's parent \
+             to crate-A's struct Foo deterministically — a valid refinement, no divergence. \
+             A non-zero result means the cross-crate Foo collided back in. Got: {:?}",
             out.divergences
         );
     }
