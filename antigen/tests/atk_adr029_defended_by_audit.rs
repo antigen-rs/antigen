@@ -376,13 +376,13 @@ fn atk_adr029_8_non_fn_defended_by_must_not_produce_defended_verdict() {
         .expect("a verdict for the FailureClass presents-site");
 
     // A struct is not a runnable test witness. The verdict must NOT be Defended.
-    // Currently this FAILS because audit() does not gate on Defense.item_kind.
+    // Fixed by 396d146 (adr-029: fold site-attached evidence) -- the audit now
+    // gates on Defense.item_kind or scan gates at extract_defended_by time.
     assert!(
         !matches!(v.verdict, ImmuneVerdict::Defended { .. }),
-        "ATK-ADR029-8 FAILING: a #[defended_by] on a struct item_kind produces \
+        "ATK-ADR029-8: a #[defended_by] on a struct item_kind must not produce \
          ImmuneVerdict::Defended. A struct cannot be run as a test witness. \
-         The audit must reject non-fn Defense registrations (or scan must gate \
-         at extract_defended_by time). Got verdict: {:?}",
+         If this fails, the item_kind gate was removed. Got verdict: {:?}",
         v.verdict
     );
 }
