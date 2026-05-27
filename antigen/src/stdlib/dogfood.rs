@@ -1253,14 +1253,15 @@ pub struct ScanVisitorDigestAssignmentOmission;
 /// `cargo test --workspace` is green; it is not. The representation (committed
 /// test suite) diverges from the actual verification state (broken workspace).
 ///
-/// **Fingerprint**: `doc_contains("STATUS: FAILING")` — adversarial tests that
-/// follow the ATK convention of documenting their intended-failing state in the
-/// doc comment are surfaced. Combined with manual review of whether `#[ignore]`
-/// is present, this provides partial passive recall.
-///
 /// **Fingerprint**: `all_of([doc_contains("STATUS: FAILING"), not(attr_present("ignore"))])` —
-/// fires only on tests that are documented as failing but not yet pinned with `#[ignore]`.
-/// Correctly-pinned sites that remain failing long-term should carry
+/// fires only on tests that are documented as failing (the ATK convention of
+/// recording intended-failing state in the doc comment) AND are *not* pinned with
+/// `#[ignore]`. The `not(attr_present("ignore"))` leaf is the precision that the
+/// earlier broad `doc_contains("STATUS: FAILING")` form lacked: correctly-`#[ignore]`d
+/// tests no longer false-positive, so no manual review of the `#[ignore]` state is
+/// needed. (`not` + `attr_present` are both v0.2 DSL operators; `attr_present`
+/// matches `#[ignore]` as a top-level item attribute on the test fn.) A site that
+/// must remain failing long-term even when correctly handled should carry
 /// `#[immune(FailingTestWithoutIgnorePin, witness = ...)]`.
 ///
 /// **Internal-tooling discipline**: per `feedback-internal-tool-antigens-preemptive`,
