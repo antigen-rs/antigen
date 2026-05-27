@@ -641,3 +641,121 @@ impl Drop for PanickingInDrop {{
         a.witness_tier
     );
 }
+
+// ============================================================================
+// ATK-W7-J: STALE-CROSS-REFERENCE ATTACK — witness Resolved by name but does
+//            not test the failure mode (body analysis absent).
+//
+// `validate_witness` resolves witnesses by function NAME in the workspace
+// function index. A witness function that EXISTS and was correct at declaration
+// time can become meaningless when production code is refactored:
+//
+//   Before refactor:
+//     fn check_overflow(v: u32) { assert!(v < LIMIT); }  // guards the overflow
+//     #[immune(OverflowFailure, witness = check_overflow)]
+//     fn do_work(v: u32) { check_overflow(v); ... }
+//
+//   After refactor (production code moves the check):
+//     fn check_overflow(v: u32) { ... }  // no longer guards overflow!
+//     fn do_work(v: u32) { /* overflow check removed */ ... }
+//
+//   Audit result: WitnessStatus::Resolved (name found) — audit PASSES.
+//   Reality: the immunity no longer holds. Silent failure.
+//
+// This test documents CURRENT behavior: validate_witness returns Resolved for
+// a witness name that exists even if the function body no longer asserts the
+// failure mode. The audit has no body-analysis path (by design for v0.1).
+//
+// This is KNOWN and is the deepest surviving attack surface from the
+// immunity-observed-not-declared probe. It is not caught by:
+//  - Coverage-based: function still called at coverage level
+//  - Symbol-touch (approach 1): function exists + called
+//  - Parallel-surfaces declaration (approach 3): witness still points to fn
+// Only mutation testing (approach 2) or DSL witness contracts (approach 5)
+// would catch this drift.
+//
+// STATUS: DOCUMENTED — validate_witness name-lookup only; body analysis not
+// performed in v0.1. If this test starts FAILING, body analysis was added and
+// should be verified to actually catch semantic drift, not just parse fn bodies.
+// ============================================================================
+
+#[test]
+fn atk_w7_j_stale_cross_reference_witness_resolves_despite_semantic_drift() {
+    use std::io::Write;
+    use antigen::scan::scan_workspace;
+
+    let dir = tempfile::TempDir::new().expect("tempdir");
+    let src_path = dir.path().join("lib.rs");
+    let mut f = std::fs::File::create(&src_path).expect("create lib.rs");
+
+    // The witness function EXISTS but its body no longer asserts the failure mode.
+    // Originally it called `assert!(v < MAX)` — after "refactoring" it does nothing.
+    write!(
+        f,
+        r#"
+use antigen::immune;
+
+pub struct IntegerOverflow;
+
+// Originally this asserted overflow safety. After "refactoring", the guard
+// was silently removed. The function name still exists — the witness resolves.
+fn check_for_overflow(_v: u32) {{
+    // guard removed during refactor — function body is now empty
+}}
+
+#[immune(IntegerOverflow, witness = check_for_overflow)]
+pub fn process_value(v: u32) -> u32 {{
+    // The overflow check is no longer called; immunity is now hollow.
+    v
+}}
+"#
+    )
+    .expect("write");
+
+    let report = scan_workspace(dir.path(), None).expect("scan");
+    let audit_root = dir.path();
+    let audit_report = antigen::audit::audit(&report, audit_root);
+
+    let immunity_audit = audit_report
+        .audits
+        .iter()
+        .find(|a| a.immunity.witness == "check_for_overflow")
+        .expect("ATK-W7-J: should find an immunity audit for check_for_overflow");
+
+    // CURRENT BEHAVIOR: name lookup resolves; audit is satisfied at Reachability.
+    // This is the attack: the witness exists (Resolved) but body drift is not caught.
+    assert_eq!(
+        immunity_audit.witness_status,
+        WitnessStatus::Resolved {
+            location: src_path.clone(),
+            witness_kind: WitnessKind::Function,
+        },
+        "ATK-W7-J: STALE-CROSS-REFERENCE: witness 'check_for_overflow' must be Resolved \
+         by name lookup (current behavior). If this fails, validate_witness gained \
+         body-analysis — verify it actually catches semantic drift, not just parses."
+    );
+
+    // The audit hint reflects name-resolution success (Reachability), NOT semantic validity.
+    // There is NO hint indicating the witness body no longer guards the failure mode.
+    // This absence is the silent failure: a future reader sees Resolved + Reachability
+    // and believes the immunity holds, but check_for_overflow is an empty shell.
+    assert_eq!(
+        immunity_audit.witness_tier,
+        WitnessTier::Reachability,
+        "ATK-W7-J: witness resolved by name only → Reachability tier. \
+         No hint emitted for body drift. This is the known v0.1 limitation."
+    );
+
+    // Confirm the hint is a success hint (FunctionResolves), not a body-drift warning.
+    // In v0.1, no "witness body no longer guards failure mode" hint exists — the audit
+    // does not perform body analysis. If this assertion ever fails with a hint OTHER
+    // than FunctionResolves, body analysis was added and should be verified to actually
+    // catch semantic drift, not just parse function bodies.
+    assert_eq!(
+        immunity_audit.audit_hint,
+        AuditHint::FunctionResolves,
+        "ATK-W7-J: audit hint must be FunctionResolves (name-resolved success). \
+         The attack is that this is a SUCCESS hint despite the witness body being empty. \
+         If any other hint appears, body analysis may have been added."
+    );
+}
