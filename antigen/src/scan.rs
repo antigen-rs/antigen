@@ -1565,6 +1565,17 @@ pub struct Defense {
     /// is the *witness*, not the defended site — the cross-reference to defended
     /// sites is computed at audit time.
     pub item_target: ItemTarget,
+    /// Canonical declaration site of the *antigen* this witness defends (ADR-017),
+    /// `Some("<crate>@<version>")` for a cross-crate antigen, `None` for an
+    /// intra-workspace one (set by the `--include-deps` driver post-scan, like
+    /// [`Immunity::canonical_path`]). Cross-reference matching uses the
+    /// `(antigen_type, canonical_path)` tuple so a `#[defended_by(Foo)]` in one
+    /// crate does NOT silently satisfy a same-bare-name `#[presents(Foo)]` from a
+    /// DIFFERENT crate (ATK-ADR029-21 / ATK-G2-22 cross-crate overclaim). A
+    /// `None` `canonical_path` matches any (backward-compat: a defense that hasn't
+    /// been canonical-stamped behaves as before).
+    #[serde(default)]
+    pub canonical_path: Option<String>,
 }
 
 /// An `#[antigen_tolerance(antigen, rationale = "...", until = "...", see = [...])]`
@@ -2070,10 +2081,7 @@ impl ScanReport {
             // "defended" while this surface says "unaddressed" — the exact
             // `ParallelStateTrackersDiverge` shape. The two notions of
             // "addressed" must agree.
-            let has_matching_defense = self
-                .defenses
-                .iter()
-                .any(|d| d.antigen_type == p.antigen_type);
+            let has_matching_defense = self.defenses.iter().any(|d| defense_addresses(d, p));
             if !has_matching_immunity && !has_matching_tolerance && !has_matching_defense {
                 result.push(UnaddressedPresentation {
                     presentation: p.clone(),
@@ -2253,6 +2261,14 @@ impl ScanReport {
                 t.canonical_path = Some(crate_id.to_string());
             }
         }
+        for d in &mut self.defenses {
+            // ADR-029 defenses are stamped like immunities so cross-crate scans
+            // carry the canonical_path the (antigen_type, canonical_path) match
+            // needs to avoid the bare-name overclaim (ATK-ADR029-21/ATK-G2-22).
+            if d.canonical_path.is_none() {
+                d.canonical_path = Some(crate_id.to_string());
+            }
+        }
         for e in &mut self.lineage_edges {
             // Both endpoints are stamped to the same crate_id when missing —
             // they're both intra-crate by construction at this point
@@ -2325,6 +2341,28 @@ fn addresses_for_tolerance(t: &Toleration, p: &Presentation) -> bool {
             p.file.as_path(),
             p.canonical_path.as_deref(),
         )
+}
+
+/// Does this `Defense` (`#[defended_by(X)]`) address this `Presentation`?
+/// (ADR-029.)
+///
+/// Unlike immunity/tolerance matching, a defense is **class-level** — a witness
+/// for failure-class X defends every `#[presents(X)]` site, not one co-located
+/// item — so this does NOT compare `item_target` (the witness is elsewhere).
+///
+/// It IS canonical-path-aware to prevent the cross-crate bare-name overclaim
+/// (ATK-ADR029-21 / ATK-G2-22): a `#[defended_by(Foo)]` in crate A must not
+/// silently satisfy a `#[presents(Foo)]` from crate B. A defense with
+/// `canonical_path = None` matches any (backward-compat: an un-stamped /
+/// intra-workspace defense behaves as the original bare-name match did); a
+/// defense with a specific `canonical_path` matches only same-path presentations.
+/// The single source of truth for "does this defense cover this site" — all
+/// three call sites (`unaddressed_presentations`, the verdict computation, and the
+/// G2 cross-check) route through here so the matching rule cannot drift.
+#[must_use]
+pub(crate) fn defense_addresses(d: &Defense, p: &Presentation) -> bool {
+    d.antigen_type == p.antigen_type
+        && (d.canonical_path.is_none() || d.canonical_path == p.canonical_path)
 }
 
 /// Hard depth limit for `#[descended_from]` lineage chains.
@@ -3654,6 +3692,10 @@ impl ScanVisitor<'_> {
             line,
             item_kind: item_kind.to_string(),
             item_target,
+            // Intra-workspace by default; the `--include-deps` driver stamps the
+            // canonical_path post-scan for cross-crate defenses (ADR-017, like
+            // immunities/presentations).
+            canonical_path: None,
         });
     }
 

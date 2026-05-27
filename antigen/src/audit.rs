@@ -1341,11 +1341,15 @@ fn compute_presentation_verdicts(
         // Defended verdict (ADR-005 sub-clause F — a non-runnable witness is not
         // a witness). Scan records it (recall-tuned); audit is the trust boundary
         // that refuses to credit it.
+        // `defense_addresses` is the shared canonical-path-aware class-level
+        // match (so a cross-crate `#[defended_by(Foo)]` does not credit a
+        // foreign `Foo` presents-site — ATK-ADR029-21/ATK-G2-22); the fn-kind
+        // guard is verdict-specific (only a runnable witness grants Defended).
         let code_witnesses: Vec<&crate::scan::Defense> = report
             .defenses
             .iter()
             .filter(|d| {
-                d.antigen_type == p.antigen_type
+                crate::scan::defense_addresses(d, p)
                     && (d.item_kind == "fn" || d.item_kind == "impl_fn")
             })
             .collect();
@@ -3118,11 +3122,16 @@ pub fn audit_category(report: &ScanReport) -> CategoryAuditReport {
         // `#[defended_by]` would go unflagged — the wrong witness type for the
         // declared category). A matching defense counts as code-tier evidence
         // addressing this antigen, exactly as a `witness=` immunity does.
-        if report
-            .defenses
-            .iter()
-            .any(|d| d.antigen_type == decl.type_name)
-        {
+        //
+        // Canonical-path-aware (mirrors `scan::defense_addresses`, but matched
+        // against the declaration's canonical_path rather than a presentation's):
+        // a `#[defended_by(Foo)]` from a DIFFERENT crate must not satisfy this
+        // crate's `Foo` G2 check (ATK-G2-22 cross-crate overclaim). A defense
+        // with canonical_path=None matches any (backward-compat).
+        if report.defenses.iter().any(|d| {
+            d.antigen_type == decl.type_name
+                && (d.canonical_path.is_none() || d.canonical_path == decl.canonical_path)
+        }) {
             has_any_immunity = true;
             has_code_witness = true;
         }
@@ -4142,6 +4151,7 @@ mod tests {
             line: 1,
             item_kind: "fn".to_string(),
             item_target: crate::scan::ItemTarget::Fn("test_drift_antigen".to_string()),
+            canonical_path: None,
         });
         let out = audit_category(&report);
 
@@ -4402,6 +4412,7 @@ mod tests {
             line,
             item_kind: "fn".to_string(),
             item_target: crate::scan::ItemTarget::Fn(format!("witness_{antigen}")),
+            canonical_path: None,
         }
     }
 
