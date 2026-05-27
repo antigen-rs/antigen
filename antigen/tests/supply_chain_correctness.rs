@@ -623,7 +623,9 @@ const fn hint_is_supply_chain(hint: &antigen::audit::AuditHint) -> bool {
         | AuditHint::AntigenCategoryDefaultedImplicitFunctional
         | AuditHint::AntigenCategoryClaimInconsistentWithPredicateType
         | AuditHint::AntigenCategoryHybridIncompleteEvidence
-        | AuditHint::DescendedFromFingerprintDivergence => false,
+        | AuditHint::DescendedFromFingerprintDivergence
+        | AuditHint::AntigenWitnessShapeMismatchForSilenceNoWitness
+        | AuditHint::AntigenWitnessShapeMismatchForSilenceWrongTier => false,
     }
 }
 
