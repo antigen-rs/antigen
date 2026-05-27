@@ -1895,3 +1895,47 @@ Adversarial claims `cargo antigen audit` on the workspace finds two stdlib antig
 - Tests at HEAD: 919 passed, 48 ignored, 0 failed (up from 913 at navigator wake call)
 - Expedition: 84 campsites total, 71 complete, 13 open
 - Open observer terrain: `dogfood/comprehensive-antigen-coverage` (2/3 sub-campsites now complete via pathmaker; `coverage-antigen-macros-lib`, `coverage-fingerprint-tightening`, `coverage-supply-chain-module` still open)
+
+---
+
+## Step 37 — wake post-navigator-fix: eval-passed verification + silence-taxonomy note
+
+**Date**: 2026-05-27 (UTC, resumed after 12-minute sleep)
+**HEAD**: `9276491` (at verification time)
+**Tests**: 922 passed, 49 ignored, 0 failed
+
+### Events since step 36 sleep
+
+**Navigator fix landed** (prompted by observer's campsite note):
+- `docs/expedition/recursive-find-draft.md` line 189: "verifies the witness is reachable, **runs**, and covers" → "verifies the witness is reachable and covers"
+- Confirmed in disk: line 189 now reads "it verifies the witness is reachable and covers" — "runs" removed. Coda now deepens rather than contradicts body.
+
+**Aristotle's `findings/category-witness-crosscheck-vs-fingerprint-only-stdlib`** — full Phase-1-8 deconstruction:
+- VERDICT: ADR-028 Amendment needed. SubstrateAlignment has two kinds of divergence collapsed into one category: (a) external-substrate-divergence (representation vs external state — sidecar/git/doc; witness = substrate-predicate) and (b) in-repo-parity-divergence (two code artifacts in same repo; witness = bijection/parity test). G2 only models (a). The bijection-test for ParallelStateTrackersDiverge is category-(b), correctly a code-witness, and G2 incorrectly flags it.
+- Observer's prior note on `forward/fingerprint-as-substrate-predicate` correctly aimed at the right locus; aristotle's deconstruction is more complete (phases 1-8, including the RATIFIED ADR-028 Amendment 2 cross-check).
+- Convergence: observer (step 36 deposit) + scientist (fingerprint-as-substrate-predicate seed) + aristotle (Phase-6-8) all reached same conclusion by independent paths.
+
+**`9276491` — EvalNode::passed() Indeterminate fix**:
+- `CompositeVerdict{Passed, Failed, Indeterminate}` + `EvalNode::verdict()` added to `antigen-attestation/src/evaluate.rs:220`
+- `passed()` now returns `self.verdict() == CompositeVerdict::Passed` (back-compat wrapper)
+- `DisciplinePredicateDeferred` hint added to `AuditHint` (audit.rs:242)
+- Substrate-verified: `evaluate.rs:220` has `pub enum CompositeVerdict`, `evaluate.rs:234` has `fn verdict()`, `evaluate.rs:293` has `fn passed()` returning `verdict() == Passed`
+- 922 tests green (up from 919)
+
+**`forward/silence-taxonomy-substrate-alignment`** — new campsite from naturalist/navigator:
+- Three silence-generator categories: absence (no enforcement exists, comment substitutes), masking (enforcement-substitute manufactures plausible-but-wrong value), missing-diagnostic (wrong value traced to boundary but no per-leaf message)
+- Observer deposited note confirming silence-by-absence (ParallelStateTrackersDiverge) from step 36 self-audit work; added precision note that silence-by-absence maps to in-repo-parity-divergence in aristotle's external/in-repo split.
+
+### Observer queue update
+
+- `dogfood/comprehensive-antigen-coverage`: still 0/3 signers, sub-campsites 2/5 complete
+- `dogfood-antigen-self-audit`: blocked on aristotle `findings/category-witness-crosscheck-vs-fingerprint-only-stdlib` (scientists gate) + campsite note routing
+- `forward/recursive-find-narrative-piece`: body fix applied; now at Tekgy timing decision
+- Observer is not a required signer on `findings/eval-passed-ignores-evaluated-bool-layer` (aristotle + scientist only)
+
+### Metrics
+
+- Additional commits: `d201ecb` (DeclaredCapabilityWithNoProductionPath doc), `9276491` (EvalNode fix)
+- Tests at HEAD: 922 passed, 49 ignored, 0 failed
+- Expedition: 87 campsites total, 72 complete, 12 open, 3 partial
+- False alarms this step: 0
