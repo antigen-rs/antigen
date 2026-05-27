@@ -184,6 +184,11 @@ pub enum SubstrateAuditHint {
     /// Sidecar parsed but the substrate-witness predicate failed.
     /// Per-leaf details surface in the audit-output detail field.
     DisciplinePredicateFailed,
+    /// Sidecar parsed; no leaf evaluated to false, but ≥1 leaf was deferred
+    /// (supply-chain leaves on the standard eval path). The predicate is
+    /// Indeterminate — not failed. Drive `cargo antigen verify` (supply-chain
+    /// audit) to evaluate the deferred leaves.
+    DisciplinePredicateDeferred,
     /// Predicate passes but ≥1 signature is stale relative to the current
     /// fingerprint AND the leaf used `against = "current"`.
     DisciplineSubstrateStale,
