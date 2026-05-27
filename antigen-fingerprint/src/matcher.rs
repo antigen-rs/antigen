@@ -717,4 +717,117 @@ mod tests {
              be stripped; reference types '&str' should survive normalization."
         );
     }
+
+    // ATK-FP-NOT-BODY-VACUOUS: not(body_contains_macro(X)) on a non-fn/non-impl
+    // item is a vacuous truth that always matches.
+    //
+    // body_contains_macro() returns false for structs, enums, traits, and any
+    // item without a function body (the _ => {} arm at matcher.rs:282). Therefore
+    // not(body_contains_macro("X")) returns true for ALL such items, regardless
+    // of content.
+    //
+    // An adopter who writes all_of([item = struct, not(body_contains_macro("panic!"))])
+    // intending "structs whose implementation doesn't use panic!" gets no filtering
+    // at all -- the fingerprint matches EVERY struct vacuously. The author thinks
+    // they're filtering; they're not.
+    //
+    // This is a DOCUMENTED LIMITATION (not a bug to fix now): the fingerprint
+    // grammar's body_contains_macro is scoped to fn/impl bodies. The not() of a
+    // body predicate on a bodyless item is vacuously true. Adopters who need
+    // "struct whose impl block doesn't call panic!" should use item=impl with
+    // has_method + not(body_contains_macro), not item=struct.
+    //
+    // This test locks in the vacuous-truth behavior as a documented regression
+    // anchor. If body_contains_macro is ever extended to look at impl blocks
+    // associated with a struct (via cross-item analysis), this test must be
+    // updated to reflect the new non-vacuous behavior.
+    #[test]
+    fn not_body_contains_macro_on_struct_is_vacuously_true() {
+        let fp = fp(r#"all_of([item = struct, not(body_contains_macro("panic"))])"#);
+
+        // Every struct matches -- body_contains_macro returns false for structs
+        // (no body to search), so not(false) = true. Vacuous.
+        assert!(
+            fp.matches(&item("pub struct PlainStruct;")),
+            "ATK-FP-NOT-BODY-VACUOUS: all_of([item=struct, not(body_contains_macro('panic'))]) \
+             must match a plain struct -- body_contains_macro returns false for structs \
+             (no body), so not(false)=true. Vacuously matches ALL structs."
+        );
+        assert!(
+            fp.matches(&item(
+                "#[derive(Debug)] pub struct DerivedStruct { x: u32 }"
+            )),
+            "ATK-FP-NOT-BODY-VACUOUS: all_of([item=struct, not(body_contains_macro('panic'))]) \
+             must match a struct with fields -- body_contains_macro still returns false \
+             (fields are not a fn body), so vacuously true."
+        );
+
+        // A function that DOES call panic! should NOT match (item=struct gates it).
+        assert!(
+            !fp.matches(&item("fn uses_panic() { panic!(\"oops\"); }")),
+            "ATK-FP-NOT-BODY-VACUOUS: item=struct in all_of must gate out functions."
+        );
+    }
+
+    // ATK-FP-NOT-BODY-FN-CORRECT: not(body_contains_macro(X)) on a function
+    // correctly excludes functions that use the macro.
+    //
+    // This confirms the NON-vacuous case works correctly: for fn items,
+    // body_contains_macro returns the actual result, so not() is meaningful.
+    // all_of([item = fn, not(body_contains_macro("panic"))]) should:
+    //   - match functions that don't use panic!
+    //   - NOT match functions that use panic!
+    #[test]
+    fn not_body_contains_macro_on_fn_is_not_vacuous() {
+        let fp = fp(r#"all_of([item = fn, not(body_contains_macro("panic"))])"#);
+
+        // Function WITHOUT panic! -- not(false) = true -- correctly matches.
+        assert!(
+            fp.matches(&item("fn no_panic() { let x = 1; }")),
+            "ATK-FP-NOT-BODY-FN-CORRECT: all_of([item=fn, not(body_contains_macro('panic'))]) \
+             must match a function that does NOT use panic!."
+        );
+
+        // Function WITH panic! -- not(true) = false -- correctly excluded.
+        assert!(
+            !fp.matches(&item("fn with_panic() { panic!(\"oops\"); }")),
+            "ATK-FP-NOT-BODY-FN-CORRECT: all_of([item=fn, not(body_contains_macro('panic'))]) \
+             must NOT match a function that uses panic!."
+        );
+    }
+
+    // ATK-FP-NOT-IN-ANY-OF-REJECTED: not() directly under any_of is a parse error.
+    //
+    // ADR-010 Amendment 3 OQ3 closes the De Morgan loophole: any_of([not(A), not(B)])
+    // is equivalent to not(all_of([A, B])) -- it re-creates top-level negation.
+    // The parser rejects not() directly under any_of.
+    //
+    // This test verifies the rejection happens at parse time (not silently accepted).
+    #[test]
+    fn not_directly_under_any_of_is_rejected_at_parse_time() {
+        let result = crate::Fingerprint::parse(r"any_of([not(item = fn), item = struct])");
+        assert!(
+            result.is_err(),
+            "ATK-FP-NOT-IN-ANY-OF: not() directly under any_of must be rejected at parse time \
+             (ADR-010 Amendment 3 OQ3 -- De Morgan loophole). Got: {:?}",
+            result
+        );
+    }
+
+    // ATK-FP-ALL-OF-ONLY-NOTS-REJECTED: all_of with only not() children is rejected.
+    //
+    // ADR-010 Amendment 3 OQ3 requires at least one positive matcher sibling in
+    // any all_of that contains not(). all_of([not(A), not(B)]) is rejected.
+    #[test]
+    fn all_of_containing_only_nots_is_rejected_at_parse_time() {
+        let result =
+            crate::Fingerprint::parse(r#"all_of([not(item = fn), not(name = matches("Test*"))])"#);
+        assert!(
+            result.is_err(),
+            "ATK-FP-ALL-OF-ONLY-NOTS: all_of containing only not() children must be \
+             rejected (ADR-010 Amendment 3 OQ3 -- requires at least one positive matcher). \
+             Got: {:?}",
+            result
+        );
+    }
 }
