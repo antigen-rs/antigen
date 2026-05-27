@@ -4092,8 +4092,7 @@ mod tests {
         // #[defended_by] witness passes the cross-check silently. After the fix,
         // this should report mismatch_count=1 with AntigenCategoryClaimInconsistentWithPredicateType.
         assert_eq!(
-            out.mismatch_count,
-            0,
+            out.mismatch_count, 0,
             "ATK-G2-migration: SubstrateAlignment antigen with only #[defended_by] \
             (code-tier) witness silently bypasses G2 cross-check -- no mismatch reported \
             even though the witness type is wrong for SubstrateAlignment. G2 reads \
@@ -4709,5 +4708,117 @@ mod tests {
              'field was set' but behaves like 'field was absent'."
         );
         assert_eq!(out.active_count, 1);
+    }
+
+    // ========================================================================
+    // ATK-IMMUNOSUPPRESS-DURATION-CAP-UNREACHABLE
+    //
+    // ImmunosuppressDurationCapExceeded (AuditHint, line 308) is declared but
+    // cannot be emitted by evaluate_deferred_defense_hint().
+    //
+    // ROOT CAUSE (three-layer gap):
+    //   1. scan.rs parses duration_cap correctly from #[immunosuppress(duration_cap=Nd)]
+    //      into ScanImmunosuppressArgs.duration_cap: Option<u64>.
+    //   2. scan.rs stores it as a string tag in DeferredDefense.see[]:
+    //      see.push(format!("duration_cap:{cap}d"))
+    //      — NOT as a typed field on DeferredDefense.
+    //   3. audit.rs evaluate_deferred_defense_hint() Immunosuppress arm (lines
+    //      1059-1065) reads only decl.until and never parses decl.see[] for
+    //      "duration_cap:Nd" entries. The hint variant therefore has zero
+    //      emission sites.
+    //
+    // SECONDARY GAP: even if an audit arm tried to compute duration, it cannot
+    // — `since` date is also stored in see[] as "since:DATE" rather than as a
+    // typed field. Computing (today - since).num_days() > duration_cap requires
+    // parsing two strings from see[], neither of which has a typed API.
+    //
+    // FIX PATH (not in this test; tests document the gap):
+    //   - Add `duration_cap: Option<u64>` to DeferredDefense struct.
+    //   - Add `since: Option<String>` (or date type) to DeferredDefense.
+    //   - Populate both during the immunosuppress scan push.
+    //   - In evaluate_deferred_defense_hint Immunosuppress arm: parse
+    //     since_date, compute age_days, compare to cap; emit
+    //     ImmunosuppressDurationCapExceeded if exceeded.
+    //
+    // This test is a DOCUMENTATION LOCK: it will remain a documentation test
+    // (assert_eq! confirming current behavior) until the fix lands, at which
+    // point the assertion must be inverted.
+    // ========================================================================
+
+    fn immunosuppress_decl_with_duration_cap(
+        duration_cap_days: u64,
+        since: &str,
+    ) -> crate::scan::DeferredDefense {
+        use crate::scan::{DeferredDefenseKind, ItemTarget};
+        use std::path::PathBuf;
+        crate::scan::DeferredDefense {
+            kind: DeferredDefenseKind::Immunosuppress,
+            antigen_type: None,
+            text: "test rationale".to_string(),
+            until: None,
+            expected_co_stimulation: None,
+            signed_by: None,
+            // The scan encodes duration_cap + since as string tags in see[].
+            // This mirrors what scan.rs:3757-3758 produces.
+            see: vec![
+                format!("since:{since}"),
+                format!("duration_cap:{duration_cap_days}d"),
+            ],
+            file: PathBuf::from("src/lib.rs"),
+            line: 1,
+            item_kind: "fn".to_string(),
+            item_target: ItemTarget::Fn("suppress_me".to_string()),
+        }
+    }
+
+    #[test]
+    fn atk_immunosuppress_duration_cap_exceeded_cannot_be_emitted() {
+        // #[immunosuppress(since="2020-01-01", duration_cap=30d)] — 6+ years
+        // have elapsed; duration cap is dramatically exceeded.
+        // DOCUMENTS THE GAP: evaluate_deferred_defense_hint never parses see[]
+        // for "duration_cap:Nd". It returns ImmunosuppressActive (no until-date
+        // = None arm). The cap is silently ignored.
+        //
+        // After the fix, this should return ImmunosuppressDurationCapExceeded.
+        let decl = immunosuppress_decl_with_duration_cap(30, "2020-01-01");
+        let mut report = ScanReport::default();
+        report.deferred_defenses.push(decl);
+        let out = audit_deferred_defenses(&report, 30);
+
+        // CURRENT (broken): duration cap is ignored, audit returns Active.
+        // TARGET (fixed):   audit returns ImmunosuppressDurationCapExceeded.
+        assert_eq!(
+            out.audits[0].hint,
+            AuditHint::ImmunosuppressActive,
+            "ATK-IMMUNOSUPPRESS-DURATION-CAP-UNREACHABLE: immunosuppress with \
+            duration_cap=30d and since=2020-01-01 (>6 years elapsed) should emit \
+            ImmunosuppressDurationCapExceeded but emits ImmunosuppressActive. \
+            duration_cap is stored in see[] as a string tag; audit never parses see[]. \
+            The ImmunosuppressDurationCapExceeded hint variant has zero emission sites."
+        );
+    }
+
+    #[test]
+    fn atk_immunosuppress_duration_cap_within_limit_is_also_silently_active() {
+        // #[immunosuppress(since="2099-01-01", duration_cap=30d)] — duration
+        // not yet exceeded (since is far future). Both exceeded and within-limit
+        // cases produce ImmunosuppressActive because the evaluation arm is
+        // identical for both: it reads only until (None here) and falls through
+        // to the None => Active grace arm. No discrimination.
+        let decl = immunosuppress_decl_with_duration_cap(30, "2099-01-01");
+        let mut report = ScanReport::default();
+        report.deferred_defenses.push(decl);
+        let out = audit_deferred_defenses(&report, 30);
+
+        // CURRENT: same result as the exceeded case -- Active regardless.
+        // This documents that exceeded and not-exceeded are indistinguishable.
+        assert_eq!(
+            out.audits[0].hint,
+            AuditHint::ImmunosuppressActive,
+            "ATK-IMMUNOSUPPRESS-DURATION-CAP-UNREACHABLE (within-limit): \
+            a non-exceeded cap also silently returns Active. Exceeded and \
+            within-limit are indistinguishable from the audit's perspective \
+            because see[] is never parsed."
+        );
     }
 }
