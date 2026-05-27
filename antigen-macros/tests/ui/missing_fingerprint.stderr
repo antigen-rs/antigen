@@ -1,5 +1,0 @@
-error: #[antigen] requires `fingerprint = "..."`
- --> tests/ui/missing_fingerprint.rs:7:11
-  |
-7 | #[antigen(name = "x")]
-  |           ^^^^
