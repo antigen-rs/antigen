@@ -956,7 +956,12 @@ fn atk_adr029_18_v1_void_failing_requires_masked_by_passing_defended_by() {
     // verdict that exposes the failed substrate requirement alongside the
     // passing code witness.
     assert!(
-        matches!(v.verdict, ImmuneVerdict::Defended { tier: WitnessTier::Reachability }),
+        matches!(
+            v.verdict,
+            ImmuneVerdict::Defended {
+                tier: WitnessTier::Reachability
+            }
+        ),
         "ATK-ADR029-18 (V1 VOID): site with failing requires= AND passing #[defended_by] \
         shows Defended at Reachability. The failing substrate predicate is masked by the \
         code witness. OR-semantics (audit.rs:1381) picks best_tier=Reachability; the \
@@ -1085,7 +1090,12 @@ fn atk_adr029_20_empty_string_proof_overclaims_formal_proof_tier() {
     // The assertion here documents CURRENT behavior. Invert if the empty-string
     // case is ever gated at the audit or scanner level.
     assert!(
-        matches!(v.verdict, ImmuneVerdict::Defended { tier: WitnessTier::FormalProof }),
+        matches!(
+            v.verdict,
+            ImmuneVerdict::Defended {
+                tier: WitnessTier::FormalProof
+            }
+        ),
         "ATK-ADR029-20 (OVERCLAIM): proof=Some('') yields Defended at FormalProof. \
         The map(|_| FormalProof) closure ignores the inner value; an empty-string proof \
         expression is indistinguishable from a real phantom constructor. \
