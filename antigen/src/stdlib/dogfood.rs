@@ -1308,10 +1308,16 @@ pub struct FailingTestWithoutIgnorePin;
 ///
 /// **Defense / witness**: the use-token in the macro expansion. The defending
 /// site is the `expanded` quote block in the `antigen()` proc-macro at
-/// `antigen-macros/src/lib.rs`; it is marked `#[immune(MarkerStructDeadCodeInBinary,
-/// witness = binary_marker_dead_code)]` once the macro crate can reference this
-/// declaration. The witness is the UI/build test that a binary-crate adopter's
-/// marker compiles clean under `-D warnings`.
+/// `antigen-macros/src/lib.rs`. That site **cannot** carry an explicit
+/// `#[immune]` marker — `antigen-macros` is a proc-macro crate that cannot
+/// depend on `antigen` (the reverse dependency would be a cycle), so the
+/// marker type is unreachable there, and a proc-macro crate cannot self-apply
+/// its own attribute macros (see the "Proc-macro-crate markability boundary"
+/// note in this module's header). Coverage is therefore the declaration here
+/// plus passive fingerprint-recall: the use-token site's doc-comment mentions
+/// `dead_code`, which this antigen's `doc_contains("dead_code")` fingerprint
+/// matches. The witness-in-spirit is the UI/build test that a binary-crate
+/// adopter's marker compiles clean under `-D warnings`.
 ///
 /// **Internal-tooling discipline**: per `feedback-internal-tool-antigens-preemptive`,
 /// declared from the confirmed camp-adoption instance — the fix shipped in the
@@ -1329,3 +1335,86 @@ pub struct FailingTestWithoutIgnorePin;
     references = ["ADR-003"]
 )]
 pub struct MarkerStructDeadCodeInBinary;
+
+// ============================================================================
+// 22. SerdeDefaultMaskingStructLiteralBreak
+// ============================================================================
+
+/// A `pub` struct gains a `#[serde(default)]` field; serde callers keep
+/// compiling while struct-literal constructors break, hiding the migration.
+///
+/// `#[serde(default)]` provides backward-compatibility for ONE construction
+/// path: deserialization from data that predates the field. It does nothing for
+/// the OTHER construction path: Rust struct-literal expressions
+/// (`Foo { a, b }`) that name every field exhaustively. When a field is added,
+/// every direct struct-literal site — typically test fixtures, internal
+/// builders, and `..` -less constructors — fails to compile, while every serde
+/// site sails through. The author who added the field sees serde tests pass and
+/// may not realize the literal sites exist; whoever wrote those sites long ago
+/// is the only one who "remembers" they need migration.
+///
+/// **Observed instance** (2026-05-26, v0.2 completion arc): `AntigenDeclaration`
+/// (`antigen/src/scan.rs`) gained `category: Vec<AntigenCategory>` with
+/// `#[serde(default)]` (ADR-028). JSON sidecar deserialization of v0.1
+/// declarations kept working; but the direct struct-literal sites
+/// (`scan.rs` synthesis tests, `antigen-macros/src/parse.rs` test fixtures,
+/// `antigen/tests/atk_a3_fractal_preview.rs`) all needed `category: Vec::new()`
+/// added by hand. Scout (`1c861b3a`) caught two sites; the migration touched
+/// every direct constructor. The struct also has `#[serde(default)]` on
+/// `canonical_path` — same shape, an earlier instance of the same class. This
+/// recurs by construction: the comprehensive-vision metadata roadmap will keep
+/// adding fields to `AntigenDeclaration` / `Presentation` / `Immunity` /
+/// `Ratification`, and each one re-opens the asymmetry.
+///
+/// **Category**: `SubstrateAlignment` — two representations of the same
+/// construction contract diverge. The serde-path representation says
+/// "backward-compatible, all callers handled"; the struct-literal-path
+/// representation says "every exhaustive constructor is broken." The
+/// `#[serde(default)]` attribute is the source of the divergence: it aligns one
+/// representation while leaving the other silently out of sync.
+///
+/// **Defense / witness**: two complementary moves.
+/// 1. `#[non_exhaustive]` on the struct forces all *external-crate* construction
+///    through `..` / `Default` / a builder, eliminating the struct-literal break
+///    for downstream adopters. It is necessary but **not sufficient** —
+///    `#[non_exhaustive]` does not affect *same-crate/workspace* construction,
+///    so internal test fixtures still break (which is exactly where the v0.2
+///    instance bit).
+/// 2. A substrate-witness predicate that asserts struct/constructor parity: when
+///    a `#[serde(default)]` field is added to a `pub` struct, all direct
+///    struct-literal sites in the workspace either use `..` rest-syntax or have
+///    been migrated. This is the audit-time check that closes the internal gap
+///    `#[non_exhaustive]` leaves open.
+///
+/// **Fingerprint** (v0.2): `all_of([item = struct, attr_present("serde")])` is
+/// the broad-recall shape — a struct carrying a `serde` attribute is a
+/// candidate. Precision (is there actually a `#[serde(default)]` field AND an
+/// unmigrated exhaustive constructor somewhere?) lives in the witness, not the
+/// fingerprint — the same F8 recall/precision split [`ActiveArgumentDiscard`]
+/// uses, because the v0.2 predicate grammar cannot express "a field-level
+/// attribute on one of the struct's fields" nor "an exhaustive struct-literal
+/// exists elsewhere." Note `attr_present` matches *item-level* attributes; a
+/// struct whose only `serde` usage is field-level `#[serde(default)]` (with no
+/// item-level `#[derive(...)]`/`#[serde(...)]`) will not recall — a known v0.2
+/// fingerprint-grammar limit (field-level attribute predicate absent), tracked
+/// with the body-content-negation grammar gap.
+///
+/// **Internal-tooling discipline**: per `feedback-internal-tool-antigens-preemptive`,
+/// named from the confirmed v0.2 `AntigenDeclaration` instance rather than
+/// waiting for the next metadata field to break the build. Raised as a naive
+/// question by outsider (v02-completion-arc); the instance was at hand, the
+/// recurrence is structurally guaranteed, so it earns a declaration.
+#[antigen(
+    name = "serde-default-masking-struct-literal-break",
+    category = AntigenCategory::SubstrateAlignment,
+    fingerprint = r#"all_of([item = struct, attr_present("serde")])"#,
+    family = "dogfood",
+    summary = "A pub struct gains a field with #[serde(default)]; serde-deserialization callers keep \
+               compiling but Rust struct-literal constructors (test fixtures, internal builders) break. \
+               The serde-default aligns one construction path while leaving the other silently out of \
+               sync. Defense is #[non_exhaustive] (covers external callers only) plus a struct/constructor \
+               parity substrate-witness (covers the internal gap). Broad-recall fingerprint on serde \
+               structs; precision lives in the witness (F8 split).",
+    references = ["ADR-028", "ADR-007"]
+)]
+pub struct SerdeDefaultMaskingStructLiteralBreak;
