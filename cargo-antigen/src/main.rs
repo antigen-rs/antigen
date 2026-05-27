@@ -4325,6 +4325,61 @@ fn print_category_audit_human(category_report: &audit::CategoryAuditReport) {
              hybrid-incomplete-evidence; ADR-028 §Schema)."
         );
     }
+    print_silence_witness_advisory(category_report);
+}
+
+/// Render the silence-witness shape-mismatch advisories (scientist design +
+/// aristotle gate, forward/silence-witness-shape-mismatch-{hint,impl}). A
+/// `SubstrateAlignment` antigen fails by silence-by-absence: a representation
+/// drifts and nothing fires, because the antigen is about the ABSENCE of a
+/// closure-mechanism. The two advisories flag witness shapes that cannot detect
+/// that silence — no witness at all (no-witness) or a code-tier-only witness
+/// that detects behavioral, not substrate-alignment, failures (wrong-tier).
+/// Split out of [`print_category_audit_human`] to keep each section within the
+/// per-function line budget.
+fn print_silence_witness_advisory(category_report: &audit::CategoryAuditReport) {
+    if category_report.no_silence_witness_mismatch() {
+        return;
+    }
+    println!();
+    println!(
+        "antigen-category: SubstrateAlignment declaration(s) whose witness \
+         shape cannot detect silence (advisory):"
+    );
+    for ca in &category_report.audits {
+        if ca
+            .hints
+            .contains(&audit::AuditHint::AntigenWitnessShapeMismatchForSilenceNoWitness)
+        {
+            println!(
+                "  - {} ({}:{}) — antigen-witness-shape-mismatch-for-silence-no-witness",
+                ca.antigen_type,
+                ca.file.display(),
+                ca.line
+            );
+        }
+        if ca
+            .hints
+            .contains(&audit::AuditHint::AntigenWitnessShapeMismatchForSilenceWrongTier)
+        {
+            println!(
+                "  - {} ({}:{}) — antigen-witness-shape-mismatch-for-silence-wrong-tier",
+                ca.antigen_type,
+                ca.file.display(),
+                ca.line
+            );
+        }
+    }
+    println!(
+        "  A SubstrateAlignment failure is silence-by-absence: it surfaces \
+         only when a mechanism asserts the closure exists. no-witness → wire \
+         a parity/bijection witness (assert the mechanism exists, not just \
+         that the two representations agree now). wrong-tier → a code-tier \
+         test detects behavioral failures; reach for a `requires = ...` \
+         substrate predicate or a bijection-parity test (exception: the \
+         wrong-weighting generator legitimately uses a code-tier \
+         confidence test — confirm the intended generator first)."
+    );
 }
 
 /// Audit summary with per-tier sub-counts per ATK-A3-019 (A3.5 onboarding sweep).
