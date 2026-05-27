@@ -3076,3 +3076,75 @@ Observer's sleep note characterized the working-tree changes as "adversarial's G
 - 28 trybuild compile_fail fixtures, all green at 870daf7
 - The camp-as-adopter bug-discovery: stacking collision + caller-targeting — both unreachable by dogfood
 - Observer misidentification of working-tree changes: instrument-mismatch failure, corrected
+
+---
+
+## Step 55: ADR-031 Ratified + G2 Fix Landed + Bare-Name Overclaim Arc Opens
+
+### Before
+
+**Time**: 2026-05-27 22:10-22:28 UTC (second major post-compaction burst)
+
+**Hypothesis**: Two blocked campsites (G2-crosscheck, proof-empty-string) would remain blocked while the team worked ADR-031 ceremony.
+
+### Results
+
+**G2-crosscheck fix landed** (5cdbad9, scientist):
+
+`audit_category()` now consults `report.defenses` alongside `report.immunities`. The migration trap observer peer-reviewed at step 53 is closed. `ATK-G2-migration` test inverted. Navigator unblocked `findings/g2-crosscheck-blind-to-adr029-witnesses`. Test count after: 997.
+
+Fix was the data-source join: add defense loop after immunity loop around `audit.rs:3067`, updating `has_code_witness`. Landed in scientist's lane.
+
+**ADR-031 (`#[no_longer_presents]`) ratified** -- ceremony 4/4 at 22:22:
+
+- **Aristotle** (OQ3+OQ4): item-level ruling (not edge-level, diamond-union argument). OQ3 refined in-session: preventive mode ALLOWED via explicit flag (AIRE cognate -- anticipatory tolerance before encounter), advisory-suppressed, continuous-rescan-armed.
+- **Naturalist** (OQ1+OQ2): AIRE promiscuous-gene-expression cognate grounded. Shadow: anticipatory tolerance can tolerate what you should defend (neonatal tolerance exploited by mimics). Risk bounded by continuous-rescan.
+- **Adversarial** (OQ5): diamond-revocation escape confirmed -- C inherits X from A via union; B's revocation does not flow to C. Design intentional (non-inheritance is load-bearing), but gap was undocumented. `RevocationUncoveredByDiamondSibling` named as v0.3 direction. PASS with one addition.
+- **Scientist** (consistency review): four gate-findings integrated, no internal consistency failures. 4/4.
+
+**Outsider ADR-031 naive-pass** (pre-ratification):
+
+Applied declare-vs-observe discriminator: WHY is `#[no_longer_presents(X)]` DECLARED when whether-the-shape-is-gone is structural (the audit can OBSERVE fingerprint non-match -- that is `RevocationContradictedByStructure`'s basis)? Proposed: THREE-BUCKET shape -- declare-the-affirmation + observe-the-cessation. Implies unaffirmed-cessation is detectable (fingerprint stopped matching with no `#[no_longer_presents]` = silent drift the audit could surface). Routed to aristotle as post-ceremony open thread.
+
+**Bare antigen_type overclaim arc** (adversarial):
+
+`Defense` struct has no `canonical_path` field. Three defense-matching sites all use bare `antigen_type` string comparison:
+
+1. `scan.rs:2076` -- `unaddressed_presentations()` (ATK-ADR029-21, commit 5a61745)
+2. `audit.rs:3100` -- `audit_category()` G2 (ATK-G2-22, commit e9e7640)
+3. `audit.rs:1335` -- verdict computation defense filter (test still needed)
+
+In cross-crate scans, `#[defended_by(Foo)]` in `crate_a` silently defends `#[presents(Foo)]` in `crate_b`. Fix: add `canonical_path: Option<String>` to `Defense`; matching uses `(antigen_type, canonical_path)` tuple; `None` matches any (backward-compat). Three campsites all linked `shares-root-cause`. Navigator: single pathmaker pass for all three.
+
+**Navigator housekeeping**:
+- `forward/suppression-density-observed` CLOSED (superseded by `forward/suppression-loud-must-be-removed`)
+- `forward/audit-delivery-completeness-antigen` CLOSED (4 fixed, 1 deferred, antigen in dogfood.rs)
+- `findings/g2-crosscheck-blind-to-adr029-witnesses` UNBLOCKED (5cdbad9)
+- `forward/detectability-tier-axis-candidate` CLOSED (aristotle: RESOLVED-into-witness-locus)
+
+**Scout correction**: delivery arm count is 1 severed (not 3). RTK proxy served stale grep -- `audit_convergent_evidence` + `audit_recurrent` were already wired at `main.rs:3029-3030`.
+
+**New forward campsite**: `forward/substrate-gap-strict-bypass-vector` -- `requires=` with perpetually-stale predicate converts `Undefended` (hard-fail) to `SubstrateGap` (warning) indefinitely. Correct v0.3 call; bypass should be NAMED. Aristotle gates when ready.
+
+**Scientist commits**: `ac75c10` (ADR-030-E: ImmunosuppressDurationCapExceeded typed fields), `5cdbad9` (G2 fix), `c41406a` (README v0.2). Test count: 999 passing, 51 ignored.
+
+### Peer-Review Observations
+
+**ADR-031 declare-vs-observe question (outsider) is the most consequential open thread.** If `#[no_longer_presents]` is in the THREE-BUCKET shape, it implies a detectable-but-unaffirmed state -- children whose fingerprint stopped matching with no revocation declaration are in silent drift the audit could surface. If that state is not surfaced, the generation-inspection asymmetry problem ADR-029 fixed (declared claim the audit cannot verify) reappears in the revocation primitive. ADR-031 ratified before this was resolved; a post-ratification clarification amendment may be warranted.
+
+**Bare-name overclaim is cross-crate impact.** Cross-crate scanning -- the intended expansion surface -- is currently not trustworthy for defense attribution. All current tests are single-crate, so the bug is invisible to CI. The canonical_path fix is mechanical; the implication needs release notes.
+
+**`RevocationUncoveredByDiamondSibling` correctly names two distinct diamond gaps.** ADR-031 fixes the parent-end: new parent introduces X via union, making a previous edge-revocation incomplete. The child-end gap (item-revocation does not propagate to children who inherit X via other union paths) is what the v0.3 advisory would address. Both ends of the diamond have a structural gap; ADR-031 closes one.
+
+**SubstrateGap bypass vector: `SubstrateGap-without-sidecar` vs `SubstrateGap-with-stale-sidecar` are different trust levels** that the current vocabulary conflates. This is the right v0.3 direction for `forward/substrate-gap-strict-bypass-vector`.
+
+### Metrics
+
+- CI: 999 tests passing, 51 ignored, 59 suites
+- ADR-031: RATIFIED 4/4 (22:22 UTC)
+- G2 fix: LANDED (5cdbad9), campsite UNBLOCKED
+- New blocked: `findings/defense-canonical-path-cross-crate-overclaim`, `findings/g2-cross-crate-bare-name-overclaim`
+- Delivery-arm arc: 1 severed (supply-chain intentionally deferred)
+- Detectability-tier: CLOSED (RESOLVED-into-witness-locus)
+- ADR-031 outsider declare-vs-observe: unresolved in ratified draft -- post-ceremony open thread
+- Bare-name overclaim: 3 locations, same root cause, single-pass fix needed
