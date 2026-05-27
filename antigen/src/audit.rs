@@ -235,6 +235,11 @@ pub enum AuditHint {
     /// evaluation (a leaf returned false). Per-leaf detail surfaces
     /// elsewhere in the audit output.
     DisciplinePredicateFailed,
+    /// Sidecar parsed; no leaf evaluated to false, but ≥1 leaf was
+    /// deferred (not evaluated by this evaluator — e.g. supply-chain
+    /// leaves on the standard path). Indeterminate — not failed.
+    /// Drive `cargo antigen verify` (supply-chain audit) to resolve.
+    DisciplinePredicateDeferred,
     /// Predicate passes but ≥1 signer's recorded fingerprint diverges
     /// from the current item fingerprint, AND the leaf used
     /// `against = "current"`. Re-attestation required.
@@ -1320,6 +1325,7 @@ const fn map_attestation_audit_hint(hint: antigen_attestation::AuditHint) -> Aud
         AH::DisciplineSidecarMissing => AuditHint::DisciplineSidecarMissing,
         AH::DisciplineSidecarSchemaInvalid => AuditHint::DisciplineSidecarSchemaInvalid,
         AH::DisciplinePredicateFailed => AuditHint::DisciplinePredicateFailed,
+        AH::DisciplinePredicateDeferred => AuditHint::DisciplinePredicateDeferred,
         AH::DisciplineSubstrateStale => AuditHint::DisciplineSubstrateStale,
         AH::DisciplineSubstrateDeltaChainNearCap => AuditHint::DisciplineSubstrateDeltaChainNearCap,
         AH::DisciplinePredicatePassedViaDeltaChain => {

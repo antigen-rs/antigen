@@ -207,17 +207,91 @@ pub enum EvalNode {
     Not(Box<Self>),
 }
 
+/// Three-state composite verdict, distinguishing a genuine evaluation failure
+/// from a deferred (not-yet-evaluated) leaf.
+///
+/// A deferred leaf (`passed: false, evaluated: false`) inside an `all_of`
+/// must NOT map to `Failed` — the check was not run, not run-and-failed.
+/// Collapsing Indeterminate → Failed produces `DisciplinePredicateFailed`
+/// when the real state is "supply-chain audit needed here, not run yet."
+/// That is a `SilentSemanticMismatchAtTrustBoundary` instance (V2 void from
+/// ADR-029 Phase 8).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CompositeVerdict {
+    /// Every evaluated leaf passed; no deferred leaves present.
+    Passed,
+    /// At least one leaf evaluated to false (genuinely failed).
+    Failed,
+    /// No leaf evaluated to false, but ≥1 leaf was deferred (not evaluated
+    /// by this evaluator — e.g. supply-chain leaves on the standard path).
+    Indeterminate,
+}
+
 impl EvalNode {
-    /// The boolean verdict for this (sub)tree. Equivalent to the bare-`bool`
-    /// the pre-Finding-7 evaluator returned.
+    /// Three-state verdict for this (sub)tree. Prefer this over [`Self::passed`]
+    /// whenever the caller needs to distinguish genuine failure from deferral.
+    #[must_use]
+    pub fn verdict(&self) -> CompositeVerdict {
+        match self {
+            Self::Leaf(o) => {
+                if o.evaluated {
+                    if o.passed {
+                        CompositeVerdict::Passed
+                    } else {
+                        CompositeVerdict::Failed
+                    }
+                } else {
+                    // Deferred leaf: not evaluated here, not a failure.
+                    CompositeVerdict::Indeterminate
+                }
+            }
+            Self::AllOf(children) => {
+                let mut any_indeterminate = false;
+                for c in children {
+                    match c.verdict() {
+                        CompositeVerdict::Failed => return CompositeVerdict::Failed,
+                        CompositeVerdict::Indeterminate => any_indeterminate = true,
+                        CompositeVerdict::Passed => {}
+                    }
+                }
+                if any_indeterminate {
+                    CompositeVerdict::Indeterminate
+                } else {
+                    CompositeVerdict::Passed
+                }
+            }
+            Self::AnyOf(children) => {
+                let mut any_indeterminate = false;
+                for c in children {
+                    match c.verdict() {
+                        CompositeVerdict::Passed => return CompositeVerdict::Passed,
+                        CompositeVerdict::Indeterminate => any_indeterminate = true,
+                        CompositeVerdict::Failed => {}
+                    }
+                }
+                if any_indeterminate {
+                    CompositeVerdict::Indeterminate
+                } else {
+                    CompositeVerdict::Failed
+                }
+            }
+            Self::Not(child) => match child.verdict() {
+                CompositeVerdict::Passed => CompositeVerdict::Failed,
+                CompositeVerdict::Failed => CompositeVerdict::Passed,
+                // not(deferred) is still indeterminate — we don't know what
+                // the deferred leaf would have returned.
+                CompositeVerdict::Indeterminate => CompositeVerdict::Indeterminate,
+            },
+        }
+    }
+
+    /// Boolean verdict for this (sub)tree. Back-compat wrapper around
+    /// [`Self::verdict`]: returns `true` only when verdict is `Passed`.
+    /// Callers that need to distinguish `Failed` from `Indeterminate` must
+    /// use `verdict()` directly.
     #[must_use]
     pub fn passed(&self) -> bool {
-        match self {
-            Self::Leaf(o) => o.passed,
-            Self::AllOf(children) => children.iter().all(Self::passed),
-            Self::AnyOf(children) => children.iter().any(Self::passed),
-            Self::Not(child) => !child.passed(),
-        }
+        self.verdict() == CompositeVerdict::Passed
     }
 
     /// Flatten the tree to its leaf outcomes in evaluation order, for
@@ -331,18 +405,30 @@ pub fn evaluate_predicate_with_kind<C: EvaluationContext>(
     let predicate_node = eval_pred(predicate, item, current_fingerprint, item_source_file, ctx);
     let leaf_outcomes = predicate_node.leaf_outcomes();
 
-    if !predicate_node.passed() {
-        let failed_hint = match kind {
-            RatificationKind::Tolerance => AuditHint::TolerancePredicateFailed,
-            RatificationKind::Immunity => AuditHint::DisciplinePredicateFailed,
-        };
-        return Ok(EvaluatedPredicate {
-            witness_tier: WitnessTier::None,
-            audit_hint: failed_hint,
-            evidence_kind: EvidenceKind::SubstrateState,
-            signature_strength: None,
-            leaf_outcomes,
-        });
+    match predicate_node.verdict() {
+        CompositeVerdict::Failed => {
+            let failed_hint = match kind {
+                RatificationKind::Tolerance => AuditHint::TolerancePredicateFailed,
+                RatificationKind::Immunity => AuditHint::DisciplinePredicateFailed,
+            };
+            return Ok(EvaluatedPredicate {
+                witness_tier: WitnessTier::None,
+                audit_hint: failed_hint,
+                evidence_kind: EvidenceKind::SubstrateState,
+                signature_strength: None,
+                leaf_outcomes,
+            });
+        }
+        CompositeVerdict::Indeterminate => {
+            return Ok(EvaluatedPredicate {
+                witness_tier: WitnessTier::None,
+                audit_hint: AuditHint::DisciplinePredicateDeferred,
+                evidence_kind: EvidenceKind::SubstrateState,
+                signature_strength: None,
+                leaf_outcomes,
+            });
+        }
+        CompositeVerdict::Passed => {} // fall through to classify_passed_predicate
     }
 
     // 3. Predicate passed. Derive tier + hint from the sidecar's signer
@@ -2567,6 +2653,82 @@ mod tests {
              Fix: set `evaluated: false` in the supply-chain leaf arm of eval_leaf(). \
              See campsite findings/eval-leaf-not-evaluated-arm.",
             leaf.label, leaf.passed, leaf.evaluated,
+        );
+    }
+
+    #[test]
+    fn composite_verdict_indeterminate_on_supply_chain_leaf() {
+        // A pure supply-chain leaf must produce Indeterminate, not Failed.
+        // This is the behavioral lock for e58627d5 — the bool-layer dishonesty
+        // that collapsed Indeterminate into Failed at the EvaluatedPredicate level.
+        use crate::predicate::{Leaf, Predicate};
+        let pred = Predicate::Leaf(Leaf::DepPinned { crate_name: None });
+        let item = item_with(vec![]);
+        let ctx = TestContext::new(sample_date());
+
+        let node =
+            eval_pred(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx);
+        assert_eq!(
+            node.verdict(),
+            CompositeVerdict::Indeterminate,
+            "e58627d5 lock: supply-chain leaf must yield Indeterminate, not Failed"
+        );
+    }
+
+    #[test]
+    fn evaluate_predicate_emits_deferred_hint_on_supply_chain_leaf() {
+        // evaluate_predicate_with_kind must emit DisciplinePredicateDeferred (not
+        // DisciplinePredicateFailed) when the composite verdict is Indeterminate.
+        // Behavioral lock for the e58627d5 call-site fix.
+        use crate::predicate::{Leaf, Predicate};
+        let pred = Predicate::Leaf(Leaf::DepPinned { crate_name: None });
+        let item = item_with(vec![]);
+        let ctx = TestContext::new(sample_date());
+
+        let r = evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx)
+            .expect("evaluation must not error");
+
+        assert_eq!(
+            r.audit_hint,
+            AuditHint::DisciplinePredicateDeferred,
+            "e58627d5 lock: supply-chain-only predicate must emit DisciplinePredicateDeferred, \
+             not DisciplinePredicateFailed. Got: {:?}",
+            r.audit_hint,
+        );
+        assert_eq!(
+            r.witness_tier,
+            WitnessTier::None,
+            "deferred predicate must not claim any witness tier"
+        );
+    }
+
+    #[test]
+    fn all_of_mixed_supply_chain_and_substrate_is_indeterminate() {
+        // AllOf(dep_pinned, Signers[alice]) with alice in item → Indeterminate.
+        // Confirms Indeterminate propagates through AllOf correctly (not short-circuited
+        // to Failed, not promoted to Passed).
+        use crate::predicate::{Leaf, Predicate, SignerCurrency};
+
+        let item = item_with(vec![alice_fresh(sample_date(), "fp-current")]);
+        let pred = Predicate::AllOf {
+            children: vec![
+                Predicate::Leaf(Leaf::DepPinned { crate_name: None }),
+                Predicate::Leaf(Leaf::Signers {
+                    required: vec!["alice".to_string()],
+                    roles: BTreeMap::new(),
+                    against: SignerCurrency::Current,
+                    signature_allow: vec![],
+                    signature_prefer: None,
+                }),
+            ],
+        };
+        let ctx = TestContext::new(sample_date());
+
+        let node = eval_pred(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx);
+        assert_eq!(
+            node.verdict(),
+            CompositeVerdict::Indeterminate,
+            "AllOf(supply-chain-deferred, substrate-passed) must be Indeterminate"
         );
     }
 }

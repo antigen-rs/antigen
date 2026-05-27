@@ -563,6 +563,7 @@ const fn hint_is_supply_chain(hint: &antigen::audit::AuditHint) -> bool {
         | AuditHint::DisciplineSidecarMissing
         | AuditHint::DisciplineSidecarSchemaInvalid
         | AuditHint::DisciplinePredicateFailed
+        | AuditHint::DisciplinePredicateDeferred
         | AuditHint::DisciplineSubstrateStale
         | AuditHint::DisciplineSubstrateDeltaChainNearCap
         | AuditHint::DisciplinePredicatePassedViaDeltaChain
