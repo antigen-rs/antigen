@@ -1685,3 +1685,89 @@ pub struct AffordanceTrapInAttestationDSL;
     references = ["ADR-005", "ADR-028"]
 )]
 pub struct AuditVerdictComputedButNotDelivered;
+
+// ============================================================================
+// 26. AbsentErrorCollapse
+// ============================================================================
+
+/// A match or parse point conflates the **error case** with the **intentionally-absent
+/// case**, producing silent failures where diagnostics should fire.
+///
+/// The general shape: code has an optional value `Option<T>`. When the value is
+/// `None` (absent — intentionally not set), the correct behavior is to skip the
+/// check (no assumption violated). When the value is `Some(bad-string)` (present
+/// but malformed — a declaration error), the correct behavior is to emit a diagnostic.
+/// Both cases collapse to the same "skip" behavior at the match point, so a malformed
+/// declaration is indistinguishable from an absent one. The author who wrote the
+/// bad value believes they set it correctly; the audit never corrects them.
+///
+/// **Three confirmed shapes across five sites in antigen/cargo-antigen**
+/// (adversarial, 2026-05-27, camp notice):
+///
+/// **(1) None-arm parse collapse** (`if let Some(x) = parse_optional(raw)` where
+/// `raw = Some(bad-string)` → `parse_optional` returns `None` → outer `if let`
+/// arm not entered):
+/// - `audit.rs:1081`: `orient.until = Some("2099/01/01")` (slash-format typo) →
+///   silently grants `OrientActive` forever (campsite `findings/orient-unparseable-until-silent-green`)
+/// - `audit.rs:1072`: `immunosuppress.since = Some("bad-date")` → silently skips
+///   the `duration_cap` exceeded check, granting indefinite `ImmunosuppressActive`
+///   (adversarial commit `fd3e387`)
+///
+/// **(2) Bare-name match without canonical path** (error: wrong crate's entity;
+/// absent: no entity; both treated as "found" or "not-found" without disambiguation):
+/// - `scan.rs:2076`: `d.antigen_type == p.antigen_type` silently credits a defense
+///   from a different crate's `Foo` against this crate's `Foo` (ATK-ADR029-21)
+/// - `audit.rs:1335` (verdict path): same bare-name match in `compute_presentation_verdicts`
+/// - `audit.rs:3100` (G2 path): same bare-name match in `audit_category` G2 check (ATK-G2-22)
+///
+/// **(3) if-let-Ok silent skip** (parse-error arm absent; failure treated as empty-file):
+/// - `main.rs:1738`: `oracle list` silently skips corrupt `.json` files, yielding
+///   "No oracle records found" with exit 0 and no parse-error diagnostic
+///   (campsite `findings/oracle-corrupt-json-silent-skip`)
+/// - `main.rs:3712`: `attest gc` silently skips sidecars with corrupt JSON
+///
+/// **Why the pattern recurs**: each site was written to handle the "intentionally
+/// absent" gracefully (skip or return-empty). The author did not add a separate
+/// arm for "present but malformed" because both initially produce the same
+/// computational result (nothing to work with). The discriminator between "absent"
+/// and "malformed" is never installed.
+///
+/// **Fix direction** (invariant across all three shapes): split the absent arm from
+/// the error arm at the decision point. The absent arm retains its silent/skip behavior
+/// (intentional, correct). The error arm emits a diagnostic (present-but-malformed
+/// is a declaration error, not optional data).
+///
+/// **Silence-generator**: silence-by-absence — the error arm (the one that emits a
+/// diagnostic) was never installed, so malformed declarations are never flagged.
+///
+/// **Biology cognate**: **tolerance by deletion** vs **tolerance by ignorance** —
+/// the immune system tolerates self-antigens EITHER because self-reactive clones
+/// were deleted (absent arm: the clone doesn't exist; no response is correct) OR
+/// because self-antigens were never displayed (ignorance arm: the antigen is not
+/// accessible; no response fires). AbsentErrorCollapse is the failure when these
+/// two arms are not distinguished: an antigen IS present (malformed declaration =
+/// malformed antigen displayed), but the response-gating collapses it into the
+/// "never-displayed" ignorance path, silently failing to respond.
+///
+/// **Internal-tooling discipline**: per
+/// `feedback-internal-tool-antigens-preemptive`, declared from 5+ confirmed
+/// instances across 3 structural shapes. The pattern is structural — any new
+/// match point that handles `None` (absent) without a separate arm for
+/// `Some(parse_failure)` is a potential site.
+///
+/// **Category**: `FunctionalCorrectness` — the tool's diagnostic-emission function
+/// is broken at the error-path: adopters who write malformed declarations get no
+/// correction; the tool appears to accept the malformed input silently.
+#[antigen(
+    name = "absent-error-collapse",
+    category = AntigenCategory::FunctionalCorrectness,
+    fingerprint = r#"doc_contains("absent-error-collapse")"#,
+    family = "dogfood",
+    summary = "A match or parse point conflates the error case (present-but-malformed \
+               declaration) with the absent case (value not set), silently skipping a \
+               diagnostic that should fire. The absent arm's 'skip' behavior is correct; \
+               the error arm's identical 'skip' is the failure. Fix: split the two arms \
+               at the decision point so malformed declarations emit diagnostics.",
+    references = ["ADR-005"]
+)]
+pub struct AbsentErrorCollapse;
