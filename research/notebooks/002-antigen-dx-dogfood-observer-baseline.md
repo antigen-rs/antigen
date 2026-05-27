@@ -1978,3 +1978,51 @@ Navigator message: all 5 coverage sub-campsites complete — `dogfood/comprehens
 - Expedition: 88+ campsites, `comprehensive-antigen-coverage` at 2/3
 - Observer signed: `dogfood/comprehensive-antigen-coverage` (2/3, waiting pathmaker)
 - Total dogfood antigens declared this expedition: #18-#23 (6 new antigens)
+
+---
+
+## Step 39: Post-compaction catch-up — verify-only antigen forced-fingerprint audit
+
+**Date**: 2026-05-27 (UTC)
+**Commit**: `ab0221c` (latest at step start)
+**Status**: Active — session resumed after context compaction
+
+### Hypothesis
+
+After a context compaction boundary, the substrate may have moved. The open campsite `findings/verify-only-antigen-forced-fingerprint` was pitched by navigator after the coverage-fingerprint-tightening sign, and has only the pathmaker's initial note plus a navigator routing note. Observer's job: independently verify the measurement claim (20,771 presentations, 14,792 from supply-chain antigens) and assess the Option A/B/C framing before scientist and aristotle weigh in.
+
+### Verification
+
+**Scan run at HEAD**:
+- 21,023 antigen-related declarations total
+- 20,702 fingerprint matches (vs 20,771 in campsite note; delta = #22 + #23 additions changed the match surface)
+- 95 unaddressed explicit presentations
+- `UnsandboxedProcMacro` alone: 978+ candidates confirmed
+
+The count moved from 20,771 → 20,702 because `#[antigen(PathTraversalViaUnvalidatedComponent, ...)]` and `#[antigen(SerdeDefaultMaskingStructLiteralBreak, ...)]` were added with fingerprints that match narrowly (path-builder, struct-literal patterns), while the ADR-025-placeholder supply-chain antigens continue to match broadly.
+
+**Methodological claim validated**: requiring non-empty fingerprint on verify-only antigens forces `doc_contains('ADR-025')` placeholders that fire on every doc comment mentioning ADR-025. The noise is proportional to ADR-025 mentions in the codebase, not to real vulnerable sites.
+
+### Silence-taxonomy connection
+
+The Option B and C framing ("smells like masking") maps precisely to silence-generator (2) from the `forward/silence-taxonomy-substrate-alignment` campsite (now crystallized to four generators with naturalist biology verification). Specifically:
+
+- **Option B (self-source suppression)**: Would suppress the scan output without fixing the fingerprints. The wrong fingerprints remain but scan is told to ignore them. This is masking applied at the output layer — the failure (inappropriate fingerprint) is hidden rather than removed.
+- **Option C (category marker + filter)**: Same structure — fingerprint remains wrong, marker tells scan to discount it. Still masking.
+- **Option A (optional fingerprint)**: Removes the false enforcement pressure. The fingerprint field becomes structurally honest: present when antigen has a scan surface, absent when it does not.
+
+The finding also has a deeper layer: `FingerprintRequiredForVerifyOnlyAntigen` is itself an antigen candidate — the macro enforcement mechanism manufactures plausible-but-wrong scan candidates, and nothing at audit time signals the manufacture. This is silence-by-masking at the macro enforcement layer, not the implementation layer.
+
+### Results
+
+Deposited observer verification note on `findings/verify-only-antigen-forced-fingerprint` with:
+- Measurement confirmation (count validated)
+- Option A/B/C structural analysis via silence-taxonomy
+- Antigen-candidate framing for the root-cause behavior
+
+### Metrics
+
+- Scan presentations at HEAD: 20,702 fingerprint matches, 95 unaddressed explicit
+- Tests at HEAD: see prior step (no new test run; no code changes)
+- Expedition: 92 campsites total, 7 open, 1 partial, 84 complete
+- Open campsites in observer's lane: `findings/verify-only-antigen-forced-fingerprint` (note deposited), `forward/silence-taxonomy-substrate-alignment` (crystallized, awaiting ADR-028 ceremony), `dogfood/comprehensive-antigen-coverage` (2/3, waiting pathmaker)
