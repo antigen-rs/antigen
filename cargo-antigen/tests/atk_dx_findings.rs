@@ -1,7 +1,7 @@
 //! Adversarial tests for antigen DX findings from the camp binary-adopter expedition.
 //!
-//! Each test asserts what SHOULD be true — and currently FAILS because the fix
-//! has not landed. Tests are named after the finding they exercise.
+//! Each test asserts what SHOULD be true. All findings are now fixed;
+//! tests serve as regression anchors. Tests are named after the finding they exercise.
 //!
 //! Finding 8 — empty fingerprint guard:
 //!   `atk_dx_f8_sign_empty_fp_must_warn`     — sign against="" emits warning + non-zero exit
@@ -68,8 +68,8 @@ fn scaffold_with_fp(dir: &Path, antigen: &str, item: &str, fp: &str) -> PathBuf 
 // Finding 8 — empty fingerprint guard
 // ============================================================================
 
-/// FAILING: sign against an `against="current"` sidecar with empty fingerprint
-/// must warn (or refuse with non-zero exit). Currently silently succeeds.
+/// Regression anchor (Finding 8, fixed): sign against an `against="current"`
+/// sidecar with empty fingerprint must warn (or refuse with non-zero exit).
 ///
 /// Reproducer: camp's `VacuousCompletionFalseGreen` sidecar was signed with
 /// empty `current_fingerprint`; audit then fails the predicate with no hint
@@ -140,12 +140,9 @@ fn atk_dx_f8_sign_empty_fp_any_passes() {
 // Finding 3 — sidecar/witness= disconnect warning
 // ============================================================================
 
-/// FAILING: `audit` against a workspace where an immune site uses `witness=` but
-/// has a signed `.attest/` sidecar must warn that the sidecar is being ignored.
-///
-/// Currently: audit takes the code-witness branch (`validate_witness`) when
-/// `requires_predicate` is None, never checks for a sidecar, and emits no signal.
-/// The adopter believes they've attested; audit disagrees silently.
+/// Regression anchor (Finding 3, fixed): `audit` against a workspace where an
+/// immune site uses `witness=` but has a signed `.attest/` sidecar must warn
+/// that the sidecar is being ignored.
 ///
 /// Reproducer: `antigen/tests/fixtures/atk_a2_003_empty_witness` has
 /// `#[immune(PanickingInDrop, witness = empty_witness)]`. We scaffold+sign a sidecar
@@ -265,11 +262,12 @@ fn atk_dx_f3_audit_warns_on_sidecar_for_witness_site() {
     );
 }
 
-/// FAILING: the jq hint emitted by `attest scaffold` references `.requires_predicate`
-/// which does not exist in the scan JSON schema. The correct field is
-/// `.structural_fingerprint`. Adopters following the hint get a broken jq query.
+/// Regression anchor (Finding 3, fixed): the jq hint emitted by `attest scaffold`
+/// must reference `.structural_fingerprint`, not `.requires_predicate` (which
+/// does not exist in the scan JSON schema). Adopters following the broken hint
+/// get a no-op jq query.
 ///
-/// Reproducer: `attest scaffold` output on any site says:
+/// Reproducer: `attest scaffold` on any site formerly said:
 ///   `jq '.immunities[] | select(.antigen_type=="X") | .requires_predicate'`
 /// but the actual immunity entry schema has no `requires_predicate` field.
 #[test]
@@ -310,16 +308,13 @@ fn atk_dx_f3_jq_hint_uses_correct_field() {
 // Finding 6 — presentations missing structural_fingerprint in scan JSON
 // ============================================================================
 
-/// FAILING: `scan --format json` presentation entries carry no `structural_fingerprint`.
-/// This means fingerprint-matched unmarked sites (the sites an adopter most needs
-/// to decide about) have no fingerprint an adopter can pass to `attest scaffold --fingerprint`.
+/// Regression anchor (Finding 6, fixed): `scan --format json` presentation
+/// entries must carry `structural_fingerprint`. Fingerprint-matched sites
+/// need a fingerprint the adopter can pass to `attest scaffold --fingerprint`.
 ///
-/// Only immunity entries currently carry `structural_fingerprint`.
-/// Presentation entries (the 16k+ fingerprint-matched sites) do not.
-///
-/// Consequence: an adopter scanning their codebase, finding a presentation, and
-/// wanting to scaffold a sidecar with a real fingerprint cannot do so without
-/// first adding an #[immune] macro and re-scanning — a chicken-and-egg problem.
+/// The gap: only immunity entries carried `structural_fingerprint`; presentation
+/// entries did not. An adopter had to add #[immune] and re-scan to get a
+/// fingerprint — a chicken-and-egg problem.
 #[test]
 fn atk_dx_f6_presentation_entry_has_fingerprint() {
     // Serialize against F3 tests that write sidecars to the shared workspace fixture
