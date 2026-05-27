@@ -29,7 +29,7 @@
 
 use std::path::{Path, PathBuf};
 
-use antigen_macros::{immune, presents};
+use antigen_macros::{antigen_tolerance, immune, presents};
 use serde::{Deserialize, Serialize};
 
 use crate::scan::{Immunity, ScanReport};
@@ -2539,6 +2539,16 @@ const MUCOSAL_TOLERANT_RATIONALE_FLOOR: usize = 40;
 /// Structural fix is v0.3+ scope (multi-crate scan pass).
 #[must_use]
 #[presents(DelegateCrossCrateResolutionGap)]
+#[antigen_tolerance(
+    DelegateCrossCrateResolutionGap,
+    rationale = "Accepted v0.2 limitation: handler_kinds is built from intra-crate #[mucosal] \
+                 declarations only, so a #[mucosal_delegate] pointing at a cross-crate handler \
+                 false-positives as MucosalDisciplineDelegateTargetMissing. The structural fix is a \
+                 multi-crate scan pass (v0.3+ scope, same boundary as --include-deps cross-crate \
+                 addressing). Until then the false-positive is the conservative failure (flags rather \
+                 than silently trusts an unresolvable delegate).",
+    until = "v0.3"
+)]
 pub fn audit_mucosal(report: &ScanReport) -> MucosalAuditReport {
     use crate::scan::{ItemTarget, MucosalKindTag};
 
