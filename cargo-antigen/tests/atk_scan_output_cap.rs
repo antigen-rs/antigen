@@ -169,7 +169,7 @@ fn scan_json_output_is_not_capped() {
 // ============================================================================
 
 #[test]
-fn atk_orphaned_lineage_edge_absent_from_scan_output() {
+fn atk_orphaned_lineage_edge_delivered_in_scan_json() {
     // Stage a source directory with:
     //   - ChildClass: declares #[descended_from(ParentClass)] but ParentClass is never declared
     //   - This creates an orphaned lineage edge in the scan report.
@@ -246,7 +246,7 @@ pub struct ChildClass;
 }
 
 #[test]
-fn atk_orphaned_lineage_human_output_silent() {
+fn atk_orphaned_lineage_human_output_warns() {
     // Same scenario as above but checks human-readable output.
     // The human output also carries no orphan warning — an author running
     // `cargo antigen scan` without --format json sees nothing about the orphan.
