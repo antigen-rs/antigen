@@ -866,6 +866,24 @@ pub struct SilentSemanticMismatchAtTrustBoundary;
 /// **Category**: `SubstrateAlignment` — the representation (type declaration, rustdoc, `AuditHint`
 /// variant) diverges from the actual production state (never fires). The declared surface and the
 /// executed surface are out of alignment.
+///
+/// **Fingerprint v0.2 limit (recall is via the explicit marker only)**:
+/// `doc_contains("planned")` is a recall PLACEHOLDER, not a working structural
+/// matcher for this class — same v0.2-DSL limit as
+/// [`ScanVisitorDigestAssignmentOmission`] (#19). Verified via `cargo antigen
+/// scan`: ZERO independent fingerprint matches; the one match (the `AuditHint`
+/// enum at `audit.rs`) is the explicit `#[presents]` marker, which is the
+/// correct + only placement. Two reasons the per-variant instances
+/// (`PolyclonalInsufficientLineages`, `AdccSingleMechanismOnly`) are
+/// unreachable: (a) `doc_contains` is case-sensitive (`matcher.rs` —
+/// `doc_text().contains(needle)`) and the annotations use "Planned" (capital);
+/// (b) more fundamentally, `doc_text` reads only TOP-LEVEL item docs and
+/// synthesis dispatches on top-level `syn::Item` kinds, so enum-VARIANT docs are
+/// never reached regardless of case. So coverage of this class rests on the
+/// explicit `#[presents]` marker on the enclosing TYPE, not fingerprint
+/// synthesis. A grammar that could reach variant-level / body-content recall is
+/// tracked at `forward/fingerprint-grammar-body-content-with-negation`; refine
+/// when it lands.
 #[antigen(
     name = "declared-capability-with-no-production-path",
     category = AntigenCategory::SubstrateAlignment,
