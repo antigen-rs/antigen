@@ -22,27 +22,50 @@ pub fn supply_chain_root(workspace_root: &Path) -> PathBuf {
 }
 
 /// Path to a [`DepAttestation`] sidecar for `<crate>@<version>`.
+///
+/// Defense-in-depth (sub-clause F): `crate_name` is validated against the
+/// safe character set HERE, at the path-building primitive, not only at the
+/// call sites. An invalid crate name (path-traversal sequences, separators)
+/// resolves to the dep-attest directory itself rather than being joined as a
+/// path component, so it cannot escape `supply_chain_root` — a subsequent file
+/// read finds no sidecar (the safe failure) instead of probing an attacker-
+/// chosen path. This guards the `pub fn` primitive against callers (present or
+/// future) that reach it without pre-validating — `evaluate_dep_attested` /
+/// `load_content_hash_record` did exactly that.
 #[must_use]
 pub fn dep_attest_path(workspace_root: &Path, crate_name: &str, version: &str) -> PathBuf {
-    supply_chain_root(workspace_root)
-        .join("dep-attest")
-        .join(format!("{crate_name}@{version}.json"))
+    let dir = supply_chain_root(workspace_root).join("dep-attest");
+    if !is_valid_crate_name(crate_name) || !is_valid_version(version) {
+        return dir;
+    }
+    dir.join(format!("{crate_name}@{version}.json"))
 }
 
 /// Path to a [`ContentHashRecord`] sidecar for `<crate>@<version>`.
+///
+/// Same defense-in-depth as [`dep_attest_path`]: invalid `crate_name`/`version`
+/// resolves to the content-hash directory (in-root, non-escaping), never an
+/// attacker-controlled traversal.
 #[must_use]
 pub fn content_hash_path(workspace_root: &Path, crate_name: &str, version: &str) -> PathBuf {
-    supply_chain_root(workspace_root)
-        .join("content-hash")
-        .join(format!("{crate_name}@{version}.json"))
+    let dir = supply_chain_root(workspace_root).join("content-hash");
+    if !is_valid_crate_name(crate_name) || !is_valid_version(version) {
+        return dir;
+    }
+    dir.join(format!("{crate_name}@{version}.json"))
 }
 
 /// Path to a [`MaintainerSnapshot`] sidecar for `<crate>`.
+///
+/// Same defense-in-depth as [`dep_attest_path`]: invalid `crate_name` resolves
+/// to the maintainer directory (in-root, non-escaping).
 #[must_use]
 pub fn maintainer_path(workspace_root: &Path, crate_name: &str) -> PathBuf {
-    supply_chain_root(workspace_root)
-        .join("maintainer")
-        .join(format!("{crate_name}.json"))
+    let dir = supply_chain_root(workspace_root).join("maintainer");
+    if !is_valid_crate_name(crate_name) {
+        return dir;
+    }
+    dir.join(format!("{crate_name}.json"))
 }
 
 /// Returns `true` iff `name` is a safe crate name: only ASCII alphanumeric, `_`, or `-`.
@@ -53,6 +76,20 @@ pub fn is_valid_crate_name(name: &str) -> bool {
         && name
             .chars()
             .all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '-')
+}
+
+/// Returns `true` iff `version` is safe for path composition.
+///
+/// Allows ASCII alphanumeric plus `.`, `-`, `+` (the `SemVer` pre-release/build
+/// set); rejects path-traversal sequences and separators. Mirrors the version
+/// character-set the CLI's `parse_crate_at_version` enforces, applied here at
+/// the path-building primitive for defense-in-depth.
+#[must_use]
+pub fn is_valid_version(version: &str) -> bool {
+    !version.is_empty()
+        && version
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '-' | '+'))
 }
 
 // ============================================================================
@@ -593,5 +630,77 @@ checksum = "swapped-hash"
                 sandbox_kind: SandboxKind::Build
             }
         );
+    }
+
+    // ========================================================================
+    // Path-traversal defense-in-depth: the path-builder primitives must refuse
+    // to escape supply_chain_root on a malicious crate_name/version, regardless
+    // of whether the caller pre-validated. (observer's finding: evaluate_dep_
+    // attested + load_content_hash_record reached the path-builders without the
+    // is_valid_crate_name check that evaluate_maintainer_unchanged has.)
+    // ========================================================================
+
+    /// A path-traversal `crate_name` must NOT produce a path that escapes the
+    /// supply-chain root. The guarded path-builder resolves it to the in-root
+    /// directory instead of joining the traversal component.
+    #[test]
+    fn path_builders_reject_traversal_crate_name() {
+        let root = Path::new("/ws");
+        let sc_root = supply_chain_root(root);
+        for evil in [
+            "../../../etc/passwd",
+            "..",
+            "foo/bar",
+            "foo\\bar",
+            "a/../../b",
+            "", // empty is also invalid
+        ] {
+            for built in [
+                dep_attest_path(root, evil, "1.0.0"),
+                content_hash_path(root, evil, "1.0.0"),
+                maintainer_path(root, evil),
+            ] {
+                assert!(
+                    built.starts_with(&sc_root),
+                    "path-builder must stay within supply_chain_root for evil \
+                     crate_name {evil:?}; got {built:?}"
+                );
+                // And specifically: it must NOT have joined the traversal — the
+                // built path is the bare in-root directory, no escaping component.
+                assert!(
+                    !built.to_string_lossy().contains(".."),
+                    "built path must not carry a `..` traversal component for \
+                     {evil:?}; got {built:?}"
+                );
+            }
+        }
+    }
+
+    /// A malicious `version` is also blocked (dep_attest/content_hash compose it
+    /// into the filename).
+    #[test]
+    fn path_builders_reject_traversal_version() {
+        let root = Path::new("/ws");
+        let sc_root = supply_chain_root(root);
+        for evil_version in ["../../../etc", "1.0.0/../../.."] {
+            for built in [
+                dep_attest_path(root, "serde", evil_version),
+                content_hash_path(root, "serde", evil_version),
+            ] {
+                assert!(built.starts_with(&sc_root));
+                assert!(!built.to_string_lossy().contains(".."));
+            }
+        }
+    }
+
+    /// Control: a VALID crate_name + version still composes the real sidecar
+    /// path (the guard must not over-reject legitimate input).
+    #[test]
+    fn path_builders_compose_valid_names() {
+        let root = Path::new("/ws");
+        let p = dep_attest_path(root, "serde_json", "1.0.197");
+        assert!(p.ends_with("serde_json@1.0.197.json"));
+        let m = maintainer_path(root, "tokio-util");
+        assert!(m.ends_with("tokio-util.json"));
     }
 }
