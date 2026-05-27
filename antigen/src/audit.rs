@@ -4038,6 +4038,75 @@ mod tests {
     }
 
     // ========================================================================
+    // ATK-G2-adr029-migration: G2 cross-check is dead for post-ADR-029 witnesses
+    //
+    // audit_category() reads report.immunities to determine witness type
+    // (substrate vs code). ADR-029 witnesses use report.defenses (#[defended_by])
+    // instead of report.immunities (#[immune]). When a SubstrateAlignment antigen
+    // is defended only via #[defended_by] (the encouraged ADR-029 path), the
+    // G2 cross-check sees has_any_immunity=false and early-returns (line 3072:
+    // "No immunities addressing this antigen is not a category mismatch").
+    //
+    // The G2 cross-check is therefore silently disabled for any adopter who has
+    // migrated from #[immune] to #[defended_by]. A SubstrateAlignment antigen
+    // defended by a code-tier #[defended_by] test (WRONG witness type for SA)
+    // passes G2 with no hint, because defenses don't populate has_code_witness.
+    //
+    // This is the same computed-not-delivered pattern: the G2 cross-check
+    // computes correctly when immunities are present, but the immunities
+    // collection is empty for ADR-029-style attestation.
+    //
+    // FIX DIRECTION: audit_category() must also consult report.defenses when
+    // computing has_code_witness. A #[defended_by(X)] registration is a
+    // code-tier witness for class X, equivalent to #[immune(X, witness=fn)]
+    // for the purpose of G2's witness-type cross-check.
+    // ========================================================================
+
+    #[test]
+    fn atk_g2_substrate_alignment_with_only_defended_by_bypasses_g2_check() {
+        // ATK-G2-migration: a SubstrateAlignment antigen defended by #[defended_by]
+        // (not #[immune]) silently bypasses the G2 witness-type cross-check.
+        // The check sees has_any_immunity=false and early-returns without a hint,
+        // even though the #[defended_by] code-tier defense is the wrong witness
+        // type for SubstrateAlignment (which needs a substrate-witness).
+        use crate::category::AntigenCategory;
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_decl(
+            "DriftAntigen",
+            vec![AntigenCategory::SubstrateAlignment],
+        ));
+        // ADR-029 style: #[defended_by(DriftAntigen)] on a test function.
+        // This is a CODE-TIER witness -- wrong for SubstrateAlignment.
+        // But G2 never sees it because it reads report.immunities, not report.defenses.
+        report.defenses.push(crate::scan::Defense {
+            antigen_type: "DriftAntigen".to_string(),
+            file: std::path::PathBuf::from("tests/test.rs"),
+            line: 1,
+            item_kind: "fn".to_string(),
+            item_target: crate::scan::ItemTarget::Fn("test_drift_antigen".to_string()),
+        });
+        let out = audit_category(&report);
+
+        // DOCUMENTS THE GAP: G2 reports no mismatch because it never reads
+        // report.defenses. The SubstrateAlignment antigen with only a code-tier
+        // #[defended_by] witness passes the cross-check silently. After the fix,
+        // this should report mismatch_count=1 with AntigenCategoryClaimInconsistentWithPredicateType.
+        assert_eq!(
+            out.mismatch_count,
+            0,
+            "ATK-G2-migration: SubstrateAlignment antigen with only #[defended_by] \
+            (code-tier) witness silently bypasses G2 cross-check -- no mismatch reported \
+            even though the witness type is wrong for SubstrateAlignment. G2 reads \
+            report.immunities only; report.defenses is not consulted. After fix, \
+            mismatch_count should be 1."
+        );
+        assert!(
+            out.audits.is_empty(),
+            "ATK-G2-migration: no hint emitted for wrong-type ADR-029 witness"
+        );
+    }
+
+    // ========================================================================
     // Audit-SF-1 regression (structural_fingerprint from scan overrides
     // sidecar's stored current_fingerprint for staleness detection)
     // ========================================================================
