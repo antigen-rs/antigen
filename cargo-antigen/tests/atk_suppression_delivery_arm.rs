@@ -3,9 +3,9 @@
 //!
 //! ## The failure this guards (forward/suppression-loud-must-be-removed)
 //!
-//! audit_deferred_defenses() in antigen/src/audit.rs correctly computes
-//! DeferredDefenseAuditReport -- active/expired/stale counts, per-declaration
-//! AuditHint values. But `cargo antigen audit` NEVER calls this function. The
+//! `audit_deferred_defenses()` in antigen/src/audit.rs correctly computes
+//! `DeferredDefenseAuditReport` -- active/expired/stale counts, per-declaration
+//! `AuditHint` values. But `cargo antigen audit` NEVER calls this function. The
 //! result is NEVER included in human or JSON output. The delivery arm is
 //! completely severed.
 //!
@@ -34,10 +34,10 @@
 //!
 //! ## Fix direction
 //!
-//! Wire antigen::audit::audit_deferred_defenses(&scan_report, 30) into
-//! run_audit() in main.rs. Human output: always print a prominent section for
+//! Wire `antigen::audit::audit_deferred_defenses(&scan_report, 30)` into
+//! `run_audit()` in main.rs. Human output: always print a prominent section for
 //! active anergy/immunosuppress declarations. JSON output: include the
-//! DeferredDefenseAuditReport as a top-level field `deferred_defense_audit`.
+//! `DeferredDefenseAuditReport` as a top-level field `deferred_defense_audit`.
 //! Key invariant: zero active deferred-defense declarations = silent. One or
 //! more = loudly announced.
 
