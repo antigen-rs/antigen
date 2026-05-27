@@ -1466,20 +1466,26 @@ fn atk_adr029_23_unstamped_defense_wildcard_covers_cross_crate_presentation() {
     // presentation appears unaddressed.
     let unaddressed = report.unaddressed_presentations();
 
-    // CURRENT BEHAVIOR: unaddressed list is EMPTY — the unstamped None defense acts
-    // as a wildcard and "addresses" the stamped dep presentation. The dep's
-    // undefended vulnerability is invisible.
-    //
-    // This is the wildcard semantics: None = "match any crate."
-    assert!(
-        unaddressed.is_empty(),
-        "ATK-ADR029-23 (CURRENT BEHAVIOR — wildcard): an intra-workspace defense \
-        (canonical_path=None) should match the stamped dep presentation \
-        (canonical_path=Some('some-dep@1.0.0')) via the wildcard semantics. \
-        The unaddressed list must be empty because the None defense 'covers' the dep. \
-        If this assertion FAILS: the wildcard semantics were tightened — the None \
-        defense no longer wildcards against stamped presentations. Invert the \
-        assert to expect unaddressed.len()==1 and document the fix."
+    // FIXED (tightened to None-matches-None-only): an unstamped intra-workspace
+    // defense (canonical_path=None) must NOT match a stamped dep presentation
+    // (canonical_path=Some). `stamp_canonical_path` runs all-or-nothing per
+    // scan, so (None defense, Some presentation) is always a cross-boundary
+    // case. The dep's presentation correctly appears in the unaddressed list —
+    // its undefended vulnerability is now visible. If this regresses (empty
+    // list): the wildcard `is_none()` arm was restored to defense_addresses.
+    assert_eq!(
+        unaddressed.len(),
+        1,
+        "ATK-ADR029-23 (FIXED): an intra-workspace defense (canonical_path=None) must \
+        NOT cover a stamped dep presentation (canonical_path=Some). The dep's \
+        presentation must appear unaddressed (len==1). A zero-length result means \
+        the wildcard was restored to defense_addresses. Got: {:?}",
+        unaddressed
+    );
+    assert_eq!(unaddressed[0].presentation.antigen_type, "SharedName");
+    assert_eq!(
+        unaddressed[0].presentation.canonical_path.as_deref(),
+        Some("some-dep@1.0.0")
     );
 }
 

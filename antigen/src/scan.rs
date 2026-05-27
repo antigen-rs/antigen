@@ -2351,18 +2351,29 @@ fn addresses_for_tolerance(t: &Toleration, p: &Presentation) -> bool {
 /// item — so this does NOT compare `item_target` (the witness is elsewhere).
 ///
 /// It IS canonical-path-aware to prevent the cross-crate bare-name overclaim
-/// (ATK-ADR029-21 / ATK-G2-22): a `#[defended_by(Foo)]` in crate A must not
-/// silently satisfy a `#[presents(Foo)]` from crate B. A defense with
-/// `canonical_path = None` matches any (backward-compat: an un-stamped /
-/// intra-workspace defense behaves as the original bare-name match did); a
-/// defense with a specific `canonical_path` matches only same-path presentations.
-/// The single source of truth for "does this defense cover this site" — all
-/// three call sites (`unaddressed_presentations`, the verdict computation, and the
-/// G2 cross-check) route through here so the matching rule cannot drift.
+/// (ATK-ADR029-21 / ATK-G2-22 / ATK-ADR029-23): a `#[defended_by(Foo)]` in
+/// crate A must not silently satisfy a `#[presents(Foo)]` from crate B. The
+/// match is plain equality on `canonical_path` — None matches None only
+/// (intra-workspace, both unstamped), Some(x) matches Some(x) only (cross-crate
+/// stamped, same path). The previous "None wildcards against any" rule
+/// (ATK-ADR029-23) let an unstamped primary-workspace defense silently address
+/// a stamped dep presentation, hiding the dep's undefended vulnerability in
+/// `--include-deps` scans; `stamp_canonical_path` runs all-or-nothing per scan
+/// so `(None defense, Some presentation)` is always a cross-boundary case that
+/// must not match. The single source of truth for "does this defense cover this
+/// site" — all three call sites (`unaddressed_presentations`, the verdict
+/// computation, and the G2 cross-check) route through here so the matching
+/// rule cannot drift.
 #[must_use]
 pub(crate) fn defense_addresses(d: &Defense, p: &Presentation) -> bool {
-    d.antigen_type == p.antigen_type
-        && (d.canonical_path.is_none() || d.canonical_path == p.canonical_path)
+    // canonical_path equality (None == None for intra-workspace, Some(x) == Some(x)
+    // for cross-crate stamped). The previous `is_none()` wildcard arm let an
+    // unstamped intra-workspace defense silently address a stamped dep
+    // presentation, hiding the dep's undefended vulnerability in --include-deps
+    // scans (ATK-ADR029-23). stamp_canonical_path runs all-or-nothing per scan,
+    // so a `None` defense paired with a `Some` presentation is always a
+    // cross-boundary case and should never match.
+    d.antigen_type == p.antigen_type && d.canonical_path == p.canonical_path
 }
 
 /// Hard depth limit for `#[descended_from]` lineage chains.
