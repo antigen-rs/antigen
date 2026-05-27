@@ -1650,6 +1650,20 @@ pub struct DeferredDefense {
     /// See-also references (orient; also poxparty name field stored here).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub see: Vec<String>,
+    /// `#[immunosuppress(since = "YYYY-MM-DD")]` — the suppression start date,
+    /// as a typed field (was previously stuffed into `see[]` as a `"since:DATE"`
+    /// string tag, which the audit could never parse — the
+    /// `ImmunosuppressDurationCapExceeded`-unreachable root cause). The audit
+    /// computes elapsed days from this to enforce the duration cap.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub since: Option<String>,
+    /// `#[immunosuppress(duration_cap = N)]` — the maximum allowed suppression
+    /// duration in days, as a typed field (was a `"duration_cap:Nd"` `see[]`
+    /// string tag). When `since + duration_cap` is in the past, the audit emits
+    /// `ImmunosuppressDurationCapExceeded` — the cap was unenforceable at audit
+    /// time while this lived only as an unparsed string.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration_cap: Option<u64>,
     /// Source file path.
     pub file: PathBuf,
     /// Line number.
@@ -3724,6 +3738,9 @@ impl ScanVisitor<'_> {
                 expected_co_stimulation: args.expected_co_stimulation,
                 signed_by: args.signed_by,
                 see: Vec::new(),
+                // anergy carries no duration cap (it does not auto-expire).
+                since: None,
+                duration_cap: None,
                 file: self.file_path.clone(),
                 line,
                 item_kind: item_kind.to_string(),
@@ -3749,14 +3766,6 @@ impl ScanVisitor<'_> {
                     return;
                 }
             };
-            let mut see = Vec::new();
-            if let Some(since) = &args.since {
-                // Store since as a see-ref for audit correlation
-                see.push(format!("since:{since}"));
-            }
-            if let Some(cap) = args.duration_cap {
-                see.push(format!("duration_cap:{cap}d"));
-            }
             let line = Self::line_of_attr(attr);
             self.report.deferred_defenses.push(DeferredDefense {
                 kind: DeferredDefenseKind::Immunosuppress,
@@ -3769,7 +3778,12 @@ impl ScanVisitor<'_> {
                 },
                 expected_co_stimulation: None,
                 signed_by: args.signed_by,
-                see,
+                see: Vec::new(),
+                // since + duration_cap are now TYPED fields (no longer `see[]`
+                // string tags) so the audit can compute elapsed-days vs cap and
+                // emit ImmunosuppressDurationCapExceeded.
+                since: args.since.clone(),
+                duration_cap: args.duration_cap,
                 file: self.file_path.clone(),
                 line,
                 item_kind: item_kind.to_string(),
@@ -3815,6 +3829,9 @@ impl ScanVisitor<'_> {
                 expected_co_stimulation: None,
                 signed_by: args.signed_by,
                 see,
+                // poxparty carries no duration cap (cfg-gated, not time-capped).
+                since: None,
+                duration_cap: None,
                 file: self.file_path.clone(),
                 line,
                 item_kind: item_kind.to_string(),
@@ -3851,6 +3868,8 @@ impl ScanVisitor<'_> {
                     expected_co_stimulation: None,
                     signed_by: None,
                     see: adr_see,
+                    since: None,
+                    duration_cap: None,
                     file: self.file_path.clone(),
                     line,
                     item_kind: item_kind.to_string(),
@@ -3868,6 +3887,8 @@ impl ScanVisitor<'_> {
                     expected_co_stimulation: None,
                     signed_by: None,
                     see: Vec::new(),
+                    since: None,
+                    duration_cap: None,
                     file: self.file_path.clone(),
                     line,
                     item_kind: item_kind.to_string(),
