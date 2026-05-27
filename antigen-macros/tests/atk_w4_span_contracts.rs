@@ -64,27 +64,18 @@ fn atk_w4_002_kebab_case_error_spans_offending_literal() {
 }
 
 // ============================================================================
-// ATK-W4-003: missing_fingerprint anchors at the args list, not call_site
+// ATK-W4-003: REMOVED — missing_fingerprint is no longer a compile error
 //
-// Decision: when no offending token exists (missing required field), anchor
-// at the macro's argument list (input.span() during parse, captured as
-// args_span). This points at the first token of the arg list — the closest
-// meaningful location to "where the missing field should have gone."
+// ADR-009 Amendment 1 (ratified 2026-05-27) makes `fingerprint` optional:
+// `#[antigen(name = "x")]` without a fingerprint is now a verify-only antigen
+// (no syn-scannable source surface; detection is via `requires=`/witness only).
+// The compile-fail fixture (tests/ui/missing_fingerprint.rs) and this test were
+// removed because the behavior they pinned no longer exists.
 //
-// Documented in parse.rs module docstring as the W4 span discipline.
+// The W4 args_span discipline (anchor at first token of arg list, not call_site)
+// is still enforced by ATK-W4-001 (empty_name) which exercises the same span
+// path via a different required-field validation.
 // ============================================================================
-
-#[test]
-fn atk_w4_003_missing_fingerprint_has_consistent_span_strategy() {
-    let stderr = read_stderr("missing_fingerprint");
-    // Anchor at column 11 (the `name` ident — first token of the arg list).
-    // NOT col 1 (which would be call_site / whole-invocation span).
-    assert_anchor(&stderr, "missing_fingerprint", 7, 11);
-    assert!(
-        !stderr.contains("missing_fingerprint.rs:7:1\n"),
-        "missing_fingerprint must not use call_site span (col 1); got:\n{stderr}",
-    );
-}
 
 // ============================================================================
 // ATK-W4-004: immune_without_witness spans the antigen path
@@ -136,10 +127,11 @@ fn atk_w4_005_unknown_field_span_must_not_regress() {
 
 #[test]
 fn atk_w4_006_no_w4_fixture_uses_call_site_span() {
+    // Note: missing_fingerprint was removed from this set when ADR-009
+    // Amendment 1 made fingerprint optional — it is no longer a compile error.
     let fixtures = [
         ("empty_name", 7),
         ("non_kebab_case_name", 8),
-        ("missing_fingerprint", 7),
         ("immune_without_witness", 10),
         ("unknown_antigen_field", 9),
     ];
