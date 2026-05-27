@@ -95,7 +95,6 @@ use crate::antigen;
 #[antigen(
     name = "rollback-without-triage-commit",
     category = AntigenCategory::SubstrateAlignment,
-    fingerprint = r#"doc_contains("ADR-026")"#,
     family = "vcs-information-loss",
     summary = "Rollback commit without a Triage-Decision trailer pointing to a #[triage_commit] marker. Rationale-before-action vs after-the-fact.",
     references = ["ADR-026", "ADR-026#D1"]
@@ -125,7 +124,6 @@ pub struct RollbackWithoutTriageCommit;
 #[antigen(
     name = "refactor-without-preservation-of-why",
     category = AntigenCategory::SubstrateAlignment,
-    fingerprint = r#"doc_contains("ADR-026")"#,
     family = "vcs-information-loss",
     summary = "Refactor that erases load-bearing 'why' context without a Preserves-Why trailer or descended_from chain. Original antigenic sin: bias toward known-shape blinds future readers to the original antigen.",
     references = ["ADR-026", "ADR-018"]
@@ -155,7 +153,6 @@ pub struct RefactorWithoutPreservationOfWhy;
 #[antigen(
     name = "branch-deletion-without-attestation",
     category = AntigenCategory::SubstrateAlignment,
-    fingerprint = r#"doc_contains("ADR-026")"#,
     family = "vcs-information-loss",
     summary = "Branch deleted without a .attest/vcs/branch-archive/ attestation sidecar recording who + why. Client-side bypassable via git update-ref -d; structural enforcement requires server-side hook.",
     references = ["ADR-026"]
@@ -194,7 +191,6 @@ pub struct BranchDeletionWithoutAttestation;
 #[antigen(
     name = "force-push-erasing-history",
     category = AntigenCategory::SubstrateAlignment,
-    fingerprint = r#"doc_contains("ADR-026")"#,
     family = "vcs-information-loss",
     summary = "Force-push (--force OR --force-with-lease per ADR-026 D2) erasing substantive history. Central family cognate: Immune amnesia (measles) — memory-carrying-substrate loss with documented harm + structural defense.",
     references = [
@@ -231,7 +227,6 @@ pub struct ForcePushErasingHistory;
 #[antigen(
     name = "squash-merge-losing-intermediate-state",
     category = AntigenCategory::SubstrateAlignment,
-    fingerprint = r#"doc_contains("ADR-026")"#,
     family = "vcs-information-loss",
     summary = "Squash-merge collapsing substantive intermediate commits without a Squash-Preserves trailer. Affinity-maturation history loss: per-generation record is the optimization path.",
     references = ["ADR-026"]
@@ -264,7 +259,6 @@ pub struct SquashMergeLosingIntermediateState;
 #[antigen(
     name = "cherry-pick-losing-original-context",
     category = AntigenCategory::SubstrateAlignment,
-    fingerprint = r#"doc_contains("ADR-026")"#,
     family = "vcs-information-loss",
     summary = "Cherry-pick without Cherry-Picked-From trailer (or with no Cherry-Pick-Context for multi-commit-PR commits). Class-switching context loss: same Fab, different Fc, different behavior.",
     references = ["ADR-026"]
@@ -298,7 +292,6 @@ pub struct CherryPickLosingOriginalContext;
 #[antigen(
     name = "rebase-rewriting-history-without-log",
     category = AntigenCategory::SubstrateAlignment,
-    fingerprint = r#"doc_contains("ADR-026")"#,
     family = "vcs-information-loss",
     summary = "Rebase erasing original commit hashes without a Rebase-Archive trailer pointing to the pre-rebase archive sidecar. V(D)J recombination without per-cell record.",
     references = ["ADR-026"]
@@ -329,7 +322,6 @@ pub struct RebaseRewritingHistoryWithoutLog;
 #[antigen(
     name = "unpushed-branch-with-substantive-work",
     category = AntigenCategory::SubstrateAlignment,
-    fingerprint = r#"doc_contains("ADR-026")"#,
     family = "vcs-information-loss",
     summary = "Local branch with >N substantive commits not pushed for >M days. Single-point-of-failure substrate.",
     references = ["ADR-026"]
@@ -362,7 +354,6 @@ pub struct UnpushedBranchWithSubstantiveWork;
 #[antigen(
     name = "stashed-work-abandoned",
     category = AntigenCategory::SubstrateAlignment,
-    fingerprint = r#"doc_contains("ADR-026")"#,
     family = "vcs-information-loss",
     summary = "git stash entry older than threshold without an attestation of intent (apply/drop/park). Anergy/primed-without-activation: shape of work-in-progress without commitment direction.",
     references = ["ADR-026", "ADR-023"]
@@ -391,7 +382,6 @@ pub struct StashedWorkAbandoned;
 #[antigen(
     name = "merge-conflict-resolution-without-attestation",
     category = AntigenCategory::SubstrateAlignment,
-    fingerprint = r#"doc_contains("ADR-026")"#,
     family = "vcs-information-loss",
     summary = "Merge commit with non-trivial conflict resolution but no Conflict-Resolution trailer recording the rationale.",
     references = ["ADR-026"]
@@ -422,7 +412,6 @@ pub struct MergeConflictResolutionWithoutAttestation;
 #[antigen(
     name = "amended-commit-without-old-hash-preservation",
     category = AntigenCategory::SubstrateAlignment,
-    fingerprint = r#"doc_contains("ADR-026")"#,
     family = "vcs-information-loss",
     summary = "git commit --amend on a published or externally-referenced commit without an Amended-From trailer carrying the pre-amend hash.",
     references = ["ADR-026"]

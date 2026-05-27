@@ -71,7 +71,6 @@ use crate::antigen;
 #[antigen(
     name = "unpinned-dependency",
     category = AntigenCategory::SubstrateAlignment,
-    fingerprint = r#"doc_contains("ADR-025")"#,
     family = "supply-chain-distributed-boundary-innate-immunity",
     summary = "Cargo.toml dep without exact-pin `=` version specifier. PRR specificity discipline: receptors that bind too loosely produce noise.",
     references = [
@@ -116,7 +115,6 @@ pub struct UnpinnedDependency;
 #[antigen(
     name = "unpinned-transitive-dependency",
     category = AntigenCategory::SubstrateAlignment,
-    fingerprint = r#"doc_contains("ADR-025")"#,
     family = "supply-chain-distributed-boundary-innate-immunity",
     summary = "NARROW: direct dep that uses `*` or `?` for ITS OWN transitive dependencies. The broad 'any transitive non-exact-pin' definition was REJECTED in ADR-025 B9-R (100% false-positive rate).",
     references = ["ADR-025", "ADR-025#B9-R"]
@@ -149,7 +147,6 @@ pub struct UnpinnedTransitiveDependency;
 #[antigen(
     name = "unattested-dependency-inclusion",
     category = AntigenCategory::SubstrateAlignment,
-    fingerprint = r#"doc_contains("ADR-025")"#,
     family = "supply-chain-distributed-boundary-innate-immunity",
     summary = "New dependency added without team-attestation. AI-pair-generated `cargo add` is the canonical failure pattern.",
     references = ["ADR-025"]
@@ -178,7 +175,6 @@ pub struct UnattestedDependencyInclusion;
 #[antigen(
     name = "dependency-upgrade-without-diff-review",
     category = AntigenCategory::SubstrateAlignment,
-    fingerprint = r#"doc_contains("ADR-025")"#,
     family = "supply-chain-distributed-boundary-innate-immunity",
     summary = "Version bump without diff-reviewed attestation. Account-compromise control: maintainer-account takeovers publish drift inside fixed major versions.",
     references = ["ADR-025"]
@@ -206,7 +202,6 @@ pub struct DependencyUpgradeWithoutDiffReview;
 #[antigen(
     name = "auto-dependency-chain-without-pinning",
     category = AntigenCategory::SubstrateAlignment,
-    fingerprint = r#"doc_contains("ADR-025")"#,
     family = "supply-chain-distributed-boundary-innate-immunity",
     summary = "`*` or `?` version-range specifier anywhere in dep tree allows automatic chain-of-updates with no human gate.",
     references = ["ADR-025"]
@@ -242,7 +237,6 @@ pub struct AutoDependencyChainWithoutPinning;
 #[antigen(
     name = "maintainer-change-without-reattestation",
     category = AntigenCategory::SubstrateAlignment,
-    fingerprint = r#"doc_contains("ADR-025")"#,
     family = "supply-chain-distributed-boundary-innate-immunity",
     summary = "Crate ownership change without team-reattestation. CI sequencing constraint: `verify maintainer-changes` MUST run BEFORE `cargo update`.",
     references = ["ADR-025"]
@@ -274,7 +268,6 @@ pub struct MaintainerChangeWithoutReattestation;
 #[antigen(
     name = "sudden-dependency-expansion",
     category = AntigenCategory::SubstrateAlignment,
-    fingerprint = r#"doc_contains("ADR-025")"#,
     family = "supply-chain-distributed-boundary-innate-immunity",
     summary = "Version bump with large LOC/dep-count delta. Complements `DependencyUpgradeWithoutDiffReview` for the implausibly-thorough-review case.",
     references = ["ADR-025"]
@@ -302,7 +295,6 @@ pub struct SuddenDependencyExpansion;
 #[antigen(
     name = "unsandboxed-build-script",
     category = [AntigenCategory::SubstrateAlignment, AntigenCategory::FunctionalCorrectness],
-    fingerprint = r#"doc_contains("ADR-025")"#,
     family = "supply-chain-distributed-boundary-innate-immunity",
     summary = "External-dep `build.rs` runs at compile time with full developer/CI privilege. Named limitation: environment-aware (time-bomb) attacks bypass sandbox detection — code that checks IS_CI or timestamps passes the sandbox test but misbehaves in prod. Macrophage phagosome containment cognate.",
     references = ["ADR-025"]
@@ -331,7 +323,6 @@ pub struct UnsandboxedBuildScript;
 #[antigen(
     name = "unsandboxed-proc-macro",
     category = [AntigenCategory::SubstrateAlignment, AntigenCategory::FunctionalCorrectness],
-    fingerprint = r#"doc_contains("ADR-025")"#,
     family = "supply-chain-distributed-boundary-innate-immunity",
     summary = "External proc-macro runs in-`rustc` at compile time. HIGHER risk than `UnsandboxedBuildScript`: arbitrary code execution inside the compiler process. Named limitation: environment-aware (time-bomb) attacks and environment-detection bypass sandbox testing.",
     references = ["ADR-025", "ADR-025#B3-R"]
@@ -358,7 +349,6 @@ pub struct UnsandboxedProcMacro;
 #[antigen(
     name = "post-install-script-in-dependency",
     category = AntigenCategory::SubstrateAlignment,
-    fingerprint = r#"doc_contains("ADR-025")"#,
     family = "supply-chain-distributed-boundary-innate-immunity",
     summary = "External code runs at install/build time. Generalizes `UnsandboxedBuildScript` to cover FFI bridges, vendored downloads, cmake/make invocations.",
     references = ["ADR-025"]
@@ -402,7 +392,6 @@ pub struct PostInstallScriptInDependency;
 #[antigen(
     name = "content-hash-mismatch",
     category = AntigenCategory::SubstrateAlignment,
-    fingerprint = r#"doc_contains("ADR-025")"#,
     family = "supply-chain-distributed-boundary-innate-immunity",
     summary = "Content-hash of pinned crate@version differs from first-attestation. NON-NEGOTIABLE: defends the chalk/debug/eslint-config (2025) content-replacement-at-fixed-version attack. Cargo.lock pins version, not content-hash.",
     references = [

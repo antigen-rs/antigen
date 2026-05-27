@@ -90,7 +90,14 @@ impl MacroAntigenCategory {
 #[derive(Debug)]
 pub struct AntigenArgs {
     pub name: String,
-    pub fingerprint: String,
+    /// Structural fingerprint (ADR-010 grammar). `None` for verify-only antigens
+    /// (ADR-009 Amendment 1): supply-chain / VCS-info-loss families whose
+    /// detection-model is external-substrate (Cargo.lock, registry, git) — they
+    /// have no syn-scannable source surface, so forcing a fingerprint forced them
+    /// to declare a scan-surface they don't have (the ~14.8k spurious-presentation
+    /// bug). Absent ⇒ verify-only: no scan-detection; audit evaluates via
+    /// `requires=`/witness only.
+    pub fingerprint: Option<String>,
     pub family: Option<String>,
     pub summary: Option<String>,
     pub references: Vec<String>,
@@ -238,9 +245,9 @@ impl Parse for AntigenArgs {
 
         let name =
             name.ok_or_else(|| syn::Error::new(args_span, "#[antigen] requires `name = \"...\"`"))?;
-        let fingerprint = fingerprint.ok_or_else(|| {
-            syn::Error::new(args_span, "#[antigen] requires `fingerprint = \"...\"`")
-        })?;
+        // ADR-009 Amendment 1: `fingerprint` is no longer required. Absent ⇒
+        // verify-only antigen (external-substrate detection-model; no syn-scan
+        // surface). Present ⇒ validated/parsed in `validate()` as before.
 
         Ok(Self {
             name,
@@ -273,25 +280,32 @@ impl AntigenArgs {
                 ),
             ));
         }
-        if self.fingerprint.is_empty() {
-            return Err(syn::Error::new(
-                self.fingerprint_span.unwrap_or(self.args_span),
-                "#[antigen] `fingerprint` cannot be empty",
-            ));
-        }
-        // W6a: per ADR-010 Amendment 3 Clause E, the fingerprint string is
-        // parsed at macro-compile time so malformed fingerprints don't ship.
-        // Re-anchor any Path-C parser error to the fingerprint literal's span
-        // so the user sees the squiggle on the offending text.
-        if let Err(parse_err) = antigen_fingerprint::Fingerprint::parse(&self.fingerprint) {
-            let anchor = self.fingerprint_span.unwrap_or(self.args_span);
-            return Err(syn::Error::new(
-                anchor,
-                format!(
-                    "#[antigen] `fingerprint` does not parse: {parse_err}\n\
-                     (per ADR-010 Amendment 1 Path C — DSL syntax, not raw Rust expressions)"
-                ),
-            ));
+        // ADR-009 Amendment 1: `fingerprint` is optional (verify-only antigens
+        // omit it). When PRESENT it must still be non-empty + parse — an empty
+        // or malformed fingerprint is a user error, distinct from a deliberate
+        // absence. When absent, there is no scan-surface to validate.
+        if let Some(fingerprint) = self.fingerprint.as_deref() {
+            if fingerprint.is_empty() {
+                return Err(syn::Error::new(
+                    self.fingerprint_span.unwrap_or(self.args_span),
+                    "#[antigen] `fingerprint` cannot be empty (omit the field entirely \
+                     for a verify-only antigen, per ADR-009 Amendment 1)",
+                ));
+            }
+            // W6a: per ADR-010 Amendment 3 Clause E, the fingerprint string is
+            // parsed at macro-compile time so malformed fingerprints don't ship.
+            // Re-anchor any Path-C parser error to the fingerprint literal's span
+            // so the user sees the squiggle on the offending text.
+            if let Err(parse_err) = antigen_fingerprint::Fingerprint::parse(fingerprint) {
+                let anchor = self.fingerprint_span.unwrap_or(self.args_span);
+                return Err(syn::Error::new(
+                    anchor,
+                    format!(
+                        "#[antigen] `fingerprint` does not parse: {parse_err}\n\
+                         (per ADR-010 Amendment 1 Path C — DSL syntax, not raw Rust expressions)"
+                    ),
+                ));
+            }
         }
         // ADR-028: category is a SET (SubstrateAlignment | FunctionalCorrectness | both).
         // Vec<MacroAntigenCategory> must not contain duplicate entries — duplicates
@@ -3899,7 +3913,8 @@ mod tests {
                 .unwrap_or_else(|e| panic!("macro parser rejected fixture {input:?}: {e}"));
             assert_eq!(&args.name, exp_name, "name mismatch for fixture: {input:?}");
             assert_eq!(
-                &args.fingerprint, exp_fp,
+                args.fingerprint.as_deref(),
+                Some(*exp_fp),
                 "fingerprint mismatch for fixture: {input:?}"
             );
             assert_eq!(
@@ -3922,9 +3937,22 @@ mod tests {
     }
 
     #[test]
-    fn antigen_parser_rejects_missing_fingerprint() {
-        let tokens: TokenStream = r#"name = "x""#.parse().unwrap();
-        assert!(syn::parse2::<AntigenArgs>(tokens).is_err());
+    fn antigen_parser_accepts_missing_fingerprint_as_verify_only() {
+        // ADR-009 Amendment 1: a missing `fingerprint` is no longer an error —
+        // it declares a verify-only antigen (external-substrate detection-model,
+        // no syn-scan surface). Parse succeeds with `fingerprint: None`, and
+        // validate() does not require it.
+        let tokens: TokenStream = r#"name = "verify-only-class""#.parse().unwrap();
+        let args = syn::parse2::<AntigenArgs>(tokens)
+            .expect("a fingerprint-less #[antigen] is a valid verify-only declaration");
+        assert!(
+            args.fingerprint.is_none(),
+            "absent fingerprint must parse as None, not a placeholder"
+        );
+        assert!(
+            args.validate().is_ok(),
+            "validate() must accept a verify-only antigen (no fingerprint to check)"
+        );
     }
 
     #[test]
@@ -3950,7 +3978,7 @@ mod tests {
     fn args_with(name: &str, fingerprint: &str) -> AntigenArgs {
         AntigenArgs {
             name: name.to_string(),
-            fingerprint: fingerprint.to_string(),
+            fingerprint: Some(fingerprint.to_string()),
             family: None,
             summary: None,
             references: Vec::new(),
@@ -5516,7 +5544,7 @@ mod parser_props {
             let tokens: TokenStream = body.parse().expect("body must tokenize");
             let args = syn::parse2::<AntigenArgs>(tokens).expect("body must parse");
             prop_assert_eq!(&args.name, &name);
-            prop_assert_eq!(&args.fingerprint, &fingerprint);
+            prop_assert_eq!(args.fingerprint.as_deref(), Some(fingerprint.as_str()));
             prop_assert_eq!(args.family.as_deref(), family.as_deref());
             prop_assert_eq!(args.summary.as_deref(), summary.as_deref());
             // W6a: validate() now invokes antigen_fingerprint::Fingerprint::parse,
@@ -5527,7 +5555,7 @@ mod parser_props {
 
             // Round-trip: re-render the parsed args and re-parse. Result
             // must be identical (idempotency under the canonical rendering).
-            let re_rendered = render_antigen_body(&args.name, &args.fingerprint, args.family.as_deref(), args.summary.as_deref());
+            let re_rendered = render_antigen_body(&args.name, args.fingerprint.as_deref().unwrap_or(""), args.family.as_deref(), args.summary.as_deref());
             let re_tokens: TokenStream = re_rendered.parse().expect("re-rendered body must tokenize");
             let args2 = syn::parse2::<AntigenArgs>(re_tokens).expect("re-rendered body must parse");
             prop_assert_eq!(&args.name, &args2.name);
@@ -5589,8 +5617,12 @@ mod parser_props {
             prop_assert!(err.contains("name"), "error must mention `name`, got: {err:?}");
         }
 
+        // ADR-009 Amendment 1: a missing `fingerprint` is no longer rejected —
+        // it parses as a verify-only antigen (fingerprint: None) whose detection
+        // is external-substrate. The invariant flipped: missing-fingerprint ⇒
+        // parses + validates, with fingerprint None.
         #[test]
-        fn antigen_parser_requires_fingerprint(
+        fn antigen_parser_accepts_missing_fingerprint_verify_only(
             name in valid_kebab(),
             family in proptest::option::of(valid_text(16)),
         ) {
@@ -5600,10 +5632,10 @@ mod parser_props {
             }
             let body = parts.join(", ");
             let tokens: TokenStream = body.parse().expect("body tokenizes");
-            let result = syn::parse2::<AntigenArgs>(tokens);
-            prop_assert!(result.is_err(), "expected parser to reject input missing `fingerprint`: {body:?}");
-            let err = result.unwrap_err().to_string();
-            prop_assert!(err.contains("fingerprint"), "error must mention `fingerprint`, got: {err:?}");
+            let args = syn::parse2::<AntigenArgs>(tokens)
+                .expect("a fingerprint-less #[antigen] is a valid verify-only declaration");
+            prop_assert!(args.fingerprint.is_none(), "absent fingerprint must be None");
+            prop_assert!(args.validate().is_ok(), "verify-only antigen must validate");
         }
 
         // P5 — unknown-field rejection (macro-side strictness; the scan
