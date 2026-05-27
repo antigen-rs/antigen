@@ -4,11 +4,11 @@
 
 Comprehensive, co-native, structural memory of fail-classes, defenses, attestations, and coordination — accessible natively to both human and AI agents. Built for the age of agentic dev, vibe-coding, and human-LLM collaboration.
 
-> **Status**: v0.1.0-rc.3 — release candidate. Core macros, fingerprint grammar,
+> **Status**: v0.2 — active development. Core macros, fingerprint grammar,
 > scan + audit + attest + tolerate + oracle CLI, Oracle 5-state lifecycle,
-> cross-cutting attestation, substrate-witness predicates. Pinning `=0.1.0-rc.3`
-> lets early adopters validate before v0.1.0 final. See [`CHANGELOG.md`](CHANGELOG.md)
-> for the full manifest.
+> cross-cutting attestation, substrate-witness predicates, ADR-029 defense/observation
+> vocabulary (`#[defended_by]`, extended `#[presents]`), four macro families in v0.2
+> stdlib. See [`CHANGELOG.md`](CHANGELOG.md) for the full manifest.
 
 ---
 
@@ -36,11 +36,11 @@ The table below shows the full transformation vocabulary antigen is building. En
 
 | Memory form (rots) | Structure form (surfaces itself) |
 |---|---|
-| `/// assumes X never panics` | `#[immune(X, requires = ...)]` * |
-| README "we follow Y discipline" | `#[antigen(Y)]` + per-site `#[immune(Y, ...)]` * |
-| `// Last reviewed: 2024-01-15` | `#[immune(..., requires = fresh_within_days(N))]` * |
+| `/// assumes X never panics` | `#[presents(X, requires = ...)]` + `#[defended_by(X)]` on test * |
+| README "we follow Y discipline" | `#[antigen(Y)]` + per-site `#[presents(Y, requires = ...)]` * |
+| `// Last reviewed: 2024-01-15` | `#[presents(..., requires = fresh_within_days(N))]` * |
 | `// intentional, don't touch` | `#[antigen_tolerance(rationale = "...")]` * |
-| Generated-code provenance | `#[immune(GeneratedCodeWithoutHumanAttestation, signers([reviewer]))]` * |
+| Generated-code provenance | `#[presents(GeneratedCodeWithoutHumanAttestation, requires = signers([reviewer]))]` * |
 | `// TODO: refactor this` | `#[itch(...)]` or `#[panel(...)]` |
 | `// FIXME: hack` | `#[anergy(rationale = "...")]` |
 | `// HACK: until Q3` | `#[poxparty(until = "...")]` |
@@ -92,15 +92,17 @@ Antigen is a **third pillar** alongside testing and documentation. Both of those
 
 ---
 
-## The vocabulary (v0.1, shipping now)
+## The vocabulary (v0.2, current)
 
 Five macros form antigen's core vocabulary:
 
 - **`#[antigen(...)]`** — declare a named failure-class with a structural fingerprint
-- **`#[presents(AntigenName)]`** — mark code as vulnerable to a known failure-class
-- **`#[immune(AntigenName, witness = ...)]`** or **`#[immune(AntigenName, requires = ...)]`** — claim the code is protected. Use `witness =` when a *test can run the defense* (the failure-class is about behavior — a test, proptest, formal proof, lint, or phantom-type exercises it); use `requires =` when the evidence lives *outside the code* (the failure-class is about substrate state — a sign-off, a ratified doc, a signed record, evaluated by `cargo antigen audit`)
+- **`#[presents(AntigenName)]`** — mark code as presenting (vulnerable to) a known failure-class; extended form `#[presents(AntigenName, requires = P, proof = P, min_tier = T)]` adds substrate evidence requirements
+- **`#[defended_by(AntigenName)]`** — place on a test to declare that test is the *observed defense* for a presentation; this is the code-tier witness (ADR-029). `#[immune]` was the v0.1 equivalent and is now deprecated — use `#[defended_by]` on tests instead
 - **`#[descended_from(Parent)]`** — declare structural inheritance between failure-classes
 - **`#[antigen_tolerance(AntigenName, rationale = ...)]`** — explicitly tolerate a fingerprint match the team has reviewed
+
+The shift from `#[immune]` to `#[defended_by]` reflects a key design correction (ADR-029): immunity is **observed** (a defense you can witness), not **declared** (a verdict you stamp). `#[defended_by(X)]` on a test says "this test IS the defense" — the claim is falsifiable and audit-verifiable. The old `#[immune(X)]` on the implementation site declared a verdict without a carrier; cargo antigen audit couldn't validate what it couldn't witness.
 
 Plus four cargo subcommands:
 
@@ -165,7 +167,7 @@ The biological metaphor is **load-bearing, not decorative**. The immune system i
 | Pathogen Recognition Receptors (PRRs) | structural pattern matchers in `cargo antigen scan` |
 | MHC Class I/II presentation | `#[presents(antigen)]` |
 | B-cell memory (pattern layer) | `#[antigen(name = "...")]` declarations |
-| Antibody | `witness =` in `#[immune]` — test, proptest, phantom-type, lint reference (the API word for antibody is *witness*; see glossary) |
+| Antibody | `#[defended_by(X)]` on a test — the observed defense, the code-tier witness (the API word for antibody is *witness*; see glossary) |
 | Substrate sensing (germinal-center history, signed records) | `requires =` substrate-witness predicate — B-cell memory, commit trailers, oracle markers (ADR-019) |
 | Antibody titer (currency layer) | `verified_at` (ADR-016) |
 | B-cell lineage (clonal expansion) | `#[descended_from]` propagation |
