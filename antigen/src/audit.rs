@@ -3454,12 +3454,18 @@ fn fingerprint_nonrefinement_reason(
     child: &antigen_fingerprint::Fingerprint,
     parent: &antigen_fingerprint::Fingerprint,
 ) -> Option<String> {
-    use antigen_fingerprint::Constraint;
-
     // (1) item-kind divergence: parent pins one kind, child pins a different one.
-    let parent_kind = child_top_item_kind(&parent.constraints);
-    let child_kind = child_top_item_kind(&child.constraints);
-    if let (Some(pk), Some(ck)) = (parent_kind, child_kind) {
+    //
+    // Delegate to `Fingerprint::node_kind()` (antigen_fingerprint/src/lib.rs:383),
+    // which descends into `AllOf` via `Constraint::node_kind_hint` — so a
+    // fingerprint like `all_of(item = struct, doc_contains("error"))` correctly
+    // reports its item-kind (previously `child_top_item_kind` only inspected
+    // the top-level Vec and silently missed the nested kind, ATK-LF-1).
+    // `node_kind()` returns `None` for `any_of` over item kinds — the
+    // widening-via-any_of case is genuinely undecidable at static kind matching
+    // and the advisory correctly errs toward silence there (ATK-LF-5 pins this
+    // as a known limitation, not a regression).
+    if let (Some(pk), Some(ck)) = (parent.node_kind(), child.node_kind()) {
         if pk != ck {
             return Some(format!(
                 "child `item = {ck:?}` differs from parent `item = {pk:?}` \
@@ -3471,48 +3477,56 @@ fn fingerprint_nonrefinement_reason(
     // (2) doc_contains divergence: a parent-required substring that no child
     // doc_contains contains. (If the child contains a SUPERSTRING of the parent's
     // needle, that IS a refinement — child requires more, matches a subset.)
-    let child_docs: Vec<&str> = child
-        .constraints
-        .iter()
-        .filter_map(|c| match c {
-            Constraint::DocContains(s) => Some(s.as_str()),
-            _ => None,
-        })
-        .collect();
-    for c in &parent.constraints {
-        if let Constraint::DocContains(parent_needle) = c {
-            let covered = child_docs
-                .iter()
-                .any(|cd| cd.contains(parent_needle.as_str()));
-            if !covered {
-                return Some(format!(
-                    "parent requires `doc_contains({parent_needle:?})` but no child \
-                     `doc_contains` includes it — child can match where parent does not"
-                ));
-            }
+    //
+    // BOTH SIDES descend into `AllOf` ONLY (conjunctive children — every AllOf
+    // child applies, so a `doc_contains` nested inside AllOf is required just
+    // like a top-level one). Do NOT descend into `AnyOf` (disjunctive — a
+    // parent `any_of([doc_contains("A"), doc_contains("B")])` requires "A" OR
+    // "B", not both; treating the AnyOf arms as required would false-positive
+    // on a child satisfying only one arm — ATK-LF-4). Do NOT descend into
+    // `Not` (negative requirement, not a substring this advisory can check).
+    // ATK-LF-2 pinned that the top-level-only iteration missed nested AllOf
+    // requirements; ATK-LF-4 pins that the fix must NOT over-descend into
+    // AnyOf.
+    let child_docs = collect_doc_contains_allof_only(&child.constraints);
+    let parent_docs = collect_doc_contains_allof_only(&parent.constraints);
+    for parent_needle in &parent_docs {
+        let covered = child_docs.iter().any(|cd| cd.contains(parent_needle));
+        if !covered {
+            return Some(format!(
+                "parent requires `doc_contains({parent_needle:?})` but no child \
+                 `doc_contains` includes it — child can match where parent does not"
+            ));
         }
     }
 
     None
 }
 
-/// The single top-level `item = <kind>` of a fingerprint, if exactly one is
-/// present. (Multiple top-level item constraints, or none, → `None`: the
-/// item-kind refinement check only applies to the unambiguous single-kind case.)
-fn child_top_item_kind(
+/// Recursively collect all `DocContains` substring requirements from a
+/// constraint list, descending into `AllOf` children only.
+///
+/// `AllOf` is conjunctive — every child applies — so a `doc_contains` nested
+/// inside `AllOf` is a required substring just like a top-level `DocContains`.
+/// `AnyOf` is disjunctive: descending into it would over-constrain (treating
+/// alternatives as required), turning a valid refinement into a false-positive
+/// divergence (ATK-LF-4). `Not` is a negative requirement the advisory does
+/// not model. So the descent is `AllOf`-only.
+fn collect_doc_contains_allof_only(
     constraints: &[antigen_fingerprint::Constraint],
-) -> Option<antigen_fingerprint::ItemKind> {
+) -> Vec<&str> {
     use antigen_fingerprint::Constraint;
-    let mut found = None;
+    let mut out = Vec::new();
     for c in constraints {
-        if let Constraint::Item(kind) = c {
-            if found.is_some() {
-                return None; // ambiguous — more than one top-level item kind
+        match c {
+            Constraint::DocContains(s) => out.push(s.as_str()),
+            Constraint::AllOf(children) => {
+                out.extend(collect_doc_contains_allof_only(children));
             }
-            found = Some(*kind);
+            _ => {} // AnyOf / Not / other leaves: do not descend.
         }
     }
-    found
+    out
 }
 
 #[cfg(test)]
@@ -5575,21 +5589,23 @@ mod tests {
 
         let out = audit_lineage_fidelity(&report);
 
-        // CURRENT BROKEN BEHAVIOR: divergences is EMPTY (no advisory fires).
-        // The struct-vs-enum mismatch is inside all_of, child_top_item_kind()
-        // returns None for both → item-kind check skipped → false negative.
-        //
-        // When fix lands (child_top_item_kind descends into AllOf):
-        //   assert_eq!(out.divergences.len(), 1, "item-kind nested in all_of must fire advisory");
-        //   assert_eq!(out.divergences[0].hint, AuditHint::DescendedFromFingerprintDivergence);
+        // FIXED: fingerprint_nonrefinement_reason now delegates to
+        // Fingerprint::node_kind(), which descends into AllOf via
+        // Constraint::node_kind_hint. parent.node_kind() returns
+        // Some(ItemKind::Struct), child.node_kind() returns Some(ItemKind::Enum),
+        // disjoint kinds → advisory fires.
         assert_eq!(
             out.divergences.len(),
-            0,
-            "ATK-LF-1 (CURRENT BROKEN BEHAVIOR): parent `all_of(item=struct, ...)` and \
-             child `all_of(item=enum, ...)` should fire DescendedFromFingerprintDivergence \
-             (disjoint item-kinds), but child_top_item_kind() only checks top-level constraints \
-             and misses item-kind nested inside all_of. Advisory stays silent — false negative. \
-             When this assertion fails (divergences.len() != 0): fix landed. Invert to expect 1."
+            1,
+            "ATK-LF-1 (FIXED): parent `all_of(item=struct, ...)` and child `all_of(item=enum, ...)` \
+             must fire DescendedFromFingerprintDivergence — node_kind() descends into AllOf and \
+             surfaces the disjoint item-kinds. A zero-length result means the item-kind check no \
+             longer delegates to node_kind(). Got: {:?}",
+            out.divergences
+        );
+        assert_eq!(
+            out.divergences[0].hint,
+            AuditHint::DescendedFromFingerprintDivergence
         );
     }
 
@@ -5628,19 +5644,23 @@ mod tests {
 
         let out = audit_lineage_fidelity(&report);
 
-        // CURRENT BROKEN BEHAVIOR: divergences is EMPTY.
-        // Parent's doc_contains("error") is inside all_of → not visited by the
-        // top-level constraint loop → advisory stays silent → false negative.
-        //
-        // When fix lands (doc_contains check descends into AllOf):
-        //   assert_eq!(out.divergences.len(), 1, "nested doc_contains requirement missed by child");
+        // FIXED: collect_doc_contains_allof_only descends into AllOf children,
+        // so parent's nested doc_contains("error") is collected as a required
+        // substring. Child has no doc_contains anywhere → cannot cover the
+        // parent's requirement → advisory fires (the child can match structs
+        // without "error" in their doc, so it is not a refinement).
         assert_eq!(
             out.divergences.len(),
-            0,
-            "ATK-LF-2 (CURRENT BROKEN BEHAVIOR): parent `all_of(item=struct, doc_contains('error'))` \
-             has a doc_contains requirement nested inside all_of. The top-level constraint loop \
-             misses it — child `item = struct` (no doc_contains) is NOT a refinement but the \
-             advisory stays silent. False negative. When this assertion fails: fix landed. Invert."
+            1,
+            "ATK-LF-2 (FIXED): parent `all_of(item=struct, doc_contains('error'))` requires \
+             'error' in the doc — child `item = struct` (no doc_contains) does not cover it. \
+             collect_doc_contains_allof_only must descend into AllOf and surface the nested \
+             requirement. A zero-length result means the AllOf descent was removed. Got: {:?}",
+            out.divergences
+        );
+        assert_eq!(
+            out.divergences[0].hint,
+            AuditHint::DescendedFromFingerprintDivergence
         );
     }
 
