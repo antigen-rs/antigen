@@ -153,6 +153,66 @@ impl Parse for ScanAntigenArgs {
     }
 }
 
+/// Scan-time parse of `#[presents(AntigenType, [requires = <predicate>],
+/// [proof = <expr>])]` (ADR-029 R5 — site-attached evidence folds onto
+/// `#[presents]`). Mirrors `ScanImmuneArgs`'s forward-compat posture: unknown
+/// fields are consumed silently (the macro side is the strict enforcer).
+struct ScanPresentsArgs {
+    antigen_type: String,
+    /// Substrate-witness predicate from `requires = <predicate>` (ADR-029).
+    requires_predicate: Option<String>,
+    /// Phantom-type proof expression from `proof = <expr>`, rendered as its
+    /// token string.
+    proof: Option<String>,
+}
+
+impl Parse for ScanPresentsArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use antigen_attestation::parser::RequiresExpr;
+        use quote::ToTokens;
+        use syn::{Ident, Path, Token};
+
+        let antigen_path: Path = input.parse()?;
+        let antigen_type = antigen_path
+            .segments
+            .last()
+            .map(|s| s.ident.to_string())
+            .unwrap_or_default();
+
+        let mut requires_predicate: Option<String> = None;
+        let mut proof: Option<String> = None;
+        while !input.is_empty() {
+            input.parse::<Token![,]>()?;
+            if input.is_empty() {
+                break;
+            }
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "requires" => {
+                    let pred: RequiresExpr = input.parse()?;
+                    requires_predicate = Some(pred.to_json());
+                }
+                "proof" => {
+                    let expr: syn::Expr = input.parse()?;
+                    proof = Some(expr.to_token_stream().to_string());
+                }
+                _ => {
+                    // Forward-compat: consume unknown values silently (the macro
+                    // side rejects them). Recall-tuned scan per ADR-010.
+                    let _: syn::Expr = input.parse()?;
+                }
+            }
+        }
+
+        Ok(Self {
+            antigen_type,
+            requires_predicate,
+            proof,
+        })
+    }
+}
+
 /// Scan-time parse of `#[immune(AntigenType, witness = expr, ...)]`.
 struct ScanImmuneArgs {
     antigen_type: String,
@@ -1422,6 +1482,25 @@ pub struct Presentation {
     /// `#[immune]` marker first (DX finding 6).
     #[serde(default)]
     pub structural_fingerprint: String,
+    /// Substrate-witness predicate JSON folded onto the presents-site via
+    /// `#[presents(X, requires = <predicate>)]` (ADR-029 R5 — the substrate-tier
+    /// migration target for `#[immune(requires=...)]`). `Some` only when the
+    /// presents-site carries site-attached substrate evidence. The audit
+    /// evaluates this against `.attest/` sidecars to grade the immune-state
+    /// verdict.
+    ///
+    /// `#[serde(default)]` so pre-ADR-029 reports deserialize cleanly.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub requires_predicate: Option<String>,
+    /// Phantom-type proof expression folded onto the presents-site via
+    /// `#[presents(X, proof = <expr>)]` (ADR-029 R5 — the phantom-tier migration
+    /// target for `#[immune(witness = <phantom>)]`), rendered as its token
+    /// string (e.g. `NonPanickingProof :: < T > :: verified`). The audit
+    /// recognizes the phantom shape structurally and grades `FormalProof`.
+    ///
+    /// `#[serde(default)]` so pre-ADR-029 reports deserialize cleanly.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub proof: Option<String>,
 }
 
 /// An `#[immune(antigen_type, witness = ...)]` declaration discovered in source.
@@ -2907,6 +2986,12 @@ fn propagate_ancestors_to_descendant(
                     canonical_path: ancestor_pres.canonical_path.clone(),
                     inherited_from: Some(vec![provenance.clone()]),
                     structural_fingerprint: ancestor_pres.structural_fingerprint.clone(),
+                    // Site-attached evidence (ADR-029) propagates with the
+                    // inherited presentation: if the ancestor's presents-site
+                    // carried `requires=`/`proof=`, the descendant inherits the
+                    // same evidence claim. State-7 re-attestation still applies.
+                    requires_predicate: ancestor_pres.requires_predicate.clone(),
+                    proof: ancestor_pres.proof.clone(),
                 });
             }
         }
@@ -3264,6 +3349,11 @@ fn synthesis_pass(
                     canonical_path: None,
                     inherited_from: None,
                     structural_fingerprint,
+                    // Fingerprint-inferred presentations carry no declared
+                    // site-attached evidence — the developer wrote no #[presents]
+                    // marker, so there is no requires=/proof= to fold (ADR-029).
+                    requires_predicate: None,
+                    proof: None,
                 });
             }
         }
@@ -3391,24 +3481,18 @@ impl ScanVisitor<'_> {
     fn extract_presents(
         &mut self,
         attr: &syn::Attribute,
+        all_attrs: &[syn::Attribute],
         item_kind: &str,
         item_target: ItemTarget,
     ) {
-        let antigen_type = if let syn::Meta::List(list) = &attr.meta {
-            // Parse the body as a `syn::Path` rather than splitting the
-            // `quote::ToTokens` rendering on `::`. The string form contains
-            // whitespace artifacts (`" my_crate :: Foo "`) that the prior
-            // tactical-fix code recovered from with a `.trim()` — but the
-            // structural fix is to never produce the string in the first
-            // place. ATK-A2-001's pre-W3 hotfix landed in commit b9440b2;
-            // this is the W3 structural form. Path's last segment is the
-            // bare type name regardless of qualifier.
-            match syn::parse2::<syn::Path>(list.tokens.clone()) {
-                Ok(path) => path
-                    .segments
-                    .last()
-                    .map(|s| s.ident.to_string())
-                    .unwrap_or_default(),
+        let (antigen_type, requires_predicate, proof) = if let syn::Meta::List(list) = &attr.meta {
+            // ADR-029 R5: `#[presents]` may now carry site-attached evidence
+            // (`requires = <predicate>`, `proof = <expr>`), so parse the full
+            // arg form, not a bare `syn::Path`. The antigen is still the leading
+            // positional path; its last segment is the bare type name regardless
+            // of qualifier (the W3 structural form — ATK-A2-001).
+            match syn::parse2::<ScanPresentsArgs>(list.tokens.clone()) {
+                Ok(args) => (args.antigen_type, args.requires_predicate, args.proof),
                 Err(e) => {
                     self.report.parse_failures.push(ParseFailure {
                         file: self.file_path.clone(),
@@ -3420,6 +3504,11 @@ impl ScanVisitor<'_> {
         } else {
             return;
         };
+        // Two-channel substrate-witness discovery (same as `extract_immune`):
+        // the source attribute is primary; the `antigen:requires:v1:` doc marker
+        // the macro emits is the fallback for already-expanded source.
+        let requires_predicate =
+            requires_predicate.or_else(|| extract_requires_predicate_from_attrs(all_attrs));
         let line = Self::line_of_attr(attr);
         self.report.presentations.push(Presentation {
             antigen_type,
@@ -3431,6 +3520,8 @@ impl ScanVisitor<'_> {
             canonical_path: None,
             inherited_from: None,
             structural_fingerprint: self.current_item_digest.clone(),
+            requires_predicate,
+            proof,
         });
     }
 
@@ -3860,7 +3951,7 @@ impl ScanVisitor<'_> {
     fn check_attrs(&mut self, attrs: &[syn::Attribute], item_kind: &str, item_target: &ItemTarget) {
         for attr in attrs {
             if attr_is(attr, "presents") {
-                self.extract_presents(attr, item_kind, item_target.clone());
+                self.extract_presents(attr, attrs, item_kind, item_target.clone());
             } else if attr_is(attr, "immune") {
                 self.extract_immune(attr, attrs, item_kind, item_target.clone());
             } else if attr_is(attr, "antigen_tolerance") {
@@ -5850,5 +5941,66 @@ mod tests {
             "expected a parse failure naming the missing antigen type; got: {:?}",
             report.parse_failures
         );
+    }
+
+    // ========================================================================
+    // ADR-029 R5: #[presents] site-attached evidence (requires= / proof=)
+    // ========================================================================
+
+    #[test]
+    fn scan_presents_captures_requires_predicate() {
+        // ADR-029 R5: a substrate-tier predicate folds onto #[presents]; scan
+        // must capture it (the substrate-witness migration target). Source-attr
+        // is the primary discovery channel.
+        let report = scan_source(
+            r#"
+            #[presents(UnpinnedDependency, requires = ratified_doc(path = "docs/x.md"))]
+            fn add_dependency() {}
+            "#,
+        );
+        assert_eq!(report.presentations.len(), 1);
+        let p = &report.presentations[0];
+        assert_eq!(p.antigen_type, "UnpinnedDependency");
+        assert!(
+            p.requires_predicate.is_some(),
+            "the requires= predicate must be captured on the presents-site; got: {p:?}"
+        );
+        assert!(p.proof.is_none());
+    }
+
+    #[test]
+    fn scan_presents_captures_proof_expression() {
+        // ADR-029 R5: a phantom-tier proof folds onto #[presents]; scan captures
+        // its token-string form (the audit recognizes the phantom shape).
+        let report = scan_source(
+            r"
+            #[presents(DropPanicClass, proof = NonPanickingProof::<T>::verified)]
+            fn make_droppable() {}
+            ",
+        );
+        assert_eq!(report.presentations.len(), 1);
+        let p = &report.presentations[0];
+        assert_eq!(p.antigen_type, "DropPanicClass");
+        assert!(
+            p.proof
+                .as_deref()
+                .is_some_and(|s| s.contains("NonPanickingProof")),
+            "the proof= expression must be captured on the presents-site; got: {p:?}"
+        );
+        assert!(p.requires_predicate.is_none());
+    }
+
+    #[test]
+    fn scan_bare_presents_has_no_site_evidence() {
+        // Back-compat: a plain #[presents(X)] carries no site-attached evidence.
+        let report = scan_source(
+            r"
+            #[presents(PanickingInDrop)]
+            fn might_panic() {}
+            ",
+        );
+        assert_eq!(report.presentations.len(), 1);
+        assert!(report.presentations[0].requires_predicate.is_none());
+        assert!(report.presentations[0].proof.is_none());
     }
 }

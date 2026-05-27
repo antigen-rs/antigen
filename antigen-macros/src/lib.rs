@@ -215,10 +215,30 @@ pub fn antigen(args: TokenStream, input: TokenStream) -> TokenStream {
 /// ```
 #[proc_macro_attribute]
 pub fn presents(args: TokenStream, input: TokenStream) -> TokenStream {
-    let _args = parse_macro_input!(args as parse::PresentsArgs);
+    let args = parse_macro_input!(args as parse::PresentsArgs);
     let input = proc_macro2::TokenStream::from(input);
 
-    quote! { #input }.into()
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+
+    // ADR-029 R5: a `requires = <predicate>` folded onto `#[presents]` emits the
+    // same `antigen:requires:v1:<json>` doc marker `#[immune(requires=...)]`
+    // does, so `cargo antigen scan` discovers the substrate-witness predicate at
+    // the presents-site (the new substrate-tier carrier). A `proof = <expr>` is
+    // recognized structurally by the audit from the written source (phantom-tier),
+    // so it needs no marker.
+    args.requires_json().map_or_else(
+        || quote! { #input }.into(),
+        |json| {
+            let marker = format!(" antigen:requires:v1:{json}");
+            quote! {
+                #[doc = #marker]
+                #input
+            }
+            .into()
+        },
+    )
 }
 
 /// Declare immunity to a known antigen, backed by evidence that proves it.
