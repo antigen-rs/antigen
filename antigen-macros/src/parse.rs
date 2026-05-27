@@ -109,10 +109,29 @@ pub struct AntigenArgs {
     pub args_span: Span,
 }
 
-/// Arguments to `#[presents(antigen_type)]`.
+/// Arguments to `#[presents(antigen_type, [requires = <predicate>], [proof = <expr>])]`.
+///
+/// ADR-029 (R5): site-attached defense evidence folds into `#[presents]`. A
+/// presents-site may optionally carry:
+/// - `requires = <predicate>` — substrate-tier evidence (the predicate the audit
+///   must verify against `.attest/` sidecars; same grammar as the deprecated
+///   `#[immune(requires = ...)]`). The substrate-witness migration target.
+/// - `proof = <expr>` — phantom-tier evidence (a type-system construction whose
+///   existence is the proof, e.g. `NonPanickingProof::<T>::verified`). The
+///   phantom-witness migration target.
+///
+/// Both are *site-attached* evidence (the evidence IS at the site). Code-tier
+/// evidence (a test elsewhere) registers via `#[defended_by]` on the test, not
+/// here — the R5 discriminator: evidence belongs where it is.
+#[derive(Debug)]
 pub struct PresentsArgs {
     #[allow(dead_code)]
     pub antigen: Path,
+    /// Substrate-tier evidence (ADR-029 R5; substrate-witness predicate, ADR-019).
+    pub requires: Option<(RequiresExpr, Span)>,
+    /// Phantom-tier evidence (ADR-029 R5; type-system construction).
+    #[allow(dead_code)]
+    pub proof: Option<Expr>,
 }
 
 /// Arguments to `#[immune(antigen_type, witness = ..., [rationale = ...])]`.
@@ -300,7 +319,73 @@ impl AntigenArgs {
 impl Parse for PresentsArgs {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let antigen: Path = input.parse()?;
-        Ok(Self { antigen })
+        let mut requires: Option<(RequiresExpr, Span)> = None;
+        let mut proof: Option<Expr> = None;
+
+        while !input.is_empty() {
+            input.parse::<Token![,]>()?;
+            if input.is_empty() {
+                break;
+            }
+            let key: Ident = input.parse()?;
+            let key_span = key.span();
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "requires" => {
+                    let pred: RequiresExpr = input.parse()?;
+                    requires = Some((pred, key_span));
+                }
+                "proof" => {
+                    proof = Some(input.parse()?);
+                }
+                "witness" => {
+                    // Reject `witness =` on #[presents] with a clear migration message.
+                    // Code-tier witnesses register via `#[defended_by(X)]` on the test
+                    // function, not `witness =` on the presents-site (ADR-029 R5
+                    // discriminator: evidence belongs where it is).
+                    let _: Expr = input.parse()?; // consume the value
+                    return Err(syn::Error::new(
+                        key_span,
+                        "`witness = ...` is not valid on `#[presents]`. \
+                         Code-tier witnesses register via `#[defended_by(X)]` on the \
+                         test/proptest function, not on the presents-site. \
+                         For substrate-tier evidence use `requires = ...` here. \
+                         For phantom-tier evidence use `proof = ...` here.",
+                    ));
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown #[presents] field `{other}`; expected one of: \
+                             requires, proof"
+                        ),
+                    ));
+                }
+            }
+        }
+
+        Ok(Self {
+            antigen,
+            requires,
+            proof,
+        })
+    }
+}
+
+impl PresentsArgs {
+    pub fn validate(&self) -> syn::Result<()> {
+        // Validate the requires predicate if present.
+        if let Some((pred, span)) = &self.requires {
+            pred.validate(*span)?;
+        }
+        Ok(())
+    }
+
+    /// If `requires` is set, return the JSON string for the predicate.
+    /// The scan layer reads this from the `antigen:requires:v1:` doc marker.
+    pub fn requires_json(&self) -> Option<String> {
+        self.requires.as_ref().map(|(pred, _)| pred.to_json())
     }
 }
 
@@ -5657,6 +5742,62 @@ mod parser_props {
         assert!(
             syn::parse2::<DefendedByArgs>(tokens).is_err(),
             "empty #[defended_by] body must be rejected"
+        );
+    }
+
+    // ========================================================================
+    // PresentsArgs (ADR-029) — site-attached evidence folding
+    // ========================================================================
+
+    #[test]
+    fn presents_parses_bare_antigen_still() {
+        // Back-compat: the v0.1 single-positional form still parses.
+        let tokens: proc_macro2::TokenStream = "PanickingInDrop".parse().unwrap();
+        let args = syn::parse2::<PresentsArgs>(tokens).expect("bare presents parses");
+        assert!(args.requires.is_none());
+        assert!(args.proof.is_none());
+        assert!(args.validate().is_ok());
+    }
+
+    #[test]
+    fn presents_parses_requires_predicate() {
+        // ADR-029: substrate-tier evidence folds onto #[presents].
+        let tokens: proc_macro2::TokenStream =
+            r#"UnpinnedDependency, requires = ratified_doc(path = "docs/x.md")"#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<PresentsArgs>(tokens).expect("requires folds in");
+        assert!(args.requires.is_some());
+        assert!(args.validate().is_ok());
+        // The emitted marker JSON must be present for scan discovery.
+        assert!(args.requires_json().is_some());
+    }
+
+    #[test]
+    fn presents_parses_proof_expression() {
+        // ADR-029: phantom-tier evidence folds onto #[presents].
+        let tokens: proc_macro2::TokenStream =
+            "DropPanicClass, proof = NonPanickingProof::<T>::verified"
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<PresentsArgs>(tokens).expect("proof folds in");
+        assert!(args.proof.is_some());
+        // proof= is recognized structurally by audit; no requires marker.
+        assert!(args.requires_json().is_none());
+    }
+
+    #[test]
+    fn presents_rejects_unknown_field() {
+        // A code-tier `witness =` on #[presents] is a misuse — it belongs on
+        // #[defended_by]. Reject with guidance (R5 discriminator).
+        let body = "DropPanicClass, witness = some_test";
+        let tokens: proc_macro2::TokenStream = body.parse().unwrap();
+        let err = syn::parse2::<PresentsArgs>(tokens)
+            .expect_err("witness= on presents is rejected")
+            .to_string();
+        assert!(
+            err.contains("defended_by"),
+            "error should point at #[defended_by] for code-tier evidence; got: {err:?}"
         );
     }
 }
