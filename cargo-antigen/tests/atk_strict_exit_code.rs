@@ -9,14 +9,14 @@
 //!
 //! 2. **With `--strict`**: unaddressed explicit presents-sites → exit 1.
 //!
-//! 3. **FingerprintMatch sites do NOT trigger `--strict`**: a workspace with
+//! 3. **`FingerprintMatch` sites do NOT trigger `--strict`**: a workspace with
 //!    only fingerprint-match (inferred) unaddressed sites exits 0 under
 //!    `--strict`. The output may say "N unaddressed" but the exit code is 0.
 //!    This prevents the silent mismatch where CI fails with a confusing
 //!    message ("All explicit presentations are addressed") while still
 //!    exiting 1.
 //!
-//! The critical invariant: `--strict` gates ONLY on ExplicitMarker; fingerprint
+//! The critical invariant: `--strict` gates ONLY on `ExplicitMarker`; fingerprint
 //! matches are advisory noise requiring human triage. Violating this creates
 //! a CI false-positive: the tool exits 1 but the human-readable output says
 //! "nothing to fix" — an undiagnosable CI failure.
@@ -208,5 +208,67 @@ fn atk_strict_flag_no_presentations_exits_zero() {
         code, 0,
         "ATK-STRICT-4: `cargo antigen audit --strict` must exit 0 for a workspace \
         with no presentations at all. Got exit {code}"
+    );
+}
+
+// ATK-STRICT-5: --strict exits 1 when orphaned tolerances exist.
+//
+// An `#[antigen_tolerance(Foo, rationale = "...")]` is "orphaned" when `Foo`
+// is not declared as an antigen in the scanned workspace. Orphaned tolerances
+// indicate a structural inconsistency — the tolerance references a failure-class
+// that doesn't exist (or is no longer declared in scope).
+//
+// IMPORTANT: a cross-dep antigen tolerance (tolerating a failure-class that lives
+// in a dependency, not the workspace itself) will ALWAYS appear orphaned in a
+// non-`--include-deps` scan. This means --strict can produce CI false-positives
+// for any adopter who:
+//   1. Takes on a dep with antigens (via #[antigen(...)]) AND
+//   2. Declares a tolerance for that dep's antigen AND
+//   3. Runs `cargo antigen audit --strict` WITHOUT --include-deps
+//
+// The adopter has a VALID tolerance, but --strict exits 1 because the dep's
+// antigen is not visible without --include-deps. This is a silent CI failure
+// mode: the output says "orphaned tolerance" and the user has to figure out
+// they need --include-deps.
+//
+// This test exercises the basic orphaned-tolerance → exit 1 path. It does NOT
+// yet exercise the cross-dep false-positive case (that would require a multi-crate
+// workspace fixture, which is out of scope for this test file).
+//
+// If --strict should NOT gate on orphaned tolerances (they're less severe than
+// unaddressed presentations), the assertion sense should be inverted and the
+// main.rs `--strict` condition updated.
+#[test]
+fn atk_strict_flag_orphaned_tolerance_exits_one() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let src_dir = tmp.path().join("src");
+    std::fs::create_dir_all(&src_dir).unwrap();
+
+    // A tolerance for an antigen that is NOT declared in this workspace.
+    // scan.rs will find the tolerance but no matching antigen_type == "NonexistentClass".
+    // orphaned_tolerances() will return it. --strict must exit 1.
+    let lib = r#"use antigen::antigen_tolerance;
+
+/// A tolerance for a failure class that doesn't exist in this workspace.
+/// This represents an orphaned tolerance — the referenced antigen was
+/// removed or renamed, leaving this declaration dangling.
+#[antigen_tolerance(
+    NonexistentClass,
+    rationale = "deliberate: tolerating a class that no longer exists"
+)]
+pub fn tolerating_fn() -> u32 {
+    42
+}
+"#;
+
+    std::fs::write(src_dir.join("lib.rs"), lib).unwrap();
+
+    let code = run_audit(&src_dir, /*strict=*/ true);
+    assert_eq!(
+        code, 1,
+        "ATK-STRICT-5: `cargo antigen audit --strict` must exit 1 when orphaned \
+        tolerances exist. A tolerance for 'NonexistentClass' is orphaned because \
+        no antigen with that type_name exists in the scanned workspace. \
+        Got exit {code}"
     );
 }
