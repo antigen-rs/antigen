@@ -2,10 +2,10 @@
 //! must reach `cargo antigen audit` output (human + JSON).
 //!
 //! ## The failure this guards (forward/audit-delivery-completeness-antigen,
-//!    dogfood antigen #25 AuditVerdictComputedButNotDelivered)
+//!    dogfood antigen #25 `AuditVerdictComputedButNotDelivered`)
 //!
 //! `audit_supply_chain()` in antigen/src/audit.rs correctly computes a
-//! `SupplyChainAuditReport` (per-leaf dep_pinned / dep_attested / etc. hints
+//! `SupplyChainAuditReport` (per-leaf `dep_pinned` / `dep_attested` / etc. hints
 //! with pass/fail counts). But `cargo antigen audit` has ZERO references to
 //! `audit_supply_chain` or `SupplyChainAuditReport` in main.rs. The function
 //! is computed, exercised by unit tests, fully wired in the library -- and then
