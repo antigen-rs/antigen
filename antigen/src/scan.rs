@@ -6044,7 +6044,7 @@ mod tests {
             /// If fingerprint were `doc_contains("verify-only-class")`, this would match.
             pub fn a_function_that_would_match() {}
         "#;
-        let mut report = scan_source(src);
+        let report = scan_source(src);
         // Run synthesis_pass directly on the parsed content.
         // Antigen has fingerprint=None — filter_map drops it — fingerprints vec is empty.
         let fingerprints: Vec<(String, antigen_fingerprint::Fingerprint)> = report
@@ -6107,8 +6107,7 @@ mod tests {
             explicit
         );
         assert_eq!(
-            explicit[0].antigen_type,
-            "VerifyOnlyClass",
+            explicit[0].antigen_type, "VerifyOnlyClass",
             "ATK-ADR009-AMD1(c): explicit site must name the correct antigen"
         );
         // No FingerprintMatch presentations (no fingerprint = no synthesis).
