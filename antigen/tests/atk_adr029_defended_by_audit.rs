@@ -1084,23 +1084,19 @@ fn atk_adr029_20_empty_string_proof_overclaims_formal_proof_tier() {
     );
     let v = &audit_result.presentation_verdicts[0];
 
-    // CURRENT: empty-string proof yields FormalProof (inner value ignored by map closure).
-    // POTENTIAL ALTERNATIVE: a future guard could treat proof=Some("") as Undefended
-    // (no actual phantom expression) or SubstrateGap (intent present, expression missing).
-    // The assertion here documents CURRENT behavior. Invert if the empty-string
-    // case is ever gated at the audit or scanner level.
-    assert!(
-        matches!(
-            v.verdict,
-            ImmuneVerdict::Defended {
-                tier: WitnessTier::FormalProof
-            }
-        ),
-        "ATK-ADR029-20 (OVERCLAIM): proof=Some('') yields Defended at FormalProof. \
-        The map(|_| FormalProof) closure ignores the inner value; an empty-string proof \
-        expression is indistinguishable from a real phantom constructor. \
-        Current behavior: FormalProof. Expected after empty-string gate: Undefended or \
-        SubstrateGap. Got: {:?}",
+    // FIXED (findings/proof-empty-string-overclaims-formal-proof): the empty-proof
+    // overclaim is gated on TWO layers — the macro now rejects a string-literal
+    // `proof =` at authoring time (parse.rs PresentsArgs::validate), and the audit
+    // defends-in-depth by not crediting a blank `proof` string (site_proof_tier
+    // filters `!s.trim().is_empty()`). A hand-built Presentation with
+    // proof=Some("") therefore no longer grades FormalProof — with no other
+    // evidence it falls through to Undefended (an empty proof is no proof).
+    assert_eq!(
+        v.verdict,
+        ImmuneVerdict::Undefended,
+        "ATK-ADR029-20 (FIXED): proof=Some('') must NOT grade FormalProof — an empty \
+        proof string is not a phantom construction. With no other evidence the verdict \
+        is Undefended. Got: {:?}",
         v.verdict
     );
 }
@@ -1239,8 +1235,8 @@ fn atk_adr029_21_defense_matches_cross_crate_presentation_with_same_type_name() 
 #[test]
 fn atk_g2_22_cross_crate_defense_triggers_spurious_g2_hint() {
     use antigen::audit::{audit_category, AuditHint};
-    use antigen::scan::{AntigenDeclaration, Defense, ScanReport};
     use antigen::category::AntigenCategory;
+    use antigen::scan::{AntigenDeclaration, Defense, ScanReport};
 
     let mut report = ScanReport::default();
 
@@ -1282,8 +1278,7 @@ fn atk_g2_22_cross_crate_defense_triggers_spurious_g2_hint() {
     // the canonical_path-aware fix has landed. Update to assert mismatch_count == 0
     // and audits is empty (no spurious G2 hint when only cross-crate defenses exist).
     assert_eq!(
-        category_report.mismatch_count,
-        1,
+        category_report.mismatch_count, 1,
         "ATK-G2-22 (OVERCLAIM): audit_category() fires G2 mismatch because it matches \
          defense by bare antigen_type only (no canonical_path check). crate_b's defense \
          for crate_b::Foo is counted as evidence for crate_a::Foo, triggering a spurious \
@@ -1301,4 +1296,3 @@ fn atk_g2_22_cross_crate_defense_triggers_spurious_g2_hint() {
          bare-name-matching defense exists"
     );
 }
-

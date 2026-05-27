@@ -393,6 +393,37 @@ impl PresentsArgs {
         if let Some((pred, span)) = &self.requires {
             pred.validate(*span)?;
         }
+        // ADR-029 phantom-tier guard: `proof = <expr>` must be a type-system
+        // construction whose existence IS the evidence (e.g.
+        // `NonPanickingProof::<T>::verified`). A STRING LITERAL — especially an
+        // empty/whitespace one used as a placeholder — is not a phantom proof:
+        // the audit grades any `proof = Some(_)` as FormalProof (the strongest
+        // tier), so `proof = ""` would silently overclaim the strongest evidence
+        // with zero substance. Reject string-literal proofs at the macro (the
+        // authoring-time layer, parallel to the `#[immune] witness=` string-lit
+        // guard and the non-empty-fingerprint guard). ADR-005 sub-clause F: a
+        // trust-boundary input in an unhonorable shape is not a valid claim.
+        if let Some(Expr::Lit(syn::ExprLit {
+            lit: Lit::Str(s), ..
+        })) = &self.proof
+        {
+            return Err(syn::Error::new_spanned(
+                s,
+                format!(
+                    "#[presents] `proof` must be a type-system construction whose \
+                     existence is the proof (e.g. `proof = NonPanickingProof::<T>::verified`), \
+                     not a string literal. `proof = \"{}\"` would silently grade FormalProof \
+                     (the strongest tier) at audit time with no actual phantom evidence. \
+                     {}",
+                    s.value(),
+                    if s.value().trim().is_empty() {
+                        "An empty/placeholder proof especially must not claim FormalProof."
+                    } else {
+                        "Drop the quotes and reference the phantom constructor directly."
+                    }
+                ),
+            ));
+        }
         Ok(())
     }
 
