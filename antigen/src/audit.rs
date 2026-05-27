@@ -1098,13 +1098,26 @@ fn evaluate_deferred_defense_hint(
             // resolved — surface OrientPendingActionRequired loudly rather than
             // perpetually reporting OrientActive (a deferred defense whose
             // deadline arrived must escalate, not stay silently green).
-            match parse_iso_date(decl.until.as_deref().unwrap_or("")) {
-                Some(until) if until >= today => AuditHint::OrientActive,
-                Some(_) => AuditHint::OrientPendingActionRequired,
-                // No parseable date: the macro parse-gate requires a valid
-                // `until`, so this only arises for hand-built/legacy scan
-                // records; treat as active (don't fabricate an escalation).
-                None => AuditHint::OrientActive,
+            // Match on the PRESENCE of `until` first, so a present-but-malformed
+            // date does NOT collapse into the absent-date grace path. Previously
+            // `unwrap_or("")` made `until=None` and `until=Some("not-a-date")`
+            // indistinguishable — both fell to OrientActive, so a typo'd deadline
+            // silently granted permanent green with zero diagnostic.
+            match decl.until.as_deref() {
+                // Absent `until`: only arises for hand-built/legacy scan records
+                // (the macro parse-gate requires a valid `until`). Legacy grace
+                // path — don't fabricate an escalation.
+                None | Some("") => AuditHint::OrientActive,
+                Some(s) => match parse_iso_date(s) {
+                    Some(until) if until >= today => AuditHint::OrientActive,
+                    Some(_) => AuditHint::OrientPendingActionRequired,
+                    // Present-but-unparseable `until` (a typo like "2026-13-99"
+                    // or "soon"): the author INTENDED a deadline but it resolves
+                    // to nothing. Escalate to action-required rather than
+                    // silently treating it as no-deadline — a broken deadline is
+                    // an unresolved orientation, not a grace.
+                    None => AuditHint::OrientPendingActionRequired,
+                },
             }
         }
     }
@@ -1397,7 +1410,18 @@ fn compute_presentation_verdicts(
         // the presence of `proof` IS the witness, recognized structurally (same
         // posture as the deprecated `#[immune(witness = <phantom>)]` path, which
         // graded `WitnessKind::PhantomType` → FormalProof).
-        let site_proof_tier = p.proof.as_ref().map(|_| WitnessTier::FormalProof);
+        //
+        // Defense-in-depth (the observe-half) for the empty-proof overclaim: the
+        // macro now rejects a string-literal `proof =` at authoring time, but a
+        // hand-built / deserialized Presentation could still carry an empty or
+        // whitespace `proof` string. An empty proof is not a construction — do
+        // NOT grade it FormalProof (it would silently claim the strongest tier
+        // with no substance). Only a non-blank proof expression counts.
+        let site_proof_tier = p
+            .proof
+            .as_deref()
+            .filter(|s| !s.trim().is_empty())
+            .map(|_| WitnessTier::FormalProof);
 
         let best_tier = [code_tier, immune_tier, site_requires_tier, site_proof_tier]
             .into_iter()
@@ -4850,6 +4874,63 @@ mod tests {
             AuditHint::ImmunosuppressActive,
             "a within-cap immunosuppress (since far-future, cap not exceeded) \
             stays Active — the discrimination exceeded-vs-within-limit now works"
+        );
+    }
+
+    #[test]
+    fn atk_immunosuppress_malformed_since_silently_skips_cap_check() {
+        // ATK-IMMUNOSUPPRESS-MALFORMED-SINCE (2026-05-27, adversarial):
+        //
+        // audit.rs:1072 uses `if let Some(since_date) = parse_iso_date(since)`.
+        // If `since` is malformed (not ISO 8601), parse_iso_date returns None
+        // and the entire cap-exceeded check is skipped silently. The suppression
+        // then falls through to the until-date check and returns ImmunosuppressActive
+        // with no diagnostic.
+        //
+        // SAME PATTERN as ATK-orient-unparseable-until (findings/orient-unparseable-
+        // until-silent-green): the None arm of the parse result collapses "absent"
+        // and "malformed" into identical silent behavior. A typo in since= (e.g.,
+        // "2026-5-27" instead of "2026-05-27") silently defeats the duration_cap
+        // enforcement, granting the suppression infinite duration.
+        //
+        // Fix direction (parallel to the orient fix): split the None arm --
+        //   - since = None: skip cap check (intentional; cap is optional without since)
+        //   - since = Some(s) where parse_iso_date(s) = None: emit parse failure
+        //     diagnostic rather than silently treating as absent.
+        //
+        // This test DOCUMENTS the current behavior as a regression anchor.
+        let mut decl = immunosuppress_decl_with_duration_cap(1, "2020-01-01");
+        // Override with malformed since after construction.
+        decl.since = Some("not-a-date".to_string());
+
+        let mut report = ScanReport::default();
+        report.deferred_defenses.push(decl);
+        let out = audit_deferred_defenses(&report, 9999);
+
+        // CURRENT BROKEN BEHAVIOR: malformed since skips the cap check entirely.
+        // The suppression is Active despite since being unparseable and cap=1 day.
+        // No diagnostic for the malformed since string.
+        // CURRENT BROKEN BEHAVIOR: malformed since skips the cap check entirely.
+        // The suppression is Active despite since being unparseable and cap=1 day.
+        // No separate parse_failures surface exists in DeferredDefenseAuditReport;
+        // the only observable is the Active hint (silent skip leaves no trace).
+        assert_eq!(
+            out.audits[0].hint,
+            AuditHint::ImmunosuppressActive,
+            "ATK-IMMUNOSUPPRESS-MALFORMED-SINCE (documented gap): malformed since= \
+            silently skips the duration_cap check, yielding ImmunosuppressActive. \
+            A typo in since= grants the suppression infinite duration -- the cap \
+            enforcement is completely invisible. Fix: split the None arm -- \
+            since=Some(bad) should emit a parse failure diagnostic instead of \
+            silently treating since as absent."
+        );
+        // The stale_count is 0 (the suppression appears active from audit's perspective,
+        // not stale). This confirms the cap-exceeded path was never reached.
+        assert_eq!(
+            out.stale_count,
+            0,
+            "ATK-IMMUNOSUPPRESS-MALFORMED-SINCE: stale_count is 0 -- the cap-exceeded \
+            path was never reached because since parse failed silently"
         );
     }
 }
