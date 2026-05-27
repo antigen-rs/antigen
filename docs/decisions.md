@@ -82,6 +82,7 @@
 - [ADR-027 — Mucosal Boundary Taxonomy + Mapping Discipline](#adr-027--mucosal-boundary-taxonomy--mapping-discipline)
 - [ADR-028 — Antigen-Category Taxonomy: Substrate-Alignment vs Functional-Correctness as First-Class Distinction](#adr-028--antigen-category-taxonomy-substrate-alignment-vs-functional-correctness-as-first-class-distinction)
   - [ADR-028 Amendment 6 — tier marker (object | description): relationship to own declaration](#adr-028-amendment-6--tier-marker-object--description-relationship-to-own-declaration)
+- [ADR-029 — Immunity Is Observed, Not Declared: `#[defended_by]` + `#[presents]` Evidence Extension](#adr-029--immunity-is-observed-not-declared-defended_by--presents-evidence-extension)
 
 ---
 
@@ -6331,4 +6332,387 @@ Hybrid: `CampsiteOpen` (sidecar must exist AND signatures must cryptographically
 - Does NOT claim biology grounds the category mechanic as primary substrate (operational substrate is primary)
 - Does NOT permit advisory-only category declarations
 - Does NOT permit per-site `category_required` escape hatches (removed in revision)
+
+---
+
+## [ADR-029] Immunity Is Observed, Not Declared: `#[defended_by]` + `#[presents]` Evidence Extension
+
+**Status**: Ratified 2026-05-27.
+
+**Participants**: antigen-dx-dogfood team (scientist primary drafter; aristotle Phase-1-8
+PASSED; naturalist biology-check PASSED; adversarial gate PASSED; scientist consistency
+review COMPLETE; all four ceremony signers).
+
+**Related**: ADR-004 (implicit-to-explicit elevation), ADR-005 (sub-clause F), ADR-013
+(phantom-type witnesses), ADR-019 (substrate-witness predicate family), ADR-020 (attestation
+primitive), ADR-006 (recognition-not-design).
+
+**Supersedes**: `#[immune]` as a user-facing primitive (backward-compatible deprecation path).
+
+**Ceremony campsite**: `ceremony/ratify-adr-029-immune-observed`.
+
+### Finding
+
+`#[immune(X, witness = fn)]` and `#[immune(X, requires = pred)]` — the two mutually-exclusive
+channels — each bundle concerns that should be separate:
+
+**Code-tier (`witness = fn`) bundles:**
+1. **Immunity-claim** — "this site is immune to failure-class X." This is a verdict. Code
+   sites don't hold verdicts; audit tools do. Encoding a verdict as an attribute makes
+   it static (true when written; may not be true now) and removes the audit tool's role
+   as the single authoritative verdict issuer.
+2. **Witness registration** — the pointer from defense-claim to the test function that
+   defends it. This is a registration of evidence, not a verdict.
+
+**Substrate-tier (`requires = pred`) bundles:**
+1. Same **immunity-claim** (the verdict that shouldn't live at the code site).
+2. **Substrate-witness binding** — a contextual predicate that the audit must verify against
+   substrate (sidecars, git, docs) to issue a verdict. This is NOT an immunity-claim; it
+   is a constraint on what the audit must check.
+
+Both channels also carry:
+
+3. **Site identity** — the `(antigen, source-file, item-path)` triple that sidecars anchor
+   to. This survives `#[immune]` deprecation by moving to the presents-site, which is already
+   the natural failure-locus.
+
+**The core principle (Tekgy, seed note):** Code declares structural facts. `cargo antigen
+audit` declares verdicts. Code never claims "I am immune to X" — the tool reports:
+"defended at tier T / not defended, gaps at sites A, B, C."
+
+**The shift is ~80% already shipped** (aristotle T7): `#[immune]` today only *declares*
+a defense claim+evidence-pointer; `cargo antigen audit` already *issues* the verdict
+(`audit.rs:8`: "meaningful only if Y resolves"). This ADR's novel content is (a) the
+verdict-language change and (b) the witness→test-side migration for code-tier sites.
+
+**Aristotle Phase-1-8 outcome**: PASS WITH AMENDMENTS. Ship R5 not R4: two primitives,
+not three. `#[site_binding]` dropped; `requires=` folds into `#[presents]`. Migration is
+asymmetric: code-tier and substrate-tier sites migrate differently. Three voids seeded for
+v0.3+ (V1 conjunctive defense, V2 two-evaluation-mode, V3 vulnerability layer).
+
+### Decision
+
+**Immunity is observed, not declared.**
+
+The `#[immune]` macro is deprecated. Its two channels migrate to two primitives:
+
+#### Primitive 1: `#[defended_by(X)]` on test/proptest functions (code-tier migration)
+
+A test function (or proptest property) that defends against failure-class X annotates itself:
+
+```rust
+#[test]
+#[defended_by(ParallelStateTrackersDiverge)]
+fn bijection_test_audit_hints_const_matches_enum() {
+    // exercises both sides of the parallel state
+}
+```
+
+`cargo antigen audit` scans for these markers and cross-references to the presents-sites
+they cover. The test declares *what it defends*; the audit determines *whether it defends it*.
+
+**Scope**: `#[defended_by(X)]` applies to **code-tier witnesses only** — `#[test]` functions
+and proptest properties. Phantom-type witnesses (type-system-resident, `WitnessTier::FormalProof`)
+do NOT use this attribute; see §ADR-013.
+
+**Name rationale**: avoids collision with `#[igg]`'s `witnesses = [...]` field (a plural
+field for re-attestation history). `witnesses` as a top-level attribute and a field inside
+`#[igg]` are not a parser collision (different namespaces) but ARE a glossary violation —
+two `witnesses` meanings in the same vocabulary. `#[defended_by(X)]` is unambiguous.
+
+#### Primitive 2: site-attached evidence folds into `#[presents]` (substrate-tier and phantom-tier migration)
+
+When a presents-site carries defense evidence that is NOT a test function — a substrate
+predicate or a phantom-type proof — the evidence attaches directly to `#[presents]`:
+
+```rust
+// Substrate-predicate (was requires= in #[immune]):
+#[presents(UnpinnedDependency, requires = "cargo-lock-committed")]
+fn add_dependency(...) { ... }
+
+// Phantom-type proof (was witness= phantom in #[immune]):
+#[presents(DropPanicClass, proof = NonPanickingProof::<T>::verified)]
+fn make_droppable() { ... }
+```
+
+**Discriminator**: evidence belongs WHERE it is. A substrate predicate or phantom proof IS
+at the site — it lives on `#[presents]`. A test fn IS elsewhere — it annotates via
+`#[defended_by]`. Both forms are site-attached evidence with no separate test to annotate.
+
+The `requires =` predicate replaces `requires =` inside `#[immune]`; the `proof =`
+expression replaces `witness = <phantom>` inside `#[immune]`. Both move from the
+(now-deprecated) immune-site to the presents-site — already the natural failure-locus,
+and already present at every target site (aristotle A7-verified against full workspace grep).
+
+**Note**: `PresentsArgs` currently accepts only the antigen path (`parse.rs:108`). Adding
+`requires =` and `proof =` are additive fields on an existing attribute — one parse path
+extended, not a new proc-macro invented. Recognition-over-design (ADR-006): the existing
+carrier already exists at every target site.
+
+**`#[site_binding]` dropped**: the three-primitive R4 design (scientist's original draft)
+invents a new attribute to carry what `#[presents]` can already hold. Aristotle Phase-1-8
+ruling: adopt R5 (two primitives), not R4 (three). `#[site_binding]` is not ratified.
+
+**Full R5 model (unified)**:
+- `#[presents(X)]` — detection/locus (always)
+- `#[presents(X, requires=P)]` — + substrate-predicate evidence (substrate-tier)
+- `#[presents(X, proof=PhantomPath::<T>::ctor)]` — + type-system-proof evidence (phantom-tier)
+- `#[defended_by(X)]` on `#[test]`/proptest fn — code-tier runtime evidence
+
+#### Sidecar identity anchors to the presents-site (consequence, not a new primitive)
+
+Sidecar files (`.attest/`) anchor to the `(antigen, source-file, item-path)` of the
+`#[presents]` site, not of a separate `#[immune]` site. The presents-site IS the identity.
+No new primitive needed; the identity surface was always the presents-site.
+
+#### Audit verdict language
+
+The audit produces structured verdicts per presents-site per antigen:
+
+- `defended` — witness registered at tier T (T = Reachability / Execution / FormalProof)
+- `undefended` — no witness found (code-tier: no `#[defended_by]` cross-reference;
+  substrate-tier: no `requires=` predicate passes)
+- `substrate-gap` — `requires=` predicate not satisfied in current substrate
+- `partial` — witness registered at lower tier than `min_tier` declared on the site
+  (requires `#[presents(X, ..., min_tier = Execution)]`; deferred to v0.3 — see §L3)
+
+The audit NEVER says "immune to X." The verdict is always about *the state of the defense
+circuit*, not about whether the failure mode can fire.
+
+### Mechanics
+
+#### What antigen-macros changes
+
+- `#[immune]`: deprecated, still parses (no breaking change), emits compiler warning
+  pointing to migration guide
+- `#[defended_by(X)]`: new attribute on `#[test]` / proptest items (code-tier only)
+- `#[presents]`: `PresentsArgs` (`parse.rs:108`) gains optional `requires = <predicate>`
+  field, optional `proof = <expr>` field (phantom-tier evidence), and optional
+  `min_tier = <tier>` field (deferred to v0.3; see §L3)
+
+**`PresentsArgs` target shape (for implementer — pre-build assumption document)**:
+```rust
+pub struct PresentsArgs {
+    pub antigen: Path,
+    pub requires: Option<(RequiresExpr, Span)>,   // same type as ImmuneArgs.requires
+    pub proof: Option<Expr>,                        // same type as ImmuneArgs.witness
+    pub min_tier: Option<MacroWitnessTier>,         // new local mirror type (v0.3)
+}
+```
+
+`MacroWitnessTier` mirrors `MacroAntigenCategory` pattern (`parse.rs:48-77`): proc-macro
+crates cannot dep on antigen (circular), so a local mirror enum is required.
+
+#### What cargo-antigen audit changes
+
+- **Scan phase**: collect `#[defended_by(X)]` registrations alongside `#[presents(X)]` sites,
+  `#[presents(X, requires=P)]` substrate-predicates, and `#[presents(X, proof=...)]`
+  phantom-proof references
+- **Cross-reference**: for each presents-site, find registered code-tier witnesses that cover
+  it (via `#[defended_by]`) + evaluate substrate-tier predicate (via `requires=` if present)
+  + recognize phantom-tier evidence (via `proof=` expression shape, same `audit.rs:95-98`
+  logic as today)
+- **Tier detection** (enum ordinals: `None=0`, `Reachability=1`, `Execution=2`,
+  `BehavioralAlignment=3` reserved, `FormalProof=4`; `audit.rs:148-165`):
+  - Phantom-type (type-system-resident, via `proof=` expression): `WitnessTier::FormalProof`
+  - proptest / kani / prusti / verus: `WitnessTier::FormalProof` or `Execution` per tool
+  - `#[test]` function with llvm-cov coverage confirmation: `WitnessTier::Execution`
+  - `#[test]` function without coverage confirmation: `WitnessTier::Reachability`
+  - `requires=` predicate (substrate-tier): `WitnessTier::Execution` when predicate passes
+- **Verdict emission**: per presents-site, per antigen, structured verdict
+- **Sidecar identity**: compute from presents-site triple, not immune-site triple
+
+#### Migration guide (asymmetric — three paths)
+
+**Code-tier migration: `witness = fn` → `#[defended_by(X)]` on the test**
+
+```rust
+// Before — In tests: no annotation
+#[test]
+fn bijection_test_audit_hints_const_matches_enum() { ... }
+
+// Before — At the immune-site:
+#[immune(ParallelStateTrackersDiverge, witness = bijection_test_audit_hints_const_matches_enum)]
+const ADR025_AUDIT_HINTS: &[&str] = &[ /* serde keys */ ];
+
+// After — In tests: witness declares what it defends
+#[test]
+#[defended_by(ParallelStateTrackersDiverge)]
+fn bijection_test_audit_hints_const_matches_enum() { ... }
+
+// After — At the presents-site: #[immune] removed; audit computes verdict by cross-reference
+#[presents(ParallelStateTrackersDiverge)]
+const ADR025_AUDIT_HINTS: &[&str] = &[ /* serde keys */ ];
+```
+
+**Substrate-tier migration: `requires = pred` → folds into `#[presents]`**
+
+Substrate-tier sites have no test function to annotate. `#[defended_by(X)]` has nothing
+to attach to at these sites. Migration is entirely site-side.
+
+```rust
+// Before:
+#[presents(UnpinnedDependency)]
+#[immune(UnpinnedDependency, requires = "cargo-lock-committed")]
+fn add_dependency(...) { ... }
+
+// After: requires= folds into #[presents]; #[immune] removed
+#[presents(UnpinnedDependency, requires = "cargo-lock-committed")]
+fn add_dependency(...) { ... }
+```
+
+Substrate-tier sites in scope (aristotle T2, L1 — all verified against workspace grep):
+`supply_chain_unpinned.rs:44`, `vcs_info_loss.rs:82/122/160`, `triage_commit.rs:96`,
+`substrate_witness.rs:118`, `delta_attestation.rs:87`, `agentic_coordination.rs:112`,
+`antigen_category.rs:161`.
+
+**Phantom-tier migration: `witness = <phantom>` → `proof =` folds into `#[presents]`**
+
+Phantom-type witnesses have no test function — the type-system construction IS the proof.
+Cannot use `#[defended_by]`. Migration is entirely site-side, symmetrically to substrate-tier.
+
+```rust
+// Before:
+#[presents(DropPanicClass)]
+#[immune(DropPanicClass, witness = NonPanickingProof::<T>::verified)]
+fn make_droppable<T>() { ... }
+
+// After: proof= folds into #[presents]; #[immune] removed
+#[presents(DropPanicClass, proof = NonPanickingProof::<T>::verified)]
+fn make_droppable<T>() { ... }
+```
+
+The audit reads the `proof=` expression, recognizes the phantom shape structurally (same
+`audit.rs:95-98` logic as today), classifies `WitnessTier::FormalProof`. Carrier-swap only.
+
+### The honest semantic gap (adversarial findings)
+
+The `#[defended_by]` marker + coverage-tier check + structural registry cross-reference
+closes the *lazy-abuse surface* (no witness = fails) and reduces the *honest-mistake
+surface* (wrong tier, uncovered site). It does NOT close the *semantic gap*: whether a
+structurally-connected witness actually exercises the failure mode.
+
+Four attack surfaces remain open after this ADR:
+
+1. **Hollow wrapper attack**: witness calls a high-level API that incidentally covers the
+   presents-site lines via llvm-cov. Coverage tier granted; failure mode unexpercised.
+2. **Symbol-touch attack** (SubstrateAlignment-specific): witness imports both parallel
+   symbols but never asserts a relation between them. Reads ≠ updates.
+3. **Tier-inflation attack**: witness test excluded from coverage report that grants it
+   coverage credit. Per-test coverage attribution would close this; aggregate line coverage
+   does not.
+4. **Stale-cross-reference attack**: witness correct at declaration time; production code
+   refactors; antigen-relevant branch moves to an uncovered sub-function; coverage still
+   passes. Drift-blind at the semantic level.
+
+**ADR posture**: documented openly. This ADR provides *structural verification of the
+witness circuit* — the wire exists and has current — but NOT *semantic verification that
+the wire carries the right signal*.
+
+**Intermediate mitigation (Approach 1.5, future work):** Fingerprint-anchored coverage
+join — audit verifies witness-fn's llvm-cov coverage includes ≥1 line within fingerprint-match
+site span. Requires per-item span data + per-test-binary coverage; non-trivial CI setup.
+
+**Full semantic verification (Approach 4, future ADR):** witness-contract DSL declaring
+what behavioral invariant a witness exercises.
+
+### Open issues — not ratification blockers
+
+**L2 — Phantom-witness registration (RESOLVED)**:
+Phantom-type witnesses (`phantom_witness.rs:76`: `witness = NonPanickingProof::<T>::verified`)
+are code-tier but NOT `#[test]` functions — `#[defended_by]` applies to test/proptest
+witnesses only. Resolution: `proof=` folds into `#[presents]` (aristotle F1). The
+phantom-proof reference is defense-evidence of the same category as `requires=` — site-attached
+evidence with no test to annotate. The audit reads the `proof=` expression, recognizes the
+phantom shape structurally (unchanged — same `audit.rs:95-98` logic), classifies `FormalProof`.
+No new attribute, no auto-detect-guessing, no sidecar. Issue-3 (sidecar identity) dissolves:
+`#[presents]` is the universal site-attached carrier, always co-located by construction.
+
+**L3 — `partial` verdict and `min_tier` carrier (OPEN — deferred to v0.3)**:
+The `partial` verdict presupposes a per-site required tier that no current primitive carries.
+Recommendation: option A — `min_tier=` field on `#[presents(X, min_tier=Execution)]`. The
+site knows what tier of defense it requires; the witness just registers what it provides.
+Until implemented, `partial` is not emitted; the verdict vocabulary (`defended` /
+`undefended` / `substrate-gap`) is complete without it.
+
+### Voids seeded for v0.3+ (aristotle Phase 8)
+
+Not addressed by this ADR; seed campsites when scheduling v0.3 work.
+
+**V1 — Conjunctive (AND) multi-channel defense**: the current `witness=` / `requires=`
+EITHER/OR structure forbids a site that is both code-tier-tested AND substrate-gated.
+Real defenses are often conjunctive. `#[defended_by]` + `requires=` co-present = conjunctive
+verdict. Future ADR.
+
+**V2 — Two-evaluation-mode distinction**: runtime-witness (test executes) vs audit-time-
+predicate (substrate checked) are different enough that one `witness` word hides the
+substrate-gap third state. Links to e58627d5 bool-layer conflation (EvalNode::passed
+ignoring evaluated). Future ADR.
+
+**V3 — Declared/observed axis applies to vulnerability too**: `#[presents]`/fingerprint
+already implement "observed not declared" for vulnerability recognition. This ADR addresses
+the immunity half; the vulnerability half is structurally parallel. The scaffold primitive
+(observe-first-declare-second) is V3's precedent already shipped. Future ADR.
+
+### Sweep-level consequences
+
+**ADR-004 (implicit-to-explicit elevation)**: extended. `#[immune]` made the defense-claim
+explicit — correct at the time. This ADR makes the defense-*circuit* explicit: the witness
+declares what it covers; the presents-site declares what it presents + what predicate its
+defense requires; the audit derives the verdict. The verdict moves from static-declared to
+dynamically-computed.
+
+**ADR-005 (sub-clause F)**: strengthened. The verdict is computed by the audit tool, not
+asserted by the developer. The audit's cross-reference IS the validation check. Exception:
+`requires = <predicate>` on `#[presents]` is still a developer assertion about substrate;
+audit validates it against substrate — developer doesn't get the final say.
+
+**ADR-019 (substrate-witness predicate family)**: the `requires =` predicate family migrates
+from `ImmuneArgs` to `PresentsArgs`. Predicate semantics unchanged; carrier changes. ADR-019
+amended to reference `#[presents]` as the new carrier.
+
+**ADR-013 (phantom-type witness recognition)**: phantom-type witnesses (`WitnessTier::FormalProof`)
+continue to work. The type-system encoding IS the witness. `#[defended_by(X)]` is NOT
+required for phantom-type witnesses. The audit discovers phantom witnesses via the `proof=`
+expression on `#[presents]` (L2 resolution).
+
+**ADR-006 (recognition-not-design)**: R5 over R4. `#[site_binding]` would have been a new
+attribute carrying something `#[presents]` already holds at every target site. Dropped.
+The presents-site is the natural carrier; extending it (additive field) is recognition;
+inventing a new attribute is design.
+
+### Enforcement
+
+- `#[immune]` emits a `#[deprecated]` compiler warning from the proc-macro, pointing to
+  the migration guide.
+- `cargo antigen audit` gates on verdict, not on presence of `#[immune]`. Any presents-site
+  without a registered code-tier witness (`#[defended_by]`) OR a passing substrate-tier
+  predicate (`requires=`) = `undefended`.
+- The `antigen audit` CI gate fails on `undefended` sites at Execution or FormalProof
+  (configurable per antigen via severity).
+
+### Resolves
+
+- Removes the false binary immunity-claim from code sites
+- Separates verdict (audit-derived) from code-tier witness registration (`#[defended_by]`
+  on tests) from site-attached evidence (`requires=` substrate-predicate and `proof=`
+  phantom-proof, both on `#[presents]`)
+- Maintains sidecar identity at the presents-site (natural failure-locus)
+- Aligns with biology: effector output (verdict) is produced by the immune system (audit),
+  not declared by the antigen-presenting cell (code site). `#[defended_by(X)]` = antibody/BCR
+  effector (ratified: glossary:22 witness=antibody; specificity intrinsic to the witness
+  per BCR-variable-region analog — confirms witness-side class-binding per R5).
+  `requires=` on site = germinal-center-record-sensing (context-sensing, site-attached;
+  glossary:1038).
+- Maintains backward compatibility via deprecation path (not a breaking removal)
+- Ships R5 (ADR-006 compliant): recognition of `#[presents]` as carrier, not design of
+  a new `#[site_binding]` attribute
+
+### What this ADR does NOT do
+
+- Does NOT claim code sites can compute or declare immune verdicts
+- Does NOT close the semantic gap (structurally-connected witnesses that don't exercise the
+  failure mode — open research question, see §honest semantic gap above)
+- Does NOT implement `min_tier=` or the `partial` verdict (deferred to v0.3, L3)
+- Does NOT break existing `#[immune]` usage (deprecation warning only; migration guide above)
 
