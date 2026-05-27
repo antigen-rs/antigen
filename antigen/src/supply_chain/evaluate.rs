@@ -5,6 +5,8 @@
 
 use std::path::{Path, PathBuf};
 
+use antigen_macros::immune;
+
 use super::manifest::{read_manifest_deps, DepEntry};
 use super::schema::{ContentHashRecord, DepAttestation, MaintainerSnapshot, SandboxKind};
 use super::witness::{
@@ -32,7 +34,13 @@ pub fn supply_chain_root(workspace_root: &Path) -> PathBuf {
 /// chosen path. This guards the `pub fn` primitive against callers (present or
 /// future) that reach it without pre-validating — `evaluate_dep_attested` /
 /// `load_content_hash_record` did exactly that.
+///
+/// Defends [`crate::stdlib::dogfood::PathTraversalViaUnvalidatedComponent`].
 #[must_use]
+#[immune(
+    PathTraversalViaUnvalidatedComponent,
+    witness = path_builders_reject_traversal_crate_name
+)]
 pub fn dep_attest_path(workspace_root: &Path, crate_name: &str, version: &str) -> PathBuf {
     let dir = supply_chain_root(workspace_root).join("dep-attest");
     if !is_valid_crate_name(crate_name) || !is_valid_version(version) {
@@ -47,6 +55,10 @@ pub fn dep_attest_path(workspace_root: &Path, crate_name: &str, version: &str) -
 /// resolves to the content-hash directory (in-root, non-escaping), never an
 /// attacker-controlled traversal.
 #[must_use]
+#[immune(
+    PathTraversalViaUnvalidatedComponent,
+    witness = path_builders_reject_traversal_crate_name
+)]
 pub fn content_hash_path(workspace_root: &Path, crate_name: &str, version: &str) -> PathBuf {
     let dir = supply_chain_root(workspace_root).join("content-hash");
     if !is_valid_crate_name(crate_name) || !is_valid_version(version) {
@@ -60,6 +72,10 @@ pub fn content_hash_path(workspace_root: &Path, crate_name: &str, version: &str)
 /// Same defense-in-depth as [`dep_attest_path`]: invalid `crate_name` resolves
 /// to the maintainer directory (in-root, non-escaping).
 #[must_use]
+#[immune(
+    PathTraversalViaUnvalidatedComponent,
+    witness = path_builders_reject_traversal_crate_name
+)]
 pub fn maintainer_path(workspace_root: &Path, crate_name: &str) -> PathBuf {
     let dir = supply_chain_root(workspace_root).join("maintainer");
     if !is_valid_crate_name(crate_name) {
