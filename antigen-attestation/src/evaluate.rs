@@ -2710,4 +2710,78 @@ mod tests {
             "AllOf(supply-chain-deferred, substrate-passed) must be Indeterminate"
         );
     }
+
+    #[test]
+    fn ratified_doc_anchor_vs_min_version_affordance_trap_nfa27() {
+        // SILENT WRONG-PASS (adversarial NFA-27): `AffordanceTrapInAttestationDSL`.
+        //
+        // `ratified_doc(path=..., min_version=..., anchor=...)` has three optional
+        // `String` slots with distinct semantics: `min_version` does a structured
+        // frontmatter version comparison, `anchor` does a plain substring search.
+        //
+        // An author who means "require version >= 1.0" and writes
+        //   `ratified_doc(path = "docs/d.md", anchor = "1.0")`
+        // instead of
+        //   `ratified_doc(path = "docs/d.md", min_version = "1.0")`
+        //
+        // gets the WRONG predicate silently accepted by the parser (both are valid
+        // keyword arguments with `String` values). At evaluation time, `anchor = "1.0"`
+        // performs `content.contains("1.0")`. If the document contains "1.0" anywhere
+        // — as a heading, version string, example, or anywhere else — the predicate
+        // PASSES, even if the document's structured frontmatter version is 0.5 (below
+        // the intended floor). This is a false PASS: the author believed they were
+        // enforcing a version floor; the predicate enforces nothing meaningful.
+        //
+        // This is the strictest form of the affordance trap: not a fail (which would
+        // be caught) but a wrong GREEN that confirms "all is well" when it isn't.
+        //
+        // CONCRETE CASE: doc has frontmatter `version: 0.5` (below intended 1.0 floor)
+        // but the body contains "See also v1.0 changelog" — anchor = "1.0" substring
+        // matches "v1.0", predicate passes with Execution tier. The min_version check
+        // would correctly fail (0.5 < 1.0).
+        //
+        // FIX DIRECTION (per AffordanceTrapInAttestationDSL R5): newtype-wrapped slots
+        // — `MinVersion("1.0")` vs `Anchor("1.0")` — so wrong-slot binding is a
+        // type error, not a runtime surprise. Alternatively, a semantic-alias validator
+        // that flags `anchor` values matching semver patterns and suggests `min_version`.
+        //
+        // This test documents the current behavior (false PASS) as a regression anchor.
+        // It PASSES under the current code — proving the trap is live. A correct fix
+        // would introduce a parse-time or validate-time guard that catches this class
+        // of wrong-slot binding.
+        let item = item_with(vec![]);
+        let pred = Predicate::leaf(Leaf::RatifiedDoc {
+            path: Some(PathBuf::from("docs/d.md")),
+            // WRONG SLOT: author intends a version floor but uses anchor.
+            min_version: None,
+            anchor: Some("1.0".to_string()),
+            sibling_json: false,
+        });
+        // Doc has structured version 0.5 (below intended floor 1.0), but body
+        // contains "1.0" as a substring in a changelog reference.
+        // min_version = "1.0" would FAIL (0.5 < 1.0).
+        // anchor = "1.0" PASSES (substring found in body).
+        let doc_content = "---\nversion: 0.5\n---\n# Discipline\nSee also v1.0 changelog.";
+        let ctx = TestContext::new(sample_date()).with_doc("docs/d.md", doc_content);
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+        // CURRENT BEHAVIOR: predicate passes (Execution) — the anchor "1.0" is found
+        // in the body. This is a FALSE PASS: the document version is 0.5, below the
+        // intended 1.0 floor. The author believed they were enforcing a version floor
+        // but the wrong slot produces a vacuous success.
+        //
+        // A CORRECT predicate would be `min_version = "1.0"`, which would fail here
+        // (doc version 0.5 < required 1.0).
+        //
+        // NFA-27 DOCUMENTS: wrong-slot binding (anchor vs min_version) silently produces
+        // a false-green audit result. The parser must not accept this ambiguity silently.
+        assert_eq!(
+            r.witness_tier,
+            WitnessTier::Execution,
+            "NFA-27 affordance trap: anchor = \"1.0\" on a doc with version 0.5 silently \
+             passes because \"1.0\" appears in the body text. A correct min_version check \
+             would fail (0.5 < 1.0). This documents the live AffordanceTrapInAttestationDSL \
+             failure class — wrong-slot binding produces false-green audit result."
+        );
+    }
 }

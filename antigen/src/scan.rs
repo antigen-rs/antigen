@@ -6003,4 +6003,167 @@ mod tests {
         assert!(report.presentations[0].requires_predicate.is_none());
         assert!(report.presentations[0].proof.is_none());
     }
+
+    // ========================================================================
+    // ADR-009 Amd-1: fingerprint-omission silent behavior (ATK-ADR009-AMD1)
+    //
+    // Scout probe surface (2026-05-27 field notice 032da904): when an antigen
+    // is declared without a fingerprint, the synthesis_pass skips it silently.
+    // This is CORRECT behavior (verify-only antigens have no scan-surface per
+    // ADR-009 Amd-1), but it creates an invisible failure mode for authors who
+    // INTEND to write a scan-locatable antigen and accidentally omit the fingerprint.
+    //
+    // Three claims to verify:
+    //   (a) zero-fingerprint antigen produces no FingerprintMatch presentations
+    //   (b) no false-positive presentations from other fingerprints (silence is clean)
+    //   (c) explicit #[presents] markers are still captured (fingerprint omission
+    //       does not break the explicit-marker path)
+    //   (d) no diagnostic is emitted (parse_failures is empty for the omission case)
+    //
+    // (d) is the design gap scout identified: the author who INTENDED a fingerprint
+    // gets exactly the same behavior as one who deliberately omitted it. There is no
+    // "did you mean to add a fingerprint?" lint.
+    // ========================================================================
+
+    #[test]
+    fn atk_adr009_amd1_no_fingerprint_antigen_produces_no_fingerprint_match_presentations() {
+        // (a): An antigen with fingerprint=None must not generate any FingerprintMatch
+        // presentations, even if source items would match a doc_contains pattern.
+        //
+        // The synthesis_pass skips antigens with no fingerprint (filter_map on
+        // fingerprint.as_deref() at scan.rs:2734). This tests that the skip is clean.
+        let src = r#"
+            #[antigen(
+                name = "verify-only-class",
+                category = AntigenCategory::SubstrateAlignment,
+                summary = "A verify-only antigen with no fingerprint."
+            )]
+            pub struct VerifyOnlyClass;
+
+            /// verify-only-class: this function mentions the antigen by name in a doc comment.
+            /// If fingerprint were `doc_contains("verify-only-class")`, this would match.
+            pub fn a_function_that_would_match() {}
+        "#;
+        let mut report = scan_source(src);
+        // Run synthesis_pass directly on the parsed content.
+        // Antigen has fingerprint=None — filter_map drops it — fingerprints vec is empty.
+        let fingerprints: Vec<(String, antigen_fingerprint::Fingerprint)> = report
+            .antigens
+            .iter()
+            .filter_map(|ag| {
+                let raw = ag.fingerprint.as_deref()?;
+                antigen_fingerprint::Fingerprint::parse(raw)
+                    .ok()
+                    .map(|fp| (ag.type_name.clone(), fp))
+            })
+            .collect();
+        assert!(
+            fingerprints.is_empty(),
+            "ATK-ADR009-AMD1(a): no-fingerprint antigen must produce empty fingerprints vec; \
+             got: {fingerprints:?}"
+        );
+        // No FingerprintMatch presentations — synthesis_pass was never called.
+        let fingerprint_matches: Vec<_> = report
+            .presentations
+            .iter()
+            .filter(|p| p.match_kind == MatchKind::FingerprintMatch)
+            .collect();
+        assert!(
+            fingerprint_matches.is_empty(),
+            "ATK-ADR009-AMD1(a): no-fingerprint antigen must produce zero FingerprintMatch \
+             presentations; got {}: {fingerprint_matches:?}",
+            fingerprint_matches.len()
+        );
+    }
+
+    #[test]
+    fn atk_adr009_amd1_no_fingerprint_does_not_suppress_explicit_presents() {
+        // (c): A no-fingerprint antigen must not block explicit #[presents] markers.
+        // The fingerprint-omission affects only synthesis_pass (inferred sites);
+        // explicit markers flow through the attribute-walker path independently.
+        let src = r#"
+            #[antigen(
+                name = "verify-only-class",
+                summary = "No fingerprint."
+            )]
+            pub struct VerifyOnlyClass;
+
+            #[presents(VerifyOnlyClass)]
+            pub fn explicitly_marked_site() {}
+        "#;
+        let report = scan_source(src);
+        // The explicit #[presents] must be captured.
+        let explicit: Vec<_> = report
+            .presentations
+            .iter()
+            .filter(|p| p.match_kind == MatchKind::ExplicitMarker)
+            .collect();
+        assert_eq!(
+            explicit.len(),
+            1,
+            "ATK-ADR009-AMD1(c): a no-fingerprint antigen must not suppress explicit \
+             #[presents] markers; got {} explicit sites: {:?}",
+            explicit.len(),
+            explicit
+        );
+        assert_eq!(
+            explicit[0].antigen_type,
+            "VerifyOnlyClass",
+            "ATK-ADR009-AMD1(c): explicit site must name the correct antigen"
+        );
+        // No FingerprintMatch presentations (no fingerprint = no synthesis).
+        assert!(
+            report
+                .presentations
+                .iter()
+                .all(|p| p.match_kind == MatchKind::ExplicitMarker),
+            "ATK-ADR009-AMD1(c): all presentations must be ExplicitMarker; no synthesis \
+             occurred (no fingerprint)"
+        );
+    }
+
+    #[test]
+    fn atk_adr009_amd1_no_diagnostic_for_accidental_omission() {
+        // (d): The design gap — no diagnostic for accidental fingerprint omission.
+        //
+        // An author who INTENDED a scan-locatable antigen (and would write
+        // `fingerprint = r#"doc_contains("my-class")"#`) but accidentally omitted
+        // the field gets exactly the same behavior as an intentional verify-only
+        // antigen declaration. No parse_failure, no warning, no lint.
+        //
+        // This is the silent failure scout flagged: the two cases are indistinguishable
+        // from the tool's perspective. The mitigation direction per ADR-009 Amd-1
+        // §Enforcement is a future lint: "antigen X has no fingerprint and no
+        // detection_model=verify_only classification — consider adding one."
+        //
+        // This test DOCUMENTS the current behavior (no diagnostic) as a regression
+        // anchor. When the lint is implemented, this test must be updated.
+        let src = r#"
+            #[antigen(
+                name = "accidentally-no-fingerprint",
+                summary = "Author intended a fingerprint but forgot it."
+            )]
+            pub struct AccidentallyNoFingerprint;
+        "#;
+        let report = scan_source(src);
+        assert_eq!(
+            report.antigens.len(),
+            1,
+            "antigen declaration must be scanned"
+        );
+        assert!(
+            report.antigens[0].fingerprint.is_none(),
+            "no fingerprint in declaration"
+        );
+        // CURRENT BEHAVIOR: no parse failure, no warning for the omission.
+        // The tool cannot distinguish "intentionally verify-only" from
+        // "accidentally omitted the fingerprint".
+        assert!(
+            report.parse_failures.is_empty(),
+            "ATK-ADR009-AMD1(d) documented gap: no diagnostic for accidental fingerprint \
+             omission; parse_failures is empty even when an author forgot to write a \
+             fingerprint. Mitigation direction: a future lint warning for antigens with \
+             no fingerprint and no explicit detection_model=verify_only annotation."
+        );
+    }
 }
