@@ -133,6 +133,7 @@ fn report_with_defended_by_only() -> ScanReport {
         line: 5,
         item_kind: "fn".to_string(),
         item_target: ItemTarget::Unknown { line: 5 },
+        canonical_path: None,
     };
     report.defenses.push(defense);
 
@@ -242,6 +243,7 @@ fn atk_adr029_3_wrong_antigen_defended_by_does_not_pollute() {
         line: 5,
         item_kind: "fn".to_string(),
         item_target: ItemTarget::Unknown { line: 5 },
+        canonical_path: None,
     });
 
     let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -300,6 +302,7 @@ fn atk_adr029_4_immune_audits_unaffected_by_defended_by() {
         line: 5,
         item_kind: "fn".to_string(),
         item_target: ItemTarget::Unknown { line: 5 },
+        canonical_path: None,
     });
 
     let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -362,6 +365,7 @@ fn atk_adr029_8_non_fn_defended_by_must_not_produce_defended_verdict() {
         line: 20,
         item_kind: "struct".to_string(), // NOT a callable test witness
         item_target: ItemTarget::Unknown { line: 20 },
+        canonical_path: None,
     });
 
     let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -530,6 +534,7 @@ fn atk_adr029_12_impl_fn_defended_by_must_produce_defended_verdict() {
         line: 5,
         item_kind: "impl_fn".to_string(), // a test method inside an impl block
         item_target: ItemTarget::Unknown { line: 5 },
+        canonical_path: None,
     });
 
     let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -658,6 +663,7 @@ fn atk_adr029_14_multiple_witnesses_all_listed() {
         line: 10,
         item_kind: "fn".to_string(),
         item_target: ItemTarget::Unknown { line: 10 },
+        canonical_path: None,
     });
     report.defenses.push(Defense {
         antigen_type: "FailureClass".to_string(),
@@ -665,6 +671,7 @@ fn atk_adr029_14_multiple_witnesses_all_listed() {
         line: 20,
         item_kind: "fn".to_string(),
         item_target: ItemTarget::Unknown { line: 20 },
+        canonical_path: None,
     });
 
     let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -846,6 +853,7 @@ fn atk_adr029_17_defended_by_descendant_type_does_not_cover_inherited_ancestor_p
         line: 5,
         item_kind: "fn".to_string(),
         item_target: ItemTarget::Fn("test_child_class".to_string()),
+        canonical_path: None,
     });
 
     let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -933,6 +941,7 @@ fn atk_adr029_18_v1_void_failing_requires_masked_by_passing_defended_by() {
         line: 5,
         item_kind: "fn".to_string(),
         item_target: ItemTarget::Unknown { line: 5 },
+        canonical_path: None,
     };
     report.defenses.push(defense);
 
@@ -1101,6 +1110,101 @@ fn atk_adr029_20_empty_string_proof_overclaims_formal_proof_tier() {
     );
 }
 
+// ATK-ADR029-22: #[immune(X, requires=P)] with missing sidecar must yield SubstrateGap
+//
+// `audit()` routes `Immunity { requires_predicate: Some(pred_json), .. }` through
+// `audit_substrate_witness()`. When the `.attest/<antigen>.json` sidecar is absent,
+// `load_sidecar` returns None and `audit_substrate_witness` returns
+// `EvaluatedPredicate::sidecar_missing()` → `ImmunityAudit { witness_tier: None,
+// evaluated_predicate: Some(pred_json) }`.
+//
+// `compute_presentation_verdicts()` then checks `immune_audit_is_substrate_gap`:
+// the predicate is `a.evaluated_predicate.is_some() && a.witness_tier == None` —
+// BOTH true for sidecar-missing. The verdict must be SubstrateGap, not Undefended.
+//
+// INVARIANT: defensive intent is declared (requires_predicate is Some);
+// a missing sidecar is substrate drift, not absence of intent.
+// SubstrateGap is the correct verdict — "intent present, substrate drifted."
+// Undefended would be a FALSE NEGATIVE: the audit would appear to say "no
+// defense at all" when the adopter HAS declared a substrate-witness defense.
+//
+// This test has no prior coverage. The `#[presents(X, requires=P)]` path
+// (ATK-ADR029-10/19) only tests the Presentation-side eval; neither test
+// exercises the deprecated Immunity-side path through `immune_audit_is_substrate_gap`.
+//
+// DEGENERATE INPUT: Immunity.requires_predicate=Some(<valid predicate JSON>)
+// with no .attest/ sidecar on disk.
+#[test]
+fn atk_adr029_22_immune_requires_predicate_missing_sidecar_yields_substrate_gap() {
+    let mut report = ScanReport::default();
+
+    // A presents-site for the same antigen class.
+    report.presentations.push(Presentation {
+        antigen_type: "SubstrateGapClass".to_string(),
+        file: PathBuf::from("src/lib.rs"),
+        line: 10,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Fn("do_thing".to_string()),
+        match_kind: MatchKind::ExplicitMarker,
+        canonical_path: None,
+        inherited_from: None,
+        structural_fingerprint: String::new(),
+        requires_predicate: None,
+        proof: None,
+    });
+
+    // The deprecated #[immune(SubstrateGapClass, requires=<predicate>)] site — same
+    // item as the presents site. `requires_predicate` is Some with a well-formed
+    // predicate JSON. No .attest/ sidecar exists at `src/lib.rs` for this antigen.
+    // `audit_substrate_witness` will call `load_sidecar("src/lib.rs", "SubstrateGapClass")`
+    // → None (file doesn't exist) → EvaluatedPredicate::sidecar_missing()
+    // → ImmunityAudit { witness_tier: None, evaluated_predicate: Some(...) }.
+    report.immunities.push(Immunity {
+        antigen_type: "SubstrateGapClass".to_string(),
+        witness: String::new(), // not used on the requires= path
+        file: PathBuf::from("src/lib.rs"),
+        line: 10,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Fn("do_thing".to_string()),
+        canonical_path: None,
+        // Valid predicate JSON — the predicate is well-formed but the sidecar is absent.
+        requires_predicate: Some(r#"{"leaf":"fresh_within_days","value":90}"#.to_string()),
+        structural_fingerprint: String::new(),
+    });
+
+    let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap();
+    let audit_result = audit(&report, workspace_root);
+
+    let v = audit_result
+        .presentation_verdicts
+        .iter()
+        .find(|v| v.antigen_type == "SubstrateGapClass")
+        .expect("a verdict for SubstrateGapClass");
+
+    // INVARIANT: must be SubstrateGap (not Undefended).
+    // The adopter declared requires= intent; the sidecar absence is a substrate
+    // drift, not an absence of intent. `immune_audit_is_substrate_gap` should
+    // detect: evaluated_predicate.is_some() (set to the predicate JSON) AND
+    // witness_tier == None (sidecar missing → None tier). Both conditions true
+    // → SubstrateGap arm fires in compute_presentation_verdicts().
+    //
+    // If this fails with Undefended: the `immune_audit_is_substrate_gap` path
+    // at audit.rs:1439-1442 does not reach the ImmunityAudit produced by the
+    // Immunity match lookup (check audit.rs:1357-1361 item_target matching, or
+    // check that `evaluated_predicate` is actually Some in the missing-sidecar case).
+    assert!(
+        matches!(v.verdict, ImmuneVerdict::SubstrateGap),
+        "ATK-ADR029-22: #[immune(X, requires=P)] with missing sidecar must yield \
+        SubstrateGap, not Undefended. The adopter declared substrate-witness intent \
+        (requires_predicate is Some); a missing sidecar is substrate drift, not absence \
+        of intent. SubstrateGap signals 'intent present, substrate drifted.' \
+        immune_audit_is_substrate_gap should have fired. Got: {:?}",
+        v.verdict
+    );
+}
+
 // ATK-ADR029-21: defense canonical_path mismatch — cross-crate overclaim
 //
 // `Defense` has no `canonical_path` field. `unaddressed_presentations()` checks
@@ -1133,15 +1237,14 @@ fn atk_adr029_20_empty_string_proof_overclaims_formal_proof_tier() {
 // both use bare antigen_type, so both have the same cross-crate gap.
 #[test]
 fn atk_adr029_21_defense_matches_cross_crate_presentation_with_same_type_name() {
-    // Stage a report where:
-    // - Presentation has antigen_type="Foo", canonical_path=Some("other_crate::Foo")
-    // - Defense has antigen_type="Foo", no canonical_path (from this crate's tests)
-    //
-    // With the bare antigen_type match, the defense covers the foreign presentation.
-    // This documents the current overclaim behavior.
+    // FIXED (findings/defense-canonical-path-cross-crate-overclaim): in a real
+    // cross-crate scan both sides are canonical-stamped (ADR-017). A presentation
+    // from other_crate (canonical_path = other_crate::Foo) and a defense from
+    // this_crate (canonical_path = this_crate::Foo) carry DIFFERENT canonical
+    // paths, so the (antigen_type, canonical_path) tuple match does NOT treat the
+    // local defense as covering the foreign presentation.
     let mut report = ScanReport::default();
 
-    // The presentation is from a cross-crate Foo (different crate's canonical path)
     report.presentations.push(Presentation {
         antigen_type: "Foo".to_string(),
         file: PathBuf::from("src/lib.rs"),
@@ -1156,30 +1259,30 @@ fn atk_adr029_21_defense_matches_cross_crate_presentation_with_same_type_name() 
         proof: None,
     });
 
-    // The defense is for THIS crate's Foo (no canonical_path set)
+    // The defense is for THIS crate's Foo — stamped with this crate's canonical
+    // path (≠ other_crate). It must NOT cover the foreign presentation.
     report.defenses.push(Defense {
-        antigen_type: "Foo".to_string(), // same bare name, different crate
+        antigen_type: "Foo".to_string(), // same bare name, DIFFERENT crate
         file: PathBuf::from("src/tests.rs"),
         line: 5,
         item_kind: "fn".to_string(),
         item_target: ItemTarget::Unknown { line: 5 },
+        canonical_path: Some("this_crate::Foo".to_string()),
     });
 
-    // CURRENT BEHAVIOR: unaddressed_presentations() sees antigen_type="Foo" match
-    // and treats the cross-crate presentation as "addressed" by the local defense.
+    // The foreign presentation is NOT addressed by the local defense — the
+    // canonical_path tuple distinguishes other_crate::Foo from this_crate::Foo.
     let unaddressed = report.unaddressed_presentations();
-    assert!(
-        unaddressed.is_empty(),
-        "ATK-ADR029-21 (OVERCLAIM): defense with antigen_type='Foo' (no canonical_path) \
-         incorrectly covers presentation with antigen_type='Foo', canonical_path='other_crate::Foo'. \
-         unaddressed_presentations() sees the bare type-name match and returns an empty list. \
-         A cross-crate scan would silently suppress this presentation's verdict. \
+    assert_eq!(
+        unaddressed.len(),
+        1,
+        "ATK-ADR029-21 (FIXED): a this_crate defense must NOT cover an other_crate \
+         presentation of the same bare name — the (antigen_type, canonical_path) \
+         tuple match keeps them distinct. The foreign presentation stays unaddressed. \
          Got unaddressed: {:?}",
         unaddressed
     );
 
-    // The audit verdict also reflects the overclaim -- the presentation is Defended
-    // even though the defense is from a different crate's Foo.
     let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .unwrap();
@@ -1190,15 +1293,14 @@ fn atk_adr029_21_defense_matches_cross_crate_presentation_with_same_type_name() 
         "ATK-ADR029-21: exactly one verdict for the one presentation"
     );
     let v = &audit_result.presentation_verdicts[0];
-    assert!(
-        matches!(v.verdict, ImmuneVerdict::Defended { .. }),
-        "ATK-ADR029-21 (OVERCLAIM): cross-crate presentation is Defended by a local defense \
-         with the same antigen_type bare name. The defense does not check canonical_path. \
+    assert_eq!(
+        v.verdict,
+        ImmuneVerdict::Undefended,
+        "ATK-ADR029-21 (FIXED): the cross-crate presentation is Undefended — the \
+         local (this_crate) defense does not cross-reference a different crate's Foo. \
          Got: {:?}",
         v.verdict
     );
-    // If this test STARTS FAILING (defense no longer matches cross-crate presentation):
-    // the canonical_path-aware fix has landed. Update to assert Undefended here.
 }
 
 // ========================================================================
@@ -1254,45 +1356,129 @@ fn atk_g2_22_cross_crate_defense_triggers_spurious_g2_hint() {
     });
 
     // Crate B: a `#[defended_by(Foo)]` for a DIFFERENT Foo — same bare name,
-    // different canonical_path. This defense belongs to crate_b::Foo, not
-    // crate_a::Foo, but the bare-name comparison at audit.rs:3100 cannot tell.
+    // different canonical_path. In a real cross-crate scan, BOTH the crate_a
+    // antigen and the crate_b defense are canonical-stamped (ADR-017,
+    // stamp_canonical_path), so crate_b's defense carries
+    // canonical_path = Some("crate_b::..."). The G2 match is now
+    // (antigen_type, canonical_path) tuple-aware, so this defense — belonging to
+    // crate_b::Foo — does NOT count as evidence for crate_a::Foo.
     report.defenses.push(Defense {
         antigen_type: "Foo".to_string(), // same bare name as crate_a::Foo
         file: std::path::PathBuf::from("tests/crate_b_tests.rs"),
         line: 5,
         item_kind: "fn".to_string(),
         item_target: ItemTarget::Fn("defends_crate_b_foo".to_string()),
+        canonical_path: Some("crate_b::antigens::Foo".to_string()), // stamped, ≠ crate_a
     });
 
     let category_report = audit_category(&report);
 
-    // CURRENT BEHAVIOR (overclaim): G2 sees the crate_b defense, sets
-    // has_code_witness=true for crate_a's SubstrateAlignment antigen, and
-    // emits AntigenCategoryClaimInconsistentWithPredicateType.
-    // This is SPURIOUS -- the defense belongs to a different antigen entirely.
-    //
-    // audit_category() returns CategoryAuditReport { audits, mismatch_count, ... }.
-    // A spurious G2 hint appears in audits[0].hints.
-    //
-    // If this assertion STARTS FAILING (mismatch_count == 0):
-    // the canonical_path-aware fix has landed. Update to assert mismatch_count == 0
-    // and audits is empty (no spurious G2 hint when only cross-crate defenses exist).
+    // FIXED (findings/g2-cross-crate-bare-name-overclaim): G2 now matches the
+    // defense by (antigen_type, canonical_path). crate_b's defense
+    // (canonical_path = crate_b::…) does NOT match crate_a::Foo, so it is NOT
+    // counted as evidence — no spurious mismatch. crate_a::Foo has zero real
+    // evidence addressing it (the coverage-gap case, which G2 does not flag).
     assert_eq!(
-        category_report.mismatch_count, 1,
-        "ATK-G2-22 (OVERCLAIM): audit_category() fires G2 mismatch because it matches \
-         defense by bare antigen_type only (no canonical_path check). crate_b's defense \
-         for crate_b::Foo is counted as evidence for crate_a::Foo, triggering a spurious \
-         AntigenCategoryClaimInconsistentWithPredicateType hint. When fixed, mismatch_count \
-         should be 0 (no real evidence for crate_a::Foo exists). CURRENT BROKEN BEHAVIOR \
-         pinned as regression anchor."
+        category_report.mismatch_count, 0,
+        "ATK-G2-22 (FIXED): a cross-crate defense (crate_b::Foo) must NOT count as \
+         evidence for crate_a::Foo — the canonical_path tuple match distinguishes them. \
+         No real evidence addresses crate_a::Foo, so no G2 mismatch fires (a pure \
+         coverage gap, not a witness-type mismatch). Got: {}",
+        category_report.mismatch_count
     );
     let has_g2_hint = category_report.audits.iter().any(|a| {
         a.hints
             .contains(&AuditHint::AntigenCategoryClaimInconsistentWithPredicateType)
     });
     assert!(
-        has_g2_hint,
-        "ATK-G2-22: spurious G2 hint must appear in audits when only a cross-crate \
-         bare-name-matching defense exists"
+        !has_g2_hint,
+        "ATK-G2-22 (FIXED): no spurious G2 hint when the only defense is from a \
+         DIFFERENT crate (canonical_path mismatch)"
+    );
+}
+
+// ATK-ADR029-23: unstamped intra-workspace defense (canonical_path=None) covers
+// cross-crate presentations (canonical_path=Some("dep@version")) via wildcard match.
+//
+// `defense_addresses()` in scan.rs uses:
+//   d.canonical_path.is_none() || d.canonical_path == p.canonical_path
+//
+// When `d.canonical_path = None` (intra-workspace, unstamped), the `is_none()`
+// branch is true regardless of p.canonical_path — the defense matches ANY
+// presentation with the same bare antigen_type, including cross-dep presentations
+// that have been stamped with `canonical_path = Some("dep@version")`.
+//
+// This is intentional backward-compat for intra-workspace scans (where neither
+// defense nor presentation gets stamped — both None matches both None via
+// the is_none() branch). But in `--include-deps` scans, dep presentations get
+// stamped while own-workspace defenses stay None. An own-workspace
+// `#[defended_by(Foo)]` with canonical_path=None then acts as a wildcard:
+// it covers its own crate's Foo AND any dep's Foo with the same bare name.
+//
+// IMPACT: In a `--include-deps` scan, an intra-workspace defense incorrectly
+// satisfies a dep's presentation → the dep's presents-site shows Defended (not
+// Undefended) in the verdict, hiding the dep's undefended vulnerability.
+//
+// POSTURE: This test DOCUMENTS current behavior (unstamped None = wildcard).
+// It is NOT a fatal error for most use cases (intra-workspace-only scans are
+// unaffected). But it is a gap for `--include-deps` users. A future fix:
+// when a presentation has canonical_path=Some(X), require defenses to ALSO
+// have canonical_path=Some(X) (no None wildcard against a stamped presentation).
+// The backward-compat concern: existing intra-workspace sidecars would need
+// stamp_canonical_path to be called on primary-workspace defenses too.
+//
+// This test pins the current behavior so the wildcard semantics are explicit.
+// If defense_addresses() is tightened (None defense does NOT match Some presentation),
+// invert the assertion sense and update the comment above.
+#[test]
+fn atk_adr029_23_unstamped_defense_wildcard_covers_cross_crate_presentation() {
+    let mut report = ScanReport::default();
+
+    // A cross-dep presentation: stamped with a dep crate ID (as --include-deps would).
+    report.presentations.push(Presentation {
+        antigen_type: "SharedName".to_string(),
+        file: PathBuf::from("dep/src/lib.rs"),
+        line: 10,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Fn("dep_fn".to_string()),
+        match_kind: MatchKind::ExplicitMarker,
+        canonical_path: Some("some-dep@1.0.0".to_string()), // stamped by --include-deps driver
+        inherited_from: None,
+        structural_fingerprint: String::new(),
+        requires_predicate: None,
+        proof: None,
+    });
+
+    // An intra-workspace defense: unstamped (canonical_path = None), as the
+    // primary-workspace defenses are before stamp_canonical_path is called on them.
+    report.defenses.push(Defense {
+        antigen_type: "SharedName".to_string(),
+        file: PathBuf::from("src/tests.rs"),
+        line: 5,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Fn("my_test".to_string()),
+        canonical_path: None, // intra-workspace, not stamped
+    });
+
+    // defense_addresses is pub(crate) — test via the public unaddressed_presentations().
+    // If the unstamped defense DOES cover the dep's presentation, the presentation
+    // appears addressed (not in unaddressed list). If it does NOT cover it, the
+    // presentation appears unaddressed.
+    let unaddressed = report.unaddressed_presentations();
+
+    // CURRENT BEHAVIOR: unaddressed list is EMPTY — the unstamped None defense acts
+    // as a wildcard and "addresses" the stamped dep presentation. The dep's
+    // undefended vulnerability is invisible.
+    //
+    // This is the wildcard semantics: None = "match any crate."
+    assert!(
+        unaddressed.is_empty(),
+        "ATK-ADR029-23 (CURRENT BEHAVIOR — wildcard): an intra-workspace defense \
+        (canonical_path=None) should match the stamped dep presentation \
+        (canonical_path=Some('some-dep@1.0.0')) via the wildcard semantics. \
+        The unaddressed list must be empty because the None defense 'covers' the dep. \
+        If this assertion FAILS: the wildcard semantics were tightened — the None \
+        defense no longer wildcards against stamped presentations. Invert the \
+        assert to expect unaddressed.len()==1 and document the fix."
     );
 }
