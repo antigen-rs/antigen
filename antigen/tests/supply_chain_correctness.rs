@@ -622,7 +622,8 @@ const fn hint_is_supply_chain(hint: &antigen::audit::AuditHint) -> bool {
         | AuditHint::MucosalTolerantWithoutReviewer
         | AuditHint::AntigenCategoryDefaultedImplicitFunctional
         | AuditHint::AntigenCategoryClaimInconsistentWithPredicateType
-        | AuditHint::AntigenCategoryHybridIncompleteEvidence => false,
+        | AuditHint::AntigenCategoryHybridIncompleteEvidence
+        | AuditHint::DescendedFromFingerprintDivergence => false,
     }
 }
 
