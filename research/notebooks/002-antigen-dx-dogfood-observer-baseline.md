@@ -1807,3 +1807,75 @@ The exhaustive-match arc is the deepest structural closure in the ParallelStateT
 ATK-HINT-2 is a methodological finding for observer: when auditing a witness, audit the witness's own surfaces for the class it defends. The cure for the witness's internal drift was the same exhaustive-match approach — removing hand-maintenance entirely.
 
 **Observer pending**: `dogfood/comprehensive-antigen-coverage` (0/3 signers, blocked on pathmaker's coverage sub-campsites). Everything else is complete or deferred to future arcs.
+
+---
+
+## Step 36 — dogfood-antigen-self-audit: substrate verification of adversarial's category/witness finding
+
+**Date**: 2026-05-26 (UTC, resumed after rate-limit hard-stop)
+**HEAD**: `515c906`
+**Campsite**: `dogfood-antigen-self-audit` (seeded by adversarial, 2026-05-27 00:30 UTC)
+
+### Hypothesis
+
+Adversarial claims `cargo antigen audit` on the workspace finds two stdlib antigens with category/witness gaps:
+1. `ParallelStateTrackersDiverge` — `category=SubstrateAlignment`, `witness=adr025_audit_hints_const_matches_enum_serde_keys` (code-witness), no `requires=` predicate → G2 fires `antigen-category-claim-inconsistent-with-predicate-type`
+2. `UnsandboxedProcMacro` — `category=[SA, FC]` (hybrid), immunity in example uses `requires=sandbox_clean(...)` (substrate-witness only, no code-witness) → G2 fires `antigen-category-hybrid-incomplete-evidence`
+
+**Hypothesis**: adversarial's claim is substrate-accurate; the audit hints are correctly emitted and represent a real design tension (not a tool bug).
+
+### Method
+
+1. Read `audit.rs:2741` (`audit_category`) — understand G2 logic
+2. Read `dogfood.rs:1079–1087` (ParallelStateTrackersDiverge declaration)
+3. Read `supply_chain_correctness.rs:300–302` (the immunity)
+4. Read `supply_chain.rs:331–339` (UnsandboxedProcMacro declaration)
+5. Read `supply_chain_unsandboxed_proc_macro.rs:51–54` (the example's immunity)
+6. Run `cargo antigen audit` and grep for the specific hints
+
+### Results
+
+**Confirmed — both hints are correctly emitted:**
+- `cargo antigen audit` output: `ParallelStateTrackersDiverge (dogfood.rs:1079) — antigen-category-claim-inconsistent-with-predicate-type`
+- `cargo antigen audit` output: `UnsandboxedProcMacro (supply_chain.rs:331) — antigen-category-hybrid-incomplete-evidence`
+
+**Mechanism verified for `ParallelStateTrackersDiverge`**:
+- G2 logic (`audit.rs:2790`): `wants_substrate = category.contains(SubstrateAlignment)` → `true`
+- Immunity at `supply_chain_correctness.rs:300`: `witness = adr025_audit_hints_const_matches_enum_serde_keys` → `has_code_witness` would require `!imm.witness.is_empty()` = true; `has_substrate_witness` requires `imm.requires_predicate.is_some()` = false (no `requires=` arg)
+- Wait — re-read the G2 logic: `has_code_witness` is set when `!imm.witness.is_empty()`. The immunity DOES have a non-empty witness. So `has_code_witness = true`. But `wants_substrate = true` and `has_substrate_witness = false`. So: `substrate_satisfied = !wants_substrate || has_substrate_witness = !true || false = false`. → fires.
+- Correct emission: SubstrateAlignment category claims the failure is a representation divergence; G2 expects a substrate-witness (requires= predicate checking an artifact's structural state); a code-witness (test fn) doesn't satisfy that axis.
+
+**Mechanism verified for `UnsandboxedProcMacro`**:
+- Declaration: `category = [SubstrateAlignment, FunctionalCorrectness]` → hybrid (`is_hybrid = true`)
+- Example immunity at `supply_chain_unsandboxed_proc_macro.rs:51–54`: `requires = sandbox_clean("derive_more", sandbox_kind = "proc-macro")` → `has_substrate_witness = true`; no `witness=` arg → `has_code_witness = false`
+- G2: `is_hybrid = true`, `has_substrate_witness ^ has_code_witness = true ^ false = true` → `hybrid_one_axis_witnessed = true` → fires `antigen-category-hybrid-incomplete-evidence`
+- Correct emission: hybrid antigen with only one axis witnessed is incomplete evidence, not a full violation.
+
+**BiologyGroundingClaimDrift comparison**: has NO immunities anywhere in workspace → `has_any_immunity = false` → G2 skipped entirely → no emission. The G2 check only fires when immunities exist but are of the wrong type.
+
+### Conclusions
+
+**The finding is correct and the audit tool logic is correct.** Two distinct situations:
+
+**Case 1 (ParallelStateTrackersDiverge)**: A `SubstrateAlignment` antigen whose defense is a code-witness (parity test) rather than a structural predicate. The audit correctly flags this tension. The deeper question: is the G2 mapping (`SubstrateAlignment → requires substrate-witness`) too strict? A bijection test IS checking substrate alignment (const ↔ enum keys), just expressed as a test function. The defense is correct for the failure class — the audit's expectation of a `requires=` predicate for all `SubstrateAlignment` defenses may be narrower than the actual design space. This is a genuine G2 logic nuance, not a coverage gap.
+
+**Case 2 (UnsandboxedProcMacro)**: A hybrid `[SA, FC]` antigen with only one axis witnessed (substrate-witness present, code-witness absent). The code-witness axis (`FunctionalCorrectness`) is absent because the sandbox tooling is v0.4+. The audit correctly characterizes this as incomplete evidence. The "v0.4+ stub" comment explains WHY but doesn't satisfy the structural requirement. This IS a real gap, intentional and acknowledged.
+
+**What adversarial framed as "recursive find works"**: Yes, the audit correctly catches its own stdlib gaps. Both findings are real, both are intentional (known v0.2 scaffolding state), and the audit tool's transparency about them is the exact behavior the system is designed to exhibit. The recursive find IS working.
+
+**Design tension surfaced**: The G2 check's `SubstrateAlignment → requires substrate-witness` mapping is an oversimplification for the case where alignment is verified by a parity test (a code-witness checking both sides of a split representation). A parity test is structurally more aligned with `SubstrateAlignment` semantics than a `requires=` predicate on an artifact's structural property. This may warrant an ADR note or G2 refinement in v0.3.
+
+### Next steps
+
+1. Deposit verified assessment on `dogfood-antigen-self-audit` campsite
+2. Commit lab notebook step 36
+3. Check expedition status — `dogfood/comprehensive-antigen-coverage` still blocked; observer's lane is otherwise clear
+4. Consider seeding a campsite for the G2-mapping-oversimplification design tension (or camp-question to navigator)
+
+### Metrics
+
+- Commits since last lab notebook entry: 3 (`515c906`, `ad4b820`, `7e59865` — beyond the 12 in step 35)
+- Audit hints verified: 2 (both adversarial claims confirmed)
+- False alarms this step: 0
+- Tests at HEAD: 913 passed, 0 failed (from navigator's wake call)
+- Open observer terrain: `dogfood/comprehensive-antigen-coverage` (blocked, awaiting pathmaker)
