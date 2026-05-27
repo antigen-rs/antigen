@@ -1873,6 +1873,24 @@ pub struct UnaddressedPresentation {
     pub antigen_known: bool,
 }
 
+/// Unaddressed presentations split by confidence tier.
+///
+/// `explicit` contains sites where a developer wrote `#[presents(X)]` —
+/// high-specificity declared intent. `inferred` contains sites where no marker
+/// was written but the item matched an antigen's fingerprint pattern — broad
+/// structural signal that requires human triage before acting.
+///
+/// The CLI gates `--strict` on `explicit` only; `inferred` is informational.
+/// Library callers building custom CI should apply the same distinction:
+/// gate on `explicit`, triage `inferred`.
+#[derive(Debug, Clone, Default)]
+pub struct PartitionedPresentations {
+    /// Sites marked with `#[presents(X)]` — declared, CI-gateable.
+    pub explicit: Vec<UnaddressedPresentation>,
+    /// Sites matching a fingerprint pattern — inferred, triage-first.
+    pub inferred: Vec<UnaddressedPresentation>,
+}
+
 impl ScanReport {
     /// Find presentations that lack a corresponding immunity declaration.
     ///
@@ -1925,6 +1943,26 @@ impl ScanReport {
             }
         }
         result
+    }
+
+    /// Unaddressed presentations split by confidence tier.
+    ///
+    /// Equivalent to calling [`unaddressed_presentations`](Self::unaddressed_presentations)
+    /// and partitioning by [`MatchKind`], but in a single pass and with doc
+    /// guidance on what each bucket means for CI gates.
+    ///
+    /// See [`PartitionedPresentations`] for the distinction between
+    /// `explicit` (CI-gateable) and `inferred` (human-triage).
+    #[must_use]
+    pub fn partitioned_presentations(&self) -> PartitionedPresentations {
+        let mut out = PartitionedPresentations::default();
+        for up in self.unaddressed_presentations() {
+            match up.presentation.match_kind {
+                MatchKind::ExplicitMarker => out.explicit.push(up),
+                MatchKind::FingerprintMatch => out.inferred.push(up),
+            }
+        }
+        out
     }
 
     /// Tolerances whose named antigen is no longer declared in the scanned
