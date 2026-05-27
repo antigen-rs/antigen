@@ -52,6 +52,7 @@
 - [ADR-008 — Named-observer position as terminal stratum](#adr-008--named-observer-position-as-terminal-stratum)
   - [ADR-008 Amendment 1 — Multi-contributor workflow + scan severity defaults](#adr-008-amendment-1--multi-contributor-workflow--scan-severity-defaults)
 - [ADR-009 — Adoption gradient: antigen meets consumers at any discipline level](#adr-009--adoption-gradient-antigen-meets-consumers-at-any-discipline-level)
+  - [ADR-009 Amendment 1 — Fingerprint is required iff scan-locatable; verify-only antigens have no fingerprint](#adr-009-amendment-1--fingerprint-is-required-iff-scan-locatable-verify-only-antigens-have-no-fingerprint)
 - [ADR-010 — Fingerprint grammar v1: syn-based AST visitor pattern](#adr-010--fingerprint-grammar-v1-syn-based-ast-visitor-pattern) *(amended by ADR-012; partially superseded by ADR-015 §Mechanics §1)*
   - [ADR-010 Amendment 1 — Disambiguate the parsing path (Path C)](#adr-010-amendment-1--disambiguate-the-parsing-path-path-c)
   - [ADR-010 Amendment 2 — Fingerprint semver + MSRV policy](#adr-010-amendment-2--fingerprint-semver--msrv-policy)
@@ -1881,6 +1882,120 @@ validated.
 How does antigen handle CONFLICTING `references` across descended-from chains? e.g.,
 parent function cites `ADR-005` but descendant cites `ADR-007` (a partial supersession).
 Initial heuristic: cargo-antigen audit reports both; future ADR may refine.
+
+---
+
+## ADR-009 Amendment 1 — Fingerprint is required iff scan-locatable; verify-only antigens have no fingerprint
+
+**Status**: Ratified 2026-05-27.
+
+**Amends**: ADR-009 §Decision §Layer 1 Required fields.
+
+**Related campsites**: `findings/verify-only-antigen-forced-fingerprint`.
+
+**Reason**: ADR-009 ratified `fingerprint` as a required Layer-1 field for `#[antigen]`.
+This was correct for the scan-locatable archetype (PanickingInDrop: located by source-structure
+pattern). ADR-025 later ratified verify-only antigens (supply-chain family: UnpinnedDependency,
+UnsandboxedBuildScript, etc.) whose detection-model is external-substrate (Cargo.lock, registry
+metadata) — unreachable by the syn-based scanner. Forcing these antigens to carry a fingerprint
+forces them to declare a scan-surface they do not have. The result: placeholder fingerprints
+(`doc_contains("ADR-025")`) matching every file that mentions the ADR number, producing O(codebase
+mentions) spurious scan presentations (~14,792 at measurement time; observer-confirmed). This is
+a representation forced to diverge from substrate truth — the macro's required-fingerprint encoding
+the false claim "I am scan-locatable" for antigens that are not.
+
+**Aristotle Phase-1-8 verdict** (findings campsite story, 2026-05-27): PASS. F1 (R1+R3):
+make fingerprint `Option<String>`; absent ⇒ verify-only (no scan-detection; audit evaluates via
+`requires=`/witness only). This is recognition-not-design (ADR-006): the verify path already exists
+in the audit layer; the macro is the only place forcing the scan-surface lie. Forced-rejection
+confirmed: requiring fingerprint for all antigens would retroactively invalidate two ratified stdlib
+families (ADR-025 supply-chain, ADR-026 VCS-info-loss). The required-fingerprint constraint must
+yield, not the verify-only class.
+
+**Detection-model axis (implicit → explicit, ADR-004)**: this finding surfaces an implicit axis
+that ADR-009 encoded before verify-only antigens existed. The axis is:
+
+```
+detection_model ∈ { scan-locatable, verify-only, both }
+```
+
+- `scan-locatable`: antigen has a source-structure pattern the syn-scanner can match → `fingerprint`
+  required.
+- `verify-only`: antigen's condition is external substrate (Cargo.lock, registry, git history, sidecar)
+  → no source-structure pattern exists → `fingerprint` absent.
+- `both`: antigen has both a scan-surface AND a substrate-predicate → `fingerprint` required +
+  `requires=`/witness also present.
+
+This axis was IMPLICIT (fingerprint required = scan-locatable assumed universal). This amendment
+makes it EXPLICIT via the optional/required fingerprint semantics.
+
+### Change 1: `fingerprint` becomes `Option<String>` in `#[antigen]` — required iff scan-locatable
+
+**ADR-009 §Decision §Layer 1 Required fields — amended:**
+
+Before:
+```
+Required fields:
+- `#[antigen]`: `name` (string identifier), `fingerprint` (structural pattern, see ADR-010)
+```
+
+After:
+```
+Required fields:
+- `#[antigen]`: `name` (string identifier)
+- `fingerprint` (structural pattern, see ADR-010): required when the antigen has a
+  source-structure scan-surface; OMITTED for verify-only antigens whose detection is
+  entirely via substrate-predicate (`requires=`) or external substrate checks
+```
+
+**Parse-time enforcement**: a `#[antigen]` without `fingerprint` is valid. The macro emits
+no warning or error. The scan layer skips the antigen (no fingerprint = no scan-detection;
+the antigen's only evaluation path is audit-time `requires=`/witness).
+
+**Backward-compatibility**: existing antigens with `fingerprint` are unaffected. This is
+additive relaxation only — no breaking change.
+
+### Change 2: Supply-chain and VCS-info-loss stdlib antigens drop placeholder fingerprints
+
+The 11 supply-chain antigens (`supply_chain.rs`) and all VCS-info-loss family antigens
+(`vcs_info_loss.rs`) currently carry `fingerprint = doc_contains("ADR-025")` or equivalent
+placeholder. Under this amendment: these antigens are `verify-only`; they drop the fingerprint
+field. Their scan-detection output becomes zero by design (no fingerprint = no scan match),
+and their audit evaluation proceeds entirely via `requires=`/witness.
+
+This is the honest representation: these antigens DO NOT have source-structure detection-loci.
+Removing their placeholder fingerprints removes ~14,792 spurious scan presentations and makes
+`cargo antigen scan` output actionable.
+
+### Companion clause for ADR-010
+
+**ADR-010 scan-semantics addendum**: a `#[antigen]` declaration with no `fingerprint` field
+is a **verify-only antigen**. The scan phase SKIPS it entirely (no fingerprint to match;
+no scan output generated). The audit phase evaluates it via `requires=`/witness cross-reference.
+This is consistent with ADR-010's existing scan-semantics: scan finds candidate presentations
+by matching fingerprint patterns; if there is no pattern, there is nothing to match.
+
+Zero-fingerprint antigens are NOT scan-invisible by accident — they are scan-invisible BY
+DESIGN, because their detection-model does not include source-structure scanning.
+
+### Enforcement
+
+- `AntigenArgs` parse (`parse.rs:202-209`): relax fingerprint from required `String` to
+  `Option<String>`. Error path for missing-fingerprint removed. Scan layer: short-circuit
+  early when `fingerprint.is_none()`.
+- Stdlib update: supply-chain + VCS-info-loss antigens drop placeholder `fingerprint` fields.
+- `cargo antigen scan` output: verify-only antigens produce zero scan presentations (correct,
+  not a regression).
+- Future antigens that are purely verify-only MUST omit fingerprint (no placeholder fingerprints).
+  New antigens with a source-structure surface MUST include fingerprint.
+
+### Resolves
+
+- ~14,792 spurious scan presentations from placeholder fingerprints on verify-only antigens
+- The forced-lie surface: `#[antigen]` no longer forces any antigen to claim scan-locatability
+  it doesn't have
+- Names the detection-model axis (scan-locatable / verify-only / both) explicitly, elevating
+  an implicit assumption (ADR-004)
 
 ---
 
