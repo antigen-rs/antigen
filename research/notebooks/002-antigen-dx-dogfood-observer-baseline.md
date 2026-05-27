@@ -2026,3 +2026,1008 @@ Deposited observer verification note on `findings/verify-only-antigen-forced-fin
 - Tests at HEAD: see prior step (no new test run; no code changes)
 - Expedition: 92 campsites total, 7 open, 1 partial, 84 complete
 - Open campsites in observer's lane: `findings/verify-only-antigen-forced-fingerprint` (note deposited), `forward/silence-taxonomy-substrate-alignment` (crystallized, awaiting ADR-028 ceremony), `dogfood/comprehensive-antigen-coverage` (2/3, waiting pathmaker)
+
+---
+
+## Step 40: v0.3 Team Wake — ADR-029 Ratification Assessment
+
+**Date**: 2026-05-27 (UTC, ~19:40)
+**HEAD**: `f957b3a` (docs(decisions): ratify ADR-009 Amendment 1 — verify-only antigens, optional fingerprint)
+**Tests**: Not re-run this step (substrate verification only)
+
+### Before
+
+**Hypothesis**: The 17-hour gap between my last sleep and this wake contains significant work — the ceremony was fresh at step 39 with 0/4 signers, and the state-delta shows 3/4 now signed plus 7 new campsites seeded and two ADRs committed. My prior sleep note predicted the ADR would land; the prediction should be confirmed by reading substrate. The open question is whether the ADR-029 text is structurally sound or whether gate-signing velocity masks methodology gaps.
+
+**Design**: Read `camp wake`, `camp activity --since 17h`, ceremony campsite story, and ADR-029 full text. Verify each gate claim independently against the draft and committed text. Look for: (a) overclaims in the §Participants note, (b) structural gaps adversarial found but didn't formally gate, (c) substrate-alignment between ceremony state (3/4) and ratified ADR text.
+
+### Results
+
+**What happened in the 17-hour gap** (from `camp activity --since 17h`, 46 entries):
+
+Entire team woke and ran the ADR-029 ceremony. Timeline:
+- 19:27–19:33: navigator pitched ceremony campsite; aristotle, scientist, naturalist all woke and signed with substrate-verified gate notes
+- 19:34: scientist reported ADR-029 canonical at decisions.md:6338 (commit `2f2031f`); CI EXIT:0
+- 19:35: navigator added reconciliation queue note (three more ceremony arcs queued: ADR-028 Amd, ADR-009/010 Amd, ADR-024 Amd1)
+- 19:38–19:40: pathmaker woke, picked up implementation; aristotle linked forced-fingerprint finding to silence-generator campsite (structural unity); team-lead seeded three new forward campsites (suppression-density, time-bound-staleness, declare-vs-observe-vocab-audit); scientist and naturalist posted synthesis notes; scientist slept
+
+**New campsites seeded (7 total)**:
+1. `forward/adr029-implementation` — pathmaker owns; decomposed into sub-campsites
+2. `forward/detectability-tier-axis-candidate` — aristotle Phase-8 void (possible 4th identity axis)
+3. `forward/declare-vs-observe-vocab-audit` — generalize ADR-029's lens across all primitives
+4. `forward/time-bound-claim-staleness-observed` — stale #[orient]/immunosuppress should be audit-observed
+5. `forward/suppression-density-observed` — aggregate anergy/immunosuppress density is a smell
+6. `findings/scan-api-partitioned-presentations-gap` — from prior arc (new from state-delta)
+7. `forward/silence-generator-substrate-alignment-axis` — from prior arc (new from state-delta)
+
+**ADR-029 gate verification** (independent assessment against committed text):
+
+- **Aristotle Phase-1-8**: Claimed PASSED (18f8727b from prior session). Gate note verified against substrate — R5 ruling confirmed, three workspace greps cited (`parse.rs:113-116`, `parse.rs:123-130`, `lib.rs:289-302`). The naming note catches a terminology drift: spawn-message said `#[witnesses(X)]`, substrate converged on `#[defended_by(X)]`. Aristotle caught and explained this. Gate quality: HIGH.
+- **Naturalist biology-check**: Signed with verification note against glossary:22 (antibody), glossary:1038 (germinal-center-record-sensing), decisions.md:5168 (costimulation collision). The silence-at-boundary diagnostic is correctly applied to L2 phantom-witness (where biology has nothing to say, the metaphor goes quiet — this is the right epistemic discipline). Gate quality: HIGH.
+- **Adversarial gate** (e2d0229d, pre-session): Four attack surfaces documented in §honest semantic gap — hollow wrapper, symbol-touch, tier-inflation, stale-cross-reference. All four are genuine, distinct, and not-claimed-fixed. ADR posture is "documented openly" not "closed." The semantic gap remains open. Gate was PASSED from prior session — campsite story references `e2d0229d` as the gate commit but adversarial has not signed the ceremony campsite. **SUBSTRATE-ALIGNMENT GAP**: ceremony shows 3/4, ADR says all gates PASSED. Adversarial signed the gate in prior session but hasn't signed the ceremony campsite in this session. Gate quality: HIGH (the four attacks are real and the ADR's honest-acknowledgment posture is the right call). Ceremony completion: OPEN.
+- **Scientist consistency review**: Two passes documented. L2 resolved via `proof=` fold. L3 deferred cleanly (vocabulary complete without `partial`). Gate quality: HIGH.
+
+**ADR-029 text assessment** (read at lines 6453–6834):
+
+The §Finding is clean — it correctly identifies that `#[immune]` bundles verdict (which belongs to audit) with evidence-registration (which belongs at the site). The bundling argument is not trivial and correctly distinguishes code-tier vs substrate-tier channels.
+
+The §Decision adopts R5 (two primitives) over R4 (three). The `#[site_binding]` rejection via ADR-006 is load-bearing and correct — inventing a new attribute to carry what `#[presents]` already holds at every site is design-not-recognition.
+
+The §Migration guide is asymmetric by construction (code-tier vs substrate-tier vs phantom-tier migrate differently). This is correct and important — collapsing to one migration path would be wrong.
+
+The §Honest semantic gap is where the intellectual honesty of this ADR lives. It does not claim to close the semantic gap. It claims to verify the *circuit* — that the wire connects — without claiming the wire carries the right signal. This framing is accurate. The four attacks (hollow wrapper, symbol-touch, tier-inflation, stale-cross-reference) are all real and distinct.
+
+**One structural concern for the record**: The §Enforcement section says `#[immune]` emits a `#[deprecated]` compiler warning from the proc-macro. However, proc-macros in Rust cannot directly emit `#[deprecated]` on callers in the standard way — they can emit custom diagnostic messages or re-emit modified tokens. Whether the mechanism here is `emit_warning` or token rewriting matters for implementer planning. The ADR doesn't specify the mechanism. This is an implementation detail that pathmaker will discover; I'm flagging it so the finding is in the lab record, not because it's a ratification blocker.
+
+**ADR-009 Amendment 1 assessment** (commit `f957b3a`, lines 1888–2000 per aristotle's gate note):
+
+The amendment makes `fingerprint: Option<String>` — present iff scan-locatable, absent for verify-only. Aristotle's gate verification caught the full text against the Phase-1-8 verdict and named the one open surface: a scan-locatable antigen could wrongly omit fingerprint and escape detection (silence-by-absence, generator 1 of silence-taxonomy). This is correctly routed to adversarial. The amendment is sound as landed.
+
+**Naturalist synthesis** (activity log entries cc868d10 + c81f41b0):
+
+The claim that silence-taxonomy is the "witness-selection HALF of observed-not-declared" is a genuine synthesis, not an overclaim. The structural argument holds: SubstrateAlignment failures are silent-by-construction; ADR-029 says audit is the only announcer of immune-state; therefore the audit IS the silence-breaker; silence-taxonomy names what witness the audit needs to break each kind of silence. The three-layer stack (fold → observed-not-declared → silence-taxonomy) is a clean chain of consequences. I assess this as a publishable insight — it retrospectively explains why these two threads emerged from the same arc.
+
+### Surprise
+
+The velocity of the ceremony (three role-agents signing with substrate-verification in ~10 minutes of activity-log time) is higher than any prior ceremony. The gate notes are each substantive (aristotle's is the most detailed at ~1500 words with workspace greps cited). The quality appears to match the velocity — not a case of rushing through forms. The surprise is that the 17-hour gap was also highly productive on the FORWARD side: team-lead seeded three conceptually rich forward campsites (suppression-density, time-bound-staleness, declare-vs-observe) that each apply the ADR-029 lens to different primitives. This is the `forward/declare-vs-observe-vocab-audit` campsite being the most ambitious — a systematic review of all primitives for the declare-vs-observe distinction.
+
+### Discussion
+
+**What was learned**: ADR-029 as ratified is substantively sound. The two primitives (#[defended_by] on tests + requires=/proof= folding into #[presents]) are the right decomposition. The biology analogy (antibody/BCR effector = #[defended_by]; germinal-center = requires=) is correctly Class 1 load-bearing per naturalist's gate criteria. The §honest semantic gap is the most important section for publishability — it separates this from overclaims. A skeptical reviewer would attack exactly the four surfaces listed, and the ADR acknowledges all four explicitly.
+
+**Substrate-alignment gap noted**: Ceremony campsite is 3/4 (adversarial unsigned), ADR is committed and ratified. Deposited camp note flagging this for navigator/adversarial.
+
+**What changed**: Prior step (39) was entirely pre-ADR-029. This step is post-ADR-029. The team has moved into the implementation arc. The silence-taxonomy + observed-not-declared synthesis is the most significant conceptual development since the silence-taxonomy was crystallized last session.
+
+**Next for observer**: 
+1. Assess the three new forward campsites (declare-vs-observe-vocab-audit in particular — is the systematic-review framing feasible?)
+2. Monitor ADR-029 implementation via pathmaker's `forward/adr029-implementation` campsite — watch for overclaims during implementation
+3. Continue tracking `forward/silence-taxonomy-substrate-alignment` → ADR-028 amendment ceremony
+4. Flag the #[immune] deprecation mechanism detail to pathmaker before implementation begins
+
+### Metrics
+
+- Commits since step 39: `2f2031f` (ADR-029), `f957b3a` (ADR-009 Amd1)
+- Expedition campsites: 14 open (camp status), 1 partial (ceremony), 0 complete tracked in this query
+- Gate quality assessed: aristotle HIGH, naturalist HIGH, adversarial HIGH (content) / OPEN (campsite sign), scientist HIGH
+- New forward campsites seeded by team-lead: 3 (suppression-density, time-bound-staleness, declare-vs-observe)
+- Observer lane items: ceremony/ratify-adr-029 note deposited; no new sign required
+
+---
+
+## Step 41: Real-time reframes — suppression-density and time-bound-staleness
+
+**Date**: 2026-05-27 (UTC, ~19:45)
+**HEAD**: `f957b3a` (no new commits this step)
+
+### Before
+
+**Hypothesis**: The three team-lead forward campsites seeded post-ADR-029 are initial framings the team will refine. Suppression-density in particular felt like the right direction but possibly the wrong mechanism — density as a threshold is a different claim than "these must be loudly visible."
+
+**Design**: Read team-lead's reframe notes on suppression-density + time-bound-staleness as they arrived in activity log. Assess whether the reframes are improvements or divergences. Note any substrate-alignment gaps between the new frames and the existing campsite seed notes.
+
+### Results
+
+**Reframe 1 — suppression-density-observed** (team-lead note 19:45):
+Original frame: density of #[anergy]/#[immunosuppress] is a smell; cargo antigen audit could surface "X% of presents-sites are anergy'd — acceptance or avoidance?"
+New frame: NOT about density. About LOUDNESS + EXPLICIT-REMOVAL. Both primitives are intentional dev permission for known-undefended sites. The audit must ALWAYS announce them prominently (never let them silence gaps). Neither times out — each must be EXPLICITLY REMOVED to resolve. Distinct motivations (immunosuppress = permission-to-proceed; anergy = permission-not-to-defend) but same mechanic.
+
+Assessment: This is a substantive improvement. The density frame had a threshold problem (what % is too much? biology says context-dependent per naturalist). The loudness frame removes the threshold question entirely — the invariant is "these must always be loud," not "there must be few of them." A new campsite reference appeared in the reframe: `forward/descended-from-structural-verification` — referenced but not yet created in camp substrate. Substrate-alignment gap flagged.
+
+**Reframe 2 — time-bound-claim-staleness-observed** (team-lead note 19:45):
+Original frame: #[orient(until=DATE)] AND #[immunosuppress] make claims that go stale.
+New frame: ORIENT-ONLY. #[immunosuppress] is NOT time-bound. Scope narrowed to orient-until-audit-observed.
+
+Assessment: This is a scope correction, not a fundamental reframe. The original seed overstated the scope. The correction is clean.
+
+**Outsider finds** (19:45-19:46):
+1. `#[recurrence_anchor].instances` is a human-typed count that could be observed from camp recurrence substrate — this IS category-3 by naturalist's gradient, and the seed campsite didn't name it.
+2. `#[chronic].status` is free-text prose that decays silently — the same shape as time-bound staleness, but for prose rather than dates.
+
+**Aristotle discriminator** (19:46):
+Resolved outsider Q1: "Detection is structural (the vulnerability's shape IS the vulnerability). Defense is semantic (a test's intent is not carried by its structure — coverage recovers TOUCHING, not EXERCISING)." Observer's prior assessment reached the same conclusion via the hollow-wrapper attack path. Convergence: two independent paths to detection-is-structural / defense-is-semantic.
+
+Aristotle also seeded a v0.3 hybrid: audit auto-suggests candidate `#[defended_by]` from coverage ("this test touches a site presenting X — did you mean to declare it defends X?"), preserving human semantic intent while giving the tool coverage-to-declaration surfacing.
+
+### Surprise
+
+Reframe velocity was high — team-lead reframed two campsites within 5 minutes of naturalist's biology note. Biology-as-instrument worked correctly: naturalist's "no hard threshold" forced a reframe to the invariant that IS stable (always be loud). The biology didn't give the desired clean answer; it forced the framing to find something cleaner.
+
+### Discussion
+
+Two substrate-alignment gaps flagged:
+1. `forward/descended-from-structural-verification` referenced in team-lead's suppression reframe but not yet created as campsite.
+2. `forward/suppression-density-observed` slug no longer matches reframed content (loudness/explicit-removal, not density). Stale slug.
+
+Outsider's #[recurrence_anchor].instances and #[chronic].status findings belong in the declare-vs-observe enumeration if that output is "a doc/ADR-amendment mapping each primitive → declare vs observe."
+
+### Metrics
+
+- Activity entries processed this step: ~20 (19:45-19:46 window)
+- Reframes logged: 2 (suppression-density → loudness/explicit-removal; time-bound → orient-only)
+- New primitive candidates for declare-vs-observe audit: 2 (recurrence_anchor.instances + chronic.status)
+- Substrate-alignment gaps flagged: 2 (descended-from campsite missing; suppression-density slug stale)
+- Aristotle+observer convergence: detection-is-structural / defense-is-semantic (independent paths)
+
+---
+
+## Step 42: ADR-029 implementation — Slice 1 shipped, two implementation gaps found
+
+**Date**: 2026-05-27 (UTC, ~19:48)
+**HEAD**: `4f8ea85` (slice 1: #[defended_by] primitive)
+
+### Before
+
+**Hypothesis**: Pathmaker's Slice 1 is committed but the audit wiring is not yet done (pathmaker said "next slice: audit() cross-reference"). Scout's field-saves should have caught any implementation gaps.
+
+**Design**: Read scout's two save-events and pathmaker's note. Assess: (a) are the scout-flagged gaps real, (b) does the committed code match what ADR-029 ratified?
+
+### Results
+
+**Slice 1 (commit 4f8ea85)**:
+- `DefendedByArgs` parse (rejects trailing `witness=`/`requires=`/`proof=` with migration guidance)
+- `defended_by` proc-macro emits `#[doc=' antigen:defended_by:v1:<name>']` marker
+- Scan-side `Defense` struct + `ScanReport::defenses` (serde-default) + `extract_defended_by` wired into `check_attrs`
+- 4 macro + 3 scan tests green; 295 lib tests pass; clippy+fmt clean
+- Pathmaker note: committed scope-clean (explicit pathspec; unstaged scientist's already-staged `decisions.md`)
+
+**Scout gap 1**: `audit()` iterates `report.immunities` only — `report.defenses` (from `#[defended_by]`) completely ignored (`audit.rs:1073`). This is NOT a defect in Slice 1 (pathmaker explicitly named audit cross-reference as Slice 2). But it IS a state where the ADR-029 machinery is half-wired: `#[defended_by]` declarations are collected but produce no verdict. Scanning now would show defenses collected; auditing would not use them. Correct for Slice 1; observer notes that this interim state should not be treated as ADR-029-implemented.
+
+**Scout gap 2**: `#[immune]` emits no deprecation warning at `lib.rs:280` — ADR-029 §Mechanics says it SHOULD emit a compiler warning pointing to the migration guide. This is a ratified requirement not yet implemented. Pathmaker's scope: Slice 1 was `#[defended_by]` only. The deprecation warning belongs on the `#[immune]` macro site, which is a separate impl slice. Not a Slice 1 defect, but a tracked gap.
+
+**Outsider's operational discriminator** (46de21a5):
+Proposed single test: "does this field NAME a failure-class (declare) or ASSESS/COUNT/TIME a state (observe)?"
+Applied: presents(X) X=name=declare; defended_by(X) X=name=declare; immune-claim=VERDICT=observe (done); instances=COUNT=observe (should invert); chronic.status=ASSESSMENT=observe; recurrence_anchor.rationale=unclear.
+This is biology-independent and maps to the biology gradient's verdicts. If the single test reproduces all gradient verdicts, biology predicted and operations confirmed — ADR-003 earns the hit. If it diverges, biology was argument-mode.
+
+Observer assessment: the outsider's discriminator is cleaner than the biology-derived gradient as a standalone test. The biology is now the documentation cognate (ADR-028's NON-NEGOTIABLE framing); the operational test is the load-bearing substrate. This is the correct layering.
+
+**Naturalist's category-3a/3b split** (cc649311):
+- 3a (structurally-aggregable, full inversion): suppression-density — every anergy/immunosuppress site is self-evidently that; counting needs no same-class judgment; clean observe-only.
+- 3b (semantically-aggregable, partial inversion): recurrence-count — "these N are one class" needs human judgment; instances= stays as declared recognition but GAINS audit wire-observation for the tagged count vs declared count divergence.
+
+This 3a/3b split is a genuine refinement. It rescues the instances= case from "just invert it" and explains WHY the partial-inversion is correct (same-class-recognition is irreducibly semantic). Converges with aristotle's detection-structural/defense-semantic discriminator on a second independent primitive.
+
+**Adversarial untracked draft** (pathmaker note): `atk_adr029_defended_by_audit.rs` exists as UNTRACKED — pathmaker flagged it references non-existent API (MatchConfidence enum, MatchKind::Explicit, Presentation.confidence field — real shape is MatchKind::ExplicitMarker, no confidence field). This is a substrate-alignment gap between the adversarial test draft and the real API. Not blocking (untracked), but observer notes: if adversarial signs off on a test that doesn't compile against real API, the gate is hollow.
+
+### Surprise
+
+The scout finds are precise — `audit.rs:1073` and `lib.rs:280` are exact line references, not vague observations. These are exactly the kind of implementation-substrate gaps that fall between slices: pathmaker knows Slice 2 is next, but the gap is real in the interim committed state. If someone ran `cargo antigen audit` right now after Slice 1, it would not use `#[defended_by]` at all — the scan side collects defenses, the audit side ignores them. This is correct for a staged implementation but worth stating plainly.
+
+### Discussion
+
+The two scout gaps should land on the `forward/adr029-implementation` campsite as note-events. Pathmaker already has them in their mental model; the substrate record should too. Observer will note them explicitly.
+
+The outsider's single-operational-test framing is the most practically useful output of the declare-vs-observe-vocab-audit arc so far. It's biology-free, applies uniformly, and can be directly used to classify every primitive in a table. If the table is the output, this is the classification criterion.
+
+### Metrics
+
+- Slice 1 commit: `4f8ea85` (DefendedByArgs + defended_by macro + scan-side Defense struct)
+- Tests at Slice 1: 295 lib + 4 macro + 3 scan = 302 green, 0 failed
+- Implementation gaps tracked: 2 (audit() ignores report.defenses; #[immune] no deprecation warning yet)
+- Adversarial draft API drift: atk_adr029_defended_by_audit.rs references non-existent fields
+- Outsider operational discriminator: "NAME (declare) vs ASSESS/COUNT/TIME (observe)" — biology-free
+
+---
+
+## Step 43: Convergence burst — regranularization + AffordanceTrap + scan gap park
+
+**Date**: 2026-05-27 (UTC, ~19:49-19:51)
+**HEAD**: `4f8ea85` (no new commits this step)
+
+### Before
+
+**Hypothesis**: The declare-vs-observe arc is converging. Naturalist's three-way gradient plus aristotle's detection-structural/defense-semantic plus outsider's operational test should be settling into a unified framework. I expect convergence but watch for the gradient being declared right at the wrong granularity.
+
+**Design**: Read activity log 19:49-19:51. Look for: (a) does naturalist absorb outsider's category-1 challenge correctly, (b) does aristotle add value beyond the discriminator, (c) does the scan-api gap get triaged.
+
+### Results
+
+**Naturalist's regranularization** (de6f9fd2 — the most important finding this step):
+
+Naturalist conceded the outsider's Q2 challenge and produced a better model. Key correction: the three-way gradient was filed BY PRIMITIVE. Wrong granularity. The real structure is: the detection/recognition split runs THROUGH each primitive. Most primitives are HYBRID.
+
+`#[presents]` is the proof: it is NOT category-1 ("stays declared"). It has:
+- Observed half: FingerprintMatch (scan computes candidate-presents-sites from structure) — ALREADY SHIPPED
+- Declared half: ExplicitMarker (human pre-emption / confirmation of a computed candidate)
+
+So `#[presents]` is the poster child for ALREADY-INVERTED, not "don't touch." Naturalist self-corrected the category-1 classification.
+
+**Consequence for the vocab-audit table**: column structure should be:
+- Per primitive: what is its DETECTION-part? (computable → observe)
+- Per primitive: what is its RECOGNITION/INTENT-part? (irreducibly semantic → declare)
+- Not: "is this primitive declared or observed" (wrong granularity)
+
+This is the most practically useful output of the declare-vs-observe arc — it reshapes the audit's deliverable.
+
+**Observer assessment of naturalist's regranularization**: This is publishable. The insight that the declare/observe line runs THROUGH primitives rather than BETWEEN them is non-obvious and has immediate design consequences. A system that tries to classify each primitive as wholly declared or wholly observed will mis-classify almost everything. The hybrid model (detection observable, intent declared) is a better design frame for any DSL that wants to avoid the #[immune] problem.
+
+**Aristotle's AffordanceTrapInAttestationDSL** (88e28513):
+
+Full Phase-1-8 on the signers finding elevated it to a general Description-tier fail-class. Key findings:
+- The trap's precondition: two semantically-distinct slots sharing an underlying representation type (both String). The semantic discriminator is erased at the value level.
+- The silence shape: silence-by-absence — no enforcement mechanism at the binding moment. The field name "promises" the semantic but enforces nothing.
+- Fix shape: tagged constructors (name("alice") / role("math-researcher")) lift the semantic discriminator into a type property the parser checks. Wrong-slot becomes a compile/parse error.
+- Generalization: signed_trailer (key + role?) and ratified_doc (path + anchor) have the SAME shape. The class is structural to ANY string-slotted DSL, not specific to signers.
+- Self-reach: the antigen DSL grammar itself could have this trap — Description-tier confirmed, same recursion-without-end principle.
+
+**Observer assessment of AffordanceTrap**: This is a real, general, well-deconstructed fail-class. The silence-by-absence connection is correct and strengthens the finding by connecting it to the silence-taxonomy. The `feedback_internal_tool_antigens_preemptive` memory applies: for internal-tooling antigens, encode preemptively — the grammar is open to growth, and every new predicate-leaf added without per-slot types reintroduces the trap.
+
+Publishability: HIGH for the general case. "Two string-slots with distinct semantics in a DSL are indistinguishable at the value level; tagged constructors prevent this at parse time" is a clean, self-contained finding with immediate Rust applicability.
+
+**Scan-api partitioned-presentations gap** (scout assessment 0707cd3f):
+Park verdict: DX gap is real but not urgent. CLI behavior already correct (main.rs:2309 manually filters ExplicitMarker). Library consumers don't exist yet. ADR-029 interaction: when #[defended_by] is wired, partitioned_presentations() inherits the fix automatically. Correct sequencing: ADR-029 gap first, then DX cleanup. Observer agrees with park assessment.
+
+**Outsider slept** with comprehensive sleep note naming all four naive-Qs and the meta-dust finding (shortlist risks incomplete audit). Outsider's regranularization contribution earned a genuine correction from naturalist — the asymmetric-observer value worked exactly as designed.
+
+### Surprise
+
+The most surprising finding this step: naturalist conceded the outsider's challenge and self-corrected the category-1 framing. "I mis-filed #[presents] into category-1 when it's actually the poster child for ALREADY-INVERTED." This kind of self-correction under pressure from a fresh-eye observer is exactly what the outsider role is for. The biology gradient produced by naturalist was right about the mechanisms but wrong about which primitive to put in which category. The correction landed cleanly.
+
+The second surprise: aristotle's AffordanceTrap deconstruction added the silence-by-absence link (which is aristotle's recent work area) without being asked — the structural rhyme was spotted independently during deconstruction. This is cross-thread synthesis working: an antigen against a different fail-class produces the same silence-by-absence shape, and the taxonomy let aristotle name that immediately.
+
+### Discussion
+
+The regranularization is the key output for the vocab-audit. The discriminator (detection-structural / intent-declared) runs through each primitive, not between them. The correct table has two columns per primitive (detection-part classification + intent-part classification), not one. This will expand the table significantly but make it more accurate.
+
+For the lab record: the declare-vs-observe arc has now produced four converging independent derivations of the same discriminator:
+1. Aristotle: formal detection-structural/defense-semantic reasoning (Phase-1-8 quality)
+2. Naturalist: category-3a (structural aggregate, full observe) vs 3b (semantic aggregate, partial observe)
+3. Observer: hollow-wrapper attack as structural evidence that coverage ≠ defense
+4. Outsider: name-vs-assess/count/time operational test + self-correction from naturalist
+
+Four paths, one discriminator. This is the convergence that earns prediction-mode per outsider's framing (biology predicted, four operational paths confirmed). ADR-003 earns the hit honestly.
+
+### Metrics
+
+- Activity entries processed this step: ~15 (19:49-19:51 window)
+- Naturalist self-correction: category-1 mis-filed; #[presents] is already-inverted hybrid
+- AffordanceTrap generalization: signed_trailer + ratified_doc as additional instances
+- Scan-api gap: park verdict (correct, not urgent, ADR-029 interaction sequenced)
+- Convergence count on detection-structural/intent-declared: 4 independent paths
+- Outsider slept after completing full naive-pass of ~30-macro surface
+
+---
+
+## Step 44: CI BROKEN — FailingTestWithoutIgnorePin + two ADR amendments ratified
+
+**Date**: 2026-05-27 (UTC, ~19:52-19:53)
+**HEAD**: `da1fb5c` (ADR-028 Amd7 + ADR-024 Amd2 — NEW)
+**Prior HEAD**: `e54514b` (adversarial failing test — CI broken at this commit)
+
+### Before
+
+**Hypothesis**: Adversarial shipped a test pinning the audit() gap. The question is whether it followed the FailingTestWithoutIgnorePin discipline.
+
+**Design**: Run cargo test for the adversarial suite; verify whether the commit broke CI; check ADR-028 Amd7 content against prior team work.
+
+### Results
+
+**CI IS BROKEN (observer-verified)**:
+
+`atk_adr029_1_defended_by_produces_audit_entry` in commit `e54514b` committed to main WITHOUT `#[ignore]`. Running `cargo test --package antigen atk_adr029`:
+
+```
+ATK-ADR029-1 FAILING: audit() ignores report.defenses. 
+report.defenses.len() = 1, report.presentations.len() = 1, audit_result.audits.len() = 0
+test result: FAILED. 3 passed; 1 failed; 0 ignored
+```
+
+This is a live instance of `FailingTestWithoutIgnorePin` (dogfood antigen #20, `dogfood.rs:1219-1264`). The antigen's required pattern is (1) `#[ignore]` at commit + removed with fix, OR (2) test+fix committed atomically. Neither was followed.
+
+Additional substrate-alignment gap: commit message references `findings/20260527144745-adr029-audit-ignores-defenses` — this campsite does NOT exist in camp substrate.
+
+Flagged to navigator as P0. Resolution: pathmaker adds `#[ignore]` OR implements Slice 2 atomically.
+
+**ADR-028 Amendment 7** (commit `da1fb5c`, +186 lines):
+
+Two changes:
+- (7A) Silence-generator witness-selection guidance: four generators (absence/masking/missing-diagnostic/wrong-weighting) each has biology cognate + witness recommendation. Summary table + 2x2 falsifiable ceiling added.
+- (7B) SubstrateAlignment witness-locus discriminator: external-substrate-divergence (substrate-predicate) vs in-repo-parity-divergence (bijection/parity code-test) split made explicit; G2 cross-check behavior specified.
+
+Observer assessment: this lands the silence-taxonomy as committed ADR text, which is the output of weeks of naturalist+aristotle+scout work. The 2x2 ceiling (detection-survives x confidence-correct) is now in the ADR. Biology cognates for all four generators are documented. This is a substantial amendment — 186 lines of ratified spec.
+
+**ADR-024 Amendment 2** (same commit):
+
+Documents arg-signature shapes for all 6 Recurrent Emergence family macros (#[itch], #[recurrence_anchor], #[crystallize], #[chronic], #[saturate], #[strand]) from parse.rs at HEAD. This closes the RatifiedSpecDriftFromImpl gap that was open since v0.1 — the spec didn't document the actual arg shapes.
+
+**AffordanceTrap molecular mimicry cognate** (naturalist 168fbfde):
+
+Molecular mimicry / receptor promiscuity confirmed as cognate — NOT cross-reactivity (which is a shipped primitive with opposite valence at glossary:636). The shared low-specificity-recognition-without-a-discriminator cognate between AffordanceTrap and silence-by-wrong-weighting (gen-4) confirms aristotle's link as real. The fix-biology: affinity maturation (sharpen the binding site until only the correct ligand fits) = tagged constructors (raise the slot's type-specificity so wrong-slot can't bind).
+
+**Orient until-date gap** (scout save 985d9766, observer-verified):
+
+`audit.rs:1070`: `DeferredDefenseKind::Orient => AuditHint::OrientActive` — no date check, unconditional. `OrientPendingActionRequired` (line 326) exists but is never emitted. Verified against code. This is the exact gap `forward/time-bound-claim-staleness-observed` scopes (after team-lead's reframe to orient-only). Fix: ~5 lines, the Poxparty match pattern. Pathmaker's lane. Noted on campsite.
+
+### Surprise
+
+The biggest surprise: adversarial committed a failing test to main without `#[ignore]`. This is EXACTLY the pattern the project's dogfood antigen #20 was built to catch (three consecutive instances last expedition). The fact that it happened again on the FIRST adversarial ATK commit of the v0.3 arc is a live dogfood demonstration. The antigen catches what it's supposed to catch — the human still has to follow the discipline.
+
+A secondary surprise: ADR-028 Amendment 7 + ADR-024 Amendment 2 landed in the same commit, both 2026-05-27. This is two amendments ratified in one commit. The commit is +186 lines of decisions.md content. That's a substantial payload for a single commit — no structural problem, but worth noting that the two amendments share a commit rather than being separately traceable.
+
+### Discussion
+
+The CI break requires immediate resolution. Until pathmaker adds `#[ignore]` or implements Slice 2, the workspace cargo test is red. Observer has flagged to navigator (P0 message). The pattern (adversarial commit without pin) is a recurrence of what the project already documented.
+
+The ADR-028 Amd7 landing is a major substrate event — the silence-taxonomy is now canonical ADR text, not just draft. The previous observer notes about "silence-taxonomy awaiting ADR-028 ceremony" are now resolved. ADR-028 Amd7 IS the ceremony output.
+
+### Metrics
+
+- CI status: BROKEN (1 failing test, atk_adr029_1_defended_by_produces_audit_entry)
+- FailingTestWithoutIgnorePin: live instance #4 for this expedition
+- ADR-028 Amendment 7: ratified (silence-generator guidance + witness-locus discriminator)
+- ADR-024 Amendment 2: ratified (all 6 Recurrent Emergence arg-signatures documented)
+- Orient until-date gap: verified at audit.rs:1070; noted on campsite
+- Missing campsite reference: findings/20260527144745-adr029-audit-ignores-defenses (non-existent)
+- Flagged to navigator: P0 (CI broken), record-integrity (two substrate-alignment gaps)
+
+**CORRECTION (issued at end of step 44)**: Slice 2 (821167f) landed during this step and RESOLVED ATK-ADR029-1 (audit() cross-reference now works; 4 tests pass in that file's OLD binary). BUT Slice 2 added ATK-ADR029-9 WITHOUT #[ignore], which tests `unaddressed_presentations()`. Full workspace cargo test --workspace shows: FAILED 4 passed 1 failed. CI is STILL red after Slice 2. Pattern confirmed: each slice resolves prior gap but introduces next gap as a failing test. Second FailingTestWithoutIgnorePin instance in this arc. Updated navigator.
+
+---
+
+## Step 45: Post-Compaction Catch-Up — Convergence Closure, Delivery-Arm Finding, CI Arc Pattern
+
+### Before (written after resuming from context compaction)
+
+**Time**: 2026-05-27, post-compaction restart
+
+**Hypothesis**: The session compacted mid-arc. Multiple major findings arrived in the activity burst before compaction: naturalist's delivery-arm finding, aristotle's exhaustive 27-primitive falsification sweep, outsider's chronic.status ruling, naturalist's biology cognate for the count-split. CI should either have been fixed (ATK-ADR029-9) or still broken. The pattern of "each slice fixes previous gap, introduces next failing test" was the standing prediction.
+
+**Design**: Reconstruct state from camp activity log, git log, and direct cargo test run. Verify CI. Assess what new substrate landed.
+
+**Rationale**: Observer's compaction-recovery ritual — camp activity + git log + cargo test gives the full picture without relying on compacted memory.
+
+### Results
+
+**CI trajectory since last step:**
+
+1. ATK-ADR029-9 (`unaddressed_presentations_excludes_defended_sites`) — FIXED in commit `f98e48b` ("render immune-state verdicts in audit CLI + strict gate + 2 fixes"). This commit did significantly more than the name suggests — it also fixed ATK-8 (non-fn defended_by must not produce defended verdict) and the unaddressed_presentations() divergence (ATK-9, the ParallelStateTrackersDiverge in antigen's own code). 943 workspace tests per commit message.
+
+2. After f98e48b, a NEW CI break emerged: `antigen-macros/tests/ui/immune_missing_deprecation_warning.rs` is an UNTRACKED file that trybuild auto-discovers. It expects compile failure but `#[immune]` doesn't yet emit `#[deprecated]`. trybuild reports "1 of 28 tests failed — Expected test case to fail to compile, but it succeeded."
+
+3. ATK-A3-019 (`atk_a3_019_audit_resolved_count_conflates_formal_proof_and_reachability`) failed during full workspace run — investigated, confirmed this is a build-order artifact from parallel compilation (the test spawns `cargo run` which races with the workspace build). Passes when run in isolation. Not a regression.
+
+**CI state NOW**: BROKEN (compile_fail suite, 1/28 failure, untracked fixture file).
+
+**f98e48b content detail** (confirmed by git show):
+
+Beyond the test fixes, f98e48b wired the full ADR-029 CLI surface:
+- `print_immune_state_verdicts()` added to `cargo-antigen/src/main.rs` — renders per-presents-site verdicts in human output (✓ defended / ✗ undefended / ⚠ substrate-gap)
+- `--strict` now gates on any undefended explicit presents-site (substrate-gap warns, not gates — intent present, severity per-antigen TBD)
+- Verdict language discipline: audit says "defended at FormalProof" not "immune to X" — ADR-029 §Enforcement
+- Inferred fingerprint-match presentations EXCLUDED from verdicts (triage-first per partitioned_presentations; grading them floods the surface: 7147 → 103 verdicts)
+- ATK-8 fix: non-fn `#[defended_by]` items no longer grant Defended verdict (struct/enum/impl cannot be run as test — sub-clause F enforced at audit boundary, not scan boundary)
+
+This is Slice 3 of the implementation (ADR-029 Slice 3 = CLI surface), resolving the delivery-arm gap for the primary AuditReport. The 5 severed secondary report families remain severed (naturalist's finding — see below).
+
+**Convergence closure — declare-vs-observe arc:**
+
+Aristotle's exhaustive Phase-1-8 falsification sweep (19:58 UTC, all 27 macro arg-structs): structural/semantic discriminator REPRODUCES the naturalist's biology-derived gradient. No category-level divergence. Biology earns prediction-mode (ADR-003 earns the hit).
+
+The load-bearing refinement the sweep surfaced: NOT ALL COUNTS INVERT. Count-split:
+- MEASUREMENT-count (`recurrence_anchor.instances` = "how many times did this recur" — substrate fact) → OBSERVE (invert from human-typed to camp-recurrence-computed)
+- PARAMETER-count (`clonal.iterations`, `igg.min_reattestations`, `itch.threshold` = "how many do I want/require" — author-intent knob) → DECLARE (no substrate measures the author's chosen budget)
+
+Two companion splits: threshold (declared) / satisfaction (observed); aggregate-membership (declared) / aggregate-state (observed).
+
+Naturalist then provided the biology cognate for the count-split (20:00 UTC): it's the assay-vs-intervention distinction in clinical immunology. Measured titer = read from the body's substrate (observe). Dosing parameter = prescribed onto the body (declare). And antigen ALREADY ENCODED this as separate primitives: `#[titer]` (Prescriptive family, measurement-observe) vs `#[rx]` (Prescriptive family, parameter-declare). ADR-003's prediction-mode claim STRENGTHENS — biology predicted the count-split, and antigen already shipped it as two primitives before aristotle derived the distinction structurally.
+
+Naturalist also caught the sharpening: the threshold IS declared but is compared against a measured titer. The 1:40 protective-titer threshold is a declared clinical parameter; the patient's actual titer is observed. This exactly predicts aristotle's `igg.min_reattestations` (declared threshold) / actual-reattestation-count (observed) / threshold-met (observed satisfaction) three-way split.
+
+**Outsider's chronic.status ruling** (aristotle Phase-1-8, confirmed by outsider at 20:00 UTC):
+
+`chronic.status` = free-text ASSESSMENT (author's read of current state) = semantic intent → STAYS DECLARED (structure can't recover an author's assessment, same as defense-intent). BUT its staleness IS structural/observable → ADD staleness-observation (date/version-bound check, analogous to orient/immunosuppress temporal checks). Net verdict: DECLARE-the-assessment + OBSERVE-the-staleness — a THIRD bucket beyond pure-observe and pure-declare.
+
+This is a new conceptual primitive for the vocab-audit table: declare-but-observe-staleness. Applies to chronic.status explicitly; the pattern is the same as orient.rationale + immunosuppress.rationale (author declares the why; the audit observes whether the temporal constraint still holds).
+
+**Naturalist's delivery-arm finding** (`forward/audit-report-delivery-arm-severed`, seeded 19:57 UTC):
+
+5 of 8 audit report families are computed by the library but NEVER rendered by the CLI. The delivery arm is severed for:
+- DeferredDefenseAuditReport (0 CLI refs)
+- SupplyChainAuditReport (0 CLI refs)
+- ConvergentEvidenceAuditReport (0 CLI refs)
+- RecurrentAuditReport (0 CLI refs)
+- MucosalAuditReport (0 CLI refs)
+
+Only `AuditReport` (the primary) and `CategoryAuditReport` (partial) are wired. Biology cognate: leukocyte-adhesion-deficiency — effector cells mount correct response but can't traffic to the target tissue (verdicts computed, can't traffic to the terminal).
+
+This is a structural prerequisite for the suppression-density campsite: you cannot aggregate loudness across a report surface that doesn't exist at the terminal. RatifiedSpecDriftFromImpl shape (impl computes, CLI doesn't deliver). Naturalist linked this to forward/suppression-density-observed and forward/silence-generator-substrate-alignment-axis.
+
+**ADR campsite closures** (navigator, 19:59 UTC):
+
+Two forward campsites closed:
+- `forward/silence-taxonomy-substrate-alignment` — closed. ADR-028 Amendment 7 landed canonical (da1fb5c).
+- `forward/silence-generator-substrate-alignment-axis` — closed. Same commit. The silence-taxonomy's home is now at the witness-design guidance level (spanning both ADR-028 SA-category and ADR-029 witnesses).
+
+**Relay-drift caught by naturalist** (19:56 UTC):
+
+Navigator routed naturalist a "pre-ADR-028-ceremony" draft edit. Naturalist substrate-checked: the ceremony ALREADY happened (da1fb5c). The draft is superseded. This is a fresh same-session instance of ParallelStateTrackersDiverge at the COORDINATION layer — the project's through-line demonstrated in its own team coordination. Naturalist correctly held the edit and surfaced the substrate picture. The distinct observation: the cross-ref navigator wanted (ADR-028 Amd7 §Related → ADR-029) is genuinely missing from the canonical text — but the right fix is the v0.3 reconciliation amendment, not a draft edit that cements the SA-only framing aristotle's A7 already falsified.
+
+**Suppression-loud campsite** (`forward/suppression-loud-must-be-removed`):
+
+Navigator seeded and routed to pathmaker (19:56 UTC). The mechanics per team-lead: `#[immunosuppress]` = permission-to-proceed-on-known-defense-gap; `#[anergy]` = permission-to-not-defend. NEITHER times out. Both must be LOUD (audit always announces them — they never silence the gap, only suppress the block). EXPLICITLY REMOVED to resolve. Treg-suppression is continuously maintained, not declared-once (naturalist's biology grounding confirmed).
+
+### Surprise
+
+The CI break pattern is more complex than the two-instance "each slice introduces next failing test" framing from step 44. The third break is categorically different: an untracked file in a directory that trybuild auto-scans. This is a gap in the team's commit-CI discipline — the adversarial role prepared the ATK-ADR029-7 fixture correctly as documentation, but left it untracked, presumably because they knew it would break CI until Slice 4 lands. The trybuild autorun behavior makes this an implicit CI break without anyone having committed a failing test. The dogfood antigen #20 (FailingTestWithoutIgnorePin) doesn't quite cover this case — the fingerprint checks for `#[ignore]` absence on committed tests, but this file isn't committed at all. Edge case for the antigen's own fingerprint.
+
+The count-split convergence is the deepest surprise: four independent routes (naturalist's biology gradient, aristotle's structural sweep, outsider's field-observation, observer's per-component regranularization) all converge on the same discriminator, and then naturalist identifies that antigen already ENCODED the measurement/parameter split as two separate Prescriptive family primitives (`#[titer]` vs `#[rx]`). The abstract architecture predicted a design decision the team made independently. ADR-003's biology-as-instrument claim is at its strongest here.
+
+### Discussion
+
+**CI pattern assessment**: Three consecutive FailingTestWithoutIgnorePin-shape events in the ADR-029 arc suggests a team discipline gap distinct from any individual failure. The adversarial role's working method is "commit a failing test that documents the next gap, then fix the previous gap." This is a valid technique for sequential debt documentation — each failing test IS the specification for the next slice. But it leaves main broken between slices. The project should probably adopt an explicit convention: adversarial ATK tests get `#[ignore]` with a standard comment at commit time, removed when the implementation lands. This is already what dogfood antigen #20 recommends. The team just isn't following it consistently under implementation velocity.
+
+**Delivery-arm severity**: The severed-delivery finding is more load-bearing than it might appear. The entire observe-not-declare lens of ADR-029 assumes audit observations REACH a reader. Five of eight report families are computed-and-swallowed. This means for supply-chain, recurrent, convergent, mucosal, and deferred-defense families — the audit does observe verdicts, but those verdicts are dark matter. Users running `cargo antigen audit` today don't see them. The CLI is lying by omission.
+
+**Convergence status**: The declare-vs-observe arc is closed from the observer's perspective. Three independent derivations + aristotle's exhaustive sweep + naturalist's biology cognate = sufficient evidence. Scientist owns the per-component table draft. Nothing pending from observer on this arc.
+
+**Governance**: Navigator's governance ruling (navigator pre-land checkpoint for all ADR amendments — all gates must run before scientist lands any ADR/amendment) landed earlier in the arc. This is the right corrective for the ADR-009 gate-bypass. Observer assesses: the ruling is correctly scoped. Its implementation depends on navigator staying awake during amendment-land windows, which is a synchronization risk — but that's navigator's lane to solve.
+
+### Metrics
+
+- CI status: BROKEN (compile_fail suite, 1/28 — immune_missing_deprecation_warning.rs untracked fixture)
+- FailingTestWithoutIgnorePin: third instance of this arc (new variant: trybuild-autorun of untracked file)
+- ATK-A3-019: false alarm (build-order artifact, passes in isolation)
+- ADR-029 Slice 3 (CLI surface): SHIPPED via f98e48b — per-presents-site verdicts, --strict gate, verdict-language discipline
+- ADR-029 Slices remaining: Slice 4 (deprecate #[immune]) — unimplemented; Slice 5 (migrate own usages); Slice 6 (extended PresentsArgs with requires=/proof= — scout save 1747ca88 notes scan-side also needs update)
+- Declare-vs-observe arc: CLOSED (aristotle sweep + naturalist cognate + outsider ruling)
+- Count-split finding: confirmed — measurement-count (observe) vs parameter-count (declare); titer/rx cognate already in Prescriptive family
+- Delivery-arm finding: seeded at forward/audit-report-delivery-arm-severed; 5/8 severed; prerequisite for suppression-density-observed
+- Closed campsites this update: forward/silence-taxonomy-substrate-alignment, forward/silence-generator-substrate-alignment-axis
+- Relay-drift catch: naturalist caught coordinator routing superseded draft (same-session ParallelStateTrackersDiverge instance)
+- Suppression-loud campsite seeded and routed to pathmaker
+- Open forward campsites: 13 (per camp status)
+
+---
+
+## Step 46: Three-Axis Unification — Silence Architecture Completed + Naturalist Self-Correction
+
+### Before
+
+**Time**: 2026-05-27, post-step-45
+
+**Hypothesis**: The delivery-arm finding and aristotle's 2x2-ceiling ruling would generate further synthesis. The pipeline-stage / subject-distinction framing was new enough to warrant naturalist's biology-grounding. Expected: either confirmation of three orthogonal axes, or a correction to the framing.
+
+**Design**: Read most-recent activity (20:00–20:12 UTC window), assess whether aristotle's ruling and naturalist's three-axis unification are consistent.
+
+### Results
+
+**Aristotle's ruling on delivery arm** (forward/audit-report-delivery-arm-severed, 20:10 UTC):
+
+2x2 ceiling HOLDS. Subject-distinction is the load-bearing cut:
+- 2x2 classifies HOW A FAILURE STAYS SILENT (evasion-mechanisms; failure-evasion subject)
+- Delivery arm = how a CORRECT VERDICT fails to reach the reader (verdict-non-delivery subject)
+
+These are different subjects → delivery arm does not add a 5th evasion-generator. Pipeline is three stages: RECOGNIZE / DECIDE / DELIVER. The 2x2 lives at the DECIDE stage. Full structure: pipeline-stage × [at decide-stage: the 2x2]. Through-line clause 3: "observation requires exteriority AND must be DELIVERED to an exterior, or it is as-silent-as-never-observed." A correct verdict swallowed pre-delivery = informationally identical to no verdict.
+
+Subject-check named as the recurring protective move: count-split, discriminator, delivery-arm ruling all used it. When a candidate threatens a cardinality-ceiling, check whether it shares the SUBJECT the ceiling is about.
+
+**Naturalist's three-axis unification + self-correction** (notice 20:10 UTC):
+
+Biology-grounded correction to the "third arm" framing:
+
+1. ACUTE axis = afferent × efferent 2x2 (silence-taxonomy, ADR-028 Amd7). Literature-confirmed: afferent = recognition (Signal-1+2/APC), efferent = scope of EFFECTOR FUNCTIONS. Exactly two arms at this cut. 2x2 ceiling (4 acute generators) is biologically grounded (strongest-form claim confirmed).
+
+2. REGULATORY meta-arm = suppression-density (forward/suppression-density-observed). Tregs / cholinergic anti-inflammatory pathway — a regulatory check on the response, modulates whether recognize→respond proceeds. Orthogonal to the acute cut. Silence = regulatory check going pathological (over-suppression).
+
+3. MEMORY meta-arm = staleness (forward/time-bound-claim-staleness-observed + prose-staleness). Anamnestic arm, persists recognition across time. Orthogonal to the acute cut. Silence = persisted recognition drifting from its referent (antigenic drift; prose-status decay).
+
+The self-correction: naturalist earlier said delivery arm is a "third arm" at the same cut. WRONG/loose — efferent subsumes trafficking/delivery as execution. Delivery-silence is efferent-EXECUTION-silence (refinement within efferent, not an orthogonal third arm). Self-retracted. The delivery finding stands; the arm-framing was overstated.
+
+Net: v0.3's three silence-threads exhaust the architecture — acute + two meta-arms. A 5th silence-generator cannot be a third column in the acute 2x2; it must live in a meta-arm.
+
+**Outsider's falsification probe on fast-swept residue** (20:11 UTC):
+
+Aristotle flagged mucosal trio + triage_commit as "classified quickly, could falsify." Outsider ran the discriminator field-by-field. Result: NO divergence. Near-miss caught honestly: `mucosal_tolerant.until` has `#[allow(dead_code)]` on the parse-struct field, which looks like time-bound tolerance with no staleness observation. Substrate-check killed it: `audit.rs:1043/1057/1064/2869` read it; the scan layer re-parses from doc-markers; the `#[allow(dead_code)]` is on the macro crate parse field only. Correctly declare-the-deadline + observe-the-staleness (3rd bucket). Lesson for table drafter: `#[allow(dead_code)]` on a parse-struct field is a FALSE staleness-gap signal — check scan/audit consumption path before inferring unobserved-staleness.
+
+**Scout's valence-pair pattern** (notice 20:09 UTC):
+
+Three confirmed instances of beneficial-mechanism / failure-mode pairs at the same mechanism:
+1. `#[crossreactive]` (beneficial) / molecular-mimicry failure (same low-specificity recognition)
+2. silence-gen-4 wrong-weighting (beneficial low-confidence weighting) / autoimmunity-analog (discriminator collapse)
+3. anergy/immunosuppress (tolerance, beneficial) / suppression-density pathology (accumulates unchecked)
+
+Design principle candidate: whenever a new tolerance/low-specificity primitive is added, ask "what is its discriminator-collapse failure-class?" and consider a shadow antigen. The declare-vs-observe arc's category-3 IS the aggregate-accumulation failure-mode; AffordanceTrap IS the discriminator-collapse failure-mode. Scout's meta-pattern connects the two v0.3 threads.
+
+**Scout's audit-delivery-completeness antigen seed** (forward/audit-delivery-completeness-antigen, 20:10 UTC):
+
+New campsite seeded. AuditDeliveryArmSevered as a dogfood antigen: Category=SubstrateAlignment, detection = pub fn audit_* functions in audit.rs, witness = each has ≥1 CLI ref in main.rs. Cross-file parity check. Makes the "5/8 severed" pattern a CI-observable for future report family additions. Preconditions: delivery-arm fix should land first; fingerprint grammar may need body_content_with_negation work.
+
+**Naturalist's structural rhyme** (notice 20:08 UTC):
+
+Three-domain identity of one shape: chronic.status prose-decay (fixed recognition, drifting referent), relay-drift (fixed relay-context, drifting substrate), RatifiedSpecDriftFromImpl (fixed ADR spec, drifting impl). All share: "A RECOGNITION WHOSE REFERENT MOVED, WITH NO INTERNAL SIGNAL OF THE MOVE." Detection/recognition discriminator predicts WHY: detecting referent-drift requires comparing to the referent (exterior), which the recognition (interior) structurally cannot do. The fix is the same across all three: schedule re-exposure (booster/re-challenge / camp-status-before-routing / re-grep-decisions.md) and observe whether it happened. Converts unobservable referent-drift into observable timestamp-staleness.
+
+**Stale-context-re-derivation pattern** (navigator notice 20:09 UTC):
+
+Six+ instances this arc of teammates waking and re-delivering substrate that already landed. Proposed fixes: (a) camp wake auto-emits camp pending (feedback filed); (b) behavioral: check campsite stories before re-filing substrate. Pattern is ParallelStateTrackersDiverge at the coordination layer — antigen's own dogfood antigen catching itself one level up.
+
+**New campsite: forward/audit-delivery-completeness-antigen** (scout, signers: none required — standing seed).
+
+### Surprise
+
+The naturalist's self-correction is the most significant event in this step. When the naturalist caught their own "third arm" overstatement, they issued a precise retraction with the biology source (afferent/efferent-limb literature, pubmed refs). This is the exteriority-through-line applied to self-reference: the representation (naturalist's own claim) drifted from its referent (the biology's actual third axis), and the substrate re-check (literature) revealed the drift. The meta-structure is perfect: the subject of the entire arc (observation requires exteriority) was demonstrated by the act of correcting a claim about it.
+
+The REGULATORY and MEMORY meta-arms as the actual two additional axes — with suppression-density and time-bound-staleness already populated as the two active v0.3 threads — means the silence architecture is CLOSED as a three-axis system. The team wasn't investigating three separate problems; they were investigating silence in the three immune axes. That's a publishable organizing framework.
+
+### Discussion
+
+**Assessment of completeness**: The declare-vs-observe arc is closed (aristotle sweep + naturalist cognate + outsider residue-check). The silence-architecture three-axis unification is closed (naturalist). The delivery-arm finding is documented and routed to pathmaker. The audit-delivery-completeness antigen is seeded. What remains open is all implementation work (pathmaker's lane: Slice 4 immune deprecation, wire 5 severed reports) plus scientist drafting the vocab-audit table.
+
+**Publishability assessment update**: The three-axis silence architecture (acute 2x2 × regulatory meta-arm × memory meta-arm), each biologically grounded and each populated by a concrete antigen primitive, is a novel contribution. It is NOT "here is a design pattern we chose." It is "we discovered that these three failure-categories organize along the same three axes that biology evolved to handle them." The prediction-mode claim (ADR-003) is now supported by four independent instances of successful prediction. That's reviewable evidence.
+
+**CI status**: Still broken (compile_fail suite, untracked immune_missing_deprecation_warning.rs). Observer flagged to navigator. Resolution requires either Slice 4 implementation or moving the fixture.
+
+**Recurring pattern note**: The FailingTestWithoutIgnorePin pattern has three instances in this arc. The third instance (trybuild autorun of untracked file) reveals a gap in dogfood antigen #20's fingerprint: it checks for `#[ignore]` absence on committed tests, but doesn't cover the case of untracked fixture files in trybuild-scanned directories. That's a refinement for the antigen's fingerprint — worth noting on `dogfood/antigen-on-antigen-continuous`.
+
+### Metrics
+
+- Three-axis silence unification: CLOSED (acute 2x2 / regulatory suppression-density / memory staleness)
+- Naturalist self-correction: issued (delivery arm is efferent-execution-refinement, not 3rd orthogonal arm)
+- Outsider residue-check: NO divergence on mucosal trio + triage_commit
+- Near-miss caught: mucosal_tolerant.until (false dead_code signal — scan layer re-parses)
+- Subject-check named as recurring ceiling-protection move
+- Scout's valence-pair pattern: 3 confirmed instances, design principle candidate
+- forward/audit-delivery-completeness-antigen: seeded
+- CI status: BROKEN (compile_fail, untracked fixture — Slice 4 resolution pending)
+- Through-line clause 3: "observation requires exteriority AND must be DELIVERED"
+- Stale-context re-derivation: 6+ instances named as pattern by navigator
+
+**CORRECTION (added post-step-46)**: Naturalist's biology cognate for the count-split (#[titer]=measurement-observe, #[rx]=parameter-declare) rests on the RATIFIED DISTINCTION in ADR-024's Prescriptive family (decisions.md:6059), NOT on shipped proc-macros. Scout carrier-checked: no TiterArgs/RxArgs parse structs exist in antigen-macros. The prediction-mode claim is still valid (biology predicted the distinction; antigen ratified it as two separate conceptual primitives before aristotle derived it structurally) — but the claim must be labeled "ratified cognate, not shipped macro" to avoid smuggling an unverified implementation claim.
+
+Scout also found: orphaned_lineage_edges() (scan.rs:2067) and dangling_child_lineage_edges() (scan.rs:2108) are ALSO severed delivery arm instances — scan-layer computations with zero CLI refs. Delivery-arm fix batch is larger than naturalist's 5: also includes lineage-edge scan outputs. Noted on forward/audit-report-delivery-arm-severed campsite.
+
+---
+
+## Step 47: Three-Axis Unification Completed + Autoimmune-Shadow Discovery Method
+
+### Before
+
+**Time**: 2026-05-27, continuing after step 46
+
+**Hypothesis**: The three-axis unification (acute 2x2 / regulatory / memory) would attract further synthesis. Aristotle's delivery-arm correction was biology-literature-unverified in step 46. Expected: aristotle verifies against literature and amends their prior note.
+
+**Design**: Read activity 20:12–20:15 UTC window.
+
+### Results
+
+**Aristotle's amended delivery-arm ruling** (forward/audit-report-delivery-arm-severed, 20:15 UTC):
+
+Literature carrier verified: PubMed 8620631 + 8620649 (1996 two-part review: "The immune response: the afferent arm" + "the efferent arm"). Literature explicitly titles the acute immune response as exactly two arms; efferent = scope of effector-functions, subsumes trafficking/delivery.
+
+What stands: delivery-severance does NOT falsify the 2x2 ceiling — the subject-distinction holds regardless of where delivery sits in the pipeline.
+
+What was corrected: prior note framed delivery as "third co-equal pipeline stage." Corrected to efferent-EXECUTION — a sub-stage within efferent, not a third column. Corrected structure: afferent(recognize) / efferent(decide + execute[incl. delivery]).
+
+Why correction strengthens: 2x2 ceiling on acute silence-generators is now BIOLOGICALLY GROUNDED, not structurally conjectured. A 5th acute generator CANNOT be a third acute column — biology forbids it (two-arm literature). The regulatory and memory meta-arms are the genuine orthogonal axes where non-acute silence lives.
+
+Three-axis unification (biology-confirmed):
+1. ACUTE axis = afferent × efferent = silence-taxonomy 2x2 (capped 4, lit-confirmed). Delivery-silence is efferent-execution-silence within this axis.
+2. REGULATORY axis = gain-control silence = suppression-density (Tregs / cholinergic anti-inflammatory going pathological — too-much-suppression = immunodeficiency).
+3. MEMORY axis = temporal-persistence silence = staleness (anamnestic arm persisting recognition across time; drifts from referent = antigenic drift).
+
+v0.3 silence threads already populate axes 2 and 3. The whole v0.3 silence-program is a three-axis structure.
+
+**Naturalist's autoimmune-shadow discovery method** (forward/autoimmune-shadow-antigen-discovery, seeded 20:15 UTC):
+
+Six verified instances of: beneficial gated immune mechanism → pathological valence = same mechanism with gate (discriminator) collapsed.
+
+| Mechanism | Gate | Collapse-Pathology | Stdlib Primitive |
+|-----------|------|--------------------|-----------------|
+| Tolerance | self/non-self | autoimmunity | `#[anergy]`, `#[antigen_tolerance]` |
+| Cross-reactivity | specificity-threshold | molecular-mimicry | `#[crossreactive]` |
+| Costimulation | signal-2 gate | inappropriate activation on signal-1 alone | costimulation=all_of, anergy-by-absence |
+| Inflammation | resolution off-switch | chronic-inflammation, cytokine-storm | `#[chronic]` |
+| Immune memory | is-this-the-remembered-antigen? | ORIGINAL ANTIGENIC SIN (recall wrong drifted strain) | `#[igg]`, memory-arm |
+| Clonal selection | negative-selection of self-reactive | autoreactive-clone-expansion, lymphoma | `#[clonal]` |
+
+The proposed discovery method: "autoimmune-shadow" = walk the immune-feature primitives, name each one's gate (exterior check), derive the collapse-pathology as a candidate stdlib antigen. This is recognition-not-design (ADR-006) at its strongest — biology generates the candidates, the team recognizes which are real.
+
+Gate = exterior check licensing the response. Collapse = response fires without the check. This is the detection/recognition discriminator at the meta level: the gate IS the exterior-check that keeps the mechanism beneficial; remove the gate and the mechanism turns on itself.
+
+Falsifier: a beneficial mechanism with NO shadow would falsify. Even ungated-looking mechanisms have shadows (phagocytosis → macrophage-activation-syndrome/HLH; complement → aHUS via Factor-H collapse). Unfalsifiable form avoided: "every GATED primitive" — nearly all immune mechanisms are gated, because ungated immune mechanisms ARE pathologies.
+
+**Through-line extension**: observation requires exteriority now has four faces:
+1. Across-arms: afferent/efferent two-arm cut
+2. To-a-reader: delivery-severance
+3. Over-the-checker: regulation meta-arm (the suppressor needs its own exterior observer)
+4. Across-time: memory meta-arm (persisted recognition needs re-check against drifted referent)
+
+**New campsite seeded**: `forward/autoimmune-shadow-antigen-discovery` (signers: naturalist, self-signed as recognition complete; routes to scientist for declare-or-hold on the discovery method as an ADR section).
+
+**Scout to navigator**: Three items routed for navigator waking: (1) chronic.status lane closed — staleness already wired (ChronicSignalPastReviewDate at audit.rs:2663-2667); (2) governance ruling received — adversarial must probe verify-only-antigen-forced-fingerprint before pathmaker implements; (3) naturalist's self-correction on delivery arm framing.
+
+### Surprise
+
+The autoimmune-shadow discovery method is the biggest structural contribution of this arc. It's not just "here are some failure-classes we noticed." It's a SYSTEMATIC METHOD: walk the beneficial primitives, identify each one's gate (the exterior discriminator that keeps it beneficial), and derive the pathological shadow as a concrete candidate antigen. Six instances validated immediately. The method is ADR-003 prediction-mode at maximum strength — biology generates the entire candidate list, and the team's job is recognition not invention.
+
+The other surprise: the delivery-arm literature verification STRENGTHENED the ceiling rather than complicating it. By locating delivery precisely as efferent-execution (not a third arm), the correction makes the 2x2 ceiling biology-grounded. The correction's value exceeded the uncorrected version. This is the project's methodology working as intended: challenges (naturalist's correction) make the framework stronger, not weaker.
+
+### Discussion
+
+**Publishability assessment**: With the three-axis silence architecture literature-confirmed and the autoimmune-shadow discovery method validated across six instances, this work has a clear paper structure:
+
+1. Introduction: the generation-inspection asymmetry problem (substrate-alignment drift)
+2. Method: biological metaphor as prediction-mode instrument (ADR-003 + evidence)
+3. Result 1: silence-taxonomy three-axis structure (acute 2x2 / regulatory / memory) + biology grounding
+4. Result 2: declare-vs-observe discriminator across 27 primitives (no divergence = biology validates)
+5. Result 3: autoimmune-shadow discovery method (systematic derivation of stdlib candidates)
+6. Discussion: what this means for agentic dev / collaborative dev with structural drift
+
+The evidence standard is high: multiple independent derivations converging, literature grounding at each step, failed falsification attempts explicitly documented. A peer reviewer's first attack ("is this just analogical hand-waving?") is answered by the discriminator's predictive precision (count-split prevention, mucosal_tolerant.until near-miss caught, outsider's probe).
+
+**Current gap**: No one has made the specific claim "here are the ADR-029 §Decision consequences for the autoimmune-shadow candidates" — i.e., which shadows are declare-candidates versus observe-candidates? Observer's expectation: the gate is declared (structural intent), the gate-collapse is observed (structural fact about whether the gate ran). Scientist's vocab-audit table should include the shadow antigens.
+
+**CI status**: Still broken (compile_fail suite, untracked fixture). Observer flagged. Navigator awake and has scout's routing note.
+
+### Metrics
+
+- Three-axis silence architecture: BIOLOGY-CONFIRMED (PubMed lit-verified)
+- Aristotle delivery-arm correction: issued and accepted (efferent-execution, not third arm)
+- Autoimmune-shadow discovery method: seeded with 6 verified instances
+- forward/autoimmune-shadow-antigen-discovery: seeded
+- Titer/rx carrier-precision noted: ratified cognate, not shipped macro
+- Scout's lineage-edge delivery-arm extension: noted (2 additional severed scan computations)
+- Through-line clause count: 4 exteriority faces now documented
+- Navigator awake: routing items delivered from scout
+- CI: BROKEN (compile_fail, untracked fixture — awaiting Slice 4 or pathmaker action)
+
+---
+
+## Step 48: Fourth FailingTestWithoutIgnorePin — Pattern Named as Systematic
+
+### Before
+
+**Time**: 2026-05-27, after step 47
+
+**Hypothesis**: Pathmaker would ship a fix for the CI break (Slice 4 or immune deprecation fixture). Expected: new commit addressing compile_fail.
+
+**Design**: Check git log for new commits, run workspace tests.
+
+### Results
+
+**New commit b694e1c** ("feat(parse+dogfood): reconstruct PresentsArgs ADR-029 fields + add AffordanceTrapInAttestationDSL"):
+
+Two changes:
+1. PresentsArgs extended with `requires: Option<(RequiresExpr, Span)>` and `proof: Option<Expr>` (ADR-029 R5 site-attached defense evidence). Parse impl handles `requires=`, `proof=`, and rejects `witness=` with migration message. This is the Slice 3 equivalent for the parse layer — filling a lost change from a git restore.
+
+2. AffordanceTrapInAttestationDSL (#24) declared preemptively in dogfood.rs. Confirmed instance: `signers(required=["math-researcher"])` (dogfood.rs:799). Silence-generator: absence. Biology: molecular mimicry / cross-reactive receptor binding. Preemptive-bias applies per feedback_internal_tool_antigens_preemptive.
+
+The commit message explicitly acknowledges a failing test: "One failing test (ATK-ADR029-10) is pathmaker's forward-work pin for compute_presentation_verdicts() substrate-witness pipeline — not caused by this commit."
+
+**CI state after b694e1c** (verified by observer):
+
+Two failures:
+1. `compile_fail_fixtures` — still `immune_missing_deprecation_warning.rs` (untracked)
+2. `atk_adr029_10_requires_predicate_on_presentation_not_undefended` — committed to `atk_adr029_defended_by_audit.rs` without `#[ignore]`
+
+**ATK-ADR029-10 content** (`antigen/tests/atk_adr029_defended_by_audit.rs:335`):
+
+Tests that a `#[presents(X, requires=<pred>)]` site with `requires_predicate` set must NOT produce `Undefended`. Currently `compute_presentation_verdicts()` only checks `code_witnesses` and `immune_audit` — doesn't inspect `p.requires_predicate` or `p.proof`. Fix: route requires_predicate through SubstrateGap (sidecar absent) or Defended (predicate passes). This test pinned a real implementation gap.
+
+**Pattern assessment — four instances:**
+
+| # | Commit | Test | Fixed by | Status |
+|---|--------|------|----------|--------|
+| 1 | e54514b | ATK-ADR029-1 | 821167f | Resolved |
+| 2 | 821167f | ATK-ADR029-9 | f98e48b | Resolved |
+| 3 | (untracked) | immune_missing_deprecation_warning.rs | Slice 4 pending | Open |
+| 4 | b694e1c | ATK-ADR029-10 | Slice N+1 pending | Open |
+
+The pattern is systematic. The commit message for #4 names it explicitly: "forward-work pin." This is an INTENTIONAL methodology that has been adopted by pathmaker — document the next gap by committing a failing test. The test is the specification; the next slice satisfies it. This is TDD applied at the implementation-gap level.
+
+The discipline failure is NOT the intent (valid) but the TECHNIQUE (wrong): `#[ignore]` with `STATUS: FAILING until...` is the correct form (per dogfood antigen #20). The test documents the gap AND allows `cargo test --workspace` to pass. Without `#[ignore]`, every team member who runs tests hits a failure that looks like a regression.
+
+**Observer's peer-review on the forward-work-pin methodology**:
+
+The technique itself (commit a failing test that documents the next gap) is sound test-driven development. The antigen even has a pattern for it: `FailingTestWithoutIgnorePin` flags tests that fail without `#[ignore]` BUT the intended pattern is "add `#[ignore]` at commit time, remove it when the implementation lands." The failing test IS the specification — the `#[ignore]` doesn't erase that, it just prevents CI breakage.
+
+Four instances in one implementation arc is not coincidence. It's a learned behavior — the team (particularly pathmaker/adversarial) has converged on "commit the failing test as the forward specification" WITHOUT converging on "also add `#[ignore]`." The second step is missing from the learned behavior.
+
+### Surprise
+
+The commit ALSO ships AffordanceTrapInAttestationDSL (#24) preemptively — the first time the autoimmune-shadow methodology has been applied in practice within this arc. Scientist's "declare-or-hold" decision was implicitly made by pathmaker shipping the antigen. Observer should check whether scientist was consulted or whether pathmaker acted on their own assessment.
+
+### Discussion
+
+The FailingTestWithoutIgnorePin recurrence pattern is now the clearest process failure of this expedition. Three CI breaks before this one + this one. The project's own dogfood antigen documents the correct pattern; the team isn't following it. This is the most actionable observer finding of the arc: route the explicit discipline requirement to pathmaker via navigator.
+
+The AffordanceTrapInAttestationDSL ship is notable because it was seeded during the declare-vs-observe convergence arc and immediately implemented. The biology cognate (molecular mimicry) is in the commit message. This is a fast turnaround from "recognized candidate" to "shipped antigen" — less than one session.
+
+### Metrics
+
+- CI: BROKEN (two failures: compile_fail untracked fixture + ATK-ADR029-10 committed without #[ignore])
+- FailingTestWithoutIgnorePin: FOURTH instance of this arc
+- b694e1c content: PresentsArgs ADR-029 R5 fields (parse layer) + AffordanceTrapInAttestationDSL (#24)
+- AffordanceTrapInAttestationDSL: declared preemptively (confirmed instance: dogfood.rs:799)
+- Pattern named to navigator: forward-work-pin technique valid, #[ignore] discipline absent
+- Flagged to navigator + deposited on forward/adr029-implementation campsite
+
+---
+
+## Step 49: Observer-as-Instance of Stale-Context-Re-Delivery
+
+### Before
+
+**Time**: 2026-05-27, post-sleep, after navigator's response
+
+**Observation**: Navigator's message flagged two of observer's earlier routing items as pre-existing substrate. Observer had flagged: (1) descended-from-structural-verification missing campsite, and (2) slug staleness on suppression-density-observed. Both were already in substrate before observer's messages.
+
+### Results
+
+Navigator's finding:
+
+- `forward/descended-from-structural-verification`: seeded by navigator at 19:55, scout terrain-mapped at 20:05. Scout found orphaned_lineage_edges() + dangling_child_lineage_edges() already computed, delivery arm severed.
+- Slug staleness on suppression-density-observed: noted by navigator at 19:56. `forward/suppression-loud-must-be-removed` seeded at 19:56-19:57. Scout verified at 20:05 that LOUD requirement is completely unimplemented.
+
+Observer's context had a 19:48 snapshot. The resolutions landed in the 19:55-20:05 window. The routing messages were stale-context re-deliveries.
+
+Navigator's full verdict: "Your notes on both campsites are welcome additions to the record. The routing request is stale — no action needed from navigator."
+
+### Discussion
+
+This is the stale-context-re-derivation pattern navigator named as a recurrence (6+ instances this arc, notice 94be359c at 20:09 UTC). Observer is now one more instance of that same pattern.
+
+The irony is structural: observer's assigned role is to catch ParallelStateTrackersDiverge and stale representation. Observer failed to apply substrate-over-memory to their OWN routing claims before sending. The correct pre-send discipline (per feedback_scout_pre_send_substrate_check) is: check campsite stories before filing substrate you already remember knowing. Observer checked git log and cargo test, but did NOT check `camp story` for the specific campsites before routing.
+
+This is a self-correction note. The distinction navigator made is important: depositing findings to campsite substrate is always valid (notes are additive); routing to navigator as "action needed" requires substrate verification first. The notes landed correctly; only the routing was stale.
+
+The meta-observation: the pattern is operating at observer's coordination layer, not just implementer layers. If observer — whose primary discipline IS substrate-over-memory — still falls into this, the pattern is more structural than behavioral. The fix is a pre-send ritual: `camp story <campsite>` before routing anything to navigator as new information.
+
+### Metrics
+
+- Observer: one instance of stale-context-re-delivery
+- Navigator count for this pattern: 6+ now extended by observer's contribution
+- Self-correction: recorded in substrate (this step)
+- Camp notes on both campsites: additive (welcome), routing: stale (retracted)
+- Discipline gap closed: pre-send `camp story` check before routing to navigator
+
+---
+
+## Step 50: CI Green — Three-Commit Sprint Closes All Open Breaks
+
+### Before
+
+**Time**: 2026-05-27, post-step-49 (observer self-correction step)
+
+**Hypothesis**: Pathmaker would ship Slice 4 (immune deprecation) to fix the compile_fail break. The ATK-ADR029-10 break would either be fixed by implementation or by adding #[ignore].
+
+**Design**: Check git log after navigator flagged observer's stale routing items.
+
+### Results
+
+Three commits landed while observer was writing step 49:
+
+**b7800f0** ("docs(decisions): add ADR-029 cross-ref to ADR-028 Amendment 7"):
+The missing cross-ref naturalist caught at 19:56 (relay-drift incident). The canonical Amd7 §Related now has the ADR-029 connection. This is the v0.3 reconciliation-(b) broadening naturalist recommended — adding the cross-ref to the canonical text rather than editing the superseded draft.
+
+**eb5f32d** ("feat(adr-029): Slice 4 — #[immune] emits #[deprecated] migration warning"):
+The fix for both: (1) compile_fail/immune_missing_deprecation_warning.rs (the untracked fixture now passes), and (2) gives users a compiler-visible signal to migrate. Per the commit message: adds `#[deprecated(note = "use #[defended_by] on tests and #[presents(requires=...)] for site-attached evidence — ADR-029")]` in the proc-macro output.
+
+**5084e6b** ("feat(dogfood): add AuditVerdictComputedButNotDelivered antigen (#25)"):
+The recursive self-monitoring antigen aristotle proposed and scout seeded as `forward/audit-delivery-completeness-antigen`. Antigen #25 in dogfood.rs. The audit observing its own delivery-completeness — "the medicine checks whether the medicine is delivered."
+
+**CI verification** (observer-run `cargo test --workspace`):
+
+All 56 test suites pass. 957 tests passing, 0 failing. This is the first fully-green CI since commit e54514b broke it (first FailingTestWithoutIgnorePin of this arc).
+
+Also from camp activity: **aristotle's finding #16** — negative-selection ruling for descended-from inheritance revocation:
+
+Q: How should `#[descended_from]` inheritance revocation work — edge-level (`reverted_for=`) or item-level (`#[no_longer_presents(X)]`)?
+
+Ruling: ITEM-level. Decisive argument: diamond-inheritance sets are UNION across all ancestor paths (scan.rs:1469/2814/2918). Edge-level revocation is incomplete by construction — X still arrives via other parents' union paths. Item-level revokes after-union, so it's complete. Biology cognate: negative-selection KILLS the clone for what-it-presents, doesn't edit lineage.
+
+Riders for future ADR: (a) `#[no_longer_presents]` is observed-not-declared (audit verifies item lacks X's fingerprint; if still-matches = new fail-class RevocationContradictedByStructure); (b) needs staleness-observation (negative-selection is CONTINUOUS; a revocation drifting back into matching X is stale-wrong; memory-arm tie). Connected to autoimmune-shadow-discovery-engine as shadow #6.
+
+Aristotle also named the autoimmune-shadow as a DISCOVERY-ENGINE: every GATED immune mechanism has a discriminator-collapse shadow. Six first-yield instances, each mapping to a software shape. This is ADR-006-compliant (recognition, not invention) because the shadow is read off the gate, not invented.
+
+### Surprise
+
+The rapid three-commit sequence (all within the window while observer was writing the self-correction step) demonstrates the team's implementation velocity when the design substrate is clear. The ADR-029 cross-ref, Slice 4, and the recursive antigen all landed in one sprint. The conceptual work (delivery-arm finding → AuditVerdictComputedButNotDelivered → the self-monitoring insight) translated to implementation in less than one session cycle.
+
+The ATK-ADR029-10 test is still failing (it's in the ignored count — actually it's pinned by the pattern). Let me verify: the compile_fail break was fixed by eb5f32d (immune now emits deprecated). ATK-ADR029-10 (requires_predicate routing) — that test should still be failing unless it was also resolved.
+
+Wait — "957 tests passing, 0 failing" but earlier ATK-ADR029-10 was failing. Either: (a) it was fixed in eb5f32d or 5084e6b, or (b) it got `#[ignore]`. Let me check.
+
+### Discussion
+
+CI green is the key milestone. Four FailingTestWithoutIgnorePin instances in this arc; all four are now resolved (either by implementation or by making the failing test pass). The arc's CI hygiene problem is closed.
+
+The negative-selection ruling (item-level `#[no_longer_presents]`, not edge-level `reverted_for=`) is a significant architectural finding. The diamond-inheritance argument is load-bearing and substrate-verified. This should route to scientist for an ADR thread — likely ADR-030 given the sequence.
+
+### Metrics
+
+- CI: GREEN (957 tests, 0 failing, 56 suites)
+- Three commits: b7800f0 (ADR-029 cross-ref), eb5f32d (Slice 4), 5084e6b (#25 antigen)
+- FailingTestWithoutIgnorePin: all four arc instances now resolved
+- Antigen #25: AuditVerdictComputedButNotDelivered (recursive self-monitoring)
+- Aristotle finding #16: negative-selection ruling (item-level, diamond-union argument)
+- Discovery-engine named: autoimmune-shadow = recognition engine (ADR-006 compliant)
+- ATK-ADR029-10: PASSING (verified post-sprint, not just ignored — requires_predicate routing fully implemented; suite grew from 6 to 12 tests)
+
+---
+
+## Step 51: Ceremony Closed + Vocab-Audit Complete + Navigator Self-Correction
+
+### Before
+
+**Time**: 2026-05-27, activity burst 20:41-20:44 UTC
+
+**Hypothesis**: The ceremony would eventually close when adversarial signed. Vocab-audit table would land from scientist.
+
+### Results
+
+**Adversarial signed ceremony** (c363a4a8, 20:41 UTC):
+
+`ceremony/ratify-adr-029-immune-observed` COMPLETE — 4/4 signers. The ceremony substrate-alignment gap observer flagged at step 40 is fully resolved. Governance record is clean.
+
+**forward/declare-vs-observe-vocab-audit CLOSED** (scientist, 20:41 UTC):
+
+Full 27-macro per-field vocabulary audit table complete. Deposited at `docs/expedition/declare-vs-observe-vocab-audit.md`. Campsite closed. ADR-030 campsite seeded (`forward/adr030-aggregate-temporal-observed`) with both gates satisfied.
+
+Scientist precision points from sleep note:
+- titer/rx cognate = ratified vocabulary, NOT shipped macros (correctly labeled)
+- `#[allow(dead_code)]` on parse fields ≠ unobserved staleness (outsider gotcha, scan re-parse is correct instrument)
+- parameter-counts stay DECLARE — count-split is the discriminator's load-bearing result
+
+**Navigator self-correction** (notice cffc9eb8, 20:42 UTC):
+
+Navigator caught own stale-context re-delivery: "I apply substrate-grep discipline to INCOMING reports but not to my own outgoing routing." Fix: run `camp story` before SendMessage routing request. This is the third role-level instance documented (observer step 49, navigator now). Pattern is team-wide, not role-specific.
+
+**AuditVerdictComputedButNotDelivered (#25) category**: FunctionalCorrectness (not SubstrateAlignment). SubstrateAlignment variant (cross-file parity fingerprint) deferred until delivery-arm fix lands.
+
+**Pathmaker Slice 5 in progress** (15 files modified, not yet committed): migrating own `#[immune]` usages.
+
+### Surprise
+
+Ceremony and vocab-audit both closing within 3 minutes marks the completion of the session's major conceptual arc. They were the two longest-running open items.
+
+### Metrics
+
+- Ceremony: COMPLETE (4/4 signers, adversarial signed c363a4a8)
+- forward/declare-vs-observe-vocab-audit: CLOSED
+- forward/adr030-aggregate-temporal-observed: SEEDED
+- Navigator: self-corrected on stale outbound routing
+- CI: GREEN (957 tests, 0 failing) — CORRECTION IN STEP 52: actual count is 990
+
+---
+
+## Step 52: Navigator Corrections — CI Count and ATK-ADR029-1 Characterization
+
+### Before
+
+**Time**: 2026-05-27, post-compaction (immediate next message received after step 51 was written)
+
+**Hypothesis**: Step 51's CI count was accurate.
+
+### Results
+
+Navigator delivered two corrections to the step 51 record.
+
+**Correction 1 — Test count**: Step 51 states "957 tests passing, 0 failing." The actual count at that moment was **990 tests passing, 50 ignored**. The discrepancy arose because observer's context was compacted before the navigator's `missing_fingerprint.rs` fix landed. Navigator discovered that the `missing_fingerprint.rs` compile-fail fixture was stale — AMD1 made fingerprint optional (7a59c0b's predecessor), but no corresponding compile-PASS fixture existed. Navigator added `tests/ui_pass/fingerprint_optional_verify_only.rs`, which pushed tests from 957 to 990 (33 additional tests in the new pass fixture).
+
+**Correction 2 — ATK-ADR029-1 characterization**: Step 50 characterized the pattern as "FailingTestWithoutIgnorePin instance #1 — a discipline failure." Navigator clarified: the test committed at e54514b was intentionally designed as a "blocks Slice 2" pin. Slice 2 (821167f) landed approximately 2 minutes after e54514b, making the test pass through implementation rather than through `#[ignore]`. The test served its designed purpose — it was a forward-work pin that worked. The FailingTestWithoutIgnorePin antigen is still real and load-bearing (it fired on the three other instances in this arc), but instance #1 was by design. Navigator's assessment: "The fact that Slice 2 beat you to the fix by ~2 minutes doesn't make the pattern less real."
+
+### Observer Assessment
+
+The corrections are clean. Both arose from context-compaction state drift — classic stale-context-re-derivation. The observer's step 51 record was written from held context, not from substrate.
+
+The navigator correction on ATK-ADR029-1 is a genuine nuance: "FailingTestWithoutIgnorePin" (antigen #20) is most valuable when the failing test represents forward-work that has no implementation coming imminently. A pin designed as "blocks Slice 2" with Slice 2 actively in-flight is a different shape — it's a short-lived blocking assertion, not a long-lived pinned state. The antigen #20 fingerprint (`doc_contains("STATUS: FAILING") + not(attr_present("ignore"))`) would match this pattern too aggressively. This is a scope-precision gap in the antigen's fingerprint worth noting.
+
+### Surprise
+
+The missing_fingerprint.rs gap is itself a FailingTestWithoutIgnorePin-adjacent instance: a fixture existed that asserted old behavior (compile-fail), the behavior changed (AMD1), and the fixture became stale. The fixture wasn't "failing" per se — it was testing a deleted expectation. A different shape from the pin pattern, but same family: test substrate drifting from implementation reality.
+
+### Metrics (CORRECTED)
+
+- CI: GREEN — 990 tests passing, 50 ignored (not 957 as step 51 stated)
+- Navigator fix: `tests/ui_pass/fingerprint_optional_verify_only.rs` added
+- ATK-ADR029-1: design pin (not discipline failure) — worked as intended; Slice 2 resolved within 2 minutes
+- FailingTestWithoutIgnorePin arc: 4 instances, 3 genuine (instances #2, #3, #4), 1 by-design (#1)
+- Scope-precision gap noted: antigen #20 fingerprint would catch designed blocking pins as false positives
+
+---
+
+## Step 53: Post-Compaction Catch-Up — Delivery Arm Arc Completed + New Adversarial Findings
+
+### Before
+
+**Time**: 2026-05-27 21:22–21:46 UTC (post-compaction burst observed via `camp activity`)
+
+**Hypothesis**: The delivery-arm severance map would be largely fixed; adversarial would continue probing.
+
+### Results
+
+**Delivery arm completions** (4 of 5 severed arms fixed):
+
+Pathmaker landed two additional delivery-arm fixes post-step-51:
+
+1. **b56cbce** — `feat(cli): deliver lineage-integrity verdicts` (orphaned/dangling `#[descended_from]`). Scout's two lineage-edge scan outputs (`orphaned_lineage_edges()` + `dangling_child_lineage_edges()`) now reach the CLI.
+
+2. **b37b313** — `feat(cli): deliver convergent-evidence + recurrent-emergence audit concerns`. The ENTIRE ADR-024 convergent family (`#[diagnostic]`/`#[clonal]`/`#[igg]`/`#[crossreactive]`/`#[polyclonal]`/`#[monoclonal]`/`#[adcc]`) and the recurrent-emergence family (`#[itch]`/`#[recurrence_anchor]`/`#[crystallize]`/`#[chronic]`/`#[saturate]`/`#[strand]`) are now delivered. Both libraries had audit pipelines computing hints (DiagnosticModalityInsufficient, IggIdentityCollapseWarning, RecurrenceAnchorNoItchPrecondition, etc.) that nothing was rendering.
+
+**Remaining severed arm**: `audit_supply_chain` aggregate report — intentionally deferred. The `cargo antigen verify` subcommand uses per-leaf `evaluate_*` fns, not the aggregate pipeline. Wiring it would require design work (compose with verify UX, avoid two competing surfaces). Final map: 5 severed, 4 fixed, 1 intentionally deferred.
+
+**Systemic notice from pathmaker (25256aa7 + 31ab14b1)**: The AuditVerdictComputedButNotDelivered pattern crossed the recurrence threshold (5-6 instances). `forward/audit-delivery-completeness-antigen` seeded. Recommended: `#[recurrence_anchor(AuditVerdictComputedButNotDelivered)]` + a delivery-completeness bijection test (every `pub audit_*()` ↔ a render site).
+
+**ADR-009 Amendment 1 implemented** (7a59c0b):
+
+`AntigenArgs.fingerprint` is now `Option<String>`. Parse accepts absence (verify-only antigens); validate checks non-empty+DSL-parse only when present. 22 placeholder `doc_contains()` fingerprints dropped (11 supply_chain ADR-025 + 11 vcs_info_loss ADR-026). The ~14.8k spurious-presentation flood from stdlib `UnpinnedDependency` is gone. Proptest + unit tests inverted to assert verify-only acceptance; `ui_pass/fingerprint_optional_verify_only` fixture wired. All gates green.
+
+**New adversarial findings (two new BLOCKED campsites)**:
+
+1. **`findings/g2-crosscheck-blind-to-adr029-witnesses`** (BLOCKED):
+   `audit_category()` reads `report.immunities` only; `report.defenses` is never consulted. As adopters migrate from `#[immune]` to `#[defended_by]` (the ADR-029 idiom), G2 cross-check becomes progressively blind. A SubstrateAlignment antigen with only `#[defended_by]` witnesses (code-tier — wrong type for SA) passes G2 with no hint. Scientist verified: `audit_category()` at `audit.rs:3027`, `has_any_immunity` at line 3055 stays false for ADR-029 adopters, early-continue at line 3072 skips G2 entirely. Fix: wire `report.defenses` into `has_code_witness` computation. Same computed-not-consulted shape as the delivery-arm severances.
+
+2. **`findings/proof-empty-string-overclaims-formal-proof`** (BLOCKED):
+   `proof=Some("")` (empty string) yields `ImmuneVerdict::Defended` at `WitnessTier::FormalProof` — the strongest possible tier. `audit.rs:1379` uses `p.proof.as_ref().map(|_| WitnessTier::FormalProof)` — the closure ignores the inner value. An adopter who writes `#[presents(X, proof="")]` as a placeholder gets false confidence (FormalProof with no actual phantom construction). Fix: reject at `parse.rs` (macro expand time) OR guard at `audit.rs:1379` with empty-after-trim → SubstrateGap.
+
+**ATK-ADR029-18 (V1 void confirmed exploitable)**:
+
+Adversarial locked the concrete exploit shape: a site with both `#[defended_by(X)]` (code-tier → Reachability) AND `#[presents(X, requires=P)]` where P fails (→ site_requires_eval = Some(WitnessTier::None)) produces `ImmuneVerdict::Defended` at Reachability. The failing substrate predicate is silently masked by the passing code-tier witness. Test committed at 8e990ff.
+
+Scientist's determination: this is the V1 void named in ADR-029 (decisions.md line 6956: "current witness=/requires= EITHER/OR structure forbids conjunctive defense — future ADR"). Correct for v0.2 per the ratified ADR. No amendment needed now. Campsite `forward/conjunctive-defense-void-or-semantics` seeded as pre-ADR holding space; routes to aristotle for Phase-1-8 when ADR slot opens.
+
+**ADR-030 draft complete** (scientist, campsite closed):
+
+Draft at `docs/expedition/adr-030-draft.md`. Five instances (A-E) with proposed resolutions. Three open questions for ceremony gates. Ready for ceremony when v0.3 lane opens.
+
+**Autoimmune-shadow method** (scientist determination):
+
+Vision-doc section (not ADR). Target: `docs/expedition/the-comprehensive-vision.md`, section "Shadow Antigen Discovery — the Autoimmune Method." Three-part justification: methodologically bounded (truly ungated mechanisms have no shadow), real findings produced (shadow #1 → ADR-030 instance E; shadow #5 → FingerprintDriftFromProtectedPattern), and 6-instance biology grounding provides finite inventory. Scientist to draft.
+
+**`ImmunosuppressDurationCapExceeded` confirmed unreachable** (adversarial ATK-IMMUNOSUPPRESS-DURATION-CAP-UNREACHABLE):
+
+Three-layer gap: scan parses `duration_cap` into `ScanImmunosuppressArgs.duration_cap`, but push stores it in `DeferredDefense.see[]` as a string tag — no typed field. `evaluate_deferred_defense_hint()` Immunosuppress arm reads only `decl.until`, never parses `see[]`. Zero emission sites for `ImmunosuppressDurationCapExceeded` (grep confirms: 1 match, declaration only). Two documentation tests committed (d72dacf) lock current behavior as regression anchor.
+
+**Detectability-tier axis candidate** (scientist collapse-test):
+
+Scientist ran the collapse test against the dogfood stdlib (26 antigens). Result: SubstrateAlignment antigens are predominantly STATIC-SCAN-DETECTABLE, not external-substrate-detectable. Axes do NOT collapse. `{static-scan / runtime / external-substrate}` is NOT co-extensive with `{SubstrateAlignment / FunctionalCorrectness}`. SA can be any detectability tier; FC can be any detectability tier. Aristotle's Phase-1-8 can proceed with one gate already passed.
+
+**Auto-role hook diagnostic** (navigator notice 9f77a642):
+
+Hook fires correctly at binary level. Most likely cause of aristotle's EXIT 1: auto-role (PreToolUse) only fires for subagents spawned inside Claude Code tasks — not for agents running camp from their main conversation context (agent_type absent → passthrough → no CAMP_AS). This is the design-level finding from 2026-05-27 handoff memory: "--as remains required for main-session users." Navigator confirms the fix doesn't help main-session users. `--as` remains required until empirically confirmed per spawn shape.
+
+### Peer-Review Observations
+
+**G2 blind to ADR-029 witnesses is structurally load-bearing**: This gap creates a migration trap. As adopters follow the recommended ADR-029 path (replace `#[immune]` with `#[defended_by]`), they progressively disable their G2 cross-check without realizing it. The cross-check was the primary guard against category-witness mismatches. A SubstrateAlignment antigen defended by code-tier witnesses (wrong type) silently passes G2 — the guard is bypassed exactly when the guard is most needed (new ADR-029 idiom unfamiliar to adopters). This is the "computed-not-delivered" pattern one layer deeper: the cross-check IS computed for immunities; the gap is that ADR-029's data path (`report.defenses`) was never added to the computation.
+
+**Proof empty-string gap is a trust-boundary violation**: `proof=` is the strongest evidence path in the attestation DSL (FormalProof tier, phantom-type construction). Allowing an empty-string proof to yield FormalProof means the attestation's strength signal is decoupled from any actual evidence. This is the AffordanceTrapInAttestationDSL antigen (#24) in reverse: #24 is about affordances that appear to do nothing when malformed; this is about affordances that appear to do everything when empty. The fix should be at parse time (macro expand) because parse-time is the trust boundary for `proof=`.
+
+**Scientist's conjunctive-defense determination is the clearest example of ADR-003 working**: The OR-semantics void was identified by scout (shadow #3), probed by adversarial (ATK-ADR029-18 confirms exploitable), and determined by scientist to be a named V1 limitation — all without changing any code. The biology metaphor (afferent-OR-efferent for immune response trigger) correctly predicted the gap, but the management (V1 named limitation vs immediate fix) was determined by the ratified ADR language, not by biology. ADR governs; biology predicts.
+
+### Surprise
+
+The detect-ability-tier collapse-test result matters more than the test count suggests. 26 antigens is a limited sample (mostly tool-development antigens), but the result is clean: SA antigens can be any detectability tier. This rules out the naive hypothesis that "SubstrateAlignment = external-substrate-detectable." If that hypothesis held, the detectability axis would be redundant. Its non-redundancy is established.
+
+### Metrics
+
+- CI: 990 tests passing (adversarial sleep note), 50 ignored, 58 suites
+- Delivery-arm completions this burst: 2 additional fixes (b56cbce + b37b313)
+- Total delivery-arm status: 5 severed, 4 fixed, 1 intentionally deferred (supply-chain aggregate)
+- New BLOCKED campsites: `findings/g2-crosscheck-blind-to-adr029-witnesses`, `findings/proof-empty-string-overclaims-formal-proof`
+- ADR-009 AMD1: SHIPPED (7a59c0b), fingerprint now `Option<String>`
+- ADR-030 draft: COMPLETE (scientist), campsite closed
+- Autoimmune-shadow method: vision-doc section determination made
+- `ImmunosuppressDurationCapExceeded`: confirmed unreachable (zero emission sites)
+- Detectability-tier axis: NOT co-extensive with category (collapse-test result)
+- Auto-role hook: main-session users still require `--as`; subagent auto-role unverified empirically
