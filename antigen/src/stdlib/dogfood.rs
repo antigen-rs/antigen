@@ -1520,3 +1520,81 @@ pub struct SerdeDefaultMaskingStructLiteralBreak;
     references = ["ADR-005", "ADR-025"]
 )]
 pub struct PathTraversalViaUnvalidatedComponent;
+
+// ============================================================================
+// 24. AffordanceTrapInAttestationDSL
+// ============================================================================
+
+/// A DSL field accepts a value whose underlying type is shared by a
+/// semantically-distinct sibling field, so a wrong-slot binding parses
+/// successfully and fails only at evaluation time.
+///
+/// When two slots in one DSL constructor share the same underlying type
+/// (both `String`, both `Ident`) but carry distinct semantics (one means
+/// a signer *name*, the other a *role*), the type system cannot enforce
+/// slot-membership. An author who means a role can type it into the name
+/// slot; the parser accepts it silently and the predicate fails only at
+/// `cargo antigen audit` time — a temporal displacement from write to
+/// evaluation.
+///
+/// **Observed instance** (2026-05-26, `dogfood.rs:799`, aristotle F1):
+/// `signers(required = ["math-researcher"])` — author intended a *role*
+/// slot but used the *name* slot. Parse succeeded; audit found the
+/// signer name "math-researcher" never appeared on any attestation record.
+///
+/// **Generalization**: any DSL constructor with 2+ `String`/`Ident` slots
+/// of distinct semantics has this trap. Confirmed candidates in the closed
+/// predicate grammar: `signed_trailer(key, role?)` (key vs role), and
+/// `ratified_doc(path?, anchor?)` (path vs anchor). Every new DSL
+/// predicate-leaf added to the grammar (ADR-022 open-grammar discipline)
+/// re-introduces the trap unless the author wraps slots in distinct types.
+///
+/// **Fix shape** (R5, aristotle Phase-1-8): tagged constructors
+/// `name("alice") / role("math-researcher")` so name-slot and role-slot
+/// are distinct at the DSL grammar level; typing a role into a name slot
+/// becomes a parse error. Alternatively, newtype-wrapped strings
+/// (`SignerName(String)` vs `SignerRole(String)`) enforce at the
+/// type level. Both make the fail-class unrepresentable — antigen's
+/// canonical move.
+///
+/// **Silence-generator**: silence-by-absence (taxonomy generator 1) —
+/// no enforcement mechanism at the binding moment; the field name
+/// "promises" the semantic but enforces nothing. The witness is a
+/// type-presence check: does every multi-string-slot DSL constructor
+/// wrap slots in distinct types?
+///
+/// **Biology cognate** (naturalist routing): molecular mimicry /
+/// cross-reactivity — a receptor that binds the wrong ligand because the
+/// binding site doesn't discriminate. The DSL slot is the receptor; the
+/// semantic value is the ligand; same shape (String) misleads into the
+/// wrong binding.
+///
+/// **Internal-tooling discipline**: per
+/// `feedback-internal-tool-antigens-preemptive`, declared preemptively
+/// from the first confirmed instance. The predicate grammar is open (any
+/// new DSL constructor with `String` slots re-introduces the trap); the
+/// cost of naming the class now is low; the cost of re-deriving it at
+/// the next occurrence is high.
+///
+/// **Category**: `FunctionalCorrectness` — a DSL binding that should
+/// reject a wrong-slot value silently accepts it, producing a predicate
+/// that the audit cannot satisfy (the failure is behavioral: the declared
+/// signer is never found on attestation records).
+///
+/// **Description-tier** (ADR-028 Amd6): the subject of this antigen IS
+/// the relation between a declaration (the DSL value) and its referent
+/// (the semantic slot). Self-reach applies: the antigen DSL grammar itself
+/// can exhibit the trap.
+#[antigen(
+    name = "affordance-trap-in-attestation-dsl",
+    category = AntigenCategory::FunctionalCorrectness,
+    fingerprint = r#"doc_contains("affordance-trap")"#,
+    family = "dogfood",
+    summary = "A DSL constructor accepts a value in the wrong semantic slot \
+               (e.g., a role typed into a name field) because both slots share \
+               the same underlying type. The wrong binding parses silently and \
+               fails only at audit evaluation time. Fix: tagged constructors or \
+               newtype-wrapped slots so wrong-slot binding is a parse error.",
+    references = ["ADR-005", "ADR-022"]
+)]
+pub struct AffordanceTrapInAttestationDSL;
