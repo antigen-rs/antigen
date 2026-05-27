@@ -1744,7 +1744,7 @@ pub struct AuditVerdictComputedButNotDelivered;
 /// the immune system tolerates self-antigens EITHER because self-reactive clones
 /// were deleted (absent arm: the clone doesn't exist; no response is correct) OR
 /// because self-antigens were never displayed (ignorance arm: the antigen is not
-/// accessible; no response fires). AbsentErrorCollapse is the failure when these
+/// accessible; no response fires). `AbsentErrorCollapse` is the failure when these
 /// two arms are not distinguished: an antigen IS present (malformed declaration =
 /// malformed antigen displayed), but the response-gating collapses it into the
 /// "never-displayed" ignorance path, silently failing to respond.
