@@ -355,14 +355,9 @@ fn atk_w7_g_immunity_audit_round_trips() {
 // the adopter sees a spurious "sidecar ignored" warning on their correctly-stacked
 // hybrid immunity.
 //
-// STATUS: FAILING — `audit()` at audit.rs:1073 checks for any sidecar for the
-// antigen name, regardless of whether a companion `requires=` immunity exists.
-//
-// Fix: before setting `code_witness_sidecar_ignored = true` for a `witness=`
-// immunity, check whether any OTHER immunity in the report for the same
-// antigen_type + item_target also uses `requires_predicate = Some(...)`. If so,
-// the sidecar is legitimately owned by the `requires=` record and the warning
-// is a false positive.
+// STATUS: FIXED — audit() now checks whether a companion `requires=` immunity
+// exists for the same antigen+target before setting code_witness_sidecar_ignored;
+// the stacked-immune case no longer emits a spurious false-positive warning.
 // ============================================================================
 
 #[test]
@@ -583,12 +578,8 @@ impl Drop for PanickingInDrop {{
 // used an underscore form; the standard `clippy::` path form is the one that
 // breaks.
 //
-// STATUS: FAILING — detect_external_tool uses starts_with("clippy::") which
-// does not match the spaced ToTokens rendering.
-//
-// Fix: normalize whitespace in `validate_witness` before passing to
-// `detect_external_tool`, or in `detect_external_tool` itself check both
-// `"clippy::"` and `"clippy ::"` (or strip spaces before the check).
+// STATUS: FIXED — validate_witness normalizes whitespace before detect_external_tool;
+// spaced ToTokens rendering (e.g. "clippy ::") is correctly recognized.
 // ============================================================================
 
 #[test]

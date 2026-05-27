@@ -559,9 +559,8 @@ serde = { workspace = true }
 // the traversal succeeded — FAIL.
 // If it returns SnapshotMissing regardless, the traversal is blocked — PASS.
 //
-// STATUS: FAILING — evaluate_maintainer_unchanged passes crate_name directly
-//   to maintainer_path which does .join(format!("{crate_name}.json")) with no
-//   character-set or path-canonicalization guard.
+// STATUS: FIXED — evaluate_maintainer_unchanged now validates crate_name
+//   against a character allowlist; path traversal via "../" is blocked.
 // ============================================================================
 
 #[test]

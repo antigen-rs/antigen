@@ -131,7 +131,8 @@ fn w6a_synthesis_dedupes_against_explicit_markers() {
 // sites are NOT in "unaddressed" OR "fingerprint match" — they are in
 // "tolerated" (the 5-state matrix per ADR-001 Amendment 1 Change 2).
 //
-// STATUS: FAILING — synthesis_pass does not check tolerances in dedup.
+// STATUS: FIXED — synthesis_pass now checks tolerances during dedup; tolerated
+// sites are excluded from FingerprintMatch presentations.
 // ============================================================================
 
 #[test]
