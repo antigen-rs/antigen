@@ -1313,14 +1313,15 @@ fn atk_a2_union_presents_is_not_silently_ignored() {
 // ============================================================================
 // ATK-A2-FOREIGN-MOD: #[presents] on an `extern` block is silently ignored.
 //
-// ScanVisitor does not override visit_item_foreign_mod. An `extern "C" { ... }`
-// block annotated with #[presents] to mark the FFI boundary as presenting a
-// trust-boundary failure class is invisible to the scanner.
+// ScanVisitor did not originally override visit_item_foreign_mod. An
+// `extern "C" { ... }` block annotated with #[presents] to mark the FFI
+// boundary as presenting a trust-boundary failure class was invisible to
+// the scanner.
 //
 // FFI extern blocks are high-priority mucosal boundary sites — exactly where
 // BoundaryViolation and similar antigens should fire.
 //
-// STATUS: FAILING — visit_item_foreign_mod is not overridden.
+// STATUS: FIXED — visit_item_foreign_mod override added to ScanVisitor.
 // ============================================================================
 
 #[test]
@@ -1343,11 +1344,11 @@ fn atk_a2_foreign_mod_presents_is_not_silently_ignored() {
 // ============================================================================
 // ATK-A2-MOD: #[presents] ON a `mod` declaration itself is silently ignored.
 //
-// ScanVisitor does not override visit_item_mod. While items INSIDE a mod{}
-// block are reached by recursion (syn::visit::visit_item_mod descends), the
-// attribute ON the mod declaration itself is never routed through check_attrs.
+// ScanVisitor did not originally override visit_item_mod. While items INSIDE
+// a mod{} block were reached by recursion, the attribute ON the mod declaration
+// itself was never routed through check_attrs.
 //
-// STATUS: FAILING — visit_item_mod is not overridden for the mod's own attrs.
+// STATUS: FIXED — visit_item_mod override added to ScanVisitor.
 // ============================================================================
 
 #[test]
@@ -1372,11 +1373,11 @@ fn atk_a2_mod_declaration_presents_is_not_silently_ignored() {
 // ATK-A2-EXTERN-CRATE: #[presents] on an `extern crate` declaration is silently
 // ignored.
 //
-// ScanVisitor does not override visit_item_extern_crate. An `extern crate foo;`
-// annotated with #[presents] to mark an external dependency as a known risk site
-// is invisible to the scanner.
+// ScanVisitor did not originally override visit_item_extern_crate. An
+// `extern crate foo;` annotated with #[presents] to mark an external dependency
+// as a known risk site was invisible to the scanner.
 //
-// STATUS: FAILING before fix — visit_item_extern_crate not overridden.
+// STATUS: FIXED — visit_item_extern_crate override added to ScanVisitor.
 // ============================================================================
 
 #[test]
@@ -1626,7 +1627,7 @@ fn atk_a2_scan_nonexistent_path_returns_empty_report_silently() {
 // dropped — the attrs field on ImplItemMacro is never routed through
 // check_attrs.
 //
-// STATUS: FAILING until visit_impl_item_macro override is added.
+// STATUS: FIXED — visit_impl_item_macro override added at scan.rs:4245.
 // ============================================================================
 
 #[test]
@@ -1657,7 +1658,7 @@ fn atk_a2_impl_item_macro_presents_is_not_silently_ignored() {
 // dropped — the attrs field on TraitItemMacro is never routed through
 // check_attrs.
 //
-// STATUS: FAILING until visit_trait_item_macro override is added.
+// STATUS: FIXED — visit_trait_item_macro override added at scan.rs:4325.
 // ============================================================================
 
 #[test]
