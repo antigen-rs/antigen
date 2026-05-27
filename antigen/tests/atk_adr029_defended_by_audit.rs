@@ -1482,3 +1482,126 @@ fn atk_adr029_23_unstamped_defense_wildcard_covers_cross_crate_presentation() {
         assert to expect unaddressed.len()==1 and document the fix."
     );
 }
+
+// ========================================================================
+// ATK-G2-24: G2 immunity loop uses bare antigen_type match — cross-crate
+// immunity contributes spurious witness evidence to wrong antigen (2026-05-27,
+// adversarial)
+//
+// The G2 audit_category() immunity loop (audit.rs:3105-3116) filters by:
+//   imm.antigen_type != decl.type_name   (bare name only, no canonical_path)
+//
+// Contrast: the G2 defense check (audit.rs:3131-3133) already uses
+// (antigen_type, canonical_path) tuple matching (fixed in ATK-G2-22). The
+// immunity check was NOT updated in parallel — it has the same structural gap.
+//
+// ATTACK SCENARIO (spurious G2 mismatch — false positive):
+//   - Primary workspace declares antigen `Reactor` with category
+//     [FunctionalCorrectness]. canonical_path=None (intra-workspace, unstamped).
+//   - In an --include-deps scan, a dep crate also has `#[immune(Reactor,
+//     requires=<predicate>)]` — the dep's Reactor is a DIFFERENT failure class
+//     with the same bare name. After stamp_canonical_path, dep immunity carries
+//     canonical_path = Some("dep-crate@1.0.0").
+//   - G2 iterates all immunities. `imm.antigen_type == "Reactor"` fires for the
+//     dep's immunity. G2 sets has_any_immunity=true, has_substrate_witness=true.
+//   - Primary Reactor is FunctionalCorrectness. Substrate witness is the wrong
+//     type for FunctionalCorrectness. G2 fires
+//     AntigenCategoryClaimInconsistentWithPredicateType.
+//   - SPURIOUS: the dep's immunity belongs to a DIFFERENT Reactor. The primary
+//     Reactor has NO real immunity addressing it. G2 should have skipped
+//     immunities from other crates (or seen no immunities → skip entire antigen).
+//
+// ATTACK SCENARIO (false negative):
+//   - Primary Reactor (FunctionalCorrectness) has no local immunities. The dep's
+//     Reactor immunity sets has_any_immunity=true and has_substrate_witness=true.
+//   - G2 then sees "immunity exists but is wrong type" → fires mismatch hint.
+//   - The REAL gap (no evidence for primary Reactor at all) is not reported.
+//     Instead, a spurious mismatch hint fires based on the dep's evidence.
+//
+// Root cause: G2 immunity loop should check that either:
+//   (a) decl.canonical_path == imm.canonical_path (same crate), OR
+//   (b) both are None (intra-workspace scan, neither was stamped).
+//   Currently neither check exists.
+//
+// Fix direction: add `&& (imm.canonical_path.is_none() || imm.canonical_path ==
+// decl.canonical_path)` to the loop condition at audit.rs:3106.
+//
+// This test expects the CURRENT BROKEN BEHAVIOR (mismatch_count == 1, spurious
+// hint fires). When the fix lands, invert: expect mismatch_count == 0 and
+// no hint (primary Reactor has no evidence → skip per G2's no-immunity rule).
+// ========================================================================
+#[test]
+fn atk_g2_24_cross_crate_immunity_triggers_spurious_g2_hint_for_wrong_antigen() {
+    use antigen::audit::{audit_category, AuditHint};
+    use antigen::category::AntigenCategory;
+    use antigen::scan::{AntigenDeclaration, Immunity, ItemTarget, ScanReport};
+
+    let mut report = ScanReport::default();
+
+    // Primary workspace antigen: FunctionalCorrectness, unstamped (intra-workspace).
+    report.antigens.push(AntigenDeclaration {
+        type_name: "Reactor".to_string(),
+        name: "reactor".to_string(),
+        fingerprint: None,
+        canonical_path: None, // primary workspace — not stamped
+        file: std::path::PathBuf::from("src/antigens.rs"),
+        line: 1,
+        summary: Some("A functional-correctness failure class.".to_string()),
+        category: vec![AntigenCategory::FunctionalCorrectness],
+        family: None,
+    });
+
+    // Dep immunity: `#[immune(Reactor, requires=<predicate>)]` — a DIFFERENT Reactor
+    // from a dep crate, stamped after --include-deps scan.
+    report.immunities.push(Immunity {
+        antigen_type: "Reactor".to_string(), // same bare name as primary Reactor
+        witness: String::new(),              // substrate-witness path (requires= set)
+        file: std::path::PathBuf::from("dep/src/lib.rs"),
+        line: 20,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Fn("dep_immune_site".to_string()),
+        canonical_path: Some("dep-crate@1.0.0".to_string()), // stamped by --include-deps
+        requires_predicate: Some(r#"{"leaf":"fresh_within_days","value":90}"#.to_string()),
+        structural_fingerprint: String::new(),
+    });
+
+    let category_report = audit_category(&report);
+
+    // CURRENT BROKEN BEHAVIOR: mismatch_count == 1, spurious G2 hint fires.
+    //
+    // G2 sees the dep's immunity (canonical_path = dep-crate@1.0.0) with
+    // requires_predicate → sets has_any_immunity=true, has_substrate_witness=true.
+    // Primary Reactor is FunctionalCorrectness → substrate witness is wrong type
+    // → AntigenCategoryClaimInconsistentWithPredicateType fires.
+    //
+    // This is SPURIOUS: the dep's immunity belongs to a completely different Reactor.
+    // The primary Reactor has NO real immunity addressing it. G2 should have seen
+    // zero immunities (no canonical_path match) → has_any_immunity=false → skip
+    // per the "No immunities/defenses addressing this antigen" early-continue.
+    //
+    // When the fix lands (canonical_path guard in immunity loop):
+    //   assert_eq!(category_report.mismatch_count, 0, "no spurious mismatch after fix");
+    //   assert!(!has_g2_hint, "no spurious hint after fix");
+    assert_eq!(
+        category_report.mismatch_count,
+        1,
+        "ATK-G2-24 (CURRENT BROKEN BEHAVIOR): G2 immunity loop uses bare antigen_type \
+         match — the dep's Reactor immunity (canonical_path=Some('dep-crate@1.0.0')) \
+         fires has_substrate_witness=true for the primary workspace's Reactor \
+         (FunctionalCorrectness). A spurious G2 mismatch hint fires. When this assertion \
+         fails (mismatch_count==0): the immunity loop was fixed to check canonical_path. \
+         Invert: expect 0 and no hint. Got: {}",
+        category_report.mismatch_count
+    );
+    let has_g2_hint = category_report.audits.iter().any(|a| {
+        a.hints
+            .contains(&AuditHint::AntigenCategoryClaimInconsistentWithPredicateType)
+    });
+    assert!(
+        has_g2_hint,
+        "ATK-G2-24 (CURRENT BROKEN BEHAVIOR): the spurious G2 hint must fire when the \
+         dep's immunity incorrectly contributes substrate-witness evidence to the primary \
+         workspace's Reactor. When this assertion fails (no hint): fix landed. \
+         Invert: assert!(!has_g2_hint)."
+    );
+}
