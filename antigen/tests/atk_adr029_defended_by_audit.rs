@@ -1025,3 +1025,73 @@ fn atk_adr029_19_malformed_requires_predicate_json_yields_substrate_gap() {
         v.verdict
     );
 }
+
+// ATK-ADR029-20: empty-string proof field yields FormalProof tier (overclaim risk)
+//
+// `site_proof_tier` is computed as `p.proof.as_ref().map(|_| WitnessTier::FormalProof)`
+// at audit.rs:1379. The inner value is IGNORED by the map closure -- only the
+// presence of Some(_) matters. This means proof=Some("") (empty string) is graded
+// at the same FormalProof tier as proof=Some("NonPanickingProof::<T>::verified").
+//
+// A developer who accidentally writes `#[presents(X, proof="")]` -- perhaps as a
+// placeholder while developing -- gets FormalProof verdict on the strongest tier
+// possible for nothing. The phantom-proof design intent is: "the mere presence of
+// a well-formed phantom-type constructor expression is the proof." But an empty
+// string is NOT a valid phantom-type expression; it's a placeholder.
+//
+// CURRENT BEHAVIOR (documented here as regression anchor): proof="" yields FormalProof.
+// Whether this is correct by design (the scanner should gate empty-string proof at
+// macro-expand time) or a gap (the audit should validate the expression is non-empty)
+// is a design question. This test locks the current behavior so that if the
+// empty-string case is ever gated, the assertion is inverted.
+//
+// The scanner's macro-expand-time parse may already reject empty proof= -- if so,
+// this state is unreachable from normal usage but can still arise via hand-built
+// ScanReports or future external consumers.
+#[test]
+fn atk_adr029_20_empty_string_proof_overclaims_formal_proof_tier() {
+    let mut report = ScanReport::default();
+
+    report.presentations.push(Presentation {
+        antigen_type: "PhantomAntigen".to_string(),
+        file: PathBuf::from("src/lib.rs"),
+        line: 99,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Unknown { line: 99 },
+        match_kind: MatchKind::ExplicitMarker,
+        canonical_path: None,
+        inherited_from: None,
+        structural_fingerprint: String::new(),
+        requires_predicate: None,
+        // Empty-string proof: should this be FormalProof? The map(|_| FormalProof)
+        // closure ignores the inner value entirely.
+        proof: Some(String::new()),
+    });
+
+    let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap();
+    let audit_result = audit(&report, workspace_root);
+
+    assert_eq!(
+        audit_result.presentation_verdicts.len(),
+        1,
+        "ATK-ADR029-20: exactly one verdict"
+    );
+    let v = &audit_result.presentation_verdicts[0];
+
+    // CURRENT: empty-string proof yields FormalProof (inner value ignored by map closure).
+    // POTENTIAL ALTERNATIVE: a future guard could treat proof=Some("") as Undefended
+    // (no actual phantom expression) or SubstrateGap (intent present, expression missing).
+    // The assertion here documents CURRENT behavior. Invert if the empty-string
+    // case is ever gated at the audit or scanner level.
+    assert!(
+        matches!(v.verdict, ImmuneVerdict::Defended { tier: WitnessTier::FormalProof }),
+        "ATK-ADR029-20 (OVERCLAIM): proof=Some('') yields Defended at FormalProof. \
+        The map(|_| FormalProof) closure ignores the inner value; an empty-string proof \
+        expression is indistinguishable from a real phantom constructor. \
+        Current behavior: FormalProof. Expected after empty-string gate: Undefended or \
+        SubstrateGap. Got: {:?}",
+        v.verdict
+    );
+}
