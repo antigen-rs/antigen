@@ -553,16 +553,16 @@ fn atk_attest_gc_silently_skips_corrupt_sidecar_json() {
 
     assert_eq!(
         code, 0,
-        "gc exits 0 for a corrupt-only workspace: stderr={stderr}"
+        "gc exits 0 for a corrupt-only workspace (warn-and-continue): stderr={stderr}"
     );
-    // CURRENT BEHAVIOR: gc silently skips the corrupt file, no diagnostic.
-    // When fixed (gc warns like list does), invert this assertion:
-    //   assert!(stderr.contains("not valid") || stderr.contains("corrupt"))
+    // FIXED (findings/oracle-corrupt-json-silent-skip, gc-side): gc now WARNS
+    // about a corrupt sidecar (naming it + "not valid Ratification JSON") rather
+    // than silently skipping it — a corrupt sidecar can't be evaluated for gc and
+    // must be surfaced, not vanish. Mirrors the attest list / oracle list model.
     assert!(
-        !stderr.to_lowercase().contains("not valid ratification")
-            && !stderr.to_lowercase().contains("corrupt-gc.ratification"),
-        "ATK-attest-corrupt-sidecar-gc: when this STARTS FAILING, gc has been fixed \
-         to warn about corrupt sidecars -- update to assert the diagnostic IS present. \
+        stderr.contains("not valid Ratification JSON")
+            && stderr.contains("corrupt-gc.ratification"),
+        "gc must warn about the corrupt sidecar (naming it), not silently skip it. \
          Current stderr:\n{stderr}"
     );
 }
