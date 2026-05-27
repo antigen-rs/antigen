@@ -728,4 +728,30 @@ mod tests {
              Got error: {err_tab}"
         );
     }
+
+    #[test]
+    fn rejects_empty_all_of() {
+        // ATK-FP-EMPTY-ALL-OF: all_of([]) would vacuously match EVERY item
+        // (empty iterator + .all(...) = true), flooding synthesis with false
+        // positives for every struct/fn/impl in the workspace.
+        let err = parse("all_of([])").unwrap_err().to_string();
+        assert!(
+            err.contains("at least one") || err.contains("empty"),
+            "ATK-FP-EMPTY-ALL-OF: all_of([]) must be rejected — vacuously \
+             matches every item. Got: {err}"
+        );
+    }
+
+    #[test]
+    fn rejects_empty_any_of() {
+        // ATK-FP-EMPTY-ANY-OF: any_of([]) would vacuously fail for EVERY item
+        // (empty iterator + .any(...) = false), producing a fingerprint that
+        // never fires — a silent always-false matcher with no diagnostic.
+        let err = parse("any_of([])").unwrap_err().to_string();
+        assert!(
+            err.contains("at least one") || err.contains("empty"),
+            "ATK-FP-EMPTY-ANY-OF: any_of([]) must be rejected — vacuously \
+             fails for every item, producing a dead fingerprint. Got: {err}"
+        );
+    }
 }
