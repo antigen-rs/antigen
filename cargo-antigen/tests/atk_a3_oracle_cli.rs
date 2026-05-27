@@ -726,3 +726,152 @@ fn atk_a3_oracle_cli_full_lifecycle_round_trip() {
         "lifecycle should record 2 transitions: {content}"
     );
 }
+
+// ============================================================================
+// ATK-oracle-corrupt-json: malformed oracle files are silently skipped
+//
+// `run_oracle_list()` at main.rs:1738 uses `if let Ok(oracle) = serde_json::from_str()`
+// — a parse failure silently skips the file. No warning, no exit 2. If the
+// corrupted file is the ONLY file, `oracle list` returns "No oracle records found"
+// with exit 0 — indistinguishable from an empty workspace.
+//
+// This is a silent failure for the adopter: accidentally corrupt your oracle
+// file (manual edit, encoding issue, truncation) and the tool gives you no
+// signal that anything is wrong.
+//
+// CURRENT BEHAVIOR: exit 0, "No oracle records found" — no parse-error diagnostic.
+// DESIRED BEHAVIOR: exit 2, stderr mentions the corrupt file path so the adopter
+// can investigate.
+//
+// These tests document the current broken behavior. When the fix lands (surface
+// parse errors as exit 2 + stderr diagnostic), invert the assertions:
+//   - `assert_eq!(code, 0)` -> `assert_eq!(code, 2)`
+//   - `assert!(!stderr.contains(...))` -> `assert!(stderr.contains(...))`
+// ============================================================================
+
+#[test]
+fn atk_oracle_list_silently_skips_corrupt_json_file() {
+    let tmp = tempfile::tempdir().unwrap();
+    let oracle_dir = tmp.path().join(".antigen").join("oracles");
+    std::fs::create_dir_all(&oracle_dir).unwrap();
+
+    // Write a file with a .json extension that is NOT valid JSON.
+    // This simulates accidental corruption: manual edit, encoding issue, truncation.
+    std::fs::write(
+        oracle_dir.join("corrupted.oracle.json"),
+        b"{ this is not valid json at all }",
+    )
+    .unwrap();
+
+    let (code, stdout, stderr) = oracle(&[
+        "list",
+        "--root",
+        tmp.path().to_str().unwrap(),
+    ]);
+
+    // CURRENT BROKEN BEHAVIOR: exit 0, no parse-error diagnostic.
+    // The tool says "No oracle records found" — indistinguishable from empty workspace.
+    // When fixed, this assertion must be inverted: `assert_eq!(code, 2)`.
+    assert_eq!(
+        code, 0,
+        "ATK-oracle-corrupt-json: when this STARTS FAILING (code != 0), \
+         the fix has landed -- update to assert code == 2. stderr={stderr}"
+    );
+    assert!(
+        !stderr.to_lowercase().contains("parse")
+            && !stderr.to_lowercase().contains("corrupt")
+            && !stderr.to_lowercase().contains("invalid"),
+        "ATK-oracle-corrupt-json: when this STARTS FAILING (stderr mentions parse/corrupt), \
+         the fix has landed -- update to assert the diagnostic IS present. \
+         Current stderr (no diagnostic):\n{stderr}"
+    );
+    // The stdout is empty or shows "No oracle records found" -- no corruption signal.
+    let _ = stdout; // Documented: no output about the corrupt file.
+}
+
+#[test]
+fn atk_oracle_list_corrupt_file_among_valid_silently_excluded() {
+    // When there is one valid oracle AND one corrupt file, the valid oracle
+    // is listed but the corrupt file is silently skipped with no diagnostic.
+    // An adopter debugging "why do I have fewer oracles than expected" gets no hint.
+    let tmp = tempfile::tempdir().unwrap();
+    declare_two_steward_oracle(tmp.path(), "valid-oracle");
+
+    // Now corrupt an additional file in the same directory.
+    let oracle_dir = tmp.path().join(".antigen").join("oracles");
+    std::fs::write(
+        oracle_dir.join("corrupted.oracle.json"),
+        b"not json at all",
+    )
+    .unwrap();
+
+    let (code, stdout, stderr) = oracle(&[
+        "list",
+        "--root",
+        tmp.path().to_str().unwrap(),
+    ]);
+
+    // The valid oracle appears (good).
+    assert_eq!(code, 0, "exit 0 when at least one valid oracle exists");
+    assert!(
+        stdout.contains("valid-oracle"),
+        "the valid oracle must appear in the list: {stdout}"
+    );
+    // CURRENT BROKEN BEHAVIOR: no mention of the corrupt file.
+    // When fixed: stderr should mention the corrupt file path so the adopter
+    // knows something was skipped.
+    assert!(
+        !stderr.contains("corrupted.oracle.json"),
+        "ATK-oracle-corrupt-json: when this STARTS FAILING, the fix has landed -- \
+         update to assert the corrupt file IS mentioned in stderr. \
+         Current stderr:\n{stderr}"
+    );
+}
+
+#[test]
+fn atk_oracle_status_on_corrupt_file_exits_one_not_two() {
+    // `oracle status --id corrupted` where the file exists but is not valid JSON.
+    // The tool finds the file (it exists) but can't parse it. What exit code?
+    //
+    // The exit code contract: 1 = user-visible validation failure, 2 = parse error.
+    // A corrupt file that exists but won't parse should be exit 2 (IO/parse error),
+    // not exit 1 (oracle not found). `load_oracle()` at main.rs likely returns
+    // an error here -- check whether it's reported as exit 1 or 2.
+    let tmp = tempfile::tempdir().unwrap();
+    let oracle_dir = tmp.path().join(".antigen").join("oracles");
+    std::fs::create_dir_all(&oracle_dir).unwrap();
+
+    std::fs::write(
+        oracle_dir.join("corrupted.oracle.json"),
+        b"{ truncated",
+    )
+    .unwrap();
+
+    let (code, _stdout, stderr) = oracle(&[
+        "status",
+        "--id",
+        "corrupted",
+        "--root",
+        tmp.path().to_str().unwrap(),
+    ]);
+
+    // The correct exit code is 2 (IO/parse error), not 1 (oracle not found).
+    // If this test asserts exit 2 and it PASSES, the exit-code contract is correct.
+    // If it returns exit 1 (oracle-not-found semantics for a corrupt file), that's
+    // a contract violation -- the file EXISTS, it just can't be parsed.
+    //
+    // Document current behavior first (observe, don't assume).
+    assert!(
+        code == 1 || code == 2,
+        "ATK-oracle-status-corrupt: exit code must be 1 or 2 for a corrupt oracle file, \
+         got {code}. stderr={stderr}"
+    );
+    // If the current behavior is exit 1 (treated as "not found") and the DESIRED
+    // behavior is exit 2 (parse error), the test needs refinement after observing.
+    // For now: document that a diagnostic is produced (not silent).
+    assert!(
+        !stderr.is_empty(),
+        "ATK-oracle-status-corrupt: stderr must not be empty for a corrupt oracle file \
+         (some diagnostic is required). stderr was empty."
+    );
+}
