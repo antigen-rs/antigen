@@ -306,14 +306,27 @@ pub fn immune(args: TokenStream, input: TokenStream) -> TokenStream {
         return e.to_compile_error().into();
     }
 
+    // ADR-029 §Mechanics: #[immune] is deprecated; emit a compiler warning pointing
+    // toward the new #[defended_by] (code-tier) / #[presents(requires=...)]
+    // (substrate-tier) model so adopters receive a migration nudge at compile time.
+    let deprecated_note = "use #[defended_by] on tests (code-tier) or #[presents(requires=...)] \
+         for substrate evidence — ADR-029";
+
     args.requires_json().map_or_else(
-        || quote! { #input }.into(),
+        || {
+            quote! {
+                #[deprecated(note = #deprecated_note)]
+                #input
+            }
+            .into()
+        },
         |json| {
             // Emit the predicate as a doc-attribute marker so `cargo antigen scan`
             // can discover it via source walking without requiring a binary link.
             // Format: `antigen:requires:v1:<json>` (ADR-019 §P3b).
             let marker = format!(" antigen:requires:v1:{json}");
             quote! {
+                #[deprecated(note = #deprecated_note)]
                 #[doc = #marker]
                 #input
             }
