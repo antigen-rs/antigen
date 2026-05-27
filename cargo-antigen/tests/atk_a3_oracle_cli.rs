@@ -763,11 +763,7 @@ fn atk_oracle_list_silently_skips_corrupt_json_file() {
     )
     .unwrap();
 
-    let (code, stdout, stderr) = oracle(&[
-        "list",
-        "--root",
-        tmp.path().to_str().unwrap(),
-    ]);
+    let (code, stdout, stderr) = oracle(&["list", "--root", tmp.path().to_str().unwrap()]);
 
     // CURRENT BROKEN BEHAVIOR: exit 0, no parse-error diagnostic.
     // The tool says "No oracle records found" — indistinguishable from empty workspace.
@@ -799,17 +795,9 @@ fn atk_oracle_list_corrupt_file_among_valid_silently_excluded() {
 
     // Now corrupt an additional file in the same directory.
     let oracle_dir = tmp.path().join(".antigen").join("oracles");
-    std::fs::write(
-        oracle_dir.join("corrupted.oracle.json"),
-        b"not json at all",
-    )
-    .unwrap();
+    std::fs::write(oracle_dir.join("corrupted.oracle.json"), b"not json at all").unwrap();
 
-    let (code, stdout, stderr) = oracle(&[
-        "list",
-        "--root",
-        tmp.path().to_str().unwrap(),
-    ]);
+    let (code, stdout, stderr) = oracle(&["list", "--root", tmp.path().to_str().unwrap()]);
 
     // The valid oracle appears (good).
     assert_eq!(code, 0, "exit 0 when at least one valid oracle exists");
@@ -841,11 +829,7 @@ fn atk_oracle_status_on_corrupt_file_exits_one_not_two() {
     let oracle_dir = tmp.path().join(".antigen").join("oracles");
     std::fs::create_dir_all(&oracle_dir).unwrap();
 
-    std::fs::write(
-        oracle_dir.join("corrupted.oracle.json"),
-        b"{ truncated",
-    )
-    .unwrap();
+    std::fs::write(oracle_dir.join("corrupted.oracle.json"), b"{ truncated").unwrap();
 
     let (code, _stdout, stderr) = oracle(&[
         "status",

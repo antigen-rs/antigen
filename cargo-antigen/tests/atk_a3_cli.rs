@@ -512,9 +512,14 @@ fn atk_attest_list_warns_on_corrupt_sidecar_json() {
 
     let (code, stderr) = attest(&["list", "--root", tmp.path().to_str().unwrap()]);
 
-    assert_eq!(code, 0, "attest list must exit 0 even with corrupt sidecars (warning, not error): stderr={stderr}");
+    assert_eq!(
+        code, 0,
+        "attest list must exit 0 even with corrupt sidecars (warning, not error): stderr={stderr}"
+    );
     assert!(
-        stderr.to_lowercase().contains("not valid ratification json")
+        stderr
+            .to_lowercase()
+            .contains("not valid ratification json")
             || stderr.to_lowercase().contains("invalid"),
         "ATK-attest-corrupt-sidecar: attest list must warn about the corrupt sidecar file. \
          If this fails, the diagnostic was removed and the tool silently skips. \
@@ -546,7 +551,10 @@ fn atk_attest_gc_silently_skips_corrupt_sidecar_json() {
 
     let (code, stderr) = attest(&["gc", "--root", tmp.path().to_str().unwrap()]);
 
-    assert_eq!(code, 0, "gc exits 0 for a corrupt-only workspace: stderr={stderr}");
+    assert_eq!(
+        code, 0,
+        "gc exits 0 for a corrupt-only workspace: stderr={stderr}"
+    );
     // CURRENT BEHAVIOR: gc silently skips the corrupt file, no diagnostic.
     // When fixed (gc warns like list does), invert this assertion:
     //   assert!(stderr.contains("not valid") || stderr.contains("corrupt"))
