@@ -474,3 +474,87 @@ fn atk_a3_cli_tolerate_list_accepts_root_flag() {
     let (code, _stderr) = tolerate(&["list", "--root", "."]);
     assert_eq!(code, 0, "`tolerate list --root .` must exit 0");
 }
+
+// ============================================================================
+// ATK-attest-corrupt-sidecar: `attest list` warns about malformed sidecar
+// JSON files but continues listing valid ones.
+//
+// run_attest_list() at main.rs:3636-3644 uses a match+continue pattern that
+// emits "warning: X is not valid Ratification JSON: Y" for each corrupt file.
+// This IS a diagnostic (good). The test below pins this behavior as a
+// regression anchor -- if the warning ever disappears, this test fails.
+//
+// Contrast with oracle list (main.rs:1738) which uses `if let Ok` and silently
+// skips without ANY diagnostic (the separate findings/oracle-corrupt-json-silent-skip
+// block covers that gap).
+//
+// `attest gc` at main.rs:3712 uses `if let Ok` in its per-file parse and
+// therefore DOES silently skip corrupt sidecars (gc's gc loop is different
+// from the list loop). The gc test below pins that behavior as a
+// documentation test.
+// ============================================================================
+
+#[test]
+fn atk_attest_list_warns_on_corrupt_sidecar_json() {
+    // Regression anchor: attest list DOES warn about corrupt sidecar files.
+    // The warning "is not valid Ratification JSON" should appear in stderr.
+    // If this test FAILS (warning disappears), the diagnostic has been lost --
+    // the tool would be silently skipping corrupt sidecars (the oracle-list gap).
+    let tmp = tempfile::tempdir().unwrap();
+    let attest_dir = tmp.path().join("src").join("lib.rs.attest");
+    std::fs::create_dir_all(&attest_dir).unwrap();
+
+    std::fs::write(
+        attest_dir.join("corrupt.ratification.json"),
+        b"{ not valid json at all ",
+    )
+    .unwrap();
+
+    let (code, stderr) = attest(&["list", "--root", tmp.path().to_str().unwrap()]);
+
+    assert_eq!(code, 0, "attest list must exit 0 even with corrupt sidecars (warning, not error): stderr={stderr}");
+    assert!(
+        stderr.to_lowercase().contains("not valid ratification json")
+            || stderr.to_lowercase().contains("invalid"),
+        "ATK-attest-corrupt-sidecar: attest list must warn about the corrupt sidecar file. \
+         If this fails, the diagnostic was removed and the tool silently skips. \
+         Current stderr:\n{stderr}"
+    );
+}
+
+#[test]
+fn atk_attest_gc_silently_skips_corrupt_sidecar_json() {
+    // attest gc uses `if let Ok(rat) = serde_json::from_str(...)` at main.rs:3712
+    // (inside the per-sidecar gc loop) which silently skips files that fail to parse.
+    // Unlike attest list, gc does NOT warn about the corrupt file.
+    //
+    // An adopter running `attest gc` to clean up their sidecar directory gets no
+    // signal that a corrupt sidecar was encountered. The malformed file is neither
+    // flagged as an orphan nor warned about.
+    //
+    // This documents the CURRENT BEHAVIOR as a gap relative to attest list's behavior.
+    // If gc is fixed to also warn, invert the assertion below.
+    let tmp = tempfile::tempdir().unwrap();
+    let attest_dir = tmp.path().join("src").join("lib.rs.attest");
+    std::fs::create_dir_all(&attest_dir).unwrap();
+
+    std::fs::write(
+        attest_dir.join("corrupt-gc.ratification.json"),
+        b"{ truncated",
+    )
+    .unwrap();
+
+    let (code, stderr) = attest(&["gc", "--root", tmp.path().to_str().unwrap()]);
+
+    assert_eq!(code, 0, "gc exits 0 for a corrupt-only workspace: stderr={stderr}");
+    // CURRENT BEHAVIOR: gc silently skips the corrupt file, no diagnostic.
+    // When fixed (gc warns like list does), invert this assertion:
+    //   assert!(stderr.contains("not valid") || stderr.contains("corrupt"))
+    assert!(
+        !stderr.to_lowercase().contains("not valid ratification")
+            && !stderr.to_lowercase().contains("corrupt-gc.ratification"),
+        "ATK-attest-corrupt-sidecar-gc: when this STARTS FAILING, gc has been fixed \
+         to warn about corrupt sidecars -- update to assert the diagnostic IS present. \
+         Current stderr:\n{stderr}"
+    );
+}
