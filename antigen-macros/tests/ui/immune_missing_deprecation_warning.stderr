@@ -1,11 +1,12 @@
-error: use of deprecated struct `DefendedSite`: use #[defended_by] on tests (code-tier) or #[presents(requires=...)] for substrate evidence — ADR-029
-  --> tests/ui/immune_missing_deprecation_warning.rs:26:12
+error: use of deprecated unit struct `_::__AntigenImmuneDeprecated`: use #[defended_by] on tests (code-tier) or #[presents(requires=...)] for substrate evidence — ADR-029
+  --> tests/ui/immune_missing_deprecation_warning.rs:29:1
    |
-26 |     let _: DefendedSite;
-   |            ^^^^^^^^^^^^
+29 | #[immune(SomeAntigen, witness = some_witness_fn)]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    |
 note: the lint level is defined here
-  --> tests/ui/immune_missing_deprecation_warning.rs:12:9
+  --> tests/ui/immune_missing_deprecation_warning.rs:20:9
    |
-12 | #![deny(deprecated)]
+20 | #![deny(deprecated)]
    |         ^^^^^^^^^^
+   = note: this error originates in the attribute macro `immune` (in Nightly builds, run with -Z macro-backtrace for more info)

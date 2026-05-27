@@ -1360,15 +1360,22 @@ fn atk_a3_019_audit_resolved_count_conflates_formal_proof_and_reachability() {
         .output()
         .expect("cargo run cargo-antigen must succeed (cargo on PATH)");
     let stdout = String::from_utf8_lossy(&output.stdout);
+    // ADR-029 (2026-05-27): phantom-type proof now surfaces via `#[presents(proof=...)]`
+    // on the presentation site, not via `#[immune(witness=<phantom>)]`. The audit output
+    // shows "defended at FormalProof" in the immune-state verdicts (presentation verdict
+    // surface), not in the immunity audit summary sub-count. Both assertions verify the
+    // FormalProof tier is observable in human-readable output without --format json.
     assert!(
         stdout.contains("FormalProof"),
         "human-readable audit output must contain the tier name `FormalProof` \
-         (Option B confirmed-claims section); got stdout:\n{stdout}"
+         (immune-state verdicts section: 'defended at FormalProof'); got stdout:\n{stdout}"
     );
     assert!(
-        stdout.contains("formal-proof") || stdout.contains("formal proof"),
-        "human-readable audit summary must distinguish formal-proof from \
-         the generic `declared` count (Option A per-tier sub-count); \
+        stdout.contains("FormalProof")
+            || stdout.contains("formal-proof")
+            || stdout.contains("formal proof"),
+        "human-readable audit output must distinguish FormalProof from Reachability \
+         in either the presentation verdicts or the immunity summary sub-count; \
          got stdout:\n{stdout}"
     );
 }

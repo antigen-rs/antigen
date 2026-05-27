@@ -41,7 +41,8 @@
 
 #![allow(dead_code, unused_variables)]
 
-use antigen::{antigen, immune, presents};
+#[allow(unused_imports)]
+use antigen::{antigen, defended_by, presents};
 
 // ============================================================================
 // FunctionalCorrectness: a verb that can be wrong
@@ -81,18 +82,15 @@ impl DataCleaner {
 
 /// A corrected cleaner with a NaN guard.
 ///
-/// DEFENDED: `clean_values_safe()` is covered by the property test
-/// `test_clean_values_no_nan` which exercises a range of float inputs and
-/// asserts the output contains no NaN. The witness resolves the claim.
+/// DEFENDED: `#[presents(NanInCleanedOutput)]` marks the site as presenting the
+/// failure-class. The test `test_clean_values_no_nan` carries `#[defended_by]`
+/// to declare its intent toward `NanInCleanedOutput` — audit observes the circuit.
 pub struct DataCleanerSafe {
     /// Raw float values to clean; negatives are filtered before sqrt.
     pub data: Vec<f64>,
 }
 
-#[immune(
-    NanInCleanedOutput,
-    witness = test_clean_values_no_nan
-)]
+#[presents(NanInCleanedOutput)]
 impl DataCleanerSafe {
     /// Clean values with NaN guard — defended path.
     pub fn clean_values_safe(&self) -> Vec<f64> {
@@ -105,6 +103,7 @@ impl DataCleanerSafe {
 }
 
 #[test]
+#[defended_by(NanInCleanedOutput)]
 fn test_clean_values_no_nan() {
     let cleaner = DataCleanerSafe {
         data: vec![-1.0, 0.0, 4.0, 9.0, 16.0],
@@ -158,7 +157,11 @@ pub fn gate_release_unverified(version: &str) -> Result<(), String> {
 /// `gate_release` *computes* correctly, but whether the *sign-off record*
 /// (a substrate artifact) is present and current. No test can run the
 /// security team's sign-off; only `cargo antigen audit` can check the sidecar.
-#[immune(
+///
+/// ADR-029: substrate-witness evidence moves to `#[presents(X, requires=...)]`.
+/// The `requires=` predicate is evaluated by `cargo antigen audit` against the
+/// `.attest/` sidecar; unsigned = `DisciplinePredicateFailed`.
+#[presents(
     UnsignedSecurityPolicy,
     requires = all_of([
         ratified_doc(path = "docs/security-policy.md", min_version = "1.0"),

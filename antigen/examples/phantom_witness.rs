@@ -29,7 +29,7 @@
 
 #![allow(dead_code)]
 
-use antigen::{antigen, immune, presents};
+use antigen::{antigen, presents};
 use std::marker::PhantomData;
 
 #[antigen(
@@ -72,12 +72,13 @@ impl<T> NonPanickingProof<T> {
 /// The type whose `Drop` impl is provably non-panicking via the phantom token.
 pub struct PhantomVerifiedDropImpl;
 
-#[presents(DropPanicClass)]
-#[immune(
+/// ADR-029: phantom-type proof goes in `proof=` on `#[presents]`.
+/// The audit recognizes turbofish-shaped `proof=` expressions and classifies
+/// them at `WitnessTier::FormalProof`. Immunity is observed by audit, not
+/// declared by `#[immune]`.
+#[presents(
     DropPanicClass,
-    witness = NonPanickingProof::<PhantomVerifiedDropImpl>::verified,
-    rationale = "The phantom-type token is constructible only via the sealed `verified` \
-                 constructor; if this code compiles, the Drop impl is provably non-panicking."
+    proof = NonPanickingProof::<PhantomVerifiedDropImpl>::verified
 )]
 impl Drop for PhantomVerifiedDropImpl {
     fn drop(&mut self) {

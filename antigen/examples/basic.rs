@@ -16,15 +16,19 @@
 //! For `basic.rs` specifically:
 //! - 1 antigen declaration (`PanickingInDrop`) — declared in this file
 //! - 1 explicit presentation (`#[presents(PanickingInDrop)]` on the `impl Drop` for `VulnerableType`)
-//! - 1 immunity claim (`#[immune(PanickingInDrop, ...)]` on the `impl Drop` for `SafeType`)
+//! - 1 defended presentation (`#[presents(PanickingInDrop)]` + `#[defended_by(PanickingInDrop)]` on the test)
 //! - 1 unaddressed presentation — the deliberate `#[presents]` on `VulnerableType` with
-//!   no matching `#[immune]` on the same item
+//!   no witness
+//!
+//! ADR-029: immunity is observed by audit (via `#[defended_by]` on tests), not declared
+//! by `#[immune]` on the code site. `#[presents]` marks the vulnerability; `#[defended_by]`
+//! on the test declares the test's intent toward that failure-class.
 //!
 //! Other example files contribute their own declarations to the scan total.
 //! See the other files in this directory for `descended_from`, `antigen_tolerance`,
 //! and phantom-type witness examples.
 
-use antigen::{antigen, immune, presents};
+use antigen::{antigen, defended_by, presents};
 
 /// Drop impls must not panic. Panic during Drop while another panic is
 /// unwinding causes process abort.
@@ -75,11 +79,9 @@ pub struct SafeType {
     pub data: Option<String>,
 }
 
-#[immune(
-    PanickingInDrop,
-    witness = safe_type_drop_no_panic_test,
-    rationale = "SafeType::drop uses non-panicking accessors only; verified by test."
-)]
+/// ADR-029: mark the site with `#[presents]`; the test declares its intent with
+/// `#[defended_by]`. Immunity is observed by audit — not declared at the code site.
+#[presents(PanickingInDrop)]
 impl Drop for SafeType {
     fn drop(&mut self) {
         // GOOD: no unwrap, no expect, no panic.
@@ -90,7 +92,10 @@ impl Drop for SafeType {
 }
 
 /// Witness: proves `SafeType::drop` does not panic on any state.
+/// `#[defended_by]` declares this test's intent toward `PanickingInDrop`;
+/// audit observes whether the circuit is wired (this test covers the site).
 #[allow(dead_code)]
+#[defended_by(PanickingInDrop)]
 fn safe_type_drop_no_panic_test() {
     let s = SafeType { data: None };
     drop(s);
@@ -102,7 +107,7 @@ fn safe_type_drop_no_panic_test() {
 }
 
 fn main() {
-    println!("antigen example: see source for #[antigen], #[presents], #[immune] usage.");
+    println!("antigen example: see source for #[antigen], #[presents], #[defended_by] usage.");
     println!("Run `cargo run --bin cargo-antigen -- antigen scan` to see them detected.");
 
     // Exercise both types so the example is functional.
