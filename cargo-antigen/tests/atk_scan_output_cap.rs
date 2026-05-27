@@ -225,37 +225,24 @@ pub struct ChildClass;
         "ATK-orphaned-lineage: edge parent must be ParentClass"
     );
 
-    // (4): CURRENT BEHAVIOR — no orphan diagnostic in the output (delivery arm gap).
-    // The scan computed orphaned_lineage_edges() internally but never rendered it.
-    // A "fixed" implementation would add an `orphaned_lineage_edges` field to the
-    // JSON output and a warning to the human output.
-    let has_orphan_field = doc["report"].get("orphaned_lineage_edges").is_some();
-    let has_orphan_in_failures = doc["report"]["parse_failures"]
-        .as_array()
-        .map(|failures| {
-            failures
-                .iter()
-                .any(|f| f.to_string().to_lowercase().contains("orphan"))
-        })
-        .unwrap_or(false);
-
-    // DOCUMENTS THE GAP: both must be false (no orphan diagnostic surfaced).
+    // (4): DELIVERY ARM FIXED (bf60e5d+, pathmaker). The scan JSON now DELIVERS
+    // the computed orphaned_lineage_edges() verdict as a top-level field
+    // (sibling to `unaddressed` — the same computed-then-attached pattern; the
+    // query is derived state, not stored on ScanReport). An author running
+    // `cargo antigen scan --format json` now sees the broken lineage.
+    let orphan_field = doc
+        .get("orphaned_lineage_edges")
+        .and_then(|v| v.as_array())
+        .expect("scan JSON must DELIVER orphaned_lineage_edges (top-level array)");
     assert!(
-        !has_orphan_field,
-        "ATK-orphaned-lineage (gap confirmed absent): scan JSON already has an \
-         orphaned_lineage_edges field — the delivery arm has been fixed! \
-         Update this test to assert the field is PRESENT and correct."
+        orphan_field
+            .iter()
+            .any(|e| e["child"].as_str() == Some("ChildClass")
+                && e["parent"].as_str() == Some("ParentClass")),
+        "ATK-orphaned-lineage: orphaned_lineage_edges must contain the \
+         ChildClass⟶ParentClass edge (parent not declared); got {orphan_field:?}"
     );
-    assert!(
-        !has_orphan_in_failures,
-        "ATK-orphaned-lineage (gap confirmed absent): orphan diagnostic is already \
-         in parse_failures — delivery arm fixed! Update this test."
-    );
-
-    // The gap: the edge is recorded but the orphan status is invisible to the user.
-    // An author who accidentally orphaned their lineage chain gets no warning.
-    let _ = child_edge; // lineage edge recorded...
-    // ...but no orphan_lineage_edges field exists. Silent failure documented.
+    let _ = child_edge; // edge recorded in lineage_edges AND surfaced as orphaned.
 }
 
 #[test]
@@ -287,17 +274,16 @@ pub struct ChildClass;
         .expect("run scan");
     let stdout = String::from_utf8_lossy(&out.stdout);
 
-    // DOCUMENTS THE GAP: human output contains no mention of orphan, warning,
-    // or NonExistentParent — the user gets no signal that their lineage is broken.
-    let mentions_orphan = stdout.to_lowercase().contains("orphan")
-        || stdout.contains("NonExistentParent")
-        || stdout.to_lowercase().contains("missing parent")
-        || stdout.to_lowercase().contains("lineage warning");
+    // DELIVERY ARM FIXED (pathmaker): the human output now WARNS about the
+    // orphaned lineage edge and names the missing parent, so an author running
+    // `cargo antigen scan` (no --format json) sees their broken lineage.
+    let mentions_orphan =
+        stdout.to_lowercase().contains("orphan") && stdout.contains("NonExistentParent");
 
     assert!(
-        !mentions_orphan,
-        "ATK-orphaned-lineage-human: human output now mentions the orphan — \
-         the delivery arm has been fixed! Update this test to assert the warning \
-         IS present. Current output:\n{stdout}"
+        mentions_orphan,
+        "ATK-orphaned-lineage-human: human output must WARN about the orphaned \
+         lineage edge and name the missing parent (NonExistentParent). \
+         Current output:\n{stdout}"
     );
 }
