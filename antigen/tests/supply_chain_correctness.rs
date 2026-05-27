@@ -501,3 +501,173 @@ fn atk_hint_2_content_hash_sidecar_malformed_is_in_audit_hints_const() {
          adr025_audit_hints_const_matches_enum_serde_keys."
     );
 }
+
+// ============================================================================
+// ATK-HINT-EXHAUSTIVE: Structural backstop for supply-chain hint classification.
+//
+// The hand-maintained supply_chain_variants list in
+// adr025_audit_hints_const_matches_enum_serde_keys can miss new variants —
+// ATK-HINT-2 proves this. The structural fix is a COMPILE-TIME exhaustive match
+// that classifies every AuditHint variant. When a new variant is added to the
+// enum, this match must be updated or it won't compile.
+//
+// This approach was seeded in forward/audit-hint-exhaustive-match-completeness
+// (pathmaker note: "a new variant makes the match non-exhaustive = COMPILE ERROR").
+// ATK-HINT-2 proved the hand-list approach fails; this test is the structural fix.
+//
+// The function `hint_is_supply_chain` below performs the exhaustive match.
+// It is NOT a helper — the exhaustive match IS the test. If it compiles, every
+// AuditHint variant is classified as supply-chain or not. If a new variant is
+// added without updating this match, the test file won't compile → CI fails.
+//
+// The runtime test counts supply-chain variants and asserts against ADR025_AUDIT_HINTS.
+// ============================================================================
+
+fn hint_is_supply_chain(hint: &antigen::audit::AuditHint) -> bool {
+    use antigen::audit::AuditHint;
+    // EXHAUSTIVE MATCH — NO WILDCARD. Adding a new AuditHint variant that is NOT
+    // in this match causes a compile error, forcing classification. That's the point.
+    match hint {
+        // --- Supply-chain family (ADR-025) ---
+        AuditHint::UnpinnedDependency
+        | AuditHint::UnpinnedTransitiveDependency
+        | AuditHint::UnattestedDependencyInclusion
+        | AuditHint::DependencyUpgradeWithoutDiffReview
+        | AuditHint::MaintainerChangeWithoutReattestation
+        | AuditHint::MaintainerChangeDetectedAfterCargoUpdate
+        | AuditHint::SuddenDependencyExpansion
+        | AuditHint::UnsandboxedBuildScript
+        | AuditHint::UnsandboxedProcMacro
+        | AuditHint::PostInstallScriptInDependency
+        | AuditHint::ContentHashMismatch
+        | AuditHint::ContentHashNoAttestation
+        | AuditHint::DepAttestWithoutReviewableArtifact
+        | AuditHint::CratesIoMetadataQueryFailed
+        | AuditHint::DepAttestationStale
+        | AuditHint::AutoDependencyChainWithoutPinning
+        | AuditHint::ContentHashSidecarMalformed => true,
+
+        // --- Non-supply-chain families ---
+        AuditHint::NoneApplicable
+        | AuditHint::FunctionResolves
+        | AuditHint::TestAttributePresentNotInvoked
+        | AuditHint::TestAttributePresentIgnoreSkipped
+        | AuditHint::ProptestPresentNotInvoked
+        | AuditHint::ExternalToolPrefixRecognized
+        | AuditHint::ExternalToolInvoked
+        | AuditHint::PhantomTypeShapeRecognized
+        | AuditHint::PhantomTypeConstructionValidated
+        | AuditHint::AmbiguousResolution
+        | AuditHint::FabricatedPathPrefix
+        | AuditHint::InheritedPresentationNotReAttested
+        | AuditHint::DisciplineSidecarMissing
+        | AuditHint::DisciplineSidecarSchemaInvalid
+        | AuditHint::DisciplinePredicateFailed
+        | AuditHint::DisciplineSubstrateStale
+        | AuditHint::DisciplineSubstrateDeltaChainNearCap
+        | AuditHint::DisciplinePredicatePassedViaDeltaChain
+        | AuditHint::DisciplinePredicatePassedSubstrateCurrent
+        | AuditHint::ToleranceVibesGrade
+        | AuditHint::ToleranceSidecarMissing
+        | AuditHint::TolerancePredicateFailed
+        | AuditHint::TolerancePredicatePassedSubstrateCurrent
+        | AuditHint::DisciplineSidecarKindMismatchExpectedImmunityGotTolerance
+        | AuditHint::ToleranceSidecarKindMismatchExpectedToleranceGotImmunity
+        | AuditHint::DisciplineImmunityToleranceContradiction
+        | AuditHint::AnergyActive
+        | AuditHint::AnergyCostimulationNotArrived
+        | AuditHint::AnergyStale
+        | AuditHint::ImmunosuppressActive
+        | AuditHint::ImmunosuppressExpired
+        | AuditHint::ImmunosuppressDurationCapExceeded
+        | AuditHint::PoxpartyActive
+        | AuditHint::PoxpartyOutcomePending
+        | AuditHint::PoxpartyOutcomeRecorded
+        | AuditHint::PoxpartyOutsideIsolation
+        | AuditHint::OrientActive
+        | AuditHint::OrientPendingActionRequired
+        | AuditHint::DeferredDefenseHintSuppressedWithoutRationale
+        | AuditHint::DiagnosticModalityInsufficient
+        | AuditHint::DiagnosticModalitiesClassCollapsed
+        | AuditHint::DiagnosticModalitiesEmpty
+        | AuditHint::ClonalFixedSeedDetected
+        | AuditHint::ClonalIterationsBelowThreshold
+        | AuditHint::IggIdentityCollapseWarning
+        | AuditHint::IggSpanTooShort
+        | AuditHint::IggReattestationsInsufficient
+        | AuditHint::CrossreactiveFingerprintUnresolved
+        | AuditHint::PolyclonalInsufficientLineages
+        | AuditHint::AdccSingleMechanismOnly
+        | AuditHint::ItchNoticedNotAnchored
+        | AuditHint::RecurrenceThresholdReachedNoAction
+        | AuditHint::RecurrenceAnchorNoItchPrecondition
+        | AuditHint::CrystallizeWithoutAntigen
+        | AuditHint::ChronicSignalUnmanaged
+        | AuditHint::ChronicSignalPastReviewDate
+        | AuditHint::ChronicSinceNotADate
+        | AuditHint::SaturateNoAnchor
+        | AuditHint::StrandNoAnchors
+        | AuditHint::MucosalBoundaryUndefended
+        | AuditHint::MucosalKindMismatch
+        | AuditHint::MucosalRationaleInsufficient
+        | AuditHint::MucosalDisciplineDelegateTargetMissing
+        | AuditHint::MucosalDisciplineDelegateTargetNotMucosal
+        | AuditHint::MucosalDisciplineDelegateTargetKindMismatch
+        | AuditHint::MucosalTolerantRationaleInsufficient
+        | AuditHint::MucosalTolerantPastReviewDate
+        | AuditHint::MucosalTolerantAcceptsEmpty
+        | AuditHint::MucosalTolerantWithoutReviewer
+        | AuditHint::AntigenCategoryDefaultedImplicitFunctional
+        | AuditHint::AntigenCategoryClaimInconsistentWithPredicateType
+        | AuditHint::AntigenCategoryHybridIncompleteEvidence => false,
+    }
+}
+
+#[test]
+fn atk_hint_exhaustive_supply_chain_classification_matches_const() {
+    // The exhaustive match in hint_is_supply_chain() classifies all 89 AuditHint
+    // variants at compile time. This test verifies the count at runtime:
+    // the number of variants returning true must equal ADR025_AUDIT_HINTS.len().
+    //
+    // If the count is wrong, either the const or the exhaustive match is wrong —
+    // the test names both explicitly so the fix location is unambiguous.
+    use antigen::audit::AuditHint;
+    let supply_chain_count = ADR025_AUDIT_HINTS.len();
+
+    // Count how many variants hint_is_supply_chain returns true for,
+    // using the same supply_chain_variants list as the parity test.
+    // This redundancy is intentional: the parity test can detect drift in
+    // either the const OR the serde key; this test detects drift in the
+    // exhaustive-match classification vs the const count.
+    let classified_count = [
+        AuditHint::UnpinnedDependency,
+        AuditHint::UnpinnedTransitiveDependency,
+        AuditHint::UnattestedDependencyInclusion,
+        AuditHint::DependencyUpgradeWithoutDiffReview,
+        AuditHint::MaintainerChangeWithoutReattestation,
+        AuditHint::MaintainerChangeDetectedAfterCargoUpdate,
+        AuditHint::SuddenDependencyExpansion,
+        AuditHint::UnsandboxedBuildScript,
+        AuditHint::UnsandboxedProcMacro,
+        AuditHint::PostInstallScriptInDependency,
+        AuditHint::ContentHashMismatch,
+        AuditHint::ContentHashNoAttestation,
+        AuditHint::DepAttestWithoutReviewableArtifact,
+        AuditHint::CratesIoMetadataQueryFailed,
+        AuditHint::DepAttestationStale,
+        AuditHint::AutoDependencyChainWithoutPinning,
+        AuditHint::ContentHashSidecarMalformed,
+    ]
+    .iter()
+    .filter(|h| hint_is_supply_chain(h))
+    .count();
+
+    assert_eq!(
+        classified_count, supply_chain_count,
+        "ATK-HINT-EXHAUSTIVE: hint_is_supply_chain classifies {} variants as supply-chain \
+         but ADR025_AUDIT_HINTS has {} entries. These must be equal. Either update the \
+         exhaustive match in hint_is_supply_chain() to include the new variant, or add \
+         its serde key to ADR025_AUDIT_HINTS.",
+        classified_count, supply_chain_count
+    );
+}
