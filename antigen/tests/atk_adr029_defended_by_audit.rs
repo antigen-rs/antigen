@@ -875,3 +875,94 @@ fn atk_adr029_17_defended_by_descendant_type_does_not_cover_inherited_ancestor_p
         v.verdict
     );
 }
+
+// ATK-ADR029-18: V1 void — failing requires= predicate is SILENTLY MASKED by
+// a passing #[defended_by] code witness (OR semantics at audit.rs:1381).
+//
+// ADR-029 V1 limitation (docs/decisions.md ~line 6956): the audit takes the
+// BEST tier across four evidence channels (code_tier, immune_tier,
+// site_requires_tier, site_proof_tier) using max(). When a site has BOTH a
+// passing code-tier witness (#[defended_by]) AND a failing substrate predicate
+// (requires=P where P evaluates to WitnessTier::None), the max() picks
+// code_tier=Some(Reachability) and emits ImmuneVerdict::Defended.
+//
+// The failing substrate requirement is completely invisible in the verdict:
+// the site appears Defended when its substrate invariant is actually not met.
+//
+// EXPLOITATION SHAPE (scientist, forward/conjunctive-defense-void-or-semantics):
+//   #[defended_by(X)]  -- passes, code-tier = Some(Reachability)
+//   #[presents(X, requires = <failing-predicate>)]  -- fails, site_requires_tier = None
+//   Result: best_tier = Some(Reachability), verdict = Defended
+//   Expected (post V1 fix): Defended with a SubstrateGap co-annotation,
+//   or a new Conjunctive-Defended verdict that exposes the substrate gap.
+//
+// This test documents the V1 gap. The assertion should be INVERTED after
+// ADR-030/v0.3 conjunctive-defense semantics land.
+//
+// The requires_predicate used here (fresh_within_days:90) evaluates against a
+// sidecar file that does not exist in the synthetic report's file path
+// (PathBuf::from("src/lib.rs") has no .attest/ sidecar on disk), so it
+// evaluates to WitnessTier::None regardless of wall-clock time.
+#[test]
+fn atk_adr029_18_v1_void_failing_requires_masked_by_passing_defended_by() {
+    let mut report = ScanReport::default();
+
+    // A presentation site with a failing substrate predicate.
+    // The sidecar for "src/lib.rs" does not exist -> fresh_within_days
+    // evaluates to WitnessTier::None.
+    let presentation = Presentation {
+        antigen_type: "SubstrateClass".to_string(),
+        file: PathBuf::from("src/lib.rs"),
+        line: 20,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Unknown { line: 20 },
+        match_kind: MatchKind::ExplicitMarker,
+        canonical_path: None,
+        inherited_from: None,
+        structural_fingerprint: String::new(),
+        // Failing substrate predicate: requires sidecar to be fresh within 90
+        // days, but the sidecar does not exist.
+        requires_predicate: Some(r#"{"leaf":"fresh_within_days","value":90}"#.to_string()),
+        proof: None,
+    };
+    report.presentations.push(presentation);
+
+    // A passing code-tier defense registered via #[defended_by].
+    let defense = Defense {
+        antigen_type: "SubstrateClass".to_string(),
+        file: PathBuf::from("src/tests.rs"),
+        line: 5,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Unknown { line: 5 },
+    };
+    report.defenses.push(defense);
+
+    let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap();
+    let audit_result = audit(&report, workspace_root);
+
+    assert_eq!(
+        audit_result.presentation_verdicts.len(),
+        1,
+        "ATK-ADR029-18: exactly one verdict for the presentation"
+    );
+    let v = &audit_result.presentation_verdicts[0];
+
+    // CURRENT (V1 void): verdict is Defended at Reachability because
+    // code_tier=Some(Reachability) wins the max() over site_requires_tier=None.
+    // The failing substrate predicate is silently masked.
+    //
+    // EXPECTED (post V1 fix): SubstrateGap co-annotation or conjunctive
+    // verdict that exposes the failed substrate requirement alongside the
+    // passing code witness.
+    assert!(
+        matches!(v.verdict, ImmuneVerdict::Defended { tier: WitnessTier::Reachability }),
+        "ATK-ADR029-18 (V1 VOID): site with failing requires= AND passing #[defended_by] \
+        shows Defended at Reachability. The failing substrate predicate is masked by the \
+        code witness. OR-semantics (audit.rs:1381) picks best_tier=Reachability; the \
+        substrate gap is invisible. After V1 fix, expect SubstrateGap annotation or \
+        conjunctive Defended-with-gap verdict. Got: {:?}",
+        v.verdict
+    );
+}
