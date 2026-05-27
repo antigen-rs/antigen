@@ -13,7 +13,7 @@ coherent surface. The full v0.2 surface is complete: five stdlib families
 (deferred-defense, supply-chain, convergent-evidence, recurrent-emergence,
 mucosal-boundary) plus the agentic-coordination and dogfood families; the
 ADR-028 `AntigenCategory` taxonomy with G1/G2/G3 enforcement; and antigen's own
-codebase dogfooding the primitives at real failure sites. 797 tests.
+codebase dogfooding the primitives at real failure sites. 922 tests.
 
 ### Added — stdlib families
 
@@ -110,16 +110,27 @@ codebase dogfooding the primitives at real failure sites. 797 tests.
   v0.3 research arc.
 
 - **Dogfood Family** — antigen's own codebase carries live markers at real
-  failure sites (the Layer-1 dogfood). Stdlib antigens:
+  failure sites (the Layer-1 dogfood). 24 stdlib antigens:
   `AntigenDeclarationMissingCategory`, `DelegatedHandlerKindMismatch`,
   `WitnessClaimWithoutImplementation`, `VecCardinalityMasqueradingAsSet`,
   `AuditHintWithNoUpstreamPreconditionCheck`, `RatifiedSpecDriftFromImpl`,
   `UnvalidatedSealedEnumAcceptance`, `FingerprintStringWithoutDslValidation`,
-  `SilentArgumentDiscard`, `ScannerBoundaryFalseNegative`. Live in-source markers:
-  `#[presents(DelegateCrossCrateResolutionGap)]` on `audit_mucosal`,
-  `#[immune(AuditHintWithNoUpstreamPreconditionCheck)]` on `evaluate_recurrent_hints`
-  (witness → adversarial fixture), `#[presents(ScannerBoundaryFalseNegative)]` on
-  `scan_workspace`.
+  `FingerprintDigestWithoutFormatValidation`, `SilentIntentNullification`,
+  `ActiveArgumentDiscard`, `ScannerBoundaryFalseNegative`,
+  `BiologyGroundingClaimDrift`, `UnstableHashAsPersistedValue`,
+  `AuditFingerprintSelfReferential`, `SilentSemanticMismatchAtTrustBoundary`,
+  `DeclaredCapabilityWithNoProductionPath`, `CapabilityOmissionAtLowering`,
+  `AntigenFingerprintDivergesFromClassExtension`, `ParallelStateTrackersDiverge`,
+  `ScanVisitorDigestAssignmentOmission`, `FailingTestWithoutIgnorePin`,
+  `MarkerStructDeadCodeInBinary`, `SerdeDefaultMaskingStructLiteralBreak`. Live in-source markers
+  (scan.rs): `#[presents(VecCardinalityMasqueradingAsSet)]` on `AntigenDeclaration`,
+  `#[presents(ScannerBoundaryFalseNegative)]` on `scan_workspace`,
+  `#[presents(ScanVisitorDigestAssignmentOmission)]` on `ScanVisitor`.
+  (audit.rs): `#[presents(ParallelStateTrackersDiverge)]` on `AuditHint`,
+  `#[presents(DeclaredCapabilityWithNoProductionPath)]` on `WitnessStatus`,
+  `#[immune(AuditFingerprintSelfReferential)]` (witness → fingerprint override test),
+  `#[immune(AuditHintWithNoUpstreamPreconditionCheck)]` (witness → adversarial fixture),
+  `#[presents(DelegateCrossCrateResolutionGap)]` on `audit_mucosal`.
 
 ### Added — AntigenCategory taxonomy + enforcement (ADR-028)
 

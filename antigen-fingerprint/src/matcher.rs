@@ -612,35 +612,8 @@ mod tests {
         Fingerprint::parse(src).unwrap()
     }
 
-    // ATK-HM-1: has_method pattern with named parameters never matches.
-    //
-    // A fingerprint author writing natural Rust style includes parameter names:
-    //   has_method("parse", "(input: ParseStream) -> syn::Result<Self>")
-    //
-    // The pattern is tokenized via normalize_signature_canonical, which preserves
-    // "input : ParseStream" in the normalized form.
-    //
-    // The matcher renders actual method signatures via render_inputs, which strips
-    // parameter names (only the TYPE is kept, not the name: FnArg::Typed renders
-    // pt.ty, not the full pt). So the actual is "(& self, ParseStream) -> ...",
-    // while the pattern is "(& self, input : ParseStream) -> ...".
-    //
-    // The string comparison fails — silent zero matches. The test at line 326
-    // (has_method_matches_simple_signature) was written to probe this but was
-    // suppressed (let _ = fp; let _ = i) without asserting any behavior. This
-    // leaves the silent failure undetected.
-    //
-    // STATUS: FAILING — has_method does NOT match when the pattern contains
-    // named parameters. The current API provides no error or warning; the
-    // fingerprint simply produces 0 matches at scan time.
-    //
-    // Fix options:
-    //   1. Strip param names in normalize_signature_canonical (parse as sig,
-    //      render types-only, then re-canonicalize).
-    //   2. Strip param names in the pattern before comparison (parse the
-    //      normalized pattern to extract type-only form).
-    //   3. Document explicitly that has_method patterns must be type-shape-only
-    //      and add a validation error when a named parameter is detected.
+    // FIXED (option 1): normalize_signature_canonical strips parameter names;
+    // has_method now matches whether or not the pattern includes named parameters.
     #[test]
     fn has_method_named_parameter_in_pattern_still_matches() {
         // Pattern with named parameter — natural Rust style that users will write.

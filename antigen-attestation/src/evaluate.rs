@@ -2597,29 +2597,9 @@ mod tests {
     // by the standard predicate evaluator — they require Cargo.lock + sidecar
     // reading that only `cargo antigen audit --supply-chain` provides.
     //
-    // BUG: eval_leaf() currently returns `LeafOutcome { passed: false, label:
-    // "supply-chain-leaf", reason: "supply-chain leaves are not evaluated..." }`.
-    // This is a LIE: `passed: false` implies the check ran and failed. It didn't.
-    // The CLI renders this as `FAIL: supply-chain-leaf — ...` which is
-    // indistinguishable from a genuine failure like "dep_pinned check ran and
-    // found non-exact pins." An adopter debugging their immunity will see a FAIL
-    // and assume they need to fix Cargo.lock, not that they need to run a
-    // different audit command.
-    //
-    // DESIRED: supply-chain leaf outcomes must be clearly distinguishable from
-    // genuine evaluation failures. Options:
-    //   (a) Add `EvalNode::NotEvaluatedHere(LeafOutcome)` variant so the CLI
-    //       can render NOT-EVALUATED differently from FAIL.
-    //   (b) Add `evaluated: bool` field to LeafOutcome.
-    //   (c) Use a reserved label prefix like "not-evaluated:" or an enum kind.
-    //
-    // STATUS: FAILING — LeafOutcome has no way to express "not evaluated here";
-    // supply-chain leaves report `passed: false` which is indistinguishable from
-    // a genuine evaluation failure at the LeafOutcome level.
-    //
-    // Fix: add a third arm to EvalNode (NotEvaluatedHere) OR a `evaluated: bool`
-    // field to LeafOutcome. The CLI must then render "NOT-EVALUATED" not "FAIL"
-    // for these leaves. See campsite findings/eval-leaf-not-evaluated-arm.
+    // FIXED (option b): `evaluated: bool` field added to `LeafOutcome`; supply-chain
+    // leaves set `evaluated=false` so the CLI renders NOT-EVALUATED, not FAIL.
+    // Campsite findings/eval-leaf-not-evaluated-arm is closed.
     // ========================================================================
 
     #[test]

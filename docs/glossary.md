@@ -379,10 +379,25 @@ scout's substrate-verification of `witnessed` / `bear_witness` / `typewit`.
 strains, SARS-CoV variants).
 
 **Rust ecosystem analog**: the `family` parameter on `#[antigen(...)]`. Groups related
-failure-classes for shared structural fingerprints and shared vaccination patterns. The
-8 first-principles classes form parent families: `frame-translation`, `forgotten-lesson`,
-`implicit-coupling`, `stale-context`, `premature-abstraction`, `incompatible-merger`,
-`boundary-violation`, `optionality-collapse`.
+failure-classes into inheritance-clusters for shared structural fingerprints and shared
+vaccination patterns. Per the ratified ADR (`decisions.md` "Optional fields"), `family`
+maps to **one of the 8 first-principles classes OR a project-specific family** — it is an
+open-vocabulary grouping label, not a sealed enum. The 8 first-principles classes
+(`frame-translation`, `forgotten-lesson`, `implicit-coupling`, `stale-context`,
+`premature-abstraction`, `incompatible-merger`, `boundary-violation`,
+`optionality-collapse`) are available as family names, and the stdlib also defines
+project-specific families (`vcs-information-loss`, `mucosal-boundary`, `recurrent-emergence`,
+`dogfood`, …) that group antigens by domain rather than by first-principles class.
+
+The 8 first-principles classes are a **set-level classification axis** the stdlib *as a
+whole* commits to spanning (ADR-007 coverage commitment) — not a per-antigen constraint on
+what `family` may hold. This mapping (which antigen instances which first-principles class)
+is currently a stdlib-level commitment with **no per-antigen carrier field**: it is not
+held in `family=`, and as of this writing it is not tracked in a dedicated per-antigen
+field or doc-comment convention either. A project-specific family and a first-principles
+class are different lenses on the same antigen: the family is its inheritance-cluster (what
+`family=` carries); the first-principles class is the abstract failure-shape it instances
+(a set-level coverage axis, not yet individually carried).
 
 **Introduced in**: `design-intent.md`, `api-shape.md`.
 
