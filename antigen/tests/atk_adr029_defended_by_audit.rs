@@ -1104,3 +1104,103 @@ fn atk_adr029_20_empty_string_proof_overclaims_formal_proof_tier() {
         v.verdict
     );
 }
+
+// ATK-ADR029-21: defense canonical_path mismatch — cross-crate overclaim
+//
+// `Defense` has no `canonical_path` field. `unaddressed_presentations()` checks
+// only `d.antigen_type == p.antigen_type` (line 2076 in scan.rs). A
+// `#[defended_by(Foo)]` declaration in crate A silently covers `#[presents(Foo)]`
+// from crate B (different `canonical_path`) because the antigen_type bare name
+// matches.
+//
+// This is a cross-crate defense overclaim: the author's intent was to defend
+// their OWN `Foo`, not a `Foo` from a different crate. When both crates are
+// scanned together (cross-crate scan), the defense incorrectly suppresses the
+// audit verdict for the foreign presentation.
+//
+// CURRENT BEHAVIOR: defense without canonical_path matches presentation with
+// canonical_path (or vice versa) as long as antigen_type matches. The
+// `unaddressed_presentations()` function returns an empty list (the site is
+// "addressed") even though the defense is from a different crate's Foo.
+//
+// FIX DIRECTION: `Defense` should carry a `canonical_path: Option<String>` field
+// mirroring `Presentation.canonical_path`. The matching logic should use the
+// same `(antigen_type, canonical_path)` tuple semantics as the antigen-known
+// lookup (lines 2047-2051 in scan.rs). A defense with `canonical_path=None`
+// could continue to match any canonical_path (backward compat), but a defense
+// with a specific canonical_path should only match presentations with the same
+// canonical_path.
+//
+// NOTE: This gap requires a `Defense.canonical_path` field addition to the
+// scan.rs struct + the macro parser. The audit-level fix in audit.rs:1314
+// (antigen_type exact match) is consistent with the current scan.rs behavior --
+// both use bare antigen_type, so both have the same cross-crate gap.
+#[test]
+fn atk_adr029_21_defense_matches_cross_crate_presentation_with_same_type_name() {
+    // Stage a report where:
+    // - Presentation has antigen_type="Foo", canonical_path=Some("other_crate::Foo")
+    // - Defense has antigen_type="Foo", no canonical_path (from this crate's tests)
+    //
+    // With the bare antigen_type match, the defense covers the foreign presentation.
+    // This documents the current overclaim behavior.
+    let mut report = ScanReport::default();
+
+    // The presentation is from a cross-crate Foo (different crate's canonical path)
+    report.presentations.push(Presentation {
+        antigen_type: "Foo".to_string(),
+        file: PathBuf::from("src/lib.rs"),
+        line: 1,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Unknown { line: 1 },
+        match_kind: MatchKind::ExplicitMarker,
+        canonical_path: Some("other_crate::Foo".to_string()), // cross-crate!
+        inherited_from: None,
+        structural_fingerprint: String::new(),
+        requires_predicate: None,
+        proof: None,
+    });
+
+    // The defense is for THIS crate's Foo (no canonical_path set)
+    report.defenses.push(Defense {
+        antigen_type: "Foo".to_string(), // same bare name, different crate
+        file: PathBuf::from("src/tests.rs"),
+        line: 5,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Unknown { line: 5 },
+    });
+
+    // CURRENT BEHAVIOR: unaddressed_presentations() sees antigen_type="Foo" match
+    // and treats the cross-crate presentation as "addressed" by the local defense.
+    let unaddressed = report.unaddressed_presentations();
+    assert!(
+        unaddressed.is_empty(),
+        "ATK-ADR029-21 (OVERCLAIM): defense with antigen_type='Foo' (no canonical_path) \
+         incorrectly covers presentation with antigen_type='Foo', canonical_path='other_crate::Foo'. \
+         unaddressed_presentations() sees the bare type-name match and returns an empty list. \
+         A cross-crate scan would silently suppress this presentation's verdict. \
+         Got unaddressed: {:?}",
+        unaddressed
+    );
+
+    // The audit verdict also reflects the overclaim -- the presentation is Defended
+    // even though the defense is from a different crate's Foo.
+    let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap();
+    let audit_result = audit(&report, workspace_root);
+    assert_eq!(
+        audit_result.presentation_verdicts.len(),
+        1,
+        "ATK-ADR029-21: exactly one verdict for the one presentation"
+    );
+    let v = &audit_result.presentation_verdicts[0];
+    assert!(
+        matches!(v.verdict, ImmuneVerdict::Defended { .. }),
+        "ATK-ADR029-21 (OVERCLAIM): cross-crate presentation is Defended by a local defense \
+         with the same antigen_type bare name. The defense does not check canonical_path. \
+         Got: {:?}",
+        v.verdict
+    );
+    // If this test STARTS FAILING (defense no longer matches cross-crate presentation):
+    // the canonical_path-aware fix has landed. Update to assert Undefended here.
+}
