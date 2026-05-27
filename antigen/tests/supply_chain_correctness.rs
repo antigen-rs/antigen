@@ -523,7 +523,7 @@ fn atk_hint_2_content_hash_sidecar_malformed_is_in_audit_hints_const() {
 // The runtime test counts supply-chain variants and asserts against ADR025_AUDIT_HINTS.
 // ============================================================================
 
-fn hint_is_supply_chain(hint: &antigen::audit::AuditHint) -> bool {
+const fn hint_is_supply_chain(hint: &antigen::audit::AuditHint) -> bool {
     use antigen::audit::AuditHint;
     // EXHAUSTIVE MATCH — NO WILDCARD. Adding a new AuditHint variant that is NOT
     // in this match causes a compile error, forcing classification. That's the point.
