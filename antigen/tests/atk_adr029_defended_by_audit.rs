@@ -445,15 +445,16 @@ fn atk_adr029_10_requires_predicate_on_presentation_not_undefended() {
     // sidecar is absent (SubstrateGap) or the predicate fails, the verdict must
     // NOT be Undefended — Undefended means "no intent at all."
     // Currently FAILS because compute_presentation_verdicts() ignores requires_predicate.
+    // (Fixed by pathmaker's adr-029 wiring; compute_presentation_verdicts()
+    // now inspects p.requires_predicate and routes through substrate-witness eval.)
     assert_ne!(
         v.verdict,
         ImmuneVerdict::Undefended,
-        "ATK-ADR029-10 FAILING: a #[presents(X, requires=<pred>)] site with \
+        "ATK-ADR029-10: a #[presents(X, requires=<pred>)] site with \
          requires_predicate set must not produce Undefended. Declared defensive \
          intent exists (requires_predicate is Some); the verdict should be \
          SubstrateGap (sidecar absent/failing) or Defended (predicate passes). \
-         Fix: compute_presentation_verdicts() must inspect p.requires_predicate \
-         and route through the substrate-witness evaluation pipeline. Got: {:?}",
+         If this fails, p.requires_predicate evaluation was removed. Got: {:?}",
         v.verdict
     );
 }
@@ -543,14 +544,12 @@ fn atk_adr029_12_impl_fn_defended_by_must_produce_defended_verdict() {
         .expect("a verdict for the FailureClass presents-site");
 
     // An impl_fn test method IS a valid runnable witness. The verdict must be Defended.
-    // Currently FAILS because compute_presentation_verdicts() gates on == "fn" only.
+    // (Fixed by pathmaker's adr-029 wiring; the impl_fn gate is now accepted.)
     assert!(
         matches!(v.verdict, ImmuneVerdict::Defended { .. }),
-        "ATK-ADR029-12 FAILING: a #[defended_by] on an impl_fn witness produces {:?} \
-         instead of Defended. An impl_fn test method is a valid runnable witness — \
-         the item_kind == \"fn\" gate at audit.rs:1292 must be widened to also accept \
-         \"impl_fn\". Fix: change filter to \
-         |d| d.antigen_type == p.antigen_type && (d.item_kind == \"fn\" || d.item_kind == \"impl_fn\").",
+        "ATK-ADR029-12: a #[defended_by] on an impl_fn witness must produce Defended. \
+         An impl_fn test method is a valid runnable witness. If this fails, \
+         the impl_fn item_kind gate was removed. Got: {:?}",
         v.verdict
     );
 }
@@ -608,7 +607,8 @@ fn atk_adr029_13_proof_on_presentation_produces_formal_proof_tier() {
         .expect("a verdict for the PhantomAntigen presents-site");
 
     // A site with proof= declared has the strongest possible evidence. Must be
-    // Defended at FormalProof tier. Currently FAILS because p.proof is unread.
+    // Defended at FormalProof tier. (Fixed by pathmaker's adr-029 wiring;
+    // compute_presentation_verdicts() now reads p.proof.)
     assert!(
         matches!(
             v.verdict,
@@ -616,10 +616,9 @@ fn atk_adr029_13_proof_on_presentation_produces_formal_proof_tier() {
                 tier: WitnessTier::FormalProof
             }
         ),
-        "ATK-ADR029-13 FAILING: a #[presents(X, proof=...)] site with proof set \
+        "ATK-ADR029-13: a #[presents(X, proof=...)] site with proof set \
          must produce Defended{{tier:FormalProof}}. The proof expression IS the evidence \
-         (phantom-tier: compile-time). Fix: compute_presentation_verdicts() must read \
-         p.proof and issue Defended{{tier:FormalProof}} when Some. Got: {:?}",
+         (phantom-tier: compile-time). If this fails, p.proof reading was removed. Got: {:?}",
         v.verdict
     );
 }
