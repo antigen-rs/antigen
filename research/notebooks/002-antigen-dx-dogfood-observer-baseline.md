@@ -1764,3 +1764,46 @@ The lesson: `--test-threads=1` is the race characterization instrument. "N clean
 - Structural fix: commit pin + fix atomically, or `#[ignore]` pin until fix ready
 
 **Next**: Wait for union synthesis fix. Monitor for the 4th consecutive red-then-green cycle.
+
+---
+
+## Step 35: Union Fix + Exhaustive-Match Arc Closes + beta-readiness 2/2
+
+### Before
+
+**Time**: After navigator's status message — substrate check + precision note on FIXTURE_SIDECAR_MUTEX  
+**Hypothesis**: Union fix landed; beta-readiness 2/2; forward campsites closed by exhaustive-match arc.  
+**Design**: Verify 912; check new commits; confirm beta-readiness substrate.
+
+### Results
+
+**Workspace**: 912 passed, 48 ignored, 0 failing.  
+**`beta-readiness-v020`**: `[complete] (2/2 signers)` — confirmed in substrate.
+
+**8 commits since step 34**:
+- `964f505`: union synthesis fix — same three-way gap as const, now for `syn::Item::Union`
+- `63e83c0`: ATK-HINT-2 — `ContentHashSidecarMalformed` missed from BOTH `ADR025_AUDIT_HINTS` const AND `supply_chain_variants` in bijection witness. The ParallelStateTrackersDiverge defense had the same class inside it.
+- `d62cdd6`: fix — adds ContentHashSidecarMalformed to both surfaces
+- `1969061`: `docs/testing-patterns.md` — new exhaustive-match-as-structural-backstop section
+- `f8f1b88`: **ATK-HINT-EXHAUSTIVE** — `hint_is_supply_chain()` covers all 89 AuditHint variants, no wildcard. New variant without update = compile error. Closes `forward/audit-hint-exhaustive-match-completeness`.
+- `62f63bf`: **ATK-W6a-SYN-006** — item-kind coverage contract pins the scanner's supported `syn::Item` kinds. Closes the scanner-coverage side.
+- `164b95b`: ATK-FP-NOT-DOC-UNDOCUMENTED — behavioral lock for `not(doc_contains)` on undocumented items
+- `3ebcacd`: clippy fix — `hint_is_supply_chain` must be `const fn`
+
+**Navigator's precision note on mutex (accepted)**: `static Mutex` instances are per-process. Parallel test binaries each have their own instance — no cross-binary locking is possible. The tempdir isolation fix was structurally correct regardless of what caused any specific observed failure. Observer's compile-artifact hypothesis was plausible for the specific failure but doesn't make the race non-existent. Both can be true.
+
+**ATK-HINT-2 recursive finding**: the bijection witness for ParallelStateTrackersDiverge had the same drift class inside it — `supply_chain_variants` hand-maintained list missed the new variant, same as `ADR025_AUDIT_HINTS`. Exhaustive match (`f8f1b88`) closes this permanently: no future variant can be missed.
+
+**`forward/structural-completeness-via-exhaustive-match`** closed across both axes: AuditHint taxonomy + scanner item-kind coverage. Pattern that pathmaker seeded with 2 instances is now implemented in both directions.
+
+### Discussion
+
+The exhaustive-match arc is the deepest structural closure in the ParallelStateTrackersDiverge defense. Four layers now on the canonical instance:
+1. `doc_contains("lock-step")` fingerprint — recall at scan time
+2. Bijection test — forward + reverse + count
+3. `hint_is_supply_chain()` exhaustive match — compile-time enforcement
+4. `#[immune]` marker — structural visibility
+
+ATK-HINT-2 is a methodological finding for observer: when auditing a witness, audit the witness's own surfaces for the class it defends. The cure for the witness's internal drift was the same exhaustive-match approach — removing hand-maintenance entirely.
+
+**Observer pending**: `dogfood/comprehensive-antigen-coverage` (0/3 signers, blocked on pathmaker's coverage sub-campsites). Everything else is complete or deferred to future arcs.
