@@ -4714,7 +4714,7 @@ specifies WHAT the mucosal primitives are without specifying HOW their
 argument shape, variant inclusion, and audit logic resolve at impl time.
 This amendment closes the gaps to unblock implementation. Filed as instance
 (v) of held-implementation-spec-depth-gap pattern; absorbed into
-process-adr-spec-depth-amendment §Standing-Adversarial-Checklist.
+`docs/process.md` §Standing Adversarial Checklist.
 
 **Participants**: aristotle (Phase 1-8 deconstruction F1+F2); naturalist
 (biology grounding refinement; `#[mucosal_tolerant]` primitive; amendment
@@ -4725,7 +4725,7 @@ typing); outsider (`1bb7c7b6` enum chaos dust-finding); adversarial
 **Related**: ADR-001 Amendment 1 C6 (sealed enum amendment process);
 ADR-003 Amendment 1 (biology grounding); ADR-016 (tolerance discipline);
 ADR-019 (substrate-witness); ADR-028 (antigen-category);
-process-adr-spec-depth-amendment (sibling workstream).
+`docs/process.md` §Standing Adversarial Checklist (sibling workstream).
 
 ### Change 1 — MucosalKind inclusion-discipline named
 
@@ -5953,7 +5953,7 @@ silent-fix).
 
 **Related**: ADR-003 (biology metaphor); ADR-024 §Biology grounding
 (parent dual-axis honesty refinement);
-process-adr-spec-depth-amendment §Amendment-vs-silent-fix-criteria.
+`docs/process.md` §Amendment-vs-fixup taxonomy.
 
 ### Finding
 
