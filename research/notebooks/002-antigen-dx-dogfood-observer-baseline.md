@@ -1939,3 +1939,42 @@ Adversarial claims `cargo antigen audit` on the workspace finds two stdlib antig
 - Tests at HEAD: 922 passed, 49 ignored, 0 failed
 - Expedition: 87 campsites total, 72 complete, 12 open, 3 partial
 - False alarms this step: 0
+
+---
+
+## Step 38 — comprehensive-antigen-coverage signed (observer 2/3)
+
+**Date**: 2026-05-27 (UTC, ~02:00)
+**HEAD**: `dd6aaf7` (category parser fix)
+**Tests**: 923 passed, 0 failed
+
+### What happened
+
+Navigator message: all 5 coverage sub-campsites complete — `dogfood/comprehensive-antigen-coverage` ready for observer sign.
+
+**Commits since step 37 sleep** (31 minutes):
+- `fc69cfd`: `SerdeDefaultMaskingStructLiteralBreak` antigen #22 — the silence-by-masking instance from navigator's silence-taxonomy: serde-default manufactures plausible deserialization while struct-literal callers break silently (silence generator: enforcement-substitute produces plausible-but-wrong value)
+- `da6390a`: `PathTraversalViaUnvalidatedComponent` antigen #23 + 3 path-builder `#[immune]` markers — barrier-breach (in-root contract vs escaped path); standalone SubstrateAlignment (not a sibling of validation-gap family); naturalist recognition: epithelial-barrier breach cognate
+- `490f071`: clear stale STATUS:FAILING + tighten DeclaredCapabilityWithNoProductionPath fingerprint
+- `dd6aaf7`: drop snake_case from both category parsers (no real input source)
+
+**Coverage sub-campsite closures verified**:
+- `coverage-fingerprint-tightening`: characterization-complete (20,771 presentations, root cause = 11 verify-only supply-chain antigens forced to use mandatory fingerprints; amendment forward-tracked). Honest closure — signs what's done, defers what's genuinely deferred.
+- `coverage-supply-chain-module`: path-traversal thread = antigen #23 (da6390a, 3 builders immune); mucosal thread = deferred to v0.3 pending `ConfigFileParse` MucosalKind variant (genuine taxonomy gap per naturalist; forward-tracked). Naturalist-ruling-A conflict resolution via notice 7b1dc592: coordinator-layer-lag explained the B-ruling relay.
+
+**Observer sign**: deposited verify-then-sign note, signed `dogfood/comprehensive-antigen-coverage`. Now at 2/3 (naturalist + observer). Pathmaker still pending.
+
+### Silence-taxonomy connection
+
+`SerdeDefaultMaskingStructLiteralBreak` (#22) is the concrete substrate instance for navigator's silence-taxonomy category 2 (silence-by-masking). The silence-taxonomy now has all three categories grounded in committed antigens:
+1. Silence-by-absence: `ParallelStateTrackersDiverge` (#18)
+2. Silence-by-masking: `SerdeDefaultMaskingStructLiteralBreak` (#22)
+3. Silence-by-missing-diagnostic: `SilentSemanticMismatchAtTrustBoundary` (#14) [F7 meta-instance]
+
+### Metrics
+
+- Commits since step 37: 4 (`fc69cfd`, `da6390a`, `490f071`, `dd6aaf7`)
+- Tests at HEAD: 923 passed, 0 failed (up from 922)
+- Expedition: 88+ campsites, `comprehensive-antigen-coverage` at 2/3
+- Observer signed: `dogfood/comprehensive-antigen-coverage` (2/3, waiting pathmaker)
+- Total dogfood antigens declared this expedition: #18-#23 (6 new antigens)

@@ -37,7 +37,7 @@
 
 use std::path::{Path, PathBuf};
 
-use antigen_macros::presents;
+use antigen_macros::{antigen_tolerance, presents};
 use serde::{Deserialize, Serialize};
 use syn::parse::Parse;
 use syn::visit::Visit;
@@ -966,6 +966,19 @@ impl Parse for ScanCrossreactiveArgs {
 /// A single antigen declaration discovered in source.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[presents(VecCardinalityMasqueradingAsSet)]
+#[antigen_tolerance(
+    VecCardinalityMasqueradingAsSet,
+    rationale = "Accepted: `category` is a Vec modeling a set (each AntigenCategory meaningful at \
+                 most once), so it structurally presents the masquerade shape. The duplicate-injection \
+                 risk is DEFENDED UPSTREAM at the declaration boundary — AntigenArgs::validate() in \
+                 antigen-macros rejects duplicate category variants at parse-time (fixed 30e10e6, pinned \
+                 by antigen_parser_duplicate_category_in_array_is_rejected). It cannot be marked \
+                 #[immune] here because the defense + witness live in the proc-macro crate, which the \
+                 scanned struct's crate cannot reference (dependency-cycle + proc-macro-self-application \
+                 constraints — see MarkerStructDeadCodeInBinary). So this scanned representation tolerates \
+                 the shape; the real guard is one layer up at macro-validate.",
+    until = "v0.3"
+)]
 pub struct AntigenDeclaration {
     /// The kebab-case antigen name from `#[antigen(name = "...")]`.
     pub name: String,
@@ -2434,6 +2447,15 @@ fn canonicalise_cycle(bare: &[&str]) -> Vec<String> {
 /// Callers should treat any `Err` as a hard scan failure and surface the
 /// error to the user.
 #[presents(ScannerBoundaryFalseNegative)]
+#[antigen_tolerance(
+    ScannerBoundaryFalseNegative,
+    rationale = "Accepted v0.2 limitation: the scan is a static-heuristic walk that surfaces only \
+                 explicitly-declared #[mucosal]/#[presents] sites — it cannot infer implicit trust \
+                 boundaries from parameter types or call sites, by design (ADR-006 recognition-not-design: \
+                 the scan recognizes declared structure, it does not guess). Adopters mark boundaries \
+                 explicitly; the false-negative on unmarked sites is the honest cost of not guessing.",
+    until = "v0.3"
+)]
 pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::Result<ScanReport> {
     let default_exclusions = ["target", ".git", "node_modules"];
     let exclusions = excluded_dirs.unwrap_or(&default_exclusions);
