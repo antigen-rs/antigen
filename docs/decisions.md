@@ -7030,3 +7030,255 @@ inventing a new attribute is design.
 - Does NOT implement `min_tier=` or the `partial` verdict (deferred to v0.3, L3)
 - Does NOT break existing `#[immune]` usage (deprecation warning only; migration guide above)
 
+---
+
+## [ADR-030] Aggregate and Temporal Properties Are Audit-Observed
+
+**Status**: Ratified 2026-05-27.
+
+**Participants**: antigen-dx-dogfood team (scientist primary drafter; aristotle Phase-1-8
+PASSED; naturalist biology PASSED; adversarial gate PASSED; scientist consistency review
+COMPLETE; all four ceremony signers).
+
+**Related**: ADR-029 (per-site defense verdicts), ADR-023 (deferred-defense declarations),
+ADR-024 (convergent/recurrent emergence).
+
+**Ceremony campsite**: `ceremony/ratify-adr-030-aggregate-temporal-observed`.
+
+### Problem
+
+The Antigen vocabulary includes annotation sites that make claims whose truth drifts after
+write-time, without the annotation changing. A developer writes `instances = 3` on a
+`#[recurrence_anchor]` today; tomorrow a fourth instance exists; the annotation still says 3.
+No compile error. No audit signal. The claim is silently false.
+
+Five instances of this pattern have been identified and verified against substrate:
+
+**A. `recurrence_anchor.instances`** — the author declares how many instances they know of.
+The audit can compute the count independently (workspace-wide cross-reference of `#[itch]`
+anchors to `#[crystallize]` sites). The declared count drifts silently as instances accumulate.
+Exterior consulted by fix: workspace instance count.
+
+**B. `chronic.status`** — the author writes a prose assessment ("this is chronic, status:
+worsening"). No re-confirmation clock. The assessment can be written once and never revisited
+while the referent evolves — the antigenic-drift shape (bytes unchanged, referent changed).
+Exterior consulted by fix: wall-clock date of last status review.
+
+**C. suppression density** — no individual site declares the workspace-level aggregate of
+deferred-defense declarations. The tolerance budget is bidirectionally pathological:
+too many suppressions = immunodeficiency (nobody notices the accumulation); too few = healthy
+but possibly overly rigid. The audit can compute density per antigen and warn on threshold.
+Exterior consulted by fix: per-antigen accumulation count across the workspace.
+
+**D. `orient-until-date`** (REFERENCE IMPLEMENTATION — SHIPPED `bf60e5d`).
+A `#[orient]` declaration asserts its deferral is warranted until a declared date. Time passes;
+the date elapses; the assertion is now false. The annotation is unchanged. Fix: observe
+current date, compare to `until`, emit `OrientPendingActionRequired` if elapsed.
+This pattern is the reference implementation for all other instances.
+
+**E. `immunosuppress.duration_cap`** — the author writes `duration_cap = 30` (days) to bound
+how long a suppression may last. The claim is: "this suppression expires within 30 days from
+`since`." Fix: add `duration_cap: Option<u64>` and `since: Option<String>` as typed fields to
+`DeferredDefense`, populate during scan push, add duration-check in evaluator comparing
+`(today - since_date).num_days()` to cap. Adversarial confirmed (`d72dacf`).
+Status: SHIPPED (commit `ac75c10`) — typed fields landed in `scan.rs`; emission path wired in
+`evaluate_deferred_defense_hint()`; `ImmunosuppressDurationCapExceeded` now has an active
+emission path; ATK documentation tests inverted to assert correct behavior.
+
+### Unifying Principle
+
+**Any claim whose truth can drift after write-time AND HAS A CONSULTABLE EXTERIOR must be
+audit-observed.**
+
+Both conjuncts are required (aristotle OQ1 refinement, Phase-7 stability check): truth-drift
+is NECESSARY but NOT SUFFICIENT for observation-eligibility. A consultable exterior is the
+second conjunct. Without it, the principle demands observing the unobservable — some drift-prone
+claims correctly stay declared because no exterior exists (Tier-3, see below). The §Mechanics
+criteria already encode the fix; this principle reconciles with them.
+
+The principle distinguishes three tiers of drift-prone claims (aristotle OQ1 three-tier
+sharpening, substrate-verified against all 27 arg-structs):
+
+- **Tier-1 (directly-observable)**: structured claim WITH a machine-consultable exterior.
+  Exterior = wall-clock date or workspace-count. Examples: `orient.until`,
+  `recurrence_anchor.instances`, `immunosuppress.duration_cap+since`. The audit consults the
+  exterior directly. Must be observed.
+
+- **Tier-2 (proxy-observable)**: prose claim WITH a temporal sibling. The prose's SEMANTIC
+  TRUTH is not audit-consultable (no exterior judges whether a rationale is still accurate),
+  BUT the temporal sibling gives a PROXY exterior: the staleness of the review-date is observable
+  even when the prose truth is not. Examples: `chronic.status + status_reviewed_at` (proposed),
+  `immunosuppress.rationale + until`. Prose is NEVER directly-observable; its only exterior is
+  a review-date-staleness proxy. Observation targets the proxy, never the semantic content.
+
+- **Tier-3 (stays-declared, no exterior)**: prose claim, NO temporal sibling, no semantic
+  exterior exists. Examples: `saturate.description`, `itch.description`, `crystallize.summary`.
+  These ARE drift-prone (a description can become false as the pattern evolves), but they have
+  NO exterior the audit can consult — not even a proxy. By criterion-2 they correctly stay
+  declared. They are NOT a hole in the axis — they are the axis correctly classifying
+  drift-prone-but-unobservable claims as declaration-stable-by-necessity. A Tier-3 field can be
+  PROMOTED to Tier-2 by adding a `reviewed_at` date sibling — a design decision per primitive,
+  not forced by the axis.
+
+The principle establishes: silence on a Tier-1 or Tier-2 claim is the failure class; Tier-3
+claims remain declared and the distinction is honest (not a gap).
+
+This is complementary to ADR-029's principle (immunity is OBSERVED not declared), applied
+to the aggregate and temporal class:
+
+| ADR-029 | ADR-030 |
+|---------|---------|
+| Per-site defense verdicts | Aggregate + temporal drift |
+| "Is this site defended?" | "Is this claim still true?" |
+| Defense intent declared; verdict observed | Claim declared; currency observed |
+| Exterior: test registry (code-tier), sidecar (substrate-tier) | Exterior: wall-clock, workspace count, accumulation |
+
+ADR-029 inverted one claim class (per-site immune verdict → observed by audit). ADR-030
+covers the complementary emergent class: system-level and time-sensitive properties that
+only the audit can observe.
+
+**Locus-dispatch connection** (aristotle OQ1): the "exterior the audit consults" is the
+WITNESS-LOCUS (wall-clock / workspace-scan / sidecar / git-metadata — the same loci aristotle
+found in the detectability collapse-test and applied in ADR-031 OQ4). ADR-030's
+observation-eligibility is the same structure as ADR-031's revocation-verification: both are
+observed-not-declared AT A LOCUS; both have a residual class with NO locus (ADR-031:
+`RevocationCannotBeVerified` near-empty residual; ADR-030: Tier-3 prose stays-declared).
+
+Pathmaker's independent framing (camp notice `a89ac198`, 2026-05-27) arrived before this ADR
+draft: "ANY claim whose truth can drift after write-time should be audit-OBSERVED, not
+site-DECLARED." This independent convergence from the implementation side confirms the
+unifying principle; the conjunct refines it to be precision-complete.
+
+### Decision
+
+**Aggregate and temporal properties must be audit-observed, not declared-authoritative.**
+
+Concrete resolutions per instance:
+
+**A. `recurrence_anchor.instances` observation**: Add audit cross-reference: for each
+`#[recurrence_anchor]`, count actual `#[crystallize]` sites that reference it. If
+`declared_instances != observed_count`, emit `RecurrenceAnchorInstanceCountMismatch` hint.
+The declared count remains (it is the author's view at write-time; valuable as documentation
+of what the author knew). The audit's count is authoritative for the verdict; mismatch is a
+finding, not a build break.
+
+**B. `chronic.status` staleness observation**: Add `status_reviewed_at = "YYYY-MM-DD"` to
+`#[chronic]` args. Make it optional initially; audit emits `ChronicStatusReviewOverdue` when
+`status_reviewed_at` is present and the date is older than a configurable threshold (default
+90 days). When absent, audit emits `ChronicStatusNoReviewDate` (advisory). The prose status
+stays declared (the author's assessment). The review date is the freshness signal the audit
+observes.
+
+**C. suppression density observation**: Add a workspace-level density check to
+`audit_deferred_defenses()`: for each antigen, count active deferred-defense declarations;
+if count exceeds configurable threshold (default 3 per antigen), emit `SuppressionDensityHigh`.
+The threshold is workspace-configurable (`.antigen.toml` or similar). This closes the
+tolerance-budget observability gap: the audit knows the aggregate; it must surface it.
+
+**D. `orient-until-date` (ALREADY SHIPPED — reference implementation)**: `#[orient]` now
+observes `until` against wall-clock date. `OrientPendingActionRequired` emits when elapsed.
+This is the reference implementation for B and E.
+
+**E. `immunosuppress.duration_cap` observation (SHIPPED — commit `ac75c10`)**: The three-step
+fix landed during the ADR ceremony arc: (1) `duration_cap: Option<u64>` and `since: Option<String>`
+added as typed fields to `DeferredDefense` (scan.rs); (2) typed fields populated during scan
+push; (3) `evaluate_deferred_defense_hint()` computes `(today - since).num_days()` and compares
+to `cap`. Emits `ImmunosuppressDurationCapExceeded` when exceeded. Adversarial documentation
+tests were inverted to assert correct behavior. Instance E is now a second reference
+implementation alongside D.
+
+### Mechanics
+
+**Observation criteria.** A property is OBSERVATION-ELIGIBLE when ALL of:
+
+1. It is declared on an annotation site.
+2. There exists an exterior the audit can consult without network access or user-supplied
+   code (wall-clock, workspace scan, sidecar files, git metadata).
+3. The exterior can be consulted at `cargo antigen audit` time with bounded cost.
+4. Disagreement between the declaration and the exterior constitutes a meaningful finding.
+
+Properties that fail any criterion stay declared.
+
+**Placement criterion** (naturalist OQ2 finding, biology-grounded via PMID 12819486): The
+audit should observe at the CHEAPEST point that catches the failure-class, not everywhere
+an exterior exists:
+
+- **Per-site observation**: appropriate when a site-local check suffices (each site is checked
+  in isolation at bounded cost). Examples: `orient-until` per-site date check;
+  `immunosuppress.duration_cap` per-site elapsed-days check.
+- **Aggregate/census observation**: appropriate ONLY when the property is genuinely emergent
+  (no single site holds it; a per-site check CANNOT capture it). Examples: suppression density
+  (no tolerizing site perceives systemic immunosuppression level); recurrence_anchor.instances
+  count (no single anchor knows the workspace count).
+
+Observe per-site when a site-local check suffices; reserve census/aggregate for
+genuinely-emergent properties. Biology never runs an aggregate census when a cheaper per-site
+check catches the same failure (PMID 12819486 — central-once vs peripheral-continuous is the
+biology's cost-bounded placement discipline).
+
+**Hint posture.** All five instances produce ADVISORY hints (non-blocking by default). The
+pattern matches `audit_deferred_defenses()` today: a finding is surfaced, not a build break.
+Adopters can gate on hint presence via `--strict` for the hints they care about (future
+extension).
+
+**Tier-2 vs Tier-1 asymmetry** (adversarial OQ3 gate finding, 2026-05-27): Tier-2
+proxy-observation (e.g. `status_reviewed_at` staleness) is structurally weaker than Tier-1
+direct-observation (e.g. `orient.until` elapsed-date check). Tier-1 proves the CLAIM IS FALSE
+(the deadline elapsed; the count diverged). Tier-2 proves the FORM of re-examination was
+present (a date was recorded), NOT the SUBSTANCE (that review actually occurred). This is not
+a flaw — it is the honest semantic gap documented per ADR-029 §honest semantic gap. The
+advisory hint tier is the correct posture for Tier-2 findings PRECISELY because of this
+weakness: an advisory surfaces the finding without asserting substance-of-review it cannot
+verify. Adopters choosing to gate on Tier-2 hints via `--strict` should understand they are
+gating on form, not substance.
+
+### Gate outcomes (ceremony complete)
+
+**OQ1 — PASSED** (aristotle Phase-1-8, 2026-05-27): The observation-eligible /
+declaration-stable axis HOLDS across all 27 arg-structs. No primitive breaks it. Three
+refinements supplied: (1) principle-conjunct fix (drift + consultable-exterior both required,
+not drift alone); (2) three-tier taxonomy (direct/proxy/stays-declared); (3) Tier-3 → Tier-2
+promotion mechanism (add a `reviewed_at` sibling to promote any Tier-3 prose field). Biology
+grounding confirmed: the exterior-locus IS the witness-locus of ADR-029/031 — the three ADRs
+share one locus-dispatch frame.
+
+**OQ2 — PASSED** (naturalist biology, 2026-05-27): Wall-clock / accumulation / workspace-count
+exterior families each have clean biology cognates (kinetics/FcRn-clock, tolerance-budget-as-fold,
+clonal-census) with constraints. Additional finding: the observation PLACEMENT criterion
+(cost-bounded per-site vs aggregate-census) is grounded by PMID 12819486 (central-once vs
+peripheral-continuous tolerance). All 5 instances correctly placed.
+
+**OQ3 — PASSED** (adversarial, 2026-05-27): Timestamp-washing attack acknowledged as the
+Tier-2 proxy's known semantic gap — the audit observes the declared date, not that review
+actually occurred. Posture: observation is better than silence; the semantic gap is documented
+openly per ADR-029 §honest semantic gap. Three additional angles probed: (1) tier-promotion
+racing: Tier-3 promoted to Tier-2 correctly gets proxy-observable, not Tier-1 strength;
+(2) suppression density threshold gaming: splitting across annotations to stay under threshold
+is an acknowledged limitation (advisory, configurable); (3) `since=None` in immunosuppress
+silently skips duration_cap check (separate gap, separately documented). Advisory added to
+§Mechanics hint posture: Tier-2 observation proves form, not substance.
+
+### What this ADR does NOT do
+
+- Does NOT make any aggregate property a build-breaking finding without explicit `--strict` opt-in
+- Does NOT invent a "review workflow" — the audit observes exteriors; it does not enforce process
+- Does NOT cover per-site defense verdicts (ADR-029's domain)
+- Does NOT cover fingerprint-structural claims (ADR-009/ADR-010's domain)
+- Does NOT claim to fully close the semantic gap (a declared `status_reviewed_at` proves the
+  author set the date, not that they actually reviewed the status)
+
+### Evidence citations
+
+- Instance D reference implementation: `bf60e5d` (orient-until-date fix)
+- Instance E shipped: `ac75c10` (ImmunosuppressDurationCapExceeded emission path + typed fields)
+- Instance E adversarial confirmation: `d72dacf` (ATK-IMMUNOSUPPRESS-DURATION-CAP-UNREACHABLE)
+- Pathmaker independent convergence: camp notice `a89ac198` (2026-05-27)
+- Scientist validation: campsite `forward/adr030-aggregate-temporal-observed` (5 validated instances)
+- Naturalist OQ2 biology gate: PMID 36726033 (Pyzik, *Nat Rev Immunol* 2023 — FcRn-controlled
+  half-life); PMID 12819486 (Wekerle, *Transplantation* 2003 — central vs peripheral tolerance
+  as distinct mechanisms)
+- Adversarial OQ3 gate: camp note `8ca8ccf5` (2026-05-27 — timestamp-washing + tier-promotion-racing
+  + density-gaming probes; PASSED)
+- Locus-dispatch synthesis: camp notice `87bb2f0b` (navigator, 2026-05-27 — shared frame across
+  ADR-029/030/031)
+
