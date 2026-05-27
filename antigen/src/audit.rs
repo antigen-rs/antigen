@@ -321,8 +321,10 @@ pub enum AuditHint {
     // --- Orient hints ---
     /// `#[orient]` present; orientation in progress.
     OrientActive,
-    /// `#[orient]` past its deadline (if `until` added in future versions).
-    /// Currently `#[orient]` does not require `until`, so this is reserved.
+    /// `#[orient]` past its required `until` deadline (ADR-023: `until` is
+    /// mandatory for orient). The orientation period elapsed without the
+    /// failure-class being resolved — escalates to action-required. Emitted by
+    /// `audit_deferred_defenses` once the until-date passes.
     OrientPendingActionRequired,
 
     // --- Cross-cutting deferred-defense hint ---
@@ -1005,7 +1007,8 @@ pub fn audit_deferred_defenses(
             }
             AuditHint::AnergyCostimulationNotArrived
             | AuditHint::ImmunosuppressExpired
-            | AuditHint::PoxpartyOutcomePending => {
+            | AuditHint::PoxpartyOutcomePending
+            | AuditHint::OrientPendingActionRequired => {
                 expired_count += 1;
             }
             AuditHint::AnergyStale => {
@@ -1067,7 +1070,22 @@ fn evaluate_deferred_defense_hint(
                 None => AuditHint::PoxpartyActive,
             }
         }
-        DeferredDefenseKind::Orient => AuditHint::OrientActive,
+        DeferredDefenseKind::Orient => {
+            // ADR-023: `#[orient]` REQUIRES `until` (the orientation-period
+            // horizon). The audit OBSERVES that date: once it has passed, the
+            // orientation period elapsed without the failure-class being
+            // resolved — surface OrientPendingActionRequired loudly rather than
+            // perpetually reporting OrientActive (a deferred defense whose
+            // deadline arrived must escalate, not stay silently green).
+            match parse_iso_date(decl.until.as_deref().unwrap_or("")) {
+                Some(until) if until >= today => AuditHint::OrientActive,
+                Some(_) => AuditHint::OrientPendingActionRequired,
+                // No parseable date: the macro parse-gate requires a valid
+                // `until`, so this only arises for hand-built/legacy scan
+                // records; treat as active (don't fabricate an escalation).
+                None => AuditHint::OrientActive,
+            }
+        }
     }
 }
 
@@ -4397,5 +4415,58 @@ mod tests {
             out.presentation_verdicts
         );
         assert_eq!(out.presentation_verdicts[0].antigen_type, "ExplicitClass");
+    }
+
+    // ========================================================================
+    // ADR-023: #[orient] until-date observed (forward/time-bound-claim-staleness)
+    //
+    // Orient REQUIRES `until`; the audit must OBSERVE it. Before this fix, the
+    // Orient arm unconditionally emitted OrientActive, ignoring the deadline —
+    // a deferred defense whose horizon arrived stayed silently green.
+    // ========================================================================
+
+    fn orient_decl(until: &str) -> crate::scan::DeferredDefense {
+        crate::scan::DeferredDefense {
+            kind: crate::scan::DeferredDefenseKind::Orient,
+            antigen_type: Some("SomeClass".to_string()),
+            text: String::new(),
+            until: Some(until.to_string()),
+            expected_co_stimulation: None,
+            signed_by: None,
+            see: Vec::new(),
+            file: PathBuf::from("src/lib.rs"),
+            line: 1,
+            item_kind: "fn".to_string(),
+            item_target: crate::scan::ItemTarget::Fn("t".to_string()),
+        }
+    }
+
+    #[test]
+    fn orient_future_until_is_active() {
+        let mut report = ScanReport::default();
+        report.deferred_defenses.push(orient_decl("2999-12-31"));
+        let out = audit_deferred_defenses(&report, 30);
+        assert_eq!(out.audits.len(), 1);
+        assert_eq!(out.audits[0].hint, AuditHint::OrientActive);
+        assert_eq!(out.active_count, 1);
+        assert_eq!(out.expired_count, 0);
+    }
+
+    #[test]
+    fn orient_past_until_escalates_to_action_required() {
+        // The orientation horizon passed without resolution → the audit observes
+        // it and escalates, rather than perpetually reporting OrientActive.
+        let mut report = ScanReport::default();
+        report.deferred_defenses.push(orient_decl("2000-01-01"));
+        let out = audit_deferred_defenses(&report, 30);
+        assert_eq!(out.audits.len(), 1);
+        assert_eq!(
+            out.audits[0].hint,
+            AuditHint::OrientPendingActionRequired,
+            "a past orient until-date must escalate to OrientPendingActionRequired, \
+             not stay OrientActive (ADR-023: orient observes its required deadline)"
+        );
+        assert_eq!(out.expired_count, 1);
+        assert_eq!(out.active_count, 0);
     }
 }
