@@ -70,7 +70,10 @@ mod parse;
 /// # Arguments
 ///
 /// - `name = "..."` (required) — kebab-case identifier for the failure-class
-/// - `fingerprint = "..."` (required) — structural pattern (see ADR-010)
+/// - `fingerprint = "..."` (optional; required for scan-locatable antigens) —
+///   structural pattern (see ADR-010). Omit for verify-only antigens whose
+///   detection-model is external-substrate (supply-chain / VCS-info-loss), per
+///   ADR-009 Amendment 1 — they have no syn-scannable source surface.
 /// - `family = "..."` (optional) — parent class, typically one of the 8
 ///   first-principles failure classes
 /// - `summary = "..."` (optional) — human-readable description

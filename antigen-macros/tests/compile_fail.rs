@@ -26,4 +26,10 @@
 fn compile_fail_fixtures() {
     let t = trybuild::TestCases::new();
     t.compile_fail("tests/ui/*.rs");
+    // ui_pass/ holds fixtures that MUST compile successfully — currently the
+    // ADR-009 Amendment 1 verify-only case (`#[antigen(name = "x")]` with no
+    // fingerprint). Without a `t.pass` harness these would be inert; this makes
+    // the "missing fingerprint compiles" contract load-bearing (it replaced the
+    // old ui/missing_fingerprint.rs compile_fail fixture).
+    t.pass("tests/ui_pass/*.rs");
 }
