@@ -246,26 +246,17 @@ checksum = "swapped-malicious-hash"
     // ATTACK: corrupt sidecar should NOT silently become NoAttestation
     let after_corruption = evaluate_content_hash_matches(tmp.path(), "serde", "1.0.197");
 
-    // FAILING RIGHT NOW: current impl returns NoAttestation (silent downgrade)
-    // EXPECTED: Some error state (like ContentHashState::SidecarMalformed)
-    //
-    // The bug: load_content_hash_record uses .ok() to discard malformed JSON.
-    // This converts a MISMATCH (high-severity alert) into NoAttestation (warning)
-    // when an attacker corrupts the sidecar file.
+    // (Fixed; malformed JSON now correctly does NOT return NoAttestation.)
+    // If this fails, load_content_hash_record reverted to using .ok() to
+    // silently discard malformed JSON (downgrading Mismatch->NoAttestation).
     assert_ne!(
         after_corruption,
         ContentHashState::NoAttestation,
         "ATK-SC-2-A: Corrupted content-hash sidecar must NOT silently become \
          NoAttestation. A Mismatch (error-level) was established before corruption; \
-         corrupting the sidecar to invalid JSON silently downgrades it to \
-         NoAttestation (warning). \
-         \
-         Fix: load_content_hash_record should return a Result<Option<ContentHashRecord>> \
-         and evaluate_content_hash_matches should map malformed JSON to a \
-         SidecarMalformed state (like evaluate_dep_attested already does). \
-         \
-         Contrast: evaluate_dep_attested correctly surfaces SidecarMalformed. \
-         The inconsistency is the bug."
+         corrupting the sidecar to invalid JSON must not silently downgrade it to \
+         NoAttestation (warning). If this fails, load_content_hash_record reverted \
+         to .ok() discarding malformed JSON."
     );
 }
 
