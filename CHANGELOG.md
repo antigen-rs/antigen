@@ -5,15 +5,21 @@ All notable changes to the antigen project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased — v0.2.0-alpha.4]
+## [Unreleased]
 
-Internal development state for the v0.2 line (not published to crates.io; no tag).
-This section reconciles the v0.2.0-alpha.1 → alpha.4 development arc into one
-coherent surface. The full v0.2 surface is complete: five stdlib families
-(deferred-defense, supply-chain, convergent-evidence, recurrent-emergence,
-mucosal-boundary) plus the agentic-coordination and dogfood families; the
-ADR-028 `AntigenCategory` taxonomy with G1/G2/G3 enforcement; and antigen's own
-codebase dogfooding the primitives at real failure sites. 922 tests.
+## [0.2.0-beta.1] — 2026-05-28
+
+**First public release of the v0.2 line** — the first published to crates.io
+since `v0.1.0-rc.3`, consolidating the internal `alpha.1 → alpha.4` development
+arc into one coherent, feature-complete surface. The v0.2 feature set is complete
+for this beta; further surface lands **additively (non-breaking)** in later betas
+en route to `0.2.0`. Shipped: five stdlib families (deferred-defense,
+supply-chain, convergent-evidence, recurrent-emergence, mucosal-boundary) plus the
+agentic-coordination and dogfood families; the ADR-028 `AntigenCategory` taxonomy
+with G1/G2/G3 enforcement; the ADR-029 observe-don't-declare model
+(`#[defended_by]` / `#[presents(requires=)]`, with `#[immune]` deprecated) and its
+ADR-030/031/032 follow-ons; and antigen's own codebase dogfooding the primitives
+at real failure sites.
 
 ### Added — stdlib families
 
@@ -219,6 +225,16 @@ codebase dogfooding the primitives at real failure sites. 922 tests.
 - **Cross-crate mucosal delegates** — `DelegateCrossCrateResolutionGap`: the
   handler-kinds index is intra-crate only; cross-crate delegates false-positive as
   target-missing. Residual risk at v0.2; the multi-crate scan pass is v0.3+.
+- **ADR-029 multi-channel verdict precedence** — a presents-site that carries
+  *both* a `requires =` substrate-witness predicate that fails (sidecar
+  absent/stale) *and* a passing `#[defended_by]` code witness is currently
+  reported as `Defended`, masking the substrate gap. Because the verdict resolves
+  to the highest available tier, the `SubstrateGap` signal — the whole point of
+  declaring `requires =` to catch drift at CI time — is never surfaced for that
+  site. The ADR-029 verdict matrix is silent on the simultaneous-multi-channel
+  case; resolution (likely surfacing `SubstrateGap` alongside or in precedence
+  over `Defended`) is queued as an ADR-029 amendment for a later beta. Tracked as
+  `pv-requires-masked-by-code-witness`.
 
 ---
 

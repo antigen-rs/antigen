@@ -23,7 +23,7 @@ You should see:
 
 ```
 $ cargo antigen --version
-cargo-antigen-antigen 0.1.0-rc.3
+cargo-antigen-antigen 0.2.0-beta.1
 
 $ cargo antigen --help
 The "antigen" subcommand of cargo
@@ -71,7 +71,7 @@ That's clean. Antigen ran; your project has no antigen surface yet. No red flags
 ```toml
 # Cargo.toml
 [dependencies]
-antigen = "=0.1.0-rc.3"
+antigen = "=0.2.0-beta.1"
 ```
 
 Run `cargo build` to fetch and compile. Antigen's runtime cost is zero — the macros are identity transforms; no code generation, no runtime overhead.
@@ -124,9 +124,9 @@ Scanning workspace: .
 Scanned 42 files, found 7 antigen-related declarations:
   - 1 antigen declaration
   - 0 explicit #[presents] markers
-  - 6 fingerprint matches (unmarked sites)
+  - 6 fingerprint matches (candidate sites — see below)
   - 0 tolerated sites (#[antigen_tolerance])
-  - 0 immunity claims
+  - 0 #[defended_by] declarations
   - 0 parse failures
 
 6 fingerprint match(es) — structurally similar to a declared antigen:
@@ -135,9 +135,12 @@ Scanned 42 files, found 7 antigen-related declarations:
   ./src/resource.rs:117  PanickingInDrop on impl
   ...
 
-To address each site, use the antigen type shown above:
-  #[immune(<antigen>, witness = ...)] on the same item,
-  OR #[antigen_tolerance(<antigen>, rationale = "...")]
+  These are CANDIDATES, not failures. If a site genuinely presents the
+  failure-class, acknowledge it:
+    #[presents(<antigen>)] to mark the site explicitly,
+      then defend it: #[defended_by(<antigen>)] on a test (code-tier), or
+      #[presents(<antigen>, requires = ...)] for substrate-witness evidence,
+    #[antigen_tolerance(<antigen>, rationale = "...")] to document intent.
 ```
 
 The **fingerprint matches** are sites in your code that look structurally like the failure class you declared. Each one is a decision-point.
@@ -150,9 +153,9 @@ If your codebase doesn't have any matching sites, the output is clean. Either wa
 
 You declared a named failure-class with a structural fingerprint. `cargo antigen scan` walks your codebase and tells you every site that structurally resembles the failure. The lesson — "drop impls must not panic" — now lives in your codebase as durable substrate, not in your head.
 
-For each surfaced site, you have three choices:
+For each surfaced site, you have three choices. Note the model: a site never *claims* "I am immune." You mark the site with `#[presents]` and wire up evidence; `cargo antigen audit` then **observes** how strong the defense is (immunity is observed, not declared).
 
-- **`#[immune(PanickingInDrop, ...)]`** — claim the site is protected. Quick test: **can a test execute the thing you're defending?** Yes → `witness = some_test` (a test/proptest/proof exercises the behavior — e.g. drop and check no panic); No → `requires = signers(...)` or `requires = ratified_doc(...)` (evidence lives outside the code: a stale doc, an unpinned dep, an un-reviewed discipline). Full substrate-witness path: [`tutorial.md`](tutorial.md).
+- **Mark the site and defend it.** Put `#[presents(PanickingInDrop)]` on the site, then provide evidence. Quick test: **can a test execute the thing you're defending?** Yes → write a test that exercises the behavior (e.g. drop and check no panic) and annotate it `#[defended_by(PanickingInDrop)]` (code-tier defense). No → the evidence lives outside the code (a ratified doc, a pinned dep, a signed discipline), so attach it on the site itself with `#[presents(PanickingInDrop, requires = ratified_doc(...))]` (or `requires = signers(...)`, etc.). Full substrate-witness path: [`tutorial.md`](tutorial.md).
 - **`#[antigen_tolerance(PanickingInDrop, rationale = "...")]`** — acknowledge the match is intentional or accepted, with required justification
 - **Refactor** — eliminate the failure-class shape
 
@@ -162,20 +165,26 @@ That's the floor. Antigen meets you at this floor and grows with your practice.
 
 ## Step 6 — Audit your defenses (optional, 1 minute)
 
-If you mark sites with `#[immune(...)]`, audit the workspace to see how strong each defense actually is:
+Once you've wired `#[presents]` sites to `#[defended_by]` tests (or `requires =` substrate evidence), audit the workspace. Audit doesn't accept immunity claims — it **observes** the evidence behind each presents-site and reports a per-site verdict:
 
 ```sh
 cargo antigen audit
 ```
 
-Each immunity claim is classified by **witness tier**:
+Each presents-site gets one of three verdicts:
+
+- **`defended`** — evidence resolved; the verdict carries the **witness tier** of that evidence (see below)
+- **`undefended`** — the site presents the failure-class but has no `#[defended_by]` witness and no resolving `requires =` predicate
+- **`substrate-gap`** — a `requires =` predicate was declared but its substrate is missing or stale (e.g. an attestation sidecar absent or out of date)
+
+A `defended` verdict is graded by **witness tier**, so the strength of evidence is honest and visible:
 
 - **`Reachability`** — the witness function is reachable from a test entry-point
 - **`Execution`** — the witness function is actually exercised by tests
 - **`FormalProof`** — the witness is a formal proof artifact (e.g., a Kani harness)
-- **`None`** — no *passing* evidence: either no witness resolved, or a `requires =` predicate was evaluated and failed (the `audit_hint` says which)
+- **`None`** — no *passing* evidence resolved
 
-This makes the strength of every defense honest and visible. No more "we have tests" hand-waving — audit tells you which sites have *what kind* of evidence behind them.
+No more "we have tests" hand-waving — audit tells you which sites have *what kind* of evidence behind them.
 
 See [`witness-tiers.md`](witness-tiers.md) for the full witness model.
 
