@@ -6281,10 +6281,9 @@ mod tests {
             r#"item = struct, doc_contains("error")"#,
         ));
         // Child has only doc_contains, no item kind: wider than parent in item dimension.
-        report.antigens.push(antigen_with_fp(
-            "C",
-            r#"doc_contains("error")"#,
-        ));
+        report
+            .antigens
+            .push(antigen_with_fp("C", r#"doc_contains("error")"#));
         report.lineage_edges.push(lineage_edge("C", "P"));
 
         let out = audit_lineage_fidelity(&report);
