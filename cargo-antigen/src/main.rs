@@ -2405,7 +2405,10 @@ fn print_human_report(report: &scan::ScanReport, unaddressed: &[scan::Unaddresse
             report.tolerances.len()
         );
     }
-    println!("  - {} immunity claims", report.immunities.len());
+    println!(
+        "  - {} #[defended_by] declarations",
+        report.immunities.len()
+    );
     if !report.parse_failures.is_empty() {
         println!(
             "  - {} parse failures (see --format json for details)",
@@ -2771,8 +2774,9 @@ fn print_fingerprint_matches(report: &scan::ScanReport) {
         "  These are CANDIDATES, not failures. If a site genuinely presents the \
          failure-class, acknowledge it:"
     );
-    println!("    #[presents(<antigen>)] to mark explicitly,");
-    println!("    #[immune(<antigen>, witness = ...)] if defended,");
+    println!("    #[presents(<antigen>)] to mark the site explicitly,");
+    println!("      then defend it: #[defended_by(<antigen>)] on a test (code-tier), or");
+    println!("      #[presents(<antigen>, requires = ...)] for substrate-witness evidence,");
     println!("    #[antigen_tolerance(<antigen>, rationale = \"...\")] to document intent.");
     println!();
 }
@@ -2833,7 +2837,11 @@ fn print_unaddressed(unaddressed: &[scan::UnaddressedPresentation]) {
     }
     println!();
     println!("To address each site, use the antigen type shown above:");
-    println!("  #[immune(<antigen>, witness = ...)] on the same item, OR #[antigen_tolerance(<antigen>, rationale = \"...\")]");
+    println!("  #[defended_by(<antigen>)] on a test that exercises the defense (code-tier),");
+    println!(
+        "  OR #[presents(<antigen>, requires = ...)] on the site for substrate-witness evidence,"
+    );
+    println!("  OR #[antigen_tolerance(<antigen>, rationale = \"...\")] to document intent.");
 }
 
 #[derive(serde::Serialize)]
