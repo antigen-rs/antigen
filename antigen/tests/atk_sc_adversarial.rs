@@ -273,8 +273,7 @@ fn atk_sc7_empty_all_of_via_serde_bypasses_vacuous_pass() {
     let empty_all_of_json = r#"{"kind":"all_of","children":[]}"#;
 
     // Verify serde successfully deserializes the empty all_of today (the bypass).
-    let parsed: Result<antigen_attestation::Predicate, _> =
-        serde_json::from_str(empty_all_of_json);
+    let parsed: Result<antigen_attestation::Predicate, _> = serde_json::from_str(empty_all_of_json);
     assert!(
         parsed.is_ok(),
         "ATK-SC-7: empty all_of bypasses serde validation — from_str succeeds \
