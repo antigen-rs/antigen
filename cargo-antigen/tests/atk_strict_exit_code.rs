@@ -268,16 +268,17 @@ pub fn tolerating_fn() -> u32 {
     std::fs::write(src_dir.join("lib.rs"), lib).unwrap();
 
     let code = run_audit(&src_dir, /*strict=*/ true);
-    // CURRENT BROKEN BEHAVIOR: audit --strict exits 0 for orphaned tolerances.
-    // The gate lives in scan --strict but is absent from audit --strict.
-    // An adopter relying on `cargo antigen audit --strict` for CI cannot catch this.
+    // FIXED: audit --strict is a superset of scan --strict and exits 1 for
+    // orphaned tolerances. The audit is the CI integration point — it must
+    // catch every structural defect scan would. The gate lives in run_audit
+    // alongside the existing state-7 / witness-tier / undefended-verdicts
+    // gates; scan_report is already in scope there. If this regresses (exit 0):
+    // the orphaned-tolerance gate was removed from run_audit's strict block.
     assert_eq!(
-        code, 0,
-        "ATK-STRICT-5 (CURRENT BEHAVIOR — missing gate): `cargo antigen audit --strict` \
-        exits 0 for an orphaned tolerance. The orphaned-tolerance gate is only in \
-        `cargo antigen scan --strict`, not `audit --strict`. Audit and scan have \
-        DIFFERENT --strict implementations (run_audit vs run_scan in main.rs). \
-        If this assertion FAILS (exit 1): the audit --strict was updated to include \
-        the orphaned-tolerance gate — invert the assertion and update this comment."
+        code, 1,
+        "ATK-STRICT-5 (FIXED): `cargo antigen audit --strict` must exit 1 for an \
+        orphaned tolerance — audit --strict is a superset of scan --strict. A zero \
+        exit means the structural-defect gates were dropped from run_audit's strict \
+        block."
     );
 }

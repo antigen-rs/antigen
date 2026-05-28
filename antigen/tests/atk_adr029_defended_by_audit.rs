@@ -1711,6 +1711,7 @@ fn atk_g2_25_cross_crate_code_immunity_silences_silence_no_witness_advisory() {
 // defense (strict equality) — on the SAME dep antigen. Shows the asymmetry.
 // ========================================================================
 #[test]
+#[allow(clippy::similar_names)] // parallel scenario A/B naming is deliberate
 fn atk_g2_26_immunity_none_wildcard_vs_defense_strict_equality_asymmetry() {
     use antigen::audit::{audit_category, AuditHint};
     use antigen::category::AntigenCategory;
@@ -1744,10 +1745,10 @@ fn atk_g2_26_immunity_none_wildcard_vs_defense_strict_equality_asymmetry() {
         structural_fingerprint: String::new(),
     });
     let report_a_result = audit_category(&report_a);
-    let scenario_a_has_any_immunity = !report_a_result
-        .audits
-        .iter()
-        .any(|ca| ca.hints.contains(&AuditHint::AntigenWitnessShapeMismatchForSilenceNoWitness));
+    let scenario_a_has_any_immunity = !report_a_result.audits.iter().any(|ca| {
+        ca.hints
+            .contains(&AuditHint::AntigenWitnessShapeMismatchForSilenceNoWitness)
+    });
 
     // SCENARIO B: intra-workspace defense for the SAME dep-stamped antigen.
     // defense.canonical_path = None (intra-workspace, unstamped)
@@ -1776,10 +1777,10 @@ fn atk_g2_26_immunity_none_wildcard_vs_defense_strict_equality_asymmetry() {
     let report_b_result = audit_category(&report_b);
     // Strict equality: None defense != Some("dep@1.0") decl → defense NOT counted.
     // SA antigen with no counted witnesses → silence-no-witness advisory fires.
-    let scenario_b_no_witness_advisory = report_b_result
-        .audits
-        .iter()
-        .any(|ca| ca.hints.contains(&AuditHint::AntigenWitnessShapeMismatchForSilenceNoWitness));
+    let scenario_b_no_witness_advisory = report_b_result.audits.iter().any(|ca| {
+        ca.hints
+            .contains(&AuditHint::AntigenWitnessShapeMismatchForSilenceNoWitness)
+    });
 
     // DOCUMENT THE ASYMMETRY:
     // Scenario A: intra-workspace immunity (None) DOES contribute to dep antigen's G2 check.
