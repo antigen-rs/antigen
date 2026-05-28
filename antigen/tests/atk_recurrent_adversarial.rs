@@ -271,6 +271,73 @@ fn atk_recurrent_5_saturate_anchor_nonexistent_emits_hint() {
 }
 
 // ============================================================================
+// ATK-RECURRENT-7: #[recurrence_anchor] with non-empty from_itches that don't
+//                  exist in the scan — phantom itch reference bypasses precondition
+//                  check.
+//
+// ADR-024 §Mechanics: if an anchor lists from_itches = [SomeNonExistentItch],
+// the `from_itches.is_empty()` guard prevents RecurrenceAnchorNoItchPrecondition
+// from firing EVEN THOUGH the listed itches don't exist in the codebase.
+//
+// ATTACK: #[recurrence_anchor(from_itches = ["NonExistentItch"])] — the
+// from_itches list is non-empty, bypassing the precondition check, but
+// NonExistentItch has no #[itch] declaration anywhere in the scan. The temporal
+// progression (itch → anchor → crystallize) is still bypassed.
+//
+// Current behavior: zero hints (no RecurrenceAnchorNoItchPrecondition). The
+// check only fires when from_itches.is_empty() — a non-empty phantom list
+// is treated as sufficient precondition evidence.
+//
+// Correct behavior: validate that from_itches entries resolve to actual #[itch]
+// declarations in the scan. A phantom reference should emit a hint (perhaps
+// RecurrenceAnchorNoItchPrecondition or a new RecurrenceAnchorItchNotFound).
+//
+// This test asserts the BROKEN outcome (no hint fires).
+// ============================================================================
+
+#[test]
+fn atk_recurrent_7_phantom_from_itches_bypasses_precondition_check() {
+    // #[recurrence_anchor] with from_itches = ["NonExistentItch"] — the itch
+    // does NOT exist in the scan. The from_itches list is non-empty, so the
+    // `from_itches.is_empty()` guard prevents RecurrenceAnchorNoItchPrecondition.
+    // But "NonExistentItch" is a phantom reference — no #[itch] for it in the scan.
+    let mut decl = base_decl(RecurrentKind::RecurrenceAnchor, Some("SomeAntigen"));
+    decl.from_itches = vec!["NonExistentItch".to_string()]; // phantom — not in scan
+
+    let mut report = ScanReport::default();
+    report.recurrent_declarations.push(decl);
+    // No #[itch] declarations in the report — NonExistentItch has no matching scan entry.
+
+    let out = audit_recurrent(&report);
+    assert_eq!(out.audits.len(), 1);
+
+    // BROKEN: no RecurrenceAnchorNoItchPrecondition fires because
+    // from_itches.is_empty() is false — the non-empty phantom list bypasses
+    // the check. The temporal progression is still bypassed (no real itch
+    // exists) but the audit treats the anchor as having preconditions.
+    //
+    // Asserting broken outcome (no hint). After fix:
+    // assert!(hints.contains(&AuditHint::RecurrenceAnchorNoItchPrecondition))
+    // or a new RecurrenceAnchorPhantomItchReference hint.
+    let hints = &out.audits[0].hints;
+    assert!(
+        !hints.contains(&AuditHint::RecurrenceAnchorNoItchPrecondition),
+        "ATK-RECURRENT-7 (BROKEN): from_itches=[\"NonExistentItch\"] (phantom) \
+         silently bypasses RecurrenceAnchorNoItchPrecondition. The from_itches \
+         list is non-empty, gating out the check, even though the listed itch \
+         doesn't exist in the scan. Fix: validate from_itches entries resolve to \
+         actual #[itch] declarations. Test should invert after fix."
+    );
+    // Also: RecurrenceThresholdReachedNoAction fires because SomeAntigen is
+    // not in acted_on — this part of the check is NOT gated by from_itches.
+    assert!(
+        hints.contains(&AuditHint::RecurrenceThresholdReachedNoAction),
+        "RecurrenceThresholdReachedNoAction must still fire for anchor with \
+         no downstream action — this check runs regardless of from_itches"
+    );
+}
+
+// ============================================================================
 // ATK-RECURRENT-6: #[strand] category mismatch — recurrent declared with
 //                  wrong antigen-category
 //
