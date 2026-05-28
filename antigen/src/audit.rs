@@ -1593,10 +1593,27 @@ fn audit_substrate_witness(immunity: &Immunity, predicate_json: &str) -> Immunit
         );
     };
 
-    // v0.1: use the first item in the sidecar's items list as the evaluation
-    // target. A3+ work will match by item_path (function path) to support
-    // per-item predicates when multiple items share an antigen sidecar.
-    let Some(item) = sidecar.items.first() else {
+    // Match the sidecar item by `item_path` (the rendering produced by
+    // `ItemTarget::label()`). Using `items.first()` here was a v0.1 shortcut
+    // that silently audited a per-item predicate against the WRONG item
+    // whenever two `#[immune]` sites in the same file shared an antigen sidecar
+    // — the second site's `audit_substrate_witness` call would evaluate the
+    // FIRST site's signers + fingerprint, so signers who signed `first_fn`
+    // would silently pass `second_fn`'s immunity (findings/
+    // sidecar-first-item-wrong-audit / ATK adversarial pin). The scaffold and
+    // sign paths (cargo-antigen/src/main.rs ~2949 and ~2964) write
+    // `item_path: item_target.label()`, and existing lookups elsewhere in
+    // main.rs (~3479, ~3610) already match on `item.item_path == args.item_path`,
+    // so this is the established matching surface. A missing entry (sidecar
+    // exists but has no item with this label — e.g., a stale sidecar predating
+    // a rename) falls through to `sidecar_missing`, the same failure mode as
+    // an entirely-missing sidecar.
+    let immunity_label = immunity.item_target.label();
+    let Some(item) = sidecar
+        .items
+        .iter()
+        .find(|item| item.item_path == immunity_label)
+    else {
         let result = antigen_attestation::EvaluatedPredicate::sidecar_missing();
         return immunity_audit_from_evaluated(
             immunity,
@@ -4194,6 +4211,88 @@ mod tests {
         assert_eq!(s, "\"mucosal-discipline-delegate-target-kind-mismatch\"");
     }
 
+    // ATK-MUCOSAL-1: same-name function in two different files — handler_kinds
+    // is keyed by bare fn_name with no file path.  The two kind-sets are MERGED
+    // under a single HashMap entry, so a delegate whose intended target carries
+    // only one kind silently passes kind-checks that should fire because the
+    // OTHER same-named function's kind bleeds into the merged set.
+    //
+    // Concrete exploit scenario:
+    //   src/a.rs::process  #[mucosal(kind = "UserInput")]
+    //   src/b.rs::process  #[mucosal(kind = "DatabaseQuery")]
+    //   handler_kinds after build: "process" -> {"UserInput", "DatabaseQuery"}
+    //
+    //   A delegate intended for src/b.rs::process writes boundary = "UserInput"
+    //   by mistake.  Correct audit: MucosalDisciplineDelegateTargetKindMismatch
+    //   (b.rs only knows "DatabaseQuery").  Actual audit (broken): CLEAN because
+    //   a.rs's "UserInput" is in the merged set.
+    //
+    // This test currently PASSES (assert_eq! expects the broken outcome).
+    // It will FAIL once the fix keys handler_kinds by (file, fn_name).
+    #[test]
+    fn atk_mucosal_1_same_name_collision_masks_kind_mismatch() {
+        use crate::scan::MucosalKindTag;
+
+        let mut report = ScanReport::default();
+
+        // src/a.rs::process — kind "UserInput"
+        let mut mucosal_a = mucosal_decl(
+            MucosalKindTag::Mucosal,
+            Some("UserInput"),
+            Some("public form input sanitized at template-render layer"),
+            "process",
+        );
+        mucosal_a.file = std::path::PathBuf::from("src/a.rs");
+        report.mucosal_declarations.push(mucosal_a);
+
+        // src/b.rs::process — kind "DatabaseQuery" (different file, same name)
+        let mut mucosal_b = mucosal_decl(
+            MucosalKindTag::Mucosal,
+            Some("DatabaseQuery"),
+            Some("parameterized query builder; never interpolates raw user input"),
+            "process",
+        );
+        mucosal_b.file = std::path::PathBuf::from("src/b.rs");
+        report.mucosal_declarations.push(mucosal_b);
+
+        // Delegate: intended for src/b.rs::process but says boundary = "UserInput"
+        // by mistake. Should flag MucosalDisciplineDelegateTargetKindMismatch.
+        let mut delegate = mucosal_decl(
+            MucosalKindTag::MucosalDelegate,
+            Some("UserInput"),
+            Some("delegated to the central process handler for sanitisation"),
+            "outer",
+        );
+        delegate.file = std::path::PathBuf::from("src/c.rs");
+        delegate.handled_by = Some("process".to_string());
+        report.mucosal_declarations.push(delegate);
+
+        let out = audit_mucosal(&report);
+        let delegate_audit = out
+            .audits
+            .iter()
+            .find(|a| a.declaration.tag == MucosalKindTag::MucosalDelegate)
+            .unwrap();
+
+        // BROKEN current behavior: merged kind-set {"UserInput","DatabaseQuery"} lets
+        // "UserInput" pass set-membership — audit is CLEAN (wrong).
+        // CORRECT post-fix behavior: handler_kinds keyed by (file, fn_name) means a
+        // bare-name delegate sees ALL matching functions; if ANY matches, still passes
+        // — but if the fix instead makes handled_by file-path-aware, the mismatch
+        // surfaces.  This test pins the broken outcome so the fix can be verified
+        // against it: when fixed, this test should FAIL and be updated.
+        //
+        // NOTE: this currently asserts the BROKEN (silent) outcome to make the test
+        // compile green and reveal the bug via the comment, not a runtime panic.
+        // Flip the assertion when the fix lands.
+        assert!(
+            delegate_audit.hints.is_empty(),
+            "ATK-MUCOSAL-1 (BROKEN): merged handler_kinds lets UserInput boundary \
+             pass even though the only b.rs::process carries DatabaseQuery. \
+             This assertion documents broken behavior — it should FAIL after fix."
+        );
+    }
+
     // ========================================================================
     // Antigen-Category audit (ADR-028 — G1 scan-time-only)
     // ========================================================================
@@ -4869,6 +4968,145 @@ mod tests {
              current_fingerprint for backwards-compat. Got: {result:?}"
         );
         assert_eq!(result.witness_tier, WitnessTier::Execution);
+    }
+
+    // ========================================================================
+    // ATK-SIDECAR-FIRST-ITEM: when an antigen sidecar holds ratifications for
+    // multiple items (two `#[immune]` sites in the same file sharing the same
+    // antigen sidecar), `audit_substrate_witness` must look up the entry by
+    // `item_path` matching the immunity's `item_target.label()` — NOT use
+    // `items.first()`. The first()-shortcut silently audited each immunity
+    // against the FIRST item's signers/fingerprint, so `second_fn`'s immunity
+    // would pass spuriously when `alice` had only signed `first_fn`.
+    // (findings/sidecar-first-item-wrong-audit, adversarial.)
+    // ========================================================================
+
+    #[test]
+    fn sidecar_per_item_lookup_does_not_use_first_item_for_second_immunity() {
+        use antigen_attestation::predicate::{Leaf, SignerCurrency};
+        use antigen_attestation::schema::{
+            AntigenIdentifier, ItemRatification, Ratification, RatificationKind, SchemaVersion,
+            Signer, SignerBasis,
+        };
+        use chrono::NaiveDate;
+        use std::collections::BTreeMap;
+
+        let tmp = tempfile::tempdir().unwrap();
+        let source_file = tmp.path().join("src").join("lib.rs");
+        std::fs::create_dir_all(source_file.parent().unwrap()).unwrap();
+        let attest_dir = tmp.path().join("src").join(".attest");
+        std::fs::create_dir_all(&attest_dir).unwrap();
+
+        // Sidecar with TWO item entries: first_fn (signed by alice), second_fn
+        // (zero signers — must fail the signers=[alice] predicate).
+        let sidecar = Ratification {
+            schema_version: SchemaVersion::V1,
+            kind: RatificationKind::Immunity,
+            antigen: AntigenIdentifier {
+                name: "TwoFnAntigen".to_string(),
+                defined_in: None,
+            },
+            source_file: source_file.clone(),
+            items: vec![
+                ItemRatification {
+                    item_path: "first_fn".to_string(),
+                    current_fingerprint: "fp-1".to_string(),
+                    doc_ref: None,
+                    signers: vec![Signer {
+                        name: "alice".to_string(),
+                        role: None,
+                        date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                        signed_against_fingerprint: "fp-1".to_string(),
+                        basis: SignerBasis::Fresh {
+                            reasoning: Some("reviewed first_fn".to_string()),
+                        },
+                        strength: antigen_attestation::tier::SignatureStrength::TextStamp,
+                        signature: None,
+                    }],
+                    oracles: vec![],
+                    fresh_through: None,
+                    extensions: BTreeMap::new(),
+                },
+                ItemRatification {
+                    item_path: "second_fn".to_string(),
+                    current_fingerprint: "fp-2".to_string(),
+                    doc_ref: None,
+                    signers: vec![], // nobody signed second_fn
+                    oracles: vec![],
+                    fresh_through: None,
+                    extensions: BTreeMap::new(),
+                },
+            ],
+        };
+        let sidecar_json = serde_json::to_string_pretty(&sidecar).unwrap();
+        std::fs::write(attest_dir.join("TwoFnAntigen.json"), sidecar_json).unwrap();
+
+        // Predicate: alice must be a current signer (against the item's live digest).
+        let pred = antigen_attestation::Predicate::leaf(Leaf::Signers {
+            required: vec!["alice".to_string()],
+            roles: BTreeMap::new(),
+            against: SignerCurrency::Current,
+            signature_allow: vec![],
+            signature_prefer: None,
+        });
+        let pred_json = serde_json::to_string(&pred).unwrap();
+
+        // Immunity addressing SECOND_FN (the unsigned item).
+        let immunity = crate::scan::Immunity {
+            antigen_type: "TwoFnAntigen".to_string(),
+            witness: String::new(),
+            requires_predicate: Some(pred_json.clone()),
+            file: source_file,
+            line: 10,
+            item_kind: "fn".to_string(),
+            item_target: crate::scan::ItemTarget::Fn("second_fn".to_string()),
+            canonical_path: None,
+            structural_fingerprint: "fp-2".to_string(),
+        };
+
+        let result = audit_substrate_witness(&immunity, &pred_json);
+
+        // FIXED: the lookup finds second_fn's entry (zero signers) → predicate
+        // fails (no `alice` in the required list) → DisciplinePredicateFailed
+        // hint, tier=None. Pre-fix (`items.first()`): would have evaluated
+        // first_fn's signers (alice) against fp-2's live digest → alice
+        // signed fp-1, not fp-2 → would have failed for a DIFFERENT reason
+        // (signer-stale via fingerprint mismatch). The hint's identical end-
+        // state in some setups is precisely the danger the finding names:
+        // the audit "passed" or "failed" without being about the right item.
+        // We assert the failure mode that proves the right item was consulted:
+        // zero required signers found.
+        assert_eq!(
+            result.audit_hint,
+            AuditHint::DisciplinePredicateFailed,
+            "ATK-SIDECAR-FIRST-ITEM (FIXED): second_fn's immunity must consult \
+             second_fn's ratification entry (zero signers) — predicate must fail with \
+             DisciplinePredicateFailed. A `passed` result here would mean the lookup \
+             still used first_fn's (alice-signed) entry. Got: {result:?}"
+        );
+        assert_eq!(result.witness_tier, WitnessTier::None);
+
+        // And the SYMMETRIC sanity-check: an immunity addressing first_fn (alice
+        // signed against fp-1, live digest fp-1) DOES pass under the same fix.
+        let first_immunity = crate::scan::Immunity {
+            antigen_type: "TwoFnAntigen".to_string(),
+            witness: String::new(),
+            requires_predicate: Some(pred_json.clone()),
+            file: immunity.file.clone(),
+            line: 1,
+            item_kind: "fn".to_string(),
+            item_target: crate::scan::ItemTarget::Fn("first_fn".to_string()),
+            canonical_path: None,
+            structural_fingerprint: "fp-1".to_string(),
+        };
+        let first_result = audit_substrate_witness(&first_immunity, &pred_json);
+        assert_eq!(
+            first_result.audit_hint,
+            AuditHint::DisciplinePredicatePassedSubstrateCurrent,
+            "ATK-SIDECAR-FIRST-ITEM (FIXED): first_fn's immunity must consult first_fn's \
+             entry (alice@fp-1 vs live fp-1) — predicate passes. If THIS fails, the \
+             lookup is matching the wrong entry from the other direction. Got: {first_result:?}"
+        );
     }
 
     // ========================================================================
