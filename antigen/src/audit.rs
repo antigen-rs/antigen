@@ -5327,7 +5327,7 @@ mod tests {
             "SubstrateDriftClass",
             "src/lib.rs",
             10,
-            &pred_json,
+            pred_json,
         ));
         // Code witness exists — this is what masks the substrate gap.
         report.defenses.push(defended_by_witness(
@@ -6249,6 +6249,67 @@ mod tests {
              If this assertion FAILS after ATK-LF-2 fix landed: the fix naively descends into \
              AnyOf and requires the child to cover both arms — a false positive. Restrict \
              doc_contains collection to AllOf children only."
+        );
+    }
+
+    // ATK-LF-6: child has no item kind at all — parent-item-kind check skipped silently.
+    //
+    // When parent pins an item kind (item = struct) and child has NO item constraint
+    // (only doc_contains or similar), `fingerprint_nonrefinement_reason` skips the
+    // item-kind divergence check entirely because `child.node_kind() = None`.
+    //
+    // CONCRETE CASE:
+    //   Parent: item = struct, doc_contains("error")  — only matches structs
+    //   Child:  doc_contains("error")                  — matches ANY item kind
+    //
+    // Child is STRICTLY BROADER in the item dimension: it matches fns, enums, traits,
+    // etc. that the parent would not. This is NOT a refinement.
+    //
+    // Unlike ATK-LF-5 (AnyOf over kinds — genuinely undecidable), this case IS
+    // decidable: if parent has a definite item kind and child has None, child is
+    // unconditionally wider in the item dimension. The advisory should flag it.
+    //
+    // This test asserts the BROKEN outcome (advisory stays silent). It will invert
+    // to assert divergences.len() == 1 once the fix lands.
+    #[test]
+    fn atk_lf_6_child_no_item_kind_silently_passes_as_refinement() {
+        // Parent: item = struct, doc_contains("error")
+        // Child:  doc_contains("error")  — no item kind, matches ALL item types
+        let mut report = ScanReport::default();
+        report.antigens.push(antigen_with_fp(
+            "P",
+            r#"item = struct, doc_contains("error")"#,
+        ));
+        // Child has only doc_contains, no item kind: wider than parent in item dimension.
+        report.antigens.push(antigen_with_fp(
+            "C",
+            r#"doc_contains("error")"#,
+        ));
+        report.lineage_edges.push(lineage_edge("C", "P"));
+
+        let out = audit_lineage_fidelity(&report);
+
+        // BROKEN: advisory stays silent because child.node_kind() is None, so the
+        // `if let (Some(pk), Some(ck))` guard in fingerprint_nonrefinement_reason
+        // skips the item-kind check. Child is broader, not a refinement, but no
+        // divergence fires.
+        //
+        // This differs from ATK-LF-5 (AnyOf is undecidable) — no-item-kind is
+        // decidable: parent has Some(Struct), child has None → child unconditionally
+        // wider. The advisory is incorrectly silent here.
+        //
+        // Asserting broken outcome — when fix lands, update to:
+        // assert_eq!(out.divergences.len(), 1, "...");
+        assert_eq!(
+            out.divergences.len(),
+            0,
+            "ATK-LF-6 (BROKEN): child `doc_contains('error')` with no item kind is wider \
+             than parent `item=struct, doc_contains('error')` — not a refinement — but \
+             child.node_kind() returns None so the item-kind check is silently skipped. \
+             Advisory stays silent (false negative). Unlike ATK-LF-5 (undecidable), \
+             this case IS decidable: parent=Some(Struct) + child=None means child is \
+             unconditionally broader. Fix: add a guard — if parent has a definite item \
+             kind and child has None, flag as divergence."
         );
     }
 
