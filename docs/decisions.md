@@ -2975,6 +2975,266 @@ positive control.
 
 ---
 
+## ADR-010 Amendment 6 — Three-Valued Predicate Evaluation (Match3)
+
+**Status**: Ratified 2026-05-28.
+
+**Amends**: ADR-010 Amendment 3 (`match_constraint` return type) and Amendment 4 (sub-item
+domain extension prerequisite).
+
+**Participants**: antigen-dx-dogfood team (scientist primary drafter; aristotle Phase-1-8
+PASSED with strengthening clarification on two-level semantics; naturalist biology PASSED
+with primary-source grounding; adversarial PASSED with all four ATK-FP tests traced through
+Kleene-strong algebra; all four ceremony signers).
+
+**Related campsites**: `forward/fingerprint-grammar-body-content-with-negation`;
+`ceremony/ratify-adr-010-amendment-6-match3`.
+
+### Problem
+
+The fingerprint matcher's predicate evaluators return `bool`, conflating three distinct
+meanings into two values:
+
+- **Match** — predicate evaluated, condition present
+- **NoMatch** — predicate evaluated, condition absent
+- **Undefined** — predicate has no locus on this item-class (no body, no fields — the
+  question is malformed here)
+
+`body_contains_macro` (`matcher.rs:244`) returns `false` for non-fn/non-impl items via the
+`_ => {}` arm at `matcher.rs:282`. When an adopter writes:
+
+```
+all_of([item = struct, not(body_contains_macro("panic!"))])
+```
+
+the evaluation is: `body_contains_macro("panic!") = false` (no body-locus, returns false),
+`not(false) = true`, `all_of(Match, true) = Match`. Every struct matches, vacuously.
+
+This is the adversarial ATK-FP-NOT-BODY-VACUOUS finding (committed `1b843d1`). The adopter
+intended "structs without `panic!`" but gets all structs — the fingerprint fires everywhere
+it was meant to filter.
+
+**Why this is a type-level defect, not a documentation burden**: the `bool` type cannot
+distinguish "no body here, predicate undefined" from "body searched, condition absent." `not()`
+of an undefined-as-false produces vacuously-true. Any new sub-item predicate
+(`field_attr_present`, `body_contains_call`) inherits this hazard on every item-class outside
+its domain. Documenting the limitation per-predicate multiplies the hazard rather than
+fixing it.
+
+**The three-antigen convergence** (recognition-not-design criterion met, ADR-006): three
+independent real-world fingerprint failures hit the same property — fingerprint grammar
+reaching only top-level item structure — `#19 ScanVisitorDigestAssignmentOmission` (body
+ordering constraint), `#22 SerdeDefaultMaskingStructLiteralBreak` (field-level attribute
+unreachable), and the body-negation campsite (caller vs definer direction). Subject-2
+(definedness semantics) must be fixed first; Subject-1 (domain coverage) rides on top
+safely.
+
+### Decision
+
+**Match3: three-valued predicate evaluation.** Replace `bool` return types in all predicate
+evaluators with `Match3`:
+
+```rust
+pub enum Match3 {
+    Match,
+    NoMatch,
+    Undefined,  // predicate has no locus on this item-class
+}
+```
+
+The `_ => {}` arm in `body_contains_macro` (`matcher.rs:282`) returns `Match3::Undefined`
+instead of falling through to `false`. No separate domain-annotation is needed — the
+evaluator already knows whether the locus exists (it is the `_ => {}` arm). The domain is
+implicit in which item-classes the predicate's match arm visits.
+
+**Match3 composition — two levels.** There are two distinct semantic levels (aristotle
+Phase-1-8 PASSED, strengthening clarification 2026-05-27). They MUST NOT be conflated in
+implementation or documentation, or future grammar extensions will accidentally collapse
+`Undefined` into `NoMatch` in the leaf algebra.
+
+*Level 1: Leaf-algebra (Kleene-strong three-valued logic).* Predicates and combinators
+operate on `Match3` throughout:
+
+```
+not:   Match -> NoMatch
+       NoMatch -> Match
+       Undefined -> Undefined   (NOT true — kills vacuous-not at the type level)
+
+and (all_of):
+       Match ∧ Match = Match
+       any NoMatch present => NoMatch (short-circuit on definite failure)
+       else if any Undefined present => Undefined (preserves the definedness gap)
+
+or (any_of):
+       NoMatch ∨ NoMatch = NoMatch
+       any Match present => Match (short-circuit on definite success)
+       else if any Undefined present => Undefined
+```
+
+The key invariant: `Undefined` propagates through combinators. It does NOT collapse to
+`NoMatch` inside `all_of`. This preserves the type-level distinction for callers reading
+intermediate results (future audit-hints, debug output, "fingerprint X was undefined on N
+items — domain mismatch?" advisories).
+
+*Level 2: Fingerprint-fires projection (user-facing).* The fingerprint fires IFF the
+top-level expression evaluates to `Match`. Both `NoMatch` and `Undefined` at the top level
+project to "doesn't fire":
+
+- `Match` → fingerprint fires (item flagged)
+- `NoMatch` → fingerprint doesn't fire
+- `Undefined` → fingerprint doesn't fire
+
+At the audit level, the only question is whether the antigen flags this item. An item where
+the fingerprint is undefined (e.g., a struct asked a body-content question) should not be
+flagged — the predicate has no locus here. The semantic distinction is preserved at Level 1
+for tooling; it is projected away at Level 2 for the user.
+
+*Why the two-level distinction matters*: the Level-2 wording "Undefined-as-non-matching for
+`all_of`" — which is correct at the fingerprint-fires level — must NOT be read as "the
+`all_of` operator returns `NoMatch` when fed `Undefined`" at Level 1. That reading would
+destroy the type-level distinction Match3 was built to preserve. The Kleene-strong leaf
+algebra keeps `Undefined` propagating through combinators; the projection step at the top
+evaluates "fires? only if Match."
+
+**Impact on four ATK-FP tests** (adversarial gate, all four traced through Match3,
+PASSED 2026-05-28):
+
+1. **ATK-FP-NOT-BODY-VACUOUS** (struct + not(body_contains_macro(X))): `body_contains_macro`
+   on struct = `Undefined`; `not(Undefined) = Undefined`; `all_of` evaluates to `Undefined`
+   at leaf-algebra; fingerprint-fires projection: doesn't fire. Test currently asserts
+   matches=true (broken-behavior pin). **Test MUST BE INVERTED** to assert matches=false
+   after this amendment lands.
+2. **ATK-FP-NOT-BODY-FN-CORRECT** (fn + not(body_contains_macro(X)), X absent):
+   `body_contains_macro` on fn returns real `NoMatch`; `not(NoMatch) = Match`; fingerprint
+   fires. Asserts matches=true; **unchanged**.
+3. **not() directly under any_of rejected**: parse-time rule, unchanged by Match3.
+   **Unchanged**.
+4. **all_of containing only nots rejected**: parse-time rule, unchanged by Match3.
+   **Unchanged**.
+
+Match3 closes the vacuous-not hazard at the type level.
+
+### Biology (PMID 11238607, primary-source grounded)
+
+Three-valued predicate evaluation is biology-confirmed (naturalist gate PASSED 2026-05-27).
+The assay-on-wrong-tissue cognate is exact and pubmed-grounded.
+
+**Core principle**: absence of evidence is not evidence of absence when the evidence could
+not have been generated. A negative result is only meaningful when the assay COULD have
+returned positive. If the assay isn't validated for the substrate — wrong tissue, wrong
+matrix, wrong question-shape — the result is UNDEFINED, not negative. Clinical immunology
+has a dedicated category for this: indeterminate / not-evaluable / invalid / preanalytical
+failure.
+
+**Canonical instance — window-period HIV testing**: a negative HIV antibody test in the
+seroconversion window (first ~2–4 weeks post-exposure, before antibody titer crosses
+detection threshold) is NOT HIV-negative — it is window-period indeterminate. Treating
+`not(positive) = negative` led to real transfusion-transmitted HIV before the indeterminate
+category was clinically enforced. The clinical world enforces `not(Undefined) = Undefined`
+under penalty of patient deaths.
+
+**Receptor assay on wrong-tissue/wrong-matrix**: flow cytometry for surface markers on a
+sample with no viable cells → INDETERMINATE, not negative. PCR for tissue-specific gene
+expression run on the wrong tissue → "not detected" but interpreted as NON-INFORMATIVE, not
+absence-of-gene.
+
+**The antigen analog**: `body_contains_macro` applied to a struct (no body-locus) is
+precisely "a receptor assay run on a substrate where the assay's preconditions don't hold."
+The predicate is asking "does the function body of this item contain macro X," applied to
+an item that has no function body. The question itself is malformed in this context.
+Clinical immunology's answer: return UNDEFINED, not vacuous-false. Treating it as false is
+the window-period-as-negative error in DSL form — same shape of harm.
+
+**`not(Undefined) = Undefined` is required, not optional**: in clinical immunology, you
+cannot negate an indeterminate result into a definite one. The negation of "we couldn't tell
+whether HIV is present" is NOT "HIV is absent" — it's "we still couldn't tell." The
+three-valued logic is closed under negation; collapsing to two-valued at the boolean-output
+stage re-introduces the assay-on-wrong-tissue bug. So Match/NoMatch/Undefined with
+`not(Undefined) = Undefined` throughout the eval is biology-required, not just structurally
+tidy.
+
+### Sub-item domain extension (Subject-1 — v0.3, gated by this amendment)
+
+Three new predicate leaves are proposed for v0.3 once Match3 lands:
+
+- `body_contains_call(path)`: caller leaf — any fn/impl body that calls the named path.
+  Domain: fn/impl. Returns `Undefined` on bodyless items via `_ => Undefined` arm (safe by
+  construction under Match3).
+- `body_contains_call_before(a, b)`: ordering — call to `a` precedes call to `b` in the
+  same body. Domain: fn/impl. `Undefined` on bodyless.
+- `field_attr_present(path)`: field-level attribute — struct/enum field bears named attr.
+  Domain: struct/enum with fields. `Undefined` on fn/impl/trait.
+
+Each new predicate declares its domain implicitly via the `_ => Undefined` arm. Match3 makes
+them safe by construction — without Match3, each would inherit the vacuous-not hazard on
+every item-class outside its domain. **Subject-2 (Match3) gates Subject-1 (domain
+extension)**: without the three-valued fix, extending the domain multiplies the hazard
+across every new sub-item predicate. The order is Match3 first, then domain-extension lands
+safely on top.
+
+### Implementation path
+
+1. `match_constraint()` in `matcher.rs`: return type `bool -> Match3`.
+2. `body_contains_macro()`, `body_contains_macro_in_single_impl()`, `finder_fn()`: return
+   `Match3` (the `_ => {}` arm returns `Match3::Undefined`).
+3. `not()` combinator: `not(Undefined) = Undefined` (the type-level fix).
+4. `all_of()` / `any_of()` combinators: Kleene-strong leaf-algebra (Undefined propagates,
+   does NOT collapse to NoMatch).
+5. Fingerprint-fires projection at `scan.rs` / `audit.rs`: fires iff `Match3::Match`; both
+   `NoMatch` and `Undefined` produce "doesn't fire."
+6. Propagate through `matches_item()` and `matches()`.
+7. **Invert ATK-FP-NOT-BODY-VACUOUS test** (test 1): change assertion from matches=true to
+   matches=false.
+
+### Gate outcomes (ceremony complete)
+
+**Aristotle Phase-1-8 — PASSED** (2026-05-27). Resolved: Match3 cardinality is correct
+(three values for the definedness subject; Error is orthogonal infrastructure-layer concern;
+PartialMatch is a different subject coverage-axis); `all_of` Kleene-strong leaf-algebra +
+fingerprint-fires projection (two-level distinction explicit); `not(Undefined) = Undefined`
+(root fix at the type level); Subject-2 (Match3) gates Subject-1 (domain extension); ADR-010
+Amendment 6 territory (not a new ADR). Strengthening clarification (Kleene-strong two-level
+semantics naming) folded into §Match3 composition.
+
+**Naturalist (biology) — PASSED** (2026-05-27). Assay-on-wrong-tissue cognate confirmed,
+pubmed-grounded (PMID 11238607; indeterminate-Western-blot clinical category). Three-valued
+logic with `not(Undefined) = Undefined` is biology-required. Window-period HIV testing as
+canonical instance.
+
+**Adversarial — PASSED** (2026-05-28). All four ATK-FP tests traced through Kleene-strong
+algebra; all confirmed closed. Test 1 inverts (broken behavior becomes correct assertion);
+tests 2/3/4 unaffected.
+
+**Scientist (consistency) — PASSED** (2026-05-28).
+
+### What this amendment does NOT do
+
+- Does NOT change the fingerprint grammar DSL syntax (only the evaluator internals and the
+  fingerprint-fires projection).
+- Does NOT introduce sub-item predicates yet — those are v0.3 follow-on work gated by this
+  amendment.
+- Does NOT change parse-time rejection rules (e.g., not() under any_of) — those are
+  unchanged.
+
+### Evidence citations
+
+- ATK-FP-NOT-BODY-VACUOUS: adversarial finding committed `1b843d1` (four tests pinning
+  the broken behavior)
+- Substrate verification: `matcher.rs:244-285`, `body_contains_macro -> bool`, `_ => {}` arm
+  at `matcher.rs:282`
+- Three-antigen convergence: #19 ScanVisitorDigestAssignmentOmission, #22
+  SerdeDefaultMaskingStructLiteralBreak, body-negation campsite
+- PMID 11238607: Ludewig/Zinkernagel — rapid peptide turnover limits clone activation
+  (predicate preconditions never crossed threshold = Undefined)
+- Window-period HIV testing: clinical indeterminate category (standardized; transfusion-
+  transmitted HIV before category enforced)
+- Aristotle Phase-1-8: `forward/fingerprint-grammar-body-content-with-negation` campsite
+  (2026-05-27); Kleene-strong two-level semantics clarification
+- Naturalist biology gate: same campsite (2026-05-27); assay-on-wrong-tissue cognate
+- Recognition-not-design: ADR-006 (3 independent real failures = grammar investment earns)
+
+---
+
 ## [ADR-011] `#[antigen_tolerance(...)]`: opt-out for legitimate fingerprint matches
 
 **Status**: Ratified 2026-05-08.
@@ -7659,3 +7919,298 @@ dogfood antigen. Strengthening-only; item-level/diamond-union/locus-relative cor
   structural gap)
 - ADR-028 costimulation confirmation: decisions.md:5383 (`all_of` = costimulation principle)
 
+---
+
+## [ADR-032] Conjunction Witnesses: Required-All Defense Semantics
+
+**Status**: Ratified 2026-05-28.
+
+**Participants**: antigen-dx-dogfood team (scout primary drafter; aristotle Phase-1-8
+PASSED; naturalist biology PASSED; adversarial gate PASSED with three named gaps; scientist
+consistency review COMPLETE; outsider naive-pass; all four ceremony signers).
+
+**Related**: ADR-029 (per-site defense verdicts, `#[defended_by]` + `#[presents]` mechanics),
+ADR-018 (defense semantics, diamond inheritance), ADR-028 (`all_of` = costimulation
+principle), ADR-030 (locus-dispatch frame).
+
+**Ceremony campsite**: `ceremony/ratify-adr-032-conjunction-witnesses`.
+
+### Problem
+
+The current audit verdict model uses **OR semantics** across all witnesses at a site
+(`audit.rs:1381`): any single passing witness at the highest tier grants `Defended` status.
+There is no way to declare: "this failure class requires BOTH a proptest witness AND a kani
+proof to be considered Defended." One signal licenses the full response even when two were
+required.
+
+This gap was predicted by the autoimmune-shadow discovery engine as **shadow #3**:
+costimulation collapse → conjunctive-defense void. T-cell activation requires signal-1 (TCR
+binding) AND signal-2 (CD28/B7 costimulatory); signal-1 alone → anergy, not activation. The
+OR semantics in antigen's audit correspond to a pathological permissiveness: any single
+witness licenses Defended status when the failure class's immunity model genuinely requires
+multiple independent confirmation channels.
+
+The structural commitment to witness pluralism (ADR-029) makes this gap structurally
+guaranteed to be encountered by any adopter working in a high-assurance domain (formal
+verification, safety-critical code) where one tier of evidence is genuinely insufficient
+alone.
+
+**Concrete adoption scenario**: an adopter declares an antigen for a memory-safety failure
+class. They want to require BOTH a proptest witness (Empirical tier: stochastic coverage)
+AND a kani proof (FormalProof tier: exhaustive formal verification). Under current
+semantics, `#[defended_by(kani_proof)]` alone grants Defended at FormalProof tier — the
+adopter has no way to express "proptest coverage is ALSO required."
+
+### Decision
+
+**Syntax: `all_of` compositor on `#[defended_by]`.** Introduce an `all_of` compositor
+following the fingerprint grammar precedent (ADR-010). Vocabulary consistency: the same
+compositor name works at both layers.
+
+```rust
+// Require BOTH witnesses to consider this site Defended:
+#[presents(MemorySafetyFailure)]
+#[defended_by(all_of(PropTestCoverage, KaniProof))]
+fn critical_operation() { ... }
+
+// Existing single-witness form unchanged:
+#[defended_by(SingleWitness)]
+
+// Multiple-annotation form retains OR semantics (backward-compatible):
+#[defended_by(WitnessA)]
+#[defended_by(WitnessB)]   // WitnessA OR WitnessB suffices
+```
+
+`all_of(X, Y)` makes the conjunction members explicit and scope unambiguous, consistent
+with existing compositor vocabulary in the DSL.
+
+**Audit semantics: new `AuditVerdict` variant `ConjunctionIncomplete`** (aristotle Q2: NEW
+VARIANT, not a `SubstrateGap` specialization).
+
+```
+ConjunctionIncomplete {
+    passing: Vec<(AntigenType, WitnessTier)>,  // which conjunction members passed
+    missing: Vec<AntigenType>,                  // which members are absent or failing
+}
+```
+
+Subject-check: `SubstrateGap`'s subject is "witness present, predicate FAILED at the
+substrate." `ConjunctionIncomplete`'s subject is "some witnesses entirely ABSENT — the
+structural requirement isn't met." Different subjects, different resolution paths.
+
+`ConjunctionIncomplete` FAILS under `--strict` (aristotle Q4): it IS an unmet defense
+requirement. Strict-failing set extends to: `{Undefended, ConjunctionIncomplete,
+SubstrateGap}`. A declared conjunction that is not fully satisfied is a defense shortfall.
+
+`defense_addresses()`: a conjunctive defense is addressed only when EVERY member of the
+`all_of` has a passing witness at the class level. The conjunction is a SINGLE defense intent
+requiring ALL named witnesses.
+
+**Tier interaction: two orthogonal axes, not a higher tier** (aristotle Q1).
+
+The full state is `(tier, plurality)` — two orthogonal axes. `tier = max(members)` is
+correct as a backward-compatible PROJECTION onto the tier axis, but not the full state.
+
+- **Kind axis** (WitnessTier): what TYPE of evidence — reachability, empirical, formal.
+  Subject: quality of epistemic warrant. Unchanged from ADR-029.
+- **Plurality axis** (new): how MANY independent evidence kinds are required. Subject:
+  quantity of independent confirmation channels.
+
+```
+WitnessState {
+    tier: WitnessTier,      // max(members) — backward-compat tier projection
+    plurality: Plurality,   // {Single | ConjunctionSatisfied | ConjunctionPartial{passing,missing}}
+}
+```
+
+`Plurality::ConjunctionPartial` (not `ConjunctionIncomplete`) avoids collision with
+`AuditVerdict::ConjunctionIncomplete`. The `Plurality` field describes the
+conjunction-satisfaction STATE at data-collection time; the `AuditVerdict` names the
+auditor's JUDGMENT — distinct semantic levels, distinct names. A site with
+`plurality: ConjunctionPartial` deterministically yields `AuditVerdict::ConjunctionIncomplete`.
+
+Backward-compat callers reading only `tier` see `max(members)` — correct AS a projection.
+Callers reading the full `WitnessState` see the conjunction-satisfaction status on its own
+axis.
+
+**Alternative rejected**: introduce a tier above FormalProof for conjunction. Rejected
+because conjunction is a defense STRUCTURE, not a witness KIND — the tier taxonomy is about
+witness kinds.
+
+**`WitnessState` as an extensible struct** (aristotle Phase-8 void): a third witness-layer
+axis is structurally possible in future versions (COVERAGE per-test/per-span; FRESHNESS
+staleness obligation per ADR-030; RECENCY-OF-LAST-RUN). `WitnessState` is an open struct
+with named fields (not a tuple), so future axes grow additively without breaking the v0.3
+representation.
+
+### Biology (PMID 12670403, primary-source grounded)
+
+The canonical two-signal model of T-cell activation (Bretscher–Cohn, refined by
+Lafferty–Cunningham, Janeway, Matzinger). Signal-1 = TCR engagement of peptide-MHC
+(antigen recognition); signal-2 = costimulatory engagement (CD28-B7 family is the
+prototype; PMID 12670403 Appleman & Boussiotis, *Immunol Rev* 2003 — canonical review).
+
+**Signal-1 without signal-2 produces ANERGY** (a distinct cellular state — hyporesponsive,
+with characteristic gene-expression program, persistent, qualitatively unresponsive on
+re-challenge). **Signal-1 + signal-2 produces FULL ACTIVATION** (proliferation,
+effector-program, qualitatively responsive). These are NOT graded positions on one scale —
+they are categorically different programs. Anergic cells are NOT "weakly activated";
+activated cells are NOT "strongly anergic." The cellular machinery is distinct (anergy has
+its own transcription factors, e.g. NFAT-without-AP-1; activation has the full
+NFAT/AP-1/NFkB program).
+
+**Why max-of-members-flat fails biologically** (naturalist on the record): max-of-members
+would assert "activated-via-conjunction = max(activation_from_signal_1,
+activation_from_signal_2) = signal_1's activation (since signal-2 alone barely activates)."
+That is biology-wrong: signal-1 ALONE produces anergy, not "weak activation"; the
+conjunction PRODUCES a state that NEITHER signal alone produces. The categorically-different
+output is structural to the mechanism, not an artifact of measurement. Max-of-members-flat
+would assert a state biology says doesn't exist. The new plurality axis is required, not
+optional.
+
+**Why (tier, plurality) validates as orthogonal axes**: TIER is the KIND of evidence
+(epistemic quality). PLURALITY is whether one or multiple independent evidence-kinds are
+required (epistemic quantity). In immunology: signal-1 = one binding event; signal-2 = an
+INDEPENDENT binding event that must ALSO occur. Two independent inputs required → the
+system produces a categorically different output. Quality-of-evidence (tier) and
+number-of-independent-evidence-kinds-required (plurality) are orthogonal in immunology by
+30+ years of mechanism.
+
+**Connection to prior rulings** (naturalist): this confirms the same orthogonal-axis shape
+as the silence-axis afferent/efferent split (ADR-028 Amendment 7) and the count-split
+measurement-vs-parameter (ADR-030). Each time biology was asked, it produced an orthogonal
+axis where the structural reasoning under-specified the joint — instrument-grade pattern
+recognition per ADR-003.
+
+### Relationship to existing surfaces
+
+**ADR-029 (`#[defended_by]` mechanics)**: `all_of` is an extension to the `#[defended_by]`
+syntax, not a replacement. The proc-macro parser accepts the compositor form; existing
+single-witness and multi-annotation forms unchanged.
+
+**ADR-018 (diamond inheritance + class-level defense)**: Conjunction requirements propagate
+via class-level defense match — no new mechanism needed (aristotle Q5). A parent's
+`#[defended_by(all_of(A, B))]` declares that A and B defend class X at the CLASS level.
+Descendants inheriting the presentation of X (via `#[descended_from]`) receive the
+conjunction check at the class level: the inherited site shows `ConjunctionIncomplete` iff
+one of A/B is absent at the class level. Consequence: a descendant cannot unilaterally
+satisfy a conjunction declared by a parent — class-level conjunction either passes or
+doesn't for ALL sites presenting that class.
+
+**ADR-028 (category ↔ witness-type cross-check)**: The G2 cross-check applies to individual
+witness types within a conjunction. A conjunction of `[SubstrateWitness, CodeWitness]` on a
+`SubstrateAlignment` antigen has the same G2 semantics as individual witnesses of those
+types.
+
+**`audit.rs:1381` (current OR semantics)**: The conjunction audit path is a separate
+evaluation branch, not a replacement of the `max()` logic. Sites without `all_of` continue
+using `max()` as today. Sites with `all_of` use the new conjunction evaluator. The existing
+`max()` logic produces `WitnessState { tier: max_tier, plurality: Single }` for
+backward-compat callers.
+
+### Implementation notes
+
+These are non-optional constraints on the v0.3 implementation. They live here (not only in
+§Adversarial) so implementers find them without reading the ceremony record.
+
+**Parse-time rejection of nested `all_of` (NON-OPTIONAL)**: The v0.3 proc-macro parser MUST
+reject nested `all_of` in `#[defended_by]` at compile time with a clear error. Accepting
+`#[defended_by(all_of(A, all_of(B, C)))]` silently would cause the audit to treat the inner
+`all_of(B, C)` token as a member-name, yielding `ConjunctionIncomplete { missing:
+["all_of(B,C)"] }` — a misleading error reporting a non-existent witness.
+
+Required error message shape:
+```
+error: nested all_of in #[defended_by] is not yet supported — wrap all witnesses in a
+single all_of([A, B, C]) instead
+```
+
+This follows the fingerprint grammar precedent (ADR-010): parse-time rejection is the safe
+boundary when forward-compatibility for nesting is explicitly deferred.
+
+**`Plurality::ConjunctionPartial` → `AuditVerdict::ConjunctionIncomplete` derivation**: When
+a site's `WitnessState` has `plurality: ConjunctionPartial { passing, missing }`, the audit
+MUST produce `AuditVerdict::ConjunctionIncomplete { passing, missing, tier: max(passing) }`.
+The derivation is deterministic; the audit MUST NOT produce `Defended` when
+`ConjunctionPartial` is the state. Any path that grants `Defended` despite
+`ConjunctionPartial` is a bypass of the conjunction requirement.
+
+### Adoption guidance
+
+These notes are required in user-facing documentation for v0.3.
+
+**Bypass vector: parallel plain `#[defended_by]` silences conjunction**: Once you declare a
+conjunction requirement on a class (via `#[defended_by(all_of(A, B))]`), adding a parallel
+plain `#[defended_by(C)]` at the same site silences the `ConjunctionIncomplete` signal via
+OR semantics. The plain defense produces `Defended { plurality: Single }` which satisfies
+`--strict`. The conjunction shortfall is invisible. This is the current deliberate behavior
+(OR-over-all-defenses is the default for multi-annotation form). The `ConjunctionIntentDiluted`
+advisory (v0.4+ research item) will surface this case explicitly; until then: **avoid adding
+plain `#[defended_by]` at a site that also bears `all_of` unless you intend to bypass the
+conjunction requirement.**
+
+**Class-level vs site-level: conjunction is satisfied at the class level**: A class-level
+conjunction requirement is satisfied at the class level — meaning A and B must be present
+as class-level defenses, not as site-specific `#[defended_by]` annotations. A descendant
+site cannot unilaterally satisfy a class-level conjunction by adding its own site-level
+witness. Adding `#[defended_by(A)]` at a descendant site that presents X (where X's
+class-level defense requires `all_of(A, B)`) will NOT satisfy the conjunction — the
+descendant site will still emit `ConjunctionIncomplete { missing: [B] }`. **If you see
+`ConjunctionIncomplete` despite adding a witness, check whether the requirement is class-
+level (`#[defended_by(all_of(...))]` on the antigen declaration) rather than site-level.**
+
+### Failure-class: `ConjunctiveDefenseVoid` (deferred to v0.4+)
+
+Once the conjunction primitive ships, the fail-class that names its absence can be declared:
+a site that presents a failure class requiring conjunction for rigorous defense but whose
+`#[defended_by]` uses OR semantics, where the adopter INTENDED to require multiple
+independent channels but had no syntax to express it. Shadow #3 crystallized as a named
+failure class.
+
+### Gate outcomes (ceremony complete)
+
+**Aristotle Phase-1-8 — PASSED** (2026-05-27). Five questions resolved: Q1 (tier) new
+orthogonal plurality axis + `WitnessState { tier, plurality }`; Q2 (verdict)
+`ConjunctionIncomplete` = new `AuditVerdict` variant; Q3 (nesting) deferred as
+forward-compatible additive extension; Q4 (--strict) `ConjunctionIncomplete` fails under
+`--strict`; Q5 (inheritance) class-level composition, no new mechanism. Phase-8 void:
+`WitnessState` as extensible struct.
+
+**Naturalist (biology) — PASSED** (2026-05-27). Costimulation categorical-state confirmed,
+primary-source grounded (PMID 12670403). (tier, plurality) orthogonal axes confirmed by
+30+ years of two-signal mechanism. Max-of-members-flat biologically disproven.
+
+**Adversarial — PASSED** (2026-05-27) with three named gaps incorporated: (a) bypass
+vector via parallel plain defense → `ConjunctionIntentDiluted` advisory named as v0.4+
+research item; (b) nested `all_of` parse-time error constraint (NON-OPTIONAL implementation
+note); (c) class-level vs site-level documentation gap (adoption guidance).
+
+**Scientist (consistency) — PASSED** (2026-05-28). Plurality::ConjunctionPartial rename
+adopted, §Implementation notes and §Adoption guidance sections promoted from §Adversarial.
+Outsider naive-pass addressed.
+
+### What this ADR does NOT do
+
+- Does NOT change OR semantics for the multi-annotation form (backward-compatible).
+- Does NOT change the existing `max()` logic for sites without `all_of`.
+- Does NOT introduce nesting (`all_of(X, all_of(Y, Z))`) — deferred as forward-compatible
+  additive extension; v0.3 parser MUST reject with clear error.
+- Does NOT declare `ConjunctiveDefenseVoid` as a dogfood antigen yet — deferred to v0.4+
+  once the conjunction primitive is in use.
+- Does NOT introduce `ConjunctionIntentDiluted` advisory enforcement — v0.4+ research item.
+
+### Evidence citations
+
+- Shadow #3 discovery: `forward/autoimmune-shadow-discovery-engine` (notice `4f07c1e7`)
+- OR semantics substrate verification: `audit.rs:1381`
+- ADR-029 witness pluralism commitment: §ADR-029
+- Fingerprint `all_of` compositor precedent: ADR-010 (fingerprint grammar)
+- PMID 12670403: Appleman & Boussiotis (2003). "T cell anergy and costimulation."
+  *Immunol Rev* — canonical two-signal model, primary source
+- Naturalist biology gate: campsite note `8418caca` (2026-05-27)
+- Adversarial gate: campsite note `bc9cbb62` (2026-05-27)
+- Aristotle Phase-1-8: `forward/adr032-conjunction-witness` campsite note (2026-05-27);
+  five questions resolved; (tier, plurality) two-axis reformulation
+- Scientist consistency + outsider-gap fixes: `forward/adr032-conjunction-witness` campsite
+  notes (2026-05-28); Plurality::ConjunctionPartial rename; §Implementation notes; §Adoption
+  guidance
