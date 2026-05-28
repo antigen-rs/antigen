@@ -1771,3 +1771,247 @@ pub struct AuditVerdictComputedButNotDelivered;
     references = ["ADR-005"]
 )]
 pub struct AbsentErrorCollapse;
+
+// ============================================================================
+// 27. AuditIndexKeyCollision
+// ============================================================================
+
+/// Audit index keyed on insufficient identity; audit silently evaluates the
+/// **wrong item's data**.
+///
+/// An audit function builds an index (or selects via `.first()`) keyed on K.
+/// Two or more items are logically distinct but share K (same position in a
+/// list / same bare name / same bare type name). When the second item is
+/// audited, the lookup returns the FIRST item's data. The
+/// audit passes or fails based on the wrong item's properties. No error is
+/// surfaced; the verdict is silently wrong.
+///
+/// The fix is always the same: **expand the key to include the distinguishing
+/// dimension**. The distinguishing dimension is always present in the data
+/// (item path, file path, canonical crate path) but was omitted because the
+/// index was designed for the common case (one item per sidecar, one function
+/// with that name, one crate with that type name). The omission is correct in
+/// the common case; the bug manifests only in the expanded case.
+///
+/// **Three confirmed instances** (scout, 2026-05-28, antigen-dx-dogfood
+/// expedition; three instances = naming threshold per the project's
+/// recurrence-gate):
+///
+/// **(1) Sidecar first-item shortcut** (`audit.rs:1597`):
+/// `audit_substrate_witness()` calls `sidecar.items.first()` to select the
+/// evaluation target. When a sidecar covers multiple items, item N's immunity
+/// is evaluated against item 0's `ItemRatification` — using item 0's
+/// fingerprint and item 0's signers. Key = list position (always 0); the
+/// distinguishing dimension is item path. Campsite:
+/// `findings/sidecar-first-item-wrong-audit`.
+///
+/// **(2) Mucosal same-name function collision** (`audit.rs:2966`):
+/// `audit_mucosal()` builds `handler_kinds: HashMap<&str, HashSet<&str>>`
+/// keyed by bare function name. Two `#[mucosal]` functions with the same name
+/// in different files merge their kind-sets under one key. A delegate pointing
+/// at that name gets the union of BOTH files' kinds and may silently pass the
+/// kind-check using the wrong file's kinds. Key = bare fn name; the
+/// distinguishing dimension is source file. Fix shape: detect same-name
+/// ambiguity at index-build time and emit
+/// `MucosalDisciplineDelegateTargetAmbiguous` (keying by `(file, fn_name)`
+/// requires `handled_by` to carry file info, which it does not). Campsite:
+/// `findings/mucosal-same-name-fn-collision`.
+///
+/// **(3) Cross-crate defense bare-type match** (pre-fix; fixed at `03e1c99`):
+/// `defense_addresses()` used `d.antigen_type == p.antigen_type` alone — bare
+/// type name without `canonical_path`. Crate A's `Foo` and crate B's `Foo`
+/// shared one key, so a defense from crate A silently credited against crate
+/// B's presentation. Key = bare type name; the distinguishing dimension is
+/// canonical crate path. Fix: `d.antigen_type == p.antigen_type &&
+/// d.canonical_path == p.canonical_path`. (ATK-ADR029-21, `scan.rs:2368`.)
+///
+/// **Structural shape across all three**:
+/// - Index keyed on K (position / bare name / bare type name).
+/// - Items logically distinct but sharing K.
+/// - Audit returns the wrong item's data when K collides.
+/// - Verdict is silently wrong — no error, no diagnostic.
+/// - Fix: expand the key to include the distinguishing dimension (item path /
+///   file / canonical path). The distinguishing dimension was in the data all
+///   along; it was simply omitted from the key.
+///
+/// **Connection to `LookupKeyInsufficientIdentity` as a dogfood antigen
+/// candidate** (garden, 2026-05-28): this class is named from the structural
+/// shape of the fix (key collision → expand key), not from the silence type.
+/// The silence-generator is silence-by-absence: the lookup's ambiguity arm was
+/// never installed. The class is distinct from
+/// [`ParallelStateTrackersDiverge`] (representation drift between two copies
+/// of the same fact) and from [`AuditVerdictComputedButNotDelivered`]
+/// (correct verdict never reaching the output surface). Here the
+/// *computation itself is wrong* because the index resolves to the wrong item.
+///
+/// **Fingerprint**: `doc_contains("items.first")` is a recall fingerprint for
+/// the position-key shape — `"items.first()"` in a doc comment signals the v0.1
+/// forward-pointer that the author KNEW the key was narrower than it should be
+/// (the comment at `audit.rs:1597` explicitly says "A3+ work will match by
+/// `item_path`"). The other two shapes (bare fn name / bare type name) are
+/// caught by the explicit `#[presents]` markers on the two blocked campsites'
+/// index-build sites. A fingerprint grammar capable of expressing "a
+/// `HashMap` keyed by `&str` where the value type has a second `&str`
+/// field not used as the key" is a v0.3 predicate-language enrichment; for
+/// v0.2 the recall-fingerprint + explicit markers provide the coverage.
+///
+/// **Category**: `FunctionalCorrectness` — the audit's index-selection
+/// function returns the wrong item; the verdict is a wrong output (not a
+/// representation-vs-state layer split). The key-selection is the computation
+/// being audited; computing it with insufficient identity is a
+/// computation-correctness failure.
+///
+/// **Internal-tooling discipline**: per
+/// `feedback-internal-tool-antigens-preemptive`, declared from three confirmed
+/// instances. All three were found empirically in the same expedition arc;
+/// the structural shape is predictable to recur wherever an index is built
+/// without incorporating the distinguishing dimension.
+#[antigen(
+    name = "audit-index-key-collision",
+    category = AntigenCategory::FunctionalCorrectness,
+    fingerprint = r#"doc_contains("items.first")"#,
+    family = "dogfood",
+    summary = "An audit lookup/index is keyed on insufficient identity (bare name, list \
+               position, or bare type name) so two logically distinct items share the \
+               same key; the audit silently evaluates the wrong item's data. Three \
+               instances: sidecar items.first() shortcut (audit.rs:1597), mucosal \
+               handler_kinds bare-fn-name HashMap (audit.rs:2966), cross-crate defense \
+               bare-type-name match (pre-fix, 03e1c99). Fix: expand the key to include \
+               the distinguishing dimension (item_path, source file, canonical_path).",
+    references = ["ADR-005", "ADR-030"]
+)]
+pub struct AuditIndexKeyCollision;
+
+// ============================================================================
+// 28. TristateCollapseToBinary
+// ============================================================================
+
+/// A predicate or function that has three real return states represents only
+/// two, collapsing the absent-precondition state into one of the valid pair.
+///
+/// The three real states: **Match** (predicate evaluated, condition present),
+/// **NoMatch** (predicate evaluated, condition absent), **Undefined**
+/// (predicate cannot evaluate — the precondition for evaluation is absent).
+/// When the representation carries only two states, `Undefined` is forced into
+/// either `NoMatch` (false negative: "not found" when the truth is "can't
+/// check") or `Match` (vacuous match: "found" when the truth is "predicate
+/// has no locus here"). Both produce silently wrong verdicts.
+///
+/// The fix is always to **represent the third state explicitly** and build
+/// downstream handling that uses it correctly — conservative (non-match, but
+/// not `NoMatch`) in most audit contexts.
+///
+/// **Six confirmed instances** (scout + navigator, 2026-05-28,
+/// antigen-dx-dogfood expedition; six instances = well past the naming
+/// threshold):
+///
+/// **(1) Fingerprint `not(body_contains_macro)` on a struct** (pre-fix;
+/// fixes by ADR-010 Amendment 6): `body_contains_macro` applied to a struct
+/// returns `false` (no body). `not(false) = true`, so ALL structs vacuously
+/// match `all_of([item=struct, not(body_contains_macro(X))])`. The honest
+/// return is `Undefined` — structs don't have bodies; the predicate has no
+/// locus. Match3 (`{Match, NoMatch, Undefined}` with Kleene-strong algebra)
+/// closes this: `not(Undefined) = Undefined`, which does not contribute to a
+/// positive match result. Campsite:
+/// `forward/fingerprint-grammar-body-content-with-negation`.
+///
+/// **(2) Orient `until` date — collapse: None vs Some(malformed-date)**
+/// (`audit.rs:1081`): when `until = Some("2026/01/01")` (slash-format typo),
+/// `parse_optional` returns `None`; the outer `if let Some(x)` arm is not
+/// entered; the audit silently grants `OrientActive` forever. The malformed
+/// case is indistinguishable from "no until date." Fixed by the Orient-style
+/// split: `None` (absent) retains silent skip; `Some(bad-date)` escalates
+/// to a diagnostic. Campsite: `findings/orient-unparseable-until-silent-green`.
+///
+/// **(3) Anergy/Immunosuppress `until` date — same collapse** (`audit.rs:1119,
+/// 1151, 1158`): `unwrap_or("")` collapses `None` (absent) and
+/// `Some("not-a-date")` (present but malformed) to the same empty string, so
+/// a typo in `until=` silently grants indefinite `AnergicActive` /
+/// `ImmunosuppressActive`. Campsite:
+/// `findings/deferred-until-malformed-silent-active`.
+///
+/// **(4) Supply-chain predicate evaluation — no-sidecar vs failed**
+/// (pre-fix): a predicate returning `false` (checked, fails) was
+/// indistinguishable from "no sidecar found" (unchecked, precondition
+/// absent). Fixed by surfacing the sidecar-absence state explicitly in the
+/// audit verdict.
+///
+/// **(5) `AuditVerdict` `Defended vs Undefended`** (pre-`SubstrateGap`): two
+/// verdict states could not represent "witness present but predicate
+/// UNSATISFIED at the substrate" — that case collapsed into `Undefended`.
+/// `SubstrateGap` is the explicit third value added by ADR-029.
+///
+/// **(6) `WitnessTier` in `requires=` context — tier-present vs
+/// tier-absent vs precondition-missing**: a `requires=` predicate that
+/// references a signer role that never signed produces the same audit outcome
+/// as a predicate whose evaluation precondition is simply not met. Both
+/// collapse to the same non-pass state without distinguishing "checked and
+/// found absent" from "unchecked because the substrate couldn't be reached."
+///
+/// **Biology cognate** (naturalist gate required before ratification; scout
+/// recommendation for routing): **anergy** — T-cell anergy is the cellular
+/// program that runs when a T-cell receptor engages its antigen but the
+/// costimulatory signal (CD28/B7, signal-2) is absent. The cell enters a
+/// persistent non-responsive program that is CATEGORICALLY DISTINCT from
+/// "clone absent" and from "TCR not engaged." The immune system represents all
+/// three states explicitly; confusing anergy with deletion (wrong third-state
+/// collapse) produces tolerance failures with massive clinical consequences.
+/// The antigen analog: `Undefined` (evaluator can't apply the predicate) is
+/// distinct from `NoMatch` (evaluated, condition absent); collapsing them
+/// produces the vacuous-not hazard (instance 1) and the malformed-as-absent
+/// silences (instances 2, 3).
+///
+/// **Silence-generator**: silence-by-absence — the third state's arm was
+/// never installed, so the collapsed value is the only output available.
+///
+/// **Fix**: represent `Undefined` as a first-class return value. Use
+/// Kleene-strong algebra for composition: `not(Undefined) = Undefined`;
+/// `all_of` where any child is `NoMatch` = `NoMatch`; `all_of` with at least
+/// one `Undefined` and no `NoMatch` = `Undefined`. Project to bool at the
+/// outermost layer only (the fingerprint-fires boundary). This is the exact
+/// design of Match3 in ADR-010 Amendment 6.
+///
+/// **Category**: `FunctionalCorrectness` — the predicate or function produces
+/// wrong output (a false negative or vacuous match) by collapsing the
+/// evaluator-can't-evaluate state into a definite verdict.
+///
+/// **Distinction from [`AbsentErrorCollapse`]** (#26): `AbsentErrorCollapse`
+/// is specifically about a MATCH POINT confusing a present-but-malformed
+/// VALUE with an absent value. `TristateCollapseToBinary` is broader: the
+/// precondition can be structurally absent (no body exists; no sidecar;
+/// costimulation unavailable) — not just malformed. Different cause
+/// (structural-absence vs malformed-presence), different fix-shape
+/// (three-valued algebra vs error-arm split).
+///
+/// **Internal-tooling discipline**: per
+/// `feedback-internal-tool-antigens-preemptive`, declared from six confirmed
+/// instances. The pattern is universal — any code that evaluates a predicate
+/// against a substrate that might not exist is a potential site. The
+/// fingerprint targets the cases where the author already named the third
+/// value (`Undefined`, `Undefined` in an enum name); explicit `#[presents]`
+/// markers cover the pre-fix instances that never named it.
+///
+/// **NOTE**: naturalist biology gate is recommended before ratification of
+/// this antigen into the stdlib (ADR-027 biology-grounding discipline for
+/// non-dogfood families). The biology is already well-mapped (anergy vs
+/// deletion vs inactivation-by-absence), but the formal gate produces the
+/// biological literature anchor required by ADR-027. This declaration is in
+/// the dogfood family so the gate is not blocking; it is advisory.
+#[antigen(
+    name = "tristate-collapse-to-binary",
+    category = AntigenCategory::FunctionalCorrectness,
+    fingerprint = r#"doc_contains("Undefined")"#,
+    family = "dogfood",
+    summary = "A predicate or verdict has three real states (match / no-match / \
+               precondition-absent) but is represented as two; the absent-precondition \
+               state collapses silently into no-match or match, producing a false \
+               negative or vacuous positive. Six instances: fingerprint body-predicate \
+               vacuous-not (#1), orient-until malformed (#2), anergy-until malformed (#3), \
+               supply-chain no-sidecar-vs-failed (#4), AuditVerdict pre-SubstrateGap (#5), \
+               WitnessTier precondition-missing (#6). Fix: represent Undefined explicitly \
+               with Kleene-strong algebra (not(Undefined)=Undefined; all_of propagates \
+               Undefined conservatively). Biology cognate: T-cell anergy — distinct \
+               cellular program from clone-absent, not a weak form of activation.",
+    references = ["ADR-010", "ADR-029", "ADR-031"]
+)]
+pub struct TristateCollapseToBinary;
