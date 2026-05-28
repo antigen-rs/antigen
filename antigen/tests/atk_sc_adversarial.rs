@@ -209,3 +209,110 @@
 //          Current summary: {:?}", summary
 //     );
 // }
+
+// ============================================================================
+// ATK-SC-7: Predicate serde-bypass — empty all_of silently passes.
+//
+// `audit_supply_chain()` at audit.rs:2194 deserializes requires_predicate via
+// `serde_json::from_str::<antigen_attestation::Predicate>(json)`. Serde's
+// auto-derived Deserialize does NOT call `Predicate::validate()`, so an
+// `all_of([])` deserialized from hand-crafted JSON bypasses the
+// ZeroLeafComposition check and evaluates vacuously to `passed=true`.
+//
+// The normal code path (proc-macro → Predicate::all_of() constructor) is
+// safe — the constructor enforces non-empty. But a hand-crafted scan-report
+// JSON (or any future code path that produces Predicate directly from JSON
+// without calling validate()) bypasses the guard.
+//
+// Primary attack surface: requires low-level JSON crafting; proc-macro gate
+// covers normal authoring. Risk: LOW. Hardening: add validate() call after
+// serde_json::from_str in audit_supply_chain() and in any future JSON
+// deserialization points.
+//
+// This test documents the gap by confirming the current behavior (bypasses)
+// and should be updated to assert reject-or-error if validate() is wired.
+// ============================================================================
+
+use antigen::audit::audit_supply_chain;
+use antigen::scan::{Immunity, ItemTarget, ScanReport};
+use std::path::{Path, PathBuf};
+
+fn immunity_with_predicate_json(predicate_json: &str) -> Immunity {
+    Immunity {
+        antigen_type: "TestAntigen".to_string(),
+        witness: String::new(),
+        requires_predicate: Some(predicate_json.to_string()),
+        file: PathBuf::from("src/lib.rs"),
+        line: 1,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Fn("test_fn".to_string()),
+        canonical_path: None,
+        structural_fingerprint: String::new(),
+    }
+}
+
+#[test]
+fn atk_sc7_empty_all_of_via_serde_bypasses_vacuous_pass() {
+    // Hand-crafted JSON with an empty all_of. The serde Deserialize does NOT
+    // call Predicate::validate(), so this bypasses ZeroLeafComposition.
+    // AllOf { children: [] } evaluates vacuously to passed=true with no entries.
+    //
+    // The normal path (proc-macro → Predicate::all_of([]) constructor) would
+    // return Err(ZeroLeafComposition) and never produce this JSON. But a
+    // crafted scan report JSON can carry this predicate.
+    //
+    // Current behavior: serde_json::from_str SUCCEEDS (no ZeroLeafComposition),
+    // and eval_supply_chain_predicate returns passed=true with no entries.
+    //
+    // After hardening (validate() wired post-serde): from_str should FAIL →
+    // the `Ok(predicate)` guard at audit.rs:2194 falls through to `continue` →
+    // no audit entry emitted (currently same result but for different reason).
+    //
+    // The REAL fix is to add a hint for malformed predicates rather than
+    // silently continuing — `continue` on serde error is also a silent failure.
+    let empty_all_of_json = r#"{"kind":"all_of","children":[]}"#;
+
+    // Verify serde successfully deserializes the empty all_of today (the bypass).
+    let parsed: Result<antigen_attestation::Predicate, _> =
+        serde_json::from_str(empty_all_of_json);
+    assert!(
+        parsed.is_ok(),
+        "ATK-SC-7: empty all_of bypasses serde validation — from_str succeeds \
+         (validate() is not called by the derived Deserialize). \
+         After fix: parsed.is_ok() should remain true but validate() should \
+         be called separately to produce ZeroLeafComposition error."
+    );
+
+    // Verify validate() WOULD catch it.
+    if let Ok(pred) = parsed {
+        let validation = pred.validate();
+        assert!(
+            validation.is_err(),
+            "ATK-SC-7: Predicate::validate() DOES catch the empty all_of — \
+             ZeroLeafComposition should fire. validate() result: {:?}",
+            validation
+        );
+    }
+
+    // Verify the end-to-end behavior: empty all_of in scan report produces
+    // zero audit entries (vacuous pass, not an error/hint).
+    let mut report = ScanReport::default();
+    report
+        .immunities
+        .push(immunity_with_predicate_json(empty_all_of_json));
+
+    let sc_report = audit_supply_chain(&report, Path::new("."));
+
+    // BROKEN: zero audit entries — the vacuous pass produces nothing.
+    // After fix (validate() wired + malformed-predicate hint): should emit
+    // a supply-chain audit entry with a malformed-predicate hint.
+    assert_eq!(
+        sc_report.audits.len(),
+        0,
+        "ATK-SC-7 (BROKEN): empty all_of predicate deserialized via serde bypass \
+         produces zero audit entries — vacuous pass, no hint. \
+         Fix: call predicate.validate() after serde_json::from_str, emit a \
+         MalformedRequiresPredicate hint if validation fails (instead of \
+         silently continuing)."
+    );
+}
