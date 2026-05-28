@@ -4997,8 +4997,17 @@ mod tests {
         let attest_dir = tmp.path().join("src").join(".attest");
         std::fs::create_dir_all(&attest_dir).unwrap();
 
-        // Sidecar with TWO item entries: first_fn (signed by alice), second_fn
-        // (zero signers — must fail the signers=[alice] predicate).
+        // Discriminating fixture: first_fn UNSIGNED, second_fn SIGNED by alice
+        // against the live digest (fp-2). Immunity addresses second_fn.
+        //   - Pre-fix `items.first()`: consults first_fn's entry → signers=[]
+        //     → alice missing → DisciplinePredicateFailed (FAIL).
+        //   - Fixed per-item lookup: consults second_fn's entry → alice signed
+        //     fp-2 == live fp-2 → DisciplinePredicatePassedSubstrateCurrent (PASS).
+        // The PASS is the load-bearing signal; only the per-item lookup delivers
+        // it. The mirror fixture (first signed, second unsigned, immunity on
+        // second) does NOT discriminate — both old and new return FAIL there,
+        // just for different reasons. Falsified 2026-05-28: this test FAILS
+        // against the items.first() shortcut and PASSES against the lookup fix.
         let sidecar = Ratification {
             schema_version: SchemaVersion::V1,
             kind: RatificationKind::Immunity,
@@ -5012,17 +5021,7 @@ mod tests {
                     item_path: "first_fn".to_string(),
                     current_fingerprint: "fp-1".to_string(),
                     doc_ref: None,
-                    signers: vec![Signer {
-                        name: "alice".to_string(),
-                        role: None,
-                        date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
-                        signed_against_fingerprint: "fp-1".to_string(),
-                        basis: SignerBasis::Fresh {
-                            reasoning: Some("reviewed first_fn".to_string()),
-                        },
-                        strength: antigen_attestation::tier::SignatureStrength::TextStamp,
-                        signature: None,
-                    }],
+                    signers: vec![], // first_fn: UNSIGNED (would fail signers=[alice])
                     oracles: vec![],
                     fresh_through: None,
                     extensions: BTreeMap::new(),
@@ -5031,7 +5030,18 @@ mod tests {
                     item_path: "second_fn".to_string(),
                     current_fingerprint: "fp-2".to_string(),
                     doc_ref: None,
-                    signers: vec![], // nobody signed second_fn
+                    // second_fn: alice signed against the live digest fp-2.
+                    signers: vec![Signer {
+                        name: "alice".to_string(),
+                        role: None,
+                        date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                        signed_against_fingerprint: "fp-2".to_string(),
+                        basis: SignerBasis::Fresh {
+                            reasoning: Some("reviewed second_fn".to_string()),
+                        },
+                        strength: antigen_attestation::tier::SignatureStrength::TextStamp,
+                        signature: None,
+                    }],
                     oracles: vec![],
                     fresh_through: None,
                     extensions: BTreeMap::new(),
@@ -5041,7 +5051,6 @@ mod tests {
         let sidecar_json = serde_json::to_string_pretty(&sidecar).unwrap();
         std::fs::write(attest_dir.join("TwoFnAntigen.json"), sidecar_json).unwrap();
 
-        // Predicate: alice must be a current signer (against the item's live digest).
         let pred = antigen_attestation::Predicate::leaf(Leaf::Signers {
             required: vec!["alice".to_string()],
             roles: BTreeMap::new(),
@@ -5051,7 +5060,7 @@ mod tests {
         });
         let pred_json = serde_json::to_string(&pred).unwrap();
 
-        // Immunity addressing SECOND_FN (the unsigned item).
+        // Immunity addressing SECOND_FN (the signed item).
         let immunity = crate::scan::Immunity {
             antigen_type: "TwoFnAntigen".to_string(),
             witness: String::new(),
@@ -5066,47 +5075,15 @@ mod tests {
 
         let result = audit_substrate_witness(&immunity, &pred_json);
 
-        // FIXED: the lookup finds second_fn's entry (zero signers) → predicate
-        // fails (no `alice` in the required list) → DisciplinePredicateFailed
-        // hint, tier=None. Pre-fix (`items.first()`): would have evaluated
-        // first_fn's signers (alice) against fp-2's live digest → alice
-        // signed fp-1, not fp-2 → would have failed for a DIFFERENT reason
-        // (signer-stale via fingerprint mismatch). The hint's identical end-
-        // state in some setups is precisely the danger the finding names:
-        // the audit "passed" or "failed" without being about the right item.
-        // We assert the failure mode that proves the right item was consulted:
-        // zero required signers found.
         assert_eq!(
             result.audit_hint,
-            AuditHint::DisciplinePredicateFailed,
-            "ATK-SIDECAR-FIRST-ITEM (FIXED): second_fn's immunity must consult \
-             second_fn's ratification entry (zero signers) — predicate must fail with \
-             DisciplinePredicateFailed. A `passed` result here would mean the lookup \
-             still used first_fn's (alice-signed) entry. Got: {result:?}"
-        );
-        assert_eq!(result.witness_tier, WitnessTier::None);
-
-        // And the SYMMETRIC sanity-check: an immunity addressing first_fn (alice
-        // signed against fp-1, live digest fp-1) DOES pass under the same fix.
-        let first_immunity = crate::scan::Immunity {
-            antigen_type: "TwoFnAntigen".to_string(),
-            witness: String::new(),
-            requires_predicate: Some(pred_json.clone()),
-            file: immunity.file.clone(),
-            line: 1,
-            item_kind: "fn".to_string(),
-            item_target: crate::scan::ItemTarget::Fn("first_fn".to_string()),
-            canonical_path: None,
-            structural_fingerprint: "fp-1".to_string(),
-        };
-        let first_result = audit_substrate_witness(&first_immunity, &pred_json);
-        assert_eq!(
-            first_result.audit_hint,
             AuditHint::DisciplinePredicatePassedSubstrateCurrent,
-            "ATK-SIDECAR-FIRST-ITEM (FIXED): first_fn's immunity must consult first_fn's \
-             entry (alice@fp-1 vs live fp-1) — predicate passes. If THIS fails, the \
-             lookup is matching the wrong entry from the other direction. Got: {first_result:?}"
+            "ATK-SIDECAR-FIRST-ITEM (FIXED): second_fn's immunity must consult \
+             second_fn's ratification (alice signed fp-2 == live fp-2 → PASS). A \
+             DisciplinePredicateFailed result here means the lookup regressed to \
+             `items.first()` and was reading first_fn's UNSIGNED entry. Got: {result:?}"
         );
+        assert_eq!(result.witness_tier, WitnessTier::Execution);
     }
 
     // ========================================================================
@@ -5673,6 +5650,163 @@ mod tests {
             "ATK-IMMUNOSUPPRESS-MALFORMED-SINCE: stale_count is 0 -- the cap-exceeded \
             path was never reached because since parse failed silently"
         );
+    }
+
+    // ========================================================================
+    // ATK-DEFERRED-UNTIL-1/2/3: anergy, immunosuppress, poxparty silently
+    // treat a present-but-malformed `until` as "active forever" (the Orient
+    // arm was fixed to distinguish None vs Some(invalid), but the other three
+    // still use `unwrap_or("")` which makes None and Some("bad") identical).
+    //
+    // Concrete failure:
+    //   #[anergy(until = "2026-13-01")]   — month 13, invalid date
+    //   evaluate_deferred_defense_hint:   unwrap_or("") → parse_iso_date("2026-13-01")
+    //                                     → None → AnergyActive
+    //
+    // The developer INTENDED an expiry deadline. A typo silently grants the
+    // anergy (or immunosuppress or poxparty) permanent Active status. No
+    // AnergyStale, no AnergyCostimulationNotArrived, no diagnostic at all.
+    //
+    // Fix direction (parallel to Orient fix at evaluate_deferred_defense_hint
+    // lines 1176-1191): match on decl.until.as_deref() FIRST, then parse.
+    //   None | Some("") → Active (legacy grace path)
+    //   Some(s) → match parse_iso_date(s):
+    //     Some(date) if date >= today → Active
+    //     _ → Expired/Stale (a present-but-broken until is unresolved, not a grace)
+    //
+    // These tests DOCUMENT the current broken behavior (each asserts the wrong
+    // Active outcome). They will FAIL once the fix lands — update them to the
+    // correct escalation hints when that happens.
+    // ========================================================================
+
+    fn anergy_decl_with_until(until: &str) -> crate::scan::DeferredDefense {
+        use crate::scan::{DeferredDefenseKind, ItemTarget};
+        crate::scan::DeferredDefense {
+            kind: DeferredDefenseKind::Anergy,
+            antigen_type: Some("SomeClass".to_string()),
+            text: "test reason".to_string(),
+            until: Some(until.to_string()),
+            expected_co_stimulation: None,
+            signed_by: None,
+            see: Vec::new(),
+            since: None,
+            duration_cap: None,
+            file: std::path::PathBuf::from("src/lib.rs"),
+            line: 1,
+            item_kind: "fn".to_string(),
+            item_target: ItemTarget::Fn("deferred_fn".to_string()),
+        }
+    }
+
+    fn immunosuppress_decl_with_until(until: &str) -> crate::scan::DeferredDefense {
+        use crate::scan::{DeferredDefenseKind, ItemTarget};
+        crate::scan::DeferredDefense {
+            kind: DeferredDefenseKind::Immunosuppress,
+            antigen_type: Some("SomeClass".to_string()),
+            text: "test rationale".to_string(),
+            until: Some(until.to_string()),
+            expected_co_stimulation: None,
+            signed_by: None,
+            see: Vec::new(),
+            since: None,
+            duration_cap: None,
+            file: std::path::PathBuf::from("src/lib.rs"),
+            line: 1,
+            item_kind: "fn".to_string(),
+            item_target: ItemTarget::Fn("suppressed_fn".to_string()),
+        }
+    }
+
+    fn poxparty_decl_with_until(until: &str) -> crate::scan::DeferredDefense {
+        use crate::scan::{DeferredDefenseKind, ItemTarget};
+        crate::scan::DeferredDefense {
+            kind: DeferredDefenseKind::Poxparty,
+            antigen_type: Some("SomeClass".to_string()),
+            text: "UserInput".to_string(),
+            until: Some(until.to_string()),
+            expected_co_stimulation: None,
+            signed_by: None,
+            see: Vec::new(),
+            since: None,
+            duration_cap: None,
+            file: std::path::PathBuf::from("src/lib.rs"),
+            line: 1,
+            item_kind: "fn".to_string(),
+            item_target: ItemTarget::Fn("pox_fn".to_string()),
+        }
+    }
+
+    // ATK-DEFERRED-UNTIL-1: anergy with malformed until silently stays Active.
+    // Correct post-fix: should escalate (AnergyCostimulationNotArrived or AnergyStale).
+    // This asserts the BROKEN outcome — will FAIL after fix lands.
+    #[test]
+    fn atk_deferred_until_1_anergy_malformed_until_silently_active() {
+        let decl = anergy_decl_with_until("not-a-date");
+        let mut report = ScanReport::default();
+        report.deferred_defenses.push(decl);
+        let out = audit_deferred_defenses(&report, 30);
+        assert_eq!(
+            out.audits[0].hint,
+            AuditHint::AnergyActive,
+            "ATK-DEFERRED-UNTIL-1 (BROKEN): anergy with until=Some('not-a-date') \
+             silently lands in AnergyActive via unwrap_or('') -> None parse path. \
+             The author intended a deadline; a typo grants permanent active status. \
+             Fix: split None arm (Orient-style): None|Some('') -> Active (grace), \
+             Some(bad) -> AnergyCostimulationNotArrived/AnergyStale (unresolved). \
+             When fixed, update this assertion to the escalation hint."
+        );
+        assert_eq!(
+            out.active_count, 1,
+            "ATK-DEFERRED-UNTIL-1: malformed-until anergy counts as active (broken)"
+        );
+        assert_eq!(out.expired_count, 0);
+        assert_eq!(out.stale_count, 0);
+    }
+
+    // ATK-DEFERRED-UNTIL-2: immunosuppress with malformed until silently stays Active.
+    // Correct post-fix: should escalate (ImmunosuppressExpired or similar).
+    // This asserts the BROKEN outcome — will FAIL after fix lands.
+    #[test]
+    fn atk_deferred_until_2_immunosuppress_malformed_until_silently_active() {
+        // Slash format looks like a past date to a human but fails ISO parse.
+        let decl = immunosuppress_decl_with_until("2026/01/01");
+        let mut report = ScanReport::default();
+        report.deferred_defenses.push(decl);
+        let out = audit_deferred_defenses(&report, 30);
+        assert_eq!(
+            out.audits[0].hint,
+            AuditHint::ImmunosuppressActive,
+            "ATK-DEFERRED-UNTIL-2 (BROKEN): immunosuppress with until=Some('2026/01/01') \
+             (slash format — looks like a past date to a human but fails ISO parse) \
+             silently lands in ImmunosuppressActive. A suppression the developer \
+             intended to expire in 2026 stays Active indefinitely. Fix: Orient-style \
+             split — Some(bad) -> ImmunosuppressExpired rather than silent grace. \
+             When fixed, update assertion to ImmunosuppressExpired."
+        );
+        assert_eq!(out.active_count, 1);
+        assert_eq!(out.expired_count, 0);
+    }
+
+    // ATK-DEFERRED-UNTIL-3: poxparty with malformed until silently stays Active.
+    // Correct post-fix: should escalate (PoxpartyOutcomePending or similar).
+    // This asserts the BROKEN outcome — will FAIL after fix lands.
+    #[test]
+    fn atk_deferred_until_3_poxparty_malformed_until_silently_active() {
+        let decl = poxparty_decl_with_until("soon"); // not a date at all
+        let mut report = ScanReport::default();
+        report.deferred_defenses.push(decl);
+        let out = audit_deferred_defenses(&report, 30);
+        assert_eq!(
+            out.audits[0].hint,
+            AuditHint::PoxpartyActive,
+            "ATK-DEFERRED-UNTIL-3 (BROKEN): poxparty with until=Some('soon') \
+             silently lands in PoxpartyActive. A poxparty the developer intended \
+             to expire (once 'soon' was a real date) stays Active forever due to \
+             the same unwrap_or('') -> None parse collapse. Fix: Orient-style split \
+             — Some(bad) -> PoxpartyOutcomePending. When fixed, update assertion."
+        );
+        assert_eq!(out.active_count, 1);
+        assert_eq!(out.expired_count, 0);
     }
 
     // ========================================================================
