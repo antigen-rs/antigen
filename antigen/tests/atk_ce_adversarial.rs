@@ -223,3 +223,137 @@
 //         report.audits.len()
 //     );
 // }
+
+// ============================================================================
+// ATK-CE-5: zero min_independent / zero min_reattestations — silent pass.
+//
+// The threshold comparisons use `distinct.len() < min` (usize < u64). When
+// min = 0, the comparison is `N < 0` which is always false for an unsigned
+// type — silent pass regardless of how many distinct classes exist (even 0).
+//
+// A developer who clears a min_independent value to 0 (perhaps by copy-paste
+// or a config error) gets a silent acceptance: the audit does not fire
+// DiagnosticModalityInsufficient or IggReattestationsInsufficient, even
+// though the threshold is semantically null (zero independence = no claim).
+//
+// Correct behavior: when min_independent = 0 or min_reattestations = 0, the
+// audit should surface a dedicated hint (e.g., DiagnosticMinIndependentZero)
+// or at minimum refuse to count it as a meaningful threshold (treat same as
+// None). Silent acceptance of zero lets intentionally-misconfigured
+// declarations look clean.
+//
+// These tests assert the BROKEN outcome — they pass today (no hint fires).
+// Will need updating if a zero-min warning hint is added to the audit.
+// ============================================================================
+
+use antigen::audit::{audit_convergent_evidence, AuditHint};
+use antigen::scan::{ConvergentEvidence, ConvergentEvidenceKind, ItemTarget, ScanReport};
+use std::path::PathBuf;
+
+fn ce_base(kind: ConvergentEvidenceKind) -> ConvergentEvidence {
+    ConvergentEvidence {
+        kind,
+        modality_classes: Vec::new(),
+        min_independent: None,
+        witness: None,
+        iterations: None,
+        seed_kind: None,
+        historical_span: None,
+        min_reattestations: None,
+        witnesses: Vec::new(),
+        fingerprints: Vec::new(),
+        file: PathBuf::from("src/lib.rs"),
+        line: 1,
+        item_kind: "fn".to_string(),
+        item_target: ItemTarget::Fn("some_test".to_string()),
+    }
+}
+
+#[test]
+fn atk_ce5_diagnostic_zero_min_independent_silently_passes() {
+    // A #[diagnostic] with min_independent = 0 says "I require zero independent
+    // classes." This is semantically null — but the audit silently accepts it
+    // as if it were a meaningful threshold of zero.
+    //
+    // The check: `u64::try_from(distinct.len()).unwrap_or(u64::MAX) < min`
+    // When min = 0: N < 0 for any N — always false — no hint fires.
+    //
+    // BROKEN: no hint fires. Correct: DiagnosticMinIndependentZero or similar.
+    // Asserting broken outcome — will need update if zero-min warning added.
+    let mut decl = ce_base(ConvergentEvidenceKind::Diagnostic);
+    decl.modality_classes = vec!["StaticAnalysis".to_string()]; // 1 distinct class
+    decl.min_independent = Some(0); // zero threshold — semantically null
+
+    let mut report = ScanReport::default();
+    report.convergent_evidences.push(decl);
+
+    let out = audit_convergent_evidence(&report);
+    assert_eq!(out.audits.len(), 1);
+    let hints = &out.audits[0].hints;
+
+    // BROKEN: hints is empty — zero min_independent passes silently.
+    // After fix: should contain a zero-min warning hint.
+    assert!(
+        hints.is_empty(),
+        "ATK-CE-5-A (BROKEN): #[diagnostic] with min_independent=0 emits no hint. \
+         A zero threshold is semantically null (zero independent classes required = no claim) \
+         but the audit accepts it silently. The comparison `distinct.len() < 0` is always \
+         false for the unsigned comparison, so no DiagnosticModalityInsufficient fires. \
+         Fix: add a DiagnosticMinIndependentZero (or similar) hint when min_independent == 0."
+    );
+}
+
+#[test]
+fn atk_ce5_igg_zero_min_reattestations_silently_passes() {
+    // A #[igg] with min_reattestations = 0 says "I require zero reattestations."
+    // Same silent-pass pattern: `unique_count.len() < 0` is always false.
+    //
+    // BROKEN: no hint fires. Correct: IggMinReattestationsZero or similar.
+    let mut decl = ce_base(ConvergentEvidenceKind::Igg);
+    decl.witnesses = vec!["alice".to_string(), "bob".to_string()]; // 2 distinct
+    decl.min_reattestations = Some(0); // zero threshold
+
+    let mut report = ScanReport::default();
+    report.convergent_evidences.push(decl);
+
+    let out = audit_convergent_evidence(&report);
+    assert_eq!(out.audits.len(), 1);
+    let hints = &out.audits[0].hints;
+
+    // BROKEN: no IggReattestationsInsufficient fires.
+    // After fix: should warn that zero min_reattestations is a null threshold.
+    assert!(
+        hints.is_empty(),
+        "ATK-CE-5-B (BROKEN): #[igg] with min_reattestations=0 emits no hint. \
+         A zero reattestations threshold is semantically null but the audit accepts \
+         it silently. Fix: add a hint when min_reattestations == 0."
+    );
+}
+
+#[test]
+fn atk_ce5_diagnostic_zero_min_with_no_modalities_silently_passes() {
+    // Degenerate combo: min_independent = 0 AND modality_classes empty.
+    // The DiagnosticModalitiesEmpty hint fires first (early return), so this
+    // particular case DOES produce a hint. Verifying it's not silently clean.
+    let mut decl = ce_base(ConvergentEvidenceKind::Diagnostic);
+    decl.modality_classes = Vec::new(); // empty
+    decl.min_independent = Some(0);
+
+    let mut report = ScanReport::default();
+    report.convergent_evidences.push(decl);
+
+    let out = audit_convergent_evidence(&report);
+    assert_eq!(out.audits.len(), 1);
+    let hints = &out.audits[0].hints;
+
+    // The early-return for empty modalities fires BEFORE the zero-min check.
+    // This case IS caught (DiagnosticModalitiesEmpty), not a silent failure.
+    // This test documents that the empty-modalities guard fires first.
+    assert!(
+        hints.contains(&AuditHint::DiagnosticModalitiesEmpty),
+        "ATK-CE-5-C: empty modality_classes fires DiagnosticModalitiesEmpty \
+         before the zero-min check; this case IS caught. \
+         hints: {:?}",
+        hints
+    );
+}
