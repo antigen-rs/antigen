@@ -4078,7 +4078,7 @@ struct JsonAuditReport<'a> {
     /// (forward/suppression-loud-must-be-removed): intentional defense gaps must
     /// never be silently invisible.
     deferred_defense_audit: &'a audit::DeferredDefenseAuditReport,
-    /// ADR-024 convergent-evidence audit (#[diagnostic]/#[clonal]/#[igg]/...):
+    /// ADR-024 convergent-evidence audit (`#[diagnostic]`/`#[clonal]`/`#[igg]`/...):
     /// per-declaration concern hints + clean/concern counts. Delivered here so
     /// the computed verdict reaches consumers (was a severed delivery arm).
     convergent_evidence_audit: &'a audit::ConvergentEvidenceAuditReport,
