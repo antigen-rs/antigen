@@ -1,7 +1,3 @@
-// ADR-029 deprecation-window: uses the deprecated-but-functional #[immune] API;
-// full migration to #[defended_by]/#[presents(requires=)] is a tracked follow-on.
-#![allow(deprecated)]
-
 //! Example: `UnsandboxedProcMacro` — the higher-risk supply-chain
 //! attack surface (B3-R).
 //!
@@ -38,21 +34,22 @@
 //! cargo run --example supply_chain_unsandboxed_proc_macro --package antigen
 //! ```
 
-// Note: stdlib antigen paths in #[presents] / #[immune] are tokenized
-// by the proc-macros; they don't need to resolve as Rust values.
+// Note: stdlib antigen paths in #[presents] are tokenized by the
+// proc-macros; they don't need to resolve as Rust values.
+use antigen::presents;
 #[allow(unused_imports)]
 use antigen::stdlib::supply_chain::UnsandboxedProcMacro;
-use antigen::{immune, presents};
 
 /// A function whose proc-macro dependency would be sandbox-attested.
 ///
-/// `sandbox_clean("derive_more", sandbox_kind = "proc-macro")` is a
-/// v0.4+ witness — in v0.2 it surfaces `unsandboxed-proc-macro` as
-/// an awareness hint, NOT a passing evaluation. Per ADR-005 Amendment
-/// 2 (honest-tier-naming): the audit names the tooling limitation
-/// rather than silently passing.
-#[presents(UnsandboxedProcMacro)]
-#[immune(
+/// ADR-029: the substrate-witness predicate
+/// `requires = sandbox_clean(...)` lives directly on `#[presents]`. The
+/// `sandbox_clean("derive_more", sandbox_kind = "proc-macro")` predicate
+/// is a v0.4+ witness — in v0.2 the audit surfaces
+/// `unsandboxed-proc-macro` as an awareness hint, NOT a passing
+/// evaluation. Per ADR-005 Amendment 2 (honest-tier-naming): the audit
+/// names the tooling limitation rather than silently passing.
+#[presents(
     UnsandboxedProcMacro,
     requires = sandbox_clean("derive_more", sandbox_kind = "proc-macro"),
 )]

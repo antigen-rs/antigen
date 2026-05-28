@@ -1,7 +1,3 @@
-// ADR-029 deprecation-window: uses the deprecated-but-functional #[immune] API;
-// full migration to #[defended_by]/#[presents(requires=)] is a tracked follow-on.
-#![allow(deprecated)]
-
 //! Example: VCS-information-loss family (ADR-026).
 //!
 //! Eleven stdlib antigens covering modern-git-workflow failure modes that
@@ -41,7 +37,7 @@ use antigen::stdlib::vcs_info_loss::{
     ForcePushErasingHistory, RefactorWithoutPreservationOfWhy, RollbackWithoutTriageCommit,
     SquashMergeLosingIntermediateState,
 };
-use antigen::{immune, presents, triage_commit, TriageDecision};
+use antigen::{presents, triage_commit, TriageDecision};
 
 // ============================================================================
 // Pattern 1: RollbackWithoutTriageCommit — force-reset without a triage record
@@ -83,12 +79,13 @@ pub fn rollback_to_snapshot(snapshot_sha: &str) -> Result<(), String> {
     rationale = "Confirmed regression in payment path (issue #4421); snapshot 83a7f2c is the last green CI for this module",
     rollback_due_within_minutes = 30
 )]
-#[immune(
+// ADR-029: `requires = signed_trailer(key = "Triage-Decision")` lives directly
+// on `#[presents]`. The triage_commit annotation + the `Triage-Decision:` git
+// trailer link this rollback to the diagnosis; `signed_trailer` confirms the
+// trailer is present in the commit at audit time.
+#[presents(
     RollbackWithoutTriageCommit,
     requires = signed_trailer(key = "Triage-Decision"),
-    rationale = "triage_commit annotation + Triage-Decision git trailer links \
-                 this rollback to the diagnosis; signed_trailer witness confirms \
-                 the trailer is present in the commit at audit time."
 )]
 pub fn rollback_to_snapshot_with_triage(snapshot_sha: &str) -> Result<(), String> {
     println!("[ROLLBACK] Resetting to {snapshot_sha} (triage documented)");
@@ -123,12 +120,13 @@ pub fn force_push_to_main(branch: &str) -> Result<(), String> {
 /// DEFENDED: the `Force-Push-Attestation:` git trailer documents why the
 /// force-push was necessary and what history was preserved. The
 /// `signed_trailer` witness confirms the trailer is present at audit time.
-#[immune(
+// ADR-029: `requires = signed_trailer(key = "Force-Push-Attestation")` lives
+// directly on `#[presents]`. The `Force-Push-Attestation:` trailer records
+// the preserved-history commit range and reason; `signed_trailer` confirms
+// it is present before the push is considered attested.
+#[presents(
     ForcePushErasingHistory,
     requires = signed_trailer(key = "Force-Push-Attestation"),
-    rationale = "Force-Push-Attestation trailer records the preserved-history \
-                 commit range and reason; signed_trailer confirms it is \
-                 present before the push is considered attested."
 )]
 pub fn force_push_with_attestation(branch: &str, preserved_range: &str) -> Result<(), String> {
     // Caller adds git commit trailer: Force-Push-Attestation: <reason + range>
@@ -161,12 +159,13 @@ pub fn refactored_sinh(x: f64) -> f64 {
 /// DEFENDED: `#[descended_from(SignedZeroDiscipline)]` propagates the
 /// failure-class memory, and a `Preserves-Why:` git trailer points to the
 /// original issue or ADR. The refactor cannot silently erase the context.
-#[immune(
+// ADR-029: `requires = signed_trailer(key = "Preserves-Why")` lives directly
+// on `#[presents]`. The `Preserves-Why:` trailer links this refactor to the
+// signed-zero discipline ADR; `signed_trailer` confirms the WHY-link is
+// present so future readers see the constraint.
+#[presents(
     RefactorWithoutPreservationOfWhy,
     requires = signed_trailer(key = "Preserves-Why"),
-    rationale = "Preserves-Why trailer links this refactor to the signed-zero \
-                 discipline ADR; signed_trailer confirms the WHY-link is present \
-                 so future readers see the constraint."
 )]
 pub fn preserved_sinh(x: f64) -> f64 {
     // IEEE 754 sign-bit preservation: sinh(-0.0) must return -0.0.
