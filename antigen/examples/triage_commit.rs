@@ -1,7 +1,3 @@
-// ADR-029 deprecation-window: uses the deprecated-but-functional #[immune] API;
-// full migration to #[defended_by]/#[presents(requires=)] is a tracked follow-on.
-#![allow(deprecated)]
-
 //! Example: `#[triage_commit]` — decisional rollback-as-triage (ADR-026).
 //!
 //! `#[triage_commit]` is the SPEECH-ACT that turns a rollback function into a
@@ -39,11 +35,12 @@
 //!
 //! ## What the substrate-witness confirms
 //!
-//! The `#[immune]` + `requires = signed_trailer(key = "Triage-Decision")` on a
-//! rollback site tells `cargo antigen audit`: "This rollback is defended IF the
-//! commit has a `Triage-Decision:` git trailer." The trailer is written by the
-//! engineer performing the triage; the macro ensures it is non-negotiable
-//! by making the ANNOTATION compile-time required before the code compiles.
+//! The `#[presents]` with `requires = signed_trailer(key = "Triage-Decision")`
+//! on a rollback site tells `cargo antigen audit`: "This rollback is defended
+//! IF the commit has a `Triage-Decision:` git trailer." The trailer is written
+//! by the engineer performing the triage; the macro ensures it is
+//! non-negotiable by making the ANNOTATION compile-time required before the
+//! code compiles.
 //!
 //! ## Run this example
 //!
@@ -57,7 +54,7 @@
 #![allow(dead_code, unused_variables, unused_imports)]
 
 use antigen::stdlib::vcs_info_loss::RollbackWithoutTriageCommit;
-use antigen::{immune, orient, triage_commit, TriageDecision};
+use antigen::{orient, presents, triage_commit, TriageDecision};
 
 // ============================================================================
 // Speech-act contrast — orient vs triage_commit
@@ -97,12 +94,13 @@ pub const fn new_auth_handler(token: &str) -> Result<(), String> {
                  a83f2c1 is the last-clean-CI snapshot before the vulnerable auth path merged",
     rollback_due_within_minutes = 30
 )]
-#[immune(
+// ADR-029: `requires = signed_trailer(key = "Triage-Decision")` lives directly
+// on `#[presents]`. The triage_commit annotation + the `Triage-Decision:` git
+// trailer document the diagnosis; `signed_trailer` confirms the trailer is
+// present in the rollback commit at audit time.
+#[presents(
     RollbackWithoutTriageCommit,
     requires = signed_trailer(key = "Triage-Decision"),
-    rationale = "triage_commit annotation + Triage-Decision git trailer document \
-                 the diagnosis; signed_trailer confirms the trailer is present in \
-                 the rollback commit at audit time."
 )]
 pub fn rollback_auth_to_last_clean(snapshot_sha: &str) -> Result<(), String> {
     println!("[ROLLBACK] Auth module → {snapshot_sha}");

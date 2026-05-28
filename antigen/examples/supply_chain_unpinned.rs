@@ -1,7 +1,3 @@
-// ADR-029 deprecation-window: uses the deprecated-but-functional #[immune] API;
-// full migration to #[defended_by]/#[presents(requires=)] is a tracked follow-on.
-#![allow(deprecated)]
-
 //! Example: `UnpinnedDependency` — exact-pin discipline.
 //!
 //! ADR-025 supply-chain defense family. `UnpinnedDependency` makes
@@ -35,17 +31,18 @@
 //! cargo run --example supply_chain_unpinned --package antigen
 //! ```
 
-// Note: stdlib antigen paths in #[presents] / #[immune] are tokenized
-// by the proc-macros; they don't need to resolve as Rust values.
+// Note: stdlib antigen paths in #[presents] are tokenized by the
+// proc-macros; they don't need to resolve as Rust values.
+use antigen::presents;
 #[allow(unused_imports)]
 use antigen::stdlib::supply_chain::{UnpinnedDependency, UnpinnedTransitiveDependency};
-use antigen::{immune, presents};
 
 /// A function whose direct deps are exact-pinned via `dep_pinned()`.
-/// The substrate-witness evaluator reads `Cargo.toml` and confirms
-/// every entry uses `=X.Y.Z`.
-#[presents(UnpinnedDependency)]
-#[immune(
+///
+/// ADR-029: the `requires = dep_pinned()` substrate-witness predicate
+/// lives directly on `#[presents]`. The audit evaluator reads
+/// `Cargo.toml` and confirms every entry uses `=X.Y.Z`.
+#[presents(
     UnpinnedDependency,
     requires = dep_pinned(),
 )]
@@ -55,10 +52,12 @@ pub fn process_payload(data: &str) -> String {
 
 /// A narrow `UnpinnedTransitiveDependency` claim — only fires when a
 /// direct dep uses `*`/`?` for its OWN deps. NOT the broad form.
-#[presents(UnpinnedTransitiveDependency)]
-#[immune(
+///
+/// ADR-029: the `dep_pinned("serde")` substrate-witness predicate is
+/// scoped to a single named direct dep. The audit verifies that
+/// `serde`'s OWN transitive deps don't use `*` or `?` wildcards.
+#[presents(
     UnpinnedTransitiveDependency,
-    // Same dep_pinned witness, scoped to a single named direct dep.
     requires = dep_pinned("serde"),
 )]
 pub fn delegate_to_serde(data: &str) -> String {

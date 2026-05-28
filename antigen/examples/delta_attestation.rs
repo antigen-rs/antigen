@@ -1,7 +1,3 @@
-// ADR-029 deprecation-window: uses the deprecated-but-functional #[immune] API;
-// full migration to #[defended_by]/#[presents(requires=)] is a tracked follow-on.
-#![allow(deprecated)]
-
 //! Delta-attestation example — Fresh + chained Delta with anti-laundering safeguards.
 //! (ADR-019 §M3 `SignerBasis` + adversarial T2-R three-layer safeguard set.)
 //!
@@ -60,7 +56,7 @@
 
 #![allow(dead_code, unused_imports)]
 
-use antigen::{antigen, immune};
+use antigen::{antigen, presents};
 
 /// Witness function placeholder — the example's immune site references this.
 /// The function itself is fixture; the discipline lives in the macro.
@@ -88,7 +84,7 @@ pub struct NumericStabilityDiscipline;
 /// signer with role `numerics-reviewer`, and the most recent signature
 /// within 365 days. Delta chains are governed by workspace-level
 /// chain-depth cap (default 3) and rationale minimum (20).
-#[immune(
+#[presents(
     NumericStabilityDiscipline,
     requires = all_of([
         signers(required = ["numerics-reviewer"]),

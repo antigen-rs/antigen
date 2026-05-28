@@ -1,7 +1,3 @@
-// ADR-029 deprecation-window: uses the deprecated-but-functional #[immune] API;
-// full migration to #[defended_by]/#[presents(requires=)] is a tracked follow-on.
-#![allow(deprecated)]
-
 //! Example: `ContentHashMismatch` — the chalk/debug/eslint-config
 //! attack defense.
 //!
@@ -58,20 +54,20 @@
 //! cargo run --example supply_chain_content_hash --package antigen
 //! ```
 
-// Note: stdlib antigen paths in #[presents] / #[immune] are tokenized
-// by the proc-macros; they don't need to resolve as Rust values.
+// Note: stdlib antigen paths in #[presents] are tokenized by the
+// proc-macros; they don't need to resolve as Rust values.
+use antigen::presents;
 #[allow(unused_imports)]
 use antigen::stdlib::supply_chain::ContentHashMismatch;
-use antigen::{immune, presents};
 
 /// A function whose `serde` dependency is content-hash-attested.
 ///
-/// The `requires = content_hash_matches(...)` substrate-witness
-/// predicate is evaluated by `audit_supply_chain` against the
-/// `.attest/supply-chain/content-hash/serde@1.0.197.json` record + the
-/// current `Cargo.lock` checksum.
-#[presents(ContentHashMismatch)]
-#[immune(
+/// ADR-029: the substrate-witness predicate
+/// `requires = content_hash_matches(...)` lives on `#[presents]` itself —
+/// audit observes the sidecar (`.attest/supply-chain/content-hash/
+/// serde@1.0.197.json`) and the current `Cargo.lock` checksum, no separate
+/// `#[immune]` claim is needed.
+#[presents(
     ContentHashMismatch,
     requires = content_hash_matches("serde", "1.0.197"),
 )]

@@ -1,9 +1,3 @@
-// ADR-029 deprecation-window: this example uses the deprecated-but-functional
-// #[immune] API (and antigen fns that present migrated antigens). Full migration
-// to the #[defended_by]/#[presents(requires=)] idiom is a tracked follow-on
-// examples-quality pass; allow the deprecation here meanwhile.
-#![allow(deprecated)]
-
 //! Example: agentic-coordination failure-classes.
 //!
 //! Failure-classes that emerge specifically in multi-session, multi-agent,
@@ -47,10 +41,10 @@
 
 #![allow(dead_code, unused_variables, unused_imports)]
 
+use antigen::presents;
 use antigen::stdlib::agentic_coordination::{
     AgentWakeWithoutSubstrateDeltaInjection, DelegateCrossCrateResolutionGap,
 };
-use antigen::{immune, presents};
 
 // ============================================================================
 // AgentWakeWithoutSubstrateDeltaInjection
@@ -111,15 +105,16 @@ pub fn resume_from_snapshot(substrate: &WorkSubstrate) -> Vec<String> {
 /// agent MUST run `camp wake` and read `git log` before any routing.
 /// A ratified wake-protocol doc is the substrate-witness for this claim.
 ///
-/// `requires = ratified_doc(...)` evaluates at audit time by checking
+/// ADR-029: the `requires = ratified_doc(...)` substrate-witness predicate
+/// lives directly on `#[presents]`. It evaluates at audit time by checking
 /// that the specified doc exists and is current in the `.attest/` sidecar.
 /// The doc names the discipline: run `camp wake` + `git log --oneline -20`
-/// before claiming any work item.
-#[immune(
+/// before claiming any work item. The wake-protocol doc mandates
+/// substrate-delta injection before routing; this function follows the
+/// protocol.
+#[presents(
     AgentWakeWithoutSubstrateDeltaInjection,
     requires = ratified_doc(path = "docs/agentic-wake-protocol.md", min_version = "1.0"),
-    rationale = "wake-protocol doc mandates substrate-delta injection before \
-                 routing; this function follows the protocol."
 )]
 pub fn resume_with_delta(substrate: &mut WorkSubstrate) -> Vec<String> {
     substrate.inject_delta(); // inject first, route second
