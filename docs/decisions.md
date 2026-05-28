@@ -7282,3 +7282,380 @@ silently skips duration_cap check (separate gap, separately documented). Advisor
 - Locus-dispatch synthesis: camp notice `87bb2f0b` (navigator, 2026-05-27 — shared frame across
   ADR-029/030/031)
 
+---
+
+## [ADR-031] Negative Selection: `#[no_longer_presents(X)]` and Revocation-Staleness Observation
+
+**Status**: Ratified 2026-05-27.
+
+**Participants**: antigen-dx-dogfood team (scientist primary drafter; aristotle Phase-1-8
+PASSED; naturalist biology PASSED; adversarial gate OQ5 PASSED; outsider naive-pass;
+scientist consistency review COMPLETE; all four ceremony signers).
+
+**Related**: ADR-018 (diamond dedup + inheritance state matrix), ADR-029 (observed-not-declared),
+ADR-030 (aggregate/temporal drift observation).
+
+**Ceremony campsite**: `ceremony/ratify-adr-031-no-longer-presents`.
+
+### Problem
+
+`#[descended_from(Parent)]` propagates the parent's full presentation-set to each descendant
+by SET-UNION across ALL inheritance paths (`scan.rs:1469/2814/2918`). Once a site is inherited,
+there is no mechanism to revoke it at the descendant level. A child type that no longer has the
+structural shape that made its ancestor present `X` has no way to declare that state. It is
+stuck presenting `X` forever — not because the vulnerability is real, but because the
+declaration machinery has no delete operation.
+
+Scout's empirical finding (`f02f40bf`) and aristotle's Phase-8 ruling converge on the same
+gap. The biology cognate: **negative selection** in the thymus deletes self-reactive T-cell
+clones before they can mount an autoimmune attack. Without it, inherited recognition propagates
+to clones that the gate should have pruned — the autoimmune-shadow-discovery-engine shadow #6
+prediction, confirmed empirically.
+
+**The 2×2 structure** (aristotle + outsider gate finding, 2026-05-27): the revocation primitive
+closes BOTH off-diagonals of a signal-1 × signal-2 matrix. Without the primitive, only one of
+the two fail-classes is observable:
+
+- signal-1 (structure matches) + signal-2 (affirmation absent): `RevocationContradictedByStructure`
+- signal-1 (structure ceased) + signal-2 (affirmation absent):
+  `InheritedPresentationStructurallyCeasedWithoutAffirmation` (NEW)
+
+Both require the audit to observe signal-1 (structural fingerprint check) and signal-2
+(affirmation presence). The declaration requirement ensures the audit can distinguish
+(a) genuinely-fixed from (b) silently-drifted.
+
+### Evidence
+
+Aristotle triangulated the placement (item-level vs edge-level) three ways:
+
+**(1) Biology (naturalist gate — passed, primary-source grounded).** Negative selection deletes
+the self-reactive **clone** (item), not its lineage edge. A thymocyte is deleted because of
+WHAT IT PRESENTS (self-reactivity), not because of WHO ITS PARENT WAS. Verified via PMID
+12766760 (Palmer E, *Nat Rev Immunol* 2003): the deletion decision is clone-intrinsic, made on
+the clone's current receptor. Falsifier hunt found zero biology cases where a lineage EDGE
+carries the deletion signal rather than the clone — the predicted falsifier came up empty,
+which is honest evidence the item-level placement is structurally correct.
+
+**(2) Subject-check.** The subject of a revocation is "this item's presentation-set" — does
+this item present X? Edge-level revocation (`reverted_for=[X]` on `#[descended_from(Parent)]`)
+makes the subject the edge. Item-level makes it the item's presentation-set. The item is the
+right subject. Confirmed by aristotle's Phase 1-8 (presentation-state MODIFIER, not a new
+identity axis — see §Three surfaces below).
+
+**(3) Diamond-union incompleteness — the load-bearing argument (Phase-7 structural guarantee).**
+Inherited presentations are computed by SET-UNION across ALL diamond paths. If a child inherits
+X from parent-A AND from parent-B via a diamond, X appears in the union. An edge-level
+revocation on the A-path does not remove X — it still arrives via the B-path. To fully revoke
+X via edge-level, one must mark `reverted_for=[X]` on EVERY ancestor edge that carries X.
+Adding a new ancestor later silently re-introduces X. Item-level `#[no_longer_presents(X)]`
+revokes X from the item's effective presentation-set AFTER the union, regardless of how many
+edges carried it — the only shape that is complete under the existing diamond-union semantics.
+Edge-level revocation cannot be made complete without redesigning the propagation model;
+item-level is robust under the existing model. This is a STRUCTURAL GUARANTEE from set-union,
+not a conjecture; it holds for every inheritance graph with a diamond.
+
+### Decision
+
+**Primitive**: `#[no_longer_presents(X)]`
+
+```rust
+#[no_longer_presents(ClassName)]
+fn method_that_no_longer_has_this_vulnerability() { ... }
+```
+
+Semantics: the annotated item explicitly revokes a presentation that would otherwise be
+inherited. The audit OBSERVES whether the revocation is warranted — if the item STILL matches
+X's structural fingerprint (or other witness evidence; see fail-class below), the revocation
+is false.
+
+- **Placement**: item-level (on the descendant item, not on the `#[descended_from]` edge).
+- **Scope**: revokes the named presentation from the item's effective presentation-set. Does
+  not alter the inheritance graph or parent declarations.
+- **Inheritance**: `#[no_longer_presents(X)]` is NOT inherited by the item's own descendants.
+  Each descendant that no longer presents X must declare it independently. (The revocation
+  decision is specific to the structural shape of THIS item; a child that is more like the
+  original parent may genuinely re-present X.)
+
+**Stand-alone (preventive) use.** `#[no_longer_presents(X)]` with no X anywhere in the item's
+inheritance union has two cases:
+
+- *Without a `preventive` flag* (default): emits `RevocationOfUnpresentedClass` advisory.
+  Catches typos, stale class names, and revoking the wrong class — the most common stand-alone
+  mistake.
+- *With an explicit `preventive` flag* (`#[no_longer_presents(X, preventive)]`): accepted. The
+  AIRE cognate (biology: thymic epithelial cells pre-tolerize against peripheral antigens
+  T-cells would never otherwise encounter) confirms this is a real, grounded mechanism — not
+  mere defensive programming. The audit suppresses `RevocationOfUnpresentedClass` for
+  preventive declarations BUT continuous re-scanning remains armed:
+  `RevocationContradictedByStructure` fires the moment a matching structure appears.
+  Preventive revocation is NOT trust-once; it is observed-continuously-into-the-future. A
+  preventive declaration whose referent never appears is never contradicted; one whose referent
+  later appears converts immediately to a checked revocation.
+
+**New fail-class: `RevocationContradictedByStructure` (witness-locus-relative family).** If an
+item declares `#[no_longer_presents(X)]` but the audit's observation still finds X's
+structural pattern present, the revocation is false. The declared intent and the observed
+structure disagree. This is the observed-not-declared principle (ADR-029) applied to
+revocations:
+
+- The author DECLARES the revocation-intent: "I no longer present X."
+- The audit OBSERVES whether the structure supports it (at the witness-locus of X).
+- Disagreement is `RevocationContradictedByStructure` (advisory initially, escalatable via
+  `--strict`).
+
+**Witness-locus-relative verification** (aristotle OQ4 sharpening): how you observe a
+revocation is determined by WHERE the antigen's witness reads from — the witness-locus. This
+makes `RevocationContradictedByStructure` a FAMILY, one member per locus, not a fingerprint-only
+check:
+
+| Antigen type | Witness-locus | Revocation observed via |
+|---|---|---|
+| Has a fingerprint | In-repo-static | Fingerprint NON-match |
+| Verify-only (`fingerprint: None`) | External-substrate | Predicate NON-satisfaction at the substrate |
+| Code-witness (behavioral) | Runtime | Witness test passes for the revoked state |
+
+`RevocationCannotBeVerified` is the near-empty residual advisory: emitted only when the antigen
+has NO observable locus at all (neither fingerprint, evaluable predicate, nor witness). By
+ADR-028 category-enforcement every antigen must have at least one witness-leaf, so this
+residual should be structurally rare.
+
+**`rationale=` escape-hatch**: `#[no_longer_presents(X, rationale = "...")]` silences the check
+when the author can explain why the observed evidence is a false positive. The canonical case
+(naturalist OQ2 enrichment) is **molecular mimicry** — a DIFFERENT antigen's look-alike
+fingerprint coincidentally matches the item, producing a false positive that is NOT the
+re-introduction of X. The escape-hatch is motivated by a real biology-grounded phenomenon, not
+just defensive convenience.
+
+**Why the affirmation is DECLARED (not auto-revoked on structural cessation).** The
+**asymmetry of silence**: fingerprint non-match has THREE possible meanings: (a) genuinely
+fixed; (b) imprecise fingerprint that missed a mutated form; (c) a refactor that WILL regress.
+Auto-revoking on non-match alone would make the audit SILENTLY ASSUME (a) — manufactured
+safety by choosing the reassuring interpretation of an ambiguous signal. This is
+SILENCE-BY-MASKING (silence-taxonomy generator 2, applied to revocation).
+
+**The declaration is costimulation** (aristotle + outsider gate finding, 2026-05-27; confirmed
+ADR-028 §all_of = costimulation principle, decisions.md:5383): structural non-match =
+signal-1; the author's affirmation = signal-2. Acting on signal-1 alone (auto-revoke) is
+inappropriate-activation-without-costimulation — the exact pathology that B-cell activation
+guards against via CD28/CD80-86. `#[no_longer_presents(X)]` is not optional because revocation
+requires signal-2; only the author can supply the judgment that distinguishes (a)–(c) above.
+The declaration IS the costimulation gate that prevents the audit from silently assuming-fixed.
+
+**Mirror fail-class: `InheritedPresentationStructurallyCeasedWithoutAffirmation`.** A child
+whose inherited X's fingerprint has STOPPED MATCHING but has NO `#[no_longer_presents(X)]` is
+in an OBSERVABLE-BUT-UNAFFIRMED state. The structure changed (signal-1 fired) but no human
+vouched (signal-2 absent). This is SILENT DRIFT — the audit CAN observe it and SHOULD surface
+it.
+
+The two off-diagonal fail-classes close a clean 2×2 matrix (signal-1: structure-matches? ×
+signal-2: affirmed-revoked?):
+
+| | signal-2 absent (no affirmation) | signal-2 present (affirmation declared) |
+|---|---|---|
+| **signal-1 matches** (structure still there) | Healthy: item still presents X | `RevocationContradictedByStructure` (vouched-but-false) |
+| **signal-1 absent** (structure ceased) | `InheritedPresentationStructurallyCeasedWithoutAffirmation` (true-but-unvouched) | Healthy: cleanly revoked |
+
+On-diagonals are healthy states. Off-diagonals are fail-classes. The audit observes both
+signals; the human supplies signal-2; disagreement between them is the finding.
+
+`InheritedPresentationStructurallyCeasedWithoutAffirmation` (advisory, verdict:
+`UnaffirmedCessation`): emitted when an inherited presentation's fingerprint no longer matches
+at this site AND no `#[no_longer_presents(X)]` exists at this item.
+
+**Detection is two-stage**, each stage doing what its subject permits:
+
+- *Stage 1 (scan-layer, fully decidable)*: is X in this item's inherited union? The diamond
+  set-union (`scan.rs:1469/2814/2918`) already computes this. If X is NOT in the inherited
+  union: state (a) never-vulnerable — NOT A FINDING. If X IS in the inherited union but
+  fingerprint non-matches: state (b)–(c), unaffirmed cessation — route to Stage 2.
+- *Stage 2 (verdict layer, the undecidable fork)*: "fingerprint non-match on an inherited
+  site" has two irresolvable interpretations — (b) silently-fixed (vulnerability genuinely
+  gone) and (c) fingerprint-stale (code diverged, still vulnerable, fingerprint too imprecise
+  to catch the mutated form). The audit CANNOT distinguish (b) from (c): the fingerprint is
+  the only structural instrument and its imprecision is the unknown. The verdict
+  `UnaffirmedCessation` names this unresolved state and routes it to the human — it does NOT
+  choose between (b) and (c).
+
+The human resolves by ONE of two actions: affirm via `#[no_longer_presents(X)]` (asserts it
+was (b) genuinely-fixed; `RevocationContradictedByStructure` guards if wrong) OR tighten the
+fingerprint (if it was (c), a tighter fingerprint re-matches and the cessation was illusory;
+the advisory clears on next scan).
+
+The audit already has the adjacent `inherited_unaddressed` machinery (audit.rs:840); this is
+an extension of that path.
+
+**Verdict vs antigen distinction**: `UnaffirmedCessation` is the audit's verdict-name
+(witness/audit-cross-reference surface). `UnaffirmedStructuralCessation` is the dogfood antigen
+on the identity surface — a genuinely-fixed inherited vulnerability left unaffirmed,
+indistinguishable from stale-imprecise to the next reader. Distinct surfaces per the
+three-surface map.
+
+**Biology cognate**: the equivalent of a self-reactive clone whose antigen stopped being
+expressed (the self-antigen's expression pattern changed), but the autoreactive clone persists
+in the repertoire. The antigen is absent (signal-1), but the clone's specificity remains (no
+signal-2 confirmation from the thymic-equivalent mechanism that the clone is safe to keep).
+If the antigen is re-expressed later, the clone immediately re-activates.
+
+**`RevocationOfUnpresentedClass`**: emitted when `#[no_longer_presents(X)]` is present but X
+is absent from both direct presentations and the inherited union, with no `preventive` flag.
+Catches stale class names, typos, and wrong-class revocations.
+
+**Revocation-staleness observation (per ADR-030 pattern).** A `#[no_longer_presents(X)]`
+declaration is a claim that can drift from its referent. If code is later changed to
+re-introduce the structural shape of X (the exact drift ADR-030 covers for temporal claims),
+the revocation becomes stale-and-wrong without any annotation change. The audit's witness-locus
+observation handles this continuously: every `cargo antigen audit` re-checks whether the
+evidence still matches. No additional expiry mechanism is needed — the revocation is
+re-validated on every scan, not trusted once from declaration time.
+
+This is the "continuous tolerance" cognate from biology (central + peripheral tolerance, not
+one-time thymic pruning — naturalist grounded via PMID 10227976 Laufer et al., *J Immunol*
+1999: self-reactive T-cells escape thymic selection and are pathogenic in vivo; one-time
+pruning is insufficient). The audit IS the continuous re-evaluation.
+
+### Relationship to ADR-029 (observed-not-declared)
+
+`#[no_longer_presents(X)]` follows the same declaration-intent / audit-observation split as
+`#[presents]`:
+
+| | `#[presents(X)]` | `#[no_longer_presents(X)]` |
+|---|---|---|
+| Author declares | "this site presents vulnerability X" | "this site no longer presents X" |
+| Audit observes | does the witness-locus evidence match? | does the witness-locus evidence NOT match? |
+| Disagreement | SubstrateGap (undefended site) | `RevocationContradictedByStructure` |
+
+Both are claims the audit verifies at the antigen's witness-locus. Neither is self-authorizing.
+The witness-locus-relative verification makes this the direct extension of ADR-029's
+observed-not-declared principle along the time axis: a revocation's truth is continuously
+observed, not declared once.
+
+### Relationship to ADR-018 (diamond dedup + inheritance state matrix)
+
+ADR-018 defined the inheritance state matrix (presented, inherited, suppressed states at
+presentation sites). `#[no_longer_presents(X)]` adds a new state: **revoked** (present in the
+inherited union, explicitly canceled at this item). The inheritance state matrix gains a
+fourth column:
+
+| State | Declaration | Meaning |
+|---|---|---|
+| Presented | `#[presents(X)]` | This item directly presents X |
+| Inherited | (no annotation) | X is inherited from an ancestor |
+| Suppressed | `#[anergy(X)]` | X is suppressed for a defined period |
+| Revoked | `#[no_longer_presents(X)]` | X is canceled, structural non-match expected |
+
+### Three surfaces — closed at three (aristotle Phase 1-8)
+
+Aristotle's ruling closes the identity-surface question: `#[no_longer_presents(X)]` is a
+PRESENTATION-SITE STATE MODIFIER, NOT a new `#[antigen]` identity axis. It operates on the
+presents-site surface as negation/retraction, parallel to `#[anergy]` (Suppressed state). The
+three surfaces now mapped:
+
+- **ANTIGEN-identity**: category / encounter / tier (3 axes, closed)
+- **PRESENTS-site-state**: Presented / Inherited / Suppressed / Revoked (4 states, extended by this ADR)
+- **WITNESS**: selection (silence-generator) + locus (in-repo / external-substrate / runtime)
+
+"Fourth identity axis" candidates keep sorting to presents-site or witness by subject-check.
+The identity surface stays closed at three.
+
+### Known open gaps
+
+**Diamond-sibling surface (v0.3 direction)**: `#[no_longer_presents(X)]` is NOT inherited. In
+a diamond, C descends from both A (presents X) and B (descends from A, revokes X). C inherits
+X from A via set-union. B's revocation does NOT flow to C — intentional by design (revocation
+is specific to B's structural shape). If C's fingerprint still matches X, nothing fires; C
+validly presents X; B's intent ("the subtree lost X") is silently uncovered at C. The gap is
+that the ADR does not (yet) produce an advisory for this "forgot-to-re-revoke in a diamond"
+case. v0.3 direction: `RevocationUncoveredByDiamondSibling` advisory — when a presented item
+has a revoked ancestor on one inheritance path but inherits-X on another.
+
+**Preventive window + imprecise fingerprint**: a preventive revocation declared before any
+matching structure exists cannot fire `RevocationContradictedByStructure` (no structure to
+match at declaration time). If the structure later appears but stays JUST BELOW the
+fingerprint threshold (imprecise-fingerprint attack), the preventive revocation silences a
+real vulnerability during that window. This is the existing imprecise-fingerprint surface
+(already in adversarial's scope), widened by the preventive window, NOT a new attack class.
+Guard: continuous re-scan armed on structure-appearance; fingerprint precision is the root
+mitigation.
+
+**`rationale=` is semantic-only**: the escape-hatch accepts any string rationale with no
+structural verification — same shape as `#[anergy(rationale=...)]` and
+`#[immunosuppress(rationale=...)]`. Named for completeness.
+
+**`InheritedPresentationStructurallyCeasedWithoutAffirmation` — v0.3 implementation**: the
+mirror fail-class is NAMED and the audit path exists (`inherited_unaddressed` at
+`audit.rs:840`), but the SPECIFIC advisory for "inherited-X fingerprint-ceased-without-revocation"
+is not yet emitted. When ADR-031 implementation begins, this advisory should be added to the
+inherited-presentation audit path alongside the existing unaddressed machinery.
+
+**Known limitation: the (b)-vs-(c) distinction is not audit-decidable.** When the audit emits
+`UnaffirmedCessation`, it observes that fingerprint non-match has occurred on an inherited
+site (Stage 1 decidable) and that no affirmation exists (Stage 2). But it CANNOT determine
+whether the cessation is (b) genuinely-fixed or (c) fingerprint-imprecise-still-vulnerable —
+the fingerprint is the only structural instrument, and its imprecision is the unknown. Making
+this distinction would require the audit to claim knowledge it does not have; it would
+produce silence-by-masking (choosing the reassuring interpretation). This is an honest
+semantic gap, parallel to the imprecise-fingerprint gap in ADR-029 §honest semantic gap. The
+resolution is not in the audit but at the human's locus: affirm
+(`#[no_longer_presents(X)]` asserts (b)) OR tighten the fingerprint (if (c), the re-match
+self-corrects the advisory). The undecidable cut routes to the human, exactly as the
+locus-dispatch frame requires.
+
+### What this ADR does NOT do
+
+- Does NOT alter the existing `#[descended_from]` propagation model (set-union is preserved).
+- Does NOT add `reverted_for=` to `#[descended_from]` edges (aristotle's ruling: edge-level is
+  incomplete under diamond-union semantics).
+- Does NOT make `RevocationContradictedByStructure` a build-breaking finding by default.
+- Does NOT inherit revocations to the item's own descendants (each descendant declares for
+  itself).
+
+### Gate outcomes (ceremony record)
+
+**Aristotle (Phase 1-8) — PASS.** Diamond-union structural-guarantee confirmed (Phase-7
+stable); item-level placement = presentation-state-modifier (not identity axis);
+identity-surface-closed-at-three holds. OQ3: `RevocationOfUnpresentedClass` advisory +
+explicit `preventive` flag (AIRE-grounded, continuous-rescan-armed). OQ4: revocation
+verification is witness-locus-relative; `RevocationContradictedByStructure` is a locus-relative
+family; `RevocationCannotBeVerified` is the near-empty residual.
+
+**Naturalist (biology) — PASS.** OQ1: item-level confirmed via PMID 12766760; falsifier hunt
+empty. OQ2: continuous-tolerance maps via PMID 10227976; staleness-observation is biologically
+required. `RevocationContradictedByStructure` has a clean cognate (escaped self-reactive
+clone). Molecular-mimicry false-positive named as canonical `rationale=` case.
+
+**Adversarial (OQ5) — PASS WITH ONE ADDITION (incorporated).** Diamond-revocation escape: real
+but intentional — non-inheritance is load-bearing; diamond-sibling surface documented in
+§Known open gaps. `rationale=` gaming: same shape as existing escapes; not a new surface.
+
+**Scientist (consistency review) — PASS.** All four gate findings incorporated. ADR-029 table
+updated to reflect locus-relative framing. `RevocationContradictedByStructure` correctly
+presented as a family. §Known open gaps names both remaining surfaces cleanly. No internal
+consistency failures.
+
+**Post-ceremony amendments** (incorporated by scientist, re-reviewed PASS): (1) Mirror
+fail-class `InheritedPresentationStructurallyCeasedWithoutAffirmation` + costimulation
+rationale for why affirmation is declared. (2) `UnaffirmedCessation` verdict name + two-stage
+detection architecture + (b)-vs-(c) known-limitation clause + `UnaffirmedStructuralCessation`
+dogfood antigen. Strengthening-only; item-level/diamond-union/locus-relative core unchanged.
+
+### Evidence citations
+
+- Aristotle ruling: `forward/descended-from-negative-selection-gap` (camp story, 2026-05-27)
+- Scout empirical gap: field notice `f02f40bf` (inheritance revocation gap)
+- Diamond-union semantics: `scan.rs:1469/2814/2918` (substrate-verified by aristotle)
+- Autoimmune-shadow-discovery shadow #6 prediction + empirical convergence:
+  `forward/autoimmune-shadow-discovery-engine`
+- ADR-029 observed-not-declared: §ADR-029
+- ADR-018 inheritance state matrix: §ADR-018
+- PMID 12766760: Palmer E (2003). "Negative selection — clearing out the bad apples from the
+  T-cell repertoire." *Nat Rev Immunol.*
+- PMID 10227976: Laufer et al. (1999). *J Immunol* — self-reactive T-cells escape thymic
+  selection and are pathogenic in vivo.
+- PMID 39621313: *J Clin Invest* (2024) — impaired negative selection → diabetes.
+- Aristotle outsider-gate response: camp note `20100db6` (2026-05-27 —
+  `InheritedPresentationStructurallyCeasedWithoutAffirmation` mirror fail-class + signal-1/signal-2
+  costimulation framing)
+- Scout three-bucket finding: camp notice `30ccd565` (2026-05-27 — unaffirmed cessation as
+  structural gap)
+- ADR-028 costimulation confirmation: decisions.md:5383 (`all_of` = costimulation principle)
+
