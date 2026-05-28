@@ -5263,6 +5263,107 @@ mod tests {
     }
 
     // ========================================================================
+    // ATK-PV-REQUIRES-MASKED: failing requires= predicate silently masked by
+    // code witness.
+    //
+    // When a presents-site has BOTH a requires= predicate (substrate intent) AND
+    // a #[defended_by] code witness, AND the requires= fails (sidecar absent/stale),
+    // the implementation currently emits Defended(Reachability) — hiding the
+    // substrate-gap entirely. The developer declared substrate intent that is
+    // failing, but audit says "all good."
+    //
+    // The ADR-029 verdict matrix is silent on this multi-channel case: it defines
+    // `substrate-gap` as "requires= predicate not satisfied" but does not specify
+    // what happens when a code witness is also present. The implementation chose
+    // silently: max(tiers) wins, SubstrateGap is swallowed.
+    //
+    // Correct posture (disputed — needs ADR-029 amendment): SubstrateGap should
+    // take precedence or at minimum be surfaced alongside Defended, because the
+    // developer declared explicit substrate intent and it is broken. Hiding it
+    // behind a code witness violates sub-clause F (non-passing evidence must not
+    // silently disappear when other evidence exists).
+    //
+    // This test asserts the BROKEN outcome (Defended masking SubstrateGap).
+    // It will need updating when the ADR-029 amendment decides the correct behavior.
+    // ========================================================================
+
+    fn presents_site_with_requires(
+        antigen: &str,
+        file: &str,
+        line: usize,
+        pred_json: &str,
+    ) -> crate::scan::Presentation {
+        let mut site = presents_site(antigen, file, line);
+        site.requires_predicate = Some(pred_json.to_string());
+        site
+    }
+
+    #[test]
+    fn atk_pv_requires_masked_by_code_witness() {
+        // A presents-site has both:
+        //   (a) requires = <predicate>  — substrate intent, will FAIL (no sidecar under ".")
+        //   (b) a #[defended_by] code witness — exists, grants Reachability
+        //
+        // BROKEN current behavior: Defended(Reachability) — the failing requires=
+        // is silently swallowed because max(code_tier=Reachability, substrate_tier=None)
+        // = Reachability.
+        //
+        // The SubstrateGap branch is never reached because it only fires when
+        // best_tier is None; a code witness ensures best_tier is Some(Reachability).
+        //
+        // Correct behavior (per sub-clause F / ADR-029 amendment needed):
+        // SubstrateGap should be visible — the developer declared substrate intent
+        // that is broken. Masking it with a code witness defeats the purpose of
+        // requires= (the whole point is to CATCH substrate drift).
+        //
+        // This asserts BROKEN — will fail when fix lands.
+        // Any valid predicate JSON — the sidecar won't exist under "." so
+        // audit_substrate_witness returns WitnessTier::None regardless of
+        // predicate content. Use a hand-crafted minimal Signers predicate.
+        let pred_json = r#"{"Signers":{"required":["alice"],"roles":{},"against":"Current","signature_allow":[],"signature_prefer":null}}"#;
+
+        let mut report = ScanReport::default();
+        report.presentations.push(presents_site_with_requires(
+            "SubstrateDriftClass",
+            "src/lib.rs",
+            10,
+            &pred_json,
+        ));
+        // Code witness exists — this is what masks the substrate gap.
+        report.defenses.push(defended_by_witness(
+            "SubstrateDriftClass",
+            "src/tests.rs",
+            5,
+        ));
+
+        // No sidecar under "." → requires= predicate fails → site_requires_eval=Some(None)
+        // → site_requires_tier = None (filtered out).
+        // But code_tier = Some(Reachability) → best_tier = Some(Reachability) → Defended.
+        let out = audit(&report, Path::new("."));
+        assert_eq!(out.presentation_verdicts.len(), 1);
+        let v = &out.presentation_verdicts[0];
+
+        // BROKEN: Defended masking the substrate gap. The correct behavior is
+        // SubstrateGap (or at minimum a warning alongside Defended). Asserting
+        // the broken outcome so this test FAILS when the fix lands.
+        assert_eq!(
+            v.verdict,
+            ImmuneVerdict::Defended {
+                tier: WitnessTier::Reachability
+            },
+            "ATK-PV-REQUIRES-MASKED (BROKEN): a failing requires= predicate is \
+             silently hidden by a code witness — audit returns Defended(Reachability) \
+             when it should surface SubstrateGap. The substrate intent the developer \
+             declared is broken and invisible. Asserting broken outcome — when fix \
+             lands (ADR-029 amendment), update this to assert SubstrateGap."
+        );
+
+        // After fix: this should be SubstrateGap (substrate intent present, drifted).
+        // The correct assertion post-fix:
+        // assert_eq!(v.verdict, ImmuneVerdict::SubstrateGap, "...");
+    }
+
+    // ========================================================================
     // ADR-023: #[orient] until-date observed (forward/time-bound-claim-staleness)
     //
     // Orient REQUIRES `until`; the audit must OBSERVE it. Before this fix, the
