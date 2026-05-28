@@ -3127,7 +3127,23 @@ fn run_audit(args: AuditArgs) -> ExitCode {
     // is NOT gated here — the intent exists; it warrants a warning, not a hard
     // fail, until per-antigen severity lands in a later slice.)
     let strict_undefended_fails = args.strict && !audit_report.undefended_verdicts().is_empty();
-    if strict_state7_fails || strict_witness_fails || strict_undefended_fails {
+    // ATK-STRICT-5 / findings/scan-audit-strict-divergence: audit --strict is the
+    // CI integration point and MUST be a superset of scan --strict. The three
+    // structural-defect gates that `scan --strict` enforces (orphaned tolerances,
+    // orphaned lineage edges, dangling child lineage edges) belong in the audit
+    // strict gate too — otherwise an adopter who runs `cargo antigen audit --strict`
+    // for CI silently misses them. scan_report is already in scope here (line
+    // ~3040 above), so this is a substrate-witness lift, not a recompute.
+    let strict_orphaned_tolerances = args.strict && !scan_report.orphaned_tolerances().is_empty();
+    let strict_lineage_broken = args.strict
+        && (!scan_report.orphaned_lineage_edges().is_empty()
+            || !scan_report.dangling_child_lineage_edges().is_empty());
+    if strict_state7_fails
+        || strict_witness_fails
+        || strict_undefended_fails
+        || strict_orphaned_tolerances
+        || strict_lineage_broken
+    {
         ExitCode::from(1)
     } else {
         ExitCode::SUCCESS

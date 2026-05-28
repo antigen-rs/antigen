@@ -3512,9 +3512,7 @@ fn fingerprint_nonrefinement_reason(
 /// alternatives as required), turning a valid refinement into a false-positive
 /// divergence (ATK-LF-4). `Not` is a negative requirement the advisory does
 /// not model. So the descent is `AllOf`-only.
-fn collect_doc_contains_allof_only(
-    constraints: &[antigen_fingerprint::Constraint],
-) -> Vec<&str> {
+fn collect_doc_contains_allof_only(constraints: &[antigen_fingerprint::Constraint]) -> Vec<&str> {
     use antigen_fingerprint::Constraint;
     let mut out = Vec::new();
     for c in constraints {
