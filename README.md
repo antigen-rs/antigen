@@ -4,10 +4,11 @@
 
 Comprehensive, co-native, structural memory of fail-classes, defenses, attestations, and coordination — accessible natively to both human and AI agents. Built for the age of agentic dev, vibe-coding, and human-LLM collaboration.
 
-> **Status**: v0.2 — active development. Core macros, fingerprint grammar,
+> **Status**: `0.2.0-beta.1` published to crates.io (first public v0.2 beta,
+> 2026-05-28); stabilizing toward 0.2.0 stable. Core macros, fingerprint grammar,
 > scan + audit + attest + tolerate + oracle CLI, Oracle 5-state lifecycle,
 > cross-cutting attestation, substrate-witness predicates, ADR-029 defense/observation
-> vocabulary (`#[defended_by]`, extended `#[presents]`), four macro families in v0.2
+> vocabulary (`#[defended_by]`, extended `#[presents]`), five macro families in v0.2
 > stdlib. See [`CHANGELOG.md`](CHANGELOG.md) for the full manifest.
 
 ---
@@ -151,7 +152,7 @@ Add antigen as a dependency:
 
 ```toml
 [dependencies]
-antigen = "=0.1.0-rc.3"   # current published; v0.2 not yet published to crates.io
+antigen = "=0.2.0-beta.1"   # first public v0.2 beta (published to crates.io)
 ```
 
 Now declare your first antigen. The full walkthrough lives in [`docs/tutorial.md`](docs/tutorial.md) — your first 15 minutes, end-to-end, with a real failure-class.
@@ -175,7 +176,7 @@ The biological metaphor is **load-bearing, not decorative**. The immune system i
 | Innate vs adaptive immunity | passive surface (fingerprint scan) vs active surface (explicit markers) |
 | Antigenic drift | version-boundary recognition (ADR-017) |
 | Deferred immunity / anergy | `#[anergy]`, `#[immunosuppress]` (v0.2) |
-| Mucosal boundary defense | `#[mucosal]` — input validation primitives (v0.3) |
+| Mucosal boundary defense | `#[mucosal]` — input validation primitives (v0.2) |
 | Dysregulation | `#[autoimmune]`, `#[sepsis]`, `#[anaphylaxis]` (v0.3) |
 
 When the biology predicts a primitive, the project builds it. See [`docs/decisions.md`](docs/decisions.md) (ADR-003) for the discipline.
@@ -262,7 +263,7 @@ Most valuable contributions right now:
 - **Real-world failure-class proposals** — Rust failures that fit (or refine) the project's growing taxonomy; issue templates at [`.github/ISSUE_TEMPLATE`](.github/ISSUE_TEMPLATE)
 - **Antigen-stdlib candidates** — specific patterns to bundle in the eventual stdlib library with real-world instance evidence (not speculation)
 - **Witness type integrations** — kani/prusti/verus/creusot/flux harness recognition refinements
-- **Adoption feedback** — once v0.1.0 lands, real-world adoption signal from Rust workspaces
+- **Adoption feedback** — `0.2.0-beta.1` is the first public v0.2; real-world adoption signal from Rust workspaces
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for detail.
 
@@ -270,10 +271,10 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for detail.
 
 ## Status
 
-- crates.io: [`antigen`](https://crates.io/crates/antigen), [`cargo-antigen`](https://crates.io/crates/cargo-antigen), [`antigen-macros`](https://crates.io/crates/antigen-macros), [`antigen-fingerprint`](https://crates.io/crates/antigen-fingerprint), [`antigen-attestation`](https://crates.io/crates/antigen-attestation) — v0.1.0-rc.3 published; v0.2 in active development
+- crates.io: [`antigen`](https://crates.io/crates/antigen), [`cargo-antigen`](https://crates.io/crates/cargo-antigen), [`antigen-macros`](https://crates.io/crates/antigen-macros), [`antigen-fingerprint`](https://crates.io/crates/antigen-fingerprint), [`antigen-attestation`](https://crates.io/crates/antigen-attestation) — **0.2.0-beta.1 published** (first public v0.2 beta, 2026-05-28); stabilizing toward 0.2.0 stable
 - Repository: [github.com/antigen-rs/antigen](https://github.com/antigen-rs/antigen)
 - CI: cargo check + test + fmt + clippy (-D warnings) + doc (-D warnings) on every push and PR
-- Tests: 797+ passing across the workspace (see CI badge for live count)
+- Tests: ~1000+ passing across the workspace (see CI badge for live count)
 - Tambear integration: live since 2026-05-07; first real adoption exercising the substrate (see [`docs/expedition/tambear-adoption-log.md`](docs/expedition/tambear-adoption-log.md))
 
 ---
