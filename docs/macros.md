@@ -447,7 +447,7 @@ match no longer surfaces).
 ### See also
 
 - ADR-011 (antigen_tolerance carrier with required rationale)
-- [`usage-patterns.md`](usage-patterns.md) — when to tolerate vs claim immunity
+- [`usage-patterns.md`](usage-patterns.md) — when to tolerate vs defend
 - [`where-to-look-for-antigens.md`](where-to-look-for-antigens.md) — tolerance placement
 
 ---

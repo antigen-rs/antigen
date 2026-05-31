@@ -40,39 +40,48 @@ adds one new concept to what the previous lessons established.
 
 ---
 
-## Lesson 1 — `basic.rs`: declare, present, immune
+## Lesson 1 — `basic.rs`: declare, present, defend
 
 **File**: [`antigen/examples/basic.rs`](../antigen/examples/basic.rs)
 
 **Concept introduced**: the three core moves — declare a failure-class,
-mark a vulnerable site, claim immunity.
+mark a vulnerable site, register a defense. Immunity is *observed* by
+audit from the evidence, never claimed at the site (ADR-029).
 
 **What's in the file**:
 - `#[antigen]` declaration of `PanickingInDrop`
 - A `VulnerableType` whose `Drop` impl could panic (marked
   `#[presents(PanickingInDrop)]`)
-- A `SafeType` whose `Drop` impl is verified panic-free (marked
-  `#[immune(PanickingInDrop, witness = safe_type_drop_no_panic_test)]`)
-- The witness function — a regular function (not `#[test]`) that
-  exercises the safe paths
+- A `SafeType` whose `Drop` impl is panic-free — also marked
+  `#[presents(PanickingInDrop)]` (the site presents the shape; it does
+  not claim to be immune)
+- A witness function `safe_type_drop_no_panic_test` carrying
+  `#[defended_by(PanickingInDrop)]` — a code-tier witness that exercises
+  the safe drop paths. The defense lives on the witness, not the site.
 
 **What to learn**:
 - The three-verb structure: `build` an antigen (declare), `give` an
-  antigen (presents), `find` defenses (immune)
+  antigen (`#[presents]`), `find` defenses (`#[defended_by]` witnesses
+  + `cargo antigen audit` observing them)
 - Antigen declarations are unit structs
-- Witnesses can point at any in-scope identifier
-- The `rationale` field on `#[immune]` carries narrative
+- Defense evidence lives at the witness site, not the vulnerable site —
+  immunity is observed, not declared
+- (The v0.1 `#[immune(witness=)]` API is deprecated in favor of
+  `#[defended_by]` / `#[presents(requires=)]`)
 
 **Try this**:
 ```sh
 cargo run --example basic --package antigen
 cargo run --bin cargo-antigen -- antigen scan --root antigen/examples
+cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
 ```
 
 Look at the scan output. Notice how `basic.rs` declares
 `PanickingInDrop` and shows you both a vulnerable site
-(`VulnerableType`) and an immune site (`SafeType`). The vulnerable
-site appears as an unaddressed presentation.
+(`VulnerableType`, unaddressed) and a defended site (`SafeType`, marked
+`#[presents]` with a `#[defended_by]` witness). `audit` observes the
+witness and reports `SafeType`'s defense; the vulnerable site appears as
+an unaddressed presentation.
 
 ---
 
@@ -198,7 +207,8 @@ system itself, with the *type structure* serving as the witness.
 - A `NonPanickingProof<T>` phantom-type with a private `_seal` field
   and a sealed `verified()` constructor
 - A `PhantomVerifiedDropImpl` type marked
-  `#[immune(DropPanicClass, witness = NonPanickingProof::<PhantomVerifiedDropImpl>::verified)]`
+  `#[presents(DropPanicClass, proof = NonPanickingProof::<PhantomVerifiedDropImpl>::verified)]`
+  (the phantom-type proof rides on `#[presents(..., proof=)]` per ADR-029)
 
 **What to learn**:
 - The turbofish syntax (`Foo::<T>::ctor`) is what antigen recognizes
@@ -233,8 +243,8 @@ audit confirms the proof structure is recognized.
 **What's in the file** (the story is in the docstring; read it):
 - A `SignedZeroDiscipline` antigen for the class "every odd function must preserve sign at signed zero"
 - Two implementations: `signed_zero_preserving_sinh` (correct) and `naive_sinh_loses_sign_at_zero` (the bug)
-- An `#[immune(SignedZeroDiscipline, requires = all_of([signers(required = [...]), fresh_within_days(180)]))]` claim
-- The `requires` predicate names what the sidecar file must contain for the immunity claim to hold
+- A `#[presents(SignedZeroDiscipline, requires = all_of([signers(required = [...]), fresh_within_days(180)]))]` site — the substrate-witness predicate rides on `#[presents]` (ADR-029); audit observes whether the sidecar satisfies it
+- The `requires` predicate names what the sidecar file must contain for the defense to be credited at audit time
 
 **What to learn**:
 - Substrate-witness leaves: `signers(required = [...])`, `fresh_within_days(N)`, `ratified_doc(path = ...)`, `oracles_complete(files = [...])`, `signed_trailer(...)`
@@ -262,7 +272,7 @@ cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
 
 **What's in the file**:
 - Oracle declared via `cargo antigen oracle declare ...` with steward + provenance
-- Antigen with `#[immune(..., requires = oracles_complete(files = ["higham-2002-section-6-3"]))]`
+- A presents-site with `#[presents(..., requires = oracles_complete(files = ["higham-2002-section-6-3"]))]` (the Oracle-backed substrate-witness predicate; ADR-029 idiom)
 - Lifecycle transitions: Draft → Complete (signers attest the Oracle's content matches the reference) → Deprecated (the reference still exists but newer guidance supersedes) → Retired / Revoked
 
 **What to learn**:
