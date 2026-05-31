@@ -284,23 +284,23 @@ fn atk_recurrent_5_saturate_anchor_nonexistent_emits_hint() {
 // NonExistentItch has no #[itch] declaration anywhere in the scan. The temporal
 // progression (itch → anchor → crystallize) is still bypassed.
 //
-// Current behavior: zero hints (no RecurrenceAnchorNoItchPrecondition). The
-// check only fires when from_itches.is_empty() — a non-empty phantom list
-// is treated as sufficient precondition evidence.
-//
-// Correct behavior: validate that from_itches entries resolve to actual #[itch]
-// declarations in the scan. A phantom reference should emit a hint (perhaps
-// RecurrenceAnchorNoItchPrecondition or a new RecurrenceAnchorItchNotFound).
-//
-// This test asserts the BROKEN outcome (no hint fires).
+// FIXED behavior: validate that from_itches entries resolve to actual #[itch]
+// declarations in the scan (any() check against itch_antigen_types in
+// evaluate_recurrent_hints). A non-empty phantom list provides zero real
+// precondition evidence — RecurrenceAnchorNoItchPrecondition fires.
 // ============================================================================
 
 #[test]
-fn atk_recurrent_7_phantom_from_itches_bypasses_precondition_check() {
-    // #[recurrence_anchor] with from_itches = ["NonExistentItch"] — the itch
-    // does NOT exist in the scan. The from_itches list is non-empty, so the
-    // `from_itches.is_empty()` guard prevents RecurrenceAnchorNoItchPrecondition.
-    // But "NonExistentItch" is a phantom reference — no #[itch] for it in the scan.
+fn atk_recurrent_7_phantom_from_itches_fires_no_itch_precondition() {
+    // ATK-RECURRENT-7 (FIXED): #[recurrence_anchor] with from_itches = ["NonExistentItch"]
+    // where the itch does NOT exist in the scan must still fire
+    // RecurrenceAnchorNoItchPrecondition. A non-empty phantom list provides zero real
+    // precondition evidence — the temporal progression is still bypassed.
+    //
+    // Previously the from_itches.is_empty() guard was the only check, so a non-empty
+    // phantom list bypassed the hint entirely. Fix: validate that from_itches entries
+    // resolve to actual #[itch] declarations in the scan (any() check against
+    // itch_antigen_types). If none resolve, fire RecurrenceAnchorNoItchPrecondition.
     let mut decl = base_decl(RecurrentKind::RecurrenceAnchor, Some("SomeAntigen"));
     decl.from_itches = vec!["NonExistentItch".to_string()]; // phantom — not in scan
 
@@ -310,30 +310,25 @@ fn atk_recurrent_7_phantom_from_itches_bypasses_precondition_check() {
 
     let out = audit_recurrent(&report);
     assert_eq!(out.audits.len(), 1);
-
-    // BROKEN: no RecurrenceAnchorNoItchPrecondition fires because
-    // from_itches.is_empty() is false — the non-empty phantom list bypasses
-    // the check. The temporal progression is still bypassed (no real itch
-    // exists) but the audit treats the anchor as having preconditions.
-    //
-    // Asserting broken outcome (no hint). After fix:
-    // assert!(hints.contains(&AuditHint::RecurrenceAnchorNoItchPrecondition))
-    // or a new RecurrenceAnchorPhantomItchReference hint.
     let hints = &out.audits[0].hints;
+
+    // CORRECT: RecurrenceAnchorNoItchPrecondition fires because all from_itches
+    // entries are phantom (none resolve to scan-resident #[itch] declarations).
     assert!(
-        !hints.contains(&AuditHint::RecurrenceAnchorNoItchPrecondition),
-        "ATK-RECURRENT-7 (BROKEN): from_itches=[\"NonExistentItch\"] (phantom) \
-         silently bypasses RecurrenceAnchorNoItchPrecondition. The from_itches \
-         list is non-empty, gating out the check, even though the listed itch \
-         doesn't exist in the scan. Fix: validate from_itches entries resolve to \
-         actual #[itch] declarations. Test should invert after fix."
+        hints.contains(&AuditHint::RecurrenceAnchorNoItchPrecondition),
+        "ATK-RECURRENT-7: from_itches=[\"NonExistentItch\"] (phantom) must fire \
+         RecurrenceAnchorNoItchPrecondition — no listed itch resolves to a scan-resident \
+         #[itch] declaration, so the temporal progression is still bypassed. \
+         hints: {:?}",
+        hints
     );
-    // Also: RecurrenceThresholdReachedNoAction fires because SomeAntigen is
-    // not in acted_on — this part of the check is NOT gated by from_itches.
+    // RecurrenceThresholdReachedNoAction must still fire — SomeAntigen is not in acted_on.
     assert!(
         hints.contains(&AuditHint::RecurrenceThresholdReachedNoAction),
         "RecurrenceThresholdReachedNoAction must still fire for anchor with \
-         no downstream action — this check runs regardless of from_itches"
+         no downstream action — this check runs regardless of from_itches. \
+         hints: {:?}",
+        hints
     );
 }
 
