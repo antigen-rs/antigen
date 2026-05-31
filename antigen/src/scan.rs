@@ -2320,7 +2320,7 @@ fn locus_matches(
 /// `canonical_path`) + item (`ItemTarget::addresses`) + locus.
 fn addresses_for_immunity(i: &Immunity, p: &Presentation) -> bool {
     i.antigen_type == p.antigen_type
-        && i.canonical_path == p.canonical_path
+        && canonical_paths_match(i.canonical_path.as_deref(), p.canonical_path.as_deref())
         && i.item_target.addresses(&p.item_target)
         && locus_matches(
             i.file.as_path(),
@@ -2333,7 +2333,7 @@ fn addresses_for_immunity(i: &Immunity, p: &Presentation) -> bool {
 /// Does this `Toleration` address this `Presentation`?
 fn addresses_for_tolerance(t: &Toleration, p: &Presentation) -> bool {
     t.antigen_type == p.antigen_type
-        && t.canonical_path == p.canonical_path
+        && canonical_paths_match(t.canonical_path.as_deref(), p.canonical_path.as_deref())
         && t.item_target.addresses(&p.item_target)
         && locus_matches(
             t.file.as_path(),
@@ -2366,14 +2366,32 @@ fn addresses_for_tolerance(t: &Toleration, p: &Presentation) -> bool {
 /// rule cannot drift.
 #[must_use]
 pub(crate) fn defense_addresses(d: &Defense, p: &Presentation) -> bool {
-    // canonical_path equality (None == None for intra-workspace, Some(x) == Some(x)
-    // for cross-crate stamped). The previous `is_none()` wildcard arm let an
-    // unstamped intra-workspace defense silently address a stamped dep
-    // presentation, hiding the dep's undefended vulnerability in --include-deps
-    // scans (ATK-ADR029-23). stamp_canonical_path runs all-or-nothing per scan,
-    // so a `None` defense paired with a `Some` presentation is always a
-    // cross-boundary case and should never match.
-    d.antigen_type == p.antigen_type && d.canonical_path == p.canonical_path
+    // canonical_path equality via the shared helper (None == None for intra-workspace,
+    // Some(x) == Some(x) for cross-crate stamped; None ≠ Some always).
+    // See `canonical_paths_match` for the design rationale (ATK-ADR029-23 +
+    // forward/shared-canonical-path-addresses-helper ruling).
+    d.antigen_type == p.antigen_type
+        && canonical_paths_match(d.canonical_path.as_deref(), p.canonical_path.as_deref())
+}
+
+/// Strict canonical-path equality check: does `item_canonical_path` match
+/// `decl_canonical_path` under the None-means-intra-workspace rule?
+///
+/// **Semantics**: `None == None` (both intra-workspace, both unstamped) and
+/// `Some(x) == Some(x)` (both dep-stamped, same crate path). `None ≠ Some`
+/// always — an intra-workspace item cannot address a stamped dep declaration
+/// (ATK-ADR029-23 + forward/shared-canonical-path-addresses-helper ruling).
+///
+/// This is the single source of truth for the canonical-path dimension of
+/// any "does item X address antigen Y" check. All call sites (defense loop,
+/// immunity loop, tolerance loop, G2 cross-check) must route through this
+/// function so the matching rule cannot drift independently.
+#[must_use]
+pub(crate) fn canonical_paths_match(
+    item_canonical_path: Option<&str>,
+    decl_canonical_path: Option<&str>,
+) -> bool {
+    item_canonical_path == decl_canonical_path
 }
 
 /// Hard depth limit for `#[descended_from]` lineage chains.

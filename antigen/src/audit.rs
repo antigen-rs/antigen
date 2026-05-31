@@ -443,6 +443,12 @@ pub enum AuditHint {
     /// downgrade a Mismatch (alert) into a `NoAttestation` (warning) by
     /// corrupting the file.
     ContentHashSidecarMalformed,
+    /// A `requires_predicate` JSON string on an immunity deserialized
+    /// successfully but failed structural validation (e.g., `all_of([])` —
+    /// an empty combinator that vacuously evaluates to `passed=true` with no
+    /// leaves). Emitted by `audit_supply_chain` when `Predicate::validate()`
+    /// fails after serde deserialization. (ATK-SC-7)
+    MalformedRequiresPredicate,
 
     // ------------------------------------------------------------------
     // Convergent-Evidence Family hints (ADR-024).
@@ -460,6 +466,15 @@ pub enum AuditHint {
     /// `#[diagnostic]` declared with no modalities. Empty modality
     /// list is structurally meaningless.
     DiagnosticModalitiesEmpty,
+    /// `#[diagnostic]` `min_independent` is zero — a null threshold that
+    /// never fires `DiagnosticModalityInsufficient` regardless of how many
+    /// (or few) independent classes exist. Zero independence claimed = no
+    /// claim. (ATK-CE-5)
+    DiagnosticMinIndependentZero,
+    /// `#[igg]` `min_reattestations` is zero — a null threshold that never
+    /// fires `IggReattestationsInsufficient`. Zero re-attestations required
+    /// = no reattestation discipline. (ATK-CE-5)
+    IggMinReattestationsZero,
     /// `#[clonal]` declared with `seed = SeedKind::Fixed(_)`. The
     /// proc-macro rejects this at parse time; this hint is for the
     /// audit-time re-evaluation of pre-cap-enforcement source.
@@ -558,6 +573,12 @@ pub enum AuditHint {
     /// its `kind`s match the delegate's `boundary` (set-membership, NOT
     /// exact-equality). Three-tier diagnosis tier 3 (Change 5c).
     MucosalDisciplineDelegateTargetKindMismatch,
+    /// `#[mucosal_delegate]` `handled_by` matches multiple `#[mucosal]` functions
+    /// with the SAME bare name in DIFFERENT source files — the target is ambiguous.
+    /// The kind-set union of all same-named functions may silently pass using the
+    /// wrong file's kinds. Fix: qualify `handled_by` to a unique target.
+    /// (findings/mucosal-same-name-fn-collision)
+    MucosalDisciplineDelegateTargetAmbiguous,
     /// `#[mucosal_tolerant]` rationale missing or below the ≥40-char floor
     /// (higher than `#[mucosal]` — tolerance is the riskier declaration).
     MucosalTolerantRationaleInsufficient,
@@ -2230,6 +2251,28 @@ pub fn audit_supply_chain(report: &ScanReport, workspace_root: &Path) -> SupplyC
             continue;
         };
 
+        // ATK-SC-7: serde's derived Deserialize does NOT call Predicate::validate(),
+        // so a hand-crafted JSON like `{"kind":"all_of","children":[]}` bypasses the
+        // ZeroLeafComposition guard and evaluates vacuously to passed=true with no
+        // leaves. Validate after deserialization and emit a diagnostic rather than
+        // silently proceeding to a vacuous evaluation.
+        if predicate.validate().is_err() {
+            audits.push(SupplyChainAudit {
+                antigen_type: immunity.antigen_type.clone(),
+                hint: AuditHint::MalformedRequiresPredicate,
+                file: immunity.file.clone(),
+                line: immunity.line,
+                crate_name: String::new(),
+                version: String::new(),
+                detail: Some(
+                    "requires_predicate deserialized but failed structural validation \
+                     (e.g., empty combinator — vacuous pass with no leaves)"
+                        .to_string(),
+                ),
+            });
+            continue;
+        }
+
         // Evaluate the predicate tree as a whole so combinator semantics
         // hold: a Mismatch inside `any_of([match_X, no_attest_Y])` does
         // NOT surface if `match_X` passes (ATK-SC-AUDIT-1). The
@@ -2663,7 +2706,13 @@ fn evaluate_convergent_evidence_hints(
                 hints.push(AuditHint::DiagnosticModalitiesClassCollapsed);
             }
             if let Some(min) = decl.min_independent {
-                if u64::try_from(distinct.len()).unwrap_or(u64::MAX) < min {
+                if min == 0 {
+                    // A zero threshold is semantically null: it can never fire
+                    // DiagnosticModalityInsufficient regardless of how many (or
+                    // few) independent classes exist. Surface the misconfiguration
+                    // explicitly rather than silently accepting it. (ATK-CE-5)
+                    hints.push(AuditHint::DiagnosticMinIndependentZero);
+                } else if u64::try_from(distinct.len()).unwrap_or(u64::MAX) < min {
                     hints.push(AuditHint::DiagnosticModalityInsufficient);
                 }
             }
@@ -2696,7 +2745,12 @@ fn evaluate_convergent_evidence_hints(
             let unique_count: std::collections::HashSet<&str> =
                 decl.witnesses.iter().map(String::as_str).collect();
             if let Some(min_re) = decl.min_reattestations {
-                if u64::try_from(unique_count.len()).unwrap_or(u64::MAX) < min_re {
+                if min_re == 0 {
+                    // Zero reattestations required is a null threshold — it can
+                    // never fire IggReattestationsInsufficient. Surface the
+                    // misconfiguration explicitly. (ATK-CE-5)
+                    hints.push(AuditHint::IggMinReattestationsZero);
+                } else if u64::try_from(unique_count.len()).unwrap_or(u64::MAX) < min_re {
                     hints.push(AuditHint::IggReattestationsInsufficient);
                 }
             }
@@ -2876,8 +2930,27 @@ fn evaluate_recurrent_hints(
         RecurrentKind::RecurrenceAnchor => {
             // Anchor has no upstream itch preconditions — temporal progression
             // (itch → anchor → crystallize) bypassed (ATK-RECURRENT-2).
+            //
+            // Two bypass vectors (ATK-RECURRENT-7 adds the second):
+            //   (a) from_itches is empty AND the anchor's antigen type has no
+            //       corresponding #[itch] in the scan — temporal progression skipped.
+            //   (b) from_itches is non-empty but ALL listed itches are phantom
+            //       references — they name itch types that have no #[itch] declaration
+            //       in the scan. A non-empty phantom list bypassed the is_empty() guard
+            //       while providing zero real precondition evidence. We now validate
+            //       that from_itches entries actually resolve to scan-resident itches.
             if let Some(antigen) = decl.antigen_type.as_deref() {
-                if decl.from_itches.is_empty() && !itch_antigen_types.contains(antigen) {
+                let has_valid_from_itches = !decl.from_itches.is_empty()
+                    && decl
+                        .from_itches
+                        .iter()
+                        .any(|itch| itch_antigen_types.contains(itch.as_str()));
+                let has_implicit_itch = itch_antigen_types.contains(antigen);
+
+                if !has_valid_from_itches && !has_implicit_itch {
+                    // No real itch precondition: either no from_itches + no implicit
+                    // itch, OR from_itches is entirely phantom references that don't
+                    // resolve to any scan-resident #[itch] declaration. (ATK-RECURRENT-7)
                     hints.push(AuditHint::RecurrenceAnchorNoItchPrecondition);
                 }
                 // Anchor crossed threshold but nothing downstream addresses it.
@@ -3000,6 +3073,14 @@ pub fn audit_mucosal(report: &ScanReport) -> MucosalAuditReport {
     // kinds to their function's set.
     let mut handler_kinds: std::collections::HashMap<&str, std::collections::HashSet<&str>> =
         std::collections::HashMap::new();
+    // Track which source files each bare function name appears in, so we can detect
+    // same-name ambiguity (findings/mucosal-same-name-fn-collision). A bare fn name
+    // that appears in more than one file is ambiguous: delegates pointing to it by
+    // bare name alone cannot unambiguously identify the target.
+    let mut handler_files: std::collections::HashMap<
+        &str,
+        std::collections::HashSet<&std::path::Path>,
+    > = std::collections::HashMap::new();
     for decl in &report.mucosal_declarations {
         if decl.tag == MucosalKindTag::Mucosal {
             if let ItemTarget::Fn(fn_name) = &decl.item_target {
@@ -3009,13 +3090,23 @@ pub fn audit_mucosal(report: &ScanReport) -> MucosalAuditReport {
                         .or_default()
                         .insert(kind);
                 }
+                handler_files
+                    .entry(fn_name.as_str())
+                    .or_default()
+                    .insert(decl.file.as_path());
             }
         }
     }
+    // A name is ambiguous when it maps to 2+ distinct source files.
+    let ambiguous_names: std::collections::HashSet<&str> = handler_files
+        .iter()
+        .filter(|(_, files)| files.len() > 1)
+        .map(|(name, _)| *name)
+        .collect();
 
     let mut audits: Vec<MucosalAudit> = Vec::new();
     for decl in &report.mucosal_declarations {
-        let hints = evaluate_mucosal_hints(decl, &handler_kinds);
+        let hints = evaluate_mucosal_hints(decl, &handler_kinds, &ambiguous_names);
         audits.push(MucosalAudit {
             declaration: decl.clone(),
             hints,
@@ -3042,6 +3133,7 @@ pub fn audit_mucosal(report: &ScanReport) -> MucosalAuditReport {
 fn evaluate_mucosal_hints(
     decl: &crate::scan::MucosalDeclaration,
     handler_kinds: &std::collections::HashMap<&str, std::collections::HashSet<&str>>,
+    ambiguous_names: &std::collections::HashSet<&str>,
 ) -> Vec<AuditHint> {
     use crate::scan::MucosalKindTag;
 
@@ -3066,24 +3158,39 @@ fn evaluate_mucosal_hints(
             // Change 5 three-tier diagnosis on the delegate handler.
             match decl.handled_by.as_deref() {
                 None => hints.push(AuditHint::MucosalDisciplineDelegateTargetMissing),
-                Some(handler) => match handler_kinds.get(handler) {
-                    // Tier 1: handler doesn't resolve to any #[mucosal]-fn.
-                    None => hints.push(AuditHint::MucosalDisciplineDelegateTargetMissing),
-                    Some(kinds) if kinds.is_empty() => {
-                        // Tier 2: resolves but carries no mucosal kind.
-                        hints.push(AuditHint::MucosalDisciplineDelegateTargetNotMucosal);
-                    }
-                    Some(kinds) => {
-                        // Tier 3: set-membership kind match (NOT exact-equality).
-                        let matches = decl
-                            .boundary_kind
-                            .as_deref()
-                            .is_some_and(|b| kinds.contains(b));
-                        if !matches {
-                            hints.push(AuditHint::MucosalDisciplineDelegateTargetKindMismatch);
+                Some(handler) => {
+                    // Ambiguity check (findings/mucosal-same-name-fn-collision):
+                    // If the bare handler name matches multiple source files, the
+                    // delegate is ambiguous and must be flagged BEFORE attempting
+                    // kind-resolution — the merged kind-set union would silently
+                    // grant the wrong file's kinds. Only emitted for resolved-but-
+                    // ambiguous names (handler in ambiguous_names), NOT for missing
+                    // targets (Tier 1 below catches those).
+                    if ambiguous_names.contains(handler) {
+                        hints.push(AuditHint::MucosalDisciplineDelegateTargetAmbiguous);
+                    } else {
+                        match handler_kinds.get(handler) {
+                            // Tier 1: handler doesn't resolve to any #[mucosal]-fn.
+                            None => hints.push(AuditHint::MucosalDisciplineDelegateTargetMissing),
+                            Some(kinds) if kinds.is_empty() => {
+                                // Tier 2: resolves but carries no mucosal kind.
+                                hints.push(AuditHint::MucosalDisciplineDelegateTargetNotMucosal);
+                            }
+                            Some(kinds) => {
+                                // Tier 3: set-membership kind match (NOT exact-equality).
+                                let matches = decl
+                                    .boundary_kind
+                                    .as_deref()
+                                    .is_some_and(|b| kinds.contains(b));
+                                if !matches {
+                                    hints.push(
+                                        AuditHint::MucosalDisciplineDelegateTargetKindMismatch,
+                                    );
+                                }
+                            }
                         }
                     }
-                },
+                }
             }
         }
         MucosalKindTag::MucosalTolerant => {
@@ -3258,7 +3365,12 @@ pub fn audit_category(report: &ScanReport) -> CategoryAuditReport {
             if imm.antigen_type != decl.type_name {
                 continue;
             }
-            if imm.canonical_path.is_some() && imm.canonical_path != decl.canonical_path {
+            // Strict canonical-path equality (forward/shared-canonical-path-addresses-helper
+            // ruling: None == None only; None ≠ Some). Previously `is_some() && ≠` let an
+            // intra-workspace immunity (None) address ANY antigen including stamped dep
+            // declarations — same class of wildcard that ATK-ADR029-23 fixed on the defense
+            // side. Applying the same strict equality here is the design-ruled fix.
+            if imm.canonical_path != decl.canonical_path {
                 continue;
             }
             has_any_immunity = true;
@@ -3506,7 +3618,8 @@ fn fingerprint_nonrefinement_reason(
     child: &antigen_fingerprint::Fingerprint,
     parent: &antigen_fingerprint::Fingerprint,
 ) -> Option<String> {
-    // (1) item-kind divergence: parent pins one kind, child pins a different one.
+    // (1) item-kind divergence: parent pins one kind, child pins a different one
+    //     OR child has NO item-kind constraint while parent has a definite one.
     //
     // Delegate to `Fingerprint::node_kind()` (antigen_fingerprint/src/lib.rs:383),
     // which descends into `AllOf` via `Constraint::node_kind_hint` — so a
@@ -3517,13 +3630,30 @@ fn fingerprint_nonrefinement_reason(
     // widening-via-any_of case is genuinely undecidable at static kind matching
     // and the advisory correctly errs toward silence there (ATK-LF-5 pins this
     // as a known limitation, not a regression).
-    if let (Some(pk), Some(ck)) = (parent.node_kind(), child.node_kind()) {
-        if pk != ck {
+    //
+    // ATK-LF-6: child with `node_kind() = None` is UNCONDITIONALLY BROADER in
+    // the item dimension when the parent has a definite kind. Unlike ATK-LF-5
+    // (any_of is undecidable), this case IS decidable: parent=Some(Struct) +
+    // child=None means child matches ALL item kinds, including non-struct items
+    // the parent would not. That is a widening (not a refinement) that can be
+    // statically detected. Flag it rather than silently skipping the check.
+    match (parent.node_kind(), child.node_kind()) {
+        (Some(pk), Some(ck)) if pk != ck => {
             return Some(format!(
                 "child `item = {ck:?}` differs from parent `item = {pk:?}` \
                  — disjoint item kinds cannot be a refinement"
             ));
         }
+        (Some(pk), None) => {
+            // Parent has a definite item kind; child has NO item constraint —
+            // child unconditionally matches a broader set of items than parent.
+            // This is not a refinement. (ATK-LF-6)
+            return Some(format!(
+                "parent constrains `item = {pk:?}` but child has no item-kind \
+                 constraint — child matches all item kinds and is broader, not a refinement"
+            ));
+        }
+        _ => {}
     }
 
     // (2) doc_contains divergence: a parent-required substring that no child
@@ -4262,8 +4392,13 @@ mod tests {
     //   (b.rs only knows "DatabaseQuery").  Actual audit (broken): CLEAN because
     //   a.rs's "UserInput" is in the merged set.
     //
-    // This test currently PASSES (assert_eq! expects the broken outcome).
-    // It will FAIL once the fix keys handler_kinds by (file, fn_name).
+    // ATK-MUCOSAL-1 (FIXED): when two #[mucosal] functions share a bare name
+    // in different source files, a delegate targeting that name by bare-string
+    // must emit MucosalDisciplineDelegateTargetAmbiguous — the delegate is
+    // underspecified. Before the fix, handler_kinds merged kind-sets under a
+    // single bare-name key, so a kind-mismatch could silently pass if the
+    // OTHER file's kind happened to match. Fix: build an ambiguous_names set
+    // (names that map to 2+ distinct files) and check before kind-resolution.
     #[test]
     fn atk_mucosal_1_same_name_collision_masks_kind_mismatch() {
         use crate::scan::MucosalKindTag;
@@ -4309,22 +4444,21 @@ mod tests {
             .find(|a| a.declaration.tag == MucosalKindTag::MucosalDelegate)
             .unwrap();
 
-        // BROKEN current behavior: merged kind-set {"UserInput","DatabaseQuery"} lets
-        // "UserInput" pass set-membership — audit is CLEAN (wrong).
-        // CORRECT post-fix behavior: handler_kinds keyed by (file, fn_name) means a
-        // bare-name delegate sees ALL matching functions; if ANY matches, still passes
-        // — but if the fix instead makes handled_by file-path-aware, the mismatch
-        // surfaces.  This test pins the broken outcome so the fix can be verified
-        // against it: when fixed, this test should FAIL and be updated.
-        //
-        // NOTE: this currently asserts the BROKEN (silent) outcome to make the test
-        // compile green and reveal the bug via the comment, not a runtime panic.
-        // Flip the assertion when the fix lands.
+        // CORRECT post-fix behavior (Option A ruling, findings/mucosal-same-name-fn-collision):
+        // When two #[mucosal] functions share the same bare name in different files,
+        // the delegate is AMBIGUOUS — emit MucosalDisciplineDelegateTargetAmbiguous
+        // rather than attempting kind-resolution through the merged kind-set union.
+        // This surfaces the structural problem (the delegate is underspecified) rather
+        // than either silently passing or emitting a misleading kind-mismatch hint.
         assert!(
-            delegate_audit.hints.is_empty(),
-            "ATK-MUCOSAL-1 (BROKEN): merged handler_kinds lets UserInput boundary \
-             pass even though the only b.rs::process carries DatabaseQuery. \
-             This assertion documents broken behavior — it should FAIL after fix."
+            delegate_audit
+                .hints
+                .contains(&AuditHint::MucosalDisciplineDelegateTargetAmbiguous),
+            "ATK-MUCOSAL-1: delegate targeting 'process' when both src/a.rs::process \
+             and src/b.rs::process exist must emit MucosalDisciplineDelegateTargetAmbiguous. \
+             The delegate is underspecified — the bare name is not enough to identify the \
+             target uniquely. hints: {:?}",
+            delegate_audit.hints
         );
     }
 
@@ -6282,27 +6416,19 @@ mod tests {
         );
     }
 
-    // ATK-LF-6: child has no item kind at all — parent-item-kind check skipped silently.
+    // ATK-LF-6 (FIXED): child has no item kind — parent-item-kind broader,
+    // not a refinement — advisory must fire.
     //
-    // When parent pins an item kind (item = struct) and child has NO item constraint
-    // (only doc_contains or similar), `fingerprint_nonrefinement_reason` skips the
-    // item-kind divergence check entirely because `child.node_kind() = None`.
+    // Parent: item = struct, doc_contains("error") — only matches structs.
+    // Child:  doc_contains("error")                — no item kind, matches ALL items.
+    // Child is STRICTLY BROADER in the item dimension; this is NOT a refinement.
     //
-    // CONCRETE CASE:
-    //   Parent: item = struct, doc_contains("error")  — only matches structs
-    //   Child:  doc_contains("error")                  — matches ANY item kind
-    //
-    // Child is STRICTLY BROADER in the item dimension: it matches fns, enums, traits,
-    // etc. that the parent would not. This is NOT a refinement.
-    //
-    // Unlike ATK-LF-5 (AnyOf over kinds — genuinely undecidable), this case IS
-    // decidable: if parent has a definite item kind and child has None, child is
-    // unconditionally wider in the item dimension. The advisory should flag it.
-    //
-    // This test asserts the BROKEN outcome (advisory stays silent). It will invert
-    // to assert divergences.len() == 1 once the fix lands.
+    // Unlike ATK-LF-5 (AnyOf over kinds — undecidable), this case IS decidable:
+    // parent=Some(Struct) + child=None → child is unconditionally wider.
+    // Fix: added a (Some(pk), None) arm to the item-kind match in
+    // fingerprint_nonrefinement_reason that returns a divergence reason.
     #[test]
-    fn atk_lf_6_child_no_item_kind_silently_passes_as_refinement() {
+    fn atk_lf_6_child_no_item_kind_flags_as_non_refinement() {
         // Parent: item = struct, doc_contains("error")
         // Child:  doc_contains("error")  — no item kind, matches ALL item types
         let mut report = ScanReport::default();
@@ -6318,35 +6444,21 @@ mod tests {
 
         let out = audit_lineage_fidelity(&report);
 
-        // BROKEN: advisory stays silent because child.node_kind() is None, so the
-        // `if let (Some(pk), Some(ck))` guard in fingerprint_nonrefinement_reason
-        // skips the item-kind check. Child is broader, not a refinement, but no
-        // divergence fires.
-        //
-        // This differs from ATK-LF-5 (AnyOf is undecidable) — no-item-kind is
-        // decidable: parent has Some(Struct), child has None → child unconditionally
-        // wider. The advisory is incorrectly silent here.
-        //
-        // Asserting broken outcome — when fix lands, update to:
-        // assert_eq!(out.divergences.len(), 1, "...");
+        // CORRECT: one divergence fires — parent has Some(Struct), child has None.
+        // The (Some(pk), None) arm in fingerprint_nonrefinement_reason catches this.
         assert_eq!(
             out.divergences.len(),
-            0,
-            "ATK-LF-6 (BROKEN): child `doc_contains('error')` with no item kind is wider \
-             than parent `item=struct, doc_contains('error')` — not a refinement — but \
-             child.node_kind() returns None so the item-kind check is silently skipped. \
-             Advisory stays silent (false negative). Unlike ATK-LF-5 (undecidable), \
-             this case IS decidable: parent=Some(Struct) + child=None means child is \
-             unconditionally broader. Fix: add a guard — if parent has a definite item \
-             kind and child has None, flag as divergence."
+            1,
+            "ATK-LF-6: child `doc_contains('error')` with no item kind is wider \
+             than parent `item=struct, doc_contains('error')` — not a refinement. \
+             DescendedFromFingerprintDivergence must fire. parent=Some(Struct) + \
+             child=None is unconditionally broader (decidable, unlike ATK-LF-5). \
+             divergences: {:?}",
+            out.divergences
         );
     }
 
-    // ATK-LF-5: child has any_of over item-kinds — parent-item-kind check must stay silent.
-    //
-    // The proposed fix for ATK-LF-1 (use node_kind_hint() to find item-kind inside AllOf)
-    // must NOT fire when the child uses any_of over item kinds, because the child is BROADER
-    // than a single-kind pin (not necessarily narrower).
+    // ATK-LF-5: child has any_of over item-kinds — now flagged as a widening.
     //
     // CONCRETE CASE:
     //   Parent: item = struct
@@ -6355,24 +6467,26 @@ mod tests {
     // This is NOT a refinement (child.matches ⊃ parent.matches — child matches both structs
     // and enums, parent only matches structs). The advisory SHOULD fire here.
     //
-    // But: node_kind_hint() returns None for AnyOf (line 407: "any_of: no kind hint").
-    // So child_top_item_kind() (after the fix) would return None for the child → the item-kind
-    // check's `if let (Some(pk), Some(ck))` guard fails → advisory stays SILENT.
+    // node_kind() returns None for the child (AnyOf yields no single kind hint, lib.rs:407).
+    // PREVIOUSLY this was a documented FALSE NEGATIVE: the item-kind check required
+    // `(Some(pk), Some(ck))` so a `None` child silently skipped the check. The ATK-LF-6 fix
+    // added a `(Some(pk), None)` arm — a parent with a definite kind and a child with NO
+    // resolvable kind means the child matches a BROADER item set than the parent. That arm
+    // closes this false negative too: an any_of-over-kinds child (whose node_kind is None) is
+    // unconditionally broader in the item dimension and is correctly flagged.
     //
-    // This is a FALSE NEGATIVE for the widening case. After the ATK-LF-1 fix, widening via
-    // any_of is still undetectable. This test pins that behavior as a KNOWN LIMITATION:
-    // the advisory correctly errs toward silence on the undecidable / complex case.
-    //
-    // IMPORTANT: this is NOT a bug in the fix direction — the advisory is explicitly
-    // conservative ("only flag unambiguous non-refinements"). AnyOf-over-item-kinds is
-    // genuinely undecidable at the level of static kind-matching. The test documents this
-    // known limitation so future work doesn't mistakenly think the case is handled.
+    // This is the conservative-yet-correct posture: `node_kind()=None` means "matches all
+    // item kinds", which is genuinely wider than any single-kind parent. The only `None`
+    // children are no-item-constraint (LF-6), any_of-over-kinds (here), and top-level `not` —
+    // all genuinely broader in the item dimension. No refinement produces a `None` node_kind
+    // against a `Some` parent (AllOf descends to find a pinned kind), so the arm does not
+    // false-positive on real refinements.
     #[test]
-    fn atk_lf_5_any_of_item_kind_widening_not_detectable_known_limitation() {
+    fn atk_lf_5_any_of_item_kind_widening_flagged_via_none_node_kind() {
         // Parent: item = struct  (matches only structs)
         // Child:  any_of([item = struct, item = enum])  (matches structs AND enums)
-        // Child is WIDER than parent — NOT a refinement. But any_of → no kind hint →
-        // item-kind check skipped → advisory stays silent (false negative, known limitation).
+        // Child is WIDER than parent — NOT a refinement. any_of → node_kind None →
+        // the (Some(pk), None) arm fires the widening divergence.
         let mut report = ScanReport::default();
         report.antigens.push(antigen_with_fp("P", "item = struct"));
         report.antigens.push(antigen_with_fp(
@@ -6383,20 +6497,18 @@ mod tests {
 
         let out = audit_lineage_fidelity(&report);
 
-        // KNOWN LIMITATION: advisory stays silent even though child is wider.
-        // node_kind_hint() returns None for AnyOf → item-kind check skipped.
-        // The advisory is conservative — it only fires on the unambiguous cases.
-        // If this PASSES (no divergence): expected — known limitation documented.
-        // If this FAILS (divergence fires) AFTER ATK-LF-1 fix: the fix somehow caught
-        // the any_of case; verify it's not a false positive on a different scenario.
+        // CORRECT (post ATK-LF-6 fix): one divergence fires — parent=Some(Struct),
+        // child=None (any_of yields no kind hint) → child is unconditionally wider.
+        // The (Some(pk), None) arm in fingerprint_nonrefinement_reason catches this,
+        // closing the former known-limitation false negative.
         assert_eq!(
             out.divergences.len(),
-            0,
-            "ATK-LF-5 (KNOWN LIMITATION): child `any_of([item=struct, item=enum])` is wider \
-             than parent `item=struct` — not a refinement — but node_kind_hint() returns None \
-             for AnyOf so the item-kind check cannot detect this widening. Advisory stays silent. \
-             This is the CONSERVATIVE posture: erring toward silence on undecidable cases. \
-             If divergences.len() != 0: an unexpected code path fired — verify it's intentional."
+            1,
+            "ATK-LF-5: child `any_of([item=struct, item=enum])` is wider than parent \
+             `item=struct` — not a refinement. node_kind() is None for the child (any_of \
+             has no single kind hint), and the (Some(pk), None) arm flags this as a widening. \
+             Previously a silent false negative; the ATK-LF-6 fix closes it. divergences: {:?}",
+            out.divergences
         );
     }
 }

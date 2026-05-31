@@ -320,6 +320,8 @@ const ADR025_AUDIT_HINTS: &[&str] = &[
     "crates-io-metadata-query-failed",
     "dep-attestation-stale",
     "auto-dependency-chain-without-pinning",
+    // ATK-SC-7: malformed requires_predicate caught by validate() post-serde.
+    "malformed-requires-predicate",
 ];
 
 // NOTE: the old `adr025_audit_hints_count_is_fifteen` test was removed. A hardcoded
@@ -412,6 +414,8 @@ fn adr025_audit_hints_const_matches_enum_serde_keys() {
         AuditHint::CratesIoMetadataQueryFailed,
         AuditHint::DepAttestationStale,
         AuditHint::AutoDependencyChainWithoutPinning,
+        // ATK-SC-7: malformed requires_predicate (empty combinator bypasses serde).
+        AuditHint::MalformedRequiresPredicate,
     ];
 
     // Forward: every supply-chain AuditHint variant's serde key is in the const.
@@ -547,7 +551,9 @@ const fn hint_is_supply_chain(hint: &antigen::audit::AuditHint) -> bool {
         | AuditHint::CratesIoMetadataQueryFailed
         | AuditHint::DepAttestationStale
         | AuditHint::AutoDependencyChainWithoutPinning
-        | AuditHint::ContentHashSidecarMalformed => true,
+        | AuditHint::ContentHashSidecarMalformed
+        // ATK-SC-7: malformed predicate — deserialized but fails structural validation.
+        | AuditHint::MalformedRequiresPredicate => true,
 
         // --- Non-supply-chain families ---
         AuditHint::NoneApplicable
@@ -616,6 +622,7 @@ const fn hint_is_supply_chain(hint: &antigen::audit::AuditHint) -> bool {
         | AuditHint::MucosalDisciplineDelegateTargetMissing
         | AuditHint::MucosalDisciplineDelegateTargetNotMucosal
         | AuditHint::MucosalDisciplineDelegateTargetKindMismatch
+        | AuditHint::MucosalDisciplineDelegateTargetAmbiguous
         | AuditHint::MucosalTolerantRationaleInsufficient
         | AuditHint::MucosalTolerantPastReviewDate
         | AuditHint::MucosalTolerantAcceptsEmpty
@@ -625,7 +632,10 @@ const fn hint_is_supply_chain(hint: &antigen::audit::AuditHint) -> bool {
         | AuditHint::AntigenCategoryHybridIncompleteEvidence
         | AuditHint::DescendedFromFingerprintDivergence
         | AuditHint::AntigenWitnessShapeMismatchForSilenceNoWitness
-        | AuditHint::AntigenWitnessShapeMismatchForSilenceWrongTier => false,
+        | AuditHint::AntigenWitnessShapeMismatchForSilenceWrongTier
+        // CE-5 zero-threshold hints — convergent-evidence family, not supply-chain.
+        | AuditHint::DiagnosticMinIndependentZero
+        | AuditHint::IggMinReattestationsZero => false,
     }
 }
 
@@ -663,6 +673,8 @@ fn atk_hint_exhaustive_supply_chain_classification_matches_const() {
         AuditHint::DepAttestationStale,
         AuditHint::AutoDependencyChainWithoutPinning,
         AuditHint::ContentHashSidecarMalformed,
+        // ATK-SC-7: malformed requires_predicate (empty combinator bypasses serde).
+        AuditHint::MalformedRequiresPredicate,
     ]
     .iter()
     .filter(|h| hint_is_supply_chain(h))

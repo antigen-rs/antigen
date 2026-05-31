@@ -1782,30 +1782,29 @@ fn atk_g2_26_immunity_none_wildcard_vs_defense_strict_equality_asymmetry() {
             .contains(&AuditHint::AntigenWitnessShapeMismatchForSilenceNoWitness)
     });
 
-    // DOCUMENT THE ASYMMETRY:
-    // Scenario A: intra-workspace immunity (None) DOES contribute to dep antigen's G2 check.
-    // Scenario B: intra-workspace defense (None) does NOT contribute to dep antigen's G2 check.
+    // POST-FIX (forward/shared-canonical-path-addresses-helper ruling: strict None==None):
+    // Both immunity and defense loops now use strict canonical-path equality via
+    // `canonical_paths_match()`. The previous None-wildcard in the immunity loop is fixed.
     //
-    // These are DIFFERENT behaviors for the same cross-crate identity question.
-    // The design ruling (is the None-wildcard in immunity intentional?) determines
-    // which should change (if either) for the shared-helper extraction.
+    // Scenario A: intra-workspace immunity (None) does NOT contribute to dep antigen (Some).
+    //   None ≠ Some under strict equality → immunity filtered out → advisory fires.
+    // Scenario B: intra-workspace defense (None) does NOT contribute to dep antigen (Some).
+    //   Same strict equality → consistent behavior.
+    //
+    // The asymmetry is resolved: both loops behave the same way.
     assert!(
-        scenario_a_has_any_immunity,
-        "ATK-G2-26 SCENARIO A: intra-workspace immunity (canonical_path=None) DOES contribute \
-         to G2 cross-check for dep antigen (canonical_path=Some). None-wildcard semantics. \
-         If this fails (advisory fires): the immunity loop changed to strict equality, \
-         update this test + update the shared-helper-design ruling."
+        !scenario_a_has_any_immunity,
+        "ATK-G2-26 SCENARIO A (FIXED): intra-workspace immunity (canonical_path=None) must NOT \
+         contribute to G2 cross-check for dep antigen (canonical_path=Some). Strict equality: \
+         None ≠ Some. The advisory must fire because the immunity is filtered out. \
+         If this fails (no advisory): the immunity loop reverted to None-wildcard semantics. \
+         Update this test + investigate the immunity loop in audit_category()."
     );
     assert!(
         scenario_b_no_witness_advisory,
         "ATK-G2-26 SCENARIO B: intra-workspace defense (canonical_path=None) does NOT contribute \
          to G2 cross-check for dep antigen (canonical_path=Some). Strict equality. The dep \
          antigen's silence-no-witness advisory fires because the defense is filtered out. \
-         If this fails (advisory absent): the defense loop changed to None-wildcard semantics \
-         (or vice versa), update this test + update the shared-helper-design ruling."
+         Both immunity (A) and defense (B) now behave the same way — asymmetry resolved."
     );
-    // Together these two asserts document the semantic ASYMMETRY between the immunity and
-    // defense loops. This is not an assertion about correct behavior — it's an assertion
-    // about CURRENT behavior that must be explicitly ruled upon before the shared
-    // forward/shared-canonical-path-addresses-helper is extracted.
 }

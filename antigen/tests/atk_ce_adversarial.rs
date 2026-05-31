@@ -270,16 +270,15 @@ fn ce_base(kind: ConvergentEvidenceKind) -> ConvergentEvidence {
 }
 
 #[test]
-fn atk_ce5_diagnostic_zero_min_independent_silently_passes() {
-    // A #[diagnostic] with min_independent = 0 says "I require zero independent
-    // classes." This is semantically null — but the audit silently accepts it
-    // as if it were a meaningful threshold of zero.
+fn atk_ce5_diagnostic_zero_min_independent_warns() {
+    // ATK-CE-5-A (FIXED): #[diagnostic] with min_independent = 0 must emit
+    // DiagnosticMinIndependentZero — a zero threshold is semantically null
+    // (zero independent classes required = no claim) and must not silently
+    // accept the declaration as valid.
     //
-    // The check: `u64::try_from(distinct.len()).unwrap_or(u64::MAX) < min`
-    // When min = 0: N < 0 for any N — always false — no hint fires.
-    //
-    // BROKEN: no hint fires. Correct: DiagnosticMinIndependentZero or similar.
-    // Asserting broken outcome — will need update if zero-min warning added.
+    // Previously the comparison `u64::try_from(distinct.len()).unwrap_or(u64::MAX) < min`
+    // evaluated as `N < 0` (always false for unsigned) when min = 0 — no hint fired.
+    // Fix: check `min == 0` first and emit DiagnosticMinIndependentZero.
     let mut decl = ce_base(ConvergentEvidenceKind::Diagnostic);
     decl.modality_classes = vec!["StaticAnalysis".to_string()]; // 1 distinct class
     decl.min_independent = Some(0); // zero threshold — semantically null
@@ -291,24 +290,31 @@ fn atk_ce5_diagnostic_zero_min_independent_silently_passes() {
     assert_eq!(out.audits.len(), 1);
     let hints = &out.audits[0].hints;
 
-    // BROKEN: hints is empty — zero min_independent passes silently.
-    // After fix: should contain a zero-min warning hint.
     assert!(
-        hints.is_empty(),
-        "ATK-CE-5-A (BROKEN): #[diagnostic] with min_independent=0 emits no hint. \
-         A zero threshold is semantically null (zero independent classes required = no claim) \
-         but the audit accepts it silently. The comparison `distinct.len() < 0` is always \
-         false for the unsigned comparison, so no DiagnosticModalityInsufficient fires. \
-         Fix: add a DiagnosticMinIndependentZero (or similar) hint when min_independent == 0."
+        hints.contains(&AuditHint::DiagnosticMinIndependentZero),
+        "ATK-CE-5-A: #[diagnostic] with min_independent=0 must emit \
+         DiagnosticMinIndependentZero. A zero threshold is semantically null; \
+         silent acceptance allows authors to write a threshold that never enforces \
+         independence discipline. hints: {:?}",
+        hints
+    );
+    // DiagnosticModalityInsufficient must NOT fire — zero is not a real threshold
+    // that the actual distinct count can fail to meet; it's a misconfiguration.
+    assert!(
+        !hints.contains(&AuditHint::DiagnosticModalityInsufficient),
+        "ATK-CE-5-A: DiagnosticModalityInsufficient must not fire for zero min — \
+         it's a misconfiguration hint, not an insufficient-count hint. hints: {:?}",
+        hints
     );
 }
 
 #[test]
-fn atk_ce5_igg_zero_min_reattestations_silently_passes() {
-    // A #[igg] with min_reattestations = 0 says "I require zero reattestations."
-    // Same silent-pass pattern: `unique_count.len() < 0` is always false.
+fn atk_ce5_igg_zero_min_reattestations_warns() {
+    // ATK-CE-5-B (FIXED): #[igg] with min_reattestations = 0 must emit
+    // IggMinReattestationsZero — zero re-attestations required = no reattestation
+    // discipline. The audit must surface this rather than accepting silently.
     //
-    // BROKEN: no hint fires. Correct: IggMinReattestationsZero or similar.
+    // Previously `unique_count.len() < 0` was always false for unsigned — no hint fired.
     let mut decl = ce_base(ConvergentEvidenceKind::Igg);
     decl.witnesses = vec!["alice".to_string(), "bob".to_string()]; // 2 distinct
     decl.min_reattestations = Some(0); // zero threshold
@@ -320,13 +326,18 @@ fn atk_ce5_igg_zero_min_reattestations_silently_passes() {
     assert_eq!(out.audits.len(), 1);
     let hints = &out.audits[0].hints;
 
-    // BROKEN: no IggReattestationsInsufficient fires.
-    // After fix: should warn that zero min_reattestations is a null threshold.
     assert!(
-        hints.is_empty(),
-        "ATK-CE-5-B (BROKEN): #[igg] with min_reattestations=0 emits no hint. \
-         A zero reattestations threshold is semantically null but the audit accepts \
-         it silently. Fix: add a hint when min_reattestations == 0."
+        hints.contains(&AuditHint::IggMinReattestationsZero),
+        "ATK-CE-5-B: #[igg] with min_reattestations=0 must emit IggMinReattestationsZero. \
+         A zero reattestations threshold is semantically null — silent acceptance allows \
+         authors to write reattestation discipline that never enforces itself. hints: {:?}",
+        hints
+    );
+    assert!(
+        !hints.contains(&AuditHint::IggReattestationsInsufficient),
+        "ATK-CE-5-B: IggReattestationsInsufficient must not fire for zero min — \
+         it's a misconfiguration, not an insufficient-count condition. hints: {:?}",
+        hints
     );
 }
 
