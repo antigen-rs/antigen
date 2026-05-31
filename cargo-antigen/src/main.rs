@@ -4540,10 +4540,10 @@ fn print_state7_diagnostics(audit_report: &audit::AuditReport) {
              re-attested on the descendant."
         );
         println!(
-            "  Add `#[immune({}, witness = ...)]` or \
-             `#[antigen_tolerance({}, rationale = \"...\")]` on the \
-             descendant.",
-            p.antigen_type, p.antigen_type
+            "  Add `#[defended_by({})]` on a test (code-tier), or \
+             `#[presents({}, requires = ...)]` for substrate-witness evidence, or \
+             `#[antigen_tolerance({}, rationale = \"...\")]` on the descendant.",
+            p.antigen_type, p.antigen_type, p.antigen_type
         );
         println!("    --> {}:{}", p.file.display(), p.line);
         println!();
