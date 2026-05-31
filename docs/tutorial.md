@@ -49,7 +49,7 @@ Add antigen to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-antigen = "=0.1.0-rc.3"
+antigen = "=0.2.0-beta.1"
 ```
 
 Install the cargo subcommand:
@@ -178,7 +178,7 @@ Scanning workspace: .
 Scanned 3 files, found 2 antigen-related declarations:
   - 1 antigen declarations
   - 1 explicit #[presents] markers
-  - 0 immunity claims
+  - 0 #[defended_by] declarations
 
 1 unaddressed explicit presentation(s):
 
