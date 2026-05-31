@@ -37,7 +37,7 @@ The generation-outpaces-inspection asymmetry is not one problem — it has **thr
 |---|---|---|---|
 | **Detection** | See its own blind spots — the seeing-apparatus and the seen-thing share a body | a *second body* at structural distance (a stranger-adopter, an adversarial pass, a coverage sweep) whose incidental finds sample what self-review can't reach | `cargo antigen scan` — a recognizer that walks the codebase from outside the author's fluency |
 | **Retention** | Re-derive what it generated faster than it generated it | *durable structural memory* that doesn't decay and surfaces itself | `#[antigen]` declarations — failure-class memory that persists across sessions, agents, and refactors |
-| **Verification** | Trust a claim faster than it can check the claim against substrate | *attestation bound to state* — a claim checked against what's actually on disk, stale-aware | `#[immune]` witnesses + `cargo antigen audit` — evidence the defense executes, pinned to a fingerprint |
+| **Verification** | Trust a claim faster than it can check the claim against substrate | *attestation bound to state* — a claim checked against what's actually on disk, stale-aware | `#[defended_by]` witnesses + `cargo antigen audit` — evidence the defense executes, pinned to a fingerprint |
 
 This is why antigen has exactly the three surfaces it has: **scan, declaration, and witness+audit are the three faces of the asymmetry instantiated.** The tool's structure is the asymmetry's structure. Each surface is a structure placed outside the generating act, addressing the face the act can't address from inside.
 
@@ -67,11 +67,11 @@ The table below shows the full transformation vocabulary. Entries marked `*` shi
 
 | Memory form | Structure form |
 |---|---|
-| `/// assumes X never panics` | `#[immune(X, requires = ...)]` * |
-| README "we follow Y discipline" | `#[antigen(Y)]` + per-site `#[immune(Y, ...)]` * |
-| `// Last reviewed: 2024-01-15` | `#[immune(..., requires = fresh_within_days(N))]` * |
+| `/// assumes X never panics` | `#[presents(X, requires = ...)]` * |
+| README "we follow Y discipline" | `#[antigen(Y)]` + per-site `#[presents(Y)]` + `#[defended_by(Y)]` on tests * |
+| `// Last reviewed: 2024-01-15` | `#[presents(..., requires = fresh_within_days(N))]` * |
 | `// intentional, don't touch` | `#[antigen_tolerance(rationale = "...")]` * |
-| Generated-code provenance | `#[immune(GeneratedCodeWithoutHumanAttestation, signers([reviewer]))]` * |
+| Generated-code provenance | `#[presents(GeneratedCodeWithoutHumanAttestation, requires = signers([reviewer]))]` * |
 | `// TODO: refactor this` | `#[itch(...)]` or `#[panel(...)]` |
 | `// FIXME: hack` | `#[anergy(rationale = "...")]` |
 | `// HACK: until Q3` | `#[poxparty(until = "...")]` |
