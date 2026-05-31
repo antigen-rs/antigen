@@ -66,27 +66,36 @@ against it*.
 
 ## The vocabulary
 
-Antigen's vocabulary is five attribute macros + one cross-cutting parameter. Together they form a *shared coordination layer* — the protocol the various antigen components use to coordinate.
+Antigen's vocabulary is a set of attribute macros that form a *shared coordination layer* — the protocol the various antigen components use to coordinate.
 
 | Macro / parameter | Purpose |
 |---|---|
 | `#[antigen(name = ..., fingerprint = ..., ...)]` | Declare a named failure-class with a structural fingerprint |
-| `#[presents(AntigenName)]` | Mark code as vulnerable to a declared failure-class |
-| `#[immune(AntigenName, witness = ...)]` | Claim immunity backed by a named code witness (test, proptest, formal proof, lint, phantom-type) |
-| `#[immune(AntigenName, requires = <predicate>)]` | Substrate-witness form (v0.1+, ADR-019): claim immunity backed by a *sidecar predicate* (signers / freshness / Oracle state / etc.) |
+| `#[presents(AntigenName)]` | Mark code as a site that exhibits a declared failure-class |
+| `#[defended_by(AntigenName)]` | Register a test / proptest function as a **code-tier witness** for a failure-class (ADR-029) |
+| `#[presents(AntigenName, requires = <predicate>)]` | Attach a **substrate-tier witness** predicate to a presents-site — evidence that lives outside the code (sidecar signers, freshness, ratified docs, etc.) |
+| `#[presents(AntigenName, proof = <expr>)]` | Attach a **phantom-type / formal-proof** witness (a type-system construction whose existence IS the evidence) |
 | `#[descended_from(Parent)]` | Declare inheritance between failure-classes |
 | `#[antigen_tolerance(AntigenName, rationale = ...)]` | Explicitly tolerate a fingerprint match |
 | `attested = (who, allowed_types, why, scope)` | Cross-cutting attestation parameter (ADR-020) — adds attestation context to any of the above |
 
+> **ADR-029 observe-don't-declare**: immunity is **observed** by audit, not claimed at the site.
+> `#[defended_by]` registers intent; `#[presents(requires=)]` declares substrate evidence.
+> The audit cross-references them and reports a per-site verdict:
+> `defended` (evidence found), `undefended` (no evidence), or `substrate-gap` (predicate declared but failing).
+> The deprecated `#[immune]` API (v0.1) directly claimed immunity from the site — the new idiom
+> separates the vulnerability marker (`#[presents]`) from the evidence registration (`#[defended_by]`,
+> `requires=`, `proof=`). Audit observes; code never claims.
+
 Plus five cargo subcommands:
 
 - `cargo antigen scan` — find every site exhibiting a declared failure-class
-- `cargo antigen audit` — verify immunity claims with tier-honest reporting
+- `cargo antigen audit` — observe per-site defense verdicts (defended / undefended / substrate-gap)
 - `cargo antigen attest` — manage `.attest/<Antigen>.json` substrate-witness sidecars (v0.1+, ADR-019)
 - `cargo antigen tolerate` — manage tolerance-ratification sidecars (v0.1+, ADR-019 §tolerance tier)
 - `cargo antigen oracle` — manage Oracle artifact-class records (v0.1+, ADR-021)
 
-The five primitives describe a structure that doesn't depend on Rust.
+These primitives describe a structure that doesn't depend on Rust.
 Each could be implemented for other languages (Python, JavaScript,
 TypeScript) using that language's metaprogramming or AST tooling. The
 vocabulary is the architectural primitive; the Rust implementation is
@@ -131,9 +140,9 @@ build time.
 
 ### 3. Test-integration immunity
 
-Your existing tests become structural memory. The `witness = ...`
-field on `#[immune]` links to actual `#[test]` or `proptest!` functions
-in your workspace. Audit reports verification at the appropriate
+Your existing tests become structural memory. `#[defended_by(AntigenName)]`
+on a `#[test]` or `proptest!` function registers it as a code-tier witness.
+Audit observes the registration and reports the defense at the appropriate
 [witness tier](witness-tiers.md).
 
 **Floor**: point at one passing test.
@@ -221,7 +230,7 @@ Some disciplines can't be witnessed by a single in-tree function. Examples:
 - "This is valid for 180 days after last review" — temporal freshness
 - "This claim depends on Oracle X being in `Complete` state" — depends on a separate artifact's lifecycle
 
-The **substrate-witness pipeline** (ADR-019) makes these checkable at audit time. The `#[immune(X, requires = <predicate>)]` form names a predicate over a `.attest/<Antigen>.json` sidecar file co-located with the declaration. The predicate is composed from five leaf operators:
+The **substrate-witness pipeline** (ADR-019) makes these checkable at audit time. The `#[presents(X, requires = <predicate>)]` form attaches a predicate to a presents-site, evaluated against a `.attest/<Antigen>.json` sidecar co-located with the declaration. The predicate is composed from five leaf operators:
 
 - `signers(required = [...])` — the sidecar must contain signatures from named identities
 - `fresh_within_days(N)` — the most recent signature must be within N days
