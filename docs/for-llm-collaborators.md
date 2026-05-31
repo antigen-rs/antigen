@@ -38,21 +38,29 @@ Five attribute macros at the API surface:
 
 - `#[antigen(name, fingerprint, summary, references, family)]` —
   declares a named failure-class with a structural pattern
-- `#[presents(AntigenName)]` — marks a code site as vulnerable to a
+- `#[presents(AntigenName)]` — marks a code site as exhibiting a
   declared failure-class
-- `#[immune(AntigenName, witness = fn_ident, rationale = ...)]` — claims
-  immunity backed by a witness function/identifier
+- `#[defended_by(AntigenName)]` — registers a `#[test]`/proptest function as a
+  **code-tier witness** for a failure-class; audit observes this and reports
+  `defended at <tier>` for all matching presents-sites (ADR-029)
+- `#[presents(AntigenName, requires = <predicate>)]` — attaches a
+  **substrate-tier witness** predicate (sidecar evidence) to a presents-site
 - `#[descended_from(ParentAntigen)]` — declares structural inheritance
   between failure-classes
 - `#[antigen_tolerance(AntigenName, rationale = ..., until = ...)]` —
   explicitly tolerates a fingerprint match the team reviewed
 
+> **Note**: `#[immune(AntigenName, witness = fn)]` (the v0.1 API) is deprecated
+> since ADR-029. Use `#[defended_by]` (code-tier) or `#[presents(requires=)]`
+> (substrate-tier) instead. The deprecated form still compiles with a warning.
+
 Two cargo subcommands:
 
 - `cargo antigen scan` — walks the codebase and reports presentations,
-  immunities, tolerances, and fingerprint matches
-- `cargo antigen audit` — verifies each `#[immune]` claim's witness
-  resolves at the appropriate tier
+  defenses, tolerances, and fingerprint matches
+- `cargo antigen audit` — observes per-site defense verdicts (defended /
+  undefended / substrate-gap) by cross-referencing presents-sites with
+  #[defended_by] registrations and requires= predicates
 
 When you encounter these in a codebase, treat them as **structural
 substrate**: they carry information about what the team has decided
@@ -83,9 +91,10 @@ ambiguous and the reference is inaccessible, surface that to the
 human; don't fabricate the reference content or assume what it says.
 
 **Step 3**: When proposing changes that touch code marked `#[presents]`,
-respect the corresponding `#[immune]` claim. Read its `witness =
-fn_name` and inspect the witness function. If your proposed change
-might invalidate the witness's coverage, surface that to the human.
+check for associated defense registrations. Look for `#[defended_by(X)]` on
+test functions in the same codebase, or `requires =` predicates on the
+presents-site itself. If your proposed change might invalidate the witness's
+coverage, surface that to the human.
 
 **Step 4**: Before generating new code in an antigen-using codebase,
 check whether your generated code might trip an existing fingerprint.
@@ -104,8 +113,8 @@ Two paths, depending on your tooling access:
 
 If a fingerprint match surfaces (or might surface), decide:
 
-- Should the new code carry `#[immune]` (with a witness you can
-  construct)?
+- Should the new code be marked `#[presents]` and have `#[defended_by]` wired
+  to a test you can write?
 - Should it carry `#[antigen_tolerance]` (with a rationale)?
 - Should the human author the decision rather than you?
 
@@ -160,9 +169,13 @@ to design rather than recognize.
 
 ---
 
-## Protocol when proposing immunity claims
+## Protocol when proposing defense wiring
 
-If a human asks you to add `#[immune(X, witness = ...)]`:
+If a human asks you to wire up defense for a presents-site:
+
+> **v0.2 idiom**: use `#[defended_by(X)]` on the test function (code-tier), or
+> `#[presents(X, requires=...)]` on the site (substrate-tier). The deprecated
+> `#[immune(X, witness=fn)]` form still works but emits a deprecation warning.
 
 **Witness tier honesty** (ADR-005 Amendment 3): the audit reports the
 *actual* verification strength, never a stronger one. Don't claim a
@@ -187,17 +200,17 @@ ATK-A2-003/004/005/011/012 substrate): a witness function that
 *exists* and *passes* is not automatically a real witness. Ask:
 
 - Does the witness function construct an input that would exhibit
-  the failure-class if the immunity claim were false?
+  the failure-class if the defense were absent?
 - Or does it just exercise the happy path that happens not to trip
   the failure-class shape?
-- If the immunity claim were silently broken tomorrow (someone
-  removes a defense, changes a type), would this witness *fail*?
+- If the defense were silently removed tomorrow (someone removes
+  the `#[defended_by]` or changes the test), would this audit change?
 
-A witness that would still pass with the immunity claim broken is
+A witness that would still pass with the defense broken is
 **theatrical**, not real (see section 6.8 of
 [`structural-memory.md`](structural-memory.md)). When you propose a
 witness, name what the witness exercises explicitly. When you read
-someone else's immunity claim and the witness looks theatrical,
+someone else's defense registration and the witness looks theatrical,
 surface that to the human rather than relying on the audit's
 `Reachability` tier to surface it for you (audit knows the function
 resolves; audit does not know if the function actually exercises the
@@ -257,7 +270,7 @@ The `match_kind` field on presentations distinguishes:
 - `"explicit_marker"` — `#[presents]` annotation
 - `"fingerprint_match"` — passive detection by fingerprint
 
-Unaddressed `explicit_marker` presentations need `#[immune]` or
+Unaddressed `explicit_marker` presentations need `#[defended_by]` (code-tier), `#[presents(requires=)]` (substrate-tier), or
 `#[antigen_tolerance]`. Unaddressed `fingerprint_match` sites are
 informational — they're structurally similar to a declared antigen but
 haven't been confirmed; the team may not need to act.
@@ -281,7 +294,7 @@ What this means for your operation:
   antigens. If they've chosen rationale-required-tolerance (per
   ADR-011), don't propose empty-rationale workarounds.
 - **Surface uncertainty honestly.** "I don't know if this witness is
-  real" is better than "this is immune" when you haven't verified.
+  real" is better than "this is defended" when you haven't verified.
 
 The audit's tier-honesty discipline (ADR-005 Amendment 3) applies to
 your reporting too: report the actual strength of your work, not the
@@ -359,17 +372,18 @@ substrate is the source of truth.
 If asked: "what does this antigen mean?" → read the `summary` and
 `references`, then explain.
 
-If asked: "should I add an immune claim here?" → read the witness
+If asked: "should I wire up defense here?" → read the witness
 options in `witness-tiers.md`, recommend based on what actually exists
-in the workspace.
+in the workspace: `#[defended_by]` for a runnable test, `#[presents(requires=)]`
+for substrate evidence.
 
 If asked: "how do I write a fingerprint for X?" → consult
 `fingerprint-grammar.md`, ground your draft against existing
 fingerprints in the codebase.
 
-If asked: "is this code immune to X?" → don't claim immunity; check
-whether `#[immune(X, ...)]` exists on it, verify the witness, report
-honestly.
+If asked: "is this code defended against X?" → check whether `#[defended_by(X)]`
+exists on a test function in the workspace, or whether the presents-site has
+`requires =` predicate; verify the evidence; report honestly with the audit tier.
 
 If asked: "tell me about antigen's architecture" → point at
 [`concepts.md`](concepts.md) for the conceptual framing.
