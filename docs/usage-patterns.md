@@ -1,5 +1,9 @@
 # Antigen — Usage Patterns
 
+> **v0.2 idiom note**: Patterns below reference the v0.1 `#[immune]` API in some examples.
+> For v0.2, use `#[defended_by(X)]` on test functions (code-tier) or
+> `#[presents(X, requires=...)]` on the site (substrate-tier). See [`macros.md`](macros.md).
+
 > Concrete recipes for applying antigen's vocabulary to real-world failure
 > classes. Each pattern answers: what kind of failure is this, where does it
 > live in code, and which vocabulary primitives express it correctly.

@@ -90,7 +90,7 @@ attribute target) produces helpful diagnostics.
   that should fail compilation; expected error message stored in
   `tests/ui/antigen_missing_name.stderr`
 - Similar for: missing fingerprint, non-kebab-case name, applied to non-unit
-  struct, witness missing on `#[immune]`
+  struct, using deprecated `#[immune]` without a witness
 
 **Conventions**:
 - Use the `trybuild` crate
@@ -345,8 +345,8 @@ pattern, not the same one.
 **The cross-crate form is a `ParallelStateTrackersDiverge` instance** — the
 two (or N) classification sites are parallel state that must stay in sync. Annotate
 them with `#[presents(ParallelStateTrackersDiverge)]` and defend with a
-cross-exercising integration test (`#[immune(ParallelStateTrackersDiverge,
-witness = integration_test_name)]`).
+cross-exercising integration test (`#[defended_by(ParallelStateTrackersDiverge)]` on
+`integration_test_name`).
 
 **This is a testing practice, not a stdlib antigen.** The failure it prevents
 (silent escape when a new variant is added) is `FunctionalCorrectness` and
@@ -354,7 +354,7 @@ witness = integration_test_name)]`).
 class — the intra-crate exhaustive-match is compiler-enforced rather than
 antigen-enforced. Declare `#[presents(ParallelStateTrackersDiverge)]` at the
 classification sites if they are parallel state; use the exhaustive match as the
-structural backstop that removes the need for `#[immune]` at those sites.
+structural backstop that reduces the need for defense wiring at those sites.
 
 ---
 
