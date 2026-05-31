@@ -147,21 +147,29 @@ fn fingerprint_from_scan(cwd: &Path) -> String {
 
     let doc: serde_json::Value = serde_json::from_str(&stdout)
         .unwrap_or_else(|e| panic!("scan --format json must emit valid JSON ({e}):\n{stdout}"));
-    let immunities = doc["report"]["immunities"]
+    // After ADR-029 migration: the site uses #[presents(requires=...)], so it appears
+    // in report.presentations[], not report.immunities[].
+    let presentations = doc["report"]["presentations"]
         .as_array()
-        .unwrap_or_else(|| panic!("scan JSON must have report.immunities array:\n{stdout}"));
+        .unwrap_or_else(|| panic!("scan JSON must have report.presentations array:\n{stdout}"));
 
-    let immunity = immunities
+    let presentation = presentations
         .iter()
-        .find(|i| i["antigen_type"] == "SignedZeroDiscipline")
-        .unwrap_or_else(|| panic!("scan must capture a SignedZeroDiscipline immunity:\n{stdout}"));
+        .find(|p| p["antigen_type"] == "SignedZeroDiscipline" && !p["requires_predicate"].is_null())
+        .unwrap_or_else(|| {
+            panic!(
+                "scan must capture a SignedZeroDiscipline presentation with \
+                 requires_predicate; presentations: {:?}",
+                presentations
+            )
+        });
 
-    let fp = immunity["structural_fingerprint"]
+    let fp = presentation["structural_fingerprint"]
         .as_str()
         .unwrap_or_else(|| {
             panic!(
-                "the SignedZeroDiscipline immunity must carry an obtainable \
-                 structural_fingerprint (F6 producer); immunity = {immunity}"
+                "the SignedZeroDiscipline presentation must carry an obtainable \
+                 structural_fingerprint (F6 producer); presentation = {presentation}"
             )
         });
     assert!(
@@ -179,28 +187,32 @@ fn fingerprint_from_scan(cwd: &Path) -> String {
 ///   <file>:<line>  SignedZeroDiscipline (witness = ``)
 ///     tier = Execution, hint = DisciplinePredicatePassedSubstrateCurrent
 /// ```
-fn audit_tier_for_signed_zero(audit_stdout: &str) -> String {
-    let mut lines = audit_stdout.lines();
-    while let Some(line) = lines.next() {
-        if line.contains("SignedZeroDiscipline") && line.contains("witness") {
-            let tier_line = lines.next().unwrap_or_else(|| {
-                panic!("SignedZeroDiscipline header had no following tier line")
-            });
-            // tier_line looks like: `    tier = Execution, hint = ...`
-            let after_tier = tier_line
-                .split("tier =")
-                .nth(1)
-                .unwrap_or_else(|| panic!("expected `tier =` on line: {tier_line}"));
-            let tier = after_tier
-                .split(',')
-                .next()
-                .unwrap_or("")
-                .trim()
-                .to_string();
-            return tier;
+fn audit_verdict_for_signed_zero(audit_stdout: &str) -> String {
+    // After ADR-029 migration, the site uses #[presents(requires=...)] and appears
+    // in presentation_verdicts output: "defended at Execution", "substrate-gap", "undefended"
+    for line in audit_stdout.lines() {
+        if line.contains("SignedZeroDiscipline") {
+            if line.contains("defended at Execution") {
+                return "Execution".to_string();
+            } else if line.contains("substrate-gap") {
+                return "substrate-gap".to_string();
+            } else if line.contains("undefended") {
+                return "undefended".to_string();
+            } else if line.contains("defended at") {
+                let tier = line
+                    .split("defended at ")
+                    .nth(1)
+                    .unwrap_or("")
+                    .trim()
+                    .to_string();
+                return tier;
+            }
         }
     }
-    panic!("audit output did not contain a SignedZeroDiscipline immunity block:\n{audit_stdout}");
+    panic!(
+        "audit output did not contain a SignedZeroDiscipline presentation-verdict line.\n\
+         Full audit output:\n{audit_stdout}"
+    );
 }
 
 // ============================================================================
@@ -269,23 +281,20 @@ fn substrate_witness_example_workflow_reaches_execution_tier() {
     let (code, stdout, stderr) = run_in(&root, &["antigen", "audit", "--root", "antigen/examples"]);
     assert_eq!(code, 0, "audit must exit 0: {stderr}");
 
-    let tier = audit_tier_for_signed_zero(&stdout);
+    let verdict = audit_verdict_for_signed_zero(&stdout);
     assert_eq!(
-        tier, "Execution",
+        verdict, "Execution",
         "the substrate_witness example documents that its signed sidecar climbs to \
          the Execution tier. If this is not `Execution`, the example's own workflow \
          no longer reaches the tier it claims — a doc↔impl drift the example can no \
          longer be trusted to demonstrate. Full audit:\n{stdout}"
     );
 
-    // The Execution-tier outcome must be the substrate-current predicate-pass,
-    // not some unrelated tier coincidence. The hint is printed on the tier line.
-    assert!(
-        stdout.contains("DisciplinePredicatePassedSubstrateCurrent"),
-        "Execution tier here must come from the substrate predicate passing \
-         (all three leaves: signers+role, ratified_doc, fresh_within_days). \
-         Audit:\n{stdout}"
-    );
+    // The "defended at Execution" verdict confirmed above implies the substrate
+    // predicate passed (all three leaves: signers+role, ratified_doc, fresh_within_days).
+    // With #[presents(requires=...)], the hint name is evaluated inside
+    // compute_presentation_verdicts and is not surfaced in human output — but
+    // reaching "defended at Execution" structurally requires all leaves to pass.
 }
 
 /// Negative control: BEFORE the sidecar is signed, the immunity must NOT be at
@@ -301,16 +310,18 @@ fn substrate_witness_example_is_not_execution_tier_without_signing() {
     let (code, stdout, stderr) = run_in(&root, &["antigen", "audit", "--root", "antigen/examples"]);
     assert_eq!(code, 0, "audit must exit 0 even with no sidecar: {stderr}");
 
-    let tier = audit_tier_for_signed_zero(&stdout);
+    let verdict = audit_verdict_for_signed_zero(&stdout);
     assert_ne!(
-        tier, "Execution",
+        verdict, "Execution",
         "without a signed sidecar the substrate-witness immunity must NOT report \
          Execution tier — that would mean the tier is unconditional and the \
          positive test proves nothing. Audit:\n{stdout}"
     );
-    assert!(
-        stdout.contains("DisciplineSidecarMissing"),
-        "the unsigned example must report the sidecar-missing diagnostic (the real \
-         next-step prompt for the operator). Audit:\n{stdout}"
+    assert_eq!(
+        verdict, "substrate-gap",
+        "without a signed sidecar the substrate-witness site must report \
+         substrate-gap (requires= predicate declared but not met). \
+         ADR-029 Amendment 1: a failing requires= produces SubstrateGap. \
+         Audit:\n{stdout}"
     );
 }

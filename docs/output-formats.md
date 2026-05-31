@@ -390,6 +390,14 @@ report) and `audit` (the audit report).
         "presentation": { /* full presentation record */ },
         "audit_hint": "inherited-presentation-not-re-attested"
       }
+    ],
+    "presentation_verdicts": [
+      {
+        "presentation": { /* full presentation record — see scan output's presentations[] */ },
+        "antigen_type": "MyAntigen",
+        "verdict": { "Defended": { "tier": "reachability" } },
+        "defended_by": ["src/tests.rs:42"]
+      }
     ]
   }
 }
@@ -405,6 +413,27 @@ report) and `audit` (the audit report).
 | `witness_status` | object | Resolution status with diagnostic — see "witness_status variants" below |
 | `witness_tier` | string | One of: `formal_proof`, `execution`, `reachability`, `none` (snake_case-serialized `WitnessTier` enum; v0.1 has four tiers — see [`witness-tiers.md`](witness-tiers.md)) |
 | `audit_hint` | string | Specific diagnostic hint, kebab-case-serialized — see "audit_hint values" below |
+
+#### `audit.presentation_verdicts[]` (ADR-029)
+
+Per-presents-site immune-state verdicts. Each `#[presents(X)]` site is cross-referenced
+against `#[defended_by(X)]` code-tier witnesses and site-attached `requires=` substrate
+evidence and graded: `defended`, `undefended`, or `substrate-gap`.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `presentation` | object | Full presentation record (same shape as scan output's `presentations[]`) |
+| `antigen_type` | string | Antigen type name |
+| `verdict` | tagged object | `{"Defended": {"tier": "<tier>"}}`, `"Undefended"`, or `"SubstrateGap"` |
+| `defended_by` | array of strings | `"<file>:<line>"` strings for `#[defended_by]` witnesses that cover this site |
+
+**`verdict` shapes:**
+
+| Value | Shape | Meaning |
+|---|---|---|
+| `Defended` | `{"Defended": {"tier": "<tier>"}}` | At least one passing witness; `tier` is the strongest channel |
+| `Undefended` | `"Undefended"` | No passing witnesses and no `requires=` predicate declared |
+| `SubstrateGap` | `"SubstrateGap"` | A `requires=` predicate was declared but its evaluation failed (sidecar missing, stale, or predicate not met) — or a failing `requires=` predicate co-exists with a passing code witness (ADR-029 Amendment 1: substrate intent takes precedence) |
 
 #### `audit.audits[].witness_status` variants
 
