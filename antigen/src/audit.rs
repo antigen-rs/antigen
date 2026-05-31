@@ -1558,20 +1558,44 @@ fn compute_presentation_verdicts(
             .flatten()
             .max_by_key(|t| *t as u8);
 
-        let verdict = match best_tier {
-            Some(tier) => ImmuneVerdict::Defended { tier },
-            // No PASSING evidence. Defense intent that engaged the substrate-
-            // witness pipeline but did not pass is a substrate gap (intent
-            // present; substrate drifted) — distinguished from undefended (no
-            // intent at all). Either a site-attached requires= (ADR-029 R5) or a
-            // deprecated #[immune(requires=)] can be the engaged-but-failing
-            // intent.
-            None if site_requires_eval.is_some()
-                || immune_audit.is_some_and(immune_audit_is_substrate_gap) =>
-            {
-                ImmuneVerdict::SubstrateGap
+        // ADR-029 Amendment 1 (2026-05-31): substrate-intent precedence.
+        //
+        // When `requires=` is PRESENT and FAILING (`site_requires_eval = Some(None)`),
+        // emit `SubstrateGap` regardless of any code or immune witness — the developer
+        // declared substrate intent that is not met. A code witness operates in a
+        // different channel and does not resolve a broken substrate predicate.
+        //
+        // `site_requires_eval`:
+        //   None          → no `requires=` on this site
+        //   Some(None)    → `requires=` present but predicate failed (no evidence)
+        //   Some(tier>0)  → `requires=` present and passed at `tier`
+        //
+        // The existing `site_requires_tier` (which filters out `None`) is used for
+        // the `best_tier` computation; `site_requires_eval` is checked here directly
+        // to distinguish "requires= absent" from "requires= present but failed".
+        let requires_present_and_failed = site_requires_eval == Some(WitnessTier::None);
+
+        let verdict = if requires_present_and_failed {
+            // Substrate intent declared and broken — SubstrateGap even when a code
+            // witness exists. The two channels are independent; code evidence does not
+            // patch a drifted substrate.
+            ImmuneVerdict::SubstrateGap
+        } else {
+            match best_tier {
+                Some(tier) => ImmuneVerdict::Defended { tier },
+                // No PASSING evidence. Defense intent that engaged the substrate-
+                // witness pipeline but did not pass is a substrate gap (intent
+                // present; substrate drifted) — distinguished from undefended (no
+                // intent at all). Either a site-attached requires= (ADR-029 R5) or a
+                // deprecated #[immune(requires=)] can be the engaged-but-failing
+                // intent.
+                None if site_requires_eval.is_some()
+                    || immune_audit.is_some_and(immune_audit_is_substrate_gap) =>
+                {
+                    ImmuneVerdict::SubstrateGap
+                }
+                None => ImmuneVerdict::Undefended,
             }
-            None => ImmuneVerdict::Undefended,
         };
 
         let defended_by = code_witnesses
@@ -3369,8 +3393,13 @@ pub fn audit_category(report: &ScanReport) -> CategoryAuditReport {
             // ruling: None == None only; None ≠ Some). Previously `is_some() && ≠` let an
             // intra-workspace immunity (None) address ANY antigen including stamped dep
             // declarations — same class of wildcard that ATK-ADR029-23 fixed on the defense
-            // side. Applying the same strict equality here is the design-ruled fix.
-            if imm.canonical_path != decl.canonical_path {
+            // side. Route through `scan::canonical_paths_match` — the single source of truth
+            // for the canonical-path dimension of every "does X address antigen Y" check, so
+            // this rule cannot drift independently of the scan-layer defense/tolerance sites.
+            if !crate::scan::canonical_paths_match(
+                imm.canonical_path.as_deref(),
+                decl.canonical_path.as_deref(),
+            ) {
                 continue;
             }
             has_any_immunity = true;
@@ -3394,24 +3423,19 @@ pub fn audit_category(report: &ScanReport) -> CategoryAuditReport {
         // against the declaration's canonical_path rather than a presentation's):
         // a `#[defended_by(Foo)]` from a DIFFERENT crate must not satisfy this
         // crate's `Foo` G2 check (ATK-G2-22 / ATK-ADR029-23 cross-crate
-        // overclaim). Plain equality — None matches None only, Some(x) matches
-        // Some(x) only. `stamp_canonical_path` runs all-or-nothing per scan, so
-        // (None defense, Some decl) is always cross-boundary and must not match.
-        //
-        // Clippy's `suspicious_operation_groupings` flags
-        // `d.antigen_type == decl.type_name && d.canonical_path == decl.canonical_path`
-        // because the first pair compares fields with different names (`antigen_type`
-        // vs `type_name`). The asymmetry is deliberate: `Defense.antigen_type` and
-        // `AntigenDeclaration.type_name` are the same identity field under different
-        // historical names. The lint is a false positive here. (The
-        // `scan::defense_addresses` site is structurally identical but uses
-        // `Presentation::antigen_type`, so the symmetric names don't trip the lint.)
-        #[allow(clippy::suspicious_operation_groupings)]
-        if report
-            .defenses
-            .iter()
-            .any(|d| d.antigen_type == decl.type_name && d.canonical_path == decl.canonical_path)
-        {
+        // overclaim). The canonical-path dimension routes through
+        // `scan::canonical_paths_match` (None matches None only; Some(x) matches
+        // Some(x) only) — the single source of truth shared with the scan-layer
+        // defense/tolerance/immunity sites. `stamp_canonical_path` runs
+        // all-or-nothing per scan, so (None defense, Some decl) is always
+        // cross-boundary and correctly fails the match.
+        if report.defenses.iter().any(|d| {
+            d.antigen_type == decl.type_name
+                && crate::scan::canonical_paths_match(
+                    d.canonical_path.as_deref(),
+                    decl.canonical_path.as_deref(),
+                )
+        }) {
             has_any_immunity = true;
             has_code_witness = true;
         }
@@ -5432,28 +5456,17 @@ mod tests {
     }
 
     // ========================================================================
-    // ATK-PV-REQUIRES-MASKED: failing requires= predicate silently masked by
-    // code witness.
+    // ATK-PV-REQUIRES-MASKED (FIXED per ADR-029 Amendment 1, 2026-05-31):
+    // Substrate-intent precedence — a failing requires= is not masked by a code witness.
     //
-    // When a presents-site has BOTH a requires= predicate (substrate intent) AND
-    // a #[defended_by] code witness, AND the requires= fails (sidecar absent/stale),
-    // the implementation currently emits Defended(Reachability) — hiding the
-    // substrate-gap entirely. The developer declared substrate intent that is
-    // failing, but audit says "all good."
+    // When a presents-site has BOTH a requires= predicate (substrate intent) AND a
+    // #[defended_by] code witness, AND the requires= fails, the verdict must be
+    // SubstrateGap — the developer declared substrate intent that is broken. A code
+    // witness operates in a different channel and does not resolve a broken substrate
+    // predicate (sub-clause F + ADR-029 Amendment 1).
     //
-    // The ADR-029 verdict matrix is silent on this multi-channel case: it defines
-    // `substrate-gap` as "requires= predicate not satisfied" but does not specify
-    // what happens when a code witness is also present. The implementation chose
-    // silently: max(tiers) wins, SubstrateGap is swallowed.
-    //
-    // Correct posture (disputed — needs ADR-029 amendment): SubstrateGap should
-    // take precedence or at minimum be surfaced alongside Defended, because the
-    // developer declared explicit substrate intent and it is broken. Hiding it
-    // behind a code witness violates sub-clause F (non-passing evidence must not
-    // silently disappear when other evidence exists).
-    //
-    // This test asserts the BROKEN outcome (Defended masking SubstrateGap).
-    // It will need updating when the ADR-029 amendment decides the correct behavior.
+    // Previously: max(code_tier=Reachability, substrate_tier=None) = Reachability →
+    // Defended(Reachability). The substrate gap was invisible.
     // ========================================================================
 
     fn presents_site_with_requires(
@@ -5473,22 +5486,12 @@ mod tests {
         //   (a) requires = <predicate>  — substrate intent, will FAIL (no sidecar under ".")
         //   (b) a #[defended_by] code witness — exists, grants Reachability
         //
-        // BROKEN current behavior: Defended(Reachability) — the failing requires=
-        // is silently swallowed because max(code_tier=Reachability, substrate_tier=None)
-        // = Reachability.
+        // CORRECT behavior (ADR-029 Amendment 1): SubstrateGap. The failing requires=
+        // declares substrate intent that is broken. The code witness is in a different
+        // channel; it does not resolve the substrate gap. Substrate-intent takes precedence.
         //
-        // The SubstrateGap branch is never reached because it only fires when
-        // best_tier is None; a code witness ensures best_tier is Some(Reachability).
-        //
-        // Correct behavior (per sub-clause F / ADR-029 amendment needed):
-        // SubstrateGap should be visible — the developer declared substrate intent
-        // that is broken. Masking it with a code witness defeats the purpose of
-        // requires= (the whole point is to CATCH substrate drift).
-        //
-        // This asserts BROKEN — will fail when fix lands.
         // Any valid predicate JSON — the sidecar won't exist under "." so
-        // audit_substrate_witness returns WitnessTier::None regardless of
-        // predicate content. Use a hand-crafted minimal Signers predicate.
+        // audit_substrate_witness returns WitnessTier::None regardless of predicate content.
         let pred_json = r#"{"Signers":{"required":["alice"],"roles":{},"against":"Current","signature_allow":[],"signature_prefer":null}}"#;
 
         let mut report = ScanReport::default();
@@ -5498,38 +5501,29 @@ mod tests {
             10,
             pred_json,
         ));
-        // Code witness exists — this is what masks the substrate gap.
+        // Code witness exists — previously this masked the substrate gap.
         report.defenses.push(defended_by_witness(
             "SubstrateDriftClass",
             "src/tests.rs",
             5,
         ));
 
-        // No sidecar under "." → requires= predicate fails → site_requires_eval=Some(None)
-        // → site_requires_tier = None (filtered out).
-        // But code_tier = Some(Reachability) → best_tier = Some(Reachability) → Defended.
+        // No sidecar under "." → requires= predicate fails → site_requires_eval=Some(None).
+        // ADR-029 Amendment 1: requires_present_and_failed=true → SubstrateGap,
+        // even though code_tier=Some(Reachability).
         let out = audit(&report, Path::new("."));
         assert_eq!(out.presentation_verdicts.len(), 1);
         let v = &out.presentation_verdicts[0];
 
-        // BROKEN: Defended masking the substrate gap. The correct behavior is
-        // SubstrateGap (or at minimum a warning alongside Defended). Asserting
-        // the broken outcome so this test FAILS when the fix lands.
         assert_eq!(
             v.verdict,
-            ImmuneVerdict::Defended {
-                tier: WitnessTier::Reachability
-            },
-            "ATK-PV-REQUIRES-MASKED (BROKEN): a failing requires= predicate is \
-             silently hidden by a code witness — audit returns Defended(Reachability) \
-             when it should surface SubstrateGap. The substrate intent the developer \
-             declared is broken and invisible. Asserting broken outcome — when fix \
-             lands (ADR-029 amendment), update this to assert SubstrateGap."
+            ImmuneVerdict::SubstrateGap,
+            "ATK-PV-REQUIRES-MASKED: a failing requires= predicate must surface \
+             SubstrateGap even when a code witness exists. The developer declared \
+             substrate intent (requires=) that is broken; a code witness in a different \
+             channel does not resolve it. verdict: {:?}",
+            v.verdict
         );
-
-        // After fix: this should be SubstrateGap (substrate intent present, drifted).
-        // The correct assertion post-fix:
-        // assert_eq!(v.verdict, ImmuneVerdict::SubstrateGap, "...");
     }
 
     // ========================================================================

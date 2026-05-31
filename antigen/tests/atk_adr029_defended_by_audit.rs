@@ -957,25 +957,16 @@ fn atk_adr029_18_v1_void_failing_requires_masked_by_passing_defended_by() {
     );
     let v = &audit_result.presentation_verdicts[0];
 
-    // CURRENT (V1 void): verdict is Defended at Reachability because
-    // code_tier=Some(Reachability) wins the max() over site_requires_tier=None.
-    // The failing substrate predicate is silently masked.
-    //
-    // EXPECTED (post V1 fix): SubstrateGap co-annotation or conjunctive
-    // verdict that exposes the failed substrate requirement alongside the
-    // passing code witness.
-    assert!(
-        matches!(
-            v.verdict,
-            ImmuneVerdict::Defended {
-                tier: WitnessTier::Reachability
-            }
-        ),
-        "ATK-ADR029-18 (V1 VOID): site with failing requires= AND passing #[defended_by] \
-        shows Defended at Reachability. The failing substrate predicate is masked by the \
-        code witness. OR-semantics (audit.rs:1381) picks best_tier=Reachability; the \
-        substrate gap is invisible. After V1 fix, expect SubstrateGap annotation or \
-        conjunctive Defended-with-gap verdict. Got: {:?}",
+    // FIXED (ADR-029 Amendment 1, 2026-05-31): SubstrateGap takes precedence.
+    // When requires= is present and fails, the verdict is SubstrateGap regardless
+    // of any passing code witness. The developer declared substrate intent that is
+    // broken; the code witness is a different channel and does not resolve it.
+    assert_eq!(
+        v.verdict,
+        ImmuneVerdict::SubstrateGap,
+        "ATK-ADR029-18 (FIXED): site with failing requires= AND passing #[defended_by] \
+        must yield SubstrateGap. The failing substrate predicate must not be masked by \
+        the code witness (ADR-029 Amendment 1). Got: {:?}",
         v.verdict
     );
 }

@@ -86,6 +86,7 @@
   - [ADR-028 Amendment 6 — tier marker (object | description): relationship to own declaration](#adr-028-amendment-6--tier-marker-object--description-relationship-to-own-declaration)
   - [ADR-028 Amendment 7 — silence-generator witness-selection guidance + witness-locus split within SubstrateAlignment](#adr-028-amendment-7--silence-generator-witness-selection-guidance--witness-locus-split-within-substratalignment)
 - [ADR-029 — Immunity Is Observed, Not Declared: `#[defended_by]` + `#[presents]` Evidence Extension](#adr-029--immunity-is-observed-not-declared-defended_by--presents-evidence-extension)
+  - [ADR-029 Amendment 1 — Substrate-intent precedence: a failing `requires=` is not masked by a code witness](#adr-029-amendment-1--substrate-intent-precedence-a-failing-requires-is-not-masked-by-a-code-witness)
 
 ---
 
@@ -7289,6 +7290,75 @@ inventing a new attribute is design.
   failure mode — open research question, see §honest semantic gap above)
 - Does NOT implement `min_tier=` or the `partial` verdict (deferred to v0.3, L3)
 - Does NOT break existing `#[immune]` usage (deprecation warning only; migration guide above)
+
+---
+
+## ADR-029 Amendment 1 — Substrate-intent precedence: a failing `requires=` is not masked by a code witness
+
+**Status**: Ratified 2026-05-31.
+
+**Amends**: ADR-029 §Verdict-precedence (compute_presentation_verdicts).
+
+**Participants**: navigator (amendment draft + code fix). Source of truth: campsite
+`findings/pv-requires-masked-by-code-witness` + ATK test `atk_pv_requires_masked_by_code_witness`.
+
+**Reason**: The original ADR-029 verdict precedence rule computes `best_tier =
+max(code_tier, immune_tier, site_requires_tier, site_proof_tier)` and maps
+`Some(tier)` to `Defended { tier }` and `None` to `SubstrateGap` or `Undefended`.
+This means a failing `requires=` predicate (which evaluates to `site_requires_tier =
+None`) is silently hidden when a `#[defended_by]` code witness exists — the code
+witness's `Reachability` tier wins `max(...)` and the site is reported as
+`Defended(Reachability)`. The substrate intent the developer explicitly declared is
+invisible in the audit output. `requires=` effectively becomes decoration rather than a
+CI gate — the point of declaring it.
+
+**The invariant violated**: ADR-029 §Mechanics states that `#[presents(X, requires=P)]`
+is a substrate-witness declaration — the developer asserts that a substrate predicate P
+MUST pass for the site to be defended. When P fails, the site has declared substrate
+intent that is not met. This is exactly `SubstrateGap` (intent present, substrate
+drifted) — regardless of whether a code witness also exists. A code witness does not
+resolve a broken substrate predicate; it evidences a different channel. The two channels
+are independent, and both must pass for the site to be fully defended.
+
+### Change: requires= failure takes precedence over code witness tier
+
+**New rule**: When `site_requires_eval` is `Some(None)` — meaning `requires=` was
+present AND its predicate evaluation returned `WitnessTier::None` (failed) —
+`compute_presentation_verdicts` must emit `SubstrateGap` regardless of `code_tier` or
+`immune_tier`. A failing substrate predicate declared by the developer is a
+substrate-alignment gap, not a gap patched by code witnesses operating in a different
+channel.
+
+Formally:
+
+```
+verdict = match (site_requires_eval, best_tier_excluding_requires) {
+    // requires= present AND failed → SubstrateGap, regardless of code/immune tier
+    (Some(None), _) => SubstrateGap,
+    // requires= present AND passing → folded into best_tier normally
+    (Some(Some(_tier)), best) => Defended { tier: best.unwrap() },
+    // no requires= → original precedence
+    (None, Some(tier)) => Defended { tier },
+    (None, None) => match immune_gap { ... SubstrateGap or Undefended }
+}
+```
+
+**Implementation**: `compute_presentation_verdicts` in `audit.rs` must check
+`site_requires_eval == Some(None)` as an early branch BEFORE consulting `best_tier`.
+The existing `best_tier` computation includes `site_requires_tier` (which is `None`
+when the predicate fails); by checking `site_requires_eval` directly we distinguish
+"no requires=" (`site_requires_eval = None`) from "requires= present but failed"
+(`site_requires_eval = Some(None)`).
+
+**ATK test inverted**: `atk_pv_requires_masked_by_code_witness` currently asserts
+`Defended(Reachability)` (the broken outcome). After this fix, it must assert
+`SubstrateGap`.
+
+**Interaction with existing rules**: This amendment does not change `SubstrateGap`
+semantics — it only refines the precedence rule so that a failing `requires=` always
+surfaces regardless of code witness. `Defended` still means "evidence exists and is
+passing." The amendment adds the invariant: if substrate intent is declared and broken,
+the site is NOT defended.
 
 ---
 
