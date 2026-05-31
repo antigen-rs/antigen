@@ -1,4 +1,4 @@
-error: use of deprecated unit struct `_::__AntigenImmuneDeprecated`: use #[defended_by] on tests (code-tier) or #[presents(requires=...)] for substrate evidence — ADR-029
+error: use of deprecated unit struct `__ANTIGEN_IMMUNE_DEPRECATED_SomeAntigen_0::AntigenImmuneDeprecated`: use #[defended_by] on tests (code-tier) or #[presents(requires=...)] for substrate evidence — ADR-029
   --> tests/ui/immune_missing_deprecation_warning.rs:29:1
    |
 29 | #[immune(SomeAntigen, witness = some_witness_fn)]
