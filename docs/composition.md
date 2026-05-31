@@ -1,5 +1,10 @@
 # Antigen — Composing With Your Existing Tools
 
+> **v0.2 idiom note**: Code examples in this doc use the v0.1 `#[immune(...)]` API.
+> For v0.2, prefer `#[defended_by(X)]` on test functions (code-tier) or
+> `#[presents(X, requires=...)]` on the site (substrate-tier). The `#[immune]` form
+> still compiles with a deprecation warning — see [`macros.md`](macros.md) for migration.
+
 > Antigen doesn't replace your existing testing, linting, or
 > verification toolchain. It *composes* with them — using each for
 > what each does best. This doc shows how antigen fits alongside the
