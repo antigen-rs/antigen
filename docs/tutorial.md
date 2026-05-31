@@ -118,7 +118,7 @@ pub mod antigens;
 
 The `#[antigen]` attribute:
 - `name` — kebab-case identifier for the failure-class. Used by `#[presents]`
-  and `#[immune]` to reference this antigen.
+  and `#[defended_by]` to reference this antigen.
 - `family` — the failure-class family from the 8-class taxonomy. Optional but
   useful for grouping.
 - `fingerprint` — structural pattern for passive detection. Code matching this
@@ -198,26 +198,26 @@ panics aren't visible to v1 fingerprint matching. This is why explicit
 reach.
 
 The scan is telling you: this site presents the `PanickingInDrop` failure-class
-and has no immunity. That's the signal to write a witness.
+and has no defense wired up yet. That's the signal to write a witness.
 
 ---
 
-## Step 4: Write a witness and claim immunity
+## Step 4: Write a witness and wire up defense
 
-> **Two forms of immunity.** Before writing the witness, know the choice you're
-> making: `#[immune]` takes evidence in one of two forms. The quick test is
-> **can a test execute the thing you're defending?** If *yes* — the failure-class
-> is about behavior — use `witness =` (this step). If *no* — the failure-class is
-> about substrate state a test can't verify (a stale doc, an unpinned dependency,
-> an un-reviewed discipline) — use `requires =` instead, covered in the
+> **Two tiers of defense.** Before writing the witness, know the choice you're
+> making. The quick test is **can a test execute the thing you're defending?**
+> If *yes* — the failure-class is about behavior — use `#[defended_by]` (this step).
+> If *no* — the failure-class is about substrate state a test can't verify (a stale
+> doc, an unpinned dependency, an un-reviewed discipline) — use `requires =` on the
+> presents-site instead, covered in the
 > [Discipline-witnesses](#discipline-witnesses-when-the-witness-lives-outside-the-code)
-> section below. `PanickingInDrop` is the first kind, so we use `witness =` here.
+> section below. `PanickingInDrop` is the first kind, so we use `#[defended_by]` here.
 
-A **witness** is evidence that the failure-class doesn't obtain at this
-site — typically a test that verifies the invariant. Add it to your test module:
+A **code-tier witness** is a test that verifies the invariant. Write the test and
+annotate it `#[defended_by(PanickingInDrop)]`:
 
 ```rust
-// src/resource.rs (continued)
+use antigen::defended_by;
 
 #[cfg(test)]
 mod tests {
@@ -227,6 +227,7 @@ mod tests {
     // would fail. The correct approach is to log-and-continue rather than
     // panic!() inside drop.
     #[test]
+    #[defended_by(PanickingInDrop)]
     fn resource_handle_drop_does_not_panic() {
         // This must not panic. If it does, the test fails (correctly).
         let _ = ResourceHandle { id: 42 };
@@ -236,30 +237,15 @@ mod tests {
 }
 ```
 
-Now declare immunity:
+`#[defended_by(PanickingInDrop)]` registers this test as a code-tier witness for
+the `PanickingInDrop` failure-class. When `cargo antigen audit` runs, it observes
+this registration and cross-references it against every `#[presents(PanickingInDrop)]`
+site — reporting `defended at Reachability` when the test function is present.
 
-```rust
-use antigen::immune;
-
-#[immune(PanickingInDrop, witness = resource_handle_drop_does_not_panic)]
-#[presents(PanickingInDrop)]
-impl Drop for ResourceHandle {
-    fn drop(&mut self) {
-        if let Err(e) = self.cleanup() {
-            // Log the error instead of panicking — this is the fix.
-            eprintln!("ResourceHandle cleanup failed (id={}): {e}", self.id);
-        }
-    }
-}
-```
-
-`#[immune(PanickingInDrop, witness = resource_handle_drop_does_not_panic)]`
-says: "This site is defended against `PanickingInDrop`. The witness is the test
-function `resource_handle_drop_does_not_panic`."
-
-Note that `#[presents]` stays even after adding `#[immune]`. The site is still
-a place where the failure-class *could* apply; the immunity claim says it's
-defended. Scan distinguishes "presents + immune" from "presents + no immune."
+The `#[presents(PanickingInDrop)]` marker on the Drop impl stays as-is. The site
+is still a place where the failure-class *could* apply; the defense evidence lives
+on the test, not on the site. Audit observes the relationship between the two and
+reports the verdict.
 
 ---
 
@@ -274,29 +260,22 @@ Output:
 ```
 Auditing workspace: .
 
-Audited 1 immunity claim(s):
-  - 1 declared (witness identifier found in workspace — not yet semantically verified)
-  - 0 external (delegated to clippy/kani/prusti/etc. — not yet executed by antigen)
-  - 0 ambiguous (witness name resolves to multiple workspace functions)
-  - 0 broken (witness identifier not found)
-  - 0 missing (no witness identifier)
-
-⚠ 1 immunity claim(s) below Execution tier:
-
-  ./src/resource.rs:14  PanickingInDrop (witness = `resource_handle_drop_does_not_panic`)
-    tier = Reachability, hint = TestAttributePresentNotInvoked
+Immune-state verdicts (ADR-029 — observed, not declared):
+  1 defended, 0 undefended, 0 substrate-gap (across 1 presents-site(s))
+  ✓ src/resource.rs:14  PanickingInDrop — defended at Reachability
 ```
 
-The audit found your immunity claim and verified the witness function exists in
-the workspace. The tier is `Reachability` — the witness function is present and
-has a `#[test]` attribute, but antigen can't yet verify it was actually invoked
+The audit observed your `#[defended_by(PanickingInDrop)]` registration and the
+`#[presents(PanickingInDrop)]` site, cross-referenced them, and reported `defended at
+Reachability`. The tier is `Reachability` — the witness function is present and
+has a `#[test]` attribute, but antigen can't yet confirm it was actually invoked
 and passed (that's `Execution` tier, which requires running the test suite).
 
-To reach `Execution` tier: run `cargo test` and pass. The v1 audit reports
-`Reachability` as the automated check; `Execution` will be promoted in a future
+To reach `Execution` tier: run `cargo test` and pass. The v0.2 audit reports
+`Reachability` as the automated check; `Execution` will be confirmed in a future
 version when test-run integration lands.
 
-**No broken witnesses, no missing witnesses, no ambiguous witnesses.** That's a
+**The site is defended. No undefended presentations, no substrate-gaps.** That's a
 clean audit.
 
 ---
@@ -308,8 +287,8 @@ In five steps you:
 1. Declared a failure-class (`PanickingInDrop`) with a structural fingerprint
 2. Marked a vulnerable site with `#[presents]`
 3. Ran `cargo antigen scan` and saw the presentation surfaced
-4. Wrote a test witness and declared `#[immune]`
-5. Ran `cargo antigen audit` and got a clean result
+4. Wrote a test witness and registered it with `#[defended_by]`
+5. Ran `cargo antigen audit` and saw `defended at Reachability`
 
 The failure-class declaration now lives in your source tree. When a new team
 member adds a `Drop` impl later, the fingerprint will detect it automatically
@@ -388,9 +367,9 @@ fn sinh_preserves_signed_zero() {
 }
 ```
 
-This test passes. And it should be there. But `#[immune(SignedZeroDiscipline,
-witness = sinh_preserves_signed_zero)]` says "a test running at compile time
-proves the mathematical discipline is satisfied." That's overclaiming. The test
+This test passes. And it should be there. But `#[defended_by(SignedZeroDiscipline)]`
+on the test says "a test proves the mathematical discipline is satisfied." That's
+overclaiming for a discipline like this. The test
 shows the current code produces the right answer for this input. It doesn't show
 that a domain expert reviewed the algorithm and confirmed it will *always*
 produce the right answer for this input.
@@ -489,23 +468,24 @@ This adds their entry to the sidecar:
 ]
 ```
 
-### Step 6: declare immunity with a substrate-witness predicate
+### Step 6: attach a substrate-witness predicate to the site
 
 ```rust
 // src/numerics.rs
-use antigen::immune;
+use antigen::presents;
 
-#[immune(SignedZeroDiscipline, requires = signers(required = ["alice"], against = "current"))]
-#[presents(SignedZeroDiscipline)]
+#[presents(SignedZeroDiscipline, requires = signers(required = ["alice"], against = "current"))]
 pub fn sinh(x: f64) -> f64 {
     let e = x.exp();
     (e - 1.0 / e) / 2.0
 }
 ```
 
-The `requires = signers(...)` predicate says: "this site is immune when the
-sidecar records alice as a current signer." The audit evaluates this predicate
-against the `.attest/SignedZeroDiscipline.json` sidecar at audit time.
+The `requires = signers(...)` predicate says: "this site's defense requires the
+sidecar to record alice as a current signer." The audit evaluates this predicate
+against the `.attest/SignedZeroDiscipline.json` sidecar at audit time and reports
+`defended` (predicate passes) or `substrate-gap` (predicate fails — sidecar missing
+or not signed).
 
 ### Step 7: run audit
 
@@ -606,7 +586,7 @@ reach a higher tier.
 a field-by-field reference of human-readable and JSON output, including the
 full JSON schema.
 
-**Inheritance**: `#[descended_from]` propagates `#[presents]` and `#[immune]`
+**Inheritance**: `#[descended_from]` propagates `#[presents]` markers
 through derived types, copy-paste relationships, and structural similarity. A
 type that inherits from a vulnerable type is itself flagged. See the
 `#[descended_from]` examples in `antigen/examples/`.
