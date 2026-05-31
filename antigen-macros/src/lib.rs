@@ -65,6 +65,15 @@ use syn::parse_macro_input;
 
 mod parse;
 
+/// Process-global, monotonically-increasing emission counter for `#[immune]`.
+///
+/// Each invocation of `immune()` claims one counter value to incorporate into
+/// its generated `const` name, ensuring no two `#[immune]` emissions in the
+/// same compilation unit can share a name — regardless of antigen path or
+/// stacking pattern (see `immune()` for the full rationale).
+static IMMUNE_EMISSION_COUNTER: std::sync::atomic::AtomicUsize =
+    std::sync::atomic::AtomicUsize::new(0);
+
 /// Declare a named failure-class with a structural fingerprint.
 ///
 /// # Arguments
@@ -321,24 +330,62 @@ pub fn immune(args: TokenStream, input: TokenStream) -> TokenStream {
     //      the `#[immune]` author; adopters writing valid code that calls a
     //      `#[immune]`-annotated function would see spurious migration warnings.
     //
-    // Instead: emit a `const _: () = { ... }` block containing a deprecated unit
+    // Instead: emit a `const <NAME>: () = { ... }` item containing a deprecated unit
     // struct that is immediately used inside the block (firing the lint) and then
-    // discarded. The block is scoped so no name leaks; `const _` items are always
-    // anonymous and stack without collision; the lint fires at the `#[immune]`
+    // discarded. The block is scoped so no name leaks; the lint fires at the `#[immune]`
     // call site (the macro invocation), which is exactly where the author is.
     // Callers of the annotated item see no warning — only the #[immune] author does.
     // Antigen's own uses suppress with #[allow(deprecated)] per the migration plan.
     // MSRV 1.85 supports `let _` in const blocks.
+    //
+    // STACKABILITY (findings/immune-multi-stack-const-collision): the const item MUST
+    // be NAMED, not anonymous (`const _`). The annotated item may live in an `impl`
+    // block (the `#[immune]` is on a method), where the macro's emitted const lands in
+    // ASSOCIATED-CONST position. Rust rejects `const _` there with TWO errors:
+    //   - "`const` items in this context need a name" (anonymous const illegal in impl)
+    //   - "duplicate definitions with name `_`" (E0592) when two are stacked
+    // Empirically confirmed: two `const _: () = {…}` collide only in associated-const
+    // position; at module scope they stack fine. The earlier "rename the inner struct"
+    // fix was a red herring — it left `const _` in place, so it did NOT fix the impl
+    // case (the errors are about the const's `_` name, not the inner struct). A NAMED
+    // const is legal in module, impl, AND fn-body positions, and a per-emission-unique
+    // name prevents the duplicate-definition collision even for the same antigen stacked
+    // twice (e.g. a witness= immunity and a requires= immunity on one method).
+    //
+    // Uniqueness: antigen path (sanitized) + a process-global emission counter. The
+    // counter guarantees uniqueness regardless of antigen path or stacking shape; the
+    // path component keeps the generated name legible in errors/expansions. The counter
+    // need only be unique within a single compilation (proc-macros run in-process), not
+    // stable across builds — the const is discarded after firing the lint.
     let deprecated_note = "use #[defended_by] on tests (code-tier) or #[presents(requires=...)] \
          for substrate evidence — ADR-029";
+
+    let antigen_suffix = args
+        .antigen
+        .segments
+        .iter()
+        .map(|seg| seg.ident.to_string())
+        .collect::<Vec<_>>()
+        .join("_");
+    let antigen_suffix = if antigen_suffix.is_empty() {
+        "Unknown".to_string()
+    } else {
+        antigen_suffix
+    };
+    // Process-global, monotonically-increasing per-emission discriminator
+    // (see IMMUNE_EMISSION_COUNTER at module level for the full rationale).
+    let n = IMMUNE_EMISSION_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let const_name = format!("__ANTIGEN_IMMUNE_DEPRECATED_{antigen_suffix}_{n}");
+    let const_ident = syn::Ident::new(&const_name, proc_macro2::Span::call_site());
 
     args.requires_json().map_or_else(
         || {
             quote! {
-                const _: () = {
+                #[allow(non_upper_case_globals)]
+                const #const_ident: () = {
                     #[deprecated(note = #deprecated_note)]
-                    struct __AntigenImmuneDeprecated;
-                    let _ = __AntigenImmuneDeprecated;
+                    struct AntigenImmuneDeprecated;
+                    let _ = AntigenImmuneDeprecated;
                 };
                 #input
             }
@@ -350,10 +397,11 @@ pub fn immune(args: TokenStream, input: TokenStream) -> TokenStream {
             // Format: `antigen:requires:v1:<json>` (ADR-019 §P3b).
             let marker = format!(" antigen:requires:v1:{json}");
             quote! {
-                const _: () = {
+                #[allow(non_upper_case_globals)]
+                const #const_ident: () = {
                     #[deprecated(note = #deprecated_note)]
-                    struct __AntigenImmuneDeprecated;
-                    let _ = __AntigenImmuneDeprecated;
+                    struct AntigenImmuneDeprecated;
+                    let _ = AntigenImmuneDeprecated;
                 };
                 #[doc = #marker]
                 #input
