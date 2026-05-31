@@ -19,8 +19,11 @@ use antigen::{antigen, presents, immune, descended_from, antigen_tolerance};
 | Macro | Applies to | Purpose |
 |---|---|---|
 | `#[antigen]` | unit struct | Declare a named failure-class with a structural fingerprint |
-| `#[presents]` | any item | Mark code as exhibiting a known failure-class's structural pattern |
-| `#[immune]` | any item | Claim immunity backed by a named witness |
+| `#[presents]` | any item | Mark code as a site that exhibits a known failure-class |
+| `#[defended_by]` | test / proptest fn | Register a test function as a **code-tier witness** for a failure-class (ADR-029) |
+| `#[presents(requires=)]` | any item | Attach a **substrate-tier witness** predicate (sidecar evidence) to a presents-site |
+| `#[presents(proof=)]` | any item | Attach a **phantom-type / formal-proof** witness to a presents-site |
+| `#[immune]` | any item | *(Deprecated — use `#[defended_by]` or `#[presents(requires=)]` instead)* |
 | `#[descended_from]` | unit struct (antigen) | Declare inheritance from a parent failure-class |
 | `#[antigen_tolerance]` | any item | Explicitly tolerate a fingerprint match (with required rationale) |
 
@@ -167,9 +170,67 @@ addresses it. The audit output groups presentations by antigen type.
 
 ---
 
+## `#[defended_by(antigen_type)]`
+
+Register a test or proptest function as a **code-tier witness** for a failure-class (ADR-029).
+
+This is the v0.2 primary idiom for code-tier defense. The macro is placed on the test function
+(or proptest function), not on the vulnerable site. Audit cross-references it against all
+`#[presents(AntigenType)]` sites and reports `defended at Reachability` when the test is
+reachable, `defended at Execution` when it is confirmed executed.
+
+### Required arguments
+
+- First positional: the antigen type path (e.g. `PanickingInDrop` or `crate::antigens::Foo`)
+
+### Applies to
+
+Functions annotated with `#[test]`, `proptest!`, or any runnable test harness.
+
+### Example
+
+```rust
+use antigen::defended_by;
+
+#[test]
+#[defended_by(PanickingInDrop)]
+fn resource_handle_drop_does_not_panic() {
+    let _ = ResourceHandle { id: 42 };
+    // If drop panics, the test fails — correctly catching PanickingInDrop
+}
+```
+
+The `#[presents(PanickingInDrop)]` marker stays on the Drop impl site; this test is the
+evidence that the class is defended there.
+
+### Key distinction from `#[immune]` (deprecated)
+
+`#[defended_by]` registers evidence *at the witness site* — audit observes the defense.
+The deprecated `#[immune]` was placed at the *vulnerable site* and *claimed* immunity.
+The observe-not-declare inversion (ADR-029) means the site never asserts its own defense;
+audit cross-references the evidence and reports the verdict.
+
+### See also
+
+- ADR-029 (Immunity Is Observed, Not Declared)
+- `#[presents]` — marks the vulnerable site
+- `#[presents(requires=)]` — substrate-tier witness for evidence outside the code
+
+---
+
 ## `#[immune(antigen_type, witness = ..., rationale = "...")]`
 
-Declare immunity to a known failure-class, backed by a witness.
+> **Deprecated since ADR-029 (v0.2).** `#[immune]` is the v0.1 immunity-claim API and will emit
+> a compiler deprecation warning. For v0.2, use:
+> - **Code-tier defense**: `#[defended_by(AntigenType)]` on the test/proptest function
+> - **Substrate-tier defense**: `#[presents(AntigenType, requires = <predicate>)]` on the site
+> - **Phantom/formal-proof**: `#[presents(AntigenType, proof = <expr>)]` on the site
+>
+> Audit observes these registrations and reports per-site verdicts (`defended` / `undefended` /
+> `substrate-gap`). The deprecated `#[immune]` form is still accepted for backwards compatibility
+> but will continue to emit deprecation warnings guiding you toward the new idiom.
+
+Declare immunity to a known failure-class, backed by a witness (deprecated — see above).
 
 ### Required arguments
 
