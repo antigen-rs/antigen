@@ -2405,10 +2405,15 @@ fn print_human_report(report: &scan::ScanReport, unaddressed: &[scan::Unaddresse
             report.tolerances.len()
         );
     }
-    println!(
-        "  - {} #[defended_by] declarations",
-        report.immunities.len()
-    );
+    if !report.defenses.is_empty() {
+        println!("  - {} #[defended_by] declarations", report.defenses.len());
+    }
+    if !report.immunities.is_empty() {
+        println!(
+            "  - {} #[immune] declarations (deprecated — migrate to #[defended_by]/#[presents])",
+            report.immunities.len()
+        );
+    }
     if !report.parse_failures.is_empty() {
         println!(
             "  - {} parse failures (see --format json for details)",
