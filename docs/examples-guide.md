@@ -1,10 +1,15 @@
 # Antigen — Examples Guide
 
+> **v0.2 idiom note**: Some examples use the v0.1 `#[immune(...)]` API (particularly
+> `broken_witness.rs`, which is preserved intentionally to demonstrate the deprecated form's
+> failure mode). For v0.2, prefer `#[defended_by(X)]` (code-tier) or `#[presents(X, requires=...)]`
+> (substrate-tier). See [`macros.md`](macros.md) for the current vocabulary.
+
 > Curated walkthrough of the nine examples in `antigen/examples/`,
 > ordered for progressive learning. Each lesson builds on the prior.
 >
 > Lessons 1–5 cover the core vocabulary (`#[antigen]` / `#[presents]` /
-> `#[immune]` / `#[antigen_tolerance]` / `#[descended_from]`) + the
+> `#[defended_by]` / `#[antigen_tolerance]` / `#[descended_from]`) + the
 > witness model. Lessons 6–9 cover the substrate-witness pipeline
 > (ADR-019), Oracle artifact lifecycle (ADR-021), delta-chained
 > attestations, and attested-vs-vibes-grade tolerance.
