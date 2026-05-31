@@ -104,9 +104,11 @@ about substrate state a test can't verify — a stale doc, an unpinned dependenc
 an un-reviewed discipline) → substrate-tier (`#[presents(X, requires = <predicate>)]`
 and sign a sidecar). See [`tutorial.md`](tutorial.md) for the full contrast.
 
-**Verify on your end:** scaffold and sign a sidecar for an `#[immune(X,
-witness = some_test)]` site, then run `cargo antigen audit` — the output now
-names the sidecar and explains it is not being credited.
+**Verify on your end (deprecated `#[immune]` form):** scaffold and sign a sidecar for an
+`#[immune(X, witness = some_test)]` site, then run `cargo antigen audit` — the output now
+names the sidecar and explains it is not being credited. (With the v0.2 idiom, use
+`#[presents(X, requires=...)]` instead; sidecars on `#[defended_by]` test sites are not credited
+by design — the `requires=` predicate is the substrate channel.)
 
 ### Empty placeholder fingerprint now warns at sign time
 

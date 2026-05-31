@@ -192,7 +192,7 @@ See [`witness-tiers.md`](witness-tiers.md) for the full witness model.
 
 ## Where to go next
 
-- **[`tutorial.md`](tutorial.md)** — your first 15 minutes, end-to-end (declare → scan → immune → audit, with substrate-witness sidecars)
+- **[`tutorial.md`](tutorial.md)** — your first 15 minutes, end-to-end (declare → scan → defend → audit, with substrate-witness sidecars)
 - **[`concepts.md`](concepts.md)** — what antigen IS, architecturally
 - **[`examples-guide.md`](examples-guide.md)** — walks all twenty bundled examples in `antigen/examples/`, including the full v0.2 family surface (supply-chain, convergent-evidence, deferred-defense, recurrent-emergence, mucosal-boundary, VCS-information-loss, agentic-coordination, antigen-category, triage-commit)
 - **[`where-to-look-for-antigens.md`](where-to-look-for-antigens.md)** — conventions for locating declarations
