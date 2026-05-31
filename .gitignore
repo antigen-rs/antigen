@@ -54,6 +54,15 @@ agent-feedback/
 /*.scan.json
 /*.log
 
+# Captured cargo build/test stdout/stderr redirected to root-level .txt files
+# (e.g. `cargo test 2>test_output.txt`). Multi-agent teammates redirect cargo
+# output to ad-hoc files at the repo root; they are transient and must not be
+# committed. Note: real source/doc .txt (none currently at root) would need an
+# explicit un-ignore. Also catches the malformed `R:antigen<...>.txt` artifact
+# produced when a `2>R:\antigen<file>` redirect drops the path separator.
+/*.txt
+/R\:antigen*.txt
+
 # Camp per-project crate — externalized from public surface 2026-05-22
 # alongside docs/expedition/ and campsites/. Lives locally as canonical
 # dogfood (antigen using antigen for its own team coordination), but not
