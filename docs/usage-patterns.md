@@ -346,7 +346,8 @@ When the scan surfaces an unaddressed presentation on a site you own:
 
 ```
 Is this site genuinely vulnerable?
-├── Yes → write a witness, add #[immune(X, witness = ...)]
+├── Yes → add #[presents(X)] on the site, write a test + add #[defended_by(X)] on it (code-tier),
+│         or add #[presents(X, requires=...)] for substrate evidence
 └── No → why not?
     ├── The site matches by design (it's the translation layer, the test
     │   fixture, the intentional construction) → #[antigen_tolerance]

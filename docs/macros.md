@@ -149,9 +149,10 @@ impl Drop for VulnerableType {
 
 ### Behavior
 
-`cargo antigen scan` collects every `#[presents]` site and reports it
-as an *unaddressed presentation* unless a co-located `#[immune]` claim
-addresses it. The audit output groups presentations by antigen type.
+`cargo antigen scan` collects every `#[presents]` site and reports it.
+`cargo antigen audit` then observes whether the site is *defended* (via
+`#[defended_by]` on a test or `requires=` predicate) or *undefended*.
+The audit output groups presentations by antigen type with per-site verdicts.
 
 ### Discipline
 

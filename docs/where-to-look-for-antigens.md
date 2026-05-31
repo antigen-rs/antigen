@@ -13,9 +13,11 @@
 |---|---|
 | Antigen declarations (`#[antigen]`) | `src/antigens.rs` (preferred) or inline at declaration site |
 | Presentations (`#[presents]`) | At the vulnerable site, wherever that lives in the source tree |
-| Immunity claims (`#[immune]`) | At the site being defended — typically co-located with `#[presents]` or at the test |
+| Defense registration (`#[defended_by]`) | On the `#[test]` / proptest function — NOT at the vulnerable site |
+| Substrate witness (`#[presents(requires=)]`) | At the site being defended, on the `#[presents]` attribute |
+| *(Deprecated)* Immunity claims (`#[immune]`) | At the site being defended — use `#[defended_by]` / `#[presents(requires=)]` instead |
 | Tolerances (`#[antigen_tolerance]`) | At the matching site, wherever the scan found it |
-| Inherited from `antigen-stdlib` | Declared in `antigen-stdlib`; `#[presents]` and `#[immune]` live in your code |
+| Inherited from `antigen-stdlib` | Declared in `antigen-stdlib`; `#[presents]` and `#[defended_by]` live in your code |
 
 ---
 
