@@ -2,6 +2,12 @@
 
 > Reference for errors and warnings you'll encounter running `cargo antigen scan`
 > and `cargo antigen audit`. Organized by the output they appear in.
+>
+> **v0.2 idiom note**: Troubleshooting entries below reference the v0.1 `#[immune]` API.
+> For v0.2, use `#[defended_by(X)]` (code-tier) or `#[presents(X, requires=...)]`
+> (substrate-tier). The `#[immune]` form still works with a deprecation warning.
+> Audit output now reports per-site verdicts (`defended` / `undefended` / `substrate-gap`)
+> rather than "immunity claims".
 
 ---
 

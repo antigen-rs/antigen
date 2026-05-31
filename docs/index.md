@@ -15,7 +15,7 @@ walks you through `cargo install cargo-antigen` → first scan → first
 `#[antigen]` declaration without leaving the page.
 
 Already past quickstart? Continue with **[`tutorial.md`](tutorial.md)**
-for the full first-15-minutes walkthrough (declare → scan → immune →
+for the full first-15-minutes walkthrough (declare → scan → defend →
 audit, end-to-end).
 
 The shortest possible version, inline:
@@ -69,9 +69,9 @@ Read in order:
 ### "I want a reference for a specific thing"
 
 - **[`macros.md`](macros.md)** — full reference for `#[antigen]`,
-  `#[presents]`, `#[immune]` (both witness and requires forms),
+  `#[presents]`, `#[defended_by]`, `#[presents(requires=)]`,
   `#[descended_from]`, `#[antigen_tolerance]`, plus the cross-cutting
-  `attested = (...)` parameter
+  `attested = (...)` parameter (and the deprecated `#[immune]` form)
 - **[`fingerprint-grammar.md`](fingerprint-grammar.md)** — fingerprint
   DSL (seven item-level operators + composition)
 - **[`witness-tiers.md`](witness-tiers.md)** — `WitnessTier` gradient
