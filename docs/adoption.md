@@ -7,9 +7,9 @@
 > own discipline on adopter codebases, with honest fix-status as of v0.2.
 
 The good news: antigen adoption works. You can declare your failure-classes,
-mark vulnerable sites with `#[presents]`, claim immunity with `#[immune]`,
-scaffold and sign `.attest/` sidecars, and run `cargo antigen scan` / `audit`
-end-to-end on day one.
+mark vulnerable sites with `#[presents]`, wire defense with `#[defended_by]`
+(code-tier) or `#[presents(requires=)]` (substrate-tier), scaffold and sign
+`.attest/` sidecars, and run `cargo antigen scan` / `audit` end-to-end on day one.
 
 The honest news: there are about eight specific points where a first-time
 adopter trips. All eight are now fixed in v0.2 — either at the source (macro
@@ -99,11 +99,10 @@ uncredited because the site uses the code-witness channel, not the
 substrate-witness channel.
 
 **The choosing rule** (the simple version): can a *test* execute the thing
-you're defending? Yes → `witness = <test>`. No (it's about substrate state a
-test can't verify — a stale doc, an unpinned dependency, an un-reviewed
-discipline) → `requires = <predicate>` and sign a sidecar. See
-[`tutorial.md`](tutorial.md) and the `#[immune]` macro doc for the full
-contrast.
+you're defending? Yes → code-tier (`#[defended_by(X)]` on the test). No (it's
+about substrate state a test can't verify — a stale doc, an unpinned dependency,
+an un-reviewed discipline) → substrate-tier (`#[presents(X, requires = <predicate>)]`
+and sign a sidecar). See [`tutorial.md`](tutorial.md) for the full contrast.
 
 **Verify on your end:** scaffold and sign a sidecar for an `#[immune(X,
 witness = some_test)]` site, then run `cargo antigen audit` — the output now
