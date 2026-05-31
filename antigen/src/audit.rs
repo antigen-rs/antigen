@@ -1116,17 +1116,33 @@ fn evaluate_deferred_defense_hint(
 
     match &decl.kind {
         DeferredDefenseKind::Anergy => {
-            match parse_iso_date(decl.until.as_deref().unwrap_or("")) {
-                Some(until) if until >= today => AuditHint::AnergyActive,
-                Some(until) => {
-                    let days_past = (today - until).num_days();
-                    if days_past > stale_grace_days {
-                        AuditHint::AnergyStale
-                    } else {
-                        AuditHint::AnergyCostimulationNotArrived
+            // `#[anergy]` REQUIRES `until` (ADR-023 A5: anergy without a time-bound
+            // degrades to silent tolerance). Mirror the Orient arm: match on the
+            // PRESENCE of `until` first so a present-but-malformed date does NOT
+            // collapse into the absent-date grace path. Previously `unwrap_or("")`
+            // made `until=None` and `until=Some("not-a-date")` indistinguishable —
+            // both parsed to `None` and fell to AnergyActive, so a typo'd deadline
+            // silently granted permanent active status with zero diagnostic.
+            match decl.until.as_deref() {
+                // Absent `until`: only arises for hand-built/legacy scan records
+                // (the macro parse-gate requires a valid `until`). Legacy grace path.
+                None | Some("") => AuditHint::AnergyActive,
+                Some(s) => match parse_iso_date(s) {
+                    Some(until) if until >= today => AuditHint::AnergyActive,
+                    // Genuine past date → tally by staleness against the grace window.
+                    Some(until) => {
+                        let days_past = (today - until).num_days();
+                        if days_past > stale_grace_days {
+                            AuditHint::AnergyStale
+                        } else {
+                            AuditHint::AnergyCostimulationNotArrived
+                        }
                     }
-                }
-                None => AuditHint::AnergyActive, // No parseable date = treat as active
+                    // Present-but-unparseable (typo like "2026-13-99", "soon"): an
+                    // INTENDED deadline that resolves to nothing → unresolved
+                    // co-stimulation, not a grace. Escalate (not silently active).
+                    None => AuditHint::AnergyCostimulationNotArrived,
+                },
             }
         }
         DeferredDefenseKind::Immunosuppress => {
@@ -1148,17 +1164,36 @@ fn evaluate_deferred_defense_hint(
                     }
                 }
             }
-            match parse_iso_date(decl.until.as_deref().unwrap_or("")) {
-                Some(until) if until >= today => AuditHint::ImmunosuppressActive,
-                Some(_) => AuditHint::ImmunosuppressExpired,
-                None => AuditHint::ImmunosuppressActive,
+            // `until` is REQUIRED (ADR-023). Same Orient-style split: present-but-
+            // malformed must escalate, not silently stay Active. Previously a typo
+            // like "2026/01/01" (slash format, looks like a past date to a human but
+            // fails ISO parse) collapsed via `unwrap_or("")` to ImmunosuppressActive.
+            match decl.until.as_deref() {
+                // Absent `until`: hand-built/legacy only (macro requires it). Grace.
+                None | Some("") => AuditHint::ImmunosuppressActive,
+                Some(s) => match parse_iso_date(s) {
+                    Some(until) if until >= today => AuditHint::ImmunosuppressActive,
+                    // Past date OR present-but-unparseable: the suppression's declared
+                    // expiry arrived (or was a typo that resolves to nothing). Either
+                    // way it has outlived its intended bound → Expired, not Active.
+                    _ => AuditHint::ImmunosuppressExpired,
+                },
             }
         }
         DeferredDefenseKind::Poxparty => {
-            match parse_iso_date(decl.until.as_deref().unwrap_or("")) {
-                Some(until) if until >= today => AuditHint::PoxpartyActive,
-                Some(_) => AuditHint::PoxpartyOutcomePending,
-                None => AuditHint::PoxpartyActive,
+            // `until` is REQUIRED (ADR-023). Same Orient-style split: present-but-
+            // malformed must escalate, not silently stay Active. Previously a typo
+            // like "soon" collapsed via `unwrap_or("")` to PoxpartyActive forever.
+            match decl.until.as_deref() {
+                // Absent `until`: hand-built/legacy only (macro requires it). Grace.
+                None | Some("") => AuditHint::PoxpartyActive,
+                Some(s) => match parse_iso_date(s) {
+                    Some(until) if until >= today => AuditHint::PoxpartyActive,
+                    // Past date OR present-but-unparseable: the isolation window's
+                    // declared horizon arrived (or was a typo) → the outcome is due
+                    // for recording, not silently active. Escalate.
+                    _ => AuditHint::PoxpartyOutcomePending,
+                },
             }
         }
         DeferredDefenseKind::Orient => {
@@ -5837,77 +5872,72 @@ mod tests {
         }
     }
 
-    // ATK-DEFERRED-UNTIL-1: anergy with malformed until silently stays Active.
-    // Correct post-fix: should escalate (AnergyCostimulationNotArrived or AnergyStale).
-    // This asserts the BROKEN outcome — will FAIL after fix lands.
+    // ATK-DEFERRED-UNTIL-1: anergy with a present-but-malformed `until` must
+    // ESCALATE, not silently stay Active. A typo'd deadline ("not-a-date") is an
+    // intended-but-broken bound that resolves to nothing → AnergyCostimulationNotArrived
+    // (the unresolved-co-stimulation escalation), tallied as expired. Before the
+    // Orient-style split this collapsed to AnergyActive via `unwrap_or("")`.
     #[test]
-    fn atk_deferred_until_1_anergy_malformed_until_silently_active() {
+    fn atk_deferred_until_1_anergy_malformed_until_escalates() {
         let decl = anergy_decl_with_until("not-a-date");
         let mut report = ScanReport::default();
         report.deferred_defenses.push(decl);
         let out = audit_deferred_defenses(&report, 30);
         assert_eq!(
             out.audits[0].hint,
-            AuditHint::AnergyActive,
-            "ATK-DEFERRED-UNTIL-1 (BROKEN): anergy with until=Some('not-a-date') \
-             silently lands in AnergyActive via unwrap_or('') -> None parse path. \
-             The author intended a deadline; a typo grants permanent active status. \
-             Fix: split None arm (Orient-style): None|Some('') -> Active (grace), \
-             Some(bad) -> AnergyCostimulationNotArrived/AnergyStale (unresolved). \
-             When fixed, update this assertion to the escalation hint."
+            AuditHint::AnergyCostimulationNotArrived,
+            "ATK-DEFERRED-UNTIL-1: anergy with until=Some('not-a-date') must escalate \
+             to AnergyCostimulationNotArrived (present-but-broken deadline = unresolved), \
+             not silently land in AnergyActive. The author intended a deadline; a typo \
+             must not grant permanent active status."
         );
         assert_eq!(
-            out.active_count, 1,
-            "ATK-DEFERRED-UNTIL-1: malformed-until anergy counts as active (broken)"
+            out.active_count, 0,
+            "ATK-DEFERRED-UNTIL-1: a malformed-until anergy must NOT count as active"
         );
-        assert_eq!(out.expired_count, 0);
+        assert_eq!(out.expired_count, 1);
         assert_eq!(out.stale_count, 0);
     }
 
-    // ATK-DEFERRED-UNTIL-2: immunosuppress with malformed until silently stays Active.
-    // Correct post-fix: should escalate (ImmunosuppressExpired or similar).
-    // This asserts the BROKEN outcome — will FAIL after fix lands.
+    // ATK-DEFERRED-UNTIL-2: immunosuppress with a present-but-malformed `until` must
+    // ESCALATE to ImmunosuppressExpired, not silently stay Active. "2026/01/01" (slash
+    // format) looks like a past date to a human but fails ISO parse; the developer
+    // intended an expiry, so the suppression has outlived its declared bound.
     #[test]
-    fn atk_deferred_until_2_immunosuppress_malformed_until_silently_active() {
-        // Slash format looks like a past date to a human but fails ISO parse.
+    fn atk_deferred_until_2_immunosuppress_malformed_until_escalates() {
         let decl = immunosuppress_decl_with_until("2026/01/01");
         let mut report = ScanReport::default();
         report.deferred_defenses.push(decl);
         let out = audit_deferred_defenses(&report, 30);
         assert_eq!(
             out.audits[0].hint,
-            AuditHint::ImmunosuppressActive,
-            "ATK-DEFERRED-UNTIL-2 (BROKEN): immunosuppress with until=Some('2026/01/01') \
-             (slash format — looks like a past date to a human but fails ISO parse) \
-             silently lands in ImmunosuppressActive. A suppression the developer \
-             intended to expire in 2026 stays Active indefinitely. Fix: Orient-style \
-             split — Some(bad) -> ImmunosuppressExpired rather than silent grace. \
-             When fixed, update assertion to ImmunosuppressExpired."
+            AuditHint::ImmunosuppressExpired,
+            "ATK-DEFERRED-UNTIL-2: immunosuppress with until=Some('2026/01/01') \
+             (present-but-unparseable) must escalate to ImmunosuppressExpired, not \
+             silently stay Active. A suppression intended to expire must not run forever."
         );
-        assert_eq!(out.active_count, 1);
-        assert_eq!(out.expired_count, 0);
+        assert_eq!(out.active_count, 0);
+        assert_eq!(out.expired_count, 1);
     }
 
-    // ATK-DEFERRED-UNTIL-3: poxparty with malformed until silently stays Active.
-    // Correct post-fix: should escalate (PoxpartyOutcomePending or similar).
-    // This asserts the BROKEN outcome — will FAIL after fix lands.
+    // ATK-DEFERRED-UNTIL-3: poxparty with a present-but-malformed `until` must
+    // ESCALATE to PoxpartyOutcomePending, not silently stay Active. "soon" is not a
+    // date at all — an intended bound that resolves to nothing → the outcome is due.
     #[test]
-    fn atk_deferred_until_3_poxparty_malformed_until_silently_active() {
+    fn atk_deferred_until_3_poxparty_malformed_until_escalates() {
         let decl = poxparty_decl_with_until("soon"); // not a date at all
         let mut report = ScanReport::default();
         report.deferred_defenses.push(decl);
         let out = audit_deferred_defenses(&report, 30);
         assert_eq!(
             out.audits[0].hint,
-            AuditHint::PoxpartyActive,
-            "ATK-DEFERRED-UNTIL-3 (BROKEN): poxparty with until=Some('soon') \
-             silently lands in PoxpartyActive. A poxparty the developer intended \
-             to expire (once 'soon' was a real date) stays Active forever due to \
-             the same unwrap_or('') -> None parse collapse. Fix: Orient-style split \
-             — Some(bad) -> PoxpartyOutcomePending. When fixed, update assertion."
+            AuditHint::PoxpartyOutcomePending,
+            "ATK-DEFERRED-UNTIL-3: poxparty with until=Some('soon') must escalate to \
+             PoxpartyOutcomePending, not silently stay Active. An intended-but-broken \
+             expiry must surface as outcome-pending, not permanent green."
         );
-        assert_eq!(out.active_count, 1);
-        assert_eq!(out.expired_count, 0);
+        assert_eq!(out.active_count, 0);
+        assert_eq!(out.expired_count, 1);
     }
 
     // ========================================================================
