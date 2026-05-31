@@ -5,11 +5,12 @@
 > A ~2000-word read explaining what antigen is, why it matters now, and what we're
 > asking the community to consider.
 >
-> *Updated 2026-05-22 to reflect the comprehensive vision: the asymmetry-era framing,
-> memory-to-structure transformation as primary mechanism, co-native structural memory
-> as approach, and comprehensive immune-system vocabulary as the full scope. v0.1.0-rc.3
-> substrate: Oracle 5-state lifecycle, substrate-witness predicate language, 554 tests
-> passing, end-to-end substrate-witness pipeline wired.*
+> *Updated 2026-05-31 for 0.2.0 stable: ADR-029 observe-not-declare (immunity is observed
+> by audit, not declared at the site), `#[defended_by]` as the primary code-tier idiom,
+> five stdlib families + agentic-coordination + dogfood, 1043 tests passing, Match3
+> three-valued fingerprint evaluation, deferred-defense family. v0.1 history preserved
+> inline; the full asymmetry-era framing and comprehensive immune-system vocabulary arc
+> remain the core.*
 
 ---
 
@@ -141,7 +142,7 @@ What antigen contributes — verified through the academic-context survey at [`d
 
 **2. Vaccination as a developer-facing bulk transform.** `cargo antigen vaccinate <antigen> <pattern>` applies known immunity across a structural family in one command. Closest analogs (cargo fix; Coq's Hint Resolve) are per-site or proof-internal; antigen's vaccinate is a bulk operation on the failure-class graph.
 
-**3. Witness-shape pluralism under one vocabulary.** `#[immune(X, witness = ...)]` accepts proptest blocks, clippy lints, kani proofs, prusti annotations, phantom-type constructions, or test functions — all valid witnesses for the same antigen. Why3's multi-prover architecture is the closest cousin but unifies under a single specification language; antigen unifies under failure-class names while leaving witness mechanisms heterogeneous.
+**3. Witness-shape pluralism under one vocabulary.** `#[defended_by(X)]` on a test, `#[presents(X, requires = clippy::lint)]` for lint evidence, `#[presents(X, proof = PhantomProof::<T>)]` for phantom-type constructions, `#[presents(X, requires = signers(...))]` for substrate attestation — all valid witness channels for the same antigen under the ADR-029 observe-not-declare model. Why3's multi-prover architecture is the closest cousin but unifies under a single specification language; antigen unifies under failure-class names while leaving witness mechanisms heterogeneous.
 
 **4. Memory-to-structure transformation as primary mechanism.** The shift from passive memory (docs, comments, TODOs) to active structure (compile-checked, stale-aware, self-surfacing) is not a feature any existing tool provides. It's the mechanism that makes antigen viable against the generation-inspection asymmetry — passive memory cannot keep pace, structural memory surfaces itself.
 
@@ -237,13 +238,13 @@ For Rust ecosystem maintainers and tooling-aware engineers:
 
 For tool authors (clippy, kani, prusti, verus, cargo-mutants, etc.):
 
-1. **Tell us your integration surface.** Antigen wants to delegate witnesses to your tool; the mechanics for `#[immune(X, witness = clippy::lint_name)]` need your input.
+1. **Tell us your integration surface.** Antigen wants to delegate witnesses to your tool; the mechanics for `#[presents(X, requires = clippy::lint_name)]` (substrate-tier) need your input.
 2. **Help us avoid friction at delegation boundaries.** When clippy adds new lints, antigen's witness adapters should track them automatically.
 
 For AI-coding tool authors and AI-agent framework authors:
 
 1. **Help us understand AI-coding-specific failure classes.** What patterns recur in agent-produced code that human-only code doesn't exhibit? These are antigen candidates.
-2. **Consider antigen as a cross-session memory layer for your agents.** When agents declare `#[immune]` with witnesses, the immunity persists past their session boundaries. The substrate becomes shared memory.
+2. **Consider antigen as a cross-session memory layer for your agents.** When agents wire `#[defended_by]` witnesses, the defense persists past their session boundaries. The substrate becomes shared memory — immunity is observed by audit, not declared by the agent.
 
 ---
 

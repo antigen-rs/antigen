@@ -24,13 +24,17 @@ system recognizes as non-self and responds to.
 **Biological referent**: a protein produced by B-cells that specifically binds and
 neutralizes one antigen.
 
-**Rust ecosystem analog**: an **immunity witness** — a test, proptest, phantom-type
-proof, or delegated lint that proves immunity to a specific antigen. Required parameter
-of `#[immune(antigen, witness = ...)]`.
+**Rust ecosystem analog**: an **immunity witness** — a test (annotated `#[defended_by(X)]`),
+proptest, phantom-type proof, or substrate predicate (`#[presents(X, requires=...)]`) that
+provides evidence for a specific antigen. In the v0.2 ADR-029 model, immunity is **observed
+by audit** from this evidence, not claimed at the vulnerable site.
+
+*(Deprecated: `#[immune(antigen, witness = ...)]` was the v0.1 form that claimed immunity
+at the site. Use `#[defended_by]` on the test function and `#[presents]` on the site instead.)*
 
 **Note**: "antibody" is used colloquially in design docs but the ratified API uses
 "witness" because antibodies in biology are *response*, while Rust witnesses are
-*proof-of-immunity-claim*. The biology rhymes; the Rust term is more precise.
+*evidence observed by audit*. The biology rhymes; the Rust term is more precise.
 
 **Introduced in**: `design-intent.md` (metaphor), `api-shape.md` (witness).
 
@@ -50,10 +54,15 @@ Operates on a refinement-lattice of types (e.g., "every enum named `*Class`").
 **Biological referent**: the state of being protected against a specific pathogen due to
 prior exposure or active defense.
 
-**Rust ecosystem analog**: a `#[immune(antigen, witness = ...)]` declaration on a
-function/type/method, with a witness that is checked by tooling. Immunity is *claimed*
-by the declaration AND *verified* by the witness; the marker without the witness is not
-a claim.
+**Rust ecosystem analog** (v0.2): a per-presents-site **verdict** observed by `cargo antigen audit`
+when the site has sufficient defense evidence. Evidence can be a `#[defended_by(X)]` test
+function (code-tier), `#[presents(X, requires = ...)]` substrate predicate, or `proof =` phantom
+construction. Immunity is **observed by audit** from the evidence, never declared at the
+vulnerable site (ADR-029 observe-not-declare).
+
+*(Deprecated v0.1 form: `#[immune(antigen, witness = ...)]` directly claimed immunity at
+the site. The audit now observes defense evidence and reports `defended` / `undefended` /
+`substrate-gap` — the site never stamps itself immune.)*
 
 **Introduced in**: `design-intent.md`, `api-shape.md`.
 
@@ -92,9 +101,9 @@ target antigen, it divides; daughter cells inherit the parent's antibody specifi
 may mutate slightly.
 
 **Rust ecosystem analog**: the `#[descended_from(other_function)]` decorator. Propagates
-`#[presents]` and `#[immune]` markers from the source function to the descended function.
-If the descendant's witness no longer applies (signature divergence, behavioral change),
-cargo-antigen flags it for re-justification.
+`#[presents]` markers from the source function to the descended function, inheriting
+the structural vulnerability declaration. Defense evidence (`#[defended_by]` / `requires=`)
+must be re-attested at the descendant if inherited witnesses no longer apply.
 
 **Closest existing academic analog**: Eiffel's design-by-contract with inheritance
 (Meyer 1992, 1997) — pre/post-conditions inherited through subclassing with covariance
@@ -118,11 +127,11 @@ themselves — they don't decay. The pattern is permanent across project lifetim
 new code in the structural family inherits via `#[descended_from]`. This is the
 B-cell-memory layer.
 
-**Rust ecosystem analog (currency layer)**: the *recency of verification* on
-`#[immune(X, witness = Y)]` claims. The witness was attested against a particular
-version of the protected item; if the item changes, the verification is stale —
-the analog of declining circulating antibody titer. `cargo antigen audit`
-re-running witnesses is the recall-response / booster analog. The currency layer
+**Rust ecosystem analog (currency layer)**: the *recency of defense evidence* — whether
+`#[defended_by]` witnesses or `requires=` substrate predicates still reflect the current
+state of the protected item. If the protected code changes, the evidence may be stale
+(analog of declining circulating antibody titer). `cargo antigen audit` observing substrate-gap
+or stale-sidecar hints is the recall-response / booster analog. The currency layer
 is in flight as a Sweep A1 finding (scout-routed; task #12 Phase 1-8).
 
 **Note**: the *crisis case* this addresses is "corrected designs don't carry the
