@@ -1560,20 +1560,27 @@ fn compute_presentation_verdicts(
 
         // ADR-029 Amendment 1 (2026-05-31): substrate-intent precedence.
         //
-        // When `requires=` is PRESENT and FAILING (`site_requires_eval = Some(None)`),
-        // emit `SubstrateGap` regardless of any code or immune witness — the developer
-        // declared substrate intent that is not met. A code witness operates in a
-        // different channel and does not resolve a broken substrate predicate.
+        // When a declared substrate precondition is PRESENT and FAILING, emit
+        // `SubstrateGap` regardless of any code witness — the developer declared
+        // substrate intent that is not met. A code witness operates in a different
+        // channel and does not resolve a broken substrate predicate.
         //
-        // `site_requires_eval`:
-        //   None          → no `requires=` on this site
-        //   Some(None)    → `requires=` present but predicate failed (no evidence)
-        //   Some(tier>0)  → `requires=` present and passed at `tier`
+        // Two channels carry an evaluated-and-failed state:
+        //   (1) site_requires_eval == Some(WitnessTier::None):
+        //       site-side `requires=` (ADR-029 R5) was declared and its predicate failed.
+        //         None          → no `requires=` on this site
+        //         Some(None)    → `requires=` present but predicate failed
+        //         Some(tier>0)  → `requires=` present and passed at `tier`
+        //   (2) immune_audit.is_some_and(immune_audit_is_substrate_gap):
+        //       deprecated `#[immune(requires=)]` whose predicate failed. Same masking
+        //       risk: a code witness must not hide a drifted deprecated substrate claim.
+        //       (forward/immune-channel-gate-missing-from-adr029-amd1)
         //
         // The existing `site_requires_tier` (which filters out `None`) is used for
-        // the `best_tier` computation; `site_requires_eval` is checked here directly
-        // to distinguish "requires= absent" from "requires= present but failed".
-        let requires_present_and_failed = site_requires_eval == Some(WitnessTier::None);
+        // the `best_tier` computation; the gate checks `site_requires_eval` directly to
+        // distinguish "requires= absent" (None) from "requires= present but failed" (Some(None)).
+        let requires_present_and_failed = site_requires_eval == Some(WitnessTier::None)
+            || immune_audit.is_some_and(immune_audit_is_substrate_gap);
 
         let verdict = if requires_present_and_failed {
             // Substrate intent declared and broken — SubstrateGap even when a code
@@ -5522,6 +5529,79 @@ mod tests {
              SubstrateGap even when a code witness exists. The developer declared \
              substrate intent (requires=) that is broken; a code witness in a different \
              channel does not resolve it. verdict: {:?}",
+            v.verdict
+        );
+    }
+
+    // ========================================================================
+    // ATK-PV-IMMUNE-CHANNEL: deprecated #[immune(requires=)] substrate gap
+    // must not be masked by a code witness. (forward/immune-channel-gate-missing-from-adr029-amd1)
+    //
+    // Mirrors atk_pv_requires_masked_by_code_witness but exercises the IMMUNE
+    // channel: an #[immune(requires=)] whose predicate failed (→ immune_audit
+    // with witness_tier=None + evaluated_predicate=Some) alongside a code witness.
+    // ADR-029 Amendment 1 §Channel-generality extends the gate to the immune channel.
+    // ========================================================================
+
+    #[test]
+    fn atk_pv_immune_channel_substrate_gap_not_masked_by_code_witness() {
+        // Construct a scan report with a presents-site defended by both:
+        //   (a) a code witness (#[defended_by])  — grants Reachability
+        //   (b) an #[immune] immunity with a failing requires= predicate
+        //       → this produces an ImmunityAudit whose predicate evaluated and failed
+        //
+        // The presents-site and the immunity address the same antigen class. Under the
+        // pre-fix implementation, best_tier=Some(Reachability) from the code witness
+        // would send the verdict down the Defended arm, masking the immune channel gap.
+        //
+        // Post-fix: immune_audit.is_some_and(immune_audit_is_substrate_gap) gates the
+        // verdict to SubstrateGap regardless of the code witness tier.
+        let pred_json = r#"{"Signers":{"required":["alice"],"roles":{},"against":"Current","signature_allow":[],"signature_prefer":null}}"#;
+
+        let mut report = ScanReport::default();
+        // Site presenting the failure class.
+        let site = presents_site("ImmuneChannelClass", "src/lib.rs", 20);
+        report.presentations.push(site);
+        // Code witness — grants Reachability on the immune-verdict computation.
+        report.defenses.push(defended_by_witness(
+            "ImmuneChannelClass",
+            "src/tests.rs",
+            15,
+        ));
+        // Deprecated #[immune(requires=)] immunity with a failing predicate
+        // (no sidecar under "." → DisciplineSidecarMissing/failed → None tier).
+        // item_target must match the presents-site's Unknown{line:20} for immune_audit
+        // lookup to find this entry (compute_presentation_verdicts matches on
+        // antigen_type + file + item_target).
+        let imm = crate::scan::Immunity {
+            antigen_type: "ImmuneChannelClass".to_string(),
+            witness: String::new(),
+            requires_predicate: Some(pred_json.to_string()),
+            file: std::path::PathBuf::from("src/lib.rs"),
+            line: 20,
+            item_kind: "fn".to_string(),
+            item_target: crate::scan::ItemTarget::Unknown { line: 20 },
+            canonical_path: None,
+            structural_fingerprint: String::new(),
+        };
+        report.immunities.push(imm);
+
+        // audit() evaluates the immunity against "." — no sidecar exists, so the
+        // substrate predicate fails → immune_audit will have witness_tier=None +
+        // evaluated_predicate=Some → immune_audit_is_substrate_gap returns true.
+        // ADR-029 Amendment 1 §Channel-generality: the gate fires, SubstrateGap is emitted.
+        let out = audit(&report, Path::new("."));
+        assert_eq!(out.presentation_verdicts.len(), 1);
+        let v = &out.presentation_verdicts[0];
+
+        assert_eq!(
+            v.verdict,
+            ImmuneVerdict::SubstrateGap,
+            "ATK-PV-IMMUNE-CHANNEL: a failing #[immune(requires=)] (deprecated channel) \
+             must surface SubstrateGap even when a code witness exists. The deprecated \
+             substrate claim is broken; a code witness in a different channel does not \
+             resolve it. ADR-029 Amendment 1 §Channel-generality covers this case. \
+             verdict: {:?}",
             v.verdict
         );
     }
