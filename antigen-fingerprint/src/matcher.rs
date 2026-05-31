@@ -7,6 +7,62 @@
 
 use crate::{normalize_signature_canonical, Constraint, Fingerprint, ItemKind, MethodPattern};
 
+/// Three-valued predicate-evaluation result (ADR-010 Amendment 6).
+///
+/// Replaces the two-valued `bool` that conflated three distinct meanings.
+/// `Undefined` is the load-bearing addition: it means "this predicate has no
+/// locus on this item-class" (e.g. `body_contains_macro` on a struct — no
+/// function body to search), as distinct from `NoMatch` ("searched, condition
+/// absent"). Keeping these apart at the type level kills the vacuous-`not`
+/// hazard: `not(Undefined) = Undefined`, NOT `Match` — so
+/// `all_of([item = struct, not(body_contains_macro("panic"))])` evaluates to
+/// `Undefined` (doesn't fire) rather than vacuously matching every struct.
+///
+/// Biology cognate (PMID 11238607): an assay run where its preconditions don't
+/// hold (wrong tissue / window-period) is *indeterminate*, not negative — and
+/// you cannot negate an indeterminate into a definite. `not(Undefined) =
+/// Undefined` is the DSL form of that clinical invariant.
+///
+/// `pub` but crate-private in effect: the enclosing `matcher` module is private
+/// (`mod matcher;`), so this does not leak to the public API. The public
+/// `Fingerprint::matches` surface stays `bool` via the Level-2 projection;
+/// Level-1 results stay internal until the v0.3 advisory tooling
+/// ("fingerprint X was undefined on N items — domain mismatch?") needs to read
+/// intermediate `Undefined`s, at which point `matcher` (and this) can be exported.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Match3 {
+    /// Predicate evaluated; condition present.
+    Match,
+    /// Predicate evaluated; condition absent.
+    NoMatch,
+    /// Predicate has no locus on this item-class — the question is malformed
+    /// here (e.g. a body-content predicate on a bodyless item).
+    Undefined,
+}
+
+impl Match3 {
+    /// Lift a definite `bool` into `Match3`. For predicates that always have a
+    /// locus on every item (item-kind, name, docs, attrs): the question is
+    /// always well-posed, so the result is `Match`/`NoMatch`, never `Undefined`.
+    const fn from_bool(b: bool) -> Self {
+        if b {
+            Self::Match
+        } else {
+            Self::NoMatch
+        }
+    }
+
+    /// Kleene-strong negation. `Undefined` is closed under negation — it does
+    /// NOT flip to a definite value (the vacuous-`not` defect, ADR-010 Amd6).
+    const fn not(self) -> Self {
+        match self {
+            Self::Match => Self::NoMatch,
+            Self::NoMatch => Self::Match,
+            Self::Undefined => Self::Undefined,
+        }
+    }
+}
+
 impl Fingerprint {
     /// Match this fingerprint against a `syn::Item`.
     ///
@@ -14,29 +70,85 @@ impl Fingerprint {
     /// Amendment 4, fingerprints are RECALL-tuned filters: a `true` result
     /// is "this site may exhibit the failure-class," not "definitely does."
     /// The witness layer proves precision per ADR-002.
+    ///
+    /// Level-2 projection (ADR-010 Amd6): the fingerprint fires IFF the
+    /// top-level expression evaluates to `Match3::Match`. Both `NoMatch` and
+    /// `Undefined` project to "doesn't fire" — an item where the predicate has
+    /// no locus is not flagged. Multiple top-level constraints compose under
+    /// the same Kleene-strong `all_of` algebra as an explicit `all_of`.
     #[must_use]
     pub fn matches(&self, item: &syn::Item) -> bool {
-        self.constraints.iter().all(|c| match_constraint(c, item))
+        match_all_of(&self.constraints, item) == Match3::Match
     }
 }
 
-fn match_constraint(c: &Constraint, item: &syn::Item) -> bool {
+/// Kleene-strong conjunction over a constraint slice (the `all_of` algebra).
+///
+/// Any definite `NoMatch` short-circuits to `NoMatch`; otherwise all-`Match`
+/// is `Match`; otherwise (a mix with at least one `Undefined` and no `NoMatch`)
+/// the definedness gap propagates as `Undefined`. An empty slice is vacuously
+/// `Match` (parse-time rules forbid empty `all_of`).
+fn match_all_of(children: &[Constraint], item: &syn::Item) -> Match3 {
+    let mut saw_undefined = false;
+    for c in children {
+        match match_constraint(c, item) {
+            Match3::NoMatch => return Match3::NoMatch,
+            Match3::Undefined => saw_undefined = true,
+            Match3::Match => {}
+        }
+    }
+    if saw_undefined {
+        Match3::Undefined
+    } else {
+        Match3::Match
+    }
+}
+
+/// Kleene-strong disjunction over a constraint slice (the `any_of` algebra).
+///
+/// Any definite `Match` short-circuits to `Match`; otherwise all-`NoMatch` is
+/// `NoMatch`; otherwise the definedness gap propagates as `Undefined`.
+fn match_any_of(children: &[Constraint], item: &syn::Item) -> Match3 {
+    let mut saw_undefined = false;
+    for c in children {
+        match match_constraint(c, item) {
+            Match3::Match => return Match3::Match,
+            Match3::Undefined => saw_undefined = true,
+            Match3::NoMatch => {}
+        }
+    }
+    if saw_undefined {
+        Match3::Undefined
+    } else {
+        Match3::NoMatch
+    }
+}
+
+fn match_constraint(c: &Constraint, item: &syn::Item) -> Match3 {
     match c {
-        Constraint::Item(kind) => item_kind_matches(item, *kind),
-        Constraint::NameMatches(glob) => item_name(item).is_some_and(|name| glob.matches(&name)),
-        Constraint::Variants(range) => match item {
+        // Leaf predicates with a locus on EVERY item-class are always
+        // well-posed → definite Match/NoMatch, never Undefined.
+        Constraint::Item(kind) => Match3::from_bool(item_kind_matches(item, *kind)),
+        Constraint::NameMatches(glob) => {
+            Match3::from_bool(item_name(item).is_some_and(|name| glob.matches(&name)))
+        }
+        Constraint::Variants(range) => Match3::from_bool(match item {
             syn::Item::Enum(e) => range.contains(e.variants.len()),
             _ => false,
-        },
-        Constraint::HasMethod(pattern) => has_matching_method(item, pattern),
+        }),
+        Constraint::HasMethod(pattern) => Match3::from_bool(has_matching_method(item, pattern)),
         Constraint::AttrPresent(path) => {
-            item_attrs(item).iter().any(|a| attr_path_matches(a, path))
+            Match3::from_bool(item_attrs(item).iter().any(|a| attr_path_matches(a, path)))
         }
-        Constraint::DocContains(needle) => doc_text(item).contains(needle.as_str()),
+        Constraint::DocContains(needle) => {
+            Match3::from_bool(doc_text(item).contains(needle.as_str()))
+        }
+        // body_contains_macro is the one v0.2 leaf with a partial domain: it
+        // returns Undefined on bodyless item-classes (ADR-010 Amd6).
         Constraint::BodyContainsMacro(name) => body_contains_macro(item, name),
-        Constraint::AllOf(children) => children.iter().all(|c| match_constraint(c, item)),
-        Constraint::AnyOf(children) => children.iter().any(|c| match_constraint(c, item)),
-        Constraint::Not(child) => !match_constraint(child, item),
+        Constraint::AllOf(children) => match_all_of(children, item),
+        Constraint::AnyOf(children) => match_any_of(children, item),
+        Constraint::Not(child) => match_constraint(child, item).not(),
     }
 }
 
@@ -241,7 +353,7 @@ fn render_inputs(sig: &syn::Signature) -> String {
 
 /// Walk the function/method body for a macro invocation whose path's last
 /// segment equals `name`.
-fn body_contains_macro(item: &syn::Item, name: &str) -> bool {
+fn body_contains_macro(item: &syn::Item, name: &str) -> Match3 {
     use syn::visit::Visit;
 
     struct MacroFinder<'a> {
@@ -268,7 +380,11 @@ fn body_contains_macro(item: &syn::Item, name: &str) -> bool {
         found: false,
     };
     match item {
-        syn::Item::Fn(f) => finder.visit_block(&f.block),
+        // Has a function body to search → definite Match/NoMatch.
+        syn::Item::Fn(f) => {
+            finder.visit_block(&f.block);
+            Match3::from_bool(finder.found)
+        }
         syn::Item::Impl(imp) => {
             for impl_item in &imp.items {
                 if let syn::ImplItem::Fn(f) = impl_item {
@@ -278,10 +394,13 @@ fn body_contains_macro(item: &syn::Item, name: &str) -> bool {
                     }
                 }
             }
+            Match3::from_bool(finder.found)
         }
-        _ => {}
+        // No function body on this item-class — the question "does the body
+        // contain macro X" has no locus here. UNDEFINED, not vacuous-false
+        // (ADR-010 Amd6): this is what kills the vacuous-`not` hazard.
+        _ => Match3::Undefined,
     }
-    finder.found
 }
 
 #[cfg(test)]
@@ -718,51 +837,44 @@ mod tests {
         );
     }
 
-    // ATK-FP-NOT-BODY-VACUOUS: not(body_contains_macro(X)) on a non-fn/non-impl
-    // item is a vacuous truth that always matches.
+    // ATK-FP-NOT-BODY-VACUOUS (CLOSED by ADR-010 Amd6 Match3): not(body_contains_macro(X))
+    // on a bodyless item-class is no longer vacuously true.
     //
-    // body_contains_macro() returns false for structs, enums, traits, and any
-    // item without a function body (the _ => {} arm at matcher.rs:282). Therefore
-    // not(body_contains_macro("X")) returns true for ALL such items, regardless
-    // of content.
+    // Before Match3, body_contains_macro() returned `false` for structs/enums/traits
+    // (the `_ => {}` arm), so not(false)=true → all_of([item=struct, not(...)]) matched
+    // EVERY struct. The adopter intended "structs without panic!" but got all structs —
+    // the fingerprint fired everywhere it was meant to filter.
     //
-    // An adopter who writes all_of([item = struct, not(body_contains_macro("panic!"))])
-    // intending "structs whose implementation doesn't use panic!" gets no filtering
-    // at all -- the fingerprint matches EVERY struct vacuously. The author thinks
-    // they're filtering; they're not.
-    //
-    // This is a DOCUMENTED LIMITATION (not a bug to fix now): the fingerprint
-    // grammar's body_contains_macro is scoped to fn/impl bodies. The not() of a
-    // body predicate on a bodyless item is vacuously true. Adopters who need
-    // "struct whose impl block doesn't call panic!" should use item=impl with
-    // has_method + not(body_contains_macro), not item=struct.
-    //
-    // This test locks in the vacuous-truth behavior as a documented regression
-    // anchor. If body_contains_macro is ever extended to look at impl blocks
-    // associated with a struct (via cross-item analysis), this test must be
-    // updated to reflect the new non-vacuous behavior.
+    // Under Match3, body_contains_macro on a struct returns `Undefined` (no body-locus —
+    // the question is malformed here, like an assay run on the wrong tissue). The
+    // Kleene-strong algebra gives `not(Undefined) = Undefined`, and
+    // `all_of([Match(item=struct), Undefined]) = Undefined`. The Level-2 fingerprint-fires
+    // projection maps `Undefined` → doesn't fire. So the fingerprint correctly does NOT
+    // match a plain struct: the malformed-here predicate cannot vacuously pass.
     #[test]
-    fn not_body_contains_macro_on_struct_is_vacuously_true() {
+    fn not_body_contains_macro_on_struct_is_undefined_not_vacuous() {
         let fp = fp(r#"all_of([item = struct, not(body_contains_macro("panic"))])"#);
 
-        // Every struct matches -- body_contains_macro returns false for structs
-        // (no body to search), so not(false) = true. Vacuous.
+        // body_contains_macro on a struct is Undefined; not(Undefined)=Undefined;
+        // all_of(Match, Undefined)=Undefined; projection → doesn't fire.
         assert!(
-            fp.matches(&item("pub struct PlainStruct;")),
-            "ATK-FP-NOT-BODY-VACUOUS: all_of([item=struct, not(body_contains_macro('panic'))]) \
-             must match a plain struct -- body_contains_macro returns false for structs \
-             (no body), so not(false)=true. Vacuously matches ALL structs."
+            !fp.matches(&item("pub struct PlainStruct;")),
+            "ATK-FP-NOT-BODY-VACUOUS (CLOSED): all_of([item=struct, not(body_contains_macro('panic'))]) \
+             must NOT match a plain struct — body_contains_macro on a bodyless item is Undefined, \
+             not(Undefined)=Undefined, all_of propagates Undefined, projection → doesn't fire. \
+             The vacuous-not hazard is closed at the type level (ADR-010 Amd6)."
         );
         assert!(
-            fp.matches(&item(
+            !fp.matches(&item(
                 "#[derive(Debug)] pub struct DerivedStruct { x: u32 }"
             )),
-            "ATK-FP-NOT-BODY-VACUOUS: all_of([item=struct, not(body_contains_macro('panic'))]) \
-             must match a struct with fields -- body_contains_macro still returns false \
-             (fields are not a fn body), so vacuously true."
+            "ATK-FP-NOT-BODY-VACUOUS (CLOSED): a struct with fields must NOT match either — \
+             fields are not a fn body, so body_contains_macro is still Undefined and the \
+             fingerprint does not fire vacuously."
         );
 
-        // A function that DOES call panic! should NOT match (item=struct gates it).
+        // A function that DOES call panic! should NOT match (item=struct gates it: the
+        // item-kind leaf is a definite NoMatch, short-circuiting all_of to NoMatch).
         assert!(
             !fp.matches(&item("fn uses_panic() { panic!(\"oops\"); }")),
             "ATK-FP-NOT-BODY-VACUOUS: item=struct in all_of must gate out functions."
@@ -828,6 +940,106 @@ mod tests {
              rejected (ADR-010 Amendment 3 OQ3 -- requires at least one positive matcher). \
              Got: {:?}",
             result
+        );
+    }
+
+    // ========================================================================
+    // ADR-010 Amendment 6 — Match3 Kleene-strong algebra (Level-1 invariants)
+    //
+    // The user-facing tests above exercise the Level-2 projection (fires? only
+    // if Match). These exercise the Level-1 leaf algebra directly: the spec is
+    // explicit that `Undefined` must PROPAGATE through combinators and must NOT
+    // collapse to `NoMatch` inside `all_of`. Collapsing it would re-introduce
+    // the vacuous-not defect; these tests pin the propagation at the type level.
+    // ========================================================================
+
+    use super::{match_constraint, Match3};
+
+    #[test]
+    fn match3_not_is_kleene_strong() {
+        // not(Undefined) = Undefined — the load-bearing clinical invariant
+        // (you cannot negate an indeterminate into a definite, ADR-010 Amd6).
+        assert_eq!(Match3::Match.not(), Match3::NoMatch);
+        assert_eq!(Match3::NoMatch.not(), Match3::Match);
+        assert_eq!(
+            Match3::Undefined.not(),
+            Match3::Undefined,
+            "not(Undefined) must stay Undefined — collapsing it to Match is the \
+             vacuous-not defect Match3 exists to kill"
+        );
+    }
+
+    #[test]
+    fn match3_body_predicate_undefined_on_bodyless_definite_on_fn() {
+        // body_contains_macro: Undefined on a struct (no locus), definite on a fn.
+        let body_fp = crate::Fingerprint::parse(r#"body_contains_macro("panic")"#).unwrap();
+        let c = &body_fp.constraints[0];
+
+        assert_eq!(
+            match_constraint(c, &item("pub struct S;")),
+            Match3::Undefined,
+            "body_contains_macro on a bodyless struct must be Undefined, not NoMatch"
+        );
+        assert_eq!(
+            match_constraint(c, &item("fn uses() { panic!(); }")),
+            Match3::Match,
+            "body_contains_macro on a fn that calls the macro must be Match"
+        );
+        assert_eq!(
+            match_constraint(c, &item("fn clean() { let _ = 1; }")),
+            Match3::NoMatch,
+            "body_contains_macro on a fn that does NOT call the macro must be NoMatch (definite)"
+        );
+    }
+
+    #[test]
+    fn match3_undefined_propagates_through_all_of_not_collapsing() {
+        // all_of([item=struct, body_contains_macro("panic")]) on a struct:
+        // item=struct is Match (definite), body_contains_macro is Undefined.
+        // all_of(Match, Undefined) MUST be Undefined (definedness gap preserved),
+        // NOT NoMatch (which would collapse the type-level distinction).
+        let fp =
+            crate::Fingerprint::parse(r#"all_of([item = struct, body_contains_macro("panic")])"#)
+                .unwrap();
+        assert_eq!(
+            match_constraint(&fp.constraints[0], &item("pub struct S;")),
+            Match3::Undefined,
+            "all_of(Match, Undefined) must propagate Undefined, not collapse to NoMatch"
+        );
+
+        // A definite NoMatch sibling DOES short-circuit all_of to NoMatch:
+        // item=fn is NoMatch on a struct → the whole all_of is NoMatch (definite
+        // failure dominates the undefined gap).
+        let fp2 = crate::Fingerprint::parse(r#"all_of([item = fn, body_contains_macro("panic")])"#)
+            .unwrap();
+        assert_eq!(
+            match_constraint(&fp2.constraints[0], &item("pub struct S;")),
+            Match3::NoMatch,
+            "a definite NoMatch sibling must short-circuit all_of to NoMatch"
+        );
+    }
+
+    #[test]
+    fn match3_undefined_propagates_through_any_of_not_collapsing() {
+        // any_of([item=fn, body_contains_macro("panic")]) on a struct:
+        // item=fn is NoMatch (definite), body_contains_macro is Undefined.
+        // any_of(NoMatch, Undefined) MUST be Undefined, NOT NoMatch.
+        let fp = crate::Fingerprint::parse(r#"any_of([item = fn, body_contains_macro("panic")])"#)
+            .unwrap();
+        assert_eq!(
+            match_constraint(&fp.constraints[0], &item("pub struct S;")),
+            Match3::Undefined,
+            "any_of(NoMatch, Undefined) must propagate Undefined, not collapse to NoMatch"
+        );
+
+        // A definite Match sibling DOES short-circuit any_of to Match.
+        let fp2 =
+            crate::Fingerprint::parse(r#"any_of([item = struct, body_contains_macro("panic")])"#)
+                .unwrap();
+        assert_eq!(
+            match_constraint(&fp2.constraints[0], &item("pub struct S;")),
+            Match3::Match,
+            "a definite Match sibling must short-circuit any_of to Match"
         );
     }
 }
