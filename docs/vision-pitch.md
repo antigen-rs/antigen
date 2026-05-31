@@ -175,7 +175,11 @@ Three forces make 2026 the right moment:
 
 ## The comprehensive vision
 
-Antigen v0.1 ships the core of structural failure-class memory: five macros, fingerprint grammar, scan + audit + attest + tolerate + oracle CLI, substrate-witness predicates, Oracle 5-state lifecycle, cross-cutting attestation. This is one branch of the comprehensive immune-system framework.
+Antigen v0.1 shipped the core of structural failure-class memory: five macros, fingerprint grammar, scan + audit + attest + tolerate + oracle CLI, substrate-witness predicates, Oracle 5-state lifecycle, cross-cutting attestation.
+
+**Antigen v0.2 adds the observe-not-declare layer**: `#[defended_by]` (code-tier witness registration), `#[presents(requires=)]` (substrate-tier witness), the full deferred-defense family (`#[anergy]`, `#[immunosuppress]`, `#[poxparty]`, `#[orient]`), the recurrent-emergence family, convergent-evidence family, mucosal-boundary family, and supply-chain defense family. The audit surface shifted from "did the claim resolve?" to "is the site defended?" — immunity is now observed, not declared. ADR-029 is the architectural hinge.
+
+This is one branch of the comprehensive immune-system framework.
 
 The biological immune system is the systematic discovery framework for what the full vocabulary needs to be — each immune-system component maps to a code discipline with its own primitive. We've mapped approximately 10% of the metaphor; each remaining component is a research-arc prompt.
 
