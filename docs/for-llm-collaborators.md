@@ -218,9 +218,8 @@ failure-class path).
 
 If no real witness exists, the honest move is one of:
 
-1. Write the witness function (a `#[test]` that exercises the failure-
-   class)
-2. Use `#[antigen_tolerance]` with rationale instead of `#[immune]`
+1. Write the witness function (a `#[test]` annotated `#[defended_by(X)]`)
+2. Use `#[antigen_tolerance]` with rationale to explicitly acknowledge the gap
 3. Surface to the human that no witness is available
 
 See [`witness-tiers.md`](witness-tiers.md) for the full tier semantics.
@@ -324,22 +323,22 @@ impl Drop for ResourceHandle {
     }
 }
 
-// Best, with a witness:
+// Best, with a witness (ADR-029 idiom):
+// The site carries #[presents] — the defense lives on the TEST.
 #[presents(PanickingInDrop)]
-#[immune(
-    PanickingInDrop,
-    witness = resource_handle_no_panic_test,
-    rationale = "All cleanup paths use non-panicking accessors."
-)]
 impl Drop for ResourceHandle {
     fn drop(&mut self) {
         // ...
     }
 }
 
+// The test registers itself as a code-tier witness via #[defended_by].
+// Defense evidence lives at the witness site, not at the vulnerable site.
 #[test]
+#[defended_by(PanickingInDrop)]
 fn resource_handle_no_panic_test() {
-    // exercise the drop paths to verify
+    // exercise the drop paths to verify — if this panics, the test fails
+    let _ = ResourceHandle { /* ... */ };
 }
 ```
 
