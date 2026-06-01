@@ -1246,6 +1246,13 @@ enum VcsSubcommand {
     /// surfacing the tooling-not-yet-available awareness signal per
     /// ADR-005 Amendment 2 honest-tier-naming.
     Attest,
+    /// Mine git history for the recurrent-emergence stdlib failure-classes and
+    /// surface how many times each pattern fired — the passive→active loop for
+    /// the recurrent family (`infra/recurrence-automation`). DETECTION only:
+    /// reports observed counts; the *verdict* (is this recurrence worth a
+    /// `#[recurrence_anchor]`?) stays the adopter's call (the structural seam —
+    /// mining detects the fact, the adopter/ADR owns the recognition).
+    Recurrence(VcsRecurrenceArgs),
 }
 
 #[derive(Debug, Parser)]
@@ -1293,6 +1300,16 @@ struct VcsRollbackPrepareArgs {
     target: String,
 }
 
+#[derive(Debug, Parser)]
+struct VcsRecurrenceArgs {
+    /// How many recent commits to mine (the recurrence window).
+    #[arg(long, default_value = "200")]
+    depth: usize,
+    /// Output format: human or json.
+    #[arg(long, default_value = "human")]
+    format: OutputFormat,
+}
+
 fn run_vcs(cli: VcsCli) -> ExitCode {
     match cli.command {
         VcsSubcommand::CheckCommit(args) => run_vcs_check_commit(args),
@@ -1300,7 +1317,174 @@ fn run_vcs(cli: VcsCli) -> ExitCode {
         VcsSubcommand::BranchArchive(args) => run_vcs_branch_archive(args),
         VcsSubcommand::RollbackPrepare(args) => run_vcs_rollback_prepare(args),
         VcsSubcommand::Attest => run_vcs_attest_stub(),
+        VcsSubcommand::Recurrence(args) => run_vcs_recurrence(args),
     }
+}
+
+/// One mined recurrent-emergence pattern: its stdlib antigen name, the
+/// observable git substrate it reads, and how many commits in the window
+/// touched that substrate (the recurrence count). DETECTION only — the count
+/// is the structural fact; whether it merits a `#[recurrence_anchor]` is the
+/// adopter's recognition call (the seam).
+struct RecurrenceObservation {
+    /// The stdlib antigen this observation surfaces evidence for.
+    antigen: &'static str,
+    /// What git substrate the count reads (human-readable).
+    substrate: &'static str,
+    /// How many commits in the window touched that substrate.
+    count: usize,
+}
+
+/// Count commits in the last `depth` commits that touched any path matching
+/// `pathspec` (a `git log` pathspec, e.g. `*Cargo.toml`). Returns `None` when
+/// git is unavailable (not a repo / git missing) so the caller can degrade
+/// honestly — an unavailable mine is NOT "zero recurrences", it is "could not
+/// observe". Fixed-arg subprocess per the ADR-019 §4 bright-line (git named,
+/// fixed args, no user-code exec).
+fn count_commits_touching(depth: usize, pathspec: &str) -> Option<usize> {
+    let out = std::process::Command::new("git")
+        .args(["log", &format!("-{depth}"), "--format=%H", "--", pathspec])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    Some(String::from_utf8_lossy(&out.stdout).lines().count())
+}
+
+/// Like [`count_commits_touching`] but additionally requires the diff to
+/// add/remove a line matching `regex` (`git log -G<regex>`) — for MSRV creep,
+/// "touched Cargo.toml" over-counts; "changed a `rust-version` line" is the
+/// real signal. `None` on git failure (honest degradation).
+fn count_commits_changing_line(depth: usize, regex: &str, pathspec: &str) -> Option<usize> {
+    let out = std::process::Command::new("git")
+        .args([
+            "log",
+            &format!("-{depth}"),
+            "--format=%H",
+            &format!("-G{regex}"),
+            "--",
+            pathspec,
+        ])
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    Some(String::from_utf8_lossy(&out.stdout).lines().count())
+}
+
+/// `vcs recurrence`: mine git history for the three recurrent-emergence stdlib
+/// failure-classes and surface their recurrence counts — the passive→active
+/// loop (`infra/recurrence-automation`).
+///
+/// **The structural seam (pathmaker convergence, this expedition).** Mining
+/// DETECTS the structural fact (this pattern fired N times across the window);
+/// the VERDICT (is N a recurrence worth a `#[recurrence_anchor]`?) stays the
+/// adopter's recognition call. So this command never auto-anchors and never
+/// fails the build — it reports observations and points at the macro the
+/// adopter would use. Parallel to camp's recurrence (which mines the team
+/// ACTIVITY LOG for recurring work); antigen mines GIT HISTORY for recurring
+/// failure-classes — different substrates, different objects, not competing.
+///
+/// **Honest degradation (the offline/no-repo axis).** When git is unavailable
+/// each observation reads "unobservable", never "zero" — the absence of a mine
+/// is not evidence of absence (tier-honest, the same discipline the coverage
+/// audit uses for a flat scan).
+fn run_vcs_recurrence(args: VcsRecurrenceArgs) -> ExitCode {
+    // Each detector grounded in the recurrent stdlib antigen it feeds
+    // (antigen/src/stdlib/recurrent.rs):
+    //   MsrvCreepAfterMajorVersionBump   ← commits changing a rust-version line
+    //   GitignorePatternDriftOverReleases ← commits touching .gitignore
+    //   LockfileChurnFromUnpinnedTooling  ← commits touching Cargo.lock
+    let msrv = count_commits_changing_line(args.depth, "rust-version", "*Cargo.toml");
+    let gitignore = count_commits_touching(args.depth, ".gitignore");
+    let lockfile = count_commits_touching(args.depth, "Cargo.lock");
+
+    // A `None` from any detector means git itself is unavailable — degrade the
+    // WHOLE command honestly rather than report a misleading partial.
+    let (Some(msrv), Some(gitignore), Some(lockfile)) = (msrv, gitignore, lockfile) else {
+        match args.format {
+            OutputFormat::Json => {
+                println!(
+                    "{}",
+                    serde_json::json!({ "observable": false, "reason": "git unavailable (not a repo, or git missing)" })
+                );
+            }
+            OutputFormat::Human => {
+                eprintln!(
+                    "cargo antigen vcs recurrence: git unavailable (not a repo, or git \
+                     missing) — recurrence is UNOBSERVABLE here, not zero."
+                );
+            }
+        }
+        // Honest-degradation is not an error verdict: exit 0 (the audit must not
+        // be blocked by an unobservable mine).
+        return ExitCode::SUCCESS;
+    };
+
+    let observations = [
+        RecurrenceObservation {
+            antigen: "MsrvCreepAfterMajorVersionBump",
+            substrate: "commits changing a `rust-version` line in any Cargo.toml",
+            count: msrv,
+        },
+        RecurrenceObservation {
+            antigen: "GitignorePatternDriftOverReleases",
+            substrate: "commits touching .gitignore",
+            count: gitignore,
+        },
+        RecurrenceObservation {
+            antigen: "LockfileChurnFromUnpinnedTooling",
+            substrate: "commits touching Cargo.lock",
+            count: lockfile,
+        },
+    ];
+
+    match args.format {
+        OutputFormat::Json => {
+            let arr: Vec<_> = observations
+                .iter()
+                .map(|o| {
+                    serde_json::json!({
+                        "antigen": o.antigen,
+                        "substrate": o.substrate,
+                        "recurrence_count": o.count,
+                        "window_commits": args.depth,
+                    })
+                })
+                .collect();
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&serde_json::json!({
+                    "observable": true,
+                    "observations": arr,
+                }))
+                .unwrap_or_else(|_| "{}".to_string())
+            );
+        }
+        OutputFormat::Human => {
+            println!(
+                "Recurrent-emergence mine over the last {} commits (recurrent-emergence \
+                 family, ADR-024):",
+                args.depth
+            );
+            println!();
+            for o in &observations {
+                println!("  {:>4}×  {}", o.count, o.antigen);
+                println!("        substrate: {}", o.substrate);
+            }
+            println!();
+            println!(
+                "  These are OBSERVATIONS, not verdicts. A high count is evidence the \
+                 failure-class recurs in this repo — anchor it with \
+                 #[recurrence_anchor(<Antigen>)] + #[itch(<Antigen>)] so the next \
+                 occurrence is recognized, not re-discovered. Whether a count is \
+                 'high enough' to anchor is your call (the recognition seam)."
+            );
+        }
+    }
+    ExitCode::SUCCESS
 }
 
 /// Read a single commit's message and parse its trailers via
