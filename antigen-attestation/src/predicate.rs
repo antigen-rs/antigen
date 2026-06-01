@@ -226,6 +226,25 @@ impl Predicate {
                 }) if v.is_empty() => {
                     err = Some(PredicateParseError::EmptyMinVersion);
                 }
+                Self::Leaf(Leaf::RatifiedDoc {
+                    min_version: Some(v),
+                    ..
+                }) => {
+                    // ATK-FT-3: every dotted component must parse as a u64.
+                    // `compare_versions` does `parse::<u64>().unwrap_or(0)`, so a
+                    // non-numeric or u64-overflowing component would silently read
+                    // as 0 — LOWERING the floor rather than raising it. Reject it
+                    // here so a bad floor can never vacuously pass.
+                    if let Some(bad) = v
+                        .split('.')
+                        .map(str::trim)
+                        .find(|c| c.parse::<u64>().is_err())
+                    {
+                        err = Some(PredicateParseError::UnparseableMinVersion {
+                            component: bad.to_string(),
+                        });
+                    }
+                }
                 _ => {}
             }
         });
@@ -499,6 +518,19 @@ pub enum PredicateParseError {
     /// for any document with a non-empty version field (adversarial NFA-15).
     /// Rejected at `validate()` time.
     EmptyMinVersion,
+    /// A `ratified_doc(min_version = …)` leaf carries a version component that
+    /// is not a valid `u64` (non-numeric, or an integer that overflows `u64`).
+    /// `compare_versions` parses each dotted component with `unwrap_or(0)`, so an
+    /// un-parseable component is silently read as `0` — which LOWERS the version
+    /// floor instead of raising it. A `min_version` like `"18446744073709551616.0"`
+    /// (`u64::MAX` + 1) reads as `[0, 0]`, so any document with version ≥ `1.0`
+    /// vacuously satisfies a gate that was meant to require an unobtainably large
+    /// version (adversarial ATK-FT-3). Rejected at `validate()` time so a bad
+    /// floor can never silently become `0`.
+    UnparseableMinVersion {
+        /// The offending component that did not parse as a `u64`.
+        component: String,
+    },
 }
 
 impl std::fmt::Display for PredicateParseError {
@@ -545,6 +577,13 @@ impl std::fmt::Display for PredicateParseError {
                 "ratified_doc leaf has an empty min_version string; \
                  compare_versions(any_version, '') is always Greater or Equal and \
                  vacuously bypasses the version floor check (adversarial NFA-15)"
+            ),
+            Self::UnparseableMinVersion { component } => write!(
+                f,
+                "ratified_doc leaf has a min_version component `{component}` that is \
+                 not a valid u64 (non-numeric or overflowing); compare_versions parses \
+                 it as 0, silently LOWERING the version floor instead of raising it \
+                 (adversarial ATK-FT-3)"
             ),
         }
     }

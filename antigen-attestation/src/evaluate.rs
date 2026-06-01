@@ -694,7 +694,11 @@ fn eval_signers(
             };
             let role_ok = expected_role.is_none_or(|r| s.role.as_deref() == Some(r.as_str()));
             // If signature_allow is non-empty, the signer's strength must be in the list.
-            let strength_ok = signature_allow.is_empty() || signature_allow.contains(&s.strength);
+            // NFA-21 discipline: strength is checked only against CURRENT-fp entries —
+            // a stale high-tier entry must not satisfy the allow-list (ATK-NFA-24).
+            let strength_ok = signature_allow.is_empty()
+                || (s.signed_against_fingerprint == current_fingerprint
+                    && signature_allow.contains(&s.strength));
             currency_ok && role_ok && strength_ok
         });
         if !any_candidate_satisfies {
@@ -892,21 +896,37 @@ fn eval_fresh_within_days<C: EvaluationContext>(
         .filter(|s| s.signed_against_fingerprint == current_fingerprint)
         .map(|s| s.date)
         .max();
+    // ATK-FT-1/2: `fresh_through` EXTENDS a real current-fingerprint attestation's
+    // freshness window; it does NOT SUBSTITUTE for one. Without at least one
+    // current-fp signer, `fresh_through` is an unwitnessed date a sidecar writer
+    // can set to `today` to bypass review entirely (the temporal forged-freshness
+    // class, sibling of the S4 frame-expiry bypass ATK-PRES-13). So `fresh_through`
+    // counts ONLY when a current-fp signer anchors it; with no such signer the leaf
+    // fails as "freshness not met" — a clean rejection, never SubstrateStale
+    // (which would falsely read "reviewed but old").
     let candidate = match (latest_signer, item.fresh_through) {
         (Some(a), Some(b)) => Some(a.max(b)),
         (Some(a), None) => Some(a),
-        (None, Some(b)) => Some(b),
-        (None, None) => None,
+        // No current-fp signer: `fresh_through` alone cannot anchor freshness.
+        (None, _) => None,
     };
     let Some(latest) = candidate else {
+        let reason = if item.fresh_through.is_some() {
+            "`fresh_through` is set but NO current-fingerprint signer anchors it — \
+             an unwitnessed freshness date cannot satisfy the gate (ATK-FT-1/2: \
+             fresh_through extends a real attestation, it does not substitute for one)"
+                .to_string()
+        } else {
+            "no current-fingerprint signer date and no `fresh_through` — \
+             nothing to measure freshness against (NFA-21: stale-fingerprint \
+             dates are excluded)"
+                .to_string()
+        };
         return LeafOutcome {
             label,
             passed: false,
             evaluated: true,
-            reason: "no current-fingerprint signer date and no `fresh_through` — \
-                     nothing to measure freshness against (NFA-21: stale-fingerprint \
-                     dates are excluded)"
-                .to_string(),
+            reason,
         };
     };
     let today = ctx.today();
@@ -2183,72 +2203,53 @@ mod tests {
 
     #[test]
     fn fresh_through_with_no_signers_at_all_bypasses_freshness_nfa23() {
-        // DOCUMENTED GAP (adversarial NFA-23): `eval_fresh_within_days` accepts
-        // `item.fresh_through` as an anchor date even when the sidecar has NO signers.
-        // A sidecar with `signers = []` but `fresh_through` set to a recent date will
-        // satisfy the freshness leaf — nobody has attested, but the item appears "fresh."
+        // GAP CLOSED (adversarial NFA-23, fixed via ATK-FT-1/2): `eval_fresh_within_days`
+        // used to accept `item.fresh_through` as an anchor date even when the sidecar had
+        // NO signers — a sidecar with `signers = []` but `fresh_through = today` satisfied
+        // the freshness leaf, so nobody had attested yet the item appeared "fresh." That
+        // was the temporal forged-freshness bypass.
         //
-        // Note: when signers ARE present but stale, `classify_passed_predicate` catches
-        // them via the per-name stale detection and returns Reachability, not Execution.
-        // The gap is strongest when there are NO signers at all and fresh_through is set
-        // — the signer list is empty, classify returns Execution with no signers.
+        // The fix: `fresh_through` EXTENDS a real current-fingerprint attestation's
+        // freshness window; it does NOT SUBSTITUTE for one. With no current-fp signer the
+        // freshness leaf now FAILS (DisciplinePredicateFailed) — a clean rejection.
         //
-        // Attack: create a sidecar with no signers and fresh_through = today. The item
-        // is claimed "fresh" by the freshness leaf even though nobody has reviewed it.
-        //
-        // FIX DIRECTION (v0.2): `eval_fresh_within_days` should require at least one
-        // signer entry to be meaningful — fresh_through alone (without a signer to
-        // anchor the freshness claim) should not satisfy the leaf.
-        //
-        // This test DOCUMENTS the current behavior.
+        // This test now asserts the CORRECTED behavior (it formerly documented the gap).
         let mut item = item_with(vec![]); // NO signers
-                                          // fresh_through = today; the freshness check reads this as "signed on today".
+                                          // fresh_through = today, but no signer anchors it.
         item.fresh_through = Some(sample_date());
         let pred = Predicate::leaf(Leaf::FreshWithinDays { days: 60 });
         let ctx = TestContext::new(sample_date()); // today = 2026-05-19
         let r =
             evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
-        // CURRENT BEHAVIOR: fresh_through satisfies freshness with zero signers.
-        // classify_passed_predicate sees empty signer list and returns Execution directly.
-        // Documents the v0.2 gap — fresh_through with no signers is unanchored freshness.
+        // CORRECTED: unanchored fresh_through no longer satisfies freshness.
         assert_eq!(
             r.witness_tier,
-            WitnessTier::Execution,
-            "NFA-23 documented gap: fresh_through with no signers satisfies freshness leaf; \
-             nobody has reviewed the item but it appears 'fresh'; v0.2 fix: require signer co-presence"
+            WitnessTier::None,
+            "NFA-23 (closed by ATK-FT-1/2): fresh_through with no signers must NOT satisfy \
+             the freshness leaf — an unwitnessed date cannot anchor freshness; got {:?}",
+            r.witness_tier
         );
         assert_eq!(
-            r.signature_strength, None,
-            "no signers → signature_strength must be None"
+            r.audit_hint,
+            AuditHint::DisciplinePredicateFailed,
+            "unanchored fresh_through ⇒ a clean freshness failure, not a pass"
         );
     }
 
     #[test]
     fn signature_allow_enforced_against_current_fp_entry_strength_nfa24() {
-        // SILENT FAILURE CANDIDATE (adversarial NFA-24): `eval_signers` with
-        // `against = SignerCurrency::Any` and a non-empty `signature_allow` list
-        // should enforce strength against ALL candidate entries, but the
-        // `any_candidate_satisfies` loop might match a STALE entry that happens to
-        // pass the `signature_allow` constraint when the CURRENT entry does not —
-        // or vice versa.
+        // NFA-24 FIX VERIFICATION: `eval_signers` with `against = SignerCurrency::Any`
+        // and a non-empty `signature_allow` list must enforce strength against
+        // CURRENT-fp entries only. A stale high-tier entry must not satisfy the
+        // allow-list when the signer's current-fp entry is below it.
         //
-        // Specifically: if `signature_allow = [GitTrust, CryptoSigned]` (disallow
-        // TextStamp), and alice has a stale entry with GitTrust AND a current entry
-        // with TextStamp (she downgraded her signing tier), `against = Any` means
-        // the stale GitTrust entry satisfies the allow-list. The predicate passes
-        // — but the current attestation is at TextStamp, which is below the allow-list.
+        // Scenario: alice has a stale GitTrust entry (fp-old) and a current TextStamp
+        // entry (fp-current); signature_allow=[GitTrust, CryptoSigned]. With the fix,
+        // the stale GitTrust entry must NOT satisfy the allow-list — only the current
+        // TextStamp entry counts, which is below the allow-list, so the predicate FAILS.
         //
-        // This is a SILENT FAILURE: the predicate passes because `against=Any`
-        // lets the stale entry satisfy both currency AND strength — but the signer's
-        // CURRENT commitment is TextStamp-only.
-        //
-        // FIX DIRECTION: `signature_allow` enforcement should be checked only against
-        // entries that also satisfy the currency constraint. For `against=Current`,
-        // this is already correct (currency_ok gates strength_ok). For `against=Any`,
-        // the strength must be checked against current-fp entries specifically (or
-        // the predicate must require `against=Current` when `signature_allow` is set).
-        //
-        // This test documents the current behavior.
+        // This test was updated when ATK-NFA-24 was fixed; the prior version documented
+        // the wrong (pre-fix) behavior of WitnessTier::Execution.
         let alice_stale_git = Signer {
             name: "alice".to_string(),
             role: None,
@@ -2278,23 +2279,17 @@ mod tests {
         let ctx = TestContext::new(sample_date());
         let r =
             evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
-        // CURRENT BEHAVIOR: the stale GitTrust entry satisfies both currency (Any=always true)
-        // and strength (in allow-list), so the predicate PASSES even though alice's
-        // current-fp attestation is TextStamp (below the allow-list). alice HAS a
-        // current-fp entry so stale_count=0 (per-name NFA-18 fix). Classification: Execution.
-        //
-        // The gap: `against=Any` + `signature_allow` is unsound — a stale entry at a
-        // higher tier satisfies the allow-list while the signer's actual CURRENT tier is
-        // below it. This should fail: the signer's current commitment is TextStamp-only.
-        //
-        // This documents the v0.2 gap — fix by requiring strength checks against
-        // current-fp entries specifically when against=Any.
+        // CORRECT BEHAVIOR (post-fix): the allow-list is enforced against current-fp
+        // entries only. Alice's current-fp entry is TextStamp (below the allow-list) —
+        // the predicate FAILS (WitnessTier::None). Her stale GitTrust entry at fp-old
+        // does not satisfy the allow-list because it is not current-fp.
         assert_eq!(
             r.witness_tier,
-            WitnessTier::Execution,
-            "NFA-24 documented gap: against=Any + signature_allow lets stale GitTrust entry \
-             satisfy allow-list when current-fp entry is TextStamp (below allow-list); \
-             CORRECT behavior would be WitnessTier::None (predicate should fail)"
+            WitnessTier::None,
+            "NFA-24 fix: against=Any + signature_allow must enforce strength against \
+             current-fp entries only; alice's current-fp is TextStamp (below allow-list) \
+             so predicate must fail; got {:?}",
+            r.witness_tier
         );
     }
 
@@ -2315,8 +2310,6 @@ mod tests {
     /// (`signed_against_fingerprint == current_fp`). A stale entry at a higher
     /// tier must not satisfy the allow-list constraint.
     #[test]
-    #[ignore = "ATK-NFA-24: against=Any + signature_allow strength bypass — failing contract; \
-                unblocks when eval_signers enforces signature_allow only against current-fp entries"]
     fn atk_nfa24_signature_allow_against_any_must_enforce_against_current_fp_only() {
         let alice_stale_git = Signer {
             name: "alice".to_string(),
