@@ -10,6 +10,13 @@ For positive patterns, see [`usage-patterns.md`](usage-patterns.md).
 For witness-tier semantics that some of these anti-patterns violate,
 see [`witness-tiers.md`](witness-tiers.md).
 
+> **v0.2 idiom note**: Code examples below use the v0.1 `#[immune(...)]` API as the
+> illustration vehicle. `#[immune]` is deprecated since ADR-029 — but each
+> anti-pattern (hollow witness, unresolved witness, over-claiming) applies *equally*
+> to the current idiom: `#[defended_by(X)]` on a test (code-tier) or
+> `#[presents(X, requires=...)]` on the site (substrate-tier). The mistake is in the
+> defense's substance, not the macro spelling.
+
 ---
 
 ## Anti-pattern 1 — Theatrical witness

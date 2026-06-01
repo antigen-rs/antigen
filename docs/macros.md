@@ -475,27 +475,36 @@ contracts.
 
 ## Common patterns
 
-### Co-locating presents + immune
+### Marking a site and registering its defense
 
 ```rust
+// On the vulnerable site: declare only the shape it presents.
 #[presents(MyAntigen)]
-#[immune(MyAntigen, witness = my_test)]
-fn defended_function() { /* ... */ }
+fn risky_function() { /* ... */ }
+
+// On a test elsewhere: register the code-tier defense.
+#[defended_by(MyAntigen)]
+#[test]
+fn my_test() { /* exercises the invariant */ }
 ```
 
-The presentation declares the vulnerable shape; the immunity declares
-the defense. They commonly live on the same item.
+Under ADR-029's observe-not-declare model the presents-marker and the defense are
+*separate*: the site declares only the vulnerable shape, the defense evidence lives
+on the witness, and `cargo antigen audit` cross-references them to report the per-site
+verdict (`defended` / `undefended` / `substrate-gap`). The site never claims its own
+immunity. (The deprecated `#[immune(..., witness=)]` form co-located a claim on the
+site — see the deprecated-API section above.)
 
-### Single immune on the witness site
+### Substrate-tier defense on the site
 
 ```rust
-#[immune(MyAntigen, witness = comprehensive_proptest)]
-#[proptest]
-fn comprehensive_proptest(input: MyInput) { /* ... */ }
+#[presents(MyAntigen, requires = signers(required = ["reviewer"]))]
+fn governed_function() { /* ... */ }
 ```
 
-For composition-boundary antigens, the witness IS the test, and immunity
-lives with it. See
+When the defense is substrate state a test cannot execute — sidecar signers,
+freshness, ratified docs — attach it as a `requires=` predicate on the presents-site
+instead of a code-tier witness. See
 [`usage-patterns.md`](usage-patterns.md#antigens-at-composition-boundaries).
 
 ### Tolerance for fixture-constructed cases
