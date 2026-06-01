@@ -2041,14 +2041,24 @@ pub struct ScanCoverage {
 impl ScanCoverage {
     /// Members that were enumerated but NOT scanned — the ignorance frontier.
     /// Their `#[presents]` sites (if any) were never seen by this scan.
+    ///
+    /// The frontier is a **set**: each unscanned member appears at most once,
+    /// even if `enumerated_members` contains a duplicate (degenerate input — a
+    /// valid Cargo workspace cannot have two members sharing a `name@version`,
+    /// but the data type carries no construction guard). De-duplicating here
+    /// means a downstream ignorance audit reads "is this member unseen?" once
+    /// per member, not once per accidental repeat (ATK-COV-2 decision,
+    /// pathmaker 2026-06-01). Order follows first appearance in
+    /// `enumerated_members` for determinism.
     #[must_use]
     pub fn unscanned_members(&self) -> Vec<&str> {
         let scanned: std::collections::HashSet<&str> =
             self.scanned_members.iter().map(String::as_str).collect();
+        let mut seen: std::collections::HashSet<&str> = std::collections::HashSet::new();
         self.enumerated_members
             .iter()
             .map(String::as_str)
-            .filter(|m| !scanned.contains(m))
+            .filter(|m| !scanned.contains(m) && seen.insert(m))
             .collect()
     }
 
