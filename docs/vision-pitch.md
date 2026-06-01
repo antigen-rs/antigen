@@ -5,12 +5,13 @@
 > A ~2000-word read explaining what antigen is, why it matters now, and what we're
 > asking the community to consider.
 >
-> *Updated 2026-05-31 for 0.2.0 stable: ADR-029 observe-not-declare (immunity is observed
-> by audit, not declared at the site), `#[defended_by]` as the primary code-tier idiom,
-> five stdlib families + agentic-coordination + dogfood, 1043 tests passing, Match3
-> three-valued fingerprint evaluation, deferred-defense family. v0.1 history preserved
-> inline; the full asymmetry-era framing and comprehensive immune-system vocabulary arc
-> remain the core.*
+> *Updated 2026-06-01 for 0.3.0-alpha.1 in active development (0.2.0 stable on crates.io):
+> prescriptive / work-orchestration family (8 macros, `cargo antigen audit` as live work
+> board), titer/scalar witness kind (ADR-019 Amendment 1), live-projection reporting model
+> (ADR-034), `coverage_was_applicable()` three-state coverage discriminator, typed
+> `OutOfFrameCause` (Layer-2 sub-cause), three-valued type law ratified (ADR-035). 1164
+> tests passing. ADR-029 observe-not-declare + five stdlib families + agentic-coordination +
+> dogfood from 0.2.0 stable remain unchanged. v0.1/v0.2 history preserved inline.*
 
 ---
 
@@ -180,16 +181,20 @@ Antigen v0.1 shipped the core of structural failure-class memory: five macros, f
 
 **Antigen v0.2 adds the observe-not-declare layer**: `#[defended_by]` (code-tier witness registration), `#[presents(requires=)]` (substrate-tier witness), the full deferred-defense family (`#[anergy]`, `#[immunosuppress]`, `#[poxparty]`, `#[orient]`), the recurrent-emergence family, convergent-evidence family, mucosal-boundary family, and supply-chain defense family. The audit surface shifted from "did the claim resolve?" to "is the site defended?" — immunity is now observed, not declared. ADR-029 is the architectural hinge.
 
+**Antigen v0.3 (in active development, `0.3.0-alpha.1`)** adds the prescriptive work-orchestration family (eight macros, live work-board audit output), the titer/scalar witness kind, the live-projection reporting model (ADR-034), and the three-valued type law ratified as a self-applying antigen (ADR-035). The work-board family in particular shifts antigen from purely defensive vocabulary (what went wrong, what defends it) to also covering the *obligation side* (what work is pending, who it's assigned to, whether it's overdue) — co-located in the code where the obligation lives.
+
 This is one branch of the comprehensive immune-system framework.
 
 The biological immune system is the systematic discovery framework for what the full vocabulary needs to be — each immune-system component maps to a code discipline with its own primitive. We've mapped approximately 10% of the metaphor; each remaining component is a research-arc prompt.
 
 The full vocabulary through v0.4 includes:
 
-- **Honest-debt / deferred-defense family** (`#[anergy]`, `#[immunosuppress]`, `#[poxparty]`): deferred defenses made loud rather than silently suppressed
-- **Prescriptive / work-orchestration family** (`#[panel]`, `#[ddx]`, `#[rx]`, `#[triage]`): team coordination substrate directly in code
-- **Recurrence-detection family** (`#[itch]`, `#[recurrence_anchor]`, `#[crystallize]`): noticing-without-commitment that accumulates across sessions and agents
-- **Biological-component family** (`#[macrophage]`, `#[neutrophil]`, `#[treg]`, `#[complement]`, ~30 more): each mapped to a real code discipline
+- **Honest-debt / deferred-defense family** (`#[anergy]`, `#[immunosuppress]`, `#[poxparty]`): deferred defenses made loud rather than silently suppressed *(shipped v0.2)*
+- **Prescriptive / work-orchestration family** (`#[panel]`, `#[ddx]`, `#[rx]`, `#[triage]`, `#[refer]`, `#[biopsy]`, `#[culture]`, `#[quarantine]`): team coordination substrate directly in code — "code IS the Asana board." `cargo antigen audit` renders per-site verdicts as a live-projected work board. Assists disciplined teams who want their obligation-tracking to live in the same substrate as their code *(shipped v0.3)*
+- **Titer / scalar witness kind** (`#[ignorance]`, `#[titer(source=...)]`): attests a measured value (no verdict, trend-trackable); `#[ignorance]` retroactively recognized as member-one of the titer family *(shipped v0.3)*
+- **Three-valued type law** (`CardinalityCollapseAtTrustBoundary`): a self-applying antigen — ratified as a structural law, catching antigen's own type-discipline violations *(ratified v0.3)*
+- **Recurrence-detection family** (`#[itch]`, `#[recurrence_anchor]`, `#[crystallize]`): noticing-without-commitment that accumulates across sessions and agents *(shipped v0.2)*
+- **Biological-component family** (`#[macrophage]`, `#[neutrophil]`, `#[treg]`, `#[complement]`, ~30 more): each mapped to a real code discipline *(roadmap v0.4+)*
 - **Research arcs** covering agentic dev, vibe coders, AI-pair programming, modern infra, long-context AI, supply-chain, VCS-information-loss, and more
 
 The research-driven stdlib aims at *comprehensiveness* — covering the full failure landscape the way the biological immune system covers the full pathogen landscape. Adopter extension crates (`antigen-async`, `antigen-embedded`, `antigen-db`, etc.) build domain-specific antigens against this comprehensive stdlib.
