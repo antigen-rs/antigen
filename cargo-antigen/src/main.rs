@@ -213,6 +213,15 @@ struct AuditArgs {
     /// A hybrid antigen (both categories) matches either filter.
     #[arg(long)]
     category: Option<String>,
+    /// Member-aware multi-crate audit (mirrors `scan --workspace`). Enumerate the
+    /// workspace's member crates via `cargo metadata`, scan each independently,
+    /// and stamp each member's declarations with its own `<name>@<version>`. This
+    /// is what populates the scan-coverage record, so the **coverage /
+    /// reachability audit** (the ignorance frontier: enumerated-but-unscanned
+    /// members) can surface. A flat audit (default) has no member concept and so
+    /// cannot report unreached members — tier-honest, not a completeness claim.
+    #[arg(long)]
+    workspace: bool,
     /// Write the full JSON audit report to this file (a *render of this run*,
     /// never stored state antigen reads back — the report-as-live-projection
     /// floor). The file is overwritten each run; the report is recomputed each
@@ -2753,6 +2762,39 @@ fn print_lineage_fidelity_advisory(report: &audit::LineageFidelityAuditReport) {
     println!();
 }
 
+/// Render the coverage / reachability frontier (the ignorance frontier): sites
+/// the scanner should have evaluated but did not, grouped by cause. Silent when
+/// the frontier is empty — which under a flat audit means "no member concept,"
+/// not "complete" (the absence is tier-honest, not a completeness claim).
+fn print_coverage_frontier(report: &audit::CoverageAuditReport) {
+    if report.is_complete() {
+        return;
+    }
+    println!(
+        "⚠ {} site(s) the scanner did not reach (the ignorance frontier — the 4th \
+         peripheral-tolerance mechanism: tolerance-by-non-encounter):",
+        report.unreached_sites.len()
+    );
+    println!();
+    for site in &report.unreached_sites {
+        // cause is rendered as a short tag; the remedy carries the actionable text.
+        let cause = match site.cause {
+            audit::UnreachedCause::Barrier => "barrier (never enumerated)",
+            audit::UnreachedCause::SubThreshold => "sub-threshold (scanned, not recognized)",
+            audit::UnreachedCause::Cryptic => "cryptic (present, unparsed form)",
+        };
+        println!("  {}  [{}]", site.region, cause);
+        println!("    → {}", site.remedy);
+    }
+    println!();
+    println!(
+        "  An unreached site is not defended and not tolerated — it is UNSEEN. \
+         Ignorance is observed, never declared (there is no #[ignorance] marker: \
+         to write one you'd have reached the site). Address each by its remedy above."
+    );
+    println!();
+}
+
 /// Macro-keyword string for a convergent-evidence kind (display only).
 const fn convergent_kind_str(kind: &antigen::scan::ConvergentEvidenceKind) -> &'static str {
     use antigen::scan::ConvergentEvidenceKind as K;
@@ -3258,9 +3300,17 @@ fn run_audit(args: AuditArgs) -> ExitCode {
         return ExitCode::from(2);
     };
 
-    eprintln!("Auditing workspace: {}", args.root.display());
-
-    let mut scan_report = match scan::scan_workspace(&args.root, None) {
+    // Member-aware (`--workspace`) audit populates the scan-coverage record so
+    // the coverage/reachability audit can surface unreached members; the flat
+    // audit (default) keeps byte-compatible behavior for existing consumers.
+    let scan_result = if args.workspace {
+        eprintln!("Auditing workspace (member-aware): {}", args.root.display());
+        scan::scan_workspace_multi_crate(&args.root)
+    } else {
+        eprintln!("Auditing workspace: {}", args.root.display());
+        scan::scan_workspace(&args.root, None)
+    };
+    let mut scan_report = match scan_result {
         Ok(r) => r,
         Err(e) => {
             eprintln!("error: scan failed: {e}");
@@ -3311,6 +3361,13 @@ fn run_audit(args: AuditArgs) -> ExitCode {
     // computed verdict reaches the adopter (the delivery-arm discipline).
     let lineage_fidelity_report = audit::audit_lineage_fidelity(&scan_report);
 
+    // Coverage / reachability audit — the ignorance frontier as per-site
+    // verdicts (regulatory tier; the 4th peripheral-tolerance mechanism).
+    // Barrier-cause verdicts surface enumerated-but-unscanned members; empty
+    // under a flat (non-`--workspace`) audit, which has no member concept (so it
+    // cannot know what it missed — tier-honest, not a completeness claim).
+    let coverage_report = audit::audit_coverage(&scan_report);
+
     // Live projection: the audit recomputed all of the above from the current
     // code. Envelope it for provenance; running this at a tagged commit yields
     // that tag's reproducible defense-posture SBOM (regenerable, never read
@@ -3325,6 +3382,7 @@ fn run_audit(args: AuditArgs) -> ExitCode {
             convergent_evidence_audit: &convergent_report,
             recurrent_audit: &recurrent_report,
             lineage_fidelity_audit: &lineage_fidelity_report,
+            coverage_audit: &coverage_report,
         },
     );
 
@@ -3343,6 +3401,7 @@ fn run_audit(args: AuditArgs) -> ExitCode {
             print_recurrent_concerns(&recurrent_report);
             print_lineage_fidelity_advisory(&lineage_fidelity_report);
             print_category_audit_human(&category_report);
+            print_coverage_frontier(&coverage_report);
         }
         OutputFormat::Json => match serde_json::to_string_pretty(&enveloped) {
             Ok(s) => println!("{s}"),
@@ -4329,6 +4388,12 @@ struct JsonAuditReport<'a> {
     /// edges where the child antigen's fingerprint is detectably NOT a
     /// refinement of the parent's. ADVISORY (non-blocking) for v0.3.
     lineage_fidelity_audit: &'a audit::LineageFidelityAuditReport,
+    /// Coverage / reachability audit (the ignorance frontier): per-site
+    /// `UnreachedSite` verdicts with a `cause` (Barrier / `SubThreshold` /
+    /// Cryptic). Empty under a flat audit (no member concept); Barrier verdicts
+    /// surface under `--workspace`. Delivered here so the computed verdict
+    /// reaches the adopter (the delivery-arm discipline).
+    coverage_audit: &'a audit::CoverageAuditReport,
 }
 
 fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::AuditReport) {
