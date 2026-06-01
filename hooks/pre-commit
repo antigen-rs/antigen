@@ -1,0 +1,86 @@
+#!/bin/sh
+# antigen pre-commit hook — the report-as-live-projection, delivered at commit time.
+#
+# WHAT THIS IS
+#   A lint-like gate. It runs `cargo antigen scan --strict` (and, unless you set
+#   ANTIGEN_HOOK_SKIP_AUDIT=1, `cargo antigen audit --strict`) against the working
+#   tree before each commit and blocks the commit if an EXPLICIT presentation is
+#   left undefended, a tolerance is orphaned, or a `#[descended_from]` lineage
+#   edge is broken. It runs exactly like clippy: it recomputes the report from
+#   the CURRENT code every invocation. The report is a *live projection* of the
+#   code, never a stored file the hook reads back — so it cannot go stale.
+#
+# ENFORCEMENT TIER: FRICTION-ONLY (per docs/process.md §enforcement-surface).
+#   This is a CLIENT-SIDE hook. It makes shipping an undefended failure-class a
+#   DELIBERATE act (`git commit --no-verify`) rather than an ACCIDENTAL one. It
+#   does NOT prevent a determined bypass and is NOT a substitute for the CI gate.
+#   Adopters who need structural (non-bypassable) enforcement must gate in CI
+#   (`cargo antigen scan --strict` as a required check), where `--no-verify`
+#   does not reach.
+#
+# INSTALL (opt-in; antigen never writes into your .git/ for you):
+#   From your repo root, either symlink (auto-updates with the repo copy):
+#       ln -s ../../hooks/pre-commit .git/hooks/pre-commit
+#   or copy:
+#       cp hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+#   or point git at the whole dir (git 2.9+):
+#       git config core.hooksPath hooks
+#
+# CONFIG (environment variables):
+#   ANTIGEN_HOOK_SKIP_AUDIT=1   run scan only, skip the audit pass
+#   ANTIGEN_HOOK_ROOT=<path>    scan/audit root (default: repo root)
+#   ANTIGEN_HOOK_DISABLE=1      no-op this hook for one invocation
+#
+# BYPASS (when you mean it): `git commit --no-verify`.
+
+set -eu
+
+if [ "${ANTIGEN_HOOK_DISABLE:-0}" = "1" ]; then
+    exit 0
+fi
+
+# Resolve the root to scan. Default to the repo's top level so the hook works
+# from any subdirectory; honor an explicit override.
+ROOT="${ANTIGEN_HOOK_ROOT:-}"
+if [ -z "$ROOT" ]; then
+    ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
+fi
+
+# Locate the tool. Prefer an installed `cargo-antigen` (so the hook is fast and
+# doesn't recompile); fall back to `cargo run` inside an antigen checkout.
+if command -v cargo-antigen >/dev/null 2>&1; then
+    ANTIGEN="cargo antigen"
+elif command -v cargo >/dev/null 2>&1; then
+    ANTIGEN="cargo run --quiet --bin cargo-antigen -- antigen"
+else
+    echo "antigen pre-commit: neither cargo-antigen nor cargo found on PATH; skipping." >&2
+    echo "  install with: cargo install cargo-antigen" >&2
+    exit 0
+fi
+
+echo "antigen pre-commit: scanning (friction-only gate; bypass with --no-verify) ..." >&2
+
+# scan --strict: blocks on undefended EXPLICIT presentations, orphaned
+# tolerances, and broken lineage edges. Fingerprint-match candidates are
+# informational and do NOT block (they are expected noise the witness layer
+# refines, not commit-blocking TODOs).
+if ! $ANTIGEN scan --root "$ROOT" --strict; then
+    echo "" >&2
+    echo "antigen pre-commit: scan --strict found undefended failure-classes." >&2
+    echo "  Address each site, or (deliberately) bypass with: git commit --no-verify" >&2
+    exit 1
+fi
+
+if [ "${ANTIGEN_HOOK_SKIP_AUDIT:-0}" != "1" ]; then
+    if ! $ANTIGEN audit --root "$ROOT" --strict; then
+        echo "" >&2
+        echo "antigen pre-commit: audit --strict found an immunity claim below the" >&2
+        echo "  required witness tier, an undefended presents-site, or a state-7" >&2
+        echo "  inherited-unaddressed presentation." >&2
+        echo "  Address it, or (deliberately) bypass with: git commit --no-verify" >&2
+        exit 1
+    fi
+fi
+
+echo "antigen pre-commit: clean." >&2
+exit 0

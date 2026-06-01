@@ -87,16 +87,27 @@ existing consumers).
 
 ### JSON output (`--format json`)
 
-The top-level JSON object always has these keys: `report` (the scan report),
-`unaddressed` (the convenience-rendered unaddressed-presentations list),
-`orphaned_lineage_edges` (`#[descended_from]` edges whose parent antigen is not
-declared — empty array when sound), and `dangling_child_lineage_edges`
-(`#[descended_from]` edges whose child is not itself an `#[antigen]` —
-empty array when sound). When `--include-deps` is passed, an additional
-`dep_reports` key is present (see "Scan modes" above; omitted otherwise).
+Every machine-readable report is wrapped in a **provenance envelope** (see
+"[Report envelope](#report-envelope)" below) — four self-describing keys
+(`antigen_version`, `git_sha`, `generated_at`, `report_schema_version`) sit at
+the top level alongside the report payload. They are *additive*: the payload
+keys below are unchanged, so consumers that navigate by key are unaffected.
+
+Alongside the envelope keys, the top-level JSON object always has these payload
+keys: `report` (the scan report), `unaddressed` (the convenience-rendered
+unaddressed-presentations list), `orphaned_lineage_edges` (`#[descended_from]`
+edges whose parent antigen is not declared — empty array when sound), and
+`dangling_child_lineage_edges` (`#[descended_from]` edges whose child is not
+itself an `#[antigen]` — empty array when sound). When `--include-deps` is
+passed, an additional `dep_reports` key is present (see "Scan modes" above;
+omitted otherwise).
 
 ```json
 {
+  "antigen_version": "0.3.0-alpha.1",
+  "git_sha": "e130c8f8681e8f9533a43820ab0fdcf6efe4f247",
+  "generated_at": "2026-06-01T17:09:04.582520600+00:00",
+  "report_schema_version": 1,
   "report": {
     "antigens": [
       {
@@ -435,11 +446,20 @@ site.
 
 ### JSON output (`--format json`)
 
-The top-level audit JSON object has two keys: `scan` (the embedded scan
-report) and `audit` (the audit report).
+Like the scan output, the audit report is wrapped in the **provenance
+envelope** (`antigen_version`, `git_sha`, `generated_at`,
+`report_schema_version` at the top level — see
+"[Report envelope](#report-envelope)"). Alongside the envelope keys the payload
+carries `scan` (the embedded scan report), `audit` (the audit report), and the
+delivered-verdict sidebands `category`, `deferred_defense_audit`,
+`convergent_evidence_audit`, `recurrent_audit`, and `lineage_fidelity_audit`.
 
 ```json
 {
+  "antigen_version": "0.3.0-alpha.1",
+  "git_sha": "e130c8f8681e8f9533a43820ab0fdcf6efe4f247",
+  "generated_at": "2026-06-01T17:09:04.582520600+00:00",
+  "report_schema_version": 1,
   "scan": { /* full scan report — see above */ },
   "audit": {
     "audits": [
@@ -587,17 +607,64 @@ warn-only).
 
 ---
 
+## Report envelope
+
+Every machine-readable report (`scan --format json`, `audit --format json`,
+and any `--output <file>` render) is wrapped in a provenance envelope so the
+render is **self-describing**. The four envelope keys are flattened to the top
+level, as additive siblings of the report payload — they EXTEND the schema,
+they do not fork it, so existing consumers that navigate by payload key
+(`report.presentations`, `audit.audits`, …) are unaffected.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `antigen_version` | string | The `cargo-antigen` version that produced this render |
+| `git_sha` | string \| *absent* | The git `HEAD` of the scanned workspace when the report was recomputed. Absent (skip-serialized) when the root is not a git repository or git is unavailable — tier-honest, never a fabricated value |
+| `generated_at` | string | RFC3339 UTC timestamp of this render. Restamped every run |
+| `report_schema_version` | integer | Version of the *envelope* schema itself (currently `1`); bumped only when the envelope's own key set changes shape |
+
+### The report is a live projection — never a stored truth
+
+The report is **recomputed from the current code on every run**, exactly the
+way clippy reflects current source every invocation. antigen never stores a
+report it reads back as authoritative — a stored, release-anchored report would
+itself be a `ParallelStateTrackersDiverge` instance (antigen's own
+failure-class): a second copy of the truth that can drift from the code.
+
+So a saved render is a *render of a run*, not stored state:
+
+- **`--output <file>`** writes the full enveloped JSON render. The file is
+  overwritten each run (one render, not a growing log) and is never read back
+  as authoritative — so it cannot drift. Console output is unaffected, letting
+  CI print a human summary *and* save the machine detail in one invocation.
+- **Release SBOM** = a reproducible *render of a tagged state*. Running
+  `cargo antigen audit --output posture.json` at the `v0.3.0` tag *is* the
+  v0.3.0 defense-posture SBOM — regenerable any time by re-running antigen at
+  that commit (the `git_sha` envelope key records which one). antigen never
+  reads it back, so it cannot rot.
+- **Git is the only memory.** A titer trend or escape-hatch lifetime is read
+  from the code's own history (recompute at `HEAD` and at a prior git point,
+  diff) — never from a stored report-trail.
+
+### Commit-time delivery (pre-commit hook)
+
+[`hooks/pre-commit`](../hooks/pre-commit) delivers the same recomputation at the
+git `pre-commit` event — a lint-like gate that runs `scan --strict` (and
+`audit --strict`) against the working tree. It is **friction-only** (client-side,
+bypassable with `git commit --no-verify`); structural enforcement belongs in CI.
+See [`hooks/README.md`](../hooks/README.md) for install and configuration.
+
 ## Schema versioning
 
-JSON output is currently considered **v0.1** schema. Field additions
-are forward-compatible (new optional fields may appear in subsequent
-versions); field removals or semantic changes will bump the schema
-version.
+JSON output payloads are currently considered **v0.1** schema; the envelope is
+`report_schema_version: 1`. Field additions are forward-compatible (new optional
+fields may appear in subsequent versions); field removals or semantic changes
+will bump the relevant version.
 
-Future versions may add a `schema_version` field at the top level for
-explicit versioning. Until then, consumers should:
+Consumers should:
 - Ignore unknown fields gracefully
-- Treat `null` as semantically equivalent to "field absent"
+- Treat `null` (or an absent optional key, e.g. `git_sha`) as semantically
+  equivalent to "field absent"
 - Match on `witness_kind` and `witness_status.status` exhaustively if
   using them for routing logic
 
