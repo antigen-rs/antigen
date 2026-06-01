@@ -3077,9 +3077,26 @@ pub fn audit_recurrent(report: &ScanReport) -> RecurrentAuditReport {
         .filter_map(|d| d.antigen_type.as_deref())
         .collect();
 
+    // Direct child→parent edges (bare names), the substrate for the
+    // lineage-aware from_itches check (ADR-024 Amendment 3). The
+    // noticing-precondition is class-specific BUT lineage-aware: noticing an
+    // ANCESTOR class is legitimate upstream evidence for committing to track a
+    // descendant (inheritance is provenance — ADR-018 Amd1; parent-recurrence
+    // is evidence the lineage recurs). Built once here; `ancestors_of` walks it
+    // transitively per anchor.
+    let parent_of: std::collections::HashMap<&str, Vec<&str>> = {
+        let mut m: std::collections::HashMap<&str, Vec<&str>> = std::collections::HashMap::new();
+        for e in &report.lineage_edges {
+            m.entry(e.child.as_str())
+                .or_default()
+                .push(e.parent.as_str());
+        }
+        m
+    };
+
     let mut audits: Vec<RecurrentAudit> = Vec::new();
     for decl in &report.recurrent_declarations {
-        let hints = evaluate_recurrent_hints(decl, &acted_on, &itch_antigen_types);
+        let hints = evaluate_recurrent_hints(decl, &acted_on, &itch_antigen_types, &parent_of);
         audits.push(RecurrentAudit {
             declaration: decl.clone(),
             hints,
@@ -3132,12 +3149,49 @@ fn is_version_tag(s: &str) -> bool {
     had_v_prefix || component_count >= 2
 }
 
+/// Transitive ancestor set of `antigen` over the `child → parent` lineage map
+/// (ADR-024 Amendment 3 lineage-aware `from_itches`). Walks every
+/// `#[descended_from]` chain upward, cycle-guarded (a malformed cyclic lineage
+/// must not loop here — cycle detection is the scanner's job, but this walk is
+/// defensively bounded by the `visited` set). The anchor's OWN type is NOT
+/// included (the caller checks self-match separately); only strict ancestors.
+fn ancestors_of<'a>(
+    antigen: &'a str,
+    parent_of: &std::collections::HashMap<&'a str, Vec<&'a str>>,
+) -> std::collections::HashSet<&'a str> {
+    let mut acc: std::collections::HashSet<&str> = std::collections::HashSet::new();
+    let mut stack: Vec<&str> = parent_of.get(antigen).cloned().unwrap_or_default();
+    while let Some(parent) = stack.pop() {
+        if acc.insert(parent) {
+            if let Some(grandparents) = parent_of.get(parent) {
+                stack.extend(grandparents.iter().copied());
+            }
+        }
+    }
+    acc
+}
+
 /// Evaluate hints for a single recurrent declaration.
 ///
 /// **ATK-RECURRENT-2 fix (dd51d4b)**: this function now checks BOTH the
 /// upstream precondition (`itch_antigen_types` contains anchor's antigen type)
 /// AND the downstream action (`acted_on` contains the antigen type). See
 /// [`crate::stdlib::dogfood::AuditHintWithNoUpstreamPreconditionCheck`].
+///
+/// **ADR-024 Amendment 3 (class-specific, lineage-aware `from_itches`)**: a
+/// `from_itches` entry satisfies the noticing-precondition iff it names the
+/// anchor's OWN `antigen_type` (or a lineage ANCESTOR of it) AND that class has
+/// a scan-resident `#[itch]`. A pure cross-class reference (an unrelated class,
+/// even one with its own itch) carries ZERO precondition-evidence for this
+/// anchor — noticing `AntigenY` tells you nothing about whether `AntigenX`
+/// recurred. The prior global membership test silently widened the precondition
+/// to "does the workspace contain any itch at all", the vacuous-guard shape;
+/// this realigns the impl with the audit-hint doc's already-stated intent
+/// ("the same antigen type" — a `RatifiedSpecDriftFromImpl` fix, not a new
+/// design choice). The lineage exception is the one legitimate
+/// "cross-class" case and is intra-lineage, not cross-class: inheritance is
+/// provenance (ADR-018 Amd1), so parent-recurrence is evidence the descended
+/// lineage recurs.
 // ADR-029 migration: this fn `#[presents]` AuditHintWithNoUpstreamPreconditionCheck
 // (it once emitted the hint without checking the upstream precondition). The
 // integration test `atk_recurrent_2_recurrence_anchor_without_matching_itch_emits_hint`
@@ -3148,6 +3202,7 @@ fn evaluate_recurrent_hints(
     decl: &crate::scan::RecurrentDeclaration,
     acted_on: &std::collections::HashSet<&str>,
     itch_antigen_types: &std::collections::HashSet<&str>,
+    parent_of: &std::collections::HashMap<&str, Vec<&str>>,
 ) -> Vec<AuditHint> {
     use crate::scan::RecurrentKind;
 
@@ -3171,11 +3226,20 @@ fn evaluate_recurrent_hints(
             //       while providing zero real precondition evidence. We now validate
             //       that from_itches entries actually resolve to scan-resident itches.
             if let Some(antigen) = decl.antigen_type.as_deref() {
+                // ADR-024 Amendment 3: a from_itches entry is valid ONLY when it
+                // names the anchor's own class OR a lineage ancestor of it, AND
+                // that class has a scan-resident #[itch]. A pure cross-class
+                // reference is a phantom for THIS anchor (no precondition
+                // evidence), exactly as ATK-RECURRENT-7 treats non-scan-resident
+                // phantoms — the class-scoped test below subsumes the old global
+                // membership test (an entry must still be itch-resident, but now
+                // it must additionally be in-lineage).
+                let ancestors = ancestors_of(antigen, parent_of);
+                let in_lineage = |itch: &str| itch == antigen || ancestors.contains(itch);
                 let has_valid_from_itches = !decl.from_itches.is_empty()
-                    && decl
-                        .from_itches
-                        .iter()
-                        .any(|itch| itch_antigen_types.contains(itch.as_str()));
+                    && decl.from_itches.iter().any(|itch| {
+                        in_lineage(itch.as_str()) && itch_antigen_types.contains(itch.as_str())
+                    });
                 let has_implicit_itch = itch_antigen_types.contains(antigen);
 
                 if !has_valid_from_itches && !has_implicit_itch {
