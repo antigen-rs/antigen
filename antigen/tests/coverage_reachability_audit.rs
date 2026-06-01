@@ -22,6 +22,11 @@
 //! 4. **No `scan_coverage` ⇒ empty report** — a flat scan has no member concept,
 //!    so it cannot claim completeness; tier-honest absence, not a false-green.
 //! 5. **The complete-frontier happy path** reports no unreached sites.
+//! 6. **`coverage_was_applicable` is the three-state discriminator** — the
+//!    `(is_complete, coverage_was_applicable)` pair tells verified-complete
+//!    (`true,true`) from incomplete (`false,true`) from not-applicable
+//!    (`true,false`), so a 2-valued `is_complete` no longer collapses the
+//!    first and third (adversarial 2026-06-01 type-discipline gap).
 
 use antigen::audit::{audit_coverage, UnreachedCause};
 use antigen::scan::{ScanCoverage, ScanReport};
@@ -163,6 +168,13 @@ fn no_scan_coverage_yields_empty_report_tier_honest() {
         "no scan_coverage ⇒ empty unreached list (the question cannot be asked)"
     );
     assert!(out.unreached_sites.is_empty());
+    // The discriminator: a flat scan's is_complete()==true must NOT read as a
+    // verified-complete audit — the coverage question was never applicable.
+    assert!(
+        !out.coverage_was_applicable(),
+        "a flat scan has no member set, so coverage was not applicable — \
+         is_complete() here means 'nothing detectable missed', not 'verified complete'"
+    );
 }
 
 #[test]
@@ -175,4 +187,64 @@ fn complete_coverage_reports_no_unreached_sites() {
         "all enumerated members scanned ⇒ no unreached sites: {:?}",
         out.unreached_sites
     );
+    // The discriminator: a member-aware scan that reached every member IS a
+    // verified-complete audit — coverage was applicable AND complete.
+    assert!(
+        out.coverage_was_applicable(),
+        "a member-aware scan makes the coverage question applicable — \
+         is_complete() here is a content-ful 'every member reached' claim"
+    );
+}
+
+#[test]
+fn coverage_was_applicable_is_the_three_state_discriminator() {
+    // The core type-discipline pin (adversarial 2026-06-01): is_complete() is a
+    // 2-valued bool over a 3-state domain. Without coverage_was_applicable(), a
+    // library consumer cannot tell case (1) verified-complete from case (3)
+    // not-applicable — both collapse to is_complete()==true. This test asserts
+    // the three states are now distinguishable by the (is_complete,
+    // coverage_was_applicable) PAIR.
+    //
+    //   state           is_complete  coverage_was_applicable
+    //   (1) verified     true         true
+    //   (2) incomplete   false        true
+    //   (3) N/A (flat)   true         false
+    let verified = audit_coverage(&report_with_coverage(&["a@1"], &["a@1"]));
+    let incomplete = audit_coverage(&report_with_coverage(&["a@1", "b@1"], &["a@1"]));
+    let not_applicable = audit_coverage(&ScanReport::default());
+
+    let s1 = (verified.is_complete(), verified.coverage_was_applicable());
+    let s2 = (
+        incomplete.is_complete(),
+        incomplete.coverage_was_applicable(),
+    );
+    let s3 = (
+        not_applicable.is_complete(),
+        not_applicable.coverage_was_applicable(),
+    );
+
+    assert_eq!(
+        s1,
+        (true, true),
+        "state 1: member-aware, every member reached"
+    );
+    assert_eq!(
+        s2,
+        (false, true),
+        "state 2: member-aware, a member unreached"
+    );
+    assert_eq!(
+        s3,
+        (true, false),
+        "state 3: flat scan, coverage not applicable"
+    );
+
+    // The whole point: the three states are PAIRWISE distinct now. Before the
+    // applicable flag, s1 and s3 were the same pair (true) — indistinguishable.
+    assert_ne!(
+        s1, s3,
+        "verified-complete must be distinguishable from not-applicable"
+    );
+    assert_ne!(s1, s2);
+    assert_ne!(s2, s3);
 }
