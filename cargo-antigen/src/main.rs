@@ -183,6 +183,15 @@ struct ScanArgs {
     /// A hybrid antigen (both categories) matches either filter.
     #[arg(long)]
     category: Option<String>,
+    /// Write the full JSON report to this file (a *render of this run*, never
+    /// stored state antigen reads back — see the report-as-live-projection
+    /// floor). Implies `--format json` for the file content regardless of the
+    /// console `--format`. Console still prints the human/json summary so a
+    /// piped invocation and a saved render coexist (e.g. CI prints the summary
+    /// AND saves the detail). The file is overwritten each run because the
+    /// report is recomputed each run — it cannot drift from the code.
+    #[arg(long, value_name = "FILE")]
+    output: Option<PathBuf>,
 }
 
 #[derive(Debug, Parser)]
@@ -204,6 +213,14 @@ struct AuditArgs {
     /// A hybrid antigen (both categories) matches either filter.
     #[arg(long)]
     category: Option<String>,
+    /// Write the full JSON audit report to this file (a *render of this run*,
+    /// never stored state antigen reads back — the report-as-live-projection
+    /// floor). The file is overwritten each run; the report is recomputed each
+    /// run so it cannot drift. Console output is unchanged. Running this at a
+    /// tagged commit produces that tag's defense-posture SBOM as a reproducible
+    /// render — antigen never reads it back as authoritative.
+    #[arg(long, value_name = "FILE")]
+    output: Option<PathBuf>,
 }
 
 #[derive(Debug, Parser)]
@@ -2340,6 +2357,32 @@ fn run_scan(args: ScanArgs) -> ExitCode {
         None
     };
 
+    // The report is a live projection — recomputed above, never read back from
+    // a store. Wrap the JSON payload in the provenance envelope so any render
+    // (console-json or a `--output` file) is self-describing. The envelope's
+    // keys are additive siblings of the flattened payload, so existing JSON
+    // consumers that navigate by key (`report.report.presentations`, …) are
+    // byte-compatible.
+    let enveloped = ReportEnvelope::new(
+        &args.root,
+        JsonReport {
+            report: &report,
+            unaddressed: &unaddressed,
+            orphaned_lineage_edges: report.orphaned_lineage_edges(),
+            dangling_child_lineage_edges: report.dangling_child_lineage_edges(),
+            dep_reports: dep_reports.as_deref(),
+        },
+    );
+
+    // `--output <file>` writes the full JSON render regardless of console
+    // `--format`, so CI can print a human summary AND save the machine detail.
+    if let Some(path) = args.output.as_ref() {
+        if let Err(e) = write_report_render(path, &enveloped) {
+            eprintln!("error: {e}");
+            return ExitCode::from(2);
+        }
+    }
+
     match args.format {
         OutputFormat::Human => {
             print_human_report(&report, &unaddressed);
@@ -2347,13 +2390,7 @@ fn run_scan(args: ScanArgs) -> ExitCode {
                 print_human_dep_summary(deps);
             }
         }
-        OutputFormat::Json => match serde_json::to_string_pretty(&JsonReport {
-            report: &report,
-            unaddressed: &unaddressed,
-            orphaned_lineage_edges: report.orphaned_lineage_edges(),
-            dangling_child_lineage_edges: report.dangling_child_lineage_edges(),
-            dep_reports: dep_reports.as_deref(),
-        }) {
+        OutputFormat::Json => match serde_json::to_string_pretty(&enveloped) {
             Ok(s) => println!("{s}"),
             Err(e) => {
                 eprintln!("error: failed to serialize report: {e}");
@@ -2892,6 +2929,136 @@ fn print_unaddressed(unaddressed: &[scan::UnaddressedPresentation]) {
     println!("  OR #[antigen_tolerance(<antigen>, rationale = \"...\")] to document intent.");
 }
 
+// ============================================================================
+// Report envelope — the report-as-live-projection floor
+// ============================================================================
+//
+// The report is NEVER a stored / parallel state tracker. A stored,
+// release-anchored report is itself a `ParallelStateTrackersDiverge` instance
+// (antigen's own failure-class) — the moment it is committed it can drift from
+// the code it claims to describe. So antigen does not persist reports it reads
+// back as authoritative; `scan` / `audit` recompute the report from the current
+// code on every run, exactly the way clippy reflects current source every
+// invocation. The code is the source of truth; the report is a live view.
+//
+// The envelope makes each render self-describing so a saved render
+// (`--output <file>`, a clippy-SARIF-style dump) carries the provenance needed
+// to interpret it later WITHOUT antigen ever reading it back: which antigen
+// version produced it, which git commit the workspace was at, and when. That is
+// the difference between a *reproducible render of a tagged state* (regenerate
+// it any time by re-running antigen at that tag) and a *stored truth* (which
+// would rot). Re-running `cargo antigen audit` at the `v0.3.0` tag *is* the
+// v0.3.0 defense-posture SBOM — the file is just a convenience copy of a
+// recomputation, never the authority.
+//
+// `ReportEnvelope<T>` EXTENDS the stabilized scan-json / audit-json rather than
+// forking it: the payload is `#[serde(flatten)]`-ed, so the existing top-level
+// keys (`report`, `unaddressed`, …; `scan`, `audit`, …) stay exactly where
+// consumers already read them, and the four envelope keys appear as additive
+// siblings. Older consumers that navigate by key are unaffected; newer
+// consumers gain provenance.
+
+/// Provenance + freshness metadata stamped onto every machine-readable report.
+/// These are the four envelope keys serialized as siblings of the report
+/// payload. All are derived live from the current run — none is read back from
+/// any stored file.
+#[derive(serde::Serialize)]
+struct ReportProvenance {
+    /// The `cargo-antigen` version that produced this render
+    /// (`CARGO_PKG_VERSION` at build time). Lets a consumer reason about which
+    /// analysis vintage a saved render reflects.
+    antigen_version: &'static str,
+    /// The git commit the scanned workspace was at when the report was
+    /// recomputed (`git rev-parse HEAD` in `--root`). `None` when the root is
+    /// not a git repository or git is unavailable — tier-honest, matching the
+    /// graceful-absence convention of `read_commit_trailers`. This is what makes
+    /// a saved render a *reproducible render of a tagged state*: re-run antigen
+    /// at this SHA to regenerate it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    git_sha: Option<String>,
+    /// When this render was produced, RFC3339 UTC. The render's own timestamp,
+    /// not a stored "last computed" that could go stale — every run restamps.
+    generated_at: String,
+    /// Version of the *report envelope schema* itself (distinct from the
+    /// attestation-sidecar `schema_version` and from `ScanReport`'s internal
+    /// versioning). Bumped only when the envelope's own shape changes, so a
+    /// consumer can branch on envelope structure. Starts at 1.
+    report_schema_version: u32,
+}
+
+/// The current report-envelope schema version. Bump when the envelope's own
+/// key set changes shape (not when the underlying scan/audit payload evolves —
+/// that carries its own field-level back-compat via serde defaults).
+const REPORT_SCHEMA_VERSION: u32 = 1;
+
+impl ReportProvenance {
+    /// Gather provenance for a report recomputed against `root`. Pure
+    /// derivation from the current run + the workspace's git state — nothing is
+    /// read back from a stored report.
+    fn gather(root: &Path) -> Self {
+        Self {
+            antigen_version: env!("CARGO_PKG_VERSION"),
+            git_sha: git_head_sha(root),
+            generated_at: chrono::Utc::now().to_rfc3339(),
+            report_schema_version: REPORT_SCHEMA_VERSION,
+        }
+    }
+}
+
+/// `git rev-parse HEAD` in `dir`, returning the commit SHA. `None` on any git
+/// failure (not a repo, detached/empty, git not installed) — tier-honest, the
+/// same graceful-absence shape as [`read_commit_trailers`]. Fixed-arg
+/// subprocess per the ADR-019 bright-line rule.
+fn git_head_sha(dir: &Path) -> Option<String> {
+    let out = std::process::Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .current_dir(dir)
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let sha = String::from_utf8_lossy(&out.stdout).trim().to_owned();
+    if sha.is_empty() {
+        None
+    } else {
+        Some(sha)
+    }
+}
+
+/// Wrap a serializable report payload in the provenance envelope. The payload's
+/// own keys are flattened to the top level (extend, not fork); the four
+/// provenance keys are added as siblings.
+#[derive(serde::Serialize)]
+struct ReportEnvelope<T> {
+    #[serde(flatten)]
+    provenance: ReportProvenance,
+    #[serde(flatten)]
+    payload: T,
+}
+
+impl<T: serde::Serialize> ReportEnvelope<T> {
+    /// Envelope a payload with provenance gathered against `root`.
+    fn new(root: &Path, payload: T) -> Self {
+        Self {
+            provenance: ReportProvenance::gather(root),
+            payload,
+        }
+    }
+}
+
+/// Render a serializable report to pretty JSON, write it to `path`, and report
+/// success on stderr (so it doesn't pollute a piped stdout). Used by
+/// `--output <file>`: the file is a *render of this run*, overwritten every
+/// time, never read back as authoritative. Returns an error string on failure.
+fn write_report_render<T: serde::Serialize>(path: &Path, report: &T) -> Result<(), String> {
+    let json =
+        serde_json::to_string_pretty(report).map_err(|e| format!("failed to serialize: {e}"))?;
+    std::fs::write(path, json).map_err(|e| format!("failed to write {}: {e}", path.display()))?;
+    eprintln!("Wrote report render to {}", path.display());
+    Ok(())
+}
+
 #[derive(serde::Serialize)]
 struct JsonReport<'a> {
     report: &'a scan::ScanReport,
@@ -3144,6 +3311,30 @@ fn run_audit(args: AuditArgs) -> ExitCode {
     // computed verdict reaches the adopter (the delivery-arm discipline).
     let lineage_fidelity_report = audit::audit_lineage_fidelity(&scan_report);
 
+    // Live projection: the audit recomputed all of the above from the current
+    // code. Envelope it for provenance; running this at a tagged commit yields
+    // that tag's reproducible defense-posture SBOM (regenerable, never read
+    // back as authoritative — so it cannot drift).
+    let enveloped = ReportEnvelope::new(
+        &args.root,
+        JsonAuditReport {
+            scan: &scan_report,
+            audit: &audit_report,
+            category: &category_report,
+            deferred_defense_audit: &deferred_report,
+            convergent_evidence_audit: &convergent_report,
+            recurrent_audit: &recurrent_report,
+            lineage_fidelity_audit: &lineage_fidelity_report,
+        },
+    );
+
+    if let Some(path) = args.output.as_ref() {
+        if let Err(e) = write_report_render(path, &enveloped) {
+            eprintln!("error: {e}");
+            return ExitCode::from(2);
+        }
+    }
+
     match args.format {
         OutputFormat::Human => {
             print_audit_human(&scan_report, &audit_report);
@@ -3153,15 +3344,7 @@ fn run_audit(args: AuditArgs) -> ExitCode {
             print_lineage_fidelity_advisory(&lineage_fidelity_report);
             print_category_audit_human(&category_report);
         }
-        OutputFormat::Json => match serde_json::to_string_pretty(&JsonAuditReport {
-            scan: &scan_report,
-            audit: &audit_report,
-            category: &category_report,
-            deferred_defense_audit: &deferred_report,
-            convergent_evidence_audit: &convergent_report,
-            recurrent_audit: &recurrent_report,
-            lineage_fidelity_audit: &lineage_fidelity_report,
-        }) {
+        OutputFormat::Json => match serde_json::to_string_pretty(&enveloped) {
             Ok(s) => println!("{s}"),
             Err(e) => {
                 eprintln!("error: failed to serialize report: {e}");
