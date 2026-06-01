@@ -1430,7 +1430,8 @@ fn run_verify_content_hash_check(args: VerifyContentHashCheckArgs) -> ExitCode {
 }
 
 /// Run the live crates.io content-hash verification (the `--live` path). Fetches
-/// the served cksum, runs the pure 3-valued [`compare_live_cksum`], prints the
+/// the served cksum, runs the pure 3-valued
+/// [`antigen::supply_chain::evaluate::compare_live_cksum`], prints the
 /// outcome, and returns `true` iff the result should ESCALATE the exit code (a
 /// `Mismatch` under `--strict`). `Verified` and `Unverifiable` never escalate;
 /// `Unverifiable` (offline) is reported and skipped so the audit is not blocked.
