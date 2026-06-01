@@ -144,6 +144,17 @@ fn fails(p: &Predicate, item: &ItemRatification, ctx: &LeafCtx) -> bool {
     ) && r.witness_tier != WitnessTier::Execution
 }
 
+/// ADR-035 leaf-sweep: a substrate-absent / input-unreadable leaf is ⊥
+/// (could-not-evaluate), which surfaces as `DisciplinePredicateDeferred` — NOT
+/// `DisciplinePredicateFailed`. The two `*_when_*_missing` tests below assert
+/// this corrected three-valued behavior (they previously asserted `fails`,
+/// which encoded the ⊥→false collapse the leaf-sweep closes).
+fn not_evaluated(p: &Predicate, item: &ItemRatification, ctx: &LeafCtx) -> bool {
+    let r = evaluate_predicate(p, item, "fp-current", Path::new("src/test.rs"), ctx).unwrap();
+    matches!(r.audit_hint, AuditHint::DisciplinePredicateDeferred)
+        && r.witness_tier != WitnessTier::Execution
+}
+
 // ============================================================================
 // Leaf 1: ratified_doc
 // ============================================================================
@@ -168,7 +179,11 @@ fn ratified_doc_passes_when_doc_exists_and_min_version_met() {
 }
 
 #[test]
-fn ratified_doc_fails_when_doc_path_missing() {
+fn ratified_doc_not_evaluated_when_doc_path_missing() {
+    // ADR-035 leaf-sweep: an absent doc is ⊥ (the substrate could not be read),
+    // NOT a genuine evaluated-and-failed. The leaf must be Deferred
+    // (evaluated:false), not Failed — collapsing ⊥ to a failure is the Shape-C
+    // lie the leaf-sweep closes (forward/adr035-leaf-sweep-bottom-to-false).
     let pred = Predicate::leaf(Leaf::RatifiedDoc {
         path: Some(PathBuf::from("docs/nonexistent.md")),
         min_version: None,
@@ -177,7 +192,10 @@ fn ratified_doc_fails_when_doc_path_missing() {
     });
     let item = item_with(vec![current_signer("alice", sample_date())]);
     let ctx = LeafCtx::new(sample_date());
-    assert!(fails(&pred, &item, &ctx), "missing doc must fail the leaf");
+    assert!(
+        not_evaluated(&pred, &item, &ctx),
+        "missing doc must be un-evaluable (⊥ → Deferred), not a failure"
+    );
 }
 
 #[test]
@@ -452,13 +470,21 @@ fn oracles_complete_passes_with_status_complete_oracle() {
 }
 
 #[test]
-fn oracles_complete_fails_when_oracle_file_missing() {
+fn oracles_complete_not_evaluated_when_oracle_file_missing() {
+    // ADR-035 leaf-sweep instance 4: an ABSENT oracle file is ⊥ (the file could
+    // not be read), NOT a genuine evaluated-and-failed. The leaf must be Deferred
+    // (evaluated:false), distinct from a PRESENT-but-incomplete oracle (the
+    // sibling test below, which genuinely fails). The old fused
+    // "missing OR not-complete → fail" arm collapsed these.
     let pred = Predicate::leaf(Leaf::OraclesComplete {
         files: vec![PathBuf::from("docs/oracles/missing.md")],
     });
     let item = item_with(vec![current_signer("alice", sample_date())]);
     let ctx = LeafCtx::new(sample_date());
-    assert!(fails(&pred, &item, &ctx));
+    assert!(
+        not_evaluated(&pred, &item, &ctx),
+        "an absent oracle file must be un-evaluable (⊥ → Deferred), not a failure"
+    );
 }
 
 #[test]
