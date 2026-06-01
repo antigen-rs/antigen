@@ -234,6 +234,19 @@ edition = "2021"
 )]
 #[descended_from(SharedParent)]
 pub struct Descendant;
+
+// Cross-member reference: a #[presents(SharedParent)] whose antigen is declared
+// in the OTHER member (mc_parent). This is the Layer-2 resolution target — its
+// canonical_path must re-resolve to mc_parent@, NOT mc_child@ where it lives.
+#[presents(SharedParent)]
+pub fn child_site_presenting_parents_antigen() {{}}
+
+// Cross-member defense: a #[defended_by(SharedParent)] in mc_child must address
+// (defend) the SharedParent presents-sites once both sides re-resolve to
+// mc_parent@ — the heart of cross-crate addresses() (ADR-017 Amendment 1).
+#[cfg(test)]
+#[defended_by(SharedParent)]
+fn child_test_defends_parents_antigen() {{}}
 "#
     )
     .expect("write child lib.rs");
@@ -346,6 +359,103 @@ fn synthetic_workspace_resolves_cross_member_descended_from() {
         provenance.iter().any(|pe| pe.antigen_type == "SharedParent"
             && pe.canonical_path.as_deref() == Some("mc_parent@0.1.0")),
         "provenance chain must name SharedParent@mc_parent as the source"
+    );
+}
+
+// ============================================================================
+// Layer 2: cross-crate addresses() resolution (ADR-017 Amendment 1, ATK-A3-005).
+// A reference record (presents / defended_by) whose antigen is declared in a
+// DIFFERENT member must re-resolve its canonical_path to the declaring member,
+// so cross-member addresses() matches instead of failing on a mis-stamped path.
+// ============================================================================
+
+#[test]
+fn cross_member_presents_resolves_to_declaring_member() {
+    // mc_child's `#[presents(SharedParent)]` site lives in mc_child but addresses
+    // an antigen DECLARED in mc_parent. Per-member stamping first puts
+    // mc_child@0.2.0 on it (where it lives); Layer-2 resolution must re-stamp it
+    // to mc_parent@0.1.0 (where SharedParent is declared) — the contract that
+    // Presentation::canonical_path is the *antigen's* site, not the site's.
+    let dir = tempfile::TempDir::new().expect("tempdir");
+    write_two_member_workspace(dir.path());
+    let report = scan_workspace_multi_crate(dir.path()).expect("member-aware scan");
+
+    let child_lib = dir.path().join("mc_child").join("src").join("lib.rs");
+    // The EXPLICIT cross-member presents-site (not the inherited one).
+    let cross = report
+        .presentations
+        .iter()
+        .find(|p| {
+            p.antigen_type == "SharedParent" && p.file == child_lib && p.inherited_from.is_none()
+        })
+        .unwrap_or_else(|| {
+            panic!(
+                "the explicit cross-member #[presents(SharedParent)] in mc_child must be \
+                 found; presentations: {:?}",
+                report
+                    .presentations
+                    .iter()
+                    .map(|p| (
+                        &p.antigen_type,
+                        p.canonical_path.as_deref(),
+                        p.file.file_name(),
+                        p.inherited_from.is_some()
+                    ))
+                    .collect::<Vec<_>>()
+            )
+        });
+    assert_eq!(
+        cross.canonical_path.as_deref(),
+        Some("mc_parent@0.1.0"),
+        "Layer-2: a cross-member presents-site must re-resolve to the member that \
+         DECLARES the antigen (mc_parent), not the member it lives in (mc_child)"
+    );
+}
+
+#[test]
+fn cross_member_defended_by_resolves_and_addresses() {
+    // The crux of cross-crate addresses(): mc_child's #[defended_by(SharedParent)]
+    // must, after Layer-2 re-stamping, DEFEND the SharedParent presents-sites that
+    // also resolve to mc_parent@. Before Layer 2, the defense was keyed mc_child@,
+    // the antigen mc_parent@, and defense_addresses() (canonical-path-keyed) would
+    // NOT match — the DelegateCrossCrateResolutionGap. After, they match.
+    let dir = tempfile::TempDir::new().expect("tempdir");
+    write_two_member_workspace(dir.path());
+    let report = scan_workspace_multi_crate(dir.path()).expect("member-aware scan");
+
+    let defense = report
+        .defenses
+        .iter()
+        .find(|d| d.antigen_type == "SharedParent")
+        .expect("the cross-member #[defended_by(SharedParent)] must be collected");
+    assert_eq!(
+        defense.canonical_path.as_deref(),
+        Some("mc_parent@0.1.0"),
+        "Layer-2: a cross-member defense must re-resolve to the antigen's declaring \
+         member so its (antigen_type, canonical_path) key matches the presents-sites"
+    );
+
+    // Now the audit-side invariant: with both the defense and the parent's own
+    // #[presents(SharedParent)] resolved to mc_parent@, the defense ADDRESSES that
+    // presents-site. unaddressed_presentations() must NOT list the parent's
+    // explicit SharedParent site (it is now cross-crate-defended).
+    let parent_lib = dir.path().join("mc_parent").join("src").join("lib.rs");
+    let unaddressed = report.unaddressed_presentations();
+    assert!(
+        !unaddressed.iter().any(|up| {
+            up.presentation.antigen_type == "SharedParent"
+                && up.presentation.file == parent_lib
+                && up.presentation.inherited_from.is_none()
+        }),
+        "the parent's explicit SharedParent presents-site must be ADDRESSED by the \
+         cross-member defense (DelegateCrossCrateResolutionGap closed); unaddressed: {:?}",
+        unaddressed
+            .iter()
+            .map(|up| (
+                &up.presentation.antigen_type,
+                up.presentation.canonical_path.as_deref()
+            ))
+            .collect::<Vec<_>>()
     );
 }
 
