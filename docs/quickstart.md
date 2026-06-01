@@ -75,7 +75,7 @@ That's clean. Antigen ran; your project has no antigen surface yet. No red flags
 ```toml
 # Cargo.toml
 [dependencies]
-antigen = "=0.2.0"
+antigen = "=0.3.0-beta.1"   # v0.3 prerelease — has the prescriptive family; v0.2.0 is the current stable
 ```
 
 Run `cargo build` to fetch and compile. Antigen's runtime cost is zero — the macros are identity transforms; no code generation, no runtime overhead.
