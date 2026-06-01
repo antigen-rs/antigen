@@ -1010,6 +1010,113 @@ pub enum ImmuneVerdict {
     SubstrateGap,
 }
 
+/// The four-valued verdict for a prescriptive work-need (ADR-033 §Decision 3).
+///
+/// This is the [`ImmuneVerdict`] tri-state with the unsatisfied cell *temporally
+/// split by the frame* (the verdict-lattice isomorphism, math-researcher): the
+/// prescriptive evaluator REUSES the ADR-029 satisfaction read and applies a
+/// frame-aware projection — it does NOT fork a parallel evaluator (forking
+/// re-introduces the cardinality-collapse the three-valued-logic gem warns
+/// against). `Undefended` splits into `Pending` (within frame) + `Overdue` (past
+/// frame); `SubstrateGap` maps to `OutOfFrame`; `Defended` maps to `Fulfilled`.
+///
+/// **`Overdue` and `OutOfFrame` must NEVER collapse** (ATK-PRES-8, the load-bearing
+/// guard, the prescriptive analog of ATK-3V-4): `Overdue` means the frame elapsed
+/// AND the audit evaluated the satisfaction and found it unmet (it KNOWS the work
+/// is late); `OutOfFrame` means the satisfaction is un-evaluable (an unknown
+/// who-ref, an unresolvable code-site ref) — the audit cannot even tell whether
+/// the work is done. Different states, different interventions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum WorkVerdict {
+    /// Declared, within frame, satisfaction not yet met. The EXPECTED state — not
+    /// a failure, must not be loud.
+    Pending,
+    /// Satisfaction met at the current fingerprint.
+    Fulfilled,
+    /// Past the frame and unsatisfied (and evaluable). **Loud** (ADR-023 loudness
+    /// isomorphism).
+    Overdue,
+    /// The satisfaction condition is un-evaluable in the current substrate (an
+    /// unknown who-ref, a missing source, an unresolvable code-site reference).
+    /// ADR-029 Amendment 1 well-posedness — outside the frame, NOT overdue.
+    OutOfFrame,
+}
+
+/// Whether a work-need's intrinsic temporal frame has elapsed, relative to a
+/// reference date. Pure input to the [`WorkVerdict`] projection.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FrameState {
+    /// No frame declared — the need has no deadline (timeless until satisfied).
+    None,
+    /// A frame is declared and the reference date is on or before it.
+    Within,
+    /// A frame is declared and the reference date is past it.
+    Past,
+    /// A frame string was declared but is not a parseable ISO-8601 date — the
+    /// frame is un-evaluable (feeds `OutOfFrame`, never a silent pass).
+    Unparseable,
+}
+
+impl FrameState {
+    /// Classify an optional ISO-8601 frame string against a reference date.
+    /// Absent ⇒ [`FrameState::None`]; present-and-parseable ⇒ `Within`/`Past`;
+    /// present-but-malformed ⇒ [`FrameState::Unparseable`] (tier-honest — a
+    /// garbage date is not silently "within frame").
+    #[must_use]
+    pub fn classify(frame: Option<&str>, today: chrono::NaiveDate) -> Self {
+        frame.map_or(Self::None, |s| {
+            match chrono::NaiveDate::parse_from_str(s.trim(), "%Y-%m-%d") {
+                Ok(d) if d >= today => Self::Within,
+                Ok(_) => Self::Past,
+                Err(_) => Self::Unparseable,
+            }
+        })
+    }
+}
+
+impl WorkVerdict {
+    /// Project the four-valued verdict from a satisfaction state + a frame state
+    /// — the ADR-033 §Decision 3 isomorphism made explicit.
+    ///
+    /// `satisfied` is the ADR-029 categorical read (the who-steps / closure
+    /// attested at the current fingerprint). `evaluable` is whether the audit
+    /// could evaluate satisfaction at all (false ⇒ `OutOfFrame`, the gem guard).
+    ///
+    /// Truth table (the load-bearing distinction is the last two rows — they
+    /// MUST differ):
+    /// - not evaluable, any frame      → `OutOfFrame`
+    /// - satisfied (evaluable)          → `Fulfilled`
+    /// - unsatisfied, frame Within/None → `Pending`
+    /// - unsatisfied, frame Past        → `Overdue`
+    /// - unsatisfied, frame Unparseable → `OutOfFrame` (un-evaluable frame)
+    #[must_use]
+    pub const fn project(satisfied: bool, evaluable: bool, frame: FrameState) -> Self {
+        if !evaluable {
+            return Self::OutOfFrame;
+        }
+        if satisfied {
+            return Self::Fulfilled;
+        }
+        match frame {
+            FrameState::Past => Self::Overdue,
+            FrameState::Within | FrameState::None => Self::Pending,
+            // An unparseable frame on an unsatisfied need is un-evaluable: we
+            // cannot say "late" because we cannot read the deadline. Keep it
+            // OutOfFrame rather than silently Pending or falsely Overdue.
+            FrameState::Unparseable => Self::OutOfFrame,
+        }
+    }
+
+    /// True for the one LOUD verdict — `Overdue` (ADR-023 loudness isomorphism).
+    /// `Pending` is expected (quiet); `OutOfFrame` is advisory (needs
+    /// investigation, not alarm); `Fulfilled` is clean.
+    #[must_use]
+    pub const fn is_loud(self) -> bool {
+        matches!(self, Self::Overdue)
+    }
+}
+
 /// The audit's per-presents-site immune-state verdict record (ADR-029).
 ///
 /// Pairs a presents-site with the verdict the audit computed for it and the
