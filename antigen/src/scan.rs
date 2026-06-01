@@ -2001,6 +2001,63 @@ pub struct ScanReport {
     pub files_scanned: usize,
     /// Files that failed to parse.
     pub parse_failures: Vec<ParseFailure>,
+    /// Member-aware scan coverage (v0.3): which workspace member crates were
+    /// enumerated vs actually scanned. `None` for a flat
+    /// [`scan_workspace`] scan (which has no member concept) — preserves
+    /// byte-identical JSON for flat-scan consumers via
+    /// `skip_serializing_if`. `Some` only from
+    /// [`scan_workspace_multi_crate`].
+    ///
+    /// This is the substrate for **ignorance detection** (regulatory tier): a
+    /// member that exists in the workspace but was NOT scanned is a region
+    /// where `#[presents]` sites go *unseen* — ignored, not defended. The
+    /// coverage record makes that frontier explicit so a downstream audit can
+    /// surface it. The audit/verdict layer is ADR scope; this field is the
+    /// floor it stands on.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scan_coverage: Option<ScanCoverage>,
+}
+
+/// Member-aware scan coverage: the workspace member set vs the set actually
+/// scanned. Produced by [`scan_workspace_multi_crate`].
+///
+/// The complement (`enumerated_members` − `scanned_members`) is the
+/// **ignorance frontier**: members whose `#[presents]` sites the scan never
+/// reached. In the current `--workspace` happy path the two sets are equal
+/// (every enumerated member is scanned), so the frontier is empty — but
+/// recording both makes any future partial-coverage mode (a member filter, a
+/// member whose scan errored) surface its unscanned members explicitly rather
+/// than silently dropping them.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ScanCoverage {
+    /// Every workspace member `cargo metadata` reported, as ADR-017 canonical
+    /// paths (`<name>@<version>`). Sorted for determinism.
+    pub enumerated_members: Vec<String>,
+    /// The members actually scanned (canonical paths). A member is here iff its
+    /// per-member scan ran. Sorted for determinism.
+    pub scanned_members: Vec<String>,
+}
+
+impl ScanCoverage {
+    /// Members that were enumerated but NOT scanned — the ignorance frontier.
+    /// Their `#[presents]` sites (if any) were never seen by this scan.
+    #[must_use]
+    pub fn unscanned_members(&self) -> Vec<&str> {
+        let scanned: std::collections::HashSet<&str> =
+            self.scanned_members.iter().map(String::as_str).collect();
+        self.enumerated_members
+            .iter()
+            .map(String::as_str)
+            .filter(|m| !scanned.contains(m))
+            .collect()
+    }
+
+    /// True iff every enumerated member was scanned (the ignorance frontier is
+    /// empty). The happy path for a full `--workspace` scan.
+    #[must_use]
+    pub fn is_complete(&self) -> bool {
+        self.unscanned_members().is_empty()
+    }
 }
 
 /// A presentation that has no matching immunity declaration on the same item.
@@ -3643,24 +3700,67 @@ fn resolve_cross_member_lineage_parents(report: &mut ScanReport) {
 /// Per-member stamping is **non-overwriting**: a record that a nested scan
 /// already stamped keeps its stamp (see [`ScanReport::stamp_canonical_path`]).
 ///
+/// The merged report carries a [`ScanCoverage`] (`scan_coverage`) recording
+/// every enumerated member and the subset actually scanned — the substrate for
+/// ignorance detection (an enumerated-but-unscanned member is a region where
+/// `#[presents]` sites go unseen).
+///
 /// # Errors
 ///
 /// Returns the `io::Error` from [`enumerate_workspace_member_roots`] if member
-/// enumeration fails (cargo not on PATH, manifest parse error, etc.). A
-/// per-member scan that fails to *parse* records the failure in
-/// [`ScanReport::parse_failures`] rather than aborting; only a member-enumeration
-/// failure is fatal.
+/// enumeration fails (cargo not on PATH, manifest parse error, etc.) — that is
+/// the only fatal case. A per-member scan that fails records the failure in
+/// [`ScanReport::parse_failures`] and leaves the member out of
+/// `scan_coverage.scanned_members` (an ignorance frontier), rather than
+/// aborting the whole scan.
 pub fn scan_workspace_multi_crate(workspace_root: &Path) -> std::io::Result<ScanReport> {
     let members = enumerate_workspace_member_roots(workspace_root)?;
 
+    // Coverage record: every enumerated member, and the subset actually scanned.
+    // The complement is the ignorance frontier (members whose `#[presents]`
+    // sites were never seen). In the happy path the two sets are equal.
+    let mut enumerated_members: Vec<String> = members
+        .iter()
+        .map(WorkspaceMemberRoot::canonical_path)
+        .collect();
+    let mut scanned_members: Vec<String> = Vec::with_capacity(members.len());
+
     let mut merged = ScanReport::default();
     for member in &members {
-        let mut member_report = scan_workspace(&member.crate_root, None)?;
+        // A per-member scan that *errors* must not abort the whole multi-crate
+        // scan — that would convert one unscannable member into a total
+        // failure. Instead, record the error in `parse_failures` and leave the
+        // member OUT of `scanned_members`, so it surfaces as an unscanned
+        // (ignored) member in the coverage record. (`scan_workspace` currently
+        // never returns Err, but the coverage semantics must be honest if that
+        // changes — an unscannable member is an ignorance frontier, not a crash.)
+        let mut member_report = match scan_workspace(&member.crate_root, None) {
+            Ok(r) => r,
+            Err(e) => {
+                merged.parse_failures.push(ParseFailure {
+                    file: member.crate_root.clone(),
+                    error: format!(
+                        "member `{}` could not be scanned ({e}); its sites are UNSEEN \
+                         (ignorance frontier), not defended",
+                        member.canonical_path()
+                    ),
+                });
+                continue;
+            }
+        };
         // Stamp this member's records with its own canonical path BEFORE
         // merging, so cross-member identity survives the union.
         member_report.stamp_canonical_path(&member.canonical_path());
         merged.merge(member_report);
+        scanned_members.push(member.canonical_path());
     }
+
+    enumerated_members.sort();
+    scanned_members.sort();
+    merged.scan_coverage = Some(ScanCoverage {
+        enumerated_members,
+        scanned_members,
+    });
 
     // Cross-member parent re-resolution must run on the merged whole — only
     // there are all members' antigen declarations visible to resolve a parent
@@ -6283,6 +6383,52 @@ mod tests {
         let orphans = report.orphaned_lineage_edges();
         assert_eq!(orphans.len(), 1, "unknown parent surfaces as orphan");
         assert_eq!(orphans[0].parent, "Ghost");
+    }
+
+    // ------------------------------------------------------------------------
+    // ScanCoverage — the ignorance-frontier substrate.
+    // ------------------------------------------------------------------------
+
+    fn coverage(enumerated: &[&str], scanned: &[&str]) -> ScanCoverage {
+        ScanCoverage {
+            enumerated_members: enumerated.iter().map(|s| (*s).to_string()).collect(),
+            scanned_members: scanned.iter().map(|s| (*s).to_string()).collect(),
+        }
+    }
+
+    #[test]
+    fn coverage_complete_when_all_enumerated_are_scanned() {
+        let c = coverage(&["a@1", "b@1"], &["a@1", "b@1"]);
+        assert!(
+            c.is_complete(),
+            "every enumerated member scanned ⇒ complete"
+        );
+        assert!(
+            c.unscanned_members().is_empty(),
+            "complete coverage has an empty ignorance frontier"
+        );
+    }
+
+    #[test]
+    fn coverage_unscanned_member_is_the_ignorance_frontier() {
+        // `c@1` is enumerated but never scanned — its sites are UNSEEN.
+        let c = coverage(&["a@1", "b@1", "c@1"], &["a@1", "b@1"]);
+        assert!(
+            !c.is_complete(),
+            "an unscanned member ⇒ incomplete coverage"
+        );
+        assert_eq!(
+            c.unscanned_members(),
+            vec!["c@1"],
+            "the frontier is exactly the enumerated-minus-scanned set"
+        );
+    }
+
+    #[test]
+    fn coverage_empty_workspace_is_vacuously_complete() {
+        let c = coverage(&[], &[]);
+        assert!(c.is_complete());
+        assert!(c.unscanned_members().is_empty());
     }
 
     // ========================================================================

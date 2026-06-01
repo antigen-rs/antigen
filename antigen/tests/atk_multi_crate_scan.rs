@@ -125,6 +125,35 @@ fn member_aware_scan_attributes_declarations_to_their_member() {
     );
 }
 
+#[test]
+fn member_aware_scan_records_complete_coverage() {
+    let root = workspace_root();
+    let report = scan_workspace_multi_crate(&root).expect("member-aware scan of antigen workspace");
+
+    let coverage = report
+        .scan_coverage
+        .as_ref()
+        .expect("member-aware scan must populate scan_coverage");
+
+    // All five members enumerated AND scanned ⇒ no ignorance frontier.
+    assert_eq!(
+        coverage.enumerated_members.len(),
+        5,
+        "all five workspace members must be enumerated; got: {:?}",
+        coverage.enumerated_members
+    );
+    assert!(
+        coverage.is_complete(),
+        "a full --workspace scan of the antigen workspace must have complete coverage \
+         (empty ignorance frontier); unscanned: {:?}",
+        coverage.unscanned_members()
+    );
+    assert_eq!(
+        coverage.enumerated_members, coverage.scanned_members,
+        "enumerated and scanned member sets must match for a complete scan"
+    );
+}
+
 // ============================================================================
 // Synthetic 2-member workspace: cross-member `#[descended_from]` resolution.
 // ============================================================================
