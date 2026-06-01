@@ -2795,6 +2795,105 @@ fn print_coverage_frontier(report: &audit::CoverageAuditReport) {
     println!();
 }
 
+/// Macro-keyword string for a prescriptive work-need kind (display only).
+const fn prescriptive_kind_str(kind: antigen::scan::PrescriptiveKind) -> &'static str {
+    use antigen::scan::PrescriptiveKind as K;
+    match kind {
+        K::Panel => "panel",
+        K::Rx => "rx",
+        K::Refer => "refer",
+        K::Biopsy => "biopsy",
+        K::Ddx => "ddx",
+        K::Triage => "triage",
+        K::Culture => "culture",
+        K::Quarantine => "quarantine",
+    }
+}
+
+/// Short tag for a four-valued [`audit::WorkVerdict`] (board display).
+const fn work_verdict_tag(verdict: audit::WorkVerdict) -> &'static str {
+    use audit::WorkVerdict as V;
+    match verdict {
+        V::Overdue => "OVERDUE",
+        V::OutOfFrame => "out-of-frame",
+        V::Pending => "pending",
+        V::Fulfilled => "fulfilled",
+    }
+}
+
+/// Render the prescriptive work-orchestration BOARD (ADR-033 §Decision 4):
+/// every `#[panel]`/`#[rx]`/.../`#[quarantine]` work-need as a board row, with
+/// `OVERDUE` rows sorted LOUD to the top. "Code IS the Asana board" — this is a
+/// live projection of the current code (ADR-034), recomputed every audit run and
+/// never stored, so it cannot drift from reality.
+///
+/// A row names the macro, the work-need text, the verdict, and what blocks it
+/// (the un-attested who-step / elapsed frame / unresolvable ref). The
+/// load-bearing distinction the board preserves: `OVERDUE` (late, evaluated)
+/// vs `out-of-frame` (un-evaluable — needs investigation, NOT an alarm); the
+/// two are never collapsed (the ADR-029/ADR-033 three-valued-logic gem).
+fn print_prescriptive_board(report: &audit::PrescriptiveAuditReport) {
+    if report.verdicts.is_empty() {
+        return;
+    }
+    let overdue = report.overdue_count();
+    let out_of_frame = report.count_by_verdict(audit::WorkVerdict::OutOfFrame);
+    let pending = report.count_by_verdict(audit::WorkVerdict::Pending);
+    let fulfilled = report.count_by_verdict(audit::WorkVerdict::Fulfilled);
+
+    println!();
+    println!(
+        "── Work board (ADR-033): {} work-need(s) — {overdue} overdue, \
+         {out_of_frame} out-of-frame, {pending} pending, {fulfilled} fulfilled",
+        report.verdicts.len()
+    );
+    if report.is_clean() {
+        println!("   (no overdue work — the board is quiet)");
+    }
+    println!(
+        "   code IS the board — this is a live projection of the current code, \
+         recomputed every run (never stored, never drifts)."
+    );
+    println!();
+
+    for v in report.board_ordered() {
+        let decl = &v.declaration;
+        let macro_name = prescriptive_kind_str(decl.kind);
+        let tag = work_verdict_tag(v.verdict);
+        // The work-need's headline text: prefer the free-text need, else the
+        // first list item (needs/rule_out/priority_order), else the item label.
+        let need = decl
+            .need_text
+            .as_deref()
+            .or_else(|| decl.items.first().map(String::as_str))
+            .unwrap_or("(no need text)");
+        let loud = if v.verdict.is_loud() { "‼ " } else { "  " };
+        println!(
+            "{loud}[{tag}] #[{macro_name}] {need}  ({}:{})",
+            decl.file.display(),
+            decl.line
+        );
+        // Frame line: remaining-or-elapsed, when a frame is declared.
+        if let Some(frame) = decl.frame.as_deref() {
+            println!("      frame: {frame}");
+        }
+        // What blocks fulfillment (None when fulfilled).
+        if let Some(blocking) = v.blocking.as_deref() {
+            println!("      → {blocking}");
+        }
+        // Per-step detail: which who-step is open (the board's actionable core).
+        for step in &v.steps {
+            let mark = match step.state {
+                audit::StepState::Attested => "✓",
+                audit::StepState::Unattested => "·",
+                audit::StepState::Unevaluable => "?",
+            };
+            println!("      {mark} {}: {}", step.role, step.reference);
+        }
+    }
+    println!();
+}
+
 /// Macro-keyword string for a convergent-evidence kind (display only).
 const fn convergent_kind_str(kind: &antigen::scan::ConvergentEvidenceKind) -> &'static str {
     use antigen::scan::ConvergentEvidenceKind as K;
@@ -3368,6 +3467,13 @@ fn run_audit(args: AuditArgs) -> ExitCode {
     // cannot know what it missed — tier-honest, not a completeness claim).
     let coverage_report = audit::audit_coverage(&scan_report);
 
+    // Prescriptive work-orchestration audit (ADR-033) — project every work-need
+    // (#[panel]/#[rx]/#[refer]/#[biopsy]/#[ddx]/#[triage]/#[culture]/#[quarantine])
+    // to a four-valued WorkVerdict. This is the substrate the audit BOARD renders
+    // (ADR-033 §Decision 4): "code IS the Asana board." A live projection per
+    // ADR-034 — recomputed every run from current code, never stored.
+    let prescriptive_report = audit::audit_prescriptive(&scan_report, &args.root);
+
     // Live projection: the audit recomputed all of the above from the current
     // code. Envelope it for provenance; running this at a tagged commit yields
     // that tag's reproducible defense-posture SBOM (regenerable, never read
@@ -3383,6 +3489,7 @@ fn run_audit(args: AuditArgs) -> ExitCode {
             recurrent_audit: &recurrent_report,
             lineage_fidelity_audit: &lineage_fidelity_report,
             coverage_audit: &coverage_report,
+            prescriptive_audit: &prescriptive_report,
         },
     );
 
@@ -3402,6 +3509,7 @@ fn run_audit(args: AuditArgs) -> ExitCode {
             print_lineage_fidelity_advisory(&lineage_fidelity_report);
             print_category_audit_human(&category_report);
             print_coverage_frontier(&coverage_report);
+            print_prescriptive_board(&prescriptive_report);
         }
         OutputFormat::Json => match serde_json::to_string_pretty(&enveloped) {
             Ok(s) => println!("{s}"),
@@ -4394,6 +4502,12 @@ struct JsonAuditReport<'a> {
     /// surface under `--workspace`. Delivered here so the computed verdict
     /// reaches the adopter (the delivery-arm discipline).
     coverage_audit: &'a audit::CoverageAuditReport,
+    /// ADR-033 prescriptive work-orchestration audit: each work-need
+    /// (`#[panel]`/`#[rx]`/`#[refer]`/`#[biopsy]`/`#[ddx]`/`#[triage]`/`#[culture]`/
+    /// `#[quarantine]`) projected to a four-valued `WorkVerdict`. This is the
+    /// machine-readable form of the audit board ("code IS the board") — a live
+    /// projection per ADR-034, recomputed every run, never stored.
+    prescriptive_audit: &'a audit::PrescriptiveAuditReport,
 }
 
 fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::AuditReport) {

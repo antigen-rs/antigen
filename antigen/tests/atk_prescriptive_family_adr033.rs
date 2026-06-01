@@ -88,19 +88,19 @@
 /// it is a semantic no-op. ADR-033 §Proc-Macro-Surface: "non-empty (empty = vacuous; compile error)".
 ///
 /// SPEC: `#[panel(needs = [])]` → parse-time error: "panel.needs must be non-empty"
+///
+/// SHIPPED — the guard is `PanelArgs::validate()` (antigen-macros/src/parse.rs
+/// ~4070), a parse-time `syn::Error` (compile error at the expansion site). Its
+/// ORACLE is the macro-layer unit test `panel_rejects_empty_needs` (parse.rs
+/// ~6775) — the `validate()` path IS the rejection, so the unit test is the
+/// real proof. A trybuild fixture here would only re-drive the same `validate()`
+/// through a slower harness (no added coverage), so this row stays a documented
+/// cross-reference rather than a duplicate.
 #[test]
-#[ignore = "NOT YET IMPLEMENTED: #[panel] macro not shipped; convert to compile-fail fixture \
-            when antigen-macros ships PanelArgs; verify the parse-time rejection fires"]
-fn atk_pres1_panel_empty_needs_is_compile_error() {
-    // When the macro ships, create a trybuild fixture:
-    //   t.compile_fail("tests/fixtures/atk_pres1_panel_empty_needs.rs")
-    // where the fixture contains:
-    //   #[panel(needs = [])]
-    //   fn my_fn() {}
-    //
-    // The error message must contain "panel.needs must be non-empty" or equivalent.
-    todo!("implement as compile-fail fixture when #[panel] ships")
-}
+#[ignore = "covered at the macro layer: antigen-macros PanelArgs::validate() + \
+            the parse.rs unit test panel_rejects_empty_needs (the validate() path \
+            IS the compile-time rejection; a trybuild fixture adds no coverage)"]
+fn atk_pres1_panel_empty_needs_is_compile_error() {}
 
 /// ATK-PRES-2: empty rule_out in #[ddx] must be a compile-time error.
 ///
@@ -108,12 +108,13 @@ fn atk_pres1_panel_empty_needs_is_compile_error() {
 /// shape requires at least one alternative to eliminate. Empty = no differential diagnosis.
 ///
 /// SPEC: `#[ddx(rule_out = [])]` → parse-time error: "ddx.rule_out must be non-empty"
+///
+/// SHIPPED — `DdxArgs::validate()` (antigen-macros/src/parse.rs ~4404) rejects an
+/// empty `rule_out`; oracle is the parse.rs unit test for it.
 #[test]
-#[ignore = "NOT YET IMPLEMENTED: #[ddx] macro not shipped; convert to compile-fail fixture \
-            when antigen-macros ships DdxArgs"]
-fn atk_pres2_ddx_empty_rule_out_is_compile_error() {
-    todo!("implement as compile-fail fixture when #[ddx] ships")
-}
+#[ignore = "covered at the macro layer: antigen-macros DdxArgs::validate() rejects \
+            empty rule_out (the validate() path IS the compile-time rejection)"]
+fn atk_pres2_ddx_empty_rule_out_is_compile_error() {}
 
 /// ATK-PRES-3: empty reason in #[quarantine] must be a compile-time error.
 ///
@@ -123,120 +124,325 @@ fn atk_pres2_ddx_empty_rule_out_is_compile_error() {
 ///
 /// SPEC: `#[quarantine(scope = "...", reason = "")]` → parse-time error: "quarantine.reason
 /// must be non-empty (ADR-005 Amd2)"
+///
+/// SHIPPED — `QuarantineArgs::validate()` (antigen-macros/src/parse.rs ~4561)
+/// rejects an empty `reason` (and an empty/absent `scope`); oracle is its parse.rs
+/// unit test.
 #[test]
-#[ignore = "NOT YET IMPLEMENTED: #[quarantine] macro not shipped; convert to compile-fail \
-            fixture when antigen-macros ships QuarantineArgs"]
-fn atk_pres3_quarantine_empty_reason_is_compile_error() {
-    todo!("implement as compile-fail fixture when #[quarantine] ships")
-}
+#[ignore = "covered at the macro layer: antigen-macros QuarantineArgs::validate() \
+            rejects empty reason (ADR-005 Amd2; the validate() path IS the rejection)"]
+fn atk_pres3_quarantine_empty_reason_is_compile_error() {}
 
-/// ATK-PRES-4: panel.needs must not be empty (scan-level check).
+/// ATK-PRES-4: a vacuous panel must NOT be silently fulfilled (scan+audit path).
 ///
-/// Alternative enforcement path via scan: if the macro somehow produces an empty needs
-/// list (degenerate deserialization), the scan should surface this as a schema violation
-/// rather than silently producing a vacuous work-need.
-///
-/// SPEC: scan produces a schema-error hint for a panel site with empty needs.
-/// This is the serde-validate-systematic pattern applied to the prescriptive family.
+/// The macro rejects empty `needs` at parse time (ATK-PRES-1), but the scan is
+/// recall-tuned (it records a bare `#[panel]` with empty fields rather than
+/// erroring). So the AUDIT is the second line of defense: a panel with no
+/// who-step is structurally un-evaluable (nothing to attest) ⇒ `OutOfFrame`,
+/// NEVER `Fulfilled`. This is the serde-validate-systematic posture applied to
+/// the prescriptive family — a vacuous declaration is surfaced, never silent-green.
 #[test]
-#[ignore = "NOT YET IMPLEMENTED: #[panel] scan not shipped; test scan-level empty-needs detection"]
-fn atk_pres4_panel_empty_needs_scan_level_schema_error() {
-    todo!("implement against scan infrastructure when #[panel] is implemented")
+fn atk_pres4_vacuous_panel_is_not_silently_fulfilled() {
+    // A bare `#[panel]` (no args) — the recall-tuned scan records it with empty
+    // fields; the audit must not call an empty work-need Fulfilled.
+    let src = r"use antigen::panel;
+#[panel]
+pub fn p() {}
+";
+    let report = audit_staged(src, None);
+    let v = first_verdict(&report);
+    assert_ne!(
+        v.verdict,
+        WorkVerdict::Fulfilled,
+        "a vacuous panel (no who-step) must NEVER be silently Fulfilled — got {:?}. steps={:?}",
+        v.verdict,
+        v.steps
+    );
+    assert_eq!(
+        v.verdict,
+        WorkVerdict::OutOfFrame,
+        "a panel with no who-step is structurally un-evaluable (nothing to attest) \
+         ⇒ OutOfFrame, got {:?}",
+        v.verdict
+    );
 }
 
 // ============================================================================
-// Q9b: Audit-hint disambiguation tests
-// ============================================================================
+// Q9b: Audit-hint disambiguation tests — the END-TO-END audit oracle.
 //
-// These tests verify that each WorkVerdict variant is reachable and distinguishable.
-// They are #[ignore]'d because the prescriptive audit section is not yet implemented.
+// These drive the full `audit_prescriptive` round-trip (scan a staged
+// workspace → optionally write a sidecar → audit) so they catch the
+// silent-wrong-verdict bugs the projection-layer tests (work_verdict_projection.rs,
+// PRES-9/11) cannot — the (satisfied, evaluable) DERIVATION from real substrate.
+// ============================================================================
+
+use antigen::audit::{audit_prescriptive, PrescriptiveAuditReport, StepState, WorkVerdict};
+use antigen::scan::scan_workspace;
+
+/// A sidecar to stage alongside a fixture: `(sidecar-stem, builder)` where
+/// `builder(staged_fp)` renders the Ratification JSON pinned to the scanned
+/// fingerprint `staged_fp`. `None` = no sidecar (the who-step reads un-evaluable).
+type SidecarSpec<'a> = Option<(&'a str, fn(&str) -> String)>;
+
+/// Stage a single-crate workspace whose lib.rs is `lib_src`, optionally writing
+/// a sidecar produced by `make_sidecar`'s builder against the scanned structural
+/// fingerprint of the FIRST prescriptive declaration's item (so a Fulfilled
+/// fixture can pin the signer's fingerprint to the real digest). Returns the
+/// prescriptive audit report.
+fn audit_staged(lib_src: &str, make_sidecar: SidecarSpec) -> PrescriptiveAuditReport {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let src = tmp.path().join("src");
+    std::fs::create_dir_all(&src).unwrap();
+    std::fs::write(
+        tmp.path().join("Cargo.toml"),
+        "[package]\nname = \"staged\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\
+         [lib]\npath = \"src/lib.rs\"\n",
+    )
+    .unwrap();
+    std::fs::write(src.join("lib.rs"), lib_src).unwrap();
+
+    if let Some((sidecar_stem, builder)) = make_sidecar {
+        // First scan to read the real structural fingerprint of the annotated item.
+        let pre = scan_workspace(tmp.path(), None).expect("pre-scan");
+        let fp = pre
+            .prescriptive_declarations
+            .first()
+            .map(|d| d.structural_fingerprint.clone())
+            .unwrap_or_default();
+        // `load_sidecar` resolves `<file-parent>/.attest/<stem>.json` (the
+        // established audit convention — see audit.rs `load_sidecar`). The
+        // lib.rs lives in `src/`, so the sidecar dir is `src/.attest/`.
+        let attest_dir = src.join(".attest");
+        std::fs::create_dir_all(&attest_dir).unwrap();
+        std::fs::write(
+            attest_dir.join(format!("{sidecar_stem}.json")),
+            builder(&fp),
+        )
+        .unwrap();
+    }
+
+    let report = scan_workspace(tmp.path(), None).expect("scan completes");
+    audit_prescriptive(&report, tmp.path())
+}
+
+/// Build an immunity-kind Ratification JSON with one signer `name` who signed
+/// the item `item_path` against fingerprint `fp` (a Fresh, GitTrust attestation).
+fn sidecar_with_signer(item_path: &str, name: &str, fp: &str) -> String {
+    format!(
+        r#"{{
+  "schema_version": "v1",
+  "kind": "immunity",
+  "antigen": {{ "name": "{item_path}" }},
+  "source_file": "src/lib.rs",
+  "items": [
+    {{
+      "item_path": "{item_path}",
+      "current_fingerprint": "{fp}",
+      "signers": [
+        {{
+          "name": "{name}",
+          "date": "2026-06-01",
+          "signed_against_fingerprint": "{fp}",
+          "basis": {{ "kind": "fresh" }},
+          "strength": "git_trust"
+        }}
+      ]
+    }}
+  ]
+}}"#
+    )
+}
+
+/// Build an immunity-kind Ratification JSON for `item_path` carrying MULTIPLE
+/// signers (each a Fresh GitTrust attestation against `fp`). Used by the S1
+/// conjunction tests (multi-member filled_by + reviewed_by).
+fn sidecar_with_signers(item_path: &str, names: &[&str], fp: &str) -> String {
+    let signers: Vec<String> = names
+        .iter()
+        .map(|name| {
+            format!(
+                r#"        {{
+          "name": "{name}",
+          "date": "2026-06-01",
+          "signed_against_fingerprint": "{fp}",
+          "basis": {{ "kind": "fresh" }},
+          "strength": "git_trust"
+        }}"#
+            )
+        })
+        .collect();
+    format!(
+        r#"{{
+  "schema_version": "v1",
+  "kind": "immunity",
+  "antigen": {{ "name": "{item_path}" }},
+  "source_file": "src/lib.rs",
+  "items": [
+    {{
+      "item_path": "{item_path}",
+      "current_fingerprint": "{fp}",
+      "signers": [
+{}
+      ]
+    }}
+  ]
+}}"#,
+        signers.join(",\n")
+    )
+}
+
+fn first_verdict(report: &PrescriptiveAuditReport) -> &antigen::audit::PrescriptiveVerdict {
+    report.verdicts.first().expect("one verdict")
+}
 
 /// ATK-PRES-5: Pending verdict is reachable.
 ///
-/// A #[panel(needs = ["review"], due = "<future-date>")]
-/// with no attestation in the sidecar must produce WorkVerdict::Pending —
-/// the work-need is declared, the frame is open, the satisfaction is not yet met.
-/// This is the EXPECTED STATE (not a failure), so it must not be loud.
-///
-/// SPEC: undeclared who-step within a future frame → WorkVerdict::Pending (not Overdue)
+/// A #[panel] within a future frame with an unsatisfied (but evaluable) who-step
+/// must be Pending — the expected state, NOT Overdue. A site with a who-ref but
+/// no sidecar would be OutOfFrame; to make it *evaluable-but-unsatisfied* we give
+/// it a sidecar that exists but does NOT carry the required signer.
 #[test]
-#[ignore = "NOT YET IMPLEMENTED: WorkVerdict::Pending not shipped; implement when \
-            prescriptive audit section lands in antigen::audit"]
 fn atk_pres5_panel_within_frame_unsatisfied_is_pending_not_overdue() {
-    // CRITICAL DISTINCTION: Pending (within frame, not yet met) vs
-    // Overdue (past frame, not met) must be separate verdicts.
-    // DO NOT collapse: a panel declared today with due=2027-01-01 is Pending,
-    // not Overdue. Reporting it as Overdue would be a false alarm — exactly
-    // the cardinality-collapse the ADR-029 gem predicts.
-    todo!("implement when WorkVerdict + prescriptive audit ships")
+    let src = r#"use antigen::panel;
+#[panel(needs = ["review"], filled_by = ["alice"], due = "2099-01-01")]
+pub fn p() {}
+"#;
+    // Sidecar exists for item `p` but carries a DIFFERENT signer (so the read is
+    // evaluable, the required `alice` is just not attested ⇒ Unattested, Pending).
+    let report = audit_staged(src, Some(("p", |fp| sidecar_with_signer("p", "bob", fp))));
+    let v = first_verdict(&report);
+    assert_eq!(
+        v.verdict,
+        WorkVerdict::Pending,
+        "evaluable-unsatisfied within a future frame is Pending, not {:?}. steps={:?}",
+        v.verdict,
+        v.steps
+    );
+    assert_ne!(
+        v.verdict,
+        WorkVerdict::Overdue,
+        "future frame is never Overdue"
+    );
 }
 
 /// ATK-PRES-6: Fulfilled verdict is reachable.
 ///
-/// A #[panel(needs = ["review"], filled_by = ["alice"])] with alice's attestation
-/// in the sidecar at the current fingerprint must produce WorkVerdict::Fulfilled.
-///
-/// SPEC: satisfied who-step at current fingerprint → WorkVerdict::Fulfilled
+/// A #[panel(filled_by = ["alice"])] with alice's attestation at the CURRENT
+/// fingerprint must be Fulfilled. This is the end-to-end satisfaction read: the
+/// signer's `signed_against_fingerprint` is pinned to the scanned digest.
 #[test]
-#[ignore = "NOT YET IMPLEMENTED: WorkVerdict::Fulfilled not shipped"]
 fn atk_pres6_panel_satisfied_at_current_fingerprint_is_fulfilled() {
-    todo!("implement when WorkVerdict + prescriptive audit ships")
+    let src = r#"use antigen::panel;
+#[panel(needs = ["review"], filled_by = ["alice"], due = "2099-01-01")]
+pub fn p() {}
+"#;
+    let report = audit_staged(src, Some(("p", |fp| sidecar_with_signer("p", "alice", fp))));
+    let v = first_verdict(&report);
+    assert_eq!(
+        v.verdict,
+        WorkVerdict::Fulfilled,
+        "alice attested at current fingerprint ⇒ Fulfilled, got {:?}. steps={:?}",
+        v.verdict,
+        v.steps
+    );
+    assert!(
+        v.steps
+            .iter()
+            .any(|s| s.reference == "alice" && s.state == StepState::Attested),
+        "alice's filled_by step must read Attested: {:?}",
+        v.steps
+    );
 }
 
-/// ATK-PRES-7: Overdue verdict is reachable.
-///
-/// A #[panel(needs = ["review"], due = "<past-date>")] with no attestation
-/// must produce WorkVerdict::Overdue. This is a LOUD verdict (ADR-023 isomorphism).
-///
-/// SPEC: past-frame, unsatisfied → WorkVerdict::Overdue (loud)
+/// ATK-PRES-6b (NFA-21 fingerprint-pin): a signer who signed against an OLD
+/// fingerprint does NOT fulfill — the attestation is stale once code changes.
+/// We pin the signer to a deliberately-wrong fingerprint; the leaf fails the
+/// `against=current` currency check ⇒ Unattested ⇒ Pending (not Fulfilled).
 #[test]
-#[ignore = "NOT YET IMPLEMENTED: WorkVerdict::Overdue not shipped"]
+fn atk_pres6b_stale_signer_does_not_fulfill_nfa21() {
+    let src = r#"use antigen::panel;
+#[panel(needs = ["review"], filled_by = ["alice"], due = "2099-01-01")]
+pub fn p() {}
+"#;
+    let report = audit_staged(
+        src,
+        Some(("p", |_fp| {
+            sidecar_with_signer("p", "alice", "STALE-FINGERPRINT-not-current")
+        })),
+    );
+    let v = first_verdict(&report);
+    assert_ne!(
+        v.verdict,
+        WorkVerdict::Fulfilled,
+        "a stale-fingerprint signature must NOT fulfill (NFA-21). steps={:?}",
+        v.steps
+    );
+    assert_eq!(
+        v.verdict,
+        WorkVerdict::Pending,
+        "stale signer within a future frame is Pending (re-attestation owed), got {:?}",
+        v.verdict
+    );
+}
+
+/// ATK-PRES-7: Overdue verdict is reachable and loud.
+///
+/// A #[panel] PAST its frame with an evaluable-but-unsatisfied who-step is
+/// Overdue (loud). The sidecar exists (so the read is evaluable) but lacks the
+/// required signer.
+#[test]
 fn atk_pres7_panel_past_frame_unsatisfied_is_overdue_and_loud() {
-    todo!("implement when WorkVerdict + prescriptive audit ships")
+    let src = r#"use antigen::panel;
+#[panel(needs = ["review"], filled_by = ["alice"], due = "2020-01-01")]
+pub fn p() {}
+"#;
+    let report = audit_staged(src, Some(("p", |fp| sidecar_with_signer("p", "bob", fp))));
+    let v = first_verdict(&report);
+    assert_eq!(
+        v.verdict,
+        WorkVerdict::Overdue,
+        "evaluable-unsatisfied past the frame is Overdue, got {:?}. steps={:?}",
+        v.verdict,
+        v.steps
+    );
+    assert!(
+        v.verdict.is_loud(),
+        "Overdue must be loud (ADR-023 isomorphism)"
+    );
 }
 
-/// ATK-PRES-8 (THE CRITICAL THREE-VALUED-LOGIC TEST): OutOfFrame is distinct from Overdue.
+/// ATK-PRES-8 (THE CRITICAL THREE-VALUED-LOGIC TEST): OutOfFrame is distinct
+/// from Overdue. A #[panel] with an unknown who-ref and NO sidecar must be
+/// OutOfFrame even when its frame has elapsed — the satisfaction is un-evaluable,
+/// so the audit cannot say "late." Collapsing this to Overdue is the
+/// cardinality-collapse the gem forbids (the prescriptive analog of ATK-3V-4).
 ///
-/// A #[panel(needs = ["review"], filled_by = ["unknown-who-ref"])] where
-/// "unknown-who-ref" does not exist in any sidecar must produce WorkVerdict::OutOfFrame.
-/// It must NOT produce WorkVerdict::Overdue.
-///
-/// SPEC: un-evaluable who-step (unknown who-ref, no sidecar) → WorkVerdict::OutOfFrame
-///
-/// THE CARDINALITY-COLLAPSE GUARD:
-///   Overdue   = frame elapsed AND the audit EVALUATED the satisfaction condition
-///               and found it unmet. The audit KNOWS the work is late.
-///   OutOfFrame = the satisfaction condition is NOT EVALUABLE. The audit does not
-///               know if the work is done, started, or even relevant. It cannot say
-///               "late" because it cannot say "evaluable."
-///
-/// If the audit collapses OutOfFrame → Overdue, it produces false alarms: every
-/// panel with an unknown who-ref becomes urgently overdue, whether it has a due date
-/// or not. This is the prescriptive analog of ATK-3V-4 (deferred → SubstrateGap).
-/// The fix is the same: the verdict-lattice must preserve all four states; collapsing
-/// any two is a cardinality error.
-///
-/// Biology: anergy (T-cell anergy = failure to recognize, not failed recognition)
-/// vs exhaustion (recognized, failed to respond). "I can't find the co-stimulation
-/// signal" is different from "I found the signal and the T-cell still didn't fire."
-/// OutOfFrame = anergy. Overdue = exhaustion. They are different clinical states
-/// requiring different interventions.
+/// This test MUST pass WITHOUT modification. If it requires changing the
+/// expected verdict to pass, the evaluator has the collapse bug.
 #[test]
-#[ignore = "NOT YET IMPLEMENTED: WorkVerdict::OutOfFrame not shipped; this is the \
-            load-bearing test for the three-valued-logic gem in the prescriptive family. \
-            When pathmaker implements the prescriptive audit evaluator, this test MUST \
-            pass WITHOUT modification — if it requires modification to pass, the \
-            evaluator has the cardinality-collapse bug. DO NOT collapse OutOfFrame → Overdue."]
 fn atk_pres8_unknown_who_ref_produces_out_of_frame_not_overdue() {
-    // DESIRED behavior:
-    //   let result = audit_prescriptive(&site_with_unknown_who_ref, &workspace_root);
-    //   assert_eq!(result.work_verdict, WorkVerdict::OutOfFrame);
-    //
-    // FAILING behavior (the cardinality-collapse):
-    //   assert_ne!(result.work_verdict, WorkVerdict::Overdue,
-    //       "OutOfFrame must not be reported as Overdue — the work-need is
-    //        un-evaluable (who-ref unknown), not overdue (frame elapsed)");
-    todo!("implement when WorkVerdict + prescriptive audit ships")
+    // No sidecar is written — the who-ref `unknown-who-ref` is un-evaluable.
+    // The frame is PAST, which is precisely the trap: a collapse would read
+    // this as Overdue. The gem guard keeps it OutOfFrame.
+    let src = r#"use antigen::panel;
+#[panel(needs = ["review"], filled_by = ["unknown-who-ref"], due = "2020-01-01")]
+pub fn p() {}
+"#;
+    let report = audit_staged(src, None);
+    let v = first_verdict(&report);
+    assert_eq!(
+        v.verdict,
+        WorkVerdict::OutOfFrame,
+        "un-evaluable who-ref (no sidecar) is OutOfFrame even past-frame, got {:?}",
+        v.verdict
+    );
+    assert_ne!(
+        v.verdict,
+        WorkVerdict::Overdue,
+        "THE GEM GUARD: OutOfFrame must NEVER collapse to Overdue — the work is \
+         un-evaluable (who-ref unknown), not late. steps={:?}",
+        v.steps
+    );
 }
 
 /// ATK-PRES-9: Overdue-vs-OutOfFrame is NEVER collapsed.
@@ -247,16 +453,14 @@ fn atk_pres8_unknown_who_ref_produces_out_of_frame_not_overdue() {
 ///
 /// SPEC: `WorkVerdict::Overdue != WorkVerdict::OutOfFrame` (structural, not just enum)
 #[test]
-#[ignore = "NOT YET IMPLEMENTED: WorkVerdict not shipped; this will be a simple enum
-            variant inequality test once WorkVerdict is defined"]
 fn atk_pres9_work_verdict_overdue_and_out_of_frame_are_distinct_variants() {
-    // When WorkVerdict ships:
-    //   use antigen::audit::WorkVerdict;
-    //   assert_ne!(WorkVerdict::Overdue, WorkVerdict::OutOfFrame,
-    //       "ATK-PRES-9: Overdue and OutOfFrame are DISTINCT WorkVerdict variants. \
-    //        If this fails, the enum was collapsed — that is a cardinality-collapse bug \
-    //        per the ADR-033 three-valued-logic gem.");
-    todo!("trivial once WorkVerdict ships")
+    assert_ne!(
+        WorkVerdict::Overdue,
+        WorkVerdict::OutOfFrame,
+        "ATK-PRES-9: Overdue and OutOfFrame are DISTINCT WorkVerdict variants. \
+         If this fails, the enum was collapsed — a cardinality-collapse bug per \
+         the ADR-033 three-valued-logic gem."
+    );
 }
 
 // ============================================================================
@@ -306,22 +510,19 @@ fn atk_pres10_triage_decision_and_work_verdict_are_distinct_types() {
 ///
 /// SPEC: WorkVerdict = {Pending, Fulfilled, Overdue, OutOfFrame} — exactly four.
 #[test]
-#[ignore = "NOT YET IMPLEMENTED: WorkVerdict not shipped; un-ignore when it ships and \
-            verify all four variants exist via exhaustive pattern match"]
 fn atk_pres11_work_verdict_has_exactly_four_variants() {
-    // When WorkVerdict ships:
-    //   use antigen::audit::WorkVerdict;
-    //   // Exhaustive match — if a variant is added or removed, this fails to compile.
-    //   fn exhaustive_check(v: WorkVerdict) {
-    //       match v {
-    //           WorkVerdict::Pending => {}
-    //           WorkVerdict::Fulfilled => {}
-    //           WorkVerdict::Overdue => {}
-    //           WorkVerdict::OutOfFrame => {}
-    //           // If there's a 5th variant, this match is non-exhaustive and fails.
-    //       }
-    //   }
-    todo!("implement as compile-time exhaustive match when WorkVerdict ships")
+    // Exhaustive match — a 5th variant fails to compile here (the sealed-enum
+    // cardinality guard). A removed variant also fails (the arm references it).
+    fn exhaustive_check(v: WorkVerdict) -> &'static str {
+        match v {
+            WorkVerdict::Pending => "pending",
+            WorkVerdict::Fulfilled => "fulfilled",
+            WorkVerdict::Overdue => "overdue",
+            WorkVerdict::OutOfFrame => "out-of-frame",
+        }
+    }
+    assert_eq!(exhaustive_check(WorkVerdict::Pending), "pending");
+    assert_eq!(exhaustive_check(WorkVerdict::OutOfFrame), "out-of-frame");
 }
 
 // ============================================================================
@@ -353,27 +554,77 @@ fn atk_pres11_work_verdict_has_exactly_four_variants() {
 /// clarify whether `#[triage]` can reach Fulfilled at all in v0.3, or whether
 /// it is structurally Pending-until-triaged / OutOfFrame-after-expiry.
 ///
-/// ADVERSARIAL PREDICTION: if the implementation treats `triaged_by` attestation
-/// as Fulfilled, it creates a trivial bypass — add an attestation, mark Fulfilled,
-/// never resolve the actual campsites. This is the same class as
-/// `fresh_through=today` (bypass by writing a substrate signal without doing the
-/// work). If the implementation leaves Fulfilled unreachable, the audit always
-/// shows Pending (no loudness signal) — a silent-information-deficit.
+/// RESOLVED (aristotle, decisions.md §Verdict-semantics-per-shape): triage is a
+/// standing re-validated ORDERING. Fulfilled = `triaged_by` attested AND within
+/// `re_triage_due` AND all `priority_order` refs resolve. Fulfilled IS reachable
+/// (it means "ordering current + resolvable"), re-earned each cycle. `triaged_by`
+/// alone does NOT permanently fulfill — the frame expires it. So both bypass
+/// concerns are answered: the freshness frame prevents perpetual-fulfillment, and
+/// an unresolvable ref ⇒ OutOfFrame (PRES-14), never silent-satisfied.
 #[test]
-#[ignore = "SPEC GAP: ADR-033 does not specify when #[triage] reaches WorkVerdict::Fulfilled. \
-            aristotle must resolve this before pathmaker implements S3. See camp question ae2e3a2d. \
-            When resolved, convert this to a concrete fixture test."]
-fn atk_pres12_triage_fulfilled_is_structurally_reachable_or_unreachable() {
-    // When spec is resolved:
-    // Option A (triaged_by = Fulfilled):
-    //   let result = audit_prescriptive(&triage_site_with_triaged_by, &root);
-    //   assert_eq!(result.work_verdict, WorkVerdict::Fulfilled);
-    //   // Risk: bypass by attesting order without doing work.
-    // Option B (Fulfilled not reachable for S3, frame-expiry = OutOfFrame):
-    //   let result = audit_prescriptive(&triage_site_past_re_triage_due, &root);
-    //   assert_eq!(result.work_verdict, WorkVerdict::OutOfFrame);
-    //   // Correct if triage is a staleness-frame, not a completion-frame.
-    todo!("spec must resolve S3 Fulfilled semantics first (question ae2e3a2d)")
+fn atk_pres12_triage_fulfilled_requires_resolvable_order_and_fresh_attestation() {
+    // priority_order refs point at two SCANNED ANNOTATED sites in the same crate
+    // (`foo`/`bar` carry their own work-needs, so the scan records them and the
+    // audit can resolve the refs). v0.3 CEILING: resolution is against the
+    // annotated-site index — full arbitrary-code-site resolution is Layer-2
+    // (ADR-017-Amd1 multi-crate scan). triaged_by `nav` is attested at the
+    // current fingerprint of the triage-bearing item `t`. Within frame ⇒ Fulfilled.
+    let src = r#"use antigen::{triage, biopsy};
+#[triage(priority_order = ["foo", "bar"], triaged_by = "nav", re_triage_due = "2099-01-01")]
+pub fn t() {}
+#[biopsy(request_text = "investigate foo", deep_investigation_by = "x")]
+pub fn foo() {}
+#[biopsy(request_text = "investigate bar", deep_investigation_by = "y")]
+pub fn bar() {}
+"#;
+    let report = audit_staged(src, Some(("t", |fp| sidecar_with_signer("t", "nav", fp))));
+    let v = first_verdict(&report);
+    assert_eq!(
+        v.verdict,
+        WorkVerdict::Fulfilled,
+        "resolvable order + fresh triaged_by within frame ⇒ Fulfilled, got {:?}. steps={:?}",
+        v.verdict,
+        v.steps
+    );
+
+    // Same triage but PAST re_triage_due ⇒ Overdue (re-triage owed), NOT
+    // permanently Fulfilled — even with a fresh triaged_by attestation. This is
+    // the anti-bypass aristotle ruled: triaged_by attested is necessary but the
+    // re_triage_due frame elapsing makes the ordering stale (re-triage owed). A
+    // triage that stayed Fulfilled forever after one attestation would be the
+    // perpetual-freshness bypass; the frame de-satisfies it.
+    let stale_src = r#"use antigen::{triage, biopsy};
+#[triage(priority_order = ["foo", "bar"], triaged_by = "nav", re_triage_due = "2020-01-01")]
+pub fn t() {}
+#[biopsy(request_text = "investigate foo", deep_investigation_by = "x")]
+pub fn foo() {}
+#[biopsy(request_text = "investigate bar", deep_investigation_by = "y")]
+pub fn bar() {}
+"#;
+    let stale = audit_staged(
+        stale_src,
+        Some(("t", |fp| sidecar_with_signer("t", "nav", fp))),
+    );
+    let sv = first_verdict(&stale);
+    assert_eq!(
+        sv.verdict,
+        WorkVerdict::Overdue,
+        "a triage past re_triage_due is Overdue (re-triage owed), NEVER permanently \
+         Fulfilled — even with a fresh triaged_by. Got {:?}. steps={:?}",
+        sv.verdict,
+        sv.steps
+    );
+
+    // And an UN-attested triage with NO sidecar is OutOfFrame, not Overdue — the
+    // gem guard again: we cannot read the triager, so the work is un-evaluable.
+    let unattested_stale = audit_staged(stale_src, None);
+    let uv = first_verdict(&unattested_stale);
+    assert_eq!(
+        uv.verdict,
+        WorkVerdict::OutOfFrame,
+        "an unevaluable triaged_by (no sidecar) is OutOfFrame, got {:?}",
+        uv.verdict
+    );
 }
 
 /// ATK-PRES-13: S4 `quarantine`/`culture` — frame-expiry verdict is Fulfilled or OutOfFrame?
@@ -400,21 +651,81 @@ fn atk_pres12_triage_fulfilled_is_structurally_reachable_or_unreachable() {
 /// `fresh_through=today` — set a past date, mark Fulfilled, no actual work done.
 /// Interpretation B is safer but introduces implementation complexity not mentioned.
 ///
-/// SPEC GAP: the ADR must clarify whether S4 frame-expiry alone satisfies WorkVerdict::Fulfilled
-/// or whether a closure attestation is required.
+/// RESOLVED (aristotle, decisions.md §Verdict-semantics-per-shape):
+/// Interpretation B. S4 Fulfilled requires a POSITIVE closure (a closure
+/// attestation), NEVER frame-expiry alone. A `#[quarantine]` past its `until`
+/// with NO closure attestation is **Overdue**, not Fulfilled — frame-expiry
+/// without closure is exactly what Overdue means. This is the `fresh_through`-
+/// bypass class (ATK-FT-1/2): a site Fulfilled purely because its deadline
+/// passed would be the temporal forged-freshness bypass. Forbidden.
+///
+/// v0.3 IMPLEMENTATION CEILING (tier-honest): the ratified §Proc-Macro-Surface
+/// gives S4 macros NO closure who-ref field (`culture` = test_kind/duration/
+/// runs_until; `quarantine` = scope/until/reason). So the positive-closure
+/// EVENT — a release attestation, or the named test going green — is not yet
+/// observable to the audit (it is the same Layer-2 cross-reference machinery as
+/// triage ref-resolution + coverage SubThreshold). Until that lands, an S4 site
+/// is NEVER Fulfilled: it is Pending within frame, Overdue past it. This is the
+/// SAFE direction — the positive-closure guard holds MAXIMALLY (we never claim
+/// closure we cannot observe), so the `fresh_through` bypass is structurally
+/// impossible. The path to Fulfilled is gated, not collapsed.
 #[test]
-#[ignore = "SPEC GAP: ADR-033 S4 frame-expiry verdict is underspecified. \
-            See camp question ae2e3a2d. Convert to fixture test when resolved."]
-fn atk_pres13_s4_frame_expiry_verdict_is_fulfilled_or_out_of_frame() {
-    // When spec is resolved:
-    // Option A (expiry = Fulfilled):
-    //   let site = quarantine_site_with_past_until();
-    //   assert_eq!(audit(site).work_verdict, WorkVerdict::Fulfilled);
-    //   // Adversarial test: site with `until = yesterday` and NO isolation work.
-    //   // Expected: must NOT be Fulfilled if no isolation attestation.
-    // Option B (expiry without attestation = OutOfFrame or Overdue):
-    //   assert_ne!(audit(site).work_verdict, WorkVerdict::Fulfilled);
-    todo!("spec must resolve S4 frame-expiry semantics (question ae2e3a2d)")
+fn atk_pres13_s4_frame_expiry_alone_is_overdue_never_fulfilled() {
+    // A quarantine WITHIN frame, un-closed ⇒ Pending (the expected state — the
+    // hold is active, not late, not done).
+    let active_src = r#"use antigen::quarantine;
+#[quarantine(scope = "legacy::mod", until = "2099-01-01", reason = "pending upstream fix")]
+pub fn q() {}
+"#;
+    let active = audit_staged(active_src, None);
+    let av = first_verdict(&active);
+    assert_eq!(
+        av.verdict,
+        WorkVerdict::Pending,
+        "an active (within-frame) quarantine is Pending, got {:?}. steps={:?}",
+        av.verdict,
+        av.steps
+    );
+
+    // The bypass trap: a quarantine PAST `until` with no closure. Interpretation A
+    // (the bypass) would mark it Fulfilled "because the date passed." The guard
+    // makes it Overdue — frame-expiry without positive closure is exactly Overdue.
+    let bypass_src = r#"use antigen::quarantine;
+#[quarantine(scope = "legacy::mod", until = "2020-01-01", reason = "pending upstream fix")]
+pub fn q() {}
+"#;
+    let bypass = audit_staged(bypass_src, None);
+    let bv = first_verdict(&bypass);
+    assert_ne!(
+        bv.verdict,
+        WorkVerdict::Fulfilled,
+        "ATK-PRES-13: frame-expiry alone must NEVER fulfill an S4 site (the \
+         fresh_through bypass — a past deadline is not closure). got {:?}",
+        bv.verdict
+    );
+    assert_eq!(
+        bv.verdict,
+        WorkVerdict::Overdue,
+        "an S4 site past frame with no positive closure is Overdue (the hold ran \
+         out without being released), got {:?}. steps={:?}",
+        bv.verdict,
+        bv.steps
+    );
+
+    // Same for culture: past runs_until, no green reading ⇒ Overdue, not Fulfilled.
+    let culture_src = r#"use antigen::culture;
+#[culture(test_kind = "24h soak", runs_until = "2020-01-01")]
+pub fn c() {}
+"#;
+    let culture = audit_staged(culture_src, None);
+    let cv = first_verdict(&culture);
+    assert_eq!(
+        cv.verdict,
+        WorkVerdict::Overdue,
+        "a culture past runs_until with no green reading is Overdue, never Fulfilled \
+         by expiry; got {:?}",
+        cv.verdict
+    );
 }
 
 /// ATK-PRES-14: `triage.priority_order` non-permutation — parse-error or audit OutOfFrame?
@@ -434,17 +745,42 @@ fn atk_pres13_s4_frame_expiry_verdict_is_fulfilled_or_out_of_frame() {
 /// reference to be valid at compile time). If this is audit-time OutOfFrame, the triage site
 /// silently produces OutOfFrame when references dangle — potentially hiding a real gap.
 ///
-/// SPEC GAP: the resolution tier of the "priority_order items must be valid code-site
-/// references" constraint is not specified.
+/// RESOLVED (aristotle, decisions.md §Enforcement-Surface + ADR-017-Amd1):
+/// audit-time, NOT parse-time. An unresolvable `priority_order` code-site ref ⇒
+/// `WorkVerdict::OutOfFrame` (un-evaluable), never silent-satisfied, never a
+/// compile error. This is the gem: the audit cannot grade an ordering over sites
+/// that don't exist, so it declares out-of-frame rather than guessing.
 #[test]
-#[ignore = "SPEC GAP: ADR-033 does not specify whether triage.priority_order non-resolution \
-            fires at parse-time (compile error) or audit-time (OutOfFrame). \
-            See camp question ae2e3a2d. Convert to fixture when resolved."]
-fn atk_pres14_priority_order_nonresolvable_target_fires_correct_verdict() {
-    // Depends on resolution:
-    // Option A (parse-time): trybuild compile-fail fixture with `priority_order = ["nonexistent"]`
-    // Option B (audit-time): scan_workspace(fixture) → audit → WorkVerdict::OutOfFrame
-    todo!("spec must resolve priority_order resolution tier (question ae2e3a2d)")
+fn atk_pres14_priority_order_nonresolvable_target_is_out_of_frame() {
+    // `bar` exists; `does_not_exist` does not. triaged_by `nav` IS attested at the
+    // current fingerprint (so the who-step is NOT the cause). The unresolvable ref
+    // alone drives OutOfFrame — isolating ATK-PRES-14's exact concern.
+    let src = r#"use antigen::{triage, biopsy};
+#[triage(priority_order = ["bar", "does_not_exist"], triaged_by = "nav", re_triage_due = "2099-01-01")]
+pub fn t() {}
+#[biopsy(request_text = "investigate bar", deep_investigation_by = "x")]
+pub fn bar() {}
+"#;
+    let report = audit_staged(src, Some(("t", |fp| sidecar_with_signer("t", "nav", fp))));
+    let v = first_verdict(&report);
+    assert_eq!(
+        v.verdict,
+        WorkVerdict::OutOfFrame,
+        "an unresolvable priority_order ref makes the triage OutOfFrame (ADR-017-Amd1), \
+         got {:?}. steps={:?}",
+        v.verdict,
+        v.steps
+    );
+    assert_ne!(
+        v.verdict,
+        WorkVerdict::Fulfilled,
+        "ATK-PRES-14: a dangling ref must NEVER be silent-satisfied"
+    );
+    assert_ne!(
+        v.verdict,
+        WorkVerdict::Overdue,
+        "ATK-PRES-14: a dangling ref is un-evaluable (OutOfFrame), not late (Overdue)"
+    );
 }
 
 /// ATK-PRES-15: `reviewed_by` ordering — ALL `filled_by` attested, or ANY?
@@ -468,26 +804,72 @@ fn atk_pres14_priority_order_nonresolvable_target_fires_correct_verdict() {
 /// - "ANY filled_by" allows review before all fill is done — partial closure risk.
 /// - Per-filler mapping re-introduces the positional pairing the ADR explicitly rejected.
 ///
-/// SPEC GAP: the conjunction-over-role-steps semantics is underspecified when filled_by
-/// has multiple members. The ADR rejects positional pairing but doesn't specify what
-/// "filled_by attested" means across a multi-member list.
+/// RESOLVED (aristotle, decisions.md §Witness-binding + §Verdict-semantics):
+/// ALL, conjunction. A `reviewed_by` attestation is credited ONLY when EVERY
+/// `filled_by` role-step is attested at the current fingerprint ("you cannot
+/// review what is not filled"). Multi-member `filled_by` = ALL, not ANY. A
+/// reviewer present while a filler is un-attested is PREMATURE — not credited.
 #[test]
-#[ignore = "SPEC GAP: ADR-033 §Witness-binding 'reviewed_by requires filled_by' does not \
-            specify ALL vs ANY for multi-member filled_by. See camp question ae2e3a2d. \
-            Implement once spec clarifies."]
-fn atk_pres15_reviewed_by_ordering_requires_all_or_any_filled_by() {
-    // Degenerate inputs to test when implemented:
-    //
-    // 1. filled_by = ["alice", "charlie"], reviewed_by = ["bob"]
-    //    alice attested, charlie NOT attested, bob attested.
-    //    Expected: ??? (Pending if ALL required, Fulfilled if ANY sufficient)
-    //
-    // 2. filled_by = ["alice"], reviewed_by = ["bob"]
-    //    alice NOT attested, bob HAS attestation (out-of-order review).
-    //    Expected: OutOfFrame (review precedes fill — ordering violation)
-    //
-    // 3. filled_by = [], reviewed_by = ["bob"]
-    //    No fillers declared, bob attested.
-    //    Expected: Fulfilled? (no fill required, only review) or OutOfFrame?
-    todo!("spec must resolve multi-member filled_by semantics (question ae2e3a2d)")
+fn atk_pres15_reviewed_by_requires_all_filled_by_conjunction() {
+    // Case 1: filled_by = [alice, charlie], reviewed_by = [bob]. alice attested,
+    // charlie NOT attested, bob attested. ALL semantics ⇒ Pending (the panel is
+    // not fully filled, so bob's review is premature and not credited).
+    let src = r#"use antigen::panel;
+#[panel(needs = ["a", "b"], filled_by = ["alice", "charlie"], reviewed_by = ["bob"], due = "2099-01-01")]
+pub fn p() {}
+"#;
+    // Sidecar carries alice + bob (current) but NOT charlie ⇒ charlie's filler
+    // step is Unattested ⇒ not all fillers attested ⇒ bob's review uncredited.
+    let partial = audit_staged(
+        src,
+        Some(("p", |fp| sidecar_with_signers("p", &["alice", "bob"], fp))),
+    );
+    let pv = first_verdict(&partial);
+    assert_eq!(
+        pv.verdict,
+        WorkVerdict::Pending,
+        "ATK-PRES-15: ALL semantics — one un-attested filler (charlie) ⇒ Pending, \
+         bob's review premature. got {:?}. steps={:?}",
+        pv.verdict,
+        pv.steps
+    );
+    assert_ne!(
+        pv.verdict,
+        WorkVerdict::Fulfilled,
+        "ANY semantics is WRONG — a partially-filled panel is not Fulfilled"
+    );
+
+    // Case 2: every filler AND the reviewer attested ⇒ Fulfilled (the chain
+    // closes: all filled_by, then all reviewed_by).
+    let complete = audit_staged(
+        src,
+        Some(("p", |fp| {
+            sidecar_with_signers("p", &["alice", "charlie", "bob"], fp)
+        })),
+    );
+    let cv = first_verdict(&complete);
+    assert_eq!(
+        cv.verdict,
+        WorkVerdict::Fulfilled,
+        "all fillers + reviewer attested at current fingerprint ⇒ Fulfilled, got {:?}. steps={:?}",
+        cv.verdict,
+        cv.steps
+    );
+
+    // Case 3: all fillers attested but the reviewer is NOT ⇒ Pending (the review
+    // step is the last link of the conjunction chain, still open).
+    let no_review = audit_staged(
+        src,
+        Some(("p", |fp| {
+            sidecar_with_signers("p", &["alice", "charlie"], fp)
+        })),
+    );
+    let nv = first_verdict(&no_review);
+    assert_eq!(
+        nv.verdict,
+        WorkVerdict::Pending,
+        "fillers done but reviewer not attested ⇒ Pending (awaiting review), got {:?}. steps={:?}",
+        nv.verdict,
+        nv.steps
+    );
 }
