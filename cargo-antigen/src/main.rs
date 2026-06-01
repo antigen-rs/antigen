@@ -168,6 +168,16 @@ struct ScanArgs {
     /// for backward compatibility.
     #[arg(long)]
     include_deps: bool,
+    /// Member-aware multi-crate scan (v0.3). Instead of walking `--root` as one
+    /// flat tree (every record sharing the same identity), enumerate the
+    /// workspace's member crates via `cargo metadata`, scan each independently,
+    /// and stamp each member's declarations with its own `<name>@<version>`
+    /// canonical path. Cross-member `#[descended_from]` lineage resolves across
+    /// members. This is the substrate for cross-crate identity (ADR-001 C7).
+    /// Default OFF: the flat single-bag scan stays the default for
+    /// backward-compatible output.
+    #[arg(long)]
+    workspace: bool,
     /// Filter to antigen declarations of a single category (ADR-028 §CLI
     /// integration). Accepts `substrate-alignment` or `functional-correctness`.
     /// A hybrid antigen (both categories) matches either filter.
@@ -2217,32 +2227,47 @@ fn filter_report_by_category(
     report.tolerances.retain(|t| kept.contains(&t.antigen_type));
 }
 
-fn run_scan(args: ScanArgs) -> ExitCode {
+/// Validate `--root` and run the appropriate scan (flat or member-aware).
+///
+/// Returns the [`scan::ScanReport`] on success, or the [`ExitCode`] the caller
+/// should propagate on a validation/scan failure. Extracted from [`run_scan`]
+/// so the body of `run_scan` stays under the clippy line cap and the
+/// flat-vs-member-aware dispatch lives in one place.
+fn acquire_scan_report(args: &ScanArgs) -> Result<scan::ScanReport, ExitCode> {
     if !args.root.exists() {
         eprintln!("error: path does not exist: {}", args.root.display());
-        return ExitCode::from(2);
+        return Err(ExitCode::from(2));
     }
     if !args.root.is_dir() {
         eprintln!(
             "error: expected a directory, got a file: {}",
             args.root.display()
         );
-        return ExitCode::from(2);
+        return Err(ExitCode::from(2));
     }
 
+    if args.workspace {
+        eprintln!("Scanning workspace (member-aware): {}", args.root.display());
+        scan::scan_workspace_multi_crate(&args.root)
+    } else {
+        eprintln!("Scanning workspace: {}", args.root.display());
+        scan::scan_workspace(&args.root, None)
+    }
+    .map_err(|e| {
+        eprintln!("error: scan failed: {e}");
+        ExitCode::from(2)
+    })
+}
+
+fn run_scan(args: ScanArgs) -> ExitCode {
     // ADR-028 §CLI integration: --category filters to a single category.
     let Ok(category_filter) = parse_category_filter(args.category.as_deref()) else {
         return ExitCode::from(2);
     };
 
-    eprintln!("Scanning workspace: {}", args.root.display());
-
-    let mut report = match scan::scan_workspace(&args.root, None) {
+    let mut report = match acquire_scan_report(&args) {
         Ok(r) => r,
-        Err(e) => {
-            eprintln!("error: scan failed: {e}");
-            return ExitCode::from(2);
-        }
+        Err(code) => return code,
     };
 
     if let Some(cat) = category_filter {
