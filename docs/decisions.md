@@ -66,6 +66,7 @@
 - [ADR-015 — Fingerprint engine: grammar-over-AST with per-fingerprint evaluator trait](#adr-015-fingerprint-engine-grammar-over-ast-with-per-fingerprint-evaluator-trait) *(partially supersedes ADR-010 §Mechanics §1)*
 - [ADR-016 — Temporal recognition surface: provenance + freshness primitives](#adr-016-temporal-recognition-surface-provenance--freshness-primitives-for-stale-context-and-premature-abstraction)
 - [ADR-017 — Antigen identity is canonical declaration site; cross-crate trust delegates to cargo](#adr-017-antigen-identity-is-canonical-declaration-site-cross-crate-trust-delegates-to-cargo)
+  - [ADR-017 Amendment 1 — Cross-crate `addresses()` resolution: the sub-clause-F clause at the cross-crate reference boundary](#adr-017-amendment-1--cross-crate-addresses-resolution-the-sub-clause-f-clause-at-the-cross-crate-reference-boundary)
 - [ADR-018 — `#[descended_from]` propagation: tagged synthesis + diamond dedup + inheritance state matrix](#adr-018-descended_from-propagation-tagged-synthesis--diamond-dedup--inheritance-state-matrix)
   - [ADR-018 Amendment 1 — Inheritance is provenance, not substitutability](#adr-018-amendment-1--inheritance-is-provenance-not-substitutability)
 - [ADR-019 — Substrate-witness predicate family](#adr-019-substrate-witness-predicate-family)
@@ -74,7 +75,9 @@
 - [ADR-022 — Stdlib-vs-Extension: Two Disciplines, One Public API](#adr-022--stdlib-vs-extension-two-disciplines-one-public-api)
 - [ADR-023 — Deferred-Defense Family: Loudness-as-Discipline for Intentional Non-Immunity](#adr-023--deferred-defense-family-loudness-as-discipline-for-intentional-non-immunity)
 - [ADR-024 — Three Sibling Families: Convergent Evidence + Recurrent Emergence + Prescriptive Work-Orchestration](#adr-024--three-sibling-families-convergent-evidence--recurrent-emergence--prescriptive-work-orchestration)
+  - [ADR-024 Amendment 1 — `#[titer]` biology-grounding axis reassignment](#adr-024-amendment-1--titer-biology-grounding-axis-reassignment)
   - [ADR-024 Amendment 2 — Recurrent Emergence macro arg-signatures (shipped shapes from parse.rs)](#adr-024-amendment-2--recurrent-emergence-macro-arg-signatures-shipped-shapes-from-parsers)
+  - [ADR-024 Amendment 3 — `from_itches` is class-specific (lineage-aware): the recurrence-anchor noticing-precondition](#adr-024-amendment-3--from_itches-is-class-specific-lineage-aware-the-recurrence-anchor-noticing-precondition)
 - [ADR-025 — Supply-Chain Defense Family: Antigens for Dependency-Boundary Risk in the 2026+ Threat Landscape](#adr-025--supply-chain-defense-family-antigens-for-dependency-boundary-risk-in-the-2026-threat-landscape)
 - [ADR-026 — VCS-Information-Loss Family: Structural Defense Against Git-History-Erasing Operations + Rollback-as-Triage Discipline](#adr-026--vcs-information-loss-family-structural-defense-against-git-history-erasing-operations--rollback-as-triage-discipline) *(amended by Amendments 1–4)*
   - [ADR-026 Amendment 1 — rollback-as-triage uses `#[triage_commit]`, not `#[orient]` extension](#adr-026-amendment-1--rollback-as-triage-uses-triage_commit-not-orient-extension)
@@ -87,6 +90,12 @@
   - [ADR-028 Amendment 7 — silence-generator witness-selection guidance + witness-locus split within SubstrateAlignment](#adr-028-amendment-7--silence-generator-witness-selection-guidance--witness-locus-split-within-substratalignment)
 - [ADR-029 — Immunity Is Observed, Not Declared: `#[defended_by]` + `#[presents]` Evidence Extension](#adr-029--immunity-is-observed-not-declared-defended_by--presents-evidence-extension)
   - [ADR-029 Amendment 1 — Substrate-intent precedence: a failing `requires=` is not masked by a code witness](#adr-029-amendment-1--substrate-intent-precedence-a-failing-requires-is-not-masked-by-a-code-witness)
+- [ADR-030 — Aggregate and Temporal Properties Are Audit-Observed](#adr-030-aggregate-and-temporal-properties-are-audit-observed)
+- [ADR-031 — Negative Selection: `#[no_longer_presents(X)]` and Revocation-Staleness Observation](#adr-031-negative-selection-no_longer_presentsx-and-revocation-staleness-observation)
+- [ADR-032 — Conjunction Witnesses: Required-All Defense Semantics](#adr-032-conjunction-witnesses-required-all-defense-semantics)
+- [ADR-019 Amendment 1 — Witness Taxonomy: Two Kinds (Categorical ‖ Titer/Scalar), Each with Named Members + a Generic Escape-Hatch](#adr-019-amendment-1--witness-taxonomy-two-kinds-categorical--titerscalar-each-with-named-members--a-generic-escape-hatch)
+- [ADR-033 — Prescriptive Work-Orchestration: Four Structural Shapes, Eight Clinical Names, the ADR-029 Spine Pointed at Work-Needs](#adr-033-prescriptive-work-orchestration-four-structural-shapes-eight-clinical-names-the-adr-029-spine-pointed-at-work-needs)
+- [ADR-034 — The Report Is a Live Projection, Never a Stored Truth](#adr-034-the-report-is-a-live-projection-never-a-stored-truth)
 
 ---
 
@@ -4646,6 +4655,95 @@ boundary itself).
 
 ---
 
+## ADR-017 Amendment 1 — Cross-crate `addresses()` resolution: the sub-clause-F clause at the cross-crate reference boundary
+
+**Status**: Proposed 2026-06-01 (campsite: `infra/multi-crate-scan`; Type-A, design-first
+§Mechanics-level amendment).
+
+**Amends**: ADR-017 (antigen identity = canonical declaration site; cross-crate trust delegates
+to cargo).
+
+**Participants**: aristotle (the cross-crate ruling — `infra/multi-crate-scan` note `669d59de`;
+the sub-clause-F clause); pathmaker (Layer-1 multi-crate scan substrate `e53f91d`; the Layer-2
+scope + the §Decision-vs-§Mechanics question that this answers — §Mechanics → Type-A); navigator
+(blocking note: the ruling must become a formal amendment block before pathmaker can sign).
+
+**Related**:
+- ADR-001 Amendment 1 Change 3 C7 (cross-crate consumption commitment + scanner-activation status —
+  this amendment formalizes the trust-boundary clause C7 deferred to ADR-005's enforcement clauses).
+- ADR-005 (sub-clause F at every trust boundary — cross-crate consumption is named boundary item 4;
+  this amendment specifies the validation check for the cross-crate `addresses()` boundary).
+- ADR-029 Amendment 1 (well-posedness: a verdict over an un-evaluable state is out-of-frame).
+- `forward/three-valued-logic-api-boundary-layer` (the gem: an unresolvable cross-crate reference
+  is the third value — out-of-frame, distinct from resolved-and-undefended).
+- ADR-033 (the prescriptive cross-need references, VOID-4b, are the SAME structural shape — the
+  resolution machinery this amendment specifies is reused there in v0.4).
+
+**Campsite**: `infra/multi-crate-scan` (the ruling note `669d59de` is the witness).
+
+### Finding
+
+ADR-017 ratified cross-crate antigen identity (Approach 3-revised: scanner-derived
+`canonical_path`) and stated cross-crate trust-boundary mechanics "defer to ADR-005's enforcement
+clauses." ADR-001 C7 named the scanner-activation of cross-crate `addresses()` matching as
+tracked-not-decided. Pathmaker's multi-crate scan Layer 1 (`e53f91d`) shipped the substrate
+(member-aware scan, distinct `canonical_path` stamping per member, cross-member lineage). Layer 2 —
+cross-crate `addresses()`/`defended_by` matching over the merged member-report (== ATK-A3-005,
+closes `DelegateCrossCrateResolutionGap`) — is an **implementation-activation of already-ratified
+architecture**, NOT a new architectural decision: the identity primitive is ratified (ADR-017
+canonical_path), the commitment is ratified (ADR-001 C7), the trust delegates to cargo (ADR-017
+§Decision). It requires exactly **one** clause to be specified: the sub-clause-F validation check at
+the moment a cross-crate claim is honored.
+
+### Decision
+
+When a `defended_by` / `presents` in crate B addresses an antigen declared in crate A, the audit
+issues a cross-crate verdict only under this sub-clause-F validation check:
+
+1. **Resolution gate (the third value).** A cross-crate defense/presents claim is HONORED only when
+   its `canonical_path` resolves to a real declaration in a scanned member or dependency. If it does
+   NOT resolve, the verdict is **out-of-frame**, NOT **undefended**. An unresolvable cross-crate
+   reference is the three-valued-logic third value (un-evaluable), categorically distinct from
+   resolved-and-undefended. This is the asymmetric default: an unresolved cross-crate reference is a
+   **loud GAP** (out-of-frame), never a silent pass and never a silent failure.
+2. **Canonical-path-keyed trust (no same-name cross-satisfy).** Cross-crate trust is recorded
+   `canonical_path`-keyed (name@version), so a same-type-name collision across crates
+   (`crate_a::PanickingInDrop` vs `crate_b::PanickingInDrop`) does NOT silently cross-satisfy. This
+   is the exact ADR-017 identity finding applied to the matching step: the bare-name-overclaim guard
+   (`canonical_paths_match`: `None ≠ Some`, `Some(x) == Some(x)`) already does the right thing once
+   members are stamped distinctly — this amendment makes the requirement explicit at the verdict
+   boundary.
+
+These are the only two clauses Layer 2 adds beyond the ratified architecture. With them on the
+record, pathmaker's Layer-2 implementation has its trust-boundary check ratified before the code
+signs.
+
+### Why this is a Type-A §Mechanics amendment, not a new ADR
+
+- **Identity is already ratified** (ADR-017 Approach 3-revised). The match keys on the existing
+  canonical_path primitive — no new identity decision.
+- **The commitment is already ratified** (ADR-001 C7). Layer 2 is C7's scanner-activation; the
+  deferral was a SCOPE choice, not an open architectural question.
+- **Trust already delegates to cargo** (ADR-017 §Decision). Doing the match invents no new trust
+  mechanism.
+
+The only genuinely new content is the sub-clause-F clause above — a §Mechanics-level specification of
+the validation check ADR-005 requires at this boundary, which is precisely what a Type-A amendment
+captures.
+
+### What this amendment does NOT do
+
+- Does NOT change ADR-017's identity model (canonical_path stays the key).
+- Does NOT add cross-crate fingerprint *synthesis* (that re-runs synthesis over the merged whole — a
+  separate, deliberately-deferred concern; Layer 1 already avoids double-counting intra-member
+  synthesis).
+- Does NOT resolve re-export witness chains (ADR-017 open-question 4 — out of scope, a
+  witness-resolution problem, not an identity problem).
+- Does NOT make `--workspace` the default scan mode (opt-in; flat scan stays default for
+  backward-compatible output).
+
+---
+
 ## [ADR-018] `#[descended_from]` propagation: tagged synthesis + diamond dedup + inheritance state matrix
 
 **Status**: Ratified 2026-05-09.
@@ -6557,6 +6655,108 @@ Parse line: `parse.rs:2967`.
 
 ---
 
+## ADR-024 Amendment 3 — `from_itches` is class-specific (lineage-aware): the recurrence-anchor noticing-precondition
+
+**Status**: Proposed 2026-06-01 (campsite: `forward/adr024-from-itches-cross-class-ruling`).
+
+**Amends**: ADR-024 §Mechanics (Recurrent Emergence family — the `#[recurrence_anchor]`
+noticing-precondition). Resolves a question ADR-024 §Mechanics left silent, surfaced by an
+adversarial follow-on and deferred from v0.2.
+
+**Participants**: scientist (the well-posed question + the attack fixture + the scoped fix —
+dogfood note `fd7c24c9`); adversarial (the follow-on that surfaced it on
+`findings/recurrent-anchor-phantom-from-itches`); aristotle (the class-specific ruling +
+lineage-aware refinement); navigator + team-lead (v0.3-non-blocking triage — the ATK-RECURRENT-7
+phantom fix `8dfd4d5` stands regardless).
+
+**Related**:
+- ADR-024 §Mechanics (Recurrent Emergence — `#[itch]` / `#[recurrence_anchor]` /
+  `#[crystallize]` temporal progression: notice → commit → crystallize).
+- ADR-018 Amendment 1 (inheritance is provenance, not substitutability — grounds the lineage-aware
+  refinement: a parent-class itch is legitimate upstream evidence for a child-class anchor).
+- ADR-005 sub-clause F (the noticing-precondition is the validation check at the
+  commitment-to-track trust boundary).
+- `forward/three-valued-logic-api-boundary-layer` (the same cardinality-collapse shape: a
+  cross-class itch is OUT-OF-FRAME — irrelevant evidence — not a weak-yes; collapsing it into
+  satisfied-precondition is the gem at the precondition boundary).
+- The dogfood `RatifiedSpecDriftFromImpl` class (this amendment realigns code with the
+  doc-comment's already-stated intent — a substrate-alignment fix, not a new design choice).
+
+**Campsite**: `forward/adr024-from-itches-cross-class-ruling` (the ruling note is the witness).
+
+### Finding
+
+`#[recurrence_anchor(X)]` carries a noticing-precondition: a commitment to track failure-class
+`X`'s recurrence is only well-founded if `X` was previously *noticed* (an `#[itch(X)]` exists).
+The audit fires `RecurrenceAnchorNoItchPrecondition` when no upstream noticing is found. ADR-024
+§Mechanics was silent on whether a `from_itches` entry must name an itch for the anchor's **own**
+antigen class. The shipped implementation (`audit.rs:3067-3072`) checks `from_itches` against the
+**global** itch set (`itch_antigen_types`), so `from_itches = ["AntigenY"]` suppresses the
+precondition for an `AntigenX` anchor whenever `AntigenY` has any itch anywhere — a **cross-class**
+acceptance. The doc-comment for the audit-hint (`audit.rs:524-527`) already states the intended
+semantics ("reference the same antigen type"); the implementation drifted wider than the doc.
+
+### Decision
+
+**`from_itches` is class-specific (lineage-aware).** A `from_itches` entry satisfies the
+noticing-precondition for a `#[recurrence_anchor(X)]` if and only if it names `X` itself **or a
+lineage ancestor of `X`** (via `#[descended_from]` `lineage_edges`), AND that named class has a
+scan-resident `#[itch]`. A pure cross-class reference (`from_itches = ["AntigenY"]` where `AntigenY`
+is neither `X` nor an ancestor of `X`) carries **no** precondition evidence and is treated as a
+phantom — exactly as ATK-RECURRENT-7 treats non-scan-resident phantoms.
+
+Grounds:
+
+1. **The precondition's meaning is class-specific by construction.** "Noticing precedes
+   commitment" means noticing *of the same failure-class*. Noticing `AntigenY` tells you nothing
+   about whether `AntigenX` has recurred — it is not weaker evidence, it is *no* evidence for this
+   anchor (a different failure-class entirely). This is the three-valued-logic gem at the
+   precondition boundary: a cross-class itch is OUT-OF-FRAME (irrelevant), and the shipped code
+   collapses out-of-frame-irrelevant into satisfied-precondition (the cardinality-collapse defect
+   class).
+2. **It realigns code with already-ratified intent.** The audit-hint doc-comment already says "the
+   same antigen type"; the implementation drifted. This is fixing a `RatifiedSpecDriftFromImpl`
+   substrate-alignment gap, not making a new design choice.
+3. **Cross-class acceptance guts the precondition.** Under the shipped behavior, any single itch
+   anywhere in the workspace suppresses the precondition for *every* anchor — reducing a per-anchor
+   temporal-progression check to "does this workspace contain any itch at all?" (the vacuous-guard
+   failure shape, `EmptySignersList` family).
+
+**Lineage-aware refinement (the one legitimate "cross-class" case).** If the anchor is for a child
+class and the itch is for a *parent* class, that is not cross-class — it is intra-lineage. Per
+ADR-018 Amendment 1 (inheritance is provenance), noticing the parent recurring is legitimate
+upstream evidence for committing to track the child (the child is a descended specialization;
+parent-recurrence is evidence the lineage recurs). So the class match walks the lineage upward: an
+ancestor-class itch satisfies. Pure cross-class (unrelated classes) never satisfies.
+
+### Mechanics (the fix)
+
+In `evaluate_recurrent_hints` (`audit.rs:~3066`), replace the global-set membership test with a
+class-scoped one: `has_valid_from_itches` is true iff some `from_itches` entry equals the anchor's
+`antigen_type` **or** a lineage ancestor of it (resolved from `report.lineage_edges`), **and** that
+named class is in `itch_antigen_types`. `has_implicit_itch` (the anchor's own class has a
+scan-resident itch) is unchanged. The precondition fires iff neither holds.
+
+### Enforcement-tier / non-blocking status
+
+- **Non-blocking for 0.2.0 stable** (navigator + team-lead confirmed): the ATK-RECURRENT-7 phantom
+  fix (`8dfd4d5`) is correct regardless; this is a v0.3 *enhancement* (tighten cross-class to
+  class-specific), not a correctness regression in shipped stable.
+- Routes to pathmaker for the `audit.rs` change + the lineage-walk; the ruling + this amendment
+  block are the design deliverable.
+
+### What this amendment does NOT do
+
+- Does NOT change `#[itch]` / `#[recurrence_anchor]` / `#[crystallize]` macro semantics or arg
+  shapes (ADR-024 Amendment 2 shapes unchanged).
+- Does NOT forbid multi-class recurrence *patterns* — it forbids one anchor's noticing-precondition
+  being satisfied by an *unrelated* class's itch. Multi-class patterns are expressed as multiple
+  anchors, each with its own class-specific (lineage-aware) precondition.
+- Does NOT block 0.2.0 stable (v0.3 enhancement; the phantom fix already covers the stable-gate
+  correctness).
+
+---
+
 ## [ADR-025] Supply-Chain Defense Family: Antigens for Dependency-Boundary Risk in the 2026+ Threat Landscape
 
 **Status**: Ratified 2026-05-22.
@@ -8291,3 +8491,679 @@ Outsider naive-pass addressed.
 - Scientist consistency + outsider-gap fixes: `forward/adr032-conjunction-witness` campsite
   notes (2026-05-28); Plurality::ConjunctionPartial rename; §Implementation notes; §Adoption
   guidance
+
+---
+
+## ADR-019 Amendment 1 — Witness Taxonomy: Two Kinds (Categorical ‖ Titer/Scalar), Each with Named Members + a Generic Escape-Hatch
+
+**Status**: Proposed 2026-06-01 (ceremony: `prescriptive/family-adr`).
+
+**Amends**: ADR-019 (substrate-witness predicate family).
+
+**Participants**: aristotle (Phase 1-8 deconstruction of the Tekgy-co-designed
+titer-family reframe — the W-series irreducible truths, the escape-hatch principle,
+the forced-rejection voids); math-researcher (the categorical-algebra boundary that
+*is* the family line; Bolotin 2020 / McIntosh 2015 method-relativity proof);
+naturalist (serology/affinity-maturation/cross-reactivity biology; the limit-of-detection
+third-state grounding); Tekgy (the report-not-verdict reframe that dissolved the titer fork).
+
+**Related**:
+- ADR-019 (the categorical predicate family this amendment splits the *taxonomy* of — the
+  5 sealed leaves + 3 combinators become the **categorical kind**; this adds a **second kind**).
+- ADR-006 Amendment 1 (recognition-not-design scoped to adopter-extension; stdlib growth is
+  research-discipline — the escape-hatch is the stdlib's recognition *instrument*).
+- ADR-022 (Stdlib-vs-Extension: two disciplines, one public API — the 3-rung gradient makes
+  the stdlib/extension split *first-class* on the witness axis).
+- ADR-003 / ADR-003 Amendment 1 (biology as discovery framework — serology predicted the
+  seroconversion ‖ serotiter split *before* we named the witness-kind axis).
+- ADR-029 / ADR-029 Amendment 1 (observe-don't-declare + well-posedness — titer is
+  observe-don't-declare on a *continuous* axis; the un-measurable third value is the
+  well-posedness frame at the measurement layer).
+- ADR-024 Amendment 1 (titer's family-grouping — **this amendment supersedes its "still
+  Family 3 Prescriptive" clause**; see §Titer reclassification below).
+- ADR-007 (anti-YAGNI: both kinds + both rungs ship — structurally guaranteed by W1+W5).
+- ADR-033 (the prescriptive family — titer *leaves* it for this taxonomy).
+- The reflective/recurrence-evolve campsite (the graduation tracker is itself a titer —
+  "antigen-of-antigens" made concrete).
+- `adaptive-memory-bcell-persistent-recognition` campsite (graduation = affinity maturation;
+  cross-reactivity = fingerprint-similarity).
+
+### Finding
+
+ADR-019 shipped a closed predicate grammar of **five sealed leaf primitives**
+(`ratified_doc` / `signers` / `signed_trailer` / `oracles_complete` / `fresh_within_days`)
+plus three combinators (`all_of` / `any_of` / `not`). Every leaf is **categorical**: it
+asks a yes/no/indeterminate question and feeds a verdict (`defended` / `undefended` /
+`substrate-gap`). `EvidenceKind` (`TypeSystemProof | Behavioral | SubstrateState`) is
+already a *parallel axis, not an ordered scale* — a structural anticipation of what this
+amendment makes explicit on a second front.
+
+A failure-class can also have **telemetry**: a measured value read from a source —
+*scan coverage = 70%*, *cyclomatic complexity = 14*, *fuzz-corpus size = 3,400*. The
+`scan_coverage: Option<ScanCoverage>` field (`scan.rs`) already ships the unverdict'd
+**value-floor** for the ignorance case, and its own doc-comment names it "the substrate for
+ignorance detection… the audit/verdict layer is ADR scope; this field is the floor it stands
+on." That value-floor has no home in the categorical grammar — and the prior attempt to give
+it one (a `titer` macro whose satisfaction was `measure(M) >= threshold`) was correctly
+rejected by math-researcher: the threshold that turns a value into a verdict is a
+*method-relative clinical judgment* (Bolotin 2020 measles 120 mIU/mL; McIntosh 2015 SBA
+titre ≥4/8 complement-source-relative), not a substrate fact. **The objection was true of
+the verdict we were bolting on, not of the value underneath.**
+
+### Decision
+
+**The witness vocabulary is two KINDS, not one. Each kind ships named members AND a generic
+escape-hatch.**
+
+#### Two witness kinds
+
+| Kind | Attests | Output | Members (v0.3) | Escape-hatch |
+|---|---|---|---|---|
+| **Categorical** (ADR-019 as shipped) | a verdict about substrate | `defended` / `undefended` / indeterminate | `ratified_doc`, `signers`, `signed_trailer`, `oracles_complete`, `fresh_within_days` (+ `all_of`/`any_of`/`not`) | the **substrate-predicate** leaf is the categorical escape-hatch (already present — this amendment makes it *symmetric* and *named-as-such*) |
+| **Titer / Scalar** (new) | a measured *value* read from a source | a magnitude, **no verdict**; trend-trackable | `#[ignorance]` / scan-coverage = **member one** (retroactive recognition — no code change; the taxonomy names what `scan_coverage` already is) | raw **`#[titer(source = …)]`** — anyone, today |
+
+A **categorical** witness attests a *verdict*; a **titer** witness attests a *value*. Both
+are substrate-reads. This makes "witness" honest about what it attests. **Antigen attests the
+value; the threshold-as-judgment lives downstream, outside antigen.** Antigen stays out of the
+clinical-judgment business — exactly the boundary math-researcher's rigor drew. (The fork
+between defer-to-v0.4 and ship-in-v0.3 is *dissolved*, not adjudicated: math-researcher was
+right about the verdict, Tekgy was right about the value; report-not-verdict keeps both.)
+
+**Biology predicts the split (ADR-003 doing predictive work).** Serology has two distinct
+readings: sero*conversion* (binary — did antibodies develop? yes / no / *equivocal* — the third
+value is literally a column in the lab report) and sero*titer* (continuous — how much, the highest
+dilution still detectable?). Categorical-witness ‖ titer-witness *is* seroconversion ‖ serotiter.
+The metaphor named the axis before we did — and the silence-test confirms it is instrument-grade,
+not decoration: serology gives the titer value but says *nothing* about the protective threshold
+(which titer = "immune enough"), a method-relative clinical judgment downstream of the assay.
+Biology goes silent at exactly the seam where antigen does: antigen attests the value, the
+threshold-judgment lives downstream (naturalist's silence-test, ADR-003).
+
+**Why `#[ignorance]`/scan-coverage is member-one (not arbitrary).** Every categorical witness
+antigen has ever shipped is a *per-site / depth* reading (this site: defended / undefended /
+unreached). A titer witness is a *breadth / space-coverage* reading — a measured value over a SET
+(coverage = the fraction of a space with a valid witness). Scan-coverage is therefore the FIRST
+breadth reading antigen carries, which makes it the canonical titer member, not an arbitrary pick.
+This split was independently predicted three weeks before the witness-taxonomy existed (scout,
+2026-05-08: *instance-coverage* (depth, per-site) ‖ *taxonomy-coverage* (breadth, across-the-space)
+— "a good metric covers a SPACE, not just INSTANCES within it"). Two independent derivations
+landing on one joint — and SARIF's own vocabulary already carries it (per-site `result` rows =
+categorical verdicts; rule-level / no-result aggregates = the breadth/titer reading), which is why
+the live report's two sections (ADR-034) fall out as the two witness kinds for free.
+
+#### The escape-hatch principle (the spine — applies to EVERY witness kind)
+
+> **Every witness kind ships named members AND a generic escape-hatch.** Named members carry
+> recognized meaning; the escape-hatch carries adopter freedom (bounded by the family
+> contract) and serves as the recognition instrument for future members.
+
+- **Three-rung gradient**: **stdlib-named** (ours, blessed, cross-cutting — `#[ignorance]`) /
+  **adopter-named** (an extension crate names a member for *its* domain, same contract — the
+  ADR-022 stdlib-vs-extension split made first-class) / **raw escape-hatch** (anyone, today —
+  `#[titer(source = …)]`). Usage climbs the gradient; the stdlib is never the rung-one
+  bottleneck.
+- **Structurally-guaranteed need (W5)**: we *cannot* enumerate what an adopter's codebase will
+  want to quantify, so "an unseeable ad-hoc need exists" is a certainty. The hatch is not
+  designing-ahead — it is **recognizing the unseeable** (clears the ADR-006 worry: named
+  members recognize what we *can* see; the hatch recognizes that we *can't see all of it*).
+- **The hatch IS the recognition instrument**: in-the-wild `#[titer(source = …)]` usage *tells
+  us* what is common enough to bless with a name. Remove it and recognition starves (we'd guess
+  what to name next, and guess wrong). This is observe-don't-declare applied to the stdlib's
+  *own growth*.
+- **Guard (so it is not a dumping ground)**: freedom in the family's *domain*, bounded by the
+  family *contract*. A `#[titer(source = …)]` MUST attach to a failure-class; it cannot become a
+  free-floating `p99_latency` metrics sink (that is prometheus — compose-don't-compete, ADR-002).
+  **Well-typedness predicate** (math-researcher Sharpening 3 — for parse-time enforceability):
+  a titer-witness is well-typed IFF it is *bound to an antigen failure-class declaration* — the
+  `source` reads a value *about that class's defended-state quantity*. The discriminator vs a
+  prometheus metric is exact: is there a failure-class this magnitude is the titer *of*?
+  `p99_latency` with no failure-class = ill-typed (reject at parse / audit-hint).
+  `coverage` of `#[ignorance]` = well-typed. Pathmaker specifies this as a parse-time binding
+  check, parallel to how categorical witnesses bind via `#[presents(requires = …)]`.
+
+#### Titer witnesses are three-valued at the value layer (the gem at the measurement layer)
+
+A titer-witness's reading is **three-valued**: `measured-value` / `below-threshold-or-floor` /
+**`un-measurable`** (no source resolved, or the measurement instrument never reached a readable
+signal). **`un-measurable` is NOT `below-threshold`** — it is out-of-frame (well-posedness,
+ADR-029 Amendment 1). Naturalist's biology grounding makes this concrete: clinical serology
+already treats *"below the assay's limit of detection"* as categorically distinct from
+*"measured-and-below-protective-threshold"* — a below-LoD sample is "not detectable," NOT "zero
+antibody" (the instrument couldn't see it). This is the measurement-layer instance of the
+three-valued-logic invariant (the gem): the *could-not-evaluate* state is categorically distinct
+from the *evaluated-and-low* state, and collapsing them is the silent-wrong-verdict bug class.
+A titer-witness MUST keep `un-measurable` distinct from `below-threshold`.
+
+**Non-monotonicity as a structural argument for report-not-verdict** (math-researcher Sharpening
+2): a value-witness is non-monotone in *both* directions — a re-measurement can rise OR fall
+(unlike categorical attestation-leaves, which are monotone under substrate growth). Therefore
+there is no `fulfilled` latch to revert; the only stable thing to attest about a both-ways
+non-monotone quantity is its current value, recomputed at evaluation-time *t*. Report-not-verdict
+is not only correct on the judgment-locus grounds (W2/W3) — it is *forced* by non-monotonicity.
+
+#### Titer witnesses: staleness is provenance-relative (no silent-stale-value bug)
+
+Value-witness staleness is **two-regime**, not uniform — split by value provenance:
+
+- **Scan-derived titers** (`#[ignorance]` / scan-coverage, member-one): the value is a
+  *live projection* of the current scan state (a pure derivation: `|scanned| / |enumerated|`,
+  recomputed every scan run, carrying no stored fingerprint). It is **pin-free** — staleness is
+  structurally impossible (there is no independent copy to compare a fingerprint against).
+  Applying NFA-21 fingerprint-pinning to scan-derived titers is a category error. This is the
+  direct corollary of W6 (the report is a live projection — never stored) applied to the
+  value layer: scan-derived values *are* the report; they cannot be stale.
+
+- **Source-read titers** (raw `#[titer(source = …)]` where the source is a file produced
+  by an external tool out-of-band): the value IS stored independently and **CAN drift** from
+  the code it claims to measure. These titers **must** be (i) fingerprint-pinned (NFA-21
+  reuse — a value attested against fingerprint F is excluded when the code mutates to F'), and
+  (ii) carry a sub-clause-F source-attestation (who produced the source file? is its generation
+  attested? is the file current?). **Non-optional** for source-read titers — omitting either
+  ships the silent-stale-value bug (the titer analog of silent-stale-review).
+
+Collapsing the two regimes is a bug in both directions: pinning scan-derived titers is a
+category error; leaving source-read titers unfingerprinted ships silent-stale-value. The
+regime is determined at parse-time from the titer's declaration (member-one `#[ignorance]` vs
+raw `#[titer(source = …)]`). Math-researcher Sharpening 1 (campsite note, 2026-06-01).
+
+#### Graduation via adaptive memory (the recognition loop, tracking-only in v0.3)
+
+Escape-hatch usages are tracked and nudged toward graduation (→ a named member). Biology lands
+the whole shape: a generic-in-use is the immune system mounting a *broad* response to a novel
+antigen it lacks a named antibody for; repeated exposure (used N×, lived M months) is the signal
+to *commit adaptive memory* — form a named member (a memory B-cell); graduation = affinity
+maturation; "recognize when their generic resembles something we built" = **cross-reactivity** (a
+fingerprint-similarity query). **Home**: the already-seeded
+`adaptive-memory-bcell-persistent-recognition` campsite — not new scope.
+
+**The germinal center is the fleet of codebases (naturalist, ADR-003 break-test).** The variation
+pool that selection acts on is NOT intra-lineage somatic hypermutation — biology is correctly
+silent there (importing random-variation + Darwinian-death would be the wrong model for deliberate
+recognition-naming). The variation pool is *inter-codebase*: different adopters independently name
+slightly-different generics for the same quantity-shape (`coverage` / `reachability-ratio` /
+`inspected-fraction`). Affinity = cross-codebase *recurrence*; the selection step = cross-reactivity
+(fingerprint-similarity clustering picks the shape that recurs across many independent codebases);
+memory-commitment = blessing it into the stdlib. The anti-YAGNI tell (ADR-007): the escape-hatch
+recurrence-tracking is not a v0.3 convenience — it is the *manual prototype* of the germinal-center
+selection substrate that a cross-codebase model runs at scale later (the innate-tier north-star).
+Same loop, two scales: hand-crank now, industrial later. Three refinements that must hold:
+
+1. **Loudness is calibrated or it backfires.** The hatch's whole job is frictionless self-service
+   *and* it is our recognition instrument. If using it feels like shamed debt, adopters stop
+   using it and we go blind. So: **always tracked (silent) → a one-line count + pointer in audit →
+   genuinely LOUD only on a signal** (lived past a threshold, used past N×, or a strong
+   cross-reactivity match). Framed as a *graduation opportunity*, never "you did wrong," never
+   blocking.
+2. **Some generics are correctly terminal.** A company-internal quantity that will never be
+   stdlib must not be nagged forever. An **acknowledge-as-intentional** state (a scoped
+   `#[allow]`-shaped sub-clause-F acknowledgment) stops the nudge — distinct from "unexamined."
+   (Forced by W5's own loudness-calibration: without it the hatch becomes a nag → adopters stop →
+   we go blind.)
+3. **Similarity matching is three-valued** (the gem again): match / no-match / *not-sure* —
+   suggest only on a definite match, stay silent on not-sure, always advisory. A confident-but-
+   wrong "use `#[ignorance]` here" erodes trust faster than silence. The clippy-style autofix is
+   opt-in and *later*.
+
+**Recursive (W6):** the graduation tracker is *itself a titer* — it measures a magnitude (count
+of un-promoted generics, how long they have lived) on a meta-failure-class ("un-named-quantity
+debt"), reports it, no verdict. This is `reflective/recurrence-evolve` made concrete — the
+taxonomy self-applies, a strong signal it carves reality at a joint. The *smart* recommendations
+(fingerprint cross-reactivity, "you used this exact pattern 7×") float to v0.3.x.
+
+### Titer reclassification (supersedes ADR-024 Amendment 1's family-grouping clause)
+
+ADR-024 Amendment 1 stated `#[titer]` "Does NOT modify the family-grouping… (still Family 3
+Prescriptive Work-Orchestration)." **This amendment supersedes that clause.** `#[titer]` is a
+**titer-witness**, not a prescriptive work-need: a work-need is forward-looking *work someone must
+do by a frame* (satisfaction = a who-attests); a titer *attests a measured value about a
+failure-class* (no who, no deadline, no verdict). ADR-024 listed titer as prescriptive because the
+witness-kind axis did not exist yet — with only the verdict-witness kind available, "a measured
+quantity monitored over time" had nowhere to live but as a pseudo-work-need (the verdict-bolting
+math-researcher rejected). ADR-024 Amendment 1's own words ("clinicians ORDER titer tests to
+monitor… antibody concentration over time") already describe a *measurement-witness workflow*, not
+a unit of code-site-local forward work. Consequence: **ADR-033 ships eight prescriptive work-need
+macros; `#[titer]` moves here.** math-researcher (whose categorical-algebra boundary drew the
+family line) ruled this explicitly (campsite `prescriptive/family-adr`, 2026-06-01): titer EXITS
+the prescriptive family, single-home in the witness taxonomy, **not** dual-home — a titer is not a
+work-need (no who-attests, no workflow, and the four-valued `WorkVerdict` does not even type over a
+value). A titer *value* may be REFERENCED by a downstream judgment that gates a work-need, but that
+reference is the adopter's composition (the WR8 cross-kind seam, downstream of antigen), never an
+antigen macro re-bolting the threshold back in.
+
+### What this amendment does NOT do
+
+- Does NOT change the categorical grammar's 5 leaves / 3 combinators / parse-time
+  zero-leaf-rejection (that family is the **categorical kind** unchanged).
+- Does NOT bolt a threshold-verdict onto titer (the verdict-from-value is a downstream judgment,
+  outside antigen — the boundary that dissolves the fork).
+- Does NOT ship the *smart* graduation recommendations in v0.3 (fingerprint cross-reactivity,
+  pattern-count) — tracking + one-line audit pointer only; smart recs float to v0.3.x.
+- Does NOT introduce a stored member-registry that drifts — the graduation lifecycle is computed
+  from substrate (usage sites + git provenance), never a parallel ledger (see ADR-034).
+- Does NOT make `#[titer(source=…)]` a general metrics surface — it MUST attach to a failure-class
+  (compose-don't-compete; prometheus owns free-floating metrics).
+
+---
+
+## [ADR-033] Prescriptive Work-Orchestration: Four Structural Shapes, Eight Clinical Names, the ADR-029 Spine Pointed at Work-Needs
+
+**Status**: Proposed 2026-06-01 (ceremony: `prescriptive/family-adr`).
+
+**Participants**: aristotle (Phase 1-8 deconstruction — the T-series irreducible truths, the
+four-shape decomposition, the locality test, the four-valued verdict, the audit-is-the-board
+forced-rejection); adversarial (Q9 spec-test corpus `atk_prescriptive_family_adr033.rs`, the
+`TriageDecision` cross-check, the cardinality-collapse gate ATK-PRES-8); scientist (consistency
+review + the `panel.needs ↔ filled_by` binding catch); naturalist (clinical-medicine grounding
+per ADR-024); math-researcher (verdict-lattice isomorphism; titer-kind boundary); Tekgy (anchor
+#3 camp-separation; the report-not-verdict reframe).
+
+**Related**:
+- ADR-024 (ratified the prescriptive family's NAMES, COMPETES decision, category, clinical-medicine
+  biology). **This ADR EXTENDS ADR-024; it does not supersede it** — it specifies the arg-shapes
+  ADR-024 left open and names the four-shape implementation discipline.
+- ADR-024 Amendment 1 (titer biology-axis — **and** its family-grouping clause, superseded by
+  ADR-019 Amendment 1; titer leaves this family for the titer-witness kind).
+- ADR-019 + ADR-019 Amendment 1 (substrate-witness predicate family; the categorical kind is the
+  satisfaction machinery this family reuses — no new mechanism).
+- ADR-020 (cross-cutting attestation — the `who` role-ref `filled_by`/`reviewed_by`/etc. instantiate).
+- ADR-029 + Amendment 1 (observe-don't-declare + well-posedness — the spine; `out-of-frame` is the
+  un-evaluable third value).
+- ADR-023 (deferred-defense loudness-as-discipline — the `overdue` verdict's loudness isomorphism).
+- ADR-026 (`TriageDecision` VCS-rollback enum — a DISTINCT axis from `#[triage]`; disambiguated below).
+- ADR-007 / ADR-006 Amendment 1 (all four shapes ship; recognize shapes, don't invent carriers).
+- ADR-005 (sub-clause F at the work-need trust boundary).
+- `forward/three-valued-logic-api-boundary-layer` (the four-valued verdict is the gem at the
+  verdict boundary).
+
+**Ceremony campsite**: `prescriptive/family-adr` (the Phase 1-8 F-finding notes are the witness).
+
+### Finding
+
+ADR-024 ratified Family 3 (Prescriptive Work-Orchestration) as named macros with the COMPETES
+decision, the SubstrateAlignment+FunctionalCorrectness category, and clinical-medicine biology — but
+did **not** specify arg-signatures (only Recurrent Emergence got shapes, in ADR-024 Amendment 2).
+process.md records why: "§prescriptive shipped 9 macros with no arg-shape spec because adversarial
+pressure did not reach them." The macros are **not yet implemented** (substrate-grep: no
+`PanelArgs`/etc. in `antigen-macros/src/parse.rs`; no `pub fn panel`/etc. in `lib.rs`).
+
+Three open design questions were carried in by the launch routing: (1) **witness-semantics** —
+sidecar `signers()`, git commit-trailer, or both? (2) **different-things-from-camp** — what
+code-site-local work-needs does antigen-prescriptive coordinate that is distinct from camp (anchor
+#3: camp stays separate; antigen never depends on camp)? (3) **audit-output-is-the-board** — how
+does "code IS the Asana board" become literal? Phase 1-8 resolved all three by **recognition
+rather than design**, and surfaced a fourth finding: the family is not nine primitives — it is
+**four structural shapes** with clinical names as vocabulary.
+
+### Irreducible truths (Phase 3)
+
+- **T1 — Locality.** Some work-needs are ABOUT a specific code site and only meaningful there; the
+  need's identity IS its `(file, item-path)`. Move the code → the need moves. Delete the code → the
+  need is moot.
+- **T2 — Substrate-checkable satisfaction.** A work-need's satisfaction is a predicate over
+  substrate — exactly the ADR-019 categorical-witness shape.
+- **T3 — Temporal frame.** A work-need may carry an intrinsic frame (`due` / `response_due` /
+  `re_triage_due` / `runs_until`). Forward-looking work has this in a way backward-looking defense
+  does not.
+- **T4 — Audit is the observer.** Code declares the need + condition + frame; the audit declares the
+  verdict. Pure ADR-029 isomorphism.
+- **T5 — Role-workflow.** A work-need may carry an *ordered* set of who-does-what; the roles are
+  ADR-020 `who` role-refs, the ORDERING is the new content.
+- **T6 — The team's work is different substrate.** Camp coordinates team/expedition-scoped work
+  with a different locus (the expedition tree, not the code), granularity, and observer. T1's
+  locality is precisely what camp lacks.
+
+### Decision
+
+#### 1. The family is FOUR structural shapes; the clinical names are vocabulary over them.
+
+Antigen ships **four shape-parsers**, not nine bespoke parsers. The ADR-024 names are preserved as
+adopter-facing vocabulary (clinical discoverability + biology grounding) and distribute across the
+shapes:
+
+| Shape | Structure | Satisfaction | Names |
+|---|---|---|---|
+| **S1 — Role-workflow** | ordered who-steps + optional frame + a need-set | each who-step attests (ADR-020 `who` + ADR-019 `signers`/`signed_trailer`), fingerprint-pinned | `panel`, `rx`, `refer`, `biopsy` |
+| **S2 — Elimination** | a set of alternatives, each independently closeable | verdict = which alternatives survive (each rule-out carries a closing attestation) | `ddx` |
+| **S3 — Ordering** | a priority total-order over a set, re-validatable | the order is attested (`triaged_by`); `re_triage_due` is a staleness frame | `triage` |
+| **S4 — Frame-only** | a temporal window with a satisfaction/expiry, minimal/no who | until-passes (`quarantine`) / test-green-within-frame (`culture`) | `culture`, `quarantine` |
+
+This is the ADR-029 move at the family scale: ADR-029 collapsed `#[immune]`'s two channels and
+*dropped* `#[site_binding]`; here we recognize four shapes rather than inventing carriers. ADR-007
+is satisfied (all four shapes ship). ADR-006 Amendment 1 is satisfied (recognize, don't invent).
+ADR-024's named members are honored — adopters write `#[panel]`, `#[ddx]`, etc.; the implementation
+routes each to its shape-parser. **Per-instance shape-fit was verified individually** against the
+comprehensive-vision §7 field-sets (not by family-resemblance); each fits without lossy projection.
+
+**`#[titer]` is NOT in this family.** Phase 1-8 found it misfiled: titer's satisfaction is a measured
+*value*, not a who-attests-by-a-frame — it is a **titer-witness** (ADR-019 Amendment 1), not a
+work-need. The prescriptive family ships **eight** work-need macros (S1 `panel`/`rx`/`refer`/`biopsy`,
+S2 `ddx`, S3 `triage`, S4 `culture`/`quarantine`). (`#[ignorance]`/scan-coverage is titer member-one;
+`#[titer(source=…)]` is the titer escape-hatch — both live in ADR-019 Amendment 1.)
+
+#### 2. Witness-semantics: reuse the ADR-019/020 categorical spine; no new mechanism.
+
+The "signers vs trailer vs both" question dissolves into recognition. The who-refs (`filled_by` /
+`reviewed_by` / `ordered_by` / `triaged_by` / `investigator` / `deep_investigation_by`) are ADR-020
+`who` role-refs; only the ORDERING (S1) is new content. "Is `reviewed_by = bob` satisfied?" =
+`signers(required = [bob])` over the site's `.attest/` sidecar (TextStamp default) OR
+`signed_trailer(key = "Reviewed-by", role = bob)` for GitTrust strength — **adopter's choice via
+`allowed_types`**, exactly as for defense attestation. Satisfaction is **fingerprint-pinned**
+(ADR-019 NFA-21): a review at fingerprint F stales when the code mutates to F'. **Non-optional** —
+omitting it ships the silent-stale-review bug.
+
+#### 3. The verdict vocabulary is four-valued.
+
+Forward-looking work has an intrinsic frame (T3), so the prescriptive verdict set is distinct from
+the defense verdict set:
+
+- **pending** — declared, within frame, satisfaction not yet met (expected, not a failure).
+- **fulfilled** — satisfaction met at current fingerprint.
+- **overdue** — past the frame and unsatisfied. **Loud** (ADR-023 loudness isomorphism).
+- **out-of-frame** — the satisfaction condition is un-evaluable in current substrate (an unknown
+  who-ref, a missing source). ADR-029 Amendment 1 well-posedness: this is NOT "overdue"; it is
+  outside the well-posedness frame. The three-valued-logic gem applied to prescriptive —
+  `out-of-frame` is the third value the v0.2 cardinality-collapse bugs teach us to keep distinct.
+
+**Verdict-lattice isomorphism (math-researcher):** the four-valued prescriptive verdict is NOT a new
+lattice — it is the defense tri-state (`defended` / `undefended` / `substrate-gap`) with the
+unsatisfied cell *temporally split* by the frame: `undefended` splits into `pending` (within frame)
++ `overdue` (past frame); `substrate-gap` maps to `out-of-frame`. **Implementation consequence:
+REUSE the ADR-029 audit evaluator; do NOT fork a parallel prescriptive evaluator** — forking
+re-introduces the cardinality-collapse the gem warns against (two evaluators drifting on the same
+three-valued domain). One evaluator, one substrate read, a frame-aware projection at render time.
+
+#### 4. Audit-output IS the board (a required section, not a new tool).
+
+"Code IS the Asana board" is a **required first-class section of `cargo antigen audit`**, not a new
+renderer/dashboard. Phase-8 forced rejection proves it: if audit does not surface prescriptive
+verdicts, the family collapses back into the `// TODO` it replaces (inert). The audit groups
+prescriptive verdicts by site — `{macro, need-text, verdict, who/what blocks,
+frame-remaining-or-elapsed}` — with overdue sorted to top (loud). Rendered from substrate, single
+source of truth, no external tool, no drift (consistent with ADR-034: the board is a live
+projection, never a stored tracker).
+
+#### 5. The antigen-prescriptive ↔ camp boundary is a falsifiable test, not a feature list.
+
+Per anchor #3 (Tekgy, 2026-06-01): camp stays separate; antigen never depends on or reads camp. The
+discriminator:
+
+> **If this exact code site vanished, does the work-need vanish with it?**
+> **YES → antigen-prescriptive** (code-site-local; satisfied-or-moot by the code's existence;
+> observed by `cargo antigen audit`). **NO → camp** (the need survives the code: a team decision, an
+> expedition arc, cross-file coordination; observed by camp).
+
+Phase-8 VOID-3 proves it: remove locality (T1) from a work-need and it BECOMES a camp campsite — the
+void left by removing locality IS camp. So antigen-prescriptive = "camp's work-need shape (need + who
++ frame + satisfaction) MINUS the team-locus PLUS the code-site-locus." Same shape, different anchor,
+different observer. The boundary asserts itself structurally: `triage(campsites = …)` *wants* to
+reference camp campsites, but anchor #3 forbids reading camp state — so `campsites` is an **opaque
+string label** the audit does not resolve. The one allowed bridge is camp-side ingestion of antigen's
+scan-JSON (camp pulls; antigen never pushes-into or reads-from camp) — a separate, camp-side concern,
+NOT antigen's job.
+
+### Mechanics
+
+#### §Proc-Macro-Surface (Q1 — per-primitive arg-signatures)
+
+All fields parse-time validated. Unknown-field errors emit the full enumerated set (process.md Q1).
+Each `Args` struct ships a doc-comment citing this ADR. Source field-sets: comprehensive-vision §7.
+`who`-typed fields are ADR-020 role-refs (`Vec<String>` or `String`); frame fields are ISO-8601 date
+strings (advisory parse, audit-time evaluated).
+
+**S1 — Role-workflow:**
+
+| Primitive | Field | Type | Required | Default | Constraint |
+|---|---|---|---|---|---|
+| `panel` | `needs` | `Vec<String>` | YES | — | non-empty (empty = vacuous; compile error) |
+| | `filled_by` | `Vec<String>` | NO | `[]` | who-ref; trimmed; no dup |
+| | `reviewed_by` | `Vec<String>` | NO | `[]` | who-ref; trimmed; no dup |
+| | `ordered_by` | `Option<String>` | NO | `None` | who-ref |
+| | `due` | `Option<String>` | NO | `None` | ISO-8601 date |
+| `rx` | `treatment` | `String` | YES | — | non-empty |
+| | `diagnosis` | `Option<String>` | NO | `None` | opaque label (v0.3; backref to ddx not resolved — VOID-4b) |
+| | `filled_by` | `Vec<String>` | NO | `[]` | who-ref |
+| | `reviewed_by` | `Vec<String>` | NO | `[]` | who-ref |
+| | `due` | `Option<String>` | NO | `None` | ISO-8601 |
+| `refer` | `to` | `String` | YES | — | who-ref (external owner) |
+| | `response_due` | `Option<String>` | NO | `None` | ISO-8601 |
+| `biopsy` | `location` | `String` | YES | — | sub-site pointer (opaque label v0.3) |
+| | `request_text` | `String` | YES | — | non-empty |
+| | `deep_investigation_by` | `Option<String>` | NO | `None` | who-ref |
+
+**S2 — Elimination:**
+
+| Primitive | Field | Type | Required | Default | Constraint |
+|---|---|---|---|---|---|
+| `ddx` | `symptom` | `String` | YES | — | non-empty |
+| | `rule_out` | `Vec<String>` | YES | — | non-empty (the alternative-set) |
+| | `investigator` | `Option<String>` | NO | `None` | who-ref |
+| | `reviewer` | `Option<String>` | NO | `None` | who-ref |
+
+**S3 — Ordering:**
+
+| Primitive | Field | Type | Required | Default | Constraint |
+|---|---|---|---|---|---|
+| `triage` | `campsites` | `Vec<String>` | YES | — | **opaque labels** (anchor #3: audit does NOT resolve against camp) |
+| | `priority_order` | `Option<Vec<String>>` | NO | `None` | must be a permutation of `campsites` if present |
+| | `triaged_by` | `Option<String>` | NO | `None` | who-ref |
+| | `re_triage_due` | `Option<String>` | NO | `None` | ISO-8601 (staleness frame, not deadline) |
+
+**S4 — Frame-only:**
+
+| Primitive | Field | Type | Required | Default | Constraint |
+|---|---|---|---|---|---|
+| `culture` | `test_kind` | `String` | YES | — | non-empty |
+| | `duration` | `Option<String>` | NO | `None` | duration string |
+| | `runs_until` | `Option<String>` | NO | `None` | ISO-8601 |
+| `quarantine` | `scope` | `String` | YES | — | isolated-region pointer |
+| | `until` | `Option<String>` | NO | `None` | ISO-8601 |
+| | `reason` | `String` | YES | — | non-empty (ADR-005 Amd2 rationale-as-required) |
+
+(`#[titer]` arg-shape lives in ADR-019 Amendment 1, the titer-witness kind — `source` + the
+three-valued reading. It is NOT a prescriptive macro.)
+
+#### §Witness-binding (Q4 — `panel.needs ↔ filled_by` binding, scientist's catch RESOLVED)
+
+`panel.needs` (the need descriptions) and `filled_by` / `reviewed_by` (who fulfills/reviews) bind by
+**collective coverage over the need-set, attested per role-step, NOT 1:1 parallel-array**:
+
+- A panel's `needs` is the *battery's checklist* — what the panel as a whole must cover. `filled_by`
+  and `reviewed_by` are the *role-steps* that close the battery. Satisfaction = **each declared
+  role-step has an attestation at the current fingerprint** (e.g. every name in `reviewed_by` has a
+  `signers`/`signed_trailer` entry), AND the workflow order holds (a `reviewed_by` attestation is
+  only counted if the corresponding `filled_by` step is itself attested — you cannot review what is
+  not filled). The verdict is the **conjunction over role-steps**, not a per-need pairing.
+- This rejects the silent-wrong-verdict the ambiguity invited: there is NO positional `filled_by[i]
+  ↔ needs[i]` coupling (which would mis-fire when the arrays differ in length or order). `needs` is
+  documentation of *what the battery is for*; the audit does not pair individual needs to individual
+  people. Rationale: the biology-faithful reading of a clinical panel is an *ordered battery whose
+  closure is attested by its reviewing clinician(s)*, not a row-by-row sign-off matrix — and the
+  positional reading is brittle (re-ordering `needs` would silently re-pair people to different
+  needs). If finer per-need closure is ever wanted, it is a *separate need decomposed into its own
+  panels*, not a hidden parallel-array contract.
+- `filled_by` / `reviewed_by` may be shorter than `needs` (some needs unfilled) — that yields
+  `pending` (within frame) or `overdue` (past frame) for the *site*, never a parse error.
+
+#### §titer (relocated)
+
+`titer` is reclassified out of the prescriptive family into the **titer-witness kind** (ADR-019
+Amendment 1). It ships in v0.3 as report-not-verdict (a measured value, no verdict, three-valued
+reading). The prescriptive family ships eight work-need macros. The old "titer defers to v0.4 / ships
+8/9" framing is **superseded** by the report-not-verdict reframe — titer ships *now*, just not as a
+prescriptive macro.
+
+#### §Enforcement-Surface (Q8)
+
+| Mechanism | Enforcement-Tier | Enforcement-Scope | Bypass risk + mitigation |
+|---|---|---|---|
+| Empty `needs`/`rule_out`/`reason` rejection | parse-time | client + CI | compile error; joins the vacuous-guard class (EmptySignersList et al.) |
+| who-ref satisfaction (signers/trailer) | audit-time | client + CI | per ADR-020 `allowed_types`; TextStamp is documentation-quality unless GitTrust/CryptoSigned selected (named limitation, ADR-020) |
+| fingerprint-pinned staleness | audit-time | client + CI | reuse ADR-019 NFA-21; stale satisfaction excluded mechanically |
+| overdue gate | audit-time | client + CI | configurable per-macro via severity (ADR-008 Amd1 pattern); friction-only by default |
+| `triage.campsites` resolution | NONE (named limitation) | — | opaque labels; anchor #3 forbids camp-read; documented non-resolution |
+| `rx.diagnosis` / cross-need backref | NONE (named limitation, v0.3) | — | opaque label; dependency-graph resolution deferred to v0.4 (VOID-4b) |
+
+**Friction-vs-structural disclosure:** this ADR enforces work-need satisfaction at friction-only
+level by default (audit-time hints + client hooks). Friction-only makes overdue/unsatisfied work
+*deliberate* (loud in audit) rather than *accidental*, but does not prevent a determined adopter
+from ignoring the audit. Adopters requiring structural mode gate CI on `cargo antigen audit`
+prescriptive verdicts (the overdue gate).
+
+#### §Standing-Pressure-Audit (Q2/Q3/Q5/Q6/Q7/Q9)
+
+- **Q2 (sealed enums):** introduces the `WorkVerdict` sealed enum `{Pending, Fulfilled, Overdue,
+  OutOfFrame}`. Axis: the satisfaction-state of a forward-looking work-need within its frame.
+  Inclusion: a state the audit can distinguish from substrate. Exclusion: no "partial" variant (a
+  multi-step S1 panel reports per-step; the site-level verdict is the conjunction — `Pending` until
+  all fulfilled). `Overdue` (frame elapsed, evaluable) vs `OutOfFrame` (un-evaluable) is the
+  load-bearing distinction — **never collapse** (the cardinality-collapse class). Extension requires
+  ADR amendment.
+- **Q3 (controlled vocab):** the eight macro NAMES are Tier-1 sealed (ADR-024-ratified; extension =
+  amendment). The four SHAPES are an implementation taxonomy, not adopter-facing vocab. who-ref
+  values are Tier-3 adopter-open.
+- **Q5 (cross-primitive interaction):** `rx.diagnosis` references a `ddx`; `triage` orders a set;
+  `panel` may name downstream `blocks` (deferred field). All cross-references are OPAQUE LABELS in
+  v0.3 (the dependency-graph, VOID-4b, is v0.4). Convergent-evidence interaction:
+  comprehensive-vision §7 lists `#[panel]`/`#[ddx]` as "(also prescriptive)" under Convergent.
+  **Substrate-grep correction:** `#[diagnostic]` IS implemented (the convergent sibling), but
+  `#[panel]`/`#[ddx]` are NOT — the dual-listing was aspirational, never built. ADR-033 owns
+  `panel`/`ddx` cleanly with no shipped conflict. The DESIGN principle holds (Phase-8 VOID-2: the
+  family axis is a reading-direction, not a partition — a forward-read `#[panel]` asks "will the
+  battery be filled by due?", a backward-read asks "did enough witnesses converge?"); a backward
+  reading, if ever wanted, composes the existing `#[diagnostic]`.
+- **Q6 (deprecation):** additive. No prior shape superseded. ADR-024's named macros gain their
+  arg-signatures; no existing caller breaks (the macros were never implemented).
+- **Q7 (named-surface check):** cross-ADR substrate-grep performed for all eight names — ADR-024-owned,
+  no collision. `WorkVerdict` / `WorkShape`: substrate-grep confirms no collision with existing
+  `AuditHint` / `WitnessTier` / `Plurality` / `TriageDecision`. **`TriageDecision` (ADR-026)** is the
+  VCS-rollback classification (Black/Red/Yellow/Green/White) — a DISTINCT axis from `#[triage]`
+  work-need priority ordering, and from `#[triage_commit]` (ADR-026). Disambiguate at definition:
+  ADR-026 `TriageDecision` = VCS rollback classification; ADR-033 `#[triage]` = work-need priority
+  ordering. Names rhyme; surfaces are unrelated (adversarial cross-check PASSED, ATK-PRES-10).
+- **Q9 (spec-adversarial pre-impl tests):** the `#[ignore]`'d corpus is shipped in
+  `antigen/tests/atk_prescriptive_family_adr033.rs` (adversarial gate). Critical guard: ATK-PRES-8 —
+  `WorkVerdict::OutOfFrame` (un-evaluable: who-ref unknown) must NOT collapse to
+  `WorkVerdict::Overdue` (frame elapsed) — the prescriptive analog of ATK-3V-4. Tests flip from
+  `#[ignore]` to active when pathmaker ships the macros. (The Q9 corpus must be updated to drop the
+  `titer` row and the `triage.campsites`-as-camp-resolution row per this ADR's relocations.)
+
+### Sweep-level consequences
+
+- antigen-macros gains 8 macro entry points routing to 4 shape-parsers (`WorkShape::{RoleWorkflow,
+  Elimination, Ordering, FrameOnly}` internal dispatch).
+- antigen-core gains the `WorkVerdict` sealed enum + the prescriptive audit section.
+- cargo-antigen audit gains the required board-rendering section (a live projection — ADR-034).
+- Reuses (no new build): ADR-019 categorical substrate-witness evaluator, ADR-020 attestation parse,
+  ADR-019 NFA-21 fingerprint-filtering.
+- Seeds one v0.4 void: prescriptive-dependency-graph (cross-need resolution, VOID-4b).
+
+### Resolves
+
+- The arg-signature gap ADR-024 left open for the prescriptive family.
+- The witness-semantics question (by recognition — reuse the ADR-019/020 categorical spine).
+- The audit-is-the-board question (a required audit section, live-projected).
+- The different-things-from-camp question (the locality test).
+- The dual-family smell (panel/ddx are reading-directions over a shared object, not duplicates).
+- The `panel.needs ↔ filled_by` binding ambiguity (scientist's catch — collective coverage, not
+  positional pairing).
+- The titer misfiling (titer is a witness kind, not a work-need — relocated to ADR-019 Amendment 1).
+
+### What this ADR does NOT do
+
+- Does NOT supersede ADR-024 (extends it).
+- Does NOT include `#[titer]` (relocated to the titer-witness kind, ADR-019 Amendment 1).
+- Does NOT resolve cross-need references (`rx.diagnosis`, `triage.campsites`, `panel.blocks`) —
+  opaque labels in v0.3; dependency-graph deferred to v0.4.
+- Does NOT read or depend on camp (anchor #3).
+- Does NOT close the semantic gap (a hollow attestation that doesn't reflect real review work — the
+  same open research question as ADR-029 §honest-semantic-gap, inherited).
+
+---
+
+## [ADR-034] The Report Is a Live Projection, Never a Stored Truth
+
+**Status**: Proposed 2026-06-01 (ceremony: `prescriptive/family-adr`, folded from the
+titer-family-and-reporting-codesign).
+
+**Participants**: Tekgy (the correction that a stored report is itself a parallel state tracker —
+antigen committing the sin it exists to catch); aristotle (Phase 1-8 forced-rejection VOID-W6 — the
+self-contradiction proof; the rhyme with the three-valued-logic type-law).
+
+**Related**:
+- ADR-029 (observe-don't-declare — this ADR is the same principle applied to the report's *storage*).
+- ADR-019 Amendment 1 (titer trends + escape-hatch lifetimes are computed from substrate, never a
+  stored ledger).
+- ADR-033 (the prescriptive board is a live-projected audit section).
+- `forward/three-valued-logic-api-boundary-layer` (VOID-W6's "a stored report is ill-typed" is the
+  same structural law as "a 2-valued substrate-boundary is ill-typed" — substrate-relative things
+  must not be frozen into a parallel copy).
+- The dogfood `ParallelStateTrackersDiverge` antigen (the exact failure-class a stored report would
+  commit).
+- ADR-017 (canonical declaration site; the report's envelope carries the git SHA + version it was
+  computed against).
+
+### Finding
+
+A natural instinct (the superseded `.antigen/reports/` persistence/versioning floor) is to *store*
+the defense-posture report — a release-anchored snapshot. But **a stored report is itself a parallel
+state tracker**: the moment it is stored it can drift from the code, which is
+`ParallelStateTrackersDiverge` — antigen's *own* canonical failure-class. A tool that exists to catch
+parallel-state-divergence cannot ship a stored report without committing its own sin (project-level
+autoimmunity).
+
+### Decision
+
+**The report is a LIVE PROJECTION of the code, recomputed every run — never a stored truth.** Exactly
+how clippy reflects current source on every invocation. The code is the source of truth; the report
+is a *view*, never a copy.
+
+- **Primary mode = recompute on current state, whenever/wherever.** `cargo antigen audit` / `scan`
+  already read the current code — the report *is* their output. There is **no "report subsystem" to
+  build**; scan/audit are already live and the report inherits it. Invoke on demand, in CI, in a
+  **pre-commit hook (the v0.3 stopgap delivery)**, in rust-analyzer later — the way any lint runs.
+  Always current because always recomputed.
+- **Loudness, reframed:** console = one-line summary; `--output <file>` = full detail. But the file is
+  **output-of-a-run** (a render, like a clippy SARIF dump), NOT stored state antigen reads back as
+  authoritative.
+- **The report envelope (genuinely new v0.3 work, small + additive).** A live-projection render that
+  claims "this is the v0.3.0 posture" MUST carry what it was computed against, or it is
+  unverifiable/unreproducible. The envelope = `{ antigen_version, git_sha, generated_at,
+  schema_version }`, extending the stabilized scan-json (the `ScanReport` `#[serde(default)]` additive
+  pattern). **Note: this is NOT recognition — `ScanReport` has no envelope today; pathmaker builds it
+  fresh.** It is the only genuinely-new piece of the reporting model; everything else is assembly.
+- **Release SBOM = a reproducible *render* of a tagged state, not a stored truth.** Running
+  `cargo antigen audit` at the `v0.3.0` tag *is* the v0.3.0 defense-posture SBOM, regenerable any time
+  by re-running antigen at that tag. Keep/attach the file if useful — antigen never reads it back as
+  authoritative, so it cannot drift.
+- **Git is the only memory.** Titer *trends* and escape-hatch *lifetimes* never need a stored
+  report-trail: recompute at HEAD *and* at the prior git point and diff (`blame` / `log` on the usage
+  site → first-commit, last-release value). Same engine as `recurrence-automation`'s git-mining.
+  Nothing stored as truth; the code's own history is the memory.
+
+### Why this is forced, not chosen (Phase-8 VOID-W6)
+
+Reject "live projection" and accept a stored report: antigen then commits its OWN canonical
+failure-class (`ParallelStateTrackersDiverge`) inside the very tool that exists to catch it — a
+self-contradiction. The void's shape is the proof: a two-state report model (`stored | absent`) is
+*ill-typed*; only live-projection is *well-typed*. This rhymes exactly with the three-valued-logic
+gem's "a 2-valued substrate-boundary is ill-typed" — the report-storage question and the third-value
+question are the **same structural law**: substrate-relative things must not be frozen into a parallel
+copy that can lie.
+
+### Scope
+
+- **v0.3 floor:** live report output (audit/scan already recompute) — console summary + `--output`
+  detail + the report envelope + basic recommendations (counts + "consider naming") + git-derived
+  provenance/trend + a pre-commit hook (stopgap delivery).
+- **Additive / float (v0.3.x–v0.4):** the per-release SBOM *render* wired into `release.yml` (a
+  one-line `audit --output` at the tag); the lint-style autofix; a `cargo antigen suggest`
+  upstream-feature-request channel. Each composes with something external — clean later-adds, not v0.3
+  gates.
+
+### What this ADR does NOT do
+
+- Does NOT build a report-storage subsystem (the superseded `.antigen/reports/` floor) — that would
+  commit `ParallelStateTrackersDiverge`.
+- Does NOT make `--output` files authoritative — they are renders, never read back as truth.
+- Does NOT require the envelope to encode anything antigen cannot recompute (version + SHA + timestamp
+  + schema_version only).
