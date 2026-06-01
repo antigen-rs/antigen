@@ -177,11 +177,12 @@ pub use mucosal::MucosalKind;
 
 // Prescriptive Work-Orchestration Family (ADR-033, extends ADR-024): eight
 // clinical-named work-need primitives routing to four structural shapes
-// (S1 role-workflow / S2 elimination / S3 ordering / S4 frame-only). "The TODO
-// comment becomes structure." Seven ship here; `#[triage]` (S3) is held pending
-// an arg-shape ratification (camp question fc2e1677). `#[titer]` is NOT in this
-// family — it is a titer-witness kind (ADR-019 Amendment 1).
-pub use antigen_macros::{biopsy, culture, ddx, panel, quarantine, refer, rx};
+// (S1 role-workflow: panel/rx/refer/biopsy; S2 elimination: ddx; S3 ordering:
+// triage; S4 frame-only: culture/quarantine). "The TODO comment becomes
+// structure." `#[titer]` is NOT in this family — it is a titer-witness kind
+// (ADR-019 Amendment 1). `#[triage]` is the work-need ordering macro, distinct
+// from `#[triage_commit]` (ADR-026 VCS-rollback).
+pub use antigen_macros::{biopsy, culture, ddx, panel, quarantine, refer, rx, triage};
 
 pub mod audit;
 pub mod scan;

@@ -4632,7 +4632,7 @@ impl Parse for TriageArgs {
 
 impl TriageArgs {
     /// `priority_order` is required and non-empty (an empty ordering is a vacuous
-    /// work-need; joins the EmptySignersList vacuous-guard class — ADR-033
+    /// work-need; joins the `EmptySignersList` vacuous-guard class — ADR-033
     /// §Enforcement-Surface).
     pub fn validate(&self) -> syn::Result<()> {
         if !self.priority_order_present {
@@ -6911,5 +6911,39 @@ mod parser_props {
             .unwrap()
             .validate()
             .is_err());
+    }
+
+    #[test]
+    fn triage_accepts_priority_order_of_code_sites() {
+        let tokens: TokenStream =
+            r#"priority_order = ["src/a.rs::foo", "src/b.rs::bar"], triaged_by = "navigator", re_triage_due = "2027-03-01""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<TriageArgs>(tokens).unwrap();
+        assert_eq!(args.priority_order.len(), 2);
+        assert_eq!(args.triaged_by.as_deref(), Some("navigator"));
+        args.validate().unwrap();
+    }
+
+    #[test]
+    fn triage_rejects_empty_priority_order() {
+        let tokens: TokenStream = r"priority_order = []".parse().unwrap();
+        let args = syn::parse2::<TriageArgs>(tokens).unwrap();
+        assert!(args.validate().is_err(), "empty priority_order is vacuous");
+    }
+
+    #[test]
+    fn triage_rejects_dropped_campsites_field() {
+        // `campsites` was DROPPED post-ratification — using it must be an
+        // unknown-field error (not silently accepted), and the error must point
+        // the adopter at priority_order.
+        let tokens: TokenStream = r#"campsites = ["x"]"#.parse().unwrap();
+        let err = syn::parse2::<TriageArgs>(tokens)
+            .expect_err("campsites was dropped — must reject")
+            .to_string();
+        assert!(
+            err.contains("priority_order"),
+            "the unknown-field error must redirect to priority_order: {err:?}"
+        );
     }
 }
