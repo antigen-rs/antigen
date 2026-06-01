@@ -9372,16 +9372,24 @@ resolves to real substrate:
 13. Version-parse — malformed version is a third value, not coerced-to-zero.
 
 **The self-applying witness (the canonical example).** `eval_ratified_doc`
-(`antigen-attestation/src/evaluate.rs`) ships a live Layer-1 collapse: its `fail` closure hardcodes
+(`antigen-attestation/src/evaluate.rs`) still ships a live Layer-1 collapse: its `fail` closure hardcodes
 `evaluated: true` on every path, so a doc whose version is *absent* or *malformed* (a read-failure, `⊥`)
-is reported as definitively-below-floor (`⊥ → false`), while a `u64`-overflowing declared `min_version`
-coerces to zero and vacuously passes (`⊥ → true`) — the cardinality collapses in *both* directions at
-one leaf. The codebase already contains the correct pattern: the supply-chain leaf arm sets
-`evaluated: false` for the not-run case, with a standing ATK assertion that
-"`passed: false, evaluated: true` implies the check ran." So the buggy leaf violates antigen's *own*
-established `⊥`-at-leaf pattern. This is the law operating as a detector on real shipping code, with an
-in-tree precedent for the fix — the strongest possible evidence that `CardinalityCollapseAtTrustBoundary`
-is self-applying, not a hypothetical.
+is reported as definitively-below-floor (`⊥ → false`) rather than as un-evaluated. The codebase already
+contains the correct pattern: the supply-chain leaf arm sets `evaluated: false` for the not-run case,
+with a standing ATK assertion that "`passed: false, evaluated: true` implies the check ran." So the
+buggy leaf violates antigen's *own* established `⊥`-at-leaf pattern. This is the law operating as a
+detector on real shipping code, with an in-tree precedent for the fix — the strongest possible evidence
+that `CardinalityCollapseAtTrustBoundary` is self-applying, not a hypothetical.
+
+The *other* direction of this same leaf — a `u64`-overflowing declared `min_version` coercing to zero
+and vacuously passing (`⊥ → true`) — **was a live collapse when this gem was first surfaced, and has
+since been closed** (commit `7941dc6`, ATK-FT-3): `validate()` now rejects any `min_version` with a
+non-`u64`-parseable component (`PredicateParseError::UnparseableMinVersion`), so an unobtainable floor
+can never silently become `0`. That remedy is itself a worked instance of this law's exhaustiveness
+partition: it pays the partiality **upstream at validate time** — cell (b), the in-memory-2-valued path
+— so the eval-time leaf never sees the `⊥`. The law predicted the shape of its own fix. The remaining
+`⊥ → false` direction is the leaf-sweep follow-on (tracked below), where the closure should set
+`evaluated: false` on the doc-read-failure paths exactly as the supply-chain arm already does.
 
 ### Why this is forced, not chosen (Phase-8 void)
 
@@ -9412,8 +9420,10 @@ implicit-mode obscurity antigen exists to surface.
   antigen's own construction — adversarial's gate confirmed the implementation naturally factors into
   (eval-time reads → 3-valued) + (in-memory → 2-valued, paid upstream).
 - **Tracked v0.3+ follow-ons (additive, NON-blocking):**
-  - The `eval_ratified_doc` leaf fix (set `evaluated: false` on the doc-side read-failure paths;
-    distinguish malformed-version from zero) — the FT-1/2/3 family, owned by the freshness-bypass
+  - The `eval_ratified_doc` leaf fix — the remaining `⊥ → false` direction: set `evaluated: false` on
+    the doc-side read-failure paths (doc-absent, no-parseable-frontmatter-version) so a read-failure is
+    reported as un-evaluated, not as definitively-below-floor. (The sibling `⊥ → true` malformed-version
+    overflow already closed at validate time in `7941dc6` / ATK-FT-3.) Owned by the freshness-bypass
     campsites. A *systematic leaf-sweep of `evaluate.rs`* (naturalist's prediction): every leaf asked
     "does it fold an un-anchored / un-parseable / empty-collection `⊥` into pass-or-fail?" — the
     gem-as-detector in operation.
