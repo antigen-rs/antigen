@@ -4701,8 +4701,21 @@ fn eval_role_workflow(
     // mutates `steps` (the chain pushed so far IS exactly the filler steps).
     let no_fillers = steps.is_empty();
     let any_unevaluable = steps.iter().any(|s| s.state == StepState::Unevaluable);
+
+    // Witness-forgery guard (ATK / forward/s1-bare-orderer-fulfills-bypass):
+    // `ordered_by` is an OPENING witness — it records that the work was ordered,
+    // NOT that it was performed. Ordering ≠ performing ≠ reviewing (ADR-003:
+    // presentation ≠ clearance). A bare `ordered_by` (no `filled_by`) must
+    // NEVER alone fulfill the need; crediting the orderer as a closer is
+    // accepting a positive non-closure event as closure — the witness-forgery
+    // sibling of the three-valued gem (fix = TIGHTEN the satisfaction predicate,
+    // not widen the codomain). The orderer's step is still REQUIRED to attest
+    // (the chain conjunction holds), but a genuine closing step — at least one
+    // `filled_by` — must also exist and attest. A bare-orderer site is therefore
+    // Pending (awaiting fill), never Fulfilled.
+    let has_closing_step = steps.iter().any(|s| s.role != "ordered_by");
     let all_fillers_attested =
-        !steps.is_empty() && steps.iter().all(|s| s.state == StepState::Attested);
+        has_closing_step && steps.iter().all(|s| s.state == StepState::Attested);
 
     // reviewed_by: credited only when every filler is attested (ALL / conjunction).
     let mut reviewers_attested = true;
@@ -4744,8 +4757,13 @@ fn eval_role_workflow(
         "no who-step declared — nothing to attest (declare filled_by/ordered_by)".to_string()
     } else if any_unevaluable || reviewer_unevaluable {
         "a who-step is un-evaluable (no sidecar / unknown who-ref) — out of frame".to_string()
+    } else if !has_closing_step {
+        // Bare ordered_by (possibly attested) with no filled_by: the work was
+        // ordered but no one has performed it. ordered_by opens; it never alone
+        // fulfills (witness-forgery guard).
+        "awaiting fill: ordered but no filled_by step — an opener never alone fulfills".to_string()
     } else if !all_fillers_attested {
-        "awaiting fill: not every filled_by/ordered_by step is attested".to_string()
+        "awaiting fill: not every filled_by step is attested".to_string()
     } else {
         "awaiting review: reviewed_by not yet attested (all fillers done)".to_string()
     };
