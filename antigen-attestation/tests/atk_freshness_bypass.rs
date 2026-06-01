@@ -151,7 +151,6 @@ fn item_stale_signers_fresh_through(fresh_through: Option<NaiveDate>) -> ItemRat
 // eval_fresh_within_days accepts fresh_through with zero signers.
 // ---------------------------------------------------------------------------
 #[test]
-#[ignore = "ATK-FT-1: pre-fix contract — fresh_through bypass not yet fixed; campsite forward/perpetual-freshness-bypass-fresh-through"]
 fn atk_ft1_fresh_through_no_signers_must_not_satisfy_freshness() {
     // A sidecar with zero signers but fresh_through = today.
     // Nobody has attested, yet the freshness leaf is satisfied.
@@ -196,7 +195,6 @@ fn atk_ft1_fresh_through_no_signers_must_not_satisfy_freshness() {
 // PredicateFailed says "freshness requirement not met."
 // ---------------------------------------------------------------------------
 #[test]
-#[ignore = "ATK-FT-2: pre-fix contract — fresh_through bypass not yet fixed; campsite forward/perpetual-freshness-bypass-fresh-through"]
 fn atk_ft2_fresh_through_with_stale_signers_only_gives_ambiguous_result() {
     // Alice signed today but against fp-old (stale fingerprint).
     // NFA-21 correctly filters her out from latest_signer.
@@ -240,7 +238,6 @@ fn atk_ft2_fresh_through_with_stale_signers_only_gives_ambiguous_result() {
 // variant should cover "version component not a valid u64".
 // ---------------------------------------------------------------------------
 #[test]
-#[ignore = "ATK-FT-3: pre-fix contract — compare_versions u64 overflow not yet fixed; adversarial to seed campsite"]
 fn atk_ft3_compare_versions_u64_overflow_vacuous_bypass() {
     // min_version = u64::MAX + 1 — a string that overflows u64 parse.
     // This should be REJECTED by validate() because the version component

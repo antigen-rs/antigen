@@ -375,14 +375,21 @@ fn signerless_predicate_reports_no_signature_strength() {
     )
     .unwrap();
 
-    // Signerless item — no signers at all; freshness provided via fresh_through.
+    // Signerless item — no signers at all. (Formerly this carried a
+    // `fresh_through` and the predicate below included a `fresh_within_days`
+    // leaf, which relied on the now-closed temporal forged-freshness bypass
+    // ATK-FT-1: fresh_through alone, with no current-fp signer, no longer
+    // anchors freshness. To keep this test about its REAL contract —
+    // "a signerless predicate that PASSES must report signature_strength: None,
+    // not a fabricated GitTrust" — the predicate now uses only the
+    // signerless-passable `ratified_doc` leaf, no freshness dependency.)
     let item = ItemRatification {
         item_path: "some_fn".to_string(),
         current_fingerprint: "fp-abc".to_string(),
         doc_ref: None,
         signers: vec![], // no signers — predicate must not claim GitTrust
         oracles: vec![],
-        fresh_through: Some(sample_date()), // fresh as of today
+        fresh_through: None,
         extensions: BTreeMap::new(),
     };
     let rat = Ratification {
@@ -398,17 +405,14 @@ fn signerless_predicate_reports_no_signature_strength() {
     rat.validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS)
         .expect("signerless sidecar is structurally valid");
 
-    // Predicate: ratified_doc + fresh_within_days — zero signer requirements.
-    let pred = Predicate::all_of(vec![
-        Predicate::leaf(Leaf::RatifiedDoc {
-            path: Some(std::path::PathBuf::from("docs/discipline.md")),
-            min_version: Some("1.0".to_string()),
-            anchor: None,
-            sibling_json: false,
-        }),
-        Predicate::leaf(Leaf::FreshWithinDays { days: 30 }),
-    ])
-    .unwrap();
+    // Predicate: ratified_doc only — a signerless-passable leaf, zero signer
+    // requirements and no freshness dependency (see fixture note above).
+    let pred = Predicate::leaf(Leaf::RatifiedDoc {
+        path: Some(std::path::PathBuf::from("docs/discipline.md")),
+        min_version: Some("1.0".to_string()),
+        anchor: None,
+        sibling_json: false,
+    });
 
     let ctx = FsContext::new(root, sample_date());
     let item = &rat.items[0];
