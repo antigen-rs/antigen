@@ -1,0 +1,21 @@
+# camp.toml — canonical dev-gate commands for antigen.
+#
+# These are the four CI gates that must all pass before a campsite can be
+# gate-signed. camp runs them in order at the project root via `camp gate`.
+#
+# NOTE: `version-bumped` will show `?` in `camp ready` output because antigen
+# uses a Cargo workspace manifest (`[workspace.package]`) rather than a top-level
+# `[package]` section, and camp's version reader currently only parses `[package]`.
+# This is a camp false-negative — the version IS bumped (0.3.0-alpha.1 ahead of
+# the latest v0.2.x tags). A human closes this by eye before the tag ceremony.
+#
+# rtk mangles cargo output — always run gates via `command cargo ...` directly,
+# not through rtk. The commands below are the raw forms camp should invoke.
+
+[gates]
+commands = [
+  "cargo fmt --all -- --check",
+  "cargo clippy --workspace --all-targets -- -D warnings",
+  "cargo test --workspace --all-targets",
+  "cargo doc --workspace --no-deps",
+]
