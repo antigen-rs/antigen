@@ -34,7 +34,7 @@ You don't need fine-tuning on antigen. The vocabulary self-explains.
 
 ## What antigen is, from your perspective
 
-Five attribute macros at the API surface:
+**Core vocabulary** (v0.2 and earlier):
 
 - `#[antigen(name, fingerprint, summary, references, family)]` —
   declares a named failure-class with a structural pattern
@@ -54,17 +54,44 @@ Five attribute macros at the API surface:
 > since ADR-029. Use `#[defended_by]` (code-tier) or `#[presents(requires=)]`
 > (substrate-tier) instead. The deprecated form still compiles with a warning.
 
+**Prescriptive / work-orchestration family** (v0.3, shipped in current development):
+
+Eight macros that express code-site-local work-needs in the type system. If you
+encounter these when reading an antigen-using codebase, treat them as structured
+coordination substrate — they are work assignments, review checklists, and
+investigation requests encoded at the site where the work is needed.
+
+- `#[panel(needs, filled_by?, reviewed_by?, due?)]` — ordered review checklist; who fills + who reviews
+- `#[ddx(symptom, rule_out, investigator?)]` — set of competing hypotheses to eliminate one by one
+- `#[rx(treatment, filled_by?, due?)]` — prescribed remedy to execute before this site ships
+- `#[refer(to, response_due?)]` — referral to an external owner; anchored at this site
+- `#[biopsy(location, request_text, deep_investigation_by?)]` — deep investigation request at a sub-site
+- `#[culture(test_kind, runs_until?)]` — time-boxed observation window ("watch this for N days")
+- `#[quarantine(scope, reason, until?)]` — isolated region under a deliberate hold; `reason` required
+- `#[triage(priority_order, triaged_by?, re_triage_due?)]` — re-validatable priority ordering over code-site refs
+
+`cargo antigen audit` renders these as a live-projected board: each site's verdict is
+`Pending` / `Fulfilled` / `Overdue` / `OutOfFrame`. The verdicts reuse the same
+three-valued evaluator as defense — no parallel mechanism.
+
+**Protocol note**: when you encounter a `#[panel]` or `#[rx]` or `#[ddx]` on code
+you are editing, surface it to the human before modifying the site. These macros
+express outstanding human decisions; generating code that silently modifies a
+`#[ddx]`-marked function without noting the open differential is the same failure
+mode as editing a `#[presents]`-marked site without checking whether your change
+invalidates the defense.
+
 Two cargo subcommands:
 
 - `cargo antigen scan` — walks the codebase and reports presentations,
-  defenses, tolerances, and fingerprint matches
+  defenses, tolerances, fingerprint matches, and prescriptive work-needs
 - `cargo antigen audit` — observes per-site defense verdicts (defended /
-  undefended / substrate-gap) by cross-referencing presents-sites with
-  #[defended_by] registrations and requires= predicates
+  undefended / substrate-gap) and per-site work-need verdicts (Pending /
+  Fulfilled / Overdue / OutOfFrame)
 
 When you encounter these in a codebase, treat them as **structural
 substrate**: they carry information about what the team has decided
-matters, and what defends against it.
+matters, and what work is explicitly outstanding.
 
 ---
 

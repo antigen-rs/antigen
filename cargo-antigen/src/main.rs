@@ -2881,6 +2881,19 @@ fn print_prescriptive_board(report: &audit::PrescriptiveAuditReport) {
         if let Some(blocking) = v.blocking.as_deref() {
             println!("      → {blocking}");
         }
+        // Typed OutOfFrame sub-cause + its per-cause remedy (the
+        // SubCauseCollapseInTheUnit fix): an un-evaluable need routes a DIFFERENT
+        // remedy per cause (scaffold-sidecar vs declare-who-step vs fix-date vs
+        // fix-dangling-ref), instead of fusing them into one opaque "out of frame".
+        if let Some(cause) = v.out_of_frame_cause {
+            let cause_tag = match cause {
+                audit::OutOfFrameCause::UnknownWhoRef => "unknown-who-ref",
+                audit::OutOfFrameCause::MissingWorkStep => "missing-work-step",
+                audit::OutOfFrameCause::UnparseableFrame => "unparseable-frame",
+                audit::OutOfFrameCause::UnresolvableRef => "unresolvable-ref",
+            };
+            println!("      cause: {cause_tag} — remedy: {}", cause.remedy());
+        }
         // Per-step detail: which who-step is open (the board's actionable core).
         for step in &v.steps {
             let mark = match step.state {

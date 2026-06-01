@@ -4,12 +4,14 @@
 
 Comprehensive, co-native, structural memory of fail-classes, defenses, attestations, and coordination — accessible natively to both human and AI agents. Built for the age of agentic dev, vibe-coding, and human-LLM collaboration.
 
-> **Status**: `0.2.0` — first stable release of the v0.2 line, published to
-> crates.io (2026-05-31). Core macros, fingerprint grammar, scan + audit + attest +
-> tolerate + oracle CLI, Oracle 5-state lifecycle, cross-cutting attestation,
+> **Status**: `0.2.0` stable on crates.io (2026-05-31); `0.3.0-alpha.1` in active
+> development on `main`. v0.2 surface: core macros, fingerprint grammar, scan + audit
+> + attest + tolerate + oracle CLI, Oracle 5-state lifecycle, cross-cutting attestation,
 > substrate-witness predicates, ADR-029 observe-don't-declare vocabulary
 > (`#[defended_by]`, extended `#[presents]`), Match3 three-valued fingerprint
-> evaluation, five macro families in v0.2 stdlib. See [`CHANGELOG.md`](CHANGELOG.md)
+> evaluation, five macro families in v0.2 stdlib. v0.3 adds: the prescriptive
+> work-orchestration family (8 macros), the titer/scalar witness kind, live-projection
+> reporting, and member-aware multi-crate scan. See [`CHANGELOG.md`](CHANGELOG.md)
 > for the full manifest.
 
 ---
@@ -115,23 +117,25 @@ Plus four cargo subcommands:
 
 ---
 
-## The comprehensive vocabulary (v0.2 and beyond)
+## The comprehensive vocabulary (v0.2 / v0.3)
 
-Antigen's v0.1 vocabulary is one branch of a comprehensive immune-system framework. The biological immune system is the systematic discovery framework for what the full vocabulary needs to be — each immune-system component maps to a code discipline with its own primitive.
+Antigen's vocabulary spans several families, each grounded in the biological immune system. The metaphor is the systematic discovery framework for what each family needs to be — each immune-system component maps to a code discipline with its own primitive.
 
-A selection of what's coming:
+**Shipped in v0.2**: The five core macros above plus the deferred-defense, recurrent-emergence, mucosal-boundary, VCS-information-loss, agentic-coordination, and supply-chain families. See the vocabulary table in `README.md` and [`docs/examples-guide.md`](docs/examples-guide.md) for pattern walkthroughs.
 
-**Honest-debt / deferred-defense family** — `#[anergy]`, `#[immunosuppress]`, `#[poxparty]`, `#[orient]`, `#[vaccinate]`. Deferred defenses made LOUD — aging warnings, escalating errors past deadline, surgical family-silencing that can't silently disappear.
+**Shipped in v0.3** (current development branch):
 
-**Prescriptive / work-orchestration family** — `#[panel]`, `#[ddx]`, `#[rx]`, `#[triage]`, `#[refer]`. Team coordination substrate directly in code — Asana-replacement-by-substrate.
+**Prescriptive / work-orchestration family** — `#[panel]`, `#[ddx]`, `#[rx]`, `#[triage]`, `#[refer]`, `#[biopsy]`, `#[culture]`, `#[quarantine]`. Code-site-local work-needs expressed directly in the type system — "code IS the Asana board." `cargo antigen audit` renders per-site verdicts (`Pending` / `Fulfilled` / `Overdue` / `OutOfFrame`) as a live-projected board section. See [`docs/macros.md`](docs/macros.md) for the full reference.
 
-**Recurrence detection family** — `#[itch]`, `#[recurrence_anchor]`, `#[crystallize]`, `#[chronic]`. Noticing-without-commitment that accumulates across sessions, agents, and time.
+**Titer / scalar witness kind** — `#[ignorance]` (scan-coverage, member one) and raw `#[titer(source=...)]`. A second witness kind that attests a *measured value* (no verdict, trend-trackable) rather than a categorical defense verdict. Antigen reports the value; the threshold-judgment lives downstream. `#[ignorance]` / scan-coverage is retroactively recognized as member-one; no code change required.
+
+**Still ahead** (v0.3+ and beyond):
 
 **Biological-component family** — `#[macrophage]`, `#[neutrophil]`, `#[treg]`, `#[complement]`, `#[dendritic]`, and ~30 more. Each maps to a real code discipline; each discovered via the biological metaphor, not speculation.
 
 **Dysregulation states** — `#[autoimmune]`, `#[immunodeficient]`, `#[immunocompromised]`, `#[sepsis]`. For regions of deliberate non-defense, made structurally explicit and auditable.
 
-The full vocabulary is listed in [`docs/expedition/the-comprehensive-vision.md`](docs/expedition/the-comprehensive-vision.md).
+The full vocabulary target is listed in [`docs/expedition/the-comprehensive-vision.md`](docs/expedition/the-comprehensive-vision.md).
 
 ---
 
@@ -153,7 +157,7 @@ Add antigen as a dependency:
 
 ```toml
 [dependencies]
-antigen = "=0.2.0"   # first stable v0.2 release (published to crates.io)
+antigen = "=0.2.0"   # latest stable (published to crates.io); v0.3 in active development
 ```
 
 Now declare your first antigen. The full walkthrough lives in [`docs/tutorial.md`](docs/tutorial.md) — your first 15 minutes, end-to-end, with a real failure-class.
@@ -171,7 +175,7 @@ The biological metaphor is **load-bearing, not decorative**. The immune system i
 | B-cell memory (pattern layer) | `#[antigen(name = "...")]` declarations |
 | Antibody | `#[defended_by(X)]` on a test — the observed defense, the code-tier witness (the API word for antibody is *witness*; see glossary) |
 | Substrate sensing (germinal-center history, signed records) | `requires =` substrate-witness predicate — B-cell memory, commit trailers, oracle markers (ADR-019) |
-| Antibody titer (currency layer) | `verified_at` (ADR-016) |
+| Serotiter (scalar magnitude) | `#[ignorance]` / `#[titer(source=...)]` — scalar witness kind; attests a measured value, no verdict (ADR-019 Amendment 1) |
 | B-cell lineage (clonal expansion) | `#[descended_from]` propagation |
 | Peripheral tolerance / Tregs | `#[antigen_tolerance]` for legitimate matches |
 | Innate vs adaptive immunity | passive surface (fingerprint scan) vs active surface (explicit markers) |

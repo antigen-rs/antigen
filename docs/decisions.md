@@ -96,6 +96,7 @@
 - [ADR-019 Amendment 1 — Witness Taxonomy: Two Kinds (Categorical ‖ Titer/Scalar), Each with Named Members + a Generic Escape-Hatch](#adr-019-amendment-1--witness-taxonomy-two-kinds-categorical--titerscalar-each-with-named-members--a-generic-escape-hatch)
 - [ADR-033 — Prescriptive Work-Orchestration: Four Structural Shapes, Eight Clinical Names, the ADR-029 Spine Pointed at Work-Needs](#adr-033-prescriptive-work-orchestration-four-structural-shapes-eight-clinical-names-the-adr-029-spine-pointed-at-work-needs)
 - [ADR-034 — The Report Is a Live Projection, Never a Stored Truth](#adr-034-the-report-is-a-live-projection-never-a-stored-truth)
+- [ADR-035 — Cardinality Collapse at a Trust Boundary: the Three-Valued Type Law (a Self-Applying Antigen)](#adr-035-cardinality-collapse-at-a-trust-boundary-the-three-valued-type-law-a-self-applying-antigen)
 
 ---
 
@@ -9242,3 +9243,197 @@ copy that can lie.
 - Does NOT make `--output` files authoritative — they are renders, never read back as truth.
 - Does NOT require the envelope to encode anything antigen cannot recompute (version + SHA + timestamp
   + schema_version only).
+
+---
+
+## [ADR-035] Cardinality Collapse at a Trust Boundary: the Three-Valued Type Law (a Self-Applying Antigen)
+
+**Status**: Proposed 2026-06-01 (ceremony: `forward/three-valued-logic-api-boundary-layer`). The
+adversarial falsification gate and the math-researcher formal sign-off both landed before this draft;
+this ADR absorbs them. Awaiting the co-sign ceremony.
+
+**Participants**: aristotle (the "forced, not found" necessity argument; the Phase-1-8 forced-rejection
+of the two-valued boundary and of the atomic-`⊥`; the 13-instance catalog; the `⊥` notation-collision
+catch; the self-applying-witness recognition); math-researcher (the coproduct closure — the third value
+is the unit of the lift, distinct by the universal property; the no-base-case regress; the Σ(stages)
+two-clause discriminator; the formal sign-off that the falsification partition is *exhaustive*);
+adversarial (the falsification gate — examined every substrate-relative boundary in the audit pipeline
+and found NO counterexample to the lemma); naturalist (the ignorance≠anergy biology grounding; the
+"applied-at-the-load-boundary-but-not-propagated-to-the-leaves" granularity-gap framing); scientist
+(the six-witness convergence manuscript framing).
+
+**Related**:
+- ADR-029 (observe-don't-declare). This ADR is the **type** of which ADR-029 is the **discipline**:
+  observe-don't-declare says "don't claim a verdict you couldn't observe"; this law says "your verdict
+  type *has a value* for 'couldn't observe.'" Same principle, two faces.
+- ADR-034 (the report is a live projection). ADR-034 already names this identity: "a stored report
+  (`stored | absent`) is ill-typed; only live-projection is well-typed" is the *same* structural law as
+  "a 2-valued substrate-boundary is ill-typed."
+- ADR-010 Amendment 6 (Match3 — three-valued predicate evaluation at the fingerprint leaf-algebra).
+- ADR-024 (cross-crate reference resolution — an unresolvable reference is out-of-frame, distinct from
+  resolved-and-undefended).
+- ADR-033 (`WorkVerdict::OutOfFrame` — the prescriptive work-need un-evaluable value; ATK-PRES-8 guards
+  `OutOfFrame !-> Overdue`).
+- ADR-019 Amendment 1 (the titer/scalar value layer — `measure : Substrate ⇀ Scalar` lifts the same
+  way; un-measurable is the lift's unit; report-not-verdict = "don't apply a threshold to `⊥`").
+- The dogfood `ParallelStateTrackersDiverge` antigen (the storage-face instance, via ADR-034).
+
+### Finding
+
+Antigen kept re-deriving the same shape from independent entry points — the fingerprint leaf-algebra
+(Match3), the cross-crate resolution gate (out-of-frame), the prescriptive verdict (`OutOfFrame`), the
+coverage frontier (`UnreachedCause`), the titer value layer (un-measurable), the stored-report question
+(ADR-034), the categorical verdict (`Indeterminate`), the temporal-freshness and version-parse leaves
+(the FT-1/2/3 bugs). Each looked like a separate design choice; each landed a *third value* beside
+pass/fail. The question this ADR answers is **WHY the third value appears at every trust boundary with
+necessity, rather than just appearing a lot** — the difference between a habit (catch it case-by-case,
+forever) and a law (ratify the necessity once; make a two-valued boundary a compile-class error).
+
+The answer is that the third value is **forced, not found**, and the forcing is a theorem:
+
+1. A substrate-relative trust boundary is an evaluation `eval : Substrate ⇀ {true, false}` — a
+   **partial** function, undefined exactly where the read fails (substrate absent / unreachable /
+   malformed). Partiality is not a defect to engineer away; it is the honest type.
+2. The honest *total* form of a partial function is its **lift**: every `A ⇀ B` is exactly a total
+   `A → (B + 1)`, where `+` is the coproduct and `1` is the unit `⊥` ("undefined here").
+   Substituting `B = {true, false}` gives `eval_total : Substrate → ({true, false} + {⊥})` — a
+   **three-element codomain**. The third value is not *added*; it is what totalizing a partial function
+   *is*. It is provably distinct from both `true` and `false` by the coproduct's universal property —
+   not a stipulation.
+3. So `partial ⟹ 3-valued codomain` is **unconditional** (a definition). The entire empirical content
+   collapses onto one lemma: **is every substrate-relative boundary genuinely partial?** This reduces
+   to a regress with no base case — "S is guaranteed present" is itself a proposition read from some
+   `S'`, which is partial; there is no bottom, because *knowing-here IS reading*. The evaluator cannot
+   step outside what it evaluates to certify the evaluation will succeed; that certification is another
+   read.
+
+**The lemma was put to a falsification gate and confirmed.** Adversarial examined every
+substrate-relative boundary in antigen's audit pipeline for a *total* one (no `⊥` branch, partiality
+not paid upstream) and found NO counterexample. Math-researcher signed off that the partition is
+**exhaustive**: every such boundary is either (a) a genuine eval-time substrate read, correctly lifted
+to 3+ values (`load_sidecar`, `compute_presentation_verdicts`, `AuditHint`); or (b) a read of
+already-materialized in-memory data, correctly 2-valued with partiality paid upstream at scan time (the
+`&ScanReport` audit functions); or (c) a 2-valued internal helper where both false-reasons route the
+*same* correct downstream outcome — an allowed lossy projection (`is_complete`,
+`priority_order_ref_resolves`). (a)+(b)+(c) is exhaustive; there is no fourth cell, hence no room for a
+counterexample. **The lemma is a theorem.**
+
+### Decision
+
+**A substrate-relative trust boundary whose verdict type has two inhabitants over a partial domain is
+ill-typed. The honest codomain carries the third value, and the honest tool never discards it.** This
+ratifies as a self-applying antigen — antigen detecting its own type-discipline violation. The
+principle has **two layers**, with distinct forcing conditions.
+
+**Layer 1 — `CardinalityCollapseAtTrustBoundary` (the silent-wrong-VERDICT; unconditionally forced).**
+The honest codomain of a substrate-relative boundary is `B + 1`. Collapsing the third value into `B`
+forces the un-evaluated case to be reported as pass or fail — both lies ("the check ran" when it
+didn't). Pass-on-unevaluable is the dangerous lie (silent false-green); fail-on-unevaluable is the
+noisy lie (false alarms drown the signal; the adopter disables the audit — antigen's own
+adoption-failure / autoimmunity mode). Both are unacceptable, which is *why* the third value must be
+not merely present but **loud and distinct**.
+
+**Layer 2 — `SubCauseCollapseInTheUnit` (the silent-wrong-REMEDY; conditionally forced).** The third
+value is not always atomic. When `eval` is a **composite of staged partials**
+(`evaluate ∘ match ∘ parse ∘ enumerate`) and the failure-stages are observationally distinguishable,
+the honest `⊥` has internal structure `Σᵢ 1ᵢ` — one unit per distinguishable failure-stage. The
+forcing condition is a **two-clause discriminator**: Σ is forced iff (1) the stages route *distinct,
+non-interchangeable remedies* AND (2) the consumer *cannot recover the sub-cause downstream* from the
+boundary's output alone. If clause 2 fails (the consumer can recover the sub-cause), fusing is an
+*allowed* lossy projection. The cardinality of `Σ` is **pipeline-relative** — "one unit per
+distinguishable failure-stage," NOT "always three." `B + 1` is the `|Σ| = 1` single-read special case.
+Layer 2 inherits Layer 1's forcing (there is no third value to sub-structure if the third value itself
+is not forced).
+
+**The allowed escape — downstream projection (C4).** Collapsing the boundary *type* is the bug.
+Projecting `{true, false, ⊥} → {true, false}` *downstream*, at a consumer that has legitimately decided
+how to treat indeterminate, is **fine** (e.g. ADR-033's frame-aware render, `Option::unwrap_or`, a CI
+gate that treats "couldn't evaluate" as non-failing). A lossy projection *existing* says nothing about
+the source's cardinality, the same way `Option::unwrap_or(false)` does not make `Option<bool>` into
+`bool`. The boundary's honest type is the codomain of `eval_total`; what a consumer chooses to forget is
+its own business. This law constrains the *boundary's type*, never the consumer's projection.
+
+**Instantiations (one `1`, thirteen costumes — NOT thirteen findings, NOT thirteen ADRs).** Each cite
+resolves to real substrate:
+1. Categorical verdict — `CompositeVerdict` / `Indeterminate` (`antigen-attestation/src/evaluate.rs`).
+2. Fingerprint leaf-algebra — `Match3 {True, False, Undefined}` (ADR-010 Amd 6).
+3. Cross-crate reference resolution — out-of-frame (ADR-024).
+4. Prescriptive work-need — `WorkVerdict::OutOfFrame` (ADR-033; `audit.rs`).
+5. Coverage / reachability — `UnreachedCause {Barrier | SubThreshold | Cryptic}` (`audit.rs`) — the
+   first built Layer-2 split.
+6. Titer / scalar value layer — un-measurable (ADR-019 Amd 1).
+7. Stored report — `stored | absent` ill-typed (ADR-034).
+8. Observe-don't-declare — the discipline-face identity (ADR-029).
+9. Similarity matching — match / no-match / not-sure.
+10. Biological ignorance — ignorance ≠ anergy (the scan-coverage ignorance frontier).
+11. Tier-honesty — the `partial` verdict / `min_tier` (deferred to v0.3 L3; the shape is present).
+12. Temporal-freshness — `fresh_through` requires a current-fingerprint signer (ADR-019 NFA-21).
+13. Version-parse — malformed version is a third value, not coerced-to-zero.
+
+**The self-applying witness (the canonical example).** `eval_ratified_doc`
+(`antigen-attestation/src/evaluate.rs`) ships a live Layer-1 collapse: its `fail` closure hardcodes
+`evaluated: true` on every path, so a doc whose version is *absent* or *malformed* (a read-failure, `⊥`)
+is reported as definitively-below-floor (`⊥ → false`), while a `u64`-overflowing declared `min_version`
+coerces to zero and vacuously passes (`⊥ → true`) — the cardinality collapses in *both* directions at
+one leaf. The codebase already contains the correct pattern: the supply-chain leaf arm sets
+`evaluated: false` for the not-run case, with a standing ATK assertion that
+"`passed: false, evaluated: true` implies the check ran." So the buggy leaf violates antigen's *own*
+established `⊥`-at-leaf pattern. This is the law operating as a detector on real shipping code, with an
+in-tree precedent for the fix — the strongest possible evidence that `CardinalityCollapseAtTrustBoundary`
+is self-applying, not a hypothetical.
+
+### Why this is forced, not chosen (Phase-8 void)
+
+Reject the law and accept that a substrate-relative boundary may be two-valued. Then the un-evaluated
+case — which is *common in the wild* (substrate is always missing something) and *rare in test fixtures*
+(which tend to be complete) — is silently called pass or fail. The boundary passes review, ships, and
+then lies in production: silently, because the lie is "I evaluated this" when it didn't, and an
+un-observed case produces no failing test until someone constructs the partial-substrate fixture. So
+antigen — the tool whose entire purpose is making the implicit explicit and failing loud not silent —
+would ship the *silent-wrong-verdict it exists to catch* (project-level autoimmunity). The void's shape
+is the proof: the only well-typed model is the three-valued one. This is the same void as ADR-034's
+VOID-W6 (a stored report commits `ParallelStateTrackersDiverge`); the storage question and the
+third-value question are one law seen from two angles.
+
+### A notation note (a deconstructor catch)
+
+The glyph `⊥` is overloaded in this document. **In this ADR, `⊥` is the lift unit of `B + 1`** — the
+"could-not-evaluate" inhabitant. **In ADR-031 ("tier `⊥` category"), `⊥` denotes orthogonality** — two
+independent, substrate-populated axes. These are structurally unrelated; the orthogonality `⊥` is *not*
+a gem-instance and must not be cited as one. Same glyph, two meanings — itself exactly the kind of
+implicit-mode obscurity antigen exists to surface.
+
+### Scope
+
+- **v0.3 floor (recognition, not new build):** ratify the law + both antigen names; record the
+  instantiation catalog. The shipped boundaries (`CompositeVerdict`, `Match3`, `UnreachedCause`,
+  `WorkVerdict::OutOfFrame`, the substrate-witness `AuditHint`) already *demonstrate* the law on
+  antigen's own construction — adversarial's gate confirmed the implementation naturally factors into
+  (eval-time reads → 3-valued) + (in-memory → 2-valued, paid upstream).
+- **Tracked v0.3+ follow-ons (additive, NON-blocking):**
+  - The `eval_ratified_doc` leaf fix (set `evaluated: false` on the doc-side read-failure paths;
+    distinguish malformed-version from zero) — the FT-1/2/3 family, owned by the freshness-bypass
+    campsites. A *systematic leaf-sweep of `evaluate.rs`* (naturalist's prediction): every leaf asked
+    "does it fold an un-anchored / un-parseable / empty-collection `⊥` into pass-or-fail?" — the
+    gem-as-detector in operation.
+  - `CoverageAuditReport::coverage_was_applicable() -> bool` (adversarial's type-discipline finding: a
+    3-state domain behind the 2-valued `is_complete()` — an allowed C4 projection today, but the third
+    state should be inspectable by library consumers).
+  - The `WorkVerdict::OutOfFrame` sub-cause refinement (`OutOfFrameCause` sub-enum mirroring
+    `UnreachedCause::remedy`, routing the remedy per cause) — the prescriptive Layer-2 unfold.
+- **The audit detector (self-applying, v0.3+):** a structural check that flags a substrate-relative
+  boundary whose verdict type has two inhabitants over a partial domain — antigen detecting its own
+  Layer-1 violations.
+
+### What this ADR does NOT do
+
+- Does NOT forbid downstream two-valued projection (C4 is explicitly allowed; the law constrains the
+  boundary type, never the consumer's choice to forget).
+- Does NOT claim `Σ(stages)` is a theorem about partial functions in general — a bare composite forgets
+  which stage failed; `Σ` is forced only under the two-clause discriminator (and is *met* in antigen
+  because the remedy-routing commitment retains drop-provenance).
+- Does NOT make the third value's *cardinality* a constant — `|Σ|` is pipeline-relative.
+- Does NOT block the v0.3 floor on any follow-on — the leaf-sweep, the coverage method, and the
+  OutOfFrame sub-cause are additive refinements, not ratification gates.
+- Does NOT introduce a new runtime primitive — every instantiation already exists; this ADR *recognizes*
+  the law they share (ADR-006 recognition-not-design, applied at the type-law scale).

@@ -1,20 +1,25 @@
 # Antigen — Macro Reference
 
-> Comprehensive reference for the five attribute macros that constitute
-> antigen's API surface. For tutorials, see [`tutorial.md`](tutorial.md);
-> for placement conventions, see
+> Comprehensive reference for antigen's attribute macros. For tutorials,
+> see [`tutorial.md`](tutorial.md); for placement conventions, see
 > [`where-to-look-for-antigens.md`](where-to-look-for-antigens.md); for
 > patterns, see [`usage-patterns.md`](usage-patterns.md).
 
-All macros are imported from the `antigen` crate:
+Core macros are imported from the `antigen` crate:
 
 ```rust
-use antigen::{antigen, presents, immune, descended_from, antigen_tolerance};
+use antigen::{antigen, presents, defended_by, descended_from, antigen_tolerance};
+```
+
+Prescriptive / work-orchestration macros (v0.3):
+
+```rust
+use antigen::{panel, ddx, rx, refer, biopsy, culture, quarantine, triage};
 ```
 
 ---
 
-## Quick reference
+## Quick reference — core macros
 
 | Macro | Applies to | Purpose |
 |---|---|---|
@@ -27,7 +32,22 @@ use antigen::{antigen, presents, immune, descended_from, antigen_tolerance};
 | `#[descended_from]` | unit struct (antigen) | Declare inheritance from a parent failure-class |
 | `#[antigen_tolerance]` | any item | Explicitly tolerate a fingerprint match (with required rationale) |
 
-The macros are **identity transforms** — they validate attribute syntax
+## Quick reference — prescriptive / work-orchestration macros (v0.3)
+
+| Macro | Shape | Purpose |
+|---|---|---|
+| `#[panel(needs, ...)]` | S1 Role-workflow | Ordered review checklist (who fills + who reviews) |
+| `#[rx(treatment, ...)]` | S1 Role-workflow | Treatment prescription — what must be done before the site ships |
+| `#[refer(to, ...)]` | S1 Role-workflow | Referral to an external owner; anchored at the code site |
+| `#[biopsy(location, request_text, ...)]` | S1 Role-workflow | Deep investigation request at a sub-site |
+| `#[ddx(symptom, rule_out, ...)]` | S2 Elimination | Differential — competing hypotheses to rule out one by one |
+| `#[triage(priority_order, ...)]` | S3 Ordering | Re-validatable priority order over code-site references |
+| `#[culture(test_kind, ...)]` | S4 Frame-only | Time-boxed observation window |
+| `#[quarantine(scope, reason, ...)]` | S4 Frame-only | Isolated region under a deliberate hold |
+
+`cargo antigen audit` renders each work-need's verdict: `Pending` / `Fulfilled` / `Overdue` / `OutOfFrame`.
+
+All macros are **identity transforms** — they validate attribute syntax
 at compile time and emit the original item unchanged. The semantic work
 (scanning, matching, witness validation) lives in `cargo antigen scan`
 and `cargo antigen audit`, which parse source independently.
@@ -452,9 +472,325 @@ match no longer surfaces).
 
 ---
 
+## Prescriptive / work-orchestration family (v0.3)
+
+Eight macros that express code-site-local work-needs directly in the type system.
+The thesis: a TODO comment rots; a `#[panel(needs = [...], filled_by = [...],
+reviewed_by = [...], due = "...")]` stays current or emits a loud verdict when it
+doesn't. Code IS the coordination board. `cargo antigen audit` renders per-site
+verdicts (`Pending` / `Fulfilled` / `Overdue` / `OutOfFrame`) as a live-projected
+board section — the same evaluator as defense, no parallel mechanism. (ADR-033)
+
+### The four structural shapes
+
+The eight macros route to four structural shapes (ADR-033 §Decision 1):
+
+| Shape | Macros | What it models |
+|---|---|---|
+| **S1 Role-workflow** | `#[panel]`, `#[rx]`, `#[refer]`, `#[biopsy]` | An ordered set of who-steps to fill + review |
+| **S2 Elimination** | `#[ddx]` | A set of alternatives to rule out one by one |
+| **S3 Ordering** | `#[triage]` | A re-validatable priority order over code-site references |
+| **S4 Frame-only** | `#[culture]`, `#[quarantine]` | A temporal window with an expiry |
+
+Satisfaction uses the same witness leaves as defense: `signers()` / `signed_trailer()`
+with `allowed_types`, fingerprint-pinned via NFA-21. Step-presence is verified (who-refs
+are checked; order-agnostic in v0.3; `ordered_all_of` seeded for v0.4).
+
+### Verdict lattice
+
+`WorkVerdict` is isomorphic to the defense tri-state with `false` temporally
+partitioned:
+
+| Verdict | Meaning |
+|---|---|
+| `Fulfilled` | Satisfaction met at current fingerprint |
+| `Pending` | Declared and evaluable; satisfaction not yet met. Expected state — not loud |
+| `Overdue` | Past the `due` frame and unsatisfied (and evaluable). Loud |
+| `OutOfFrame` | Un-evaluable in the current substrate — unknown who-ref, unresolvable code-site reference, or unparseable date. NOT the same as `Overdue`; different intervention required |
+
+---
+
+### `#[panel(...)]` — ordered review battery (S1)
+
+Marks a code site as carrying a diagnostic battery — a checklist the site's
+reviewers must close. Biology: a clinical panel (a battery of tests ordered together,
+closed by the reviewing clinician).
+
+#### Arguments
+
+| Field | Required | Purpose |
+|---|---|---|
+| `needs = ["...", ...]` | Yes (non-empty) | The battery's checklist items |
+| `filled_by = ["who", ...]` | No | ADR-020 who-refs that fill the needs |
+| `reviewed_by = ["who", ...]` | No | Who-refs that review the fills |
+| `ordered_by = "who"` | No | Who-ref that ordered the battery |
+| `due = "YYYY-MM-DD"` | No | ISO-8601 temporal frame |
+
+#### Example
+
+```rust
+use antigen::panel;
+
+#[panel(
+    needs = ["review null-handling path", "verify error message copy"],
+    filled_by = ["alice"],
+    reviewed_by = ["bob"],
+    due = "2026-09-01",
+)]
+pub fn parse_user_input(raw: &str) -> Result<Input, ParseError> {
+    // ...
+}
+```
+
+---
+
+### `#[rx(...)]` — treatment prescription (S1)
+
+Marks the remedy a site must carry out before it ships. Biology: a prescription — a
+treatment ordered for a diagnosis, filled and reviewed.
+
+#### Arguments
+
+| Field | Required | Purpose |
+|---|---|---|
+| `treatment = "..."` | Yes (non-empty) | What must be done |
+| `diagnosis = "..."` | No | Opaque diagnosis label |
+| `filled_by = ["who", ...]` | No | ADR-020 who-refs |
+| `reviewed_by = ["who", ...]` | No | Who-refs that review |
+| `due = "YYYY-MM-DD"` | No | ISO-8601 frame |
+
+#### Example
+
+```rust
+use antigen::rx;
+
+#[rx(
+    treatment = "Replace unwrap() with proper error propagation before v1 tag",
+    filled_by = ["alice"],
+    due = "2026-10-01",
+)]
+fn legacy_parse(s: &str) -> MyType {
+    s.parse().unwrap()  // intentional tech-debt, now structurally tracked
+}
+```
+
+---
+
+### `#[refer(...)]` — specialist referral (S1)
+
+Hands a work-need to an owner outside this site's immediate responsibility and anchors
+the referral at the code site. Biology: a specialist referral — the referring clinician
+hands off and awaits a response.
+
+#### Arguments
+
+| Field | Required | Purpose |
+|---|---|---|
+| `to = "who"` | Yes | ADR-020 who-ref for the external owner |
+| `response_due = "YYYY-MM-DD"` | No | ISO-8601 frame for the response |
+
+#### Example
+
+```rust
+use antigen::refer;
+
+#[refer(to = "security-team", response_due = "2026-08-15")]
+fn compute_signature(data: &[u8]) -> Vec<u8> {
+    // security team needs to review the algorithm choice
+    todo!()
+}
+```
+
+---
+
+### `#[biopsy(...)]` — deep investigation request (S1)
+
+Marks a request to investigate a specific sub-site in depth. Biology: a biopsy —
+sampling a specific location for deep analysis.
+
+#### Arguments
+
+| Field | Required | Purpose |
+|---|---|---|
+| `location = "..."` | Yes | Sub-site pointer (opaque label in v0.3) |
+| `request_text = "..."` | Yes (non-empty) | What to investigate |
+| `deep_investigation_by = "who"` | No | ADR-020 who-ref |
+
+#### Example
+
+```rust
+use antigen::biopsy;
+
+#[biopsy(
+    location = "line 47: hash collision path",
+    request_text = "Confirm collision probability under adversarial input distribution",
+    deep_investigation_by = "cryptography-reviewer",
+)]
+fn hash_input(data: &[u8]) -> u64 {
+    // ...
+}
+```
+
+---
+
+### `#[ddx(...)]` — differential diagnosis (S2)
+
+Marks a site where a symptom has multiple candidate causes, each to be independently
+eliminated. Biology: differential diagnosis — the list of conditions to rule out.
+Each alternative carries its own closing attestation; the set is closed when all are
+eliminated.
+
+#### Arguments
+
+| Field | Required | Purpose |
+|---|---|---|
+| `symptom = "..."` | Yes (non-empty) | The observed problem |
+| `rule_out = ["...", ...]` | Yes (non-empty) | The candidate causes to eliminate |
+| `investigator = "who"` | No | ADR-020 who-ref |
+| `reviewer = "who"` | No | ADR-020 who-ref |
+
+#### Example
+
+```rust
+use antigen::ddx;
+
+#[ddx(
+    symptom = "intermittent deadlock observed in load test",
+    rule_out = [
+        "lock ordering inversion between MutexA and MutexB",
+        "thread starvation from unbalanced work queue",
+        "signal handler re-entering a non-reentrant path",
+    ],
+    investigator = "alice",
+)]
+fn acquire_resources(a: &Mutex<A>, b: &Mutex<B>) {
+    // ...
+}
+```
+
+---
+
+### `#[triage(...)]` — priority ordering (S3)
+
+Marks a site that carries a re-validatable priority order over a set of code-site
+references. Biology: triage — ranking by urgency, re-assessed each round. Distinct
+from `#[triage_commit]` (ADR-026 VCS-rollback classification) — names rhyme, surfaces
+are unrelated (ATK-PRES-10).
+
+#### Arguments
+
+| Field | Required | Purpose |
+|---|---|---|
+| `priority_order = ["...", ...]` | Yes (non-empty) | Code-site refs in priority order |
+| `triaged_by = "who"` | No | ADR-020 who-ref that attested the order |
+| `re_triage_due = "YYYY-MM-DD"` | No | ISO-8601 staleness frame; standing order re-earned each cycle |
+
+`priority_order` entries are **code-site references** (file/item-path), not camp
+campsites. Unresolvable entries are `OutOfFrame`, never silently satisfied.
+
+#### Example
+
+```rust
+use antigen::triage;
+
+#[triage(
+    priority_order = [
+        "src/auth.rs::validate_token",
+        "src/session.rs::refresh_session",
+        "src/audit_log.rs::flush_batch",
+    ],
+    triaged_by = "team-lead",
+    re_triage_due = "2026-09-01",
+)]
+fn security_remediation_order() {}
+```
+
+---
+
+### `#[culture(...)]` — time-boxed observation (S4)
+
+Marks a site that must stay green within a temporal observation window. Biology:
+a culture — incubate for a fixed period and read the result.
+
+#### Arguments
+
+| Field | Required | Purpose |
+|---|---|---|
+| `test_kind = "..."` | Yes (non-empty) | What is being observed/cultured |
+| `duration = "..."` | No | Duration string |
+| `runs_until = "YYYY-MM-DD"` | No | ISO-8601 expiry |
+
+#### Example
+
+```rust
+use antigen::culture;
+
+#[culture(
+    test_kind = "soak test: memory usage stable under 24h continuous load",
+    runs_until = "2026-07-15",
+)]
+fn process_stream(stream: impl Iterator<Item = Event>) {
+    // ...
+}
+```
+
+---
+
+### `#[quarantine(...)]` — isolated region under a hold (S4)
+
+Marks a region deliberately isolated until a named condition lifts. The `reason` is
+required per ADR-005 Amendment 2 (rationale-as-required for every
+suppression-shaped primitive). Biology: quarantine — isolate until cleared.
+
+#### Arguments
+
+| Field | Required | Purpose |
+|---|---|---|
+| `scope = "..."` | Yes | The isolated-region pointer |
+| `until = "YYYY-MM-DD"` | No | ISO-8601 expiry |
+| `reason = "..."` | Yes (non-empty) | Why the hold (ADR-005 Amd2) |
+
+#### Example
+
+```rust
+use antigen::quarantine;
+
+#[quarantine(
+    scope = "experimental feature flag path",
+    until = "2026-08-01",
+    reason = "Awaiting RFC-0042 decision before stabilizing the API surface",
+)]
+mod experimental {
+    // ...
+}
+```
+
+---
+
+### Compile-time validation (prescriptive family)
+
+All eight macros validate their input at compile time for structural requirements:
+required fields must be non-empty (a panel with no `needs` is a vacuous work-need;
+a quarantine with no `reason` is a silent hold — both are compile errors). Unknown
+fields are rejected at compile time.
+
+Date fields (`due`, `until`, `runs_until`, `response_due`, `re_triage_due`) are
+accepted as raw strings at compile time and validated at runtime by
+`FrameState::classify()` during `cargo antigen audit`. A malformed date produces
+`OutOfFrame` (the un-evaluable state) — it does not silently pass or fail; the
+audit surface it explicitly.
+
+### See also
+
+- ADR-033 (prescriptive work-orchestration family — full decision)
+- ADR-020 (who-refs and their resolution semantics)
+- [`output-formats.md`](output-formats.md) — how WorkVerdict appears in audit output
+
+---
+
 ## Compile-time validation
 
-All five macros validate their input at compile time:
+All five core macros validate their input at compile time:
 
 | Failure | Detected by | Result |
 |---|---|---|

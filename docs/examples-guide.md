@@ -794,11 +794,28 @@ cargo run --example triage_commit --package antigen
 
 ---
 
+---
+
+## Prescriptive / Work-Orchestration Family (v0.3) — ADR-033
+
+> No dedicated example file exists yet for this family. Lessons are pending.
+
+The prescriptive family — `#[panel]`, `#[ddx]`, `#[rx]`, `#[triage]`, `#[refer]`,
+`#[biopsy]`, `#[culture]`, `#[quarantine]` — ships in v0.3. These eight macros
+express code-site-local work-needs in the type system. `cargo antigen audit` renders
+verdicts (`Pending` / `Fulfilled` / `Overdue` / `OutOfFrame`) as a live-projected
+board section; no example file yet.
+
+Reference: [`macros.md`](macros.md) — the prescriptive family section has the full
+argument reference and per-macro examples.
+
+---
+
 ## See also
 
 - [`tutorial.md`](tutorial.md) — guided walkthrough
 - [`concepts.md`](concepts.md) — architectural concepts
-- [`macros.md`](macros.md) — macro reference
+- [`macros.md`](macros.md) — macro reference (includes v0.3 prescriptive family)
 - [`fingerprint-grammar.md`](fingerprint-grammar.md) — fingerprint DSL
 - [`witness-tiers.md`](witness-tiers.md) — tier semantics
 - [`usage-patterns.md`](usage-patterns.md) — pattern recipes
