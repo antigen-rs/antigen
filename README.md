@@ -154,8 +154,12 @@ The full vocabulary target is listed in [`docs/expedition/the-comprehensive-visi
 ## Install and first scan
 
 ```sh
-cargo install cargo-antigen
+cargo install cargo-antigen@=0.3.0-beta.1   # v0.3 prerelease; stable (0.2.0): cargo install cargo-antigen
 ```
+
+> **v0.3 is a beta prerelease.** The command above installs the v0.3 beta, which
+> includes the prescriptive work-orchestration family. For the current stable, omit
+> the version pin.
 
 Run `cargo antigen scan` in any Rust project. On a fresh codebase with no antigen declarations yet:
 

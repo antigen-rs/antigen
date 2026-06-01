@@ -257,8 +257,9 @@ audit confirms the proof structure is recognized.
 ```sh
 cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
 # See the audit hint progression as you scaffold + sign the sidecar:
-cargo run --bin cargo-antigen -- antigen attest scaffold --root antigen/examples SignedZeroDiscipline
-cargo run --bin cargo-antigen -- antigen attest sign --root antigen/examples SignedZeroDiscipline --signer "you@example.com"
+cargo run --bin cargo-antigen -- antigen attest scaffold --antigen SignedZeroDiscipline --source-file antigen/examples/substrate_witness.rs --item-path signed_zero_preserving_sinh
+# scaffold prints the exact sign command with the auto-filled fingerprint — copy and run it, or:
+cargo run --bin cargo-antigen -- antigen attest sign --sidecar antigen/examples/.attest/SignedZeroDiscipline.json --item-path signed_zero_preserving_sinh --signer you --fingerprint <fingerprint-from-scaffold-output>
 cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
 ```
 
@@ -284,8 +285,10 @@ cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
 
 **Try this**:
 ```sh
+# Run the example to read the lifecycle walkthrough narrative:
+cargo run --example oracle_lifecycle --package antigen
+# List any oracle records in the workspace (starts empty; see the example's walkthrough for declare → complete → status):
 cargo run --bin cargo-antigen -- antigen oracle list --root antigen/examples
-cargo run --bin cargo-antigen -- antigen oracle status --root antigen/examples higham-2002-section-6-3
 cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
 ```
 
