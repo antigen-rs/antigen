@@ -6564,8 +6564,9 @@ amendment.
 
 - Does NOT change `#[titer]`'s macro semantics, arg signature, or
   implementation.
-- Does NOT modify the family-grouping of `#[titer]` (still Family 3
-  Prescriptive Work-Orchestration).
+- ~~Does NOT modify the family-grouping of `#[titer]` (still Family 3
+  Prescriptive Work-Orchestration).~~ **KILLED by ADR-024 Amendment 3** — `#[titer]`
+  is reclassified to the titer-witness kind; see §Titer reclassification below.
 - Does NOT reassess axis assignments for other primitives.
 
 ---
