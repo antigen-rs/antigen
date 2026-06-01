@@ -4160,6 +4160,69 @@ pub enum StepState {
     Unevaluable,
 }
 
+/// Why a work-need landed `OutOfFrame` — the sub-cause inside the un-evaluable
+/// verdict (math-researcher `SubCauseCollapseInTheUnit`, the Layer-2 sibling of
+/// the cardinality-collapse).
+///
+/// [`WorkVerdict::OutOfFrame`] is a single atomic value reached from several
+/// DISTINGUISHABLE causes whose remedies genuinely differ. Under ADR-034
+/// (audit-output IS the board), the bare verdict value cannot route the remedy —
+/// so the verdict carries this typed sub-cause, exactly mirroring
+/// [`UnreachedCause`] + [`UnreachedCause::remedy`] for the coverage audit. The
+/// gem guard ([`WorkVerdict::OutOfFrame`] ≠ [`WorkVerdict::Overdue`], ATK-PRES-8)
+/// is UNTOUCHED — this refines *within* `OutOfFrame`, it does not split the
+/// four-valued verdict.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum OutOfFrameCause {
+    /// A who-ref's sidecar is missing or schema-invalid, or the item entry is
+    /// absent — the who-step is un-evaluable. Remedy: scaffold + sign the
+    /// `.attest/<item>.json` sidecar for the named who-ref.
+    UnknownWhoRef,
+    /// The shape declares NO who-step at all (a bare `#[panel]`, an `#[rx]` with
+    /// no `filled_by`) — there is nothing to attest, so satisfaction is
+    /// structurally un-evaluable. Remedy: declare the missing who-step.
+    MissingWorkStep,
+    /// The frame string is present but not a parseable ISO-8601 date — the
+    /// deadline is un-readable, so the audit cannot place the need in or out of
+    /// frame. Remedy: fix the malformed `due`/`until`/`runs_until`/`re_triage_due`.
+    UnparseableFrame,
+    /// An S3 `triage.priority_order` code-site ref does not resolve to a scanned
+    /// site (ADR-017-Amd1) — the ordering is over sites the audit cannot see.
+    /// Remedy: fix the dangling ref (or wait for multi-crate Layer-2 if it is a
+    /// cross-crate site).
+    UnresolvableRef,
+}
+
+impl OutOfFrameCause {
+    /// The remedy class this sub-cause routes to — rendered into the board so an
+    /// adopter learns *what to do* about an `OutOfFrame` need, not merely *that*
+    /// it is un-evaluable. Distinct per cause: collapsing them would re-fuse the
+    /// `SubCauseCollapseInTheUnit` this enum exists to prevent (mirrors
+    /// [`UnreachedCause::remedy`]).
+    #[must_use]
+    pub const fn remedy(self) -> &'static str {
+        match self {
+            Self::UnknownWhoRef => {
+                "scaffold + sign the .attest/<item>.json sidecar so the named \
+                 who-ref's attestation is readable"
+            }
+            Self::MissingWorkStep => {
+                "declare the missing who-step (filled_by / ordered_by / triaged_by \
+                 / closure) — an empty work-need has nothing to attest"
+            }
+            Self::UnparseableFrame => {
+                "fix the malformed frame date (due / until / runs_until / \
+                 re_triage_due must be ISO-8601 YYYY-MM-DD)"
+            }
+            Self::UnresolvableRef => {
+                "fix the dangling priority_order code-site reference (or, for a \
+                 cross-crate target, await multi-crate Layer-2 resolution)"
+            }
+        }
+    }
+}
+
 /// One resolved who-step in a prescriptive verdict.
 ///
 /// Carries the role the reference plays in its shape + the reference text + its
@@ -4195,6 +4258,13 @@ pub struct PrescriptiveVerdict {
     /// `None` when `Fulfilled`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub blocking: Option<String>,
+    /// The TYPED sub-cause when `verdict == OutOfFrame` (math-researcher
+    /// `SubCauseCollapseInTheUnit` fix): which of the distinguishable
+    /// un-evaluable causes fired, so the board routes a per-cause remedy rather
+    /// than fusing them. `None` for every non-`OutOfFrame` verdict (the field is
+    /// meaningful only inside the un-evaluable verdict).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub out_of_frame_cause: Option<OutOfFrameCause>,
 }
 
 /// Aggregate prescriptive audit report.
@@ -4398,7 +4468,7 @@ fn priority_order_ref_resolves(report: &ScanReport, ref_text: &str) -> bool {
 ///
 /// Projects each to a four-valued [`WorkVerdict`] via the per-shape satisfaction
 /// semantics aristotle ruled (decisions.md §Verdict-semantics-per-shape). The
-/// satisfaction read REUSES the ADR-019/020 categorical spine ([`load_sidecar`]
+/// satisfaction read REUSES the ADR-019/020 categorical spine (`load_sidecar`
 /// plus [`antigen_attestation::evaluate::evaluate_predicate_with_kind`]) — there
 /// is NO new witness machinery, only a new COMPOSITION of who-step states per
 /// shape.
@@ -4436,9 +4506,10 @@ pub fn audit_prescriptive(report: &ScanReport, _workspace_root: &Path) -> Prescr
         let mut steps: Vec<StepDetail> = Vec::new();
 
         // Per-shape satisfaction + evaluability. Each arm fills `steps` and
-        // computes `(satisfied, evaluable)`; the verdict is the shared
-        // `WorkVerdict::project` (the gem guard lives there).
-        let (satisfied, evaluable, blocking) = match decl.kind.shape() {
+        // computes `(satisfied, evaluable, blocking-gloss, un-evaluable-cause)`;
+        // the verdict is the shared `WorkVerdict::project` (the gem guard lives
+        // there). The cause is `Some` only on the un-evaluable path the arm took.
+        let (satisfied, evaluable, blocking, shape_cause) = match decl.kind.shape() {
             WorkShape::RoleWorkflow => eval_role_workflow(decl, &mut steps),
             WorkShape::Elimination => eval_elimination(decl, &mut steps),
             WorkShape::Ordering => eval_ordering(report, decl, frame, &mut steps),
@@ -4448,7 +4519,8 @@ pub fn audit_prescriptive(report: &ScanReport, _workspace_root: &Path) -> Prescr
         // An unparseable frame is itself an un-evaluable input (we cannot read
         // the deadline) — fold it into evaluability so `project` lands OutOfFrame
         // rather than guessing Pending/Overdue.
-        let evaluable = evaluable && !matches!(frame, FrameState::Unparseable);
+        let frame_unparseable = matches!(frame, FrameState::Unparseable);
+        let evaluable = evaluable && !frame_unparseable;
 
         let verdict = WorkVerdict::project(satisfied, evaluable, frame);
         let blocking = if verdict == WorkVerdict::Fulfilled {
@@ -4457,11 +4529,27 @@ pub fn audit_prescriptive(report: &ScanReport, _workspace_root: &Path) -> Prescr
             Some(blocking)
         };
 
+        // The typed sub-cause is meaningful ONLY for OutOfFrame (the
+        // SubCauseCollapseInTheUnit fix). An unparseable frame is its own cause
+        // and takes precedence — when both a shape-cause and a bad frame are
+        // present, the frame is reported (a frame we cannot read blocks every
+        // other reading). Otherwise the shape's own un-evaluable cause is used.
+        let out_of_frame_cause = if verdict == WorkVerdict::OutOfFrame {
+            if frame_unparseable {
+                Some(OutOfFrameCause::UnparseableFrame)
+            } else {
+                shape_cause
+            }
+        } else {
+            None
+        };
+
         verdicts.push(PrescriptiveVerdict {
             declaration: decl.clone(),
             verdict,
             steps,
             blocking,
+            out_of_frame_cause,
         });
     }
 
@@ -4469,11 +4557,12 @@ pub fn audit_prescriptive(report: &ScanReport, _workspace_root: &Path) -> Prescr
 }
 
 /// S1 — conjunction over the ordered chain `ordered_by` → ALL `filled_by` →
-/// ALL `reviewed_by`. Returns `(satisfied, evaluable, blocking-gloss)`.
+/// ALL `reviewed_by`. Returns `(satisfied, evaluable, blocking-gloss, cause)`
+/// where `cause` is the typed `OutOfFrameCause` when the un-evaluable path fired.
 fn eval_role_workflow(
     decl: &crate::scan::PrescriptiveDeclaration,
     steps: &mut Vec<StepDetail>,
-) -> (bool, bool, String) {
+) -> (bool, bool, String, Option<OutOfFrameCause>) {
     // Build the ordered chain of (role-label, who-ref). `ordered_by` is a single
     // optional ref; `filled_by` and `reviewed_by` are lists (refer's `to` and
     // biopsy's `deep_investigation_by` land in `filled_by` per scan extraction).
@@ -4531,6 +4620,16 @@ fn eval_role_workflow(
     let evaluable = !any_unevaluable && !reviewer_unevaluable && !no_fillers;
     let satisfied = all_fillers_attested && (!any_reviewer || reviewers_attested);
 
+    // Typed un-evaluable sub-cause (only consulted when the verdict is
+    // OutOfFrame): no who-step at all is MissingWorkStep; an unreadable who-ref
+    // sidecar is UnknownWhoRef.
+    let cause = if no_fillers {
+        Some(OutOfFrameCause::MissingWorkStep)
+    } else if any_unevaluable || reviewer_unevaluable {
+        Some(OutOfFrameCause::UnknownWhoRef)
+    } else {
+        None
+    };
     let blocking = if no_fillers {
         "no who-step declared — nothing to attest (declare filled_by/ordered_by)".to_string()
     } else if any_unevaluable || reviewer_unevaluable {
@@ -4540,17 +4639,17 @@ fn eval_role_workflow(
     } else {
         "awaiting review: reviewed_by not yet attested (all fillers done)".to_string()
     };
-    (satisfied, evaluable, blocking)
+    (satisfied, evaluable, blocking, cause)
 }
 
 /// S2 — each `rule_out` alternative (held in `items`) is independently
 /// closeable; the ddx is satisfied when its closing who-steps (`investigator`
 /// in `filled_by`, `reviewer` in `reviewed_by`) attest. Returns
-/// `(satisfied, evaluable, blocking-gloss)`.
+/// `(satisfied, evaluable, blocking-gloss, cause)`.
 fn eval_elimination(
     decl: &crate::scan::PrescriptiveDeclaration,
     steps: &mut Vec<StepDetail>,
-) -> (bool, bool, String) {
+) -> (bool, bool, String, Option<OutOfFrameCause>) {
     // Record the rule-out alternatives for the board (display only — they are
     // the differential, closed collectively by the investigator/reviewer).
     for alt in &decl.items {
@@ -4586,6 +4685,13 @@ fn eval_elimination(
     }
     let evaluable = !any_unevaluable && !closure_refs.is_empty();
     let satisfied = all_attested;
+    let cause = if closure_refs.is_empty() {
+        Some(OutOfFrameCause::MissingWorkStep)
+    } else if any_unevaluable {
+        Some(OutOfFrameCause::UnknownWhoRef)
+    } else {
+        None
+    };
     let blocking = if closure_refs.is_empty() {
         "no investigator/reviewer declared — the differential cannot be closed".to_string()
     } else if any_unevaluable {
@@ -4593,20 +4699,20 @@ fn eval_elimination(
     } else {
         "awaiting elimination: investigator/reviewer not yet attested".to_string()
     };
-    (satisfied, evaluable, blocking)
+    (satisfied, evaluable, blocking, cause)
 }
 
 /// S3 — triage is a standing re-validated ORDERING. Satisfied = `triaged_by`
 /// (held in `filled_by`) attested AND within `re_triage_due` (the frame, checked
 /// by the caller's `project`) AND every `priority_order` code-site ref (held in
 /// `items`) resolves. An unresolvable ref ⇒ un-evaluable ⇒ `OutOfFrame`
-/// (ATK-PRES-14, ADR-017-Amd1). Returns `(satisfied, evaluable, blocking-gloss)`.
+/// (ATK-PRES-14, ADR-017-Amd1). Returns `(satisfied, evaluable, blocking-gloss, cause)`.
 fn eval_ordering(
     report: &ScanReport,
     decl: &crate::scan::PrescriptiveDeclaration,
     frame: FrameState,
     steps: &mut Vec<StepDetail>,
-) -> (bool, bool, String) {
+) -> (bool, bool, String, Option<OutOfFrameCause>) {
     // 1. Resolve every priority_order code-site ref. An unresolvable ref makes
     //    the whole triage un-evaluable (we cannot grade an ordering over sites
     //    that don't exist) — OutOfFrame, never silent-satisfied.
@@ -4662,6 +4768,19 @@ fn eval_ordering(
     // with a fresh re_triage_due — re-earns Fulfilled.) This is the freshness
     // discipline that keeps a triage honest, not the bypass it guards against.
     let satisfied = triaged_attested && !matches!(frame, FrameState::Past);
+    // Typed un-evaluable sub-cause: empty ordering is MissingWorkStep; a dangling
+    // priority_order ref is UnresolvableRef (takes precedence over the triager —
+    // we cannot grade an ordering over sites that don't exist); an unreadable
+    // triaged_by sidecar is UnknownWhoRef.
+    let cause = if decl.items.is_empty() {
+        Some(OutOfFrameCause::MissingWorkStep)
+    } else if !all_refs_resolve {
+        Some(OutOfFrameCause::UnresolvableRef)
+    } else if triager_unevaluable {
+        Some(OutOfFrameCause::UnknownWhoRef)
+    } else {
+        None
+    };
     let blocking = if decl.items.is_empty() {
         "no priority_order declared — nothing to order".to_string()
     } else if !all_refs_resolve {
@@ -4674,14 +4793,14 @@ fn eval_ordering(
         "re-triage owed: triaged_by attested but re_triage_due elapsed (the ordering is stale)"
             .to_string()
     };
-    (satisfied, evaluable, blocking)
+    (satisfied, evaluable, blocking, cause)
 }
 
 /// S4 — frame-only (`culture`/`quarantine`). Satisfaction requires POSITIVE
 /// CLOSURE (a closure attestation in the site's sidecar), NEVER frame-expiry
 /// alone. A site whose frame has elapsed WITHOUT a closure attestation is
 /// `Overdue`, never `Fulfilled` — the `fresh_through`-bypass guard (ATK-PRES-13).
-/// Returns `(satisfied, evaluable, blocking-gloss)`.
+/// Returns `(satisfied, evaluable, blocking-gloss, cause)`.
 ///
 /// v0.3 IMPLEMENTATION CEILING (tier-honest): the ratified §Proc-Macro-Surface
 /// gives the S4 macros NO closure who-ref field (`culture` = `test_kind` /
@@ -4708,7 +4827,7 @@ fn eval_frame_only(
     decl: &crate::scan::PrescriptiveDeclaration,
     _frame: FrameState,
     steps: &mut Vec<StepDetail>,
-) -> (bool, bool, String) {
+) -> (bool, bool, String, Option<OutOfFrameCause>) {
     // The closure who-step(s). If none declared, the site can NEVER reach
     // Fulfilled via frame-expiry — it stays Pending (within frame) / Overdue
     // (past), which is exactly the positive-closure guard: a culture/quarantine
@@ -4739,6 +4858,15 @@ fn eval_frame_only(
     let evaluable = !any_unevaluable;
     let satisfied = closure_attested;
 
+    // Typed un-evaluable sub-cause: an S4 site is OutOfFrame ONLY when a declared
+    // closure who-ref's sidecar is unreadable (UnknownWhoRef). The "no closure
+    // declared" case is evaluable-unsatisfied (Pending/Overdue, not OutOfFrame),
+    // so it carries no cause — the verdict logic above keeps it out of OutOfFrame.
+    let cause = if any_unevaluable {
+        Some(OutOfFrameCause::UnknownWhoRef)
+    } else {
+        None
+    };
     let blocking = if decl.filled_by.is_empty() {
         "no closure attestation declared — frame-expiry alone never fulfills (positive-closure guard, ATK-PRES-13)".to_string()
     } else if any_unevaluable {
@@ -4746,7 +4874,7 @@ fn eval_frame_only(
     } else {
         "awaiting closure: the named closure attestation is not yet recorded".to_string()
     };
-    (satisfied, evaluable, blocking)
+    (satisfied, evaluable, blocking, cause)
 }
 
 #[cfg(test)]

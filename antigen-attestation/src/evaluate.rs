@@ -2298,6 +2298,71 @@ mod tests {
         );
     }
 
+    /// ATK-NFA-24: `against=Any` + `signature_allow` must enforce strength against
+    /// current-fingerprint entries, not let a stale high-tier entry bypass the
+    /// allow-list when the signer's current-fp entry is below it.
+    ///
+    /// CONTRACT (FAILING until fixed): when alice's CURRENT attestation is
+    /// `TextStamp` (below `[GitTrust, CryptoSigned]`) and her STALE entry is
+    /// `GitTrust`, `against=Any` must NOT let the stale entry satisfy the
+    /// allow-list. The predicate must FAIL (`WitnessTier::None`).
+    ///
+    /// FALSIFICATION: run without the fix → `WitnessTier::Execution` (wrong).
+    /// Run with the fix → `WitnessTier::None` (correct, test passes).
+    ///
+    /// FIX DIRECTION: in `eval_signers`, when `signature_allow` is non-empty,
+    /// check strength only against entries that are current-fp
+    /// (`signed_against_fingerprint == current_fp`). A stale entry at a higher
+    /// tier must not satisfy the allow-list constraint.
+    #[test]
+    #[ignore = "ATK-NFA-24: against=Any + signature_allow strength bypass — failing contract; \
+                unblocks when eval_signers enforces signature_allow only against current-fp entries"]
+    fn atk_nfa24_signature_allow_against_any_must_enforce_against_current_fp_only() {
+        let alice_stale_git = Signer {
+            name: "alice".to_string(),
+            role: None,
+            date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+            signed_against_fingerprint: "fp-old".to_string(), // stale — must NOT satisfy allow-list
+            basis: crate::schema::SignerBasis::Fresh { reasoning: None },
+            strength: SignatureStrength::GitTrust, // passes allow-list but is STALE
+            signature: None,
+        };
+        let alice_current_text = Signer {
+            name: "alice".to_string(),
+            role: None,
+            date: sample_date(),
+            signed_against_fingerprint: "fp-current".to_string(), // current
+            basis: crate::schema::SignerBasis::Fresh { reasoning: None },
+            strength: SignatureStrength::TextStamp, // BELOW allow-list — this is alice's current commitment
+            signature: None,
+        };
+        let item = item_with(vec![alice_stale_git, alice_current_text]);
+        let pred = Predicate::leaf(Leaf::Signers {
+            required: vec!["alice".to_string()],
+            roles: BTreeMap::new(),
+            against: SignerCurrency::Any,
+            signature_allow: vec![SignatureStrength::GitTrust, SignatureStrength::CryptoSigned],
+            signature_prefer: None,
+        });
+        let ctx = TestContext::new(sample_date());
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+        // CORRECT BEHAVIOR: the allow-list must be satisfied by a CURRENT-fp entry.
+        // Alice's current-fp entry is TextStamp (below the allow-list) — the predicate
+        // must FAIL regardless of her stale GitTrust entry. The stale entry's higher
+        // tier reflects a past commitment, not her current one.
+        assert_eq!(
+            r.witness_tier,
+            WitnessTier::None,
+            "ATK-NFA-24: against=Any + signature_allow must enforce strength against current-fp \
+             entries only. Alice's current-fp attestation is TextStamp (below [GitTrust, \
+             CryptoSigned]); her stale GitTrust entry must NOT satisfy the allow-list. \
+             Got {:?}; expected WitnessTier::None. \
+             Fix: in eval_signers, gate signature_allow check on current-fp currency.",
+            r.witness_tier
+        );
+    }
+
     #[test]
     fn doc_without_trailing_newline_after_closing_frontmatter_silently_fails_nfa25() {
         // SILENT FAILURE (adversarial NFA-25): `parse_frontmatter_field` uses

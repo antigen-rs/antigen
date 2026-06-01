@@ -445,6 +445,116 @@ pub fn p() {}
     );
 }
 
+/// ATK-PRES-8b (SUB-CAUSE DE-FUSION, math-researcher SubCauseCollapseInTheUnit):
+/// the FOUR distinguishable OutOfFrame sub-causes must be reported distinctly —
+/// fusing them into one opaque value is a silent-wrong-REMEDY (the Layer-2
+/// sibling of the cardinality-collapse the gem guards). Each cause routes a
+/// different remedy; the verdict must carry the typed cause so the board routes
+/// it. The four-valued WorkVerdict (ATK-PRES-8) is UNTOUCHED — this refines
+/// WITHIN OutOfFrame.
+#[test]
+fn atk_pres8b_out_of_frame_sub_cause_is_de_fused() {
+    use antigen::audit::OutOfFrameCause;
+
+    // (1) UnknownWhoRef: a who-ref with no sidecar.
+    let unknown = audit_staged(
+        r#"use antigen::panel;
+#[panel(needs = ["x"], filled_by = ["ghost"], due = "2099-01-01")]
+pub fn p() {}
+"#,
+        None,
+    );
+    assert_eq!(
+        first_verdict(&unknown).out_of_frame_cause,
+        Some(OutOfFrameCause::UnknownWhoRef),
+        "a who-ref with no readable sidecar ⇒ UnknownWhoRef"
+    );
+
+    // (2) MissingWorkStep: a bare panel with no who-step at all.
+    let missing = audit_staged(
+        r"use antigen::panel;
+#[panel]
+pub fn p() {}
+",
+        None,
+    );
+    assert_eq!(
+        first_verdict(&missing).out_of_frame_cause,
+        Some(OutOfFrameCause::MissingWorkStep),
+        "a panel with no who-step ⇒ MissingWorkStep"
+    );
+
+    // (3) UnparseableFrame: a malformed due-date (an otherwise-fine who-ref).
+    let bad_frame = audit_staged(
+        r#"use antigen::panel;
+#[panel(needs = ["x"], filled_by = ["ghost"], due = "not-a-date")]
+pub fn p() {}
+"#,
+        None,
+    );
+    assert_eq!(
+        first_verdict(&bad_frame).out_of_frame_cause,
+        Some(OutOfFrameCause::UnparseableFrame),
+        "a malformed frame date ⇒ UnparseableFrame (takes precedence — an unreadable \
+         deadline blocks every other reading)"
+    );
+
+    // (4) UnresolvableRef: a triage priority_order ref to a non-existent site.
+    let dangling = audit_staged(
+        r#"use antigen::triage;
+#[triage(priority_order = ["does_not_exist"], triaged_by = "nav", re_triage_due = "2099-01-01")]
+pub fn t() {}
+"#,
+        Some(("t", |fp| sidecar_with_signer("t", "nav", fp))),
+    );
+    assert_eq!(
+        first_verdict(&dangling).out_of_frame_cause,
+        Some(OutOfFrameCause::UnresolvableRef),
+        "a dangling priority_order ref ⇒ UnresolvableRef"
+    );
+
+    // The four sub-causes are distinct values (no fusion).
+    let causes = [
+        OutOfFrameCause::UnknownWhoRef,
+        OutOfFrameCause::MissingWorkStep,
+        OutOfFrameCause::UnparseableFrame,
+        OutOfFrameCause::UnresolvableRef,
+    ];
+    for (i, a) in causes.iter().enumerate() {
+        for (j, b) in causes.iter().enumerate() {
+            assert_eq!(
+                i == j,
+                a == b,
+                "sub-causes must be distinct: {a:?} vs {b:?}"
+            );
+            // Each routes a non-empty, distinct remedy.
+            if i != j {
+                assert_ne!(
+                    a.remedy(),
+                    b.remedy(),
+                    "distinct causes ⇒ distinct remedies"
+                );
+            }
+        }
+    }
+
+    // A Fulfilled / Pending verdict carries NO sub-cause (the field is meaningful
+    // only inside OutOfFrame).
+    let pending = audit_staged(
+        r#"use antigen::panel;
+#[panel(needs = ["x"], filled_by = ["bob"], due = "2099-01-01")]
+pub fn p() {}
+"#,
+        Some(("p", |fp| sidecar_with_signer("p", "other", fp))),
+    );
+    let pv = first_verdict(&pending);
+    assert_eq!(pv.verdict, WorkVerdict::Pending);
+    assert_eq!(
+        pv.out_of_frame_cause, None,
+        "a non-OutOfFrame verdict carries no sub-cause"
+    );
+}
+
 /// ATK-PRES-9: Overdue-vs-OutOfFrame is NEVER collapsed.
 ///
 /// This test encodes the explicit anti-regression: if a future change to the
