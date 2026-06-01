@@ -4020,6 +4020,129 @@ fn resolve_cross_member_lineage_parents(report: &mut ScanReport) {
     report.parse_failures.extend(ambiguity_failures);
 }
 
+/// Re-resolve each reference record's `canonical_path` to the member that
+/// actually *declares* the antigen it addresses — the Layer-2 cross-crate
+/// `addresses()` resolution (ADR-017 Amendment 1, ATK-A3-005), the verdict-side
+/// sibling of [`resolve_cross_member_lineage_parents`].
+///
+/// **Why this closes `DelegateCrossCrateResolutionGap`.** Per-member stamping
+/// ([`ScanReport::stamp_canonical_path`]) stamps every reference record
+/// (`#[presents]` / `#[defended_by]` / `#[immune]` / `#[antigen_tolerance]`)
+/// with the canonical path of the member it was *found in*. But each record's
+/// `canonical_path` is contractually the declaration site of the *antigen it
+/// addresses* (see [`Presentation::canonical_path`] et al.), not its own
+/// location. For an intra-member reference the two coincide; for a genuine
+/// cross-member reference — a `#[presents(crate_a::X)]` living in crate B — the
+/// stamp puts `B@v` on a record whose semantic key should be `A@v`. Left
+/// unfixed, [`defense_addresses`] / [`canonical_paths_match`] compare
+/// `Some("B@v")` against the antigen's `Some("A@v")` and FAIL to match a
+/// legitimate cross-crate defense (and a cross-crate presents-site reads as
+/// `antigen_known = false`). This pass re-stamps the reference endpoint to the
+/// declaring member, making cross-member `addresses()` first-class.
+///
+/// This is **pure structural identity resolution** — "where is this antigen
+/// declared" — not a verdict. The verdict layer reads the resolved
+/// `canonical_path`: a reference that resolves matches its antigen; one that
+/// resolves to no member is the out-of-frame third value (ADR-017 Amendment 1
+/// clause 1 — an unresolvable cross-crate reference is a loud GAP, never a
+/// silent pass). This pass does the resolution; the audit reads the result.
+///
+/// Resolution rule, by antigen-name declaration multiplicity among members
+/// (identical to the lineage-parent rule, so the two passes cannot drift):
+/// - **Exactly one member declares the antigen** → re-stamp the record's
+///   `canonical_path` to that member (a no-op for an intra-member reference;
+///   the real work for a cross-member one). Unambiguous.
+/// - **Zero members declare it** → leave the record unchanged. It stays keyed
+///   to its own member; the antigen is unknown in the workspace, so the
+///   `addresses()` match fails and the audit surfaces it (out-of-frame for an
+///   explicit reference; the ADR-017-Amd1 resolution gate). Canonical-path-keyed
+///   trust means this never silently cross-satisfies.
+/// - **Two or more members declare the same bare antigen name** → ambiguous;
+///   leave the record on its own member (conservative intra-member assumption)
+///   and record one [`ParseFailure`] naming the collision, so a same-name
+///   cross-crate collision is explicit (ADR-004) rather than silently resolved
+///   to an arbitrary member (ADR-017 Amendment 1 clause 2).
+fn resolve_cross_member_addresses(report: &mut ScanReport) {
+    use std::collections::{BTreeMap, BTreeSet};
+
+    // bare antigen type name -> set of member canonical paths declaring it.
+    // BTreeSet keeps the collision diagnostic deterministic. (Same index the
+    // lineage-parent pass builds — kept local so each pass is self-contained
+    // and the two cannot read a stale shared map.)
+    let mut decl_members: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
+    for a in &report.antigens {
+        if let Some(cp) = a.canonical_path.as_deref() {
+            decl_members
+                .entry(a.type_name.as_str())
+                .or_default()
+                .insert(cp);
+        }
+    }
+
+    // Collisions collected once per antigen name so a same-name cross-member
+    // ambiguity touched by N references emits ONE diagnostic, not N. Built up
+    // by the per-family re-stamp loop below, drained into `parse_failures` after.
+    let mut collisions: BTreeMap<&str, String> = BTreeMap::new();
+
+    // Re-stamp every reference record (`presents` / `defended_by` / `immune` /
+    // `tolerance`) whose addressed antigen resolves to exactly one declaring
+    // member; record a collision for an ambiguous (≥2-member) name; leave a
+    // zero-declarer reference unchanged (it stays out-of-frame at the verdict).
+    // The four families share the identical rule — `restamp` keeps them in
+    // lockstep so they cannot drift. `&decl_members` is reborrowed each call so
+    // the disjoint mutable borrow of each `report` field is sound.
+    macro_rules! restamp_family {
+        ($field:ident) => {
+            for rec in &mut report.$field {
+                let Some(members) = decl_members.get(rec.antigen_type.as_str()) else {
+                    continue; // antigen declared in no member — leave keyed to its own.
+                };
+                let mut it = members.iter();
+                match (it.next(), it.next()) {
+                    // Exactly one declaring member → re-stamp to it (no-op when
+                    // the record already carries that member's path).
+                    (Some(&target), None) => {
+                        if rec.canonical_path.as_deref() != Some(target) {
+                            rec.canonical_path = Some(target.to_owned());
+                        }
+                    }
+                    // Two or more → ambiguous; leave the record on its own member
+                    // and record the collision once.
+                    (Some(_), Some(_)) => {
+                        let name = rec.antigen_type.as_str();
+                        collisions.entry(name).or_insert_with(|| {
+                            format!(
+                                "cross-crate addresses() for `{name}` is ambiguous across the \
+                                 workspace: `{name}` is declared in {n} members ({members}); the \
+                                 reference is left keyed to its own member and reads as \
+                                 out-of-frame (qualify the antigen path to disambiguate)",
+                                n = members.len(),
+                                members = members.iter().copied().collect::<Vec<_>>().join(", "),
+                            )
+                        });
+                    }
+                    // Empty set is impossible (entries are only created on insert)
+                    // — treat as leave-unchanged for total coverage.
+                    (None, _) => {}
+                }
+            }
+        };
+    }
+    restamp_family!(presentations);
+    restamp_family!(defenses);
+    restamp_family!(immunities);
+    restamp_family!(tolerances);
+
+    // Emit one ParseFailure per colliding antigen name (file = workspace-root
+    // marker; the collision is a workspace-level fact, not a single-file one).
+    for error in collisions.into_values() {
+        report.parse_failures.push(ParseFailure {
+            file: PathBuf::from("<workspace>"),
+            error,
+        });
+    }
+}
+
 /// Member-aware multi-crate workspace scan — the v0.3 cornerstone.
 ///
 /// Where [`scan_workspace`] walks `root` as one **flat** tree (every record
@@ -4114,6 +4237,15 @@ pub fn scan_workspace_multi_crate(workspace_root: &Path) -> std::io::Result<Scan
     // there are all members' antigen declarations visible to resolve a parent
     // that lives in a different member than its `#[descended_from]` child.
     resolve_cross_member_lineage_parents(&mut merged);
+
+    // Layer-2 cross-crate addresses() resolution (ADR-017 Amendment 1): re-stamp
+    // every reference record (presents / defended_by / immune / tolerance) whose
+    // addressed antigen is declared in a *different* member than the record was
+    // found in, so cross-member `addresses()` matches. Like the lineage pass,
+    // this needs the merged whole (all members' antigen declarations visible)
+    // and must run BEFORE propagation/audit read the canonical_paths. Closes
+    // DelegateCrossCrateResolutionGap.
+    resolve_cross_member_addresses(&mut merged);
 
     // Re-dedup edges across the union: an edge collected once per member could
     // now collapse only if its four-tuple key matches, but cross-member
