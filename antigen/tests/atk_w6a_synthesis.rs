@@ -624,3 +624,76 @@ union TARGET_Union {{ x: u32, y: f32 }}
         );
     }
 }
+
+// ============================================================================
+// Duplicate-emission guard: the same antigen TYPE NAME declared more than once
+// (each with its own fingerprint) must NOT produce N byte-identical
+// FingerprintMatch records at a site all of them match. Identity is exact
+// `(antigen_type, file, item_target)` — one fingerprint match per failure-class
+// per site.
+//
+// Falsification: against the pre-fix scanner this asserts > 1 (two declarations
+// → two identical matches); the fix makes it exactly 1. The fixture is
+// asymmetric — two *distinct* antigen declarations sharing one type name, which
+// only the dedup collapses to a single emitted match.
+// ============================================================================
+
+#[test]
+fn w6a_synthesis_dedups_same_name_antigen_duplicate_matches() {
+    let dir = tempfile::TempDir::new().expect("tempdir");
+    let src = dir.path().join("lib.rs");
+    let mut f = std::fs::File::create(&src).expect("create lib.rs");
+    write!(
+        f,
+        r#"
+// Two DISTINCT antigen declarations that happen to share the type name
+// `DupNamed` — exactly the shape that arises when a stdlib antigen and a
+// test-fixture antigen share a name across a workspace. Both carry a
+// fingerprint that matches `target_fn`.
+#[antigen(
+    name = "dup-named-a",
+    fingerprint = "item = fn, name = matches(\"target_fn\")",
+    summary = "first declaration of the shared name",
+)]
+struct DupNamed;
+
+mod other {{
+    #[antigen(
+        name = "dup-named-b",
+        fingerprint = "item = fn, name = matches(\"target_fn\")",
+        summary = "second declaration of the shared name",
+    )]
+    struct DupNamed;
+}}
+
+// The site both fingerprints match.
+fn target_fn() {{}}
+"#
+    )
+    .expect("write lib.rs");
+    drop(f);
+
+    let report = scan_workspace(dir.path(), None).expect("scan");
+
+    let matches: Vec<_> = report
+        .presentations
+        .iter()
+        .filter(|p| {
+            p.match_kind == MatchKind::FingerprintMatch
+                && p.antigen_type == "DupNamed"
+                && matches!(&p.item_target, antigen::scan::ItemTarget::Fn(n) if n == "target_fn")
+        })
+        .collect();
+
+    assert_eq!(
+        matches.len(),
+        1,
+        "two same-named `DupNamed` antigens matching `target_fn` must yield exactly ONE \
+         FingerprintMatch (deduped on exact item_target), got {}: {:?}",
+        matches.len(),
+        matches
+            .iter()
+            .map(|p| (&p.antigen_type, p.line, &p.item_target))
+            .collect::<Vec<_>>()
+    );
+}

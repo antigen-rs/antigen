@@ -3783,6 +3783,38 @@ fn synthesis_pass(
                     continue;
                 }
 
+                // Duplicate-emission guard: skip if an *identical*
+                // FingerprintMatch was already emitted for this exact
+                // `(antigen_type, file, item_target)` triple.
+                //
+                // The same antigen *type name* can be declared more than once
+                // across a workspace (e.g. the stdlib `ContentHashMismatch` plus
+                // several test-fixture `ContentHashMismatch` declarations, each
+                // with its own fingerprint). Each declaration contributes a
+                // `(type_name, fp)` entry to the synthesis fingerprint set, so an
+                // item that matches more than one would otherwise produce N
+                // byte-identical `FingerprintMatch` presentations at the same site
+                // — pure noise that inflated scan output by ~3300 records on this
+                // workspace.
+                //
+                // Identity here is **exact `item_target` equality**, NOT the
+                // broader `addresses()` relation: `addresses()` deliberately
+                // treats distinct impl blocks for the same base type (different
+                // trait_path) as one addressable site, but those are genuinely
+                // distinct presentation sites for *reporting* — collapsing them
+                // would silently drop real matches (the impl-granularity question
+                // belongs to `addresses()`/ADR-017, not to a dedup heuristic). We
+                // only suppress the truly-identical re-emission.
+                let duplicate_emitted = report.presentations.iter().any(|p| {
+                    p.match_kind == MatchKind::FingerprintMatch
+                        && p.antigen_type == *antigen_type
+                        && p.file == *file_path
+                        && p.item_target == item_target
+                });
+                if duplicate_emitted {
+                    continue;
+                }
+
                 // Compute line from the item's first attribute or item span.
                 let line = item_line(syn_item);
 
