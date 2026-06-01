@@ -23,7 +23,7 @@ You should see:
 
 ```
 $ cargo antigen --version
-cargo-antigen-antigen 0.2.0
+cargo-antigen-antigen 0.3.0-alpha.1
 
 $ cargo antigen --help
 The "antigen" subcommand of cargo
@@ -31,19 +31,23 @@ The "antigen" subcommand of cargo
 Usage: cargo antigen <COMMAND>
 
 Commands:
-  scan      Scan the workspace for antigen presentations and report unaddressed ones
-  audit     Comprehensive immunity coverage report — witness resolution and tier validation
-  attest    Manage `.attest/<Antigen>.json` substrate-witness sidecars (ADR-019)
-  tolerate  Manage tolerance-ratification sidecars (ADR-019 §tolerance tier)
-  oracle    Manage Oracle artifact-class records (ADR-021 §D3)
-  help      Print this message or the help of the given subcommand(s)
+  scan         Scan the workspace for antigen presentations and report unaddressed ones
+  audit        Comprehensive immunity coverage report — witness resolution and tier validation
+  attest       Manage `.attest/<Antigen>.json` substrate-witness sidecars (ADR-019)
+  tolerate     Manage tolerance-ratification sidecars (ADR-019 §tolerance tier)
+  oracle       Manage Oracle artifact-class records (ADR-021 §D3)
+  verify       Drive Supply-Chain Defense Family verifications (ADR-025)
+  vcs          Drive VCS-Information-Loss Family observations (ADR-026)
+  mucosal-map  Map mucosal trust boundaries across the workspace (ADR-027 + Amd 1)
+  fingerprint  Print the structural fingerprint of a scanned item
+  help         Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help     Print help
   -V, --version  Print version
 ```
 
-You only need `scan` and `audit` for the quickstart. The other subcommands cover advanced workflows (substrate-witness sidecars, tolerance ratification, Oracle artifact lifecycle) — see [`witness-tiers.md`](witness-tiers.md) and the [tutorial](tutorial.md) when you're ready.
+You only need `scan` and `audit` for the quickstart. The other subcommands cover advanced workflows (substrate-witness sidecars, tolerance ratification, Oracle artifact lifecycle, supply-chain verification, VCS observations, fingerprint queries) — see [`witness-tiers.md`](witness-tiers.md) and the [tutorial](tutorial.md) when you're ready.
 
 ---
 
@@ -216,18 +220,14 @@ pub fn parse_user_input(raw: &str) -> Result<Input, ParseError> {
 `Overdue` / `OutOfFrame` — as a live-projected board section alongside your defenses.
 No separate dashboard; the code IS the board.
 
-The eight macros cover four structural shapes:
+The eight macros route to four structural shapes:
 
-| Macro | What it models |
-|---|---|
-| `#[panel(needs, filled_by, reviewed_by, due)]` | Ordered review checklist |
-| `#[rx(treatment, filled_by, due)]` | Treatment prescription — what must be done before the site ships |
-| `#[refer(to, response_due)]` | Referral to an external owner |
-| `#[biopsy(location, request_text)]` | Deep investigation request at a sub-site |
-| `#[ddx(symptom, rule_out)]` | Differential — competing hypotheses to eliminate one by one |
-| `#[triage(priority_order)]` | Re-validatable priority order over code-site references |
-| `#[culture(test_kind, runs_until)]` | Time-boxed observation window |
-| `#[quarantine(scope, reason)]` | Isolated region under a deliberate hold |
+| Shape | Macros | What it models |
+|---|---|---|
+| **S1 Role-workflow** | `#[panel]`, `#[rx]`, `#[refer]`, `#[biopsy]` | An ordered set of who-steps to fill and review |
+| **S2 Elimination** | `#[ddx]` | Competing hypotheses to eliminate one by one |
+| **S3 Ordering** | `#[triage]` | Re-validatable priority order over code-site references |
+| **S4 Frame-only** | `#[culture]`, `#[quarantine]` | A temporal window with an expiry |
 
 For the full reference see [`macros.md`](macros.md) — the prescriptive section.
 For a complete worked example (a parser module carrying all eight macros with
@@ -236,6 +236,11 @@ time-stable verdicts), see [`examples-guide.md`](examples-guide.md) and run:
 ```sh
 cargo run --example prescriptive_board --package antigen
 ```
+
+> **Note**: The prescriptive family ships in v0.3. If you are using the published
+> stable (`antigen = "=0.2.0"`), update to a v0.3 release before the prescriptive
+> macros and the `prescriptive_board` example are available. See
+> [`roadmap.md`](roadmap.md) for the release timeline.
 
 ---
 
@@ -247,7 +252,7 @@ cargo run --example prescriptive_board --package antigen
 - **[`where-to-look-for-antigens.md`](where-to-look-for-antigens.md)** — conventions for locating declarations
 - **[`usage-patterns.md`](usage-patterns.md)** — common patterns + decision tables
 - **[`witness-tiers.md`](witness-tiers.md)** — the witness model + tier ladder
-- **[`macros.md`](macros.md)** — full reference for the five macros
+- **[`macros.md`](macros.md)** — full reference for all macros (five core + eight prescriptive)
 - **[`fingerprint-grammar.md`](fingerprint-grammar.md)** — fingerprint DSL reference
 - **[`roadmap.md`](roadmap.md)** — what's shipped, what's coming
 - **[`index.md`](index.md)** — full documentation map
