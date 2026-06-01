@@ -7,6 +7,146 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_Target: `0.3.0-beta` — v0.3 surface is the prescriptive/work-orchestration family,
+the titer/scalar witness kind, the live-projection reporting model, multi-crate scan,
+and the reachability-audit frontier._
+
+### Added — prescriptive work-orchestration family (ADR-033)
+
+Eight new macros encoding code-site-local work-needs directly in the type system —
+the "code IS the Asana board" family. Each work-need declares its satisfaction
+condition, optional temporal frame, and who-refs; `cargo antigen audit` renders
+verdicts (`Pending` / `Fulfilled` / `Overdue` / `OutOfFrame`) as a live-projected
+board section.
+
+- `#[panel(...)]` — ordered review workflow (ordered\_by → filled\_by → reviewed\_by)
+- `#[ddx(...)]` — open differential (competing hypotheses eliminated at the code site)
+- `#[rx(...)]` — treatment prescription (what must be done before the site ships)
+- `#[triage(...)]` — priority/care-level decision with temporal re-triage deadline
+- `#[refer(...)]` — referral to an external owner, anchored at the site needing the look
+- `#[biopsy(...)]` — deep investigation request
+- `#[culture(...)]` — time-bounded observation ("watch this for N days")
+- `#[quarantine(...)]` — site isolation until a named condition lifts
+
+Verdict lattice is isomorphic to the defense tri-state with the false-cell temporally
+partitioned by `OutOfFrame` (un-evaluable) vs `Pending` (within frame) vs
+`Overdue` (past deadline, loud). Reuses the ADR-029 evaluator — no parallel
+evaluator, no cardinality collapse.
+
+Satisfaction uses the same witness leaves as defense (`signers()` / `signed_trailer()`
+via `allowed_types`, fingerprint-pinned via NFA-21). Step-presence is verified
+(order-agnostic for v0.3; `ordered_all_of` seeded for v0.4).
+
+### Added — witness taxonomy: two kinds (ADR-019 Amendment 1)
+
+The witness taxonomy now has two first-class kinds, each with named members and a
+generic escape-hatch:
+
+- **Categorical witnesses** — verdict-producers: `test` / `proptest` / `clippy` /
+  `kani` / `prusti` / `verus` / `phantom` / the five supply-chain leaves (ADR-025).
+  Attest a verdict (yes / no / indeterminate). Ten boolean leaves at HEAD.
+- **Titer witnesses (scalar)** — magnitude-reporters: attest a *measured value*,
+  no verdict, trend-trackable. `#[ignorance]` / scan-coverage is retroactively
+  recognized as **member-one** (the ignorance frontier computed fresh every scan run).
+  Raw escape-hatch: `#[titer(source=...)]`.
+
+Staleness is provenance-relative: scan-derived members are pin-free (live
+projection, structurally cannot be stale); source-read members are fingerprint-pinned
+(NFA-21) + carry a sub-clause-F source-attestation.
+
+Titer witnesses are three-valued at the value layer: measured / below-threshold /
+un-measurable (instrument couldn't reach a reading — the limit-of-detection
+third state, distinct from measured-and-low).
+
+The escape-hatch gradient: stdlib-named → adopter-named → raw `#[titer(source=)]`.
+In-the-wild raw usage drives recognition of what to name next (the recognition
+instrument). Adopters' raw-hatch escape-hatch usages are tracked toward graduation.
+
+### Added — live-projection reporting model (ADR-034)
+
+The report is never a stored truth — it is a live projection of the code,
+recomputed every run (like `clippy` reflects current source). Storing a report
+would commit `ParallelStateTrackersDiverge` — antigen's own failure-class —
+making the stored report a parallel state tracker that can drift.
+
+- `cargo antigen scan/audit` gain `--output <file>`: writes a full enveloped
+  render (antigen version, git SHA, timestamp, `report_schema_version`). The file
+  is a render-of-a-run, overwritten each time, never read back as authoritative.
+- Running `cargo antigen audit` at a release tag *is* that release's reproducible
+  defense-posture SBOM — regenerable any time by re-running at the tag.
+- A `hooks/pre-commit` example delivers lint-like commit-time feedback (opt-in,
+  never default, never writes `.git/`).
+
+### Added — member-aware multi-crate scan (v0.3 cornerstone)
+
+`cargo antigen scan --workspace` scans each workspace member separately, stamps
+each with its `name@version` canonical path, and merges into one `ScanReport`.
+Cross-member `#[descended_from]` lineage now resolves correctly across crate
+boundaries without collapsing member identity.
+
+`ScanCoverage` records which members were enumerated vs scanned — the
+**ignorance frontier**: members enumerated by cargo but not walked by the scanner.
+The frontier is a set (deduplicated); `unscanned_members()` surfaces it; the audit
+produces `UnreachedSite { cause, remedy }` verdicts from it (see below).
+
+### Added — reachability-audit frontier (ignorance mechanism)
+
+`audit_coverage(report)` emits per-site verdicts for the ignorance frontier —
+sites the scanner *should* have evaluated but did not. Three causes, each with a
+distinct remedy, partitioned by scanner pipeline stage:
+
+- **`Barrier`** — member never enumerated (remedy: extend coverage). Detector live
+  from `ScanCoverage::unscanned_members()`.
+- **`SubThreshold`** — site reached but recognition heuristic didn't fire (remedy:
+  widen recall / add `#[presents]`). Detector composes with multi-crate Layer-2.
+- **`Cryptic`** — site present but in a form the scanner cannot parse — macro body,
+  hidden `impl Trait` (remedy: pre-process / macro-expand before scanning). Detector
+  composes with multi-crate Layer-2.
+
+Barrier verdicts are member-granular (sites within an unscanned member are
+unknowable — claiming per-site would assert knowledge never acquired).
+SubThreshold/Cryptic verdicts are site-granular (the site was reached; a resolvable
+reference points into it).
+
+### Added — `#[antigen_generates(...)]`: macro-output recognition (ADR-014)
+
+`#[antigen_generates(MacroName, emits = [AntigenType, ...])]` declares that a
+proc-macro emits antigens the scanner cannot see in the macro body. The macro's
+name travels from declaration site to invocation site — the first antigen marker
+where declaration and effect live in different places connected only by a name.
+
+### Fixed — correctness hardening (ATK suite)
+
+- **Three-valued logic boundary** (ATK-3V-4): `immune_audit_is_substrate_gap()`
+  no longer conflates `DisciplinePredicateDeferred` with `SubstrateGap`. A deferred
+  supply-chain predicate is `Indeterminate`, not failed. Guard:
+  `audit_hint != AuditHint::DisciplinePredicateDeferred`.
+- **Scan dedup** (ATK-COV-2): byte-identical `FingerprintMatch` presentations at
+  one site deduplicated; ignorance frontier is a set (unscanned members appear once).
+- **Serde-validate sidecar** (ATK-SD-*): the sidecar schema is validated at load
+  time so a malformed `.attest/` JSON does not silently produce a passing verdict.
+- **Immune-stacked same-item gap mask** (ATK-IS-*): stacked `#[immune]` on the
+  same item no longer masks a substrate gap on one declaration with a passing
+  witness on another.
+
+### Changed — cross-crate trust boundary (ADR-017 Amendment 1)
+
+When a `#[defended_by]` / `#[presents]` in crate B addresses an antigen declared
+in crate A, the audit honors the claim only when:
+
+1. The `canonical_path` resolves to a real declaration in a scanned member
+   (else: `out-of-frame`, the three-valued third value — not silently undefended).
+2. Trust is keyed by `canonical_path` (`name@version`): same-type-name across
+   crates does not cross-satisfy.
+
+### Changed — `from_itches` is class-specific (ADR-024 Amendment 3)
+
+A `from_itches` entry on a `#[recurrence_anchor]` satisfies the noticing-precondition
+only if it names the anchor's own antigen type (or a lineage ancestor). A pure
+cross-class itch reference is a phantom — it provides no evidence that *this*
+failure-class has been noticed recurring. Realigns code with the doc-comment's
+already-stated intent; fixes the vacuous-guard failure shape adversarial found.
+
 ## [0.2.0] — 2026-05-31
 
 **First stable release of the v0.2 line.** Promotes `0.2.0-beta.1` to stable after a
