@@ -32,7 +32,7 @@ shows you how:
 
 ```toml
 [dependencies]
-antigen = "=0.2.0-beta.1"
+antigen = "=0.2.0"
 ```
 
 ---

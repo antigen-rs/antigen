@@ -4,12 +4,13 @@
 
 Comprehensive, co-native, structural memory of fail-classes, defenses, attestations, and coordination — accessible natively to both human and AI agents. Built for the age of agentic dev, vibe-coding, and human-LLM collaboration.
 
-> **Status**: `0.2.0-beta.1` published to crates.io (first public v0.2 beta,
-> 2026-05-28); stabilizing toward 0.2.0 stable. Core macros, fingerprint grammar,
-> scan + audit + attest + tolerate + oracle CLI, Oracle 5-state lifecycle,
-> cross-cutting attestation, substrate-witness predicates, ADR-029 defense/observation
-> vocabulary (`#[defended_by]`, extended `#[presents]`), five macro families in v0.2
-> stdlib. See [`CHANGELOG.md`](CHANGELOG.md) for the full manifest.
+> **Status**: `0.2.0` — first stable release of the v0.2 line, published to
+> crates.io (2026-05-31). Core macros, fingerprint grammar, scan + audit + attest +
+> tolerate + oracle CLI, Oracle 5-state lifecycle, cross-cutting attestation,
+> substrate-witness predicates, ADR-029 observe-don't-declare vocabulary
+> (`#[defended_by]`, extended `#[presents]`), Match3 three-valued fingerprint
+> evaluation, five macro families in v0.2 stdlib. See [`CHANGELOG.md`](CHANGELOG.md)
+> for the full manifest.
 
 ---
 
@@ -152,7 +153,7 @@ Add antigen as a dependency:
 
 ```toml
 [dependencies]
-antigen = "=0.2.0-beta.1"   # first public v0.2 beta (published to crates.io)
+antigen = "=0.2.0"   # first stable v0.2 release (published to crates.io)
 ```
 
 Now declare your first antigen. The full walkthrough lives in [`docs/tutorial.md`](docs/tutorial.md) — your first 15 minutes, end-to-end, with a real failure-class.
@@ -263,7 +264,7 @@ Most valuable contributions right now:
 - **Real-world failure-class proposals** — Rust failures that fit (or refine) the project's growing taxonomy; issue templates at [`.github/ISSUE_TEMPLATE`](.github/ISSUE_TEMPLATE)
 - **Antigen-stdlib candidates** — specific patterns to bundle in the eventual stdlib library with real-world instance evidence (not speculation)
 - **Witness type integrations** — kani/prusti/verus/creusot/flux harness recognition refinements
-- **Adoption feedback** — `0.2.0-beta.1` is the first public v0.2; real-world adoption signal from Rust workspaces
+- **Adoption feedback** — `0.2.0` is the first stable v0.2; real-world adoption signal from Rust workspaces
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for detail.
 
@@ -271,7 +272,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for detail.
 
 ## Status
 
-- crates.io: [`antigen`](https://crates.io/crates/antigen), [`cargo-antigen`](https://crates.io/crates/cargo-antigen), [`antigen-macros`](https://crates.io/crates/antigen-macros), [`antigen-fingerprint`](https://crates.io/crates/antigen-fingerprint), [`antigen-attestation`](https://crates.io/crates/antigen-attestation) — **0.2.0-beta.1 published** (first public v0.2 beta, 2026-05-28); stabilizing toward 0.2.0 stable
+- crates.io: [`antigen`](https://crates.io/crates/antigen), [`cargo-antigen`](https://crates.io/crates/cargo-antigen), [`antigen-macros`](https://crates.io/crates/antigen-macros), [`antigen-fingerprint`](https://crates.io/crates/antigen-fingerprint), [`antigen-attestation`](https://crates.io/crates/antigen-attestation) — **0.2.0 published** (first stable v0.2, 2026-05-31)
 - Repository: [github.com/antigen-rs/antigen](https://github.com/antigen-rs/antigen)
 - CI: cargo check + test + fmt + clippy (-D warnings) + doc (-D warnings) on every push and PR
 - Tests: ~1000+ passing across the workspace (see CI badge for live count)

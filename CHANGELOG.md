@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-05-31
+
+**First stable release of the v0.2 line.** Promotes `0.2.0-beta.1` to stable after a
+correctness-hardening and documentation-masterclass pass. No new stdlib surface
+beyond beta.1 — this release closes a family of silent-wrong-verdict audit bugs and
+brings the documentation fully onto the ADR-029 observe-don't-declare idiom.
+
+### Fixed — silent-wrong-verdict audit bugs
+
+A family of audit bugs that shared one root cause: two-valued boolean logic applied
+to a domain that is actually three-valued (definite-yes / definite-no /
+not-evaluable). Each silently collapsed "could not evaluate" into a passing verdict.
+
+- **ADR-029 Amendment 1 (verdict precedence)** — a failing `requires=` substrate
+  predicate now takes `SubstrateGap` precedence over a passing code witness, so
+  `requires=` is a real CI gate rather than decoration.
+- **Match3 (ADR-010 Amendment 6)** — three-valued fingerprint evaluation at the
+  type level; the audit layer no longer collapses "not evaluable" into a pass.
+- Specific cases hardened: zero-threshold convergent-evidence (ATK-CE-5),
+  lineage-fidelity child without item kind (ATK-LF-6), phantom recurrence anchor
+  (ATK-RECURRENT-7), empty `all_of` via serde (ATK-SC-7), mucosal same-name-fn
+  delegation ambiguity, canonical-path equality.
+- `#[immune]` multi-stack in associated-const position (named-const fix); malformed
+  `until=` now escalates loudly instead of silently granting `Active`;
+  immune-channel `requires=` gate extension.
+
+### Changed — documentation
+
+- Full migration of the documentation corpus onto the ADR-029 `#[defended_by]` /
+  `#[presents(requires=)]` idiom (concepts, macros, tutorial, for-llm-collaborators,
+  adoption, examples-guide, glossary, vision-pitch). Deprecated `#[immune]` is
+  retained only in clearly-marked deprecation/historical contexts.
+
 ## [0.2.0-beta.1] — 2026-05-28
 
 **First public release of the v0.2 line** — the first published to crates.io

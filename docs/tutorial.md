@@ -49,7 +49,7 @@ Add antigen to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-antigen = "=0.2.0-beta.1"
+antigen = "=0.2.0"
 ```
 
 Install the cargo subcommand:

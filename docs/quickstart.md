@@ -23,7 +23,7 @@ You should see:
 
 ```
 $ cargo antigen --version
-cargo-antigen-antigen 0.2.0-beta.1
+cargo-antigen-antigen 0.2.0
 
 $ cargo antigen --help
 The "antigen" subcommand of cargo
@@ -71,7 +71,7 @@ That's clean. Antigen ran; your project has no antigen surface yet. No red flags
 ```toml
 # Cargo.toml
 [dependencies]
-antigen = "=0.2.0-beta.1"
+antigen = "=0.2.0"
 ```
 
 Run `cargo build` to fetch and compile. Antigen's runtime cost is zero — the macros are identity transforms; no code generation, no runtime overhead.
