@@ -709,6 +709,142 @@ impl ToleranceArgs {
 }
 
 // ============================================================================
+// GeneratesArgs parsing (ADR-014)
+// ============================================================================
+
+/// Arguments to `#[antigen_generates(antigen_type, rationale = "...", ...)]`.
+///
+/// Per ADR-014: a macro author declares that their proc-macro / `macro_rules`
+/// emits code presenting the named antigen. Applied to the macro DEFINITION
+/// (e.g. the `#[proc_macro_derive(..)]` fn); the scan connects it to the macro
+/// INVOCATION sites.
+///
+/// - antigen type (positional, required) — the failure-class the expansion presents
+/// - `rationale = "..."` (required, non-empty; mirrors ADR-011) — why the
+///   expansion presents this class + what the user should verify
+/// - `witness_template = "..."` (optional, v2) — path hint for a witness skeleton
+/// - `if_attr_present = "..."` (optional, v2) — conditional-generation guard
+pub struct GeneratesArgs {
+    pub antigen: Path,
+    pub rationale: Option<String>,
+    pub rationale_span: Option<Span>,
+    #[allow(dead_code)]
+    pub witness_template: Option<String>,
+    pub witness_template_span: Option<Span>,
+    #[allow(dead_code)]
+    pub if_attr_present: Option<String>,
+    pub if_attr_present_span: Option<Span>,
+    pub args_span: Span,
+}
+
+impl Parse for GeneratesArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let antigen: Path = input.parse()?;
+        let mut rationale: Option<String> = None;
+        let mut rationale_span: Option<Span> = None;
+        let mut witness_template: Option<String> = None;
+        let mut witness_template_span: Option<Span> = None;
+        let mut if_attr_present: Option<String> = None;
+        let mut if_attr_present_span: Option<Span> = None;
+
+        while !input.is_empty() {
+            input.parse::<Token![,]>()?;
+            if input.is_empty() {
+                break;
+            }
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "rationale" => {
+                    let lit: LitStr = input.parse()?;
+                    rationale_span = Some(lit.span());
+                    rationale = Some(lit.value());
+                }
+                "witness_template" => {
+                    let lit: LitStr = input.parse()?;
+                    witness_template_span = Some(lit.span());
+                    witness_template = Some(lit.value());
+                }
+                "if_attr_present" => {
+                    let lit: LitStr = input.parse()?;
+                    if_attr_present_span = Some(lit.span());
+                    if_attr_present = Some(lit.value());
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!(
+                            "unknown #[antigen_generates] field `{other}`; expected one of: \
+                             rationale, witness_template, if_attr_present",
+                        ),
+                    ));
+                }
+            }
+        }
+
+        Ok(Self {
+            antigen,
+            rationale,
+            rationale_span,
+            witness_template,
+            witness_template_span,
+            if_attr_present,
+            if_attr_present_span,
+            args_span,
+        })
+    }
+}
+
+impl GeneratesArgs {
+    /// Trust-boundary checks per ADR-014 §Sub-clause F:
+    /// - rationale required + non-empty (a generation claim without rationale
+    ///   is not a claim — the macro author must justify the pattern)
+    /// - optional string fields, if present, must be non-empty (empty indicates
+    ///   user error, mirroring the `until = ""` rejection on tolerance)
+    pub fn validate(&self) -> syn::Result<()> {
+        let Some(rationale) = self.rationale.as_deref() else {
+            return Err(syn::Error::new_spanned(
+                &self.antigen,
+                "#[antigen_generates] requires `rationale = \"...\"`. \
+                 A generation declaration without rationale is not a claim — \
+                 the macro author must justify what the expansion presents.",
+            ));
+        };
+        if rationale.is_empty() {
+            return Err(syn::Error::new(
+                self.rationale_span.unwrap_or(self.args_span),
+                "#[antigen_generates] `rationale` must not be empty",
+            ));
+        }
+        if matches!(self.witness_template.as_deref(), Some("")) {
+            return Err(syn::Error::new(
+                self.witness_template_span.unwrap_or(self.args_span),
+                "#[antigen_generates] `witness_template = \"\"` rejected — \
+                 omit the field rather than supplying an empty path.",
+            ));
+        }
+        if matches!(self.if_attr_present.as_deref(), Some("")) {
+            return Err(syn::Error::new(
+                self.if_attr_present_span.unwrap_or(self.args_span),
+                "#[antigen_generates] `if_attr_present = \"\"` rejected — \
+                 omit the field rather than supplying an empty guard.",
+            ));
+        }
+        Ok(())
+    }
+
+    /// Bare type name of the antigen this generation declaration names (last
+    /// path segment), for the `antigen:generates:v1:<name>` doc marker.
+    pub fn antigen_name(&self) -> String {
+        self.antigen
+            .segments
+            .last()
+            .map_or_else(String::new, |s| s.ident.to_string())
+    }
+}
+
+// ============================================================================
 // AnegyArgs parsing (ADR-023)
 // ============================================================================
 
@@ -5172,6 +5308,83 @@ mod tests {
             .unwrap();
         let args = syn::parse2::<MucosalTolerantArgs>(tokens).unwrap();
         assert!(args.validate().is_err());
+    }
+
+    // ---- GeneratesArgs (ADR-014) ----
+
+    #[test]
+    fn generates_parser_accepts_canonical() {
+        let tokens: TokenStream =
+            r#"PanickingInDrop, rationale = "the emitted Drop impl may panic; verify inner types""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<GeneratesArgs>(tokens).unwrap();
+        assert!(args.validate().is_ok());
+        assert_eq!(args.antigen_name(), "PanickingInDrop");
+    }
+
+    #[test]
+    fn generates_parser_uses_last_path_segment_for_name() {
+        let tokens: TokenStream =
+            r#"antigen::stdlib::PanickingInDrop, rationale = "qualified path resolves to last seg""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<GeneratesArgs>(tokens).unwrap();
+        assert_eq!(args.antigen_name(), "PanickingInDrop");
+    }
+
+    #[test]
+    fn generates_validate_rejects_missing_rationale() {
+        let tokens: TokenStream = "PanickingInDrop".parse().unwrap();
+        let args = syn::parse2::<GeneratesArgs>(tokens).unwrap();
+        assert!(
+            args.validate().is_err(),
+            "a generation claim without rationale is not a claim"
+        );
+    }
+
+    #[test]
+    fn generates_validate_rejects_empty_rationale() {
+        let tokens: TokenStream = r#"PanickingInDrop, rationale = """#.parse().unwrap();
+        let args = syn::parse2::<GeneratesArgs>(tokens).unwrap();
+        assert!(args.validate().is_err(), "empty rationale must be rejected");
+    }
+
+    #[test]
+    fn generates_validate_rejects_empty_optional_fields() {
+        let tokens: TokenStream = r#"PanickingInDrop, rationale = "valid", witness_template = """#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<GeneratesArgs>(tokens).unwrap();
+        assert!(
+            args.validate().is_err(),
+            "an empty witness_template indicates user error (mirror until=\"\" rejection)"
+        );
+    }
+
+    #[test]
+    fn generates_parser_rejects_unknown_field() {
+        let tokens: TokenStream = r#"PanickingInDrop, rationale = "valid", bogus_field = "x""#
+            .parse()
+            .unwrap();
+        assert!(
+            syn::parse2::<GeneratesArgs>(tokens).is_err(),
+            "unknown field must be a parse error (strict macro-side surface)"
+        );
+    }
+
+    #[test]
+    fn generates_parser_accepts_v2_optional_fields() {
+        let tokens: TokenStream = r#"PanickingInDrop, rationale = "valid", witness_template = "tests/drop_panic.rs", if_attr_present = "skip_drop""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<GeneratesArgs>(tokens).unwrap();
+        assert!(args.validate().is_ok());
+        assert_eq!(
+            args.witness_template.as_deref(),
+            Some("tests/drop_panic.rs")
+        );
+        assert_eq!(args.if_attr_present.as_deref(), Some("skip_drop"));
     }
 
     #[test]
