@@ -297,11 +297,11 @@ pub fn evaluate_content_hash_matches(
 /// version absent), `Some(hash)` when a served hash was obtained.
 ///
 /// The three outcomes mirror the gem at the network boundary:
-/// - `served == Some(h)` and `h == expected` → [`LiveCksumState::Verified`].
-/// - `served == Some(h)` and `h != expected` → [`LiveCksumState::Mismatch`]
+/// - `served == Some(h)` and `h == expected` → [`super::witness::LiveCksumState::Verified`].
+/// - `served == Some(h)` and `h != expected` → [`super::witness::LiveCksumState::Mismatch`]
 ///   (the substitution signal — loud).
-/// - `served == None` → [`LiveCksumState::Unverifiable`] (⊥ — could-not-evaluate;
-///   offline must never read as verified OR failed).
+/// - `served == None` → [`super::witness::LiveCksumState::Unverifiable`] (⊥ —
+///   could-not-evaluate; offline must never read as verified OR failed).
 #[must_use]
 pub fn compare_live_cksum(served: Option<&str>, expected: &str) -> super::witness::LiveCksumState {
     use super::witness::LiveCksumState;
