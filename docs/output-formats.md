@@ -1,5 +1,10 @@
 # Antigen — Output Formats Reference
 
+> **v0.2 idiom note**: Some scan/audit suggestion text shown below references the v0.1
+> `#[immune(...)]` API. For v0.2, use `#[defended_by(X)]` on test functions (code-tier)
+> or `#[presents(X, requires=...)]` on the site (substrate-tier). The `#[immune]` form
+> still compiles with a deprecation warning — see [`macros.md`](macros.md) for migration.
+
 > Format reference for `cargo antigen scan` and `cargo antigen audit`
 > output. Both commands support human-readable (default) and JSON
 > (`--format json`) outputs.

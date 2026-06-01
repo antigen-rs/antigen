@@ -1,7 +1,12 @@
 # Antigen — Witness Tier Reference
 
+> **v0.2 idiom note**: Examples in this doc use the v0.1 `#[immune(...)]` API.
+> For v0.2, use `#[defended_by(X)]` on test functions (code-tier) or
+> `#[presents(X, requires=...)]` on the site (substrate-tier). The `#[immune]` form
+> still compiles with a deprecation warning — see [`macros.md`](macros.md) for migration.
+
 > The `WitnessTier` gradient that `cargo antigen audit` reports for every
-> `#[immune]` claim. This document explains what each tier means, when
+> defended presentation. This document explains what each tier means, when
 > each applies, and how the audit reports them honestly per ADR-005
 > Amendment 3.
 
