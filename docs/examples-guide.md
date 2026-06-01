@@ -5,7 +5,7 @@
 > failure mode). For v0.2, prefer `#[defended_by(X)]` (code-tier) or `#[presents(X, requires=...)]`
 > (substrate-tier). See [`macros.md`](macros.md) for the current vocabulary.
 
-> Curated walkthrough of the nine examples in `antigen/examples/`,
+> Curated walkthrough of the example files in `antigen/examples/`,
 > ordered for progressive learning. Each lesson builds on the prior.
 >
 > Lessons 1–5 cover the core vocabulary (`#[antigen]` / `#[presents]` /
@@ -474,6 +474,7 @@ v0.2 family surface:
 | 18 — agentic_coordination | session/agent boundary SubstrateAlignment failures (ADR-028) |
 | 19 — antigen_category | SubstrateAlignment vs FunctionalCorrectness taxonomy (ADR-028) |
 | 20 — triage_commit | decisional rollback — 5-color scale + orient contrast (ADR-026) |
+| 21 — prescriptive_board | work-orchestration — four-valued `WorkVerdict` board, *code IS the board* (ADR-033) |
 
 **Where to go next**:
 
@@ -798,16 +799,82 @@ cargo run --example triage_commit --package antigen
 
 ## Prescriptive / Work-Orchestration Family (v0.3) — ADR-033
 
-> No dedicated example file exists yet for this family. Lessons are pending.
+### Lesson: `prescriptive_board` — code IS the Asana board
 
-The prescriptive family — `#[panel]`, `#[ddx]`, `#[rx]`, `#[triage]`, `#[refer]`,
-`#[biopsy]`, `#[culture]`, `#[quarantine]` — ships in v0.3. These eight macros
-express code-site-local work-needs in the type system. `cargo antigen audit` renders
-verdicts (`Pending` / `Fulfilled` / `Overdue` / `OutOfFrame`) as a live-projected
-board section; no example file yet.
+**File**: [`antigen/examples/prescriptive_board.rs`](../antigen/examples/prescriptive_board.rs)
 
-Reference: [`macros.md`](macros.md) — the prescriptive family section has the full
-argument reference and per-macro examples.
+**Concept introduced**: the prescriptive family expresses code-site-local
+*work-needs* directly in the type system, and `cargo antigen audit` renders them
+as a live board section. A `// TODO` rots; a `#[panel(needs = [...], filled_by =
+[...], due = "...")]` stays current or emits a loud verdict when it doesn't.
+*Code IS the board* (ADR-033).
+
+The family is eight clinical-named macros over four structural shapes:
+
+| Shape | Macros | Models |
+|---|---|---|
+| S1 Role-workflow | `#[panel]`, `#[rx]`, `#[refer]`, `#[biopsy]` | ordered who-steps to fill + review |
+| S2 Elimination | `#[ddx]` | alternatives to rule out one by one |
+| S3 Ordering | `#[triage]` | a re-validatable priority order over code sites |
+| S4 Frame-only | `#[culture]`, `#[quarantine]` | a temporal window with an expiry |
+
+**What's in the file**: a tiny config-parser module whose real items carry the
+work-needs. The macros are chosen so each verdict is **deterministic and stable
+across calendar time** — no row silently flips as the clock advances (the file's
+closing comment explains how). The audit board shows:
+
+- **`Overdue`** (loud, sorted to top) — a `#[quarantine]` whose `until` is in the
+  past with no release attestation. Frame-expiry alone never fulfills a
+  quarantine (the positive-closure guard, ATK-PRES-13).
+- **`Pending`** (the expected, quiet state) — a `#[culture]` with no frame (an
+  open observation window) and a `#[triage]` over resolvable code sites awaiting
+  a `triaged_by` attestation.
+- **`OutOfFrame`** (advisory — un-evaluable, *not* an alarm), three rows, each a
+  *different* typed sub-cause with its own remedy:
+  - `#[refer]` to a who-ref with no signed sidecar → `unknown-who-ref`
+  - `#[panel]` with no who-step declared → `missing-work-step`
+  - `#[quarantine]` with an unparseable `until` string → `unparseable-frame`
+
+**What to learn**:
+- The four-valued `WorkVerdict` is the defense tri-state with the unsatisfied
+  cell *temporally split* by the frame (`undefended` → `Pending` within frame +
+  `Overdue` past it; `substrate-gap` → `OutOfFrame`). One evaluator, one
+  substrate read, a frame-aware projection — no parallel mechanism (ADR-033
+  §Decision 3).
+- `Overdue` (late, but gradable) and `OutOfFrame` (un-evaluable) are **never
+  collapsed** (the three-valued-logic gem, ATK-PRES-8). An un-evaluable need
+  routes a different fix than a late one — hence the typed sub-cause + remedy.
+- The board is a **live projection** (ADR-034): recomputed every run, never
+  stored, so it cannot drift the way a `// TODO` or an external tracker does.
+- `#[triage]` orders **code-site references**, not camp campsites (anchor #3 —
+  the audit never reads camp). The locality test is the antigen ↔ camp boundary:
+  *if this code site vanished, does the work-need vanish with it?* Yes → antigen;
+  no → camp.
+
+**Try this**:
+```sh
+cargo run --example prescriptive_board --package antigen
+cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
+```
+
+In the audit output, find the `── Work board (ADR-033)` section. The count line
+reports `1 overdue, 3 out-of-frame, 2 pending, 0 fulfilled`; the `OVERDUE` row is
+marked `‼` and sorted first. Each `out-of-frame` row names its `cause:` and the
+matching `remedy:`. The `#[triage]` row shows `✓ priority_order:` for each
+resolvable code site — change one entry to a function that does not exist and
+re-run: the whole triage drops to `out-of-frame` / `unresolvable-ref`, never
+silently satisfied.
+
+**Reaching `Fulfilled`**: the example documents (but does not ship) how a
+work-need closes — add the closing who-steps (`filled_by` / `reviewed_by`),
+scaffold + sign the `.attest/<item>.json` sidecar (the same pipeline defense
+attestation uses), and the row flips to `fulfilled`. Satisfaction is
+fingerprint-pinned (NFA-21): edit the item's body and the row drops back to
+`pending` because the signed review is now stale — which is the silent-wrong-review
+bug this family exists to surface.
+
+For the full per-macro argument reference, see [`macros.md`](macros.md) — the
+prescriptive family section.
 
 ---
 
@@ -826,9 +893,10 @@ argument reference and per-macro examples.
 ---
 
 *The examples are real. The patterns are universal. Once you've
-worked through the twenty lessons, you've encountered every core
+worked through the lessons, you've encountered every core
 concept antigen ships — from the basic three-move vocabulary through
 the full v0.2 family surface: substrate-witness, Oracle lifecycle,
 supply-chain defense, convergent evidence, deferred defense, recurrent
 emergence, mucosal boundary, VCS information loss, agentic coordination,
-category taxonomy, and decisional triage.*
+category taxonomy, and decisional triage — and the v0.3 prescriptive
+work-orchestration board (code IS the board).*
