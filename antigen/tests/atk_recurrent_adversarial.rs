@@ -333,6 +333,120 @@ fn atk_recurrent_7_phantom_from_itches_fires_no_itch_precondition() {
 }
 
 // ============================================================================
+// ADR-024 Amendment 3: from_itches is CLASS-SPECIFIC (lineage-aware).
+//
+// The scientist's attack (dogfood note fd7c24c9): under the prior GLOBAL
+// membership test, from_itches = ["AntigenY"] suppressed the noticing
+// precondition for an AntigenX anchor as long as AntigenY had ANY scan-resident
+// #[itch] anywhere. That guts the precondition's meaning — noticing AntigenY is
+// zero evidence that AntigenX recurred. Amd3 makes the check class-specific: a
+// from_itches entry satisfies iff it names the anchor's OWN class (or a lineage
+// ancestor of it) AND that class is scan-resident. The one legitimate
+// "cross-class" case is intra-lineage (parent-recurrence is evidence the
+// descended lineage recurs — inheritance is provenance, ADR-018 Amd1).
+// ============================================================================
+
+#[test]
+fn atk_recurrent_adr024_amd3_cross_class_from_itches_does_not_suppress_precondition() {
+    // The scientist's attack: an AntigenX anchor cites from_itches = ["AntigenY"].
+    // AntigenY IS scan-resident (has its own #[itch]), so the OLD global test
+    // passed it. Amd3: AntigenY is unrelated to AntigenX — pure cross-class — so
+    // it carries no precondition evidence for THIS anchor; the precondition fires.
+    let mut anchor = base_decl(RecurrentKind::RecurrenceAnchor, Some("AntigenX"));
+    anchor.from_itches = vec!["AntigenY".to_string()]; // cross-class, but scan-resident
+
+    let itch_y = base_decl(RecurrentKind::Itch, Some("AntigenY")); // real itch, wrong class
+
+    let mut report = ScanReport::default();
+    report.recurrent_declarations.push(anchor);
+    report.recurrent_declarations.push(itch_y);
+
+    let out = audit_recurrent(&report);
+    let anchor_hints = &out
+        .audits
+        .iter()
+        .find(|a| a.declaration.kind == RecurrentKind::RecurrenceAnchor)
+        .expect("anchor audit present")
+        .hints;
+    assert!(
+        anchor_hints.contains(&AuditHint::RecurrenceAnchorNoItchPrecondition),
+        "ADR-024 Amd3: a cross-class from_itches entry (AntigenY for an AntigenX anchor) \
+         must NOT suppress the precondition even when AntigenY is scan-resident — noticing \
+         an unrelated class is zero evidence the anchor's class recurred. hints: {anchor_hints:?}"
+    );
+}
+
+#[test]
+fn atk_recurrent_adr024_amd3_same_class_from_itches_satisfies_precondition() {
+    // The happy path: an AntigenX anchor cites from_itches = ["AntigenX"] and an
+    // #[itch(AntigenX)] is scan-resident. Class-specific match → precondition
+    // satisfied (no RecurrenceAnchorNoItchPrecondition hint).
+    let mut anchor = base_decl(RecurrentKind::RecurrenceAnchor, Some("AntigenX"));
+    anchor.from_itches = vec!["AntigenX".to_string()];
+
+    let itch_x = base_decl(RecurrentKind::Itch, Some("AntigenX"));
+
+    let mut report = ScanReport::default();
+    report.recurrent_declarations.push(anchor);
+    report.recurrent_declarations.push(itch_x);
+
+    let out = audit_recurrent(&report);
+    let anchor_hints = &out
+        .audits
+        .iter()
+        .find(|a| a.declaration.kind == RecurrentKind::RecurrenceAnchor)
+        .expect("anchor audit present")
+        .hints;
+    assert!(
+        !anchor_hints.contains(&AuditHint::RecurrenceAnchorNoItchPrecondition),
+        "ADR-024 Amd3: a same-class from_itches entry (AntigenX for an AntigenX anchor) \
+         backed by a scan-resident #[itch(AntigenX)] satisfies the precondition. \
+         hints: {anchor_hints:?}"
+    );
+}
+
+#[test]
+fn atk_recurrent_adr024_amd3_lineage_ancestor_from_itches_satisfies_precondition() {
+    // The lineage exception: a ChildClass anchor cites from_itches = ["ParentClass"],
+    // ChildClass #[descended_from] ParentClass, and #[itch(ParentClass)] is
+    // scan-resident. Parent-recurrence is legitimate upstream evidence for
+    // committing to track the descendant (inheritance is provenance, ADR-018 Amd1).
+    // So the precondition is satisfied — this is intra-lineage, not cross-class.
+    use antigen::scan::LineageEdge;
+
+    let mut anchor = base_decl(RecurrentKind::RecurrenceAnchor, Some("ChildClass"));
+    anchor.from_itches = vec!["ParentClass".to_string()];
+
+    let itch_parent = base_decl(RecurrentKind::Itch, Some("ParentClass"));
+
+    let mut report = ScanReport::default();
+    report.recurrent_declarations.push(anchor);
+    report.recurrent_declarations.push(itch_parent);
+    report.lineage_edges.push(LineageEdge {
+        child: "ChildClass".to_string(),
+        parent: "ParentClass".to_string(),
+        file: PathBuf::from("test.rs"),
+        line: 1,
+        parent_canonical_path: None,
+        child_canonical_path: None,
+    });
+
+    let out = audit_recurrent(&report);
+    let anchor_hints = &out
+        .audits
+        .iter()
+        .find(|a| a.declaration.kind == RecurrentKind::RecurrenceAnchor)
+        .expect("anchor audit present")
+        .hints;
+    assert!(
+        !anchor_hints.contains(&AuditHint::RecurrenceAnchorNoItchPrecondition),
+        "ADR-024 Amd3: noticing a lineage ANCESTOR (ParentClass) is legitimate upstream \
+         evidence for a descendant anchor (ChildClass descended_from ParentClass) — \
+         intra-lineage, not cross-class. Precondition satisfied. hints: {anchor_hints:?}"
+    );
+}
+
+// ============================================================================
 // ATK-RECURRENT-6: #[strand] category mismatch — recurrent declared with
 //                  wrong antigen-category
 //
