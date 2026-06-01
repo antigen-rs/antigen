@@ -192,6 +192,66 @@ cross-class itch reference is a phantom — it provides no evidence that *this*
 failure-class has been noticed recurring. Realigns code with the doc-comment's
 already-stated intent; fixes the vacuous-guard failure shape adversarial found.
 
+### Added — multi-crate scan Layer 2: cross-crate `addresses()` resolution
+
+The cross-crate matching that ADR-017 Amendment 1 specified is now implemented.
+`scan_workspace_multi_crate` runs `resolve_cross_member_addresses` over the merged
+member report: a `#[presents]` / `#[defended_by]` / `#[immune]` / `#[antigen_tolerance]`
+whose addressed antigen is declared in a *different* member is re-stamped to that
+declaring member's `canonical_path`, so a legitimate cross-crate defense matches
+(closing `DelegateCrossCrateResolutionGap`). An antigen declared in no member leaves
+the reference out-of-frame (never a silent cross-satisfy); a same-name collision
+across ≥2 members is reported, never guessed. Sibling of the existing cross-member
+lineage-parent resolution (identical rule).
+
+### Added — `cargo antigen vcs recurrence`: git-mining for the recurrent family
+
+Mines git history for the three recurrent-emergence stdlib failure-classes and
+surfaces recurrence counts — the passive→active loop. `MsrvCreepAfterMajorVersionBump`
+(commits changing a `rust-version` line), `GitignorePatternDriftOverReleases`
+(commits touching `.gitignore`), `LockfileChurnFromUnpinnedTooling` (commits touching
+`Cargo.lock`). Detection only: the *verdict* (anchor it?) stays the adopter's call.
+Degrades honestly — git unavailable reports `observable: false` (not a misleading
+zero) and exits 0 (never blocks an audit).
+
+### Added — `cargo antigen verify dep-pin --write`: in-place manifest rewrite
+
+The mutation half of `verify dep-pin`. Rewrites `Cargo.toml` IN PLACE via `toml_edit`
+(format-preserving — comments, layout, and sibling keys survive), pinning each
+unpinned dep to its resolved `=<version>` from `Cargo.lock`. Opt-in by design
+(`--write` is never the default — rewriting the adopter's manifest is an
+outward-facing mutation); a dep with no resolved lockfile version is never guessed.
+
+### Added — `cargo antigen verify content-hash check --live`: registry-served-hash verification
+
+Additionally verifies the recorded content hash against the hash crates.io *actually
+serves* (the sparse-index `cksum`, which is the `.crate` tarball SHA-256) — a
+substitution / yank-and-republish detector. Three-valued by construction: `Verified`
+(served matches) / `Mismatch` (served differs — loud) / `Unverifiable` (registry
+unreachable — `⊥`, never blocks, never escalates). A mismatch escalates the exit
+only under `--strict`; the local check stays authoritative.
+
+### Fixed — `ordered_by` never alone fulfills (prescriptive S1, witness-forgery)
+
+`eval_role_workflow` credited a bare `#[panel(ordered_by = ...)]` (no `filled_by`)
+as `Fulfilled` once the orderer attested — an opening witness forged as a closing
+one. The satisfaction predicate now requires a genuine closing step (≥1 `filled_by`);
+a bare-orderer site is `Pending` (awaiting fill), never `Fulfilled`. The
+witness-forgery sibling of the three-valued gem (tighten the predicate, not widen
+the codomain).
+
+### Fixed — ADR-035 leaf-sweep: `⊥` read-failures lift to `evaluated: false`
+
+Four substrate-absent / input-unreadable arms in `antigen-attestation` reported
+`evaluated: true` ("I ran this check and it failed") when no check actually ran —
+the `⊥→false` collapse the Three-Valued Type Law forbids. Now `evaluated: false`
+(could-not-evaluate): `eval_ratified_doc` doc-not-found / no-parseable-version /
+unparseable-found-version (a new `version_is_parseable` gate before `compare_versions`,
+the eval-time mirror of ATK-FT-3); `eval_oracles_complete` splits the fused
+"missing OR not-complete" arm so an absent oracle is `⊥` while a present-but-incomplete
+one stays a genuine fail. Genuine evaluated-and-failed paths (version-below-min,
+present-but-incomplete oracle, signer-absent) are unchanged.
+
 ## [0.2.0] — 2026-05-31
 
 **First stable release of the v0.2 line.** Promotes `0.2.0-beta.1` to stable after a
