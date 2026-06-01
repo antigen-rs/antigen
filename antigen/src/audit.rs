@@ -4067,6 +4067,15 @@ pub struct UnreachedSite {
 pub struct CoverageAuditReport {
     /// Every site the scan should have evaluated but did not, with its cause.
     pub unreached_sites: Vec<UnreachedSite>,
+    /// Whether the coverage question was *askable* at all: `true` iff the
+    /// producing [`ScanReport`] carried a [`crate::scan::ScanCoverage`] record
+    /// (a member-aware `--workspace` scan), `false` for a flat scan that has no
+    /// member concept. This is the third value [`Self::is_complete`] cannot
+    /// carry on its own (adversarial 2026-06-01 type-discipline gap): a 2-valued
+    /// `bool` over a 3-state domain collapses "complete because every member was
+    /// scanned" and "complete because coverage was never applicable" to the same
+    /// `true`. Read it via [`Self::coverage_was_applicable`].
+    pub applicable: bool,
 }
 
 impl CoverageAuditReport {
@@ -4074,9 +4083,36 @@ impl CoverageAuditReport {
     /// frontier is empty. Tier-honest: this does NOT assert there is no
     /// *absolute* ignorance (a site nothing references and no scan-root reaches
     /// is undetectable in principle — the structural honesty-limit).
+    ///
+    /// **Two-valued over a three-state domain — read with
+    /// [`Self::coverage_was_applicable`].** `is_complete() == true` arises from
+    /// two structurally distinct situations a library consumer must be able to
+    /// tell apart: (1) a member-aware scan ran and *nothing* was unreached
+    /// (genuinely complete), and (3) a flat scan ran where the coverage question
+    /// is *not applicable* (no member set to ask it against). Both yield `true`
+    /// here; [`Self::coverage_was_applicable`] is the discriminator (`true` for
+    /// case 1, `false` for case 3). Case (2) — a member-aware scan with some
+    /// member unreached — is the only `is_complete() == false`.
     #[must_use]
     pub fn is_complete(&self) -> bool {
         self.unreached_sites.is_empty()
+    }
+
+    /// Whether the coverage / reachability question was *applicable* to the scan
+    /// that produced this report — the discriminator that makes the 3-state
+    /// coverage domain readable from a 2-valued [`Self::is_complete`].
+    ///
+    /// `true` iff the producing scan was member-aware (a `--workspace`
+    /// [`crate::scan::ScanCoverage`] record was present), so "every member
+    /// reached" is a claim with content. `false` for a flat scan, where there is
+    /// no member set and so no frontier to be complete *over* — `is_complete()`
+    /// is then vacuously `true` and means only "nothing detectable was missed,"
+    /// not "coverage was verified." Pairing the two methods lets a consumer
+    /// distinguish a verified-complete audit from a not-applicable one without
+    /// reaching back to the [`ScanReport`].
+    #[must_use]
+    pub const fn coverage_was_applicable(&self) -> bool {
+        self.applicable
     }
 
     /// Count of unreached sites for a given cause — lets a consumer report
@@ -4115,6 +4151,13 @@ impl CoverageAuditReport {
 pub fn audit_coverage(report: &ScanReport) -> CoverageAuditReport {
     let mut unreached_sites = Vec::new();
 
+    // `applicable` records whether the coverage question was askable at all — a
+    // member-aware scan carries a `ScanCoverage`, a flat scan does not. This is
+    // the third value `is_complete()` cannot carry: it lets a consumer tell a
+    // genuinely-complete member-aware audit from a not-applicable flat one
+    // (both have an empty `unreached_sites`).
+    let applicable = report.scan_coverage.is_some();
+
     if let Some(coverage) = report.scan_coverage.as_ref() {
         // Barrier cause: enumerated-but-unscanned members. The frontier is
         // already a set (unscanned_members dedups), so each member yields one
@@ -4130,7 +4173,10 @@ pub fn audit_coverage(report: &ScanReport) -> CoverageAuditReport {
         }
     }
 
-    CoverageAuditReport { unreached_sites }
+    CoverageAuditReport {
+        unreached_sites,
+        applicable,
+    }
 }
 
 // ============================================================================
