@@ -9024,6 +9024,15 @@ if any who-ref is unresolvable. (A `reviewed_by` attestation present while a `fi
 un-attested is not "partial fulfillment" — it is a reviewer attesting prematurely; the audit does
 not credit it until the filled step it depends on is attested.)
 
+**`ordered_by` is the opening attestation — it never alone fulfills.** `ordered_by` is the
+*requester* step (who commissioned the work); `filled_by` / `reviewed_by` are the *closing* steps
+(who did and reviewed the work). `Fulfilled` requires at least one closing step attested. A panel
+with `ordered_by` but no `filled_by` is evaluable-and-unsatisfied (`Pending` or `Overdue`, depending
+on the frame) — never `Fulfilled`. A chain with no closing steps at all (`filled_by` empty AND
+`reviewed_by` empty) is `OutOfFrame` / `MissingWorkStep` (structurally un-evaluable). This
+distinguishes (a) truly-open-work-need with only an opener from (b) truly-empty-chain (no who-refs
+at all) — both are non-`Fulfilled`, but only (b) is `OutOfFrame`.
+
 #### §Verdict semantics per shape (Q-gap — S3/S4 `Fulfilled` reachability, adversarial `ae2e3a2d`)
 
 Not every shape reaches `Fulfilled` the same way; two need explicit verdict semantics so `Fulfilled`
