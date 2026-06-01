@@ -811,6 +811,15 @@ struct VerifyDepPinArgs {
     /// Workspace root.
     #[arg(long, default_value = ".")]
     root: PathBuf,
+    /// Rewrite the adopter's `Cargo.toml` IN PLACE, pinning each unpinned dep to
+    /// its resolved `=<version>` from `Cargo.lock` (format-preserving — comments
+    /// and layout are kept). OPT-IN by design: rewriting the adopter's manifest
+    /// is an outward-facing, hard-to-reverse mutation, so it is NEVER the default
+    /// (ADR-017-Amd1 posture: gate mutation-safety). Without `--write` the
+    /// subcommand only PRINTS the suggested edits. Deps with no resolved version
+    /// in `Cargo.lock` are left unchanged (never guessed).
+    #[arg(long)]
+    write: bool,
 }
 
 #[derive(Debug, Parser)]
@@ -1050,6 +1059,45 @@ fn run_verify_dep_attest(args: VerifyDepAttestArgs) -> ExitCode {
     ExitCode::SUCCESS
 }
 
+/// The dep tables `verify dep-pin --write` rewrites — the same tables the
+/// evaluator's `read_manifest_deps` scans (minus target-conditional forms, which
+/// are nested sub-tables a v0.3 in-place rewrite leaves to the suggestion path).
+const PIN_REWRITE_TABLES: [&str; 3] = ["dependencies", "dev-dependencies", "build-dependencies"];
+
+/// In-place pin a single dep `name` to `=<version>` in a `toml_edit` `table`,
+/// preserving surrounding formatting. Handles both value shapes:
+///   `name = "1.2"`            → `name = "=1.2.3"`
+///   `name = { version = .. }` → the inline table's `version` becomes `=1.2.3`
+/// Returns true iff the dep was found in this table and rewritten. A path/git/
+/// workspace dep (no `version` key in its inline table) is left untouched — it
+/// was never in the unpinned set.
+fn pin_dep_in_table(table: &mut toml_edit::Table, name: &str, version: &str) -> bool {
+    let pinned = format!("={version}");
+    let Some(item) = table.get_mut(name) else {
+        return false;
+    };
+    match item {
+        // `name = "1.2"` — a bare string requirement.
+        toml_edit::Item::Value(toml_edit::Value::String(_)) => {
+            *item = toml_edit::value(pinned);
+            true
+        }
+        // `name = { version = "1.2", features = [..] }` — pin only the version
+        // key, keeping every other key (features, default-features, ...) intact.
+        // A path/git/workspace inline table (no `version` key) is left untouched.
+        toml_edit::Item::Value(toml_edit::Value::InlineTable(t)) if t.contains_key("version") => {
+            t.insert("version", toml_edit::Value::from(pinned));
+            true
+        }
+        // `[dependencies.name]` dotted sub-table — pin the version key if present.
+        toml_edit::Item::Table(t) if t.contains_key("version") => {
+            t.insert("version", toml_edit::value(pinned));
+            true
+        }
+        _ => false,
+    }
+}
+
 fn run_verify_dep_pin(args: VerifyDepPinArgs) -> ExitCode {
     use antigen::supply_chain::evaluate::{evaluate_dep_pinned, resolved_version_from_lockfile};
     use antigen::supply_chain::witness::DepPinnedState;
@@ -1060,36 +1108,49 @@ fn run_verify_dep_pin(args: VerifyDepPinArgs) -> ExitCode {
             ExitCode::SUCCESS
         }
         DepPinnedState::Unpinned { unpinned_deps } => {
+            let lockfile = args.root.join("Cargo.lock");
+            // Resolve each unpinned dep's version from Cargo.lock. A dep with no
+            // lockfile entry is NEVER guessed — it stays a suggestion/placeholder
+            // and is excluded from any --write rewrite.
+            let resolved: Vec<(String, String)> = unpinned_deps
+                .iter()
+                .filter_map(|name| {
+                    resolved_version_from_lockfile(&lockfile, name).map(|v| (name.clone(), v))
+                })
+                .collect();
+            let unresolved: Vec<&String> = unpinned_deps
+                .iter()
+                .filter(|n| !resolved.iter().any(|(rn, _)| rn == *n))
+                .collect();
+
+            if args.write {
+                return write_dep_pins(&args.root, &resolved, &unresolved);
+            }
+
             println!(
                 "verify dep-pin: {n} unpinned dep(s) detected. Suggested edits:",
                 n = unpinned_deps.len()
             );
-            // Resolve each unpinned dep's version from Cargo.lock so the
-            // suggestion is copy-paste-able (`=1.2.3`) rather than a placeholder.
-            // When the lockfile has no entry (not yet resolved), fall back to the
-            // placeholder + a note rather than guessing.
-            let lockfile = args.root.join("Cargo.lock");
-            let mut unresolved = 0usize;
-            for name in &unpinned_deps {
-                if let Some(version) = resolved_version_from_lockfile(&lockfile, name) {
-                    println!("  - in Cargo.toml [dependencies]: pin `{name}` to `={version}`");
-                } else {
-                    unresolved += 1;
-                    println!(
-                        "  - in Cargo.toml [dependencies]: pin `{name}` to `=<RESOLVED_VERSION>` \
-                         (no Cargo.lock entry — run `cargo generate-lockfile` first)"
-                    );
-                }
+            for (name, version) in &resolved {
+                println!("  - in Cargo.toml [dependencies]: pin `{name}` to `={version}`");
+            }
+            for name in &unresolved {
+                println!(
+                    "  - in Cargo.toml [dependencies]: pin `{name}` to `=<RESOLVED_VERSION>` \
+                     (no Cargo.lock entry — run `cargo generate-lockfile` first)"
+                );
             }
             println!();
-            if unresolved > 0 {
-                println!("note: {unresolved} dep(s) had no resolved version in Cargo.lock.");
+            if !unresolved.is_empty() {
+                println!(
+                    "note: {} dep(s) had no resolved version in Cargo.lock.",
+                    unresolved.len()
+                );
             }
             println!(
-                "v0.3: this subcommand prints copy-paste-able pin suggestions from the \
-                 resolved lockfile versions. In-place Cargo.toml rewriting is gated behind \
-                 a future `--write` flag (needs a format-preserving toml editor to keep \
-                 comments/layout, and rewriting the adopter's manifest is opt-in by design)."
+                "Re-run with `--write` to apply these pins IN PLACE (format-preserving; \
+                 deps with no resolved version are left untouched). Rewriting the adopter's \
+                 manifest is opt-in by design — never the default."
             );
             ExitCode::SUCCESS
         }
@@ -1098,6 +1159,100 @@ fn run_verify_dep_pin(args: VerifyDepPinArgs) -> ExitCode {
             ExitCode::from(2)
         }
     }
+}
+
+/// Apply the resolved pins to `Cargo.toml` IN PLACE via `toml_edit` (the `--write`
+/// path). Format-preserving: comments and layout are kept; only the `version`
+/// of each resolved unpinned dep changes to `=<version>`. Unresolved deps are
+/// reported and left untouched (never guessed). Returns exit 0 on a clean write,
+/// 2 on an IO/parse error.
+fn write_dep_pins(
+    root: &std::path::Path,
+    resolved: &[(String, String)],
+    unresolved: &[&String],
+) -> ExitCode {
+    let manifest_path = root.join("Cargo.toml");
+    let content = match std::fs::read_to_string(&manifest_path) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("error: read {}: {e}", manifest_path.display());
+            return ExitCode::from(2);
+        }
+    };
+    let mut doc = match content.parse::<toml_edit::DocumentMut>() {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("error: {} is not valid TOML: {e}", manifest_path.display());
+            return ExitCode::from(2);
+        }
+    };
+
+    let mut applied: Vec<&str> = Vec::new();
+    let mut not_found: Vec<&str> = Vec::new();
+    for (name, version) in resolved {
+        // Try each dep table; a dep lives in exactly one (the evaluator would
+        // have reported it once per table, but the name is what we pin).
+        let mut hit = false;
+        for table_name in PIN_REWRITE_TABLES {
+            if let Some(table) = doc
+                .get_mut(table_name)
+                .and_then(toml_edit::Item::as_table_mut)
+            {
+                if pin_dep_in_table(table, name, version) {
+                    hit = true;
+                }
+            }
+        }
+        if hit {
+            applied.push(name.as_str());
+        } else {
+            // Resolved a version but couldn't locate a rewritable entry — e.g.
+            // the dep is only under a target-conditional table (v0.3 leaves
+            // those to the suggestion path). Report, never silently drop.
+            not_found.push(name.as_str());
+        }
+    }
+
+    if applied.is_empty() {
+        println!("verify dep-pin --write: no rewritable unpinned deps with a resolved version.");
+    } else if let Err(e) = std::fs::write(&manifest_path, doc.to_string()) {
+        eprintln!("error: write {}: {e}", manifest_path.display());
+        return ExitCode::from(2);
+    } else {
+        println!(
+            "verify dep-pin --write: pinned {} dep(s) in place in {}:",
+            applied.len(),
+            manifest_path.display()
+        );
+        for (name, version) in resolved {
+            if applied.contains(&name.as_str()) {
+                println!("  - `{name}` → `={version}`");
+            }
+        }
+    }
+    if !not_found.is_empty() {
+        println!();
+        println!(
+            "note: {} resolved dep(s) were not in a rewritable [dependencies]/[dev-dependencies]/\
+             [build-dependencies] table (e.g. target-conditional) — pin them manually: {}",
+            not_found.len(),
+            not_found.join(", ")
+        );
+    }
+    if !unresolved.is_empty() {
+        println!();
+        println!(
+            "note: {} unpinned dep(s) had no resolved version in Cargo.lock and were left \
+             untouched (run `cargo generate-lockfile`, then re-run): {}",
+            unresolved.len(),
+            unresolved
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+    }
+    ExitCode::SUCCESS
 }
 
 fn run_verify_content_hash_record(args: VerifyContentHashRecordArgs) -> ExitCode {
