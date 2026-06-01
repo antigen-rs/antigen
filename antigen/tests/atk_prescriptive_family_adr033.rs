@@ -783,6 +783,38 @@ pub fn bar() {}
     );
 }
 
+/// ATK-PRES-14b: a QUALIFIED priority_order ref must NOT resolve via a bare
+/// leaf-name collision (the label-tail over-match guard).
+///
+/// `priority_order_ref_resolves` splits qualified vs unqualified refs: a
+/// qualified ref (`Other::run`) requires a precise match (full label or a
+/// `::`-suffix), so it must NOT be silently satisfied by an unrelated scanned
+/// site that merely shares the leaf segment `run`. If the audit resolved a
+/// qualified ref by leaf-collision, a dangling ref would falsely read resolvable
+/// (a silent-satisfied false-positive — the gem's mirror image).
+#[test]
+fn atk_pres14b_qualified_ref_does_not_resolve_by_leaf_collision() {
+    // The only scanned site is `bar` (leaf `bar`). The triage refs a QUALIFIED
+    // `Ghost::bar` — same leaf, different (non-existent) qualifier. The precise
+    // path must NOT resolve it ⇒ OutOfFrame, not a false Fulfilled.
+    let src = r#"use antigen::{triage, biopsy};
+#[triage(priority_order = ["Ghost::bar"], triaged_by = "nav", re_triage_due = "2099-01-01")]
+pub fn t() {}
+#[biopsy(request_text = "investigate bar", deep_investigation_by = "x")]
+pub fn bar() {}
+"#;
+    let report = audit_staged(src, Some(("t", |fp| sidecar_with_signer("t", "nav", fp))));
+    let v = first_verdict(&report);
+    assert_eq!(
+        v.verdict,
+        WorkVerdict::OutOfFrame,
+        "a qualified ref `Ghost::bar` must NOT resolve via the leaf `bar` of an \
+         unrelated site — precise match required. got {:?}. steps={:?}",
+        v.verdict,
+        v.steps
+    );
+}
+
 /// ATK-PRES-15: `reviewed_by` ordering — ALL `filled_by` attested, or ANY?
 ///
 /// §Witness-binding says "a `reviewed_by` attestation is only counted if the

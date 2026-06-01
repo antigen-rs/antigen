@@ -4343,16 +4343,22 @@ fn resolve_who_step(decl: &crate::scan::PrescriptiveDeclaration, who_ref: &str) 
 /// ADR-017-Amd1); until that lands, a cross-crate ref reads as unresolvable here
 /// (tier-honest: the scan did not see it, so the audit cannot resolve it).
 fn priority_order_ref_resolves(report: &ScanReport, ref_text: &str) -> bool {
-    // The ref points at a code site. Match it against any scanned declaration's
-    // identity. We compare against the rendered item-target labels of every
-    // scanned item-bearing declaration the report knows about. A ref of the form
-    // `path/to/file.rs::ident` matches when its trailing `::ident` segment (or
-    // the whole string) equals a known item label, OR the ref appears verbatim
-    // as a scanned site's `file::label`.
-    let needle_tail = ref_text.rsplit("::").next().unwrap_or(ref_text).trim();
-    if needle_tail.is_empty() {
+    let needle = ref_text.trim();
+    if needle.is_empty() {
         return false;
     }
+    // A QUALIFIED ref (`Type::method`, `mod::item`) must match precisely: either
+    // the full label, or a label whose qualified suffix is the ref (so a ref
+    // `Foo::bar` resolves a label `crate::Foo::bar`). An UNQUALIFIED ref (a bare
+    // ident, no `::`) is recall-tuned (scan-discipline): it resolves against a
+    // label's LEAF segment. The split prevents the over-match where two distinct
+    // sites `a::bar` and `b::bar` would both satisfy a bare `bar` *and* where a
+    // qualified `a::bar` would wrongly satisfy an unrelated `b::bar` (a label-tail
+    // collision the precise path forbids). Full cross-crate canonical-path
+    // resolution is Layer-2 (ADR-017-Amd1); this is the intra-workspace floor.
+    let needle_is_qualified = needle.contains("::");
+    let needle_leaf = needle.rsplit("::").next().unwrap_or(needle).trim();
+
     // Collect every scanned item label across the declaration families that
     // carry an item_target (the resolvable code sites the scan reached).
     // `AntigenDeclaration` is excluded deliberately — it names a TYPE (the
@@ -4370,9 +4376,19 @@ fn priority_order_ref_resolves(report: &ScanReport, ref_text: &str) -> bool {
                 .map(|d| d.item_target.label()),
         );
     for label in labels {
-        let label_tail = label.rsplit("::").next().unwrap_or(&label).trim();
-        if label == ref_text || label_tail == needle_tail {
-            return true;
+        let label = label.trim().to_owned();
+        if needle_is_qualified {
+            // Precise: exact match, or the label ends with `::<ref>` (the ref is
+            // a qualified suffix of a more-qualified label).
+            if label == needle || label.ends_with(&format!("::{needle}")) {
+                return true;
+            }
+        } else {
+            // Recall-tuned: a bare ident resolves against a label's leaf segment.
+            let label_leaf = label.rsplit("::").next().unwrap_or(&label).trim();
+            if label == needle || label_leaf == needle_leaf {
+                return true;
+            }
         }
     }
     false
