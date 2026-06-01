@@ -571,33 +571,71 @@ fn eval_ratified_doc<C: EvaluationContext>(
         evaluated: true,
         reason,
     };
+    // ADR-035 leaf-sweep (forward/adr035-leaf-sweep-bottom-to-false): the
+    // substrate-absent / input-unreadable arms are ⊥ (could-not-evaluate), NOT
+    // a genuine evaluated-and-failed. They must lift to `evaluated: false` so
+    // the CompositeVerdict three-state propagation is honest — collapsing ⊥ to a
+    // `false` (evaluated:true) verdict is the Shape-C lie the gem forbids. Only
+    // the arms where the read SUCCEEDED and the requirement is genuinely unmet
+    // keep `evaluated: true` (version-below-min, missing-anchor, missing-sibling).
+    let not_evaluated = |reason: String| LeafOutcome {
+        label: label.clone(),
+        passed: false,
+        evaluated: false,
+        reason,
+    };
 
     // Resolve the doc path: prefer explicit `path`, fall back to item's
-    // `doc_ref.path` (one indirection).
-    let path =
-        match explicit_path {
-            Some(p) => p.to_path_buf(),
-            None => match &item.doc_ref {
-                Some(dr) => dr.path.clone(),
-                None => return fail(
-                    "no doc to check — neither an explicit `path` nor an item `doc_ref` was set"
+    // `doc_ref.path` (one indirection). A site that names no doc at all is
+    // un-evaluable (there is nothing to read) — ⊥, not a genuine fail.
+    let path = match explicit_path {
+        Some(p) => p.to_path_buf(),
+        None => match &item.doc_ref {
+            Some(dr) => dr.path.clone(),
+            None => {
+                return not_evaluated(
+                    "no doc to check — neither an explicit `path` nor an item `doc_ref` \
+                     was set (nothing to evaluate)"
                         .to_string(),
-                ),
-            },
-        };
+                )
+            }
+        },
+    };
 
+    // Instance 1 (⊥): the doc is absent / unreadable — the substrate needed to
+    // evaluate is missing. Could-not-evaluate, not evaluated-and-failed.
     let Some(content) = ctx.read_doc(&path) else {
-        return fail(format!("doc not found or unreadable: `{}`", path.display()));
+        return not_evaluated(format!("doc not found or unreadable: `{}`", path.display()));
     };
 
     // Frontmatter version check (if min_version is requested).
     if let Some(min) = min_version {
+        // Instance 2 (⊥): the doc has no parseable frontmatter version — the
+        // value to compare is un-readable, so the version requirement is
+        // un-evaluable (not "below the floor").
         let Some(found_version) = parse_frontmatter_version(&content) else {
-            return fail(format!(
+            return not_evaluated(format!(
                 "doc `{}` has no parseable frontmatter version (required min_version `{min}`)",
                 path.display()
             ));
         };
+        // Instance 3 (⊥): the found version is present but NOT a parseable
+        // version string (e.g. a non-numeric or u64-overflowing component).
+        // `compare_versions` would silently coerce such a component to 0 and read
+        // it as below ANY real floor — a ⊥ masquerading as a genuine below-min
+        // fail. The eval-time DOC-side mirror of aristotle's validate-time
+        // PredicateParseError::UnparseableMinVersion (FT-3): the DECLARED min was
+        // closed upstream (cell b); the FOUND doc-version is read here (cell a)
+        // and must lift to ⊥, NOT reuse the validate-time fix. A genuinely
+        // below-floor but parseable version is still a real fail (kept below).
+        if !version_is_parseable(&found_version) {
+            return not_evaluated(format!(
+                "doc `{}` frontmatter version `{found_version}` is not a parseable version \
+                 (non-numeric or overflowing component) — the version requirement is \
+                 un-evaluable, not below the floor",
+                path.display()
+            ));
+        }
         if compare_versions(&found_version, min) == std::cmp::Ordering::Less {
             return fail(format!(
                 "doc `{}` version `{found_version}` is below required min_version `{min}`",
@@ -819,7 +857,16 @@ fn eval_oracles_complete<C: EvaluationContext>(
 ) -> LeafOutcome {
     use crate::schema::{OracleRef, OracleState};
     let label = "oracles_complete".to_string();
-    let check = |p: &std::path::PathBuf| -> Result<(), String> {
+    // Per-oracle result: `Ok(())` passes; `Err((evaluated, reason))` fails, where
+    // `evaluated` distinguishes a genuine evaluated-and-failed (true) from a ⊥
+    // could-not-evaluate (false). ADR-035 leaf-sweep instance 4
+    // (forward/adr035-leaf-sweep-bottom-to-false): a MISSING oracle file
+    // (`read_oracle` returns `None`) is substrate-absent ⊥ → `evaluated:false`;
+    // a file that READ but whose status ≠ "complete" is a genuine fail →
+    // `evaluated:true`. The old fused "missing OR not-complete" else-arm
+    // collapsed these. The NFA-26 oracle_state_blocks path is a genuine fail
+    // (the Oracle entry was read, its state is Draft/Revoked) — KEEP evaluated:true.
+    let check = |p: &std::path::PathBuf| -> Result<(), (bool, String)> {
         // NFA-26 fix: check Oracle artifact-class state before falling back to
         // file-content check. If a matching Oracle entry exists in the sidecar,
         // its state governs the evaluation — Draft blocks attestation,
@@ -843,31 +890,47 @@ fn eval_oracles_complete<C: EvaluationContext>(
             });
 
         if oracle_state_blocks {
-            return Err(format!(
-                "oracle `{}` is Draft or Revoked(invalidates=true) — blocks attestation",
-                p.display()
+            // The Oracle entry was read; its state genuinely blocks. evaluated:true.
+            return Err((
+                true,
+                format!(
+                    "oracle `{}` is Draft or Revoked(invalidates=true) — blocks attestation",
+                    p.display()
+                ),
             ));
         }
 
-        if ctx
-            .read_oracle(p)
-            .is_some_and(|content| parse_oracle_status(&content).as_deref() == Some("complete"))
-        {
+        // ⊥: the oracle file is absent — the substrate needed to evaluate is
+        // missing. Could-not-evaluate (evaluated:false), NOT evaluated-and-failed.
+        let Some(content) = ctx.read_oracle(p) else {
+            return Err((
+                false,
+                format!(
+                    "oracle `{}` is missing — the oracle file could not be read (un-evaluable)",
+                    p.display()
+                ),
+            ));
+        };
+        if parse_oracle_status(&content).as_deref() == Some("complete") {
             Ok(())
         } else {
-            Err(format!(
-                "oracle `{}` is missing or its status is not `complete`",
-                p.display()
+            // The file READ; its status is genuinely not `complete` — a real fail.
+            Err((
+                true,
+                format!(
+                    "oracle `{}` was read but its status is not `complete`",
+                    p.display()
+                ),
             ))
         }
     };
 
     for p in files {
-        if let Err(reason) = check(p) {
+        if let Err((evaluated, reason)) = check(p) {
             return LeafOutcome {
                 label,
                 passed: false,
-                evaluated: true,
+                evaluated,
                 reason,
             };
         }
@@ -1092,6 +1155,26 @@ fn parse_frontmatter_field(content: &str, field_prefix: &str) -> Option<String> 
 /// Parse `status: <value>` from an oracle file's YAML frontmatter.
 fn parse_oracle_status(content: &str) -> Option<String> {
     parse_frontmatter_field(content, "status:")
+}
+
+/// Whether `v` is a parseable version string for [`compare_versions`] — every
+/// `.`-separated component must trim to a valid `u64`. Used by the ADR-035
+/// leaf-sweep (instance 3, forward/adr035-leaf-sweep-bottom-to-false) to tell a
+/// genuinely-comparable found doc-version from an un-readable one: a component
+/// that does not parse (non-numeric, or numeric-but-overflowing `u64`) makes the
+/// version un-evaluable (⊥), distinct from a parseable version that is genuinely
+/// below the floor. `compare_versions` itself coerces an unparseable component
+/// to 0 (so a comparison never panics); this gate runs BEFORE that coercion can
+/// silently fabricate a below-floor verdict.
+fn version_is_parseable(v: &str) -> bool {
+    let mut any = false;
+    for component in v.split('.') {
+        any = true;
+        if component.trim().parse::<u64>().is_err() {
+            return false;
+        }
+    }
+    any
 }
 
 /// Lexicographic comparison of semver-shaped version strings. Splits on
@@ -1584,6 +1667,13 @@ mod tests {
 
     #[test]
     fn all_of_short_circuits_on_first_fail() {
+        // ADR-035 leaf-sweep fixture update: the oracle leaf must be a GENUINE
+        // evaluated-and-failed (a present file whose status ≠ "complete"), NOT an
+        // ABSENT file. An absent oracle is now correctly ⊥ (evaluated:false →
+        // Deferred), which would make the all_of Deferred, not Failed — so the
+        // old "nonexistent.md" fixture no longer tests short-circuit-on-FAIL (it
+        // would test short-circuit-on-⊥). A present-but-draft oracle is the
+        // genuine-fail this test intends.
         let item = item_with(vec![alice_fresh(sample_date(), "fp-current")]);
         let pred = Predicate::all_of(vec![
             Predicate::leaf(Leaf::Signers {
@@ -1594,14 +1684,19 @@ mod tests {
                 signature_prefer: None,
             }),
             Predicate::leaf(Leaf::OraclesComplete {
-                files: vec![PathBuf::from("nonexistent.md")],
+                files: vec![PathBuf::from("docs/oracles/draft.md")],
             }),
         ])
         .unwrap();
-        let ctx = TestContext::new(sample_date());
+        let ctx = TestContext::new(sample_date()).with_oracle(
+            "docs/oracles/draft.md",
+            "---\nstatus: draft\n---\n# present but not complete\n",
+        );
         let r =
             evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
-        // OraclesComplete leaf fails → all_of fails → DisciplinePredicateFailed
+        // OraclesComplete leaf is read but status ≠ complete → genuine fail →
+        // all_of fails → DisciplinePredicateFailed (a real evaluated failure,
+        // distinct from the ⊥ Deferred path).
         assert_eq!(r.witness_tier, WitnessTier::None);
         assert_eq!(r.audit_hint, AuditHint::DisciplinePredicateFailed);
     }
@@ -2876,9 +2971,6 @@ mod tests {
     /// "I checked this and it failed" when the file was never read.
     /// Fix: the doc-not-found arm must return `LeafOutcome { evaluated: false, .. }`.
     #[test]
-    #[ignore = "pre-fix contract (ADR-035 leaf-sweep instance 1): campsite \
-                forward/adr035-leaf-sweep-bottom-to-false — fix eval_ratified_doc \
-                doc-not-found arm to return evaluated:false, then un-ignore"]
     fn atk_adr035_leaf_sweep_ratified_doc_not_found_must_be_not_evaluated() {
         let item = item_with(vec![]);
         // Context has NO doc registered — read_doc returns None for any path.
@@ -2922,9 +3014,6 @@ mod tests {
     /// no-parseable-version path (`line 595-599`).
     /// Fix: the no-parseable-version arm must return `LeafOutcome { evaluated: false, .. }`.
     #[test]
-    #[ignore = "pre-fix contract (ADR-035 leaf-sweep instance 2): campsite \
-                forward/adr035-leaf-sweep-bottom-to-false — fix eval_ratified_doc \
-                no-parseable-version arm to return evaluated:false, then un-ignore"]
     fn atk_adr035_leaf_sweep_ratified_doc_no_frontmatter_version_must_be_not_evaluated() {
         let item = item_with(vec![]);
         // Doc exists but has no frontmatter version field at all.
@@ -2954,6 +3043,102 @@ mod tests {
         );
     }
 
+    /// ADR-035 leaf-sweep instance 3: `eval_ratified_doc` — found doc-version is
+    /// present but NOT parseable (the eval-time DOC-side mirror of FT-3).
+    ///
+    /// A frontmatter version with a non-numeric / u64-overflowing component is
+    /// read but un-comparable. `compare_versions` would coerce the bad component
+    /// to 0 and read it as below ANY real floor — a ⊥ masquerading as a genuine
+    /// below-min fail. The fix gates on `version_is_parseable` BEFORE
+    /// `compare_versions`, lifting the unparseable case to `evaluated: false`.
+    /// Distinct partition cell from the validate-time `min_version` fix (FT-3,
+    /// cell b): this is the eval-time found-version read (cell a).
+    #[test]
+    fn atk_adr035_leaf_sweep_ratified_doc_unparseable_found_version_must_be_not_evaluated() {
+        let item = item_with(vec![]);
+        // Doc exists with a frontmatter version whose component overflows u64
+        // (and is non-numeric-shaped after the dot) — un-comparable.
+        let ctx = TestContext::new(sample_date()).with_doc(
+            "docs/bad-version.md",
+            "---\nversion: 99999999999999999999999999.x\n---\n# body\n",
+        );
+        let pred = Predicate::leaf(Leaf::RatifiedDoc {
+            path: Some(PathBuf::from("docs/bad-version.md")),
+            min_version: Some("1.0".to_string()),
+            anchor: None,
+            sibling_json: false,
+        });
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+        let leaf = &r.leaf_outcomes[0];
+        assert!(
+            !leaf.evaluated,
+            "ADR-035 leaf-sweep instance 3: an unparseable found doc-version is ⊥ \
+             (un-comparable), not a genuine below-floor fail — must be evaluated=false. \
+             compare_versions' parse::<u64>().unwrap_or(0) would silently read it as 0 \
+             (< any floor) ⇒ a ⊥→false lie. Current: passed={}, evaluated={}.",
+            leaf.passed, leaf.evaluated,
+        );
+    }
+
+    /// ADR-035 leaf-sweep — genuine-fail CONTROL (must NOT flip): a doc whose
+    /// version is parseable AND genuinely below the floor is a real
+    /// evaluated-and-failed — `evaluated: true`. The sweep tightens ONLY the ⊥
+    /// arms; this asserts the surgical scope (the version-below-min path
+    /// evaluate.rs:601-606 is unchanged).
+    #[test]
+    fn atk_adr035_leaf_sweep_genuine_version_below_min_stays_evaluated() {
+        let item = item_with(vec![]);
+        let ctx = TestContext::new(sample_date())
+            .with_doc("docs/old.md", "---\nversion: 0.5\n---\n# body\n");
+        let pred = Predicate::leaf(Leaf::RatifiedDoc {
+            path: Some(PathBuf::from("docs/old.md")),
+            min_version: Some("1.0".to_string()),
+            anchor: None,
+            sibling_json: false,
+        });
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+        let leaf = &r.leaf_outcomes[0];
+        assert!(
+            leaf.evaluated && !leaf.passed,
+            "version 0.5 < min 1.0 is a GENUINE evaluated-and-failed (read succeeded, \
+             version parsed, comparison genuinely below) — must stay evaluated=true, \
+             passed=false. The sweep must not over-flip genuine fails. \
+             Current: passed={}, evaluated={}.",
+            leaf.passed,
+            leaf.evaluated,
+        );
+    }
+
+    /// ADR-035 leaf-sweep — oracle genuine-fail CONTROL (must NOT flip): an
+    /// oracle file that READS but whose status ≠ "complete" is a genuine
+    /// evaluated-and-failed — `evaluated: true`. Distinguishes the read-succeeded
+    /// fail from the absent-file ⊥ (instance 4).
+    #[test]
+    fn atk_adr035_leaf_sweep_oracle_present_but_incomplete_stays_evaluated() {
+        let item = item_with(vec![]);
+        // Oracle file READS, but its status is `draft` (not `complete`).
+        let ctx = TestContext::new(sample_date()).with_oracle(
+            "docs/oracles/present.md",
+            "---\nstatus: draft\n---\n# oracle body\n",
+        );
+        let pred = Predicate::leaf(Leaf::OraclesComplete {
+            files: vec![PathBuf::from("docs/oracles/present.md")],
+        });
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+        let leaf = &r.leaf_outcomes[0];
+        assert!(
+            leaf.evaluated && !leaf.passed,
+            "an oracle that READ but is not `complete` is a GENUINE evaluated-and-failed \
+             — must stay evaluated=true, passed=false (distinct from the absent-file ⊥). \
+             Current: passed={}, evaluated={}.",
+            leaf.passed,
+            leaf.evaluated,
+        );
+    }
+
     /// ADR-035 leaf-sweep instance 4: `eval_oracles_complete` — oracle file absent.
     ///
     /// When `ctx.read_oracle()` returns `None` (the oracle file is absent),
@@ -2970,9 +3155,6 @@ mod tests {
     /// Fix: split the `else` arm — `read_oracle None` → `evaluated: false`;
     /// `read_oracle Some` but wrong status → `evaluated: true`.
     #[test]
-    #[ignore = "pre-fix contract (ADR-035 leaf-sweep instance 4): campsite \
-                forward/adr035-leaf-sweep-bottom-to-false — fix eval_oracles_complete \
-                absent-oracle arm to return evaluated:false, then un-ignore"]
     fn atk_adr035_leaf_sweep_oracle_missing_must_be_not_evaluated() {
         let item = item_with(vec![]);
         // Context has NO oracle registered — read_oracle returns None.
