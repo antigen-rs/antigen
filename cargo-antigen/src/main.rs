@@ -857,6 +857,19 @@ struct VerifyContentHashCheckArgs {
     root: PathBuf,
     /// `<crate>@<version>` positional argument.
     crate_at_version: String,
+    /// Additionally verify against the hash crates.io ACTUALLY SERVES (the live
+    /// depth claim): fetch the version's checksum from the crates.io sparse
+    /// index and compare. Degrades gracefully — if the registry is unreachable
+    /// (offline / network error / version absent), the live check is reported
+    /// UNVERIFIABLE and SKIPPED, never blocking the local check. Off by default.
+    #[arg(long)]
+    live: bool,
+    /// With `--live`: exit non-zero on a live MISMATCH (the substitution signal).
+    /// Without `--strict`, a live mismatch is reported loudly but does not change
+    /// the exit code (the local check governs). An UNVERIFIABLE live check never
+    /// affects the exit code regardless of `--strict` (offline ≠ failure).
+    #[arg(long)]
+    strict: bool,
 }
 
 fn run_verify(cli: VerifyCli) -> ExitCode {
@@ -1305,6 +1318,51 @@ fn run_verify_content_hash_record(args: VerifyContentHashRecordArgs) -> ExitCode
     }
 }
 
+/// The crates.io sparse-index path prefix for `name`, per cargo's convention:
+/// 1-char → `1/<name>`; 2-char → `2/<name>`; 3-char → `3/<c1>/<name>`;
+/// 4+-char → `<c1c2>/<c3c4>/<name>`. Names are lowercased (the index is
+/// case-insensitive, stored lowercase). Returns `None` for an empty name.
+fn cratesio_index_path(name: &str) -> Option<String> {
+    let lower = name.to_lowercase();
+    let n = lower.chars().count();
+    match n {
+        0 => None,
+        1 => Some(format!("1/{lower}")),
+        2 => Some(format!("2/{lower}")),
+        3 => Some(format!("3/{}/{lower}", &lower[..1])),
+        _ => Some(format!("{}/{}/{lower}", &lower[..2], &lower[2..4])),
+    }
+}
+
+/// Network shell for the live verification: fetch the SHA-256 `cksum` crates.io
+/// serves for `name@version` from the sparse index. Returns `None` on ANY
+/// network failure / parse failure / version-absent — the caller treats `None`
+/// as ⊥ (Unverifiable), so the live check degrades gracefully (never blocks).
+/// This is the ONLY networked code; the verdict is the pure
+/// `compare_live_cksum`. A 5s timeout bounds the offline-degradation latency.
+fn fetch_cratesio_cksum(name: &str, version: &str) -> Option<String> {
+    let index_path = cratesio_index_path(name)?;
+    let url = format!("https://index.crates.io/{index_path}");
+    let agent = ureq::AgentBuilder::new()
+        .timeout(std::time::Duration::from_secs(5))
+        .build();
+    let body = agent.get(&url).call().ok()?.into_string().ok()?;
+    // The sparse index is NDJSON: one JSON object per published version. Find the
+    // line whose `vers` matches and return its `cksum` (the tarball SHA-256).
+    for line in body.lines() {
+        let Ok(entry) = serde_json::from_str::<serde_json::Value>(line) else {
+            continue;
+        };
+        if entry.get("vers").and_then(|v| v.as_str()) == Some(version) {
+            return entry
+                .get("cksum")
+                .and_then(|c| c.as_str())
+                .map(str::to_owned);
+        }
+    }
+    None // version not present in the index
+}
+
 fn run_verify_content_hash_check(args: VerifyContentHashCheckArgs) -> ExitCode {
     use antigen::supply_chain::evaluate::evaluate_content_hash_matches;
     use antigen::supply_chain::witness::ContentHashState;
@@ -1314,8 +1372,18 @@ fn run_verify_content_hash_check(args: VerifyContentHashCheckArgs) -> ExitCode {
         return ExitCode::from(2);
     };
 
+    // The live verification (--live) runs ALONGSIDE the local check and never
+    // overrides it except (under --strict) to escalate a live mismatch. An
+    // UNVERIFIABLE live check (offline) is reported and skipped — exit code
+    // unaffected. The local check below is always authoritative for exit 0/1/2.
+    let live_escalates = if args.live {
+        run_live_cksum_check(&args.root, &crate_name, &version, args.strict)
+    } else {
+        false
+    };
+
     let state = evaluate_content_hash_matches(&args.root, &crate_name, &version);
-    match state {
+    let local = match state {
         ContentHashState::Matches => {
             println!("content-hash: MATCH for {crate_name}@{version}");
             ExitCode::SUCCESS
@@ -1348,6 +1416,75 @@ fn run_verify_content_hash_check(args: VerifyContentHashCheckArgs) -> ExitCode {
                  Parse error: {error}"
             );
             ExitCode::from(1)
+        }
+    };
+
+    // A live MISMATCH under --strict escalates a local pass to a failure (the
+    // registry served a different hash than what we have locally — a real
+    // supply-chain signal). A local failure already governs; an UNVERIFIABLE
+    // live check never escalates (offline ≠ failure).
+    if live_escalates {
+        return ExitCode::from(1);
+    }
+    local
+}
+
+/// Run the live crates.io content-hash verification (the `--live` path). Fetches
+/// the served cksum, runs the pure 3-valued [`compare_live_cksum`], prints the
+/// outcome, and returns `true` iff the result should ESCALATE the exit code (a
+/// `Mismatch` under `--strict`). `Verified` and `Unverifiable` never escalate;
+/// `Unverifiable` (offline) is reported and skipped so the audit is not blocked.
+fn run_live_cksum_check(
+    root: &std::path::Path,
+    crate_name: &str,
+    version: &str,
+    strict: bool,
+) -> bool {
+    use antigen::supply_chain::evaluate::{compare_live_cksum, current_hash_from_lockfile};
+    use antigen::supply_chain::witness::LiveCksumState;
+
+    // The expected hash is the one cargo recorded locally (Cargo.lock checksum).
+    // If we don't even have a local hash to compare, the live check has no
+    // expectation to verify against — report and skip (no escalation).
+    let lockfile = root.join("Cargo.lock");
+    let Some(expected) = current_hash_from_lockfile(&lockfile, crate_name, version) else {
+        println!(
+            "content-hash --live: SKIPPED — no local Cargo.lock checksum for \
+             {crate_name}@{version} to compare against the registry."
+        );
+        return false;
+    };
+
+    let served = fetch_cratesio_cksum(crate_name, version);
+    match compare_live_cksum(served.as_deref(), &expected) {
+        LiveCksumState::Verified { hash } => {
+            println!(
+                "content-hash --live: VERIFIED for {crate_name}@{version} — the crates.io \
+                 sparse-index cksum matches the local lockfile checksum ({hash})."
+            );
+            false
+        }
+        LiveCksumState::Mismatch { expected, served } => {
+            println!("content-hash --live: MISMATCH for {crate_name}@{version}");
+            println!("  local (lockfile): {expected}");
+            println!("  crates.io served: {served}");
+            println!();
+            println!(
+                "The registry serves a DIFFERENT hash than your lockfile records — a \
+                 supply-chain substitution / yank-and-republish signal. Investigate before \
+                 trusting this dependency."
+            );
+            if strict {
+                println!("  (--strict: escalating to a non-zero exit)");
+            }
+            strict
+        }
+        LiveCksumState::Unverifiable { reason } => {
+            // ⊥: offline / network error / version absent. Report and SKIP —
+            // never block the audit, never escalate, regardless of --strict.
+            println!("content-hash --live: UNVERIFIABLE for {crate_name}@{version} — skipped.");
+            println!("  reason: {reason}");
+            false
         }
     }
 }
@@ -5314,4 +5451,37 @@ fn print_state7_diagnostics(audit_report: &audit::AuditReport) {
         "  Use `cargo antigen audit --strict` to promote state-7 \
          warnings to errors for CI gating."
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::cratesio_index_path;
+
+    // The crates.io sparse-index path convention is the deterministic core of
+    // the live-verification network shell — unit-tested here. The 3-valued
+    // verdict (compare_live_cksum) is tested in the antigen lib; the network
+    // fetch itself (real HTTP to crates.io) is verified manually, since it
+    // cannot be made hermetic.
+
+    #[test]
+    fn cratesio_index_path_follows_cargo_length_convention() {
+        // 1/2/3-char names get the short prefixes; 4+ get the <c1c2>/<c3c4> form.
+        assert_eq!(cratesio_index_path("a").as_deref(), Some("1/a"));
+        assert_eq!(cratesio_index_path("ab").as_deref(), Some("2/ab"));
+        assert_eq!(cratesio_index_path("abc").as_deref(), Some("3/a/abc"));
+        assert_eq!(cratesio_index_path("serde").as_deref(), Some("se/rd/serde"));
+        assert_eq!(cratesio_index_path("ureq").as_deref(), Some("ur/eq/ureq"));
+    }
+
+    #[test]
+    fn cratesio_index_path_lowercases_the_name() {
+        // The index is stored lowercase; a mixed-case name must normalize.
+        assert_eq!(cratesio_index_path("Serde").as_deref(), Some("se/rd/serde"));
+        assert_eq!(cratesio_index_path("AB").as_deref(), Some("2/ab"));
+    }
+
+    #[test]
+    fn cratesio_index_path_empty_name_is_none() {
+        assert_eq!(cratesio_index_path(""), None);
+    }
 }

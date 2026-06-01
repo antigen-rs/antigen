@@ -288,6 +288,39 @@ pub fn evaluate_content_hash_matches(
     }
 }
 
+/// Pure comparator for the live crates.io content-hash verification.
+///
+/// The 3-valued core of `infra/live-cratesio-query-and-tarball-sha256`, kept
+/// pure (no network) so it is exhaustively unit-testable offline. The network
+/// fetch is a thin shell (in the cargo-antigen CLI) that produces `served` and
+/// feeds it here: `None` when the registry could not be reached (offline /
+/// version absent), `Some(hash)` when a served hash was obtained.
+///
+/// The three outcomes mirror the gem at the network boundary:
+/// - `served == Some(h)` and `h == expected` → [`LiveCksumState::Verified`].
+/// - `served == Some(h)` and `h != expected` → [`LiveCksumState::Mismatch`]
+///   (the substitution signal — loud).
+/// - `served == None` → [`LiveCksumState::Unverifiable`] (⊥ — could-not-evaluate;
+///   offline must never read as verified OR failed).
+#[must_use]
+pub fn compare_live_cksum(served: Option<&str>, expected: &str) -> super::witness::LiveCksumState {
+    use super::witness::LiveCksumState;
+    match served {
+        None => LiveCksumState::Unverifiable {
+            reason: "crates.io registry unreachable (offline, network error, or version \
+                     absent from the index) — the live hash could not be obtained"
+                .to_string(),
+        },
+        Some(h) if h == expected => LiveCksumState::Verified {
+            hash: h.to_string(),
+        },
+        Some(h) => LiveCksumState::Mismatch {
+            expected: expected.to_string(),
+            served: h.to_string(),
+        },
+    }
+}
+
 /// Load a content-hash record from disk.
 ///
 /// Returns:
@@ -827,5 +860,71 @@ version = "1.36.0"
             resolved_version_from_lockfile(&tmp.path().join("Cargo.lock"), "serde"),
             None
         );
+    }
+
+    // ------------------------------------------------------------------------
+    // compare_live_cksum — the 3-valued live crates.io verification core.
+    // Pure (no network), so all three branches are exhaustively unit-testable
+    // offline; the network shell (cargo-antigen) only produces the Option.
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn live_cksum_matching_served_hash_is_verified() {
+        use crate::supply_chain::witness::LiveCksumState;
+        let out = compare_live_cksum(Some("abc123"), "abc123");
+        assert_eq!(
+            out,
+            LiveCksumState::Verified {
+                hash: "abc123".into()
+            }
+        );
+        assert!(out.is_verified() && !out.is_unverifiable());
+    }
+
+    #[test]
+    fn live_cksum_differing_served_hash_is_mismatch() {
+        use crate::supply_chain::witness::LiveCksumState;
+        let out = compare_live_cksum(Some("served-deadbeef"), "expected-abc123");
+        assert_eq!(
+            out,
+            LiveCksumState::Mismatch {
+                expected: "expected-abc123".into(),
+                served: "served-deadbeef".into(),
+            }
+        );
+        // A mismatch is NOT verified, but it is also NOT unverifiable — it is a
+        // genuine, loud, evaluated failure (the substitution signal).
+        assert!(!out.is_verified() && !out.is_unverifiable());
+    }
+
+    #[test]
+    fn live_cksum_offline_is_unverifiable_not_pass_or_fail() {
+        use crate::supply_chain::witness::LiveCksumState;
+        // The gem at the network boundary: None (offline) is ⊥, distinct from
+        // both Verified and Mismatch. It must NOT collapse to either.
+        let out = compare_live_cksum(None, "expected-abc123");
+        assert!(
+            out.is_unverifiable(),
+            "offline must be Unverifiable (⊥): {out:?}"
+        );
+        assert!(
+            !out.is_verified(),
+            "offline must NOT read as verified (false-green): {out:?}"
+        );
+        assert!(
+            matches!(out, LiveCksumState::Unverifiable { .. }),
+            "offline is the third value, never Mismatch (false-alarm): {out:?}"
+        );
+    }
+
+    #[test]
+    fn live_cksum_three_outcomes_are_pairwise_distinct() {
+        // The whole point of the 3-valued core: the three outcomes never alias.
+        let verified = compare_live_cksum(Some("h"), "h");
+        let mismatch = compare_live_cksum(Some("h"), "other");
+        let unverifiable = compare_live_cksum(None, "h");
+        assert_ne!(verified, mismatch);
+        assert_ne!(verified, unverifiable);
+        assert_ne!(mismatch, unverifiable);
     }
 }

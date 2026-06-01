@@ -31,6 +31,12 @@ chrono = { version = "0.4", default-features = false, features = ["std", "clock"
 # dep-count). Attested per antigen's own UnpinnedDependency discipline — pinned
 # to a minor (0.22) so the supply-chain surface is explicit.
 toml_edit = "0.22"
+# Blocking HTTP client for `verify content-hash check --live` (the live
+# crates.io tarball-SHA-256 verification). ureq (sync, rustls, tiny) over reqwest
+# (async, tokio) — cargo-antigen is a sync CLI. Posture: dep approved; the
+# offline-degradation behavior is the build-requirement (gated in code, never a
+# hard error). default-features keeps rustls; no native-tls/openssl footprint.
+ureq = "2"
 
 [dev-dependencies]
 tempfile = "3"

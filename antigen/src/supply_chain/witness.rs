@@ -199,6 +199,70 @@ impl ContentHashState {
 }
 
 // ============================================================================
+// LiveCksumState — the live crates.io tarball-SHA-256 verification
+// ============================================================================
+
+/// Outcome of comparing a locally-expected content hash against the hash the
+/// crates.io registry actually serves (the live-verification depth claim,
+/// `infra/live-cratesio-query-and-tarball-sha256`).
+///
+/// **Three-valued by construction** (the gem shape at the network boundary): a
+/// network failure is `Unverifiable` (⊥ — could-not-evaluate), categorically
+/// distinct from `Verified` (the served hash matches) and `Mismatch` (the served
+/// hash DIFFERS — a substitution / yank-and-republish signal). Collapsing
+/// `Unverifiable` into either pass or fail is the same cardinality-collapse the
+/// three-valued-logic gem and the leaf-sweep forbid: offline must never read as
+/// "verified" (false-green) and never as "failed" (false-alarm that blocks the
+/// audit). The pure comparator [`crate::supply_chain::evaluate::compare_live_cksum`]
+/// produces this; the network fetch is a thin shell that feeds it `None` when
+/// offline.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "kebab-case")]
+pub enum LiveCksumState {
+    /// The registry-served hash matches the expected (local) hash. The depth
+    /// claim holds — what cargo recorded is what crates.io still serves.
+    Verified {
+        /// The hash both sides agree on.
+        hash: String,
+    },
+    /// The registry-served hash DIFFERS from the expected hash — a supply-chain
+    /// substitution signal (the crate was yanked-and-republished, or the local
+    /// lockfile/record is stale relative to the registry). The loud finding.
+    Mismatch {
+        /// The expected (local) hash.
+        expected: String,
+        /// The hash crates.io served.
+        served: String,
+    },
+    /// The registry could not be reached (offline / network error / the version
+    /// was absent from the index). ⊥ — could-not-evaluate. NOT a pass and NOT a
+    /// fail: the live check is simply unavailable here, so it must degrade
+    /// gracefully (skip-with-warning, never block the audit).
+    Unverifiable {
+        /// Why the live check could not run (diagnostic).
+        reason: String,
+    },
+}
+
+impl LiveCksumState {
+    /// True only for [`Self::Verified`]. A `Mismatch` is a real fail; an
+    /// `Unverifiable` is neither — callers must branch on all three, never
+    /// treat `!is_verified()` as "failed."
+    #[must_use]
+    pub const fn is_verified(&self) -> bool {
+        matches!(self, Self::Verified { .. })
+    }
+
+    /// True for [`Self::Unverifiable`] — the ⊥ value the network boundary
+    /// produces offline. Lets a caller distinguish "could not check" from
+    /// "checked and mismatched" without inspecting the reason string.
+    #[must_use]
+    pub const fn is_unverifiable(&self) -> bool {
+        matches!(self, Self::Unverifiable { .. })
+    }
+}
+
+// ============================================================================
 // SandboxState
 // ============================================================================
 
