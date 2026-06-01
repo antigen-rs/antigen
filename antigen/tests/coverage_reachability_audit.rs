@@ -55,9 +55,7 @@ fn unreached_cause_cardinality_is_exactly_three() {
     ];
     for cause in all {
         match cause {
-            UnreachedCause::Barrier
-            | UnreachedCause::SubThreshold
-            | UnreachedCause::Cryptic => {}
+            UnreachedCause::Barrier | UnreachedCause::SubThreshold | UnreachedCause::Cryptic => {}
         }
     }
     assert_eq!(
@@ -78,8 +76,14 @@ fn each_cause_routes_a_distinct_remedy() {
     let b = UnreachedCause::Barrier.remedy();
     let s = UnreachedCause::SubThreshold.remedy();
     let c = UnreachedCause::Cryptic.remedy();
-    assert_ne!(b, s, "Barrier and SubThreshold must route different remedies");
-    assert_ne!(s, c, "SubThreshold and Cryptic must route different remedies");
+    assert_ne!(
+        b, s,
+        "Barrier and SubThreshold must route different remedies"
+    );
+    assert_ne!(
+        s, c,
+        "SubThreshold and Cryptic must route different remedies"
+    );
     assert_ne!(b, c, "Barrier and Cryptic must route different remedies");
     assert!(
         !b.is_empty() && !s.is_empty() && !c.is_empty(),
@@ -104,7 +108,10 @@ fn barrier_verdict_fires_for_each_unscanned_member() {
         out.unreached_sites
     );
     let site = &out.unreached_sites[0];
-    assert_eq!(site.region, "b@1", "the unreached region is the unscanned member");
+    assert_eq!(
+        site.region, "b@1",
+        "the unreached region is the unscanned member"
+    );
     assert_eq!(
         site.cause,
         UnreachedCause::Barrier,

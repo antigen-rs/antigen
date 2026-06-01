@@ -4573,6 +4573,86 @@ impl QuarantineArgs {
     }
 }
 
+/// Arguments to `#[triage(priority_order, triaged_by?, re_triage_due?)]`
+/// (ADR-033 S3 Ordering). Per the 2026-06-01 post-ratification fixup, `campsites`
+/// was DROPPED (transcription drift); `priority_order` entries are **code-site
+/// references** (file/item-path), in priority order — NOT camp campsites (anchor
+/// #3: the audit never reads camp). Resolution is at audit-time (ADR-017
+/// Amendment 1): an unresolvable ref ⇒ `out-of-frame`, never silent-satisfied.
+#[derive(Debug)]
+pub struct TriageArgs {
+    pub priority_order: Vec<String>,
+    pub priority_order_present: bool,
+    #[allow(dead_code)]
+    pub triaged_by: Option<String>,
+    #[allow(dead_code)]
+    pub re_triage_due: Option<String>,
+    pub args_span: Span,
+}
+
+impl Parse for TriageArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut priority_order: Vec<String> = Vec::new();
+        let mut priority_order_present = false;
+        let mut triaged_by: Option<String> = None;
+        let mut re_triage_due: Option<String> = None;
+
+        let pairs: Punctuated<MetaPair, Token![,]> =
+            input.parse_terminated(MetaPair::parse, Token![,])?;
+        for pair in pairs {
+            match pair.key.to_string().as_str() {
+                "priority_order" => {
+                    priority_order = pair.expect_string_array()?;
+                    priority_order_present = true;
+                }
+                "triaged_by" => triaged_by = Some(pair.expect_string()?),
+                "re_triage_due" => re_triage_due = Some(pair.expect_string()?),
+                other => {
+                    return Err(syn::Error::new(
+                        pair.key.span(),
+                        format!(
+                            "unknown #[triage] field `{other}`; expected one of: \
+                             priority_order, triaged_by, re_triage_due (note: `campsites` was \
+                             dropped — `priority_order` entries are code-site references)"
+                        ),
+                    ));
+                }
+            }
+        }
+        Ok(Self {
+            priority_order,
+            priority_order_present,
+            triaged_by,
+            re_triage_due,
+            args_span,
+        })
+    }
+}
+
+impl TriageArgs {
+    /// `priority_order` is required and non-empty (an empty ordering is a vacuous
+    /// work-need; joins the EmptySignersList vacuous-guard class — ADR-033
+    /// §Enforcement-Surface).
+    pub fn validate(&self) -> syn::Result<()> {
+        if !self.priority_order_present {
+            return Err(syn::Error::new(
+                self.args_span,
+                "#[triage] requires `priority_order = [\"...\", ...]` (code-site references in \
+                 priority order).",
+            ));
+        }
+        if self.priority_order.iter().all(|p| p.trim().is_empty()) {
+            return Err(syn::Error::new(
+                self.args_span,
+                "#[triage] `priority_order` must be non-empty — an empty ordering is a vacuous \
+                 work-need.",
+            ));
+        }
+        Ok(())
+    }
+}
+
 // The `requires_json_tests` module previously lived here; it moved with the
 // parser into `antigen_attestation::parser` (run via
 // `cargo test -p antigen-attestation --features parser`). Keeping the tests

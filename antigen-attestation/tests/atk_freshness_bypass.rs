@@ -92,11 +92,7 @@ impl EvaluationContext for Ctx {
     fn read_oracle(&self, _path: &Path) -> Option<String> {
         None
     }
-    fn read_git_trailers(
-        &self,
-        _item_source_file: &Path,
-        _item_path: &str,
-    ) -> Vec<String> {
+    fn read_git_trailers(&self, _item_source_file: &Path, _item_path: &str) -> Vec<String> {
         vec![]
     }
     fn delta_chain_cap(&self) -> u32 {
@@ -168,8 +164,7 @@ fn atk_ft1_fresh_through_no_signers_must_not_satisfy_freshness() {
     let item = item_no_signers_fresh_through(Some(today()));
     let pred = Predicate::leaf(Leaf::FreshWithinDays { days: 60 });
     let ctx = Ctx::new(today());
-    let r =
-        evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+    let r = evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
     assert_eq!(
         r.audit_hint,
         AuditHint::DisciplinePredicateFailed,
@@ -211,8 +206,7 @@ fn atk_ft2_fresh_through_with_stale_signers_only_gives_ambiguous_result() {
     let item = item_stale_signers_fresh_through(Some(today()));
     let pred = Predicate::leaf(Leaf::FreshWithinDays { days: 60 });
     let ctx = Ctx::new(today());
-    let r =
-        evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+    let r = evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
     // CORRECT behavior: should be DisciplinePredicateFailed (freshness not met).
     // ACTUAL behavior: DisciplineSubstrateStale (freshness leaf passed, staleness
     // detected afterward — ambiguous signal, not a clean freshness rejection).
@@ -286,8 +280,7 @@ fn atk_ft4_future_fresh_through_is_not_fresh() {
     let item = item_no_signers_fresh_through(Some(future_date()));
     let pred = Predicate::leaf(Leaf::FreshWithinDays { days: 60 });
     let ctx = Ctx::new(today());
-    let r =
-        evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+    let r = evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
     assert_eq!(
         r.audit_hint,
         AuditHint::DisciplinePredicateFailed,
