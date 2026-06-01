@@ -231,10 +231,17 @@ The eight macros route to four structural shapes:
 
 For the full reference see [`macros.md`](macros.md) — the prescriptive section.
 For a complete worked example (a parser module carrying all eight macros with
-time-stable verdicts), see [`examples-guide.md`](examples-guide.md) and run:
+time-stable verdicts), see [`examples-guide.md`](examples-guide.md). The example
+compiles and prints a brief orientation message when run directly:
 
 ```sh
 cargo run --example prescriptive_board --package antigen
+```
+
+The board itself — the live-projected per-site verdicts — renders via audit:
+
+```sh
+cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
 ```
 
 > **Note**: The prescriptive family ships in v0.3. If you are using the published
