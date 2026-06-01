@@ -306,3 +306,171 @@ fn atk_pres11_work_verdict_has_exactly_four_variants() {
     //   }
     todo!("implement as compile-time exhaustive match when WorkVerdict ships")
 }
+
+// ============================================================================
+// Adversarial consistency gaps — found in ADR-033 draft sweep (adversarial,
+// 2026-06-01). These encode SPECIFICATION HOLES, not just implementation gaps.
+// The answers must be settled in ADR-033 before pathmaker implements. Questions
+// logged to aristotle via camp question [ae2e3a2d].
+// ============================================================================
+
+/// ATK-PRES-12: S3 `triage` WorkVerdict::Fulfilled — is it structurally reachable?
+///
+/// `#[triage]` coordinates an ordered set of work items (campsites). The ordering
+/// is attested via `triaged_by`. The campsites are OPAQUE LABELS — the audit
+/// cannot see their done-state (anchor #3 forbids camp reads).
+///
+/// Q: when does a `#[triage]` site reach WorkVerdict::Fulfilled?
+///
+/// The ADR specifies:
+/// - "attested: the order is attested (triaged_by)" as S3 satisfaction.
+/// - But attesting the ORDER is different from completing the WORK.
+/// - If Fulfilled = "triaged_by is attested at current fingerprint," then a
+///   triage that has a triaged_by attestation is immediately Fulfilled regardless
+///   of whether any work was actually done — that's a cardinality collapse
+///   (Pending and Fulfilled look the same once the attestation exists).
+/// - If Fulfilled requires the campsites to be resolved, the audit can never
+///   compute it (opaque labels + no camp reads).
+///
+/// SPEC GAP: WorkVerdict::Fulfilled for S3 is underspecified. The ADR must
+/// clarify whether `#[triage]` can reach Fulfilled at all in v0.3, or whether
+/// it is structurally Pending-until-triaged / OutOfFrame-after-expiry.
+///
+/// ADVERSARIAL PREDICTION: if the implementation treats `triaged_by` attestation
+/// as Fulfilled, it creates a trivial bypass — add an attestation, mark Fulfilled,
+/// never resolve the actual campsites. This is the same class as
+/// `fresh_through=today` (bypass by writing a substrate signal without doing the
+/// work). If the implementation leaves Fulfilled unreachable, the audit always
+/// shows Pending (no loudness signal) — a silent-information-deficit.
+#[test]
+#[ignore = "SPEC GAP: ADR-033 does not specify when #[triage] reaches WorkVerdict::Fulfilled. \
+            aristotle must resolve this before pathmaker implements S3. See camp question ae2e3a2d. \
+            When resolved, convert this to a concrete fixture test."]
+fn atk_pres12_triage_fulfilled_is_structurally_reachable_or_unreachable() {
+    // When spec is resolved:
+    // Option A (triaged_by = Fulfilled):
+    //   let result = audit_prescriptive(&triage_site_with_triaged_by, &root);
+    //   assert_eq!(result.work_verdict, WorkVerdict::Fulfilled);
+    //   // Risk: bypass by attesting order without doing work.
+    // Option B (Fulfilled not reachable for S3, frame-expiry = OutOfFrame):
+    //   let result = audit_prescriptive(&triage_site_past_re_triage_due, &root);
+    //   assert_eq!(result.work_verdict, WorkVerdict::OutOfFrame);
+    //   // Correct if triage is a staleness-frame, not a completion-frame.
+    todo!("spec must resolve S3 Fulfilled semantics first (question ae2e3a2d)")
+}
+
+/// ATK-PRES-13: S4 `quarantine`/`culture` — frame-expiry verdict is Fulfilled or OutOfFrame?
+///
+/// S4 is described as "until-passes (`quarantine`) / test-green-within-frame (`culture`)."
+/// The `until` / `runs_until` field is a temporal window.
+///
+/// Q: what verdict fires when the frame expires?
+///
+/// Interpretation A — frame-expiry = Fulfilled:
+///   `#[quarantine(scope = "...", until = "<past-date>")]` → WorkVerdict::Fulfilled.
+///   Rationale: the quarantine ran its course, the frame closed.
+///   Risk: a site that was NEVER actually quarantined (no isolation evidence)
+///   automatically becomes Fulfilled when the date passes — bypass by setting `until`
+///   to a past date.
+///
+/// Interpretation B — frame-expiry requires closure attestation = still Pending/Overdue:
+///   Expiry without attestation = OutOfFrame (the closing-attestation source is missing).
+///   Rationale: same as substrate-witness fingerprint-pinned — a declaration without
+///   a closure witness is undefended.
+///   Risk: adds a new closure-attestation mechanism not described in the ADR.
+///
+/// ADVERSARIAL PREDICTION: Interpretation A introduces the same bypass class as
+/// `fresh_through=today` — set a past date, mark Fulfilled, no actual work done.
+/// Interpretation B is safer but introduces implementation complexity not mentioned.
+///
+/// SPEC GAP: the ADR must clarify whether S4 frame-expiry alone satisfies WorkVerdict::Fulfilled
+/// or whether a closure attestation is required.
+#[test]
+#[ignore = "SPEC GAP: ADR-033 S4 frame-expiry verdict is underspecified. \
+            See camp question ae2e3a2d. Convert to fixture test when resolved."]
+fn atk_pres13_s4_frame_expiry_verdict_is_fulfilled_or_out_of_frame() {
+    // When spec is resolved:
+    // Option A (expiry = Fulfilled):
+    //   let site = quarantine_site_with_past_until();
+    //   assert_eq!(audit(site).work_verdict, WorkVerdict::Fulfilled);
+    //   // Adversarial test: site with `until = yesterday` and NO isolation work.
+    //   // Expected: must NOT be Fulfilled if no isolation attestation.
+    // Option B (expiry without attestation = OutOfFrame or Overdue):
+    //   assert_ne!(audit(site).work_verdict, WorkVerdict::Fulfilled);
+    todo!("spec must resolve S4 frame-expiry semantics (question ae2e3a2d)")
+}
+
+/// ATK-PRES-14: `triage.priority_order` non-permutation — parse-error or audit OutOfFrame?
+///
+/// ADR-033 §Proc-Macro-Surface says `priority_order` (if present) "must be a permutation
+/// of `campsites`." But note: per the ATK-PRES corpus comment at line 22, `triage.campsites`
+/// was DROPPED and `triage` uses `priority_order` as direct code-site references. So the
+/// permutation check is now "priority_order targets must resolve to code sites that exist."
+///
+/// Q: what happens when `priority_order` references a code site that DOESN'T exist?
+///
+/// ADR says "audit does NOT resolve against camp" — but code sites ARE resolved. So a
+/// `priority_order` item that doesn't match any code site is a structural mismatch.
+///
+/// ADVERSARIAL PREDICTION: if this is a parse-time error, the attacker can make a triage
+/// fail to compile by removing a referenced code site (forcing all sites that priority_order
+/// reference to be valid at compile time). If this is audit-time OutOfFrame, the triage site
+/// silently produces OutOfFrame when references dangle — potentially hiding a real gap.
+///
+/// SPEC GAP: the resolution tier of the "priority_order items must be valid code-site
+/// references" constraint is not specified.
+#[test]
+#[ignore = "SPEC GAP: ADR-033 does not specify whether triage.priority_order non-resolution \
+            fires at parse-time (compile error) or audit-time (OutOfFrame). \
+            See camp question ae2e3a2d. Convert to fixture when resolved."]
+fn atk_pres14_priority_order_nonresolvable_target_fires_correct_verdict() {
+    // Depends on resolution:
+    // Option A (parse-time): trybuild compile-fail fixture with `priority_order = ["nonexistent"]`
+    // Option B (audit-time): scan_workspace(fixture) → audit → WorkVerdict::OutOfFrame
+    todo!("spec must resolve priority_order resolution tier (question ae2e3a2d)")
+}
+
+/// ATK-PRES-15: `reviewed_by` ordering — ALL `filled_by` attested, or ANY?
+///
+/// §Witness-binding says "a `reviewed_by` attestation is only counted if the
+/// corresponding `filled_by` step is itself attested."
+///
+/// The ADR says the verdict is "the conjunction over role-steps." But `filled_by` is
+/// `Vec<String>` (multiple fillers), and `reviewed_by` is also `Vec<String>`.
+///
+/// Q: for a panel with `filled_by = ["alice", "charlie"], reviewed_by = ["bob"]`:
+///   - Does bob's review require BOTH alice AND charlie to be attested? (ALL)
+///   - Does bob's review require at least ONE of alice/charlie? (ANY)
+///   - Is there a per-filler review ordering (alice filled → bob reviews alice's part;
+///     charlie filled → a different reviewer for charlie's part)?
+///
+/// ADVERSARIAL PREDICTION:
+/// - "ALL filled_by" is safer (no review before all fill is done) but can produce
+///   false-Overdue if one filler is delayed (the conjunction makes the review
+///   un-initiatable until every fill is done).
+/// - "ANY filled_by" allows review before all fill is done — partial closure risk.
+/// - Per-filler mapping re-introduces the positional pairing the ADR explicitly rejected.
+///
+/// SPEC GAP: the conjunction-over-role-steps semantics is underspecified when filled_by
+/// has multiple members. The ADR rejects positional pairing but doesn't specify what
+/// "filled_by attested" means across a multi-member list.
+#[test]
+#[ignore = "SPEC GAP: ADR-033 §Witness-binding 'reviewed_by requires filled_by' does not \
+            specify ALL vs ANY for multi-member filled_by. See camp question ae2e3a2d. \
+            Implement once spec clarifies."]
+fn atk_pres15_reviewed_by_ordering_requires_all_or_any_filled_by() {
+    // Degenerate inputs to test when implemented:
+    //
+    // 1. filled_by = ["alice", "charlie"], reviewed_by = ["bob"]
+    //    alice attested, charlie NOT attested, bob attested.
+    //    Expected: ??? (Pending if ALL required, Fulfilled if ANY sufficient)
+    //
+    // 2. filled_by = ["alice"], reviewed_by = ["bob"]
+    //    alice NOT attested, bob HAS attestation (out-of-order review).
+    //    Expected: OutOfFrame (review precedes fill — ordering violation)
+    //
+    // 3. filled_by = [], reviewed_by = ["bob"]
+    //    No fillers declared, bob attested.
+    //    Expected: Fulfilled? (no fill required, only review) or OutOfFrame?
+    todo!("spec must resolve multi-member filled_by semantics (question ae2e3a2d)")
+}
