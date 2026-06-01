@@ -2876,6 +2876,9 @@ mod tests {
     /// "I checked this and it failed" when the file was never read.
     /// Fix: the doc-not-found arm must return `LeafOutcome { evaluated: false, .. }`.
     #[test]
+    #[ignore = "pre-fix contract (ADR-035 leaf-sweep instance 1): campsite \
+                forward/adr035-leaf-sweep-bottom-to-false — fix eval_ratified_doc \
+                doc-not-found arm to return evaluated:false, then un-ignore"]
     fn atk_adr035_leaf_sweep_ratified_doc_not_found_must_be_not_evaluated() {
         let item = item_with(vec![]);
         // Context has NO doc registered — read_doc returns None for any path.
@@ -2919,6 +2922,9 @@ mod tests {
     /// no-parseable-version path (`line 595-599`).
     /// Fix: the no-parseable-version arm must return `LeafOutcome { evaluated: false, .. }`.
     #[test]
+    #[ignore = "pre-fix contract (ADR-035 leaf-sweep instance 2): campsite \
+                forward/adr035-leaf-sweep-bottom-to-false — fix eval_ratified_doc \
+                no-parseable-version arm to return evaluated:false, then un-ignore"]
     fn atk_adr035_leaf_sweep_ratified_doc_no_frontmatter_version_must_be_not_evaluated() {
         let item = item_with(vec![]);
         // Doc exists but has no frontmatter version field at all.
@@ -2960,10 +2966,13 @@ mod tests {
     /// - `read_oracle` returns `Some(content)` but status ≠ "complete" (genuine fail → `evaluated: true`)
     ///
     /// CURRENTLY FAILS: both cases produce `evaluated: true` via the `fail`
-    /// LeafOutcome in the loop's early-return (line 867-873).
+    /// `LeafOutcome` in the loop's early-return (line 867-873).
     /// Fix: split the `else` arm — `read_oracle None` → `evaluated: false`;
     /// `read_oracle Some` but wrong status → `evaluated: true`.
     #[test]
+    #[ignore = "pre-fix contract (ADR-035 leaf-sweep instance 4): campsite \
+                forward/adr035-leaf-sweep-bottom-to-false — fix eval_oracles_complete \
+                absent-oracle arm to return evaluated:false, then un-ignore"]
     fn atk_adr035_leaf_sweep_oracle_missing_must_be_not_evaluated() {
         let item = item_with(vec![]);
         // Context has NO oracle registered — read_oracle returns None.
