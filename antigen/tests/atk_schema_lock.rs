@@ -137,6 +137,114 @@ fn schema_lock_scan_match_kind_values() {
 }
 
 // ============================================================================
+// Scan schema lock — member-aware (`--workspace`) mode
+//
+// The v0.3 member-aware scan reuses the EXACT same JSON shape as the flat scan
+// (no new top-level keys) — it only populates the already-present
+// `canonical_path` field on each record with `<name>@<version>`. These tests
+// pin that contract: the camp bridge + external tooling can rely on the schema
+// being stable across `--workspace`, and on `canonical_path` being the
+// member-attribution channel.
+// ============================================================================
+
+/// Run member-aware scan against the real workspace root (member-aware mode
+/// needs a true Cargo workspace — `cargo metadata` resolves members from it).
+fn run_workspace_scan_and_parse() -> Value {
+    let output = Command::new(env!("CARGO"))
+        .current_dir(workspace_root())
+        .args([
+            "run",
+            "--quiet",
+            "--bin",
+            "cargo-antigen",
+            "--",
+            "antigen",
+            "scan",
+            "--workspace",
+            "--format",
+            "json",
+            "--root",
+            ".",
+        ])
+        .output()
+        .unwrap_or_else(|e| panic!("failed to invoke cargo-antigen --workspace: {e}"));
+
+    assert!(
+        output.status.success(),
+        "cargo-antigen scan --workspace exited non-zero: status={:?}\nstderr:\n{}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr),
+    );
+
+    let stdout = String::from_utf8(output.stdout).expect("stdout is valid UTF-8");
+    serde_json::from_str(&stdout)
+        .unwrap_or_else(|e| panic!("scan --workspace stdout is not valid JSON: {e}\n{stdout}"))
+}
+
+#[test]
+fn schema_lock_workspace_scan_keeps_flat_top_level_keys() {
+    let json = run_workspace_scan_and_parse();
+    // No NEW top-level keys: member-aware mode is schema-compatible with flat.
+    for required in &["report", "unaddressed"] {
+        assert!(
+            contains_key(&json, required),
+            "member-aware scan JSON must keep top-level `{required}`; got: {:?}",
+            keys(&json)
+        );
+    }
+    let report = &json["report"];
+    for required in &[
+        "antigens",
+        "presentations",
+        "immunities",
+        "tolerances",
+        "lineage_edges",
+        "files_scanned",
+        "parse_failures",
+    ] {
+        assert!(
+            contains_key(report, required),
+            "member-aware `report` must keep `{required}`; got: {:?}",
+            keys(report)
+        );
+    }
+}
+
+#[test]
+fn schema_lock_workspace_scan_stamps_member_canonical_path() {
+    let json = run_workspace_scan_and_parse();
+    let antigens = json["report"]["antigens"]
+        .as_array()
+        .expect("`antigens` is an array");
+    assert!(
+        !antigens.is_empty(),
+        "the antigen workspace declares stdlib antigens; member-aware scan must surface them"
+    );
+    for (i, a) in antigens.iter().enumerate() {
+        let cp = a["canonical_path"].as_str().unwrap_or_else(|| {
+            panic!(
+                "antigen[{i}] (`{}`) must carry a `canonical_path` string in member-aware mode; \
+                 got: {:?}",
+                a["type_name"].as_str().unwrap_or("<unknown>"),
+                a["canonical_path"]
+            )
+        });
+        // ADR-017 canonical path is `<name>@<version>`.
+        assert!(
+            cp.contains('@') && !cp.starts_with('@') && !cp.ends_with('@'),
+            "antigen[{i}] canonical_path must be `<name>@<version>`, got `{cp}`"
+        );
+    }
+    // At least one antigen attributed to the `antigen` member crate.
+    assert!(
+        antigens.iter().any(|a| a["canonical_path"]
+            .as_str()
+            .is_some_and(|c| c.starts_with("antigen@"))),
+        "stdlib antigens must be attributed to the `antigen@<version>` member"
+    );
+}
+
+// ============================================================================
 // Audit schema lock
 // ============================================================================
 

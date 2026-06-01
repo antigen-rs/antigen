@@ -55,10 +55,45 @@ counts are greater than zero. The `unaddressed explicit presentation(s)`
 section appears only when at least one explicit `#[presents]` lacks a
 matching `#[immune]` or `#[antigen_tolerance]`.
 
+### Scan modes — flat, member-aware, and dep-inclusive
+
+`cargo antigen scan` has three scope modes. All three emit the **same JSON
+shape**; they differ only in *which* `.rs` files are walked and how
+`canonical_path` is populated:
+
+| Mode | Flag | What it scans | `canonical_path` on records |
+|---|---|---|---|
+| **Flat** (default) | *(none)* | `--root` as one directory tree | `null` (intra-workspace; identity is by source file) |
+| **Member-aware** | `--workspace` | each Cargo workspace **member** crate, scanned independently and unioned | `<name>@<version>` per member — declarations carry the identity of the member crate they live in |
+| **Dep-inclusive** | `--include-deps` | the workspace + each resolved **dependency** crate (registry/git), each scanned independently | dep records stamped `<name>@<version>`; deps appear under `dep_reports` |
+
+**Member-aware mode (`--workspace`, v0.3)** is the substrate for cross-crate
+identity (ADR-001 C7). Because each member's declarations are stamped with that
+member's `<name>@<version>`, a `#[descended_from(Parent)]` in one member
+resolves to a `Parent` declared in another member: the lineage edge's
+`parent_canonical_path` is re-resolved to the member that actually declares the
+parent antigen. The flat scan cannot do this — it gives every record the same
+(`null`) identity, so member boundaries are invisible. Member-aware mode adds no
+new JSON keys; it only populates `canonical_path` (which is `null` in flat mode).
+
+**Dep-inclusive mode (`--include-deps`)** adds a top-level `dep_reports` array
+(one entry per scanned dependency, each `{ package_name, version, origin, report
+}`). Per the cross-crate scope-lock, each dependency is scanned independently —
+no cross-crate `addresses()` matching across the workspace/dep boundary. The key
+is omitted entirely when the flag is not passed (byte-identical output for
+existing consumers).
+
+`--workspace` and `--include-deps` are independent flags and may be combined.
+
 ### JSON output (`--format json`)
 
-The top-level JSON object has two keys: `report` (the scan report) and
-`unaddressed` (the convenience-rendered unaddressed-presentations list).
+The top-level JSON object always has these keys: `report` (the scan report),
+`unaddressed` (the convenience-rendered unaddressed-presentations list),
+`orphaned_lineage_edges` (`#[descended_from]` edges whose parent antigen is not
+declared — empty array when sound), and `dangling_child_lineage_edges`
+(`#[descended_from]` edges whose child is not itself an `#[antigen]` —
+empty array when sound). When `--include-deps` is passed, an additional
+`dep_reports` key is present (see "Scan modes" above; omitted otherwise).
 
 ```json
 {
