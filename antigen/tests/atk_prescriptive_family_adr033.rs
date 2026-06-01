@@ -411,6 +411,71 @@ pub fn p() {}
     );
 }
 
+/// ATK-PRES-S1 (WITNESS-FORGERY — opener is not a closer): a #[panel] with ONLY
+/// `ordered_by` (no `filled_by`), whose orderer IS attested at the current
+/// fingerprint, must be **Pending**, NOT **Fulfilled**. `ordered_by` is an
+/// OPENING witness — it records that the work was ordered, not performed.
+/// Crediting it as a closer is the witness-forgery sibling of the three-valued
+/// gem (forward/s1-bare-orderer-fulfills-bypass; fix = TIGHTEN the satisfaction
+/// predicate to require a genuine closing step). Biology: ordering ≠ performing
+/// ≠ reviewing (ADR-003 — presentation ≠ clearance).
+///
+/// This is the asymmetric falsifier: against the pre-fix evaluator it reads
+/// Fulfilled (the bug); only the tightened predicate yields Pending.
+#[test]
+fn atk_pres_s1_bare_ordered_by_attested_is_pending_not_fulfilled() {
+    let src = r#"use antigen::panel;
+#[panel(needs = ["review"], ordered_by = "alice", due = "2099-01-01")]
+pub fn p() {}
+"#;
+    // alice (the orderer) attests at the current fingerprint — the orderer step
+    // is genuinely Attested. The bug would read this as Fulfilled; the fix reads
+    // it as Pending (ordered, but no one performed it — no filled_by step).
+    let report = audit_staged(src, Some(("p", |fp| sidecar_with_signer("p", "alice", fp))));
+    let v = first_verdict(&report);
+    assert_ne!(
+        v.verdict,
+        WorkVerdict::Fulfilled,
+        "a bare ordered_by (no filled_by) must NEVER fulfill even when the orderer is \
+         attested — an opener is not a closer (witness-forgery). steps={:?}",
+        v.steps
+    );
+    assert_eq!(
+        v.verdict,
+        WorkVerdict::Pending,
+        "ordered-but-unfilled within a future frame is Pending (awaiting fill), got {:?}. \
+         steps={:?}",
+        v.verdict,
+        v.steps
+    );
+}
+
+/// ATK-PRES-S1b (positive control): the orderer is REQUIRED but not SUFFICIENT.
+/// A #[panel(ordered_by, filled_by)] where BOTH the orderer and the filler are
+/// attested at the current fingerprint IS Fulfilled — the tighten excludes the
+/// opener from *sufficing*, it does not break the genuine close path.
+#[test]
+fn atk_pres_s1b_ordered_and_filled_both_attested_is_fulfilled() {
+    let src = r#"use antigen::panel;
+#[panel(needs = ["review"], ordered_by = "alice", filled_by = ["bob"], due = "2099-01-01")]
+pub fn p() {}
+"#;
+    // Both alice (orderer) and bob (filler) attest at the current fingerprint.
+    let report = audit_staged(
+        src,
+        Some(("p", |fp| sidecar_with_signers("p", &["alice", "bob"], fp))),
+    );
+    let v = first_verdict(&report);
+    assert_eq!(
+        v.verdict,
+        WorkVerdict::Fulfilled,
+        "orderer + filler both attested ⇒ Fulfilled (the close path is intact), got {:?}. \
+         steps={:?}",
+        v.verdict,
+        v.steps
+    );
+}
+
 /// ATK-PRES-8 (THE CRITICAL THREE-VALUED-LOGIC TEST): OutOfFrame is distinct
 /// from Overdue. A #[panel] with an unknown who-ref and NO sidecar must be
 /// OutOfFrame even when its frame has elapsed — the satisfaction is un-evaluable,
