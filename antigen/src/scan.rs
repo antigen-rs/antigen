@@ -2171,6 +2171,18 @@ pub struct PrescriptiveDeclaration {
     pub item_kind: String,
     /// Item identity for structural cross-referencing.
     pub item_target: ItemTarget,
+    /// Structural digest of the annotated item AS SCANNED, computed by
+    /// [`antigen_fingerprint::structural_digest`]. The audit pins who-step
+    /// satisfaction to this fingerprint (NFA-21): an attestation that signed
+    /// against an older fingerprint is stale and does NOT count toward
+    /// fulfillment — the same freshness discipline immunity witnesses use
+    /// (mirrors [`Immunity::structural_fingerprint`]).
+    ///
+    /// `#[serde(default)]` so reports serialized before this field deserialize
+    /// cleanly with an empty fingerprint (the audit falls back to the sidecar's
+    /// stored value when empty, the same legacy path as the immunity audit).
+    #[serde(default)]
+    pub structural_fingerprint: String,
 }
 
 /// A file that failed to parse during a scan, with the associated error.
@@ -5501,6 +5513,11 @@ impl ScanVisitor<'_> {
                 line,
                 item_kind: item_kind.to_string(),
                 item_target,
+                // NFA-21: pin who-step satisfaction to the item's current
+                // structural digest. `current_item_digest` is set by the
+                // visit_item_* method immediately before `check_attrs`
+                // dispatches here, so it reflects the annotated item's code.
+                structural_fingerprint: self.current_item_digest.clone(),
             });
     }
 
