@@ -361,6 +361,52 @@ impl Parse for ScanToleranceArgs {
     }
 }
 
+/// Scan-side parser for `#[antigen_generates(antigen_type, rationale = "...")]`
+/// (ADR-014). Mirrors the macro-side `GeneratesArgs` but parses straight from
+/// the source attribute. Unknown fields are consumed silently for forward-compat.
+struct ScanGeneratesArgs {
+    antigen_type: String,
+    rationale: String,
+}
+
+impl Parse for ScanGeneratesArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use syn::{Expr, Ident, LitStr, Path, Token};
+        let antigen_path: Path = input.parse()?;
+        let antigen_type = antigen_path
+            .segments
+            .last()
+            .map(|s| s.ident.to_string())
+            .unwrap_or_default();
+
+        let mut rationale = String::new();
+        while !input.is_empty() {
+            input.parse::<Token![,]>()?;
+            if input.is_empty() {
+                break;
+            }
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "rationale" => {
+                    let lit: LitStr = input.parse()?;
+                    rationale = lit.value();
+                }
+                _ => {
+                    // Unknown field (witness_template, if_attr_present, future):
+                    // consume silently for adoption-gradient forward-compat.
+                    let _: Expr = input.parse()?;
+                }
+            }
+        }
+
+        Ok(Self {
+            antigen_type,
+            rationale,
+        })
+    }
+}
+
 // ============================================================================
 // Deferred-Defense Family scan-time parsers (ADR-023)
 //
@@ -1578,6 +1624,42 @@ pub struct Defense {
     pub canonical_path: Option<String>,
 }
 
+/// An `#[antigen_generates(antigen_type, rationale = "...")]` declaration
+/// discovered on a macro DEFINITION (ADR-014).
+///
+/// The macro author declares "my macro emits code presenting `antigen_type`."
+/// The connection key is [`Self::macro_name`] — the identifier used at the
+/// macro INVOCATION site:
+/// - a `#[proc_macro_derive(Name)]` registers `Name` (matches `#[derive(Name)]`),
+/// - a `#[proc_macro_attribute]` registers the annotated fn's name (matches
+///   `#[that_name]`),
+/// - a `macro_rules! name` registers `name` (matches `name!(...)`).
+///
+/// `cargo antigen scan`'s generates-synthesis pass builds a `macro_name →
+/// [antigen_type]` index from these declarations, then walks every macro
+/// invocation in the workspace and emits a synthetic [`Presentation`] at the
+/// invocation site for each matching generator. Per ADR-014 §A3 this is
+/// same-workspace only; cross-crate macro-output recognition (§A4) is deferred.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GeneratesDeclaration {
+    /// The antigen type the macro's expansion presents (last path segment).
+    pub antigen_type: String,
+    /// The macro author's justification (required, non-empty per ADR-014).
+    pub rationale: String,
+    /// The macro identifier this declaration registers as a generator — the
+    /// name used at invocation sites. See the type doc for resolution rules.
+    pub macro_name: String,
+    /// Source file path of the macro definition.
+    pub file: PathBuf,
+    /// Line number of the `#[antigen_generates]` attribute.
+    pub line: usize,
+    /// Canonical declaration site of the *antigen* (ADR-017); `None` for
+    /// intra-workspace (set by the `--include-deps` driver post-scan, like
+    /// [`Defense::canonical_path`]).
+    #[serde(default)]
+    pub canonical_path: Option<String>,
+}
+
 /// An `#[antigen_tolerance(antigen, rationale = "...", until = "...", see = [...])]`
 /// declaration discovered in source. Per ADR-011.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1997,6 +2079,13 @@ pub struct ScanReport {
     /// `#[serde(default)]` so pre-ADR-029 reports deserialize cleanly.
     #[serde(default)]
     pub defenses: Vec<Defense>,
+    /// All discovered `#[antigen_generates(X, ...)]` declarations on macro
+    /// definitions (ADR-014). The generates-synthesis pass connects these to
+    /// macro invocation sites and emits synthetic presentations.
+    ///
+    /// `#[serde(default)]` so pre-ADR-014 reports deserialize cleanly.
+    #[serde(default)]
+    pub generates_declarations: Vec<GeneratesDeclaration>,
     /// Files scanned successfully.
     pub files_scanned: usize,
     /// Files that failed to parse.
@@ -2334,6 +2423,14 @@ impl ScanReport {
             // needs to avoid the bare-name overclaim (ATK-ADR029-21/ATK-G2-22).
             if d.canonical_path.is_none() {
                 d.canonical_path = Some(crate_id.to_string());
+            }
+        }
+        for g in &mut self.generates_declarations {
+            // ADR-014 generates-declarations are stamped like defenses so the
+            // antigen identity carries its declaring crate for cross-crate
+            // macro-output recognition (§A4; the v0.3 synthesis is same-workspace).
+            if g.canonical_path.is_none() {
+                g.canonical_path = Some(crate_id.to_string());
             }
         }
         for e in &mut self.lineage_edges {
@@ -2931,6 +3028,18 @@ fn finalize_report(report: &mut ScanReport, parsed_files: &[(PathBuf, syn::File)
             .map(|ag| (ag.type_name.clone(), ag.file.clone()))
             .collect();
         synthesis_pass(parsed_files, &fingerprints, &declaration_sites, report);
+    }
+
+    // ---- Generates-synthesis pass (ADR-014) ----
+    //
+    // For every macro INVOCATION whose macro name matches an
+    // `#[antigen_generates(X, ...)]` declaration on a macro DEFINITION, emit a
+    // synthetic Presentation at the invocation site. Same-workspace only
+    // (§A3); cross-crate macro-output recognition (§A4) is deferred. Runs after
+    // fingerprint synthesis so generated presentations dedup against any
+    // co-located explicit `#[presents]`/fingerprint match.
+    if !report.generates_declarations.is_empty() {
+        generates_synthesis_pass(parsed_files, report);
     }
 
     // ---- Lineage propagation pass (ADR-018) ----
@@ -3594,6 +3703,8 @@ impl ScanReport {
         self.mucosal_declarations
             .append(&mut other.mucosal_declarations);
         self.defenses.append(&mut other.defenses);
+        self.generates_declarations
+            .append(&mut other.generates_declarations);
         self.files_scanned += other.files_scanned;
         self.parse_failures.append(&mut other.parse_failures);
     }
@@ -3962,6 +4073,195 @@ fn synthesis_pass(
     }
 }
 
+/// A macro invocation site discovered by [`GeneratesInvocationVisitor`].
+struct MacroInvocation {
+    /// The macro identifier used at the call site (derive name, bang-macro
+    /// name, or attribute-macro name).
+    macro_name: String,
+    /// Source line of the invocation.
+    line: usize,
+    /// Identity of the item the invocation is attached to (the `#[derive]`'d
+    /// item, for audit cross-reference) — `Unknown { line }` for bang-macro
+    /// calls that aren't attached to a nameable item.
+    item_target: ItemTarget,
+}
+
+/// Walk a parsed file and collect every macro invocation that names a known
+/// generator: `#[derive(Name)]` attributes, attribute-macro `#[name]`
+/// invocations, and bang-macro `name!(...)` calls. Only invocations whose name
+/// is in `generators` are recorded (cheap filter; the workspace has few
+/// generators).
+struct GeneratesInvocationVisitor<'a> {
+    generators: &'a std::collections::HashSet<String>,
+    found: Vec<MacroInvocation>,
+}
+
+impl GeneratesInvocationVisitor<'_> {
+    /// Record `#[derive(A, B, ...)]` + attribute-macro `#[name]` invocations
+    /// carried by an item's attribute list, attributing them to `target`.
+    fn scan_attrs(&mut self, attrs: &[syn::Attribute], target: &ItemTarget) {
+        for attr in attrs {
+            if attr_is(attr, "derive") {
+                // `#[derive(A, B, C)]`: each path segment's last ident is a
+                // derive-macro name.
+                if let syn::Meta::List(list) = &attr.meta {
+                    let parsed = list.parse_args_with(
+                        syn::punctuated::Punctuated::<syn::Path, syn::Token![,]>::parse_terminated,
+                    );
+                    if let Ok(paths) = parsed {
+                        for p in paths {
+                            if let Some(seg) = p.segments.last() {
+                                let name = seg.ident.to_string();
+                                if self.generators.contains(&name) {
+                                    self.found.push(MacroInvocation {
+                                        macro_name: name,
+                                        line: ScanVisitor::line_of_attr(attr),
+                                        item_target: target.clone(),
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+                continue;
+            }
+            // Attribute-macro invocation `#[name(...)]` / `#[name]` whose name is
+            // a known generator (not derive, not a built-in antigen marker).
+            if let Some(seg) = attr.path().segments.last() {
+                let name = seg.ident.to_string();
+                if self.generators.contains(&name) {
+                    self.found.push(MacroInvocation {
+                        macro_name: name,
+                        line: ScanVisitor::line_of_attr(attr),
+                        item_target: target.clone(),
+                    });
+                }
+            }
+        }
+    }
+}
+
+impl<'ast> Visit<'ast> for GeneratesInvocationVisitor<'_> {
+    fn visit_item(&mut self, item: &'ast syn::Item) {
+        // Attribute-bearing items: scan their attrs for derive/attribute-macro
+        // invocations, attributed to the item's identity.
+        if let Some((_, target)) = item_kind_and_target(item) {
+            let attrs: &[syn::Attribute] = match item {
+                syn::Item::Struct(i) => &i.attrs,
+                syn::Item::Enum(i) => &i.attrs,
+                syn::Item::Union(i) => &i.attrs,
+                syn::Item::Fn(i) => &i.attrs,
+                syn::Item::Trait(i) => &i.attrs,
+                syn::Item::Type(i) => &i.attrs,
+                syn::Item::Const(i) => &i.attrs,
+                syn::Item::Static(i) => &i.attrs,
+                syn::Item::Impl(i) => &i.attrs,
+                syn::Item::Mod(i) => &i.attrs,
+                _ => &[],
+            };
+            self.scan_attrs(attrs, &target);
+        }
+        syn::visit::visit_item(self, item);
+    }
+
+    fn visit_macro(&mut self, mac: &'ast syn::Macro) {
+        // Bang-macro invocation `name!(...)`: the last path segment is the name.
+        if let Some(seg) = mac.path.segments.last() {
+            let name = seg.ident.to_string();
+            if self.generators.contains(&name) {
+                let line = seg.ident.span().start().line;
+                self.found.push(MacroInvocation {
+                    macro_name: name,
+                    line,
+                    item_target: ItemTarget::Unknown { line },
+                });
+            }
+        }
+        syn::visit::visit_macro(self, mac);
+    }
+}
+
+/// Generates-synthesis pass (ADR-014 §Mechanics step 2): for every macro
+/// INVOCATION whose name matches an `#[antigen_generates(X, ...)]` declaration
+/// on a macro DEFINITION, emit a synthetic `Presentation` at the invocation
+/// site presenting `X`.
+///
+/// Same-workspace only (§A3): the generator declarations and the invocations
+/// are both discovered by walking this workspace. Cross-crate macro-output
+/// recognition (§A4 — a `#[derive(SerdeFoo)]` invocation here matching a
+/// generator declared in the `serde_foo` dep) requires the cross-crate
+/// antigen-discovery mechanism and is deferred.
+///
+/// The synthetic presentation is `ExplicitMarker` (the macro author explicitly
+/// declared the generation — it is not a heuristic fingerprint guess) with
+/// `item_kind = "generated_<macro>"`. It is attributed to the INVOCATION item's
+/// identity so a co-located `#[defended_by(X)]` / `#[antigen_tolerance(X)]`
+/// addresses it (ADR-014 §Audit integration). Deduped against an existing
+/// explicit/generated presentation for the same `(antigen_type, file,
+/// item_target)`.
+fn generates_synthesis_pass(parsed_files: &[(PathBuf, syn::File)], report: &mut ScanReport) {
+    use std::collections::{HashMap, HashSet};
+
+    // Index: macro_name -> set of (antigen_type) it generates. A macro can
+    // carry multiple `#[antigen_generates]` declarations (ADR-014 allows
+    // stacking), and two macros could share a name across crates (degenerate
+    // intra-workspace) — union the antigen types per name.
+    let mut by_macro: HashMap<String, Vec<String>> = HashMap::new();
+    for g in &report.generates_declarations {
+        by_macro
+            .entry(g.macro_name.clone())
+            .or_default()
+            .push(g.antigen_type.clone());
+    }
+    let generator_names: HashSet<String> = by_macro.keys().cloned().collect();
+    if generator_names.is_empty() {
+        return;
+    }
+
+    for (file_path, parsed) in parsed_files {
+        let mut visitor = GeneratesInvocationVisitor {
+            generators: &generator_names,
+            found: Vec::new(),
+        };
+        visitor.visit_file(parsed);
+
+        for inv in visitor.found {
+            let Some(antigen_types) = by_macro.get(&inv.macro_name) else {
+                continue;
+            };
+            let item_kind = format!("generated_{}", inv.macro_name);
+            for antigen_type in antigen_types {
+                // Dedup: skip if an explicit #[presents] / a prior generated
+                // presentation already covers this (antigen_type, file, item).
+                let already = report.presentations.iter().any(|p| {
+                    p.antigen_type == *antigen_type
+                        && p.file == *file_path
+                        && p.item_target == inv.item_target
+                });
+                if already {
+                    continue;
+                }
+                report.presentations.push(Presentation {
+                    antigen_type: antigen_type.clone(),
+                    file: file_path.clone(),
+                    line: inv.line,
+                    item_kind: item_kind.clone(),
+                    item_target: inv.item_target.clone(),
+                    // Author-declared generation, not a heuristic fingerprint
+                    // guess — treat as an explicit marker for matching (ADR-014
+                    // §Mechanics: "Treated as #[presents] for matching").
+                    match_kind: MatchKind::ExplicitMarker,
+                    canonical_path: None,
+                    inherited_from: None,
+                    structural_fingerprint: String::new(),
+                    requires_predicate: None,
+                    proof: None,
+                });
+            }
+        }
+    }
+}
+
 /// Build a `(kind_str, ItemTarget)` pair from a top-level `syn::Item`.
 /// Returns `None` for item kinds we don't model (macros, extern crates, etc.).
 fn item_kind_and_target(item: &syn::Item) -> Option<(&'static str, ItemTarget)> {
@@ -4247,6 +4547,122 @@ impl ScanVisitor<'_> {
             // immunities/presentations).
             canonical_path: None,
         });
+    }
+
+    /// Extract a `#[antigen_generates(X, rationale = "...")]` declaration on a
+    /// macro definition (ADR-014). Records a [`GeneratesDeclaration`] keyed by
+    /// the macro identifier used at invocation sites — see
+    /// [`Self::macro_name_for_generates`] for resolution.
+    fn extract_generates(
+        &mut self,
+        attr: &syn::Attribute,
+        all_attrs: &[syn::Attribute],
+        item_target: &ItemTarget,
+    ) {
+        let syn::Meta::List(list) = &attr.meta else {
+            self.report.parse_failures.push(ParseFailure {
+                file: self.file_path.clone(),
+                error: "#[antigen_generates] requires arguments, e.g. \
+                        #[antigen_generates(PanickingInDrop, rationale = \"...\")]"
+                    .to_string(),
+            });
+            return;
+        };
+        let args = match syn::parse2::<ScanGeneratesArgs>(list.tokens.clone()) {
+            Ok(a) => a,
+            Err(e) => {
+                self.report.parse_failures.push(ParseFailure {
+                    file: self.file_path.clone(),
+                    error: format!("malformed #[antigen_generates] attribute: {e}"),
+                });
+                return;
+            }
+        };
+
+        if args.antigen_type.is_empty() {
+            self.report.parse_failures.push(ParseFailure {
+                file: self.file_path.clone(),
+                error: "#[antigen_generates] antigen type resolved to an empty path".to_string(),
+            });
+            return;
+        }
+        // ADR-014 §Sub-clause F: a generation claim without rationale is not a
+        // claim. Mirror the macro-side validate() at scan time so the source-walk
+        // path enforces the same discipline (the macro may not have expanded).
+        if args.rationale.trim().is_empty() {
+            self.report.parse_failures.push(ParseFailure {
+                file: self.file_path.clone(),
+                error: format!(
+                    "#[antigen_generates({})] requires a non-empty `rationale = \"...\"` \
+                     — the macro author must justify what the expansion presents",
+                    args.antigen_type
+                ),
+            });
+            return;
+        }
+
+        let macro_name = Self::macro_name_for_generates(all_attrs, item_target);
+        if macro_name.is_empty() {
+            self.report.parse_failures.push(ParseFailure {
+                file: self.file_path.clone(),
+                error: format!(
+                    "#[antigen_generates({})] could not resolve a macro name to register \
+                     — apply it to a #[proc_macro_derive(Name)] / #[proc_macro_attribute] fn \
+                     or a `macro_rules!` definition",
+                    args.antigen_type
+                ),
+            });
+            return;
+        }
+
+        let line = Self::line_of_attr(attr);
+        self.report
+            .generates_declarations
+            .push(GeneratesDeclaration {
+                antigen_type: args.antigen_type,
+                rationale: args.rationale,
+                macro_name,
+                file: self.file_path.clone(),
+                line,
+                canonical_path: None,
+            });
+    }
+
+    /// Resolve the macro identifier a `#[antigen_generates]` declaration
+    /// registers — the name that appears at INVOCATION sites:
+    /// - `#[proc_macro_derive(Name)]` / `#[proc_macro_derive(Name, attributes(..))]`
+    ///   → `Name` (matches `#[derive(Name)]`);
+    /// - `#[proc_macro_attribute]` → the annotated fn's name (matches `#[name]`);
+    /// - a `macro_rules! name` item (`ItemTarget::Fn` carrying the macro ident,
+    ///   per `visit_item_macro`) → that name (matches `name!(..)`);
+    /// - otherwise the item's own name (fn fallback).
+    fn macro_name_for_generates(all_attrs: &[syn::Attribute], item_target: &ItemTarget) -> String {
+        // Prefer the derive name from a sibling `#[proc_macro_derive(Name, ..)]`.
+        for a in all_attrs {
+            if attr_is(a, "proc_macro_derive") {
+                if let syn::Meta::List(list) = &a.meta {
+                    // First token of the derive args is the derive name.
+                    if let Ok(path) = syn::parse2::<syn::Path>(list.tokens.clone()) {
+                        if let Some(seg) = path.segments.last() {
+                            return seg.ident.to_string();
+                        }
+                    }
+                    // `#[proc_macro_derive(Name, attributes(..))]`: parse just the
+                    // leading ident before the comma.
+                    if let Some(proc_macro2::TokenTree::Ident(id)) =
+                        list.tokens.clone().into_iter().next()
+                    {
+                        return id.to_string();
+                    }
+                }
+            }
+        }
+        // Fallback: the item's own name (proc-macro-attribute fn, or macro_rules
+        // ident which `visit_item_macro` records as `ItemTarget::Fn(name)`).
+        match item_target {
+            ItemTarget::Fn(name) => name.clone(),
+            _ => String::new(),
+        }
     }
 
     fn extract_tolerance(
@@ -4573,6 +4989,8 @@ impl ScanVisitor<'_> {
                 self.extract_descended_from(attr, item_target);
             } else if attr_is(attr, "defended_by") {
                 self.extract_defended_by(attr, item_kind, item_target.clone());
+            } else if attr_is(attr, "antigen_generates") {
+                self.extract_generates(attr, attrs, item_target);
             // Deferred-Defense Family (ADR-023)
             } else if attr_is(attr, "anergy") {
                 self.extract_anergy(attr, item_kind, item_target.clone());

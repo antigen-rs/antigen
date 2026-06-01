@@ -553,6 +553,66 @@ pub fn antigen_tolerance(args: TokenStream, input: TokenStream) -> TokenStream {
     )
 }
 
+/// Declare that a proc-macro / `macro_rules` emits code presenting an antigen.
+/// Per ADR-014 — the fifth core macro.
+///
+/// `cargo antigen scan` parses the source-level AST: it sees a `#[derive(Foo)]`
+/// invocation but NOT the code the `Foo` derive generates. Failure-classes that
+/// manifest only in macro-generated code are invisible to the scan. The fix
+/// lives at the macro author's side — they know what their macro emits, so they
+/// declare it. The scan then connects this declaration (on the macro
+/// DEFINITION) to every macro INVOCATION and surfaces a synthetic presentation
+/// at the invocation site.
+///
+/// # Arguments
+///
+/// - antigen type name (positional, required) — the failure-class the expansion presents
+/// - `rationale = "..."` (required, non-empty) — why the expansion presents this
+///   class + what the user should verify (mirrors ADR-011 tolerance)
+/// - `witness_template = "..."` (optional, v2) — path hint for a witness skeleton
+/// - `if_attr_present = "..."` (optional, v2) — conditional-generation guard
+///
+/// # Example
+///
+/// ```ignore
+/// use antigen::antigen_generates;
+///
+/// #[antigen_generates(
+///     PanickingInDrop,
+///     rationale = "This derive emits a Drop impl that may panic if the inner \
+///                  type's destructor panics; users should verify their inner \
+///                  types are panic-safe in Drop.",
+/// )]
+/// #[proc_macro_derive(SomeDerive)]
+/// pub fn some_derive(input: TokenStream) -> TokenStream { /* ... */ }
+/// ```
+///
+/// Like the other markers this is a pure identity transform plus a discoverable
+/// `#[doc = " antigen:generates:v1:<antigen>"]` marker that `cargo antigen scan`
+/// reads to register the macro as a generator of the named failure-class.
+#[proc_macro_attribute]
+pub fn antigen_generates(args: TokenStream, input: TokenStream) -> TokenStream {
+    let parsed = parse_macro_input!(args as parse::GeneratesArgs);
+    let input = proc_macro2::TokenStream::from(input);
+
+    if let Err(e) = parsed.validate() {
+        return e.to_compile_error().into();
+    }
+
+    // Emit a discoverable doc marker carrying the bare antigen type name. The
+    // scan's source-walk reads this on the macro DEFINITION and connects it to
+    // invocation sites (same no-binary-link channel as the other markers). The
+    // `rationale` is validated here (enforcing the ADR-014 discipline that a
+    // generation claim must be justified) but is not needed downstream by the
+    // synthesis pass, which only needs the antigen type to emit the presentation.
+    let marker = format!(" antigen:generates:v1:{}", parsed.antigen_name());
+    quote! {
+        #[doc = #marker]
+        #input
+    }
+    .into()
+}
+
 // ============================================================================
 // Deferred-Defense Family (ADR-023)
 // ============================================================================

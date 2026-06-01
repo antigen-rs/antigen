@@ -3578,7 +3578,10 @@ JSON output includes `witness_tier` field for CI gates.
 
 ## [ADR-014] `#[antigen_generates(...)]`: declaring antigens that proc-macros emit
 
-**Status**: Ratified 2026-05-08. Implementation deferred to Sweep A3-A4.
+**Status**: Ratified 2026-05-08. **Same-workspace implementation landed v0.3**
+(the `#[antigen_generates]` macro + scan generates-synthesis pass;
+`antigen/tests/atk_antigen_generates.rs`). Cross-crate macro-output recognition
+(§A4) remains deferred pending the cross-crate antigen-discovery mechanism.
 
 **Participants**: pathmaker (drafted from adversarial's ATK-010-1 finding),
 aristotle (reciprocal Phase 1-8), scientist (validation pass).
@@ -3669,7 +3672,11 @@ expansion-validation deferred (v0.2+ trusts the author).
 ### Sweep-level consequences
 
 - **Sweep A2** does NOT ship `#[antigen_generates]`. Deferred to A3-A4.
-- **Sweep A3** wires the synthesis pass for same-workspace.
+- **Sweep A3 / v0.3 (DONE)** wires the synthesis pass for same-workspace: the
+  `#[antigen_generates]` macro emits a discoverable `antigen:generates:v1:<X>`
+  marker; the scan parses the source attribute into a `GeneratesDeclaration`,
+  builds a `macro_name → [antigen_type]` index, and synthesizes presentations
+  at matching `#[derive]` / attribute-macro / bang-macro invocation sites.
 - **Sweep A4** extends to cross-crate via the antigen-discovery mechanism.
 - **Sweep A5** populates antigen-stdlib with `#[antigen_generates]` on
   pattern-emitting macros (recursive use of antigen against itself).

@@ -209,9 +209,9 @@ surface. Future versions may surface it.
 | `antigen_type` | string | Type name of the antigen this presents |
 | `file` | string | Source file path |
 | `line` | integer | Line number of the `#[presents]` attribute (or fingerprint match site) |
-| `item_kind` | string | One of: `fn`, `impl`, `struct`, `enum`, `trait`, `mod`, `type`, `const`, `static`, `use` |
+| `item_kind` | string | One of: `fn`, `impl`, `struct`, `enum`, `trait`, `mod`, `type`, `const`, `static`, `use`; or `generated_<macro>` for a macro-output presentation synthesized from an `#[antigen_generates]` declaration (ADR-014) |
 | `item_target` | object | Structured target identity (see "Item target shapes" below) |
-| `match_kind` | string | `explicit_marker` (from `#[presents]`) or `fingerprint_match` (passive detection) |
+| `match_kind` | string | `explicit_marker` (from `#[presents]` OR an `#[antigen_generates]`-synthesized presentation — both are author-declared) or `fingerprint_match` (passive detection) |
 | `canonical_path` | string \| null | Cross-crate identity |
 | `inherited_from` | array of objects \| null | `ProvenanceEntry` array for inherited presentations (see "Provenance" below); null if not inherited |
 
@@ -270,6 +270,28 @@ antigen index) surface via `dangling_child_lineage_edges()`.
 Surfaces structural errors that prevent correct scan completion (file
 IO, syntax errors, malformed fingerprints, malformed attribute arguments,
 `#[descended_from]` cycles, lineage chain depth limits exceeded).
+
+#### `generates_declarations[]` (ADR-014)
+
+One entry per `#[antigen_generates(X, rationale = "...")]` declaration found on
+a macro definition. Empty array when none are present.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `antigen_type` | string | The failure-class the macro's expansion presents (last path segment) |
+| `rationale` | string | The macro author's justification (required, non-empty per ADR-014) |
+| `macro_name` | string | The macro identifier registered as a generator — the name used at INVOCATION sites (a `#[proc_macro_derive(Name)]` registers `Name`; a `#[proc_macro_attribute]` fn registers its own name; a `macro_rules! name` registers `name`) |
+| `file` | string | Source file path of the macro definition |
+| `line` | integer | Line of the `#[antigen_generates]` attribute |
+| `canonical_path` | string \| null | Cross-crate identity of the antigen (ADR-017); `null` intra-workspace |
+
+The scan's **generates-synthesis pass** connects these declarations to macro
+invocations: for every `#[derive(Name)]` / `#[name]` / `name!(...)` whose name
+matches a `macro_name`, it emits a synthetic `Presentation` at the invocation
+site with `item_kind = "generated_<macro>"` and `match_kind = "explicit_marker"`
+(author-declared, not a fingerprint guess), attributed to the invoked item so a
+co-located `#[defended_by]` / `#[antigen_tolerance]` addresses it. Same-workspace
+only at v0.3 (ADR-014 §A3); cross-crate macro-output recognition (§A4) is deferred.
 
 #### `scan_coverage` (member-aware scans only)
 
