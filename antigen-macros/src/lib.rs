@@ -1528,3 +1528,188 @@ pub fn triage_commit(args: TokenStream, input: TokenStream) -> TokenStream {
 
     quote! { #input }.into()
 }
+
+// ============================================================================
+// Prescriptive Work-Orchestration Family (ADR-033, extends ADR-024)
+//
+// "The TODO comment becomes structure." Eight clinical-named work-need macros
+// routing to FOUR structural shapes (ADR-033 §Decision 1):
+//   S1 Role-workflow  — panel, rx, refer, biopsy  (ordered who-steps + frame)
+//   S2 Elimination    — ddx                        (a set of closeable alternatives)
+//   S3 Ordering       — triage                     (a re-validatable priority order)
+//   S4 Frame-only     — culture, quarantine        (a temporal window + expiry)
+//
+// Each macro is a thin validating pass-through (like the recurrent family);
+// `cargo antigen scan` reads the SOURCE attribute directly. The audit emits the
+// four-valued WorkVerdict {Pending, Fulfilled, Overdue, OutOfFrame} — the board.
+// Witness satisfaction REUSES the ADR-019/020 categorical spine (no new
+// mechanism); only the S1 ORDERING is new content. `#[triage]` is intentionally
+// NOT shipped in this commit — its arg-shape has a ratified-ADR-vs-test-corpus
+// divergence (camp question fc2e1677, awaiting aristotle); the other seven are
+// unambiguous. `#[titer]` is NOT in this family (it is a titer-witness kind,
+// ADR-019 Amendment 1).
+// ============================================================================
+
+/// Declare a battery of work-needs to be filled + reviewed at this site
+/// (ADR-033 S1 Role-workflow).
+///
+/// `#[panel(needs, filled_by?, reviewed_by?, ordered_by?, due?)]` marks a code
+/// site as carrying an ordered diagnostic battery — a checklist the site's
+/// reviewers must close. Biology: a clinical panel (a battery of tests ordered
+/// together, closed by the reviewing clinician).
+///
+/// # Arguments
+///
+/// - `needs = ["...", ...]` (required) — the battery's checklist; non-empty
+///   (empty = vacuous work-need; compile error)
+/// - `filled_by = ["who", ...]` (optional) — ADR-020 who-refs that fill the needs
+/// - `reviewed_by = ["who", ...]` (optional) — who-refs that review the fills
+/// - `ordered_by = "who"` (optional) — who-ref that ordered the battery
+/// - `due = "YYYY-MM-DD"` (optional) — ISO-8601 frame
+///
+/// Satisfaction (ADR-033 §Witness-binding) is collective coverage over the
+/// need-set, attested per role-step at the current fingerprint — NOT a
+/// positional `filled_by[i] ↔ needs[i]` pairing.
+#[proc_macro_attribute]
+pub fn panel(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::PanelArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
+/// Declare a prescribed treatment work-need at this site (ADR-033 S1
+/// Role-workflow).
+///
+/// `#[rx(treatment, diagnosis?, filled_by?, reviewed_by?, due?)]` marks the
+/// remedy a site must carry out. Biology: a prescription — a treatment ordered
+/// for a diagnosis, filled and reviewed.
+///
+/// # Arguments
+///
+/// - `treatment = "..."` (required, non-empty) — what must be done
+/// - `diagnosis = "..."` (optional) — opaque label (v0.3; backref to `ddx` not
+///   resolved — VOID-4b)
+/// - `filled_by = ["who", ...]` (optional) — ADR-020 who-refs
+/// - `reviewed_by = ["who", ...]` (optional)
+/// - `due = "YYYY-MM-DD"` (optional) — ISO-8601 frame
+#[proc_macro_attribute]
+pub fn rx(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::RxArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
+/// Declare a referral of work to an external owner (ADR-033 S1 Role-workflow).
+///
+/// `#[refer(to, response_due?)]` hands a work-need to an owner outside this
+/// site's immediate responsibility. Biology: a specialist referral — the
+/// referring clinician hands off and awaits a response.
+///
+/// # Arguments
+///
+/// - `to = "who"` (required) — ADR-020 who-ref (the external owner)
+/// - `response_due = "YYYY-MM-DD"` (optional) — ISO-8601 frame for the response
+#[proc_macro_attribute]
+pub fn refer(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::ReferArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
+/// Declare a deep-investigation work-need at a sub-site (ADR-033 S1
+/// Role-workflow).
+///
+/// `#[biopsy(location, request_text, deep_investigation_by?)]` marks a request
+/// to investigate a specific sub-site in depth. Biology: a biopsy — sampling a
+/// specific location for deep analysis.
+///
+/// # Arguments
+///
+/// - `location = "..."` (required) — sub-site pointer (opaque label v0.3)
+/// - `request_text = "..."` (required, non-empty) — what to investigate
+/// - `deep_investigation_by = "who"` (optional) — ADR-020 who-ref
+#[proc_macro_attribute]
+pub fn biopsy(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::BiopsyArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
+/// Declare a differential-diagnosis work-need: a set of alternatives to rule
+/// out (ADR-033 S2 Elimination).
+///
+/// `#[ddx(symptom, rule_out, investigator?, reviewer?)]` marks a site where a
+/// symptom has multiple candidate causes, each to be independently eliminated.
+/// Biology: differential diagnosis — the list of conditions to rule out.
+///
+/// # Arguments
+///
+/// - `symptom = "..."` (required, non-empty) — the observed problem
+/// - `rule_out = ["...", ...]` (required, non-empty) — the alternative-set; each
+///   alternative is independently closeable (a rule-out carries a closing attestation)
+/// - `investigator = "who"` (optional) — ADR-020 who-ref
+/// - `reviewer = "who"` (optional) — ADR-020 who-ref
+#[proc_macro_attribute]
+pub fn ddx(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::DdxArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
+/// Declare a time-boxed test/observation work-need (ADR-033 S4 Frame-only).
+///
+/// `#[culture(test_kind, duration?, runs_until?)]` marks a site that must stay
+/// green within a temporal window (a soak/observation). Biology: a culture —
+/// incubate for a fixed period and read the result.
+///
+/// # Arguments
+///
+/// - `test_kind = "..."` (required, non-empty) — what is being cultured/observed
+/// - `duration = "..."` (optional) — duration string
+/// - `runs_until = "YYYY-MM-DD"` (optional) — ISO-8601 frame
+#[proc_macro_attribute]
+pub fn culture(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::CultureArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
+
+/// Declare an isolated region under a time-boxed hold (ADR-033 S4 Frame-only).
+///
+/// `#[quarantine(scope, until?, reason)]` marks a region deliberately isolated
+/// until a frame passes. Biology: quarantine — isolate until cleared. The
+/// `reason` is required per ADR-005 Amendment 2 (rationale-as-required for every
+/// suppression-shaped primitive).
+///
+/// # Arguments
+///
+/// - `scope = "..."` (required) — the isolated-region pointer
+/// - `until = "YYYY-MM-DD"` (optional) — ISO-8601 frame
+/// - `reason = "..."` (required, non-empty) — why the hold (ADR-005 Amd2)
+#[proc_macro_attribute]
+pub fn quarantine(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::QuarantineArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
