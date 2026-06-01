@@ -1025,7 +1025,7 @@ fn run_verify_dep_attest(args: VerifyDepAttestArgs) -> ExitCode {
 }
 
 fn run_verify_dep_pin(args: VerifyDepPinArgs) -> ExitCode {
-    use antigen::supply_chain::evaluate::evaluate_dep_pinned;
+    use antigen::supply_chain::evaluate::{evaluate_dep_pinned, resolved_version_from_lockfile};
     use antigen::supply_chain::witness::DepPinnedState;
     let state = evaluate_dep_pinned(&args.root, None);
     match state {
@@ -1038,14 +1038,32 @@ fn run_verify_dep_pin(args: VerifyDepPinArgs) -> ExitCode {
                 "verify dep-pin: {n} unpinned dep(s) detected. Suggested edits:",
                 n = unpinned_deps.len()
             );
+            // Resolve each unpinned dep's version from Cargo.lock so the
+            // suggestion is copy-paste-able (`=1.2.3`) rather than a placeholder.
+            // When the lockfile has no entry (not yet resolved), fall back to the
+            // placeholder + a note rather than guessing.
+            let lockfile = args.root.join("Cargo.lock");
+            let mut unresolved = 0usize;
             for name in &unpinned_deps {
-                println!("  - in Cargo.toml [dependencies]: pin `{name}` to `=<RESOLVED_VERSION>`");
+                if let Some(version) = resolved_version_from_lockfile(&lockfile, name) {
+                    println!("  - in Cargo.toml [dependencies]: pin `{name}` to `={version}`");
+                } else {
+                    unresolved += 1;
+                    println!(
+                        "  - in Cargo.toml [dependencies]: pin `{name}` to `=<RESOLVED_VERSION>` \
+                         (no Cargo.lock entry — run `cargo generate-lockfile` first)"
+                    );
+                }
             }
             println!();
+            if unresolved > 0 {
+                println!("note: {unresolved} dep(s) had no resolved version in Cargo.lock.");
+            }
             println!(
-                "v0.2: this subcommand prints suggested edits. In-place \
-                 rewriting is deferred to v0.3+ (needs a real toml parser to \
-                 preserve formatting + comments)."
+                "v0.3: this subcommand prints copy-paste-able pin suggestions from the \
+                 resolved lockfile versions. In-place Cargo.toml rewriting is gated behind \
+                 a future `--write` flag (needs a format-preserving toml editor to keep \
+                 comments/layout, and rewriting the adopter's manifest is opt-in by design)."
             );
             ExitCode::SUCCESS
         }
