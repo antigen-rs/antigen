@@ -9249,9 +9249,11 @@ copy that can lie.
 
 ## [ADR-035] Cardinality Collapse at a Trust Boundary: the Three-Valued Type Law (a Self-Applying Antigen)
 
-**Status**: Proposed 2026-06-01 (ceremony: `forward/three-valued-logic-api-boundary-layer`). The
-adversarial falsification gate and the math-researcher formal sign-off both landed before this draft;
-this ADR absorbs them. Awaiting the co-sign ceremony.
+**Status**: Ratified 2026-06-01 (ceremony: `forward/adr035-three-valued-type-law-ceremony`, 3/3
+co-signers: aristotle, math-researcher, adversarial). The adversarial falsification gate (no
+counterexample to the no-total-boundary lemma), the math-researcher coproduct-closure formal
+sign-off, and the aristotle first-principles co-sign all landed as part of the ceremony. The
+ceremony campsite reached 3/3 complete on 2026-06-01 (third night).
 
 **Participants**: aristotle (the "forced, not found" necessity argument; the Phase-1-8 forced-rejection
 of the two-valued boundary and of the atomic-`⊥`; the 13-instance catalog; the `⊥` notation-collision
