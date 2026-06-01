@@ -55,8 +55,11 @@ antigen = "=0.3.0-beta.1"   # v0.3 prerelease — has the prescriptive family; v
 Install the cargo subcommand:
 
 ```sh
-cargo install cargo-antigen
+cargo install cargo-antigen@=0.3.0-beta.1
 ```
+
+> **v0.3 is a beta prerelease.** `cargo install cargo-antigen` installs the latest
+> stable (v0.2.0). Pin to the beta as shown above to get the v0.3 surface.
 
 Verify:
 

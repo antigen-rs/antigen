@@ -9,8 +9,12 @@
 ## Step 1 — Install the cargo subcommand (30 seconds)
 
 ```sh
-cargo install cargo-antigen
+cargo install cargo-antigen@=0.3.0-beta.1
 ```
+
+> **v0.3 is a beta prerelease.** `cargo install cargo-antigen` installs the latest
+> stable (v0.2.0). To get the prescriptive family, pin to the beta explicitly as shown
+> above. The stable release of v0.3 is targeted shortly after the beta.
 
 Verify:
 
@@ -23,7 +27,7 @@ You should see:
 
 ```
 $ cargo antigen --version
-cargo-antigen-antigen 0.3.0-alpha.1
+cargo-antigen-antigen 0.3.0-beta.1
 
 $ cargo antigen --help
 The "antigen" subcommand of cargo
