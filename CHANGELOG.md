@@ -252,6 +252,13 @@ the eval-time mirror of ATK-FT-3); `eval_oracles_complete` splits the fused
 one stays a genuine fail. Genuine evaluated-and-failed paths (version-below-min,
 present-but-incomplete oracle, signer-absent) are unchanged.
 
+### Known v0.3.0-beta limitations (deferred to stable)
+
+- **`cargo antigen --help` audit subcommand text references `#[immune]`**: the
+  `--help` text on the `audit` subcommand still describes the deprecated v0.1
+  `#[immune(...)]` declaration form. This is a CLI text issue only — the evaluator
+  and docs are fully migrated. Will be corrected before the 0.3.0 stable tag.
+
 ## [0.2.0] — 2026-05-31
 
 **First stable release of the v0.2 line.** Promotes `0.2.0-beta.1` to stable after a
