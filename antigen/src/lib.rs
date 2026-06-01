@@ -175,6 +175,14 @@ pub use antigen_macros::{chronic, crystallize, itch, recurrence_anchor, saturate
 pub use antigen_macros::{mucosal, mucosal_delegate, mucosal_tolerant};
 pub use mucosal::MucosalKind;
 
+// Prescriptive Work-Orchestration Family (ADR-033, extends ADR-024): eight
+// clinical-named work-need primitives routing to four structural shapes
+// (S1 role-workflow / S2 elimination / S3 ordering / S4 frame-only). "The TODO
+// comment becomes structure." Seven ship here; `#[triage]` (S3) is held pending
+// an arg-shape ratification (camp question fc2e1677). `#[titer]` is NOT in this
+// family — it is a titer-witness kind (ADR-019 Amendment 1).
+pub use antigen_macros::{biopsy, culture, ddx, panel, quarantine, refer, rx};
+
 pub mod audit;
 pub mod scan;
 

@@ -3976,6 +3976,603 @@ fn is_kebab_case(s: &str) -> bool {
         && !s.contains("--")
 }
 
+// ============================================================================
+// Prescriptive Work-Orchestration Family arg-parsers (ADR-033, extends ADR-024)
+//
+// Eight clinical-named macros route to four structural shapes. These seven
+// (panel/rx/refer/biopsy/ddx/culture/quarantine) are unambiguous; `#[triage]`
+// (S3 Ordering) is held pending a ratified-ADR-vs-test-corpus arg-shape
+// divergence (camp question fc2e1677). All field shapes follow ADR-033
+// §Proc-Macro-Surface tables S1/S2/S4 exactly. Parse uses the `MetaPair` +
+// `parse_terminated` idiom (the cleaner of the two in-file conventions); the
+// who-ref `Vec<String>` fields are ADR-020 role-refs; frame fields are ISO-8601
+// date strings (advisory parse, audit-time evaluated).
+// ============================================================================
+
+/// Arguments to `#[panel(needs, filled_by?, reviewed_by?, ordered_by?, due?)]`
+/// (ADR-033 S1 Role-workflow). `needs` is the battery's checklist (required,
+/// non-empty); satisfaction is collective coverage over the need-set attested
+/// per role-step (ADR-033 §Witness-binding), NOT a positional pairing.
+#[derive(Debug)]
+pub struct PanelArgs {
+    pub needs: Vec<String>,
+    pub needs_present: bool,
+    #[allow(dead_code)]
+    pub filled_by: Vec<String>,
+    #[allow(dead_code)]
+    pub reviewed_by: Vec<String>,
+    #[allow(dead_code)]
+    pub ordered_by: Option<String>,
+    #[allow(dead_code)]
+    pub due: Option<String>,
+    pub args_span: Span,
+}
+
+impl Parse for PanelArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut needs: Vec<String> = Vec::new();
+        let mut needs_present = false;
+        let mut filled_by: Vec<String> = Vec::new();
+        let mut reviewed_by: Vec<String> = Vec::new();
+        let mut ordered_by: Option<String> = None;
+        let mut due: Option<String> = None;
+
+        let pairs: Punctuated<MetaPair, Token![,]> =
+            input.parse_terminated(MetaPair::parse, Token![,])?;
+        for pair in pairs {
+            match pair.key.to_string().as_str() {
+                "needs" => {
+                    needs = pair.expect_string_array()?;
+                    needs_present = true;
+                }
+                "filled_by" => filled_by = pair.expect_string_array()?,
+                "reviewed_by" => reviewed_by = pair.expect_string_array()?,
+                "ordered_by" => ordered_by = Some(pair.expect_string()?),
+                "due" => due = Some(pair.expect_string()?),
+                other => {
+                    return Err(syn::Error::new(
+                        pair.key.span(),
+                        format!(
+                            "unknown #[panel] field `{other}`; expected one of: \
+                             needs, filled_by, reviewed_by, ordered_by, due"
+                        ),
+                    ));
+                }
+            }
+        }
+        Ok(Self {
+            needs,
+            needs_present,
+            filled_by,
+            reviewed_by,
+            ordered_by,
+            due,
+            args_span,
+        })
+    }
+}
+
+impl PanelArgs {
+    /// `needs` is required and non-empty (empty = vacuous work-need; the
+    /// `EmptySignersList` vacuous-guard class, ADR-033 §Proc-Macro-Surface +
+    /// ATK-PRES-1).
+    pub fn validate(&self) -> syn::Result<()> {
+        if !self.needs_present {
+            return Err(syn::Error::new(
+                self.args_span,
+                "#[panel] requires `needs = [\"...\", ...]` (the battery's checklist).",
+            ));
+        }
+        if self.needs.iter().all(|n| n.trim().is_empty()) {
+            return Err(syn::Error::new(
+                self.args_span,
+                "#[panel] `needs` must be non-empty — an empty checklist is a vacuous \
+                 work-need (it would always read as satisfied).",
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Arguments to `#[rx(treatment, diagnosis?, filled_by?, reviewed_by?, due?)]`
+/// (ADR-033 S1 Role-workflow).
+#[derive(Debug)]
+pub struct RxArgs {
+    pub treatment: Option<String>,
+    pub treatment_span: Option<Span>,
+    #[allow(dead_code)]
+    pub diagnosis: Option<String>,
+    #[allow(dead_code)]
+    pub filled_by: Vec<String>,
+    #[allow(dead_code)]
+    pub reviewed_by: Vec<String>,
+    #[allow(dead_code)]
+    pub due: Option<String>,
+    pub args_span: Span,
+}
+
+impl Parse for RxArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut treatment: Option<String> = None;
+        let mut treatment_span: Option<Span> = None;
+        let mut diagnosis: Option<String> = None;
+        let mut filled_by: Vec<String> = Vec::new();
+        let mut reviewed_by: Vec<String> = Vec::new();
+        let mut due: Option<String> = None;
+
+        let pairs: Punctuated<MetaPair, Token![,]> =
+            input.parse_terminated(MetaPair::parse, Token![,])?;
+        for pair in pairs {
+            match pair.key.to_string().as_str() {
+                "treatment" => {
+                    let (s, span) = pair.expect_string_spanned()?;
+                    treatment = Some(s);
+                    treatment_span = Some(span);
+                }
+                "diagnosis" => diagnosis = Some(pair.expect_string()?),
+                "filled_by" => filled_by = pair.expect_string_array()?,
+                "reviewed_by" => reviewed_by = pair.expect_string_array()?,
+                "due" => due = Some(pair.expect_string()?),
+                other => {
+                    return Err(syn::Error::new(
+                        pair.key.span(),
+                        format!(
+                            "unknown #[rx] field `{other}`; expected one of: \
+                             treatment, diagnosis, filled_by, reviewed_by, due"
+                        ),
+                    ));
+                }
+            }
+        }
+        Ok(Self {
+            treatment,
+            treatment_span,
+            diagnosis,
+            filled_by,
+            reviewed_by,
+            due,
+            args_span,
+        })
+    }
+}
+
+impl RxArgs {
+    /// `treatment` is required and non-empty.
+    pub fn validate(&self) -> syn::Result<()> {
+        match self.treatment.as_deref() {
+            None => Err(syn::Error::new(
+                self.args_span,
+                "#[rx] requires `treatment = \"...\"` (what must be done).",
+            )),
+            Some(s) if s.trim().is_empty() => Err(syn::Error::new(
+                self.treatment_span.unwrap_or(self.args_span),
+                "#[rx] `treatment` cannot be empty.",
+            )),
+            Some(_) => Ok(()),
+        }
+    }
+}
+
+/// Arguments to `#[refer(to, response_due?)]` (ADR-033 S1 Role-workflow).
+#[derive(Debug)]
+pub struct ReferArgs {
+    pub to: Option<String>,
+    pub to_span: Option<Span>,
+    #[allow(dead_code)]
+    pub response_due: Option<String>,
+    pub args_span: Span,
+}
+
+impl Parse for ReferArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut to: Option<String> = None;
+        let mut to_span: Option<Span> = None;
+        let mut response_due: Option<String> = None;
+
+        let pairs: Punctuated<MetaPair, Token![,]> =
+            input.parse_terminated(MetaPair::parse, Token![,])?;
+        for pair in pairs {
+            match pair.key.to_string().as_str() {
+                "to" => {
+                    let (s, span) = pair.expect_string_spanned()?;
+                    to = Some(s);
+                    to_span = Some(span);
+                }
+                "response_due" => response_due = Some(pair.expect_string()?),
+                other => {
+                    return Err(syn::Error::new(
+                        pair.key.span(),
+                        format!(
+                            "unknown #[refer] field `{other}`; expected one of: \
+                             to, response_due"
+                        ),
+                    ));
+                }
+            }
+        }
+        Ok(Self {
+            to,
+            to_span,
+            response_due,
+            args_span,
+        })
+    }
+}
+
+impl ReferArgs {
+    /// `to` is required and non-empty (the external owner who-ref).
+    pub fn validate(&self) -> syn::Result<()> {
+        match self.to.as_deref() {
+            None => Err(syn::Error::new(
+                self.args_span,
+                "#[refer] requires `to = \"who\"` (the external owner this work is referred to).",
+            )),
+            Some(s) if s.trim().is_empty() => Err(syn::Error::new(
+                self.to_span.unwrap_or(self.args_span),
+                "#[refer] `to` cannot be empty.",
+            )),
+            Some(_) => Ok(()),
+        }
+    }
+}
+
+/// Arguments to `#[biopsy(location, request_text, deep_investigation_by?)]`
+/// (ADR-033 S1 Role-workflow).
+#[derive(Debug)]
+pub struct BiopsyArgs {
+    pub location: Option<String>,
+    pub location_span: Option<Span>,
+    pub request_text: Option<String>,
+    pub request_text_span: Option<Span>,
+    #[allow(dead_code)]
+    pub deep_investigation_by: Option<String>,
+    pub args_span: Span,
+}
+
+impl Parse for BiopsyArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut location: Option<String> = None;
+        let mut location_span: Option<Span> = None;
+        let mut request_text: Option<String> = None;
+        let mut request_text_span: Option<Span> = None;
+        let mut deep_investigation_by: Option<String> = None;
+
+        let pairs: Punctuated<MetaPair, Token![,]> =
+            input.parse_terminated(MetaPair::parse, Token![,])?;
+        for pair in pairs {
+            match pair.key.to_string().as_str() {
+                "location" => {
+                    let (s, span) = pair.expect_string_spanned()?;
+                    location = Some(s);
+                    location_span = Some(span);
+                }
+                "request_text" => {
+                    let (s, span) = pair.expect_string_spanned()?;
+                    request_text = Some(s);
+                    request_text_span = Some(span);
+                }
+                "deep_investigation_by" => deep_investigation_by = Some(pair.expect_string()?),
+                other => {
+                    return Err(syn::Error::new(
+                        pair.key.span(),
+                        format!(
+                            "unknown #[biopsy] field `{other}`; expected one of: \
+                             location, request_text, deep_investigation_by"
+                        ),
+                    ));
+                }
+            }
+        }
+        Ok(Self {
+            location,
+            location_span,
+            request_text,
+            request_text_span,
+            deep_investigation_by,
+            args_span,
+        })
+    }
+}
+
+impl BiopsyArgs {
+    /// Both `location` and `request_text` are required; `request_text` non-empty.
+    pub fn validate(&self) -> syn::Result<()> {
+        match self.location.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[biopsy] requires `location = \"...\"` (the sub-site to investigate).",
+                ));
+            }
+            Some(s) if s.trim().is_empty() => {
+                return Err(syn::Error::new(
+                    self.location_span.unwrap_or(self.args_span),
+                    "#[biopsy] `location` cannot be empty.",
+                ));
+            }
+            Some(_) => {}
+        }
+        match self.request_text.as_deref() {
+            None => Err(syn::Error::new(
+                self.args_span,
+                "#[biopsy] requires `request_text = \"...\"` (what to investigate).",
+            )),
+            Some(s) if s.trim().is_empty() => Err(syn::Error::new(
+                self.request_text_span.unwrap_or(self.args_span),
+                "#[biopsy] `request_text` cannot be empty.",
+            )),
+            Some(_) => Ok(()),
+        }
+    }
+}
+
+/// Arguments to `#[ddx(symptom, rule_out, investigator?, reviewer?)]`
+/// (ADR-033 S2 Elimination).
+#[derive(Debug)]
+pub struct DdxArgs {
+    pub symptom: Option<String>,
+    pub symptom_span: Option<Span>,
+    pub rule_out: Vec<String>,
+    pub rule_out_present: bool,
+    #[allow(dead_code)]
+    pub investigator: Option<String>,
+    #[allow(dead_code)]
+    pub reviewer: Option<String>,
+    pub args_span: Span,
+}
+
+impl Parse for DdxArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut symptom: Option<String> = None;
+        let mut symptom_span: Option<Span> = None;
+        let mut rule_out: Vec<String> = Vec::new();
+        let mut rule_out_present = false;
+        let mut investigator: Option<String> = None;
+        let mut reviewer: Option<String> = None;
+
+        let pairs: Punctuated<MetaPair, Token![,]> =
+            input.parse_terminated(MetaPair::parse, Token![,])?;
+        for pair in pairs {
+            match pair.key.to_string().as_str() {
+                "symptom" => {
+                    let (s, span) = pair.expect_string_spanned()?;
+                    symptom = Some(s);
+                    symptom_span = Some(span);
+                }
+                "rule_out" => {
+                    rule_out = pair.expect_string_array()?;
+                    rule_out_present = true;
+                }
+                "investigator" => investigator = Some(pair.expect_string()?),
+                "reviewer" => reviewer = Some(pair.expect_string()?),
+                other => {
+                    return Err(syn::Error::new(
+                        pair.key.span(),
+                        format!(
+                            "unknown #[ddx] field `{other}`; expected one of: \
+                             symptom, rule_out, investigator, reviewer"
+                        ),
+                    ));
+                }
+            }
+        }
+        Ok(Self {
+            symptom,
+            symptom_span,
+            rule_out,
+            rule_out_present,
+            investigator,
+            reviewer,
+            args_span,
+        })
+    }
+}
+
+impl DdxArgs {
+    /// `symptom` required + non-empty; `rule_out` required + non-empty (an empty
+    /// alternative-set is no differential diagnosis; ATK-PRES-2).
+    pub fn validate(&self) -> syn::Result<()> {
+        match self.symptom.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[ddx] requires `symptom = \"...\"` (the observed problem).",
+                ));
+            }
+            Some(s) if s.trim().is_empty() => {
+                return Err(syn::Error::new(
+                    self.symptom_span.unwrap_or(self.args_span),
+                    "#[ddx] `symptom` cannot be empty.",
+                ));
+            }
+            Some(_) => {}
+        }
+        if !self.rule_out_present {
+            return Err(syn::Error::new(
+                self.args_span,
+                "#[ddx] requires `rule_out = [\"...\", ...]` (the alternatives to eliminate).",
+            ));
+        }
+        if self.rule_out.iter().all(|r| r.trim().is_empty()) {
+            return Err(syn::Error::new(
+                self.args_span,
+                "#[ddx] `rule_out` must be non-empty — an empty alternative-set is no \
+                 differential diagnosis.",
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Arguments to `#[culture(test_kind, duration?, runs_until?)]`
+/// (ADR-033 S4 Frame-only).
+#[derive(Debug)]
+pub struct CultureArgs {
+    pub test_kind: Option<String>,
+    pub test_kind_span: Option<Span>,
+    #[allow(dead_code)]
+    pub duration: Option<String>,
+    #[allow(dead_code)]
+    pub runs_until: Option<String>,
+    pub args_span: Span,
+}
+
+impl Parse for CultureArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut test_kind: Option<String> = None;
+        let mut test_kind_span: Option<Span> = None;
+        let mut duration: Option<String> = None;
+        let mut runs_until: Option<String> = None;
+
+        let pairs: Punctuated<MetaPair, Token![,]> =
+            input.parse_terminated(MetaPair::parse, Token![,])?;
+        for pair in pairs {
+            match pair.key.to_string().as_str() {
+                "test_kind" => {
+                    let (s, span) = pair.expect_string_spanned()?;
+                    test_kind = Some(s);
+                    test_kind_span = Some(span);
+                }
+                "duration" => duration = Some(pair.expect_string()?),
+                "runs_until" => runs_until = Some(pair.expect_string()?),
+                other => {
+                    return Err(syn::Error::new(
+                        pair.key.span(),
+                        format!(
+                            "unknown #[culture] field `{other}`; expected one of: \
+                             test_kind, duration, runs_until"
+                        ),
+                    ));
+                }
+            }
+        }
+        Ok(Self {
+            test_kind,
+            test_kind_span,
+            duration,
+            runs_until,
+            args_span,
+        })
+    }
+}
+
+impl CultureArgs {
+    /// `test_kind` is required and non-empty.
+    pub fn validate(&self) -> syn::Result<()> {
+        match self.test_kind.as_deref() {
+            None => Err(syn::Error::new(
+                self.args_span,
+                "#[culture] requires `test_kind = \"...\"` (what is being cultured/observed).",
+            )),
+            Some(s) if s.trim().is_empty() => Err(syn::Error::new(
+                self.test_kind_span.unwrap_or(self.args_span),
+                "#[culture] `test_kind` cannot be empty.",
+            )),
+            Some(_) => Ok(()),
+        }
+    }
+}
+
+/// Arguments to `#[quarantine(scope, until?, reason)]` (ADR-033 S4 Frame-only).
+/// `reason` is required per ADR-005 Amendment 2 (rationale-as-required for every
+/// suppression-shaped primitive).
+#[derive(Debug)]
+pub struct QuarantineArgs {
+    pub scope: Option<String>,
+    pub scope_span: Option<Span>,
+    #[allow(dead_code)]
+    pub until: Option<String>,
+    pub reason: Option<String>,
+    pub reason_span: Option<Span>,
+    pub args_span: Span,
+}
+
+impl Parse for QuarantineArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut scope: Option<String> = None;
+        let mut scope_span: Option<Span> = None;
+        let mut until: Option<String> = None;
+        let mut reason: Option<String> = None;
+        let mut reason_span: Option<Span> = None;
+
+        let pairs: Punctuated<MetaPair, Token![,]> =
+            input.parse_terminated(MetaPair::parse, Token![,])?;
+        for pair in pairs {
+            match pair.key.to_string().as_str() {
+                "scope" => {
+                    let (s, span) = pair.expect_string_spanned()?;
+                    scope = Some(s);
+                    scope_span = Some(span);
+                }
+                "until" => until = Some(pair.expect_string()?),
+                "reason" => {
+                    let (s, span) = pair.expect_string_spanned()?;
+                    reason = Some(s);
+                    reason_span = Some(span);
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        pair.key.span(),
+                        format!(
+                            "unknown #[quarantine] field `{other}`; expected one of: \
+                             scope, until, reason"
+                        ),
+                    ));
+                }
+            }
+        }
+        Ok(Self {
+            scope,
+            scope_span,
+            until,
+            reason,
+            reason_span,
+            args_span,
+        })
+    }
+}
+
+impl QuarantineArgs {
+    /// `scope` required + non-empty; `reason` required + non-empty (ADR-005
+    /// Amendment 2 rationale-as-required; ATK-PRES-3).
+    pub fn validate(&self) -> syn::Result<()> {
+        match self.scope.as_deref() {
+            None => {
+                return Err(syn::Error::new(
+                    self.args_span,
+                    "#[quarantine] requires `scope = \"...\"` (the isolated region).",
+                ));
+            }
+            Some(s) if s.trim().is_empty() => {
+                return Err(syn::Error::new(
+                    self.scope_span.unwrap_or(self.args_span),
+                    "#[quarantine] `scope` cannot be empty.",
+                ));
+            }
+            Some(_) => {}
+        }
+        match self.reason.as_deref() {
+            None => Err(syn::Error::new(
+                self.args_span,
+                "#[quarantine] requires `reason = \"...\"` (why the hold; ADR-005 Amendment 2 \
+                 rationale-as-required).",
+            )),
+            Some(s) if s.trim().is_empty() => Err(syn::Error::new(
+                self.reason_span.unwrap_or(self.args_span),
+                "#[quarantine] `reason` cannot be empty (ADR-005 Amendment 2).",
+            )),
+            Some(_) => Ok(()),
+        }
+    }
+}
+
 // The `requires_json_tests` module previously lived here; it moved with the
 // parser into `antigen_attestation::parser` (run via
 // `cargo test -p antigen-attestation --features parser`). Keeping the tests
@@ -6075,5 +6672,164 @@ mod parser_props {
             err.contains("defended_by"),
             "error should point at #[defended_by] for code-tier evidence; got: {err:?}"
         );
+    }
+
+    // ========================================================================
+    // Prescriptive Work-Orchestration Family parse tests (ADR-033)
+    // ========================================================================
+
+    #[test]
+    fn panel_accepts_full_shape() {
+        let tokens: TokenStream = r#"needs = ["review error path", "check edge case"], filled_by = ["alice"], reviewed_by = ["bob"], ordered_by = "carol", due = "2027-01-01""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<PanelArgs>(tokens).unwrap();
+        assert_eq!(args.needs.len(), 2);
+        assert_eq!(args.filled_by, vec!["alice"]);
+        assert_eq!(args.reviewed_by, vec!["bob"]);
+        assert_eq!(args.ordered_by.as_deref(), Some("carol"));
+        args.validate().unwrap();
+    }
+
+    #[test]
+    fn panel_rejects_empty_needs() {
+        // ATK-PRES-1: empty needs is a vacuous work-need.
+        let tokens: TokenStream = r"needs = []".parse().unwrap();
+        let args = syn::parse2::<PanelArgs>(tokens).unwrap();
+        let err = args
+            .validate()
+            .expect_err("empty needs must reject")
+            .to_string();
+        assert!(
+            err.contains("non-empty"),
+            "error must explain vacuity: {err:?}"
+        );
+    }
+
+    #[test]
+    fn panel_rejects_missing_needs() {
+        let tokens: TokenStream = r#"filled_by = ["alice"]"#.parse().unwrap();
+        let args = syn::parse2::<PanelArgs>(tokens).unwrap();
+        assert!(args.validate().is_err(), "missing needs must reject");
+    }
+
+    #[test]
+    fn panel_rejects_unknown_field() {
+        let tokens: TokenStream = r#"needs = ["x"], bogus = "y""#.parse().unwrap();
+        assert!(syn::parse2::<PanelArgs>(tokens).is_err());
+    }
+
+    #[test]
+    fn ddx_accepts_full_shape() {
+        let tokens: TokenStream = r#"symptom = "slow query", rule_out = ["missing index", "n+1"], investigator = "alice""#
+            .parse()
+            .unwrap();
+        let args = syn::parse2::<DdxArgs>(tokens).unwrap();
+        assert_eq!(args.symptom.as_deref(), Some("slow query"));
+        assert_eq!(args.rule_out.len(), 2);
+        args.validate().unwrap();
+    }
+
+    #[test]
+    fn ddx_rejects_empty_rule_out() {
+        // ATK-PRES-2: empty alternative-set is no differential diagnosis.
+        let tokens: TokenStream = r#"symptom = "x", rule_out = []"#.parse().unwrap();
+        let args = syn::parse2::<DdxArgs>(tokens).unwrap();
+        assert!(args.validate().is_err(), "empty rule_out must reject");
+    }
+
+    #[test]
+    fn ddx_rejects_missing_symptom() {
+        let tokens: TokenStream = r#"rule_out = ["a"]"#.parse().unwrap();
+        let args = syn::parse2::<DdxArgs>(tokens).unwrap();
+        assert!(args.validate().is_err());
+    }
+
+    #[test]
+    fn quarantine_accepts_full_shape() {
+        let tokens: TokenStream =
+            r#"scope = "legacy::module", until = "2027-06-01", reason = "pending upstream fix""#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<QuarantineArgs>(tokens).unwrap();
+        assert_eq!(args.scope.as_deref(), Some("legacy::module"));
+        args.validate().unwrap();
+    }
+
+    #[test]
+    fn quarantine_rejects_empty_reason() {
+        // ATK-PRES-3: ADR-005 Amd2 rationale-as-required.
+        let tokens: TokenStream = r#"scope = "x", reason = """#.parse().unwrap();
+        let args = syn::parse2::<QuarantineArgs>(tokens).unwrap();
+        let err = args
+            .validate()
+            .expect_err("empty reason must reject")
+            .to_string();
+        assert!(
+            err.contains("Amendment 2"),
+            "error must cite ADR-005 Amd2: {err:?}"
+        );
+    }
+
+    #[test]
+    fn quarantine_rejects_missing_reason() {
+        let tokens: TokenStream = r#"scope = "x""#.parse().unwrap();
+        let args = syn::parse2::<QuarantineArgs>(tokens).unwrap();
+        assert!(
+            args.validate().is_err(),
+            "missing reason must reject (ADR-005 Amd2)"
+        );
+    }
+
+    #[test]
+    fn rx_accepts_minimal_and_rejects_empty_treatment() {
+        let ok: TokenStream = r#"treatment = "add retry with backoff""#.parse().unwrap();
+        syn::parse2::<RxArgs>(ok).unwrap().validate().unwrap();
+
+        let empty: TokenStream = r#"treatment = """#.parse().unwrap();
+        assert!(syn::parse2::<RxArgs>(empty).unwrap().validate().is_err());
+    }
+
+    #[test]
+    fn refer_requires_to() {
+        let ok: TokenStream = r#"to = "platform-team", response_due = "2027-02-01""#
+            .parse()
+            .unwrap();
+        syn::parse2::<ReferArgs>(ok).unwrap().validate().unwrap();
+
+        let missing: TokenStream = r#"response_due = "2027-02-01""#.parse().unwrap();
+        assert!(syn::parse2::<ReferArgs>(missing)
+            .unwrap()
+            .validate()
+            .is_err());
+    }
+
+    #[test]
+    fn biopsy_requires_location_and_request_text() {
+        let ok: TokenStream =
+            r#"location = "parser::fast_path", request_text = "why does it allocate twice""#
+                .parse()
+                .unwrap();
+        syn::parse2::<BiopsyArgs>(ok).unwrap().validate().unwrap();
+
+        let missing_text: TokenStream = r#"location = "x""#.parse().unwrap();
+        assert!(syn::parse2::<BiopsyArgs>(missing_text)
+            .unwrap()
+            .validate()
+            .is_err());
+    }
+
+    #[test]
+    fn culture_requires_test_kind() {
+        let ok: TokenStream = r#"test_kind = "24h soak", runs_until = "2027-01-02""#
+            .parse()
+            .unwrap();
+        syn::parse2::<CultureArgs>(ok).unwrap().validate().unwrap();
+
+        let missing: TokenStream = r#"duration = "24h""#.parse().unwrap();
+        assert!(syn::parse2::<CultureArgs>(missing)
+            .unwrap()
+            .validate()
+            .is_err());
     }
 }
