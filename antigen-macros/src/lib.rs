@@ -1713,3 +1713,35 @@ pub fn quarantine(args: TokenStream, input: TokenStream) -> TokenStream {
     }
     quote! { #input }.into()
 }
+
+/// Declare a re-validatable priority ordering over code sites (ADR-033 S3
+/// Ordering).
+///
+/// `#[triage(priority_order, triaged_by?, re_triage_due?)]` marks a site that
+/// carries an ordered priority over a set of code-site references. Biology:
+/// triage — ranking by urgency, re-assessed each round. Distinct from
+/// `#[triage_commit]` (ADR-026 VCS-rollback classification) — names rhyme,
+/// surfaces are unrelated (ATK-PRES-10).
+///
+/// Per the 2026-06-01 post-ratification fixup, the `campsites` field was dropped:
+/// `priority_order` entries are **code-site references** (file/item-path), not
+/// camp campsites (anchor #3 — the audit never reads camp). They resolve at
+/// audit-time (ADR-017 Amendment 1); an unresolvable entry is `out-of-frame`,
+/// never silently satisfied.
+///
+/// # Arguments
+///
+/// - `priority_order = ["...", ...]` (required, non-empty) — code-site refs in
+///   priority order
+/// - `triaged_by = "who"` (optional) — ADR-020 who-ref that attested the order
+/// - `re_triage_due = "YYYY-MM-DD"` (optional) — ISO-8601 staleness frame (not a
+///   deadline; a standing ordering is re-earned each cycle)
+#[proc_macro_attribute]
+pub fn triage(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as parse::TriageArgs);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = args.validate() {
+        return e.to_compile_error().into();
+    }
+    quote! { #input }.into()
+}
