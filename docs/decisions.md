@@ -8634,6 +8634,17 @@ three-valued-logic invariant (the gem): the *could-not-evaluate* state is catego
 from the *evaluated-and-low* state, and collapsing them is the silent-wrong-verdict bug class.
 A titer-witness MUST keep `un-measurable` distinct from `below-threshold`.
 
+**`un-measurable` is the lift's unit, not a titer special case (math-researcher).** A value-read
+`measure : Substrate ⇀ Scalar` is a partial function exactly as a categorical predicate is; its
+honest total form is the lift `Substrate → (Scalar + 1)`, and `un-measurable` is the *same* unit
+`⊥` that the categorical kind's `substrate-gap` / `out-of-frame` is — the one terminal inhabitant
+that injects into every lifted codomain (categorical or scalar). It is not special to titers; it is
+what totalizing any partial substrate-read *is*. Report-not-verdict is then exactly "do not apply a
+threshold function to `⊥`" — a threshold partitions `Scalar`, and `⊥` is not in `Scalar`, so a
+verdict over `⊥` is a type error, not a measurement. The value layer obeys the coproduct the same
+way the verdict layer does. (When the universal three-valued principle ratifies, this is one of its
+instantiations — the value-read lift — not a titer-local rule.)
+
 **Non-monotonicity as a structural argument for report-not-verdict** (math-researcher Sharpening
 2): a value-witness is non-monotone in *both* directions — a re-measurement can rise OR fall
 (unlike categorical attestation-leaves, which are monotone under substrate growth). Therefore
@@ -8895,11 +8906,15 @@ discriminator:
 Phase-8 VOID-3 proves it: remove locality (T1) from a work-need and it BECOMES a camp campsite — the
 void left by removing locality IS camp. So antigen-prescriptive = "camp's work-need shape (need + who
 + frame + satisfaction) MINUS the team-locus PLUS the code-site-locus." Same shape, different anchor,
-different observer. The boundary asserts itself structurally: `triage(campsites = …)` *wants* to
-reference camp campsites, but anchor #3 forbids reading camp state — so `campsites` is an **opaque
-string label** the audit does not resolve. The one allowed bridge is camp-side ingestion of antigen's
-scan-JSON (camp pulls; antigen never pushes-into or reads-from camp) — a separate, camp-side concern,
-NOT antigen's job.
+different observer. The boundary asserts itself structurally in the `#[triage]` shape itself: the
+comprehensive-vision §7 sketch had `triage` ordering camp *campsites* — but a triage that orders camp
+campsites would be reading camp state, which anchor #3 forbids. The locality test resolves it: a
+triage that orders camp campsites is *camp's* job (the need survives the code); a triage that orders
+**code sites** by priority is antigen's (the need is moot if the sites vanish). So `#[triage]`'s
+`priority_order` entries are **code-site references**, not camp campsites — the `campsites` field is
+dropped (see the §Proc-Macro-Surface S3 transcription correction). The one allowed cross-tool bridge
+is camp-side ingestion of antigen's scan-JSON (camp pulls; antigen never pushes-into or reads-from
+camp) — a separate, camp-side concern, NOT antigen's job.
 
 ### Mechanics
 
@@ -8943,10 +8958,22 @@ strings (advisory parse, audit-time evaluated).
 
 | Primitive | Field | Type | Required | Default | Constraint |
 |---|---|---|---|---|---|
-| `triage` | `campsites` | `Vec<String>` | YES | — | **opaque labels** (anchor #3: audit does NOT resolve against camp) |
-| | `priority_order` | `Option<Vec<String>>` | NO | `None` | must be a permutation of `campsites` if present |
+| `triage` | `priority_order` | `Vec<String>` | YES | — | code-site references (file/item-path), in priority order; non-empty |
 | | `triaged_by` | `Option<String>` | NO | `None` | who-ref |
 | | `re_triage_due` | `Option<String>` | NO | `None` | ISO-8601 (staleness frame, not deadline) |
+
+> **Transcription correction (2026-06-01, post-ratification fixup — NOT a new
+> decision):** the `campsites` field is **DROPPED** per the Tekgy ruling already part
+> of this ceremony (campsite `prescriptive/family-adr` note `57e56ecc`: "DROP
+> triage.campsites ENTIRELY. antigen's `#[triage]` triages CODE — code-local
+> work-needs/sites by priority. NOT camp campsites"). The original §Proc-Macro-Surface
+> table mistakenly carried `campsites` (inherited from the comprehensive-vision §7 sketch)
+> despite the ruling to drop it; the adversarial spec-test corpus
+> (`atk_prescriptive_family_adr033.rs`, ATK-PRES-14) correctly encoded the ruling. This
+> fixup realigns the table to the ratified ruling and the oracle. `#[triage]` orders
+> **code sites** (per the anchor-#3 locality test: a triage that triages camp campsites
+> would be camp's job, not antigen's); `priority_order` entries are code-site references,
+> resolved like any other cross-site reference (ADR-017 Amendment 1).
 
 **S4 — Frame-only:**
 
@@ -8996,11 +9023,11 @@ prescriptive macro.
 
 | Mechanism | Enforcement-Tier | Enforcement-Scope | Bypass risk + mitigation |
 |---|---|---|---|
-| Empty `needs`/`rule_out`/`reason` rejection | parse-time | client + CI | compile error; joins the vacuous-guard class (EmptySignersList et al.) |
+| Empty `needs`/`rule_out`/`reason`/`priority_order` rejection | parse-time | client + CI | compile error; joins the vacuous-guard class (EmptySignersList et al.) |
 | who-ref satisfaction (signers/trailer) | audit-time | client + CI | per ADR-020 `allowed_types`; TextStamp is documentation-quality unless GitTrust/CryptoSigned selected (named limitation, ADR-020) |
 | fingerprint-pinned staleness | audit-time | client + CI | reuse ADR-019 NFA-21; stale satisfaction excluded mechanically |
 | overdue gate | audit-time | client + CI | configurable per-macro via severity (ADR-008 Amd1 pattern); friction-only by default |
-| `triage.campsites` resolution | NONE (named limitation) | — | opaque labels; anchor #3 forbids camp-read; documented non-resolution |
+| `triage.priority_order` code-site resolution | audit-time | client + CI | entries are code-site refs (ADR-017 Amd1); an unresolvable ref = **out-of-frame**, never silent-satisfied (the gem) |
 | `rx.diagnosis` / cross-need backref | NONE (named limitation, v0.3) | — | opaque label; dependency-graph resolution deferred to v0.4 (VOID-4b) |
 
 **Friction-vs-structural disclosure:** this ADR enforces work-need satisfaction at friction-only
