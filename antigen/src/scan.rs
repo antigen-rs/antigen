@@ -2790,6 +2790,32 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
     let lineage_failures = detect_lineage_failures(&report.lineage_edges, MAX_LINEAGE_DEPTH);
     report.parse_failures.extend(lineage_failures);
 
+    finalize_report(&mut report, &parsed_files);
+
+    Ok(report)
+}
+
+/// Run the post-collection passes that turn a raw explicit-collection
+/// [`ScanReport`] into a finished one: fingerprint synthesis + lineage
+/// propagation, in the ADR-mandated order.
+///
+/// Extracted from [`scan_workspace`] so the **single source of truth** for
+/// the pass ordering is shared with [`scan_workspace_multi_crate`]'s
+/// merged-report finalize. The two callers differ only in *what* they feed
+/// in — one a single crate's tree, the other the unioned member reports —
+/// but the synthesis/propagation semantics must stay identical, so they
+/// route through here.
+///
+/// Pre-conditions the caller must establish first:
+/// - `report.lineage_edges` is deduped (ADR-018 §Edge-level dedup).
+/// - cycle/depth detection has run (diagnostics already in `parse_failures`).
+/// - every record's `canonical_path` is in its final state (member-aware
+///   stamping + cross-member parent re-resolution already applied for the
+///   multi-crate caller; `None` for the intra-workspace single-crate caller).
+///
+/// `parsed_files` is the `(path, syn::File)` cache from the collection walk,
+/// reused by the synthesis pass so it never re-reads or re-parses a file.
+fn finalize_report(report: &mut ScanReport, parsed_files: &[(PathBuf, syn::File)]) {
     // ---- Fingerprint synthesis pass ----
     //
     // After explicit-collection, walk every file again and emit synthetic
@@ -2837,12 +2863,7 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
             .iter()
             .map(|ag| (ag.type_name.clone(), ag.file.clone()))
             .collect();
-        synthesis_pass(
-            &parsed_files,
-            &fingerprints,
-            &declaration_sites,
-            &mut report,
-        );
+        synthesis_pass(parsed_files, &fingerprints, &declaration_sites, report);
     }
 
     // ---- Lineage propagation pass (ADR-018) ----
@@ -2859,9 +2880,7 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
     //
     // Orphaned + dangling edges are not walked through (ADR-018
     // §Stale-lineage interaction).
-    synthesize_inherited_presentations(&mut report);
-
-    Ok(report)
+    synthesize_inherited_presentations(report);
 }
 
 /// Walk transitive closure of `#[descended_from]` lineage edges and
@@ -3318,6 +3337,366 @@ pub fn enumerate_dep_crate_roots(
     }
 
     Ok(roots)
+}
+
+/// A single workspace **member** crate's enumerated source root.
+///
+/// Returned by [`enumerate_workspace_member_roots`]. The dual of
+/// [`DepCrateRoot`]: where `enumerate_dep_crate_roots` deliberately *excludes*
+/// workspace members (running [`scan_workspace`] on the root already covers
+/// them as one flat tree), this carries the per-member identity that
+/// member-aware multi-crate scanning needs.
+///
+/// `crate_root` is the parent of the member's `Cargo.toml`. `package_name` +
+/// `version` form the ADR-017 canonical path `"<name>@<version>"` that each
+/// member's declarations are stamped with, making cross-member
+/// `#[descended_from]` lineage edges and (ADR-001 C7) cross-crate matching
+/// first-class.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct WorkspaceMemberRoot {
+    /// Cargo package name (e.g., `"antigen"`, `"cargo-antigen"`).
+    pub package_name: String,
+    /// Cargo package version (e.g., `"0.3.0-alpha.1"`).
+    pub version: String,
+    /// Directory containing the member's `Cargo.toml` — the crate root
+    /// suitable for [`scan_workspace`].
+    pub crate_root: PathBuf,
+}
+
+impl WorkspaceMemberRoot {
+    /// The ADR-017 canonical path for this member: `"<name>@<version>"`.
+    #[must_use]
+    pub fn canonical_path(&self) -> String {
+        format!("{}@{}", self.package_name, self.version)
+    }
+}
+
+/// Enumerate the **member** crates of the Cargo workspace rooted at
+/// `workspace_root` — the dual of [`enumerate_dep_crate_roots`].
+///
+/// Runs `cargo metadata --no-deps --format-version 1` (members only — no
+/// dependency resolution, so it is fast and works offline) and returns one
+/// [`WorkspaceMemberRoot`] per `workspace_members` entry, each carrying the
+/// member's name, version, and crate root.
+///
+/// A single-crate package (no `[workspace]` table) reports itself as its sole
+/// member, so this returns a one-element vec for ordinary crates. That makes
+/// member-aware scanning a strict generalization: it degrades to "scan the one
+/// crate" rather than special-casing the non-workspace shape.
+///
+/// # Errors
+///
+/// Returns an `io::Error` if the `cargo` binary cannot be invoked, if
+/// `cargo metadata` exits non-zero (manifest parse error, etc.), or if the
+/// JSON cannot be parsed. The underlying cause (cargo stderr or the JSON parse
+/// error) is preserved for diagnostic surfacing.
+///
+/// # Sub-clause F note (ADR-005)
+///
+/// Members are first-party code (the adopter's own workspace), not a trust
+/// boundary — unlike the registry/git deps [`enumerate_dep_crate_roots`]
+/// handles. The only trust assumption is that `cargo metadata`'s
+/// `workspace_members` list and `manifest_path`s are accurate, which is
+/// cargo's own invariant.
+pub fn enumerate_workspace_member_roots(
+    workspace_root: &Path,
+) -> std::io::Result<Vec<WorkspaceMemberRoot>> {
+    use std::process::Command;
+
+    let manifest_path = workspace_root.join("Cargo.toml");
+    let output = Command::new("cargo")
+        .arg("metadata")
+        .arg("--no-deps")
+        .arg("--format-version")
+        .arg("1")
+        .arg("--manifest-path")
+        .arg(&manifest_path)
+        .output()
+        .map_err(|e| {
+            std::io::Error::new(
+                e.kind(),
+                format!(
+                    "failed to invoke `cargo metadata` at `{}`: {e} (is cargo on PATH?)",
+                    manifest_path.display()
+                ),
+            )
+        })?;
+
+    if !output.status.success() {
+        return Err(std::io::Error::other(format!(
+            "`cargo metadata --no-deps` exited with status {} for manifest `{}`: {}",
+            output.status,
+            manifest_path.display(),
+            String::from_utf8_lossy(&output.stderr).trim()
+        )));
+    }
+
+    let metadata: serde_json::Value = serde_json::from_slice(&output.stdout).map_err(|e| {
+        std::io::Error::other(format!("failed to parse `cargo metadata` JSON output: {e}"))
+    })?;
+
+    // `workspace_members` is the authoritative set of member package IDs. With
+    // `--no-deps`, `packages` already contains *only* the members, but we still
+    // intersect against `workspace_members` for defensiveness against future
+    // cargo schemas that might include more.
+    let member_ids: std::collections::HashSet<String> = metadata
+        .get("workspace_members")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let packages = metadata
+        .get("packages")
+        .and_then(|v| v.as_array())
+        .ok_or_else(|| {
+            std::io::Error::other(
+                "`cargo metadata` output missing `packages` array — unexpected schema",
+            )
+        })?;
+
+    let mut roots: Vec<WorkspaceMemberRoot> = Vec::new();
+    for pkg in packages {
+        let id = pkg.get("id").and_then(|v| v.as_str()).unwrap_or_default();
+        // Keep only declared members. If `workspace_members` is somehow empty
+        // (older cargo, odd manifest), fall back to "every package `--no-deps`
+        // returned is a member" — which is the documented `--no-deps` contract.
+        if !member_ids.is_empty() && !member_ids.contains(id) {
+            continue;
+        }
+
+        let package_name = pkg
+            .get("name")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string();
+        let version = pkg
+            .get("version")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string();
+        let manifest_str = pkg.get("manifest_path").and_then(|v| v.as_str());
+
+        let Some(manifest_str) = manifest_str else {
+            continue;
+        };
+        let Some(crate_root) = PathBuf::from(manifest_str).parent().map(Path::to_path_buf) else {
+            continue;
+        };
+
+        roots.push(WorkspaceMemberRoot {
+            package_name,
+            version,
+            crate_root,
+        });
+    }
+
+    // Deterministic order (cargo's package order is stable but unspecified;
+    // sort by name so merged reports + diagnostics are reproducible).
+    roots.sort_by(|a, b| a.package_name.cmp(&b.package_name));
+    Ok(roots)
+}
+
+/// Merge `other`'s records into `self`, appending every declaration/site
+/// vector and summing the file-scan counts.
+///
+/// Used by [`scan_workspace_multi_crate`] to union per-member
+/// [`ScanReport`]s into one. Each source report must already have its
+/// `canonical_path`s stamped (member-aware) **before** merging, so that
+/// identity is preserved across the union — `merge` does not stamp.
+///
+/// `merge` is a pure concatenation: it does **not** re-run lineage
+/// propagation or fingerprint synthesis (those run once on the merged whole
+/// so cross-member edges and fingerprints are resolved across the union, not
+/// per-member).
+impl ScanReport {
+    fn merge(&mut self, mut other: Self) {
+        self.antigens.append(&mut other.antigens);
+        self.presentations.append(&mut other.presentations);
+        self.immunities.append(&mut other.immunities);
+        self.tolerances.append(&mut other.tolerances);
+        self.lineage_edges.append(&mut other.lineage_edges);
+        self.deferred_defenses.append(&mut other.deferred_defenses);
+        self.convergent_evidences
+            .append(&mut other.convergent_evidences);
+        self.recurrent_declarations
+            .append(&mut other.recurrent_declarations);
+        self.mucosal_declarations
+            .append(&mut other.mucosal_declarations);
+        self.defenses.append(&mut other.defenses);
+        self.files_scanned += other.files_scanned;
+        self.parse_failures.append(&mut other.parse_failures);
+    }
+}
+
+/// Re-resolve each lineage edge's `parent_canonical_path` to the member crate
+/// that actually *declares* the parent antigen.
+///
+/// **Why this is the heart of cross-crate `#[descended_from]`.** Per-member
+/// stamping ([`ScanReport::stamp_canonical_path`]) stamps *both* endpoints of
+/// every edge to the member the edge was found in — correct for the child
+/// (the `#[descended_from]` site lives there) but wrong for a parent declared
+/// in a *different* member. Left unfixed, the propagation walk keys the parent
+/// by `(parent_name, wrong_member_path)`, fails the antigen-index lookup, and
+/// treats the edge as orphaned — so a cross-member ancestor's presentations
+/// never propagate to the descendant. This pass fixes the parent endpoint by
+/// looking up where `parent_name` is genuinely declared among the merged
+/// antigens, making cross-member lineage first-class.
+///
+/// This is **pure structural identity resolution** — "where is this type
+/// declared" — not a semantic `addresses()` verdict. The semantic cross-crate
+/// matching question (does an `X` declared in one member satisfy a
+/// `#[presents(X)]` in another) is ADR-class scope tracked separately
+/// (ADR-001 C7 activation / ATK-A3-005).
+///
+/// Resolution rule, by parent-name declaration multiplicity among members:
+/// - **Exactly one member declares `parent_name`** → re-stamp the edge's
+///   `parent_canonical_path` to that member's canonical path. Unambiguous.
+/// - **Zero members declare it** → leave the edge unchanged; it surfaces as
+///   an orphaned edge ([`ScanReport::orphaned_lineage_edges`]) as before.
+/// - **Two or more members declare the same bare name** → ambiguous; leave
+///   the edge's parent endpoint as the child's own member (the conservative
+///   intra-member assumption) and record one [`ParseFailure`] naming the
+///   collision, so the ambiguity is explicit (ADR-004) rather than silently
+///   resolved to an arbitrary member.
+fn resolve_cross_member_lineage_parents(report: &mut ScanReport) {
+    use std::collections::HashMap;
+
+    // bare parent name -> set of member canonical paths declaring it.
+    let mut decl_members: HashMap<String, std::collections::BTreeSet<String>> = HashMap::new();
+    for a in &report.antigens {
+        if let Some(cp) = a.canonical_path.as_deref() {
+            decl_members
+                .entry(a.type_name.clone())
+                .or_default()
+                .insert(cp.to_string());
+        }
+    }
+
+    let mut ambiguity_failures: Vec<ParseFailure> = Vec::new();
+    for e in &mut report.lineage_edges {
+        let Some(members) = decl_members.get(&e.parent) else {
+            // Parent declared in no member — leave as-is; orphaned-edge
+            // detection downstream surfaces it.
+            continue;
+        };
+        match members.len() {
+            0 => {}
+            1 => {
+                // Unambiguous: re-stamp parent endpoint to the declaring member.
+                let target = members.iter().next().expect("len==1");
+                if e.parent_canonical_path.as_deref() != Some(target.as_str()) {
+                    e.parent_canonical_path = Some(target.clone());
+                }
+            }
+            _ => {
+                // Ambiguous cross-member name collision. Keep the conservative
+                // intra-member parent endpoint (whatever stamping set) and make
+                // the collision explicit.
+                ambiguity_failures.push(ParseFailure {
+                    file: e.file.clone(),
+                    error: format!(
+                        "#[descended_from({parent})] on `{child}` is ambiguous across the \
+                         workspace: `{parent}` is declared in {n} members ({members}); \
+                         cross-member lineage parent left unresolved (qualify the parent path \
+                         to disambiguate)",
+                        parent = e.parent,
+                        child = e.child,
+                        n = members.len(),
+                        members = members.iter().cloned().collect::<Vec<_>>().join(", "),
+                    ),
+                });
+            }
+        }
+    }
+    report.parse_failures.extend(ambiguity_failures);
+}
+
+/// Member-aware multi-crate workspace scan — the v0.3 cornerstone.
+///
+/// Where [`scan_workspace`] walks `root` as one **flat** tree (every record
+/// shares the same — usually `None` — `canonical_path`, so member-crate
+/// boundaries are lost), this:
+///
+/// 1. enumerates the workspace's member crates via
+///    [`enumerate_workspace_member_roots`];
+/// 2. runs [`scan_workspace`] on each member's crate root independently;
+/// 3. stamps each member's records with that member's ADR-017 canonical path
+///    (`"<name>@<version>"`) so identity is per-member;
+/// 4. unions the per-member reports;
+/// 5. re-resolves cross-member `#[descended_from]` parent endpoints
+///    (`resolve_cross_member_lineage_parents`); and
+/// 6. runs the synthesis + lineage-propagation finalize **once over the
+///    merged whole**, so cross-member lineage propagation and fingerprint
+///    synthesis see all members at once.
+///
+/// The result is a single [`ScanReport`] in which a `#[presents]` /
+/// `#[antigen]` / `#[descended_from]` carries the identity of the member it
+/// lives in, and a `#[descended_from(Parent)]` in member A resolves to a
+/// `Parent` declared in member B. This is the substrate that closes the
+/// cross-crate-resolution gaps documented for v0.2 (e.g.
+/// [`crate::stdlib::agentic_coordination::DelegateCrossCrateResolutionGap`]).
+///
+/// Per-member stamping is **non-overwriting**: a record that a nested scan
+/// already stamped keeps its stamp (see [`ScanReport::stamp_canonical_path`]).
+///
+/// # Errors
+///
+/// Returns the `io::Error` from [`enumerate_workspace_member_roots`] if member
+/// enumeration fails (cargo not on PATH, manifest parse error, etc.). A
+/// per-member scan that fails to *parse* records the failure in
+/// [`ScanReport::parse_failures`] rather than aborting; only a member-enumeration
+/// failure is fatal.
+pub fn scan_workspace_multi_crate(workspace_root: &Path) -> std::io::Result<ScanReport> {
+    let members = enumerate_workspace_member_roots(workspace_root)?;
+
+    let mut merged = ScanReport::default();
+    for member in &members {
+        let mut member_report = scan_workspace(&member.crate_root, None)?;
+        // Stamp this member's records with its own canonical path BEFORE
+        // merging, so cross-member identity survives the union.
+        member_report.stamp_canonical_path(&member.canonical_path());
+        merged.merge(member_report);
+    }
+
+    // Cross-member parent re-resolution must run on the merged whole — only
+    // there are all members' antigen declarations visible to resolve a parent
+    // that lives in a different member than its `#[descended_from]` child.
+    resolve_cross_member_lineage_parents(&mut merged);
+
+    // Re-dedup edges across the union: an edge collected once per member could
+    // now collapse only if its four-tuple key matches, but cross-member
+    // re-resolution may have made two members' edges (same child+parent bare
+    // names) point at the same parent canonical path. Dedup keeps the ADR-018
+    // edge-identity invariant on the merged graph + emits collapse diagnostics.
+    let (deduped_edges, dedup_failures) = dedupe_lineage_edges(&merged.lineage_edges);
+    merged.lineage_edges = deduped_edges;
+    merged.parse_failures.extend(dedup_failures);
+    let lineage_failures = detect_lineage_failures(&merged.lineage_edges, MAX_LINEAGE_DEPTH);
+    merged.parse_failures.extend(lineage_failures);
+
+    // ---- Merged-whole lineage propagation ONLY ----
+    //
+    // Each member's `scan_workspace` already ran its own intra-member
+    // fingerprint-synthesis pass, so the merged report's presentations already
+    // include every member's fingerprint matches. We must NOT re-run synthesis
+    // over the union here — doing so double-counts every intra-member match
+    // (and would additionally produce *cross-member* fingerprint matches, which
+    // are ADR-001 C7 / Layer-2 scope, not member-aware identity scope).
+    //
+    // What DOES need the merged whole is lineage propagation: a cross-member
+    // `#[descended_from(Parent)]` edge only resolves after the union makes both
+    // endpoints' antigen declarations visible (and after
+    // `resolve_cross_member_lineage_parents` re-stamped the parent endpoint).
+    // So we run only that pass — the same `synthesize_inherited_presentations`
+    // the single-crate `finalize_report` runs, but without the synthesis pass
+    // that precedes it.
+    synthesize_inherited_presentations(&mut merged);
+
+    Ok(merged)
 }
 
 /// Emit synthetic `FingerprintMatch` presentations for items that match a
@@ -5700,6 +6079,178 @@ mod tests {
         let orphans = report.orphaned_lineage_edges();
         assert_eq!(orphans.len(), 1);
         assert_eq!(orphans[0].parent, "MissingParent");
+    }
+
+    // ========================================================================
+    // Multi-crate (member-aware) scan — Layer 1 unit coverage.
+    //
+    // The integration coverage (real workspace enumeration + per-member
+    // stamping + cross-member lineage end-to-end) lives in
+    // antigen/tests/atk_multi_crate_scan.rs. These unit tests pin the
+    // structural pieces in isolation: canonical-path formatting, the merge
+    // union, and — the heart of cross-crate `#[descended_from]` —
+    // `resolve_cross_member_lineage_parents`.
+    // ========================================================================
+
+    /// `antigen_decl` variant that stamps a member canonical path, so a test
+    /// can model a declaration living in a specific workspace member.
+    fn antigen_decl_in(type_name: &str, crate_id: &str) -> AntigenDeclaration {
+        let mut a = antigen_decl(type_name);
+        a.canonical_path = Some(crate_id.to_string());
+        a
+    }
+
+    #[test]
+    fn member_root_canonical_path_is_name_at_version() {
+        let m = WorkspaceMemberRoot {
+            package_name: "antigen-fingerprint".to_string(),
+            version: "0.3.0-alpha.1".to_string(),
+            crate_root: PathBuf::from("/ws/antigen-fingerprint"),
+        };
+        assert_eq!(m.canonical_path(), "antigen-fingerprint@0.3.0-alpha.1");
+    }
+
+    #[test]
+    fn merge_unions_all_record_vectors_and_sums_counts() {
+        let mut a = ScanReport {
+            files_scanned: 3,
+            ..ScanReport::default()
+        };
+        a.antigens.push(antigen_decl_in("AlphaA", "crate-a@1.0.0"));
+        a.lineage_edges.push(edge("ChildA", "AlphaA"));
+
+        let mut b = ScanReport {
+            files_scanned: 5,
+            ..ScanReport::default()
+        };
+        b.antigens.push(antigen_decl_in("BetaB", "crate-b@1.0.0"));
+        b.parse_failures.push(ParseFailure {
+            file: PathBuf::from("b.rs"),
+            error: "boom".to_string(),
+        });
+
+        a.merge(b);
+        assert_eq!(a.antigens.len(), 2, "antigen vectors union");
+        assert_eq!(a.lineage_edges.len(), 1, "edges carry over");
+        assert_eq!(a.parse_failures.len(), 1, "parse failures union");
+        assert_eq!(a.files_scanned, 8, "file counts sum");
+    }
+
+    #[test]
+    fn cross_member_parent_reresolves_to_declaring_member() {
+        // Parent `Shared` lives in crate-b; Child bears `#[descended_from(Shared)]`
+        // in crate-a. Per-member stamping (modeled here) leaves the edge's
+        // parent endpoint pointing at crate-a (the child's member). The
+        // re-resolution pass must re-stamp it to crate-b so the propagation
+        // walk's `(parent, canonical_path)` lookup resolves.
+        let mut report = ScanReport::default();
+        report
+            .antigens
+            .push(antigen_decl_in("Child", "crate-a@1.0.0"));
+        report
+            .antigens
+            .push(antigen_decl_in("Shared", "crate-b@1.0.0"));
+        let mut e = edge("Child", "Shared");
+        e.child_canonical_path = Some("crate-a@1.0.0".to_string());
+        e.parent_canonical_path = Some("crate-a@1.0.0".to_string()); // wrong on purpose
+        report.lineage_edges.push(e);
+
+        resolve_cross_member_lineage_parents(&mut report);
+
+        assert_eq!(
+            report.lineage_edges[0].parent_canonical_path.as_deref(),
+            Some("crate-b@1.0.0"),
+            "parent endpoint must re-resolve to the member that declares `Shared`"
+        );
+        assert!(
+            report
+                .parse_failures
+                .iter()
+                .all(|f| !f.error.contains("ambiguous")),
+            "unambiguous cross-member parent must not produce an ambiguity diagnostic"
+        );
+        // And the edge is no longer orphaned — the propagation walk can use it.
+        assert!(
+            report.orphaned_lineage_edges().is_empty(),
+            "re-resolved cross-member edge must not be orphaned"
+        );
+    }
+
+    #[test]
+    fn cross_member_parent_ambiguous_name_collision_is_diagnosed_not_guessed() {
+        // `Dup` is declared in TWO members. A `#[descended_from(Dup)]` cannot be
+        // resolved to one member without guessing; the pass must leave the parent
+        // endpoint conservative AND emit an explicit ambiguity diagnostic
+        // (ADR-004 implicit-to-explicit: surface the collision, don't silently
+        // pick a member).
+        let mut report = ScanReport::default();
+        report
+            .antigens
+            .push(antigen_decl_in("Dup", "crate-a@1.0.0"));
+        report
+            .antigens
+            .push(antigen_decl_in("Dup", "crate-b@1.0.0"));
+        report
+            .antigens
+            .push(antigen_decl_in("Child", "crate-c@1.0.0"));
+        let mut e = edge("Child", "Dup");
+        e.child_canonical_path = Some("crate-c@1.0.0".to_string());
+        e.parent_canonical_path = Some("crate-c@1.0.0".to_string());
+        report.lineage_edges.push(e);
+
+        resolve_cross_member_lineage_parents(&mut report);
+
+        // Parent endpoint left as the conservative intra-member value.
+        assert_eq!(
+            report.lineage_edges[0].parent_canonical_path.as_deref(),
+            Some("crate-c@1.0.0"),
+            "ambiguous parent must NOT be silently re-stamped to one member"
+        );
+        let ambiguity: Vec<_> = report
+            .parse_failures
+            .iter()
+            .filter(|f| f.error.contains("ambiguous across the workspace"))
+            .collect();
+        assert_eq!(
+            ambiguity.len(),
+            1,
+            "ambiguous cross-member name must produce exactly one diagnostic; got: {:?}",
+            report.parse_failures
+        );
+        assert!(
+            ambiguity[0].error.contains("crate-a@1.0.0")
+                && ambiguity[0].error.contains("crate-b@1.0.0"),
+            "ambiguity diagnostic must name both colliding members"
+        );
+    }
+
+    #[test]
+    fn cross_member_parent_unknown_name_left_orphan() {
+        // Parent declared in NO member — the edge must stay unchanged and
+        // surface as an orphan downstream (existing channel discipline).
+        let mut report = ScanReport::default();
+        report
+            .antigens
+            .push(antigen_decl_in("Child", "crate-a@1.0.0"));
+        let mut e = edge("Child", "Ghost");
+        e.child_canonical_path = Some("crate-a@1.0.0".to_string());
+        e.parent_canonical_path = Some("crate-a@1.0.0".to_string());
+        report.lineage_edges.push(e);
+
+        resolve_cross_member_lineage_parents(&mut report);
+
+        assert_eq!(
+            report.lineage_edges[0].parent_canonical_path.as_deref(),
+            Some("crate-a@1.0.0"),
+            "unknown parent edge is left unchanged"
+        );
+        assert!(
+            report.parse_failures.is_empty(),
+            "unknown parent is not an ambiguity — no diagnostic from this pass"
+        );
+        let orphans = report.orphaned_lineage_edges();
+        assert_eq!(orphans.len(), 1, "unknown parent surfaces as orphan");
+        assert_eq!(orphans[0].parent, "Ghost");
     }
 
     // ========================================================================
