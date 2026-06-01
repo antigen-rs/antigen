@@ -7274,6 +7274,121 @@ mod tests {
     }
 
     // ------------------------------------------------------------------------
+    // Layer-2 addresses() resolution unit coverage
+    // (`resolve_cross_member_addresses` — the ADR-017-Amd1 address-pass sibling
+    // of `resolve_cross_member_lineage_parents`).
+    //
+    // Integration coverage lives in antigen/tests/atk_multi_crate_scan.rs
+    // (cross_member_presents_resolves_to_declaring_member,
+    // cross_member_defended_by_resolves_and_addresses). These unit tests pin the
+    // structural corner-cases in isolation.
+    // ------------------------------------------------------------------------
+
+    /// Helper: build a minimal `Presentation` with a given antigen type and
+    /// canonical path — the minimum fields `restamp_family!` reads and writes.
+    fn presentation_in(antigen_type: &str, crate_id: &str) -> Presentation {
+        Presentation {
+            antigen_type: antigen_type.to_string(),
+            file: PathBuf::from("src/lib.rs"),
+            line: 1,
+            item_kind: "fn".to_string(),
+            item_target: ItemTarget::Fn(format!("site_in_{}", crate_id.replace('@', "_"))),
+            match_kind: MatchKind::ExplicitMarker,
+            canonical_path: Some(crate_id.to_string()),
+            inherited_from: None,
+            structural_fingerprint: String::new(),
+            requires_predicate: None,
+            proof: None,
+        }
+    }
+
+    #[test]
+    fn cross_member_addresses_ambiguous_name_is_diagnosed_not_guessed() {
+        // Two members both declare the same antigen type name (`Shared`).
+        // A `#[presents(Shared)]` in a third member should NOT be silently
+        // re-stamped to either declaring member — the resolution is ambiguous.
+        // The pass must:
+        //   (a) leave the record keyed to its own member (conservative assumption),
+        //   (b) emit exactly one ParseFailure naming the collision.
+        //
+        // This mirrors the lineage-parent ambiguity test
+        // (`cross_member_parent_ambiguous_name_collision_is_diagnosed_not_guessed`)
+        // for the addresses()-resolution pass.
+        let mut report = ScanReport::default();
+        // Two antigens with the same bare name in different members.
+        report
+            .antigens
+            .push(antigen_decl_in("Shared", "crate-a@1.0.0"));
+        report
+            .antigens
+            .push(antigen_decl_in("Shared", "crate-b@1.0.0"));
+        // A presentation in a third member referencing the ambiguous name.
+        report
+            .presentations
+            .push(presentation_in("Shared", "crate-c@1.0.0"));
+
+        resolve_cross_member_addresses(&mut report);
+
+        // (a) The presentation must stay keyed to its own member — NOT silently
+        // guessed to crate-a or crate-b.
+        assert_eq!(
+            report.presentations[0].canonical_path.as_deref(),
+            Some("crate-c@1.0.0"),
+            "ambiguous addresses() must NOT re-stamp to either declaring member; \
+             got {:?}",
+            report.presentations[0].canonical_path
+        );
+        // (b) Exactly one ParseFailure naming the collision.
+        let ambiguity: Vec<_> = report
+            .parse_failures
+            .iter()
+            .filter(|f| f.error.contains("ambiguous across the workspace"))
+            .collect();
+        assert_eq!(
+            ambiguity.len(),
+            1,
+            "ambiguous same-name cross-member addresses() must produce exactly one \
+             diagnostic; got: {:?}",
+            report.parse_failures
+        );
+        assert!(
+            ambiguity[0].error.contains("crate-a@1.0.0")
+                && ambiguity[0].error.contains("crate-b@1.0.0"),
+            "ambiguity diagnostic must name both colliding members; got: {}",
+            ambiguity[0].error
+        );
+    }
+
+    #[test]
+    fn cross_member_addresses_unknown_antigen_is_left_unchanged() {
+        // An antigen type declared in NO member — the reference stays keyed to
+        // its own member. No ParseFailure (unknown is out-of-frame downstream,
+        // not an ambiguity — parallel to `cross_member_parent_unknown_name_left_orphan`).
+        let mut report = ScanReport::default();
+        // Only one antigen in the workspace, and it's not "Ghost".
+        report
+            .antigens
+            .push(antigen_decl_in("Other", "crate-a@1.0.0"));
+        report
+            .presentations
+            .push(presentation_in("Ghost", "crate-b@1.0.0"));
+
+        resolve_cross_member_addresses(&mut report);
+
+        assert_eq!(
+            report.presentations[0].canonical_path.as_deref(),
+            Some("crate-b@1.0.0"),
+            "unknown antigen must leave the presentation keyed to its own member"
+        );
+        assert!(
+            report.parse_failures.is_empty(),
+            "unknown antigen is not an ambiguity — no diagnostic from this pass; \
+             got: {:?}",
+            report.parse_failures
+        );
+    }
+
+    // ------------------------------------------------------------------------
     // ScanCoverage — the ignorance-frontier substrate.
     // ------------------------------------------------------------------------
 
