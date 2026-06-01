@@ -36,15 +36,22 @@ This asymmetry is at a **historic maximum** and growing. There is no scaling sol
 
 Antigen converts the things you currently write as passive docs and comments into co-native structure that survives.
 
-The table below shows the full transformation vocabulary antigen is building. Entries marked with `*` are shipped in v0.1; all others are in the v0.2 vocabulary (coming soon). Every right-side stays current OR fails loudly when stale — that property is the mechanism.
+The table below shows the full transformation vocabulary antigen is building. The
+macros span several releases — the core observe-don't-declare vocabulary
+(`#[presents]` / `#[defended_by]` / `#[antigen_tolerance]`) and the deferred-defense
+and recurrent-emergence families ship in v0.2; the prescriptive work-orchestration
+family (`#[panel]`, `#[ddx]`, …) ships in v0.3. For the authoritative per-macro ship
+state see [`CHANGELOG.md`](CHANGELOG.md) and [`docs/roadmap.md`](docs/roadmap.md); the
+point of the table is the *shape* of the transformation, not the version. Every
+right-side stays current OR fails loudly when stale — that property is the mechanism.
 
 | Memory form (rots) | Structure form (surfaces itself) |
 |---|---|
-| `/// assumes X never panics` | `#[presents(X, requires = ...)]` + `#[defended_by(X)]` on test * |
-| README "we follow Y discipline" | `#[antigen(Y)]` + per-site `#[presents(Y, requires = ...)]` * |
-| `// Last reviewed: 2024-01-15` | `#[presents(..., requires = fresh_within_days(N))]` * |
-| `// intentional, don't touch` | `#[antigen_tolerance(rationale = "...")]` * |
-| Generated-code provenance | `#[presents(GeneratedCodeWithoutHumanAttestation, requires = signers([reviewer]))]` * |
+| `/// assumes X never panics` | `#[presents(X, requires = ...)]` + `#[defended_by(X)]` on test |
+| README "we follow Y discipline" | `#[antigen(Y)]` + per-site `#[presents(Y, requires = ...)]` |
+| `// Last reviewed: 2024-01-15` | `#[presents(..., requires = fresh_within_days(N))]` |
+| `// intentional, don't touch` | `#[antigen_tolerance(rationale = "...")]` |
+| Generated-code provenance | `#[presents(GeneratedCodeWithoutHumanAttestation, requires = signers([reviewer]))]` |
 | `// TODO: refactor this` | `#[itch(...)]` or `#[panel(...)]` |
 | `// FIXME: hack` | `#[anergy(rationale = "...")]` |
 | `// HACK: until Q3` | `#[poxparty(until = "...")]` |
@@ -108,12 +115,17 @@ Five macros form antigen's core vocabulary:
 
 The shift from `#[immune]` to `#[defended_by]` reflects a key design correction (ADR-029): immunity is **observed** (a defense you can witness), not **declared** (a verdict you stamp). `#[defended_by(X)]` on a test says "this test IS the defense" — the claim is falsifiable and audit-verifiable. The old `#[immune(X)]` on the implementation site declared a verdict without a carrier; cargo antigen audit couldn't validate what it couldn't witness.
 
-Plus four cargo subcommands:
+Plus the `cargo antigen` subcommands (run `cargo antigen --help` for the live list):
 
 - **`cargo antigen scan`** — find unaddressed presentations across your codebase
-- **`cargo antigen audit`** — verify every immunity claim has a working witness at the appropriate tier
+- **`cargo antigen audit`** — verify every immunity claim has a working witness at the appropriate tier; also renders the prescriptive work board (ADR-033)
 - **`cargo antigen attest`** — substrate-witness sidecar management (`scaffold`, `sign`, `check`, `delta`, `list`, `gc`)
 - **`cargo antigen tolerate`** — tolerance-ratification sidecar management
+- **`cargo antigen oracle`** — Oracle artifact-class records (ADR-021)
+- **`cargo antigen verify`** — supply-chain defense verifications: content-hash, dep-pin (ADR-025)
+- **`cargo antigen vcs`** — VCS-information-loss observations, incl. recurrence mining (ADR-026)
+- **`cargo antigen mucosal-map`** — map mucosal trust boundaries across the workspace (ADR-027)
+- **`cargo antigen fingerprint`** — print the structural fingerprint of a scanned item
 
 ---
 
@@ -125,7 +137,7 @@ Antigen's vocabulary spans several families, each grounded in the biological imm
 
 **Shipped in v0.3** (current development branch):
 
-**Prescriptive / work-orchestration family** — `#[panel]`, `#[ddx]`, `#[rx]`, `#[triage]`, `#[refer]`, `#[biopsy]`, `#[culture]`, `#[quarantine]`. Code-site-local work-needs expressed directly in the type system — "code IS the Asana board." `cargo antigen audit` renders per-site verdicts (`Pending` / `Fulfilled` / `Overdue` / `OutOfFrame`) as a live-projected board section. See [`docs/macros.md`](docs/macros.md) for the full reference.
+**Prescriptive / work-orchestration family** — `#[panel]`, `#[ddx]`, `#[rx]`, `#[triage]`, `#[refer]`, `#[biopsy]`, `#[culture]`, `#[quarantine]`. Code-site-local work-needs expressed directly in the type system — "code IS the Asana board." `cargo antigen audit` renders per-site verdicts (`Pending` / `Fulfilled` / `Overdue` / `OutOfFrame`) as a live-projected board section. See [`docs/macros.md`](docs/macros.md) for the full reference and [`docs/examples-guide.md`](docs/examples-guide.md) (`prescriptive_board` example) for a walkthrough with live audit output.
 
 **Titer / scalar witness kind** — `#[ignorance]` (scan-coverage, member one) and raw `#[titer(source=...)]`. A second witness kind that attests a *measured value* (no verdict, trend-trackable) rather than a categorical defense verdict. Antigen reports the value; the threshold-judgment lives downstream. `#[ignorance]` / scan-coverage is retroactively recognized as member-one; no code change required.
 
@@ -157,7 +169,7 @@ Add antigen as a dependency:
 
 ```toml
 [dependencies]
-antigen = "=0.2.0"   # latest stable (published to crates.io); v0.3 in active development
+antigen = "=0.3.0-beta.1"   # v0.3 prerelease — has the prescriptive family; v0.2.0 is the current stable
 ```
 
 Now declare your first antigen. The full walkthrough lives in [`docs/tutorial.md`](docs/tutorial.md) — your first 15 minutes, end-to-end, with a real failure-class.
