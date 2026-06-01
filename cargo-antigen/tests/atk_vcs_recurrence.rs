@@ -21,10 +21,43 @@ fn bin() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_cargo-antigen"))
 }
 
+/// Build a `Command` with the parent's git environment stripped, so a spawned
+/// `git` (or the binary's internal git) acts ONLY on `--current_dir` and never
+/// on a repo named by an inherited `GIT_*` var.
+///
+/// Why this matters: these tests build a hermetic tempdir repo, but they ran
+/// non-hermetically under one parent — the camp pre-commit hook, which runs
+/// `cargo test` *inside* a `git stash` / `git commit` sequence. Git exports
+/// `GIT_DIR` / `GIT_INDEX_FILE` (and friends) to its child processes, so the
+/// inherited env pointed the test's `git init` / `git add` at the REAL repo's
+/// index instead of the tempdir — colliding with the hook's own index lock
+/// (`Unable to create .git/next-index-NNN.lock.lock: File exists`) and failing
+/// the commit on a phantom. Clearing the vars makes the tempdir repo truly
+/// hermetic regardless of what the parent set (the same flaky-build-lock-race
+/// class as the `CARGO_TARGET_DIR` collision the hook already guards against).
+fn hermetic_command<S: AsRef<std::ffi::OsStr>>(program: S) -> Command {
+    let mut cmd = Command::new(program);
+    // The full set git may export to hooks / subprocesses. Removing them is
+    // safe here: every invocation already passes `--current_dir`, which is the
+    // only repo these tests should ever touch.
+    for var in [
+        "GIT_DIR",
+        "GIT_INDEX_FILE",
+        "GIT_WORK_TREE",
+        "GIT_OBJECT_DIRECTORY",
+        "GIT_COMMON_DIR",
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+        "GIT_PREFIX",
+    ] {
+        cmd.env_remove(var);
+    }
+    cmd
+}
+
 /// Run `git <args>` in `dir`, panicking on failure. Used to build the fixture
 /// history; the test environment always has git (it built the workspace).
 fn git(dir: &Path, args: &[&str]) {
-    let status = Command::new("git")
+    let status = hermetic_command("git")
         .args(args)
         .current_dir(dir)
         .output()
@@ -59,7 +92,9 @@ fn init_repo(dir: &Path) {
 /// Run `cargo-antigen antigen vcs recurrence <args>` in `dir`; return
 /// `(exit_code, stdout, stderr)`.
 fn recurrence(dir: &Path, args: &[&str]) -> (i32, String, String) {
-    let out = Command::new(bin())
+    // Hermetic env: the binary's git-mining must observe `dir`, not a repo named
+    // by an inherited `GIT_DIR`/`GIT_INDEX_FILE` (see `hermetic_command`).
+    let out = hermetic_command(bin())
         .arg("antigen")
         .arg("vcs")
         .arg("recurrence")
