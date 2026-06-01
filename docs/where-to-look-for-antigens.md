@@ -1,5 +1,10 @@
 # Where to look for antigens
 
+> **v0.2 idiom note**: Some examples and placement tables below reference the v0.1
+> `#[immune(...)]` API. For v0.2, use `#[defended_by(X)]` on test functions (code-tier)
+> or `#[presents(X, requires=...)]` on the site (substrate-tier). The `#[immune]` form
+> still compiles with a deprecation warning — see [`macros.md`](macros.md) for migration.
+
 > Structural conventions for locating antigen declarations in a Rust project.
 > These aren't enforced by the tooling (yet) — they're the conventions that
 > emerge from the first real adoption and that make a project's antigen

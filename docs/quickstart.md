@@ -190,11 +190,60 @@ See [`witness-tiers.md`](witness-tiers.md) for the full witness model.
 
 ---
 
+## The v0.3 headline: code IS the board
+
+The vocabulary above (declare → scan → defend → audit) is antigen's core loop.
+v0.3 adds a second axis: **the prescriptive / work-orchestration family**.
+
+Instead of a TODO comment that rots, you write a macro that stays current or emits
+a loud verdict when it doesn't:
+
+```rust
+use antigen::panel;
+
+#[panel(
+    needs = ["review null-handling path", "confirm error message copy"],
+    filled_by = ["alice"],
+    reviewed_by = ["bob"],
+    due = "2026-09-01",
+)]
+pub fn parse_user_input(raw: &str) -> Result<Input, ParseError> {
+    // ...
+}
+```
+
+`cargo antigen audit` renders each work-need's verdict — `Pending` / `Fulfilled` /
+`Overdue` / `OutOfFrame` — as a live-projected board section alongside your defenses.
+No separate dashboard; the code IS the board.
+
+The eight macros cover four structural shapes:
+
+| Macro | What it models |
+|---|---|
+| `#[panel(needs, filled_by, reviewed_by, due)]` | Ordered review checklist |
+| `#[rx(treatment, filled_by, due)]` | Treatment prescription — what must be done before the site ships |
+| `#[refer(to, response_due)]` | Referral to an external owner |
+| `#[biopsy(location, request_text)]` | Deep investigation request at a sub-site |
+| `#[ddx(symptom, rule_out)]` | Differential — competing hypotheses to eliminate one by one |
+| `#[triage(priority_order)]` | Re-validatable priority order over code-site references |
+| `#[culture(test_kind, runs_until)]` | Time-boxed observation window |
+| `#[quarantine(scope, reason)]` | Isolated region under a deliberate hold |
+
+For the full reference see [`macros.md`](macros.md) — the prescriptive section.
+For a complete worked example (a parser module carrying all eight macros with
+time-stable verdicts), see [`examples-guide.md`](examples-guide.md) and run:
+
+```sh
+cargo run --example prescriptive_board --package antigen
+```
+
+---
+
 ## Where to go next
 
 - **[`tutorial.md`](tutorial.md)** — your first 15 minutes, end-to-end (declare → scan → defend → audit, with substrate-witness sidecars)
 - **[`concepts.md`](concepts.md)** — what antigen IS, architecturally
-- **[`examples-guide.md`](examples-guide.md)** — walks all twenty bundled examples in `antigen/examples/`, including the full v0.2 family surface (supply-chain, convergent-evidence, deferred-defense, recurrent-emergence, mucosal-boundary, VCS-information-loss, agentic-coordination, antigen-category, triage-commit)
+- **[`examples-guide.md`](examples-guide.md)** — walks all examples in `antigen/examples/`, including the v0.2 family surface and the v0.3 prescriptive family (`prescriptive_board`)
 - **[`where-to-look-for-antigens.md`](where-to-look-for-antigens.md)** — conventions for locating declarations
 - **[`usage-patterns.md`](usage-patterns.md)** — common patterns + decision tables
 - **[`witness-tiers.md`](witness-tiers.md)** — the witness model + tier ladder

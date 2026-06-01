@@ -591,6 +591,21 @@ through derived types, copy-paste relationships, and structural similarity. A
 type that inherits from a vulnerable type is itself flagged. See the
 `#[descended_from]` examples in `antigen/examples/`.
 
+**The v0.3 headline — code IS the board**: v0.3 adds the prescriptive /
+work-orchestration family. Eight macros (`#[panel]`, `#[ddx]`, `#[rx]`,
+`#[refer]`, `#[biopsy]`, `#[culture]`, `#[quarantine]`, `#[triage]`) express
+code-site-local work-needs directly in the type system — replacing TODO comments
+and external tickets that drift from the code they describe. `cargo antigen audit`
+renders per-site verdicts (`Pending` / `Fulfilled` / `Overdue` / `OutOfFrame`) as
+a live board section alongside your defenses. For the full reference see the
+prescriptive section in [`docs/macros.md`](macros.md). For a worked example
+showing all eight macros with time-stable verdicts, see
+[`docs/examples-guide.md`](examples-guide.md) and run:
+
+```sh
+cargo run --example prescriptive_board --package antigen
+```
+
 ---
 
 ## Troubleshooting
