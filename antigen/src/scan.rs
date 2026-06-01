@@ -585,6 +585,104 @@ impl Parse for ScanMucosalArgs {
     }
 }
 
+/// Scan-time loose capture for all eight prescriptive work-orchestration
+/// primitives (ADR-033). Every field optional; per-kind required-field
+/// validation is the macro's (parse-time) + audit's job — scan is recall-tuned
+/// (ADR-010). The capture maps each macro's per-shape field NAMES onto the
+/// shared [`PrescriptiveDeclaration`] slots:
+/// - list slot (`items`): `needs` | `rule_out` | `priority_order`
+/// - fill who-refs (`filled_by`): `filled_by` | `to` | `deep_investigation_by`
+///   | `investigator` | `triaged_by`
+/// - review who-refs (`reviewed_by`): `reviewed_by` | `reviewer`
+/// - `ordered_by`; `frame`: `due` | `response_due` | `re_triage_due` |
+///   `runs_until` | `until`
+/// - `need_text`: `treatment` | `request_text` | `symptom` | `test_kind` |
+///   `reason`; `label`: `diagnosis` | `location` | `scope`
+#[derive(Default)]
+struct ScanPrescriptiveArgs {
+    items: Vec<String>,
+    filled_by: Vec<String>,
+    reviewed_by: Vec<String>,
+    ordered_by: Option<String>,
+    frame: Option<String>,
+    need_text: Option<String>,
+    label: Option<String>,
+}
+
+/// Collect the string-literal elements of an `[ "a", "b" ]` array expression
+/// (non-string elements are skipped — scan is recall-tuned). Free helper so it
+/// is not an item-after-statement inside the parse loop.
+fn prescriptive_str_array(input: syn::parse::ParseStream) -> syn::Result<Vec<String>> {
+    let arr: syn::ExprArray = input.parse()?;
+    let mut v = Vec::new();
+    for elem in &arr.elems {
+        if let syn::Expr::Lit(syn::ExprLit {
+            lit: syn::Lit::Str(s),
+            ..
+        }) = elem
+        {
+            v.push(s.value());
+        }
+    }
+    Ok(v)
+}
+
+impl Parse for ScanPrescriptiveArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use syn::{Expr, Ident, LitStr, Token};
+        let str_array = prescriptive_str_array;
+        let mut out = Self::default();
+
+        while !input.is_empty() {
+            let key: Ident = input.parse()?;
+            let _ = input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                // The shape's required list (exactly one is meaningful per kind).
+                "needs" | "rule_out" | "priority_order" => out.items = str_array(input)?,
+                // Fill who-refs (across shapes).
+                "filled_by" => out.filled_by = str_array(input)?,
+                "to" | "deep_investigation_by" | "investigator" | "triaged_by" => {
+                    let lit: LitStr = input.parse()?;
+                    out.filled_by.push(lit.value());
+                }
+                // Review who-refs.
+                "reviewed_by" => out.reviewed_by = str_array(input)?,
+                "reviewer" => {
+                    let lit: LitStr = input.parse()?;
+                    out.reviewed_by.push(lit.value());
+                }
+                "ordered_by" => {
+                    let lit: LitStr = input.parse()?;
+                    out.ordered_by = Some(lit.value());
+                }
+                // Temporal frame (across shapes).
+                "due" | "response_due" | "re_triage_due" | "runs_until" | "until" => {
+                    let lit: LitStr = input.parse()?;
+                    out.frame = Some(lit.value());
+                }
+                // Primary free-text content.
+                "treatment" | "request_text" | "symptom" | "test_kind" | "reason" => {
+                    let lit: LitStr = input.parse()?;
+                    out.need_text = Some(lit.value());
+                }
+                // Secondary opaque label.
+                "diagnosis" | "location" | "scope" => {
+                    let lit: LitStr = input.parse()?;
+                    out.label = Some(lit.value());
+                }
+                // Forward-compat: unknown field consumed silently (recall-tuned).
+                _ => {
+                    let _: Expr = input.parse()?;
+                }
+            }
+            if !input.is_empty() {
+                let _ = input.parse::<Token![,]>();
+            }
+        }
+        Ok(out)
+    }
+}
+
 struct ScanAnergyArgs {
     antigen_type: Option<String>,
     reason: String,
@@ -1968,6 +2066,113 @@ pub struct MucosalDeclaration {
     pub item_target: ItemTarget,
 }
 
+/// Which prescriptive work-orchestration primitive was declared (ADR-033).
+///
+/// The eight clinical-named macros. The audit maps each to its structural
+/// SHAPE (S1 role-workflow / S2 elimination / S3 ordering / S4 frame-only) via
+/// [`PrescriptiveKind::shape`] — four shapes, eight names (ADR-033 §Decision 1).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PrescriptiveKind {
+    /// `#[panel]` — a battery of work-needs (S1 Role-workflow).
+    Panel,
+    /// `#[rx]` — a prescribed treatment (S1 Role-workflow).
+    Rx,
+    /// `#[refer]` — a referral to an external owner (S1 Role-workflow).
+    Refer,
+    /// `#[biopsy]` — a deep-investigation request (S1 Role-workflow).
+    Biopsy,
+    /// `#[ddx]` — a differential diagnosis: alternatives to rule out (S2 Elimination).
+    Ddx,
+    /// `#[triage]` — a re-validatable priority ordering (S3 Ordering).
+    Triage,
+    /// `#[culture]` — a time-boxed test/observation (S4 Frame-only).
+    Culture,
+    /// `#[quarantine]` — an isolated region under a time-boxed hold (S4 Frame-only).
+    Quarantine,
+}
+
+/// The four structural shapes the eight prescriptive names route to (ADR-033
+/// §Decision 1).
+///
+/// Antigen ships four shape-parsers, not nine bespoke ones; the clinical names
+/// are adopter-facing vocabulary distributed across the shapes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum WorkShape {
+    /// S1 — ordered who-steps + optional frame + a need-set (panel/rx/refer/biopsy).
+    RoleWorkflow,
+    /// S2 — a set of independently-closeable alternatives (ddx).
+    Elimination,
+    /// S3 — a re-validatable priority total-order (triage).
+    Ordering,
+    /// S4 — a temporal window with a satisfaction/expiry (culture/quarantine).
+    FrameOnly,
+}
+
+impl PrescriptiveKind {
+    /// The structural shape this clinical name routes to (ADR-033 §Decision 1).
+    #[must_use]
+    pub const fn shape(self) -> WorkShape {
+        match self {
+            Self::Panel | Self::Rx | Self::Refer | Self::Biopsy => WorkShape::RoleWorkflow,
+            Self::Ddx => WorkShape::Elimination,
+            Self::Triage => WorkShape::Ordering,
+            Self::Culture | Self::Quarantine => WorkShape::FrameOnly,
+        }
+    }
+}
+
+/// A prescriptive work-orchestration declaration discovered in source (ADR-033).
+///
+/// Covers all eight primitives. The `kind` field distinguishes them (and maps to
+/// a [`WorkShape`] via [`PrescriptiveKind::shape`]); the rest are loosely-typed
+/// optional captures shared across kinds for forward-compat (ADR-009), mirroring
+/// [`RecurrentDeclaration`]. Scan is recall-tuned (ADR-010): every field is
+/// optional here; per-kind required-field validation lives at the audit layer
+/// (and at parse-time in the macros). All members are antigen-category
+/// `SubstrateAlignment`+`FunctionalCorrectness` per ADR-024/ADR-028.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PrescriptiveDeclaration {
+    /// Which prescriptive primitive was declared.
+    pub kind: PrescriptiveKind,
+    /// `needs` (panel) / `rule_out` (ddx) / `priority_order` (triage) — the
+    /// shape's required list. Held as one field because exactly one of the three
+    /// is meaningful per `kind`; the audit reads it through the kind's shape.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub items: Vec<String>,
+    /// `who`-refs that fill the work (panel/rx `filled_by`; refer `to`; biopsy
+    /// `deep_investigation_by`; ddx `investigator`; triage `triaged_by`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub filled_by: Vec<String>,
+    /// `who`-refs that review the work (panel/rx `reviewed_by`; ddx `reviewer`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub reviewed_by: Vec<String>,
+    /// `who`-ref that ordered the work (panel `ordered_by`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ordered_by: Option<String>,
+    /// The intrinsic temporal frame, if any (panel/rx `due`; refer `response_due`;
+    /// triage `re_triage_due`; culture `runs_until`; quarantine `until`). ISO-8601.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub frame: Option<String>,
+    /// The primary free-text content of the need (rx `treatment`; biopsy
+    /// `request_text`; ddx `symptom`; culture `test_kind`; quarantine `reason`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub need_text: Option<String>,
+    /// A secondary opaque label (rx `diagnosis`; biopsy `location`; quarantine
+    /// `scope`) — a v0.3 opaque label, not resolved (VOID-4b).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    /// Source file path.
+    pub file: PathBuf,
+    /// Line number.
+    pub line: usize,
+    /// Item kind that was annotated.
+    pub item_kind: String,
+    /// Item identity for structural cross-referencing.
+    pub item_target: ItemTarget,
+}
+
 /// A file that failed to parse during a scan, with the associated error.
 ///
 /// Serializes as `{"file": "...", "error": "..."}` — named fields, consistent
@@ -2070,6 +2275,14 @@ pub struct ScanReport {
     /// `#[serde(default)]` so pre-mucosal reports deserialize cleanly.
     #[serde(default)]
     pub mucosal_declarations: Vec<MucosalDeclaration>,
+    /// All discovered prescriptive work-orchestration declarations: `#[panel]`,
+    /// `#[rx]`, `#[refer]`, `#[biopsy]`, `#[ddx]`, `#[triage]`, `#[culture]`,
+    /// `#[quarantine]`. ADR-033 (extends ADR-024). The audit projects each to a
+    /// four-valued `WorkVerdict` (the board).
+    ///
+    /// `#[serde(default)]` so pre-prescriptive reports deserialize cleanly.
+    #[serde(default)]
+    pub prescriptive_declarations: Vec<PrescriptiveDeclaration>,
     /// All discovered `#[defended_by(X)]` code-tier witness registrations
     /// (ADR-029). Each records that a test/proptest function declares it
     /// defends a failure-class; `cargo antigen audit` cross-references these
@@ -3702,6 +3915,8 @@ impl ScanReport {
             .append(&mut other.recurrent_declarations);
         self.mucosal_declarations
             .append(&mut other.mucosal_declarations);
+        self.prescriptive_declarations
+            .append(&mut other.prescriptive_declarations);
         self.defenses.append(&mut other.defenses);
         self.generates_declarations
             .append(&mut other.generates_declarations);
@@ -5097,6 +5312,53 @@ impl ScanVisitor<'_> {
                 item_target.clone(),
                 MucosalKindTag::MucosalTolerant,
             );
+        // Prescriptive Work-Orchestration Family (ADR-033)
+        } else if attr_is(attr, "panel") {
+            self.extract_prescriptive(
+                attr,
+                item_kind,
+                item_target.clone(),
+                PrescriptiveKind::Panel,
+            );
+        } else if attr_is(attr, "rx") {
+            self.extract_prescriptive(attr, item_kind, item_target.clone(), PrescriptiveKind::Rx);
+        } else if attr_is(attr, "refer") {
+            self.extract_prescriptive(
+                attr,
+                item_kind,
+                item_target.clone(),
+                PrescriptiveKind::Refer,
+            );
+        } else if attr_is(attr, "biopsy") {
+            self.extract_prescriptive(
+                attr,
+                item_kind,
+                item_target.clone(),
+                PrescriptiveKind::Biopsy,
+            );
+        } else if attr_is(attr, "ddx") {
+            self.extract_prescriptive(attr, item_kind, item_target.clone(), PrescriptiveKind::Ddx);
+        } else if attr_is(attr, "triage") {
+            self.extract_prescriptive(
+                attr,
+                item_kind,
+                item_target.clone(),
+                PrescriptiveKind::Triage,
+            );
+        } else if attr_is(attr, "culture") {
+            self.extract_prescriptive(
+                attr,
+                item_kind,
+                item_target.clone(),
+                PrescriptiveKind::Culture,
+            );
+        } else if attr_is(attr, "quarantine") {
+            self.extract_prescriptive(
+                attr,
+                item_kind,
+                item_target.clone(),
+                PrescriptiveKind::Quarantine,
+            );
         }
     }
 
@@ -5186,6 +5448,55 @@ impl ScanVisitor<'_> {
                 anchored_by: args.anchored_by,
                 managed_by: args.managed_by,
                 contributing_to: args.contributing_to,
+                file: self.file_path.clone(),
+                line,
+                item_kind: item_kind.to_string(),
+                item_target,
+            });
+    }
+
+    /// Scan-extract a prescriptive work-orchestration declaration (ADR-033). All
+    /// eight primitives share the loosely-typed [`ScanPrescriptiveArgs`] capture
+    /// (mapping per-shape field names onto the shared declaration slots);
+    /// per-kind required-field validation is the macro's (parse-time) + audit's
+    /// job. Scan is recall-tuned (ADR-010).
+    fn extract_prescriptive(
+        &mut self,
+        attr: &syn::Attribute,
+        item_kind: &str,
+        item_target: ItemTarget,
+        kind: PrescriptiveKind,
+    ) {
+        let line = Self::line_of_attr(attr);
+        let args = match &attr.meta {
+            syn::Meta::List(list) => {
+                match syn::parse2::<ScanPrescriptiveArgs>(list.tokens.clone()) {
+                    Ok(a) => a,
+                    Err(e) => {
+                        self.report.parse_failures.push(ParseFailure {
+                            file: self.file_path.clone(),
+                            error: format!("malformed prescriptive attribute: {e}"),
+                        });
+                        return;
+                    }
+                }
+            }
+            // Bare `#[panel]` etc. without args — recall with empty fields; the
+            // audit surfaces the missing-required-field condition.
+            syn::Meta::Path(_) => ScanPrescriptiveArgs::default(),
+            syn::Meta::NameValue(_) => return,
+        };
+        self.report
+            .prescriptive_declarations
+            .push(PrescriptiveDeclaration {
+                kind,
+                items: args.items,
+                filled_by: args.filled_by,
+                reviewed_by: args.reviewed_by,
+                ordered_by: args.ordered_by,
+                frame: args.frame,
+                need_text: args.need_text,
+                label: args.label,
                 file: self.file_path.clone(),
                 line,
                 item_kind: item_kind.to_string(),
