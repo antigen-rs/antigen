@@ -9011,6 +9011,44 @@ three-valued reading. It is NOT a prescriptive macro.)
 - `filled_by` / `reviewed_by` may be shorter than `needs` (some needs unfilled) — that yields
   `pending` (within frame) or `overdue` (past frame) for the *site*, never a parse error.
 
+**Workflow-order in S1 — `reviewed_by` requires ALL `filled_by` attested (conjunction, not
+disjunction)** (adversarial gap, camp question `ae2e3a2d`). "You cannot review what is not filled":
+a `reviewed_by` attestation counts toward fulfillment only when **every** `filled_by` role-step is
+itself attested at the current fingerprint. For a multi-member `filled_by`, the discipline is ALL,
+not ANY — a reviewer attests the *completed battery*, not a partial one. So the site-level verdict
+is the conjunction over the ordered chain (`ordered_by` → all of `filled_by` → all of `reviewed_by`);
+`Pending` until the chain closes, `Overdue` if the frame elapses with the chain open, `OutOfFrame`
+if any who-ref is unresolvable. (A `reviewed_by` attestation present while a `filled_by` step is
+un-attested is not "partial fulfillment" — it is a reviewer attesting prematurely; the audit does
+not credit it until the filled step it depends on is attested.)
+
+#### §Verdict semantics per shape (Q-gap — S3/S4 `Fulfilled` reachability, adversarial `ae2e3a2d`)
+
+Not every shape reaches `Fulfilled` the same way; two need explicit verdict semantics so `Fulfilled`
+is neither structurally-unreachable nor a bypass:
+
+- **S3 (`triage`) is a standing re-validated ORDERING, not a terminal task.** Its natural states map
+  onto `WorkVerdict` thus: **Fulfilled** = `triaged_by` attested AND within `re_triage_due` AND all
+  `priority_order` code-site refs resolve (the ordering is current and well-posed); **Overdue** =
+  `re_triage_due` elapsed (the ordering is stale — re-triage owed); **OutOfFrame** = a
+  `priority_order` entry does not resolve to a real code site (ADR-017 Amd1 — never silent-satisfied);
+  **Pending** = declared, not yet `triaged_by`-attested, within frame. So `Fulfilled` IS reachable
+  for S3 — it means "the priority ordering is current and resolvable," re-earned each `re_triage_due`
+  cycle. (`triaged_by` alone does NOT permanently fulfill — the `re_triage_due` frame makes
+  fulfillment expire, which is what keeps a triage honest; this is the freshness discipline, not the
+  bypass it guards against.)
+- **S4 (`culture` / `quarantine`) Fulfilled requires a POSITIVE closure, never frame-expiry alone**
+  (this is the `fresh_through`-bypass class, ATK-FT-1/2 — guard against it here too). `culture`:
+  **Fulfilled** = the named `test_kind` is green at audit-time within `runs_until`; **Overdue** =
+  `runs_until` elapsed without a green reading; never "Fulfilled because the date passed."
+  `quarantine`: **Fulfilled** = the `scope` is released by a positive event (a release attestation OR
+  the named upstream fix landing); **Overdue** = `until` elapsed with the scope still quarantined and
+  no release; **Pending** = within `until`, scope still isolated (the expected state). Frame-expiry
+  (`until`/`runs_until` passing) makes an un-closed S4 site **Overdue**, NOT Fulfilled — expiry is the
+  frame elapsing, and a frame elapsing without closure is exactly what `Overdue` means. A site that
+  is `Fulfilled` purely because its deadline passed would be the temporal analog of the
+  forged-freshness bypass; the positive-closure requirement forbids it.
+
 #### §titer (relocated)
 
 `titer` is reclassified out of the prescriptive family into the **titer-witness kind** (ADR-019
@@ -9048,9 +9086,14 @@ prescriptive verdicts (the overdue gate).
 - **Q3 (controlled vocab):** the eight macro NAMES are Tier-1 sealed (ADR-024-ratified; extension =
   amendment). The four SHAPES are an implementation taxonomy, not adopter-facing vocab. who-ref
   values are Tier-3 adopter-open.
-- **Q5 (cross-primitive interaction):** `rx.diagnosis` references a `ddx`; `triage` orders a set;
-  `panel` may name downstream `blocks` (deferred field). All cross-references are OPAQUE LABELS in
-  v0.3 (the dependency-graph, VOID-4b, is v0.4). Convergent-evidence interaction:
+- **Q5 (cross-primitive interaction):** two distinct reference KINDS, resolved differently.
+  Cross-**site** references — `triage.priority_order` entries (code sites) — ARE resolved at
+  audit-time via the ADR-017 Amendment 1 machinery (resolvable → ordered; unresolvable →
+  out-of-frame, never silent-satisfied). Cross-**need** references — `rx.diagnosis` → a `ddx`,
+  `panel.blocks` → downstream needs (deferred field) — stay OPAQUE LABELS in v0.3 (the
+  prescriptive dependency-graph, VOID-4b, is v0.4). The split is the locality test again: a code-site
+  ref points at a thing the scanner can resolve; a cross-need ref points at another work-need's
+  identity, which requires the dependency-graph primitive antigen has not yet built. Convergent-evidence interaction:
   comprehensive-vision §7 lists `#[panel]`/`#[ddx]` as "(also prescriptive)" under Convergent.
   **Substrate-grep correction:** `#[diagnostic]` IS implemented (the convergent sibling), but
   `#[panel]`/`#[ddx]` are NOT — the dual-listing was aspirational, never built. ADR-033 owns
@@ -9071,8 +9114,12 @@ prescriptive verdicts (the overdue gate).
   `antigen/tests/atk_prescriptive_family_adr033.rs` (adversarial gate). Critical guard: ATK-PRES-8 —
   `WorkVerdict::OutOfFrame` (un-evaluable: who-ref unknown) must NOT collapse to
   `WorkVerdict::Overdue` (frame elapsed) — the prescriptive analog of ATK-3V-4. Tests flip from
-  `#[ignore]` to active when pathmaker ships the macros. (The Q9 corpus must be updated to drop the
-  `titer` row and the `triage.campsites`-as-camp-resolution row per this ADR's relocations.)
+  `#[ignore]` to active when pathmaker ships the macros. (The Q9 corpus must drop the `titer` row
+  per the titer-relocation to ADR-019 Amendment 1. On `triage`: the corpus's ATK-PRES-14 was
+  CORRECT — `triage` triages code sites, not camp campsites — and the §Proc-Macro-Surface S3 table
+  has been fixed (transcription correction) to match the corpus + the Tekgy ruling. ATK-PRES-14's
+  flagged "priority_order non-resolution tier unspecified" is now resolved: unresolvable
+  code-site ref = out-of-frame per ADR-017 Amendment 1, see §Enforcement-Surface.)
 
 ### Sweep-level consequences
 
@@ -9099,8 +9146,9 @@ prescriptive verdicts (the overdue gate).
 
 - Does NOT supersede ADR-024 (extends it).
 - Does NOT include `#[titer]` (relocated to the titer-witness kind, ADR-019 Amendment 1).
-- Does NOT resolve cross-need references (`rx.diagnosis`, `triage.campsites`, `panel.blocks`) —
-  opaque labels in v0.3; dependency-graph deferred to v0.4.
+- Does NOT resolve cross-**need** references (`rx.diagnosis`, `panel.blocks`) — opaque labels in
+  v0.3; the prescriptive dependency-graph is deferred to v0.4. (Cross-**site** references —
+  `triage.priority_order` code sites — ARE resolved at audit-time per ADR-017 Amendment 1.)
 - Does NOT read or depend on camp (anchor #3).
 - Does NOT close the semantic gap (a hollow attestation that doesn't reflect real review work — the
   same open research question as ADR-029 §honest-semantic-gap, inherited).

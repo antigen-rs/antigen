@@ -3922,12 +3922,18 @@ impl UnreachedCause {
     #[must_use]
     pub const fn remedy(self) -> &'static str {
         match self {
-            Self::Barrier => "coverage: extend the scan to include the unreached region \
-                 (scan the member, build the cfg-gated path)",
-            Self::SubThreshold => "sensitivity: the site was scanned but not recognized — \
-                 widen the fingerprint or mark it explicitly with #[presents]",
-            Self::Cryptic => "pre-processing: the site is in a form the scanner cannot see — \
-                 macro-expand or normalize before scanning",
+            Self::Barrier => {
+                "coverage: extend the scan to include the unreached region \
+                 (scan the member, build the cfg-gated path)"
+            }
+            Self::SubThreshold => {
+                "sensitivity: the site was scanned but not recognized — \
+                 widen the fingerprint or mark it explicitly with #[presents]"
+            }
+            Self::Cryptic => {
+                "pre-processing: the site is in a form the scanner cannot see — \
+                 macro-expand or normalize before scanning"
+            }
         }
     }
 }

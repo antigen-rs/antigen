@@ -5,6 +5,23 @@
 #![allow(clippy::doc_link_with_quotes)]
 //! (prescriptive/family-adr Q9, ADR-033 v03-vision-buildout).
 //!
+//! ## Family census (as-ratified by ADR-033 + ADR-019 Amendment 1)
+//!
+//! ADR-033 ships **EIGHT** prescriptive work-need macros (not nine):
+//!   S1 — Role-workflow: `panel`, `rx`, `refer`, `biopsy`
+//!   S2 — Elimination:   `ddx`
+//!   S3 — Ordering:      `triage`
+//!   S4 — Frame-only:    `culture`, `quarantine`
+//!
+//! `#[titer]` is **NOT** in this family — it was reclassified to the titer-witness
+//! kind (ADR-019 Amendment 1). A titer attests a *measured value*, not a work-need.
+//! Any test rows for titer-as-prescriptive are DROPPED from this corpus.
+//!
+//! `triage.campsites` is **DROPPED** (Tekgy ruling 2026-06-01, anchor #3): `triage`
+//! uses `priority_order` as direct code-site references; camp campsites are opaque
+//! labels the audit does NOT resolve. Any test asserting audit resolves campsites
+//! against camp state is wrong-by-design and is DROPPED from this corpus.
+//!
 //! ## Purpose
 //!
 //! These tests encode the ADR-033 spec BEFORE pathmaker implements the macros.
