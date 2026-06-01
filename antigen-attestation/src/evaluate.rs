@@ -2842,4 +2842,151 @@ mod tests {
              failure class — wrong-slot binding produces false-green audit result."
         );
     }
+
+    // ========================================================================
+    // ADR-035 leaf-sweep — ⊥→false collapses (Shape C, campsite
+    // forward/adr035-leaf-sweep-bottom-to-false).
+    //
+    // These tests assert that substrate-absent read-failures produce
+    // `evaluated: false` (the honest ⊥ carrier), NOT `evaluated: true`
+    // (which would claim "I ran this check and it failed" when no check ran).
+    //
+    // The in-tree precedent: `atk_eval_leaf_supply_chain_leaf_is_not_evaluated_not_failed`
+    // (line 2664) establishes the same discipline for supply-chain leaves.
+    //
+    // FALSIFICATION: each test currently FAILS because the `fail` closure in
+    // `eval_ratified_doc` (line 568-572) hardcodes `evaluated: true` on every
+    // path, and `eval_oracles_complete`'s missing-file arm (line 857-861) fuses
+    // ⊥ with genuine-fail into one `evaluated: true` outcome.
+    // After pathmaker's fix these tests PASS.
+    //
+    // Math-researcher seeded the full inventory (campsite log); adversarial
+    // writes the falsifying tests before the fix so they are durable artifacts.
+    // ========================================================================
+
+    /// ADR-035 leaf-sweep instance 1: `eval_ratified_doc` — doc not found.
+    ///
+    /// When `ctx.read_doc()` returns `None` (the file is absent from the
+    /// evaluation context), the leaf outcome MUST be `evaluated: false`.
+    /// The substrate was not there to read — this is `⊥` (could-not-evaluate),
+    /// not a genuine pass-false (the check ran and the doc failed).
+    ///
+    /// CURRENTLY FAILS: the `fail` closure hardcodes `evaluated: true` on the
+    /// doc-not-found path (`line 568-572 + 589-590`), so the leaf reports
+    /// "I checked this and it failed" when the file was never read.
+    /// Fix: the doc-not-found arm must return `LeafOutcome { evaluated: false, .. }`.
+    #[test]
+    fn atk_adr035_leaf_sweep_ratified_doc_not_found_must_be_not_evaluated() {
+        let item = item_with(vec![]);
+        // Context has NO doc registered — read_doc returns None for any path.
+        let ctx = TestContext::new(sample_date());
+        let pred = Predicate::leaf(Leaf::RatifiedDoc {
+            path: Some(PathBuf::from("docs/absent.md")),
+            min_version: None,
+            anchor: None,
+            sibling_json: false,
+        });
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+        assert_eq!(r.leaf_outcomes.len(), 1, "one leaf outcome expected");
+        let leaf = &r.leaf_outcomes[0];
+        // The leaf must report `evaluated: false` — the doc was absent.
+        // A `passed: false, evaluated: true` pair is the ⊥→false lie:
+        // it claims the check ran and failed when the file was never read.
+        assert!(
+            !leaf.evaluated,
+            "ADR-035 leaf-sweep instance 1: ratified_doc with absent doc must have \
+             evaluated=false (substrate ⊥, could-not-evaluate), not evaluated=true \
+             (which would claim the check ran and found a failure). \
+             Current: label={:?}, passed={}, evaluated={}. \
+             Fix: in eval_ratified_doc, the doc-not-found arm (line 589-590) must \
+             return LeafOutcome {{ evaluated: false, .. }} instead of using the \
+             fail() closure (which hardcodes evaluated: true). \
+             See campsite forward/adr035-leaf-sweep-bottom-to-false.",
+            leaf.label, leaf.passed, leaf.evaluated,
+        );
+    }
+
+    /// ADR-035 leaf-sweep instance 2: `eval_ratified_doc` — frontmatter version
+    /// unparseable.
+    ///
+    /// When `parse_frontmatter_version()` returns `None` (the doc exists but
+    /// its frontmatter carries no parseable version field), the leaf outcome
+    /// MUST be `evaluated: false`. The version was un-readable — this is `⊥`,
+    /// not a genuine version-below-floor failure.
+    ///
+    /// CURRENTLY FAILS: the `fail` closure hardcodes `evaluated: true` on the
+    /// no-parseable-version path (`line 595-599`).
+    /// Fix: the no-parseable-version arm must return `LeafOutcome { evaluated: false, .. }`.
+    #[test]
+    fn atk_adr035_leaf_sweep_ratified_doc_no_frontmatter_version_must_be_not_evaluated() {
+        let item = item_with(vec![]);
+        // Doc exists but has no frontmatter version field at all.
+        let ctx = TestContext::new(sample_date()).with_doc(
+            "docs/no-version.md",
+            "# Just a heading\nNo frontmatter here.",
+        );
+        let pred = Predicate::leaf(Leaf::RatifiedDoc {
+            path: Some(PathBuf::from("docs/no-version.md")),
+            min_version: Some("1.0".to_string()),
+            anchor: None,
+            sibling_json: false,
+        });
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+        assert_eq!(r.leaf_outcomes.len(), 1, "one leaf outcome expected");
+        let leaf = &r.leaf_outcomes[0];
+        assert!(
+            !leaf.evaluated,
+            "ADR-035 leaf-sweep instance 2: ratified_doc with no parseable frontmatter \
+             version must have evaluated=false (version un-readable = ⊥), not evaluated=true. \
+             Current: label={:?}, passed={}, evaluated={}. \
+             Fix: the no-parseable-version arm (line 595-599) must return \
+             LeafOutcome {{ evaluated: false, .. }}. \
+             See campsite forward/adr035-leaf-sweep-bottom-to-false.",
+            leaf.label, leaf.passed, leaf.evaluated,
+        );
+    }
+
+    /// ADR-035 leaf-sweep instance 4: `eval_oracles_complete` — oracle file absent.
+    ///
+    /// When `ctx.read_oracle()` returns `None` (the oracle file is absent),
+    /// the per-oracle check returns `Err` which produces `LeafOutcome { evaluated:
+    /// true, passed: false }`. But "file absent" is substrate `⊥` — the oracle
+    /// could not be evaluated, not "evaluated and found incomplete."
+    ///
+    /// The `else` branch at `line 857-861` fuses two structurally distinct cases:
+    /// - `read_oracle` returns `None` (file absent → ⊥ → `evaluated: false`)
+    /// - `read_oracle` returns `Some(content)` but status ≠ "complete" (genuine fail → `evaluated: true`)
+    ///
+    /// CURRENTLY FAILS: both cases produce `evaluated: true` via the `fail`
+    /// LeafOutcome in the loop's early-return (line 867-873).
+    /// Fix: split the `else` arm — `read_oracle None` → `evaluated: false`;
+    /// `read_oracle Some` but wrong status → `evaluated: true`.
+    #[test]
+    fn atk_adr035_leaf_sweep_oracle_missing_must_be_not_evaluated() {
+        let item = item_with(vec![]);
+        // Context has NO oracle registered — read_oracle returns None.
+        let ctx = TestContext::new(sample_date());
+        let pred = Predicate::leaf(Leaf::OraclesComplete {
+            files: vec![PathBuf::from("docs/oracles/absent.md")],
+        });
+        let r =
+            evaluate_predicate(&pred, &item, "fp-current", Path::new("src/test.rs"), &ctx).unwrap();
+        assert_eq!(r.leaf_outcomes.len(), 1, "one leaf outcome expected");
+        let leaf = &r.leaf_outcomes[0];
+        assert!(
+            !leaf.evaluated,
+            "ADR-035 leaf-sweep instance 4: oracles_complete with absent oracle file must \
+             have evaluated=false (oracle ⊥, could-not-evaluate), not evaluated=true. \
+             The absent-file arm (eval_oracles_complete line 857-861) fuses 'file absent' \
+             with 'status not complete' into one evaluated:true outcome — a ⊥→false lie. \
+             Current: label={:?}, passed={}, evaluated={}. \
+             Fix: in eval_oracles_complete, split the else arm — read_oracle None → \
+             LeafOutcome {{ evaluated: false, .. }}; read_oracle Some(content) but \
+             status ≠ 'complete' → LeafOutcome {{ evaluated: true, passed: false, .. }}. \
+             See campsite forward/adr035-leaf-sweep-bottom-to-false.",
+            leaf.label, leaf.passed, leaf.evaluated,
+        );
+    }
 }
