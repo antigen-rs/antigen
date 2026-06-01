@@ -236,8 +236,10 @@ The discipline extends through:
 ### Recognition examples
 
 - **Witness recognition delegates** (ADR-002 Decision; ADR-013): the
-  `witness` parameter on `#[immune(...)]` accepts test, proptest, clippy
-  lint, kani/prusti/verus/creusot proof, phantom-type construction, or
+  `witness` parameter on the deprecated `#[immune(...)]` (v0.1) and the
+  current `#[defended_by(X)]` / `#[presents(X, requires=...)]` (v0.2,
+  ADR-029) accepts test, proptest, clippy lint,
+  kani/prusti/verus/creusot proof, phantom-type construction, or
   antigen-native witness. `audit.rs::detect_external_tool` recognizes
   prefix-based external tools (`clippy::`, `kani::`, `prusti::`, etc.) by
   delegation — antigen does not validate the tool's correctness; it
@@ -433,10 +435,12 @@ table):
 - `#[antigen(..., references = [...])]` — `references` is the Layer 2
   open-vocabulary list of CVE/RFC/ADR/URL pointers (ADR-009).
 - `#[immune(X, witness = Y)]` — `witness` is the executable rationale
-  (ADR-001 / ADR-002 / ADR-005).
+  (ADR-001 / ADR-002 / ADR-005). *(Deprecated v0.1 form — use
+  `#[defended_by(X)]` on the test or `#[presents(X, requires=...)]` on
+  the site per ADR-029.)*
 - `#[immune(X, witness = Y, rationale = "...")]` — `rationale` is the
   narrative justification supplementing the executable witness (ADR-001
-  Amendment 1 Change 7).
+  Amendment 1 Change 7). *(Deprecated v0.1 form — see above.)*
 - `#[antigen_tolerance(X, rationale = "...")]` — `rationale` is required
   at parse time; tolerance without rationale is rejected (ADR-011).
 - `#[antigen_generates(X, rationale = "...")]` — `rationale` is required;

@@ -141,7 +141,9 @@ each exercise the WHOLE primitive stack on different stress profiles:
    for failure-classes antigen DEFENDS AGAINST in its own code
    (infinite-recursion in predicate walker, path-traversal in sidecar
    read, silent arithmetic overflow in chain_depth, etc.); use
-   `#[immune(...)]` for the spots already addressed. Add Oracle
+   `#[defended_by(X)]` on tests / `#[presents(X, requires=...)]` on sites
+   (the v0.2 ADR-029 idiom — the deprecated `#[immune(...)]` form still
+   compiles with a warning; migrate to the new forms). Add Oracle
    declarations for our own design decisions; coordination claims with
    multi-signer `requires`; discipline-attestation for schema
    commitments. The WHOLE primitive stack against ONE codebase.

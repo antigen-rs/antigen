@@ -70,19 +70,23 @@ The "antigen" subcommand of cargo
 Usage: cargo antigen <COMMAND>
 
 Commands:
-  scan      Scan the workspace for antigen presentations and report unaddressed ones
-  audit     Comprehensive immunity coverage report — witness resolution and tier validation
-  attest    Manage `.attest/<Antigen>.json` substrate-witness sidecars (ADR-019)
-  tolerate  Manage tolerance-ratification sidecars (ADR-019 §tolerance tier)
-  oracle    Manage Oracle artifact-class records (ADR-021 §D3)
-  help      Print this message or the help of the given subcommand(s)
+  scan         Scan the workspace for antigen presentations and report unaddressed ones
+  audit        Comprehensive immunity coverage report — witness resolution and tier validation
+  attest       Manage `.attest/<Antigen>.json` substrate-witness sidecars (ADR-019)
+  tolerate     Manage tolerance-ratification sidecars (ADR-019 §tolerance tier)
+  oracle       Manage Oracle artifact-class records (ADR-021 §D3)
+  verify       Drive Supply-Chain Defense Family verifications (ADR-025)
+  vcs          Drive VCS-Information-Loss Family observations (ADR-026)
+  mucosal-map  Map mucosal trust boundaries across the workspace (ADR-027 + Amd 1)
+  fingerprint  Print the structural fingerprint of a scanned item
+  help         Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help     Print help
   -V, --version  Print version
 ```
 
-> **Note**: `scan` and `audit` are what you need for this tutorial. `attest`, `tolerate`, and `oracle` cover advanced workflows (substrate-witness sidecars, tolerance ratification, Oracle artifact lifecycle) — see [`witness-tiers.md`](witness-tiers.md) and the substrate-witness section later in this tutorial. `new` and `vaccinate` are in development and hidden until they ship in a future release.
+> **Note**: `scan` and `audit` are what you need for this tutorial. `attest`, `tolerate`, and `oracle` cover advanced workflows (substrate-witness sidecars, tolerance ratification, Oracle artifact lifecycle). `verify`, `vcs`, `mucosal-map`, and `fingerprint` are v0.3 subcommands covering supply-chain verification, VCS observations, mucosal boundary mapping, and fingerprint queries — see [`witness-tiers.md`](witness-tiers.md) and the substrate-witness section later in this tutorial.
 
 ---
 
@@ -605,6 +609,11 @@ showing all eight macros with time-stable verdicts, see
 ```sh
 cargo run --example prescriptive_board --package antigen
 ```
+
+> **Note**: The prescriptive family ships in v0.3. If you are on the published
+> stable (`antigen = "=0.2.0"`), update to a v0.3 release before the prescriptive
+> macros and this example are available. See [`roadmap.md`](roadmap.md) for the
+> release timeline.
 
 ---
 
