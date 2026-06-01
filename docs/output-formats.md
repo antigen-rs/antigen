@@ -271,6 +271,23 @@ Surfaces structural errors that prevent correct scan completion (file
 IO, syntax errors, malformed fingerprints, malformed attribute arguments,
 `#[descended_from]` cycles, lineage chain depth limits exceeded).
 
+#### `scan_coverage` (member-aware scans only)
+
+Present only under `--workspace` (member-aware mode); omitted entirely for a
+flat scan (which has no member concept).
+
+| Field | Type | Meaning |
+|---|---|---|
+| `enumerated_members` | array of strings | Every workspace member `cargo metadata` reported, as `<name>@<version>` canonical paths (sorted) |
+| `scanned_members` | array of strings | The members actually scanned (sorted) — a member is here iff its per-member scan ran |
+
+The complement (`enumerated_members` − `scanned_members`) is the **ignorance
+frontier**: members whose `#[presents]` sites the scan never reached. In a full
+`--workspace` scan the two sets are equal (empty frontier). A member that could
+not be scanned is recorded in `parse_failures` AND left out of `scanned_members`
+— so an unscannable member surfaces as an unseen (ignored) region rather than a
+silent gap. This is the substrate a downstream ignorance audit reads.
+
 #### `unaddressed[]` (top-level convenience array)
 
 The top-level `unaddressed` key is a pre-rendered convenience array
