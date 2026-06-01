@@ -1288,20 +1288,64 @@ impl antigen_attestation::EvaluationContext for FilesystemAuditContext {
     }
 }
 
-/// Attempt to load and deserialize a `.attest/<antigen_name>.json` sidecar
-/// for the given immunity. Returns `None` when the file doesn't exist or
-/// fails to deserialize (both are treated as sidecar-missing by the evaluator).
-fn load_sidecar(
-    immunity_file: &Path,
-    antigen_type: &str,
-) -> Option<antigen_attestation::Ratification> {
-    let dir = immunity_file.parent()?;
+/// Outcome of [`load_sidecar`] — distinguishes "file absent" from "file
+/// present but structurally/semantically invalid" so the audit can emit the
+/// correct hint in each case.
+enum SidecarLoad {
+    /// File does not exist (or I/O error reading it).
+    Missing,
+    /// File exists but failed JSON deserialization or semantic [`validate()`]
+    /// (NFA-17 guard: `CryptoSigned` requires `signature` field, etc.).
+    ///
+    /// The audit emits `DisciplineSidecarSchemaInvalid` rather than
+    /// `DisciplineSidecarMissing` so the adopter can distinguish "sidecar
+    /// missing" (needs `cargo antigen attest scaffold`) from "sidecar
+    /// present but broken" (needs to be fixed or re-signed).
+    SchemaInvalid,
+    /// File loaded and passed semantic validation.
+    Ok(antigen_attestation::Ratification),
+}
+
+/// Attempt to load and deserialize a `.attest/<antigen_name>.json` sidecar.
+///
+/// Returns [`SidecarLoad`] to distinguish "missing" from "invalid" — the
+/// audit emits different hints for each case. Returns `SchemaInvalid` when
+/// the file exists but fails JSON deserialization OR semantic validation.
+///
+/// The validation call is the NFA-17 guard
+/// (forward/serde-validate-post-deserialize-systematic): serde's derived
+/// `Deserialize` does not enforce semantic invariants (e.g., `CryptoSigned`
+/// strength requires `signature` field). Calling `validate()` after `from_str`
+/// ensures a semantically-invalid sidecar is treated as schema-invalid rather
+/// than trusted — preventing tier inflation without cryptographic backing.
+fn load_sidecar(immunity_file: &Path, antigen_type: &str) -> SidecarLoad {
+    let Some(dir) = immunity_file.parent() else {
+        return SidecarLoad::Missing;
+    };
     // Antigen type may be a fully-qualified path (`crate::antigens::SomeAntigen`);
     // use only the last segment as the filename component for v0.1 convention.
     let stem = antigen_type.rsplit("::").next().unwrap_or(antigen_type);
     let sidecar_path = dir.join(".attest").join(format!("{stem}.json"));
-    let content = std::fs::read_to_string(&sidecar_path).ok()?;
-    serde_json::from_str(&content).ok()
+    let Ok(content) = std::fs::read_to_string(&sidecar_path) else {
+        return SidecarLoad::Missing;
+    };
+    let Ok(ratification) = serde_json::from_str::<antigen_attestation::Ratification>(&content)
+    else {
+        return SidecarLoad::SchemaInvalid;
+    };
+    // Post-deserialization semantic validation (NFA-17 guard + delta-chain
+    // invariants). Use workspace defaults — load_sidecar has no workspace
+    // config context, so the hard-floor defaults are the correct boundary.
+    if ratification
+        .validate(
+            antigen_attestation::schema::DEFAULT_DELTA_CHAIN_CAP,
+            antigen_attestation::schema::DEFAULT_DELTA_RATIONALE_MIN_CHARS,
+        )
+        .is_err()
+    {
+        return SidecarLoad::SchemaInvalid;
+    }
+    SidecarLoad::Ok(ratification)
 }
 
 /// Run audit against a [`ScanReport`].
@@ -1356,7 +1400,10 @@ pub fn audit(report: &ScanReport, workspace_root: &Path) -> AuditReport {
                         && other.file == immunity.file
                 });
                 let code_witness_sidecar_ignored = !has_companion_requires
-                    && load_sidecar(&immunity.file, &immunity.antigen_type).is_some();
+                    && matches!(
+                        load_sidecar(&immunity.file, &immunity.antigen_type),
+                        SidecarLoad::Ok(_)
+                    );
                 ImmunityAudit {
                     immunity: immunity.clone(),
                     witness_status: status,
@@ -1484,10 +1531,29 @@ fn compute_presentation_verdicts(
         // the same antigen still contributes. Same-item match (file +
         // item_target) mirrors `addresses_for_immunity` — an immune claim is
         // about the item it sits on, not the whole class.
+        //
+        // Three-valued-logic / stacked-immunity fix
+        // (forward/immune-stacked-same-item-substrate-gap-mask):
+        //
+        // `find()` returns only the FIRST match. With stacked same-antigen
+        // same-item `#[immune]` declarations, the first match may have no
+        // `requires=` (→ Defended) while a later entry has a FAILING `requires=`
+        // whose substrate gap would be silently masked. The fix:
+        //   - `immune_audit` (for tier) still uses `find()` — the best code-tier
+        //     evidence from any matching entry is sufficient for `Defended`.
+        //   - `immune_any_substrate_gap` scans ALL matching entries via `any()` —
+        //     if ANY stacked immunity for this item is a substrate gap, the gap
+        //     surfaces regardless of the other entries' states.
         let immune_audit: Option<&ImmunityAudit> = immunity_audits.iter().find(|a| {
             a.immunity.antigen_type == p.antigen_type
                 && a.immunity.file == p.file
                 && a.immunity.item_target == p.item_target
+        });
+        let immune_any_substrate_gap = immunity_audits.iter().any(|a| {
+            a.immunity.antigen_type == p.antigen_type
+                && a.immunity.file == p.file
+                && a.immunity.item_target == p.item_target
+                && immune_audit_is_substrate_gap(a)
         });
 
         // Verdict precedence:
@@ -1571,16 +1637,18 @@ fn compute_presentation_verdicts(
         //         None          → no `requires=` on this site
         //         Some(None)    → `requires=` present but predicate failed
         //         Some(tier>0)  → `requires=` present and passed at `tier`
-        //   (2) immune_audit.is_some_and(immune_audit_is_substrate_gap):
+        //   (2) immune_any_substrate_gap (was: immune_audit.is_some_and(immune_audit_is_substrate_gap)):
         //       deprecated `#[immune(requires=)]` whose predicate failed. Same masking
         //       risk: a code witness must not hide a drifted deprecated substrate claim.
-        //       (forward/immune-channel-gate-missing-from-adr029-amd1)
+        //       Uses `any()` over ALL matching entries so stacked same-item immunities
+        //       cannot mask each other's substrate gaps.
+        //       (forward/immune-stacked-same-item-substrate-gap-mask + forward/immune-channel-gate-missing-from-adr029-amd1)
         //
         // The existing `site_requires_tier` (which filters out `None`) is used for
         // the `best_tier` computation; the gate checks `site_requires_eval` directly to
         // distinguish "requires= absent" (None) from "requires= present but failed" (Some(None)).
-        let requires_present_and_failed = site_requires_eval == Some(WitnessTier::None)
-            || immune_audit.is_some_and(immune_audit_is_substrate_gap);
+        let requires_present_and_failed =
+            site_requires_eval == Some(WitnessTier::None) || immune_any_substrate_gap;
 
         let verdict = if requires_present_and_failed {
             // Substrate intent declared and broken — SubstrateGap even when a code
@@ -1596,9 +1664,7 @@ fn compute_presentation_verdicts(
                 // intent at all). Either a site-attached requires= (ADR-029 R5) or a
                 // deprecated #[immune(requires=)] can be the engaged-but-failing
                 // intent.
-                None if site_requires_eval.is_some()
-                    || immune_audit.is_some_and(immune_audit_is_substrate_gap) =>
-                {
+                None if site_requires_eval.is_some() || immune_any_substrate_gap => {
                     ImmuneVerdict::SubstrateGap
                 }
                 None => ImmuneVerdict::Undefended,
@@ -1629,7 +1695,18 @@ fn immune_audit_is_substrate_gap(a: &ImmunityAudit) -> bool {
     // Only the substrate-witness path (`requires =`) can yield a substrate gap;
     // it sets `evaluated_predicate`. A code-witness with a NotFound/Missing
     // witness is `undefended`, not `substrate-gap`.
-    a.evaluated_predicate.is_some() && a.witness_tier == WitnessTier::None
+    //
+    // Three-valued-logic gate (forward/three-valued-logic-api-boundary-layer):
+    // `DisciplinePredicateDeferred` is NOT a substrate gap — it means the predicate
+    // contains supply-chain leaves that require `audit_supply_chain()`, i.e., "not
+    // yet evaluated here." Collapsing `deferred` → `SubstrateGap` conflates
+    // "we tried and it's broken" with "we haven't tried yet." The correct verdict
+    // for a deferred predicate is `Indeterminate` (handled by the supply-chain audit
+    // path), not `SubstrateGap`. Exclude deferred predicates so only genuinely
+    // evaluated-and-failed predicates gate as substrate gaps.
+    a.evaluated_predicate.is_some()
+        && a.witness_tier == WitnessTier::None
+        && a.audit_hint != AuditHint::DisciplinePredicateDeferred
 }
 
 /// Evaluate a substrate-witness predicate for one immunity declaration and
@@ -1669,15 +1746,31 @@ fn audit_substrate_witness(immunity: &Immunity, predicate_json: &str) -> Immunit
         );
     };
 
-    // Load the sidecar. Missing → sidecar_missing result.
-    let Some(sidecar) = load_sidecar(&immunity.file, &immunity.antigen_type) else {
-        let result = antigen_attestation::EvaluatedPredicate::sidecar_missing();
-        return immunity_audit_from_evaluated(
-            immunity,
-            result,
-            predicate_json.to_string(),
-            antigen_attestation::RatificationKind::Immunity,
-        );
+    // Load the sidecar. Distinguish missing from schema-invalid so the audit
+    // can emit the appropriate hint in each case.
+    let sidecar = match load_sidecar(&immunity.file, &immunity.antigen_type) {
+        SidecarLoad::Missing => {
+            let result = antigen_attestation::EvaluatedPredicate::sidecar_missing();
+            return immunity_audit_from_evaluated(
+                immunity,
+                result,
+                predicate_json.to_string(),
+                antigen_attestation::RatificationKind::Immunity,
+            );
+        }
+        SidecarLoad::SchemaInvalid => {
+            // Sidecar present but failed validation (e.g. NFA-17: CryptoSigned
+            // without signature). Emit schema-invalid so the adopter knows the
+            // sidecar needs repair, not just re-scaffolding.
+            let result = antigen_attestation::EvaluatedPredicate::sidecar_schema_invalid();
+            return immunity_audit_from_evaluated(
+                immunity,
+                result,
+                predicate_json.to_string(),
+                antigen_attestation::RatificationKind::Immunity,
+            );
+        }
+        SidecarLoad::Ok(r) => r,
     };
 
     // Match the sidecar item by `item_path` (the rendering produced by

@@ -1,0 +1,25 @@
+{
+  "schema_version": "v1",
+  "kind": "immunity",
+  "antigen": {
+    "name": "Nfa17TestClass"
+  },
+  "source_file": "src/lib.rs",
+  "items": [
+    {
+      "item_path": "guarded_fn",
+      "current_fingerprint": "fp-any",
+      "signers": [
+        {
+          "name": "alice",
+          "date": "2026-06-01",
+          "signed_against_fingerprint": "fp-any",
+          "basis": {
+            "kind": "fresh"
+          },
+          "strength": "crypto_signed"
+        }
+      ]
+    }
+  ]
+}

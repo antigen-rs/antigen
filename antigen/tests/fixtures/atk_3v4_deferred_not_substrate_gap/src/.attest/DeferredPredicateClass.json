@@ -1,0 +1,15 @@
+{
+  "schema_version": "v1",
+  "kind": "immunity",
+  "antigen": {
+    "name": "DeferredPredicateClass"
+  },
+  "source_file": "src/lib.rs",
+  "items": [
+    {
+      "item_path": "guarded_fn",
+      "current_fingerprint": "fp-any",
+      "signers": []
+    }
+  ]
+}
