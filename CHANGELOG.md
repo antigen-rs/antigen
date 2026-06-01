@@ -115,6 +115,37 @@ proc-macro emits antigens the scanner cannot see in the macro body. The macro's
 name travels from declaration site to invocation site — the first antigen marker
 where declaration and effect live in different places connected only by a name.
 
+### Added — typed `OutOfFrameCause` — sub-cause Layer-2 (ADR-033 / ADR-035)
+
+`WorkVerdict::OutOfFrame` now carries a structured `OutOfFrameCause` sub-enum
+distinguishing the four un-evaluable cases: `MissingWhoRef` / `UnresolvableRef` /
+`NoApplicableFrame` / `RequiresPreconditionViolated`. Each routes a distinct remedy
+rather than collapsing all un-evaluable paths to a single `OutOfFrame` unit — the
+ADR-035 Layer-2 (`SubCauseCollapseInTheUnit`) applied to the prescriptive pipeline.
+`OutOfFrameCause::remedy()` surfaces the per-cause corrective action.
+
+### Added — `coverage_was_applicable()` — 3-state coverage discriminator (ADR-035)
+
+`CoverageAuditReport::coverage_was_applicable() -> bool` is the discriminator that
+makes the 3-state coverage domain readable from a 2-valued `is_complete()`. Before
+this, `is_complete() == true` was ambiguous across two structurally distinct
+situations: a member-aware scan where every member was reached (verified-complete)
+and a flat scan where no member set existed (not applicable). The `(is_complete,
+coverage_was_applicable)` pair now distinguishes all three states unambiguously:
+`(true, true)` = verified-complete; `(false, true)` = incomplete; `(true, false)` =
+not applicable. An allowed C4 downstream projection per ADR-035.
+
+### Ratified — ADR-035: Cardinality Collapse at a Trust Boundary (Three-Valued Type Law)
+
+The Three-Valued Type Law is ratified as a self-applying antigen — antigen detecting
+its own type-discipline violation. The law names two layers: `CardinalityCollapseAtTrustBoundary`
+(the silent-wrong-verdict; unconditionally forced at every substrate-relative boundary)
+and `SubCauseCollapseInTheUnit` (the silent-wrong-remedy; conditionally forced when
+failure-stages are distinguishable and route non-interchangeable remedies). The
+ceremony (`forward/adr035-three-valued-type-law-ceremony`) was co-signed by
+aristotle, math-researcher, and adversarial after the falsification gate confirmed
+no counterexample to the no-total-boundary regress lemma.
+
 ### Fixed — correctness hardening (ATK suite)
 
 - **Three-valued logic boundary** (ATK-3V-4): `immune_audit_is_substrate_gap()`
@@ -128,6 +159,20 @@ where declaration and effect live in different places connected only by a name.
 - **Immune-stacked same-item gap mask** (ATK-IS-*): stacked `#[immune]` on the
   same item no longer masks a substrate gap on one declaration with a passing
   witness on another.
+- **Freshness/version bypass closes** (ATK-FT-1/2/3): three silent false-green
+  paths in `antigen-attestation` closed. ATK-FT-1: `fresh_through` active even when
+  the sidecar names no current-fingerprint signer; ATK-FT-2: a `fresh_through` site
+  with no `through=` date was treated as permanently fresh; ATK-FT-3: a `min_version`
+  with a non-`u64`-parseable component coerced to `0` (vacuously passing any floor)
+  — `validate()` now rejects with `PredicateParseError::UnparseableMinVersion`,
+  paying the partiality upstream so the eval-time leaf never sees the `⊥`.
+- **Qualified `priority_order` ref resolution** (ATK-PRES-14b): `priority_order`
+  entries in `#[triage]` that use fully-qualified paths (`crate::Module::Variant`)
+  are matched precisely by canonical path rather than by bare identifier suffix,
+  preventing phantom-resolution false-greens.
+- **Signature `allow` against any-strength bypass**: a `#[defended_by(allow_if=...)]`
+  clause now requires a matching strength-tier witness; a weak witness no longer
+  satisfies a site that requires a stronger attestation tier.
 
 ### Changed — cross-crate trust boundary (ADR-017 Amendment 1)
 
