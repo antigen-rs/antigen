@@ -4,8 +4,8 @@
 
 Comprehensive, co-native, structural memory of fail-classes, defenses, attestations, and coordination — accessible natively to both human and AI agents. Built for the age of agentic dev, vibe-coding, and human-LLM collaboration.
 
-> **Status**: `0.2.0` stable on crates.io (2026-05-31); `0.3.0-alpha.1` in active
-> development on `main`. v0.2 surface: core macros, fingerprint grammar, scan + audit
+> **Status**: `0.2.0` stable + `0.3.0-beta.1` prerelease on crates.io; `main` continues
+> toward `0.3.0` stable. v0.2 surface: core macros, fingerprint grammar, scan + audit
 > + attest + tolerate + oracle CLI, Oracle 5-state lifecycle, cross-cutting attestation,
 > substrate-witness predicates, ADR-029 observe-don't-declare vocabulary
 > (`#[defended_by]`, extended `#[presents]`), Match3 three-valued fingerprint

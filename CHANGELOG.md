@@ -7,9 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_Target: `0.3.0-beta` — v0.3 surface is the prescriptive/work-orchestration family,
-the titer/scalar witness kind, the live-projection reporting model, multi-crate scan,
-and the reachability-audit frontier._
+## [0.3.0-beta.1] — 2026-06-01
+
+_First public v0.3 prerelease. The v0.3 surface is the prescriptive/work-orchestration
+family, the titer/scalar witness kind, the live-projection reporting model, multi-crate
+scan, and the reachability-audit frontier._
 
 ### Added — prescriptive work-orchestration family (ADR-033)
 

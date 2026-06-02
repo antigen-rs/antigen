@@ -3757,7 +3757,7 @@ pub fn enumerate_dep_crate_roots(
 pub struct WorkspaceMemberRoot {
     /// Cargo package name (e.g., `"antigen"`, `"cargo-antigen"`).
     pub package_name: String,
-    /// Cargo package version (e.g., `"0.3.0-alpha.1"`).
+    /// Cargo package version (e.g., `"0.3.0-beta.1"`).
     pub version: String,
     /// Directory containing the member's `Cargo.toml` — the crate root
     /// suitable for [`scan_workspace`].
