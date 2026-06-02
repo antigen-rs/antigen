@@ -201,9 +201,9 @@ Per `.github/workflows/ci.yml`:
 | `cargo fmt --check` | Every push | Hard fail |
 | `cargo clippy -- -D warnings` | Every push | Hard fail (with pedantic) |
 | `cargo doc --no-deps` (RUSTDOCFLAGS=-D warnings) | Every push | Hard fail |
-| MSRV check (`cargo check` on Rust 1.75) | Every push | Hard fail |
+| MSRV check (`cargo check` on Rust 1.95) | Every push | Hard fail |
 
-Tests must pass on stable AND beta. MSRV (`1.75`) is checked separately to catch
+Tests must pass on stable AND beta. MSRV (`1.95`) is checked separately to catch
 unintentional dependence on newer features.
 
 ---

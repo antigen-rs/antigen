@@ -4158,7 +4158,7 @@ impl CoverageAuditReport {
     /// case 1, `false` for case 3). Case (2) — a member-aware scan with some
     /// member unreached — is the only `is_complete() == false`.
     #[must_use]
-    pub fn is_complete(&self) -> bool {
+    pub const fn is_complete(&self) -> bool {
         self.unreached_sites.is_empty()
     }
 
