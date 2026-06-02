@@ -1401,7 +1401,7 @@ impl antigen_attestation::EvaluationContext for FilesystemAuditContext {
 enum SidecarLoad {
     /// File does not exist (or I/O error reading it).
     Missing,
-    /// File exists but failed JSON deserialization or semantic [`validate()`]
+    /// File exists but failed JSON deserialization or semantic `validate()`
     /// (NFA-17 guard: `CryptoSigned` requires `signature` field, etc.).
     ///
     /// The audit emits `DisciplineSidecarSchemaInvalid` rather than
