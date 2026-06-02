@@ -5,7 +5,7 @@
 > A ~2000-word read explaining what antigen is, why it matters now, and what we're
 > asking the community to consider.
 >
-> *Updated 2026-06-01 for 0.3.0-alpha.1 in active development (0.2.0 stable on crates.io):
+> *Updated 2026-06-01 for 0.3.0-beta.1 in active development (0.2.0 stable on crates.io):
 > prescriptive / work-orchestration family (8 macros, `cargo antigen audit` as live work
 > board), titer/scalar witness kind (ADR-019 Amendment 1), live-projection reporting model
 > (ADR-034), `coverage_was_applicable()` three-state coverage discriminator, typed
@@ -181,7 +181,7 @@ Antigen v0.1 shipped the core of structural failure-class memory: five macros, f
 
 **Antigen v0.2 adds the observe-not-declare layer**: `#[defended_by]` (code-tier witness registration), `#[presents(requires=)]` (substrate-tier witness), the full deferred-defense family (`#[anergy]`, `#[immunosuppress]`, `#[poxparty]`, `#[orient]`), the recurrent-emergence family, convergent-evidence family, mucosal-boundary family, and supply-chain defense family. The audit surface shifted from "did the claim resolve?" to "is the site defended?" — immunity is now observed, not declared. ADR-029 is the architectural hinge.
 
-**Antigen v0.3 (in active development, `0.3.0-alpha.1`)** adds the prescriptive work-orchestration family (eight macros, live work-board audit output), the titer/scalar witness kind, the live-projection reporting model (ADR-034), and the three-valued type law ratified as a self-applying antigen (ADR-035). The work-board family in particular shifts antigen from purely defensive vocabulary (what went wrong, what defends it) to also covering the *obligation side* (what work is pending, who it's assigned to, whether it's overdue) — co-located in the code where the obligation lives.
+**Antigen v0.3 (in active development, `0.3.0-beta.1`)** adds the prescriptive work-orchestration family (eight macros, live work-board audit output), the titer/scalar witness kind, the live-projection reporting model (ADR-034), and the three-valued type law ratified as a self-applying antigen (ADR-035). The work-board family in particular shifts antigen from purely defensive vocabulary (what went wrong, what defends it) to also covering the *obligation side* (what work is pending, who it's assigned to, whether it's overdue) — co-located in the code where the obligation lives.
 
 This is one branch of the comprehensive immune-system framework.
 
