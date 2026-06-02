@@ -87,7 +87,7 @@ If you're curious about the internal discipline itself (the ADR lifecycle, sweep
 - **Rustdoc warnings** treated as errors (`RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps`)
 - **No `unsafe`** in this workspace (`unsafe_code = "forbid"` at workspace level)
 - **No `.unwrap()` in non-test code** (`unwrap_used = "deny"`)
-- **MSRV is 1.85** (edition 2024 in transitive deps)
+- **MSRV is 1.95** — antigen tracks recent stable (~stable-minus-1), revisited each release; the MSRV-aware resolver (`resolver = "3"`) keeps deps within the floor
 
 CI gates all of the above.
 

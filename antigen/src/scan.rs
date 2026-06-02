@@ -2674,7 +2674,7 @@ impl ScanReport {
 
     /// Total count of antigen-related declarations found.
     #[must_use]
-    pub fn total_declarations(&self) -> usize {
+    pub const fn total_declarations(&self) -> usize {
         self.antigens.len()
             + self.presentations.len()
             + self.immunities.len()
