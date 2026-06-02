@@ -45,6 +45,15 @@ agent-feedback/
 # Empty/transient working dirs
 .captured-shape/
 
+# Walkthrough debris from the substrate_witness example (Lesson 6, docs/examples-guide.md):
+# that lesson has the reader `attest scaffold` + `attest sign` a sidecar live, which writes
+# `antigen/examples/.attest/<Antigen>.json`. The artifact is regenerated on each run and must
+# not be committed — a stale leftover makes the documented `scaffold` fail "sidecar already
+# exists" for the next reader. Scoped to the examples dir ONLY: real `.attest/` sidecars (the
+# tracked test fixtures under antigen/tests/, and adopter projects) are first-class committed
+# attestation artifacts and must NOT be ignored.
+/antigen/examples/.attest/
+
 # Ad-hoc scan/audit JSON dumps + captured build/test/error logs at the repo
 # root (e.g. `cargo antigen scan --format json > scan_out.json`, or
 # `cargo build 2>build_f5.log`). Transient debugging artifacts, not part of the
