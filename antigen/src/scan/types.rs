@@ -1168,10 +1168,10 @@ pub struct ScanReport {
     pub parse_failures: Vec<ParseFailure>,
     /// Member-aware scan coverage (v0.3): which workspace member crates were
     /// enumerated vs actually scanned. `None` for a flat
-    /// [`scan_workspace`] scan (which has no member concept) — preserves
+    /// [`scan_workspace`](crate::scan::scan_workspace) scan (which has no member concept) — preserves
     /// byte-identical JSON for flat-scan consumers via
     /// `skip_serializing_if`. `Some` only from
-    /// [`scan_workspace_multi_crate`].
+    /// [`scan_workspace_multi_crate`](crate::scan::scan_workspace_multi_crate).
     ///
     /// This is the substrate for **ignorance detection** (regulatory tier): a
     /// member that exists in the workspace but was NOT scanned is a region
@@ -1184,7 +1184,7 @@ pub struct ScanReport {
 }
 
 /// Member-aware scan coverage: the workspace member set vs the set actually
-/// scanned. Produced by [`scan_workspace_multi_crate`].
+/// scanned. Produced by [`scan_workspace_multi_crate`](crate::scan::scan_workspace_multi_crate).
 ///
 /// The complement (`enumerated_members` − `scanned_members`) is the
 /// **ignorance frontier**: members whose `#[presents]` sites the scan never
@@ -1459,7 +1459,7 @@ impl ScanReport {
     ///
     /// ADR-017 (Option A — caller stamps post-scan). Called by the
     /// cargo-metadata-driven `--include-deps` driver after running
-    /// [`scan_workspace`] on a dependency crate root: the driver knows
+    /// [`scan_workspace`](crate::scan::scan_workspace) on a dependency crate root: the driver knows
     /// the dependency's canonical path (`"<crate-name>@<version>"`), but
     /// the directory scanner doesn't, so the driver stamps the canonical
     /// path on every record post-scan.
