@@ -52,6 +52,11 @@
 //!   item's doc comment(s)
 //! - `body_contains_macro("<name>")` — function/method body contains a macro
 //!   invocation of the named macro (last path segment match)
+//! - `body_calls("<name>")` — function/method body contains a *call* to the
+//!   named function or method: a free/path call (`foo()`, `std::process::exit()`
+//!   — last path segment match) OR a method call (`.unwrap()`, `.expect()` —
+//!   method-ident match). The call-shaped twin of `body_contains_macro` (ADR-040);
+//!   closes the silent `.unwrap()`/`.expect()` gap a macro-only match misses.
 //! - `all_of([...])` — every child matches
 //! - `any_of([...])` — at least one child matches
 //! - `not(<constraint>)` — child does NOT match. Per ADR-010 Amendment 3
@@ -150,6 +155,16 @@ pub enum Constraint {
     /// `body_contains_macro("<name>")` — the function/method body contains
     /// a macro invocation whose path's last segment equals `name`.
     BodyContainsMacro(String),
+
+    /// `body_calls("<name>")` — the function/method body contains a *call* to
+    /// the named function or method: a free/path call whose path's last segment
+    /// equals `name` (`foo()`, `std::process::exit()`), OR a method call whose
+    /// method identifier equals `name` (`.unwrap()`, `.expect()`). The
+    /// call-shaped twin of [`Self::BodyContainsMacro`] (ADR-040 grammar
+    /// increment); like its twin it is a partial-domain leaf — `Undefined` on an
+    /// item-class with no body locus, so `not(body_calls(X))` stays sound inside
+    /// `all_of`.
+    BodyCalls(String),
 
     /// `all_of([...])` — every child constraint must match.
     AllOf(Vec<Self>),
