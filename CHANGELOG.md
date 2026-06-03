@@ -131,6 +131,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   drift-guard tests). `SystemTimeForElapsedMeasurement` (semantic) and `TOCTOU`
   (relational) members stay charter-deferred.
 
+### Added — Drop-and-Panic-Discipline stdlib family — `PanicInDrop` (beta.2 voyage)
+
+- New stdlib family `drop_panic`. First member `PanicInDrop` (named) — a real
+  `Drop` impl whose body reaches a panic source; panic-during-unwind aborts the
+  process and skips cleanup. Fingerprint `all_of([item = impl,
+  impl_of_trait("Drop"), any_of([body_calls("unwrap"), body_calls("expect"),
+  body_contains_macro("panic"), body_contains_macro("unreachable"),
+  body_contains_macro("todo"), body_contains_macro("unimplemented")])])`. Two
+  advances over the shipped `PanickingInDrop`: (1) `impl_of_trait("Drop")` anchors
+  on the *real* `Drop` trait (not an inherent impl with a method merely named
+  `drop`), and (2) `body_calls("unwrap")` / `body_calls("expect")` cover the
+  call-shaped panics a macro-only fingerprint silently misses (the more common
+  teardown panic). Category `FunctionalCorrectness`. Ships WITH its admitting-
+  specimen (`examples/drop_panic.rs` — a bad `Drop` binds, a panic-free `Drop` and
+  an inherent `drop` are spared) + drift-guard tests. `PanicInLibraryApi`
+  (visibility-tell) and `PanicSourceInConstContext` (clippy-covered) stay
+  charter-deferred.
+
+### Changed — shipped `PanickingInDrop` fingerprint tightened with `impl_of_trait("Drop")` (v2)
+
+- The canonical seed antigen `PanickingInDrop` (`examples/basic.rs`) now anchors
+  on `impl_of_trait("Drop")` (ADR-040), so it fires only on the *real* `Drop`
+  trait instead of over-firing on every non-`Drop` impl with a panic macro — the
+  recall-tuned false-positive its own v1 comment documented ("the v1 grammar has
+  no operator for *this impl is for the Drop trait* — that's a v2 enhancement").
+  A **precision improvement** (narrows the codomain to the actual failure-class;
+  removes false-positives, never adds matches), same discipline as the
+  `body_contains_macro` fail-direction fix — we eat our own dog food on the seed
+  antigen the moment the leaf to fix it ships.
+
 ### Changed — `body_contains_macro` / `body_calls` now reject unmatchable names (fail-direction fix)
 
 - **Behavior change (tiny compat surface; surfaced here per our own

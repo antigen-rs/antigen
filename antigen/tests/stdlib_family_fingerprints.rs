@@ -241,3 +241,67 @@ fn system_time_unwrap_spares_unwrap_without_clock_read() {
         "must SPARE an unwrap with no clock read (no clock-read anchor)"
     );
 }
+
+// ============================================================================
+// drop-and-panic-discipline :: PanicInDrop
+// ============================================================================
+
+/// The member's declared fingerprint, kept in ONE place (the drift-guard).
+const PANIC_IN_DROP: &str = r#"all_of([item = impl, impl_of_trait("Drop"), any_of([body_calls("unwrap"), body_calls("expect"), body_contains_macro("panic"), body_contains_macro("unreachable"), body_contains_macro("todo"), body_contains_macro("unimplemented")])])"#;
+
+#[test]
+fn panic_in_drop_binds_drop_impl_with_unwrap() {
+    // BIND (call-shaped): a real Drop impl whose body calls .unwrap(). This is
+    // the panic the shipped macro-only PanickingInDrop silently MISSES — the v2
+    // body_calls coverage. impl_of_trait("Drop") = Match, body_calls("unwrap") =
+    // Match → all_of = Match.
+    let fp = fp(PANIC_IN_DROP);
+    assert!(
+        fp.matches(&item(
+            "impl Drop for Bad { fn drop(&mut self) { self.h.take().unwrap(); } }"
+        )),
+        "must BIND a real Drop impl with a .unwrap() panic source"
+    );
+}
+
+#[test]
+fn panic_in_drop_binds_drop_impl_with_panic_macro() {
+    // BIND (macro-shaped): a real Drop impl whose body invokes panic!.
+    let fp = fp(PANIC_IN_DROP);
+    assert!(
+        fp.matches(&item(
+            r#"impl Drop for Bad { fn drop(&mut self) { if self.dirty { panic!("unflushed"); } } }"#
+        )),
+        "must BIND a real Drop impl with a panic! macro"
+    );
+}
+
+#[test]
+fn panic_in_drop_spares_clean_drop_impl() {
+    // SPARE: a real Drop impl with NO panic source. impl_of_trait("Drop") = Match
+    // but any_of(panic-sources) = NoMatch → all_of = NoMatch. The panic-free
+    // teardown is the safe path.
+    let fp = fp(PANIC_IN_DROP);
+    assert!(
+        !fp.matches(&item(
+            "impl Drop for Good { fn drop(&mut self) { let _ = self.h.take(); } }"
+        )),
+        "must SPARE a real Drop impl with no panic source"
+    );
+}
+
+#[test]
+fn panic_in_drop_spares_inherent_impl_named_drop() {
+    // SPARE (the v2 precision): an INHERENT impl with a method merely *named*
+    // `drop` that calls .unwrap() — NOT the real Drop trait. impl_of_trait("Drop")
+    // = NoMatch → all_of short-circuits to NoMatch. This is exactly the
+    // over-fire the shipped item=impl-only PanickingInDrop cannot avoid, and the
+    // v2 impl_of_trait tightening fixes.
+    let fp = fp(PANIC_IN_DROP);
+    assert!(
+        !fp.matches(&item(
+            "impl Widget { fn drop(&mut self) { self.h.take().unwrap(); } }"
+        )),
+        "must SPARE an inherent impl with a method named drop (not the Drop trait)"
+    );
+}
