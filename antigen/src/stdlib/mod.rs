@@ -53,6 +53,14 @@
 //!   Family (beta.2 voyage): `get_unchecked` / `get_unchecked_mut` skip the
 //!   bounds check → out-of-bounds is Undefined Behavior. Biology cognate:
 //!   proprioception / spinal-reflex failure.
+//! - [`async_soundness`](crate::stdlib::async_soundness) — the Async-Soundness
+//!   Family (beta.2 voyage): a hand-written `unsafe impl Send/Sync` asserts
+//!   cross-thread safety the compiler cannot check (~40% of unsound advisories).
+//!   Biology cognate: a mislabeled self/non-self marker at the thread boundary.
+//! - [`numeric_truncation`](crate::stdlib::numeric_truncation) — the
+//!   Numeric-Truncation-Overflow Family (beta.2 voyage): the `size_of`-in-element-
+//!   count foot-cannon (a byte count where an element count is expected → OOB).
+//!   Biology cognate: silent mutation.
 //! - [`dogfood`](crate::stdlib::dogfood) — antigen-internal dogfood antigens,
 //!   failure-classes observed directly in antigen's own development and
 //!   coordination substrate (v0.2 completion arc, 2026-05-24).
@@ -83,11 +91,13 @@
 //! NOT in source-walking fingerprint matching.
 
 pub mod agentic_coordination;
+pub mod async_soundness;
 pub mod crypto_misuse;
 pub mod deserialization;
 pub mod dogfood;
 pub mod drop_panic;
 pub mod mucosal;
+pub mod numeric_truncation;
 pub mod panic_on_index;
 pub mod recurrent;
 pub mod resource_lifecycle;

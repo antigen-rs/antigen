@@ -181,6 +181,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`examples/panic_on_index.rs`, `examples/resource_lifecycle.rs`) + drift-guard
   tests.
 
+### Added — Async-Soundness + Numeric-Truncation-Overflow stdlib families (beta.2 voyage)
+
+- **`async_soundness` :: `UnsafeSendSync`** (named) — a hand-written
+  `unsafe impl Send for T` / `unsafe impl Sync for T` asserts cross-thread safety
+  the compiler cannot check (~40% of unsound RUSTSEC advisories root here).
+  Fingerprint `all_of([item = impl, is_unsafe, any_of([impl_of_trait("Send"),
+  impl_of_trait("Sync")])])` — the `is_unsafe` (G1) + `impl_of_trait` (G3) leaves.
+  The author-asserted `unsafe` qualifier is load-bearing (a safe `impl Send` is
+  spared). Because the workspace sets `unsafe_code = "forbid"`, the admitting-
+  specimen is a **scan fixture** (`tests/fixtures/family_unsafe_send_sync/`, read
+  as text, not compiled) rather than a compiled example. `LockHeldAcrossAwait`
+  (await-liveness), `BlockingCallInAsyncFn` (heuristic blocking-list, suspected),
+  and `SpawnedFutureNotAwaited` (binding-tell) are charter-deferred / next-wave.
+- **`numeric_truncation` :: `SizeOfInElementCount`** (named) — a raw-memory copy
+  (`copy_nonoverlapping`) co-located with `size_of`: the byte-count-where-element-
+  count foot-cannon (`n * size_of::<T>()` as a count arg over-copies by
+  `sizeof(T)` → OOB; clippy correctness `size_of_in_element_count`). Fingerprint
+  `all_of([body_calls("copy_nonoverlapping"), body_calls("size_of")])`. The
+  precise "`size_of` in the count-arg position" needs arg-position introspection
+  (`G2`-extended → charter); the co-presence form is named (a raw copy + `size_of`
+  is itself a strong correctness signal). `LossyNumericCast` (`as`-cast),
+  arithmetic-overflow, and float-equality members are operator-shaped tells →
+  charter.
+- Both `category = FunctionalCorrectness`, ship WITH their admitting-specimens +
+  drift-guard tests.
+
 ### Changed — shipped `PanickingInDrop` fingerprint tightened with `impl_of_trait("Drop")` (v2)
 
 - The canonical seed antigen `PanickingInDrop` (`examples/basic.rs`) now anchors

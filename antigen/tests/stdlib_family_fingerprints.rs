@@ -433,3 +433,172 @@ fn deliberate_leak_spares_ordinary_drop() {
         "must SPARE an ordinary use with no forget/leak call"
     );
 }
+
+// ============================================================================
+// async-soundness :: UnsafeSendSync
+// ============================================================================
+
+/// The member's declared fingerprint, kept in ONE place (the drift-guard).
+const UNSAFE_SEND_SYNC: &str =
+    r#"all_of([item = impl, is_unsafe, any_of([impl_of_trait("Send"), impl_of_trait("Sync")])])"#;
+
+#[test]
+fn unsafe_send_sync_binds_unsafe_impl_send() {
+    // BIND: a hand-written `unsafe impl Send for T`. item=impl Match, is_unsafe
+    // Match (the impl carries `unsafe`), impl_of_trait("Send") Match → all_of =
+    // Match. The author-asserted cross-thread-safety site.
+    let fp = fp(UNSAFE_SEND_SYNC);
+    assert!(
+        fp.matches(&item("unsafe impl Send for Wrapper {}")),
+        "must BIND a hand-written unsafe impl Send"
+    );
+}
+
+#[test]
+fn unsafe_send_sync_binds_unsafe_impl_sync() {
+    // BIND the Sync arm.
+    let fp = fp(UNSAFE_SEND_SYNC);
+    assert!(
+        fp.matches(&item("unsafe impl Sync for Wrapper {}")),
+        "must BIND a hand-written unsafe impl Sync"
+    );
+}
+
+#[test]
+fn unsafe_send_sync_spares_safe_impl_of_other_trait() {
+    // SPARE: a SAFE impl (not `unsafe`) of an ordinary trait. is_unsafe = NoMatch
+    // → all_of short-circuits to NoMatch. Only the *unsafe* assertion is the tell.
+    let fp = fp(UNSAFE_SEND_SYNC);
+    assert!(
+        !fp.matches(&item(
+            "impl Clone for Wrapper { fn clone(&self) -> Self { Wrapper } }"
+        )),
+        "must SPARE a safe impl of an ordinary trait (not unsafe)"
+    );
+}
+
+#[test]
+fn unsafe_send_sync_spares_unsafe_impl_of_other_unsafe_trait() {
+    // SPARE: an `unsafe impl` of a DIFFERENT unsafe trait (not Send/Sync).
+    // is_unsafe = Match but any_of([Send, Sync]) = NoMatch → all_of = NoMatch.
+    // The trait identity (not just the unsafe-ness) is load-bearing.
+    let fp = fp(UNSAFE_SEND_SYNC);
+    assert!(
+        !fp.matches(&item("unsafe impl MyUnsafeTrait for Wrapper {}")),
+        "must SPARE an unsafe impl of a non-Send/Sync trait"
+    );
+}
+
+#[test]
+fn unsafe_send_sync_spares_safe_impl_send() {
+    // SPARE (the is_unsafe discriminator): a SAFE `impl Send for T` (no `unsafe`
+    // keyword). is_unsafe = NoMatch → all_of short-circuits to NoMatch. This is
+    // what makes is_unsafe load-bearing: only the AUTHOR-ASSERTED (unsafe) form is
+    // the soundness tell; an auto-derived/blanket safe Send is not the class. (A
+    // bare `impl Send` is unusual in real code but valid syn — the test pins that
+    // the `unsafe` qualifier, not merely the Send trait, is required.)
+    let fp = fp(UNSAFE_SEND_SYNC);
+    assert!(
+        !fp.matches(&item("impl Send for Wrapper {}")),
+        "must SPARE a safe (non-unsafe) impl Send — the unsafe qualifier is the tell"
+    );
+}
+
+// ============================================================================
+// numeric-truncation-overflow :: SizeOfInElementCount
+// ============================================================================
+
+/// The member's declared fingerprint, kept in ONE place (the drift-guard).
+const SIZE_OF_IN_COUNT: &str =
+    r#"all_of([body_calls("copy_nonoverlapping"), body_calls("size_of")])"#;
+
+#[test]
+fn size_of_in_count_binds_copy_with_size_of() {
+    // BIND: a raw copy co-located with size_of — the byte-count-where-element-
+    // count foot-cannon. body_calls("copy_nonoverlapping") = Match AND
+    // body_calls("size_of") = Match → all_of = Match.
+    let fp = fp(SIZE_OF_IN_COUNT);
+    assert!(
+        fp.matches(&item(
+            "fn copy(src: *const u8, dst: *mut u8, n: usize) { unsafe { std::ptr::copy_nonoverlapping(src, dst, n * std::mem::size_of::<u32>()) } }"
+        )),
+        "must BIND a copy_nonoverlapping co-located with size_of"
+    );
+}
+
+#[test]
+fn size_of_in_count_spares_copy_with_element_count() {
+    // SPARE: a copy_nonoverlapping with an explicit ELEMENT count and NO size_of.
+    // body_calls("size_of") = NoMatch → all_of short-circuits to NoMatch. The
+    // correct element-count call is spared.
+    let fp = fp(SIZE_OF_IN_COUNT);
+    assert!(
+        !fp.matches(&item(
+            "fn copy(src: *const u8, dst: *mut u8, n: usize) { unsafe { std::ptr::copy_nonoverlapping(src, dst, n) } }"
+        )),
+        "must SPARE a copy_nonoverlapping with an element count (no size_of)"
+    );
+}
+
+#[test]
+fn size_of_in_count_spares_size_of_without_raw_copy() {
+    // SPARE: a bare size_of with no raw copy. body_calls("copy_nonoverlapping") =
+    // NoMatch → all_of = NoMatch. The co-presence requires BOTH — a size_of in
+    // ordinary code is not this class.
+    let fp = fp(SIZE_OF_IN_COUNT);
+    assert!(
+        !fp.matches(&item("fn sz() -> usize { std::mem::size_of::<u64>() }")),
+        "must SPARE a bare size_of with no raw copy (no copy anchor)"
+    );
+}
+
+// ============================================================================
+// async-soundness :: UnsafeSendSync — SCAN-FIXTURE specimen
+// ============================================================================
+//
+// UnsafeSendSync's admitting-specimen cannot be a compiled example: the workspace
+// sets `unsafe_code = "forbid"` (an inner #[allow] cannot override a forbid), so a
+// real `unsafe impl Send` cannot live in a compiled crate. The scanner reads
+// source as TEXT (it does not compile it), so the affinity-pair lives as a scan
+// fixture. This test scans that fixture end-to-end and asserts the member binds
+// the `unsafe impl Send` and spares the safe `impl Clone`.
+
+#[test]
+fn unsafe_send_sync_scan_fixture_binds_unsafe_impl_spares_safe_impl() {
+    use antigen::scan::scan_workspace;
+    use std::path::Path;
+
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("fixtures")
+        .join("family_unsafe_send_sync");
+    let scan = scan_workspace(&fixture, None).expect("fixture scans");
+
+    // BIND: the `unsafe impl Send for RawHandle` must be a fingerprint-match for
+    // UnsafeSendSync.
+    let bound = scan
+        .presentations
+        .iter()
+        .any(|p| p.antigen_type == "UnsafeSendSync");
+    assert!(
+        bound,
+        "scan must bind UnsafeSendSync on the unsafe impl Send; got: {:?}",
+        scan.presentations
+            .iter()
+            .map(|p| &p.antigen_type)
+            .collect::<Vec<_>>()
+    );
+
+    // SPARE: there must be exactly ONE UnsafeSendSync site (the unsafe impl Send),
+    // NOT two — the safe `impl Clone` must be spared. (The explicit #[presents] on
+    // the unsafe impl is one site; the fingerprint must not ALSO fire on Clone.)
+    let unsafe_sites = scan
+        .presentations
+        .iter()
+        .filter(|p| p.antigen_type == "UnsafeSendSync")
+        .count();
+    assert_eq!(
+        unsafe_sites, 1,
+        "exactly one UnsafeSendSync site (the unsafe impl Send); the safe impl Clone must be spared"
+    );
+}
