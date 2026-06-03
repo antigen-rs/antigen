@@ -61,6 +61,11 @@
 //!   Numeric-Truncation-Overflow Family (beta.2 voyage): the `size_of`-in-element-
 //!   count foot-cannon (a byte count where an element count is expected → OOB).
 //!   Biology cognate: silent mutation.
+//! - [`unsafe_soundness`](crate::stdlib::unsafe_soundness) — the
+//!   Unsafe-Soundness-Boundary Family (beta.2 voyage): the `unsafe`-primitive
+//!   call-shapes where a wrong invariant is UB, not a panic (`transmute`,
+//!   `assume_init`, `from_utf8_unchecked`). Biology cognate: the breached
+//!   self/non-self membrane (a forged MHC marker).
 //! - [`dogfood`](crate::stdlib::dogfood) — antigen-internal dogfood antigens,
 //!   failure-classes observed directly in antigen's own development and
 //!   coordination substrate (v0.2 completion arc, 2026-05-24).
@@ -103,4 +108,5 @@ pub mod recurrent;
 pub mod resource_lifecycle;
 pub mod supply_chain;
 pub mod time_ordering;
+pub mod unsafe_soundness;
 pub mod vcs_info_loss;

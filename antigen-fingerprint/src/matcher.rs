@@ -514,8 +514,9 @@ fn body_calls(item: &syn::Item, name: &str) -> Match3 {
 /// `Undefined` everywhere else, so `not(is_async)` does NOT vacuously match an
 /// item-class with no asyncness locus (e.g. a `struct`). The loci:
 /// - `Async` / `Const` → `fn` only (read `Signature.asyncness` / `.constness`).
-/// - `Unsafe` → `fn` (an `unsafe fn`, `Signature.unsafety`) AND `impl` (an
-///   `unsafe impl`, `ItemImpl.unsafety`) — the two places `unsafe` can sit.
+/// - `Unsafe` → `fn` (an `unsafe fn`, `Signature.unsafety`), `impl` (an
+///   `unsafe impl`, `ItemImpl.unsafety`), AND `trait` (an `unsafe trait`,
+///   `ItemTrait.unsafety`) — the three places `unsafe` can sit on an item.
 const fn qualifier_match(item: &syn::Item, kind: QualifierKind) -> Match3 {
     match (kind, item) {
         // is_async — fn locus only.
@@ -523,9 +524,15 @@ const fn qualifier_match(item: &syn::Item, kind: QualifierKind) -> Match3 {
         // is_const — fn locus only. (The `const` *qualifier* on a function, NOT
         // the `item = const` item-kind.)
         (QualifierKind::Const, syn::Item::Fn(f)) => Match3::from_bool(f.sig.constness.is_some()),
-        // is_unsafe — fn OR impl locus.
+        // is_unsafe — fn OR impl OR trait locus. A `trait` HAS the unsafe locus
+        // (`unsafe trait Foo {}`, `ItemTrait.unsafety`), so it must be a definite
+        // Match/NoMatch — NOT `Undefined`. Omitting this arm was a FALSE-Undefined
+        // (the item has the locus but the arm didn't enumerate it — the ⊥-collapse
+        // class wearing the partial-domain invariant's clothing; ADR-010 Amd6
+        // contrapositive: "don't claim Undefined where the question is well-posed").
         (QualifierKind::Unsafe, syn::Item::Fn(f)) => Match3::from_bool(f.sig.unsafety.is_some()),
         (QualifierKind::Unsafe, syn::Item::Impl(imp)) => Match3::from_bool(imp.unsafety.is_some()),
+        (QualifierKind::Unsafe, syn::Item::Trait(t)) => Match3::from_bool(t.unsafety.is_some()),
         // No locus for this qualifier on this item-class — the question has no
         // answer here. UNDEFINED, not vacuous-false (ADR-010 Amd6).
         _ => Match3::Undefined,
@@ -910,6 +917,32 @@ mod tests {
         assert!(
             !fp.matches(&item("impl Send for Foo {}")),
             "is_unsafe must NOT match a safe impl"
+        );
+    }
+
+    /// G1 — the THIRD `unsafe` locus: an `unsafe trait`. A `trait` HAS the unsafe
+    /// locus (`ItemTrait.unsafety`), so `is_unsafe` on it must be a definite
+    /// Match/NoMatch — NOT `Undefined`. Omitting the `(Unsafe, Trait)` arm was a
+    /// FALSE-Undefined (the item has the locus, the arm didn't enumerate it). This
+    /// is the notary/adversarial-flagged fix; it also lets `UnsafeSendSync`-shaped
+    /// fingerprints reach an `unsafe trait` Send-marker.
+    #[test]
+    fn is_unsafe_matches_unsafe_trait_definite_not_undefined() {
+        let bare = fp("is_unsafe");
+        assert!(
+            bare.matches(&item("unsafe trait Scary {}")),
+            "is_unsafe must match an unsafe trait (a definite Match, not Undefined)"
+        );
+        // A SAFE trait must be a definite NoMatch (well-posed), so the anchored
+        // absence form distinguishes it — proving it is NOT Undefined.
+        let absent = fp(r"all_of([item = trait, not(is_unsafe)])");
+        assert!(
+            absent.matches(&item("trait Calm {}")),
+            "anchored not(is_unsafe) matches a SAFE trait (definite NoMatch on is_unsafe → not = Match)"
+        );
+        assert!(
+            !absent.matches(&item("unsafe trait Scary {}")),
+            "anchored not(is_unsafe) spares an unsafe trait"
         );
     }
 

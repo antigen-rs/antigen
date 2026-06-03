@@ -622,3 +622,124 @@ fn unsafe_send_sync_scan_fixture_binds_unsafe_impl_spares_safe_impl() {
         "exactly one UnsafeSendSync site (the unsafe impl Send); the safe impl Clone must be spared"
     );
 }
+
+// ============================================================================
+// unsafe-soundness :: TransmuteSizeOrLifetimeMismatch
+// ============================================================================
+
+/// The member's declared fingerprint, kept in ONE place (the drift-guard).
+const TRANSMUTE_MISMATCH: &str =
+    r#"any_of([body_calls("transmute"), body_calls("transmute_copy")])"#;
+
+#[test]
+fn transmute_mismatch_binds_transmute_call_spares_safe_cast() {
+    let fp = fp(TRANSMUTE_MISMATCH);
+    // BIND: a transmute call (the rare/std-specific self-anchor).
+    assert!(
+        fp.matches(&item(
+            "fn cast(p: *const u8) -> *mut u8 { unsafe { std::mem::transmute(p) } }"
+        )),
+        "must BIND a transmute call"
+    );
+    // SPARE: a checked cast with no transmute — body_calls(transmute/transmute_copy)
+    // = NoMatch → any_of = NoMatch.
+    assert!(
+        !fp.matches(&item("fn cast(x: u32) -> i32 { x as i32 }")),
+        "must SPARE a checked `as` cast (no transmute)"
+    );
+}
+
+// ============================================================================
+// unsafe-soundness :: UninitMemoryAssumedInit
+// ============================================================================
+
+/// The member's declared fingerprint, kept in ONE place (the drift-guard).
+const UNINIT_ASSUMED_INIT: &str = r#"any_of([body_calls("assume_init"), body_calls("uninitialized"), body_calls("zeroed"), body_calls("set_len")])"#;
+
+#[test]
+fn uninit_assumed_init_binds_assume_init_spares_initialized() {
+    let fp = fp(UNINIT_ASSUMED_INIT);
+    // BIND: an assume_init call.
+    assert!(
+        fp.matches(&item(
+            "fn make() -> u8 { let m = MaybeUninit::uninit(); unsafe { m.assume_init() } }"
+        )),
+        "must BIND an assume_init call"
+    );
+    // BIND the set_len arm — proves the any_of covers the Vec::set_len primitive.
+    assert!(
+        fp.matches(&item(
+            "fn grow(v: &mut Vec<u8>, n: usize) { unsafe { v.set_len(n) } }"
+        )),
+        "must BIND a Vec::set_len call"
+    );
+    // SPARE: a fully-initialized construction with no uninit primitive.
+    assert!(
+        !fp.matches(&item("fn make() -> u8 { 0u8 }")),
+        "must SPARE a fully-initialized construction"
+    );
+}
+
+// ============================================================================
+// unsafe-soundness :: UnvalidatedFromUtf8Unchecked
+// ============================================================================
+
+/// The member's declared fingerprint, kept in ONE place (the drift-guard).
+const FROM_UTF8_UNCHECKED: &str =
+    r#"any_of([body_calls("from_utf8_unchecked"), body_calls("from_utf8_unchecked_mut")])"#;
+
+#[test]
+fn from_utf8_unchecked_binds_unchecked_spares_checked() {
+    let fp = fp(FROM_UTF8_UNCHECKED);
+    // BIND: a from_utf8_unchecked call.
+    assert!(
+        fp.matches(&item(
+            "fn s(b: &[u8]) -> &str { unsafe { std::str::from_utf8_unchecked(b) } }"
+        )),
+        "must BIND a from_utf8_unchecked call"
+    );
+    // SPARE: the CHECKED from_utf8 (returns Result) — a different last-segment.
+    assert!(
+        !fp.matches(&item(
+            "fn s(b: &[u8]) -> &str { std::str::from_utf8(b).unwrap() }"
+        )),
+        "must SPARE the checked from_utf8 (different method)"
+    );
+}
+
+// ============================================================================
+// unsafe-soundness — SCAN-FIXTURE specimen (the three members end-to-end)
+// ============================================================================
+//
+// The unsafe-soundness specimens cannot be compiled examples (every tell is an
+// `unsafe` primitive, and the workspace forbids unsafe). The scan fixture carries
+// the real primitives as text. This test scans it and asserts all three members
+// bind their `unsafe` site (each marked `#[presents]`).
+
+#[test]
+fn unsafe_soundness_scan_fixture_binds_all_three_members() {
+    use antigen::scan::scan_workspace;
+    use std::path::Path;
+
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("fixtures")
+        .join("family_unsafe_soundness");
+    let scan = scan_workspace(&fixture, None).expect("fixture scans");
+
+    for member in [
+        "TransmuteSizeOrLifetimeMismatch",
+        "UninitMemoryAssumedInit",
+        "UnvalidatedFromUtf8Unchecked",
+    ] {
+        let bound = scan.presentations.iter().any(|p| p.antigen_type == member);
+        assert!(
+            bound,
+            "scan must bind {member} on its unsafe-primitive site; got: {:?}",
+            scan.presentations
+                .iter()
+                .map(|p| &p.antigen_type)
+                .collect::<Vec<_>>()
+        );
+    }
+}
