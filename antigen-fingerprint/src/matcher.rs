@@ -146,6 +146,10 @@ fn match_constraint(c: &Constraint, item: &syn::Item) -> Match3 {
         // body_contains_macro is the one v0.2 leaf with a partial domain: it
         // returns Undefined on bodyless item-classes (ADR-010 Amd6).
         Constraint::BodyContainsMacro(name) => body_contains_macro(item, name),
+        // body_calls is its call-shaped twin (ADR-040): same partial domain
+        // (Undefined on bodyless item-classes), matching free/path calls by
+        // last segment and method calls by method ident.
+        Constraint::BodyCalls(name) => body_calls(item, name),
         Constraint::AllOf(children) => match_all_of(children, item),
         Constraint::AnyOf(children) => match_any_of(children, item),
         Constraint::Not(child) => match_constraint(child, item).not(),
@@ -403,6 +407,91 @@ fn body_contains_macro(item: &syn::Item, name: &str) -> Match3 {
     }
 }
 
+/// Walk the function/method body for a *call* to a function or method whose name
+/// matches `name`. The call-shaped twin of [`body_contains_macro`] (ADR-040).
+///
+/// Two call shapes are matched, mirroring how Rust spells calls:
+/// - **free / path calls** (`syn::Expr::Call`): `foo()`, `std::process::exit(1)`
+///   — matched on the *last path segment* of the callee path (so a qualified
+///   `std::process::exit` matches `body_calls("exit")`), exactly the
+///   last-segment discipline `body_contains_macro` uses for macro paths.
+/// - **method calls** (`syn::Expr::MethodCall`): `x.unwrap()`, `r.expect(..)`
+///   — matched on the *method identifier*.
+///
+/// Same partial domain as the macro twin: a definite `Match`/`NoMatch` for
+/// item-classes that have a function body (`fn`, `impl` methods), and
+/// `Match3::Undefined` for item-classes with no body locus — so
+/// `not(body_calls(X))` inside `all_of` stays sound (ADR-010 Amd6, the
+/// vacuous-`not` guard). Last-segment / method-ident matching means an *aliased*
+/// call (`use std::process::exit as quit; quit()`) is NOT detected — the same
+/// honest limitation `body_contains_macro` carries for aliased macros.
+fn body_calls(item: &syn::Item, name: &str) -> Match3 {
+    use syn::visit::Visit;
+
+    struct CallFinder<'a> {
+        needle: &'a str,
+        found: bool,
+    }
+
+    impl<'ast> Visit<'ast> for CallFinder<'_> {
+        fn visit_expr_call(&mut self, call: &'ast syn::ExprCall) {
+            if self.found {
+                return;
+            }
+            // The callee of a free/path call is itself an expression; a plain
+            // path call (`foo()`, `a::b::c()`) is `Expr::Path`. Match on its
+            // last path segment (the function name), mirroring the macro twin.
+            if let syn::Expr::Path(p) = call.func.as_ref() {
+                if let Some(last) = p.path.segments.last() {
+                    if last.ident == self.needle {
+                        self.found = true;
+                        return;
+                    }
+                }
+            }
+            // Recurse into the callee + args so nested calls are still seen.
+            syn::visit::visit_expr_call(self, call);
+        }
+
+        fn visit_expr_method_call(&mut self, call: &'ast syn::ExprMethodCall) {
+            if self.found {
+                return;
+            }
+            if call.method == self.needle {
+                self.found = true;
+                return;
+            }
+            // Recurse into the receiver + args (e.g. `a.foo().bar()` — both).
+            syn::visit::visit_expr_method_call(self, call);
+        }
+    }
+
+    let mut finder = CallFinder {
+        needle: name,
+        found: false,
+    };
+    match item {
+        syn::Item::Fn(f) => {
+            finder.visit_block(&f.block);
+            Match3::from_bool(finder.found)
+        }
+        syn::Item::Impl(imp) => {
+            for impl_item in &imp.items {
+                if let syn::ImplItem::Fn(f) = impl_item {
+                    finder.visit_block(&f.block);
+                    if finder.found {
+                        break;
+                    }
+                }
+            }
+            Match3::from_bool(finder.found)
+        }
+        // No function body on this item-class — "does the body call X" has no
+        // locus here. UNDEFINED, not vacuous-false (ADR-010 Amd6).
+        _ => Match3::Undefined,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::Fingerprint;
@@ -413,6 +502,235 @@ mod tests {
 
     fn fp(src: &str) -> Fingerprint {
         Fingerprint::parse(src).expect("test fingerprint parses")
+    }
+
+    // ========================================================================
+    // ADR-040 Increment 1 (KEYSTONE) — body_calls(path)
+    //
+    // These are the adversarial tests-first definition-of-done for the
+    // `body_calls` leaf matcher. They are *asymmetric*: each binds-bad on a
+    // body that calls the needle AND spares-good on a clean sibling that does
+    // not — so a test that passes against both the gap and the fix is
+    // impossible (a no-op `body_calls` that always-matches fails spare-good;
+    // one that never-matches fails binds-bad).
+    //
+    // Ground truth (probed against syn 2.x): `.unwrap()`/`.expect()` are
+    // `syn::ExprMethodCall` (matched by method ident); `std::process::exit(1)`
+    // and `mem::forget(x)` are `syn::ExprCall` with an `Expr::Path` callee
+    // (matched by LAST path segment). `todo!()`/`unreachable!()`/`panic!()` are
+    // `syn::Macro`, NOT calls — they belong to `body_contains_macro`, and
+    // `body_calls` must NOT claim them (that would be a false-positive and a
+    // duplicate of the macro twin).
+    // ========================================================================
+
+    /// KEYSTONE affinity-pair, METHOD-CALL arm. A `Drop` impl whose body
+    /// panics via `.unwrap()` (an `ExprMethodCall`, invisible to the
+    /// macro-only `body_contains_macro`) must be matched; a clean sibling
+    /// `Drop` impl with no such call must be spared. This is the exact silent
+    /// gap ADR-040 names: `PanickingInDrop`'s shipped macro-only fingerprint
+    /// misses `.unwrap()`-shaped panics.
+    #[test]
+    fn body_calls_matches_unwrap_method_call_spares_clean() {
+        let fp = fp(r#"all_of([item = impl, body_calls("unwrap")])"#);
+        // binds-bad: the call-shaped panic path the macro twin is blind to.
+        assert!(
+            fp.matches(&item(
+                "impl Drop for Bad { fn drop(&mut self) { self.h.take().unwrap(); } }"
+            )),
+            "body_calls(\"unwrap\") must match a Drop impl that calls .unwrap()"
+        );
+        // spares-good: a clean sibling with no .unwrap() call.
+        assert!(
+            !fp.matches(&item(
+                "impl Drop for Good { fn drop(&mut self) { let _ = self.h.take(); } }"
+            )),
+            "body_calls(\"unwrap\") must NOT match a Drop impl with no .unwrap() call"
+        );
+    }
+
+    /// KEYSTONE affinity-pair, PATH-CALL arm. A free/path function call
+    /// (`std::process::exit(1)`) is a `syn::ExprCall`, a DIFFERENT AST node
+    /// than a method call. This test forces the impl to hook
+    /// `visit_expr_call` too — an impl that only hooked `visit_expr_method_call`
+    /// would pass the method-call test above yet FAIL here (the asymmetry that
+    /// guards against a half-built keystone). Last-segment discipline:
+    /// `body_calls("exit")` matches the qualified `std::process::exit`.
+    #[test]
+    fn body_calls_matches_path_call_by_last_segment_spares_clean() {
+        let fp = fp(r#"all_of([item = fn, body_calls("exit")])"#);
+        // binds-bad: a path call matched on its LAST segment.
+        assert!(
+            fp.matches(&item("fn run() { std::process::exit(1); }")),
+            "body_calls(\"exit\") must match a fn that calls std::process::exit() (last segment)"
+        );
+        // spares-good: a sibling that calls a DIFFERENT path function.
+        assert!(
+            !fp.matches(&item("fn run() { std::mem::drop(()); }")),
+            "body_calls(\"exit\") must NOT match a fn that does not call exit"
+        );
+    }
+
+    /// KEYSTONE — the macro/call boundary. `body_calls` must NOT fire on a
+    /// macro invocation (`panic!()`), even though the needle text appears: a
+    /// macro is `syn::Macro`, not a call. This guards the false-positive that
+    /// would make `body_calls` a redundant, wrong duplicate of
+    /// `body_contains_macro`. The clean sibling (a real `panic` *function*
+    /// call) confirms the matcher distinguishes the two by AST node, not by
+    /// the spelled name.
+    #[test]
+    fn body_calls_does_not_match_macro_invocation() {
+        let fp = fp(r#"all_of([item = fn, body_calls("panic")])"#);
+        // spare: panic!() is a MACRO, not a call — body_calls must stay silent.
+        assert!(
+            !fp.matches(&item(r#"fn boom() { panic!("x"); }"#)),
+            "body_calls(\"panic\") must NOT match the panic! MACRO (that is body_contains_macro's job)"
+        );
+        // bind: a real function literally named `panic` IS a call.
+        assert!(
+            fp.matches(&item("fn boom() { panic(); }")),
+            "body_calls(\"panic\") MUST match a real fn call named panic()"
+        );
+    }
+
+    /// KEYSTONE — partial domain / Undefined (ADR-010 Amd6). `body_calls` on a
+    /// bodyless item-class (a struct) has no locus → `Undefined`, NOT a
+    /// vacuous match. The vacuous-`not` guard: `all_of([item = struct,
+    /// not(body_calls("unwrap"))])` must evaluate to Undefined (does NOT fire)
+    /// rather than matching every struct. This is the soundness contract the
+    /// macro twin carries; `body_calls` must carry it identically.
+    #[test]
+    fn body_calls_undefined_on_bodyless_item_keeps_not_sound() {
+        // A bare body_calls on a struct does not fire (Undefined projects to
+        // "doesn't fire").
+        let bare = fp(r#"body_calls("unwrap")"#);
+        assert!(
+            !bare.matches(&item("struct S { x: u32 }")),
+            "body_calls on a bodyless struct must not fire (Undefined, not Match)"
+        );
+        // The load-bearing case: not(body_calls(...)) under all_of must NOT
+        // vacuously match every struct — Undefined is closed under negation.
+        let negated = fp(r#"all_of([item = struct, not(body_calls("unwrap"))])"#);
+        assert!(
+            !negated.matches(&item("struct S { x: u32 }")),
+            "all_of([item=struct, not(body_calls(unwrap))]) must be Undefined (not fire) — \
+             the vacuous-not guard (ADR-010 Amd6)"
+        );
+    }
+
+    /// KEYSTONE — the shipped `PanickingInDrop` silent-gap closure, stated as a
+    /// regression contract (ADR-040 "done well"). The OLD macro-only shape is
+    /// SILENT on a `.unwrap()`-in-Drop; the NEW `body_calls` shape FIRES. This
+    /// asserts BOTH halves in one test so the gap-closure cannot regress
+    /// silently: if someone reverts `body_calls` to delegate to macros, the
+    /// `new_fires` assertion fails.
+    #[test]
+    fn body_calls_closes_panicking_in_drop_unwrap_silent_gap() {
+        let drop_with_unwrap =
+            item("impl Drop for V { fn drop(&mut self) { self.h.take().unwrap(); } }");
+
+        // The shipped PanickingInDrop fingerprint (basic.rs:44-52) — macro-only.
+        let old_macro_only = fp(r#"
+            all_of([
+                item = impl,
+                any_of([
+                    body_contains_macro("panic"),
+                    body_contains_macro("unreachable"),
+                    body_contains_macro("todo"),
+                    body_contains_macro("unimplemented")
+                ])
+            ])
+        "#);
+        assert!(
+            !old_macro_only.matches(&drop_with_unwrap),
+            "PRECONDITION: the macro-only fingerprint is SILENT on .unwrap()-in-Drop \
+             (this is the gap ADR-040 closes)"
+        );
+
+        // The new call-aware shape fires on the same site.
+        let new_with_calls = fp(r#"
+            all_of([
+                item = impl,
+                any_of([
+                    body_contains_macro("panic"),
+                    body_calls("unwrap"),
+                    body_calls("expect")
+                ])
+            ])
+        "#);
+        assert!(
+            new_with_calls.matches(&drop_with_unwrap),
+            "body_calls closes the gap: the call-aware fingerprint FIRES on .unwrap()-in-Drop"
+        );
+    }
+
+    /// KEYSTONE — `body_calls` must recurse into NESTED bodies: a `.unwrap()`
+    /// hidden in a closure (`.map(|x| x.unwrap())`), a nested fn, or a nested
+    /// block (an `if`/`match` arm) is the common real-world shape — if the walk
+    /// stopped at the top level it would silently miss them. The `syn::visit`
+    /// walk descends; this pins it so a future "optimization" can't shallow it.
+    #[test]
+    fn body_calls_recurses_into_nested_bodies() {
+        let unwrap = fp(r#"all_of([item = fn, body_calls("unwrap")])"#);
+        assert!(
+            unwrap.matches(&item(
+                "fn f(v: Vec<Option<u32>>) { v.iter().map(|x| x.unwrap()).count(); }"
+            )),
+            "body_calls must see .unwrap() inside a CLOSURE"
+        );
+        assert!(
+            unwrap.matches(&item(
+                "fn outer() { fn inner() -> u32 { None::<u32>.unwrap() } let _ = inner(); }"
+            )),
+            "body_calls must see .unwrap() inside a NESTED fn"
+        );
+        assert!(
+            unwrap.matches(&item(
+                "fn f(o: Option<u32>) { if true { let _ = o.unwrap(); } }"
+            )),
+            "body_calls must see .unwrap() inside a nested if-block"
+        );
+        // spare: a clean sibling with the same nesting depth but no unwrap.
+        assert!(
+            !unwrap.matches(&item(
+                "fn f(v: Vec<u32>) { v.iter().map(|x| x + 1).count(); }"
+            )),
+            "body_calls must spare a closure that does NOT call unwrap"
+        );
+        // path-call inside a closure recurses too.
+        let exit = fp(r#"all_of([item = fn, body_calls("exit")])"#);
+        assert!(
+            exit.matches(&item("fn f() { let g = || std::process::exit(1); g(); }")),
+            "body_calls must see a path call inside a CLOSURE"
+        );
+    }
+
+    /// KEYSTONE — raw-ident soundness END-TO-END (closes the parse-OK-but-silent-miss
+    /// window). The parse-side gate (`rejects_body_calls_non_ident_name_loudly`)
+    /// ACCEPTS raw idents like `r#fn` / `r#async` because they ARE single
+    /// identifiers. This test verifies they then actually FIRE at the matcher —
+    /// so an accepted-but-never-matching raw-ident name (a silent miss the gate
+    /// was added to prevent) cannot slip through the MATCH side either. If a
+    /// future change compared against a de-raw'd ident string while parse still
+    /// accepted `r#fn`, this test goes red.
+    #[test]
+    fn body_calls_raw_ident_fires_end_to_end() {
+        // a raw-ident FREE call: r#fn() (fn is a keyword → must be written r#fn).
+        let raw_fn = fp(r#"all_of([item = fn, body_calls("r#fn")])"#);
+        assert!(
+            raw_fn.matches(&item("fn outer() { r#fn(); }")),
+            "body_calls(\"r#fn\") must FIRE on a real r#fn() call (raw idents match end-to-end)"
+        );
+        // a raw-ident METHOD call: x.r#async().
+        let raw_async = fp(r#"all_of([item = fn, body_calls("r#async")])"#);
+        assert!(
+            raw_async.matches(&item("fn f(x: T) { x.r#async(); }")),
+            "body_calls(\"r#async\") must FIRE on a real x.r#async() method call"
+        );
+        // spare: a different raw-ident name must NOT match.
+        assert!(
+            !raw_fn.matches(&item("fn outer() { r#async(); }")),
+            "body_calls(\"r#fn\") must spare a call to a different raw-ident fn"
+        );
     }
 
     #[test]

@@ -47,6 +47,7 @@ fn parse_constraint(input: ParseStream) -> syn::Result<Constraint> {
         "attr_present" => parse_attr_present(input),
         "doc_contains" => parse_doc_contains(input),
         "body_contains_macro" => parse_body_contains_macro(input),
+        "body_calls" => parse_body_calls(input),
         "all_of" => parse_all_of(input),
         "any_of" => parse_any_of(input),
         "not" => parse_not(input),
@@ -55,7 +56,7 @@ fn parse_constraint(input: ParseStream) -> syn::Result<Constraint> {
             format!(
                 "unknown fingerprint operator `{other}`; expected one of: \
                  item, name, variants, has_method, attr_present, doc_contains, \
-                 body_contains_macro, all_of, any_of, not",
+                 body_contains_macro, body_calls, all_of, any_of, not",
             ),
         )),
     }
@@ -218,19 +219,67 @@ fn parse_doc_contains(input: ParseStream) -> syn::Result<Constraint> {
     Ok(Constraint::DocContains(needle))
 }
 
+/// Shared name-validation gate for the call/macro-target leaves
+/// (`body_calls` + `body_contains_macro`).
+///
+/// **Fail-LOUD, never silent-miss.** Both leaves match against a single bare
+/// identifier — `body_calls` against a call's LAST path segment / method ident,
+/// `body_contains_macro` against a macro path's LAST segment. So a `name` that is
+/// NOT a single identifier (`"std::process::exit"`, `".unwrap"`, `"panic!"`,
+/// `"unwrap()"`, `" unwrap"`, `"unwrap "`) can never fire — the stored string
+/// would equal no single ident → a fingerprint that *silently matches nothing*,
+/// the exact named-but-silent (false-coverage) failure-class antigen exists to
+/// surface. This gate rejects such names at PARSE time with a message that names
+/// the fix, rather than shipping a no-op fingerprint. (DRY: one place to be
+/// honest about names — both leaves route through here, per the harbor-master
+/// ruling that the shipped `body_contains_macro` gets the same fix.)
+///
+/// `syn::parse_str::<Ident>` accepts exactly one identifier — Unicode XID idents
+/// and raw idents (`r#fn`) included — and rejects paths, dots, parens, and `!`.
+/// But `parse_str` tolerates *surrounding* whitespace (so `" unwrap"` would parse
+/// as `Ident("unwrap")` while the stored name keeps its space → still a silent
+/// miss), so we reject ANY whitespace outright BEFORE the ident-parse — the
+/// stored name is then exactly what the matcher compares.
+fn validate_target_ident_name(op: &str, name: &str, span: Span) -> syn::Result<()> {
+    if name.trim().is_empty() {
+        return Err(syn::Error::new(
+            span,
+            format!("{op} name must not be empty or whitespace-only"),
+        ));
+    }
+    if name.contains(char::is_whitespace) || syn::parse_str::<Ident>(name).is_err() {
+        return Err(syn::Error::new(
+            span,
+            format!(
+                "{op}(\"{name}\") is not a single identifier; {op} matches against a bare \
+                 last-segment / method / macro name, so a path-spelled (`a::b`), dotted, \
+                 `!`-bearing, parenthesized, or whitespace-padded name would silently never \
+                 fire (a named-but-silent miss). Use the bare name — e.g. \
+                 `{op}(\"exit\")`, not `{op}(\"std::process::exit\")`."
+            ),
+        ));
+    }
+    Ok(())
+}
+
 fn parse_body_contains_macro(input: ParseStream) -> syn::Result<Constraint> {
     let _kw: Ident = input.parse()?; // "body_contains_macro"
     let content;
     parenthesized!(content in input);
     let lit: LitStr = content.parse()?;
     let name = lit.value();
-    if name.trim().is_empty() {
-        return Err(syn::Error::new(
-            lit.span(),
-            "body_contains_macro name must not be empty",
-        ));
-    }
+    validate_target_ident_name("body_contains_macro", &name, lit.span())?;
     Ok(Constraint::BodyContainsMacro(name))
+}
+
+fn parse_body_calls(input: ParseStream) -> syn::Result<Constraint> {
+    let _kw: Ident = input.parse()?; // "body_calls"
+    let content;
+    parenthesized!(content in input);
+    let lit: LitStr = content.parse()?;
+    let name = lit.value();
+    validate_target_ident_name("body_calls", &name, lit.span())?;
+    Ok(Constraint::BodyCalls(name))
 }
 
 fn parse_all_of(input: ParseStream) -> syn::Result<Constraint> {
@@ -517,6 +566,71 @@ mod tests {
             fp.constraints,
             vec![Constraint::BodyContainsMacro("panic".to_string())]
         );
+    }
+
+    #[test]
+    fn parses_body_calls_bare_ident() {
+        // A single bare identifier parses — including Unicode XID + raw idents.
+        for ok in ["unwrap", "exit", "名前", "r#fn"] {
+            let src = format!(r#"body_calls("{ok}")"#);
+            let fp = parse(&src).unwrap_or_else(|e| panic!("body_calls({ok:?}) must parse: {e}"));
+            assert_eq!(fp.constraints, vec![Constraint::BodyCalls(ok.to_string())]);
+        }
+    }
+
+    #[test]
+    fn rejects_body_calls_non_ident_name_loudly() {
+        // The well-formedness gate: a name the matcher can never fire on (because
+        // it matches by last segment / method ident) is rejected at PARSE time —
+        // fail-loud, not a silent never-fires miss (the named-but-silent class
+        // antigen exists to surface). Empty/whitespace + path/dotted/parenthesized
+        // /padded names all ERR.
+        for bad in [
+            "",                   // empty
+            "   ",                // whitespace-only
+            "std::process::exit", // path — use the last segment "exit"
+            ".unwrap",            // leading dot
+            "unwrap()",           // parens
+            " unwrap",            // leading space
+            "unwrap ",            // trailing space
+            "a b",                // internal space
+        ] {
+            let src = format!(r#"body_calls("{bad}")"#);
+            assert!(
+                parse(&src).is_err(),
+                "body_calls({bad:?}) must be REJECTED at parse — the matcher matches by \
+                 last-segment/method-ident, so this name would silently never fire (a \
+                 named-but-silent miss). It must fail loud, not ship a no-op fingerprint."
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_body_contains_macro_non_ident_name_loudly() {
+        // The SHIPPED twin gets the same fail-loud gate (harbor-master ruling):
+        // body_contains_macro matches a macro path's LAST segment, so a path/`!`/
+        // dotted/padded name silently never fires — the same named-but-silent
+        // class. The shared `validate_target_ident_name` gate closes it for both
+        // leaves. Bare names (the only shapes any real fingerprint uses — `panic`,
+        // `unreachable`, `todo`, `unimplemented`, `recurse_marker`) still parse.
+        assert!(parse(r#"body_contains_macro("panic")"#).is_ok());
+        for bad in [
+            "",
+            "  ",
+            "std::panic", // path — use the last segment "panic"
+            "panic!",     // the `!` is not part of the macro NAME
+            "panic ",     // trailing space
+            " panic",     // leading space
+            "panic()",    // parens
+        ] {
+            let src = format!(r#"body_contains_macro("{bad}")"#);
+            assert!(
+                parse(&src).is_err(),
+                "body_contains_macro({bad:?}) must now be REJECTED at parse (a deliberate \
+                 fail-direction fix to the shipped leaf — a path/!/padded macro name would \
+                 silently never fire). Bare `panic` still parses."
+            );
+        }
     }
 
     #[test]

@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — `body_calls("<name>")` fingerprint leaf (ADR-040 grammar increment 1)
+
+- New fingerprint operator `body_calls("<name>")` — the call-shaped twin of
+  `body_contains_macro`. Matches a function/method body that *calls* the named
+  function or method, in both shapes Rust spells calls: free/path calls
+  (`foo()`, `std::process::exit(1)` — matched on the callee path's **last
+  segment**) and method calls (`x.unwrap()`, `r.expect(..)` — matched on the
+  **method identifier**). Same partial domain as the macro twin: definite
+  Match/NoMatch for bodied items (`fn`, `impl` methods), `Undefined` for
+  bodyless item-classes (so `not(body_calls(X))` inside `all_of` stays sound,
+  ADR-010 Amd6). Closes the silent `.unwrap()`/`.expect()` gap a macro-only
+  match misses (e.g. the `PanickingInDrop` fingerprint).
+
+### Changed — `body_contains_macro` / `body_calls` now reject unmatchable names (fail-direction fix)
+
+- **Behavior change (tiny compat surface; surfaced here per our own
+  practice-what-we-preach discipline).** Both the call/macro-target leaves now
+  **reject at parse time** a name that is not a single bare identifier — a
+  path-spelled (`"std::process::exit"`), `!`-bearing (`"panic!"`), dotted
+  (`".unwrap"`), parenthesized (`"unwrap()"`), or whitespace-padded
+  (`" unwrap"`) name — with a helpful message naming the fix. Previously such a
+  name *parsed OK and silently matched nothing* — a **named-but-silent
+  false-coverage miss**, the exact failure-class antigen exists to surface,
+  found in antigen's own keystone grammar leaf by the tests-first pass. The fix
+  is a single shared `validate_target_ident_name` gate both leaves route
+  through (DRY). Every real fingerprint already uses bare names (`"panic"`,
+  `"unreachable"`, `"todo"`, `"unimplemented"`, …), so the compat surface is
+  empty in practice; a fingerprint that *relied on* the silent miss was already
+  a no-op. Migration: use the bare name (`body_calls("exit")`, not
+  `body_calls("std::process::exit")`).
+
 ## [0.3.0-beta.1] — 2026-06-01
 
 _First public v0.3 prerelease. The v0.3 surface is the prescriptive/work-orchestration
