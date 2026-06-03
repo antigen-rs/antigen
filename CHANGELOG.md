@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Unsafe-Soundness-Boundary stdlib family (beta.2 voyage)
+
+- New stdlib family `unsafe_soundness` — the `unsafe`-primitive call-shapes where
+  a wrong invariant is **Undefined Behavior**, not a panic. Three named members
+  (all rare/std-specific self-anchors that pass the effective-codomain filter — a
+  domain type will not have a method by these names):
+  - **`TransmuteSizeOrLifetimeMismatch`** —
+    `any_of([body_calls("transmute"), body_calls("transmute_copy")])` ("the most
+    dangerous single function in Rust"; rustc `mutable_transmutes` deny-by-default).
+  - **`UninitMemoryAssumedInit`** — `any_of([body_calls("assume_init"),
+    body_calls("uninitialized"), body_calls("zeroed"), body_calls("set_len")])`
+    (clippy `uninit_assumed_init` / `uninit_vec`).
+  - **`UnvalidatedFromUtf8Unchecked`** — `any_of([body_calls("from_utf8_unchecked"),
+    body_calls("from_utf8_unchecked_mut")])` (rustc `invalid_from_utf8_unchecked`).
+  - Each ships `category = FunctionalCorrectness` and WITH its admitting-specimen
+    (a scan fixture `tests/fixtures/family_unsafe_soundness/`, since the workspace
+    forbids `unsafe`) + drift-guard tests. The precise size/lifetime/validity check
+    is the v0.4 semantic tier; presence is current-scanner. `RawPtrDerefInSafeFn`
+    (relational) and `MissingSafetyInvariantDoc` (sensor-layer) are charter-deferred.
+
+### Fixed — `is_unsafe` now matches an `unsafe trait` (the third `unsafe` locus)
+
+- `is_unsafe` was missing the `(Unsafe, Trait)` arm: an `unsafe trait Foo {}` has
+  the `unsafe` locus (`ItemTrait.unsafety`) but returned `Undefined` instead of a
+  definite `Match`/`NoMatch` — a **false-Undefined** (the item has the locus, the
+  arm didn't enumerate it; the ⊥-collapse class wearing the partial-domain
+  invariant's clothing). Now a definite Match, so `not(is_unsafe)` on a safe trait
+  is sound and `UnsafeSendSync`-shaped fingerprints reach an `unsafe trait`
+  Send-marker. Falsified (dropping the arm reds the unsafe-trait test).
+
 ### Added — authored `provenance` + `presentation` fields on `#[antigen]` (ADR-039 §C, the families-foundation increment)
 
 - The `#[antigen]` declaration macro grows two **authored** fields implementing
