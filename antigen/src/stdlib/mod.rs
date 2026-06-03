@@ -25,6 +25,11 @@
 //!   Agentic-Coordination Failure-Class Family, failure-classes that emerge
 //!   specifically in multi-session / multi-agent / human-LLM-collab workflows.
 //!   Biology cognate: immunological memory loss during session gap.
+//! - [`crypto_misuse`](crate::stdlib::crypto_misuse) — the Crypto-Misuse Family
+//!   (beta.2 voyage), the RUSTSEC `crypto-failure` category seen developer-side:
+//!   misuse of a present defense (non-constant-time secret comparison). Tells
+//!   are call-anchored + safe-step-ABSENCE. Biology cognate: using the immune
+//!   machinery wrong (the timing leak as a non-constant-time self/non-self read).
 //! - [`dogfood`](crate::stdlib::dogfood) — antigen-internal dogfood antigens,
 //!   failure-classes observed directly in antigen's own development and
 //!   coordination substrate (v0.2 completion arc, 2026-05-24).
@@ -55,6 +60,7 @@
 //! NOT in source-walking fingerprint matching.
 
 pub mod agentic_coordination;
+pub mod crypto_misuse;
 pub mod dogfood;
 pub mod mucosal;
 pub mod recurrent;

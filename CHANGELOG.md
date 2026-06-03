@@ -63,6 +63,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   shipped `PanickingInDrop` fingerprint cannot), and `UnsafeSendSync` anchors on
   `impl_of_trait("Send")` + `is_unsafe`.
 
+### Added — Crypto-Misuse stdlib family — `NonConstantTimeSecretComparison` (beta.2 voyage)
+
+- New stdlib family `crypto_misuse` (the RUSTSEC `crypto-failure` category seen
+  developer-side: misuse of a *present* defense). First member
+  `NonConstantTimeSecretComparison` — a secret/MAC/token verified through a
+  non-constant-time comparison (a timing-attack oracle). Fingerprint
+  `all_of([body_calls("verify"), not(body_calls("ct_eq"))])`: a crypto `verify`
+  path **without** a constant-time comparison present — the *absence* of the
+  safe step is the tell (the call-flavored absence-grammar driver built on the
+  new `body_calls` leaf). Ships at the **heuristic** tier (ADR-039 provenance
+  ladder): the entrypoint ident-list (`"verify"` / `"ct_eq"`) is a deliberate
+  **placeholder**, correlational not causal — honestly labeled, passive-by-
+  default. Category `FunctionalCorrectness` (the comparison verb produces a wrong
+  observable effect, a measurable timing differential). Ships WITH its
+  admitting-specimen (the affinity-pair `examples/crypto_misuse.rs` — a vulnerable
+  site the fingerprint binds + a clean `ct_eq` sibling it spares), the ADR-039 §C
+  worth-multiplier + masterclass exhibit + dogfood self-catch.
+  - **Fast-follow (flagged):** firm the crypto-compare entrypoint ident-lists via
+    a RUSTSEC `crypto-failure` enumeration (and the deferred
+    `security_sensitive_name` name-content leaf, charter). The member is honest at
+    the heuristic tier with the placeholders in place.
+
 ### Changed — `body_contains_macro` / `body_calls` now reject unmatchable names (fail-direction fix)
 
 - **Behavior change (tiny compat surface; surfaced here per our own
