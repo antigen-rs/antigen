@@ -20,6 +20,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ADR-010 Amd6). Closes the silent `.unwrap()`/`.expect()` gap a macro-only
   match misses (e.g. the `PanickingInDrop` fingerprint).
 
+### Added — `is_async` / `is_unsafe` / `is_const` qualifier leaves (ADR-040 grammar increment 2, G1)
+
+- New value-less fingerprint operators `is_async`, `is_unsafe`, `is_const` —
+  item-qualifier presence checks. `is_async` / `is_const` read a function's
+  `async` / `const` qualifier (`fn` locus); `is_unsafe` reads `unsafe` on both
+  loci that carry it (`unsafe fn` and `unsafe impl`). Partial-domain like the
+  body leaves: `Undefined` on item-classes with no locus for the qualifier (e.g.
+  `is_async` on a `struct`), so `not(is_async)` stays sound inside `all_of`
+  (ADR-010 Amd6) — never a vacuous match. These unblock the call/qualifier
+  family members (e.g. `all_of([is_async, body_calls(...)])` for
+  `BlockingCallInAsyncFn`, `all_of([item = fn, not(is_unsafe)])` for
+  `RawPtrDerefInSafeFn`).
+
 ### Changed — `body_contains_macro` / `body_calls` now reject unmatchable names (fail-direction fix)
 
 - **Behavior change (tiny compat surface; surfaced here per our own

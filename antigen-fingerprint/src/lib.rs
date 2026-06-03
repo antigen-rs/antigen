@@ -57,6 +57,11 @@
 //!   — last path segment match) OR a method call (`.unwrap()`, `.expect()` —
 //!   method-ident match). The call-shaped twin of `body_contains_macro` (ADR-040);
 //!   closes the silent `.unwrap()`/`.expect()` gap a macro-only match misses.
+//! - `is_async` / `is_unsafe` / `is_const` — value-less item-qualifier checks
+//!   (ADR-040 G1): the item is an `async fn` / carries `unsafe` (`unsafe fn` or
+//!   `unsafe impl`) / is a `const fn`. Partial-domain (like the body leaves):
+//!   `Undefined` on item-classes with no locus for the qualifier (e.g. `is_async`
+//!   on a `struct`), so `not(is_async)` stays sound inside `all_of`.
 //! - `all_of([...])` — every child matches
 //! - `any_of([...])` — at least one child matches
 //! - `not(<constraint>)` — child does NOT match. Per ADR-010 Amendment 3
@@ -166,6 +171,16 @@ pub enum Constraint {
     /// `all_of`.
     BodyCalls(String),
 
+    /// `is_async` / `is_unsafe` / `is_const` — an item-qualifier presence check
+    /// (ADR-040 grammar increment, G1). A value-less leaf: it reads whether the
+    /// item carries the named qualifier. Like the body leaves it is a
+    /// **partial-domain** predicate — well-posed (`Match`/`NoMatch`) on the
+    /// item-classes that *can* carry the qualifier (a `fn` is or isn't async;
+    /// a `fn`/`impl` is or isn't unsafe), and `Undefined` on item-classes with no
+    /// locus for it (a `struct` has no asyncness), so `not(is_async)` stays sound
+    /// inside `all_of` (ADR-010 Amd6). See [`QualifierKind`].
+    Qualifier(QualifierKind),
+
     /// `all_of([...])` — every child constraint must match.
     AllOf(Vec<Self>),
 
@@ -239,6 +254,51 @@ impl ItemKind {
             Self::Const => "const",
             Self::Static => "static",
             Self::Union => "union",
+        }
+    }
+}
+
+/// Item-qualifier kind for the value-less `is_async` / `is_unsafe` / `is_const`
+/// leaves (ADR-040 grammar increment, G1).
+///
+/// Each names a syntactic qualifier an item may carry. The matcher reads the
+/// corresponding `syn` field (`Signature.asyncness` / `unsafety` / `constness`
+/// for `fn`s; `ItemImpl.unsafety` for `unsafe impl`). The *locus* — which
+/// item-classes the question is well-posed on — is encoded in the matcher's
+/// `qualifier_match`: a qualifier on an item-class with no place for it is
+/// `Undefined`, never a vacuous `NoMatch` (ADR-010 Amd6).
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+pub enum QualifierKind {
+    /// `is_async` — the item is an `async fn`. Locus: `fn` only.
+    Async,
+    /// `is_unsafe` — the item carries `unsafe` (an `unsafe fn` or an
+    /// `unsafe impl`). Locus: `fn` and `impl`.
+    Unsafe,
+    /// `is_const` — the item is a `const fn`. Locus: `fn` only. (Distinct from
+    /// the `item = const` *item-kind* check, which matches a `const NAME: T`
+    /// item; this checks the `const` *qualifier* on a function.)
+    Const,
+}
+
+impl QualifierKind {
+    /// Parse from the bare keyword form (`is_async`, `is_unsafe`, `is_const`).
+    fn from_ident(name: &str) -> Option<Self> {
+        Some(match name {
+            "is_async" => Self::Async,
+            "is_unsafe" => Self::Unsafe,
+            "is_const" => Self::Const,
+            _ => return None,
+        })
+    }
+
+    /// Render back to the keyword form (for error messages).
+    #[must_use]
+    pub const fn keyword(self) -> &'static str {
+        match self {
+            Self::Async => "is_async",
+            Self::Unsafe => "is_unsafe",
+            Self::Const => "is_const",
         }
     }
 }
