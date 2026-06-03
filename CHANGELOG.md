@@ -33,6 +33,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `BlockingCallInAsyncFn`, `all_of([item = fn, not(is_unsafe)])` for
   `RawPtrDerefInSafeFn`).
 
+### Added — `impl_of_trait("<name>")` trait-impl identity leaf (ADR-040 grammar increment 2, G3)
+
+- New fingerprint operator `impl_of_trait("<name>")` — matches an
+  `impl <Trait> for <Type>` whose trait path's last segment equals `name`
+  (syntactic last-segment, so `impl std::ops::Drop for V` matches
+  `impl_of_trait("Drop")`). An inherent `impl V {}` is a definite `NoMatch`;
+  a non-`impl` item is `Undefined` (partial domain — `not(impl_of_trait(X))`
+  stays sound). Reads ONE impl item's own trait path; the cross-item "does
+  `Type` impl X *anywhere*" question is a separate (G4 / charter) concern. This
+  lets a fingerprint assert an impl is *actually* the trait it claims — e.g.
+  `all_of([item = impl, impl_of_trait("Drop")])` distinguishes a real `Drop`
+  impl from an inherent impl with a method merely *named* `drop` (which the
+  shipped `PanickingInDrop` fingerprint cannot), and `UnsafeSendSync` anchors on
+  `impl_of_trait("Send")` + `is_unsafe`.
+
 ### Changed — `body_contains_macro` / `body_calls` now reject unmatchable names (fail-direction fix)
 
 - **Behavior change (tiny compat surface; surfaced here per our own
