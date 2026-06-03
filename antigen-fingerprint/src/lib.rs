@@ -67,6 +67,10 @@
 //!   `impl Type {}` is `NoMatch`; a non-`impl` item is `Undefined` (partial
 //!   domain). Reads one impl's own trait path — cross-item "does Type impl X
 //!   anywhere" is a different question this leaf does not answer.
+//! - `derives("<name>")` — `name` is in a `#[derive(...)]` list on the item
+//!   (ADR-040 G1b; syntactic last-ident, no path resolution). Full-domain.
+//! - `serde_arg("<name>")` — `name` is an argument in a `#[serde(...)]` attribute
+//!   (ADR-040 G1b), e.g. `deny_unknown_fields`. Full-domain.
 //! - `all_of([...])` — every child matches
 //! - `any_of([...])` — at least one child matches
 //! - `not(<constraint>)` — child does NOT match. Per ADR-010 Amendment 3
@@ -195,6 +199,24 @@ pub enum Constraint {
     /// stays sound inside `all_of`. Cross-item "does `Type` impl X *anywhere*" is
     /// a different (G4 / charter) question this leaf does NOT answer.
     ImplOfTrait(String),
+
+    /// `derives("<name>")` — `name` appears in a `#[derive(...)]` list on the item
+    /// (ADR-040 grammar increment, G1b). Syntactic **last-segment** membership: it
+    /// reads the literal ident in the derive list (`Hash`, `Eq`, `Deserialize`),
+    /// with NO path resolution — a user type also named `Hash` is indistinguishable
+    /// at this tier (the honest false-positive the dial carries). Full-domain like
+    /// [`Self::AttrPresent`]: a definite `Match`/`NoMatch` on every item (absent
+    /// derive = `NoMatch`), so the anchored `not(derives(X))` form is the absence
+    /// check (e.g. `derives("Hash")` + `not(derives("Eq"))`).
+    Derives(String),
+
+    /// `serde_arg("<name>")` — `name` appears as an argument in a `#[serde(...)]`
+    /// attribute on the item (ADR-040 grammar increment, G1b). Reads the argument
+    /// ident (`deny_unknown_fields`, `transparent`, `rename_all`), matching whether
+    /// it is present regardless of any `= value`. Full-domain like
+    /// [`Self::AttrPresent`]; the anchored `not(serde_arg("deny_unknown_fields"))`
+    /// is the absence check the `DeserializeWithoutDenyUnknownFields` class needs.
+    SerdeArg(String),
 
     /// `all_of([...])` — every child constraint must match.
     AllOf(Vec<Self>),

@@ -160,6 +160,10 @@ fn match_constraint(c: &Constraint, item: &syn::Item) -> Match3 {
         // impl_of_trait (ADR-040 G3): on an impl, the trait-path last segment is
         // the answer (inherent impl → NoMatch); on a non-impl → Undefined.
         Constraint::ImplOfTrait(name) => impl_of_trait(item, name),
+        // derives/serde_arg (ADR-040 G1b): full-domain attr introspection, like
+        // attr_present — a definite Match/NoMatch on every item (absent = NoMatch).
+        Constraint::Derives(name) => Match3::from_bool(item_derives(item, name)),
+        Constraint::SerdeArg(name) => Match3::from_bool(item_has_serde_arg(item, name)),
         Constraint::AllOf(children) => match_all_of(children, item),
         Constraint::AnyOf(children) => match_any_of(children, item),
         Constraint::Not(child) => match_constraint(child, item).not(),
@@ -553,6 +557,71 @@ fn impl_of_trait(item: &syn::Item, name: &str) -> Match3 {
         // No trait-impl locus on this item-class. UNDEFINED, not vacuous-false.
         _ => Match3::Undefined,
     }
+}
+
+/// `derives("<name>")` (ADR-040 G1b): does any `#[derive(...)]` on the item list
+/// a path whose LAST segment equals `name`? Syntactic (no path resolution), per
+/// the derive/path-collision honesty note — a user type also named `Hash` is
+/// indistinguishable here, and the dial carries that as the honest false-positive.
+fn item_derives(item: &syn::Item, name: &str) -> bool {
+    item_attrs(item).iter().any(|attr| {
+        if !attr_path_matches(attr, "derive") {
+            return false;
+        }
+        let mut found = false;
+        // `#[derive(A, B::C)]` — walk the comma-separated derive paths and match
+        // any one's last segment. `parse_nested_meta` errors on a malformed
+        // derive list; treat that as "no match" (the attr is broken, not ours).
+        let _ = attr.parse_nested_meta(|meta| {
+            if meta
+                .path
+                .segments
+                .last()
+                .is_some_and(|seg| seg.ident == name)
+            {
+                found = true;
+            }
+            Ok(())
+        });
+        found
+    })
+}
+
+/// `serde_arg("<name>")` (ADR-040 G1b): does any `#[serde(...)]` on the item carry
+/// an argument whose path's LAST segment equals `name`? Matches presence
+/// regardless of any `= value` (so `serde_arg("rename_all")` fires on
+/// `#[serde(rename_all = "camelCase")]`, and `serde_arg("deny_unknown_fields")`
+/// on the bare-flag `#[serde(deny_unknown_fields)]`).
+fn item_has_serde_arg(item: &syn::Item, name: &str) -> bool {
+    item_attrs(item).iter().any(|attr| {
+        if !attr_path_matches(attr, "serde") {
+            return false;
+        }
+        let mut found = false;
+        // `parse_nested_meta` visits each comma-separated arg; the `meta.value()`
+        // (the `= "..."` part, if any) is left unconsumed, which is fine — we only
+        // care that the argument's path is present. A malformed `#[serde(...)]`
+        // errors out → no match (not our concern to validate serde's own syntax).
+        let _ = attr.parse_nested_meta(|meta| {
+            if meta
+                .path
+                .segments
+                .last()
+                .is_some_and(|seg| seg.ident == name)
+            {
+                found = true;
+            }
+            // Consume an optional `= value` so the walk continues past
+            // `rename_all = "camelCase"` to the next arg without erroring.
+            if meta.input.peek(syn::Token![=]) {
+                if let Ok(v) = meta.value() {
+                    let _ = v.parse::<syn::Lit>();
+                }
+            }
+            Ok(())
+        });
+        found
+    })
 }
 
 #[cfg(test)]
@@ -975,6 +1044,86 @@ mod tests {
         assert!(
             !negated.matches(&item("struct S;")),
             "not(impl_of_trait) on a struct must be Undefined, not vacuous match"
+        );
+    }
+
+    // ========================================================================
+    // ADR-040 Increment 2 — G1b: derive-list / serde-arg introspection +
+    // attribute-absence. Adversarial tests-first definition-of-done. Syntactic
+    // last-ident membership (no path resolution — the derive/path-collision is
+    // the honest false-positive the dial carries). attr_absent is the anchored
+    // negation of the shipped attr_present (no new operator).
+    // ========================================================================
+
+    /// G1b — derive-list membership. `derives("Hash")` is true iff Hash is in a
+    /// `#[derive(...)]` on the item. Asymmetric: a struct deriving Hash binds; one
+    /// deriving only Clone spares.
+    #[test]
+    fn derives_matches_member_spares_nonmember() {
+        let fp = fp(r#"derives("Hash")"#);
+        assert!(
+            fp.matches(&item("#[derive(Hash, Clone)] struct S { x: u32 }")),
+            "derives(Hash) must match a struct that derives Hash"
+        );
+        assert!(
+            !fp.matches(&item("#[derive(Clone, Debug)] struct S { x: u32 }")),
+            "derives(Hash) must NOT match a struct that does not derive Hash"
+        );
+    }
+
+    /// G1b — the DANGEROUS split: derives(Hash) but NOT derives(Eq), anchored.
+    /// The `derive(Hash)`-without-`Eq` family.
+    #[test]
+    fn derives_hash_without_eq_anchored() {
+        let fp = fp(r#"all_of([item = struct, derives("Hash"), not(derives("Eq"))])"#);
+        assert!(
+            fp.matches(&item("#[derive(Hash)] struct Bad { x: u32 }")),
+            "Hash-without-Eq must fire on a struct deriving only Hash"
+        );
+        assert!(
+            !fp.matches(&item(
+                "#[derive(Hash, Eq, PartialEq)] struct Good { x: u32 }"
+            )),
+            "Hash-without-Eq must spare a struct that also derives Eq"
+        );
+    }
+
+    /// G1b — attr-arg introspection: `deny_unknown_fields` ∈ `#[serde(...)]`.
+    /// `DeserializeWithoutDenyUnknownFields`. Asymmetric on the arg's presence.
+    #[test]
+    fn serde_arg_deny_unknown_fields_membership() {
+        let fp = fp(r#"all_of([derives("Deserialize"), not(serde_arg("deny_unknown_fields"))])"#);
+        assert!(
+            fp.matches(&item(
+                r#"#[derive(Deserialize)] #[serde(rename_all = "camelCase")] struct Cfg { a: u32 }"#
+            )),
+            "must fire on a Deserialize struct whose serde args lack deny_unknown_fields"
+        );
+        assert!(
+            !fp.matches(&item(
+                r"#[derive(Deserialize)] #[serde(deny_unknown_fields)] struct Cfg { a: u32 }"
+            )),
+            "must spare a Deserialize struct that DOES set deny_unknown_fields"
+        );
+    }
+
+    /// G1b — `attr_absent` is the anchored negation of `attr_present`; a bare
+    /// absence must be rejected (anti-graffiti) and the anchored form asymmetric.
+    #[test]
+    fn attr_absent_anchored_asymmetric() {
+        // A bare attribute-absence is rejected: `not(...)` is only legal anchored.
+        assert!(
+            Fingerprint::parse(r#"not(attr_present("non_exhaustive"))"#).is_err(),
+            "a bare attribute-absence (bare not) must be rejected (anti-graffiti)"
+        );
+        let fp = fp(r#"all_of([item = enum, not(attr_present("non_exhaustive"))])"#);
+        assert!(
+            fp.matches(&item("enum E { A, B }")),
+            "non_exhaustive-absent must fire on a plain enum"
+        );
+        assert!(
+            !fp.matches(&item("#[non_exhaustive] enum E { A, B }")),
+            "non_exhaustive-absent must spare an enum that IS non_exhaustive"
         );
     }
 
