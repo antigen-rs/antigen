@@ -1344,6 +1344,8 @@ fn atk_g2_22_cross_crate_defense_triggers_spurious_g2_hint() {
         summary: Some("A substrate-alignment failure class.".to_string()),
         category: vec![AntigenCategory::SubstrateAlignment],
         family: None,
+        provenance: None,
+        presentation: None,
     });
 
     // Crate B: a `#[defended_by(Foo)]` for a DIFFERENT Foo — same bare name,
@@ -1546,6 +1548,8 @@ fn atk_g2_24_cross_crate_immunity_triggers_spurious_g2_hint_for_wrong_antigen() 
         summary: Some("A functional-correctness failure class.".to_string()),
         category: vec![AntigenCategory::FunctionalCorrectness],
         family: None,
+        provenance: None,
+        presentation: None,
     });
 
     // Dep immunity: `#[immune(Reactor, requires=<predicate>)]` — a DIFFERENT Reactor
@@ -1624,6 +1628,8 @@ fn atk_g2_25_cross_crate_code_immunity_silences_silence_no_witness_advisory() {
         summary: None,
         category: vec![AntigenCategory::SubstrateAlignment],
         family: None,
+        provenance: None,
+        presentation: None,
     });
 
     // Dep immunity: code-tier (witness=fn), stamped canonical_path
@@ -1723,6 +1729,8 @@ fn atk_g2_26_immunity_none_wildcard_vs_defense_strict_equality_asymmetry() {
         summary: None,
         category: vec![AntigenCategory::SubstrateAlignment],
         family: None,
+        provenance: None,
+        presentation: None,
     });
     report_a.immunities.push(Immunity {
         antigen_type: "Widget".to_string(),
@@ -1756,6 +1764,8 @@ fn atk_g2_26_immunity_none_wildcard_vs_defense_strict_equality_asymmetry() {
         summary: None,
         category: vec![AntigenCategory::SubstrateAlignment],
         family: None,
+        provenance: None,
+        presentation: None,
     });
     report_b.defenses.push(Defense {
         antigen_type: "Widget".to_string(),

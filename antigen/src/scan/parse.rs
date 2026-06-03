@@ -121,6 +121,8 @@ impl ScanVisitor<'_> {
                         fingerprint: args.fingerprint,
                         canonical_path: None,
                         category,
+                        provenance: args.provenance,
+                        presentation: args.presentation,
                     });
                 }
                 Err(_) => {
@@ -136,6 +138,8 @@ impl ScanVisitor<'_> {
                         fingerprint: None,
                         canonical_path: None,
                         category: Vec::new(),
+                        provenance: None,
+                        presentation: None,
                     });
                 }
             }

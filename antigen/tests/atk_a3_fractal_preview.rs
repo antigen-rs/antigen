@@ -488,6 +488,8 @@ fn atk_a3_006_orphan_edge_canonical_path_false_resolution() {
         fingerprint: None,
         canonical_path: Some("foo@1.0.0".to_string()),
         category: Vec::new(),
+        provenance: None,
+        presentation: None,
     });
     // Lineage edge points to `foo@2.0.0::Foo` — different canonical_path
     // than the declared antigen. Must surface as orphan.

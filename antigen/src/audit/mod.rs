@@ -616,6 +616,8 @@ mod tests {
             fingerprint: None,
             canonical_path: None,
             category,
+            provenance: None,
+            presentation: None,
         }
     }
 
