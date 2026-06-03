@@ -97,6 +97,13 @@
 - [ADR-033 — Prescriptive Work-Orchestration: Four Structural Shapes, Eight Clinical Names, the ADR-029 Spine Pointed at Work-Needs](#adr-033-prescriptive-work-orchestration-four-structural-shapes-eight-clinical-names-the-adr-029-spine-pointed-at-work-needs)
 - [ADR-034 — The Report Is a Live Projection, Never a Stored Truth](#adr-034-the-report-is-a-live-projection-never-a-stored-truth)
 - [ADR-035 — Cardinality Collapse at a Trust Boundary: the Three-Valued Type Law (a Self-Applying Antigen)](#adr-035-cardinality-collapse-at-a-trust-boundary-the-three-valued-type-law-a-self-applying-antigen)
+- [ADR-036 — The Scan/Audit Orchestration Decomposition: a Thin Out-of-Band Coordinator Above the Detector Sequence (the SCRAM Host)](#adr-036-the-scanaudit-orchestration-decomposition-a-thin-out-of-band-coordinator-above-the-detector-sequence-the-scram-host)
+- [ADR-037 — Antigen Is a Closed-Loop Regulator: Its Own Machinery Has Six Failure-Points (the Control-Loop Master-Frame)](#adr-037-antigen-is-a-closed-loop-regulator-its-own-machinery-has-six-failure-points-the-control-loop-master-frame)
+- [ADR-038 — The Stdlib Taxonomy Grid: Three Divergence-Genera (One per Active Loop-Stage), Super-Family Parents, and Remedy-Shape as the Primary Sort](#adr-038-the-stdlib-taxonomy-grid-three-divergence-genera-one-per-active-loop-stage-super-family-parents-and-remedy-shape-as-the-primary-sort)
+- [ADR-039 — The Confidence Dial, the Build Gate, and the Emit Seam: Three Admission Decisions and One Typed-Event Stream](#adr-039-the-confidence-dial-the-build-gate-and-the-emit-seam-three-admission-decisions-and-one-typed-event-stream)
+- [ADR-040 — The Grammar Increment: Frame-Relative Matching, `body_calls`, and the Syntactic Absence Family (Leaf-Matcher Tier)](#adr-040-the-grammar-increment-frame-relative-matching-body_calls-and-the-syntactic-absence-family-leaf-matcher-tier)
+- [ADR-041 — The Marked-Unknown Plane: a Declarable Three-Valued Bottom on Two Orthogonal Axes (Magnitude × Existence-Certainty), Surfaced at the Dial's Non-Gating Floor](#adr-041-the-marked-unknown-plane-a-declarable-three-valued-bottom-on-two-orthogonal-axes-magnitude--existence-certainty-surfaced-at-the-dials-non-gating-floor)
+- [ADR-042 — The Usage-Discipline: Three Disciplines (Front-Line Liberal · Regulatory Sparing · Ranked Surfacing), and the `#[autoimmune]` Naming Reconciliation](#adr-042-the-usage-discipline-three-disciplines-front-line-liberal--regulatory-sparing--ranked-surfacing-and-the-autoimmune-naming-reconciliation)
 
 ---
 
@@ -9459,3 +9466,1523 @@ implicit-mode obscurity antigen exists to surface.
   OutOfFrame sub-cause are additive refinements, not ratification gates.
 - Does NOT introduce a new runtime primitive — every instantiation already exists; this ADR *recognizes*
   the law they share (ADR-006 recognition-not-design, applied at the type-law scale).
+
+---
+
+## [ADR-036] The Scan/Audit Orchestration Decomposition: a Thin Out-of-Band Coordinator Above the Detector Sequence (the SCRAM Host)
+
+**Status**: Locked design (Outfitters / beta.2 voyage, 2026-06-02) — buildability-confirmed against the
+real substrate by the pathmaker; **awaiting the notary** (Geological Society / Boat 4) for promotion to
+Witnessed. This is a *claim* ("the decomposition is buildable as specified, behavior-preserving, and the
+SCRAM seam is genuinely near-free"), not a self-witnessed verification. The build itself is the
+Bushwhackers' **opening move** (Boat 3), before any other file touches `scan.rs`/`audit.rs`.
+
+*("**SCRAM**" — borrowed from reactor engineering, the emergency shutdown that halts a runaway from outside
+the reactor it stops — is used throughout as shorthand for the future cascade-governor's kill-switch: a
+mechanism that can halt a runaway detection cascade from a layer the runaway cannot disable.)*
+
+**Participants**: pathmaker (the buildability pressure-test against the real 8031-line `scan.rs` +
+7853-line `audit.rs`; the two-orchestrator finding; the SCRAM-host design); value-finder (surfaced the
+FEEDBACK-stage safety-rail need); expansionist (the control-loop grounding — orchestration *is* the loop,
+SCRAM *is* the FEEDBACK out-of-band damper); dreamer (carried the captain's SCRAM lock onto the campsite);
+captain (ruled the out-of-band requirement, 2026-06-02 — locking the *requirement*, explicitly not the
+mechanism, with the honest caveat that the pathmaker confirms near-free or surfaces it as a finding).
+
+**Related**:
+- The LOOP-A regulator frame (forthcoming ADR — antigen-is-a-closed-loop-regulator). This decomposition
+  is that frame's **first concrete artifact**: the orchestration layer is the loop's spine; the SCRAM
+  kill-switch is the FEEDBACK stage's structural safety-rail, sitting where the runaway it governs cannot
+  disable it. The decomposition does NOT depend on that frame being ratified — it stands as
+  behavior-preserving infra on its own — but it is where the frame physically lands.
+- ADR-005 (sub-clause F at every trust boundary) — the SCRAM host is a new coordination boundary; its
+  validation check is specified in §Out-of-band invariant below.
+- The dogfood antigen `AuditVerdictComputedButNotDelivered`
+  (`audit-verdict-computed-but-not-delivered`, `stdlib/dogfood.rs`) — antigen's OWN immune memory of the
+  exact failure-class this refactor must not reintroduce: a severed `audit_*` whose verdict never reaches
+  the CLI render path. It is a build-gate witness for this ADR (see §The behavior-preservation contract).
+- ADR-002 (compose, don't compete) — the decomposition reorganizes antigen's own internals; it composes
+  no external tool, but it is the structural pre-condition for the modular sensor/family growth (each
+  detector becomes an independently-addable module).
+
+### Finding
+
+`scan.rs` (8031 lines, 354 KB) and `audit.rs` (7853 lines, 371 KB) are two monoliths that every
+parallel build front must touch. Three problems compound:
+
+1. **File-collision risk under parallel build.** Two pathmakers adding two families cannot both edit a
+   single 350 KB file without merge conflict. The voyage's parallel-by-scope model (non-touching scopes)
+   is unenforceable while the detectors all live in two files.
+2. **The orchestration is not a layer — it is smeared across `main.rs`.** Hands-on substrate check:
+   `cargo-antigen/src/main.rs` calls each detector *individually* — `audit::audit(&report, root)`,
+   `audit::audit_category(&report)`, `audit::audit_supply_chain(&report, root)`,
+   `audit::audit_convergent_evidence(&report)`, `audit::audit_recurrent(&report)`,
+   `audit::audit_mucosal(&report)`, `audit::audit_lineage_fidelity(&report)`,
+   `audit::audit_coverage(&report)`, `audit::audit_prescriptive(&report, root)`,
+   `audit::audit_deferred_defenses(&report, 30)` — *the CLI binary is the de-facto orchestrator.* There
+   is no single place that owns "run the detector sequence." A future cascade-governor would have nowhere
+   to live above the loop.
+3. **There are TWO cascades, of TWO different shapes** (the pathmaker's finding, sharpened by the
+   adversarial stress on substrate). The audit side (the `main.rs` detector fan-out) *is* a natural
+   detector-sequence — an orchestrator-runs-a-list shape; SCRAM fits cleanly above it. But the scan side
+   (`scan_workspace` at `scan.rs:3093`) is **not a detector loop** — it is a *pipeline of passes*: a
+   `WalkDir` file-walk driving an inline `ScanVisitor` per file, then a lineage-safety pass
+   (dedup + cycle/depth, already internally damped by `MAX_LINEAGE_DEPTH = 64` + a visited-set + iterative
+   DFS), then `finalize_report` (fingerprint synthesis + propagation). There is no "sequence of small
+   detectors" for an orchestrator to sit *above* on the scan side; the work is a walk + finalize passes.
+   So "above the detector loop" is the right shape for audit and the *wrong* shape for scan — and, more
+   decisively, the runaway the SCRAM is actually for (the future cascade-governor / alert-storm damper) is
+   an **aggregate over the whole result population** that runs *after* scan+audit produce it, not a step
+   inside either hot path. The correct home for SCRAM is therefore **above the whole scan → audit →
+   (future aggregate) pipeline** — the command-orchestration layer — not inside the lib's scan/audit
+   passes. The near-free property to bank *now* is consequently not "a loop with a kill-switch" but the
+   **purity invariant** (each detector/pass is a pure-ish function of its input; no detector
+   self-coordinates or controls the run), which is what makes an out-of-band governor *insertable later*.
+
+The captain locked the *requirement* — "the orchestration layer MUST be a genuine out-of-band coordinator
+capable of hosting a future kill-switch above the detector loop, never inside a detector it must be able
+to stop" — and charged the pathmaker to confirm it is genuinely near-free in the real decomposition, or
+surface it as a finding. **Verdict: the REQUIREMENT survives (sound control theory); the MECHANISM as
+phrased — "above the detector loop" — is the degenerate case, and the substrate sharpens it to a different,
+still-near-free shape.** The near-free thing to bank now is **detector purity**, not a literal
+loop-with-a-kill-switch: if every detector/pass is a pure function of its input (already nearly true
+today), a future cascade-governor can be inserted as a *separate pipeline stage* at the
+command-orchestration layer that consumes the emitted typed-event population and can short-circuit the run
+from *outside* any detector. Locking "a loop to sit above" would send a Bushwhacker to thread a kill-switch
+into `scan_workspace`'s file-walk (wrong layer; scan has no detector loop) or to over-hook the nine audit
+fns (wasted) — so this ADR locks the *purity invariant + the command-orchestration host*, which is what
+actually makes SCRAM insertable later, and confirms *that* is near-free (the detectors are already ~pure).
+
+**Honest cost calibration (adversarial's pre-commit refinement — surface it, don't bury it): near-free on
+the AUDIT side, MODEST-not-zero on the SCAN side.** The audit side is already a sequence of independent
+one-shot `audit_*` fns — wrapping it in a thin coordinator is near-free. The scan side is a *thin wrapper*
+around the `WalkDir` pass, NOT a detector-loop rewrite and NOT a mid-walk interrupt of the visitor — the
+honest cost there is the thin-wrapper + the one-line per-file `should_continue()` check, which is modest
+(real work, not a redesign), not zero. The *don't-foreclose* lock (the stage-sequencing invariant below)
+is the genuinely-near-free thing to bank now; the scan-side wrapping is cheap but not free, and the ADR
+says so rather than overclaiming.
+
+### Decision
+
+Decompose `scan.rs` and `audit.rs` into a **sequence of small, single-purpose detector modules** run by
+**two thin orchestration modules** (`scan::orchestrate`, `audit::orchestrate`) that are themselves
+coordinated by **one pipeline coordinator** capable of hosting a future SCRAM kill-switch above the union
+of both cascades.
+
+**The module shape (behavior-preserving extraction):**
+
+- `antigen/src/audit/` becomes a module directory. Each existing `pub fn audit_*` + its report struct(s)
+  moves to its own file: `audit/supply_chain.rs`, `audit/convergent.rs`, `audit/recurrent.rs`,
+  `audit/mucosal.rs`, `audit/category.rs`, `audit/lineage_fidelity.rs`, `audit/coverage.rs`,
+  `audit/prescriptive.rs`, `audit/deferred.rs`, `audit/immunity.rs` (the inline immunity-verdict loop +
+  `compute_presentation_verdicts`, lifted out of the current monolithic `audit()`). The shared verdict
+  vocabulary (`WitnessStatus`, `WitnessTier`, `AuditHint`, `ImmuneVerdict`, `WorkVerdict`, `FrameState`,
+  `PresentationVerdict`, `AuditReport`, …) moves to `audit/types.rs`. The detectors are siblings; none
+  calls another.
+- `antigen/src/scan/` becomes a module directory: `scan/walk.rs` (the `WalkDir` + `ScanVisitor` file
+  collection), `scan/synthesis.rs` (fingerprint synthesis), `scan/lineage.rs` (dedup + cycle/depth +
+  propagation), `scan/multi_crate.rs` (member enumeration + merge), `scan/types.rs` (`ScanReport`,
+  `AntigenDeclaration`, `Presentation`, … and every other `pub` type), and `scan/finalize.rs`
+  (`finalize_report`, the shared post-collection pass already extracted today).
+- `antigen/src/audit/orchestrate.rs` and `antigen/src/scan/orchestrate.rs` are **thin**: each owns the
+  *order* in which its detectors run and nothing else (no detection logic). `audit::orchestrate::run`
+  runs the audit detector sequence; `scan::orchestrate::run` runs the scan pass sequence.
+- A single **pipeline coordinator** sits above both `orchestrate::run`s and is the designated SCRAM host
+  — the layer above the whole scan → audit → (future) aggregate pipeline (see §The out-of-band invariant).
+  The current `main.rs` detector-by-detector fan-out is *replaced* by a call into this coordinator. Its
+  locus (library-side `antigen/src/pipeline.rs` vs binary-side in `cargo-antigen`) is the one open
+  mechanism choice — see §Open mechanism choice; either satisfies the out-of-band invariant.
+
+**Public-path preservation (non-negotiable).** Every current `pub` path stays a `pub` path. `pub use`
+re-exports at the `audit`/`scan` module roots preserve `antigen::audit::audit_supply_chain`,
+`antigen::scan::scan_workspace`, `antigen::scan::ScanReport`, etc., byte-for-byte. Moving an item into a
+submodule and re-exporting it is API-invisible. The decomposition changes *where code lives*, never *what
+the crate exposes*. (`scan_workspace`, `scan_workspace_multi_crate`, `audit`, all nine `audit_*`, all
+report/verdict types, `enumerate_dep_crate_roots`, `enumerate_workspace_member_roots`,
+`CLONAL_ITERATIONS_DEFAULT_FLOOR`, `IGG_HISTORICAL_SPAN_DEFAULT_FLOOR`, `evidence_kind_from_status` — the
+full surface enumerated from the real files — is preserved.)
+
+### The out-of-band invariant (the SCRAM seam, sub-clause-F-checked)
+
+The captain's requirement — *the governor must sit where the runaway it governs cannot disable it* — is
+sound and survives. Stripped of the kill-switch/SCRAM imagery, the irreducible property (aristotle's
+first-principles grounding) is the **single-conductor invariant**: *the authority to stop the run lives in
+exactly ONE place, and that place is not any detector/pass the run might run away in.* A runaway is a unit
+producing more work/signal than the loop can damp; if that unit also held stop-authority, the runaway would
+disable its own brake. Its real near-free form on this substrate is **detector purity + a named host above
+the whole pipeline**, not "a kill-switch threaded into a detector loop." The lock, in three parts:
+
+1. **The PURITY invariant is the thing banked now (and it is already ~true) — locked AS the proxy for the
+   single-conductor invariant.** Every detector/pass is a pure-ish function of its input report → output
+   report/verdict: it does not self-coordinate, does not control whether the run continues, does not poll
+   or own any interruption mechanism. Purity is *strictly stronger* than single-conductor (a detector
+   could log a line and still hold zero stop-authority) — but the extra strength is **free** here
+   (`scan.rs:2822` literally comments "scan_workspace function is a pure directory scanner"; each `audit_*`
+   takes a `&ScanReport` and returns its own report) and, crucially, purity is **checkable** where "holds
+   no stop-authority" is a fuzzy negative about control flow: a pure fn provably cannot influence control
+   flow except through its return value, so a population of pure detectors provably leaves all stop-authority
+   with whoever sequences them. **Lock purity, and state it AS the rationale** — "detectors are pure fns of
+   input SO THAT stop-authority stays with the orchestrator" — because locking purity without the *why*
+   invites a future reader to relax it ("a little logging is fine") and silently break the single-conductor
+   invariant. **Do not let any extracted detector acquire a back-reference to the run/coordinator.**
+   *(Purity also stands on its own hygiene merit, independent of any future governor: a pure detector is
+   independently testable, trivially parallelizable, free of cross-detector order-dependence, and is exactly
+   the property that makes this a safe behavior-preserving decomposition — the monolith's detector logic is
+   already nearly pure, and keeping it pure is what guarantees no extraction introduces a hidden shared-state
+   coupling. The future-governor enablement is a bonus on top of a refactor-correctness property worth
+   locking regardless.)*
+   - **FORCED stage-sequencing invariant (adversarial's pre-commit finding, has teeth): NO stage triggers
+     the next — the coordinator owns sequencing.** Purity of a *detector* is necessary but not sufficient;
+     the extra requirement is that **no stage (scan-pass, audit-detector) calls the next stage directly** —
+     every stage *returns to the coordinator*, which decides what runs next. This is the single-conductor
+     invariant applied to STAGE SEQUENCING, not just detector purity. It is OPEN today (scan → audit go
+     through `main.rs`, not via a direct scan→audit call), and the *risk* is the decomposition accidentally
+     welding two stages with a convenience direct-call. Why it has teeth: the FUTURE afferent runtime-sensor
+     (charter) IS a sensor-in-a-loop (drains prod → re-triggers maturation → re-fires detection), so
+     sensor-layer SCRAM stops being optional *for it* — and the door stays open for it **iff** every stage
+     returns to the coordinator. **Lock: "no stage triggers the next; the coordinator owns sequencing +
+     SCRAM + the future sensor-drain."**
+2. **The SCRAM host is the command-orchestration layer, above scan → audit → (future) aggregate — NOT
+   inside the lib's scan/audit passes.** The cascade-governor SCRAM is meant to damp an *aggregate over
+   the result population* (alert-storm / sepsis-anaphylaxis), which by nature runs *after* scan and audit
+   produce that population. So its home is the top-level pipeline coordinator (today smeared across
+   `cargo-antigen/src/main.rs`, ~5488 LOC; this ADR gives it a home — see §Decision) — above the union of
+   scan, audit, and the future aggregate stage. A future governor is inserted there as a *separate
+   pipeline stage* that (a) consumes the emitted typed-event population and (b) can short-circuit the run
+   from outside any detector. (The one place a runaway *could* live inside the hot path today —
+   `#[descended_from]` propagation — is already correctly damped *in-band* by `MAX_LINEAGE_DEPTH = 64` + a
+   visited-set + iterative DFS + cycle detection; an intrinsic depth cap is correct damping, distinct from
+   a kill-switch, and stays where it is.)
+3. **Sub-clause F (ADR-005) validation check for this boundary:** the out-of-band property holds iff
+   **no detector module imports or references the coordinator / interruption mechanism** — dependency
+   flows one way (coordinator → detectors; never the reverse). Enforce it as a build-time structural test
+   now (and a candidate `cargo antigen audit` self-check later): a detector that reaches up to the run has
+   made the governor a participant in the cascade it must be able to stop. This is the trust-boundary
+   check the SCRAM seam introduces; it is exactly the *purity invariant* (1) viewed as a module-boundary
+   direction.
+
+**This ADR locks the purity invariant + the host location + the validation check. It does NOT build the
+governor.** The cascade-governor / cytokine-storm damper is charter (a future expedition). What beta.2
+ships is the *shape that makes it buildable later for ~free*: pure detectors with no back-reference to the
+run, and a named command-orchestration layer that can host the future aggregate-governor stage above the
+whole pipeline. Retrofitting purity after the detectors have been allowed to self-coordinate inside a
+monolith would be ruinous; preserving it while we are already moving every detector into its own file is
+the marginal cost of *how the move is done* (keep them pure), which is ~zero.
+
+### The two seams converge on one locus (a structural bonus worth banking)
+
+SEAM 2's SCRAM host (this ADR) and SEAM 1's emit-merge point (ADR-039 — "one typed Finding schema, both
+stages emit, merged at the audit/command stage") **land at the same place: the population-complete
+coordination layer.** This is not a coincidence. A governor damps an *aggregate over the population*
+(sepsis/anaphylaxis = a whole-scan-result aggregate), and an aggregate can only be computed where the
+population is complete; symmetrically, the emit-merge needs the last stage that sees both the scan-time
+markers and the audit-time verdicts. Both require the population-complete vantage. So the locked
+architecture is one shape serving both seams: **pure detectors/passes → emit typed Findings into one
+population → a population-complete coordination layer that (a) merges the schema (SEAM 1) and (b) is the
+sole holder of stop-authority where a future SCRAM lives (SEAM 2).** It is near-free because the command
+layer (`cargo-antigen/main.rs`) already *is* that population-complete vantage — the decomposition gives it
+a name and the purity discipline that keeps it the single conductor.
+
+**Schema ownership (the cross-ADR boundary — prevents a two-schemas `ParallelStateTrackersDiverge`).**
+**This ADR (036) does NOT define the `Finding`/event schema** — it owns only the *orchestration*: the thin
+coordinator, the purity invariant, and the *merge-locus* (where the unified population is assembled = the
+population-complete coordination layer). The schema itself — the `Finding` record and its full field-list
+(`site`, `class-or-marker`, `tier`, `magnitude`, the mandatory `class_provenance`, `presentation`,
+`trigger`, `cluster-key`, `timestamp`, `origin-stage`) — is **owned by ADR-039 §C**, which this ADR cites.
+There is exactly ONE schema definition (ADR-039) and ONE merge-locus (this ADR); the decomposition builds the
+coordinator that *lands ADR-039's schema* into one population, never a second schema of its own.
+
+### The behavior-preservation contract
+
+This is a **behavior-preserving refactor**: no verdict, no output, no JSON shape, no exit code changes.
+The guards:
+
+- **The full test suite (~1187 tests incl. the ATK adversarial suite) is the primary witness.** Green
+  before, green after, with zero test edits that change an assertion (test *moves* to follow code are
+  fine; assertion changes are a red flag the refactor altered behavior).
+- **The gates stay green continuously**: `cargo fmt --all -- --check`, `cargo clippy --workspace
+  --all-targets -- -D warnings` (pedantic + nursery), `cargo test --workspace --all-targets`,
+  `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps`, and `cargo +1.95.0 check` (the MSRV gate
+  — note: MSRV is **1.95** at HEAD `8ebea9a`, not the 1.85 some older docs cite).
+- **The dogfood antigen `AuditVerdictComputedButNotDelivered` is a build-gate witness.** Its fix-shape —
+  "every `pub fn audit_*` is paired with a `print_*`/`render_*` call site exercised in the CLI
+  integration suite" — must hold after the decomposition. When the detector fan-out moves from `main.rs`
+  into the coordinator, every `audit_* → print_*` pairing moves with it; the integration suite that
+  exercises the render path is the check that none was severed. The refactor is, fittingly, governed by
+  antigen's own immune memory of this exact class.
+- **Commit in coherent chunks**, one detector-extraction per commit where practical, gates green at each.
+
+### Why this is recognition, not design (ADR-006)
+
+The decomposition does not invent a structure; it *names and separates* one that already exists implicitly.
+The nine `audit_*` detectors are *already* independent functions with their own report types — the module
+boundaries are recognition of a fan-out that the code already has. The orchestration *already* runs (in
+`main.rs`); the decomposition gives it a home and a name. The out-of-band property is *already* latent in
+"the coordinator runs the sequence"; the lock makes it explicit and checkable. This is implicit-to-explicit
+elevation (ADR-004) applied to antigen's own internals: the orchestration was implicit (smeared across the
+binary); the decomposition makes it explicit (a named layer with a validation check).
+
+### What this ADR does NOT do
+
+- Does NOT change any verdict, output, JSON shape, or public path — behavior-preserving, API-invisible.
+- Does NOT build the cascade-governor or any SCRAM logic — it locks the *host shape* so the governor is
+  buildable later for ~free; the governor itself is charter.
+- Does NOT pre-decide whether the pipeline coordinator lives in `antigen` (`pipeline.rs`) or in
+  `cargo-antigen` (the binary). The pathmaker's lean is `antigen`-side (so library consumers, not only
+  the CLI, get the orchestrated entry point and the future SCRAM) — but the minimal behavior-preserving
+  move keeps the coordinator CLI-side; this is a build-time choice for the Bushwhackers, recorded as the
+  one open mechanism question, not a blocker (see §Open mechanism choice).
+- Does NOT mandate a specific interruption primitive (an `AtomicBool` continue-flag, a `Result`-returning
+  `should_continue()` the coordinator checks, a callback) — only that it lives in the coordinator and no
+  detector depends on it. The Bushwhackers pick the primitive; the sub-clause-F check (no detector
+  imports it) is the invariant, not the type.
+
+### Open mechanism choice (for the Bushwhackers, non-blocking)
+
+Where does the pipeline coordinator live — `antigen/src/pipeline.rs` (library-side, so the orchestrated +
+SCRAM-capable entry point is available to all consumers) or `cargo-antigen` (binary-side, the minimal
+behavior-preserving move)? The pathmaker recommends **library-side**: it makes the regulator's loop a
+first-class part of the library (consistent with the LOOP-A frame), and a runtime-sensor or external
+platform consumer (charter) would want the orchestrated entry point, not a re-implementation of `main.rs`'s
+fan-out. But binary-side is a valid minimal move that satisfies the out-of-band invariant for the CLI. This
+is the single open mechanism question; it does not gate the lock. If the Bushwhackers find library-side is
+*not* near-free (e.g. a circular-dependency surprise), that is a finding to surface to the captain, not a
+requirement to drop.
+
+---
+
+## [ADR-037] Antigen Is a Closed-Loop Regulator: Its Own Machinery Has Six Failure-Points (the Control-Loop Master-Frame)
+
+**Status**: Locked design (Outfitters / beta.2 voyage, 2026-06-02) for the **regulator self-model** (use-1
+below) — **awaiting the notary** for promotion to Witnessed. The frame's *self-model* use is
+falsification-gate-CLEARED (adversarial), biology-coherence-RULED (naturalist, high confidence), and
+first-principles-grounded (aristotle). Its *second* use — whether the control-loop FUNCTION is also a
+citing axis of the stdlib family taxonomy (ADR-038) — was an open seam, now **RESOLVED via the
+fidelity-vs-genus crosscut test** (aristotle + adversarial, converged independently): the crosscut found a
+COMPARE-fidelity cell the original two-genera missed, resolved by adding a THIRD genus
+(comparator-divergence), so the genus axis becomes complete-by-construction (info/comparator/effect =
+SENSE/COMPARE/ACT, one per active stage) and ADR-038 does **not** cite a separate function axis — it carries
+the three genera as a single sub-axis under ADR-028's category. This ADR locks use-1; the resolution detail
+lives in §The two uses / §Open seam and ADR-038.
+
+**Participants**: expansionist (the Phase-6 convergence-check — six independent cross-domain mappings tiled
+one control loop, one-per-stage, cleanly under fix-sorting; the requisite-variety sizing law; the
+setpoint prediction — the one confirmed cross-validated prediction that is the frame's load-bearing
+anti-vacuity evidence);
+adversarial (the falsification gate — ran the family-sort by fix-shape, found the regulator-vs-disturbance
+boundary, located the two mislabeled-`families/*` re-file findings, cleared the frame for the regulator and
+correctly-excluded it from the catalog); naturalist (the biology-coherence ruling — the regulatory
+*machinery* is not the *catalog* of antigens; immunology's founding architecture-fact; the fail-direction
+invariant is biologically literal — thymic selection defaults to apoptosis); aristotle (the first-principles
+deconstruction + honest self-correction — one frame, two uses, not two loops); value-finder (legibility as
+a spine need across the loop's three damping scales); pathmaker (the lock + the fidelity-vs-genus crosscut
+framing of the open seam).
+
+**Related**:
+- ADR-007 (anti-YAGNI / structurally-guaranteed need). Requisite variety (Ashby 1956, V(C) ≥ V(D)) is the
+  *sizing law* of this loop and the formal grounding of ADR-007: a regulator with less variety than its
+  disturbances provably cannot regulate, so building variety **to match the real disturbance space** is a
+  theorem, not prudence (**requisite, not maximal** — variety beyond the *recurring* disturbance space is
+  the charter/YAGNI region; the theorem forces the **floor**, not the ceiling). This *strengthens*
+  "build it all": the frames ratify the variety the recurring disturbances need; chartered dreams are
+  variety for not-yet-recurring disturbances (built when they begin to recur), not speculative over-build.
+- ADR-036 (the orchestration decomposition). The decomposition IS this loop's spine made concrete:
+  orchestration = the loop's coordination; the SCRAM out-of-band governor = the FEEDBACK stage's
+  safety-rail. ADR-036 is this frame's first physical artifact.
+- ADR-028 (substrate-alignment vs functional-correctness). This frame describes the **substrate-alignment**
+  object — antigen-the-regulator's own anatomy; the stdlib families (functional-correctness, the
+  disturbances) are ADR-028 + ADR-038's object. The boundary between them is the regulator/catalog line.
+- ADR-029 / ADR-035 (observe-don't-declare; the three-valued type law). The **fail-direction invariant**
+  (every guard fails *safe*, toward not-Defended) is this frame's COMPARE-stage discipline; it collapses
+  antigen's own silent-wrong-verdict bugs into one rule and lives in ADR-029/035 territory.
+- The forthcoming `#[autoimmune]` primitive — the COMPARE-stage **reference**-failure (the setpoint itself
+  wrong: Goodhart / recognition mis-targets self), the gap this frame *predicted* and biology had already
+  partitioned into separate machinery.
+
+### Finding
+
+Six independent cross-domain mappings, each derived on its own (absence-as-signal, gate-collapse,
+gradient-routing, graduation-as-evidence-updating, cascade-becomes-the-problem, requisite-variety),
+**tiled a single control loop — one failure-point per stage (plus the loop's sizing law), with no member
+smearing across two stages when sorted by FIX-shape.** (The no-overlap property is *conditional on
+fix-not-symptom sorting*; the tiling is an *organizing* completeness — a checklist heuristic — not a proven
+totality. See the calibrated falsification result below.):
+
+| Control-loop stage | What it does | antigen's failure-point at that stage |
+|---|---|---|
+| **SENSE** | observe the substrate | **absence-as-signal** — can't sense what isn't there without a frame |
+| **COMPARE** | check observation vs reference | **gate-collapse** — the comparator stuck vacuously at "OK" (the ⊥/forgery bugs) |
+| **(reference / setpoint)** | what's expected | *predicted gap*: **setpoint-wrong** = `#[autoimmune]` (Goodhart; biology's separate machinery) |
+| **ROUTE / DECIDE** | send the correction to a responder | **gradient-routing** — route by live gradient, not a stale table |
+| **ACT** | grade the response | **graduation / the confidence dial** — how confident before flagging loud (a Bayesian posterior) |
+| **FEEDBACK** | damp so the loop stays stable | **cascade-becomes-the-problem** — positive feedback, no damping → SCRAM out-of-band |
+| **(sizing)** | enough variety to regulate at all | **requisite-variety** — V(C) ≥ V(D) or it can't regulate (Ashby) |
+
+When independent searches tile a known structure cleanly (no member smearing across stages, under
+fix-sorting), the tiling is a useful **organizing** result — but the load-bearing anti-vacuity evidence is
+not the tiling itself (a frame fitted to N findings can manufacture a clean tiling); it is the **one
+confirmed cross-validated prediction.** The frame is not a pure post-hoc arrangement: the setpoint stage was
+*predicted* (control theory says a loop has a reference; none of the six findings was "the reference is
+wrong"), and the prediction landed on a *pre-existing* biological partition — autoimmune (setpoint
+mis-targets self) is distinct machinery from the per-effector self-toxicity shadow, exactly as the frame
+requires. A prediction landing on a distinction biology had already made is the anti-vacuity evidence —
+**but it is N=1** (one gap-then-fill, cross-validated), which clears "not pure retrofit" without
+establishing "predictive" as a strong standing track record. So: an organizing frame that has earned **one**
+predictive credit, not a proven-complete taxonomy.
+
+The falsification gate (adversarial, a different authority than the expansionist who drew the loop —
+satisfying `IndependentRecheckAuthority`) attacked the frame and could not find a regulator-mechanism that
+fails to tile. **The frame survives as a description of antigen's own regulator.** What the gate *did* find
+is the boundary in the next section.
+
+**The gate's three-verdict discriminator (the recurrent-tangle has teeth here).** Because the loop is a
+recurrent *tangle*, not a clean pipeline (see §What this ADR does NOT do), a candidate family that "won't
+sort cleanly into ONE stage" is ambiguous between three cases, and the gate must distinguish them by
+**fix-shape** or it both false-rejects and false-accepts:
+- **(a) real break** — the family's fix matches *no* stage's fix-shape at all → the frame is incomplete →
+  *extend or kill* the taxonomy. (This is what the gate hunts.)
+- **(b) seam-family** — the fix is the *composition* of two stages' fixes (e.g. a ROUTE/ACT boundary
+  failure fixed by repairing *both* the routing decision *and* the effector) → a legitimate **edge** of
+  the tangle, *not* a break and *not* a new node. The tangle *predicts* these; finding one means you
+  discovered an edge, and the frame *survives*. Rejecting the frame because a seam exists is a
+  false-positive break.
+- **(c) clean node** — the fix is exactly one stage's fix-shape.
+Fix-shape is the discriminator throughout (the same rule the family-boundary work uses: distinct remedies
+force distinct units; a *composed* remedy is an edge, not a unit). Worked instance: `comparator-divergence`
+(ADR-038) was a case-(a)-resolved-to-(c) — it matched no stage of the *original* two genera (info/effect),
+forcing the taxonomy to extend, and extended to its *own* clean node (COMPARE), because "tighten the guard"
+is neither the info-fix (recover/retain the value) nor the effect-fix (reorder/recount/recompartment) nor
+their composition. It survived the seam-vs-node discriminator, not merely the sort-vs-not one — the stronger
+test. The notary check this licenses: confirm no family on the board is a *seam mislabeled as a node* (or as
+a break).
+
+### The decision: one frame, scoped to antigen-the-regulator
+
+**Antigen is a closed-loop regulator. Its own machinery is a SENSE → COMPARE(-to-reference) → ROUTE → ACT →
+FEEDBACK loop, sized by requisite variety: 5 STAGE-FAILURES + 1 SIZING-LAW.** (The setpoint/reference is the
+COMPARE stage's *reference*-failure — `#[autoimmune]` — not a separate stage; the table brackets it as
+"(reference/setpoint)" for that reason. So the honest count is five stage-failure-points — SENSE, COMPARE,
+ROUTE, ACT, FEEDBACK — plus the requisite-variety sizing law, *not* seven independent points.) This is
+antigen's **self-model**: the architecture from which the
+decomposition (ADR-036), the SCRAM governor, the confidence dial (ADR-039), the fail-direction invariant
+(COMPARE discipline), `#[autoimmune]` (the reference-failure), and requisite-variety-as-ADR-007-grounding
+all descend as one coherent subsystem — not six independent macros.
+
+**The frame is the taxonomy of the REGULATOR, not of the DISTURBANCES.** A failure-class antigen detects in
+user code (async-soundness, semver-contract, deserialization, drop-panic, …) is the **disturbance** the
+regulator regulates — the *input* to the loop, not a *stage* of it. Asking "which loop-stage senses this
+disturbance?" answers "SENSE" for every disturbance (vacuous: you never classify pathogens by which stage of
+your own immune system perceives them). So the control-loop frame does **not** become the stdlib taxonomy;
+the stdlib stays organized by remedy-shape under ADR-028 + the super-family parents (ADR-038).
+
+**This split is recognition, not design — the line was already drawn by requisite variety (ADR-007).** The
+control-theoretic name for it: the loop is the **controller C** (antigen's regulator, with its six
+failure-points); the stdlib families are the **disturbances D** that C's SENSE stage detects. V(C) ≥ V(D)
+(Ashby) presupposes C and D as *distinct sets* — and **a stage of C is categorically not a member of D.**
+That is the formal reason control-loop-stage cannot sort stdlib families: you would be asking which element
+of C a member of D *is*, a category error, which is exactly why every family answers "SENSE" vacuously. The
+C/D boundary is the same line ADR-007's grounding already required; this ADR names it, it does not invent it.
+Biology states the same partition: the immune system's *regulatory machinery* (the controller C) is not the
+*catalog of antigen-specificities* (the disturbance-repertoire D) — coupled (the catalog drives maturation
+via the afferent arm) but never merged. Control theory (C/D) is the principle; biology (machinery/catalog)
+is its instance; both draw one line.
+
+### The boundary-discriminator (locks the two ADRs apart — adversarial's located finding)
+
+A `families/*` campsite belongs to the **stdlib (ADR-038, a disturbance)** iff it catalogs a user-code
+failure-class antigen SENSES. It belongs to **this ADR (LOOP-A, the regulator)** iff it describes antigen's
+own sense/compare/route/act/feedback machinery. **The discriminator: is the fix a change to USER code
+(→ stdlib disturbance-family) or a change to ANTIGEN's own regulator (→ this frame's mechanism)?**
+
+Two seeded `families/*` campsites are mislabeled regulator-machinery and must be re-filed under this frame,
+keeping only their genuine disturbance-half in the stdlib:
+- `families/gradient-routing-chemokine-recruitment` — its ROUTE **primitive** ("antigen should have a
+  gradient-routing primitive") is a regulator-mechanism (this ADR); only its disturbance-half
+  (`RoutingTableStale` / stale CODEOWNERS) is a stdlib family.
+- `families/cascade-becomes-the-problem-sepsis-anaphylaxis` — its **governor** (the SCRAM organ) is the
+  FEEDBACK regulator-mechanism (this ADR + ADR-036); only its disturbance-half (a detectable
+  workspace-aggregate alert-storm class) is a stdlib family.
+- `families/setpoint-corruption-goodhart-autoimmune` is the canonical **BOTH** case and correctly already
+  lives at the seam: the disturbance = `FingerprintGamedNotDefended` (user/agent behavior); the
+  regulator-fix = `#[autoimmune]` as the COMPARE-reference recheck.
+
+### The two uses (the seam is now RESOLVED)
+
+The frame's two-ness — mis-stated earlier as "two loops" — is **one frame, two USES**:
+1. **Use-1 (LOCKED here): the regulator self-model.** Antigen's own loop and its seven failure-points. This
+   is what ADR-036 / the dial / the governor / fail-direction / `#[autoimmune]` descend from. Gate-cleared,
+   biology-ruled, grounded. **Locked.**
+2. **Use-2 (RESOLVED — see next section): the FUNCTION axis of the detected-family grid.** Whether a stdlib
+   family's failure-genus is usefully classified by *which loop-fidelity it violates*.
+
+### The crosscut test result (use-2 resolved — aristotle + adversarial converged)
+
+The deciding test (does the loop-function axis ever sort two families into a different cell than the genus
+axis?) was run *independently* by aristotle and adversarial, and they **converged**:
+- **Rows that are info- or effect-divergence are 1:1 with the function axis** — information-divergence ↔
+  SENSE/MEMORY-fidelity, effect-divergence ↔ ACT-fidelity. On these the function axis is genus-relabeled.
+- **Two families cross-cut: `crypto-non-constant-time` (== on a secret) and `gate-collapse-in-user-code`
+  (deser-flatten-defeats-deny-unknown-fields, a vacuously-true guard).** These are *neither* genus: no
+  value is lost/stale (not information-divergence) and the order/count/context of effects is right (not
+  effect-divergence) — the fault is that the user's *comparator/guard* computed the wrong verdict, and the
+  fix is "tighten the guard," not "recover info" (SENSE) or "change the effect" (ACT). They land in a
+  **COMPARE-fidelity** cell the two-genera plane had no home for.
+
+**Resolution: the two genera become THREE.** The clean realization (adversarial's option X, which aristotle's
+scoped-Position-B reduces to) is **not** a second orthogonal axis on every family — the cross-cut is at one
+cell only, so a whole second axis is over-machinery. Instead, **complete the genus axis** with its missing
+value: **information-divergence (SENSE/MEMORY) · comparator-divergence (COMPARE) · effect-divergence (ACT)**
+— one divergence-genus per *active* loop-stage. This keeps the genus the single sort key, makes it
+complete-by-construction against the loop's three active stages, and gives `crypto-non-constant-time` +
+`gate-collapse-in-user-code` a real home. The function axis *earned its citation* not by being a separate
+coordinate but by **finding the missing genus** (recognition, not relabel). A clean prediction falls out:
+ROUTE and FEEDBACK have *no* user-code disturbance-genus (they are antigen-response-only stages), so the
+user-code genus axis populates exactly the three stages where a program has fidelity to lose
+(sense → check → act) and is empty at the two response-only stages — an asymmetry that is evidence the axis
+tracks something real. **ADR-038 carries the three-genus taxonomy; this resolves use-2.** (One residual:
+adversarial flagged the cross-cut rests on N=2 same-cell families — `comparator-divergence` is named on two
+witnesses; it is the weakest-supported of the three genera and ADR-038 should hold it at the suspected
+confidence-tier until more witnesses land. The captain's concurrence + adversarial's witness-attack are the
+final seals; the structural resolution is converged.)
+
+### What this ADR does NOT do
+
+- Does NOT make the control loop the stdlib taxonomy — the stdlib is disturbances (ADR-028 + ADR-038), not
+  stages of antigen's regulator.
+- Does NOT build the cascade-governor, the gradient-router, or `#[autoimmune]` — it names them as this
+  loop's stages so they are designed as one subsystem; the builds are sequenced elsewhere (some charter).
+- Does NOT *re-open* use-2 (the function-axis-of-the-catalog): the crosscut test is RESOLVED here. ADR-038
+  cites the loop-function axis **defined as FIDELITY-VIOLATED** (info → SENSE/MEMORY-fidelity, comparator →
+  COMPARE, effect → ACT) — which *discriminates* (whereas "which stage *senses* it" is the vacuous framing).
+  Because the three genera ARE the three fidelities, citing-the-function-axis-as-fidelity and
+  having-the-genus-be-fidelity-defined are the **same single sort-axis** — not a parallel field. What ADR-038
+  still owns is *building* that taxonomy + sealing the N=2 `comparator-divergence` genus with more witnesses.
+- Does NOT claim the loop is a clean pipeline — it is a recurrent tangle (cross-talk between stages is where
+  the next failure-class layer lives; "closed but not terminal"). The table is block-diagram-true, not a
+  denial of the coupling.
+- Does NOT claim the stage-set is COMPLETE/closed — completeness is a **checklist heuristic, not a proven
+  totality.** A real control loop carries more structure than this frame names (observability,
+  controllability, delay/latency, stability margins); any of those *may add a stage* on a later finding. The
+  frame has earned **one** cross-validated prediction (setpoint → autoimmune, N=1) — enough to clear "pure
+  retrofit," not enough to assert a closed taxonomy. An open-edge / may-be-incomplete frame is the honest
+  status; a future stage discovery EXTENDS it (and is exactly what the gate's three-verdict discriminator —
+  real-break vs seam vs node — is built to classify when it arrives).
+
+---
+
+## [ADR-038] The Stdlib Taxonomy Grid: Three Divergence-Genera (One per Active Loop-Stage), Super-Family Parents, and Remedy-Shape as the Primary Sort
+
+**Status**: Locked design (Outfitters / beta.2 voyage, 2026-06-02) — **awaiting the notary** for promotion
+to Witnessed. The crosscut test that gated this ADR has cleared (aristotle + adversarial converged
+independently — see ADR-037 §The crosscut test result). The **`comparator-divergence` genus rests on N=2
+witnesses** and is held at the suspected confidence-tier (ADR-039) until more land; the captain's concurrence
++ adversarial's witness-attack are the final seals on that one genus. The rest is converged.
+
+**Participants**: researcher (the two-genera capstone — information-divergence vs effect-divergence,
+genus-per-stage; the three super-family unifier-parents; the demand-counts); naturalist (the three
+super-families as biology-coherent PARENTS with the must-not-merge guardrail; the space/time decomposition of
+substrate-alignment — Info-Loss = space, Staleness = time; the apoptosis super-family); value-finder (the
+worth-sort — frames-not-features; the space/time axis as the highest-leverage taxonomy decision); aristotle
++ adversarial (the crosscut resolution — the third genus, `comparator-divergence`, located at the COMPARE
+cell); scout (distinct-remedies → distinct-units, the family-vs-member boundary); pathmaker (the lock,
+grounded on the shipped `AntigenCategory` axis).
+
+**Related**:
+- ADR-028 (Antigen-Category Taxonomy: Substrate-Alignment vs Functional-Correctness). This grid's **primary
+  sort lives inside ADR-028's category line**: the shipped `AntigenCategory` (`category.rs:51` —
+  `SubstrateAlignment` / `FunctionalCorrectness`) is the top of the grid; the three genera and the
+  super-family parents refine it. This ADR does not replace ADR-028; it populates it.
+- ADR-037 (the control-loop frame). The grid's genus axis is **one genus per active loop-stage**
+  (information-divergence ↔ SENSE/MEMORY, comparator-divergence ↔ COMPARE, effect-divergence ↔ ACT); ADR-037's
+  function axis *found* the third genus (the crosscut). The genus axis is the single sort key (not a separate
+  function coordinate) — completed-by-construction against the loop's three active stages.
+- ADR-035 / ADR-029 (the fail-direction invariant lives in COMPARE; `comparator-divergence` is the user-code
+  dual of antigen's own gate-collapse).
+- ADR-006 (recognition-not-design); the super-family parents and the genera *name* structure that already
+  ships (VCS-Info-Loss = ADR-026 = the space face; mucosal stale-tolerance = ADR-027 Amd1 = literally "stale"
+  = the time face). The taxonomy is recognition of half-built structure, not a proposal.
+
+### Finding
+
+The stdlib families need a taxonomy that (a) does not collapse them into one bucket, (b) keeps members with
+*distinct remedies* distinct (so the audit prescribes the right fix), and (c) gives `cargo antigen gaps` a
+*finite completeness check* instead of a hand-walk. The Cartographer sweep produced the pieces — the
+researcher's genera, the naturalist's super-family parents, the space/time decomposition — and the crosscut
+resolution (ADR-037) supplied the missing third genus. This ADR assembles them into one grid.
+
+### Decision: the grid
+
+**Top axis — ADR-028 category (shipped, unchanged):** `SubstrateAlignment` (a representation diverges from
+the actual state) vs `FunctionalCorrectness` (a verb produces the wrong output). Every stdlib family already
+carries this; the grid refines beneath it.
+
+**Genus axis — THREE divergence-genera, one per ACTIVE loop-stage (the single sort key):**
+
+| Genus | What diverges | Loop-fidelity (ADR-037) | Sub-axes / examples | Fix-direction |
+|---|---|---|---|---|
+| **information-divergence** | value ≠ truth | SENSE/MEMORY | **SPACE** = Info-Loss (discarded across a transfer/teardown edge) · **TIME** = Staleness (persisted but truth expired) | recover / retain / refresh the information |
+| **comparator-divergence** | the guard/check itself is wrong | COMPARE | vacuous-or-defeated guard (deser-flatten-defeats-deny-unknown-fields) · leaky comparison (`==` on a secret) — *N=2, suspected-tier* | **tighten the guard** (the fail-direction invariant's user-code dual) |
+| **effect-divergence** | execution ≠ intended | ACT | **ORDER** (iterator-laziness) · **MULTIPLICITY** (resource-leak / deferred-obligation) · **CONTEXT** (compartment-violation — async) | reorder / re-count / re-compartment the effect |
+
+`comparator-divergence` is the genus the two-genera plane was missing; it is the home for
+`crypto-non-constant-time` and `gate-collapse-in-user-code`, which are *neither* information- nor
+effect-divergence (the value is correct and the effects are faithful; the *comparator* computed a wrong
+verdict). Naming it is recognition — the COMPARE cell already had families. **Category pin:**
+`comparator-divergence` is `category = hybrid` (the off-diagonal cell — a guard that leaks or passes
+vacuously is both a representation-vs-state divergence and a verb-correctness one); per ADR-028's
+min-witness rule its witness-type is the *stricter* of the two (substrate-witness). Recognition, not design
+— it lands on ADR-028's existing `hybrid` value, not a new field.
+
+**Why EXACTLY three genera (the anti-vacuity grounding, not just "one per stage"):** the three genera are
+the three places a **computation step touches data** — it *reads* its inputs (SENSE: information-fidelity),
+*tests/compares* them against a guard (COMPARE: comparator-fidelity), and *acts* on the result (ACT:
+effect-fidelity). read → test → act is the anatomy of a computation step, so "exactly three user-code
+genera" is forced by that anatomy, not fitted to the findings. **Clean prediction (a structural check, not
+a claim):** ROUTE and FEEDBACK have *no* user-code genus (they are antigen-response-only stages, not things
+a user's program *does* to its own data), so the user-code genus axis populates exactly the three
+computation-step stages and is empty at the two response-only stages — an asymmetry that predicts *which*
+cells populate, evidence the axis tracks something real rather than relabeling.
+
+**Super-family parents (the remedy-shape unifiers, the within-genus organizing layer):**
+- **Information-Loss** (immune amnesia; ADR-026 = the shipped space-face) — members: vcs / error / config /
+  coordination / doc info-loss.
+- **Staleness** (antigenic drift; ADR-027 Amd1 = the shipped time-face; TOCTOU = the zero-Δt limit).
+- **Drop-Lifecycle** (apoptosis + its two failure modes: necrosis = drop-panic / failure-to-apoptose =
+  resource-leak).
+Each parent is a named shape that **predicts new instances**; members under it are kept **distinct by
+distinct-remedies → distinct-units** (`#[descended_from]` the parent, never one merged fingerprint — merging
+would prescribe the wrong fix for N−1 branches). Biology supplies both the generator AND the must-not-merge
+guardrail (in each parent the members map to mechanisms with different, often opposite, remedies).
+
+**The remedy-shape is the PRIMARY sort; the genus + parent are the coordinates.** A family's home is its
+remedy-parent (under its ADR-028 category); its genus (which loop-fidelity it breaks) is the
+completeness-coordinate. So `cargo antigen gaps` becomes a **finite check**: *is every permitted
+(category × genus × super-family-parent) cell populated, with members kept distinct by remedy?* — concrete,
+not a hand-walk. (The PHASE and SCALE axes from the expansionist's lifecycle-converge grid complete the full
+multi-axis address for primitives where they apply; they are LOOP-A-scoped and refine, not re-sort.)
+
+### Mechanics: the stdlib/LOOP-A boundary-discriminator (the same clause as ADR-037 §Mechanics)
+
+This ADR catalogs **disturbances D** (the failure-classes antigen detects in USER code); ADR-037 catalogs
+the **controller C** (antigen's own regulator). The membership test, identical in both ADRs so a
+`families/*` item lands in exactly one home:
+**a `families/*` item is STDLIB (a disturbance, this ADR) iff its fix changes USER code; it is LOOP-A
+(a regulator-mechanism, ADR-037) iff its fix changes ANTIGEN's own regulator.** Fix-locus is the
+discriminator (per the master-frame gate's three-verdict rule, ADR-037). Consequences carried here:
+- the regulator-halves of `gradient-routing-chemokine-recruitment` (the ROUTE primitive) and
+  `cascade-becomes-the-problem-sepsis-anaphylaxis` (the SCRAM governor) are **NOT** stdlib families — they
+  re-file to ADR-037. Only their disturbance-halves stay: `RoutingTableStale` (stale CODEOWNERS) and the
+  detectable workspace-aggregate alert-storm class.
+- `setpoint-corruption-goodhart` is the canonical **BOTH**: the disturbance `FingerprintGamedNotDefended`
+  (user/agent behavior) lives here; the regulator-fix (`#[autoimmune]` as the COMPARE-reference recheck)
+  lives in ADR-037. A BOTH-family is split by fix-locus, one half per ADR — never duplicated.
+
+### Why the genus axis is the single sort key — the function axis cited AS fidelity-violated
+
+The A-vs-B fork (does ADR-038 cite the loop-function axis, or stay pure-remedy-shape?) dissolves on one
+distinction (the harbor-master's steer): the function axis must be defined as **FIDELITY-VIOLATED, not
+stage-that-senses.** "Which stage *perceives* the disturbance?" is vacuous — every disturbance answers
+"SENSE" (you never classify pathogens by which stage of your own immune system perceives them); that
+vacuity objection (adversarial + naturalist) targets the *stage-that-senses* framing and is correct about
+it. But "which loop-FIDELITY does the disturbance *violate*?" **discriminates** — information-fidelity
+(SENSE/MEMORY), comparator-fidelity (COMPARE), effect-fidelity (ACT) — and those fidelities are *named by
+loop-functions*. The genus is "what KIND of correctness fails" — a property/fix-shape discriminator, the
+exact family-boundary method used everywhere else — not a perception one. So the vacuity objection leaves
+the *fidelity* framing standing, and **ADR-038's genus axis IS the loop-function axis defined as
+fidelity-violated.**
+
+This is why the grid stays single-sort-axis without losing the coordinate: the three genera *are* the three
+fidelities, so citing the function-axis-as-fidelity and having-the-genus-be-fidelity-defined are the same
+structure — not two parallel fields (which would be the `genus-vs-function double-field` /
+`ParallelStateTrackersDiverge` risk). The crosscut test showed the original two genera missed the COMPARE
+fidelity-cell; completing the genus axis with `comparator-divergence` *is* citing the function axis (the
+function axis earned its keep by **finding** the missing genus — recognition, not a permanent second
+coordinate). The payoff is the one Position A would drop: `cargo antigen gaps` becomes a **finite
+checklist** ("is every permitted (category × fidelity-genus × super-family-parent) cell populated?"), which
+needs the fidelity coordinate to be finite. So ADR-038 cites the loop-function axis (ADR-037), *defined as
+fidelity-violated*, as its genus axis — one sort key, the function-as-fidelity coordinate folded in, not a
+parallel classification field bolted on.
+
+### What "done well" means (for the notary)
+
+- Every shipped stdlib family has a (category, genus, super-family-parent) address, and members under a
+  parent are kept distinct by remedy (a fixture proving two members of one parent get *different*
+  prescribed fixes).
+- `comparator-divergence` carries its N=2 witnesses (`crypto-non-constant-time`, `gate-collapse-in-user-code`)
+  and is surfaced at the suspected tier (ADR-039) — not asserted as a fully-witnessed genus.
+- `cargo antigen gaps` (when built) walks the finite (category × genus × parent) cell grid, not a hand list.
+
+### What this ADR does NOT do
+
+- Does NOT replace ADR-028 — it populates ADR-028's category line with genera + parents.
+- Does NOT make the control-loop the sort key — the genus axis is the sort key; the loop frame (ADR-037) is
+  cited for *why* there are three active-stage genera, not used as a parallel field.
+- Does NOT merge a super-family's members into one fingerprint — distinct-remedies → distinct-units is
+  load-bearing (merging prescribes the wrong fix for N−1 branches).
+- Does NOT assert `comparator-divergence` as fully witnessed — N=2, suspected-tier, pending more witnesses +
+  adversarial's witness-attack + captain concurrence.
+
+---
+
+## [ADR-039] The Confidence Dial, the Build Gate, and the Emit Seam: Three Admission Decisions and One Typed-Event Stream
+
+**Status**: Locked design (Outfitters / beta.2 voyage, 2026-06-02) — **awaiting the notary** for promotion
+to Witnessed. The three-decisions split and the emit-seam locus are locked first-principles + substrate.
+The **build-gate admission rule is RULED (Tekgy, permissive — supersedes the earlier crisp-gate): admission
+≈ ARTICULABILITY (name/see/imagine it → admitted; no fiction-exclusion gate), justified by the cost
+asymmetry (false-positive ≈ ~0, especially PASSIVE; false-negative = the silent failure). The crisp /
+constructable / encountered material moves to the dial as an honest PROVENANCE ladder (decision-(b)); a new
+PASSIVE [tooling] vs ACTIVE [user-macro] presentation axis keeps permissive admission free; honest
+provenance-labeling is the one invariant (adversarial's fiction-intolerance re-homes onto verifying
+provenance, not gating entry)** — see §The build gate (the superseded crisp-gate + the earlier fork +
+deliberation preserved append-only for the trail).
+
+**Participants**: value-finder (the flagship value-prop — the dial decides *who antigen is for*: the
+silent-failure population; the survivor-bias argument for dropping recorded-breakage to a dial; legibility
+as the third discipline); naturalist (the lysozyme grounding of the innate/suspected tier; the
+naive-repertoire-is-built-on-shape biology that dissolves the gate fork; the affinity-maturation reading of
+graduation); dreamer (carried the captain's emit-not-display lock onto the campsite); adversarial (the
+emit-seam locus correction — the dial verdict is an audit-time value, so "land it in ScanReport" splits the
+stream; the merge-at-audit fix); aristotle (substrate-confirmed the emit-split; the three-decisions
+first-principles read); outsider (self-corrected the ScanReport-locus half; flagged the dial-vocabulary ↔
+shipped `match_kind` mapping); pathmaker (the lock + substrate verification of the emit locus).
+
+**Related**:
+- ADR-037 (the control-loop frame). The confidence dial is the loop's **ACT-stage calibration** (how
+  confident before flagging loud); the build gate is the loop's *repertoire-generation* rule (what gets a
+  receptor at all). This ADR realizes two of ADR-037's stages.
+- ADR-034 (the report is a live projection, never a stored truth). The emit-seam locus is constrained by
+  ADR-034: emitting the dial verdict *into* `ScanReport` would force scan to re-derive an audit-time
+  computation = a second source of truth = the exact divergence ADR-034 forbids. Merge-at-audit is the
+  ADR-034-compatible locus.
+- ADR-028 / ADR-006 (substrate-alignment categories; recognition-not-design). The innate/suspected tier is
+  *recognition*: it is antigen's own **lysozyme** (constitutive, non-specific, no-memory structural-hygiene)
+  — the tier already had this shape; biology names it.
+- ADR-019 Amendment 1 (the dial-as-Bayesian-posterior gives the *graduation rule* — the titer/scalar value
+  layer's `measure : Substrate ⇀ Scalar` lifts the same way; the dial is a posterior over "is this a real
+  failure-class," graduating suspected → named on evidence).
+- The downstream learning-loop organs (charter): the affinity-maturation engine, antigen-as-platform, and
+  the cytokine-signaling-network all subscribe to *this ADR's typed-event stream*. The emit seam exists for
+  them.
+
+### Finding
+
+Three distinct admission/calibration decisions were being conflated under one phrase, "the 2-of-3 build
+gate," and the captain's "emit, don't display" lock had a locus error that the substrate exposed. Both are
+resolved here.
+
+**(A) The three decisions are distinct and must be named separately.** "2-of-3 gate" hides three different
+judgments with different inputs and different consequences:
+1. **The build gate** — does a candidate failure-class get a stdlib antigen *at all*? (admission)
+2. **The dial tier** — at what *confidence* is an admitted antigen surfaced: innate/suspected (soft, "looks
+   like X") vs named/confident (loud)? (calibration)
+3. **The dread-declaration** — the `#[dread]`/`#[aura]` marker semantics (asserted-not-hypothetical,
+   declared-not-detected, earned + lifecycle). (a distinct authored signal — see ADR-040 / the
+   marked-unknown plane)
+
+Collapsing these loses the load-bearing structure: the gate decides *existence*, the dial decides
+*loudness*, the dread-marker is an *authored* (not inferred) high-magnitude signal. Each has its own rule.
+
+**(B) The emit-seam locus is the AUDIT stage, not `ScanReport`.** The captain's lock ("the dial verdict +
+`#[dread]`/`#[aura]` markers must be queryable as structured typed events, not merely rendered") is correct
+and survives. But "the `ScanReport` is already structured, so land the verdict in it" is the degenerate
+case — verified on substrate: `Presentation` (`scan.rs:1584`) carries only a binary `match_kind`
+(`ExplicitMarker | FingerprintMatch`) and no tier/magnitude/verdict field; the dial's tier-verdict is an
+**audit-time** computation (`WitnessTier` at `audit.rs:148`, `ImmuneVerdict` at `audit.rs:992`), produced by
+cross-referencing `#[defended_by]` against `#[presents]` — which `scan_workspace` does not do. So the typed
+payload is *inherently split*: the `#[dread]`/`#[aura]` half is scan-time (declarations), the dial-verdict
+half is audit-time. "Land it in `ScanReport`" can only carry the scan-time half, or forces scan to duplicate
+audit's cross-reference (the ADR-034 violation). The three downstream organs were promised *one* schema; a
+physically-split stream defeats the seam's whole purpose (one subscribable signal).
+
+### Decision
+
+**(A) Lock three named admission decisions, not one gate.**
+
+- **Admission ≈ ARTICULABILITY-AS-A-STRUCTURAL-TELL — no filtering gate, but antigen-hood is definitional
+  (RULED, Tekgy permissive + the captain's cut; supersedes the crisp-gate above).** A candidate failure-class
+  is admitted to the stdlib if it can be *articulated as a scannable structural pattern* — named,
+  seen-as-a-mechanism, or even *imagined* — **provided it has a structural TELL (a scannable fingerprint).**
+  The tell-requirement is **definitional, not a Goodhart gate**: an antigen *is* a fingerprint the scanner
+  matches; no fingerprint = nothing to scan = it simply *isn't an antigen* (this is adversarial's structural
+  mechanism = the tell IS the causal path; a narrative-only "concern" has no tell). So there is **no
+  fiction-exclusion gate at admission** *and* **no separate Goodhart gate is needed** — narrative-only fictions
+  cannot flood the *scannable* stdlib because they have no fingerprint to scan with; they route to `#[dread]`
+  instead (the site-local marker, the macro-on-the-shelf — see below). The justification for permissive
+  admission of everything-with-a-tell is a **cost asymmetry**: a false-positive antigen costs ≈ near-zero
+  (especially when it is PASSIVE / tooling-side — see below — and imposes no user-macro burden), while a
+  false-negative is exactly the silent failure antigen exists to prevent. When over-coverage is ~free and
+  under-coverage is catastrophic, the regulator over-admits (the requisite-variety logic: cover the
+  disturbance space; the variety is cheap on the passive side). So decision-(a) is **not a filter** — it is an
+  *articulability(-with-a-tell) threshold + a TIERING*. The crisp / constructable / recurred material is **not
+  discarded** — it moves to the dial as the provenance ladder (decision-(b)), where it states *which kind* of
+  antigen this is rather than *whether* it is admitted.
+  - **THREE destinations, by what kind of tell exists (the captain's resolved cut — replaces any earlier
+    binary framing):**
+    1. **VERIFIED-CORE stdlib** — a structural tell **+ a constructable, verifiably-failing demonstration**
+       (the demo is WILD-found OR CONSTRUCTED-and-verified — a *constructed* demo suffices; rarity-tolerant,
+       no survivor-bias). This is the crew's Form-3 in its authoritative form (naturalist-captured): the
+       verified core of the scannable stdlib, provenance = encountered / constructable.
+    2. **PASSIVE-HEURISTIC stdlib** — a **heuristic / correlational tell** (scannable, but NOT
+       verifiably-constructable-to-failure — clippy-lint-style, "this shape *correlates* with the failure").
+       Admits at a **PASSIVE, honestly-labeled *imagined*-tier** below the verified core (Tekgy's permissive
+       ruling). It is a general *scannable class* (so it is stdlib, not dread), surfaced soft / dial-gated,
+       and *honestly labeled* as heuristic — it cannot *claim* the verified-core tier it hasn't earned.
+    3. **`#[dread]`** — a **narrative-only / site-local hunch** with NO scannable class at all (no
+       fingerprint). It is a site-local declaration, not a stdlib class (next bullet).
+    The honest-tier IS the Goodhart protection: a manufactured heuristic can ONLY claim the heuristic tier
+    (a passive, soft, labeled-heuristic class), never the verified core (which needs a real constructable
+    failing demo a fiction cannot produce) — so flooding buys the floor, not the loud center. Recurrence-COUNT
+    promotes within the dial; it is not an admission bar.
+  - **A tell-less / narrative-only concern is NOT excluded — it takes the `#[dread]` form** (ADR-041, the
+    site-local marker). This is where adversarial's "narrative → dread" and Tekgy's "the user has macros
+    available for what we imagined" *meet*: a thing you can *feel/narrate at a site* but cannot *articulate
+    as a scannable class* has no fingerprint, so it cannot be a stdlib antigen — it is a dread declaration
+    instead. (dread = feeling-at-a-site, no class; imagined-antigen = a class WITH a tell, no instance yet —
+    the two compose, they do not collide.)
+  - **Goodhart, closed STRUCTURALLY (record the objection as resolved-by-this, per adversarial — the reason
+    must be durable, not rot).** The objection: "mechanism is infinitely manufacturable by an LLM agent
+    (antigen's target user); a narrative-admission gate hands the stdlib's key to the exact optimizer antigen
+    names as its deepest self-risk (`FingerprintGamedNotDefended` / Goodhart)." The resolution: admission is
+    not by narrative — it is by **structural tell**, and a narrative has no tell, so it *cannot enter the
+    scannable stdlib* (it routes to dread). Fiction-intolerance therefore does not live at the entry gate
+    (there is none); it lives as the **provenance tier-VERIFIER** (don't *claim* a tier — encountered /
+    constructable — you have not earned). The Goodhart hole is closed by the *definition of an antigen* (must
+    have a tell) + *honest tier-labeling*, not by a bouncer that the optimizer would learn to talk past.
+  - **PASSIVE-by-default for low-provenance + macros-available (the new spec distinction).** An *imagined*
+    antigen defaults to **PASSIVE** presentation — it lives scan/tooling-side (a fingerprint the scanner
+    carries), imposing **no user-macro burden** on anyone's code. The user-facing macros (`#[presents]`
+    etc.) remain **available** for whoever *encounters* the imagined thing and chooses to mark their site:
+    **PASSIVE [tooling-side, default for imagined/low-provenance] vs ACTIVE [user-macro, chosen by an
+    encounterer]** is a first-class presentation axis. This is what makes permissive admission free: the
+    vast field of imagined-but-never-triggered antigens sits passive (costing nothing) until someone
+    actually meets one.
+  - **Honest labeling is the ONE invariant** (it serves permissiveness; it does not limit it). Every
+    admitted antigen carries a **mandatory provenance/tier label**, and an *imagined* one MUST be labeled
+    imagined — never dressed up as encountered or constructable. Adversarial's fiction-intolerance
+    **re-homes**: it is no longer an entry-bouncer (there is none); it is the **provenance VERIFIER** — it
+    catches *false provenance* (a "this was encountered" claim that wasn't, a "constructable" tier with no
+    constructable demo). This is observe-don't-declare (ADR-029) applied to admission itself: admit freely,
+    but never claim a provenance you cannot observe. The Goodhart hole the crisp-gate worried about closes
+    here, not at entry — a manufactured fiction is *admitted* (harmlessly, passive, low-provenance) but
+    *cannot be labeled* "encountered/constructable" without a real demonstration, so it stays visibly
+    low-provenance and passive, where it costs nothing and misleads no one.
+- **The dial tier (calibration) — now an honest PROVENANCE ladder, not just loudness.** Since admission is
+  permissive (decision-(a)), the dial carries the work the old gate's crisp-test did — as a **provenance
+  tier** stating *how we know this failure-class exists at all*. The ladder has a **VERIFIED CORE** and two
+  unverified tiers beneath it:
+  - **VERIFIED CORE (Goodhart-safe — the crew's Form-3, honored):**
+    - **encountered** (seen in real code — highest provenance), and
+    - **constructable** (a minimal case can be *built that verifiably exhibits* the failure — wild-found is
+      NOT required; a constructed-and-verified demo suffices). Both count as "shown"; this IS the
+      naive-repertoire V(D)J insight — built on a structural possibility you can *instantiate*, not a
+      narrative you can manufacture — which is precisely why the verified core is Goodhart-resistant.
+    - **Two tier-honesty sub-clauses qualify a `constructable` claim (RULED, captain — they close the
+      Goodhart line at the verified core):**
+      - **Affinity-pair.** A `constructable` demo must be a **PAIR** — a failing case the fingerprint
+        *binds* + a clean sibling it must *not* bind (positive + negative selection). This verifies the
+        fingerprint's *affinity* (binds the bad, spares the good), not merely the class's existence — it
+        closes the gem/graffiti-fingerprint divergence (a real demonstration can otherwise ship a
+        fingerprint whose codomain is wider/narrower than the demonstrated mechanism — antigen's own
+        ⊥-collapse class).
+      - **Silent-class oracle.** For a **silent** class (no automated verifier *by definition* — tests
+        green, behavior wrong is the point), "verifiably exhibits" has no mechanical check, so the demo
+        must carry a **STATED ORACLE** — a differential reference / known-answer-vector, OR an ADR-020
+        intent-attestation (`attested=(who, why)`) establishing the correct-vs-actual divergence. This makes
+        the judgment **explicit + attestable**, not hidden inside "verifiably" where an LLM could
+        manufacture the oracle.
+    - **`encountered` requires AUTHORSHIP-INDEPENDENCE (RULED, captain — locked invariant + charter-pointer
+      for the checkers).** A fingerprint-match alone does **not** qualify for the top `encountered` tier when
+      the *same author* planted both the code and the fingerprint (instance-author ≠ antigen-author;
+      **signer ≠ author** — the self-planting / inverted-trust hole; cf. `IndependentRecheckAuthority`). The
+      *checkers* (git-blame provenance / cross-repo sighting / a second independent attestation) are
+      **charter-deferred** to the future provenance-verifier organ (`charter-learning-core.md` →
+      self-tolerance / negative-selection) — this ADR locks the **invariant**, not the machinery.
+  - **heuristic / correlational** (below the verified core): a *scannable tell that suggests risk without a
+    verifiable-constructable failure* — clippy-lint-style (the tell correlates with the failure but is not a
+    verified causal demonstration). These **DO admit**, but at the heuristic tier: **PASSIVE-by-default,
+    honestly labeled "heuristic" (correlational, NOT causal), below the verified tiers, user-dialed.** This
+    is the tier a lint-shaped smell lives at.
+  - **imagined / named** (lowest): articulated from shape or reasoning; a class with a tell but no
+    constructable demo *yet* — PASSIVE-by-default, a standing request to construct the demo that would
+    graduate it into the verified core.
+  All four are *admitted*; the tier declares which, honestly. **The honest tier-label IS the Goodhart
+  protection (the captain's load-bearing point):** a manufactured heuristic can *only ever* claim the
+  heuristic tier — it can never claim `constructable` (it has no verifiable demo) or `encountered` (it was
+  never seen), so it is transparently marked unproven, sits passive, and is dial-gated. Permissiveness and
+  Goodhart-safety coexist *because of* the honest tier: admit everything-with-a-tell, but a fiction can only
+  occupy the lowest, quietest, passive tiers — never masquerade as verified. (Adversarial is the
+  tier-VERIFIER blocking false claims to `constructable`+; recurrence-COUNT is a *promotion* signal
+  — imagined/heuristic → constructable → encountered → matured — never an admission bar.) This provenance ladder is distinct from but composes with
+  the **confidence** reading (the Bayesian posterior over "is this a real failure-class *here*, at this
+  site", ADR-019 Amd1) and the innate/suspected→named/confident **surfacing** tier (shape-only soft —
+  antigen's *lysozyme*, constitutive/non-specific/no-memory — vs declared/loud): provenance = "how solid is
+  the *class*", confidence = "how sure is *this instance*", surfacing = "how loud". Encounter/recurrence is
+  the **maturation signal** that promotes provenance (imagined → constructable → encountered) and confidence
+  — the dial doing its job, *never* a second admission criterion. Nothing real is rejected; low-provenance
+  imagined antigens sit passive and quiet; style-opinions self-sort to the quiet tier without a bouncer.
+  This is also the **anti-drowning surfacing rule**: liberal in *coverage*, **ranked** in *surfacing* (the
+  third usage-discipline; see ADR on usage-discipline — front-line-liberal / regulatory-sparing /
+  ranked-surfacing).
+- **The dread-declaration** is specified in the marked-unknown ADR (the `#[dread]`/`#[aura]` plane); this
+  ADR only fixes that it is a *third*, *authored*, high-magnitude signal distinct from the inferred dial
+  tier, and that it emits into the same typed-event stream (§C).
+
+**(B) Lock the dial-vocabulary ↔ shipped-marker mapping (outsider's flag, prevents a parallel-tracker
+divergence).** The new dial tier-words (innate/suspected/named/confident) MUST be explicitly related in the
+ADR to the *shipped* binary `match_kind` (`ExplicitMarker | FingerprintMatch`) — either as a refinement of
+it or as a stated-orthogonal axis. Shipping two tier-vocabularies for one axis with no stated relation is a
+`ParallelStateTrackersDiverge` risk (antigen's own dogfood class) and newcomer-confusion. The mapping:
+`FingerprintMatch` (a shape-only structural match, no adopter declaration) is the *innate/suspected* tier's
+scan-time substrate; `ExplicitMarker` (an authored declaration) is the *named* tier's scan-time substrate;
+the dial tier is the audit-time *confidence grade* computed over these — so the relation is "match_kind is
+the scan-time input; dial-tier is the audit-time grade," an orthogonal-but-related axis, stated explicitly.
+
+**(C) Lock ONE typed Finding/Event schema, emitted by BOTH scan and audit, MERGED at the audit stage.** Not
+"land it in `ScanReport`." One typed record:
+- `site` (file + line) · `class-or-marker` · `timestamp` · `origin-stage {scan | audit}`;
+- **`schema_version`** (monotonic) + the locked **forward-compat rule: every future field is additive +
+  optional (`#[serde(default)]`); external consumers branch on `schema_version`** (adversarial's
+  schema-sufficiency finding #12). The `Finding` record is the EXTERNAL platform contract (the
+  antigen-as-platform organ consumes it from outside); an un-versioned external contract is our own
+  `SemVer-contract-violation` family dogfooded against ourselves — and ADR-041 already grew the schema once
+  (it added `existence-certainty`), proving it *will* grow. `ScanReport` already runs this exact
+  additive-optional discipline (the pre-v0.2-deserialize-cleanly pattern); the contract inherits it.
+  Recognition, not design.
+- **`structural_digest`** (the item's FNV-1a structural fingerprint) — **scan ALREADY computes this**
+  (`scan.rs:1621/4402`) for presented/defended/tolerated items and then *discards* it before emit, so
+  carrying it is **negative-to-zero cost** (stop discarding a computed value). Without it the
+  affinity-maturation engine — the flagship learning-organ that clusters marked-unknown sites and *diffs out
+  the common tell* — must RE-PARSE every clustered site from `file+line`, which is exactly the reverse-parse
+  the emit-seam exists to kill (just moved from text→location). Load-bearing for organ 1.
+- **`cluster-key`** — **specified** (not an opaque label): `cluster-key = derived-from(structural_digest,
+  class)`. This is what makes "cluster by shared structure" a field-lookup instead of a re-parse; an
+  undefined field in a contract is itself a gap.
+- **`class_provenance` {encountered | constructable | heuristic | imagined}** — a **mandatory typed enum**
+  (not an `Option`, not a free string): the permissive admission (decision A) is trustworthy *only* because
+  this label is always present and honest. This is the typed home of the provenance ladder from decision (B):
+  a **verified core** (`encountered`, `constructable`) + two unverified tiers (`heuristic` =
+  correlational-not-causal clippy-lint-style; `imagined` = a class with a tell but no demo yet). The honest
+  tier IS the Goodhart protection: a manufactured fiction can only ever hold `heuristic`/`imagined` (it can
+  never *be labeled* `constructable`/`encountered` without a real demonstration), so it stays passive +
+  visibly unproven. The `constructable` value carries the old crisp-test's content as a *tier*, not a gate.
+- **`presentation` {passive | active}** — the first-class presentation axis (decision A): an
+  imagined/low-provenance antigen defaults `passive` (tooling/scan-side, no user-macro burden); `active` is
+  the user-facing macro chosen by an encounterer. This is what makes permissive admission free.
+- **`severity`/`magnitude` is a UNIVERSAL field on EVERY Finding** (adversarial finding #12, organ 3): not a
+  marked-unknown-plane-only field — the cytokine-signaling organ routes by severity-as-priority, so a named
+  dial-verdict Finding must also carry a severity or it cannot be routed. The dread/aura plane (ADR-041) adds
+  `existence-certainty` *on top of* the universal `magnitude`; it does not own it.
+- the dial `tier` (verdict reading) and, for a marked-unknown, the **required** `trigger` (ADR-041 guard 3 —
+  non-`Option` at the declaration site) + `existence-certainty`.
+
+The scan stage emits the `#[dread]`/`#[aura]` half into this record and the audit stage emits the
+dial-verdict half, **unified at the audit stage** (audit is the last stage that sees both halves and already
+computes the verdict; it merges the scan-time markers with its own verdicts into one population). The natural
+home is a new shared `event.rs` / `finding.rs` in the library (or the merged population landing on the
+`AuditReport`). This is the only locus that satisfies the seam's purpose (one wire-format for the three
+downstream organs) without violating single-source-of-truth (ADR-034). The captain's emit-not-display
+*requirement* is preserved exactly; the *locus* is corrected from "ScanReport" to "merge-at-audit" — a
+buildability sharpen (adversarial surfaced it, substrate confirmed it), not a weakening.
+
+**Schema ownership (the cross-ADR boundary — prevents a two-schemas `ParallelStateTrackersDiverge`).** **This
+ADR (039) is the SOLE OWNER of the `Finding`/event schema** — the record type and its full field-list above.
+ADR-036 (the decomposition) owns only the *orchestration* (the thin coordinator + purity invariant) and the
+*merge-locus* (where the unified population is assembled), and **cites this ADR for the schema** — it defines
+no `Finding` type of its own. So there is exactly ONE schema definition (here) and ONE merge-locus (ADR-036);
+building two `Finding` types from two field-lists would be antigen's own `ParallelStateTrackersDiverge` class
+at the schema level, which this boundary forecloses. (Cross-cited both ways: ADR-036 §The-two-seams-converge.)
+
+*(Buildability: the full record — `class_provenance` mandatory-enum + `presentation` + the dial tier +
+the required marked-unknown `trigger`/`existence-certainty` — was spiked to a compiling, running, serializing
+struct (`roles/pathmaker/spikes/seam-spike`): both new typed fields land additively, serialize kebab-cased,
+and the run demonstrates the passive-by-default-for-imagined rule (an imagined class emits
+`class_provenance: imagined` + `presentation: passive`, an encountered one `active`). "The verdict carries
+provenance + passive" is SEEn in a real struct, not asserted.)*
+
+### The build gate: RULED (Tekgy, permissive) — the deliberation ladder, preserved append-only below
+
+**THE RULING (Tekgy, permissive — FINAL, supersedes the crisp-gate below): admission ≈ ARTICULABILITY;
+there is no filtering gate.** Name it / see-a-mechanism / *imagine* it → admitted. The crisp /
+constructable / encountered distinction is **not a gate** — it is the dial's honest **provenance ladder**
+(decision-(b)): encountered → constructable → imagined, all admitted, the tier stating which. Three things
+make this sound (see Decision (A) for the locked form): **(1) cost asymmetry** — a false-positive antigen
+costs ≈ near-zero (especially PASSIVE/tooling-side), a false-negative is the silent failure antigen exists
+to prevent; when over-coverage is ~free and under-coverage catastrophic, the regulator over-admits
+(requisite-variety). **(2) PASSIVE-by-default** — imagined antigens live scan/tooling-side with no
+user-macro burden (the new PASSIVE [tooling] vs ACTIVE [user-macro] axis); the vast field of
+imagined-but-never-triggered antigens costs nothing until someone *encounters* one. **(3) honest labeling =
+the one invariant** — every antigen carries a mandatory provenance label; an imagined one MUST be labeled
+imagined. Adversarial's fiction-intolerance **re-homes** from entry-bouncer to *provenance VERIFIER*: a
+fiction is *admitted* (harmlessly, passive, low-provenance) but *cannot be labeled* encountered/constructable
+without a real demonstration — so the Goodhart hole closes at *labeling*, not entry, and a fiction stays
+visibly low-provenance/passive where it misleads no one. This is observe-don't-declare (ADR-029) applied to
+admission: admit freely, never claim a provenance you cannot observe. Biology backs it cleanly (naturalist):
+the naive B-cell repertoire is a vast field of never-triggered PASSIVE receptors — permissive-but-passive is
+how immunity is *built*, a metaphor-confirmation for the organizing frame too.
+
+---
+
+*(Superseded ruling — the crisp-GATE (Tekgy override #1), kept append-only and **later further superseded by
+the permissive override #2** above. It was right that fiction must be caught; the permissive ruling kept
+that finding and moved it from entry-gate to provenance-label.)* **GATE = tell +
+crisp mechanism, where crisp = a constructable + verifiably-failing demonstration.** Recurrence is *not* an
+admission criterion (it is a dial-promotion signal). The
+ruling is *closest to* the adversarial Form-3 shape (fiction-intolerant, rarity-tolerant) but lands the
+anchor on **"constructable + verifiably-failing"** rather than "a shown wild instance" — a stronger,
+self-contained anchor: you need not find the failure *in the wild*, only be able to *construct a minimal
+case that actually exhibits it*. A fiction cannot be constructed-and-shown-to-fail, so this closes the
+Goodhart hole (a narrative is manufacturable; a verifiably-failing demonstration is not) while admitting the
+rare-but-real silent class on the first encounter (no recurrence needed). The deliberation that produced
+this ruling is preserved below (append-only; the fork is superseded, not erased).
+
+---
+
+*(Superseded deliberation — the fork as it stood before the Tekgy override. Kept for the trail.)* The exact
+admission rule had two candidate forms; the captain owned the cut.
+- **Form 1 — "recurs AND tell"** (the vision §2 sketch): a stdlib antigen requires both a structural tell
+  *and* evidence it recurs in real code. Keeps the stdlib bar high; lets the dial/dread carry the
+  not-yet-recurring.
+- **Form 2 — "tell + (recurs OR mechanism)"** (aristotle's first-principles refinement): a structural tell
+  is necessary; generality is established by *either* recurrence *or* a known failure-mechanism — two routes
+  to "this is general, not a curiosity." Does not re-exclude the explicable-but-not-yet-witnessed silent
+  class.
+
+**Naturalist's biology counsel (recorded as the recommended dissolution, NOT a ruling):** the fork conflates
+two distinct immune events. *Building* the recognition capacity = the naive repertoire, generated
+combinatorially on structural possibility *before* any encounter (recurrence plays no role). *Committing to
+memory* = affinity maturation on encounter (recurrence drives durable memory). The build gate asks the
+first; biology builds receptors on **shape/mechanism before encounter** — so a tell+mechanism class is a
+naive-repertoire receptor that binds its target the first time. Requiring "recurs" first = requiring prior
+infection before building the antibody, which contradicts adaptive immunity's founding mechanism and
+re-imports the survivor-bias the gate explicitly rejected (the silent-first population is exactly where the
+*first* encounter is the dangerous one — `UnboundedDeserialization` is not safer for being novel to your
+code). **The fork dissolves:** tell+mechanism *admits* (held at the suspected tier, low frequency, costing
+nothing); recurrence *promotes the tier* (the dial's graduation rule). Recurrence is not a second admission
+criterion — it is a maturation signal. The one thing biology will not endorse: making encounter a
+*precondition for existence* in the repertoire — that is the anticipatory-immunity property antigen's thesis
+is built on. **Recommendation: Form 2** (tell necessary; recurs OR mechanism admits; recurrence promotes
+tier). The stricter-bar worry (stdlib fills with curiosities) is answered by the *dial* keeping
+unencountered classes at the soft tier, not by an admission bouncer.
+
+**Adversarial's counsel (a THIRD position that splits the difference — and disagrees with the naturalist on
+one point):** adversarial accepts the gate-vs-dial split (evidence-strength is a dial concern, not a gate
+concern) but **rejects "OR mechanism" as a GATE criterion** — because "mechanism" is *infinitely
+manufacturable*: an LLM agent (antigen's stated target user) can construct a plausible failure-mechanism
+narrative for any pattern on demand, and this gets *worse* as the optimizer gets stronger (the
+`FingerprintGamedNotDefended` / Goodhart self-risk). So "OR mechanism" hands the stdlib's admission key to
+the exact adversary antigen names as its deepest self-risk, flooding the stdlib with
+mechanism-justified-but-never-recurring speculation — the very noise the `#[dread]` discipline rejects.
+Adversarial's resolution: **GATE = tell + at-least-one-SHOWN-real-instance** (one real instance shown, *not*
+a recurrence-*count* threshold — so it is rarity-tolerant but fiction-intolerant; rarity is fine,
+fictionality is not). Then *mechanism-only-without-any-shown-recurrence* does **not** enter the built stdlib
+— but it is **not discarded**: it is exactly what `#[dread]`/`#[aura]` (ADR-041, the inside-out driver) is
+*for* (a standing request to find the recurrence that would graduate it into a built family).
+
+**The genuine disagreement for the captain to resolve:** the naturalist says *mechanism admits* (to the
+suspected tier of the built stdlib); adversarial says *mechanism-only does NOT admit to the built stdlib —
+it lives at the `#[dread]` frontier until one real instance is shown.* Both route mechanism-only candidates
+to a low-confidence home that isn't a loud stdlib fingerprint; they differ on **whether that home is a
+suspected-tier built fingerprint (naturalist) or a `#[dread]` marker (adversarial).** The Goodhart argument
+is the load-bearing new input: it is *why* "shown instance" beats "mechanism" as the non-gameable anchor.
+Three options were on the table — Form 1 (recurs AND tell), Form 2 (tell + recurs-OR-mechanism), Form 3
+(adversarial: tell + at-least-one-shown-instance; mechanism-only → `#[dread]`). **RESOLVED by the Tekgy
+override at the top of this section: tell + crisp-mechanism (constructable + verifiably-failing); recurrence
+is a promotion signal, not an admission criterion.** The override refines Form 3's non-gameable anchor from
+"a shown wild instance" to "a constructable verifiably-failing demonstration" — same fiction-intolerance,
+stronger because it needs no wild sighting.
+
+### What "done well" means (for the notary)
+
+The dial demonstrably **admits a shape-only / silent-failure fingerprint at low confidence** (proving the
+survivor-bias bouncer is gone) AND demonstrably **surfaces a style-opinion ("function too long") at the
+quiet tier without a gate rejecting it** (proving the dial self-sorts noise instead of needing a bouncer).
+The typed-event stream is demonstrably **one schema both stages emit into, queryable as structured output**
+(proving the seam is an emit, not a render — a test that subscribes to the merged population and reads a
+dread-marker AND a dial-verdict from one stream). If the built artifact cannot show all three, it did not
+deliver the value this design claims.
+
+### What this ADR does NOT do
+
+- Does NOT leave the build-gate admission rule open — it is RULED (Tekgy override): tell + crisp-mechanism
+  (constructable + verifiably-failing); recurrence is a dial-promotion signal, not an admission criterion.
+- Does NOT specify the `#[dread]`/`#[aura]` marker semantics — that is the marked-unknown plane ADR; this
+  ADR only fixes the three-way split and the shared emit stream.
+- Does NOT build the downstream learning-loop organs — they are charter; the emit seam exists so they are
+  buildable later for ~free (one schema to subscribe to, not a reverse-parse of rendered text).
+- Does NOT land the dial verdict in `ScanReport` — the locus is merge-at-audit (ADR-034 single-source).
+
+---
+
+## [ADR-040] The Grammar Increment: Frame-Relative Matching, `body_calls`, and the Syntactic Absence Family (Leaf-Matcher Tier)
+
+**Status**: Locked design (Outfitters / beta.2 voyage, 2026-06-02) — **awaiting the notary** for promotion
+to Witnessed. Buildability-confirmed against the real `antigen-fingerprint` crate by the pathmaker. This
+ADR locks the **leaf-matcher tier** (Increments 1–2: new `Constraint` variants in the existing per-node
+walk). The **per-type correlation tier** (Increment 3 / G4) is carved to its own sibling ADR (it is a
+different machine); the **semantic tier** (resolved types, control-flow liveness) is **charter → v0.4**
+(`ra_ap_syntax`, unblocked by the MSRV-1.95 raise).
+
+**Participants**: researcher (the ranked, demand-counted, depth-split driver analysis — the grammar
+recognition rule, N≥2 verified-classes-demand-it, the per-increment fan-out); value-finder (the
+build-order-by-proven-fan-out worth-call — cheap + proven-demanded + closes-a-real-silent-gap leads);
+naturalist (the NK missing-self biology — absence-detection-given-context = the anti-graffiti anchor rule,
+biology predicted the existing constraint; the syntactic/semantic depth-split + the locality bend); scout
+(the absence-grammar-IS-the-SENSE-organ reframe — MOVE-1 on three independent build-order axes); pathmaker
+(the buildability lock — substrate verification of the `Constraint` enum + the shipped anchor rule + the
+drop-panic silent gap).
+
+**Related**:
+- ADR-010 Amendment 3 OQ3 (the `not`-placement / anti-graffiti rule). **Already shipped** and load-bearing
+  here: a bare `not` is a parse error; `not` is legal only inside `all_of` alongside ≥1 positive matcher
+  (`antigen-fingerprint/src/parser.rs:332` `check_not_placement`). This ADR's absence family *depends on*
+  that rule — every absence fingerprint is `all_of([positive_anchor, not(absent_credential)])`, never a
+  bare absence. Biology predicted the rule (NK fires on missing-self *given context*, spares MHC-I-less red
+  blood cells). The absence family is *recognition* of a dimension the anchor rule already constrains.
+- ADR-006 (recognition-not-design), applied at the grammar level: a dimension is built when **N≥2 real,
+  verified failure-classes demand it** — the same gate as families, one layer down. Every increment below
+  clears it with verified demand-counts.
+- ADR-037 (the control-loop frame). The absence/presence grammar is the regulator's **SENSE organ**: the
+  ROUTE/ACT/FEEDBACK stages are dead without a working sensor, so this is foundational, not additive — the
+  unambiguous MOVE-1 build (sense-organ × silent-dominant × syntactic-before-v0.4 all agree).
+- ADR-009 Amendment 1 (fingerprint required iff scan-locatable). These new leaf matchers are all
+  scan-locatable syntactic tells, so they extend the scan-side fingerprint vocabulary directly.
+
+### Finding
+
+The shipped fingerprint alphabet (ground truth, `antigen-fingerprint/src/lib.rs:120`) is:
+`Item` · `NameMatches` · `Variants` · `HasMethod` · `AttrPresent` · `DocContains` · `BodyContainsMacro` ·
+`AllOf` · `AnyOf` · `Not`. The Cartographer sweep hit the **same expressivity gaps repeatedly** across
+blind veins, and each gap is demanded by N≥2 *verified* (recurs-in-real-code) failure-classes:
+
+- **No body *call* matching** — only `body_contains_macro`. The shipped `PanickingInDrop` fingerprint
+  matches `body_contains_macro("panic")` / `unreachable` / `todo` (verified: `examples/basic.rs:47–49`)
+  and therefore **silently misses the call-shaped panic paths** — `.unwrap()`, `.expect()`, indexing,
+  overflowing arithmetic — which are *method calls / operators, not macros*. This is a silent gap in
+  antigen's *own* shipped stdlib: the highest-leverage instance of the missing dimension.
+- **No attribute *absence*** — only `AttrPresent`. "X present but its required guard Y absent" is unsayable.
+- **No trait-impl identity** — `HasMethod` cannot reach method-less marker/contract traits (`Send`, `Sync`,
+  `Hash`, `Eq`); `Item` matches only the *kind* `impl`, not "does T impl Trait?".
+- **No item qualifier** — `async` / `unsafe` / `const` presence-or-absence is not matchable.
+
+The frame-relative insight that unifies the absence-detection family (NK missing-self) and the
+compartment-violation family (async) is itself *recognition*: both reduce to "a property of an item is a
+failure-class only read against its FRAME" = `all_of([frame_predicate, operation_matcher])`, combined via
+the **existing** `all_of`, gated by the **already-shipped** anchor rule. So the grammar increment is not a
+new combinator — it is the missing **frame-predicates and operation-matchers** (new leaf `Constraint`
+variants) that the frame-relative pattern needs.
+
+### Decision: lock two leaf-matcher increments (build-now), carve the rest
+
+**Increment 1 (the keystone) — `body_calls(path)`.** A new `Constraint::BodyCalls(path-pattern)` matcher:
+the twin of the shipped `BodyContainsMacro`, extended from macro invocations to fn/method calls. Lowest
+design risk in the sweep (an existing primitive's shape, one token-kind wider) for the highest demand
+(**≥11 verified classes**: `BlockingCallInAsyncFn`, the `.unwrap`/`.expect` sources `PanickingInDrop`
+misses, `PanicInLibraryApi`, `SwallowedResult`/`.ok()`, `ErrorContextStripped`, `UnboundedDeserialization`
+(`from_reader`/`from_slice`), `SizeOfInPtrCopyCount`, `UninitMemoryAssumedInit` (`assume_init`),
+`TransmuteSizeOrLifetimeMismatch`, `UnvalidatedFromUtf8Unchecked`, `SpawnedFutureNotAwaited`). Includes the
+arg-position sub-capability (e.g. `size_of` in the *count* arg, not a divisor) where a class needs it.
+**This increment alone closes the shipped `PanickingInDrop` silent gap.**
+
+**Increment 2 (the absence family / SENSE organ) — three leaf matchers:**
+- **G1 — item qualifier presence/absence** (`is_async` / `is_unsafe` / `is_const`, usable inside `not(...)`
+  for the absence case): demanded by `BlockingCallInAsyncFn` (async), `UnsafeSendSync` (unsafe impl),
+  `RawPtrDerefInSafeFn` (unsafe-*absence*: a `pub fn` that derefs a raw pointer but is **not** `unsafe`),
+  `MissingSafetyInvariantDoc`. **≥4 classes.**
+- **G1b — attribute absence + derive/attr-arg introspection**: `attr_absent(path)` (the negation of the
+  shipped `attr_present`) plus derive-list-member / attr-arg introspection (is `Debug` *in* the
+  `#[derive(...)]` list; is `deny_unknown_fields` *in* the `#[serde(...)]` args). Demanded by
+  `DeserializeWithoutDenyUnknownFields`, public-type-missing-`Debug`, `DenyUnknownFieldsDefeatedByFlatten`,
+  `derive(Hash)`-on-float. Cheapest of the absence family (derives ARE attributes — no trait-path
+  resolution). **≥4 classes.**
+- **G3 — trait-impl identity, presence AND absence** (`impl_of_trait("Send")`,
+  `not(impl_of_trait("Hash"))`): reads the `impl Trait for Type` trait-path — **syntactic, no
+  rust-analyzer**. The only structural tell that can reach method-less marker/contract traits. Demanded by
+  `UnsafeSendSync`, manual-`PartialEq`-without-`Hash`, manual-`Ord`-vs-`Eq`, public-type-missing-`Debug`;
+  also lets `PanickingInDrop` assert the impl is *actually* `Drop` (today it only checks a method *named*
+  `drop`). **≥4 classes.**
+
+Every Increment-1/2 matcher is a **leaf addition** — a new `Constraint` variant in the existing per-node
+walk (`match_constraint` in `matcher.rs`), parsed in `parser.rs`, evaluated in `Match3`. Low architectural
+risk. Each must be usable inside `all_of([anchor, …])` and (for the absence cases) inside `not(...)` only
+under the shipped anchor rule — no bare-absence fingerprint is expressible, by construction.
+
+### The anchor-required invariant is already enforced (recognition, not new work)
+
+The absence family does **not** require a new safety rule. ADR-010 Amendment 3 OQ3 already ships
+`check_not_placement` (`parser.rs:332`): a bare `not` is rejected; `all_of` containing only `not` children
+is rejected (≥1 positive matcher required); the De Morgan `any_of([not, not])` loophole is closed. So every
+absence fingerprint this ADR enables is *structurally forced* into the meaningful form
+`all_of([positive_anchor, not(absent_credential)])` — e.g. `all_of([holds_raw_pointer, not(impls(Drop))])`,
+`all_of([item=struct, derives(Hash), not(impls(Eq))])`. Biology predicted this exact constraint (missing-self
+*given context*); the grammar already had it. The absence family is recognition of a dimension the existing
+anchor rule already makes safe.
+
+### What is carved out (sibling ADR + charter)
+
+- **Increment 3 / G4 — per-type correlation (a DIFFERENT machine): its own sibling ADR.** Matching the
+  *relationship between items* (struct derives `Hash` AND a *separate* `impl PartialEq`; signature ↔ body
+  correlation) requires the matcher to build a **per-type index across items** — a per-node → per-type-graph
+  shift, the most architecturally significant unlock in the sweep and the most on-thesis ("topology carries
+  information no single node states"). Its *syntactic* correlation slice is build-now-eligible (no type
+  resolution) but it is **not a leaf matcher**, so it is locked in a separate ADR and pairs naturally with
+  the ADR-036 scan decomposition (the per-type index wants the modular scanner). G5's *syntactic* cast-shape
+  slice (literal `x as u32` between named primitives; `*const T` param) rides with it.
+- **Charter → v0.4 (`ra_ap_syntax`, MSRV-1.95-unblocked): the semantic tier.** Resolved-type identity
+  (G5 resolved-width: is `usize` 32 or 64 here?), resolved-field-type (G4 semantic), and body-liveness /
+  control-flow (`LockHeldAcrossAwait` — typed binding live across a suspension point). These need
+  rust-analyzer-grade analysis. The confidence dial (ADR-039) bridges the depths honestly: the syntactic
+  slice ships at the **suspected** tier ("looks like missing-Drop, low confidence"); the semantic slice
+  graduates it to **named**. Same fingerprint shape both depths; the dial makes the syntactic
+  false-negatives honest rather than silent.
+
+### What "done well" means (for the notary)
+
+Each shipped leaf matcher points at **≥2 real families it unblocked** (proving it was not speculative), and
+**`body_calls` demonstrably closes the shipped `PanickingInDrop` fingerprint's `.unwrap`/`.expect` silent
+gap** (a fixture where the old macro-only fingerprint is silent and the new `body_calls` fingerprint fires).
+Every absence fingerprint is structurally forced through the anchor rule (a bare-absence attempt is a parse
+error — a compile-fail fixture confirms it).
+
+### What this ADR does NOT do
+
+- Does NOT add a new combinator — `all_of`/`any_of`/`not` are unchanged; this adds leaf *predicates*.
+- Does NOT add a new anchor/safety rule — the anti-graffiti invariant already ships (ADR-010 Amd3 OQ3).
+- Does NOT build the per-type correlation machine (G4) — that is a sibling ADR (different machine).
+- Does NOT reach resolved types or control-flow — that is charter → v0.4 (`ra_ap_syntax`); the dial bridges
+  the syntactic/semantic depth honestly via the suspected → named graduation.
+
+---
+
+## [ADR-041] The Marked-Unknown Plane: a Declarable Three-Valued Bottom on Two Orthogonal Axes (Magnitude × Existence-Certainty), Surfaced at the Dial's Non-Gating Floor
+
+**Status**: Locked design (Outfitters / beta.2 voyage, 2026-06-02) — **awaiting the notary** for promotion
+to Witnessed. The plane structure, the two-guard earned-ness discipline, and the emit-seam are converged
+(aristotle Phase-1-8 + value-finder worth + naturalist biology). **The third marker is RULED `#[red_flag]`**
+(captain — closing the naming sub-fork). `#[red_flag]` is the clinical-red-flag sense (certain-enough-to-
+escalate, names-nothing-specific = the inverse of pathognomonic) — no cross-domain collision (unlike
+`#[sentinel]` = the watcher) and no within-family ambiguity. `#[alarmin]` was a viable lean (the
+DAMP/act-now-danger fit is real) but set aside on a *mild level-mismatch* (alarmin is the **family-wide**
+danger-signal substrate, slightly broad for one corner-marker — naming one marker after the genus-word).
+**Correction for the notary (naturalist self-withdrew, substrate-checked):** the earlier "`#[alarmin]` =
+`#[dread]`'s referent → within-family collision" objection was **false and is retracted** — `#[dread]`'s
+cited referent is *angor animi*, not alarmin; there is no collision. `#[alarmin]` was set aside on the mild
+level-mismatch only, not a collision. See §The third marker.
+
+**Participants**: value-finder (the worth-proof — the keystone primitive: continuity-of-suspicion across
+the handoff where software loses the most knowledge; the affect-is-the-gate); naturalist (the angor-animi /
+clinical-gestalt biology — the patient/observer provenance split; the magnitude × certainty 2-D plane; the
+alarmin referent); aristotle (the load-bearing correction — marked-unknown is OFF the dial's classification
+axis at ⊥ with its OWN existence-certainty axis; the ⊥-attestation-with-lifecycle as the second structural
+guard); outsider (the `#[sentinel]` naming-collision catch); pathmaker (the lock + the emit-seam alignment
+with ADR-039).
+
+**Related**:
+- ADR-039 (the dial + emit seam). The marked-unknown markers are **scan-time declarations** that emit into
+  the scan-time half of ADR-039's one typed Finding schema; they are surfaced **at the dial's non-gating
+  floor** — same surfacing policy as the suspected tier, *different semantics* (they are at ⊥, off the
+  classification axis, not low-on-it). The dial *classifies* nameable things; the marked-unknown is the
+  *unnameable*.
+- ADR-035 (the three-valued type law). The marked-unknown is the **declarable** form of ADR-035's ⊥: a
+  site-verdict becomes three (failure / clean / marked-unknown), and the third is now an authored,
+  first-class, surfaced object instead of a vanished feeling. This is ADR-035's ⊥ given a voice.
+- ADR-020 (attestation — site + author + why). A marked-unknown is an **attestation of ⊥**: a named author's
+  claim of an unnameable danger at a site, carrying the felt trigger. This makes it falsifiable (the
+  lifecycle) and is the first of the two earned-ness guards.
+- ADR-031 (revocation-staleness). An un-investigated marked-unknown is itself a substrate-smell
+  ("⊥-declared here for N commits, untouched") — the second guard, making abuse self-surfacing.
+- ADR-037 (the control-loop frame). The marked-unknown is the **inside-out research-driver** that
+  complements the outside-in sweep: every marker is a standing request to grow the substrate/grammar/sensor
+  that *would* name it — the input port of the future affinity-maturation engine (charter).
+
+### Finding
+
+The single most perishable piece of knowledge in software is the **felt-but-unnamed danger**: a developer
+or agent looks at code, senses the floor is rotten, and has nowhere to put that. The unease evaporates on
+context-switch / session-end (the dominant outcome for agents, who compact) or rots as a vague TODO. The
+agentic era makes it *more* perishable. Antigen's other primitives cannot reach this corner — they all need
+a nameable tell. The clinical analog is **angor animi** (the sense of impending doom), which good clinicians
+*heed* precisely because it correlates with serious pathology *before* anything localizes — a low-certainty
+/ high-magnitude alarm that saves lives by being investigated rather than dismissed.
+
+The design risk is that a marker for "something is wrong, I can't name it" degenerates into `#[unknown]`
+graffiti — exactly the speculative "this pattern *could* harbor a problem" noise antigen rejects. The
+finding is that two structural properties (not merely cultural restraint) keep it honest, and that the
+marked-unknown lives on a **2-D plane**, not a 1-D magnitude line.
+
+### Decision: the plane (two orthogonal axes)
+
+The marked-unknown is **off the dial's classification axis** (it is at ⊥ — the unnameable) and has its own
+two axes:
+
+1. **Magnitude** (smell → aura → dread): how loud the unease is.
+2. **Existence-certainty** (might-be-something → sure-but-unnameable): how sure the author is that *anything*
+   is wrong — **distinct from the dial's classification-certainty** (how sure we are *what* is wrong). The
+   dial's certainty is about *which class*; this axis is about *whether there is a class at all*.
+
+Three earned markers tile the relevant corners (the low-magnitude / low-certainty "passing smell" corner is
+absorbed by `aura`, so the requisite variety is 2 × 2 − 1 = **3 markers**):
+
+- **`#[aura]`** (the light sibling) — **low magnitude**: "something *may* be off here, can't name it, check
+  later." (Also spellable `#[prodrome]`.)
+- **`#[dread]`** — **high magnitude, low existence-certainty** (angor animi / patient-conviction-of-outcome):
+  "something *is* wrong here, can't name it, look now." Scared-but-unsure.
+- **`#[red_flag]`** (the third marker) — **high existence-certainty, unnameable** (clinical sense-of-alarm /
+  observer-conviction-of-wrongness): "I'm *sure* something is wrong here, I can't name it, act now." The
+  sure-but-unnameable corner; auto-escalates on first match. (A *red flag* is the clinical term for a sign
+  demanding immediate evaluation — fits the `#[aura]`/`#[dread]` clinical family.)
+
+All three are **DECLARED, not detected** (semantic intent-bearing declarations — they share the dial's
+non-gating floor with machine fuzzy-suspicion but are sourced by a person/agent, not inferred) and
+**ASSERTED, not hypothetical** (a felt observation, never "this pattern could theoretically harbor a
+problem").
+
+### The three structural earned-ness guards (not just the name's gravity)
+
+1. **The affect-gravity of the name self-selects sparing use.** You can't spray `#[dread]` — the word's
+   weight makes "the floor feels rotten" the only honest use. Strip the affect (a neutral `#[unknown]`) and
+   it becomes rot-graffiti; keep it and it is an earned signal. (value-finder's "the affect IS the gate.")
+2. **The marker is a typed, authored, lifecycle-tracked ⊥-attestation with a built-in staleness-smell.** It
+   is an attestation (ADR-020: site + author + trigger), therefore falsifiable (declared → investigated →
+   named | cleared), and an un-investigated one is itself a substrate-smell (ADR-031-flavored: "⊥-declared
+   here for N commits, untouched"). So abuse is *self-surfacing*, not merely discouraged.
+3. **The trigger field is REQUIRED, not optional** (outsider's load-bearing ask, routed via aristotle;
+   ruling confirmed-current by the captain at transcription time). The vision §5 phrasing "ideally carrying
+   the trigger" reads as *optional* — but an optional trigger is the hole through which the graffiti
+   returns: a triggerless `#[dread]` is exactly the contentless "this seems off" mark the primitive exists
+   to prevent. A marked-unknown without a stated trigger ("what did you see that made you feel this?") is
+   not an asserted observation; it is the hypothetical speculation the asserted-not-hypothetical rule
+   rejects. **Lock the trigger as a REQUIRED field (NOT `Option<String>`); a `#[dread]`/`#[aura]` with no
+   recorded trigger is audit-flagged** — this is the **rationale-as-required-field transverse sub-clause-F
+   discipline (ADR-005 Amendment 2), the same shape as `#[antigen_tolerance]`'s rationale (ADR-011) and
+   `#[anergy]`'s reason (ADR-023's min-chars).** It is the third structural guard, and the one that makes
+   guard (1)'s "asserted, not hypothetical" *checkable* rather than cultural.
+   - **The honest boundary (so the guard does not over-claim — the sub-clause-F reconciliation):** what is
+     enforced is the **PRESENCE of a trigger**, not its sincerity. Sincerity stays a **social /
+     non-compiler-checked boundary, named as such** (observe-don't-declare, ADR-029 — antigen marks the
+     shape of its own ignorance rather than pretending the edge of enforcement is the edge of what's real).
+     A *lazy/abandoned* dread (no trigger, or an untouched marker past its lifecycle) is structurally
+     catchable; an *insincere* one is not — and the ADR states that boundary outright. This is the
+     validate-the-claims-MADE / force-nothing-un-tabled invariant: trigger-presence is the claim held to
+     account, sincerity is un-tabled (not forced).
+
+**Lock all three guards** — the name's gravity selects sparing use; the attestation-with-lifecycle makes
+abuse visible; the required trigger makes "asserted, not hypothetical" a structural fact, not an honor system.
+
+### Surfacing: floor of the dial, never gates, never nags
+
+A marked-unknown surfaces on scan/audit at the **non-gating floor** of the dial, **never gates** (it cannot
+fail a CI build) and **never nags** (it is not re-raised every run as an error). It carries its trigger. An
+untouched marker surfaces as a *mild* substrate-smell, not an escalating alarm — except the third
+(high-certainty) marker, which auto-escalates on first match (that is its whole point). This preserves the
+captain's 3-marker ruling and makes it rigorous: the third marker is *forced* by the orthogonal
+existence-certainty axis, not an arbitrary addition.
+
+### Emit seam (aligned with ADR-039)
+
+The markers are scan-time declarations → they emit into the **scan-time half** of ADR-039's one typed
+Finding schema (`site` + `marker` + `magnitude` + `existence-certainty` + `trigger` + `cluster-key` +
+`timestamp` + the mandatory `class_provenance` {encountered | constructable | heuristic | imagined} +
+`presentation` {passive | active}). A marked-unknown is an authored mark at a site the author *encountered*, so it carries
+`class_provenance = encountered` and is `presentation = active` (the author chose to mark their own site) —
+distinct from the *imagined*/passive tooling-side antigens that default to no user-macro burden (ADR-039 §A).
+For a marked-unknown the **`trigger` is populated (required at the declaration site, per guard
+3) — not the generic-Finding "optional trigger"**: the maturation engine clusters on trigger-similarity, so
+a triggerless mark is both graffiti (guard 3) and an un-clusterable event. **Existence-certainty MUST be a
+first-class schema field**, *not* folded into the generic dial-tier — or the future affinity-maturation
+engine cannot distinguish high-value sentinel/alarm-clusters (investigate-now) from low-priority
+aura-clusters. The dial verdicts (classification tier) emit into the
+audit-time half; both merge at audit (ADR-039 §C). The marked-unknown's emit-half is exactly what the
+maturation engine clusters: N related dread-marks at related sites → a proposed fingerprint = the inside-out
+research-driver mechanized.
+
+### The third marker: `#[red_flag]` (RULED — captain, closing the naming sub-fork)
+
+The high-certainty / act-now / unnameable marker is **`#[red_flag]`**. The deliberation, preserved:
+- **`#[sentinel]` — OUT** (outsider, substrate-checked): "sentinel" is already spoken-for as (a) a textual
+  sentinel *value* (`audit.rs:2116/5069/5151`) and (b) "sentinel sites" in the epidemiology map meaning
+  *surveillance / watch-and-report* — almost the **opposite** of this marker's auto-escalate-on-first-match
+  posture.
+- **`#[alarmin]` — set aside (a viable lean, on a MILD level-mismatch — NOT a collision).** The DAMP /
+  act-now-danger fit is real (an alarmin *is* the "act now, danger present" signal). It was set aside on a
+  *mild level-mismatch*: alarmin is the **family-wide** danger-signal substrate (the whole marked-unknown
+  sensing system's mechanism), so naming one corner-marker `#[alarmin]` is a genus-word-for-one-species
+  slight (like naming one antibody "immunoglobulin"). **Correction (naturalist self-withdrew on substrate-
+  check — recorded so the notary does not act on the false objection):** an *earlier* objection claimed
+  "alarmin = `#[dread]`'s referent → within-family collision" — that is **FALSE and retracted**: `#[dread]`'s
+  cited referent is *angor animi* (this ADR, §the markers), not alarmin (alarmin is the family substrate,
+  not dread's specific referent). There is **no within-family collision**; `#[alarmin]` lost only on the
+  mild level-mismatch, and `#[red_flag]` was preferred on the cleaner level-fit + exact clinical semantics.
+- **`#[foreboding]` — OUT**: foreboding is **low-certainty** (a vague sense something *might* be coming) —
+  which contradicts the third marker's defining property: **high-certainty / act-now**.
+- **`#[red_flag]` — RULED IN**: it is the actual **clinical term** (a *red flag* is a sign that demands
+  immediate evaluation), so it fits the clinical naming family (`#[aura]` = migraine aura, `#[dread]` =
+  angor animi) AND is semantically exact for "high-certainty, unnameable, investigate NOW." This ADR locks
+  the *corner* (high-certainty/unnameable/auto-escalate-on-first-match) **and the spelling: `#[red_flag]`.**
+
+### What "done well" means (for the notary)
+
+A marked-unknown declared on a real site (a) surfaces at the dial's floor on scan/audit, (b) **never gates
+and never nags**, (c) carries its trigger, (d) an untouched marker is surfaced as a mild substrate-smell
+("ignorant here for N commits"), and (e) existence-certainty is a distinct queryable field from
+classification-tier (a fixture where folding them would mis-rank a high-certainty marker as low-priority
+proves the field must be separate). If the built primitive nags, gates, or lets a marker rot invisibly, it
+became the graffiti it was designed to prevent.
+
+### What this ADR does NOT do
+
+- Does NOT put the marked-unknown ON the dial's classification axis — it is at ⊥, off-axis, on its own
+  magnitude × existence-certainty plane; it merely shares the dial's *non-gating floor surfacing policy*.
+- Does NOT gate or nag — it is the inside-out research-driver, not an error.
+- Does NOT lock the third marker's spelling — `#[sentinel]` vs `#[alarm]`/`#[alarmin]` is the naturalist's
+  biology-fit cut + outsider naming-check.
+- Does NOT build the affinity-maturation engine — that is charter; the first-class existence-certainty
+  schema field is the cheap stub that keeps it buildable later (the engine subscribes to this emit-half).
+
+---
+
+## [ADR-042] The Usage-Discipline: Three Disciplines (Front-Line Liberal · Regulatory Sparing · Ranked Surfacing), and the `#[autoimmune]` Naming Reconciliation
+
+**Status**: Locked design (Outfitters / beta.2 voyage, 2026-06-02) — **awaiting the notary** for promotion
+to Witnessed. The three-discipline structure and the `#[autoimmune]` naming reconciliation are converged
+(value-finder legibility-spine + outsider naming-catch + naturalist ruling, all substrate-checked). Mostly
+**recognition** — the confidence dial (ADR-039) already exists; this names it as the anti-drowning surfacing
+discipline and corrects a backwards-reading name before it ships.
+
+**Participants**: value-finder (the legibility spine — surfacing as the third, currently-implicit discipline;
+the drowning-in-both-directions refinement); expansionist (the cascade-governor as the surfacing-keeper's
+storm half); outsider (the `#[autoimmune]`-reads-backwards catch, substrate-grepped); naturalist (the
+thermostat-is-not-the-fever ruling — screen-mode vs site-marker direction-rule); pathmaker (the lock + the
+ADR-037 cross-reconciliation).
+
+**Related**:
+- ADR-039 (the dial). The ranked-surfacing discipline IS the dial pointed at *output* (anti-drowning), not
+  only at *admission*. This ADR names that third use of the dial explicitly.
+- ADR-041 (the marked-unknown plane). Over-reassurance is surfaced as a marked-unknown-shaped signal
+  (never-denied guards → suspected-no-ops).
+- The glossary (`glossary.md:258`) + ADR-context (`decisions.md:5574`) — both anchor
+  **autoimmunity = the failure-mode** (over-flagging legitimate code). This ADR preserves that and adds the
+  screen-vs-marker direction-rule to the glossary.
+- The **shipped** `#[antigen_tolerance]` (W6a) + `#[anergy]` (ADR-023) — the per-site self-tolerance
+  primitives that already exist; the regulatory discipline composes them, not a new `#[autoimmune]` marker.
+- ADR-037 (the control-loop frame). `#[autoimmune]` appears there as the COMPARE-reference-failure; this ADR
+  reconciles that reference: the *failure-class* is `setpoint-corruption` / `FingerprintGamedNotDefended`;
+  the *detector* is an audit-mode screen (`autoimmune-check`), not a site-marker (see §The reconciliation).
+
+### Finding
+
+The masterclass is, by construction, the **densest-marked codebase that will exist** (the legibility-spine
+finding). If its audit output is an undifferentiated wall, the masterclass *anti-teaches* — it contradicts
+the discipline it exists to demonstrate. Two distinct things were implicit and one name was backwards:
+
+1. **There are THREE disciplines, not two.** Front-line (liberal coverage) and regulatory (sparing
+   high-cost marks) were named; the **surfacing** discipline (rank what's shown so dense-correct marking ≠ a
+   wall of noise) was implicit. And drowning runs in **both directions**: over-alarm (too many marks shown
+   flat) and **over-reassurance** (rubber-stamp no-op guards making a wall of green that falsely teaches
+   "green = safe").
+2. **`#[autoimmune]` reads backwards.** "autoimmunity" means the *disease* (over-flagging) everywhere in the
+   project, but the campsite used `#[autoimmune]` for the *regulator that detects over-flagging* — inverting
+   the metaphor at the most-read surface (the macro name). There is no shipped `#[autoimmune]` macro yet, so
+   this is the moment to get it right.
+
+### Decision (A): lock the three disciplines
+
+1. **Front-line — liberal in COVERAGE.** Mark broadly; the build gate (ADR-039) admits on tell + shown
+   recurrence; nothing real is excluded. Coverage is generous.
+2. **Regulatory — SPARING in high-cost marks.** The high-gravity / high-cost declarations (`#[dread]`, the
+   deliberately-tolerated exceptions) are used sparingly; their cost self-selects restraint (ADR-041's
+   earned-ness; `#[antigen_tolerance]`'s Treg-license).
+3. **Surfacing — RANK × BUDGET × TRIAGE-STATE (three inputs, not two — the anti-drowning keeper, both
+   directions).** *Ranking alone does NOT cure habituation* (adversarial's break, biology-forced): ranking
+   reorders a single *snapshot*, but habituation is a function of the *delta* between what the reader saw
+   last run and sees now — and rank has no reader-state coordinate. Worse, a stable high-confidence /
+   high-blast **accepted-risk** item permanently occupies the top ranks and *fills the output budget*, so a
+   genuinely-NEW finding lands below the cutoff and is never shown — **the anti-drowning mechanism causing
+   the worst drowning (chronic-item starvation).** So surfacing is *three* inputs:
+   - **RANK** (finding-property): order by dial-posterior × blast-radius × code-recency. Within-surface order.
+   - **BUDGET** (surface cap): cap the default surface to N items. Prevents the literal wall.
+   - **TRIAGE-STATE** (reader-property — the input rank can't compute): NEW (never surfaced/acked) →
+     ACKNOWLEDGED. **Only NEW / un-acked items compete for the budget; acknowledged-chronic items collapse
+     to a summary line** ("+N acknowledged, run `--all`") — present + auditable, but off the default
+     read-surface so NEW items rise to where the eye goes. The default surface answers "what's NEW or
+     CHANGED since this team last triaged," not "what are the static top-N severities" (memorized and
+     dismissed). Triage-state is what makes the surface a *delta*, not a snapshot — the only thing that
+     defeats habituation. **Recognition, not new machinery — it already half-ships:** `#[antigen_tolerance]`
+     IS the acknowledged=accepted-risk state (peripheral tolerance/anergy: seen + decided, rationale-carrying,
+     ADR-011) — so the build-now slice is one branch, **"a tolerated finding is acknowledged → off the
+     default surface, into the summary"** (no new store; tolerance persists in source) — which ALSO fixes
+     chronic-starvation in one move (the tolerated hot-path `#[presents]` was exactly the chronic item
+     filling the budget). And the emit-seam's `cluster-key` + `timestamp` (ADR-039) give the NEW-vs-re-seen
+     delta for free (first-appearance = first timestamp for a site+class) — a third payoff of emit-not-display.
+   It handles drowning in both directions:
+   - **Over-alarm**: rank × budget × triage-state, so the default surface is the NEW delta, not a memorized
+     wall.
+   - **Over-reassurance**: surface never-denied / rubber-stamp guards as **suspected-no-ops**
+     (marked-unknown-shaped, composing absence-as-signal + the gate-collapse/fail-direction thread), so the
+     masterclass never teaches "a wall of green = safe."
+
+**"Done well":** a fresh reader runs the audit on the densely-marked masterclass repeatedly and the default
+surface shows the **NEW/un-acked delta** (not a memorized static top-N); a tolerated chronic finding is
+collapsed into the acknowledged summary (not filling the budget); no-op guards surface as suspected;
+suspected population quiet at the floor. A fixture proving a tolerated high-blast item does *not* starve a
+new medium finding out of the budget is the load-bearing test. Liberal coverage and a readable, *delta-based*
+signal demonstrably coexist across runs.
+
+**Scope split (build-now vs charter — adversarial's honest note + naturalist's substate bend):**
+- **Build-now**: the *principle* (default surface = the NEW/un-acked delta, not the static severity wall)
+  + the `#[antigen_tolerance]` → off-default-surface branch (no new store; tolerance persists in source +
+  ALSO fixes chronic-starvation in one move).
+- **Charter**: a general acknowledgement store for *non-tolerated* findings (per-team "what we acked" —
+  needs `.antigen/acked` or the camp substrate). Real store + UX; charter it. The principle is build-now and
+  load-bearing without it.
+- **Do NOT merge the acknowledged substates** (naturalist's biology bend — they are different mechanisms
+  with different reversibility): *accepted-risk* = anergy (reversible, rationale-carrying,
+  `#[antigen_tolerance]`, **build-now**); *fix-later* = exhaustion (quiet *until the cluster-key changes*, a
+  delta-sensitive mute, **charter** — needs the ack-store keyed on cluster-key); *false-positive* = clonal
+  deletion — the fingerprint is **wrong**, so it routes to a COMPARE-stage fingerprint-*tightening* (remove
+  the receptor), **NOT** a triage-quiet-state (quieting a wrong check is premature-abstraction — a stale
+  tolerated wrong check is the garden-becomes-a-bug-hiding-place one level up).
+
+### Decision (B): the `#[autoimmune]` naming reconciliation (naturalist's ruling)
+
+Naming-coherence means *the word points the same direction as the thing* — not that the word never touches
+the disease (a diagnostic screen named after the pathology it detects is coherent: a TB test detects TB).
+Applying that:
+
+- **Reserve `autoimmune` / `autoimmunity` for the FAILURE-MODE** (over-flagging legitimate code) — as the
+  glossary and prior ADRs already do. Unchanged.
+- **The over-protection DETECTOR is an audit-mode SCREEN**, not a site-marker: `cargo antigen
+  autoimmune-check` (screen-for-the-pathology — coherent, like an autoimmune panel). Run it across the
+  sweep; it lights up where we over-protected.
+- **The per-site deliberately-tolerated over-protection is the ALREADY-SHIPPED `#[antigen_tolerance]`**
+  (a Treg-licensed exception), **not** a new `#[autoimmune]` marker.
+- **DO NOT build a new `#[autoimmune]` site-marker** — it reads backwards (a primitive named after the
+  disease whose job is to *prevent* the disease) and duplicates `#[antigen_tolerance]`.
+- **Glossary update (same change):** add the screen-vs-marker direction-rule so the word's valid use
+  (screen ✓) vs invalid use (site-marker ✗) is explicit — closing the sub-clause-E drift the project's
+  glossary discipline exists to catch.
+
+### The ADR-037 cross-reconciliation
+
+ADR-037 (the control-loop frame) names `#[autoimmune]` as "the COMPARE-stage reference-failure." Per
+Decision (B), that reference is corrected: the **failure-class** at the COMPARE-reference is
+`setpoint-corruption` / `FingerprintGamedNotDefended` (the disturbance); the **regulator response** is the
+`autoimmune-check` *audit-mode screen* (detect over-protection) + the shipped `#[antigen_tolerance]`
+(per-site licensed exception) — **not** a new `#[autoimmune]` site-marker. ADR-037's `#[autoimmune]`
+mentions should be read as "the setpoint-corruption failure-class + its screen-mode detector," consistent
+with this ADR. (A future ADR-037 amendment may make this textually explicit; the reconciliation is recorded
+here so the two ADRs do not ship a backwards name.)
+
+### What this ADR does NOT do
+
+- Does NOT add a new primitive — the three disciplines compose shipped primitives (the dial, `#[dread]`,
+  `#[antigen_tolerance]`); the surfacing discipline is the dial pointed at output (recognition).
+- Does NOT build `#[autoimmune]` as a site-marker — it is reserved for the failure-mode; the detector is an
+  audit-mode screen; the per-site preventer is the shipped `#[antigen_tolerance]`.
+- Does NOT build the general acknowledgement store for non-tolerated findings now — that is charter; the
+  build-now slice is the *principle* (default surface = the NEW/un-acked delta) + the
+  `#[antigen_tolerance]` → off-default-surface branch (no new store). The masterclass MUST surface a
+  *delta-based*, legible signal or it ships a memorized-and-dismissed top-N as its showcase — anti-teaching
+  the discipline.
+- Does NOT quiet a false-positive via triage-state — a wrong fingerprint routes to COMPARE-stage
+  fingerprint-tightening (remove the receptor), not an acknowledged-summary mute (quieting a wrong check is
+  premature-abstraction).
