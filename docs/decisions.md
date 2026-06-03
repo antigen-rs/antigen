@@ -9748,6 +9748,40 @@ is the single open mechanism question; it does not gate the lock. If the Bushwha
 *not* near-free (e.g. a circular-dependency surprise), that is a finding to surface to the captain, not a
 requirement to drop.
 
+### Build-time supersede-note (Bushwhackers / pathmaker, 2026-06-03) — the scan side gains a `parse.rs` leaf
+
+**What this supersedes (append-only; the original §Decision module-shape is preserved above, this overrules
+only the implicit "the scan parsing engine lives in `walk.rs`").** The §Decision §The module shape lists the
+scan-side files as `scan/walk.rs` (the `WalkDir` + `ScanVisitor` file collection), `scan/synthesis.rs`,
+`scan/lineage.rs`, `scan/multi_crate.rs`, `scan/types.rs`, `scan/finalize.rs`, `scan/orchestrate.rs`. Building
+it revealed that the `ScanVisitor` (the ~1200-line `syn::visit::Visit` parse engine) + the `render_path` /
+`render_type` / `attr_is` / `extract_requires_predicate_from_attrs` helpers are a **shared parse layer that
+`scan_workspace` (walk), `synthesis_pass` (synthesis), AND `finalize_report` (finalize) all consume.** Putting
+that engine in `walk.rs` as the file-list implied creates a module **cycle**: `walk → finalize → synthesis →
+(walk's `ScanVisitor`)`.
+
+**The decision (superseded → with):** decision X = "the parsing engine lives in `walk.rs`" is **superseded by**
+decision Y = "the parsing engine is its own dependency-free **leaf** module `scan/parse.rs`", **because Z** =
+`ScanVisitor` calls **no pass fn** (verified — it is a pure AST→declarations walker), so a `parse` leaf breaks
+the cycle and the scan pipeline layers acyclically: **`parse ← {synthesis, finalize, walk} ← multi_crate`**.
+The scan-time attribute arg-parsers (`Scan*Args` + their `syn::parse::Parse` impls) **stay in the `scan`
+module root** (their white-box field-reading unit tests live there, interleaved with proptests across ~3300
+test lines — not a movable contiguous block); `parse.rs` imports them from `super` (a child module reads its
+parent's private types + fields, so no field is widened to `pub`). `ScanVisitor` exposes a `pub const fn new`
+constructor (rather than `pub` fields) so its internal bookkeeping stays encapsulated across the new module
+boundary. This is **behavior-preserving** (no verdict/output change; the 1187-test suite is the witness) and
+**API-invisible** (`parse` is a private module; only `pub(crate)` re-exports give the passes + the
+`#[cfg(test)]` test module reach — the public `scan::` surface is unchanged). The original intent (smaller
+single-purpose files, types-first, orchestration named + out-of-band-capable) is **honored, not weakened** —
+the parse leaf is the cleaner expression of "each detector/pass is a pure fn of its input."
+
+**Honest note on the scan side's nature (a finding, not a defect):** unlike the audit side (nine genuinely
+independent `audit_*` detectors that fan out cleanly), the scan side is **one tightly-coupled pipeline** — every
+pass depends on the parse layer and the finalize/synthesis core, and its tests are white-box-coupled to the
+internals. So the scan decomposition is necessarily a *layered* split (leaf → passes → coordinator) threaded
+with `pub(crate)` shared-helper re-exports, not the audit side's flat fan-out. The purity invariant (§The
+out-of-band invariant) still holds: no pass holds stop-authority; `parse` is the purest (a pure AST walker).
+
 ---
 
 ## [ADR-037] Antigen Is a Closed-Loop Regulator: Its Own Machinery Has Six Failure-Points (the Control-Loop Master-Frame)
