@@ -3911,58 +3911,27 @@ fn run_audit(args: AuditArgs) -> ExitCode {
         filter_report_by_category(&mut scan_report, cat);
     }
 
-    let audit_report = audit::audit(&scan_report, &args.root);
-
-    // ADR-028 category audit (audit-time):
-    //   G1 (scan-time-only enforcement): surface the
-    //   antigen-category-defaulted-implicit-functional migration hint for every
-    //   antigen declaration with an absent category — the load-bearing signal
-    //   (per adversarial's G1 ratification) that makes absent-category visible
-    //   rather than a silent false-green.
-    //   G2 (category↔witness-type cross-check): surface
-    //   antigen-category-claim-inconsistent-with-predicate-type for any
-    //   explicit-category declaration whose immunities are the wrong witness
-    //   type for the declared category (per Amendment 2 + aristotle F1).
-    let category_report = audit::audit_category(&scan_report);
-
-    // ADR-023 + team-lead reframe (forward/suppression-loud-must-be-removed):
-    // #[anergy] / #[immunosuppress] are intentional dev permissions to proceed
-    // with a known defense gap. They must be LOUD — the audit ALWAYS announces
-    // active ones prominently so they cannot become silent accumulated debt.
-    // `audit_deferred_defenses` computes the state; this is the delivery arm
-    // (it was computed in the library but never reached the CLI — the
-    // AuditVerdictComputedButNotDelivered severance, same shape as the lineage
-    // surface). 30-day default stale-grace per the library contract.
-    let deferred_report = audit::audit_deferred_defenses(&scan_report, 30);
-
-    // ADR-024 convergent-evidence (#[diagnostic]/#[clonal]/#[igg]/...) +
-    // recurrent-emergence (#[itch]/#[recurrence_anchor]/#[crystallize]/...)
-    // audits. Both were computed by the library + populated by scan but NEVER
-    // delivered by any CLI command (the AuditVerdictComputedButNotDelivered
-    // severance — same shape as the lineage + deferred-defense surfaces). Wire
-    // their concern-hints into the audit output so the verdict actually reaches
-    // the adopter.
-    let convergent_report = audit::audit_convergent_evidence(&scan_report);
-    let recurrent_report = audit::audit_recurrent(&scan_report);
-    // ADVISORY (scientist 2026-05-27): #[descended_from] lineage-fidelity —
-    // flag (advisory, non-blocking) where a child antigen's fingerprint is
-    // detectably NOT a refinement of its parent's. Delivered here so the
-    // computed verdict reaches the adopter (the delivery-arm discipline).
-    let lineage_fidelity_report = audit::audit_lineage_fidelity(&scan_report);
-
-    // Coverage / reachability audit — the ignorance frontier as per-site
-    // verdicts (regulatory tier; the 4th peripheral-tolerance mechanism).
-    // Barrier-cause verdicts surface enumerated-but-unscanned members; empty
-    // under a flat (non-`--workspace`) audit, which has no member concept (so it
-    // cannot know what it missed — tier-honest, not a completeness claim).
-    let coverage_report = audit::audit_coverage(&scan_report);
-
-    // Prescriptive work-orchestration audit (ADR-033) — project every work-need
-    // (#[panel]/#[rx]/#[refer]/#[biopsy]/#[ddx]/#[triage]/#[culture]/#[quarantine])
-    // to a four-valued WorkVerdict. This is the substrate the audit BOARD renders
-    // (ADR-033 §Decision 4): "code IS the Asana board." A live projection per
-    // ADR-034 — recomputed every run from current code, never stored.
-    let prescriptive_report = audit::audit_prescriptive(&scan_report, &args.root);
+    // ADR-036: the audit detector fan-out is now owned by the thin audit-side
+    // sequencer `audit::orchestrate::run`, which drives the detector sequence in
+    // the established order and bundles each report. This is the recognition of
+    // the fan-out that used to live inline here (immunity audit + the ADR-028
+    // category cross-check + the ADR-023 deferred-defense state + the ADR-024
+    // convergent/recurrent audits + the lineage-fidelity advisory + the coverage
+    // ignorance-frontier + the ADR-033 prescriptive work-board) — same calls,
+    // same order, same arguments; the sequencer gives them a home and a name (and
+    // is the layer a future cascade-governor's SCRAM sits above). Each report is
+    // delivered to the renderer below (the delivery-arm discipline that the
+    // AuditVerdictComputedButNotDelivered dogfood antigen guards).
+    let audit::orchestrate::AuditBundle {
+        audit: audit_report,
+        category: category_report,
+        deferred: deferred_report,
+        convergent: convergent_report,
+        recurrent: recurrent_report,
+        lineage_fidelity: lineage_fidelity_report,
+        coverage: coverage_report,
+        prescriptive: prescriptive_report,
+    } = audit::orchestrate::run(&scan_report, &args.root);
 
     // Live projection: the audit recomputed all of the above from the current
     // code. Envelope it for provenance; running this at a tagged commit yields

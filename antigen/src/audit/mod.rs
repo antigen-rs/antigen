@@ -77,6 +77,13 @@ pub use prescriptive::{
     StepState,
 };
 
+/// The thin audit-side sequencer (ADR-036).
+///
+/// `orchestrate::run` drives the detector sequence and bundles each report. It
+/// owns the *order* detectors run in, no detection logic — the layer a future
+/// cascade-governor's SCRAM sits above (the single-conductor host).
+pub mod orchestrate;
+
 #[cfg(test)]
 mod tests {
     use std::path::{Path, PathBuf};
