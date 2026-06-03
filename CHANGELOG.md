@@ -103,20 +103,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     check (serde #2283), and `derives` is a syntactic last-ident (no path
     resolution).
   - **`UnboundedDeserialization`** (named) — a byte/reader-source deserialization
-    with no size/depth/recursion limit, a `DoS` surface (recorded harm across ≥3
+    (`from_reader` / `from_slice`), a `DoS` surface (recorded harm across ≥3
     RUSTSEC advisories 2022→2026). Fingerprint
-    `any_of([all_of([body_calls("from_reader"), not(body_calls("take"))]),
-    body_calls("from_slice")])` — the keystone is the **streaming** `from_reader`
-    **without** a `.take(limit)` bound (the std-documented anti-`DoS` idiom is
-    `from_reader(reader.take(n))`), plus a weaker `from_slice` presence arm for
-    breadth. The guard-absence form **fails safe**: an unrelated `Iterator::take`
-    suppresses the finding (a false-*negative* → under-flag, the safe direction),
-    never the reverse. **Honest defect-slice:** `from_str` is deliberately
-    excluded — `body_calls` matches by last segment with no path resolution, so it
-    would fire on every `i32::from_str` (`FromStr`, not deserialization), and
-    `from_str`/`from_slice` operate on data already in memory (weaker tells than
-    the streaming `from_reader`). Scoping `take` to `Read::take` (vs
-    `Iterator::take`) by receiver-type is a semantic / charter refinement.
+    `any_of([body_calls("from_reader"), body_calls("from_slice")])` — bare presence
+    of the streaming/byte-source entrypoint. **Named** because `from_reader` /
+    `from_slice` are rare/std-specific (self-anchoring — a domain type rarely has a
+    `from_reader` method). The `.take(limit)`-capped form **still fires** the
+    fingerprint (the risky *surface* is present) and is **spared by the witness at
+    audit** — the surface-flag / witness-proof split. A `not(body_calls("take"))`
+    guard was deliberately **not** used: at the named tier a subject-slice negation
+    silently suppresses a real `DoS` whenever an unrelated `Iterator::take` appears
+    — a silent false-negative that breaks the named promise (the guard would be
+    admissible only at a heuristic tier). **`from_str` excluded** — `body_calls` is
+    last-segment, so it would fire on every `i32::from_str` (`FromStr`, not
+    deserialization).
   - Both ship `category = FunctionalCorrectness` and WITH their admitting-
     specimens (the affinity-pairs in `examples/deserialization.rs` + the
     fingerprint drift-guard tests in `tests/stdlib_family_fingerprints.rs`).
@@ -168,11 +168,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   — a clean call-shape (both are slice/`Vec`-specific, no stdlib collision). The
   panic-form `expr[i]` (`UncheckedIndexOnDynamicCollection`, an Index-operator
   tell) and the deref-coercion compile-vs-runtime gem are charter-deferred.
-- **`resource_lifecycle` :: `DeliberateLeakNotDocumented`** (named) — a call to an
-  explicit-leak primitive (`mem::forget` / `Box::leak` / `Vec::leak`) that skips
-  `Drop`. Fingerprint `any_of([body_calls("forget"), body_calls("leak")])`. Named
-  on the call-presence (the leak primitives are explicit); the "without rationale
-  doc" half is a sensor-layer refinement (charter). `resource_lifecycle` and
+- **`resource_lifecycle` :: `DeliberateLeakNotDocumented`** (suspected) — a call
+  to an explicit-leak primitive (`mem::forget` / `Box::leak` / `Vec::leak`) that
+  skips `Drop`. Fingerprint `any_of([body_calls("forget"), body_calls("leak")])`.
+  **Suspected** (not named): `forget`/`leak` are bare common last-segments with no
+  narrowing anchor, so `body_calls` (last-segment) cannot distinguish `mem::forget`
+  from a domain `cache.forget` — a positive tell at the loud named tier would
+  overclaim precision; it graduates to named when path resolution lands. The
+  "without rationale doc" half is a sensor-layer refinement (charter).
+  `resource_lifecycle` and
   `drop_panic` are siblings on the Drop-Lifecycle axis (drop never-fires vs
   fires-but-explodes) — not merged (distinct remedies). `RcCycleWithoutWeak`
   (relational) and `GuardOrHandleImmediatelyDropped` (`let _ =` binding-tell) are

@@ -47,12 +47,22 @@ use crate::antigen;
 ///
 /// **Tell:** a call to `forget` / `leak` —
 /// `any_of([body_calls("forget"), body_calls("leak")])` (`mem::forget` →
-/// last-segment `forget`; `Box::leak` / `Vec::leak` → last-segment `leak`). A
-/// user function also named `forget` / `leak` is the honest last-segment
-/// false-positive the dial carries.
+/// last-segment `forget`; `Box::leak` / `Vec::leak` → last-segment `leak`).
 ///
-/// **Tier:** **named** on the call-presence — `forget` / `leak` are explicit,
-/// intentional-leak primitives; their presence IS the flag.
+/// **Tier:** **suspected** — NOT named. `forget` / `leak` are **bare common
+/// last-segments with no narrowing anchor**: `body_calls` matches by last segment
+/// (a path-qualified needle is parse-rejected), so the effective codomain
+/// includes a domain `cache.forget()` / `permissions.leak()` that is not a leak
+/// at all. A *positive* tell at the named (loud) tier would overclaim precision —
+/// and the dial cannot soften at named — so the honest tier is suspected. (Unlike
+/// the named members whose effective codomain IS the defect population: a
+/// rare/std-specific self-anchoring needle like `get_unchecked` / `from_reader`,
+/// a defect-slice anchor like `impl_of_trait("Drop")`, or a rare co-anchor like
+/// `copy_nonoverlapping` + `size_of`.) The leak primitives *are* `forget`/`leak`
+/// — no rarer companion exists at the leaf — so it graduates to named only when
+/// path/semantic resolution lands (charter v0.4). The witness cannot rescue named
+/// here: a `cache.forget()` false-positive is a *different method*, so no
+/// `#[defended_by]` reaches it.
 ///
 /// **Witness:** a documented rationale (`Box::leak` for a known-`'static`
 /// singleton is fine, *if said*), OR the resource is not actually leaked.
@@ -64,7 +74,7 @@ use crate::antigen;
     category = AntigenCategory::FunctionalCorrectness,
     fingerprint = r#"any_of([body_calls("forget"), body_calls("leak")])"#,
     family = "resource-lifecycle-leak",
-    summary = "A call to an explicit-leak primitive (mem::forget / Box::leak / Vec::leak) — Drop is deliberately skipped; the witness is the documented rationale. Named on call-presence; the doc-absence refinement is sensor-layer (charter).",
+    summary = "A call to an explicit-leak primitive (mem::forget / Box::leak / Vec::leak) — Drop is deliberately skipped; the witness is the documented rationale. SUSPECTED tier (bare common last-segments forget/leak with no narrowing anchor → effective codomain includes a domain cache.forget; graduates to named when path resolution lands).",
     references = [
         "https://doc.rust-lang.org/std/mem/fn.forget.html",
         "ADR-040",

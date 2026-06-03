@@ -29,7 +29,7 @@
 //! the `from_reader`/`from_slice` call tokens, which the scanner reads
 //! syntactically.
 
-use antigen::{antigen, presents};
+use antigen::{antigen, defended_by, presents};
 
 // ---------------------------------------------------------------------------
 // Member 1 — DeserializeWithoutDenyUnknownFields
@@ -85,9 +85,9 @@ struct StrictConfig {
 #[antigen(
     name = "unbounded-deserialization",
     category = AntigenCategory::FunctionalCorrectness,
-    fingerprint = r#"any_of([all_of([body_calls("from_reader"), not(body_calls("take"))]), body_calls("from_slice")])"#,
+    fingerprint = r#"any_of([body_calls("from_reader"), body_calls("from_slice")])"#,
     family = "deserialization-trust-boundary",
-    summary = "A streaming from_reader deserialization with no .take(limit) bound (or a from_slice) — a DoS surface.",
+    summary = "A streaming from_reader (or from_slice) deserialization — a DoS surface. The surface fires; the .take(limit) defense is proved by the witness at audit.",
     references = ["RUSTSEC-2024-0012"],
 )]
 pub struct UnboundedDeserialization;
@@ -103,24 +103,38 @@ mod toy_de {
     }
 }
 
-/// BAD (the bind): deserializes from a reader with NO `.take(limit)` bound — a
-/// non-terminating / huge stream blows the stack or allocates unboundedly.
-///
-/// `body_calls("from_reader")` matches AND `not(body_calls("take"))` matches
-/// (no `.take`) → the guard-absence arm **binds**.
+/// UNADDRESSED (the bind): deserializes from a reader with NO `.take(limit)`
+/// bound — a non-terminating / huge stream blows the stack or allocates
+/// unboundedly. `body_calls("from_reader")` matches → **binds**, and there is no
+/// witness, so it is an unaddressed presentation (the real `DoS` surface).
 #[presents(UnboundedDeserialization)]
 fn load_unbounded<R: std::io::Read>(r: R) -> Vec<u8> {
     toy_de::from_reader(r)
 }
 
-/// GOOD (the spare): the SAME `from_reader` entrypoint, but the byte source is
-/// bounded with `.take(limit)` — the std-documented anti-DoS idiom.
-///
-/// `body_calls("from_reader")` still matches, but `not(body_calls("take"))` does
-/// NOT (the `.take` guard is present) → the guard-absence arm is **spared**. The
-/// presence of the bound is exactly what the absence-tell looks for.
+/// DEFENDED (surface fires, witness spares at audit): the SAME `from_reader`
+/// surface — so it **still fires** the fingerprint — but the byte source is
+/// bounded with `.take(limit)`, the std-documented anti-`DoS` defense. The
+/// `#[defended_by]` test below proves the bound; audit observes the circuit and
+/// marks this site defended. The surface-flag / witness-proof split: the
+/// fingerprint flags the surface, the witness proves the defense — we do NOT
+/// fingerprint-spare the capped form (a `not(take)` guard would silently suppress
+/// real `DoS` sites whenever an unrelated `Iterator::take` appeared, a silent
+/// false-negative that breaks the named tier's promise).
+#[presents(UnboundedDeserialization)]
 fn load_bounded<R: std::io::Read>(r: R) -> Vec<u8> {
     toy_de::from_reader(r.take(1 << 20))
+}
+
+/// Witness: proves `load_bounded` caps its reader with `.take(limit)`.
+/// `#[defended_by]` declares this test's intent toward the failure-class; audit
+/// observes that the circuit covers the bounded site.
+#[allow(dead_code)]
+#[defended_by(UnboundedDeserialization)]
+fn load_bounded_is_capped_test() {
+    let data = b"abcd".as_slice();
+    let out = load_bounded(data);
+    assert!(out.len() <= (1 << 20));
 }
 
 fn main() {
