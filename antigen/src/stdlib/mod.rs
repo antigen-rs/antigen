@@ -35,6 +35,11 @@
 //!   Mucosal-Boundary: untrusted bytes crossing into typed structs without the
 //!   tight-junction (`deny_unknown_fields` absent → silent field drop;
 //!   unbounded `from_reader`/`from_slice` → DoS). Biology cognate: gut mucosa.
+//! - [`time_ordering`](crate::stdlib::time_ordering) — the
+//!   Time-and-Ordering-Hazards Family (beta.2 voyage): the silent-in-tests /
+//!   panic-in-prod clock footgun (`SystemTime::duration_since().unwrap()` panics
+//!   on backwards-clock, never in tests). Biology cognate: circadian /
+//!   signaling-timing failure.
 //! - [`dogfood`](crate::stdlib::dogfood) — antigen-internal dogfood antigens,
 //!   failure-classes observed directly in antigen's own development and
 //!   coordination substrate (v0.2 completion arc, 2026-05-24).
@@ -71,4 +76,5 @@ pub mod dogfood;
 pub mod mucosal;
 pub mod recurrent;
 pub mod supply_chain;
+pub mod time_ordering;
 pub mod vcs_info_loss;
