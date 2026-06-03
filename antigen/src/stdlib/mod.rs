@@ -44,6 +44,15 @@
 //!   Family (beta.2 voyage): a real `Drop` impl (`impl_of_trait("Drop")`) whose
 //!   body reaches a panic source — panic-during-unwind aborts the process.
 //!   Biology cognate: apoptosis gone wrong (teardown that triggers a cascade).
+//! - [`resource_lifecycle`](crate::stdlib::resource_lifecycle) — the
+//!   Resource-Lifecycle-Leak Family (beta.2 voyage): an explicit-leak primitive
+//!   (`mem::forget` / `Box::leak` / `Vec::leak`) skips `Drop`. The sibling of
+//!   `drop_panic` on the Drop-Lifecycle axis (drop never-fires vs
+//!   fires-but-explodes). Biology cognate: failure of apoptosis.
+//! - [`panic_on_index`](crate::stdlib::panic_on_index) — the Panic-on-Index
+//!   Family (beta.2 voyage): `get_unchecked` / `get_unchecked_mut` skip the
+//!   bounds check → out-of-bounds is Undefined Behavior. Biology cognate:
+//!   proprioception / spinal-reflex failure.
 //! - [`dogfood`](crate::stdlib::dogfood) — antigen-internal dogfood antigens,
 //!   failure-classes observed directly in antigen's own development and
 //!   coordination substrate (v0.2 completion arc, 2026-05-24).
@@ -79,7 +88,9 @@ pub mod deserialization;
 pub mod dogfood;
 pub mod drop_panic;
 pub mod mucosal;
+pub mod panic_on_index;
 pub mod recurrent;
+pub mod resource_lifecycle;
 pub mod supply_chain;
 pub mod time_ordering;
 pub mod vcs_info_loss;

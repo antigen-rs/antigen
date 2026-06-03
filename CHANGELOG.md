@@ -159,6 +159,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (visibility-tell) and `PanicSourceInConstContext` (clippy-covered) stay
   charter-deferred.
 
+### Added — Panic-on-Index + Resource-Lifecycle-Leak stdlib families (beta.2 voyage)
+
+- **`panic_on_index` :: `GetUncheckedWithoutProof`** (named) — a call to
+  `get_unchecked` / `get_unchecked_mut`, the unchecked-indexing escape hatch whose
+  out-of-bounds case is **Undefined Behavior** (a soundness hole, not a panic).
+  Fingerprint `any_of([body_calls("get_unchecked"), body_calls("get_unchecked_mut")])`
+  — a clean call-shape (both are slice/`Vec`-specific, no stdlib collision). The
+  panic-form `expr[i]` (`UncheckedIndexOnDynamicCollection`, an Index-operator
+  tell) and the deref-coercion compile-vs-runtime gem are charter-deferred.
+- **`resource_lifecycle` :: `DeliberateLeakNotDocumented`** (named) — a call to an
+  explicit-leak primitive (`mem::forget` / `Box::leak` / `Vec::leak`) that skips
+  `Drop`. Fingerprint `any_of([body_calls("forget"), body_calls("leak")])`. Named
+  on the call-presence (the leak primitives are explicit); the "without rationale
+  doc" half is a sensor-layer refinement (charter). `resource_lifecycle` and
+  `drop_panic` are siblings on the Drop-Lifecycle axis (drop never-fires vs
+  fires-but-explodes) — not merged (distinct remedies). `RcCycleWithoutWeak`
+  (relational) and `GuardOrHandleImmediatelyDropped` (`let _ =` binding-tell) are
+  charter-deferred.
+- Both `category = FunctionalCorrectness`, ship WITH their admitting-specimens
+  (`examples/panic_on_index.rs`, `examples/resource_lifecycle.rs`) + drift-guard
+  tests.
+
 ### Changed — shipped `PanickingInDrop` fingerprint tightened with `impl_of_trait("Drop")` (v2)
 
 - The canonical seed antigen `PanickingInDrop` (`examples/basic.rs`) now anchors
