@@ -33,6 +33,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `BlockingCallInAsyncFn`, `all_of([item = fn, not(is_unsafe)])` for
   `RawPtrDerefInSafeFn`).
 
+### Added — `derives("<name>")` / `serde_arg("<name>")` attribute-introspection leaves (ADR-040 grammar increment 2, G1b)
+
+- New fingerprint operators `derives("<name>")` (is `name` in a `#[derive(...)]`
+  list on the item) and `serde_arg("<name>")` (is `name` an argument in a
+  `#[serde(...)]` attribute, e.g. `deny_unknown_fields` — matched whether bare or
+  `= value`). Both are syntactic last-ident membership (no path resolution — a
+  user type also named `Hash` is indistinguishable here, the honest false-positive
+  the confidence dial carries) and full-domain like `attr_present` (absent =
+  definite `NoMatch`), so the anchored absence form is the tell:
+  `all_of([item = struct, derives("Hash"), not(derives("Eq"))])` for the
+  `derive(Hash)`-without-`Eq` class;
+  `all_of([derives("Deserialize"), not(serde_arg("deny_unknown_fields"))])` for
+  `DeserializeWithoutDenyUnknownFields`. (`attr_absent` is not a new operator —
+  the anchored `not(attr_present(...))` already expresses attribute absence.)
+
 ### Added — `impl_of_trait("<name>")` trait-impl identity leaf (ADR-040 grammar increment 2, G3)
 
 - New fingerprint operator `impl_of_trait("<name>")` — matches an

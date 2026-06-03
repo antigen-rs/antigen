@@ -53,6 +53,8 @@ fn parse_constraint(input: ParseStream) -> syn::Result<Constraint> {
         "body_calls" => parse_body_calls(input),
         "is_async" | "is_unsafe" | "is_const" => parse_qualifier(input),
         "impl_of_trait" => parse_impl_of_trait(input),
+        "derives" => parse_derives(input),
+        "serde_arg" => parse_serde_arg(input),
         "all_of" => parse_all_of(input),
         "any_of" => parse_any_of(input),
         "not" => parse_not(input),
@@ -62,7 +64,7 @@ fn parse_constraint(input: ParseStream) -> syn::Result<Constraint> {
                 "unknown fingerprint operator `{other}`; expected one of: \
                  item, name, variants, has_method, attr_present, doc_contains, \
                  body_contains_macro, body_calls, is_async, is_unsafe, is_const, \
-                 impl_of_trait, all_of, any_of, not",
+                 impl_of_trait, derives, serde_arg, all_of, any_of, not",
             ),
         )),
     }
@@ -315,6 +317,30 @@ fn parse_impl_of_trait(input: ParseStream) -> syn::Result<Constraint> {
     // `"std::ops::Drop"` or padded name would silently never fire; fail loud).
     validate_target_ident_name("impl_of_trait", &name, lit.span())?;
     Ok(Constraint::ImplOfTrait(name))
+}
+
+fn parse_derives(input: ParseStream) -> syn::Result<Constraint> {
+    let _kw: Ident = input.parse()?; // "derives"
+    let content;
+    parenthesized!(content in input);
+    let lit: LitStr = content.parse()?;
+    let name = lit.value();
+    // A derive name is matched against a literal derive-list ident (`Hash`),
+    // so the same bare-identifier gate applies (fail loud on a padded/path name).
+    validate_target_ident_name("derives", &name, lit.span())?;
+    Ok(Constraint::Derives(name))
+}
+
+fn parse_serde_arg(input: ParseStream) -> syn::Result<Constraint> {
+    let _kw: Ident = input.parse()?; // "serde_arg"
+    let content;
+    parenthesized!(content in input);
+    let lit: LitStr = content.parse()?;
+    let name = lit.value();
+    // A serde arg name is matched against a literal `#[serde(...)]` arg ident
+    // (`deny_unknown_fields`), so the same bare-identifier gate applies.
+    validate_target_ident_name("serde_arg", &name, lit.span())?;
+    Ok(Constraint::SerdeArg(name))
 }
 
 fn parse_all_of(input: ParseStream) -> syn::Result<Constraint> {
