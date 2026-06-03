@@ -40,16 +40,28 @@ use crate::antigen;
 /// silent-in-tests / panic-in-prod flagship.
 ///
 /// **Tell (and its honest tier):** the PRECISE tell is a method-chain —
-/// `x.duration_since(y).unwrap()` / `t.elapsed().unwrap()`. The shipped grammar
-/// has no relational/chain leaf, so this member ships the **co-occurrence** form:
-/// `all_of([any_of([body_calls("duration_since"), body_calls("elapsed")]),
-/// any_of([body_calls("unwrap"), body_calls("expect")])])` — a clock-read call
-/// AND an `unwrap`/`expect` call in the same body. This is honestly
-/// **suspected**, NOT named: co-occurrence *correlates* with the panic-chain but
-/// does not *prove* it (the `unwrap` could guard a different `Result`). When the
-/// precise method-chain leaf ships (charter / next increment), the member
-/// graduates suspected → named. `duration_since` also exists on `Instant` (whose
-/// version does not return `Result`), reinforcing the suspected tier.
+/// `x.duration_since(y).unwrap()`. The shipped grammar has no relational/chain
+/// leaf, so this member ships the **co-occurrence** form:
+/// `all_of([body_calls("duration_since"), any_of([body_calls("unwrap"),
+/// body_calls("expect")])])` — a `duration_since` call AND an `unwrap`/`expect`
+/// call in the same body. This is honestly **suspected**, NOT named:
+/// co-occurrence *correlates* with the panic-chain but does not *prove* it (the
+/// `unwrap` could guard a different `Result`). When the precise method-chain leaf
+/// ships (charter / next increment), the member graduates suspected → named.
+///
+/// **Why `elapsed` is NOT in the anchor (the clean-sibling rule):** an `elapsed`
+/// arm would fire on `Instant::now().elapsed()` — but `Instant` is monotonic and
+/// `Instant::elapsed()` returns `Duration` (not `Result`, can't panic-on-skew):
+/// it is the textbook *"use `Instant` instead of `SystemTime`"* **fix**, i.e. the
+/// member's own clean sibling. A needle that fires on the anti-correlated safe
+/// case (the fix) is dropped at *every* tier (not merely demoted) — so `elapsed`
+/// is excluded. (Recall cost: `SystemTime::elapsed().unwrap()` is lost as a
+/// true-positive; a v0.4-recoverable FN — receiver-type resolution re-adds
+/// `elapsed` *anchored on a `SystemTime` receiver*, recovering the TP without the
+/// `Instant` clean-sibling FP. Documented-not-forgotten.) `duration_since` is
+/// kept because, while it also exists on `Instant`, the precise `SystemTime`-
+/// vs-`Instant` ambiguity is resolved by the witness/tier, and dropping it would
+/// leave no anchor at all.
 ///
 /// **Witness:** the `Result` is handled (`.unwrap_or(Duration::ZERO)`, a `match`),
 /// OR `Instant` is used instead of `SystemTime` for the measurement.
@@ -59,9 +71,9 @@ use crate::antigen;
 #[antigen(
     name = "system-time-unwrap-panic",
     category = AntigenCategory::FunctionalCorrectness,
-    fingerprint = r#"all_of([any_of([body_calls("duration_since"), body_calls("elapsed")]), any_of([body_calls("unwrap"), body_calls("expect")])])"#,
+    fingerprint = r#"all_of([body_calls("duration_since"), any_of([body_calls("unwrap"), body_calls("expect")])])"#,
     family = "time-and-ordering-hazards",
-    summary = "A SystemTime clock read (duration_since / elapsed) whose Result is unwrap/expect-ed — panics in prod on backwards-clock, never in tests. Suspected tier (co-occurrence, not the precise chain).",
+    summary = "A SystemTime::duration_since clock read whose Result is unwrap/expect-ed — panics in prod on backwards-clock, never in tests. Suspected tier (co-occurrence, not the precise chain). elapsed excluded (fires on the Instant::elapsed clean sibling = the fix).",
     references = [
         "https://doc.rust-lang.org/std/time/struct.SystemTime.html#method.duration_since",
         "ADR-040",

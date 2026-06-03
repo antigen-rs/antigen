@@ -233,13 +233,13 @@ fn unbounded_deserialization_spares_from_str_and_unrelated() {
 // ============================================================================
 
 /// The member's declared fingerprint, kept in ONE place (the drift-guard).
-const SYSTEM_TIME_UNWRAP: &str = r#"all_of([any_of([body_calls("duration_since"), body_calls("elapsed")]), any_of([body_calls("unwrap"), body_calls("expect")])])"#;
+const SYSTEM_TIME_UNWRAP: &str = r#"all_of([body_calls("duration_since"), any_of([body_calls("unwrap"), body_calls("expect")])])"#;
 
 #[test]
 fn system_time_unwrap_binds_duration_since_then_unwrap() {
-    // BIND: a clock read (duration_since) AND an unwrap in the same body.
-    // any_of(clock-read) = Match AND any_of(unwrap/expect) = Match → all_of =
-    // Match. The silent-in-tests / panic-in-prod site.
+    // BIND: a duration_since read AND an unwrap in the same body.
+    // body_calls("duration_since") = Match AND any_of(unwrap/expect) = Match →
+    // all_of = Match. The silent-in-tests / panic-in-prod site.
     let fp = fp(SYSTEM_TIME_UNWRAP);
     assert!(
         fp.matches(&item(
@@ -250,14 +250,30 @@ fn system_time_unwrap_binds_duration_since_then_unwrap() {
 }
 
 #[test]
-fn system_time_unwrap_binds_elapsed_then_expect() {
-    // BIND the other arms (elapsed + expect) — proves both any_of branches.
+fn system_time_unwrap_binds_duration_since_then_expect() {
+    // BIND the expect arm — proves both any_of(unwrap/expect) branches.
     let fp = fp(SYSTEM_TIME_UNWRAP);
     assert!(
         fp.matches(&item(
-            r#"fn since(t: SystemTime) -> Duration { t.elapsed().expect("clock skew") }"#
+            r#"fn age(a: SystemTime, b: SystemTime) -> Duration { a.duration_since(b).expect("skew") }"#
         )),
-        "must BIND an elapsed read whose Result is expect-ed"
+        "must BIND a duration_since read whose Result is expect-ed"
+    );
+}
+
+#[test]
+fn system_time_unwrap_spares_instant_elapsed_clean_sibling() {
+    // SPARE (the clean-sibling rule): `Instant::now().elapsed()` is the textbook
+    // "use Instant instead of SystemTime" FIX — the member's own clean sibling.
+    // `elapsed` is NOT in the anchor (it would fire on this anti-correlated safe
+    // case), so even with an unrelated unwrap in the body, the duration_since
+    // anchor is absent → all_of = NoMatch. The fix is not flagged.
+    let fp = fp(SYSTEM_TIME_UNWRAP);
+    assert!(
+        !fp.matches(&item(
+            "fn timed(m: &Map) -> u8 { let _d = Instant::now().elapsed(); m.get(0).unwrap() }"
+        )),
+        "must SPARE Instant::now().elapsed() (the clean sibling / recommended fix)"
     );
 }
 
