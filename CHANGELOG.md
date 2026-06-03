@@ -111,6 +111,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     specimens (the affinity-pairs in `examples/deserialization.rs` + the
     fingerprint drift-guard tests in `tests/stdlib_family_fingerprints.rs`).
 
+### Added — Time-and-Ordering-Hazards stdlib family — `SystemTimeUnwrapPanic` (beta.2 voyage)
+
+- New stdlib family `time_ordering`. First member `SystemTimeUnwrapPanic`
+  (suspected) — a clock read (`SystemTime::duration_since` / `.elapsed()`) whose
+  `Result` is `unwrap`/`expect`-ed: panics in production when the clock runs
+  backwards (NTP correction, manual set, VM pause), NEVER in tests (test machines
+  do not skew mid-test) — the silent-in-tests / panic-in-prod flagship. Fingerprint
+  `all_of([any_of([body_calls("duration_since"), body_calls("elapsed")]),
+  any_of([body_calls("unwrap"), body_calls("expect")])])` — a clock-read call AND
+  an `unwrap`/`expect` call in the same body. **Honest tier:** **suspected**, not
+  named — the precise tell is a method-chain (`.duration_since().unwrap()`) and
+  the shipped grammar has no relational/chain leaf, so this is the *co-occurrence*
+  form, which correlates with the panic-chain but does not prove it (the `unwrap`
+  could guard a different `Result`); the precise-chain leaf (charter / next
+  increment) graduates it suspected → named. Category `FunctionalCorrectness`
+  (the unwrap-on-skew produces a wrong effect — a prod panic the tests never
+  reach). Ships WITH its admitting-specimen (`examples/time_ordering.rs` +
+  drift-guard tests). `SystemTimeForElapsedMeasurement` (semantic) and `TOCTOU`
+  (relational) members stay charter-deferred.
+
 ### Changed — `body_contains_macro` / `body_calls` now reject unmatchable names (fail-direction fix)
 
 - **Behavior change (tiny compat surface; surfaced here per our own

@@ -180,3 +180,64 @@ fn unbounded_deserialization_spares_from_str_and_unrelated() {
         "must SPARE a function with no deser entrypoint"
     );
 }
+
+// ============================================================================
+// time-and-ordering-hazards :: SystemTimeUnwrapPanic
+// ============================================================================
+
+/// The member's declared fingerprint, kept in ONE place (the drift-guard).
+const SYSTEM_TIME_UNWRAP: &str = r#"all_of([any_of([body_calls("duration_since"), body_calls("elapsed")]), any_of([body_calls("unwrap"), body_calls("expect")])])"#;
+
+#[test]
+fn system_time_unwrap_binds_duration_since_then_unwrap() {
+    // BIND: a clock read (duration_since) AND an unwrap in the same body.
+    // any_of(clock-read) = Match AND any_of(unwrap/expect) = Match → all_of =
+    // Match. The silent-in-tests / panic-in-prod site.
+    let fp = fp(SYSTEM_TIME_UNWRAP);
+    assert!(
+        fp.matches(&item(
+            "fn age(t: SystemTime) -> Duration { SystemTime::now().duration_since(t).unwrap() }"
+        )),
+        "must BIND a duration_since read whose Result is unwrapped"
+    );
+}
+
+#[test]
+fn system_time_unwrap_binds_elapsed_then_expect() {
+    // BIND the other arms (elapsed + expect) — proves both any_of branches.
+    let fp = fp(SYSTEM_TIME_UNWRAP);
+    assert!(
+        fp.matches(&item(
+            r#"fn since(t: SystemTime) -> Duration { t.elapsed().expect("clock skew") }"#
+        )),
+        "must BIND an elapsed read whose Result is expect-ed"
+    );
+}
+
+#[test]
+fn system_time_unwrap_spares_handled_clock_read() {
+    // SPARE: a clock read whose Result is HANDLED (no unwrap/expect anywhere in
+    // the body). any_of(unwrap/expect) = NoMatch → all_of short-circuits to
+    // NoMatch. The handled-Result sibling is the safe path.
+    let fp = fp(SYSTEM_TIME_UNWRAP);
+    assert!(
+        !fp.matches(&item(
+            "fn age(t: SystemTime) -> Duration { SystemTime::now().duration_since(t).unwrap_or(Duration::ZERO) }"
+        )),
+        "must SPARE a clock read whose Result is handled (unwrap_or, no unwrap/expect)"
+    );
+}
+
+#[test]
+fn system_time_unwrap_spares_unwrap_without_clock_read() {
+    // SPARE: an unwrap with NO clock read in the body. any_of(clock-read) =
+    // NoMatch → all_of short-circuits to NoMatch. The co-occurrence requires
+    // BOTH halves — an unwrap on an unrelated Result is not this class.
+    let fp = fp(SYSTEM_TIME_UNWRAP);
+    assert!(
+        !fp.matches(&item(
+            "fn parse(s: &str) -> i32 { s.parse::<i32>().unwrap() }"
+        )),
+        "must SPARE an unwrap with no clock read (no clock-read anchor)"
+    );
+}
