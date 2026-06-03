@@ -85,6 +85,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `security_sensitive_name` name-content leaf, charter). The member is honest at
     the heuristic tier with the placeholders in place.
 
+### Added — Deserialization-Trust-Boundary stdlib family (beta.2 voyage)
+
+- New stdlib family `deserialization` — the deep tier of Mucosal-Boundary
+  (ADR-027): untrusted bytes crossing into typed structs. Two members:
+  - **`DeserializeWithoutDenyUnknownFields`** (suspected) — a
+    `#[derive(Deserialize)]` type with no `#[serde(deny_unknown_fields)]`
+    silently drops unknown input fields (masking API drift / smuggled fields).
+    Fingerprint `all_of([derives("Deserialize"), not(serde_arg("deny_unknown_fields"))])`
+    — the cleanest attribute-presence-AND-ABSENCE driver in the family (the G1b
+    `derives` + `serde_arg` leaves): the presence of the safe argument spares the
+    sibling. Honest gap carried by the dial: `#[serde(flatten)]` bypasses the
+    check (serde #2283), and `derives` is a syntactic last-ident (no path
+    resolution).
+  - **`UnboundedDeserialization`** (named) — a byte/reader-source deserialization
+    with no size/depth/recursion limit, a `DoS` surface (recorded harm across ≥3
+    RUSTSEC advisories 2022→2026). Fingerprint
+    `any_of([body_calls("from_reader"), body_calls("from_slice")])`. **Honest
+    defect-slice:** `from_str` is deliberately excluded — `body_calls` matches by
+    last segment with no path resolution, so it would fire on every
+    `i32::from_str` (`FromStr`, not deserialization); `from_reader`/`from_slice`
+    have no such stdlib collision. The bounded-guard-absence relational refinement
+    (is the call guarded by `.take(limit)`?) is the next-increment tightening.
+  - Both ship `category = FunctionalCorrectness` and WITH their admitting-
+    specimens (the affinity-pairs in `examples/deserialization.rs` + the
+    fingerprint drift-guard tests in `tests/stdlib_family_fingerprints.rs`).
+
 ### Changed — `body_contains_macro` / `body_calls` now reject unmatchable names (fail-direction fix)
 
 - **Behavior change (tiny compat surface; surfaced here per our own
