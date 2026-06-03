@@ -3,8 +3,10 @@
 //! This module owns ONLY the *order* the audit detectors run in — no detection
 //! logic of its own. It gives the `cargo antigen audit` fan-out (previously
 //! smeared across `cargo-antigen/src/main.rs`) a home and a name: a single
-//! [`run`] that drives the detector sequence and bundles each detector's report
-//! into one [`AuditBundle`]. The pipeline coordinator (ADR-036 §Decision; the
+//! [`run`](crate::audit::orchestrate::run) that drives the detector sequence and
+//! bundles each detector's report into one
+//! [`AuditBundle`](crate::audit::orchestrate::AuditBundle). The pipeline
+//! coordinator (ADR-036 §Decision; the
 //! library-side `pipeline.rs` or the CLI) calls this above the scan pass; it is
 //! the layer a future cascade-governor's SCRAM sits *above*, never inside.
 //!
@@ -43,7 +45,7 @@ pub const DEFERRED_STALE_GRACE_DAYS: i64 = 30;
 /// siblings; none calls another). The CLI renders each; future stages (the
 /// ADR-039 unified `Finding` population, a cascade-governor) consume the bundle
 /// from *above*, where the whole population is visible.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct AuditBundle {
     /// The core immunity audit (witness resolution + per-site immune verdicts).
     pub audit: AuditReport,

@@ -48,7 +48,9 @@ pub enum StepState {
 /// DISTINGUISHABLE causes whose remedies genuinely differ. Under ADR-034
 /// (audit-output IS the board), the bare verdict value cannot route the remedy —
 /// so the verdict carries this typed sub-cause, exactly mirroring
-/// [`UnreachedCause`] + [`UnreachedCause::remedy`] for the coverage audit. The
+/// [`UnreachedCause`](crate::audit::UnreachedCause) +
+/// [`UnreachedCause::remedy`](crate::audit::UnreachedCause::remedy) for the
+/// coverage audit. The
 /// gem guard ([`WorkVerdict::OutOfFrame`] ≠ [`WorkVerdict::Overdue`], ATK-PRES-8)
 /// is UNTOUCHED — this refines *within* `OutOfFrame`, it does not split the
 /// four-valued verdict.
@@ -79,7 +81,7 @@ impl OutOfFrameCause {
     /// adopter learns *what to do* about an `OutOfFrame` need, not merely *that*
     /// it is un-evaluable. Distinct per cause: collapsing them would re-fuse the
     /// `SubCauseCollapseInTheUnit` this enum exists to prevent (mirrors
-    /// [`UnreachedCause::remedy`]).
+    /// [`UnreachedCause::remedy`](crate::audit::UnreachedCause::remedy)).
     #[must_use]
     pub const fn remedy(self) -> &'static str {
         match self {

@@ -187,6 +187,24 @@ pub use antigen_macros::{biopsy, culture, ddx, panel, quarantine, refer, rx, tri
 pub mod audit;
 pub mod scan;
 
+/// The ONE typed `Finding` / event schema (ADR-039 §C — sole owner).
+///
+/// The unified, queryable typed-event record both the [`scan`] and [`audit`]
+/// stages emit into, merged at the audit stage and assembled by the
+/// [`pipeline`] coordinator. The external platform contract the charter
+/// learning-loop organs subscribe to (the "emit, don't display" seam, SEAM-1).
+pub mod finding;
+
+/// The pipeline coordinator (ADR-036) — the single-conductor host.
+///
+/// Runs the scan → audit pass sequence, holds the sole stop-authority
+/// ([`RunControl`](pipeline::RunControl)), and is the merge-locus where the
+/// unified [`Finding`](finding::Finding) population is assembled (SEAM-1 + SEAM-2
+/// converge here).
+/// The layer a future cascade-governor's SCRAM sits *above*, never inside a
+/// detector it must be able to stop.
+pub mod pipeline;
+
 /// Stdlib of curated, ratified antigen declarations.
 ///
 /// Per ADR-022 (stdlib-vs-extension): stdlib growth is research-driven and
