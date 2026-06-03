@@ -85,54 +85,42 @@ struct StrictConfig {
 #[antigen(
     name = "unbounded-deserialization",
     category = AntigenCategory::FunctionalCorrectness,
-    fingerprint = r#"any_of([body_calls("from_reader"), body_calls("from_slice")])"#,
+    fingerprint = r#"any_of([all_of([body_calls("from_reader"), not(body_calls("take"))]), body_calls("from_slice")])"#,
     family = "deserialization-trust-boundary",
-    summary = "A byte/reader-source deserialization (from_reader / from_slice) with no size/depth/recursion limit — a DoS surface.",
+    summary = "A streaming from_reader deserialization with no .take(limit) bound (or a from_slice) — a DoS surface.",
     references = ["RUSTSEC-2024-0012"],
 )]
 pub struct UnboundedDeserialization;
 
-/// Toy stand-in for a deserialization entrypoint — keeps the `from_reader` /
-/// `from_slice` call-shape the fingerprint anchors on without a `serde`
-/// dependency.
+/// Toy stand-in for a deserialization entrypoint — keeps the `from_reader`
+/// call-shape the fingerprint anchors on without a `serde` dependency.
 mod toy_de {
-    /// Stand-in for `serde_json::from_reader` — unbounded by construction.
+    /// Stand-in for `serde_json::from_reader`.
     pub fn from_reader<R: std::io::Read>(mut r: R) -> Vec<u8> {
         let mut buf = Vec::new();
-        // No `.take(limit)` — reads the whole source (the unbounded shape).
         let _ = std::io::Read::read_to_end(&mut r, &mut buf);
-        buf
-    }
-
-    /// Stand-in for a depth/size-guarded read (the safe step).
-    pub fn from_reader_bounded<R: std::io::Read>(r: R, limit: u64) -> Vec<u8> {
-        let mut buf = Vec::new();
-        // Bounded: `.take(limit)` caps the byte source.
-        let _ = std::io::Read::read_to_end(&mut r.take(limit), &mut buf);
         buf
     }
 }
 
-/// BAD (the bind): deserializes from a reader with no bound — an attacker's
-/// deeply-nested / huge input blows the stack or allocates unboundedly.
+/// BAD (the bind): deserializes from a reader with NO `.take(limit)` bound — a
+/// non-terminating / huge stream blows the stack or allocates unboundedly.
 ///
-/// `body_calls("from_reader")` matches → the `any_of` **binds**.
+/// `body_calls("from_reader")` matches AND `not(body_calls("take"))` matches
+/// (no `.take`) → the guard-absence arm **binds**.
 #[presents(UnboundedDeserialization)]
 fn load_unbounded<R: std::io::Read>(r: R) -> Vec<u8> {
     toy_de::from_reader(r)
 }
 
-/// GOOD (the spare): the bounded sibling caps the byte source with `.take(limit)`
-/// — it calls neither `from_reader` nor `from_slice` directly, so the call-tell
-/// does not anchor.
+/// GOOD (the spare): the SAME `from_reader` entrypoint, but the byte source is
+/// bounded with `.take(limit)` — the std-documented anti-DoS idiom.
 ///
-/// Neither `body_calls("from_reader")` nor `body_calls("from_slice")` matches →
-/// the `any_of` is **spared**. (The build-now member detects the unbounded
-/// entrypoint *call*; the bounded-guard-presence refinement is the next
-/// increment — here the safe path simply routes through a different, guarded
-/// entrypoint.)
+/// `body_calls("from_reader")` still matches, but `not(body_calls("take"))` does
+/// NOT (the `.take` guard is present) → the guard-absence arm is **spared**. The
+/// presence of the bound is exactly what the absence-tell looks for.
 fn load_bounded<R: std::io::Read>(r: R) -> Vec<u8> {
-    toy_de::from_reader_bounded(r, 1 << 20)
+    toy_de::from_reader(r.take(1 << 20))
 }
 
 fn main() {
