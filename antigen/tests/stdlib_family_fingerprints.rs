@@ -36,8 +36,7 @@ fn item(src: &str) -> syn::Item {
 
 /// The crypto member's declared fingerprint, kept in ONE place so the bind and
 /// spare assertions below test the exact shipped shape.
-const CRYPTO_NON_CONSTANT_TIME: &str =
-    r#"all_of([body_calls("verify"), not(body_calls("ct_eq"))])"#;
+const CRYPTO_NON_CONSTANT_TIME: &str = r#"all_of([any_of([body_calls("verify"), body_calls("hmac_verify"), body_calls("verify_mac")]), not(any_of([body_calls("ct_eq"), body_calls("constant_time_eq")]))])"#;
 
 #[test]
 fn non_constant_time_secret_comparison_binds_verify_without_ct_eq() {
@@ -71,12 +70,42 @@ fn non_constant_time_secret_comparison_spares_verify_with_ct_eq() {
 #[test]
 fn non_constant_time_secret_comparison_spares_unrelated_fn() {
     // A function that does neither (no verify call at all) is spared:
-    // body_calls("verify") = NoMatch → all_of short-circuits to NoMatch. Guards
-    // against the fingerprint over-firing on any function with a `not` branch.
+    // any_of(verify entrypoints) = NoMatch → all_of short-circuits to NoMatch.
+    // Guards against the fingerprint over-firing on any function with a `not`
+    // branch.
     let fp = fp(CRYPTO_NON_CONSTANT_TIME);
     assert!(
         !fp.matches(&item("fn unrelated(x: u32) -> u32 { x + 1 }")),
-        "must SPARE a function that never calls verify (no anchor)"
+        "must SPARE a function that never calls a verify entrypoint (no anchor)"
+    );
+}
+
+#[test]
+fn non_constant_time_secret_comparison_binds_hmac_verify_wide_net() {
+    // BIND the wide-net arm: a body that calls `hmac_verify` (NOT the bare
+    // `verify` needle) with no constant-time compare. A single-needle "verify"
+    // fingerprint would SILENTLY MISS this (last-segment match) — the wide-net
+    // any_of is exactly what prevents that false-negative (adversarial finding).
+    let fp = fp(CRYPTO_NON_CONSTANT_TIME);
+    assert!(
+        fp.matches(&item("fn check(t: &[u8]) -> bool { hmac_verify(t) }")),
+        "must BIND hmac_verify (the wide-net anchor; single 'verify' would miss it)"
+    );
+}
+
+#[test]
+fn non_constant_time_secret_comparison_spares_constant_time_eq_safe_step() {
+    // SPARE the wide-net safe arm: a verify path whose safe step is
+    // `constant_time_eq` (NOT the bare `ct_eq`). A single-needle `not(ct_eq)`
+    // would FALSELY BIND this (constant_time_eq absent from the needle set →
+    // looks undefended). The wide-net not(any_of([ct_eq, constant_time_eq]))
+    // recognizes both safe-step spellings.
+    let fp = fp(CRYPTO_NON_CONSTANT_TIME);
+    assert!(
+        !fp.matches(&item(
+            "fn check(p: &[u8], e: &[u8]) -> bool { let _ = verify(p, e); constant_time_eq(p, e) }"
+        )),
+        "must SPARE a verify path guarded by constant_time_eq (wide-net safe arm)"
     );
 }
 
@@ -133,8 +162,7 @@ fn deserialize_without_deny_spares_non_deserialize_struct() {
 // ============================================================================
 
 /// The member's declared fingerprint, kept in ONE place (the drift-guard).
-const UNBOUNDED_DESERIALIZATION: &str =
-    r#"any_of([body_calls("from_reader"), body_calls("from_slice")])"#;
+const UNBOUNDED_DESERIALIZATION: &str = r#"any_of([all_of([body_calls("from_reader"), not(body_calls("take"))]), body_calls("from_slice")])"#;
 
 #[test]
 fn unbounded_deserialization_binds_from_reader_call() {
@@ -159,6 +187,21 @@ fn unbounded_deserialization_binds_from_slice_call() {
             "fn load(b: &[u8]) -> Config { serde_json::from_slice(b).unwrap() }"
         )),
         "must BIND a from_slice deserialization call"
+    );
+}
+
+#[test]
+fn unbounded_deserialization_spares_take_guarded_from_reader() {
+    // SPARE (the guard-absence keystone): a from_reader BOUNDED by `.take(limit)`
+    // — the std-documented anti-DoS idiom. body_calls("from_reader") = Match but
+    // not(body_calls("take")) = not(Match) = NoMatch → the all_of arm is NoMatch;
+    // no from_slice → the any_of is NoMatch. The guarded reader is spared.
+    let fp = fp(UNBOUNDED_DESERIALIZATION);
+    assert!(
+        !fp.matches(&item(
+            "fn load(r: impl std::io::Read) -> Config { serde_json::from_reader(r.take(1024)).unwrap() }"
+        )),
+        "must SPARE a from_reader bounded by .take(limit) (the anti-DoS idiom)"
     );
 }
 

@@ -44,9 +44,9 @@ use antigen::{antigen, defended_by, presents};
 #[antigen(
     name = "non-constant-time-secret-comparison",
     category = AntigenCategory::FunctionalCorrectness,
-    fingerprint = r#"all_of([body_calls("verify"), not(body_calls("ct_eq"))])"#,
+    fingerprint = r#"all_of([any_of([body_calls("verify"), body_calls("hmac_verify"), body_calls("verify_mac")]), not(any_of([body_calls("ct_eq"), body_calls("constant_time_eq")]))])"#,
     family = "crypto-misuse",
-    summary = "A crypto verify path compares a secret/MAC/token without a constant-time comparison present — a timing-attack oracle.",
+    summary = "A crypto verify path (verify / hmac_verify / verify_mac) compares a secret/MAC/token without a constant-time comparison present — a timing-attack oracle.",
     references = ["https://arxiv.org/abs/1806.04929", "RUSTSEC#crypto-failure"],
 )]
 pub struct NonConstantTimeSecretComparison;

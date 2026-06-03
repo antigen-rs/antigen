@@ -67,14 +67,19 @@ use crate::antigen;
 /// the secret one byte of latency at a time. The RUSTSEC `crypto-failure`
 /// category explicitly includes non-constant-time operations.
 ///
-/// **Tell:** a crypto `verify(...)` entrypoint is called **without** an adjacent
-/// constant-time comparison (`ct_eq`, the `subtle::ConstantTimeEq` step). The
-/// *absence* of the constant-time call is the tell — `all_of([body_calls("verify"),
-/// not(body_calls("ct_eq"))])`. The clean sibling (which *does* call `ct_eq`)
-/// is spared by the `not` branch.
+/// **Tell:** a crypto verify entrypoint (`verify` / `hmac_verify` / `verify_mac`)
+/// is called **without** an adjacent constant-time comparison (`ct_eq` /
+/// `constant_time_eq`, the `subtle::ConstantTimeEq` step). The *absence* of the
+/// constant-time call is the tell — `all_of([any_of([body_calls("verify"),
+/// body_calls("hmac_verify"), body_calls("verify_mac")]),
+/// not(any_of([body_calls("ct_eq"), body_calls("constant_time_eq")]))])`. The
+/// clean sibling (which *does* call a constant-time compare) is spared by the
+/// `not` branch. The entrypoint set is a **wide-net** `any_of` (not single-needle)
+/// because `body_calls` matches by last segment: a single `"verify"` needle
+/// would silently miss `hmac_verify` / `verify_mac`.
 ///
-/// **Tier:** **heuristic** (ADR-039) — the entrypoint ident-list is a
-/// placeholder, correlational not causal. Passive-by-default; security-severity
+/// **Tier:** **heuristic** (ADR-039) — the entrypoint ident-lists are
+/// placeholders, correlational not causal. Passive-by-default; security-severity
 /// earns surfacing weight even at the heuristic tier.
 ///
 /// **Witness:** a constant-time comparison is present (`subtle::ConstantTimeEq`
@@ -87,9 +92,9 @@ use crate::antigen;
 #[antigen(
     name = "non-constant-time-secret-comparison",
     category = AntigenCategory::FunctionalCorrectness,
-    fingerprint = r#"all_of([body_calls("verify"), not(body_calls("ct_eq"))])"#,
+    fingerprint = r#"all_of([any_of([body_calls("verify"), body_calls("hmac_verify"), body_calls("verify_mac")]), not(any_of([body_calls("ct_eq"), body_calls("constant_time_eq")]))])"#,
     family = "crypto-misuse",
-    summary = "A crypto verify path compares a secret/MAC/token without a constant-time comparison present — a timing-attack oracle. Heuristic tier (placeholder entrypoint ident-list); the absence of the constant-time step is the tell.",
+    summary = "A crypto verify path (verify / hmac_verify / verify_mac) compares a secret/MAC/token without a constant-time comparison (ct_eq / constant_time_eq) present — a timing-attack oracle. Heuristic tier (placeholder entrypoint ident-lists); the absence of the constant-time step is the tell.",
     references = [
         "https://arxiv.org/abs/1806.04929",
         "RUSTSEC#crypto-failure",

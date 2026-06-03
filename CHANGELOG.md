@@ -69,10 +69,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   developer-side: misuse of a *present* defense). First member
   `NonConstantTimeSecretComparison` — a secret/MAC/token verified through a
   non-constant-time comparison (a timing-attack oracle). Fingerprint
-  `all_of([body_calls("verify"), not(body_calls("ct_eq"))])`: a crypto `verify`
-  path **without** a constant-time comparison present — the *absence* of the
-  safe step is the tell (the call-flavored absence-grammar driver built on the
-  new `body_calls` leaf). Ships at the **heuristic** tier (ADR-039 provenance
+  `all_of([any_of([body_calls("verify"), body_calls("hmac_verify"),
+  body_calls("verify_mac")]), not(any_of([body_calls("ct_eq"),
+  body_calls("constant_time_eq")]))])`: a crypto verify path **without** a
+  constant-time comparison present — the *absence* of the safe step is the tell
+  (the call-flavored absence-grammar driver built on the new `body_calls` leaf).
+  The entrypoint and safe-step sets are **wide-net** `any_of` (not single-needle)
+  because `body_calls` matches by last segment — a single `"verify"` / `"ct_eq"`
+  needle would silently miss `hmac_verify` / `verify_mac` / `constant_time_eq`. Ships at the **heuristic** tier (ADR-039 provenance
   ladder): the entrypoint ident-list (`"verify"` / `"ct_eq"`) is a deliberate
   **placeholder**, correlational not causal — honestly labeled, passive-by-
   default. Category `FunctionalCorrectness` (the comparison verb produces a wrong
@@ -101,12 +105,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **`UnboundedDeserialization`** (named) — a byte/reader-source deserialization
     with no size/depth/recursion limit, a `DoS` surface (recorded harm across ≥3
     RUSTSEC advisories 2022→2026). Fingerprint
-    `any_of([body_calls("from_reader"), body_calls("from_slice")])`. **Honest
-    defect-slice:** `from_str` is deliberately excluded — `body_calls` matches by
-    last segment with no path resolution, so it would fire on every
-    `i32::from_str` (`FromStr`, not deserialization); `from_reader`/`from_slice`
-    have no such stdlib collision. The bounded-guard-absence relational refinement
-    (is the call guarded by `.take(limit)`?) is the next-increment tightening.
+    `any_of([all_of([body_calls("from_reader"), not(body_calls("take"))]),
+    body_calls("from_slice")])` — the keystone is the **streaming** `from_reader`
+    **without** a `.take(limit)` bound (the std-documented anti-`DoS` idiom is
+    `from_reader(reader.take(n))`), plus a weaker `from_slice` presence arm for
+    breadth. The guard-absence form **fails safe**: an unrelated `Iterator::take`
+    suppresses the finding (a false-*negative* → under-flag, the safe direction),
+    never the reverse. **Honest defect-slice:** `from_str` is deliberately
+    excluded — `body_calls` matches by last segment with no path resolution, so it
+    would fire on every `i32::from_str` (`FromStr`, not deserialization), and
+    `from_str`/`from_slice` operate on data already in memory (weaker tells than
+    the streaming `from_reader`). Scoping `take` to `Read::take` (vs
+    `Iterator::take`) by receiver-type is a semantic / charter refinement.
   - Both ship `category = FunctionalCorrectness` and WITH their admitting-
     specimens (the affinity-pairs in `examples/deserialization.rs` + the
     fingerprint drift-guard tests in `tests/stdlib_family_fingerprints.rs`).
