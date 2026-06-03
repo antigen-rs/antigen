@@ -30,9 +30,9 @@ use std::time::{Duration, SystemTime};
 #[antigen(
     name = "system-time-unwrap-panic",
     category = AntigenCategory::FunctionalCorrectness,
-    fingerprint = r#"all_of([any_of([body_calls("duration_since"), body_calls("elapsed")]), any_of([body_calls("unwrap"), body_calls("expect")])])"#,
+    fingerprint = r#"all_of([body_calls("duration_since"), any_of([body_calls("unwrap"), body_calls("expect")])])"#,
     family = "time-and-ordering-hazards",
-    summary = "A SystemTime clock read (duration_since / elapsed) whose Result is unwrap/expect-ed — panics in prod on backwards-clock, never in tests.",
+    summary = "A SystemTime::duration_since clock read whose Result is unwrap/expect-ed — panics in prod on backwards-clock, never in tests. (elapsed excluded: it fires on the Instant::elapsed clean sibling = the recommended fix.)",
     references = ["https://doc.rust-lang.org/std/time/struct.SystemTime.html#method.duration_since"],
 )]
 pub struct SystemTimeUnwrapPanic;
@@ -41,8 +41,8 @@ pub struct SystemTimeUnwrapPanic;
 /// clock has moved backwards since `earlier`, `duration_since` returns `Err` and
 /// this panics — in production, on an input the happy-path tests never produce.
 ///
-/// `any_of([duration_since, elapsed])` matches AND `any_of([unwrap, expect])`
-/// matches → the `all_of` **binds**.
+/// `body_calls("duration_since")` matches AND `any_of([unwrap, expect])` matches
+/// → the `all_of` **binds**.
 #[presents(SystemTimeUnwrapPanic)]
 fn age_since_panicking(earlier: SystemTime) -> Duration {
     SystemTime::now().duration_since(earlier).unwrap()
