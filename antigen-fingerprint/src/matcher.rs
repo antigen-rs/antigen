@@ -5,7 +5,9 @@
 //! `body_contains_macro` operator walks the function/method body for
 //! `syn::Macro` invocations natively (per ADR-015 S2).
 
-use crate::{normalize_signature_canonical, Constraint, Fingerprint, ItemKind, MethodPattern};
+use crate::{
+    normalize_signature_canonical, Constraint, Fingerprint, ItemKind, MethodPattern, QualifierKind,
+};
 
 /// Three-valued predicate-evaluation result (ADR-010 Amendment 6).
 ///
@@ -150,6 +152,11 @@ fn match_constraint(c: &Constraint, item: &syn::Item) -> Match3 {
         // (Undefined on bodyless item-classes), matching free/path calls by
         // last segment and method calls by method ident.
         Constraint::BodyCalls(name) => body_calls(item, name),
+        // is_async/is_unsafe/is_const (ADR-040 G1): same partial-domain shape —
+        // Match/NoMatch on item-classes that CAN carry the qualifier, Undefined
+        // where there is no locus for it (so not(is_async) on a struct does not
+        // vacuously match — ADR-010 Amd6).
+        Constraint::Qualifier(kind) => qualifier_match(item, *kind),
         Constraint::AllOf(children) => match_all_of(children, item),
         Constraint::AnyOf(children) => match_any_of(children, item),
         Constraint::Not(child) => match_constraint(child, item).not(),
@@ -492,6 +499,32 @@ fn body_calls(item: &syn::Item, name: &str) -> Match3 {
     }
 }
 
+/// Evaluate an item-qualifier leaf (`is_async` / `is_unsafe` / `is_const`,
+/// ADR-040 G1) over `item`.
+///
+/// Partial domain (ADR-010 Amd6): the qualifier question is **well-posed**
+/// (`Match`/`NoMatch`) only on the item-classes that *can* carry it — and
+/// `Undefined` everywhere else, so `not(is_async)` does NOT vacuously match an
+/// item-class with no asyncness locus (e.g. a `struct`). The loci:
+/// - `Async` / `Const` → `fn` only (read `Signature.asyncness` / `.constness`).
+/// - `Unsafe` → `fn` (an `unsafe fn`, `Signature.unsafety`) AND `impl` (an
+///   `unsafe impl`, `ItemImpl.unsafety`) — the two places `unsafe` can sit.
+const fn qualifier_match(item: &syn::Item, kind: QualifierKind) -> Match3 {
+    match (kind, item) {
+        // is_async — fn locus only.
+        (QualifierKind::Async, syn::Item::Fn(f)) => Match3::from_bool(f.sig.asyncness.is_some()),
+        // is_const — fn locus only. (The `const` *qualifier* on a function, NOT
+        // the `item = const` item-kind.)
+        (QualifierKind::Const, syn::Item::Fn(f)) => Match3::from_bool(f.sig.constness.is_some()),
+        // is_unsafe — fn OR impl locus.
+        (QualifierKind::Unsafe, syn::Item::Fn(f)) => Match3::from_bool(f.sig.unsafety.is_some()),
+        (QualifierKind::Unsafe, syn::Item::Impl(imp)) => Match3::from_bool(imp.unsafety.is_some()),
+        // No locus for this qualifier on this item-class — the question has no
+        // answer here. UNDEFINED, not vacuous-false (ADR-010 Amd6).
+        _ => Match3::Undefined,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::Fingerprint;
@@ -730,6 +763,109 @@ mod tests {
         assert!(
             !raw_fn.matches(&item("fn outer() { r#async(); }")),
             "body_calls(\"r#fn\") must spare a call to a different raw-ident fn"
+        );
+    }
+
+    // ========================================================================
+    // ADR-040 Increment 2 — G1: item qualifier presence/absence
+    // (is_async / is_unsafe / is_const). Adversarial tests-first definition-of-
+    // done (grammar-leaf-defining-tests.md). Each binds-bad AND spares-good; the
+    // partial-domain (Undefined-on-no-locus) trap is pinned so not(is_*) on a
+    // wrong-locus item cannot vacuously match (ADR-010 Amd6).
+    // ========================================================================
+
+    /// G1 — `is_async` presence/absence. Binds an async fn, spares a sync sibling.
+    /// The absence case (`not(is_async)`) must work inside `all_of` under the anchor
+    /// rule — the `BlockingCallInAsyncFn` family needs `all_of([is_async, body_calls(...)])`.
+    #[test]
+    fn is_async_matches_async_fn_spares_sync() {
+        let fp = fp("is_async");
+        assert!(
+            fp.matches(&item("async fn a() {}")),
+            "is_async must match an async fn"
+        );
+        assert!(
+            !fp.matches(&item("fn s() {}")),
+            "is_async must NOT match a sync fn"
+        );
+    }
+
+    /// G1 — `is_unsafe` on BOTH fn and impl (the two loci that carry `unsafe`).
+    /// `UnsafeSendSync` needs `is_unsafe` on the impl; `RawPtrDerefInSafeFn` needs the
+    /// ABSENCE on a fn. Asymmetric on each.
+    #[test]
+    fn is_unsafe_matches_unsafe_fn_and_impl_spares_safe() {
+        let fp = fp("is_unsafe");
+        assert!(
+            fp.matches(&item("unsafe fn u() {}")),
+            "is_unsafe must match unsafe fn"
+        );
+        assert!(
+            fp.matches(&item("unsafe impl Send for Foo {}")),
+            "is_unsafe must match unsafe impl"
+        );
+        assert!(
+            !fp.matches(&item("fn s() {}")),
+            "is_unsafe must NOT match a safe fn"
+        );
+        assert!(
+            !fp.matches(&item("impl Send for Foo {}")),
+            "is_unsafe must NOT match a safe impl"
+        );
+    }
+
+    /// G1 — the ABSENCE case under the anchor rule. `RawPtrDerefInSafeFn`: a fn
+    /// that is NOT unsafe is the tell, but a bare `not(is_unsafe)` must be a PARSE ERROR
+    /// (anti-graffiti, ADR-010 Amd3 OQ3). Only `all_of([anchor, not(is_unsafe)])` is legal.
+    /// This test pins that `not(is_unsafe)` works ONLY anchored, and the anchored form
+    /// is asymmetric.
+    #[test]
+    fn is_unsafe_absence_only_works_anchored() {
+        // bare not(is_unsafe) is a parse error (anchor rule).
+        assert!(
+            Fingerprint::parse("not(is_unsafe)").is_err(),
+            "bare not(is_unsafe) must be rejected"
+        );
+        // anchored absence: a fn that is NOT unsafe.
+        let fp = fp(r"all_of([item = fn, not(is_unsafe)])");
+        assert!(
+            fp.matches(&item("fn safe_one() {}")),
+            "anchored not(is_unsafe) matches a safe fn"
+        );
+        assert!(
+            !fp.matches(&item("unsafe fn unsafe_one() {}")),
+            "anchored not(is_unsafe) spares an unsafe fn"
+        );
+    }
+
+    /// G1 — `is_const`, fn locus. Asymmetric. (The `const` *qualifier* on a fn,
+    /// distinct from the `item = const` item-kind.)
+    #[test]
+    fn is_const_matches_const_fn_spares_runtime() {
+        let fp = fp("is_const");
+        assert!(
+            fp.matches(&item("const fn c() -> u32 { 0 }")),
+            "is_const must match a const fn"
+        );
+        assert!(
+            !fp.matches(&item("fn r() -> u32 { 0 }")),
+            "is_const must NOT match a non-const fn"
+        );
+    }
+
+    /// G1 — partial-domain (ADR-010 Amd6): `is_async` on a struct has no locus →
+    /// Undefined, so the bare form does not fire AND `not(is_async)` does not
+    /// vacuously match every struct. This is the silent-failure trap for G1.
+    #[test]
+    fn is_async_undefined_on_struct_keeps_not_sound() {
+        assert!(
+            !fp("is_async").matches(&item("struct S;")),
+            "is_async on a struct must not fire (Undefined)"
+        );
+        let negated = fp(r"all_of([item = struct, not(is_async)])");
+        assert!(
+            !negated.matches(&item("struct S;")),
+            "all_of([item=struct, not(is_async)]) must be Undefined (not vacuously match every struct)"
         );
     }
 

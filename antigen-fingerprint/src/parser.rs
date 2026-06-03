@@ -13,7 +13,10 @@ use syn::parenthesized;
 use syn::parse::ParseStream;
 use syn::{Ident, LitInt, LitStr, Token};
 
-use crate::{Constraint, GlobPattern, ItemKind, MethodPattern, VariantRange, MAX_DEPTH, MAX_NODES};
+use crate::{
+    Constraint, GlobPattern, ItemKind, MethodPattern, QualifierKind, VariantRange, MAX_DEPTH,
+    MAX_NODES,
+};
 
 /// Parse the top-level constraint list (comma-separated, optional trailing
 /// comma). The caller wraps the result in [`crate::Fingerprint`] and runs
@@ -48,6 +51,7 @@ fn parse_constraint(input: ParseStream) -> syn::Result<Constraint> {
         "doc_contains" => parse_doc_contains(input),
         "body_contains_macro" => parse_body_contains_macro(input),
         "body_calls" => parse_body_calls(input),
+        "is_async" | "is_unsafe" | "is_const" => parse_qualifier(input),
         "all_of" => parse_all_of(input),
         "any_of" => parse_any_of(input),
         "not" => parse_not(input),
@@ -56,7 +60,8 @@ fn parse_constraint(input: ParseStream) -> syn::Result<Constraint> {
             format!(
                 "unknown fingerprint operator `{other}`; expected one of: \
                  item, name, variants, has_method, attr_present, doc_contains, \
-                 body_contains_macro, body_calls, all_of, any_of, not",
+                 body_contains_macro, body_calls, is_async, is_unsafe, is_const, \
+                 all_of, any_of, not",
             ),
         )),
     }
@@ -280,6 +285,22 @@ fn parse_body_calls(input: ParseStream) -> syn::Result<Constraint> {
     let name = lit.value();
     validate_target_ident_name("body_calls", &name, lit.span())?;
     Ok(Constraint::BodyCalls(name))
+}
+
+/// Parse a value-less item-qualifier leaf (`is_async` / `is_unsafe` / `is_const`,
+/// ADR-040 G1). These are BARE keywords — no `= <value>`, no `(...)` argument —
+/// so parsing consumes just the keyword and maps it to its [`QualifierKind`].
+fn parse_qualifier(input: ParseStream) -> syn::Result<Constraint> {
+    let kw: Ident = input.parse()?;
+    let kind = QualifierKind::from_ident(&kw.to_string()).ok_or_else(|| {
+        // Unreachable in practice (the dispatch only routes the three known
+        // keywords here), but keep the parser total rather than panicking.
+        syn::Error::new(
+            kw.span(),
+            "unknown item qualifier; expected `is_async`, `is_unsafe`, or `is_const`",
+        )
+    })?;
+    Ok(Constraint::Qualifier(kind))
 }
 
 fn parse_all_of(input: ParseStream) -> syn::Result<Constraint> {
