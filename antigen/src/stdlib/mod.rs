@@ -30,6 +30,11 @@
 //!   misuse of a present defense (non-constant-time secret comparison). Tells
 //!   are call-anchored + safe-step-ABSENCE. Biology cognate: using the immune
 //!   machinery wrong (the timing leak as a non-constant-time self/non-self read).
+//! - [`deserialization`](crate::stdlib::deserialization) — the
+//!   Deserialization-Trust-Boundary Family (beta.2 voyage), the deep tier of
+//!   Mucosal-Boundary: untrusted bytes crossing into typed structs without the
+//!   tight-junction (`deny_unknown_fields` absent → silent field drop;
+//!   unbounded `from_reader`/`from_slice` → DoS). Biology cognate: gut mucosa.
 //! - [`dogfood`](crate::stdlib::dogfood) — antigen-internal dogfood antigens,
 //!   failure-classes observed directly in antigen's own development and
 //!   coordination substrate (v0.2 completion arc, 2026-05-24).
@@ -61,6 +66,7 @@
 
 pub mod agentic_coordination;
 pub mod crypto_misuse;
+pub mod deserialization;
 pub mod dogfood;
 pub mod mucosal;
 pub mod recurrent;

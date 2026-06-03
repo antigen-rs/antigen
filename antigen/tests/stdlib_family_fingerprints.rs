@@ -79,3 +79,104 @@ fn non_constant_time_secret_comparison_spares_unrelated_fn() {
         "must SPARE a function that never calls verify (no anchor)"
     );
 }
+
+// ============================================================================
+// deserialization-trust-boundary :: DeserializeWithoutDenyUnknownFields
+// ============================================================================
+
+/// The member's declared fingerprint, kept in ONE place (the drift-guard).
+const DESERIALIZE_WITHOUT_DENY: &str =
+    r#"all_of([derives("Deserialize"), not(serde_arg("deny_unknown_fields"))])"#;
+
+#[test]
+fn deserialize_without_deny_binds_derive_without_the_arg() {
+    // BIND: #[derive(Deserialize)] present, #[serde(deny_unknown_fields)] absent.
+    // derives("Deserialize") = Match; not(serde_arg("deny_unknown_fields")) =
+    // not(NoMatch) = Match → all_of = Match. The leaky-gut site.
+    let fp = fp(DESERIALIZE_WITHOUT_DENY);
+    assert!(
+        fp.matches(&item(
+            "#[derive(Deserialize)] struct Config { admin: bool, name: String }"
+        )),
+        "must BIND a Deserialize struct with no deny_unknown_fields"
+    );
+}
+
+#[test]
+fn deserialize_without_deny_spares_struct_with_the_arg() {
+    // SPARE: the SAME struct, but #[serde(deny_unknown_fields)] IS present.
+    // not(serde_arg("deny_unknown_fields")) = not(Match) = NoMatch → all_of =
+    // NoMatch. The presence of the tight-junction spares the sibling.
+    let fp = fp(DESERIALIZE_WITHOUT_DENY);
+    assert!(
+        !fp.matches(&item(
+            "#[derive(Deserialize)] #[serde(deny_unknown_fields)] struct Config { admin: bool }"
+        )),
+        "must SPARE a Deserialize struct that sets deny_unknown_fields"
+    );
+}
+
+#[test]
+fn deserialize_without_deny_spares_non_deserialize_struct() {
+    // A struct that does not derive Deserialize is spared: derives("Deserialize")
+    // = NoMatch → all_of short-circuits to NoMatch. Guards against the not-branch
+    // vacuously matching every struct (the absence-grammar soundness contract).
+    let fp = fp(DESERIALIZE_WITHOUT_DENY);
+    assert!(
+        !fp.matches(&item("#[derive(Debug)] struct Plain { x: u32 }")),
+        "must SPARE a struct that does not derive Deserialize (no anchor)"
+    );
+}
+
+// ============================================================================
+// deserialization-trust-boundary :: UnboundedDeserialization
+// ============================================================================
+
+/// The member's declared fingerprint, kept in ONE place (the drift-guard).
+const UNBOUNDED_DESERIALIZATION: &str =
+    r#"any_of([body_calls("from_reader"), body_calls("from_slice")])"#;
+
+#[test]
+fn unbounded_deserialization_binds_from_reader_call() {
+    // BIND: a deser-entrypoint call (from_reader) with no bounded guard.
+    // body_calls("from_reader") = Match → any_of = Match. The DoS surface.
+    let fp = fp(UNBOUNDED_DESERIALIZATION);
+    assert!(
+        fp.matches(&item(
+            "fn load(r: impl std::io::Read) -> Config { serde_json::from_reader(r).unwrap() }"
+        )),
+        "must BIND a from_reader deserialization call"
+    );
+}
+
+#[test]
+fn unbounded_deserialization_binds_from_slice_call() {
+    // BIND the other arm (from_slice) — proves the any_of covers both byte-source
+    // entrypoints, not just from_reader.
+    let fp = fp(UNBOUNDED_DESERIALIZATION);
+    assert!(
+        fp.matches(&item(
+            "fn load(b: &[u8]) -> Config { serde_json::from_slice(b).unwrap() }"
+        )),
+        "must BIND a from_slice deserialization call"
+    );
+}
+
+#[test]
+fn unbounded_deserialization_spares_from_str_and_unrelated() {
+    // SPARE from_str: deliberately EXCLUDED (FromStr collision — body_calls has no
+    // path resolution, so from_str would fire on every i32::from_str). The member
+    // does not anchor on it, so a from_str-only fn is spared.
+    let fp = fp(UNBOUNDED_DESERIALIZATION);
+    assert!(
+        !fp.matches(&item(
+            "fn parse(s: &str) -> i32 { i32::from_str(s).unwrap() }"
+        )),
+        "must SPARE from_str (excluded — FromStr collision needs path resolution)"
+    );
+    // And an unrelated fn with neither entrypoint is spared.
+    assert!(
+        !fp.matches(&item("fn unrelated(x: u32) -> u32 { x + 1 }")),
+        "must SPARE a function with no deser entrypoint"
+    );
+}
