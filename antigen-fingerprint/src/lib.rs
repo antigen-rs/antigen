@@ -62,6 +62,11 @@
 //!   `unsafe impl`) / is a `const fn`. Partial-domain (like the body leaves):
 //!   `Undefined` on item-classes with no locus for the qualifier (e.g. `is_async`
 //!   on a `struct`), so `not(is_async)` stays sound inside `all_of`.
+//! - `impl_of_trait("<name>")` — the item is an `impl <Trait> for <Type>` whose
+//!   trait path's last segment equals `name` (ADR-040 G3). An inherent
+//!   `impl Type {}` is `NoMatch`; a non-`impl` item is `Undefined` (partial
+//!   domain). Reads one impl's own trait path — cross-item "does Type impl X
+//!   anywhere" is a different question this leaf does not answer.
 //! - `all_of([...])` — every child matches
 //! - `any_of([...])` — at least one child matches
 //! - `not(<constraint>)` — child does NOT match. Per ADR-010 Amendment 3
@@ -180,6 +185,16 @@ pub enum Constraint {
     /// locus for it (a `struct` has no asyncness), so `not(is_async)` stays sound
     /// inside `all_of` (ADR-010 Amd6). See [`QualifierKind`].
     Qualifier(QualifierKind),
+
+    /// `impl_of_trait("<name>")` — the item is an `impl <Trait> for <Type>` whose
+    /// trait path's last segment equals `name` (ADR-040 grammar increment, G3).
+    /// Reads ONE impl item's own trait path (syntactic last-segment, like the
+    /// body leaves) — an inherent `impl Type {}` has no trait, so it is a definite
+    /// `NoMatch`. A **partial-domain** leaf: `Undefined` on item-classes that are
+    /// not `impl`s (a `struct` has no trait-impl locus), so `not(impl_of_trait(X))`
+    /// stays sound inside `all_of`. Cross-item "does `Type` impl X *anywhere*" is
+    /// a different (G4 / charter) question this leaf does NOT answer.
+    ImplOfTrait(String),
 
     /// `all_of([...])` — every child constraint must match.
     AllOf(Vec<Self>),

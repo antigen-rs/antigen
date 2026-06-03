@@ -157,6 +157,9 @@ fn match_constraint(c: &Constraint, item: &syn::Item) -> Match3 {
         // where there is no locus for it (so not(is_async) on a struct does not
         // vacuously match — ADR-010 Amd6).
         Constraint::Qualifier(kind) => qualifier_match(item, *kind),
+        // impl_of_trait (ADR-040 G3): on an impl, the trait-path last segment is
+        // the answer (inherent impl → NoMatch); on a non-impl → Undefined.
+        Constraint::ImplOfTrait(name) => impl_of_trait(item, name),
         Constraint::AllOf(children) => match_all_of(children, item),
         Constraint::AnyOf(children) => match_any_of(children, item),
         Constraint::Not(child) => match_constraint(child, item).not(),
@@ -525,6 +528,33 @@ const fn qualifier_match(item: &syn::Item, kind: QualifierKind) -> Match3 {
     }
 }
 
+/// Evaluate `impl_of_trait("<name>")` (ADR-040 G3) over `item`.
+///
+/// On an `impl` item the question "is this an impl of trait `name`?" is
+/// well-posed: `Match` iff the impl has a trait path whose LAST segment equals
+/// `name` (so `impl_of_trait("Drop")` fires on `impl Drop for V`, the canonical
+/// "is this ACTUALLY a Drop impl, not just a method named drop" check); an
+/// inherent `impl V {}` (no trait) is a definite `NoMatch`. On any non-`impl`
+/// item-class there is no trait-impl locus → `Undefined` (so
+/// `not(impl_of_trait(X))` stays sound, ADR-010 Amd6).
+///
+/// Last-segment matching is the same syntactic discipline the call/macro leaves
+/// use — `impl std::ops::Drop for V` matches `impl_of_trait("Drop")`. This reads
+/// ONE impl item's own trait path; the cross-item question "does `V` impl Drop
+/// *anywhere* in the program" is a different (G4 / charter) concern.
+fn impl_of_trait(item: &syn::Item, name: &str) -> Match3 {
+    match item {
+        syn::Item::Impl(imp) => {
+            let fires = imp.trait_.as_ref().is_some_and(|(_, path, _)| {
+                path.segments.last().is_some_and(|seg| seg.ident == name)
+            });
+            Match3::from_bool(fires)
+        }
+        // No trait-impl locus on this item-class. UNDEFINED, not vacuous-false.
+        _ => Match3::Undefined,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::Fingerprint;
@@ -866,6 +896,85 @@ mod tests {
         assert!(
             !negated.matches(&item("struct S;")),
             "all_of([item=struct, not(is_async)]) must be Undefined (not vacuously match every struct)"
+        );
+    }
+
+    // ========================================================================
+    // ADR-040 Increment 2 — G3: trait-impl identity (impl_of_trait, presence AND
+    // absence). Adversarial tests-first definition-of-done. Reads ONE impl item's
+    // own trait-path last segment (an inherent impl → NoMatch; a non-impl →
+    // Undefined). The cross-item "does Type impl X anywhere" form is G4/charter.
+    // ========================================================================
+
+    /// G3 — `impl_of_trait`, presence. Reads the impl's trait path last segment.
+    /// `UnsafeSendSync` needs `impl_of_trait("Send")`. Asymmetric.
+    #[test]
+    fn impl_of_trait_matches_trait_impl_spares_other_and_inherent() {
+        let fp = fp(r#"impl_of_trait("Send")"#);
+        assert!(
+            fp.matches(&item("unsafe impl Send for Foo {}")),
+            "impl_of_trait(Send) matches impl Send"
+        );
+        assert!(
+            !fp.matches(&item("impl Sync for Foo {}")),
+            "impl_of_trait(Send) spares impl Sync"
+        );
+        assert!(
+            !fp.matches(&item("impl Foo { fn m(&self) {} }")),
+            "impl_of_trait(Send) spares an inherent impl"
+        );
+    }
+
+    /// G3 — the keystone: `impl_of_trait("Drop")` asserts a `Drop` impl is ACTUALLY
+    /// `Drop`, not merely an inherent impl with a method *named* `drop` (which the
+    /// shipped `PanickingInDrop` fingerprint can't distinguish). Binds the real
+    /// `Drop` impl, spares an inherent impl whose method is just named `drop`.
+    #[test]
+    fn impl_of_trait_drop_distinguishes_real_drop_from_named_method() {
+        let fp = fp(r#"all_of([item = impl, impl_of_trait("Drop")])"#);
+        assert!(
+            fp.matches(&item("impl Drop for V { fn drop(&mut self) {} }")),
+            "impl_of_trait(Drop) must match a real Drop impl"
+        );
+        assert!(
+            !fp.matches(&item("impl V { fn drop(&mut self) {} }")),
+            "impl_of_trait(Drop) must NOT match an inherent impl with a method merely NAMED drop"
+        );
+    }
+
+    /// G3 — `not(impl_of_trait(...))` ABSENCE, anchored. Bare absence rejected
+    /// (anti-graffiti); anchored absence asymmetric. SCOPED to "THIS impl item is
+    /// some OTHER trait" — a single-item, well-posed question (the cross-item
+    /// "type lacks trait X program-wide" form is G4/charter, NOT this tier).
+    #[test]
+    fn impl_of_trait_absence_only_anchored() {
+        assert!(
+            Fingerprint::parse(r#"not(impl_of_trait("Eq"))"#).is_err(),
+            "bare not(impl_of_trait) must be rejected (anti-graffiti)"
+        );
+        let fp = fp(r#"all_of([item = impl, not(impl_of_trait("Send"))])"#);
+        assert!(
+            fp.matches(&item("impl Sync for Foo {}")),
+            "anchored not(impl_of_trait(Send)) fires on an impl that is some OTHER trait"
+        );
+        assert!(
+            !fp.matches(&item("impl Send for Foo {}")),
+            "anchored not(impl_of_trait(Send)) spares an impl that IS Send"
+        );
+    }
+
+    /// G3 — partial-domain: `impl_of_trait` on a struct (not an impl) → Undefined,
+    /// keeps `not()` sound.
+    #[test]
+    fn impl_of_trait_undefined_on_non_impl() {
+        assert!(
+            !fp(r#"impl_of_trait("Send")"#).matches(&item("struct S;")),
+            "impl_of_trait on a struct must not fire (Undefined)"
+        );
+        let negated = fp(r#"all_of([item = struct, not(impl_of_trait("Send"))])"#);
+        assert!(
+            !negated.matches(&item("struct S;")),
+            "not(impl_of_trait) on a struct must be Undefined, not vacuous match"
         );
     }
 

@@ -52,6 +52,7 @@ fn parse_constraint(input: ParseStream) -> syn::Result<Constraint> {
         "body_contains_macro" => parse_body_contains_macro(input),
         "body_calls" => parse_body_calls(input),
         "is_async" | "is_unsafe" | "is_const" => parse_qualifier(input),
+        "impl_of_trait" => parse_impl_of_trait(input),
         "all_of" => parse_all_of(input),
         "any_of" => parse_any_of(input),
         "not" => parse_not(input),
@@ -61,7 +62,7 @@ fn parse_constraint(input: ParseStream) -> syn::Result<Constraint> {
                 "unknown fingerprint operator `{other}`; expected one of: \
                  item, name, variants, has_method, attr_present, doc_contains, \
                  body_contains_macro, body_calls, is_async, is_unsafe, is_const, \
-                 all_of, any_of, not",
+                 impl_of_trait, all_of, any_of, not",
             ),
         )),
     }
@@ -301,6 +302,19 @@ fn parse_qualifier(input: ParseStream) -> syn::Result<Constraint> {
         )
     })?;
     Ok(Constraint::Qualifier(kind))
+}
+
+fn parse_impl_of_trait(input: ParseStream) -> syn::Result<Constraint> {
+    let _kw: Ident = input.parse()?; // "impl_of_trait"
+    let content;
+    parenthesized!(content in input);
+    let lit: LitStr = content.parse()?;
+    let name = lit.value();
+    // A trait name is matched against an impl's trait-path LAST segment — a bare
+    // identifier — so the same well-formedness gate applies (a path-spelled
+    // `"std::ops::Drop"` or padded name would silently never fire; fail loud).
+    validate_target_ident_name("impl_of_trait", &name, lit.span())?;
+    Ok(Constraint::ImplOfTrait(name))
 }
 
 fn parse_all_of(input: ParseStream) -> syn::Result<Constraint> {
