@@ -2134,6 +2134,41 @@ mod tests {
         assert_eq!(orphans[0].parent, "MissingParent");
     }
 
+    #[test]
+    fn antigen_declaration_resolves_provenance_default_to_floor() {
+        use crate::finding::{Presentation, Provenance};
+        // Absent authored provenance/presentation ⇒ resolve to the honest FLOOR
+        // (Imagined) + Passive — the mandatory-with-default invariant (ADR-039 §C):
+        // omission can never over-claim.
+        let bare = antigen_decl("Bare"); // antigen_decl leaves both None
+        assert_eq!(bare.resolved_provenance(), Provenance::Imagined);
+        assert_eq!(bare.resolved_presentation(), Presentation::Passive);
+        assert!(!bare.provenance_is_explicit());
+    }
+
+    #[test]
+    fn antigen_declaration_resolves_authored_provenance() {
+        use crate::finding::{Presentation, Provenance};
+        let mut d = antigen_decl("Authored");
+        d.provenance = Some("Constructable".to_string());
+        d.presentation = Some("Active".to_string());
+        assert_eq!(d.resolved_provenance(), Provenance::Constructable);
+        assert_eq!(d.resolved_presentation(), Presentation::Active);
+        assert!(d.provenance_is_explicit());
+    }
+
+    #[test]
+    fn antigen_declaration_unknown_provenance_string_resolves_to_floor() {
+        use crate::finding::Provenance;
+        // A forward-incompatible / hand-written record with an unknown variant
+        // string resolves to the floor (never over-claims), and is NOT counted as
+        // an explicit claim.
+        let mut d = antigen_decl("Forward");
+        d.provenance = Some("FutureTier".to_string());
+        assert_eq!(d.resolved_provenance(), Provenance::Imagined);
+        assert!(!d.provenance_is_explicit());
+    }
+
     // ========================================================================
     // Multi-crate (member-aware) scan — Layer 1 unit coverage.
     //

@@ -31,8 +31,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`Provenance::Heuristic`) forms, rejects unknown variants — the same posture as
   `category`. The scanner re-parses both fields from the `#[antigen]` attribute
   and carries them on `AntigenDeclaration` (stored as variant strings for
-  forward-compat). The audit-side default-resolution + the tier-VERIFIER
-  (sub-clause F) are the immediate follow-on.
+  forward-compat).
+- **Mandatory-with-default resolution (the honest-labeling invariant, layers 1+2
+  per the sizing ruling).** `Provenance::DEFAULT` (`Imagined`) +
+  `Presentation::DEFAULT` (`Passive`) + `from_variant_str` parse, with
+  `AntigenDeclaration::resolved_provenance()` / `resolved_presentation()` /
+  `provenance_is_explicit()`. An absent **or unknown-variant** claim resolves to
+  the **floor** (`Imagined`/`Passive`) — omission can never over-claim (the
+  default is the lowest tier, not the verified core). The **earned-ness verifier**
+  (sub-clause F — a `constructable`/`encountered` claim must show an affinity-pair
+  + silent-class oracle + authorship-independence) is the named, sequenced
+  fast-follow (charter-deferred *by ADR-039 itself*, which locks the invariant not
+  the machinery), not silently omitted.
 
 ### Added — `body_calls("<name>")` fingerprint leaf (ADR-040 grammar increment 1)
 

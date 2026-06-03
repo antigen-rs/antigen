@@ -88,6 +88,48 @@ pub struct AntigenDeclaration {
     pub presentation: Option<String>,
 }
 
+impl AntigenDeclaration {
+    /// Resolve the authored `provenance` claim to a typed
+    /// [`Provenance`](crate::finding::Provenance) (ADR-039 §C). An absent or
+    /// unknown-variant claim resolves to the honest FLOOR
+    /// [`Provenance::DEFAULT`](crate::finding::Provenance::DEFAULT) (`Imagined`) —
+    /// the mandatory-with-default invariant: a permissive catalog is trustworthy
+    /// only because the label is always present, and the default can never
+    /// over-claim (it is the lowest tier). The parse-time macro rejects unknown
+    /// variants, so an unknown here is only reachable from a
+    /// hand-written/forward-incompatible scan record; it too resolves to the floor.
+    #[must_use]
+    pub fn resolved_provenance(&self) -> crate::finding::Provenance {
+        self.provenance
+            .as_deref()
+            .and_then(crate::finding::Provenance::from_variant_str)
+            .unwrap_or(crate::finding::Provenance::DEFAULT)
+    }
+
+    /// Resolve the authored `presentation` axis to a typed
+    /// [`Presentation`](crate::finding::Presentation) (ADR-039 §A). Absent ⇒
+    /// [`Presentation::DEFAULT`](crate::finding::Presentation::DEFAULT) (`Passive`,
+    /// the passive-by-default-for-low-provenance rule).
+    #[must_use]
+    pub fn resolved_presentation(&self) -> crate::finding::Presentation {
+        self.presentation
+            .as_deref()
+            .and_then(crate::finding::Presentation::from_variant_str)
+            .unwrap_or(crate::finding::Presentation::DEFAULT)
+    }
+
+    /// Whether the author explicitly supplied a `provenance` claim (vs relying on
+    /// the `Imagined` default). The audit layer uses this to emit the
+    /// provenance-defaulted-implicit hint (the category-defaulted-implicit
+    /// precedent) — surfaced as a migration nudge, never a gate.
+    #[must_use]
+    pub fn provenance_is_explicit(&self) -> bool {
+        self.provenance
+            .as_deref()
+            .is_some_and(|s| crate::finding::Provenance::from_variant_str(s).is_some())
+    }
+}
+
 /// Identity of the Rust item that an antigen-related attribute is applied to.
 ///
 /// W3 (sweep A2): replaces the old proximity heuristic in

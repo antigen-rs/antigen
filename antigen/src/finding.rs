@@ -94,6 +94,28 @@ pub enum Provenance {
     Imagined,
 }
 
+impl Provenance {
+    /// The default for an antigen that does NOT author a `provenance` (ADR-039
+    /// §A/§C): `Imagined`, the LOWEST tier. An unlabeled antigen is the weakest
+    /// claim — it can never over-claim by omission (defaulting to the floor, not
+    /// the ceiling, is the honest-labeling invariant at the default).
+    pub const DEFAULT: Self = Self::Imagined;
+
+    /// Parse from the scanner's stored variant string (the `#[antigen]` attribute
+    /// last-segment, e.g. `"Heuristic"` / `"Provenance::Heuristic"` last-seg).
+    /// Returns `None` for an unknown variant.
+    #[must_use]
+    pub fn from_variant_str(s: &str) -> Option<Self> {
+        match s {
+            "Encountered" => Some(Self::Encountered),
+            "Constructable" => Some(Self::Constructable),
+            "Heuristic" => Some(Self::Heuristic),
+            "Imagined" => Some(Self::Imagined),
+            _ => None,
+        }
+    }
+}
+
 /// PASSIVE (tooling-side) vs ACTIVE (user-macro) presentation.
 ///
 /// The first-class presentation axis (ADR-039 decision A): an imagined/
@@ -109,6 +131,24 @@ pub enum Presentation {
     /// User-macro; chosen by whoever encounters the thing (higher provenance can
     /// warrant it).
     Active,
+}
+
+impl Presentation {
+    /// The default for an antigen that does NOT author a `presentation`
+    /// (ADR-039 §A): `Passive` — tooling/scan-side, no user-macro burden. The
+    /// vast field of imagined-but-never-triggered antigens sits passive, costing
+    /// nothing until someone encounters one.
+    pub const DEFAULT: Self = Self::Passive;
+
+    /// Parse from the scanner's stored variant string.
+    #[must_use]
+    pub fn from_variant_str(s: &str) -> Option<Self> {
+        match s {
+            "Passive" => Some(Self::Passive),
+            "Active" => Some(Self::Active),
+            _ => None,
+        }
+    }
 }
 
 /// Universal severity (ADR-039 §C, adversarial finding #12) — on EVERY [`Finding`].
@@ -293,5 +333,40 @@ mod tests {
                                              // An imagined class defaults passive — the permissive-admission rule, seen.
         assert_eq!(f.class_provenance, Provenance::Imagined);
         assert_eq!(f.presentation, Presentation::Passive);
+    }
+
+    #[test]
+    fn provenance_default_is_the_floor_not_the_ceiling() {
+        // The honest-labeling invariant at the default: an unlabeled antigen
+        // resolves to the LOWEST tier (Imagined), never the verified core. This is
+        // why omission can never over-claim (ADR-039 §A/§C).
+        assert_eq!(Provenance::DEFAULT, Provenance::Imagined);
+        assert_ne!(Provenance::DEFAULT, Provenance::Encountered);
+        assert_ne!(Provenance::DEFAULT, Provenance::Constructable);
+        assert_eq!(Presentation::DEFAULT, Presentation::Passive);
+    }
+
+    #[test]
+    fn provenance_from_variant_str_round_trips_and_rejects_unknown() {
+        for (s, want) in [
+            ("Encountered", Provenance::Encountered),
+            ("Constructable", Provenance::Constructable),
+            ("Heuristic", Provenance::Heuristic),
+            ("Imagined", Provenance::Imagined),
+        ] {
+            assert_eq!(Provenance::from_variant_str(s), Some(want));
+        }
+        assert_eq!(Provenance::from_variant_str("Bogus"), None);
+        // kebab (the serde form) is NOT the scanner variant form — rejected.
+        assert_eq!(Provenance::from_variant_str("heuristic"), None);
+        assert_eq!(
+            Presentation::from_variant_str("Passive"),
+            Some(Presentation::Passive)
+        );
+        assert_eq!(
+            Presentation::from_variant_str("Active"),
+            Some(Presentation::Active)
+        );
+        assert_eq!(Presentation::from_variant_str("Bogus"), None);
     }
 }
