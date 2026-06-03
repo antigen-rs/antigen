@@ -40,6 +40,10 @@
 //!   panic-in-prod clock footgun (`SystemTime::duration_since().unwrap()` panics
 //!   on backwards-clock, never in tests). Biology cognate: circadian /
 //!   signaling-timing failure.
+//! - [`drop_panic`](crate::stdlib::drop_panic) — the Drop-and-Panic-Discipline
+//!   Family (beta.2 voyage): a real `Drop` impl (`impl_of_trait("Drop")`) whose
+//!   body reaches a panic source — panic-during-unwind aborts the process.
+//!   Biology cognate: apoptosis gone wrong (teardown that triggers a cascade).
 //! - [`dogfood`](crate::stdlib::dogfood) — antigen-internal dogfood antigens,
 //!   failure-classes observed directly in antigen's own development and
 //!   coordination substrate (v0.2 completion arc, 2026-05-24).
@@ -73,6 +77,7 @@ pub mod agentic_coordination;
 pub mod crypto_misuse;
 pub mod deserialization;
 pub mod dogfood;
+pub mod drop_panic;
 pub mod mucosal;
 pub mod recurrent;
 pub mod supply_chain;
