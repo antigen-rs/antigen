@@ -1,4 +1,4 @@
-error: unknown #[antigen] field `bogus`; expected one of: name, fingerprint, family, summary, references, category
+error: unknown #[antigen] field `bogus`; expected one of: name, fingerprint, family, summary, references, category, provenance, presentation
  --> tests/ui/unknown_antigen_field.rs:9:42
   |
 9 | #[antigen(name = "x", fingerprint = "y", bogus = "z")]

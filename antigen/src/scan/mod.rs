@@ -61,16 +61,40 @@ struct ScanAntigenArgs {
     /// for forward-compat; callers map to `AntigenCategory` via
     /// `AntigenCategory::parse_category`.
     category: Vec<String>,
+    /// Authored provenance claim (ADR-039 §C) parsed from
+    /// `provenance = Provenance::X`. Stored as a last-segment string (e.g.
+    /// `"Heuristic"`) for forward-compat; `None` ⇒ defaults to `Imagined` (the
+    /// lowest tier — an unlabeled antigen is the weakest claim). This is the
+    /// authored claim the audit tier-VERIFIER checks; it sets the dial floor.
+    provenance: Option<String>,
+    /// Authored presentation axis (ADR-039 §C) parsed from
+    /// `presentation = Presentation::X`. `None` ⇒ defaults to `Passive` (the
+    /// passive-by-default-for-low-provenance rule).
+    presentation: Option<String>,
 }
 
 impl Parse for ScanAntigenArgs {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         use syn::{Ident, LitStr, Token};
+
+        // Reconstruct a path expression to its last segment (the variant ident):
+        // `Provenance::Heuristic` / `Heuristic` → `"Heuristic"`. The scanner stores
+        // the variant name; the lib maps it via `Provenance`/`Presentation` parse.
+        fn path_last_segment(expr: &syn::Expr) -> Option<String> {
+            if let syn::Expr::Path(p) = expr {
+                p.path.segments.last().map(|s| s.ident.to_string())
+            } else {
+                None
+            }
+        }
+
         let mut name: Option<String> = None;
         let mut fingerprint: Option<String> = None;
         let mut family: Option<String> = None;
         let mut summary: Option<String> = None;
         let mut category: Vec<String> = Vec::new();
+        let mut provenance: Option<String> = None;
+        let mut presentation: Option<String> = None;
 
         while !input.is_empty() {
             let key: Ident = input.parse()?;
@@ -127,6 +151,17 @@ impl Parse for ScanAntigenArgs {
                         }
                     }
                 }
+                "provenance" => {
+                    // Authored provenance claim (ADR-039 §C). Store the variant
+                    // last-segment (`Provenance::Heuristic` → `"Heuristic"`).
+                    let val: syn::Expr = input.parse()?;
+                    provenance = path_last_segment(&val);
+                }
+                "presentation" => {
+                    // Authored presentation axis (ADR-039 §C).
+                    let val: syn::Expr = input.parse()?;
+                    presentation = path_last_segment(&val);
+                }
                 _ => {
                     // Unknown field: consume the value expression and continue.
                     let _: syn::Expr = input.parse()?;
@@ -143,6 +178,8 @@ impl Parse for ScanAntigenArgs {
             family,
             summary,
             category,
+            provenance,
+            presentation,
         })
     }
 }
@@ -2067,6 +2104,8 @@ mod tests {
             fingerprint: None,
             canonical_path: None,
             category: Vec::new(),
+            provenance: None,
+            presentation: None,
         }
     }
 

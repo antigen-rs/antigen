@@ -71,6 +71,21 @@ pub struct AntigenDeclaration {
     /// Two elements = hybrid antigen requiring both witness types.
     #[serde(default)]
     pub category: Vec<crate::category::AntigenCategory>,
+    /// Authored provenance claim from `provenance = Provenance::X` (ADR-039 §C),
+    /// stored as the variant string (e.g. `"Heuristic"`) for forward-compat —
+    /// same posture as `category`. `None` ⇒ the audit defaults it to `Imagined`
+    /// (the lowest tier; an unlabeled antigen is the weakest claim) and may emit a
+    /// provenance-defaulted hint. This is the AUTHORED claim the audit
+    /// tier-VERIFIER checks; it sets the floor the dial-derived confidence tier
+    /// may graduate from (the confidence tier itself is never authored).
+    #[serde(default)]
+    pub provenance: Option<String>,
+    /// Authored presentation axis from `presentation = Presentation::X`
+    /// (ADR-039 §C), stored as the variant string (`"Passive"` / `"Active"`).
+    /// `None` ⇒ defaults to `Passive` (the passive-by-default-for-low-provenance
+    /// rule — an imagined antigen costs nothing until someone encounters one).
+    #[serde(default)]
+    pub presentation: Option<String>,
 }
 
 /// Identity of the Rust item that an antigen-related attribute is applied to.

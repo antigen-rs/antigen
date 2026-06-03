@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — authored `provenance` + `presentation` fields on `#[antigen]` (ADR-039 §C, the families-foundation increment)
+
+- The `#[antigen]` declaration macro grows two **authored** fields implementing
+  the already-locked ADR-039 provenance ladder + passive/active axis (which
+  `finding.rs` already carried as emit-seam types — the declaration macro simply
+  never grew to match the design):
+  - **`provenance = Provenance::{Encountered | Constructable | Heuristic | Imagined}`**
+    — the author's claim of *how we know this failure-class exists* (the verified
+    core `Encountered`/`Constructable` vs the unverified `Heuristic`/`Imagined`).
+    This is the claim the audit **tier-VERIFIER** checks (ADR-039 §C: "don't claim
+    a tier you have not earned"). It sets the **floor** the dial-derived confidence
+    tier may graduate from. Absent ⇒ defaults to `Imagined` (the lowest — an
+    unlabeled antigen is the weakest claim).
+  - **`presentation = Presentation::{Passive | Active}`** — `Passive`
+    (tooling/scan-side, the default for low-provenance, no user-macro burden) vs
+    `Active`. Absent ⇒ defaults to `Passive` (the passive-by-default rule).
+- There is **no authored confidence `tier`** — the tier (suspected/named) is
+  **dial-derived** at audit (ADR-039 §B). An author writing `tier =` / `named =` /
+  `confidence =` / `suspected =` gets a helpful compile error pointing them at
+  `provenance =`.
+- Parse-side accepts the Pascal ident (`Heuristic`) and qualified path
+  (`Provenance::Heuristic`) forms, rejects unknown variants — the same posture as
+  `category`. The scanner re-parses both fields from the `#[antigen]` attribute
+  and carries them on `AntigenDeclaration` (stored as variant strings for
+  forward-compat). The audit-side default-resolution + the tier-VERIFIER
+  (sub-clause F) are the immediate follow-on.
+
 ### Added — `body_calls("<name>")` fingerprint leaf (ADR-040 grammar increment 1)
 
 - New fingerprint operator `body_calls("<name>")` — the call-shaped twin of

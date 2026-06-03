@@ -81,6 +81,97 @@ impl MacroAntigenCategory {
     }
 }
 
+// ============================================================================
+// MacroProvenance / MacroPresentation — local mirrors of
+// antigen::finding::{Provenance, Presentation} (ADR-039 §C)
+//
+// proc-macro crates cannot depend on the `antigen` library crate (circular
+// dependency), so we maintain local parse-time mirrors — the same pattern as
+// MacroAntigenCategory. The provenance LADDER + the passive/active axis are the
+// already-locked ADR-039 design; this is the declaration macro growing to match
+// it (the AUTHORED claim the audit tier-VERIFIER checks). The mirrors stay in
+// sync with `finding.rs`; extending either requires an ADR amendment.
+// ============================================================================
+
+/// Parse-time provenance ladder (mirrors `antigen::finding::Provenance`,
+/// ADR-039 §C). The AUTHORED claim of *how we know this failure-class exists*:
+/// a verified core (`Encountered`, `Constructable`) + two unverified tiers
+/// (`Heuristic` = correlational-not-causal; `Imagined` = a tell but no demo).
+///
+/// This is provenance (the class's evidence basis), NOT confidence-tier
+/// (suspected/named) — the tier is DIAL-DERIVED at audit, never authored.
+/// Provenance sets the FLOOR the dial may graduate from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MacroProvenance {
+    /// Seen in real code — highest provenance.
+    Encountered,
+    /// A minimal case can be built that verifiably exhibits the failure.
+    Constructable,
+    /// A scannable tell that correlates without a verifiable-constructable demo.
+    Heuristic,
+    /// Articulated from shape — a tell but no constructable demo yet (lowest).
+    Imagined,
+}
+
+impl MacroProvenance {
+    /// Parse from the path-style expression strings the proc-macro parser
+    /// produces. Accepts the unqualified Pascal ident (`Heuristic`) and the
+    /// qualified path (`Provenance::Heuristic`); kebab/snake are not valid Rust
+    /// path tokens and no input source produces them (same as the category
+    /// mirror).
+    fn from_path_str(s: &str) -> Option<Self> {
+        match s {
+            "Encountered" | "Provenance::Encountered" => Some(Self::Encountered),
+            "Constructable" | "Provenance::Constructable" => Some(Self::Constructable),
+            "Heuristic" | "Provenance::Heuristic" => Some(Self::Heuristic),
+            "Imagined" | "Provenance::Imagined" => Some(Self::Imagined),
+            _ => None,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Encountered => "encountered",
+            Self::Constructable => "constructable",
+            Self::Heuristic => "heuristic",
+            Self::Imagined => "imagined",
+        }
+    }
+}
+
+/// Parse-time presentation axis (mirrors `antigen::finding::Presentation`,
+/// ADR-039 §C): `Passive` (tooling/scan-side, the default for
+/// imagined/low-provenance — no user-macro burden) vs `Active` (user-facing,
+/// chosen by an encounterer).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MacroPresentation {
+    /// Tooling/scan-side; the default for imagined/low-provenance classes.
+    Passive,
+    /// User-macro; chosen by whoever encounters the thing.
+    Active,
+}
+
+impl MacroPresentation {
+    /// Parse from path-style expression strings — unqualified Pascal
+    /// (`Passive`) or qualified (`Presentation::Passive`).
+    fn from_path_str(s: &str) -> Option<Self> {
+        match s {
+            "Passive" | "Presentation::Passive" => Some(Self::Passive),
+            "Active" | "Presentation::Active" => Some(Self::Active),
+            _ => None,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Passive => "passive",
+            Self::Active => "active",
+        }
+    }
+}
+
 /// Arguments to `#[antigen(...)]`.
 #[allow(dead_code)]
 // family/summary/references are captured for validation but
@@ -105,6 +196,19 @@ pub struct AntigenArgs {
     /// with v0.1 antigens; absence emits `antigen-category-defaulted-implicit-functional`
     /// at audit time. v0.2+ new declarations SHOULD supply this explicitly.
     pub category: Vec<MacroAntigenCategory>,
+    /// Authored provenance claim (ADR-039 §C) — *how we know this failure-class
+    /// exists*: `Encountered`/`Constructable` (verified core) or
+    /// `Heuristic`/`Imagined` (unverified). `None` ⇒ defaults to `Imagined` (the
+    /// lowest tier — an unlabeled antigen is honestly the weakest claim). This is
+    /// the AUTHORED claim the audit tier-VERIFIER checks; it sets the FLOOR the
+    /// dial-derived confidence may graduate from. There is no authored confidence
+    /// `tier` — that is dial-derived.
+    pub provenance: Option<MacroProvenance>,
+    /// Authored presentation axis (ADR-039 §C) — `Passive` (tooling/scan-side, the
+    /// default for low-provenance) vs `Active` (user-facing). `None` ⇒ defaults to
+    /// `Passive` (the ADR-039 passive-by-default-for-low-provenance rule: imagined
+    /// antigens cost nothing until someone encounters one).
+    pub presentation: Option<MacroPresentation>,
     /// Span of the `name`'s string literal value.
     /// `None` only when the field was missing — see [`AntigenArgs::validate`].
     pub name_span: Option<Span>,
@@ -211,6 +315,8 @@ impl Parse for AntigenArgs {
         let mut summary: Option<String> = None;
         let mut references: Vec<String> = Vec::new();
         let mut category: Vec<MacroAntigenCategory> = Vec::new();
+        let mut provenance: Option<MacroProvenance> = None;
+        let mut presentation: Option<MacroPresentation> = None;
 
         let pairs: Punctuated<MetaPair, Token![,]> =
             input.parse_terminated(MetaPair::parse, Token![,])?;
@@ -231,12 +337,30 @@ impl Parse for AntigenArgs {
                 "summary" => summary = Some(pair.expect_string()?),
                 "references" => references = pair.expect_string_array()?,
                 "category" => category = pair.expect_antigen_category()?,
+                "provenance" => provenance = Some(pair.expect_provenance()?),
+                "presentation" => presentation = Some(pair.expect_presentation()?),
+                // There is NO authored confidence `tier` — the confidence tier
+                // (suspected/named) is DIAL-DERIVED at audit (ADR-039 §B), not
+                // declared. Point an author who reaches for it at `provenance`,
+                // which IS the authored claim (and sets the floor the dial may
+                // graduate from).
+                "tier" | "confidence" | "named" | "suspected" => {
+                    return Err(syn::Error::new(
+                        pair.key.span(),
+                        "#[antigen] has no authored confidence tier — the tier \
+                         (suspected/named) is dial-derived at audit (ADR-039 §B). \
+                         Author `provenance = Provenance::{Encountered|Constructable|\
+                         Heuristic|Imagined}` instead; provenance is the verified \
+                         claim that sets the tier floor.",
+                    ))
+                }
                 other => {
                     return Err(syn::Error::new(
                         pair.key.span(),
                         format!(
                             "unknown #[antigen] field `{other}`; expected one of: \
-                                 name, fingerprint, family, summary, references, category"
+                                 name, fingerprint, family, summary, references, \
+                                 category, provenance, presentation"
                         ),
                     ))
                 }
@@ -256,6 +380,8 @@ impl Parse for AntigenArgs {
             summary,
             references,
             category,
+            provenance,
+            presentation,
             name_span,
             fingerprint_span,
             args_span,
@@ -3965,6 +4091,69 @@ impl MetaPair {
             single => Ok(vec![parse_single(single)?]),
         }
     }
+
+    /// Parse `provenance = Provenance::Heuristic` (single path expression).
+    /// Accepts the qualified path (`Provenance::Heuristic`) or the plain Pascal
+    /// ident (`Heuristic`). String literals are NOT accepted — provenance must be
+    /// a path expression for compile-time discoverability (same as `category`).
+    fn expect_provenance(&self) -> syn::Result<MacroProvenance> {
+        let s = path_expr_to_string(&self.value).ok_or_else(|| {
+            syn::Error::new_spanned(
+                &self.value,
+                "expected a provenance path like `Provenance::Heuristic` \
+                 (Encountered | Constructable | Heuristic | Imagined)",
+            )
+        })?;
+        MacroProvenance::from_path_str(&s).ok_or_else(|| {
+            syn::Error::new_spanned(
+                &self.value,
+                format!(
+                    "unknown Provenance `{s}`; expected one of \
+                     `Provenance::Encountered`, `Provenance::Constructable`, \
+                     `Provenance::Heuristic`, `Provenance::Imagined`"
+                ),
+            )
+        })
+    }
+
+    /// Parse `presentation = Presentation::Passive` (single path expression).
+    /// Accepts the qualified path or the plain Pascal ident.
+    fn expect_presentation(&self) -> syn::Result<MacroPresentation> {
+        let s = path_expr_to_string(&self.value).ok_or_else(|| {
+            syn::Error::new_spanned(
+                &self.value,
+                "expected a presentation path like `Presentation::Passive` \
+                 (Passive | Active)",
+            )
+        })?;
+        MacroPresentation::from_path_str(&s).ok_or_else(|| {
+            syn::Error::new_spanned(
+                &self.value,
+                format!(
+                    "unknown Presentation `{s}`; expected \
+                     `Presentation::Passive` or `Presentation::Active`"
+                ),
+            )
+        })
+    }
+}
+
+/// Reconstruct a `::`-joined path string from a path expression
+/// (`Provenance::Heuristic` → `"Provenance::Heuristic"`, `Heuristic` →
+/// `"Heuristic"`). Returns `None` for non-path expressions (string literals,
+/// arrays, etc.). Shared by the single-value path-enum parsers.
+fn path_expr_to_string(expr: &Expr) -> Option<String> {
+    match expr {
+        Expr::Path(p) => Some(
+            p.path
+                .segments
+                .iter()
+                .map(|seg| seg.ident.to_string())
+                .collect::<Vec<_>>()
+                .join("::"),
+        ),
+        _ => None,
+    }
 }
 
 fn is_kebab_case(s: &str) -> bool {
@@ -4827,6 +5016,8 @@ mod tests {
             summary: None,
             references: Vec::new(),
             category: Vec::new(),
+            provenance: None,
+            presentation: None,
             name_span: Some(proc_macro2::Span::call_site()),
             fingerprint_span: Some(proc_macro2::Span::call_site()),
             args_span: proc_macro2::Span::call_site(),
@@ -5080,6 +5271,134 @@ mod tests {
             .unwrap();
         let result = syn::parse2::<AntigenArgs>(tokens);
         assert!(result.is_err(), "empty category array should be rejected");
+    }
+
+    // ========================================================================
+    // ADR-039 §C — authored `provenance` + `presentation` fields (the
+    // families-foundation increment). The provenance ladder + passive/active
+    // axis (already in finding.rs) becomes the AUTHORED claim the audit
+    // tier-VERIFIER checks; the confidence tier (suspected/named) is NOT
+    // authored (dial-derived) — an author writing `tier =` is a helpful error.
+    // ========================================================================
+
+    #[test]
+    fn antigen_parser_accepts_provenance_qualified_path() {
+        let tokens: TokenStream =
+            r#"name = "x", fingerprint = "item = fn", provenance = Provenance::Heuristic"#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<AntigenArgs>(tokens).unwrap();
+        assert_eq!(args.provenance, Some(MacroProvenance::Heuristic));
+    }
+
+    #[test]
+    fn antigen_parser_accepts_provenance_bare_pascal() {
+        // Bare Pascal ident (no `Provenance::` prefix), mirroring category.
+        let tokens: TokenStream =
+            r#"name = "x", fingerprint = "item = fn", provenance = Constructable"#
+                .parse()
+                .unwrap();
+        let args = syn::parse2::<AntigenArgs>(tokens).unwrap();
+        assert_eq!(args.provenance, Some(MacroProvenance::Constructable));
+    }
+
+    #[test]
+    fn antigen_parser_accepts_all_four_provenance_tiers() {
+        for (src, want) in [
+            ("Provenance::Encountered", MacroProvenance::Encountered),
+            ("Provenance::Constructable", MacroProvenance::Constructable),
+            ("Provenance::Heuristic", MacroProvenance::Heuristic),
+            ("Provenance::Imagined", MacroProvenance::Imagined),
+        ] {
+            let tokens: TokenStream =
+                format!(r#"name = "x", fingerprint = "item = fn", provenance = {src}"#)
+                    .parse()
+                    .unwrap();
+            let args = syn::parse2::<AntigenArgs>(tokens).unwrap();
+            assert_eq!(args.provenance, Some(want), "provenance {src}");
+        }
+    }
+
+    #[test]
+    fn antigen_parser_accepts_presentation_passive_and_active() {
+        for (src, want) in [
+            ("Presentation::Passive", MacroPresentation::Passive),
+            ("Active", MacroPresentation::Active),
+        ] {
+            let tokens: TokenStream =
+                format!(r#"name = "x", fingerprint = "item = fn", presentation = {src}"#)
+                    .parse()
+                    .unwrap();
+            let args = syn::parse2::<AntigenArgs>(tokens).unwrap();
+            assert_eq!(args.presentation, Some(want), "presentation {src}");
+        }
+    }
+
+    #[test]
+    fn antigen_parser_absent_provenance_and_presentation_are_none() {
+        // Absent ⇒ None at parse time. The audit defaults them
+        // (provenance → Imagined, presentation → Passive); parse stays permissive
+        // (backward-compat, same posture as absent category).
+        let tokens: TokenStream = r#"name = "x", fingerprint = "item = fn""#.parse().unwrap();
+        let args = syn::parse2::<AntigenArgs>(tokens).unwrap();
+        assert_eq!(args.provenance, None, "absent provenance is None");
+        assert_eq!(args.presentation, None, "absent presentation is None");
+    }
+
+    #[test]
+    fn antigen_parser_rejects_unknown_provenance_variant() {
+        let tokens: TokenStream =
+            r#"name = "x", fingerprint = "item = fn", provenance = Provenance::Bogus"#
+                .parse()
+                .unwrap();
+        let result = syn::parse2::<AntigenArgs>(tokens);
+        assert!(
+            result.is_err(),
+            "an unknown Provenance variant must be rejected (the verified ladder is closed)"
+        );
+    }
+
+    #[test]
+    fn antigen_parser_rejects_authored_tier_with_helpful_error() {
+        // There is NO authored confidence tier — it is dial-derived (ADR-039 §B).
+        // An author reaching for `tier =`/`named =` gets a helpful error pointing
+        // to `provenance =` (the verified claim that sets the tier floor).
+        for key in ["tier", "confidence", "named", "suspected"] {
+            let tokens: TokenStream =
+                format!(r#"name = "x", fingerprint = "item = fn", {key} = Named"#)
+                    .parse()
+                    .unwrap();
+            let result = syn::parse2::<AntigenArgs>(tokens);
+            let err = result.expect_err("an authored tier field must be rejected");
+            let msg = err.to_string();
+            assert!(
+                msg.contains("provenance") && msg.contains("dial-derived"),
+                "the `{key}` rejection must point the author at provenance + name dial-derivation; got: {msg}"
+            );
+        }
+    }
+
+    #[test]
+    fn macro_provenance_and_presentation_str_forms() {
+        // as_str renders kebab (the serde/CLI form); from_path_str takes the
+        // Pascal/path macro-input forms. The two are intentionally different
+        // input/output surfaces (same split as MacroAntigenCategory).
+        assert_eq!(MacroProvenance::Encountered.as_str(), "encountered");
+        assert_eq!(MacroProvenance::Constructable.as_str(), "constructable");
+        assert_eq!(MacroProvenance::Heuristic.as_str(), "heuristic");
+        assert_eq!(MacroProvenance::Imagined.as_str(), "imagined");
+        assert_eq!(MacroPresentation::Passive.as_str(), "passive");
+        assert_eq!(MacroPresentation::Active.as_str(), "active");
+        // from_path_str accepts Pascal + qualified; rejects kebab (not a path token).
+        assert_eq!(
+            MacroProvenance::from_path_str("Heuristic"),
+            Some(MacroProvenance::Heuristic)
+        );
+        assert_eq!(
+            MacroProvenance::from_path_str("Provenance::Heuristic"),
+            Some(MacroProvenance::Heuristic)
+        );
+        assert_eq!(MacroProvenance::from_path_str("heuristic"), None);
     }
 
     #[test]
