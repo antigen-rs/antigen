@@ -88,48 +88,52 @@ pub struct DeserializeWithoutDenyUnknownFields;
 /// fixed with a `remaining_depth` counter; rustc-serialize; time) — the
 /// strongest recorded-harm evidence in the family sweep.
 ///
-/// **Tell:** the keystone is the **streaming** entrypoint `from_reader` (the
-/// real recorded-harm `DoS`: std warns a `from_reader` on a non-terminating
-/// stream "will not return") **without** a `.take(limit)` bound — the bounded
-/// idiom `from_reader(reader.take(n))` is exactly the std-documented fix
-/// ("particularly useful ... preventing denial-of-service attacks when reading
-/// untrusted data"). So the keystone is the **guard-absence** form
-/// `all_of([body_calls("from_reader"), not(body_calls("take"))])`, plus a weaker
-/// `from_slice` presence arm for breadth:
-/// `any_of([all_of([body_calls("from_reader"), not(body_calls("take"))]),
-/// body_calls("from_slice")])`.
+/// **Tell:** the **streaming** entrypoint `from_reader` (the real recorded-harm
+/// `DoS`: std warns a `from_reader` on a non-terminating stream "will not return")
+/// plus a weaker `from_slice` presence arm for breadth:
+/// `any_of([body_calls("from_reader"), body_calls("from_slice")])`.
 ///
-/// **Why guard-absence (not bare presence) — and it fails SAFE:** `Iterator::take`
-/// shares the name, so an unrelated `iter.take(5)` in the body suppresses the
-/// finding — but that is a false-*negative* (under-flag → fails toward
-/// not-Defended, the safe direction). The reverse (an unrelated `take` making a
-/// guarded deser look unguarded) cannot happen, because take-*presence* is what
-/// suppresses. The name-collision only ever costs recall, never
-/// precision-in-the-dangerous-direction (scout, std-doc-verified).
+/// **Why bare presence, NOT a `not(take)` guard at this named tier (the
+/// surface-flag / witness-proof split, ADR-019/029).** A `.take(limit)`-capped
+/// reader is the std-documented anti-`DoS` idiom — but the bounded form
+/// `from_reader(reader.take(n))` should still **fire** on the fingerprint (the
+/// risky *surface* — a streaming deser — is genuinely present) and be **spared by
+/// the WITNESS at audit** (the `.take(limit)` is the defense, proved at the
+/// audit/`#[defended_by]` stage), NOT fingerprint-spared. A `not(body_calls("take"))`
+/// guard would instead *silently suppress* the finding whenever an **unrelated**
+/// `Iterator::take` appears in the body — a silent false-negative that breaks the
+/// **named** tier's high-confidence promise (named = "if it doesn't fire, you are
+/// covered"). `take` is a **subject-slice** (a common method name, possibly
+/// unrelated), and a subject-slice negation is inadmissible at named (it IS
+/// admissible at heuristic, where a labeled recall hole is within-tier — cf. the
+/// crypto member's `not(ct_eq)` at heuristic). The fix is surgical: drop the
+/// guard, keep named — the `from_reader`/`from_slice` core is an honest
+/// defect-slice that stands alone at named.
 ///
 /// **Scope (honest defect-slice):** `from_str` is deliberately **excluded** —
 /// `body_calls` matches by last path segment with no path resolution, so
 /// `from_str` would fire on every `i32::from_str` (`FromStr`, not
 /// deserialization); and `from_str`/`from_slice` operate on data *already fully
 /// in memory*, so their unbounded risk is the caller's upstream read, not the
-/// deser call — weaker tells than the streaming `from_reader`. Scoping `take` to
-/// a `Read::take` (vs `Iterator::take`) by receiver-type is a semantic / charter
-/// refinement.
+/// deser call — weaker tells than the streaming `from_reader`.
 ///
-/// **Tier:** **named/confident** for the `from_reader` guard-absence keystone
-/// (RUSTSEC-backed streaming `DoS`).
+/// **Tier:** **named/confident** — the `from_reader`/`from_slice` entrypoints are
+/// rare/std-specific (self-anchoring; a domain type rarely has a `from_reader`
+/// method), so the effective codomain is the defect population (RUSTSEC-backed
+/// streaming `DoS`).
 ///
 /// **Witness:** a bounded reader (`.take(n)`) / depth guard (`serde_stacker`) on
-/// the deserialization path.
+/// the deserialization path — proved at audit (the surface fires; the witness
+/// spares).
 ///
 /// **Category:** `FunctionalCorrectness` — the deserialization verb produces a
 /// wrong *effect* (a `DoS` / stack-blow) on adversarial input.
 #[antigen(
     name = "unbounded-deserialization",
     category = AntigenCategory::FunctionalCorrectness,
-    fingerprint = r#"any_of([all_of([body_calls("from_reader"), not(body_calls("take"))]), body_calls("from_slice")])"#,
+    fingerprint = r#"any_of([body_calls("from_reader"), body_calls("from_slice")])"#,
     family = "deserialization-trust-boundary",
-    summary = "A streaming from_reader deserialization with no .take(limit) bound (or a from_slice) — a DoS surface (the std-documented non-terminating-stream / stack-exhaustion harm). Named tier; guard-absence keystone (fails safe via take-presence suppression); from_str excluded (FromStr collision).",
+    summary = "A streaming from_reader (or from_slice) deserialization — a DoS surface (the std-documented non-terminating-stream / stack-exhaustion harm). Named tier (from_reader/from_slice are rare/std-specific self-anchors). The .take(limit)-capped form FIRES (surface present) and is spared by the WITNESS at audit, not by a not(take) guard (a subject-slice negation is a silent-FN at named). from_str excluded (FromStr collision).",
     references = [
         "RUSTSEC-2024-0012",
         "RUSTSEC-2022-0004",

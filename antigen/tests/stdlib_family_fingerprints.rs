@@ -162,7 +162,8 @@ fn deserialize_without_deny_spares_non_deserialize_struct() {
 // ============================================================================
 
 /// The member's declared fingerprint, kept in ONE place (the drift-guard).
-const UNBOUNDED_DESERIALIZATION: &str = r#"any_of([all_of([body_calls("from_reader"), not(body_calls("take"))]), body_calls("from_slice")])"#;
+const UNBOUNDED_DESERIALIZATION: &str =
+    r#"any_of([body_calls("from_reader"), body_calls("from_slice")])"#;
 
 #[test]
 fn unbounded_deserialization_binds_from_reader_call() {
@@ -191,17 +192,20 @@ fn unbounded_deserialization_binds_from_slice_call() {
 }
 
 #[test]
-fn unbounded_deserialization_spares_take_guarded_from_reader() {
-    // SPARE (the guard-absence keystone): a from_reader BOUNDED by `.take(limit)`
-    // — the std-documented anti-DoS idiom. body_calls("from_reader") = Match but
-    // not(body_calls("take")) = not(Match) = NoMatch → the all_of arm is NoMatch;
-    // no from_slice → the any_of is NoMatch. The guarded reader is spared.
+fn unbounded_deserialization_fires_on_take_guarded_reader_witness_spares_at_audit() {
+    // The take-guarded from_reader must STILL FIRE on the fingerprint (the risky
+    // SURFACE — a streaming deser — is genuinely present); the `.take(limit)`
+    // defense is proved by the WITNESS at audit, not fingerprint-spared. A
+    // `not(body_calls("take"))` guard would instead silently suppress this finding
+    // whenever an UNRELATED Iterator::take appeared — a silent false-negative that
+    // breaks the named tier's high-confidence promise. So at named, the surface
+    // fires and the witness spares (the surface-flag / witness-proof split).
     let fp = fp(UNBOUNDED_DESERIALIZATION);
     assert!(
-        !fp.matches(&item(
+        fp.matches(&item(
             "fn load(r: impl std::io::Read) -> Config { serde_json::from_reader(r.take(1024)).unwrap() }"
         )),
-        "must SPARE a from_reader bounded by .take(limit) (the anti-DoS idiom)"
+        "must FIRE on a take-guarded from_reader (surface present); the witness spares at audit, not the fingerprint"
     );
 }
 
