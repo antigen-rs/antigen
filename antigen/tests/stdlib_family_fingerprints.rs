@@ -348,3 +348,88 @@ fn panic_in_drop_spares_inherent_impl_named_drop() {
         "must SPARE an inherent impl with a method named drop (not the Drop trait)"
     );
 }
+
+// ============================================================================
+// panic-on-index :: GetUncheckedWithoutProof
+// ============================================================================
+
+/// The member's declared fingerprint, kept in ONE place (the drift-guard).
+const GET_UNCHECKED: &str =
+    r#"any_of([body_calls("get_unchecked"), body_calls("get_unchecked_mut")])"#;
+
+#[test]
+fn get_unchecked_binds_unchecked_index() {
+    // BIND: a call to get_unchecked (the unsafe escape hatch; OOB = UB).
+    let fp = fp(GET_UNCHECKED);
+    assert!(
+        fp.matches(&item(
+            "fn at(v: &[u8], i: usize) -> u8 { unsafe { *v.get_unchecked(i) } }"
+        )),
+        "must BIND a get_unchecked call"
+    );
+}
+
+#[test]
+fn get_unchecked_binds_unchecked_mut() {
+    // BIND the other arm (get_unchecked_mut).
+    let fp = fp(GET_UNCHECKED);
+    assert!(
+        fp.matches(&item(
+            "fn at_mut(v: &mut [u8], i: usize) -> &mut u8 { unsafe { v.get_unchecked_mut(i) } }"
+        )),
+        "must BIND a get_unchecked_mut call"
+    );
+}
+
+#[test]
+fn get_unchecked_spares_checked_get() {
+    // SPARE: the checked .get(i) — not an unchecked-index call. neither
+    // get_unchecked nor get_unchecked_mut present → any_of = NoMatch.
+    let fp = fp(GET_UNCHECKED);
+    assert!(
+        !fp.matches(&item(
+            "fn at(v: &[u8], i: usize) -> Option<&u8> { v.get(i) }"
+        )),
+        "must SPARE the checked .get(i) (no unchecked-index call)"
+    );
+}
+
+// ============================================================================
+// resource-lifecycle-leak :: DeliberateLeakNotDocumented
+// ============================================================================
+
+/// The member's declared fingerprint, kept in ONE place (the drift-guard).
+const DELIBERATE_LEAK: &str = r#"any_of([body_calls("forget"), body_calls("leak")])"#;
+
+#[test]
+fn deliberate_leak_binds_mem_forget() {
+    // BIND: a mem::forget call (last-segment "forget") — Drop is skipped.
+    let fp = fp(DELIBERATE_LEAK);
+    assert!(
+        fp.matches(&item("fn drop_it(x: Resource) { std::mem::forget(x); }")),
+        "must BIND a mem::forget call"
+    );
+}
+
+#[test]
+fn deliberate_leak_binds_box_leak() {
+    // BIND the leak arm (Box::leak / Vec::leak — last-segment "leak").
+    let fp = fp(DELIBERATE_LEAK);
+    assert!(
+        fp.matches(&item(
+            "fn make_static(b: Box<str>) -> &'static str { Box::leak(b) }"
+        )),
+        "must BIND a Box::leak call"
+    );
+}
+
+#[test]
+fn deliberate_leak_spares_ordinary_drop() {
+    // SPARE: an ordinary scope-drop with no leak primitive. neither forget nor
+    // leak present → any_of = NoMatch.
+    let fp = fp(DELIBERATE_LEAK);
+    assert!(
+        !fp.matches(&item("fn use_it(x: Resource) { let _ = x.compute(); }")),
+        "must SPARE an ordinary use with no forget/leak call"
+    );
+}
