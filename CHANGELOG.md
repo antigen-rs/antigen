@@ -171,31 +171,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   shipped `PanickingInDrop` fingerprint cannot), and `UnsafeSendSync` anchors on
   `impl_of_trait("Send")` + `is_unsafe`.
 
-### Added — Crypto-Misuse stdlib family — `NonConstantTimeSecretComparison` (beta.2 voyage)
+### Chartered (not shipped) — Crypto-Misuse family `NonConstantTimeSecretComparison` (beta.2 voyage)
 
-- New stdlib family `crypto_misuse` (the RUSTSEC `crypto-failure` category seen
-  developer-side: misuse of a *present* defense). First member
-  `NonConstantTimeSecretComparison` — a secret/MAC/token verified through a
-  non-constant-time comparison (a timing-attack oracle). Fingerprint
-  `all_of([any_of([body_calls("verify"), body_calls("hmac_verify"),
-  body_calls("verify_mac")]), not(any_of([body_calls("ct_eq"),
-  body_calls("constant_time_eq")]))])`: a crypto verify path **without** a
-  constant-time comparison present — the *absence* of the safe step is the tell
-  (the call-flavored absence-grammar driver built on the new `body_calls` leaf).
-  The entrypoint and safe-step sets are **wide-net** `any_of` (not single-needle)
-  because `body_calls` matches by last segment — a single `"verify"` / `"ct_eq"`
-  needle would silently miss `hmac_verify` / `verify_mac` / `constant_time_eq`. Ships at the **heuristic** tier (ADR-039 provenance
-  ladder): the entrypoint ident-list (`"verify"` / `"ct_eq"`) is a deliberate
-  **placeholder**, correlational not causal — honestly labeled, passive-by-
-  default. Category `FunctionalCorrectness` (the comparison verb produces a wrong
-  observable effect, a measurable timing differential). Ships WITH its
-  admitting-specimen (the affinity-pair `examples/crypto_misuse.rs` — a vulnerable
-  site the fingerprint binds + a clean `ct_eq` sibling it spares), the ADR-039 §C
-  worth-multiplier + masterclass exhibit + dogfood self-catch.
-  - **Fast-follow (flagged):** firm the crypto-compare entrypoint ident-lists via
-    a RUSTSEC `crypto-failure` enumeration (and the deferred
-    `security_sensitive_name` name-content leaf, charter). The member is honest at
-    the heuristic tier with the placeholders in place.
+- The `crypto_misuse` family module ships as a **charter doc, with no member**.
+  `NonConstantTimeSecretComparison` (a secret/MAC compared in non-constant time — a
+  timing-attack oracle) is a **real, recurring** failure-class (GHSA-q7pg-9pr4-mrp2;
+  the RUSTSEC `crypto-failure` category), but **no honest call-only fingerprint can
+  express it in the shipped grammar** (aristotle's beta.2 notary ruling, confirmed
+  from two independent angles). A verify-entrypoint anchor + `not(ct_eq)`
+  **anti-aligns with the defect** — `ring::hmac::verify` is the *correct*, internally
+  constant-time API (and `verify`/`hmac_verify` are the *names of the safe
+  operation*), so the fingerprint would fire loudest on the safe path and flag the
+  recommended API as the bug. The real defect (a hand-rolled `==` on a secret) has
+  no distinctive call — it needs the deferred `security_sensitive_name` name-leaf +
+  the `==` operator-leaf. So the member is **chartered**: it graduates to a shipped
+  `all_of([security_sensitive_name, not(any_of([ct_eq, constant_time_eq]))])`
+  (suspected/heuristic) when those leaves land. Better honest-deferred than
+  dishonest-shipped. (An earlier in-development draft of this member was reverted on
+  the notary ruling — it never shipped a release.)
 
 ### Added — Deserialization-Trust-Boundary stdlib family (beta.2 voyage)
 

@@ -26,10 +26,11 @@
 //!   specifically in multi-session / multi-agent / human-LLM-collab workflows.
 //!   Biology cognate: immunological memory loss during session gap.
 //! - [`crypto_misuse`](crate::stdlib::crypto_misuse) — the Crypto-Misuse Family
-//!   (beta.2 voyage), the RUSTSEC `crypto-failure` category seen developer-side:
-//!   misuse of a present defense (non-constant-time secret comparison). Tells
-//!   are call-anchored + safe-step-ABSENCE. Biology cognate: using the immune
-//!   machinery wrong (the timing leak as a non-constant-time self/non-self read).
+//!   (beta.2 voyage). **CHARTERED, no shipped member yet:** the flagship
+//!   non-constant-time secret comparison is a real failure-class but has no honest
+//!   call-only fingerprint (a verify-anchor anti-aligns with the safe path; the
+//!   real defect is `==` on a secret, needing the deferred name + operator leaves).
+//!   See the module doc for the full reasoning + graduation path.
 //! - [`deserialization`](crate::stdlib::deserialization) — the
 //!   Deserialization-Trust-Boundary Family (beta.2 voyage), the deep tier of
 //!   Mucosal-Boundary: untrusted bytes crossing into typed structs without the
