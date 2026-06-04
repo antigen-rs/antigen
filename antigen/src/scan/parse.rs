@@ -29,15 +29,15 @@ use syn::visit::Visit;
 
 use super::{
     AntigenDeclaration, ConvergentEvidence, ConvergentEvidenceKind, Defense, DeferredDefense,
-    DeferredDefenseKind, GeneratesDeclaration, Immunity, ItemTarget, LineageEdge, MatchKind,
-    MucosalDeclaration, MucosalKindTag, ParseFailure, PrescriptiveDeclaration, PrescriptiveKind,
-    Presentation, RecurrentDeclaration, RecurrentKind, ScanReport, Toleration,
+    DeferredDefenseKind, GeneratesDeclaration, Immunity, ItemTarget, LineageEdge, MarkedUnknown,
+    MatchKind, MucosalDeclaration, MucosalKindTag, ParseFailure, PrescriptiveDeclaration,
+    PrescriptiveKind, Presentation, RecurrentDeclaration, RecurrentKind, ScanReport, Toleration,
 };
 use super::{
     ScanAnergyArgs, ScanAntigenArgs, ScanClonalArgs, ScanCrossreactiveArgs, ScanDiagnosticArgs,
-    ScanGeneratesArgs, ScanIggArgs, ScanImmuneArgs, ScanImmunosuppressArgs, ScanMucosalArgs,
-    ScanOrientArgs, ScanPoxpartyArgs, ScanPrescriptiveArgs, ScanPresentsArgs, ScanRecurrentArgs,
-    ScanToleranceArgs,
+    ScanGeneratesArgs, ScanIggArgs, ScanImmuneArgs, ScanImmunosuppressArgs, ScanMarkerArgs,
+    ScanMucosalArgs, ScanOrientArgs, ScanPoxpartyArgs, ScanPrescriptiveArgs, ScanPresentsArgs,
+    ScanRecurrentArgs, ScanToleranceArgs,
 };
 
 /// AST visitor that extracts antigen-related attributes.
@@ -431,6 +431,63 @@ impl ScanVisitor<'_> {
         }
     }
 
+    /// Extract a marked-unknown marker (`#[aura]` / `#[dread]` / `#[red_flag]`,
+    /// ADR-041). The plane corner (`magnitude` × `existence_certainty`) is fixed
+    /// by the calling dispatch (it knows which marker); the author supplied only
+    /// the **required** `trigger`. Mirrors the macro-side `validate()` at scan
+    /// time (guard 3): a triggerless / empty marker is a parse-failure, NOT a
+    /// silent drop — so the source-walk enforces the same discipline even when the
+    /// macro never expanded.
+    fn extract_marked_unknown(
+        &mut self,
+        attr: &syn::Attribute,
+        marker: &str,
+        magnitude: &str,
+        existence_certainty: &str,
+    ) {
+        let syn::Meta::List(list) = &attr.meta else {
+            self.report.parse_failures.push(ParseFailure {
+                file: self.file_path.clone(),
+                error: format!(
+                    "#[{marker}] requires `trigger = \"...\"` (ADR-041 guard 3) — \
+                     a marked-unknown with no stated trigger is graffiti"
+                ),
+            });
+            return;
+        };
+        let args = match syn::parse2::<ScanMarkerArgs>(list.tokens.clone()) {
+            Ok(a) => a,
+            Err(e) => {
+                self.report.parse_failures.push(ParseFailure {
+                    file: self.file_path.clone(),
+                    error: format!("malformed #[{marker}] attribute: {e}"),
+                });
+                return;
+            }
+        };
+        // Guard 3 mirrored at scan time: required, non-empty trigger.
+        if args.trigger.trim().is_empty() {
+            self.report.parse_failures.push(ParseFailure {
+                file: self.file_path.clone(),
+                error: format!(
+                    "#[{marker}] requires a non-empty `trigger = \"...\"` (ADR-041 \
+                     guard 3) — state what you saw that made you feel this"
+                ),
+            });
+            return;
+        }
+
+        let line = Self::line_of_attr(attr);
+        self.report.marked_unknowns.push(MarkedUnknown {
+            marker: marker.to_string(),
+            magnitude: magnitude.to_string(),
+            existence_certainty: existence_certainty.to_string(),
+            trigger: args.trigger,
+            file: self.file_path.clone(),
+            line,
+        });
+    }
+
     fn extract_tolerance(
         &mut self,
         attr: &syn::Attribute,
@@ -796,6 +853,13 @@ impl ScanVisitor<'_> {
                     item_target.clone(),
                     ConvergentEvidenceKind::Adcc,
                 );
+            // Marked-Unknown Plane (ADR-041) — each marker fixes its corner.
+            } else if attr_is(attr, "aura") {
+                self.extract_marked_unknown(attr, "aura", "aura", "unsure");
+            } else if attr_is(attr, "dread") {
+                self.extract_marked_unknown(attr, "dread", "dread", "unsure");
+            } else if attr_is(attr, "red_flag") {
+                self.extract_marked_unknown(attr, "red-flag", "dread", "sure");
             } else {
                 // v0.2 families (recurrent-emergence + mucosal-boundary)
                 // dispatch in a sibling helper to keep check_attrs concise.

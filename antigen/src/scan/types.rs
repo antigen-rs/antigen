@@ -666,6 +666,37 @@ pub struct GeneratesDeclaration {
     pub canonical_path: Option<String>,
 }
 
+/// A marked-unknown declaration (`#[aura]` / `#[dread]` / `#[red_flag]`).
+///
+/// A felt-but-unnamed danger marked at a site (ADR-041) — off the dial's
+/// classification axis (at ⊥), on the magnitude × existence-certainty plane. The
+/// author supplied only the **required** `trigger`; the plane corner is fixed by
+/// which marker macro was used.
+///
+/// This is the scan-time half of ADR-039's `Finding` (it emits as a
+/// `FindingBody::MarkedUnknown`). It surfaces at the dial's non-gating floor —
+/// never gates, never nags; an untouched marker is a *mild* substrate-smell
+/// (`#[red_flag]` auto-escalates).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct MarkedUnknown {
+    /// Which marker: `"aura"` / `"dread"` / `"red-flag"`.
+    pub marker: String,
+    /// The magnitude corner (`"aura"` / `"dread"` — `"smell"` is absorbed),
+    /// fixed by the marker macro. Maps to `finding::Magnitude`.
+    pub magnitude: String,
+    /// The existence-certainty corner (`"unsure"` / `"sure"`), fixed by the
+    /// marker macro. A FIRST-CLASS field (ADR-041) — NOT folded into the dial
+    /// tier, so the maturation engine can cluster high-certainty `red_flag`s
+    /// apart from low-certainty `aura`s. Maps to `finding::ExistenceCertainty`.
+    pub existence_certainty: String,
+    /// The required felt-trigger ("what did you see?"), non-empty (guard 3).
+    pub trigger: String,
+    /// Source file path.
+    pub file: PathBuf,
+    /// Line number of the marker attribute.
+    pub line: usize,
+}
+
 /// An `#[antigen_tolerance(antigen, rationale = "...", until = "...", see = [...])]`
 /// declaration discovered in source. Per ADR-011.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1219,6 +1250,13 @@ pub struct ScanReport {
     /// `#[serde(default)]` so pre-ADR-014 reports deserialize cleanly.
     #[serde(default)]
     pub generates_declarations: Vec<GeneratesDeclaration>,
+    /// All discovered marked-unknown markers (`#[aura]` / `#[dread]` /
+    /// `#[red_flag]`, ADR-041) — the felt-but-unnamed dangers. These are the
+    /// scan-time half of ADR-039's `Finding`; they surface at the dial's
+    /// non-gating floor (never gate, never nag). `#[serde(default)]` so
+    /// pre-ADR-041 reports deserialize cleanly.
+    #[serde(default)]
+    pub marked_unknowns: Vec<MarkedUnknown>,
     /// Files scanned successfully.
     pub files_scanned: usize,
     /// Files that failed to parse.

@@ -37,7 +37,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the `#[antigen_tolerance]`/`#[antigen_generates]` precedent) carrying
   `{marker, magnitude, existence_certainty, trigger}` — the emit-into-the-scan-time-
   half-of-`Finding` payload (the `FindingBody::MarkedUnknown` schema already shipped
-  in `finding.rs`). The scan-read pass that surfaces them is the immediate follow-on.
+  in `finding.rs`).
+- **Scan-read:** the scanner source-walks the marker attributes and surfaces them on
+  `ScanReport::marked_unknowns` (a new `MarkedUnknown` collection), mirroring the
+  required-trigger guard at scan time (a triggerless marker is a parse-failure, never
+  a silent drop). **`existence_certainty` is a first-class field, NOT folded into the
+  dial tier** (ADR-041 §What-done-well-means (e)) — a `#[red_flag]` (sure) and a
+  `#[dread]` (unsure) share the same magnitude but differ on existence-certainty, so
+  the future affinity-maturation engine can cluster high-certainty alarms apart from
+  low-certainty auras. The markers surface at the dial's non-gating floor — never
+  gate, never nag.
 
 ### Added — Unsafe-Soundness-Boundary stdlib family (beta.2 voyage)
 
