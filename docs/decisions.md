@@ -10365,10 +10365,13 @@ physically-split stream defeats the seam's whole purpose (one subscribable signa
             because the correct `*mut u8` byte-buffer idiom (`copy(dst: *mut u8, n * size_of::<T>())`) carries
             the same `n * size_of` shape and is spared only by the **pointee type** (`*u8` = a byte buffer), a
             resolved-type fact — so it graduates at the **v0.4 type-aware tier (arg-position AND pointee-type)**,
-            never at a syntactic operator-leaf. *(Honest note: of the worked members, none re-earns named via a
-            cheap syntactic operator-leaf — `set_len`/`duration_since` are permanent-suspected (receiver-type);
-            `size_of`-in-count is type-aware. The pure-AST-feasible-charter outcome is a sound forward-provision
-            for a genuinely syntactic-discriminable arm, illustrated abstractly because no beta.2 member is one.)*
+            never at a syntactic operator-leaf. *(Honest note on the GRADUATION mechanism, not the outcome:
+            `size_of`-in-count IS the worked DEMOTE (outcome-3) member — it ships at suspected. What none of the
+            worked members has is a *cheap syntactic operator-leaf* path back to named: `set_len`/`duration_since`
+            are permanent-suspected (receiver-type), and `size_of`-in-count is type-aware (arg-position AND
+            pointee-type). The pure-AST-feasible-charter *graduation* — re-earning named via a single new
+            operator-leaf — is a sound forward-provision for a genuinely syntactic-discriminable arm, but no
+            beta.2 member graduates that cheaply; SizeOf's own graduation is the type-aware tier.)*
           The discriminator between DROP and DEMOTE is **anti-correlation vs un-correlation**: an arm that
           fires on the namesake's *fix* is anti-correlated (DROP); an arm that fires on an *unrelated/benign*
           namesake is merely un-correlated (DEMOTE). This is the arm-level dual of the name-specificity tier
