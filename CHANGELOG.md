@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — the Marked-Unknown markers `#[aura]` / `#[dread]` / `#[red_flag]` (ADR-041, macro surface)
+
+- Three declarable ⊥ markers for the **felt-but-unnamed danger** — the single most
+  perishable piece of knowledge in software (the unease that evaporates on
+  context-switch / agent-compaction). They live **off** the dial's classification
+  axis (at ⊥, the *unnameable*), on the magnitude × existence-certainty plane, and
+  surface at the dial's **non-gating floor** — they never gate (cannot fail CI) and
+  never nag.
+  - **`#[aura(trigger = "...")]`** — low magnitude: "something *may* be off, can't
+    name it, check later."
+  - **`#[dread(trigger = "...")]`** — high magnitude, low existence-certainty (the
+    *angor animi* corner): "something *is* wrong here, can't name it, look now."
+  - **`#[red_flag(trigger = "...")]`** — high existence-certainty, unnameable (the
+    clinical sense-of-alarm corner): "I'm *sure* something is wrong, can't name it,
+    act now" — auto-escalates on first match.
+- **The `trigger` field is REQUIRED, not `Option` (ADR-041 guard 3).** A triggerless
+  (or empty/whitespace) marker is a **compile error** — a marked-unknown with no
+  stated trigger is the contentless "this seems off" graffiti the primitive exists
+  to prevent. This is the rationale-as-required-field sub-clause-F discipline
+  (ADR-005 Amd2), the same shape as `#[antigen_tolerance]`'s `rationale`. Only
+  trigger *presence* is enforced; *sincerity* is an un-tabled social boundary
+  (observe-don't-declare, named as such).
+- The plane corner (magnitude × existence-certainty) is **fixed by which marker
+  macro is used**, never authored (`magnitude =` / `existence_certainty =` are
+  rejected). A marked-unknown names nothing, so there is no positional antigen.
+- Each is a pure identity transform plus a discoverable
+  `#[doc = " antigen:marked-unknown:v1:<json>"]` marker (the no-binary-link channel,
+  the `#[antigen_tolerance]`/`#[antigen_generates]` precedent) carrying
+  `{marker, magnitude, existence_certainty, trigger}` — the emit-into-the-scan-time-
+  half-of-`Finding` payload (the `FindingBody::MarkedUnknown` schema already shipped
+  in `finding.rs`). The scan-read pass that surfaces them is the immediate follow-on.
+
 ### Added — Unsafe-Soundness-Boundary stdlib family (beta.2 voyage)
 
 - New stdlib family `unsafe_soundness` — the `unsafe`-primitive call-shapes where

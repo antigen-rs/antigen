@@ -835,6 +835,131 @@ impl ToleranceArgs {
 }
 
 // ============================================================================
+// MarkerArgs parsing (ADR-041 — the marked-unknown plane)
+// ============================================================================
+
+/// Arguments to a marked-unknown marker: `#[aura(trigger = "...")]` /
+/// `#[dread(trigger = "...")]` / `#[red_flag(trigger = "...")]`.
+///
+/// A marked-unknown names NOTHING specific (it is the *unnameable* — at ⊥, off
+/// the dial's classification axis), so — unlike `#[antigen_tolerance]` — there is
+/// **no positional antigen**. The single field is the **required** `trigger`:
+/// "what did you see that made you feel this?" The plane corner
+/// (magnitude × existence-certainty) is FIXED by *which* marker macro is used
+/// (`#[aura]` / `#[dread]` / `#[red_flag]`), NOT authored — so `magnitude` /
+/// `existence_certainty` are not accepted as fields.
+///
+/// **Guard 3 (ADR-041): `trigger` is REQUIRED, not `Option`.** A triggerless
+/// marker is the contentless "this seems off" graffiti the primitive exists to
+/// prevent — it parse-rejects (and an empty `trigger = ""` rejects too). This is
+/// the rationale-as-required-field sub-clause-F discipline (ADR-005 Amd2), the
+/// same shape as `#[antigen_tolerance]`'s `rationale`. Only trigger *presence* is
+/// enforced; *sincerity* is an un-tabled social boundary (observe-don't-declare).
+#[derive(Debug)]
+pub struct MarkerArgs {
+    /// The required felt-trigger ("what did you see?"). Non-empty.
+    pub trigger: Option<String>,
+    /// Span of the `trigger` value, for a precise empty-string error.
+    pub trigger_span: Option<Span>,
+    /// Span of the macro's argument list, the fallback error anchor.
+    pub args_span: Span,
+    /// Which marker (for error messages). Set by the macro entrypoint, not parsed.
+    pub marker_name: &'static str,
+}
+
+impl Parse for MarkerArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let args_span = input.span();
+        let mut trigger: Option<String> = None;
+        let mut trigger_span: Option<Span> = None;
+
+        // No leading positional — a marked-unknown names nothing. Parse
+        // comma-separated `key = value` pairs (currently only `trigger`).
+        let pairs: Punctuated<MetaPair, Token![,]> =
+            input.parse_terminated(MetaPair::parse, Token![,])?;
+        for pair in pairs {
+            match pair.key.to_string().as_str() {
+                "trigger" => {
+                    let (s, span) = pair.expect_string_spanned()?;
+                    trigger = Some(s);
+                    trigger_span = Some(span);
+                }
+                // The plane corner is FIXED by the marker macro, never authored.
+                "magnitude" | "existence_certainty" | "certainty" => {
+                    return Err(syn::Error::new(
+                        pair.key.span(),
+                        "a marked-unknown marker's plane corner (magnitude × \
+                         existence-certainty) is FIXED by which marker you use \
+                         (#[aura] / #[dread] / #[red_flag]), not authored. Only \
+                         `trigger = \"...\"` is a marker field.",
+                    ))
+                }
+                other => {
+                    return Err(syn::Error::new(
+                        pair.key.span(),
+                        format!(
+                            "unknown marked-unknown field `{other}`; the only field \
+                             is `trigger = \"...\"` (required)"
+                        ),
+                    ))
+                }
+            }
+        }
+
+        Ok(Self {
+            trigger,
+            trigger_span,
+            args_span,
+            marker_name: "marked-unknown",
+        })
+    }
+}
+
+impl MarkerArgs {
+    /// Set the marker name (for error messages) — the macro entrypoint stamps it.
+    #[must_use]
+    pub const fn with_marker(mut self, marker_name: &'static str) -> Self {
+        self.marker_name = marker_name;
+        self
+    }
+
+    /// Guard 3 (ADR-041): the `trigger` is REQUIRED and non-empty. A triggerless
+    /// or empty-trigger marker is the contentless "this seems off" graffiti the
+    /// primitive exists to prevent.
+    pub fn validate(&self) -> syn::Result<()> {
+        let Some(trigger) = self.trigger.as_deref() else {
+            return Err(syn::Error::new(
+                self.args_span,
+                format!(
+                    "#[{}] requires `trigger = \"...\"` — what did you see that \
+                     made you feel this? A marked-unknown with no stated trigger \
+                     is not an asserted observation; it's the contentless \"this \
+                     seems off\" graffiti the marker exists to prevent (ADR-041 \
+                     guard 3).",
+                    self.marker_name
+                ),
+            ));
+        };
+        if trigger.trim().is_empty() {
+            return Err(syn::Error::new(
+                self.trigger_span.unwrap_or(self.args_span),
+                format!(
+                    "#[{}] `trigger` must not be empty — state what you saw.",
+                    self.marker_name
+                ),
+            ));
+        }
+        Ok(())
+    }
+
+    /// The trigger string (validated non-empty by [`MarkerArgs::validate`]).
+    #[must_use]
+    pub fn trigger_str(&self) -> &str {
+        self.trigger.as_deref().unwrap_or_default()
+    }
+}
+
+// ============================================================================
 // GeneratesArgs parsing (ADR-014)
 // ============================================================================
 
@@ -5399,6 +5524,90 @@ mod tests {
             Some(MacroProvenance::Heuristic)
         );
         assert_eq!(MacroProvenance::from_path_str("heuristic"), None);
+    }
+
+    // ========================================================================
+    // MarkerArgs (ADR-041 — the marked-unknown plane). The KEYSTONE is the
+    // required-trigger parse-reject (guard 3): a triggerless / empty-trigger
+    // marker must fail, because a marked-unknown with no stated trigger is the
+    // contentless "this seems off" graffiti the primitive exists to prevent.
+    // ========================================================================
+
+    fn marker(src: &str) -> syn::Result<MarkerArgs> {
+        let tokens: TokenStream = src.parse().unwrap();
+        syn::parse2::<MarkerArgs>(tokens)
+    }
+
+    #[test]
+    fn marker_accepts_a_stated_trigger() {
+        let m = marker(r#"trigger = "the teardown drops the guard before the flush""#)
+            .expect("a marker with a stated trigger parses")
+            .with_marker("dread");
+        m.validate().expect("a stated non-empty trigger validates");
+        assert_eq!(
+            m.trigger_str(),
+            "the teardown drops the guard before the flush"
+        );
+    }
+
+    #[test]
+    fn marker_rejects_missing_trigger() {
+        // KEYSTONE (guard 3): a triggerless marker must be rejected at validate.
+        // Parse succeeds (no args is syntactically fine); validate is the gate.
+        let m = marker("").expect("empty args parse").with_marker("dread");
+        let err = m
+            .validate()
+            .expect_err("a triggerless #[dread] must be rejected (guard 3)");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("dread") && msg.contains("trigger"),
+            "the rejection must name the marker + the required trigger; got: {msg}"
+        );
+    }
+
+    #[test]
+    fn marker_rejects_empty_trigger() {
+        // An empty (or whitespace-only) trigger is the same graffiti hole.
+        for src in [r#"trigger = """#, r#"trigger = "   ""#] {
+            let m = marker(src).expect("parses").with_marker("aura");
+            assert!(
+                m.validate().is_err(),
+                "an empty/whitespace trigger must be rejected: {src}"
+            );
+        }
+    }
+
+    #[test]
+    fn marker_rejects_authored_plane_corner() {
+        // The plane corner (magnitude × existence-certainty) is FIXED by which
+        // marker macro is used, NEVER authored — so magnitude=/existence_certainty=
+        // are unknown fields that reject with a helpful message.
+        for key in ["magnitude", "existence_certainty", "certainty"] {
+            let result = marker(&format!(r#"{key} = "high", trigger = "x""#));
+            let err = result.expect_err("an authored plane-corner field must be rejected");
+            assert!(
+                err.to_string().contains("FIXED"),
+                "the `{key}` rejection must explain the corner is marker-fixed"
+            );
+        }
+    }
+
+    #[test]
+    fn marker_rejects_unknown_field() {
+        let result = marker(r#"trigger = "x", bogus = "y""#);
+        let err = result.expect_err("an unknown marker field must be rejected");
+        assert!(err.to_string().contains("trigger"));
+    }
+
+    #[test]
+    fn marker_takes_no_positional_antigen() {
+        // A marked-unknown names NOTHING — a positional path (as #[antigen_tolerance]
+        // takes) is NOT accepted here. `SomeAntigen, trigger = "x"` must fail.
+        let result = marker(r#"SomeAntigen, trigger = "x""#);
+        assert!(
+            result.is_err(),
+            "a marked-unknown must not accept a positional antigen (it names nothing)"
+        );
     }
 
     #[test]

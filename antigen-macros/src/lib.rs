@@ -614,6 +614,127 @@ pub fn antigen_generates(args: TokenStream, input: TokenStream) -> TokenStream {
 }
 
 // ============================================================================
+// Marked-Unknown Plane (ADR-041) — #[aura] / #[dread] / #[red_flag]
+//
+// Three declarable ⊥ markers on the magnitude × existence-certainty plane (OFF
+// the dial's classification axis). Each FIXES its plane corner; the author
+// supplies only the REQUIRED `trigger` (guard 3). Like the other markers, each
+// is a pure identity transform plus a discoverable `#[doc = " antigen:marked-
+// unknown:v1:<json>"]` marker the scan reads (the no-binary-link channel) and
+// emits into the SCAN-TIME half of ADR-039's Finding.
+// ============================================================================
+
+/// Render the shared marked-unknown doc-marker for one corner + trigger.
+///
+/// `magnitude` ∈ {smell, aura, dread}; `existence_certainty` ∈ {unsure, sure}
+/// (the kebab forms `Magnitude`/`ExistenceCertainty` serialize to). The trigger
+/// is JSON-escaped so a quote/backslash in the felt-note can't corrupt the
+/// marker the scanner re-parses.
+fn marked_unknown_marker(marker: &str, magnitude: &str, certainty: &str, trigger: &str) -> String {
+    // Minimal JSON escape for the trigger string (the only free-text field).
+    let escaped: String = trigger
+        .chars()
+        .flat_map(|c| match c {
+            '"' => vec!['\\', '"'],
+            '\\' => vec!['\\', '\\'],
+            '\n' => vec!['\\', 'n'],
+            '\t' => vec!['\\', 't'],
+            '\r' => vec!['\\', 'r'],
+            other => vec![other],
+        })
+        .collect();
+    format!(
+        " antigen:marked-unknown:v1:{{\"marker\":\"{marker}\",\"magnitude\":\"{magnitude}\",\"existence_certainty\":\"{certainty}\",\"trigger\":\"{escaped}\"}}"
+    )
+}
+
+/// Expand one marker macro: parse → stamp name → validate (required trigger) →
+/// emit `input` unchanged + the discoverable doc-marker for the fixed corner.
+fn expand_marker(
+    args: TokenStream,
+    input: TokenStream,
+    marker: &'static str,
+    magnitude: &'static str,
+    certainty: &'static str,
+) -> TokenStream {
+    let parsed = parse_macro_input!(args as parse::MarkerArgs).with_marker(marker);
+    let input = proc_macro2::TokenStream::from(input);
+    if let Err(e) = parsed.validate() {
+        return e.to_compile_error().into();
+    }
+    let doc = marked_unknown_marker(marker, magnitude, certainty, parsed.trigger_str());
+    quote! {
+        #[doc = #doc]
+        #input
+    }
+    .into()
+}
+
+/// `#[aura(trigger = "...")]` — the **light** marked-unknown (low magnitude):
+/// "something *may* be off here, can't name it, check later." (ADR-041.)
+///
+/// Surfaces at the dial's non-gating floor; never gates, never nags; an untouched
+/// `#[aura]` is a *mild* substrate-smell. The `trigger` is **required** (guard 3).
+///
+/// # Example
+///
+/// ```ignore
+/// use antigen::aura;
+///
+/// #[aura(trigger = "this retry loop has no jitter; under load it might thundering-herd")]
+/// fn retry_request() { /* ... */ }
+/// ```
+#[proc_macro_attribute]
+pub fn aura(args: TokenStream, input: TokenStream) -> TokenStream {
+    expand_marker(args, input, "aura", "aura", "unsure")
+}
+
+/// `#[dread(trigger = "...")]` — high magnitude, **low** existence-certainty
+/// (the *angor animi* corner): "something *is* wrong here, I can't name it, look
+/// now." Scared-but-unsure. (ADR-041.)
+///
+/// Surfaces at the dial's non-gating floor; never gates, never nags. The
+/// `trigger` is **required** (guard 3) — a triggerless `#[dread]` is rejected.
+///
+/// # Example
+///
+/// ```ignore
+/// use antigen::dread;
+///
+/// #[dread(trigger = "the teardown drops the guard before the flush; \
+///                    I can't prove a leak but the ordering feels wrong")]
+/// impl Drop for Connection { /* ... */ }
+/// ```
+#[proc_macro_attribute]
+pub fn dread(args: TokenStream, input: TokenStream) -> TokenStream {
+    expand_marker(args, input, "dread", "dread", "unsure")
+}
+
+/// `#[red_flag(trigger = "...")]` — **high** existence-certainty, unnameable.
+///
+/// The clinical sense-of-alarm corner: "I'm *sure* something is wrong here, I
+/// can't name it, act now." The sure-but-unnameable corner; **auto-escalates on
+/// first match** (its whole point). (ADR-041.)
+///
+/// The one marker that escalates rather than surfacing as a mild smell — because
+/// its defining axis is high certainty-that-something-is-wrong. The `trigger` is
+/// **required** (guard 3).
+///
+/// # Example
+///
+/// ```ignore
+/// use antigen::red_flag;
+///
+/// #[red_flag(trigger = "this auth check can be reached with an empty token in \
+///                       the cache-hit path; I'm sure this is exploitable")]
+/// fn authorize(token: &Token) -> bool { /* ... */ }
+/// ```
+#[proc_macro_attribute]
+pub fn red_flag(args: TokenStream, input: TokenStream) -> TokenStream {
+    expand_marker(args, input, "red-flag", "dread", "sure")
+}
+
+// ============================================================================
 // Deferred-Defense Family (ADR-023)
 // ============================================================================
 
