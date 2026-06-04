@@ -62,10 +62,16 @@ use crate::antigen;
 #[antigen(
     name = "deserialize-without-deny-unknown-fields",
     category = AntigenCategory::FunctionalCorrectness,
+    provenance = Provenance::Constructable,
+    presentation = Presentation::Passive,
     fingerprint = r#"all_of([derives("Deserialize"), not(serde_arg("deny_unknown_fields"))])"#,
     family = "deserialization-trust-boundary",
     summary = "A #[derive(Deserialize)] type without #[serde(deny_unknown_fields)] silently drops unknown input fields at the trust boundary, masking API drift / smuggled fields. The absence of the safe argument is the tell.",
     references = [
+        // Differential-reference oracle (silent class, ADR-039 §C): the serde
+        // deny_unknown_fields container-attribute doc — correct = reject-unknown
+        // vs actual = silently-accept (the divergence the dropped-field hides).
+        "https://serde.rs/container-attrs.html#deny_unknown_fields",
         "https://github.com/serde-rs/serde/issues/44",
         "https://github.com/serde-rs/serde/issues/2634",
         "ADR-027",
@@ -131,6 +137,8 @@ pub struct DeserializeWithoutDenyUnknownFields;
 #[antigen(
     name = "unbounded-deserialization",
     category = AntigenCategory::FunctionalCorrectness,
+    provenance = Provenance::Constructable,
+    presentation = Presentation::Passive,
     fingerprint = r#"any_of([body_calls("from_reader"), body_calls("from_slice")])"#,
     family = "deserialization-trust-boundary",
     summary = "A streaming from_reader (or from_slice) deserialization — a DoS surface (the std-documented non-terminating-stream / stack-exhaustion harm). Named tier (from_reader/from_slice are rare/std-specific self-anchors). The .take(limit)-capped form FIRES (surface present) and is spared by the WITNESS at audit, not by a not(take) guard (a subject-slice negation is a silent-FN at named). from_str excluded (FromStr collision).",

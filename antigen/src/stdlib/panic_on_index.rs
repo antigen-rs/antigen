@@ -54,6 +54,8 @@ use crate::antigen;
 #[antigen(
     name = "get-unchecked-without-proof",
     category = AntigenCategory::FunctionalCorrectness,
+    provenance = Provenance::Constructable,
+    presentation = Presentation::Passive,
     fingerprint = r#"any_of([body_calls("get_unchecked"), body_calls("get_unchecked_mut")])"#,
     family = "panic-on-index",
     summary = "A call to get_unchecked / get_unchecked_mut — the unchecked-indexing escape hatch whose out-of-bounds case is Undefined Behavior (a soundness hole, not a panic). Named tier; witness = a SAFETY proof of in-bounds + miri.",

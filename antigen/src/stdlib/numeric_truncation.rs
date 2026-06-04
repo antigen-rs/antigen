@@ -56,6 +56,8 @@ use crate::antigen;
 #[antigen(
     name = "size-of-in-element-count",
     category = AntigenCategory::FunctionalCorrectness,
+    provenance = Provenance::Constructable,
+    presentation = Presentation::Passive,
     fingerprint = r#"all_of([body_calls("copy_nonoverlapping"), body_calls("size_of")])"#,
     family = "numeric-truncation-overflow",
     summary = "A raw-memory copy (copy_nonoverlapping) co-located with size_of — the byte-count-where-element-count-expected foot-cannon (n * size_of as a count arg copies N*sizeof elements → OOB). Named (clippy correctness); the precise arg-position check is G2-extended (charter).",

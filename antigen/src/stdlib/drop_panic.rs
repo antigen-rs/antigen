@@ -60,6 +60,8 @@ use crate::antigen;
 #[antigen(
     name = "panic-in-drop",
     category = AntigenCategory::FunctionalCorrectness,
+    provenance = Provenance::Constructable,
+    presentation = Presentation::Passive,
     fingerprint = r#"all_of([item = impl, impl_of_trait("Drop"), any_of([body_calls("unwrap"), body_calls("expect"), body_contains_macro("panic"), body_contains_macro("unreachable"), body_contains_macro("todo"), body_contains_macro("unimplemented")])])"#,
     family = "drop-and-panic-discipline",
     summary = "A real Drop impl (impl_of_trait Drop) whose body reaches a panic source — .unwrap()/.expect() OR panic!/unreachable!/todo!/unimplemented!. Panic-during-unwind aborts the process. Covers BOTH call-shaped and macro-shaped panics (the shipped macro-only PanickingInDrop misses .unwrap()).",

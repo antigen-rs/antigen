@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — the beta.2 family members now author their provenance (ADR-039 §C honest-labeling)
+
+- Every build-now beta.2 stdlib family member now authors
+  `provenance = Provenance::Constructable` + `presentation = Presentation::Passive`
+  on its `#[antigen]` declaration (the 11 members across deser, time, drop,
+  panic-on-index, resource-lifecycle, async-soundness, numeric-truncation,
+  unsafe-soundness). Each earns `Constructable` on its affinity-pair specimen; the
+  silent classes (`SystemTimeUnwrapPanic`, `GetUnchecked…`, `UnsafeSendSync`,
+  `SizeOfInElementCount`, `PanicInDrop`, `DeserializeWithout…`) additionally carry
+  a **differential-reference oracle** in `references` (the std-doc / nomicon /
+  clippy-correctness-lint / serde-`deny_unknown_fields`-doc establishing
+  correct-vs-actual — NOT merely RUSTSEC occurrence-counts, which prove recurrence
+  not the silent-class oracle). The `from_reader` `DoS` member is observable (not
+  silent), so its affinity-pair alone earns `Constructable`.
+- `DeliberateLeakNotDocumented` authors `provenance = Constructable` while its
+  *dial* surfaces at suspected — provenance ("how solid is the class") and the
+  confidence tier ("how loud is this instance") are orthogonal axes (ADR-039): a
+  solid class can carry a low-precision fingerprint. The authored claim flows from
+  the macro through the scanner onto `AntigenDeclaration` (round-trip-verified in
+  the scan JSON: `"provenance": "Constructable"`).
+
 ### Added — the Marked-Unknown markers `#[aura]` / `#[dread]` / `#[red_flag]` (ADR-041, macro surface)
 
 - Three declarable ⊥ markers for the **felt-but-unnamed danger** — the single most

@@ -71,6 +71,8 @@ use crate::antigen;
 #[antigen(
     name = "system-time-unwrap-panic",
     category = AntigenCategory::FunctionalCorrectness,
+    provenance = Provenance::Constructable,
+    presentation = Presentation::Passive,
     fingerprint = r#"all_of([body_calls("duration_since"), any_of([body_calls("unwrap"), body_calls("expect")])])"#,
     family = "time-and-ordering-hazards",
     summary = "A SystemTime::duration_since clock read whose Result is unwrap/expect-ed — panics in prod on backwards-clock, never in tests. Suspected tier (co-occurrence, not the precise chain). elapsed excluded (fires on the Instant::elapsed clean sibling = the fix).",
