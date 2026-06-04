@@ -55,8 +55,25 @@ registry + phylogeny + forgetting into ONE distance-metric + ONE evaporation rul
 - **The consumer-side slice is CHEAPER** — `dependency-boundary-inherited-immunity` extends the shipped
   `#[descended_from]` propagation (ADR-018) across the `cargo add` boundary; a real but bounded extension of
   existing machinery, buildable before the full registry.
-- **Net:** sequence — `dependency-boundary` (cheap, extends shipped inheritance) → the gradient substrate →
-  the full registry/phylogeny. Gated on self-tolerance throughout.
+- **CHEAPEST consumer-side slice — the BUNDLED-STDLIB-CATALOG scan mode (v0.4, beta.2 Bushwhackers
+  finding).** Substrate-verified during the beta.2 dogfood sweep: `synthesis_pass` builds its
+  fingerprint catalog from antigen DECLARATIONS *in the scanned tree* (no built-in catalog), so scanning a
+  *consumer* crate standalone fires **zero** stdlib members — antigen self-catches only because antigen's
+  own tree CONTAINS `stdlib/*.rs`. Cross-crate adoption today therefore requires the consumer to import +
+  `#[presents]` the stdlib members (the active model — tambear declares 2 seed antigens). The cheap missing
+  mechanism: a **bundled-stdlib-catalog scan mode** — `cargo antigen scan` loads `antigen::stdlib::*`
+  fingerprints as a *built-in catalog* and matches them against any scanned tree, with no per-crate
+  declaration. This is "scan MY crate against antigen's shipped stdlib," the first real product-grade
+  adoption surface — strictly cheaper than the inheritance-boundary slice (no `#[descended_from]` graph; a
+  bundled `&[(String, Fingerprint)]` passed into the existing `synthesis_pass`). The honest masterclass
+  framing it resolves: *"antigen catches a class in ITSELF (proven, beta.2 — UnboundedDeser true-positive in
+  antigen's own `multi_crate.rs`); catching it in YOUR crate needs adoption-presents (now) OR this
+  bundled-catalog mode (v0.4)."* NOT gated on self-tolerance (it ships antigen's OWN curated stdlib, not a
+  cross-codebase-shared catalog — the negative-selection precondition applies to the *shared registry*, not
+  to shipping antigen's vetted families).
+- **Net:** sequence — **bundled-stdlib-catalog mode (v0.4, cheapest)** → `dependency-boundary` (extends
+  shipped inheritance) → the gradient substrate → the full registry/phylogeny. The first hop ships antigen's
+  own stdlib (no self-tolerance gate); the registry hops are gated on self-tolerance throughout.
 
 ## Invitation to deepen
 
