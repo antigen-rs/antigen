@@ -95,9 +95,8 @@ pub struct DeserializeWithoutDenyUnknownFields;
 /// strongest recorded-harm evidence in the family sweep.
 ///
 /// **Tell:** the **streaming** entrypoint `from_reader` (the real recorded-harm
-/// `DoS`: std warns a `from_reader` on a non-terminating stream "will not return")
-/// plus a weaker `from_slice` presence arm for breadth:
-/// `any_of([body_calls("from_reader"), body_calls("from_slice")])`.
+/// `DoS`: std warns a `from_reader` on a non-terminating stream "will not return"):
+/// `body_calls("from_reader")`.
 ///
 /// **Why bare presence, NOT a `not(take)` guard at this named tier (the
 /// surface-flag / witness-proof split, ADR-019/029).** A `.take(limit)`-capped
@@ -113,20 +112,34 @@ pub struct DeserializeWithoutDenyUnknownFields;
 /// unrelated), and a subject-slice negation is inadmissible at named (it IS
 /// admissible at heuristic, where a labeled recall hole is within-tier — cf. the
 /// crypto member's `not(ct_eq)` at heuristic). The fix is surgical: drop the
-/// guard, keep named — the `from_reader`/`from_slice` core is an honest
-/// defect-slice that stands alone at named.
+/// guard, keep named — the `from_reader` core is an honest defect-slice that
+/// stands alone at named.
 ///
-/// **Scope (honest defect-slice):** `from_str` is deliberately **excluded** —
-/// `body_calls` matches by last path segment with no path resolution, so
-/// `from_str` would fire on every `i32::from_str` (`FromStr`, not
+/// **Why `from_slice` was DROPPED (ADR-039 §C Amendment 1, the spares-namesake
+/// sub-test).** An earlier form carried a weaker `from_slice` breadth-arm
+/// (`any_of([from_reader, from_slice])`). It was dropped because a slice is a
+/// **bounded** source (its length is known), so `from_slice` is categorically
+/// **not** an unbounded-deserialization vector — and the `from_slice` last-segment
+/// fires on the *bounded-slice form that is itself the fix* for the streaming
+/// `DoS`, plus ubiquitous safe constructors (`GenericArray::from_slice`,
+/// `Pubkey::from_slice`). A needle that flags the recommended remediation is
+/// inadmissible at **any** tier (the clean-sibling-collision rule), so `from_slice`
+/// is dropped, not demoted. The in-memory **deep-nesting recursion** `DoS` (a real
+/// vector that *can* arrive via a slice) is a **distinct** future
+/// `#[descended_from]` depth-member keyed on the recursion structure, not on the
+/// `from_slice` entrypoint — so dropping the arm leaves no silent gap.
+///
+/// **Scope (honest defect-slice):** `from_str` / `from_slice` are deliberately
+/// **excluded** — `body_calls` matches by last path segment with no path
+/// resolution, so `from_str` would fire on every `i32::from_str` (`FromStr`, not
 /// deserialization); and `from_str`/`from_slice` operate on data *already fully
-/// in memory*, so their unbounded risk is the caller's upstream read, not the
-/// deser call — weaker tells than the streaming `from_reader`.
+/// in memory* (bounded), so their unbounded risk, if any, is the caller's upstream
+/// read, not the deser call — not the streaming `from_reader` defect this member
+/// names.
 ///
-/// **Tier:** **named/confident** — the `from_reader`/`from_slice` entrypoints are
-/// rare/std-specific (self-anchoring; a domain type rarely has a `from_reader`
-/// method), so the effective codomain is the defect population (RUSTSEC-backed
-/// streaming `DoS`).
+/// **Tier:** **named/confident** — the `from_reader` entrypoint is rare/std-specific
+/// (self-anchoring; a domain type rarely has a `from_reader` method), so the
+/// effective codomain is the defect population (RUSTSEC-backed streaming `DoS`).
 ///
 /// **Witness:** a bounded reader (`.take(n)`) / depth guard (`serde_stacker`) on
 /// the deserialization path — proved at audit (the surface fires; the witness
@@ -139,9 +152,9 @@ pub struct DeserializeWithoutDenyUnknownFields;
     category = AntigenCategory::FunctionalCorrectness,
     provenance = Provenance::Constructable,
     presentation = Presentation::Passive,
-    fingerprint = r#"any_of([body_calls("from_reader"), body_calls("from_slice")])"#,
+    fingerprint = r#"body_calls("from_reader")"#,
     family = "deserialization-trust-boundary",
-    summary = "A streaming from_reader (or from_slice) deserialization — a DoS surface (the std-documented non-terminating-stream / stack-exhaustion harm). Named tier (from_reader/from_slice are rare/std-specific self-anchors). The .take(limit)-capped form FIRES (surface present) and is spared by the WITNESS at audit, not by a not(take) guard (a subject-slice negation is a silent-FN at named). from_str excluded (FromStr collision).",
+    summary = "A streaming from_reader deserialization — a DoS surface (the std-documented non-terminating-stream / stack-exhaustion harm). Named tier (from_reader is the rare/std-specific self-anchor — a domain type rarely has a from_reader method). The .take(limit)-capped form FIRES (surface present) and is spared by the WITNESS at audit, not by a not(take) guard (a subject-slice negation is a silent-FN at named). from_slice DROPPED (ADR-039 §C Amd-1, spares-namesake): a slice is BOUNDED so from_slice is not an unbounded vector + it fires on the bounded-slice FIX and on safe ctors (GenericArray/Pubkey::from_slice) — flagging the fix is inadmissible at any tier; the deep-nesting recursion DoS is a distinct future depth-member. from_str excluded (FromStr collision).",
     references = [
         "RUSTSEC-2024-0012",
         "RUSTSEC-2022-0004",

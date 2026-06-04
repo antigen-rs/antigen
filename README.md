@@ -145,7 +145,7 @@ Antigen's vocabulary spans several families, each grounded in the biological imm
 
 **Biological-component family** — `#[macrophage]`, `#[neutrophil]`, `#[treg]`, `#[complement]`, `#[dendritic]`, and ~30 more. Each maps to a real code discipline; each discovered via the biological metaphor, not speculation.
 
-**Dysregulation states** — `#[autoimmune]`, `#[immunodeficient]`, `#[immunocompromised]`, `#[sepsis]`. For regions of deliberate non-defense, made structurally explicit and auditable.
+**Dysregulation states** — `#[immunodeficient]`, `#[immunocompromised]`, `#[sepsis]`. For regions of deliberate non-defense, made structurally explicit and auditable. *Autoimmunity* (the immune system over-firing on self) is **not** a site-marker — naming a marker `#[autoimmune]` would read backwards, since autoimmunity is the pathology, not the discipline. It will surface instead as a **screen** — `cargo antigen autoimmune-check` (planned, v0.4): an audit-mode pass that flags fingerprints over-firing on their own clean siblings — with the per-site preventer being the already-shipped `#[antigen_tolerance]` (ADR-041 ruling).
 
 The full vocabulary target is listed in [`docs/expedition/the-comprehensive-vision.md`](docs/expedition/the-comprehensive-vision.md).
 
@@ -198,7 +198,7 @@ The biological metaphor is **load-bearing, not decorative**. The immune system i
 | Antigenic drift | version-boundary recognition (ADR-017) |
 | Deferred immunity / anergy | `#[anergy]`, `#[immunosuppress]` (v0.2) |
 | Mucosal boundary defense | `#[mucosal]` — input validation primitives (v0.2) |
-| Dysregulation | `#[autoimmune]`, `#[sepsis]`, `#[anaphylaxis]` (v0.3) |
+| Dysregulation | `cargo antigen autoimmune-check` (over-firing screen, planned v0.4 — not a `#[autoimmune]` marker); `#[sepsis]`, `#[anaphylaxis]` (v0.3) |
 
 When the biology predicts a primitive, the project builds it. See [`docs/decisions.md`](docs/decisions.md) (ADR-003) for the discipline.
 

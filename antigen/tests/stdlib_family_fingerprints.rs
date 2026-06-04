@@ -97,8 +97,10 @@ fn deserialize_without_deny_spares_non_deserialize_struct() {
 // ============================================================================
 
 /// The member's declared fingerprint, kept in ONE place (the drift-guard).
-const UNBOUNDED_DESERIALIZATION: &str =
-    r#"any_of([body_calls("from_reader"), body_calls("from_slice")])"#;
+/// `from_slice` was DROPPED (ADR-039 §C Amd-1, spares-namesake): a slice is a
+/// bounded source, so `from_slice` fires on the bounded-slice FIX and on safe
+/// constructors — flagging the fix is inadmissible at any tier.
+const UNBOUNDED_DESERIALIZATION: &str = r#"body_calls("from_reader")"#;
 
 #[test]
 fn unbounded_deserialization_binds_from_reader_call() {
@@ -114,15 +116,34 @@ fn unbounded_deserialization_binds_from_reader_call() {
 }
 
 #[test]
-fn unbounded_deserialization_binds_from_slice_call() {
-    // BIND the other arm (from_slice) — proves the any_of covers both byte-source
-    // entrypoints, not just from_reader.
+fn unbounded_deserialization_spares_from_slice_namesake() {
+    // SPARES the `from_slice` NAMESAKE (ADR-039 §C Amd-1 regression guard — the
+    // arm that was DROPPED). `from_slice` was a breadth-arm that over-claimed at
+    // named: a slice is a *bounded* source, so the call is NOT an unbounded vector
+    // — and the bare last-segment fires on the bounded-slice FIX itself plus
+    // ubiquitous safe constructors. After the drop, the member must SPARE every
+    // `from_slice` namesake: the deser-shaped one (`serde_json::from_slice`),
+    // antigen's OWN bounded use (`from_slice(&output.stdout)`), and the safe ctors
+    // (`GenericArray::from_slice`). If any future edit re-adds the arm, these fire
+    // and this guard goes red.
     let fp = fp(UNBOUNDED_DESERIALIZATION);
     assert!(
-        fp.matches(&item(
+        !fp.matches(&item(
             "fn load(b: &[u8]) -> Config { serde_json::from_slice(b).unwrap() }"
         )),
-        "must BIND a from_slice deserialization call"
+        "must SPARE serde_json::from_slice (bounded source — the dropped breadth-arm)"
+    );
+    assert!(
+        !fp.matches(&item(
+            "fn meta(out: &Output) -> Value { serde_json::from_slice(&out.stdout).unwrap() }"
+        )),
+        "must SPARE antigen's own bounded from_slice(&stdout) (the masterclass false-positive)"
+    );
+    assert!(
+        !fp.matches(&item(
+            "fn key(b: &[u8]) -> GenericArray<u8, U32> { GenericArray::from_slice(b).clone() }"
+        )),
+        "must SPARE the ubiquitous safe ctor GenericArray::from_slice"
     );
 }
 
@@ -148,7 +169,7 @@ fn unbounded_deserialization_fires_on_take_guarded_reader_witness_spares_at_audi
 fn unbounded_deserialization_spares_from_str_and_unrelated() {
     // SPARE from_str: deliberately EXCLUDED (FromStr collision — body_calls has no
     // path resolution, so from_str would fire on every i32::from_str). The member
-    // does not anchor on it, so a from_str-only fn is spared.
+    // anchors only on from_reader, so a from_str-only fn is spared.
     let fp = fp(UNBOUNDED_DESERIALIZATION);
     assert!(
         !fp.matches(&item(
@@ -209,6 +230,27 @@ fn system_time_unwrap_spares_instant_elapsed_clean_sibling() {
             "fn timed(m: &Map) -> u8 { let _d = Instant::now().elapsed(); m.get(0).unwrap() }"
         )),
         "must SPARE Instant::now().elapsed() (the clean sibling / recommended fix)"
+    );
+}
+
+#[test]
+fn system_time_unwrap_fires_on_instant_duration_since_disclosed_fp() {
+    // The DISCLOSED namesake FP (ADR-039 §C Amd-1, the why-suspected guard):
+    // `duration_since` is ALSO the infallible `Instant::duration_since` (returns
+    // Duration, no Result). So the co-occurrence fires on a body that calls
+    // `instant_a.duration_since(instant_b)` AND unwraps something UNRELATED — a
+    // false positive on the Instant path, separable only by the receiver TYPE
+    // (SystemTime vs Instant), which scan cannot resolve. This is EXACTLY why the
+    // member is suspected, not named: a receiver-type-only discriminator is not an
+    // AST-feasible leaf, so this firing is honest within-tier recall noise at
+    // suspected (a named tier could not carry it). Pins the disclosure so a future
+    // promotion-to-named without resolving the receiver type goes red here.
+    let fp = fp(SYSTEM_TIME_UNWRAP);
+    assert!(
+        fp.matches(&item(
+            "fn d(a: Instant, b: Instant, m: &Map) -> u8 { let _x = a.duration_since(b); m.get(0).unwrap() }"
+        )),
+        "fires on infallible Instant::duration_since + unrelated unwrap (disclosed suspected-tier FP)"
     );
 }
 
@@ -460,10 +502,13 @@ fn unsafe_send_sync_spares_safe_impl_send() {
 }
 
 // ============================================================================
-// numeric-truncation-overflow :: SizeOfInElementCount
+// numeric-truncation-overflow :: SizeOfInElementCount (SUSPECTED tier)
 // ============================================================================
 
-/// The member's declared fingerprint, kept in ONE place (the drift-guard).
+/// The member's declared fingerprint, kept in ONE place (the drift-guard). The
+/// fingerprint is UNCHANGED by the demote (the fix is the TIER, named → suspected,
+/// ADR-039 §C Amd-1): the co-presence correlates with the defect REGION but can't
+/// pinpoint it, so it ships soft (suspected), not loud (named).
 const SIZE_OF_IN_COUNT: &str =
     r#"all_of([body_calls("copy_nonoverlapping"), body_calls("size_of")])"#;
 
@@ -471,39 +516,63 @@ const SIZE_OF_IN_COUNT: &str =
 fn size_of_in_count_binds_copy_with_size_of() {
     // BIND: a raw copy co-located with size_of — the byte-count-where-element-
     // count foot-cannon. body_calls("copy_nonoverlapping") = Match AND
-    // body_calls("size_of") = Match → all_of = Match.
+    // body_calls("size_of") = Match → all_of = Match. The member is useful at
+    // suspected: it correlates with the defect region.
     let fp = fp(SIZE_OF_IN_COUNT);
     assert!(
         fp.matches(&item(
             "fn copy(src: *const u8, dst: *mut u8, n: usize) { unsafe { std::ptr::copy_nonoverlapping(src, dst, n * std::mem::size_of::<u32>()) } }"
         )),
-        "must BIND a copy_nonoverlapping co-located with size_of"
+        "must BIND a copy_nonoverlapping co-located with size_of (suspected = correlates)"
     );
 }
 
 #[test]
-fn size_of_in_count_spares_copy_with_element_count() {
-    // SPARE: a copy_nonoverlapping with an explicit ELEMENT count and NO size_of.
-    // body_calls("size_of") = NoMatch → all_of short-circuits to NoMatch. The
-    // correct element-count call is spared.
+fn size_of_in_count_spares_its_own_fix_so_demote_not_drop() {
+    // SPARES the member's own anti-correlated FIX: a copy_nonoverlapping with an
+    // element count and NO size_of (drop the spurious multiplier). The all_of
+    // co-anchor needs BOTH calls, so the fix (no size_of) → all_of = NoMatch. The
+    // fix being spared is WHY this is DEMOTE-to-suspected, not DROP (ADR-039 §C
+    // Amd-1): an arm that fires on its own fix would be DROP (cf. from_slice); this
+    // one is un-correlated (fires on benign siblings) not anti-correlated.
     let fp = fp(SIZE_OF_IN_COUNT);
     assert!(
         !fp.matches(&item(
             "fn copy(src: *const u8, dst: *mut u8, n: usize) { unsafe { std::ptr::copy_nonoverlapping(src, dst, n) } }"
         )),
-        "must SPARE a copy_nonoverlapping with an element count (no size_of)"
+        "must SPARE the fix (element count, no size_of) — spared-fix is why DEMOTE not DROP"
+    );
+    // SPARE: a bare size_of with no raw copy — the co-presence requires BOTH.
+    assert!(
+        !fp.matches(&item("fn sz() -> usize { std::mem::size_of::<u64>() }")),
+        "must SPARE a bare size_of with no raw copy (no copy anchor)"
     );
 }
 
 #[test]
-fn size_of_in_count_spares_size_of_without_raw_copy() {
-    // SPARE: a bare size_of with no raw copy. body_calls("copy_nonoverlapping") =
-    // NoMatch → all_of = NoMatch. The co-presence requires BOTH — a size_of in
-    // ordinary code is not this class.
+fn size_of_in_count_fires_on_correct_both_calls_the_why_suspected_guard() {
+    // The WHY-SUSPECTED guard (ADR-039 §C Amd-1): this member is SUSPECTED, not
+    // named, because the co-presence FIRES on CORRECT both-calls code the AST can't
+    // separate from the defect — the discriminator is the `* size_of` count-arg
+    // position AND the pointee type, neither syntactic (type-aware → v0.4). These
+    // firings are honest labeled-recall noise at suspected (a named tier could not
+    // carry them). When the type-aware leaf lands, these become SPARES and the
+    // member promotes.
     let fp = fp(SIZE_OF_IN_COUNT);
+    // (a) element count, size_of computed for a SEPARATE bounds check — correct.
     assert!(
-        !fp.matches(&item("fn sz() -> usize { std::mem::size_of::<u64>() }")),
-        "must SPARE a bare size_of with no raw copy (no copy anchor)"
+        fp.matches(&item(
+            "fn c<T>(s:*const T,d:*mut T,count:usize){let _b=count*std::mem::size_of::<T>();unsafe{std::ptr::copy_nonoverlapping(s,d,count)}}"
+        )),
+        "fires on correct element-count + separate size_of bound (suspected-tier recall noise)"
+    );
+    // (b) single-element byte copy: count = size_of bytes on *u8 ptrs — correct,
+    //     and spared only by the pointee type (*u8 = byte buffer), not the AST.
+    assert!(
+        fp.matches(&item(
+            "fn c(s:*const u8,d:*mut u8){unsafe{std::ptr::copy_nonoverlapping(s,d,std::mem::size_of::<u32>())}}"
+        )),
+        "fires on the correct single-element byte copy (suspected-tier recall noise; pointee-type-spared)"
     );
 }
 
@@ -589,7 +658,12 @@ fn transmute_mismatch_binds_transmute_call_spares_safe_cast() {
 // ============================================================================
 
 /// The member's declared fingerprint, kept in ONE place (the drift-guard).
-const UNINIT_ASSUMED_INIT: &str = r#"any_of([body_calls("assume_init"), body_calls("uninitialized"), body_calls("zeroed"), body_calls("set_len")])"#;
+/// `zeroed` + `set_len` were DROPPED (ADR-039 §C Amd-1, spares-namesake): `zeroed`
+/// fires on the safe `bytemuck::zeroed` (the recommended replacement); `set_len`
+/// fires on any domain buffer's `.set_len` (receiver-type-only discriminator,
+/// permanent-suspected). Only the no-safe-namesake arms stay named.
+const UNINIT_ASSUMED_INIT: &str =
+    r#"any_of([body_calls("assume_init"), body_calls("uninitialized")])"#;
 
 #[test]
 fn uninit_assumed_init_binds_assume_init_spares_initialized() {
@@ -601,17 +675,43 @@ fn uninit_assumed_init_binds_assume_init_spares_initialized() {
         )),
         "must BIND an assume_init call"
     );
-    // BIND the set_len arm — proves the any_of covers the Vec::set_len primitive.
+    // BIND the uninitialized arm.
     assert!(
         fp.matches(&item(
-            "fn grow(v: &mut Vec<u8>, n: usize) { unsafe { v.set_len(n) } }"
+            "fn make() -> u8 { unsafe { std::mem::uninitialized() } }"
         )),
-        "must BIND a Vec::set_len call"
+        "must BIND a mem::uninitialized call"
     );
     // SPARE: a fully-initialized construction with no uninit primitive.
     assert!(
         !fp.matches(&item("fn make() -> u8 { 0u8 }")),
         "must SPARE a fully-initialized construction"
+    );
+}
+
+#[test]
+fn uninit_assumed_init_spares_zeroed_and_setlen_namesakes() {
+    // SPARES the dropped breadth-arm NAMESAKES (ADR-039 §C Amd-1 regression guard).
+    // `zeroed` was DROPPED: it fires on the SAFE recommended replacement
+    // `bytemuck::zeroed()` / `Zeroable::zeroed()` — flagging the fix is inadmissible
+    // at any tier. `set_len` was DROPPED: it fires on any domain buffer's
+    // `.set_len(n)`, separable only by receiver TYPE (not scan-resolvable) →
+    // permanent-suspected, not in this named member. If a future edit re-adds
+    // either arm, these fire and the guard goes red.
+    let fp = fp(UNINIT_ASSUMED_INIT);
+    assert!(
+        !fp.matches(&item("fn z() -> T { bytemuck::zeroed() }")),
+        "must SPARE the safe bytemuck::zeroed (the recommended replacement — dropped arm)"
+    );
+    assert!(
+        !fp.matches(&item(
+            "fn grow(v: &mut Vec<u8>, n: usize) { unsafe { v.set_len(n) } }"
+        )),
+        "must SPARE set_len (receiver-type-only discriminator → permanent-suspected, dropped arm)"
+    );
+    assert!(
+        !fp.matches(&item("fn fit(b: &mut MyBuf, n: usize) { b.set_len(n); }")),
+        "must SPARE a domain buffer's set_len (the benign namesake the named arm over-fired on)"
     );
 }
 

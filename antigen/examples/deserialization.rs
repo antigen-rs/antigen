@@ -26,8 +26,7 @@
 //! fingerprints match — not production code. The `Deserialize` derives are
 //! commented stand-ins (no `serde` dependency in the example crate); the
 //! fingerprint anchors on the `#[derive(...)]`/`#[serde(...)]` token shape and
-//! the `from_reader`/`from_slice` call tokens, which the scanner reads
-//! syntactically.
+//! the `from_reader` call token, which the scanner reads syntactically.
 
 use antigen::{antigen, defended_by, presents};
 
@@ -85,9 +84,9 @@ struct StrictConfig {
 #[antigen(
     name = "unbounded-deserialization",
     category = AntigenCategory::FunctionalCorrectness,
-    fingerprint = r#"any_of([body_calls("from_reader"), body_calls("from_slice")])"#,
+    fingerprint = r#"body_calls("from_reader")"#,
     family = "deserialization-trust-boundary",
-    summary = "A streaming from_reader (or from_slice) deserialization — a DoS surface. The surface fires; the .take(limit) defense is proved by the witness at audit.",
+    summary = "A streaming from_reader deserialization — a DoS surface. The surface fires; the .take(limit) defense is proved by the witness at audit. (from_slice DROPPED — a slice is bounded; it fired on the fix + safe ctors, ADR-039 §C Amd-1.)",
     references = ["RUSTSEC-2024-0012"],
 )]
 pub struct UnboundedDeserialization;

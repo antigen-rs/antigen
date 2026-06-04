@@ -93,6 +93,24 @@ static IMMUNE_EMISSION_COUNTER: std::sync::atomic::AtomicUsize =
 ///   the macro reads this as a token path, so `use antigen::AntigenCategory;`
 ///   triggers `unused_imports` under `-D warnings`. Write the path directly
 ///   without importing.
+/// - `provenance = Provenance::X` (optional) — the authored claim of *how we
+///   know this failure-class exists* (ADR-039 §C). One of `Encountered` (seen
+///   in real code — highest), `Constructable` (a minimal case can be built that
+///   verifiably exhibits the failure), `Heuristic` (a scannable tell that
+///   correlates without a constructable demo), or `Imagined` (articulated from
+///   shape — a tell but no demo yet — lowest). **Omitting it defaults to
+///   `Imagined`**: an unlabeled antigen is honestly the weakest claim. This is
+///   the honest-labeling on-ramp — admission is permissive, so the *label* is
+///   what stays truthful. Provenance is the evidence basis, NOT the confidence
+///   tier (suspected/named): that tier is the dial-derived audit-time calibration
+///   (the confidence-dial wave), and provenance sets the floor it may graduate from.
+/// - `presentation = Presentation::X` (optional) — `Passive` (tooling/scan-side;
+///   the default for low-provenance classes — no user-macro burden) or `Active`
+///   (user-facing, chosen by whoever encounters the failure). **Omitting it
+///   defaults to `Passive`** (ADR-039 passive-by-default rule). Like `category`,
+///   `provenance` and `presentation` are read as token paths — **do not import
+///   `Provenance`/`Presentation`** (a `use` of them trips `unused_imports` under
+///   `-D warnings`); write the path directly.
 ///
 /// # Examples
 ///
@@ -117,6 +135,20 @@ static IMMUNE_EMISSION_COUNTER: std::sync::atomic::AtomicUsize =
 ///     fingerprint = "impl Drop with unwrap/expect/panic in body",
 ///     summary = "Drop impls must not panic; double-panic causes process abort.",
 ///     references = ["https://doc.rust-lang.org/std/ops/trait.Drop.html#panics"],
+/// )]
+/// pub struct PanickingInDrop;
+/// ```
+///
+/// Layer 3 (the honest-labeling fields — `category`, `provenance`,
+/// `presentation`). Note the paths are written *without* a `use` import:
+///
+/// ```ignore
+/// #[antigen(
+///     name = "panicking-in-drop",
+///     fingerprint = "impl Drop with unwrap/expect/panic in body",
+///     category = AntigenCategory::FunctionalCorrectness,
+///     provenance = Provenance::Constructable,
+///     presentation = Presentation::Passive,
 /// )]
 /// pub struct PanickingInDrop;
 /// ```

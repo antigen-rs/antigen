@@ -32,6 +32,22 @@ use antigen::{panel, ddx, rx, refer, biopsy, culture, quarantine, triage};
 | `#[descended_from]` | unit struct (antigen) | Declare inheritance from a parent failure-class |
 | `#[antigen_tolerance]` | any item | Explicitly tolerate a fingerprint match (with required rationale) |
 
+## Quick reference — marked-unknown markers (the felt-but-unnamed plane, ADR-041)
+
+The single most perishable knowledge in software is the unease you can't yet
+name. These three markers let you record it *structurally* — `trigger` is
+**required** on all three (a triggerless marker is graffiti and is a compile
+error). They sit on a 2-D plane: **magnitude** × **existence-certainty**.
+
+| Macro | Plane corner | Purpose |
+|---|---|---|
+| `#[aura(trigger = "...")]` | low magnitude | "something *may* be off here, can't name it, check later" — a mild substrate-smell; never gates, never nags |
+| `#[dread(trigger = "...")]` | high magnitude, low certainty | the *angor animi* corner: "something *is* wrong here, I can't name it, look now" |
+| `#[red_flag(trigger = "...")]` | high existence-certainty | "I'm *sure* something is wrong, can't name it, act now" — **auto-escalates on first match** |
+
+See [`docs/concepts.md`](concepts.md) and ADR-041 for the plane; a worked
+example is in [`antigen/examples/marked_unknown.rs`](../antigen/examples/marked_unknown.rs).
+
 ## Quick reference — prescriptive / work-orchestration macros (v0.3)
 
 | Macro | Shape | Purpose |
@@ -72,6 +88,22 @@ Declare a named failure-class with a structural fingerprint.
 | `family` | string | Parent class (typically one of the 8 first-principles failure classes from `docs/decisions.md` ADR-010) |
 | `summary` | string | Human-readable description; surfaces in audit output |
 | `references` | array of strings | Open-vocabulary cross-references (URLs, CVE IDs, ADR IDs, RFC IDs, issue IDs, post-mortem links) |
+| `category` | path | `AntigenCategory::SubstrateAlignment` or `AntigenCategory::FunctionalCorrectness` (ADR-028) |
+| `provenance` | path | *How we know this class exists* (ADR-039 §C): `Provenance::Encountered` / `Constructable` / `Heuristic` / `Imagined`. Omitted ⇒ `Imagined` |
+| `presentation` | path | `Presentation::Passive` (tooling/scan-side, the default) or `Presentation::Active` (user-facing). Omitted ⇒ `Passive` |
+
+> **Path fields are read as token paths — do not `use`-import them.** `category`,
+> `provenance`, and `presentation` are parsed as path expressions, so a
+> `use antigen::Provenance;` (etc.) trips `unused_imports` under `-D warnings`.
+> Write `provenance = Provenance::Constructable` directly without an import.
+>
+> **`provenance` is the honest-labeling on-ramp** (ADR-039): admission is
+> permissive (name / see / imagine a class → it's admissible), so the *label* is
+> what stays truthful. Omitting `provenance` defaults to `Imagined` — the weakest
+> claim — because an unlabeled antigen honestly *is* the weakest claim. Provenance
+> is the class's evidence basis, distinct from the dial-derived confidence tier
+> (suspected/named) — the audit-time calibration the confidence-dial wave will
+> report; provenance sets the floor that tier may graduate from.
 
 ### Applies to
 

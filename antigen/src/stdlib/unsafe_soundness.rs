@@ -74,20 +74,43 @@ pub struct TransmuteSizeOrLifetimeMismatch;
 // ============================================================================
 
 /// Reading uninitialized memory as initialized — `MaybeUninit::assume_init` /
-/// `mem::uninitialized` / `mem::zeroed` (non-zeroable) / `Vec::set_len` — UB.
+/// `mem::uninitialized` — UB.
 ///
 /// **Where in the wild:** clippy `uninit_assumed_init`, `uninit_vec`;
 /// `mem::uninitialized` is deprecated *because* it is almost always UB. Treating
-/// uninitialized (or wrongly-zeroed) memory as a valid value is instant UB.
+/// uninitialized memory as a valid value is instant UB.
 ///
-/// **Tell:** a call to `assume_init` / `uninitialized` / `zeroed` / `set_len` —
-/// `any_of([body_calls("assume_init"), body_calls("uninitialized"),
-/// body_calls("zeroed"), body_calls("set_len")])`. All rare/std-specific
-/// self-anchors. The "is `T` safely-uninit/zeroable?" check is the v0.4 semantic
-/// tier; the presence is current-scanner.
+/// **Tell:** a call to `assume_init` / `uninitialized` —
+/// `any_of([body_calls("assume_init"), body_calls("uninitialized")])`. Both are
+/// rare/std-specific self-anchors with **no common safe namesake** (you do not
+/// name a safe method `assume_init`), so they spare the namesake-clean case and
+/// the effective codomain is the defect population. The "is `T` safely-uninit?"
+/// check is the v0.4 semantic tier; the presence is current-scanner.
 ///
-/// **Tier:** **named** — rare/std-specific unsafe primitives, clippy-correctness-
-/// backed.
+/// **Why `zeroed` was DROPPED and `set_len` is NOT here (ADR-039 §C Amendment 1,
+/// the spares-namesake sub-test).** An earlier form carried two more arms —
+/// `zeroed` and `set_len` — claimed "all rare/std-specific." They are not:
+/// - **`zeroed` → DROP (every tier).** The `zeroed` last-segment fires on
+///   `bytemuck::zeroed()` / `Zeroable::zeroed()` — the **recommended-safe**,
+///   trait-gated replacement for `mem::zeroed`. A needle that flags the
+///   recommended remediation is inadmissible at any tier (the clean-sibling
+///   collision, like `from_slice`/`elapsed`), so the arm is dropped, not demoted.
+/// - **`set_len` → DROPPED from this named member; its risky form is a v0.4
+///   charter, NOT a beta.2 suspected member (member-creation is out of seal
+///   scope).** `set_len` fires on any domain buffer/builder's `.set_len(n)`, not
+///   only the unsafe `Vec::set_len`-on-uninit. There is **no AST-feasible
+///   discriminator**: risky-vs-safe turns on the **receiver TYPE** (`Vec` vs a
+///   domain buffer) AND the **arg value** (`new_len ≤ initialized`) — *neither* is
+///   syntactic (`x.set_len(n)` exposes neither `x`'s type nor whether `n` is
+///   in-bounds). So it can never re-earn named via a syntactic leaf; the honest
+///   framing is **permanent-suspected** (re-examine only when type/value-aware
+///   analysis is available). The beta.2 fix is to **drop it from this named
+///   member** (done); a dedicated suspected `set_len` member is **charter** (v0.4),
+///   and the recall hole — an unsafe `Vec::set_len`-on-uninit is not flagged here —
+///   is documented, not silently absorbed.
+///
+/// **Tier:** **named** — `assume_init` / `uninitialized` are rare/std-specific
+/// unsafe primitives with no safe namesake, clippy-correctness-backed.
 ///
 /// **Witness:** a `// SAFETY:` proving full initialization before the read, OR
 /// miri/kani.
@@ -99,9 +122,9 @@ pub struct TransmuteSizeOrLifetimeMismatch;
     category = AntigenCategory::FunctionalCorrectness,
     provenance = Provenance::Constructable,
     presentation = Presentation::Passive,
-    fingerprint = r#"any_of([body_calls("assume_init"), body_calls("uninitialized"), body_calls("zeroed"), body_calls("set_len")])"#,
+    fingerprint = r#"any_of([body_calls("assume_init"), body_calls("uninitialized")])"#,
     family = "unsafe-soundness",
-    summary = "Reading uninitialized memory as initialized — MaybeUninit::assume_init / mem::uninitialized / mem::zeroed / Vec::set_len. UB (clippy uninit_assumed_init/uninit_vec). Named (rare/std-specific); the safely-uninit check is v0.4 semantic.",
+    summary = "Reading uninitialized memory as initialized — MaybeUninit::assume_init / mem::uninitialized. UB (clippy uninit_assumed_init/uninit_vec). Named (rare/std-specific, no safe namesake). zeroed DROPPED (fires on the safe bytemuck::zeroed — ADR-039 §C Amd-1); set_len DROPPED-from-named (no AST-feasible discriminator — risky-vs-safe is receiver-type AND arg-value, neither syntactic → permanent-suspected; a dedicated suspected member is v0.4 charter, the recall hole documented); the safely-uninit check is v0.4 semantic.",
     references = [
         "https://doc.rust-lang.org/std/mem/union.MaybeUninit.html#method.assume_init",
         "ADR-040",
