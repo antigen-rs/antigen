@@ -54,24 +54,30 @@
 //! impl Drop for MyType { ... }
 //! ```
 //!
-//! Declare immunity with a witness:
+//! Defend the site by registering a witness (ADR-029 — immunity is *observed*,
+//! not declared). Put `#[defended_by]` on the test that *is* the defense:
 //!
 //! ```ignore
-//! use antigen::immune;
+//! use antigen::defended_by;
 //!
-//! #[immune(
-//!     PanickingInDrop,
-//!     witness = no_panic_in_drop_test,
-//!     rationale = "SafeType::drop uses non-panicking accessors only."
-//! )]
-//! impl Drop for SafeType { ... }
+//! #[test]
+//! #[defended_by(PanickingInDrop)]
+//! fn drop_never_panics() {
+//!     // exercise the Drop path and assert no panic
+//! }
 //! ```
 //!
+//! When the evidence lives *outside* the code (a ratified doc, a pinned dep, a
+//! signed discipline), attach it on the site instead with a substrate-witness
+//! predicate: `#[presents(PanickingInDrop, requires = ratified_doc(...))]`.
+//! (The old `#[immune]` form is **deprecated** — it declared a verdict with no
+//! witness `cargo antigen audit` could validate; see [`macro@immune`].)
+//!
 //! Then run `cargo antigen scan` to find unaddressed presentations and
-//! `cargo antigen audit` to validate witness identifiers. See the
+//! `cargo antigen audit` to observe each site's defense. See the
 //! [`examples/`](https://github.com/antigen-rs/antigen/tree/main/antigen/examples)
-//! directory for five worked examples covering each macro plus inheritance,
-//! tolerance, and phantom-type witnesses.
+//! directory for worked examples covering each macro family plus inheritance,
+//! tolerance, phantom-type witnesses, and the marked-unknown markers.
 //!
 //! ## Macros (re-exported from `antigen-macros`)
 //!
@@ -79,8 +85,13 @@
 //!   structural fingerprint (ADR-001, ADR-010)
 //! - [`#[presents(...)]`](macro@presents) — mark code as exhibiting a
 //!   failure-class's structural pattern (vulnerability declaration)
-//! - [`#[immune(...)]`](macro@immune) — declare immunity with a witness
-//!   reference (test, proptest, phantom-type proof, or external-tool delegation)
+//! - [`#[defended_by(...)]`](macro@defended_by) — register a test/proptest as the
+//!   *observed* code-tier witness for a failure-class (ADR-029; the canonical way
+//!   to defend a site)
+//! - [`#[immune(...)]`](macro@immune) — **deprecated** (ADR-029): declared
+//!   immunity at the vulnerable site without a witness audit could validate. Use
+//!   `#[defended_by]` on a test, or `#[presents(..., requires = ...)]` for
+//!   substrate evidence, instead.
 //! - [`#[descended_from(...)]`](macro@descended_from) — propagate antigen
 //!   markers through an inheritance chain (ADR-013, ADR-018 §propagation)
 //! - [`#[antigen_tolerance(...)]`](macro@antigen_tolerance) — document an

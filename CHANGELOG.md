@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — tier-honesty: four named stdlib members corrected for breadth-arm over-claims (the seal self-catch)
+
+- The beta.2 notary seal found that four named stdlib members over-claimed at the
+  `named` tier: a common-method `body_calls` arm (added "for breadth") fired on
+  **clean/safe siblings** — including antigen's own code and recommended-safe APIs
+  — because `body_calls` matches the last path segment receiver-agnostically. Root
+  cause: the affinity-pair "spares-clean-sibling" test spared a *trivially-absent*
+  sibling instead of the **same-method, clean-receiver namesake**, so the named
+  codomain went untested. Ratified as **ADR-039 §C Amendment 1 (the spares-namesake
+  sub-test)**; the corrections, by the per-arm rule (fires-on-the-fix → DROP;
+  fires-on-a-benign-namesake → suspected):
+  - **`UnboundedDeserialization`**: dropped the `from_slice` arm → fingerprint is
+    `body_calls("from_reader")` only. A slice is a *bounded* source, so `from_slice`
+    is not an unbounded-deserialization vector — and the arm fired on the
+    bounded-slice fix itself plus ubiquitous safe constructors
+    (`GenericArray::from_slice`) and antigen's own `serde_json::from_slice(&stdout)`.
+    `from_reader` (the unbounded stream) stays named.
+  - **`UninitMemoryAssumedInit`**: dropped `zeroed` (fires on the recommended-safe
+    `bytemuck::zeroed`) and **dropped `set_len` from named** (a common
+    buffer-method name, separable only by receiver type *and* arg-value, neither
+    syntactic — permanent-suspected; a dedicated suspected `set_len` member is a
+    v0.4 charter, the recall hole documented) → `any_of([assume_init, uninitialized])`.
+  - **`SizeOfInElementCount`**: **demoted from named to suspected** (the fingerprint
+    `all_of([copy_nonoverlapping, size_of])` is unchanged — the fix is the tier).
+    The co-presence correlates with the defect region but fires on idiomatic-correct
+    both-calls code (a byte-buffer copy, a separate-bounds `size_of`); its own
+    anti-correlated *fix* — `copy(n)` with no `size_of` — is spared, so it is
+    demoted (un-correlated), not dropped (anti-correlated). Graduation to named is
+    *type-aware* (arg-position **and** pointee-type — the `*u8` byte-copy idiom FPs
+    without the pointee type), the v0.4 resolved-type tier, not a syntactic
+    operator-leaf.
+  - **`SystemTimeUnwrapPanic`** (already `suspected`): documented the
+    `Instant::duration_since` namesake false-positive (the infallible `Instant`
+    method shares the name) as a known within-tier recall hole.
+- Each correction ships a **spares-namesake regression guard** (the dropped arm
+  must spare its clean namesake) so the over-claim cannot silently return, and the
+  `provenance-earnedness-verifier` charter is annotated to enforce the contract
+  when it ships. **Dogfood result:** the named stdlib members now produce zero
+  false alarms on antigen's own production code (they bind only their planted
+  specimens) — the masterclass's healthy profile, made true.
+
 ### Fixed — marker doc-marker now JSON-escapes all control chars (producer-correctness)
 
 - The `#[aura]`/`#[dread]`/`#[red_flag]` doc-marker's hand-rolled trigger escape

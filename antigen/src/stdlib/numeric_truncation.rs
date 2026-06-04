@@ -37,16 +37,33 @@ use crate::antigen;
 /// has a correctness lint (`size_of_in_element_count`) for exactly this; it
 /// recurs and the harm is memory corruption / UB.
 ///
-/// **Tell (and its honest tier):** the coarse **co-presence** form —
+/// **Tell:** the coarse **co-presence** form —
 /// `all_of([body_calls("copy_nonoverlapping"), body_calls("size_of")])` (a
-/// raw-memory copy call AND a `size_of` in the same body). The precise "`size_of`
-/// in the *count* arg position, not in a divisor" needs arg-position
-/// introspection (`G2`-extended → charter). Unlike a generic co-occurrence, this
-/// stays **named**: the co-presence of a raw-memory copy *and* `size_of` is
-/// itself a strong, clippy-confirmed correctness signal (raw copies are rare and
-/// `size_of`-near-a-raw-copy is the documented foot-cannon shape). The clean
-/// sibling (a `copy_nonoverlapping` with an explicit element count and no
-/// `size_of`) is spared.
+/// raw-memory copy call AND a `size_of` in the same body).
+///
+/// **Tier:** **suspected** (ADR-039 §C Amendment 1) — the co-presence *correlates*
+/// with the dangerous region (an unsafe raw copy near a `size_of`) but **cannot
+/// pinpoint** the defect, so it fires on idiomatic-correct both-calls code and a
+/// `named` tier ("if it doesn't fire you're covered") could not carry that. The
+/// member's own anti-correlated **fix** — `copy_nonoverlapping(s, d, n)` with an
+/// element count and **no** `size_of` — *is* spared (the `all_of` co-anchor needs
+/// both calls), which is why it is **demoted, not dropped**. But two CORRECT
+/// both-calls siblings still fire (un-correlated, not anti-correlated): a copy by
+/// element count whose body separately computes `size_of` for a bounds check, and
+/// the legitimate single-element byte-copy `copy_nonoverlapping(p, q,
+/// size_of::<u32>())` on `*u8` pointers. Those firings are honest labeled-recall
+/// noise at suspected.
+///
+/// **Graduation to named is TYPE-AWARE, not a near-term syntactic leaf (honest —
+/// do not over-promise an operator-leaf).** Pinpointing the defect needs **both**
+/// arg-position introspection (`size_of::<T>()` *in the count argument*) **and**
+/// the **pointee type** of the copy — because the arg-structure leaf alone is
+/// *insufficient*: the correct `*mut u8` byte-buffer idiom
+/// (`copy(dst: *mut u8, n * size_of::<T>())`) carries the very same `n * size_of`
+/// shape and would still false-positive; sparing it requires knowing the
+/// destination is `*u8` (a byte buffer), which is **resolved-type** information not
+/// available at macro/scan time. So this graduates only at the **v0.4 type-aware
+/// tier** (arg-position AND pointee-type), never at a syntactic operator-leaf.
 ///
 /// **Witness:** the count is an element count (no `size_of` multiplier), OR a
 /// `// SAFETY:` argument that the byte/element units are correct, OR miri.
@@ -60,7 +77,7 @@ use crate::antigen;
     presentation = Presentation::Passive,
     fingerprint = r#"all_of([body_calls("copy_nonoverlapping"), body_calls("size_of")])"#,
     family = "numeric-truncation-overflow",
-    summary = "A raw-memory copy (copy_nonoverlapping) co-located with size_of — the byte-count-where-element-count-expected foot-cannon (n * size_of as a count arg copies N*sizeof elements → OOB). Named (clippy correctness); the precise arg-position check is G2-extended (charter).",
+    summary = "A raw-memory copy (copy_nonoverlapping) co-located with size_of — the byte-count-where-element-count-expected foot-cannon (n * size_of as a count arg copies N*sizeof elements → OOB). SUSPECTED tier (ADR-039 §C Amd-1): the co-presence fires on idiomatic-correct both-calls code (a byte-buffer copy, a separate-bounds size_of), so it's a region-correlator demoted from named — but its own fix copy(n) (no size_of) IS spared, so demote not drop. Graduation to named is TYPE-AWARE (arg-position AND pointee-type), NOT a syntactic operator-leaf — the correct *u8 byte-copy still FPs without the pointee type.",
     references = [
         "https://rust-lang.github.io/rust-clippy/master/index.html#size_of_in_element_count",
         "ADR-040",

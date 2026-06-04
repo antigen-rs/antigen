@@ -10318,6 +10318,64 @@ physically-split stream defeats the seam's whole purpose (one subscribable signa
         closes the gem/graffiti-fingerprint divergence (a real demonstration can otherwise ship a
         fingerprint whose codomain is wider/narrower than the demonstrated mechanism — antigen's own
         ⊥-collapse class).
+        - **Amendment 1 — the SPARES-NAMESAKE sub-test (RULED, harbor-master; the named-common-arm
+          overclaim root-fix; Geological Society notary, 2026-06-04). Supersede-not-erase: the affinity-pair
+          above stands; this *sharpens which* clean sibling the negative-selection case must be.** A
+          **trivially-absent** sibling (a struct that calls nothing, or calls an unrelated method) passes the
+          negative-selection half *vacuously* — it proves only that the fingerprint doesn't fire on
+          *everything*, not that it spares the **namesake clean case**. So for any **NAMED** member whose
+          fingerprint contains a **common-method-name leaf** (`body_calls("name")` / `derives("name")` where
+          `name` is not a rare/std-specific self-anchor), the `constructable` affinity-pair's negative case
+          MUST be the **same-method, clean-receiver namesake**: a call to *that exact method name* on a
+          receiver/in a context where it is **correct**, which the fingerprint must **not** fire on. Rationale
+          (the spine): **rarity of the co-presence ≠ anti-correlation with the clean case** — a leaf can be
+          rare in the corpus yet still fire on the idiomatic-correct use of its own namesake (the Vec-grow
+          `size_of`; the bounded-source `from_slice`). The bare "spares *a* sibling" test does not catch this;
+          "spares the *namesake* sibling" does. **Per-leaf, three outcomes (RULED):**
+          - **Spares the namesake clean case → the arm STAYS NAMED** (the genuinely-rare self-anchor:
+            `transmute`, `assume_init`, `uninitialized`, `from_utf8_unchecked`, `get_unchecked` — no common
+            namesake exists, so the negative case is satisfiable and the codomain is the defect population).
+            The test is **"does a COMMON *SAFE* method of this name exist?"**, NOT "does the leaf fire on
+            *some* receiver." `get_unchecked` illustrates the distinction: it fires on a *domain*
+            `SafeGrid::get_unchecked` — but that is **not** a clean sibling, because a method *named*
+            `get_unchecked` on any receiver invokes the *same* unchecked-access risk-class (the name carries
+            the risk, the receiver-type does not change it). So there is no SAFE namesake → the codomain is
+            still the defect population → STAYS NAMED. Contrast `from_slice`/`zeroed`, whose namesakes
+            (`serde_json::from_slice` on a bounded buffer, `bytemuck::zeroed`) are the **safe/recommended**
+            use of the *same* name — that is the DROP case.
+          - **Fires on the namesake's RECOMMENDED-SAFE form (the fix) → DROP the arm at every tier** (the
+            clean-sibling-collision: `from_slice` = the bounded-source fix for the streaming-DoS;
+            `zeroed` = `bytemuck::zeroed` the safe API; `elapsed` = `Instant::elapsed` the SystemTime fix). A
+            needle that flags the recommended remediation is worse than a recall hole — DROP, do not demote.
+          - **Fires on a benign/unrelated namesake the discriminator can't separate at AST → DEMOTE to
+            suspected** (the labeled recall hole is within-tier-honest at suspected). The worked instance is
+            `size_of`-in-element-count (`all_of([copy_nonoverlapping, size_of])`): its own anti-correlated
+            **fix** — `copy_nonoverlapping(s, d, n)` with an element count and no `size_of` — *is* spared (the
+            `all_of` co-anchor needs both calls), so it is **un-correlated, not anti-correlated → DEMOTE, not
+            DROP**; but it fires on two *correct* both-calls siblings (a copy by element count whose body
+            separately computes `size_of`; the legitimate single-element byte-copy
+            `copy_nonoverlapping(p, q, size_of::<u32>())` on `*u8` pointers), which are honest labeled-recall
+            noise at suspected. **Charter the named-promotion only at the precision the discriminator actually
+            needs — do not over-promise a syntactic leaf.** Mark it **permanent-suspected** iff the only
+            discriminator is the **receiver TYPE** (`set_len`: `Vec` vs a domain buffer; `duration_since`:
+            `SystemTime` vs `Instant` — neither exposed at macro/scan time, so no syntactic leaf can ever
+            re-earn named); and mark the promotion **type-aware (not a near-term AST operator-leaf)** when the
+            discriminator needs resolved types even though an arg-shape is *part* of it — `size_of`-in-count is
+            the case: an arg-position leaf (`size_of` *in the count argument*) is **necessary but insufficient**,
+            because the correct `*mut u8` byte-buffer idiom (`copy(dst: *mut u8, n * size_of::<T>())`) carries
+            the same `n * size_of` shape and is spared only by the **pointee type** (`*u8` = a byte buffer), a
+            resolved-type fact — so it graduates at the **v0.4 type-aware tier (arg-position AND pointee-type)**,
+            never at a syntactic operator-leaf. *(Honest note: of the worked members, none re-earns named via a
+            cheap syntactic operator-leaf — `set_len`/`duration_since` are permanent-suspected (receiver-type);
+            `size_of`-in-count is type-aware. The pure-AST-feasible-charter outcome is a sound forward-provision
+            for a genuinely syntactic-discriminable arm, illustrated abstractly because no beta.2 member is one.)*
+          The discriminator between DROP and DEMOTE is **anti-correlation vs un-correlation**: an arm that
+          fires on the namesake's *fix* is anti-correlated (DROP); an arm that fires on an *unrelated/benign*
+          namesake is merely un-correlated (DEMOTE). This is the arm-level dual of the name-specificity tier
+          rule — a member can be named-honest on its rare arm and over-claiming on a common arm in the same
+          `any_of`. **Enforcement:** every named member with a common-method leaf ships an affinity-pair whose
+          negative case is the namesake clean sibling (a runnable probe, not a doc assertion — the build crew's
+          "all rare/std-specific" self-description is not the witness); a notary may demand the probe.
       - **Silent-class oracle.** For a **silent** class (no automated verifier *by definition* — tests
         green, behavior wrong is the point), "verifiably exhibits" has no mechanical check, so the demo
         must carry a **STATED ORACLE** — a differential reference / known-answer-vector, OR an ADR-020

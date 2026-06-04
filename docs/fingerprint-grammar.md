@@ -275,14 +275,119 @@ body_contains_macro("println")      -- matches println!(...)
 
 **Limitation**: this operator detects macro *invocations*, not method calls.
 `.unwrap()` and `.expect(...)` are method calls, not macro invocations — they
-do NOT match `body_contains_macro("panic")` even though they can panic. Use
-explicit `#[presents]` markers for method-call panic paths.
+do NOT match `body_contains_macro("panic")` even though they can panic. For
+method-call and function-call panic paths, use [`body_calls`](#body_callsname)
+(below).
 
 **Example**: match functions that call `todo!`:
 
 ```
 item = fn, body_contains_macro("todo")
 ```
+
+---
+
+### `body_calls("<name>")`
+
+The call-shaped twin of `body_contains_macro` (ADR-040). Matches a function or
+method body that *calls* a function/method whose name equals `name`. It sees
+both call shapes:
+
+```
+body_calls("unwrap")      -- matches  x.unwrap()        (method call)
+body_calls("expect")      -- matches  x.expect("...")   (method call)
+body_calls("from_reader") -- matches  T::from_reader(r) (path call, by last segment)
+body_calls("transmute")   -- matches  std::mem::transmute(x)
+```
+
+**Match rule**: for a path call (`foo()`, `a::b::c()`) the *last path segment*
+must equal `name` (mirroring the macro twin); for a method call (`x.m()`) the
+method name must equal `name`. The walk recurses into nested call bodies.
+
+**This closes the gap `body_contains_macro` leaves**: `body_contains_macro("panic")`
+is silent on `.unwrap()`/`.expect()` (they are method calls, not `panic!`),
+whereas `body_calls("unwrap")` fires on them — the shipped `panicking-in-drop`
+fingerprint pairs the two to cover both the `panic!` macro and the
+`.unwrap()`/`.expect()` method paths.
+
+**Fail-loud on unmatchable names** (ADR-040 fail-direction fix): a `name` that
+could never match an identifier (whitespace-padded, or a `::`-spelled path like
+`"std::mem::transmute"`) is a *parse-time hard error*, not a silent never-fire.
+Pass the bare last segment (`"transmute"`).
+
+**Example** — a `Drop` impl whose body calls `.unwrap()` or `.expect()`:
+
+```
+item = impl, impl_of_trait("Drop"),
+any_of([body_calls("unwrap"), body_calls("expect")])
+```
+
+---
+
+### `is_async` / `is_unsafe` / `is_const`
+
+Bare item-qualifier leaves (ADR-040 G1) — no argument, no `= value`. Each is a
+three-valued (`Match3`) check that the item carries the corresponding qualifier:
+
+```
+item = fn, is_async      -- matches  async fn ...
+is_unsafe                -- matches  unsafe fn / unsafe impl / unsafe trait
+item = fn, is_const      -- matches  const fn ...
+```
+
+**Locus rule (partial-domain → `Undefined`)**: these qualifiers only have a
+*locus* on certain item kinds — `is_async` on `fn`; `is_unsafe` on `fn`, `impl`,
+or `trait`; `is_const` on `fn`. On an item kind where the qualifier cannot
+appear (e.g. `is_async` on a `struct`), the leaf is `Undefined`, **not false**.
+This matters for negation: `not(is_async)` does **not** vacuously match a struct
+— it stays `Undefined` there, so the anchored-`not` rule (below) keeps it sound.
+
+**Example** — an `async fn` that calls a blocking `lock`:
+
+```
+item = fn, is_async, body_calls("lock")
+```
+
+---
+
+### `impl_of_trait("<name>")`
+
+Matches an `impl` block that implements the named trait. The match is against the
+trait-path's **last segment** (a bare identifier), so `impl Drop for T`,
+`impl std::ops::Drop for T` both match `impl_of_trait("Drop")`, while an inherent
+`impl T { fn drop(&self) {} }` (a method merely *named* `drop`) does **not**.
+
+```
+item = impl, impl_of_trait("Drop")          -- a real Drop impl
+item = impl, impl_of_trait("Deserialize")   -- a serde Deserialize impl
+```
+
+**`Undefined` off-locus**: on a non-`impl` item this leaf is `Undefined` (same
+partial-domain rule as the qualifiers), so `not(impl_of_trait("Drop"))` is only
+admissible inside an anchored `all_of`.
+
+**Fail-loud on unmatchable names**: like `body_calls`, a `::`-spelled or padded
+name is a parse-time error — pass the bare trait name (`"Drop"`, not
+`"std::ops::Drop"`).
+
+---
+
+### `derives("<name>")`
+
+Matches an item whose `#[derive(...)]` list contains the named derive (by bare
+ident). `derives("Hash")` matches `#[derive(Clone, Hash)] struct T;`. A padded or
+path-spelled name is a parse-time error (same gate as `body_calls`).
+
+---
+
+### `serde_arg("<name>")`
+
+Matches an item carrying a `#[serde(...)]` attribute that contains the named
+argument (by bare ident). `serde_arg("deny_unknown_fields")` matches
+`#[serde(deny_unknown_fields)] struct Config { … }`. Used by the
+deserialization-trust-boundary family to distinguish a `Deserialize` that opts
+into strict field-checking from one that silently accepts unknown fields. Same
+bare-identifier gate as `body_calls`.
 
 ---
 

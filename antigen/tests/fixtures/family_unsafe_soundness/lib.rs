@@ -35,9 +35,9 @@ fn widen(x: u8) -> u32 {
 #[antigen(
     name = "uninit-memory-assumed-init",
     category = AntigenCategory::FunctionalCorrectness,
-    fingerprint = r#"any_of([body_calls("assume_init"), body_calls("uninitialized"), body_calls("zeroed"), body_calls("set_len")])"#,
+    fingerprint = r#"any_of([body_calls("assume_init"), body_calls("uninitialized")])"#,
     family = "unsafe-soundness",
-    summary = "Reading uninitialized memory as initialized — MaybeUninit::assume_init / Vec::set_len etc. UB.",
+    summary = "Reading uninitialized memory as initialized — MaybeUninit::assume_init / mem::uninitialized. UB. (zeroed dropped — fires on safe bytemuck::zeroed; set_len permanent-suspected — ADR-039 §C Amd-1.)",
     references = ["https://doc.rust-lang.org/std/mem/union.MaybeUninit.html#method.assume_init"]
 )]
 struct UninitMemoryAssumedInit;

@@ -35,7 +35,7 @@
 //!   Deserialization-Trust-Boundary Family (beta.2 voyage), the deep tier of
 //!   Mucosal-Boundary: untrusted bytes crossing into typed structs without the
 //!   tight-junction (`deny_unknown_fields` absent → silent field drop;
-//!   unbounded `from_reader`/`from_slice` → DoS). Biology cognate: gut mucosa.
+//!   unbounded streaming `from_reader` → DoS). Biology cognate: gut mucosa.
 //! - [`time_ordering`](crate::stdlib::time_ordering) — the
 //!   Time-and-Ordering-Hazards Family (beta.2 voyage): the silent-in-tests /
 //!   panic-in-prod clock footgun (`SystemTime::duration_since().unwrap()` panics
@@ -60,8 +60,11 @@
 //!   Biology cognate: a mislabeled self/non-self marker at the thread boundary.
 //! - [`numeric_truncation`](crate::stdlib::numeric_truncation) — the
 //!   Numeric-Truncation-Overflow Family (beta.2 voyage): the `size_of`-in-element-
-//!   count foot-cannon (a byte count where an element count is expected → OOB).
-//!   Biology cognate: silent mutation.
+//!   count foot-cannon (a byte count where an element count is expected → OOB),
+//!   shipped at the **suspected** tier (the call-co-presence fires on the
+//!   idiomatic-correct byte-copy too, so it's demoted from named; its own fix is
+//!   spared, so demote-not-drop; graduation is type-aware). Biology cognate:
+//!   silent mutation.
 //! - [`unsafe_soundness`](crate::stdlib::unsafe_soundness) — the
 //!   Unsafe-Soundness-Boundary Family (beta.2 voyage): the `unsafe`-primitive
 //!   call-shapes where a wrong invariant is UB, not a panic (`transmute`,

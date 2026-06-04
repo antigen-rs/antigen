@@ -63,6 +63,19 @@ use crate::antigen;
 /// vs-`Instant` ambiguity is resolved by the witness/tier, and dropping it would
 /// leave no anchor at all.
 ///
+/// **Known namesake false-positive (ADR-039 §C Amendment 1, disclosed-not-hidden):**
+/// `duration_since` is *also* the name of the **infallible** `Instant::duration_since`
+/// (it returns `Duration`, not `Result` — no `unwrap` needed). So this co-occurrence
+/// form fires on a body that calls `instant_a.duration_since(instant_b)` *and*
+/// `unwrap`s something **unrelated** — a false positive on the `Instant` path,
+/// because the only discriminator is the **receiver TYPE** (`SystemTime` vs
+/// `Instant`), which scan cannot resolve (`x.duration_since(y)` does not expose
+/// `x`'s type). This is exactly *why* the member is **suspected**, not named: a
+/// receiver-type-only discriminator is **not** an AST-feasible leaf, so this FP is
+/// honest within-tier recall noise at suspected (a named tier could not carry it).
+/// The v0.4 receiver-type resolution that re-adds `SystemTime::elapsed` (above)
+/// resolves this same `Instant`-namesake FP in one move.
+///
 /// **Witness:** the `Result` is handled (`.unwrap_or(Duration::ZERO)`, a `match`),
 /// OR `Instant` is used instead of `SystemTime` for the measurement.
 ///
