@@ -438,6 +438,46 @@ impl Parse for ScanGeneratesArgs {
     }
 }
 
+/// Scan-side parser for a marked-unknown marker's args (`trigger = "..."`,
+/// ADR-041). Mirrors the macro-side `MarkerArgs` but parses straight from the
+/// source attribute. A marked-unknown names NOTHING (no positional antigen) — the
+/// only field is `trigger`. Unknown fields are consumed silently (forward-compat);
+/// the macro side is the strict parse-time enforcer of the no-authored-corner rule.
+struct ScanMarkerArgs {
+    trigger: String,
+}
+
+impl Parse for ScanMarkerArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        use syn::{Expr, Ident, LitStr, Token};
+        let mut trigger = String::new();
+        let mut first = true;
+        while !input.is_empty() {
+            if !first {
+                input.parse::<Token![,]>()?;
+                if input.is_empty() {
+                    break;
+                }
+            }
+            first = false;
+            let key: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            match key.to_string().as_str() {
+                "trigger" => {
+                    let lit: LitStr = input.parse()?;
+                    trigger = lit.value();
+                }
+                _ => {
+                    // Unknown field: consume silently (the macro side rejects
+                    // magnitude=/existence_certainty=/unknown; scan is lenient).
+                    let _: Expr = input.parse()?;
+                }
+            }
+        }
+        Ok(Self { trigger })
+    }
+}
+
 // ============================================================================
 // Deferred-Defense Family scan-time parsers (ADR-023)
 //
@@ -1204,8 +1244,8 @@ mod types;
 // matching helpers below are NOT widened to the public API.
 pub use types::{
     AntigenDeclaration, ConvergentEvidence, ConvergentEvidenceKind, Defense, DeferredDefense,
-    DeferredDefenseKind, GeneratesDeclaration, Immunity, ItemTarget, LineageEdge, MatchKind,
-    MucosalDeclaration, MucosalKindTag, ParseFailure, PartitionedPresentations,
+    DeferredDefenseKind, GeneratesDeclaration, Immunity, ItemTarget, LineageEdge, MarkedUnknown,
+    MatchKind, MucosalDeclaration, MucosalKindTag, ParseFailure, PartitionedPresentations,
     PrescriptiveDeclaration, PrescriptiveKind, Presentation, ProvenanceEntry, RecurrentDeclaration,
     RecurrentKind, ScanCoverage, ScanReport, Toleration, UnaddressedPresentation, WorkShape,
 };
