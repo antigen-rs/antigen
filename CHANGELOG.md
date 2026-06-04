@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — marked-unknown markers emit into the `Finding` population (ADR-041 §Emit-seam)
+
+- The scan-surfaced `#[aura]`/`#[dread]`/`#[red_flag]` markers now land as
+  `FindingBody::MarkedUnknown` records in the pipeline's unified `Finding`
+  population (the ADR-041 marker wave's scan-half emit, at the SEAM-1 merge-locus).
+  `MarkedUnknown::to_finding` carries the authored mark as `class_provenance =
+  Encountered` + `presentation = Active` (the author marked their own *encountered*
+  site, ADR-041), `origin_stage = Scan`, and a severity following the magnitude ×
+  existence-certainty plane — a `#[red_flag]` (existence-certainty `Sure`)
+  auto-escalates to `High`. `Magnitude` / `ExistenceCertainty` gain `from_variant_str`
+  to re-parse the scanner's fixed-corner values. The audit-time dial-verdict half
+  remains the deferred ADR-039 dial wave; the merge-locus carries the marked-unknown
+  half now and the dial half lands there for ~free when wired.
+
 ### Changed — the beta.2 family members now author their provenance (ADR-039 §C honest-labeling)
 
 - Every build-now beta.2 stdlib family member now authors

@@ -697,6 +697,63 @@ pub struct MarkedUnknown {
     pub line: usize,
 }
 
+impl MarkedUnknown {
+    /// Convert a scanned marked-unknown into the unified
+    /// [`Finding`](crate::finding::Finding) schema
+    /// (ADR-039 §C, the scan-time half) — the marker wave's emit (ADR-041
+    /// §Emit-seam). A marked-unknown is an authored mark at a site the author
+    /// *encountered*, so it carries `class_provenance = Encountered` +
+    /// `presentation = Active` (the author chose to mark their own site, ADR-041);
+    /// `origin_stage = Scan`. Severity follows the magnitude × existence-certainty
+    /// plane: a `red_flag` (Sure) auto-escalates to High; otherwise Dread → High,
+    /// Aura/Smell → Medium/Low.
+    #[must_use]
+    pub fn to_finding(&self, timestamp: u64) -> crate::finding::Finding {
+        use crate::finding::{
+            cluster_key_of, ExistenceCertainty, Finding, FindingBody, Magnitude, OriginStage,
+            Presentation, Provenance, Severity, FINDING_SCHEMA_VERSION,
+        };
+
+        let magnitude = Magnitude::from_variant_str(&self.magnitude).unwrap_or(Magnitude::Aura);
+        let existence_certainty = ExistenceCertainty::from_variant_str(&self.existence_certainty)
+            .unwrap_or(ExistenceCertainty::Unsure);
+
+        // The red_flag corner (Sure) auto-escalates on first match (ADR-041) → High;
+        // otherwise severity tracks magnitude (Dread → High, Aura → Medium, Smell → Low).
+        let severity = match (existence_certainty, magnitude) {
+            (ExistenceCertainty::Sure, _) | (_, Magnitude::Dread) => Severity::High,
+            (_, Magnitude::Aura) => Severity::Medium,
+            (_, Magnitude::Smell) => Severity::Low,
+        };
+
+        // The cluster-key derives from (structural_digest, class); for a
+        // marked-unknown the "class" is the marker name (the maturation engine
+        // clusters related marks of the same marker-kind). No structural digest at
+        // the marker site (it is an authored mark, not a matched item).
+        let cluster_key = cluster_key_of("", &self.marker);
+
+        Finding {
+            schema_version: FINDING_SCHEMA_VERSION,
+            file: self.file.to_string_lossy().into_owned(),
+            line: self.line,
+            structural_digest: String::new(),
+            cluster_key,
+            severity,
+            source: format!("scan:marked-unknown:{}", self.marker),
+            // Authored mark at an encountered site (ADR-041): encountered + active.
+            class_provenance: Provenance::Encountered,
+            presentation: Presentation::Active,
+            timestamp,
+            origin_stage: OriginStage::Scan,
+            body: FindingBody::MarkedUnknown {
+                magnitude,
+                existence_certainty,
+                trigger: self.trigger.clone(),
+            },
+        }
+    }
+}
+
 /// An `#[antigen_tolerance(antigen, rationale = "...", until = "...", see = [...])]`
 /// declaration discovered in source. Per ADR-011.
 #[derive(Debug, Clone, Serialize, Deserialize)]

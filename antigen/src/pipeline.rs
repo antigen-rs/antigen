@@ -38,11 +38,12 @@
 //! Behavior-preserving: `run` composes the *existing* `scan_workspace` +
 //! `audit::orchestrate::run`; it changes nothing about what they compute. The
 //! CLI's hand-rolled fan-out can adopt this entry point incrementally. The
-//! `Finding` population starts empty — the per-stage emit (scan computing its
-//! marked-unknown half, audit its dial-verdict half) lands as the ADR-039/041
-//! family + marker waves populate it; the seam (schema + merge-locus +
-//! stop-authority host) is what is banked now, near-free, so those waves are
-//! buildable later for ~free.
+//! **scan-time marked-unknown half is now WIRED** (the ADR-041 marker wave): each
+//! `#[aura]`/`#[dread]`/`#[red_flag]` the scan surfaces lands as a
+//! `FindingBody::MarkedUnknown` in the unified population. The **audit-time
+//! dial-verdict half is still the deferred ADR-039 dial wave** — the merge-locus
+//! exists so it lands for ~free; until then the population carries only the
+//! marked-unknown half.
 
 use std::path::Path;
 
@@ -95,8 +96,9 @@ pub struct PipelineRun {
     /// The audit bundle (the per-detector reports the audit sequence produced).
     pub audit: AuditBundle,
     /// The unified typed-event population (ADR-039 §C) — scan-time marked-unknown
-    /// markers merged with audit-time dial verdicts. Empty until the ADR-039/041
-    /// emit waves populate it; the merge-locus exists now so they land for ~free.
+    /// markers (WIRED, the ADR-041 marker wave) merged with audit-time dial
+    /// verdicts (the deferred ADR-039 dial wave). Currently carries the
+    /// marked-unknown half; the dial half lands at the same merge-locus when wired.
     pub findings: Vec<Finding>,
     /// `true` when the run completed; `false` when a SCRAM tripped it early. The
     /// scan half (if produced before the trip) is still returned.
@@ -122,10 +124,15 @@ pub fn run(root: &Path, control: &mut RunControl) -> std::io::Result<PipelineRun
     // Stage 1 — scan (the collection walk + lineage + finalize passes). A pure-ish
     // directory scanner; it returns to the coordinator, never triggering audit.
     let scan = scan_workspace(root, None)?;
-    // SEAM-1, scan half: the scan stage's `#[dread]`/`#[aura]` marked-unknown
-    // markers merge UP into the unified population first. The population starts
-    // empty — the scan-side emit lands when the ADR-041 marker wave wires it; the
-    // MERGE POINT is here regardless (banking the locus is the near-free seam).
+    // SEAM-1, scan half (ADR-041 marker wave — WIRED): the scan stage's
+    // `#[aura]`/`#[dread]`/`#[red_flag]` marked-unknown markers merge UP into the
+    // unified population first, each as a `FindingBody::MarkedUnknown` (authored,
+    // encountered, active — ADR-041 §Emit-seam). A monotonic per-record timestamp
+    // (index-based) keeps the records ordered + distinct without a clock dependency
+    // in this pure sequencer; a real wall-clock emit is a downstream concern.
+    for (i, mu) in scan.marked_unknowns.iter().enumerate() {
+        findings.push(mu.to_finding(i as u64));
+    }
 
     // SEAM-2: the stop-authority is the coordinator's; a tripped SCRAM aborts
     // BETWEEN stages, out-of-band — no stage cooperation needed.
@@ -190,5 +197,70 @@ mod tests {
         // assert the run reached the audit stage (the conductor sequenced both).
         // (The scan of this crate's own src finds antigen's dogfood declarations.)
         let _ = &out.scan;
+    }
+
+    #[test]
+    fn marked_unknown_markers_emit_into_the_finding_population() {
+        // SEAM-1 scan-half (ADR-041 marker wave): the scan-surfaced markers land as
+        // FindingBody::MarkedUnknown in the unified population. Point at the marker
+        // fixture (read-as-text by the scan walk).
+        use crate::finding::{ExistenceCertainty, FindingBody, Magnitude};
+        let mut control = RunControl::new();
+        let fixture = Path::new("tests")
+            .join("fixtures")
+            .join("marked_unknown_markers");
+        let out = run(&fixture, &mut control).expect("pipeline runs over the fixture");
+        assert!(out.completed);
+
+        // Three markers in the fixture → three MarkedUnknown findings (the audit half
+        // is still the deferred dial wave, so the population is exactly these three).
+        let markers: Vec<_> = out
+            .findings
+            .iter()
+            .filter(|f| matches!(f.body, FindingBody::MarkedUnknown { .. }))
+            .collect();
+        assert_eq!(
+            markers.len(),
+            3,
+            "three markers emit into the population; got: {:?}",
+            out.findings
+        );
+
+        // The red_flag (existence_certainty = Sure) auto-escalates to High severity,
+        // and its fixed corner survived the scan → Finding round-trip.
+        let red_flag = out
+            .findings
+            .iter()
+            .find(|f| f.source.ends_with("red-flag"))
+            .expect("a red-flag finding");
+        assert_eq!(red_flag.severity, crate::finding::Severity::High);
+        assert!(matches!(
+            red_flag.body,
+            FindingBody::MarkedUnknown {
+                existence_certainty: ExistenceCertainty::Sure,
+                ..
+            }
+        ));
+
+        // An aura is the low-magnitude corner (Magnitude::Aura), Medium severity.
+        let aura = out
+            .findings
+            .iter()
+            .find(|f| f.source.ends_with("aura"))
+            .expect("an aura finding");
+        assert!(matches!(
+            aura.body,
+            FindingBody::MarkedUnknown {
+                magnitude: Magnitude::Aura,
+                ..
+            }
+        ));
+
+        // Every emitted marker carries its required, non-empty trigger (guard 3).
+        for f in &markers {
+            if let FindingBody::MarkedUnknown { trigger, .. } = &f.body {
+                assert!(!trigger.trim().is_empty(), "guard 3: non-empty trigger");
+            }
+        }
     }
 }

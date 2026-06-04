@@ -181,6 +181,20 @@ pub enum Magnitude {
     Dread,
 }
 
+impl Magnitude {
+    /// Parse from the scanner's stored kebab variant string (`"smell"` / `"aura"`
+    /// / `"dread"` — the marker macro's fixed-corner value). `None` if unknown.
+    #[must_use]
+    pub fn from_variant_str(s: &str) -> Option<Self> {
+        match s {
+            "smell" => Some(Self::Smell),
+            "aura" => Some(Self::Aura),
+            "dread" => Some(Self::Dread),
+            _ => None,
+        }
+    }
+}
+
 /// The marked-unknown EXISTENCE-CERTAINTY axis (ADR-041).
 ///
 /// Orthogonal to the classification certainty the dial tier carries. A
@@ -193,6 +207,19 @@ pub enum ExistenceCertainty {
     Unsure,
     /// Sure-but-unnameable (the sentinel corner: act now, can't yet name it).
     Sure,
+}
+
+impl ExistenceCertainty {
+    /// Parse from the scanner's stored kebab variant string (`"unsure"` /
+    /// `"sure"` — the marker macro's fixed-corner value). `None` if unknown.
+    #[must_use]
+    pub fn from_variant_str(s: &str) -> Option<Self> {
+        match s {
+            "unsure" => Some(Self::Unsure),
+            "sure" => Some(Self::Sure),
+            _ => None,
+        }
+    }
 }
 
 /// What a [`Finding`] is ABOUT — a classified failure-class verdict (audit-time)
@@ -368,5 +395,24 @@ mod tests {
             Some(Presentation::Active)
         );
         assert_eq!(Presentation::from_variant_str("Bogus"), None);
+    }
+
+    #[test]
+    fn magnitude_and_existence_certainty_from_variant_str() {
+        // The marker macro stores the fixed-corner kebab values; the scan-half emit
+        // re-parses them onto the Finding.
+        assert_eq!(Magnitude::from_variant_str("smell"), Some(Magnitude::Smell));
+        assert_eq!(Magnitude::from_variant_str("aura"), Some(Magnitude::Aura));
+        assert_eq!(Magnitude::from_variant_str("dread"), Some(Magnitude::Dread));
+        assert_eq!(Magnitude::from_variant_str("bogus"), None);
+        assert_eq!(
+            ExistenceCertainty::from_variant_str("unsure"),
+            Some(ExistenceCertainty::Unsure)
+        );
+        assert_eq!(
+            ExistenceCertainty::from_variant_str("sure"),
+            Some(ExistenceCertainty::Sure)
+        );
+        assert_eq!(ExistenceCertainty::from_variant_str("bogus"), None);
     }
 }
