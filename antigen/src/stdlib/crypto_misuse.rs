@@ -1,104 +1,65 @@
-//! # Crypto-Misuse Family — stdlib antigens (beta.2 voyage, ADR-040 grammar)
+//! # Crypto-Misuse Family — CHARTERED (no shipped member yet, beta.2 voyage)
 //!
 //! The RUSTSEC `crypto-failure` category seen from the developer side. The
 //! load-bearing framing (arxiv 1806.04929 "How Usable are Rust Cryptography
 //! APIs?"): Rust crypto libraries mostly *avoid* insecure defaults — so the
 //! recurring failure-class is developer **misuse** (reaching past the safe API
-//! for the dangerous one, or omitting the safe step), not bad defaults. That is
-//! why these are call-anchored, absence-of-the-safe-step tells.
+//! for the dangerous one, or omitting the safe step), not bad defaults.
 //!
 //! Biology cognate: **using the immune machinery wrong** — reading a self/
 //! non-self marker non-constant-time is the timing leak (the pathogen learning
-//! the antibody's exact shape by watching response latency). Distinct from
-//! "no defense" (mucosal undefended-boundary): this is *misuse of a present
-//! defense*.
+//! the antibody's exact shape by watching response latency).
 //!
-//! ## Antigen-category (ADR-028)
+//! ## Status: CHARTERED — no honest shipped-grammar fingerprint exists yet
 //!
-//! Members are `FunctionalCorrectness`: the verb (the comparison, the cipher
-//! call) produces a wrong *observable effect* (a timing oracle, a recoverable
-//! ciphertext). The witness exercises behaviour (a constant-time-compare proof,
-//! a nonce-uniqueness proof) — it does not check substrate.
+//! The flagship member `NonConstantTimeSecretComparison` (a secret/MAC compared
+//! in non-constant time — a timing-attack oracle) is a **real, recurring**
+//! failure-class (GHSA-q7pg-9pr4-mrp2 httpsig-rs HMAC timing attack; the RUSTSEC
+//! `crypto-failure` category includes non-constant-time operations). **But no
+//! honest *call-only* fingerprint can express it in the shipped grammar** — so it
+//! is chartered, not shipped, pending the deferred name/operator grammar leaves.
 //!
-//! ## How these antigens are evaluated
+//! **Why there is no honest call-only anchor (aristotle's ruling, beta.2 notary —
+//! confirmed from two independent angles: codomain-reasoning + empirical crate-API
+//! verification).** A first attempt anchored on a crypto verify entrypoint
+//! (`verify` / `hmac_verify` / `verify_mac`) and fired on the *absence* of a
+//! constant-time compare (`not(body_calls("ct_eq"))`). That **anti-aligns with the
+//! defect** — it fires loudest on the *safe* path:
+//! - `ring::hmac::verify(key, msg, tag)` is the **correct** API and is
+//!   constant-time **internally** (the constant-time work is inside `ring`, with
+//!   no visible `ct_eq` call). So the fingerprint would **falsely bind a
+//!   `ring::hmac::verify` call** — looks undefended, gets flagged — and a named
+//!   crate's recommended API is reported as the bug. This is the
+//!   clean-sibling-collision shape (cf. the `Instant::elapsed` drop): the anchor's
+//!   codomain *includes the clean path*.
+//! - `verify` / `hmac_verify` are the **names of the safe operation** (a crypto
+//!   lib's `mac.verify(tag)` does the constant-time compare itself), so anchoring
+//!   on verify-presence anchors on the safe pattern's *vocabulary*.
 //!
-//! Unlike the supply-chain / vcs / recurrent families (external-substrate,
-//! verify-only), crypto-misuse members carry a **syntactic fingerprint** — they
-//! are matched by the AST-walking scanner against the call-shaped tell. The
-//! tell is `body_calls` on a crypto entrypoint plus the **absence** of the
-//! constant-time safe step (`not(body_calls(...))`) — the absence-grammar
-//! driver, call-flavored.
+//! **The real defect has no distinctive call.** The vulnerable pattern
+//! (GHSA-q7pg-9pr4-mrp2) is a **hand-rolled `==` / manual byte-loop on a secret /
+//! MAC** — an **operator** (`==`) on a **secret-typed value**, with no
+//! crypto-entrypoint call at all. So the honest fingerprint is
+//! `all_of([<security-sensitive-name anchor>, not(any_of([body_calls("ct_eq"),
+//! body_calls("constant_time_eq")]))])` — and it needs **both deferred leaves**:
+//! the `security_sensitive_name` name-leaf (the data-context: does this fn hold
+//! secret bytes it might hand-compare?) and the `==` operator-leaf (the precise
+//! positive tell, `ExprBinary`). `body_calls` sees only `ExprCall` /
+//! `ExprMethodCall` — neither operators nor a data-context. **Neither leaf ships
+//! in the current grammar.**
 //!
-//! ## Tier honesty (ADR-039 provenance ladder)
+//! ## Graduation path (when the deferred leaves land)
 //!
-//! `NonConstantTimeSecretComparison` ships at the **heuristic** tier: the
-//! `body_calls("verify")` tell *correlates* with a non-constant-time secret
-//! comparison without a verifiable-constructable causal demonstration of *this
-//! site's* secret-ness (the entrypoint ident-list is a placeholder). Per the
-//! ADR-039 §C honest-labeling invariant, the class is admitted but the tier
-//! states "heuristic / correlational, not causal" — it sits passive-by-default
-//! and dial-gated, never masquerading as `constructable`/`encountered`. The
-//! provenance label is surfaced onto the `Finding` (ADR-039 §C) at emit time;
-//! it is not declared here. The admitting-specimen (the affinity-pair example)
-//! is what an `affinity-pair`-grade `constructable` claim would require — this
-//! member ships the pair as its exhibit while remaining honestly heuristic on
-//! the entrypoint ident-list.
+//! When the next grammar increment lands the `security_sensitive_name` name-leaf
+//! (queued top-priority) — and ideally the `==` operator-leaf — this family ships
+//! `NonConstantTimeSecretComparison` as
+//! `all_of([security_sensitive_name, not(any_of([body_calls("ct_eq"),
+//! body_calls("constant_time_eq")]))])` at the **suspected / heuristic** tier
+//! (`subtle::ct_eq` is the confirmed safe-step needle). Until then it stays
+//! charter — **better honest-deferred than dishonest-shipped** (a shipped form
+//! would actively mislead by flagging `ring::hmac::verify`, the correct API, as
+//! the bug).
 //!
-//! ## Fast-follow (flagged on the campsite, harbor-master ruling)
-//!
-//! The crypto-compare entrypoint ident-lists (`"verify"` / `"ct_eq"`) are
-//! **placeholders**. Firming them via a RUSTSEC `crypto-failure` enumeration
-//! (and the deferred `security_sensitive_name` name-content leaf, charter) is a
-//! next-increment fast-follow; the member is honest at the heuristic tier with
-//! the placeholders in place.
-
-use crate::antigen;
-
-// ============================================================================
-// 1. NonConstantTimeSecretComparison
-// ============================================================================
-
-/// A secret/MAC/token verified through a non-constant-time comparison — a
-/// timing-attack oracle.
-///
-/// **Where in the wild:** arxiv 1806.04929 — "HMAC `verify()` uses constant-time
-/// comparison; its use is NOT enforced, no warnings on the raw-digest getter."
-/// Comparing a MAC / token / password-hash with a non-constant-time path leaks
-/// the secret one byte of latency at a time. The RUSTSEC `crypto-failure`
-/// category explicitly includes non-constant-time operations.
-///
-/// **Tell:** a crypto verify entrypoint (`verify` / `hmac_verify` / `verify_mac`)
-/// is called **without** an adjacent constant-time comparison (`ct_eq` /
-/// `constant_time_eq`, the `subtle::ConstantTimeEq` step). The *absence* of the
-/// constant-time call is the tell — `all_of([any_of([body_calls("verify"),
-/// body_calls("hmac_verify"), body_calls("verify_mac")]),
-/// not(any_of([body_calls("ct_eq"), body_calls("constant_time_eq")]))])`. The
-/// clean sibling (which *does* call a constant-time compare) is spared by the
-/// `not` branch. The entrypoint set is a **wide-net** `any_of` (not single-needle)
-/// because `body_calls` matches by last segment: a single `"verify"` needle
-/// would silently miss `hmac_verify` / `verify_mac`.
-///
-/// **Tier:** **heuristic** (ADR-039) — the entrypoint ident-lists are
-/// placeholders, correlational not causal. Passive-by-default; security-severity
-/// earns surfacing weight even at the heuristic tier.
-///
-/// **Witness:** a constant-time comparison is present (`subtle::ConstantTimeEq`
-/// / `ring`'s constant-time verify), OR a proof the compared value is not
-/// secret.
-///
-/// **Category:** `FunctionalCorrectness` — the comparison verb produces a wrong
-/// *observable effect* (a measurable timing differential), not a wrong
-/// representation.
-#[antigen(
-    name = "non-constant-time-secret-comparison",
-    category = AntigenCategory::FunctionalCorrectness,
-    fingerprint = r#"all_of([any_of([body_calls("verify"), body_calls("hmac_verify"), body_calls("verify_mac")]), not(any_of([body_calls("ct_eq"), body_calls("constant_time_eq")]))])"#,
-    family = "crypto-misuse",
-    summary = "A crypto verify path (verify / hmac_verify / verify_mac) compares a secret/MAC/token without a constant-time comparison (ct_eq / constant_time_eq) present — a timing-attack oracle. Heuristic tier (placeholder entrypoint ident-lists); the absence of the constant-time step is the tell.",
-    references = [
-        "https://arxiv.org/abs/1806.04929",
-        "RUSTSEC#crypto-failure",
-        "ADR-040",
-    ]
-)]
-pub struct NonConstantTimeSecretComparison;
+//! **Substrate:** GHSA-q7pg-9pr4-mrp2 (the no-call-tell hand-rolled defect) +
+//! `ring::hmac::verify` constant-time-internal doc (the anti-correlation proof) +
+//! arxiv 1806.04929 (the misuse-not-defaults framing).

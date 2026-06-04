@@ -31,83 +31,18 @@ fn item(src: &str) -> syn::Item {
 }
 
 // ============================================================================
-// crypto-misuse :: NonConstantTimeSecretComparison
+// crypto-misuse :: NonConstantTimeSecretComparison — CHARTERED (no test)
+//
+// The crypto-misuse flagship is chartered, NOT shipped (aristotle's beta.2 notary
+// ruling): no honest call-only fingerprint exists for it. A verify-entrypoint
+// anchor + not(ct_eq) ANTI-ALIGNS with the defect — it fires on the SAFE path
+// (`ring::hmac::verify` is constant-time internally; verify/hmac_verify are the
+// names of the safe operation), and the real defect (a hand-rolled `==` on a
+// secret, GHSA-q7pg-9pr4-mrp2) has no distinctive call — it needs the deferred
+// `security_sensitive_name` name-leaf + the `==` operator-leaf. So there is no
+// affinity-pair to test here: the member graduates when those leaves land. See
+// `stdlib/crypto_misuse.rs` (the charter doc) for the full reasoning.
 // ============================================================================
-
-/// The crypto member's declared fingerprint, kept in ONE place so the bind and
-/// spare assertions below test the exact shipped shape.
-const CRYPTO_NON_CONSTANT_TIME: &str = r#"all_of([any_of([body_calls("verify"), body_calls("hmac_verify"), body_calls("verify_mac")]), not(any_of([body_calls("ct_eq"), body_calls("constant_time_eq")]))])"#;
-
-#[test]
-fn non_constant_time_secret_comparison_binds_verify_without_ct_eq() {
-    // BIND (the vulnerable specimen): a verify path with NO constant-time
-    // comparison present. body_calls("verify") = Match; not(body_calls("ct_eq"))
-    // = not(NoMatch) = Match → all_of = Match. This is the timing-oracle site.
-    let fp = fp(CRYPTO_NON_CONSTANT_TIME);
-    assert!(
-        fp.matches(&item(
-            "fn check(p: &[u8], e: &[u8]) -> bool { verify(p, e) }"
-        )),
-        "must BIND a verify path with no constant-time comparison present"
-    );
-}
-
-#[test]
-fn non_constant_time_secret_comparison_spares_verify_with_ct_eq() {
-    // SPARE (the clean sibling): the SAME verify path, but the constant-time
-    // comparison IS present. body_calls("verify") = Match; not(body_calls("ct_eq"))
-    // = not(Match) = NoMatch → all_of = NoMatch. The presence of the safe step is
-    // exactly what the absence-grammar tell looks for.
-    let fp = fp(CRYPTO_NON_CONSTANT_TIME);
-    assert!(
-        !fp.matches(&item(
-            "fn check(p: &[u8], e: &[u8]) -> bool { let _ = verify(p, e); ct_eq(p, e) }"
-        )),
-        "must SPARE a verify path that routes the comparison through ct_eq"
-    );
-}
-
-#[test]
-fn non_constant_time_secret_comparison_spares_unrelated_fn() {
-    // A function that does neither (no verify call at all) is spared:
-    // any_of(verify entrypoints) = NoMatch → all_of short-circuits to NoMatch.
-    // Guards against the fingerprint over-firing on any function with a `not`
-    // branch.
-    let fp = fp(CRYPTO_NON_CONSTANT_TIME);
-    assert!(
-        !fp.matches(&item("fn unrelated(x: u32) -> u32 { x + 1 }")),
-        "must SPARE a function that never calls a verify entrypoint (no anchor)"
-    );
-}
-
-#[test]
-fn non_constant_time_secret_comparison_binds_hmac_verify_wide_net() {
-    // BIND the wide-net arm: a body that calls `hmac_verify` (NOT the bare
-    // `verify` needle) with no constant-time compare. A single-needle "verify"
-    // fingerprint would SILENTLY MISS this (last-segment match) — the wide-net
-    // any_of is exactly what prevents that false-negative (adversarial finding).
-    let fp = fp(CRYPTO_NON_CONSTANT_TIME);
-    assert!(
-        fp.matches(&item("fn check(t: &[u8]) -> bool { hmac_verify(t) }")),
-        "must BIND hmac_verify (the wide-net anchor; single 'verify' would miss it)"
-    );
-}
-
-#[test]
-fn non_constant_time_secret_comparison_spares_constant_time_eq_safe_step() {
-    // SPARE the wide-net safe arm: a verify path whose safe step is
-    // `constant_time_eq` (NOT the bare `ct_eq`). A single-needle `not(ct_eq)`
-    // would FALSELY BIND this (constant_time_eq absent from the needle set →
-    // looks undefended). The wide-net not(any_of([ct_eq, constant_time_eq]))
-    // recognizes both safe-step spellings.
-    let fp = fp(CRYPTO_NON_CONSTANT_TIME);
-    assert!(
-        !fp.matches(&item(
-            "fn check(p: &[u8], e: &[u8]) -> bool { let _ = verify(p, e); constant_time_eq(p, e) }"
-        )),
-        "must SPARE a verify path guarded by constant_time_eq (wide-net safe arm)"
-    );
-}
 
 // ============================================================================
 // deserialization-trust-boundary :: DeserializeWithoutDenyUnknownFields
