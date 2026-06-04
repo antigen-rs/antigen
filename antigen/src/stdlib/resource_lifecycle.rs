@@ -72,6 +72,14 @@ use crate::antigen;
 #[antigen(
     name = "deliberate-leak-not-documented",
     category = AntigenCategory::FunctionalCorrectness,
+    // Provenance (how solid the CLASS is) and the dial-tier (how loud THIS
+    // instance is) are orthogonal axes (ADR-039 10349-10354). The leak class is
+    // trivially Constructable (mem::forget demonstrably skips Drop — the
+    // affinity-pair holds); the forget/leak naming-breadth is a THIS-INSTANCE
+    // precision issue the DIAL surfaces at suspected. A solid class can carry a
+    // low-precision fingerprint — provenance=Constructable, dial=suspected.
+    provenance = Provenance::Constructable,
+    presentation = Presentation::Passive,
     fingerprint = r#"any_of([body_calls("forget"), body_calls("leak")])"#,
     family = "resource-lifecycle-leak",
     summary = "A call to an explicit-leak primitive (mem::forget / Box::leak / Vec::leak) — Drop is deliberately skipped; the witness is the documented rationale. SUSPECTED tier (bare common last-segments forget/leak with no narrowing anchor → effective codomain includes a domain cache.forget; graduates to named when path resolution lands).",

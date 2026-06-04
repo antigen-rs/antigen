@@ -55,6 +55,8 @@ use crate::antigen;
 #[antigen(
     name = "unsafe-send-sync",
     category = AntigenCategory::FunctionalCorrectness,
+    provenance = Provenance::Constructable,
+    presentation = Presentation::Passive,
     fingerprint = r#"all_of([item = impl, is_unsafe, any_of([impl_of_trait("Send"), impl_of_trait("Sync")])])"#,
     family = "async-soundness",
     summary = "A hand-written unsafe impl Send/Sync asserts cross-thread safety the compiler cannot check — ~40% of unsound RUSTSEC advisories root here. Named tier; witness = a documented SAFETY argument / kani proof.",

@@ -57,6 +57,8 @@ use crate::antigen;
 #[antigen(
     name = "transmute-size-or-lifetime-mismatch",
     category = AntigenCategory::FunctionalCorrectness,
+    provenance = Provenance::Constructable,
+    presentation = Presentation::Passive,
     fingerprint = r#"any_of([body_calls("transmute"), body_calls("transmute_copy")])"#,
     family = "unsafe-soundness",
     summary = "A mem::transmute / transmute_copy call — a size/lifetime/mutability mismatch is UB (rustc mutable_transmutes deny-by-default). Named (transmute is rare/std-specific); the precise layout check is v0.4 semantic.",
@@ -95,6 +97,8 @@ pub struct TransmuteSizeOrLifetimeMismatch;
 #[antigen(
     name = "uninit-memory-assumed-init",
     category = AntigenCategory::FunctionalCorrectness,
+    provenance = Provenance::Constructable,
+    presentation = Presentation::Passive,
     fingerprint = r#"any_of([body_calls("assume_init"), body_calls("uninitialized"), body_calls("zeroed"), body_calls("set_len")])"#,
     family = "unsafe-soundness",
     summary = "Reading uninitialized memory as initialized — MaybeUninit::assume_init / mem::uninitialized / mem::zeroed / Vec::set_len. UB (clippy uninit_assumed_init/uninit_vec). Named (rare/std-specific); the safely-uninit check is v0.4 semantic.",
@@ -131,6 +135,8 @@ pub struct UninitMemoryAssumedInit;
 #[antigen(
     name = "unvalidated-from-utf8-unchecked",
     category = AntigenCategory::FunctionalCorrectness,
+    provenance = Provenance::Constructable,
+    presentation = Presentation::Passive,
     fingerprint = r#"any_of([body_calls("from_utf8_unchecked"), body_calls("from_utf8_unchecked_mut")])"#,
     family = "unsafe-soundness",
     summary = "str::from_utf8_unchecked on non-validated bytes — a UB str (rustc invalid_from_utf8_unchecked). Named (rare/std-specific); the bytes-validated check is v0.4 semantic.",
