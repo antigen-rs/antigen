@@ -1,0 +1,7 @@
+error: #[dread] requires `trigger = "..."` — what did you see that made you feel this? A marked-unknown with no stated trigger is not an asserted observation; it's the contentless "this seems off" graffiti the marker exists to prevent (ADR-041 guard 3).
+ --> tests/ui/marked_unknown_missing_trigger.rs:8:1
+  |
+8 | #[dread]
+  | ^^^^^^^^
+  |
+  = note: this error originates in the attribute macro `dread` (in Nightly builds, run with -Z macro-backtrace for more info)

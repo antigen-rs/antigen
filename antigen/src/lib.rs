@@ -184,6 +184,14 @@ pub use mucosal::MucosalKind;
 // from `#[triage_commit]` (ADR-026 VCS-rollback).
 pub use antigen_macros::{biopsy, culture, ddx, panel, quarantine, refer, rx, triage};
 
+// Marked-Unknown Plane (ADR-041): three declarable ⊥ markers for the
+// felt-but-unnamed danger — `#[aura]` (light / low magnitude), `#[dread]`
+// (angor-animi: high magnitude, low existence-certainty), `#[red_flag]`
+// (sure-but-unnameable: high existence-certainty, auto-escalates). OFF the dial's
+// classification axis, surfaced at its non-gating floor; never gate, never nag.
+// The `trigger` field is REQUIRED (guard 3 — a triggerless marker is graffiti).
+pub use antigen_macros::{aura, dread, red_flag};
+
 pub mod audit;
 pub mod scan;
 
