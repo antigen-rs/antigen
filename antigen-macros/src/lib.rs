@@ -631,18 +631,36 @@ pub fn antigen_generates(args: TokenStream, input: TokenStream) -> TokenStream {
 /// is JSON-escaped so a quote/backslash in the felt-note can't corrupt the
 /// marker the scanner re-parses.
 fn marked_unknown_marker(marker: &str, magnitude: &str, certainty: &str, trigger: &str) -> String {
-    // Minimal JSON escape for the trigger string (the only free-text field).
-    let escaped: String = trigger
-        .chars()
-        .flat_map(|c| match c {
-            '"' => vec!['\\', '"'],
-            '\\' => vec!['\\', '\\'],
-            '\n' => vec!['\\', 'n'],
-            '\t' => vec!['\\', 't'],
-            '\r' => vec!['\\', 'r'],
-            other => vec![other],
-        })
-        .collect();
+    // JSON-escape the trigger string (the only free-text field). Per RFC 8259 a
+    // string MUST escape `"`, `\`, and every control char U+0000–U+001F — the
+    // short forms (\n/\t/\r/\b/\f) where they exist, else the `\u00XX` form. The
+    // earlier hand-rolled version passed un-short-formed control chars through
+    // raw, producing INVALID JSON the scanner's re-parse would reject — a silent
+    // producer-correctness bug (antigen's own class), fixed here. (The macro crate
+    // carries no serde dep, so this is the dependency-free equivalent of
+    // `serde_json::to_string`'s string escaping.)
+    let mut escaped = String::with_capacity(trigger.len());
+    for c in trigger.chars() {
+        match c {
+            '"' => escaped.push_str("\\\""),
+            '\\' => escaped.push_str("\\\\"),
+            '\n' => escaped.push_str("\\n"),
+            '\t' => escaped.push_str("\\t"),
+            '\r' => escaped.push_str("\\r"),
+            '\u{08}' => escaped.push_str("\\b"),
+            '\u{0c}' => escaped.push_str("\\f"),
+            // Remaining control chars (U+0000–U+001F) have no short form → \u00XX.
+            // Build it without `format!` (a String already; push the digits).
+            c if (c as u32) < 0x20 => {
+                const HEX: &[u8; 16] = b"0123456789abcdef";
+                let b = c as u8;
+                escaped.push_str("\\u00");
+                escaped.push(HEX[(b >> 4) as usize] as char);
+                escaped.push(HEX[(b & 0x0f) as usize] as char);
+            }
+            other => escaped.push(other),
+        }
+    }
     format!(
         " antigen:marked-unknown:v1:{{\"marker\":\"{marker}\",\"magnitude\":\"{magnitude}\",\"existence_certainty\":\"{certainty}\",\"trigger\":\"{escaped}\"}}"
     )
@@ -1865,4 +1883,39 @@ pub fn triage(args: TokenStream, input: TokenStream) -> TokenStream {
         return e.to_compile_error().into();
     }
     quote! { #input }.into()
+}
+
+#[cfg(test)]
+mod marker_emit_tests {
+    use super::marked_unknown_marker;
+
+    /// The doc-marker's trigger field is JSON-escaped for EVERY control char
+    /// (U+0000–U+001F), not just the five with short forms — the producer-
+    /// correctness fix. A raw control char in the trigger would otherwise produce
+    /// invalid JSON the scanner's re-parse rejects (antigen's own silent class).
+    #[test]
+    fn trigger_escapes_all_control_chars_to_valid_json() {
+        // A backspace (→ \b short form), a form-feed (→ \f), a vertical-tab (→ the
+        // long  form), and a SOH (→ ).
+        let trigger = "a\u{08}b\u{0c}c\u{0b}d\u{01}e";
+        let out = marked_unknown_marker("dread", "dread", "unsure", trigger);
+        assert!(out.contains("\\b"), "backspace → \\b");
+        assert!(out.contains("\\f"), "form-feed → \\f");
+        assert!(out.contains("\\u000b"), "vertical-tab → \\u000b");
+        assert!(out.contains("\\u0001"), "SOH → \\u0001");
+        // No raw control byte survives into the (single-line) doc-marker output.
+        assert!(
+            !out.chars().any(|c| (c as u32) < 0x20),
+            "no raw control char survives the escape"
+        );
+    }
+
+    #[test]
+    fn trigger_escapes_quote_and_backslash() {
+        // The original five short forms still hold (a quote/backslash in the
+        // felt-note can't corrupt the marker the scanner re-parses).
+        let out = marked_unknown_marker("aura", "aura", "unsure", r#"the "guard" path\here"#);
+        assert!(out.contains(r#"\""#), "quote → escaped quote");
+        assert!(out.contains(r"\\"), "backslash → escaped backslash");
+    }
 }
