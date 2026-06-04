@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — marker doc-marker now JSON-escapes all control chars (producer-correctness)
+
+- The `#[aura]`/`#[dread]`/`#[red_flag]` doc-marker's hand-rolled trigger escape
+  handled only `"`, `\`, `\n`, `\t`, `\r` and passed every other control char
+  (U+0000–U+001F: backspace, form-feed, vertical-tab, …) through raw — producing
+  **invalid JSON** a re-parse would reject. Per RFC 8259 a JSON string must escape
+  all control chars (short forms `\b`/`\f` where they exist, else `\u00XX`); the
+  escape now does. Zero blast radius today (the doc-marker channel has no consumer
+  yet), but it is a silent producer-correctness bug — exactly the class antigen
+  screens for — so it is fixed before its consumer lands. (The macro crate carries
+  no serde dep; this is the dependency-free equivalent of `serde_json`'s escaping.)
+
 ### Added — marked-unknown markers emit into the `Finding` population (ADR-041 §Emit-seam)
 
 - The scan-surfaced `#[aura]`/`#[dread]`/`#[red_flag]` markers now land as
