@@ -32,7 +32,7 @@ shows you how:
 
 ```toml
 [dependencies]
-antigen = "=0.3.0-beta.2"   # v0.3 prerelease — has the prescriptive family; v0.2.0 is the current stable
+antigen = "0.3.0"   # the v0.3 stable line — prescriptive family + the failure-class families
 ```
 
 ---

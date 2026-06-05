@@ -7,7 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.0-beta.2] — 2026-06-04
+## [0.3.0] — 2026-06-04
+
+**0.3.0 stable.** Promotes the `0.3.0-beta.1` + `0.3.0-beta.2` pre-releases to a
+stable release. The 0.3 line ships: the prescriptive work-orchestration family
+and biological tiers (beta.1); the three-layer growth engine, dogfood masterclass,
+`#[aura]`/`#[dread]`/`#[red_flag]` marked-unknown markers, and eight failure-class
+stdlib families + a chartered ninth (beta.2); and the full docs masterclass (this
+release — catalog, onboarding, adopter guides, pathology pages, war-stories). The
+0.3.x line is API-stable; breaking changes are deferred to 0.4.0 (the semantic-
+analysis era). See the `[0.3.0-beta.1]` section below for the beta.1 change list;
+the beta.2 + docs changes follow here.
 
 ### Documentation — the beta.2 docs build-out (catalog → onboarding → deep dives)
 

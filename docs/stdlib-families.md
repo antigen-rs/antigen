@@ -1,7 +1,7 @@
 # Antigen stdlib catalog — the beta.2 failure-class families
 
 > A scan-and-find catalog of the failure-classes antigen ships ready-to-use in
-> its stdlib, added in the **`0.3.0-beta.2`** voyage. Each entry tells you, in
+> its stdlib, added in the **`0.3.0`** release. Each entry tells you, in
 > user terms: **what it catches**, its **tier** (how loud / how trustworthy the
 > verdict is), its **fingerprint shape** (what the scanner actually looks for),
 > and — for the seven families that have one — a link to a **runnable example**

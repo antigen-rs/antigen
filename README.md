@@ -4,9 +4,8 @@
 
 Comprehensive, co-native, structural memory of fail-classes, defenses, attestations, and coordination — accessible natively to both human and AI agents. Built for the age of agentic dev, vibe-coding, and human-LLM collaboration.
 
-> **Status**: `0.2.0` stable on crates.io; **this README describes the
-> `0.3.0-beta.2` prerelease** (the current `main`), continuing toward `0.3.0`
-> stable. v0.2 surface: core macros, fingerprint grammar,
+> **Status**: `0.3.0` **stable** on crates.io (the current `main`) — the v0.3
+> line. `0.2.0` was the prior stable. v0.2 surface: core macros, fingerprint grammar,
 > scan + audit + attest + tolerate + oracle CLI, Oracle 5-state lifecycle,
 > cross-cutting attestation, substrate-witness predicates, ADR-029
 > observe-don't-declare vocabulary (`#[defended_by]`, extended `#[presents]`),
@@ -175,14 +174,13 @@ The full vocabulary target is listed in [`docs/expedition/the-comprehensive-visi
 ## Install and first scan
 
 ```sh
-cargo install cargo-antigen@=0.3.0-beta.2   # v0.3 prerelease; stable (0.2.0): cargo install cargo-antigen
+cargo install cargo-antigen   # installs the current stable (0.3.0)
 ```
 
-> **v0.3 is a beta prerelease.** The command above installs the v0.3 beta, which
-> includes the prescriptive work-orchestration family and the beta.2 failure-class
-> families (deserialization, time-ordering, drop-panic, panic-on-index,
-> resource-lifecycle, async-soundness, numeric-truncation, unsafe-soundness) plus
-> the marked-unknown markers. For the current stable, omit the version pin.
+> **v0.3.0** includes the prescriptive work-orchestration family and the eight
+> failure-class stdlib families (deserialization, time-ordering, drop-panic,
+> panic-on-index, resource-lifecycle, async-soundness, numeric-truncation,
+> unsafe-soundness) plus the marked-unknown markers.
 
 Run `cargo antigen scan` in any Rust project. On a fresh codebase with no antigen declarations yet:
 
@@ -196,7 +194,7 @@ Add antigen as a dependency:
 
 ```toml
 [dependencies]
-antigen = "=0.3.0-beta.2"   # v0.3 prerelease — prescriptive family + beta.2 failure-class families; v0.2.0 is the current stable
+antigen = "0.3.0"   # the prescriptive family + the v0.3 failure-class families
 ```
 
 Now declare your first antigen. The full walkthrough lives in [`docs/tutorial.md`](docs/tutorial.md) — your first 15 minutes, end-to-end, with a real failure-class.
@@ -317,7 +315,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for detail.
 
 ## Status
 
-- crates.io: [`antigen`](https://crates.io/crates/antigen), [`cargo-antigen`](https://crates.io/crates/cargo-antigen), [`antigen-macros`](https://crates.io/crates/antigen-macros), [`antigen-fingerprint`](https://crates.io/crates/antigen-fingerprint), [`antigen-attestation`](https://crates.io/crates/antigen-attestation) — **0.2.0** stable published; **0.3.0-beta.2** is the release this README describes (the v0.3 line: prescriptive family + the beta.2 failure-class families), live on crates.io once the release tag publishes
+- crates.io: [`antigen`](https://crates.io/crates/antigen), [`cargo-antigen`](https://crates.io/crates/cargo-antigen), [`antigen-macros`](https://crates.io/crates/antigen-macros), [`antigen-fingerprint`](https://crates.io/crates/antigen-fingerprint), [`antigen-attestation`](https://crates.io/crates/antigen-attestation) — **0.3.0** stable (the v0.3 line: prescriptive family + the failure-class families) — the release this README describes; **0.2.0** is the prior stable
 - Repository: [github.com/antigen-rs/antigen](https://github.com/antigen-rs/antigen)
 - CI: cargo check + test + fmt + clippy (-D warnings) + doc (-D warnings) on every push and PR
 - Tests: ~1000+ passing across the workspace (see CI badge for live count)

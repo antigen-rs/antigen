@@ -20,8 +20,8 @@ path = "src/main.rs"
 workspace = true
 
 [dependencies]
-antigen = { version = "=0.3.0-beta.2", path = "../antigen" }
-antigen-attestation = { version = "=0.3.0-beta.2", path = "../antigen-attestation" }
+antigen = { version = "=0.3.0", path = "../antigen" }
+antigen-attestation = { version = "=0.3.0", path = "../antigen-attestation" }
 clap = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
