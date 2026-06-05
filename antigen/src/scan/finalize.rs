@@ -25,8 +25,8 @@ use super::{
 /// [`ScanReport`] into a finished one: fingerprint synthesis + lineage
 /// propagation, in the ADR-mandated order.
 ///
-/// Extracted from [`scan_workspace`] so the **single source of truth** for
-/// the pass ordering is shared with [`scan_workspace_multi_crate`]'s
+/// Extracted from [`scan_workspace`](crate::scan::scan_workspace) so the **single source of truth** for
+/// the pass ordering is shared with [`scan_workspace_multi_crate`](crate::scan::scan_workspace_multi_crate)'s
 /// merged-report finalize. The two callers differ only in *what* they feed
 /// in — one a single crate's tree, the other the unioned member reports —
 /// but the synthesis/propagation semantics must stay identical, so they
