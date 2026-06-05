@@ -896,7 +896,7 @@ prescriptive family section.
 
 ---
 
-## beta.2 Failure-Class Families (v0.3.0-beta.2) — ADR-039/040/041
+## v0.3 Failure-Class Families (0.3.0) — ADR-039/040/041
 
 These seven examples each demonstrate one **beta.2 stdlib failure-class family**:
 a real Rust footgun, declared as a `#[antigen]`, with an **affinity-pair** exhibit

@@ -170,7 +170,7 @@ the tool was willing to be wrong about itself in writing.
 *This catch happened during the docs wave itself — `RatifiedSpecDriftFromImpl`,
 one of antigen's own classes, firing on antigen's own record.*
 
-Once the seal corrected the four members, the `[0.3.0-beta.2]` changelog section
+Once the seal corrected the four members, the `[0.3.0]` changelog section
 told two stories at once. Its top entry — "Fixed — tier-honesty" — correctly
 narrated dropping `from_slice`, `zeroed`, `set_len`, and demoting `SizeOf`. But the
 *original* "Added" entries lower in the **same released section** still described

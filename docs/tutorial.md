@@ -49,17 +49,17 @@ Add antigen to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-antigen = "=0.3.0-beta.2"   # v0.3 prerelease — has the prescriptive family; v0.2.0 is the current stable
+antigen = "0.3.0"   # the v0.3 stable line — prescriptive family + the failure-class families
 ```
 
 Install the cargo subcommand:
 
 ```sh
-cargo install cargo-antigen@=0.3.0-beta.2
+cargo install cargo-antigen
 ```
 
-> **v0.3 is a beta prerelease.** `cargo install cargo-antigen` installs the latest
-> stable (v0.2.0). Pin to the beta as shown above to get the v0.3 surface.
+> `cargo install cargo-antigen` installs the current stable (**v0.3.0**) — the full
+> v0.3 surface is included.
 
 Verify:
 
