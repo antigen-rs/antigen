@@ -35,6 +35,7 @@ CLAUDE.md
 # the published surface. Future externalization (sibling repo / GH Pages /
 # etc.) is an open decision; for now substrate stays local.
 docs/expedition/
+docs/charters/
 sweeps/
 
 # Adopter / internal-dev feedback notes. Local dev substrate (like
