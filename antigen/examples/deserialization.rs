@@ -12,13 +12,16 @@
 //!
 //! ```sh
 //! cargo run --example deserialization --package antigen
-//! ```
-//!
-//! Scan to see each affinity-pair separate:
-//!
-//! ```sh
 //! cargo run --bin cargo-antigen -- antigen scan --root antigen/examples
 //! ```
+//!
+//! Note: both siblings of each pair are `#[presents]`-marked (to teach the
+//! affinity-pair), so audit lists *both* — the safe sibling is "spared" by the
+//! *fingerprint* (it doesn't bind), not made to disappear from the console. To
+//! *read* the fingerprint's bind/spare side by side, see the guard tests
+//! `antigen/tests/stdlib_family_fingerprints.rs`
+//! (`unbounded_deserialization_binds_from_reader_call` beside
+//! `unbounded_deserialization_spares_from_slice_namesake`).
 //!
 //! ## BIOSAFETY NOTE
 //!
@@ -139,7 +142,7 @@ fn load_bounded_is_capped_test() {
 fn main() {
     println!("antigen deserialization example: see source for two affinity-pairs.");
     println!(
-        "Run `cargo run --bin cargo-antigen -- antigen scan` to see each bad path flagged, each safe path spared."
+        "Both siblings are #[presents]-marked, so audit lists both; the safe one is spared by the FINGERPRINT (it doesn't bind). To read the bind/spare side by side, see antigen/tests/stdlib_family_fingerprints.rs."
     );
 
     // Exercise the members so the example is functional.

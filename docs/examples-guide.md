@@ -896,6 +896,363 @@ prescriptive family section.
 
 ---
 
+## beta.2 Failure-Class Families (v0.3.0-beta.2) — ADR-039/040/041
+
+These seven examples each demonstrate one **beta.2 stdlib failure-class family**:
+a real Rust footgun, declared as a `#[antigen]`, with an **affinity-pair** exhibit
+— a `BAD` site that *binds* the fingerprint next to a `GOOD` sibling the
+fingerprint does **not** bind. Read the two side by side in the *source* to see the
+structural difference. For the catalog view (every member's tier + fingerprint +
+what it catches), see [`stdlib-families.md`](stdlib-families.md).
+
+> **One honest caveat about what the console shows** (so the examples don't
+> surprise you). These examples put `#[presents(...)]` on **both** the bad and the
+> good sibling — deliberately, to teach the affinity-pair (the `basic.rs` Lesson-1
+> model: a site *presents* the shape, it doesn't claim immunity). An explicit
+> `#[presents]` is an author declaration that surfaces in `scan`/`audit`
+> **regardless of whether the fingerprint matched** — so in the audit output you
+> see *both* siblings listed, not the good one vanishing. "Spared" in these lessons
+> means *the fingerprint doesn't bind it* (true, and visible in the source), **not**
+> *it disappears from the console* (which only happens for an **un-marked** sibling
+> — e.g. `drop_panic`'s `NotReallyDrop`). Each lesson's "Try this" tells you what
+> the console actually shows.
+>
+> **To *watch the fingerprint itself separate clean from dirty*, read the guard
+> tests** — they're clearer than the examples, because each family's `_binds_` and
+> `_spares_` cases sit side by side with plain-English rationale:
+> [`antigen/tests/stdlib_family_fingerprints.rs`](../antigen/tests/stdlib_family_fingerprints.rs)
+> has a pair for *every* family — e.g.
+> `unbounded_deserialization_binds_from_reader_call` (the bad shape matches) beside
+> `unbounded_deserialization_spares_from_slice_namesake` (the clean namesake
+> doesn't) — and
+> [`antigen/tests/spares_namesake_contract.rs`](../antigen/tests/spares_namesake_contract.rs)
+> pins the harder namesake cases. Running an example shows *class-level* defense
+> (both siblings present); **reading** these tests shows the *fingerprint-level*
+> bind/spare distinction the console can't (`cargo test` only confirms they hold).
+
+A recurring beta.2 idea worth holding onto as you read: **the tier is the honesty
+dial.** A `named` member promises "if it doesn't fire, you're covered"; a
+`suspected` member is a *correlator* that may also fire on idiomatic-correct code
+(a labeled recall hole, by design). Several examples below show *why* a member
+sits where it does — usually a **clean-sibling rule** (a needle that would fire on
+the recommended fix is dropped or demoted, never shipped at named).
+
+---
+
+## Lesson 22 — `deserialization.rs`: the trust-boundary deep tier (two affinity-pairs)
+
+**File**: [`antigen/examples/deserialization.rs`](../antigen/examples/deserialization.rs)
+
+**Concept introduced**: the deepest mucosal trust surface — untrusted bytes
+crossing into typed structs. Two members, two shapes: an attribute presence-AND-
+absence tell and a streaming-call tell.
+
+**What's in the file**:
+- `DeserializeWithoutDenyUnknownFields` (**suspected**) with a `LenientConfig`
+  that derives `Deserialize` *without* `#[serde(deny_unknown_fields)]` (binds —
+  unknown fields silently dropped) next to a `StrictConfig` that sets it (spared)
+- `UnboundedDeserialization` (**named**) with `load_unbounded` calling
+  `from_reader` with no bound (binds, unaddressed) next to `load_bounded` that
+  caps the reader with `.take(1 << 20)` — and a `#[defended_by]` witness proving
+  the cap
+
+**What to learn**:
+- The **surface-flag / witness-proof split** (design principle): `load_bounded`
+  *still presents* the `from_reader` surface (the risky surface is present), so the
+  intent is that the *witness* proves the defense at audit, **not** that the
+  fingerprint spares the bounded form. A `not(take)` guard would silently suppress
+  real DoS sites whenever an unrelated `Iterator::take` appeared — a silent
+  false-negative the named tier cannot allow.
+- **What audit actually shows here** (be honest with the console): both
+  `load_unbounded` *and* `load_bounded` report `✓ defended`, both credited to the
+  single `#[defended_by]` witness — because audit credits a witness at the
+  **antigen-type** granularity (one witness for `UnboundedDeserialization` marks
+  every presents-site of that type defended), not per-site. So this example does
+  **not** visibly separate the two sites; the split above is the durable principle,
+  and `stdlib-families.md`'s `UnboundedDeserialization` box tracks the per-site
+  visibility gap for the tool/example crew.
+- Why `from_slice` is *not* in the fingerprint: a slice is bounded, so it isn't an
+  unbounded vector — and it fired on the bounded-slice fix itself (ADR-039 §C
+  Amd-1, the clean-sibling rule).
+- The example crate has no `serde` dependency — the derives are commented
+  stand-ins; the scanner reads the `#[derive(...)]` / `from_reader` *token shape*
+  syntactically.
+
+**Try this**:
+```sh
+cargo run --example deserialization --package antigen
+cargo run --bin cargo-antigen -- antigen scan --root antigen/examples
+cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
+```
+In `audit`, the two `DeserializeWithoutDenyUnknownFields` sites (`LenientConfig`,
+`StrictConfig`) both report **undefended** — neither has a witness — so this pair
+teaches the *fingerprint* difference in the source, not a console split. The two
+`UnboundedDeserialization` sites (`load_unbounded`, `load_bounded`) both report
+`✓ defended`, both credited to the one witness (the antigen-type-granular
+crediting described above). To see a fingerprint genuinely *spare* a site at the
+console, look at `drop_panic`'s un-marked `NotReallyDrop` (Lesson 24): no
+`#[presents]`, no match, simply absent. And to *read* this member's bind/spare side
+by side, see
+[`stdlib_family_fingerprints.rs`](../antigen/tests/stdlib_family_fingerprints.rs) —
+`unbounded_deserialization_binds_from_reader_call` (the bad shape matches) right
+beside `unbounded_deserialization_spares_from_slice_namesake` (the clean namesake
+doesn't).
+
+---
+
+## Lesson 23 — `time_ordering.rs`: the silent-in-tests / panic-in-prod clock footgun
+
+**File**: [`antigen/examples/time_ordering.rs`](../antigen/examples/time_ordering.rs)
+
+**Concept introduced**: a failure-class the test suite *structurally cannot
+reach*. The system clock can run backwards (NTP, manual set, VM pause), so
+`SystemTime::duration_since(...).unwrap()` panics in production — but never in
+tests, because test machines don't NTP-skew mid-test.
+
+**What's in the file**:
+- `SystemTimeUnwrapPanic` (**suspected**)
+- `age_since_panicking` — reads the clock and `.unwrap()`s the `Result` (binds)
+- `age_since_safe` — the same clock read, but `.unwrap_or(Duration::ZERO)` handles
+  the backwards-clock case (spared)
+
+**What to learn**:
+- Why this is **suspected**, not named: the shipped grammar has no method-chain
+  leaf, so the fingerprint is the *co-occurrence* `all_of([duration_since,
+  any_of([unwrap, expect])])`. Co-occurrence correlates with the panic-chain but
+  doesn't prove it (the `unwrap` could guard an unrelated `Result`), and the
+  infallible `Instant::duration_since` shares the name (a receiver-type-only FP
+  scan can't resolve). Honest within-tier recall noise.
+- Why `elapsed` is **excluded**: it would fire on `Instant::now().elapsed()` —
+  but `Instant` is monotonic and `Instant::elapsed()` can't panic-on-skew. That's
+  the *"use `Instant` instead of `SystemTime`"* fix — the member's own clean
+  sibling. A needle that fires on the fix is dropped at every tier.
+
+**Try this**:
+```sh
+cargo run --example time_ordering --package antigen
+cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
+```
+Both `age_since_panicking` and `age_since_safe` appear as `✗ undefended`
+`SystemTimeUnwrapPanic` presentations (both `#[presents]`-marked) — the
+*fingerprint* difference (the `unwrap` present vs the `.unwrap_or(...)` handled
+form) is in the source, per the section caveat above.
+
+---
+
+## Lesson 24 — `drop_panic.rs`: a real `Drop` that can panic (and the v2 precision)
+
+**File**: [`antigen/examples/drop_panic.rs`](../antigen/examples/drop_panic.rs)
+
+**Concept introduced**: panic-during-unwind aborts the process. A panic in `Drop`
+while another panic is unwinding skips the destructor's cleanup → leaked resources
+even on `panic=unwind`. This is the v2 of `basic.rs`'s `PanickingInDrop`.
+
+**What's in the file**:
+- `PanicInDrop` (**named**)
+- `PanickyGuard` — a real `impl Drop` that `.unwrap()`s in teardown (binds — the
+  *call-shaped* panic the macro-only `PanickingInDrop` missed)
+- `SafeGuard` — a real `impl Drop` with a panic-free teardown (spared)
+- `NotReallyDrop` — an **inherent** method merely *named* `drop` that `.unwrap()`s
+  (spared by `impl_of_trait("Drop")` — this is not the `Drop` trait)
+
+**What to learn**:
+- `impl_of_trait("Drop")` is the precision the old fingerprint lacked: it matches
+  the *real* `Drop` trait, so `NotReallyDrop`'s inherent `drop` is correctly
+  spared (a panic there is an ordinary method panic, not an unwind-abort).
+- The fingerprint covers **both** panic shapes — call-shaped (`unwrap`/`expect`)
+  AND macro-shaped (`panic!`/`unreachable!`/`todo!`/`unimplemented!`) — because
+  `.unwrap()` is the more common teardown panic and a macro-only tell misses it.
+
+**Try this**:
+```sh
+cargo run --example drop_panic --package antigen
+cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
+```
+In `audit`, **both** `PanickyGuard` *and* `SafeGuard` appear as
+`✗ undefended` `PanicInDrop` presentations — because both are `#[presents]`-marked
+(they teach the affinity-pair; neither has a witness). The genuinely *spared* site
+is **`NotReallyDrop`**: it has no `#[presents]`, and `impl_of_trait("Drop")`
+doesn't bind its inherent `drop`, so it never appears at all — the one place this
+family lets you *watch* the fingerprint spare a site at the console. (To see the
+SafeGuard/PanickyGuard difference, read the *source* — only `PanickyGuard`'s body
+reaches a panic source.)
+
+---
+
+## Lesson 25 — `panic_on_index.rs`: `get_unchecked` — UB, not a panic
+
+**File**: [`antigen/examples/panic_on_index.rs`](../antigen/examples/panic_on_index.rs)
+
+**Concept introduced**: not all out-of-bounds is a clean crash. `get_unchecked` /
+`get_unchecked_mut` skip the bounds check, so an out-of-bounds index is
+**Undefined Behavior** — silent memory corruption, a soundness hole.
+
+**What's in the file**:
+- `GetUncheckedWithoutProof` (**named**)
+- `first_unchecked` — reads through a `get_unchecked` call (binds)
+- `first_checked` — the bounds-checked `.get(i)` returning `None` (spared)
+
+**What to learn**:
+- `get_unchecked` / `get_unchecked_mut` are slice/`Vec`-specific method names with
+  no stdlib collision — a clean call-shape, which is why this is **named**.
+- The witness is a `// SAFETY:` proof the index is in-bounds + a miri run, OR the
+  checked `.get(i)`.
+- The **biosafety pattern**: the workspace forbids `unsafe` (`-F unsafe-code`) and
+  real `get_unchecked` is `unsafe`, so the example uses a *safe toy* with a method
+  *named* `get_unchecked`. The fingerprint anchors on the call *token*, so the
+  call-shape is exhibited faithfully without invoking real unchecked indexing.
+
+**Try this**:
+```sh
+cargo run --example panic_on_index --package antigen
+cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
+```
+Both `first_unchecked` and `first_checked` appear as `✗ undefended`
+`GetUncheckedWithoutProof` presentations (both `#[presents]`-marked, no witness) —
+the *fingerprint* difference (`get_unchecked` present vs the checked `.get(i)`)
+lives in the source, per the section caveat above.
+
+---
+
+## Lesson 26 — `resource_lifecycle.rs`: explicit leaks that skip `Drop`
+
+**File**: [`antigen/examples/resource_lifecycle.rs`](../antigen/examples/resource_lifecycle.rs)
+
+**Concept introduced**: the *other half* of the Drop-Lifecycle axis. Where
+`drop_panic` is "drop fires but explodes," this is "drop never fires" —
+`mem::forget` / `Box::leak` / `Vec::leak` deliberately skip `Drop`. Legitimate for
+`'static` upgrades; a silent leak if misused. The witness antigen asks for is the
+*documented rationale*.
+
+**What's in the file**:
+- `DeliberateLeakNotDocumented` (**suspected**)
+- `leak_it` — `mem::forget`s a heap `String`, so its `Drop` never runs (binds)
+- `use_it` — an ordinary use that lets the value drop at end of scope (spared)
+
+**What to learn**:
+- Why **suspected**, not named: `forget` / `leak` are bare common last-segments
+  with no narrowing anchor — `body_calls` matches the last segment, so a domain
+  `cache.forget()` / `permissions.leak()` also fires. A positive tell at the loud
+  named tier would overclaim.
+- The **orthogonality lesson**: the *class* is `provenance = Constructable`
+  (`mem::forget` demonstrably skips `Drop`), yet this *instance's* dial sits at
+  suspected. "How solid is the class" and "how loud is this instance" are
+  independent axes (ADR-039).
+
+**Try this**:
+```sh
+cargo run --example resource_lifecycle --package antigen
+cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
+```
+Both `leak_it` and `use_it` appear as `✗ undefended`
+`DeliberateLeakNotDocumented` presentations (both `#[presents]`-marked) — the
+*fingerprint* difference (`forget` present vs absent) is in the source, per the
+section caveat above.
+
+---
+
+## Lesson 27 — `numeric_truncation.rs`: the `size_of`-in-element-count foot-cannon
+
+**File**: [`antigen/examples/numeric_truncation.rs`](../antigen/examples/numeric_truncation.rs)
+
+**Concept introduced**: silent numeric corruption. The count arg of
+`ptr::copy_nonoverlapping` is in **elements**, not bytes — so
+`copy_nonoverlapping(src, dst, n * size_of::<T>())` over-copies by `sizeof(T)` →
+out-of-bounds → UB. clippy has a correctness lint for exactly this.
+
+**What's in the file**:
+- `SizeOfInElementCount` (**suspected**)
+- `copy_bad` — passes `n * size_of::<u32>()` as the count (binds)
+- `copy_good` — passes a plain element count `n`, no `size_of` multiplier (spared)
+
+**What to learn**:
+- This is the **worked example of tier-honesty as a self-catch**: the member was
+  over-claimed at named, then corrected to **suspected** with the fingerprint
+  *unchanged* — the fix was the *tier*, not the shape (ADR-039 §C Amd-1).
+- Why demoted *and not dropped*: the co-presence `all_of([copy_nonoverlapping,
+  size_of])` fires on idiomatic-correct both-calls code too (a byte-buffer copy, a
+  separate-bounds `size_of`) — so it can't be named. But its own fix — `copy(n)`
+  with no `size_of` — *is* spared (the `all_of` needs both calls), so it's
+  un-correlated (demote), not anti-correlated (drop).
+- Graduation to named is **type-aware** (arg-position AND pointee-type — the
+  correct `*u8` byte-copy still FPs without the pointee type), a v0.4 resolved-type
+  tier, not a syntactic operator-leaf. (Same biosafety toy pattern as Lesson 25.)
+
+**Try this**:
+```sh
+cargo run --example numeric_truncation --package antigen
+cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
+```
+Both `copy_bad` and `copy_good` appear as `✗ undefended` `SizeOfInElementCount`
+presentations (both `#[presents]`-marked) — the *fingerprint* difference (the
+`size_of` multiplier present vs absent) is in the source, per the section caveat
+above.
+
+---
+
+## Lesson 28 — `marked_unknown.rs`: recording the danger you can't name yet
+
+**File**: [`antigen/examples/marked_unknown.rs`](../antigen/examples/marked_unknown.rs)
+
+**Concept introduced**: the *felt-but-unnamed danger* — the unease that something
+is wrong here, which evaporates the moment you context-switch or an agent
+compacts. Three markers let you record it **structurally, at the site, before it's
+gone** — without naming the failure-class. They sit *off* the classification axis
+(at ⊥, the unnameable) on a magnitude × existence-certainty plane, and surface at
+the dial's **non-gating floor**: they never gate (cannot fail CI) and never nag.
+
+**What's in the file** (from `antigen::{aura, dread, red_flag}`):
+- `#[aura(trigger = "...")]` on `retry_request` — low magnitude: "something *may*
+  be off, check later"
+- `#[dread(trigger = "...")]` on `shutdown` — high magnitude, low certainty (the
+  *angor animi* corner): "something *is* wrong, look now"
+- `#[red_flag(trigger = "...")]` on `authorize` — high existence-certainty: "I'm
+  *sure* something is wrong, act now" — auto-escalates on first match
+- A commented graffiti-guard demo: `#[dread]` with no `trigger` (and
+  `trigger = ""`) are **compile errors**
+
+**What to learn**:
+- **`trigger` is REQUIRED** (ADR-041 guard 3): a triggerless or empty marker is a
+  compile error, because a marked-unknown with no stated trigger is the
+  contentless "this seems off" graffiti the primitive exists to prevent
+  (rationale-as-required-field, ADR-005 Amd2).
+- **Where they surface today**: `cargo antigen scan --format json` surfaces each
+  marker under the top-level **`report.marked_unknowns`** array (fields: `marker`,
+  `magnitude`, `existence_certainty`, `trigger`, `file`). Internally they also emit
+  as `FindingBody::MarkedUnknown` records into the unified `Finding` population at
+  the ADR-041 emit-seam — and *there* a `#[red_flag]` (existence-certainty `Sure`)
+  auto-escalates severity — but that escalation lives on the internal Finding, not
+  on the scan-report projection (whose `severity` reads `null` today). The
+  human-readable report does **not** render marked-unknowns yet (a later audit-dial
+  wave). The mark is never lost.
+
+**Try this**:
+```sh
+cargo run --example marked_unknown --package antigen
+cargo run --bin cargo-antigen -- antigen scan --root antigen/examples --format json
+```
+Find the three entries under `report.marked_unknowns` (aura / dread / red-flag),
+each carrying the `trigger` you wrote.
+
+---
+
+## After the beta.2 lessons
+
+| Lesson | Concept |
+|---|---|
+| 22 — deserialization | trust-boundary deep tier — surface-flag / witness-proof split |
+| 23 — time_ordering | silent-in-tests / panic-in-prod clock skew + clean-sibling exclusion |
+| 24 — drop_panic | real-`Drop` panic + `impl_of_trait` precision (the v2) |
+| 25 — panic_on_index | `get_unchecked` is UB not a panic + biosafety toy pattern |
+| 26 — resource_lifecycle | explicit leaks skip `Drop` + provenance-vs-dial orthogonality |
+| 27 — numeric_truncation | `size_of`-in-count foot-cannon + the named→suspected self-catch |
+| 28 — marked_unknown | the felt-but-unnamed danger — `#[aura]`/`#[dread]`/`#[red_flag]` |
+
+For the catalog (every beta.2 member's tier, fingerprint, and what it catches in
+one scannable view), see [`stdlib-families.md`](stdlib-families.md).
+
+---
+
 ## See also
 
 - [`tutorial.md`](tutorial.md) — guided walkthrough

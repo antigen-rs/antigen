@@ -181,12 +181,22 @@ related     = ["witness-tiers.md", "macros.md", "concepts.md"]
 [[doc]]
 path        = "examples-guide.md"
 title       = "Examples Guide"
-purpose     = "Curated progressive walkthrough of the five examples in antigen/examples/"
+purpose     = "Curated progressive walkthrough of the runnable examples in antigen/examples/ (the core vocabulary through the v0.3 prescriptive board and the beta.2 failure-class families)"
 audience    = ["human-developer", "llm-agent"]
 category    = "tutorial"
 tier        = "user-facing"
 stability   = "evolving"
-related     = ["tutorial.md", "macros.md", "witness-tiers.md"]
+related     = ["tutorial.md", "macros.md", "witness-tiers.md", "stdlib-families.md"]
+
+[[doc]]
+path        = "stdlib-families.md"
+title       = "Stdlib Catalog — Failure-Class Families"
+purpose     = "Scan-and-find catalog of the stdlib failure-class families antigen ships (the beta.2 voyage): what each catches, its tier, fingerprint, and runnable example / scan fixture"
+audience    = ["human-developer", "llm-agent"]
+category    = "reference"
+tier        = "user-facing"
+stability   = "evolving"
+related     = ["examples-guide.md", "fingerprint-grammar.md", "witness-tiers.md", "macros.md"]
 
 [[doc]]
 path        = "structural-memory.md"

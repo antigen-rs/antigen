@@ -4,15 +4,21 @@
 
 Comprehensive, co-native, structural memory of fail-classes, defenses, attestations, and coordination — accessible natively to both human and AI agents. Built for the age of agentic dev, vibe-coding, and human-LLM collaboration.
 
-> **Status**: `0.2.0` stable + `0.3.0-beta.1` prerelease on crates.io; `main` continues
-> toward `0.3.0` stable. v0.2 surface: core macros, fingerprint grammar, scan + audit
-> + attest + tolerate + oracle CLI, Oracle 5-state lifecycle, cross-cutting attestation,
-> substrate-witness predicates, ADR-029 observe-don't-declare vocabulary
-> (`#[defended_by]`, extended `#[presents]`), Match3 three-valued fingerprint
-> evaluation, five macro families in v0.2 stdlib. v0.3 adds: the prescriptive
-> work-orchestration family (8 macros), the titer/scalar witness kind, live-projection
-> reporting, and member-aware multi-crate scan. See [`CHANGELOG.md`](CHANGELOG.md)
-> for the full manifest.
+> **Status**: `0.2.0` stable on crates.io; **this README describes the
+> `0.3.0-beta.2` prerelease** (the current `main`), continuing toward `0.3.0`
+> stable. v0.2 surface: core macros, fingerprint grammar,
+> scan + audit + attest + tolerate + oracle CLI, Oracle 5-state lifecycle,
+> cross-cutting attestation, substrate-witness predicates, ADR-029
+> observe-don't-declare vocabulary (`#[defended_by]`, extended `#[presents]`),
+> Match3 three-valued fingerprint evaluation, five macro families in v0.2 stdlib.
+> v0.3 adds: the prescriptive work-orchestration family (8 macros), the
+> titer/scalar witness kind, live-projection reporting, member-aware multi-crate
+> scan, and (in `beta.2`) **eight new failure-class stdlib families** that ship
+> members (11 members total) **plus a chartered ninth** (crypto-misuse — the class
+> is named, no honest call-only fingerprint exists yet), and the
+> `#[aura]`/`#[dread]`/`#[red_flag]` marked-unknown markers — catalogued in
+> [`docs/stdlib-families.md`](docs/stdlib-families.md). See
+> [`CHANGELOG.md`](CHANGELOG.md) for the full manifest.
 
 ---
 
@@ -141,6 +147,21 @@ Antigen's vocabulary spans several families, each grounded in the biological imm
 
 **Titer / scalar witness kind** — `#[ignorance]` (scan-coverage, member one) and raw `#[titer(source=...)]`. A second witness kind that attests a *measured value* (no verdict, trend-trackable) rather than a categorical defense verdict. Antigen reports the value; the threshold-judgment lives downstream. `#[ignorance]` / scan-coverage is retroactively recognized as member-one; no code change required.
 
+**Eight new failure-class stdlib families that ship members (11 members total)** (`beta.2`) — ready-to-import `#[antigen]` declarations covering common Rust footguns, each with an honest confidence tier (`named` = high-confidence, "if it doesn't fire you're covered"; `suspected` = a look-here correlator that may also fire on clean code; `chartered` = the class is named and tracked but **no member ships yet**, because no honest fingerprint exists in the current grammar):
+
+| Family | Catches | Tier |
+|---|---|---|
+| deserialization-trust-boundary | streaming `from_reader` DoS · silent unknown-field drop | named · suspected |
+| time-and-ordering-hazards | `SystemTime` clock-skew panic (silent in tests) | suspected |
+| drop-and-panic-discipline | a `Drop` impl that can panic → process abort | named |
+| panic-on-index | `get_unchecked` — out-of-bounds is UB, not a panic | named |
+| resource-lifecycle-leak | `mem::forget` / `Box::leak` skipping `Drop` | suspected |
+| async-soundness | a hand-written `unsafe impl Send/Sync` | named |
+| numeric-truncation-overflow | `size_of`-in-element-count raw-copy foot-cannon | suspected |
+| unsafe-soundness-boundary | `transmute` · uninit-assumed-init · `from_utf8_unchecked` | named (×3) |
+
+Plus the **marked-unknown markers** `#[aura]` / `#[dread]` / `#[red_flag]` (ADR-041) — structural records for the danger you *feel* but can't yet name (they never gate, never nag). A ninth family, **crypto-misuse**, is *chartered* — the class is named, but no honest call-only fingerprint exists in the current grammar yet (better honest-deferred than dishonest-shipped). Full catalog with fingerprints + runnable examples (and scan fixtures for the two `unsafe`-primitive families): [`docs/stdlib-families.md`](docs/stdlib-families.md).
+
 **Still ahead** (v0.3+ and beyond):
 
 **Biological-component family** — `#[macrophage]`, `#[neutrophil]`, `#[treg]`, `#[complement]`, `#[dendritic]`, and ~30 more. Each maps to a real code discipline; each discovered via the biological metaphor, not speculation.
@@ -154,12 +175,14 @@ The full vocabulary target is listed in [`docs/expedition/the-comprehensive-visi
 ## Install and first scan
 
 ```sh
-cargo install cargo-antigen@=0.3.0-beta.1   # v0.3 prerelease; stable (0.2.0): cargo install cargo-antigen
+cargo install cargo-antigen@=0.3.0-beta.2   # v0.3 prerelease; stable (0.2.0): cargo install cargo-antigen
 ```
 
 > **v0.3 is a beta prerelease.** The command above installs the v0.3 beta, which
-> includes the prescriptive work-orchestration family. For the current stable, omit
-> the version pin.
+> includes the prescriptive work-orchestration family and the beta.2 failure-class
+> families (deserialization, time-ordering, drop-panic, panic-on-index,
+> resource-lifecycle, async-soundness, numeric-truncation, unsafe-soundness) plus
+> the marked-unknown markers. For the current stable, omit the version pin.
 
 Run `cargo antigen scan` in any Rust project. On a fresh codebase with no antigen declarations yet:
 
@@ -173,7 +196,7 @@ Add antigen as a dependency:
 
 ```toml
 [dependencies]
-antigen = "=0.3.0-beta.1"   # v0.3 prerelease — has the prescriptive family; v0.2.0 is the current stable
+antigen = "=0.3.0-beta.2"   # v0.3 prerelease — prescriptive family + beta.2 failure-class families; v0.2.0 is the current stable
 ```
 
 Now declare your first antigen. The full walkthrough lives in [`docs/tutorial.md`](docs/tutorial.md) — your first 15 minutes, end-to-end, with a real failure-class.
@@ -292,7 +315,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for detail.
 
 ## Status
 
-- crates.io: [`antigen`](https://crates.io/crates/antigen), [`cargo-antigen`](https://crates.io/crates/cargo-antigen), [`antigen-macros`](https://crates.io/crates/antigen-macros), [`antigen-fingerprint`](https://crates.io/crates/antigen-fingerprint), [`antigen-attestation`](https://crates.io/crates/antigen-attestation) — **0.2.0 published** (first stable v0.2, 2026-05-31)
+- crates.io: [`antigen`](https://crates.io/crates/antigen), [`cargo-antigen`](https://crates.io/crates/cargo-antigen), [`antigen-macros`](https://crates.io/crates/antigen-macros), [`antigen-fingerprint`](https://crates.io/crates/antigen-fingerprint), [`antigen-attestation`](https://crates.io/crates/antigen-attestation) — **0.2.0** stable published; **0.3.0-beta.2** is the release this README describes (the v0.3 line: prescriptive family + the beta.2 failure-class families), live on crates.io once the release tag publishes
 - Repository: [github.com/antigen-rs/antigen](https://github.com/antigen-rs/antigen)
 - CI: cargo check + test + fmt + clippy (-D warnings) + doc (-D warnings) on every push and PR
 - Tests: ~1000+ passing across the workspace (see CI badge for live count)

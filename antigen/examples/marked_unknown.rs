@@ -13,7 +13,8 @@
 //! - `#[dread]` — high magnitude, low certainty (*angor animi*): "something *is*
 //!   wrong here, I can't name it, look now."
 //! - `#[red_flag]` — high existence-certainty: "I'm *sure* something is wrong,
-//!   can't name it, act now." Auto-escalates on first match.
+//!   can't name it, act now." Auto-escalates the *internal* Finding's severity
+//!   (`Sure` → `High`); see "What surfaces where" below for the projection caveat.
 //!
 //! Run:
 //!
@@ -29,12 +30,20 @@
 //!
 //! ## What surfaces where (be honest with yourself)
 //!
-//! Each marker stamps a discoverable doc-marker the scanner reads and emits as a
-//! `MarkedUnknown` record into the unified `Finding` population (visible in the
-//! `--format json` output). The human-readable scan report does **not** render
-//! marked-unknowns yet (the audit-time confidence dial that surfaces them is a
-//! later wave) — so today a marker is a structural record you query, not a line
-//! in the default console report. The mark is never lost; that is the whole point.
+//! Each marker stamps a discoverable doc-marker the scanner reads and surfaces in
+//! the JSON report under the top-level `report.marked_unknowns` array (fields:
+//! `marker`, `magnitude`, `existence_certainty`, `trigger`, `file`). All three are
+//! PASSIVE records — none gates CI, fails the build, or alerts. Internally each
+//! also emits a `FindingBody::MarkedUnknown` record carrying a `severity` field
+//! (`#[red_flag]`/`Sure` and `#[dread]` → `High`, `#[aura]` → `Medium`) — a routing
+//! field for a future cytokine-routing organ (chartered), so `#[red_flag]`'s
+//! "escalation" is just that it records at `High`, not that anything fires. That
+//! severity lives on the internal Finding, NOT on the scan-report projection, whose
+//! `severity` reads `null` today. The
+//! human-readable scan report does **not** render marked-unknowns yet (the
+//! audit-time confidence dial that surfaces them is a later wave) — so today a
+//! marker is a structural record you query (`--format json`), not a console line.
+//! The mark is never lost; that is the whole point.
 
 // The marked functions have placeholder bodies (the example teaches the
 // *markers*, not the function logic); clippy would suggest making them `const`,
@@ -58,8 +67,11 @@ pub fn shutdown() {
     // ... teardown whose ordering you're uneasy about ...
 }
 
-/// `#[red_flag]` — high existence-certainty, still unnameable. You're *sure* this
-/// is exploitable; you just can't yet pin the exact class. Auto-escalates.
+/// `#[red_flag]` — high existence-certainty, still unnameable.
+///
+/// You're *sure* this is exploitable; you just can't yet pin the exact class.
+/// Records at the internal Finding's `High` severity (not the scan-report
+/// projection — see the header); never gates, never alerts.
 #[red_flag(trigger = "this auth check can be reached with an empty token in \
                       the cache-hit path; I'm sure this is exploitable")]
 pub fn authorize(_token: &str) -> bool {
@@ -88,6 +100,6 @@ fn main() {
     println!(
         "marked_unknown example: 3 markers declared (aura/dread/red_flag). \
          Run `cargo antigen scan --root antigen/examples --format json` to see \
-         them in the Finding stream."
+         them under report.marked_unknowns."
     );
 }

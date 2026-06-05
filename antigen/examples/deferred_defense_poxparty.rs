@@ -47,7 +47,7 @@ use antigen::antigen;
 pub struct RetryBudgetExhaustion;
 
 /// Regular production function — has the antigen's fingerprint.
-/// In a real codebase, immunity would be declared here via #[immune].
+/// In a real codebase, immunity would be declared here via `#[immune]`.
 pub fn send_with_retry(endpoint: &str, max_retries: u32) -> Result<String, String> {
     for attempt in 0..max_retries {
         let _ = (endpoint, attempt);

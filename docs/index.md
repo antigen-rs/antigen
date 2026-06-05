@@ -171,6 +171,7 @@ A flat catalog of every doc with one-line purpose:
 | Doc | Purpose |
 |---|---|
 | [`macros.md`](macros.md) | Five macros' full attribute syntax |
+| [`stdlib-families.md`](stdlib-families.md) | Scan-and-find catalog of the shipped stdlib failure-class families (what each catches, tier, fingerprint, example) |
 | [`fingerprint-grammar.md`](fingerprint-grammar.md) | Fingerprint DSL |
 | [`witness-tiers.md`](witness-tiers.md) | `WitnessTier` gradient semantics |
 | [`output-formats.md`](output-formats.md) | scan/audit human + JSON output |

@@ -20,7 +20,7 @@
 //! is the substrate-witness that links the triage commit to the rollback commit.
 //!
 //! `#[triage_commit]` is NOT `#[orient]`: `orient` says "I don't have a defense
-//! yet, I'll get one by <date>." `triage_commit` says "I have diagnosed this as
+//! yet, I'll get one by `<date>`." `triage_commit` says "I have diagnosed this as
 //! needing rollback NOW, here is why." Different speech-acts, different scopes.
 //!
 //! ## Run this example
