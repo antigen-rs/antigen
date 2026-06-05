@@ -9,6 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.0-beta.2] — 2026-06-04
 
+### Documentation — the beta.2 docs build-out (catalog → onboarding → deep dives)
+
+- **New stdlib catalog** [`docs/stdlib-families.md`](docs/stdlib-families.md) — a
+  scan-and-find catalog of every shipped failure-class family (what it catches,
+  its tier, its fingerprint, a runnable example), with an honest "what `audit`
+  shows today vs. what's on the roadmap" treatment.
+- **Newcomer onboarding** — [`docs/reading-a-verdict.md`](docs/reading-a-verdict.md)
+  (decode every scan/audit line), [`docs/i-scanned-and.md`](docs/i-scanned-and.md)
+  (symptom-indexed FAQ), [`docs/three-places-to-see-it.md`](docs/three-places-to-see-it.md)
+  (where class-defense, fingerprint-spare, and bind/spare are each actually visible).
+- **Adopter guides** — [`docs/immune-migration-guide.md`](docs/immune-migration-guide.md)
+  (migrate deprecated `#[immune]` → `#[defended_by]` / `#[presents(requires=)]`),
+  [`docs/deployment-ci-integration.md`](docs/deployment-ci-integration.md) (wire
+  `cargo antigen audit` into CI: exit codes, gating, a worked GitHub Actions job),
+  [`docs/case-study-determinism-class.md`](docs/case-study-determinism-class.md)
+  (the founding determinism-class case study, now tracked).
+- **Per-family pathology pages** [`docs/pathology/`](docs/pathology/) — a case-file
+  per shipped family (Presentation → Etiology → Epidemiology → Histology →
+  Differential → Treatment → Prognosis).
+- **Narrative** — [`docs/war-stories/the-self-catch.md`](docs/war-stories/the-self-catch.md)
+  (antigen catching itself across this voyage, every catch git-traceable),
+  [`docs/the-immune-system-a-programmers-guide.md`](docs/the-immune-system-a-programmers-guide.md)
+  (the biology cognate as a narrative course),
+  [`docs/the-failure-class-cookbook.md`](docs/the-failure-class-cookbook.md)
+  (intent→defense recipes).
+- **Honesty + coherence** — a README "what you'll see today vs. what's coming"
+  band; the deserialization "what `audit` shows" box re-pegged to the 0.3.x/v0.4
+  roadmap split in the declaration register; a witness-tier vs. confidence-tier
+  disambiguation; the `#[immune]` deprecation framing; and version refs +
+  case-study citations reconciled across the docs set.
+
 ### Fixed — tier-honesty: four named stdlib members corrected for breadth-arm over-claims (the seal self-catch)
 
 - The beta.2 notary seal found that four named stdlib members over-claimed at the
