@@ -9,7 +9,7 @@
 ## Step 1 — Install the cargo subcommand (30 seconds)
 
 ```sh
-cargo install cargo-antigen@=0.3.0-beta.1
+cargo install cargo-antigen@=0.3.0-beta.2
 ```
 
 > **v0.3 is a beta prerelease.** `cargo install cargo-antigen` installs the latest
@@ -27,7 +27,7 @@ You should see:
 
 ```
 $ cargo antigen --version
-cargo-antigen-antigen 0.3.0-beta.1
+cargo-antigen-antigen 0.3.0-beta.2
 
 $ cargo antigen --help
 The "antigen" subcommand of cargo
@@ -79,7 +79,7 @@ That's clean. Antigen ran; your project has no antigen surface yet. No red flags
 ```toml
 # Cargo.toml
 [dependencies]
-antigen = "=0.3.0-beta.1"   # v0.3 prerelease — has the prescriptive family; v0.2.0 is the current stable
+antigen = "=0.3.0-beta.2"   # v0.3 prerelease — has the prescriptive family; v0.2.0 is the current stable
 ```
 
 Run `cargo build` to fetch and compile. Antigen's runtime cost is zero — the macros are identity transforms; no code generation, no runtime overhead.

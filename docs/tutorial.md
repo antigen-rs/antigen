@@ -49,13 +49,13 @@ Add antigen to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-antigen = "=0.3.0-beta.1"   # v0.3 prerelease — has the prescriptive family; v0.2.0 is the current stable
+antigen = "=0.3.0-beta.2"   # v0.3 prerelease — has the prescriptive family; v0.2.0 is the current stable
 ```
 
 Install the cargo subcommand:
 
 ```sh
-cargo install cargo-antigen@=0.3.0-beta.1
+cargo install cargo-antigen@=0.3.0-beta.2
 ```
 
 > **v0.3 is a beta prerelease.** `cargo install cargo-antigen` installs the latest

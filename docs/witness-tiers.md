@@ -13,6 +13,15 @@
 For a tutorial introduction, see [`tutorial.md`](tutorial.md). For audit
 output format, see [`output-formats.md`](output-formats.md).
 
+> **Two different things are called "tier" — this doc is the *witness* tier.**
+> This page is about the **witness tier** (`None` / `Reachability` / … /
+> `FormalProof`): how *strong* the proof is that a defended site is actually safe.
+> It is **not** the **member confidence tier** (`named` / `suspected` / `chartered`),
+> which is how precisely a *fingerprint* targets the defect. If you landed here
+> asking "why is this member *suspected*?", that's the confidence tier — see
+> [`reading-a-verdict.md`](reading-a-verdict.md#tiers) and the
+> [stdlib catalog](stdlib-families.md). Same word, orthogonal axes.
+
 ---
 
 ## Why tiers (not just pass/fail)

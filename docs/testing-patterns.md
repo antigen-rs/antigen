@@ -363,5 +363,5 @@ structural backstop that reduces the need for defense wiring at those sites.
 - [`docs/decisions.md`](decisions.md) — ratified ADRs (ADR-001 through ADR-010)
 - [`docs/process.md`](process.md) — the formal ADR lifecycle
 - [`docs/expedition/inheritance-from-tambear.md`](expedition/inheritance-from-tambear.md) — the proptest-locks-the-narrow-truth discipline as inherited
-- [`docs/expedition/case-study-determinism-class.md`](expedition/case-study-determinism-class.md) — the failing-as-passing pattern shown in context
+- [`docs/case-study-determinism-class.md`](case-study-determinism-class.md) — the failing-as-passing pattern shown in context
 - [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — current CI gates

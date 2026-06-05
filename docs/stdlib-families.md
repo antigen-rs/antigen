@@ -192,8 +192,12 @@ today**, read the box below before you scan — it matters.
 > a *presentation*, not as a fingerprint candidate.) This "bad site shows defended"
 > is **inherent to type-granular witness crediting**, not an example bug — no
 > example change fixes it without a tool change. The finer **site-granular** model
-> (one witness crediting only the site it exercises) is a **v0.4 charter**, noted
-> not fixed; the principle above is the durable beta.2 teaching. To *see* the
+> (a witness crediting only the site it exercises) is on the roadmap, split along the
+> confidence dial: the *declared* form — you bind a witness to a named site — is a
+> **0.3.x** increment; the *inferred* form — the tool resolves which site a test
+> actually reaches — needs semantic analysis and lands in **v0.4**. Today's crediting
+> is **type-granular**: the honest current state, not a defect; the principle
+> above is the durable beta.2 teaching. To *see* the
 > fingerprint bind/spare directly, read the guard tests (the "two lessons" note at
 > the top points the way).
 

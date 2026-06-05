@@ -294,6 +294,6 @@ The illness already healed once. Let's not heal it again next year, and the year
 - **The whitepaper**: [`docs/structural-memory.md`](structural-memory.md) — foundational treatment of what structural memory means and why it matters for human-AI hybrid teams
 - **The architecture**: [`docs/decisions.md`](decisions.md) — ratified ADRs and amendments
 - **The postures**: [`docs/postures.md`](postures.md) — architectural postures threaded through the ADRs
-- **The case study**: [`docs/expedition/case-study-determinism-class.md`](expedition/case-study-determinism-class.md) — full walkthrough of how antigen would have caught the originating bug pattern
+- **The case study**: [`docs/case-study-determinism-class.md`](case-study-determinism-class.md) — full walkthrough of how antigen would have caught the originating bug pattern
 
 If anything here resonates, please [open a Discussion](https://github.com/antigen-rs/antigen/discussions).

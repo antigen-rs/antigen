@@ -950,7 +950,7 @@ absence tell and a streaming-call tell.
 **What's in the file**:
 - `DeserializeWithoutDenyUnknownFields` (**suspected**) with a `LenientConfig`
   that derives `Deserialize` *without* `#[serde(deny_unknown_fields)]` (binds —
-  unknown fields silently dropped) next to a `StrictConfig` that sets it (spared)
+  unknown fields silently dropped) next to a `StrictConfig` that sets it (safe sibling — fingerprint-spared in source, still listed)
 - `UnboundedDeserialization` (**named**) with `load_unbounded` calling
   `from_reader` with no bound (binds, unaddressed) next to `load_bounded` that
   caps the reader with `.take(1 << 20)` — and a `#[defended_by]` witness proving
@@ -1013,7 +1013,7 @@ tests, because test machines don't NTP-skew mid-test.
 - `SystemTimeUnwrapPanic` (**suspected**)
 - `age_since_panicking` — reads the clock and `.unwrap()`s the `Result` (binds)
 - `age_since_safe` — the same clock read, but `.unwrap_or(Duration::ZERO)` handles
-  the backwards-clock case (spared)
+  the backwards-clock case (safe sibling — fingerprint-spared in source, still listed)
 
 **What to learn**:
 - Why this is **suspected**, not named: the shipped grammar has no method-chain
@@ -1051,7 +1051,7 @@ even on `panic=unwind`. This is the v2 of `basic.rs`'s `PanickingInDrop`.
 - `PanicInDrop` (**named**)
 - `PanickyGuard` — a real `impl Drop` that `.unwrap()`s in teardown (binds — the
   *call-shaped* panic the macro-only `PanickingInDrop` missed)
-- `SafeGuard` — a real `impl Drop` with a panic-free teardown (spared)
+- `SafeGuard` — a real `impl Drop` with a panic-free teardown (safe sibling — fingerprint-spared in source, still listed)
 - `NotReallyDrop` — an **inherent** method merely *named* `drop` that `.unwrap()`s
   (spared by `impl_of_trait("Drop")` — this is not the `Drop` trait)
 
@@ -1090,7 +1090,7 @@ reaches a panic source.)
 **What's in the file**:
 - `GetUncheckedWithoutProof` (**named**)
 - `first_unchecked` — reads through a `get_unchecked` call (binds)
-- `first_checked` — the bounds-checked `.get(i)` returning `None` (spared)
+- `first_checked` — the bounds-checked `.get(i)` returning `None` (safe sibling — fingerprint-spared in source, still listed)
 
 **What to learn**:
 - `get_unchecked` / `get_unchecked_mut` are slice/`Vec`-specific method names with
@@ -1127,7 +1127,7 @@ lives in the source, per the section caveat above.
 **What's in the file**:
 - `DeliberateLeakNotDocumented` (**suspected**)
 - `leak_it` — `mem::forget`s a heap `String`, so its `Drop` never runs (binds)
-- `use_it` — an ordinary use that lets the value drop at end of scope (spared)
+- `use_it` — an ordinary use that lets the value drop at end of scope (safe sibling — fingerprint-spared in source, still listed)
 
 **What to learn**:
 - Why **suspected**, not named: `forget` / `leak` are bare common last-segments
@@ -1163,7 +1163,7 @@ out-of-bounds → UB. clippy has a correctness lint for exactly this.
 **What's in the file**:
 - `SizeOfInElementCount` (**suspected**)
 - `copy_bad` — passes `n * size_of::<u32>()` as the count (binds)
-- `copy_good` — passes a plain element count `n`, no `size_of` multiplier (spared)
+- `copy_good` — passes a plain element count `n`, no `size_of` multiplier (safe sibling — fingerprint-spared in source, still listed)
 
 **What to learn**:
 - This is the **worked example of tier-honesty as a self-catch**: the member was

@@ -270,6 +270,8 @@ When the biology predicts a primitive, the project builds it. See [`docs/decisio
 
 Not yet shipped (honest stubs in CLI): `cargo antigen attest oracle`, `cargo antigen attest migrate`, `cargo antigen new`, `cargo antigen vaccinate`, `antigen-stdlib`.
 
+**What `scan` / `audit` show you today — and what's coming.** `scan` reports declared *presentations* and fingerprint *candidates*; `audit` grades each presentation *defended* / *undefended* / *substrate-gap* at a witness tier; the `#[aura]` / `#[dread]` / `#[red_flag]` markers surface under `scan --format json` (`report.marked_unknowns`). Two surfaces are honestly **not** in the human report yet, and sit on the roadmap: a **per-site** fingerprint verdict (today a witness credits a failure-*class*, not the individual site it exercises — the *declared* per-site form is a **0.3.x** increment, the *inferred* form needs semantic analysis and lands in **v0.4**), and a **console confidence-dial / marked-unknown rendering** (queryable via JSON today). So if you go looking for a per-site "this exact line is defended" verdict, or a dial in the console, and don't find it — that's the roadmap, not you. The catalog's [`docs/stdlib-families.md`](docs/stdlib-families.md) explains the current behavior in detail; [`docs/reading-a-verdict.md`](docs/reading-a-verdict.md) decodes what each line means.
+
 See [`docs/roadmap.md`](docs/roadmap.md) for the planned trajectory through v0.2+.
 
 ---
