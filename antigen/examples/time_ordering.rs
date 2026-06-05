@@ -9,13 +9,15 @@
 //!
 //! ```sh
 //! cargo run --example time_ordering --package antigen
-//! ```
-//!
-//! Scan to see the pair separate:
-//!
-//! ```sh
 //! cargo run --bin cargo-antigen -- antigen scan --root antigen/examples
 //! ```
+//!
+//! Note: both siblings are `#[presents]`-marked, so audit lists both — the safe
+//! sibling is spared by the *fingerprint* (it doesn't bind), not hidden from the
+//! console. To *read* the bind/spare side by side, see the guard tests
+//! `antigen/tests/stdlib_family_fingerprints.rs`
+//! (`system_time_unwrap_binds_duration_since_then_unwrap` beside
+//! `system_time_unwrap_spares_instant_elapsed_clean_sibling`).
 //!
 //! ## BIOSAFETY NOTE
 //!
@@ -63,7 +65,7 @@ fn age_since_safe(earlier: SystemTime) -> Duration {
 fn main() {
     println!("antigen time-ordering example: see source for the affinity-pair.");
     println!(
-        "Run `cargo run --bin cargo-antigen -- antigen scan` to see the panicking path flagged, the handled path spared."
+        "Both siblings are #[presents]-marked, so audit lists both; the handled path is spared by the FINGERPRINT (it doesn't bind). To read the bind/spare side by side, see antigen/tests/stdlib_family_fingerprints.rs."
     );
 
     let earlier = SystemTime::now();

@@ -43,7 +43,23 @@ error). They sit on a 2-D plane: **magnitude** × **existence-certainty**.
 |---|---|---|
 | `#[aura(trigger = "...")]` | low magnitude | "something *may* be off here, can't name it, check later" — a mild substrate-smell; never gates, never nags |
 | `#[dread(trigger = "...")]` | high magnitude, low certainty | the *angor animi* corner: "something *is* wrong here, I can't name it, look now" |
-| `#[red_flag(trigger = "...")]` | high existence-certainty | "I'm *sure* something is wrong, can't name it, act now" — **auto-escalates on first match** |
+| `#[red_flag(trigger = "...")]` | high existence-certainty | "I'm *sure* something is wrong, can't name it, act now" — records at the highest internal severity (see note); never gates, never alerts |
+
+> **What "highest severity" means here — and what it does *not* do.** All three
+> markers are passive records; none gates, fails your build, or alerts. `cargo
+> antigen scan --format json` surfaces each under the top-level
+> `report.marked_unknowns` array (fields: `marker`, `magnitude`,
+> `existence_certainty`, `trigger`, `file`, `line`). Internally, each marker also
+> emits a `Finding` carrying a `severity` field: `#[red_flag]` (existence-certainty
+> `Sure`) and `#[dread]` both compute `High`, `#[aura]` computes `Medium`
+> (`MarkedUnknown::to_finding`). That severity is a **routing field for a future
+> cytokine-routing organ** (chartered, not built) — `#[red_flag]`'s "escalation" is
+> *that it records at `High`*, **not** that anything fires: it never gates CI, never
+> changes an exit code, never alerts. And the severity is **internal to the
+> `Finding` only** — the user-facing `report.marked_unknowns` projection carries no
+> `severity` field today. The human-readable scan report does not render
+> marked-unknowns yet (a later audit-dial wave). So a marker is a structural record
+> you *query* (via `--format json`), not a console line and not an action.
 
 See [`docs/concepts.md`](concepts.md) and ADR-041 for the plane; a worked
 example is in [`antigen/examples/marked_unknown.rs`](../antigen/examples/marked_unknown.rs).

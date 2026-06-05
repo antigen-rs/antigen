@@ -34,12 +34,12 @@ antigen-poxparty = ["antigen-macros/antigen-poxparty"]
 workspace = true
 
 [dependencies]
-antigen-macros = { version = "=0.3.0-beta.1", path = "../antigen-macros" }
-antigen-fingerprint = { version = "=0.3.0-beta.1", path = "../antigen-fingerprint" }
+antigen-macros = { version = "=0.3.0-beta.2", path = "../antigen-macros" }
+antigen-fingerprint = { version = "=0.3.0-beta.2", path = "../antigen-fingerprint" }
 # `parser` feature wires the substrate-witness syntax parser into scan so
 # #[immune(..., requires = ...)] discovery does not depend on macro-emitted
 # doc markers (rc.1 → rc.2 hotfix; see CHANGELOG).
-antigen-attestation = { version = "=0.3.0-beta.1", path = "../antigen-attestation", features = ["parser"] }
+antigen-attestation = { version = "=0.3.0-beta.2", path = "../antigen-attestation", features = ["parser"] }
 syn = { workspace = true }
 quote = { workspace = true }
 proc-macro2 = { workspace = true, features = ["span-locations"] }

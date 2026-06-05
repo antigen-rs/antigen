@@ -11,13 +11,19 @@
 //!
 //! ```sh
 //! cargo run --example drop_panic --package antigen
-//! ```
-//!
-//! Scan to see the pair separate:
-//!
-//! ```sh
 //! cargo run --bin cargo-antigen -- antigen scan --root antigen/examples
 //! ```
+//!
+//! Note: the bad `Drop` and the panic-free `Drop` are both `#[presents]`-marked,
+//! so audit lists both — the safe one is spared by the *fingerprint* (it doesn't
+//! bind), not hidden from the console. The one genuinely-absent site is the
+//! **un-marked** `NotReallyDrop` (an inherent `drop`, no `#[presents]`): scan never
+//! reports it, because `impl_of_trait("Drop")` doesn't bind it — the clearest
+//! "fingerprint spares it" demo in the repo. (To *read* the bind/spare side by
+//! side, see the guard tests `antigen/tests/stdlib_family_fingerprints.rs`:
+//! `panic_in_drop_binds_drop_impl_with_unwrap` beside
+//! `panic_in_drop_spares_clean_drop_impl` and
+//! `panic_in_drop_spares_inherent_impl_named_drop`.)
 //!
 //! ## BIOSAFETY NOTE
 //!
@@ -94,7 +100,7 @@ fn main() {
         "antigen drop-panic example: see source for the affinity-pair + the inherent-drop spare."
     );
     println!(
-        "Run `cargo run --bin cargo-antigen -- antigen scan` to see the bad Drop flagged, the safe Drop + inherent drop spared."
+        "The bad Drop and the safe Drop are both #[presents]-marked (audit lists both; the safe one is FINGERPRINT-spared); the un-marked inherent `NotReallyDrop` is genuinely absent from scan. To read the bind/spare side by side, see antigen/tests/stdlib_family_fingerprints.rs."
     );
 
     // Exercise the safe paths; the bad guard is constructed with a value so its

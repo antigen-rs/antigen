@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0-beta.2] — 2026-06-04
+
 ### Fixed — tier-honesty: four named stdlib members corrected for breadth-arm over-claims (the seal self-catch)
 
 - The beta.2 notary seal found that four named stdlib members over-claimed at the
@@ -146,8 +148,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     `any_of([body_calls("transmute"), body_calls("transmute_copy")])` ("the most
     dangerous single function in Rust"; rustc `mutable_transmutes` deny-by-default).
   - **`UninitMemoryAssumedInit`** — `any_of([body_calls("assume_init"),
-    body_calls("uninitialized"), body_calls("zeroed"), body_calls("set_len")])`
-    (clippy `uninit_assumed_init` / `uninit_vec`).
+    body_calls("uninitialized")])` (clippy `uninit_assumed_init` / `uninit_vec`).
+    (`zeroed` and `set_len` were dropped by the tier-honesty seal above — see the
+    *Fixed* entry — because `zeroed` fires on the recommended-safe `bytemuck::zeroed`
+    and `set_len` has no AST-feasible risky-vs-safe discriminator.)
   - **`UnvalidatedFromUtf8Unchecked`** — `any_of([body_calls("from_utf8_unchecked"),
     body_calls("from_utf8_unchecked_mut")])` (rustc `invalid_from_utf8_unchecked`).
   - Each ships `category = FunctionalCorrectness` and WITH its admitting-specimen
@@ -291,13 +295,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     sibling. Honest gap carried by the dial: `#[serde(flatten)]` bypasses the
     check (serde #2283), and `derives` is a syntactic last-ident (no path
     resolution).
-  - **`UnboundedDeserialization`** (named) — a byte/reader-source deserialization
-    (`from_reader` / `from_slice`), a `DoS` surface (recorded harm across ≥3
-    RUSTSEC advisories 2022→2026). Fingerprint
-    `any_of([body_calls("from_reader"), body_calls("from_slice")])` — bare presence
-    of the streaming/byte-source entrypoint. **Named** because `from_reader` /
-    `from_slice` are rare/std-specific (self-anchoring — a domain type rarely has a
-    `from_reader` method). The `.take(limit)`-capped form **still fires** the
+  - **`UnboundedDeserialization`** (named) — a streaming reader-source
+    deserialization (`from_reader`), a `DoS` surface (recorded harm across ≥3
+    RUSTSEC advisories 2022→2026). Fingerprint `body_calls("from_reader")` — bare
+    presence of the streaming entrypoint. **Named** because `from_reader` is
+    rare/std-specific (self-anchoring — a domain type rarely has a `from_reader`
+    method). (`from_slice` was dropped by the tier-honesty seal above — see the
+    *Fixed* entry — a slice is a *bounded* source, so it is not an unbounded vector,
+    and the arm fired on the bounded-slice fix itself plus safe constructors.) The
+    `.take(limit)`-capped form **still fires** the
     fingerprint (the risky *surface* is present) and is **spared by the witness at
     audit** — the surface-flag / witness-proof split. A `not(body_calls("take"))`
     guard was deliberately **not** used: at the named tier a subject-slice negation
@@ -392,16 +398,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   as text, not compiled) rather than a compiled example. `LockHeldAcrossAwait`
   (await-liveness), `BlockingCallInAsyncFn` (heuristic blocking-list, suspected),
   and `SpawnedFutureNotAwaited` (binding-tell) are charter-deferred / next-wave.
-- **`numeric_truncation` :: `SizeOfInElementCount`** (named) — a raw-memory copy
+- **`numeric_truncation` :: `SizeOfInElementCount`** (suspected) — a raw-memory copy
   (`copy_nonoverlapping`) co-located with `size_of`: the byte-count-where-element-
   count foot-cannon (`n * size_of::<T>()` as a count arg over-copies by
   `sizeof(T)` → OOB; clippy correctness `size_of_in_element_count`). Fingerprint
-  `all_of([body_calls("copy_nonoverlapping"), body_calls("size_of")])`. The
-  precise "`size_of` in the count-arg position" needs arg-position introspection
-  (`G2`-extended → charter); the co-presence form is named (a raw copy + `size_of`
-  is itself a strong correctness signal). `LossyNumericCast` (`as`-cast),
-  arithmetic-overflow, and float-equality members are operator-shaped tells →
-  charter.
+  `all_of([body_calls("copy_nonoverlapping"), body_calls("size_of")])`. **Suspected,
+  not named** (corrected by the tier-honesty seal above — see the *Fixed* entry):
+  the co-presence correlates with the dangerous region but fires on idiomatic-correct
+  both-calls code too (a byte-buffer copy, a separate-bounds `size_of`), which a named
+  tier could not carry; its own anti-correlated *fix* — `copy(n)` with no `size_of` —
+  is spared, so it is demoted, not dropped. Graduation to named is *type-aware*
+  (arg-position **and** pointee-type), the v0.4 resolved-type tier — not a syntactic
+  operator-leaf. `LossyNumericCast` (`as`-cast), arithmetic-overflow, and
+  float-equality members are operator-shaped tells → charter.
 - Both `category = FunctionalCorrectness`, ship WITH their admitting-specimens +
   drift-guard tests.
 

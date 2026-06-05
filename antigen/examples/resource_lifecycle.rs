@@ -8,13 +8,14 @@
 //!
 //! ```sh
 //! cargo run --example resource_lifecycle --package antigen
-//! ```
-//!
-//! Scan to see the pair separate:
-//!
-//! ```sh
 //! cargo run --bin cargo-antigen -- antigen scan --root antigen/examples
 //! ```
+//!
+//! Note: both siblings are `#[presents]`-marked, so audit lists both — the safe
+//! scope-drop sibling is spared by the *fingerprint* (it doesn't bind), not hidden
+//! from the console. To *read* the bind/spare side by side, see the guard tests
+//! `antigen/tests/stdlib_family_fingerprints.rs`
+//! (`deliberate_leak_binds_mem_forget` beside `deliberate_leak_spares_ordinary_drop`).
 //!
 //! ## BIOSAFETY NOTE
 //!
@@ -63,7 +64,7 @@ fn use_it(s: String) -> usize {
 fn main() {
     println!("antigen resource-lifecycle example: see source for the affinity-pair.");
     println!(
-        "Run `cargo run --bin cargo-antigen -- antigen scan` to see the mem::forget leak flagged, the ordinary drop spared."
+        "Both siblings are #[presents]-marked, so audit lists both; the ordinary drop is spared by the FINGERPRINT (it doesn't bind). To read the bind/spare side by side, see antigen/tests/stdlib_family_fingerprints.rs."
     );
 
     // Note: leak_it intentionally leaks; we call use_it on a fresh String.

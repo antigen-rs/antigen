@@ -9,13 +9,15 @@
 //!
 //! ```sh
 //! cargo run --example numeric_truncation --package antigen
-//! ```
-//!
-//! Scan to see the pair separate:
-//!
-//! ```sh
 //! cargo run --bin cargo-antigen -- antigen scan --root antigen/examples
 //! ```
+//!
+//! Note: both siblings are `#[presents]`-marked, so audit lists both — the safe
+//! sibling is spared by the *fingerprint* (it doesn't bind), not hidden from the
+//! console. To *read* the bind/spare side by side, see the guard tests
+//! `antigen/tests/stdlib_family_fingerprints.rs`
+//! (`size_of_in_count_binds_copy_with_size_of` beside
+//! `size_of_in_count_spares_its_own_fix_so_demote_not_drop`).
 //!
 //! ## BIOSAFETY NOTE
 //!
@@ -71,7 +73,7 @@ fn copy_good(src: &[u8], dst: &mut Vec<u8>, n: usize) {
 fn main() {
     println!("antigen numeric-truncation example: see source for the affinity-pair.");
     println!(
-        "Run `cargo run --bin cargo-antigen -- antigen scan` to see the size_of-in-count path flagged, the element-count path spared."
+        "Both siblings are #[presents]-marked, so audit lists both; the element-count path is spared by the FINGERPRINT (it doesn't bind). To read the bind/spare side by side, see antigen/tests/stdlib_family_fingerprints.rs."
     );
 
     let src = [1u8, 2, 3, 4];

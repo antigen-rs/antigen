@@ -8,13 +8,14 @@
 //!
 //! ```sh
 //! cargo run --example panic_on_index --package antigen
-//! ```
-//!
-//! Scan to see the pair separate:
-//!
-//! ```sh
 //! cargo run --bin cargo-antigen -- antigen scan --root antigen/examples
 //! ```
+//!
+//! Note: both siblings are `#[presents]`-marked, so audit lists both — the safe
+//! `.get(i)` sibling is spared by the *fingerprint* (it doesn't bind), not hidden
+//! from the console. To *read* the bind/spare side by side, see the guard tests
+//! `antigen/tests/stdlib_family_fingerprints.rs`
+//! (`get_unchecked_binds_unchecked_index` beside `get_unchecked_spares_checked_get`).
 //!
 //! ## BIOSAFETY NOTE
 //!
@@ -76,7 +77,7 @@ fn first_checked(v: &[u8], i: usize) -> Option<u8> {
 fn main() {
     println!("antigen panic-on-index example: see source for the affinity-pair.");
     println!(
-        "Run `cargo run --bin cargo-antigen -- antigen scan` to see the get_unchecked path flagged, the checked .get path spared."
+        "Both siblings are #[presents]-marked, so audit lists both; the checked .get path is spared by the FINGERPRINT (it doesn't bind). To read the bind/spare side by side, see antigen/tests/stdlib_family_fingerprints.rs."
     );
 
     let buf = ToyBuf {
