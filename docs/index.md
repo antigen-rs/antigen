@@ -32,7 +32,7 @@ shows you how:
 
 ```toml
 [dependencies]
-antigen = "=0.3.0-beta.1"   # v0.3 prerelease — has the prescriptive family; v0.2.0 is the current stable
+antigen = "=0.3.0-beta.2"   # v0.3 prerelease — has the prescriptive family; v0.2.0 is the current stable
 ```
 
 ---
@@ -159,6 +159,7 @@ A flat catalog of every doc with one-line purpose:
 | [`concepts.md`](concepts.md) | What antigen is, architecturally |
 | [`tutorial.md`](tutorial.md) | First 15 minutes, end-to-end |
 | [`case-study.md`](case-study.md) | End-to-end narrative of a real failure-class |
+| [`case-study-determinism-class.md`](case-study-determinism-class.md) | The founding determinism-class case study (how antigen would have caught it) |
 | [`examples-guide.md`](examples-guide.md) | Progressive walkthrough of `antigen/examples/` |
 | [`composition.md`](composition.md) | How antigen composes with clippy, proptest, kani/prusti/verus, etc. |
 | [`where-to-look-for-antigens.md`](where-to-look-for-antigens.md) | Placement conventions |
@@ -178,6 +179,35 @@ A flat catalog of every doc with one-line purpose:
 | [`troubleshooting.md`](troubleshooting.md) | Diagnostic guide |
 | [`glossary.md`](glossary.md) | Vocabulary anchor |
 | [`roadmap.md`](roadmap.md) | Trajectory + planned features |
+
+### Newcomer onboarding — reading antigen's output
+
+| Doc | Purpose |
+|---|---|
+| [`reading-a-verdict.md`](reading-a-verdict.md) | Decoder: what each scan/audit line means (read before your first scan) |
+| [`i-scanned-and.md`](i-scanned-and.md) | Symptom-indexed FAQ ("I scanned and ___") |
+| [`three-places-to-see-it.md`](three-places-to-see-it.md) | Where each thing (class-defense, fingerprint-spare, bind/spare) is actually visible |
+
+### Adopter operations
+
+| Doc | Purpose |
+|---|---|
+| [`immune-migration-guide.md`](immune-migration-guide.md) | Migrate deprecated `#[immune]` → `#[defended_by]` / `#[presents(requires=)]` |
+| [`deployment-ci-integration.md`](deployment-ci-integration.md) | Wire `cargo antigen audit` into CI (exit codes, gating, GitHub Actions) |
+
+### Failure-class deep dives
+
+| Doc | Purpose |
+|---|---|
+| [`pathology/`](pathology/) | Per-family case-files (Presentation → Etiology → … → Prognosis) |
+| [`the-failure-class-cookbook.md`](the-failure-class-cookbook.md) | Intent→defense recipes ("you have untrusted JSON →") |
+| [`the-immune-system-a-programmers-guide.md`](the-immune-system-a-programmers-guide.md) | The biology cognate as a narrative course |
+
+### War stories
+
+| Doc | Purpose |
+|---|---|
+| [`war-stories/the-self-catch.md`](war-stories/the-self-catch.md) | Antigen catching itself — the thesis turned inward, every catch git-traceable |
 
 ### Co-native
 
