@@ -62,6 +62,10 @@ catalogued the diseases, then caught itself with them.**
 *Commit: `90e8299` — "fix(families): tier-honesty seal — correct 4 breadth-arm
 over-claims + ratify ADR-039 §C Amendment 1" (2026-06-04).*
 
+> Throughout this story, **"the seal"** is that commit — the notary pass that
+> reviewed the beta.2 stdlib against its own honesty rules and corrected what it
+> found. Every catch below was surfaced by it or in its wake.
+
 The beta.2 stdlib shipped eight new failure-class families. Four of their `named`
 members had, at some earlier point, grown a second `body_calls` arm "for breadth"
 — a common method name bolted onto a precise one to catch a few more sites. It
