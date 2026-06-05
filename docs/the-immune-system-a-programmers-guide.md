@@ -276,7 +276,7 @@ reference, but the reference only means something because you walked the story:
 | Clonal expansion / lineage | propagate recognition to family variants | `#[descended_from(Parent)]` |
 | Treg tolerance | don't fire on self | `#[antigen_tolerance]` + the tier discipline |
 | Innate + adaptive | cover shape *and* learned specifics | passive scan + active markers |
-| Dysregulation | name the ways the defense itself fails | `autoimmune-check` screen (v0.4), `#[sepsis]`/`#[anaphylaxis]` |
+| Dysregulation | name the ways the defense itself fails | *(all v0.4, none shipped yet)* the `autoimmune-check` screen, `#[sepsis]`, `#[anaphylaxis]` |
 | Mucosa | invest defense where the trust boundary is | the deserialization-trust-boundary family |
 
 The full forward-looking version of this map — every immune primitive antigen
