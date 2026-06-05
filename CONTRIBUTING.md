@@ -36,10 +36,14 @@ Before opening a substantive PR:
    cargo fmt --all -- --check
    cargo clippy --workspace --all-targets -- -D warnings
    cargo test --workspace
-   RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
+   RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --document-private-items
    ```
-   CI runs these on every push.
-3. **Write tests** for new behavior. The workspace currently runs 554 tests; new public API should add coverage.
+   CI runs these on every push. (`--document-private-items` is load-bearing: it is the
+   only mode that checks intra-doc links on *private* items, where broken-link bugs hide —
+   e.g. a bare `` [`scan_workspace`] `` that should be the fully-qualified
+   `` [`scan_workspace`](crate::scan::scan_workspace) ``. Omitting the flag lets a broken
+   link pass locally but fail CI's `broken_intra_doc_links` lint.)
+3. **Write tests** for new behavior. The workspace runs a large suite (unit + adversarial ATK + trybuild UI; see CI for the live count); new public API should add coverage.
 4. **Match existing conventions** — rustfmt-default style; comments explain non-obvious *why*, not redundant *what*.
 
 ### Prior-art surfacing
@@ -84,7 +88,7 @@ If you're curious about the internal discipline itself (the ADR lifecycle, sweep
 - **rustfmt** with workspace default config (`cargo fmt --all -- --check` must pass)
 - **clippy** with workspace pedantic + nursery lints (`cargo clippy --workspace --all-targets -- -D warnings` must pass)
 - **All new public API has tests.** Property tests via proptest are encouraged for parser/grammar surfaces.
-- **Rustdoc warnings** treated as errors (`RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps`)
+- **Rustdoc warnings** treated as errors (`RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --document-private-items` — the `--document-private-items` flag is required to match CI)
 - **No `unsafe`** in this workspace (`unsafe_code = "forbid"` at workspace level)
 - **No `.unwrap()` in non-test code** (`unwrap_used = "deny"`)
 - **MSRV is 1.95** — antigen tracks recent stable (~stable-minus-1), revisited each release; the MSRV-aware resolver (`resolver = "3"`) keeps deps within the floor

@@ -555,11 +555,11 @@ pub fn resolve_cross_member_lineage_parents(report: &mut ScanReport) {
 /// (`#[presents]` / `#[defended_by]` / `#[immune]` / `#[antigen_tolerance]`)
 /// with the canonical path of the member it was *found in*. But each record's
 /// `canonical_path` is contractually the declaration site of the *antigen it
-/// addresses* (see [`Presentation::canonical_path`] et al.), not its own
+/// addresses* (see [`Presentation::canonical_path`](crate::scan::Presentation::canonical_path) et al.), not its own
 /// location. For an intra-member reference the two coincide; for a genuine
 /// cross-member reference — a `#[presents(crate_a::X)]` living in crate B — the
 /// stamp puts `B@v` on a record whose semantic key should be `A@v`. Left
-/// unfixed, [`defense_addresses`] / [`canonical_paths_match`] compare
+/// unfixed, [`defense_addresses`](crate::scan::defense_addresses) / [`canonical_paths_match`](crate::scan::canonical_paths_match) compare
 /// `Some("B@v")` against the antigen's `Some("A@v")` and FAIL to match a
 /// legitimate cross-crate defense (and a cross-crate presents-site reads as
 /// `antigen_known = false`). This pass re-stamps the reference endpoint to the

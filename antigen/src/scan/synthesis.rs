@@ -23,7 +23,7 @@ use super::{
 /// Emit synthetic `FingerprintMatch` presentations for items that match a
 /// declared antigen fingerprint but weren't explicitly annotated.
 ///
-/// Called from [`scan_workspace`] after the explicit-collection walk. Uses the
+/// Called from [`scan_workspace`](crate::scan::scan_workspace) after the explicit-collection walk. Uses the
 /// cached `(path, syn::File)` pairs from pass 1 — no re-reading or re-parsing.
 /// Only top-level items are checked (`syn::File::items`); descent into `impl`
 /// methods and `trait` methods is deferred to W6b/A3.
