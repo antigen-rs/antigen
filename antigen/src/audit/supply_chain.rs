@@ -196,7 +196,7 @@ fn eval_supply_chain_predicate(
                 passed: logical_passed,
                 entries: entry.into_iter().collect(),
             }
-        }
+        },
         Predicate::AllOf { children } => {
             let mut entries = Vec::new();
             let mut all_pass = true;
@@ -211,7 +211,7 @@ fn eval_supply_chain_predicate(
                 passed: all_pass,
                 entries,
             }
-        }
+        },
         Predicate::AnyOf { children } => {
             // Per ATK-SC-AUDIT-1: evaluate each child; if ANY passes,
             // discharge the others' fail entries (keep only the
@@ -234,7 +234,7 @@ fn eval_supply_chain_predicate(
                 passed: any_pass,
                 entries,
             }
-        }
+        },
         Predicate::Not { child } => {
             // `not(P)` — the supply-chain audit cannot meaningfully
             // surface "the failed leaf" because the failure is the
@@ -248,7 +248,7 @@ fn eval_supply_chain_predicate(
                 passed: !sub.passed,
                 entries: Vec::new(),
             }
-        }
+        },
     }
 }
 
@@ -266,7 +266,7 @@ fn audit_supply_chain_leaf(
     let (crate_name, version, hint, detail) = match leaf {
         Leaf::DepPinned { crate_name } => {
             eval_dep_pinned_to_hint(workspace_root, crate_name.as_deref())
-        }
+        },
         Leaf::DepAttested {
             crate_name,
             version,
@@ -343,7 +343,7 @@ fn eval_dep_attested_to_hint(
         DepAttestedState::Attested { .. } => (AuditHint::FunctionResolves, None),
         DepAttestedState::AttestedWithoutReviewableArtifact => {
             (AuditHint::DepAttestWithoutReviewableArtifact, None)
-        }
+        },
         DepAttestedState::SidecarMissing => (AuditHint::UnattestedDependencyInclusion, None),
         DepAttestedState::SidecarMalformed { error } => (
             AuditHint::UnattestedDependencyInclusion,

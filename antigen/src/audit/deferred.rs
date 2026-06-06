@@ -74,20 +74,20 @@ pub fn audit_deferred_defenses(
             | AuditHint::PoxpartyActive
             | AuditHint::OrientActive => {
                 active_count += 1;
-            }
+            },
             AuditHint::AnergyCostimulationNotArrived
             | AuditHint::ImmunosuppressExpired
             | AuditHint::PoxpartyOutcomePending
             | AuditHint::OrientPendingActionRequired => {
                 expired_count += 1;
-            }
+            },
             AuditHint::AnergyStale | AuditHint::ImmunosuppressDurationCapExceeded => {
                 // Cap-exceeded is the most-overstayed immunosuppress state — it
                 // outlived its own declared hard cap; classify as stale (escalate)
                 // alongside anergy-stale, not merely expired.
                 stale_count += 1;
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         audits.push(DeferredDefenseAudit {
@@ -137,14 +137,14 @@ fn evaluate_deferred_defense_hint(
                         } else {
                             AuditHint::AnergyCostimulationNotArrived
                         }
-                    }
+                    },
                     // Present-but-unparseable (typo like "2026-13-99", "soon"): an
                     // INTENDED deadline that resolves to nothing → unresolved
                     // co-stimulation, not a grace. Escalate (not silently active).
                     None => AuditHint::AnergyCostimulationNotArrived,
                 },
             }
-        }
+        },
         DeferredDefenseKind::Immunosuppress => {
             // Duration-cap enforcement (ADR-023): `#[immunosuppress(since = D,
             // duration_cap = N)]` is capped at N days from D. Once `since + cap`
@@ -179,7 +179,7 @@ fn evaluate_deferred_defense_hint(
                     _ => AuditHint::ImmunosuppressExpired,
                 },
             }
-        }
+        },
         DeferredDefenseKind::Poxparty => {
             // `until` is REQUIRED (ADR-023). Same Orient-style split: present-but-
             // malformed must escalate, not silently stay Active. Previously a typo
@@ -195,7 +195,7 @@ fn evaluate_deferred_defense_hint(
                     _ => AuditHint::PoxpartyOutcomePending,
                 },
             }
-        }
+        },
         DeferredDefenseKind::Orient => {
             // ADR-023: `#[orient]` REQUIRES `until` (the orientation-period
             // horizon). The audit OBSERVES that date: once it has passed, the
@@ -224,7 +224,7 @@ fn evaluate_deferred_defense_hint(
                     _ => AuditHint::OrientPendingActionRequired,
                 },
             }
-        }
+        },
     }
 }
 

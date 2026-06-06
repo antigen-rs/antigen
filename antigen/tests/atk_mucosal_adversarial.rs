@@ -10,9 +10,10 @@
 //!
 //! Written by adversarial role as preemptive attack surface documentation.
 
-use antigen::audit::{audit_mucosal, AuditHint};
-use antigen::scan::{ItemTarget, MucosalDeclaration, MucosalKindTag, ScanReport};
 use std::path::PathBuf;
+
+use antigen::audit::{AuditHint, audit_mucosal};
+use antigen::scan::{ItemTarget, MucosalDeclaration, MucosalKindTag, ScanReport};
 
 fn mucosal_decl(
     tag: MucosalKindTag,

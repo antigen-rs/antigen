@@ -135,11 +135,11 @@ impl Predicate {
                     c.walk(f);
                 }
                 f(self);
-            }
+            },
             Self::Not { child } => {
                 child.walk(f);
                 f(self);
-            }
+            },
         }
     }
 
@@ -181,11 +181,11 @@ impl Predicate {
                     for c in children {
                         stack.push((c, depth + 1));
                     }
-                }
+                },
                 Self::Not { child } => {
                     stack.push((child, depth + 1));
-                }
-                Self::Leaf(_) => {}
+                },
+                Self::Leaf(_) => {},
             }
         }
 
@@ -200,32 +200,32 @@ impl Predicate {
                     err = Some(PredicateParseError::ZeroLeafComposition {
                         combinator: "all_of",
                     });
-                }
+                },
                 Self::AnyOf { children } if children.is_empty() => {
                     err = Some(PredicateParseError::ZeroLeafComposition {
                         combinator: "any_of",
                     });
-                }
+                },
                 Self::Leaf(Leaf::Signers { required, .. }) if required.is_empty() => {
                     err = Some(PredicateParseError::EmptySignersList);
-                }
+                },
                 Self::Leaf(Leaf::OraclesComplete { files }) if files.is_empty() => {
                     err = Some(PredicateParseError::EmptyOraclesList);
-                }
+                },
                 Self::Leaf(Leaf::SignedTrailer { count, .. }) if *count == 0 => {
                     err = Some(PredicateParseError::ZeroTrailerCount);
-                }
+                },
                 Self::Leaf(Leaf::RatifiedDoc {
                     anchor: Some(a), ..
                 }) if a.is_empty() => {
                     err = Some(PredicateParseError::EmptyAnchor);
-                }
+                },
                 Self::Leaf(Leaf::RatifiedDoc {
                     min_version: Some(v),
                     ..
                 }) if v.is_empty() => {
                     err = Some(PredicateParseError::EmptyMinVersion);
-                }
+                },
                 Self::Leaf(Leaf::RatifiedDoc {
                     min_version: Some(v),
                     ..
@@ -244,8 +244,8 @@ impl Predicate {
                             component: bad.to_string(),
                         });
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             }
         });
         err.map_or(Ok(()), Err)

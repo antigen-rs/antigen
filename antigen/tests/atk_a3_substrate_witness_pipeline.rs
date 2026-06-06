@@ -27,9 +27,10 @@
 //! discipline applies to test substrate too. Each assertion calls out the
 //! specific rc.1 failure mode it would have caught.
 
-use antigen::audit::{audit, AuditHint, WitnessTier};
-use antigen::scan::scan_workspace;
 use std::path::{Path, PathBuf};
+
+use antigen::audit::{AuditHint, WitnessTier, audit};
+use antigen::scan::scan_workspace;
 
 fn fixture(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))

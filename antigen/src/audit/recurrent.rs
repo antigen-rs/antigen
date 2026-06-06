@@ -212,7 +212,7 @@ fn evaluate_recurrent_hints(
             if decl.antigen_type.is_none() {
                 hints.push(AuditHint::ItchNoticedNotAnchored);
             }
-        }
+        },
         RecurrentKind::RecurrenceAnchor => {
             // Anchor has no upstream itch preconditions — temporal progression
             // (itch → anchor → crystallize) bypassed (ATK-RECURRENT-2).
@@ -253,14 +253,14 @@ fn evaluate_recurrent_hints(
                     hints.push(AuditHint::RecurrenceThresholdReachedNoAction);
                 }
             }
-        }
+        },
         RecurrentKind::Crystallize => {
             // A crystallization with neither a formal antigen NOR source
             // itches crystallized nothing into anything.
             if decl.antigen_type.is_none() && decl.from_itches.is_empty() {
                 hints.push(AuditHint::CrystallizeWithoutAntigen);
             }
-        }
+        },
         RecurrentKind::Chronic => {
             if decl.managed_by.is_none() {
                 hints.push(AuditHint::ChronicSignalUnmanaged);
@@ -283,17 +283,17 @@ fn evaluate_recurrent_hints(
                     hints.push(AuditHint::ChronicSinceNotADate);
                 }
             }
-        }
+        },
         RecurrentKind::Saturate => {
             if decl.contributing_to.is_none() {
                 hints.push(AuditHint::SaturateNoAnchor);
             }
-        }
+        },
         RecurrentKind::Strand => {
             if decl.anchored_by.is_empty() {
                 hints.push(AuditHint::StrandNoAnchors);
             }
-        }
+        },
     }
     hints
 }

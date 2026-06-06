@@ -6,10 +6,11 @@
 //! Amendment 1 Change 2 (the 5-state matrix) and ADR-010 Amendment 3
 //! Performance Invariant 4 (node-kind dispatch).
 
-use antigen::scan::{scan_workspace, MatchKind};
 use std::collections::HashMap;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+
+use antigen::scan::{MatchKind, scan_workspace};
 
 fn fixture(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))

@@ -36,7 +36,7 @@
 //! | W6a-016 | matcher | `PartialEq` on `MethodPattern` ignores normalized cache | ACTIVE (identity contract) |
 //! | W6a-017 | matcher | `(Self, Self) -> Self` does NOT match `fn meet(self, ...)` — Mechanism B preserved | ACTIVE (regression guard) |
 
-use antigen_fingerprint::{Fingerprint, ItemKind, MethodPattern, MAX_DEPTH, MAX_NODES};
+use antigen_fingerprint::{Fingerprint, ItemKind, MAX_DEPTH, MAX_NODES, MethodPattern};
 
 fn parse(s: &str) -> syn::Result<Fingerprint> {
     Fingerprint::parse(s)

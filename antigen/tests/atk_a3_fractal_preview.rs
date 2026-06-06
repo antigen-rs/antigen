@@ -21,8 +21,9 @@
 // were activated when scan-side cycle detection + lineage-edge collection
 // landed (A3 deliverable 1 + 2).
 
-use antigen::scan::scan_workspace;
 use std::path::{Path, PathBuf};
+
+use antigen::scan::scan_workspace;
 
 fn fixture(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -393,8 +394,9 @@ fn atk_a3_005_cross_crate_name_collision_not_suppressed_by_same_name_immunity() 
     // one Immunity with canonical_path = "crate_a@1.0.0", both with
     // ItemTarget::Struct("MyType"). Verify the immunity does not
     // suppress the presentation.
-    use antigen::scan::{Immunity, ItemTarget, Presentation, ScanReport};
     use std::path::PathBuf;
+
+    use antigen::scan::{Immunity, ItemTarget, Presentation, ScanReport};
 
     let mut report = ScanReport::default();
     // crate_b's presentation (unmarked vulnerability)
@@ -473,8 +475,9 @@ fn atk_a3_006_orphan_edge_canonical_path_false_resolution() {
     // `foo@1.0.0::Foo` (different canonical_path) is in the scan. The
     // orphan query uses (type_name, canonical_path) tuple comparison per
     // ADR-017 + ADR-018 §Enforcement.
-    use antigen::scan::{AntigenDeclaration, LineageEdge, ScanReport};
     use std::path::PathBuf;
+
+    use antigen::scan::{AntigenDeclaration, LineageEdge, ScanReport};
 
     let mut report = ScanReport::default();
     // crate_a has `Foo` declared

@@ -116,7 +116,7 @@ fn evaluate_convergent_evidence_hints(
                     hints.push(AuditHint::DiagnosticModalityInsufficient);
                 }
             }
-        }
+        },
         ConvergentEvidenceKind::Clonal => {
             // Fixed-seed in scan output: the proc-macro rejects this at
             // parse time, but the scan walks raw source — pre-cap source
@@ -129,7 +129,7 @@ fn evaluate_convergent_evidence_hints(
                     hints.push(AuditHint::ClonalIterationsBelowThreshold);
                 }
             }
-        }
+        },
         ConvergentEvidenceKind::Igg => {
             if let Some(span) = decl.historical_span {
                 if span < IGG_HISTORICAL_SPAN_DEFAULT_FLOOR {
@@ -160,7 +160,7 @@ fn evaluate_convergent_evidence_hints(
             if decl.witnesses.len() > 1 && unique_count.len() == 1 {
                 hints.push(AuditHint::IggIdentityCollapseWarning);
             }
-        }
+        },
         ConvergentEvidenceKind::Crossreactive => {
             for fp in &decl.fingerprints {
                 if !known_antigen_names.contains(fp.as_str()) {
@@ -168,7 +168,7 @@ fn evaluate_convergent_evidence_hints(
                     break;
                 }
             }
-        }
+        },
         ConvergentEvidenceKind::Polyclonal
         | ConvergentEvidenceKind::Monoclonal
         | ConvergentEvidenceKind::Adcc => {
@@ -179,7 +179,7 @@ fn evaluate_convergent_evidence_hints(
             // their on-item witness companions. monoclonal is
             // documentary by definition. v0.2 emits no automatic
             // concerns for any of the three.
-        }
+        },
     }
     hints
 }

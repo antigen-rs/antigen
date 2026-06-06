@@ -63,8 +63,9 @@ pub fn send_with_retry(endpoint: &str, max_retries: u32) -> Result<String, Strin
 
 #[cfg(feature = "antigen-poxparty")]
 mod poxparty_exercises {
-    use super::RetryBudgetExhaustion;
     use antigen::poxparty;
+
+    use super::RetryBudgetExhaustion;
 
     /// Chaos test: deliberately exhaust the retry budget to verify that the
     /// system-under-test correctly surfaces a budget-exhaustion error to

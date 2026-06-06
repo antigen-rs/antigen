@@ -202,8 +202,9 @@ impl_has_attributes!(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use quote::quote;
+
+    use super::*;
 
     fn struct_digest(ts: TokenStream) -> String {
         let item: syn::ItemStruct = syn::parse2(ts).expect("parse struct");

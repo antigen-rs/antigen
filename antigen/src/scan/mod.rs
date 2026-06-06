@@ -103,23 +103,23 @@ impl Parse for ScanAntigenArgs {
                 "name" => {
                     let lit: LitStr = input.parse()?;
                     name = Some(lit.value());
-                }
+                },
                 "fingerprint" => {
                     let lit: LitStr = input.parse()?;
                     fingerprint = Some(lit.value());
-                }
+                },
                 "family" => {
                     let lit: LitStr = input.parse()?;
                     family = Some(lit.value());
-                }
+                },
                 "summary" => {
                     let lit: LitStr = input.parse()?;
                     summary = Some(lit.value());
-                }
+                },
                 "references" => {
                     // Consume the array without storing (not used in scan output yet).
                     let _arr: syn::ExprArray = input.parse()?;
-                }
+                },
                 "category" => {
                     // Parse path expression(s): single or array form.
                     fn path_to_string(expr: &syn::Expr) -> Option<String> {
@@ -143,29 +143,29 @@ impl Parse for ScanAntigenArgs {
                                     category.push(s);
                                 }
                             }
-                        }
+                        },
                         single => {
                             if let Some(s) = path_to_string(single) {
                                 category.push(s);
                             }
-                        }
+                        },
                     }
-                }
+                },
                 "provenance" => {
                     // Authored provenance claim (ADR-039 §C). Store the variant
                     // last-segment (`Provenance::Heuristic` → `"Heuristic"`).
                     let val: syn::Expr = input.parse()?;
                     provenance = path_last_segment(&val);
-                }
+                },
                 "presentation" => {
                     // Authored presentation axis (ADR-039 §C).
                     let val: syn::Expr = input.parse()?;
                     presentation = path_last_segment(&val);
-                }
+                },
                 _ => {
                     // Unknown field: consume the value expression and continue.
                     let _: syn::Expr = input.parse()?;
-                }
+                },
             }
             if input.peek(Token![,]) {
                 input.parse::<Token![,]>()?;
@@ -223,16 +223,16 @@ impl Parse for ScanPresentsArgs {
                 "requires" => {
                     let pred: RequiresExpr = input.parse()?;
                     requires_predicate = Some(pred.to_json());
-                }
+                },
                 "proof" => {
                     let expr: syn::Expr = input.parse()?;
                     proof = Some(expr.to_token_stream().to_string());
-                }
+                },
                 _ => {
                     // Forward-compat: consume unknown values silently (the macro
                     // side rejects them). Recall-tuned scan per ADR-010.
                     let _: syn::Expr = input.parse()?;
-                }
+                },
             }
         }
 
@@ -285,7 +285,7 @@ impl Parse for ScanImmuneArgs {
                     use quote::ToTokens;
                     let val: syn::Expr = input.parse()?;
                     witness = val.to_token_stream().to_string();
-                }
+                },
                 "requires" => {
                     // Substrate-witness predicate (ADR-019). Reuse the shared
                     // parser from antigen-attestation so the JSON the scan
@@ -296,12 +296,12 @@ impl Parse for ScanImmuneArgs {
                     // sub-clause F was built to catch.
                     let pred: RequiresExpr = input.parse()?;
                     requires_predicate = Some(pred.to_json());
-                }
+                },
                 _ => {
                     // Unknown / rationale / other fields: consume the value
                     // silently. Forward-compat per ADR-009 adoption gradient.
                     let _: syn::Expr = input.parse()?;
-                }
+                },
             }
         }
 
@@ -354,11 +354,11 @@ impl Parse for ScanToleranceArgs {
                 "rationale" => {
                     let lit: LitStr = input.parse()?;
                     rationale = lit.value();
-                }
+                },
                 "until" => {
                     let lit: LitStr = input.parse()?;
                     until = Some(lit.value());
-                }
+                },
                 "see" => {
                     let arr: syn::ExprArray = input.parse()?;
                     for elem in &arr.elems {
@@ -369,16 +369,16 @@ impl Parse for ScanToleranceArgs {
                             see.push(s.value());
                         }
                     }
-                }
+                },
                 "requires" => {
                     let pred: RequiresExpr = input.parse()?;
                     requires_predicate = Some(pred.to_json());
-                }
+                },
                 _ => {
                     // Unknown field: consume silently (forward-compat per
                     // ADR-009 adoption-gradient tolerance).
                     let _: Expr = input.parse()?;
-                }
+                },
             }
         }
 
@@ -422,12 +422,12 @@ impl Parse for ScanGeneratesArgs {
                 "rationale" => {
                     let lit: LitStr = input.parse()?;
                     rationale = lit.value();
-                }
+                },
                 _ => {
                     // Unknown field (witness_template, if_attr_present, future):
                     // consume silently for adoption-gradient forward-compat.
                     let _: Expr = input.parse()?;
-                }
+                },
             }
         }
 
@@ -466,12 +466,12 @@ impl Parse for ScanMarkerArgs {
                 "trigger" => {
                     let lit: LitStr = input.parse()?;
                     trigger = lit.value();
-                }
+                },
                 _ => {
                     // Unknown field: consume silently (the macro side rejects
                     // magnitude=/existence_certainty=/unknown; scan is lenient).
                     let _: Expr = input.parse()?;
-                }
+                },
             }
         }
         Ok(Self { trigger })
@@ -529,27 +529,27 @@ impl Parse for ScanRecurrentArgs {
                 "name" => {
                     let lit: LitStr = input.parse()?;
                     out.name = Some(lit.value());
-                }
+                },
                 "antigen" => {
                     let path: Path = input.parse()?;
                     out.antigen_type = path.segments.last().map(|s| s.ident.to_string());
-                }
+                },
                 "description" | "summary" => {
                     let lit: LitStr = input.parse()?;
                     out.description = Some(lit.value());
-                }
+                },
                 "instances" => {
                     let lit: LitInt = input.parse()?;
                     out.instances = lit.base10_parse::<u64>().ok();
-                }
+                },
                 "since" => {
                     let lit: LitStr = input.parse()?;
                     out.since = Some(lit.value());
-                }
+                },
                 "rationale" => {
                     let lit: LitStr = input.parse()?;
                     out.rationale = Some(lit.value());
-                }
+                },
                 "from_itches" => {
                     let arr: syn::ExprArray = input.parse()?;
                     for elem in &arr.elems {
@@ -559,7 +559,7 @@ impl Parse for ScanRecurrentArgs {
                             }
                         }
                     }
-                }
+                },
                 "anchored_by" => {
                     let arr: syn::ExprArray = input.parse()?;
                     for elem in &arr.elems {
@@ -569,22 +569,22 @@ impl Parse for ScanRecurrentArgs {
                             }
                         }
                     }
-                }
+                },
                 "managed_by" => {
                     let lit: LitStr = input.parse()?;
                     out.managed_by = Some(lit.value());
-                }
+                },
                 "contributing_to" => {
                     let lit: LitStr = input.parse()?;
                     out.contributing_to = Some(lit.value());
-                }
+                },
                 // Forward-compat: known-but-not-captured fields (threshold,
                 // status) + any unknown field are consumed silently per the
                 // ADR-009 adoption gradient. Audit handles required-field
                 // validation; scan is recall-tuned (ADR-010).
                 _ => {
                     let _: Expr = input.parse()?;
-                }
+                },
             }
             if !input.is_empty() {
                 let _ = input.parse::<Token![,]>();
@@ -622,31 +622,31 @@ impl Parse for ScanMucosalArgs {
                     // MucosalKind::X path expression → final segment.
                     let path: Path = input.parse()?;
                     out.boundary_kind = path.segments.last().map(|s| s.ident.to_string());
-                }
+                },
                 "rationale" => {
                     let lit: LitStr = input.parse()?;
                     out.rationale = Some(lit.value());
-                }
+                },
                 "handled_by" => {
                     // syn::Path per Amendment 1 Change 4 → final segment.
                     let path: Path = input.parse()?;
                     out.handled_by = path.segments.last().map(|s| s.ident.to_string());
-                }
+                },
                 "accepts" => {
                     let lit: LitStr = input.parse()?;
                     out.accepts = Some(lit.value());
-                }
+                },
                 "reviewed_by" => {
                     let lit: LitStr = input.parse()?;
                     out.reviewed_by = Some(lit.value());
-                }
+                },
                 "until" => {
                     let lit: LitStr = input.parse()?;
                     out.until = Some(lit.value());
-                }
+                },
                 _ => {
                     let _: Expr = input.parse()?;
-                }
+                },
             }
             if !input.is_empty() {
                 let _ = input.parse::<Token![,]>();
@@ -715,36 +715,36 @@ impl Parse for ScanPrescriptiveArgs {
                 "to" | "deep_investigation_by" | "investigator" | "triaged_by" => {
                     let lit: LitStr = input.parse()?;
                     out.filled_by.push(lit.value());
-                }
+                },
                 // Review who-refs.
                 "reviewed_by" => out.reviewed_by = str_array(input)?,
                 "reviewer" => {
                     let lit: LitStr = input.parse()?;
                     out.reviewed_by.push(lit.value());
-                }
+                },
                 "ordered_by" => {
                     let lit: LitStr = input.parse()?;
                     out.ordered_by = Some(lit.value());
-                }
+                },
                 // Temporal frame (across shapes).
                 "due" | "response_due" | "re_triage_due" | "runs_until" | "until" => {
                     let lit: LitStr = input.parse()?;
                     out.frame = Some(lit.value());
-                }
+                },
                 // Primary free-text content.
                 "treatment" | "request_text" | "symptom" | "test_kind" | "reason" => {
                     let lit: LitStr = input.parse()?;
                     out.need_text = Some(lit.value());
-                }
+                },
                 // Secondary opaque label.
                 "diagnosis" | "location" | "scope" => {
                     let lit: LitStr = input.parse()?;
                     out.label = Some(lit.value());
-                }
+                },
                 // Forward-compat: unknown field consumed silently (recall-tuned).
                 _ => {
                     let _: Expr = input.parse()?;
-                }
+                },
             }
             if !input.is_empty() {
                 let _ = input.parse::<Token![,]>();
@@ -787,22 +787,22 @@ impl Parse for ScanAnergyArgs {
                 "reason" => {
                     let lit: LitStr = input.parse()?;
                     reason = lit.value();
-                }
+                },
                 "until" => {
                     let lit: LitStr = input.parse()?;
                     until = lit.value();
-                }
+                },
                 "expected_co_stimulation" => {
                     let lit: LitStr = input.parse()?;
                     expected_co_stimulation = Some(lit.value());
-                }
+                },
                 "signed_by" => {
                     let lit: LitStr = input.parse()?;
                     signed_by = Some(lit.value());
-                }
+                },
                 _ => {
                     let _: Expr = input.parse()?;
-                }
+                },
             }
             if !input.is_empty() {
                 let _ = input.parse::<Token![,]>();
@@ -852,26 +852,26 @@ impl Parse for ScanImmunosuppressArgs {
                 "rationale" => {
                     let lit: LitStr = input.parse()?;
                     rationale = lit.value();
-                }
+                },
                 "until" => {
                     let lit: LitStr = input.parse()?;
                     until = lit.value();
-                }
+                },
                 "since" => {
                     let lit: LitStr = input.parse()?;
                     since = Some(lit.value());
-                }
+                },
                 "duration_cap" => {
                     let lit: LitInt = input.parse()?;
                     duration_cap = lit.base10_parse::<u64>().ok();
-                }
+                },
                 "signed_by" => {
                     let lit: LitStr = input.parse()?;
                     signed_by = Some(lit.value());
-                }
+                },
                 _ => {
                     let _: Expr = input.parse()?;
-                }
+                },
             }
             if !input.is_empty() {
                 let _ = input.parse::<Token![,]>();
@@ -922,26 +922,26 @@ impl Parse for ScanPoxpartyArgs {
                 "exercise_type" => {
                     let lit: LitStr = input.parse()?;
                     exercise_type = lit.value();
-                }
+                },
                 "until" => {
                     let lit: LitStr = input.parse()?;
                     until = lit.value();
-                }
+                },
                 "name" => {
                     let lit: LitStr = input.parse()?;
                     name = Some(lit.value());
-                }
+                },
                 "rationale" => {
                     let lit: LitStr = input.parse()?;
                     rationale = Some(lit.value());
-                }
+                },
                 "signed_by" => {
                     let lit: LitStr = input.parse()?;
                     signed_by = Some(lit.value());
-                }
+                },
                 _ => {
                     let _: Expr = input.parse()?;
-                }
+                },
             }
             if !input.is_empty() {
                 let _ = input.parse::<Token![,]>();
@@ -1021,18 +1021,18 @@ impl Parse for ScanOrientArgs {
                             see.push(s.value());
                         }
                     }
-                }
+                },
                 "adr" => {
                     let lit: LitStr = input.parse()?;
                     adr = Some(lit.value());
-                }
+                },
                 "attestation_optional" => {
                     let lit: syn::LitBool = input.parse()?;
                     attestation_optional = lit.value();
-                }
+                },
                 _ => {
                     let _: Expr = input.parse()?;
-                }
+                },
             }
             if !input.is_empty() {
                 let _ = input.parse::<Token![,]>();
@@ -1075,14 +1075,14 @@ impl Parse for ScanDiagnosticArgs {
                             }
                         }
                     }
-                }
+                },
                 "min_independent" => {
                     let lit: LitInt = input.parse()?;
                     min_independent = lit.base10_parse::<u64>().ok();
-                }
+                },
                 _ => {
                     let _: Expr = input.parse()?;
-                }
+                },
             }
             if !input.is_empty() {
                 let _ = input.parse::<Token![,]>();
@@ -1116,11 +1116,11 @@ impl Parse for ScanClonalArgs {
                 "witness" => {
                     let e: Expr = input.parse()?;
                     witness = Some(e.to_token_stream().to_string());
-                }
+                },
                 "iterations" => {
                     let lit: LitInt = input.parse()?;
                     iterations = lit.base10_parse::<u64>().ok();
-                }
+                },
                 "seed" => {
                     let e: Expr = input.parse()?;
                     if let Expr::Path(p) = &e {
@@ -1134,10 +1134,10 @@ impl Parse for ScanClonalArgs {
                             }
                         }
                     }
-                }
+                },
                 _ => {
                     let _: Expr = input.parse()?;
-                }
+                },
             }
             if !input.is_empty() {
                 let _ = input.parse::<Token![,]>();
@@ -1174,18 +1174,18 @@ impl Parse for ScanIggArgs {
                     for elem in &arr.elems {
                         witnesses.push(elem.to_token_stream().to_string());
                     }
-                }
+                },
                 "historical_span" => {
                     let lit: LitInt = input.parse()?;
                     historical_span = lit.base10_parse::<u64>().ok();
-                }
+                },
                 "min_reattestations" => {
                     let lit: LitInt = input.parse()?;
                     min_reattestations = lit.base10_parse::<u64>().ok();
-                }
+                },
                 _ => {
                     let _: Expr = input.parse()?;
-                }
+                },
             }
             if !input.is_empty() {
                 let _ = input.parse::<Token![,]>();
@@ -1221,14 +1221,14 @@ impl Parse for ScanCrossreactiveArgs {
                             fingerprints.push(s.value());
                         }
                     }
-                }
+                },
                 _ => {
                     if input.peek(LitStr) {
                         let _: LitStr = input.parse()?;
                     } else {
                         let _: Expr = input.parse()?;
                     }
-                }
+                },
             }
             if !input.is_empty() {
                 let _ = input.parse::<Token![,]>();
@@ -1254,16 +1254,16 @@ pub use types::{
 // here `pub(crate)` so the scan passes + the audit cross-checks reach them via
 // `crate::scan::{...}` exactly as before — NOT part of the public surface.
 pub(crate) use types::{
-    canonical_paths_match, defense_addresses, locus_matches, MAX_LINEAGE_DEPTH,
+    MAX_LINEAGE_DEPTH, canonical_paths_match, defense_addresses, locus_matches,
 };
 
 mod lineage;
-pub(crate) use lineage::{dedupe_lineage_edges, detect_lineage_failures};
 // `canonicalise_cycle` is a private lineage helper the scan test module exercises
 // directly; re-export it into the scan namespace under `#[cfg(test)]` only (test
 // reach, not public API) so the test module's `use super::*` keeps resolving it.
 #[cfg(test)]
 pub(crate) use lineage::canonicalise_cycle;
+pub(crate) use lineage::{dedupe_lineage_edges, detect_lineage_failures};
 
 mod walk;
 pub use walk::scan_workspace;
@@ -1273,8 +1273,8 @@ pub(crate) use finalize::{finalize_report, synthesize_inherited_presentations};
 
 mod multi_crate;
 pub use multi_crate::{
-    enumerate_dep_crate_roots, enumerate_workspace_member_roots, scan_workspace_multi_crate,
-    CrateOrigin, DepCrateRoot, WorkspaceMemberRoot,
+    CrateOrigin, DepCrateRoot, WorkspaceMemberRoot, enumerate_dep_crate_roots,
+    enumerate_workspace_member_roots, scan_workspace_multi_crate,
 };
 // Two cross-member resolution passes the scan test module exercises directly;
 // re-export under `#[cfg(test)]` only (test reach, not public API).
@@ -1290,7 +1290,7 @@ mod parse;
 // The parsing engine is crate-internal (the scan passes drive it). Re-export the
 // pieces the synthesis pass + the scan_workspace walk share — the visitor and the
 // syn-render helpers — `pub(crate)` at the scan root, NOT to the public API.
-pub(crate) use parse::{attr_is, render_path, render_type, ScanVisitor};
+pub(crate) use parse::{ScanVisitor, attr_is, render_path, render_type};
 
 #[cfg(test)]
 mod tests {
@@ -1517,9 +1517,10 @@ mod tests {
     // ========================================================================
 
     mod parser_props {
-        use super::super::*;
         use proc_macro2::TokenStream;
         use proptest::prelude::*;
+
+        use super::super::*;
 
         /// Rust strict + reserved keywords that cannot appear as path
         /// segments. Kept in sync with `antigen-macros/src/parse.rs::
@@ -1813,11 +1814,12 @@ mod tests {
         let args = syn::parse2::<ScanRecurrentArgs>(tokens).unwrap();
         assert_eq!(args.from_itches, vec!["DropPanicItch", "CleanupUnwrapItch"]);
         // `summary` maps to the shared `description` capture.
-        assert!(args
-            .description
-            .as_deref()
-            .unwrap()
-            .contains("crystallized"));
+        assert!(
+            args.description
+                .as_deref()
+                .unwrap()
+                .contains("crystallized")
+        );
     }
 
     #[test]

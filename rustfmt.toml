@@ -1,0 +1,65 @@
+# rustfmt.toml — antigen's formatting profile. REQUIRES NIGHTLY rustfmt:
+#   cargo +nightly fmt              (format)
+#   cargo +nightly fmt -- --check  (gate)
+# Stable `cargo fmt` ERRORS on the unstable options below — intentional: it signals a
+# contributor to use nightly. CI, the camp pre-commit gate, and the on-save reminder all
+# run nightly fmt in lockstep.
+#
+# Validated against rustfmt 1.9.0-nightly (2026-05-07). `wrap_comments` is deliberately OFF
+# (rustfmt's own default + the idiomatic majority; it would mangle antigen's `// ====`
+# section dividers + ASCII doc art).
+
+# --- parsing / base ---
+edition = "2021"
+max_width = 100
+newline_style = "Unix"              # free here (tree is already LF); locks LF across Win/Linux
+use_field_init_shorthand = true
+use_try_shorthand = true
+remove_nested_parens = true
+reorder_imports = true
+reorder_modules = true
+match_block_trailing_comma = true   # uniform arms; cuts future match-arm diff noise
+
+# --- newest style edition (unstable) ---
+unstable_features = true
+style_edition = "2027"
+
+# --- imports: GROUP, don't MERGE -----------------------------------------------------
+group_imports = "StdExternalCrate"   # sort std / extern / local; this one has no foot-gun
+#
+# imports_granularity is held at PRESERVE — never "Crate" — a DEFENDED decision, recorded as
+# MEMORY (not an observed claim — ADR-029 observe-don't-declare). The two failure-classes it
+# would otherwise present are DECLARED centrally in docs/dev-loop-ruleset.md (§ Config-level
+# failure-classes); here we carry only the orientation + the wreck-memory:
+#
+#   #[orient(label-drift-from-silent-merge, tooling-choice-spawns-unenforced-invariant,
+#            note = "held at Preserve so neither class is presented; memory of a decision, not a
+#                    witnessed defense. Class declarations live in docs/dev-loop-ruleset.md.")]
+#
+# Marked wreck (2026-06-06): ran "Crate" once -> it folded the uncommented core macro block into
+# the Convergent-Evidence "seven primitives" comment in antigen/src/lib.rs (made it false) +
+# needed a #[rustfmt::skip] on triage_commit. Reverted. Do NOT re-add "Crate": it plants a
+# silent, unenforced doc-drift invariant -- the exact class antigen exists to surface. Real
+# enforcement awaits the Beyond-Code charter; until then this #[orient] IS the structural memory.
+imports_granularity = "Preserve"
+
+# --- spacing discipline ---
+blank_lines_upper_bound = 1
+blank_lines_lower_bound = 0
+
+# --- docs: format code in examples, normalize doc attrs (NOT prose) ---
+format_code_in_doc_comments = true
+doc_comment_code_block_width = 100
+normalize_doc_attributes = true
+
+# --- structural tidies ---
+reorder_impl_items = true
+condense_wildcard_suffixes = true
+where_single_line = true
+hex_literal_case = "Lower"
+format_macro_matchers = true        # antigen ships a proc-macro crate + macro_rules
+
+# --- deliberately OFF (defaults; recorded for intent) ---
+# wrap_comments                = false   # off is more Rust-ic; spares hand-formatted prose / ASCII art
+# format_strings               = false   # churny; hurts message readability
+# struct_field_align_threshold = 0       # vertical alignment fights minimal-diff

@@ -20,8 +20,8 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 use super::{
-    dedupe_lineage_edges, detect_lineage_failures, scan_workspace,
-    synthesize_inherited_presentations, ParseFailure, ScanCoverage, ScanReport, MAX_LINEAGE_DEPTH,
+    MAX_LINEAGE_DEPTH, ParseFailure, ScanCoverage, ScanReport, dedupe_lineage_edges,
+    detect_lineage_failures, scan_workspace, synthesize_inherited_presentations,
 };
 
 // ============================================================================
@@ -514,14 +514,14 @@ pub fn resolve_cross_member_lineage_parents(report: &mut ScanReport) {
             continue;
         };
         match members.len() {
-            0 => {}
+            0 => {},
             1 => {
                 // Unambiguous: re-stamp parent endpoint to the declaring member.
                 let target = members.iter().next().expect("len==1");
                 if e.parent_canonical_path.as_deref() != Some(target.as_str()) {
                     e.parent_canonical_path = Some(target.clone());
                 }
-            }
+            },
             _ => {
                 // Ambiguous cross-member name collision. Keep the conservative
                 // intra-member parent endpoint (whatever stamping set) and make
@@ -539,7 +539,7 @@ pub fn resolve_cross_member_lineage_parents(report: &mut ScanReport) {
                         members = members.iter().cloned().collect::<Vec<_>>().join(", "),
                     ),
                 });
-            }
+            },
         }
     }
     report.parse_failures.extend(ambiguity_failures);
@@ -742,7 +742,7 @@ pub fn scan_workspace_multi_crate(workspace_root: &Path) -> std::io::Result<Scan
                     ),
                 });
                 continue;
-            }
+            },
         };
         // Stamp this member's records with its own canonical path BEFORE
         // merging, so cross-member identity survives the union.

@@ -144,48 +144,35 @@
 
 // Re-export the proc-macros from antigen-macros so users can `use antigen::antigen`,
 // `use antigen::presents`, etc.
-pub use antigen_macros::{
-    antigen, antigen_generates, antigen_tolerance, descended_from, immune, presents,
-};
-
 // Code-tier witness registration (ADR-029): a `#[test]`/proptest function
 // declares which failure-class it defends. `cargo antigen audit` cross-
 // references the witness to the `#[presents]` sites it covers and issues the
 // verdict — immunity is observed, not declared. Migration target for the
 // `witness = fn` channel of the now-deprecated `#[immune]`.
 pub use antigen_macros::defended_by;
-
-// Deferred-Defense Family (ADR-023): loudness-as-discipline for intentional
-// non-immunity. Four structurally distinct postures — anergy, immunosuppress,
-// poxparty, orient — each with parse-time enforcement and aging escalation.
-pub use antigen_macros::{anergy, immunosuppress, orient, poxparty};
-
 // Rollback-as-Triage primitive (ADR-026 §Rollback-as-triage discipline):
 // sibling to the deferred-defense family per aristotle's fixup-orient-dual-
 // signature resolution. Names a triage decision + commit to rollback within
 // a tight time-bound; clinical-medicine grounded.
 pub use antigen_macros::triage_commit;
-
 // Convergent-Evidence Family (ADR-024): seven primitives for backward-
 // looking evidence aggregation plus the two public enums (WitnessClass +
 // SeedKind) adopters supply as macro arguments.
 pub use antigen_macros::{adcc, clonal, crossreactive, diagnostic, igg, monoclonal, polyclonal};
-pub use convergent::{SeedKind, WitnessClass};
-
-// Recurrent-Emergence Family (ADR-024 §Family 2 + scientist HOW-spec
-// cf2a2317 + aristotle Reading-A pre-authorization 744471a3): six
-// present-looking primitives for noticing-and-anchoring recurring
-// failure-classes across substrates. Cognitive-organizational +
-// immunology-proper + clinical-medicine dual-axis grounding.
-pub use antigen_macros::{chronic, crystallize, itch, recurrence_anchor, saturate, strand};
-
-// Mucosal Boundary Family (ADR-027 + Amendment 1): three boundary-discipline
-// primitives — active defense (mucosal), delegated defense (mucosal_delegate),
-// active tolerance (mucosal_tolerant). Selective-permeability trust boundaries;
-// biology grounds the tier-claim + 4 functional disciplines.
-pub use antigen_macros::{mucosal, mucosal_delegate, mucosal_tolerant};
-pub use mucosal::MucosalKind;
-
+// Deferred-Defense Family (ADR-023): loudness-as-discipline for intentional
+// non-immunity. Four structurally distinct postures — anergy, immunosuppress,
+// poxparty, orient — each with parse-time enforcement and aging escalation.
+pub use antigen_macros::{anergy, immunosuppress, orient, poxparty};
+pub use antigen_macros::{
+    antigen, antigen_generates, antigen_tolerance, descended_from, immune, presents,
+};
+// Marked-Unknown Plane (ADR-041): three declarable ⊥ markers for the
+// felt-but-unnamed danger — `#[aura]` (light / low magnitude), `#[dread]`
+// (angor-animi: high magnitude, low existence-certainty), `#[red_flag]`
+// (sure-but-unnameable: high existence-certainty, auto-escalates). OFF the dial's
+// classification axis, surfaced at its non-gating floor; never gate, never nag.
+// The `trigger` field is REQUIRED (guard 3 — a triggerless marker is graffiti).
+pub use antigen_macros::{aura, dread, red_flag};
 // Prescriptive Work-Orchestration Family (ADR-033, extends ADR-024): eight
 // clinical-named work-need primitives routing to four structural shapes
 // (S1 role-workflow: panel/rx/refer/biopsy; S2 elimination: ddx; S3 ordering:
@@ -194,14 +181,19 @@ pub use mucosal::MucosalKind;
 // (ADR-019 Amendment 1). `#[triage]` is the work-need ordering macro, distinct
 // from `#[triage_commit]` (ADR-026 VCS-rollback).
 pub use antigen_macros::{biopsy, culture, ddx, panel, quarantine, refer, rx, triage};
-
-// Marked-Unknown Plane (ADR-041): three declarable ⊥ markers for the
-// felt-but-unnamed danger — `#[aura]` (light / low magnitude), `#[dread]`
-// (angor-animi: high magnitude, low existence-certainty), `#[red_flag]`
-// (sure-but-unnameable: high existence-certainty, auto-escalates). OFF the dial's
-// classification axis, surfaced at its non-gating floor; never gate, never nag.
-// The `trigger` field is REQUIRED (guard 3 — a triggerless marker is graffiti).
-pub use antigen_macros::{aura, dread, red_flag};
+// Recurrent-Emergence Family (ADR-024 §Family 2 + scientist HOW-spec
+// cf2a2317 + aristotle Reading-A pre-authorization 744471a3): six
+// present-looking primitives for noticing-and-anchoring recurring
+// failure-classes across substrates. Cognitive-organizational +
+// immunology-proper + clinical-medicine dual-axis grounding.
+pub use antigen_macros::{chronic, crystallize, itch, recurrence_anchor, saturate, strand};
+// Mucosal Boundary Family (ADR-027 + Amendment 1): three boundary-discipline
+// primitives — active defense (mucosal), delegated defense (mucosal_delegate),
+// active tolerance (mucosal_tolerant). Selective-permeability trust boundaries;
+// biology grounds the tier-claim + 4 functional disciplines.
+pub use antigen_macros::{mucosal, mucosal_delegate, mucosal_tolerant};
+pub use convergent::{SeedKind, WitnessClass};
+pub use mucosal::MucosalKind;
 
 pub mod audit;
 pub mod scan;

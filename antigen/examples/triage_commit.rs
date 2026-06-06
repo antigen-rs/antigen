@@ -54,7 +54,7 @@
 #![allow(dead_code, unused_variables, unused_imports)]
 
 use antigen::stdlib::vcs_info_loss::RollbackWithoutTriageCommit;
-use antigen::{orient, presents, triage_commit, TriageDecision};
+use antigen::{TriageDecision, orient, presents, triage_commit};
 
 // ============================================================================
 // Speech-act contrast — orient vs triage_commit

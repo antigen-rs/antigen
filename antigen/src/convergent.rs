@@ -97,12 +97,12 @@ impl WitnessClass {
             "property-test" | "property_test" | "PropertyTest" => Some(Self::PropertyTest),
             "formal-verification" | "formal_verification" | "FormalVerification" => {
                 Some(Self::FormalVerification)
-            }
+            },
             "manual-review" | "manual_review" | "ManualReview" => Some(Self::ManualReview),
             "runtime-fuzz" | "runtime_fuzz" | "RuntimeFuzz" => Some(Self::RuntimeFuzz),
             "substrate-witness" | "substrate_witness" | "SubstrateWitness" => {
                 Some(Self::SubstrateWitness)
-            }
+            },
             _ => None,
         }
     }

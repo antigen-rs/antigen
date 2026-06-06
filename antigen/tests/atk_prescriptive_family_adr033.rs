@@ -176,7 +176,7 @@ pub fn p() {}
 // PRES-9/11) cannot — the (satisfied, evaluable) DERIVATION from real substrate.
 // ============================================================================
 
-use antigen::audit::{audit_prescriptive, PrescriptiveAuditReport, StepState, WorkVerdict};
+use antigen::audit::{PrescriptiveAuditReport, StepState, WorkVerdict, audit_prescriptive};
 use antigen::scan::scan_workspace;
 
 /// A sidecar to stage alongside a fixture: `(sidecar-stem, builder)` where

@@ -14,7 +14,7 @@
 
 [gates]
 commands = [
-  "cargo fmt --all -- --check",
+  "cargo +nightly fmt --all -- --check",
   "cargo clippy --workspace --all-targets -- -D warnings",
   "cargo test --workspace --all-targets",
   "cargo doc --workspace --no-deps",

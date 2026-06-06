@@ -28,7 +28,7 @@
 //!    (`true,false`), so a 2-valued `is_complete` no longer collapses the
 //!    first and third (adversarial 2026-06-01 type-discipline gap).
 
-use antigen::audit::{audit_coverage, UnreachedCause};
+use antigen::audit::{UnreachedCause, audit_coverage};
 use antigen::scan::{ScanCoverage, ScanReport};
 
 /// A `ScanReport` carrying a `ScanCoverage` with the given member sets and
@@ -60,7 +60,7 @@ fn unreached_cause_cardinality_is_exactly_three() {
     ];
     for cause in all {
         match cause {
-            UnreachedCause::Barrier | UnreachedCause::SubThreshold | UnreachedCause::Cryptic => {}
+            UnreachedCause::Barrier | UnreachedCause::SubThreshold | UnreachedCause::Cryptic => {},
         }
     }
     assert_eq!(

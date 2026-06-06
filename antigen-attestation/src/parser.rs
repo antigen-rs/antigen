@@ -268,7 +268,7 @@ impl RequiresExpr {
                     c.check_depth(depth + 1, span)?;
                 }
                 Ok(())
-            }
+            },
             Self::Not(child) => child.check_depth(depth + 1, span),
             Self::Leaf(_) => Ok(()),
         }
@@ -289,7 +289,7 @@ impl RequiresExpr {
                     child.validate_inner(span)?;
                 }
                 Ok(())
-            }
+            },
             Self::Not(child) => child.validate_inner(span),
             Self::Leaf(leaf) => leaf.validate(span),
         }
@@ -380,7 +380,7 @@ impl LeafExpr {
             Self::Signers { required, .. } if required.is_empty() => Err(syn::Error::new(
                 span,
                 "requires: `signers(required = [])` is a semantic no-op (NFA-7); \
-                 add at least one required signer name"
+                 add at least one required signer name",
             )),
             Self::OraclesComplete { files } if files.is_empty() => Err(syn::Error::new(
                 span,
@@ -444,7 +444,7 @@ impl LeafExpr {
                     "requires: `sandbox_clean` requires non-empty crate name AND \
                      sandbox_kind ∈ {\"build\", \"proc-macro\"} (ADR-025 §Substrate-witness-leaves).",
                 ))
-            }
+            },
             _ => Ok(()),
         }
     }
@@ -474,7 +474,7 @@ impl Parse for RequiresExpr {
                     ));
                 }
                 Ok(Self::AllOf(children))
-            }
+            },
             "any_of" => {
                 let content;
                 syn::parenthesized!(content in input);
@@ -488,17 +488,17 @@ impl Parse for RequiresExpr {
                     ));
                 }
                 Ok(Self::AnyOf(children))
-            }
+            },
             "not" => {
                 let content;
                 syn::parenthesized!(content in input);
                 let child: Self = content.parse()?;
                 Ok(Self::Not(Box::new(child)))
-            }
+            },
             leaf_name => {
                 let leaf = parse_leaf(leaf_name, span, input)?;
                 Ok(Self::Leaf(leaf))
-            }
+            },
         }
     }
 }
@@ -578,7 +578,7 @@ fn parse_dep_pinned(_span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
             "crate" | "crate_name" => {
                 let s: LitStr = content.parse()?;
                 crate_name = Some(s.value());
-            }
+            },
             other => {
                 return Err(syn::Error::new(
                     key.span(),
@@ -586,7 +586,7 @@ fn parse_dep_pinned(_span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
                         "unknown dep_pinned field `{other}`; expected: crate (positional or `crate = \"...\"`)"
                     ),
                 ));
-            }
+            },
         }
         if content.is_empty() {
             break;
@@ -626,19 +626,19 @@ fn parse_dep_attested(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
             "crate" | "crate_name" => {
                 let s: LitStr = content.parse()?;
                 crate_name = Some(s.value());
-            }
+            },
             "version" => {
                 let s: LitStr = content.parse()?;
                 version = Some(s.value());
-            }
+            },
             "exact_version" => {
                 let b: LitBool = content.parse()?;
                 exact_version = b.value();
-            }
+            },
             "reviewable_artifact" => {
                 let s: LitStr = content.parse()?;
                 reviewable_artifact = Some(s.value());
-            }
+            },
             other => {
                 return Err(syn::Error::new(
                     key.span(),
@@ -647,7 +647,7 @@ fn parse_dep_attested(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
                          expected: crate, version, exact_version, reviewable_artifact"
                     ),
                 ));
-            }
+            },
         }
         if content.is_empty() {
             break;
@@ -702,11 +702,11 @@ fn parse_maintainer_unchanged(span: Span, input: ParseStream) -> syn::Result<Lea
             "crate" | "crate_name" => {
                 let s: LitStr = content.parse()?;
                 crate_name = Some(s.value());
-            }
+            },
             "since_version" => {
                 let s: LitStr = content.parse()?;
                 since_version = Some(s.value());
-            }
+            },
             other => {
                 return Err(syn::Error::new(
                     key.span(),
@@ -715,7 +715,7 @@ fn parse_maintainer_unchanged(span: Span, input: ParseStream) -> syn::Result<Lea
                          expected: crate, since_version"
                     ),
                 ));
-            }
+            },
         }
         if content.is_empty() {
             break;
@@ -764,11 +764,11 @@ fn parse_content_hash_matches(span: Span, input: ParseStream) -> syn::Result<Lea
             "crate" | "crate_name" => {
                 let s: LitStr = content.parse()?;
                 crate_name = Some(s.value());
-            }
+            },
             "version" => {
                 let s: LitStr = content.parse()?;
                 version = Some(s.value());
-            }
+            },
             other => {
                 return Err(syn::Error::new(
                     key.span(),
@@ -777,7 +777,7 @@ fn parse_content_hash_matches(span: Span, input: ParseStream) -> syn::Result<Lea
                          expected: crate, version"
                     ),
                 ));
-            }
+            },
         }
         if content.is_empty() {
             break;
@@ -825,11 +825,11 @@ fn parse_sandbox_clean(span: Span, input: ParseStream) -> syn::Result<LeafExpr> 
             "crate" | "crate_name" => {
                 let s: LitStr = content.parse()?;
                 crate_name = Some(s.value());
-            }
+            },
             "sandbox_kind" => {
                 let s: LitStr = content.parse()?;
                 sandbox_kind = Some(s.value());
-            }
+            },
             other => {
                 return Err(syn::Error::new(
                     key.span(),
@@ -838,7 +838,7 @@ fn parse_sandbox_clean(span: Span, input: ParseStream) -> syn::Result<LeafExpr> 
                          expected: crate, sandbox_kind"
                     ),
                 ));
-            }
+            },
         }
         if content.is_empty() {
             break;
@@ -917,7 +917,7 @@ fn signature_strength_from_str(s: &LitStr) -> syn::Result<crate::tier::Signature
                      \"text-stamp\", \"git-trust\", \"crypto-signed\"{snake_case_hint}"
                 ),
             ))
-        }
+        },
     }
 }
 
@@ -976,19 +976,19 @@ fn parse_ratified_doc(_span: Span, input: ParseStream) -> syn::Result<LeafExpr> 
                 "path" => {
                     let s: LitStr = content.parse()?;
                     path = Some(s.value());
-                }
+                },
                 "min_version" => {
                     let s: LitStr = content.parse()?;
                     min_version = Some(s.value());
-                }
+                },
                 "anchor" => {
                     let s: LitStr = content.parse()?;
                     anchor = Some(s.value());
-                }
+                },
                 "sibling_json" => {
                     let b: LitBool = content.parse()?;
                     sibling_json = b.value();
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -997,7 +997,7 @@ fn parse_ratified_doc(_span: Span, input: ParseStream) -> syn::Result<LeafExpr> 
                              expected: path, min_version, anchor, sibling_json"
                         ),
                     ));
-                }
+                },
             }
             if content.is_empty() {
                 break;
@@ -1029,10 +1029,10 @@ fn parse_signers(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
             match key.to_string().as_str() {
                 "required" => {
                     required = parse_string_array(&content)?;
-                }
+                },
                 "roles" => {
                     roles = parse_string_string_map(&content)?;
-                }
+                },
                 "against" => {
                     let s: LitStr = content.parse()?;
                     against = match s.value().as_str() {
@@ -1045,17 +1045,17 @@ fn parse_signers(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
                                     "unknown signers `against` value `{other}`; \
                                      expected \"current\" or \"any\""
                                 ),
-                            ))
-                        }
+                            ));
+                        },
                     };
-                }
+                },
                 "signature_allow" => {
                     signature_allow = parse_signature_strength_array(&content)?;
-                }
+                },
                 "signature_prefer" => {
                     let s: LitStr = content.parse()?;
                     signature_prefer = Some(signature_strength_from_str(&s)?);
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -1064,7 +1064,7 @@ fn parse_signers(span: Span, input: ParseStream) -> syn::Result<LeafExpr> {
                              against, signature_allow, signature_prefer"
                         ),
                     ));
-                }
+                },
             }
             if content.is_empty() {
                 break;
@@ -1118,15 +1118,15 @@ fn parse_signed_trailer(span: Span, input: ParseStream) -> syn::Result<LeafExpr>
                 "key" => {
                     let s: LitStr = content.parse()?;
                     key = Some(s.value());
-                }
+                },
                 "role" => {
                     let s: LitStr = content.parse()?;
                     role = Some(s.value());
-                }
+                },
                 "count" => {
                     let n: LitInt = content.parse()?;
                     count = n.base10_parse::<u32>()?;
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         k.span(),
@@ -1135,7 +1135,7 @@ fn parse_signed_trailer(span: Span, input: ParseStream) -> syn::Result<LeafExpr>
                              expected: key, role, count"
                         ),
                     ));
-                }
+                },
             }
             if content.is_empty() {
                 break;
@@ -1169,13 +1169,13 @@ fn parse_oracles_complete(span: Span, input: ParseStream) -> syn::Result<LeafExp
             match key.to_string().as_str() {
                 "files" => {
                     files = parse_string_array(&content)?;
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
                         format!("unknown oracles_complete field `{other}`; expected: files"),
                     ));
-                }
+                },
             }
             if content.is_empty() {
                 break;
@@ -1241,8 +1241,9 @@ fn parse_fresh_within_days(span: Span, input: ParseStream) -> syn::Result<LeafEx
 
 #[cfg(test)]
 mod requires_json_tests {
-    use super::*;
     use proc_macro2::TokenStream;
+
+    use super::*;
 
     fn parse_requires(input: &str) -> RequiresExpr {
         let tokens: TokenStream = input.parse().expect("tokenize");

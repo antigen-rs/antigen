@@ -138,15 +138,15 @@ impl MucosalKind {
             "cross-service" | "cross_service" | "CrossService" => Some(Self::CrossService),
             "subprocess-launch" | "subprocess_launch" | "SubprocessLaunch" => {
                 Some(Self::SubprocessLaunch)
-            }
+            },
             "dependency-import" | "dependency_import" | "DependencyImport" => {
                 Some(Self::DependencyImport)
-            }
+            },
             "user-input" | "user_input" | "UserInput" => Some(Self::UserInput),
             "filesystem-path" | "filesystem_path" | "FilesystemPath" => Some(Self::FilesystemPath),
             "environment-variable" | "environment_variable" | "EnvironmentVariable" => {
                 Some(Self::EnvironmentVariable)
-            }
+            },
             "shell-argument" | "shell_argument" | "ShellArgument" => Some(Self::ShellArgument),
             _ => None,
         }

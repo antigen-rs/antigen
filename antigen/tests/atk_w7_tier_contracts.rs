@@ -12,9 +12,10 @@
 //! shield for the five silent deviations aristotle's Phase 1-8 surfaced in
 //! scout's pre-amendment design draft.
 
-use antigen::audit::{audit, AuditHint, ImmunityAudit, WitnessKind, WitnessStatus, WitnessTier};
-use antigen::scan::{scan_workspace, Immunity, ItemTarget, ScanReport};
 use std::path::{Path, PathBuf};
+
+use antigen::audit::{AuditHint, ImmunityAudit, WitnessKind, WitnessStatus, WitnessTier, audit};
+use antigen::scan::{Immunity, ItemTarget, ScanReport, scan_workspace};
 
 fn fixture(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -489,8 +490,9 @@ fn atk_w7_i_stacked_immune_no_false_positive_sidecar_ignored() {
 
 #[test]
 fn atk_w7_h_phantom_type_witness_via_scan_path_lands_at_formal_proof() {
-    use antigen::scan::scan_workspace;
     use std::io::Write;
+
+    use antigen::scan::scan_workspace;
 
     // Create a temp workspace with a phantom-type witness in an #[immune] attr.
     // The scan path will record the witness as the spaced ToTokens form.
@@ -584,8 +586,9 @@ impl Drop for PanickingInDrop {{
 
 #[test]
 fn atk_w7_i_external_tool_witness_via_scan_path_lands_at_reachability() {
-    use antigen::scan::scan_workspace;
     use std::io::Write;
+
+    use antigen::scan::scan_workspace;
 
     let dir = tempfile::TempDir::new().expect("tempdir");
     let src_path = dir.path().join("lib.rs");
@@ -681,8 +684,9 @@ impl Drop for PanickingInDrop {{
 
 #[test]
 fn atk_w7_j_stale_cross_reference_witness_resolves_despite_semantic_drift() {
-    use antigen::scan::scan_workspace;
     use std::io::Write;
+
+    use antigen::scan::scan_workspace;
 
     let dir = tempfile::TempDir::new().expect("tempdir");
     let src_path = dir.path().join("lib.rs");

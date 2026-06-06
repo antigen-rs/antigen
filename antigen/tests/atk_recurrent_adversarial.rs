@@ -11,10 +11,11 @@
 //! Written by adversarial role as preemptive attack surface documentation.
 //! Campsite: v02-impl-recurrent-emergence
 
-use antigen::audit::{audit_recurrent, AuditHint};
+use std::path::PathBuf;
+
+use antigen::audit::{AuditHint, audit_recurrent};
 use antigen::defended_by;
 use antigen::scan::{ItemTarget, RecurrentDeclaration, RecurrentKind, ScanReport};
-use std::path::PathBuf;
 
 fn base_decl(kind: RecurrentKind, antigen_type: Option<&str>) -> RecurrentDeclaration {
     RecurrentDeclaration {

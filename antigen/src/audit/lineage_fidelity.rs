@@ -159,7 +159,7 @@ fn fingerprint_nonrefinement_reason(
                 "child `item = {ck:?}` differs from parent `item = {pk:?}` \
                  — disjoint item kinds cannot be a refinement"
             ));
-        }
+        },
         (Some(pk), None) => {
             // Parent has a definite item kind; child has NO item constraint —
             // child unconditionally matches a broader set of items than parent.
@@ -168,8 +168,8 @@ fn fingerprint_nonrefinement_reason(
                 "parent constrains `item = {pk:?}` but child has no item-kind \
                  constraint — child matches all item kinds and is broader, not a refinement"
             ));
-        }
-        _ => {}
+        },
+        _ => {},
     }
 
     // (2) doc_contains divergence: a parent-required substring that no child
@@ -218,8 +218,8 @@ fn collect_doc_contains_allof_only(constraints: &[antigen_fingerprint::Constrain
             Constraint::DocContains(s) => out.push(s.as_str()),
             Constraint::AllOf(children) => {
                 out.extend(collect_doc_contains_allof_only(children));
-            }
-            _ => {} // AnyOf / Not / other leaves: do not descend.
+            },
+            _ => {}, // AnyOf / Not / other leaves: do not descend.
         }
     }
     out

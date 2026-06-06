@@ -106,7 +106,7 @@ mod glob;
 mod matcher;
 mod parser;
 
-pub use digest::{structural_digest, HasAttributes};
+pub use digest::{HasAttributes, structural_digest};
 pub use glob::glob_match_ident;
 
 /// Maximum fingerprint AST depth (per ADR-010 OQ4). Configurable via
@@ -515,7 +515,7 @@ impl Constraint {
                     }
                 }
                 None
-            }
+            },
             // any_of / not / leaf-non-kind: no kind hint.
             _ => None,
         }

@@ -29,8 +29,9 @@
 
 #![allow(dead_code)]
 
-use antigen::{antigen, presents};
 use std::marker::PhantomData;
+
+use antigen::{antigen, presents};
 
 #[antigen(
     name = "drop-panic-class",

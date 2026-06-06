@@ -589,8 +589,9 @@ fn size_of_in_count_fires_on_correct_both_calls_the_why_suspected_guard() {
 
 #[test]
 fn unsafe_send_sync_scan_fixture_binds_unsafe_impl_spares_safe_impl() {
-    use antigen::scan::scan_workspace;
     use std::path::Path;
+
+    use antigen::scan::scan_workspace;
 
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests")
@@ -753,8 +754,9 @@ fn from_utf8_unchecked_binds_unchecked_spares_checked() {
 
 #[test]
 fn unsafe_soundness_scan_fixture_binds_all_three_members() {
-    use antigen::scan::scan_workspace;
     use std::path::Path;
+
+    use antigen::scan::scan_workspace;
 
     let fixture = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests")

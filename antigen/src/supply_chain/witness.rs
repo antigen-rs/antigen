@@ -314,22 +314,28 @@ mod tests {
     #[test]
     fn pinned_state_predicate_logic() {
         assert!(DepPinnedState::AllPinned.is_pass());
-        assert!(!DepPinnedState::Unpinned {
-            unpinned_deps: vec!["serde".to_string()],
-        }
-        .is_pass());
-        assert!(!DepPinnedState::NotInManifest {
-            crate_name: "missing".to_string(),
-        }
-        .is_pass());
+        assert!(
+            !DepPinnedState::Unpinned {
+                unpinned_deps: vec!["serde".to_string()],
+            }
+            .is_pass()
+        );
+        assert!(
+            !DepPinnedState::NotInManifest {
+                crate_name: "missing".to_string(),
+            }
+            .is_pass()
+        );
     }
 
     #[test]
     fn dep_attested_state_predicate_logic() {
-        assert!(DepAttestedState::Attested {
-            review_scope: ReviewScope::Full,
-        }
-        .is_pass());
+        assert!(
+            DepAttestedState::Attested {
+                review_scope: ReviewScope::Full,
+            }
+            .is_pass()
+        );
         assert!(!DepAttestedState::AttestedWithoutReviewableArtifact.is_pass());
         assert!(!DepAttestedState::SidecarMissing.is_pass());
     }
@@ -337,11 +343,13 @@ mod tests {
     #[test]
     fn content_hash_state_predicate_logic() {
         assert!(ContentHashState::Matches.is_pass());
-        assert!(!ContentHashState::Mismatch {
-            recorded: "a".to_string(),
-            current: "b".to_string(),
-        }
-        .is_pass());
+        assert!(
+            !ContentHashState::Mismatch {
+                recorded: "a".to_string(),
+                current: "b".to_string(),
+            }
+            .is_pass()
+        );
         assert!(!ContentHashState::NoAttestation.is_pass());
     }
 

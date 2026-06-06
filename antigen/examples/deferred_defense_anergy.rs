@@ -28,12 +28,10 @@
 //! ```
 
 use antigen::anergy;
-
 // ============================================================================
 // A failure-class declaration — this would normally live in a shared antigens
 // module. Inline here for self-contained example.
 // ============================================================================
-
 use antigen::antigen;
 
 #[antigen(

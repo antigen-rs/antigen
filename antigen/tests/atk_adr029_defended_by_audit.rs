@@ -25,9 +25,10 @@
 //! Substrate check:
 //!   `cargo test --package antigen --test atk_adr029_defended_by_audit`
 
-use antigen::audit::{audit, ImmuneVerdict, WitnessTier};
-use antigen::scan::{Defense, Immunity, ItemTarget, MatchKind, Presentation, ScanReport};
 use std::path::PathBuf;
+
+use antigen::audit::{ImmuneVerdict, WitnessTier, audit};
+use antigen::scan::{Defense, Immunity, ItemTarget, MatchKind, Presentation, ScanReport};
 
 // ATK-ADR029-15: partitioned_presentations() classifies by match_kind only.
 //
@@ -208,7 +209,7 @@ fn atk_adr029_2_defended_by_produces_at_least_reachability() {
         ),
         other => {
             panic!("ATK-ADR029-2: FailureClass site must be Defended at a tier; got {other:?}")
-        }
+        },
     }
 }
 
@@ -1327,7 +1328,7 @@ fn atk_adr029_21_defense_matches_cross_crate_presentation_with_same_type_name() 
 // ========================================================================
 #[test]
 fn atk_g2_22_cross_crate_defense_triggers_spurious_g2_hint() {
-    use antigen::audit::{audit_category, AuditHint};
+    use antigen::audit::{AuditHint, audit_category};
     use antigen::category::AntigenCategory;
     use antigen::scan::{AntigenDeclaration, Defense, ScanReport};
 
@@ -1531,7 +1532,7 @@ fn atk_adr029_23_unstamped_defense_wildcard_covers_cross_crate_presentation() {
 // ========================================================================
 #[test]
 fn atk_g2_24_cross_crate_immunity_triggers_spurious_g2_hint_for_wrong_antigen() {
-    use antigen::audit::{audit_category, AuditHint};
+    use antigen::audit::{AuditHint, audit_category};
     use antigen::category::AntigenCategory;
     use antigen::scan::{AntigenDeclaration, Immunity, ItemTarget, ScanReport};
 
@@ -1612,7 +1613,7 @@ fn atk_g2_24_cross_crate_immunity_triggers_spurious_g2_hint_for_wrong_antigen() 
 //   has_any_immunity=false -> no-witness advisory fires; G2 mismatch suppressed.
 #[test]
 fn atk_g2_25_cross_crate_code_immunity_silences_silence_no_witness_advisory() {
-    use antigen::audit::{audit_category, AuditHint};
+    use antigen::audit::{AuditHint, audit_category};
     use antigen::category::AntigenCategory;
     use antigen::scan::{AntigenDeclaration, Immunity, ItemTarget, ScanReport};
 
@@ -1710,7 +1711,7 @@ fn atk_g2_25_cross_crate_code_immunity_silences_silence_no_witness_advisory() {
 #[test]
 #[allow(clippy::similar_names)] // parallel scenario A/B naming is deliberate
 fn atk_g2_26_immunity_none_wildcard_vs_defense_strict_equality_asymmetry() {
-    use antigen::audit::{audit_category, AuditHint};
+    use antigen::audit::{AuditHint, audit_category};
     use antigen::category::AntigenCategory;
     use antigen::scan::{AntigenDeclaration, Defense, Immunity, ItemTarget, ScanReport};
 

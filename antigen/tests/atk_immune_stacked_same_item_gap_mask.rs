@@ -43,9 +43,10 @@
 //!   returns the first, second's gap is masked. DESIRED: `SubstrateGap`.
 //!   CURRENT: Defended (wrong verdict, substrate gap masked).
 
-use antigen::audit::{audit, ImmuneVerdict};
-use antigen::scan::{Immunity, ItemTarget, MatchKind, Presentation, ScanReport};
 use std::path::PathBuf;
+
+use antigen::audit::{ImmuneVerdict, audit};
+use antigen::scan::{Immunity, ItemTarget, MatchKind, Presentation, ScanReport};
 
 fn presentation(antigen_type: &str) -> Presentation {
     Presentation {

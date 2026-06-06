@@ -6,8 +6,9 @@
 //! the required-trigger discipline mirrored at scan time, and the
 //! existence-certainty-is-first-class property (ADR-041 §What-done-well-means (e)).
 
-use antigen::scan::scan_workspace;
 use std::path::{Path, PathBuf};
+
+use antigen::scan::scan_workspace;
 
 fn fixture(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))

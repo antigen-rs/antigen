@@ -710,8 +710,8 @@ impl MarkedUnknown {
     #[must_use]
     pub fn to_finding(&self, timestamp: u64) -> crate::finding::Finding {
         use crate::finding::{
-            cluster_key_of, ExistenceCertainty, Finding, FindingBody, Magnitude, OriginStage,
-            Presentation, Provenance, Severity, FINDING_SCHEMA_VERSION,
+            ExistenceCertainty, FINDING_SCHEMA_VERSION, Finding, FindingBody, Magnitude,
+            OriginStage, Presentation, Provenance, Severity, cluster_key_of,
         };
 
         let magnitude = Magnitude::from_variant_str(&self.magnitude).unwrap_or(Magnitude::Aura);

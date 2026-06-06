@@ -302,10 +302,12 @@ mod tests {
 
     #[test]
     fn branch_attest_pass_states() {
-        assert!(BranchAttestState::Attested {
-            by_role: "navigator".into()
-        }
-        .is_pass());
+        assert!(
+            BranchAttestState::Attested {
+                by_role: "navigator".into()
+            }
+            .is_pass()
+        );
         assert!(!BranchAttestState::AttestedWithoutRole.is_pass());
         assert!(!BranchAttestState::SidecarMissing.is_pass());
     }
@@ -314,10 +316,12 @@ mod tests {
     fn server_enforcement_only_active_passes() {
         assert!(ServerEnforcementState::Active.is_pass());
         assert!(!ServerEnforcementState::DeclaredButNotActive.is_pass());
-        assert!(!ServerEnforcementState::CheckFailed {
-            reason: "network".into()
-        }
-        .is_pass());
+        assert!(
+            !ServerEnforcementState::CheckFailed {
+                reason: "network".into()
+            }
+            .is_pass()
+        );
     }
 
     #[test]

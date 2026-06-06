@@ -32,9 +32,10 @@
 //! (examples/fixtures importing the member's fingerprint rather than copying it) is
 //! the v0.4 structural fix — chartered, see `v2/drift-guard-unenforced`.
 
-use antigen_fingerprint::Fingerprint;
 use std::fs;
 use std::path::Path;
+
+use antigen_fingerprint::Fingerprint;
 
 /// Read a workspace-relative file (relative to the `antigen` crate manifest dir).
 fn read(rel: &str) -> String {

@@ -24,8 +24,9 @@
 //! The "bad" path below really would panic on a backwards clock — it is kept
 //! intentional for the exhibit. Do not copy it; the safe sibling shows the fix.
 
-use antigen::{antigen, presents};
 use std::time::{Duration, SystemTime};
+
+use antigen::{antigen, presents};
 
 /// A clock read whose `Result` is `unwrap`/`expect`-ed — panics in production
 /// when the clock runs backwards, never in tests.

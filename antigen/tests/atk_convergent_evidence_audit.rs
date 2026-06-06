@@ -6,9 +6,10 @@
 //! ADR-024 defines the enforcement surface. These tests verify that the
 //! enforcement surface is correctly implemented, not just the happy path.
 
-use antigen::audit::{audit_convergent_evidence, AuditHint};
-use antigen::scan::{ConvergentEvidence, ConvergentEvidenceKind, ItemTarget, ScanReport};
 use std::path::PathBuf;
+
+use antigen::audit::{AuditHint, audit_convergent_evidence};
+use antigen::scan::{ConvergentEvidence, ConvergentEvidenceKind, ItemTarget, ScanReport};
 
 /// Helper: build a `ScanReport` with a single `ConvergentEvidence` entry.
 fn report_with(decl: ConvergentEvidence) -> ScanReport {

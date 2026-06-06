@@ -31,17 +31,18 @@
 //! audits are silently overclaiming. This test is the runtime invariant
 //! lock for the schema commitment.
 
-use antigen_attestation::{
-    schema::{
-        validate_chain_cap, validate_rationale_min_chars, AntigenIdentifier, ItemRatification,
-        ValidationError, DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS,
-        HARD_DELTA_CHAIN_CAP_MAX, HARD_DELTA_CHAIN_CAP_MIN, HARD_DELTA_RATIONALE_MIN_CHARS_FLOOR,
-    },
-    Ratification, RatificationKind, SchemaVersion, SignatureStrength, Signer, SignerBasis,
-};
-use chrono::NaiveDate;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
+
+use antigen_attestation::{
+    Ratification, RatificationKind, SchemaVersion, SignatureStrength, Signer, SignerBasis,
+    schema::{
+        AntigenIdentifier, DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS,
+        HARD_DELTA_CHAIN_CAP_MAX, HARD_DELTA_CHAIN_CAP_MIN, HARD_DELTA_RATIONALE_MIN_CHARS_FLOOR,
+        ItemRatification, ValidationError, validate_chain_cap, validate_rationale_min_chars,
+    },
+};
+use chrono::NaiveDate;
 
 const fn sample_date() -> NaiveDate {
     // chrono ≥ 0.4.40 makes from_ymd_opt const; MSRV is 1.85 so we lean on it.
@@ -156,7 +157,7 @@ fn t2r_a_chain_depth_above_cap_rejected() {
         } => {
             assert_eq!(chain_depth, DEFAULT_DELTA_CHAIN_CAP + 1);
             assert_eq!(cap, DEFAULT_DELTA_CHAIN_CAP);
-        }
+        },
         other => panic!(
             "expected ChainDepthExceeded, got {other:?}; \
              T2R-A regression: chain-depth cap not enforced"
@@ -260,7 +261,7 @@ fn t2r_b_rationale_below_min_length_rejected() {
         } => {
             assert_eq!(actual_chars, 2, "'ok' is 2 chars trimmed");
             assert_eq!(min_chars, DEFAULT_DELTA_RATIONALE_MIN_CHARS);
-        }
+        },
         other => panic!("expected RationaleTooShort, got {other:?}"),
     }
 }

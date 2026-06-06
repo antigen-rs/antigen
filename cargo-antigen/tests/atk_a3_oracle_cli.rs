@@ -417,7 +417,7 @@ fn atk_a3_oracle_cli_deprecate_after_complete_succeeds() {
     let tmp = tempfile::tempdir().unwrap();
     declare_two_steward_oracle(tmp.path(), "dep-test");
     // First complete it.
-    let (code, _, _) = oracle(&[
+    let (code, ..) = oracle(&[
         "complete",
         "--id",
         "dep-test",
@@ -468,7 +468,7 @@ fn atk_a3_oracle_cli_deprecate_after_complete_succeeds() {
 fn atk_a3_oracle_cli_deprecate_without_superseded_by_succeeds() {
     let tmp = tempfile::tempdir().unwrap();
     declare_two_steward_oracle(tmp.path(), "dep-no-succ");
-    let (code, _, _) = oracle(&[
+    let (code, ..) = oracle(&[
         "complete",
         "--id",
         "dep-no-succ",
@@ -507,7 +507,7 @@ fn atk_a3_oracle_cli_deprecate_without_superseded_by_succeeds() {
 fn atk_a3_oracle_cli_retire_from_complete_succeeds() {
     let tmp = tempfile::tempdir().unwrap();
     declare_two_steward_oracle(tmp.path(), "retire-test");
-    let (code, _, _) = oracle(&[
+    let (code, ..) = oracle(&[
         "complete",
         "--id",
         "retire-test",
@@ -555,7 +555,7 @@ fn atk_a3_oracle_cli_retire_from_complete_succeeds() {
 fn atk_a3_oracle_cli_revoke_with_invalidates_prior_true_serializes_flag() {
     let tmp = tempfile::tempdir().unwrap();
     declare_two_steward_oracle(tmp.path(), "revoke-true");
-    let (code, _, _) = oracle(&[
+    let (code, ..) = oracle(&[
         "complete",
         "--id",
         "revoke-true",
@@ -604,7 +604,7 @@ fn atk_a3_oracle_cli_revoke_with_invalidates_prior_true_serializes_flag() {
 fn atk_a3_oracle_cli_revoke_without_invalidates_prior_defaults_false() {
     let tmp = tempfile::tempdir().unwrap();
     declare_two_steward_oracle(tmp.path(), "revoke-false");
-    let (code, _, _) = oracle(&[
+    let (code, ..) = oracle(&[
         "complete",
         "--id",
         "revoke-false",
@@ -667,7 +667,7 @@ fn atk_a3_oracle_cli_full_lifecycle_round_trip() {
     );
 
     // Complete.
-    let (code, _, _) = oracle(&[
+    let (code, ..) = oracle(&[
         "complete",
         "--id",
         "lifecycle",
@@ -693,7 +693,7 @@ fn atk_a3_oracle_cli_full_lifecycle_round_trip() {
     assert!(stdout.contains("Complete"), "after complete: {stdout}");
 
     // Deprecate.
-    let (code, _, _) = oracle(&[
+    let (code, ..) = oracle(&[
         "deprecate",
         "--id",
         "lifecycle",

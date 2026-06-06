@@ -10,7 +10,7 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-use super::{load_sidecar, FilesystemAuditContext, FrameState, SidecarLoad, WorkVerdict};
+use super::{FilesystemAuditContext, FrameState, SidecarLoad, WorkVerdict, load_sidecar};
 use crate::scan::ScanReport;
 
 // ============================================================================
@@ -88,19 +88,19 @@ impl OutOfFrameCause {
             Self::UnknownWhoRef => {
                 "scaffold + sign the .attest/<item>.json sidecar so the named \
                  who-ref's attestation is readable"
-            }
+            },
             Self::MissingWorkStep => {
                 "declare the missing who-step (filled_by / ordered_by / triaged_by \
                  / closure) — an empty work-need has nothing to attest"
-            }
+            },
             Self::UnparseableFrame => {
                 "fix the malformed frame date (due / until / runs_until / \
                  re_triage_due must be ISO-8601 YYYY-MM-DD)"
-            }
+            },
             Self::UnresolvableRef => {
                 "fix the dangling priority_order code-site reference (or, for a \
                  cross-crate target, await multi-crate Layer-2 resolution)"
-            }
+            },
         }
     }
 }
@@ -215,9 +215,9 @@ impl PrescriptiveAuditReport {
 /// (NFA-21): a signer who signed against an older fingerprint does NOT satisfy
 /// the step (the leaf fails), so re-attestation is forced when code mutates.
 fn resolve_who_step(decl: &crate::scan::PrescriptiveDeclaration, who_ref: &str) -> StepState {
+    use antigen_attestation::AuditHint as AH;
     use antigen_attestation::evaluate::evaluate_predicate_with_kind;
     use antigen_attestation::predicate::{Leaf, Predicate, SignerCurrency};
-    use antigen_attestation::AuditHint as AH;
 
     // Load the site's sidecar. The prescriptive declaration carries no
     // `antigen_type`, so the sidecar filename is the annotated item's identity
@@ -279,7 +279,7 @@ fn resolve_who_step(decl: &crate::scan::PrescriptiveDeclaration, who_ref: &str) 
         AH::DisciplineSidecarMissing | AH::DisciplineSidecarSchemaInvalid => StepState::Unevaluable,
         _ if evaluated.witness_tier != antigen_attestation::WitnessTier::None => {
             StepState::Attested
-        }
+        },
         _ => StepState::Unattested,
     }
 }
@@ -684,7 +684,9 @@ fn eval_ordering(
     let blocking = if decl.items.is_empty() {
         "no priority_order declared — nothing to order".to_string()
     } else if !all_refs_resolve {
-        format!("priority_order ref(s) do not resolve to a scanned code site: {unresolved:?} — out of frame (ADR-017-Amd1)")
+        format!(
+            "priority_order ref(s) do not resolve to a scanned code site: {unresolved:?} — out of frame (ADR-017-Amd1)"
+        )
     } else if triager_unevaluable {
         "triaged_by is un-evaluable (no sidecar / unknown who-ref)".to_string()
     } else if !triaged_attested {

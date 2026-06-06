@@ -812,7 +812,7 @@ impl WitnessTier {
                 // A3+ work (invoking git-trailer-based oracles etc.).
                 WitnessKind::SubstrateWitness { .. } | WitnessKind::CrossCrateWitness => {
                     Self::Reachability
-                }
+                },
             },
         }
     }
@@ -845,7 +845,7 @@ pub const fn evidence_kind_from_status(
             WitnessKind::PhantomType { .. } => antigen_attestation::EvidenceKind::TypeSystemProof,
             WitnessKind::SubstrateWitness { .. } | WitnessKind::CrossCrateWitness => {
                 antigen_attestation::EvidenceKind::SubstrateState
-            }
+            },
         },
     }
 }
@@ -871,7 +871,7 @@ impl AuditHint {
                 // (invoke attest check / run oracles) parallel to clippy's hint.
                 WitnessKind::SubstrateWitness { .. } | WitnessKind::CrossCrateWitness => {
                     Self::ExternalToolPrefixRecognized
-                }
+                },
             },
         }
     }
