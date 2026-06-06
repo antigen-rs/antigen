@@ -1,0 +1,12 @@
+# rust-analyzer.toml — make the LSP's live, on-save diagnostics BE our clippy gate
+# instead of plain `cargo check`, so the pedantic+nursery lints from Cargo.toml surface
+# inline as I type. Read by the rust-analyzer binary directly (no editor-plugin config
+# needed) when the client enables project-local config discovery.
+#
+# If the current rust-analyzer client doesn't honor project-local ratoml, the on-save
+# hook (.claude/hooks/rust-on-save.ps1) still guarantees clippy feedback — this is just
+# the nicer, inline version when it's honored.
+
+[check]
+command = "clippy"
+extraArgs = ["--all-targets"]
