@@ -1220,3 +1220,44 @@ presented to them. Grounded by B6 notary arc.
 antigen macro (`#[antigen]`, `#[immune]`, `#[antigen_tolerance]`). Cross-cutting = applies
 across all macro types without domain specificity. Elevates the REVIEW layer from implicit
 to explicit. Layer 1 compatible: no sidecar required at compile time.
+
+### coverage-frontier (the *spatial* frontier — the SHIPPED referent)
+
+**Origin**: `audit/coverage.rs` (the coverage / reachability audit); ADR-005 Amendment 3
+(audit reports its own tier honestly); `decisions.md` "scan-coverage ignorance frontier".
+
+**Biological referent**: ignorance — the boundary of what the immune system has *encountered*.
+Not yet anergy (a tolerated-but-known antigen) and not immunity; simply the edge of what has
+been seen at all. Distinct from a *judgement* about what was seen.
+
+**Rust ecosystem analog**: the **spatial** boundary of what the scan REACHED — the set of
+workspace members / sites `cargo metadata` reported but that the scan did not inspect
+(`UnreachedSite` / `UnreachedCause`). It answers *"what did we not look at?"*. The
+coverage-frontier is empty iff every reachable site was scanned; a non-empty frontier is a
+tier-honest *"we did not reach here"*, NOT an assertion that those sites are clean.
+
+**Disambiguation (ADR-044 Amendment 1)**: this is the ONLY meaning of the bare word
+**"frontier"** in antigen. The *epistemic* concept once called "frontier-honesty" is renamed
+**claim-scope honesty** (next entry) to keep the Vocabulary-Lock invariant (one term, one
+referent). Do not write "frontier" for the don't-over-claim discipline.
+
+### claim-scope honesty (the *epistemic* discipline — renamed from "frontier-honesty")
+
+**Origin**: ADR-044 (cross-cutting v0.4 spec constraint), renamed per ADR-044 Amendment 1.
+Descriptive gloss: **"proven-not-potential honesty."** Formally grounded in Cousot & Cousot
+1977 (soundness-without-completeness) + Rice 1953 (the trade is forced).
+
+**Rust ecosystem analog**: the labeling duty that every verdict-emitting or candidate-generating
+component report **what it ACTUALLY proved — scoped to its real reach, with its own soundness
+boundary — never the potential-maximum its category could provide.** It is the *epistemic* dual
+of the confidence dial (ADR-039): the dial claim-scopes DETECTION; this claim-scopes GENERATION
+and INVOCATION. Carried per-ADR as a three-clause **claim-scope statement** (what it proves /
+what it does NOT prove / who ratifies the undecidable half).
+
+**Why NOT "soundness-honesty"** (a rejected candidate): antigen is *calibrated-under-claiming*,
+NOT formally sound in the Cousot sense (ADR-044 qualified-nuance #1). Naming it "soundness-X"
+would re-import the very over-claim the discipline disclaims — itself a claim-scope violation.
+
+**Why NOT "frontier"**: "frontier" is reserved for the spatial coverage-frontier (previous
+entry). The two rhyme (both about boundaries/reach) but are orthogonal: coverage-frontier =
+*what we did not inspect*; claim-scope honesty = *do not over-claim what we DID inspect*.
