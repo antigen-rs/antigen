@@ -104,6 +104,9 @@
 - [ADR-040 — The Grammar Increment: Frame-Relative Matching, `body_calls`, and the Syntactic Absence Family (Leaf-Matcher Tier)](#adr-040-the-grammar-increment-frame-relative-matching-body_calls-and-the-syntactic-absence-family-leaf-matcher-tier)
 - [ADR-041 — The Marked-Unknown Plane: a Declarable Three-Valued Bottom on Two Orthogonal Axes (Magnitude × Existence-Certainty), Surfaced at the Dial's Non-Gating Floor](#adr-041-the-marked-unknown-plane-a-declarable-three-valued-bottom-on-two-orthogonal-axes-magnitude--existence-certainty-surfaced-at-the-dials-non-gating-floor)
 - [ADR-042 — The Usage-Discipline: Three Disciplines (Front-Line Liberal · Regulatory Sparing · Ranked Surfacing), and the `#[autoimmune]` Naming Reconciliation](#adr-042-the-usage-discipline-three-disciplines-front-line-liberal--regulatory-sparing--ranked-surfacing-and-the-autoimmune-naming-reconciliation)
+- [ADR-043 — The Catalog-Match Spine: One Scan Service, Four Renders (CLI · Editor-Inline · Agent-Query · Session-Prime)](#adr-043-the-catalog-match-spine-one-scan-service-four-renders-cli--editor-inline--agent-query--session-prime)
+- [ADR-044 — Frontier-Honesty as a Cross-Cutting v0.4 Spec Constraint: Every Verdict-Emitting or Candidate-Generating Component Reports What It Actually Proved](#adr-044-frontier-honesty-as-a-cross-cutting-v04-spec-constraint-every-verdict-emitting-or-candidate-generating-component-reports-what-it-actually-proved)
+- [ADR-045 — The Parameterization-Collapse Procedure and Tangle-Kind Classification: Sequencing the Recurrent Immune Tangle as an Effort DAG](#adr-045-the-parameterization-collapse-procedure-and-tangle-kind-classification-sequencing-the-recurrent-immune-tangle-as-an-effort-dag)
 
 ---
 
@@ -11081,3 +11084,262 @@ here so the two ADRs do not ship a backwards name.)
 - Does NOT quiet a false-positive via triage-state — a wrong fingerprint routes to COMPARE-stage
   fingerprint-tightening (remove the receptor), not an acknowledged-summary mute (quieting a wrong check is
   premature-abstraction).
+
+---
+
+## [ADR-043] The Catalog-Match Spine: One Scan Service, Four Renders (CLI · Editor-Inline · Agent-Query · Session-Prime)
+
+**Status**: Ratified 2026-06-06 (v04-immune-system-at-scale, Outfitters/CONVERGE wave).
+
+**Participants**: v04-immune-system-at-scale Outfitters crew (aristotle lead, scientist validation).
+
+**Related**: ADR-036 (the scan/audit orchestration decomposition, whose `synthesis_pass` is the spine's core); ADR-039 (the Finding schema = the spine's wire-format and external contract); ADR-040 (grammar + `body_calls` = the leaf-matchers the spine runs); ADR-041 (the marked-unknown plane whose marks feed the spine's scan output); ADR-042 (the usage-discipline the spine's surfacing obeys).
+
+### Finding
+
+The v04 design space converged — independently from three directions (dreamer-from-ambition, value-finder-from-worth, scout-from-cheapest-path) — on a single structural observation: **the highest-leverage v0.4 build is not a new organ but a shared service**. The current `cargo antigen scan` + `synthesis_pass` already computes a catalog-match for the one crate whose fingerprints it knows. Four distinct consumers need exactly this computation — CLI output, editor-inline squiggles, agent-at-generation queries, and session-priming of a fresh agent — but the current codebase serves only the first, and only if the crate carries its own `#[antigen]` declarations (because `synthesis_pass` builds its fingerprint table from the scanned tree, not from a bundled catalog).
+
+Two concrete substrate gaps feed every downstream symptom:
+1. **No bundled-catalog mode.** Scanning a consumer crate that hasn't declared antigen's stdlib members fires zero stdlib findings — the bundled fingerprint table is missing. The adopter must declare stdlib members themselves (the active model tambear uses) before any value lands.
+2. **No multi-render surface.** The Finding schema (ADR-039 §C) is a structured, versioned wire-format designed to be the external contract. No serializer today converts it to the `rustc-DiagnosticSpan` format that rust-analyzer's flycheck consumes, nor to an MCP-query response, nor to a batch session-prime digest. Each potential render requires a new serializer; none exist.
+
+The worth does not spread evenly: **client A (bundled-catalog CLI) has the highest present-adoption worth at the cheapest build cost** (a `&[(String, Fingerprint)]` passed into the existing `synthesis_pass`). The other three clients are near-free follow-ons once the spine is built — they differ only in their serializer and transport, not in their scan computation.
+
+### Decision
+
+**Build the catalog-match spine once; the four clients are serializers and transports on top of it.** Sequence client A first; B, C, D follow in worth-and-cost order.
+
+**The spine** is a callable catalog-match service: given a crate root, run `synthesis_pass` with a fingerprint table drawn from antigen's own stdlib declarations (the bundled catalog), and emit a stream of `Finding` records in the ADR-039 wire-format. The service is the scan + synthesis computation; the four clients are consumers of its output.
+
+**Client A — bundled-stdlib-catalog scan mode (CLI):**
+Ship a `--bundled-catalog` flag (or make it the default when no in-tree antigens exist) that loads antigen's own `stdlib::*` fingerprints as a built-in `&[(String, Fingerprint)]` passed into the existing `synthesis_pass`. The adopter does not need to declare `#[antigen]` or `#[presents]` for stdlib members; antigen scans their code against the vetted stdlib catalog directly. This is the first real product-grade adoption surface: `cargo antigen scan` on a fresh crate produces real findings from antigen's own class memory. **Not gated on self-tolerance** (ships antigen's OWN curated stdlib, not a cross-codebase-shared catalog — the negative-selection precondition applies to the shared registry, not to shipping antigen's vetted classes).
+
+**Client B — editor-inline flycheck render:**
+A `Finding → rustc-DiagnosticSpan` serializer that emits antigen's findings in the rustc-JSON-diagnostic schema. rust-analyzer's `check.overrideCommand` stable config hook accepts this schema; no custom LSP server is needed (the scout-verified path). Line-granular spans work today; exact spans become available when the v0.4 semantic tier ships. Cost: MODEST (one new serializer, no new core, no LSP server). This client delivers value at every keystroke once the adopter adds one config line.
+
+**Client C — agent-query MCP endpoint (per-fragment):**
+An MCP-protocol endpoint that accepts a code fragment and returns matching `Finding` records from the spine. The agent queries antigen before emitting — structural inspection at generation time, the asymmetry cured at the source. The Finding schema (ADR-039 §C) with `schema_version` + additive-optional fields is the MCP response format (the external contract is already versioned for exactly this). Cost: MODERATE (MCP server wrapper around the callable spine; the substrate is shipped). **This is the flagship offer** (the inspection half of the codegen loop at its point of failure) but it is a PUSH render — adoption is gated on a vendor wiring the query or antigen shipping a reference MCP server so the push render has a zero-vendor on-ramp.
+
+**Client D — session-prime batch digest:**
+A batch render of the catalog-match: the top-N failure-classes by blast-radius for the scanned codebase, structured as a session-priming digest a fresh or compacted agent loads at session start. This is PASSIVE immunity for the agent — it receives failure-class priors without having to query. Serves the population that will not pull (the un-careful agent that doesn't know to ask). Cost: CHEAP (same spine, different render: sort by severity/blast-radius, truncate, format as structured context). Distinct need from Client C: C serves the careful-agent-with-a-tool-loop; D serves the agent that has no idea antigen exists.
+
+**Build sequence:** A → B → D → C. A is the highest-present-worth/cheapest-cost first step that also validates the spine. B maximizes daily stickiness once A converts an adopter. D is cheap-but-high-reach (the passive-immunity client). C is the flagship but PUSH-gated on a vendor or reference server.
+
+### Frontier statement (ADR-044 discipline applied here)
+
+What this ADR proves, scoped, with its soundness boundary:
+
+- **What it proves:** the spine correctly matches a scanned item against the catalog fingerprint at the `Constructable` provenance tier (the fingerprint is a decidable structural predicate; the match is a reproducible fact at calibrated confidence — ADR-039's dial tier).
+- **What it does NOT prove:** whether a matched site is a REAL silent failure in the adopter's code. The spine detects the structural tell (syntactic, decidable); the semantic judgment (is this site actually defective given the adopter's intent?) remains with the human or a future incident-ratification loop (Rice's theorem, ADR-044).
+- **Scope boundary:** `synthesis_pass` currently operates on TOP-LEVEL items only (impl/trait method descent is deferred to W6b/A3 per `scan/synthesis.rs:29-30`). The bundled-catalog scan mode inherits this scope. The spine's coverage claim is "top-level items in the scanned crate(s)"; the ADR-039 confidence dial carries the scope-calibration on each Finding.
+
+### Mechanics
+
+1. **Bundled-catalog build step:** add a `pub fn stdlib_catalog() -> Vec<(String, antigen_fingerprint::Fingerprint)>` (or equivalent) to the `antigen` crate that collects all `#[antigen]`-declared fingerprints from `antigen::stdlib::*`. The scan CLI's `--bundled-catalog` mode (or auto-detect) calls this and passes the result as the `fingerprints` argument to `synthesis_pass`. Zero changes to `synthesis_pass` itself.
+2. **Wire-format discipline:** every client consumes the `Finding` stream from the spine. No client is permitted to build a parallel Finding-equivalent type — one schema, one owner (ADR-039's `ParallelStateTrackersDiverge` guard applied to the spine's output boundary).
+3. **Client B serializer:** a `fn finding_to_rustc_diagnostic(f: &Finding) -> serde_json::Value` adapter targeting the rustc `{"message":..., "spans":[{"file_name":...,"line_start":...}],...}` schema. Emitted as JSON-lines on stdout when `cargo antigen scan --output-format rustc-json` is passed.
+4. **Client C MCP server:** a thin `axum` (or equivalent) wrapper over the callable spine, accepting a code fragment as the request body and returning a `Vec<Finding>` as JSON. The Finding schema's `schema_version` + additive-optional contract makes this versionable without a breaking MCP protocol change.
+5. **Client D batch render:** a post-scan aggregation step: group Findings by `cluster_key`, rank by `severity` + site-count (blast-radius proxy), take the top-N (configurable, default 20), serialize as structured JSON context. No new scan computation; a post-processing pass over the `Vec<Finding>` the spine already emits.
+
+### Sweep-level consequences
+
+- **The bundled-catalog mode resolves the zero-hits cliff** (the first-90-second adopter who runs `cargo antigen scan` and sees nothing). Every adopter with a fresh crate now gets real findings from the stdlib catalog immediately.
+- **Client B makes antigen ambient** without a custom LSP — the highest-frequency daily-value delivery at the cost of one config line.
+- **Client C promotes the agent-query endpoint from afterthought to flagship** (the inspection half of the codegen loop). It is the first render that meets the generation-inspection asymmetry where it lives.
+- **Client D closes the compaction gap** ("compaction = a new hire every session") by pushing failure-class priors into the agent's context without requiring the agent to ask.
+- **The spine enables the learning core** (charter): the affinity-maturation engine subscribes to the same `Finding` stream the spine emits; the bundled-catalog scan populates the `structural_digest` + `cluster_key` fields the engine clusters by (ADR-039 §C, finding.rs:273-311).
+
+### Enforcement
+
+- `synthesis_pass`'s `fingerprints` parameter is the SOLE intake for catalog entries — no parallel fingerprint intake path is permitted (the `ParallelStateTrackersDiverge` guard).
+- Every Finding emitted by every client carries the same `schema_version`, `class_provenance`, and `dial_tier` fields as any other Finding — the frontier-honesty invariant (ADR-044) applies to the spine's output: what is emitted is a structural-match FACT at calibrated confidence, never a semantic verdict.
+- The bundled-catalog mode MUST carry `class_provenance` = `Constructable` (or `Encountered`) on each finding — imagined/heuristic-only classes do not ship in the default bundled catalog without explicit opt-in (the honest-labeling invariant, ADR-039 §A/§C).
+
+### Resolves
+
+- The zero-hits cliff for fresh-crate adopters.
+- The editor-inline render gap (antigen currently has no ambient signal at keystroke speed).
+- The agent-query endpoint design gap (the flagship offer was unbuilt).
+- The session-prime render gap (compacted agents had no first-session failure-class priors).
+- The first-90-second conversion gate (the adoption-hardening need that no single island owned).
+
+---
+
+## [ADR-044] Frontier-Honesty as a Cross-Cutting v0.4 Spec Constraint: Every Verdict-Emitting or Candidate-Generating Component Reports What It Actually Proved
+
+**Status**: Ratified 2026-06-06 (v04-immune-system-at-scale, Outfitters/CONVERGE wave).
+
+**Participants**: v04-immune-system-at-scale Outfitters crew (aristotle lead, scientist validation); grounded by math-researcher with citations to Cousot & Cousot 1977 and Rice 1953.
+
+**Related**: ADR-039 (the confidence dial = the detection-side honest-labeling mechanism this ADR generalizes to the generation/invocation side); ADR-005 Amendment 3 (audit reports its own tier honestly — the first instance of this pattern at the audit boundary); ADR-007 (structurally-guaranteed need — the generation arc makes this invariant structurally necessary for the first time).
+
+### Finding
+
+**22% of all crew entries across six roles in the Cartographers wave (28 of 127 text entries) independently touched one discipline:** every component that emits a verdict or generates a candidate must report what it ACTUALLY proved — scoped to its real reach, with its own soundness boundary — never the potential-maximum its category could theoretically provide.
+
+The invariant recurred on five distinct surfaces before convergence was recognized:
+1. The shipped confidence dial (ADR-039): honest-labels detection confidence (suspected vs named). One instance already in production.
+2. The shipped witness tier (ADR-013, ADR-019): witnesses carry their tier; a `FormalProof` does not borrow the authority of a proof for a different scope.
+3. The keystone learning core (charter): the PROPOSE step reaches `felt-but-unnamed` (structural clustering); it does NOT reach `un-felt-and-unnamed` (the dark zone). The PROPOSE step must not borrow the dark zone's authority.
+4. The witness-invocation arm: running a bounded kani check produces a verdict over the tool's bound — not a proof over all inputs. The bounded-vs-complete qualifier is the frontier-honesty requirement on the invocation arm.
+5. The diff-native fingerprint modality: detecting that a guard-shaped call was removed (syntactic, decidable) is NOT the same as proving the guard was required (semantic, undecidable). The frontier-honesty requirement scopes the diff-native output to "a guard-shaped deletion was detected" — the label "regression" stays with the human/incident ratifier.
+
+The formal grounding (math-researcher, `convergence/frontier-honesty-invariant`): the invariant IS **soundness-without-completeness** in the sense of Cousot & Cousot 1977 (abstract interpretation). An analyzer is SOUND if it reports a verdict only when the verdict is true under its chosen abstraction `α`. It is INCOMPLETE if there are true properties it cannot prove under `α`. **Rice's theorem** (Rice 1953) makes the trade FORCED: every non-trivial semantic property of programs is undecidable, so no analyzer is both sound and complete for a real failure-class — soundness requires giving up completeness, and completeness is unachievable for semantic properties.
+
+**Why v0.4 specifically:** v0.2/v0.3 are recognition-heavy — the dial already enforces honest-labeling on DETECTION (the syntactic proxy). v0.4 is the first arc that (a) GENERATES knowledge (the learning core) and (b) INVOKES external provers (the witness arm). These are the first surfaces where antigen can plausibly claim more than it proved: an over-claim by the learning core produces self-inflicted autoimmunity (false positives flooding the codebase); an over-claim by the witness arm forges a proof.
+
+### Decision
+
+**Frontier-honesty is a cross-cutting v0.4 spec constraint, not a per-component detail.** It is recognized (not designed) as the dual of the confidence dial: the dial honest-labels DETECTION; this honest-labels GENERATION and INVOCATION.
+
+**The invariant mechanism** (always the same syntactic/semantic split, Rice-forced):
+Every antigen capability that detects, generates, or judges a failure-class decomposes into:
+- A **syntactic half** — DECIDABLE, machine-tractable, reproducible (Rice does not cover syntactic properties). antigen DOES this half: match a fingerprint, enumerate a candidate, set-diff leaves, run a bounded tool. Output: a FACT at a calibrated confidence tier.
+- A **semantic half** — UNDECIDABLE by Rice: is this novel candidate a REAL failure-class? Was the removed guard required? Is this bounded check a total proof? These are semantic judgments with no decidable procedure. antigen does NOT (cannot) do this half: a human, a CI context, or an incident must ratify.
+
+The boundary between the halves is exactly the syntactic/semantic line = the decidable/undecidable line (Rice) = where antigen must stop asserting and start LABELING with an honest tier. The three lines coincide. That coincidence IS the invariant's mechanism.
+
+**The structural rule (apply to every do-now/do-later ADR that emits a verdict or generates a candidate):** every such ADR carries a **frontier statement** — one paragraph naming (a) what it ACTUALLY proves (the syntactic-machine half), (b) what it does NOT prove (the semantic-undecidable half), and (c) the boundary condition (where the ratifier enters). The frontier statement is cheap — it is a labeling discipline, not a new build. Goodhart closes at labeling: a forged claim can only ever hold `Heuristic`/`Imagined` provenance; it can never be labeled `Constructable`/`Encountered` without a real demonstration, so the honest tier IS the Goodhart protection.
+
+**Three qualified nuances (frontier-honesty about the invariant itself):**
+1. **antigen is calibrated-UNDER-claiming, not formally sound.** The dial tier (suspected < named) is not a sound-in-the-Cousot-sense guarantee — it is a calibrated confidence label. Antigen does not guarantee zero false negatives; it guarantees it never claims more than it demonstrated. The invariant is "never over-claim," not "never miss."
+2. **Fingerprints are DECIDABLE PROXIES for undecidable semantic classes.** A `body_calls("get_unchecked")` fingerprint is a decidable syntactic predicate; the underlying failure-class (unsound raw-pointer dereference) has undecidable semantic properties. The proxy is the syntactic-decidable half; the semantic guarantee stays with the human who authored the antigen and chose the proxy as evidence.
+3. **The human ratifier is COMPUTABILITY-FORCED, not a UX afterthought.** Keeping a ratifier in the loop for the semantic half is not optional caution — it is what Rice's theorem requires. "Structure over discipline" applied to antigen's own boundary: the human-in-the-loop is forced by computability theory.
+
+### Mechanics
+
+**Per-ADR discipline (the enforcement mechanism):** every ADR ratified for v0.4 that emits a verdict or generates a candidate MUST include a frontier statement in its body. The frontier statement has three clauses:
+- `What this ADR proves:` (the syntactic-machine deliverable, scoped to its actual reach)
+- `What this ADR does NOT prove:` (the semantic-undecidable boundary)
+- `The ratifier:` (who or what provides the semantic half — human, incident, CI context)
+
+**Recognition:** the invariant is ALREADY HALF-SHIPPED. The confidence dial (ADR-039) is its detection-side instantiation; ADR-005 Amendment 3 is its audit-boundary instantiation. The v0.4 extension is: apply the same discipline to GENERATION (the learning core's PROPOSE step) and INVOCATION (the witness arm's bounded-proof qualifier). The build-now work is labeling discipline, not new machinery.
+
+**The FormalProof qualified form:** `#[defended_by(antigen = "AntigenX", witness = FormalProof)]` carries an implicit claim of total correctness. The frontier-honesty discipline requires that the `FormalProof` witness variant carries a bounded-vs-complete qualifier — what the prover ran, over what bound, with what scope. ADR-019 Amendment 1 (the witness taxonomy) is the vehicle for this amendment; ADR-044 recognizes the requirement.
+
+### Sweep-level consequences
+
+- Every v0.4 ADR that emits a verdict or generates a candidate carries a frontier statement (the labeling discipline is cheap — one paragraph per ADR).
+- The learning core (charter) inherits this constraint at the PROPOSE step: "produces one draft fingerprint matching the structural digest cluster" is the syntactic-machine deliverable; "this draft fingerprint captures a real unnamed failure-class" is the semantic half that stays with a human ratifier.
+- The witness arm (ADR-019 Amendment) carries the bounded-vs-complete qualifier on `FormalProof`.
+- The diff-native modality (ADR-046, do-later) inherits the detect/classify/label split explicitly: detect = machine (digest-set diff), classify = moderate (leaf-diff), label = human/incident (requiredness of the removed guard).
+
+### Enforcement
+
+- Process: any ADR ratification that lacks a frontier statement on a verdict-emitting or candidate-generating component is procedurally incomplete. The scientist role's sign-off attests the frontier statement is present and honest.
+- The dial tier (ADR-039) is the runtime carrier of the frontier statement's "what I proved" clause — the tier on each `Finding` is the machine-readable frontier label.
+- The `class_provenance` field (ADR-039 §C) is the class-level frontier label — `Heuristic` or `Imagined` means "no constructable demo exists"; `Constructable` or `Encountered` means the syntactic-machine half has been verified by building or finding.
+
+### Resolves
+
+- The risk of over-claim by the learning core (self-inflicted autoimmunity).
+- The risk of a forged proof by the witness arm (a bounded kani check labeled as a total proof).
+- The risk of the diff-native modality reporting "regression" when it can only report "guard-shaped deletion" (the syntactic/semantic split).
+- The missing theoretical standing for the frontier-honesty invariant — it now has the same formal grounding (Cousot & Cousot 1977, Rice 1953) that ADR-007 has via Ashby's Law of Requisite Variety.
+
+---
+
+## [ADR-045] The Parameterization-Collapse Procedure and Tangle-Kind Classification: Sequencing the Recurrent Immune Tangle as an Effort DAG
+
+**Status**: Ratified 2026-06-06 (v04-immune-system-at-scale, Outfitters/CONVERGE wave).
+
+**Participants**: v04-immune-system-at-scale Outfitters crew (aristotle lead, naturalist, scientist validation).
+
+**Related**: ADR-003 (biological metaphor is load-bearing — the tangle IS the biology; the DAG was a legibility projection); ADR-007 (structurally-guaranteed need — the collapsed primitives are structurally required, not speculative); ADR-037 (the control-loop master-frame — this ADR operationalizes the `could-combine-with` edges in that frame's DAG).
+
+### Finding
+
+The v04 Cartographers wave surfaced a recurring structural pattern across independent crew members (naturalist, expansionist, dreamer, math-researcher, value-finder): the ROADMAP's 9-charter dependency DAG maps N organ-charters to N build units, but the biology it models is a recurrent tangle — not a pipeline. When crew members independently collapsed the expanded charter-space, they converged on approximately 5 deep primitives, each of which collapses several charters into one parameterized mechanism.
+
+The collapse is not a simplification — it is a recognition (ADR-006). The 9-charter DAG was a legibility projection; the primitive-tangle is the underlying truth. Building 9 separate organs where the substrate is ONE parameterized mechanism would be antigen's own `ParallelStateTrackersDiverge` at the architecture level.
+
+Two kinds of edges exist in the tangle, and mislabeling them produces different failures:
+- **SAFETY-tangle edges**: shipping one side without the other causes ACTIVE HARM (not just rework). The keystone's `learning-core ⇄ self-tolerance` is the canonical instance: an ungoverned learner floods false positives = self-inflicted autoimmunity. The "ship together or ship autoimmunity" rule is a SAFETY constraint.
+- **ARCHITECTURE-tangle edges**: shipping one side without the other causes REWORK — the organ works at reduced scope, not harmfully. The route/registry collapse is the canonical instance: route-without-registry is just route, working, at one codebase scale. These should be CO-DESIGNED (one parameterized mechanism) but sequenced separately.
+
+Mislabeling a safety-tangle as architecture ships autoimmunity. Mislabeling an architecture-tangle as safety over-couples the wave, blocking incremental delivery. **The keystone's "co-ship" rule does NOT generalize — it is the one identified safety-tangle; every other edge evaluated so far is an architecture-tangle.**
+
+### Decision
+
+**The Outfitters procedure for every `could-combine-with` edge (the f(p) test):** ask "can you write the N organs as `f(p)` — one operation `f`, N values of one parameter `p`?" The test is falsifiable and must be able to answer NO (a discriminator that cannot say no is not a discriminator).
+
+- **YES → parameterization collapse.** Build `f` once; name the parameter. Then classify the tangle-kind (safety vs architecture) and sequence accordingly.
+- **NO, genuinely different operations → keep separate.** The `could-combine` is a real edge — the organs share substrate or interact — but they are not one parameterized mechanism.
+
+The discriminator has said NO to: `cluster ≠ synthesize ≠ select` (three genuinely different operations in the learning loop); `diversify ≠ select` (the dark/light zone boundary is a real primitive boundary — the one primitive that does not collapse). These refusals are the proof the instrument can say no.
+
+**The five deep primitives (the collapsed map, ratified as the v0.4 build target):**
+
+**Primitive A — the content-addressed convergence field (`cluster_key`)**
+Collapses: route + registry + forgetting + phylogeny (4 charters) + the convergent-dread sentinel.
+Mechanism: a pheromone-analog field over the shipped `cluster_key` (`class@structural_digest`, finding.rs:309-311): deposit (convergent-dread: N marks at a key → recruit) + bounded evaporation (forgetting) + trail-limits (the anti-windup clamp = the homeostasis governor applied to routing).
+Parameter: population-scope × space/time axis. (one-tree×space=route; fleet×space=registry; one-tree×time=forgetting; fleet×space-navigable=phylogeny.)
+Tangle-kind: ARCHITECTURE. Build the one-tree-scope first (route); the fleet-scope (registry) is a real distributed substrate that sequences after self-tolerance (its named precondition).
+
+**Primitive B — the affinity-pair selector (the light zone, the MDL-compress gate)**
+Collapses: negative-selection + positive-selection (well-formedness) + tournament/clonal-competition + the promote/prune SELECT stage.
+Mechanism: ONE criterion — does this fingerprint COMPRESS its cluster? `L(catalog+fp) + L(cluster|catalog+fp) < L(cluster|catalog)` (MDL, Kolmogorov). Binds-clean inflates L → prune (autoimmune). Redundant clone fails parsimony → prune (tournament). Binds nothing useful doesn't compress → prune (neglect). The dial tier = compression-gain in bits.
+Parameter: which edge of the affinity band (degenerate / binds-self / never-fires-economically / binds-defects-spares-clean = EXPORT).
+Tangle-kind: SAFETY. This IS the self-tolerance governor. It co-ships with any candidate generator (Primitive C or D) — an ungoverned generator without the selector ships autoimmunity. The "parsimony cull" (never-fires-economically prune edge) is a deliberate metaphor-break: biology keeps the naive repertoire; antigen is correctly more ruthless for dial-economics. It must stand on economics, not borrow the thymus's positive-selection authority (ADR-003 Amendment 1 — the metaphor bends here, named not abandoned).
+
+**Primitive C — the PROPOSE step (the input arm, the light zone only)**
+Collapses: dread-clustering (chronic, n-many accretion) + wound-from-incident (acute, n=1).
+Mechanism: anti-unification / Least General Generalization (LGG) of a cluster of syn-ASTs. The LGG IS the draft fingerprint; holes in the generalization become `matches()` leaves in the fingerprint grammar.
+Parameter: trigger-timescale (chronic cluster = n≥2 marks; acute wound = n=1 incident, strictly easier and the near-slice). The `vaccinate` verb (propagate known protection) is correctly named for its biological direction; the wound-path is its biological antonym (infection-acquired immunity / acquisition). Use an ACQUISITION verb (`learn-from` / `convalesce` / `acquire`) for the wound-path to avoid collision with the propagation-direction verb (ADR-003 Amendment 1 — bend #5 of the metaphor ledger).
+Tangle-kind: ARCHITECTURE. One PROPOSE flow; the acute n=1 case ships first (strictly easier — one incident, no clustering).
+**Light-zone-only.** PROPOSE reaches `felt-but-unnamed` (marks in the codebase = structural clustering substrate). It does NOT reach `un-felt-and-unnamed` (the dark zone). Do NOT let Primitive C's grounding bleed onto Primitive D — that bleed is the over-claim the frontier-honesty invariant (ADR-044) exists to catch, in antigen's own roadmap.
+
+**Primitive D — the dark zone (the generation frontier)**
+Does NOT collapse into the others. `diversify ≠ select` — the f(p) test says NO.
+Mechanism: partially tractable. The GENERATION half (grammar-fuzz enumeration of the fingerprint grammar — the grammar is a CFG; structural mutations are machine-enumerable) IS machine-tractable. The LABEL for a genuinely novel class (no ground truth by definition) is irreducibly human or incident. The dark zone is therefore gated-on-a-ratification-loop, not fully machine-defined.
+Tangle-kind: SAFETY with Primitive B (a generator without the selector = autoimmunity), but the generator is research-undefined-on-the-algorithm, so it sequences far after B+C. Probe inverted-mutation-testing first (inject structural mutations into clean code; mutations that break tests but the scanner does not flag = discovered un-named classes). Charter the LLM-diversifier as the deep frontier.
+**Status: research-undefined.** Do not let the strong grounding of Primitives B and C bleed onto D.
+
+**Primitive E — the catalog-match spine (the output/query arm)**
+Collapses: bundled-stdlib-scan + editor-inline + agent-query + session-prime + antigen-as-platform.
+Mechanism: a callable catalog-match service over the shipped Finding-schema wire-format.
+Parameter: the render/transport (CLI / flycheck-diagnostic / MCP-per-fragment / batch-session-prime).
+Tangle-kind: ARCHITECTURE. Build the spine once; the renders are near-free follow-ons.
+**Sequence FIRST** (highest present-adoption worth; the collapsed form of the most value — see ADR-043).
+
+**The tangle-design locked here, the effort-DAG the Pioneers sequence:**
+The five primitives compose into a recurrent cycle (not a pipeline — the textbook-pipeline immune system is the pedagogical lie; the real one is recurrent). The build-sequence is the effort-DAG over the recurrent design:
+1. **E (catalog-match spine)** — shipped substrate, highest adoption worth, four near-free renders. Sequence FIRST.
+2. **A (convergence field, one-tree scope)** + **C (PROPOSE, acute n=1 first)** — both ride the shipped `cluster_key`; the falsification gate (produce one real draft fingerprint on antigen's own marks).
+3. **B (affinity-pair selector)** — CO-SHIPS with C (safety-tangle; never ship C without B's spare-clean gate wired as negative selection). This is the one identified safety-co-ship requirement.
+4. **A at fleet-scope (registry/herd)** — gated on B's self-tolerance; a real distributed substrate; sequences separately from one-tree route.
+5. **D (dark zone)** — research-undefined; probe inverted-mutation-testing first; charter the LLM-diversifier as the deep frontier. Sequences last; co-ships with B whenever it lands.
+
+### Frontier statement (ADR-044 discipline)
+
+What this ADR proves: the five-primitive collapse is a RECOGNITION — the team verified that each proposed collapse passes the f(p) test (one operation, N parameter values) and that the refusals (cluster ≠ synthesize ≠ select; diversify ≠ select) are real, not forced. The safety/architecture tangle-kind classifications are verified against the known failure mode (autoimmunity = ungoverned generator without selector) for the one identified safety-tangle.
+
+What this ADR does NOT prove: that the build-sequence is optimal (it is a reasoned ordering, not a proof of minimal rework); that no new safety-tangles will be identified as implementation proceeds; that Primitive D's algorithm is tractable on antigen's specific grammar. These are open and will surface during the Pioneers wave.
+
+The ratifier: the Pioneers and Survey waves. If the build reveals that a proposed architecture-tangle was actually a safety-tangle (or vice versa), the Pioneers deviate and flag; the Survey adjudicates. This ADR is the design lock, not the build guarantee.
+
+### Mechanics
+
+- **The f(p) test** is the operative procedure. Run it on every `could-combine-with` edge before sequencing. Document the result (YES: what is f, what is p; NO: what makes the operations genuinely different).
+- **Safety-tangle identification** requires naming the ACTIVE HARM that shipping half causes. "Rework" is not a safety harm; "self-inflicted autoimmunity" (false-positive flooding) is the identified safety harm for the B+C co-ship requirement.
+- **The metaphor bends** (ADR-003) for Primitives B and C must be named explicitly in their builds: the parsimony-cull is NOT positive selection (Primitive B); the wound-path acquisition verb is NOT vaccinate/inoculate (Primitive C). These are the two places the map's beauty could carry an over-claim.
+- **Primitive D stays separate from B and C** at the design level — even when the grammar-fuzz generator is tractable, it is a DIFFERENT operation (diversify ≠ select) requiring its own separate build sequence and ADR.
+
+### Sweep-level consequences
+
+- The ROADMAP's 9-charter DAG remains the legibility projection for dreamers and charter-readers. This ADR does not update the ROADMAP; it provides the collapsed-primitive model the Pioneers build from. The two representations coexist: the charter-DAG (dreamer-legible, rich) and the primitive-tangle (builder-legible, collapsed).
+- The do-later/deep-future charter sequence is: E first → A+C (one-tree scope) → B (co-ship with C) → A (fleet-scope) → D (research-probe first).
+- Primitive D's research-undefined status is load-bearing. Any ADR that locks a Primitive-D design without first probing and ratifying a tractable algorithm would be claiming more than is proven (ADR-044 violation applied to antigen's own roadmap).
+
+### Enforcement
+
+- Every new charter or organ that claims to be part of the collapsed primitives must pass the f(p) test before being merged into a primitive; a new organ that fails the f(p) test (genuinely different operation) gets its own primitive designation or stays a separate charter.
+- The safety-tangle rule is the strongest enforcement: the B+C co-ship requirement is a build-time gate — no Primitive C build ships without Primitive B's negative-selection gate wired as its governor.
+- ADR-003 Amendment 1 (bend naming) applies to Primitives B and C explicitly: the parsimony-cull naming and the acquisition-verb naming are enforced by the process.
+
+### Resolves
+
+- The tension between the 9-charter DAG (accurate for complexity, hard to sequence) and the need for a buildable do-now order (requires knowing what collapses).
+- The risk of building nine separate organs where one parameterized mechanism suffices (antigen's own `ParallelStateTrackersDiverge` at the architecture level).
+- The mislabeling risk: a safety-tangle misread as architecture ships autoimmunity; an architecture-tangle misread as safety over-couples and blocks delivery.
+- The confusion between Primitive C's strong grounding and Primitive D's research-undefined status — named as the over-claim the frontier-honesty invariant must catch in antigen's own roadmap.
