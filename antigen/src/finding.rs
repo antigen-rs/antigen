@@ -357,7 +357,7 @@ mod tests {
         let f: Finding = serde_json::from_str(older).expect("older record deserializes");
         assert_eq!(f.schema_version, FINDING_SCHEMA_VERSION);
         assert_eq!(f.structural_digest, ""); // additive-optional default
-                                             // An imagined class defaults passive — the permissive-admission rule, seen.
+        // An imagined class defaults passive — the permissive-admission rule, seen.
         assert_eq!(f.class_provenance, Provenance::Imagined);
         assert_eq!(f.presentation, Presentation::Passive);
     }

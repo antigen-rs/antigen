@@ -31,11 +31,11 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use antigen_attestation::{
-    evaluate::{evaluate_predicate_with_kind, EvaluatedPredicate},
-    predicate::SignerCurrency,
-    schema::DEFAULT_DELTA_CHAIN_CAP,
     AuditHint, EvaluationContext, EvidenceKind, ItemRatification, Leaf, Predicate,
     RatificationKind, SignatureStrength, Signer, SignerBasis, WitnessTier,
+    evaluate::{EvaluatedPredicate, evaluate_predicate_with_kind},
+    predicate::SignerCurrency,
+    schema::DEFAULT_DELTA_CHAIN_CAP,
 };
 use chrono::NaiveDate;
 
@@ -53,6 +53,7 @@ impl Ctx {
             cap: DEFAULT_DELTA_CHAIN_CAP,
         }
     }
+
     const fn with_cap(mut self, cap: u32) -> Self {
         self.cap = cap;
         self
@@ -63,15 +64,19 @@ impl EvaluationContext for Ctx {
     fn today(&self) -> NaiveDate {
         self.today
     }
+
     fn read_doc(&self, _path: &Path) -> Option<String> {
         None
     }
+
     fn read_oracle(&self, _path: &Path) -> Option<String> {
         None
     }
+
     fn read_git_trailers(&self, _file: &Path, _item: &str) -> Vec<String> {
         vec![]
     }
+
     fn delta_chain_cap(&self) -> u32 {
         self.cap
     }

@@ -244,14 +244,14 @@ impl EvalNode {
                     // Deferred leaf: not evaluated here, not a failure.
                     CompositeVerdict::Indeterminate
                 }
-            }
+            },
             Self::AllOf(children) => {
                 let mut any_indeterminate = false;
                 for c in children {
                     match c.verdict() {
                         CompositeVerdict::Failed => return CompositeVerdict::Failed,
                         CompositeVerdict::Indeterminate => any_indeterminate = true,
-                        CompositeVerdict::Passed => {}
+                        CompositeVerdict::Passed => {},
                     }
                 }
                 if any_indeterminate {
@@ -259,14 +259,14 @@ impl EvalNode {
                 } else {
                     CompositeVerdict::Passed
                 }
-            }
+            },
             Self::AnyOf(children) => {
                 let mut any_indeterminate = false;
                 for c in children {
                     match c.verdict() {
                         CompositeVerdict::Passed => return CompositeVerdict::Passed,
                         CompositeVerdict::Indeterminate => any_indeterminate = true,
-                        CompositeVerdict::Failed => {}
+                        CompositeVerdict::Failed => {},
                     }
                 }
                 if any_indeterminate {
@@ -274,7 +274,7 @@ impl EvalNode {
                 } else {
                     CompositeVerdict::Failed
                 }
-            }
+            },
             Self::Not(child) => match child.verdict() {
                 CompositeVerdict::Passed => CompositeVerdict::Failed,
                 CompositeVerdict::Failed => CompositeVerdict::Passed,
@@ -312,7 +312,7 @@ impl EvalNode {
                 for c in children {
                     c.collect_leaves(out);
                 }
-            }
+            },
             Self::Not(child) => child.collect_leaves(out),
         }
     }
@@ -337,7 +337,7 @@ impl std::fmt::Display for EvaluationError {
         match self {
             Self::ItemNotFoundInSidecar { item_path } => {
                 write!(f, "item `{item_path}` not found in sidecar")
-            }
+            },
         }
     }
 }
@@ -418,7 +418,7 @@ pub fn evaluate_predicate_with_kind<C: EvaluationContext>(
                 signature_strength: None,
                 leaf_outcomes,
             });
-        }
+        },
         CompositeVerdict::Indeterminate => {
             return Ok(EvaluatedPredicate {
                 witness_tier: WitnessTier::None,
@@ -427,8 +427,8 @@ pub fn evaluate_predicate_with_kind<C: EvaluationContext>(
                 signature_strength: None,
                 leaf_outcomes,
             });
-        }
-        CompositeVerdict::Passed => {} // fall through to classify_passed_predicate
+        },
+        CompositeVerdict::Passed => {}, // fall through to classify_passed_predicate
     }
 
     // 3. Predicate passed. Derive tier + hint from the sidecar's signer
@@ -528,7 +528,7 @@ fn eval_leaf<C: EvaluationContext>(
         Leaf::OraclesComplete { files } => eval_oracles_complete(files, item, ctx),
         Leaf::FreshWithinDays { days } => {
             eval_fresh_within_days(*days, item, current_fingerprint, ctx)
-        }
+        },
         // Supply-chain leaf types (ADR-025). These cannot be evaluated by the
         // standard predicate evaluator — they require reading Cargo.lock, dep-
         // attestation sidecars, or (v0.4+) sandbox execution. The standard
@@ -597,8 +597,8 @@ fn eval_ratified_doc<C: EvaluationContext>(
                     "no doc to check — neither an explicit `path` nor an item `doc_ref` \
                      was set (nothing to evaluate)"
                         .to_string(),
-                )
-            }
+                );
+            },
         },
     };
 
@@ -1210,14 +1210,15 @@ fn sibling_json_path(doc: &Path) -> std::path::PathBuf {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+    use std::path::PathBuf;
+
     use super::*;
     use crate::predicate::SignerCurrency;
     use crate::schema::{
         AntigenIdentifier, DocRef, ItemRatification, Oracle, OracleRef, OracleState, OracleVersion,
         Provenance, Ratification, RatificationKind, SchemaVersion, Signer, SignerBasis,
     };
-    use std::collections::BTreeMap;
-    use std::path::PathBuf;
 
     /// In-memory evaluation context for unit tests. Caller seeds maps
     /// for docs / oracles / trailers and a fixed `today` date.
@@ -1239,15 +1240,18 @@ mod tests {
                 cap: 3,
             }
         }
+
         fn with_doc(mut self, path: &str, content: &str) -> Self {
             self.docs.insert(PathBuf::from(path), content.to_string());
             self
         }
+
         fn with_oracle(mut self, path: &str, content: &str) -> Self {
             self.oracles
                 .insert(PathBuf::from(path), content.to_string());
             self
         }
+
         fn with_trailers(mut self, file: &str, item: &str, trailers: Vec<&str>) -> Self {
             self.trailers.insert(
                 (PathBuf::from(file), item.to_string()),
@@ -1261,18 +1265,22 @@ mod tests {
         fn today(&self) -> NaiveDate {
             self.today
         }
+
         fn read_doc(&self, path: &Path) -> Option<String> {
             self.docs.get(path).cloned()
         }
+
         fn read_oracle(&self, path: &Path) -> Option<String> {
             self.oracles.get(path).cloned()
         }
+
         fn read_git_trailers(&self, item_source_file: &Path, item_path: &str) -> Vec<String> {
             self.trailers
                 .get(&(item_source_file.to_path_buf(), item_path.to_string()))
                 .cloned()
                 .unwrap_or_default()
         }
+
         fn delta_chain_cap(&self) -> u32 {
             self.cap
         }
@@ -2310,7 +2318,7 @@ mod tests {
         //
         // This test now asserts the CORRECTED behavior (it formerly documented the gap).
         let mut item = item_with(vec![]); // NO signers
-                                          // fresh_through = today, but no signer anchors it.
+        // fresh_through = today, but no signer anchors it.
         item.fresh_through = Some(sample_date());
         let pred = Predicate::leaf(Leaf::FreshWithinDays { days: 60 });
         let ctx = TestContext::new(sample_date()); // today = 2026-05-19
@@ -2569,8 +2577,9 @@ mod tests {
         //
         // This test DOCUMENTS the current behavior. It will start failing when the
         // fix is applied (the assertion will change from Execution to None).
-        use crate::schema::{Oracle, OracleRef, OracleState, OracleVersion, Provenance, Steward};
         use std::collections::BTreeMap as BM;
+
+        use crate::schema::{Oracle, OracleRef, OracleState, OracleVersion, Provenance, Steward};
 
         let draft_oracle = Oracle {
             id: "test-oracle".to_string(),

@@ -12,7 +12,7 @@
 //! (`needs`/`rule_out`/`priority_order` → `items`; the who-refs → `filled_by`; the
 //! frames → `frame`; etc.); (3) the four-shape mapping (`PrescriptiveKind::shape`).
 
-use antigen::scan::{scan_workspace, PrescriptiveKind, WorkShape};
+use antigen::scan::{PrescriptiveKind, WorkShape, scan_workspace};
 
 /// Stage a single-crate workspace whose lib.rs uses every prescriptive macro,
 /// then return the scan report's prescriptive declarations.

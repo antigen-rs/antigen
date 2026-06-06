@@ -17,10 +17,10 @@
 
 use std::{collections::BTreeMap, path::PathBuf};
 
-use crate::tier::SignatureStrength;
-
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
+
+use crate::tier::SignatureStrength;
 
 /// Schema version tag.
 ///
@@ -420,9 +420,7 @@ struct LegacyOracleRef {
 fn deserialize_oracles_with_legacy_fallback<'de, D>(
     deserializer: D,
 ) -> Result<Vec<Oracle>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
+where D: serde::Deserializer<'de> {
     use serde::Deserialize as _;
 
     let value = serde_json::Value::deserialize(deserializer)?;
@@ -1321,9 +1319,10 @@ mod tests {
         let date = NaiveDate::from_ymd_opt(2026, 5, 19).unwrap();
         let item = item_with_signers("test_item", vec![signer_fresh("alice", date, "fp-current")]);
         let rat = ratification_with_items(vec![item]);
-        assert!(rat
-            .validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS)
-            .is_ok());
+        assert!(
+            rat.validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS)
+                .is_ok()
+        );
     }
 
     #[test]
@@ -1399,9 +1398,10 @@ mod tests {
             vec![signer_delta("alice", date, 3, VALID_DELTA_RATIONALE)],
         );
         let rat = ratification_with_items(vec![item]);
-        assert!(rat
-            .validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS)
-            .is_ok());
+        assert!(
+            rat.validate(DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS)
+                .is_ok()
+        );
     }
 
     #[test]
@@ -1569,7 +1569,7 @@ mod tests {
             } => {
                 assert_eq!(item_path, "test_item");
                 assert_eq!(signer_name, "alice");
-            }
+            },
             other => panic!("expected StrengthSignatureMismatch, got {other:?}"),
         }
     }

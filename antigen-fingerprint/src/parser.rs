@@ -14,8 +14,8 @@ use syn::parse::ParseStream;
 use syn::{Ident, LitInt, LitStr, Token};
 
 use crate::{
-    Constraint, GlobPattern, ItemKind, MethodPattern, QualifierKind, VariantRange, MAX_DEPTH,
-    MAX_NODES,
+    Constraint, GlobPattern, ItemKind, MAX_DEPTH, MAX_NODES, MethodPattern, QualifierKind,
+    VariantRange,
 };
 
 /// Parse the top-level constraint list (comma-separated, optional trailing
@@ -156,23 +156,23 @@ fn parse_has_method(input: ParseStream) -> syn::Result<Constraint> {
         ));
     }
     let _ = kw; // silence unused-warning; the keyword position carries the diagnostic span via the lit.
-                // ADR-010 Amendment 3 Performance Invariant 2: normalize the signature
-                // pattern ONCE at parse time so the matcher does not re-normalize per
-                // match site. This is the "pre-parsed signature" the invariant names.
-                //
-                // Canonicalization beyond whitespace collapse: route the user-provided
-                // signature through proc_macro2's tokenizer so user-natural `&mut self`
-                // matches the `& mut self` spacing the matcher produces when rendering
-                // the actual `syn::Signature`. A3.5 onboarding sweep — see
-                // `normalize_signature_canonical` for the full rationale.
-                //
-                // Amendment 5 OQ1 STRICT: when proc_macro2 cannot tokenize the
-                // signature string (unbalanced parens, unterminated string,
-                // etc.), surface a fingerprint parse error rather than silently
-                // falling back to plain `normalize_ws` (which would produce
-                // asymmetric normalization vs the strict-tokenized match-site
-                // path — exactly the spacing bug this canonicalization exists
-                // to eliminate).
+    // ADR-010 Amendment 3 Performance Invariant 2: normalize the signature
+    // pattern ONCE at parse time so the matcher does not re-normalize per
+    // match site. This is the "pre-parsed signature" the invariant names.
+    //
+    // Canonicalization beyond whitespace collapse: route the user-provided
+    // signature through proc_macro2's tokenizer so user-natural `&mut self`
+    // matches the `& mut self` spacing the matcher produces when rendering
+    // the actual `syn::Signature`. A3.5 onboarding sweep — see
+    // `normalize_signature_canonical` for the full rationale.
+    //
+    // Amendment 5 OQ1 STRICT: when proc_macro2 cannot tokenize the
+    // signature string (unbalanced parens, unterminated string,
+    // etc.), surface a fingerprint parse error rather than silently
+    // falling back to plain `normalize_ws` (which would produce
+    // asymmetric normalization vs the strict-tokenized match-site
+    // path — exactly the spacing bug this canonicalization exists
+    // to eliminate).
     let tokenized = crate::normalize_signature_canonical(&signature).ok_or_else(|| {
         syn::Error::new(
             sig_lit.span(),
@@ -425,12 +425,12 @@ fn check_depth_and_count(c: &Constraint, depth: usize, nodes: &mut usize) -> syn
             for child in children {
                 check_depth_and_count(child, depth + 1, nodes)?;
             }
-        }
+        },
         Constraint::Not(child) => {
             check_depth_and_count(child, depth + 1, nodes)?;
-        }
+        },
         // Leaf constraints contribute one node (already counted).
-        _ => {}
+        _ => {},
     }
     Ok(())
 }
@@ -450,7 +450,7 @@ fn check_not_placement(c: &Constraint, in_legal_all_of: bool) -> syn::Result<()>
             // Recurse into the child with the legal-context flag reset (a
             // `not` inside a `not` is not in `all_of`).
             check_not_placement(child, false)
-        }
+        },
         Constraint::AllOf(children) => {
             // Among children, at least one must be a positive matcher (not a
             // bare `not`). Then each child gets recursed with the all_of
@@ -467,7 +467,7 @@ fn check_not_placement(c: &Constraint, in_legal_all_of: bool) -> syn::Result<()>
                 check_not_placement(child, true)?;
             }
             Ok(())
-        }
+        },
         Constraint::AnyOf(children) => {
             // `not` directly under `any_of` is rejected (the OQ3 De Morgan
             // loophole). check_not_placement on each child with the all_of
@@ -476,7 +476,7 @@ fn check_not_placement(c: &Constraint, in_legal_all_of: bool) -> syn::Result<()>
                 check_not_placement(child, false)?;
             }
             Ok(())
-        }
+        },
         _ => Ok(()),
     }
 }

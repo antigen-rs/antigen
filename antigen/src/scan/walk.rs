@@ -21,8 +21,8 @@ use syn::visit::Visit;
 use walkdir::WalkDir;
 
 use super::{
-    dedupe_lineage_edges, detect_lineage_failures, finalize_report, ParseFailure, ScanReport,
-    ScanVisitor, MAX_LINEAGE_DEPTH,
+    MAX_LINEAGE_DEPTH, ParseFailure, ScanReport, ScanVisitor, dedupe_lineage_edges,
+    detect_lineage_failures, finalize_report,
 };
 
 /// Scan a directory tree, reading every `.rs` file and extracting antigen
@@ -102,13 +102,13 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
                 report.files_scanned += 1;
                 // Cache for the synthesis pass — avoids re-reading + re-parsing.
                 parsed_files.push((file_path, file));
-            }
+            },
             Err(e) => {
                 report.parse_failures.push(ParseFailure {
                     file: entry.path().to_path_buf(),
                     error: e.to_string(),
                 });
-            }
+            },
         }
     }
 

@@ -234,9 +234,10 @@
 // instead of silently producing zero audit entries (vacuous pass).
 // ============================================================================
 
-use antigen::audit::{audit_supply_chain, AuditHint};
-use antigen::scan::{Immunity, ItemTarget, ScanReport};
 use std::path::{Path, PathBuf};
+
+use antigen::audit::{AuditHint, audit_supply_chain};
+use antigen::scan::{Immunity, ItemTarget, ScanReport};
 
 fn immunity_with_predicate_json(predicate_json: &str) -> Immunity {
     Immunity {

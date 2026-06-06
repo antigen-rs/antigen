@@ -68,7 +68,7 @@
 //! Per ADR-019 §M3: "DO NOT share parser code between sidecar-JSON and
 //! Rust-AST paths" (this test enforces it from the JSON side).
 
-use antigen_attestation::{schema::ValidationError, Ratification};
+use antigen_attestation::{Ratification, schema::ValidationError};
 
 /// Sample well-formed Ratification JSON — the baseline happy-path that
 /// the substrate-witness parser MUST accept. If this fails, the schema
@@ -182,7 +182,7 @@ fn validate_chain_cap_is_substrate_witness_specific_not_generic() {
     // numeric validator without these specific bounds would be
     // structurally different.
     use antigen_attestation::schema::{
-        validate_chain_cap, HARD_DELTA_CHAIN_CAP_MAX, HARD_DELTA_CHAIN_CAP_MIN,
+        HARD_DELTA_CHAIN_CAP_MAX, HARD_DELTA_CHAIN_CAP_MIN, validate_chain_cap,
     };
 
     // The function rejects values below the hard floor (anti-laundering

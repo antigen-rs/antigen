@@ -7,8 +7,9 @@
 //! Each test asserts what the parser SHOULD do. Findings are documented
 //! as ATK-PARSER-N entries.
 
-use antigen::scan::scan_workspace;
 use std::path::{Path, PathBuf};
+
+use antigen::scan::scan_workspace;
 
 fn fixture(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))

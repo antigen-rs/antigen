@@ -49,7 +49,7 @@ use std::path::Path;
 
 use crate::audit::orchestrate::{self, AuditBundle};
 use crate::finding::Finding;
-use crate::scan::{scan_workspace, ScanReport};
+use crate::scan::{ScanReport, scan_workspace};
 
 /// The sole stop-authority handle (ADR-036 §The out-of-band invariant — SEAM-2).
 ///

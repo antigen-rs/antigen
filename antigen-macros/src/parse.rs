@@ -10,11 +10,13 @@
 //! is consistently better than `Span::call_site()`, which points at the
 //! whole `#[antigen(...)]` invocation.
 
-use proc_macro2::Span;
-use syn::parse::{Parse, ParseStream};
-use syn::punctuated::Punctuated;
-use syn::{Expr, Ident, Lit, LitStr, Path, Token};
-
+// LeafExpr is only used by the depth-guard regression tests below; pull it
+// in there via `super::*` rather than re-exporting from the macro crate's
+// public surface (we keep the re-export of RequiresExpr because the
+// ImmuneArgs / ToleranceArgs structs expose `requires: Option<(RequiresExpr,
+// Span)>`).
+#[cfg(test)]
+use antigen_attestation::parser::LeafExpr;
 // ============================================================================
 // RequiresExpr is now defined in antigen-attestation behind the `parser`
 // feature so the scan layer can re-use the same parser without depending on
@@ -25,16 +27,11 @@ use syn::{Expr, Ident, Lit, LitStr, Path, Token};
 // unchanged; both sides round-trip through `serde_json` and the runtime
 // `antigen_attestation::Predicate` type.
 // ============================================================================
-
 pub use antigen_attestation::parser::RequiresExpr;
-
-// LeafExpr is only used by the depth-guard regression tests below; pull it
-// in there via `super::*` rather than re-exporting from the macro crate's
-// public surface (we keep the re-export of RequiresExpr because the
-// ImmuneArgs / ToleranceArgs structs expose `requires: Option<(RequiresExpr,
-// Span)>`).
-#[cfg(test)]
-use antigen_attestation::parser::LeafExpr;
+use proc_macro2::Span;
+use syn::parse::{Parse, ParseStream};
+use syn::punctuated::Punctuated;
+use syn::{Expr, Ident, Lit, LitStr, Path, Token};
 
 // ============================================================================
 // MacroAntigenCategory — local mirror of antigen::AntigenCategory (ADR-028)
@@ -64,10 +61,10 @@ impl MacroAntigenCategory {
         match s {
             "SubstrateAlignment" | "AntigenCategory::SubstrateAlignment" => {
                 Some(Self::SubstrateAlignment)
-            }
+            },
             "FunctionalCorrectness" | "AntigenCategory::FunctionalCorrectness" => {
                 Some(Self::FunctionalCorrectness)
-            }
+            },
             _ => None,
         }
     }
@@ -327,12 +324,12 @@ impl Parse for AntigenArgs {
                     let (s, span) = pair.expect_string_spanned()?;
                     name = Some(s);
                     name_span = Some(span);
-                }
+                },
                 "fingerprint" => {
                     let (s, span) = pair.expect_string_spanned()?;
                     fingerprint = Some(s);
                     fingerprint_span = Some(span);
-                }
+                },
                 "family" => family = Some(pair.expect_string()?),
                 "summary" => summary = Some(pair.expect_string()?),
                 "references" => references = pair.expect_string_array()?,
@@ -352,8 +349,8 @@ impl Parse for AntigenArgs {
                          Author `provenance = Provenance::{Encountered|Constructable|\
                          Heuristic|Imagined}` instead; provenance is the verified \
                          claim that sets the tier floor.",
-                    ))
-                }
+                    ));
+                },
                 other => {
                     return Err(syn::Error::new(
                         pair.key.span(),
@@ -362,8 +359,8 @@ impl Parse for AntigenArgs {
                                  name, fingerprint, family, summary, references, \
                                  category, provenance, presentation"
                         ),
-                    ))
-                }
+                    ));
+                },
             }
         }
 
@@ -474,10 +471,10 @@ impl Parse for PresentsArgs {
                 "requires" => {
                     let pred: RequiresExpr = input.parse()?;
                     requires = Some((pred, key_span));
-                }
+                },
                 "proof" => {
                     proof = Some(input.parse()?);
-                }
+                },
                 "witness" => {
                     // Reject `witness =` on #[presents] with a clear migration message.
                     // Code-tier witnesses register via `#[defended_by(X)]` on the test
@@ -492,7 +489,7 @@ impl Parse for PresentsArgs {
                          For substrate-tier evidence use `requires = ...` here. \
                          For phantom-tier evidence use `proof = ...` here.",
                     ));
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -501,7 +498,7 @@ impl Parse for PresentsArgs {
                              requires, proof"
                         ),
                     ));
-                }
+                },
             }
         }
 
@@ -582,15 +579,15 @@ impl Parse for ImmuneArgs {
             match key.to_string().as_str() {
                 "witness" => {
                     witness = Some(input.parse()?);
-                }
+                },
                 "requires" => {
                     let pred: RequiresExpr = input.parse()?;
                     requires = Some((pred, key_span));
-                }
+                },
                 "rationale" => {
                     let lit: LitStr = input.parse()?;
                     rationale = Some(lit.value());
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -599,7 +596,7 @@ impl Parse for ImmuneArgs {
                              witness, requires, rationale"
                         ),
                     ));
-                }
+                },
             }
         }
 
@@ -664,7 +661,7 @@ impl ImmuneArgs {
                     ));
                 }
                 Ok(())
-            }
+            },
         }
     }
 
@@ -742,12 +739,12 @@ impl Parse for ToleranceArgs {
                     let lit: LitStr = input.parse()?;
                     rationale_span = Some(lit.span());
                     rationale = Some(lit.value());
-                }
+                },
                 "until" => {
                     let lit: LitStr = input.parse()?;
                     until_span = Some(lit.span());
                     until = Some(lit.value());
-                }
+                },
                 "see" => {
                     let arr: syn::ExprArray = input.parse()?;
                     for elem in &arr.elems {
@@ -763,11 +760,11 @@ impl Parse for ToleranceArgs {
                             ));
                         }
                     }
-                }
+                },
                 "requires" => {
                     let pred: RequiresExpr = input.parse()?;
                     requires = Some((pred, key_span));
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -776,7 +773,7 @@ impl Parse for ToleranceArgs {
                              rationale, until, see, requires",
                         ),
                     ));
-                }
+                },
             }
         }
 
@@ -883,7 +880,7 @@ impl Parse for MarkerArgs {
                     let (s, span) = pair.expect_string_spanned()?;
                     trigger = Some(s);
                     trigger_span = Some(span);
-                }
+                },
                 // The plane corner is FIXED by the marker macro, never authored.
                 "magnitude" | "existence_certainty" | "certainty" => {
                     return Err(syn::Error::new(
@@ -892,8 +889,8 @@ impl Parse for MarkerArgs {
                          existence-certainty) is FIXED by which marker you use \
                          (#[aura] / #[dread] / #[red_flag]), not authored. Only \
                          `trigger = \"...\"` is a marker field.",
-                    ))
-                }
+                    ));
+                },
                 other => {
                     return Err(syn::Error::new(
                         pair.key.span(),
@@ -901,8 +898,8 @@ impl Parse for MarkerArgs {
                             "unknown marked-unknown field `{other}`; the only field \
                              is `trigger = \"...\"` (required)"
                         ),
-                    ))
-                }
+                    ));
+                },
             }
         }
 
@@ -1011,17 +1008,17 @@ impl Parse for GeneratesArgs {
                     let lit: LitStr = input.parse()?;
                     rationale_span = Some(lit.span());
                     rationale = Some(lit.value());
-                }
+                },
                 "witness_template" => {
                     let lit: LitStr = input.parse()?;
                     witness_template_span = Some(lit.span());
                     witness_template = Some(lit.value());
-                }
+                },
                 "if_attr_present" => {
                     let lit: LitStr = input.parse()?;
                     if_attr_present_span = Some(lit.span());
                     if_attr_present = Some(lit.value());
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -1030,7 +1027,7 @@ impl Parse for GeneratesArgs {
                              rationale, witness_template, if_attr_present",
                         ),
                     ));
-                }
+                },
             }
         }
 
@@ -1148,20 +1145,20 @@ impl Parse for AnergyArgs {
                     let lit: LitStr = input.parse()?;
                     reason_span = Some(lit.span());
                     reason = Some(lit.value());
-                }
+                },
                 "until" => {
                     let lit: LitStr = input.parse()?;
                     until_span = Some(lit.span());
                     until = Some(lit.value());
-                }
+                },
                 "expected_co_stimulation" => {
                     let lit: LitStr = input.parse()?;
                     expected_co_stimulation = Some(lit.value());
-                }
+                },
                 "signed_by" => {
                     let lit: LitStr = input.parse()?;
                     signed_by = Some(lit.value());
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -1170,7 +1167,7 @@ impl Parse for AnergyArgs {
                              reason, until, expected_co_stimulation, signed_by"
                         ),
                     ));
-                }
+                },
             }
             if !input.is_empty() {
                 input.parse::<Token![,]>()?;
@@ -1204,7 +1201,7 @@ impl AnergyArgs {
                     "#[anergy] requires `reason = \"...\"`. \
                      Anergy without a stated reason is a silent suppression.",
                 ));
-            }
+            },
             Some(r) if r.len() < 20 => {
                 return Err(syn::Error::new(
                     self.reason_span.unwrap_or(self.args_span),
@@ -1214,7 +1211,7 @@ impl AnergyArgs {
                         r.len()
                     ),
                 ));
-            }
+            },
             Some(r) if r.trim().is_empty() => {
                 return Err(syn::Error::new(
                     self.reason_span.unwrap_or(self.args_span),
@@ -1222,8 +1219,8 @@ impl AnergyArgs {
                      a blank reason bypasses the loudness-as-discipline \
                      requirement (ADR-023).",
                 ));
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         // until REQUIRED (A5)
@@ -1235,15 +1232,15 @@ impl AnergyArgs {
                      Anergy without a time-bound degrades to silent tolerance. \
                      Per ADR-023 A5: `until` is not optional.",
                 ));
-            }
+            },
             Some("") => {
                 return Err(syn::Error::new(
                     self.until_span.unwrap_or(self.args_span),
                     "#[anergy] `until` must not be empty. \
                      Use a date string, e.g. `until = \"2026-12-31\"`.",
                 ));
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         // Past-date rejection: an expired anergy window means the suppression
@@ -1264,7 +1261,7 @@ impl AnergyArgs {
                             ),
                         ));
                     }
-                }
+                },
                 Err(()) => {
                     return Err(syn::Error::new(
                         self.until_span.unwrap_or(self.args_span),
@@ -1273,7 +1270,7 @@ impl AnergyArgs {
                              date. Use YYYY-MM-DD format, e.g. `until = \"2026-12-31\"`."
                         ),
                     ));
-                }
+                },
             }
         }
 
@@ -1341,25 +1338,25 @@ impl Parse for ImmunosuppressArgs {
                     let lit: LitStr = input.parse()?;
                     rationale_span = Some(lit.span());
                     rationale = Some(lit.value());
-                }
+                },
                 "until" => {
                     let lit: LitStr = input.parse()?;
                     until_span = Some(lit.span());
                     until = Some(lit.value());
-                }
+                },
                 "since" => {
                     let lit: LitStr = input.parse()?;
                     since = Some(lit.value());
-                }
+                },
                 "duration_cap" => {
                     let lit: LitInt = input.parse()?;
                     duration_cap_span = Some(lit.span());
                     duration_cap = Some(lit.base10_parse::<u64>()?);
-                }
+                },
                 "signed_by" => {
                     let lit: LitStr = input.parse()?;
                     signed_by = Some(lit.value());
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -1368,7 +1365,7 @@ impl Parse for ImmunosuppressArgs {
                              rationale, until, since, duration_cap, signed_by"
                         ),
                     ));
-                }
+                },
             }
             if !input.is_empty() {
                 input.parse::<Token![,]>()?;
@@ -1412,7 +1409,7 @@ impl ImmunosuppressArgs {
                     "#[immunosuppress] requires `rationale = \"...\"`. \
                      Immunosuppression without rationale is not a claim.",
                 ));
-            }
+            },
             Some(r) if r.len() < 20 => {
                 return Err(syn::Error::new(
                     self.rationale_span.unwrap_or(self.args_span),
@@ -1422,7 +1419,7 @@ impl ImmunosuppressArgs {
                         r.len()
                     ),
                 ));
-            }
+            },
             Some(r) if r.trim().is_empty() => {
                 return Err(syn::Error::new(
                     self.rationale_span.unwrap_or(self.args_span),
@@ -1430,8 +1427,8 @@ impl ImmunosuppressArgs {
                      a blank rationale bypasses the loudness-as-discipline \
                      requirement (ADR-023).",
                 ));
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         // until required
@@ -1442,14 +1439,14 @@ impl ImmunosuppressArgs {
                     "#[immunosuppress] requires `until = \"YYYY-MM-DD\"`. \
                      Suppression without a deadline is indefinite suppression.",
                 ));
-            }
+            },
             Some("") => {
                 return Err(syn::Error::new(
                     self.until_span.unwrap_or(self.args_span),
                     "#[immunosuppress] `until` must not be empty.",
                 ));
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         // Duration cap enforcement (A4 absorbed): parse-time COMPILE ERROR
@@ -1481,8 +1478,9 @@ impl ImmunosuppressArgs {
                     }
                     if duration_days > cap_i64 {
                         return Err(syn::Error::new(
-                            self.until_span
-                                .unwrap_or_else(|| self.duration_cap_span.unwrap_or(self.args_span)),
+                            self.until_span.unwrap_or_else(|| {
+                                self.duration_cap_span.unwrap_or(self.args_span)
+                            }),
                             format!(
                                 "#[immunosuppress] duration {duration_days}d exceeds cap {cap_i64}d. \
                                  Per ADR-023: duration cap enforced at parse-time. \
@@ -1491,7 +1489,7 @@ impl ImmunosuppressArgs {
                             ),
                         ));
                     }
-                }
+                },
                 Err(()) => {
                     return Err(syn::Error::new(
                         self.until_span.unwrap_or(self.args_span),
@@ -1500,7 +1498,7 @@ impl ImmunosuppressArgs {
                              ISO-8601 date. Use YYYY-MM-DD format, e.g. `until = \"2026-12-31\"`."
                         ),
                     ));
-                }
+                },
             }
         }
 
@@ -1573,24 +1571,24 @@ impl Parse for PoxpartyArgs {
                     let lit: LitStr = input.parse()?;
                     exercise_type_span = Some(lit.span());
                     exercise_type = Some(lit.value());
-                }
+                },
                 "until" => {
                     let lit: LitStr = input.parse()?;
                     until_span = Some(lit.span());
                     until = Some(lit.value());
-                }
+                },
                 "name" => {
                     let lit: LitStr = input.parse()?;
                     name = Some(lit.value());
-                }
+                },
                 "rationale" => {
                     let lit: LitStr = input.parse()?;
                     rationale = Some(lit.value());
-                }
+                },
                 "signed_by" => {
                     let lit: LitStr = input.parse()?;
                     signed_by = Some(lit.value());
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -1599,7 +1597,7 @@ impl Parse for PoxpartyArgs {
                              exercise_type, until, name, rationale, signed_by"
                         ),
                     ));
-                }
+                },
             }
             if !input.is_empty() {
                 input.parse::<Token![,]>()?;
@@ -1639,7 +1637,7 @@ impl PoxpartyArgs {
                     "#[poxparty] requires `exercise_type = \"...\"`. \
                      Per ADR-023: describes the controlled exposure exercise.",
                 ));
-            }
+            },
             Some(et) if et.len() < 20 => {
                 return Err(syn::Error::new(
                     self.exercise_type_span.unwrap_or(self.args_span),
@@ -1649,7 +1647,7 @@ impl PoxpartyArgs {
                         et.len()
                     ),
                 ));
-            }
+            },
             Some(et) if et.trim().is_empty() => {
                 return Err(syn::Error::new(
                     self.exercise_type_span.unwrap_or(self.args_span),
@@ -1657,8 +1655,8 @@ impl PoxpartyArgs {
                      a blank exercise type bypasses the loudness-as-discipline \
                      requirement (ADR-023).",
                 ));
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         // until required
@@ -1669,14 +1667,14 @@ impl PoxpartyArgs {
                     "#[poxparty] requires `until = \"YYYY-MM-DD\"`. \
                      A pox party without a deadline runs indefinitely.",
                 ));
-            }
+            },
             Some("") => {
                 return Err(syn::Error::new(
                     self.until_span.unwrap_or(self.args_span),
                     "#[poxparty] `until` must not be empty.",
                 ));
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         // Past-date rejection: an expired pox-party window is stale controlled
@@ -1697,7 +1695,7 @@ impl PoxpartyArgs {
                             ),
                         ));
                     }
-                }
+                },
                 Err(()) => {
                     return Err(syn::Error::new(
                         self.until_span.unwrap_or(self.args_span),
@@ -1706,7 +1704,7 @@ impl PoxpartyArgs {
                              date. Use YYYY-MM-DD format, e.g. `until = \"2026-12-31\"`."
                         ),
                     ));
-                }
+                },
             }
         }
 
@@ -1784,12 +1782,12 @@ impl Parse for OrientArgs {
                     let lit: LitStr = input.parse()?;
                     learning_path_span = Some(lit.span());
                     learning_path = Some(lit.value());
-                }
+                },
                 "until" => {
                     let lit: LitStr = input.parse()?;
                     until_span = Some(lit.span());
                     until = Some(lit.value());
-                }
+                },
                 // The drift-form fields (see/adr/attestation_optional) are NOT
                 // in the ADR-023 spec; restoration removes them. A clear error
                 // names the migration target rather than silently accepting.
@@ -1806,7 +1804,7 @@ impl Parse for OrientArgs {
                              replacement."
                         ),
                     ));
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -1814,7 +1812,7 @@ impl Parse for OrientArgs {
                             "unknown #[orient] field `{other}`; expected: learning_path, until"
                         ),
                     ));
-                }
+                },
             }
             if !input.is_empty() {
                 input.parse::<Token![,]>()?;
@@ -1854,7 +1852,7 @@ impl OrientArgs {
                      without an explicit path forward is silent deferred non-immunity \
                      (= tolerance); orient exists to be loud about it (ADR-023).",
                 ));
-            }
+            },
             Some(p) if p.len() < 20 => {
                 return Err(syn::Error::new(
                     self.learning_path_span.unwrap_or(self.args_span),
@@ -1864,7 +1862,7 @@ impl OrientArgs {
                         p.len()
                     ),
                 ));
-            }
+            },
             Some(p) if p.trim().is_empty() => {
                 return Err(syn::Error::new(
                     self.learning_path_span.unwrap_or(self.args_span),
@@ -1872,8 +1870,8 @@ impl OrientArgs {
                      a blank learning path bypasses the loudness-as-discipline \
                      requirement (ADR-023).",
                 ));
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         // until required + non-empty.
@@ -1884,13 +1882,13 @@ impl OrientArgs {
                     "#[orient] requires `until = \"YYYY-MM-DD\"`. An orientation period \
                      without a time-bound is indefinite; orient must escalate at a horizon.",
                 ));
-            }
+            },
             Some("") => {
                 return Err(syn::Error::new(
                     self.until_span.unwrap_or(self.args_span),
                     "#[orient] `until` must not be empty.",
                 ));
-            }
+            },
             Some(s) => s,
         };
 
@@ -1904,7 +1902,7 @@ impl OrientArgs {
                         "#[orient] `until` must be an ISO-8601 date (YYYY-MM-DD); got `{until_str}`."
                     ),
                 ));
-            }
+            },
             Ok(until_date) => {
                 let horizon_days = (until_date - today_utc()).num_days();
                 // A past `until` is an already-expired orientation window: it
@@ -1936,7 +1934,7 @@ impl OrientArgs {
                         ),
                     ));
                 }
-            }
+            },
         }
 
         Ok(())
@@ -2063,7 +2061,7 @@ fn parse_triage_decision_expr(
                 .map(|seg| seg.ident.to_string())
                 .collect();
             segs.join("::")
-        }
+        },
         _ => {
             return Err(syn::Error::new_spanned(
                 expr,
@@ -2071,7 +2069,7 @@ fn parse_triage_decision_expr(
                  `TriageDecision::Yellow`, `TriageDecision::Green`, or \
                  `TriageDecision::White`",
             ));
-        }
+        },
     };
     let decision = MacroTriageDecision::from_path_str(&s).ok_or_else(|| {
         syn::Error::new_spanned(
@@ -2108,27 +2106,27 @@ impl Parse for TriageCommitArgs {
                     let (decision, span) = parse_triage_decision_expr(input, &expr)?;
                     triage_decision = Some(decision);
                     triage_decision_span = Some(span);
-                }
+                },
                 "rollback_target" => {
                     let lit: LitStr = input.parse()?;
                     rollback_target_span = Some(lit.span());
                     rollback_target = Some(lit.value());
-                }
+                },
                 "triaged_by" => {
                     let lit: LitStr = input.parse()?;
                     triaged_by_span = Some(lit.span());
                     triaged_by = Some(lit.value());
-                }
+                },
                 "rationale" => {
                     let lit: LitStr = input.parse()?;
                     rationale_span = Some(lit.span());
                     rationale = Some(lit.value());
-                }
+                },
                 "rollback_due_within_minutes" => {
                     let lit: syn::LitInt = input.parse()?;
                     rollback_due_within_minutes_span = Some(lit.span());
                     rollback_due_within_minutes = Some(lit.base10_parse::<u32>()?);
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -2138,7 +2136,7 @@ impl Parse for TriageCommitArgs {
                              rollback_due_within_minutes"
                         ),
                     ));
-                }
+                },
             }
             if !input.is_empty() {
                 input.parse::<Token![,]>()?;
@@ -2187,15 +2185,15 @@ impl TriageCommitArgs {
                     "#[triage_commit] requires `rollback_target = \"<sha>\"` \
                      (commit sha pointing to last-known-good state).",
                 ));
-            }
+            },
             Some(s) if s.trim().is_empty() => {
                 return Err(syn::Error::new(
                     self.rollback_target_span.unwrap_or(self.args_span),
                     "#[triage_commit] `rollback_target` cannot be empty or whitespace-only. \
                      A rollback without a target is not a rollback.",
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         match self.triaged_by.as_deref() {
             None => {
@@ -2205,14 +2203,14 @@ impl TriageCommitArgs {
                      Per ADR-026 §Rollback-as-triage clinical-medicine \
                      grounding, informed-consent requires an authoring identity.",
                 ));
-            }
+            },
             Some(s) if s.trim().is_empty() => {
                 return Err(syn::Error::new(
                     self.triaged_by_span.unwrap_or(self.args_span),
                     "#[triage_commit] `triaged_by` cannot be empty or whitespace-only.",
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         match self.rationale.as_deref() {
             None => {
@@ -2222,7 +2220,7 @@ impl TriageCommitArgs {
                      (chart-documentation; minimum 20 characters). Per ADR-026 \
                      §Rollback-as-triage: rationale before action, not after.",
                 ));
-            }
+            },
             Some(s) if s.len() < 20 => {
                 return Err(syn::Error::new(
                     self.rationale_span.unwrap_or(self.args_span),
@@ -2233,7 +2231,7 @@ impl TriageCommitArgs {
                         s.len()
                     ),
                 ));
-            }
+            },
             Some(s) if s.trim().is_empty() => {
                 return Err(syn::Error::new(
                     self.rationale_span.unwrap_or(self.args_span),
@@ -2241,8 +2239,8 @@ impl TriageCommitArgs {
                      a blank rationale bypasses chart-documentation discipline \
                      (ADR-026 §Rollback-as-triage: rationale before action, not after).",
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         match self.rollback_due_within_minutes {
             None => {
@@ -2251,7 +2249,7 @@ impl TriageCommitArgs {
                     "#[triage_commit] requires `rollback_due_within_minutes = N` \
                      (positive integer; e.g., 30 for a Red triage per ADR-026 example).",
                 ));
-            }
+            },
             Some(0) => {
                 return Err(syn::Error::new(
                     self.rollback_due_within_minutes_span
@@ -2260,8 +2258,8 @@ impl TriageCommitArgs {
                      A zero deadline degrades to no-deadline; per ADR-026 \
                      §Rollback-as-triage the time-bound carries discipline.",
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         Ok(())
     }
@@ -2319,12 +2317,12 @@ impl Parse for DiagnosticArgs {
                             "expected a `WitnessClass::*` path in `modalities` array",
                         ));
                     }
-                }
+                },
                 "min_independent" => {
                     let lit: LitInt = input.parse()?;
                     min_independent_span = Some(lit.span());
                     min_independent = Some(lit.base10_parse::<u64>()?);
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -2332,7 +2330,7 @@ impl Parse for DiagnosticArgs {
                             "unknown #[diagnostic] field `{other}`; expected: modalities, min_independent"
                         ),
                     ));
-                }
+                },
             }
             if !input.is_empty() {
                 input.parse::<Token![,]>()?;
@@ -2484,12 +2482,12 @@ impl Parse for ClonalArgs {
                     let e: Expr = input.parse()?;
                     witness_span = Some(syn::spanned::Spanned::span(&e));
                     witness = Some(e);
-                }
+                },
                 "iterations" => {
                     let lit: LitInt = input.parse()?;
                     iterations_span = Some(lit.span());
                     iterations = Some(lit.base10_parse::<u64>()?);
-                }
+                },
                 "seed" => {
                     let e: Expr = input.parse()?;
                     seed_span = Some(syn::spanned::Spanned::span(&e));
@@ -2510,7 +2508,7 @@ impl Parse for ClonalArgs {
                             }
                         }
                     }
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -2518,7 +2516,7 @@ impl Parse for ClonalArgs {
                             "unknown #[clonal] field `{other}`; expected: witness, iterations, seed"
                         ),
                     ));
-                }
+                },
             }
             if !input.is_empty() {
                 input.parse::<Token![,]>()?;
@@ -2621,17 +2619,17 @@ impl Parse for IggArgs {
                     for elem in &arr.elems {
                         witnesses.push(elem.clone());
                     }
-                }
+                },
                 "historical_span" => {
                     let lit: LitInt = input.parse()?;
                     historical_span_span = Some(lit.span());
                     historical_span = Some(lit.base10_parse::<u64>()?);
-                }
+                },
                 "min_reattestations" => {
                     let lit: LitInt = input.parse()?;
                     min_reattestations_span = Some(lit.span());
                     min_reattestations = Some(lit.base10_parse::<u64>()?);
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -2640,7 +2638,7 @@ impl Parse for IggArgs {
                              witnesses, historical_span, min_reattestations"
                         ),
                     ));
-                }
+                },
             }
             if !input.is_empty() {
                 input.parse::<Token![,]>()?;
@@ -2733,13 +2731,13 @@ impl Parse for CrossreactiveArgs {
                             ));
                         }
                     }
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
                         format!("unknown #[crossreactive] field `{other}`; expected: fingerprints"),
                     ));
-                }
+                },
             }
             if !input.is_empty() {
                 input.parse::<Token![,]>()?;
@@ -2900,19 +2898,19 @@ impl Parse for ItchArgs {
                     let lit: LitStr = input.parse()?;
                     name_span = Some(lit.span());
                     name = Some(lit.value());
-                }
+                },
                 "antigen" => {
                     antigen = Some(input.parse()?);
-                }
+                },
                 "description" => {
                     let lit: LitStr = input.parse()?;
                     description_span = Some(lit.span());
                     description = Some(lit.value());
-                }
+                },
                 "threshold" => {
                     let lit: LitStr = input.parse()?;
                     threshold = Some(lit.value());
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -2921,7 +2919,7 @@ impl Parse for ItchArgs {
                              name, antigen, description, threshold"
                         ),
                     ));
-                }
+                },
             }
             if !input.is_empty() {
                 input.parse::<Token![,]>()?;
@@ -2949,14 +2947,14 @@ impl ItchArgs {
                     self.args_span,
                     "#[itch] requires `name = \"<slug>\"` (kebab-case identifier).",
                 ));
-            }
+            },
             Some(s) if s.trim().is_empty() => {
                 return Err(syn::Error::new(
                     self.name_span.unwrap_or(self.args_span),
                     "#[itch] `name` cannot be empty.",
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         match self.description.as_deref() {
             None => {
@@ -2965,7 +2963,7 @@ impl ItchArgs {
                     "#[itch] requires `description = \"...\"` (what is being noticed; \
                      minimum 10 characters).",
                 ));
-            }
+            },
             Some(s) if s.len() < 10 => {
                 return Err(syn::Error::new(
                     self.description_span.unwrap_or(self.args_span),
@@ -2976,8 +2974,8 @@ impl ItchArgs {
                         s.len()
                     ),
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         Ok(())
     }
@@ -3028,22 +3026,22 @@ impl Parse for RecurrenceAnchorArgs {
             match key.to_string().as_str() {
                 "antigen" => {
                     antigen = Some(input.parse()?);
-                }
+                },
                 "instances" => {
                     let lit: syn::LitInt = input.parse()?;
                     instances_span = Some(lit.span());
                     instances = Some(lit.base10_parse::<u32>()?);
-                }
+                },
                 "since" => {
                     let lit: LitStr = input.parse()?;
                     since_span = Some(lit.span());
                     since = Some(lit.value());
-                }
+                },
                 "rationale" => {
                     let lit: LitStr = input.parse()?;
                     rationale_span = Some(lit.span());
                     rationale = Some(lit.value());
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -3052,7 +3050,7 @@ impl Parse for RecurrenceAnchorArgs {
                              one of: antigen, instances, since, rationale"
                         ),
                     ));
-                }
+                },
             }
             if !input.is_empty() {
                 input.parse::<Token![,]>()?;
@@ -3090,15 +3088,15 @@ impl RecurrenceAnchorArgs {
                     "#[recurrence_anchor] requires `instances = N` (positive \
                      integer; how many recurrences have been observed).",
                 ));
-            }
+            },
             Some(0) => {
                 return Err(syn::Error::new(
                     self.instances_span.unwrap_or(self.args_span),
                     "#[recurrence_anchor] `instances` must be > 0; an anchor at \
                      zero observed instances is structurally premature.",
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         match self.since.as_deref() {
             None => {
@@ -3107,14 +3105,14 @@ impl RecurrenceAnchorArgs {
                     "#[recurrence_anchor] requires `since = \"<date-or-version>\"` \
                      (first detected instance anchor).",
                 ));
-            }
+            },
             Some(s) if s.trim().is_empty() => {
                 return Err(syn::Error::new(
                     self.since_span.unwrap_or(self.args_span),
                     "#[recurrence_anchor] `since` cannot be empty.",
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         match self.rationale.as_deref() {
             None => {
@@ -3123,7 +3121,7 @@ impl RecurrenceAnchorArgs {
                     "#[recurrence_anchor] requires `rationale = \"...\"` \
                      (≥20 characters; why this recurrence warrants action).",
                 ));
-            }
+            },
             Some(s) if s.len() < 20 => {
                 return Err(syn::Error::new(
                     self.rationale_span.unwrap_or(self.args_span),
@@ -3134,8 +3132,8 @@ impl RecurrenceAnchorArgs {
                         s.len()
                     ),
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         Ok(())
     }
@@ -3178,7 +3176,7 @@ impl Parse for CrystallizeArgs {
                     let lit: LitStr = input.parse()?;
                     name_span = Some(lit.span());
                     name = Some(lit.value());
-                }
+                },
                 "from_itches" => {
                     let arr: syn::ExprArray = input.parse()?;
                     for elem in &arr.elems {
@@ -3191,15 +3189,15 @@ impl Parse for CrystallizeArgs {
                             ));
                         }
                     }
-                }
+                },
                 "antigen" => {
                     antigen = Some(input.parse()?);
-                }
+                },
                 "summary" => {
                     let lit: LitStr = input.parse()?;
                     summary_span = Some(lit.span());
                     summary = Some(lit.value());
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -3208,7 +3206,7 @@ impl Parse for CrystallizeArgs {
                              one of: name, from_itches, antigen, summary"
                         ),
                     ));
-                }
+                },
             }
             if !input.is_empty() {
                 input.parse::<Token![,]>()?;
@@ -3236,14 +3234,14 @@ impl CrystallizeArgs {
                     self.args_span,
                     "#[crystallize] requires `name = \"<slug>\"`.",
                 ));
-            }
+            },
             Some(s) if s.trim().is_empty() => {
                 return Err(syn::Error::new(
                     self.name_span.unwrap_or(self.args_span),
                     "#[crystallize] `name` cannot be empty.",
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         match self.summary.as_deref() {
             None => {
@@ -3251,7 +3249,7 @@ impl CrystallizeArgs {
                     self.args_span,
                     "#[crystallize] requires `summary = \"...\"` (≥10 characters).",
                 ));
-            }
+            },
             Some(s) if s.len() < 10 => {
                 return Err(syn::Error::new(
                     self.summary_span.unwrap_or(self.args_span),
@@ -3262,8 +3260,8 @@ impl CrystallizeArgs {
                         s.len()
                     ),
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         Ok(())
     }
@@ -3312,20 +3310,20 @@ impl Parse for ChronicArgs {
             match key.to_string().as_str() {
                 "antigen" => {
                     antigen = Some(input.parse()?);
-                }
+                },
                 "since" => {
                     let lit: LitStr = input.parse()?;
                     since_span = Some(lit.span());
                     since = Some(lit.value());
-                }
+                },
                 "status" => {
                     let lit: LitStr = input.parse()?;
                     status = Some(lit.value());
-                }
+                },
                 "managed_by" => {
                     let lit: LitStr = input.parse()?;
                     managed_by = Some(lit.value());
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -3334,7 +3332,7 @@ impl Parse for ChronicArgs {
                              antigen, since, status, managed_by"
                         ),
                     ));
-                }
+                },
             }
             if !input.is_empty() {
                 input.parse::<Token![,]>()?;
@@ -3369,14 +3367,14 @@ impl ChronicArgs {
                     "#[chronic] requires `since = \"<date-or-version>\"` (when \
                      the chronic signal was first observed).",
                 ));
-            }
+            },
             Some(s) if s.trim().is_empty() => {
                 return Err(syn::Error::new(
                     self.since_span.unwrap_or(self.args_span),
                     "#[chronic] `since` cannot be empty.",
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         Ok(())
     }
@@ -3413,16 +3411,16 @@ impl Parse for SaturateArgs {
             match key.to_string().as_str() {
                 "antigen" => {
                     antigen = Some(input.parse()?);
-                }
+                },
                 "contributing_to" => {
                     let lit: LitStr = input.parse()?;
                     contributing_to = Some(lit.value());
-                }
+                },
                 "description" => {
                     let lit: LitStr = input.parse()?;
                     description_span = Some(lit.span());
                     description = Some(lit.value());
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -3431,7 +3429,7 @@ impl Parse for SaturateArgs {
                              antigen, contributing_to, description"
                         ),
                     ));
-                }
+                },
             }
             if !input.is_empty() {
                 input.parse::<Token![,]>()?;
@@ -3458,7 +3456,7 @@ impl SaturateArgs {
                     "#[saturate] requires `description = \"...\"` (≥10 characters; \
                      what evidence is saturating).",
                 ));
-            }
+            },
             Some(s) if s.len() < 10 => {
                 return Err(syn::Error::new(
                     self.description_span.unwrap_or(self.args_span),
@@ -3468,8 +3466,8 @@ impl SaturateArgs {
                         s.len()
                     ),
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         Ok(())
     }
@@ -3509,7 +3507,7 @@ impl Parse for StrandArgs {
                     let lit: LitStr = input.parse()?;
                     name_span = Some(lit.span());
                     name = Some(lit.value());
-                }
+                },
                 "anchored_by" => {
                     let arr: syn::ExprArray = input.parse()?;
                     for elem in &arr.elems {
@@ -3522,12 +3520,12 @@ impl Parse for StrandArgs {
                             ));
                         }
                     }
-                }
+                },
                 "description" => {
                     let lit: LitStr = input.parse()?;
                     description_span = Some(lit.span());
                     description = Some(lit.value());
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -3536,7 +3534,7 @@ impl Parse for StrandArgs {
                              name, anchored_by, description"
                         ),
                     ));
-                }
+                },
             }
             if !input.is_empty() {
                 input.parse::<Token![,]>()?;
@@ -3563,14 +3561,14 @@ impl StrandArgs {
                     self.args_span,
                     "#[strand] requires `name = \"<slug>\"`.",
                 ));
-            }
+            },
             Some(s) if s.trim().is_empty() => {
                 return Err(syn::Error::new(
                     self.name_span.unwrap_or(self.args_span),
                     "#[strand] `name` cannot be empty.",
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         match self.description.as_deref() {
             None => {
@@ -3579,7 +3577,7 @@ impl StrandArgs {
                     "#[strand] requires `description = \"...\"` (≥10 characters; \
                      what threads of noticing this strand groups).",
                 ));
-            }
+            },
             Some(s) if s.len() < 10 => {
                 return Err(syn::Error::new(
                     self.description_span.unwrap_or(self.args_span),
@@ -3589,8 +3587,8 @@ impl StrandArgs {
                         s.len()
                     ),
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         Ok(())
     }
@@ -3638,15 +3636,15 @@ impl MacroMucosalKind {
             "CrossService" | "cross-service" | "cross_service" => Some(Self::CrossService),
             "SubprocessLaunch" | "subprocess-launch" | "subprocess_launch" => {
                 Some(Self::SubprocessLaunch)
-            }
+            },
             "DependencyImport" | "dependency-import" | "dependency_import" => {
                 Some(Self::DependencyImport)
-            }
+            },
             "UserInput" | "user-input" | "user_input" => Some(Self::UserInput),
             "FilesystemPath" | "filesystem-path" | "filesystem_path" => Some(Self::FilesystemPath),
             "EnvironmentVariable" | "environment-variable" | "environment_variable" => {
                 Some(Self::EnvironmentVariable)
-            }
+            },
             "ShellArgument" | "shell-argument" | "shell_argument" => Some(Self::ShellArgument),
             _ => None,
         }
@@ -3671,7 +3669,7 @@ fn parse_mucosal_kind_expr(expr: &Expr) -> syn::Result<MacroMucosalKind> {
                 "expected a `MucosalKind::X` path expression (e.g., \
                  `MucosalKind::UserInput`), not a string literal",
             ));
-        }
+        },
     };
     MacroMucosalKind::from_path_str(&s).ok_or_else(|| {
         syn::Error::new_spanned(
@@ -3727,12 +3725,12 @@ impl Parse for MucosalArgs {
                     let expr: Expr = input.parse()?;
                     kind_span = Some(input.span());
                     kind = Some(parse_mucosal_kind_expr(&expr)?);
-                }
+                },
                 "rationale" => {
                     let lit: LitStr = input.parse()?;
                     rationale_span = Some(lit.span());
                     rationale = Some(lit.value());
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -3741,7 +3739,7 @@ impl Parse for MucosalArgs {
                              kind, rationale"
                         ),
                     ));
-                }
+                },
             }
             if !input.is_empty() {
                 input.parse::<Token![,]>()?;
@@ -3775,7 +3773,7 @@ impl MucosalArgs {
                     "#[mucosal] requires `rationale = \"...\"` (≥20 characters; \
                      why this boundary is defended).",
                 ));
-            }
+            },
             Some(s) if s.len() < 20 => {
                 return Err(syn::Error::new(
                     self.rationale_span.unwrap_or(self.args_span),
@@ -3785,8 +3783,8 @@ impl MucosalArgs {
                         s.len()
                     ),
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         Ok(())
     }
@@ -3828,17 +3826,17 @@ impl Parse for MucosalDelegateArgs {
                     let expr: Expr = input.parse()?;
                     boundary_span = Some(input.span());
                     boundary = Some(parse_mucosal_kind_expr(&expr)?);
-                }
+                },
                 "handled_by" => {
                     // ADR-027 Amendment 1 Change 4: handled_by is a path
                     // expression, not a string literal.
                     handled_by = Some(input.parse()?);
-                }
+                },
                 "rationale" => {
                     let lit: LitStr = input.parse()?;
                     rationale_span = Some(lit.span());
                     rationale = Some(lit.value());
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -3847,7 +3845,7 @@ impl Parse for MucosalDelegateArgs {
                              one of: boundary, handled_by, rationale"
                         ),
                     ));
-                }
+                },
             }
             if !input.is_empty() {
                 input.parse::<Token![,]>()?;
@@ -3891,7 +3889,7 @@ impl MucosalDelegateArgs {
                     self.args_span,
                     "#[mucosal_delegate] requires `rationale = \"...\"` (≥20 chars).",
                 ));
-            }
+            },
             Some(s) if s.len() < 20 => {
                 return Err(syn::Error::new(
                     self.rationale_span.unwrap_or(self.args_span),
@@ -3901,8 +3899,8 @@ impl MucosalDelegateArgs {
                         s.len()
                     ),
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         Ok(())
     }
@@ -3955,25 +3953,25 @@ impl Parse for MucosalTolerantArgs {
                     let expr: Expr = input.parse()?;
                     kind_span = Some(input.span());
                     kind = Some(parse_mucosal_kind_expr(&expr)?);
-                }
+                },
                 "rationale" => {
                     let lit: LitStr = input.parse()?;
                     rationale_span = Some(lit.span());
                     rationale = Some(lit.value());
-                }
+                },
                 "accepts" => {
                     let lit: LitStr = input.parse()?;
                     accepts_span = Some(lit.span());
                     accepts = Some(lit.value());
-                }
+                },
                 "reviewed_by" => {
                     let lit: LitStr = input.parse()?;
                     reviewed_by = Some(lit.value());
-                }
+                },
                 "until" => {
                     let lit: LitStr = input.parse()?;
                     until = Some(lit.value());
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         key.span(),
@@ -3985,7 +3983,7 @@ impl Parse for MucosalTolerantArgs {
                              tolerance primitive.)"
                         ),
                     ));
-                }
+                },
             }
             if !input.is_empty() {
                 input.parse::<Token![,]>()?;
@@ -4027,7 +4025,7 @@ impl MucosalTolerantArgs {
                      up-front declaration carries a higher loudness floor than \
                      #[mucosal]'s ≥20 to compensate for the detection asymmetry).",
                 ));
-            }
+            },
             Some(s) if s.len() < 40 => {
                 return Err(syn::Error::new(
                     self.rationale_span.unwrap_or(self.args_span),
@@ -4040,8 +4038,8 @@ impl MucosalTolerantArgs {
                         s.len()
                     ),
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         match self.accepts.as_deref() {
             None => {
@@ -4050,15 +4048,15 @@ impl MucosalTolerantArgs {
                     "#[mucosal_tolerant] requires `accepts = \"...\"` (non-empty; \
                      description of what the boundary accepts as legitimate input).",
                 ));
-            }
+            },
             Some(s) if s.trim().is_empty() => {
                 return Err(syn::Error::new(
                     self.accepts_span.unwrap_or(self.args_span),
                     "#[mucosal_tolerant] `accepts` cannot be empty. Audit emits \
                      mucosal-tolerant-accepts-empty.",
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         Ok(())
     }
@@ -4178,14 +4176,14 @@ impl MetaPair {
                         .map(|seg| seg.ident.to_string())
                         .collect();
                     segments.join("::")
-                }
+                },
                 _ => {
                     return Err(syn::Error::new_spanned(
                         expr,
                         "expected `AntigenCategory::SubstrateAlignment` or \
                          `AntigenCategory::FunctionalCorrectness`",
                     ));
-                }
+                },
             };
             MacroAntigenCategory::from_path_str(&s).ok_or_else(|| {
                 syn::Error::new_spanned(
@@ -4212,7 +4210,7 @@ impl MetaPair {
                     ));
                 }
                 Ok(out)
-            }
+            },
             single => Ok(vec![parse_single(single)?]),
         }
     }
@@ -4339,7 +4337,7 @@ impl Parse for PanelArgs {
                 "needs" => {
                     needs = pair.expect_string_array()?;
                     needs_present = true;
-                }
+                },
                 "filled_by" => filled_by = pair.expect_string_array()?,
                 "reviewed_by" => reviewed_by = pair.expect_string_array()?,
                 "ordered_by" => ordered_by = Some(pair.expect_string()?),
@@ -4352,7 +4350,7 @@ impl Parse for PanelArgs {
                              needs, filled_by, reviewed_by, ordered_by, due"
                         ),
                     ));
-                }
+                },
             }
         }
         Ok(Self {
@@ -4424,7 +4422,7 @@ impl Parse for RxArgs {
                     let (s, span) = pair.expect_string_spanned()?;
                     treatment = Some(s);
                     treatment_span = Some(span);
-                }
+                },
                 "diagnosis" => diagnosis = Some(pair.expect_string()?),
                 "filled_by" => filled_by = pair.expect_string_array()?,
                 "reviewed_by" => reviewed_by = pair.expect_string_array()?,
@@ -4437,7 +4435,7 @@ impl Parse for RxArgs {
                              treatment, diagnosis, filled_by, reviewed_by, due"
                         ),
                     ));
-                }
+                },
             }
         }
         Ok(Self {
@@ -4494,7 +4492,7 @@ impl Parse for ReferArgs {
                     let (s, span) = pair.expect_string_spanned()?;
                     to = Some(s);
                     to_span = Some(span);
-                }
+                },
                 "response_due" => response_due = Some(pair.expect_string()?),
                 other => {
                     return Err(syn::Error::new(
@@ -4504,7 +4502,7 @@ impl Parse for ReferArgs {
                              to, response_due"
                         ),
                     ));
-                }
+                },
             }
         }
         Ok(Self {
@@ -4563,12 +4561,12 @@ impl Parse for BiopsyArgs {
                     let (s, span) = pair.expect_string_spanned()?;
                     location = Some(s);
                     location_span = Some(span);
-                }
+                },
                 "request_text" => {
                     let (s, span) = pair.expect_string_spanned()?;
                     request_text = Some(s);
                     request_text_span = Some(span);
-                }
+                },
                 "deep_investigation_by" => deep_investigation_by = Some(pair.expect_string()?),
                 other => {
                     return Err(syn::Error::new(
@@ -4578,7 +4576,7 @@ impl Parse for BiopsyArgs {
                              location, request_text, deep_investigation_by"
                         ),
                     ));
-                }
+                },
             }
         }
         Ok(Self {
@@ -4601,14 +4599,14 @@ impl BiopsyArgs {
                     self.args_span,
                     "#[biopsy] requires `location = \"...\"` (the sub-site to investigate).",
                 ));
-            }
+            },
             Some(s) if s.trim().is_empty() => {
                 return Err(syn::Error::new(
                     self.location_span.unwrap_or(self.args_span),
                     "#[biopsy] `location` cannot be empty.",
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         match self.request_text.as_deref() {
             None => Err(syn::Error::new(
@@ -4657,11 +4655,11 @@ impl Parse for DdxArgs {
                     let (s, span) = pair.expect_string_spanned()?;
                     symptom = Some(s);
                     symptom_span = Some(span);
-                }
+                },
                 "rule_out" => {
                     rule_out = pair.expect_string_array()?;
                     rule_out_present = true;
-                }
+                },
                 "investigator" => investigator = Some(pair.expect_string()?),
                 "reviewer" => reviewer = Some(pair.expect_string()?),
                 other => {
@@ -4672,7 +4670,7 @@ impl Parse for DdxArgs {
                              symptom, rule_out, investigator, reviewer"
                         ),
                     ));
-                }
+                },
             }
         }
         Ok(Self {
@@ -4697,14 +4695,14 @@ impl DdxArgs {
                     self.args_span,
                     "#[ddx] requires `symptom = \"...\"` (the observed problem).",
                 ));
-            }
+            },
             Some(s) if s.trim().is_empty() => {
                 return Err(syn::Error::new(
                     self.symptom_span.unwrap_or(self.args_span),
                     "#[ddx] `symptom` cannot be empty.",
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         if !self.rule_out_present {
             return Err(syn::Error::new(
@@ -4752,7 +4750,7 @@ impl Parse for CultureArgs {
                     let (s, span) = pair.expect_string_spanned()?;
                     test_kind = Some(s);
                     test_kind_span = Some(span);
-                }
+                },
                 "duration" => duration = Some(pair.expect_string()?),
                 "runs_until" => runs_until = Some(pair.expect_string()?),
                 other => {
@@ -4763,7 +4761,7 @@ impl Parse for CultureArgs {
                              test_kind, duration, runs_until"
                         ),
                     ));
-                }
+                },
             }
         }
         Ok(Self {
@@ -4824,13 +4822,13 @@ impl Parse for QuarantineArgs {
                     let (s, span) = pair.expect_string_spanned()?;
                     scope = Some(s);
                     scope_span = Some(span);
-                }
+                },
                 "until" => until = Some(pair.expect_string()?),
                 "reason" => {
                     let (s, span) = pair.expect_string_spanned()?;
                     reason = Some(s);
                     reason_span = Some(span);
-                }
+                },
                 other => {
                     return Err(syn::Error::new(
                         pair.key.span(),
@@ -4839,7 +4837,7 @@ impl Parse for QuarantineArgs {
                              scope, until, reason"
                         ),
                     ));
-                }
+                },
             }
         }
         Ok(Self {
@@ -4863,14 +4861,14 @@ impl QuarantineArgs {
                     self.args_span,
                     "#[quarantine] requires `scope = \"...\"` (the isolated region).",
                 ));
-            }
+            },
             Some(s) if s.trim().is_empty() => {
                 return Err(syn::Error::new(
                     self.scope_span.unwrap_or(self.args_span),
                     "#[quarantine] `scope` cannot be empty.",
                 ));
-            }
-            Some(_) => {}
+            },
+            Some(_) => {},
         }
         match self.reason.as_deref() {
             None => Err(syn::Error::new(
@@ -4919,7 +4917,7 @@ impl Parse for TriageArgs {
                 "priority_order" => {
                     priority_order = pair.expect_string_array()?;
                     priority_order_present = true;
-                }
+                },
                 "triaged_by" => triaged_by = Some(pair.expect_string()?),
                 "re_triage_due" => re_triage_due = Some(pair.expect_string()?),
                 other => {
@@ -4931,7 +4929,7 @@ impl Parse for TriageArgs {
                              dropped — `priority_order` entries are code-site references)"
                         ),
                     ));
-                }
+                },
             }
         }
         Ok(Self {
@@ -5058,8 +5056,9 @@ const ANTIGEN_PARSER_FIXTURES: &[AntigenFixture] = &[
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use proc_macro2::TokenStream;
+
+    use super::*;
 
     #[test]
     fn antigen_parser_accepts_all_fixtures() {
@@ -5124,7 +5123,7 @@ mod tests {
                     msg.contains("unknown") && msg.contains("bogus"),
                     "expected unknown-field error mentioning `bogus`, got: {msg}"
                 );
-            }
+            },
         }
     }
 
@@ -5166,16 +5165,20 @@ mod tests {
 
     #[test]
     fn validate_accepts_kebab_name_with_digits() {
-        assert!(args_with("frame-2-translation", VALID_DSL)
-            .validate()
-            .is_ok());
+        assert!(
+            args_with("frame-2-translation", VALID_DSL)
+                .validate()
+                .is_ok()
+        );
     }
 
     #[test]
     fn validate_rejects_name_with_double_hyphen() {
-        assert!(args_with("frame--translation", VALID_DSL)
-            .validate()
-            .is_err());
+        assert!(
+            args_with("frame--translation", VALID_DSL)
+                .validate()
+                .is_err()
+        );
     }
 
     #[test]
@@ -6878,9 +6881,10 @@ mod tests {
 
 #[cfg(test)]
 mod parser_props {
-    use super::*;
     use proc_macro2::TokenStream;
     use proptest::prelude::*;
+
+    use super::*;
 
     // Rust reserved words that cannot appear as path segments. Generated by
     // strategy `[a-z][a-z_0-9]{0,8}` without this filter, causing syn to reject
@@ -7406,10 +7410,12 @@ mod parser_props {
         syn::parse2::<ReferArgs>(ok).unwrap().validate().unwrap();
 
         let missing: TokenStream = r#"response_due = "2027-02-01""#.parse().unwrap();
-        assert!(syn::parse2::<ReferArgs>(missing)
-            .unwrap()
-            .validate()
-            .is_err());
+        assert!(
+            syn::parse2::<ReferArgs>(missing)
+                .unwrap()
+                .validate()
+                .is_err()
+        );
     }
 
     #[test]
@@ -7421,10 +7427,12 @@ mod parser_props {
         syn::parse2::<BiopsyArgs>(ok).unwrap().validate().unwrap();
 
         let missing_text: TokenStream = r#"location = "x""#.parse().unwrap();
-        assert!(syn::parse2::<BiopsyArgs>(missing_text)
-            .unwrap()
-            .validate()
-            .is_err());
+        assert!(
+            syn::parse2::<BiopsyArgs>(missing_text)
+                .unwrap()
+                .validate()
+                .is_err()
+        );
     }
 
     #[test]
@@ -7435,10 +7443,12 @@ mod parser_props {
         syn::parse2::<CultureArgs>(ok).unwrap().validate().unwrap();
 
         let missing: TokenStream = r#"duration = "24h""#.parse().unwrap();
-        assert!(syn::parse2::<CultureArgs>(missing)
-            .unwrap()
-            .validate()
-            .is_err());
+        assert!(
+            syn::parse2::<CultureArgs>(missing)
+                .unwrap()
+                .validate()
+                .is_err()
+        );
     }
 
     #[test]

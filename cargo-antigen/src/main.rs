@@ -42,9 +42,8 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use clap::{Parser, Subcommand};
-
 use antigen::{audit, presents, scan};
+use clap::{Parser, Subcommand};
 
 /// Cargo subcommand for antigen.
 #[derive(Debug, Parser)]
@@ -926,7 +925,7 @@ fn run_verify_deps(args: VerifyDepsArgs) -> ExitCode {
                 println!("  edit Cargo.toml; change each entry to `<name> = \"=X.Y.Z\"`.");
                 println!("Per ADR-025 §UnpinnedDependency — exact-pin is the discipline.");
             }
-        }
+        },
         OutputFormat::Json => {
             println!(
                 "{}",
@@ -937,7 +936,7 @@ fn run_verify_deps(args: VerifyDepsArgs) -> ExitCode {
                 }))
                 .unwrap_or_else(|_| "{}".to_string())
             );
-        }
+        },
     }
     if args.strict && !unpinned_names.is_empty() {
         ExitCode::from(1)
@@ -972,13 +971,13 @@ fn run_verify_maintainer_changes(args: VerifyMaintainerChangesArgs) -> ExitCode 
         MaintainerState::Unchanged => {
             println!("result: maintainer-unchanged (snapshot matches)");
             ExitCode::SUCCESS
-        }
+        },
         MaintainerState::Changed { added, removed } => {
             println!("result: MAINTAINER-CHANGE-WITHOUT-REATTESTATION");
             println!("  added owners: {added:?}");
             println!("  removed owners: {removed:?}");
             ExitCode::from(1)
-        }
+        },
         MaintainerState::SnapshotMissing => {
             println!("result: snapshot missing");
             println!(
@@ -987,11 +986,11 @@ fn run_verify_maintainer_changes(args: VerifyMaintainerChangesArgs) -> ExitCode 
             );
             println!("  (v0.2: snapshot is operator-managed; v0.3+ adds live crates.io query)");
             ExitCode::from(1)
-        }
+        },
         MaintainerState::CratesIoQueryUnavailable => {
             println!("result: crates.io query unavailable (v0.2 limitation per ADR-025)");
             ExitCode::from(2)
-        }
+        },
     }
 }
 
@@ -1027,7 +1026,7 @@ fn run_verify_dep_attest(args: VerifyDepAttestArgs) -> ExitCode {
                  proc-macro-only, metadata-only (got `{other}`)"
             );
             return ExitCode::from(2);
-        }
+        },
     };
 
     let signed_by = match resolve_steward_name(args.signed_by.as_deref()) {
@@ -1035,7 +1034,7 @@ fn run_verify_dep_attest(args: VerifyDepAttestArgs) -> ExitCode {
         Err(e) => {
             eprintln!("{e}");
             return ExitCode::from(2);
-        }
+        },
     };
     let date = chrono::Utc::now().format("%Y-%m-%d").to_string();
 
@@ -1062,7 +1061,7 @@ fn run_verify_dep_attest(args: VerifyDepAttestArgs) -> ExitCode {
         Err(e) => {
             eprintln!("error: serialize attestation: {e}");
             return ExitCode::from(2);
-        }
+        },
     };
     if let Err(e) = std::fs::write(&path, &json) {
         eprintln!("error: write {}: {e}", path.display());
@@ -1094,19 +1093,19 @@ fn pin_dep_in_table(table: &mut toml_edit::Table, name: &str, version: &str) -> 
         toml_edit::Item::Value(toml_edit::Value::String(_)) => {
             *item = toml_edit::value(pinned);
             true
-        }
+        },
         // `name = { version = "1.2", features = [..] }` — pin only the version
         // key, keeping every other key (features, default-features, ...) intact.
         // A path/git/workspace inline table (no `version` key) is left untouched.
         toml_edit::Item::Value(toml_edit::Value::InlineTable(t)) if t.contains_key("version") => {
             t.insert("version", toml_edit::Value::from(pinned));
             true
-        }
+        },
         // `[dependencies.name]` dotted sub-table — pin the version key if present.
         toml_edit::Item::Table(t) if t.contains_key("version") => {
             t.insert("version", toml_edit::value(pinned));
             true
-        }
+        },
         _ => false,
     }
 }
@@ -1119,7 +1118,7 @@ fn run_verify_dep_pin(args: VerifyDepPinArgs) -> ExitCode {
         DepPinnedState::AllPinned => {
             println!("verify dep-pin: all Cargo.toml deps already exact-pinned. No edits needed.");
             ExitCode::SUCCESS
-        }
+        },
         DepPinnedState::Unpinned { unpinned_deps } => {
             let lockfile = args.root.join("Cargo.lock");
             // Resolve each unpinned dep's version from Cargo.lock. A dep with no
@@ -1166,11 +1165,11 @@ fn run_verify_dep_pin(args: VerifyDepPinArgs) -> ExitCode {
                  manifest is opt-in by design — never the default."
             );
             ExitCode::SUCCESS
-        }
+        },
         DepPinnedState::NotInManifest { crate_name } => {
             eprintln!("error: crate `{crate_name}` not found in manifest");
             ExitCode::from(2)
-        }
+        },
     }
 }
 
@@ -1190,14 +1189,14 @@ fn write_dep_pins(
         Err(e) => {
             eprintln!("error: read {}: {e}", manifest_path.display());
             return ExitCode::from(2);
-        }
+        },
     };
     let mut doc = match content.parse::<toml_edit::DocumentMut>() {
         Ok(d) => d,
         Err(e) => {
             eprintln!("error: {} is not valid TOML: {e}", manifest_path.display());
             return ExitCode::from(2);
-        }
+        },
     };
 
     let mut applied: Vec<&str> = Vec::new();
@@ -1292,7 +1291,7 @@ fn run_verify_content_hash_record(args: VerifyContentHashRecordArgs) -> ExitCode
         Err(e) => {
             eprintln!("{e}");
             return ExitCode::from(2);
-        }
+        },
     };
     let date = chrono::Utc::now().format("%Y-%m-%d").to_string();
 
@@ -1310,11 +1309,11 @@ fn run_verify_content_hash_record(args: VerifyContentHashRecordArgs) -> ExitCode
             println!("recorded content-hash at {}", p.display());
             println!("  hash-source: cargo-lock-checksum (v0.2; tarball SHA-256 is v0.3+)");
             ExitCode::SUCCESS
-        }
+        },
         Err(e) => {
             eprintln!("error: write record: {e}");
             ExitCode::from(2)
-        }
+        },
     }
 }
 
@@ -1387,7 +1386,7 @@ fn run_verify_content_hash_check(args: VerifyContentHashCheckArgs) -> ExitCode {
         ContentHashState::Matches => {
             println!("content-hash: MATCH for {crate_name}@{version}");
             ExitCode::SUCCESS
-        }
+        },
         ContentHashState::Mismatch { recorded, current } => {
             println!("content-hash: MISMATCH for {crate_name}@{version}");
             println!("  recorded: {recorded}");
@@ -1397,16 +1396,16 @@ fn run_verify_content_hash_check(args: VerifyContentHashCheckArgs) -> ExitCode {
             println!("re-recording — if the change is legitimate, re-attest with a fresh");
             println!("signer + review artifact. Per ADR-025 §ContentHashMismatch.");
             ExitCode::from(1)
-        }
+        },
         ContentHashState::NoAttestation => {
             println!("content-hash: no first-attestation for {crate_name}@{version}");
             println!("  run: cargo antigen verify content-hash record {crate_name}@{version}");
             ExitCode::from(1)
-        }
+        },
         ContentHashState::CrateNotInLockfile { crate_name: cn } => {
             eprintln!("error: crate `{cn}` not found in Cargo.lock (no checksum to compare)");
             ExitCode::from(2)
-        }
+        },
         ContentHashState::SidecarMalformed { error } => {
             eprintln!(
                 "error: content-hash sidecar exists but did NOT deserialize cleanly. \
@@ -1416,7 +1415,7 @@ fn run_verify_content_hash_check(args: VerifyContentHashCheckArgs) -> ExitCode {
                  Parse error: {error}"
             );
             ExitCode::from(1)
-        }
+        },
     };
 
     // A live MISMATCH under --strict escalates a local pass to a failure (the
@@ -1464,7 +1463,7 @@ fn run_live_cksum_check(
                  sparse-index cksum matches the local lockfile checksum ({hash})."
             );
             false
-        }
+        },
         LiveCksumState::Mismatch { expected, served } => {
             println!("content-hash --live: MISMATCH for {crate_name}@{version}");
             println!("  local (lockfile): {expected}");
@@ -1479,14 +1478,14 @@ fn run_live_cksum_check(
                 println!("  (--strict: escalating to a non-zero exit)");
             }
             strict
-        }
+        },
         LiveCksumState::Unverifiable { reason } => {
             // ⊥: offline / network error / version absent. Report and SKIP —
             // never block the audit, never escalate, regardless of --strict.
             println!("content-hash --live: UNVERIFIABLE for {crate_name}@{version} — skipped.");
             println!("  reason: {reason}");
             false
-        }
+        },
     }
 }
 
@@ -1703,13 +1702,13 @@ fn run_vcs_recurrence(args: VcsRecurrenceArgs) -> ExitCode {
                     "{}",
                     serde_json::json!({ "observable": false, "reason": "git unavailable (not a repo, or git missing)" })
                 );
-            }
+            },
             OutputFormat::Human => {
                 eprintln!(
                     "cargo antigen vcs recurrence: git unavailable (not a repo, or git \
                      missing) — recurrence is UNOBSERVABLE here, not zero."
                 );
-            }
+            },
         }
         // Honest-degradation is not an error verdict: exit 0 (the audit must not
         // be blocked by an unobservable mine).
@@ -1755,7 +1754,7 @@ fn run_vcs_recurrence(args: VcsRecurrenceArgs) -> ExitCode {
                 }))
                 .unwrap_or_else(|_| "{}".to_string())
             );
-        }
+        },
         OutputFormat::Human => {
             println!(
                 "Recurrent-emergence mine over the last {} commits (recurrent-emergence \
@@ -1775,7 +1774,7 @@ fn run_vcs_recurrence(args: VcsRecurrenceArgs) -> ExitCode {
                  occurrence is recognized, not re-discovered. Whether a count is \
                  'high enough' to anchor is your call (the recognition seam)."
             );
-        }
+        },
     }
     ExitCode::SUCCESS
 }
@@ -1828,7 +1827,7 @@ fn run_vcs_check_commit(args: VcsCheckCommitArgs) -> ExitCode {
                 "{}",
                 serde_json::to_string_pretty(&state).unwrap_or_else(|_| "{}".to_string())
             );
-        }
+        },
         OutputFormat::Human => match &state {
             RollbackTriageState::ChainPresent { decision } => {
                 println!(
@@ -1836,21 +1835,21 @@ fn run_vcs_check_commit(args: VcsCheckCommitArgs) -> ExitCode {
                     args.commit,
                     decision.as_str()
                 );
-            }
+            },
             RollbackTriageState::ChainMalformed { value } => {
                 println!(
                     "commit {}: Triage-Decision trailer present but value {value:?} is not a \
                      valid triage decision (black|red|yellow|green|white)",
                     args.commit
                 );
-            }
+            },
             RollbackTriageState::ChainAbsent => {
                 println!(
                     "commit {}: no Triage-Decision trailer — backs \
                      vcs-rollback-without-triage-commit if this is a rollback",
                     args.commit
                 );
-            }
+            },
         },
     }
     if args.strict && !state.is_pass() {
@@ -1871,7 +1870,7 @@ fn run_vcs_scan(args: VcsScanArgs) -> ExitCode {
         _ => {
             eprintln!("cargo antigen vcs scan: git log unavailable (not a repo, or git missing)");
             return ExitCode::from(2);
-        }
+        },
     };
     let mut flagged = 0usize;
     let mut entries: Vec<(String, String, RollbackTriageState)> = Vec::new();
@@ -1909,7 +1908,7 @@ fn run_vcs_scan(args: VcsScanArgs) -> ExitCode {
                 "{}",
                 serde_json::to_string_pretty(&arr).unwrap_or_else(|_| "[]".to_string())
             );
-        }
+        },
         OutputFormat::Human => {
             if entries.is_empty() {
                 println!(
@@ -1928,7 +1927,7 @@ fn run_vcs_scan(args: VcsScanArgs) -> ExitCode {
                     "{flagged} rollback-shaped commit(s) without a valid Triage-Decision chain"
                 );
             }
-        }
+        },
     }
     ExitCode::SUCCESS
 }
@@ -2028,7 +2027,7 @@ fn run_mucosal_map(args: MucosalMapArgs) -> ExitCode {
         Err(e) => {
             eprintln!("error: scan failed: {e}");
             return ExitCode::from(2);
-        }
+        },
     };
     let mucosal_audit = audit::audit_mucosal(&report);
 
@@ -2044,7 +2043,7 @@ fn run_mucosal_map(args: MucosalMapArgs) -> ExitCode {
                 return ExitCode::from(2);
             };
             Some(mk)
-        }
+        },
     };
 
     let entries: Vec<&antigen::audit::MucosalAudit> = mucosal_audit
@@ -2092,7 +2091,7 @@ fn run_mucosal_map(args: MucosalMapArgs) -> ExitCode {
                 "{}",
                 serde_json::to_string_pretty(&arr).unwrap_or_else(|_| "[]".to_string())
             );
-        }
+        },
         OutputFormat::Human => {
             if entries.is_empty() {
                 println!("cargo antigen mucosal-map: no matching mucosal declarations");
@@ -2118,7 +2117,7 @@ fn run_mucosal_map(args: MucosalMapArgs) -> ExitCode {
                     entries.iter().filter(|a| !a.hints.is_empty()).count(),
                 );
             }
-        }
+        },
     }
     ExitCode::SUCCESS
 }
@@ -2236,7 +2235,7 @@ fn resolve_steward_name(explicit: Option<&str>) -> Result<String, String> {
             match out {
                 Ok(o) if o.status.success() => {
                     Ok(String::from_utf8_lossy(&o.stdout).trim().to_owned())
-                }
+                },
                 _ => Err(
                     "error: --steward not provided and `git config user.name` failed".to_owned(),
                 ),
@@ -2257,7 +2256,7 @@ fn run_oracle_list(args: OracleListArgs) -> ExitCode {
         Err(e) => {
             eprintln!("error: could not read oracle directory: {e}");
             return ExitCode::from(2);
-        }
+        },
     };
     let mut found = 0usize;
     for entry in entries.flatten() {
@@ -2274,7 +2273,7 @@ fn run_oracle_list(args: OracleListArgs) -> ExitCode {
                 Err(e) => {
                     eprintln!("warning: could not read `{}`: {e}", path.display());
                     continue;
-                }
+                },
             };
             let oracle = match serde_json::from_str::<antigen_attestation::schema::Oracle>(&content)
             {
@@ -2285,7 +2284,7 @@ fn run_oracle_list(args: OracleListArgs) -> ExitCode {
                         path.display()
                     );
                     continue;
-                }
+                },
             };
             match args.format {
                 OutputFormat::Human => {
@@ -2295,11 +2294,11 @@ fn run_oracle_list(args: OracleListArgs) -> ExitCode {
                         oracle.state,
                         oracle.stewards.len()
                     );
-                }
+                },
                 OutputFormat::Json => {
                     let obj = serde_json::json!({ "id": oracle.id, "state": format!("{:?}", oracle.state) });
                     println!("{obj}");
-                }
+                },
             }
             found += 1;
         }
@@ -2329,11 +2328,11 @@ fn run_oracle_status(args: OracleStatusArgs) -> ExitCode {
                 );
             }
             ExitCode::SUCCESS
-        }
+        },
         Err(e) => {
             eprintln!("{e}");
             ExitCode::from(1)
-        }
+        },
     }
 }
 
@@ -2428,7 +2427,7 @@ fn build_oracle_ref(
                 repo: parts[0].to_owned(),
                 issue,
             })
-        }
+        },
         OracleRefKindArg::Other => Ok(OracleRef::Other {
             subkind: "other".to_owned(),
             reference: reference.to_owned(),
@@ -2454,7 +2453,7 @@ fn run_oracle_declare(args: OracleDeclareArgs) -> ExitCode {
             Err(e) => {
                 eprintln!("{e}");
                 return ExitCode::from(1);
-            }
+            },
         }
     }
     if steward_names.len() < 2 {
@@ -2511,11 +2510,11 @@ fn run_oracle_declare(args: OracleDeclareArgs) -> ExitCode {
             eprintln!("Oracle `{}` created in DRAFT state.", args.id);
             eprintln!("Path: {}", oracle_json_path(&args.root, &args.id).display());
             ExitCode::SUCCESS
-        }
+        },
         Err(e) => {
             eprintln!("{e}");
             ExitCode::from(2)
-        }
+        },
     }
 }
 
@@ -2551,14 +2550,14 @@ fn run_oracle_transition(
         Err(e) => {
             eprintln!("{e}");
             return ExitCode::from(1);
-        }
+        },
     };
     let mut oracle = match load_oracle(root, id) {
         Ok(o) => o,
         Err(e) => {
             eprintln!("{e}");
             return ExitCode::from(1);
-        }
+        },
     };
     // Validate steward is in the steward list (ATK-021-15).
     if !oracle.stewards.iter().any(|s| s.name == steward_name) {
@@ -2593,11 +2592,11 @@ fn run_oracle_transition(
         Ok(()) => {
             eprintln!("Oracle `{id}` transitioned {from_label}→{to_label} by {steward_name}.");
             ExitCode::SUCCESS
-        }
+        },
         Err(e) => {
             eprintln!("{e}");
             ExitCode::from(2)
-        }
+        },
     }
 }
 
@@ -2611,18 +2610,18 @@ fn run_oracle_complete(args: OracleCompleteArgs) -> ExitCode {
         Err(e) => {
             eprintln!("{e}");
             return ExitCode::from(1);
-        }
+        },
     };
     oracle.version = OracleVersion {
         pinned: args.version.clone(),
         pinned_at: Local::now().date_naive(),
     };
     match save_oracle(&args.root, &oracle) {
-        Ok(()) => {}
+        Ok(()) => {},
         Err(e) => {
             eprintln!("{e}");
             return ExitCode::from(2);
-        }
+        },
     }
     run_oracle_transition(
         &args.root,
@@ -2655,7 +2654,7 @@ fn run_oracle_retire(args: OracleRetireArgs) -> ExitCode {
         Err(e) => {
             eprintln!("{e}");
             return ExitCode::from(1);
-        }
+        },
     };
     let new_state = OracleState::Retired {
         reason: args.rationale.clone(),
@@ -2677,7 +2676,7 @@ fn run_oracle_revoke(args: OracleRevokeArgs) -> ExitCode {
         Err(e) => {
             eprintln!("{e}");
             return ExitCode::from(1);
-        }
+        },
     };
     let new_state = OracleState::Revoked {
         reason: args.rationale.clone(),
@@ -2815,7 +2814,7 @@ fn run_scan(args: ScanArgs) -> ExitCode {
                                 dep.package_name, dep.version
                             );
                             continue;
-                        }
+                        },
                     };
                     // ADR-017 Option A: stamp canonical_path post-scan in
                     // the `"<crate-name>@<version>"` format. The
@@ -2833,11 +2832,11 @@ fn run_scan(args: ScanArgs) -> ExitCode {
                     });
                 }
                 Some(out)
-            }
+            },
             Err(e) => {
                 eprintln!("error: cargo metadata failed: {e}");
                 return ExitCode::from(2);
-            }
+            },
         }
     } else {
         None
@@ -2875,13 +2874,13 @@ fn run_scan(args: ScanArgs) -> ExitCode {
             if let Some(deps) = dep_reports.as_ref() {
                 print_human_dep_summary(deps);
             }
-        }
+        },
         OutputFormat::Json => match serde_json::to_string_pretty(&enveloped) {
             Ok(s) => println!("{s}"),
             Err(e) => {
                 eprintln!("error: failed to serialize report: {e}");
                 return ExitCode::from(2);
-            }
+            },
         },
     }
 
@@ -3433,8 +3432,9 @@ fn audit_hint_kebab(hint: &audit::AuditHint) -> String {
 const MAX_FINGERPRINT_MATCHES_PER_ANTIGEN: usize = 10;
 
 fn print_fingerprint_matches(report: &scan::ScanReport) {
-    use antigen::scan::MatchKind;
     use std::collections::BTreeMap;
+
+    use antigen::scan::MatchKind;
 
     let fp_matches: Vec<_> = report
         .presentations
@@ -3650,11 +3650,7 @@ fn git_head_sha(dir: &Path) -> Option<String> {
         return None;
     }
     let sha = String::from_utf8_lossy(&out.stdout).trim().to_owned();
-    if sha.is_empty() {
-        None
-    } else {
-        Some(sha)
-    }
+    if sha.is_empty() { None } else { Some(sha) }
 }
 
 /// Wrap a serializable report payload in the provenance envelope. The payload's
@@ -3781,7 +3777,7 @@ fn run_fingerprint(args: FingerprintArgs) -> ExitCode {
         Err(e) => {
             eprintln!("error: scan failed: {e}");
             return ExitCode::from(2);
-        }
+        },
     };
 
     let antigen_filter = args.antigen.as_deref();
@@ -3829,7 +3825,7 @@ fn run_fingerprint(args: FingerprintArgs) -> ExitCode {
             Err(e) => {
                 eprintln!("error: failed to serialize fingerprints: {e}");
                 return ExitCode::from(2);
-            }
+            },
         },
         OutputFormat::Human => {
             if matches.is_empty() {
@@ -3857,7 +3853,7 @@ fn run_fingerprint(args: FingerprintArgs) -> ExitCode {
                     );
                 }
             }
-        }
+        },
     }
 
     // A requested-but-not-found site is a user-visible failure (exit 1) so
@@ -3904,7 +3900,7 @@ fn run_audit(args: AuditArgs) -> ExitCode {
         Err(e) => {
             eprintln!("error: scan failed: {e}");
             return ExitCode::from(2);
-        }
+        },
     };
 
     if let Some(cat) = category_filter {
@@ -3969,13 +3965,13 @@ fn run_audit(args: AuditArgs) -> ExitCode {
             print_category_audit_human(&category_report);
             print_coverage_frontier(&coverage_report);
             print_prescriptive_board(&prescriptive_report);
-        }
+        },
         OutputFormat::Json => match serde_json::to_string_pretty(&enveloped) {
             Ok(s) => println!("{s}"),
             Err(e) => {
                 eprintln!("error: failed to serialize report: {e}");
                 return ExitCode::from(2);
-            }
+            },
         },
     }
 
@@ -4023,7 +4019,7 @@ fn run_attest(cli: AttestCli) -> ExitCode {
     match cli.command {
         AttestSubcommand::Scaffold(args) => {
             run_attest_scaffold(args, antigen_attestation::RatificationKind::Immunity)
-        }
+        },
         AttestSubcommand::Sign(args) => run_attest_sign(args),
         AttestSubcommand::Check(args) => run_attest_check(args),
         AttestSubcommand::Delta(args) => run_attest_delta(args),
@@ -4043,7 +4039,7 @@ fn run_attest(cli: AttestCli) -> ExitCode {
                  Operator scripts MUST NOT rely on this exit code as success."
             );
             ExitCode::FAILURE
-        }
+        },
     }
 }
 
@@ -4051,13 +4047,13 @@ fn run_tolerate(cli: TolerateCli) -> ExitCode {
     match cli.command {
         TolerateSubcommand::Scaffold(args) => {
             run_attest_scaffold(args, antigen_attestation::RatificationKind::Tolerance)
-        }
+        },
         TolerateSubcommand::Sign(args) => run_attest_sign(args),
         TolerateSubcommand::Check(args) => run_attest_check(args),
         TolerateSubcommand::List(mut args) => {
             args.tolerance_only = true;
             run_attest_list(args)
-        }
+        },
     }
 }
 
@@ -4141,10 +4137,11 @@ fn run_attest_scaffold(
     args: AttestScaffoldArgs,
     kind_override: antigen_attestation::RatificationKind,
 ) -> ExitCode {
+    use std::collections::BTreeMap;
+
     use antigen_attestation::{
         AntigenIdentifier, ItemRatification, Ratification, RatificationKind, SchemaVersion,
     };
-    use std::collections::BTreeMap;
 
     // The effective kind: --kind arg on the scaffold command, but `run_tolerate`
     // forces Tolerance regardless of the --kind arg (tolerate scaffold implies it).
@@ -4189,12 +4186,12 @@ fn run_attest_scaffold(
             Ok(Some(fp)) => {
                 fingerprint = fp;
                 autofilled = true;
-            }
-            Ok(None) => {}
+            },
+            Ok(None) => {},
             Err(reason) => {
                 eprintln!("error: {reason}");
                 return ExitCode::from(1);
-            }
+            },
         }
     }
 
@@ -4232,7 +4229,7 @@ fn run_attest_scaffold(
         Err(e) => {
             eprintln!("error: failed to serialize sidecar: {e}");
             return ExitCode::from(2);
-        }
+        },
     };
 
     if let Err(e) = std::fs::write(&sidecar_path, &json) {
@@ -4327,14 +4324,14 @@ fn run_attest_sign(args: AttestSignArgs) -> ExitCode {
                 args.sidecar.display()
             );
             return ExitCode::from(2);
-        }
+        },
     };
     let mut ratification: Ratification = match serde_json::from_str(&content) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("error: sidecar is not valid JSON (Ratification schema): {e}");
             return ExitCode::from(2);
-        }
+        },
     };
 
     // Find the target item.
@@ -4403,7 +4400,7 @@ fn run_attest_sign(args: AttestSignArgs) -> ExitCode {
         Err(e) => {
             eprintln!("error: failed to serialize updated sidecar: {e}");
             return ExitCode::from(2);
-        }
+        },
     };
     if let Err(e) = std::fs::write(&args.sidecar, &json) {
         eprintln!("error: failed to write updated sidecar: {e}");
@@ -4446,14 +4443,14 @@ fn run_attest_delta(args: AttestDeltaArgs) -> ExitCode {
                 args.sidecar.display()
             );
             return ExitCode::from(2);
-        }
+        },
     };
     let mut ratification: Ratification = match serde_json::from_str(&content) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("error: sidecar is not valid Ratification JSON: {e}");
             return ExitCode::from(2);
-        }
+        },
     };
 
     // Resolve signer name from arg or git config.
@@ -4462,7 +4459,7 @@ fn run_attest_delta(args: AttestDeltaArgs) -> ExitCode {
         Err(e) => {
             eprintln!("{e}");
             return ExitCode::from(1);
-        }
+        },
     };
 
     if let Err(code) = validate_delta_rationale(&args.rationale) {
@@ -4537,7 +4534,7 @@ fn run_attest_delta(args: AttestDeltaArgs) -> ExitCode {
         Err(e) => {
             eprintln!("error: failed to serialize updated sidecar: {e}");
             return ExitCode::from(2);
-        }
+        },
     };
     if let Err(e) = std::fs::write(&args.sidecar, &json) {
         eprintln!("error: failed to write sidecar: {e}");
@@ -4573,7 +4570,7 @@ fn run_attest_list(args: AttestListArgs) -> ExitCode {
             Err(e) => {
                 eprintln!("warning: could not read `{}`: {e}", path.display());
                 continue;
-            }
+            },
         };
         let rat: Ratification = match serde_json::from_str(&content) {
             Ok(r) => r,
@@ -4583,7 +4580,7 @@ fn run_attest_list(args: AttestListArgs) -> ExitCode {
                     path.display()
                 );
                 continue;
-            }
+            },
         };
         if args.tolerance_only && rat.kind != antigen_attestation::RatificationKind::Tolerance {
             continue;
@@ -4600,7 +4597,7 @@ fn run_attest_list(args: AttestListArgs) -> ExitCode {
                 for item in &rat.items {
                     println!("  {} ({} signer(s))", item.item_path, item.signers.len());
                 }
-            }
+            },
             OutputFormat::Json => {
                 // One JSON object per line (newline-delimited JSON).
                 let obj = serde_json::json!({
@@ -4610,14 +4607,18 @@ fn run_attest_list(args: AttestListArgs) -> ExitCode {
                     "item_count": rat.items.len(),
                 });
                 println!("{obj}");
-            }
+            },
         }
         printed += 1;
     }
 
     if args.orphan_scan {
-        eprintln!("\n-- Orphan scan (--orphan-scan): comparing sidecar item_paths against source macros --");
-        eprintln!("(Note: full bidirectional scan requires `cargo antigen scan` integration; v0.2 adds gc bidirectional traversal)");
+        eprintln!(
+            "\n-- Orphan scan (--orphan-scan): comparing sidecar item_paths against source macros --"
+        );
+        eprintln!(
+            "(Note: full bidirectional scan requires `cargo antigen scan` integration; v0.2 adds gc bidirectional traversal)"
+        );
         for path in &sidecars {
             let Ok(content) = std::fs::read_to_string(path) else {
                 continue;
@@ -4659,7 +4660,7 @@ fn run_attest_gc(args: AttestGcArgs) -> ExitCode {
             Err(e) => {
                 eprintln!("warning: could not read `{}`: {e}", path.display());
                 continue;
-            }
+            },
         };
         let rat: Ratification = match serde_json::from_str(&content) {
             Ok(r) => r,
@@ -4671,7 +4672,7 @@ fn run_attest_gc(args: AttestGcArgs) -> ExitCode {
                     path.display()
                 );
                 continue;
-            }
+            },
         };
         // An orphan heuristic: if source_file doesn't exist relative to workspace root.
         let source = args.root.join(&rat.source_file);
@@ -4700,7 +4701,7 @@ fn run_attest_gc(args: AttestGcArgs) -> ExitCode {
                 Ok(()) => {
                     eprintln!("Removed: {}", path.display());
                     removed += 1;
-                }
+                },
                 Err(e) => eprintln!("error removing `{}`: {e}", path.display()),
             }
         }
@@ -4815,7 +4816,7 @@ impl antigen_attestation::EvaluationContext for CheckContext {
 
 /// `attest check` / `tolerate check`: evaluate a predicate against a sidecar.
 fn run_attest_check(args: AttestCheckArgs) -> ExitCode {
-    use antigen_attestation::{evaluate::evaluate_predicate_with_kind, Predicate, Ratification};
+    use antigen_attestation::{Predicate, Ratification, evaluate::evaluate_predicate_with_kind};
 
     // Load sidecar.
     let content = match std::fs::read_to_string(&args.sidecar) {
@@ -4826,14 +4827,14 @@ fn run_attest_check(args: AttestCheckArgs) -> ExitCode {
                 args.sidecar.display()
             );
             return ExitCode::from(2);
-        }
+        },
     };
     let ratification: Ratification = match serde_json::from_str(&content) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("error: sidecar schema invalid: {e}");
             return ExitCode::from(2);
-        }
+        },
     };
 
     // Deserialize the predicate.
@@ -4842,7 +4843,7 @@ fn run_attest_check(args: AttestCheckArgs) -> ExitCode {
         Err(e) => {
             eprintln!("error: predicate JSON invalid: {e}");
             return ExitCode::from(2);
-        }
+        },
     };
 
     // Find the target item (first, or by item_path).
@@ -4899,7 +4900,7 @@ fn run_attest_check(args: AttestCheckArgs) -> ExitCode {
         Err(e) => {
             eprintln!("error: evaluation error: {e}");
             return ExitCode::from(2);
-        }
+        },
     };
 
     eprintln!("Sidecar:   {}", args.sidecar.display());
@@ -5024,13 +5025,13 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
             match &a.witness_status {
                 audit::WitnessStatus::NotFound { reason } => {
                     println!("    → broken: {reason}");
-                }
+                },
                 audit::WitnessStatus::Missing => {
                     println!(
                         "    → missing: declaration has no witness identifier; \
                          a marker without proof is not a claim (per ADR-005)"
                     );
-                }
+                },
                 audit::WitnessStatus::Ambiguous { candidates } => {
                     println!(
                         "    → ambiguous: witness name matches {} workspace functions",
@@ -5043,18 +5044,18 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
                         "      Fix: rename one of the colliding functions, or \
                          qualify the witness path"
                     );
-                }
+                },
                 audit::WitnessStatus::External { tool_hint } => {
                     println!(
                         "    → external ({tool_hint}): tool prefix recognized but not invoked. \
                          A3+ will run the tool to promote this witness to Execution tier."
                     );
-                }
+                },
                 audit::WitnessStatus::Resolved { .. } => {
                     // Resolved witnesses below Execution tier (Reachability):
                     // empty function bodies, ignored tests, or unrun tests.
                     // The hint already says which case applies.
-                }
+                },
             }
             // DX finding 3: a code-witness (`witness = ...`) site that also has
             // a `.attest/` sidecar on disk. The sidecar is silently uncredited
@@ -5136,21 +5137,21 @@ fn print_immune_state_verdicts(audit_report: &audit::AuditReport) {
                     "  ✓ {site}  {} — defended at {tier:?}{witnesses}",
                     v.antigen_type
                 );
-            }
+            },
             ImmuneVerdict::Undefended => {
                 println!(
                     "  ✗ {site}  {} — undefended (no #[defended_by] witness, \
                      no passing requires= predicate)",
                     v.antigen_type
                 );
-            }
+            },
             ImmuneVerdict::SubstrateGap => {
                 println!(
                     "  ⚠ {site}  {} — substrate-gap (defense intent present; \
                      current substrate does not satisfy the requires= predicate)",
                     v.antigen_type
                 );
-            }
+            },
         }
     }
 }

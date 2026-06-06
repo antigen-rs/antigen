@@ -29,52 +29,53 @@
 
 mod types;
 pub use types::{
-    evidence_kind_from_status, AuditHint, AuditReport, FrameState, ImmuneVerdict, ImmunityAudit,
-    InheritedUnaddressed, PresentationVerdict, WitnessKind, WitnessStatus, WitnessTier,
-    WorkVerdict, CLONAL_ITERATIONS_DEFAULT_FLOOR, IGG_HISTORICAL_SPAN_DEFAULT_FLOOR,
+    AuditHint, AuditReport, CLONAL_ITERATIONS_DEFAULT_FLOOR, FrameState,
+    IGG_HISTORICAL_SPAN_DEFAULT_FLOOR, ImmuneVerdict, ImmunityAudit, InheritedUnaddressed,
+    PresentationVerdict, WitnessKind, WitnessStatus, WitnessTier, WorkVerdict,
+    evidence_kind_from_status,
 };
 
 mod deferred;
-pub use deferred::{audit_deferred_defenses, DeferredDefenseAudit, DeferredDefenseAuditReport};
+pub use deferred::{DeferredDefenseAudit, DeferredDefenseAuditReport, audit_deferred_defenses};
 
 mod immunity;
 pub use immunity::audit;
-pub(crate) use immunity::{load_sidecar, FilesystemAuditContext, SidecarLoad};
 // `audit_substrate_witness` is an immunity-pass internal; the audit-root test
 // module exercises it directly (substrate-witness integration tests that sit
 // with the `audit()` tests). Re-export under `#[cfg(test)]` only — test reach,
 // not public API.
 #[cfg(test)]
 pub(crate) use immunity::audit_substrate_witness;
+pub(crate) use immunity::{FilesystemAuditContext, SidecarLoad, load_sidecar};
 
 mod supply_chain;
-pub use supply_chain::{audit_supply_chain, SupplyChainAudit, SupplyChainAuditReport};
+pub use supply_chain::{SupplyChainAudit, SupplyChainAuditReport, audit_supply_chain};
 mod convergent;
 pub use convergent::{
-    audit_convergent_evidence, ConvergentEvidenceAudit, ConvergentEvidenceAuditReport,
+    ConvergentEvidenceAudit, ConvergentEvidenceAuditReport, audit_convergent_evidence,
 };
 mod recurrent;
-pub use recurrent::{audit_recurrent, RecurrentAudit, RecurrentAuditReport};
 // `is_version_tag` is a private recurrent helper; the audit test module exercises
 // it directly, so re-export it into the `audit` namespace for `tests`' `use
 // super::*` glob. Gated to test builds: it is not part of the public API.
 #[cfg(test)]
 pub(crate) use recurrent::is_version_tag;
+pub use recurrent::{RecurrentAudit, RecurrentAuditReport, audit_recurrent};
 mod mucosal;
-pub use mucosal::{audit_mucosal, MucosalAudit, MucosalAuditReport};
+pub use mucosal::{MucosalAudit, MucosalAuditReport, audit_mucosal};
 mod category;
-pub use category::{audit_category, CategoryAudit, CategoryAuditReport};
+pub use category::{CategoryAudit, CategoryAuditReport, audit_category};
 mod lineage_fidelity;
 pub use lineage_fidelity::{
-    audit_lineage_fidelity, LineageFidelityAudit, LineageFidelityAuditReport,
+    LineageFidelityAudit, LineageFidelityAuditReport, audit_lineage_fidelity,
 };
 
 mod coverage;
-pub use coverage::{audit_coverage, CoverageAuditReport, UnreachedCause, UnreachedSite};
+pub use coverage::{CoverageAuditReport, UnreachedCause, UnreachedSite, audit_coverage};
 mod prescriptive;
 pub use prescriptive::{
-    audit_prescriptive, OutOfFrameCause, PrescriptiveAuditReport, PrescriptiveVerdict, StepDetail,
-    StepState,
+    OutOfFrameCause, PrescriptiveAuditReport, PrescriptiveVerdict, StepDetail, StepState,
+    audit_prescriptive,
 };
 
 /// The thin audit-side sequencer (ADR-036).
@@ -88,10 +89,11 @@ pub mod orchestrate;
 mod tests {
     use std::path::{Path, PathBuf};
 
-    use super::*;
     // `#[defended_by]` (ADR-029) is used only on witness tests in this module;
     // import it here rather than at crate-module scope (where it would be unused).
     use antigen_macros::defended_by;
+
+    use super::*;
     // The scan type the audit/detector integration tests build fixtures from; the
     // monolith imported it at module scope, but post-decomposition mod.rs is a thin
     // orchestration root whose only code is `#[cfg(test)]`, so it lives here.
@@ -132,9 +134,11 @@ mod tests {
             .push(recurrent_decl(crate::scan::RecurrentKind::Itch, None));
         let out = audit_recurrent(&report);
         assert_eq!(out.concern_count, 1);
-        assert!(out.audits[0]
-            .hints
-            .contains(&AuditHint::ItchNoticedNotAnchored));
+        assert!(
+            out.audits[0]
+                .hints
+                .contains(&AuditHint::ItchNoticedNotAnchored)
+        );
     }
 
     #[test]
@@ -156,9 +160,11 @@ mod tests {
             Some("MsrvCreep"),
         ));
         let out = audit_recurrent(&report);
-        assert!(out.audits[0]
-            .hints
-            .contains(&AuditHint::RecurrenceThresholdReachedNoAction));
+        assert!(
+            out.audits[0]
+                .hints
+                .contains(&AuditHint::RecurrenceThresholdReachedNoAction)
+        );
     }
 
     #[test]
@@ -169,9 +175,11 @@ mod tests {
             None,
         ));
         let out = audit_recurrent(&report);
-        assert!(out.audits[0]
-            .hints
-            .contains(&AuditHint::CrystallizeWithoutAntigen));
+        assert!(
+            out.audits[0]
+                .hints
+                .contains(&AuditHint::CrystallizeWithoutAntigen)
+        );
     }
 
     #[test]
@@ -182,9 +190,11 @@ mod tests {
             Some("FlakeyStep"),
         ));
         let out = audit_recurrent(&report);
-        assert!(out.audits[0]
-            .hints
-            .contains(&AuditHint::ChronicSignalUnmanaged));
+        assert!(
+            out.audits[0]
+                .hints
+                .contains(&AuditHint::ChronicSignalUnmanaged)
+        );
     }
 
     #[test]
@@ -195,9 +205,11 @@ mod tests {
         decl.since = Some("2020-01-01".to_string()); // far past horizon
         report.recurrent_declarations.push(decl);
         let out = audit_recurrent(&report);
-        assert!(out.audits[0]
-            .hints
-            .contains(&AuditHint::ChronicSignalPastReviewDate));
+        assert!(
+            out.audits[0]
+                .hints
+                .contains(&AuditHint::ChronicSignalPastReviewDate)
+        );
     }
 
     #[test]
@@ -210,12 +222,16 @@ mod tests {
         decl.since = Some("v0.2.0".to_string());
         report.recurrent_declarations.push(decl);
         let out = audit_recurrent(&report);
-        assert!(!out.audits[0]
-            .hints
-            .contains(&AuditHint::ChronicSignalPastReviewDate));
-        assert!(!out.audits[0]
-            .hints
-            .contains(&AuditHint::ChronicSinceNotADate));
+        assert!(
+            !out.audits[0]
+                .hints
+                .contains(&AuditHint::ChronicSignalPastReviewDate)
+        );
+        assert!(
+            !out.audits[0]
+                .hints
+                .contains(&AuditHint::ChronicSinceNotADate)
+        );
     }
 
     #[test]
@@ -228,9 +244,11 @@ mod tests {
         decl.since = Some("not-a-date".to_string());
         report.recurrent_declarations.push(decl);
         let out = audit_recurrent(&report);
-        assert!(out.audits[0]
-            .hints
-            .contains(&AuditHint::ChronicSinceNotADate));
+        assert!(
+            out.audits[0]
+                .hints
+                .contains(&AuditHint::ChronicSinceNotADate)
+        );
     }
 
     #[test]
@@ -343,9 +361,11 @@ mod tests {
             "f",
         ));
         let out = audit_mucosal(&report);
-        assert!(out.audits[0]
-            .hints
-            .contains(&AuditHint::MucosalRationaleInsufficient));
+        assert!(
+            out.audits[0]
+                .hints
+                .contains(&AuditHint::MucosalRationaleInsufficient)
+        );
     }
 
     #[test]
@@ -361,9 +381,11 @@ mod tests {
         d.handled_by = Some("nonexistent_handler".to_string());
         report.mucosal_declarations.push(d);
         let out = audit_mucosal(&report);
-        assert!(out.audits[0]
-            .hints
-            .contains(&AuditHint::MucosalDisciplineDelegateTargetMissing));
+        assert!(
+            out.audits[0]
+                .hints
+                .contains(&AuditHint::MucosalDisciplineDelegateTargetMissing)
+        );
     }
 
     #[test]
@@ -392,9 +414,11 @@ mod tests {
             .iter()
             .find(|a| a.declaration.tag == MucosalKindTag::MucosalDelegate)
             .unwrap();
-        assert!(delegate_audit
-            .hints
-            .contains(&AuditHint::MucosalDisciplineDelegateTargetKindMismatch));
+        assert!(
+            delegate_audit
+                .hints
+                .contains(&AuditHint::MucosalDisciplineDelegateTargetKindMismatch)
+        );
     }
 
     #[test]
@@ -631,9 +655,11 @@ mod tests {
         assert_eq!(out.defaulted_count, 1);
         assert_eq!(out.explicit_count, 0);
         assert!(!out.all_explicit());
-        assert!(out.audits[0]
-            .hints
-            .contains(&AuditHint::AntigenCategoryDefaultedImplicitFunctional));
+        assert!(
+            out.audits[0]
+                .hints
+                .contains(&AuditHint::AntigenCategoryDefaultedImplicitFunctional)
+        );
     }
 
     #[test]
@@ -723,9 +749,11 @@ mod tests {
         let out = audit_category(&report);
         assert_eq!(out.mismatch_count, 1);
         assert!(!out.no_category_witness_mismatch());
-        assert!(out.audits[0]
-            .hints
-            .contains(&AuditHint::AntigenCategoryClaimInconsistentWithPredicateType));
+        assert!(
+            out.audits[0]
+                .hints
+                .contains(&AuditHint::AntigenCategoryClaimInconsistentWithPredicateType)
+        );
     }
 
     #[test]
@@ -739,9 +767,11 @@ mod tests {
         report.immunities.push(immunity_for("BugAntigen", true));
         let out = audit_category(&report);
         assert_eq!(out.mismatch_count, 1);
-        assert!(out.audits[0]
-            .hints
-            .contains(&AuditHint::AntigenCategoryClaimInconsistentWithPredicateType));
+        assert!(
+            out.audits[0]
+                .hints
+                .contains(&AuditHint::AntigenCategoryClaimInconsistentWithPredicateType)
+        );
     }
 
     #[test]
@@ -884,9 +914,11 @@ mod tests {
         assert!(out.no_category_witness_mismatch());
         // But the silence-by-absence advisory fires.
         assert!(!out.no_silence_witness_mismatch());
-        assert!(out.audits[0]
-            .hints
-            .contains(&AuditHint::AntigenWitnessShapeMismatchForSilenceNoWitness));
+        assert!(
+            out.audits[0]
+                .hints
+                .contains(&AuditHint::AntigenWitnessShapeMismatchForSilenceNoWitness)
+        );
     }
 
     #[test]
@@ -918,15 +950,19 @@ mod tests {
         let out = audit_category(&report);
         // G2 still fires its claim-inconsistent verdict (count unchanged)...
         assert_eq!(out.mismatch_count, 1);
-        assert!(out.audits[0]
-            .hints
-            .contains(&AuditHint::AntigenCategoryClaimInconsistentWithPredicateType));
+        assert!(
+            out.audits[0]
+                .hints
+                .contains(&AuditHint::AntigenCategoryClaimInconsistentWithPredicateType)
+        );
         // ...and the silence wrong-tier advisory rides alongside it on the
         // SAME audit entry, adding the silence-generator framing.
         assert!(!out.no_silence_witness_mismatch());
-        assert!(out.audits[0]
-            .hints
-            .contains(&AuditHint::AntigenWitnessShapeMismatchForSilenceWrongTier));
+        assert!(
+            out.audits[0]
+                .hints
+                .contains(&AuditHint::AntigenWitnessShapeMismatchForSilenceWrongTier)
+        );
     }
 
     #[test]
@@ -970,9 +1006,11 @@ mod tests {
         let out = audit_category(&report);
         assert_eq!(out.mismatch_count, 1);
         assert!(!out.no_silence_witness_mismatch());
-        assert!(out.audits[0]
-            .hints
-            .contains(&AuditHint::AntigenWitnessShapeMismatchForSilenceWrongTier));
+        assert!(
+            out.audits[0]
+                .hints
+                .contains(&AuditHint::AntigenWitnessShapeMismatchForSilenceWrongTier)
+        );
     }
 
     #[test]
@@ -1087,13 +1125,14 @@ mod tests {
         // (self-referential). After the fix, audit uses the scan-computed
         // structural_fingerprint — so a signer at "fp-old" is correctly
         // detected as stale when the real item digest is "fp-new".
+        use std::collections::BTreeMap;
+
         use antigen_attestation::predicate::{Leaf, SignerCurrency};
         use antigen_attestation::schema::{
             AntigenIdentifier, ItemRatification, Ratification, RatificationKind, SchemaVersion,
             Signer, SignerBasis,
         };
         use chrono::NaiveDate;
-        use std::collections::BTreeMap;
 
         let tmp = tempfile::tempdir().unwrap();
         let source_file = tmp.path().join("src").join("lib.rs");
@@ -1195,13 +1234,14 @@ mod tests {
         // audit falls back to the sidecar's stored current_fingerprint. This
         // preserves backwards-compatibility and avoids falsely marking all
         // existing sidecars as stale.
+        use std::collections::BTreeMap;
+
         use antigen_attestation::predicate::{Leaf, SignerCurrency};
         use antigen_attestation::schema::{
             AntigenIdentifier, ItemRatification, Ratification, RatificationKind, SchemaVersion,
             Signer, SignerBasis,
         };
         use chrono::NaiveDate;
-        use std::collections::BTreeMap;
 
         let tmp = tempfile::tempdir().unwrap();
         let source_file = tmp.path().join("src").join("lib.rs");
@@ -1290,13 +1330,14 @@ mod tests {
 
     #[test]
     fn sidecar_per_item_lookup_does_not_use_first_item_for_second_immunity() {
+        use std::collections::BTreeMap;
+
         use antigen_attestation::predicate::{Leaf, SignerCurrency};
         use antigen_attestation::schema::{
             AntigenIdentifier, ItemRatification, Ratification, RatificationKind, SchemaVersion,
             Signer, SignerBasis,
         };
         use chrono::NaiveDate;
-        use std::collections::BTreeMap;
 
         let tmp = tempfile::tempdir().unwrap();
         let source_file = tmp.path().join("src").join("lib.rs");
@@ -1980,8 +2021,9 @@ mod tests {
         duration_cap_days: u64,
         since: &str,
     ) -> crate::scan::DeferredDefense {
-        use crate::scan::{DeferredDefenseKind, ItemTarget};
         use std::path::PathBuf;
+
+        use crate::scan::{DeferredDefenseKind, ItemTarget};
         crate::scan::DeferredDefense {
             kind: DeferredDefenseKind::Immunosuppress,
             antigen_type: None,

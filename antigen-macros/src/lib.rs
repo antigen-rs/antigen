@@ -689,7 +689,7 @@ fn marked_unknown_marker(marker: &str, magnitude: &str, certainty: &str, trigger
                 escaped.push_str("\\u00");
                 escaped.push(HEX[(b >> 4) as usize] as char);
                 escaped.push(HEX[(b & 0x0f) as usize] as char);
-            }
+            },
             other => escaped.push(other),
         }
     }

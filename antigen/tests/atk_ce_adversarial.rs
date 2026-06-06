@@ -246,9 +246,10 @@
 // Will need updating if a zero-min warning hint is added to the audit.
 // ============================================================================
 
-use antigen::audit::{audit_convergent_evidence, AuditHint};
-use antigen::scan::{ConvergentEvidence, ConvergentEvidenceKind, ItemTarget, ScanReport};
 use std::path::PathBuf;
+
+use antigen::audit::{AuditHint, audit_convergent_evidence};
+use antigen::scan::{ConvergentEvidence, ConvergentEvidenceKind, ItemTarget, ScanReport};
 
 fn ce_base(kind: ConvergentEvidenceKind) -> ConvergentEvidence {
     ConvergentEvidence {

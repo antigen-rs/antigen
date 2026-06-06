@@ -145,7 +145,7 @@ fn section_kind(header: &str) -> Option<&str> {
             } else {
                 None
             }
-        }
+        },
     }
 }
 
@@ -178,8 +178,8 @@ fn strip_trailing_comment(s: &str) -> &str {
             '#' if !in_quote => {
                 cut_at = Some(i);
                 break;
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
     cut_at.map_or(s, |i| s[..i].trim_end())

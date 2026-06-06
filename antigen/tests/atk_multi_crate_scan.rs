@@ -25,9 +25,10 @@
 //! These tests run `cargo metadata` as a subprocess; they require cargo on PATH
 //! (always true in any environment that built the workspace).
 
-use antigen::scan::{enumerate_workspace_member_roots, scan_workspace_multi_crate};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+
+use antigen::scan::{enumerate_workspace_member_roots, scan_workspace_multi_crate};
 
 fn workspace_root() -> PathBuf {
     // The antigen crate's CARGO_MANIFEST_DIR is `<workspace>/antigen/`; the

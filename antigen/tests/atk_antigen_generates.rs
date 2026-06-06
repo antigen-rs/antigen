@@ -13,8 +13,9 @@
 //! a syntactic walker, so the "macro" need not actually expand — the attribute
 //! is read as source text.
 
-use antigen::scan::{scan_workspace, MatchKind};
 use std::io::Write;
+
+use antigen::scan::{MatchKind, scan_workspace};
 
 /// Write a single `.rs` file into a fresh tempdir and scan it.
 fn scan_src(src: &str) -> antigen::scan::ScanReport {
@@ -157,7 +158,8 @@ fn consumer() {
         })
         .count();
     assert_eq!(
-        generated, 1,
+        generated,
+        1,
         "the include_dep!(...) bang invocation must synthesize one generated presentation; got: {:?}",
         report
             .presentations

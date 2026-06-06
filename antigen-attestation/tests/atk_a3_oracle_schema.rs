@@ -15,9 +15,9 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use antigen_attestation::{
-    schema::{DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS},
     AntigenIdentifier, ItemRatification, Oracle, OracleRef, OracleState, OracleVersion, Provenance,
     Ratification, RatificationKind, SchemaVersion, StateTransition, Steward,
+    schema::{DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS},
 };
 use chrono::NaiveDate;
 

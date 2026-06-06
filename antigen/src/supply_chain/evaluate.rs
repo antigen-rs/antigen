@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 
 use antigen_macros::presents;
 
-use super::manifest::{read_manifest_deps, DepEntry};
+use super::manifest::{DepEntry, read_manifest_deps};
 use super::schema::{ContentHashRecord, DepAttestation, MaintainerSnapshot, SandboxKind};
 use super::witness::{
     ContentHashState, DepAttestedState, DepPinnedState, MaintainerState, SandboxState,
@@ -195,7 +195,7 @@ pub fn evaluate_dep_attested(
             return DepAttestedState::SidecarMalformed {
                 error: e.to_string(),
             };
-        }
+        },
         Ok(a) => a,
     };
 
@@ -535,12 +535,13 @@ pub const fn evaluate_sandbox_clean(_crate_name: &str, sandbox_kind: SandboxKind
 
 #[cfg(test)]
 mod tests {
+    use antigen_macros::defended_by;
+    use tempfile::TempDir;
+
     use super::*;
     // `#[defended_by]` (ADR-029) is used only on the witness test below; import
     // it here rather than at module scope (where it would be unused).
     use crate::supply_chain::schema::ReviewScope;
-    use antigen_macros::defended_by;
-    use tempfile::TempDir;
 
     fn write_manifest(dir: &Path, content: &str) {
         std::fs::write(dir.join("Cargo.toml"), content).unwrap();
@@ -576,7 +577,7 @@ clap = "=4.0"
         match evaluate_dep_pinned(tmp.path(), None) {
             DepPinnedState::Unpinned { unpinned_deps } => {
                 assert_eq!(unpinned_deps, vec!["serde".to_string()]);
-            }
+            },
             other => panic!("expected Unpinned, got {other:?}"),
         }
     }
@@ -692,7 +693,7 @@ checksum = "swapped-hash"
             ContentHashState::Mismatch { recorded, current } => {
                 assert_eq!(recorded, "recorded-hash");
                 assert_eq!(current, "swapped-hash");
-            }
+            },
             other => panic!("expected Mismatch, got {other:?}"),
         }
     }

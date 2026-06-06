@@ -14,12 +14,12 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use antigen_attestation::{
-    evaluate::evaluate_predicate_with_kind,
-    predicate::SignerCurrency,
-    schema::{ValidationError, DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS},
     AntigenIdentifier, AuditHint, EvaluationContext, EvidenceKind, ItemRatification, Leaf,
     Predicate, Ratification, RatificationKind, SchemaVersion, SignatureStrength, Signer,
     SignerBasis, WitnessTier,
+    evaluate::evaluate_predicate_with_kind,
+    predicate::SignerCurrency,
+    schema::{DEFAULT_DELTA_CHAIN_CAP, DEFAULT_DELTA_RATIONALE_MIN_CHARS, ValidationError},
 };
 use chrono::NaiveDate;
 
@@ -45,14 +45,17 @@ impl EvaluationContext for FsContext {
     fn today(&self) -> NaiveDate {
         self.today
     }
+
     fn read_doc(&self, path: &Path) -> Option<String> {
         let full = self.workspace_root.join(path);
         std::fs::read_to_string(&full).ok()
     }
+
     fn read_oracle(&self, path: &Path) -> Option<String> {
         let full = self.workspace_root.join(path);
         std::fs::read_to_string(&full).ok()
     }
+
     fn read_git_trailers(&self, item_source_file: &Path, item_path: &str) -> Vec<String> {
         self.trailers
             .get(&(item_source_file.to_path_buf(), item_path.to_string()))

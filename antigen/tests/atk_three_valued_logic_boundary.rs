@@ -52,14 +52,15 @@
 //! ATK-3V-4 is the FAILING test. ATK-3V-1, ATK-3V-2, ATK-3V-3 document the
 //! current evaluator behavior and must remain passing.
 
+use std::collections::BTreeMap;
+use std::path::Path;
+
 use antigen_attestation::{
-    evaluate::{evaluate_predicate, EvaluationContext},
+    evaluate::{EvaluationContext, evaluate_predicate},
     predicate::{Leaf, Predicate},
     schema::ItemRatification,
 };
 use chrono::NaiveDate;
-use std::collections::BTreeMap;
-use std::path::Path;
 
 /// Minimal in-memory context: no docs, no oracles, no trailers.
 struct EmptyContext;
@@ -68,12 +69,15 @@ impl EvaluationContext for EmptyContext {
     fn today(&self) -> NaiveDate {
         NaiveDate::from_ymd_opt(2026, 6, 1).unwrap()
     }
+
     fn read_doc(&self, _: &Path) -> Option<String> {
         None
     }
+
     fn read_oracle(&self, _: &Path) -> Option<String> {
         None
     }
+
     fn read_git_trailers(&self, _: &Path, _: &str) -> Vec<String> {
         vec![]
     }
@@ -218,9 +222,10 @@ fn atk_3v3_all_of_with_failing_standard_leaf_is_failed_not_indeterminate() {
 // becomes SubstrateGap). Confirmed by observer: git stash (reverts fix) → test fails.
 #[test]
 fn atk_3v4_deferred_predicate_does_not_produce_substrate_gap_verdict() {
-    use antigen::audit::{audit, ImmuneVerdict};
-    use antigen::scan::scan_workspace;
     use std::path::Path;
+
+    use antigen::audit::{ImmuneVerdict, audit};
+    use antigen::scan::scan_workspace;
 
     // Fixture: antigen/tests/fixtures/atk_3v4_deferred_not_substrate_gap/src/
     //   - lib.rs: #[immune(DeferredPredicateClass, requires = dep_pinned())]

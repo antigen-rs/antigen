@@ -10,13 +10,14 @@
 //! Tests that PASS indicate correct defense.
 //! Tests that FAIL indicate a real implementation gap (a bug).
 
+use std::path::PathBuf;
+
 use antigen::supply_chain::evaluate::{
     dep_attest_path, evaluate_content_hash_matches, evaluate_dep_attested,
     evaluate_maintainer_unchanged, save_content_hash_record,
 };
 use antigen::supply_chain::schema::{ContentHashRecord, DepAttestation, ReviewScope};
 use antigen::supply_chain::witness::{ContentHashState, DepAttestedState, MaintainerState};
-use std::path::PathBuf;
 use tempfile::TempDir;
 
 // ============================================================================
@@ -369,17 +370,17 @@ proptest = "1.0"
                  This is a potential false positive for projects with unpinned dev-deps. \
                  ADR-025 doesn't distinguish dep types — document as NAMED-LIMITATION."
             );
-        }
+        },
         DepPinnedState::AllPinned => {
             panic!(
                 "ATK-SC-4-A: evaluate_dep_pinned_against returned AllPinned even with \
                  unpinned dev-dep 'proptest'. Either dev-deps are excluded (intentional?) \
                  or this is a bug. Document the section-filtering decision."
             );
-        }
+        },
         DepPinnedState::NotInManifest { .. } => {
             panic!("ATK-SC-4-A: unexpected NotInManifest state");
-        }
+        },
     }
 }
 
@@ -407,7 +408,7 @@ proptest = "1.0"
 
 #[test]
 fn atk_sc_audit1_any_of_emits_false_positive_for_passing_branch() {
-    use antigen::audit::{audit_supply_chain, AuditHint};
+    use antigen::audit::{AuditHint, audit_supply_chain};
     use antigen::scan::{Immunity, ItemTarget, ScanReport};
     use antigen_attestation::{Leaf, Predicate};
 

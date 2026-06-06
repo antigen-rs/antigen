@@ -6,7 +6,7 @@
 //! `syn::Macro` invocations natively (per ADR-015 S2).
 
 use crate::{
-    normalize_signature_canonical, Constraint, Fingerprint, ItemKind, MethodPattern, QualifierKind,
+    Constraint, Fingerprint, ItemKind, MethodPattern, QualifierKind, normalize_signature_canonical,
 };
 
 /// Three-valued predicate-evaluation result (ADR-010 Amendment 6).
@@ -47,11 +47,7 @@ impl Match3 {
     /// locus on every item (item-kind, name, docs, attrs): the question is
     /// always well-posed, so the result is `Match`/`NoMatch`, never `Undefined`.
     const fn from_bool(b: bool) -> Self {
-        if b {
-            Self::Match
-        } else {
-            Self::NoMatch
-        }
+        if b { Self::Match } else { Self::NoMatch }
     }
 
     /// Kleene-strong negation. `Undefined` is closed under negation — it does
@@ -96,7 +92,7 @@ fn match_all_of(children: &[Constraint], item: &syn::Item) -> Match3 {
         match match_constraint(c, item) {
             Match3::NoMatch => return Match3::NoMatch,
             Match3::Undefined => saw_undefined = true,
-            Match3::Match => {}
+            Match3::Match => {},
         }
     }
     if saw_undefined {
@@ -116,7 +112,7 @@ fn match_any_of(children: &[Constraint], item: &syn::Item) -> Match3 {
         match match_constraint(c, item) {
             Match3::Match => return Match3::Match,
             Match3::Undefined => saw_undefined = true,
-            Match3::NoMatch => {}
+            Match3::NoMatch => {},
         }
     }
     if saw_undefined {
@@ -133,7 +129,7 @@ fn match_constraint(c: &Constraint, item: &syn::Item) -> Match3 {
         Constraint::Item(kind) => Match3::from_bool(item_kind_matches(item, *kind)),
         Constraint::NameMatches(glob) => {
             Match3::from_bool(item_name(item).is_some_and(|name| glob.matches(&name)))
-        }
+        },
         Constraint::Variants(range) => Match3::from_bool(match item {
             syn::Item::Enum(e) => range.contains(e.variants.len()),
             _ => false,
@@ -141,10 +137,10 @@ fn match_constraint(c: &Constraint, item: &syn::Item) -> Match3 {
         Constraint::HasMethod(pattern) => Match3::from_bool(has_matching_method(item, pattern)),
         Constraint::AttrPresent(path) => {
             Match3::from_bool(item_attrs(item).iter().any(|a| attr_path_matches(a, path)))
-        }
+        },
         Constraint::DocContains(needle) => {
             Match3::from_bool(doc_text(item).contains(needle.as_str()))
-        }
+        },
         // body_contains_macro is the one v0.2 leaf with a partial domain: it
         // returns Undefined on bodyless item-classes (ADR-010 Amd6).
         Constraint::BodyContainsMacro(name) => body_contains_macro(item, name),
@@ -402,7 +398,7 @@ fn body_contains_macro(item: &syn::Item, name: &str) -> Match3 {
         syn::Item::Fn(f) => {
             finder.visit_block(&f.block);
             Match3::from_bool(finder.found)
-        }
+        },
         syn::Item::Impl(imp) => {
             for impl_item in &imp.items {
                 if let syn::ImplItem::Fn(f) = impl_item {
@@ -413,7 +409,7 @@ fn body_contains_macro(item: &syn::Item, name: &str) -> Match3 {
                 }
             }
             Match3::from_bool(finder.found)
-        }
+        },
         // No function body on this item-class — the question "does the body
         // contain macro X" has no locus here. UNDEFINED, not vacuous-false
         // (ADR-010 Amd6): this is what kills the vacuous-`not` hazard.
@@ -488,7 +484,7 @@ fn body_calls(item: &syn::Item, name: &str) -> Match3 {
         syn::Item::Fn(f) => {
             finder.visit_block(&f.block);
             Match3::from_bool(finder.found)
-        }
+        },
         syn::Item::Impl(imp) => {
             for impl_item in &imp.items {
                 if let syn::ImplItem::Fn(f) = impl_item {
@@ -499,7 +495,7 @@ fn body_calls(item: &syn::Item, name: &str) -> Match3 {
                 }
             }
             Match3::from_bool(finder.found)
-        }
+        },
         // No function body on this item-class — "does the body call X" has no
         // locus here. UNDEFINED, not vacuous-false (ADR-010 Amd6).
         _ => Match3::Undefined,
@@ -560,7 +556,7 @@ fn impl_of_trait(item: &syn::Item, name: &str) -> Match3 {
                 path.segments.last().is_some_and(|seg| seg.ident == name)
             });
             Match3::from_bool(fires)
-        }
+        },
         // No trait-impl locus on this item-class. UNDEFINED, not vacuous-false.
         _ => Match3::Undefined,
     }
@@ -1698,7 +1694,7 @@ mod tests {
     // the vacuous-not defect; these tests pin the propagation at the type level.
     // ========================================================================
 
-    use super::{match_constraint, Match3};
+    use super::{Match3, match_constraint};
 
     #[test]
     fn match3_not_is_kleene_strong() {

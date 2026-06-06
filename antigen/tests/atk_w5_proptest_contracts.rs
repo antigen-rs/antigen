@@ -11,9 +11,10 @@
 //!
 //! Substrate check: `cargo test --package antigen --test atk_w5_proptest_contracts`
 
-use antigen::audit::{audit, WitnessKind, WitnessStatus};
-use antigen::scan::{scan_workspace, Immunity, ScanReport};
 use std::path::{Path, PathBuf};
+
+use antigen::audit::{WitnessKind, WitnessStatus, audit};
+use antigen::scan::{Immunity, ScanReport, scan_workspace};
 
 fn fixture(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -62,17 +63,17 @@ fn atk_w5_001_proptest_inner_function_is_detected() {
                  and registers inner function names as Proptest kind.",
                 witness_kind
             );
-        }
+        },
         WitnessStatus::NotFound { .. } => {
             panic!(
                 "ATK-W5-001: real_proptest_fn was not found at all — the structural\n\
                  detection has not yet been implemented. W5 must walk into proptest!\n\
                  macro bodies to find these function names."
             );
-        }
+        },
         other => {
             panic!("ATK-W5-001: unexpected status {:?}", other);
-        }
+        },
     }
 }
 
@@ -126,13 +127,13 @@ fn atk_w5_002_multiple_proptest_functions_all_detected() {
                  the block, not stop after the first.",
                 witness_kind
             );
-        }
+        },
         WitnessStatus::NotFound { .. } => {
             panic!(
                 "ATK-W5-002: second_proptest_fn not found — W5's proptest body\n\
                  walker must register all functions in the block, not just the first."
             );
-        }
+        },
         other => panic!("ATK-W5-002: unexpected status {:?}", other),
     }
 }
@@ -185,7 +186,7 @@ fn atk_w5_003_doc_comment_proptest_mention_does_not_over_classify() {
                  is inside a proptest! body.",
                 witness_kind
             );
-        }
+        },
         other => panic!("ATK-W5-003: unexpected status {:?}", other),
     }
 }
@@ -229,7 +230,7 @@ fn atk_w5_004_plain_test_in_proptest_file_remains_test_kind() {
                  because the file contains proptest! invocations.",
                 witness_kind
             );
-        }
+        },
         other => panic!("ATK-W5-004: unexpected status {:?}", other),
     }
 }
@@ -275,7 +276,7 @@ fn atk_w5_007_proptest_function_collision_with_free_fn_is_ambiguous() {
                 2,
                 "expected two candidates for shadowed_by_free_fn (free fn + proptest fn)",
             );
-        }
+        },
         other => panic!(
             "ATK-W5-007 (post-W7): expected WitnessStatus::Ambiguous; got {:?}",
             other

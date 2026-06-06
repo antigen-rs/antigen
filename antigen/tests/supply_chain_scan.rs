@@ -12,8 +12,9 @@
 //!
 //! ADR-025: Supply-Chain Defense Family.
 
-use antigen::scan::scan_workspace;
 use std::path::{Path, PathBuf};
+
+use antigen::scan::scan_workspace;
 
 fn fixture(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))

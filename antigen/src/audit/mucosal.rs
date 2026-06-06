@@ -159,7 +159,7 @@ fn evaluate_mucosal_hints(
             {
                 hints.push(AuditHint::MucosalRationaleInsufficient);
             }
-        }
+        },
         MucosalKindTag::MucosalDelegate => {
             if decl.boundary_kind.is_none() {
                 hints.push(AuditHint::MucosalKindMismatch);
@@ -184,7 +184,7 @@ fn evaluate_mucosal_hints(
                             Some(kinds) if kinds.is_empty() => {
                                 // Tier 2: resolves but carries no mucosal kind.
                                 hints.push(AuditHint::MucosalDisciplineDelegateTargetNotMucosal);
-                            }
+                            },
                             Some(kinds) => {
                                 // Tier 3: set-membership kind match (NOT exact-equality).
                                 let matches = decl
@@ -196,12 +196,12 @@ fn evaluate_mucosal_hints(
                                         AuditHint::MucosalDisciplineDelegateTargetKindMismatch,
                                     );
                                 }
-                            }
+                            },
                         }
                     }
-                }
+                },
             }
-        }
+        },
         MucosalKindTag::MucosalTolerant => {
             if decl.boundary_kind.is_none() {
                 hints.push(AuditHint::MucosalKindMismatch);
@@ -227,7 +227,7 @@ fn evaluate_mucosal_hints(
                     }
                 }
             }
-        }
+        },
     }
     hints
 }

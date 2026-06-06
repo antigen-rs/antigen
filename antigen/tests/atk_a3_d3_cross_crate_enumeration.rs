@@ -13,8 +13,9 @@
 //! The Sub-clause F trust-model ADR sentence is in flight with aristotle;
 //! these tests cover the mechanism, not the trust documentation.
 
-use antigen::scan::{enumerate_dep_crate_roots, scan_workspace, CrateOrigin};
 use std::path::{Path, PathBuf};
+
+use antigen::scan::{CrateOrigin, enumerate_dep_crate_roots, scan_workspace};
 
 fn workspace_root() -> PathBuf {
     // The antigen crate's CARGO_MANIFEST_DIR is `<workspace>/antigen/`; the

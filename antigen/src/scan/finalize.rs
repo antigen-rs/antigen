@@ -17,8 +17,8 @@
 use std::path::PathBuf;
 
 use super::{
-    generates_synthesis_pass, locus_matches, synthesis_pass, AntigenDeclaration, ItemTarget,
-    ParseFailure, Presentation, ProvenanceEntry, ScanReport,
+    AntigenDeclaration, ItemTarget, ParseFailure, Presentation, ProvenanceEntry, ScanReport,
+    generates_synthesis_pass, locus_matches, synthesis_pass,
 };
 
 /// Run the post-collection passes that turn a raw explicit-collection
@@ -76,7 +76,7 @@ pub fn finalize_report(report: &mut ScanReport, parsed_files: &[(PathBuf, syn::F
                         ),
                     });
                     None
-                }
+                },
             }
         })
         .collect();

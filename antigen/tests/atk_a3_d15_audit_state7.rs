@@ -6,9 +6,10 @@
 //! record. The default audit returns these in `inherited_unaddressed`
 //! without failing; the CLI `--strict` flag promotes to error exit.
 
-use antigen::audit::{audit, AuditHint};
-use antigen::scan::scan_workspace;
 use std::path::{Path, PathBuf};
+
+use antigen::audit::{AuditHint, audit};
+use antigen::scan::scan_workspace;
 
 fn fixture(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))

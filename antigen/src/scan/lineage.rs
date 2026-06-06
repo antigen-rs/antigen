@@ -207,7 +207,7 @@ pub fn detect_lineage_failures(edges: &[LineageEdge], max_depth: usize) -> Vec<P
                     color.insert(child, 1);
                     path.push(child);
                     stack.push((child, 0));
-                }
+                },
                 1 => {
                     // Gray — closing a cycle. Capture the chain from the
                     // first occurrence of `child` in `path` to the current
@@ -236,10 +236,10 @@ pub fn detect_lineage_failures(edges: &[LineageEdge], max_depth: usize) -> Vec<P
                     }
                     // Don't descend into the gray child — that would loop.
                     // Continue with the next child of `node`.
-                }
+                },
                 _ => {
                     // Black — already proven cycle-free in this scan; skip.
-                }
+                },
             }
         }
     }

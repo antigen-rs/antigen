@@ -104,7 +104,45 @@ group_imports = "StdExternalCrate"   wrap_comments = true   format_code_in_doc_c
 1. `expect_used` in src — **lean warn + allow-in-tests** (the message documents intent; debatable).
 2. `indexing_slicing` in the parser — **per-line `#[expect]`**, don't blanket-disable.
 3. `build.rustflags = -D warnings` — **NO** (deps + incremental).
-4. Nightly rustfmt imports — **lean adopt** (multi-agent conflict-reduction) via the nightly profile + CI gate.
+4. Nightly rustfmt — **ADOPTED** (2026-06-06): `style_edition = "2027"` + structural opts; fmt gate moved to nightly. `imports_granularity` held at **Preserve**, NOT "Crate" — Crate caused `label-drift-from-silent-merge` (see § Config-level failure-classes). `wrap_comments` OFF.
 5. `print_stdout/stderr` — **deny in the 4 lib crates, allow in `cargo-antigen`**.
 6. `cargo machete` + `typos` — **yes**, fast pre-commit adds.
 7. `disallowed-methods` seam — **verify-then-enable** in the adoption pass (check `process::exit` usage first).
+
+## Config-level failure-classes (Beyond-Code seeds)
+
+Two failure-classes surfaced while adopting the rustfmt profile (2026-06-06). They live at the
+*config / tooling* layer, so they are not yet enforceable Rust-code antigens — they are **declared
+here as Beyond-Code charter seeds** (antigen for md/toml/json/yaml, in-file or sidecar). Recorded as
+MEMORY, not observed claims (ADR-029 observe-don't-declare). `rustfmt.toml` `#[orient]`s them by name.
+
+```rust
+#[antigen(
+    name = "label-drift-from-silent-merge",
+    family = "comment-asserted-property-drift",   // sibling of ParallelStateTrackersDiverge
+    summary = "A formatter/codegen rule silently merges a documented unit into a sibling block, \
+               so a comment labelling it (\"seven primitives\") ends up over different content \
+               (14 items) — the label drifts from reality, uncaught.",
+)]
+
+#[antigen(
+    name = "tooling-choice-spawns-unenforced-invariant",
+    family = "implicit-discipline-debt",
+    summary = "A config/tool option's side effect creates an invariant no compiler or lint \
+               enforces ('every import block needs a comment or it silently merges') — \
+               arbitrary discipline demanded for no structural reason. Stdlib-worthy (general).",
+)]
+```
+
+**Instance:** `imports_granularity = "Crate"` presents *both*; we hold `Preserve` (see `rustfmt.toml`).
+
+**Marker semantics worked out alongside (substrate for the learning-core / effector charters):**
+- A `#[presents(X)]` is a *claim*, never self-certifying — the **fingerprint** adjudicates it
+  (confirmed / dubious / suggested). A careless human mark and a scanner-inferred match are graded
+  the same way: by structure, not by who marked it. Abuse-resistant by construction.
+- Scan/audit may **materialize** findings into the source (so the codebase carries them, not just
+  the scanner) — but as **ratifiable suggestions carrying provenance**, never silent assertions
+  (effector-arm SUGGEST floor; AUTO-APPLY behind sub-clause-F, ADR-005).
+- A felt-but-*unnamed* worry ("breaks under team-expansion / public PRs, can't say why") is the
+  **marked-unknown plane** (`#[aura]` / `#[dread]` / `#[red_flag]`, kept honest by a required
+  `trigger`), which **crystallizes** into `#[antigen]` + `#[presents]` once named.

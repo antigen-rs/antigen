@@ -37,7 +37,7 @@ use antigen::stdlib::vcs_info_loss::{
     ForcePushErasingHistory, RefactorWithoutPreservationOfWhy, RollbackWithoutTriageCommit,
     SquashMergeLosingIntermediateState,
 };
-use antigen::{presents, triage_commit, TriageDecision};
+use antigen::{TriageDecision, presents, triage_commit};
 
 // ============================================================================
 // Pattern 1: RollbackWithoutTriageCommit — force-reset without a triage record

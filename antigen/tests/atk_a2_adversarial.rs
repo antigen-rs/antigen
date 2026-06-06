@@ -9,9 +9,10 @@
 //! When a bug is fixed and a test passes, add a comment recording which ATK
 //! it covers. Do NOT remove passing tests — they are regressions guards.
 
-use antigen::audit::{audit, AuditHint, WitnessKind, WitnessStatus, WitnessTier};
-use antigen::scan::{scan_workspace, Immunity, MatchKind, ScanReport};
 use std::path::{Path, PathBuf};
+
+use antigen::audit::{AuditHint, WitnessKind, WitnessStatus, WitnessTier, audit};
+use antigen::scan::{Immunity, MatchKind, ScanReport, scan_workspace};
 
 fn fixture(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -300,7 +301,7 @@ fn atk_a2_005_ambiguous_witness_name_is_not_silently_resolved() {
                 candidates.len() >= 2,
                 "ATK-A2-005: expected at least two candidate paths; got {candidates:?}",
             );
-        }
+        },
         other => panic!(
             "ATK-A2-005: expected WitnessStatus::Ambiguous; got {:?}",
             other
@@ -432,7 +433,7 @@ fn atk_a2_010_phantom_witness_type_param_mismatch_is_flagged() {
                 "ATK-A2-010: PolarityProof::<WrongClass> must resolve as PhantomType, got {:?}",
                 witness_kind
             );
-        }
+        },
         other => panic!(
             "ATK-A2-010: expected Resolved(PhantomType), got {:?}",
             other

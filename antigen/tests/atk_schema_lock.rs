@@ -17,9 +17,10 @@
 //!
 //! Filed: 2026-05-12 (A3 substrate sweep, pre-rc.1 tag).
 
-use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+
+use serde_json::Value;
 
 /// Workspace root = parent of the `antigen` package dir.
 fn workspace_root() -> PathBuf {

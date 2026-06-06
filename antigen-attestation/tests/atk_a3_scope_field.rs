@@ -39,9 +39,9 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use antigen_attestation::{
-    evaluate::evaluate_predicate, predicate::SignerCurrency, AntigenIdentifier, AuditHint,
-    EvaluationContext, ItemRatification, Leaf, Predicate, Ratification, RatificationKind,
-    SchemaVersion, SignatureStrength, Signer, SignerBasis, WitnessTier,
+    AntigenIdentifier, AuditHint, EvaluationContext, ItemRatification, Leaf, Predicate,
+    Ratification, RatificationKind, SchemaVersion, SignatureStrength, Signer, SignerBasis,
+    WitnessTier, evaluate::evaluate_predicate, predicate::SignerCurrency,
 };
 use chrono::NaiveDate;
 
@@ -55,15 +55,19 @@ impl EvaluationContext for ScopeCtx {
     fn today(&self) -> NaiveDate {
         self.today
     }
+
     fn read_doc(&self, _path: &Path) -> Option<String> {
         None
     }
+
     fn read_oracle(&self, _path: &Path) -> Option<String> {
         None
     }
+
     fn read_git_trailers(&self, _item_source_file: &Path, _item_path: &str) -> Vec<String> {
         vec![]
     }
+
     fn delta_chain_cap(&self) -> u32 {
         3
     }

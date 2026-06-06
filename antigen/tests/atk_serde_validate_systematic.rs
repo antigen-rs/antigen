@@ -53,11 +53,12 @@
 //!   the audit reports `DisciplineSidecarSchemaInvalid` rather than trusting the
 //!   semantically-invalid sidecar.
 
+use std::path::PathBuf;
+
 use antigen_attestation::{
     schema::{Ratification, Signer, SignerBasis},
     tier::SignatureStrength,
 };
-use std::path::PathBuf;
 
 // ============================================================================
 // ATK-SV-1: Regression anchor — ATK-SC-7 guard is present in audit_supply_chain
@@ -68,7 +69,7 @@ use std::path::PathBuf;
 // PASS. If it fails, ATK-SC-7 was regressed.
 #[test]
 fn atk_sv1_supply_chain_audit_validates_predicate_after_serde_atk_sc7_regression_anchor() {
-    use antigen::audit::{audit_supply_chain, AuditHint as TopLevelHint};
+    use antigen::audit::{AuditHint as TopLevelHint, audit_supply_chain};
     use antigen::scan::{Immunity, ItemTarget, ScanReport};
 
     let empty_all_of_json = r#"{"kind":"all_of","children":[]}"#;
@@ -112,12 +113,13 @@ fn atk_sv1_supply_chain_audit_validates_predicate_after_serde_atk_sc7_regression
 // systematic fix (calling validate after from_str) would work.
 #[test]
 fn atk_sv2_ratification_validate_catches_crypto_signed_without_signature_nfa17() {
+    use std::collections::BTreeMap;
+    use std::path::PathBuf;
+
     use antigen_attestation::schema::{
         AntigenIdentifier, ItemRatification, RatificationKind, SchemaVersion,
     };
     use chrono::NaiveDate;
-    use std::collections::BTreeMap;
-    use std::path::PathBuf;
 
     let signer = Signer {
         name: "alice".to_string(),
@@ -186,11 +188,12 @@ fn atk_sv2_ratification_validate_catches_crypto_signed_without_signature_nfa17()
 // serde/validate boundary, which is sufficient to document the fix needed.
 #[test]
 fn atk_sv3_crypto_signed_sidecar_deserializes_but_validate_catches_nfa17_load_sidecar_gap() {
+    use std::collections::BTreeMap;
+
     use antigen_attestation::schema::{
         AntigenIdentifier, ItemRatification, RatificationKind, SchemaVersion,
     };
     use chrono::NaiveDate;
-    use std::collections::BTreeMap;
 
     // Build the degenerate sidecar in memory (bypasses any parse-level rejection).
     // The signer claims CryptoSigned strength but has no signature field (None).
@@ -341,9 +344,10 @@ fn atk_sv3_crypto_signed_sidecar_deserializes_but_validate_catches_nfa17_load_si
 // and the audit result carries `SignatureStrength::CryptoSigned`.
 #[test]
 fn atk_sv4_end_to_end_load_sidecar_rejects_crypto_signed_without_signature_nfa17() {
-    use antigen::audit::{audit, AuditHint};
-    use antigen::scan::scan_workspace;
     use std::path::Path;
+
+    use antigen::audit::{AuditHint, audit};
+    use antigen::scan::scan_workspace;
 
     let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("tests")

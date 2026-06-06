@@ -21,8 +21,8 @@ use std::path::{Path, PathBuf};
 use antigen_macros::presents;
 
 use super::{
-    evidence_kind_from_status, AuditHint, AuditReport, ImmuneVerdict, ImmunityAudit,
-    InheritedUnaddressed, PresentationVerdict, WitnessKind, WitnessStatus, WitnessTier,
+    AuditHint, AuditReport, ImmuneVerdict, ImmunityAudit, InheritedUnaddressed,
+    PresentationVerdict, WitnessKind, WitnessStatus, WitnessTier, evidence_kind_from_status,
 };
 use crate::scan::{Immunity, ScanReport};
 
@@ -451,7 +451,7 @@ fn compute_presentation_verdicts(
                 // intent.
                 None if site_requires_eval.is_some() || immune_any_substrate_gap => {
                     ImmuneVerdict::SubstrateGap
-                }
+                },
                 None => ImmuneVerdict::Undefended,
             }
         };
@@ -542,7 +542,7 @@ pub fn audit_substrate_witness(immunity: &Immunity, predicate_json: &str) -> Imm
                 predicate_json.to_string(),
                 antigen_attestation::RatificationKind::Immunity,
             );
-        }
+        },
         SidecarLoad::SchemaInvalid => {
             // Sidecar present but failed validation (e.g. NFA-17: CryptoSigned
             // without signature). Emit schema-invalid so the adopter knows the
@@ -554,7 +554,7 @@ pub fn audit_substrate_witness(immunity: &Immunity, predicate_json: &str) -> Imm
                 predicate_json.to_string(),
                 antigen_attestation::RatificationKind::Immunity,
             );
-        }
+        },
         SidecarLoad::Ok(r) => r,
     };
 
@@ -699,25 +699,25 @@ const fn map_attestation_audit_hint(hint: antigen_attestation::AuditHint) -> Aud
         AH::DisciplineSubstrateDeltaChainNearCap => AuditHint::DisciplineSubstrateDeltaChainNearCap,
         AH::DisciplinePredicatePassedViaDeltaChain => {
             AuditHint::DisciplinePredicatePassedViaDeltaChain
-        }
+        },
         AH::DisciplinePredicatePassedSubstrateCurrent => {
             AuditHint::DisciplinePredicatePassedSubstrateCurrent
-        }
+        },
         AH::ToleranceVibesGrade => AuditHint::ToleranceVibesGrade,
         AH::ToleranceSidecarMissing => AuditHint::ToleranceSidecarMissing,
         AH::TolerancePredicateFailed => AuditHint::TolerancePredicateFailed,
         AH::TolerancePredicatePassedSubstrateCurrent => {
             AuditHint::TolerancePredicatePassedSubstrateCurrent
-        }
+        },
         AH::DisciplineSidecarKindMismatchExpectedImmunityGotTolerance => {
             AuditHint::DisciplineSidecarKindMismatchExpectedImmunityGotTolerance
-        }
+        },
         AH::ToleranceSidecarKindMismatchExpectedToleranceGotImmunity => {
             AuditHint::ToleranceSidecarKindMismatchExpectedToleranceGotImmunity
-        }
+        },
         AH::DisciplineImmunityToleranceContradiction => {
             AuditHint::DisciplineImmunityToleranceContradiction
-        }
+        },
     }
 }
 
@@ -1091,8 +1091,9 @@ mod tests {
     use std::path::PathBuf;
 
     use super::{
-        detect_external_tool, detect_phantom_type_witness, extract_proptest_fn_names,
-        macro_path_last_is, validate_witness, FunctionEntry, FunctionIndex, FunctionIndexVisitor,
+        FunctionEntry, FunctionIndex, FunctionIndexVisitor, detect_external_tool,
+        detect_phantom_type_witness, extract_proptest_fn_names, macro_path_last_is,
+        validate_witness,
     };
     use crate::audit::{WitnessKind, WitnessStatus};
     #[test]

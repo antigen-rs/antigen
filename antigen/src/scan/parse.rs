@@ -124,7 +124,7 @@ impl ScanVisitor<'_> {
                         provenance: args.provenance,
                         presentation: args.presentation,
                     });
-                }
+                },
                 Err(_) => {
                     // Malformed attribute: record with empty name so scan output
                     // surfaces the file for investigation rather than silently skipping.
@@ -141,7 +141,7 @@ impl ScanVisitor<'_> {
                         provenance: None,
                         presentation: None,
                     });
-                }
+                },
             }
         }
     }
@@ -167,7 +167,7 @@ impl ScanVisitor<'_> {
                         error: format!("malformed #[presents] attribute: {e}"),
                     });
                     return;
-                }
+                },
             }
         } else {
             return;
@@ -222,7 +222,7 @@ impl ScanVisitor<'_> {
                         error: format!("malformed #[immune] attribute: {e}"),
                     });
                     return;
-                }
+                },
             };
             // ADR-019 §P3b: substrate-witness discovery has two channels.
             // The primary channel parses `requires = <predicate>` directly
@@ -278,7 +278,7 @@ impl ScanVisitor<'_> {
                         error: format!("malformed #[defended_by] attribute: {e}"),
                     });
                     return;
-                }
+                },
             }
         } else {
             // No `(...)` body: a bare `#[defended_by]` with no antigen is not a
@@ -342,7 +342,7 @@ impl ScanVisitor<'_> {
                     error: format!("malformed #[antigen_generates] attribute: {e}"),
                 });
                 return;
-            }
+            },
         };
 
         if args.antigen_type.is_empty() {
@@ -463,7 +463,7 @@ impl ScanVisitor<'_> {
                     error: format!("malformed #[{marker}] attribute: {e}"),
                 });
                 return;
-            }
+            },
         };
         // Guard 3 mirrored at scan time: required, non-empty trigger.
         if args.trigger.trim().is_empty() {
@@ -504,7 +504,7 @@ impl ScanVisitor<'_> {
                         error: format!("malformed #[antigen_tolerance] attribute: {e}"),
                     });
                     return;
-                }
+                },
             };
             // Per ADR-011 §Mechanics §1: rationale required + non-empty.
             // Scan side enforces the same boundary the macro enforces — a
@@ -554,7 +554,7 @@ impl ScanVisitor<'_> {
                         error: format!("malformed #[anergy] attribute: {e}"),
                     });
                     return;
-                }
+                },
             };
             let line = Self::line_of_attr(attr);
             self.report.deferred_defenses.push(DeferredDefense {
@@ -595,7 +595,7 @@ impl ScanVisitor<'_> {
                         error: format!("malformed #[immunosuppress] attribute: {e}"),
                     });
                     return;
-                }
+                },
             };
             let line = Self::line_of_attr(attr);
             self.report.deferred_defenses.push(DeferredDefense {
@@ -638,7 +638,7 @@ impl ScanVisitor<'_> {
                         error: format!("malformed #[poxparty] attribute: {e}"),
                     });
                     return;
-                }
+                },
             };
             let mut see = Vec::new();
             if let Some(name) = &args.name {
@@ -684,7 +684,7 @@ impl ScanVisitor<'_> {
                             error: format!("malformed #[orient] attribute: {e}"),
                         });
                         return;
-                    }
+                    },
                 };
                 let line = Self::line_of_attr(attr);
                 let mut adr_see = args.see.clone();
@@ -706,7 +706,7 @@ impl ScanVisitor<'_> {
                     item_kind: item_kind.to_string(),
                     item_target,
                 });
-            }
+            },
             syn::Meta::Path(_) => {
                 // Bare `#[orient]` — valid, record with empty fields.
                 let line = Self::line_of_attr(attr);
@@ -725,10 +725,10 @@ impl ScanVisitor<'_> {
                     item_kind: item_kind.to_string(),
                     item_target,
                 });
-            }
+            },
             syn::Meta::NameValue(_) => {
                 // `#[orient = value]` is not a valid orient invocation; ignore.
-            }
+            },
         }
     }
 
@@ -751,7 +751,7 @@ impl ScanVisitor<'_> {
                     ),
                 });
                 return;
-            }
+            },
         };
 
         let syn::Meta::List(list) = &attr.meta else {
@@ -778,7 +778,7 @@ impl ScanVisitor<'_> {
                     error: format!("malformed #[descended_from] attribute: {e}"),
                 });
                 return;
-            }
+            },
         };
 
         if parent.is_empty() {
@@ -998,7 +998,7 @@ impl ScanVisitor<'_> {
                         error: format!("malformed mucosal-boundary attribute: {e}"),
                     });
                     return;
-                }
+                },
             },
             syn::Meta::Path(_) => ScanMucosalArgs::default(),
             syn::Meta::NameValue(_) => return,
@@ -1042,7 +1042,7 @@ impl ScanVisitor<'_> {
                         error: format!("malformed recurrent-emergence attribute: {e}"),
                     });
                     return;
-                }
+                },
             },
             // Bare `#[chronic]` etc. without args — recall it with empty
             // fields; audit surfaces the missing-required-field condition.
@@ -1093,9 +1093,9 @@ impl ScanVisitor<'_> {
                             error: format!("malformed prescriptive attribute: {e}"),
                         });
                         return;
-                    }
+                    },
                 }
-            }
+            },
             // Bare `#[panel]` etc. without args — recall with empty fields; the
             // audit surfaces the missing-required-field condition.
             syn::Meta::Path(_) => ScanPrescriptiveArgs::default(),
@@ -1139,7 +1139,7 @@ impl ScanVisitor<'_> {
                         error: format!("malformed #[diagnostic] attribute: {e}"),
                     });
                     return;
-                }
+                },
             };
             let line = Self::line_of_attr(attr);
             self.report.convergent_evidences.push(ConvergentEvidence {
@@ -1171,7 +1171,7 @@ impl ScanVisitor<'_> {
                         error: format!("malformed #[clonal] attribute: {e}"),
                     });
                     return;
-                }
+                },
             };
             let line = Self::line_of_attr(attr);
             self.report.convergent_evidences.push(ConvergentEvidence {
@@ -1203,7 +1203,7 @@ impl ScanVisitor<'_> {
                         error: format!("malformed #[igg] attribute: {e}"),
                     });
                     return;
-                }
+                },
             };
             let line = Self::line_of_attr(attr);
             self.report.convergent_evidences.push(ConvergentEvidence {
@@ -1240,7 +1240,7 @@ impl ScanVisitor<'_> {
                         error: format!("malformed #[crossreactive] attribute: {e}"),
                     });
                     return;
-                }
+                },
             };
             let line = Self::line_of_attr(attr);
             self.report.convergent_evidences.push(ConvergentEvidence {

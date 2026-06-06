@@ -19,8 +19,9 @@
 //! - `state6_anti_case` — `#[presents(A)]` does NOT re-attest inherited
 //!   Presentation for B (different antigen)
 
-use antigen::scan::{scan_workspace, MatchKind};
 use std::path::{Path, PathBuf};
+
+use antigen::scan::{MatchKind, scan_workspace};
 
 fn fixture(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))

@@ -35,9 +35,9 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use antigen_attestation::{
-    evaluate::evaluate_predicate, predicate::SignerCurrency, AuditHint, EvaluationContext,
-    EvidenceKind, ItemRatification, Leaf, Predicate, SignatureStrength, Signer, SignerBasis,
-    WitnessTier,
+    AuditHint, EvaluationContext, EvidenceKind, ItemRatification, Leaf, Predicate,
+    SignatureStrength, Signer, SignerBasis, WitnessTier, evaluate::evaluate_predicate,
+    predicate::SignerCurrency,
 };
 use chrono::NaiveDate;
 
@@ -61,15 +61,18 @@ impl LeafCtx {
             cap: 3,
         }
     }
+
     fn with_doc(mut self, path: &str, content: &str) -> Self {
         self.docs.insert(PathBuf::from(path), content.to_string());
         self
     }
+
     fn with_oracle(mut self, path: &str, content: &str) -> Self {
         self.oracles
             .insert(PathBuf::from(path), content.to_string());
         self
     }
+
     fn with_trailers(mut self, file: &str, item: &str, trailers: Vec<&str>) -> Self {
         self.trailers.insert(
             (PathBuf::from(file), item.to_string()),
@@ -83,18 +86,22 @@ impl EvaluationContext for LeafCtx {
     fn today(&self) -> NaiveDate {
         self.today
     }
+
     fn read_doc(&self, path: &Path) -> Option<String> {
         self.docs.get(path).cloned()
     }
+
     fn read_oracle(&self, path: &Path) -> Option<String> {
         self.oracles.get(path).cloned()
     }
+
     fn read_git_trailers(&self, item_source_file: &Path, item_path: &str) -> Vec<String> {
         self.trailers
             .get(&(item_source_file.to_path_buf(), item_path.to_string()))
             .cloned()
             .unwrap_or_default()
     }
+
     fn delta_chain_cap(&self) -> u32 {
         self.cap
     }
@@ -740,7 +747,7 @@ fn leaf_set_exhaustivity_ten_variants() {
             | Leaf::DepAttested { .. }
             | Leaf::MaintainerUnchanged { .. }
             | Leaf::ContentHashMatches { .. }
-            | Leaf::SandboxClean { .. } => {}
+            | Leaf::SandboxClean { .. } => {},
         }
     }
 }

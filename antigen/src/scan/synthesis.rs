@@ -17,7 +17,7 @@ use std::path::PathBuf;
 use syn::visit::Visit;
 
 use super::{
-    attr_is, render_path, render_type, ItemTarget, MatchKind, Presentation, ScanReport, ScanVisitor,
+    ItemTarget, MatchKind, Presentation, ScanReport, ScanVisitor, attr_is, render_path, render_type,
 };
 
 /// Emit synthetic `FingerprintMatch` presentations for items that match a
@@ -381,7 +381,7 @@ fn item_kind_and_target(item: &syn::Item) -> Option<(&'static str, ItemTarget)> 
                     target_type,
                 },
             ))
-        }
+        },
         syn::Item::Const(c) => Some(("const", ItemTarget::Const(c.ident.to_string()))),
         syn::Item::Static(s) => Some(("static", ItemTarget::Static(s.ident.to_string()))),
         syn::Item::Union(u) => Some(("union", ItemTarget::Union(u.ident.to_string()))),
