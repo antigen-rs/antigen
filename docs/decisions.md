@@ -107,6 +107,7 @@
 - [ADR-043 — The Catalog-Match Spine: One Scan Service, Four Renders (CLI · Editor-Inline · Agent-Query · Session-Prime)](#adr-043-the-catalog-match-spine-one-scan-service-four-renders-cli--editor-inline--agent-query--session-prime)
 - [ADR-044 — Frontier-Honesty as a Cross-Cutting v0.4 Spec Constraint: Every Verdict-Emitting or Candidate-Generating Component Reports What It Actually Proved](#adr-044-frontier-honesty-as-a-cross-cutting-v04-spec-constraint-every-verdict-emitting-or-candidate-generating-component-reports-what-it-actually-proved)
 - [ADR-045 — The Parameterization-Collapse Procedure and Tangle-Kind Classification: Sequencing the Recurrent Immune Tangle as an Effort DAG](#adr-045-the-parameterization-collapse-procedure-and-tangle-kind-classification-sequencing-the-recurrent-immune-tangle-as-an-effort-dag)
+- [ADR-046 — The Diff-Native Fingerprint Modality: Match a Structural DELTA, Not a Snapshot (detect / classify / label)](#adr-046-the-diff-native-fingerprint-modality-match-a-structural-delta-not-a-snapshot-detect--classify--label)
 
 ---
 
@@ -11343,3 +11344,157 @@ The ratifier: the Pioneers and Survey waves. If the build reveals that a propose
 - The risk of building nine separate organs where one parameterized mechanism suffices (antigen's own `ParallelStateTrackersDiverge` at the architecture level).
 - The mislabeling risk: a safety-tangle misread as architecture ships autoimmunity; an architecture-tangle misread as safety over-couples and blocks delivery.
 - The confusion between Primitive C's strong grounding and Primitive D's research-undefined status — named as the over-claim the frontier-honesty invariant must catch in antigen's own roadmap.
+
+---
+
+## ADR-044 Amendment 1 — The invariant's term renamed "claim-scope honesty" (the "frontier" collision resolved)
+
+**Status**: Ratified 2026-06-06 (v04-immune-system-at-scale, Outfitters/CONVERGE wave).
+
+**Amends**: ADR-044 — the term it mints, NOT its content. Supersede-not-erase: the original body stands; this amendment renames the term-of-art and anchors both referents in the glossary.
+
+**Participants**: aristotle (lead, first-principles naming ruling, `convergence/adr-044-amendments-ruling`); outsider (flagged the collision, F6 / `c96f141e`; drafts the glossary anchors); scientist (validation).
+
+### Finding
+
+The word **"frontier"** is now double-referent in the ratified record — a Vocabulary-Lock violation (CLAUDE.md: one term, one referent, glossary-anchored):
+- **pre-existing SPATIAL referent** (decisions.md ~9307 "coverage frontier (`UnreachedCause`)"; ~9390 "the scan-coverage ignorance frontier"; `audit/coverage.rs`) = the boundary of what the scan REACHED — code we did **not** inspect.
+- **new EPISTEMIC referent** (ADR-044's "frontier-honesty") = don't over-claim what you DID prove about what you DID inspect.
+
+They rhyme (both about boundaries/reach) but are orthogonal axes; a newcomer will read "frontier honesty" as "honesty about the coverage gap," which is **not** what ADR-044 means. Neither referent was glossary-anchored (verified absent), so the fix is clean.
+
+### Decision
+
+**Rename the epistemic concept; reserve "frontier" for the shipped spatial coverage concept.** The spatial usage is older and lives in live code (`audit/coverage.rs`, `UnreachedCause`) — renaming code identifiers is costly. The epistemic usage is newer and prose-only — it renames.
+
+- **Term-of-art:** **"claim-scope honesty"** (names the operation — scoping a claim to what was proven).
+- **Descriptive gloss:** **"proven-not-potential"** (ADR-044's own phrasing: "what it ACTUALLY proved... never the potential-maximum its category could provide").
+- **Rejected:** "soundness-honesty" — antigen is NOT sound in the Cousot sense (it is calibrated-under-claiming, per ADR-044's own qualified-nuance #1); a "soundness-X" name re-imports the very over-claim the invariant disclaims.
+
+**Both referents anchor in `glossary.md`** in this amendment: `claim-scope-honesty` → the epistemic invariant; `coverage-frontier` / `ignorance-frontier` → the spatial concept. Every ADR-044 use of "frontier statement" / "frontier label" reads as "claim-scope statement" / "claim-scope label" going forward; the original text stands (supersede-not-erase) with this rename note.
+
+### Enforcement
+
+- The glossary carries both anchors; future docs (the documentary wave especially) teach "claim-scope honesty," not "frontier honesty."
+- "frontier" in any new prose refers exclusively to the spatial coverage concept.
+
+---
+
+## ADR-044 Amendment 2 — The learning-core claim-scope statement scoped honestly (the invariant catches its own author)
+
+**Status**: Ratified 2026-06-06 (v04-immune-system-at-scale, Outfitters/CONVERGE wave).
+
+**Amends**: ADR-044's claim-scope (frontier) statement for the learning core. Supersede-not-erase.
+
+**Participants**: outsider (located the over-claim, `96a4fd96`); adversarial (independently verified the seam, `18f0f6c0`); aristotle (lead, ruling); executor (routed the build-order edge, `1d8e1d53`).
+
+### Finding
+
+ADR-044's own example over-claims its substrate readiness — the exact proven-vs-potential over-claim the invariant exists to catch, occurring in ADR-044's own text. ADR-044 states the PROPOSE-step machine-half as "produces one draft fingerprint matching **the structural digest cluster**." But the marked-unknown population's digest is **empty**: `MarkedUnknown::to_finding` (`scan/types.rs:740`) emits `structural_digest: String::new()` and `cluster_key_of("", marker)` (`:734`) → every `#[dread]`/`#[aura]`/`#[red_flag]` mark shares one degenerate key (`dread@`). For marked-unknowns, the "digest cluster" the PROPOSE step matches **does not yet exist.** (`extract_marked_unknown` at `scan/parse.rs:441-489` is the only extractor that does not thread the in-scope `current_item_digest`.)
+
+That the invariant catches its own founding ADR is not a defect — it is the strongest possible demonstration the invariant works.
+
+### Decision
+
+**Amend ADR-044's learning-core claim-scope statement to the honest scoped form:**
+
+> GIVEN marked-unknown site-digests are captured (a named do-now plumbing edge — add a `structural_digest` field to `scan::types::MarkedUnknown`, thread `self.current_item_digest` at `extract_marked_unknown` `parse.rs:441-489`, replace the empty string at `types.rs:740`, use `cluster_key_of(digest, marker)`), the PROPOSE step produces one draft fingerprint matching the digest cluster (the syntactic-machine half); whether that draft is a real unnamed class stays with the human/incident ratifier (the semantic-undecidable half). WITHOUT that edge, marks cluster only by marker-kind and the machine-half is un-shipped.
+
+The seam-fix (`keystone/propose-slice-input-seam-marked-unknown-digest-is-empty`) is a **named do-now precondition** of the keystone PROPOSE-slice — build-step 1 of STREAM-LEARN (see ADR-045 Amendment 1). The marked-unknown path is a **distinct digest source** from the matched-item path; do not generalize "`parse.rs:1370+` populates digest" across both.
+
+---
+
+## ADR-045 Amendment 1 — The population-fill primitive-zero: two named do-now preconditions ahead of the marked-unknown subscribers
+
+**Status**: Ratified 2026-06-06 (v04-immune-system-at-scale, Outfitters/CONVERGE wave).
+
+**Amends**: ADR-045's build-sequence step 2 ("A + C both ride the SHIPPED cluster_key"). Supersede-not-erase: the step stands; this amendment corrects its readiness claim, which became stale against the substrate within the same wave.
+
+**Participants**: adversarial (root-cause: the marked-unknown population is digest-empty, cross-organ blast radius); executor (the apply-marks hidden-dependency, grep-verified); observer (named it antigen's own `RatifiedSpecDriftFromImpl`, flagged "highest-value"); pathmaker (the E-rides-the-audit-half reconciliation, run-as-code); aristotle (lead, ruling).
+
+### Finding
+
+ADR-045 step 2 reads "A (convergence field, one-tree) + C (PROPOSE, acute n=1) — both ride **the shipped cluster_key**." For the **marked-unknown population** that A and C subscribe to, this is **false until two cheap edges land** — the ratified text drifted from the substrate within the same wave (antigen's own `RatifiedSpecDriftFromImpl` / `comment-asserted-property-drift`, in antigen's own ADR):
+
+- **P0a — the digest seam is empty.** `MarkedUnknown::to_finding` emits empty `structural_digest` and `cluster_key = "dread@"` (verified, `types.rs:734/740`). A and C "ride the shipped cluster_key" is FALSE for their actual input until this is filled.
+- **P0b — there is no corpus.** ZERO applied `#[dread]`/`#[aura]`/`#[red_flag]` marks exist in antigen's own source/tests/fixtures (grep-verified; the macros shipped per ADR-041 but were never APPLIED). The keystone falsification gate ("produce one draft on our OWN marks") would cluster the empty set.
+
+**The split that keeps E unblocked** (pathmaker, run-as-code): SPINE-E rides the **synthesis/audit half** of the scan (the matched-item path), which DOES carry real `structural_digest` — so **E does not block on population-fill and leads immediately.** Only the **marked-unknown subscribers** (C/PROPOSE, diff-native-on-population, the route-arm dread-sentinel, the cytokine-bus) inherit the primitive-zero dependency. "Substrate shipped, v0.4 is integration" → honest restatement: **"the SCHEMA is shipped; POPULATION-FILL is primitive-zero; the marked-unknown subscribers ride it."**
+
+### Decision
+
+**Two named do-now preconditions sequence ahead of the marked-unknown subscribers (architect-not-bouncer — the disposition gains two correctly-sequenced cheap edges; nothing is killed):**
+
+- **P0a — marked-unknown digest-fill.** `keystone/propose-slice-input-seam-marked-unknown-digest-is-empty`. Add `structural_digest` to `MarkedUnknown`; thread `current_item_digest`; `to_finding` uses it for both `structural_digest` and `cluster_key_of(digest, marker)`. CHEAP.
+- **P0b — apply real marks.** `keystone/apply-dogfood-marks-the-missing-propose-corpus`. Annotate antigen's own genuinely felt-but-unnamed sites with `#[dread]`/`#[aura]` (honest marks with a stateable `trigger` — Goodhart-guarded: a manufactured corpus makes the falsification theater). CHEAP. **P0a sequences before P0b** so applied marks carry a non-empty digest the moment they land.
+
+**Corrected step 2 sequence:** E (leads, unblocked on the audit-half) → **P0a → P0b** → A_local + C (PROPOSE) → B (co-ship, SAFETY).
+
+**The dread-escalation HOOK is SAFETY-coupled to P0a, NOT freely design-now** (a safety-tangle ADR-045's classification missed): the route-arm convergent-dread sentinel auto-escalates on `cluster_key`; on the degenerate `dread@` key, N **unrelated** marks converge into one bucket → global false-positive flood = self-inflicted autoimmunity. **Do not wire the sentinel on the degenerate key.** This makes the dread-sentinel hook a SAFETY-tangle with P0a, reclassifying it from the "near-free design-now" it was filed as.
+
+### Enforcement
+
+- No PROPOSE (Primitive C) build ships before P0a + P0b land (the falsification gate is faith-based without them).
+- No dread-sentinel (route-arm) wires on `cluster_key` until P0a lands (the one ship-autoimmunity risk in the do-now arc).
+- The briefing-for-pioneers carries this corrected sequence — NOT ADR-045's pre-amendment "ride the shipped cluster_key" text.
+
+---
+
+## ADR-043 Amendment 1 — Bundled-catalog matches are claim-scoped; the audit/witness-requirement use-case needs synthetic declarations
+
+**Status**: Ratified 2026-06-06 (v04-immune-system-at-scale, Outfitters/CONVERGE wave).
+
+**Amends**: ADR-043 (the catalog-match spine), Client A. Supersede-not-erase.
+
+**Participants**: adversarial (the sub-clause-F bypass on bundled matches); aristotle (lead, scope ruling); observer (the synthetic-declaration done-condition).
+
+### Finding
+
+A bundled-catalog match (a `(String, Fingerprint)` injected into `synthesis_pass`) has **no corresponding entry in `report.antigens`.** So any downstream logic that resolves a matched class to its DECLARATION — audit, `#[descended_from]` lineage, category, and the witness-REQUIREMENT (sub-clause F, ADR-005) — silently no-ops for bundled hits. A naive bundled-catalog mode that promised "audit your code against the stdlib" would bypass the sub-clause-F trust boundary.
+
+### Decision
+
+**Scope-distinguish the two use-cases (the claim-scope discipline, ADR-044, applied to E0):**
+
+- **The E0 do-now slice is the SCAN/MATCH render only** — "show the dev which known classes their code structurally matches." The match-report IS the deliverable; audit/lineage/witness-requirement are NOT part of bundled-scan. E0's claim-scope statement: "a structural match against a vetted catalog entry (a FACT at `Constructable`/`Encountered` provenance); NOT an audited defense verdict." E0 stays do-now-cheapest.
+- **The bundled catalog MUST carry `class_provenance` = `Constructable`/`Encountered`** (honest-labeling, ADR-043 enforcement) — imagined/heuristic classes do not ship in the default catalog.
+- **The audit-of-bundled-matches use-case (do-later)** — auditing whether a bundled-matched site is DEFENDED — requires registering each catalog entry as a **synthetic declaration** carrying its full shape: `name + fingerprint + category + provenance + witness-requirement`. That synthetic-declaration shape is the real done-condition for the audit use-case; it is NOT needed for the E0 scan render. The Survey verifies the build did not conflate them.
+
+### Enforcement
+
+- E0 ships as a match-render; it does not claim to audit defenses.
+- When the audit-of-bundled use-case is built, each catalog entry registers a synthetic declaration so sub-clause F resolves (the witness-requirement is not silently bypassed).
+
+---
+
+## [ADR-046] The Diff-Native Fingerprint Modality: Match a Structural DELTA, Not a Snapshot (detect / classify / label)
+
+**Status**: Ratified 2026-06-06 (v04-immune-system-at-scale, Outfitters/CONVERGE wave). **Tier: do-now (DETECT slice) + do-later (the guard-regression CLASSIFY fingerprint).**
+
+**Participants**: think-big-dreamer (the net-new modality, Cartographers wave); value-finder ("possibly the strongest net-new dream this wave"); math-researcher (the detect/classify/label split + the oracle-rhyme); pathmaker (run-as-code feasibility on the scan path); aristotle (lead).
+
+**Related**: ADR-039 (the per-item `structural_digest` the diff reads); ADR-040 (the `body_calls`/leaf-matchers the CLASSIFY slice set-diffs); ADR-044 (the claim-scope invariant this modality inherits — the THIRD independent recurrence of the syntactic/semantic boundary); ADR-045 (the diff-on-the-population path inherits the primitive-zero dependency; the scan-path slice does not).
+
+### Finding
+
+Antigen's fingerprint model is a SNAPSHOT predicate: it matches the structure of code AS IT IS at one commit. The most dangerous failure-classes live in the DELTA — the change that REMOVED a guard, MOVED a check past an await, widened a type, loosened a bound. A snapshot scan of the AFTER state is **blind by construction** to guard-regression: an absent guard is indistinguishable from a never-needed one. But the DIFF carries the signal: "this commit DELETED the bounds-check that was here." This is the Staleness unifier (stale-in-TIME) realized as a first-class fingerprint shape.
+
+### Decision
+
+**Add a diff-native fingerprint modality: match a structural DELTA between two commits. Split it into three honest tiers (the claim-scope discipline, ADR-044):**
+
+- **DETECT (do-now, CHEAP):** scan HEAD~1 and HEAD on the **scan path**, key per-item by **(item-name, `structural_digest`)** pulled from the syn AST, and set-diff. An item whose digest changed (or was added/removed) is surfaced as "this item's structure changed." Zero new core (a `HashSet` difference over the shipped per-item digests). **Keyed on item-name, NOT Finding file+line** — the pathmaker verified this sidesteps the Finding-identity gap (Finding carries file+line only, no item-path; a reorder shifts every line). The scan-path slice does **not** depend on the population-fill primitive-zero (ADR-045 Amd 1); a diff that rides the unified Finding POPULATION would inherit that dependency and need a stable item-identity added to Finding.
+- **CLASSIFY (do-later, MODERATE):** to say "a GUARD was removed" (vs a benign refactor), set-diff the leaf-matchers (`body_calls`/`has_method`) between HEAD~1 and HEAD per item — a before/after PREDICATE PAIR (guard-shaped call present at HEAD~1, absent at HEAD). This is the worth-bearing guard-regression matcher; a real new matcher modality, not delivered by the digest-set diff alone.
+- **LABEL (irreducibly human/incident):** even with leaf-diff, "removed a guard" splits into "removed a REQUIRED guard (regression)" vs "removed a never-load-bearing guard (clean refactor)." Requiredness is a SEMANTIC property (Rice → undecidable). The diff narrows the candidate set (something guard-shaped vanished HERE); the LABEL stays with the human/CI-context/incident ratifier. The wound-`learn-from` loop supplies this label cheaply (a revert-of-a-fix-diff is a LABELED guard-removal).
+
+### Claim-scope statement (ADR-044 discipline)
+
+- **What it proves:** a structural DELETION/CHANGE of a (named) item between two commits is detected reproducibly (decidable, machine).
+- **What it does NOT prove:** whether the removed structure was a REQUIRED guard (semantic, undecidable — Rice). The modality reports "a guard-shaped call was removed here" at `Heuristic`/`suspected` tier; "regression" is the human/incident label.
+- **The ratifier:** the reviewer at the PR, or the wound-`learn-from` incident that reverts a fix-diff into a labeled guard-removal.
+
+### Sweep-level consequences
+
+- This is the THIRD independent appearance of the syntactic/semantic (GENERATE/SELECT-machine → LABEL-human) boundary — keystone dark-zone, witness-invocation, now diff-native — confirming it is antigen's defining structure (ADR-044), not a per-feature discipline.
+- It is the natural fingerprint shape for the route-arm's `cargo antigen review <diff>` (charter-route-arm) and the perfect substrate for the wound-`learn-from` PROPOSE input (a fix-diff REVERSED is the diff-fingerprint of the bug-introducing class).
+- Resolves the demand-side correctness need (#7): a green snapshot scan on a guard-removing PR LAUNDERS the removal; if antigen runs on PRs at all, the diff-native DETECT slice is what keeps it from actively misinforming the reviewer.
