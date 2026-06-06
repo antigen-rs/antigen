@@ -18,10 +18,12 @@ Cargo.lock
 # (the camp crate's campsite source modules) is NOT excluded.
 /campsites/
 
-# Camp v0.2 expeditions/ directory — substrate-resident team coordination
-# (campsite metadata, signatures, activity log, field-track entries).
+# Camp jbd/ workspace root — substrate-resident team coordination
+# (expeditions/ campsite metadata, signatures, activity log, field-track
+# entries; charters/ cross-voyage disposition; captains-log/). Namespaced
+# under jbd/ (camp v0.6.5 resolver walks up for jbd/expeditions/).
 # Local-only by design; mirrors campsites/ exclusion above.
-/expeditions/
+/jbd/
 
 # Scheduled-task lock dir (project-local Claude harness state; ephemeral)
 .claude/
@@ -34,8 +36,8 @@ CLAUDE.md
 # Design substrate. Lives locally for ongoing team development; not part of
 # the published surface. Future externalization (sibling repo / GH Pages /
 # etc.) is an open decision; for now substrate stays local.
+# (docs/charters/ moved to jbd/charters/ — now covered by the /jbd/ ignore above.)
 docs/expedition/
-docs/charters/
 sweeps/
 
 # Adopter / internal-dev feedback notes. Local dev substrate (like
