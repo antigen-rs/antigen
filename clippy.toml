@@ -1,0 +1,40 @@
+# clippy.toml — antigen-specific clippy configuration.
+#
+# Read automatically by a bare `cargo clippy`, by rust-analyzer, by the on-save hook,
+# and by CI alike. Lint *selection* (pedantic + nursery + allows) lives in the root
+# Cargo.toml under [workspace.lints.clippy]; THIS file holds clippy's tunable parameters
+# plus the seam for encoding antigen's own failure-classes as live lints.
+
+# Match the workspace MSRV so MSRV-gated lints never suggest APIs we can't use.
+msrv = "1.95"
+
+# --- test exceptions -------------------------------------------------------------
+# When the no-panic restriction lints are adopted (see docs/dev-loop-ruleset.md), they
+# SHOULD fire in src/ but NOT in #[test] code, where unwrap/expect/panic/indexing are
+# perfectly fine. These keys make that set livable.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+allow-indexing-slicing-in-tests = true
+allow-dbg-in-tests = true
+
+# --- complexity thresholds (pinned to defaults so the bar is explicit to any agent) --
+cognitive-complexity-threshold = 25
+too-many-lines-threshold = 100
+type-complexity-threshold = 250
+too-many-arguments-threshold = 7
+
+# --- doc hygiene: nouns clippy::doc_markdown must NOT demand backticks around --------
+# Stops false-positive doc noise that would otherwise train agents to ignore the lint.
+doc-valid-idents = ["antigen", "antibody", "GitHub", "MSRV", "ADR", "proc-macro", "kani", "prusti", "verus", "rustc", "rustdoc", "proptest", ".."]
+
+# --- antigen failure-classes as live lints (seed) -----------------------------------
+# disallowed-methods / disallowed-types turn antigen's OWN failure-classes into clippy
+# errors at `cargo clippy` time — a reflexive-platform near-slice. Left COMMENTED until
+# the strictness-adoption pass verifies antigen's own code doesn't trip them (e.g.
+# `std::process::exit` in cargo-antigen), then enabled lint-by-lint.
+#
+# disallowed-methods = [
+#   { path = "serde_json::from_reader", reason = "UnboundedDeser (ADR-029) — bound input length before deserializing" },
+# ]
+# disallowed-types = []

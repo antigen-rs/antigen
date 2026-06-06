@@ -1,0 +1,12 @@
+# .cargo/config.toml — committed; affects every contributor.
+#
+# Sets RUSTDOCFLAGS so `cargo doc` denies warnings for EVERYONE, automatically and
+# cross-platform (no env-var dance — which matters on Windows PowerShell, where the
+# bash-style `RUSTDOCFLAGS=... cargo doc` doesn't work). This matches CI exactly and
+# closes the intra-doc-link gate-drift class (local `cargo doc` passes while CI fails).
+#
+# Deliberately does NOT set `build.rustflags = ["-D","warnings"]`: that would also deny
+# warnings in dependencies (breaks builds on compiler bumps) and makes incremental dev
+# painful. The `[workspace.lints]` table is the right tool for rustc/clippy warnings.
+[build]
+rustdocflags = ["-D", "warnings"]
