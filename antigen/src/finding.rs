@@ -32,6 +32,7 @@
 //! `roles/pathmaker/spikes/seam-spike`; this is the real-crate landing of that
 //! shape under ADR-036/039/041.
 
+use antigen_macros::dread;
 use serde::{Deserialize, Serialize};
 
 /// The current `Finding` schema version (ADR-039 §C). Bump on a breaking field
@@ -337,6 +338,19 @@ const fn default_schema_version() -> u32 {
 /// The specified (not opaque) derivation (ADR-039 §C) — the single place the
 /// cluster-key shape is defined, so "cluster by shared structure" stays a
 /// field-lookup across every emitter.
+// P0b dogfood mark (v0.4 keystone): the cluster key is a string concatenation of
+// two free-form fields with a `@` delimiter that is NOT escaped out of either
+// operand. If `class` ever contained `@`, or a digest were empty, two distinct
+// `(class, digest)` pairs could format to the same key — a silent cluster-merge.
+// This is not hypothetical: the P0a `dread@` degenerate-key over-merge (an empty
+// shape_digest collapsing every dread mark into one bucket) is exactly this shape.
+// A stringly-typed identity that wants to be a delimiter-safe struct.
+#[dread(
+    trigger = "cluster_key_of builds an identity as `format!(\"{class}@{digest}\")` — a \
+               raw concat with an unescaped `@`; an `@` in a class name or an empty \
+               digest can collide two distinct (class,digest) pairs onto one key, \
+               silently merging unrelated clusters (the P0a `dread@` over-merge was this)."
+)]
 #[must_use]
 pub fn cluster_key_of(structural_digest: &str, class: &str) -> String {
     format!("{class}@{structural_digest}")

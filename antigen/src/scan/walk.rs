@@ -16,7 +16,7 @@
 
 use std::path::{Path, PathBuf};
 
-use antigen_macros::{antigen_tolerance, presents};
+use antigen_macros::{antigen_tolerance, dread, presents};
 use syn::visit::Visit;
 use walkdir::WalkDir;
 
@@ -110,6 +110,20 @@ pub fn scan_workspace_bundled_catalog(
 // The `io::Result` mirrors the public `scan_workspace` contract (it reserves
 // space for future hard-failure modes — see that fn's `# Errors`); this private
 // inner fn currently never returns `Err`, hence the allow.
+//
+// P0b dogfood mark (v0.4 keystone): this walk swallows a file's read error with
+// `let Ok(content) = read_to_string(..) else { continue };` and proceeds — an
+// unreadable file (permissions, non-UTF-8) is silently skipped, so the scan
+// reports a CLEAN result over an INCOMPLETE corpus. That is antigen's own
+// silent-failure class (a clean verdict that means "found nothing" indistinguishable
+// from "couldn't look"). A genuinely-felt site, twinned with `collect_function_index`
+// in audit/immunity.rs (same WalkDir + read-or-continue + parse-or-skip shape).
+#[dread(
+    trigger = "scan_workspace_inner silently `continue`s past a file it cannot read \
+               (read_to_string Err -> skip), so an unreadable file lowers coverage \
+               without lowering the all-clear verdict: 'reported clean' conflates \
+               'found nothing' with 'could not look'. No counter, no surfaced skip."
+)]
 #[allow(clippy::unnecessary_wraps)]
 fn scan_workspace_inner(
     root: &Path,

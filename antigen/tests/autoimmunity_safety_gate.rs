@@ -259,24 +259,15 @@ fn b_gate_rejects_a_disjunction_that_still_binds_a_clean_sibling() {
 //     the `#[ignore]`. Discover with `-- --ignored`.
 // ===========================================================================
 
-/// THE C (PROPOSE) CONTRACT. Anti-unify a cluster of structurally-similar
-/// defective items into a draft fingerprint (generalizing TO DISJUNCTION, not
-/// dropping the discriminating leaves). Replace this stub's body with the real
-/// generator when it ships, and drop the `#[ignore]` on the test below.
-fn propose_draft(_cluster: &[syn::Item]) -> Fingerprint {
-    panic!(
-        "C ══ B RED: the PROPOSE (anti-unify) generator is unbuilt. C must \
-         anti-unify a marked cluster TO DISJUNCTION (naive drop-leaves LGG \
-         over-generalizes to clean code) and promote ONLY through B \
-         (learn::self_tolerance::promote_if_safe). Wire it, point propose_draft at \
-         it, drop #[ignore]."
-    );
+/// THE C (PROPOSE) generator — LANDED as `antigen::learn::propose::anti_unify`.
+/// Anti-unifies a cluster of structurally-similar defective items into a draft
+/// fingerprint. Returns `None` if the cluster has no shared skeleton.
+fn propose_draft(cluster: &[syn::Item]) -> Fingerprint {
+    antigen::learn::propose::anti_unify(cluster)
+        .expect("the defective cluster has a shared skeleton to anti-unify")
 }
 
 #[test]
-#[ignore = "RED-by-design: C (PROPOSE / anti-unify generator) is unbuilt. This is the \
-            falsification gate — one real draft that binds the cluster AND spares clean, \
-            promoted only through B. See propose_draft + keystone/affinity-maturation."]
 fn propose_produces_a_draft_that_binds_the_cluster_and_passes_b() {
     let items = fixture_items("autoimmunity_drop_family");
     // The DEFECTIVE cluster C anti-unifies (GuardA via .unwrap(), GuardB via .expect()).
@@ -313,5 +304,186 @@ fn propose_produces_a_draft_that_binds_the_cluster_and_passes_b() {
     assert!(
         antigen::learn::self_tolerance::promote_if_safe(draft, &clean_corpus).is_some(),
         "a binds-cluster + spares-clean draft must promote through B"
+    );
+}
+
+// ===========================================================================
+// (E) THE NO-BYPASS GATE (the captain's "one thing that must not pass"). C's
+//     END-TO-END promote path must route through B — a draft that binds a clean
+//     sibling MUST NOT be promotable, no matter how C is structured internally.
+//     This is a BLACK-BOX test of C's promote API: given the MIXED-PANIC-SHAPE
+//     trap (the EASY generalization "any Drop impl" is autoimmune; the CORRECT
+//     one is a disjunction that spares clean), C's promote path must yield EITHER
+//     a draft that binds the cluster AND spares clean (the disjunction), OR None
+//     (prune). The ONE outcome that must NOT happen: a promoted draft that binds
+//     the clean sibling — that means C took the easy autoimmune path and B did
+//     not stop it. A safe disjunction draft DOES exist here, so a strong C
+//     promotes it; a weaker C prunes; neither is a failure. Only bypass is.
+//
+//     RED-by-design, NON-BLOCKING (`#[ignore]`): C's promote path is unbuilt. The
+//     stub names the SYNC-2 contract; the pathmaker points `propose_and_promote`
+//     at C's real end-to-end promote entrypoint (the one that internally consults
+//     B) and drops the `#[ignore]`.
+// ===========================================================================
+
+/// C's END-TO-END PROMOTE path (SYNC-2) — LANDED as `antigen::learn::propose::propose`.
+/// Anti-unifies the cluster, then promotes ONLY through B's spare-clean gate.
+/// `Some(draft)` is structurally guaranteed to spare the clean corpus; `None`
+/// when no safe draft exists (prune). This is the surface that must never bypass B.
+fn propose_and_promote(cluster: &[syn::Item], clean_corpus: &[syn::Item]) -> Option<Fingerprint> {
+    antigen::learn::propose::propose(cluster, clean_corpus)
+}
+
+#[test]
+fn c_promote_path_never_promotes_a_draft_that_binds_clean() {
+    let items = fixture_items("autoimmunity_forced_prune");
+    // The mixed-panic cluster: DefectiveOne via .unwrap(), DefectiveTwo via panic!.
+    let cluster = vec![
+        drop_impl_for(&items, "DefectiveOne"),
+        drop_impl_for(&items, "DefectiveTwo"),
+    ];
+    let clean_corpus = vec![drop_impl_for(&items, "CleanSibling")];
+
+    // SANITY (run-as-code premise): the EASY generalization "any Drop impl" DOES
+    // bind the clean sibling — so a C that takes the easy path ships autoimmunity.
+    let easy_autoimmune = naive_lgg_draft(); // all_of([item=impl, impl_of_trait("Drop")])
+    assert!(
+        easy_autoimmune.matches(&clean_corpus[0]),
+        "premise: the easy 'any Drop impl' generalization binds the clean sibling — \
+         taking it is the autoimmune trap C must avoid"
+    );
+
+    // THE GATE: whatever C's promote path yields, it must NEVER be a draft that
+    // binds the clean sibling. A safe disjunction EXISTS (any_of([body_calls(unwrap),
+    // body_contains_macro(panic)]) binds both defectives + spares clean), so a
+    // strong C promotes that; a weaker C prunes (None). Both are safe. ONLY a
+    // promoted draft that binds clean is the bypass-B failure.
+    let promoted = propose_and_promote(&cluster, &clean_corpus);
+    if let Some(draft) = &promoted {
+        assert!(
+            b_gate_spares_clean(draft, &clean_corpus),
+            "C PROMOTED A DRAFT THAT BINDS THE CLEAN SIBLING — this is the \
+             bypass-B failure: C produced and promoted an autoimmune draft without \
+             B's gate rejecting it. THE ONE THING THAT MUST NOT PASS. draft = {draft:?}"
+        );
+        for (i, m) in cluster.iter().enumerate() {
+            assert!(
+                draft.matches(m),
+                "a promoted draft must still bind its cluster member {i}"
+            );
+        }
+    }
+    // promoted == None (prune) OR a spares-clean Some: both safe. A binds-clean
+    // Some is the only failure, asserted above.
+}
+
+// ===========================================================================
+// (F) THE DECISIVE NO-BYPASS PROOF — `anti_unify`'s OWN output is autoimmune, and
+//     `propose` MUST prune it. This is the strongest run-as-code refutation of the
+//     bypass: a HOMOGENEOUS impl-Drop cluster (one C definitely anti-unifies)
+//     whose disjunction `any_of([unwrap, expect])` BINDS the clean sibling
+//     (because the clean Drop also calls `.expect()` on a safe value). So the raw
+//     anti_unify draft is genuinely autoimmune — and `propose` (which routes
+//     through B) must return None, proving B catches anti_unify's own autoimmune
+//     output. If `propose` returned Some here, B was bypassed.
+//
+//     Verified live against the shipped C: raw draft binds clean=true, propose
+//     returns None (pruned). This is the captain's one-thing-that-must-not-pass,
+//     proven NOT to pass.
+// ===========================================================================
+
+#[test]
+fn propose_prunes_when_anti_unifys_own_disjunction_binds_clean() {
+    // Three impl-Drops, parsed bare so the cluster is HOMOGENEOUS (all Impl kind):
+    // DefA panics via .unwrap(), DefB via .expect(); the CLEAN sibling ALSO calls
+    // .expect() (on a safe value, no panic intent) — so the any_of([unwrap, expect])
+    // disjunction anti_unify builds binds the clean sibling via the expect arm.
+    let src = r#"
+        impl Drop for DefA { fn drop(&mut self) { let _ = a().unwrap(); } }
+        impl Drop for DefB { fn drop(&mut self) { let _ = b().expect("x"); } }
+        impl Drop for Clean { fn drop(&mut self) { let _ = c().expect("fine"); } }
+    "#;
+    let impls: Vec<syn::Item> = syn::parse_file(src).expect("parses").items;
+    let def_a = impls[0].clone();
+    let def_b = impls[1].clone();
+    let clean = impls[2].clone();
+    let cluster = vec![def_a.clone(), def_b.clone()];
+    let clean_corpus = vec![clean.clone()];
+
+    // PREMISE: anti_unify produces a draft, and that raw draft is AUTOIMMUNE — it
+    // binds the clean sibling (via the shared .expect() arm of the disjunction).
+    let raw = antigen::learn::propose::anti_unify(&cluster)
+        .expect("a homogeneous impl-Drop cluster anti-unifies to a draft");
+    assert!(
+        raw.matches(&def_a) && raw.matches(&def_b),
+        "premise: the raw draft binds both defectives"
+    );
+    assert!(
+        raw.matches(&clean),
+        "premise: the raw anti_unify draft BINDS the clean sibling (the disjunction's \
+         .expect() arm) — anti_unify's own output is autoimmune here. If this is \
+         false, the test no longer exercises the bypass and must be re-armed."
+    );
+
+    // THE DECISIVE GATE: propose (which routes anti_unify's draft through B) MUST
+    // NOT promote this autoimmune draft. It returns None — B caught anti_unify's
+    // own over-binding output. A Some here = B was bypassed = the captain's
+    // one-thing-that-must-not-pass.
+    let promoted = propose_and_promote(&cluster, &clean_corpus);
+    assert!(
+        promoted.is_none(),
+        "BYPASS-B FAILURE: anti_unify produced an autoimmune draft (binds clean), \
+         and propose PROMOTED it instead of pruning — B was bypassed. propose MUST \
+         return None here. got: {promoted:?}"
+    );
+}
+
+// ===========================================================================
+// (G) THE VACUOUS-CORPUS REFUSAL (the scout's "autoimmunity-with-a-green-check",
+//     RATIFIED CLOSED by the captain's gate-G ruling). B's spare-clean PREDICATE
+//     is vacuously true against an EMPTY clean corpus (nothing to reject) — so a
+//     promote against an empty corpus would be autoimmunity WITH a green check: B
+//     verified NOTHING. The guarantee "C never promotes without B green" is only
+//     meaningful if B actually checked against real clean code.
+//
+//     RULING (captain, supersedes the prior "documented hazard" pin): the GATE
+//     `promote_if_safe` REFUSES an empty corpus — "cannot certify safety against
+//     nothing." The refusal is STRUCTURAL (at the gate, not per-caller), so every
+//     promote path inherits the conservative-safe default. `propose(cluster, &[])`
+//     therefore returns None. This test was written by the adversarial pinning the
+//     pre-ruling behavior with an explicit flip-instruction ("if this is now None,
+//     propose was hardened — update this gate to assert the prune"); the ruling
+//     landed, so it now asserts the REFUSAL.
+// ===========================================================================
+
+#[test]
+fn propose_refuses_an_empty_corpus_cannot_certify_against_nothing() {
+    // An autoimmune cluster: both members are impl-Drop with .unwrap() — the
+    // generalization would bind any unwrap-in-Drop, including clean ones.
+    let src = r"
+        impl Drop for DefA { fn drop(&mut self) { let _ = a().unwrap(); } }
+        impl Drop for DefB { fn drop(&mut self) { let _ = b().unwrap(); } }
+    ";
+    let cluster: Vec<syn::Item> = syn::parse_file(src).expect("parses").items;
+
+    // RATIFIED behavior (captain's gate-G ruling): with an EMPTY clean corpus, the
+    // gate cannot certify safety against nothing → REFUSE. propose returns None.
+    let promoted = propose_and_promote(&cluster, &[]);
+    assert!(
+        promoted.is_none(),
+        "GATE-G RULING: propose MUST REFUSE an empty clean corpus (cannot certify \
+         safety against nothing — a vacuous spare-clean is autoimmunity-with-a-green- \
+         check). It must return None, never promote against emptiness. got: {promoted:?}"
+    );
+
+    // Proof the gate is REAL when fed a corpus the draft binds: feed propose a
+    // clean sibling that IS one of the cluster's own shapes (so the draft binds
+    // it). B then rejects → prune. This shows the refusal generalizes: B works the
+    // moment it has something real to check against, and refuses when it does not.
+    let with_self = propose_and_promote(&cluster, std::slice::from_ref(&cluster[0]));
+    assert!(
+        with_self.is_none(),
+        "with a non-empty corpus containing an item the draft binds, propose PRUNES \
+         (B works when fed a corpus). got: {with_self:?}"
     );
 }
