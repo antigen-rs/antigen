@@ -60,6 +60,13 @@ pub struct ScanVisitor<'a> {
     /// digest onto the substrate-witness record without threading it through
     /// every `check_attrs` call site. Empty between items.
     current_item_digest: String,
+    /// The **name-insensitive shape digest** of the current enclosing item (P0a,
+    /// ADR-045 Amd-1). Set alongside `current_item_digest` by `set_current_item`
+    /// in each `visit_item_*` before `check_attrs`, so `extract_marked_unknown`
+    /// can stamp a marked-unknown's clustering digest. Distinct from
+    /// `current_item_digest` (identity, name-sensitive, used for sign/audit): the
+    /// PROPOSE-slice clusters marks by SHAPE regardless of the item's name.
+    current_item_shape_digest: String,
 }
 
 impl<'a> ScanVisitor<'a> {
@@ -77,7 +84,19 @@ impl<'a> ScanVisitor<'a> {
             impl_stack: Vec::new(),
             trait_stack: Vec::new(),
             current_item_digest: String::new(),
+            current_item_shape_digest: String::new(),
         }
+    }
+
+    /// Record the current enclosing item's digests (identity + shape) in ONE
+    /// place, so the two can never drift (antigen's own
+    /// `ParallelStateTrackersDiverge` foreclosed by single-sourcing). Call this
+    /// in every `visit_item_*` immediately before `check_attrs`, replacing a bare
+    /// `current_item_digest = structural_digest(item)` assignment.
+    fn set_current_item<T>(&mut self, node: &T)
+    where T: antigen_fingerprint::HasAttributes + antigen_fingerprint::ShapeNormalize {
+        self.current_item_digest = antigen_fingerprint::structural_digest(node);
+        self.current_item_shape_digest = antigen_fingerprint::structural_shape_digest(node);
     }
 }
 
@@ -485,6 +504,17 @@ impl ScanVisitor<'_> {
             trigger: args.trigger,
             file: self.file_path.clone(),
             line,
+            // P0a (ADR-045 Amd-1/2, the captain's two-field ruling): the enclosing
+            // item's IDENTITY digest (name+code-sensitive; diff-native DETECT keys
+            // on it) AND its name-insensitive SHAPE digest (the PROPOSE-slice
+            // clustering key). Both are set by `set_current_item` in the
+            // `visit_item_*` handler immediately before `check_attrs` runs the
+            // marker attrs on this same item, so they hold THIS item's digests here
+            // (the ordering-regression guard fences against a capture-too-early
+            // change). An enum-variant mark inherits the enclosing enum's digests
+            // (the principled non-empty stand-in).
+            structural_digest: self.current_item_digest.clone(),
+            shape_digest: self.current_item_shape_digest.clone(),
         });
     }
 
@@ -1367,7 +1397,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
             }
         }
         let target = ItemTarget::Struct(item.ident.to_string());
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "struct", &target);
         syn::visit::visit_item_struct(self, item);
     }
@@ -1379,7 +1409,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
             trait_path: trait_path.clone(),
             target_type: target_type.clone(),
         };
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "impl", &target);
         // Push impl context so visit_impl_item_fn can build ImplFn targets.
         self.impl_stack.push((trait_path, target_type));
@@ -1393,7 +1423,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
         // silently ignored (same blind-spot class as enum variants + impl
         // consts).
         let target = ItemTarget::Const(item.ident.to_string());
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "const", &target);
         syn::visit::visit_item_const(self, item);
     }
@@ -1404,14 +1434,14 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
         // silently ignored. Closed preemptively (ADR-007) — the fixture
         // atk_a2_static_presents proves the need.
         let target = ItemTarget::Static(item.ident.to_string());
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "static", &target);
         syn::visit::visit_item_static(self, item);
     }
 
     fn visit_item_fn(&mut self, item: &'ast syn::ItemFn) {
         let target = ItemTarget::Fn(item.sig.ident.to_string());
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "fn", &target);
         syn::visit::visit_item_fn(self, item);
     }
@@ -1425,7 +1455,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
                 fn_name: item.sig.ident.to_string(),
             },
         );
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "impl_fn", &target);
         syn::visit::visit_impl_item_fn(self, item);
     }
@@ -1443,7 +1473,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
                 const_name: item.ident.to_string(),
             },
         );
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "impl_const", &target);
         syn::visit::visit_impl_item_const(self, item);
     }
@@ -1456,7 +1486,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
         // TypeAlias rather than minting a near-duplicate variant, mirroring how
         // visit_trait_item_const reuses ImplConst).
         let target = ItemTarget::TypeAlias(item.ident.to_string());
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "impl_type", &target);
         syn::visit::visit_impl_item_type(self, item);
     }
@@ -1481,14 +1511,14 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
                 const_name: mac_name.clone(),
             },
         );
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "impl_macro", &target);
         syn::visit::visit_impl_item_macro(self, item);
     }
 
     fn visit_item_trait(&mut self, item: &'ast syn::ItemTrait) {
         let target = ItemTarget::Trait(item.ident.to_string());
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "trait", &target);
         // Push trait context so visit_trait_item_fn produces TraitFn targets
         // identifying the enclosing trait.
@@ -1505,7 +1535,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
                 fn_name: item.sig.ident.to_string(),
             },
         );
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "trait_fn", &target);
         syn::visit::visit_trait_item_fn(self, item);
     }
@@ -1524,7 +1554,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
                 const_name: item.ident.to_string(),
             },
         );
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "trait_const", &target);
         syn::visit::visit_trait_item_const(self, item);
     }
@@ -1536,7 +1566,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
         // contract sites (e.g. a mucosal boundary like `Iterator::Item`). Route
         // through check_attrs with the associated-type name as target.
         let target = ItemTarget::TypeAlias(item.ident.to_string());
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "trait_type", &target);
         syn::visit::visit_trait_item_type(self, item);
     }
@@ -1559,7 +1589,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
                 fn_name: mac_name.clone(),
             },
         );
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "trait_macro", &target);
         syn::visit::visit_trait_item_macro(self, item);
     }
@@ -1571,7 +1601,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
         // on equality. Tracking the alias name keeps each alias as its own
         // distinct match target.
         let target = ItemTarget::TypeAlias(item.ident.to_string());
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "type_alias", &target);
         syn::visit::visit_item_type(self, item);
     }
@@ -1601,7 +1631,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
             }
         }
         let target = ItemTarget::Enum(item.ident.to_string());
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "enum", &target);
 
         // ATK-A2-ENUM-VARIANT: descend into variants so a variant-level
@@ -1634,7 +1664,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
             .as_ref()
             .map_or_else(|| "(anonymous)".to_string(), ToString::to_string);
         let target = ItemTarget::Const(name);
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "macro", &target);
         syn::visit::visit_item_macro(self, item);
     }
@@ -1647,7 +1677,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
         use quote::ToTokens;
         let path_str = item.tree.to_token_stream().to_string();
         let target = ItemTarget::Const(path_str);
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "use", &target);
         syn::visit::visit_item_use(self, item);
     }
@@ -1655,7 +1685,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
     fn visit_item_extern_crate(&mut self, item: &'ast syn::ItemExternCrate) {
         let name = item.ident.to_string();
         let target = ItemTarget::Const(name);
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "extern crate", &target);
         syn::visit::visit_item_extern_crate(self, item);
     }
@@ -1664,7 +1694,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
         use quote::ToTokens;
         let abi_str = item.abi.to_token_stream().to_string();
         let target = ItemTarget::Const(abi_str);
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "foreign mod", &target);
         syn::visit::visit_item_foreign_mod(self, item);
     }
@@ -1672,7 +1702,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
     fn visit_item_mod(&mut self, item: &'ast syn::ItemMod) {
         let name = item.ident.to_string();
         let target = ItemTarget::Const(name);
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "mod", &target);
         syn::visit::visit_item_mod(self, item);
     }
@@ -1680,7 +1710,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
     fn visit_item_trait_alias(&mut self, item: &'ast syn::ItemTraitAlias) {
         let name = item.ident.to_string();
         let target = ItemTarget::Const(name);
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "trait alias", &target);
         syn::visit::visit_item_trait_alias(self, item);
     }
@@ -1688,7 +1718,7 @@ impl<'ast> Visit<'ast> for ScanVisitor<'_> {
     fn visit_item_union(&mut self, item: &'ast syn::ItemUnion) {
         let name = item.ident.to_string();
         let target = ItemTarget::Const(name);
-        self.current_item_digest = antigen_fingerprint::structural_digest(item);
+        self.set_current_item(item);
         self.check_attrs(&item.attrs, "union", &target);
         syn::visit::visit_item_union(self, item);
     }

@@ -149,6 +149,11 @@ enum AntigenSubcommand {
     Fingerprint(FingerprintArgs),
 }
 
+// A CLI args struct: each bool is an independent `--flag` (strict / include_deps
+// / workspace / bundled_catalog). They are orthogonal user toggles, not a state
+// enum to collapse — the idiomatic clap shape — so the excessive-bools lint
+// (aimed at domain structs) does not apply here.
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Parser)]
 struct ScanArgs {
     /// Workspace root (default: current directory)
@@ -182,6 +187,27 @@ struct ScanArgs {
     /// A hybrid antigen (both categories) matches either filter.
     #[arg(long)]
     category: Option<String>,
+    /// Scan against antigen's **bundled stdlib catalog** (v0.4 E0). Supplies
+    /// antigen's flagship failure-class fingerprints so a crate with ZERO antigen
+    /// declarations of its own still gets real fingerprint-match findings —
+    /// closing the zero-hits-cliff (an empty repertoire is otherwise a false
+    /// all-clear). An EXPLICIT `--bundled-catalog` ALWAYS injects (augments local
+    /// antigens); without the flag, the catalog auto-injects only when no in-tree
+    /// antigens are found (ADR-043 Amendment 2). Bundled matches are SCAN-FACTS
+    /// ("structure matches a known class"), never audited defense verdicts
+    /// (claim-scope, ADR-043 Amendment 1 / ADR-044).
+    #[arg(long)]
+    bundled_catalog: bool,
+    /// Emit findings in the **cargo/rustc `--message-format=json` shape** (v0.4
+    /// render B) so an editor's flycheck consumes antigen findings as compiler
+    /// diagnostics — point rust-analyzer's `check.overrideCommand` at
+    /// `cargo antigen scan --message-format json`, NO custom LSP server. This is
+    /// the rustc line-protocol (newline-delimited `compiler-message` objects),
+    /// distinct from `--format json` (antigen's own report envelope). Findings
+    /// emit at `warning` level only — antigen never fails the build, and a
+    /// fingerprint match is a candidate to inspect, not an audited verdict.
+    #[arg(long, value_name = "FMT")]
+    message_format: Option<MessageFormat>,
     /// Write the full JSON report to this file (a *render of this run*, never
     /// stored state antigen reads back — see the report-as-live-projection
     /// floor). Implies `--format json` for the file content regardless of the
@@ -681,6 +707,16 @@ struct OracleRevokeArgs {
 #[derive(Debug, Clone, clap::ValueEnum)]
 enum OutputFormat {
     Human,
+    Json,
+}
+
+/// The editor-flycheck message format (v0.4 render B). Currently the single
+/// `json` value (the cargo/rustc `--message-format=json` line-protocol); an enum
+/// rather than a bool so a future `json-diagnostic-short` / `json-render-...`
+/// variant is additive.
+#[derive(Debug, Clone, clap::ValueEnum)]
+enum MessageFormat {
+    /// The cargo/rustc JSON line-protocol (newline-delimited `compiler-message`).
     Json,
 }
 
@@ -2767,16 +2803,79 @@ fn acquire_scan_report(args: &ScanArgs) -> Result<scan::ScanReport, ExitCode> {
     }
 
     if args.workspace {
+        if args.bundled_catalog {
+            eprintln!(
+                "warning: --bundled-catalog has no effect with --workspace (member-aware scan); \
+                 use a flat scan to inject the bundled catalog"
+            );
+        }
         eprintln!("Scanning workspace (member-aware): {}", args.root.display());
         scan::scan_workspace_multi_crate(&args.root)
+    } else if args.bundled_catalog {
+        eprintln!(
+            "Scanning workspace (bundled stdlib catalog): {}",
+            args.root.display()
+        );
+        // Captain's ruling / ADR-043 Amendment 2: an EXPLICIT --bundled-catalog
+        // flag ALWAYS injects (augments the crate's own antigens with the bundled
+        // catalog), regardless of how many local antigens the crate declares. The
+        // real adopters (tambear, camp) are PARTIAL adopters, not blank crates —
+        // a partial adopter who explicitly asks for the catalog and gets it
+        // suppressed is the exact silent-miss E0 exists to kill. (auto_detect =
+        // false → Always.) The auto-detect-when-empty convenience is the *no-flag*
+        // default, handled by the plain scan path; it is not reachable here.
+        scan::scan_workspace_bundled_catalog(&args.root, None, false)
     } else {
         eprintln!("Scanning workspace: {}", args.root.display());
-        scan::scan_workspace(&args.root, None)
+        // No flag: AUTO-DETECT (captain's ruling / ADR-043 Amd-2 case 2). A crate
+        // with ZERO local antigens auto-injects the bundled catalog — that closes
+        // the zero-hits-cliff for a total newcomer who didn't know to pass the
+        // flag. A crate WITH local antigens stays local-only (it has its own
+        // declarations). `auto_detect = true` encodes exactly this: inject iff
+        // report.antigens.is_empty().
+        scan::scan_workspace_bundled_catalog(&args.root, None, true)
     }
     .map_err(|e| {
         eprintln!("error: scan failed: {e}");
         ExitCode::from(2)
     })
+}
+
+/// Render B (editor-flycheck): emit the scan's fingerprint matches as the
+/// cargo/rustc JSON line-protocol on stdout, then return success.
+///
+/// The class→provenance map is built from BOTH the in-tree antigen declarations
+/// (their authored provenance) and the bundled stdlib catalog, so a flycheck run
+/// surfaces matches against either repertoire with the honest provenance label.
+/// The match findings are projected by the E1 catalog-match spine (a scan-fact
+/// `FingerprintMatch`, never an audited verdict — claim-scope, ADR-044).
+fn emit_flycheck_json(report: &scan::ScanReport) -> ExitCode {
+    use std::collections::HashMap;
+
+    let mut provenance_by_class: HashMap<String, antigen::finding::Provenance> = report
+        .antigens
+        .iter()
+        .map(|a| (a.type_name.clone(), a.resolved_provenance()))
+        .collect();
+    // The bundled catalog augments the in-tree map; in-tree authored provenance
+    // wins on a name collision (entry() keeps the existing value).
+    for entry in antigen::stdlib::catalog::stdlib_catalog_entries() {
+        provenance_by_class
+            .entry(entry.name)
+            .or_insert(entry.provenance);
+    }
+
+    let findings = scan::catalog_match_findings(report, &provenance_by_class);
+    match antigen::render::flycheck::findings_to_cargo_jsonl(&findings) {
+        Ok(jsonl) => {
+            print!("{jsonl}");
+            ExitCode::SUCCESS
+        },
+        Err(e) => {
+            eprintln!("error: failed to serialize flycheck JSON: {e}");
+            ExitCode::from(2)
+        },
+    }
 }
 
 fn run_scan(args: ScanArgs) -> ExitCode {
@@ -2792,6 +2891,14 @@ fn run_scan(args: ScanArgs) -> ExitCode {
 
     if let Some(cat) = category_filter {
         filter_report_by_category(&mut report, cat);
+    }
+
+    // v0.4 render B — editor-flycheck. When `--message-format json` is set, emit
+    // the cargo/rustc JSON line-protocol (one `compiler-message` per
+    // fingerprint match) and return; this is the rust-analyzer `check.overrideCommand`
+    // surface, distinct from `--format json` (antigen's own envelope).
+    if matches!(args.message_format, Some(MessageFormat::Json)) {
+        return emit_flycheck_json(&report);
     }
 
     let unaddressed = report.unaddressed_presentations();

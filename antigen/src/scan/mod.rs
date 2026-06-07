@@ -1266,10 +1266,27 @@ pub(crate) use lineage::canonicalise_cycle;
 pub(crate) use lineage::{dedupe_lineage_edges, detect_lineage_failures};
 
 mod walk;
-pub use walk::scan_workspace;
+pub use walk::{scan_workspace, scan_workspace_bundled_catalog};
+
+// v0.4 E1 — the callable catalog-match service (the one spine the renders ride).
+mod catalog_match;
+pub use catalog_match::{catalog_match_findings, catalog_match_findings_with_source};
+
+// v0.4 diff-native DETECT (ADR-046) — match a structural DELTA, not a snapshot.
+mod diff;
+pub use diff::{
+    ChangeKind, ItemChange, ItemDigestMap, StructuralDiff, diff_item_digests, item_digest_map,
+    item_digest_map_multi, scan_diff_files,
+};
+
+// v0.4 E0 — the bundled-catalog → `Finding` projection. Lives in
+// `stdlib::catalog` (it owns the catalog provenance) and is re-exported here so
+// the natural call site `antigen::scan::bundled_catalog_findings(&report)` sits
+// next to `scan_workspace_bundled_catalog` that produced the report.
+pub use crate::stdlib::catalog::bundled_catalog_findings;
 
 mod finalize;
-pub(crate) use finalize::{finalize_report, synthesize_inherited_presentations};
+pub(crate) use finalize::{finalize_report_with_catalog, synthesize_inherited_presentations};
 
 mod multi_crate;
 pub use multi_crate::{

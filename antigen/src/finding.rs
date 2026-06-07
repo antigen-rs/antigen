@@ -245,6 +245,26 @@ pub enum FindingBody {
         /// The dial tier reading (suspected / named).
         tier: DialTier,
     },
+    /// Scan-time: a **structural fingerprint match** against a declared
+    /// antigen's (or the bundled catalog's) fingerprint (ADR-043 §E / v0.4 E0).
+    ///
+    /// This is the honest claim-scope of a bundled-catalog or synthesis match: a
+    /// **syntactic FACT** — "this site's structure matches a known failure-class
+    /// fingerprint, at a calibrated tier" — and **NOT** an audited
+    /// [`DialVerdict`](FindingBody::DialVerdict). A fingerprint match never
+    /// asserts a defense was audited or that the site is all-clear; promoting a
+    /// match to an audited verdict requires the audit stage (which sees the
+    /// site's `#[defended_by]` / witness half). Keeping these two bodies distinct
+    /// is the ADR-044 syntactic/semantic boundary made structural: the machine
+    /// states what it matched, never that it ratified.
+    FingerprintMatch {
+        /// The failure-class (antigen name) whose fingerprint matched.
+        class: String,
+        /// The calibration tier of the match (`Suspected` for the shape-only
+        /// floor; `Named` only when the matched fingerprint is precise enough to
+        /// graduate). Bundled-catalog matches ride the catalog's authored tier.
+        tier: DialTier,
+    },
 }
 
 /// THE ONE typed `Finding` / event record (ADR-039 §C).
@@ -271,9 +291,21 @@ pub struct Finding {
     /// when the emitter has no digest for the site.
     #[serde(default)]
     pub structural_digest: String,
+    /// The **name-insensitive shape digest** of the item (P0a / ADR-045 Amd-2 —
+    /// the captain's two-field ruling). Distinct from `structural_digest` (the
+    /// name+code-sensitive IDENTITY hash diff-native DETECT keys on): two items
+    /// with identical bodies and different names share a `shape_digest` but NOT a
+    /// `structural_digest`. The marked-unknown PROPOSE-slice clusters on shape, so
+    /// this is the digest its `cluster_key` is derived from. Empty for emitters
+    /// that have no shape digest (e.g. a matched-item Finding, where identity is
+    /// the relevant key). Additive-optional (`#[serde(default)]`) — forward-compat.
+    #[serde(default)]
+    pub shape_digest: String,
     /// The cluster key — **specified** (ADR-039 §C), NOT an opaque label:
-    /// `derived-from(structural_digest, class)`. Makes "cluster by shared
+    /// `derived-from(<the clustering digest>, class)`. Makes "cluster by shared
     /// structure" a field-lookup, not a re-parse. Build it with [`cluster_key_of`].
+    /// For a marked-unknown the clustering digest is the `shape_digest` (cluster by
+    /// body shape); for a matched item it is the `structural_digest`.
     pub cluster_key: String,
     /// Universal severity (every Finding, for cytokine routing). Distinct from the
     /// dread plane's `existence_certainty`.
@@ -321,7 +353,8 @@ mod tests {
             file: "lib.rs".into(),
             line: 42,
             structural_digest: "fnv:drop-guard-before-flush".into(),
-            cluster_key: cluster_key_of("fnv:drop-guard-before-flush", "dread"),
+            shape_digest: "fnv:shape-drop-guard".into(),
+            cluster_key: cluster_key_of("fnv:shape-drop-guard", "dread"),
             severity: Severity::High,
             source: "scan:declaration".into(),
             class_provenance: Provenance::Encountered,

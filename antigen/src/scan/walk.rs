@@ -22,7 +22,7 @@ use walkdir::WalkDir;
 
 use super::{
     MAX_LINEAGE_DEPTH, ParseFailure, ScanReport, ScanVisitor, dedupe_lineage_edges,
-    detect_lineage_failures, finalize_report,
+    detect_lineage_failures, finalize_report_with_catalog,
 };
 
 /// Scan a directory tree, reading every `.rs` file and extracting antigen
@@ -60,6 +60,62 @@ use super::{
     until = "v0.3"
 )]
 pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::Result<ScanReport> {
+    scan_workspace_inner(root, excluded_dirs, BundledCatalog::None)
+}
+
+/// Whether (and how) to inject the bundled stdlib catalog into a scan's
+/// synthesis pass (v0.4 E0).
+///
+/// The bundled catalog closes the **zero-hits-cliff**: a crate with zero in-tree
+/// antigen declarations produces an empty `fingerprints` set, so `synthesis_pass`
+/// never runs and the scan reports a false all-clear. Auto-detect injects the
+/// catalog only when the crate has no in-tree antigens (the consumer-crate case);
+/// `Always` injects regardless (the catalog augments any in-tree repertoire).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum BundledCatalog {
+    /// Do not inject (the default `scan_workspace` behaviour, unchanged).
+    None,
+    /// Inject only when the scan found zero in-tree antigen declarations
+    /// (the `--bundled-catalog` auto-detect path).
+    AutoDetect,
+    /// Inject unconditionally (augment in-tree antigens with the bundled catalog).
+    Always,
+}
+
+/// Scan with the bundled stdlib catalog injected (v0.4 E0).
+///
+/// Identical to [`scan_workspace`] except that, per `auto_detect`, antigen's
+/// flagship stdlib fingerprints are merged into the synthesis pass so a
+/// zero-declaration consumer crate still gets real fingerprint-match
+/// presentations (closing the zero-hits-cliff). The synthesized matches are
+/// tagged so the caller can carry the catalog's authored
+/// [`Provenance`](crate::finding::Provenance) into the claim-scoped render
+/// (ADR-043 Amendment 1 / ADR-044).
+///
+/// # Errors
+/// Propagates the `scan_workspace` IO error (a hard scan failure).
+pub fn scan_workspace_bundled_catalog(
+    root: &Path,
+    excluded_dirs: Option<&[&str]>,
+    auto_detect: bool,
+) -> std::io::Result<ScanReport> {
+    let mode = if auto_detect {
+        BundledCatalog::AutoDetect
+    } else {
+        BundledCatalog::Always
+    };
+    scan_workspace_inner(root, excluded_dirs, mode)
+}
+
+// The `io::Result` mirrors the public `scan_workspace` contract (it reserves
+// space for future hard-failure modes — see that fn's `# Errors`); this private
+// inner fn currently never returns `Err`, hence the allow.
+#[allow(clippy::unnecessary_wraps)]
+fn scan_workspace_inner(
+    root: &Path,
+    excluded_dirs: Option<&[&str]>,
+    bundled: BundledCatalog,
+) -> std::io::Result<ScanReport> {
     let default_exclusions = ["target", ".git", "node_modules"];
     let exclusions = excluded_dirs.unwrap_or(&default_exclusions);
 
@@ -142,7 +198,24 @@ pub fn scan_workspace(root: &Path, excluded_dirs: Option<&[&str]>) -> std::io::R
     let lineage_failures = detect_lineage_failures(&report.lineage_edges, MAX_LINEAGE_DEPTH);
     report.parse_failures.extend(lineage_failures);
 
-    finalize_report(&mut report, &parsed_files);
+    // v0.4 E0 — bundled stdlib catalog injection. Decide whether to merge the
+    // compile-in catalog fingerprints into the synthesis pass. AutoDetect only
+    // injects when there are no in-tree antigens (the consumer-crate zero-hits-
+    // cliff case); Always injects unconditionally. The catalog fingerprints are
+    // appended to the in-tree set finalize builds, so a zero-declaration crate
+    // still gets fingerprint-match presentations against antigen's flagships.
+    let inject_catalog = match bundled {
+        BundledCatalog::None => false,
+        BundledCatalog::AutoDetect => report.antigens.is_empty(),
+        BundledCatalog::Always => true,
+    };
+    let catalog_fingerprints: Vec<(String, antigen_fingerprint::Fingerprint)> = if inject_catalog {
+        crate::stdlib::catalog::stdlib_catalog()
+    } else {
+        Vec::new()
+    };
+
+    finalize_report_with_catalog(&mut report, &parsed_files, &catalog_fingerprints);
 
     Ok(report)
 }
