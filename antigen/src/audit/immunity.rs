@@ -18,7 +18,7 @@
 
 use std::path::{Path, PathBuf};
 
-use antigen_macros::presents;
+use antigen_macros::{dread, presents};
 
 use super::{
     AuditHint, AuditReport, ImmuneVerdict, ImmunityAudit, InheritedUnaddressed,
@@ -744,6 +744,22 @@ struct FunctionEntry {
 ///   currently recorded with the same shape — matching is name-only.
 type FunctionIndex = std::collections::HashMap<String, Vec<FunctionEntry>>;
 
+// P0b dogfood mark (v0.4 keystone): the silent-skip twin of
+// `scan::walk::scan_workspace_inner`. This audit-time index walk reads every
+// `.rs` file with `let Ok(content) = read_to_string(..) else { continue };` and
+// then `if let Ok(file) = parse_file(..)` — so an unreadable OR unparseable file
+// is silently dropped from the witness-function index, and a later witness lookup
+// can report "function not found" (an audit miss) when the truth is "the file
+// holding it could not be read." Same felt-class as the scanner twin: an
+// incomplete index presented as a complete one. The shared shape (WalkDir +
+// read-or-continue + parse-or-skip, with `read_to_string`/`parse_file`/`visit_file`
+// calls) is exactly what the PROPOSE anti-unifier clusters these two on.
+#[dread(
+    trigger = "collect_function_index silently `continue`s past a file it cannot read \
+               and skips one it cannot parse, so the witness-function index is built \
+               over an INCOMPLETE corpus; a downstream 'witness function not found' \
+               cannot be told apart from 'the file was unreadable/unparseable'."
+)]
 fn collect_function_index(root: &Path) -> FunctionIndex {
     use syn::visit::Visit;
     use walkdir::WalkDir;

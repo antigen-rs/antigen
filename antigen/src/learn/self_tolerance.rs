@@ -86,15 +86,40 @@ pub fn spare_clean(draft: &Fingerprint, clean_corpus: &[syn::Item]) -> bool {
     evaluate(draft, clean_corpus).is_safe()
 }
 
-/// Promote `draft` only if it passes the spare-clean gate.
+/// Promote `draft` only if it passes the spare-clean gate against a NON-EMPTY
+/// clean corpus.
 ///
-/// Returns `Some(draft)` (moved through) iff the draft spares the clean corpus;
-/// `None` (rejected) if it binds any clean item. This is the type-level
-/// enforcement of "C must never promote without B": a caller that routes its
-/// draft through `promote_if_safe` *cannot* obtain a promoted draft that failed B
-/// — the autoimmune draft is structurally unable to pass.
+/// Returns `Some(draft)` (moved through) iff the corpus is non-empty AND the
+/// draft spares every clean item; `None` (rejected) if it binds any clean item
+/// OR **the corpus is empty**. This is the type-level enforcement of "C must
+/// never promote without B": a caller that routes its draft through
+/// `promote_if_safe` *cannot* obtain a promoted draft that failed B — the
+/// autoimmune draft is structurally unable to pass.
+///
+/// # The empty-corpus refusal (captain's ruling, the gate-G hazard)
+///
+/// [`spare_clean`] is *vacuously* `true` against an empty corpus (there is no
+/// clean item for the draft to bind — "spares nothing" is honestly true). But a
+/// vacuous pass is **autoimmunity with a green check**: the guarantee "C never
+/// promotes without B green" is only meaningful if B actually checked against
+/// *real clean code*. Promoting against an empty corpus means B verified NOTHING.
+/// So the GATE refuses it — `promote_if_safe(draft, &[])` returns `None`,
+/// "cannot certify safety against nothing." The refusal lives HERE (structural),
+/// not per-caller: every promote path inherits the conservative-safe default. A
+/// caller wanting to promote must source a real, non-empty clean corpus (e.g. the
+/// cluster's clean siblings); B is never asked to certify against emptiness.
+///
+/// (Note the division of labor: [`spare_clean`] stays the pure *predicate* —
+/// "does the draft bind a clean item?", vacuously `false`-binding on empty — so a
+/// caller that genuinely wants the predicate's vacuous answer still has it; the
+/// *promotion authority* is what refuses emptiness.)
 #[must_use]
 pub fn promote_if_safe(draft: Fingerprint, clean_corpus: &[syn::Item]) -> Option<Fingerprint> {
+    // Cannot certify safety against nothing: an empty corpus makes spare_clean
+    // vacuously true, which would promote a draft B never actually checked.
+    if clean_corpus.is_empty() {
+        return None;
+    }
     if spare_clean(&draft, clean_corpus) {
         Some(draft)
     } else {
@@ -179,13 +204,25 @@ mod tests {
     }
 
     #[test]
-    fn empty_corpus_spares_everything_a_documented_weakness() {
-        // With NO clean corpus, the gate cannot reject anything — even the
-        // autoimmune draft "passes". This is the corpus-bounded claim-scope: an
-        // empty corpus is a vacuous gate. (A real promote path must supply a
-        // representative clean corpus; this test pins the boundary behavior so it
-        // is a conscious property, not a silent hole.)
+    fn empty_corpus_spare_clean_predicate_is_vacuously_true() {
+        // The PREDICATE `spare_clean` is honestly vacuously true on an empty
+        // corpus: there is no clean item for the draft to bind, so "spares every
+        // clean item" holds trivially. This is the corpus-bounded claim-scope; the
+        // predicate reports the literal fact.
         assert!(spare_clean(&naive_draft(), &[]));
+    }
+
+    #[test]
+    fn promote_if_safe_refuses_an_empty_corpus_the_gate_g_hazard() {
+        // The GATE (`promote_if_safe`) REFUSES an empty corpus despite spare_clean
+        // being vacuously true (captain's ruling, gate-G): a vacuous pass is
+        // autoimmunity-with-a-green-check — B verified NOTHING. "Cannot certify
+        // safety against nothing." This is the structural conservative-safe default
+        // that makes "C never promotes without B green" actually meaningful. Even
+        // the OBVIOUSLY-safe disjunction draft must not promote against emptiness —
+        // the refusal is about the corpus being empty, not the draft being unsafe.
+        assert!(promote_if_safe(naive_draft(), &[]).is_none());
+        assert!(promote_if_safe(disjunction_draft(), &[]).is_none());
     }
 
     #[test]
