@@ -101,6 +101,12 @@
 
 pub mod agentic_coordination;
 pub mod async_soundness;
+/// The bundled stdlib catalog (v0.4 E0).
+///
+/// The compile-in projection of the flagship stdlib fingerprints, so a consumer
+/// crate gets antigen's default repertoire without antigen's source on disk.
+/// Closes the zero-hits-cliff.
+pub mod catalog;
 pub mod crypto_misuse;
 pub mod deserialization;
 pub mod dogfood;

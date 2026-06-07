@@ -695,6 +695,29 @@ pub struct MarkedUnknown {
     pub file: PathBuf,
     /// Line number of the marker attribute.
     pub line: usize,
+    /// The **identity** digest of the enclosing item the mark sits on — the
+    /// name+code-sensitive FNV digest (`antigen_fingerprint::structural_digest`),
+    /// the SAME identity hash matched-item Findings carry. Diff-native DETECT
+    /// keys on `(item-name, structural_digest)`, so this MUST stay
+    /// identity-sensitive (P0a / ADR-045 Amd-2, the captain's two-field ruling).
+    ///
+    /// `#[serde(default)]` so pre-P0a reports (empty string) deserialize cleanly.
+    #[serde(default)]
+    pub structural_digest: String,
+    /// The **shape** digest of the enclosing item — the NAME-INSENSITIVE
+    /// body-shape FNV digest (`antigen_fingerprint::structural_shape_digest`).
+    /// This is the PROPOSE-slice clustering key (P0a, the keystone input seam,
+    /// ADR-045 Amd-1/2). A `#[dread]`/`#[aura]` is an authored mark with no
+    /// fingerprint of its own, but it always sits on a fingerprintable item; that
+    /// item's SHAPE (modulo its name) is what the anti-unifier clusters on. Two
+    /// marked sites always have different NAMES, so clustering on the identity
+    /// digest would never group two real sites — defeating the slice. Distinct
+    /// from `structural_digest` (identity) so the two meanings never overload one
+    /// field (antigen's own `ParallelStateTrackersDiverge`, foreclosed).
+    ///
+    /// `#[serde(default)]` so pre-P0a reports (empty string) deserialize cleanly.
+    #[serde(default)]
+    pub shape_digest: String,
 }
 
 impl MarkedUnknown {
@@ -726,17 +749,24 @@ impl MarkedUnknown {
             (_, Magnitude::Smell) => Severity::Low,
         };
 
-        // The cluster-key derives from (structural_digest, class); for a
-        // marked-unknown the "class" is the marker name (the maturation engine
-        // clusters related marks of the same marker-kind). No structural digest at
-        // the marker site (it is an authored mark, not a matched item).
-        let cluster_key = cluster_key_of("", &self.marker);
+        // The cluster-key derives from (clustering-digest, class); for a
+        // marked-unknown the "class" is the marker name AND the clustering digest
+        // is the enclosing item's SHAPE digest (name-insensitive — P0a, ADR-045
+        // Amd-1/2). This makes the PROPOSE-slice's "group by structure" separate
+        // distinct shapes while clustering identical-body / differently-named
+        // sites: two dread marks on structurally-identical items share a key
+        // (cluster); marks on different shapes get different keys (never
+        // over-merged into the bare `dread@` bucket that anti-unifies unrelated
+        // ASTs). The `structural_digest` (identity) rides along separately so
+        // diff-native DETECT still has its name-sensitive key.
+        let cluster_key = cluster_key_of(&self.shape_digest, &self.marker);
 
         Finding {
             schema_version: FINDING_SCHEMA_VERSION,
             file: self.file.to_string_lossy().into_owned(),
             line: self.line,
-            structural_digest: String::new(),
+            structural_digest: self.structural_digest.clone(),
+            shape_digest: self.shape_digest.clone(),
             cluster_key,
             severity,
             source: format!("scan:marked-unknown:{}", self.marker),

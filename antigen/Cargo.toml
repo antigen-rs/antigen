@@ -48,6 +48,14 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 
+[build-dependencies]
+# The build script parses antigen's own `src/stdlib/*.rs` to compile-in the
+# bundled stdlib catalog (v0.4 E0). `syn` "full" gives `parse_file` +
+# `parse_nested_meta`; no proc-macro context is needed (this is an ordinary
+# build-time parse, not macro expansion).
+syn = { workspace = true }
+proc-macro2 = { workspace = true }
+
 [dev-dependencies]
 proptest = { workspace = true }
 tempfile = { workspace = true }

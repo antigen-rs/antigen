@@ -216,6 +216,22 @@ pub mod finding;
 /// detector it must be able to stop.
 pub mod pipeline;
 
+/// Renders (v0.4 ADR-043 §E).
+///
+/// Serializers + transports over the one catalog-match spine
+/// ([`scan::catalog_match_findings`]). Ships the session-prime batch digest
+/// (render D); render B (editor-flycheck) and render C (agent-query MCP) are
+/// sequenced after it.
+pub mod render;
+
+/// The learning core (v0.4 ADR-045) — the affinity-maturation arm.
+///
+/// Ships B (the self-tolerance / spare-clean gate, [`learn::self_tolerance`]) —
+/// the negative-selection SELECTOR that rejects a draft fingerprint matching
+/// clean code (autoimmunity). C (the PROPOSE generator) must never promote a
+/// draft without B green (the one safety-tangle on the v0.4 chart).
+pub mod learn;
+
 /// Stdlib of curated, ratified antigen declarations.
 ///
 /// Per ADR-022 (stdlib-vs-extension): stdlib growth is research-driven and

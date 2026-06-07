@@ -11440,6 +11440,38 @@ ADR-045 step 2 reads "A (convergence field, one-tree) + C (PROPOSE, acute n=1) �
 
 ---
 
+## ADR-045 Amendment 2 — P0a is a TWO-field seam: identity `structural_digest` (unchanged, diff-native's key) + a new name-insensitive `shape_digest` (the PROPOSE clustering key)
+
+**Status**: Ratified 2026-06-07 (v04-immune-system-at-scale, Pioneers/BUILD wave). Self-ratified by the pathmaker during the P0a build under the captain's W-P0a.5 ruling. Supersede-not-erase.
+
+**Amends**: ADR-045 Amendment 1's P0a build-step ("thread `current_item_digest`; `to_finding` uses it for both `structural_digest` and `cluster_key_of(digest, marker)`"). That single-digest prescription would have conflated two distinct meanings on one field; this amendment splits them.
+
+**Participants**: adversarial (the run-as-code refutation that surfaced both the name-axis AND the marker-payload-axis bugs; the root-cause locate); captain (the W-P0a.5 two-field ruling); pathmaker (the `structural_shape_digest` / `ShapeNormalize` build + the `ANTIGEN_OWNED_ATTRS` fix); observer (W-P0a.5, the `ParallelStateTrackersDiverge` framing).
+
+### Finding
+
+ADR-045 Amd-1's P0a step said to ride a SINGLE digest (`current_item_digest`) for both the Finding's `structural_digest` and the `cluster_key`. Building it that way is wrong on two counts the adversarial proved run-as-code:
+
+1. **The identity digest is name-SENSITIVE, but PROPOSE must cluster name-INSENSITIVELY.** `antigen_fingerprint::structural_digest` hashes the item's own ident, so two structurally-identical felt-sites with different names (`Alpha`/`Gamma`) get different digests. But two real marked sites ALWAYS have different names — clustering on the identity digest would never group them, defeating the anti-unifier (the keystone clustering precondition, from the over-merge's opposite direction: an *under-merge*).
+2. **Overloading one field is `ParallelStateTrackersDiverge` in our own seam.** Diff-native DETECT (ADR-046) keys on `(item-name, structural_digest)` *because* `structural_digest` is identity-sensitive; making it name-insensitive to serve clustering would silently break DETECT. One field cannot honestly mean "identity" on a matched-item Finding and "shape" on a marked-unknown Finding.
+3. **`#[dread]`/`#[aura]`/`#[red_flag]` were missing from `ANTIGEN_OWNED_ATTRS`**, so the `trigger` payload leaked into BOTH digests — a same-shape pair with different trigger text under-merged. This violated the existing attestation-insensitivity invariant (`digest.rs` §"Insensitive to antigen's own attributes"), which already mandated the fix.
+
+### Decision
+
+**Split the P0a seam into two honest fields:**
+
+- **`structural_digest` (identity) — UNCHANGED.** Name+code-sensitive `antigen_fingerprint::structural_digest`. Diff-native DETECT's key. `MarkedUnknown` and `Finding` carry it for the marked-unknown path the same way matched-item Findings do.
+- **`shape_digest` (NEW) — name-insensitive body-shape.** `antigen_fingerprint::structural_shape_digest` (a new `ShapeNormalize` projection that normalizes the item's own ident to a placeholder before hashing; field/variant names + types stay). The marked-unknown `cluster_key` is `cluster_key_of(shape_digest, marker)`. Added to both `MarkedUnknown` and `Finding` as additive-optional (`#[serde(default)]`). Empty for matched-item Findings (identity is their relevant key).
+- **`ANTIGEN_OWNED_ATTRS` gains `dread`/`aura`/`red_flag`** so a marker's `trigger` payload pollutes NEITHER digest (mandated by the pre-existing attestation-insensitivity invariant).
+
+### Enforcement
+
+- `structural_digest` stays the diff-native key; no consumer keys clustering off it.
+- The PROPOSE-slice + any marked-unknown clustering keys off `shape_digest` / the `shape`-derived `cluster_key`.
+- Toggling or editing a `#[dread]`/`#[aura]`/`#[red_flag]` mark changes neither digest (attestation-insensitivity), test-fenced in `antigen-fingerprint`'s digest suite.
+
+---
+
 ## ADR-043 Amendment 1 — Bundled-catalog matches are claim-scoped; the audit/witness-requirement use-case needs synthetic declarations
 
 **Status**: Ratified 2026-06-06 (v04-immune-system-at-scale, Outfitters/CONVERGE wave).
@@ -11464,6 +11496,34 @@ A bundled-catalog match (a `(String, Fingerprint)` injected into `synthesis_pass
 
 - E0 ships as a match-render; it does not claim to audit defenses.
 - When the audit-of-bundled use-case is built, each catalog entry registers a synthetic declaration so sub-clause F resolves (the witness-requirement is not silently bypassed).
+
+---
+
+## ADR-043 Amendment 2 — Explicit `--bundled-catalog` ALWAYS injects (augments local antigens); the no-flag default auto-detects-when-empty
+
+**Status**: Ratified 2026-06-07 (v04-immune-system-at-scale, Pioneers/BUILD wave). Self-ratified by the pathmaker during the E0 build under the captain's standing ruling (the baton pinned auto-detect-when-empty as the no-flag default but did not specify explicit-flag semantics). Supersede-not-erase.
+
+**Amends**: ADR-043 (the catalog-match spine), Client A / the bundled-catalog injection rule.
+
+**Participants**: pathmaker (the E0 build + the named silent-miss test); adversarial (surfaced the partial-adopter suppression as a named gap, `partial_adopter_auto_detect_suppresses_the_catalog_a_known_silent_miss`); captain (the ruling: close it, don't just document it).
+
+### Finding
+
+The baton's E0 mechanic said "auto-detect when no in-tree antigens." Implemented literally as *inject-iff-`report.antigens.is_empty()`*, that **suppresses the bundled catalog for a partial adopter** — a crate that has declared a few of its own antigens but still wants the stdlib flagships. But the REAL adopters (tambear, camp) are **partial adopters, not blank crates**. A partial adopter who explicitly passes `--bundled-catalog` and gets it silently suppressed is the exact silent-miss E0 exists to kill (the flagship footgun goes unflagged). Auto-detect-when-empty is the right *convenience default* but the wrong *explicit-request* semantics.
+
+### Decision
+
+Three-case injection predicate (the explicit request always wins):
+
+1. **Explicit `--bundled-catalog` flag → ALWAYS inject** (augment the crate's own antigens with the bundled catalog), regardless of how many local antigens the crate declares. An adopter who asks for it, gets it. (Library: `scan_workspace_bundled_catalog(root, excl, auto_detect = false)` → `BundledCatalog::Always`.)
+2. **No flag + ZERO local antigens → auto-inject** (close the zero-hits-cliff for a total newcomer who didn't know to pass the flag). (Library: `auto_detect = true` → `BundledCatalog::AutoDetect`, which injects iff `report.antigens.is_empty()`.)
+3. **No flag + SOME local antigens → local only** (they have their own declarations; don't surprise them). (Same `AutoDetect` mode; the non-empty branch.)
+
+### Enforcement
+
+- `cargo antigen scan --bundled-catalog` maps the explicit flag to `Always`; the plain `cargo antigen scan` maps to `AutoDetect`.
+- Claim-scope is unchanged from Amendment 1: in **either** mode the catalog matches are projected as `FindingBody::FingerprintMatch` scan-facts carrying `class_provenance ∈ {Constructable, Encountered}`, never an audited `DialVerdict`. Augmenting local antigens does not upgrade the claim — a bundled match next to a local one is still a match-render, not an audit.
+- The library keeps all three modes (`None`/`AutoDetect`/`Always`) distinct and test-fenced, so the CLI mapping is a thin policy choice over a complete mechanism.
 
 ---
 

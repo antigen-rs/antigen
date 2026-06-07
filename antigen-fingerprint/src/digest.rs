@@ -100,6 +100,17 @@ const ANTIGEN_OWNED_ATTRS: &[&str] = &[
     "chronic",
     "saturate",
     "strand",
+    // Marked-unknown family (ADR-041) — `#[dread]` / `#[aura]` / `#[red_flag]`.
+    // These are authored attestation marks ("I feel something here"), NOT
+    // structural facts about the item, so toggling one (or editing its `trigger`
+    // text) must NOT change the item's digest — the same attestation-insensitivity
+    // invariant the rest of this list upholds. Omitting them also leaked the
+    // `trigger` payload into the marked-unknown SHAPE digest, splitting two
+    // structurally-identical felt-sites with different trigger text into separate
+    // PROPOSE clusters (the P0a under-merge — adversarial-found).
+    "dread",
+    "aura",
+    "red_flag",
 ];
 
 /// Returns `true` if an attribute's path is one antigen owns (and therefore
@@ -158,6 +169,48 @@ pub trait HasAttributes: ToTokens + Clone {
     fn clone_without_antigen_attrs(&self) -> Self;
 }
 
+/// The placeholder identifier every item's name is normalized to before a
+/// **shape** digest, so two items with identical bodies but different names
+/// produce the same shape digest.
+const SHAPE_IDENT_PLACEHOLDER: &str = "__antigen_shape__";
+
+/// Compute the **structural shape digest** of an item.
+///
+/// Like [`structural_digest`], but **name-insensitive**: the item's own
+/// identifier is normalized to a fixed placeholder before hashing, so two items
+/// with identical bodies and different names digest identically.
+///
+/// This is the clustering key the marked-unknown PROPOSE-slice needs (P0a, the
+/// keystone input seam): a `#[dread]`/`#[aura]` mark clusters with other marks of
+/// the **same shape**, regardless of the marked item's name. Two real marked
+/// sites always have different names, so an identity-sensitive digest (the
+/// [`structural_digest`] used for sign/audit) would never cluster them — defeating
+/// the anti-unifier. Field/variant names and types ARE part of the shape (only the
+/// item's own top-level ident is normalized).
+///
+/// For node kinds without a single top-level type ident (impls, use, etc.) this
+/// falls back to the name-sensitive [`structural_digest`] (there is no name to
+/// normalize away).
+#[must_use]
+pub fn structural_shape_digest<T: ShapeNormalize>(item: &T) -> String {
+    let normalized = item.clone_shape_normalized();
+    let mut ts = TokenStream::new();
+    normalized.to_tokens(&mut ts);
+    digest_tokens(&ts)
+}
+
+/// A `syn` item whose top-level identifier can be normalized for a shape digest.
+///
+/// `clone_shape_normalized` returns a clone with antigen-owned attrs stripped AND
+/// the item's own ident replaced by a fixed placeholder, so the resulting digest
+/// captures the item's structure modulo its name.
+pub trait ShapeNormalize: HasAttributes {
+    /// Return a clone with antigen attrs stripped and the top-level ident
+    /// normalized to a placeholder.
+    #[must_use]
+    fn clone_shape_normalized(&self) -> Self;
+}
+
 /// Implement [`HasAttributes`] for a `syn` node whose attribute list lives at
 /// `self.attrs`.
 macro_rules! impl_has_attributes {
@@ -196,6 +249,78 @@ impl_has_attributes!(
     syn::ItemMod,
     syn::ItemTraitAlias,
     syn::ItemUnion,
+    syn::ImplItemMacro,
+    syn::TraitItemMacro,
+);
+
+/// Implement [`ShapeNormalize`] for a node whose top-level ident lives at
+/// `self.ident` (struct, enum, union, trait, type, fn, const, static, …): clone,
+/// strip antigen attrs, and overwrite `ident` with the shape placeholder (keeping
+/// the original ident's span so the clone stays well-formed).
+macro_rules! impl_shape_normalize_ident {
+    ($($ty:ty),+ $(,)?) => {
+        $(
+            impl ShapeNormalize for $ty {
+                fn clone_shape_normalized(&self) -> Self {
+                    let mut cloned = self.clone_without_antigen_attrs();
+                    cloned.ident = syn::Ident::new(SHAPE_IDENT_PLACEHOLDER, cloned.ident.span());
+                    cloned
+                }
+            }
+        )+
+    };
+}
+
+impl_shape_normalize_ident!(
+    syn::ItemStruct,
+    syn::ItemEnum,
+    syn::ItemUnion,
+    syn::ItemTrait,
+    syn::ItemType,
+    syn::ItemConst,
+    syn::ItemStatic,
+);
+
+// `ItemFn`'s ident lives at `sig.ident`, not `self.ident` — normalize there.
+impl ShapeNormalize for syn::ItemFn {
+    fn clone_shape_normalized(&self) -> Self {
+        let mut cloned = self.clone_without_antigen_attrs();
+        cloned.sig.ident = syn::Ident::new(SHAPE_IDENT_PLACEHOLDER, cloned.sig.ident.span());
+        cloned
+    }
+}
+
+/// Implement [`ShapeNormalize`] for a node with no single normalizable top-level
+/// type ident (impls, use, extern-crate, …): the shape digest falls back to the
+/// name-sensitive [`structural_digest`] clone (there is no name to normalize).
+macro_rules! impl_shape_normalize_fallback {
+    ($($ty:ty),+ $(,)?) => {
+        $(
+            impl ShapeNormalize for $ty {
+                fn clone_shape_normalized(&self) -> Self {
+                    // No top-level type ident to normalize — the shape digest is
+                    // the same as the identity digest for these node kinds.
+                    self.clone_without_antigen_attrs()
+                }
+            }
+        )+
+    };
+}
+
+impl_shape_normalize_fallback!(
+    syn::ItemImpl,
+    syn::ImplItemFn,
+    syn::ImplItemConst,
+    syn::ImplItemType,
+    syn::TraitItemFn,
+    syn::TraitItemConst,
+    syn::TraitItemType,
+    syn::ItemMacro,
+    syn::ItemUse,
+    syn::ItemExternCrate,
+    syn::ItemForeignMod,
+    syn::ItemMod,
+    syn::ItemTraitAlias,
     syn::ImplItemMacro,
     syn::TraitItemMacro,
 );

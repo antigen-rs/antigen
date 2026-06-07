@@ -1,18 +1,19 @@
 //! Post-collection finalize pass — fingerprint synthesis + lineage propagation.
 //!
 //! Extracted from the former monolithic `scan.rs` per ADR-036 (the scan/audit
-//! orchestration decomposition). `finalize_report` is the single source of truth
-//! for the post-collection pass ORDER (fingerprint + generates synthesis, then
-//! `#[descended_from]` inheritance propagation), shared by both `scan_workspace`
-//! and `scan_workspace_multi_crate` so the two callers cannot drift. It drives
+//! orchestration decomposition). `finalize_report_with_catalog` is the single
+//! source of truth for the post-collection pass ORDER (fingerprint + generates
+//! synthesis, then `#[descended_from]` inheritance propagation), shared by both
+//! `scan_workspace` and `scan_workspace_multi_crate` so the two callers cannot
+//! drift (the latter runs only the propagation sub-pass). It drives
 //! the synthesis pass (the `parse` leaf underneath that) + `synthesize_inherited_presentations`
 //! (with its `transitive_ancestors_dfs` / `propagate_ancestors_to_descendant`
 //! helpers, already cycle/depth-guarded in-band). A pure mutation of its input
 //! report; it holds no stop-authority (single-conductor invariant, ADR-036).
 //!
-//! API-invisible: crate-internal; `finalize_report` + `synthesize_inherited_presentations`
-//! are re-exported `pub(crate)` at the scan root (the walk + multi-crate passes
-//! drive them).
+//! API-invisible: crate-internal; `finalize_report_with_catalog` +
+//! `synthesize_inherited_presentations` are re-exported `pub(crate)` at the scan
+//! root (the walk + multi-crate passes drive them).
 
 use std::path::PathBuf;
 
@@ -41,7 +42,28 @@ use super::{
 ///
 /// `parsed_files` is the `(path, syn::File)` cache from the collection walk,
 /// reused by the synthesis pass so it never re-reads or re-parses a file.
-pub fn finalize_report(report: &mut ScanReport, parsed_files: &[(PathBuf, syn::File)]) {
+/// Run the post-collection passes, optionally merging a set of **bundled-catalog
+/// fingerprints** into the synthesis pass (v0.4 E0).
+///
+/// `catalog_fingerprints` is the compile-in stdlib catalog
+/// ([`crate::stdlib::catalog::stdlib_catalog`]); it is appended to the in-tree
+/// `(type_name, Fingerprint)` set so a zero-declaration consumer crate still
+/// gets fingerprint-match presentations against antigen's flagships, closing the
+/// **zero-hits-cliff**. Passing an empty slice is the in-tree-only behaviour (the
+/// default `scan_workspace` path) and changes nothing — this is the single source
+/// of truth for the post-collection pass ORDER, shared by `scan_workspace` and
+/// `scan_workspace_multi_crate`.
+///
+/// The catalog entries are appended (not deduped against in-tree antigens by
+/// name): the synthesis pass already dedupes byte-identical re-emissions per
+/// `(antigen_type, file, item_target)`, and a name collision between an in-tree
+/// antigen and a catalog flagship is a legitimate two-source match (each from a
+/// distinct declaration), so no name-level dedup is applied here.
+pub fn finalize_report_with_catalog(
+    report: &mut ScanReport,
+    parsed_files: &[(PathBuf, syn::File)],
+    catalog_fingerprints: &[(String, antigen_fingerprint::Fingerprint)],
+) {
     // ---- Fingerprint synthesis pass ----
     //
     // After explicit-collection, walk every file again and emit synthetic
@@ -60,7 +82,7 @@ pub fn finalize_report(report: &mut ScanReport, parsed_files: &[(PathBuf, syn::F
     // iterator (immutable borrow on `report.antigens` + mutable push on
     // `report.parse_failures` would conflict at borrow-check time).
     let mut fp_parse_failures: Vec<ParseFailure> = Vec::new();
-    let fingerprints: Vec<(String, antigen_fingerprint::Fingerprint)> = report
+    let mut fingerprints: Vec<(String, antigen_fingerprint::Fingerprint)> = report
         .antigens
         .iter()
         .filter_map(|ag| {
@@ -81,6 +103,12 @@ pub fn finalize_report(report: &mut ScanReport, parsed_files: &[(PathBuf, syn::F
         })
         .collect();
     report.parse_failures.extend(fp_parse_failures);
+
+    // v0.4 E0 — append the bundled stdlib catalog fingerprints (already parsed
+    // by the catalog accessor). Empty in the default path; non-empty only under
+    // the `--bundled-catalog` mode, where it supplies a non-empty repertoire so
+    // a zero-declaration crate's synthesis pass actually runs.
+    fingerprints.extend(catalog_fingerprints.iter().cloned());
 
     if !fingerprints.is_empty() {
         // Build declaration-site set for self-match suppression (DX finding 4).
