@@ -29,7 +29,7 @@ function-level and the assertions are about input/output relationships.
 **For**: end-to-end behavior across multiple modules. Anything where the boundary
 is at the public API surface or the compiled-binary level.
 
-**Examples** (planned, expanding as the project grows):
+**Example shapes**:
 - `tests/scan_finds_declared_antigens.rs` — calls `antigen::scan::scan_workspace`
   on a fixture directory and verifies expected declarations appear
 - `tests/cargo_antigen_scan_integration.rs` — invokes `cargo run --bin
@@ -50,7 +50,7 @@ is at the public API surface or the compiled-binary level.
 **For**: structural properties that should hold across all inputs. Especially
 useful for parsers, fingerprint matchers, and graph operations.
 
-**Examples** (planned):
+**Properties worth testing**:
 - Fingerprint grammar: any well-formed fingerprint string round-trips through
   parse → emit → parse with structural equality
 - Scan invariants: any well-formed Rust file produces a `ScanReport` with
@@ -85,7 +85,7 @@ standard pattern for `serde`, `serde_derive`, and similar projects.
 tool for ensuring that misuse of `#[antigen]` (e.g., missing `name`, wrong
 attribute target) produces helpful diagnostics.
 
-**Examples** (planned for sweep A2):
+**Example shapes**:
 - `tests/ui/antigen_missing_name.rs` — a file with `#[antigen(fingerprint = "x")]`
   that should fail compilation; expected error message stored in
   `tests/ui/antigen_missing_name.stderr`
@@ -155,7 +155,7 @@ tests/fixtures/
 ├── presents_without_immune/     ← unaddressed presentation (scan should flag)
 │   ├── Cargo.toml
 │   └── src/lib.rs
-├── descended_inheritance/       ← #[descended_from] propagation test (sweep A4)
+├── descended_inheritance/       ← #[descended_from] propagation test
 └── cross_crate_antigen/         ← consuming antigens from a published crate
 ```
 
@@ -223,7 +223,7 @@ need to be written first (per `proptest-locks-the-narrow-truth`).
 
 ---
 
-## Witness-validation testing (Sweep A2-A3)
+## Witness-validation testing
 
 Specific to antigen: the `cargo antigen audit` command needs to validate that
 witnesses resolve to real test/proptest functions. Testing this requires:
@@ -360,8 +360,7 @@ structural backstop that reduces the need for defense wiring at those sites.
 
 ## References
 
-- [`docs/decisions.md`](decisions.md) — ratified ADRs (ADR-001 through ADR-010)
-- [`docs/process.md`](process.md) — the formal ADR lifecycle
-- [`docs/expedition/inheritance-from-tambear.md`](expedition/inheritance-from-tambear.md) — the proptest-locks-the-narrow-truth discipline as inherited
+- [`docs/decisions.md`](decisions.md) — ratified ADRs
+- [`docs/internal/process.md`](internal/process.md) — the formal ADR lifecycle
 - [`docs/case-study-determinism-class.md`](case-study-determinism-class.md) — the failing-as-passing pattern shown in context
 - [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — current CI gates

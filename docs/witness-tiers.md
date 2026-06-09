@@ -1,10 +1,5 @@
 # Antigen — Witness Tier Reference
 
-> **v0.2 idiom note**: Examples in this doc use the v0.1 `#[immune(...)]` API.
-> For v0.2, use `#[defended_by(X)]` on test functions (code-tier) or
-> `#[presents(X, requires=...)]` on the site (substrate-tier). The `#[immune]` form
-> still compiles with a deprecation warning — see [`macros.md`](macros.md) for migration.
-
 > The `WitnessTier` gradient that `cargo antigen audit` reports for every
 > defended presentation. This document explains what each tier means, when
 > each applies, and how the audit reports them honestly per ADR-005
@@ -39,26 +34,25 @@ would silently overclaim the weaker witnesses up to the strongest.
 ADR-005 Amendment 3 (audit-tier-honesty) requires the audit to report
 the *actual* strength of verification performed, never a stronger one.
 
-The four tiers in v0.1.0-rc.1 (per `WitnessTier` enum in
-`antigen/src/audit.rs`):
+The four tiers (per the `WitnessTier` enum in `antigen/src/audit.rs`):
 
 | Tier | Strength | When it applies |
 |---|---|---|
 | **FormalProof** | Mathematical guarantee on all inputs in the proven domain | Phantom-type witnesses (ADR-013) — turbofish pattern (`Foo::<T>::constructor`) recognized as a sealed type-system proof |
-| **Execution** | Empirically verified on tested inputs | Reserved for A4-A5: requires the audit to actually invoke `cargo test` / proptest harness and confirm the witness passes. Not emitted in v0.1 |
-| **Reachability** | Witness identifier resolves; audit has not verified runtime behavior | All v0.1 non-FormalProof resolutions: `#[test]` / `#[test]+#[ignore]` / `proptest!` / regular functions / external-tool prefixes (`clippy::`, `kani::`, etc.). The audit hint disambiguates which case |
+| **Execution** | Empirically verified on tested inputs | Reserved: requires the audit to actually invoke `cargo test` / proptest harness and confirm the witness passes. Not currently emitted |
+| **Reachability** | Witness identifier resolves; audit has not verified runtime behavior | All non-FormalProof resolutions: `#[test]` / `#[test]+#[ignore]` / `proptest!` / regular functions / external-tool prefixes (`clippy::`, `kani::`, etc.). The audit hint disambiguates which case |
 | **None** | No *passing* evidence — either no witness resolved, or a predicate resolved and failed | Two distinct sub-channels collapse to `None`: (a) **witness-resolution** gap — `Missing`, `NotFound`, or `Ambiguous` witness status (no witness to evaluate); (b) **predicate-evaluation** outcome — a `requires =` substrate-witness predicate was evaluated and *failed* (`DisciplinePredicateFailed`). Tier reports only strength-of-*passing*-evidence, so both non-pass cases share `None`; the `AuditHint` carries which sub-channel and why |
 
-**Why only Reachability for `#[test]` in v0.1**: per ADR-005 Amendment 3
+**Why only Reachability for `#[test]`**: per ADR-005 Amendment 3
 (audit-tier-honesty), the audit reports the work the audit ACTUALLY
-PERFORMED. v0.1 walks the workspace and indexes functions; it does NOT
-invoke `cargo test`. A `#[test]` function whose run was not invoked sits
-at Reachability — its existence is verified, its passing is not.
-Promotion to Execution tier requires harness invocation, planned for A4-A5.
+PERFORMED. The audit walks the workspace and indexes functions; it does
+NOT invoke `cargo test`. A `#[test]` function whose run was not invoked
+sits at Reachability — its existence is verified, its passing is not.
+Promotion to Execution tier requires harness invocation.
 
 **Disambiguating Reachability cases via audit hints**: although all
-non-FormalProof resolutions collapse to Reachability tier in v0.1, the
-parallel `AuditHint` field distinguishes them. The hint is what the
+non-FormalProof resolutions collapse to Reachability tier, the parallel
+`AuditHint` field distinguishes them. The hint is what the
 human-readable diagnostic emits and what consumers should match on:
 
 | Witness shape | Tier | Audit hint |
@@ -77,7 +71,7 @@ human-readable diagnostic emits and what consumers should match on:
 **Strength**: mathematical guarantee covering all inputs in the proven
 domain.
 
-**Recognized witnesses** (v0.1.0-rc.1):
+**Recognized witnesses**:
 
 - **Phantom-type witnesses** (ADR-013) — the type system itself proves
   immunity. Recognition shape: a path with turbofish syntax
@@ -93,7 +87,7 @@ compiles, the proof holds.
 **Example** (full version in `antigen/examples/phantom_witness.rs`):
 
 ```rust
-use antigen::immune;
+use antigen::presents;
 use std::marker::PhantomData;
 
 pub struct NonPanickingProof<T> {
@@ -109,10 +103,10 @@ impl<T> NonPanickingProof<T> {
 
 pub struct PhantomVerifiedDropImpl;
 
-#[immune(
+// Phantom-type token constructible only via the sealed `verified` constructor.
+#[presents(
     DropPanicClass,
-    witness = NonPanickingProof::<PhantomVerifiedDropImpl>::verified,
-    rationale = "Phantom-type token constructible only via the sealed `verified` constructor."
+    proof = NonPanickingProof::<PhantomVerifiedDropImpl>::verified
 )]
 impl Drop for PhantomVerifiedDropImpl { /* ... */ }
 ```
@@ -125,55 +119,41 @@ responsibility — the audit recognizes the shape but cannot prove the
 constructor's soundness, so the hint name explicitly names the
 recognition-but-not-validation surface.)
 
-**Future tier extensions** (not v0.1.0-rc.1; see [`roadmap.md`](roadmap.md)):
-
-- `kani::proof_fn` / `prusti::specification` / `verus::proof` /
-  `creusot::specification` witnesses where the consuming workspace
-  actually executes the verifier and the proof passes. v0.1.0-rc.1
-  reports these as Reachability tier with the
-  `ExternalToolPrefixRecognized` hint (see below); A4-A5 will ship the
-  harness invocation that can promote them to FormalProof tier when the
-  verifier confirms.
+`kani::proof_fn` / `prusti::specification` / `verus::proof` /
+`creusot::specification` witnesses report as Reachability tier with the
+`ExternalToolPrefixRecognized` hint (see below): the audit recognizes the
+verifier prefix but does not execute the verifier, so it cannot confirm the
+proof passes.
 
 ---
 
-## Execution tier (reserved for A4-A5)
+## Execution tier (reserved)
 
 **Strength**: empirically verified by the audit actually invoking the
 witness harness and confirming a passing run.
 
-**Status in v0.1.0-rc.1**: NOT EMITTED. The Execution tier exists in the
-`WitnessTier` enum as a forward-compatibility slot, but the v0.1 audit
-does not invoke `cargo test`, the proptest harness, or any external
-verifier. All test-function witnesses sit at `Reachability` tier with
-their corresponding `TestAttributePresentNotInvoked` /
+**Status**: NOT EMITTED. The Execution tier exists in the `WitnessTier`
+enum as a forward-compatibility slot, but the audit does not invoke
+`cargo test`, the proptest harness, or any external verifier. All
+test-function witnesses sit at `Reachability` tier with their
+corresponding `TestAttributePresentNotInvoked` /
 `ProptestPresentNotInvoked` / `TestAttributePresentIgnoreSkipped` hint.
 
-**When Execution tier ships (A4-A5 per [`roadmap.md`](roadmap.md))**:
+The promotion paths for the reserved Execution / FormalProof tiers (the
+audit invoking the harness or external tool and reading the result) are a
+recorded graduation path — see [`roadmap.md`](roadmap.md).
 
-- `#[test]` function whose `cargo test` invocation passed → promoted from
-  Reachability to Execution
-- `proptest!` function whose harness invocation completed without
-  property violation → promoted from Reachability to Execution
-- External-tool prefixes (`kani::`, `prusti::`, `verus::`, `creusot::`,
-  `flux::`) whose tool invocation produced a passing proof → promoted
-  from Reachability to FormalProof (the external tool produces the
-  guarantee; antigen recognizes the invocation result, not the proof
-  structure)
-
-**Example** (current v0.1 behavior — reports Reachability, not Execution):
+**Example** (current behavior — reports Reachability, not Execution):
 
 ```rust
-use antigen::immune;
+use antigen::{defended_by, presents};
 use crate::antigens::PanickingInDrop;
 
-#[immune(
-    PanickingInDrop,
-    witness = safe_drop_no_panic_test,
-    rationale = "SafeType::drop verified panic-free by direct test."
-)]
+#[presents(PanickingInDrop)]
 impl Drop for SafeType { /* ... */ }
 
+// SafeType::drop verified panic-free by direct test.
+#[defended_by(PanickingInDrop)]
 #[test]
 fn safe_drop_no_panic_test() {
     drop(SafeType { data: None });
@@ -181,11 +161,11 @@ fn safe_drop_no_panic_test() {
 }
 ```
 
-In v0.1: the audit reports `tier = Reachability`, `hint =
-TestAttributePresentNotInvoked` for this immunity claim — accurately
-reflecting that the function exists with a `#[test]` attribute but its
-run was not invoked by the audit. CI is responsible for actually running
-the test; the audit reports the work IT performed, not what CI might do.
+The audit reports `tier = Reachability`, `hint =
+TestAttributePresentNotInvoked` for this witness — accurately reflecting
+that the function exists with a `#[test]` attribute but its run was not
+invoked by the audit. CI is responsible for actually running the test;
+the audit reports the work IT performed, not what CI might do.
 
 ---
 
@@ -204,9 +184,10 @@ executed or that it actually defends.
 **Example**:
 
 ```rust
-#[immune(MyAntigen, witness = my_helper_function)]
+#[presents(MyAntigen)]
 fn defended() { /* ... */ }
 
+#[defended_by(MyAntigen)]
 fn my_helper_function() { /* not a test, just a function */ }
 ```
 
@@ -221,12 +202,11 @@ function (or write a new test) and point the witness at it.
 
 ## External-tool witnesses (Reachability tier + ExternalToolPrefixRecognized hint)
 
-**Note**: there is no separate `ExternalUnvalidated` tier in v0.1.0-rc.1.
-External-tool witnesses resolve to `WitnessStatus::External { tool_hint }`,
-which the audit maps to `WitnessTier::Reachability` with the
-`ExternalToolPrefixRecognized` audit hint. The discipline is the same as
-the legacy "ExternalUnvalidated" framing (external delegation is weaker
-than execution); only the tier name differs.
+**Note**: there is no separate `ExternalUnvalidated` tier. External-tool
+witnesses resolve to `WitnessStatus::External { tool_hint }`, which the
+audit maps to `WitnessTier::Reachability` with the
+`ExternalToolPrefixRecognized` audit hint (external delegation is weaker
+than execution).
 
 **When it applies**:
 
@@ -238,7 +218,7 @@ than execution); only the tier name differs.
 **Example**:
 
 ```rust
-#[immune(MyAntigen, witness = clippy::no_panic_in_drop)]
+#[presents(MyAntigen, requires = clippy::no_panic_in_drop)]
 impl Drop for SafeType { /* clippy lint covers this case */ }
 ```
 
@@ -246,13 +226,11 @@ Audit reports `tier = Reachability, hint = ExternalToolPrefixRecognized`
 (JSON: `"reachability"` / `"external-tool-prefix-recognized"`). The
 witness IS recognized; antigen delegates the actual verification to
 clippy (compose-don't-compete per ADR-002), but clippy isn't executed
-inside antigen's audit pipeline in v0.1.0-rc.1.
+inside antigen's audit pipeline.
 
-**Future upgrade** (per [`roadmap.md`](roadmap.md) Sweep A4): harness
-invocation will execute the external tool and upgrade resolved witnesses
-to Execution or FormalProof tier as appropriate. The
-`ExternalToolInvoked` hint exists in the enum as a forward-compatibility
-slot but is not emitted in v0.1.
+The `ExternalToolInvoked` hint exists in the enum as a
+forward-compatibility slot but is not currently emitted: the audit does not
+execute the external tool.
 
 **Cross-crate witnesses**: when a witness like `dep_crate::test_fn`
 points to a function in a dependency that the consuming workspace can't
@@ -277,13 +255,12 @@ fixes, so reading the `AuditHint` is mandatory to tell them apart.
 
 **When it applies — (1) witness-resolution gaps**:
 
-- `#[immune]` without a `witness =` field → `WitnessStatus::Missing` →
-  audit hint `NoneApplicable`
-- `witness = fn_name` where `fn_name` doesn't exist in the workspace →
+- A `#[presents]` site with no `#[defended_by]` witness and no `requires =`
+  predicate → `WitnessStatus::Missing` → audit hint `NoneApplicable`
+- A `requires = name` where `name` doesn't resolve in the workspace →
   `WitnessStatus::NotFound { reason }` → audit hint `NoneApplicable` (or
-  `FabricatedPathPrefix` when the path's module prefix doesn't exist —
-  ATK-A2-011)
-- `witness = fn_name` where multiple functions named `fn_name` exist →
+  `FabricatedPathPrefix` when the path's module prefix doesn't exist)
+- A `requires = name` where multiple functions named `name` exist →
   `WitnessStatus::Ambiguous { candidates }` → audit hint `AmbiguousResolution`
 
 **When it applies — (2) predicate-evaluation failures**:
@@ -294,12 +271,12 @@ fixes, so reading the `AuditHint` is mandatory to tell them apart.
   tolerance sidecar). Unlike the resolution gaps above, the evidence
   *exists and was checked* — it just didn't satisfy the predicate. Per-leaf
   detail on *which* leaf failed and *why* is the diagnostic the audit hint
-  alone cannot yet carry (a known DX gap; see the per-leaf-diagnostics work).
+  alone cannot yet carry.
 
 **Example (witness not found)**:
 
 ```rust
-#[immune(MyAntigen, witness = nonexistent_test)]
+#[presents(MyAntigen, requires = nonexistent_sidecar)]
 impl Drop for SafeType { /* ... */ }
 ```
 
@@ -335,20 +312,19 @@ PascalCase. The table below lists both forms.
 | JSON hint | Rust variant | Resulting tier | Meaning |
 |---|---|---|---|
 | `phantom-type-shape-recognized` | `PhantomTypeShapeRecognized` | FormalProof | Turbofish phantom-type witness shape matched (ADR-013); constructor sealing not validated |
-| `phantom-type-construction-validated` | `PhantomTypeConstructionValidated` | FormalProof | Phantom-type construction validated (future; not emitted in v0.1) |
+| `phantom-type-construction-validated` | `PhantomTypeConstructionValidated` | FormalProof | Phantom-type construction validated (reserved enum slot; not currently emitted) |
 | `test-attribute-present-not-invoked` | `TestAttributePresentNotInvoked` | Reachability | Function has `#[test]`; audit did not invoke `cargo test` |
 | `test-attribute-present-ignore-skipped` | `TestAttributePresentIgnoreSkipped` | Reachability | Function has `#[test]` AND `#[ignore]`; `cargo test` would skip it by default |
 | `proptest-present-not-invoked` | `ProptestPresentNotInvoked` | Reachability | `proptest!` macro invocation found; harness not invoked |
 | `function-resolves` | `FunctionResolves` | Reachability | Workspace function exists with no testing attribute; behavior not verified |
 | `external-tool-prefix-recognized` | `ExternalToolPrefixRecognized` | Reachability | External-tool prefix recognized (`clippy::`, `kani::`, …); tool not invoked |
-| `external-tool-invoked` | `ExternalToolInvoked` | (future) | External tool actually invoked (A4+; not emitted in v0.1) |
-| `ambiguous-resolution` | `AmbiguousResolution` | None | Witness name matches more than one workspace function (ATK-A2-005) |
-| `fabricated-path-prefix` | `FabricatedPathPrefix` | None | Witness path's module prefix doesn't exist; last segment found but in an unrelated location (ATK-A2-011) |
+| `external-tool-invoked` | `ExternalToolInvoked` | (reserved) | External tool actually invoked (reserved enum slot; not currently emitted) |
+| `ambiguous-resolution` | `AmbiguousResolution` | None | Witness name matches more than one workspace function |
+| `fabricated-path-prefix` | `FabricatedPathPrefix` | None | Witness path's module prefix doesn't exist; last segment found but in an unrelated location |
 | `none-applicable` | `NoneApplicable` | None | Catch-all for Missing / NotFound when no more-specific hint applies |
 | `inherited-presentation-not-re-attested` | `InheritedPresentationNotReAttested` | (state-7 diagnostic, separate channel) | Inherited Presentation lacks re-attestation on the descendant site; state 7 of the 7-state interaction matrix (ADR-018). Surfaces via `audit.inherited_unaddressed[]` rather than as a per-immunity audit entry |
 
-The complete hint set lives in `antigen/src/audit.rs::AuditHint`; this
-table reflects v0.1.0-rc.1 hint enumeration.
+The complete hint set lives in `antigen/src/audit.rs::AuditHint`.
 
 ---
 
@@ -362,7 +338,7 @@ greater than zero; the conventional summary lines (`declared`,
 ```
 Auditing workspace: .
 
-Audited 12 immunity claim(s):
+Audited 12 defense(s):
   - 6 formal-proof (phantom-type or formal-verification tool — compile-time evidence)
   - 3 declared (witness identifier found in workspace — not yet semantically verified)
   - 1 external (delegated to clippy/kani/prusti/etc. — not yet executed by antigen)
@@ -370,19 +346,18 @@ Audited 12 immunity claim(s):
   - 2 broken (witness identifier not found)
   - 0 missing (no witness identifier)
 
-✓ 6 immunity claim(s) at Execution tier or higher:
+✓ 6 defense(s) at Execution tier or higher:
   path/to/file.rs:LINE  AntigenType (witness = `witness_expression`)
     tier = FormalProof, hint = PhantomTypeShapeRecognized
   ...
 
-⚠ 6 immunity claim(s) below Execution tier:
+⚠ 6 defense(s) below Execution tier:
   ...
 ```
 
-The confirmed-claims section (added in A3.5 per ATK-A3-019) makes
-FormalProof and Execution tier achievements visible in human output.
-Adding a phantom-type witness now produces visible positive signal,
-not silent classification.
+The confirmed-defenses section makes FormalProof and Execution tier
+achievements visible in human output. Adding a phantom-type witness
+produces visible positive signal, not silent classification.
 
 ---
 
@@ -391,15 +366,15 @@ not silent classification.
 Per ADR-005 Amendment 3, the audit:
 
 - **Reports actual tier, not maximal tier**. If `proptest` is the
-  witness, v0.1 audit reports Reachability with hint
+  witness, the audit reports Reachability with hint
   `ProptestPresentNotInvoked` — not Execution, because the audit did
   not invoke the proptest harness.
-- **Surfaces below-Execution claims explicitly**. All claims at
+- **Surfaces below-Execution defenses explicitly**. All defenses at
   `Reachability` or `None` tier produce ⚠ warnings in human-readable
   output.
 - **Never silently upgrades**. The witness shape determines the tier;
   the audit cannot promote a Reachability witness to Execution without
-  evidence (which v0.1 cannot produce).
+  evidence it does not yet produce.
 - **Reports external-tool delegation honestly**. A witness with an
   external-tool prefix (`clippy::`, `kani::`, …) reports Reachability
   tier with the `ExternalToolPrefixRecognized` hint — the prefix is
@@ -426,7 +401,7 @@ CLI interaction surface (`cargo antigen attest / check`).
 | `EvidenceKind` | What produces it | Max `WitnessTier` |
 |---|---|---|
 | `TypeSystemProof` | Phantom-type witnesses (ADR-013) | `FormalProof` |
-| `Behavioral` | `#[test]`, proptest, external tools | `Execution` (at A4-A5; `Reachability` in v0.1) |
+| `Behavioral` | `#[test]`, proptest, external tools | `Execution` ceiling; currently emitted at `Reachability` (the audit does not invoke the harness) |
 | `SubstrateState` | Substrate-witness predicates (ADR-019) | `Execution` — ceiling by design |
 | `None` | No witness / witness fails | `None` |
 
@@ -441,13 +416,13 @@ and recorded, which is Execution-strength evidence.
 ### Signature tiers
 
 Substrate-witness signatures carry a `SignatureStrength` that records
-identity-binding fidelity of each signer. Three tiers in v0.1:
+identity-binding fidelity of each signer. Three tiers:
 
 | `SignatureStrength` | Serde value | Identity binding | When to use |
 |---|---|---|---|
 | `TextStamp` | `"text_stamp"` | Name + timestamp only; no external validation | LLM agents, reviewers without git config |
 | `GitTrust` | `"git_trust"` | `git config user.name + user.email` at sign time; fingerprint-pinned | Default for git-configured humans |
-| `CryptoSigned` | `"crypto_signed"` | Cryptographic binding (DSSE-PAE + Sigstore transparency log) | v0.4+ activation path; schema-reserved in v0.1 |
+| `CryptoSigned` | `"crypto_signed"` | Cryptographic binding (DSSE-PAE + Sigstore transparency log) | schema-reserved; not yet active |
 
 The `signature_allow` field on the `signers` predicate leaf declares
 which strengths the project accepts for this antigen. Default (empty
@@ -493,7 +468,7 @@ claim kind:
 | `discipline-substrate-stale` | `DisciplineSubstrateStale` | Reachability | Predicate passes but ≥1 signature is stale relative to the current fingerprint |
 | `discipline-substrate-delta-chain-near-cap` | `DisciplineSubstrateDeltaChainNearCap` | Execution | Predicate passes, all current, but a signer's chain depth is near the cap — next delta will be refused |
 | `discipline-predicate-passed-via-delta-chain` | `DisciplinePredicatePassedViaDeltaChain` | Execution | Predicate passes, all current; ≥1 signer's basis is `DeltaFrom` (within caps) — informational carry-forward note |
-| `discipline-predicate-passed-substrate-current` | `DisciplinePredicatePassedSubstrateCurrent` | Execution | Predicate passes, all current, all signers' bases are `Fresh` — the strongest substrate-witness state in v0.1 |
+| `discipline-predicate-passed-substrate-current` | `DisciplinePredicatePassedSubstrateCurrent` | Execution | Predicate passes, all current, all signers' bases are `Fresh` — the strongest substrate-witness state |
 
 **Tolerance-claim substrate hints** (4 variants):
 
@@ -614,10 +589,10 @@ and `discipline-substrate-delta-chain-near-cap` fires while still passing.
 - **Does not produce FormalProof tier**. On-disk empirical state
   cannot constitute a mathematical guarantee regardless of how many
   signers or how strong their signatures.
-- **Does not validate signature authenticity in v0.1**. `GitTrust`
-  records the git-config identity at sign time; it does not verify
-  that the git config itself was accurate. `CryptoSigned` (v0.4+)
-  provides cryptographic binding. `TextStamp` is self-declared.
+- **Does not validate signature authenticity**. `GitTrust` records the
+  git-config identity at sign time; it does not verify that the git
+  config itself was accurate. `CryptoSigned` (schema-reserved) provides
+  cryptographic binding. `TextStamp` is self-declared.
 - **Does not cache**. The evaluator reads the sidecar fresh from disk
   on every audit invocation (no-cache discipline per ADR-019 §M2).
   The sidecar is the substrate; the substrate is the source of truth.
@@ -626,27 +601,25 @@ and `discipline-substrate-delta-chain-near-cap` fires while still passing.
 
 ## Choosing a witness type
 
-Practical guidance for v0.1.0-rc.1 (tier values reflect what the audit
-actually emits; future tier-promotion paths noted in parentheses):
+Practical guidance (tier values reflect what the audit actually emits):
 
-| If you have… | Use this witness | v0.1 tier (hint) |
+| If you have… | Use this witness | tier (hint) |
 |---|---|---|
-| A `#[test]` function | `witness = test_fn_name` | Reachability (`TestAttributePresentNotInvoked`) — promotes to Execution at A4-A5 |
-| A `proptest!` covering broad input space | `witness = proptest_fn_name` | Reachability (`ProptestPresentNotInvoked`) — promotes to Execution at A4-A5 |
-| A phantom-type proof token | `witness = NonPanickingProof::<MyType>::verified` | FormalProof (`PhantomTypeShapeRecognized`) |
-| A clippy lint rule | `witness = clippy::lint_name` | Reachability (`ExternalToolPrefixRecognized`) — promotes to Execution at A4-A5 |
-| A formal proof in kani/prusti/verus/creusot/flux | `witness = kani::proof_fn` (etc.) | Reachability (`ExternalToolPrefixRecognized`) — promotes to FormalProof at A4-A5 |
-| Just a helper function (not a test) | `witness = helper_fn` | Reachability (`FunctionResolves`) |
-| A discipline decision sidecar (ADR-019) | `#[immune(..., requires = signers(["alice"]))]` | Execution if predicate passes and all Fresh (`DisciplinePredicatePassedSubstrateCurrent`) |
-| Nothing yet — placeholder | `#[antigen_tolerance(...)]` with rationale | (tolerated; not an immunity claim) |
+| A `#[test]` function | `#[defended_by(X)]` on the test | Reachability (`TestAttributePresentNotInvoked`) |
+| A `proptest!` covering broad input space | `#[defended_by(X)]` on the proptest | Reachability (`ProptestPresentNotInvoked`) |
+| A phantom-type proof token | `#[presents(X, proof = NonPanickingProof::<MyType>::verified)]` | FormalProof (`PhantomTypeShapeRecognized`) |
+| A clippy lint rule | `#[presents(X, requires = clippy::lint_name)]` | Reachability (`ExternalToolPrefixRecognized`) |
+| A formal proof in kani/prusti/verus/creusot/flux | `#[presents(X, requires = kani::proof_fn)]` (etc.) | Reachability (`ExternalToolPrefixRecognized`) |
+| Just a helper function (not a test) | `#[defended_by(X)]` on the helper | Reachability (`FunctionResolves`) |
+| A discipline decision sidecar (ADR-019) | `#[presents(X, requires = signers(["alice"]))]` | Execution if predicate passes and all Fresh (`DisciplinePredicatePassedSubstrateCurrent`) |
+| Nothing yet — placeholder | `#[antigen_tolerance(...)]` with rationale | (tolerated; not a defense) |
 
 The discipline is honest: a theatrical test that always passes still
 reports its tier honestly. The audit reports the shape it recognized,
-not whether the witness actually verifies the failure class — semantic
-verification (does the witness mean what it should?) is behavioral-tier
-work for A4-A5. The [`troubleshooting.md`](troubleshooting.md) document
-covers the "witness passes but doesn't mean what it should" failure-class
-family (ATK-A2-003/004/005/011/012).
+not whether the witness actually verifies the failure class — it does
+not perform semantic verification (does the witness mean what it
+should?). The [`troubleshooting.md`](troubleshooting.md) document covers
+the "witness passes but doesn't mean what it should" failure-class family.
 
 ---
 
@@ -658,7 +631,7 @@ family (ATK-A2-003/004/005/011/012).
 - ADR-007 (anti-YAGNI: all witness families committed)
 - ADR-013 (phantom-type witness recognition)
 - ADR-019 (discipline-witnesses: substrate-witness predicate family)
-- [`macros.md`](macros.md) — `#[immune]` macro reference
+- [`macros.md`](macros.md) — `#[presents]` / `#[defended_by]` macro reference
 - [`fingerprint-grammar.md`](fingerprint-grammar.md) — fingerprint DSL
 - [`output-formats.md`](output-formats.md) — full audit output reference
 - [`troubleshooting.md`](troubleshooting.md) — diagnostic guide

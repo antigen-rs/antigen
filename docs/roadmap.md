@@ -4,10 +4,201 @@
 > aspirational. Substrate-grounded confidence intervals; no firm calendar
 > dates beyond what's actually committed.
 
-**This is the adopter-facing roadmap.** Internal sweep planning lives in
-[`sweeps/`](../sweeps/); ratified architecture lives in
-[`docs/decisions.md`](decisions.md); expedition substrate lives in
-[`docs/expedition/`](expedition/).
+**This is the adopter-facing roadmap.** Ratified architecture lives in
+[`decisions.md`](decisions.md).
+
+---
+
+## Shipped (v0.4 — immune-system-at-scale)
+
+v0.4 makes the new immune surface **discoverable** and closes the most load-bearing
+honesty gap in the scan path.
+
+### Bundled stdlib catalog — closing the zero-hits cliff (ADR-043)
+
+A fresh crate with **zero** antigen declarations no longer reports a false
+all-clear. Antigen ships a **bundled catalog** of its flagship failure-class
+fingerprints; the scanner reaches for it automatically.
+
+- **Auto-detect** — bare `cargo antigen scan` on a zero-declaration crate
+  auto-injects the catalog, so an empty repertoire is no longer mistaken for
+  immunity (ADR-043 Amendment 2).
+- **`--bundled-catalog`** — explicit augment-mode: always injects the catalog on
+  top of your declared antigens.
+- **`antigen::scan::scan_workspace_bundled_catalog`** — the library entry-point
+  for the same behavior (a new public contract).
+- Catalog matches are **scan-facts** — `FindingBody::FingerprintMatch`, a distinct
+  type that structurally cannot masquerade as an audited defense verdict
+  (claim-scope, ADR-043 Amendment 1 / ADR-044).
+
+### Editor flycheck — `--message-format json` (ADR-046 render B)
+
+`cargo antigen scan --message-format json` emits the **rustc/cargo line-protocol**
+(newline-delimited `compiler-message` objects). Point rust-analyzer's
+`check.overrideCommand` at it and fingerprint matches render inline as warnings —
+no custom LSP server. Every diagnostic carries the verbatim claim-scope line
+*"This is a fingerprint match to inspect, not an audited verdict"* at `warning`
+level only. See [`output-formats.md`](output-formats.md) and
+[`deployment-ci-integration.md`](deployment-ci-integration.md).
+
+### Diff-native DETECT (ADR-046)
+
+The DETECT half of diff-native scanning: a structural delta between two snapshots
+surfaces a guard/defense **removal**, not just an absence — antigen sees what was
+taken away. (The CLASSIFY half is a tracked v0.4+ increment.)
+
+### The Learning-Core loop (library API) — the keystone (ADR-044/045)
+
+The cluster → propose → test → promote/prune loop, governed by a **self-tolerance
+gate**, shipped as a **library API** (`antigen::learn`), *not* a CLI command:
+
+- **C-PROPOSE** (`propose()`) anti-unifies a cluster of marked sites into a draft
+  fingerprint — labeled a **hypothesis to ratify**, never an auto-asserted
+  `#[presents]`.
+- The **safety line (C ══ B)** is type-enforced: `propose()` is the only
+  promotable path and routes every promotion through `promote_if_safe`
+  (self-tolerance), which refuses to promote a draft on an empty corpus.
+- Falsified on antigen's **own** honest self-doubt: the loop runs on antigen's
+  three `#[dread]`-marked silent-skip sites and promotes only through the gate.
+
+> **Scope honesty.** C-PROPOSE is a **library API** in v0.4 — there is no `cargo
+> antigen propose` command. It has zero production callers (push-gated and
+> un-breachable in production today). The keystone shipped the *safety-governed
+> learner*, not a user-facing verb. The `--message-format`/bundled-catalog
+> surfaces are the user-facing v0.4 value; the Learning-Core is the substrate the
+> next cycle wires.
+
+Two named hardening items are the preconditions for wiring C into a render — both
+located, neither built:
+
+- **A corpus-bindability check.** The self-tolerance gate refuses an *empty* corpus,
+  but a non-empty corpus that binds *no* item in the draft's match-domain is also a
+  vacuous screen. The non-drifting precondition is corpus-*bindability* (at least one
+  item the draft actually matches), not mere non-emptiness.
+- **A `PromotedFingerprint` newtype.** Today "promote = `propose()` only" is enforced
+  by *routing* (both `anti_unify` and `promote_if_safe` return a bare `Fingerprint`).
+  The type-enforced form — a `PromotedFingerprint` constructible only by the gate — is
+  the hardening for when the learner is wired into a render.
+
+---
+
+## Next — the fingerprint-grammar edge (graduation paths)
+
+Every shipped stdlib family carries an honest **tier** (`named` / `suspected` /
+`chartered`, see [`stdlib-families.md`](stdlib-families.md)). A tier is a property
+of the *fingerprint shape*, and several families sit at the honest tier their
+*current* fingerprint earns — not the tier the failure-class deserves once the
+grammar grows. This section is the single home for those graduation paths: what a
+member needs before it can promote, so the per-family docs can describe only
+shipped behavior and point here for the "and later" story.
+
+The grammar-edge divides into three extensions. Each unblocks a cluster of
+graduations.
+
+### The resolved-type / semantic tier
+
+The shipped scanner reads source as **text** (syntactic). A semantic tier —
+resolved types, arg-position, control-flow liveness, receiver-type resolution —
+needs a real type-aware front end (`ra_ap_syntax`, MSRV-unblocked). It would
+graduate:
+
+- **`SizeOfInElementCount` → named.** Today `suspected` (the `size_of` +
+  `copy_nonoverlapping` co-presence fires on idiomatic-correct byte-copies too).
+  Graduation is *type-aware* — arg-position **and** pointee-type, because the
+  correct `*u8` byte-copy idiom still false-positives without the pointee type.
+- **`SystemTimeUnwrapPanic` → named.** Today `suspected` (the
+  `duration_since` + `unwrap` co-occurrence shares a name with the infallible
+  `Instant::duration_since`; the only discriminator is the receiver *type*, which
+  the syntactic scanner can't resolve). The precise method-chain leaf plus
+  receiver-type resolution graduates it.
+- **`DeliberateLeakNotDocumented` → named.** Today `suspected` (`forget` / `leak`
+  are bare common last-segments; a domain `cache.forget()` also fires). Path /
+  semantic resolution narrows the codomain to the real `mem::forget` / `Box::leak`
+  primitives.
+- **The unsafe-soundness members' deeper check.** The three `named` members
+  (`TransmuteSizeOrLifetimeMismatch`, `UninitMemoryAssumedInit`,
+  `UnvalidatedFromUtf8Unchecked`) fire on the *presence* of the unsafe call today;
+  the precise size/lifetime/validity check that distinguishes a sound use from an
+  unsound one is the semantic tier.
+- **The `SystemTime::elapsed().unwrap()` recall hole.** `elapsed` is excluded from
+  the `SystemTimeUnwrapPanic` anchor today (it would fire on the monotonic
+  `Instant::elapsed()` fix). Recovering the `SystemTime::elapsed()` true-positive
+  without re-flagging the `Instant` fix is a receiver-type discrimination — the
+  semantic tier.
+- **A `set_len` member.** `Vec::set_len`'s risky-vs-safe turns on receiver type
+  *and* arg value (neither syntactic), so it ships no member today. A dedicated
+  `suspected` `set_len` member is a recorded charter behind the semantic tier.
+
+### The operator-leaf
+
+`body_calls` reaches only call expressions (`ExprCall` / `ExprMethodCall`). Several
+real tells are *operators* the current grammar can't see:
+
+- **The panic-on-index operator form.** `expr[i]` indexing with an input-derived
+  index is an Index-*operator* tell (`ExprIndex`), not a call leaf — so
+  `Panic-on-Index` ships only the `get_unchecked` call form today. The operator-leaf
+  graduates the panic form.
+- **`NonConstantTimeSecretComparison` (the crypto-misuse member).** The real defect
+  — a hand-rolled `==` / byte-loop on a secret — is an *operator* (`==`,
+  `ExprBinary`) on a secret-typed value. It needs **both** the `==` operator-leaf
+  and the `security_sensitive_name` name-leaf below.
+
+### The `security_sensitive_name` name-leaf
+
+A data-context leaf (does this value carry a secret / MAC / key?) is the missing
+half of the crypto-misuse member. With it (and ideally the `==` operator-leaf), the
+**chartered** `Crypto-Misuse` family ships `NonConstantTimeSecretComparison` at the
+`suspected` tier. Until then it stays chartered: a shipped call-only form would
+actively mislead (it would flag the *correct* constant-time API
+`ring::hmac::verify`, which has no visible compare call).
+
+### Site-granular witness crediting
+
+Today a `#[defended_by]` witness credits at the **antigen-type** granularity: one
+witness for `UnboundedDeserialization` marks *every* `UnboundedDeserialization`
+presents-site defended, so an audit can't visibly separate a defended site from an
+undefended sibling of the same class. The finer model splits along the confidence
+dial:
+
+- **Declared site-granular** — you bind a witness to a *named* site. The smaller,
+  syntactic increment.
+- **Inferred site-granular** — the tool resolves which site a test actually
+  reaches. Needs the semantic analysis above.
+
+### In-memory deserialization depth
+
+`UnboundedDeserialization` anchors on streaming `from_reader` today. The in-memory
+deep-nesting recursion DoS (a different harm, a different remedy) is a distinct
+future `#[descended_from]` **depth-member** of the same family — taxonomy, not a
+widened fingerprint.
+
+---
+
+## Later — the biological tiers (recognition substrate)
+
+The immune-system metaphor (ADR-003) catalogs primitives antigen *could* grow into
+as adoption surfaces real instances. These are **recognition substrate** — chartered
+shapes, not built features — and this section is their single home so the per-doc
+narratives can teach only shipped behavior and point here for the rest.
+
+### Dysregulation markers
+
+The **self-tolerance gate** (`antigen::learn::self_tolerance`) shipped in v0.4 as a
+library: it detects autoimmunity (a fingerprint over-firing on clean siblings). The
+two named dysregulation *markers* — `#[sepsis]` (a defense that has itself become the
+harm: a runaway over-firing class) and `#[anaphylaxis]` (an over-reaction to a benign
+trigger) — are **chartered, not built**. They await a real instance in adopter
+substrate before they earn a fingerprint (recognition-not-design, ADR-006).
+
+### The routing organ
+
+Biology is dense on sensing, comparing, and acting, but comparatively *silent* on
+**routing policy** — the immune system has no central decision-maker weighing which
+response to mount; it is distributed and emergent. That silence predicts antigen's
+under-built edge: a **routing/orchestration** layer (which finding goes to whom,
+with what priority). The marked-unknown markers already carry a `severity` field as
+the reserved routing hint for it. The organ that consumes that hint — a
+cytokine-routing analog — is chartered, not built.
 
 ---
 
@@ -75,7 +266,7 @@ aggregation; adversarial-verified correctness (ATK-CE-1, ATK-CE-2, ATK-CE-3-B fi
 The core vocabulary, scan + audit tooling, substrate-witness pipeline, Oracle artifact lifecycle, and team-coordination tooling are all live across 5 crates on crates.io (`antigen`, `antigen-macros`, `antigen-attestation`, `antigen-fingerprint`, `cargo-antigen`).
 
 ### Vocabulary + macros
-- **Five macros**: `#[antigen]`, `#[presents]`, `#[immune]`, `#[descended_from]`, `#[antigen_tolerance]`
+- **Five macros**: `#[antigen]`, `#[presents]`, `#[defended_by]`, `#[descended_from]`, `#[antigen_tolerance]` (plus the deprecated `#[immune]`, retained for backwards compatibility — see the [migration guide](immune-migration-guide.md))
 - **Cross-cutting attestation parameter**: `attested = (who, allowed_types, why, scope)` per ADR-020
 - **Phantom-type witness recognition** (ADR-013) — `Witnessed<T,W>`, `typewit::TypeEq`, hand-rolled `PhantomData<T>` shapes recognized at FormalProof tier
 - **Cross-crate identity** — `canonical_path` at `name@version` granularity (ADR-017); cross-crate `#[descended_from]` propagation in v0.2
@@ -92,7 +283,7 @@ The core vocabulary, scan + audit tooling, substrate-witness pipeline, Oracle ar
 - **Fingerprint grammar v1** — seven item-level operators (`item`, `name`, `variants`, `has_method`, `attr_present`, `doc_contains`, `body_contains_macro`) plus composition (`all_of`, `any_of`, `not`); proc_macro2 canonicalization per ADR-010 Amendment 5
 
 ### Substrate-witness machinery (ADR-019)
-- **`#[immune(X, requires = <predicate>)]`** form with substrate-witness leaves: `signers(required = [...])`, `fresh_within_days(N)`, `ratified_doc(path = ...)`, `oracles_complete(files = [...])`, `signed_trailer(...)`
+- **`#[presents(X, requires = <predicate>)]`** form with substrate-witness leaves: `signers(required = [...])`, `fresh_within_days(N)`, `ratified_doc(path = ...)`, `oracles_complete(files = [...])`, `signed_trailer(...)` (the `requires =` predicate shipped first on the now-deprecated `#[immune]`; ADR-029 moved it to `#[presents]`)
 - **Predicate combinators** — `all_of`, `any_of`, `not`
 - **Three-tier SignatureStrength** (per ADR-019 v1+3): WORKSPACE-LOCAL, OIDC-IDENTITY, KEY-SIGNED with explicit audit-time reporting
 - **Sidecar discovery** — `.attest/<Antigen>.json` co-located with declaration
@@ -220,7 +411,7 @@ rc's as needed; promote when shape is stable across all three witnesses."
 
 The v0.2 cycle is structured around an **architectural-posture-shift ratification event** — 10 ADRs ratifying together (one process.md amendment alongside) committing antigen to a **comprehensive immune-system stdlib** rather than the narrower v0.1 framing.
 
-This shift is grounded in the **generation-inspection asymmetry** that characterizes modern dev (humans + LLM agents + human-LLM teams generate code faster than any can inspect). Antigen's role is **memory-to-structure transformation**: convert passive memory (TODOs, comments, ADRs, Slack decisions) into co-native structure (compile-checked, audit-surfaced, stale-aware, sign-required) that surfaces itself. See [`docs/expedition/the-comprehensive-vision.md`](expedition/the-comprehensive-vision.md) for the full synthesis.
+This shift is grounded in the **generation-inspection asymmetry** that characterizes modern dev (humans + LLM agents + human-LLM teams generate code faster than any can inspect). Antigen's role is **memory-to-structure transformation**: convert passive memory (TODOs, comments, ADRs, Slack decisions) into co-native structure (compile-checked, audit-surfaced, stale-aware, sign-required) that surfaces itself. See [`vision-pitch.md`](vision-pitch.md) for the full synthesis.
 
 ### Ratified architectural commitments (v0.2 ceremony)
 
@@ -365,19 +556,26 @@ What we know going in:
 Items in active substrate-accrual; ratified or in-flight ADRs commit
 the direction even where the implementation lands later.
 
-- **Sweep A4: composition rules + witness-type pluralism completion** —
+- **Behavioral-tier execution gating** — the audit invokes `cargo test`
+  and the `proptest!` harness on `#[test]` and `proptest!` witnesses to
+  promote them from Reachability to Execution. Today such a witness lands
+  at Reachability and the audit reports the `test-attribute-present-not-invoked`
+  / `proptest-present-not-invoked` hint — the witness exists and names the
+  class, but the audit does not run it in this release (`immunity.rs`,
+  `types.rs` `AuditHint`). This is the behavioral-test path, distinct from
+  the external-verifier harness below.
+- **Composition rules + witness-type pluralism completion** —
   Eiffel-style D1/D2/D4 composition invariants; full
   kani/prusti/verus/creusot/flux witness recognition with harness
   invocation through the audit pipeline.
-- **Sweep A5: `antigen-stdlib` v0.1** — ecosystem-shared failure-class
+- **`antigen-stdlib`** — ecosystem-shared failure-class
   memory library. 10-20 stdlib antigens covering all 8 first-principles
   failure classes; antigens importable via dev-dependency or feature
   flag; ratified contribution model (recognition-grounded, not
-  spec-grounded — see [A5 governance encounter in
-  deferred-substrate.md](expedition/deferred-substrate.md)).
-- **Sweep A6: rust-analyzer plugin / IDE integration** — real-time
+  spec-grounded).
+- **rust-analyzer plugin / IDE integration** — real-time
   fingerprint match surfacing as you type; inline annotations for
-  presentations + immunity status; recognition at the moment of
+  presentations + defense status; recognition at the moment of
   authorship rather than build time. Maps to Component 7 (real-time /
   CI feedback) of multi-component immunity.
 - **Cross-crate scan reachability (ADR-001 C7 activation path)** —
@@ -386,8 +584,8 @@ the direction even where the implementation lands later.
   appear in their own `dep_reports` entry, with `canonical_path`
   stamped to `name@version` (ADR-017 identity model). It does **not**
   yet do cross-crate *matching*: a dependency's `#[presents]` site is
-  not resolved against the consuming workspace's `#[immune]`
-  declarations, and a fingerprint declared in crate A is not
+  not resolved against the consuming workspace's `#[defended_by]`
+  defenses, and a fingerprint declared in crate A is not
   synthesized against items in crate B. Each crate's report stays its
   own bag of antigens.
 
@@ -407,7 +605,7 @@ the direction even where the implementation lands later.
     via the `cargo metadata`-driven dep walk, honoring the ADR-017
     `name@version` trust boundary.
 
-  Deferred from v0.1 by the Sweep A3 scope-lock (deliberate, not
+  Deferred by an early scope-lock (deliberate, not
   unbuilt). Reopening it is an ADR-scope decision, not an incremental
   scanner tweak — the per-crate-isolation model is load-bearing for the
   current trust-boundary semantics. Tracked because the commitment is
@@ -430,7 +628,7 @@ structural architecture of failure-class memory that doesn't depend on
 Rust.
 
 Per-language implementations are components in the multi-component
-framing (see [`expedition/multi-component-immunity.md`](expedition/multi-component-immunity.md)):
+framing (see [`immune-system-primitive-map.md`](internal/immune-system-primitive-map.md)):
 
 - **Python**: ast-module or tree-sitter-based fingerprint engine;
   pip-installable tool with `python -m antigen scan` invocation
@@ -466,8 +664,8 @@ within codebases. Future antigen surfaces could operate at:
 
 At each tier, mechanism differs; the compositional property (structural
 failure-class memory) recurses. See
-[`expedition/antigen-applied-to-antigen.md`](expedition/antigen-applied-to-antigen.md)
-for the substrate exploring this recursion.
+[`war-stories/the-self-catch.md`](war-stories/the-self-catch.md)
+for antigen catching itself — this recursion in practice.
 
 **No version commitment**; cross-tier surfaces develop alongside per-
 language work as substrate accrues.
@@ -484,7 +682,7 @@ language work as substrate accrues.
   signatures, signed declarations, distributed trust models for
   ecosystem-scale failure-class memory
 
-These are post-A5 governance territory; substrate accrues as antigen-
+These are later-stage governance territory; substrate accrues as antigen-
 stdlib adoption grows.
 
 ---
@@ -524,21 +722,16 @@ Use antigens from dependencies. Contribute candidate stdlib antigens.
 Participate in cross-organization failure-class memory sharing.
 
 Each tier multiplies leverage without requiring the others. See
-[`expedition/multi-component-immunity.md`](expedition/multi-component-immunity.md)
+[`immune-system-primitive-map.md`](internal/immune-system-primitive-map.md)
 for the deeper architectural framing.
 
 ---
 
 ## How decisions get made
 
-This roadmap is recognition-grounded, not spec-grounded:
-
-- **Ratified ADRs** (in [`docs/decisions.md`](decisions.md)) commit the
-  architectural direction
-- **Sweeps** (in [`sweeps/`](../sweeps/)) execute toward those
-  commitments
-- **Expedition substrate** (in [`docs/expedition/`](expedition/))
-  matures ahead of ratification; not all expedition substrate ratifies
+This roadmap is recognition-grounded, not spec-grounded. **Ratified
+ADRs** (in [`decisions.md`](decisions.md)) commit the architectural
+direction.
 
 Per ADR-006 (recognition-not-design): new antigens, new witness types,
 new composition rules land when they recognize existing structure in
@@ -550,12 +743,9 @@ project's structural commitments guarantee a feature will be needed,
 it gets built upfront. Items in "Planned for v0.2" and "Planned for
 v0.3+" are mostly in this category.
 
-Per the [encounters discipline](expedition/encounters-proposal.md)
-(in flight): observations that aren't yet ratified-eligible get
-formally registered so subsequent recurrences recognize each other
-rather than getting treated as fresh first-recognitions. The encounters
-discipline is itself in this category — it's pre-ratification substrate
-about how the project handles pre-ratification substrate.
+Observations that aren't yet ratified-eligible get formally registered
+so subsequent recurrences recognize each other rather than getting
+treated as fresh first-recognitions.
 
 ---
 
@@ -567,10 +757,9 @@ value. Not "we built a tool; here are claims about what it does." More:
 proof."
 
 The recursion is structural: the discipline that produced antigen is
-the discipline antigen formalizes. Six instances of "antigen applied to
-antigen" surfaced in a single sweep (A3.5). See
-[`expedition/antigen-applied-to-antigen.md`](expedition/antigen-applied-to-antigen.md)
-for the framing.
+the discipline antigen formalizes. See
+[`war-stories/the-self-catch.md`](war-stories/the-self-catch.md)
+for antigen applied to itself.
 
 When you adopt antigen, you join the same recursion at a different
 scale. The tool will help you develop the discipline by demanding it,
@@ -595,9 +784,9 @@ co-evolutionary pathway that produced the tool itself.
   friction; v0.2 ships when body-level operators + ergonomic tools
   mature.
 
-- *Where do I follow progress?* [`sweeps/`](../sweeps/) tracks current
-  sweep status; [`CHANGELOG.md`](../CHANGELOG.md) tracks shipped
-  substrate; expedition substrate shows what's maturing pre-ratification.
+- *Where do I follow progress?* [`CHANGELOG.md`](../CHANGELOG.md) tracks
+  what's shipped; the [GitHub releases](https://github.com/antigen-rs/antigen/releases)
+  track each published version.
 
 - *Can I contribute?* Yes — see
   [`CONTRIBUTING.md`](../CONTRIBUTING.md). The most valuable
@@ -607,11 +796,5 @@ co-evolutionary pathway that produced the tool itself.
 
 ---
 
-*Roadmap originally authored 2026-05-12 as Phase 4 deliverable of Sweep A3.5
-(Onboarding). Substantially expanded 2026-05-22 to reflect v0.2 comprehensive
-vision direction, the 10 ADRs ratifying together as architectural-posture-shift
-event, antigen rc.3 published, and the layered dogfood approach (Tier-A/B/C).
-External adopter validation milestones are tracked in those projects' own
-release histories — antigen's roadmap notes them as adopter-evidence under
-the trinity-of-self-adoption section, not as antigen deliverables. Subject to revision as substrate matures. The trajectory is
+*Subject to revision as substrate matures. The trajectory is
 real; the destination is recursive.*

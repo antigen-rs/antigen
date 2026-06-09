@@ -2,8 +2,7 @@
 
 > The architectural concepts behind antigen, in adopter-facing form. For
 > the user's first-15-minutes walkthrough, see
-> [`tutorial.md`](tutorial.md). For internal substrate, see
-> [`docs/expedition/`](expedition/).
+> [`tutorial.md`](tutorial.md).
 
 ---
 
@@ -91,9 +90,9 @@ Plus five cargo subcommands:
 
 - `cargo antigen scan` — find every site exhibiting a declared failure-class
 - `cargo antigen audit` — observe per-site defense verdicts (defended / undefended / substrate-gap)
-- `cargo antigen attest` — manage `.attest/<Antigen>.json` substrate-witness sidecars (v0.1+, ADR-019)
-- `cargo antigen tolerate` — manage tolerance-ratification sidecars (v0.1+, ADR-019 §tolerance tier)
-- `cargo antigen oracle` — manage Oracle artifact-class records (v0.1+, ADR-021)
+- `cargo antigen attest` — manage `.attest/<Antigen>.json` substrate-witness sidecars (ADR-019)
+- `cargo antigen tolerate` — manage tolerance-ratification sidecars (ADR-019 §tolerance tier)
+- `cargo antigen oracle` — manage Oracle artifact-class records (ADR-021)
 
 These primitives describe a structure that doesn't depend on Rust.
 Each could be implemented for other languages (Python, JavaScript,
@@ -195,12 +194,28 @@ yourself.
 
 ### 7. Real-time / CI feedback immunity
 
-PR-scope diff against scan baseline; inline annotations; recognition
-at the moment of change rather than at build time. (Planned for a
-future sweep; not yet shipped.)
+Recognition at the moment of change rather than at build time. Two
+surfaces ship the floor of this component:
 
-**Floor**: future tooling.
-**Ceiling**: rust-analyzer plugin surfacing matches as you type.
+- **Editor-inline (flycheck).** The catalog-match spine renders findings
+  in rust-analyzer's `check.overrideCommand` schema
+  (`cargo antigen scan --message-format json`), so matches surface as
+  squiggles at keystroke speed with no custom LSP server (ADR-043
+  Client B). See [`output-formats.md`](output-formats.md).
+- **PR-scope structural diff (DETECT).** The *diff-native* modality
+  (ADR-046) matches a structural DELTA between two commits, not a
+  snapshot: an item whose structural digest changed (or was
+  added/removed) between `HEAD~1` and `HEAD` is surfaced as "this
+  item's structure changed." This is the floor that keeps a green
+  snapshot scan from *laundering* a guard removal on a PR. The DETECT
+  slice is shipped; the *classify-the-removed-guard* slice (a
+  before/after predicate pair) is the next increment.
+
+**Floor (shipped)**: `--message-format json` flycheck + diff-native
+DETECT.
+**Ceiling**: rust-analyzer plugin with exact spans; the CLASSIFY
+guard-regression matcher; the agent-query endpoint at generation time
+(ADR-043 Client C).
 
 ---
 
@@ -215,13 +230,180 @@ The composition is genuinely orthogonal in most cases. You adopt what
 fits your team's existing practice; the components compose without
 requiring each other.
 
-See [`docs/expedition/multi-component-immunity.md`](expedition/multi-component-immunity.md)
-for the deeper architectural framing (substrate; expected to canonicalize
-post-A3.5 ratification).
+See [`immune-system-primitive-map.md`](internal/immune-system-primitive-map.md)
+for the deeper multi-component architectural framing.
 
 ---
 
-## Substrate-witness pipeline (v0.1+)
+## The catalog-match spine
+
+On its own, a scanner that built its fingerprint table only from the
+`#[antigen]` declarations **in the tree it was scanning** could flag a
+failure-class only in a crate that had **declared that class itself**. A
+fresh crate that declared nothing would get zero findings, even when its
+code structurally matched a dozen well-known failure-classes — the first
+ninety seconds of a newcomer's experience would be a false all-clear.
+
+The **catalog-match spine** closes this: a single
+callable scan service that matches a crate against antigen's **bundled
+stdlib catalog** — antigen's own vetted fingerprints — without the
+adopter declaring anything. `cargo antigen scan` on a fresh crate
+produces real findings from antigen's class memory.
+
+The spine is built once; **four renders** ride on top of it, differing
+only in serializer and transport:
+
+| Render | Surface | What it serves |
+|---|---|---|
+| **CLI** | `cargo antigen scan` (`--bundled-catalog` / auto-detect) | the dev at the terminal |
+| **Editor-inline** | `--message-format json` (rust-analyzer flycheck) | the dev at every keystroke |
+| **Agent-query** | MCP endpoint (per-fragment) | the careful agent, *before* it emits code |
+| **Session-prime** | batch digest of top failure-classes | the agent that doesn't know to ask |
+
+The two CLI/render surfaces ship today; the agent-query and
+session-prime renders are sequenced follow-ons (the spine is the same;
+they are new transports).
+
+**The honest claim-scope.** A bundled-catalog match is a *structural
+fingerprint match* — a syntactic FACT: "this site's structure matches a
+known failure-class, at a calibrated tier." It is **not** an audited
+verdict. A match does not assert a defense was checked, nor that the
+site is all-clear; it says only *a fingerprint matched here, go look*.
+The canonical phrasing the editor render carries per-diagnostic is:
+**"a fingerprint match to inspect, not an audited verdict."** This is
+not a UX nicety — it is **claim-scope honesty** made structural (see
+below).
+
+---
+
+## The Learning-Core loop (the keystone)
+
+Everything above APPLIES failure-class memory. The Learning-Core is the
+one organ that *generates* it — antigen's affinity-maturation engine,
+the biological cognate of how a germinal center matures antibodies. It
+is a closed loop:
+
+> **cluster → propose → test (promote / prune) → with a self-tolerance
+> governor holding the whole loop honest.**
+
+1. **Cluster.** Group structurally-similar *marked-unknown* sites — the
+   `#[dread]` / `#[aura]` marks where a developer felt "something is
+   wrong here" but couldn't yet name the class. Sites cluster by a
+   name-insensitive **shape digest** so two sites of the same shape with
+   different names land together.
+2. **Propose (C).** *Anti-unify* a cluster into a draft fingerprint. The
+   shared structure (item-kind, trait, body-calls every member makes)
+   becomes the skeleton; the signals only *some* members carry become an
+   `any_of([...])` disjunction. The draft is a **HYPOTHESIS** — a
+   ratifiable suggestion carrying provenance, **never** an
+   auto-asserted `#[presents]` or an auto-named class.
+3. **Test / self-tolerance (B).** A draft is *promotable* only if it
+   **spares a clean corpus** — known-good sibling code the draft must
+   NOT flag. This is **germinal-center negative selection**: screening a
+   newly-generated draft against self, the same checkpoint that culls a
+   hypermutated B-cell which gained self-reactivity against the self it is
+   shown. As in the body, the screen is only as good as that corpus — it
+   spares the clean code it samples. A draft that matches clean code would,
+   once promoted, flood that clean code with false positives — antigen's own
+   **autoimmunity**. B rejects it.
+4. **Promote / prune.** A draft that spares the clean corpus is promoted
+   to a candidate fingerprint (still a suggestion at a calibrated tier,
+   awaiting a human or incident to *ratify* it into a named class). A
+   draft that binds clean code is pruned.
+
+### The one safety line: C ══ B
+
+The single most load-bearing fact about the Learning-Core: **the
+generator (C) can never promote a draft without the selector (B)
+passing.** A candidate generator shipped *without* its self-tolerance
+gate doesn't merely under-perform — it actively ships autoimmunity
+(false positives flooding the codebase). So this co-ship is a **safety
+constraint**, not a sequencing preference. In the code this line is
+**type-enforced**, not convention: the only function that returns a
+promotable fingerprint routes every draft through the spare-clean gate,
+and the gate **refuses an empty clean corpus** ("cannot certify safety
+against nothing" — a vacuous pass would be autoimmunity with a green
+check). The full first-principles account of *why* the loop closes
+safely is in [`the-keystone-explained.md`](the-keystone-explained.md).
+
+### What ships — and what it does NOT
+
+This matters for setting expectations honestly:
+
+- The Learning-Core is a **library** (`antigen::learn`), **not**
+  a `cargo antigen propose` command. There is no user-facing verb yet;
+  what ships is the *safety-governed learner*, not a CLI on
+  top of it. A newcomer should not go hunting for a command that does
+  not exist.
+- C has **zero production callers** — it is exercised by tests
+  and the dogfood proof, not wired into the scan path. Two
+  safety-relevant hardening items (a corpus-bindability check; a
+  `PromotedFingerprint` newtype) are the named preconditions for wiring
+  C into a render; they are tracked in the [roadmap](roadmap.md).
+- The falsification gate is real: antigen carries three genuinely-felt
+  `#[dread]` marks on its **own** production source, and the dogfood
+  proof anti-unifies the two *silent-skip twins* among them (a directory
+  walk that swallows an IO/parse error and reports clean over an
+  incomplete corpus) into a draft, governed by B. The *mechanism* is
+  proven; the specific dogfood draft over-fits its near-identical twins
+  (a recall increment, located honestly).
+
+---
+
+## Claim-scope honesty (the cross-cutting discipline)
+
+A single discipline runs under the catalog-match spine, the
+Learning-Core, and the diff-native modality alike — and it is worth
+naming as its own concept because it is *why* these surfaces can be
+trusted.
+
+> **Claim-scope honesty**: every component that emits a verdict or
+> generates a candidate reports **what it actually proved** — scoped to
+> its real reach, with its own boundary — never the potential-maximum
+> its category could theoretically provide.
+
+The grounding is not stylistic; it is **computability-forced**. Every
+failure-class capability splits into two halves:
+
+- A **syntactic half** — decidable, machine-tractable, reproducible:
+  match a fingerprint, anti-unify a cluster, set-diff two commits' item
+  digests. antigen DOES this half and reports a FACT at a calibrated
+  tier.
+- A **semantic half** — *is this matched site a real defect? does this
+  draft name a real failure-class? was the removed guard required?*
+  These are non-trivial semantic properties of programs, and by **Rice's
+  theorem** they are undecidable. antigen does NOT (cannot) do this
+  half; a human, a CI context, or an incident **ratifies**.
+
+The boundary between the halves is exactly the syntactic/semantic line,
+which is exactly the decidable/undecidable line. That coincidence is the
+discipline's whole mechanism: antigen asserts up to the line and
+*labels honestly* past it. (Formally: soundness-without-completeness in
+the Cousot & Cousot 1977 sense; the trade is forced by Rice 1953.)
+
+This is made **structural** in the type system, not left to
+discipline:
+
+- A scan match is a `FingerprintMatch`, a distinct sum-type variant that
+  **cannot** masquerade as an audited `DialVerdict`. The two are
+  different shapes; the machine can state what it matched but is
+  structurally unable to state that it ratified.
+- A learning-core draft is a labeled hypothesis; the only promotable
+  path runs through the self-tolerance gate (the C ══ B line above).
+- The diff-native modality reports "a guard-shaped call was removed
+  here," never "regression" — requiredness is the semantic half, left
+  to the reviewer.
+
+> **Naming note.** "claim-scope honesty" names this *epistemic*
+> discipline, distinct from the **coverage frontier** — the *spatial*
+> concept of what the scan did not reach. The two rhyme but are
+> orthogonal: the coverage frontier is *what we did not inspect*;
+> claim-scope honesty is *don't over-claim what we DID inspect*. See the
+> [glossary](glossary.md).
+
+---
+
+## Substrate-witness pipeline
 
 Some disciplines can't be witnessed by a single in-tree function. Examples:
 
@@ -246,7 +428,7 @@ See [`witness-tiers.md`](witness-tiers.md) for the full tier model. Worked examp
 
 ---
 
-## Oracle artifacts (v0.1+, ADR-021)
+## Oracle artifacts (ADR-021)
 
 When your discipline depends on an *external reference* — a paper, an ADR, a spec — Oracle artifacts make that reference first-class:
 
@@ -255,7 +437,7 @@ When your discipline depends on an *external reference* — a paper, an ADR, a s
 - **Audit integration**: `oracles_complete(files = [...])` checks Oracle state at audit time
 - **Provenance trail**: who declared, who transitioned states, when, why
 
-This closes the "URLs go stale" problem at the substrate level. The reference is stewarded, versioned, lifecycle-tracked — and immunity claims that depend on it stay honest as the reference evolves.
+This closes the "URLs go stale" problem at the substrate level. The reference is stewarded, versioned, lifecycle-tracked — and defenses that depend on it stay honest as the reference evolves.
 
 Worked example: [`oracle_lifecycle.rs`](../antigen/examples/oracle_lifecycle.rs).
 
@@ -263,12 +445,12 @@ Worked example: [`oracle_lifecycle.rs`](../antigen/examples/oracle_lifecycle.rs)
 
 ## Antigen category — substrate-alignment vs functional-correctness
 
-A v0.2 distinction (ratifying via NEW-ADR-028): antigens come in two structural categories.
+A structural distinction (ADR-028): antigens come in two categories.
 
 - **Substrate-alignment antigens** — when the *representation* of state diverges from actual state. Substrate-witness; scan/commit-time; observer-role catches. Examples: `UnanchoredGitignorePattern` (git's view of disk ≠ disk), `DocClaimVsCodeImplementationMismatch` (docs drift), `RollbackWithoutTriageCommit` (history drift).
 - **Functional-correctness antigens** — when a *verb produces wrong output*. Code-witness; test/runtime; adversarial + scientist roles catch. Examples: `PanickingInDrop` (Drop produces process abort), `SignedZeroDiscipline` (sinh produces wrong sign at -0.0), `SilentCliCommandFailure` (CLI exit code lies).
 
-The category metadata shapes witness type, audit layer, lifecycle phase, and responder role. Many of v0.1's antigens are functional-correctness; v0.2 substantially expands substrate-alignment via supply-chain, VCS-info-loss, mucosal-boundary, and the antigen-category metadata itself.
+The category metadata shapes witness type, audit layer, lifecycle phase, and responder role. The substrate-alignment category spans supply-chain, VCS-info-loss, mucosal-boundary, and the antigen-category metadata itself.
 
 ---
 
@@ -370,7 +552,7 @@ for the second; formalized through the tool for the third.
 
 ## Recognition-not-design (amended for two disciplines)
 
-The project operates under a discipline named in ADR-006, **amended** in the v0.2 ratification ceremony to formalize a two-disciplines architecture (NEW-ADR-022).
+The project operates under a discipline named in ADR-006, **amended** to formalize a two-disciplines architecture (ADR-022).
 
 ### For ADOPTER extensions: recognition discipline
 
@@ -388,7 +570,7 @@ When *antigen-the-project* expands its core vocabulary:
 
 > Stdlib growth is research-driven, deliberately comprehensive. New primitives are substrate-citable from postmortems / literature / training-data / predictive analysis / biological-component-mapping — not constrained to "wait for the third instance."
 
-The biological immune system serves as the systematic discovery framework. Each unused immune-system component is a research-arc prompt. v0.2's macro family expansions (~50+ primitives across 9 tiers per the [biological discovery framework](expedition/biological-component-discovery-framework.md)) are research-driven, not recognition-gated.
+The biological immune system serves as the systematic discovery framework. Each unused immune-system component is a research-arc prompt. The macro family expansions (~50+ primitives across 9 tiers per the [biology primitive map](internal/immune-system-primitive-map.md)) are research-driven, not recognition-gated.
 
 This split matters because the two disciplines have different cost asymmetries. Speculative *adopter* extensions bloat noise; speculative *stdlib* extensions cover failure-classes adopters haven't yet hit but should be protected against. The amended ADR-006 + new ADR-022 formalize this split.
 
@@ -456,11 +638,14 @@ spine is stable; the fabric grows.
 - [`for-llm-collaborators.md`](for-llm-collaborators.md) — co-native
   protocol for AI agents
 
-For internal substrate:
-- [`docs/origin.md`](origin.md) — the founding incident
-- [`docs/decisions.md`](decisions.md) — ratified ADRs
-- [`docs/postures.md`](postures.md) — architectural postures
-- [`docs/scope.md`](scope.md) — comprehensive vision
-- [`docs/expedition/`](expedition/) — design substrate, including
-  multi-component immunity deep-dive and antigen-applied-to-antigen
-  recursion
+Going deeper:
+- [`the-keystone-explained.md`](the-keystone-explained.md) — why the
+  Learning-Core loop closes safely, from first principles
+- [`the-immune-system-a-programmers-guide.md`](the-immune-system-a-programmers-guide.md)
+  — the biology cognate walked end to end, the argument for ADR-003
+- [`war-stories/learning-from-its-own-wounds.md`](war-stories/learning-from-its-own-wounds.md)
+  — antigen running the Learning-Core on its own honest self-doubt
+- [`origin.md`](origin.md) — the founding incident
+- [`decisions.md`](decisions.md) — ratified ADRs
+- [`postures.md`](internal/postures.md) — architectural postures
+- [`scope.md`](scope.md) — the architectural class and adoption strategy

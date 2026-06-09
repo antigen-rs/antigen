@@ -219,7 +219,7 @@ pub enum OracleRef {
 ///
 /// An oracle is not a typed pointer carrying a completion marker — it is a
 /// **structurally distinguished artifact-class** with its own state machine,
-/// dedicated stewards, provenance, and lifecycle tracking. Per Tekgy R2:
+/// dedicated stewards, provenance, and lifecycle tracking:
 /// without lifecycle structure, discipline degrades to convention.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Oracle {
@@ -516,13 +516,13 @@ pub struct Signer {
 pub enum SignerBasis {
     /// Fresh attestation — signer reviewed the current item state and
     /// signed against the current fingerprint. The `attest sign` CLI is
-    /// the only write-path that produces a `Fresh` basis (R-A4).
+    /// the only write-path that produces a `Fresh` basis.
     ///
     /// `reasoning` carries optional free-text describing what the signer
-    /// checked (per observer NB004 — closes the tambear-inline-rationale
-    /// gap; the inline `doc_attested(rationale = ...)` shape from
-    /// `tambear-adoption-log` carried rationale at the call site for ALL
-    /// signing acts; v3 sidecar Fresh basis lacked the equivalent).
+    /// checked — closing the inline-rationale gap: an inline
+    /// `doc_attested(rationale = ...)` shape carries rationale at the call
+    /// site for ALL signing acts, where a sidecar Fresh basis otherwise
+    /// lacked the equivalent.
     /// Optional in v0.1; `cargo antigen attest sign` may require it via
     /// workspace config (`require_fresh_reasoning = true`).
     Fresh {

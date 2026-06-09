@@ -75,7 +75,7 @@ pub fn catalog_match_findings_with_source<S: BuildHasher>(
             structural_digest: p.structural_fingerprint.clone(),
             // A matched-item Finding keys on IDENTITY (structural_digest), not on
             // body-shape — shape_digest is the marked-unknown PROPOSE-slice's key,
-            // empty here (P0a two-field model, ADR-045 Amd-2).
+            // empty here (two-field model, ADR-045 Amd-2).
             shape_digest: String::new(),
             cluster_key: cluster_key_of(&p.structural_fingerprint, &p.antigen_type),
             severity: severity_for(class_provenance),

@@ -442,26 +442,21 @@ publication. The structural commitment forces the build.
 
 ---
 
-## What the team will do next (and how this story extends)
+## How this story extends
 
-This origin document captures the WHY. The actual building begins when the antigen
-JBD team launches.
+This origin document captures the WHY. From it, antigen was built: the
+failure-class taxonomy, the macro vocabulary, and the `cargo antigen` tooling that
+scans, audits, and now *proposes* new failure-classes from the structural evidence
+it already carries.
 
-The first sweep will deconstruct the design intent (pre-team scaffolding) via Phase 1-8
-first-principles thinking. The taxonomy will be validated against the failure-class
-instances document (which a research subagent populated with real-world Rust examples).
-The composition opportunities document will guide which existing tools antigen
-delegates to.
+The loop the story points at is tambear's: antigen is imported there, a seed
+failure-class is declared, immunity is applied across structurally-related classes,
+and a future class inherits that immunity through structural fingerprint
+recognition — the illness defended before it appears. That is the case study the
+WHY was always walking toward.
 
-Once the antigen and cargo-antigen crates have working code, this document will be
-**extended** with a case study section: how we imported the antigen package into
-tambear, declared the `polarity-inverted-class-meet` antigen, applied immunity to
-both `DeterminismClass` and `CommutativityClass`, and demonstrated that a future class
-C-Class would automatically inherit the immunity via structural fingerprint
-recognition.
-
-That extension will close the loop. The story that started with the second illness
-will end with the structural healing of the third — preemptively.
+The story that started with the second illness ends with the structural healing of
+the third — preemptively.
 
 The illness will be cured BEFORE it appears.
 
@@ -473,13 +468,11 @@ That's the project.
 
 This document is the WHY. The HOW lives in:
 - `README.md` — public-facing project framing
-- `docs/expedition/design-intent.md` — what antigen IS, what it ISN'T
-- `docs/expedition/api-shape.md` — sketch of the macros and cargo subcommands
-- `docs/expedition/revolutionary-and-not.md` — honest claims and limits
-- `docs/expedition/failure-class-instances.md` — real-world examples of the 8 classes
-- `docs/expedition/ecosystem-composition.md` — composition opportunities with Rust tools
-- `docs/expedition/academic-context.md` — relationship to existing academic work
-- `docs/decisions.md` — ratified ADRs (ADR-001 through ADR-008 are foundational)
+- `docs/concepts.md` — what antigen IS, what it ISN'T
+- `docs/the-keystone-explained.md` — honest claims and where the guarantees stop
+- `docs/stdlib-families.md` — the failure-class catalog, with real instances
+- `docs/composition.md` — how antigen composes with existing Rust tools
+- `docs/decisions.md` — ratified ADRs (the foundational ones come first)
 - `docs/glossary.md` — vocabulary anchor
 
 The project's origin observation came from the adversarial agent in the tambear team's
@@ -489,10 +482,10 @@ conversation between Tekgy and Claude during the pre-team scaffolding session on
 2026-05-07.
 
 Tambear is the project where the lesson was first re-derived, where the gardened
-observation appeared, and where the antigen idea will eventually be applied as
-its first case study. The tambear team's Phase 1-8 discipline, JBD coordination, and
-adversarial pressure are why the lesson got caught the second time. The same
-discipline informs the antigen project.
+observation appeared, and where antigen is now applied as its first case study. The
+disciplined, adversarial pressure of that work — paranoid about exactly the
+failure-classes antigen names — is why the lesson got caught the second time, and
+the same discipline informs antigen itself.
 
 The biological metaphor we leaned on throughout this document is older than software
 engineering. It comes from immunology — a field that has been studying how memory

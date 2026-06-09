@@ -105,12 +105,14 @@ assertion in this family's territory; the witness proves the assertion. Either:
   laying out why the type really is safe to send/share; OR
 - a **kani proof** of the `Send`/`Sync` invariant.
 
-## Prognosis — the graduation path
+## Prognosis
 
-`UnsafeSendSync` is already named; no demotion or pending re-tier. The family grows
-sideways: `BlockingCallInAsyncFn` is the likely next member (suspected), while
-`LockHeldAcrossAwait` and `SpawnedFutureNotAwaited` await new grammar dimensions
-(control-flow / binding-tells) before they can ship honestly.
+`UnsafeSendSync` is at the **named** tier — no demotion or pending re-tier. It is the
+family's one shipped member; other async-soundness shapes (a blocking call in an
+`async fn`, a lock held across an `await`, a spawned future never awaited) need
+grammar dimensions the call-only fingerprint lacks — control-flow and binding-tells —
+before they can ship honestly. See [`../roadmap.md`](../roadmap.md) for the
+grammar-edge these wait on.
 
 > **Why a scan fixture, not a runnable example.** The member's tell is a real
 > `unsafe impl Send`, and the workspace sets `unsafe_code = "forbid"` (an

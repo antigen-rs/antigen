@@ -40,7 +40,7 @@ A bacterium drifts up against a cell. Before any antibody, before any memory, th
 body's **innate** immune system acts. Sentinel cells carry **Pattern Recognition
 Receptors** — receptors shaped to match the molecular silhouettes that *pathogens
 in general* share (the sugar coats of bacteria, the double-stranded RNA of viruses).
-The receptor doesn't know *this* bacterium. It knows the *shape of bacterial*.
+The receptor doesn't know *this* bacterium. It knows the *shape that bacteria share*.
 
 Here is the first inevitability. If you want to recognize a *class* of danger
 rather than a specific instance, you need a **structural pattern matcher** — a
@@ -209,7 +209,92 @@ they cover the space.
 
 ---
 
-## Chapter 8 — When the system turns on itself (dysregulation)
+## Chapter 8 — Affinity maturation (how the body generates *new* antibodies — and selects them against self)
+
+Every chapter so far has been about *applying* recognition: a receptor matches a
+shape, a memory cell persists it, an antibody demonstrates the response. But where
+do *new* antibodies come from? When the body meets a threat it has no good
+antibody for, it does not wait for a better one to arrive by luck. It **builds**
+one. In the **germinal center**, activated B-cells divide rapidly and
+**hypermutate** their receptor genes — generating a swarm of slightly-different
+candidates. The variants that bind the threat better are selected and expand; the
+rest die. The immune system runs a fast local search over receptor-space.
+
+But generation is exactly where a defense system can turn on its host. A
+hypermutated receptor can land on a *self* protein as easily as on the threat —
+that is the natural failure mode of mutating receptors at random. So the germinal
+center does not just select *for* binding the threat; it selects **against**
+binding self. A newly-matured B-cell that gained self-reactivity is culled before
+it ever leaves. Generating new recognition and screening it against self are not
+two features — they are **one process**, because the first without the second is
+autoimmunity. The screen is only as good as the self it is shown: the germinal
+center reliably culls reactivity to *ubiquitous* self, while rare or
+tissue-restricted self-antigens can escape and seed autoimmunity later. The
+selection is corpus-bound — it spares the self it actually sees.
+
+The inevitability: a failure-class memory that can only ever hold lessons a human
+*typed in by hand* is bounded by human throughput — the very asymmetry
+([Chapter 1](#chapter-1--a-pathogen-crosses-the-membrane-recognition)) antigen
+exists to beat. The system has to be able to **propose a new failure-class** from
+the structural evidence it already carries: cluster the sites that share a shape,
+generalize the shape into a candidate fingerprint. But a generalizer's natural
+failure mode is to over-generalize — to drop so much that the draft also matches
+*clean* code. Proposing a new fingerprint and screening it against known-clean
+code are **one process**, for exactly the body's reason: the first without the
+second floods your codebase with false positives. That is antigen's autoimmunity.
+And as in the body, the screen is corpus-bound: it can only spare the clean code
+it is shown.
+
+> **Antigen's version:** the **Learning-Core** (`antigen::learn`) — antigen's
+> germinal center. It runs **cluster → propose → test (promote / prune)**:
+>
+> - **Propose (`propose()`)** *anti-unifies* a cluster of marked sites into a
+>   draft fingerprint — the shared skeleton kept, the per-member differences folded
+>   into an `any_of([...])` disjunction. The draft is a **hypothesis**, never an
+>   auto-asserted class — the hypermutated candidate, not yet a licensed antibody.
+> - **Select against self (`promote_if_safe`)** — the negative-selection step. A
+>   draft is *promotable* only if it **spares a clean corpus**: known-good sibling
+>   code the draft must not flag. A draft that binds clean code is the
+>   self-reactive clone — it is **pruned**, never promoted. (And the gate refuses
+>   an *empty* corpus outright — "cannot certify safety against nothing" — because
+>   a screen that checked no self is not a screen.)
+>
+> This is the germinal center's lesson made structural: in the code, `propose()` is
+> the **only** path that returns a *promotable* fingerprint, and it routes every
+> draft through the spare-clean gate. There is no way to promote a draft without
+> the self-screen passing — the coupling is **type-enforced**, not a convention you
+> remember. The raw generalizer *is* exposed, but it is explicitly labeled a
+> hypothesis for inspection: it hands back a bare draft, not a promotable one. You
+> cannot bypass the screen, because there is nothing to bypass *to*. The guarantee
+> is exactly as scoped as the body's: a promoted fingerprint spares the clean
+> corpus it was *shown* — supply a representative corpus and the screen is
+> meaningful; supply a thin one and clean code outside it can still be flagged,
+> the same way the germinal center spares only the self it samples.
+>
+> And antigen built it in the biology's order — the **self-screen first**. The
+> Learning-Core ships as a **library**, with **zero production callers** (there is
+> no `cargo antigen propose` command — see [`concepts.md`](concepts.md)); what
+> shipped is the *safety-governed* learner, the negative-selection floor laid
+> before any user-facing generation surface. A defense system that takes
+> autoimmunity seriously builds the self-screen before it builds the generator, the
+> way the germinal center evolved selection-against-self alongside hypermutation,
+> not after it. The full first-principles account of *why* the loop closes safely —
+> and the honest scope of "safely" — is
+> [`the-keystone-explained.md`](the-keystone-explained.md); you can watch the
+> mechanism run on antigen's own marks in
+> [`war-stories/learning-from-its-own-wounds.md`](war-stories/learning-from-its-own-wounds.md).
+
+> **Run the screen yourself.** The negative-selection gate is exercised by
+> `antigen/tests/autoimmunity_safety_gate.rs` (`cargo test --test
+> autoimmunity_safety_gate -p antigen`). The decisive case is
+> `propose_prunes_when_anti_unifys_own_disjunction_binds_clean`: the *generalizer's
+> own output* is self-reactive (its `any_of` arm binds a clean sibling), and
+> `propose()` — routing through the gate — prunes it. The generator cannot license
+> its own false positive.
+
+---
+
+## Chapter 9 — When the system turns on itself (dysregulation)
 
 A real immune system can go wrong in characteristic ways, and naming them is part
 of understanding it. **Autoimmunity** is the system firing on self (Chapter 6's
@@ -221,17 +306,25 @@ than the threat. **Anaphylaxis** is an over-reaction to something harmless.
 > **pathology**, not a discipline — so antigen does **not** ship a `#[autoimmune]`
 > marker (a site-marker named for a disease would read backwards, as if you'd
 > *want* to mark code autoimmune). Instead, autoimmunity surfaces as a **screen**:
-> the planned `cargo antigen autoimmune-check` (v0.4) — an audit pass that flags
-> *fingerprints over-firing on their own clean siblings*. That's the correct shape:
-> autoimmunity is something you *detect in the defense system itself*, not something
-> you declare on a site. (This naming call is itself in the [README](../README.md)'s
-> biology table — and it's a small instance of the metaphor doing real work: the
-> biology told us autoimmunity is a system-level pathology, so the tool surfaces it
-> as a system-level screen, not a site-level marker.)
+> an audit pass that flags *fingerprints over-firing on their own clean siblings*.
+> That's the correct shape: autoimmunity is something you *detect in the defense
+> system itself*, not something you declare on a site.
+>
+> **What v0.4 actually shipped (claim-scope honesty):** the screen's *mechanism*
+> ships in v0.4 as the **self-tolerance gate** — the library `antigen::learn::
+> self_tolerance` (`spare_clean` / `promote_if_safe`), the negative-selection check
+> that refuses to promote any learned fingerprint that binds a known-clean sibling
+> (see [`concepts.md`](concepts.md), the Learning-Core loop). It is a **library
+> gate**, not a `cargo antigen autoimmune-check` command — there is no such
+> subcommand, the same library-not-command scope the Learning-Core ships
+> under. (This naming call is itself in the [README](../README.md)'s biology table —
+> and it's a small instance of the metaphor doing real work: the biology told us
+> autoimmunity is a system-level pathology, so the tool surfaces it as a system-level
+> screen, not a site-level marker.)
 
 ---
 
-## Chapter 9 — The boundaries (mucosa) and the silence that predicts the frontier
+## Chapter 10 — The boundaries (mucosa) and the silence that predicts where antigen is young
 
 Most pathogens don't enter through sterile tissue; they enter through **mucosal
 surfaces** — the gut, the lungs — vast, busy boundaries where the outside meets the
@@ -247,18 +340,18 @@ crosses.
 > in the body is the mucosa, so the busiest trust surface in a program (parsing
 > untrusted input) is where antigen invests its deepest family.
 
-> **Silence test (the frontier sidebar).** Run the metaphor to its edge and notice
-> where biology goes *quiet*, because that's where antigen's frontier is. Biology is
-> dense on **sensing** (PRRs), **comparing** (self/non-self), and **acting**
+> **Silence test (the where-antigen-is-young sidebar).** Run the metaphor to its edge
+> and notice where biology goes *quiet*, because that's where antigen is young. Biology
+> is dense on **sensing** (PRRs), **comparing** (self/non-self), and **acting**
 > (antibodies, complement) — and antigen has primitives for each. But biology is
 > comparatively *silent* on **routing policy** — the immune system doesn't have a
 > "decision-maker" weighing which response to mount as a deliberate policy; it's
 > distributed and emergent. That silence is informative: it predicts that antigen's
 > **routing/orchestration** layer (which finding goes to whom, with what priority)
-> is the *under-built* frontier — and indeed, the marked-unknown markers'
-> `severity` field is a routing hint for a *future* "cytokine-routing organ" that is
-> [chartered, not built](stdlib-families.md). **Where the biology is quiet, antigen
-> is young.** Reading the silence is how you predict the roadmap.
+> is the *under-built* edge — and indeed, the marked-unknown markers' `severity`
+> field is a reserved routing hint that nothing consumes yet. **Where the biology is
+> quiet, antigen is young.** Reading the silence is how you read the
+> [roadmap](roadmap.md).
 
 ---
 
@@ -276,12 +369,13 @@ reference, but the reference only means something because you walked the story:
 | Clonal expansion / lineage | propagate recognition to family variants | `#[descended_from(Parent)]` |
 | Treg tolerance | don't fire on self | `#[antigen_tolerance]` + the tier discipline |
 | Innate + adaptive | cover shape *and* learned specifics | passive scan + active markers |
-| Dysregulation | name the ways the defense itself fails | *(all v0.4, none shipped yet)* the `autoimmune-check` screen, `#[sepsis]`, `#[anaphylaxis]` |
+| Affinity maturation / germinal center | generate *new* recognition, selected against self | the **Learning-Core** (`antigen::learn`, shipped as a library): `propose()` anti-unifies a cluster into a draft; `promote_if_safe` promotes only a draft that spares the clean corpus (the self-screen) |
+| Dysregulation | name the ways the defense itself fails | the **self-tolerance gate** (`antigen::learn::self_tolerance`, shipped v0.4 as a library) detects autoimmunity — a fingerprint over-firing on clean siblings |
 | Mucosa | invest defense where the trust boundary is | the deserialization-trust-boundary family |
 
 The full forward-looking version of this map — every immune primitive antigen
 *could* grow into as adoption surfaces real instances — lives in
-[`immune-system-primitive-map.md`](immune-system-primitive-map.md). That document is
+[`immune-system-primitive-map.md`](internal/immune-system-primitive-map.md). That document is
 *recognition substrate*: a catalog of what biology already has answers to that
 antigen will eventually need answers to.
 
@@ -295,14 +389,17 @@ evidence. At every chapter, the biology made a primitive **inevitable** before
 antigen built it: biology had memory cells, so declarations were inevitable; biology
 demonstrated responses rather than declaring them, so the witness was inevitable;
 biology tolerated self, so the tolerance primitive and the precision-tier discipline
-were inevitable; biology defended its mucosa hardest, so the deserialization family
-was inevitable.
+were inevitable; biology *generated* new antibodies and screened them against self in
+one process, so a self-tolerant learner — generate-and-screen as a single gated step —
+was inevitable, which is exactly why the learning core is the generator *and* its
+negative-selection gate, type-coupled; biology defended its mucosa hardest, so the
+deserialization family was inevitable.
 
 And the silence tests show the metaphor's *integrity*: it doesn't claim to predict
 everything. Where biology is quiet (routing policy), antigen is young — and the
 metaphor is honest enough to tell you so. A metaphor that predicted *everything*
 would be a metaphor you were forcing; one that predicts the built primitives and
-goes quiet exactly at the unbuilt frontier is a metaphor that's *real*. That's the
+goes quiet exactly where antigen is young is a metaphor that's *real*. That's the
 difference between a decoration and a discovery framework. When the biology predicts
 a primitive, [the project builds it](decisions.md). That's not a slogan. It's the
 record this guide just walked you through.
@@ -311,12 +408,12 @@ record this guide just walked you through.
 
 ## See also
 
-- [`stdlib-families.md`](stdlib-families.md) — the eight failure-class families, as
-  organs in this immune system
+- [`stdlib-families.md`](stdlib-families.md) — the shipped failure-class families,
+  as organs in this immune system
 - [`war-stories/the-self-catch.md`](war-stories/the-self-catch.md) — the autoimmune
   episode of Chapter 6, told in full: antigen's fingerprints firing on its own clean
   code, and the tolerance mechanism that fixed it
-- [`immune-system-primitive-map.md`](immune-system-primitive-map.md) — the full
+- [`immune-system-primitive-map.md`](internal/immune-system-primitive-map.md) — the full
   forward map: every biological primitive antigen could grow into
 - [`decisions.md`](decisions.md) — ADR-003 (the metaphor is load-bearing), ADR-029
   (observe-don't-declare, Chapter 4's correction)

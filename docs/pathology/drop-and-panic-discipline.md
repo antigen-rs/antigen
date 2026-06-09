@@ -118,16 +118,13 @@ failure-class's territory; the witness proves the teardown is panic-safe. Any of
 - a `std::thread::panicking()` check **before** the risky op — so the destructor
   stays quiet during an in-flight unwind (the canonical guard).
 
-## Prognosis — the graduation path
+## Prognosis
 
-`PanicInDrop` is already at the named tier and is the v2 of the older
-`PanickingInDrop`; no demotion or pending re-tier. The natural future increments
-are sibling, not corrective:
-
-- The **Resource-Lifecycle-Leak** family is the other half of the Drop-Lifecycle
-  axis — *drop never-fires* — to this family's *drop fires-but-explodes*. They are
-  kept distinct (distinct remedies) rather than merged; see
-  [`resource-lifecycle-leak.md`](resource-lifecycle-leak.md).
+`PanicInDrop` is at the **named** tier — the v2 of the older `PanickingInDrop`, with
+no demotion or pending re-tier. It is one half of the Drop-Lifecycle axis (*drop
+fires-but-explodes*); the **Resource-Lifecycle-Leak** family is the other half
+(*drop never-fires*), kept distinct (distinct remedies) rather than merged — see
+[`resource-lifecycle-leak.md`](resource-lifecycle-leak.md).
 
 ---
 

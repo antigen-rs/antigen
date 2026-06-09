@@ -11,7 +11,7 @@
 
 ---
 
-## …it found **nothing**
+## …it found **nothing** (and I expected the catalog to fire)
 
 ```
 Scanned 1 files, found 0 antigen-related declarations:
@@ -21,13 +21,48 @@ Scanned 1 files, found 0 antigen-related declarations:
 All explicit presentations are addressed.
 ```
 
-**Why:** antigen only reports failure-classes that are *declared in the scanned
-tree* — your own `#[antigen]` types plus any stdlib ones you `use`-imported. A scan
-of code that declares/imports no antigens finds nothing **by construction** — it
-isn't a clean bill of health, it's an empty dictionary.
+> **If you see this on a fresh crate, something is off.** Auto-detect
+> should have injected the bundled catalog and surfaced candidates. Read on.
 
-**Fix:** import the stdlib members you care about and mark the sites that present
-them. e.g.
+**Why a fresh crate is not empty:** a scanner that only matched failure-classes
+*declared in the scanned tree* (your `#[antigen]` types + any stdlib ones you
+`use`-imported) would find nothing in a crate that imported none **by
+construction** — an empty dictionary, not a clean bill of health. antigen ships a
+**bundled stdlib catalog** and **auto-injects** it when your crate declares no
+antigens of its own. So a bare scan on a fresh crate surfaces real candidates:
+
+```
+Scanned 1 files, found 2 antigen-related declarations:
+  - 0 antigen declarations
+  - 0 explicit #[presents] markers
+  - 2 fingerprint matches (candidate sites — see below)
+
+  …/lib.rs:21  get-unchecked-without-proof on fn [fingerprint match]
+  …/lib.rs:30  panic-in-drop on impl [fingerprint match]
+```
+
+**So if you still got the empty version, the cause is one of:**
+
+- **Your crate *already* declares antigens.** Auto-detect only injects when the tree
+  has none of its own — it won't surprise a repo that's already speaking antigen. To
+  run the flagship catalog *on purpose* over such a tree, pass `--bundled-catalog`
+  explicitly (it always injects, augmenting your declarations — and it gets loud; see
+  the [firehose entry](#it-flooded-me-with-thousands-of-matches) below).
+- **Genuinely nothing matched — and on a zero-declaration crate, that's now a *real*
+  all-clear.** This is the subtle one: the empty output above is **byte-identical** to
+  a bare empty-dictionary all-clear, but its *meaning* is different. On a crate with no
+  antigens of its own, auto-detect *did* inject the bundled catalog and *did* consult
+  it — you simply don't trip any flagship fingerprint. So "found 0 declarations" no
+  longer means "I had no vocabulary, I checked nothing" (the cliff). On a zero-decl
+  crate it now means **"I checked you against the flagship catalog and you're clean
+  against it."** The words didn't change; the thing behind them did. (The output gives
+  no explicit "catalog consulted" line — so if you want to *prove* to yourself the
+  catalog ran, pass `--bundled-catalog` explicitly, or scan a crate that *does* have a
+  footgun, and watch the candidates appear like the example above.)
+
+**Fix (to teach antigen *your* classes):** import the stdlib members you care about
+and mark the sites that present them — the catalog covers the flagships, but your
+project's own footguns still want your own declarations:
 
 ```rust
 use antigen::stdlib::drop_panic::PanicInDrop;
@@ -37,8 +72,9 @@ use antigen::presents;
 impl Drop for MyGuard { /* ... */ }
 ```
 
-Now a scan has a vocabulary to match against. (Browse the available members in the
-[catalog](stdlib-families.md).)
+(Browse the available members in the [catalog](stdlib-families.md); the
+fingerprint-match-vs-verdict claim-scope is in
+[`reading-a-verdict.md`](reading-a-verdict.md#claim-scope).)
 
 ---
 
@@ -167,6 +203,51 @@ an obligation. Nothing forces you to address a candidate.
 
 ---
 
+## …it **flooded me with thousands of matches**
+
+You ran `cargo antigen scan --bundled-catalog` and got a wall — tens of thousands of
+candidate lines.
+
+**Why:** **explicit** `--bundled-catalog` *always* injects the bundled catalog and
+**augments** whatever your tree already declares — so on a repo that already declares
+many antigens, you're now matching *every* bundled fingerprint against *every* site,
+on top of your own. On antigen's own tree, that produces ~25,000 matches across ~76
+types. It isn't broken; it's the augment-mode firehose.
+
+**Fix:** match the mode to the job —
+
+- On a **consumer crate** (no antigens of its own), use **bare scan** — auto-detect
+  injects the catalog *only* when you have nothing of your own, which is exactly the
+  fresh-crate case you want.
+- Use **explicit `--bundled-catalog`** deliberately, scoped with `--root <subdir>`,
+  when you want to run the flagship classes over a specific area on purpose.
+- Remember the tier filter: most of a firehose is **`suspected`**-tier noise (a
+  *prompt to look*, not a verdict). Read [reading-a-verdict.md](reading-a-verdict.md#tiers)
+  on tiers before treating the count as a to-do list.
+
+> One more: `--bundled-catalog` together with `--workspace` (multi-crate) emits a
+> `W-MULTICRATE` warning — it's surfaced, not silent. See
+> [troubleshooting.md](troubleshooting.md).
+
+---
+
+## …the matches showed up as **squiggles in my editor**
+
+You wired antigen into rust-analyzer and now fingerprint matches appear inline as
+**warnings**, like compiler diagnostics.
+
+**Why:** that's `scan --message-format json` working as intended. It speaks
+the rustc/cargo line-protocol, so an editor's flycheck consumes antigen findings as
+diagnostics — no custom LSP server. Every finding emits at **`warning` level only**:
+antigen never fails your build, and each squiggle carries the line *"a fingerprint
+match to inspect, not an audited verdict."*
+
+**Fix:** nothing — that's the feature. Read each squiggle as a *pointer to look*, not
+a build error. (Setup + the per-diagnostic claim-scope line are in
+[reading-a-verdict.md](reading-a-verdict.md#claim-scope).)
+
+---
+
 ## …`#[immune]` is **deprecated** — what do I use?
 
 ```
@@ -186,7 +267,10 @@ The audit still reads `#[immune]` for now, but it's on the way out.
 
 ## See also
 
-- [`reading-a-verdict.md`](reading-a-verdict.md) — what every scan/audit line means.
+- [`reading-a-verdict.md`](reading-a-verdict.md) — what every scan/audit line means
+  (incl. the bundled-catalog + flycheck surfaces).
+- [`the-felt-arc.md`](the-felt-arc.md) — the story: marking a felt worry
+  (`#[dread]`), the learner proposing a class, self-tolerance sparing clean code.
 - [`three-places-to-see-it.md`](three-places-to-see-it.md) — where the
   fingerprint's bind/spare is actually visible.
 - [`stdlib-families.md`](stdlib-families.md) — the catalog (tier of each member).

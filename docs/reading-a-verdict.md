@@ -32,6 +32,18 @@ fingerprint matched a shape here, go look*, or *this site is covered by a proof 
 strength N*. **`undefended` means "no witness yet," not "broken."** Read every line
 through that lens and the output stops feeling like an accusation.
 
+There's a sharper way to say the same thing, and antigen prints it verbatim on every
+machine-readable diagnostic:
+
+> **a fingerprint match to inspect, not an audited verdict.**
+
+Hold that sentence. It's the whole claim-scope of a `scan` line. The scanner reports
+that a *shape* in your code matches a known failure-class's fingerprint. It has
+**not** run a defense, traced reachability, or graded a proof — that's what `audit`
+does, on sites you've marked. A `scan` match is a finger pointing at a spot on the
+map, not a verdict delivered. (See [the claim-scope section](#claim-scope) for where
+this line literally appears in the output.)
+
 ---
 
 ## `scan` — the summary block
@@ -63,7 +75,7 @@ Scanned 33 files, found 116 antigen-related declarations:
 After the summary, `scan` lists the fingerprint-match candidates, one per line:
 
 ```
-antigen/examples/drop_panic.rs:50  PanicInDrop on impl [fingerprint match]
+antigen/examples/phantom_witness.rs:73  DropPanicClass on struct [fingerprint match]
 ```
 
 Read it as: *file:line · which antigen's fingerprint matched · the item kind ·
@@ -83,7 +95,7 @@ weighted by the antigen's [tier](#tiers): a `named` match is worth defending; a
 
 ```
 N unaddressed explicit presentation(s):
-  antigen/examples/drop_panic.rs:50  PanicInDrop on impl
+  antigen/examples/drop_panic.rs:56  PanicInDrop on impl
 ```
 
 These are sites you *declared* are in a failure-class's territory and haven't yet
@@ -91,6 +103,107 @@ defended or tolerated. The fix is one of three moves (the scan prints them too):
 `#[defended_by(<antigen>)]` on a test · `#[presents(<antigen>, requires = ...)]`
 for substrate evidence · `#[antigen_tolerance(<antigen>, rationale = "...")]` to
 record intent.
+
+---
+
+## <a id="bundled-catalog"></a>Where the matches come from: the bundled catalog
+
+A scan can only match fingerprints it *knows about*. On its own, that dictionary would
+be exactly the antigens **declared in your scanned tree** — your own `#[antigen]` types
+plus any stdlib ones you `use`-imported. A brand-new crate that imported none of them
+would have an empty dictionary, so a bare scan would print:
+
+```
+Scanned 1 files, found 0 antigen-related declarations
+All explicit presentations are addressed.
+```
+
+…which *looks* like a clean bill of health but is really an **empty dictionary** —
+"I had nothing to match against," dressed up as "nothing is wrong." That is the
+zero-hits cliff, a false all-clear. **The bundled catalog closes it.**
+
+antigen now ships a **bundled stdlib catalog** — its flagship failure-class
+fingerprints, built in — and the scanner reaches for it automatically:
+
+| You ran | What the catalog does |
+|---|---|
+| bare `cargo antigen scan` on a crate with **no** antigen declarations of its own | **auto-injects** the bundled catalog, so a zero-declaration crate still gets real fingerprint-match candidates (the cliff is gone — ADR-043 Amd-2). |
+| bare `cargo antigen scan` on a crate that **already declares** antigens | uses your declared vocabulary as before (no surprise injection on a repo that's already speaking antigen). |
+| `cargo antigen scan --bundled-catalog` (explicit) | **always injects** the catalog, *augmenting* whatever you've declared. Use this to run the flagship classes over a tree on purpose. |
+
+So on a fresh crate, you'll now see candidate lines you didn't have to import a
+single antigen to get:
+
+```
+Scanned 1 files, found 2 antigen-related declarations:
+  - 0 antigen declarations
+  - 0 explicit #[presents] markers
+  - 2 fingerprint matches (candidate sites — see below)
+
+  …/lib.rs:21  get-unchecked-without-proof on fn [fingerprint match]
+  …/lib.rs:30  panic-in-drop on impl [fingerprint match]
+```
+
+Those are still **candidates** (read [the candidate list](#the-candidate-list) and
+[tiers](#tiers) — they're an invitation to look, weighted by tier), and they are
+still scan-facts, never audited verdicts. But the screen is no longer lying to you:
+it found something to point at, because it finally had a vocabulary.
+
+> **One warning to know:** explicit `--bundled-catalog` on a repo that *already*
+> declares many antigens (like antigen's own tree) augments everything against
+> everything and gets very loud. On consumer crates, prefer **bare scan**
+> (auto-detect injects only when you have nothing of your own). The
+> [troubleshooting](troubleshooting.md) page covers the firehose.
+
+---
+
+## <a id="claim-scope"></a>Editor flycheck + the claim-scope line
+
+`scan` can speak the **rustc / cargo `--message-format=json` line-protocol** — the
+same newline-delimited `compiler-message` shape rust-analyzer already understands.
+Point your editor's check command at it and antigen findings show up as squiggles,
+no custom LSP server:
+
+```jsonc
+// rust-analyzer setting
+"rust-analyzer.check.overrideCommand": [
+  "cargo", "antigen", "scan", "--message-format", "json"
+]
+```
+
+Each finding emits at **`warning` level only** — antigen never fails your build —
+and every diagnostic carries the canonical claim-scope sentence on its own line:
+
+```jsonc
+{ "reason": "compiler-message", "message": {
+    "message": "antigen: structure matches the `panic-in-drop` failure-class
+       fingerprint (provenance: constructable …). This is a fingerprint match to
+       inspect, not an audited verdict.",
+    "level": "warning",
+    "code": { "code": "antigen::panic-in-drop" },
+    "children": [{ "level": "note", "message":
+       "fingerprint match only — antigen has not audited a defense for this site.
+        Mark it with #[presents(…)] + #[defended_by(…)] …" }] } }
+```
+
+The phrase to internalize is the one in every `message`:
+
+> **This is a fingerprint match to inspect, not an audited verdict.**
+
+That is not boilerplate — it is the *structural truth* of what a scan line is. In
+the code, a scan match is a `FindingBody::FingerprintMatch`, a distinct type that
+**cannot** be a defense verdict; the sentence is the human-readable shadow of a
+type-level guarantee (ADR-044). When you read a `scan` line — console or JSON — read
+it as a pointer to inspect, and let `audit` be the thing that grades.
+
+> Note: in the **human console** render, this claim-scope gist lives in the summary
+> block ("candidates … the witness layer refines them … Not a TODO list") rather
+> than per-line. The `--message-format json` render carries it per-diagnostic. Same
+> claim, two surfaces.
+
+`--message-format json` (rustc line-protocol) is distinct from `--format json`
+(antigen's own report envelope) — the former is for editors, the latter for tooling
+that wants the whole `ScanReport`.
 
 ---
 
@@ -195,6 +308,10 @@ one, [`three-places-to-see-it.md`](three-places-to-see-it.md) shows you where.
 
 - [`i-scanned-and.md`](i-scanned-and.md) — symptom-indexed troubleshooting ("I
   scanned and ___").
+- [`the-felt-arc.md`](the-felt-arc.md) — the story: what it's
+  *like* to mark a felt-but-unnamed worry (`#[dread]`), watch the learner propose a
+  class from it, and watch self-tolerance refuse to flag clean code — run on
+  antigen's own three marks.
 - [`three-places-to-see-it.md`](three-places-to-see-it.md) — where each thing
   (class-level defense, the fingerprint sparing a site, every family's bind/spare)
   is actually visible.

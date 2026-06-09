@@ -166,7 +166,7 @@ pub struct DelegatedHandlerKindMismatch;
     category = AntigenCategory::FunctionalCorrectness,
     fingerprint = r#"doc_contains("ADR-005")"#,
     family = "dogfood",
-    summary = "An #[immune] declaration names a witness that does not execute a meaningful verification — the immunity claim and actual verification state diverge.",
+    summary = "A defense declaration names a witness that does not execute a meaningful verification — the declared defense and the actual verification state diverge.",
     references = ["ADR-005", "ADR-005#Amendment-3", "ADR-019"]
 )]
 pub struct WitnessClaimWithoutImplementation;
@@ -749,7 +749,7 @@ pub struct UnstableHashAsPersistedValue;
 /// originally passed the sidecar's stored `current_fingerprint` into the
 /// predicate evaluator, so `signed_against_fingerprint == current_fingerprint`
 /// compared the sidecar to itself — "Audit-SF-1." Real code drift was never
-/// detected. The fix (A3) feeds the *scan-recomputed* `structural_fingerprint`
+/// detected. The fix feeds the *scan-recomputed* `structural_fingerprint`
 /// (from `antigen_fingerprint::structural_digest`, which reads the item on disk)
 /// instead, so a signer who signed against stale code is now correctly rejected.
 ///
@@ -1549,7 +1549,7 @@ pub struct PathTraversalViaUnvalidatedComponent;
 /// predicate-leaf added to the grammar (ADR-022 open-grammar discipline)
 /// re-introduces the trap unless the author wraps slots in distinct types.
 ///
-/// **Fix shape** (R5, aristotle Phase-1-8): tagged constructors
+/// **Fix shape**: tagged constructors
 /// `name("alice") / role("math-researcher")` so name-slot and role-slot
 /// are distinct at the DSL grammar level; typing a role into a name slot
 /// becomes a parse error. Alternatively, newtype-wrapped strings
@@ -1845,10 +1845,10 @@ pub struct AbsentErrorCollapse;
 /// *computation itself is wrong* because the index resolves to the wrong item.
 ///
 /// **Fingerprint**: `doc_contains("items.first")` is a recall fingerprint for
-/// the position-key shape — `"items.first()"` in a doc comment signals the v0.1
+/// the position-key shape — `"items.first()"` in a doc comment signals the
 /// forward-pointer that the author KNEW the key was narrower than it should be
-/// (the comment at `audit.rs:1597` explicitly says "A3+ work will match by
-/// `item_path`"). The other two shapes (bare fn name / bare type name) are
+/// (a comment acknowledging that later work would match by `item_path`). The
+/// other two shapes (bare fn name / bare type name) are
 /// caught by the explicit `#[presents]` markers on the two blocked campsites'
 /// index-build sites. A fingerprint grammar capable of expressing "a
 /// `HashMap` keyed by `&str` where the value type has a second `&str`

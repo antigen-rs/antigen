@@ -1,4 +1,4 @@
-//! Cross-crate enumeration + the member-aware multi-crate scan (A3 D3).
+//! Cross-crate enumeration + the member-aware multi-crate scan.
 //!
 //! Extracted from the former monolithic `scan.rs` per ADR-036 (the scan/audit
 //! orchestration decomposition). The member-aware path: `enumerate_dep_crate_roots`
@@ -25,27 +25,24 @@ use super::{
 };
 
 // ============================================================================
-// Cross-crate enumeration (A3 D3)
+// Cross-crate enumeration
 //
-// Per the A3 scope-lock and navigator's 2026-05-09 ruling: cross-crate scope
-// in v0.1 is enumeration + per-crate scanning, NOT merged cross-crate matching.
-// The `addresses()` relation stays file-scoped; module-path-qualified
-// `ItemTarget` is an ADR-class decision (ATK-A3-005) deferred until aristotle
-// rules + an ADR sentence drafts.
+// Cross-crate scope is enumeration + per-crate scanning, NOT merged cross-crate
+// matching. The `addresses()` relation stays file-scoped; module-path-qualified
+// `ItemTarget` is an ADR-class decision (ATK-A3-005), not yet decided.
 //
-// Empirical substrate findings (pre-flight P1/P2/P5, 2026-05-09):
-//   P1: `cargo metadata --format-version 1` returns `manifest_path` already
-//       resolved per-package — no need to construct paths from cargo home +
-//       index hash + crate-version suffix. Path-deps, workspace-internal,
-//       and registry deps share the same shape.
-//   P2: `~/.cargo/registry/src/index.crates.io-<hash>/<crate>-<version>/`
-//       hosts multiple co-existing versions of the same crate. The
-//       `cargo metadata`-driven approach avoids the multi-version problem
-//       entirely because cargo dedupes by version per package.
-//   P5: zero `#[antigen(...)]` instances in the wild across the registry
-//       (sample: this workspace's 96 reg deps + tambear's 227 reg deps).
-//       The collision question is hypothetical until antigen-stdlib lands;
-//       Approach 2 vs 3-revised ruling can absorb after D3 ships.
+// Empirical substrate findings:
+//   - `cargo metadata --format-version 1` returns `manifest_path` already
+//     resolved per-package — no need to construct paths from cargo home +
+//     index hash + crate-version suffix. Path-deps, workspace-internal,
+//     and registry deps share the same shape.
+//   - `~/.cargo/registry/src/index.crates.io-<hash>/<crate>-<version>/`
+//     hosts multiple co-existing versions of the same crate. The
+//     `cargo metadata`-driven approach avoids the multi-version problem
+//     entirely because cargo dedupes by version per package.
+//   - zero `#[antigen(...)]` instances in the wild across the registry
+//     (sampled across hundreds of registry deps). The collision question is
+//     hypothetical until antigen-stdlib lands.
 //
 // Sub-clause F (ADR-005): cross-crate antigen declarations are trusted
 // inputs; the trust anchor is cargo's own checksum verification chain.

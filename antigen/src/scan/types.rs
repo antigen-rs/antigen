@@ -132,7 +132,7 @@ impl AntigenDeclaration {
 
 /// Identity of the Rust item that an antigen-related attribute is applied to.
 ///
-/// W3 (sweep A2): replaces the old proximity heuristic in
+/// W3: replaces the old proximity heuristic in
 /// `unaddressed_presentations` with structural matching. `Presentation` and
 /// `Immunity` carry an `item_target` that names the *item they live on*; two
 /// declarations address each other if and only if their item targets are
@@ -152,7 +152,7 @@ impl AntigenDeclaration {
 /// `trait_path` on `Impl`/`ImplFn` is the trait being implemented (e.g.,
 /// `Drop` from `impl Drop for X`); `None` for inherent impls. The path is
 /// captured as a string after canonical rendering — full-path equality is
-/// W3's invariant, but A3 cross-crate matching may need richer
+/// W3's invariant, but cross-crate matching may need richer
 /// representation later.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ItemTarget {
@@ -316,8 +316,8 @@ impl ItemTarget {
     /// Whether this item-target addresses another for the purposes of the
     /// presents+immune match. The relation is reflexive and symmetric.
     ///
-    /// W3 (sweep A2) — the "addresses" relation is wider than strict
-    /// equality, per the A2 README's matching rules:
+    /// W3 — the "addresses" relation is wider than strict
+    /// equality, per the README's matching rules:
     ///
     /// - Same kind, same name (Struct/Enum/Trait/Fn/TypeAlias) → match.
     /// - Two `Impl` blocks for the same base type (regardless of trait
@@ -498,10 +498,10 @@ pub struct Presentation {
     pub line: usize,
     /// Item kind that was annotated (impl, fn, struct, etc.).
     pub item_kind: String,
-    /// Item identity for structural matching against `Immunity`. W3 (sweep A2).
+    /// Item identity for structural matching against `Immunity`. W3.
     pub item_target: ItemTarget,
     /// How this presentation was discovered: explicit marker vs fingerprint
-    /// match. W6a (sweep A2). Defaults to `ExplicitMarker` for backwards
+    /// match. W6a. Defaults to `ExplicitMarker` for backwards
     /// compatibility with serialized reports from before W6a.
     #[serde(default)]
     pub match_kind: MatchKind,
@@ -575,7 +575,7 @@ pub struct Immunity {
     pub line: usize,
     /// Item kind that was annotated.
     pub item_kind: String,
-    /// Item identity for structural matching against `Presentation`. W3 (sweep A2).
+    /// Item identity for structural matching against `Presentation`. W3.
     pub item_target: ItemTarget,
     /// Canonical declaration site of the *antigen* referenced by this
     /// immunity claim (not where the immunity is declared). ADR-017.
@@ -596,7 +596,7 @@ pub struct Immunity {
 /// A `#[defended_by(antigen_type)]` code-tier witness registration discovered
 /// in source (ADR-029).
 ///
-/// Where [`Immunity`] (the deprecated `#[immune]`) bundled the immunity-claim
+/// Where [`Immunity`] (the deprecated `#[immune]`) bundled the defense-claim
 /// (a verdict) with the witness pointer at the *defended site*, a `Defense`
 /// carries only the registration: "this test/proptest function declares it
 /// defends failure-class X." The verdict — whether the witness actually defends
@@ -644,8 +644,8 @@ pub struct Defense {
 /// `cargo antigen scan`'s generates-synthesis pass builds a `macro_name →
 /// [antigen_type]` index from these declarations, then walks every macro
 /// invocation in the workspace and emits a synthetic [`Presentation`] at the
-/// invocation site for each matching generator. Per ADR-014 §A3 this is
-/// same-workspace only; cross-crate macro-output recognition (§A4) is deferred.
+/// invocation site for each matching generator. Per ADR-014 this is
+/// same-workspace only; cross-crate macro-output recognition is deferred.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneratesDeclaration {
     /// The antigen type the macro's expansion presents (last path segment).
@@ -699,14 +699,14 @@ pub struct MarkedUnknown {
     /// name+code-sensitive FNV digest (`antigen_fingerprint::structural_digest`),
     /// the SAME identity hash matched-item Findings carry. Diff-native DETECT
     /// keys on `(item-name, structural_digest)`, so this MUST stay
-    /// identity-sensitive (P0a / ADR-045 Amd-2, the captain's two-field ruling).
+    /// identity-sensitive (ADR-045 Amd-2, the two-field ruling).
     ///
-    /// `#[serde(default)]` so pre-P0a reports (empty string) deserialize cleanly.
+    /// `#[serde(default)]` so older reports (empty string) deserialize cleanly.
     #[serde(default)]
     pub structural_digest: String,
     /// The **shape** digest of the enclosing item — the NAME-INSENSITIVE
     /// body-shape FNV digest (`antigen_fingerprint::structural_shape_digest`).
-    /// This is the PROPOSE-slice clustering key (P0a, the keystone input seam,
+    /// This is the PROPOSE-slice clustering key (the keystone input seam,
     /// ADR-045 Amd-1/2). A `#[dread]`/`#[aura]` is an authored mark with no
     /// fingerprint of its own, but it always sits on a fingerprintable item; that
     /// item's SHAPE (modulo its name) is what the anti-unifier clusters on. Two
@@ -715,7 +715,7 @@ pub struct MarkedUnknown {
     /// from `structural_digest` (identity) so the two meanings never overload one
     /// field (antigen's own `ParallelStateTrackersDiverge`, foreclosed).
     ///
-    /// `#[serde(default)]` so pre-P0a reports (empty string) deserialize cleanly.
+    /// `#[serde(default)]` so older reports (empty string) deserialize cleanly.
     #[serde(default)]
     pub shape_digest: String,
 }
@@ -751,7 +751,7 @@ impl MarkedUnknown {
 
         // The cluster-key derives from (clustering-digest, class); for a
         // marked-unknown the "class" is the marker name AND the clustering digest
-        // is the enclosing item's SHAPE digest (name-insensitive — P0a, ADR-045
+        // is the enclosing item's SHAPE digest (name-insensitive — ADR-045
         // Amd-1/2). This makes the PROPOSE-slice's "group by structure" separate
         // distinct shapes while clustering identical-body / differently-named
         // sites: two dread marks on structurally-identical items share a key
@@ -1226,7 +1226,7 @@ pub struct ParseFailure {
 
 /// A `#[descended_from(parent)]` lineage edge discovered during scan.
 ///
-/// A3 (sweep) — every `#[descended_from]` site contributes one edge with
+/// Every `#[descended_from]` site contributes one edge with
 /// `child` = the bearing antigen type's name and `parent` = the last segment
 /// of the path supplied as the attribute argument. Edges are collected during
 /// the visitor pass and consumed afterwards by:
@@ -1278,12 +1278,12 @@ pub struct ScanReport {
     pub presentations: Vec<Presentation>,
     /// All discovered `#[immune]` sites.
     pub immunities: Vec<Immunity>,
-    /// All discovered `#[antigen_tolerance]` sites. W6a (sweep A2).
+    /// All discovered `#[antigen_tolerance]` sites. W6a.
     #[serde(default)]
     pub tolerances: Vec<Toleration>,
-    /// All discovered `#[descended_from]` edges. A3.
+    /// All discovered `#[descended_from]` edges.
     ///
-    /// `#[serde(default)]` so reports serialized before A3 deserialize
+    /// `#[serde(default)]` so older reports deserialize
     /// cleanly with an empty edge list (additive change, not breaking).
     #[serde(default)]
     pub lineage_edges: Vec<LineageEdge>,
@@ -1447,7 +1447,7 @@ pub struct PartitionedPresentations {
 impl ScanReport {
     /// Find presentations that lack a corresponding immunity declaration.
     ///
-    /// W3 (sweep A2) — structural item-identity matching. A `Presentation`
+    /// W3 — structural item-identity matching. A `Presentation`
     /// and an `Immunity` "address each other" when:
     ///
     /// - they reference the same `antigen_type`, AND
@@ -1463,7 +1463,7 @@ impl ScanReport {
     ///
     /// Cross-file matching remains out of scope here — different items can
     /// share names across modules, and the structural identity of an
-    /// "item" extends to its containing module path. That's A3 territory
+    /// "item" extends to its containing module path. That's future territory
     /// (cross-crate scan + `#[descended_from]` propagation).
     #[must_use]
     pub fn unaddressed_presentations(&self) -> Vec<UnaddressedPresentation> {
@@ -1532,7 +1532,7 @@ impl ScanReport {
     /// orphan check, naturalist's biology cognate "peripheral suppression
     /// continuing after the antigen it suppressed is no longer present").
     ///
-    /// Cross-crate antigens are deferred to A3 — for v0.1, an "orphan" is a
+    /// Cross-crate antigens are not yet handled — for now, an "orphan" is a
     /// tolerance whose antigen `type_name` doesn't appear in any
     /// `AntigenDeclaration` in the same scan. Consumers using cross-crate
     /// antigens may produce false positives here; that's the recognized
@@ -1558,7 +1558,7 @@ impl ScanReport {
 
     /// Lineage edges whose parent antigen is not present in the scan.
     ///
-    /// A3 / ATK-A3-003 — parallel to [`ScanReport::orphaned_tolerances`].
+    /// ATK-A3-003 — parallel to [`ScanReport::orphaned_tolerances`].
     ///
     /// A `#[descended_from(Parent)]` declaration whose `Parent` is no
     /// longer declared in the scanned workspace (rename, removal, or
@@ -1570,7 +1570,7 @@ impl ScanReport {
     /// choose the severity, the same channel discipline used for
     /// orphaned tolerances.
     ///
-    /// Cross-crate antigens are deferred to A3+ — for v0.1, an "orphan"
+    /// Cross-crate antigens are not yet handled — for now, an "orphan"
     /// is a lineage edge whose `parent` doesn't appear as a `type_name`
     /// in any [`AntigenDeclaration`] in the same scan. Consumers using
     /// cross-crate antigens may produce false positives here; that's
@@ -1686,7 +1686,7 @@ impl ScanReport {
         for g in &mut self.generates_declarations {
             // ADR-014 generates-declarations are stamped like defenses so the
             // antigen identity carries its declaring crate for cross-crate
-            // macro-output recognition (§A4; the v0.3 synthesis is same-workspace).
+            // macro-output recognition (the v0.3 synthesis is same-workspace).
             if g.canonical_path.is_none() {
                 g.canonical_path = Some(crate_id.to_string());
             }

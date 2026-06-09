@@ -1,9 +1,8 @@
 //! Two-pointer glob matcher for `name = matches("...")` operator.
 //!
-//! Per scout's ADR-006 (recognition-not-design) analysis: a 20-line bespoke
-//! matcher covers the v1 operator set (`*` any, `?` one, exact). When A4+
-//! adds character classes or multi-pattern matching, swap to `globset`. Not
-//! before.
+//! Per ADR-006 (recognition-not-design): a 20-line bespoke matcher covers the
+//! v1 operator set (`*` any, `?` one, exact). When a future version adds
+//! character classes or multi-pattern matching, swap to `globset`. Not before.
 
 /// Match a glob pattern against an identifier name.
 ///

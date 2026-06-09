@@ -420,8 +420,8 @@ fn atk_a2_010_phantom_witness_type_param_mismatch_is_flagged() {
 
     // Use a temporary directory as workspace root — no actual files needed
     // because detect_phantom_type_witness fires BEFORE the function index lookup.
-    let tmp = std::env::temp_dir();
-    let audit_report = audit(&report, &tmp);
+    let tmp = tempfile::tempdir().unwrap();
+    let audit_report = audit(&report, tmp.path());
     assert_eq!(audit_report.audits.len(), 1);
     let a = &audit_report.audits[0];
 
@@ -687,8 +687,8 @@ fn atk_w7_002_fabricated_phantom_type_gets_formal_proof_tier() {
     let mut report = ScanReport::default();
     report.immunities.push(immunity);
 
-    let tmp = std::env::temp_dir();
-    let audit_report = audit(&report, &tmp);
+    let tmp = tempfile::tempdir().unwrap();
+    let audit_report = audit(&report, tmp.path());
     let a = &audit_report.audits[0];
 
     // Currently: FormalProof — the highest tier — for a fabricated type.
@@ -757,8 +757,8 @@ fn atk_w7_003_nested_generic_in_phantom_witness_falls_through_to_not_found() {
     let mut report = ScanReport::default();
     report.immunities.push(immunity);
 
-    let tmp = std::env::temp_dir();
-    let audit_report = audit(&report, &tmp);
+    let tmp = tempfile::tempdir().unwrap();
+    let audit_report = audit(&report, tmp.path());
     let a = &audit_report.audits[0];
 
     // Nested generic must NOT produce a (malformed) PhantomType result.

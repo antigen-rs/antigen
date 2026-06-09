@@ -1,10 +1,9 @@
-# Wiring antigen into CI
+# Wiring antigen into CI (and your editor)
 
 > How to run `cargo antigen scan` and `cargo antigen audit` as CI gates: the
 > exact exit codes, the scan-vs-audit-strict relationship, where the gate sits in
-> a release cadence, and a worked GitHub Actions snippet. Every exit code below
-> was confirmed by running the published `cargo-antigen` binary, not transcribed
-> from a changelog.
+> a release cadence, a worked GitHub Actions snippet, and the **editor
+> flycheck** integration (`--message-format json` → rust-analyzer).
 
 ---
 
@@ -178,11 +177,65 @@ Placement guidance:
 ## Tier honesty in CI (what a green gate does and doesn't claim)
 
 A passing `audit --strict` means every `#[presents]` site is *defended* — the
-witness circuit is **wired** (Reachability tier). It does **not** yet mean every
-witness test was *executed* and *passed*: Execution-tier gating (running the
-witness via `cargo test` integration) arrives in sweep A4–A5. Until then, keep
-`cargo test` as its own CI step — antigen confirms the *defense is in place*;
+witness circuit is **wired** (Reachability tier). It does **not** mean every
+witness test was *executed* and *passed*: the audit does not run the witness, so
+keep `cargo test` as its own CI step — antigen confirms the *defense is in place*;
 `cargo test` confirms it *holds*. The two gates are complementary, not redundant.
+(Execution-tier gating — the audit running the witness itself — is a recorded
+graduation path; see [`roadmap.md`](roadmap.md).)
+
+---
+
+## Editor / IDE integration — flycheck (`--message-format json`)
+
+CI is the gate; the editor is where the feedback is cheapest. antigen lets
+`cargo antigen scan` speak the **rustc / cargo `--message-format=json`
+line-protocol** — newline-delimited `compiler-message` objects, the exact shape
+rust-analyzer's flycheck already consumes. Point the editor's check command at
+antigen and fingerprint matches render inline as warning squiggles, on save, with
+**no custom LSP server and no plugin**.
+
+```sh
+cargo antigen scan --message-format json
+```
+
+Wire it into rust-analyzer (`.vscode/settings.json`, or your editor's
+equivalent):
+
+```json
+{
+  "rust-analyzer.check.overrideCommand": [
+    "cargo", "antigen", "scan", "--message-format", "json"
+  ]
+}
+```
+
+Every diagnostic emits at **`warning` level only** — antigen never fails your
+build from the editor — and carries the claim-scope verbatim: *"This is a
+fingerprint match to inspect, not an audited verdict."* The `code.code` is
+namespaced `antigen::<class>` so the editor groups antigen's warnings, and a
+child `note` tells you the remediation (`#[presents]` + `#[defended_by]`, or
+`#[antigen_tolerance]`). Full field reference + a real diagnostic in
+[`output-formats.md`](output-formats.md).
+
+Add `--bundled-catalog` to the override command if you want the shipped stdlib
+footgun shapes flagged on a crate that already declares its own antigens:
+
+```json
+{
+  "rust-analyzer.check.overrideCommand": [
+    "cargo", "antigen", "scan", "--bundled-catalog", "--message-format", "json"
+  ]
+}
+```
+
+> **`overrideCommand` replaces the default `cargo check`.** rust-analyzer runs
+> *one* check command. If you point it solely at `cargo antigen scan`, you lose
+> the normal `cargo check` diagnostics. Either keep antigen as a CI/manual step,
+> or use a wrapper that runs `cargo check` *and* `cargo antigen scan
+> --message-format json` and concatenates the JSON lines. The two are
+> complementary: `cargo check` proves it compiles; antigen flags failure-class
+> shapes.
 
 ---
 

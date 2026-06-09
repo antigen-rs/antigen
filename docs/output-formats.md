@@ -1,13 +1,15 @@
 # Antigen — Output Formats Reference
 
-> **v0.2 idiom note**: Some scan/audit suggestion text shown below references the v0.1
-> `#[immune(...)]` API. For v0.2, use `#[defended_by(X)]` on test functions (code-tier)
-> or `#[presents(X, requires=...)]` on the site (substrate-tier). The `#[immune]` form
-> still compiles with a deprecation warning — see [`macros.md`](macros.md) for migration.
+> **Deprecation note**: Some scan/audit suggestion text shown below references the
+> deprecated `#[immune(...)]` API. Use `#[defended_by(X)]` on test functions (code-tier)
+> or `#[presents(X, requires=...)]` on the site (substrate-tier) instead. The `#[immune]`
+> form still compiles with a deprecation warning — see [`macros.md`](macros.md) for migration.
 
 > Format reference for `cargo antigen scan` and `cargo antigen audit`
 > output. Both commands support human-readable (default) and JSON
-> (`--format json`) outputs.
+> (`--format json`) outputs. `scan` additionally supports `--message-format json`
+> — the rustc line-protocol for editor flycheck, a *different* surface from
+> `--format json` (see [below](#--message-format-json--editor-flycheck-rustc-line-protocol)).
 
 For semantics of the tier values in audit output, see
 [`witness-tiers.md`](witness-tiers.md). For diagnostic interpretation,
@@ -23,42 +25,42 @@ and passive fingerprint matches.
 
 ### Human-readable output
 
+Real output (a zero-declaration crate, the bundled catalog auto-injected):
+
 ```
 Scanning workspace: .
 
-Scanned N files, found M antigen-related declarations:
-  - N1 antigen declarations
-  - N2 explicit #[presents] markers
-  - N3 fingerprint matches (unmarked sites)
-  - N4 tolerated sites (#[antigen_tolerance])
-  - N5 immunity claims
-  - N6 parse failures (see --format json for details)
+Scanned 1 files, found 2 antigen-related declarations:
+  - 0 antigen declarations
+  - 0 explicit #[presents] markers
+  - 2 fingerprint matches (candidate sites — see below)
 
-N3 fingerprint match(es) — structurally similar to a declared antigen:
+2 fingerprint match(es) across 2 antigen type(s) — candidate sites (expected
+noise; the witness layer refines them, per the filter/proof split). Not a TODO list.
 
-  path/to/file.rs:LINE  AntigenType on <item-kind> [fingerprint match]
-  ...
+  src/lib.rs:21  get-unchecked-without-proof on fn [fingerprint match]
+  src/lib.rs:30  panic-in-drop on impl [fingerprint match]
 
-  To acknowledge each site, use the antigen type shown above:
-    #[presents(<antigen>)] to mark explicitly,
-    #[immune(<antigen>, witness = ...)] if defended,
+  These are CANDIDATES, not failures. If a site genuinely presents the failure-class, acknowledge it:
+    #[presents(<antigen>)] to mark the site explicitly,
+      then defend it: #[defended_by(<antigen>)] on a test (code-tier), or
+      #[presents(<antigen>, requires = ...)] for substrate-witness evidence,
     #[antigen_tolerance(<antigen>, rationale = "...")] to document intent.
 
-N7 unaddressed explicit presentation(s):
-
-  path/to/file.rs:LINE  AntigenType on <item-kind>
-  ...
-
-To address each site, use the antigen type shown above:
-  #[immune(<antigen>, witness = ...)] on the same item,
-  OR #[antigen_tolerance(<antigen>, rationale = "...")]
+All explicit presentations are addressed.
 ```
 
-Sections appear conditionally — the `fingerprint matches`, `tolerated
-sites`, and `parse failures` summary lines are emitted only when their
-counts are greater than zero. The `unaddressed explicit presentation(s)`
-section appears only when at least one explicit `#[presents]` lacks a
-matching `#[immune]` or `#[antigen_tolerance]`.
+The summary counts grow conditionally — additional summary lines appear when
+their counts are non-zero (e.g. `- N tolerated sites (#[antigen_tolerance])`,
+`- N #[defended_by] declarations`, `- N parse failures`). When a tree also has
+explicit `#[presents]` sites with no witness, scan adds an `N unaddressed explicit
+presentation(s):` section listing each.
+
+> **The acknowledgment block reflects the live render.** The three moves antigen
+> suggests are `#[presents]` + `#[defended_by]` (code-tier) /
+> `#[presents(requires = …)]` (substrate-tier) / `#[antigen_tolerance]`. The
+> deprecated `#[immune]` form (v0.1) is **not** suggested — the tool no longer
+> emits it. See [`immune-migration-guide.md`](immune-migration-guide.md).
 
 ### Scan modes — flat, member-aware, and dep-inclusive
 
@@ -72,7 +74,7 @@ shape**; they differ only in *which* `.rs` files are walked and how
 | **Member-aware** | `--workspace` | each Cargo workspace **member** crate, scanned independently and unioned | `<name>@<version>` per member — declarations carry the identity of the member crate they live in |
 | **Dep-inclusive** | `--include-deps` | the workspace + each resolved **dependency** crate (registry/git), each scanned independently | dep records stamped `<name>@<version>`; deps appear under `dep_reports` |
 
-**Member-aware mode (`--workspace`, v0.3)** is the substrate for cross-crate
+**Member-aware mode (`--workspace`)** is the substrate for cross-crate
 identity (ADR-001 C7). Because each member's declarations are stamped with that
 member's `<name>@<version>`, a `#[descended_from(Parent)]` in one member
 resolves to a `Parent` declared in another member: the lineage edge's
@@ -89,6 +91,54 @@ is omitted entirely when the flag is not passed (byte-identical output for
 existing consumers).
 
 `--workspace` and `--include-deps` are independent flags and may be combined.
+
+### `--bundled-catalog` — scan against antigen's shipped stdlib fingerprints
+
+Orthogonal to the scope modes above, `--bundled-catalog` controls *which
+fingerprints* the scan matches against — antigen's **bundled stdlib catalog**
+(its flagship failure-class fingerprints) in addition to (or, on a zero-decl
+crate, in place of) the antigens declared in your tree.
+
+| Behavior | When | Notes |
+|---|---|---|
+| **Auto-inject** | bare scan on a crate with **zero** in-tree antigens | ADR-043 Amendment 2 — closes the zero-hits cliff so an empty repertoire is not a false all-clear |
+| **Always-inject (augment)** | explicit `--bundled-catalog` | always layers the catalog on top of local antigens; a firehose on repos that already declare many antigens (see [troubleshooting.md](troubleshooting.md)) |
+
+The catalog's findings are **scan-facts** — `match_kind: "fingerprint_match"`,
+never a `DialVerdict` or audited defense (claim-scope, ADR-043 Amendment 1 /
+ADR-044). They render in `report.presentations[]` exactly like any other
+fingerprint match. `--bundled-catalog` has **no effect with `--workspace`** (a
+warning is emitted, not silent — see [troubleshooting.md](troubleshooting.md)).
+
+#### Library usage (non-CLI consumers)
+
+The same bundled-catalog scan is available as a **public library API**, so a tool
+that doesn't shell out to the CLI can get a `ScanReport` directly. It re-exports
+from `antigen::scan`:
+
+```rust
+use std::path::Path;
+use antigen::scan::scan_workspace_bundled_catalog;
+
+// auto_detect = true  → inject the catalog ONLY when the tree has zero antigens
+//                       (the consumer-crate auto-detect path)
+// auto_detect = false → ALWAYS inject (augment-mode, the explicit --bundled-catalog path)
+let report = scan_workspace_bundled_catalog(
+    Path::new("."),
+    None,          // excluded_dirs: Option<&[&str]>
+    true,          // auto_detect
+)?;
+
+// Each catalog hit is a fingerprint match in report.presentations[], with
+// match_kind == MatchKind::FingerprintMatch — a scan-fact, never a defense verdict.
+println!("{} presentation record(s)", report.presentations.len());
+# Ok::<(), std::io::Error>(())
+```
+
+`scan_workspace_bundled_catalog(root, excluded_dirs, auto_detect)` mirrors the
+plain [`antigen::scan::scan_workspace`] contract (it returns the same
+`io::Result<ScanReport>`); the only difference is the bundled catalog injection
+governed by `auto_detect`.
 
 ### JSON output (`--format json`)
 
@@ -109,7 +159,7 @@ omitted otherwise).
 
 ```json
 {
-  "antigen_version": "0.3.0-beta.1",
+  "antigen_version": "0.4.0-beta.1",
   "git_sha": "e130c8f8681e8f9533a43820ab0fdcf6efe4f247",
   "generated_at": "2026-06-01T17:09:04.582520600+00:00",
   "report_schema_version": 1,
@@ -199,6 +249,77 @@ as entries in `report.presentations[]` with `match_kind: "fingerprint_match"`
 (vs `"explicit_marker"` for `#[presents]` annotations). Discriminate via
 the `match_kind` field.
 
+### `--message-format json` — editor flycheck (rustc line-protocol)
+
+This is a **different** JSON surface from `--format json`. Where `--format json`
+emits antigen's own *report envelope* (one object describing the whole run),
+`--message-format json` emits the **cargo/rustc `--message-format=json`
+line-protocol**: newline-delimited `compiler-message` objects, one per finding,
+in the exact shape an editor's flycheck already understands. No custom LSP
+server, no plugin — point rust-analyzer's `check.overrideCommand` at it and
+antigen findings show up inline as compiler diagnostics.
+
+```sh
+cargo antigen scan --message-format json
+```
+
+Each finding emits one newline-delimited object. Real output (on a crate with a
+`get_unchecked` and a `panic`-in-`Drop`, via the bundled catalog):
+
+```json
+{"reason":"compiler-message","message":{"message":"antigen: structure matches the `get-unchecked-without-proof` failure-class fingerprint (provenance: constructable (a verified minimal case exists)). This is a fingerprint match to inspect, not an audited verdict.","level":"warning","code":{"code":"antigen::get-unchecked-without-proof","explanation":null},"spans":[{"file_name":"src/lib.rs","line_start":21,"line_end":21,"column_start":1,"column_end":1,"is_primary":true}],"children":[{"message":"fingerprint match only — antigen has not audited a defense for this site. Mark it with #[presents(get-unchecked-without-proof)] + #[defended_by(...)] to record the defense, or #[antigen_tolerance(get-unchecked-without-proof, rationale=...)] to accept it.","level":"note","code":null,"spans":[],"children":[],"rendered":null}],"rendered":"warning: antigen: structure matches the `get-unchecked-without-proof` failure-class fingerprint ..."}}
+```
+
+The load-bearing fields:
+
+| Field | Value | Why |
+|---|---|---|
+| `level` | **`"warning"`** — always, never `error` | antigen never fails the build; a fingerprint match is a candidate to inspect |
+| `code.code` | `antigen::<class-name>` | namespaced so the editor groups antigen diagnostics |
+| `message` | carries the verbatim claim-scope line — **"This is a fingerprint match to inspect, not an audited verdict."** | the claim-scope is *per-diagnostic* here (in the human render it lives in the summary block) |
+| `children[].level` | `"note"` | the remediation hint (`#[presents]` / `#[defended_by]` / `#[antigen_tolerance]`) |
+| `spans[]` | `file_name` + `line_start` | where flycheck draws the squiggle |
+
+#### Wire it into rust-analyzer
+
+Point the check command at the antigen scan. In your editor's
+`rust-analyzer` settings (`.vscode/settings.json`, or your editor's equivalent):
+
+```json
+{
+  "rust-analyzer.check.overrideCommand": [
+    "cargo", "antigen", "scan", "--message-format", "json"
+  ]
+}
+```
+
+Now every save runs antigen and your editor renders each fingerprint match as a
+warning squiggle, with the claim-scope text in the hover. (The diagnostic spans
+mark the *line*, not the exact token — the squiggle lands at the start of the
+matched item's line.) Add `--bundled-catalog` to the command to also flag the
+shipped stdlib footgun shapes on a crate that already declares its own antigens.
+See [deployment-ci-integration.md](deployment-ci-integration.md) for the editor /
+IDE integration story end-to-end.
+
+> **Expect candidate density — squiggles are a prompt to glance, not errors to
+> fix.** flycheck draws one squiggle per fingerprint match. On a repo with broad
+> `suspected`-tier fingerprints that can be **many thousands** of candidates (a
+> bare `cargo antigen scan --message-format json` on a large crate emits tens of
+> thousands of diagnostics; explicit `--bundled-catalog` pushes it higher). Editor
+> squiggles
+> *read* as errors-to-fix in a way console output doesn't, so scope the check
+> before you wire it: add `--category functional-correctness` or `--root <subdir>`
+> to the override command, and read
+> [`reading-a-verdict.md`](reading-a-verdict.md) on tiers before treating
+> squiggles as a to-do list. A `suspected`-tier match is "look here," not "this is
+> broken." See also [`troubleshooting.md`](troubleshooting.md) (the firehose).
+
+> **`--message-format json` vs `--format json`** — they are distinct flags with
+> distinct consumers. `--format json` → antigen's report envelope (for scripts /
+> CI that read antigen's own structure). `--message-format json` → the rustc
+> line-protocol (for editors that already speak compiler-diagnostics). Don't
+> confuse them.
+
 ### Field reference
 
 #### `antigens[]`
@@ -215,8 +336,7 @@ the `match_kind` field.
 | `canonical_path` | string \| null | Cross-crate identity at `crate@version::Type` granularity (ADR-017); null for intra-workspace declarations |
 
 Note: the `references = [...]` field accepted by `#[antigen(...)]` is
-parsed at scan time but is not currently emitted to the JSON output
-surface. Future versions may surface it.
+parsed at scan time but is not emitted to the JSON output surface (reserved).
 
 #### `presentations[]`
 
@@ -307,7 +427,7 @@ matches a `macro_name`, it emits a synthetic `Presentation` at the invocation
 site with `item_kind = "generated_<macro>"` and `match_kind = "explicit_marker"`
 (author-declared, not a fingerprint guess), attributed to the invoked item so a
 co-located `#[defended_by]` / `#[antigen_tolerance]` addresses it. Same-workspace
-only at v0.3 (ADR-014 §A3); cross-crate macro-output recognition (§A4) is deferred.
+only (ADR-014 §A3); cross-crate macro-output recognition (§A4) is deferred.
 
 #### `scan_coverage` (member-aware scans only)
 
@@ -329,9 +449,9 @@ silent gap. This is the substrate a downstream ignorance audit reads.
 #### `unaddressed[]` (top-level convenience array)
 
 The top-level `unaddressed` key is a pre-rendered convenience array
-listing all `#[presents]` sites that lack a matching `#[immune]` or
-`#[antigen_tolerance]`. Consumers can either filter `report.presentations`
-themselves or read this directly.
+listing all `#[presents]` sites that lack a matching `#[defended_by]` witness
+(or a passing `requires =` predicate) and no `#[antigen_tolerance]`. Consumers
+can either filter `report.presentations` themselves or read this directly.
 
 | Field | Type | Meaning |
 |---|---|---|
@@ -361,7 +481,7 @@ themselves or read this directly.
 For `impl` blocks, both inherent impls and trait impls are captured;
 `trait_path` is null for inherent impls. `EnumVariant`, `ImplConst`, `Const`,
 and `Static` carry attributes on positions the scanner descends into so a
-`#[presents]` / `#[immune]` on a variant, an associated const, or a free
+`#[presents]` / `#[defended_by]` on a variant, an associated const, or a free
 const/static is not silently dropped (ScannerBoundaryFalseNegative). A
 trait-associated const reuses the `ImplConst` shape with the trait as
 `target_type`. `Unknown` is the fallback for item shapes not yet modelled and
@@ -390,21 +510,21 @@ antigen's identity (type name + canonical path for cross-crate).
 
 ## `cargo antigen audit`
 
-Walks the workspace + dependencies, runs scan, then validates every
-`#[immune]` claim by resolving its witness identifier and reporting
-tier-honest verification status.
+Walks the workspace + dependencies, runs scan, then observes every
+defense (`#[defended_by]` on tests, `#[presents(requires=...)]` substrate
+evidence) by resolving its witness and reporting tier-honest verification status.
 
 ### Human-readable output
 
-The audit prints a summary, an optional confirmed-claims block (claims
-at Execution tier or higher), an optional warnings block (claims below
+The audit prints a summary, an optional confirmed-defenses block (defenses
+at Execution tier or higher), an optional warnings block (defenses below
 Execution tier), and an optional state-7 block (inherited presentations
 not re-attested).
 
 ```
 Auditing workspace: .
 
-Audited N immunity claim(s):
+Audited N defense(s):
   - N_fp formal-proof (phantom-type or formal-verification tool — compile-time evidence)
   - N_ex execution (test/proptest run confirmed by audit)
   - N_re declared (witness identifier found in workspace — not yet semantically verified)
@@ -413,37 +533,36 @@ Audited N immunity claim(s):
   - N_broken broken (witness identifier not found)
   - N_missing missing (no witness identifier)
 
-✓ N_confirmed immunity claim(s) at Execution tier or higher:
+✓ N_confirmed defense(s) at Execution tier or higher:
 
   path/to/file.rs:LINE  AntigenType (witness = `witness_expression`)
     tier = FormalProof, hint = PhantomTypeShapeRecognized
 
-⚠ N_warn immunity claim(s) below Execution tier:
+⚠ N_warn defense(s) below Execution tier:
 
   path/to/file.rs:LINE  AntigenType (witness = `witness_name`)
     tier = <Tier>, hint = <AuditHint>
     → <diagnostic_text>
 
-Resolve below-Execution claims by either:
-  a) Adding test invocation that exercises the witness path (A4-A5 feature)
-  b) Pointing the witness at a runnable test (#[test] without #[ignore])
-  c) Renaming colliding functions or qualifying ambiguous witness paths
-  d) Adding the witness function to the workspace if it's missing
-  e) Tolerating the gap with `#[antigen_tolerance(...)]` if intentional
+Resolve below-Execution defenses by either:
+  a) Pointing the witness at a runnable test (#[test] without #[ignore])
+  b) Renaming colliding functions or qualifying ambiguous witness paths
+  c) Adding the witness function to the workspace if it's missing
+  d) Tolerating the gap with `#[antigen_tolerance(...)]` if intentional
 
 ⚠ N_state7 inherited presentation(s) not re-attested on the descendant (state 7 of the 7-state interaction matrix):
 
   warning: inherited presentation: `AntigenType` flowed from ["AncestorType"] to `<item-kind>` via `#[descended_from]`;
   the witness inherited from the ancestor has not been re-attested on the descendant.
-  Add `#[immune(AntigenType, witness = ...)]` or `#[antigen_tolerance(AntigenType, rationale = "...")]` on the descendant.
+  Add `#[defended_by(AntigenType)]` on a test (code-tier), or `#[presents(AntigenType, requires = ...)]` for substrate-witness evidence, or `#[antigen_tolerance(AntigenType, rationale = "...")]` on the descendant.
     --> path/to/descendant.rs:LINE
 
-  Note: behavioral re-validation (does the ancestor's witness apply to the descendant?) is A4-A5 work; reachability-tier audit cannot perform this check.
+  Note: behavioral re-validation (does the ancestor's witness apply to the descendant?) is future work; reachability-tier audit cannot perform this check.
   Use `cargo antigen audit --strict` to promote state-7 warnings to errors for CI gating.
 ```
 
 The summary lines for `formal-proof` and `execution` are conditionally
-emitted only when the count is greater than zero. The confirmed-claims
+emitted only when the count is greater than zero. The confirmed-defenses
 block (✓) and the warnings block (⚠) likewise appear only when their
 respective sets are non-empty. The state-7 block appears only when
 inherited Presentations exist that lack re-attestation on the descendant
@@ -461,7 +580,7 @@ delivered-verdict sidebands `category`, `deferred_defense_audit`,
 
 ```json
 {
-  "antigen_version": "0.3.0-beta.1",
+  "antigen_version": "0.4.0-beta.1",
   "git_sha": "e130c8f8681e8f9533a43820ab0fdcf6efe4f247",
   "generated_at": "2026-06-01T17:09:04.582520600+00:00",
   "report_schema_version": 1,
@@ -510,7 +629,7 @@ delivered-verdict sidebands `category`, `deferred_defense_audit`,
 |---|---|---|
 | `immunity` | object | Full immunity record (same shape as scan output's `immunities[]`) |
 | `witness_status` | object | Resolution status with diagnostic — see "witness_status variants" below |
-| `witness_tier` | string | One of: `formal_proof`, `execution`, `reachability`, `none` (snake_case-serialized `WitnessTier` enum; v0.1 has four tiers — see [`witness-tiers.md`](witness-tiers.md)) |
+| `witness_tier` | string | One of: `formal_proof`, `execution`, `reachability`, `none` (snake_case-serialized `WitnessTier` enum; four tiers — see [`witness-tiers.md`](witness-tiers.md)) |
 | `audit_hint` | string | Specific diagnostic hint, kebab-case-serialized — see "audit_hint values" below |
 
 #### `audit.presentation_verdicts[]` (ADR-029)
@@ -541,7 +660,7 @@ carries different sub-fields:
 
 | `status` value | Shape | Resulting `witness_tier` |
 |---|---|---|
-| `resolved` | `{status: "resolved", location: "<path>", witness_kind: <WitnessKind>}` | `formal_proof` (phantom-type), or `reachability` (test / ignored_test / proptest / function — v0.1 audit does not invoke harnesses) |
+| `resolved` | `{status: "resolved", location: "<path>", witness_kind: <WitnessKind>}` | `formal_proof` (phantom-type), or `reachability` (test / ignored_test / proptest / function — audit does not invoke harnesses) |
 | `external` | `{status: "external", tool_hint: "<string>"}` | `reachability` (with `external-tool-prefix-recognized` audit hint) |
 | `ambiguous` | `{status: "ambiguous", candidates: ["<path>", ...]}` | `none` |
 | `not_found` | `{status: "not_found", reason: "<diagnostic-text>"}` | `none` |
@@ -565,7 +684,7 @@ recognized witness shape. Serialized snake_case per `#[serde(rename_all
 
 `AuditHint` is serialized kebab-case per `#[serde(rename_all = "kebab-case")]`
 (NOTE: distinct from `WitnessTier` / `WitnessStatus` / `WitnessKind`,
-which use snake_case). The complete v0.1.0-rc.1 hint set:
+which use snake_case). The complete hint set:
 
 | JSON value | Rust variant | Meaning |
 |---|---|---|
@@ -575,9 +694,9 @@ which use snake_case). The complete v0.1.0-rc.1 hint set:
 | `"test-attribute-present-ignore-skipped"` | `TestAttributePresentIgnoreSkipped` | Function has `#[test]` AND `#[ignore]`; `cargo test` would skip it |
 | `"proptest-present-not-invoked"` | `ProptestPresentNotInvoked` | `proptest!` macro invocation found; harness not invoked |
 | `"external-tool-prefix-recognized"` | `ExternalToolPrefixRecognized` | External-tool prefix recognized (`clippy::`, `kani::`, etc.); tool not invoked |
-| `"external-tool-invoked"` | `ExternalToolInvoked` | External tool actually invoked (A4+; not emitted in v0.1) |
+| `"external-tool-invoked"` | `ExternalToolInvoked` | External tool actually invoked (reserved; not emitted today) |
 | `"phantom-type-shape-recognized"` | `PhantomTypeShapeRecognized` | Phantom-type witness shape recognized; constructor sealing not validated |
-| `"phantom-type-construction-validated"` | `PhantomTypeConstructionValidated` | Phantom-type construction validated (future; not emitted in v0.1) |
+| `"phantom-type-construction-validated"` | `PhantomTypeConstructionValidated` | Phantom-type construction validated (reserved; not emitted today) |
 | `"ambiguous-resolution"` | `AmbiguousResolution` | Witness name matches more than one workspace function (ATK-A2-005) |
 | `"fabricated-path-prefix"` | `FabricatedPathPrefix` | Witness path's module prefix does not exist in the workspace; last segment found but in an unrelated location (ATK-A2-011) |
 | `"inherited-presentation-not-re-attested"` | `InheritedPresentationNotReAttested` | Inherited Presentation lacks re-attestation on the descendant site (state 7 of the 7-state matrix; ADR-018) |
@@ -585,7 +704,7 @@ which use snake_case). The complete v0.1.0-rc.1 hint set:
 #### `audit.inherited_unaddressed[]`
 
 Presentations inherited via `#[descended_from]` propagation that don't
-have a corresponding `#[immune]` claim on the inheriting site. The
+have a corresponding defense on the inheriting site. The
 audit hint `inherited-presentation-not-re-attested` indicates per
 ADR-005 sub-clause F that inheritance does not transitively claim
 immunity — descendants must re-attest.
@@ -603,12 +722,13 @@ they've made conscious decisions about each site.
 | Exit code | Meaning |
 |---|---|
 | 0 | Scan/audit completed successfully (regardless of findings) |
-| 1 | Internal error (file IO, parsing, etc.) |
-| 2 | Strict mode triggered: unaddressed presentations or witnesses below threshold |
+| 1 | Strict mode triggered: unaddressed presentations or witnesses below threshold |
+| 2 | Internal error (file IO, parsing, a root that doesn't exist, etc.) |
 
-Strict mode is opt-in via `--strict` (planned; per ADR-008 Amendment 1
-strict-mode is the future enforcement surface; v0.1.0-rc.1 ships
-warn-only).
+Strict mode is opt-in via `--strict` (per ADR-008 Amendment 1, the
+enforcement surface): without it, unaddressed presentations are reported
+loudly but the run still exits successfully; with it, they escalate to a
+non-zero exit so CI can gate on them.
 
 ---
 
@@ -643,8 +763,8 @@ So a saved render is a *render of a run*, not stored state:
   as authoritative — so it cannot drift. Console output is unaffected, letting
   CI print a human summary *and* save the machine detail in one invocation.
 - **Release SBOM** = a reproducible *render of a tagged state*. Running
-  `cargo antigen audit --output posture.json` at the `v0.3.0` tag *is* the
-  v0.3.0 defense-posture SBOM — regenerable any time by re-running antigen at
+  `cargo antigen audit --output posture.json` at a release tag *is* that
+  release's defense-posture SBOM — regenerable any time by re-running antigen at
   that commit (the `git_sha` envelope key records which one). antigen never
   reads it back, so it cannot rot.
 - **Git is the only memory.** A titer trend or escape-hatch lifetime is read

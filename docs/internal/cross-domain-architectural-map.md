@@ -1,11 +1,10 @@
 # Antigen — Cross-Domain Architectural Map
 
-> **V1 (2026-05-08)**. Forward-substrate map of academic fields beyond
+> Forward-substrate map of academic fields beyond
 > classical immunology, virology, and medicine where structural-recognition-
-> with-memory-and-inheritance has been independently studied. Authored by
-> academic-researcher during A2 day-2 evening as the cross-domain companion
-> to [`immune-system-primitive-map.md`](immune-system-primitive-map.md) V0
-> (which catalogs the biology spine). The two documents map together: V0
+> with-memory-and-inheritance has been independently studied. The cross-domain
+> companion to [`immune-system-primitive-map.md`](immune-system-primitive-map.md)
+> (which catalogs the biology spine). The two documents map together: one
 > deepens biology; this document deepens *the rest of the academic record*
 > that converges on the same architectural questions biology has been
 > answering for ~500 million years.
@@ -19,29 +18,24 @@
 >
 > **The window count is a lower bound, not a census.** The map currently
 > names sixteen fields with full structural identity (window 16: epistemic
-> logic / common-knowledge proofs, confirmed A2-day-2, scientist ruling
-> 2026-05-08) plus four partial-cognate fields. This is structurally
-> expected: a framework with genuine falsifiability structure will keep
-> finding gaps when applied carefully. The no-fixed-point property (Finding
-> 6 below) operates at the meta-level — the framework predicts its own
+> logic / common-knowledge proofs) plus four partial-cognate fields. This is
+> structurally expected: a framework with genuine falsifiability structure
+> will keep finding gaps when applied carefully. The no-fixed-point property
+> (Finding 6 below) operates at the meta-level — the framework predicts its own
 > expansion. Each time the structural-identity test is run against a new
 > field, the count updates. "Sixteen+" means at-least-sixteen, not
 > exactly-sixteen.
 >
 > **Companion to**:
-> - [`immune-system-primitive-map.md`](immune-system-primitive-map.md) V0
+> - [`immune-system-primitive-map.md`](immune-system-primitive-map.md)
 >   (biology / virology / medicine / public health spine)
-> - [`scope.md`](scope.md) (the multi-window convergence frame)
-> - Sweep A1 closure narrative
->   ([`../sweeps/A1-design-ratification/CLOSURE.md`](../sweeps/A1-design-ratification/CLOSURE.md)),
->   four empirical validations, especially Validation 3 (three-window defense
->   of ADR-003 — biology + past-self gardening + academic CS lineage)
+> - [`scope.md`](../scope.md) (the multi-window convergence frame)
 
 ---
 
 ## Why this document exists
 
-Sweep A1's closure named **three windows** that converge on antigen's
+The design substrate named **three windows** that converge on antigen's
 architecture (biology, past-self gardening, programming-language theory) and
 scope.md added a **fourth** (2026 ML graph-memory research). The three- and
 four-window convergence is itself an empirical defense of the architecture
@@ -463,9 +457,9 @@ propagation. Still, the per-instance illumination is precise.
   gradient.** Multiple witness types attached to a single antigen are
   redundancy. ADR-013's phantom-type witnesses + ADR-002's external-tool
   witnesses + ADR-016's `verified_at` re-attestation form an error-
-  correcting code over the immunity-claim space. A single witness can
+  correcting code over the defense space. A single witness can
   fail (compile error, tooling regression, stale proof); multiple
-  redundant witnesses make the immunity claim correctable rather than
+  redundant witnesses make the defense correctable rather than
   losable.
 
 - **Signal-to-noise → fingerprint precision/recall + tolerance.** The
@@ -502,7 +496,7 @@ propagation. Still, the per-instance illumination is precise.
 
 - ECC RAM uses Hamming codes to detect/correct single-bit errors silently
   in computer memory. Antigen with witness-pluralism makes single-witness
-  loss recoverable silently in immunity claims.
+  loss recoverable silently in defenses.
 - Reed-Solomon codes (used in CDs, DVDs, QR codes) handle burst errors via
   block-level redundancy. Witness-tier-gradient (ADR-005 Amendment 3) is
   block-level honesty about which redundancy layer is actually doing the
@@ -1244,7 +1238,7 @@ fourth principle that text-based antigen does not currently encode.**
 
 - **Multi-modal carriers ≈ multi-witness pluralism.** Indigenous systems
   preserve knowledge across stories, ceremony, song — multiple redundant
-  channels. Antigen preserves immunity claims across test, proptest,
+  channels. Antigen preserves defenses across test, proptest,
   phantom-type, formal-verification, lint — multiple redundant witness
   types. The structural move is the same (redundancy as resilience).
 
@@ -1343,11 +1337,11 @@ makes antigen's project-level coordination work.
   history + on-disk docs are the pheromone field. Each agent (Claude
   instance, human contributor) leaves signals in substrate; other
   agents detect and respond without direct coordination. Validation 4
-  in the A1 closure narrative (the team passed three "ratification
-  complete" signals through routing on the basis of agent context, not
-  substrate-grounded check) is *exactly* the failure mode stigmergy
-  warns against: when agents respond to other agents' signals rather
-  than to substrate, coordination collapses.
+  in the canonical substrate-currency failure (a team passed three
+  "ratification complete" signals through routing on the basis of agent
+  context, not a substrate-grounded check) is *exactly* the failure mode
+  stigmergy warns against: when agents respond to other agents' signals
+  rather than to substrate, coordination collapses.
 
 - **`#[antigen]` declarations ≈ pheromone trails for recognition.**
   Each declaration is a persistent environmental signal. Future
@@ -1365,24 +1359,24 @@ makes antigen's project-level coordination work.
 ### Where the stigmergy framework adds new substrate
 
 - **Coordination-tier substrate-over-memory mitigation has a name.**
-  The A1 closure narrative names the discipline ("every 'X is complete'
-  routing must include a substrate-grounded check name"); stigmergy
-  gives it a 60-year theoretical grounding. The discipline is not ad
-  hoc; it is a specific instance of a domain-general coordination
+  The substrate-currency posture names the discipline ("every 'X is
+  complete' routing must include a substrate-grounded check name");
+  stigmergy gives it a 60-year theoretical grounding. The discipline is
+  not ad hoc; it is a specific instance of a domain-general coordination
   architecture.
 
 - **Stigmergy explains why the JBD-team-with-substrate works at scale.**
   Direct communication scales as O(N²) with team size; stigmergic
   coordination scales as O(N) because each agent only interacts with
-  the substrate, not with all other agents. Antigen's coordination
-  pattern (campsite logbook + ADRs + docs/expedition + memory.md)
+  the substrate, not with all other agents. The coordination
+  pattern (campsite logbook + ADRs + project docs + memory index)
   operates stigmergically by design — the team scales because the
   substrate carries the coordination load.
 
 - **Signal evaporation is load-bearing, not just hygiene.**
   Pheromone-trail evaporation prevents lock-in to suboptimal paths.
   ADR-016's `verified_at` evaporation prevents lock-in to stale
-  immunity claims. The framework predicts: *every persistent signal
+  defenses. The framework predicts: *every persistent signal
   in antigen needs a decay term, or it will eventually mislead*.
   This is recognition substrate for future-ADR territory.
 
@@ -1442,7 +1436,7 @@ architecture.
 - **Antigen-stdlib ≈ informative prior for codebase failure-class
   reasoning.** A codebase that imports antigen-stdlib starts with a
   *prior belief* that certain failure-classes exist in the world. As
-  scan + audit produces evidence (matches, immunity claims), the
+  scan + audit produces evidence (matches, defenses), the
   codebase's posterior shifts. The mathematical framework for
   reasoning about partially-observed risks IS Bayesian.
 
@@ -1465,7 +1459,7 @@ architecture.
 - **Confidence calibration as ecosystem-level metric.** Bayesian methods
   produce *calibrated* beliefs (probability claims that match
   empirical frequencies). Antigen-stdlib could in principle produce
-  calibrated immunity claims: "codebases with witness W for antigen X
+  calibrated defenses: "codebases with witness W for antigen X
   have empirical failure rate Y." This is recognition substrate for
   future stdlib quality metrics.
 
@@ -1875,7 +1869,7 @@ more generally" is a precise framing.
 
 ### Finding 3 — The deepest substrate-over-memory grounding is stigmergy
 
-The A1 closure narrative's Validation 4 (substrate-over-memory caught
+The canonical substrate-over-memory validation (the discipline caught
 the team's own coordination failure) is given a 60-year theoretical
 foundation by stigmergy theory. The discipline is not project-specific;
 it is a specific instance of a domain-general coordination architecture.
@@ -2008,9 +2002,9 @@ team finds the answer here rather than re-deriving it. The map's
 existence does not commit the project to building any specific
 primitive on any specific timeline.
 
-Per the four empirical validations from A1 closure: the substrate has
-earned its scope. Per this V1 deepening: the substrate's *theoretical
-grounding* has sixteen-window depth. Both supports compound.
+Per the empirical validations of the design substrate: the substrate has
+earned its scope. Per this cross-domain deepening: the substrate's
+*theoretical grounding* has sixteen-window depth. Both supports compound.
 
 ---
 
@@ -2219,7 +2213,7 @@ version useful for blog posts and conference proposals.
 ## Appendix B — Field-by-field manuscript framing assignments
 
 Different cognates serve different manuscript trajectories. This is the
-academic-researcher's recommendation for which framing fits where, per
+recommendation for which framing fits where, per
 scope.md's multi-paper trajectory:
 
 ### Tool paper (post-v0.1.0)
@@ -2324,10 +2318,10 @@ through these:
   drift) is the AI-dev-tooling-paper-specific contribution: these
   variants are exactly where AI-team coordination fails without
   shared-substrate carriers. The five-variant set spans Clusters B and
-  C in scientist's three-cluster structure, which is itself a finding
+  C in the three-cluster structure, which is itself a finding
   — the antibody shape is determined by *substrate localizability*,
-  not by which cluster the variant occupies (per scientist's cross-
-  cluster antibody finding, methodology-paper-substrate.md, 2026-05-08).
+  not by which cluster the variant occupies (the cross-cluster antibody
+  finding).
 
 ### Comprehension-drift family material distribution
 
@@ -2343,8 +2337,8 @@ four slots rather than warranting a fifth:
 - **Foundational paper** absorbs the structural-unifier finding (one
   fail-mode across ten surface forms) and the 5-fundamental-gap
   cluster (V4, V5, V7, V8b, V10 structurally unreachable per
-  literature prediction). The manuscript-grade positioning sentence
-  (per scientist's substrate, 2026-05-08): *"There are five named
+  literature prediction). The manuscript-grade positioning sentence:
+  *"There are five named
   comprehension-drift variants that static analysis fundamentally
   cannot reach: V4 (loop-of-meaning drift), V5 (stakeholder mental-
   model divergence), V7 (mutual-update assumption coupling), V8b
@@ -2368,7 +2362,7 @@ four slots rather than warranting a fifth:
   (form-content gap mechanism), substrate-of-practice citation chain
   (per Appendix C).
 - **Tool paper** absorbs the V9 showcase variant (three Rust crates
-  exist at three independent angles per scout's prior-art sweep;
+  exist at three independent angles per the prior-art sweep;
   schema theory predicts the three-axis architecture per the
   literature-to-tooling-architecture-prediction finding). No new
   cognate additions; the existing tool-paper cognates suffice.
@@ -2379,7 +2373,7 @@ four slots rather than warranting a fifth:
   membership). Cognate additions: social epistemology / muddy-
   children-puzzle structural answer applied at AI-team scale.
 
-The genuinely novel contribution scientist flagged ("gap variants with
+The genuinely novel contribution ("gap variants with
 forced-externalization antibody shape that doesn't map to any existing
 slot") lives at the *architectural-claim layer*, not the manuscript-
 shape layer. It is foundational-paper positioning material — the
@@ -2399,10 +2393,8 @@ different clusters.
 
 ### Closing posture
 
-This appendix is recommendation, not commitment. Scientist owns
-manuscript-trajectory decisions; the appendix surfaces the cognate-to-
-paper assignments that the academic-researcher has substrate confidence
-in.
+This appendix is recommendation, not commitment. The appendix surfaces
+the cognate-to-paper assignments the substrate supports.
 
 ---
 
@@ -2901,17 +2893,6 @@ To prevent scope creep:
 
 ---
 
-*V1 authored 2026-05-08 by academic-researcher during A2 day 2.
-Companion to V0 immune-system-primitive-map.md. Maintained as ADR-006
-threshold is met by additional fields surfacing in adoption.*
-
-*Appendix A (cybersecurity governance deepening) + Appendix B (manuscript
-framing assignments) added 2026-05-08 same authoring session, after the
-main V1 substrate landed and idle-as-invitation pulled academic-researcher
-toward the most actionable cognate.*
-
-*Appendix C (indigenous-epistemology cognate deepening + substrate-of-
-practice principle synthesis + named extraction-degradation modes) added
-2026-05-08 same authoring session, after navigator endorsed continued
-idle-as-invitation pursuit and academic-researcher followed the next
-unmined adjacent vein per JBD discipline.*
+*Companion to [`immune-system-primitive-map.md`](immune-system-primitive-map.md).
+The map extends as the ADR-006 threshold is met by additional fields
+surfacing in adoption.*

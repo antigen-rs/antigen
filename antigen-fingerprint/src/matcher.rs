@@ -283,7 +283,7 @@ fn has_matching_method(item: &syn::Item, pattern: &MethodPattern) -> bool {
     // The fallback MUST use the same canonicalization the parser uses
     // (`normalize_signature_canonical`) — a plain `normalize_ws` here would
     // re-introduce the `&self` / `& self` spacing bug for serde-loaded
-    // patterns. A3.5 onboarding sweep fix.
+    // patterns.
     //
     // Amendment 5 OQ1 STRICT: when the lazy canonicalization fails
     // (proc_macro2 can't tokenize the serde-loaded `signature` field),
@@ -326,7 +326,7 @@ fn has_matching_method(item: &syn::Item, pattern: &MethodPattern) -> bool {
 /// through the same canonicalization, a `(Self, Self)` pattern
 /// (`proc_macro2` renders as
 /// `(Self , Self)`) would never match the matcher's `(Self, Self)` (manual
-/// join). A3.5 onboarding sweep fix.
+/// join).
 fn signature_matches(sig: &syn::Signature, pattern_norm: &str) -> bool {
     use quote::ToTokens;
 

@@ -138,8 +138,8 @@ impl TriageDecision {
 /// Whether the VCS-info-loss antigens operate in friction-only (client-side)
 /// or structural (server-side) enforcement mode (ADR-026 §Enforcement model).
 ///
-/// Per adversarial D3 absorbed during ADR-026 ratification: client-side hooks
-/// are bypassable via git plumbing commands. The ADR ships **friction-only**
+/// Per an adversarial finding absorbed during ADR-026 ratification: client-side
+/// hooks are bypassable via git plumbing commands. The ADR ships **friction-only**
 /// as the v0.2 default — makes bad behavior DELIBERATE rather than ACCIDENTAL;
 /// explicitly NOT preventive. Structural mode requires adopter to control the
 /// git remote and is the v0.2.1+ path.

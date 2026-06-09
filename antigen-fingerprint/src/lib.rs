@@ -44,8 +44,8 @@
 //!   time via `proc_macro2` round-trip. User-natural Rust syntax works:
 //!   `"(&mut self, T) -> U"`, `"(& mut self, T) -> U"`, and
 //!   `"(&  mut  self, T)  ->  U"` all canonicalize to the same form and
-//!   match the same signatures. (Pre-A3.5 the engine required the spaced
-//!   form `"(& self, ...)"` — that warning is now obsolete.)
+//!   match the same signatures. (An earlier engine required the spaced
+//!   form `"(& self, ...)"`; that requirement is gone.)
 //! - `attr_present("<path>")` — outer attribute path matches (e.g.
 //!   `repr`, `clippy::panic`)
 //! - `doc_contains("<substring>")` — case-sensitive substring search in the
@@ -424,9 +424,8 @@ pub(crate) fn normalize_ws(s: &str) -> String {
 /// writes the natural-Rust shape `"(&mut self)"`, plain whitespace
 /// normalization leaves it as `"(&mut self)"` — and the string compare
 /// against the matcher's `"(& mut self)"` never matches. Silent failure,
-/// zero matches. (Tambear's `PanickingInDrop` was bitten by this — fixed at
-/// tambear commit 7d9664a; A3.5 onboarding sweep surfaced it as a
-/// production footgun worth fixing in the engine.)
+/// zero matches. (An adopter's `PanickingInDrop` was bitten by this — a
+/// production footgun fixed in the engine.)
 ///
 /// **The fix**: round-trip the user-provided string through
 /// `proc_macro2::TokenStream::from_str(_).to_string()`. `proc_macro2` inserts

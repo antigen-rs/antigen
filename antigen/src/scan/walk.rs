@@ -111,7 +111,7 @@ pub fn scan_workspace_bundled_catalog(
 // space for future hard-failure modes — see that fn's `# Errors`); this private
 // inner fn currently never returns `Err`, hence the allow.
 //
-// P0b dogfood mark (v0.4 keystone): this walk swallows a file's read error with
+// Dogfood mark (v0.4 keystone): this walk swallows a file's read error with
 // `let Ok(content) = read_to_string(..) else { continue };` and proceeds — an
 // unreadable file (permissions, non-UTF-8) is silently skipped, so the scan
 // reports a CLEAN result over an INCOMPLETE corpus. That is antigen's own

@@ -2,7 +2,7 @@
 //! arm; the falsifiable keystone of the learning core).
 //!
 //! Given a CLUSTER of structurally-similar marked sites (the marked-unknown
-//! population, clustered by `shape_digest` — P0a), PROPOSE anti-unifies them into
+//! population, clustered by `shape_digest`), PROPOSE anti-unifies them into
 //! a candidate ("drafted") [`Fingerprint`]. The draft is a **HYPOTHESIS**: a
 //! ratifiable suggestion carrying provenance, **never** an auto-asserted
 //! `#[presents]` or an auto-named failure-class (ADR-044, observe-don't-declare —

@@ -89,7 +89,7 @@ pub enum EvidenceKind {
     TypeSystemProof,
     /// Runtime behavioral evidence. Test functions, proptest harnesses,
     /// external-tool delegation (clippy / kani / prusti). Reaches
-    /// `WitnessTier::Execution` (after harness invocation; pre-A3
+    /// `WitnessTier::Execution` (after harness invocation; without it,
     /// stops at Reachability).
     Behavioral,
     /// On-disk substrate state. Ratified docs, signed sidecars, oracle-
@@ -122,7 +122,7 @@ impl EvidenceKind {
 
 /// Strength of the signer-identity binding on a substrate-witness signer.
 ///
-/// Three tiers (basic/mid/advanced) per Tekgy verdict 2026-05-19. Not
+/// Three tiers (basic/mid/advanced). Not
 /// every approver has git config or crypto tooling — concrete case: a
 /// JBD team of LLM agents signing each other's attestations has neither.
 /// `TextStamp` is the basic tier any reviewer can produce; `GitTrust`
@@ -265,7 +265,7 @@ mod tests {
 
     #[test]
     fn signature_strength_three_tier_ord_is_monotonic() {
-        // Per Tekgy verdict 2026-05-19: basic/mid/advanced tier ordering
+        // The basic/mid/advanced tier ordering
         // lets CI gates require minimum tiers (e.g., "all signers must be
         // GitTrust or above" via `>= GitTrust` comparison).
         assert!(SignatureStrength::TextStamp < SignatureStrength::GitTrust);

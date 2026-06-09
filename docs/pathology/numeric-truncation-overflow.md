@@ -110,22 +110,18 @@ to look* at the suspected tier, not a verdict. The witness, any of:
 - a `// SAFETY:` argument that the byte/element units are correct; OR
 - miri.
 
-## Prognosis — the graduation path
+## Prognosis
 
-Graduation to named is **type-aware, not a near-term syntactic leaf** (the source is
-explicit about not over-promising an operator-leaf here). Pinpointing the defect
-needs **both** arg-position introspection (`size_of::<T>()` *in the count argument*)
-**and** the **pointee type** of the copy — because the arg-structure leaf *alone* is
-insufficient: the correct `*mut u8` byte-buffer idiom
+`SizeOfInElementCount` sits at **suspected** (demoted from named, ADR-039 §C Amd-1):
+the `size_of` + `copy_nonoverlapping` co-presence correlates with the defect but
+can't pinpoint it — the correct `*mut u8` byte-buffer idiom
 (`copy(dst: *mut u8, n * size_of::<T>())`) carries the very same `n * size_of` shape
-and would still false-positive; sparing it requires knowing the destination is `*u8`
-(a byte buffer), which is **resolved-type** information not available at macro/scan
-time. So this graduates only at the **v0.4 type-aware tier** (arg-position AND
-pointee-type), never at a syntactic operator-leaf.
-
-The family's other shapes — `LossyNumericCast` (an `as`-cast type-signature tell) and
-the arithmetic-overflow / float-equality members — are operator-shaped (no shipped
-leaf) → **charter**. This family ships the clean call-co-presence member now.
+and would false-positive. Sparing it needs the **pointee type** (`*u8`), which is
+resolved-type information not available at scan time — so this member's graduation is
+type-aware (arg-position **and** pointee-type), not a syntactic operator-leaf. This
+family ships the clean call-co-presence member now; that graduation, and the
+operator-shaped sibling shapes the call-only grammar can't yet express, are recorded
+in [`../roadmap.md`](../roadmap.md).
 
 ---
 

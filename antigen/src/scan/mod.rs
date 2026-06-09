@@ -13,13 +13,13 @@
 //! Initial implementation. Discovers attribute invocations, matches presentations
 //! against immunities at the same item level, synthesizes fingerprint matches
 //! against unmarked code (W6a), and collects `#[descended_from]` lineage edges
-//! with cycle detection (A3 D1+D2). Future versions will add:
+//! with cycle detection. Future versions will add:
 //!
 //! - `#[descended_from]` propagation (synthesizing inherited presentations on
 //!   descendants) — lineage edges + cycle/depth guards already land in
-//!   [`ScanReport::lineage_edges`] (A3 D1+D2); the propagation step depends on
+//!   [`ScanReport::lineage_edges`]; the propagation step depends on
 //!   the ADR-005 sub-clause F ruling on inherited-witness re-verification
-//! - Cross-crate antigen declaration discovery (A3 D3)
+//! - Cross-crate antigen declaration discovery
 //! - Witness validation (delegating to clippy/kani/proptest as appropriate)
 //! - Performance optimizations (incremental scan, parallel file walks)
 //!
@@ -31,7 +31,7 @@
 //!    (`Reachability`, `Execution`, `FormalProof`) are the [`crate::audit`]
 //!    module's job (shipped in W7 per ADR-001 Amendment 1 + ADR-013).
 //!
-//! W3 (sweep A2) replaced the prior 20-line proximity heuristic in
+//! W3 replaced the prior 20-line proximity heuristic in
 //! [`ScanReport::unaddressed_presentations`] with structural item-identity
 //! matching via [`ItemTarget`] + [`ItemTarget::addresses`]. See those types.
 
@@ -1931,7 +1931,7 @@ mod tests {
     }
 
     // ========================================================================
-    // A3: lineage edge cycle detection (ATK-A3-002)
+    // Lineage edge cycle detection (ATK-A3-002)
     // ========================================================================
 
     fn edge(child: &str, parent: &str) -> LineageEdge {
@@ -2149,7 +2149,7 @@ mod tests {
     }
 
     // ========================================================================
-    // A3: orphaned lineage edges query (ATK-A3-003)
+    // Orphaned lineage edges query (ATK-A3-003)
     // ========================================================================
 
     fn antigen_decl(type_name: &str) -> AntigenDeclaration {
@@ -2562,7 +2562,7 @@ mod tests {
     }
 
     // ========================================================================
-    // ATK-A3: adversarial edge cases.
+    // Lineage adversarial edge cases.
     // Two are FAILING bug contracts (atk_a3_dup, atk_a3_orphan_child).
     // Two are PASSING positive-controls verifying dedup correctness.
     // ========================================================================
@@ -2747,7 +2747,7 @@ mod tests {
     }
 
     // ========================================================================
-    // A3: stamp_canonical_path (ADR-017 Option A — caller stamps post-scan)
+    // stamp_canonical_path (ADR-017 Option A — caller stamps post-scan)
     // ========================================================================
 
     #[test]

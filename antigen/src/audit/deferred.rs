@@ -116,7 +116,7 @@ fn evaluate_deferred_defense_hint(
 
     match &decl.kind {
         DeferredDefenseKind::Anergy => {
-            // `#[anergy]` REQUIRES `until` (ADR-023 A5: anergy without a time-bound
+            // `#[anergy]` REQUIRES `until` (ADR-023: anergy without a time-bound
             // degrades to silent tolerance). Mirror the Orient arm: match on the
             // PRESENCE of `until` first so a present-but-malformed date does NOT
             // collapse into the absent-date grace path. Previously `unwrap_or("")`

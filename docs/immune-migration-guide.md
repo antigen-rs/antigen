@@ -3,12 +3,10 @@
 > `#[immune(X, witness = Y)]` and `#[immune(X, requires = ...)]` are
 > **deprecated** (ADR-029, *observe-don't-declare*). They still compile — with a
 > deprecation warning — but the audit model has moved on. This guide is the
-> step-by-step conversion to the two replacement forms, built and verified
-> against real adopter sites in `tambear` and `camp`.
+> step-by-step conversion to the two replacement forms.
 
 If your codebase imports antigen and has `#[immune]` declarations, this is the
-doc that gets you to the current idiom. Every before/after below was compiled
-and audited against the published macros before it was written here.
+doc that gets you to the current idiom.
 
 ---
 
@@ -61,26 +59,25 @@ The migration target produces **zero warnings**.
 
 ---
 
-## Case 1 — `witness =` (code-tier): the tambear ULP site
+## Case 1 — `witness =` (code-tier)
 
-This is the most common form. The real site is
-`tambear/crates/tambear/tests/dd_subnormal_sweep_oracle.rs:134` — a wrapper
-function marked immune, with a `#[test]` as its witness.
+This is the most common form: a site marked immune, with a `#[test]` as its
+witness.
 
 ### Before
 
 ```rust
 use antigen::immune;
-use tambear::antigens::UlpDistanceRolledByHand;
+use crate::antigens::UlpDistanceRolledByHand;
 
 #[immune(
     UlpDistanceRolledByHand,
     witness = ulp_wrapper_delegates_to_canonical_test,
-    rationale = "This wrapper is a thin pass-through to the canonical Dawson 2012 \
+    rationale = "This wrapper is a thin pass-through to the canonical \
                  implementation. The witness verifies the across-zero behavior."
 )]
 fn ulp_distance(a: f64, b: f64) -> u64 {
-    tambear::primitives::oracle_compare::ulp_distance_f64(a, b)
+    canonical::ulp_distance_f64(a, b)
 }
 
 #[test]
@@ -96,12 +93,12 @@ Split the one attribute into two markers, each on its natural home:
 
 ```rust
 use antigen::{defended_by, presents};
-use tambear::antigens::UlpDistanceRolledByHand;
+use crate::antigens::UlpDistanceRolledByHand;
 
 // The SITE gets #[presents] — it has the structural shape of the failure-class.
 #[presents(UlpDistanceRolledByHand)]
 fn ulp_distance(a: f64, b: f64) -> u64 {
-    tambear::primitives::oracle_compare::ulp_distance_f64(a, b)
+    canonical::ulp_distance_f64(a, b)
 }
 
 // The TEST gets #[defended_by] — it registers what it defends.
@@ -138,29 +135,27 @@ Immune-state verdicts (ADR-029 — observed, not declared):
 
 > **Tier honesty.** The verdict reads **"defended at Reachability"**, not
 > Execution. Reachability means the audit confirmed the witness *exists and is
-> wired to the site* — it has not yet *run* the test (Execution-tier gating
-> arrives with the `cargo test` integration in sweep A4–A5). "Defended" here is
-> an honest statement about the *circuit being wired*, not a claim that the test
-> passed. That is the correct, non-overclaiming reading.
+> wired to the site* — it does not *run* the test; the audit does not invoke
+> `cargo test`. "Defended" here is an honest statement about the *circuit being
+> wired*, not a claim that the test passed. That is the correct, non-overclaiming
+> reading.
 
 ---
 
-## Case 2 — `requires =` (substrate-tier): the camp site
+## Case 2 — `requires =` (substrate-tier)
 
 When the old `#[immune]` carried `requires = <predicate>` instead of
 `witness =`, the migration is a one-attribute rename: `#[immune]` →
 `#[presents]`. The predicate moves across unchanged.
-
-The real site is `camp/src/schema/campsite.rs:272`.
 
 ### Before
 
 ```rust
 #[immune(
     crate::antigens::VacuousCompletionFalseGreen,
-    requires = signers(required = ["Claude"], against = "any")
+    requires = signers(required = ["alice"], against = "any")
 )]
-pub fn signature_state_with(&self, /* ... */) -> CampsiteState { /* ... */ }
+pub fn completion_state_with(&self, /* ... */) -> CompletionState { /* ... */ }
 ```
 
 ### After
@@ -168,9 +163,9 @@ pub fn signature_state_with(&self, /* ... */) -> CampsiteState { /* ... */ }
 ```rust
 #[antigen::presents(
     crate::antigens::VacuousCompletionFalseGreen,
-    requires = signers(required = ["Claude"], against = "any")
+    requires = signers(required = ["alice"], against = "any")
 )]
-pub fn signature_state_with(&self, /* ... */) -> CampsiteState { /* ... */ }
+pub fn completion_state_with(&self, /* ... */) -> CompletionState { /* ... */ }
 ```
 
 The `requires =` predicate grammar is identical on both attributes — the macro
@@ -212,16 +207,10 @@ hazard of migrating.)
 > version made that const *anonymous* (`const _: () = {…}`), so two stacked
 > `#[immune]` on a method in an `impl` block produced two `const _` items in
 > associated-const position — which Rust rejects ("`const` items in this context
-> need a name" / duplicate definitions). It was reported from camp's own
-> migration on 2026-05-27 (`camp/src/schema/campsite.rs:271–277`). The macro was
-> later hardened (`affeea7`, on the current `main`) to emit a *named*,
-> per-emission const so even stacked `#[immune]` now compiles — but migrate
-> regardless: `#[immune]` is deprecated, and `#[presents]` is the form built to
-> stack. (A fitting aside: camp's comment still says the collision is "preserved"
-> though `affeea7` had already fixed it — a comment drifted from its own code,
-> which is *exactly* the claim-outlives-reality drift antigen exists to catch. It
-> was caught here by building the case and running the audit, not by reading the
-> comment.)
+> need a name" / duplicate definitions). The macro was later hardened to emit a
+> *named*, per-emission const, so even stacked `#[immune]` now compiles — but
+> migrate regardless: `#[immune]` is deprecated, and `#[presents]` is the form
+> built to stack.
 
 ---
 

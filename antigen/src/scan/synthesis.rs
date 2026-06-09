@@ -26,7 +26,7 @@ use super::{
 /// Called from [`scan_workspace`](crate::scan::scan_workspace) after the explicit-collection walk. Uses the
 /// cached `(path, syn::File)` pairs from pass 1 — no re-reading or re-parsing.
 /// Only top-level items are checked (`syn::File::items`); descent into `impl`
-/// methods and `trait` methods is deferred to W6b/A3.
+/// methods and `trait` methods is deferred to W6b.
 ///
 /// `declaration_sites` is the set of `(type_name, file)` pairs identifying
 /// antigen declaration structs themselves. These are suppressed from
@@ -286,9 +286,9 @@ impl<'ast> Visit<'ast> for GeneratesInvocationVisitor<'_> {
 /// on a macro DEFINITION, emit a synthetic `Presentation` at the invocation
 /// site presenting `X`.
 ///
-/// Same-workspace only (§A3): the generator declarations and the invocations
+/// Same-workspace only: the generator declarations and the invocations
 /// are both discovered by walking this workspace. Cross-crate macro-output
-/// recognition (§A4 — a `#[derive(SerdeFoo)]` invocation here matching a
+/// recognition (a `#[derive(SerdeFoo)]` invocation here matching a
 /// generator declared in the `serde_foo` dep) requires the cross-crate
 /// antigen-discovery mechanism and is deferred.
 ///

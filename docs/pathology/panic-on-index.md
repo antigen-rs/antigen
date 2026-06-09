@@ -86,9 +86,10 @@ call-shape. There is no `not(...)` guard and no co-anchor: the presence of the c
 - **What stays out of scope (honest defect-slice)**: the **panic** form — `expr[i]`
   indexing a `Vec`/slice with an input-derived index
   (`UncheckedIndexOnDynamicCollection`) — is an Index-**operator** tell
-  (`ExprIndex`), not a call leaf, so it is **charter-deferred to the operator-leaf
-  increment**. The deref-coercion compile-vs-runtime gem (`(&arr)[OOB]` compiles
-  where `arr[OOB]` doesn't) is a specimen-garden exhibit, not a fingerprint member.
+  (`ExprIndex`), not a call leaf, so the call-only grammar can't express it (a
+  recorded charter — see the prognosis below). The deref-coercion compile-vs-runtime
+  gem (`(&arr)[OOB]` compiles where `arr[OOB]` doesn't) is a specimen-garden exhibit,
+  not a fingerprint member.
   This family ships the clean call-shaped member now and labels the operator-shaped
   recall hole rather than over-reaching the grammar.
 
@@ -102,14 +103,14 @@ territory; the witness proves the index obligation is met. Either:
 - the checked `.get(i)` with a handled `None` (the call is replaced by the safe,
   bounds-checking form).
 
-## Prognosis — the graduation path
+## Prognosis
 
-`GetUncheckedWithoutProof` is already named; the call-presence is current-scanner.
-The future increment is *semantic*, not corrective: the precise in-bounds check
-(proving the index value relative to the length) is the v0.4 semantic tier, and the
-**panic-operator** form (`expr[i]`) graduates when the operator-leaf
-(`ExprIndex`) lands. Neither changes this member's tier — they *add* coverage for
-the sibling shapes this member deliberately doesn't claim.
+`GetUncheckedWithoutProof` is at the **named** tier; the fingerprint fires on the
+*presence* of the `get_unchecked` call. This member deliberately claims only the
+unchecked-call shape — not the precise in-bounds check (which needs resolved index
+values) nor the panic-operator form `expr[i]` (which needs the operator-leaf the
+call-only grammar lacks). Those are *additional* coverage, not a re-tier of this
+member, and are recorded as graduation paths in [`../roadmap.md`](../roadmap.md).
 
 ---
 

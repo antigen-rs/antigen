@@ -1,10 +1,8 @@
 # Antigen — Immune-System Primitive Map
 
-> **v0 (2026-05-08)**. Forward-substrate map of biological/medical/virological/
-> public-health primitives that could instantiate as antigen ecosystem tooling
-> primitives. Authored by team-lead during A2 day-2 evening; intended as
-> starting substrate for naturalist + scout + scientist + academic-researcher
-> v1 deep expansion.
+> Forward-substrate map of biological/medical/virological/public-health
+> primitives that could instantiate as antigen ecosystem tooling primitives —
+> starting substrate for deeper biology-cognate expansion.
 >
 > **This document is recognition substrate, not design.** Per ADR-006: each
 > primitive listed here lands in antigen as a tooling primitive *when adoption
@@ -13,7 +11,7 @@
 > does NOT commit the project to building any specific primitive on any
 > specific timeline.
 >
-> **Companion to**: [`scope.md`](scope.md) (the comprehensive vision); each
+> **Companion to**: [`scope.md`](../scope.md) (the comprehensive vision); each
 > primitive in this map is a potential future ADR / sweep / tool surface
 > visible from scope.md's "comprehensive immune-system primitive map" table
 > but expanded into substantive territory exploration.
@@ -111,7 +109,7 @@ lymph nodes, triggering specific adaptive response. They are the
 escalate to adaptive immunity if needed.
 
 **Potential antigen instantiation**: audit pass that takes scan-detected
-fingerprint matches and routes them to specific immunity claims with
+fingerprint matches and routes them to specific defenses with
 provenance — *suggests which witness type would prove immunity for this
 specific match*. Currently `cargo antigen scan` reports "needs immunity"
 without specifying *which kind* of immunity makes sense for the match.
@@ -209,7 +207,7 @@ cells produce antibodies at high rate for a limited time. They are the
 lots of it.
 
 **Potential antigen instantiation**: witness templates that *generate*
-immunity claims from patterns. When an antigen is declared, plasma-cell
+defenses from patterns. When an antigen is declared, plasma-cell
 tooling could generate boilerplate witness functions tailored to the
 antigen's fingerprint shape:
 - `panicking-in-drop` antigen → generates `no_panic_in_drop_test` template
@@ -289,7 +287,7 @@ fingerprint-quality metrics in audit output.
 immunity patterns:
 - `cargo antigen vaccinate` for bulk family application (live-attenuated
   shape — comprehensive but might over-apply)
-- Per-site `#[immune]` declarations (subunit shape — targeted, per-instance)
+- Per-site `#[presents]` + `#[defended_by]` declarations (subunit shape — targeted, per-instance)
 - `#[descended_from]` inheritance (mRNA-like — instructs the type system to
   manufacture immunity from pattern)
 - Witness templates from plasma-cell tooling (inactivated-like — boilerplate
@@ -456,8 +454,8 @@ responses. The first encounter biases all subsequent ones.
 
 **Potential antigen instantiation**: when an antigen's fingerprint is based
 on the *first instance* and later instances need fingerprint refinement,
-but the project's been declaring `#[immune]` against the original —
-invalidation cascade. Old immunity claims may need re-evaluation when the
+but the project's been declaring defenses (`#[defended_by]`) against the original —
+invalidation cascade. Old defenses may need re-evaluation when the
 fingerprint refines.
 
 **What would trigger instantiation**: ADR-016's `verified_at` is part of the
@@ -510,8 +508,7 @@ name/fingerprint/witness (which is exactly the F8 rename + F9 glossary-catch,
 systematized). The completeness-pressure is a standing posture (comprehensive-vision
 research-driven growth IS the maturation), not a single tool.
 
-**Recognized**: dx-dogfood arc (2026-05-26), F10 fundamentality-test ruling. Biology
-answer co-authored in `docs/expedition/aristotle-f10-fundamentality-test.md`.
+**Recognized**: via the F10 fundamentality-test ruling.
 
 ---
 
@@ -737,7 +734,7 @@ transmission modes become operationally valuable.
 **Tooling shape (graduated by transmission mode)**:
 
 - Phase 1 (descended_from only — current): `cargo antigen trace <type>` showing
-  derivation graph + immunity status across the graph
+  derivation graph + defense status across the graph
 - Phase 2 (call graph + trait impl): rust-analyzer integration; trace command
   walks across multiple graph types
 - Phase 3 (cross-crate, all modes): supply-chain-style propagation tracing

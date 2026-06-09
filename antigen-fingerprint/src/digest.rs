@@ -107,7 +107,7 @@ const ANTIGEN_OWNED_ATTRS: &[&str] = &[
     // invariant the rest of this list upholds. Omitting them also leaked the
     // `trigger` payload into the marked-unknown SHAPE digest, splitting two
     // structurally-identical felt-sites with different trigger text into separate
-    // PROPOSE clusters (the P0a under-merge — adversarial-found).
+    // PROPOSE clusters (the under-merge — adversarial-found).
     "dread",
     "aura",
     "red_flag",
@@ -126,7 +126,7 @@ fn is_antigen_owned_attr(attr: &syn::Attribute) -> bool {
 /// the result as a fixed-width lowercase-hex digest with a version prefix.
 ///
 /// The version prefix (`fnv1a64:`) makes the digest self-describing: if a
-/// future sweep upgrades the hash algorithm, old signed-against values remain
+/// future version upgrades the hash algorithm, old signed-against values remain
 /// recognizable and a migration can be staged rather than silently breaking
 /// every existing signature.
 fn digest_tokens(tokens: &TokenStream) -> String {
@@ -180,7 +180,7 @@ const SHAPE_IDENT_PLACEHOLDER: &str = "__antigen_shape__";
 /// identifier is normalized to a fixed placeholder before hashing, so two items
 /// with identical bodies and different names digest identically.
 ///
-/// This is the clustering key the marked-unknown PROPOSE-slice needs (P0a, the
+/// This is the clustering key the marked-unknown PROPOSE-slice needs (the
 /// keystone input seam): a `#[dread]`/`#[aura]` mark clusters with other marks of
 /// the **same shape**, regardless of the marked item's name. Two real marked
 /// sites always have different names, so an identity-sensitive digest (the

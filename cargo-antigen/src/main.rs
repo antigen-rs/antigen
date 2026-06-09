@@ -25,11 +25,10 @@
 //!   are design-phase stubs hidden from `--help`.
 //! - `cargo antigen tolerate` — manage tolerance-ratification sidecars (ADR-019
 //!   §tolerance tier). Subcommands: `scaffold`, `sign`, `check`, `list` (stubs
-//!   pending tambear Phase 4 adoption feedback).
+//!   pending adopter feedback).
 //!
 //! Two additional subcommands (`new`, `vaccinate`) exist as design-phase
-//! stubs but are hidden from `--help` until they ship beyond stub state
-//! (per A3.5 onboarding sweep).
+//! stubs but are hidden from `--help` until they ship beyond stub state.
 //!
 //! ## See also
 //!
@@ -74,9 +73,8 @@ enum AntigenSubcommand {
     ///
     /// Hidden from `--help` output until the command ships beyond its
     /// design-phase stub. Stub message remains for users who discover the
-    /// name via docs or history. Per the onboarding sweep (Phase 1) +
-    /// Tekgy's directive: show new users the surface that works, not the
-    /// surface that doesn't.
+    /// name via docs or history. The guiding principle: show new users the
+    /// surface that works, not the surface that doesn't.
     #[command(hide = true)]
     New {
         /// kebab-case name for the new antigen
@@ -167,9 +165,9 @@ struct ScanArgs {
     strict: bool,
     /// Also scan dependency crates (registry/git) resolved by `cargo metadata`.
     /// Each dep is scanned independently; results appear under `dep_reports`
-    /// in JSON output. Per A3 scope-lock: no cross-crate `addresses()` matching
-    /// in v0.1 — each crate's report stays its own bag of antigens. Default OFF
-    /// for backward compatibility.
+    /// in JSON output. No cross-crate `addresses()` matching yet — each crate's
+    /// report stays its own bag of antigens. Default OFF for backward
+    /// compatibility.
     #[arg(long)]
     include_deps: bool,
     /// Member-aware multi-crate scan (v0.3). Instead of walking `--root` as one
@@ -227,10 +225,10 @@ struct AuditArgs {
     /// Output format: human or json
     #[arg(long, default_value = "human")]
     format: OutputFormat,
-    /// Exit with non-zero status if any immunity witness is unresolved
-    /// (`Missing`, `NotFound`, or `Ambiguous`). v0.1: gates on `Reachability`
-    /// tier minimum; `Execution`-tier gating arrives in A3 with `cargo test`
-    /// integration.
+    /// Exit with non-zero status if any defense witness is unresolved
+    /// (`Missing`, `NotFound`, or `Ambiguous`). Gates on `Reachability`
+    /// tier minimum; `Execution`-tier gating is not yet wired (awaits
+    /// `cargo test` integration).
     #[arg(long)]
     strict: bool,
     /// Filter the category audit to a single category (ADR-028 §CLI
@@ -2903,10 +2901,9 @@ fn run_scan(args: ScanArgs) -> ExitCode {
 
     let unaddressed = report.unaddressed_presentations();
 
-    // A3 D3: optional cross-crate dep enumeration + per-crate scan. Per
-    // navigator's 2026-05-09 ruling, deps are scanned independently — no
-    // cross-crate addresses() matching in v0.1. Each dep report stands on
-    // its own; the union appears under `dep_reports` in JSON output.
+    // Optional cross-crate dep enumeration + per-crate scan. Deps are scanned
+    // independently — no cross-crate addresses() matching yet. Each dep report
+    // stands on its own; the union appears under `dep_reports` in JSON output.
     let dep_reports = if args.include_deps {
         match scan::enumerate_dep_crate_roots(&args.root, false) {
             Ok(roots) => {
@@ -3031,11 +3028,11 @@ fn print_human_dep_summary(deps: &[DepScanResult]) {
     deps_with_antigens.sort_by_key(|d| d.package_name.clone());
     if deps_with_antigens.is_empty() {
         println!("  No antigen declarations found in any dependency.");
-        println!("  (P5 finding 2026-05-09: zero `#[antigen(...)]` instances in the wild.)");
+        println!("  (Few published crates declare antigens.)");
     } else {
         for d in deps_with_antigens {
             println!(
-                "  {} v{}: {} antigen(s), {} presentation(s), {} immunity claim(s)",
+                "  {} v{}: {} antigen(s), {} presentation(s), {} defense(s)",
                 d.package_name,
                 d.version,
                 d.report.antigens.len(),
@@ -3806,7 +3803,7 @@ struct JsonReport<'a> {
     /// `#[descended_from]` edges whose child is not itself an `#[antigen]`
     /// declaration (dangling). Computed via `dangling_child_lineage_edges()`.
     dangling_child_lineage_edges: Vec<&'a scan::LineageEdge>,
-    /// A3 D3: when `--include-deps` is set, one entry per scanned dep
+    /// When `--include-deps` is set, one entry per scanned dep
     /// crate. `None` (skipped in JSON output via `skip_serializing_if`)
     /// when the flag wasn't passed — preserves byte-identical output for
     /// existing consumers.
@@ -3815,10 +3812,9 @@ struct JsonReport<'a> {
 }
 
 /// Per-dependency scan result returned by the `--include-deps` mode of
-/// `cargo antigen scan`. Each dep is scanned independently — per navigator's
-/// 2026-05-09 ruling on cross-crate scope, no cross-crate `addresses()`
-/// matching happens here (ATK-A3-005 / module-path-qualified `ItemTarget`
-/// is an ADR-class decision deferred to aristotle Phase 1-8).
+/// `cargo antigen scan`. Each dep is scanned independently — no cross-crate
+/// `addresses()` matching happens here (ATK-A3-005 / module-path-qualified
+/// `ItemTarget` is an ADR-class decision, not yet decided).
 #[derive(serde::Serialize)]
 struct DepScanResult {
     package_name: String,
@@ -5093,19 +5089,14 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
     let problematic = audit_report.problematic_audits();
 
     if problematic.is_empty() {
-        println!("✓ All immunity claims meet the Execution tier or higher.");
-        println!(
-            "  Note: semantic verification (does the witness actually test this failure class?)"
-        );
-        println!("  requires fingerprint-aware audit, planned for Sweep A4-A5.");
+        println!("✓ All defenses meet the Execution tier or higher.");
+        println!("  Note: this audit checks witness tier, not semantic adequacy");
+        println!("  (whether the witness actually tests this failure class).");
         if scan_report.immunities.is_empty() {
-            println!("  (No immunity declarations found in the workspace.)");
+            println!("  (No defense declarations found in the workspace.)");
         }
     } else {
-        println!(
-            "⚠ {} immunity claim(s) below Execution tier:",
-            problematic.len()
-        );
+        println!("⚠ {} defense(s) below Execution tier:", problematic.len());
         println!();
         for a in &problematic {
             let i = &a.immunity;
@@ -5155,7 +5146,7 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
                 audit::WitnessStatus::External { tool_hint } => {
                     println!(
                         "    → external ({tool_hint}): tool prefix recognized but not invoked. \
-                         A3+ will run the tool to promote this witness to Execution tier."
+                         antigen does not run external tools, so this witness stays at Reachability tier."
                     );
                 },
                 audit::WitnessStatus::Resolved { .. } => {
@@ -5182,12 +5173,11 @@ fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::Audit
         }
         println!();
         println!(
-            "Resolve below-Execution claims by either:\n  \
-             a) Adding test invocation that exercises the witness path (A4-A5 feature)\n  \
-             b) Pointing the witness at a runnable test (#[test] without #[ignore])\n  \
-             c) Renaming colliding functions or qualifying ambiguous witness paths\n  \
-             d) Adding the witness function to the workspace if it's missing\n  \
-             e) Tolerating the gap with `#[antigen_tolerance(...)]` if intentional"
+            "Resolve below-Execution defenses by either:\n  \
+             a) Pointing the witness at a runnable test (#[test] without #[ignore])\n  \
+             b) Renaming colliding functions or qualifying ambiguous witness paths\n  \
+             c) Adding the witness function to the workspace if it's missing\n  \
+             d) Tolerating the gap with `#[antigen_tolerance(...)]` if intentional"
         );
     }
 
@@ -5383,7 +5373,7 @@ fn print_silence_witness_advisory(category_report: &audit::CategoryAuditReport) 
     );
 }
 
-/// Audit summary with per-tier sub-counts per ATK-A3-019 (A3.5 onboarding sweep).
+/// Audit summary with per-tier sub-counts per ATK-A3-019.
 ///
 /// Per ADR-005 Amendment 3: tier counts report the work the audit ACTUALLY
 /// PERFORMED, never potential maximum evidence. A `#[test]` whose run was
@@ -5414,7 +5404,7 @@ fn print_audit_summary(audit_report: &audit::AuditReport) {
         .resolved_count
         .saturating_sub(formal_proof_count + execution_count);
 
-    println!("Audited {} immunity claim(s):", audit_report.audits.len());
+    println!("Audited {} defense(s):", audit_report.audits.len());
     if formal_proof_count > 0 {
         println!(
             "  - {formal_proof_count} formal-proof (phantom-type or formal-verification \
@@ -5446,9 +5436,9 @@ fn print_audit_summary(audit_report: &audit::AuditReport) {
     );
 }
 
-/// Confirmed-immunity-claims block per ATK-A3-019 (A3.5 onboarding sweep).
+/// Confirmed-defense block per ATK-A3-019.
 ///
-/// Parallel to the warnings block but for the positive case: lists immunity
+/// Parallel to the warnings block but for the positive case: lists defense
 /// claims whose witness reached `Execution` or `FormalProof` tier — the
 /// audit tiers that represent confirmed evidence rather than mere
 /// reachability. Without this block, a `FormalProof` claim (phantom-type
@@ -5464,7 +5454,7 @@ fn print_confirmed_immunity_claims(audit_report: &audit::AuditReport) {
         return;
     }
     println!(
-        "✓ {} immunity claim(s) at Execution tier or higher:",
+        "✓ {} defense(s) at Execution tier or higher:",
         confirmed.len()
     );
     println!();
@@ -5522,7 +5512,7 @@ fn print_state7_diagnostics(audit_report: &audit::AuditReport) {
     }
     println!(
         "  Note: behavioral re-validation (does the ancestor's witness \
-         apply to the descendant?) is A4-A5 work; reachability-tier \
+         apply to the descendant?) is not performed; reachability-tier \
          audit cannot perform this check."
     );
     println!(

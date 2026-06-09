@@ -131,8 +131,9 @@ A diagnostic decision tree for the two members:
     recall hole is acceptable here → **suspected**.
 - **Known within-tier caveat** (kept honest, not hidden): for the suspected
   member, `#[serde(flatten)]` re-opens the boundary in a way the syntactic tell
-  cannot see (serde #2283 / #1600). The member graduates to named when paired with
-  an explicit trust-boundary marker.
+  cannot see (serde #2283 / #1600). The member sits at suspected because not every
+  `Deserialize` is at a trust boundary — pairing it with an explicit trust-boundary
+  marker is what would earn the named tier.
 
 ## Treatment — the witness
 
@@ -158,20 +159,21 @@ territory*; the witness is what proves the defense at audit.
 > credits a `#[defended_by]` witness at the **antigen-type** granularity, not
 > per-site. The surface-flag / witness-proof *split* is a real, durable design
 > principle; this example does not *visibly* separate the two sites at the console.
-> The finer **site-granular** model is a **v0.4 charter** (noted, not fixed). To
+> (A finer **site-granular** model is a recorded graduation path — see
+> [`../roadmap.md`](../roadmap.md).) To
 > *see* the fingerprint bind/spare directly, read the guard tests
 > ([`../../antigen/tests/stdlib_family_fingerprints.rs`](../../antigen/tests/stdlib_family_fingerprints.rs)),
 > not the console.
 
-## Prognosis — the graduation path
+## Prognosis
 
-- **`UnboundedDeserialization`** stays named; its honest core (`from_reader`)
-  stands alone at named. A distinct future `#[descended_from]` **depth-member**
-  will cover the in-memory deep-nesting recursion DoS (a different mechanism than
-  the streaming-read DoS).
-- **`DeserializeWithoutDenyUnknownFields`** graduates **suspected → named** when
-  paired with a trust-boundary marker. The `#[serde(flatten)]` blind spot is
-  resolved when the tell can see the re-opened boundary.
+`UnboundedDeserialization` stands alone at **named** on its honest core
+(`from_reader`); `DeserializeWithoutDenyUnknownFields` sits at **suspected** (not
+every `Deserialize` is at a trust boundary, and `#[serde(flatten)]` is a known blind
+spot the syntactic tell can't see). Both are at the honest tier their current
+fingerprint earns. The graduation paths — an in-memory deep-nesting
+`#[descended_from]` depth-member, and the tier-promotion of the suspected member —
+are recorded in [`../roadmap.md`](../roadmap.md).
 
 ---
 

@@ -210,13 +210,17 @@ witness type the code doesn't actually have.
 
 | If the witness is... | Tier reported | Genuine? |
 |---|---|---|
-| A passing `#[test]` function in the workspace | Reachability (v0.1) → Execution (A4-A5) | Yes, on the tested inputs |
-| A `proptest!` function | Reachability (v0.1) → Execution (A4-A5) | Yes, on the strategy's input space |
+| A passing `#[test]` function in the workspace | Reachability | Yes, on the tested inputs |
+| A `proptest!` function | Reachability | Yes, on the strategy's input space |
 | A phantom-type pattern with turbofish (`Foo::<T>::ctor`) | FormalProof | Yes IF the constructor is sealed |
 | `clippy::lint_name` | Reachability (`ExternalToolPrefixRecognized`) | Yes IF lint is configured |
-| `kani::proof_fn` / `prusti::...` / `verus::...` etc. | Reachability (v0.1) → FormalProof (A4-A5) | Yes IF the verifier ran and passed |
+| `kani::proof_fn` / `prusti::...` / `verus::...` etc. | Reachability (`ExternalToolPrefixRecognized`) | Yes IF the verifier ran and passed |
 | `fn_name` (helper function, no `#[test]`) | Reachability | Function exists; behavior unverified |
 | `nonexistent_test` | None (Missing) | Honest report: witness not found |
+
+These are the tiers the audit emits today: a wired test reports `Reachability`
+(present, not run); the `Execution` tier (running the harness) and external-proof
+`FormalProof` are reserved graduation paths, see [`roadmap.md`](roadmap.md).
 
 If you don't know whether a witness is real, **find out before
 authoring** — grep for the function, read it, confirm it actually
@@ -465,9 +469,7 @@ For deeper substrate:
 - [`docs/decisions.md`](decisions.md) — ratified ADRs (especially
   ADR-006 recognition-not-design, ADR-005 sub-clause F at trust
   boundaries, ADR-005 Amendment 3 audit-tier-honesty)
-- [`docs/postures.md`](postures.md) — architectural postures
-- [`docs/expedition/multi-component-immunity.md`](expedition/multi-component-immunity.md) — deeper architectural framing
-- [`docs/expedition/antigen-applied-to-antigen.md`](expedition/antigen-applied-to-antigen.md) — recursion of recognition
+- [`docs/internal/postures.md`](internal/postures.md) — architectural postures
 
 ---
 

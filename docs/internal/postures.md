@@ -7,10 +7,6 @@
 > "is X-decision posture-class?" by checking against this list rather than
 > rediscovering each posture from substrate.
 >
-> **Status**: V0 (2026-05-09). Authored by aristotle on Sweep A2 day 2;
-> contributions from naturalist (depth-shift discipline) and pathmaker (the
-> ratified ADR-005 Amendment 2 + Amendment 3 substrate the catalog draws on).
->
 > **Lifecycle relation**: Per [`process.md`](process.md), ratification lives in
 > `decisions.md`. Postures do not gate ratification; they are read alongside an
 > ADR draft to ask "which ratified posture(s) does this ADR thread through?"
@@ -28,7 +24,7 @@
 >    The "Where ratified" section names the most load-bearing canonical
 >    example (an ADR that exemplifies the posture in its Finding) and
 >    enumerates the substrate instances. Posture §7 (depth-shift discipline)
->    is the V0 instance of this path.
+>    is the canonical instance of this path.
 >
 > Both paths are legitimate; the asymmetry is intentional. Path 2 exists
 > because some postures emerge as cross-cutting recognition before any single
@@ -37,7 +33,7 @@
 > ratified" section is updated to Path 1.
 >
 > **Vocabulary lock**: every term used here is anchored in
-> [`glossary.md`](glossary.md). When a posture's wording drifts between this
+> [`glossary.md`](../glossary.md). When a posture's wording drifts between this
 > file and an ADR, the ADR is authoritative; this file is corrected.
 
 ---
@@ -99,14 +95,14 @@ threads transversally through nearly every ADR that introduces a primitive.
 
 ### Where ratified
 
-[ADR-005 — Sub-clause F at every trust boundary](decisions.md#adr-005--sub-clause-f-at-every-trust-boundary)
+[ADR-005 — Sub-clause F at every trust boundary](../decisions.md#adr-005--sub-clause-f-at-every-trust-boundary)
 (foundational; pre-team).
 
 Two amendments extend the discipline to specific surfaces:
-- [ADR-005 Amendment 2 — Rationale-as-required-field as transverse sub-clause F discipline](decisions.md#adr-005-amendment-2--rationale-as-required-field-as-transverse-sub-clause-f-discipline)
+- [ADR-005 Amendment 2 — Rationale-as-required-field as transverse sub-clause F discipline](../decisions.md#adr-005-amendment-2--rationale-as-required-field-as-transverse-sub-clause-f-discipline)
   applies the posture at the API surface (every trust-extending primitive).
   See posture §6.
-- [ADR-005 Amendment 3 — Audit reports its own tier honestly](decisions.md#adr-005-amendment-3--audit-reports-its-own-tier-honestly)
+- [ADR-005 Amendment 3 — Audit reports its own tier honestly](../decisions.md#adr-005-amendment-3--audit-reports-its-own-tier-honestly)
   applies the posture at the audit reporting surface.
 
 ### Recognition examples
@@ -163,7 +159,7 @@ the question is "is there a real structural pattern this recognizes?" not
 
 ### Where ratified
 
-[ADR-006 — Recognition, not design](decisions.md#adr-006--recognition-not-design)
+[ADR-006 — Recognition, not design](../decisions.md#adr-006--recognition-not-design)
 (foundational; pre-team).
 
 ADR-007 (anti-YAGNI) is recognition's structurally-guaranteed counterweight
@@ -221,13 +217,13 @@ ecosystem-spanning vocabulary rather than a yet-another-lint.
 
 ### Where ratified
 
-[ADR-002 — Compose, don't compete](decisions.md#adr-002--compose-dont-compete)
+[ADR-002 — Compose, don't compete](../decisions.md#adr-002--compose-dont-compete)
 (foundational; pre-team).
 
 The discipline extends through:
-- [ADR-013 — phantom-type witness recognition + witness-validity tier mapping](decisions.md#adr-013--adr-002-amendment-1-phantom-type-witness-recognition--witness-validity-tier-mapping)
+- [ADR-013 — phantom-type witness recognition + witness-validity tier mapping](../decisions.md#adr-013--adr-002-amendment-1-phantom-type-witness-recognition--witness-validity-tier-mapping)
   formally amends ADR-002 to recognize phantom-type witnesses (witness-axis).
-- [ADR-015 — Fingerprint engine: grammar-over-AST with per-fingerprint evaluator trait](decisions.md#adr-015--fingerprint-engine-grammar-over-ast-with-per-fingerprint-evaluator-trait)
+- [ADR-015 — Fingerprint engine: grammar-over-AST with per-fingerprint evaluator trait](../decisions.md#adr-015--fingerprint-engine-grammar-over-ast-with-per-fingerprint-evaluator-trait)
   operationalises compose-not-compete at the *engine* axis (it amends
   ADR-010, not ADR-002 directly): each fingerprint engine (syn, ast-grep,
   future MIR/HIR/runtime) is a delegation-boundary; the evaluator trait
@@ -247,9 +243,9 @@ The discipline extends through:
 - **Fingerprint-engine delegation** (ADR-015): the fingerprint grammar is
   evaluator-trait-abstracted so syn (item-level operators) and ast-grep
   (body-level operators) compose under one fingerprint without antigen
-  reinventing either. v0.1 ships syn natively + ast-grep via subprocess.
-- **Naturalist's silence-where-silent test** (ADR-003 defense in A1
-  closure): of the six in-flight A1 primitives, five had direct biological
+  reinventing either. syn ships natively + ast-grep via subprocess.
+- **Silence-where-silent test** (ADR-003 defense): of six in-flight
+  primitives, five had direct biological
   predecessors and one (`#[antigen_generates]`) was pure Rust-grain with no
   biological analog. The metaphor's *silence where it should be silent* is
   the same shape as compose-not-compete's silence: where a tool already
@@ -289,7 +285,7 @@ implementation.
 
 ### Where ratified
 
-[ADR-007 — Anti-YAGNI: structurally-guaranteed need](decisions.md#adr-007--anti-yagni-structurally-guaranteed-need)
+[ADR-007 — Anti-YAGNI: structurally-guaranteed need](../decisions.md#adr-007--anti-yagni-structurally-guaranteed-need)
 (foundational; pre-team).
 
 ### Recognition examples
@@ -307,24 +303,22 @@ implementation.
   commits us to all 8; recognition holds the threshold for which 8 ship
   first.
 - **`#[descended_from]` ships with full propagation logic, not stubbed**
-  (ADR-007 Sweep-level consequences). A3-prospective ATK contracts at
-  `antigen/tests/atk_a3_fractal_preview.rs` lock the predictions against
-  the implementation before A3 opens — the structurally-guaranteed need
-  surfaces *as predicted bugs* before the work-stream opens.
-- **`cargo antigen vaccinate` ships in v1, not v2** (ADR-007 Sweep-level
-  consequences): committed in A5 because the fingerprint-grammar v1
-  surface (W6) and the witness-type completeness (W7) make vaccination
-  mechanically composable from the parts; deferring to v2 would force
-  retrofit when the substrate already supports it.
+  (per ADR-007). Cross-crate ATK contracts lock the predictions against
+  the implementation before the cross-crate work-stream opens — the
+  structurally-guaranteed need surfaces *as predicted bugs* before the
+  work-stream opens.
+- **`cargo antigen vaccinate` is committed by the design, not deferred**
+  (per ADR-007): the fingerprint-grammar surface and the witness-type
+  completeness make vaccination mechanically composable from the parts;
+  deferring it would force retrofit when the substrate already supports it.
 
 ### How to apply
 
 When proposing to defer a feature, ask **what other ADR commits us to
 this?** If a ratified ADR commits us, the feature is structurally
 guaranteed and deferring incurs retrofit cost. If no ratified ADR commits
-us and the feature is "might be useful," it is YAGNI. The aristotle role
-owns the structurally-guaranteed-need analysis at sweep-planning time
-(ADR-007 Mechanics).
+us and the feature is "might be useful," it is YAGNI. The
+structurally-guaranteed-need analysis runs at planning time (per ADR-007).
 
 ---
 
@@ -354,14 +348,14 @@ to fresh-context teams, to cross-project consumers.
 
 ### Where ratified
 
-[ADR-004 — Implicit-to-explicit elevation as architectural posture](decisions.md#adr-004--implicit-to-explicit-elevation-as-architectural-posture)
+[ADR-004 — Implicit-to-explicit elevation as architectural posture](../decisions.md#adr-004--implicit-to-explicit-elevation-as-architectural-posture)
 (foundational; pre-team).
 
 ### Recognition examples
 
 - **The four core macros enact elevation at the carrier surface**:
   `#[antigen]` makes failure-class names explicit; `#[presents]` makes
-  vulnerable code sites explicit; `#[immune]` makes immunity claims with
+  vulnerable code sites explicit; `#[defended_by]` makes defenses with
   their witnesses explicit; `#[descended_from]` makes inheritance
   propagation explicit. Each replaces an implicit convention (implicit
   awareness, implicit "everyone knows," implicit verbal mentorship).
@@ -417,7 +411,7 @@ of-trust-boundaries.
 
 ### Where ratified
 
-[ADR-005 Amendment 2 — Rationale-as-required-field as transverse sub-clause F discipline](decisions.md#adr-005-amendment-2--rationale-as-required-field-as-transverse-sub-clause-f-discipline)
+[ADR-005 Amendment 2 — Rationale-as-required-field as transverse sub-clause F discipline](../decisions.md#adr-005-amendment-2--rationale-as-required-field-as-transverse-sub-clause-f-discipline)
 (2026-05-09).
 
 Originating observation: ADR-001 Amendment 1 Change 7. The amendment
@@ -492,7 +486,7 @@ recognition-not-design (posture §2) and biology-as-search-heuristic
 (closure-narrative material): those are descriptive — they explain why a
 move was correct in retrospect. Depth-shift discipline is *generative* — it
 instructs future decisions before deconstruction surfaces them. Eight+
-independent instances across two roles' substrates as of A2 day 2.
+independent instances across the design substrate ground the recognition.
 
 The headline property: the discipline is *operationally self-producing*.
 Each application of substrate-honesty creates the conditions for the next
@@ -511,7 +505,7 @@ Different operational layers, structurally identical move.
 ### Where ratified
 
 The most load-bearing canonical example is
-[ADR-005 Amendment 3 — Audit reports its own tier honestly](decisions.md#adr-005-amendment-3--audit-reports-its-own-tier-honestly)
+[ADR-005 Amendment 3 — Audit reports its own tier honestly](../decisions.md#adr-005-amendment-3--audit-reports-its-own-tier-honestly)
 (2026-05-09), Finding section: *"the visible question was 'should
 `is_well_formed` return true for empty bodies?' The load-bearing commitment
 was 'the audit's reporting surface IS a trust boundary' — once that
@@ -519,10 +513,10 @@ commitment is named, the empty-body case becomes one of five instances of
 the underlying violation."*
 
 Two further amendments are themselves depth-shift instances:
-[ADR-015](decisions.md#adr-015--fingerprint-engine-grammar-over-ast-with-per-fingerprint-evaluator-trait)
+[ADR-015](../decisions.md#adr-015--fingerprint-engine-grammar-over-ast-with-per-fingerprint-evaluator-trait)
 (visible: ast-grep vs syn engine choice; load-bearing: the evaluator-trait
 architecture) and
-[ADR-016](decisions.md#adr-016--temporal-recognition-surface-provenance--freshness-primitives-for-stale-context-and-premature-abstraction)
+[ADR-016](../decisions.md#adr-016--temporal-recognition-surface-provenance--freshness-primitives-for-stale-context-and-premature-abstraction)
 (visible: temporal field set; load-bearing: `verified_at` granularity as
 trust-boundary commitment).
 
@@ -536,50 +530,49 @@ by the eight+ confirmed instances; ADR-006 is satisfied.
 Substrate-grounded instances, each pairing a visible decision with the X−1
 commitment that determined whether the visible decision worked:
 
-1. **ADR-010 reciprocal Phase 1-8** (aristotle, A1): visible decision —
+1. **ADR-010 reciprocal Phase 1-8**: visible decision —
    *which fingerprint grammar operators to ship in v1*. Load-bearing
    commitment — *the grammar/vocabulary cut itself*.
-2. **ADR-015 v0 self-deconstruction** (math-researcher, A2): visible
+2. **ADR-015 self-deconstruction**: visible
    decision — *engine choice (ast-grep vs syn)*. Load-bearing commitment
    — *the evaluator-trait architecture abstracting both engines*.
-3. **`#[immune]` × `#[descended_from]` convergence-check** (math-researcher,
-   A2): visible decision — *do `#[immune]` claims propagate across
+3. **`#[immune]` × `#[descended_from]` convergence-check**: visible decision — *do `#[immune]` claims propagate across
    `#[descended_from]`?* Load-bearing commitment — *substantive claims
    require explicit re-attestation at each trust boundary* (already
    expressed in Eiffel D1/D2/D4 + ADR-005 sub-clause F + ADR-011's
    rationale-required field).
-4. **ADR-015 external addendum** (aristotle, A2): visible decision —
+4. **ADR-015 external addendum**: visible decision —
    *backend-choice details*. Load-bearing commitment — *trait-architecture
    as the design surface, not the backend*.
-5. **W7 tier-design Phase 1-8** (aristotle, A2): visible decision —
+5. **W7 tier-design Phase 1-8**: visible decision —
    *should ExternalUnvalidated be a fifth tier?* Load-bearing commitment
    — *what does `WitnessTier` measure (confirmed-current vs
    potential-maximum)?*
-6. **ADR-005 Amendment 3 motivating Finding** (naturalist, A2): visible
+6. **ADR-005 Amendment 3 motivating Finding**: visible
    decision — *should `is_well_formed` return true for empty bodies?*
    Load-bearing commitment — *the audit's reporting surface IS a trust
    boundary*.
-7. **ADR-016 `verified_at` granularity** (scout, A2): visible decision —
+7. **ADR-016 `verified_at` granularity**: visible decision —
    *what fields go on the temporal surface?* Load-bearing commitment —
    *`verified_at` granularity as trust-boundary commitment*.
-8. **Verification-of-verification** (aristotle, A2 day-2): visible decision
-   — *is the v1 ratification verdict ready?* Load-bearing commitment —
+8. **Verification-of-verification**: visible decision
+   — *is the ratification verdict ready?* Load-bearing commitment —
    *is the verification rubber-stamping?* Phase 8 self-applied to the
    verifier's own verdict surfaced three findings; one warranted edit.
-9. **A3 scope-lock identity model** (aristotle, A3 day-1): visible decision
-   — *which deliverables ship in A3 (cross-crate scan + descended_from
-   propagation + cycle detection)?* Load-bearing commitment — *how A3
-   commits to antigen identity at the cross-crate boundary*. Phase 1-8
-   surfaced canonical-declaration-site as the X−1 commitment; ratified as
-   ADR-017. Same canonical-layer shape as Instance 8 (the X−1/X−2/X−3
-   recursion is *within-deconstruction*, not five new instances per
-   naturalist's Route-1 convergence-check, 2026-05-09).
+9. **Scope-lock identity model**: visible decision
+   — *which deliverables ship in the cross-crate work (cross-crate scan +
+   descended_from propagation + cycle detection)?* Load-bearing commitment
+   — *how the cross-crate work commits to antigen identity at the crate
+   boundary*. Phase 1-8 surfaced canonical-declaration-site as the X−1
+   commitment; ratified as ADR-017. Same canonical-layer shape as Instance 8
+   (the X−1/X−2/X−3 recursion is *within-deconstruction*, not five new
+   instances).
 
-The structural-identity test (math-researcher, 2026-05-09) confirmed
+The structural-identity test confirmed
 seven tiers as the *same pattern* across all instances, not just rhyming
 patterns at different scales. Instance 9 fits the same shape (T1-T7
 identity criteria all hold) and is catalogued as a same-layer
-canonical-layer instance per naturalist's Route-1 finding — not as a
+canonical-layer instance — not as a
 new mechanism, not as Path-1 promotion. The ratification-trigger
 framework caught a subtle gate: same-layer-repeat fires the trigger but
 load-bearing-reason is the second gate; absorption (mechanism for
@@ -593,9 +586,9 @@ instance does not add new mechanism / commitment / API surface.
 | Same routing pattern | yes | yes | yes | yes | yes | yes | yes |
 
 Seven tiers; three identity criteria; all yes. Structural identity, not
-analogy at a different scale. Instance 9 (added 2026-05-09 per Route-1
-catalog refresh) does not introduce a new tier — it is a same-layer
-canonical-layer instance at T1 (within-deconstruction X−1 surfacing).
+analogy at a different scale. Instance 9 does not introduce a new tier —
+it is a same-layer canonical-layer instance at T1 (within-deconstruction
+X−1 surfacing).
 The seven-tier T1-T7 framework remains intact; new same-layer instances
 absorb into the existing tiers rather than extending the table.
 
@@ -632,8 +625,7 @@ operational layers.
 > **INTERIM mitigation — terminal fix is structural.** This posture is
 > ratified as a necessary-but-insufficient discipline layer. The terminal fix
 > is a JBD/camp wake-reconcile primitive: tooling-emitted substrate-delta on
-> agent wake, so alignment is pushed rather than remembered. See aristotle
-> ratification F1 on campsite `substrate-currency-ratification` (2026-05-24).
+> agent wake, so alignment is pushed rather than remembered.
 
 ### Posture
 
@@ -658,10 +650,10 @@ prior agent's outbox-state as substrate-truth.
 The discipline-layer posture (name the substrate check) is ratified as INTERIM
 mitigation. It reduces the gap at the margin but cannot eliminate it: the
 check relies on the agent remembering to self-police the faculty (context-currency)
-that is compromised. Empirical record (v02-completion-arc expedition 2026-05-24):
-discipline-layer intervention (agent-file "substrate-currency before sending"
-section) was added mid-expedition and instances recurred after it. The failing
-faculty cannot reliably detect its own failure.
+that is compromised. Empirical record: a discipline-layer intervention (an
+agent-file "substrate-currency before sending" section) was added mid-expedition
+and instances recurred after it. The failing faculty cannot reliably detect its
+own failure.
 
 The terminal fix is structural: a wake-reconcile primitive where the coordination
 tool pushes a substrate-delta into context on agent wake — campsites changed,
@@ -670,7 +662,7 @@ instead of its frozen snapshot. This is antigen's own thesis (implicit memory
 fails; structural memory required) applied to team coordination: substrate-
 currency is a substrate-alignment antigen at the coordination layer.
 
-A2 Validation 4 named the canonical failure concretely: three agents each issued
+The canonical failure is concrete: three agents each issued
 "ratification complete" signals on the basis of campsites and task-list state.
 No ratification commit existed on disk. Recovery required a `git grep ADR-011
 docs/decisions.md` that the routing chain had not performed.
@@ -678,31 +670,30 @@ docs/decisions.md` that the routing chain had not performed.
 ### Where ratified
 
 Path-2 entry. Three-tier substrate-currency taxonomy (tracker / reporter /
-claim-propagation) ratified by aristotle Phase 1-8 deconstruction on campsite
-`substrate-currency-ratification` (2026-05-24). All three ratification conditions
-met: cross-session temporal independence, same-layer repetition (claim-propagation
-tier 5+ instances), concept stops surprising trackers (predictable: fires
-post-compaction when pending-state-list diverges from camp substrate).
+claim-propagation) ratified by Phase 1-8 deconstruction. All three ratification
+conditions are met: cross-session temporal independence, same-layer repetition
+(claim-propagation tier, 5+ instances), and the concept stops surprising
+trackers (it fires predictably post-compaction, when the pending-state-list
+diverges from camp substrate).
 
-Most load-bearing canonical instance: A1 CLOSURE.md Validation 4 — the team
-passed three "ratification complete" signals through its routing chain on the
-basis of agent context rather than substrate. Recovery required `git grep
-ADR-011 docs/decisions.md`.
+Most load-bearing canonical instance: a team passed three "ratification complete"
+signals through its routing chain on the basis of agent context rather than
+substrate. Recovery required `git grep ADR-011 docs/decisions.md`.
 
 Three confirmed tiers:
 
-1. **Coordination tier (tracker)**: A1 Validation 4 — agent reports completion
-   on outbox state without substrate check.
-2. **Implementation tier (reporter)**: agent begins implementation on substrate
+1. **Coordination tier (tracker)**: an agent reports completion
+   on outbox state without a substrate check.
+2. **Implementation tier (reporter)**: an agent begins implementation on substrate
    already updated, caught mid-action.
-3. **Claim-propagation tier**: navigator routes a finding without independent
-   verification; receiving agent acts on the routed claim as if it were
+3. **Claim-propagation tier**: a router forwards a finding without independent
+   verification; the receiving agent acts on the routed claim as if it were
    substrate-grounded.
 
 Empirical falsification of discipline-sufficiency: five or more claim-propagation
-instances in v02-completion-arc expedition AFTER discipline-layer intervention
-was applied. The intervention did not eliminate recurrence; it confirmed the
-discipline-layer is insufficient as terminal fix.
+instances recurred AFTER the discipline-layer intervention was applied. The
+intervention did not eliminate recurrence; it confirmed the discipline-layer is
+insufficient as a terminal fix.
 
 ### How to apply
 
@@ -713,8 +704,8 @@ passage, deployment, closure — name the substrate check in the signal:
   -1` shows commit `XXXXXXX`."
 - "Ratification complete — `git grep ADR-011 docs/decisions.md` returns matches
   in the Finding and Decision sections."
-- "Case study update complete — `grep -c 'Update — 2026-05-08'
-  docs/expedition/case-study-determinism-class.md` returns 1."
+- "Case study update complete — `git grep 'meet = max'
+  docs/case-study-determinism-class.md` returns the corrected claim."
 
 The substrate check is not optional documentation; it is the completion claim.
 A signal without a named substrate check is an outbox-state assertion, not a
@@ -775,47 +766,43 @@ ADR-006:
   whose audit-side check is not yet implemented, the parser MUST accept
   the field with an explicit known-limitation note rather than silently
   accept (sub-clause F violation) or reject (forward-compat block). One
-  ratified ADR-016 instance + one A2 verified_at instance; awaiting third.
+  ratified ADR-016 instance + one `verified_at` instance; awaiting a third.
 
-- ~~**substrate-currency**~~ — **RATIFIED as §8** (2026-05-24, aristotle
-  ratification F1). Three-tier taxonomy ratified; discipline posture ratified
-  as INTERIM; structural wake-reconcile direction named as terminal fix. See
-  §8 above.
+- ~~**substrate-currency**~~ — **RATIFIED as §8**. Three-tier taxonomy
+  ratified; discipline posture ratified as INTERIM; structural wake-reconcile
+  direction named as terminal fix. See §8 above.
 
   *Evolution of framing — preserved here as inoculation against premature
   vocabulary closure on a still-extending concept.*
 
-  **First framing (A2 day-2)**: three operational *layers* — tracker
+  **First framing**: three operational *layers* — tracker
   (context vs disk drift on stable substrate), reporter (uncommitted
   treated as authoritative), claim-propagation (forwarding without
-  independent verification). Ratification trigger drafted as same-layer
-  repetition. Aristotle count correction (2026-05-08, in posture draft
-  at `campsites/antigen-design/20260507161107-manuscript/scientist/substrate-currency-posture-draft.md`):
-  generously 1.5–2 clean independent instances rather than 3 — three of
-  four cited co-occurred within a single A2 day-2 burst, so temporal
-  independence was not established.
+  independent verification). The ratification trigger was drafted as same-layer
+  repetition. A count correction followed: generously 1.5–2 clean independent
+  instances rather than 3 — three of four cited co-occurred within a single
+  burst, so temporal independence was not established.
 
-  **Reframe (2026-05-09, antigen-A3 launch session)**: those three are
+  **Reframe**: those three are
   not layers, they are *mechanisms*. They can each manifest in different
   *substrate-domains*. Two axes observed so far (current shape, not final):
 
   - **Mechanism axis**: tracker, reporter, claim-propagation,
     persistence/registry (stored representation outlives functional
-    reality — observed in zombie-team-config drift during A3 launch
-    when antigen-A2 team config showed 9 active members whose lead
-    session had ended at compact).
+    reality — observed in zombie-team-config drift when a team config
+    showed active members whose lead session had ended at compact).
   - **Substrate-domain axis**: project-substrate (campsites, glossary,
     scan results, ADRs — what antigen-the-tool targets) and
     harness-substrate (team configs, agent liveness, tool-availability
     registries — the operational walled garden in which we work).
 
-  Ratification trigger updated to require all three: (1) cross-session
+  The ratification trigger was updated to require all three: (1) cross-session
   temporal independence, (2) same-cell repetition (same mechanism ×
-  same substrate-domain seen at least twice), and (3) concept stops
+  same substrate-domain seen at least twice), and (3) the concept stops
   surprising its trackers.
 
-  **Open**: lingering felt-shape (Tekgy, 2026-05-09) that more axes /
-  mechanisms / substrate-domains will surface. The taxonomy is what we
+  **Open**: a lingering felt-shape that more axes / mechanisms /
+  substrate-domains will surface. The taxonomy is what we
   know SO FAR, not final. New presentations may force further reframes.
 
   *Why the evolution itself is preserved here*: the reframe-record is
@@ -826,15 +813,10 @@ ADR-006:
   each reframe, so future-readers recognize the closure-mode signature
   when they're in it. Antigen-the-discipline applied to antigen-the-
   vocabulary's own evolution.
-
-  Currently travels at role-memory tier (typed feedback files in agent
-  roles). Glossary sub-bullet under substrate-over-memory when
-  cross-session accumulation confirms shape stability — which it has
-  not, and we expect may not for a while.
 - **settling-time diagnostic** — the criterion "concepts that stop surprising
   the people tracking them are ready to freeze; concepts still surprising
   trackers are not ready." Surfaced as the operative ratification test for
-  substrate-currency (CLOSURE.md:357-370, A2 day-2). Plausibly posture-class
+  substrate-currency. Plausibly posture-class
   in its own right as a vocabulary-maturation discipline generative beyond any
   single concept. One clean in-session instance (substrate-currency itself);
   awaiting cross-session confirmation that the diagnostic generalizes.
@@ -844,7 +826,5 @@ know what is being watched and what threshold is outstanding.
 
 ---
 
-*V0 authored 2026-05-09. Maintained by aristotle (catalog drafting +
-ratification-citation discipline) with substrate contributions from the
-A2 team. Subject to revision when cited ADRs are amended or when V0+1
-candidates clear ADR-006 threshold.*
+*This catalog surfaces ratified postures; it is revised when cited ADRs are
+amended or when candidates clear the ADR-006 threshold.*

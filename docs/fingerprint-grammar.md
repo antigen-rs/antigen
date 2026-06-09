@@ -526,7 +526,7 @@ any_of([
 Matches: a `DeterminismClass` enum with 4 variants, `#[repr(u8)]`, and a
 `meet(self, other: Self) -> Self` method. The `"(self, Self) -> Self"` pattern
 matches a by-value receiver (`self`) plus one typed `Self` argument — the form
-tambear's class enums use. Use `"(& self, Self) -> Self"` for reference-receiver
+a lattice `meet` typically uses. Use `"(& self, Self) -> Self"` for reference-receiver
 methods, or `"(Self, Self) -> Self"` for pure static methods with no receiver.
 
 The `any_of` clause anchors to explicit documentation or representation

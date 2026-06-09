@@ -13,7 +13,7 @@
 graph LR
     A["#[antigen]<br/>declare failure-class"] -->|named by| F["fingerprint pattern"]
     P["#[presents]<br/>mark vulnerable site"] -->|references| A
-    I["#[immune]<br/>claim defense"] -->|references| A
+    I["#[defended_by]<br/>register defense"] -->|references| A
     I -->|witnessed by| W["witness function /<br/>phantom type /<br/>external tool"]
     D["#[descended_from]<br/>inheritance"] -->|references| A
     T["#[antigen_tolerance]<br/>accept match"] -->|references| A
@@ -33,7 +33,7 @@ graph TD
     Walk --> Collect{collect}
     Collect -->|"#[antigen]"| Decls[antigen declarations]
     Collect -->|"#[presents]"| Pres[explicit presentations]
-    Collect -->|"#[immune]"| Imm[immunity claims]
+    Collect -->|"#[defended_by]"| Imm[defense registrations]
     Collect -->|"#[antigen_tolerance]"| Tol[tolerances]
     Collect -->|"#[descended_from]"| Lin[lineage edges]
     Collect -->|fingerprint match| FP[passive matches]
@@ -63,7 +63,7 @@ and propagation walk for `#[descended_from]` chains.
 ```mermaid
 graph TD
     Start[cargo antigen audit] --> Scan[run scan]
-    Scan --> Loop{for each<br/>#[immune]}
+    Scan --> Loop{for each<br/>#[defended_by]}
     Loop --> Resolve[resolve witness identifier]
     Resolve --> Kind{witness kind?}
     Kind -->|"phantom turbofish<br/>Foo::<T>::ctor"| FP[FormalProof tier<br/>PhantomTypeShapeRecognized]
@@ -87,9 +87,10 @@ graph TD
 ```
 
 Per ADR-005 Amendment 3 (audit-tier-honesty), the audit reports the
-*actual* verification strength, never a stronger one. Execution tier
-is reserved for A4-A5 (harness invocation); v0.1 reports
-test/proptest functions at Reachability with disambiguating hints.
+*actual* verification strength, never a stronger one. The `Execution` tier is
+reserved in the `WitnessTier` enum but not emitted today (it awaits harness
+invocation — a recorded graduation path, see [`roadmap.md`](roadmap.md)); the audit
+reports test/proptest functions at `Reachability` with disambiguating hints.
 
 ---
 
@@ -97,8 +98,8 @@ test/proptest functions at Reachability with disambiguating hints.
 
 ```mermaid
 graph LR
-    F[FormalProof] -->|"v0.1: phantom-type<br/>A4-A5: + external proof"| Strong[strongest guarantee]
-    E[Execution<br/>v0.1: reserved] -->|"A4-A5: harness invoked + passed"| Mid[empirical guarantee]
+    F[FormalProof] -->|"phantom-type today<br/>+ external proof: roadmap"| Strong[strongest guarantee]
+    E[Execution<br/>reserved] -->|"harness invoked + passed: roadmap"| Mid[empirical guarantee]
     R[Reachability] -->|"function resolves<br/>behavior unverified"| Weak[existence verified]
     N[None] -->|"missing / not found / ambiguous"| Gap[honest gap]
 
@@ -148,9 +149,8 @@ graph TB
 Seven components compose under the shared vocabulary. C1, C2, C3, C5,
 C6, C7 are biology-tier (immune-system analogs); C4 is
 engineered-boundary tier (human knowledge ecosystem, beyond biology).
-See [`concepts.md`](concepts.md#multi-component-architecture) and
-[`expedition/multi-component-immunity.md`](expedition/multi-component-immunity.md)
-for deeper framing.
+See [`concepts.md`](concepts.md#multi-component-architecture) for
+deeper framing.
 
 ---
 
@@ -273,7 +273,7 @@ graph TD
     Fix --> Antigen{antigen path}
     Antigen -->|declare #[antigen] with fingerprint| Decl[structural memory in src/antigens.rs]
     Antigen -->|references = [pr, blog, adr]| Bridge[bridge to lived context]
-    Antigen -->|#[immune] on the fixed site| Imm[witness binds the fix to the lesson]
+    Antigen -->|#[defended_by] on the fixed site| Imm[witness binds the fix to the lesson]
 
     Decl --> Future{6 months later}
     Bridge --> Future

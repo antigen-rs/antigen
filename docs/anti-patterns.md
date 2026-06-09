@@ -10,13 +10,6 @@ For positive patterns, see [`usage-patterns.md`](usage-patterns.md).
 For witness-tier semantics that some of these anti-patterns violate,
 see [`witness-tiers.md`](witness-tiers.md).
 
-> **v0.2 idiom note**: Code examples below use the v0.1 `#[immune(...)]` API as the
-> illustration vehicle. `#[immune]` is deprecated since ADR-029 — but each
-> anti-pattern (hollow witness, unresolved witness, over-claiming) applies *equally*
-> to the current idiom: `#[defended_by(X)]` on a test (code-tier) or
-> `#[presents(X, requires=...)]` on the site (substrate-tier). The mistake is in the
-> defense's substance, not the macro spelling.
-
 ---
 
 ## Anti-pattern 1 — Theatrical witness
@@ -24,9 +17,10 @@ see [`witness-tiers.md`](witness-tiers.md).
 **What it looks like**:
 
 ```rust
-#[immune(MyAntigen, witness = todo_test)]
-fn defended() { /* ... */ }
+#[presents(MyAntigen)]
+fn vulnerable() { /* ... */ }
 
+#[defended_by(MyAntigen)]
 #[test]
 fn todo_test() {
     // TODO: write actual test
@@ -35,15 +29,15 @@ fn todo_test() {
 ```
 
 **Why it's an anti-pattern**: the audit reports `Reachability` tier
-(function exists), but the witness doesn't actually verify anything.
-You've claimed immunity backed by a test that passes trivially. The
-structural memory says "this is defended"; reality says "nothing
-defends it."
+(the witness test exists), but the witness doesn't actually verify
+anything. You've registered a defense backed by a test that passes
+trivially. The structural memory says "this is defended"; reality says
+"nothing defends it."
 
-**Catch**: scan + audit will report the immunity claim at
-`Reachability` (not `Execution` or `FormalProof`) — honest tier
-reporting per ADR-005 Amendment 3. But the audit can't know your test
-is theatrical; only honest authoring catches this.
+**Catch**: scan + audit will report the defense at `Reachability`
+(not `Execution` or `FormalProof`) — honest tier reporting. But the
+audit can't know your test is theatrical; only honest authoring catches
+this.
 
 **Correct shape**: either write a real test that exercises the
 failure-class, OR use `#[antigen_tolerance]` with a genuine
@@ -53,13 +47,13 @@ rationale:
 #[antigen_tolerance(
     MyAntigen,
     rationale = "Pending real witness; tracking in issue #5678; current behavior \
-                 acceptable for v0.1 ship."
+                 acceptable for now."
 )]
 fn known_acceptable_for_now() { /* ... */ }
 ```
 
 The honest move is one of: write the witness, tolerate the gap, or
-remove the immunity claim entirely.
+remove the defense entirely.
 
 ---
 
@@ -207,11 +201,8 @@ becomes useful.
 **What it looks like**:
 
 ```rust
-#[immune(
-    MyAntigen,
-    witness = clippy::no_unsafe_operations,
-    rationale = "Clippy lint catches the pattern, providing FormalProof tier."
-)]
+// "Clippy lint catches the pattern, so this is FormalProof tier."
+#[presents(MyAntigen, requires = clippy::no_unsafe_operations)]
 fn defended() { /* ... */ }
 ```
 
@@ -219,32 +210,25 @@ fn defended() { /* ... */ }
 heuristically; it doesn't formally prove anything. The audit reports
 `Reachability` tier with `ExternalToolPrefixRecognized` hint —
 honestly recognizing that the clippy delegation is *delegation*, not
-formal verification.
-
-The rationale comment claims FormalProof tier, which the audit
-correctly contradicts. The structural memory tells one story; the
+formal verification. Treating the lint as a proof tells one story; the
 audit's tier-honest reporting tells another.
 
-**Catch**: per ADR-005 Amendment 3 (audit-tier-honesty), the audit
-reports the *actual* verification strength. The rationale's claim of
-"FormalProof tier" is contradicted by the audit's `Reachability` tier
-report.
+**Catch**: the audit reports the *actual* verification strength. A
+comment or commit message claiming "FormalProof tier" is contradicted
+by the audit's `Reachability` tier report.
 
-**Correct shape**: rationale should reflect reality, not aspiration:
+**Correct shape**: describe the witness as what it is — a heuristic
+lint at `Reachability` tier:
 
 ```rust
-#[immune(
-    MyAntigen,
-    witness = clippy::no_unsafe_operations,
-    rationale = "Clippy lint catches the pattern at warn level; configured in clippy.toml. \
-                 Lint is heuristic, not a proof — tier is Reachability per witness-tiers.md."
-)]
+// Clippy lint catches the pattern at warn level; configured in clippy.toml.
+// Lint is heuristic, not a proof — tier is Reachability per witness-tiers.md.
+#[presents(MyAntigen, requires = clippy::no_unsafe_operations)]
 fn defended() { /* ... */ }
 ```
 
-The honest rationale aligns with the audit's tier report. When you
-need FormalProof, use a phantom-type witness or wait for A4-A5's
-formal-verification tool integration.
+When you need FormalProof, use a phantom-type proof witness
+(`#[presents(MyAntigen, proof = ...)]`) backed by a verifier.
 
 ---
 
@@ -253,31 +237,32 @@ formal-verification tool integration.
 **What it looks like**:
 
 ```rust
-#[immune(MyAntigen, witness = surely_this_test_exists)]
+#[presents(MyAntigen, requires = surely_this_sidecar_exists)]
 fn defended() { /* ... */ }
 ```
 
-(where `surely_this_test_exists` doesn't actually exist in the workspace)
+(where `surely_this_sidecar_exists` doesn't actually resolve to any
+sidecar evidence in the workspace)
 
-**Why it's an anti-pattern**: the witness identifier doesn't resolve.
+**Why it's an anti-pattern**: the witness predicate doesn't resolve.
 The audit reports `None` tier with `WitnessNotFound` hint. The
-structural memory claims immunity; reality is the immunity claim is
+structural memory registers a defense; reality is the defense is
 broken.
 
 This often happens during:
-- LLM agents generating code without verifying witness functions exist
+- LLM agents generating code without verifying witness predicates exist
 - Renames that broke the witness reference
-- Fingerprint-engine cargo-cult: copy-pasting an immunity claim from
-  another project
+- Fingerprint-engine cargo-cult: copy-pasting a defense from another
+  project
 
 **Catch**: `cargo antigen audit` surfaces broken witnesses
 immediately. The diagnostic message: `witness identifier not found in
 any .rs file under the scan root`.
 
-**Correct shape**: verify the witness function exists before authoring
-the immunity claim. If you're an LLM agent generating this, grep the
-codebase for the function before claiming it as witness. If you're
-refactoring and renamed a test, update the immunity claim to match.
+**Correct shape**: verify the witness resolves before authoring the
+defense. If you're an LLM agent generating this, grep the codebase for
+the test or sidecar before naming it. If you're refactoring and renamed
+a test, update the `#[defended_by]` site to match.
 
 The honest fallback: if no witness exists yet, use
 `#[antigen_tolerance]` with a rationale explaining the gap.
@@ -298,13 +283,13 @@ pub struct PanickingInDrop;
 pub struct PanickingInDrop;
 ```
 
-**Why it's an anti-pattern**: in v0.1.0-rc.1, cross-crate identity
-uses `canonical_path` at `name@version` granularity (per ADR-017).
-Same-named antigens from different crates are distinguishable. But
+**Why it's an anti-pattern**: cross-crate identity uses
+`canonical_path` at `name@version` granularity (per ADR-017), so
+same-named antigens from different crates are distinguishable. But
 *conceptually*, having the same name for structurally different
 failure-classes invites confusion.
 
-**The cost**: adopters tracking immunity across both crates may
+**The cost**: adopters tracking defenses across both crates may
 conflate them. Cross-references in `references` fields become
 ambiguous. LLM agents reading both may misalign understanding.
 
@@ -317,8 +302,8 @@ use unique prefixes per crate:
 pub struct DropImplPanicsDuringUnwind;
 
 // crate-b: domain-specific names
-#[antigen(name = "tambear-class-meet-polarity-inverted", ...)]
-pub struct TambearClassMeetPolarityInverted;
+#[antigen(name = "geometry-class-meet-polarity-inverted", ...)]
+pub struct GeometryClassMeetPolarityInverted;
 ```
 
 Or use the `family` field to distinguish:
@@ -326,15 +311,14 @@ Or use the `family` field to distinguish:
 ```rust
 #[antigen(
     name = "panicking-in-drop",
-    family = "tambear-numerical-stability",  // disambiguates from generic
+    family = "geometry-numerical-stability",  // disambiguates from generic
     // ...
 )]
 pub struct PanickingInDrop;
 ```
 
-When `antigen-stdlib` ships (post-A5), ecosystem-wide failure-class
-names will be reserved there; per-project names should be
-distinguishable from stdlib names.
+The bundled stdlib catalog reserves ecosystem-wide failure-class names;
+per-project names should be distinguishable from the catalog's names.
 
 ---
 
@@ -354,33 +338,33 @@ pub struct UseAfterFreeClass;
 #[presents(UseAfterFreeClass)]
 fn vulnerable() { /* ... */ }
 
-// no #[immune(UseAfterFreeClass)] here, but the parent had an immunity claim somewhere
+// no #[defended_by(UseAfterFreeClass)] here, but the parent was defended somewhere
 ```
 
 **Why it's an anti-pattern**: per ADR-005 sub-clause F, inheritance
-does NOT transitively claim immunity. Descendants must *re-attest*.
-The parent's immunity doesn't automatically apply to the child site.
+does NOT transitively register a defense. Descendants must *re-attest*.
+The parent's defense doesn't automatically apply to the child site.
 
 The audit reports `inherited-presentation-not-re-attested` for the
-inherited presentation that lacks its own immunity claim.
+inherited presentation that lacks its own defense.
 
 **Catch**: `cargo antigen audit` surfaces inherited-but-not-re-attested
 sites explicitly.
 
 **Correct shape**: each descendant site that presents the failure-
-class needs its own immunity claim (or tolerance):
+class needs its own defense (or tolerance):
 
 ```rust
 #[presents(UseAfterFreeClass)]
-#[immune(
-    UseAfterFreeClass,
-    witness = use_after_free_specific_test,
-    rationale = "Specific test for the use-after-free shape at this site."
-)]
-fn defended() { /* ... */ }
+fn vulnerable() { /* ... */ }
+
+/// Specific test for the use-after-free shape at this site.
+#[defended_by(UseAfterFreeClass)]
+#[test]
+fn use_after_free_specific_test() { /* ... */ }
 ```
 
-The witness might be the same one used for the parent, or a more
+The witness might be the same test used for the parent, or a more
 specific one. The point: the structural memory must be
 *re-attested*, not assumed-via-inheritance.
 
@@ -409,10 +393,10 @@ This is the **phantom-tier-from-design-doc-not-ratified-code**
 pattern: writing what the language *looks like* vs what the engine
 *actually produces*.
 
-In v0.1.0-rc.1 with Amendment 5, the engine pre-tokenizes user pattern
-strings through proc_macro2, so both forms work. But the structural
-class of mistake — writing fingerprints against assumed engine
-behavior rather than verified behavior — remains a real anti-pattern.
+The engine pre-tokenizes user pattern strings through proc_macro2, so both
+forms work. But the structural class of mistake — writing fingerprints against
+assumed engine behavior rather than verified behavior — remains a real
+anti-pattern.
 
 **Catch**: ADR-010 Amendment 5's engine canonicalization handles the
 spacing case. For other tokenization-asymmetry cases (e.g.,
@@ -471,23 +455,18 @@ not the right tool. Use docs.
 
 **What it looks like**:
 
-(Drafted for the future; not currently shippable since antigen-stdlib
-is post-A5.)
-
 Adding domain-specific antigens to an ecosystem-wide stdlib because
 "someone else might find these useful."
 
-**Why it's an anti-pattern**: per ADR-006 plus the recognition-grounded
-governance model (planned for antigen-stdlib contribution per
-deferred-substrate.md A5 governance encounter), stdlib antigens
-require multiple in-the-wild instances across distinct codebases.
+**Why it's an anti-pattern**: per ADR-006 and the recognition-grounded
+governance model, stdlib antigens require multiple in-the-wild instances
+across distinct codebases. Adding speculative or domain-specific antigens
+to the stdlib pollutes the ecosystem-wide failure-class memory with patterns
+most adopters don't need.
 
-Adding speculative or domain-specific antigens to stdlib pollutes the
-ecosystem-wide failure-class memory with patterns most adopters don't
-need.
-
-**Catch**: post-A5, antigen-stdlib contributions will require
-substrate-grounded evidence of cross-codebase relevance.
+**Catch**: an antigen-stdlib contribution should carry substrate-grounded
+evidence of cross-codebase relevance before it earns a place in the shared
+catalog.
 
 **Correct shape**: keep domain-specific antigens in your own
 `src/antigens.rs`. When you observe the same failure-class
@@ -505,7 +484,7 @@ Designing a feature where a proc-macro expands an attribute into a structured co
 
 **The cost**: silent feature breakage. The feature compiles (macro expands fine), the tests pass (if they invoke the macro), but the user-facing tooling reports the feature isn't present. This is precisely the substrate-alignment failure-class antigen is designed to catch in OTHER codebases.
 
-**Real instance**: antigen's own rc.2 hotfix. ADR-019's `#[immune(X, requires = <predicate>)]` form parsed correctly and emitted a JSON marker at macro-expansion time. But `cargo antigen scan` walks written source via `syn::parse_file` and never saw the post-expansion doc marker. Every substrate-witness immunity reported `tier = None, hint = NoneApplicable` — even the shipped `antigen/examples/substrate_witness.rs` example. Caught via dogfood (`camp/` exercising the substrate); fixed by routing both macro and scan through a shared `antigen-attestation::parser` so both halves read from the same representation.
+**Real instance**: a substrate-tier witness form parsed correctly and emitted a JSON marker at macro-expansion time. But `cargo antigen scan` walks written source via `syn::parse_file` and never saw the post-expansion doc marker, so every substrate-witness defense reported `tier = None, hint = NoneApplicable`. The fix routed both the macro and the scanner through a shared parser, so both halves read from the same representation.
 
 **Correct shape**: when a feature bridges proc-macro expansion and source-walking tools, route BOTH through the same parser. Don't rely on macro-emission to a side-channel that the scanner can't read. The shared parser is the single source of truth.
 
@@ -521,11 +500,11 @@ A `.gitignore` entry without a leading `/` that's intended to match a specific d
 
 **The cost**: catastrophic at rare moments. A fresh agent waking up to a cloned repo finds an empty directory where the build expected files. Recursive proofs, witness machinery, source modules — anything in the silently-excluded directory simply isn't there in the cloned tree, even though it was there on the original machine.
 
-**Real instance**: antigen's camp build campaign near-miss. `.gitignore` had `campsites/` (no anchor) intended to exclude only the top-level `<repo>/campsites/` (project coordination state). It silently matched `<repo>/camp/src/campsites/` (the per-project camp crate's source modules) and would have erased the entire recursive proof + module imports + attestation sidecar from any fresh clone. Caught by an observer-role substrate-alignment audit after the build succeeded.
+**Real instance**: a `.gitignore` had `campsites/` (no anchor) intended to exclude only a top-level `<repo>/campsites/` coordination directory. It silently matched a nested `<repo>/subcrate/src/campsites/` source module and would have erased that module — imports, sidecars, and all — from any fresh clone. The build kept succeeding on the original machine; a substrate-alignment audit caught the gap before anyone cloned fresh.
 
 **Correct shape**: gitignore patterns intended to apply only at repo root need an explicit `/` prefix. Audit `.gitignore` periodically against expected substrate. Treat gitignore as substrate-alignment-critical — what git knows differs from what disk has, and that gap is invisible from inside the implementation lane.
 
-**Antigen primitive**: `UnanchoredGitignorePattern` is a candidate stdlib antigen in the v0.2+ supply-chain / substrate-alignment families.
+**Antigen primitive**: `UnanchoredGitignorePattern` is a candidate stdlib antigen in the supply-chain / substrate-alignment families.
 
 ---
 
@@ -539,7 +518,7 @@ Your tool has sibling tools that USE it (e.g., a downstream coordination CLI tha
 
 **The cost**: cognitive load on first-encounter readers; documentation drift as the sibling tool's release cadence diverges from yours; ambiguity about scope and boundaries.
 
-**Real instance**: antigen's roadmap and README briefly listed "Camp v0.1 shipped" alongside antigen's macros and CLI surface. Camp is a downstream tool that composes with antigen via subprocess (ADR-002) — its own repo, its own release history. Listing it as if it were an antigen deliverable confused the architecture. Caught + corrected in the same docs masterpiece pass that introduced it.
+**Real instance**: a roadmap and README briefly listed a downstream coordination tool's release alongside antigen's own macros and CLI surface. That tool composes with antigen via subprocess (ADR-002) — its own repo, its own release history. Listing it as if it were an antigen deliverable confused the architecture, and a docs pass corrected it back to antigen-only scope.
 
 **Correct shape**: each project's adopter-facing docs talk about that project only. Sibling tools, if mentioned at all, go in clearly-marked ecosystem sections — never in shipping manifests. Cross-references to sibling tools belong in their own dedicated doc (e.g., an "ecosystem.md") if substrate justifies; otherwise readers discover sibling tools through their own search rather than through your docs.
 
@@ -550,7 +529,7 @@ Your tool has sibling tools that USE it (e.g., a downstream coordination CLI tha
 **What it looks like**:
 
 Adopting antigen, declaring antigens, but never running scan/audit;
-or running them but ignoring the output; or having immunity claims
+or running them but ignoring the output; or having defenses
 that haven't been verified in months.
 
 **Why it's an anti-pattern**: structural memory only operates if the
@@ -560,7 +539,7 @@ without review), the structural memory becomes false structural
 memory.
 
 **The cost**: adopters who started antigen with good intent end up
-with a codebase that *says* it's defended (immunity claims) but whose
+with a codebase that *says* it's defended (defenses on record) but whose
 defenses are stale.
 
 **Catch**: this is at the discipline-tier, not the tooling-tier.
