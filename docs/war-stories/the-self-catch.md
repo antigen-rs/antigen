@@ -1,10 +1,10 @@
 # The Self-Catch
 
-> A war-story. On 2026-06-04, antigen — a tool built to make the structural
-> memory of failure-classes explicit — was turned on its own body and found, in
-> its own stdlib, in its own showcase, in its own changelog, in its own docs, the
-> very failure-classes it exists to name. Five catches. Every one is real, dated,
-> and git-traceable. This is the autobiography of a tool catching itself.
+> A war-story. Antigen — a tool built to make the structural memory of
+> failure-classes explicit — was turned on its own body and found, in its own
+> stdlib, in its own showcase, in its own changelog, in its own docs, the very
+> failure-classes it exists to name. Five catches. Every one is real and
+> git-traceable. This is the autobiography of a tool catching itself.
 
 ---
 
@@ -22,7 +22,7 @@ promises "if it doesn't fire, you're covered." That promise is a debt. The only
 way to know whether a tool pays its debts is to watch it stand over its own code
 and tell the truth about it.
 
-On 2026-06-04 we did exactly that, and antigen failed its own bar — four times in
+That is exactly what happened here, and antigen failed its own bar — four times in
 the stdlib, once in its showcase, and three more times across its changelog and
 docs — and then it caught every failure, with its own machinery, and corrected
 them in the open. The dogfood loop closed all the way around: it found its own
@@ -88,7 +88,7 @@ siblings** the member was never meant to flag:
   `bytemuck::zeroed()` — the tool was flagging the remediation it should have been
   recommending. `set_len` had *no AST-feasible discriminator* (risky-vs-safe turns
   on receiver type AND arg value, neither syntactic). **Correction: drop both;
-  document the `set_len` recall hole as a v0.4 charter.** Committed fingerprint:
+  document the `set_len` recall hole as a charter.** Committed fingerprint:
   `any_of([body_calls("assume_init"), body_calls("uninitialized")])`.
 
 - **`SizeOfInElementCount`** correlates with the byte-count-where-element-count
@@ -167,8 +167,8 @@ the tool was willing to be wrong about itself in writing.
 
 ## Catch 4 — the changelog that contradicted its own correction
 
-*This catch happened during the docs wave itself — `RatifiedSpecDriftFromImpl`,
-one of antigen's own classes, firing on antigen's own record.*
+*`RatifiedSpecDriftFromImpl`, one of antigen's own classes, firing on antigen's
+own record — caught while these very docs were being written.*
 
 Once the seal corrected the four members, the `[0.3.0]` changelog section
 told two stories at once. Its top entry — "Fixed — tier-honesty" — correctly
@@ -183,9 +183,9 @@ half had just dropped. And this is not a private note: the changelog ships
 had drifted from the impl (what `90e8299` actually committed), inside a surface
 nobody thought to check, *because it wasn't code.*
 
-A fresh reader — building a tier truth-table from committed source before the draft
-even landed — found it. The reconciliation brought the "Added" entries to net
-post-seal truth, keeping the "Fixed" entry as the correction-narrative. The
+It was found by building a tier truth-table from committed source and reading it
+against the changelog's claims. The fix brought the "Added" entries to
+net post-seal truth, keeping the "Fixed" entry as the correction-narrative. The
 substrate-vs-record drift that antigen names was named, this time, about antigen.
 
 ---
@@ -270,7 +270,8 @@ If you are deciding whether to trust antigen with your failure-class memory, thi
 is the evidence that should move you. Not the feature list — the **scar tissue,
 and the fact that it's written down.** A structural-memory tool proves its thesis
 the day it catches itself and *records the catch in the substrate where the next
-reader will find it.* That day was 2026-06-04. This file is the record.
+reader will find it.* This file is that record, and every catch in it is
+git-traceable.
 
 ---
 

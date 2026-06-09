@@ -3,11 +3,37 @@
 > Reference for errors and warnings you'll encounter running `cargo antigen scan`
 > and `cargo antigen audit`. Organized by the output they appear in.
 >
-> **v0.2 idiom note**: Troubleshooting entries below reference the v0.1 `#[immune]` API.
-> For v0.2, use `#[defended_by(X)]` (code-tier) or `#[presents(X, requires=...)]`
-> (substrate-tier). The `#[immune]` form still works with a deprecation warning.
-> Audit output now reports per-site verdicts (`defended` / `undefended` / `substrate-gap`)
-> rather than "immunity claims".
+> **Deprecation note**: Some entries below reference the deprecated `#[immune]` API.
+> Use `#[defended_by(X)]` (code-tier) or `#[presents(X, requires=...)]`
+> (substrate-tier) instead. The `#[immune]` form still works with a deprecation warning.
+> Audit output reports per-site verdicts (`defended` / `undefended` / `substrate-gap`)
+> on observed defenses, rather than accepting a declared verdict.
+
+---
+
+## Build and authoring errors
+
+### "unused import: `AntigenCategory`" under `-D warnings`
+
+**What it means**: you wrote `category = AntigenCategory::SubstrateAlignment`
+in an `#[antigen(...)]` attribute and added `use antigen::AntigenCategory;` to
+bring the type into scope. The macro consumes `category = ...` as a *token
+path*, not a real type reference — so the import is never used, and a
+`-D warnings` gate turns the `unused import` warning into a hard error.
+
+**Fix**: **do not import `AntigenCategory`.** Write the path inline in the
+attribute and remove the `use antigen::AntigenCategory;` line. The argument
+*looks* like it needs the type in scope, but it doesn't.
+
+```rust
+// no `use antigen::AntigenCategory;`
+#[antigen(
+    name = "x",
+    fingerprint = "item = struct",
+    category = AntigenCategory::SubstrateAlignment,
+)]
+pub struct X;
+```
 
 ---
 
@@ -38,6 +64,83 @@ an error.
 
 **Narrowing the output**: pass `--root path/to/crate` to limit the scan
 to a subtree. Matches in test fixtures and example code are expected.
+
+---
+
+### "thousands of matches after I passed `--bundled-catalog`" (the firehose)
+
+**Root cause**: explicit `--bundled-catalog` **always** injects antigen's shipped
+stdlib catalog *on top of* whatever your tree already declares (ADR-043 Amendment
+2 — the "always-inject / augment" path). On a repo that already declares many
+antigens, this matches every shipped flagship fingerprint against your whole tree
+at once. It is overwhelming by design: on antigen's own source it produces
+hundreds-to-thousands of fingerprint matches (e.g. `cargo antigen scan --root
+antigen/src --bundled-catalog` → ~500+ matches across 20+ types; the full tree is
+much larger). These are still **scan-facts** ("structure matches a known class"),
+never failures — but it is a firehose, not a worklist.
+
+**What to do**:
+1. **On consumer crates, prefer bare scan.** The auto-detect path injects the
+   bundled catalog *only* when your crate has zero antigen declarations of its
+   own — so a fresh consumer crate gets a calibrated handful of candidates with
+   **no flag at all**. You only reach for explicit `--bundled-catalog` when you
+   deliberately want the shipped families layered over your own.
+2. **Augment-mode is for a deliberate audit, not the default loop.** If you *do*
+   want the augment view on a populated repo, narrow it with `--root
+   path/to/crate` and `--category` to keep the output legible.
+3. Remember the framing the output prints: *"candidate sites (expected noise; the
+   witness layer refines them) … Not a TODO list."* The witness layer (`audit`),
+   not the raw match count, is the worklist.
+
+---
+
+### "I declared one antigen and bare scan stopped flagging the stdlib footguns" (the partial-adopter trap)
+
+This is the sharpest surprise. **Auto-inject of the bundled catalog fires
+only when your crate has _zero_ antigen declarations of its own.** The moment you
+declare your *first* local antigen, bare `cargo antigen scan` uses *your*
+vocabulary and the bundled catalog is **suppressed** — so a real footgun the
+catalog would have caught, but your one local antigen doesn't cover, is now
+**silently missed**.
+
+Witnessed (a crate with one local antigen plus an unrelated `get_unchecked`
+footgun):
+
+```text
+# bare scan — auto-inject suppressed by the 1 local declaration:
+cargo antigen scan
+  → Scanned 1 files, found 1 antigen-related declarations   # the get_unchecked footgun is NOT flagged
+
+# explicit --bundled-catalog — the catalog is kept (augment mode):
+cargo antigen scan --bundled-catalog
+  → ... get-unchecked-without-proof on fn [fingerprint match]   # now caught
+```
+
+**What to do**: once you start declaring your own antigens but still want the
+shipped flagship coverage, run `cargo antigen scan --bundled-catalog`
+(augment-mode) so the catalog layers *on top of* your declarations — in CI, in
+your editor's `overrideCommand`, or as a periodic manual sweep. Auto-inject is a
+zero-config on-ramp for brand-new crates; once you're a *partial* adopter, make
+the catalog explicit.
+
+---
+
+### "`--bundled-catalog` did nothing when I added `--workspace`" (W-MULTICRATE)
+
+`--bundled-catalog` has **no effect with `--workspace`** (the member-aware
+multi-crate scan). When you combine them, antigen does not silently ignore the
+flag — it emits a warning and proceeds with the member-aware scan:
+
+```text
+warning: --bundled-catalog has no effect with --workspace (member-aware scan);
+         use a flat scan to inject the bundled catalog
+```
+
+**Why**: the bundled catalog injects into the *flat* single-bag scan path. The
+member-aware scan (`--workspace`) walks each Cargo member crate independently with
+its own `<name>@<version>` identity — a different code path that does not consume
+the injected catalog. **To get bundled-catalog matches, drop `--workspace` and run
+a flat scan** (optionally per-member with `--root path/to/member`).
 
 ---
 
@@ -75,10 +178,10 @@ syntactically invalid. Check for:
 `attr_present`, `doc_contains`, `body_contains_macro`, `all_of`,
 `any_of`, `not`
 
-#### b) "#[antigen] on enum is not supported in v0.1"
+#### b) "#[antigen] must be applied to a unit struct"
 
 Antigen declarations must be unit structs. Using an enum as the carrier
-type is tracked for a future grammar version but is not supported at v0.1.
+type is not supported.
 
 ```rust
 // Wrong
@@ -131,7 +234,7 @@ The witness identifier in `#[immune(Antigen, witness = some_fn)]` does not
 resolve to any function in the workspace.
 
 ```
-.\antigen\examples\broken_witness.rs:38  DemoBrokenWitness (witness = `nonexistent_test`)
+.\antigen\examples\broken_witness.rs:56  DemoBrokenWitness (witness = `nonexistent_test`)
   tier = None, hint = NoneApplicable
   → broken: no function named `nonexistent_test` found in any .rs file under the scan root
 ```
@@ -158,8 +261,7 @@ workspace. The audit cannot pick one.
 ```
 
 **Fix**: either rename one of the colliding functions so the name is
-unique workspace-wide, or (once path-qualified witnesses ship in A3)
-qualify the witness with a module path.
+unique workspace-wide, or qualify the witness with a module path.
 
 This error surfaces the same ambiguity for same-name proptest + free-function
 collisions (ATK-W5-007 behavior — the audit correctly refuses to guess).
@@ -186,11 +288,28 @@ explicit rationale if no witness exists yet.
 ### "tier = Reachability, hint = TestAttributePresentNotInvoked"
 
 The witness function exists and has `#[test]`, but the audit cannot confirm
-the test is actually invoked. This is normal at v0.1 — full Execution-tier
-confirmation requires `cargo test` integration, which arrives in A3.
+the test is actually invoked. This is expected — full Execution-tier
+confirmation requires `cargo test` integration.
 
 This is a warning, not an error. The witness is real; it just hasn't been
 run and reported back to the audit yet.
+
+---
+
+### "I signed a sidecar but the audit doesn't credit it"
+
+If you scaffold and sign an `.attest/` sidecar for a site whose defense is a
+**code-tier witness** (a `#[defended_by]` test, or the deprecated
+`#[immune(X, witness = <test>)]` form), the audit does **not** credit the
+sidecar — by design. Sidecars are the *substrate channel*; they back a
+`requires =` predicate, not a test.
+
+**Fix**: match the channel to the evidence. If the defense is a test, the test
+*is* the witness (`#[defended_by(X)]`) — no sidecar needed. If the defense is
+substrate state a test can't verify (a sign-off, a ratified doc, a pinned dep),
+use `#[presents(X, requires = <predicate>)]` and sign the sidecar that the
+predicate reads. The audit names a present-but-uncredited sidecar at a
+code-tier site so the mismatch is visible.
 
 ---
 
@@ -198,7 +317,7 @@ run and reported back to the audit yet.
 
 The witness function has both `#[test]` and `#[ignore]`. The test exists
 but is explicitly excluded from normal runs. The audit surfaces this as a
-skipped witness — it's not a broken witness, but the immunity claim depends
+skipped witness — it's not a broken witness, but the defense depends
 on a test you're not running.
 
 **Fix**: either remove `#[ignore]` (if the test is now ready to run), or
@@ -233,24 +352,24 @@ silence a deliberate gap, add `#[antigen_tolerance(Antigen, rationale = "...")]`
 on the descendant.
 
 Note: behavioral re-validation (does the ancestor's witness actually apply
-to the descendant?) is A4-A5 work; v0.1 audit stops at Reachability tier.
+to the descendant?) is future work; audit stops at Reachability tier here.
 
 ---
 
-### "18 immunity claim(s) below Execution tier"
+### "18 defense(s) below Execution tier"
 
-Every claim at `tier = Reachability` (or lower) appears in this block. At
-v0.1, Execution-tier confirmation requires `cargo test` integration. The
+Every defense at `tier = Reachability` (or lower) appears in this block.
+Execution-tier confirmation requires `cargo test` integration. The
 audit reports what it can verify statically:
 
 - `Reachability` — the witness function exists and has `#[test]` (or is
   recognized as a phantom-type or external-tool witness)
-- `Execution` — reserved for A3+ when `cargo antigen audit` runs `cargo test`
+- `Execution` — reserved for when `cargo antigen audit` runs `cargo test`
   and verifies the test passed
 
 A `Reachability` result is meaningful: the witness is real and not ignored.
 The remaining gap between "function exists with #[test]" and "test actually
-ran and passed" is the v0.1 limitation.
+ran and passed" is the current limitation.
 
 ---
 
@@ -369,6 +488,15 @@ evaluated to false. The per-leaf details will appear in the full audit output
 **Fix**: address the specific failed leaf. Add the missing signer, update the
 discipline document, or arrange a re-attestation.
 
+> **`signers(required = [...])` matches NAMES, not roles.**
+> `signers(required = ["alice"])` requires a signer whose *name* is `alice`.
+> A role is a separate, optional constraint:
+> `signers(required = ["alice"], roles = { alice = "math-researcher" })` means
+> "alice must have signed, AND alice's role must be `math-researcher`." If a
+> predicate fails despite a sidecar that looks right, check whether you put a
+> *role* where a *name* belongs — `signers(required = ["math-researcher"])`
+> will never match a signer named `alice` who merely *has* that role.
+
 ---
 
 ### Tolerance-claim hints
@@ -463,7 +591,7 @@ reports `WitnessTier::None` and overrides both individual tier reports.
 
 **Fix**: decide which declaration is correct and remove the other. If the site
 is genuinely immune, remove the tolerance. If it's genuinely tolerating (known
-gap, accepted), remove the immunity claim.
+gap, accepted), remove the defense.
 
 ---
 

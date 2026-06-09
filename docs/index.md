@@ -14,6 +14,11 @@ For a five-minute taste before committing: **[`quickstart.md`](quickstart.md)**
 walks you through `cargo install cargo-antigen` → first scan → first
 `#[antigen]` declaration without leaving the page.
 
+Want your **literal first session** narrated step-by-step — install, first
+scan (watch the bundled-catalog auto-detect fire), reading one real
+finding field-by-field, and wiring your editor — with every command run for
+real? See **[`getting-started.md`](getting-started.md)**.
+
 Already past quickstart? Continue with **[`tutorial.md`](tutorial.md)**
 for the full first-15-minutes walkthrough (declare → scan → defend →
 audit, end-to-end).
@@ -26,13 +31,17 @@ cd /path/to/your/rust/project
 cargo antigen scan
 ```
 
-On a fresh codebase with no antigens declared yet, this returns clean.
-Then add the dependency and declare your first antigen — quickstart
-shows you how:
+On a fresh codebase with no antigens declared yet, scan does **not** report a
+false all-clear: antigen **auto-injects its bundled stdlib catalog** and
+surfaces real fingerprint-match candidates from the shipped failure-classes (e.g.
+an unchecked index, a `panic` in a `Drop` impl). These are *a fingerprint match
+to inspect, not an audited verdict* — see [`quickstart.md`](quickstart.md) Step 2
+and [`reading-a-verdict.md`](reading-a-verdict.md). Then add the dependency and
+declare your own first antigen — quickstart shows you how:
 
 ```toml
 [dependencies]
-antigen = "0.3.0"   # the v0.3 stable line — prescriptive family + the failure-class families
+antigen = "0.4.0-beta.1"   # check crates.io for the latest version
 ```
 
 ---
@@ -68,6 +77,9 @@ Read in order:
 
 ### "I want a reference for a specific thing"
 
+- **[`cli-reference.md`](cli-reference.md)** — the whole `cargo antigen`
+  command surface in one place: every subcommand, one line each, with links to
+  the detail
 - **[`macros.md`](macros.md)** — full reference for `#[antigen]`,
   `#[presents]`, `#[defended_by]`, `#[presents(requires=)]`,
   `#[descended_from]`, `#[antigen_tolerance]`, plus the cross-cutting
@@ -78,9 +90,37 @@ Read in order:
   semantics (FormalProof / Execution / Reachability / None), three-tier
   `SignatureStrength` for substrate-witness signatures, and audit hints
 - **[`output-formats.md`](output-formats.md)** — `cargo antigen scan` /
-  `audit` / `attest` / `tolerate` / `oracle` human + JSON output reference
+  `audit` / `attest` / `tolerate` / `oracle` human + JSON output reference,
+  including the `--message-format json` editor-flycheck surface
+- **[`editor-integration.md`](editor-integration.md)** — wire
+  `cargo antigen scan` into your editor (rust-analyzer flycheck) so fingerprint
+  matches render inline as warnings; the `--message-format json` reference
+- **[`library-api.md`](library-api.md)** — using antigen as a **library** (not
+  the CLI): `antigen::scan` (typed `ScanReport`) and `antigen::learn` (the
+  Learning-Core), with runnable snippets
 - **[`glossary.md`](glossary.md)** — every project term anchored to
   its biological referent and Rust analog
+
+### "Show me the headline surfaces"
+
+Two surfaces a docs-reader should know about up front:
+
+- **Bundled stdlib catalog (auto-detect).** A fresh crate with zero antigen
+  declarations does not report a false all-clear — scan auto-injects antigen's
+  shipped failure-class fingerprints. See [`quickstart.md`](quickstart.md) Step 2
+  and the `--bundled-catalog` section of
+  [`output-formats.md`](output-formats.md).
+- **Editor flycheck (`--message-format json`).** `cargo antigen scan` speaks the
+  rustc/cargo line-protocol, so rust-analyzer renders fingerprint matches inline
+  as warnings — no custom LSP server. See
+  [`editor-integration.md`](editor-integration.md).
+
+Under the hood, antigen also ships the **Learning-Core** loop (cluster → propose →
+test → promote/prune, governed by a self-tolerance gate) as a **library API**,
+not a CLI command — see [`library-api.md`](library-api.md) for how to call it,
+[`concepts.md`](concepts.md) for where it sits, and
+[`the-keystone-explained.md`](the-keystone-explained.md) for why the safety line
+holds.
 
 ### "Something isn't working; help me debug"
 
@@ -105,31 +145,27 @@ Read in order:
 - **[`scope.md`](scope.md)** — comprehensive vision; multi-paper
   publication trajectory; cross-domain convergence
 - **[`vision-pitch.md`](vision-pitch.md)** — ecosystem-outreach pitch
-- **[`structural-memory.md`](structural-memory.md)** — whitepaper
-  (V0): what antigen is, why it exists, what it means for software
+- **[`structural-memory.md`](structural-memory.md)** — whitepaper:
+  what antigen is, why it exists, what it means for software
   teams collaborating across human and AI cognition
 
 ### "I'm a researcher or want the design substrate"
 
 - **[`origin.md`](origin.md)** — the founding incident; the
-  tambear `DeterminismClass` / `CommutativityClass` post-mortem
-- **[`decisions.md`](decisions.md)** — ratified ADRs (through
-  ADR-018 + amendments + the v0.2 architectural-posture-shift batch:
-  AMEND-002/003/006 + NEW-022/023/024/025/026/027/028)
-- **[`postures.md`](postures.md)** — architectural postures (seven
+  determinism-class / commutativity-class post-mortem
+- **[`decisions.md`](decisions.md)** — ratified ADRs and amendments
+- **[`postures.md`](internal/postures.md)** — architectural postures (seven
   postures threaded through the ADRs)
-- **[`process.md`](process.md)** — formal ADR lifecycle and
+- **[`process.md`](internal/process.md)** — formal ADR lifecycle and
   governance
 - **[`testing-patterns.md`](testing-patterns.md)** — when/how
   testing-and-antigen co-operate
-- **[`cross-domain-architectural-map.md`](cross-domain-architectural-map.md)**
+- **[`cross-domain-architectural-map.md`](internal/cross-domain-architectural-map.md)**
   — 16+ academic fields converging on the same architectural class
-- **[`immune-system-primitive-map.md`](immune-system-primitive-map.md)**
+- **[`immune-system-primitive-map.md`](internal/immune-system-primitive-map.md)**
   — comprehensive biology primitive catalog
-- **[`contact-graph-and-recognition-tiers.md`](contact-graph-and-recognition-tiers.md)**
+- **[`contact-graph-and-recognition-tiers.md`](internal/contact-graph-and-recognition-tiers.md)**
   — 3-tier × 7-mode recognition framework
-- **[`expedition/`](expedition/)** — design substrate (in flight;
-  pre-ratification material)
 
 ### "I want the project's roadmap"
 
@@ -140,9 +176,9 @@ Read in order:
 
 - **[`../CONTRIBUTING.md`](../CONTRIBUTING.md)** — contribution guide
 - **[`roadmap.md`](roadmap.md)** — where contributions matter most
-- **[`postures.md`](postures.md)** — the architectural postures
+- **[`postures.md`](internal/postures.md)** — the architectural postures
   contributions should thread through
-- **[`process.md`](process.md)** — ADR lifecycle for proposing
+- **[`process.md`](internal/process.md)** — ADR lifecycle for proposing
   architectural changes
 
 ---
@@ -171,11 +207,13 @@ A flat catalog of every doc with one-line purpose:
 
 | Doc | Purpose |
 |---|---|
+| [`cli-reference.md`](cli-reference.md) | The whole `cargo antigen` command surface, one line per subcommand |
 | [`macros.md`](macros.md) | Five macros' full attribute syntax |
 | [`stdlib-families.md`](stdlib-families.md) | Scan-and-find catalog of the shipped stdlib failure-class families (what each catches, tier, fingerprint, example) |
 | [`fingerprint-grammar.md`](fingerprint-grammar.md) | Fingerprint DSL |
 | [`witness-tiers.md`](witness-tiers.md) | `WitnessTier` gradient semantics |
 | [`output-formats.md`](output-formats.md) | scan/audit human + JSON output |
+| [`editor-integration.md`](editor-integration.md) | Wire scan into your editor (rust-analyzer flycheck) — the `--message-format json` reference |
 | [`troubleshooting.md`](troubleshooting.md) | Diagnostic guide |
 | [`glossary.md`](glossary.md) | Vocabulary anchor |
 | [`roadmap.md`](roadmap.md) | Trajectory + planned features |
@@ -184,6 +222,7 @@ A flat catalog of every doc with one-line purpose:
 
 | Doc | Purpose |
 |---|---|
+| [`getting-started.md`](getting-started.md) | Your literal first session, narrated step-by-step with every command run for real (install → first scan → read a finding → wire flycheck) |
 | [`reading-a-verdict.md`](reading-a-verdict.md) | Decoder: what each scan/audit line means (read before your first scan) |
 | [`i-scanned-and.md`](i-scanned-and.md) | Symptom-indexed FAQ ("I scanned and ___") |
 | [`three-places-to-see-it.md`](three-places-to-see-it.md) | Where each thing (class-defense, fingerprint-spare, bind/spare) is actually visible |
@@ -193,7 +232,9 @@ A flat catalog of every doc with one-line purpose:
 | Doc | Purpose |
 |---|---|
 | [`immune-migration-guide.md`](immune-migration-guide.md) | Migrate deprecated `#[immune]` → `#[defended_by]` / `#[presents(requires=)]` |
-| [`deployment-ci-integration.md`](deployment-ci-integration.md) | Wire `cargo antigen audit` into CI (exit codes, gating, GitHub Actions) |
+| [`migrating-0.3-to-0.4.md`](migrating-0.3-to-0.4.md) | Upgrading from 0.3: what's new, what to turn on (additive — nothing breaks) |
+| [`deployment-ci-integration.md`](deployment-ci-integration.md) | Wire `cargo antigen audit` into CI (exit codes, gating, GitHub Actions) + editor/IDE flycheck (`--message-format json`, rust-analyzer) |
+| [`meta-finding-pattern.md`](meta-finding-pattern.md) | When a team's recurring drift becomes a typed antigen — the next-layer-up discipline |
 
 ### Failure-class deep dives
 
@@ -208,6 +249,7 @@ A flat catalog of every doc with one-line purpose:
 | Doc | Purpose |
 |---|---|
 | [`war-stories/the-self-catch.md`](war-stories/the-self-catch.md) | Antigen catching itself — the thesis turned inward, every catch git-traceable |
+| [`war-stories/learning-from-its-own-wounds.md`](war-stories/learning-from-its-own-wounds.md) | Antigen proposing a new failure-class from a cluster of its own defective sites — and refusing to promote it until it spares known-clean code |
 
 ### Co-native
 
@@ -222,25 +264,27 @@ A flat catalog of every doc with one-line purpose:
 | [`origin.md`](origin.md) | The founding incident narrative |
 | [`scope.md`](scope.md) | Comprehensive vision |
 | [`vision-pitch.md`](vision-pitch.md) | Ecosystem outreach pitch |
-| [`structural-memory.md`](structural-memory.md) | Whitepaper: structural memory of failure-classes (V0) |
+| [`structural-memory.md`](structural-memory.md) | Whitepaper: structural memory of failure-classes |
 
 ### Architecture + governance
 
 | Doc | Purpose |
 |---|---|
 | [`decisions.md`](decisions.md) | Ratified ADRs |
-| [`postures.md`](postures.md) | Architectural postures |
-| [`process.md`](process.md) | ADR lifecycle |
+| [`postures.md`](internal/postures.md) | Architectural postures |
+| [`process.md`](internal/process.md) | ADR lifecycle |
 | [`testing-patterns.md`](testing-patterns.md) | Testing and antigen together |
 
 ### Research substrate
 
 | Doc | Purpose |
 |---|---|
-| [`cross-domain-architectural-map.md`](cross-domain-architectural-map.md) | Academic convergence map |
-| [`immune-system-primitive-map.md`](immune-system-primitive-map.md) | Biology primitive catalog |
-| [`contact-graph-and-recognition-tiers.md`](contact-graph-and-recognition-tiers.md) | 3-tier × 7-mode recognition framework |
-| [`expedition/`](expedition/) | Pre-ratification design substrate |
+| [`cross-domain-architectural-map.md`](internal/cross-domain-architectural-map.md) | Academic convergence map |
+| [`immune-system-primitive-map.md`](internal/immune-system-primitive-map.md) | Biology primitive catalog |
+| [`contact-graph-and-recognition-tiers.md`](internal/contact-graph-and-recognition-tiers.md) | 3-tier × 7-mode recognition framework |
+
+The design substrate above — postures, ADR lifecycle, development conventions,
+and research maps — lives under [`internal/`](internal/README.md).
 
 ---
 
@@ -268,7 +312,7 @@ Different docs for different jobs:
 - **Architecture** (decisions, postures, process) is for those
   shaping the project itself
 - **Research substrate** (cross-domain, immune-system primitive,
-  contact-graph, expedition) is for researchers and deep-dive readers
+  contact-graph) is for researchers and deep-dive readers
 
 Most adopters need: README + quickstart + tutorial + macros + where-
 to-look. The rest is available when you need it.
@@ -281,8 +325,7 @@ This index is maintained alongside the docs themselves. When a new
 doc lands, this index updates. When a doc is renamed or retired, this
 index updates. If you find a discrepancy — a doc listed here that
 doesn't exist, or a doc that exists but isn't listed — please open an
-issue or submit a fix; substrate-over-memory is the discipline (see
-[`postures.md`](postures.md) §1).
+issue or submit a fix (see [`postures.md`](internal/postures.md) §1).
 
 ---
 

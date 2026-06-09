@@ -119,21 +119,16 @@ look* at the suspected tier. The witness, either:
 - `Instant` is used instead of `SystemTime` for the measurement (the monotonic
   clock, which can't skew backwards).
 
-## Prognosis — the graduation path
+## Prognosis
 
-`SystemTimeUnwrapPanic` graduates **suspected → named** when the precise
-**method-chain leaf** ships (the relational tell `x.duration_since(y).unwrap()`)
-**and receiver-type resolution** lands. Receiver-type resolution does two things in
-one move:
-
-1. it re-adds `SystemTime::elapsed().unwrap()` **anchored on a `SystemTime`
-   receiver** — recovering the true-positive currently lost as a v0.4-recoverable
-   false-negative, without the `Instant::elapsed` clean-sibling FP; and
-2. it resolves the `Instant::duration_since` namesake false-positive (the receiver
-   type is the discriminator the chain-leaf alone can't supply).
-
-Both the dropped `elapsed` recall hole and the `Instant`-namesake FP are documented,
-not forgotten.
+`SystemTimeUnwrapPanic` sits at **suspected**: the shipped grammar has no
+method-chain leaf, so the fingerprint is the `duration_since` + `unwrap`
+*co-occurrence* form, and it shares a name with the infallible
+`Instant::duration_since` (the receiver type — the only discriminator — is not
+syntactically resolvable). Two honest costs are documented, not forgotten: the
+dropped `SystemTime::elapsed().unwrap()` recall hole, and the `Instant`-namesake
+false-positive. Both are recovered by the same receiver-type-resolution graduation,
+recorded in [`../roadmap.md`](../roadmap.md).
 
 ---
 

@@ -4,14 +4,6 @@
 > anyone building in the era where AI-assisted development is standard practice.**
 > A ~2000-word read explaining what antigen is, why it matters now, and what we're
 > asking the community to consider.
->
-> *Updated 2026-06-01 for 0.3.0-beta.1 in active development (0.2.0 stable on crates.io):
-> prescriptive / work-orchestration family (8 macros, `cargo antigen audit` as live work
-> board), titer/scalar witness kind (ADR-019 Amendment 1), live-projection reporting model
-> (ADR-034), `coverage_was_applicable()` three-state coverage discriminator, typed
-> `OutOfFrameCause` (Layer-2 sub-cause), three-valued type law ratified (ADR-035). 1164
-> tests passing. ADR-029 observe-not-declare + five stdlib families + agentic-coordination +
-> dogfood from 0.2.0 stable remain unchanged. v0.1/v0.2 history preserved inline.*
 
 ---
 
@@ -65,15 +57,15 @@ What antigen does at the mechanism level is convert passive memory into active s
 
 The transformation: anything you'd write as a doc or comment to convey decision, intent, or discipline can be expressed as antigen structure that doesn't rot the same way.
 
-The table below shows the full transformation vocabulary. Entries marked `*` ship in v0.1; the rest are in the v0.2 vocabulary. The right-side stays current OR fails loudly when stale — that property is what makes structural memory work at all.
+The table below shows the full transformation vocabulary. The right-side stays current OR fails loudly when stale — that property is what makes structural memory work at all.
 
 | Memory form | Structure form |
 |---|---|
-| `/// assumes X never panics` | `#[presents(X, requires = ...)]` * |
-| README "we follow Y discipline" | `#[antigen(Y)]` + per-site `#[presents(Y)]` + `#[defended_by(Y)]` on tests * |
-| `// Last reviewed: 2024-01-15` | `#[presents(..., requires = fresh_within_days(N))]` * |
-| `// intentional, don't touch` | `#[antigen_tolerance(rationale = "...")]` * |
-| Generated-code provenance | `#[presents(GeneratedCodeWithoutHumanAttestation, requires = signers([reviewer]))]` * |
+| `/// assumes X never panics` | `#[presents(X, requires = ...)]` |
+| README "we follow Y discipline" | `#[antigen(Y)]` + per-site `#[presents(Y)]` + `#[defended_by(Y)]` on tests |
+| `// Last reviewed: 2024-01-15` | `#[presents(..., requires = fresh_within_days(N))]` |
+| `// intentional, don't touch` | `#[antigen_tolerance(rationale = "...")]` |
+| Generated-code provenance | `#[presents(GeneratedCodeWithoutHumanAttestation, requires = signers([reviewer]))]` |
 | `// TODO: refactor this` | `#[itch(...)]` or `#[panel(...)]` |
 | `// FIXME: hack` | `#[anergy(rationale = "...")]` |
 | `// HACK: until Q3` | `#[poxparty(until = "...")]` |
@@ -104,11 +96,11 @@ Antigen's substrate-witnesses watch that relationship: they read the representat
 
 ## A concrete instance from the project that motivated antigen
 
-In April 2026, the [tambear](https://github.com/tambear-rs/tambear) project — a Windows-native GPU-accelerated mathematical computing toolkit — discovered a polarity inversion in its `DeterminismClass` enum's `meet` method. The discriminants were ordered strongest-first; the lattice ordering is reverse-strictness; `meet = std::cmp::min` therefore returned the *strongest* class instead of the weakest. The bug was named GAP-BIT-EXACT-1 and fixed: `meet = max` is correct.
+In April 2026, the [tambear](https://github.com/tambear-rs/tambear) project — a Windows-native GPU-accelerated mathematical computing toolkit — discovered a polarity inversion in its `DeterminismClass` enum's `meet` method. The discriminants were ordered strongest-first; the lattice ordering is reverse-strictness; `meet = std::cmp::min` therefore returned the *strongest* class instead of the weakest. The fix: `meet = max` is correct.
 
 Two months later, an unrelated change introduced `CommutativityClass` — structurally identical shape, independently designed, by different agents on a different team. The polarity inversion shipped again with `meet = std::cmp::min`. The same illness, re-derived from scratch, narrowly caught by adversarial pre-implementation verification.
 
-The healing didn't propagate. The lesson lived in the corrected `DeterminismClass` file, in the GAP-BIT-EXACT-1 issue, and in dev memory. None of those reached `CommutativityClass` until the team manually re-derived the lesson.
+The healing didn't propagate. The lesson lived in the corrected `DeterminismClass` file, in the issue tracker, and in dev memory. None of those reached `CommutativityClass` until the team manually re-derived the lesson.
 
 This is documented in [`docs/origin.md`](origin.md). It's one instance of a pattern that recurs across every project that fixes structural bugs — and the pattern accelerates in AI-assisted workflows, where session-boundary resets mean lessons re-learned on a weekly basis rather than a generational one.
 
@@ -137,9 +129,9 @@ Antigen is **architecturally a synthesis**, not a new verification technique. Mo
 - proptest, quickcheck, and cargo-mutants provide property-based and mutation witnesses.
 - kani, prusti, creusot, verus provide formal verification witnesses.
 
-What antigen contributes — verified through the academic-context survey at [`docs/expedition/academic-context.md`](expedition/academic-context.md) — is:
+What antigen contributes is:
 
-**1. Failure-class names as inherited first-class artifacts.** Existing tools detect patterns; antigen NAMES the failure class structurally and inherits the immunity declaration through `#[descended_from]`. This shape doesn't exist in any current Rust tool. Eiffel inherits predicates; CWE has names without inheritance; Koka inherits effects. None inherits *named failure-classes* through structural derivation with witness re-validation.
+**1. Failure-class names as inherited first-class artifacts.** Existing tools detect patterns; antigen NAMES the failure class structurally and inherits the defense through `#[descended_from]`. This shape doesn't exist in any current Rust tool. Eiffel inherits predicates; CWE has names without inheritance; Koka inherits effects. None inherits *named failure-classes* through structural derivation with witness re-validation.
 
 **2. Vaccination as a developer-facing bulk transform.** `cargo antigen vaccinate <antigen> <pattern>` applies known immunity across a structural family in one command. Closest analogs (cargo fix; Coq's Hint Resolve) are per-site or proof-internal; antigen's vaccinate is a bulk operation on the failure-class graph.
 
@@ -177,29 +169,29 @@ Three forces make 2026 the right moment:
 
 ## The comprehensive vision
 
-Antigen v0.1 shipped the core of structural failure-class memory: five macros, fingerprint grammar, scan + audit + attest + tolerate + oracle CLI, substrate-witness predicates, Oracle 5-state lifecycle, cross-cutting attestation.
+Antigen ships the core of structural failure-class memory: five macros, fingerprint grammar, scan + audit + attest + tolerate + oracle CLI, substrate-witness predicates, Oracle 5-state lifecycle, cross-cutting attestation.
 
-**Antigen v0.2 adds the observe-not-declare layer**: `#[defended_by]` (code-tier witness registration), `#[presents(requires=)]` (substrate-tier witness), the full deferred-defense family (`#[anergy]`, `#[immunosuppress]`, `#[poxparty]`, `#[orient]`), the recurrent-emergence family, convergent-evidence family, mucosal-boundary family, and supply-chain defense family. The audit surface shifted from "did the claim resolve?" to "is the site defended?" — immunity is now observed, not declared. ADR-029 is the architectural hinge.
+On top of that core sits the **observe-not-declare layer**: `#[defended_by]` (code-tier witness registration), `#[presents(requires=)]` (substrate-tier witness), the full deferred-defense family (`#[anergy]`, `#[immunosuppress]`, `#[poxparty]`, `#[orient]`), the recurrent-emergence family, convergent-evidence family, mucosal-boundary family, and supply-chain defense family. The audit surface asks "is the site defended?" rather than "did the claim resolve?" — immunity is observed, not declared. ADR-029 is the architectural hinge.
 
-**Antigen v0.3 (in active development, `0.3.0-beta.1`)** adds the prescriptive work-orchestration family (eight macros, live work-board audit output), the titer/scalar witness kind, the live-projection reporting model (ADR-034), and the three-valued type law ratified as a self-applying antigen (ADR-035). The work-board family in particular shifts antigen from purely defensive vocabulary (what went wrong, what defends it) to also covering the *obligation side* (what work is pending, who it's assigned to, whether it's overdue) — co-located in the code where the obligation lives.
+The **prescriptive work-orchestration family** (eight macros, live work-board audit output), the titer/scalar witness kind, the live-projection reporting model (ADR-034), and the three-valued type law ratified as a self-applying antigen (ADR-035) round out the current surface. The work-board family in particular shifts antigen from purely defensive vocabulary (what went wrong, what defends it) to also covering the *obligation side* (what work is pending, who it's assigned to, whether it's overdue) — co-located in the code where the obligation lives.
 
 This is one branch of the comprehensive immune-system framework.
 
 The biological immune system is the systematic discovery framework for what the full vocabulary needs to be — each immune-system component maps to a code discipline with its own primitive. We've mapped approximately 10% of the metaphor; each remaining component is a research-arc prompt.
 
-The full vocabulary through v0.4 includes:
+The full vocabulary includes:
 
-- **Honest-debt / deferred-defense family** (`#[anergy]`, `#[immunosuppress]`, `#[poxparty]`): deferred defenses made loud rather than silently suppressed *(shipped v0.2)*
-- **Prescriptive / work-orchestration family** (`#[panel]`, `#[ddx]`, `#[rx]`, `#[triage]`, `#[refer]`, `#[biopsy]`, `#[culture]`, `#[quarantine]`): team coordination substrate directly in code — "code IS the Asana board." `cargo antigen audit` renders per-site verdicts as a live-projected work board. Assists disciplined teams who want their obligation-tracking to live in the same substrate as their code *(shipped v0.3)*
-- **Titer / scalar witness kind** (`#[ignorance]`, `#[titer(source=...)]`): attests a measured value (no verdict, trend-trackable); `#[ignorance]` retroactively recognized as member-one of the titer family *(shipped v0.3)*
-- **Three-valued type law** (`CardinalityCollapseAtTrustBoundary`): a self-applying antigen — ratified as a structural law, catching antigen's own type-discipline violations *(ratified v0.3)*
-- **Recurrence-detection family** (`#[itch]`, `#[recurrence_anchor]`, `#[crystallize]`): noticing-without-commitment that accumulates across sessions and agents *(shipped v0.2)*
-- **Biological-component family** (`#[macrophage]`, `#[neutrophil]`, `#[treg]`, `#[complement]`, ~30 more): each mapped to a real code discipline *(roadmap v0.4+)*
+- **Honest-debt / deferred-defense family** (`#[anergy]`, `#[immunosuppress]`, `#[poxparty]`): deferred defenses made loud rather than silently suppressed *(shipped)*
+- **Prescriptive / work-orchestration family** (`#[panel]`, `#[ddx]`, `#[rx]`, `#[triage]`, `#[refer]`, `#[biopsy]`, `#[culture]`, `#[quarantine]`): team coordination substrate directly in code — "code IS the Asana board." `cargo antigen audit` renders per-site verdicts as a live-projected work board. Assists disciplined teams who want their obligation-tracking to live in the same substrate as their code *(shipped)*
+- **Titer / scalar witness kind** (`#[ignorance]`, `#[titer(source=...)]`): attests a measured value (no verdict, trend-trackable); `#[ignorance]` retroactively recognized as member-one of the titer family *(shipped)*
+- **Three-valued type law** (`CardinalityCollapseAtTrustBoundary`): a self-applying antigen — ratified as a structural law, catching antigen's own type-discipline violations *(shipped)*
+- **Recurrence-detection family** (`#[itch]`, `#[recurrence_anchor]`, `#[crystallize]`): noticing-without-commitment that accumulates across sessions and agents *(shipped)*
+- **Biological-component family** (`#[macrophage]`, `#[neutrophil]`, `#[treg]`, `#[complement]`, ~30 more): each mapped to a real code discipline *(on the roadmap)*
 - **Research arcs** covering agentic dev, vibe coders, AI-pair programming, modern infra, long-context AI, supply-chain, VCS-information-loss, and more
 
 The research-driven stdlib aims at *comprehensiveness* — covering the full failure landscape the way the biological immune system covers the full pathogen landscape. Adopter extension crates (`antigen-async`, `antigen-embedded`, `antigen-db`, etc.) build domain-specific antigens against this comprehensive stdlib.
 
-Full vocabulary and roadmap: [`docs/expedition/the-comprehensive-vision.md`](expedition/the-comprehensive-vision.md).
+Full vocabulary and roadmap: [`roadmap.md`](roadmap.md).
 
 ---
 
@@ -236,8 +228,8 @@ Each phase delivers value independently.
 
 For Rust ecosystem maintainers and tooling-aware engineers:
 
-1. **Read the design substrate** (start with [`origin.md`](origin.md) and [`docs/expedition/the-comprehensive-vision.md`](expedition/the-comprehensive-vision.md)) and tell us where the design is wrong, over-claiming, or missing considerations.
-2. **Surface prior art** we haven't covered. The [`academic-context.md`](expedition/academic-context.md) and [`ecosystem-composition.md`](expedition/ecosystem-composition.md) docs are the landing pages for survey gaps.
+1. **Read the design substrate** (start with [`origin.md`](origin.md) and [`roadmap.md`](roadmap.md)) and tell us where the design is wrong, over-claiming, or missing considerations.
+2. **Surface prior art** we haven't covered.
 3. **Propose failure-classes** that should be in `antigen-stdlib`, with real-world instance evidence. Issue templates at [`.github/ISSUE_TEMPLATE`](.github/ISSUE_TEMPLATE) accept these.
 4. **Tell us if you'd be an early adopter.** Real adoption stories shape priorities far more than maintainer guesses. Open a GitHub Discussion thread if antigen would address a pain point in your codebase.
 
@@ -259,13 +251,13 @@ Antigen's development produced three measurable properties that support the arch
 
 **Biology-as-search-heuristic precision/recall.** Predictions about where implementation would fail — derived from biological cognates before implementation — were tested against independent adversarial bug-finding. Result: 5/5 predicted defect types confirmed (100% precision); ~64% recall with domain-appropriate asymmetry.
 
-**Colonization ratio 8/5 (160%).** During Sweep A2, 8 structural-antigen-pattern instances surfaced for every 5 deliberately authored. The recognition architecture finds more failure-class patterns than were consciously targeted.
+**Recognition over-finds.** More structural-antigen-pattern instances surface than are deliberately authored — the recognition architecture finds more failure-class patterns than were consciously targeted.
 
 **Scale-invariance of the failure mode.** The pattern antigen exists to prevent recurred at three independent tiers of the project's own operation: the events tier (bug recurrence in the motivating codebase), the coordination tier (team's own ratification process), and the implementation tier (antigen's own attribute-parser). Three tiers, same pattern, independently observed.
 
-It recurred again during v0.2 development, and the second occurrence is the more telling one: while a human-plus-AI team was building *and documenting* the substrate-alignment failure-class `ParallelStateTrackersDiverge`, that exact failure-class happened to them — at three further layers, none of which the tool was pointed at. A task-tracker diverged from the coordination substrate (work marked "done" while unshipped); message attribution diverged from authorship; an agent-identity collision diverged the who-owns-this tracking and produced two independent implementations of one failure-class. Each was unbidden, none anticipated, each caught not by a test but by the team's own substrate-currency reflexes — the very reflexes antigen exists to make structural rather than vigilance-dependent. The point is not that a tidy demo confirmed the thesis; it is that the builders of the failure-class-memory tool could not avoid the failure-class through expertise or care, *while thinking about it directly* — which is the strongest evidence available that the failure mode is real, pervasive, and beyond the reach of attention alone. It is not a curiosity of one tier; it is the texture of how distributed (human + AI) work drifts.
+It recurred again, and the second occurrence is the more telling one: while a human-plus-AI team was building *and documenting* the substrate-alignment failure-class `ParallelStateTrackersDiverge`, that exact failure-class happened to them — at three further layers, none of which the tool was pointed at. A task-tracker diverged from the coordination substrate (work marked "done" while unshipped); message attribution diverged from authorship; an agent-identity collision diverged the who-owns-this tracking and produced two independent implementations of one failure-class. Each was unbidden, none anticipated, each caught not by a test but by the team's own substrate-currency reflexes — the very reflexes antigen exists to make structural rather than vigilance-dependent. The point is not that a tidy demo confirmed the thesis; it is that the builders of the failure-class-memory tool could not avoid the failure-class through expertise or care, *while thinking about it directly* — which is the strongest evidence available that the failure mode is real, pervasive, and beyond the reach of attention alone. It is not a curiosity of one tier; it is the texture of how distributed (human + AI) work drifts.
 
-**Biology predicted the v0.2 correctness fix.** During v0.2 development, six distinct silent-wrong-verdict bugs were found in antigen's own audit logic — all tracing to the same structural defect: two-valued logic (match/no-match) over a domain that is genuinely three-valued (match / no-match / indeterminate). The fix was the same in every case: add the third state. The biological cognate makes this unsurprising: T-cell anergy is a *distinct cellular program* from clone-absent — not weak activation, not the absence of activation, but a specific "witnessed-and-suppressed" state with its own molecular machinery. The immune system already encodes "indeterminate ≠ negative" at the cellular level. Antigen's Match3 three-valued fingerprint algebra (ADR-010 Amendment 6, v0.2) implements the same distinction. The biology was not decorative here — it was a diagnostic: six separate bugs collapsed to one structural defect because the cellular-level encoding named the missing state precisely. Biology as discovery instrument, in one session, across six independent sites.
+**Biology predicted a correctness fix.** Six distinct silent-wrong-verdict bugs were found in antigen's own audit logic — all tracing to the same structural defect: two-valued logic (match/no-match) over a domain that is genuinely three-valued (match / no-match / indeterminate). The fix was the same in every case: add the third state. The biological cognate makes this unsurprising: T-cell anergy is a *distinct cellular program* from clone-absent — not weak activation, not the absence of activation, but a specific "witnessed-and-suppressed" state with its own molecular machinery. The immune system already encodes "indeterminate ≠ negative" at the cellular level. Antigen's Match3 three-valued fingerprint algebra (ADR-010 Amendment 6) implements the same distinction. The biology was not decorative here — it was a diagnostic: six separate bugs collapsed to one structural defect because the cellular-level encoding named the missing state precisely. Biology as discovery instrument, in one session, across six independent sites.
 
 These are early signals from one project's development process, not controlled studies. Adoption depends on engineering quality, ergonomics, and the gradual proof that structural failure-class memory delivers compounding value as antigen-stdlib grows.
 
@@ -273,7 +265,7 @@ These are early signals from one project's development process, not controlled s
 
 ## The architectural class
 
-Antigen instantiates a broader architectural class: *recognition with memory and inheritance, where new instances of recognized patterns are caught structurally and memory propagates through structural inheritance*. This class has been independently re-invented across 16+ academic fields, with four particularly rigorous independent convergences through different methods: the type-theory lineage (Hoare 1969 → Eiffel → Liquid Haskell → Flux), cognitive schema theory, Christopher Alexander's pattern languages, and cybersecurity IDS signature systems. The biological immune system is the originating substrate antigen explicitly models on — not a peer cognate, but the empirical implementation of this architecture refined over 500 million years of evolutionary pressure. The cross-domain convergence is cataloged at [`cross-domain-architectural-map.md`](cross-domain-architectural-map.md).
+Antigen instantiates a broader architectural class: *recognition with memory and inheritance, where new instances of recognized patterns are caught structurally and memory propagates through structural inheritance*. This class has been independently re-invented across 16+ academic fields, with four particularly rigorous independent convergences through different methods: the type-theory lineage (Hoare 1969 → Eiffel → Liquid Haskell → Flux), cognitive schema theory, Christopher Alexander's pattern languages, and cybersecurity IDS signature systems. The biological immune system is the originating substrate antigen explicitly models on — not a peer cognate, but the empirical implementation of this architecture refined over 500 million years of evolutionary pressure. The cross-domain convergence is cataloged at [`cross-domain-architectural-map.md`](internal/cross-domain-architectural-map.md).
 
 ---
 
@@ -290,10 +282,10 @@ The illness already healed once. Let's not heal it again next year, and the year
 ## Where to read more
 
 - **The story**: [`docs/origin.md`](origin.md) — the post-mortem narrative motivating the project
-- **The comprehensive vision**: [`docs/expedition/the-comprehensive-vision.md`](expedition/the-comprehensive-vision.md) — full scope, all families, research arcs, roadmap
+- **The roadmap**: [`roadmap.md`](roadmap.md) — full scope, all families, research arcs, trajectory
 - **The whitepaper**: [`docs/structural-memory.md`](structural-memory.md) — foundational treatment of what structural memory means and why it matters for human-AI hybrid teams
 - **The architecture**: [`docs/decisions.md`](decisions.md) — ratified ADRs and amendments
-- **The postures**: [`docs/postures.md`](postures.md) — architectural postures threaded through the ADRs
+- **The postures**: [`docs/internal/postures.md`](internal/postures.md) — architectural postures threaded through the ADRs
 - **The case study**: [`docs/case-study-determinism-class.md`](case-study-determinism-class.md) — full walkthrough of how antigen would have caught the originating bug pattern
 
 If anything here resonates, please [open a Discussion](https://github.com/antigen-rs/antigen/discussions).

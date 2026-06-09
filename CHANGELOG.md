@@ -7,6 +7,129 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0-beta.1] — 2026-06-08
+
+**0.4.0-beta.1 — the immune-system-at-scale line (first beta).** v0.4 makes the new immune surface
+**discoverable** and closes the most load-bearing honesty gap in the scan path: a
+fresh crate with zero antigen declarations no longer reports a false all-clear. The
+release ships the user-facing discovery surfaces (a bundled stdlib catalog,
+`--message-format json` editor flycheck, diff-native DETECT) and — as the keystone
+— the **safety-governed Learning-Core** as a *library API*, the substrate the next
+cycle wires into a user-facing verb. Two of antigen's own failure-classes were
+caught and fixed in-wave (neither shipped). This first v0.4 beta settles the user-facing surfaces; the new `antigen::learn`
+library API ships for exercise and may still move before `0.4.0` stable. See
+[`docs/roadmap.md`](docs/roadmap.md) for the full trajectory.
+
+### Added — bundled stdlib catalog: closing the zero-hits cliff (ADR-043)
+
+- A scan of a crate with **zero** antigen declarations no longer reports a false
+  all-clear. Antigen now ships a **bundled catalog** of its flagship failure-class
+  fingerprints, compiled in via `build.rs`, and the scanner reaches for it
+  automatically.
+  - **Auto-detect** — a bare `cargo antigen scan` on a zero-declaration crate
+    auto-injects the catalog, so an empty repertoire is no longer mistaken for
+    immunity (ADR-043 Amendment 2). A crate that declares even one antigen of its
+    own is left as-is (no auto-inject).
+  - **`--bundled-catalog`** — explicit augment-mode: always injects the catalog
+    *on top of* your declared antigens. (No effect under `--workspace`, which is
+    member-aware; the CLI says so.)
+  - **`antigen::scan::scan_workspace_bundled_catalog`** — the library entry-point
+    for the same behavior; `bundled_catalog_findings()` exposes the raw catalog
+    matches. A new public contract.
+- Catalog matches are **scan-facts** — `FindingBody::FingerprintMatch`, a distinct
+  type that structurally cannot masquerade as an audited defense verdict
+  (claim-scope, ADR-043 Amendment 1 / ADR-044). Every catalog hit carries the
+  verbatim claim-scope line *"This is a fingerprint match to inspect, not an
+  audited verdict."*
+
+### Added — editor flycheck via `--message-format json` (ADR-046 render B)
+
+- `cargo antigen scan --message-format json` emits the **rustc/cargo
+  line-protocol** (newline-delimited `compiler-message` objects). Point
+  rust-analyzer's `check.overrideCommand` at it and fingerprint matches render
+  inline as editor warnings — no custom LSP server, no plugin. Every diagnostic
+  carries the verbatim claim-scope line at `warning` level only, so a scan-fact
+  can never surface as an error. See
+  [`docs/output-formats.md`](docs/output-formats.md) and
+  [`docs/deployment-ci-integration.md`](docs/deployment-ci-integration.md).
+
+### Added — diff-native DETECT (ADR-046)
+
+- The DETECT half of diff-native scanning: a structural delta between two snapshots
+  surfaces a guard/defense **removal** — not merely an absence — so antigen sees
+  what was *taken away* between two states, not just what is missing now. (The
+  CLASSIFY half — naming which failure-class the removal re-exposes — is a tracked
+  v0.4+ increment.)
+
+### Added — the Learning-Core loop as a library API (the keystone, ADR-044/045)
+
+- The cluster → propose → test → promote/prune loop, governed by a **self-tolerance
+  gate**, shipped as a **library API** (`antigen::learn`) — *not* a CLI command.
+  - **C-PROPOSE** (`antigen::learn::propose`) anti-unifies a cluster of marked
+    sites into a draft fingerprint, labeled a **hypothesis to ratify**, never an
+    auto-asserted `#[presents]` (ADR-044, observe-don't-declare). Shared structure
+    across the cluster becomes conjuncts; discriminating signals become an `any_of`
+    disjunction (autoimmunity-reducing, not a naive drop-leaves), and the
+    bind-every-member invariant keeps every discriminating signal inside the
+    `any_of`, never as a conjunct.
+  - **The safety line (C ══ B) is type-enforced.** `propose()` is the only
+    promotable path and routes every promotion through `promote_if_safe`
+    (self-tolerance, `antigen::learn::self_tolerance`), which refuses to promote a
+    draft against an **empty clean corpus** ("cannot certify safety against
+    nothing") — the empty-corpus bypass is closed structurally in the promotion
+    authority. C can never promote without B green.
+  - **Falsified on antigen's own honest self-doubt.** The loop runs on antigen's
+    three `#[dread]`-marked silent-skip sites in its *own* production source
+    (`scan_workspace` / `collect_function_index` — the silent-skip-reports-clean
+    twins — and the stringly-typed `cluster_key_of` identity) and promotes only
+    through the gate; the falsification test promotes a real, non-degenerate
+    discriminating disjunction that binds the cluster and spares clean siblings.
+- **Scope honesty.** C-PROPOSE is a library API in v0.4 — there is no `cargo
+  antigen propose` command, and it has **zero production callers** (push-gated,
+  un-breachable in production). The keystone shipped the *safety-governed learner*,
+  not a user-facing verb; the catalog and `--message-format` surfaces are the
+  user-facing v0.4 value. Two named hardening items are located but deliberately
+  not built (a corpus-*bindability* check beyond mere non-emptiness, and a
+  `PromotedFingerprint` newtype constructible only by the gate) — see
+  [`docs/roadmap.md`](docs/roadmap.md).
+
+### Added — the marked-unknown digest seam: identity vs. shape (ADR-045 Amendment 2)
+
+- `Finding` grows a two-field digest split so the two consumers key on different
+  things without colliding. **`structural_digest`** is the name+code-sensitive
+  IDENTITY hash that diff-native DETECT keys on (two items with identical bodies but
+  different names get *different* identity digests). **`shape_digest`** is the
+  name-insensitive shape hash that PROPOSE clusters on (those same two items share
+  a `shape_digest`). The `cluster_key` is now a **specified** derivation —
+  `derived-from(<clustering digest>, class)` via `cluster_key_of` — not an opaque
+  label, closing the degenerate `dread@` empty-digest over-merge (every dread mark
+  collapsing into one bucket). Both fields are additive-optional
+  (`#[serde(default)]`), forward-compatible. The canonical producer for these
+  digests is `antigen_fingerprint::digest` (FNV-1a over the `proc_macro2`-
+  canonicalized token stream — deterministic across machines and toolchains).
+
+### Changed — audit-output vocabulary: "immunity claim" → "defense"
+
+- The human and summary audit renderers now speak of **defenses**, not "immunity
+  claims," matching the ADR-029 observe-don't-declare idiom the rest of the surface
+  already uses (a defense is observed and witnessed, not a verdict stamped). The
+  per-member scan line reads `N defense(s)`; the audit blocks read "All defenses
+  meet the Execution tier or higher" / "N defense(s) below Execution tier" / "No
+  defense declarations found." No behavior change — the witness-tier evaluation is
+  identical; only the user-visible wording is corrected. The `#[immune]` (v0.1)
+  deprecation guidance is consolidated to
+  [`docs/immune-migration-guide.md`](docs/immune-migration-guide.md); the scan
+  output still names a `#[immune]` declaration and points at `#[defended_by]` /
+  `#[presents]` as the migration target.
+
+### Changed — nightly rustfmt 2027 profile (imports `Preserve`)
+
+- The workspace adopts the nightly rustfmt 2027 style edition (`rustfmt.toml`,
+  `style_edition = 2027`) and shift-left dev-time check config (`clippy.toml`,
+  `rust-analyzer.toml`). The CI `fmt` gate runs `cargo +nightly fmt --all --
+  --check`. The visible churn is import-ordering normalization across the
+  workspace; no API change.
+
 ## [0.3.0] — 2026-06-04
 
 **0.3.0 stable.** Promotes the `0.3.0-beta.1` + `0.3.0-beta.2` pre-releases to a

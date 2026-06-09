@@ -1,10 +1,5 @@
 # Antigen — Examples Guide
 
-> **v0.2 idiom note**: Some examples use the v0.1 `#[immune(...)]` API (particularly
-> `broken_witness.rs`, which is preserved intentionally to demonstrate the deprecated form's
-> failure mode). For v0.2, prefer `#[defended_by(X)]` (code-tier) or `#[presents(X, requires=...)]`
-> (substrate-tier). See [`macros.md`](macros.md) for the current vocabulary.
-
 > Curated walkthrough of the example files in `antigen/examples/`,
 > ordered for progressive learning. Each lesson builds on the prior.
 >
@@ -66,7 +61,7 @@ audit from the evidence, never claimed at the site (ADR-029).
 - Antigen declarations are unit structs
 - Defense evidence lives at the witness site, not the vulnerable site —
   immunity is observed, not declared
-- (The v0.1 `#[immune(witness=)]` API is deprecated in favor of
+- (The `#[immune(witness=)]` API is deprecated in favor of
   `#[defended_by]` / `#[presents(requires=)]`)
 
 **Try this**:
@@ -97,7 +92,10 @@ doesn't resolve, the audit names the gap honestly.
 - A `DemoBrokenWitness` antigen (with a deliberately minimal
   fingerprint: `name = matches("Looks*")`)
 - A `LooksImmuneButIsnt` type that claims `#[immune(DemoBrokenWitness,
-  witness = nonexistent_test)]` — but `nonexistent_test` doesn't exist
+  witness = nonexistent_test)]` — but `nonexistent_test` doesn't exist.
+  This example uses the deprecated `#[immune(...)]` form on purpose, to
+  show its broken-witness failure mode; new code uses `#[defended_by(X)]`
+  or `#[presents(X, requires=...)]` (see [`macros.md`](macros.md)).
 
 **What to learn**:
 - The audit is your first line of defense against theatrical witnesses
@@ -143,7 +141,7 @@ with `#[antigen_tolerance]` and a required rationale.
   and we accept it"; immunity says "the failure-class is structurally
   prevented"
 - The `until` field can mark expected expiry, but isn't enforced
-  automatically in v0.1
+  automatically
 - Tolerance scales: a fixture deliberately constructing a panic case
   doesn't need to be refactored; it needs to be acknowledged
 
@@ -154,7 +152,7 @@ cargo run --bin cargo-antigen -- antigen scan --root antigen/examples
 
 In the scan output, the tolerated site appears in the `tolerated
 sites` count, not in the unaddressed-presentations list. The audit
-reports tolerance status separately from immunity status.
+reports tolerance status separately from defense status.
 
 ---
 
@@ -173,12 +171,12 @@ through the inheritance chain.
   `#[descended_from(MemoryUnsafetyClass)]`
 - Code marked with `#[presents(UseAfterFreeClass)]` — which also
   structurally presents `MemoryUnsafetyClass` via inheritance
-- An immunity claim on the child antigen with explicit re-attestation
+- A defense on the child antigen with explicit re-attestation
 
 **What to learn**:
 - Inheritance does NOT transitively claim immunity (per ADR-005
   sub-clause F) — descendants must *re-attest*
-- Cycle detection guards `#[descended_from]` chains (ATK-A3-002)
+- Cycle detection guards `#[descended_from]` chains
 - Diamond inheritance is dedup'd correctly (ADR-018 ProvenanceEntry)
 - This is how a failure-class taxonomy grows: name the family, then
   name the specific variants
@@ -190,7 +188,7 @@ cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
 
 Look for the `inherited-presentation-not-re-attested` audit hint —
 this is the discipline catching sites that inherited a presentation
-via descended_from without their own immunity claim.
+via descended_from without their own defense.
 
 ---
 
@@ -199,8 +197,8 @@ via descended_from without their own immunity claim.
 **File**: [`antigen/examples/phantom_witness.rs`](../antigen/examples/phantom_witness.rs)
 
 **Concept introduced**: phantom-type witnesses. The strongest witness
-tier antigen recognizes in v0.1.0-rc.1 — proofs encoded in the type
-system itself, with the *type structure* serving as the witness.
+tier antigen recognizes — proofs encoded in the type system itself,
+with the *type structure* serving as the witness.
 
 **What's in the file**:
 - A `DropPanicClass` antigen
@@ -217,17 +215,17 @@ system itself, with the *type structure* serving as the witness.
   hint
 - The proof is structural: if the code compiles, the proof holds
   (the sealed constructor cannot be bypassed)
-- This is the most rigorous form of antigen-recognized witness in
-  v0.1 (Execution tier reserved for A4-A5 harness invocation;
-  external-tool witnesses sit at Reachability with disambiguating
-  hints until A4-A5 lands)
+- This is the most rigorous form of antigen-recognized witness
+  (Execution tier is reserved for harness invocation; external-tool
+  witnesses sit at Reachability with disambiguating hints until that
+  lands)
 
 **Try this**:
 ```sh
 cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
 ```
 
-Look at the audit's confirmed-claims section. The phantom-type
+Look at the audit's confirmed-defenses section. The phantom-type
 witness appears at `tier = FormalProof, hint =
 PhantomTypeShapeRecognized` — the structural memory says immune; the
 audit confirms the proof structure is recognized.
@@ -385,11 +383,11 @@ record the expected hash before it can detect divergence.
 **What to learn**:
 - Cargo.lock pins VERSION but not CONTENT-HASH; lockfile pinning alone doesn't prevent
   this attack class
-- The `content_hash_matches(crate, version)` substrate-witness leaf backs `ContentHashMismatch` immunity
+- The `content_hash_matches(crate, version)` substrate-witness leaf backs the `ContentHashMismatch` defense
 - `content-hash-no-attestation` hint fires before first-attestation; `content-hash-mismatch`
   fires if the sidecar hash and current Cargo.lock diverge
-- Named limitation: v0.2 hash-source is the Cargo.lock checksum; crates.io tarball
-  verification is v0.3+
+- Named limitation: the hash-source is the Cargo.lock checksum; crates.io tarball
+  verification is not yet covered
 
 ---
 
@@ -467,12 +465,12 @@ iteration count and non-deterministic seed discipline.
 ## After all the lessons
 
 By now you've encountered the core vocabulary, four witness tiers, substrate-witness
-pipeline, Oracle lifecycle, delta-chained signatures, tolerance tiers, and the full
-v0.2 family surface:
+pipeline, Oracle lifecycle, delta-chained signatures, tolerance tiers, and the
+stdlib family surface:
 
 | Lesson | Concept |
 |---|---|
-| 1 — basic | declare, present, immune (three core moves) |
+| 1 — basic | declare, present, defend (three core moves) |
 | 2 — broken_witness | audit-tier-honesty + None tier |
 | 3 — antigen_tolerance | explicit tolerance + required rationale |
 | 4 — descended_from | inheritance + re-attestation discipline |
@@ -540,16 +538,12 @@ fires fingerprint matches in `broken_witness.rs` deliberately, but
 doesn't widely cross-react across the other example files because
 its fingerprint is narrowly scoped to names starting with "Looks".
 
-This is by design. Earlier versions of `broken_witness.rs` had a
-broader fingerprint (`name = matches("*")`) that cross-reacted with
-sites in `basic.rs` — demonstrating exactly the *recall-tuned filter*
-property (per ADR-010 Amendment 4). False positives from broad
+This is by design. A broader fingerprint (`name = matches("*")`) would
+cross-react with sites in `basic.rs` — demonstrating the *recall-tuned
+filter* property (per ADR-010 Amendment 4). False positives from broad
 fingerprints are expected; the discipline is to narrow fingerprints
-or tolerate matches explicitly.
-
-The example was tightened to avoid confusing newcomers. If you want
-to see the broad-fingerprint behavior, change `matches("Looks*")` to
-`matches("*")` and re-run scan.
+or tolerate matches explicitly. To see the broad-fingerprint behavior,
+change `matches("Looks*")` to `matches("*")` and re-run scan.
 
 ---
 
@@ -565,14 +559,14 @@ cargo run --bin cargo-antigen -- antigen scan --root antigen/examples
 cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
 ```
 
-You'll see all five examples' antigens, presentations, immunities,
+You'll see the examples' antigens, presentations, defenses,
 tolerances, fingerprint matches, and lineage edges in one report.
 That's a small-scale version of what you'd see running scan against
 a real codebase with declared antigens.
 
 ---
 
-## Deferred-Defense Family (v0.2.0-alpha.1) — ADR-023
+## Deferred-Defense Family — ADR-023
 
 These four examples demonstrate the loudness-as-discipline family: primitives
 for intentional non-immunity. Each has a structurally distinct posture with
@@ -649,7 +643,7 @@ cargo run --example deferred_defense_orient --package antigen
 
 ---
 
-## Recurrent-Emergence Family (v0.2.0-alpha) — ADR-022
+## Recurrent-Emergence Family — ADR-022
 
 ### Lesson: `recurrent_emergence` — the return of solved problems
 
@@ -672,7 +666,7 @@ cargo run --example recurrent_emergence --package antigen
 
 ---
 
-## Mucosal-Boundary Family (v0.2.0-alpha) — ADR-027
+## Mucosal-Boundary Family — ADR-027
 
 ### Lesson: `mucosal_boundary` — defense at the boundary, not the interior
 
@@ -695,7 +689,7 @@ cargo run --example mucosal_boundary --package antigen
 
 ---
 
-## VCS-Information-Loss Family (v0.2.0-alpha) — ADR-026
+## VCS-Information-Loss Family — ADR-026
 
 ### Lesson: `vcs_info_loss` — git history as immune substrate
 
@@ -729,7 +723,7 @@ cargo run --example vcs_info_loss --package antigen
 
 ---
 
-## Agentic-Coordination Family (v0.2.0-alpha) — ADR-028
+## Agentic-Coordination Family — ADR-028
 
 ### Lesson: `agentic_coordination` — failures at session and agent boundaries
 
@@ -740,9 +734,9 @@ Multi-session, multi-agent, and human-LLM-collaboration workflows produce
 work. Two patterns:
 
 **`AgentWakeWithoutSubstrateDeltaInjection`**: an agent that resumes from a context
-snapshot without first reading the substrate delta (git log, camp status, pending
-work) will route stale claims. The fix is the `camp wake` + `git log` discipline,
-enforced via `ratified_doc(path = "docs/agentic-wake-protocol.md")`.
+snapshot without first reading the substrate delta (git log, coordination state,
+pending work) will route stale claims. The fix is a read-the-substrate-on-wake
+discipline, enforced via `ratified_doc(path = "docs/agentic-wake-protocol.md")`.
 
 **`DelegateCrossCrateResolutionGap`**: a mucosal audit that resolves delegate
 handlers using an intra-crate index silently produces false `MucosalDiscipline
@@ -759,7 +753,7 @@ cargo run --example agentic_coordination --package antigen
 
 ---
 
-## Antigen-Category (v0.2.0-alpha) — ADR-028
+## Antigen-Category — ADR-028
 
 ### Lesson: `antigen_category` — SubstrateAlignment vs FunctionalCorrectness
 
@@ -785,7 +779,7 @@ cargo run --example antigen_category --package antigen
 
 ---
 
-## Triage-Commit (v0.2.0-alpha) — ADR-026
+## Triage-Commit — ADR-026
 
 ### Lesson: `triage_commit` — decisional rollback as a speech-act
 
@@ -815,7 +809,7 @@ cargo run --example triage_commit --package antigen
 
 ---
 
-## Prescriptive / Work-Orchestration Family (v0.3) — ADR-033
+## Prescriptive / Work-Orchestration Family — ADR-033
 
 ### Lesson: `prescriptive_board` — code IS the Asana board
 
@@ -864,10 +858,10 @@ closing comment explains how). The audit board shows:
   routes a different fix than a late one — hence the typed sub-cause + remedy.
 - The board is a **live projection** (ADR-034): recomputed every run, never
   stored, so it cannot drift the way a `// TODO` or an external tracker does.
-- `#[triage]` orders **code-site references**, not camp campsites (anchor #3 —
-  the audit never reads camp). The locality test is the antigen ↔ camp boundary:
-  *if this code site vanished, does the work-need vanish with it?* Yes → antigen;
-  no → camp.
+- `#[triage]` orders **code-site references**, not external task-tracker tickets
+  (anchor #3 — the audit never reads an external tracker). The locality test is the
+  boundary: *if this code site vanished, does the work-need vanish with it?*
+  Yes → antigen; no → an external tracker.
 
 **Try this**:
 ```sh
@@ -896,9 +890,9 @@ prescriptive family section.
 
 ---
 
-## v0.3 Failure-Class Families (0.3.0) — ADR-039/040/041
+## Stdlib Failure-Class Families — ADR-039/040/041
 
-These seven examples each demonstrate one **beta.2 stdlib failure-class family**:
+These seven examples each demonstrate one **stdlib failure-class family**:
 a real Rust footgun, declared as a `#[antigen]`, with an **affinity-pair** exhibit
 — a `BAD` site that *binds* the fingerprint next to a `GOOD` sibling the
 fingerprint does **not** bind. Read the two side by side in the *source* to see the
@@ -930,7 +924,7 @@ what it catches), see [`stdlib-families.md`](stdlib-families.md).
 > (both siblings present); **reading** these tests shows the *fingerprint-level*
 > bind/spare distinction the console can't (`cargo test` only confirms they hold).
 
-A recurring beta.2 idea worth holding onto as you read: **the tier is the honesty
+A recurring idea worth holding onto as you read: **the tier is the honesty
 dial.** A `named` member promises "if it doesn't fire, you're covered"; a
 `suspected` member is a *correlator* that may also fire on idiomatic-correct code
 (a labeled recall hole, by design). Several examples below show *why* a member
@@ -1039,13 +1033,15 @@ form) is in the source, per the section caveat above.
 
 ---
 
-## Lesson 24 — `drop_panic.rs`: a real `Drop` that can panic (and the v2 precision)
+## Lesson 24 — `drop_panic.rs`: a real `Drop` that can panic (call-shaped precision)
 
 **File**: [`antigen/examples/drop_panic.rs`](../antigen/examples/drop_panic.rs)
 
 **Concept introduced**: panic-during-unwind aborts the process. A panic in `Drop`
 while another panic is unwinding skips the destructor's cleanup → leaked resources
-even on `panic=unwind`. This is the v2 of `basic.rs`'s `PanickingInDrop`.
+even on `panic=unwind`. This refines `basic.rs`'s `PanickingInDrop`: its
+fingerprint also catches the *call-shaped* `.unwrap()` panic the macro-only
+version misses.
 
 **What's in the file**:
 - `PanicInDrop` (**named**)
@@ -1175,7 +1171,7 @@ out-of-bounds → UB. clippy has a correctness lint for exactly this.
   with no `size_of` — *is* spared (the `all_of` needs both calls), so it's
   un-correlated (demote), not anti-correlated (drop).
 - Graduation to named is **type-aware** (arg-position AND pointee-type — the
-  correct `*u8` byte-copy still FPs without the pointee type), a v0.4 resolved-type
+  correct `*u8` byte-copy still FPs without the pointee type), a resolved-type
   tier, not a syntactic operator-leaf. (Same biosafety toy pattern as Lesson 25.)
 
 **Try this**:
@@ -1236,19 +1232,96 @@ each carrying the `trigger` you wrote.
 
 ---
 
-## After the beta.2 lessons
+## Lesson 29 — `bundled_catalog_scan.rs`: finding matches in a crate that declares zero antigens
+
+**File**: [`antigen/examples/bundled_catalog_scan.rs`](../antigen/examples/bundled_catalog_scan.rs)
+
+**Concept introduced**: the **bundled catalog**. A fresh crate has no `#[antigen]`
+declarations of its own, so a scan has nothing to match against and reports an
+empty result — indistinguishable from "this code is clean." The bundled stdlib
+catalog closes that gap: antigen ships a default set of flagship failure-class
+fingerprints, and a scan with the catalog injected checks a zero-declaration
+crate against them. The author writes no antigens and still gets findings.
+
+**What's in the file**: a small zero-declaration crate (a `get_unchecked` call
+and a panicking `Drop`) written to a temp directory, scanned with the bundled
+catalog, with each match printed alongside its claim-scope.
+
+**What to learn**:
+- **The catalog gives a scan something to match against by default.** Two real
+  matches surface (`get-unchecked-without-proof`, `panic-in-drop`) from a crate
+  that declared nothing.
+- **Each match reports its provenance and stays honestly scoped** — `Constructable`
+  provenance, `Suspected` tier, "a fingerprint match to inspect, not an audited
+  verdict." The catalog widens reach; it does not upgrade a match into a verdict.
+
+**Try this**:
+```sh
+cargo run --example bundled_catalog_scan --package antigen
+cargo antigen scan --root <your-crate> --bundled-catalog
+```
+Two paths inject the catalog. A **plain scan** (no flag) auto-detects: it injects
+the catalog only on a crate that declares no antigens of its own, closing the
+zero-hits cliff for a newcomer. An **explicit `--bundled-catalog`** always
+injects — it *augments* whatever the crate already declares, so a partial adopter
+who asks for the catalog gets it even when their own antigens are present.
+
+---
+
+## Lesson 30 — `learn_propose.rs`: proposing a fingerprint from a cluster, gated by self-tolerance
+
+**File**: [`antigen/examples/learn_propose.rs`](../antigen/examples/learn_propose.rs)
+
+**Concept introduced**: the **learning core**. When several sites feel like the
+same unnamed footgun, the learning core turns that cluster into a candidate
+fingerprint instead of leaving you to hand-author one. Two pieces do the work:
+**PROPOSE** anti-unifies the cluster into a draft (the shared signals become
+required conjuncts; the distinguishing signals become an `any_of`), and the
+**self-tolerance gate** promotes a draft only if it spares every item in a
+known-clean corpus.
+
+**What's in the file**: three `Drop` impls — two defective siblings that panic
+(`.unwrap()`, `.expect(...)`) and one clean sibling (`.ok()`). PROPOSE
+anti-unifies the two defective ones; the gate then checks the draft against the
+clean sibling.
+
+**What to learn**:
+- **The draft generalizes *to disjunction*, not to the bare skeleton.** The naive
+  generalization (drop the differing leaves) collapses to "any `Drop` impl" and
+  binds the clean sibling too. The `any_of` over `unwrap`/`expect` is the
+  load-bearing wall that carries the defect signal without flagging clean code.
+- **Promotion is conditional on sparing the clean corpus.** A draft that binds
+  clean code is rejected — `promote_if_safe` returns `None`. The example shows the
+  good draft promoted and the naive draft rejected.
+- **PROPOSE is the only path to a promotable fingerprint**, and it routes every
+  draft through the gate — so a promoted fingerprint is guaranteed to spare every
+  clean-corpus item it was tested against.
+
+**Try this**:
+```sh
+cargo run --example learn_propose --package antigen
+```
+Watch the draft bind both defective siblings, spare the clean one, and the gate
+move it through — then watch the naive generalization get rejected for binding
+clean code.
+
+---
+
+## Lesson summary (22–30)
 
 | Lesson | Concept |
 |---|---|
 | 22 — deserialization | trust-boundary deep tier — surface-flag / witness-proof split |
 | 23 — time_ordering | silent-in-tests / panic-in-prod clock skew + clean-sibling exclusion |
-| 24 — drop_panic | real-`Drop` panic + `impl_of_trait` precision (the v2) |
+| 24 — drop_panic | real-`Drop` panic + `impl_of_trait` precision (call-shaped) |
 | 25 — panic_on_index | `get_unchecked` is UB not a panic + biosafety toy pattern |
 | 26 — resource_lifecycle | explicit leaks skip `Drop` + provenance-vs-dial orthogonality |
 | 27 — numeric_truncation | `size_of`-in-count foot-cannon + the named→suspected self-catch |
 | 28 — marked_unknown | the felt-but-unnamed danger — `#[aura]`/`#[dread]`/`#[red_flag]` |
+| 29 — bundled_catalog_scan | finding matches in a zero-declaration crate via the bundled catalog |
+| 30 — learn_propose | proposing a fingerprint from a cluster, gated by self-tolerance |
 
-For the catalog (every beta.2 member's tier, fingerprint, and what it catches in
+For the catalog (every member's tier, fingerprint, and what it catches in
 one scannable view), see [`stdlib-families.md`](stdlib-families.md).
 
 ---
@@ -1257,7 +1330,7 @@ one scannable view), see [`stdlib-families.md`](stdlib-families.md).
 
 - [`tutorial.md`](tutorial.md) — guided walkthrough
 - [`concepts.md`](concepts.md) — architectural concepts
-- [`macros.md`](macros.md) — macro reference (includes v0.3 prescriptive family)
+- [`macros.md`](macros.md) — macro reference (includes the prescriptive family)
 - [`fingerprint-grammar.md`](fingerprint-grammar.md) — fingerprint DSL
 - [`witness-tiers.md`](witness-tiers.md) — tier semantics
 - [`usage-patterns.md`](usage-patterns.md) — pattern recipes
@@ -1268,10 +1341,10 @@ one scannable view), see [`stdlib-families.md`](stdlib-families.md).
 ---
 
 *The examples are real. The patterns are universal. Once you've
-worked through the lessons, you've encountered every core
-concept antigen ships — from the basic three-move vocabulary through
-the full v0.2 family surface: substrate-witness, Oracle lifecycle,
-supply-chain defense, convergent evidence, deferred defense, recurrent
-emergence, mucosal boundary, VCS information loss, agentic coordination,
-category taxonomy, and decisional triage — and the v0.3 prescriptive
-work-orchestration board (code IS the board).*
+worked through the lessons, you've encountered every core concept antigen
+ships — from the basic three-move vocabulary through the full family surface:
+substrate-witness, Oracle lifecycle, supply-chain defense, convergent evidence,
+deferred defense, recurrent emergence, mucosal boundary, VCS information loss,
+agentic coordination, category taxonomy, decisional triage, the prescriptive
+work-orchestration board (code IS the board), the bundled catalog, and the
+learning core that proposes new fingerprints under a self-tolerance gate.*

@@ -1,12 +1,11 @@
-# Antigen stdlib catalog — the beta.2 failure-class families
+# Antigen stdlib catalog — the failure-class families
 
 > A scan-and-find catalog of the failure-classes antigen ships ready-to-use in
-> its stdlib, added in the **`0.3.0`** release. Each entry tells you, in
-> user terms: **what it catches**, its **tier** (how loud / how trustworthy the
-> verdict is), its **fingerprint shape** (what the scanner actually looks for),
-> and — for the seven families that have one — a link to a **runnable example**
-> whose source pairs a bad path against its safe sibling so you can read the
-> structural difference.
+> its stdlib. Each entry tells you, in user terms: **what it catches**, its
+> **tier** (how loud / how trustworthy the verdict is), its **fingerprint shape**
+> (what the scanner actually looks for), and — for the families that have one — a
+> link to a **runnable example** whose source pairs a bad path against its safe
+> sibling so you can read the structural difference.
 >
 > **A precise word on "spared," because the console can mislead a newcomer.** In
 > the example *source*, the safe sibling is "spared" in the sense that the
@@ -191,22 +190,19 @@ today**, read the box below before you scan — it matters.
 > `#[presents]`-marked — an explicit mark is an author declaration that surfaces as
 > a *presentation*, not as a fingerprint candidate.) This "bad site shows defended"
 > is **inherent to type-granular witness crediting**, not an example bug — no
-> example change fixes it without a tool change. The finer **site-granular** model
-> (a witness crediting only the site it exercises) is on the roadmap, split along the
-> confidence dial: the *declared* form — you bind a witness to a named site — is a
-> **0.3.x** increment; the *inferred* form — the tool resolves which site a test
-> actually reaches — needs semantic analysis and lands in **v0.4**. Today's crediting
-> is **type-granular**: the honest current state, not a defect; the principle
-> above is the durable beta.2 teaching. To *see* the
-> fingerprint bind/spare directly, read the guard tests (the "two lessons" note at
-> the top points the way).
+> example change fixes it without a tool change. Today's crediting is
+> **type-granular**: the honest current state, not a defect; the principle above is
+> the durable teaching. (A finer **site-granular** model — a witness crediting only
+> the site it exercises — is a graduation path; see
+> [`roadmap.md`](roadmap.md).) To *see* the fingerprint bind/spare directly, read
+> the guard tests (the "two lessons" note at the top points the way).
 
 > `from_slice` / `from_str` are deliberately **excluded**: a slice is a *bounded*
 > source (so `from_slice` is not an unbounded vector — and it fired on the
 > bounded-slice fix itself plus safe constructors like `GenericArray::from_slice`,
-> ADR-039 §C Amd-1); `from_str` would collide with every `i32::from_str`. The
-> in-memory deep-nesting recursion DoS is a distinct future `#[descended_from]`
-> depth-member.
+> ADR-039 §C Amd-1); `from_str` would collide with every `i32::from_str`. (The
+> in-memory deep-nesting recursion DoS is a distinct harm with its own remedy — a
+> separate member, not a widened fingerprint; see [`roadmap.md`](roadmap.md).)
 
 ### `DeserializeWithoutDenyUnknownFields` — **suspected**
 
@@ -236,8 +232,8 @@ cascade timing.
 ### `SystemTimeUnwrapPanic` — **suspected**
 
 **Catches**: a `SystemTime::duration_since` clock read whose `Result` is
-`unwrap`/`expect`-ed. (The `.elapsed()` form is *not* in the fingerprint — it's
-the documented v0.4-recoverable false-negative; see the exclusion box below.) The
+`unwrap`/`expect`-ed. (The `.elapsed()` form is *not* in the fingerprint — a
+documented, recoverable false-negative; see the exclusion box below.) The
 system clock can run *backwards* (NTP correction, manual set, VM pause) →
 `duration_since` returns `Err` → the `.unwrap()` panics **in production but never
 in tests** (test machines don't NTP-skew mid-test). The textbook bug the test
@@ -250,15 +246,17 @@ suite structurally cannot reach.
 same body. Co-occurrence correlates with the panic-chain but doesn't prove it
 (the `unwrap` could guard a different `Result`). It also carries a known namesake
 FP: the infallible `Instant::duration_since` shares the name, and the only
-discriminator is the receiver *type*, which scan can't resolve. Graduates to
-named when the precise method-chain leaf (and receiver-type resolution) ships.
+discriminator is the receiver *type*, which scan can't resolve. (Its graduation
+to named — a precise method-chain leaf plus receiver-type resolution — is a
+recorded path; see [`roadmap.md`](roadmap.md).)
 
 > `elapsed` is **excluded** from the anchor: it would fire on
 > `Instant::now().elapsed()` — but `Instant` is monotonic and
 > `Instant::elapsed()` returns `Duration` (can't panic-on-skew). That's the
 > textbook *"use `Instant` instead of `SystemTime`"* fix — the member's own clean
 > sibling. A needle that fires on the fix is dropped at every tier. (Recall cost:
-> `SystemTime::elapsed().unwrap()` is a v0.4-recoverable false-negative.)
+> `SystemTime::elapsed().unwrap()` is a known, recoverable false-negative — see
+> [`roadmap.md`](roadmap.md).)
 
 ---
 
@@ -321,8 +319,10 @@ miri-catchable.
 OR the checked `.get(i)` with a handled `None`.
 
 > The **panic** form (`expr[i]` indexing with an input-derived index) is an
-> Index-*operator* tell, not a call leaf — charter-deferred to the operator-leaf
-> increment.
+> Index-*operator* tell, not a call leaf, so the shipped grammar (`body_calls`
+> reaches only call expressions) can't express it — this member ships the
+> `get_unchecked` call form only. (The operator-leaf that would add the panic form
+> is a recorded graduation path; see [`roadmap.md`](roadmap.md).)
 
 ---
 
@@ -353,7 +353,9 @@ narrowing anchor — `body_calls` matches the last segment, so a domain
 (loud) tier would overclaim, so the honest tier is suspected. (Note: the *class*
 is `provenance = Constructable` — `mem::forget` demonstrably skips `Drop` — even
 though this *instance's* dial sits at suspected; provenance and dial-tier are
-orthogonal.) Graduates to named when path/semantic resolution lands (v0.4).
+orthogonal.) (Its graduation to named — path / semantic resolution narrowing the
+codomain to the real leak primitives — is a recorded path; see
+[`roadmap.md`](roadmap.md).)
 
 ---
 
@@ -427,10 +429,10 @@ this.
 fires on idiomatic-correct both-calls code too (a byte-buffer copy, a separate-
 bounds `size_of`), which a named tier could not carry. Its own anti-correlated
 **fix** — `copy(n)` with an element count and no `size_of` — *is* spared (the
-`all_of` needs both calls), so it is **demoted, not dropped**. Graduation to
-named is *type-aware* (arg-position **and** pointee-type — the correct `*u8`
-byte-copy idiom still FPs without the pointee type), the v0.4 resolved-type tier,
-**not** a syntactic operator-leaf.
+`all_of` needs both calls), so it is **demoted, not dropped**. (Its graduation to
+named is *type-aware* — arg-position **and** pointee-type, since the correct `*u8`
+byte-copy idiom still FPs without the pointee type — the resolved-type tier, **not**
+a syntactic operator-leaf; see [`roadmap.md`](roadmap.md).)
 
 > This member is the worked example of the seal's tier-honesty discipline: it was
 > over-claimed at named, then corrected to suspected with the fingerprint
@@ -448,9 +450,10 @@ Soundness holes reachable from safe-looking code — the `unsafe`-primitive
 call-shapes where a wrong invariant is UB, not a panic. Every needle here is a
 **rare/std-specific** unsafe primitive: a domain type won't have a method by that
 name, so the needle alone restricts the codomain to the defect population (the
-self-anchor rule) — that's why all three are **named**. The *presence* of the
-call is current-scanner; the precise size/lifetime/validity check is the v0.4
-semantic tier. Biology cognate: the breached self/non-self membrane — a wrong
+self-anchor rule) — that's why all three are **named**. The fingerprint fires on
+the *presence* of the call; the precise size/lifetime/validity check that would
+distinguish a sound use from an unsound one is a recorded graduation path (see
+[`roadmap.md`](roadmap.md)). Biology cognate: the breached self/non-self membrane — a wrong
 `unsafe` invariant is a forged MHC marker.
 
 > **Why a scan fixture, not a runnable example** (same reason as async-soundness):
@@ -491,9 +494,9 @@ as a valid value is instant UB (clippy `uninit_assumed_init` / `uninit_vec`;
 
 > `zeroed` was **dropped** (it fires on the recommended-safe `bytemuck::zeroed`,
 > a clean-sibling collision); `set_len` was **dropped from this named member**
-> (risky-vs-safe turns on receiver type *and* arg value, neither syntactic — a
-> dedicated suspected `set_len` member is a v0.4 charter, the recall hole
-> documented, ADR-039 §C Amd-1).
+> (risky-vs-safe turns on receiver type *and* arg value, neither syntactic, ADR-039
+> §C Amd-1). The recall hole is documented; a dedicated `suspected` `set_len` member
+> is a recorded charter behind the semantic tier (see [`roadmap.md`](roadmap.md)).
 
 **Witness**: a `// SAFETY:` proving full initialization before the read, OR
 miri/kani.
@@ -516,7 +519,7 @@ a `// SAFETY:` + a check / miri.
 
 **Source**: [`antigen/src/stdlib/crypto_misuse.rs`](../antigen/src/stdlib/crypto_misuse.rs) ·
 **Status**: **chartered — no shipped member yet** ·
-**Category**: `FunctionalCorrectness` (planned)
+**Category**: `FunctionalCorrectness`
 
 The RUSTSEC `crypto-failure` category seen from the developer side. Rust crypto
 libraries mostly *avoid* insecure defaults, so the recurring failure-class is
@@ -537,15 +540,15 @@ shipped:
   shape).
 - The real defect — a **hand-rolled `==` / byte-loop on a secret** — has no
   distinctive call at all. It's an *operator* (`==`) on a *secret-typed value*,
-  needing **both** deferred grammar leaves: a `security_sensitive_name` name-leaf
-  (the data-context) and an `==` operator-leaf (`ExprBinary`). `body_calls` sees
-  neither.
+  which would need **both** a `security_sensitive_name` name-leaf (the data-context)
+  and an `==` operator-leaf (`ExprBinary`) — neither of which the call-only
+  `body_calls` grammar can see.
 
-**Graduation path**: when the `security_sensitive_name` name-leaf lands (queued
-top-priority) — ideally with the `==` operator-leaf — this family ships
-`NonConstantTimeSecretComparison` at the **suspected** tier. Until then it stays
-charter: **better honest-deferred than dishonest-shipped** (a shipped form would
-actively mislead by flagging `ring::hmac::verify`).
+So it stays chartered: **better honest-deferred than dishonest-shipped** — a
+shipped call-only form would actively mislead by flagging the *correct*
+`ring::hmac::verify`. (The grammar leaves that would let this family ship its
+member at the `suspected` tier are a recorded graduation path; see
+[`roadmap.md`](roadmap.md).)
 
 ---
 
@@ -597,7 +600,7 @@ cargo run --bin cargo-antigen -- antigen scan --root antigen/examples --format j
 ## See also
 
 - [`examples-guide.md`](examples-guide.md) — a runnable walkthrough lesson for
-  each beta.2 family example (scan a bad path next to its safe sibling)
+  each family example (scan a bad path next to its safe sibling)
 - [`fingerprint-grammar.md`](fingerprint-grammar.md) — the full fingerprint DSL
 - [`witness-tiers.md`](witness-tiers.md) — the confidence/tier gradient
 - [`macros.md`](macros.md) — the macro reference (incl. the marked-unknown markers)

@@ -163,8 +163,8 @@ fn parse_has_method(input: ParseStream) -> syn::Result<Constraint> {
     // Canonicalization beyond whitespace collapse: route the user-provided
     // signature through proc_macro2's tokenizer so user-natural `&mut self`
     // matches the `& mut self` spacing the matcher produces when rendering
-    // the actual `syn::Signature`. A3.5 onboarding sweep — see
-    // `normalize_signature_canonical` for the full rationale.
+    // the actual `syn::Signature`. See `normalize_signature_canonical` for
+    // the full rationale.
     //
     // Amendment 5 OQ1 STRICT: when proc_macro2 cannot tokenize the
     // signature string (unbalanced parens, unterminated string,
@@ -577,7 +577,6 @@ mod tests {
             // tokens (commas, ->) get whitespace inserted by proc_macro2's
             // token rendering. The matcher routes its own output through
             // the same canonicalization, so the comparison stays symmetric.
-            // A3.5 onboarding sweep canonicalization upgrade.
             assert_eq!(
                 p.normalized_signature.as_deref(),
                 Some("(Self , Self) -> Self"),

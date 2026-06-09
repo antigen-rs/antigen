@@ -11,7 +11,8 @@ clinical register:
 > real-world advisories/lints) → **Histology** (the fingerprint, annotated
 > token-by-token) → **Differential** (the tier reasoning as a diagnostic decision
 > tree — why named vs suspected vs chartered) → **Treatment** (the witness) →
-> **Prognosis** (the graduation path).
+> **Prognosis** (the member's current tier; graduation paths live in
+> [`../roadmap.md`](../roadmap.md)).
 
 Ground truth is always the per-family source docstring in
 [`../../antigen/src/stdlib/`](../../antigen/src/stdlib/); these case-files mirror it

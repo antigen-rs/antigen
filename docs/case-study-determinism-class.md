@@ -50,7 +50,7 @@ The lattice `meet` of strongest-first discriminants is **`max`**, not `min`.
 
 ---
 
-## The first illness — GAP-BIT-EXACT-1
+## The first illness
 
 An early implementation of `DeterminismClass::meet` shipped `meet = min`. It
 looked correct ("smaller is weaker, right?"). Tests passed — they exercised some
@@ -59,7 +59,7 @@ cases but missed the boundary. Code review didn't catch it.
 The failure is the worst kind: **silent over-promising of a safety property.**
 `meet` returned the *strongest* of two classes when it should have returned the
 weakest, so the system claimed *more* determinism than actually held. Adversarial
-testing surfaced it. The bug got the tracking name **GAP-BIT-EXACT-1**.
+testing surfaced it.
 
 The fix was one line — `meet = max` — and the enum was redesigned around it. The
 lesson was learned, and it was specific and structural:
@@ -69,16 +69,16 @@ lesson was learned, and it was specific and structural:
 > ordering is reverse-strictness while the discriminant ordering is
 > forward-strictness.
 
-That lesson lived in the team's memory, in the GAP-BIT-EXACT-1 issue, in the fix
+That lesson lived in the team's memory, in the issue tracker, in the fix
 commit, and in a docstring on `meet()`. **It did not live in any structural
 artifact that would propagate to new code.**
 
 ---
 
-## The second illness — DEC-030 v2
+## The second illness
 
-Months later (May 2026), tambear was ratifying **DEC-030**, a symbolic
-refinement-lattice that introduced a *new* class enum, `CommutativityClass`:
+Months later, the same project was ratifying a symbolic refinement-lattice that
+introduced a *new* class enum, `CommutativityClass`:
 
 ```rust
 enum CommutativityClass {
@@ -91,8 +91,8 @@ enum CommutativityClass {
 
 **Structurally identical** to `DeterminismClass`: strongest-first discriminants,
 lattice ordering reverse to discriminant ordering, the same `meet` polarity
-question. The DEC-030 v2 draft — written by a *different* agent than the one who
-fixed GAP-BIT-EXACT-1 — specified `meet = std::cmp::min`.
+question. The new draft — written by a *different* agent than the one who fixed
+the original bug — specified `meet = std::cmp::min`.
 
 Same shape. Same trap. **Independently arrived at, independently wrong.**
 
@@ -105,15 +105,15 @@ polarity was wrong. The pathmaker, about to implement the draft, paused: their
 mental model said `min`, but the substrate-of-record said `max` — and they caught
 the inversion before any code went down.
 
-The fix was named **ATK-DEC030-2**, shipped in commit `bb918d2` (2026-05-06).
-Same lesson as GAP-BIT-EXACT-1, re-derived months later by different agents.
+The fix shipped. Same lesson as the first time, re-derived months later by
+different agents.
 
 The catching took real engineering: a manual trace, a mental-model check against
 substrate, a re-deconstruction of *why* polarity matters. It only worked because
-the team was JBD-disciplined, multi-agent, and adversarially paranoid.
+the team was disciplined, multi-agent, and adversarially paranoid.
 
 > In a less-disciplined team — or a fresh-context single agent, or a human team
-> without GAP-BIT-EXACT-1 in lived memory — **the inversion ships.**
+> without the first incident in lived memory — **the inversion ships.**
 
 The lesson had been learned *once*. The system had been healed *once*. The
 illness came back because **the healing didn't propagate.** That observation —
@@ -124,7 +124,7 @@ observation that became antigen.
 
 ## The antigen that would have caught it
 
-If antigen had existed when GAP-BIT-EXACT-1 was first fixed, the fix would have
+If antigen had existed when the original bug was first fixed, the fix would have
 *also* produced a structural declaration of the failure-class:
 
 ```rust
@@ -145,16 +145,16 @@ use antigen::antigen;
     summary = "Class enums with strongest-first discriminants must use max for \
                meet; misalignment silently over-promises safety properties.",
     references = [
-        "GAP-BIT-EXACT-1",
-        "ATK-DEC030-2",
-        "internal:post-mortem-2026-05-06",
+        "issue:#142",
+        "issue:#318",
+        "post-mortem:polarity-inversion",
     ],
 )]
 pub struct PolarityInvertedClassMeet;
 ```
 
 The fingerprint structurally matches *any* enum named `*Class` with a `meet`
-method of the right signature shape. When DEC-030 v2 introduced
+method of the right signature shape. When the second draft introduced
 `CommutativityClass`, `cargo antigen scan` would have recognized the fingerprint
 and **flagged the new enum automatically** — no human re-derivation, no
 multi-agent rescue. The healing would have propagated.
@@ -201,17 +201,10 @@ proptest! {
 ```
 
 `cargo antigen audit` then reports each presents-site as **defended** (at
-Reachability tier — the witness is *wired* to the site; Execution-tier gating,
-which runs the property, arrives in sweep A4–A5). One witness registered with
+Reachability tier — the witness is *wired* to the site, not run). One witness registered with
 `#[defended_by]` covers every `#[presents(PolarityInvertedClassMeet)]` site of
 that class — defense is class-granular, so the single property test defends both
 enums.
-
-> **Note on the old idiom.** The original incident pre-dated ADR-029, so earlier
-> write-ups used `#[immune(X, witness = ...)]` directly on the enum. That form is
-> now deprecated — `#[presents]` + `#[defended_by]` is the current target. If you
-> are converting old `#[immune]` sites, see
-> [`immune-migration-guide.md`](immune-migration-guide.md).
 
 ---
 
@@ -238,7 +231,7 @@ Three things happen automatically:
 1. **`cargo antigen scan` flags it** — the new enum matches the
    `PolarityInvertedClassMeet` fingerprint and appears as a candidate site.
 2. **The developer reads the antigen declaration** — the `summary` names the
-   failure-class; the `references` link to GAP-BIT-EXACT-1, ATK-DEC030-2, and the
+   failure-class; the `references` link to the original issues and the
    post-mortem. They learn the lesson *before* writing the bug.
 3. **An LLM agent reading the codebase sees the antigen surface** and either
    writes `meet` correctly the first time or surfaces the known pattern to its
@@ -260,7 +253,7 @@ to carry it.
 **It does not** claim more than is true:
 
 - Antigen didn't write the original boundary tests that would have caught
-  GAP-BIT-EXACT-1 the *first* time. Better tests would have. Antigen names the
+  the bug the *first* time. Better tests would have. Antigen names the
   pattern so the lesson persists.
 - Antigen didn't catch `CommutativityClass` before it shipped — the *team* caught
   it, by hand. Antigen's value is preventing the *third* occurrence preemptively.

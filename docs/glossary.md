@@ -1,8 +1,7 @@
 # Antigen — Glossary
 
-> Anchors every term currently in flight to: biological referent + Rust ecosystem
-> analog + introducing doc. Vocabulary drift is a known failure mode (DEC-022 catches
-> it in tambear); this glossary is the antibody.
+> Anchors every term in antigen's vocabulary to: biological referent + Rust ecosystem
+> analog. Vocabulary drift is a known failure mode; this glossary is the antibody.
 
 ---
 
@@ -16,8 +15,6 @@ system recognizes as non-self and responds to.
 **Rust ecosystem analog**: a named, structurally-fingerprinted **failure-class**. e.g.,
 `FrameTranslation`, `BoundaryViolation`, `OptionalityCollapse`. Declared via
 `#[antigen(name = "...", fingerprint = "...")]`.
-
-**Introduced in**: `design-intent.md`, `api-shape.md`.
 
 ### antibody
 
@@ -36,18 +33,16 @@ at the site. Use `#[defended_by]` on the test function and `#[presents]` on the 
 "witness" because antibodies in biology are *response*, while Rust witnesses are
 *evidence observed by audit*. The biology rhymes; the Rust term is more precise.
 
-**Introduced in**: `design-intent.md` (metaphor), `api-shape.md` (witness).
-
 ### vaccination
 
 **Biological referent**: deliberate exposure to a weakened antigen so that B-cells
 develop memory before encountering the live pathogen.
 
 **Rust ecosystem analog**: applying a known immunity pattern across a structural family
-of types. The cargo subcommand is `cargo antigen vaccinate <antigen> <pattern>`.
-Operates on a refinement-lattice of types (e.g., "every enum named `*Class`").
-
-**Introduced in**: `api-shape.md`.
+of types — operating on a refinement-lattice of types (e.g., "every enum named
+`*Class`"). This is a conceptual operation in the metaphor; there is no shipped
+`vaccinate` subcommand. In practice, a `family` grouping on `#[antigen]` plus
+`#[descended_from]` inheritance carries a pattern across a structural family.
 
 ### immunity
 
@@ -64,7 +59,24 @@ vulnerable site (ADR-029 observe-not-declare).
 the site. The audit now observes defense evidence and reports `defended` / `undefended` /
 `substrate-gap` — the site never stamps itself immune.)*
 
-**Introduced in**: `design-intent.md`, `api-shape.md`.
+### immunity claim *(anti-pattern — a reserved term, not a synonym for "defense")*
+
+**Biological referent**: a false declaration of safety — like a pathogen's molecular mimicry
+signalling "non-threat" to suppress the immune response that would otherwise catch it. The claim
+itself is the danger: it turns off the scrutiny.
+
+**Rust ecosystem analog**: the **rejected** pattern (ADR-029) of a site *asserting* it is immune
+instead of presenting evidence for the audit to *observe*. **Antigen never claims immunity** — it
+surfaces a fingerprint match to inspect, and observes defense evidence to report a per-site verdict;
+it never says "trust me, this is safe." Stated sharply: **an immunity claim is itself a pathogen** —
+asserting safety suppresses the inspection that catches failure, so the all-clear becomes the silent
+failure. The deprecated `#[immune]` form *was* an immunity claim (the site stamped itself);
+observe-don't-declare replaced it with evidence the audit reads.
+
+> This term is **reserved** for naming that anti-pattern. A **defense** is *evidence* (a
+> `#[defended_by]` witness); an **immunity claim** is the *assertion without evidence*. Don't use
+> "immunity claim" as a neutral synonym for "defense" — that dilutes the one word that names the
+> thing antigen exists to refuse.
 
 ### fragility / vulnerability
 
@@ -72,12 +84,10 @@ the site. The audit now observes defense evidence and reports `defended` / `unde
 
 **Rust ecosystem analog**: code marked `#[presents(antigen)]` — explicitly declares
 vulnerability to a known failure-class without claiming immunity. `cargo antigen scan`
-flags every presentation that lacks a corresponding immunity declaration.
+flags every presentation that lacks a corresponding defense.
 
 **Note**: "fragility" was used in early design discussions; the ratified macro is
 `#[presents]` (paralleling MHC presentation in biology).
-
-**Introduced in**: `api-shape.md`.
 
 ### presentation
 
@@ -87,8 +97,6 @@ cell's surface so immune patrol can detect them.
 **Rust ecosystem analog**: the `#[presents(antigen)]` decorator on Rust code. The code
 *shows* what failure-class it's vulnerable to. Without presentation, the immune system
 (cargo-antigen scan) cannot find the vulnerability.
-
-**Introduced in**: `api-shape.md`.
 
 ---
 
@@ -108,10 +116,7 @@ must be re-attested at the descendant if inherited witnesses no longer apply.
 **Closest existing academic analog**: Eiffel's design-by-contract with inheritance
 (Meyer 1992, 1997) — pre/post-conditions inherited through subclassing with covariance
 / contravariance rules. Antigen's `#[descended_from]` is the Rust-ecosystem analog of
-inherited contracts at the failure-class level rather than the predicate level. See
-`docs/expedition/academic-context.md` §2.
-
-**Introduced in**: `api-shape.md`.
+inherited contracts at the failure-class level rather than the predicate level.
 
 ### B-cell memory
 
@@ -131,16 +136,11 @@ B-cell-memory layer.
 `#[defended_by]` witnesses or `requires=` substrate predicates still reflect the current
 state of the protected item. If the protected code changes, the evidence may be stale
 (analog of declining circulating antibody titer). `cargo antigen audit` observing substrate-gap
-or stale-sidecar hints is the recall-response / booster analog. The currency layer
-is in flight as a Sweep A1 finding (scout-routed; task #12 Phase 1-8).
+or stale-sidecar hints is the recall-response / booster analog.
 
 **Note**: the *crisis case* this addresses is "corrected designs don't carry the
-failure that motivated them" — the originating insight from tambear adversarial's
-reflection. Pattern-memory persists; verification-currency requires periodic
-re-attestation.
-
-**Introduced in**: `design-intent.md`. Stratified-memory refinement: Sweep A1
-closure (2026-05-07).
+failure that motivated them" — antigen's originating insight (see `origin.md`).
+Pattern-memory persists; verification-currency requires periodic re-attestation.
 
 ### lineage
 
@@ -150,8 +150,6 @@ multiple clonal expansions.
 **Rust ecosystem analog**: a chain of `#[descended_from]` declarations connecting an
 original antigen-bearing function to its derived/refined/copied descendants. Cargo-antigen
 walks the lineage to determine inherited markers.
-
-**Introduced in**: `api-shape.md`.
 
 ---
 
@@ -168,8 +166,6 @@ pattern (initially free-text; eventually a structured grammar) that cargo-antige
 matches against new code to find sites that should be flagged for the antigen even
 without explicit `#[presents]`. The "innate immunity" surface.
 
-**Introduced in**: `api-shape.md`.
-
 ### Pathogen Recognition Receptor (PRR)
 
 **Biological referent**: receptors on innate-immunity cells that recognize broad classes
@@ -180,8 +176,6 @@ code for patterns matching declared antigen fingerprints. Innate immunity = alwa
 structural checks (compile-time, type-system phantom types). Adaptive immunity =
 failure-pattern-specific tests.
 
-**Introduced in**: `design-intent.md`.
-
 ### T-cell receptor
 
 **Biological referent**: highly specific receptor on T-cells that recognizes one antigen
@@ -190,8 +184,6 @@ displayed by MHC.
 **Rust ecosystem analog**: a named-failure-class fingerprint that recognizes ONE specific
 structural pattern. More precise than PRRs (innate); less broad. Each `#[antigen(...)]`
 declaration creates a kind of T-cell-receptor analog in the cargo tooling.
-
-**Introduced in**: `design-intent.md`.
 
 ### original antigenic sin
 
@@ -240,18 +232,14 @@ propagate through the call graph. Specifically, `#[propagates_presentations]` (o
 causes callers of presenting functions to be marked as derived-presentations. Avoids
 indiscriminate cytokine storm by being opt-in rather than default.
 
-**Introduced in**: `api-shape.md` (composition rules section).
-
 ### inflammation
 
 **Biological referent**: localized immune response that escalates if the pathogen
 persists; can become chronic if dysregulated.
 
-**Rust ecosystem analog**: not directly modeled in v1; potential future feature where
-sustained antigen presentation in a code area triggers escalating warnings or required
-review. Reserved for future versions.
-
-**Introduced in**: `design-intent.md` (biological mapping).
+**Rust ecosystem analog**: not directly modeled in v1. The escalation analog —
+sustained antigen presentation in a code area driving escalating warnings or required
+review — is a recorded routing-organ direction; see [`roadmap.md`](roadmap.md).
 
 ### autoimmunity
 
@@ -265,8 +253,7 @@ fingerprint grammar must be precise enough to minimize false positives; users ca
 specific sites with `#[antigen_tolerance(X, rationale = "...")]` for documented
 exceptions (per ADR-011).
 
-**Introduced in**: `design-intent.md` (what could kill it). Tolerance carrier ratified
-in ADR-011 (Sweep A1, 2026-05-07/08).
+**Introduced in**: ADR-011 (tolerance carrier).
 
 ---
 
@@ -278,17 +265,19 @@ in ADR-011 (Sweep A1, 2026-05-07/08).
 "proof" that an antibody actually neutralizes its target antigen (e.g., binding affinity
 measurements).
 
-**Rust ecosystem analog**: the proof-of-immunity-claim required by `#[immune(antigen,
-witness = ...)]`. Acceptable witness shapes: test function, proptest block, phantom-type
-construction, formal-verification harness reference, custom-lint reference. The witness
-is checked by tooling; immunity without witness is not a claim.
+**Rust ecosystem analog**: the **evidence of defense** for a presented failure-class.
+A witness is registered as a `#[defended_by(Antigen)]` test/proptest function (code-tier),
+a `#[presents(Antigen, requires = <predicate>)]` substrate predicate (substrate-tier), or a
+`#[presents(Antigen, proof = <expr>)]` phantom-type / formal-proof construction. The witness
+is checked by `cargo antigen audit`; a presents-site without any witness is reported
+`undefended`. Immunity is **observed by audit** from the witness, never claimed at the site
+(ADR-029).
 
 **Academic lineage**: the witness-as-proof concept descends from Necula's
 proof-carrying code (Necula, "Proof-Carrying Code," POPL 1997) — code accompanied
 by a checkable proof of a stated property. Antigen's witness pluralism extends this
 by accepting heterogeneous proof shapes (test, proptest, formal verification, lint,
-phantom type) under one vocabulary. See `docs/expedition/academic-context.md` §10
-and §11.
+phantom type) under one vocabulary.
 
 **Vocabulary disambiguation — "witness" in Rust ecosystem usage**: the word "witness"
 appears in multiple Rust patterns with structurally-different meanings. Antigen uses
@@ -307,42 +296,39 @@ pattern (see `phantom witness / phantom-type witness` below), not typewit-style
 type-witnesses. The vocabulary collision is real and worth flagging in user-facing
 docs to prevent ecosystem-wide drift.
 
-**The `witness =` vs `requires =` choice** (the two proof channels on `#[immune]`):
-- Use **`witness = fn_name`** when the immunity evidence is a Rust function, test, or
-  formal-verification entry-point *in the source tree*. The audit resolves the name to
-  a live symbol. This is the code-witness path.
-- Use **`requires = <predicate>`** when the immunity evidence lives in substrate *outside*
-  the source tree — a ratified doc, a team sign-off sidecar, oracle-completion markers.
-  This is the substrate-witness path (see `substrate-witness` below). The two channels
-  are mutually exclusive; the antigen audit detects which is present and routes accordingly.
+**The code-tier vs substrate-tier choice** (the two evidence channels):
+- Use **`#[defended_by(Antigen)]`** on a test/proptest function when the defense evidence is
+  a Rust function, test, or formal-verification entry-point *in the source tree*. The audit
+  resolves the name to a live symbol. This is the code-tier witness path.
+- Use **`#[presents(Antigen, requires = <predicate>)]`** when the defense evidence lives in
+  substrate *outside* the source tree — a ratified doc, a team sign-off sidecar,
+  oracle-completion markers. This is the substrate-tier witness path (see `substrate-witness`
+  below). The audit detects which evidence is present and routes accordingly.
 
-  Quick heuristic: **can a test execute the thing you're defending?** Yes → `witness =`;
+  Quick heuristic: **can a test execute the thing you're defending?** Yes → `#[defended_by]`;
   no (it's about substrate state a test can't verify) → `requires =`. These are co-equal
   siblings, not basic vs advanced. Category-mapping (ADR-028): `FunctionalCorrectness` →
-  `witness =`; `SubstrateAlignment` → `requires =`.
-
-**Introduced in**: `api-shape.md`. Vocabulary-disambiguation note added 2026-05-08
-after scout's substrate-verification of `witnessed`/`bear_witness`/`typewit` crates.
+  `#[defended_by]`; `SubstrateAlignment` → `requires =`.
 
 ### witness-validity tiers
 
-**Definition** (per ADR-001 Amendment 1, Change 4): the `witness` parameter of
-`#[immune]` accepts proofs at four progressively-stronger tiers:
+**Definition** (per ADR-001 Amendment 1, Change 4): a defense witness
+(`#[defended_by]` test, `requires=` predicate, or `proof=` construction) is graded at
+four progressively-stronger tiers:
 
 - **Reachability tier** — the witness identifier resolves to a function/test that
-  exists. Floor; v0.0.x audit currently lives here.
+  exists. Floor; the current audit lives here.
 - **Execution tier** — the witness runs without panic and asserts a non-trivial
-  property. Sweep A2-A3 lift.
+  property.
 - **Behavioral-alignment tier** — the witness exercises behavior that matches the
-  antigen's structural fingerprint. Sweep A4-A5 work; ADR-005 open question.
+  antigen's structural fingerprint.
 - **Formal-proof tier** — the witness is a verified compile-time proof (phantom-type
-  construction, kani/prusti/verus/creusot proof annotation). Sweep A4+ via ADR-002
-  witness delegation.
+  construction, kani/prusti/verus/creusot proof annotation).
 
 ADR-005 sub-clause F applies to whichever tier is current. Audit's `--format=json`
 output includes a `witness_tier` field for CI gates.
 
-**Introduced in**: ADR-001 Amendment 1 (2026-05-08).
+**Introduced in**: ADR-001 Amendment 1.
 
 ### phantom witness / phantom-type witness
 
@@ -361,14 +347,14 @@ cannot verify whether the construction encodes meaningful preconditions (a trivi
 `pub fn () -> Self { Self(PhantomData) }` shape-matches but proves nothing).
 Construction-validation is deferred to a future ADR.
 
-**Real-world prior art** (per scout's substrate-verification 2026-05-08): the
+**Real-world prior art**: the
 [`witnessed`](https://crates.io/crates/witnessed) crate ships exactly this pattern
 as `Witnessed<T, W>`, where `W` is a phantom type encoding a verification proof and
 `T` is the value being witnessed. The crate uses `PhantomData<fn() -> W>` to keep
 the wrapper Send/Sync-transparent. Any function-signature requiring `Witnessed<T,
 ValidatedShape>` refuses unverified values at compile-time. This is the canonical
-real-world example of the pattern ADR-013 / W7 are about to recognize, and is a
-**first-class W7 detection target** alongside hand-rolled `PhantomData<T>` constructions.
+real-world example of the phantom-type-witness pattern, and a first-class
+detection target alongside hand-rolled `PhantomData<T>` constructions.
 
 **Vocabulary disambiguation — distinct from typewit-style witnesses**: this entry
 covers phantom-type witnesses *for invariant-encoding* (the `Witnessed<T, W>` /
@@ -377,10 +363,8 @@ covers phantom-type witnesses *for invariant-encoding* (the `Witnessed<T, W>` /
 "witness" to mean type-level equality proof for const-fn dispatch. Same word,
 different patterns. See the `witness` entry above for the broader disambiguation.
 
-**Introduced in**: ADR-013 (2026-05-08). Pre-existing api-shape.md sketch. Academic
-lineage: refinement-type proof carriers (Liquid Haskell, Flux); seal-trait
-private-constructor patterns. Real-world-instance note added 2026-05-08 after
-scout's substrate-verification of `witnessed` / `bear_witness` / `typewit`.
+**Introduced in**: ADR-013. Academic lineage: refinement-type proof carriers
+(Liquid Haskell, Flux); seal-trait private-constructor patterns.
 
 ### family / failure-class family
 
@@ -408,8 +392,6 @@ class are different lenses on the same antigen: the family is its inheritance-cl
 `family=` carries); the first-principles class is the abstract failure-shape it instances
 (a set-level coverage axis, not yet individually carried).
 
-**Introduced in**: `design-intent.md`, `api-shape.md`.
-
 ### composition (of antigens)
 
 **Biological referent**: not a direct biological term; in immunology, response to
@@ -417,10 +399,8 @@ multi-antigen pathogens involves coordinated B-cell and T-cell responses.
 
 **Rust ecosystem analog**: combining antigen markers via Rust's existing composition
 mechanisms (trait impls, generics, derive macros). Antigen propagation rules specify
-how `#[presents]` and `#[immune]` flow through composition. See `api-shape.md`
-"Composition rules" section.
-
-**Introduced in**: `api-shape.md`.
+how `#[presents]` and `#[defended_by]` flow through composition. See
+[`composition.md`](composition.md).
 
 ---
 
@@ -436,8 +416,6 @@ should have.
 ready-made antigens for common Rust failure-classes (use-after-move-conceptually-equivalent,
 panicking-in-Drop, lock-order-inversion, async-in-sync-context, etc.). Adoption flywheel:
 users get value without writing antigens themselves.
-
-**Introduced in**: `design-intent.md`, `revolutionary-and-not.md`.
 
 ---
 
@@ -489,18 +467,15 @@ pub fn some_derive(input: TokenStream) -> TokenStream { ... }
 
 `cargo antigen scan`'s synthesis pass recognizes `#[antigen_generates]` annotations
 and emits synthetic presentations at invocation sites, requiring consumers to
-discharge the immunity duty (`#[immune]` or `#[antigen_tolerance]` at the call site).
+discharge the defense duty (`#[defended_by]` or `#[antigen_tolerance]` at the call site).
 
-**Deferred to Sweep A3-A4 implementation**; v0.1.0 ships without it but the carrier
-is ratified.
-
-**Introduced in**: ADR-014 (2026-05-08).
+**Introduced in**: ADR-014.
 
 ### #[anergy]
 
 **Definition** (per ADR-023): declares a site as in a deferred-but-muted posture
 toward a known failure-class. `until` is REQUIRED — anergy without a time-bound
-degrades to silent tolerance (A5). `reason` minimum 20 characters.
+degrades to silent tolerance. `reason` minimum 20 characters.
 
 **Biological referent**: T-cell or B-cell anergy — the cell encounters its antigen
 but fails to respond due to lack of co-stimulation. Alive but unresponsive;
@@ -557,7 +532,7 @@ with no arguments is valid.
 trained to recognize a specific threat. Building up response repertoire.
 
 **ADR-026 use case**: rollback-as-triage sites use `#[orient]`-shape to declare
-that a rollback is a triage action, not an immunity claim.
+that a rollback is a triage action, not a defense.
 
 **Introduced in**: ADR-023 (2026-05-22). Shipped in v0.2.0-alpha.1.
 
@@ -607,7 +582,7 @@ time enforcement prevents vacuously-unsatisfiable claims (min_independent > dist
 
 **Four variants**: `Random` (thread_rng), `EntropyFromCi` (CI environment variables),
 `TimestampSeeded` (millisecond-precision wall clock), `Fixed(u64)` — **REJECTED for `#[clonal]`
-at compile time** (per adversarial C2: a fixed seed means iterations are NOT independent;
+at compile time** (a fixed seed means iterations are NOT independent;
 "independent iterations with fixed seed" is a contradiction).
 
 **Biological referent**: B-cell clonal expansion — each daughter cell is an independent
@@ -623,8 +598,7 @@ dependency-boundary threat landscape. Groups antigens that share the Distributed
 Innate-Immunity biological cognate.
 
 **Biology cognate**: Distributed-Boundary Innate-Immunity — a multi-cell-type integrated
-system (NOT basophil/eosinophil, which was the original framing before naturalist reframe).
-The family covers the dependency trust boundary in its entirety: version pinning, content
+system. The family covers the dependency trust boundary in its entirety: version pinning, content
 verification, maintainer attestation, build-script containment.
 
 **Members**: `ContentHashMismatch`, `UnsandboxedProcMacro`, `UnpinnedDependency`,
@@ -645,7 +619,7 @@ witnesses converge on a defense claim over time.
 - Immunology-proper (`#[clonal]`, `#[igg]`, `#[crossreactive]`, `#[polyclonal]`,
   `#[monoclonal]`, `#[adcc]`): mapped to B-cell and antibody biology.
 - Clinical-medicine (`#[diagnostic]`): mapped to differential diagnosis workflows.
-  Per ADR-024 naturalist dual-axis honesty: not all convergent primitives are
+  Per ADR-024's dual-axis honesty: not all convergent primitives are
   immunology-grounded; `#[diagnostic]` is clinical-medicine.
 
 **Sibling families** (ratified in ADR-024 but shipped in later alphas): Recurrent
@@ -666,7 +640,7 @@ being binary. Memory carriers sit on a drift-resistance hierarchy:
 ```
   compile-time-checked   (type system, phantom-types, kani/prusti proofs)
           ↑
-  scan-time-checked      (#[antigen], #[immune], #[presents], #[descended_from])
+  scan-time-checked      (#[antigen], #[presents], #[defended_by], #[descended_from])
           ↑
   test-suite-checked     (proptest, regression tests, witness functions)
           ↑
@@ -687,13 +661,13 @@ Change 4), filter-vs-proof tiers (ADR-010 amendment 4 deferred), recognition tie
 (ADR-006), guarantee tiers (ADR-007). When proposing a new primitive, the right
 question is "what's its tier in the hierarchy?" before "is it correct?"
 
-**Three-window convergence** (per Sweep A1 closure, ADR-003 empirical defense):
-biology (vertebrate immunology), past-self gardening (March-April 2026
-naming-checkability frame), academic lineage (Hoare 1969 → Eiffel 1992 → Koka →
-Liquid Haskell → Flux). When three independent traditions converge on the same
-primitive, the underlying architecture is real, not metaphor-dependent.
+**Three-window convergence** (ADR-003 empirical defense): biology (vertebrate
+immunology), the naming-checkability frame, and academic lineage (Hoare 1969 →
+Eiffel 1992 → Koka → Liquid Haskell → Flux). When three independent traditions
+converge on the same primitive, the underlying architecture is real, not
+metaphor-dependent.
 
-**Introduced in**: ADR-001 Amendment 1 (2026-05-08), naturalist closure narrative.
+**Introduced in**: ADR-001 Amendment 1.
 
 ### passive surface / fingerprint scan
 
@@ -726,7 +700,7 @@ adaptive memory.
 
 **Definition** (per ADR-001 Amendment 1, Change 2): the *intent-carrying* half of
 antigen's design. The developer explicitly marks code with attribute macros
-(`#[presents]`, `#[immune]`, `#[descended_from]`, `#[antigen_tolerance]`,
+(`#[presents]`, `#[defended_by]`, `#[descended_from]`, `#[antigen_tolerance]`,
 `#[antigen_generates]`). Active markers are unambiguous, document intent, and
 survive refactoring as long as the marked items survive.
 
@@ -747,7 +721,7 @@ ADR-014, and potentially ADR-001 Amendment 1's tolerance state): every primitive
 that extends trust requires a justification field. The pattern:
 
 - `#[antigen(... summary)]` — human description (ADR-009 Layer 2)
-- `#[immune(... witness)]` — proof of immunity (ADR-001/002/005)
+- `#[presents(... requires=)]` / `#[defended_by]` — evidence of defense (ADR-029)
 - `#[antigen_tolerance(... rationale)]` — justification for waiver (ADR-011)
 - `#[antigen_generates(... rationale)]` — justification for generated
   presentation (ADR-014)
@@ -757,8 +731,7 @@ carries its own justification. The discipline propagates from existing ADRs to
 new ADRs without explicit coordination, which is how a load-bearing principle
 should behave.
 
-**Introduced in**: naturalist closure narrative finding 3 (Sweep A1 closure,
-2026-05-08). May be ratified as a small ADR-005 amendment in A2.
+**Introduced in**: ADR-005 (sub-clause F at the API level).
 
 ---
 
@@ -767,17 +740,14 @@ should behave.
 ### cargo antigen
 
 **Definition**: the cargo subcommand binary, published as the `cargo-antigen` crate.
-Provides `scan`, `new`, `vaccinate`, `audit` subcommands.
-
-**Introduced in**: `api-shape.md`.
+Provides `scan`, `audit`, `attest`, `tolerate`, `oracle`, `verify`, `vcs`,
+`mucosal-map`, and `fingerprint` subcommands. See [`cli-reference.md`](cli-reference.md).
 
 ### antigen library / antigen registry
 
 **Definition**: the (eventual) collection of named antigens distributed via crates.io.
 `antigen-stdlib` is the first; project-specific antigens (e.g., `tambear-antigens`) extend
 it. No central registry — community-driven via crate publication.
-
-**Introduced in**: `revolutionary-and-not.md`.
 
 ---
 
@@ -791,7 +761,7 @@ because the antigen team inherits these disciplines from the JBD methodology.
 **Origin**: tambear DEC-022.
 
 **In antigen**: every antigen declaration's witness MUST be validated by tooling before
-the immunity claim is trusted. The trust boundary lives at `cargo antigen scan` time
+the defense is trusted. The trust boundary lives at `cargo antigen scan` time
 (checking the witness exists and is valid) and at compile time (for phantom-type
 witnesses).
 
@@ -801,17 +771,16 @@ witnesses).
 
 **In antigen**: cargo-antigen tooling reads the codebase as ground truth. Documentation
 about antigens is informational; the source-of-truth is the `#[antigen]` / `#[presents]`
-/ `#[immune]` declarations themselves.
+/ `#[defended_by]` declarations themselves.
 
 - **substrate-currency** (temporal sub-pattern): substrate-as-of-author-time ≠
   substrate-as-of-consumer-time. A claim or finding verified against the substrate at
   authorship time may be stale by the time it is consumed — files change, findings get
   corrected, commits land between the moment of writing and the moment of reading.
   The discipline: verify against the substrate at consumption time, not just at authorship
-  time. Three operational layers confirmed in A2 day-2 (tracker-tier context drift,
-  reporter-tier unverified findings, claim-propagation-tier routing without re-verification).
-  Candidate posture; awaiting shape stability for ratification (see `docs/postures.md`
-  V0+1 candidates).
+  time. It manifests across three operational layers: tracker-tier context drift,
+  reporter-tier unverified findings, and claim-propagation-tier routing without
+  re-verification.
 
 ### narrow-then-lift
 
@@ -850,8 +819,7 @@ conditional via separate antigen instances or refined fingerprints.
 
 ### grammar-vs-vocabulary cut
 
-**Origin**: aristotle's reciprocal Phase 1-8 of math-researcher's ADR-010 systems
-review; ratified in ADR-015.
+**Origin**: ADR-015 (systems review of ADR-010).
 
 **In antigen**: the distinction between the *grammar* of fingerprint expressions
 (node-kind × field-path × constraint-op + Boolean composition — the load-bearing
@@ -884,12 +852,12 @@ witness-axis + temporal-axis.
 
 ### accept-and-note discipline
 
-**Origin**: ADR-016 substrate-honesty refinement (per aristotle's external Phase 1-8).
+**Origin**: ADR-016 (substrate-honesty refinement).
 
 **In antigen**: when a macro arg-parser receives a field whose audit-side check is
-not yet implemented (e.g., `verified_at` in v0.1 before ADR-016 A4 implementation),
+not yet implemented (e.g., `verified_at` before its audit-side check ships),
 the parser MUST accept the field with an explicit known-limitation note rather than
-silently accept (sub-clause F violation; ATK-A2-1) or reject (forward-compat block).
+silently accept (a sub-clause F violation) or reject (a forward-compat block).
 The pattern matches ADR-001 Amendment 1 Change 4's witness-tier-deferral discipline.
 
 ### audit tier-honesty
@@ -907,11 +875,11 @@ the audit reporting surface.
 
 **Origin**: ADR-016 (temporal recognition surface).
 
-**In antigen**: optional fields on `#[antigen]`, `#[immune]`, `#[presents]`
+**In antigen**: optional fields on `#[antigen]`, `#[presents]`, and `#[defended_by]`
 declarations carrying temporal claims:
 
 - `verified_at = "<commit-hash>"` — the commit at which this declaration was last
-  verified. `cargo antigen audit` (A4 implementation) walks `git log` to determine
+  verified. `cargo antigen audit` walks `git log` to determine
   whether HEAD is reachable and how far past.
 - `evidence = ["<URL-or-commit-or-RFC>"]` — supporting evidence for the
   declaration's claim. Audit can verify accessibility (opt-in via
@@ -919,13 +887,12 @@ declarations carrying temporal claims:
 - `stale_after = <interval>` — declaration becomes "stale" past this interval.
   Syntax: `commits(N)`, `days(N)`, `version("X.Y.Z")`.
 
-A2 macro-parser accepts these per accept-and-note discipline; A4 implements the
-audit-side checks.
+The macro-parser accepts these per the accept-and-note discipline; the audit
+implements the corresponding checks.
 
 ### analysis-level × temporality grid
 
-**Origin**: aristotle's ADR-016 Phase 1-8 grid framing; ratified jointly across
-ADR-015 + ADR-016.
+**Origin**: ADR-016 grid framing; ratified jointly across ADR-015 + ADR-016.
 
 **In antigen**: the two-axis recognition substrate. Analysis-level axis: syn / HIR /
 MIR / runtime (ADR-015 picks engines along this axis). Temporality axis: snapshot /
@@ -935,8 +902,8 @@ substrate evidence accumulates.
 
 ### filter / proof split (fingerprints filter; witnesses prove)
 
-**Origin**: scout's framing; math-researcher §16; ratified at ADR-010 Amendment 3
-Clause D; promoted to top-level architectural principle at ADR-010 Amendment 4.
+**Origin**: ratified at ADR-010 Amendment 3 Clause D; promoted to top-level
+architectural principle at ADR-010 Amendment 4.
 
 **In antigen**: the operative semantic posture across antigen's recognition surface.
 Fingerprints are recall-tuned candidate filters; precision lives in the witness
@@ -958,17 +925,16 @@ argument; primitives with justification fields are the unmarked default.
 
 ### depth-shift discipline
 
-**Origin**: postures.md V0 (posture #7); aristotle and naturalist convergence
-across A1-A2; canonical example at ADR-005 Amendment 3's motivating Finding.
+**Origin**: posture #7 (`postures.md`); canonical example at ADR-005 Amendment 3's
+motivating Finding.
 
 **In antigen**: the load-bearing structural commitment lives one tier deeper than
 the visible decision. Before drafting, deconstructing, or rejecting any proposal,
 ask "what is the X−1 commitment that determines whether X works?" The discipline
 is *operationally self-producing* — each application of substrate-honesty creates
 the conditions for the next tier of substrate-honesty to surface. Operational
-signature: **no fixed point**. Eight+ confirmed instances across two roles'
-substrates as of A2 day 2; structural-identity test confirmed all instances are
-the same pattern across operational layers, not analogy at different scales.
+signature: **no fixed point**. The instances are the same pattern across
+operational layers, not analogy at different scales.
 
 The discipline's structural sibling is biology-as-search-heuristic: both are
 instances of *recursion-into-substrate one tier below the visible question* at
@@ -979,8 +945,7 @@ analogy.
 
 ### structural-tier vs maintenance-tier
 
-**Origin**: `structural-memory.md` whitepaper (A3.5 docs work, 2026-05-12);
-implicit throughout earlier substrate.
+**Origin**: `structural-memory.md` whitepaper; implicit throughout earlier substrate.
 
 **In antigen**: the distinction between two kinds of correctness-carrier in
 software. **Maintenance-tier** carriers (documentation, tests, comments, wiki
@@ -996,7 +961,7 @@ of failure-classes*, which had previously only had maintenance-tier carriers
 ### co-native (by design)
 
 **Origin**: project posture from inception; explicit in
-`for-llm-collaborators.md`, `structural-memory.md`, `concepts.md` (A3.5 docs).
+`for-llm-collaborators.md`, `structural-memory.md`, `concepts.md`.
 
 **In antigen**: the property that both human developers and AI agents can read
 the same vocabulary natively, without translation. Declarations in code are
@@ -1009,8 +974,7 @@ require translation between cognition types fails in either direction.
 
 ### multi-component architecture
 
-**Origin**: `concepts.md` + `expedition/multi-component-immunity.md` (A3.5 docs
-work); first-principles framing surfaced 2026-05-10 in conversation with Tekgy.
+**Origin**: `concepts.md`; first-principles multi-component framing.
 
 **In antigen**: the framing that antigen is not a single tool but a vocabulary
 that lets teams compose multiple kinds of structural immunity. Seven components
@@ -1068,7 +1032,7 @@ itself — B-cell memory (germinal-center history), antibody secretion, oracle-c
 markers, signed git trailers. The recognition reads the surrounding substrate, not just
 the immediate target.
 
-**Rust ecosystem analog**: a `requires = <predicate>` expression on `#[immune]` that
+**Rust ecosystem analog**: a `#[presents(Antigen, requires = <predicate>)]` expression that
 evaluates substrate other than the code being audited — ratified docs, team sign-off
 records, oracle-completion markers.
 
@@ -1076,17 +1040,17 @@ records, oracle-completion markers.
 from the Rust source AST. Extends the witness vocabulary (ADR-001, ADR-002) to discipline
 failure-classes whose immunity evidence lives outside the code.
 
-**The `witness =` vs `requires =` choice**: substrate-witness (`requires=`) is one of two
-proof channels on `#[immune]`; the other is the code-witness channel (`witness=`). The two
-channels are mutually exclusive. Quick heuristic: **can a test execute the thing you're defending?** If yes,
-reach for `witness =` (code-witness path — a test, proptest, lint, or formal-proof runs it).
-If no — the failure-class is about substrate state that a test can't verify (a sign-off record,
-a ratified doc, an unpinned dependency, an un-reviewed discipline) — reach for `requires =`
-(substrate-witness path — `cargo antigen audit` evaluates the predicate against the `.attest/`
-sidecar). These are co-equal siblings, not basic vs advanced; the choice is driven by what kind
-of failure-class you're defending against. See [`### witness`](#witness) (§Composition terms)
-for the full contrast-pair with category-mapping (FunctionalCorrectness → `witness=`;
-SubstrateAlignment → `requires=`).
+**The code-tier vs substrate-tier choice**: the substrate-tier witness
+(`#[presents(Antigen, requires = ...)]`) is one of two evidence channels; the other is the
+code-tier witness (`#[defended_by]`). Quick heuristic: **can a test execute the thing you're
+defending?** If yes, reach for `#[defended_by]` (code-tier — a test, proptest, lint, or
+formal-proof runs it). If no — the failure-class is about substrate state that a test can't
+verify (a sign-off record, a ratified doc, an unpinned dependency, an un-reviewed discipline)
+— reach for `requires =` (substrate-tier — `cargo antigen audit` evaluates the predicate
+against the `.attest/` sidecar). These are co-equal siblings, not basic vs advanced; the choice
+is driven by what kind of failure-class you're defending against. See [`### witness`](#witness)
+(§Composition terms) for the full contrast-pair with category-mapping
+(FunctionalCorrectness → `#[defended_by]`; SubstrateAlignment → `requires=`).
 
 ### ratification
 
@@ -1179,7 +1143,7 @@ FormalProof; Behavioral → Execution; SubstrateState → Execution.
 
 ### signature-strength
 
-**Origin**: ADR-019 §Decision, grounded by naturalist notary-arc B6.
+**Origin**: ADR-019 §Decision (the notary-arc grounding).
 
 **Biological referent**: notary arc — pre-institutional peer testimony (TextStamp), civic
 notary with place-bounded accountability (GitTrust), notary public with universal license
@@ -1197,11 +1161,11 @@ timestamp, no external verification. `GitTrust` = identity bound to `git config 
 **In antigen**: substrate-witnesses and cross-crate witnesses share discipline-level
 unification (tier-honesty; SubstrateState evidence kind; Execution ceiling) but NOT
 machinery (separate parsers, separate recognition pipelines). Enforced via in-code comment
-blocks and `atk_a3_unification_guardrail.rs` adversarial precision test.
+blocks and a unification-guardrail precision test.
 
 ### closed-set tool bright-line
 
-**Origin**: ADR-019 §Decision §4; adversarial T4-R.
+**Origin**: ADR-019 §Decision §4.
 
 **In antigen**: the 4-point rule for leaf primitives that invoke external binaries:
 (1) binary named in leaf source, (2) has own release process/package-managed, (3) does
@@ -1217,7 +1181,7 @@ notary doesn't specialize in property transfers vs wills; they witness any docum
 presented to them. Grounded by B6 notary arc.
 
 **In antigen**: `attested = (who, allowed_types, why, scope)` as a macro parameter on ANY
-antigen macro (`#[antigen]`, `#[immune]`, `#[antigen_tolerance]`). Cross-cutting = applies
+antigen macro (`#[antigen]`, `#[presents]`, `#[antigen_tolerance]`). Cross-cutting = applies
 across all macro types without domain specificity. Elevates the REVIEW layer from implicit
 to explicit. Layer 1 compatible: no sidecar required at compile time.
 

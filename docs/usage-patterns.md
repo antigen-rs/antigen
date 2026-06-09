@@ -1,9 +1,5 @@
 # Antigen — Usage Patterns
 
-> **v0.2 idiom note**: Patterns below reference the v0.1 `#[immune]` API in some examples.
-> For v0.2, use `#[defended_by(X)]` on test functions (code-tier) or
-> `#[presents(X, requires=...)]` on the site (substrate-tier). See [`macros.md`](macros.md).
-
 > Concrete recipes for applying antigen's vocabulary to real-world failure
 > classes. Each pattern answers: what kind of failure is this, where does it
 > live in code, and which vocabulary primitives express it correctly.
@@ -156,15 +152,14 @@ independently vulnerable — but neither is. The shared antigen on the
 consistency test correctly captures: this test is the site where the
 failure-class matters and where immunity is demonstrated.
 
-### How to claim immunity
+### How to register the defense
 
-Immunity is on the same site — the consistency test — once the test
-actually verifies the invariant:
+The defense goes on the same site — the consistency test — once the
+test actually verifies the invariant:
 
 ```rust
-#[immune(KernelReconstructionDivergence,
-    witness = proptest::kernel_vs_standalone_agrees)]
-#[presents(KernelReconstructionDivergence)]  // still presents; immunity covers it
+#[defended_by(KernelReconstructionDivergence)]
+#[presents(KernelReconstructionDivergence)]  // still presents; the witness covers it
 #[proptest]
 fn kernel_vs_standalone_agrees(input: f64) { ... }
 ```
@@ -177,8 +172,7 @@ Alternatively, separate the declaration from the proof:
 fn run_kernel_consistency_suite() { ... }
 
 // The witness that defends it:
-#[immune(KernelReconstructionDivergence,
-    witness = proptest::kernel_vs_standalone_proptest)]
+#[defended_by(KernelReconstructionDivergence)]
 #[proptest]
 fn kernel_vs_standalone_proptest(input: f64) { ... }
 ```
@@ -186,9 +180,9 @@ fn kernel_vs_standalone_proptest(input: f64) { ... }
 ### Witness tier profile
 
 Composition-boundary antigens with proptest witnesses currently report
-**Reachability** tier with hint `ProptestPresentNotInvoked` (v0.1 audit
-does not invoke the proptest harness; Execution tier ships at A4-A5
-when harness invocation lands). The proptest shape is still stronger
+**Reachability** tier with hint `ProptestPresentNotInvoked` (the audit
+does not invoke the proptest harness; CI runs it). The proptest shape
+is still stronger
 than a single-input `#[test]` in practice because property-based
 testing, when invoked by CI, explores the input space and is more
 likely to find edge cases where divergence occurs.
@@ -214,14 +208,13 @@ With the pattern above, `cargo antigen audit` reports:
 
 - The consistency test site as a **Presentation** (vulnerable to divergence)
 - The proptest witness at **Reachability** tier with hint
-  `ProptestPresentNotInvoked` (v0.1 audit recognizes the proptest shape
+  `ProptestPresentNotInvoked` (the audit recognizes the proptest shape
   but does not invoke the harness; CI is responsible for running the
-  proptest). A4-A5 promotes this to Execution tier when the harness
-  invocation lands.
+  proptest).
 
-Without `#[immune]`, the audit reports the site as an unaddressed
-presentation: "this composition boundary has no verified consistency
-witness." That's the signal to write the consistency test.
+Without a `#[defended_by]` witness, the audit reports the site as an
+unaddressed presentation: "this composition boundary has no verified
+consistency witness." That's the signal to write the consistency test.
 
 ### What to watch for
 
@@ -496,22 +489,22 @@ hiding it.
 
 ## Patterns for substrate-witness predicates
 
-Discipline-witnesses (`requires = <predicate>` on `#[immune]`) express that a
+Discipline-witnesses (`requires = <predicate>` on `#[presents]`) express that a
 human — not a test — validated something the code can't verify for itself.
 These patterns guide which predicate leaf to reach for in common situations.
 
-### `witness = fn` vs `requires = all_of([...])`
+### `#[defended_by]` test vs `requires = all_of([...])`
 
 | Mechanism | What it asserts | Audit tier | When to use |
 |---|---|---|---|
-| `witness = test_fn` | The test function exists and has `#[test]` | `Reachability` | Behavioral verification — the code does the right thing |
+| `#[defended_by(X)]` on a `#[test]` | The test function exists and has `#[test]` | `Reachability` | Behavioral verification — the code does the right thing |
 | `requires = signers(...)` | A named human reviewed this version of the code | `Execution` (when current + Fresh) | Human expertise required — math correctness, protocol compliance, security review |
 | `requires = all_of([signers(...), ratified_doc(...)])` | Multiple forms of evidence all satisfied | `Execution` | Belt-and-suspenders: behavioral test + human review + governing document |
 
-**Reach for `witness = fn`** when the discipline can be verified computationally —
-a property test, a unit test, a comparison against a reference implementation.
-Tests are fast, cheap, and run in CI. They're the right answer when "running the
-code proves the invariant."
+**Reach for a `#[defended_by]` test** when the discipline can be verified
+computationally — a property test, a unit test, a comparison against a reference
+implementation. Tests are fast, cheap, and run in CI. They're the right answer
+when "running the code proves the invariant."
 
 **Reach for `requires = ...`** when the discipline cannot be verified by running
 code — when the claim is "a person who understands the domain reviewed this and
@@ -520,13 +513,19 @@ protocol compliance, domain-specific invariants — these require a human expert
 a test runner. `requires =` binds the attestation to the code fingerprint; if the
 code changes, the attestation goes stale and the audit surfaces it.
 
-Both can coexist on the same site:
+Both can coexist on the same site — a `#[defended_by]` test for the
+behavioral check, a `#[presents(requires=)]` predicate for the human review:
 
 ```rust
-#[immune(SignedZeroDiscipline,
-    witness = sinh_preserves_signed_zero,   // test: does it produce the right answer?
-    requires = signers(required = ["alice"], against = "current")  // human: did a domain expert review the algorithm?
-)]
+// the vulnerable site, with a human-review witness:
+#[presents(SignedZeroDiscipline,
+    requires = signers(required = ["alice"], against = "current"))]  // did a domain expert review the algorithm?
+pub fn sinh(x: f64) -> f64 { /* ... */ }
+
+// the behavioral witness:
+#[defended_by(SignedZeroDiscipline)]   // does it produce the right answer?
+#[test]
+fn sinh_preserves_signed_zero() { /* ... */ }
 ```
 
 ### `signers` vs `ratified_doc` vs `oracles_complete`
@@ -644,7 +643,7 @@ are the wrong type.
 |---|---|---|---|
 | `TextStamp` | Name + date, no cryptographic binding | Minimal — anyone can write any name | Soft attestation, internal teams with high trust |
 | `GitTrust` | Git commit authorship (git config `user.name/email`) | Bound to committer identity | Standard discipline-witness; default recommendation |
-| `CryptoSigned` | DSSE envelope with cryptographic signature | Strongest available in v0.1 (v0.4+ full activation) | Cross-org attestation, safety-critical claims |
+| `CryptoSigned` | DSSE envelope with cryptographic signature | Strongest identity binding | Cross-org attestation, safety-critical claims |
 
 **Recommendation**: use `GitTrust` minimum for any meaningful discipline claim.
 `signature_allow = [GitTrust, CryptoSigned]` is the pattern that binds the signer's
@@ -659,7 +658,7 @@ impractical.
 ### Combining leaves: `all_of` and `any_of`
 
 ```rust
-#[immune(SignedZeroDiscipline, requires = all_of([
+#[presents(SignedZeroDiscipline, requires = all_of([
     signers(required = ["alice"], against = "current"),
     ratified_doc(path = "docs/ieee754-discipline.md", min_version = "1.0"),
     fresh_within_days(180),

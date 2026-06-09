@@ -1,10 +1,5 @@
 # Antigen — A Case Study
 
-> **v0.2 idiom note**: Code examples in this doc use the v0.1 `#[immune(...)]` API.
-> For v0.2, prefer `#[defended_by(X)]` on test functions (code-tier) or
-> `#[presents(X, requires=...)]` on the site (substrate-tier). The `#[immune]` form
-> still compiles with a deprecation warning — see [`macros.md`](macros.md) for migration.
-
 > A real failure-class, narrated end-to-end: how it surfaced, how
 > antigen names it, how the lesson lives on. This is the user-facing
 > companion to [`tutorial.md`](tutorial.md) — less "follow these
@@ -184,31 +179,33 @@ walks the codebase and reports every such enum — including
 `DeterminismClass`, `CommutativityClass`, and *any future enum
 following the same pattern*.
 
-For the now-fixed sites, the team adds immunity claims:
+For the now-fixed sites, the team records the defense in two parts: a
+`#[presents]` marker on each vulnerable site, and a `#[defended_by]`
+witness on the test that proves the fix. The marker declares the site
+*presents* the failure-class; the witness registers the proof.
 
 ```rust
 #[presents(PolarityInvertedClassMeet)]
-#[immune(
-    PolarityInvertedClassMeet,
-    witness = proptest::class_meet_returns_max_proptest,
-    rationale = "Proptest verifies meet returns the larger discriminant across full enum space."
-)]
 pub enum DeterminismClass { Strict, Loose, LooseFp }
 
 #[presents(PolarityInvertedClassMeet)]
-#[immune(
-    PolarityInvertedClassMeet,
-    witness = proptest::class_meet_returns_max_proptest,
-    rationale = "Same witness applies — proptest exercises both enums via property-based input."
-)]
 pub enum CommutativityClass {
     StrictlyCommutative, LooselyCommutative, NonCommutativeWithFix
 }
+
+/// Proptest exercises both enums' `meet` across the full discriminant
+/// space, asserting it returns the larger (weaker) class — the property
+/// the polarity bug violated.
+#[defended_by(PolarityInvertedClassMeet)]
+#[test]
+fn class_meet_returns_max_proptest() {
+    // proptest body: for all (a, b), meet(a, b) == max-by-discriminant
+}
 ```
 
-`cargo antigen audit` now reports two immunity claims, each at
-`Reachability` tier with the proptest witness verified to exist in the
-workspace.
+`cargo antigen audit` now reports both presentations as **defended** —
+the `#[defended_by]` witness binds the `PolarityInvertedClassMeet`
+class, verified to exist in the workspace.
 
 ---
 
@@ -241,9 +238,9 @@ Three things happen automatically:
    src/stability.rs:42  PolarityInvertedClassMeet on enum [fingerprint match]
 
    To acknowledge each site, use the antigen type shown above:
-     #[presents(<antigen>)] to mark explicitly,
-     #[immune(<antigen>, witness = ...)] if defended,
-     #[antigen_tolerance(<antigen>, rationale = "...")] to document intent.
+     #[presents(<class>)]                              (mark it explicitly)
+     #[presents(<class>)] + #[defended_by(<test>)]     (record a defense)
+     #[antigen_tolerance(<class>, rationale = "...")]  (accept it)
    ```
 
 2. **The new developer reads the antigen declaration.** The `summary`
@@ -329,7 +326,7 @@ pub struct MyFailureClass;
 ```
 
 Then add `#[presents(MyFailureClass)]` at the vulnerable site and
-`#[immune(MyFailureClass, witness = my_test)]` at the defended site.
+`#[defended_by(MyFailureClass)]` on the test that proves it safe.
 Run `cargo antigen scan` and `cargo antigen audit`. The lesson is now
 structural.
 

@@ -1,10 +1,5 @@
 # Where to look for antigens
 
-> **v0.2 idiom note**: Some examples and placement tables below reference the v0.1
-> `#[immune(...)]` API. For v0.2, use `#[defended_by(X)]` on test functions (code-tier)
-> or `#[presents(X, requires=...)]` on the site (substrate-tier). The `#[immune]` form
-> still compiles with a deprecation warning — see [`macros.md`](macros.md) for migration.
-
 > Structural conventions for locating antigen declarations in a Rust project.
 > These aren't enforced by the tooling (yet) — they're the conventions that
 > emerge from the first real adoption and that make a project's antigen
@@ -20,21 +15,21 @@
 | Presentations (`#[presents]`) | At the vulnerable site, wherever that lives in the source tree |
 | Defense registration (`#[defended_by]`) | On the `#[test]` / proptest function — NOT at the vulnerable site |
 | Substrate witness (`#[presents(requires=)]`) | At the site being defended, on the `#[presents]` attribute |
-| *(Deprecated)* Immunity claims (`#[immune]`) | At the site being defended — use `#[defended_by]` / `#[presents(requires=)]` instead |
+| *(Deprecated)* Declared defenses (`#[immune]`) | At the site being defended — use `#[defended_by]` / `#[presents(requires=)]` instead |
 | Tolerances (`#[antigen_tolerance]`) | At the matching site, wherever the scan found it |
-| Inherited from `antigen-stdlib` | Declared in `antigen-stdlib`; `#[presents]` and `#[defended_by]` live in your code |
+| From the bundled stdlib catalog | Declared in the catalog (`--bundled-catalog`); `#[presents]` and `#[defended_by]` live in your code |
 
 ---
 
 ## Where a marker can physically go (placement rules)
 
 Before *which* file: there's a hard constraint on *which Rust position* a marker
-can sit on. `#[antigen]`, `#[presents]`, `#[immune]`, `#[antigen_tolerance]`, and
-`#[descended_from]` are **attribute proc-macros**, and Rust only allows
+can sit on. `#[antigen]`, `#[presents]`, `#[defended_by]`, `#[antigen_tolerance]`,
+and `#[descended_from]` are **attribute proc-macros**, and Rust only allows
 attribute-macro invocations on **item-level** positions. The matrix
 (each row `cargo build`-verified):
 
-| Position | `#[presents]` / `#[immune]` / … | Why |
+| Position | `#[presents]` / `#[defended_by]` / … | Why |
 |---|---|---|
 | `struct` / `enum` (the **type**) | ✅ compiles, scans, docs-clean | item position |
 | `fn` | ✅ compiles | item position |
@@ -105,7 +100,7 @@ pub mod antigens;
 
 Make it public. The failure-class vocabulary is part of the crate's public
 contract — downstream crates that re-use your types may need to present or
-claim immunity against your antigens. Hiding them limits structural inheritance.
+defend against your antigens. Hiding them limits structural inheritance.
 
 ### What goes in `antigens.rs`
 
@@ -186,7 +181,7 @@ impl Drop for ResourceHandle {
 ```
 
 **`cargo antigen scan` finds presentations, not declarations.** Scan walks the
-source tree and reports every `#[presents]` site alongside its immunity status.
+source tree and reports every `#[presents]` site alongside its defense status.
 Declarations (in `antigens.rs`) are the vocabulary; presentations are the
 annotations that say "this vocabulary applies here."
 
@@ -198,38 +193,35 @@ identical to hand-written presentations — there's no mechanical distinction
 in the source. They appear wherever the fingerprint matched.
 
 If you're reading code and see a `#[presents]` you don't recognize, check
-`src/antigens.rs` (or the antigen-stdlib) for the declaration that defines it.
+`src/antigens.rs` (or the bundled catalog) for the declaration that defines it.
 The `#[antigen]` attribute's `summary` field explains what the fingerprint
 detected.
 
 ---
 
-## Immunity: co-located with the defense
+## Defense: co-located with the witness
 
-`#[immune]` goes at the site that carries the defense — usually the test,
-proptest, or type-system witness that actually verifies the failure-class
-doesn't obtain:
+`#[defended_by]` goes on the test, proptest, or type-system witness that
+actually verifies the failure-class doesn't obtain:
 
 ```rust
-// The test is both the presentation site and the immunity site
-#[immune(KernelReconstructionDivergence,
-    witness = proptest::kernel_vs_standalone_agrees)]
+// The test is both the presentation site and the witness site
+#[defended_by(KernelReconstructionDivergence)]
 #[presents(KernelReconstructionDivergence)]
 #[proptest]
 fn kernel_vs_standalone_agrees(input: f64) { ... }
 ```
 
-For phantom-type witnesses, the immunity declaration goes at the type site:
+For phantom-type witnesses, the proof goes on the `#[presents]` attribute at
+the type site:
 
 ```rust
-#[immune(FrameTranslationDrift,
-    witness = phantom::LatticeFrameInvariant)]
+#[presents(FrameTranslationDrift, proof = LatticeFrameInvariant)]
 pub struct DeterminismClass { ... }
 ```
 
-The rule of thumb: `#[immune]` goes where you would tell a reviewer to look
-for evidence that the failure-class has been handled. The witness field names
-the exact evidence.
+The rule of thumb: the witness goes where you would tell a reviewer to look
+for evidence that the failure-class has been handled.
 
 ---
 
@@ -250,37 +242,33 @@ fn test_fingerprint_detects_inverted_meet() { ... }
 ```
 
 See [`docs/usage-patterns.md`](usage-patterns.md) for the decision tree on
-when `#[antigen_tolerance]` is appropriate vs. writing a witness and claiming
-`#[immune]`.
+when `#[antigen_tolerance]` is appropriate vs. writing a `#[defended_by]`
+witness.
 
 ---
 
-## Antigens from `antigen-stdlib`
+## Antigens from the bundled stdlib catalog
 
-When `antigen-stdlib` ships, it will provide ready-made antigens for common
-Rust ecosystem failure patterns. You don't declare these — you import them
-and add `#[presents]` or `#[immune]` at your code sites:
+Antigen ships a bundled stdlib catalog of ready-made antigens for common
+Rust ecosystem failure patterns. You don't declare these — the catalog reaches
+your code two ways:
 
-```rust
-// Cargo.toml
-[dependencies]
-antigen = "0.x"  // antigen-stdlib included via `stdlib` feature flag
-
-// src/resource.rs
-use antigen_stdlib::PanickingInDrop;
-
-#[presents(PanickingInDrop)]
-impl Drop for ResourceHandle { ... }
+```sh
+cargo antigen scan --root .                    # auto-detect (no flag)
+cargo antigen scan --root . --bundled-catalog  # always augment
 ```
 
-The declarations live in `antigen-stdlib`; your code contributes only the
-site annotations. `cargo antigen scan` sees both the stdlib antigen and your
-`#[presents]` annotation and reports accordingly.
+A **plain scan** auto-injects the catalog only when your crate declares no
+antigens of its own — so a zero-declaration crate still gets findings against the
+flagship failure-class fingerprints, with no flag to remember. An **explicit
+`--bundled-catalog`** always injects, *augmenting* your own declarations with the
+catalog even when you have antigens of your own. See
+[`stdlib-families.md`](stdlib-families.md) for the catalog's contents.
 
 **Fingerprint-based passive detection** (the scanner finding pattern matches
-without explicit `#[presents]`) works the same way with stdlib antigens — the
-fingerprint in the antigen declaration drives passive scanning regardless of
-where the declaration lives.
+without an explicit `#[presents]`) works the same way with catalog antigens —
+the fingerprint drives passive scanning regardless of where the declaration
+lives.
 
 ---
 
@@ -314,9 +302,9 @@ To orient yourself when exploring a project:
 
 1. **Find declarations**: `grep -r "#\[antigen(" src/` or look in `src/antigens.rs`
 2. **Find presentations**: `grep -r "#\[presents(" src/ tests/`
-3. **Find immunity claims**: `grep -r "#\[immune(" src/ tests/`
+3. **Find defenses**: `grep -r "#\[defended_by(" src/ tests/`
 4. **Full picture**: `cargo antigen audit` — gives declarations, presentation
-   coverage, immunity status, and tolerance inventory across the workspace
+   coverage, defense status, and tolerance inventory across the workspace
 
 The audit output is the navigational surface — it tells you what's declared,
 what's been annotated, and what's addressed. The source tree's file structure

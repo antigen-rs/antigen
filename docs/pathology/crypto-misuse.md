@@ -9,7 +9,7 @@
 - **Family**: Crypto-Misuse
 - **Status**: **chartered** — the failure-class is identified and tracked, but **no
   member ships** (no honest call-only fingerprint exists in the shipped grammar yet)
-- **Category**: `FunctionalCorrectness` (planned)
+- **Category**: `FunctionalCorrectness` *(prospective — assigned to the future member)*
 - **Example/fixture**: none — by design, there is nothing to scan yet
 
 ---
@@ -63,8 +63,7 @@ These are the references the source cites; no advisory ID is invented.
 
 This is the heart of the case-file: the class is real, but the **shipped grammar
 cannot express an honest fingerprint for it.** Two independent angles confirm it
-(codomain-reasoning + empirical crate-API verification — aristotle's beta.2 notary
-ruling):
+(codomain-reasoning + empirical crate-API verification):
 
 1. **Anchoring on a verify entrypoint anti-aligns with the defect.** A first attempt
    anchored on a crypto verify entrypoint (`verify` / `hmac_verify` / `verify_mac`)
@@ -112,28 +111,21 @@ actively mislead. So the honest disposition is **chartered**: the class is named
 tracked, the graduation path is recorded, and nothing ships until the fingerprint can
 be at least a correlator rather than an anti-correlator.
 
-## Treatment / Prognosis — the graduation path
+## Treatment — the fix for the class
 
-When the next grammar increment lands the **`security_sensitive_name` name-leaf**
-(queued top-priority) — and ideally the **`==` operator-leaf** — this family ships
-`NonConstantTimeSecretComparison` as
+The fix is the same whether or not a fingerprint can yet name the defect: use a
+constant-time comparator (`subtle::ct_eq` / `constant_time_eq`) on secrets and MACs,
+or call the library's own `verify` (which does the constant-time compare internally)
+rather than hand-rolling `==`.
 
-```text
-all_of([
-    security_sensitive_name,
-    not(any_of([body_calls("ct_eq"), body_calls("constant_time_eq")])),
-])
-```
+## Prognosis
 
-at the **suspected / heuristic** tier (`subtle::ct_eq` is the confirmed safe-step
-needle). Until then it stays chartered — **better honest-deferred than
-dishonest-shipped** (a shipped form would actively mislead by flagging
-`ring::hmac::verify`, the correct API, as the bug).
-
-The intended treatment for the class itself, once shipped: use a constant-time
-comparator (`subtle::ct_eq` / `constant_time_eq`) on secrets and MACs, or call the
-library's own `verify` (which does the constant-time compare internally) rather than
-hand-rolling `==`.
+The family stays **chartered** — better honest-deferred than dishonest-shipped, since
+a shipped call-only form would actively mislead by flagging the *correct*
+`ring::hmac::verify` as the bug. Shipping `NonConstantTimeSecretComparison` (even at
+the suspected tier) needs grammar leaves the call-only `body_calls` lacks — a
+`security_sensitive_name` data-context leaf and ideally the `==` operator-leaf. That
+graduation path is recorded in [`../roadmap.md`](../roadmap.md).
 
 ---
 

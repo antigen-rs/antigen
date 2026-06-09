@@ -11,7 +11,7 @@ Core macros are imported from the `antigen` crate:
 use antigen::{antigen, presents, defended_by, descended_from, antigen_tolerance};
 ```
 
-Prescriptive / work-orchestration macros (v0.3):
+Prescriptive / work-orchestration macros:
 
 ```rust
 use antigen::{panel, ddx, rx, refer, biopsy, culture, quarantine, triage};
@@ -49,22 +49,33 @@ error). They sit on a 2-D plane: **magnitude** × **existence-certainty**.
 > markers are passive records; none gates, fails your build, or alerts. `cargo
 > antigen scan --format json` surfaces each under the top-level
 > `report.marked_unknowns` array (fields: `marker`, `magnitude`,
-> `existence_certainty`, `trigger`, `file`, `line`). Internally, each marker also
+> `existence_certainty`, `trigger`, `file`, `line`, `shape_digest`,
+> `structural_digest`). Internally, each marker also
 > emits a `Finding` carrying a `severity` field: `#[red_flag]` (existence-certainty
 > `Sure`) and `#[dread]` both compute `High`, `#[aura]` computes `Medium`
-> (`MarkedUnknown::to_finding`). That severity is a **routing field for a future
-> cytokine-routing organ** (chartered, not built) — `#[red_flag]`'s "escalation" is
+> (`MarkedUnknown::to_finding`). That severity is a **reserved routing hint** (the
+> consuming routing organ is chartered, not built — see
+> [`roadmap.md`](roadmap.md)) — `#[red_flag]`'s "escalation" is
 > *that it records at `High`*, **not** that anything fires: it never gates CI, never
 > changes an exit code, never alerts. And the severity is **internal to the
 > `Finding` only** — the user-facing `report.marked_unknowns` projection carries no
 > `severity` field today. The human-readable scan report does not render
-> marked-unknowns yet (a later audit-dial wave). So a marker is a structural record
-> you *query* (via `--format json`), not a console line and not an action.
+> marked-unknowns; today a marker is a structural record you *query* (via
+> `--format json`), not a console line and not an action.
 
 See [`docs/concepts.md`](concepts.md) and ADR-041 for the plane; a worked
 example is in [`antigen/examples/marked_unknown.rs`](../antigen/examples/marked_unknown.rs).
 
-## Quick reference — prescriptive / work-orchestration macros (v0.3)
+> **These marks are the input to the Learning-Core loop.** A *cluster* of
+> marked-unknown sites that share a body-shape is what antigen's `propose()`
+> anti-unifies into a draft fingerprint (cluster → propose → test →
+> promote/prune, governed by a self-tolerance gate). Important scope note:
+> **the Learning-Core is a library API (`antigen::learn`), not a CLI
+> command — there is no `cargo antigen propose`.** A draft it produces is a
+> *hypothesis to ratify*, never an auto-asserted `#[presents]`. See
+> [`roadmap.md`](roadmap.md) and the `antigen::learn` module rustdoc.
+
+## Quick reference — prescriptive / work-orchestration macros
 
 | Macro | Shape | Purpose |
 |---|---|---|
@@ -243,7 +254,7 @@ The audit output groups presentations by antigen type with per-site verdicts.
 
 Register a test or proptest function as a **code-tier witness** for a failure-class (ADR-029).
 
-This is the v0.2 primary idiom for code-tier defense. The macro is placed on the test function
+This is the primary idiom for code-tier defense. The macro is placed on the test function
 (or proptest function), not on the vulnerable site. Audit cross-references it against all
 `#[presents(AntigenType)]` sites and reports `defended at Reachability` when the test is
 reachable, `defended at Execution` when it is confirmed executed.
@@ -316,24 +327,24 @@ Any Rust item; typically co-located with `#[presents]` at the defended site.
 
 ### Witness types
 
-`WitnessTier` in v0.1.0-rc.1 has four variants: `None`, `Reachability`,
+`WitnessTier` has four variants: `None`, `Reachability`,
 `Execution`, `FormalProof`. The `Execution` tier requires the audit to
-invoke a harness (A4-A5 work); v0.1 does not invoke harnesses, so
-witnesses that *will* reach Execution in future versions sit at
-Reachability today, with audit hints disambiguating the case. The table
-below reports the **actual v0.1 tier** and the audit hint that
+invoke a harness; audit does not invoke harnesses today, so
+witnesses that *will* reach Execution sit at
+Reachability for now, with audit hints disambiguating the case. The table
+below reports the **actual tier** and the audit hint that
 distinguishes the witness shape.
 
-| Witness form | v0.1 tier (audit hint) | Example | Future promotion |
+| Witness form | Tier (audit hint) | Example | Future promotion |
 |---|---|---|---|
-| `#[test]` function identifier | Reachability (`TestAttributePresentNotInvoked`) | `witness = no_panic_test` | Execution at A4-A5 (harness invocation) |
+| `#[test]` function identifier | Reachability (`TestAttributePresentNotInvoked`) | `witness = no_panic_test` | Execution (harness invocation) |
 | `#[test] + #[ignore]` function | Reachability (`TestAttributePresentIgnoreSkipped`) | `witness = skipped_test` | (stays Reachability — `cargo test` skips by default) |
-| `proptest!` function identifier | Reachability (`ProptestPresentNotInvoked`) | `witness = roundtrip_proptest` | Execution at A4-A5 (harness invocation) |
-| `kani::fn_name` | Reachability (`ExternalToolPrefixRecognized`) | `witness = kani::no_panic_proof` | FormalProof at A4-A5 (verifier-invocation) |
-| `prusti::fn_name` | Reachability (`ExternalToolPrefixRecognized`) | `witness = prusti::invariant_proof` | FormalProof at A4-A5 |
-| `verus::fn_name` | Reachability (`ExternalToolPrefixRecognized`) | `witness = verus::correctness_proof` | FormalProof at A4-A5 |
-| `creusot::fn_name` | Reachability (`ExternalToolPrefixRecognized`) | `witness = creusot::specification_proof` | FormalProof at A4-A5 |
-| `clippy::lint_name` | Reachability (`ExternalToolPrefixRecognized`) | `witness = clippy::no_panic_in_drop` | Execution at A4-A5 (lint-invocation) |
+| `proptest!` function identifier | Reachability (`ProptestPresentNotInvoked`) | `witness = roundtrip_proptest` | Execution (harness invocation) |
+| `kani::fn_name` | Reachability (`ExternalToolPrefixRecognized`) | `witness = kani::no_panic_proof` | FormalProof (verifier-invocation) |
+| `prusti::fn_name` | Reachability (`ExternalToolPrefixRecognized`) | `witness = prusti::invariant_proof` | FormalProof |
+| `verus::fn_name` | Reachability (`ExternalToolPrefixRecognized`) | `witness = verus::correctness_proof` | FormalProof |
+| `creusot::fn_name` | Reachability (`ExternalToolPrefixRecognized`) | `witness = creusot::specification_proof` | FormalProof |
+| `clippy::lint_name` | Reachability (`ExternalToolPrefixRecognized`) | `witness = clippy::no_panic_in_drop` | Execution (lint-invocation) |
 | Phantom-type turbofish | FormalProof (`PhantomTypeShapeRecognized`) | `witness = NonPanickingProof::<MyType>::verified` | (already FormalProof) |
 | Bare identifier (no test attr) | Reachability (`FunctionResolves`) | `witness = my_helper_fn` | (stays Reachability) |
 
@@ -376,9 +387,10 @@ tier achieved, not the maximal one (ADR-005 Amendment 3 audit-tier-honesty).
 
 - **Witness must resolve**: audit surfaces broken/missing/ambiguous witnesses
 - **Tier honesty**: external-tool delegations (kani, prusti, clippy, etc.)
-  report Reachability tier with the `ExternalToolPrefixRecognized` hint
-  in v0.1; harness invocation (A4-A5) will promote them to Execution or
-  FormalProof when the tool actually runs and confirms
+  report Reachability tier with the `ExternalToolPrefixRecognized` hint —
+  the audit recognizes the prefix but does not run the tool (harness invocation
+  that would promote a confirmed run to Execution/FormalProof is a recorded
+  graduation path; see [`roadmap.md`](roadmap.md))
 - **Rationale recommended for production**: especially for tolerance-class
   decisions; the rationale field is the narrative justification
 
@@ -505,7 +517,7 @@ match no longer surfaces).
 
 - **Rationale is required at parse time** — an empty or missing rationale
   is a compile error (ADR-011)
-- **Until clauses are not enforced automatically** in v0.1.0-rc.1 — they
+- **Until clauses are not enforced automatically** — they
   surface in audit output for human review (future tooling may surface
   expired tolerances structurally)
 - **Tolerance ≠ immunity**: tolerance acknowledges the failure-class is
@@ -520,7 +532,7 @@ match no longer surfaces).
 
 ---
 
-## Prescriptive / work-orchestration family (v0.3)
+## Prescriptive / work-orchestration family
 
 Eight macros that express code-site-local work-needs directly in the type system.
 The thesis: a TODO comment rots; a `#[panel(needs = [...], filled_by = [...],
@@ -542,7 +554,7 @@ The eight macros route to four structural shapes (ADR-033 §Decision 1):
 
 Satisfaction uses the same witness leaves as defense: `signers()` / `signed_trailer()`
 with `allowed_types`, fingerprint-pinned via NFA-21. Step-presence is verified (who-refs
-are checked; order-agnostic in v0.3; `ordered_all_of` seeded for v0.4).
+are checked; satisfaction is order-agnostic).
 
 ### Verdict lattice
 
@@ -660,7 +672,7 @@ sampling a specific location for deep analysis.
 
 | Field | Required | Purpose |
 |---|---|---|
-| `location = "..."` | Yes | Sub-site pointer (opaque label in v0.3) |
+| `location = "..."` | Yes | Sub-site pointer (opaque label) |
 | `request_text = "..."` | Yes (non-empty) | What to investigate |
 | `deep_investigation_by = "who"` | No | ADR-020 who-ref |
 
@@ -733,8 +745,8 @@ are unrelated (ATK-PRES-10).
 | `triaged_by = "who"` | No | ADR-020 who-ref that attested the order |
 | `re_triage_due = "YYYY-MM-DD"` | No | ISO-8601 staleness frame; standing order re-earned each cycle |
 
-`priority_order` entries are **code-site references** (file/item-path), not camp
-campsites. Unresolvable entries are `OutOfFrame`, never silently satisfied.
+`priority_order` entries are **code-site references** (file/item-path). Unresolvable
+entries are `OutOfFrame`, never silently satisfied.
 
 #### Example
 

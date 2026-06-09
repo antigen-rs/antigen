@@ -17,12 +17,12 @@
 
 ## A note on tiers before you start
 
-Two of the recipes below are **`named`** (high-confidence: if the fingerprint
-doesn't fire, you're covered) and two are **`suspected`** (a correlator: a match is
+Each recipe below is labelled **`named`** (high-confidence: if the fingerprint
+doesn't fire, you're covered) or **`suspected`** (a correlator: a match is
 *a prompt to look*, not a verdict — it may also fire on idiomatic-correct code).
-The recipe tells you which, because it changes how you act on a match. A `named`
-match is a real site to defend or tolerate; a `suspected` match is a prompt to
-look, and you tolerate the benign ones explicitly. (Full tier semantics:
+The label matters because it changes how you act on a match. A `named` match is a
+real site to defend or tolerate; a `suspected` match is a prompt to look, and you
+tolerate the benign ones explicitly. (Full tier semantics:
 [`stdlib-families.md`](stdlib-families.md) and [`witness-tiers.md`](witness-tiers.md).)
 
 ---

@@ -2,7 +2,7 @@
 //!
 //! The audit module operates a layer above [`crate::scan`]: where scan finds
 //! antigen-related declarations as syntactic facts, audit reasons about whether
-//! the immunity claims are actually backed by working witnesses.
+//! the defenses are actually backed by working witnesses.
 //!
 //! This is the "trust-boundary check" required by ADR-005 (sub-clause F at every
 //! trust boundary). A declaration of `#[immune(X, witness = Y)]` is meaningful
@@ -17,15 +17,15 @@
 //!
 //! ## What audit doesn't check (yet)
 //!
-//! - **Witness execution**: doesn't actually run the test/proptest. The team
-//!   should add `cargo test` integration in sweep A3+.
+//! - **Witness execution**: doesn't actually run the test/proptest. A future
+//!   version adds `cargo test` integration.
 //! - **Witness semantics**: doesn't verify the witness asserts the antigen's
 //!   specific failure pattern. That requires fingerprint-aware reasoning.
 //! - **External tool delegation**: clippy/kani/prusti adapters are stubbed with
-//!   "external; manual validation required" status. Sweep A3+ adds adapters.
+//!   "external; manual validation required" status; adapters are not yet wired.
 //! - **Cross-crate witnesses**: a witness that lives in a dependency isn't
-//!   followed. v0.0.1 audit is workspace-local only — A3 sweep extends this
-//!   via cross-crate source walking (per scope-lock).
+//!   followed. The audit is workspace-local only — cross-crate source walking
+//!   is not yet implemented.
 
 mod types;
 pub use types::{

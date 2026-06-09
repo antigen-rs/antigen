@@ -54,7 +54,7 @@
 //! commit-history, branch state, and `.attest/vcs/` sidecars. Drive
 //! evaluation via the `cargo antigen vcs` CLI subfamily.
 //!
-//! ## Enforcement model (per ADR-026 §Decision + adversarial D3)
+//! ## Enforcement model (per ADR-026 §Decision)
 //!
 //! - **Friction-only (default v0.2)**: client-side hooks +
 //!   `cargo antigen vcs check-commit` audit-time; makes bad behavior

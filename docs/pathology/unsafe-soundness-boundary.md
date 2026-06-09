@@ -84,8 +84,10 @@ any_of([
 
 - Either last-segment call (`transmute` / `transmute_copy`) suffices. The presence
   is the named tell — `transmute` is `mem`-specific, a rare self-anchor no domain
-  type collides with. The precise size/lifetime/mutability check is the v0.4
-  semantic tier.
+  type collides with. The fingerprint does not claim the precise
+  size/lifetime/mutability check that separates a sound `transmute` from an unsound
+  one; that deeper check is a recorded graduation path — see
+  [`../roadmap.md`](../roadmap.md).
 
 ### `UninitMemoryAssumedInit`
 
@@ -111,9 +113,9 @@ sub-test) — both genuinely out, not hidden:
   buffer/builder's `.set_len(n)`, not only the unsafe `Vec::set_len`-on-uninit, and
   there is **no AST-feasible discriminator**: risky-vs-safe turns on the **receiver
   type** (`Vec` vs a domain buffer) *and* the **arg value** (`new_len ≤
-  initialized`), neither of which is syntactic. A dedicated **suspected** `set_len`
-  member is a **v0.4 charter**; the recall hole (an unsafe `Vec::set_len`-on-uninit
-  is not flagged here) is documented, not silently absorbed.
+  initialized`), neither of which is syntactic. The recall hole (an unsafe
+  `Vec::set_len`-on-uninit is not flagged here) is documented, not silently absorbed
+  (a dedicated `set_len` member is a recorded charter — see the prognosis below).
 
 ### `UnvalidatedFromUtf8Unchecked`
 
@@ -124,8 +126,8 @@ any_of([
 ])
 ```
 
-- Either last-segment call suffices. A rare/std-specific self-anchor; the "were the
-  bytes validated?" check is the v0.4 semantic tier.
+- Either last-segment call suffices. A rare/std-specific self-anchor; the member
+  fires on the call's presence, not on a "were the bytes validated?" check.
 
 ## Differential — why all three are named
 
@@ -134,9 +136,9 @@ any_of([
   type will not define a method by that name, so the needle alone restricts the
   codomain to the defect population (the self-anchor rule). That's *why all three
   are named*: the presence of the call is itself the high-confidence signal.
-- **Named = current-scanner presence, not the semantic check.** The presence of the
-  call is what the scanner reads today; the precise size/lifetime/validity invariant
-  is the v0.4 semantic tier. The tier reflects the *fingerprint shape* (a rare
+- **Named = call-presence, not the semantic check.** The presence of the call is
+  what the scanner reads; the member does **not** claim to have verified the precise
+  size/lifetime/validity invariant. The tier reflects the *fingerprint shape* (a rare
   self-anchoring call), not a claim that antigen has verified the invariant.
 - **Where the line is drawn (`UninitMemoryAssumedInit`)**: the `zeroed` and
   `set_len` arms were considered and rejected precisely because they break the
@@ -156,13 +158,13 @@ territory; the witness proves the invariant.
 - **`UnvalidatedFromUtf8Unchecked`** — the bytes were validated (or are a known-UTF-8
   constant), proved by a `// SAFETY:` + a check / miri.
 
-## Prognosis — the graduation path
+## Prognosis
 
-All three members stay named; the future increment is *semantic*, not corrective:
-the precise size/lifetime/validity check (proving the actual invariant, not just
-the call's presence) is the v0.4 semantic tier. The dropped `set_len` risky form is
-a separate v0.4 charter (a dedicated suspected member), recovering the labeled
-recall hole when type/value-aware analysis is available.
+All three members are at the **named** tier. The fingerprint fires on the *presence*
+of the unsafe call; it deliberately does not claim the precise size/lifetime/validity
+check that distinguishes a sound use from an unsound one. That deeper check, and the
+dropped `set_len` risky form (a separate documented recall hole), are recorded
+graduation paths — see [`../roadmap.md`](../roadmap.md).
 
 > **Why a scan fixture, not a runnable example** (same reason as async-soundness):
 > every tell is a real `unsafe` primitive (`transmute` / `assume_init` /

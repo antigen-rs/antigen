@@ -7,7 +7,7 @@
 > **Audience**: this doc is internal-team-facing. It documents how the antigen team
 > coordinates the ADR lifecycle (campsite-based working files, Phase 1-8 deconstruction,
 > aristotle / adversarial / scientist review roles, ratification ceremonies). External
-> contributors don't need this — see [`../CONTRIBUTING.md`](../CONTRIBUTING.md) for the
+> contributors don't need this — see [`../../CONTRIBUTING.md`](../../CONTRIBUTING.md) for the
 > contributor-facing surface. When you submit a PR, the antigen team takes it through
 > the discipline described here; you don't have to set up campsites or run the phases
 > yourself.
@@ -19,8 +19,8 @@ right for *this* project specifically.
 
 Antigen-the-tool exists because failure-class memory should live in the substrate
 rather than in commits, comments, and human memory. It declares failure-classes
-(`#[antigen]`), marks vulnerable code (`#[presents]`), proves immunity with witnesses
-(`#[immune]`), and propagates lessons through composition (`#[descended_from]`).
+(`#[antigen]`), marks vulnerable code (`#[presents]`), registers defenses with witnesses
+(`#[defended_by]`), and propagates lessons through composition (`#[descended_from]`).
 
 Tambear's DECs (and antigen's ADRs) operate the SAME shape one level up. They:
 - **Declare** an architectural decision with a name and a fact-pattern (the finding)
@@ -183,7 +183,7 @@ The phases:
 
    AMENDMENT FORM — two types based on how the change is specified:
 
-   **Type A (design-first)**: change is fully specified at campsite-open. Ship the structured amendment block and the inline §Decision/§Mechanics text change in a single commit. Canonical form: draft the structured block in docs/expedition/<adr>-amendment-<N>-<slug>.md before the campsite cycle, then commit both inline change and structured block together.
+   **Type A (design-first)**: change is fully specified up front. Ship the structured amendment block and the inline §Decision/§Mechanics text change in a single commit — draft the structured block before the work cycle, then commit both inline change and structured block together.
 
    **Type B (review-first)**: change emerges from campsite discussion. Ship the inline §Decision/§Mechanics change first for speed. Ship the structured amendment block as a follow-on commit AFTER campsite notes settle. Structured block must land before sign-off. No sign-off on a review-first amendment until the structured block exists.
 
@@ -271,8 +271,8 @@ Ratified ADRs govern downstream work through:
 
 1. **Cross-references** in code: `// ADR-005: this trust-boundary check enforces ...`
 2. **Cross-references** in other ADRs: "Related: ADR-005" in the new ADR's header
-3. **Cross-references** in sweeps: "Sweep A3 implements ADR-005's witness validation
-   surface"
+3. **Cross-references** in roadmap/work-tracking: "the scan implementation
+   implements ADR-005's witness validation surface"
 4. **Antigen declarations** that name the ADR they enforce: `#[antigen(name = "...",
    adr = "ADR-005")]` (proposed; can be added in v0.2+ if useful)
 5. **CI gates** when applicable: `cargo antigen audit --strict` may fail on ADR
@@ -484,14 +484,13 @@ becomes "Ratified 2026-XX-XX." ADR-009 is added to `decisions.md` index. Commit
 "ratify ADR-009: antigen fingerprint grammar."
 
 ### Stage 7: Enforcement
-Pathmaker implements the parser referencing ADR-009 in the parser's docstring.
-Sweep A3 (cargo-antigen scan implementation) cites ADR-009 in its README's "ADRs
-ratified or implemented" section. Adversarial's ATK-9-1 mitigation becomes a
-property test: `cargo antigen scan` flags overly-broad fingerprints with the warning
-text from ADR-009.
+The parser references ADR-009 in its docstring. The `cargo-antigen scan`
+implementation cites ADR-009 in its README's "ADRs ratified or implemented"
+section. The ATK-9-1 mitigation becomes a property test: `cargo antigen scan`
+flags overly-broad fingerprints with the warning text from ADR-009.
 
 ### Stage 8: Reference
-Sweep A5 (antigen-stdlib library) cites ADR-009 because every stdlib antigen needs
+The antigen-stdlib library cites ADR-009 because every stdlib antigen needs
 a fingerprint that complies with the grammar. ADR-014 (a hypothetical later ADR for
 "cross-language fingerprints") cites ADR-009 as "Related" because it's an extension
 of the same grammar.
@@ -702,12 +701,7 @@ discipline. Differences:
 - **Foundational ADRs**: ADR-001 through ADR-008 were ratified by Tekgy + Claude in
   pre-team scaffolding. Tambear's foundational DECs were ratified through similar
   team-lead-plus-architect pre-team work.
-- **Maturity**: tambear has 30+ DECs after months of expedition work. Antigen
-  begins at 8. The process scales as the project grows.
+- **Maturity**: the process scales as the project grows; new ADRs and
+  amendments thread through the same lifecycle.
 
-The full inheritance from tambear is documented in
-[`expedition/inheritance-from-tambear.md`](expedition/inheritance-from-tambear.md).
-The process document captures the formal lifecycle; the inheritance document captures
-the disciplines and patterns applied.
-
-Together they constitute the process substrate the antigen team operates inside.
+This document captures the formal ADR lifecycle the project operates inside.

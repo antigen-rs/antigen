@@ -46,9 +46,9 @@ impl antigen_attestation::EvaluationContext for FilesystemAuditContext {
         std::fs::read_to_string(path).ok()
     }
 
-    // v0.1: git trailers require subprocess + git; returns empty vec when
-    // git is unavailable or the item has no commits. A3+ work wires this
-    // to a proper git2 adapter or subprocess; for now the trait contract
+    // git trailers require subprocess + git; returns empty vec when
+    // git is unavailable or the item has no commits. A future version wires
+    // this to a proper git2 adapter or subprocess; for now the trait contract
     // is satisfied and `SignedTrailer` leaf evaluates to false.
     fn read_git_trailers(
         &self,
@@ -730,12 +730,12 @@ struct FunctionEntry {
 
 /// Index of function name → all (file path, kind) pairs sharing that name.
 ///
-/// W7 (A2) extends the flat name index to track *all* candidates for a name,
+/// W7 extends the flat name index to track *all* candidates for a name,
 /// so `validate_witness` can detect ambiguity (ATK-A2-005). When more than one
 /// function shares a name, the witness resolves to `WitnessStatus::Ambiguous`
 /// rather than silently picking whichever was indexed last.
 ///
-/// Cross-cutting limitations remaining for A3+:
+/// Cross-cutting limitations not yet addressed:
 /// - Module-qualified paths (`crate::foo::bar` parsing) require module-graph
 ///   resolution; for v0.1 we detect ambiguity and require the user to qualify
 ///   the witness (e.g., rename one of the conflicting functions, or use a
@@ -744,7 +744,7 @@ struct FunctionEntry {
 ///   currently recorded with the same shape — matching is name-only.
 type FunctionIndex = std::collections::HashMap<String, Vec<FunctionEntry>>;
 
-// P0b dogfood mark (v0.4 keystone): the silent-skip twin of
+// Dogfood mark (v0.4 keystone): the silent-skip twin of
 // `scan::walk::scan_workspace_inner`. This audit-time index walk reads every
 // `.rs` file with `let Ok(content) = read_to_string(..) else { continue };` and
 // then `if let Ok(file) = parse_file(..)` — so an unreadable OR unparseable file
@@ -821,13 +821,13 @@ struct FunctionIndexVisitor<'a> {
 impl FunctionIndexVisitor<'_> {
     /// Classify a function by its own attributes.
     ///
-    /// W5 (sweep A2): the prior heuristic — `self.source.contains("proptest!")`
+    /// W5: the prior heuristic — `self.source.contains("proptest!")`
     /// — over-classified every function in any file mentioning the string
     /// `proptest!` (including doc comments) as `WitnessKind::Proptest`.
     /// Replaced by structural detection: `visit_macro` registers
     /// proptest-internal function names with `WitnessKind::Proptest` directly.
     ///
-    /// W7 (sweep A2): distinguish `#[test] #[ignore]` from a running `#[test]`.
+    /// W7: distinguish `#[test] #[ignore]` from a running `#[test]`.
     /// Per ADR-005 Amendment 3 and ATK-A2-012, an ignored test is weaker
     /// evidence than a runnable test — `cargo test` skips it by default.
     /// We tag it as `WitnessKind::IgnoredTest` so the audit can emit the

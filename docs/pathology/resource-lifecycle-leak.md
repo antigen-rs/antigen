@@ -112,18 +112,13 @@ suspected tier — many are entirely legitimate. The witness antigen asks for is
 - the resource is not actually leaked (the call is on a domain type, or the value's
   cleanup happens another way).
 
-## Prognosis — the graduation path
+## Prognosis
 
-`DeliberateLeakNotDocumented` graduates **suspected → named** when **path/semantic
-resolution lands** (v0.4) — i.e. when the scanner can distinguish `mem::forget` from
-a domain `cache.forget()` by resolving the path, narrowing the codomain to the
-actual leak primitives.
-
-The family's other shapes are charter-deferred: the "without rationale doc"
-half (a `// SAFETY:` / doc-absence check) is a sensor-layer refinement
-(doc-substrate-alignment); `RcCycleWithoutWeak` (relational cycle-detection) and
-`GuardOrHandleImmediatelyDropped` (a `let _ = lock()` binding-tell) are charter
-members. This family ships the clean leak-call-presence member now.
+`DeliberateLeakNotDocumented` sits at **suspected**: `forget` / `leak` are bare
+common last-segments, so a domain `cache.forget()` fires too. This family ships the
+clean leak-call-presence member now; its tier-promotion — path / semantic resolution
+narrowing the codomain to the real leak primitives — is a recorded graduation path,
+see [`../roadmap.md`](../roadmap.md).
 
 ---
 

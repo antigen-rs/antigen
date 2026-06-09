@@ -102,11 +102,11 @@
 //! - [`#[anergy(...)]`](macro@anergy) — deferred-but-muted posture; `until`
 //!   REQUIRED; aging escalation via `anergy-active` / `anergy-stale` hints
 //! - [`#[immunosuppress(...)]`](macro@immunosuppress) — surgical silencing
-//!   with hard duration cap enforced at parse time (A4)
+//!   with hard duration cap enforced at parse time
 //! - [`#[poxparty(...)]`](macro@poxparty) — intentional exposure with
-//!   structural compile-time isolation (A3; `antigen-poxparty` feature)
-//! - [`#[orient(...)]`](macro@orient) — see-also context; lightest-weight
-//!   deferred-defense primitive; all fields optional
+//!   structural compile-time isolation (`antigen-poxparty` feature)
+//! - [`#[orient(...)]`](macro@orient) — pre-immunity learning period;
+//!   `learning_path` + `until` REQUIRED (a bare `#[orient]` is a parse error)
 //!
 //! ## Modules
 //!

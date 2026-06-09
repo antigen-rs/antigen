@@ -49,17 +49,17 @@ Add antigen to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-antigen = "0.3.0"   # the v0.3 stable line — prescriptive family + the failure-class families
+antigen = "0.4.0-beta.1"   # the first v0.4 beta — prescriptive family + the failure-class families
 ```
 
 Install the cargo subcommand:
 
 ```sh
-cargo install cargo-antigen
+cargo install cargo-antigen --version 0.4.0-beta.1
 ```
 
-> `cargo install cargo-antigen` installs the current stable (**v0.3.0**) — the full
-> v0.3 surface is included.
+> `cargo install cargo-antigen --version 0.4.0-beta.1` installs the v0.4 beta — the full
+> v0.4 surface is included.
 
 Verify:
 
@@ -275,12 +275,15 @@ Immune-state verdicts (ADR-029 — observed, not declared):
 The audit observed your `#[defended_by(PanickingInDrop)]` registration and the
 `#[presents(PanickingInDrop)]` site, cross-referenced them, and reported `defended at
 Reachability`. The tier is `Reachability` — the witness function is present and
-has a `#[test]` attribute, but antigen can't yet confirm it was actually invoked
-and passed (that's `Execution` tier, which requires running the test suite).
+has a `#[test]` attribute, but antigen does not confirm it was actually invoked
+and passed (that's `Execution` tier, which requires running the test suite). Run
+`cargo test` and pass to satisfy yourself the witness holds; the audit reports
+`Reachability` as its automated check.
 
-To reach `Execution` tier: run `cargo test` and pass. The v0.2 audit reports
-`Reachability` as the automated check; `Execution` will be confirmed in a future
-version when test-run integration lands.
+> The `Execution` tier is reserved in the `WitnessTier` enum but not emitted today —
+> the audit recognizes a wired witness, it doesn't run it. Test-run integration that
+> would emit `Execution` is a recorded graduation path; see
+> [`roadmap.md`](roadmap.md) and [`witness-tiers.md`](witness-tiers.md).
 
 **The site is defended. No undefended presentations, no substrate-gaps.** That's a
 clean audit.
@@ -559,9 +562,10 @@ and time-bound. `#[orient]` is the deferral primitive (ADR-023) — carries a pa
 and a horizon. Different speech-acts. See `triage_commit.rs` for the full 5-color
 scale and contrast.
 
-**More failure-classes to declare**: the 8-class failure taxonomy
-(`docs/expedition/design-intent.md`) gives you the vocabulary. The seed catalog
-(`docs/expedition/stdlib-seed-antigens.md`) has 10 concrete antigens with
+**More failure-classes to declare**: the
+[`the-failure-class-cookbook.md`](the-failure-class-cookbook.md) gives you the
+vocabulary for naming your own. The bundled stdlib catalog
+([`stdlib-families.md`](stdlib-families.md)) ships concrete antigens with
 fingerprints ready to adapt.
 
 **Composition boundaries**: if your code has two implementations that must agree

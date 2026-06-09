@@ -104,8 +104,7 @@ pub fn dedupe_lineage_edges(edges: &[LineageEdge]) -> (Vec<LineageEdge>, Vec<Par
 /// Returns one [`ParseFailure`] per discovered cycle (cycle anchored at the
 /// first edge that closed it) and one per chain that exceeded `max_depth`.
 /// The chain text is preserved in the `error` string — the structured-enum
-/// representation of `ParseFailure` is an open question (see scope-lock §5
-/// and aristotle's pending Phase 1-8 ruling).
+/// representation of `ParseFailure` is an open question.
 pub fn detect_lineage_failures(edges: &[LineageEdge], max_depth: usize) -> Vec<ParseFailure> {
     use std::collections::HashMap;
 

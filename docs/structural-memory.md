@@ -1,28 +1,14 @@
 # Structural Memory of Failure-Classes
 ## A whitepaper on what antigen is, why it exists, and what it means for software teams collaborating across human and AI cognition
 
-> Status: V3.1 (2026-05-22). V3 closed all V2 blockers + V2 substantial findings
-> + 4-of-5 V2 hostile-reviewer concerns. V3.1 updates cross-references to reflect
-> the comprehensive vision synthesized 2026-05-22. The comprehensive vision at
-> [`docs/expedition/the-comprehensive-vision.md`](expedition/the-comprehensive-vision.md)
-> extends this whitepaper's §10 (Vision) substantially — full macro vocabulary,
-> research arcs, lifecycle map, and YAWNI commitment. The whitepaper's §2-§9
-> (structural argument, failure-class analysis, cognition-boundary framing,
-> three-pillar framing, architectural class) are canonical and unaffected.
-> arXiv preprint submission pending.
->
-> The comprehensive vision also refines the framing of §1 and §5: the condition
-> antigen addresses is now named as "generation-inspection asymmetry" rather than
-> "cognitive asymmetry"; the mechanism is named as "memory-to-structure
-> transformation." These refinements extend, not contradict, the whitepaper's
-> existing framing.
->
 > This document is a foundational whitepaper, not adopter-facing tutorial material.
-> For tutorials, see [`tutorial.md`](tutorial.md). For the architectural concepts
-> in adopter form, see [`concepts.md`](concepts.md). For the LLM-collaborator
-> protocol, see [`for-llm-collaborators.md`](for-llm-collaborators.md). For the
-> full comprehensive vision of antigen's scope, see
-> [`docs/expedition/the-comprehensive-vision.md`](expedition/the-comprehensive-vision.md).
+> Its §2-§9 (the structural argument, failure-class analysis, cognition-boundary
+> framing, three-pillar framing, and architectural class) carry the core
+> argument; §10 sketches the vision. For tutorials, see [`tutorial.md`](tutorial.md).
+> For the architectural concepts in adopter form, see [`concepts.md`](concepts.md).
+> For the LLM-collaborator protocol, see
+> [`for-llm-collaborators.md`](for-llm-collaborators.md). For the tracked
+> trajectory, see [`roadmap.md`](roadmap.md).
 
 ---
 
@@ -124,7 +110,7 @@ covered: **memory of failure-classes**. The antigen declarations in
 code aren't documentation about failure-classes; they're structural
 markers that `cargo antigen scan` walks and compares to the codebase.
 When code drifts from a declared antigen's structural fingerprint,
-the scan notices. When immunity claims drift from their witnesses,
+the scan notices. When defenses drift from their witnesses,
 the audit notices. The currency is enforced by the tooling, not by
 human discipline to keep documentation in sync.
 
@@ -596,9 +582,8 @@ section below names nine failure-classes; three (6.1, 6.7, 6.8) are
 substrate-grounded — 6.1 by the tambear `DeterminismClass` /
 `CommutativityClass` pattern accelerated by AI-cognition cycling; 6.7
 by antigen's own PanickingInDrop spacing-bug + ADR-010 receiver/type
-instances; 6.8 by the ATK-A2-003/004/005/011/012 family from Sweep
-A2 that catches the theatrical-witness failure-class at the audit-
-reporting tier. The remaining six (6.2-6.6, 6.9) are **ideated
+instances; 6.8 by the ATK adversarial suite that catches the theatrical-witness
+failure-class at the audit-reporting tier. The remaining six (6.2-6.6, 6.9) are **ideated
 encounter-tier articulations** per ADR-006's
 *ideation-as-recognition* pathway: structural shapes that can be
 articulated clearly enough to register as encounter-tier substrate,
@@ -715,7 +700,7 @@ for crossing cognition boundaries is itself silently broken. False
 confidence in structural coverage is structurally worse than no
 structural coverage, because adopters trust the substrate.
 
-**Substrate-grounded instances** (both surfaced 2026-05-11):
+**Substrate-grounded instances**:
 
 - **External instance** (separate project consuming antigen as a
   dependency): tambear's `PanickingInDrop` fingerprint used
@@ -752,8 +737,8 @@ bridging would change semantics).
 
 ### 6.8 — Theatrical witness (substrate-grounded encounter-tier)
 
-The structural shape: an `#[immune(X, witness = some_test)]` claim
-references a witness function that exists (so audit reports
+The structural shape: a `#[defended_by(X)]` test (registered against a
+`#[presents(X)]` site) exists (so audit reports
 `Reachability` tier with `FunctionResolves` hint) but the test
 passes trivially or doesn't exercise the failure-class shape.
 
@@ -764,8 +749,7 @@ claim because the audit doesn't surface a problem.
 
 **Substrate-grounded instances**:
 
-- **Internal instances**: antigen's own ATK contracts
-  (ATK-A2-003/004/005/011/012 family from Sweep A2): adversarial
+- **Internal instances**: antigen's own ATK contracts — adversarial
   contracts that codify "audit must surface tier limitations even
   when the witness function exists." The ATK family represents the
   discipline of catching this failure-class structurally at the
@@ -789,9 +773,9 @@ claim because the audit doesn't surface a problem.
 The defense is *audit-tier-honesty* (per ADR-005 Amendment 3): the
 audit reports the actual verification strength, never a stronger
 one. A witness function that exists but doesn't run gets
-`Reachability` (function resolves) not `Execution` (test passed) in
-v0.1.0-rc.1. Future A4-A5 harness invocation will distinguish
-"witness passes" from "witness exists" structurally.
+`Reachability` (function resolves) not `Execution` (test passed).
+Harness invocation distinguishes "witness passes" from "witness
+exists" structurally.
 
 The theatrical witness problem isn't *fully* eliminated by audit-
 tier-honesty — the witness function could exist AND run AND pass
@@ -799,7 +783,7 @@ without actually exercising the failure-class. That deeper
 sub-mechanism (witness execution that doesn't exercise the
 vulnerability) requires either property-based testing
 (`proptest::strategy` witness type) or behavioral-coverage analysis
-(post-A5 territory).
+(later territory).
 
 ### 6.9 — AI-AI coordination failure (ideated encounter-tier)
 
@@ -959,12 +943,12 @@ two cannot fill in for. Antigen is the instantiation of the third
 carrier in the Rust ecosystem; cross-language and cross-tier
 extensions (chapter 10) instantiate it elsewhere.
 
-### 7.1 — What antigen v0.1.0-rc.1 actually reaches
+### 7.1 — What antigen actually reaches
 
 Honest scope-qualification: section 6 names a family of failure-modes
 of hybrid-cognition teams across multiple tiers, not all of which
-antigen substrate directly addresses today. The reach of the
-v0.1.0-rc.1 substrate, per failure-mode:
+antigen substrate directly addresses today. The reach of the current
+substrate, per failure-mode:
 
 - **6.1 (pattern-regeneration across cognition discontinuity)** —
   *directly addressed at code tier.* `#[antigen]` + `cargo antigen
@@ -983,17 +967,17 @@ v0.1.0-rc.1 substrate, per failure-mode:
   closes spacing sub-mechanism; receiver-vs-type sub-mechanism
   remains docs-mitigated by deliberate triage).
 - **6.8 (theatrical witness)** — *partly addressed* via audit-tier-
-  honesty (ADR-005 Amendment 3); deeper "witness runs but doesn't
-  exercise" sub-mechanism awaits A4-A5 harness invocation + property
+  honesty (ADR-005 Amendment 3); the deeper "witness runs but doesn't
+  exercise" sub-mechanism awaits harness invocation + property
   strategies.
 - **6.3 (knowledge-locale ambiguity), 6.4 (generation-time blindness),
   6.5 (speed asymmetry), 6.6 (recognition-scope asymmetry between
   cognitions), 6.9 (AI-AI coordination failure)** — *not directly
-  addressed at code tier in v0.1.0-rc.1.* These motivate the
+  addressed at the code tier yet.* These motivate the
   structural-vision (chapter 10 — Vision; chapter 11 — Roadmap) and
-  inform the choice of vocabulary, biology cognate, and five-macro
+  inform the choice of vocabulary, biology cognate, and macro
   shape. Cross-tier extensions (project-substrate-currency,
-  cognition-tier markers, identity-tier propagation) are post-v0.1.0
+  cognition-tier markers, identity-tier propagation) are forward
   territory.
 
 The pattern is intentional. Antigen ships the failure-class memory
@@ -1019,7 +1003,7 @@ structurally and the memory propagates through structural inheritance*
 — has been independently re-invented across many academic fields.
 
 The cross-domain map in
-[`docs/cross-domain-architectural-map.md`](cross-domain-architectural-map.md)
+[`docs/cross-domain-architectural-map.md`](internal/cross-domain-architectural-map.md)
 catalogs sixteen-plus academic fields where versions of this
 architecture have been developed. **But the cognate strength varies
 substantially** across these fields, and honest substrate-grounding
@@ -1031,7 +1015,7 @@ are classified by cognate-strength:
 
 ### Strong cognates — the originating substrate plus four independent convergences
 
-A precision the V1 reclassification deferred: **immunology is the
+A precision worth stating exactly: **immunology is the
 originating substrate antigen explicitly modeled from, not a peer
 cognate that independently converged onto the architecture.** The
 real evidence structure is asymmetric and stronger when stated
@@ -1083,8 +1067,8 @@ strengthens rather than weakens the convergence claim: it shows the
 metaphor operating with honest limits rather than papering over
 every difference.
 
-Five boundary-silences cataloged during the v0.1.0-rc.1 substrate
-work where the immunology cognate provides no native answer:
+Five boundary-silences where the immunology cognate provides no
+native answer:
 
 1. **Compile-time formal proof** (`WitnessTier::FormalProof` per
    ADR-005 Amendment 3, ADR-013 phantom types). Biology has no
@@ -1103,19 +1087,17 @@ work where the immunology cognate provides no native answer:
    carries pointers to external substrate; immune cells don't cite
    literature.
 4. **Cross-implementation composition-tier antigens** (seam-tier
-   antigen classification from Sweep A2; antigens whose failure-
-   class lives in the *relationship* between two code sites). No
-   biological equivalent for recognition spanning composition of
-   distinct organisms' machinery.
+   antigens whose failure-class lives in the *relationship* between
+   two code sites). No biological equivalent for recognition spanning
+   composition of distinct organisms' machinery.
 5. **Folded-structure cognition with deliberating agent** (the
    developer is part of the recognition loop; the immune system is
    not). Biology's recognition machinery doesn't include a
    deliberating agent who can re-classify antigens, author new
    ones, or retire stale ones.
 
-These silences are encounter-tier substrate themselves
-(see [`docs/expedition/deferred-substrate.md`](expedition/deferred-substrate.md)
-on the engineered-substrate-exceeds-biology family). Their
+These silences are encounter-tier substrate themselves — the
+engineered-substrate-exceeds-biology family. Their
 existence is not a critique of the cognate; it's evidence the
 cognate is operating in *instrument-mode* — producing testable
 predictions in its domain and remaining honestly silent at its
@@ -1399,7 +1381,7 @@ where antigen's authors were already working, and because the
 language and its ecosystem give the architecture an unusually
 favorable substrate to instantiate against. Specifically:
 
-- **Procedural macros** make `#[antigen]`, `#[presents]`, `#[immune]`,
+- **Procedural macros** make `#[antigen]`, `#[presents]`, `#[defended_by]`,
   `#[descended_from]`, and `#[antigen_tolerance]` first-class
   attribute syntax — readable as natural Rust by humans, parseable
   via `proc_macro2` by tooling, co-located with the code they
@@ -1458,9 +1440,8 @@ The shareable-across-platforms substrate is the
 where a fingerprint declared in one language carries enough
 structure to be recognized in another, allowing failure-class
 memory to propagate across polyglot codebases. This is roadmap
-territory (`docs/expedition/future-extensions.md` and the
-multi-paper publication trajectory's cross-language theme); it
-does not exist in v0.1.0-rc.1.
+territory (the multi-paper publication trajectory's cross-language
+theme); it is not yet built.
 
 The honest framing: antigen started in Rust because Rust gave the
 architecture every advantage at once, and the team was already
@@ -1543,7 +1524,7 @@ pre-tokenization); the receiver-vs-type sub-mechanism remains
 docs-mitigated by deliberate semantic-distinction triage. §6.8
 (theatrical witness) is structurally addressed only at the
 witness-existence-vs-execution layer (audit reports `Reachability`
-when function resolves; reserves `Execution` for A4-A5 harness
+when function resolves; reserves `Execution` for harness
 invocation); the deeper "witness runs but doesn't exercise the
 failure-class path" sub-mechanism awaits property-based strategies
 or behavioral-coverage analysis. The substrate-grounded status of
@@ -1579,7 +1560,6 @@ propagation). The honest framing: antigen's inheritance layer is
 *shape-inheritance*, distinct from biology's *diversification-via-
 activation*. Future substrate work on the
 *recognition-receptor-diversity* primitive
-(per [`docs/expedition/immune-system-primitive-map.md`](expedition/immune-system-primitive-map.md))
 may surface a separate antigen-side mechanism for variation-as-
 inheritance that's complementary to identity-propagation; the
 two-shapes-of-inheritance is one of the points where the biology
@@ -1593,22 +1573,15 @@ clonal expansion" should know the structural shape differs.
 
 ## 10. Vision
 
-> **2026-05-22 note**: The comprehensive vision synthesized at
-> [`docs/expedition/the-comprehensive-vision.md`](expedition/the-comprehensive-vision.md)
-> substantially extends this section. For the full roadmap — complete macro
-> vocabulary (30+ primitives across 9 biological tiers), 8 research arcs,
-> biological lifecycle map, and YAWNI commitment — read the comprehensive vision.
-> The sub-sections below (10.1–10.5) are the whitepaper's scope articulation and
-> remain accurate; they're one branch of the comprehensive vision, not the full
-> tree.
-
-What antigen *aspires* to, beyond what currently ships:
+What antigen *aspires* to, beyond what currently ships (see
+[`roadmap.md`](roadmap.md) for the tracked trajectory):
 
 ### 10.1 — Cross-language vocabulary
 
-The five vocabulary primitives (`#[antigen]`, `#[presents]`,
-`#[immune]`, `#[descended_from]`, `#[antigen_tolerance]`) describe a
-structural architecture that doesn't depend on Rust. Implementations
+The vocabulary primitives (`#[antigen]`, `#[presents]`,
+`#[defended_by]`, `#[descended_from]`, `#[antigen_tolerance]`)
+describe a structural architecture that doesn't depend on Rust.
+Implementations
 for Python, JavaScript, TypeScript, framework-specific contexts will
 extend the substrate without changing the architectural class.
 
@@ -1641,7 +1614,7 @@ At each tier, the mechanism differs; the compositional property
 
 ### 10.3 — Ecosystem flywheel
 
-The future antigen-stdlib (planned for Sweep A5) will provide
+A bundled stdlib of antigens will provide
 ecosystem-wide failure-class memory. Cross-organization registries
 will enable teams to share failure-class memory without publishing
 to crates.io. Antigen declarations referenced from CVE databases,
@@ -1686,13 +1659,6 @@ that helped catalyze the shift."
 
 ## 11. Further reading
 
-### The comprehensive vision
-
-- [`docs/expedition/the-comprehensive-vision.md`](expedition/the-comprehensive-vision.md) —
-  canonical synthesis of the full scope: asymmetry-era framing, memory-to-structure
-  transformation, complete vocabulary through v0.4, 8 research arcs, biological
-  lifecycle map, YAWNI commitment, positioning, roadmap
-
 ### Adopter-facing
 
 - [`concepts.md`](concepts.md) — architectural concepts in adopter form
@@ -1714,7 +1680,7 @@ that helped catalyze the shift."
 
 ### Vision + roadmap
 
-- [`scope.md`](scope.md) — comprehensive vision
+- [`scope.md`](scope.md) — architectural class + adoption strategy
 - [`roadmap.md`](roadmap.md) — trajectory
 - [`vision-pitch.md`](vision-pitch.md) — ecosystem outreach pitch
 - [`origin.md`](origin.md) — founding incident narrative
@@ -1722,24 +1688,17 @@ that helped catalyze the shift."
 ### Architectural substrate
 
 - [`decisions.md`](decisions.md) — ratified ADRs
-- [`postures.md`](postures.md) — architectural postures
-- [`process.md`](process.md) — ADR lifecycle
+- [`postures.md`](internal/postures.md) — architectural postures
+- [`process.md`](internal/process.md) — ADR lifecycle
 
 ### Research / cross-domain
 
-- [`cross-domain-architectural-map.md`](cross-domain-architectural-map.md)
+- [`cross-domain-architectural-map.md`](internal/cross-domain-architectural-map.md)
   — 16+ academic fields converging on the architecture
-- [`immune-system-primitive-map.md`](immune-system-primitive-map.md)
+- [`immune-system-primitive-map.md`](internal/immune-system-primitive-map.md)
   — biology primitive catalog
-- [`contact-graph-and-recognition-tiers.md`](contact-graph-and-recognition-tiers.md)
+- [`contact-graph-and-recognition-tiers.md`](internal/contact-graph-and-recognition-tiers.md)
   — recognition framework
-
-### Expedition (pre-ratification design substrate)
-
-- [`expedition/multi-component-immunity.md`](expedition/multi-component-immunity.md)
-  — seven-components deep-dive
-- [`expedition/antigen-applied-to-antigen.md`](expedition/antigen-applied-to-antigen.md)
-  — recursion of recognition
 
 ### Cited intellectual lineage
 
@@ -1764,31 +1723,20 @@ that helped catalyze the shift."
 
 ---
 
-## Acknowledgments
+## A note on method
 
-This whitepaper reached V3 on 2026-05-12, authored by team-lead in
-conversation with Tekgy. It synthesizes substrate from the
-antigen-project's own development across sweeps A1, A2, A3, and A3.5,
-incorporating findings from naturalist's biology-cognate refinements
-(V2.2 §8 sharpenings), aristotle's Phase 1-8 deconstructions (drove
-V1 → V2 reframings), scout's structural-rhyme discoveries,
-adversarial's threat-model work, and pathmaker's implementation
-discipline. The cross-domain map (academic-researcher in Sweep A2)
-anchors the convergence claim in section 8. Scientist's
-manuscript-grade pass on V2 surfaced the substantial findings driving
-V3; the V3 verification pass closed all V2 blockers, substantial
-findings, and 4-of-5 hostile-reviewer concerns.
+This whitepaper synthesizes substrate from antigen's own development —
+which itself involves human + AI cognition collaborating across
+multiple agents working on the same codebase. The cross-domain map
+anchors the convergence claim in section 8; the failure-class analysis
+in section 6 reflects failure-modes observed in that development. **The
+project's own substrate is evidence for the claims it makes.**
 
-The framing of "the failure-class fingerprint of hybrid collaboration"
-in section 6 reflects observations from the project's own development
-(which involves human + AI cognition collaboration across multiple
-spawned agents working on the same codebase). The project's own
-substrate is evidence for the claims it makes.
-
-Open for continued refinement as substrate accumulates — particularly
-as cross-language instantiations land, as empirical adoption produces
-intervention-tier evidence for the third-pillar claim, and as
-agentic-cognition architecture continues to evolve.
+The argument is open for continued refinement as substrate
+accumulates — particularly as cross-language instantiations land, as
+empirical adoption produces intervention-tier evidence for the
+third-pillar claim, and as agentic-cognition architecture continues to
+evolve.
 
 ---
 

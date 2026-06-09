@@ -1,33 +1,22 @@
 # Antigen — Architectural Decision Records
 
-> Ratified architectural decisions for the antigen project. Modeled on tambear's DEC
-> registry. Every load-bearing decision should land here with a clear rationale, a
-> resolves-clause, and an enforcement mechanism.
+> Ratified architectural decisions for the antigen project. Every load-bearing
+> decision lands here with a clear rationale, a resolves-clause, and an
+> enforcement mechanism.
 >
-> **Convention**: ADR-NNN entries are added in numerical order. Each starts with a
-> status (Draft / Ratified / Superseded), participants, related ADRs, finding,
-> decision, mechanics, sweep-level consequences, enforcement, and resolves clauses.
-> Drafts can be edited freely; ratified ADRs require explicit revision via amendment
-> or supersession.
+> **Convention**: ADR-NNN entries are added in numerical order. Each carries a
+> status (Draft / Ratified / Superseded), related ADRs, the finding, the
+> decision, the mechanics, the consequences, the enforcement, and the resolves
+> clauses. Drafts can be edited freely; ratified ADRs require explicit revision
+> via amendment or supersession. The ADR lifecycle is documented in
+> [`process.md`](internal/process.md).
 
-> **Note on Phase 1-8 status of ADR-001 through ADR-010** (foundational, pre-team):
-> these ten ADRs were ratified by the team-lead during pre-team scaffolding (Tekgy +
-> Claude in winrapids working directory, 2026-05-07) WITHOUT going through the full
-> Phase 1-8 deconstruction process documented in [`process.md`](process.md). They are
-> ratified-by-trust rather than ratified-by-discipline.
->
-> **The JBD team's first sweep (Sweep A1)** explicitly covers Phase 1-8 deconstruction
-> of these foundational ADRs by the aristotle role, with adversarial review,
-> systems-research review, and scientist validation. See [`expedition/first-sweep-plan.md`](expedition/first-sweep-plan.md)
-> for the concrete plan.
->
-> **Implications for readers**:
-> - These ADRs are TREATED as ratified for purposes of building substrate (the team
->   operates under them; downstream code can cite them; the process treats them as
->   load-bearing)
-> - But they are MORE OPEN to amendment than ADRs that have been through full Phase 1-8
-> - When the team's Phase 1-8 surfaces necessary refinements, expect amendments to
->   land readily (less ratification ceremony than a post-team ADR amendment)
+> **Note on the foundational ADRs (ADR-001 through ADR-010)**: these ten were
+> ratified during early scaffolding without going through the full deconstruction
+> process the later ADRs use. They are TREATED as ratified — the project operates
+> under them and downstream code cites them — but they are MORE OPEN to amendment
+> than the post-foundational ADRs. When deconstruction surfaces a necessary
+> refinement, expect amendments to land readily.
 > - The team should NOT defer to these as authoritative when their Phase 1-8 finds real
 >   issues; the discipline of recognition-not-design (ADR-006) means the team's
 >   findings supersede pre-team intuition
@@ -113,9 +102,7 @@
 
 ## [ADR-001] Failure-class memory is structural, not documentary
 
-**Status**: Ratified 2026-05-07 (foundational; pre-team).
-
-**Participants**: Tekgy + Claude (winrapids cwd, pre-team).
+**Status**: Ratified 2026-05-07.
 
 **Related**: ADR-002, ADR-004, ADR-008.
 
@@ -162,7 +149,7 @@ Cargo subcommands:
 - `cargo antigen vaccinate` — apply known immunity to a structural family
 - `cargo antigen new` — scaffold a new antigen
 
-### Sweep-level consequences
+### Consequences
 
 - `antigen-core` ships the macros + witness primitives
 - `cargo-antigen` ships the tooling that enforces structural integrity
@@ -310,7 +297,7 @@ Ratifying ADR-001 commits the project to:
   cross-crate `addresses()` matching or fingerprint synthesis. The activation
   path that realizes this commitment in the scanner is tracked in
   [`roadmap.md`](roadmap.md) under "Cross-crate scan reachability (ADR-001 C7
-  activation path)"; deferred from v0.1 by the Sweep A3 scope-lock.
+  activation path)".
 - **C8 — `[package.metadata.antigen]` is part of the structural memory.**
   Required-list, ADR registry pointer, audit strictness — all project-level
   structural. CI gates can read this metadata and enforce.
@@ -322,9 +309,9 @@ The `witness` parameter accepts artifacts at multiple validity tiers:
 - **Reachability tier**: the witness identifier resolves to a function/test that
   exists. (Floor; v0.0.x audit lives here.)
 - **Execution tier**: the witness runs without panic and asserts a non-trivial
-  property. (Sweep A2-A3 lift.)
+  property.
 - **Behavioral-alignment tier**: the witness exercises behavior that matches the
-  antigen's structural fingerprint. (Sweep A4-A5 work; ADR-005 open question.)
+  antigen's structural fingerprint. (Forward work; ADR-005 open question.)
 - **Formal-proof tier**: the witness is a verified compile-time proof
   (phantom-type construction, kani/prusti/verus/creusot proof annotation). (Sweep
   A4+ via ADR-002 witness delegation.)
@@ -369,9 +356,7 @@ amended Resolves clause of ADR-001 itself.
 
 ## [ADR-002] Compose, don't compete
 
-**Status**: Ratified 2026-05-07 (foundational; pre-team).
-
-**Participants**: Tekgy + Claude.
+**Status**: Ratified 2026-05-07.
 
 **Related**: ADR-001 (memory mechanism), ADR-004 (elevation posture),
 ADR-005 (sub-clause F validates the witness types this ADR defines),
@@ -405,7 +390,7 @@ has.
 types DELEGATE to existing tools wherever possible.**
 
 Witness mechanisms include:
-- Tests (`#[test]`) — the immunity is verified by `cargo test`
+- Tests (`#[test]`) — the defense is verified by `cargo test`
 - Property tests (`proptest!`, `quickcheck`) — same
 - Formal verification harnesses (`kani::proof`, `prusti::trusted`, `verus::proof`,
   `creusot::ensures`) — antigen knows about them and treats them as valid witnesses
@@ -427,10 +412,9 @@ The `witness` parameter on `#[immune(...)]` accepts:
 
 `cargo antigen scan` validates each witness type by delegating to the underlying tool.
 
-### Sweep-level consequences
+### Consequences
 
-- The team must thoroughly research existing Rust ecosystem tools (see
-  `docs/expedition/ecosystem-composition.md`)
+- Existing Rust ecosystem tools must be thoroughly researched before reinventing
 - Antigen's API must be pluggable so that future tools can become witness providers
 - The first-version witness library prioritizes integration with widely-adopted tools
   (clippy, proptest) over deeper integration with niche tools
@@ -455,8 +439,6 @@ The `witness` parameter on `#[immune(...)]` accepts:
 **Status**: Ratified 2026-05-22.
 
 **Amends**: ADR-002 (Compose, don't compete) — ratified 2026-05-07; previously amended by ADR-013 (Amendment 1).
-
-**Participants**: aristotle (draft + Phase 1-8 + revision); Tekgy (named the amendment + locked 2026-05-21 night); naturalist (biology-grounding upgrade per Class-1 immune-system parallel-surface prediction); adversarial (B11 partial-lands; resolved via ADR-025 adopter-segmentation, not this amendment).
 
 **Related**: ADR-002, ADR-003 (biology-as-discovery-framework strengthens this), ADR-013 (Amendment 1), NEW-ADR-022 (Stdlib-vs-Extension), NEW-ADR-025 (supply-chain compete decision).
 
@@ -502,7 +484,7 @@ This amendment's compose-vs-compete posture is **biology-predicted at the outcom
 | Distinguishing-test application | ADR-Phase-3 + Phase-4 | process | future ADRs apply per-primitive; pattern reuse across ADR drafts |
 | Alternative-path-preserved check | ADR-Phase-3 §What-this-ADR-does-NOT-do | process | ratified amendments explicitly state non-deprecation |
 
-### Sweep-level consequences
+### Consequences
 
 - Biology cognate upgraded: cytokine signaling + memory machinery + antimicrobial chemistry as parallel-surfaces; substrate-cited
 - Honest dual-axis grounding named: biology grounds outcome; software-engineering grounds process
@@ -524,9 +506,7 @@ This amendment's compose-vs-compete posture is **biology-predicted at the outcom
 
 ## [ADR-003] Biological metaphor is load-bearing, not decorative
 
-**Status**: Ratified 2026-05-07 (foundational; pre-team).
-
-**Participants**: Tekgy + Claude.
+**Status**: Ratified 2026-05-07.
 
 **Related**: ADR-006 (recognition), ADR-011 (autoimmunity prediction realized via tolerance carrier).
 
@@ -579,7 +559,7 @@ metaphor breaks, they name where.
 The `docs/glossary.md` anchors every term to its biological referent + Rust ecosystem
 analog.
 
-### Sweep-level consequences
+### Consequences
 
 - The naturalist role is non-optional in the antigen team
 - The glossary is maintained as load-bearing artifact
@@ -609,8 +589,6 @@ analog.
 
 **Amends**: ADR-003 (Biological metaphor is load-bearing, not decorative) — ratified 2026-05-07.
 
-**Participants**: aristotle (draft + Phase 1-8); Tekgy (lock 2026-05-21 night); naturalist (biology-validation; gate passed, no major refinement needed).
-
 **Related**: ADR-003, ADR-006 Amendment 1 (stdlib research-discipline), ADR-022 (Stdlib-vs-Extension).
 
 ### Finding
@@ -623,19 +601,19 @@ The Tekgy lock (2026-05-21): "Each unused biological component is a research pro
 
 **ADR-003 is amended to make explicit that the biological metaphor is BOTH (1) a teaching tool for adopters AND (2) a discovery framework for stdlib growth. Coverage of the metaphor's immune-system components is the completeness check for stdlib comprehensiveness.**
 
-**Discovery framework**: each immune-system component (T-cell, B-cell, macrophage, NK, dendritic, anergy, immunosuppress, vaccinate, complement, opsonize, Treg, autoimmune, lysozyme, mast, mucosal-IgA, etc.) is a research prompt. The naturalist role maintains `docs/expedition/biology-coverage-map.md` identifying which components have stdlib primitive equivalents and which are unmapped research-arc candidates. Stdlib completeness check: biological-metaphor coverage map IS the completeness measure.
+**Discovery framework**: each immune-system component (T-cell, B-cell, macrophage, NK, dendritic, anergy, immunosuppress, vaccinate, complement, opsonize, Treg, autoimmune, lysozyme, mast, mucosal-IgA, etc.) is a research prompt. A biology-coverage map identifies which components have stdlib primitive equivalents and which are unmapped research-arc candidates. Stdlib completeness check: the biological-metaphor coverage map IS the completeness measure.
 
 **Teaching tool** (preserved from original ADR-003): documentation uses biological language freely; API documentation uses precise Rust terms with biological analogies cross-referenced; glossary anchors every term.
 
 ### Mechanics
 
 ADR-003 §Mechanics extended:
-- The naturalist role responsibility extends to maintaining `docs/expedition/biology-coverage-map.md`
+- The biology-coverage map is maintained alongside stdlib growth
 - Stdlib research-arc planning consults the coverage map for candidate research prompts
 - Stdlib ratification reviews include "where does this fit on the biology coverage map?" as a check
 - Coverage map records trichotomy: MAPPED / UNMAPPED / INVESTIGATED-BUT-NOT-MAPPED
 
-### Sweep-level consequences
+### Consequences
 
 - Biology coverage map becomes the discovery substrate for stdlib research arcs
 - Naturalist role is BOTH metaphor-honesty guardian AND discovery-framework maintainer
@@ -663,9 +641,7 @@ ADR-003 §Mechanics extended:
 
 ## [ADR-004] Implicit-to-explicit elevation as architectural posture
 
-**Status**: Ratified 2026-05-07 (foundational; pre-team).
-
-**Participants**: Tekgy + Claude. Inherited from tambear's DEC-029-impl + V4 work.
+**Status**: Ratified 2026-05-07.
 
 **Related**: ADR-001 (memory mechanism), ADR-008 (named-observer).
 
@@ -715,7 +691,7 @@ The cost is real: an antigen team works slower per-token than an implicit-mode t
 exchange is calibration: explicit-mode produces results that are CORRECT and LEGIBLE,
 while implicit-mode produces results that are FAST and FRAGILE.
 
-### Sweep-level consequences
+### Consequences
 
 - The antigen team's velocity is paced by explicit-mode discipline
 - Premature optimization toward implicit-mode (skipping witness declarations, eliding
@@ -742,9 +718,7 @@ while implicit-mode produces results that are FAST and FRAGILE.
 
 ## [ADR-005] Sub-clause F at every trust boundary
 
-**Status**: Ratified 2026-05-07 (foundational; pre-team).
-
-**Participants**: Tekgy + Claude. Inherited from tambear DEC-022 sub-clause F.
+**Status**: Ratified 2026-05-07.
 
 **Related**: ADR-001 (witness mechanism), ADR-002 (composition).
 
@@ -775,7 +749,7 @@ implemented in tooling (cargo-antigen) and verified by CI integration.**
 
 Specific boundaries and their checks:
 
-1. **Immunity claim**: `cargo antigen scan` validates that `witness = Y` resolves to a
+1. **Defense**: `cargo antigen scan` validates that `witness = Y` resolves to a
    real test/proptest/proof/lint and that it exercises behavior matching the antigen's
    structural fingerprint.
 
@@ -799,7 +773,7 @@ Specific boundaries and their checks:
 output is structured (JSON / SARIF) so that CI can fail builds on trust-boundary
 violations.
 
-### Sweep-level consequences
+### Consequences
 
 - Every cargo-antigen subcommand performs explicit validation; no "trust me" mode
 - Documentation for every antigen in `antigen-stdlib` includes the witness validation
@@ -827,9 +801,6 @@ violations.
 
 **Amends**: ADR-005 (Sub-clause F at every trust boundary).
 
-**Participants**: pathmaker (drafted; integration commit), navigator (full-body
-spec), aristotle (Phase 1-8 in Track 1 bundle), team-lead (ratification).
-
 **Related**: ADR-001 Amendment 1 Change 7 (originating observation —
 rationale-as-required-field elevated to a structural commitment of the
 carrier hierarchy); ADR-009 (`summary` field on Layer 1; `references` field
@@ -843,7 +814,7 @@ at runtime; per aristotle R-Conflict-Check, no content conflict).
 
 ADR-005 ratifies sub-clause F as a per-boundary discipline: every trust
 boundary requires a validation check before trust is extended. The original
-text enumerates three boundaries (immunity claim, lineage propagation,
+text enumerates three boundaries (defense, lineage propagation,
 cross-crate antigen consumption) and discusses each individually. What the
 original text does *not* surface — and what the substrate exhibits across
 nearly every primitive added since ratification — is that sub-clause F has
@@ -926,9 +897,9 @@ flips. New trust-extending primitives without justification fields
 require active argument; primitives with justification fields are the
 unmarked default.
 
-### Sweep-level consequences
+### Consequences
 
-- **Sweep A2 (current)**: ADR-011 (`#[antigen_tolerance]`) and ADR-014
+- ADR-011 (`#[antigen_tolerance]`) and ADR-014
   (`#[antigen_generates]`) already operationalize the principle; this
   amendment ratifies what they already do. ADR-016 (temporal
   recognition surface) ships its `verified_at`/`evidence`/`stale_after`
@@ -972,13 +943,6 @@ unmarked default.
 **Amends**: ADR-005 (Sub-clause F at every trust boundary), specifically
 Decision item 1 (Immunity-claim trust boundary).
 
-**Participants**: naturalist (drafted; v1 absorbs aristotle's four
-refinements: R-Tier-Granularity, R-Crash, R-Soft-MUST, R-Conflict-Check),
-aristotle (Phase 1-8 verdict: ratify substantively with refinements),
-adversarial (motivation ATKs filed A2-003/004/005/011/012; ATK-Am3 queue
-surfaced via aristotle Phase 1-8), scientist (validation), team-lead
-(ratification).
-
 **Related**: ADR-001 Amendment 1 Change 4 (witness-validity tier model —
 this amendment enforces tier-honesty at the output surface where the
 model is read); ADR-005 §sub-clause F (the discipline being extended);
@@ -1008,7 +972,7 @@ what the audit *actually verified*, not what it *could maximally
 infer*.
 
 A2 adversarial filings produced five confirmed classes of
-under-verified immunity claims, each demonstrating the same failure
+under-verified defenses, each demonstrating the same failure
 mode: the audit's status surface reports verification work at a
 stronger tier than the audit actually performs. The pattern is
 biology-derivable from B-cell affinity-maturation tier hierarchy and
@@ -1025,7 +989,7 @@ formal-proof). The substrate evidence:
 | **A2-012** | `audit.rs` (`detect_kind`) | Execution (Resolved Test = "cargo test ran it") | Reachability + attribute-presence (audit doesn't run cargo test) | `#[test] #[ignore]` witness reported as well-formed |
 
 All five are sub-clause F violations at the audit-reporting surface.
-The audit extends trust ("this immunity claim is well-formed") on the
+The audit extends trust ("this defense is well-formed") on the
 basis of work that does not support the trust extension.
 Recognition-not-design (ADR-006) threshold satisfied: substrate (five
 `TODO(team)` markers in `antigen/src/` already enumerate the same
@@ -1157,18 +1121,18 @@ The amendment operationalizes at three surfaces:
    fail with structured error naming the limit hit (rather than
    panic, abort, or hang).
 
-### Sweep-level consequences
+### Consequences
 
-- **Sweep A2 W7**: `WitnessKind::PhantomType` recognition ships with
+- `WitnessKind::PhantomType` recognition ships with
   `WitnessTier::FormalProof` + `phantom-type-shape-recognized` audit
   hint (per ADR-013); recognition is warn-and-emit-tier rather than
   silent acceptance. `#[ignore]` detection added to `detect_kind`;
   `#[test] #[ignore]` reports `WitnessTier::Reachability` +
   `test-attribute-present-ignore-skipped`.
-- **Sweep A2 W9**: human-readable audit output language reviewed for
+- Human-readable audit output language is reviewed for
   tier-honesty — replace "structurally well-formed" with explicit
-  tier-naming where current status word over-claims.
-- **Sweep A3**: cycle detection in `#[descended_from]` walking is
+  tier-naming where the status word would over-claim.
+- Cycle detection in `#[descended_from]` walking is
   *required* for Amendment 3 compliance, not optional.
 - **Future ADR territory**: extension of the tier-honesty principle
   beyond audit surfaces (to all antigen recognition mechanisms)
@@ -1242,16 +1206,13 @@ The amendment operationalizes at three surfaces:
    recognizes external-tool prefixes without invoking the tool;
    `Reachability` + `external-tool-prefix-recognized` acknowledges
    this gap. `Execution` + `external-tool-invoked` comes when
-   invocation lands (Sweep A3+).
+   invocation lands (forward work).
 
 ---
 
 ## [ADR-006] Recognition, not design
 
-**Status**: Ratified 2026-05-07 (foundational; pre-team).
-
-**Participants**: Tekgy + Claude. Inherited from tambear DEC-032 placeholder
-("recognition-not-design") and naturalist's DEC-character finding.
+**Status**: Ratified 2026-05-07.
 
 **Related**: ADR-003 (metaphor), ADR-004 (elevation),
 ADR-007 (anti-YAGNI is the structurally-guaranteed counterweight to recognition).
@@ -1302,10 +1263,10 @@ The naturalist role guards this discipline at design-review time. When a propose
 addition feels designed-not-recognized, naturalist asks: "what structure are you
 recognizing? show me the instances."
 
-The `docs/expedition/failure-class-instances.md` document is the recognition substrate:
-every antigen in stdlib must have its source pattern documented there.
+The recognition substrate is concrete: every antigen in stdlib must have its
+source pattern documented — the real-code instances it was recognized from.
 
-### Sweep-level consequences
+### Consequences
 
 - Antigen development is bottom-up (recognize patterns from real code) more than
   top-down (design from first principles)
@@ -1318,8 +1279,7 @@ every antigen in stdlib must have its source pattern documented there.
 
 - Code review: every new antigen / witness type / composition rule requires a
   "recognition" section in its declaration explaining what it recognizes
-- `docs/expedition/failure-class-instances.md` requires updates for every antigen-stdlib
-  addition
+- The source-pattern record requires an update for every antigen-stdlib addition
 - Design discussions explicitly ask: "are we recognizing or designing?"
 
 ### Resolves
@@ -1335,8 +1295,6 @@ every antigen in stdlib must have its source pattern documented there.
 **Status**: Ratified 2026-05-22.
 
 **Amends**: ADR-006 (Recognition, not design) — ratified 2026-05-07.
-
-**Participants**: aristotle (draft + Phase 1-8); Tekgy (lock 2026-05-21 night); naturalist (biology-validation; gate passed); adversarial (no blocking findings on this amendment).
 
 **Related**: ADR-003 Amendment 1 (biology-as-discovery-framework), ADR-006, ADR-007 (anti-YAGNI unchanged), ADR-022 (Stdlib-vs-Extension formalizes the separation this amendment creates).
 
@@ -1372,7 +1330,7 @@ ADR-006 §Mechanics amended:
 - For stdlib additions: the discipline check is "what substrate grounds this antigen?" not "what direct encounter recognizes this?"
 - Stdlib antigens MUST cite at least one substrate reference in `#[antigen(..., references = [...])]`; declaration without references is a parse-time error for `antigen-stdlib`
 
-### Sweep-level consequences
+### Consequences
 
 - Stdlib aims at hundreds of antigens via research-arc drops, not organic 30-50 over years
 - Biological metaphor coverage becomes the completeness check (per ADR-003 Amendment 1)
@@ -1402,9 +1360,7 @@ ADR-006 §Mechanics amended:
 
 ## [ADR-007] Anti-YAGNI: structurally-guaranteed need
 
-**Status**: Ratified 2026-05-07 (foundational; pre-team).
-
-**Participants**: Tekgy + Claude. Inherited from tambear standing constraints.
+**Status**: Ratified 2026-05-07.
 
 **Related**: ADR-001 (the memory carriers ADR-007 commits to building all of),
 ADR-002 (composition), ADR-006 (recognition),
@@ -1454,7 +1410,7 @@ The contrarian/inversion role asks the opposite: "what would happen if we DIDN'T
 this?" If the answer is "the design works fine," the feature is YAGNI; if the answer is
 "we'd violate ADR-X," the feature is structurally-guaranteed.
 
-### Sweep-level consequences
+### Consequences
 
 - The first sweep of antigen development implements ALL 8 failure classes' core
   primitives, not just the easy ones (e.g., FrameTranslation + BoundaryViolation)
@@ -1480,10 +1436,7 @@ this?" If the answer is "the design works fine," the feature is YAGNI; if the an
 
 ## [ADR-008] Named-observer position as terminal stratum
 
-**Status**: Ratified 2026-05-07 (foundational; pre-team).
-
-**Participants**: Tekgy + Claude. Inherited from tambear's vertical-to-horizontal terminal
-pattern (P8-A) and named-observer convergence-pattern work.
+**Status**: Ratified 2026-05-07.
 
 **Related**: ADR-001 (the carriers the named observer authors),
 ADR-004 (elevation), ADR-006 (recognition),
@@ -1542,12 +1495,11 @@ User-experience review is explicit at every API decision. Questions to ask:
    docs? (target: scan output is self-explanatory; audit output points to specific
    actionable next steps)
 
-### Sweep-level consequences
+### Consequences
 
-- Sweep A6 (ergonomics polish + IDE integration) is a high-priority sweep, not a
-  "nice-to-have"
+- Ergonomics polish + IDE integration is high-priority, not a "nice-to-have"
 - Cargo subcommand output design is a real engineering investment, not boilerplate
-- The naturalist + scientist roles on the antigen team have explicit responsibility for
+- Output ergonomics and biology-cognate accuracy are explicit, owned responsibilities for
   named-observer experience
 - "How does this feel to a named observer?" is a standard design-review question
 
@@ -1570,11 +1522,6 @@ User-experience review is explicit at every API decision. Questions to ask:
 **Status**: Ratified 2026-05-09.
 
 **Amends**: ADR-008 (Named-observer position as terminal stratum).
-
-**Participants**: pathmaker (drafted), aristotle (Phase 1-8: ratify
-substantively as drafted with Open-questions Layer-1/3 differential
-add), adversarial (ATK-008-1 surfaced multi-contributor friction;
-amendment ATKs queued), scientist (validation), team-lead (ratification).
 
 **Related**: ADR-001 (the carriers the named observer authors); ADR-003
 (biological metaphor — immune response lag predicts the warn-not-error
@@ -1600,7 +1547,7 @@ temporally separated in real immune systems.
 
 This amendment also closes the gap scientist named in F-DOCS-2 (the
 "named observer experience" sections claimed by ADR-008's enforcement
-clause that don't exist on current API surfaces — Sweep A2 deliverable).
+clause that don't exist on current API surfaces).
 
 ### Change 1: Acknowledge multi-contributor workflow as the default case
 
@@ -1675,23 +1622,20 @@ ADR-009's `[package.metadata.antigen]` schema.
 >    while requiring strict immunity for a small set of critical
 >    failure-classes.
 
-### Change 3: "Named observer experience" documentation as a Sweep A2 deliverable
+### Change 3: "Named observer experience" documentation as a deliverable
 
-Scientist F-DOCS-2 finding: ADR-008's enforcement clause requires
+The F-DOCS-2 finding: ADR-008's enforcement clause requires
 "every public API surface includes a 'named observer experience'
-section in its docs." Current `antigen/src/lib.rs` and
-`cargo-antigen/src/main.rs` documentation is minimal. The enforcement
-gap is real but is a Sweep A2 deliverable, not an ADR amendment per
-se. This change explicitly names the A2 commitment so it doesn't slip.
+section in its docs." This change explicitly names that documentation
+commitment as an implementation deliverable so it doesn't slip.
 
-**Amended addition** (new bullet in "Sweep-level consequences" section):
+**Amended addition** (new bullet in the "Consequences" section):
 
-> - Sweep A2 W8 (idiomatic refinement) ships "named observer
->   experience" sections on every public API surface
+> - Ships "named observer experience" sections on every public API surface
 >   (`antigen-macros::antigen`, `antigen-macros::presents`,
->   `antigen-macros::immune`, `antigen-macros::descended_from`,
->   `antigen-macros::antigen_tolerance` per ADR-011, `cargo-antigen
->   scan|audit|new|vaccinate`). Each section names: who the named
+>   `antigen-macros::defended_by`, `antigen-macros::descended_from`,
+>   `antigen-macros::antigen_tolerance` per ADR-011, `cargo antigen
+>   scan|audit`). Each section names: who the named
 >   observer is at that surface, what their typical 60-second flow
 >   looks like, what ergonomic affordances exist (scaffolding, error
 >   message shape, IDE integration when available), and the
@@ -1751,9 +1695,7 @@ se. This change explicitly names the A2 commitment so it doesn't slip.
 
 ## [ADR-009] Adoption gradient: antigen meets consumers at any discipline level
 
-**Status**: Ratified 2026-05-07 (foundational; pre-team).
-
-**Participants**: Tekgy + Claude.
+**Status**: Ratified 2026-05-07.
 
 **Related**: ADR-002 (compose, don't compete),
 ADR-005 (Layer 3 `adr` field validation is a trust-boundary decision),
@@ -1875,7 +1817,7 @@ If `adr_registry` is configured, `cargo antigen audit` validates that referenced
 identifiers exist. If not configured, `adr` field references are stored but not
 validated.
 
-### Sweep-level consequences
+### Consequences
 
 - The macro design must support optional fields without surface-area warnings
 - Cargo.toml metadata schema must include `[package.metadata.antigen]` for
@@ -1915,8 +1857,6 @@ Initial heuristic: cargo-antigen audit reports both; future ADR may refine.
 
 **Amends**: ADR-009 §Decision §Layer 1 Required fields.
 
-**Related campsites**: `findings/verify-only-antigen-forced-fingerprint`.
-
 **Reason**: ADR-009 ratified `fingerprint` as a required Layer-1 field for `#[antigen]`.
 This was correct for the scan-locatable archetype (PanickingInDrop: located by source-structure
 pattern). ADR-025 later ratified verify-only antigens (supply-chain family: UnpinnedDependency,
@@ -1928,7 +1868,7 @@ mentions) spurious scan presentations (~14,792 at measurement time; observer-con
 a representation forced to diverge from substrate truth — the macro's required-fingerprint encoding
 the false claim "I am scan-locatable" for antigens that are not.
 
-**Aristotle Phase-1-8 verdict** (findings campsite story, 2026-05-27): PASS. F1 (R1+R3):
+**Deconstruction verdict**: PASS. F1 (R1+R3):
 make fingerprint `Option<String>`; absent ⇒ verify-only (no scan-detection; audit evaluates via
 `requires=`/witness only). This is recognition-not-design (ADR-006): the verify path already exists
 in the audit layer; the macro is the only place forcing the scan-surface lie. Forced-rejection
@@ -2025,11 +1965,7 @@ DESIGN, because their detection-model does not include source-structure scanning
 
 ## [ADR-010] Fingerprint grammar v1: syn-based AST visitor pattern
 
-**Status**: Ratified 2026-05-07 (foundational; pre-team).
-
-**Participants**: Tekgy + Claude. Synthesizes ecosystem-composition research
-(ast-grep, comby, clippy lint internals, dylint) with academic-context research
-(refinement type specification grammars).
+**Status**: Ratified 2026-05-07.
 
 **Related**: ADR-001 (structural memory),
 ADR-002 (compose, don't compete),
@@ -2130,14 +2066,13 @@ fingerprint caching apply.
 - Auto-generation: from a sample failing site, antigen suggests a fingerprint that
   matches it
 
-### Sweep-level consequences
+### Consequences
 
-- Sweep A2 (core macros) implements the basic fingerprint parser
-- Sweep A3 (cargo-antigen scan) implements the visitor pattern walking target code
-- Sweep A4 (composition rules + #[descended_from]) extends fingerprints to handle
+- The core macros provide the basic fingerprint parser
+- `cargo antigen scan` implements the visitor pattern walking target code
+- Composition rules + `#[descended_from]` extend fingerprints to handle
   inheritance-aware matching
-- Sweep A5 (vaccinate + audit + stdlib antigens) populates antigen-stdlib with real
-  fingerprints exercising the grammar
+- The bundled stdlib of antigens populates real fingerprints exercising the grammar
 
 ### Enforcement
 
@@ -2160,7 +2095,7 @@ fingerprint caching apply.
    matches cached at the source crate? (Future ADR; v0.2+ work.)
 
 2. **Fingerprint versioning**: when an antigen ships v1.0 with fingerprint F1 and
-   later ships v1.1 with refined fingerprint F2, do existing immunity declarations
+   later ships v1.1 with refined fingerprint F2, do existing defenses
    need re-validation? (Future ADR; tied to crates.io semver discipline.)
 
 3. **Negative fingerprints**: should `not` operators be allowed at top level (e.g.,
@@ -2181,11 +2116,6 @@ These open questions become future ADR-NNNs as the team encounters concrete need
 **Status**: Ratified 2026-05-09.
 
 **Amends**: ADR-010 (Fingerprint grammar v1: syn-based AST visitor pattern).
-
-**Participants**: pathmaker (drafted), aristotle (Phase 1-8 verdict:
-ratify substantively as drafted), math-researcher (originating
-systems-research review identifying Path C), adversarial (ATK pass),
-scientist (validation), team-lead (ratification).
 
 **Reason**: ADR-010's example fingerprint isn't valid Rust syntax (uses
 single-quoted string-style operators that `syn::parse2::<Expr>`
@@ -2269,11 +2199,6 @@ not blocker for this amendment's ratification.
 
 **Amends**: ADR-010 (Fingerprint grammar v1: syn-based AST visitor pattern).
 
-**Participants**: pathmaker (drafted; v1 absorbs aristotle's two
-refinements R-Q2-A deprecation-then-narrow workflow and R-Q2-B
-named-companion-antigen pattern), aristotle (Phase 1-8 verdict),
-adversarial, scientist, team-lead (ratification).
-
 **Reason**: Once `antigen-stdlib` ships v0.1 to crates.io, every
 fingerprint is part of a public API under semver. Without explicit
 policy, breaking changes leak into minor versions silently. Clippy's
@@ -2286,7 +2211,7 @@ it to "must land before stdlib publication."
 ### Change
 
 Add a "Semver and MSRV" subsection to ADR-010 between "Mechanics" and
-"Sweep-level consequences":
+"Consequences":
 
 > ### Semver and MSRV policy
 >
@@ -2302,7 +2227,7 @@ Add a "Semver and MSRV" subsection to ADR-010 between "Mechanics" and
 > - **Narrowing a fingerprint** (the new fingerprint matches strictly
 >   fewer sites than the old): **major version bump by default**.
 >   Existing consumers may lose coverage they were relying on;
->   tolerance markers and immunity declarations may become orphaned
+>   tolerance markers and defenses may become orphaned
 >   (per ADR-011 stale-tolerance detection).
 > - **Deprecation-then-narrow workflow** (alternative to immediate
 >   major bump; per aristotle R-Q2-A): narrowings MAY ship in minor
@@ -2377,13 +2302,6 @@ Add a "Semver and MSRV" subsection to ADR-010 between "Mechanics" and
 **Status**: Ratified 2026-05-09.
 
 **Amends**: ADR-010 (Fingerprint grammar v1: syn-based AST visitor pattern).
-
-**Participants**: pathmaker (drafted; v1 absorbs aristotle's three
-refinements R-Q3 dead-code-elimination clarification, R-Q4
-anti-laziness discipline, R-Q5 fourth performance invariant
-node_kind dispatch), math-researcher (originating systems-research
-review §16 + filter framing folding), aristotle (Phase 1-8 verdict),
-adversarial, scientist, team-lead (ratification).
 
 **Reason**: ADR-010 is silent on conditional compilation, macro
 expansion, and body-level shape matching. The first canonical seed
@@ -2497,8 +2415,8 @@ review §16.
 >
 > **Anti-laziness discipline** (per aristotle R-Q4): recall-tuned
 > does NOT mean unboundedly broad. Stdlib authors SHOULD calibrate
-> fingerprints against a representative corpus
-> (`docs/expedition/failure-class-instances.md`) before publishing.
+> fingerprints against a representative corpus of real instances
+> before publishing.
 > A fingerprint matching >50% of items in any item-kind bucket
 > (heuristic, not formal threshold) signals over-broadness; such
 > fingerprints either narrow before publishing or cite specific
@@ -2577,7 +2495,7 @@ review §16.
 > Without these invariants, the 5-second budget blows out 5-10× per
 > math-researcher §4. The invariants are required for v0.1.0 release.
 
-### Sweep-level consequences additions
+### Additional consequences
 
 > - **Sweep A2 (W6)**: ships `antigen-fingerprint` workspace member;
 >   ships parser + item-kind dispatch + name-glob operator; ships
@@ -2645,10 +2563,6 @@ depth at 10" to:
 **Status**: Ratified 2026-05-09.
 
 **Amends**: ADR-010 (Fingerprint grammar v1: syn-based AST visitor pattern).
-
-**Participants**: pathmaker (drafted; integration commit), navigator
-(full-body spec), aristotle (Track 1 P1-8 + bundle deconstruction
-identifying the framing as elevation-worthy), team-lead (ratification).
 
 **Related**: ADR-001 Amendment 1 (carrier-strength + witness-validity
 tiers; the filter-vs-proof split is the operational form of the
@@ -2741,7 +2655,7 @@ amendment* as the architectural commitment when justifying
 operator additions, performance trade-offs, or composition rules
 involving the witness layer.
 
-### Sweep-level consequences
+### Consequences
 
 - **Sweep A2 (current)**: W6 ships the filter layer (parser +
   dispatch + initial operators per Amendment 3 Clause C). W7
@@ -2792,11 +2706,6 @@ involving the witness layer.
 
 **Amends**: ADR-010 (Fingerprint grammar v1), specifically Performance
 Invariant 2 in ADR-010 Amendment 3.
-
-**Participants**: scout (first author, A3.5 onboarding sweep); aristotle
-(Phase 1-8 audit + small-push audit); adversarial (Stage 3 review +
-ATK-W6a-017 Mechanism B negative test); pathmaker (OQ1 STRICT implementation
-at bb22e56); team-lead (OQ1 STRICT adjudication + ratification).
 
 **Related**: ADR-010 Amendment 3 (Performance Invariant 2 — pre-parsed
 signature storage); ADR-015 (grammar-vs-vocabulary cut + per-operator
@@ -2903,9 +2812,8 @@ Mitigations:
   explicitly maps each receiver form (`self`, `&self`, `&mut self`, no receiver)
   to its pattern form.
 - **Fingerprint-declaration corrections**: `PolarityInvertedClassMeet` in
-  tambear's `antigens.rs`, `docs/expedition/stdlib-seed-antigens.md`, and
-  the two ADR-010 ratified-text instances corrected from `"(Self, Self) -> Self"`
-  to `"(self, Self) -> Self"`.
+  tambear's `antigens.rs` and the two ADR-010 ratified-text instances corrected
+  from `"(Self, Self) -> Self"` to `"(self, Self) -> Self"`.
 
 This distinction — `Self` (typed parameter) vs `self` (receiver keyword) — is
 a Rust grammar-level distinction, not a fingerprint-grammar-level limitation.
@@ -3003,14 +2911,6 @@ positive control.
 
 **Amends**: ADR-010 Amendment 3 (`match_constraint` return type) and Amendment 4 (sub-item
 domain extension prerequisite).
-
-**Participants**: antigen-dx-dogfood team (scientist primary drafter; aristotle Phase-1-8
-PASSED with strengthening clarification on two-level semantics; naturalist biology PASSED
-with primary-source grounding; adversarial PASSED with all four ATK-FP tests traced through
-Kleene-strong algebra; all four ceremony signers).
-
-**Related campsites**: `forward/fingerprint-grammar-body-content-with-negation`;
-`ceremony/ratify-adr-010-amendment-6-match3`.
 
 ### Problem
 
@@ -3250,9 +3150,7 @@ tests 2/3/4 unaffected.
   (predicate preconditions never crossed threshold = Undefined)
 - Window-period HIV testing: clinical indeterminate category (standardized; transfusion-
   transmitted HIV before category enforced)
-- Aristotle Phase-1-8: `forward/fingerprint-grammar-body-content-with-negation` campsite
-  (2026-05-27); Kleene-strong two-level semantics clarification
-- Naturalist biology gate: same campsite (2026-05-27); assay-on-wrong-tissue cognate
+- Kleene-strong two-level semantics clarification; assay-on-wrong-tissue cognate
 - Recognition-not-design: ADR-006 (3 independent real failures = grammar investment earns)
 
 ---
@@ -3260,9 +3158,6 @@ tests 2/3/4 unaffected.
 ## [ADR-011] `#[antigen_tolerance(...)]`: opt-out for legitimate fingerprint matches
 
 **Status**: Ratified 2026-05-08.
-
-**Participants**: pathmaker (drafted), aristotle (reciprocal Phase 1-8), adversarial
-(ATK pass), scientist (validation pass).
 
 **Related**: ADR-001 (carrier set; this is a C6 carrier addition), ADR-003
 (autoimmunity prediction from biological metaphor), ADR-005 (sub-clause F at trust
@@ -3335,7 +3230,7 @@ is **item-level only** in v1; module-level deferred to future ADR.
    ATK-011-3): site is reported as tolerated; the `#[presents]` marker is dead
    code; audit warns to remove one or the other.
 
-### Sweep-level consequences
+### Consequences
 
 - **Sweep A2 (W6 fingerprint grammar)**: grammar recognizes `#[antigen_tolerance]`
   on items during AST walk; matches against fingerprints check tolerance presence.
@@ -3384,9 +3279,6 @@ is **item-level only** in v1; module-level deferred to future ADR.
 **Status**: Ratified 2026-05-08. Implementation deferred to Sweep A4-A5.
 
 **Amends**: ADR-010 (Fingerprint grammar v1).
-
-**Participants**: pathmaker (drafted), math-researcher (systems-research), aristotle
-(reciprocal Phase 1-8), adversarial (ATK pass), scientist (validation pass).
 
 **Related**: ADR-001 [as amended] (C5 drift-detection-at-scan-time invariant),
 ADR-002 (compose, don't compete; clippy pattern engine reuse), ADR-005 (sub-clause
@@ -3438,7 +3330,7 @@ Performance impact: `O(n × m × b)` where `b` is average body size. Realistic
 estimate for tambear-scale (217 files): ~6s per scan. Borderline for CI; Sweep A5
 should benchmark and may need parallelism or incremental scan caching.
 
-### Sweep-level consequences
+### Consequences
 
 - **Sweep A4** extends fingerprint visitor for `#[descended_from]` walking; v2
   grammar is sibling extension of the same visitor.
@@ -3479,9 +3371,6 @@ should benchmark and may need parallelism or incremental scan caching.
 **Status**: Ratified 2026-05-08.
 
 **Amends**: ADR-002 (Compose, don't compete).
-
-**Participants**: pathmaker (drafted), aristotle (reciprocal Phase 1-8), scientist
-(validation pass).
 
 **Related**: ADR-001 [as amended] (C1: all named witness types ship; tier
 acknowledgment Change 4), ADR-002 (the ADR being amended), ADR-005 (sub-clause F:
@@ -3556,7 +3445,7 @@ the constructor encodes a real proof," not silent acceptance.
 
 JSON output includes `witness_tier` field for CI gates.
 
-### Sweep-level consequences
+### Consequences
 
 - **Sweep A2 W7**: ships `WitnessKind::PhantomType` and basic detection. v0.1.0
   ships at recognize-and-warn level.
@@ -3603,9 +3492,6 @@ JSON output includes `witness_tier` field for CI gates.
 (the `#[antigen_generates]` macro + scan generates-synthesis pass;
 `antigen/tests/atk_antigen_generates.rs`). Cross-crate macro-output recognition
 (§A4) remains deferred pending the cross-crate antigen-discovery mechanism.
-
-**Participants**: pathmaker (drafted from adversarial's ATK-010-1 finding),
-aristotle (reciprocal Phase 1-8), scientist (validation pass).
 
 **Related**: ADR-001 [as amended] (C6 carrier addition; this introduces a fifth
 core macro), ADR-002 (compose, don't compete; consumer-side annotation question
@@ -3672,8 +3558,8 @@ A macro can stack multiple `#[antigen_generates]` declarations.
   Sweep A3). v0.2.0 ships same-workspace; cross-crate awaits the discovery
   mechanism.
 
-**Audit integration**: synthetic presentations are checked for an immunity
-declaration on the same item (the macro INVOCATION, not the macro definition).
+**Audit integration**: synthetic presentations are checked for a defense
+on the same item (the macro INVOCATION, not the macro definition).
 Per aristotle's reciprocal Phase 1-8, scan output surfaces consumer-side awareness:
 
 ```
@@ -3690,7 +3576,7 @@ separate category. The intent: absent declarations are a known unknown.
 **Sub-clause F** (ADR-005): antigen type must be discoverable; rationale required;
 expansion-validation deferred (v0.2+ trusts the author).
 
-### Sweep-level consequences
+### Consequences
 
 - **Sweep A2** does NOT ship `#[antigen_generates]`. Deferred to A3-A4.
 - **Sweep A3 / v0.3 (DONE)** wires the synthesis pass for same-workspace: the
@@ -3732,14 +3618,6 @@ expansion-validation deferred (v0.2+ trusts the author).
 ## [ADR-015] Fingerprint engine: grammar-over-AST with per-fingerprint evaluator trait
 
 **Status**: Ratified 2026-05-09.
-
-**Participants**: scout (engine-shift proposal; substrate evidence in
-tambear `pattern.rs`), math-researcher (drafted v0 + v1 absorbing
-self-deconstruction + substrate-correction addendum), aristotle (two
-external Phase 1-8 cycles + revising addendum; recommendation:
-ratify substantively as drafted with backend-choice deferred),
-adversarial (ATK-015-1..7), scientist (validation), team-lead
-(ratification).
 
 **Related**:
 - ADR-002 (compose, don't compete) — load-bearing; this ADR
@@ -3986,7 +3864,7 @@ Witnesses run via their respective tools (`cargo test`, `cargo kani`,
 `cargo clippy`, `cargo prusti`, etc.) and report results. The engine
 choice is *what fingerprints match*, not *what witnesses prove*.
 
-### Sweep-level consequences
+### Consequences
 
 - **Sweep A2 (core macros + initial fingerprint engine)**: scope is
   item-level operators only. Body-pattern operator (W6b) blocks on
@@ -4057,14 +3935,6 @@ choice is *what fingerprints match*, not *what witnesses prove*.
 ## [ADR-016] Temporal recognition surface: provenance + freshness primitives for stale-context and premature-abstraction
 
 **Status**: Ratified 2026-05-09.
-
-**Participants**: scout (T2 finding — stale-context and
-premature-abstraction need temporal primitives), math-researcher
-(drafted v0 + v1 absorbing aristotle's external Phase 1-8),
-aristotle (external Phase 1-8: ratify with grid framing +
-substrate-honesty refinement + R-5 PrematureAbstraction witness gap
-closure), adversarial (ATK-T2-1..4 + ATK-016-1..5 + ATK-A2-1..6),
-scientist (validation), team-lead (ratification).
 
 **Sibling**: ADR-015 (engine grammar). Together they ratify the
 analysis-level × temporality grid as recognition substrate. ADR-015
@@ -4303,7 +4173,7 @@ already in `cargo-antigen`. cargo-audit / cargo-deny are not added
 as dependencies; they are invoked as external processes (per
 ADR-002).
 
-### Sweep-level consequences
+### Consequences
 
 - **Sweep A2 (core macros)**: the macro arg-parser must accept the
   three new fields **with known-limitation note** per
@@ -4389,15 +4259,6 @@ ADR-002).
 
 **Status**: Ratified 2026-05-09.
 
-**Participants**: aristotle (Phase 1-8 + draft), navigator (scope-lock,
-substrate-currency, routing, divergence-as-signal sharpening, v5 stale-example
-fix + precondition clarification), pathmaker (substrate verification), scout
-(cross-crate discovery substrate; P1/P2/P5 empirical checks; canonical_path
-semver format; precondition enforcement clarification), naturalist
-(biology-layering rationale; earned-identity framing), adversarial
-(orphaned_lineage_edges enforcement gap), team-lead + Tekgy (Approach
-3-revised ratification).
-
 **Related**:
 - ADR-001 Amendment 1 Change 3 C7 (cross-crate consumption commitment)
 - ADR-005 (sub-clause F at every trust boundary; cross-crate antigen consumption is named boundary item 4)
@@ -4426,7 +4287,7 @@ elevates antigen identity from type-name-string to canonical-declaration-site.
 
 Cross-crate antigen consumption (ADR-001 C7, Sweep A3 scope) requires
 antigen *identity* beyond the bare type-name. Two antigens in different
-crates can share a type-name; immunity claims and lineage edges must
+crates can share a type-name; defenses and lineage edges must
 distinguish them.
 
 Three identity-model approaches exist:
@@ -4543,7 +4404,7 @@ may have changed.
 - Lineage edges pointing at `foo@1.0.0::ParentAntigen` become orphans when
   the workspace upgrades to `foo@1.1.0` (`orphaned_lineage_edges()` surfaces
   the edge).
-- Cross-version immunity claims appear as unaddressed presentations (the
+- Cross-version defenses appear as unaddressed presentations (the
   `addresses()` check returns false because canonical_paths differ).
 - Both behaviors are correct — they enforce periodic re-verification of
   cross-crate claims at version boundaries.
@@ -4614,7 +4475,7 @@ checksums or dependency authenticity — cargo's resolution chain is the authori
 Sub-clause F by delegation (ADR-002 compose-not-compete applied to the trust
 boundary itself).
 
-### Sweep-level consequences
+### Consequences
 
 - **A3**: `canonical_path` field lands on all five types + LineageEdge.
   `unaddressed_presentations()` amended. `scan_workspace` option A (caller
@@ -4669,16 +4530,10 @@ boundary itself).
 
 ## ADR-017 Amendment 1 — Cross-crate `addresses()` resolution: the sub-clause-F clause at the cross-crate reference boundary
 
-**Status**: Proposed 2026-06-01 (campsite: `infra/multi-crate-scan`; Type-A, design-first
-§Mechanics-level amendment).
+**Status**: Proposed 2026-06-01 (Type-A, design-first §Mechanics-level amendment).
 
 **Amends**: ADR-017 (antigen identity = canonical declaration site; cross-crate trust delegates
 to cargo).
-
-**Participants**: aristotle (the cross-crate ruling — `infra/multi-crate-scan` note `669d59de`;
-the sub-clause-F clause); pathmaker (Layer-1 multi-crate scan substrate `e53f91d`; the Layer-2
-scope + the §Decision-vs-§Mechanics question that this answers — §Mechanics → Type-A); navigator
-(blocking note: the ruling must become a formal amendment block before pathmaker can sign).
 
 **Related**:
 - ADR-001 Amendment 1 Change 3 C7 (cross-crate consumption commitment + scanner-activation status —
@@ -4686,12 +4541,10 @@ scope + the §Decision-vs-§Mechanics question that this answers — §Mechanics
 - ADR-005 (sub-clause F at every trust boundary — cross-crate consumption is named boundary item 4;
   this amendment specifies the validation check for the cross-crate `addresses()` boundary).
 - ADR-029 Amendment 1 (well-posedness: a verdict over an un-evaluable state is out-of-frame).
-- `forward/three-valued-logic-api-boundary-layer` (the gem: an unresolvable cross-crate reference
-  is the third value — out-of-frame, distinct from resolved-and-undefended).
+- The three-valued logic at the API boundary layer: an unresolvable cross-crate
+  reference is the third value — out-of-frame, distinct from resolved-and-undefended.
 - ADR-033 (the prescriptive cross-need references, VOID-4b, are the SAME structural shape — the
   resolution machinery this amendment specifies is reused there in v0.4).
-
-**Campsite**: `infra/multi-crate-scan` (the ruling note `669d59de` is the witness).
 
 ### Finding
 
@@ -4759,14 +4612,6 @@ captures.
 ## [ADR-018] `#[descended_from]` propagation: tagged synthesis + diamond dedup + inheritance state matrix
 
 **Status**: Ratified 2026-05-09.
-
-**Participants**: aristotle (Phase 1-8 + draft), pathmaker (substrate
-verification), navigator (scope-lock, propagation question routing,
-refinement coordination, v3 absorption), naturalist (biology cognate
-validation: lineage-as-clonal-line), adversarial (BUG-A3-001 duplicate-edge
-gap, BUG-A3-002 dangling-child case, enforcement review A18-01 through
-A18-09), team-lead + Tekgy (sibling ratification with ADR-017;
-`ProvenanceEntry` Option C ratification 2026-05-09).
 
 **Related**:
 - ADR-001 Amendment 1 Change 2 (5-state interaction matrix; this ADR amends to 7-state)
@@ -4992,9 +4837,9 @@ warning: inherited presentation: `<Antigen>` flowed from `<Ancestor>`
 State 7 AuditHint: `inherited-presentation-not-re-attested: behavioral-tier
 audit (A4-A5) will validate that the ancestor's witness applies to descendant;
 reachability-tier audit cannot perform this check.` SHOULD include reference
-to ancestor immunity declarations to help the user evaluate re-attestation.
+to ancestor defenses to help the user evaluate re-attestation.
 
-### Sweep-level consequences
+### Consequences
 
 - **A3 implementation** adds `ProvenanceEntry` struct + `inherited_from:
   Option<Vec<ProvenanceEntry>>` on `Presentation` (~15 lines struct + serde),
@@ -5112,7 +4957,7 @@ declarations.
 
 **Status**: Ratified 2026-05-24.
 
-**Amends**: ADR-026 §Decision (the sentence "rollback-as-triage discipline (via new `#[triage_commit]` primitive)") and §Sweep-level consequences bullet 2.
+**Amends**: ADR-026 §Decision (the sentence "rollback-as-triage discipline (via new `#[triage_commit]` primitive)") and §Consequences bullet 2.
 
 **Reason**: The orient-dual-signature analysis (campsite `fixup-orient-dual-signature`) established that `#[orient]` is passive-context-only: it annotates code with contextual understanding but carries no decisional or committal semantics. Rollback-as-triage is a DECISIONAL act (triage decision, rollback target, rationale, due-within) that requires a structurally distinct primitive. Extending `#[orient]` with decisional fields would violate ADR-023's semantic boundary. The `#[triage_commit]` macro (shipped in commit 94f088d) implements the five required fields.
 
@@ -5124,7 +4969,7 @@ Amended to:
 
 > "rollback-as-triage discipline (via new `#[triage_commit]` primitive)"
 
-The inline code example was changed from `#[orient(...)]` to `#[triage_commit(...)]` with five REQUIRED fields: `triage_decision`, `rollback_target`, `triaged_by`, `rationale` (≥ 20 chars), `rollback_due_within_minutes` (> 0). §Sweep-level consequences bullet 2 updated to read "New `#[triage_commit]` primitive carries rollback-as-triage fields (Amendment 1: `#[orient]` NOT extended)".
+The inline code example was changed from `#[orient(...)]` to `#[triage_commit(...)]` with five REQUIRED fields: `triage_decision`, `rollback_target`, `triaged_by`, `rationale` (≥ 20 chars), `rollback_due_within_minutes` (> 0). §Consequences bullet 2 updated to read "New `#[triage_commit]` primitive carries rollback-as-triage fields (Amendment 1: `#[orient]` NOT extended)".
 
 **Resolves**: Orient-dual-signature campsite finding that decisional/committal fields require structural distinction from passive-context `#[orient]`. ADR-023 §orient semantics preserved unchanged.
 
@@ -5134,7 +4979,7 @@ The inline code example was changed from `#[orient(...)]` to `#[triage_commit(..
 
 **Status**: Ratified 2026-05-24.
 
-**Amends**: ADR-026 §Decision (Schema additions paragraph — backfills variant semantics into the ratified contract); ADR-026 §Sweep-level consequences (camp::triage connection-claim loosening from STRUCTURAL claim to conceptual-alignment-now / structural-v0.3+).
+**Amends**: ADR-026 §Decision (Schema additions paragraph — backfills variant semantics into the ratified contract); ADR-026 §Consequences (camp::triage connection-claim loosening from STRUCTURAL claim to conceptual-alignment-now / structural-v0.3+).
 
 **Reason**: Outsider's connection-claim discipline analysis (`820a710a`, `fd7ff496`, `b095f9c3`) surfaced two related issues: (1) ADR-026 §Decision named `TriageDecision` as an enum (`Black | Red | Yellow | Green | White`) but did not define the variant semantics — those were documented only in `antigen/src/vcs.rs` doc-comments, creating a documentation-tier inversion where the implementation is more rigorous than the ratified contract; (2) the §Sweep-level "Connection to camp `triage` primitive" line was a STRUCTURAL claim with decorative-tier delivery — no cross-tool schema commitment exists today, and the honest state is "conceptual alignment now; structural alignment v0.3+." Per scientist's framing and outsider's resolve recommendation (b1 with v0.3 commitment named).
 
@@ -5146,7 +4991,7 @@ The inline code example was changed from `#[orient(...)]` to `#[triage_commit(..
 - `Green` — no functional regression detected; the `#[triage_commit]` carries the analysis chain attesting non-regression.
 - `White` — out of scope for this triage event (e.g., the change is unrelated to the suspected regression); explicit non-action chart entry. **`White` is software-engineering-introduced** — clinical START protocols ship as 4-color (Black/Red/Yellow/Green); the 5th variant is added for the rollback-as-triage use-case where explicit-non-action chart entries carry their own audit value.
 
-**Change 2 — camp::triage connection-claim loosening (`b095f9c3`)**: The §Sweep-level consequences bullet "Connection to camp `triage` primitive" is loosened from a structural-claim phrasing to:
+**Change 2 — camp::triage connection-claim loosening (`b095f9c3`)**: The §Consequences bullet "Connection to camp `triage` primitive" is loosened from a structural-claim phrasing to:
 
 > "Conceptual alignment with camp `triage` primitive — both classify state into 5-color taxonomy with rollback/treatment-discipline semantics. Cross-tool schema alignment (shared `TriageDecision` type across antigen + camp) is deferred to v0.3+ research arc; no schema commitment is made in v0.2."
 
@@ -5172,9 +5017,9 @@ This honors outsider's resolve recommendation (b1 with v0.3 commitment named) an
 
 **Change 3 — Two new audit hints**: `vcs-enforcement-structural-mode-declared-but-not-active` (emitted when Structural declared but remote config not verified) and `vcs-server-config-check-failed` (emitted on network error during structural verification). Total audit-hint count: 12 → 14.
 
-**Resolves**: ATK-VCS-1 (rollback detection algorithm gap) and ATK-VCS-4 (structural enforcement unverified claim gap) from adversarial pre-attack pass on `v02-impl-vcs-info-loss` campsite. Observer's network-dependent-witness tier concern (1bb4f0c7) addressed by the two-error-mode split.
+**Resolves**: ATK-VCS-1 (rollback detection algorithm gap) and ATK-VCS-4 (structural enforcement unverified claim gap) from the adversarial pre-attack pass. The network-dependent-witness tier concern is addressed by the two-error-mode split.
 
-**What this amendment does NOT do**: Does not add a `vcs-rollback-coverage-partial` hint for step-3 commits (ATK-VCS-A1 partial residual — see adversarial campsite note). The hint would fire on every commit that falls through to step 3, making the partial-coverage zone visible at audit-time per ADR-005 Amendment 3 tier-honesty discipline. Deferred to v0.2.x alongside `install-hooks`/`install-server-hooks` CLI verbs, which provide the infrastructure through which the hint would be emitted.
+**What this amendment does NOT do**: Does not add a `vcs-rollback-coverage-partial` hint for step-3 commits (ATK-VCS-A1 partial residual). The hint would fire on every commit that falls through to step 3, making the partial-coverage zone visible at audit-time per ADR-005 Amendment 3 tier-honesty discipline. Deferred to v0.2.x alongside `install-hooks`/`install-server-hooks` CLI verbs, which provide the infrastructure through which the hint would be emitted.
 
 ---
 
@@ -5189,8 +5034,6 @@ This honors outsider's resolve recommendation (b1 with v0.3 commitment named) an
 **Change — Step-2 signal corrected**: Step 2 of the AUTHOR-DECLARATION decision tree is: commit carries a `Triage-Decision: <value>` trailer → validate value is a `TriageDecision` enum variant; fire `vcs-rollback-triage-chain` witness check. This is commit-intent semantics (does THIS commit declare its triage decision?), consistent with ADR-026 §M3 trailer schema.
 
 **Scope**: This correction affects the `install-hooks` and `install-server-hooks` CLI verbs (which write the pre-commit/pre-push hook that executes the decision tree). It does NOT affect the witness evaluators (`vcs_trailer_present`, `vcs_rollback_triage_chain`, `vcs_attest_branch_deletion`, `vcs_server_side_enforcement_active`) or the observation-side CLI verbs (`scan`, `check-commit`, `attest`, `rollback-prepare`, `branch-archive`). Per aristotle F1 ratification (campsite `adr026-amendment-4-step2-commit-trailer`): witness layer + observation CLI proceed in parallel; hook-installation verbs defer until this amendment ratifies.
-
-**Participants**: adversarial (ATK-VCS-A2 finding); aristotle (Phase 1-8 ratification of two-layer separation principle — witness independence from decision-tree text); scientist (Amendment 4 draft + inline correction).
 
 **Related**: ADR-026 Amendment 3 Change 1 (the amended text); ADR-026 §M3 (`Triage-Decision:` trailer schema); ADR-010 (witness independence from scan-layer decisions); ADR-019 (substrate-witness reads substrate, not ADR text).
 
@@ -5211,12 +5054,6 @@ argument shape, variant inclusion, and audit logic resolve at impl time.
 This amendment closes the gaps to unblock implementation. Filed as instance
 (v) of held-implementation-spec-depth-gap pattern; absorbed into
 `docs/process.md` §Standing Adversarial Checklist.
-
-**Participants**: aristotle (Phase 1-8 deconstruction F1+F2); naturalist
-(biology grounding refinement; `#[mucosal_tolerant]` primitive; amendment
-text draft); scout (ATK-MUCOSAL-3 adversarial test, `c7ae5990` handled_by
-typing); outsider (`1bb7c7b6` enum chaos dust-finding); adversarial
-(ATK-MUCOSAL-3 pre-implementation test encoding the spec gap).
 
 **Related**: ADR-001 Amendment 1 C6 (sealed enum amendment process);
 ADR-003 Amendment 1 (biology grounding); ADR-016 (tolerance discipline);
@@ -5421,7 +5258,7 @@ Clarified (inline annotation at §Decision, line 5780) to:
 
 This is consistent with Amendment 2's principle: the witness-layer requirement is evaluated at audit time where full scan context is available, not at parse time where only the single item is visible.
 
-**Resolves**: The campsite `v02-impl-category-witness-cross-check` enforcement gap named in Amendment 2. The cross-check is now implemented at the correct architectural layer (commit `114af45`).
+**Resolves**: The category-vs-witness cross-check enforcement gap named in Amendment 2. The cross-check is now implemented at the correct architectural layer (commit `114af45`).
 
 ---
 
@@ -5431,7 +5268,7 @@ This is consistent with Amendment 2's principle: the witness-layer requirement i
 
 **Amends**: ADR-028 §Enforcement-Surface table + §Decision backward-compat paragraph + §Audit-hint vocabulary.
 
-**Reason**: The G1→G2→G3 implementation arc (campsites `v02-impl-category-v01-discriminator`, `v02-impl-category-witness-cross-check`, `v02-impl-category-audit-hints`) shipped with two deliberate differences from the original ADR-028 text:
+**Reason**: The G1→G2→G3 implementation arc shipped with two deliberate differences from the original ADR-028 text:
 1. G1 ships the v0.1-carryover default as a **migration hint** (`antigen-category-defaulted-implicit-functional`), not a parse-time hard error. Hard error for NEW declarations is v0.2.x scope once the migration tool exists.
 2. G2 ships the category-vs-witness-type cross-check at **audit-time only** (Amendment 3 records the structural reason). The §Enforcement-Surface table still said "parse-time (hint) + audit-time."
 3. G3 ships two of the four named hints; the other two are deferred to v0.2.x with named blocking reasons. The audit-hint vocabulary paragraph listed all four without tiering.
@@ -5456,13 +5293,13 @@ This is consistent with Amendment 2's principle: the witness-layer requirement i
 
 *§Decision backward-compat paragraph* inline annotation — remove the phrase "v0.2+ NEW declarations: `category` REQUIRED at parse-time; absence is hard-error" and replace with "v0.2+ NEW declarations: absence emits `antigen-category-defaulted-implicit-functional` migration hint; parse-time hard error is v0.2.x once migration tooling exists."
 
-**Resolves**: Stale enforcement-surface table and hint vocabulary that described the original design rather than the shipped v0.2 state. Aristotle's finding on `v02-impl-category-audit-hints` campsite.
+**Resolves**: Stale enforcement-surface table and hint vocabulary that described the original design rather than the shipped v0.2 state.
 
 ---
 
 ## ADR-028 Amendment 5 — encounter-status axis (vaccinated / encountered / affinity-matured)
 
-**Status**: Ratified — navigator + naturalist signed (2/2). F7 per-leaf diagnostics gate cleared 2026-05-26. Tekgy confirmed team ratification authority.
+**Status**: Ratified 2026-05-26.
 
 **Amends**: ADR-028 §Decision (category metadata surface) + §Audit-hint vocabulary. Cross-references ADR-003 Amendment 1 (biology-as-discovery), ADR-006 Amendment 1 / ADR-022 (prospective vs retrospective growth discipline), ADR-016 (anergy / tolerance), ADR-023 (deferred-defense family).
 
@@ -5494,7 +5331,7 @@ Biology grounding (naturalist ruling, 2026-05-26): The vaccination cognate (`car
 
 ## ADR-028 Amendment 6 — tier marker (object | description): relationship to own declaration
 
-**Status**: Ratified 2026-05-26. Ceremony: aristotle absorption → naturalist biology-check → adversarial gate → scientist validation (full four-stage ceremony; team ratification authority per generalized governance decision). Participants: aristotle (draft + stage-3 absorption of adversarial orthogonality finding), naturalist (biology-check + silence-derivation idiotype-network grounding), adversarial (three-attack gate; orthogonality partial snag absorbed by aristotle), scientist (stage-4 validation: falsifiable prediction confirmed by substrate survey; orthogonality edge cases probed; enforcement coherence confirmed).
+**Status**: Ratified 2026-05-26.
 
 **Amends**: ADR-028 §Decision (category metadata surface) + §Audit-hint vocabulary. Cross-references ADR-006 (recognition-not-design), ADR-010 (fingerprint matching), ADR-019 B1 (recognition-vs-evidence role distinction), and the antigen-dx-dogfood F10 fundamentality-test + the idiotype-network cognate (immune-system-primitive-map.md, naturalist). Sibling to Amendment 5 (encounter-status axis — relationship to the WILD). Separate ratification unit per aristotle's ruling: different subjects, bundling would be VecCardinalityMasqueradingAsSet at the amendment level.
 
@@ -5535,8 +5372,6 @@ The product space, not a chain. Each axis is independent; all four corners of th
 **Status**: Ratified 2026-05-27.
 
 **Amends**: ADR-028 §Decision. Adds (a) `§Witness-selection-guidance` subsection and (b) `§SubstrateAlignment witness-locus discriminator` subsection.
-
-**Participants**: naturalist (silence-generator section draft; campsite `forward/silence-taxonomy-substrate-alignment`); aristotle (witness-locus split Phase-1-8 deconstruction; campsite `findings/category-witness-crosscheck-vs-fingerprint-only-stdlib`); scientist (consistency review: both additions validated; 2x2 ceiling prediction confirmed; convergence finding verified); outsider (convergence note: recursive irony — `ParallelStateTrackersDiverge` is itself a `ParallelStateTrackersDiverge` instance across the category/witness split, the medicine demonstrating the disease in the diagnosing organ); 4 independent roles converged on the witness-locus gap within ~24 hours of expedition work (recurrence-anchor threshold).
 
 **Related**: ADR-028 Amendment 2 (substrate-witness predicate leaf requirement at the witness layer); ADR-028 Amendment 3 (category-vs-predicate-type cross-check); ADR-006 (recognition-not-design); ADR-019 B1 (recognition-vs-evidence role distinction); ADR-004 (implicit-to-explicit); ADR-029 (observed-not-declared: silence-generator guidance and ADR-029 are the same structural principle viewed from opposite ends — ADR-029 applies it to immune-state *verdicts*, this amendment applies it to witness-*selection*; naturalist synthesis 2026-05-27); `findings/category-witness-crosscheck-vs-fingerprint-only-stdlib`.
 
@@ -5617,12 +5452,12 @@ Both are SubstrateAlignment by failure-KIND (representation-diverges-from-state)
 
 **Near-term implementation** (v0.2.x): G2's cross-check accepts a code-witness for SubstrateAlignment antigens that carry an explicit in-repo-parity rationale (via `requires =` absent AND a declared `#[defended_by]` with a parity-test naming convention, or a new `witness_locus = in_repo_parity` advisory hint). Until mechanized: `ParallelStateTrackersDiverge` and `BiologyGroundingClaimDrift` carry known-advisory-flag comments documenting this as the correct in-repo-parity witness pattern (per navigator sequencing decision, `findings/category-witness-crosscheck-vs-fingerprint-only-stdlib`).
 
-**Recursive irony** (outsider, 2026-05-27): `ParallelStateTrackersDiverge` (#18) is itself a `ParallelStateTrackersDiverge` instance across the category/witness split — `category=SubstrateAlignment` (the two-tracker claim in the declared model) diverges from `witness=code-bijection-test` (the evidence the implementation actually uses to defend it). The antigen about the failure-class is the poster-child for the gap in the rule that classifies it.
+**Recursive irony**: `ParallelStateTrackersDiverge` (#18) is itself a `ParallelStateTrackersDiverge` instance across the category/witness split — `category=SubstrateAlignment` (the two-tracker claim in the declared model) diverges from `witness=code-bijection-test` (the evidence the implementation actually uses to defend it). The antigen about the failure-class is the poster-child for the gap in the rule that classifies it.
 
 ### Resolves
 
-- `forward/silence-taxonomy-substrate-alignment` (absorbed; campsite closes as "absorbed-into-ADR-028-Amendment-7")
-- `findings/category-witness-crosscheck-vs-fingerprint-only-stdlib` (witness-locus discriminator named; G2 behavior specified)
+- The silence-taxonomy / substrate-alignment finding (absorbed into this amendment)
+- The category-vs-witness-crosscheck-vs-fingerprint-only-stdlib question (witness-locus discriminator named; G2 behavior specified)
 - The advisory-stopgap comments on `ParallelStateTrackersDiverge` and `BiologyGroundingClaimDrift` in dogfood.rs (the amendment formally ratifies what those comments named as pending)
 - The implicit assumption that all SubstrateAlignment antigens require external-substrate predicates (witness-locus split makes the assumption explicit and corrects the over-constraint)
 
@@ -5649,29 +5484,25 @@ old, and the old ADR's status becomes "Superseded by ADR-MMM".
 
 ## Adding a new ADR
 
-The full ADR lifecycle is documented in [`docs/process.md`](process.md). Quick
+The full ADR lifecycle is documented in [`docs/internal/process.md`](internal/process.md). Quick
 checklist:
 
 1. Number sequentially. Skip numbers only with explicit reservation.
-2. Open a campsite under `campsites/adr-NNN-<slug>` for the in-flight draft.
-3. Use the section template above (Status, Participants, Related, Finding, Decision,
-   Mechanics, Sweep-level consequences, Enforcement, Resolves). Within the Finding
-   section, optionally include an **"Implicit pattern elevated"** sub-clause naming
-   the implicit-mode convention this ADR replaces with explicit structure (per
-   ADR-004's enforcement clause; F-TEMPLATE-1 from scientist's validation pass).
-   Foundational ADR-001 through ADR-010 contain this analysis embedded in their
-   Finding prose; future ADRs may surface it as a labeled sub-clause for clarity.
-4. Run the draft through the full lifecycle: Phase 1-8 deconstruction (aristotle) →
-   adversarial review → math/systems-research review → scientist validation →
-   team-lead ratification.
-5. After ratification:
+2. Use the section template above (Status, Related, Finding, Decision, Mechanics,
+   Consequences, Enforcement, Resolves). Within the Finding section, optionally
+   include an **"Implicit pattern elevated"** sub-clause naming the implicit-mode
+   convention this ADR replaces with explicit structure (per ADR-004's enforcement
+   clause). Foundational ADR-001 through ADR-010 contain this analysis embedded in
+   their Finding prose; later ADRs may surface it as a labeled sub-clause for clarity.
+3. Run the draft through the full lifecycle (deconstruction → adversarial review →
+   systems-research review → validation → ratification).
+4. After ratification:
    - Move the ratified text into this file (`decisions.md`)
    - Update the index at the top of this file
    - Update `docs/glossary.md` if the ADR introduces new vocabulary
    - Reference the ADR in any related code or other docs that act on its decisions
-   - Mark the campsite `closed` with a final log entry
 
-See [`docs/process.md`](process.md) for the complete process — including the
+See [`docs/internal/process.md`](internal/process.md) for the complete process — including the
 recursive insight that **ADRs are antigen-in-document-form** (the original
 implementation of the structural-memory pattern that antigen-the-tool ships at the
 code level).
@@ -5681,15 +5512,6 @@ code level).
 ## [ADR-019] Substrate-witness predicate family
 
 **Status**: Ratified 2026-05-19.
-
-**Participants**: pathmaker (draft v0 + implementation + P3e test corpus), aristotle
-(F10-F19 Phase 1-8 arc, 16 findings), adversarial (ATK-019 Stages 1-3, all pre-named
-attack surfaces + FA-1/FA-3/FA-6 resolutions), naturalist (F3 scope-biology, F8
-EvidenceKind biology, framing-call, notary-arc B6, biology corroboration audit),
-observer (NB001-NB024, peer-review arc), scout (S1-S4, cross-domain pre-scouting),
-scientist (Stage 5 validation + prose-polish + whitepaper chapter), academic-researcher
-(Stage 4 prior-art alignment, 8 checks), navigator (coordinator, architectural call,
-Stage 4 + Stage 5 runs), Tekgy (trust).
 
 **Related**:
 - ADR-001 (structural memory = this ADR's application domain)
@@ -5738,7 +5560,7 @@ co-located with source under `.attest/` subfolders, and `cargo antigen attest` +
 `cargo antigen tolerate` CLI families.
 
 This is ONE ADR introducing ONE primitive — the substrate-witness predicate — covering
-both immunity claims and tolerance ratifications via isomorphic schema.
+both defenses and tolerance ratifications via isomorphic schema.
 
 The decision commits to:
 
@@ -5909,10 +5731,6 @@ multiple individually-passing signers contribute to a collective tier.
 
 **Status**: Ratified 2026-05-20.
 
-**Participants**: navigator (F25 architectural call + OQ pre-rulings), aristotle (F26
-Phase 1-8), adversarial (ATK-020, 10 findings), scientist (v0 + v1 + v2 draft arc),
-naturalist (ABO/Rh cognate + notary-arc extension), Tekgy (v0.1-rc timing verdict).
-
 **Related**:
 - ADR-009 (adoption gradient — architecture-deciding constraint for the SPLIT decision)
 - ADR-019 (substrate-witness predicate family — consumer of attestation data; ratified 03a36c0)
@@ -6060,12 +5878,6 @@ are complementary, not competing.
 
 **Status**: Ratified 2026-05-20.
 
-**Participants**: Tekgy (two architectural reframes + slice-e commitment), navigator
-(F25-equivalent architectural call; R1/R2 reframes), aristotle (F27 Model B Phase 1-8;
-F28 oracle CLI Phase 1-8), adversarial (ATK-021 1-10 initial; ATK-021-11 through -18
-Model B), naturalist (B-021-1 through B-021-5, all Class 1), scientist (v0 through v4
-draft arc).
-
 **Related**:
 - ADR-019 (substrate-witness predicate family; ratified 03a36c0; `oracles_complete` leaf
   consumer of this ADR's Oracle artifact-class)
@@ -6212,8 +6024,6 @@ exit decisions (authorized transitions); memory senescence (Retired preserves hi
 
 **Status**: Ratified 2026-05-22.
 
-**Participants**: aristotle (draft + Phase 1-8); Tekgy (lock 2026-05-21 night); naturalist (biology-validation: gate passed — biology-as-discovery feeds stdlib growth via ADR-003 Amendment 1); adversarial (no blocking findings).
-
 **Related**: ADR-006 Amendment 1 (recognition discipline scoped to adopter); ADR-003 Amendment 1 (biology); ADR-007 (anti-YAGNI); ADR-009 (adoption gradient); ADR-021 (additive-only schema evolution).
 
 **Implicit pattern elevated** (per ADR-004): the dual-discipline architecture is currently implicit in the project structure (stdlib crate separate from extension surfaces) but never named at the ADR layer.
@@ -6255,7 +6065,7 @@ These layers have DIFFERENT growth disciplines (per ADR-006 Amendment 1): stdlib
 
 **Versioning**: `antigen` + `antigen-attestation` follow semver strictly; `antigen-stdlib` versions independently; `antigen-extensions-<domain>` crates version per maintainer.
 
-### Sweep-level consequences
+### Consequences
 
 - Stdlib team plans research-arc drops (quarterly cadence)
 - Extension-contract changes require ADR-level ratification
@@ -6300,8 +6110,6 @@ These layers have DIFFERENT growth disciplines (per ADR-006 Amendment 1): stdlib
 ## [ADR-023] Deferred-Defense Family: Loudness-as-Discipline for Intentional Non-Immunity
 
 **Status**: Ratified 2026-05-22.
-
-**Participants**: aristotle (draft + Phase 1-8 + revision); Tekgy (named the family); naturalist (biology grounding sound at per-primitive level; no major refinement); adversarial (5 BLOCKING + 3 non-blocking attacks, all absorbed).
 
 **Related**: ADR-005 Amendments 2 & 3 (sub-clause F); ADR-006 Amendment 1 (stdlib); ADR-007 (anti-YAGNI); ADR-011 (`#[antigen_tolerance]` closest relative); ADR-022 (Stdlib-vs-Extension); ADR-023 deferred-defense family; ADR-026 (VCS — rollback-as-triage uses `#[orient]`-shape declarations).
 
@@ -6393,7 +6201,7 @@ The unifying property: **loudness IS the discipline**. Silently-deferred defense
 2. **`expected_co_stimulation` not machine-verified**: free-text; advisory only.
 3. **Hint-fatigue at scale**: separate defer-status report + structural-suppression-with-rationale mitigates.
 
-### Sweep-level consequences
+### Consequences
 
 - Stdlib gains FOUR new declarative primitives (vaccinate standalone in ADR-007)
 - Parse-time enforcement of caps + rationale length + date horizons
@@ -6419,8 +6227,6 @@ The unifying property: **loudness IS the discipline**. Silently-deferred defense
 ## [ADR-024] Three Sibling Families: Convergent Evidence + Recurrent Emergence + Prescriptive Work-Orchestration
 
 **Status**: Ratified 2026-05-22.
-
-**Participants**: aristotle (draft + Phase 1-8 + revision); Tekgy (named three families + temporal-arc framing in drill #74); naturalist (3 refinements: dual-axis grounding honesty; MHC routing-fix; temporal-arc forward-pointer); adversarial (3 HIGH attacks absorbed: WitnessClass, SeedKind, disambiguation table).
 
 **Related**: ADR-002 Amendment 2 (compose-vs-compete per family); ADR-003 Amendment 1 (biology); ADR-006 Amendment 1 (stdlib); ADR-007 (anti-YAGNI); ADR-019 (substrate-witness); ADR-022 (Stdlib-vs-Extension); ADR-023 (Deferred-Defense — itch/anergy disambiguation); ADR-028 (antigen-category).
 
@@ -6507,7 +6313,7 @@ pub enum SeedKind {
 | `#[igg]` source-independence | NONE (named limitation) | — | nominal-only |
 | Prescriptive role-authorization | audit-time | client + CI | per ADR-020 attested_by discipline |
 
-### Sweep-level consequences
+### Consequences
 
 - v0.2 stdlib gains ~21 new family primitives (6 + 6 + 9)
 - Camp gains substantial coordination vocabulary (prescriptive family)
@@ -6539,11 +6345,6 @@ immunology-proper but the list contained 8 entries. Naturalist (original
 author of refinement 1 dual-axis honesty) evaluated the axis assignment for
 the eighth entry, `#[titer]`, and judged it belongs in clinical-medicine,
 not immunology-proper.
-
-**Participants**: outsider (`3a3fada0` count-drift dust-finding); naturalist
-(axis-assignment evaluation + amendment draft); aristotle (`aa805ca5`
-process call: substantive axis-assignment changes warrant amendment, not
-silent-fix).
 
 **Related**: ADR-003 (biology metaphor); ADR-024 §Biology grounding
 (parent dual-axis honesty refinement);
@@ -6587,8 +6388,6 @@ amendment.
 **Status**: Ratified 2026-05-27.
 
 **Amends**: ADR-024 §Mechanics. Documents the concrete arg-signature shapes for the 6 Recurrent Emergence family macros as shipped in `antigen-macros/src/parse.rs`.
-
-**Participants**: scientist (substrate read + amendment draft; navigator activity-log reference `936e678e`). Source of truth: `antigen-macros/src/parse.rs` struct definitions, NOT scout's narrower inference.
 
 **Reason**: ADR-024 §Mechanics says "new schema structs (`DiagnosticEvidence`, `RecurrenceAnchor`, `PanelDeclaration`, etc.)" without documenting the concrete field shapes that shipped. The field-level arg signatures are load-bearing for adopters writing `#[itch]`, `#[recurrence_anchor]`, `#[crystallize]`, `#[chronic]`, `#[saturate]`, `#[strand]`. Documenting what shipped makes the ratified surface legible from the ADR alone.
 
@@ -6670,17 +6469,11 @@ Parse line: `parse.rs:2967`.
 
 ## ADR-024 Amendment 3 — `from_itches` is class-specific (lineage-aware): the recurrence-anchor noticing-precondition
 
-**Status**: Proposed 2026-06-01 (campsite: `forward/adr024-from-itches-cross-class-ruling`).
+**Status**: Proposed 2026-06-01.
 
 **Amends**: ADR-024 §Mechanics (Recurrent Emergence family — the `#[recurrence_anchor]`
 noticing-precondition). Resolves a question ADR-024 §Mechanics left silent, surfaced by an
 adversarial follow-on and deferred from v0.2.
-
-**Participants**: scientist (the well-posed question + the attack fixture + the scoped fix —
-dogfood note `fd7c24c9`); adversarial (the follow-on that surfaced it on
-`findings/recurrent-anchor-phantom-from-itches`); aristotle (the class-specific ruling +
-lineage-aware refinement); navigator + team-lead (v0.3-non-blocking triage — the ATK-RECURRENT-7
-phantom fix `8dfd4d5` stands regardless).
 
 **Related**:
 - ADR-024 §Mechanics (Recurrent Emergence — `#[itch]` / `#[recurrence_anchor]` /
@@ -6689,13 +6482,11 @@ phantom fix `8dfd4d5` stands regardless).
   refinement: a parent-class itch is legitimate upstream evidence for a child-class anchor).
 - ADR-005 sub-clause F (the noticing-precondition is the validation check at the
   commitment-to-track trust boundary).
-- `forward/three-valued-logic-api-boundary-layer` (the same cardinality-collapse shape: a
+- The three-valued logic at the API boundary layer (the same cardinality-collapse shape: a
   cross-class itch is OUT-OF-FRAME — irrelevant evidence — not a weak-yes; collapsing it into
-  satisfied-precondition is the gem at the precondition boundary).
+  satisfied-precondition is the error at the precondition boundary).
 - The dogfood `RatifiedSpecDriftFromImpl` class (this amendment realigns code with the
   doc-comment's already-stated intent — a substrate-alignment fix, not a new design choice).
-
-**Campsite**: `forward/adr024-from-itches-cross-class-ruling` (the ruling note is the witness).
 
 ### Finding
 
@@ -6773,8 +6564,6 @@ scan-resident itch) is unchanged. The precondition fires iff neither holds.
 ## [ADR-025] Supply-Chain Defense Family: Antigens for Dependency-Boundary Risk in the 2026+ Threat Landscape
 
 **Status**: Ratified 2026-05-22.
-
-**Participants**: aristotle (draft + Phase 1-8 + revision); Tekgy (named family; reframed from basophil/eosinophil to supply-chain in drill); adversarial (11 attacks, 4 BLOCKING absorbed); naturalist (cognate reframed to distributed-boundary-innate-immunity — NON-NEGOTIABLE); scout (supply-chain threat landscape research arc).
 
 **Related**: ADR-001 Amendment 1 (structural memory); ADR-002 Amendment 2 (compose-or-compete); ADR-005 Amendments 2 & 3; ADR-009 (adoption gradient); ADR-019 (substrate-witness); ADR-020 (attestation); ADR-021 (oracle); ADR-022 (Stdlib-vs-Extension); ADR-027 (Mucosal boundary); ADR-028 (antigen-category).
 
@@ -6861,8 +6650,6 @@ scan-resident itch) is unchanged. The precondition fires iff neither holds.
 
 **Status**: Ratified 2026-05-22.
 
-**Participants**: aristotle (draft + Phase 1-8 + revision); Tekgy (named family + rollback-as-triage discipline in drill #74); adversarial (3 BLOCKING attacks absorbed: D1 commit-time detection, D2 force-with-lease coverage, D3 friction-vs-structural explicit choice); naturalist (cognate broadened to immune-memory-loss-mechanisms class; ForcePushErasingHistory ↔ Immune Amnesia centralized; dual-axis grounding for rollback-as-triage — NON-NEGOTIABLE).
-
 **Related**: ADR-001 Amendment 1 (structural memory; preserving through VCS ops); ADR-002 Amendment 2 (compose-or-compete); ADR-005 Amendments 2 & 3; ADR-019 (substrate-witness, VCS-trailer-based); ADR-022 (Stdlib-vs-Extension); ADR-023 (rollback-as-triage uses `#[orient]`-shape); ADR-028 (antigen-category — most members substrate-alignment).
 
 **Implicit pattern elevated** (per ADR-004): git operations that erase information have been governed by team-convention; the structural why-this-was-done lives in commit messages that get rewritten.
@@ -6926,7 +6713,7 @@ fn _triage_marker_do_not_remove() {}
 | `BranchDeletionWithoutAttestation` | branch-delete-time | client OR server | `git update-ref -d` bypasses client-side |
 | Other 8 members | audit-time + commit-time | client (friction) + audit visibility | friction-only; audit-time hint surfaces loss |
 
-### Sweep-level consequences
+### Consequences
 
 - v0.2 stdlib gains 11 VCS-info-loss antigens
 - New `#[triage_commit]` primitive carries rollback-as-triage fields (Amendment 1: `#[orient]` NOT extended)
@@ -6953,8 +6740,6 @@ fn _triage_marker_do_not_remove() {}
 ## [ADR-027] Mucosal Boundary Taxonomy + Mapping Discipline
 
 **Status**: Ratified 2026-05-22.
-
-**Participants**: aristotle (draft + Phase 1-8 + revision); Tekgy (named boundary taxonomy + mapping discipline in drill); adversarial (E1 + E2 absorbed: `#[mucosal_delegate]` primitive + missing boundary types); naturalist (don't overclaim per-variant biology grounding — NON-NEGOTIABLE; trafficking-integration as v0.3+ research arc); scout (prior-art on boundary mapping).
 
 **Related**: ADR-002 Amendment 2 (compete decision); ADR-003 Amendment 1 (biology); ADR-006 Amendment 1 (stdlib); ADR-019 (substrate-witness); ADR-022 (Stdlib-vs-Extension); ADR-025 (supply-chain — `DependencyImport` boundary); ADR-028 (antigen-category — most members substrate-alignment).
 
@@ -7003,7 +6788,7 @@ fn _triage_marker_do_not_remove() {}
 
 **Compose vs compete decision**: COMPETE per AMEND-ADR-002 (cohesion + opinion + integrated vocabulary; alternative path preserved).
 
-### Sweep-level consequences
+### Consequences
 
 - v0.2 stdlib gains `#[mucosal]` + `#[mucosal_delegate]` + `#[mucosal_tolerant]` macros (Amendment 1 adds `#[mucosal_tolerant]`)
 - MucosalKind enum with 13 variants (Amendment 1: 15 → 13; Import + PrBoundary removed)
@@ -7027,8 +6812,6 @@ fn _triage_marker_do_not_remove() {}
 ## [ADR-028] Antigen-Category Taxonomy: Substrate-Alignment vs Functional-Correctness as First-Class Distinction
 
 **Status**: Ratified 2026-05-22.
-
-**Participants**: aristotle (draft + Phase 1-8 + revision); Tekgy (named the distinction in drill); observer (substrate-alignment discipline source); naturalist (operational-substrate-primary correction; biology-as-documentation-cognate clarified — NON-NEGOTIABLE); adversarial (F1 + F2 absorbed: hybrid miscategorization defense + strict enforcement chosen).
 
 **Related**: ADR-001 Amendment 1 (structural memory carriers); ADR-005 Amendment 2 (rationale as trust-extension); ADR-019 (substrate-witness vs code-witness already operationalizes this split); ADR-022 (Stdlib-vs-Extension); and all v0.2 family ADRs (ADR-023 through ADR-027 carry category metadata).
 
@@ -7096,7 +6879,7 @@ Hybrid: `CampsiteOpen` (sidecar must exist AND signatures must cryptographically
 
 **Biology grounding** (per naturalist — NON-NEGOTIABLE): the category distinction is **OPERATIONALLY substrate-grounded**, NOT biology-grounded. Biology provides an approximate documentation cognate (Class 2-3): pattern-recognition (PRRs, BCRs, TCRs) ↔ substrate-alignment; effector-function (cytokine release, cell killing) ↔ functional-correctness. The biology cognate is documentation-aid, not load-bearing prediction. The OPERATIONAL substrate is: observer-role catches substrate-alignment; adversarial+scientist+pathmaker catch functional-correctness; substrate-witnesses vs code-witnesses (ADR-019) already operationalize this split.
 
-### Sweep-level consequences
+### Consequences
 
 - v0.2+ new declarations REQUIRE explicit category (hard error at parse-time)
 - v0.1 carryover backward-compat with migration hint + tool
@@ -7121,17 +6904,11 @@ Hybrid: `CampsiteOpen` (sidecar must exist AND signatures must cryptographically
 
 **Status**: Ratified 2026-05-27.
 
-**Participants**: antigen-dx-dogfood team (scientist primary drafter; aristotle Phase-1-8
-PASSED; naturalist biology-check PASSED; adversarial gate PASSED; scientist consistency
-review COMPLETE; all four ceremony signers).
-
 **Related**: ADR-004 (implicit-to-explicit elevation), ADR-005 (sub-clause F), ADR-013
 (phantom-type witnesses), ADR-019 (substrate-witness predicate family), ADR-020 (attestation
 primitive), ADR-006 (recognition-not-design).
 
 **Supersedes**: `#[immune]` as a user-facing primitive (backward-compatible deprecation path).
-
-**Ceremony campsite**: `ceremony/ratify-adr-029-immune-observed`.
 
 ### Finding
 
@@ -7449,7 +7226,7 @@ already implement "observed not declared" for vulnerability recognition. This AD
 the immunity half; the vulnerability half is structurally parallel. The scaffold primitive
 (observe-first-declare-second) is V3's precedent already shipped. Future ADR.
 
-### Sweep-level consequences
+### Consequences
 
 **ADR-004 (implicit-to-explicit elevation)**: extended. `#[immune]` made the defense-claim
 explicit — correct at the time. This ADR makes the defense-*circuit* explicit: the witness
@@ -7519,9 +7296,6 @@ inventing a new attribute is design.
 
 **Amends**: ADR-029 §Verdict-precedence (compute_presentation_verdicts).
 
-**Participants**: navigator (amendment draft + code fix). Source of truth: campsite
-`findings/pv-requires-masked-by-code-witness` + ATK test `atk_pv_requires_masked_by_code_witness`.
-
 **Reason**: The original ADR-029 verdict precedence rule computes `best_tier =
 max(code_tier, immune_tier, site_requires_tier, site_proof_tier)` and maps
 `Some(tier)` to `Defended { tier }` and `None` to `SubstrateGap` or `Undefended`.
@@ -7586,14 +7360,8 @@ the site is NOT defended.
 
 **Status**: Ratified 2026-05-27.
 
-**Participants**: antigen-dx-dogfood team (scientist primary drafter; aristotle Phase-1-8
-PASSED; naturalist biology PASSED; adversarial gate PASSED; scientist consistency review
-COMPLETE; all four ceremony signers).
-
 **Related**: ADR-029 (per-site defense verdicts), ADR-023 (deferred-defense declarations),
 ADR-024 (convergent/recurrent emergence).
-
-**Ceremony campsite**: `ceremony/ratify-adr-030-aggregate-temporal-observed`.
 
 ### Problem
 
@@ -7694,7 +7462,7 @@ observation-eligibility is the same structure as ADR-031's revocation-verificati
 observed-not-declared AT A LOCUS; both have a residual class with NO locus (ADR-031:
 `RevocationCannotBeVerified` near-empty residual; ADR-030: Tier-3 prose stays-declared).
 
-Pathmaker's independent framing (camp notice `a89ac198`, 2026-05-27) arrived before this ADR
+An independent framing arrived before this ADR
 draft: "ANY claim whose truth can drift after write-time should be audit-OBSERVED, not
 site-DECLARED." This independent convergence from the implementation side confirms the
 unifying principle; the conjunct refines it to be precision-complete.
@@ -7822,15 +7590,11 @@ silently skips duration_cap check (separate gap, separately documented). Advisor
 - Instance D reference implementation: `bf60e5d` (orient-until-date fix)
 - Instance E shipped: `ac75c10` (ImmunosuppressDurationCapExceeded emission path + typed fields)
 - Instance E adversarial confirmation: `d72dacf` (ATK-IMMUNOSUPPRESS-DURATION-CAP-UNREACHABLE)
-- Pathmaker independent convergence: camp notice `a89ac198` (2026-05-27)
-- Scientist validation: campsite `forward/adr030-aggregate-temporal-observed` (5 validated instances)
-- Naturalist OQ2 biology gate: PMID 36726033 (Pyzik, *Nat Rev Immunol* 2023 — FcRn-controlled
+- Biology grounding: PMID 36726033 (Pyzik, *Nat Rev Immunol* 2023 — FcRn-controlled
   half-life); PMID 12819486 (Wekerle, *Transplantation* 2003 — central vs peripheral tolerance
   as distinct mechanisms)
-- Adversarial OQ3 gate: camp note `8ca8ccf5` (2026-05-27 — timestamp-washing + tier-promotion-racing
-  + density-gaming probes; PASSED)
-- Locus-dispatch synthesis: camp notice `87bb2f0b` (navigator, 2026-05-27 — shared frame across
-  ADR-029/030/031)
+- Adversarial probes (timestamp-washing + tier-promotion-racing + density-gaming): PASSED
+- Locus-dispatch synthesis: a shared frame across ADR-029/030/031
 
 ---
 
@@ -7838,14 +7602,8 @@ silently skips duration_cap check (separate gap, separately documented). Advisor
 
 **Status**: Ratified 2026-05-27.
 
-**Participants**: antigen-dx-dogfood team (scientist primary drafter; aristotle Phase-1-8
-PASSED; naturalist biology PASSED; adversarial gate OQ5 PASSED; outsider naive-pass;
-scientist consistency review COMPLETE; all four ceremony signers).
-
 **Related**: ADR-018 (diamond dedup + inheritance state matrix), ADR-029 (observed-not-declared),
 ADR-030 (aggregate/temporal drift observation).
-
-**Ceremony campsite**: `ceremony/ratify-adr-031-no-longer-presents`.
 
 ### Problem
 
@@ -8190,11 +7948,9 @@ dogfood antigen. Strengthening-only; item-level/diamond-union/locus-relative cor
 
 ### Evidence citations
 
-- Aristotle ruling: `forward/descended-from-negative-selection-gap` (camp story, 2026-05-27)
-- Scout empirical gap: field notice `f02f40bf` (inheritance revocation gap)
-- Diamond-union semantics: `scan.rs:1469/2814/2918` (substrate-verified by aristotle)
-- Autoimmune-shadow-discovery shadow #6 prediction + empirical convergence:
-  `forward/autoimmune-shadow-discovery-engine`
+- The descended-from negative-selection gap (the inheritance revocation gap)
+- Diamond-union semantics: `scan.rs:1469/2814/2918` (substrate-verified)
+- The autoimmune-shadow-discovery shadow #6 prediction + empirical convergence
 - ADR-029 observed-not-declared: §ADR-029
 - ADR-018 inheritance state matrix: §ADR-018
 - PMID 12766760: Palmer E (2003). "Negative selection — clearing out the bad apples from the
@@ -8202,11 +7958,9 @@ dogfood antigen. Strengthening-only; item-level/diamond-union/locus-relative cor
 - PMID 10227976: Laufer et al. (1999). *J Immunol* — self-reactive T-cells escape thymic
   selection and are pathogenic in vivo.
 - PMID 39621313: *J Clin Invest* (2024) — impaired negative selection → diabetes.
-- Aristotle outsider-gate response: camp note `20100db6` (2026-05-27 —
-  `InheritedPresentationStructurallyCeasedWithoutAffirmation` mirror fail-class + signal-1/signal-2
-  costimulation framing)
-- Scout three-bucket finding: camp notice `30ccd565` (2026-05-27 — unaffirmed cessation as
-  structural gap)
+- The `InheritedPresentationStructurallyCeasedWithoutAffirmation` mirror fail-class
+  + the signal-1/signal-2 costimulation framing
+- Unaffirmed cessation surfaced as a structural gap (the three-bucket finding)
 - ADR-028 costimulation confirmation: decisions.md:5383 (`all_of` = costimulation principle)
 
 ---
@@ -8215,15 +7969,9 @@ dogfood antigen. Strengthening-only; item-level/diamond-union/locus-relative cor
 
 **Status**: Ratified 2026-05-28.
 
-**Participants**: antigen-dx-dogfood team (scout primary drafter; aristotle Phase-1-8
-PASSED; naturalist biology PASSED; adversarial gate PASSED with three named gaps; scientist
-consistency review COMPLETE; outsider naive-pass; all four ceremony signers).
-
 **Related**: ADR-029 (per-site defense verdicts, `#[defended_by]` + `#[presents]` mechanics),
 ADR-018 (defense semantics, diamond inheritance), ADR-028 (`all_of` = costimulation
 principle), ADR-030 (locus-dispatch frame).
-
-**Ceremony campsite**: `ceremony/ratify-adr-032-conjunction-witnesses`.
 
 ### Problem
 
@@ -8491,34 +8239,23 @@ Outsider naive-pass addressed.
 
 ### Evidence citations
 
-- Shadow #3 discovery: `forward/autoimmune-shadow-discovery-engine` (notice `4f07c1e7`)
+- Shadow #3 discovery (the autoimmune-shadow-discovery shape)
 - OR semantics substrate verification: `audit.rs:1381`
 - ADR-029 witness pluralism commitment: §ADR-029
 - Fingerprint `all_of` compositor precedent: ADR-010 (fingerprint grammar)
 - PMID 12670403: Appleman & Boussiotis (2003). "T cell anergy and costimulation."
   *Immunol Rev* — canonical two-signal model, primary source
-- Naturalist biology gate: campsite note `8418caca` (2026-05-27)
-- Adversarial gate: campsite note `bc9cbb62` (2026-05-27)
-- Aristotle Phase-1-8: `forward/adr032-conjunction-witness` campsite note (2026-05-27);
-  five questions resolved; (tier, plurality) two-axis reformulation
-- Scientist consistency + outsider-gap fixes: `forward/adr032-conjunction-witness` campsite
-  notes (2026-05-28); Plurality::ConjunctionPartial rename; §Implementation notes; §Adoption
+- Five questions resolved; the (tier, plurality) two-axis reformulation;
+  the `Plurality::ConjunctionPartial` rename; §Implementation notes; §Adoption
   guidance
 
 ---
 
 ## ADR-019 Amendment 1 — Witness Taxonomy: Two Kinds (Categorical ‖ Titer/Scalar), Each with Named Members + a Generic Escape-Hatch
 
-**Status**: Proposed 2026-06-01 (ceremony: `prescriptive/family-adr`).
+**Status**: Proposed 2026-06-01.
 
 **Amends**: ADR-019 (substrate-witness predicate family).
-
-**Participants**: aristotle (Phase 1-8 deconstruction of the Tekgy-co-designed
-titer-family reframe — the W-series irreducible truths, the escape-hatch principle,
-the forced-rejection voids); math-researcher (the categorical-algebra boundary that
-*is* the family line; Bolotin 2020 / McIntosh 2015 method-relativity proof);
-naturalist (serology/affinity-maturation/cross-reactivity biology; the limit-of-detection
-third-state grounding); Tekgy (the report-not-verdict reframe that dissolved the titer fork).
 
 **Related**:
 - ADR-019 (the categorical predicate family this amendment splits the *taxonomy* of — the
@@ -8688,7 +8425,7 @@ Value-witness staleness is **two-regime**, not uniform — split by value proven
 Collapsing the two regimes is a bug in both directions: pinning scan-derived titers is a
 category error; leaving source-read titers unfingerprinted ships silent-stale-value. The
 regime is determined at parse-time from the titer's declaration (member-one `#[ignorance]` vs
-raw `#[titer(source = …)]`). Math-researcher Sharpening 1 (campsite note, 2026-06-01).
+raw `#[titer(source = …)]`).
 
 #### Graduation via adaptive memory (the recognition loop, tracking-only in v0.3)
 
@@ -8747,7 +8484,7 @@ math-researcher rejected). ADR-024 Amendment 1's own words ("clinicians ORDER ti
 monitor… antibody concentration over time") already describe a *measurement-witness workflow*, not
 a unit of code-site-local forward work. Consequence: **ADR-033 ships eight prescriptive work-need
 macros; `#[titer]` moves here.** math-researcher (whose categorical-algebra boundary drew the
-family line) ruled this explicitly (campsite `prescriptive/family-adr`, 2026-06-01): titer EXITS
+family line) ruled this explicitly: titer EXITS
 the prescriptive family, single-home in the witness taxonomy, **not** dual-home — a titer is not a
 work-need (no who-attests, no workflow, and the four-valued `WorkVerdict` does not even type over a
 value). A titer *value* may be REFERENCED by a downstream judgment that gates a work-need, but that
@@ -8771,15 +8508,7 @@ antigen macro re-bolting the threshold back in.
 
 ## [ADR-033] Prescriptive Work-Orchestration: Four Structural Shapes, Eight Clinical Names, the ADR-029 Spine Pointed at Work-Needs
 
-**Status**: Proposed 2026-06-01 (ceremony: `prescriptive/family-adr`).
-
-**Participants**: aristotle (Phase 1-8 deconstruction — the T-series irreducible truths, the
-four-shape decomposition, the locality test, the four-valued verdict, the audit-is-the-board
-forced-rejection); adversarial (Q9 spec-test corpus `atk_prescriptive_family_adr033.rs`, the
-`TriageDecision` cross-check, the cardinality-collapse gate ATK-PRES-8); scientist (consistency
-review + the `panel.needs ↔ filled_by` binding catch); naturalist (clinical-medicine grounding
-per ADR-024); math-researcher (verdict-lattice isomorphism; titer-kind boundary); Tekgy (anchor
-#3 camp-separation; the report-not-verdict reframe).
+**Status**: Proposed 2026-06-01.
 
 **Related**:
 - ADR-024 (ratified the prescriptive family's NAMES, COMPETES decision, category, clinical-medicine
@@ -8796,10 +8525,8 @@ per ADR-024); math-researcher (verdict-lattice isomorphism; titer-kind boundary)
 - ADR-026 (`TriageDecision` VCS-rollback enum — a DISTINCT axis from `#[triage]`; disambiguated below).
 - ADR-007 / ADR-006 Amendment 1 (all four shapes ship; recognize shapes, don't invent carriers).
 - ADR-005 (sub-clause F at the work-need trust boundary).
-- `forward/three-valued-logic-api-boundary-layer` (the four-valued verdict is the gem at the
-  verdict boundary).
-
-**Ceremony campsite**: `prescriptive/family-adr` (the Phase 1-8 F-finding notes are the witness).
+- The three-valued logic at the API boundary layer (the four-valued verdict is the
+  same shape at the verdict boundary).
 
 ### Finding
 
@@ -8975,13 +8702,11 @@ strings (advisory parse, audit-time evaluated).
 | | `triaged_by` | `Option<String>` | NO | `None` | who-ref |
 | | `re_triage_due` | `Option<String>` | NO | `None` | ISO-8601 (staleness frame, not deadline) |
 
-> **Transcription correction (2026-06-01, post-ratification fixup — NOT a new
-> decision):** the `campsites` field is **DROPPED** per the Tekgy ruling already part
-> of this ceremony (campsite `prescriptive/family-adr` note `57e56ecc`: "DROP
-> triage.campsites ENTIRELY. antigen's `#[triage]` triages CODE — code-local
-> work-needs/sites by priority. NOT camp campsites"). The original §Proc-Macro-Surface
-> table mistakenly carried `campsites` (inherited from the comprehensive-vision §7 sketch)
-> despite the ruling to drop it; the adversarial spec-test corpus
+> **Transcription correction (post-ratification fixup — NOT a new decision):** the
+> `campsites` field is **DROPPED** per the ruling already part of this decision —
+> `#[triage]` triages CODE (code-local work-needs/sites by priority), not external
+> coordination work-units. The original §Proc-Macro-Surface table mistakenly carried
+> `campsites` despite the ruling to drop it; the adversarial spec-test corpus
 > (`atk_prescriptive_family_adr033.rs`, ATK-PRES-14) correctly encoded the ruling. This
 > fixup realigns the table to the ratified ruling and the oracle. `#[triage]` orders
 > **code sites** (per the anchor-#3 locality test: a triage that triages camp campsites
@@ -9143,7 +8868,7 @@ prescriptive verdicts (the overdue gate).
   flagged "priority_order non-resolution tier unspecified" is now resolved: unresolvable
   code-site ref = out-of-frame per ADR-017 Amendment 1, see §Enforcement-Surface.)
 
-### Sweep-level consequences
+### Consequences
 
 - antigen-macros gains 8 macro entry points routing to 4 shape-parsers (`WorkShape::{RoleWorkflow,
   Elimination, Ordering, FrameOnly}` internal dispatch).
@@ -9179,19 +8904,14 @@ prescriptive verdicts (the overdue gate).
 
 ## [ADR-034] The Report Is a Live Projection, Never a Stored Truth
 
-**Status**: Proposed 2026-06-01 (ceremony: `prescriptive/family-adr`, folded from the
-titer-family-and-reporting-codesign).
-
-**Participants**: Tekgy (the correction that a stored report is itself a parallel state tracker —
-antigen committing the sin it exists to catch); aristotle (Phase 1-8 forced-rejection VOID-W6 — the
-self-contradiction proof; the rhyme with the three-valued-logic type-law).
+**Status**: Proposed 2026-06-01.
 
 **Related**:
 - ADR-029 (observe-don't-declare — this ADR is the same principle applied to the report's *storage*).
 - ADR-019 Amendment 1 (titer trends + escape-hatch lifetimes are computed from substrate, never a
   stored ledger).
 - ADR-033 (the prescriptive board is a live-projected audit section).
-- `forward/three-valued-logic-api-boundary-layer` (VOID-W6's "a stored report is ill-typed" is the
+- The three-valued logic at the API boundary layer (VOID-W6's "a stored report is ill-typed" is the
   same structural law as "a 2-valued substrate-boundary is ill-typed" — substrate-relative things
   must not be frozen into a parallel copy).
 - The dogfood `ParallelStateTrackersDiverge` antigen (the exact failure-class a stored report would
@@ -9269,21 +8989,9 @@ copy that can lie.
 
 ## [ADR-035] Cardinality Collapse at a Trust Boundary: the Three-Valued Type Law (a Self-Applying Antigen)
 
-**Status**: Ratified 2026-06-01 (ceremony: `forward/adr035-three-valued-type-law-ceremony`, 3/3
-co-signers: aristotle, math-researcher, adversarial). The adversarial falsification gate (no
-counterexample to the no-total-boundary lemma), the math-researcher coproduct-closure formal
-sign-off, and the aristotle first-principles co-sign all landed as part of the ceremony. The
-ceremony campsite reached 3/3 complete on 2026-06-01 (third night).
-
-**Participants**: aristotle (the "forced, not found" necessity argument; the Phase-1-8 forced-rejection
-of the two-valued boundary and of the atomic-`⊥`; the 13-instance catalog; the `⊥` notation-collision
-catch; the self-applying-witness recognition); math-researcher (the coproduct closure — the third value
-is the unit of the lift, distinct by the universal property; the no-base-case regress; the Σ(stages)
-two-clause discriminator; the formal sign-off that the falsification partition is *exhaustive*);
-adversarial (the falsification gate — examined every substrate-relative boundary in the audit pipeline
-and found NO counterexample to the lemma); naturalist (the ignorance≠anergy biology grounding; the
-"applied-at-the-load-boundary-but-not-propagated-to-the-leaves" granularity-gap framing); scientist
-(the six-witness convergence manuscript framing).
+**Status**: Ratified 2026-06-01. Validated by an adversarial falsification gate
+(no counterexample to the no-total-boundary lemma) and a coproduct-closure formal
+sign-off.
 
 **Related**:
 - ADR-029 (observe-don't-declare). This ADR is the **type** of which ADR-029 is the **discipline**:
@@ -9475,7 +9183,7 @@ implicit-mode obscurity antigen exists to surface.
 
 ## [ADR-036] The Scan/Audit Orchestration Decomposition: a Thin Out-of-Band Coordinator Above the Detector Sequence (the SCRAM Host)
 
-**Status**: Locked design (Outfitters / beta.2 voyage, 2026-06-02) — buildability-confirmed against the
+**Status**: Locked design (2026-06-02) — buildability-confirmed against the
 real substrate by the pathmaker; **awaiting the notary** (Geological Society / Boat 4) for promotion to
 Witnessed. This is a *claim* ("the decomposition is buildable as specified, behavior-preserving, and the
 SCRAM seam is genuinely near-free"), not a self-witnessed verification. The build itself is the
@@ -9484,13 +9192,6 @@ Bushwhackers' **opening move** (Boat 3), before any other file touches `scan.rs`
 *("**SCRAM**" — borrowed from reactor engineering, the emergency shutdown that halts a runaway from outside
 the reactor it stops — is used throughout as shorthand for the future cascade-governor's kill-switch: a
 mechanism that can halt a runaway detection cascade from a layer the runaway cannot disable.)*
-
-**Participants**: pathmaker (the buildability pressure-test against the real 8031-line `scan.rs` +
-7853-line `audit.rs`; the two-orchestrator finding; the SCRAM-host design); value-finder (surfaced the
-FEEDBACK-stage safety-rail need); expansionist (the control-loop grounding — orchestration *is* the loop,
-SCRAM *is* the FEEDBACK out-of-band damper); dreamer (carried the captain's SCRAM lock onto the campsite);
-captain (ruled the out-of-band requirement, 2026-06-02 — locking the *requirement*, explicitly not the
-mechanism, with the honest caveat that the pathmaker confirms near-free or surfaces it as a finding).
 
 **Related**:
 - The LOOP-A regulator frame (forthcoming ADR — antigen-is-a-closed-loop-regulator). This decomposition
@@ -9790,7 +9491,7 @@ out-of-band invariant) still holds: no pass holds stop-authority; `parse` is the
 
 ## [ADR-037] Antigen Is a Closed-Loop Regulator: Its Own Machinery Has Six Failure-Points (the Control-Loop Master-Frame)
 
-**Status**: Locked design (Outfitters / beta.2 voyage, 2026-06-02) for the **regulator self-model** (use-1
+**Status**: Locked design (2026-06-02) for the **regulator self-model** (use-1
 below) — **awaiting the notary** for promotion to Witnessed. The frame's *self-model* use is
 falsification-gate-CLEARED (adversarial), biology-coherence-RULED (naturalist, high confidence), and
 first-principles-grounded (aristotle). Its *second* use — whether the control-loop FUNCTION is also a
@@ -9801,19 +9502,6 @@ COMPARE-fidelity cell the original two-genera missed, resolved by adding a THIRD
 SENSE/COMPARE/ACT, one per active stage) and ADR-038 does **not** cite a separate function axis — it carries
 the three genera as a single sub-axis under ADR-028's category. This ADR locks use-1; the resolution detail
 lives in §The two uses / §Open seam and ADR-038.
-
-**Participants**: expansionist (the Phase-6 convergence-check — six independent cross-domain mappings tiled
-one control loop, one-per-stage, cleanly under fix-sorting; the requisite-variety sizing law; the
-setpoint prediction — the one confirmed cross-validated prediction that is the frame's load-bearing
-anti-vacuity evidence);
-adversarial (the falsification gate — ran the family-sort by fix-shape, found the regulator-vs-disturbance
-boundary, located the two mislabeled-`families/*` re-file findings, cleared the frame for the regulator and
-correctly-excluded it from the catalog); naturalist (the biology-coherence ruling — the regulatory
-*machinery* is not the *catalog* of antigens; immunology's founding architecture-fact; the fail-direction
-invariant is biologically literal — thymic selection defaults to apoptosis); aristotle (the first-principles
-deconstruction + honest self-correction — one frame, two uses, not two loops); value-finder (legibility as
-a spine need across the loop's three damping scales); pathmaker (the lock + the fidelity-vs-genus crosscut
-framing of the open seam).
 
 **Related**:
 - ADR-007 (anti-YAGNI / structurally-guaranteed need). Requisite variety (Ashby 1956, V(C) ≥ V(D)) is the
@@ -10009,20 +9697,11 @@ final seals; the structural resolution is converged.)
 
 ## [ADR-038] The Stdlib Taxonomy Grid: Three Divergence-Genera (One per Active Loop-Stage), Super-Family Parents, and Remedy-Shape as the Primary Sort
 
-**Status**: Locked design (Outfitters / beta.2 voyage, 2026-06-02) — **awaiting the notary** for promotion
+**Status**: Locked design (2026-06-02) — **awaiting the notary** for promotion
 to Witnessed. The crosscut test that gated this ADR has cleared (aristotle + adversarial converged
 independently — see ADR-037 §The crosscut test result). The **`comparator-divergence` genus rests on N=2
 witnesses** and is held at the suspected confidence-tier (ADR-039) until more land; the captain's concurrence
 + adversarial's witness-attack are the final seals on that one genus. The rest is converged.
-
-**Participants**: researcher (the two-genera capstone — information-divergence vs effect-divergence,
-genus-per-stage; the three super-family unifier-parents; the demand-counts); naturalist (the three
-super-families as biology-coherent PARENTS with the must-not-merge guardrail; the space/time decomposition of
-substrate-alignment — Info-Loss = space, Staleness = time; the apoptosis super-family); value-finder (the
-worth-sort — frames-not-features; the space/time axis as the highest-leverage taxonomy decision); aristotle
-+ adversarial (the crosscut resolution — the third genus, `comparator-divergence`, located at the COMPARE
-cell); scout (distinct-remedies → distinct-units, the family-vs-member boundary); pathmaker (the lock,
-grounded on the shipped `AntigenCategory` axis).
 
 **Related**:
 - ADR-028 (Antigen-Category Taxonomy: Substrate-Alignment vs Functional-Correctness). This grid's **primary
@@ -10163,7 +9842,7 @@ parallel classification field bolted on.
 
 ## [ADR-039] The Confidence Dial, the Build Gate, and the Emit Seam: Three Admission Decisions and One Typed-Event Stream
 
-**Status**: Locked design (Outfitters / beta.2 voyage, 2026-06-02) — **awaiting the notary** for promotion
+**Status**: Locked design (2026-06-02) — **awaiting the notary** for promotion
 to Witnessed. The three-decisions split and the emit-seam locus are locked first-principles + substrate.
 The **build-gate admission rule is RULED (Tekgy, permissive — supersedes the earlier crisp-gate): admission
 ≈ ARTICULABILITY (name/see/imagine it → admitted; no fiction-exclusion gate), justified by the cost
@@ -10173,16 +9852,6 @@ PASSIVE [tooling] vs ACTIVE [user-macro] presentation axis keeps permissive admi
 provenance-labeling is the one invariant (adversarial's fiction-intolerance re-homes onto verifying
 provenance, not gating entry)** — see §The build gate (the superseded crisp-gate + the earlier fork +
 deliberation preserved append-only for the trail).
-
-**Participants**: value-finder (the flagship value-prop — the dial decides *who antigen is for*: the
-silent-failure population; the survivor-bias argument for dropping recorded-breakage to a dial; legibility
-as the third discipline); naturalist (the lysozyme grounding of the innate/suspected tier; the
-naive-repertoire-is-built-on-shape biology that dissolves the gate fork; the affinity-maturation reading of
-graduation); dreamer (carried the captain's emit-not-display lock onto the campsite); adversarial (the
-emit-seam locus correction — the dial verdict is an audit-time value, so "land it in ScanReport" splits the
-stream; the merge-at-audit fix); aristotle (substrate-confirmed the emit-split; the three-decisions
-first-principles read); outsider (self-corrected the ScanReport-locus half; flagged the dial-vocabulary ↔
-shipped `match_kind` mapping); pathmaker (the lock + substrate verification of the emit locus).
 
 **Related**:
 - ADR-037 (the control-loop frame). The confidence dial is the loop's **ACT-stage calibration** (how
@@ -10614,21 +10283,12 @@ deliver the value this design claims.
 
 ## [ADR-040] The Grammar Increment: Frame-Relative Matching, `body_calls`, and the Syntactic Absence Family (Leaf-Matcher Tier)
 
-**Status**: Locked design (Outfitters / beta.2 voyage, 2026-06-02) — **awaiting the notary** for promotion
+**Status**: Locked design (2026-06-02) — **awaiting the notary** for promotion
 to Witnessed. Buildability-confirmed against the real `antigen-fingerprint` crate by the pathmaker. This
 ADR locks the **leaf-matcher tier** (Increments 1–2: new `Constraint` variants in the existing per-node
 walk). The **per-type correlation tier** (Increment 3 / G4) is carved to its own sibling ADR (it is a
 different machine); the **semantic tier** (resolved types, control-flow liveness) is **charter → v0.4**
 (`ra_ap_syntax`, unblocked by the MSRV-1.95 raise).
-
-**Participants**: researcher (the ranked, demand-counted, depth-split driver analysis — the grammar
-recognition rule, N≥2 verified-classes-demand-it, the per-increment fan-out); value-finder (the
-build-order-by-proven-fan-out worth-call — cheap + proven-demanded + closes-a-real-silent-gap leads);
-naturalist (the NK missing-self biology — absence-detection-given-context = the anti-graffiti anchor rule,
-biology predicted the existing constraint; the syntactic/semantic depth-split + the locality bend); scout
-(the absence-grammar-IS-the-SENSE-organ reframe — MOVE-1 on three independent build-order axes); pathmaker
-(the buildability lock — substrate verification of the `Constraint` enum + the shipped anchor rule + the
-drop-panic silent gap).
 
 **Related**:
 - ADR-010 Amendment 3 OQ3 (the `not`-placement / anti-graffiti rule). **Already shipped** and load-bearing
@@ -10754,7 +10414,7 @@ error — a compile-fail fixture confirms it).
 
 ## [ADR-041] The Marked-Unknown Plane: a Declarable Three-Valued Bottom on Two Orthogonal Axes (Magnitude × Existence-Certainty), Surfaced at the Dial's Non-Gating Floor
 
-**Status**: Locked design (Outfitters / beta.2 voyage, 2026-06-02) — **awaiting the notary** for promotion
+**Status**: Locked design (2026-06-02) — **awaiting the notary** for promotion
 to Witnessed. The plane structure, the two-guard earned-ness discipline, and the emit-seam are converged
 (aristotle Phase-1-8 + value-finder worth + naturalist biology). **The third marker is RULED `#[red_flag]`**
 (captain — closing the naming sub-fork). `#[red_flag]` is the clinical-red-flag sense (certain-enough-to-
@@ -10766,14 +10426,6 @@ danger-signal substrate, slightly broad for one corner-marker — naming one mar
 `#[dread]`'s referent → within-family collision" objection was **false and is retracted** — `#[dread]`'s
 cited referent is *angor animi*, not alarmin; there is no collision. `#[alarmin]` was set aside on the mild
 level-mismatch only, not a collision. See §The third marker.
-
-**Participants**: value-finder (the worth-proof — the keystone primitive: continuity-of-suspicion across
-the handoff where software loses the most knowledge; the affect-is-the-gate); naturalist (the angor-animi /
-clinical-gestalt biology — the patient/observer provenance split; the magnitude × certainty 2-D plane; the
-alarmin referent); aristotle (the load-bearing correction — marked-unknown is OFF the dial's classification
-axis at ⊥ with its OWN existence-certainty axis; the ⊥-attestation-with-lifecycle as the second structural
-guard); outsider (the `#[sentinel]` naming-collision catch); pathmaker (the lock + the emit-seam alignment
-with ADR-039).
 
 **Related**:
 - ADR-039 (the dial + emit seam). The marked-unknown markers are **scan-time declarations** that emit into
@@ -10941,17 +10593,11 @@ became the graffiti it was designed to prevent.
 
 ## [ADR-042] The Usage-Discipline: Three Disciplines (Front-Line Liberal · Regulatory Sparing · Ranked Surfacing), and the `#[autoimmune]` Naming Reconciliation
 
-**Status**: Locked design (Outfitters / beta.2 voyage, 2026-06-02) — **awaiting the notary** for promotion
+**Status**: Locked design (2026-06-02) — **awaiting the notary** for promotion
 to Witnessed. The three-discipline structure and the `#[autoimmune]` naming reconciliation are converged
 (value-finder legibility-spine + outsider naming-catch + naturalist ruling, all substrate-checked). Mostly
 **recognition** — the confidence dial (ADR-039) already exists; this names it as the anti-drowning surfacing
 discipline and corrects a backwards-reading name before it ships.
-
-**Participants**: value-finder (the legibility spine — surfacing as the third, currently-implicit discipline;
-the drowning-in-both-directions refinement); expansionist (the cascade-governor as the surfacing-keeper's
-storm half); outsider (the `#[autoimmune]`-reads-backwards catch, substrate-grepped); naturalist (the
-thermostat-is-not-the-fever ruling — screen-mode vs site-marker direction-rule); pathmaker (the lock + the
-ADR-037 cross-reconciliation).
 
 **Related**:
 - ADR-039 (the dial). The ranked-surfacing discipline IS the dial pointed at *output* (anti-drowning), not
@@ -11090,9 +10736,7 @@ here so the two ADRs do not ship a backwards name.)
 
 ## [ADR-043] The Catalog-Match Spine: One Scan Service, Four Renders (CLI · Editor-Inline · Agent-Query · Session-Prime)
 
-**Status**: Ratified 2026-06-06 (v04-immune-system-at-scale, Outfitters/CONVERGE wave).
-
-**Participants**: v04-immune-system-at-scale Outfitters crew (aristotle lead, scientist validation).
+**Status**: Ratified 2026-06-06.
 
 **Related**: ADR-036 (the scan/audit orchestration decomposition, whose `synthesis_pass` is the spine's core); ADR-039 (the Finding schema = the spine's wire-format and external contract); ADR-040 (grammar + `body_calls` = the leaf-matchers the spine runs); ADR-041 (the marked-unknown plane whose marks feed the spine's scan output); ADR-042 (the usage-discipline the spine's surfacing obeys).
 
@@ -11142,7 +10786,7 @@ What this ADR proves, scoped, with its soundness boundary:
 4. **Client C MCP server:** a thin `axum` (or equivalent) wrapper over the callable spine, accepting a code fragment as the request body and returning a `Vec<Finding>` as JSON. The Finding schema's `schema_version` + additive-optional contract makes this versionable without a breaking MCP protocol change.
 5. **Client D batch render:** a post-scan aggregation step: group Findings by `cluster_key`, rank by `severity` + site-count (blast-radius proxy), take the top-N (configurable, default 20), serialize as structured JSON context. No new scan computation; a post-processing pass over the `Vec<Finding>` the spine already emits.
 
-### Sweep-level consequences
+### Consequences
 
 - **The bundled-catalog mode resolves the zero-hits cliff** (the first-90-second adopter who runs `cargo antigen scan` and sees nothing). Every adopter with a fresh crate now gets real findings from the stdlib catalog immediately.
 - **Client B makes antigen ambient** without a custom LSP — the highest-frequency daily-value delivery at the cost of one config line.
@@ -11168,9 +10812,7 @@ What this ADR proves, scoped, with its soundness boundary:
 
 ## [ADR-044] Frontier-Honesty as a Cross-Cutting v0.4 Spec Constraint: Every Verdict-Emitting or Candidate-Generating Component Reports What It Actually Proved
 
-**Status**: Ratified 2026-06-06 (v04-immune-system-at-scale, Outfitters/CONVERGE wave).
-
-**Participants**: v04-immune-system-at-scale Outfitters crew (aristotle lead, scientist validation); grounded by math-researcher with citations to Cousot & Cousot 1977 and Rice 1953.
+**Status**: Ratified 2026-06-06.
 
 **Related**: ADR-039 (the confidence dial = the detection-side honest-labeling mechanism this ADR generalizes to the generation/invocation side); ADR-005 Amendment 3 (audit reports its own tier honestly — the first instance of this pattern at the audit boundary); ADR-007 (structurally-guaranteed need — the generation arc makes this invariant structurally necessary for the first time).
 
@@ -11218,7 +10860,7 @@ The boundary between the halves is exactly the syntactic/semantic line = the dec
 
 **The FormalProof qualified form:** `#[defended_by(antigen = "AntigenX", witness = FormalProof)]` carries an implicit claim of total correctness. The frontier-honesty discipline requires that the `FormalProof` witness variant carries a bounded-vs-complete qualifier — what the prover ran, over what bound, with what scope. ADR-019 Amendment 1 (the witness taxonomy) is the vehicle for this amendment; ADR-044 recognizes the requirement.
 
-### Sweep-level consequences
+### Consequences
 
 - Every v0.4 ADR that emits a verdict or generates a candidate carries a frontier statement (the labeling discipline is cheap — one paragraph per ADR).
 - The learning core (charter) inherits this constraint at the PROPOSE step: "produces one draft fingerprint matching the structural digest cluster" is the syntactic-machine deliverable; "this draft fingerprint captures a real unnamed failure-class" is the semantic half that stays with a human ratifier.
@@ -11242,9 +10884,7 @@ The boundary between the halves is exactly the syntactic/semantic line = the dec
 
 ## [ADR-045] The Parameterization-Collapse Procedure and Tangle-Kind Classification: Sequencing the Recurrent Immune Tangle as an Effort DAG
 
-**Status**: Ratified 2026-06-06 (v04-immune-system-at-scale, Outfitters/CONVERGE wave).
-
-**Participants**: v04-immune-system-at-scale Outfitters crew (aristotle lead, naturalist, scientist validation).
+**Status**: Ratified 2026-06-06.
 
 **Related**: ADR-003 (biological metaphor is load-bearing — the tangle IS the biology; the DAG was a legibility projection); ADR-007 (structurally-guaranteed need — the collapsed primitives are structurally required, not speculative); ADR-037 (the control-loop master-frame — this ADR operationalizes the `could-combine-with` edges in that frame's DAG).
 
@@ -11326,7 +10966,7 @@ The ratifier: the Pioneers and Survey waves. If the build reveals that a propose
 - **The metaphor bends** (ADR-003) for Primitives B and C must be named explicitly in their builds: the parsimony-cull is NOT positive selection (Primitive B); the wound-path acquisition verb is NOT vaccinate/inoculate (Primitive C). These are the two places the map's beauty could carry an over-claim.
 - **Primitive D stays separate from B and C** at the design level — even when the grammar-fuzz generator is tractable, it is a DIFFERENT operation (diversify ≠ select) requiring its own separate build sequence and ADR.
 
-### Sweep-level consequences
+### Consequences
 
 - The ROADMAP's 9-charter DAG remains the legibility projection for dreamers and charter-readers. This ADR does not update the ROADMAP; it provides the collapsed-primitive model the Pioneers build from. The two representations coexist: the charter-DAG (dreamer-legible, rich) and the primitive-tangle (builder-legible, collapsed).
 - The do-later/deep-future charter sequence is: E first → A+C (one-tree scope) → B (co-ship with C) → A (fleet-scope) → D (research-probe first).
@@ -11349,11 +10989,9 @@ The ratifier: the Pioneers and Survey waves. If the build reveals that a propose
 
 ## ADR-044 Amendment 1 — The invariant's term renamed "claim-scope honesty" (the "frontier" collision resolved)
 
-**Status**: Ratified 2026-06-06 (v04-immune-system-at-scale, Outfitters/CONVERGE wave).
+**Status**: Ratified 2026-06-06.
 
 **Amends**: ADR-044 — the term it mints, NOT its content. Supersede-not-erase: the original body stands; this amendment renames the term-of-art and anchors both referents in the glossary.
-
-**Participants**: aristotle (lead, first-principles naming ruling, `convergence/adr-044-amendments-ruling`); outsider (flagged the collision, F6 / `c96f141e`; drafts the glossary anchors); scientist (validation).
 
 ### Finding
 
@@ -11382,11 +11020,9 @@ They rhyme (both about boundaries/reach) but are orthogonal axes; a newcomer wil
 
 ## ADR-044 Amendment 2 — The learning-core claim-scope statement scoped honestly (the invariant catches its own author)
 
-**Status**: Ratified 2026-06-06 (v04-immune-system-at-scale, Outfitters/CONVERGE wave).
+**Status**: Ratified 2026-06-06.
 
 **Amends**: ADR-044's claim-scope (frontier) statement for the learning core. Supersede-not-erase.
-
-**Participants**: outsider (located the over-claim, `96a4fd96`); adversarial (independently verified the seam, `18f0f6c0`); aristotle (lead, ruling); executor (routed the build-order edge, `1d8e1d53`).
 
 ### Finding
 
@@ -11406,11 +11042,9 @@ The seam-fix (`keystone/propose-slice-input-seam-marked-unknown-digest-is-empty`
 
 ## ADR-045 Amendment 1 — The population-fill primitive-zero: two named do-now preconditions ahead of the marked-unknown subscribers
 
-**Status**: Ratified 2026-06-06 (v04-immune-system-at-scale, Outfitters/CONVERGE wave).
+**Status**: Ratified 2026-06-06.
 
 **Amends**: ADR-045's build-sequence step 2 ("A + C both ride the SHIPPED cluster_key"). Supersede-not-erase: the step stands; this amendment corrects its readiness claim, which became stale against the substrate within the same wave.
-
-**Participants**: adversarial (root-cause: the marked-unknown population is digest-empty, cross-organ blast radius); executor (the apply-marks hidden-dependency, grep-verified); observer (named it antigen's own `RatifiedSpecDriftFromImpl`, flagged "highest-value"); pathmaker (the E-rides-the-audit-half reconciliation, run-as-code); aristotle (lead, ruling).
 
 ### Finding
 
@@ -11442,11 +11076,9 @@ ADR-045 step 2 reads "A (convergence field, one-tree) + C (PROPOSE, acute n=1) �
 
 ## ADR-045 Amendment 2 — P0a is a TWO-field seam: identity `structural_digest` (unchanged, diff-native's key) + a new name-insensitive `shape_digest` (the PROPOSE clustering key)
 
-**Status**: Ratified 2026-06-07 (v04-immune-system-at-scale, Pioneers/BUILD wave). Self-ratified by the pathmaker during the P0a build under the captain's W-P0a.5 ruling. Supersede-not-erase.
+**Status**: Ratified 2026-06-07. Supersede-not-erase.
 
 **Amends**: ADR-045 Amendment 1's P0a build-step ("thread `current_item_digest`; `to_finding` uses it for both `structural_digest` and `cluster_key_of(digest, marker)`"). That single-digest prescription would have conflated two distinct meanings on one field; this amendment splits them.
-
-**Participants**: adversarial (the run-as-code refutation that surfaced both the name-axis AND the marker-payload-axis bugs; the root-cause locate); captain (the W-P0a.5 two-field ruling); pathmaker (the `structural_shape_digest` / `ShapeNormalize` build + the `ANTIGEN_OWNED_ATTRS` fix); observer (W-P0a.5, the `ParallelStateTrackersDiverge` framing).
 
 ### Finding
 
@@ -11474,11 +11106,9 @@ ADR-045 Amd-1's P0a step said to ride a SINGLE digest (`current_item_digest`) fo
 
 ## ADR-043 Amendment 1 — Bundled-catalog matches are claim-scoped; the audit/witness-requirement use-case needs synthetic declarations
 
-**Status**: Ratified 2026-06-06 (v04-immune-system-at-scale, Outfitters/CONVERGE wave).
+**Status**: Ratified 2026-06-06.
 
 **Amends**: ADR-043 (the catalog-match spine), Client A. Supersede-not-erase.
-
-**Participants**: adversarial (the sub-clause-F bypass on bundled matches); aristotle (lead, scope ruling); observer (the synthetic-declaration done-condition).
 
 ### Finding
 
@@ -11501,11 +11131,9 @@ A bundled-catalog match (a `(String, Fingerprint)` injected into `synthesis_pass
 
 ## ADR-043 Amendment 2 — Explicit `--bundled-catalog` ALWAYS injects (augments local antigens); the no-flag default auto-detects-when-empty
 
-**Status**: Ratified 2026-06-07 (v04-immune-system-at-scale, Pioneers/BUILD wave). Self-ratified by the pathmaker during the E0 build under the captain's standing ruling (the baton pinned auto-detect-when-empty as the no-flag default but did not specify explicit-flag semantics). Supersede-not-erase.
+**Status**: Ratified 2026-06-07. Supersede-not-erase.
 
 **Amends**: ADR-043 (the catalog-match spine), Client A / the bundled-catalog injection rule.
-
-**Participants**: pathmaker (the E0 build + the named silent-miss test); adversarial (surfaced the partial-adopter suppression as a named gap, `partial_adopter_auto_detect_suppresses_the_catalog_a_known_silent_miss`); captain (the ruling: close it, don't just document it).
 
 ### Finding
 
@@ -11529,9 +11157,7 @@ Three-case injection predicate (the explicit request always wins):
 
 ## [ADR-046] The Diff-Native Fingerprint Modality: Match a Structural DELTA, Not a Snapshot (detect / classify / label)
 
-**Status**: Ratified 2026-06-06 (v04-immune-system-at-scale, Outfitters/CONVERGE wave). **Tier: do-now (DETECT slice) + do-later (the guard-regression CLASSIFY fingerprint).**
-
-**Participants**: think-big-dreamer (the net-new modality, Cartographers wave); value-finder ("possibly the strongest net-new dream this wave"); math-researcher (the detect/classify/label split + the oracle-rhyme); pathmaker (run-as-code feasibility on the scan path); aristotle (lead).
+**Status**: Ratified 2026-06-06. **Tier: do-now (DETECT slice) + do-later (the guard-regression CLASSIFY fingerprint).**
 
 **Related**: ADR-039 (the per-item `structural_digest` the diff reads); ADR-040 (the `body_calls`/leaf-matchers the CLASSIFY slice set-diffs); ADR-044 (the claim-scope invariant this modality inherits — the THIRD independent recurrence of the syntactic/semantic boundary); ADR-045 (the diff-on-the-population path inherits the primitive-zero dependency; the scan-path slice does not).
 
@@ -11553,7 +11179,7 @@ Antigen's fingerprint model is a SNAPSHOT predicate: it matches the structure of
 - **What it does NOT prove:** whether the removed structure was a REQUIRED guard (semantic, undecidable — Rice). The modality reports "a guard-shaped call was removed here" at `Heuristic`/`suspected` tier; "regression" is the human/incident label.
 - **The ratifier:** the reviewer at the PR, or the wound-`learn-from` incident that reverts a fix-diff into a labeled guard-removal.
 
-### Sweep-level consequences
+### Consequences
 
 - This is the THIRD independent appearance of the syntactic/semantic (GENERATE/SELECT-machine → LABEL-human) boundary — keystone dark-zone, witness-invocation, now diff-native — confirming it is antigen's defining structure (ADR-044), not a per-feature discipline.
 - It is the natural fingerprint shape for the route-arm's `cargo antigen review <diff>` (charter-route-arm) and the perfect substrate for the wound-`learn-from` PROPOSE input (a fix-diff REVERSED is the diff-fingerprint of the bug-introducing class).

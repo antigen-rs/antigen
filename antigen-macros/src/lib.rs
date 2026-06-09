@@ -49,15 +49,13 @@
 //!
 //! 1. **Macros are pure pass-through**: the proc-macros parse + validate the
 //!    attribute syntax and emit the original item unchanged (ADR-001 identity
-//!    transform). Cross-crate antigen discovery in v0.1.0-rc.1 works via
-//!    source-walking the `.cargo/registry` tree (A3 sweep). A future ADR
-//!    amendment may add metadata-emitting transforms (e.g.,
-//!    `<!-- antigen:metadata:v1 {...} -->` doc-comment markers, or
-//!    `#[cfg(doc)] pub static __ANTIGEN_META_*`) for the no-source-access
-//!    case — verified-viable but post-A5 ADR territory per the A3 scope-lock.
+//!    transform). Cross-crate antigen discovery works via source-walking the
+//!    `.cargo/registry` tree. A future ADR amendment may add metadata-emitting
+//!    transforms (e.g., `<!-- antigen:metadata:v1 {...} -->` doc-comment
+//!    markers, or `#[cfg(doc)] pub static __ANTIGEN_META_*`) for the
+//!    no-source-access case — verified-viable but as-yet-undecided ADR territory.
 //!
-//! Span-aware error pointing (W4) and trybuild fixtures (A2 ratification)
-//! both shipped in v0.1.0-rc.1.
+//! Span-aware error pointing and trybuild fixtures both shipped in v0.1.0-rc.1.
 
 use proc_macro::TokenStream;
 use quote::quote;
@@ -462,7 +460,7 @@ pub fn immune(args: TokenStream, input: TokenStream) -> TokenStream {
 /// propagation is not yet implemented. In v0.1, this attribute compiles
 /// cleanly and is recorded by `cargo antigen scan` for future use.
 /// Chain-walking and marker propagation (`#[presents]` / `#[immune]`
-/// inheritance with witness re-validation) arrive in A3.
+/// inheritance with witness re-validation) are not yet implemented.
 #[proc_macro_attribute]
 pub fn descended_from(args: TokenStream, input: TokenStream) -> TokenStream {
     let _args = parse_macro_input!(args as parse::DescendedFromArgs);
@@ -795,7 +793,7 @@ pub fn red_flag(args: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// - Antigen type name (optional positional)
 /// - `reason = "..."` (required) — minimum 20 characters
-/// - `until = "YYYY-MM-DD"` (required) — expiry date; A5: `until` is not
+/// - `until = "YYYY-MM-DD"` (required) — expiry date; `until` is not
 ///   optional; anergy without time-bound degrades to silent tolerance
 /// - `expected_co_stimulation = "..."` (optional) — advisory-only; names the
 ///   condition that would re-engage immune response; NOT machine-verified
@@ -846,7 +844,7 @@ pub fn anergy(args: TokenStream, input: TokenStream) -> TokenStream {
 ///   is 90 days (ADR-023 `immunosuppress_duration_cap`)
 /// - `signed_by = "..."` (optional)
 ///
-/// # Parse-time enforcement (A4 absorbed)
+/// # Parse-time enforcement
 ///
 /// A COMPILE ERROR is emitted if `until - since > duration_cap`. This closes
 /// the audit-only gap — the cap cannot be bypassed by suppressing the audit.
@@ -884,7 +882,7 @@ pub fn immunosuppress(args: TokenStream, input: TokenStream) -> TokenStream {
 
 /// Declare an intentional exposure exercise with structural isolation.
 ///
-/// # Structural isolation (A3 — two-layer approach)
+/// # Structural isolation (two-layer approach)
 ///
 /// Primary isolation: wrap `#[poxparty]` sites inside a
 /// `#[cfg(feature = "antigen-poxparty")]` module or item. When the feature
@@ -933,7 +931,7 @@ pub fn immunosuppress(args: TokenStream, input: TokenStream) -> TokenStream {
 /// ```
 #[proc_macro_attribute]
 pub fn poxparty(args: TokenStream, input: TokenStream) -> TokenStream {
-    // A3 structural isolation — two-layer approach:
+    // Structural isolation — two-layer approach:
     //
     // Layer 1 (primary): `#[cfg(feature = "antigen-poxparty")]` on the
     // containing module/item. When the feature is inactive, `rustc` strips

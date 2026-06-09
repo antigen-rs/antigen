@@ -1,9 +1,10 @@
 # Antigen — Composing With Your Existing Tools
 
-> **v0.2 idiom note**: Code examples in this doc use the v0.1 `#[immune(...)]` API.
-> For v0.2, prefer `#[defended_by(X)]` on test functions (code-tier) or
-> `#[presents(X, requires=...)]` on the site (substrate-tier). The `#[immune]` form
-> still compiles with a deprecation warning — see [`macros.md`](macros.md) for migration.
+> **Idiom note**: Code examples in this doc use the current (ADR-029) idiom —
+> `#[defended_by(X)]` on test functions (code-tier), `#[presents(X, requires=...)]`
+> for substrate evidence, and `#[presents(X, proof=...)]` for phantom-type and
+> external-tool witnesses. The old `#[immune(...)]` form is deprecated — see the
+> [migration guide](immune-migration-guide.md) if you still have `#[immune]` sites.
 
 > Antigen doesn't replace your existing testing, linting, or
 > verification toolchain. It *composes* with them — using each for
@@ -20,7 +21,7 @@ that operationalize this composition, see
 ## The composition posture
 
 Antigen is a vocabulary for structural failure-class memory. The
-*verification* that an immunity claim holds lives in whichever tool
+*verification* that a defense holds lives in whichever tool
 proves it best:
 
 - **Tests** verify behavior on specific inputs
@@ -30,7 +31,7 @@ proves it best:
   domain
 - **Type system** enforces invariants at compile time
 
-Antigen delegates to whichever proves immunity for a given antigen.
+Antigen delegates to whichever proves the defense for a given antigen.
 It doesn't reinvent verification; it threads existing verification
 under a shared vocabulary of *what's being defended against*.
 
@@ -45,11 +46,8 @@ fingerprints.
 They compose at the witness layer:
 
 ```rust
-#[immune(
-    PanickingInDrop,
-    witness = clippy::panic_in_result_fn,
-    rationale = "clippy lint catches the panic pattern; we configure the lint at warn level."
-)]
+// clippy lint catches the panic pattern; we configure the lint at warn level.
+#[presents(PanickingInDrop, proof = clippy::panic_in_result_fn)]
 impl Drop for ResourceHandle {
     fn drop(&mut self) {
         // implementation
@@ -57,11 +55,11 @@ impl Drop for ResourceHandle {
 }
 ```
 
-The witness type `clippy::lint_name` tells the audit "this immunity is
-defended by a clippy lint." The audit reports the tier honestly
-(`Reachability` + `ExternalToolPrefixRecognized` hint in v0.1; future
-A4-A5 sweeps will execute clippy and promote to Execution where
-appropriate).
+The `proof = clippy::lint_name` witness tells the audit "this defense is
+backed by a clippy lint." The audit reports the tier honestly
+(`Reachability` + `ExternalToolPrefixRecognized` hint): it recognizes the clippy
+prefix but does not run clippy. Executing the lint and promoting to `Execution`
+where appropriate is a recorded graduation path; see [`roadmap.md`](roadmap.md).
 
 **Why they compose**:
 
@@ -70,7 +68,7 @@ appropriate).
 - Clippy's lint surface is enormous (700+ lints); antigen's vocabulary
   catalogs the failure-classes your team has *learned about specifically*.
 - When a clippy lint catches a pattern your team has named as an
-  antigen, the immunity claim makes that connection explicit.
+  antigen, the defense makes that connection explicit.
 
 **What antigen adds beyond clippy alone**: structural memory of *why*
 the lint matters in your project. Clippy says "this might be a panic";
@@ -85,7 +83,7 @@ incident in PR #1234 (see references)."
 **Antigen** names what those violations would be.
 
 ```rust
-use antigen::{antigen, immune, presents};
+use antigen::{antigen, defended_by, presents};
 use proptest::prelude::*;
 
 #[antigen(
@@ -95,12 +93,8 @@ use proptest::prelude::*;
 )]
 pub struct PolarityInvertedClassMeet;
 
+// The site presents the shape; the proptest below registers the defense.
 #[presents(PolarityInvertedClassMeet)]
-#[immune(
-    PolarityInvertedClassMeet,
-    witness = proptest::meet_is_max_proptest,
-    rationale = "Proptest verifies meet returns the larger discriminant across the full enum space."
-)]
 pub enum DeterminismClass {
     Strict, Loose, Loose2,
 }
@@ -113,7 +107,9 @@ impl DeterminismClass {
 }
 
 proptest! {
+    // Proptest verifies meet returns the larger discriminant across the full enum space.
     #[test]
+    #[defended_by(PolarityInvertedClassMeet)]
     fn meet_is_max_proptest(a: u8, b: u8) {
         let a = DeterminismClass::from(a % 3);
         let b = DeterminismClass::from(b % 3);
@@ -136,21 +132,18 @@ Formal verification tools prove correctness across all inputs in their
 proven domain. Antigen names what's being proven.
 
 ```rust
-#[immune(
-    UnsafePointerArithmetic,
-    witness = kani::no_oob_proof,
-    rationale = "kani verifies no out-of-bounds access for all symbolic inputs."
-)]
+// kani verifies no out-of-bounds access for all symbolic inputs.
+#[presents(UnsafePointerArithmetic, proof = kani::no_oob_proof)]
 unsafe fn safe_indexed_access(buf: &[u8], idx: usize) -> Option<u8> {
     // ...
 }
 ```
 
-In v0.1.0-rc.1, formal-verification witnesses report `Reachability`
-tier with `ExternalToolPrefixRecognized` hint (the audit recognizes
-the kani prefix; doesn't yet invoke kani). Sweep A4-A5 will add
-harness invocation that promotes confirmed proofs to `FormalProof`
-tier.
+Formal-verification witnesses report `Reachability` tier with the
+`ExternalToolPrefixRecognized` hint: the audit recognizes the kani prefix but does
+not invoke kani, so it cannot confirm the proof passes. Harness invocation — running
+the verifier and promoting a confirmed proof to `FormalProof` tier — is a recorded
+graduation path; see [`roadmap.md`](roadmap.md).
 
 The composition: formal verification provides the *strongest possible*
 witness; antigen provides the *vocabulary that names what each proof
@@ -164,7 +157,7 @@ demonstrates*.
 recognizes the proof shape.
 
 ```rust
-use antigen::immune;
+use antigen::presents;
 use std::marker::PhantomData;
 use crate::antigens::FrameTranslationDrift;
 
@@ -181,10 +174,10 @@ impl<T> NonPanickingProof<T> {
 
 pub struct PhantomVerifiedDropImpl;
 
-#[immune(
+// Phantom-type token constructible only via the sealed `verified` constructor.
+#[presents(
     FrameTranslationDrift,
-    witness = NonPanickingProof::<PhantomVerifiedDropImpl>::verified,
-    rationale = "Phantom-type token constructible only via the sealed `verified` constructor."
+    proof = NonPanickingProof::<PhantomVerifiedDropImpl>::verified
 )]
 impl Drop for PhantomVerifiedDropImpl { /* ... */ }
 ```
@@ -193,7 +186,7 @@ The turbofish syntax (`NonPanickingProof::<PhantomVerifiedDropImpl>::verified`)
 is what antigen recognizes as a phantom-type witness. Audit reports
 `FormalProof` tier with `PhantomTypeShapeRecognized` hint.
 
-This is the strongest tier antigen recognizes in v0.1 — the type
+This is the strongest tier antigen recognizes — the type
 system itself is the witness, so if the code compiles, the proof
 holds.
 
@@ -216,16 +209,13 @@ class of failure the test defends against.
 pub struct OffByOneInBoundsCheck;
 
 #[presents(OffByOneInBoundsCheck)]
-#[immune(
-    OffByOneInBoundsCheck,
-    witness = bounds_check_boundary_test,
-    rationale = "Test exercises both inclusive boundaries explicitly."
-)]
 pub fn validate_in_bounds(idx: usize, len: usize) -> bool {
     idx < len
 }
 
+// Test exercises both inclusive boundaries explicitly.
 #[test]
+#[defended_by(OffByOneInBoundsCheck)]
 fn bounds_check_boundary_test() {
     assert!(validate_in_bounds(0, 1));      // lower inclusive
     assert!(validate_in_bounds(0, 10));
@@ -235,9 +225,10 @@ fn bounds_check_boundary_test() {
 }
 ```
 
-Audit reports `Reachability` tier with
-`TestAttributePresentNotInvoked` hint in v0.1. Future tier upgrade
-when A4-A5 ships harness invocation.
+Audit reports `Reachability` tier with the
+`TestAttributePresentNotInvoked` hint: the test is wired, not run. The tier upgrade
+that comes with harness invocation is a recorded graduation path; see
+[`roadmap.md`](roadmap.md).
 
 ---
 
@@ -272,14 +263,14 @@ documented.
 ## Antigen + CI
 
 Standard composition: run `cargo antigen scan` and `cargo antigen
-audit` as CI gates. Per ADR-008 Amendment 1 (warn-not-error default),
-v0.1.0-rc.1 exits 0 even with unaddressed presentations — adopters
-make conscious decisions about each site rather than CI failing on
-fresh codebases.
+audit` as CI gates. By default (warn-not-error), both exit 0 even with
+unaddressed presentations — adopters make conscious decisions about
+each site rather than CI failing on a fresh codebase.
 
-`--strict` mode (planned) will fail CI when unaddressed presentations
-or below-Execution witnesses exist. Pre-strict, CI can grep audit
-output for warning markers and decide gating policy locally.
+Add `--strict` to fail CI when unaddressed presentations or
+below-Execution witnesses exist: the run then exits non-zero so CI can
+gate on it. Strict mode is the opt-in enforcement surface — without it,
+findings are reported loudly but the run still succeeds.
 
 ---
 
@@ -373,12 +364,9 @@ pub struct SharedMutableStateWithoutLock;
 
 ```rust
 // src/state.rs — vulnerable site
+// The defense is registered on the loom test with #[defended_by(SharedMutableStateWithoutLock)]:
+// a loom-based concurrent test exercises the lock paths across all interleavings.
 #[presents(SharedMutableStateWithoutLock)]
-#[immune(
-    SharedMutableStateWithoutLock,
-    witness = loom::concurrent_state_test,
-    rationale = "Loom-based concurrent test exercises the lock paths across all interleavings."
-)]
 pub fn update_shared_counter(value: i64) -> Result<(), Error> {
     let mut counter = SHARED_COUNTER.lock().map_err(|_| Error::LockPoisoned)?;
     *counter += value;

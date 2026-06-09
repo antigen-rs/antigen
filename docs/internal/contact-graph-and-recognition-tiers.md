@@ -1,8 +1,6 @@
 # Antigen — Contact Graph and Recognition Tiers
 
-> **V0 (2026-05-08 evening)**. Forward-substrate document capturing two
-> related findings that emerged during A2 day-2 evening conversation between
-> team-lead and Tekgy:
+> Forward-substrate document capturing two related findings:
 >
 > 1. **Three-tier cross-reactivity framework**: cross-reactivity is not a
 >    single primitive; it operates at structural-shape, behavioral-assumption,
@@ -37,7 +35,7 @@
 >   (cross-reactivity + contact-tracing entries reference this document)
 > - [`cross-domain-architectural-map.md`](cross-domain-architectural-map.md)
 >   §8 (cybersecurity cognate for supply-chain propagation)
-> - [`scope.md`](scope.md) (forward-substrate primitive map)
+> - [`scope.md`](../scope.md) (forward-substrate primitive map)
 
 ---
 
@@ -310,7 +308,7 @@ existing infrastructure that captures contextual assumptions. This may
 require new declarations on functions that make load-bearing contextual
 claims (something like `#[invariant("panic-free")]` or
 `#[assumes("ordering: lexicographic")]`). Future-ADR territory; out of
-scope for v0.1.0 and likely v0.2.0.
+scope for now.
 
 ### The biological richness extends beyond just transmission modes
 
@@ -401,7 +399,7 @@ tool paper. v0.1.0 ships site-typed + tier-1; the tool paper documents
 what shipped. The contact-graph framework is mentioned briefly as future
 work but not centered.
 
-### Foundational paper (post-v0.2.0+)
+### Foundational paper (future)
 
 This is where graph-typed recognition becomes load-bearing. The
 architectural-identity claim ("antigen and biology instantiate the same

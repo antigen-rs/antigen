@@ -48,7 +48,7 @@ pub struct ScanVisitor<'a> {
     /// Context stack for nested items. The current top of stack is the
     /// enclosing-impl context for any `visit_impl_item_fn` call — so that
     /// a method's `ItemTarget::ImplFn` knows which impl block it lives in.
-    /// W3 (sweep A2): structural item-identity tracking.
+    /// W3: structural item-identity tracking.
     impl_stack: Vec<(Option<String>, String)>,
     /// Context stack for nested traits — analogous to `impl_stack`, but
     /// for `visit_trait_item_fn` so trait methods carry the enclosing
@@ -60,8 +60,8 @@ pub struct ScanVisitor<'a> {
     /// digest onto the substrate-witness record without threading it through
     /// every `check_attrs` call site. Empty between items.
     current_item_digest: String,
-    /// The **name-insensitive shape digest** of the current enclosing item (P0a,
-    /// ADR-045 Amd-1). Set alongside `current_item_digest` by `set_current_item`
+    /// The **name-insensitive shape digest** of the current enclosing item
+    /// (ADR-045 Amd-1). Set alongside `current_item_digest` by `set_current_item`
     /// in each `visit_item_*` before `check_attrs`, so `extract_marked_unknown`
     /// can stamp a marked-unknown's clustering digest. Distinct from
     /// `current_item_digest` (identity, name-sensitive, used for sign/audit): the
@@ -504,7 +504,7 @@ impl ScanVisitor<'_> {
             trigger: args.trigger,
             file: self.file_path.clone(),
             line,
-            // P0a (ADR-045 Amd-1/2, the captain's two-field ruling): the enclosing
+            // ADR-045 Amd-1/2 (the two-field ruling): the enclosing
             // item's IDENTITY digest (name+code-sensitive; diff-native DETECT keys
             // on it) AND its name-insensitive SHAPE digest (the PROPOSE-slice
             // clustering key). Both are set by `set_current_item` in the
@@ -794,8 +794,8 @@ impl ScanVisitor<'_> {
 
         // Body is a single positional `syn::Path`, mirroring
         // `extract_presents`. Last segment becomes the bare parent type
-        // name — module-path qualification is an A3+ ADR-class question
-        // (ATK-A3-005), so for now we keep names bare.
+        // name — module-path qualification is an as-yet-undecided ADR-class
+        // question (ATK-A3-005), so for now we keep names bare.
         let parent = match syn::parse2::<syn::Path>(list.tokens.clone()) {
             Ok(path) => path
                 .segments
@@ -1325,7 +1325,7 @@ impl ScanVisitor<'_> {
 /// Render a `syn::Type` to its canonical token-stream string. Used to
 /// extract a string identifier for `impl Trait for Type` blocks. The
 /// rendering normalizes whitespace via `quote::ToTokens`. For W3 we only
-/// need a stable string for equality matching — A3 cross-crate work will
+/// need a stable string for equality matching — cross-crate work will
 /// likely want a richer canonical form (e.g., resolved module paths).
 pub fn render_type(ty: &syn::Type) -> String {
     use quote::ToTokens;

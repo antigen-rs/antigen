@@ -124,8 +124,8 @@ pub fn finalize_report_with_catalog(
     //
     // For every macro INVOCATION whose macro name matches an
     // `#[antigen_generates(X, ...)]` declaration on a macro DEFINITION, emit a
-    // synthetic Presentation at the invocation site. Same-workspace only
-    // (§A3); cross-crate macro-output recognition (§A4) is deferred. Runs after
+    // synthetic Presentation at the invocation site. Same-workspace only;
+    // cross-crate macro-output recognition is deferred. Runs after
     // fingerprint synthesis so generated presentations dedup against any
     // co-located explicit `#[presents]`/fingerprint match.
     if !report.generates_declarations.is_empty() {

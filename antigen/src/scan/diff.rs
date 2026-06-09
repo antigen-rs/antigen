@@ -32,7 +32,7 @@
 //! diff-native keys on `structural_digest` — the **identity** (name+code-sensitive)
 //! digest — precisely because a structure change MUST register. This is distinct
 //! from the marked-unknown PROPOSE-slice's `shape_digest` (name-insensitive
-//! clustering, P0a): there, two differently-named identical bodies should cluster;
+//! clustering): there, two differently-named identical bodies should cluster;
 //! here, any structural edit to a named item should surface. Two fields, two
 //! honest meanings (ADR-045 Amd-2).
 

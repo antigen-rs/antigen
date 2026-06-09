@@ -1100,7 +1100,7 @@ impl GeneratesArgs {
 ///
 /// Per ADR-023: deferred-but-muted posture with aging escalation.
 /// - `reason` required, minimum 20 characters
-/// - `until` REQUIRED — anergy without time-bound degrades to tolerance (A5 absorbed)
+/// - `until` REQUIRED — anergy without time-bound degrades to tolerance
 /// - `expected_co_stimulation` advisory-only free text; NOT machine-verified
 /// - `signed_by` optional signer identifier
 #[derive(Debug)]
@@ -1190,7 +1190,7 @@ impl Parse for AnergyArgs {
 impl AnergyArgs {
     /// Trust-boundary checks per ADR-023:
     /// - `reason` required and minimum 20 characters
-    /// - `until` REQUIRED (A5 absorbed: anergy without time-bound = silent tolerance)
+    /// - `until` REQUIRED (anergy without a time-bound = silent tolerance)
     /// - `until` must be non-empty
     pub fn validate(&self) -> syn::Result<()> {
         // reason required + 20-char minimum
@@ -1223,14 +1223,14 @@ impl AnergyArgs {
             _ => {},
         }
 
-        // until REQUIRED (A5)
+        // until REQUIRED (ADR-023)
         match self.until.as_deref() {
             None => {
                 return Err(syn::Error::new(
                     self.args_span,
                     "#[anergy] requires `until = \"YYYY-MM-DD\"`. \
                      Anergy without a time-bound degrades to silent tolerance. \
-                     Per ADR-023 A5: `until` is not optional.",
+                     Per ADR-023: `until` is not optional.",
                 ));
             },
             Some("") => {
@@ -1290,7 +1290,7 @@ impl AnergyArgs {
 /// - `since` optional ISO-8601 date; defaults to "now" for cap calculation
 /// - `duration_cap` optional override (days); defaults to workspace 90d cap
 /// - `signed_by` optional
-/// - Compile error if implied duration exceeds cap (A4 absorbed)
+/// - Compile error if implied duration exceeds cap
 #[derive(Debug)]
 pub struct ImmunosuppressArgs {
     #[allow(dead_code)]
@@ -1399,7 +1399,7 @@ impl ImmunosuppressArgs {
     /// Trust-boundary checks per ADR-023:
     /// - `rationale` required and minimum 20 characters
     /// - `until` required
-    /// - implied duration (until - since) must not exceed cap; COMPILE ERROR if exceeded (A4)
+    /// - implied duration (until - since) must not exceed cap; COMPILE ERROR if exceeded
     pub fn validate(&self) -> syn::Result<()> {
         // rationale required + 20-char minimum
         match self.rationale.as_deref() {
@@ -1449,7 +1449,7 @@ impl ImmunosuppressArgs {
             _ => {},
         }
 
-        // Duration cap enforcement (A4 absorbed): parse-time COMPILE ERROR
+        // Duration cap enforcement: parse-time COMPILE ERROR
         // if until - since > cap days. This closes the audit-only gap.
         let cap = self.duration_cap.unwrap_or(IMMUNOSUPPRESS_DEFAULT_CAP_DAYS);
         // Use i64 throughout to avoid cast_possible_wrap: cap is workspace-configured
@@ -1514,7 +1514,7 @@ impl ImmunosuppressArgs {
 ///
 /// Per ADR-023: intentional exposure with structural compile-time isolation.
 ///
-/// CRITICAL (A3 absorbed): the proc-macro checks `CARGO_FEATURE_ANTIGEN_POXPARTY`
+/// CRITICAL: the proc-macro checks `CARGO_FEATURE_ANTIGEN_POXPARTY`
 /// env var at macro-expansion time and emits a COMPILE ERROR if the feature is
 /// not active. This closes the production-isolation gap — poxparty code cannot
 /// compile in a build where the `antigen-poxparty` Cargo feature is absent.
@@ -1723,7 +1723,7 @@ impl PoxpartyArgs {
 /// and `learning_path` + `until` are **both REQUIRED** — they are the
 /// accountability fields the primitive exists to impose. Making them optional
 /// would collapse `#[orient]` to structurally-identical-to-silent-tolerance,
-/// the exact A5 failure the deferred-defense family was built to prevent
+/// the exact failure the deferred-defense family was built to prevent
 /// (loudness-as-discipline). A bare `#[orient]` is therefore a parse error.
 ///
 /// The pre-restoration drift-form fields (`see`, `adr`, `attestation_optional`)
@@ -5669,8 +5669,8 @@ mod tests {
     fn antigen_parser_duplicate_category_in_array_is_rejected() {
         // [SubstrateAlignment, SubstrateAlignment] must be rejected by validate():
         // duplicate entries look like hybrid (len == 2) but contain only one
-        // distinct variant. Fixed by dedup-check in AntigenArgs::validate() per
-        // aristotle Phase 1-8 ratification (ADR-028).
+        // distinct variant. Fixed by dedup-check in AntigenArgs::validate()
+        // (ADR-028).
         let tokens: TokenStream = r#"name = "x", fingerprint = "item = fn", category = [AntigenCategory::SubstrateAlignment, AntigenCategory::SubstrateAlignment]"#
             .parse()
             .unwrap();
@@ -7091,7 +7091,7 @@ mod parser_props {
             prop_assert!(args.validate().is_ok(), "verify-only antigen must validate");
         }
 
-        // P5 — unknown-field rejection (macro-side strictness; the scan
+        // Unknown-field rejection (macro-side strictness; the scan
         // side tolerates these — that's the documented asymmetry).
         #[test]
         fn antigen_parser_rejects_unknown_field(

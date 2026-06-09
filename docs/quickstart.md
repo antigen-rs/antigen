@@ -12,23 +12,22 @@
 cargo install cargo-antigen
 ```
 
-> `cargo install cargo-antigen` installs the current stable (**v0.3.0**) — the
-> prescriptive work-orchestration family and the failure-class stdlib families are
-> all included.
+> `cargo install cargo-antigen` installs the latest published release. The
+> prescriptive work-orchestration family, the failure-class stdlib families, the
+> bundled-catalog auto-detect (Step 2), and the `--message-format json` editor
+> flycheck (see [output-formats.md](output-formats.md)) are all included. The
+> source of truth for what your installed copy supports is `cargo antigen scan
+> --help`.
 
 Verify:
 
 ```sh
-cargo antigen --version
 cargo antigen --help
 ```
 
 You should see:
 
 ```
-$ cargo antigen --version
-cargo-antigen-antigen 0.3.0
-
 $ cargo antigen --help
 The "antigen" subcommand of cargo
 
@@ -62,15 +61,72 @@ cd /path/to/your/rust/project
 cargo antigen scan
 ```
 
-On a fresh codebase with no antigens declared yet:
+Here is the surprise — and the whole point of the bundled catalog. On a
+fresh codebase **with no antigens declared yet**, scan does *not* report a false
+all-clear. When antigen finds zero in-tree declarations, it **auto-injects its
+bundled stdlib catalog** (the flagship failure-class fingerprints it ships with)
+and scans your code against *those*:
 
 ```
 Scanning workspace: .
 
-Scanned N files, found 0 antigen-related declarations.
+Scanned 1 files, found 2 antigen-related declarations:
+  - 0 antigen declarations
+  - 0 explicit #[presents] markers
+  - 2 fingerprint matches (candidate sites — see below)
+
+2 fingerprint match(es) across 2 antigen type(s) — candidate sites (expected
+noise; the witness layer refines them, per the filter/proof split). Not a TODO list.
+
+  src/lib.rs:21  get-unchecked-without-proof on fn [fingerprint match]
+  src/lib.rs:30  panic-in-drop on impl [fingerprint match]
+
+  These are CANDIDATES, not failures. If a site genuinely presents the
+  failure-class, acknowledge it:
+    #[presents(<antigen>)] to mark the site explicitly, ...
 ```
 
-That's clean. Antigen ran; your project has no antigen surface yet. No red flags, no failures.
+So even before you declare a single antigen, scan surfaces real footguns from
+antigen's shipped knowledge — here, an unchecked `get_unchecked` index and a
+`.unwrap()` inside a `Drop` impl. These are **fingerprint matches to inspect, not
+audited verdicts**: antigen is saying "this *structurally resembles* a known
+failure-class," not "this is broken."
+
+> **Why this matters.** Without the bundled catalog, a fresh crate with no
+> declarations would get `found 0 declarations` — a *false* all-clear (an empty
+> knowledge-base looks identical to a clean codebase). The auto-injected bundled
+> catalog closes that "zero-hits cliff": an empty repertoire no longer reads as
+> immunity.
+
+### `--bundled-catalog` — make it explicit
+
+The auto-inject above happens **only** when your crate has zero antigens of its
+own. If you already declare antigens and *also* want to scan against the shipped
+catalog (augment mode), pass the flag explicitly:
+
+```sh
+cargo antigen scan --bundled-catalog
+```
+
+- **Without the flag:** the catalog auto-injects *only* on a zero-declaration
+  crate (ADR-043 Amendment 2). Once you declare your own antigens, bare scan uses
+  *yours*.
+- **With `--bundled-catalog`:** the catalog is *always* injected, augmenting your
+  local antigens. On a repo that already declares many antigens this is a
+  firehose — see [troubleshooting.md](troubleshooting.md). Use bare scan
+  (auto-detect) on consumer crates; reach for explicit `--bundled-catalog` only
+  when you deliberately want the shipped families layered on top of your own.
+
+If your codebase genuinely has **none** of the catalog's footgun shapes, bare
+scan still prints `found 0 antigen-related declarations` / `All explicit
+presentations are addressed`. Here's the subtlety worth knowing: that line reads
+the same as a bare "empty dictionary" output, but it *means* something
+stronger — **clean against antigen's bundled flagship catalog**, not "I had
+nothing to check against." The catalog *did* run; it found no matching shapes.
+(The console doesn't yet say "checked against the catalog, 0 matches" on the
+clean path — so until it does, read a zero-match bare scan on a fresh crate as
+*"vetted against the shipped families and clean,"* not as the old false
+all-clear.)
 
 ---
 
@@ -79,7 +135,7 @@ That's clean. Antigen ran; your project has no antigen surface yet. No red flags
 ```toml
 # Cargo.toml
 [dependencies]
-antigen = "0.3.0"   # the v0.3 stable line — prescriptive family + the failure-class families
+antigen = "0.4.0-beta.1"   # check crates.io for the latest version
 ```
 
 Run `cargo build` to fetch and compile. Antigen's runtime cost is zero — the macros are identity transforms; no code generation, no runtime overhead.
@@ -198,10 +254,10 @@ See [`witness-tiers.md`](witness-tiers.md) for the full witness model.
 
 ---
 
-## The v0.3 headline: code IS the board
+## The headline: code IS the board
 
 The vocabulary above (declare → scan → defend → audit) is antigen's core loop.
-v0.3 adds a second axis: **the prescriptive / work-orchestration family**.
+A second axis builds on it: **the prescriptive / work-orchestration family**.
 
 Instead of a TODO comment that rots, you write a macro that stays current or emits
 a loud verdict when it doesn't:
@@ -248,18 +304,13 @@ The board itself — the live-projected per-site verdicts — renders via audit:
 cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
 ```
 
-> **Note**: The prescriptive family ships in v0.3. If you are using the published
-> stable (`antigen = "=0.2.0"`), update to a v0.3 release before the prescriptive
-> macros and the `prescriptive_board` example are available. See
-> [`roadmap.md`](roadmap.md) for the release timeline.
-
 ---
 
 ## Where to go next
 
 - **[`tutorial.md`](tutorial.md)** — your first 15 minutes, end-to-end (declare → scan → defend → audit, with substrate-witness sidecars)
 - **[`concepts.md`](concepts.md)** — what antigen IS, architecturally
-- **[`examples-guide.md`](examples-guide.md)** — walks all examples in `antigen/examples/`, including the v0.2 family surface and the v0.3 prescriptive family (`prescriptive_board`)
+- **[`examples-guide.md`](examples-guide.md)** — walks all examples in `antigen/examples/`, including the stdlib family surface and the prescriptive family (`prescriptive_board`)
 - **[`where-to-look-for-antigens.md`](where-to-look-for-antigens.md)** — conventions for locating declarations
 - **[`usage-patterns.md`](usage-patterns.md)** — common patterns + decision tables
 - **[`witness-tiers.md`](witness-tiers.md)** — the witness model + tier ladder

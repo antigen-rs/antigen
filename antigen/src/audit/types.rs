@@ -30,7 +30,7 @@ pub enum WitnessStatus {
     /// mean the witness was executed or that it asserts immunity to this specific
     /// failure class. Semantic verification (does the witness actually assert
     /// the antigen's failure mode?) is behavioral-tier work tracked as
-    /// the `BehavioralAlignment` witness tier; planned for A4-A5 sweeps
+    /// the `BehavioralAlignment` witness tier; not yet implemented
     /// (ADR-001 Amendment 1 Change 4 + ADR-013 phantom-type witness pluralism).
     Resolved {
         /// Where the witness function was found.
@@ -105,7 +105,7 @@ pub enum WitnessKind {
     CrossCrateWitness,
 }
 
-/// The strength of evidence a witness provides for an immunity claim.
+/// The strength of evidence a witness provides for a defense.
 ///
 /// Per ADR-005 Amendment 3: this enum reports work the audit *actually
 /// performed* at the validation point — never potential-maximum evidence.
@@ -116,7 +116,7 @@ pub enum WitnessKind {
 ///
 /// # CI gating
 ///
-/// `cargo antigen audit --min-tier execution` fails if any immunity claim
+/// `cargo antigen audit --min-tier execution` fails if any defense
 /// is below Execution tier.
 // `WitnessTier` is one half of a parallel pair with
 // `antigen_attestation::tier::WitnessTier`; the two are hand-maintained-in-sync
@@ -141,12 +141,12 @@ pub enum WitnessTier {
     /// happened. Evidence: "this code path / tool reference exists."
     Reachability = 1,
     /// Witness was executed: a test or proptest function whose run was
-    /// confirmed (A3+ feature; not yet emitted by v0.1 audit).
+    /// confirmed (not yet emitted by the audit).
     Execution = 2,
     // BehavioralAlignment = 3, reserved per ADR-005 OQ
     /// Compile-time proof: phantom-type construction whose construction is
     /// the proof, or formal-verification tool with confirmed passing proof
-    /// (A3+).
+    /// (not yet emitted).
     FormalProof = 4,
 }
 
@@ -174,7 +174,7 @@ pub enum AuditHint {
     /// External-tool prefix recognized (`clippy::`, `kani::`, ...);
     /// tool not invoked.
     ExternalToolPrefixRecognized,
-    /// External tool actually invoked; deferred to A3+.
+    /// External tool actually invoked; not yet implemented.
     ExternalToolInvoked,
     /// Phantom-type witness shape recognized; constructor not validated.
     PhantomTypeShapeRecognized,
@@ -189,7 +189,7 @@ pub enum AuditHint {
     /// Inherited Presentation lacks re-attestation on the descendant site
     /// (state 7 of the 7-state matrix, ADR-018 `§"AuditHint integration"`).
     /// Behavioral re-validation that the ancestor's witness applies to
-    /// the descendant is A4-A5 work; reachability-tier audit cannot
+    /// the descendant is not yet implemented; reachability-tier audit cannot
     /// perform this check. The descendant should declare its own
     /// `#[immune]` or `#[antigen_tolerance]`.
     InheritedPresentationNotReAttested,
@@ -768,7 +768,7 @@ impl ImmunityAudit {
         self.witness_tier >= minimum
     }
 
-    /// True if the audit considers the immunity claim well-formed.
+    /// True if the audit considers the defense well-formed.
     ///
     /// Per ADR-005 Amendment 3: well-formed requires execution-tier evidence
     /// or stronger. `Reachability`-tier witnesses (e.g., a `#[test]` that
@@ -794,9 +794,9 @@ impl WitnessTier {
             | WitnessStatus::Ambiguous { .. } => Self::None,
             WitnessStatus::External { .. } => Self::Reachability,
             WitnessStatus::Resolved { witness_kind, .. } => match witness_kind {
-                // v0.1 audit does not invoke cargo test or proptest harness;
+                // The audit does not invoke cargo test or proptest harness;
                 // witness presence means "this code path exists" — Reachability.
-                // Execution tier requires confirmed invocation (A3+ work).
+                // Execution tier requires confirmed invocation (not yet implemented).
                 WitnessKind::Test
                 | WitnessKind::IgnoredTest
                 | WitnessKind::Proptest
@@ -809,7 +809,7 @@ impl WitnessTier {
                 // review evidence is comparable to a `#[test]` that hasn't
                 // been invoked by cargo test — it exists, was checked for
                 // structural validity, but execution-tier confirmation is
-                // A3+ work (invoking git-trailer-based oracles etc.).
+                // not yet implemented (invoking git-trailer-based oracles etc.).
                 WitnessKind::SubstrateWitness { .. } | WitnessKind::CrossCrateWitness => {
                     Self::Reachability
                 },
@@ -893,7 +893,7 @@ pub struct InheritedUnaddressed {
     /// The behavioral-tier audit hint per ADR-018 `§"AuditHint integration"`:
     /// `inherited-presentation-not-re-attested`. Behavioral re-validation
     /// (does the ancestor's witness actually apply to descendant?) is
-    /// A4-A5 work; reachability-tier audit cannot perform this check.
+    /// not yet implemented; reachability-tier audit cannot perform this check.
     pub audit_hint: AuditHint,
 }
 
@@ -932,7 +932,7 @@ pub struct AuditReport {
 }
 
 impl AuditReport {
-    /// True if all immunity claims meet at least Execution tier
+    /// True if all defenses meet at least Execution tier
     /// (per `is_well_formed`). Per ADR-005 Amendment 3, a Reachability-tier
     /// witness is NOT a well-formed claim — it has zero confirmed evidence.
     #[must_use]
@@ -940,7 +940,7 @@ impl AuditReport {
         self.audits.iter().all(ImmunityAudit::is_well_formed)
     }
 
-    /// True if all immunity claims meet the given minimum tier. Used by
+    /// True if all defenses meet the given minimum tier. Used by
     /// `cargo antigen audit --min-tier <tier>` for CI gating.
     #[must_use]
     pub fn all_meet_tier(&self, minimum: WitnessTier) -> bool {
