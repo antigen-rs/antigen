@@ -20,6 +20,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      # fmt is the ONE tool that needs nightly: rustfmt.toml uses unstable opts
+      # (style_edition=2027, blank_lines bounds), so stable rustfmt formats
+      # differently and fails `--check` — the drift that broke the first v0.4
+      # release. Mirror ci.yml exactly: fmt on nightly, everything else on stable
+      # (the crate ships to stable users — ci.yml's stable+beta test matrix and
+      # the MSRV job are the real compatibility guarantee; trybuild .stderr
+      # snapshots are blessed against stable). Nightly is installed first so
+      # STABLE stays the default toolchain for clippy/check/test/doc below.
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -41,7 +52,7 @@ jobs:
             exit 1
           fi
 
-      - run: cargo fmt --all -- --check
+      - run: cargo +nightly fmt --all -- --check   # nightly: rustfmt.toml uses unstable (style_edition=2027) opts
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo check --workspace --all-targets
       - run: cargo test --workspace --all-targets
