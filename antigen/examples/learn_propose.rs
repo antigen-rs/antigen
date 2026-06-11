@@ -143,20 +143,32 @@ fn main() {
     let clean_corpus = vec![clean_sibling.clone()];
     let promoted = propose::propose(&cluster, &clean_corpus);
 
-    if let Some(fp) = &promoted {
-        println!("== self-tolerance gate: PROMOTED ==\n");
-        println!("the draft spared the clean corpus, so the gate moved it through.");
-        println!("a promoted draft is guaranteed to spare every clean-corpus item:");
-        println!("  binds GuardA     -> {}", fp.matches(&cluster[0]));
-        println!("  binds GuardB     -> {}", fp.matches(&cluster[1]));
-        println!("  binds CleanGuard -> {}", fp.matches(&clean_corpus[0]));
-    } else {
-        // Unreachable for this spare-clean cluster, but handled honestly: a None
-        // means the gate refused (the draft bound a clean item, or the corpus was
-        // empty). The caller must treat None as "no safe draft" — never fall back
-        // to the raw anti_unify output (that bypasses the gate).
-        println!("== self-tolerance gate: REJECTED ==\n");
-        println!("the gate refused to promote (the draft bound a clean item).");
+    match &promoted {
+        Ok(token) => {
+            // A PromotedDraft is the capability token (ADR-048) — the only assertable
+            // generalization. Read the gated fingerprint via `.fingerprint()`.
+            let fp = token.fingerprint();
+            println!("== self-tolerance gate: PROMOTED ==\n");
+            println!("the draft spared the clean corpus AND a near-miss witnessed its");
+            println!("generalization, so the gate minted a PromotedDraft token.");
+            println!("a promoted draft is guaranteed to spare every clean-corpus item:");
+            println!("  binds GuardA     -> {}", fp.matches(&cluster[0]));
+            println!("  binds GuardB     -> {}", fp.matches(&cluster[1]));
+            println!("  binds CleanGuard -> {}", fp.matches(&clean_corpus[0]));
+            println!(
+                "  score tier       -> {:?}   (gate-assigned floor)",
+                token.tier()
+            );
+        },
+        Err(outcome) => {
+            // Handled honestly: an Err names exactly why no token was minted — the
+            // draft bound a clean item (autoimmune), the corpus could not witness the
+            // generalization (route-to-human), the draft was degenerate, or the
+            // cluster could not anti-unify. The caller must treat Err as "no safe
+            // draft" — never fall back to the raw anti_unify output (bypasses the gate).
+            println!("== self-tolerance gate: REJECTED ==\n");
+            println!("the gate refused to promote: {outcome:?}");
+        },
     }
 
     // --- Step 4: the gate is what catches the naive over-generalization -------
@@ -175,7 +187,8 @@ fn main() {
     );
     let naive_promoted = self_tolerance::promote_if_safe(naive, &clean_corpus);
     println!(
-        "  promote_if_safe(naive) -> {:?}   (the gate rejects it)",
-        naive_promoted.map(|_| "Some(..)")
+        "  promote_if_safe(naive) -> {:?}   (the gate rejects it: bare-structural \
+         over-general fails the (A)-binary check)",
+        naive_promoted.map(|_| "Ok(PromotedDraft)")
     );
 }

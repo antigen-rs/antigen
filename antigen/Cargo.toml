@@ -59,3 +59,9 @@ proc-macro2 = { workspace = true }
 [dev-dependencies]
 proptest = { workspace = true }
 tempfile = { workspace = true }
+# The ADR-048 capability-token seal: a trybuild compile-fail harness pins that
+# `PromotedDraft` has NO public constructor (no `PromotedDraft(fp)`, no `::new`,
+# no `pub` field, no `From<Fingerprint>`, no `Default`, no `Deserialize`). The
+# `.stderr` snapshots are STABLE-blessed (generated on stable per the release
+# discipline) — the crate ships to stable users.
+trybuild = "1"

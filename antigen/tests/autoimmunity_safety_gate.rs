@@ -236,7 +236,7 @@ fn b_gate_rejects_a_disjunction_that_still_binds_a_clean_sibling() {
     );
     assert!(
         antigen::learn::self_tolerance::promote_if_safe(autoimmune_disjunction, &clean_corpus)
-            .is_none(),
+            .is_err(),
         "promote_if_safe must structurally refuse to promote the autoimmune disjunction"
     );
 }
@@ -300,10 +300,12 @@ fn propose_produces_a_draft_that_binds_the_cluster_and_passes_b() {
          promoted. C anti-unifies to disjunction precisely to spare the clean."
     );
 
-    // (3) AND it promotes through B (the type-level co-ship enforcement).
+    // (3) AND it promotes through B (the type-level co-ship enforcement). The clean
+    //     CleanGuard sibling is a near-miss (matches the skeleton, fails only the
+    //     any_of) so the GATE-G non-vacuity check is satisfied → it mints a token.
     assert!(
-        antigen::learn::self_tolerance::promote_if_safe(draft, &clean_corpus).is_some(),
-        "a binds-cluster + spares-clean draft must promote through B"
+        antigen::learn::self_tolerance::promote_if_safe(draft, &clean_corpus).is_ok(),
+        "a binds-cluster + spares-clean + near-miss-witnessed draft must promote through B"
     );
 }
 
@@ -327,10 +329,14 @@ fn propose_produces_a_draft_that_binds_the_cluster_and_passes_b() {
 // ===========================================================================
 
 /// C's END-TO-END PROMOTE path (SYNC-2) — LANDED as `antigen::learn::propose::propose`.
-/// Anti-unifies the cluster, then promotes ONLY through B's spare-clean gate.
-/// `Some(draft)` is structurally guaranteed to spare the clean corpus; `None`
-/// when no safe draft exists (prune). This is the surface that must never bypass B.
-fn propose_and_promote(cluster: &[syn::Item], clean_corpus: &[syn::Item]) -> Option<Fingerprint> {
+/// Anti-unifies the cluster, then promotes ONLY through B's gate. `Ok(token)` is
+/// structurally guaranteed to spare the clean corpus; `Err(_)` when no safe draft
+/// exists (prune / route-to-human / degenerate). The surface that must never bypass B.
+fn propose_and_promote(
+    cluster: &[syn::Item],
+    clean_corpus: &[syn::Item],
+) -> Result<antigen::learn::self_tolerance::PromotedDraft, antigen::learn::propose::ProposeOutcome>
+{
     antigen::learn::propose::propose(cluster, clean_corpus)
 }
 
@@ -359,7 +365,8 @@ fn c_promote_path_never_promotes_a_draft_that_binds_clean() {
     // strong C promotes that; a weaker C prunes (None). Both are safe. ONLY a
     // promoted draft that binds clean is the bypass-B failure.
     let promoted = propose_and_promote(&cluster, &clean_corpus);
-    if let Some(draft) = &promoted {
+    if let Ok(token) = &promoted {
+        let draft = token.fingerprint();
         assert!(
             b_gate_spares_clean(draft, &clean_corpus),
             "C PROMOTED A DRAFT THAT BINDS THE CLEAN SIBLING — this is the \
@@ -373,8 +380,8 @@ fn c_promote_path_never_promotes_a_draft_that_binds_clean() {
             );
         }
     }
-    // promoted == None (prune) OR a spares-clean Some: both safe. A binds-clean
-    // Some is the only failure, asserted above.
+    // promoted == Err (prune / route-to-human / degenerate) OR a spares-clean Ok:
+    // both safe. A binds-clean Ok is the only failure, asserted above.
 }
 
 // ===========================================================================
@@ -431,10 +438,10 @@ fn propose_prunes_when_anti_unifys_own_disjunction_binds_clean() {
     // one-thing-that-must-not-pass.
     let promoted = propose_and_promote(&cluster, &clean_corpus);
     assert!(
-        promoted.is_none(),
+        promoted.is_err(),
         "BYPASS-B FAILURE: anti_unify produced an autoimmune draft (binds clean), \
          and propose PROMOTED it instead of pruning — B was bypassed. propose MUST \
-         return None here. got: {promoted:?}"
+         return Err here. got: {promoted:?}"
     );
 }
 
@@ -470,10 +477,10 @@ fn propose_refuses_an_empty_corpus_cannot_certify_against_nothing() {
     // gate cannot certify safety against nothing → REFUSE. propose returns None.
     let promoted = propose_and_promote(&cluster, &[]);
     assert!(
-        promoted.is_none(),
+        promoted.is_err(),
         "GATE-G RULING: propose MUST REFUSE an empty clean corpus (cannot certify \
          safety against nothing — a vacuous spare-clean is autoimmunity-with-a-green- \
-         check). It must return None, never promote against emptiness. got: {promoted:?}"
+         check). It must return Err, never promote against emptiness. got: {promoted:?}"
     );
 
     // Proof the gate is REAL when fed a corpus the draft binds: feed propose a
@@ -482,8 +489,8 @@ fn propose_refuses_an_empty_corpus_cannot_certify_against_nothing() {
     // moment it has something real to check against, and refuses when it does not.
     let with_self = propose_and_promote(&cluster, std::slice::from_ref(&cluster[0]));
     assert!(
-        with_self.is_none(),
-        "with a non-empty corpus containing an item the draft binds, propose PRUNES \
-         (B works when fed a corpus). got: {with_self:?}"
+        with_self.is_err(),
+        "with a non-empty corpus containing an item the draft binds, propose REFUSES \
+         (no spared near-miss → route-to-human; B works when fed a corpus). got: {with_self:?}"
     );
 }

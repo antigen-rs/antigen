@@ -1,0 +1,10 @@
+error[E0423]: expected function, tuple struct or tuple variant, found struct `PromotedDraft`
+  --> tests/ui_promoted_draft/tuple_constructor.rs:14:19
+   |
+14 |     let _forged = PromotedDraft(fp);
+   |                   ^^^^^^^^^^^^^^^^^
+   |
+  ::: src/learn/self_tolerance.rs
+   |
+   | pub struct PromotedDraft {
+   | ------------------------ `PromotedDraft` defined here
