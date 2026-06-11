@@ -62,7 +62,61 @@ use std::collections::BTreeSet;
 use antigen_fingerprint::{Constraint, Fingerprint, ItemKind};
 use syn::visit::Visit;
 
-use crate::learn::self_tolerance;
+use crate::learn::self_tolerance::{
+    self, PromotedDraft, ToleranceVerdict, has_discriminating_conjunct,
+};
+
+/// Why [`propose`] could not produce a promoted draft (ADR-048/056).
+///
+/// Widens B's [`ToleranceVerdict`] with the C-side (generator) non-promotion
+/// reasons, so every non-promotion is **legible**, not a bare `None`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ProposeOutcome {
+    /// The cluster was empty — nothing to generalize.
+    EmptyCluster,
+    /// The cluster members share no common item-kind skeleton — a heterogeneous
+    /// "cluster" is not a real family (`anti_unify` declines it).
+    NoSharedSkeleton,
+    /// **The C-side non-degeneracy REFUSAL** (ADR-056): the anti-unified draft is
+    /// *degenerate* (bare-structural — only identity anchors, no discriminating
+    /// signal), so it would over-bind its whole family. C refuses it at the
+    /// generator with a generator-appropriate diagnostic ("these sites share only
+    /// their structural shape — not a real failure-family"), *upstream* of B (where
+    /// B's (A)-binary would also refuse it — defense-in-depth).
+    Degenerate,
+    /// **B's gate refused the draft** (ADR-047): carries the [`ToleranceVerdict`]
+    /// (`BindsCleanItem` autoimmune, or `NotCorpusWitnessable` route-to-human).
+    Rejected(ToleranceVerdict),
+}
+
+impl From<ToleranceVerdict> for ProposeOutcome {
+    fn from(v: ToleranceVerdict) -> Self {
+        Self::Rejected(v)
+    }
+}
+
+/// The generator's **generalization-confidence** signal (ADR-056 §(2)) — how well
+/// a draft is expected to *extend* beyond the cluster it was generalized from.
+///
+/// A SIGNAL, never a refusal: a low-confidence (twins/photocopy) draft is *safe*,
+/// so C does not refuse it — it labels it low-confidence-to-generalize, and that
+/// label folds into ADR-050's tier-routing (a low-confidence draft is capped lower
+/// on the dial; the human/policy cuts). The v0.5 form is the cluster's **effective
+/// diversity**: a homogeneous cluster (an empty discriminating set with near-
+/// identical members) is `Low`; a cluster with a rich discriminating `any_of` is
+/// higher. The richer diversity metric is charter (ADR-056 OQ2 — ship the simplest
+/// non-gameable signal).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Confidence {
+    /// Twins/photocopy or near-identical members — generalized from effectively
+    /// N=1; route-to-human / cap the tier low (NOT a refusal — the draft is safe).
+    Low,
+    /// Some discriminating diversity, but a single distinguishing signal.
+    Moderate,
+    /// A rich discriminating disjunction over several distinct signals — the draft
+    /// is exercised by real cluster diversity.
+    High,
+}
 
 /// Anti-unify a `cluster` of structurally-similar items into a draft
 /// [`Fingerprint`].
@@ -191,30 +245,116 @@ pub fn anti_unify(cluster: &[syn::Item]) -> Option<Fingerprint> {
     })
 }
 
-/// Anti-unify `cluster` into a draft AND promote it through B (the spare-clean
-/// gate) against `clean_corpus`.
+/// Is `draft` **degenerate** (bare-structural)? (ADR-056 §(1) — the C-side
+/// non-degeneracy REFUSAL predicate.)
 ///
-/// This is the **only** path to a *promotable* fingerprint (ADR-045, the C ══ B
-/// co-ship): the draft is routed through [`self_tolerance::promote_if_safe`], so
-/// the returned `Some(_)` is structurally guaranteed to spare every item in
-/// `clean_corpus`. Returns `None` when:
-/// - the cluster cannot be anti-unified (empty / no shared skeleton — see
-///   [`anti_unify`]), OR
-/// - **the `clean_corpus` is empty** — the gate refuses to certify safety against
-///   nothing (captain's gate-G ruling; a vacuous spare-clean is
-///   autoimmunity-with-a-green-check). A caller MUST supply a real, non-empty
-///   clean corpus (e.g. the cluster's clean siblings), OR
-/// - the draft BINDS a clean-corpus item (autoimmunity — B rejects it; promoting
-///   it would flag clean code).
+/// `true` iff the draft carries NO discriminating signal — only the identity
+/// anchors (`Item` / `ImplOfTrait` / `NameMatches`), with no body signal /
+/// qualifier / introspection / `any_of`. A degenerate draft over-binds its whole
+/// structural family; the generator should not emit it as a promotable hypothesis.
 ///
-/// A `None` from the second cause is the safety gate doing its job: PROPOSE
-/// produced a draft that over-binds, and B refused to promote it. The caller must
-/// treat `None` as "no safe draft" — never fall back to promoting the raw
-/// [`anti_unify`] output (that bypasses B and ships autoimmunity).
+/// This is **the SAME predicate** as B's (A)-binary safety check, NOT a parallel
+/// implementation — `is_degenerate(d) == !has_discriminating_conjunct(d)` (ADR-056:
+/// one predicate, two call-sites, `ParallelStateTrackersDiverge` avoided). It keys
+/// on the draft's *constraint shape*, never on *cluster-identity* (`shape_digest`),
+/// so it catches **bare-structural only** — it never rejects a twins cluster (twins
+/// produce a *precise* draft WITH body conjuncts, which this passes).
 #[must_use]
-pub fn propose(cluster: &[syn::Item], clean_corpus: &[syn::Item]) -> Option<Fingerprint> {
-    let draft = anti_unify(cluster)?;
-    self_tolerance::promote_if_safe(draft, clean_corpus)
+pub fn is_degenerate(draft: &Fingerprint) -> bool {
+    !has_discriminating_conjunct(draft)
+}
+
+/// The generalization-confidence SIGNAL for a `cluster`/`draft` pair (ADR-056 §(2)).
+///
+/// A v0.5 ordinal from the cluster's effective diversity — **a signal, never a
+/// refusal** (a low-confidence draft is safe; it is tier-capped, not rejected).
+///
+/// The simplest non-gameable form (ADR-056 OQ2): the discriminator is the presence
+/// of a **discriminating `any_of`** in the draft — the anti-unifier emits one IFF
+/// the members carried *distinct* distinguishing signals (real diversity), and
+/// omits it IFF the members were *effectively identical* (twins/photocopy — every
+/// signal shared, the `discriminating` set empty). So:
+/// - a discriminating **`any_of`** (members split on ≥2 distinct signals) → `High`
+///   (the generalization is exercised by real cluster diversity);
+/// - **no `any_of`** (the twins/photocopy / bare-structural shape — generalized from
+///   effectively N=1) → `Low`.
+///
+/// `Moderate` is reserved (a richer per-member edit-distance diversity metric is
+/// charter — ADR-056 OQ2: ship the SIMPLEST honest signal first). Note this keys on
+/// the draft's *constraint shape*, NOT on `shape_digest` cluster-identity (which
+/// under-clusters) — a twins draft has shared body conjuncts but no `any_of`, which
+/// is exactly the "generalized from photocopies" tell.
+#[must_use]
+pub fn generalization_confidence(cluster: &[syn::Item], draft: &Fingerprint) -> Confidence {
+    // A cluster smaller than 2 cannot exhibit diversity → Low (conservative).
+    if cluster.len() < 2 {
+        return Confidence::Low;
+    }
+    // A discriminating any_of means the members carried distinct signals the
+    // anti-unifier split — real diversity. Its absence means the members were
+    // effectively identical (twins/photocopy) → generalized from N=1.
+    let has_disjunction = draft
+        .constraints
+        .iter()
+        .any(|c| matches!(c, Constraint::AnyOf(arms) if arms.len() >= 2));
+    if has_disjunction {
+        Confidence::High
+    } else {
+        Confidence::Low
+    }
+}
+
+/// Anti-unify `cluster` into a draft AND promote it through B (the spare-clean
+/// gate) against `clean_corpus`, minting a [`PromotedDraft`] capability-token.
+///
+/// This is the **only** path from a cluster to a *promotable* fingerprint (ADR-045,
+/// the C ══ B co-ship; ADR-048, the capability-token): the draft is routed through
+/// [`self_tolerance::promote_if_safe`], so an `Ok(PromotedDraft)` is structurally
+/// guaranteed to have passed ALL THREE of B's gate checks. Returns
+/// `Err(ProposeOutcome)` naming exactly why a draft could not be promoted — every
+/// non-promotion is legible (ADR-048), never a bare `None`:
+/// - [`ProposeOutcome::EmptyCluster`] / [`ProposeOutcome::NoSharedSkeleton`] — the
+///   cluster cannot be anti-unified (see [`anti_unify`]);
+/// - [`ProposeOutcome::Degenerate`] — **C's non-degeneracy REFUSAL** (ADR-056): the
+///   anti-unified draft is bare-structural (over-binds the family), refused *at the
+///   generator* before B is consulted (defense-in-depth with B's (A)-binary);
+/// - [`ProposeOutcome::Rejected`] — **B's gate refused** (ADR-047): autoimmune
+///   (`BindsCleanItem`) or route-to-human (`NotCorpusWitnessable`).
+///
+/// The caller must treat any `Err(_)` as "no safe promotable draft" — never fall
+/// back to asserting the raw [`anti_unify`] output (that bypasses B and ships
+/// autoimmunity; ADR-048 makes that bypass a *type* error — the suggestion surfaces
+/// accept only a [`PromotedDraft`]).
+///
+/// (Design note — ADR-056 revision-1: the degenerate REFUSAL lives HERE in the
+/// promotion path, not in [`anti_unify`]'s tail. `anti_unify` keeps returning the
+/// raw hypothesis [`Fingerprint`] for *inspection* (ADR-048 §Decision: "unchanged.
+/// Returns the raw hypothesis"); `propose` is the generator's *promotion* path
+/// where the refusal belongs. This reconciles ADR-056 §Mechanics-1 ("the guard at
+/// the generator") with ADR-048 (`anti_unify` unchanged) — see the self-ratified
+/// ADR-056 revision.)
+pub fn propose(
+    cluster: &[syn::Item],
+    clean_corpus: &[syn::Item],
+) -> Result<PromotedDraft, ProposeOutcome> {
+    // anti_unify declines an empty OR a heterogeneous (no-shared-skeleton) cluster.
+    // Distinguish them so the non-promotion reason is legible.
+    let Some(draft) = anti_unify(cluster) else {
+        return Err(if cluster.is_empty() {
+            ProposeOutcome::EmptyCluster
+        } else {
+            ProposeOutcome::NoSharedSkeleton
+        });
+    };
+    // C's non-degeneracy REFUSAL (ADR-056): a bare-structural draft over-binds the
+    // family — refuse it at the generator with a generator-appropriate diagnostic,
+    // before B is consulted (defense-in-depth: B's (A)-binary would also refuse it).
+    if is_degenerate(&draft) {
+        return Err(ProposeOutcome::Degenerate);
+    }
+    // Promote through B (ADR-047/048): mints the PromotedDraft iff all three gate
+    // checks pass; otherwise the ToleranceVerdict names why (lifted into Rejected).
+    self_tolerance::promote_if_safe(draft, clean_corpus).map_err(ProposeOutcome::from)
 }
 
 /// One body signal a member's body emits — the syntactic shape a panic source
@@ -444,28 +584,60 @@ mod tests {
         let fam = items(DROP_FAMILY);
         let cluster = vec![drop_impl_for(&fam, "GuardA"), drop_impl_for(&fam, "GuardB")];
         let clean_corpus = vec![drop_impl_for(&fam, "CleanGuard")];
-        // The cluster's anti-unified draft spares clean → propose returns Some.
+        // The cluster's anti-unified draft spares clean AND CleanGuard is a near-miss
+        // (matches {impl, Drop, take}, fails only the any_of) → propose mints a token.
         let promoted = propose(&cluster, &clean_corpus).expect("a spare-clean draft promotes");
+        let fp = promoted.fingerprint();
         for m in &cluster {
-            assert!(promoted.matches(m), "promoted draft must bind the cluster");
+            assert!(fp.matches(m), "promoted draft must bind the cluster");
         }
         assert!(
-            !promoted.matches(&clean_corpus[0]),
+            !fp.matches(&clean_corpus[0]),
             "promoted draft must spare clean (it came through B)"
         );
     }
 
     #[test]
-    fn propose_returns_none_when_the_draft_binds_clean() {
-        // A cluster whose ONLY distinguishing signal is a call the "clean" item
-        // also makes: the draft over-binds, B rejects it, propose yields None.
-        // Here the clean corpus is GuardA itself (so the unwrap arm binds it).
+    fn propose_returns_err_when_the_draft_binds_clean() {
+        // The autoimmune-refusal path (BindsCleanItem) requires BOTH a near-miss
+        // (so the gate gets past the near-miss check) AND a bound "clean" item. The
+        // corpus carries CleanGuard (a near-miss — matches {impl, Drop, take}, fails
+        // only the any_of) AND GuardA mislabeled clean (the draft binds it via the
+        // unwrap arm). Near-miss is witnessed by CleanGuard → the gate proceeds to
+        // spare-clean → GuardA binds → BindsCleanItem (autoimmune).
         let fam = items(DROP_FAMILY);
         let cluster = vec![drop_impl_for(&fam, "GuardA"), drop_impl_for(&fam, "GuardB")];
-        let poisoned_corpus = vec![drop_impl_for(&fam, "GuardA")]; // not actually clean
+        let poisoned_corpus = vec![
+            drop_impl_for(&fam, "CleanGuard"), // a real near-miss
+            drop_impl_for(&fam, "GuardA"),     // mislabeled clean — the draft binds it
+        ];
         assert!(
-            propose(&cluster, &poisoned_corpus).is_none(),
+            matches!(
+                propose(&cluster, &poisoned_corpus),
+                Err(ProposeOutcome::Rejected(
+                    ToleranceVerdict::BindsCleanItem { .. }
+                ))
+            ),
             "B must refuse to promote a draft that binds a (declared-clean) corpus item"
+        );
+    }
+
+    #[test]
+    fn propose_routes_to_human_when_corpus_has_no_near_miss() {
+        // A corpus whose ONLY item the draft BINDS (no spared near-miss) cannot
+        // witness the generalization → the gate routes-to-human FIRST (the near-miss
+        // check precedes spare-clean, ADR-047 §Mechanics 4). This is the ADR-true
+        // verdict for a single bound corpus item: NotCorpusWitnessable, not
+        // BindsCleanItem (there is no SPARED clean item to certify the discrimination).
+        let fam = items(DROP_FAMILY);
+        let cluster = vec![drop_impl_for(&fam, "GuardA"), drop_impl_for(&fam, "GuardB")];
+        let only_a_bound_item = vec![drop_impl_for(&fam, "GuardA")];
+        assert_eq!(
+            propose(&cluster, &only_a_bound_item),
+            Err(ProposeOutcome::Rejected(
+                ToleranceVerdict::NotCorpusWitnessable
+            )),
+            "a corpus with no spared near-miss routes-to-human (near-miss check is first)"
         );
     }
 
@@ -542,5 +714,107 @@ mod tests {
             anti_unify(&mixed).is_none(),
             "a cluster with no common item-kind must not produce a shapeless draft"
         );
+    }
+
+    // ========================================================================
+    // ADR-056 §Q9 — the BORN-RED C-side non-degeneracy guard + generalization-
+    // confidence signal spec (Island-2.5's generator half). The refusal catches
+    // bare-structural ONLY; the signal handles twins (NEVER the guard).
+    // ========================================================================
+
+    /// A cluster of two `Drop` impls whose bodies share NO call/macro signal at all
+    /// — the anti-unifier collapses to the bare-structural `all_of([impl,
+    /// impl_of_trait("Drop")])` (only identity anchors). The over-binder.
+    const BARE_STRUCTURAL_FAMILY: &str = r"
+        impl Drop for A { fn drop(&mut self) { self.a = 1; } }
+        impl Drop for B { fn drop(&mut self) { self.b = 2; } }
+    ";
+
+    /// ADR-056 §Q9 — `anti_unify_refuses_a_degenerate_draft`. A cluster sharing only
+    /// `{impl, Drop}` with no body signal yields a degenerate (bare-structural)
+    /// draft; `propose` refuses it as `Degenerate` (the over-binder is refused at the
+    /// generator, NOT handed to B). `is_degenerate` is the predicate.
+    #[test]
+    fn anti_unify_refuses_a_degenerate_draft() {
+        let fam = items(BARE_STRUCTURAL_FAMILY);
+        let cluster = vec![drop_impl_for(&fam, "A"), drop_impl_for(&fam, "B")];
+        // anti_unify still EMITS the raw hypothesis (for inspection) — unchanged
+        // (ADR-048); it is the bare-structural shape.
+        let draft = anti_unify(&cluster).expect("anti-unifies to a bare-structural draft");
+        assert!(
+            is_degenerate(&draft),
+            "a cluster sharing only {{impl, Drop}} yields a degenerate draft: {:?}",
+            draft.constraints
+        );
+        // propose REFUSES it at the generator (ADR-056), before B is consulted.
+        let clean = items("impl Drop for Clean { fn drop(&mut self) { log(); } }");
+        assert_eq!(
+            propose(&cluster, &clean),
+            Err(ProposeOutcome::Degenerate),
+            "the bare-structural over-binder is refused at the generator (Degenerate)"
+        );
+    }
+
+    /// ADR-056 §Q9 — `precise_draft_with_discrimination_is_not_degenerate`. A draft
+    /// with a `body_calls` conjunct is NOT degenerate (the guard does not brick
+    /// precise drafts — only bare-structural ones; the (A)-binary positive mirrored
+    /// on the C-side).
+    #[test]
+    fn precise_draft_with_discrimination_is_not_degenerate() {
+        let fam = items(DROP_FAMILY);
+        let cluster = vec![drop_impl_for(&fam, "GuardA"), drop_impl_for(&fam, "GuardB")];
+        let draft = anti_unify(&cluster).expect("anti-unifies");
+        assert!(
+            !is_degenerate(&draft),
+            "a draft carrying a body_calls conjunct (take) is NOT degenerate: {:?}",
+            draft.constraints
+        );
+    }
+
+    /// ADR-056 §Q9 — `twins_cluster_yields_low_generalization_confidence`. An
+    /// identical-twins cluster yields a `Low` confidence (NOT a refusal — the draft
+    /// is still produced, just tier-capped), proving the twins case is a SIGNAL not a
+    /// refusal. (Twins share all signals → no discriminating `any_of` → Low.)
+    #[test]
+    fn twins_cluster_yields_low_generalization_confidence() {
+        let fam = items(
+            r"
+            impl Drop for A { fn drop(&mut self) { let _ = flush().unwrap(); } }
+            impl Drop for B { fn drop(&mut self) { let _ = flush().unwrap(); } }
+        ",
+        );
+        let cluster = vec![drop_impl_for(&fam, "A"), drop_impl_for(&fam, "B")];
+        let draft = anti_unify(&cluster).expect("twins anti-unify to a precise draft");
+        // The twins draft IS precise (has flush + unwrap conjuncts) — NOT degenerate.
+        assert!(
+            !is_degenerate(&draft),
+            "a twins draft is precise (has body conjuncts), NOT bare-structural: {:?}",
+            draft.constraints
+        );
+        // But its generalization-confidence is Low (generalized from photocopies —
+        // no discriminating diversity / no any_of).
+        assert_eq!(
+            generalization_confidence(&cluster, &draft),
+            Confidence::Low,
+            "an identical-twins cluster has Low generalization-confidence (signal, not refusal)"
+        );
+    }
+
+    /// ADR-056 §Q9 — `diverse_cluster_yields_higher_confidence`. A cluster with
+    /// distinct discriminating signals (anti-unified to an `any_of`) yields a higher
+    /// confidence than twins — the signal discriminates real diversity from
+    /// photocopies.
+    #[test]
+    fn diverse_cluster_yields_higher_confidence() {
+        let fam = items(DROP_FAMILY); // GuardA: unwrap, GuardB: expect → an any_of
+        let cluster = vec![drop_impl_for(&fam, "GuardA"), drop_impl_for(&fam, "GuardB")];
+        let draft = anti_unify(&cluster).expect("anti-unifies to a disjunction");
+        assert_eq!(
+            generalization_confidence(&cluster, &draft),
+            Confidence::High,
+            "a cluster with a discriminating any_of has High generalization-confidence"
+        );
+        // And it is strictly higher than the twins case.
+        assert!(Confidence::High > Confidence::Low);
     }
 }

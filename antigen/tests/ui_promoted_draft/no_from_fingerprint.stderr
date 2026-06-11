@@ -1,0 +1,7 @@
+error[E0277]: the trait bound `PromotedDraft: From<Fingerprint>` is not satisfied
+  --> tests/ui_promoted_draft/no_from_fingerprint.rs:15:37
+   |
+15 |     let _forged: PromotedDraft = fp.into();
+   |                                     ^^^^ the trait `From<Fingerprint>` is not implemented for `PromotedDraft`
+   |
+   = note: required for `Fingerprint` to implement `Into<PromotedDraft>`

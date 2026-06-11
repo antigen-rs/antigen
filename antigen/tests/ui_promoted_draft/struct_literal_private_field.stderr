@@ -1,0 +1,9 @@
+error[E0451]: fields `fingerprint` and `tier` of struct `PromotedDraft` are private
+  --> tests/ui_promoted_draft/struct_literal_private_field.rs:16:9
+   |
+15 |     let _forged = PromotedDraft {
+   |                   ------------- in this type
+16 |         fingerprint: fp,
+   |         ^^^^^^^^^^^ private field
+17 |         tier: Provenance::DEFAULT,
+   |         ^^^^ private field

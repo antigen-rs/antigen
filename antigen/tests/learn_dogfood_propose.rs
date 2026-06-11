@@ -140,14 +140,17 @@ fn propose_promotes_the_felt_draft_only_through_b_sparing_the_clean_sibling() {
     let twins = felt_twins();
     let clean_corpus = vec![clean_walk_sibling()];
 
-    // The end-to-end C ══ B path: anti-unify, then promote ONLY through B.
+    // The end-to-end C ══ B path: anti-unify, then promote ONLY through B. Now
+    // returns `Result<PromotedDraft, ProposeOutcome>` (ADR-047/048/056) — every
+    // non-promotion reason is legible, never a bare `None`.
     let promoted = propose::propose(&twins, &clean_corpus);
 
     // The draft may or may not promote depending on whether its generalization
-    // happens to bind the clean sibling — BUT the one thing that must hold: if it
-    // promotes, it spares clean (B guaranteed it). A promoted draft that binds the
-    // clean sibling would be the bypass-B failure (the line that must not pass).
-    if let Some(draft) = &promoted {
+    // happens to bind the clean sibling / is near-miss-witnessed — BUT the one thing
+    // that must hold: if it promotes, it spares clean (B guaranteed it). A promoted
+    // draft that binds the clean sibling would be the bypass-B failure (must not pass).
+    if let Ok(token) = &promoted {
+        let draft = token.fingerprint();
         assert!(
             !draft.matches(&clean_corpus[0]),
             "a PROMOTED felt draft must SPARE the clean walk sibling — if it binds clean, \
@@ -160,7 +163,7 @@ fn propose_promotes_the_felt_draft_only_through_b_sparing_the_clean_sibling() {
             );
         }
     }
-    // promoted == None (B pruned an over-binding draft) is ALSO safe — it means the
-    // felt twins' generalization reached the clean sibling and B correctly refused.
-    // The test's guarantee is "never a promoted clean-binder", asserted above.
+    // An `Err(_)` (B pruned an over-binding draft, or routed-to-human, or C refused a
+    // degenerate one) is ALSO safe — the test's guarantee is "never a promoted
+    // clean-binder", asserted above. The reason is legible in the ProposeOutcome.
 }

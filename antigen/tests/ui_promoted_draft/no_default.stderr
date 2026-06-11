@@ -1,0 +1,5 @@
+error[E0277]: the trait bound `PromotedDraft: Default` is not satisfied
+  --> tests/ui_promoted_draft/no_default.rs:12:34
+   |
+12 |     let _forged: PromotedDraft = Default::default();
+   |                                  ^^^^^^^^^^^^^^^^^^ the trait `Default` is not implemented for `PromotedDraft`
