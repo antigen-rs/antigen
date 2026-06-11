@@ -173,34 +173,58 @@ pub fn spare_clean(draft: &Fingerprint, clean_corpus: &[syn::Item]) -> bool {
     evaluate(draft, clean_corpus).is_safe()
 }
 
-/// The draft's **top-level conjuncts, producer-normalized** (ADR-047 Amendment 1 —
-/// the shape-fragility seam fix).
+/// The draft's **top-level conjuncts, producer-normalized by recursively flattening
+/// every redundant `AllOf`** (ADR-047 Amendment 1 + Amendment 2 — the shape-fragility
+/// + nested-vacuity seam fix).
 ///
 /// Two producers emit two top-level *shapes* for the SAME semantic fingerprint:
 /// `anti_unify` (the real generator) emits a **flat** `Vec<Constraint>` (e.g.
-/// `[Item, ImplOfTrait, AnyOf]`), while `Fingerprint::parse("all_of([..])")` (and a
-/// `narrow()`/persist reconstruction via the `all_of(..)` surface) emits a single
-/// **wrapped** `[AllOf([..])]`. The GATE-G primitives ((A)-binary + near-miss) read
-/// *top-level* conjuncts, so without normalization a wrapped bare-structural draft
-/// reads its outer `AllOf` as a discriminating conjunct and **evades the (A)-binary
-/// refusal** — the safety verdict would depend on which producer built the draft
-/// (antigen's own `ParallelStateTrackersDiverge` at the keystone gate). Normalizing
-/// a *single* top-level `AllOf` wrapper makes the verdict **producer-independent**.
+/// `[Item, ImplOfTrait, AnyOf]`), while `Fingerprint::parse("all_of([..])")` (and any
+/// `narrow()`/`PersistedSpecimen`-re-mint that reconstructs through the `all_of(..)`
+/// *surface*, ADR-051 — which RE-PARSES a user-edited fingerprint, so ARBITRARY
+/// nesting) emits **wrapped** or **nested** `AllOf`. The GATE-G primitives (both the
+/// (A)-binary check and near-miss) read *top-level* conjuncts, so without
+/// normalization an `AllOf`-wrapped bare-structural draft reads its outer `AllOf` as a
+/// discriminating conjunct and **evades the (A)-binary refusal**, and a *nested*
+/// `AllOf` conjunct lets a single top-level near-miss drop strip MANY discriminators
+/// at once (reopening the trivial-skeleton vacuity ATK-047-1 via nesting — a SILENT
+/// WRONG promote). The verdict would depend on which producer built the draft
+/// (antigen's own `ParallelStateTrackersDiverge` at the keystone gate).
 ///
-/// Scope (honest): this unwraps a SOLE top-level `AllOf` (one level). It does NOT
-/// recurse into a *nested* `AllOf` that sits *alongside* other top-level conjuncts —
-/// that is the harder ADR-047 OQ2 nested-vacuity case (a single top-level drop of an
-/// inner `AllOf` can still collapse many discriminators at once), still pinned
-/// born-red in `atk_047_shape_fragility_seam.rs` and deferred to a future generator
-/// that emits nesting. Today `anti_unify` never nests, so this one-level normalize
-/// closes the live (parse/narrow/persist-surface) seam.
-fn normalized_top_level(draft: &Fingerprint) -> &[Constraint] {
-    match draft.constraints.as_slice() {
-        // A sole top-level `all_of([..])` wrapper: read its children as the real
-        // top-level conjuncts (the flat shape `anti_unify` would have emitted).
-        [Constraint::AllOf(inner)] => inner,
-        // Already flat (the production shape) — read as-is.
-        other => other,
+/// **The fix (recursive — Amendment 2, captain's ruling):** `all_of` is associative
+/// and a single-child `all_of` is identity, so flattening *every* `AllOf` that
+/// appears at the top level into its parent is **semantics-preserving** (matches the
+/// shipped `matcher.rs` `all_of` algebra). This closes the double-wrap
+/// `all_of([all_of([..])])` (Hole-II) AND the nested-conjunct
+/// `[Item, Drop, all_of([flush, drain, unwrap])]` (Hole-I-via-nesting) — the verdict
+/// is now **producer-independent** regardless of nesting depth.
+///
+/// **Scope (honest):** this flattens nested `AllOf` (a *redundant* conjunction). It
+/// does NOT descend into an `AnyOf` arm — an `AllOf` *inside* an `AnyOf` arm is
+/// semantically NECESSARY (not redundant), and a top-level near-miss drop of the
+/// whole `AnyOf` is an under-bind (route-to-human, SAFE — never a fabricated promote).
+/// That arm-internal recall-drop is the genuine ADR-047 OQ2 charter (a recall, not a
+/// safety, concern).
+fn normalized_top_level(draft: &Fingerprint) -> Vec<Constraint> {
+    let mut out = Vec::with_capacity(draft.constraints.len());
+    flatten_all_of_into(&draft.constraints, &mut out);
+    out
+}
+
+/// Recursively flatten every top-level `AllOf` conjunct in `constraints` into `out`
+/// (the redundant-conjunction flatten — sound by `all_of` associativity +
+/// single-child identity). Does NOT descend into `AnyOf`/`Not`/leaf children — only
+/// a top-level (or nested-at-top-level) `AllOf` is redundant.
+fn flatten_all_of_into(constraints: &[Constraint], out: &mut Vec<Constraint>) {
+    for c in constraints {
+        match c {
+            // A nested `all_of([..])` conjunct is redundant (associativity): splice
+            // its children into the parent, recursing so a double-wrap collapses too.
+            Constraint::AllOf(inner) => flatten_all_of_into(inner, out),
+            // Every other constraint is kept as-is — an `AnyOf` arm's internal `AllOf`
+            // is semantically necessary, so we never descend into it (charter recall).
+            other => out.push(other.clone()),
+        }
     }
 }
 
@@ -293,10 +317,10 @@ const fn is_discriminating(c: &Constraint) -> bool {
 /// definedness artifact (closing ATK-047-3).
 #[must_use]
 pub fn is_near_miss(draft: &Fingerprint, item: &syn::Item) -> bool {
-    // Read producer-normalized top-level conjuncts (ADR-047 Amendment 1): a single
-    // top-level `all_of([..])` wrapper is unwrapped to the flat conjuncts the
-    // generator would have emitted, so a wrapped draft drops one REAL conjunct at a
-    // time (not the sole outer wrapper, which would always-empty-drop to vacuous).
+    // Read producer-normalized top-level conjuncts (ADR-047 Amendments 1+2): every
+    // nested `all_of` is recursively flattened, so a wrapped/nested draft drops one
+    // REAL conjunct at a time (never an outer wrapper, which would always-empty-drop
+    // to vacuous, nor a nested `all_of` that would strip many discriminators at once).
     let conjuncts = normalized_top_level(draft);
     // A single-conjunct (or empty) draft has no valid near-miss: dropping its sole
     // conjunct yields the empty all_of (vacuously Match), which would make every
@@ -308,12 +332,24 @@ pub fn is_near_miss(draft: &Fingerprint, item: &syn::Item) -> bool {
     if draft.matches(item) {
         return false;
     }
-    // ∃ one conjunct whose removal makes the (still non-empty) draft bind the item.
+    // ∃ one conjunct whose removal makes the (still non-empty) draft bind the item —
+    // AND whose REMAINDER still carries a discriminating signal (ADR-047 Amendment 2,
+    // Hole-I fix). Without the remainder-discriminates guard, dropping the SOLE
+    // discriminator of a `[Item, Drop, body_calls("aaa")]` draft leaves the
+    // bare-structural skeleton `[Item, Drop]`, which binds EVERY Drop impl — so any
+    // unrelated in-family member would count a near-miss and the trivial-skeleton
+    // vacuity (ATK-047-1) reopens as a SILENT WRONG promote. A genuine near-miss is
+    // an item the draft spares by failing ONE discriminator while still matching a
+    // discriminating remainder (proof B made a REAL in-family discrimination, not a
+    // bare-structural over-bind). Dropping the only discriminator is not a near-miss.
     (0..conjuncts.len()).any(|i| {
-        let mut cs = conjuncts.to_vec();
+        let mut cs = conjuncts.clone();
         cs.remove(i);
-        // `cs` is non-empty here (len was ≥ 2), so this is not the vacuous empty match.
-        Fingerprint { constraints: cs }.matches(item)
+        let remainder = Fingerprint { constraints: cs };
+        // `remainder` is non-empty (len was ≥ 2) — not the vacuous empty match. It is
+        // a near-miss witness only if it still discriminates (else the drop collapsed
+        // to a bare-structural skeleton that over-binds the family).
+        remainder.matches(item) && has_discriminating_conjunct(&remainder)
     })
 }
 
@@ -410,18 +446,26 @@ mod tests {
     use super::*;
 
     fn drop_family() -> Vec<syn::Item> {
+        // The realistic shape `anti_unify` emits (matching propose.rs's DROP_FAMILY):
+        // all three share a `.take()` body-call AND the defects split on `.unwrap()` /
+        // `.expect()`. So the draft carries TWO discriminators — the shared
+        // `body_calls("take")` AND the `any_of` — which is what makes CleanGuard a
+        // GENUINE near-miss under the ADR-047 Amd2 remainder-discriminates rule:
+        // dropping the `any_of` leaves `[impl, Drop, take]` (still discriminating, and
+        // CleanGuard matches it), proving B's discrimination is real (not the
+        // trivial-skeleton vacuity of a single-`any_of` draft).
         let src = r#"
             pub struct GuardA;
             impl Drop for GuardA {
-                fn drop(&mut self) { let _ = flush().unwrap(); }
+                fn drop(&mut self) { let _ = flush().take().unwrap(); }
             }
             pub struct GuardB;
             impl Drop for GuardB {
-                fn drop(&mut self) { let _ = flush().expect("must"); }
+                fn drop(&mut self) { let _ = flush().take().expect("must"); }
             }
             pub struct CleanGuard;
             impl Drop for CleanGuard {
-                fn drop(&mut self) { let _ = flush().ok(); }
+                fn drop(&mut self) { let _ = flush().take().ok(); }
             }
         "#;
         syn::parse_file(src).expect("parses").items
@@ -468,12 +512,15 @@ mod tests {
         flat(r#"all_of([item = impl, impl_of_trait("Drop")])"#)
     }
 
-    /// The healthy disjunction draft (flat): carries a discriminating `any_of`,
-    /// binds the `{unwrap, expect}` defects, spares the `.ok()` clean sibling. The
-    /// flat top-level shape `anti_unify` emits (`Item`, `ImplOfTrait`, `AnyOf` at top).
+    /// The healthy disjunction draft (flat) — the realistic `anti_unify` shape: a
+    /// shared discriminating `body_calls("take")` conjunct AND the discriminating
+    /// `any_of([unwrap, expect])`. TWO discriminators, so dropping the `any_of` for a
+    /// near-miss leaves a still-discriminating remainder (`[impl, Drop, take]`) — the
+    /// ADR-047 Amd2 remainder-discriminates rule. Binds the `{unwrap, expect}`
+    /// defects, spares the `.ok()` clean sibling.
     fn disjunction_draft() -> Fingerprint {
         flat(
-            r#"all_of([item = impl, impl_of_trait("Drop"), any_of([body_calls("unwrap"), body_calls("expect")])])"#,
+            r#"all_of([item = impl, impl_of_trait("Drop"), body_calls("take"), any_of([body_calls("unwrap"), body_calls("expect")])])"#,
         )
     }
 
@@ -638,22 +685,60 @@ mod tests {
         );
     }
 
-    /// ADR-047 §Q9 (A)-binary positive —
-    /// `precise_no_disjunction_draft_with_real_discrimination_promotes`. A
-    /// no-`any_of` draft whose core carries a genuine discriminating signal AND is
-    /// near-miss-witnessed promotes — proving (A)-binary does NOT brick the precise
-    /// no-disjunction case (only the bare-structural one).
+    /// ADR-047 Amendment 2 (Hole-I fix) — `single_discriminator_draft_routes_to_human`.
+    /// A draft with exactly ONE discriminator (`[impl, Drop, body_calls("unwrap")]`,
+    /// otherwise bare-structural) is NOT near-miss-witnessable: the only near-miss
+    /// candidate is an in-family item the draft spares by dropping that SOLE
+    /// discriminator — but the remainder `[impl, Drop]` is bare-structural (it binds
+    /// every Drop impl), so the "near-miss" proves nothing (the trivial-skeleton
+    /// vacuity ATK-047-1). The remainder-must-discriminate rule refuses it → the gate
+    /// routes-to-human. (Pre-Amd2 this SILENTLY WRONG-PROMOTED — the live hole the
+    /// notary-pass found in the fresh gate.)
     #[test]
-    fn precise_no_disjunction_draft_with_real_discrimination_promotes() {
-        let precise = flat(r#"all_of([item = impl, impl_of_trait("Drop"), body_calls("unwrap")])"#);
-        // A clean sibling one constraint (unwrap) from binding → near-miss.
+    fn single_discriminator_draft_routes_to_human() {
+        let single_disc =
+            flat(r#"all_of([item = impl, impl_of_trait("Drop"), body_calls("unwrap")])"#);
+        // A bare Drop impl that does NOT call unwrap — the would-be trivial near-miss.
+        let bare: syn::Item =
+            syn::parse_str("impl Drop for Far { fn drop(&mut self) { log(); } }").unwrap();
+        assert!(has_discriminating_conjunct(&single_disc));
+        assert!(
+            !is_near_miss(&single_disc, &bare),
+            "dropping the SOLE discriminator leaves a bare-structural remainder → not a \
+             near-miss (ATK-047-1 trivial-skeleton vacuity, Amd2-closed)"
+        );
+        assert_eq!(
+            promote_if_safe(single_disc, std::slice::from_ref(&bare)),
+            Err(ToleranceVerdict::NotCorpusWitnessable),
+            "a single-discriminator draft routes-to-human, never silently promotes"
+        );
+    }
+
+    /// ADR-047 §Q9 (A)-binary positive (Amd2-aligned) —
+    /// `precise_no_disjunction_draft_with_two_discriminators_promotes`. A no-`any_of`
+    /// draft whose core carries ≥2 genuine discriminators promotes: dropping one
+    /// leaves a STILL-discriminating remainder that a clean sibling matches (a real
+    /// in-family near-miss). Proving the gate is not bricked for precise drafts — only
+    /// the single-discriminator (vacuous) and bare-structural cases route/refuse.
+    #[test]
+    fn precise_no_disjunction_draft_with_two_discriminators_promotes() {
+        // TWO discriminators: flush + unwrap (the realistic twins shape).
+        let precise = flat(
+            r#"all_of([item = impl, impl_of_trait("Drop"), body_calls("flush"), body_calls("unwrap")])"#,
+        );
+        // A clean sibling that calls flush but NOT unwrap → matches [impl, Drop, flush]
+        // and fails only unwrap → a genuine near-miss (the remainder discriminates).
         let clean: syn::Item =
             syn::parse_str("impl Drop for Clean { fn drop(&mut self) { let _ = flush().ok(); } }")
                 .unwrap();
         assert!(has_discriminating_conjunct(&precise));
         assert!(
+            is_near_miss(&precise, &clean),
+            "the .ok() sibling matches [impl, Drop, flush] and fails only unwrap → near-miss"
+        );
+        assert!(
             promote_if_safe(precise, std::slice::from_ref(&clean)).is_ok(),
-            "a precise (no-any_of) draft with real discrimination must promote"
+            "a precise ≥2-discriminator draft with a real near-miss must promote"
         );
     }
 
