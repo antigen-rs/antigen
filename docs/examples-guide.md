@@ -109,7 +109,7 @@ doesn't resolve, the audit names the gap honestly.
 cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
 ```
 
-Look for the `broken_witness.rs:38` entry in the audit output. You'll
+Look for the `broken_witness.rs:56` entry in the audit output. You'll
 see `tier = None, hint = NoneApplicable` with the diagnostic: *no
 function named `nonexistent_test` found in any .rs file under the
 scan root*.

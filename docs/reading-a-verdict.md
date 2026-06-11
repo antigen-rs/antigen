@@ -52,7 +52,7 @@ The first thing `scan` prints is a tally. Each line counts one *kind* of thing i
 found:
 
 ```
-Scanned 33 files, found 116 antigen-related declarations:
+Scanned 35 files, found 116 antigen-related declarations:
   - 27 antigen declarations
   - 45 explicit #[presents] markers
   - 40 fingerprint matches (candidate sites — see below)
@@ -213,7 +213,7 @@ that wants the whole `ScanReport`.
 
 ```
 ✓ antigen/examples/basic.rs:70  PanickingInDrop — defended at Reachability by antigen/examples/basic.rs:102
-✗ antigen/examples/drop_panic.rs:50  PanicInDrop — undefended (no #[defended_by] witness, no passing requires= predicate)
+✗ antigen/examples/drop_panic.rs:56  PanicInDrop — undefended (no #[defended_by] witness, no passing requires= predicate)
 ⚠ antigen/examples/agentic_coordination.rs:115  AgentWakeWithoutSubstrateDeltaInjection — substrate-gap (defense intent present; current substrate does not satisfy the requires= predicate)
 ```
 
