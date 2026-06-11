@@ -35,6 +35,7 @@
 use std::path::Path;
 
 use antigen::learn::propose;
+use antigen::learn::self_tolerance::ToleranceVerdict;
 
 /// Re-acquire the `fn` item named `fn_name` from `file` on disk (the scout's
 /// path-B AST re-acquisition: marks ride file+line+digest; PROPOSE re-parses the
@@ -136,19 +137,39 @@ fn propose_anti_unifies_antigens_own_felt_twins_into_a_real_draft() {
 }
 
 #[test]
-fn propose_promotes_the_felt_draft_only_through_b_sparing_the_clean_sibling() {
+fn propose_routes_the_felt_draft_to_human_not_promote_the_settled_thesis() {
     let twins = felt_twins();
     let clean_corpus = vec![clean_walk_sibling()];
 
-    // The end-to-end C ══ B path: anti-unify, then promote ONLY through B. Now
-    // returns `Result<PromotedDraft, ProposeOutcome>` (ADR-047/048/056) — every
-    // non-promotion reason is legible, never a bare `None`.
+    // The end-to-end C ══ B path: anti-unify, then promote ONLY through B. Returns
+    // `Result<PromotedDraft, ProposeOutcome>` (ADR-047/048/056) — every non-promotion
+    // reason is legible, never a bare `None`.
     let promoted = propose::propose(&twins, &clean_corpus);
 
-    // The draft may or may not promote depending on whether its generalization
-    // happens to bind the clean sibling / is near-miss-witnessed — BUT the one thing
-    // that must hold: if it promotes, it spares clean (B guaranteed it). A promoted
-    // draft that binds the clean sibling would be the bypass-B failure (must not pass).
+    // THE SETTLED THESIS (captain's empirical ruling): antigen's real felt twins
+    // ROUTE-TO-HUMAN, they do NOT promote. The twins draft is ~21 ALL-SHARED conjuncts
+    // with NO discriminating `any_of` (two genuine twins share everything), and no
+    // read-loop-free clean fn is one-conjunct-from-binding it, so NO near-miss exists
+    // at ANY corpus size → `NotCorpusWitnessable`. The PLUMBING closes (anti-unify →
+    // gate → legible outcome); the self-immunizing PROMOTE payoff is chartered (v0.6,
+    // needs abstract-recall). This assertion has TEETH: a flip-to-promote (a real
+    // payoff firing, OR a regression that fabricates a near-miss) trips it — the
+    // honest current outcome is pinned so the thesis-boundary can't drift silently.
+    assert_eq!(
+        promoted,
+        Err(propose::ProposeOutcome::Rejected(
+            ToleranceVerdict::NotCorpusWitnessable
+        )),
+        "antigen's own felt twins must ROUTE-TO-HUMAN (the settled v0.5 thesis): the gate \
+         anti-unifies a draft from its own marks and routes it to human ratification, it \
+         does NOT yet promote a fingerprint for its own failure-class (payoff = v0.6 \
+         charter, abstract-recall). got: {promoted:?}"
+    );
+
+    // The standing SAFETY invariant whatever the outcome: the gate NEVER promotes a
+    // draft that binds the clean sibling (autoimmunity). Belt-and-suspenders against
+    // a future flip — if it ever DOES promote, it must still spare clean + bind both
+    // twins (B guaranteed it); a binds-clean promote is the bypass-B failure.
     if let Ok(token) = &promoted {
         let draft = token.fingerprint();
         assert!(
@@ -163,7 +184,4 @@ fn propose_promotes_the_felt_draft_only_through_b_sparing_the_clean_sibling() {
             );
         }
     }
-    // An `Err(_)` (B pruned an over-binding draft, or routed-to-human, or C refused a
-    // degenerate one) is ALSO safe — the test's guarantee is "never a promoted
-    // clean-binder", asserted above. The reason is legible in the ProposeOutcome.
 }
