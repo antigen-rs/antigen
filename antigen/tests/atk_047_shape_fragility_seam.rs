@@ -20,29 +20,31 @@
 //! correctly refused. The safety guarantee leaks at the producer seam — antigen's
 //! own `ParallelStateTrackersDiverge` at the keystone gate.
 //!
-//! # Why this is born-red (and `#[ignore]`'d), not a passing test
+//! # Status: GREEN regression guards (the seam is CLOSED — ADR-047 Amendments 1+2)
 //!
-//! Today the PRODUCTION `propose` path is FLAT end-to-end (`anti_unify` →
-//! `is_degenerate` → `promote_if_safe`) and the serde-TREE round-trip preserves
-//! flat — so no LIVE bypass exists in v0.5-as-built, and the in-module unit tests
-//! pass by using a `flat()` test helper that unwraps the wrapper. **That helper
-//! papers the seam at the test level only.** The PRIMITIVE remains shape-fragile.
+//! These were born-RED. They are now GREEN: the GATE-G primitives
+//! (`has_discriminating_conjunct` / `is_near_miss`) read producer-NORMALIZED top-level
+//! conjuncts via `self_tolerance::normalized_top_level`, which **recursively flattens
+//! every redundant `AllOf`** (`all_of` is associative + single-child is identity, so
+//! the flatten is semantics-preserving and matches the shipped `matcher.rs` algebra).
+//! The verdict is now PRODUCER-INDEPENDENT regardless of nesting depth:
+//! - a single/double-wrapped `[AllOf([..])]` reads the same as the flat shape
+//!   (Amendment 1 + the recursive extension);
+//! - a NESTED `[Item, Drop, AllOf([flush, drain, unwrap])]` flattens to the flat
+//!   `[Item, Drop, flush, drain, unwrap]` — a single top-level near-miss drop can no
+//!   longer strip many discriminators at once (Amendment 2 — the nested-vacuity half);
+//! - and the remainder-discriminates rule (Amendment 2 — the flat single-discriminator
+//!   half, Hole-I) refuses any drop whose remainder collapses to bare-structural.
 //!
-//! The LIVE risk is ADR-051's `narrow()` + `PersistedSpecimen` re-mint (NOT YET
-//! BUILT): if either reconstructs a fingerprint through the `all_of(...)` SURFACE
-//! (a `parse` call, or a hand-built `Constraint::AllOf`) rather than the serde
-//! tree, the re-gate through `promote_if_safe` silently passes a bare-structural
-//! draft. This file pins the invariant BEFORE 051 is built.
+//! The LIVE risk these pinned — ADR-051's `narrow()` / `PersistedSpecimen` re-mint
+//! re-PARSING a user-edited fingerprint into ARBITRARY nesting — is closed at the
+//! primitive, so unit #8 inherits a producer-independent gate.
 //!
-//! # The fix this spec defines (un-ignore when either lands)
-//!
-//! Make the gate producer-INDEPENDENT: normalize a single top-level `AllOf` wrapper
-//! inside `has_discriminating_conjunct` / `is_near_miss` (flatten before reading),
-//! so the safety verdict cannot depend on which producer built the draft. (The
-//! alternative — a locked "no wrapped draft ever reaches `promote_if_safe`"
-//! invariant enforced on the narrow/persist path — is weaker: it leaves the
-//! primitive a loaded gun for the next caller.) Once the primitive normalizes,
-//! delete the `#[ignore]`; these go green and STAY the regression guard.
+//! The one residual (genuinely deferred, ADR-047 OQ2, NOT a hole): an `AllOf` *inside
+//! an `AnyOf` arm* is semantically necessary (not redundant) — a top-level near-miss
+//! drop of the whole `AnyOf` is an under-bind → route-to-human (SAFE, never a
+//! fabricated promote). That arm-internal recall-drop is a recall charter, not a
+//! safety concern; it is NOT pinned here.
 
 use antigen::learn::self_tolerance::{
     ToleranceVerdict, has_discriminating_conjunct, is_near_miss, promote_if_safe,
@@ -195,14 +197,14 @@ fn bare_drop_impl() -> syn::Item {
     syn::parse_str("impl Drop for Far { fn drop(&mut self) { log(); } }").expect("parses")
 }
 
-/// BORN-RED — a bare family member must NOT be a near-miss for a NESTED draft. Today
-/// `is_near_miss(nested, bare_drop) == true`: dropping the single inner-`all_of`
-/// top-level conjunct collapses the draft to `[impl, Drop]`, which binds every Drop
-/// impl — so a bare `Drop` impl spuriously "near-misses". The FLAT equivalent
-/// correctly returns `false`. Un-ignore when the near-miss primitive recurses into
-/// (or refuses) nested conjuncts.
+/// GREEN (ADR-047 Amendment 2) — a bare family member must NOT be a near-miss for a
+/// NESTED draft. The recursive `normalized_top_level` flatten splices the inner
+/// `all_of([flush, drain, unwrap])` into the top level (`all_of` associativity), so
+/// the nested draft reads identically to the FLAT one — a single top-level drop can
+/// no longer strip many discriminators at once, and the remainder-discriminates rule
+/// (Amd2 Hole-I) refuses the bare-structural collapse regardless. Pre-Amd2 this
+/// SILENTLY WRONG-near-missed (the live nested-vacuity hole the notary-pass found).
 #[test]
-#[ignore = "born-red: nested all_of reopens trivial-skeleton vacuity (ATK-047-1) — a bare family member spuriously near-misses; un-ignore when is_near_miss recurses-or-refuses nested conjuncts (ADR-047 OQ2)"]
 fn nested_draft_does_not_spuriously_near_miss_a_bare_family_member() {
     let bare = bare_drop_impl();
     // The FLAT draft correctly rejects the bare member as a near-miss (3 signals away).
@@ -219,12 +221,12 @@ fn nested_draft_does_not_spuriously_near_miss_a_bare_family_member() {
     );
 }
 
-/// BORN-RED — the gate must NOT PROMOTE the nested draft against a corpus whose only
-/// item is a bare family member. Today it does (`Ok(PromotedDraft)`) while the FLAT
-/// equivalent correctly routes-to-human (`NotCorpusWitnessable`). A promote here
-/// certifies a draft the corpus never genuinely exercised.
+/// GREEN (ADR-047 Amendment 2) — the gate must NOT PROMOTE the nested draft against a
+/// corpus whose only item is a bare family member. With the recursive flatten + the
+/// remainder-discriminates rule, the nested draft now routes-to-human
+/// (`NotCorpusWitnessable`) exactly like its FLAT equivalent — no silent wrong-promote
+/// of a draft the corpus never genuinely exercised.
 #[test]
-#[ignore = "born-red: nested draft promotes on a bare-family-member-only corpus (vacuity); un-ignore with the nested-near-miss fix"]
 fn nested_draft_does_not_promote_against_a_bare_family_member_only_corpus() {
     let corpus = [bare_drop_impl()];
     let flat_verdict = promote_if_safe(flat_discriminator_draft(), &corpus);
@@ -243,3 +245,22 @@ fn nested_draft_does_not_promote_against_a_bare_family_member_only_corpus() {
          (the trivial-skeleton vacuity, reopened via nesting)"
     );
 }
+
+// ============================================================================
+// RETRACTED: the "single-discriminator trivial-skeleton vacuity" I first filed
+// here was a FALSE POSITIVE — the ratified design EXPLICITLY rules it intended.
+// ADR-047 §Decision (drafts/adr-047-gate-g-soundness.md:53): "a witness must be
+// one constraint from binding *the actual draft*, which for `{fn, body_calls(
+// "transmute")}` means 'a fn that would bind if it called transmute' — a GENUINE
+// discrimination ('B spares non-transmute fns'), not arbitrary unrelated code the
+// draft's signal never came near." So a single-discriminator draft `[impl, Drop,
+// foo]` near-missing (and promoting against) a bare `Drop` impl that lacks `foo`
+// is the gate WORKING: B genuinely spares non-foo Drop impls. Default-to-refuted
+// applied to my OWN claim caught it (camp 7fea15c2 → retraction). The two tests
+// asserting route-to-human were WRONG and are removed.
+//
+// What SURVIVES is the producer-independence finding above (the nested case): a
+// 3-signal cluster bundled as a nested AllOf gives a DIFFERENT verdict from the
+// same 3 signals flat — that divergence is real (same semantics, two verdicts),
+// independent of whether the single-discriminator promote is intended.
+// ============================================================================
