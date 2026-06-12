@@ -50,18 +50,38 @@ use proptest::prelude::*;
 
 // ── generators ──────────────────────────────────────────────────────────────
 
-/// A small pool of constraint leaves spanning the (A)-binary partition: identity
-/// anchors (`Item`, `ImplOfTrait`) and discriminating signals (`BodyCalls`,
-/// `BodyContainsMacro`). Enough variety to build degenerate, precise, and
-/// disjunction-bearing drafts.
+/// A constraint spanning the (A)-binary partition AND the COMBINATOR depth axis:
+/// identity anchors (`Item`, `ImplOfTrait`), discriminating leaves (`BodyCalls`,
+/// `BodyContainsMacro`), AND recursively-nested `AllOf`/`AnyOf` combinators.
+///
+/// The leaf-only generator (the captain's batch-3 catch, 2026-06-11) left
+/// invariant 2's "including nested combinators" claim COMMENT-ASSERTED but
+/// UNTESTED — and the nested-vacuity hole (a nested `AllOf` conjunct lets ONE
+/// top-level drop strip MANY discriminators) lives precisely in the combinator
+/// depth a leaf-only generator never reaches. This recursive, depth-limited arm
+/// makes a future nested-generator regression TRIP the property, not slip past it.
 fn any_constraint() -> impl Strategy<Value = Constraint> {
-    prop_oneof![
+    let leaf = prop_oneof![
         Just(Constraint::Item(ItemKind::Impl)),
         Just(Constraint::Item(ItemKind::Fn)),
         Just(Constraint::ImplOfTrait("Drop".into())),
         "[a-z]{3,6}".prop_map(Constraint::BodyCalls),
         "[a-z]{3,6}".prop_map(Constraint::BodyContainsMacro),
-    ]
+    ];
+    // Depth-limited recursion: up to 2 levels of nesting, 1..=3 children per
+    // combinator, ≤8 total nodes — enough to exercise nested `AllOf`/`AnyOf`/`Not`
+    // (incl. the double-wrap `AllOf(AllOf(..))` the recursive-canonical-form must
+    // flatten) without blowing up the search space. ALL THREE combinators the
+    // `Constraint` enum carries are generated — `Not(Box<Self>)` too, so a nested
+    // negation can't slip a combinator-shape past the property (the team-lead's
+    // completeness catch: the generator must span every combinator the gate reads).
+    leaf.prop_recursive(2, 8, 3, |inner| {
+        prop_oneof![
+            prop::collection::vec(inner.clone(), 1..=3).prop_map(Constraint::AllOf),
+            prop::collection::vec(inner.clone(), 1..=3).prop_map(Constraint::AnyOf),
+            inner.prop_map(|c| Constraint::Not(Box::new(c))),
+        ]
+    })
 }
 
 /// A draft of 0..=5 constraints — deliberately includes the empty and
@@ -85,17 +105,36 @@ fn corpus_items() -> Vec<syn::Item> {
     syn::parse_file(src).expect("corpus parses").items
 }
 
+/// A LEAF-only constraint (no combinators) — used where the claim is about a
+/// *genuinely atomic* conjunct, distinct from a combinator-wrapped one. (The N4
+/// guard is about a draft that is single-conjunct AFTER producer-normalization; a
+/// `[AllOf([a, b])]` is syntactically one conjunct but normalizes to TWO, so it is
+/// NOT an N4 single-conjunct draft — the recursive generator surfaced exactly this
+/// distinction, a real subtlety worth pinning, not a gate bug.)
+fn any_leaf() -> impl Strategy<Value = Constraint> {
+    prop_oneof![
+        Just(Constraint::Item(ItemKind::Impl)),
+        Just(Constraint::Item(ItemKind::Fn)),
+        Just(Constraint::ImplOfTrait("Drop".into())),
+        "[a-z]{3,6}".prop_map(Constraint::BodyCalls),
+        "[a-z]{3,6}".prop_map(Constraint::BodyContainsMacro),
+    ]
+}
+
 // ── invariant 1: the len >= 2 guard is total over ALL items (ATK-047-N4) ──────
 
 proptest! {
-    /// INVARIANT (ADR-047 §Mechanics 1, the N4 guard): a draft with FEWER THAN 2
-    /// constraints has NO valid near-miss against ANY item — dropping its sole
-    /// conjunct yields the empty `all_of` (vacuously `Match`), which must NEVER be
-    /// counted as a near-miss. No hand-picked item can prove "for all"; the
+    /// INVARIANT (ADR-047 §Mechanics 1, the N4 guard): a draft of ≤1 *normalized*
+    /// conjunct has NO valid near-miss against ANY item — dropping its sole conjunct
+    /// yields the empty `all_of` (vacuously `Match`), which must NEVER be counted as a
+    /// near-miss. The generator is LEAF-ONLY (`any_leaf`): a `[AllOf([a,b])]` is
+    /// syntactically single-conjunct but normalizes to TWO, so it is NOT an N4 case
+    /// (the gate's `normalized_top_level` unwraps it first — the recursive generator
+    /// surfaced this distinction). No hand-picked item can prove "for all"; the
     /// generator hunts a counterexample across the whole corpus.
     #[test]
     fn single_or_empty_conjunct_draft_is_never_a_near_miss(
-        draft in prop::collection::vec(any_constraint(), 0..=1)
+        draft in prop::collection::vec(any_leaf(), 0..=1)
             .prop_map(|constraints| Fingerprint { constraints }),
     ) {
         let corpus = corpus_items();
@@ -252,6 +291,70 @@ proptest! {
                 verdict,
                 draft.constraints
             );
+        }
+    }
+}
+
+// ── invariant 6: a near-miss's REMAINDER must not be bare-structural ───────────
+//
+// REGISTRY #1 — CLOSED 2026-06-11 (ADR-047 Amendment 2, `is_near_miss` now requires
+// `has_discriminating_conjunct(&remainder)` on the dropped-conjunct remainder;
+// `self_tolerance.rs:352`). This invariant is the UNIVERSALIZATION of the
+// adversarial's confirmed-LIVE ATK-047-1 finding (`atk_047_shape_fragility_seam.rs`
+// gave TWO specific examples; this proves the fix for the CLASS — all single-
+// discriminator drafts vs all non-binding items). Born RED, fixed, now a PERMANENT
+// regression guard (the ATK lifecycle: never deleted).
+//
+// THE HOLE IT GUARDS: before Amd2, `is_near_miss` counted an item a near-miss if
+// dropping ANY ONE conjunct made the draft bind it — including dropping the SOLE
+// discriminator, whose remainder `[Item, ImplOfTrait]` is bare-structural and
+// matches every family member. That is "near" only by collapsing to the structural
+// skeleton — the trivial-skeleton vacuity (ATK-047-1). A near-miss witnessed that
+// way is NOT a real in-family discrimination. Amd2's remainder-must-discriminate
+// rule closes it; this invariant is the standing proof it stays closed.
+
+/// A draft whose ENTIRE discriminating signal lives in ONE conjunct (a single
+/// `body_calls`), on a `Drop` impl. Its only near-miss route is to drop that sole
+/// discriminator — leaving the bare-structural `[impl, Drop]` remainder, which Amd2
+/// now refuses to count as a near-miss.
+fn single_discriminator_draft() -> Fingerprint {
+    Fingerprint {
+        constraints: vec![
+            Constraint::Item(ItemKind::Impl),
+            Constraint::ImplOfTrait("Drop".into()),
+            Constraint::BodyCalls("a_signal_no_clean_item_makes".into()),
+        ],
+    }
+}
+
+proptest! {
+    /// INVARIANT (REGISTRY #1, CLOSED by ADR-047 Amd2 — the standing guard): a
+    /// single-discriminator draft must NOT be near-miss-witnessed by an item that
+    /// shares NONE of its discriminating signal — such an item is "near" only via the
+    /// bare-structural collapse (ATK-047-1). For ALL corpus items the
+    /// `single_discriminator_draft` does not bind, `is_near_miss` must be FALSE (the
+    /// only near-miss route drops the sole discriminator, leaving a bare-structural
+    /// remainder Amd2's `has_discriminating_conjunct(&remainder)` check now rejects).
+    /// If this ever goes RED, the remainder-must-discriminate rule regressed.
+    #[test]
+    fn single_discriminator_near_miss_must_not_be_bare_structural_collapse(
+        draft in Just(single_discriminator_draft()),
+    ) {
+        let corpus = corpus_items();
+        for item in &corpus {
+            // The draft binds an item ONLY if that item makes the rare signal — none
+            // of the corpus items do, so the draft binds none of them. Every one is a
+            // non-binding item whose ONLY near-miss route is the bare-structural drop.
+            if !draft.matches(item) {
+                prop_assert!(
+                    !is_near_miss(&draft, item),
+                    "an item sharing NONE of the single discriminator must not be a \
+                     near-miss — it is 'near' only by collapsing the draft to its bare \
+                     structural skeleton (the trivial-skeleton vacuity ATK-047-1); \
+                     item-binds-draft={}",
+                    draft.matches(item)
+                );
+            }
         }
     }
 }

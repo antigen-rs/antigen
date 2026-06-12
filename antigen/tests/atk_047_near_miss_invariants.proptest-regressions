@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc d345eca7172ad8888e78d72a05dc1abfe360ac24b6dc523a35da1b145316a045 # shrinks to draft = Fingerprint { constraints: [Item(Impl), ImplOfTrait("Drop"), BodyCalls("a_signal_no_clean_item_makes")] }
