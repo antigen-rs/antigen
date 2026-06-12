@@ -264,3 +264,62 @@ fn nested_draft_does_not_promote_against_a_bare_family_member_only_corpus() {
 // same 3 signals flat — that divergence is real (same semantics, two verdicts),
 // independent of whether the single-discriminator promote is intended.
 // ============================================================================
+
+// ============================================================================
+// ATK-047 DOUBLE-WRAP — the RECURSION guard for Fix B (ADR-047 Amendment 2). A
+// single-level flatten (Fix A — unwrap ONE outer AllOf) is INSUFFICIENT: a
+// `all_of([all_of([..])])` draft re-nests one level deeper and re-opens the
+// nested-vacuity. Fix B is RECURSIVE (`flatten_all_of_into` splices every nested
+// AllOf, any depth). This guard proves the recursion terminates correctly at
+// depth-2 — it would go RED under a non-recursive single-flatten regression.
+// REACHABILITY (captain's ruling): NOT generator-only — ADR-051 narrow()/persist
+// re-PARSES a user-edited fingerprint (`parse_all_of` does not flatten), so a
+// hand-written `all_of([all_of([..])])` reaches the gate. Live by unit #8.
+// PROVEN BY RUN: `R:/antigen-atk-scratch/src/doublewrap_probe.rs`.
+// ============================================================================
+
+/// A DOUBLE-wrapped draft: the discriminators nested TWO `all_of` levels deep —
+/// `[impl, Drop, all_of([all_of([flush, drain, unwrap])])]`. Semantically identical
+/// to the flat `[impl, Drop, flush, drain, unwrap]`; the double wrap is what a
+/// `narrow()`/persist re-parse of a user-edited fingerprint can reconstruct.
+fn double_wrapped_discriminator_draft() -> Fingerprint {
+    Fingerprint {
+        constraints: vec![
+            Constraint::Item(ItemKind::Impl),
+            Constraint::ImplOfTrait("Drop".into()),
+            Constraint::AllOf(vec![Constraint::AllOf(vec![
+                bc("flush"),
+                bc("drain"),
+                bc("unwrap"),
+            ])]),
+        ],
+    }
+}
+
+/// GREEN (Fix B recursion guard) — the DOUBLE-wrapped draft must give the SAME
+/// verdict as its flat equivalent: a bare family member is NOT a near-miss, and the
+/// gate routes-to-human (not a spurious promote). A single-level flatten (Fix A)
+/// would leave `[impl, Drop, all_of([flush,drain,unwrap])]` (still nested one level)
+/// and re-open the vacuity — so this is the test that distinguishes recursive Fix B
+/// from insufficient Fix A. If this ever REDs, a flatten regressed to non-recursive.
+#[test]
+fn double_wrapped_draft_is_producer_independent_via_recursive_flatten() {
+    let bare = bare_drop_impl();
+    let corpus = [bare_drop_impl()];
+    // (a) the double-wrap is NOT a near-miss for a bare family member (same as flat).
+    assert!(
+        !is_near_miss(&double_wrapped_discriminator_draft(), &bare),
+        "a bare Drop impl must NOT be a near-miss for the DOUBLE-wrapped draft — the \
+         recursive flatten splices both AllOf levels so it reads as the flat \
+         [impl, Drop, flush, drain, unwrap], 3 signals from the bare member"
+    );
+    // (b) the gate verdict is identical to the flat draft's (producer-independent at
+    //     nesting depth 2 — the recursion-terminates proof).
+    assert_eq!(
+        promote_if_safe(double_wrapped_discriminator_draft(), &corpus),
+        promote_if_safe(flat_discriminator_draft(), &corpus),
+        "the DOUBLE-wrapped draft must route-to-human exactly like its flat \
+         equivalent — Fix B's flatten is recursive (any depth), so a deeper wrap \
+         cannot re-open the nested vacuity (single-level Fix A would fail here)"
+    );
+}

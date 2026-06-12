@@ -193,3 +193,69 @@ fn human_and_agent_render_the_same_record() {
     //   // ratification-state struct (the co-native one-record invariant).
     unimplemented!("ADR-051 two-rendering record not yet built");
 }
+
+// ───────────────────────────────────────────────────────────────────────────
+// The ADR-047-Amd2 ↔ ADR-051 COUPLING — the nested-vacuity fix is a 051-soundness
+// PREREQ (captain batch-3 + the adversarial's 051-seal audit). 051's narrow()/
+// re-mint RE-PARSE user-edited fingerprints into ARBITRARY nesting — so 051's
+// SHAPE-soundness (the reconstructed fingerprint re-gates to the right verdict, and
+// forgery-detection holds against a NESTED autoimmune draft) rides the gate's
+// recursive canonical-form (Amd2 Hole-II). The original atk_051 seal tested the
+// accept-only-PromotedDraft TYPE invariant but NOT the SHAPE of the re-minted
+// fingerprint — exactly where the shape-fragility detonates. These close that gap.
+// ───────────────────────────────────────────────────────────────────────────
+
+/// ADR-051 ↔ ADR-047 Amd2 — `narrow_output_is_producer_normalized`. A `narrow()` that
+/// reconstructs the fingerprint through the `all_of(..)` surface (or a re-parse) can
+/// emit a WRAPPED/NESTED shape. The re-gate verdict on a narrowed draft MUST be
+/// producer-independent — identical for the flat and the nested form of the same
+/// semantic fingerprint — i.e. it rides the gate's recursive canonical-form (Amd2
+/// Hole-II). Without it, a narrowed draft's (A)-binary / near-miss verdict depends on
+/// whether `narrow` happened to nest — a `ParallelStateTrackersDiverge` at the
+/// ratification surface.
+#[test]
+#[ignore = "born-red: ADR-051 narrow surface greenfield + rides ADR-047 Amd2 \
+            recursive-normalize (Hole-II); un-ignore when narrow + the recursive \
+            canonical-form both land"]
+fn narrow_output_is_producer_normalized() {
+    // SPEC (un-ignore when narrow + Amd2 recursive-normalize land):
+    //   // The SAME semantic fingerprint, flat vs nested (as narrow/parse might build):
+    //   let flat   = Fingerprint { constraints: vec![/* impl, Drop, body_calls("x") */] };
+    //   let nested = Fingerprint { constraints: vec![Constraint::AllOf(flat.constraints.clone())] };
+    //   // After Amd2's recursive normalize, the gate verdict is IDENTICAL:
+    //   assert_eq!(
+    //       promote_if_safe(flat,   &corpus).map(|t| t.tier()),
+    //       promote_if_safe(nested, &corpus).map(|t| t.tier()),
+    //       "a narrowed draft's verdict must be producer-independent (Amd2 Hole-II)"
+    //   );
+    unimplemented!("ADR-051 narrow + ADR-047 Amd2 recursive-normalize not yet built");
+}
+
+/// ADR-051 ↔ ADR-047 Amd2 — `tampered_nested_autoimmune_draft_is_caught_by_re_mint`.
+/// The `PersistedSpecimen` forgery-detection (re-mint must `Err` on a tampered draft)
+/// FALSE-GREENS against a NESTED autoimmune draft until the recursive canonical-form
+/// lands: a forger persists an autoimmune fingerprint WRAPPED in a redundant `AllOf`
+/// so the single-level normalize doesn't see through it, and the re-gate spuriously
+/// promotes (`Ok`) instead of refusing — the forgery passes. The fix (Amd2 Hole-II
+/// recursive flatten) makes the re-mint see the flattened autoimmune shape and `Err`.
+/// This is the adversarial's 051-soundness elevation (captain batch-3).
+#[test]
+#[ignore = "born-red: ADR-051 PersistedSpecimen re-mint greenfield + rides ADR-047 \
+            Amd2 recursive-normalize; un-ignore when re-mint + recursive canonical-form land"]
+fn tampered_nested_autoimmune_draft_is_caught_by_re_mint() {
+    // SPEC (un-ignore when PersistedSpecimen re-mint + Amd2 recursive-normalize land):
+    //   // A forger hand-edits a persisted draft to an autoimmune one, WRAPPED in a
+    //   // redundant AllOf to evade a single-level normalize:
+    //   let autoimmune_nested = Fingerprint {
+    //       constraints: vec![Constraint::AllOf(an_autoimmune_fingerprint.constraints)]
+    //   };
+    //   let tampered = PersistedSpecimen { draft: autoimmune_nested, .. };
+    //   // The re-mint (re-gate against the persisted spared corpus) MUST catch it —
+    //   // the recursive normalize flattens the wrapper, the gate sees the autoimmune
+    //   // shape, spare-clean fails → Err. (Without Amd2 Hole-II: spuriously Ok = the
+    //   // forgery FALSE-GREENS.)
+    //   assert!(tampered.re_mint().is_err(),
+    //       "a nested autoimmune draft must NOT survive re-mint (Amd2 Hole-II closes \
+    //        the persistence-launder via nesting)");
+    unimplemented!("ADR-051 re-mint + ADR-047 Amd2 recursive-normalize not yet built");
+}
