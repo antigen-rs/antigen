@@ -77,3 +77,21 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.95.0
       - uses: Swatinem/rust-cache@v2
       - run: cargo check --workspace
+
+  dogfood:
+    name: cargo antigen (self scan + audit)
+    runs-on: ubuntu-latest
+    # "Think antigen while building antigen": antigen scans + audits ITSELF every
+    # build so self-coverage state never drifts unobserved. INFORMATIONAL for now
+    # (continue-on-error) — NOT yet a hard gate, because the audit honestly reports
+    # ~16 no-witness stdlib declarations whose defenses are labeled stubs (the current
+    # baseline). Ramp (ADR-pending): triage the baseline → flip to fail-on-REGRESSION
+    # (a NEW undefended presentation-site / no-witness antigen fails CI; baselined ones
+    # do not). Keep it visible-but-green until the gate-shape is ratified.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo run --bin cargo-antigen -- antigen scan
+      - run: cargo run --bin cargo-antigen -- antigen audit
