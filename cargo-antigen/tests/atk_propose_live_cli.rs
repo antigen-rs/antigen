@@ -8,7 +8,20 @@
 //! @ :69 carries scan/audit/new/vaccinate). This file lands the test-classes that
 //! DEFINE done before the pathmaker wires the caller (tests-first).
 //!
-//! Three claim-kinds the keystone-goes-live surface must defend:
+//! # The spine: the CLI is PLUMBING; the GATE is SAFETY
+//!
+//! Every class below guards ONE invariant (the team-lead's framing): **wiring a
+//! caller onto the gate must not move any safety decision OUT of the gate and INTO
+//! the CLI.** The live `cargo antigen propose` never tries to *be* the safety — it
+//! (1) *surfaces* the gate's route-to-human as a render, never manufactures a
+//! promote; (2) *passes through* the operator's corpus, never auto-labels
+//! unmarked=clean (the gate's spare-clean does the real check); (3) renders a
+//! ratifiable suggestion typed on the token, never auto-asserts; (4) plumbs even a
+//! *contaminated* corpus to the gate, which catches it — the CLI does not
+//! pre-validate cleanliness. A safety decision that migrates into the CLI is the
+//! failure this whole file defends against.
+//!
+//! Four claim-kinds the keystone-goes-live surface must defend:
 //!
 //! 1. **route-to-human regression (CLI level).** The library level is pinned in
 //!    `antigen/tests/dogfood_honesty_guard.rs` (the real read-loop twins route-to-
@@ -152,4 +165,41 @@ fn propose_emits_a_suggestion_never_an_auto_presents() {
     //   // generalization, ADR-048) — surfaced as a suggestion, not asserted.
     let _ = propose(&[]);
     unimplemented!("Island-3 propose suggestion-render (observe-don't-declare) not yet built");
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Class 4 — plumbing-vs-safety division (the team-lead's spine): the CLI plumbs,
+// the GATE decides. The unifying invariant: wiring a caller onto the gate must not
+// move any safety decision OUT of the gate and INTO the CLI.
+// ───────────────────────────────────────────────────────────────────────────
+
+/// PLUMBING-VS-SAFETY — `propose_cli_plumbs_a_dirty_corpus_the_gate_catches_it`.
+/// The corpus-cleanliness check lives in the GATE (spare-clean), NOT the CLI. If the
+/// operator supplies a `--clean-root` that is *actually contaminated* (it contains a
+/// marked/defect site the draft binds), the CLI does NOT pre-validate cleanliness and
+/// reject up-front — it PLUMBS the corpus to `promote_if_safe`, and the GATE catches
+/// it (`BindsCleanItem` — the draft binds a "clean" item → autoimmune → refused). This
+/// pins WHERE the safety decision lives: a builder who "helpfully" adds corpus-
+/// cleanliness validation to the CLI would be moving a safety decision out of the gate
+/// (the wrong organ — ATK-047-4 is the gate's job, the gate trusting the operator's
+/// label and checking it via spare-clean, not the CLI second-guessing the label).
+#[test]
+#[ignore = "born-red Island-3: cargo antigen propose greenfield; un-ignore when \
+            run_propose plumbs the operator corpus to the gate (the gate, not the CLI, \
+            owns the cleanliness check)"]
+fn propose_cli_plumbs_a_dirty_corpus_the_gate_catches_it() {
+    // SPEC (un-ignore + stage a contaminated clean-root when the surface lands):
+    //   // --clean-root contains a site the draft BINDS (operator mislabeled it clean):
+    //   let (code, stdout, _) = propose(&["--cluster-root", cluster, "--clean-root", dirty]);
+    //   // The CLI did NOT pre-reject on cleanliness; it plumbed to the gate, which
+    //   // refused on spare-clean (BindsCleanItem) — the render names the autoimmune
+    //   // refusal, NOT a CLI-level "your corpus isn't clean" pre-validation.
+    //   assert!(stdout.contains("binds") || stdout.contains("autoimmune"),
+    //       "a contaminated corpus must be caught by the GATE's spare-clean (BindsCleanItem), \
+    //        not pre-validated by the CLI — the cleanliness check lives in the gate");
+    //   // CODE-TRUE companion: run_propose has NO corpus-cleanliness validation of its
+    //   // own; it constructs ProposeArgs and calls propose() — the gate is the sole
+    //   // safety decision-point (grep: no `is_clean`/`validate_corpus` in the CLI path).
+    let _ = propose(&[]);
+    unimplemented!("Island-3 propose dirty-corpus plumbing (gate owns the check) not yet built");
 }
