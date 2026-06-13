@@ -79,20 +79,31 @@ code. That is the bedrock reason `C ══ B` is non-negotiable.
 ### How the line is enforced — type, not convention
 
 The code makes this structural. `propose()` (`learn/propose.rs`) is the **only**
-function that returns a *promotable* fingerprint, and it routes every draft through the
-gate:
+function that mints a *promotable* token, and it routes every draft through the gate:
 
 ```rust
-pub fn propose(cluster: &[syn::Item], clean_corpus: &[syn::Item]) -> Option<Fingerprint> {
-    let draft = anti_unify(cluster)?;            // a HYPOTHESIS — not promotable
-    self_tolerance::promote_if_safe(draft, clean_corpus)  // the only gate to "promotable"
+pub fn propose(
+    cluster: &[syn::Item],
+    clean_corpus: &[syn::Item],
+) -> Result<PromotedDraft, ProposeOutcome> {
+    let draft = anti_unify(cluster)?;            // a HYPOTHESIS — a bare Fingerprint
+    // C's non-degeneracy refusal, then B's gate — the only path to a PromotedDraft:
+    self_tolerance::promote_if_safe(draft, clean_corpus).map_err(ProposeOutcome::from)
 }
 ```
 
-The raw `anti_unify` *is* exposed — but it is explicitly labeled a **hypothesis** (for
-inspection), and it returns a bare draft, not a promotable one. There is no code path
-that yields a promoted fingerprint without B passing. You cannot bypass the gate,
-because there is nothing to bypass *to*.
+`propose` returns a [`PromotedDraft`] — a capability token with no public constructor,
+no `From<Fingerprint>`, no `Default`, and no `Deserialize` — so the *only* way to hold
+one is to have come through the gate. The raw `anti_unify` *is* exposed, but it returns
+a bare `Fingerprint` (a **hypothesis** for inspection), which is assertable as nothing.
+There is no code path that yields a promotable token without B passing. You cannot
+bypass the gate, because there is nothing to bypass *to* — the type, not a convention,
+enforces it (`PromotedDraft`, ADR-048).
+
+When the gate declines, the `Err` is **legible**, never a bare `None`: `ProposeOutcome`
+names *why* — `EmptyCluster` / `NoSharedSkeleton` (nothing to generalize), `Degenerate`
+(bare-structural over-general, refused at the generator), or `Rejected(verdict)`
+carrying B's three-valued [`ToleranceVerdict`].
 
 ---
 
