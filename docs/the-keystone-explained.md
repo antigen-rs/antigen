@@ -123,19 +123,36 @@ trivially. Promoting against an empty corpus is autoimmunity *with a green check
 verified nothing and reported safe. The gate refuses this structurally:
 
 ```rust
-pub fn promote_if_safe(draft: Fingerprint, clean_corpus: &[syn::Item]) -> Option<Fingerprint> {
+pub fn promote_if_safe(
+    draft: Fingerprint,
+    clean_corpus: &[syn::Item],
+) -> Result<PromotedDraft, ToleranceVerdict> {
+    // (1) cannot certify safety against nothing — empty corpus is vacuous:
     if clean_corpus.is_empty() {
-        return None; // "cannot certify safety against nothing"
+        return Err(ToleranceVerdict::BindsCleanItem { clean_index: None });
     }
-    if spare_clean(&draft, clean_corpus) { Some(draft) } else { None }
+    // (2) (A)-binary: a bare-structural draft over-binds the whole family:
+    if !has_discriminating_conjunct(&draft) {
+        return Err(ToleranceVerdict::BindsCleanItem { clean_index: None });
+    }
+    // (3) near-miss: no corpus item one constraint from binding → route-to-human:
+    if !corpus_witnesses_draft(&draft, clean_corpus) {
+        return Err(ToleranceVerdict::NotCorpusWitnessable);
+    }
+    // (4) spare-clean: a draft that binds a clean item is autoimmune:
+    match evaluate(&draft, clean_corpus) {
+        ToleranceVerdict::Spared => Ok(/* the minted PromotedDraft */),
+        verdict => Err(verdict),
+    }
 }
 ```
 
-Note *where* the refusal lives: in the promotion **authority** (`promote_if_safe`), not
-the **predicate** (`spare_clean`). The predicate stays honestly vacuously-true — it
-reports a literal fact about an empty corpus. The authority that grants promotion is
-what declines to act on a vacuous pass. That separation is itself a claim-scope move:
-the predicate never lies about the empty case; the authority refuses to *trust* it.
+Note *where* the empty-corpus refusal lives: in the promotion **authority**
+(`promote_if_safe`), not the **predicate** (`evaluate`/`spare_clean`). The predicate
+stays honestly vacuously-true — it reports a literal fact about an empty corpus. The
+authority that grants promotion is what declines to act on a vacuous pass. That
+separation is itself a claim-scope move: the predicate never lies about the empty case;
+the authority refuses to *trust* it.
 
 But here is the deconstruction the proxy invites — and which a fresh reviewer caught in
 antigen's own gate. Strip `is_empty()` down to what it *stands for*. The real
@@ -148,11 +165,13 @@ just as empty as the `&[]` case, and `is_empty()` does not catch it.
 This is a textbook proxy-drift in antigen's own vocabulary: the implicit assumption
 "non-empty ⟹ real test" was never made explicit and checked, so it drifted from the
 property it proxied (`empty ⊊ vacuous`). The non-drifting form is to check the property
-directly — **corpus-bindability**: at least one corpus item must be in the draft's
-match-domain for B's pass to carry information. That hardening is the named precondition
-for ever wiring the learner into production (see the roadmap). It is
-*latent* today only because the learner has zero production callers — nothing wires
-`propose()` yet, so no vacuous-pass can ship.
+directly — and v0.5 **closed it**, with the **near-miss non-vacuity** primitive (GATE-G,
+ADR-047): check (3) above refuses to promote unless **≥1 corpus item is *one constraint*
+from binding the draft and spared by failing exactly that one** — a *near-miss*. A
+corpus the draft cannot reach has no near-miss, so B routes the draft to a human
+(`NotCorpusWitnessable`) instead of green-checking a vacuous pass. The gate now spares a
+draft only when it spared something it was demonstrably *near* — never "spared nothing."
+The hardening that §2 named as a latent precondition is the gate B actually runs today.
 
 The lesson generalizes: **a proxy is safe exactly to the extent it cannot drift from
 the property it stands for.** That antigen's own safety gate carried a proxy-drift — and
@@ -241,28 +260,44 @@ report what it proved:
 That is the case *for* "safely." Now the part a first-principles account must not let
 slide — **the honest scope of the word "safely":**
 
-1. **The safety property is proven for the *tested* scope.** Every case in
-   `autoimmunity_safety_gate.rs` passes, including the decisive
-   no-bypass proof (`anti_unify`'s own autoimmune output is pruned by `propose`) and
-   the empty-corpus refusal.
-2. **The empty-corpus refusal is complete for the empty case, incomplete in general**
-   (§2): a non-empty corpus the draft *cannot bind* is still a vacuous-pass hole. Latent
-   today (the learner is un-wired), real as the named precondition for wiring it.
-3. **The falsification gate proves the *mechanism*, but the current dogfood draft
-   over-fits.** Antigen's two genuinely-felt `#[dread]` twins are abstractly similar but
-   concretely near-identical, so they anti-unify to a near-photocopy (no `any_of`
-   disjunction) rather than a class *generalization*; the non-degeneracy check is
-   one-sided (it confirms a shared signal is present, not that the draft generalizes).
-   A recall increment, located honestly, not a hidden flaw.
-4. **"Promote = `propose()` only" is enforced by routing, not yet by a newtype.** Both
-   `anti_unify` and `promote_if_safe` return a bare `Fingerprint`; the type-enforced form
-   (a `PromotedFingerprint` constructible only by the gate) is the hardening for when the
-   learner is wired into a render.
+1. **The safety property is proven for the *tested* scope — and the tests have proven
+   teeth.** The gate's invariants are pinned in `atk_047_near_miss_invariants.rs`
+   (`a_promoted_token_never_binds_a_clean_corpus_item`, `bare_structural_draft_never_promotes`)
+   and a negative-control sweep mutated each gate-check and confirmed a test went red — so
+   "the tests pass" means "the tests were proven to fail when the gate is broken," not
+   merely "green."
+2. **The gate proves a *corpus-bounded fact*, not total safety** (ADR-047's frontier).
+   A `PromotedDraft` proves three decidable facts — **(A)-binary** (carries a
+   discriminating signal), **near-miss** (≥1 corpus item one constraint from binding,
+   spared), **spare-clean** (binds no clean corpus item) — over *the corpus you supplied*.
+   It does **not** prove the draft is a *correct* failure-class, that it spares all clean
+   code everywhere (the open-world problem, undecidable by Rice), that the corpus is
+   *representative*, or that the items you labeled clean *are* clean (a defect you
+   mislabeled clean passes the gate, certified only as strongly as your label). Near-miss
+   closed the "B checked nothing it was near" vacuity hole; it did **not** close
+   "the corpus was too small or mislabeled." A gate against a thin corpus is only as
+   strong as the corpus.
+3. **The falsification gate proves the *mechanism*, but on antigen's own marks the
+   payoff has not fired.** Antigen's two genuinely-felt `#[dread]` twins are abstractly
+   similar but concretely near-identical, so they anti-unify to a near-photocopy (no
+   `any_of` disjunction) rather than a class *generalization*. The gate is *sound* on it
+   (it spares the clean sibling) but cannot certify the generalization, so on its own
+   marks `propose` **routes to a human (`NotCorpusWitnessable`) — it does not promote a
+   fingerprint for antigen's own failure-class.** The strange loop is wired and honest at
+   every step; the closing promotion is the move it correctly declines to fake.
+4. **The score tier is the conservative floor, not yet the routed score.** A
+   `PromotedDraft` carries a `tier` (ADR-049, type-enforced — no caller can emit an
+   unscored output). Until ADR-050's two-signal routing is wired (a later build unit),
+   the gate assigns the floor `Provenance::Imagined` — the honest default, never an
+   over-claim. Don't read `Imagined` as a meaningful ranking yet; read it as "scored at
+   the floor until the routing earns it more."
 
-So the loop closes *safely* in this precise sense: **the
-learner is a library with zero production callers, the autoimmunity gate holds against
-every tested over-reach, and the remaining holes are latent, located, and named as
-preconditions for the next wave.** That is the whole claim, and no more.
+So the loop closes *safely* in this precise sense: **the autoimmunity gate holds against
+every tested over-reach — its three checks are built, type-enforced by `PromotedDraft`,
+and proven to have teeth — and what remains is not unbuilt safety but the inherent
+*frontier* of any corpus-bounded gate (open-world coverage, corpus quality, the
+not-yet-wired score routing), each named above, none papered over.** That is the whole
+claim, and no more.
 
 Notice what the fourth section just did: a doc *about* claim-scope honesty **scoped
 itself** — it named its own four limits rather than asserting an unqualified "the loop is

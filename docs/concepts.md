@@ -336,10 +336,11 @@ This matters for setting expectations honestly:
   top of it. A newcomer should not go hunting for a command that does
   not exist.
 - C has **zero production callers** — it is exercised by tests
-  and the dogfood proof, not wired into the scan path. Two
-  safety-relevant hardening items (a corpus-bindability check; a
-  `PromotedFingerprint` newtype) are the named preconditions for wiring
-  C into a render; they are tracked in the [roadmap](roadmap.md).
+  and the dogfood proof, not yet wired into a user-facing verb. Two
+  safety-relevant hardenings that were named preconditions for wiring C
+  are now **built**: the near-miss non-vacuity gate (ADR-047 — B promotes
+  only against a corpus that exercises the draft) and the `PromotedDraft`
+  capability-token (ADR-048 — a promotable token only the gate can mint).
 - The falsification gate is real: antigen carries three genuinely-felt
   `#[dread]` marks on its **own** production source, and the dogfood
   proof anti-unifies the two *silent-skip twins* among them (a directory
