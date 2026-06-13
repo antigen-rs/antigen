@@ -69,6 +69,16 @@ struct AntigenCli {
 enum AntigenSubcommand {
     /// Scan the workspace for antigen presentations and report unaddressed ones.
     Scan(ScanArgs),
+    /// Propose a candidate failure-class fingerprint from a cluster of marked
+    /// sites (the keystone goes live — ADR-045/047/048, the learning core).
+    ///
+    /// Re-acquires the `#[dread]`/`#[aura]`-marked cluster under `--cluster-root`,
+    /// anti-unifies it into a draft, and routes it through the B-gate (GATE-G)
+    /// against the OPERATOR-supplied `--clean-root` corpus. Renders a **ratifiable
+    /// suggestion** (observe-don't-declare, ADR-044) — never an auto-`#[presents]`
+    /// or an auto-named class. A `propose` run leaves the source tree byte-unchanged;
+    /// the machine supplies the syntactic half, a human ratifies the semantic half.
+    Propose(ProposeArgs),
     /// Scaffold a new antigen declaration (design phase).
     ///
     /// Hidden from `--help` output until the command ships beyond its
@@ -215,6 +225,37 @@ struct ScanArgs {
     /// report is recomputed each run — it cannot drift from the code.
     #[arg(long, value_name = "FILE")]
     output: Option<PathBuf>,
+}
+
+/// Args for `cargo antigen propose` (Island 3 — the keystone goes live).
+///
+/// Two trust-distinct source roots: `--cluster-root` (where the marked DEFECT
+/// sites live) and `--clean-root` (the OPERATOR-asserted clean corpus). The split
+/// is load-bearing: antigen NEVER auto-labels unmarked code as clean — the
+/// operator supplies and labels the clean corpus, and the gate verifies only
+/// against what they supply (ADR-044/047; auto-labeling "unmarked = clean" is the
+/// ATK-047-4 mislabeled-clean residual the gate must not trust).
+#[derive(Debug, Parser)]
+struct ProposeArgs {
+    /// Root to scan for the marked DEFECT cluster (the `#[dread]`/`#[aura]` sites
+    /// to anti-unify). Default: current directory.
+    #[arg(long, default_value = ".")]
+    cluster_root: PathBuf,
+    /// The OPERATOR-supplied, OPERATOR-labeled clean corpus root (scanned; its
+    /// function/impl items are the asserted-clean siblings the gate spares against).
+    /// **Required** — there is no auto-derived "the rest of the tree is clean"
+    /// default. Antigen never labels unmarked code clean (ADR-044/047, ATK-047-4):
+    /// the gate is only as strong as the corpus you supply + label.
+    #[arg(long, value_name = "PATH")]
+    clean_root: PathBuf,
+    /// Which marker-class is the defect cluster (`dread` / `aura` / `red-flag`).
+    /// A cluster mixes one marker-class only — different felt-classes anti-unify to
+    /// a worse generalization. Default: `dread`.
+    #[arg(long, default_value = "dread")]
+    marker: String,
+    /// Output format: human or json.
+    #[arg(long, default_value = "human")]
+    format: OutputFormat,
 }
 
 #[derive(Debug, Parser)]
@@ -2183,6 +2224,7 @@ fn main() -> ExitCode {
 
     match antigen_cli.command {
         AntigenSubcommand::Scan(args) => run_scan(args),
+        AntigenSubcommand::Propose(args) => run_propose(args),
         AntigenSubcommand::New { name } => run_new(name),
         AntigenSubcommand::Vaccinate { antigen, pattern } => run_vaccinate(antigen, pattern),
         AntigenSubcommand::Audit(args) => run_audit(args),
@@ -3821,6 +3863,397 @@ struct DepScanResult {
     version: String,
     origin: scan::CrateOrigin,
     report: scan::ScanReport,
+}
+
+/// `cargo antigen propose` — the keystone goes live (Island 3, ADR-045/047/048).
+///
+/// Re-acquires the marked DEFECT cluster under `--cluster-root`, collects the
+/// OPERATOR-supplied clean corpus under `--clean-root`, routes them through the
+/// learning core's `propose()` (anti-unify → GATE-G), and RENDERS the outcome as a
+/// **ratifiable suggestion** (observe-don't-declare, ADR-044). It writes NOTHING to
+/// the source tree — the machine drafts the syntactic half; a human ratifies the
+/// semantic half. Every non-promotion reason is legible (ADR-048); route-to-human
+/// (`NotCorpusWitnessable`) is a FIRST-CLASS, expected outcome — the gate refusing
+/// to fake a verdict it cannot make — not a failure.
+fn run_propose(args: ProposeArgs) -> ExitCode {
+    // Both roots must exist + be directories (the clean-root is REQUIRED by clap, so
+    // an ABSENT flag is already a clap usage error; here we validate the supplied
+    // paths). antigen never auto-derives the clean corpus (ADR-044/047, ATK-047-4).
+    if let Err(code) = validate_dir(&args.cluster_root, "--cluster-root") {
+        return code;
+    }
+    if let Err(code) = validate_dir(&args.clean_root, "--clean-root") {
+        return code;
+    }
+
+    // (1) Re-acquire the marked DEFECT cluster: scan --cluster-root, keep the marks
+    //     of the chosen marker-class, group by shape digest, re-parse each member's
+    //     enclosing item. v0.5 clusters by EXACT shape_digest (the scan's PROPOSE
+    //     key); abstract-recall clustering past exact-shape is the v0.6 charter.
+    let cluster = match assemble_marked_cluster(&args.cluster_root, &args.marker) {
+        Ok(c) => c,
+        Err(code) => return code,
+    };
+    if cluster.len() < 2 {
+        // No source-distinct ≥2 cluster: there is nothing to anti-unify. On
+        // antigen's OWN tree this is the expected state (its `#[dread]` marks are
+        // singletons in shape-space — the v0.6 abstract-recall frontier). Honest,
+        // not an error.
+        println!(
+            "no `{}` cluster found under {} — propose needs ≥2 marked sites sharing a \
+             structural shape to anti-unify (found {}). Antigen's own marks are \
+             singletons in shape-space today; auto-clustering heterogeneous marks is \
+             the v0.6 abstract-recall frontier.",
+            args.marker,
+            args.cluster_root.display(),
+            cluster.len()
+        );
+        return ExitCode::SUCCESS;
+    }
+
+    // (2) Collect the OPERATOR-supplied clean corpus: every fn/impl item under
+    //     --clean-root. The operator SUPPLIES + LABELS it; the gate spares against
+    //     exactly this (corpus-bounded claim-scope). antigen adds NOTHING from
+    //     --cluster-root or elsewhere — no auto-clean path exists.
+    let clean_corpus = match collect_clean_corpus(&args.clean_root) {
+        Ok(c) => c,
+        Err(code) => return code,
+    };
+    if clean_corpus.is_empty() {
+        eprintln!(
+            "error: --clean-root {} yielded no function/impl items to spare against. \
+             Supply a clean corpus of known-good sibling code; antigen cannot certify \
+             safety against an empty corpus (it never auto-labels unmarked code clean).",
+            args.clean_root.display()
+        );
+        return ExitCode::from(2);
+    }
+
+    // (3) THE KEYSTONE GOES LIVE: route the cluster through propose() (anti-unify →
+    //     GATE-G against the operator corpus). The ONLY path to a promotable draft;
+    //     the emit surface below is typed on the Result, so no bare Fingerprint is
+    //     ever rendered as if it were gated.
+    let outcome = antigen::learn::propose::propose(&cluster, &clean_corpus);
+
+    render_propose_outcome(&outcome, &args)
+}
+
+/// Validate that `path` exists and is a directory, with a `flag`-named diagnostic.
+fn validate_dir(path: &Path, flag: &str) -> Result<(), ExitCode> {
+    if !path.exists() {
+        eprintln!("error: {flag} path does not exist: {}", path.display());
+        return Err(ExitCode::from(2));
+    }
+    if !path.is_dir() {
+        eprintln!(
+            "error: {flag} expected a directory, got a file: {}",
+            path.display()
+        );
+        return Err(ExitCode::from(2));
+    }
+    Ok(())
+}
+
+/// Re-acquire the marked DEFECT cluster: scan `root`, keep the `marker`-class
+/// marked-unknowns, group them by shape digest, and re-acquire the enclosing item's
+/// AST for the LARGEST source-distinct group (the cluster to anti-unify).
+///
+/// "Source-distinct" = the members come from ≥2 distinct (file, line) sites (a
+/// single site listed twice is not a cluster). Items are re-acquired by matching the
+/// re-parsed top-level item's name-insensitive shape digest against the mark's
+/// recorded `shape_digest` — name-independent re-acquisition (the two-digest
+/// discipline, ADR-045 Amd-1/2).
+fn assemble_marked_cluster(root: &Path, marker: &str) -> Result<Vec<syn::Item>, ExitCode> {
+    let report = scan::scan_workspace(root, None).map_err(|e| {
+        eprintln!("error: scan of --cluster-root failed: {e}");
+        ExitCode::from(2)
+    })?;
+
+    // Group the chosen marker's marks by shape digest; keep source-distinct sites.
+    let mut by_shape: std::collections::BTreeMap<String, Vec<&scan::MarkedUnknown>> =
+        std::collections::BTreeMap::new();
+    for m in &report.marked_unknowns {
+        if m.marker == marker && !m.shape_digest.is_empty() {
+            by_shape.entry(m.shape_digest.clone()).or_default().push(m);
+        }
+    }
+
+    // The cluster = the largest group whose members span ≥2 distinct (file, line).
+    let Some((shape, marks)) = by_shape
+        .iter()
+        .filter(|(_, marks)| source_distinct_count(marks) >= 2)
+        .max_by_key(|(_, marks)| source_distinct_count(marks))
+    else {
+        // No ≥2 source-distinct group — return empty; the caller renders the honest
+        // "no cluster" message (not an error).
+        return Ok(Vec::new());
+    };
+
+    // Re-acquire each member's enclosing item by re-parsing its file and matching the
+    // recorded shape digest (name-independent). De-dup by (file, line) source site.
+    let mut seen_sites: std::collections::BTreeSet<(PathBuf, usize)> =
+        std::collections::BTreeSet::new();
+    let mut items: Vec<syn::Item> = Vec::new();
+    for m in marks {
+        if !seen_sites.insert((m.file.clone(), m.line)) {
+            continue; // same source site already acquired
+        }
+        if let Some(item) = reacquire_item_by_shape(&m.file, shape) {
+            items.push(item);
+        }
+    }
+    Ok(items)
+}
+
+/// Count the distinct `(file, line)` source sites among a group of marks.
+fn source_distinct_count(marks: &[&scan::MarkedUnknown]) -> usize {
+    marks
+        .iter()
+        .map(|m| (m.file.clone(), m.line))
+        .collect::<std::collections::BTreeSet<_>>()
+        .len()
+}
+
+/// Re-parse `file` and return the first top-level item whose name-insensitive shape
+/// digest equals `shape` — name-independent AST re-acquisition (ADR-045 Amd-1/2).
+fn reacquire_item_by_shape(file: &Path, shape: &str) -> Option<syn::Item> {
+    let src = std::fs::read_to_string(file).ok()?;
+    let parsed = syn::parse_file(&src).ok()?;
+    parsed
+        .items
+        .into_iter()
+        .find(|item| item_shape_digest(item).as_deref() == Some(shape))
+}
+
+/// The name-insensitive shape digest of a top-level item (the scan's PROPOSE
+/// clustering key), or `None` for an item-class with no shape digest.
+fn item_shape_digest(item: &syn::Item) -> Option<String> {
+    match item {
+        syn::Item::Fn(f) => Some(antigen_fingerprint::structural_shape_digest(f)),
+        syn::Item::Impl(i) => Some(antigen_fingerprint::structural_shape_digest(i)),
+        syn::Item::Struct(s) => Some(antigen_fingerprint::structural_shape_digest(s)),
+        syn::Item::Enum(e) => Some(antigen_fingerprint::structural_shape_digest(e)),
+        syn::Item::Trait(t) => Some(antigen_fingerprint::structural_shape_digest(t)),
+        _ => None,
+    }
+}
+
+/// Collect the OPERATOR-supplied clean corpus: every `fn` / `impl` item in every
+/// `.rs` file under `clean_root`. The operator supplies + labels this; antigen never
+/// adds an auto-labeled item (ADR-044/047). Returns the parsed `syn::Item`s.
+///
+/// **HARD-ERRORS on any unreadable/unparseable `.rs` file — never silently skips**
+/// (captain's ruling). A silently-incomplete clean corpus is a *weaker gate*: a
+/// dropped clean item is one the spare-clean/near-miss checks never run against, so a
+/// draft that would have bound it can promote — autoimmunity admitted at the gate
+/// INPUT. That silent read-or-continue is exactly antigen's own `scan_workspace_inner`
+/// `#[dread]`; the propose CLI must not commit the very failure-class it dreads. A
+/// file the operator pointed `--clean-root` at that cannot be read/parsed is a usage
+/// error they must resolve (named) — not a quiet narrowing of their labeled corpus.
+fn collect_clean_corpus(clean_root: &Path) -> Result<Vec<syn::Item>, ExitCode> {
+    let mut corpus: Vec<syn::Item> = Vec::new();
+    if let Err(msg) = collect_rs_items(clean_root, &mut corpus) {
+        eprintln!(
+            "error: reading --clean-root failed: {msg}\n\
+             A clean corpus that silently drops files is a WEAKER gate (a dropped clean \
+             sibling is never checked, so a draft that would bind it could promote — \
+             autoimmunity at the gate input). Resolve the file above, or point \
+             --clean-root at a readable, parseable source tree."
+        );
+        return Err(ExitCode::from(2));
+    }
+    // Keep only the item-classes the gate's matcher reasons over a body for (fn /
+    // impl) — the clean siblings a defect-draft must spare. (Structs/enums carry no
+    // body locus for the body-call leaves a propose draft is built from.)
+    corpus.retain(|it| matches!(it, syn::Item::Fn(_) | syn::Item::Impl(_)));
+    Ok(corpus)
+}
+
+/// Recursively walk `dir` for `.rs` files, parse each, and push its top-level items
+/// into `out`. Skips `target` + hidden dirs (a clean corpus is source, not build
+/// output). **Returns `Err(message)` naming the first file it cannot read OR parse —
+/// it does NOT silently skip** (the captain's ruling; see [`collect_clean_corpus`]):
+/// a silently-dropped clean file narrows the labeled corpus and weakens the gate,
+/// which is antigen's own silent-skip `#[dread]` committed at the gate input.
+fn collect_rs_items(dir: &Path, out: &mut Vec<syn::Item>) -> Result<(), String> {
+    let entries = std::fs::read_dir(dir)
+        .map_err(|e| format!("cannot read directory {}: {e}", dir.display()))?;
+    for entry in entries {
+        let entry =
+            entry.map_err(|e| format!("cannot read a dir entry under {}: {e}", dir.display()))?;
+        let path = entry.path();
+        if path.is_dir() {
+            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            if name == "target" || name.starts_with('.') {
+                continue;
+            }
+            collect_rs_items(&path, out)?;
+        } else if path.extension().and_then(|e| e.to_str()) == Some("rs") {
+            let src = std::fs::read_to_string(&path)
+                .map_err(|e| format!("cannot read {}: {e}", path.display()))?;
+            let file = syn::parse_file(&src)
+                .map_err(|e| format!("cannot parse {} as Rust: {e}", path.display()))?;
+            out.extend(file.items);
+        }
+    }
+    Ok(())
+}
+
+/// Render the propose outcome as a ratifiable SUGGESTION (observe-don't-declare,
+/// ADR-044). Every outcome is legible (ADR-048); route-to-human is first-class, NOT
+/// a failure. Writes only to stdout/stderr — the source tree is byte-unchanged.
+fn render_propose_outcome(
+    outcome: &Result<
+        antigen::learn::self_tolerance::PromotedDraft,
+        antigen::learn::propose::ProposeOutcome,
+    >,
+    args: &ProposeArgs,
+) -> ExitCode {
+    use antigen::learn::propose::ProposeOutcome;
+    use antigen::learn::self_tolerance::ToleranceVerdict;
+
+    if matches!(args.format, OutputFormat::Json) {
+        return render_propose_json(outcome);
+    }
+
+    match outcome {
+        Ok(token) => {
+            // A capability token — the only assertable generalization. Surface it as
+            // a SUGGESTION the human inspects + ratifies, never an audited verdict.
+            println!("== candidate failure-class fingerprint (ratifiable suggestion) ==\n");
+            println!("  fingerprint: {}", render_fingerprint(token.fingerprint()));
+            println!("  score tier:  {:?}", token.tier());
+            println!(
+                "\nThis is a SUGGESTION drafted from your `{}` marks and gated against your\n\
+                 clean corpus — inspect it and ratify by hand. It is NOT an audited verdict,\n\
+                 NOT an auto-`#[presents]`, and NOT a named failure-class. The machine drafted\n\
+                 the syntactic half; you ratify the semantic half (observe-don't-declare).",
+                args.marker
+            );
+            ExitCode::SUCCESS
+        },
+        Err(ProposeOutcome::Rejected(ToleranceVerdict::NotCorpusWitnessable)) => {
+            // The settled-thesis outcome on antigen's own marks: the gate refuses to
+            // fake a generalization-verdict it cannot make. FIRST-CLASS, expected.
+            println!("== drafted a candidate — routed to a human ratifier ==\n");
+            println!(
+                "Antigen anti-unified a draft from your `{}` marks, but the B-gate cannot\n\
+                 certify it GENERALIZES against your clean corpus (no near-miss: no clean\n\
+                 sibling is one discriminating constraint from binding the draft). So it\n\
+                 routes the candidate to a HUMAN ratifier rather than promote it.\n\n\
+                 This is the gate being honest — refusing to certify a generalization it\n\
+                 cannot witness is the trust-floor, not a failure. (A promote fires when the\n\
+                 cluster has discriminating diversity AND your corpus holds a near-miss\n\
+                 sibling.)",
+                args.marker
+            );
+            ExitCode::SUCCESS
+        },
+        Err(ProposeOutcome::Rejected(ToleranceVerdict::BindsCleanItem { clean_index })) => {
+            println!("== refused: the draft binds your clean corpus (autoimmune) ==\n");
+            match clean_index {
+                Some(i) => println!(
+                    "The anti-unified draft MATCHES clean-corpus item #{i} — promoting it\n\
+                     would flag known-good code (antigen's own autoimmunity). Refused. Your\n\
+                     clean corpus contains a site the draft would have flagged; refine the\n\
+                     cluster or the corpus."
+                ),
+                None => println!(
+                    "The anti-unified draft is BARE-STRUCTURAL (no discriminating signal) — it\n\
+                     would over-bind its whole structural family. Refused at the (A)-binary\n\
+                     safety check; refine the cluster (these sites share only their shape)."
+                ),
+            }
+            ExitCode::SUCCESS
+        },
+        Err(ProposeOutcome::Rejected(ToleranceVerdict::Spared)) => {
+            // The gate never returns Err(Spared) — Spared is the success predicate.
+            // Render defensively rather than panic (totality).
+            println!("== no promotable draft (spared, but not minted) ==");
+            ExitCode::SUCCESS
+        },
+        Err(ProposeOutcome::Degenerate) => {
+            println!("== no candidate: the cluster is not a real failure-family ==\n");
+            println!(
+                "The `{}` sites share only their structural shape (item-kind / trait) with\n\
+                 no discriminating behavioral signal — anti-unifying them yields a\n\
+                 bare-structural over-binder, which the generator refuses. Refine the\n\
+                 cluster to sites that share a real defect signal.",
+                args.marker
+            );
+            ExitCode::SUCCESS
+        },
+        Err(ProposeOutcome::EmptyCluster | ProposeOutcome::NoSharedSkeleton) => {
+            println!("== no candidate: the cluster could not be anti-unified ==\n");
+            println!(
+                "The `{}` cluster is empty or its members share no common item-kind skeleton\n\
+                 (a heterogeneous group is not a real family). Nothing to generalize.",
+                args.marker
+            );
+            ExitCode::SUCCESS
+        },
+    }
+}
+
+/// Render the `outcome` as a compact JSON object (machine-readable; the same
+/// observe-don't-declare content as the human render, never an asserted class).
+fn render_propose_json(
+    outcome: &Result<
+        antigen::learn::self_tolerance::PromotedDraft,
+        antigen::learn::propose::ProposeOutcome,
+    >,
+) -> ExitCode {
+    use antigen::learn::propose::ProposeOutcome;
+    use antigen::learn::self_tolerance::ToleranceVerdict;
+
+    let value = match outcome {
+        Ok(token) => serde_json::json!({
+            "outcome": "candidate-suggestion",
+            // ALWAYS false in v0.5: a PromotedDraft token is a ratifiable SUGGESTION,
+            // never an asserted/named class (observe-don't-declare). Pinning it false
+            // keeps a future reader from mistaking the suggestion for an auto-promotion.
+            "promoted": false,
+            "fingerprint": render_fingerprint(token.fingerprint()),
+            "tier": format!("{:?}", token.tier()),
+            "note": "ratifiable suggestion (observe-don't-declare); inspect + ratify by hand",
+        }),
+        Err(ProposeOutcome::Rejected(ToleranceVerdict::NotCorpusWitnessable)) => {
+            serde_json::json!({
+                "outcome": "route-to-human",
+                "note": "B cannot certify the draft generalizes against the supplied corpus (no near-miss); routed to a human ratifier",
+            })
+        },
+        Err(ProposeOutcome::Rejected(ToleranceVerdict::BindsCleanItem { clean_index })) => {
+            serde_json::json!({
+                "outcome": "refused-autoimmune",
+                "clean_index": clean_index,
+                "note": "the draft binds a clean-corpus item (or is bare-structural over-general); refused",
+            })
+        },
+        Err(ProposeOutcome::Rejected(ToleranceVerdict::Spared)) => serde_json::json!({
+            "outcome": "no-promotable-draft",
+        }),
+        Err(ProposeOutcome::Degenerate) => serde_json::json!({
+            "outcome": "degenerate",
+            "note": "the cluster shares only structural shape (no discriminating signal); not a real failure-family",
+        }),
+        Err(ProposeOutcome::EmptyCluster) => serde_json::json!({ "outcome": "empty-cluster" }),
+        Err(ProposeOutcome::NoSharedSkeleton) => {
+            serde_json::json!({ "outcome": "no-shared-skeleton" })
+        },
+    };
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&value).unwrap_or_else(|_| "{}".to_string())
+    );
+    ExitCode::SUCCESS
+}
+
+/// Render a [`antigen_fingerprint::Fingerprint`] for the suggestion (a human reads +
+/// ratifies it). Uses the `Debug` shape — a canonical human-facing pretty-printer is
+/// a render charter; for v0.5 the Debug form is honest + inspectable.
+fn render_fingerprint(fp: &antigen_fingerprint::Fingerprint) -> String {
+    format!("{fp:?}")
 }
 
 fn run_new(name: String) -> ExitCode {
