@@ -157,16 +157,24 @@ use antigen::learn::{propose, self_tolerance};
 use antigen::learn::self_tolerance::ToleranceVerdict;
 
 # fn run(cluster: &[syn::Item], clean_corpus: &[syn::Item]) {
-// anti_unify is the RAW hypothesis (inspection-only); evaluate() is the gate verdict.
+// anti_unify is the RAW hypothesis (inspection-only); evaluate() is the
+// spare-clean half of the gate (the full three-check gate is promote_if_safe).
 if let Some(draft) = propose::anti_unify(cluster) {
     match self_tolerance::evaluate(&draft, clean_corpus) {
         ToleranceVerdict::Spared => {
-            // safe — promote_if_safe would return Some(draft)
+            // safe against this corpus — promote_if_safe would mint a PromotedDraft
+            // (if the draft also carries a discriminating signal and a near-miss).
         }
         ToleranceVerdict::BindsCleanItem { clean_index } => {
             // the draft over-binds: it matched clean_corpus[clean_index].
             // Promoting it would flag clean code (autoimmunity) — B rejects it.
-            eprintln!("draft binds clean item at index {clean_index}");
+            eprintln!("draft binds clean item at index {clean_index:?}");
+        }
+        ToleranceVerdict::NotCorpusWitnessable => {
+            // The route-to-human verdict (safe, but B can't certify the
+            // generalization). evaluate() itself never returns this — it is
+            // promote_if_safe's near-miss verdict — but ToleranceVerdict is one
+            // sealed enum, so the match names all three.
         }
     }
 }

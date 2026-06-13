@@ -56,8 +56,9 @@ gate**, shipped as a **library API** (`antigen::learn`), *not* a CLI command:
   fingerprint — labeled a **hypothesis to ratify**, never an auto-asserted
   `#[presents]`.
 - The **safety line (C ══ B)** is type-enforced: `propose()` is the only
-  promotable path and routes every promotion through `promote_if_safe`
-  (self-tolerance), which refuses to promote a draft on an empty corpus.
+  path to a `PromotedDraft`, routing every promotion through `promote_if_safe`
+  (self-tolerance), whose three-valued gate promotes, rejects as autoimmune, or
+  routes a safe-but-uncertifiable draft to a human (`NotCorpusWitnessable`).
 - Falsified on antigen's **own** honest self-doubt: the loop runs on antigen's
   three `#[dread]`-marked silent-skip sites and promotes only through the gate.
 
@@ -68,17 +69,20 @@ gate**, shipped as a **library API** (`antigen::learn`), *not* a CLI command:
 > surfaces are the user-facing v0.4 value; the Learning-Core is the substrate the
 > next cycle wires.
 
-Two named hardening items are the preconditions for wiring C into a render — both
-located, neither built:
+Two named hardening items were the preconditions for wiring C into a render — both
+are now **built** (ADR-047/048):
 
-- **A corpus-bindability check.** The self-tolerance gate refuses an *empty* corpus,
+- **The near-miss non-vacuity gate.** The self-tolerance gate refuses an *empty* corpus,
   but a non-empty corpus that binds *no* item in the draft's match-domain is also a
-  vacuous screen. The non-drifting precondition is corpus-*bindability* (at least one
-  item the draft actually matches), not mere non-emptiness.
-- **A `PromotedFingerprint` newtype.** Today "promote = `propose()` only" is enforced
-  by *routing* (both `anti_unify` and `promote_if_safe` return a bare `Fingerprint`).
-  The type-enforced form — a `PromotedFingerprint` constructible only by the gate — is
-  the hardening for when the learner is wired into a render.
+  vacuous screen. The gate now requires a **near-miss** — ≥1 corpus item one constraint
+  from binding the draft and spared by failing exactly that one — so a corpus the draft
+  cannot reach routes the draft to a human (`NotCorpusWitnessable`) rather than
+  green-checking a vacuous pass (ADR-047).
+- **The `PromotedDraft` capability-token.** "Promote = `propose()` only" is now enforced
+  by the **type**, not routing: `propose`/`promote_if_safe` return
+  `Result<PromotedDraft, _>`, and `PromotedDraft` has no public constructor, `From`,
+  `Default`, or `Deserialize` — the only way to hold one is to have come through the gate
+  (ADR-048).
 
 ---
 
