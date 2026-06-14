@@ -1,12 +1,13 @@
-//! ATK — `cargo antigen propose` (Island 3, the keystone-goes-live surface), BORN-RED.
+//! ATK — `cargo antigen propose` (Island 3, the keystone-goes-live surface).
 //!
-//! Island 3 wires the FIRST production caller of the learning core: `cargo antigen
+//! Island 3 wired the FIRST production caller of the learning core: `cargo antigen
 //! propose` takes a cluster of marked sites + an operator-supplied clean corpus,
 //! routes them through `propose()` (anti-unify → GATE-G), and RENDERS the outcome.
-//! It is greenfield (`command grep` 2026-06-12: no `Propose` variant / `run_propose`
-//! / `ProposeArgs` / `--clean-root` in `cargo-antigen/src/main.rs`; `AntigenSubcommand`
-//! @ :69 carries scan/audit/new/vaccinate). This file lands the test-classes that
-//! DEFINE done before the pathmaker wires the caller (tests-first).
+//! The caller is LIVE (`run_propose` / `ProposeArgs` / `--clean-root`, landed
+//! `cd46dab`). These test-classes began born-red (tests-first — DEFINING done before
+//! the wire) and now verify the live surface against the real binary: all three GATE-G
+//! renders (route-to-human / promote→suggestion / autoimmune) on raw-text `#[dread]`
+//! fixtures, plus the `--marker` parameterization — all green, none `#[ignore]`'d.
 //!
 //! # The spine: the CLI is PLUMBING; the GATE is SAFETY
 //!
@@ -121,23 +122,51 @@ fn scan_dir_b(root: &std::path::Path) -> Vec<String> {
 }
 "#;
 
-/// Stage the `#[dread]` twins cluster + a clean corpus with the given `clean_src`.
-/// Returns `(tempdir, cluster_root, clean_root)`. The cluster is the SAME behavioral
-/// twins for every gate-outcome test; the `clean_src` selects the outcome — unrelated
-/// code → route-to-human (no near-miss); a near-miss sibling → promote; a near-miss +
-/// a binding site → autoimmune (`BindsCleanItem`). (near-miss is gated BEFORE
-/// spare-clean, so the autoimmune verdict requires a near-miss in the corpus too.)
-fn staged_twins(clean_src: &str) -> (tempfile::TempDir, PathBuf, PathBuf) {
+/// `#[red_flag]` twins — a DIFFERENT marker-class than [`TWINS`] (red-flag, not dread),
+/// identical bodies so they cluster. Used to prove `--marker` selects the marker-class
+/// and the cluster mechanism is marker-agnostic. Raw-text; does not compile.
+const RED_FLAG_TWINS: &str = r#"
+#[red_flag(trigger = "this auth check is bypassable when the header is absent; high-certainty")]
+fn auth_a(req: &Req) -> bool {
+    let mut ok = false;
+    if let Some(h) = req.header("authorization") {
+        ok = verify(h);
+    }
+    ok
+}
+
+#[red_flag(trigger = "this auth check is bypassable when the header is absent; same shape")]
+fn auth_b(req: &Req) -> bool {
+    let mut ok = false;
+    if let Some(h) = req.header("authorization") {
+        ok = verify(h);
+    }
+    ok
+}
+"#;
+
+/// Stage an arbitrary `cluster_src` + `clean_src` as a `cluster/`-and-`clean/` pair.
+/// Returns `(tempdir, cluster_root, clean_root)`.
+fn staged_cluster(cluster_src: &str, clean_src: &str) -> (tempfile::TempDir, PathBuf, PathBuf) {
     let tmp = tempfile::tempdir().expect("tempdir");
-    let cluster_src = tmp.path().join("cluster/src");
+    let cluster_dir = tmp.path().join("cluster/src");
     let clean_dir = tmp.path().join("clean/src");
-    std::fs::create_dir_all(&cluster_src).unwrap();
+    std::fs::create_dir_all(&cluster_dir).unwrap();
     std::fs::create_dir_all(&clean_dir).unwrap();
-    std::fs::write(cluster_src.join("lib.rs"), TWINS).unwrap();
+    std::fs::write(cluster_dir.join("lib.rs"), cluster_src).unwrap();
     std::fs::write(clean_dir.join("lib.rs"), clean_src).unwrap();
     let cluster_root = tmp.path().join("cluster");
     let clean_root = tmp.path().join("clean");
     (tmp, cluster_root, clean_root)
+}
+
+/// `staged_cluster` with the canonical `#[dread]` [`TWINS`] cluster — the gate-outcome
+/// tests all share it; the `clean_src` selects the outcome: unrelated code →
+/// route-to-human (no near-miss); a near-miss sibling → promote; a near-miss + a binding
+/// site → autoimmune (`BindsCleanItem`). (near-miss is gated BEFORE spare-clean, so the
+/// autoimmune verdict requires a near-miss in the corpus too.)
+fn staged_twins(clean_src: &str) -> (tempfile::TempDir, PathBuf, PathBuf) {
+    staged_cluster(TWINS, clean_src)
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -217,6 +246,54 @@ fn propose_route_to_human_render() {
     assert!(
         !lower.contains("autoimmune") && !lower.contains("binds"),
         "route-to-human is the no-near-miss verdict, NOT the autoimmune one; stdout={stdout}"
+    );
+    drop(tmp);
+}
+
+/// `--marker` selects the marker-CLASS (`dread` / `aura` / `red-flag`); the cluster
+/// mechanism is identical across all three (`assemble_marked_cluster` filters
+/// `m.marker == marker` + groups by `shape_digest` — no marker-specific branching). The
+/// keystone's gate-outcome tests all exercise the default `dread`; this pins the
+/// `--marker` parameterization itself, BOTH ways: `#[red_flag]` twins cluster +
+/// route-to-human under `--marker red-flag`, and the SAME marks produce NO cluster under
+/// the default `--marker dread` (so the filter genuinely isolates by class — `--marker`
+/// is honored, not cosmetic). propose is for the three marked-unknown markers ONLY, not
+/// the declaration/defense macros (`#[antigen]`/`#[presents]`/`#[defended_by]`).
+#[test]
+fn propose_marker_arg_selects_the_marker_class() {
+    let unrelated = "fn add(a: i32, b: i32) -> i32 { a + b }\n";
+    let (tmp, cluster, clean) = staged_cluster(RED_FLAG_TWINS, unrelated);
+    let cluster = cluster.to_str().unwrap();
+    let clean = clean.to_str().unwrap();
+
+    // (1) red-flag twins under --marker red-flag → cluster + route-to-human.
+    let (code, stdout, _e) = propose(&[
+        "--cluster-root",
+        cluster,
+        "--clean-root",
+        clean,
+        "--marker",
+        "red-flag",
+    ]);
+    assert_eq!(
+        code, 0,
+        "red-flag route-to-human is exit 0; stdout={stdout}"
+    );
+    let lower = stdout.to_lowercase();
+    assert!(
+        lower.contains("red-flag") && lower.contains("route") && lower.contains("ratif"),
+        "red-flag twins must cluster + route-to-human under --marker red-flag (the \
+         mechanism is marker-agnostic); stdout={stdout}"
+    );
+
+    // (2) the SAME marks under the default --marker dread → NO cluster: the filter
+    //     isolates by marker-class, so a red-flag site is invisible to a dread run.
+    let (code2, stdout2, _e2) = propose(&["--cluster-root", cluster, "--clean-root", clean]);
+    assert_eq!(code2, 0, "no-cluster is an honest exit 0; stdout={stdout2}");
+    assert!(
+        stdout2.contains("dread") && stdout2.contains("found 0"),
+        "red-flag marks must NOT cluster under --marker dread — the marker filter \
+         genuinely isolates by class (--marker is honored, not cosmetic); stdout={stdout2}"
     );
     drop(tmp);
 }
