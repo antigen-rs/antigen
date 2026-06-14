@@ -66,10 +66,11 @@ fn propose(args: &[&str]) -> (i32, String, String) {
     )
 }
 
-/// Stage an empty cluster + clean dir pair (no marks). Enough to exercise the
-/// arg-parse + dir-validation contract (a ≥2 cluster needs a COMPILED fixture so the
-/// `#[dread]` macro emits the marked-unknown the scan reads — see the
-/// `#[ignore]`'d render tests). Returns `(tempdir, cluster_root, clean_root)`.
+/// Stage an empty cluster + clean dir pair (no marks). Exercises the arg-parse +
+/// dir-validation contract and the honest no-cluster render. For a real ≥2 cluster use
+/// `staged_twins` (raw-text `#[dread]` twins — the scan reads the attribute
+/// syntactically, so no compiled crate is needed). Returns
+/// `(tempdir, cluster_root, clean_root)`.
 fn staged_dirs() -> (tempfile::TempDir, PathBuf, PathBuf) {
     let tmp = tempfile::tempdir().expect("tempdir");
     let cluster_src = tmp.path().join("cluster/src");
@@ -88,6 +89,57 @@ fn staged_dirs() -> (tempfile::TempDir, PathBuf, PathBuf) {
     (tmp, cluster_root, clean_root)
 }
 
+/// The two `#[dread]`-marked fn twins: IDENTICAL bodies (same local idents) so their
+/// name-insensitive `shape_digest`s match → the scan clusters them; the body carries a
+/// real behavioral signal (a swallow-the-read-error directory walk) so the anti-unified
+/// draft is NOT a bare-structural over-binder (it survives the C-side non-degeneracy
+/// guard, ADR-056). Parsed-as-text by the scan — does NOT compile, does not need the
+/// macro crate (the scan reads `#[dread]` SYNTACTICALLY from source; cf.
+/// `antigen/tests/fixtures/marked_unknown_*`). This is what overturned the earlier
+/// "needs a compiled fixture crate" premise: a raw `#[dread]` attribute clusters fine.
+const TWINS: &str = r#"
+#[dread(trigger = "this directory walk swallows a read error and continues, silently skipping entries")]
+fn scan_dir_a(root: &std::path::Path) -> Vec<String> {
+    let mut out = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(root) {
+        for e in entries.flatten() {
+            out.push(e.path().display().to_string());
+        }
+    }
+    out
+}
+
+#[dread(trigger = "this directory walk also swallows the read error and continues; same shape")]
+fn scan_dir_b(root: &std::path::Path) -> Vec<String> {
+    let mut out = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(root) {
+        for e in entries.flatten() {
+            out.push(e.path().display().to_string());
+        }
+    }
+    out
+}
+"#;
+
+/// Stage the `#[dread]` twins cluster + a clean corpus with the given `clean_src`.
+/// Returns `(tempdir, cluster_root, clean_root)`. The cluster is the SAME behavioral
+/// twins for every gate-outcome test; the `clean_src` selects the outcome — unrelated
+/// code → route-to-human (no near-miss); a near-miss sibling → promote; a near-miss +
+/// a binding site → autoimmune (`BindsCleanItem`). (near-miss is gated BEFORE
+/// spare-clean, so the autoimmune verdict requires a near-miss in the corpus too.)
+fn staged_twins(clean_src: &str) -> (tempfile::TempDir, PathBuf, PathBuf) {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let cluster_src = tmp.path().join("cluster/src");
+    let clean_dir = tmp.path().join("clean/src");
+    std::fs::create_dir_all(&cluster_src).unwrap();
+    std::fs::create_dir_all(&clean_dir).unwrap();
+    std::fs::write(cluster_src.join("lib.rs"), TWINS).unwrap();
+    std::fs::write(clean_dir.join("lib.rs"), clean_src).unwrap();
+    let cluster_root = tmp.path().join("cluster");
+    let clean_root = tmp.path().join("clean");
+    (tmp, cluster_root, clean_root)
+}
+
 // ───────────────────────────────────────────────────────────────────────────
 // Class 1 — route-to-human regression (CLI level)
 // ───────────────────────────────────────────────────────────────────────────
@@ -97,14 +149,14 @@ fn staged_dirs() -> (tempfile::TempDir, PathBuf, PathBuf) {
 /// the CLI RENDERS a needs-human-ratification suggestion, exit-code legible, and
 /// does NOT report a promote. Pins the honest outcome at the CLI boundary so a
 /// silent flip-to-false-promote is NOTICED here too.
-/// VERIFIED-PARTIAL: the no-cluster informational path renders cleanly (exit 0, names
-/// the ≥2-cluster requirement, never a false promote) — testable now without marks.
-/// The FULL route-to-human RENDER (a ≥2 cluster that anti-unifies + routes-to-human)
-/// needs a COMPILED fixture crate: `run_propose` re-acquires the cluster via the scan's
-/// marked-unknown plane, which reads the `#[dread]` MACRO's emitted marker — a raw
-/// `#[dread(...)]` attribute in an uncompiled tempdir is read as a fingerprint-match,
-/// not a marked-unknown, so it never clusters. That render half stays `#[ignore]`'d
-/// pending a compiled-fixture harness (see `propose_route_to_human_render_compiled`).
+/// VERIFIED here: the no-cluster informational path renders cleanly (exit 0, names the
+/// ≥2-cluster requirement, never a false promote) — an EMPTY cluster is the honest
+/// no-marks case. The FULL route-to-human / promote / autoimmune renders on a real ≥2
+/// cluster are covered by `propose_route_to_human_render`,
+/// `propose_promote_renders_a_ratifiable_suggestion_not_an_auto_presents`, and
+/// `propose_cli_plumbs_a_dirty_corpus_the_gate_catches_it` — each staged with a
+/// RAW-TEXT twins fixture (`staged_twins`). The scan reads `#[dread]` SYNTACTICALLY
+/// from source, so no compiled crate is needed to produce a clustering marked-unknown.
 #[test]
 fn propose_no_cluster_renders_informationally_never_a_false_promote() {
     let (tmp, cluster, clean) = staged_dirs();
@@ -132,24 +184,95 @@ fn propose_no_cluster_renders_informationally_never_a_false_promote() {
     drop(tmp);
 }
 
-/// The FULL route-to-human RENDER on a real ≥2 cluster — needs a COMPILED fixture so
-/// the `#[dread]` macro emits the marked-unknown the scan clusters on. Un-ignore when
-/// a compiled-fixture harness lands (a fixture crate with a `Cargo.toml` depending on
-/// `antigen`, built then scanned), OR the pathmaker adds a raw-attribute cluster path.
+/// The FULL route-to-human RENDER on a real ≥2 cluster (raw-text twins fixture). The
+/// twins anti-unify into a behavioral draft, but an UNRELATED clean corpus holds NO
+/// near-miss (no clean sibling is one discriminating constraint from binding the draft)
+/// → `NotCorpusWitnessable` → the CLI renders a needs-ratification suggestion routed to
+/// a human, NOT a promote. Pins the settled dogfood outcome at the CLI boundary so a
+/// silent flip-to-false-promote is NOTICED here.
 #[test]
-#[ignore = "needs a COMPILED fixture crate (raw #[dread] in a tempdir is not a \
-            marked-unknown until macro-expanded); un-ignore with a compiled-fixture harness"]
-fn propose_route_to_human_render_compiled() {
-    // SPEC (un-ignore with a compiled fixture):
-    //   // A built crate with 2 shape-identical #[dread] Drop impls (the twins) +
-    //   // a separate --clean-root with a .ok() sibling. The twins draft is many-
-    //   // conjunct (no any_of), so NO near-miss exists → route-to-human.
-    //   let (code, stdout, _) = propose(&["--cluster-root", built, "--clean-root", clean]);
-    //   assert!(stdout.contains("route") || stdout.contains("ratif"),
-    //       "a route-to-human cluster renders as needs-ratification, not a promote");
-    //   assert!(!stdout.to_lowercase().contains("promoted to a named"),
-    //       "the CLI must NOT report a promote for a route-to-human cluster");
-    unimplemented!("compiled-fixture harness for the route-to-human render not yet built");
+fn propose_route_to_human_render() {
+    // Unrelated clean code: shares no behavioral conjunct with the swallow-error draft,
+    // so nothing is a near-miss → route-to-human.
+    let (tmp, cluster, clean) = staged_twins(
+        "fn add(a: i32, b: i32) -> i32 { a + b }\n\
+         fn greet(n: &str) -> String { format!(\"hi {n}\") }\n",
+    );
+    let (code, stdout, _stderr) = propose(&[
+        "--cluster-root",
+        cluster.to_str().unwrap(),
+        "--clean-root",
+        clean.to_str().unwrap(),
+    ]);
+    assert_eq!(
+        code, 0,
+        "route-to-human is an honest outcome (exit 0); stdout={stdout}"
+    );
+    let lower = stdout.to_lowercase();
+    assert!(
+        lower.contains("route") && lower.contains("ratif"),
+        "a route-to-human cluster must render as routed-to-a-human-ratifier, not a \
+         promote; stdout={stdout}"
+    );
+    assert!(
+        !lower.contains("autoimmune") && !lower.contains("binds"),
+        "route-to-human is the no-near-miss verdict, NOT the autoimmune one; stdout={stdout}"
+    );
+    drop(tmp);
+}
+
+/// PROMOTE → ratifiable SUGGESTION render (the keystone's payoff path, raw-text
+/// fixture). When the cluster has discriminating diversity AND the corpus holds a
+/// near-miss (witnessable) without a binding site, the gate promotes — and the CLI
+/// renders the `PromotedDraft` as a ratifiable SUGGESTION (observe-don't-declare): it
+/// names a candidate fingerprint and says "ratify by hand", and it MUST NOT auto-write
+/// a `#[presents]`/`#[antigen]` (byte-unchanged tree). NOTE: this is a SYNTHETIC
+/// fixture proving the render PATH — it is NOT a claim that antigen immunized itself
+/// (the dogfood on antigen's OWN marks routes-to-human; the self-immunization payoff
+/// is the v0.6 abstract-recall frontier).
+#[test]
+fn propose_promote_renders_a_ratifiable_suggestion_not_an_auto_presents() {
+    // A near-miss-only clean corpus: the `?`-propagating sibling is one discriminating
+    // constraint from the swallow-error draft (witnessable) and the draft does not bind
+    // it (spares clean) → promote.
+    let (tmp, cluster, clean) = staged_twins(
+        "fn scan_dir_safe(root: &std::path::Path) -> std::io::Result<Vec<String>> {\n\
+        \x20   let mut out = Vec::new();\n\
+        \x20   for e in std::fs::read_dir(root)? {\n\
+        \x20       out.push(e?.path().display().to_string());\n\
+        \x20   }\n\
+        \x20   Ok(out)\n\
+         }\n",
+    );
+    let before = snapshot_tree(tmp.path());
+    let (code, stdout, _stderr) = propose(&[
+        "--cluster-root",
+        cluster.to_str().unwrap(),
+        "--clean-root",
+        clean.to_str().unwrap(),
+    ]);
+    let after = snapshot_tree(tmp.path());
+    assert_eq!(
+        code, 0,
+        "a promote renders a suggestion (exit 0); stdout={stdout}"
+    );
+    let lower = stdout.to_lowercase();
+    assert!(
+        lower.contains("suggestion") || lower.contains("ratifiable") || lower.contains("candidate"),
+        "a promoted draft must render as a ratifiable SUGGESTION (a candidate \
+         fingerprint to ratify by hand); stdout={stdout}"
+    );
+    assert!(
+        !lower.contains("routed to a human"),
+        "with a near-miss in the corpus the gate PROMOTES — it must not render \
+         route-to-human; stdout={stdout}"
+    );
+    assert_eq!(
+        before, after,
+        "even on a PROMOTE, propose MUST NOT auto-write a #[presents]/#[antigen] — it \
+         emits a ratifiable suggestion; the human ratifies (observe-don't-declare, ADR-044)"
+    );
+    drop(tmp);
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -324,21 +447,53 @@ fn propose_cli_does_not_pre_validate_corpus_cleanliness() {
     );
 }
 
-/// The BEHAVIORAL half — a contaminated `--clean-root` (it contains a site the draft
-/// binds) is caught by the GATE (`BindsCleanItem`), not pre-rejected by the CLI. Needs
-/// a compiled fixture (same marked-unknown-needs-macro constraint). Un-ignore with the
-/// compiled-fixture harness.
+/// The BEHAVIORAL half (raw-text twins fixture): a contaminated `--clean-root` is
+/// caught by the GATE, not pre-rejected by the CLI. A subtle GATE-G fact makes this
+/// precise — near-miss is gated BEFORE spare-clean, so a corpus with ONLY a binding
+/// site routes-to-human (no near-miss). To actually reach the autoimmune verdict the
+/// dirty corpus must ALSO hold a near-miss: then the CLI plumbs to the gate, near-miss
+/// passes, spare-clean finds the binding site → `BindsCleanItem` (autoimmune, refused).
+/// The CLI never pre-validates cleanliness; the GATE makes the call.
 #[test]
-#[ignore = "needs a COMPILED fixture crate (the contaminated corpus + the cluster both \
-            need real marked-unknowns); un-ignore with a compiled-fixture harness"]
 fn propose_cli_plumbs_a_dirty_corpus_the_gate_catches_it() {
-    // SPEC (un-ignore with a compiled fixture):
-    //   // --clean-root contains a Drop impl the draft BINDS (operator mislabeled clean):
-    //   let (code, stdout, _) = propose(&["--cluster-root", built, "--clean-root", dirty]);
-    //   assert!(stdout.contains("binds") || stdout.to_lowercase().contains("autoimmune"),
-    //       "a contaminated corpus is caught by the GATE's spare-clean (BindsCleanItem), \
-    //        not pre-validated by the CLI — the cleanliness check lives in the gate");
-    unimplemented!("compiled-fixture harness for the dirty-corpus gate-catch not yet built");
+    // Dirty clean-root: (a) a near-miss `?`-sibling (passes the witness gate) PLUS
+    // (b) an IDENTICAL swallow-error site the operator mislabeled clean (the draft
+    // BINDS it → spare-clean catches it).
+    let (tmp, cluster, clean) = staged_twins(
+        "fn scan_dir_safe(root: &std::path::Path) -> std::io::Result<Vec<String>> {\n\
+        \x20   let mut out = Vec::new();\n\
+        \x20   for e in std::fs::read_dir(root)? {\n\
+        \x20       out.push(e?.path().display().to_string());\n\
+        \x20   }\n\
+        \x20   Ok(out)\n\
+         }\n\
+         fn walk_clean(root: &std::path::Path) -> Vec<String> {\n\
+        \x20   let mut out = Vec::new();\n\
+        \x20   if let Ok(entries) = std::fs::read_dir(root) {\n\
+        \x20       for e in entries.flatten() {\n\
+        \x20           out.push(e.path().display().to_string());\n\
+        \x20       }\n\
+        \x20   }\n\
+        \x20   out\n\
+         }\n",
+    );
+    let (code, stdout, _stderr) = propose(&[
+        "--cluster-root",
+        cluster.to_str().unwrap(),
+        "--clean-root",
+        clean.to_str().unwrap(),
+    ]);
+    assert_eq!(
+        code, 0,
+        "the gate's autoimmune refusal is an honest outcome (exit 0); stdout={stdout}"
+    );
+    assert!(
+        stdout.to_lowercase().contains("binds") || stdout.to_lowercase().contains("autoimmune"),
+        "a contaminated corpus must be caught by the GATE's spare-clean (BindsCleanItem / \
+         autoimmune), NOT pre-validated by the CLI — the cleanliness check lives in the \
+         gate (the right organ); stdout={stdout}"
+    );
+    drop(tmp);
 }
 
 /// VERIFIED — dir validation: a nonexistent `--cluster-root` / `--clean-root` is a
