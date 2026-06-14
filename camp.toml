@@ -1,7 +1,12 @@
 # camp.toml — canonical dev-gate commands for antigen.
 #
-# These are the four CI gates that must all pass before a campsite can be
+# These are the dev gates that must all pass before a campsite can be
 # gate-signed. camp runs them in order at the project root via `camp gate`.
+# The last gate is the antigen SELF-AUDIT dogfood ("think antigen while building
+# antigen"): the default `audit` is INFORMATIONAL (exits 0, prints self-coverage)
+# so it never blocks on the ~16 honest no-witness stdlib declarations (defenses
+# are labeled stubs). Ramp: add `--strict` once that baseline is triaged → it then
+# hard-fails on any unresolved witness (fail-on-regression). ADR-pending.
 #
 # NOTE: `version-bumped` will show `?` in `camp ready` output because antigen
 # uses a Cargo workspace manifest (`[workspace.package]`) rather than a top-level
@@ -18,4 +23,5 @@ commands = [
   "cargo clippy --workspace --all-targets -- -D warnings",
   "cargo test --workspace --all-targets",
   "cargo doc --workspace --no-deps",
+  "cargo run --bin cargo-antigen -- antigen audit",
 ]
