@@ -86,6 +86,10 @@ const ANTIGEN_OWNED_ATTRS: &[&str] = &[
     "antigen_tolerance",
     "descended_from",
     "crossreactive",
+    // `antigen_generates` (ADR-014) — declares that a macro DEFINITION emits an
+    // antigen-presenting expansion. An authored marker on the definition item;
+    // toggling it must not change that item's digest.
+    "antigen_generates",
     // Deferred-defense family (ADR-023).
     "anergy",
     "immunosuppress",
@@ -111,6 +115,18 @@ const ANTIGEN_OWNED_ATTRS: &[&str] = &[
     "chronic",
     "saturate",
     "strand",
+    // Clinical-medicine family (ADR-024 / ADR-033 prescriptive work-orchestration).
+    // Each is a pure identity transform on its annotated item (a documentary
+    // attestation mark — `quote! { #input }`), so applying one must not change the
+    // item's structural digest, exactly like the rest of this list.
+    "panel",
+    "rx",
+    "refer",
+    "biopsy",
+    "ddx",
+    "culture",
+    "quarantine",
+    "triage",
     // Marked-unknown family (ADR-041) — `#[dread]` / `#[aura]` / `#[red_flag]`.
     // These are authored attestation marks ("I feel something here"), NOT
     // structural facts about the item, so toggling one (or editing its `trigger`
@@ -434,13 +450,13 @@ mod tests {
         );
     }
 
-    // Spot-checks three representative families (mucosal / polyclonal / itch)
-    // against ANTIGEN_OWNED_ATTRS. NOTE: this is NOT exhaustive — the strip-list
-    // does not yet cover every authored antigen attr (the clinical-medicine
-    // family `panel`/`rx`/`refer`/`biopsy`/`ddx`/`culture`/`quarantine`/`triage`
-    // and `antigen_generates` are not listed). Closing that gap is tracked in the
-    // `release-hygiene/digest-strip-list-completeness` campsite; do not read this
-    // test as proof of full coverage.
+    // Spot-checks three representative families (mucosal / polyclonal / itch) for
+    // a concrete digest-neutrality demonstration. EXHAUSTIVE coverage — that
+    // ANTIGEN_OWNED_ATTRS contains *every* `#[proc_macro_attribute]` antigen
+    // defines (modulo the retained-legacy `immune`) — is enforced structurally by
+    // `tests/digest_strip_list_completeness_guard.rs`, which reads both surfaces
+    // and asserts set-equality. So a newly-added macro that forgets a strip-list
+    // entry fails there (loud), not silently here.
     #[test]
     fn all_antigen_macros_do_not_change_digest() {
         let bare = struct_digest(quote! { struct Foo { x: u8 } });
