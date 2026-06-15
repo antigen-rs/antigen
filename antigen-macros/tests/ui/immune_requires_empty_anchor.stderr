@@ -1,5 +1,0 @@
-error: requires: `ratified_doc(anchor = "")` is vacuously true (NFA-14); str::contains("") always succeeds — specify a non-empty anchor string
- --> tests/ui/immune_requires_empty_anchor.rs:8:24
-  |
-8 | #[immune(DummyAntigen, requires = ratified_doc(anchor = ""))]
-  |                        ^^^^^^^^

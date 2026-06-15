@@ -26,8 +26,9 @@ proptest, phantom-type proof, or substrate predicate (`#[presents(X, requires=..
 provides evidence for a specific antigen. In the v0.2 ADR-029 model, immunity is **observed
 by audit** from this evidence, not claimed at the vulnerable site.
 
-*(Deprecated: `#[immune(antigen, witness = ...)]` was the v0.1 form that claimed immunity
-at the site. Use `#[defended_by]` on the test function and `#[presents]` on the site instead.)*
+*(Removed (ADR-029): `#[immune(antigen, witness = ...)]` was the v0.1 form that claimed
+immunity at the site. Use `#[defended_by]` on the test function and `#[presents]` on the
+site instead.)*
 
 **Note**: "antibody" is used colloquially in design docs but the ratified API uses
 "witness" because antibodies in biology are *response*, while Rust witnesses are
@@ -55,8 +56,8 @@ function (code-tier), `#[presents(X, requires = ...)]` substrate predicate, or `
 construction. Immunity is **observed by audit** from the evidence, never declared at the
 vulnerable site (ADR-029 observe-not-declare).
 
-*(Deprecated v0.1 form: `#[immune(antigen, witness = ...)]` directly claimed immunity at
-the site. The audit now observes defense evidence and reports `defended` / `undefended` /
+*(Removed v0.1 form (ADR-029): `#[immune(antigen, witness = ...)]` directly claimed immunity
+at the site. The audit now observes defense evidence and reports `defended` / `undefended` /
 `substrate-gap` — the site never stamps itself immune.)*
 
 ### immunity claim *(anti-pattern — a reserved term, not a synonym for "defense")*

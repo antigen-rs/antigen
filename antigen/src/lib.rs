@@ -70,8 +70,11 @@
 //! When the evidence lives *outside* the code (a ratified doc, a pinned dep, a
 //! signed discipline), attach it on the site instead with a substrate-witness
 //! predicate: `#[presents(PanickingInDrop, requires = ratified_doc(...))]`.
-//! (The old `#[immune]` form is **deprecated** — it declared a verdict with no
-//! witness `cargo antigen audit` could validate; see [`macro@immune`].)
+//! (The old `#[immune]` form — which declared a verdict at the vulnerable site
+//! with no witness `cargo antigen audit` could validate — has been **removed**
+//! (ADR-029). See [`docs/immune-migration-guide.md`] for the conversion.)
+//!
+//! [`docs/immune-migration-guide.md`]: https://github.com/antigen-rs/antigen/blob/main/docs/immune-migration-guide.md
 //!
 //! Then run `cargo antigen scan` to find unaddressed presentations and
 //! `cargo antigen audit` to observe each site's defense. See the
@@ -87,11 +90,8 @@
 //!   failure-class's structural pattern (vulnerability declaration)
 //! - [`#[defended_by(...)]`](macro@defended_by) — register a test/proptest as the
 //!   *observed* code-tier witness for a failure-class (ADR-029; the canonical way
-//!   to defend a site)
-//! - [`#[immune(...)]`](macro@immune) — **deprecated** (ADR-029): declared
-//!   immunity at the vulnerable site without a witness audit could validate. Use
-//!   `#[defended_by]` on a test, or `#[presents(..., requires = ...)]` for
-//!   substrate evidence, instead.
+//!   to defend a site). This and `#[presents(..., requires = ...)]` are the
+//!   migration targets for the **removed** `#[immune]` macro (ADR-029).
 //! - [`#[descended_from(...)]`](macro@descended_from) — propagate antigen
 //!   markers through an inheritance chain (ADR-013, ADR-018 §propagation)
 //! - [`#[antigen_tolerance(...)]`](macro@antigen_tolerance) — document an
@@ -163,9 +163,7 @@ pub use antigen_macros::{adcc, clonal, crossreactive, diagnostic, igg, monoclona
 // non-immunity. Four structurally distinct postures — anergy, immunosuppress,
 // poxparty, orient — each with parse-time enforcement and aging escalation.
 pub use antigen_macros::{anergy, immunosuppress, orient, poxparty};
-pub use antigen_macros::{
-    antigen, antigen_generates, antigen_tolerance, descended_from, immune, presents,
-};
+pub use antigen_macros::{antigen, antigen_generates, antigen_tolerance, descended_from, presents};
 // Marked-Unknown Plane (ADR-041): three declarable ⊥ markers for the
 // felt-but-unnamed danger — `#[aura]` (light / low magnitude), `#[dread]`
 // (angor-animi: high magnitude, low existence-certainty), `#[red_flag]`

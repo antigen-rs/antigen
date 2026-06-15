@@ -10,7 +10,7 @@
 
 The cargo subcommand companion to [`antigen`](https://crates.io/crates/antigen). Will provide:
 
-- `cargo antigen scan` — find all `#[presents]` markers without corresponding `#[immune]` declarations
+- `cargo antigen scan` — find all `#[presents]` markers without a corresponding witness (`#[defended_by]` test, or site-attached `requires =` / `proof =` evidence)
 - `cargo antigen new <name>` — scaffold a new antigen declaration
 - `cargo antigen vaccinate <antigen> <pattern>` — apply a known immunity pattern across a structural family
 - `cargo antigen audit` — comprehensive immunity coverage report

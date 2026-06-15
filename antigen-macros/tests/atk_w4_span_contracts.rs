@@ -1,9 +1,9 @@
 //! ATK-W4 span-aware error message contracts.
 //!
-//! W4 threaded token-precise spans through `AntigenArgs`/`ImmuneArgs` so
-//! validation errors point at the offending literal — or, for missing-required-
-//! field errors, at the macro's argument list (the closest meaningful anchor
-//! when there is no offending token).
+//! W4 threaded token-precise spans through the arg parsers (e.g. `AntigenArgs`,
+//! `ToleranceArgs`) so validation errors point at the offending literal — or,
+//! for missing-required-field errors, at the macro's argument list (the closest
+//! meaningful anchor when there is no offending token).
 //!
 //! These tests verify the trybuild .stderr fixtures encode the W4 span
 //! discipline. Each contract names a specific column the diagnostic must
@@ -78,17 +78,26 @@ fn atk_w4_002_kebab_case_error_spans_offending_literal() {
 // ============================================================================
 
 // ============================================================================
-// ATK-W4-004: immune_without_witness spans the antigen path
+// ATK-W4-004: a missing-required-field error spans the offending token, not
+// call_site.
+//
+// History: this contract was originally pinned by `immune_without_witness`
+// (the `#[immune]` macro was removed in ADR-029, taking that fixture with it).
+// The same span path — a required-field validation that anchors at the first
+// argument token via `new_spanned`, never `Span::call_site()` — is exercised by
+// `tolerance_missing_rationale`: `#[antigen_tolerance(X)]` with no `rationale =`
+// anchors at the antigen path `X`, not at the macro invocation.
 // ============================================================================
 
 #[test]
-fn atk_w4_004_immune_without_witness_spans_antigen_path() {
-    let stderr = read_stderr("immune_without_witness");
-    // Anchor at column 10 — start of `DummyAntigen` inside `#[immune(...)]`.
-    assert_anchor(&stderr, "immune_without_witness", 10, 10);
+fn atk_w4_004_missing_required_field_spans_offending_token() {
+    let stderr = read_stderr("tolerance_missing_rationale");
+    // Anchor at column 21 — start of `PolarityInvertedClassMeet` inside
+    // `#[antigen_tolerance(...)]`.
+    assert_anchor(&stderr, "tolerance_missing_rationale", 9, 21);
     assert!(
-        stderr.contains("^^^^^^^^^^^^"),
-        "expected 12-char caret under `DummyAntigen`; got:\n{stderr}",
+        stderr.contains("^^^^^^^^^^^^^^^^^^^^^^^^^"),
+        "expected 25-char caret under `PolarityInvertedClassMeet`; got:\n{stderr}",
     );
 }
 
@@ -132,7 +141,7 @@ fn atk_w4_006_no_w4_fixture_uses_call_site_span() {
     let fixtures = [
         ("empty_name", 7),
         ("non_kebab_case_name", 8),
-        ("immune_without_witness", 10),
+        ("tolerance_missing_rationale", 9),
         ("unknown_antigen_field", 9),
     ];
     for (name, line) in fixtures {

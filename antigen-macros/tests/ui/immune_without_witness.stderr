@@ -1,5 +1,0 @@
-error: #[immune] requires either `witness = ...` (code-tier: a test, proptest, lint reference, formal-verification proof, or phantom-type construction) or `requires = <predicate>` (substrate-witness predicate, ADR-019). A marker without proof is not a claim.
-  --> tests/ui/immune_without_witness.rs:10:10
-   |
-10 | #[immune(DummyAntigen)]
-   |          ^^^^^^^^^^^^

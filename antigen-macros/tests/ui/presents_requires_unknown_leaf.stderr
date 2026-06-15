@@ -1,5 +1,5 @@
 error: unknown substrate-witness predicate leaf `doc_attested`; v0.2 set: ratified_doc, signers, signed_trailer, oracles_complete, fresh_within_days, dep_pinned, dep_attested, maintainer_unchanged, content_hash_matches, sandbox_clean
- --> tests/ui/immune_requires_unknown_leaf.rs:8:35
-  |
-8 | #[immune(DummyAntigen, requires = doc_attested(path = "discipline.md"))]
-  |                                   ^^^^^^^^^^^^
+  --> tests/ui/presents_requires_unknown_leaf.rs:11:37
+   |
+11 | #[presents(DummyAntigen, requires = doc_attested(path = "discipline.md"))]
+   |                                     ^^^^^^^^^^^^

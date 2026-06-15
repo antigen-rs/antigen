@@ -80,27 +80,30 @@ an unaddressed presentation.
 
 ---
 
-## Lesson 2 — `broken_witness.rs`: what happens when the witness doesn't exist
+## Lesson 2 — `broken_witness.rs`: what happens when the defense doesn't resolve
 
 **File**: [`antigen/examples/broken_witness.rs`](../antigen/examples/broken_witness.rs)
 
-**Concept introduced**: audit-tier-honesty. The audit reports the
-*actual* verification strength, never a stronger one. When a witness
-doesn't resolve, the audit names the gap honestly.
+**Concept introduced**: observe-don't-declare (ADR-029) + audit honesty.
+Immunity is *observed by the audit*, never declared at the site. A site can
+claim it presents a failure-class, but only a witness the audit can resolve
+makes it defended. When no witness resolves, the audit names the gap honestly.
 
 **What's in the file**:
 - A `DemoBrokenWitness` antigen (with a deliberately minimal
   fingerprint: `name = matches("Looks*")`)
-- A `LooksImmuneButIsnt` type that claims `#[immune(DemoBrokenWitness,
-  witness = nonexistent_test)]` — but `nonexistent_test` doesn't exist.
-  This example uses the deprecated `#[immune(...)]` form on purpose, to
-  show its broken-witness failure mode; new code uses `#[defended_by(X)]`
-  or `#[presents(X, requires=...)]` (see [`macros.md`](macros.md)).
+- A `LooksImmuneButIsnt` type marked `#[presents(DemoBrokenWitness)]` — but
+  **no** `#[defended_by(DemoBrokenWitness)]` test ever registers a defense for
+  it. This is the ADR-029 equivalent of the old broken-witness failure mode:
+  the removed `#[immune(X, witness = a_test)]` form let a site *name* its own
+  witness (which could point at a function that didn't exist); now defense is
+  observed via `#[defended_by(X)]` on a test, and a site with no matching
+  witness is simply undefended (see [`macros.md`](macros.md) and the
+  [migration guide](immune-migration-guide.md)).
 
 **What to learn**:
-- The audit is your first line of defense against theatrical witnesses
-- Broken witnesses are reported at `None` tier with
-  `WitnessNotFound` hint
+- The audit is your first line of defense against theatrical defenses
+- A presents-site with no resolving witness is reported as **undefended**
 - This is *honest reporting*, not failure — the audit's job is to
   surface gaps
 
@@ -109,14 +112,15 @@ doesn't resolve, the audit names the gap honestly.
 cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
 ```
 
-Look for the `broken_witness.rs:56` entry in the audit output. You'll
-see `tier = None, hint = NoneApplicable` with the diagnostic: *no
-function named `nonexistent_test` found in any .rs file under the
-scan root*.
+Look for the `broken_witness.rs` entry in the audit output. You'll see:
 
-The structural memory says "this site is immune." The audit says
-"actually it isn't — the witness is broken." That's the
-audit-tier-honesty discipline operating (ADR-005 Amendment 3).
+```text
+✗ antigen/examples\broken_witness.rs:64  DemoBrokenWitness — undefended (no #[defended_by] witness, no passing requires= predicate)
+```
+
+The structural mark says "this site presents `DemoBrokenWitness`." The audit
+says "and nothing defends it." That's observe-don't-declare operating: the
+verdict is the audit's to issue, never the site's (ADR-029).
 
 ---
 
@@ -471,7 +475,7 @@ stdlib family surface:
 | Lesson | Concept |
 |---|---|
 | 1 — basic | declare, present, defend (three core moves) |
-| 2 — broken_witness | audit-tier-honesty + None tier |
+| 2 — broken_witness | observe-don't-declare (ADR-029) + undefended verdict |
 | 3 — antigen_tolerance | explicit tolerance + required rationale |
 | 4 — descended_from | inheritance + re-attestation discipline |
 | 5 — phantom_witness | FormalProof tier via type-system proof |

@@ -28,7 +28,7 @@ use antigen::{panel, ddx, rx, refer, biopsy, culture, quarantine, triage};
 | `#[defended_by]` | test / proptest fn | Register a test function as a **code-tier witness** for a failure-class (ADR-029) |
 | `#[presents(requires=)]` | any item | Attach a **substrate-tier witness** predicate (sidecar evidence) to a presents-site |
 | `#[presents(proof=)]` | any item | Attach a **phantom-type / formal-proof** witness to a presents-site |
-| `#[immune]` | any item | *(Deprecated — use `#[defended_by]` or `#[presents(requires=)]` instead)* |
+| `#[immune]` | — | *(**Removed** — ADR-029; use `#[defended_by]` or `#[presents(requires=)]`. See [migration guide](immune-migration-guide.md))* |
 | `#[descended_from]` | unit struct (antigen) | Declare inheritance from a parent failure-class |
 | `#[antigen_tolerance]` | any item | Explicitly tolerate a fingerprint match (with required rationale) |
 
@@ -298,109 +298,38 @@ audit cross-references the evidence and reports the verdict.
 
 ---
 
-## `#[immune(antigen_type, witness = ..., rationale = "...")]`
+## `#[immune(...)]` — REMOVED (ADR-029)
 
-> **Deprecated since ADR-029 (v0.2).** `#[immune]` is the v0.1 immunity-claim API and will emit
-> a compiler deprecation warning. For v0.2, use:
-> - **Code-tier defense**: `#[defended_by(AntigenType)]` on the test/proptest function
-> - **Substrate-tier defense**: `#[presents(AntigenType, requires = <predicate>)]` on the site
-> - **Phantom/formal-proof**: `#[presents(AntigenType, proof = <expr>)]` on the site
->
-> Audit observes these registrations and reports per-site verdicts (`defended` / `undefended` /
-> `substrate-gap`). The deprecated `#[immune]` form is still accepted for backwards compatibility
-> but will continue to emit deprecation warnings guiding you toward the new idiom.
+> **The `#[immune]` proc-macro has been removed.** It was the v0.1 immunity-claim
+> API (deprecated in v0.2 per ADR-029, *immunity is observed, not declared*) and
+> is no longer exported by `antigen` / `antigen-macros`. Code that still imports
+> or applies `#[immune]` will not compile against this version.
 
-Declare immunity to a known failure-class, backed by a witness (deprecated — see above).
+Migrate each `#[immune]` site to the observe-don't-declare idiom:
 
-### Required arguments
+- **Code-tier defense** (`witness = a_test`): put `#[presents(AntigenType)]` on
+  the site and `#[defended_by(AntigenType)]` on the test that defends it.
+- **Substrate-tier defense** (`requires = <predicate>`): fold it onto the site as
+  `#[presents(AntigenType, requires = <predicate>)]`.
+- **Phantom/formal-proof** (`witness = <phantom>`): fold it onto the site as
+  `#[presents(AntigenType, proof = <expr>)]`.
 
-- First positional: the antigen type
-- `witness = <expr>` (required) — witness identifier (see "Witness types" below)
+The `requires =` / `proof =` grammar is identical to the old `#[immune]` forms,
+so substrate-tier and phantom-tier predicates migrate verbatim. Audit observes
+these registrations and reports per-site verdicts (`defended` / `undefended` /
+`substrate-gap`).
 
-### Optional arguments
-
-- `rationale = "..."` — narrative justification supplementing the executable witness
-
-### Applies to
-
-Any Rust item; typically co-located with `#[presents]` at the defended site.
-
-### Witness types
-
-`WitnessTier` has four variants: `None`, `Reachability`,
-`Execution`, `FormalProof`. The `Execution` tier requires the audit to
-invoke a harness; audit does not invoke harnesses today, so
-witnesses that *will* reach Execution sit at
-Reachability for now, with audit hints disambiguating the case. The table
-below reports the **actual tier** and the audit hint that
-distinguishes the witness shape.
-
-| Witness form | Tier (audit hint) | Example | Future promotion |
-|---|---|---|---|
-| `#[test]` function identifier | Reachability (`TestAttributePresentNotInvoked`) | `witness = no_panic_test` | Execution (harness invocation) |
-| `#[test] + #[ignore]` function | Reachability (`TestAttributePresentIgnoreSkipped`) | `witness = skipped_test` | (stays Reachability — `cargo test` skips by default) |
-| `proptest!` function identifier | Reachability (`ProptestPresentNotInvoked`) | `witness = roundtrip_proptest` | Execution (harness invocation) |
-| `kani::fn_name` | Reachability (`ExternalToolPrefixRecognized`) | `witness = kani::no_panic_proof` | FormalProof (verifier-invocation) |
-| `prusti::fn_name` | Reachability (`ExternalToolPrefixRecognized`) | `witness = prusti::invariant_proof` | FormalProof |
-| `verus::fn_name` | Reachability (`ExternalToolPrefixRecognized`) | `witness = verus::correctness_proof` | FormalProof |
-| `creusot::fn_name` | Reachability (`ExternalToolPrefixRecognized`) | `witness = creusot::specification_proof` | FormalProof |
-| `clippy::lint_name` | Reachability (`ExternalToolPrefixRecognized`) | `witness = clippy::no_panic_in_drop` | Execution (lint-invocation) |
-| Phantom-type turbofish | FormalProof (`PhantomTypeShapeRecognized`) | `witness = NonPanickingProof::<MyType>::verified` | (already FormalProof) |
-| Bare identifier (no test attr) | Reachability (`FunctionResolves`) | `witness = my_helper_fn` | (stays Reachability) |
-
-See [`witness-tiers.md`](witness-tiers.md) for tier semantics and
-[`fingerprint-grammar.md`](fingerprint-grammar.md) for phantom-type
-witness recognition (ADR-013).
-
-### Example
-
-```rust
-use antigen::{immune, presents};
-use crate::antigens::PanickingInDrop;
-
-#[presents(PanickingInDrop)]
-#[immune(
-    PanickingInDrop,
-    witness = safe_type_drop_no_panic_test,
-    rationale = "SafeType::drop uses non-panicking accessors only; verified by test."
-)]
-impl Drop for SafeType {
-    fn drop(&mut self) {
-        if let Some(_d) = self.data.as_ref() { /* safe */ }
-    }
-}
-
-#[allow(dead_code)]
-fn safe_type_drop_no_panic_test() {
-    drop(SafeType { data: None });
-    drop(SafeType { data: Some(String::from("hello")) });
-}
-```
-
-### Behavior
-
-`cargo antigen audit` verifies every `#[immune]` claim resolves to a
-real witness at the appropriate tier. Audit output reports the actual
-tier achieved, not the maximal one (ADR-005 Amendment 3 audit-tier-honesty).
-
-### Discipline
-
-- **Witness must resolve**: audit surfaces broken/missing/ambiguous witnesses
-- **Tier honesty**: external-tool delegations (kani, prusti, clippy, etc.)
-  report Reachability tier with the `ExternalToolPrefixRecognized` hint —
-  the audit recognizes the prefix but does not run the tool (harness invocation
-  that would promote a confirmed run to Execution/FormalProof is a recorded
-  graduation path; see [`roadmap.md`](roadmap.md))
-- **Rationale recommended for production**: especially for tolerance-class
-  decisions; the rationale field is the narrative justification
+The [migration guide](immune-migration-guide.md) walks each case with
+before/after code; see [`#[defended_by]`](#defended_byantigen_type) above and
+[`witness-tiers.md`](witness-tiers.md) for how witness tiers are now graded on
+the `#[defended_by]` registration.
 
 ### See also
 
-- ADR-002 (compose, don't compete — witnesses delegate to existing tools)
-- ADR-005 (sub-clause F: witness validation at the trust boundary)
-- ADR-005 Amendment 3 (audit-tier-honesty)
-- ADR-013 (phantom-type witness recognition)
-- [`witness-tiers.md`](witness-tiers.md) — tier semantics in detail
+- ADR-029 (Immunity Is Observed, Not Declared)
+- [migration guide](immune-migration-guide.md) — step-by-step `#[immune]` conversion
+- `#[defended_by]` — the code-tier migration target
+- `#[presents(requires=)]` / `#[presents(proof=)]` — substrate-tier / phantom-tier targets
 
 ---
 
@@ -888,8 +817,8 @@ Under ADR-029's observe-not-declare model the presents-marker and the defense ar
 *separate*: the site declares only the vulnerable shape, the defense evidence lives
 on the witness, and `cargo antigen audit` cross-references them to report the per-site
 verdict (`defended` / `undefended` / `substrate-gap`). The site never claims its own
-immunity. (The deprecated `#[immune(..., witness=)]` form co-located a claim on the
-site — see the deprecated-API section above.)
+immunity. (The removed `#[immune(..., witness=)]` form co-located a claim on the
+site — see the removed-API section above.)
 
 ### Substrate-tier defense on the site
 

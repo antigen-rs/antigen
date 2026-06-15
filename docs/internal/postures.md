@@ -86,10 +86,11 @@ breaks the posture's wording), the catalog is corrected.
 ### Why
 
 When the claim "this immunity is well-formed" or "this witness exists" is
-acted on without validation, the immune system is poisoned: a `#[immune(X,
-witness = Y)]` whose `Y` is missing, mis-resolved, or under-verified becomes
-the new "trust me" comment — exactly the implicit-memory failure mode antigen
-exists to surface (per ADR-001). The discipline is foundational: every
+acted on without validation, the immune system is poisoned: a
+`#[defended_by(X)]` test (or a legacy `#[immune(X, witness = Y)]` site) whose
+witness is missing, mis-resolved, or under-verified becomes the new "trust me"
+comment — exactly the implicit-memory failure mode antigen exists to surface
+(per ADR-001). The discipline is foundational: every
 recognition surface in the project is a trust boundary, so the posture
 threads transversally through nearly every ADR that introduces a primitive.
 

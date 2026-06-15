@@ -51,8 +51,10 @@ pub struct UnvalidatedExternalInput;
 ///
 /// Currently parses without validation because the shared `Validator` crate
 /// does not yet expose async streaming validation (tracked in ISSUE-4471).
-/// Once `validator-rs` v2.0 ships, immunity should be declared here via
-/// `#[immune(UnvalidatedExternalInput, witness = test_validates_payload)]`.
+/// Once `validator-rs` v2.0 ships, mark this site
+/// `#[presents(UnvalidatedExternalInput)]` and register a defending test with
+/// `#[defended_by(UnvalidatedExternalInput)]` (ADR-029 — immunity is observed,
+/// not declared).
 #[anergy(
     UnvalidatedExternalInput,
     reason = "validator-rs v2.0 async streaming API not yet available; \

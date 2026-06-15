@@ -32,11 +32,12 @@
 //!   spelling of comments do not change the digest, because we hash the
 //!   `proc_macro2`-canonicalized token stream, not the raw source bytes.
 //! - **Insensitive to antigen's own attributes.** Adding or removing
-//!   `#[immune]`, `#[presents]`, `#[antigen_tolerance]`, the deferred-defense
-//!   family, etc., does NOT change the digest of the defended item. Otherwise
-//!   the act of attesting an item would invalidate the attestation — a vicious
-//!   circle. Doc comments and non-antigen attributes ARE part of the digest
-//!   (they're part of the item's real structure).
+//!   `#[presents]`, `#[defended_by]`, `#[antigen_tolerance]`, the deferred-defense
+//!   family, etc. — and the legacy `#[immune]` still carried by not-yet-migrated
+//!   crates — does NOT change the digest of the defended item. Otherwise the act
+//!   of attesting an item would invalidate the attestation — a vicious circle.
+//!   Doc comments and non-antigen attributes ARE part of the digest (they're part
+//!   of the item's real structure).
 //! - **Sensitive to real structural change.** A change to a function body, a
 //!   struct field, a signature, or a variant changes the digest.
 
@@ -70,8 +71,18 @@ fn fnv1a_64(bytes: &[u8]) -> u64 {
 const ANTIGEN_OWNED_ATTRS: &[&str] = &[
     // Core attestation macros.
     "antigen",
+    // `immune` is RETAINED post-removal: the `#[immune]` proc-macro was removed
+    // (ADR-029), but legacy / not-yet-migrated dependency crates still carry
+    // `#[immune]` in their source, and the digest of such an item must stay
+    // stable — toggling the (now-external) attr is still an attestation action,
+    // not a structural change. Stripping it here is name-based and needs no live
+    // macro.
     "immune",
     "presents",
+    // `defended_by` is the ADR-029 code-tier witness marker — an authored
+    // attestation mark on a test, so toggling it must not change the item's
+    // digest (same attestation-insensitivity invariant as the rest of the list).
+    "defended_by",
     "antigen_tolerance",
     "descended_from",
     "crossreactive",
@@ -382,6 +393,11 @@ mod tests {
     #[test]
     fn antigen_attrs_do_not_change_digest() {
         let bare = struct_digest(quote! { struct Foo { x: u8 } });
+        // Legacy `#[immune]`: the proc-macro was removed (ADR-029), but
+        // not-yet-migrated crates still carry the attr in source. `#[immune]` is
+        // an inert `syn::Attribute` here (no macro needed to parse it), and it
+        // MUST still be stripped from the digest so a legacy item's signature
+        // stays stable.
         let with_immune: syn::ItemStruct = syn::parse2(quote! {
             #[immune(SomeAntigen, witness = some_test)]
             struct Foo { x: u8 }
@@ -390,7 +406,7 @@ mod tests {
         assert_eq!(
             bare,
             structural_digest(&with_immune),
-            "#[immune] must not change the defended item's digest"
+            "legacy #[immune] must not change the defended item's digest"
         );
 
         let with_presents: syn::ItemStruct = syn::parse2(quote! {
@@ -403,10 +419,28 @@ mod tests {
             structural_digest(&with_presents),
             "#[presents] must not change the defended item's digest"
         );
+
+        // `#[defended_by]` is the ADR-029 code-tier migration target for the
+        // removed `#[immune]`; toggling it must be digest-neutral too.
+        let with_defended_by: syn::ItemStruct = syn::parse2(quote! {
+            #[defended_by(SomeAntigen)]
+            struct Foo { x: u8 }
+        })
+        .expect("parse");
+        assert_eq!(
+            bare,
+            structural_digest(&with_defended_by),
+            "#[defended_by] must not change the defended item's digest"
+        );
     }
 
-    // FIXED: all 26 antigen macro names are now in ANTIGEN_OWNED_ATTRS;
-    // adding any antigen attr to an item does not change its structural digest.
+    // Spot-checks three representative families (mucosal / polyclonal / itch)
+    // against ANTIGEN_OWNED_ATTRS. NOTE: this is NOT exhaustive — the strip-list
+    // does not yet cover every authored antigen attr (the clinical-medicine
+    // family `panel`/`rx`/`refer`/`biopsy`/`ddx`/`culture`/`quarantine`/`triage`
+    // and `antigen_generates` are not listed). Closing that gap is tracked in the
+    // `release-hygiene/digest-strip-list-completeness` campsite; do not read this
+    // test as proof of full coverage.
     #[test]
     fn all_antigen_macros_do_not_change_digest() {
         let bare = struct_digest(quote! { struct Foo { x: u8 } });

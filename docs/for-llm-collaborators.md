@@ -50,9 +50,10 @@ You don't need fine-tuning on antigen. The vocabulary self-explains.
 - `#[antigen_tolerance(AntigenName, rationale = ..., until = ...)]` —
   explicitly tolerates a fingerprint match the team reviewed
 
-> **Note**: `#[immune(AntigenName, witness = fn)]` (the v0.1 API) is deprecated
-> since ADR-029. Use `#[defended_by]` (code-tier) or `#[presents(requires=)]`
-> (substrate-tier) instead. The deprecated form still compiles with a warning.
+> **Note**: `#[immune(AntigenName, witness = fn)]` (the v0.1 API) was **removed**
+> (ADR-029) and no longer compiles. Use `#[defended_by]` (code-tier) or
+> `#[presents(requires=)]` (substrate-tier) instead; see the
+> [migration guide](immune-migration-guide.md).
 
 **Prescriptive / work-orchestration family** (v0.3, shipped in current development):
 
@@ -200,9 +201,9 @@ to design rather than recognize.
 
 If a human asks you to wire up defense for a presents-site:
 
-> **v0.2 idiom**: use `#[defended_by(X)]` on the test function (code-tier), or
-> `#[presents(X, requires=...)]` on the site (substrate-tier). The deprecated
-> `#[immune(X, witness=fn)]` form still works but emits a deprecation warning.
+> **Current idiom**: use `#[defended_by(X)]` on the test function (code-tier), or
+> `#[presents(X, requires=...)]` on the site (substrate-tier). The old
+> `#[immune(X, witness=fn)]` form was **removed** (ADR-029) and no longer compiles.
 
 **Witness tier honesty** (ADR-005 Amendment 3): the audit reports the
 *actual* verification strength, never a stronger one. Don't claim a

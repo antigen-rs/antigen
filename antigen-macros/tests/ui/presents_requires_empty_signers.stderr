@@ -1,0 +1,5 @@
+error: signers(required = [...]) must include at least one name (NFA-7)
+  --> tests/ui/presents_requires_empty_signers.rs:11:37
+   |
+11 | #[presents(DummyAntigen, requires = signers(required = []))]
+   |                                     ^^^^^^^

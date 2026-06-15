@@ -3,8 +3,8 @@
 > **Idiom note**: Code examples in this doc use the current (ADR-029) idiom —
 > `#[defended_by(X)]` on test functions (code-tier), `#[presents(X, requires=...)]`
 > for substrate evidence, and `#[presents(X, proof=...)]` for phantom-type and
-> external-tool witnesses. The old `#[immune(...)]` form is deprecated — see the
-> [migration guide](immune-migration-guide.md) if you still have `#[immune]` sites.
+> external-tool witnesses. The old `#[immune(...)]` form was **removed** (ADR-029) —
+> see the [migration guide](immune-migration-guide.md) if you still have `#[immune]` sites.
 
 > Antigen doesn't replace your existing testing, linting, or
 > verification toolchain. It *composes* with them — using each for

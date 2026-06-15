@@ -1,5 +1,0 @@
-error: #[immune] accepts either `witness = ...` or `requires = ...`, not both. For compound evidence across code-tier and substrate-tier (e.g., hybrid antigens per ADR-028), stack two `#[immune]` attributes on the same item — one with `witness = ...`, one with `requires = ...`. Audit treats stacked `#[immune]` attributes as independent coverage entries.
-  --> tests/ui/immune_requires_both_witness_and_requires.rs:10:43
-   |
-10 | #[immune(DummyAntigen, witness = my_test, requires = fresh_within_days(90))]
-   |                                           ^^^^^^^^
