@@ -25,7 +25,8 @@ four beats:
 > **witnessed** *(on antigen's own real source, not a toy)*.
 
 The arc is worth feeling because it's the part you, a person, actually inhabit. Let's
-walk it on antigen's own three `#[dread]` marks.
+walk it on antigen's own `#[dread]` marks — three sit in the production tree, and two
+of them (the silent-skip twins) form the cluster the learner anti-unifies.
 
 ---
 
@@ -80,8 +81,9 @@ scan, **never a gate, never nagging.** A live question, not a graveyard.
 > surfaced through antigen's **library** scan — `ScanReport.marked_unknowns` carries
 > them, with their trigger and a structural digest. There is **no
 > `cargo antigen dread` command**, and the CLI's console/JSON render does not
-> surface the marked-unknown plane separately — exactly as the *learner* below is a
-> library API, not a CLI verb. You mark with the attribute; the library reads them.
+> surface the marked-unknown plane separately. You mark with the attribute; the
+> library (and `cargo antigen propose`, which reads the marks into a cluster) reads
+> them.
 
 ---
 
@@ -266,12 +268,19 @@ committed source — `antigen/tests/learn_dogfood_propose.rs` is the witness, an
 can run it yourself:
 
 ```sh
-# the strange loop, on the public repo, with a commit hash:
+# the strange loop, on the public repo:
 cargo test -p antigen --test learn_dogfood_propose
-#   the_p0b_marks_exist_and_are_surfaced_by_antigens_own_scan ... ok
+#   running 3 tests
+#   propose_routes_the_felt_draft_to_human_not_promote_the_settled_thesis ... ok
 #   propose_anti_unifies_antigens_own_felt_twins_into_a_real_draft ... ok
-#   propose_promotes_the_felt_draft_only_through_b_sparing_the_clean_sibling ... ok
+#   the_p0b_marks_exist_and_are_surfaced_by_antigens_own_scan ... ok
+#   test result: ok. 3 passed; 0 failed
 ```
+
+The middle test names the honest outcome: antigen's own felt twins **route to a
+human** — the draft is safe but the corpus holds no [near-miss](glossary.md#near-miss),
+so the gate cannot certify it generalizes and hands it up rather than promote it. The
+strange loop runs; it stops at the naming line.
 
 The corpus the learner generalizes from is antigen's own honest self-doubt — the two
 `#[dread]` twins, left in the production tree **on purpose**, because their value is

@@ -330,17 +330,18 @@ safely is in [`the-keystone-explained.md`](the-keystone-explained.md).
 
 This matters for setting expectations honestly:
 
-- The Learning-Core is a **library** (`antigen::learn`), **not**
-  a `cargo antigen propose` command. There is no user-facing verb yet;
-  what ships is the *safety-governed learner*, not a CLI on
-  top of it. A newcomer should not go hunting for a command that does
-  not exist.
-- C has **zero production callers** — it is exercised by tests
-  and the dogfood proof, not yet wired into a user-facing verb. Two
-  safety-relevant hardenings that were named preconditions for wiring C
-  are now **built**: the near-miss non-vacuity gate (ADR-047 — B promotes
-  only against a corpus that exercises the draft) and the `PromotedDraft`
-  capability-token (ADR-048 — a promotable token only the gate can mint).
+- The Learning-Core is a **library** (`antigen::learn`) with a user-facing verb on
+  top of it: **`cargo antigen propose`**. The verb re-acquires a marked cluster,
+  collects an operator-supplied clean corpus, runs the learner, and renders the
+  outcome as a ratifiable suggestion — it observes, it does not name a class. See
+  [`cli-reference.md`](cli-reference.md#propose).
+- Its production caller is that verb. The two safety-relevant hardenings that
+  underpin it are built: the near-miss non-vacuity gate (ADR-047 — the gate
+  certifies a draft only against a corpus that exercises it) and the
+  `PromotedDraft` capability-token (ADR-048 — a promotable token only the gate can
+  mint). On antigen's own marks the verb **routes the draft to a human ratifier**
+  (the corpus holds no near-miss); it does not name a class for itself — that
+  self-immunizing promote payoff is the v0.6 frontier.
 - The falsification gate is real: antigen carries three genuinely-felt
   `#[dread]` marks on its **own** production source, and the dogfood
   proof anti-unifies the two *silent-skip twins* among them (a directory

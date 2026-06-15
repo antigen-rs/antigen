@@ -309,9 +309,9 @@ one, [`three-places-to-see-it.md`](three-places-to-see-it.md) shows you where.
 - [`i-scanned-and.md`](i-scanned-and.md) — symptom-indexed troubleshooting ("I
   scanned and ___").
 - [`the-felt-arc.md`](the-felt-arc.md) — the story: what it's
-  *like* to mark a felt-but-unnamed worry (`#[dread]`), watch the learner propose a
-  class from it, and watch self-tolerance refuse to flag clean code — run on
-  antigen's own three marks.
+  *like* to mark a felt-but-unnamed worry (`#[dread]`), watch the learner anti-unify
+  a draft and route it to a human ratifier, and watch self-tolerance refuse to flag
+  clean code — run on antigen's own marks.
 - [`three-places-to-see-it.md`](three-places-to-see-it.md) — where each thing
   (class-level defense, the fingerprint sparing a site, every family's bind/spare)
   is actually visible.

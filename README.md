@@ -130,6 +130,7 @@ Plus the `cargo antigen` subcommands (run `cargo antigen --help` for the live li
 - **`cargo antigen vcs`** — VCS-information-loss observations, incl. recurrence mining (ADR-026)
 - **`cargo antigen mucosal-map`** — map mucosal trust boundaries across the workspace (ADR-027)
 - **`cargo antigen fingerprint`** — print the structural fingerprint of a scanned item
+- **`cargo antigen propose`** — the learning verb: anti-unify a cluster of marked unknowns (`#[dread]`/`#[aura]`) into a candidate fingerprint, gated against an operator-supplied clean corpus (ADR-045/047/048). Renders a ratifiable suggestion — it observes, it does not name a class (the source tree is left byte-unchanged)
 
 ---
 

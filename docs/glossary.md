@@ -1005,6 +1005,246 @@ recognition mismatch rather than silent drift.
 
 ---
 
+## Marked-unknown terms (ADR-041)
+
+The three markers for the *felt-but-unnamed* danger — a developer's honest "something
+is wrong here, I can't name the failure-class yet." They sit on a two-axis plane
+(**magnitude** × **existence-certainty**) that is off the classification dial: a marked
+unknown is not a named antigen and never gates a build. The scan re-reads them; the
+learning core (below) clusters them into draft fingerprints.
+
+### marked unknown
+
+**Biological referent**: a *sense of alarm* before identification — the immune system
+mounting a response to a not-yet-characterized threat (the felt-danger that precedes a
+named pathogen).
+
+**Rust ecosystem analog**: a site annotated `#[aura]`, `#[dread]`, or `#[red_flag]`
+declaring a felt-but-unnamed worry, with a **required** `trigger` string saying what
+feels wrong. Surfaced by `cargo antigen scan` as a `MarkedUnknown`; never a named
+failure-class, never a build gate. The canonical noun for the whole family is *marked
+unknown*.
+
+**Introduced in**: ADR-041. Carriers in
+[`antigen-macros/src/lib.rs`](../antigen-macros/src/lib.rs) (`aura` / `dread` /
+`red_flag`); structured output in [`antigen/src/finding.rs`](../antigen/src/finding.rs)
+(`Magnitude`, `ExistenceCertainty`).
+
+### magnitude
+
+**Biological referent**: the *intensity* of the alarm — how loud the felt-danger is.
+
+**Rust ecosystem analog**: one axis of the marked-unknown plane, a three-level ordinal
+`smell → aura → dread` (the `Magnitude` enum, `finding.rs`). Higher magnitude is a
+stronger, more-localized worry. Orthogonal to existence-certainty (the other axis) — a
+mark fixes a *corner* of the plane.
+
+### existence-certainty
+
+**Biological referent**: how *sure* the immune system is that there is a real threat at
+all — distinct from how alarming it would be if real.
+
+**Rust ecosystem analog**: the second axis of the marked-unknown plane, `unsure` / `sure`
+(the `ExistenceCertainty` enum, `finding.rs`). `#[dread]` is high-magnitude but `unsure`
+(scared, not certain); `#[red_flag]` is `sure` (certain something is wrong). The two
+markers differ on this axis, not on magnitude.
+
+### #[aura]
+
+**Definition**: the **light** marked unknown — low magnitude, `unsure`. "Something *may*
+be off here, I can't name it, check later." A mild substrate-smell; surfaces at the
+dial's non-gating floor, never gates, never nags. The `trigger` argument is **required**.
+
+**Biological referent**: a faint prodrome — a vague sense that precedes (and may never
+become) a recognized illness.
+
+**Introduced in**: ADR-041. Carrier: `antigen::aura`.
+
+### #[dread]
+
+**Definition**: high magnitude, **low** existence-certainty (`unsure`) — the *angor
+animi* corner: "something *is* wrong here, I can't name it, look now." Scared, not sure.
+Surfaces at the non-gating floor; the `trigger` is **required** (a triggerless `#[dread]`
+is a compile error). The marker the learning core's `propose` clusters by default.
+
+**Biological referent**: *angor animi* — the clinical "sense of impending doom" a patient
+reports before a diagnosable event; a strong felt-alarm without a name.
+
+**Introduced in**: ADR-041. Carrier: `antigen::dread`.
+
+### #[red_flag]
+
+**Definition**: **high** existence-certainty (`sure`), unnameable — "I'm *sure*
+something is wrong here, I can't name it, act now." The one marked unknown that records
+at the highest internal severity on first match, because its defining axis is
+certainty-that-something-is-wrong. The `trigger` is **required**.
+
+**Biological referent**: the clinician's "red flag" — a sign that, even unexplained,
+mandates immediate action.
+
+**Introduced in**: ADR-041. Carrier: `antigen::red_flag`.
+
+---
+
+## Learning-core terms (ADR-044/045/047/048)
+
+The **learning core** (`antigen::learn`) is the affinity-maturation arm: it takes a
+*cluster* of marked unknowns that share a structural shape and drafts a candidate
+fingerprint for the failure-class they might share — gated by a self-tolerance check so
+the draft never flags known-good code. Its CLI surface is `cargo antigen propose`.
+
+> **The load-bearing line.** The learning core **drafts and routes**, it does not
+> **name**. A draft is a *ratifiable suggestion*, never an auto-asserted `#[presents]`
+> and never a named class. On antigen's own marks, `propose` **routes the draft to a
+> human ratifier** rather than promoting it: the machine does the syntactic half; a
+> human (or an incident) ratifies the semantic half. See
+> [observe-don't-declare](#observe-dont-declare).
+
+### anti-unify
+
+**Biological referent**: somatic-hypermutation generalization — broadening a receptor so
+it binds a *family* of related epitopes rather than only the first one seen.
+
+**Rust ecosystem analog**: the generator step
+(`antigen::learn::propose::anti_unify`). Given a cluster of structurally-similar marked
+items, it produces a draft `Fingerprint` by keeping the features shared by **every**
+member (the skeleton conjuncts: item-kind, trait-impl identity, body-calls common to all)
+and wrapping the features present in **some but not all** members in an `any_of([...])`
+disjunction — the *discriminating* signal. It generalizes **to disjunction**, never the
+naive "drop the differing leaves" collapse (which over-generalizes to "any `Drop` impl"
+and would flag clean code). The output is a **hypothesis**, not a promotable fingerprint.
+
+**Introduced in**: ADR-045. Defined in
+[`antigen/src/learn/propose.rs`](../antigen/src/learn/propose.rs).
+
+### clean corpus
+
+**Biological referent**: *self* — the body's own healthy tissue the immune system must
+not attack. Negative selection in the thymus deletes lymphocytes that bind self.
+
+**Rust ecosystem analog**: the set of items the **operator** supplies and labels as
+known-good, against which a draft is checked (`cargo antigen propose --clean-root`). The
+gate promotes a draft only if it **spares every clean-corpus item**. Load-bearing:
+antigen **never auto-labels** unmarked code as clean — the operator supplies and labels
+the corpus, and the gate is only as strong as that corpus (a corpus-bounded check, not a
+total guarantee). The adjectival form is *clean-corpus* (as in "a clean-corpus item"); the
+canonical noun is *clean corpus*.
+
+**Introduced in**: ADR-044/047.
+
+### GATE-G (the self-tolerance gate)
+
+**Biological referent**: the **thymus** — the organ that performs negative selection,
+deleting any immature lymphocyte whose receptor binds self before it can cause
+autoimmunity.
+
+**Rust ecosystem analog**: the self-tolerance gate (`antigen::learn::self_tolerance`,
+GATE-G in ADR-047) that every draft must pass before it can be promoted. It decides three
+checks: **(A)-binary** (the draft carries a discriminating signal, not just bare
+structure), **near-miss non-vacuity** (the clean corpus actually exercised the draft — see
+*near-miss*), and **spare-clean** (the draft binds no clean-corpus item). A draft that
+fails spare-clean is **autoimmune** and refused; a draft that is safe but has no near-miss
+**routes to a human**.
+
+**Honest scope**: GATE-G is safe for the v0.5 generator-fed path — `anti_unify` emits a
+flat top-level `all_of`, which the gate's primitives read correctly. It is *not*
+unconditionally safe for any hand-constructed draft shape; a draft built with a
+`Not(structural-anchor)` combinator is a known gap, closed before any future re-mint
+surface ships. Do not read GATE-G as safe for arbitrary drafts.
+
+**Introduced in**: ADR-045 (the gate), ADR-047 (the three-check hardening). Defined in
+[`antigen/src/learn/self_tolerance.rs`](../antigen/src/learn/self_tolerance.rs).
+
+### near-miss
+
+**Biological referent**: an affinity-maturation control — a self-antigen *almost* bound by
+a maturing receptor proves the receptor is discriminating in a real neighborhood, not
+binding at random.
+
+**Rust ecosystem analog**: a clean-corpus item that matches **all-but-one** of a draft's
+top-level conjuncts and is spared by failing exactly that one (`is_near_miss`,
+`self_tolerance.rs`). A near-miss is the proof that the gate made a *real in-family
+discrimination* — it spared an item it plausibly could have flagged, not one it was never
+near. A draft needs **≥2 conjuncts** to have a valid near-miss; with no near-miss in the
+corpus the gate cannot certify the draft generalizes, so it **routes to a human**
+(`NotCorpusWitnessable`) rather than promote.
+
+**Introduced in**: ADR-047 §Mechanics.
+
+### route-to-human
+
+**Biological referent**: handing an unresolvable recognition decision up to a
+higher-order check rather than acting on incomplete evidence.
+
+**Rust ecosystem analog**: the first-class outcome where a draft is **safe** (it spares
+the corpus and carries a discriminating signal) but the corpus holds **no near-miss**, so
+the gate cannot certify the draft generalizes — it hands the candidate to a human ratifier
+instead of promoting it (`ToleranceVerdict::NotCorpusWitnessable`; the `route-to-human`
+JSON outcome). This is the gate being honest, not a failure: `cargo antigen propose` exits
+`0` and prints the drafted candidate for inspection. It is the outcome on antigen's own
+marks: antigen anti-unifies a draft from its own `#[dread]` marks and routes it to human
+ratification — it does not name a class for itself.
+
+**Introduced in**: ADR-047/051.
+
+### PromotedDraft
+
+**Biological referent**: a matured, survival-selected receptor lineage — the antibody that
+passed negative selection and is cleared for use.
+
+**Rust ecosystem analog**: a capability-token type (`PromotedDraft`, `self_tolerance.rs`)
+whose mere existence is **structural proof** that all three GATE-G checks held —
+(A)-binary, near-miss non-vacuity, and spare-clean. It carries a `tier` (the gate-assigned
+score). There is **no public constructor, no `From<Fingerprint>`, no `Default`, no
+`Deserialize`** — it cannot be forged from hand-written JSON; the only way to obtain one is
+to pass the gate. Even a `PromotedDraft` is a *ratifiable suggestion at a calibrated tier*,
+never an auto-asserted or auto-named class.
+
+**Introduced in**: ADR-048 (the capability-token), ADR-049 (the score).
+
+### propose (verb + CLI)
+
+**Biological referent**: the affinity-maturation reaction proposing a matured receptor
+lineage for survival selection.
+
+**Rust ecosystem analog**: two surfaces of the same operation. The **library** function
+`antigen::learn::propose::propose(cluster, clean_corpus)` runs anti-unify → GATE-G and
+returns `Result<PromotedDraft, ProposeOutcome>` — every non-promotion reason is legible,
+never a bare `None`. The **CLI** verb `cargo antigen propose` re-acquires the marked
+cluster under `--cluster-root`, collects the operator-supplied corpus under `--clean-root`,
+routes them through `propose()`, and **renders** the outcome as a ratifiable suggestion. A
+`propose` run leaves the source tree **byte-unchanged** — it observes, it does not write
+markers. See [`cli-reference.md`](cli-reference.md#propose) and
+[`examples-guide.md`](examples-guide.md).
+
+**Introduced in**: ADR-045 (library); Island 3 of the v0.5 expedition (CLI).
+
+### observe-don't-declare
+
+**Biological referent**: the immune system surfacing a recognition for higher-order
+confirmation rather than committing to a response on its own — the syntactic/semantic line
+a single cell must not cross alone.
+
+**Rust ecosystem analog**: the discipline (ADR-044) that the learning core may draft the
+**syntactic** half of a failure-class (the fingerprint a machine can bind by construction)
+but must never assert the **semantic** half (that this names a real failure-class). The
+machine *observes* and *suggests*; the human or an incident *declares* (ratifies) the draft
+into a named class. This is why `propose` renders a suggestion and never writes a
+`#[presents]`, and why `"promoted": false` is always emitted in the JSON.
+
+**Introduced in**: ADR-044.
+
+> **Vocabulary note — "ratify" / "ratification".** In the learning-core sense above, a
+> *human ratifies a draft into a named failure-class* (the semantic half of
+> observe-don't-declare). This is distinct from the ADR-019 [`ratification`](#ratification)
+> noun (the `.attest/<Antigen>.json` sidecar struct recording that a discipline was
+> reviewed). They rhyme — both are a human blessing — but name different things: the
+> learning-core sense is the **act** of naming a draft; the ADR-019 sense is the on-disk
+> **record**. Use "ratify a draft" for the former and "a Ratification sidecar" for the
+> latter.
+
+---
+
 ## Glossary maintenance
 
 This glossary is itself a tambear-style discipline artifact. As the antigen project

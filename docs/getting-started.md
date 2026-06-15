@@ -277,8 +277,9 @@ That's the floor — real value with zero declarations of your own. Next:
 
 > Already past day one and want the *feel* of the learning loop — marking a
 > felt-but-unnamed worry, watching antigen propose a class from it, watching
-> self-tolerance refuse to flag clean code? That's a library-level capability
-> (not a CLI command yet); the story is in
+> self-tolerance refuse to flag clean code? Try **`cargo antigen propose`**
+> (see [`cli-reference.md`](cli-reference.md#propose) and the runnable
+> [`examples/propose-demo/`](../examples/propose-demo/)); the felt story is in
 > [`the-felt-arc.md`](the-felt-arc.md), and the first-principles "why it's safe"
 > is in [`the-keystone-explained.md`](the-keystone-explained.md) and
 > [`concepts.md`](concepts.md).

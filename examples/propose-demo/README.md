@@ -18,8 +18,10 @@ of three first-class outcomes; this demo shows the two interesting ones:
 
 > **What this demo is and is not.** These are **constructed fixtures** that prove
 > the render *path*. They are NOT a claim that "antigen immunized itself." On
-> antigen's *own* `#[dread]` marks, `propose` today routes-to-human (its marks are
-> singletons in shape-space — there is no ≥2 cluster to anti-unify yet). The
+> antigen's *own* marks the CLI today finds **no cluster** — its `#[dread]` marks
+> are singletons in shape-space (no ≥2 cluster to anti-unify yet), so a real-code
+> run lands on the "no cluster found" message below. Route-to-human is what the
+> **constructed demo cluster** (and the library dogfood test) shows. The
 > self-immunization payoff — promoting a class from antigen's own worries — is the
 > v0.6 abstract-recall frontier. What v0.5 ships is honest and real: a tool that
 > *anti-unifies a draft from felt marks and routes it to a human ratifier*.

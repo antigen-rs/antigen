@@ -70,12 +70,15 @@ editor-shaped surface.
 0.4 ships the cluster → propose → promote loop as a library API (`antigen::learn`),
 governed by a self-tolerance gate. Given a cluster of structurally-similar marked
 sites, `propose()` anti-unifies them into a draft fingerprint and promotes it only
-if it spares a clean corpus. It is a **library API, not a CLI command** — there is
-no `cargo antigen propose`. A draft is a hypothesis to ratify, never an
-auto-asserted class.
+if it spares a clean corpus. In 0.4 this was a **library API with no CLI command**.
+A draft is a hypothesis to ratify, never an auto-asserted class.
 
-If you only use the CLI, this changes nothing for you today; it is the substrate the
-next cycle wires. If you want to drive it directly, the keystone example is
+> **Since 0.5:** the loop has a CLI verb — **`cargo antigen propose`** (see
+> [`cli-reference.md`](cli-reference.md#propose)). On antigen's own marks it routes
+> the draft to a human ratifier; it does not name a class for itself.
+
+If you only used the CLI, 0.4 changed nothing for you. To drive the library
+directly, the keystone example is
 [`examples/learn_propose.rs`](../antigen/examples/learn_propose.rs), and the
 reasoning is in [the-keystone-explained.md](the-keystone-explained.md).
 

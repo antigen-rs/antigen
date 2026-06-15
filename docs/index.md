@@ -115,10 +115,12 @@ Two surfaces a docs-reader should know about up front:
   as warnings — no custom LSP server. See
   [`editor-integration.md`](editor-integration.md).
 
-Under the hood, antigen also ships the **Learning-Core** loop (cluster → propose →
-test → promote/prune, governed by a self-tolerance gate) as a **library API**,
-not a CLI command — see [`library-api.md`](library-api.md) for how to call it,
-[`concepts.md`](concepts.md) for where it sits, and
+Antigen also ships the **Learning-Core** loop (a worry → cluster → propose →
+self-tolerance gate → a human ratifier) — live as `cargo antigen propose`. See
+[`the-learning-loop.md`](the-learning-loop.md) for where it sits in the system,
+[`the-felt-arc.md`](the-felt-arc.md) for what it feels like to run,
+[`cli-reference.md`](cli-reference.md#propose) for the command,
+[`library-api.md`](library-api.md) to call it as an API, and
 [`the-keystone-explained.md`](the-keystone-explained.md) for why the safety line
 holds.
 
@@ -197,6 +199,10 @@ A flat catalog of every doc with one-line purpose:
 | [`case-study.md`](case-study.md) | End-to-end narrative of a real failure-class |
 | [`case-study-determinism-class.md`](case-study-determinism-class.md) | The founding determinism-class case study (how antigen would have caught it) |
 | [`examples-guide.md`](examples-guide.md) | Progressive walkthrough of `antigen/examples/` |
+| [`the-felt-arc.md`](the-felt-arc.md) | The learning core as you live it — dread → propose → route-to-human, four beats |
+| [`the-learning-loop.md`](the-learning-loop.md) | Where `propose` sits in the system — one organ in a living loop |
+| [`the-v05-story.md`](the-v05-story.md) | The narrative of the learning organism — what `cargo antigen propose` is and why it asks a human |
+| [`the-keystone-explained.md`](the-keystone-explained.md) | Why the learning core routes to a human — the safety line, from first principles |
 | [`composition.md`](composition.md) | How antigen composes with clippy, proptest, kani/prusti/verus, etc. |
 | [`where-to-look-for-antigens.md`](where-to-look-for-antigens.md) | Placement conventions |
 | [`usage-patterns.md`](usage-patterns.md) | Common patterns / cookbook |

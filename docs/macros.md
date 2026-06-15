@@ -68,12 +68,13 @@ example is in [`antigen/examples/marked_unknown.rs`](../antigen/examples/marked_
 
 > **These marks are the input to the Learning-Core loop.** A *cluster* of
 > marked-unknown sites that share a body-shape is what antigen's `propose()`
-> anti-unifies into a draft fingerprint (cluster → propose → test →
-> promote/prune, governed by a self-tolerance gate). Important scope note:
-> **the Learning-Core is a library API (`antigen::learn`), not a CLI
-> command — there is no `cargo antigen propose`.** A draft it produces is a
-> *hypothesis to ratify*, never an auto-asserted `#[presents]`. See
-> [`roadmap.md`](roadmap.md) and the `antigen::learn` module rustdoc.
+> anti-unifies into a draft fingerprint (cluster → propose → gate →
+> promote/route, governed by a self-tolerance gate). The Learning-Core is a
+> library API (`antigen::learn`) with a CLI verb on top: **`cargo antigen
+> propose`** (see [`cli-reference.md`](cli-reference.md#propose)). A draft it
+> produces is a *hypothesis to ratify*, never an auto-asserted `#[presents]`: on
+> antigen's own marks the verb routes the draft to a human, it does not name a
+> class for itself. See the `antigen::learn` module rustdoc.
 
 ## Quick reference — prescriptive / work-orchestration macros
 
