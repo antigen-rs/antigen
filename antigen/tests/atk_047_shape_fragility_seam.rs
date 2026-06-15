@@ -263,6 +263,14 @@ fn nested_draft_does_not_promote_against_a_bare_family_member_only_corpus() {
 // 3-signal cluster bundled as a nested AllOf gives a DIFFERENT verdict from the
 // same 3 signals flat — that divergence is real (same semantics, two verdicts),
 // independent of whether the single-discriminator promote is intended.
+//
+// FORWARD-POINTER (ADR-047 Amendment 2, the live ruling): the retraction above
+// deferred to §Decision:53's "single-discriminator promote is intended" prose —
+// but Amendment 2 later REFINED that. The remainder-discriminates guard
+// (`is_near_miss`, self_tolerance.rs ~352) treats a draft whose sole discriminator
+// drops to a bare-structural skeleton as a REAL near-miss hole (the remainder must
+// still discriminate). So §Decision:53 is the pre-Amd2 reasoning; do NOT read this
+// retraction as the final word on the single-discriminator question — Amd2 is.
 // ============================================================================
 
 // ============================================================================

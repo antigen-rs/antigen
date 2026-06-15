@@ -308,6 +308,13 @@ const fn is_discriminating(c: &Constraint) -> bool {
 /// construction** (there is nothing to be "one constraint away" from when there is
 /// only one constraint) → it is not corpus-witnessable (route-to-human).
 ///
+/// (Note — ADR-047 Amendment 2 also independently closes N4: dropping the sole
+/// conjunct yields an empty remainder, and the remainder-discriminates guard below
+/// rejects it because `has_discriminating_conjunct(empty) == false`. So this `len >= 2`
+/// guard is now redundant *for correctness*; it is retained as a fast-path
+/// short-circuit + defense-in-depth, not as the only thing standing between the gate
+/// and the empty-drop vacuity.)
+///
 /// **Top-level conjuncts only:** `anti_unify` emits a flat top-level `all_of` (the
 /// `any_of` is itself one top-level conjunct, never nested). A future generator
 /// emitting a *nested* `any_of` would want a recursive drop — a scope boundary

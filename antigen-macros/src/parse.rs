@@ -13,7 +13,7 @@
 // LeafExpr is only used by the depth-guard regression tests below; pull it
 // in there via `super::*` rather than re-exporting from the macro crate's
 // public surface (we keep the re-export of RequiresExpr because the
-// ImmuneArgs / ToleranceArgs structs expose `requires: Option<(RequiresExpr,
+// PresentsArgs / ToleranceArgs structs expose `requires: Option<(RequiresExpr,
 // Span)>`).
 #[cfg(test)]
 use antigen_attestation::parser::LeafExpr;
