@@ -272,13 +272,13 @@ it is shown.
 > the same way the germinal center spares only the self it samples.
 >
 > And antigen built it in the biology's order — the **self-screen first**. The
-> Learning-Core ships as a **library**, with **zero production callers** (there is
-> no `cargo antigen propose` command — see [`concepts.md`](concepts.md)); what
-> shipped is the *safety-governed* learner, the negative-selection floor laid
-> before any user-facing generation surface. A defense system that takes
-> autoimmunity seriously builds the self-screen before it builds the generator, the
-> way the germinal center evolved selection-against-self alongside hypermutation,
-> not after it. The full first-principles account of *why* the loop closes safely —
+> Learning-Core laid the negative-selection floor *before* any user-facing
+> generation surface; only then did it gain its CLI verb, **`cargo antigen
+> propose`** (see [`cli-reference.md`](cli-reference.md#propose)) — the
+> *safety-governed* learner first, the generation surface on top of the screen,
+> never the other way around. A defense system that takes autoimmunity seriously
+> builds the self-screen before it builds the generator, the way the germinal
+> center evolved selection-against-self alongside hypermutation, not after it. The full first-principles account of *why* the loop closes safely —
 > and the honest scope of "safely" — is
 > [`the-keystone-explained.md`](the-keystone-explained.md); you can watch the
 > mechanism run on antigen's own marks in

@@ -47,10 +47,10 @@ The DETECT half of diff-native scanning: a structural delta between two snapshot
 surfaces a guard/defense **removal**, not just an absence — antigen sees what was
 taken away. (The CLASSIFY half is a tracked v0.4+ increment.)
 
-### The Learning-Core loop (library API) — the keystone (ADR-044/045)
+### The Learning-Core loop — the keystone (ADR-044/045)
 
-The cluster → propose → test → promote/prune loop, governed by a **self-tolerance
-gate**, shipped as a **library API** (`antigen::learn`), *not* a CLI command:
+The cluster → propose → gate → promote/route loop, governed by a **self-tolerance
+gate**, in `antigen::learn` with the CLI verb `cargo antigen propose` on top:
 
 - **C-PROPOSE** (`propose()`) anti-unifies a cluster of marked sites into a draft
   fingerprint — labeled a **hypothesis to ratify**, never an auto-asserted
@@ -59,15 +59,18 @@ gate**, shipped as a **library API** (`antigen::learn`), *not* a CLI command:
   path to a `PromotedDraft`, routing every promotion through `promote_if_safe`
   (self-tolerance), whose three-valued gate promotes, rejects as autoimmune, or
   routes a safe-but-uncertifiable draft to a human (`NotCorpusWitnessable`).
-- Falsified on antigen's **own** honest self-doubt: the loop runs on antigen's
-  three `#[dread]`-marked silent-skip sites and promotes only through the gate.
+- Falsified on antigen's **own** honest self-doubt: the loop runs on antigen's two
+  `#[dread]`-marked silent-skip twins, anti-unifies a draft, and — because the draft
+  is safe but the corpus holds no near-miss — **routes it to a human ratifier**
+  through the gate (`NotCorpusWitnessable`), rather than promoting it.
 
-> **Scope honesty.** C-PROPOSE is a **library API** in v0.4 — there is no `cargo
-> antigen propose` command. It has zero production callers (push-gated and
-> un-breachable in production today). The keystone shipped the *safety-governed
-> learner*, not a user-facing verb. The `--message-format`/bundled-catalog
-> surfaces are the user-facing v0.4 value; the Learning-Core is the substrate the
-> next cycle wires.
+> **Scope honesty.** `cargo antigen propose` is the Learning-Core's production
+> caller (ADR-045/047/048): it re-acquires a marked cluster, collects an
+> operator-supplied clean corpus, runs `propose()`, and renders the outcome as a
+> ratifiable suggestion. On antigen's own marks the verb **routes to a human** — it
+> does not name a class for itself; that self-immunizing promote payoff is the v0.6
+> frontier (it needs abstract-recall clustering). See
+> [`cli-reference.md`](cli-reference.md#propose).
 
 Two named hardening items were the preconditions for wiring C into a render — both
 are now **built** (ADR-047/048):

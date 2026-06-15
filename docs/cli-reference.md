@@ -18,6 +18,7 @@ cargo antigen <command>
 | [`scan`](#scan) | Walk the workspace and report sites that match a known failure-class fingerprint. |
 | [`audit`](#audit) | Grade the defenses: which presented sites have a resolving witness, and how strong. |
 | [`fingerprint`](#fingerprint) | Print the structural fingerprint of a scanned item. |
+| [`propose`](#propose) | Draft a candidate fingerprint from a cluster of marked unknowns, gated against an operator-supplied clean corpus. |
 | [`attest`](#attest) | Manage substrate-witness sidecars — the recorded evidence a defense points at. |
 | [`tolerate`](#tolerate) | Manage tolerance records — sites accepted on purpose, with a rationale. |
 | [`oracle`](#oracle) | Manage oracle records — discipline artifacts with a lifecycle and a steward. |
@@ -25,8 +26,10 @@ cargo antigen <command>
 | [`vcs`](#vcs) | Observe version-control information-loss risks (rollback, branch-archive). |
 | [`mucosal-map`](#mucosal-map) | Map the trust boundaries in the workspace and which are undefended. |
 
-The first three are the everyday verbs. The rest drive specific failure-class
-families and are reached when you adopt those families.
+The first three are the everyday verbs. [`propose`](#propose) is the learning
+verb — reach for it when a cluster of marked unknowns wants generalizing into a
+candidate fingerprint. The rest drive specific failure-class families and are
+reached when you adopt those families.
 
 ---
 
@@ -125,6 +128,77 @@ Map the **trust boundaries** in the workspace and report which are undefended.
 `--undefended` lists boundaries with no mucosal declaration; `--tolerant` lists
 the ones running on active tolerance (for periodic review); `--kind` filters to
 one boundary kind.
+
+---
+
+## The learning verb
+
+### `propose`
+
+Draft a candidate failure-class fingerprint from a **cluster of marked unknowns**
+(`#[dread]` / `#[aura]` / `#[red_flag]` sites), gated so the draft never flags
+known-good code. This is the learning core's CLI surface: it
+[anti-unifies](glossary.md#anti-unify) the cluster into a draft, routes it through
+the [self-tolerance gate](glossary.md#gate-g-the-self-tolerance-gate) against an
+operator-supplied [clean corpus](glossary.md#clean-corpus), and **renders the
+outcome as a ratifiable suggestion** — never an auto-`#[presents]`, never a named
+class. A `propose` run leaves the source tree **byte-unchanged**; it observes, it
+does not write markers ([observe-don't-declare](glossary.md#observe-dont-declare)).
+
+```sh
+cargo antigen propose --cluster-root <PATH> --clean-root <PATH>
+```
+
+The two roots are trust-distinct. `--cluster-root` (default: `.`) is where the
+marked *defect* sites live. `--clean-root` is **required** and has no default:
+antigen never labels unmarked code clean, so the operator supplies and labels the
+known-good corpus the gate spares against. The gate is only as strong as that
+corpus — a corpus-bounded check, not a total guarantee. (This is forced, not a
+shortcut: deciding whether an arbitrary fingerprint over-flags all clean code
+everywhere is undecidable, so the human supplies the corpus and ratifies the
+result.)
+
+| Flag | Default | Meaning |
+|---|---|---|
+| `--cluster-root <PATH>` | `.` | Root scanned for the marked defect cluster. |
+| `--clean-root <PATH>` | *(required)* | Operator-supplied, operator-labeled clean corpus the gate spares against. |
+| `--marker <dread\|aura\|red-flag>` | `dread` | Which marker-class is the defect cluster. A cluster mixes one class only. |
+| `--format <human\|json>` | `human` | Output format for a *gated* outcome (see the JSON note below). |
+
+On antigen's own source today, a `propose` run lands on **no cluster** — the repo's
+`#[dread]` marks are singletons in shape-space (no two share a structural shape to
+anti-unify), which propose needs at least two of:
+
+```sh
+cargo antigen propose --cluster-root antigen/src --clean-root antigen/src
+```
+```
+no `dread` cluster found under antigen/src — propose needs ≥2 marked sites sharing a structural shape to anti-unify (found 0). Antigen's own marks are singletons in shape-space today; auto-clustering heterogeneous marks is the v0.6 abstract-recall frontier.
+```
+
+To see the *interesting* outcomes — a draft routed to a human, or a refusal — run
+the bundled demo, which constructs a real twin-cluster:
+[`examples/propose-demo/`](../examples/propose-demo/) (walked through in
+[`examples-guide.md`](examples-guide.md)).
+
+Every outcome is legible and exits `0` — a non-promotion is never an error:
+
+| Outcome | What it means |
+|---|---|
+| candidate suggestion | The draft passed all three gate checks. Printed as a ratifiable suggestion (with its fingerprint and score tier) for you to inspect and name by hand — never an auto-named class. |
+| routed to a human | The draft is *safe* (it spares your corpus, carries a discriminating signal) but your corpus has **no [near-miss](glossary.md#near-miss)**, so the gate cannot certify it generalizes. It hands the candidate to a human ratifier. First-class, not a failure. |
+| refused (autoimmune) | The draft would match a clean-corpus item, or is bare-structural and over-general. Refused, so it cannot flag known-good code. |
+| no candidate / no cluster | The marks share only their shape (no real defect signal), or fewer than two share a shape at all. Nothing safe to generalize. |
+
+> **JSON note.** `--format json` produces a JSON object once a cluster is assembled
+> and routed through the gate. The early *no-cluster* and *empty-clean-corpus*
+> messages above are emitted as plain text regardless of `--format` — they precede
+> the gate. A sub-two-site cluster prints the same plain line under `--format json`;
+> JSON is for the gated outcomes, not the pre-gate usage messages.
+
+The vocabulary this command uses — *marked unknown*, *anti-unify*, *clean corpus*,
+*GATE-G*, *near-miss*, *route-to-human*, *PromotedDraft* — is anchored in the
+[glossary](glossary.md#learning-core-terms-adr-044045047048).
 
 ---
 

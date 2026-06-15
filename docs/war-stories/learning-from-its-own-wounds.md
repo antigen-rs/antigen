@@ -239,15 +239,16 @@ the test names the story:
 
 ```sh
 # The dogfood proof: antigen anti-unifies a draft from its own felt twins,
-# promoted only through the self-tolerance gate. Three tests, all green:
+# routed through the self-tolerance gate. Three tests, all green:
 cargo test --test learn_dogfood_propose -p antigen
 
 #   the_p0b_marks_exist_and_are_surfaced_by_antigens_own_scan
 #       — the felt corpus is non-empty (the dread marks are real, not theater)
 #   propose_anti_unifies_antigens_own_felt_twins_into_a_real_draft
 #       — the draft binds both twins AND carries read_to_string (non-degenerate)
-#   propose_promotes_the_felt_draft_only_through_b_sparing_the_clean_sibling
-#       — a promoted draft can never bind the clean walk sibling
+#   propose_routes_the_felt_draft_to_human_not_promote_the_settled_thesis
+#       — the draft is safe but the corpus holds no near-miss, so the gate
+#         routes it to a human ratifier rather than promoting it (route-to-human)
 
 # The two felt wounds in antigen's own source — read the #[dread] triggers:
 git show HEAD:antigen/src/scan/walk.rs        # scan_workspace_inner

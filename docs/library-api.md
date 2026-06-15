@@ -5,12 +5,8 @@
 > an agent can call the scanner and the Learning-Core directly and get typed
 > results instead of parsing console output. This is the reference for that path.
 >
-> Every snippet here was compile-checked against the `07ef151` API (the API
-> shapes and call paths are verified; these `.md` snippets are not wired into
-> CI as doctests, so treat them as *verified-against-this-commit* rather than
-> CI-enforced). The two public
-> surfaces a non-CLI consumer reaches for are **`antigen::scan`** (walk a tree,
-> get a `ScanReport`) and **`antigen::learn`** (the safety-governed
+> The two public surfaces a non-CLI consumer reaches for are **`antigen::scan`**
+> (walk a tree, get a `ScanReport`) and **`antigen::learn`** (the safety-governed
 > Learning-Core). For the *why* behind the Learning-Core safety line, see
 > [`the-keystone-explained.md`](the-keystone-explained.md); for what it *feels*
 > like, [`the-felt-arc.md`](the-felt-arc.md).
@@ -81,27 +77,29 @@ is broken."
 
 ---
 
-## `antigen::learn` — the Learning-Core (cluster → propose → test → promote)
+## `antigen::learn` — the Learning-Core (cluster → propose → gate → promote/route)
 
-The Learning-Core is a **library API**. There is no `cargo antigen propose`
-command — what ships is the *safety-governed learner*, not a
-user-facing verb. You feed it ASTs; it gives you back a drafted `Fingerprint`
-(or `None`).
+The Learning-Core is a **library API**: you feed it ASTs and it gives you back a
+gate outcome. This page documents that library. The CLI verb that wraps it,
+**`cargo antigen propose`**, is in [`cli-reference.md`](cli-reference.md#propose);
+reach for the library directly when you are building your own tooling on top of the
+learner.
 
 The public functions (call paths are from the crate root):
 
-| Call path | What it does | Promotable? |
+| Call path | Returns | What it does |
 |---|---|---|
-| `antigen::learn::propose::anti_unify(cluster)` | generalize a cluster of marked sites into a draft fingerprint (the **raw hypothesis**) | **NO** — inspection only |
-| `antigen::learn::propose::propose(cluster, clean_corpus)` | `anti_unify` **then** route through the self-tolerance gate — the **only promotable path** | **YES** — gate-governed |
-| `antigen::learn::self_tolerance::evaluate(draft, clean_corpus)` | the spare-clean verdict for one draft (`Spared` / `BindsCleanItem`) | — |
-| `antigen::learn::self_tolerance::spare_clean(draft, clean_corpus)` | `bool` shorthand for `evaluate(...).is_safe()` | — |
-| `antigen::learn::self_tolerance::promote_if_safe(draft, clean_corpus)` | promote a draft *iff* the gate passes (refuses an empty corpus) | the gate itself |
+| `antigen::learn::propose::anti_unify(cluster)` | `Option<Fingerprint>` | generalize a cluster into a **raw hypothesis** draft — inspection only, never promotable |
+| `antigen::learn::propose::propose(cluster, clean_corpus)` | `Result<PromotedDraft, ProposeOutcome>` | `anti_unify` **then** route through the self-tolerance gate — the **only path to a `PromotedDraft`** |
+| `antigen::learn::self_tolerance::evaluate(draft, clean_corpus)` | `ToleranceVerdict` | the spare-clean verdict for one draft (`Spared` / `BindsCleanItem`) |
+| `antigen::learn::self_tolerance::spare_clean(draft, clean_corpus)` | `bool` | shorthand for `evaluate(...).is_safe()` |
+| `antigen::learn::self_tolerance::promote_if_safe(draft, clean_corpus)` | `Result<PromotedDraft, ToleranceVerdict>` | promote a draft *iff* the gate passes (refuses an empty corpus) |
 
 ### The safety line, in code
 
-The promotable verb is `propose()` — `anti_unify()` followed by
-`promote_if_safe()`, the **only** way to get a promotable draft.
+The promotable verb is `propose()` — `anti_unify()` followed by the gate. Possession
+of the `PromotedDraft` it returns is the proof the gate passed; there is no other way
+to construct one.
 
 > **Name-collision gotcha (read this first).** The promotable function `propose`
 > lives in a module *also* named `propose`. So `use antigen::learn::propose;`
@@ -112,27 +110,34 @@ The promotable verb is `propose()` — `anti_unify()` followed by
 > `Display` — print it with `{:?}`.
 
 ```rust
-use antigen::learn::propose;  // the MODULE — call propose::propose(...)
+use antigen::learn::propose::{self, ProposeOutcome};
+use antigen::learn::self_tolerance::ToleranceVerdict;
 
 // `cluster`     — the marked sites you want to generalize (≥1 syn::Item)
 // `clean_corpus`— known-good siblings the draft MUST NOT bind (≥1 syn::Item)
 # fn run(cluster: &[syn::Item], clean_corpus: &[syn::Item]) {
-let draft = propose::propose(cluster, clean_corpus);
-
-match draft {
-    Some(fp) => {
-        // A SAFE draft: it generalized the cluster AND spared every clean sibling.
-        // It is still a HYPOTHESIS — a candidate to ratify, never an auto-asserted
+match propose::propose(cluster, clean_corpus) {
+    Ok(token) => {
+        // A PromotedDraft: it generalized the cluster, carries a discriminating
+        // signal, was exercised by a near-miss, AND spared every clean sibling.
+        // It is still a SUGGESTION — a candidate to ratify, never an auto-asserted
         // `#[presents]`. A human (or an incident) names the class.
-        println!("drafted (safe, unratified): {fp:?}");
+        println!("suggestion (tier {:?}): {:?}", token.tier(), token.fingerprint());
     }
-    None => {
-        // No safe draft. Either the cluster had no shared skeleton, OR the
-        // clean_corpus was empty (the gate refuses to certify safety against
-        // nothing), OR the draft bound a clean sibling (autoimmunity — rejected).
-        // NEVER fall back to promoting the raw anti_unify() output: that bypasses
-        // the gate and ships autoimmunity.
-        println!("no safe draft");
+    Err(ProposeOutcome::Rejected(ToleranceVerdict::NotCorpusWitnessable)) => {
+        // ROUTE-TO-HUMAN: the draft is safe but the corpus holds no near-miss, so
+        // the gate cannot certify it generalizes. First-class, not an error.
+        println!("safe, but routed to a human ratifier (no near-miss in the corpus)");
+    }
+    Err(ProposeOutcome::Rejected(ToleranceVerdict::BindsCleanItem { clean_index })) => {
+        // AUTOIMMUNE: the draft matched a clean-corpus item (or is bare-structural
+        // and over-general). Refused, so it can't flag known-good code.
+        println!("refused — the draft binds clean item {clean_index:?}");
+    }
+    Err(other) => {
+        // Degenerate (shares only shape), EmptyCluster, NoSharedSkeleton, or the
+        // defensively-handled Spared. Nothing safe to generalize.
+        println!("no candidate: {other:?}");
     }
 }
 # }
@@ -201,10 +206,13 @@ fn item_named_fn(file: &str, fn_name: &str) -> syn::Item {
 # let _ = item_named_fn;
 ```
 
-Antigen does exactly this on its **own** three `#[dread]`-marked sites — it
-clusters its own honest self-doubt, anti-unifies a draft, and promotes it only
-through the gate, sparing a clean sibling. That end-to-end run (with the test
-output on the page) is in [`the-felt-arc.md`](the-felt-arc.md).
+Antigen does exactly this on its **own** two `#[dread]`-marked silent-skip twins —
+it clusters its own honest self-doubt, anti-unifies a draft, routes it through the
+gate, and — because the draft is safe but the corpus holds no near-miss — **routes
+it to a human ratifier** rather than promoting it. The plumbing closes (anti-unify →
+gate → legible outcome); naming a class for itself is the v0.6 frontier. That
+end-to-end run (with the test output on the page) is in
+[`the-felt-arc.md`](the-felt-arc.md).
 
 ---
 
@@ -216,12 +224,13 @@ output on the page) is in [`the-felt-arc.md`](the-felt-arc.md).
   `#[antigen]`) is a human/incident act.
 - **The gate is corpus-bounded.** `spare_clean` is only as strong as the
   `clean_corpus` you supply — a larger, more representative corpus is a stronger
-  gate. (A known v2 sharpens the empty-vs-non-bindable-corpus edge; supply a real
-  corpus the draft *can* be tested against.)
-- **No production wiring yet.** The Learning-Core has zero production callers
-  today — it is the substrate a later cycle wires into a render/CLI. When that
-  happens, the "promote = `propose()` only" boundary (a doc convention today)
-  hardens into a type (a promoted-draft newtype).
+  gate. Supply a real corpus the draft *can* be tested against.
+- **The "promote = `propose()` only" boundary is a type, not a convention.**
+  `PromotedDraft` has no public constructor and no `Deserialize`, so the only way
+  to hold one is to pass the gate — it cannot be forged from a hand-written
+  `Fingerprint` or JSON. The CLI verb `cargo antigen propose` is the production
+  caller; on antigen's own marks it routes the draft to a human ratifier rather
+  than promoting it.
 
 See [`the-keystone-explained.md`](the-keystone-explained.md) for the
 first-principles account of *why* the safety line holds.
