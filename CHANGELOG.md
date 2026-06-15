@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed — the deprecated `#[immune]` macro (ADR-029)
+
+- **`#[immune]` is removed.** The v0.1 immunity-claim macro — deprecated since
+  ADR-029 (*immunity is observed, not declared*) — is no longer exported by
+  `antigen` / `antigen-macros` and no longer compiles. Migrate each site to the
+  observe-don't-declare idiom:
+  - `#[immune(X, witness = a_test)]` → `#[presents(X)]` on the site +
+    `#[defended_by(X)]` on the test.
+  - `#[immune(X, requires = <predicate>)]` → `#[presents(X, requires = <predicate>)]`.
+  - `#[immune(X, witness = <phantom>)]` → `#[presents(X, proof = <expr>)]`.
+
+  The [migration guide](docs/immune-migration-guide.md) walks each case. The
+  `requires =` / `proof =` predicate grammar is unchanged, so substrate-tier and
+  phantom-tier evidence migrates verbatim.
+- **Reading legacy `#[immune]` is retained.** The scanner still parses `#[immune]`
+  attributes in not-yet-migrated dependency crates and the structural digest still
+  treats the attribute as digest-neutral, so cross-crate audit of legacy code and
+  existing signatures are unaffected. Only the macro you can *write* against this
+  version is gone.
+
 ## [0.4.0-beta.1] — 2026-06-08
 
 **0.4.0-beta.1 — the immune-system-at-scale line (first beta).** v0.4 makes the new immune surface

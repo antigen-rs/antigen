@@ -1,5 +1,0 @@
-error: #[immune] `witness` must be a bare identifier or path to the verifying item (e.g. `witness = my_test`), not a string literal. `witness = "my_test"` silently never resolves at audit time because the resolver matches function names against the token, and a string literal carries its quotes. Drop the quotes: `witness = my_test`.
-  --> tests/ui/immune_witness_string_literal.rs:11:33
-   |
-11 | #[immune(SomeAntigen, witness = "my_test")]
-   |                                 ^^^^^^^^^

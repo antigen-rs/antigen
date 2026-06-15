@@ -230,28 +230,35 @@ the duplicate.
 
 ### "broken: no function named X found in any .rs file under the scan root"
 
-The witness identifier in `#[immune(Antigen, witness = some_fn)]` does not
-resolve to any function in the workspace.
+A witness identifier on a **legacy `#[immune(Antigen, witness = some_fn)]`** site
+does not resolve to any function in the workspace. (The `#[immune]` macro was
+removed in ADR-029, but the scanner still reads legacy `#[immune]` sites in
+not-yet-migrated crates and validates their witnesses, so this diagnostic can
+still fire on such code.)
 
 ```
-.\antigen\examples\broken_witness.rs:56  DemoBrokenWitness (witness = `nonexistent_test`)
+.\path\to\legacy_site.rs:NN  Antigen (witness = `some_fn`)
   tier = None, hint = NoneApplicable
-  → broken: no function named `nonexistent_test` found in any .rs file under the scan root
+  → broken: no function named `some_fn` found in any .rs file under the scan root
 ```
 
 **Cause**: the witness function doesn't exist, was renamed, or is in a
 file not under the scan root.
 
-**Fix**: either add the function, correct the name in `#[immune]`, or if
-there is genuinely no witness yet, replace with
+**Fix**: migrate the site off `#[immune]` to the ADR-029 idiom — put
+`#[presents(Antigen)]` on the site and `#[defended_by(Antigen)]` on the defending
+test (see the [migration guide](immune-migration-guide.md)). If there is
+genuinely no witness yet, mark the site
 `#[antigen_tolerance(Antigen, rationale = "no witness yet — intentional gap")]`.
 
 ---
 
 ### "ambiguous: witness name matches N workspace functions"
 
-The witness name in `#[immune]` resolves to multiple functions in the
-workspace. The audit cannot pick one.
+A witness name on a legacy `#[immune]` site resolves to multiple functions in
+the workspace, so the audit cannot pick one. (As above: `#[immune]` was removed
+in ADR-029, but the scanner still validates witnesses on legacy `#[immune]` sites
+in not-yet-migrated crates.)
 
 ```
   → ambiguous: witness name matches 2 workspace functions

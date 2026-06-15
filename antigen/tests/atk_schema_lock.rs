@@ -299,10 +299,14 @@ fn schema_lock_audit_witness_tier_variants() {
     let audits = json["audit"]["audits"]
         .as_array()
         .expect("audit.audits is an array");
-    assert!(
-        !audits.is_empty(),
-        "antigen/examples fixture should yield at least one audit entry"
-    );
+    // `audit.audits` is the legacy `#[immune]` witness-resolution channel. After
+    // the ADR-029 migration completed (the `#[immune]` macro was removed; the
+    // examples now use `#[presents(requires=...)]` + `#[defended_by]`), the
+    // examples carry NO `#[immune]` sites, so this array is legitimately empty.
+    // This is a SCHEMA lock, not a population check: every entry that *does*
+    // appear (e.g. when auditing a legacy crate that still uses `#[immune]`) must
+    // carry a `witness_tier` in the sealed four-tier set. An empty array trivially
+    // satisfies that — the lock is on the per-entry shape, not on count.
     for (i, a) in audits.iter().enumerate() {
         let tier = a["witness_tier"]
             .as_str()
@@ -377,10 +381,13 @@ fn schema_lock_audit_resolved_status_shape() {
         .as_array()
         .expect("audit.audits is an array");
 
-    // After ADR-029 migration, examples use #[presents(requires=...)] + #[defended_by]
-    // rather than #[immune(witness=...)]. The examples/broken_witness.rs still uses
-    // #[immune] (intentionally — shows the broken-witness failure mode) but its
-    // witness is "not found", not "resolved".
+    // The ADR-029 migration is complete: the `#[immune]` macro was removed, so the
+    // examples carry NO `#[immune(witness=...)]` sites — they use
+    // `#[presents(requires=...)]` + `#[defended_by]` instead (examples/broken_witness.rs
+    // now demonstrates an undefended `#[presents]` site, the ADR-029 equivalent of the
+    // old broken-witness failure mode). `audit.audits` (the legacy `#[immune]` channel)
+    // is therefore empty for the examples; this loop is vacuous here but still locks the
+    // resolved-entry shape for any legacy crate that does carry `#[immune]`.
     //
     // If any audit entry has "resolved" status, its shape must be valid.
     // If none are resolved (all migrated), that is now the correct state.

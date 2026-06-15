@@ -9,8 +9,11 @@ these macros. Direct use of `antigen-macros` is supported but not the primary pa
 **Macros provided** (all re-exported from `antigen`):
 
 - `#[antigen(...)]` — declare a named failure-class with a structural fingerprint
-- `#[presents(...)]` — mark code as exhibiting a failure-class pattern
-- `#[immune(...)]` — declare immunity with a witness reference
+- `#[presents(...)]` — mark code as exhibiting a failure-class pattern; carries
+  optional `requires = <predicate>` (substrate-tier) / `proof = <expr>`
+  (phantom-tier) site-attached evidence
+- `#[defended_by(...)]` — register a test/proptest as the observed code-tier
+  witness for a failure-class (ADR-029)
 - `#[descended_from(...)]` — propagate failure-class markers through structural derivation
 - `#[antigen_tolerance(...)]` — mark deliberate exceptions with rationale
 

@@ -270,7 +270,7 @@ aggregation; adversarial-verified correctness (ATK-CE-1, ATK-CE-2, ATK-CE-3-B fi
 The core vocabulary, scan + audit tooling, substrate-witness pipeline, Oracle artifact lifecycle, and team-coordination tooling are all live across 5 crates on crates.io (`antigen`, `antigen-macros`, `antigen-attestation`, `antigen-fingerprint`, `cargo-antigen`).
 
 ### Vocabulary + macros
-- **Five macros**: `#[antigen]`, `#[presents]`, `#[defended_by]`, `#[descended_from]`, `#[antigen_tolerance]` (plus the deprecated `#[immune]`, retained for backwards compatibility — see the [migration guide](immune-migration-guide.md))
+- **Five macros**: `#[antigen]`, `#[presents]`, `#[defended_by]`, `#[descended_from]`, `#[antigen_tolerance]` (the v0.1 `#[immune]` macro was **removed** in ADR-029 — see the [migration guide](immune-migration-guide.md))
 - **Cross-cutting attestation parameter**: `attested = (who, allowed_types, why, scope)` per ADR-020
 - **Phantom-type witness recognition** (ADR-013) — `Witnessed<T,W>`, `typewit::TypeEq`, hand-rolled `PhantomData<T>` shapes recognized at FormalProof tier
 - **Cross-crate identity** — `canonical_path` at `name@version` granularity (ADR-017); cross-crate `#[descended_from]` propagation in v0.2
@@ -337,8 +337,8 @@ each exercise the WHOLE primitive stack on different stress profiles:
    (infinite-recursion in predicate walker, path-traversal in sidecar
    read, silent arithmetic overflow in chain_depth, etc.); use
    `#[defended_by(X)]` on tests / `#[presents(X, requires=...)]` on sites
-   (the v0.2 ADR-029 idiom — the deprecated `#[immune(...)]` form still
-   compiles with a warning; migrate to the new forms). Add Oracle
+   (the ADR-029 idiom — the old `#[immune(...)]` form was removed; migrate
+   to the new forms). Add Oracle
    declarations for our own design decisions; coordination claims with
    multi-signer `requires`; discipline-attestation for schema
    commitments. The WHOLE primitive stack against ONE codebase.

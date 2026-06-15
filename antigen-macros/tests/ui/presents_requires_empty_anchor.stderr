@@ -1,0 +1,5 @@
+error: requires: `ratified_doc(anchor = "")` is vacuously true (NFA-14); str::contains("") always succeeds — specify a non-empty anchor string
+  --> tests/ui/presents_requires_empty_anchor.rs:11:26
+   |
+11 | #[presents(DummyAntigen, requires = ratified_doc(anchor = ""))]
+   |                          ^^^^^^^^

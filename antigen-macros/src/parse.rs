@@ -242,20 +242,6 @@ pub struct PresentsArgs {
     pub proof: Option<Expr>,
 }
 
-/// Arguments to `#[immune(antigen_type, witness = ..., [rationale = ...])]`.
-///
-/// Accepts EITHER `witness = <expr>` (code-tier immunity) OR
-/// `requires = <predicate>` (substrate-witness predicate, ADR-019).
-/// Providing both or neither is a compile error.
-pub struct ImmuneArgs {
-    pub antigen: Path,
-    pub witness: Option<Expr>,
-    /// Substrate-witness predicate (ADR-019). Mutually exclusive with `witness`.
-    pub requires: Option<(RequiresExpr, Span)>,
-    #[allow(dead_code)]
-    pub rationale: Option<String>,
-}
-
 /// Arguments to `#[descended_from(parent_path)]`.
 pub struct DescendedFromArgs {
     #[allow(dead_code)]
@@ -548,121 +534,6 @@ impl PresentsArgs {
             ));
         }
         Ok(())
-    }
-
-    /// If `requires` is set, return the JSON string for the predicate.
-    /// The scan layer reads this from the `antigen:requires:v1:` doc marker.
-    pub fn requires_json(&self) -> Option<String> {
-        self.requires.as_ref().map(|(pred, _)| pred.to_json())
-    }
-}
-
-// ============================================================================
-// ImmuneArgs parsing
-// ============================================================================
-
-impl Parse for ImmuneArgs {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let antigen: Path = input.parse()?;
-        let mut witness: Option<Expr> = None;
-        let mut requires: Option<(RequiresExpr, Span)> = None;
-        let mut rationale: Option<String> = None;
-
-        while !input.is_empty() {
-            input.parse::<Token![,]>()?;
-            if input.is_empty() {
-                break;
-            }
-            let key: Ident = input.parse()?;
-            let key_span = key.span();
-            input.parse::<Token![=]>()?;
-            match key.to_string().as_str() {
-                "witness" => {
-                    witness = Some(input.parse()?);
-                },
-                "requires" => {
-                    let pred: RequiresExpr = input.parse()?;
-                    requires = Some((pred, key_span));
-                },
-                "rationale" => {
-                    let lit: LitStr = input.parse()?;
-                    rationale = Some(lit.value());
-                },
-                other => {
-                    return Err(syn::Error::new(
-                        key.span(),
-                        format!(
-                            "unknown #[immune] field `{other}`; expected one of: \
-                             witness, requires, rationale"
-                        ),
-                    ));
-                },
-            }
-        }
-
-        Ok(Self {
-            antigen,
-            witness,
-            requires,
-            rationale,
-        })
-    }
-}
-
-impl ImmuneArgs {
-    pub fn validate(&self) -> syn::Result<()> {
-        match (&self.witness, &self.requires) {
-            (None, None) => Err(syn::Error::new_spanned(
-                &self.antigen,
-                "#[immune] requires either `witness = ...` (code-tier: a test, proptest, \
-                 lint reference, formal-verification proof, or phantom-type construction) \
-                 or `requires = <predicate>` (substrate-witness predicate, ADR-019). \
-                 A marker without proof is not a claim.",
-            )),
-            (Some(_), Some((_, span))) => Err(syn::Error::new(
-                *span,
-                "#[immune] accepts either `witness = ...` or `requires = ...`, not both. \
-                 For compound evidence across code-tier and substrate-tier (e.g., \
-                 hybrid antigens per ADR-028), stack two `#[immune]` attributes on \
-                 the same item — one with `witness = ...`, one with `requires = ...`. \
-                 Audit treats stacked `#[immune]` attributes as independent coverage \
-                 entries.",
-            )),
-            (_, Some((pred, span))) => pred.validate(*span),
-            (Some(witness), None) => {
-                // A witness must be a bare identifier or path to the verifying
-                // item (a test fn, lint reference, proof, or phantom-type
-                // construction). A STRING LITERAL (`witness = "my_test"`) is
-                // accepted by `Expr` parsing but silently never resolves: the
-                // audit-time resolver compares fn names against the witness
-                // token, and a string literal carries its quote characters, so
-                // it searches for a fn literally named `"my_test"` and always
-                // reports "broken: no function found." Reject it loudly here —
-                // the macro is the earliest, clearest place to catch the
-                // mis-shape (ADR-005 sub-clause F: a trust-boundary input
-                // accepted in an unhonorable shape is not a valid claim).
-                if let Expr::Lit(syn::ExprLit {
-                    lit: syn::Lit::Str(s),
-                    ..
-                }) = witness
-                {
-                    return Err(syn::Error::new_spanned(
-                        witness,
-                        format!(
-                            "#[immune] `witness` must be a bare identifier or path to the \
-                             verifying item (e.g. `witness = my_test`), not a string literal. \
-                             `witness = \"{}\"` silently never resolves at audit time because \
-                             the resolver matches function names against the token, and a \
-                             string literal carries its quotes. Drop the quotes: \
-                             `witness = {}`.",
-                            s.value(),
-                            s.value()
-                        ),
-                    ));
-                }
-                Ok(())
-            },
-        }
     }
 
     /// If `requires` is set, return the JSON string for the predicate.
@@ -5193,32 +5064,6 @@ mod tests {
         assert!(err.contains("fingerprint"), "got: {err}");
     }
 
-    #[test]
-    fn immune_parser_requires_witness() {
-        let tokens: TokenStream = r"PanickingInDrop".parse().unwrap();
-        let args = syn::parse2::<ImmuneArgs>(tokens).unwrap();
-        assert!(args.validate().is_err());
-    }
-
-    #[test]
-    fn immune_parser_accepts_witness_path() {
-        let tokens: TokenStream = r"PanickingInDrop, witness = my::module::test_fn"
-            .parse()
-            .unwrap();
-        let args = syn::parse2::<ImmuneArgs>(tokens).unwrap();
-        assert!(args.witness.is_some());
-        assert!(args.validate().is_ok());
-    }
-
-    #[test]
-    fn immune_parser_accepts_rationale() {
-        let tokens: TokenStream = r#"X, witness = my_test, rationale = "checked manually""#
-            .parse()
-            .unwrap();
-        let args = syn::parse2::<ImmuneArgs>(tokens).unwrap();
-        assert_eq!(args.rationale.as_deref(), Some("checked manually"));
-    }
-
     // Witness for #[immune(UnvalidatedSealedEnumAcceptance, ...)] on
     // DiagnosticArgs::validate — the sealed WitnessClass set is enforced at
     // parse/validate time; a non-variant ident must be rejected, not silently
@@ -7139,45 +6984,6 @@ mod parser_props {
             prop_assert_eq!(&args.references, &refs);
         }
 
-        // P7 — ImmuneArgs: any valid (path, witness-path) pair parses
-        // and validate() accepts.
-        //
-        // Strategy note: `[a-z][a-z_0-9]{0,8}` can generate Rust reserved
-        // words (fn, if, in, let, mod, …). syn rejects reserved words as
-        // path segments, so we filter them out. The filter does not weaken the
-        // property: the invariant is about VALID witness paths, and keywords
-        // are not valid path segments.
-        #[test]
-        fn immune_parser_accepts_witness(
-            antigen in "[A-Z][A-Za-z0-9]{0,16}",
-            witness_segments in proptest::collection::vec(
-                "[a-z][a-z_0-9]{0,8}".prop_filter("must not be a Rust keyword", |s| {
-                    !RUST_KEYWORDS.contains(&s.as_str())
-                }),
-                1..4usize,
-            ),
-        ) {
-            let witness = witness_segments.join("::");
-            let body = format!("{antigen}, witness = {witness}");
-            let tokens: TokenStream = body.parse().expect("body tokenizes");
-            let args = syn::parse2::<ImmuneArgs>(tokens).expect("body parses");
-            prop_assert!(args.witness.is_some());
-            prop_assert!(args.validate().is_ok());
-        }
-
-        // P8 — ImmuneArgs: missing witness => validate() errors with
-        // the witness-required message. (The Parse impl accepts a bare
-        // antigen path; validate() is the trust-boundary check.)
-        #[test]
-        fn immune_parser_validate_rejects_missing_witness(
-            antigen in "[A-Z][A-Za-z0-9]{0,16}",
-        ) {
-            let tokens: TokenStream = antigen.parse().expect("antigen tokenizes");
-            let args = syn::parse2::<ImmuneArgs>(tokens).expect("bare path parses");
-            prop_assert!(args.witness.is_none());
-            let err = args.validate().unwrap_err().to_string();
-            prop_assert!(err.contains("witness"), "validate must mention `witness`, got: {err:?}");
-        }
     }
 
     // ========================================================================

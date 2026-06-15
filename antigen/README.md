@@ -12,7 +12,8 @@ The core library of the [antigen project](https://github.com/antigen-rs/antigen)
 
 - `#[antigen(name = "...", fingerprint = "...")]` — declare a named failure-class
 - `#[presents(antigen)]` — mark code as vulnerable to a known failure-class
-- `#[immune(antigen, witness = ...)]` — declare immunity with proof requirement
+  (with optional `requires = ...` / `proof = ...` site-attached evidence)
+- `#[defended_by(antigen)]` — register a test as the observed code-tier witness
 - `#[descended_from(...)]` — propagate antigen markers through derivation
 
 Together with the [`cargo-antigen`](https://crates.io/crates/cargo-antigen) extension,

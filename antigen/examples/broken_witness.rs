@@ -1,9 +1,9 @@
-//! Adversarial example: declares an immunity with a witness identifier that
-//! does NOT resolve to a real function. `cargo antigen audit` MUST flag this.
+//! Adversarial example: a site declares it *presents* a failure-class but no
+//! witness ever defends it. `cargo antigen audit` MUST flag this as undefended.
 //!
 //! This is the failing-as-passing pattern at the project level: the example
-//! "fails" (the witness is broken) and the audit "passes" by correctly
-//! identifying the failure.
+//! "fails" (the defense is missing) and the audit "passes" by correctly
+//! identifying the gap.
 //!
 //! Run:
 //!
@@ -11,16 +11,24 @@
 //! cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
 //! ```
 //!
-//! Expected output: 1 broken witness (`nonexistent_test`).
+//! Expected output: the `LooksImmuneButIsnt` presents-site reported as
+//! **undefended** — no `#[defended_by(DemoBrokenWitness)]` test registers a
+//! defense for it.
+//!
+//! ## ADR-029 note (immunity is observed, not declared)
+//!
+//! The old `#[immune(X, witness = a_test)]` form — which let the site *name* its
+//! own witness, so a witness identifier could be broken (point at a function
+//! that doesn't exist) — was removed (ADR-029). Defense is now *observed* by the
+//! audit: a `#[defended_by(X)]` test registers what it defends, and the audit
+//! cross-references it to the `#[presents(X)]` site. The failure mode this
+//! example demonstrates is the ADR-029 equivalent of a broken witness: a
+//! presents-site whose defense never resolves — here, because no `#[defended_by]`
+//! test exists at all.
 
 #![allow(dead_code)]
-// This example intentionally demonstrates the (deprecated, still-functional)
-// #[immune] API — broken_witness exists to show #[immune]'s broken-witness
-// failure mode, so it must keep using #[immune]. ADR-029 deprecates #[immune];
-// the deprecation warning is allowed here deliberately.
-#![allow(deprecated)]
 
-use antigen::{antigen, immune, presents};
+use antigen::{antigen, presents};
 
 #[antigen(
     name = "demo-broken-witness",
@@ -42,22 +50,18 @@ use antigen::{antigen, immune, presents};
     // `basic.rs`'s `PanickingInDrop` fingerprint for a recall-tuned
     // example that uses `body_contains_macro(...)` to narrow.
     fingerprint = r#"name = matches("Looks*")"#,
-    summary = "Demonstrates audit catching a broken witness identifier."
+    summary = "Demonstrates audit catching an undefended presents-site."
 )]
 pub struct DemoBrokenWitness;
 
-/// Demonstration type that LOOKS immune to `DemoBrokenWitness` but isn't —
-/// the witness function the immunity claim names doesn't actually exist.
+/// Demonstration type that LOOKS defended against `DemoBrokenWitness` but isn't
+/// — it declares `#[presents]` but no `#[defended_by]` test ever registers a
+/// defense, so the audit reports it undefended.
 pub struct LooksImmuneButIsnt {
     inner: String,
 }
 
 #[presents(DemoBrokenWitness)]
-#[immune(
-    DemoBrokenWitness,
-    witness = nonexistent_test,
-    rationale = "This witness function does not actually exist; audit should catch it."
-)]
 impl LooksImmuneButIsnt {
     /// Create a new (empty) instance for the demonstration.
     #[must_use]
@@ -75,6 +79,6 @@ impl Default for LooksImmuneButIsnt {
 }
 
 fn main() {
-    println!("antigen audit demo: see broken witness in action.");
+    println!("antigen audit demo: see an undefended presents-site in action.");
     println!("Run `cargo run --bin cargo-antigen -- antigen audit --root antigen/examples`");
 }
