@@ -7356,6 +7356,34 @@ the site is NOT defended.
 
 ---
 
+### Amendment: the `#[immune]` deprecation completed in removal (2026-06-14)
+
+**Supersedes** the §Mechanics line "`#[immune]`: deprecated, still parses (no breaking
+change), emits compiler warning" — that recorded the *deprecation* phase. The
+deprecation lifecycle has now reached its terminal state:
+
+**The `#[immune]` proc-macro is removed.** It is no longer defined in `antigen-macros`
+nor re-exported from `antigen`; code that applies `#[immune]` no longer compiles. This
+is a deliberate **breaking change** (hence semver-major-signalled), the completion of
+the backward-compatible deprecation path the original Decision promised — *not* a
+reversal of it. The Decision (immunity is observed via `#[defended_by]` / `#[presents]`)
+is unchanged; only the deprecated carrier is gone.
+
+**Retained — reading legacy `#[immune]`.** Removing the macro does NOT remove the
+audit's ability to *read* `#[immune]` written in not-yet-migrated dependency crates.
+The scan-side reader (`scan::ScanImmuneArgs`, `scan::Immunity`, the
+`audit::immunity` pipeline) source-walks `#[immune]` as text via `syn`, independent of
+macro expansion, and the structural digest keeps `immune` in `ANTIGEN_OWNED_ATTRS` so a
+legacy item's signature stays stable. The supersession is of `#[immune]` *as a
+user-facing primitive you can author* — exactly the scope the original "Supersedes"
+clause named — never of cross-crate legacy-audit compatibility.
+
+**Migration** is the unchanged R5 mapping (code-tier → `#[presents]` + `#[defended_by]`;
+substrate-tier → `#[presents(requires=...)]`; phantom-tier → `#[presents(proof=...)]`),
+walked in [`immune-migration-guide.md`](immune-migration-guide.md).
+
+---
+
 ## [ADR-030] Aggregate and Temporal Properties Are Audit-Observed
 
 **Status**: Ratified 2026-05-27.
