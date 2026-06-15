@@ -22,10 +22,24 @@
 //!
 //! | mutation (in `self_tolerance.rs`)            | claim broken          | caught by |
 //! |----------------------------------------------|-----------------------|-----------|
-//! | defeat the `len >= 2` near-miss guard        | empty-drop vacuity (N4)| unit `single_conjunct_..._empty_drop` + invariant 1 |
+//! | defeat the `len >= 2` near-miss guard        | empty-drop vacuity (N4)| **subsumed by Amd2** (see note below) — table row kept honest |
 //! | `has_discriminating_conjunct` → always-true  | (A)-binary refusal     | unit `bare_structural_..._autoimmune` + **invariant 5** |
 //! | `corpus_witnesses_draft` → always-true       | route-to-human         | unit `near_miss_verdict_invariant_to_corpus_item_class` |
 //! | `evaluate` → always `Spared` (defeat spare-clean) | autoimmunity ships | unit `rejects_the_naive_autoimmune_draft` + **invariant 4** |
+//!
+//! **The M1 row (`len >= 2`) is subsumed — and that is itself a finding antigen
+//! catches.** When the original sweep ran (2026-06-11), defeating `len >= 2` went
+//! RED. It no longer does: ADR-047 **Amendment 2**'s remainder-discriminates guard
+//! (`is_near_miss`, `self_tolerance.rs` ~352) closes the empty-drop vacuity (N4)
+//! *independently* — a single-conjunct draft drops to an EMPTY remainder, and
+//! `has_discriminating_conjunct(empty) == false` rejects it. So Amd2 took over
+//! M1's sole correctness job; deleting `len >= 2` now leaves the whole suite green.
+//! `len >= 2` is **retained** as a fast-path short-circuit (an empty/1-conjunct
+//! draft never reaches the `.any` drop-loop) and as defense-in-depth — NOT removed,
+//! because removing it edits the certified GATE-G core (a v0.6 design call). The row
+//! is kept and annotated rather than deleted so this teeth-registry stops asserting
+//! a mutation→catcher mapping that no longer holds — a stale teeth-table is itself
+//! the comment-asserted-property drift-class antigen exists to catch.
 //!
 //! **Two invariants were green-but-TOOTHLESS in their first form and the sweep
 //! caught it** (the value of the negative control made concrete):
