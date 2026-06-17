@@ -1276,111 +1276,12 @@ fn atk_a3_018_retire_to_documentation_is_evasion_surface_without_guards() {
     panic!("Meta-level process contract — retire-to-documentation guards");
 }
 
-// ============================================================================
-// ATK-A3-019: audit `resolved_count` conflates FormalProof and Reachability
-//             under a single misleading label in human-readable output.
-//
-// Finding source: Phase 2 examples adversarial review (A3.5 onboarding sweep).
-// The phantom_witness.rs example promised "see WitnessTier::FormalProof in
-// the audit output" but the human-readable output showed nothing — the
-// FormalProof claim was silently subsumed into resolved_count and labeled
-// "declared (witness identifier found in workspace — not yet semantically
-// verified)".
-//
-// Root cause: cargo-antigen/src/main.rs:511 prints one label for all
-// WitnessStatus::Resolved entries regardless of WitnessTier. The tier
-// breakdown (Reachability vs FormalProof) exists in the data but is not
-// surfaced in the human-readable audit summary.
-//
-// Impact (MEDIUM):
-//   1. Users who add a phantom-type witness see no positive signal that the
-//      FormalProof tier was recognized. The audit output looks identical
-//      before and after they add the witness. Absence-of-warning is a weak
-//      feedback signal; a confirmation line is required for the feature to
-//      be pedagogically complete.
-//   2. The label "not yet semantically verified" is factually wrong for
-//      FormalProof witnesses: the audit HAS semantically classified them —
-//      it recognized the turbofish pattern and ascribed the strongest tier
-//      available at v0.1. Calling that "not yet semantically verified" is
-//      misleading.
-//   3. A user comparing two projects — one with Reachability witnesses,
-//      one with FormalProof witnesses — cannot distinguish them from the
-//      human-readable audit. Both show "N declared ... not yet semantically
-//      verified" with the same wording. The stronger guarantee is invisible.
-//
-// Proposed fix (two options, pathmaker decides):
-//   Option A (preferred): break resolved_count into tier sub-counts in the
-//   human-readable summary. Something like:
-//     - 1 declared at Reachability (test function found)
-//     - 1 declared at FormalProof (phantom-type pattern recognized)
-//
-//   Option B (minimal): add a confirmed-claims section to human-readable
-//   audit output listing above-Execution-tier claims with their tier name,
-//   parallel to the existing below-Execution-tier warning section. The
-//   phantom-type claim appears there, not in warnings.
-//
-// Note: this is NOT a correctness bug. The JSON output is accurate. This is
-// a UX/observability gap that makes the FormalProof feature invisible to
-// users relying on the default human-readable output.
-//
-// Status: #[ignore] gated on pathmaker deciding Option A vs B and
-// implementing the human-readable output change.
-// ============================================================================
-
-#[test]
-fn atk_a3_019_audit_resolved_count_conflates_formal_proof_and_reachability() {
-    // Contract (now GREEN per A3.5 fix, commit pending at fix-time): `cargo
-    // antigen audit --root antigen/examples` human-readable output
-    // distinguishes phantom-type witnesses (FormalProof tier) from
-    // function witnesses (Reachability tier) in BOTH the audit summary
-    // (per-tier sub-counts) AND a dedicated confirmed-claims section.
-    //
-    // Pathmaker chose to ship both Option A (per-tier sub-counts) and
-    // Option B (confirmed-claims section) — overlapping coverage. The
-    // summary breaks `resolved_count` into a "formal-proof" line + a
-    // "declared" (Reachability) line; the confirmed-claims section lists
-    // above-Execution-tier claims explicitly with their tier name.
-    //
-    // Test oracle: shell out to the cargo-antigen binary and assert that
-    // its stdout contains "FormalProof" (the tier name) AND
-    // "formal-proof" (the new summary sub-count label). Both must be
-    // visible without --format json.
-    use std::process::Command;
-    let manifest_dir = env!("CARGO_MANIFEST_DIR");
-    let workspace_root = std::path::Path::new(manifest_dir)
-        .parent()
-        .expect("antigen crate has a workspace parent");
-    let examples_root = workspace_root.join("antigen").join("examples");
-    let output = Command::new("cargo")
-        .arg("run")
-        .arg("-q")
-        .arg("--bin")
-        .arg("cargo-antigen")
-        .arg("--")
-        .arg("antigen")
-        .arg("audit")
-        .arg("--root")
-        .arg(&examples_root)
-        .current_dir(workspace_root)
-        .output()
-        .expect("cargo run cargo-antigen must succeed (cargo on PATH)");
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    // ADR-029 (2026-05-27): phantom-type proof now surfaces via `#[presents(proof=...)]`
-    // on the presentation site, not via `#[immune(witness=<phantom>)]`. The audit output
-    // shows "defended at FormalProof" in the immune-state verdicts (presentation verdict
-    // surface), not in the immunity audit summary sub-count. Both assertions verify the
-    // FormalProof tier is observable in human-readable output without --format json.
-    assert!(
-        stdout.contains("FormalProof"),
-        "human-readable audit output must contain the tier name `FormalProof` \
-         (immune-state verdicts section: 'defended at FormalProof'); got stdout:\n{stdout}"
-    );
-    assert!(
-        stdout.contains("FormalProof")
-            || stdout.contains("formal-proof")
-            || stdout.contains("formal proof"),
-        "human-readable audit output must distinguish FormalProof from Reachability \
-         in either the presentation verdicts or the immunity summary sub-count; \
-         got stdout:\n{stdout}"
-    );
-}
+// NOTE: ATK-A3-019 (audit human-readable FormalProof/Reachability tier label)
+// lived here historically but had to shell out to the binary via a NESTED
+// `cargo run --bin cargo-antigen` (this `antigen` crate does not depend on
+// `cargo-antigen`, so `CARGO_BIN_EXE_cargo-antigen` is not injected here). That
+// nested `cargo run` raced the workspace target lock under `cargo test
+// --workspace` (cold-run flake). It now lives at
+// `cargo-antigen/tests/atk_a3_audit_tier_label_cli.rs`, where it uses the
+// lock-free `env!("CARGO_BIN_EXE_cargo-antigen")` idiom shared by its ~20
+// binary-shelling siblings. Same assertion, same corpus, zero behavior change.

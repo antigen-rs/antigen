@@ -207,8 +207,11 @@ goes through B:
 ```rust
 // the ONLY path to a promotable fingerprint (C ══ B, ADR-045):
 let clean_corpus = vec![ /* strict_walk: walks files but propagates errors with `?` */ ];
-let promoted: Option<Fingerprint> = propose::propose(&twins, &clean_corpus);
+let promoted: Result<PromotedDraft, propose::ProposeOutcome> =
+    propose::propose(&twins, &clean_corpus);
 //   propose() == anti_unify() THEN promote_if_safe() — never one without the other.
+//   Ok(PromotedDraft) is the capability-token B blessed; every refusal is a legible
+//   Err(ProposeOutcome::…), never a bare `None` (ADR-047/048/056).
 ```
 
 > Yes, that's `propose::propose` — the promotable verb is a `fn` named `propose`
@@ -221,12 +224,20 @@ let promoted: Option<Fingerprint> = propose::propose(&twins, &clean_corpus);
 
 ```rust
 // antigen/src/learn/self_tolerance.rs
-pub fn promote_if_safe(draft: Fingerprint, clean_corpus: &[syn::Item]) -> Option<Fingerprint> {
+pub fn promote_if_safe(
+    draft: Fingerprint,
+    clean_corpus: &[syn::Item],
+) -> Result<PromotedDraft, ToleranceVerdict> {
     if clean_corpus.is_empty() {
-        return None; // cannot certify safety against NOTHING — a vacuous spare-clean
-                     // is "autoimmunity with a green check."
+        // cannot certify safety against NOTHING — a vacuous spare-clean is
+        // "autoimmunity with a green check."
+        return Err(ToleranceVerdict::BindsCleanItem { clean_index: None });
     }
-    if spare_clean(&draft, clean_corpus) { Some(draft) } else { None }
+    // ... (A)-binary + near-miss refusals ...
+    match evaluate(&draft, clean_corpus) {
+        ToleranceVerdict::Spared => Ok(PromotedDraft { /* the gate-blessed token */ }),
+        binds => Err(binds), // the draft reached clean — B refused, with a reason
+    }
 }
 ```
 
@@ -245,16 +256,19 @@ the guarantee:
 
 ```rust
 // antigen/tests/learn_dogfood_propose.rs — the line that must never pass:
-if let Some(draft) = &promoted {
+if let Ok(token) = &promoted {
+    let draft = token.fingerprint();
     assert!(!draft.matches(&clean_corpus[0]),
         "a PROMOTED draft must SPARE the clean sibling — if it binds clean, B was bypassed");
 }
-// promoted == None is ALSO safe: it means the draft reached clean and B correctly refused.
+// An Err(ProposeOutcome::Rejected(..)) is ALSO safe: it means the draft reached clean
+// (or had no near-miss) and B correctly refused — the refusal carries its reason.
 ```
 
 Read that last comment slowly. **Both outcomes are safe.** A promotion means B
-verified the draft spares clean. A `None` means B caught an over-binder and pruned
-it. There is no third outcome where a clean-flagging draft escapes. That's
+verified the draft spares clean. An `Err` means B caught an over-binder (or an
+un-witnessable draft) and refused — *with a legible reason*, never a bare `None`.
+There is no third outcome where a clean-flagging draft escapes. That's
 self-tolerance: the discipline that keeps an immune system from attacking its own
 body, made into a gate you can watch hold.
 
