@@ -49,17 +49,18 @@ Add antigen to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-antigen = "0.4.0-beta.1"   # the first v0.4 beta — prescriptive family + the failure-class families
+antigen = "0.5.0-beta.1"   # the first v0.5 beta — the learning surface + the failure-class families
 ```
 
 Install the cargo subcommand:
 
 ```sh
-cargo install cargo-antigen --version 0.4.0-beta.1
+cargo install cargo-antigen --version 0.5.0-beta.1
 ```
 
-> `cargo install cargo-antigen --version 0.4.0-beta.1` installs the v0.4 beta — the full
-> v0.4 surface is included.
+> `cargo install cargo-antigen --version 0.5.0-beta.1` installs the v0.5 beta — the full
+> v0.4 surface (bundled catalog, `--message-format json` flycheck, diff-native DETECT) plus the
+> v0.5 learning surface (`cargo antigen propose`) is included.
 
 Verify:
 

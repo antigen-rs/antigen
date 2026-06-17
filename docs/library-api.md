@@ -17,11 +17,11 @@
 
 ```toml
 [dependencies]
-antigen = "0.4.0-beta.1"     # the scan + learn library surfaces
+antigen = "0.5.0-beta.1"     # the scan + learn library surfaces
 # The Learning-Core returns `antigen_fingerprint::Fingerprint` values. If you
 # want to *name* that type (store it, match on it, print it), add the fingerprint
 # crate too — antigen does not currently re-export it:
-antigen-fingerprint = "0.4.0-beta.1"
+antigen-fingerprint = "0.5.0-beta.1"
 syn = "2"                    # you supply `syn::Item`s to the learner
 ```
 

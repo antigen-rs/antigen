@@ -41,7 +41,7 @@ declare your own first antigen — quickstart shows you how:
 
 ```toml
 [dependencies]
-antigen = "0.4.0-beta.1"   # check crates.io for the latest version
+antigen = "0.5.0-beta.1"   # check crates.io for the latest version
 ```
 
 ---

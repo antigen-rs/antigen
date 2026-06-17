@@ -200,7 +200,7 @@ Add antigen as a dependency:
 
 ```toml
 [dependencies]
-antigen = "0.4.0-beta.1"   # check crates.io for the latest version
+antigen = "0.5.0-beta.1"   # check crates.io for the latest version
 ```
 
 Now declare your first antigen. The full walkthrough lives in [`docs/tutorial.md`](docs/tutorial.md) — your first 15 minutes, end-to-end, with a real failure-class.
