@@ -5,7 +5,61 @@ All notable changes to the antigen project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.0-beta.1] — 2026-06-17
+
+**0.5.0-beta.1 — The Learning Organism (first v0.5 beta).** v0.4 shipped the safety-governed
+Learning-Core (`antigen::learn`) as a *library with zero production callers*. v0.5 gives it its
+first caller and takes it **live**: `cargo antigen propose` anti-unifies a candidate
+failure-class fingerprint from a cluster of `#[dread]`-marked sites and routes it — through the
+hardened self-tolerance gate — to a **human ratifier**. The machine supplies the syntactic half;
+a human ratifies the semantic half. The strange-loop payoff (antigen naming a class from its own
+worries) is honestly the v0.6 frontier: on real code `propose` *routes-to-human*, it does **not
+yet** promote. The keystone went live sound and honest, witnessed by a fresh author-distinct
+panel.
+
+### ⚠️ Breaking — the 0.4-beta `antigen::learn` API was REPLACED (do not build on `0.4.0-beta.1`)
+
+The `0.4.0-beta.1` Learning-Core shipped as a *preview library with zero callers*, and its own
+changelog warned it "may still move before `0.4.0` stable." It did — comprehensively. v0.5
+rewrote it **before** wiring the first caller:
+
+- `propose(...) -> Option<Fingerprint>` → `-> Result<PromotedDraft, ProposeOutcome>`.
+- `promote_if_safe(...) -> Option<Fingerprint>` → `-> Result<PromotedDraft, ToleranceVerdict>`.
+- **New `PromotedDraft` capability token (ADR-048):** "promote only through the gate" is now a
+  *type* guarantee — no public constructor, no `Deserialize` — not a convention.
+- **GATE-G hardening (ADR-047):** the self-tolerance vacuity (a latent `0.4` hole, unreachable
+  at zero callers) is closed by near-miss non-vacuity + a recursive canonical form.
+
+**`0.4.0-beta.1` is superseded, not promoted to stable.** It was a beta *precisely because* the
+keystone had no callers; rather than earning stable in place, the keystone was replaced. **Do
+not depend on the `0.4-beta` `antigen::learn` API — move to 0.5.** (The v0.4 *user-facing*
+surfaces — bundled stdlib catalog, `--message-format json` editor flycheck, diff-native DETECT —
+carry forward unchanged and battle-tested; they are not affected.)
+
+### Added — `cargo antigen propose`: the keystone goes live (ADR-044/045/047/048)
+
+- **`cargo antigen propose --cluster-root <dir> --clean-root <dir>`** — the first production
+  caller of the Learning-Core. Scans `#[dread]`-marked sites syntactically, clusters by
+  structural shape, anti-unifies a candidate fingerprint, and routes the outcome through the
+  gate: **route-to-human** (a safe draft the supplied corpus can't witness → a human ratifies),
+  **promote-suggestion** (a near-miss-gated ratifiable draft), or **autoimmune-refusal** (a
+  draft that binds clean code).
+- **`--clean-root` is REQUIRED** — the operator supplies the clean corpus. Deciding "is this
+  code clean *everywhere*?" is undecidable (Rice's theorem), so the gate is human-bounded by
+  design, never silently inferred. `collect_clean_corpus` hard-errors on an unreadable corpus
+  rather than narrowing it.
+- `--marker` (default `dread`), `--format human|json`. The render is typed on
+  `Result<PromotedDraft, ProposeOutcome>` — a bare `Fingerprint` cannot reach the suggestion
+  surface. A runnable **`examples/propose-demo/`** shows the route-to-human and promote paths
+  against the real binary, output captured verbatim.
+
+### Added — world-class documentation for the learning surface
+
+- `propose` is taught across the doc suite (`cli-reference`, `README`, `glossary`, `the-felt-arc`,
+  `the-learning-loop`, `the-v05-story`, `examples-guide`), **every example RUN-verified against
+  the binary**; the full v0.5 vocabulary (`dread`/`aura`/`anti-unify`/`GATE-G`/`PromotedDraft`/
+  `near-miss`/`clean-corpus`/`route-to-human`) anchored in the glossary; honest-scope throughout
+  (route-to-human, never "immunized itself" — the payoff is named as the v0.6 frontier).
 
 ### Removed — the deprecated `#[immune]` macro (ADR-029)
 
