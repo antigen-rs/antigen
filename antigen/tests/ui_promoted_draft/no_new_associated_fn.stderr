@@ -1,8 +1,8 @@
-error[E0599]: no function or associated item named `new` found for struct `PromotedDraft` in the current scope
+error[E0599]: no associated function or constant named `new` found for struct `PromotedDraft` in the current scope
   --> tests/ui_promoted_draft/no_new_associated_fn.rs:14:34
    |
 14 |     let _forged = PromotedDraft::new(fp);
-   |                                  ^^^ function or associated item not found in `PromotedDraft`
+   |                                  ^^^ associated function or constant not found in `PromotedDraft`
    |
 help: there is a method `ne` with a similar name
    |
