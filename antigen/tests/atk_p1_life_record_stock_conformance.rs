@@ -57,12 +57,13 @@
 //! DEFINES P1's done, handed to the STOCK pathmaker).
 //!
 //! ----------------------------------------------------------------------------
-//! STATUS: P1a LANDED (v0.6 Pioneers). The file-level born-red gate is DROPPED —
-//! the four P1a asserts below now compile against the real
-//! `antigen::learn::life_record` and are GREEN (the live regression spec). The
-//! ONE P1b test (`hand_authored_story_diverging_from_the_score_is_flagged`) stays
-//! gated behind `feature = "stock-score-born-red"` — it needs MATURE's score type
-//! (the `Scored` event + `check_story_coherence`), which is downstream.
+//! STATUS: P1a + P1b LANDED (v0.6 Pioneers). The file-level born-red gate is
+//! DROPPED — the four P1a asserts AND the P1b coherence test
+//! (`hand_authored_story_diverging_from_the_score_is_flagged`) now compile against
+//! the real `antigen::learn::life_record` and are GREEN (the live regression
+//! spec). P1b's score type (`LifeEvent::Scored(Affinity)`) + typed narration
+//! (`LifeEvent::Narrated { claimed: Trend, note }`) + `check_story_coherence` all
+//! exist, so the coherence test is ungated.
 //! ----------------------------------------------------------------------------
 
 // NOTE TO THE STOCK PATHMAKER: the names below (LifeRecord, LifeEvent, Actor, …) are
@@ -222,11 +223,10 @@ fn current_state_derives_from_events_never_stored_as_a_claim() {
 
 // ---------------------------------------------------------------------------
 // 5. STORY-STRUCT COHERENCE (persona-c REQ-4) — the hand-authored WRITE-seam.
-//    DEFERRED: this case needs the SCORE field (a hand-authored "maturing well"
-//    contradicted by a DROPPING score-trajectory) — and the score field is
-//    MATURE-gated (P1b, downstream of the affinity-2-vector TYPE), NOT turn-zero.
-//    Gated separately so the turn-zero P1a build (events + projection) is not
-//    blocked on MATURE. Lands when the score-trajectory field exists.
+//    P1b LANDED: the SCORE field (LifeEvent::Scored(Affinity)) + the typed
+//    narration (LifeEvent::Narrated { claimed: Trend, note }) + the coherence-check
+//    (check_story_coherence) all exist now, so this case is no longer gated — it
+//    runs in the default build as the live regression spec.
 // ---------------------------------------------------------------------------
 
 /// persona-c REQ-4 (aristotle's criterion #3, the WRITE-seam that survives the READ
@@ -237,30 +237,39 @@ fn current_state_derives_from_events_never_stored_as_a_claim() {
 /// covered by `prose_is_a_one_way_rendering_of_the_events`; this pins the hand-authored
 /// path (b). Free-text-only with no coherence path is the born-red failure.)
 ///
-/// SEQUENCING: needs the score-trajectory field → MATURE-gated (P1b), not turn-zero.
+/// SEQUENCING: the score-trajectory field (P1b) now exists — this runs ungated.
 #[test]
-#[cfg(feature = "stock-score-born-red")] // separate gate: MATURE's score type must exist
 fn hand_authored_story_diverging_from_the_score_is_flagged() {
+    use antigen::learn::affinity::Affinity;
+    use antigen::learn::life_record::Trend;
+
     let mut rec = LifeRecord::new(CLASS);
     rec.append(LifeEvent::Born);
     // Two score-points showing a DROPPING affinity trajectory.
-    rec.append(LifeEvent::Scored {
-        recall: 0.9,
-        precision: 0.8,
-    });
-    rec.append(LifeEvent::Scored {
-        recall: 0.5,
-        precision: 0.4,
-    }); // dropped
+    rec.append(LifeEvent::Scored(Affinity::new(0.9, 0.8)));
+    rec.append(LifeEvent::Scored(Affinity::new(0.5, 0.4))); // dropped
 
-    // A hand-authored optimistic note that CONTRADICTS the dropping score.
-    let divergence =
-        rec.check_story_coherence("this class is maturing well — affinity climbing steadily");
+    // A hand-authored narration whose TYPED claimed direction CONTRADICTS the
+    // dropping trajectory. The prose lives in the opaque `note` leaf (never parsed);
+    // the directional claim is the typed `Trend::Improving` — and the coherence-check
+    // compares TYPED claim vs TYPED trajectory (a structural compare, no NL-read).
+    // (Aristotle's build-wave ruling: the witness-link is the typed claimed-direction,
+    // not a prose heuristic — `Trend`-vs-trajectory, robust to clever wording.)
+    rec.append(LifeEvent::Narrated {
+        claimed: Trend::Improving,
+        note: "this class is maturing well — affinity climbing steadily".into(),
+    });
+
+    let divergence = rec.check_story_coherence(Trend::Improving);
     assert!(
         divergence.is_some(),
-        "a hand-authored 'maturing well' story while the score-trajectory DROPS must \
-         be FLAGGED by the coherence-check (persona-c REQ-4 / sub-clause-F re-validation). \
-         A free-text story with no coherence path against the struct is the born-red \
-         failure — story-vs-struct drift is antigen's own nightmare inside its own record."
+        "a hand-authored Improving claim while the score-trajectory DROPS \
+         (Declining) must be FLAGGED by the coherence-check (persona-c REQ-4 / \
+         sub-clause-F re-validation): a TYPED claim re-validated against the TYPED \
+         events. The witness-against path is structural — story-vs-struct drift is \
+         antigen's own nightmare inside its own record, caught by construction."
     );
+    let divergence = divergence.unwrap();
+    assert_eq!(divergence.claimed, Trend::Improving);
+    assert_eq!(divergence.actual, Trend::Declining);
 }

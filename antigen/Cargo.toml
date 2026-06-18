@@ -30,14 +30,6 @@ path = "src/lib.rs"
 # the feature on their antigen dependency.
 antigen-poxparty = ["antigen-macros/antigen-poxparty"]
 
-# stock-score-born-red gates the ONE P1b life-record conformance test
-# (atk_p1_life_record_stock_conformance::hand_authored_story_diverging_from_the_score
-# _is_flagged) that needs MATURE's affinity-score type (the `Scored` event +
-# `check_story_coherence`). Built-out when P1b lands; declared here so the `#[cfg]`
-# is a known feature (no unexpected_cfgs lint), off by default (the test stays
-# excluded until the score type + coherence-check exist).
-stock-score-born-red = []
-
 [lints]
 workspace = true
 

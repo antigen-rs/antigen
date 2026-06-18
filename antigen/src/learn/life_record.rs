@@ -46,6 +46,31 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::learn::affinity::Affinity;
+
+/// A **typed** directional claim about a class's affinity trajectory — the
+/// structural half of a hand-authored narration ([`LifeEvent::Narrated`]).
+///
+/// The claimed direction is a `Trend`, never free prose: the coherence-check
+/// ([`LifeRecord::check_story_coherence`]) compares this *typed* claim against the
+/// *typed* trajectory ([`LifeRecord::score_trajectory`]) — a structural
+/// `Trend`-vs-`Trend` compare, never an NL-read of human text. This is persona-c
+/// REQ-4's witness-link made structural: the part the system reasons over is typed,
+/// so a hand-authored story is *witnessed-against* the struct **by construction**
+/// (not "independently authored, audited by guesswork"). The same "typed claim
+/// re-validated against typed events" shape as the §3 current-state-derived
+/// invariant and ADR-057's lethal-corner — the wave's central three-sites principle.
+/// (Aristotle's build-wave ruling on `loops/fate-record-is-the-missing-stock`.)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Trend {
+    /// The author claims affinity is rising (recall/precision improving run-over-run).
+    Improving,
+    /// The author claims affinity is falling (going autoimmune / losing recall).
+    Declining,
+    /// The author claims affinity is holding steady.
+    Stable,
+}
+
 /// Who performed a lifecycle action — read **structurally** by the agent, never by
 /// NL-parsing prose.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -61,16 +86,44 @@ pub enum Actor {
 /// One typed event in a class's life. The story IS the ordered stream of these —
 /// prose is a projection ([`LifeRecord::render`]), never a source.
 ///
-/// Mechanical events carry no payload (they are facts the gate produced). The one
-/// payload-bearing variant, [`LifeEvent::Ratified`], carries the leaf-payload
-/// exception: a free-text human `why` AT a typed leaf (ADR-020), traversable
-/// without parsing it.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// Mechanical events carry no payload (they are facts the gate produced). The
+/// payload-bearing variants — [`LifeEvent::Ratified`] (the leaf-payload exception:
+/// a free-text human `why` AT a typed leaf, ADR-020) and [`LifeEvent::Scored`] (the
+/// affinity 2-vector at one maturation moment) — keep prose/data AT a typed leaf,
+/// never as the record's structure.
+///
+/// `Eq` is NOT derived (only `PartialEq`): [`LifeEvent::Scored`] carries an
+/// [`Affinity`] whose `f64` fields are `PartialEq` but not `Eq`. Nothing keys a
+/// `HashMap`/`HashSet` on `LifeEvent` (verified), so the equality the tests use
+/// (`assert_eq!`, needing only `PartialEq`) is unaffected — the score trajectory
+/// is the reason, and `PartialEq` is what the record actually needs.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum LifeEvent {
     /// The class was first proposed/minted (anti-unified from a defect cluster).
     Born,
     /// An affinity-maturation pass tightened the class (a mechanical milestone).
     Matured,
+    /// A maturation pass measured the class's [`Affinity`] (recall, precision) — the
+    /// score-trajectory point (P1b). Recorded run-over-run so the trajectory can be
+    /// read as a *stock* (the homeostasis loops sense it dropping). Carries the
+    /// `Affinity` 2-vector directly (not parallel `f64`s) — one type, the same the
+    /// maturation engine emits.
+    Scored(Affinity),
+    /// A **hand-authored** narration (persona-c REQ-4, the hand-authored WRITE-seam).
+    ///
+    /// `claimed` is a TYPED [`Trend`] — the structural directional claim the
+    /// coherence-check reasons over (`Trend`-vs-trajectory, never an NL-read).
+    /// `note` is the opaque ADR-020 leaf-payload: free human prose, rendered but
+    /// NEVER parsed (same exception as [`LifeEvent::Ratified`]'s `why`). This keeps
+    /// the witnessed-against part typed and the prose where ADR-020 allows it — a
+    /// "maturing well" note whose `claimed: Improving` contradicts a declining
+    /// trajectory is flagged STRUCTURALLY by [`LifeRecord::check_story_coherence`].
+    Narrated {
+        /// The TYPED directional claim — reasoned over structurally (no NL-parse).
+        claimed: Trend,
+        /// Opaque human prose (ADR-020 leaf-payload) — rendered, never parsed.
+        note: String,
+    },
     /// The class fired against a real defect site (it did its job).
     Fired,
     /// The class's per-class rate-stream drifted (a change-detector flagged it).
@@ -96,7 +149,10 @@ pub enum LifeEvent {
 /// The ONLY mutator is [`append`](Self::append). Current state (e.g.
 /// [`is_retired`](Self::is_retired)) is always *derived* by folding
 /// [`events`](Self::events) — never stored.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+///
+/// `Eq` is not derived (it holds `Vec<LifeEvent>`, and [`LifeEvent`] is `PartialEq`
+/// only — see its note).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LifeRecord {
     /// The class this record belongs to (its kebab-case antigen name).
     class: String,
@@ -155,6 +211,18 @@ impl LifeRecord {
             let line = match event {
                 LifeEvent::Born => "  • born — proposed from a defect cluster".to_owned(),
                 LifeEvent::Matured => "  • matured — affinity tightened".to_owned(),
+                LifeEvent::Scored(affinity) => format!(
+                    "  • scored — affinity recall={:.2} precision={:.2}",
+                    affinity.recall, affinity.precision
+                ),
+                LifeEvent::Narrated { claimed, note } => {
+                    let dir = match claimed {
+                        Trend::Improving => "improving",
+                        Trend::Declining => "declining",
+                        Trend::Stable => "stable",
+                    };
+                    format!("  • narrated [{dir}] — {note}")
+                },
                 LifeEvent::Fired => "  • fired — flagged a real defect site".to_owned(),
                 LifeEvent::Drifted => "  • drifted — its rate-stream shifted".to_owned(),
                 LifeEvent::Ratified { who, why } => {
@@ -174,11 +242,183 @@ impl LifeRecord {
         }
         out
     }
+
+    /// The class's **affinity trajectory** — every [`LifeEvent::Scored`] affinity in
+    /// append order (P1b). A *derived* structural read of the event stream (never a
+    /// stored field), so it cannot drift from the events. This is the stock the v0.6
+    /// homeostasis loops sense: a falling tail means the class is going autoimmune /
+    /// losing recall run-over-run.
+    #[must_use]
+    pub fn score_trajectory(&self) -> Vec<Affinity> {
+        self.events
+            .iter()
+            .filter_map(|e| match e {
+                LifeEvent::Scored(affinity) => Some(*affinity),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// The **derived** direction of the affinity trajectory — `None` when there are
+    /// fewer than two score-points (no direction to read), else the [`Trend`] from
+    /// the first scored point to the last. A structural fold over the
+    /// [`Scored`](LifeEvent::Scored) events (never stored), so it cannot drift.
+    ///
+    /// Direction on the Pareto 2-vector: `Improving` iff the last point dominates the
+    /// first (both recall and precision ≥, at least one strictly >), `Declining` iff
+    /// the first dominates the last, `Stable` otherwise (equal, or a mixed
+    /// trade-off neither dominates — honestly *not* a clean improvement, so not
+    /// claimable as `Improving`).
+    #[must_use]
+    pub fn trajectory_direction(&self) -> Option<Trend> {
+        let traj = self.score_trajectory();
+        if traj.len() < 2 {
+            return None;
+        }
+        let first = traj.first()?;
+        let last = traj.last()?;
+        let last_dominates = last.recall >= first.recall
+            && last.precision >= first.precision
+            && (last.recall > first.recall || last.precision > first.precision);
+        let first_dominates = first.recall >= last.recall
+            && first.precision >= last.precision
+            && (first.recall > last.recall || first.precision > last.precision);
+        Some(if last_dominates {
+            Trend::Improving
+        } else if first_dominates {
+            Trend::Declining
+        } else {
+            Trend::Stable
+        })
+    }
+
+    /// Coherence-check a **typed** hand-authored claim against the **typed**
+    /// trajectory (persona-c REQ-4 — the hand-authored WRITE-seam).
+    ///
+    /// Returns `Some(StoryDivergence)` iff `claimed` contradicts the actual
+    /// [`trajectory_direction`](Self::trajectory_direction) — e.g. a `Narrated`
+    /// claim of [`Trend::Improving`] while the [`Scored`](LifeEvent::Scored) events
+    /// say [`Trend::Declining`]. **A structural `Trend`-vs-`Trend` compare — never an
+    /// NL-read of prose** (the prose lives in `Narrated.note` as an opaque ADR-020
+    /// leaf and is never inspected here). This is the witness-against half of REQ-4:
+    /// a hand-authored story cannot silently diverge from its struct, because the
+    /// directional claim it carries is typed and re-validated against the typed
+    /// events (the same shape as the §3 current-state-derived invariant and ADR-057's
+    /// lethal-corner). `None` when the trajectory has no direction yet (< 2 score
+    /// points) — nothing to contradict.
+    ///
+    /// Only the opposed pair `Improving`-vs-`Declining` (either order) is a
+    /// divergence; a matching claim, or `Stable`-vs-a-real-direction (the honest
+    /// hedge), is not flagged.
+    #[must_use]
+    pub fn check_story_coherence(&self, claimed: Trend) -> Option<StoryDivergence> {
+        let actual = self.trajectory_direction()?;
+        let opposed = matches!(
+            (claimed, actual),
+            (Trend::Improving, Trend::Declining) | (Trend::Declining, Trend::Improving)
+        );
+        opposed.then_some(StoryDivergence { claimed, actual })
+    }
+}
+
+/// A flagged contradiction between a claimed and an actual trajectory direction.
+///
+/// Raised by [`LifeRecord::check_story_coherence`] when a hand-authored [`Trend`]
+/// claim opposes the derived trajectory direction (persona-c REQ-4). Carries both
+/// typed directions so the human review sees exactly the mismatch — no prose to parse.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct StoryDivergence {
+    /// What the hand-authored narration CLAIMED (the typed [`Trend`]).
+    pub claimed: Trend,
+    /// What the score-trajectory ACTUALLY did (derived from the events).
+    pub actual: Trend,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn trajectory_direction_reads_rising_falling_and_none() {
+        // < 2 score points → no direction.
+        let mut rec = LifeRecord::new("c");
+        assert_eq!(rec.trajectory_direction(), None);
+        rec.append(LifeEvent::Scored(Affinity::new(0.5, 0.5)));
+        assert_eq!(
+            rec.trajectory_direction(),
+            None,
+            "one point has no direction"
+        );
+
+        // Rising (last dominates first) → Improving.
+        let mut up = LifeRecord::new("c");
+        up.append(LifeEvent::Scored(Affinity::new(0.4, 0.4)));
+        up.append(LifeEvent::Scored(Affinity::new(0.9, 0.8)));
+        assert_eq!(up.trajectory_direction(), Some(Trend::Improving));
+
+        // Falling (first dominates last) → Declining.
+        let mut down = LifeRecord::new("c");
+        down.append(LifeEvent::Scored(Affinity::new(0.9, 0.8)));
+        down.append(LifeEvent::Scored(Affinity::new(0.5, 0.4)));
+        assert_eq!(down.trajectory_direction(), Some(Trend::Declining));
+
+        // Mixed trade-off (recall up, precision down) → Stable (neither dominates).
+        let mut mixed = LifeRecord::new("c");
+        mixed.append(LifeEvent::Scored(Affinity::new(0.5, 0.9)));
+        mixed.append(LifeEvent::Scored(Affinity::new(0.9, 0.5)));
+        assert_eq!(
+            mixed.trajectory_direction(),
+            Some(Trend::Stable),
+            "a mixed trade-off neither dominates — honestly not a clean improvement"
+        );
+    }
+
+    #[test]
+    fn coherence_check_flags_only_opposed_claims() {
+        let mut down = LifeRecord::new("c");
+        down.append(LifeEvent::Scored(Affinity::new(0.9, 0.8)));
+        down.append(LifeEvent::Scored(Affinity::new(0.5, 0.4))); // declining
+
+        // Opposed claim (Improving vs actual Declining) → flagged.
+        let d = down.check_story_coherence(Trend::Improving);
+        assert_eq!(
+            d,
+            Some(StoryDivergence {
+                claimed: Trend::Improving,
+                actual: Trend::Declining,
+            })
+        );
+
+        // Matching claim (Declining vs Declining) → not flagged.
+        assert_eq!(down.check_story_coherence(Trend::Declining), None);
+
+        // Stable hedge vs a real direction → not a hard contradiction.
+        assert_eq!(down.check_story_coherence(Trend::Stable), None);
+
+        // No trajectory yet → nothing to contradict.
+        let empty = LifeRecord::new("c");
+        assert_eq!(empty.check_story_coherence(Trend::Improving), None);
+    }
+
+    #[test]
+    fn score_trajectory_reads_scored_events_in_order() {
+        let mut rec = LifeRecord::new("demo-class");
+        rec.append(LifeEvent::Born);
+        rec.append(LifeEvent::Scored(Affinity::new(0.9, 0.8)));
+        rec.append(LifeEvent::Matured);
+        rec.append(LifeEvent::Scored(Affinity::new(0.5, 0.4)));
+
+        let traj = rec.score_trajectory();
+        assert_eq!(
+            traj.len(),
+            2,
+            "only the two Scored events are in the trajectory"
+        );
+        assert_eq!(traj[0], Affinity::new(0.9, 0.8));
+        assert_eq!(traj[1], Affinity::new(0.5, 0.4));
+        // The trajectory is DERIVED (a fold over events), never a stored field — it
+        // cannot drift from the stream.
+    }
 
     #[test]
     fn append_only_history_only_grows() {
