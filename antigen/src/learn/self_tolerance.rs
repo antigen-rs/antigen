@@ -413,6 +413,25 @@ pub fn near_miss_index(draft: &Fingerprint, corpus: &[syn::Item]) -> Option<usiz
     corpus.iter().position(|item| is_near_miss(draft, item))
 }
 
+/// Can a near-miss exist for `draft` **by construction** — i.e. does the draft have
+/// **≥2 (normalized) top-level conjuncts**?
+///
+/// [`is_near_miss`] is structurally `false` for a single-conjunct (or empty) draft
+/// (the `len < 2` anti-vacuity guard, ATK-047-N4): dropping the sole conjunct yields
+/// the vacuously-matching empty draft, so there is nothing to be "one constraint
+/// away" from. That guard is correct **for the GATE** (it prevents a false near-miss
+/// minting a token), but a *consumer* that reads `is_near_miss` to detect
+/// **evasion** (the READER) must know when a `false` means "no near-miss" versus
+/// "near-miss is undetectable here" — otherwise a single-conjunct class whose defect
+/// mutated reads as having no evasion-signal and is wrongly forgotten as obsolete.
+/// This predicate exposes exactly that structural fact, computed over the same
+/// `normalized_top_level` normalization, so the consumer can fall back to a
+/// conservative verdict (ADR-057) instead of trusting a structurally-blind `false`.
+#[must_use]
+pub fn is_near_miss_capable(draft: &Fingerprint) -> bool {
+    normalized_top_level(draft).len() >= 2
+}
+
 /// Does the clean corpus contain a **near-miss** for `draft`? (ADR-047
 /// §Mechanics 3 — the near-miss non-vacuity check.)
 ///

@@ -33,52 +33,82 @@
 
 use antigen_fingerprint::Fingerprint;
 
-use crate::learn::self_tolerance::is_near_miss;
+use crate::learn::self_tolerance::{is_near_miss, is_near_miss_capable};
 
 /// The silent-core no-FIRE verdict for one class against the live scan corpus — the
 /// streamless split the obsolete/well-defended discriminator (P3) reads for classes
 /// that carry no temporal signal.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum SilentStatus {
-    /// The fingerprint's **shape is gone** — it matches NO item in the live corpus.
-    /// The failure-shape this class guards no longer exists in the code → an
-    /// **obsolete** candidate (safe to forget, subject to the other axes).
+    /// The fingerprint's **shape is gone** — it matches NO item AND no near-miss
+    /// exists for it in the live corpus, **and the draft is near-miss-capable** (≥2
+    /// conjuncts, so the absence of a near-miss is *trustworthy*). The failure-shape
+    /// this class guards no longer exists in any detectable form → an **obsolete**
+    /// candidate (safe to forget, subject to the other axes).
     Obsolete,
     /// The shape is **present** (the fingerprint matches a live item) but no
     /// **near-miss** appeared — the guarded shape exists, instances simply don't
     /// currently trip the defect. **Dormant**: keep it; it may fire when the shape
     /// recurs in a triggering form. (NOT obsolete — the shape is alive.)
     Dormant,
-    /// The shape is present AND a **near-miss appeared** — a live item is one
-    /// constraint from binding the draft (the defect mutated to just past the
-    /// fingerprint). **Evading**: the red-queen signal — broaden/re-arm, do NOT
-    /// forget. This is the cell ADWIN is blind to for silent classes.
+    /// A **near-miss appeared** — a live item is one constraint from binding the
+    /// draft (the defect mutated to just past the fingerprint), whether or not the
+    /// exact shape is still present. **Evading**: the red-queen signal —
+    /// broaden/re-arm, do NOT forget. This is the cell ADWIN is blind to for silent
+    /// classes.
     Evading,
+    /// **Cannot decide gone-vs-evaded** — the shape is absent but the draft is a
+    /// *single conjunct* ([`is_near_miss`] is structurally blind there, so evasion
+    /// cannot be ruled out). Returning [`Obsolete`](Self::Obsolete) here would let
+    /// CURATE forget a class whose defect merely **mutated within its one conjunct's
+    /// family** (e.g. `body_calls("unwrap")` → the site now calls `expect()`). The
+    /// conservative verdict (ADR-057 conservative-default-under-uncertainty):
+    /// **route-to-human, never auto-forget.** A single-conjunct class's absence is
+    /// not trustworthy as obsolescence.
+    Indeterminate,
 }
 
 /// Classify a silent class's no-FIRE state against the live scan `corpus` (P2,
 /// bit-3 / silent-core facet) — STREAMLESS, reading only shipped primitives.
 ///
-/// - **[`SilentStatus::Obsolete`]** iff the draft matches NO corpus item (shape gone).
-/// - **[`SilentStatus::Evading`]** iff the shape is present AND some corpus item is a
-///   [`is_near_miss`] (the defect mutated one constraint past the fingerprint).
-/// - **[`SilentStatus::Dormant`]** otherwise (shape present, no near-miss).
+/// Decided in precedence order (EVADING — the act-now red-queen case — first, so it
+/// is never masked):
+/// 1. **[`SilentStatus::Evading`]** iff ANY corpus item is a [`is_near_miss`] for the
+///    draft (the defect mutated one constraint past the fingerprint) — checked
+///    *regardless of whether the exact shape is still present*, so a class whose
+///    shape mutated AWAY but left a near-miss is caught.
+/// 2. **[`SilentStatus::Dormant`]** iff the shape is present (the draft matches a
+///    live item) but no near-miss — the shape is alive, keep it.
+/// 3. **[`SilentStatus::Obsolete`]** iff the shape is absent, no near-miss, **and the
+///    draft is [`is_near_miss_capable`]** (≥2 conjuncts) — the absence is
+///    *trustworthy* (had it evaded, a near-miss would have been detectable).
+/// 4. **[`SilentStatus::Indeterminate`]** iff the shape is absent and the draft is a
+///    *single conjunct* — [`is_near_miss`] is structurally blind, so gone-vs-evaded
+///    is undecidable → route-to-human, never auto-forget (ADR-057).
 ///
-/// Reads [`Fingerprint::matches`] (shape-present) + [`is_near_miss`] (near-miss) over
-/// the corpus — no temporal signal, no STOCK. The two axes are read in this order so
-/// EVADING (the act-now red-queen case) is never masked by DORMANT: a present shape
-/// with a near-miss is evading, not dormant.
+/// The single-conjunct guard closes the READER's evasion-blindness (the adversarial
+/// find): without it, `silent_status(body_calls("unwrap"), [fn(){ x.expect() }])`
+/// returns `Obsolete` (forget) when the defect actually mutated `unwrap → expect`.
+/// Reads [`Fingerprint::matches`] + [`is_near_miss`] + [`is_near_miss_capable`] — no
+/// temporal signal, no STOCK.
 #[must_use]
 pub fn silent_status(draft: &Fingerprint, corpus: &[syn::Item]) -> SilentStatus {
-    let shape_present = corpus.iter().any(|item| draft.matches(item));
-    if !shape_present {
-        return SilentStatus::Obsolete;
+    // EVADING first: a near-miss anywhere is the act-now signal, even if the exact
+    // shape mutated away (so it must NOT require shape-present).
+    if corpus.iter().any(|item| is_near_miss(draft, item)) {
+        return SilentStatus::Evading;
     }
-    let near_miss_appeared = corpus.iter().any(|item| is_near_miss(draft, item));
-    if near_miss_appeared {
-        SilentStatus::Evading
+    if corpus.iter().any(|item| draft.matches(item)) {
+        return SilentStatus::Dormant;
+    }
+    // Shape absent and no near-miss. Trust "obsolete" ONLY if a near-miss COULD have
+    // been detected (≥2 conjuncts). A single-conjunct draft is near-miss-blind, so
+    // its absence cannot be distinguished from an in-conjunct-family mutation →
+    // conservative route-to-human (ADR-057), never auto-forget.
+    if is_near_miss_capable(draft) {
+        SilentStatus::Obsolete
     } else {
-        SilentStatus::Dormant
+        SilentStatus::Indeterminate
     }
 }
 
@@ -178,5 +208,73 @@ mod tests {
              near-miss (evasion) signal takes precedence over bare presence."
         );
         assert_eq!(status, SilentStatus::Evading);
+    }
+
+    /// A single-conjunct body-signal draft: `body_calls("unwrap")`. Single-conjunct
+    /// drafts are common (one body signal), not an edge case.
+    fn body_calls_unwrap() -> Fingerprint {
+        Fingerprint {
+            constraints: vec![Constraint::BodyCalls("unwrap".into())],
+        }
+    }
+
+    /// REGRESSION (adversarial find — the lethal single-conjunct evasion-blindness):
+    /// a single-conjunct class whose defect MUTATED within its conjunct's family
+    /// (`unwrap` → `expect`) used to read `Obsolete` (= forget) because `is_near_miss`
+    /// is structurally blind for single-conjunct drafts (the `len < 2` gate-guard).
+    /// It must now read `Indeterminate` (route-to-human, never auto-forget) — a
+    /// single-conjunct class's *absence* is not trustworthy as obsolescence.
+    #[test]
+    fn single_conjunct_shape_absent_is_indeterminate_not_obsolete() {
+        // The defect mutated: the site calls `expect()`, not `unwrap()` — so the
+        // `body_calls("unwrap")` draft matches nothing AND (single-conjunct) can have
+        // no near-miss. Gone-vs-evaded is undecidable here.
+        let c = corpus("fn evaded() { x.expect(\"msg\"); }");
+        let status = silent_status(&body_calls_unwrap(), &c);
+        assert_ne!(
+            status,
+            SilentStatus::Obsolete,
+            "a single-conjunct class whose shape is absent must NOT read Obsolete \
+             (forget) — is_near_miss is structurally blind for it, so the defect may \
+             have mutated within the conjunct's family (unwrap → expect). Reading \
+             Obsolete here would let CURATE forget a still-live evading class."
+        );
+        assert_eq!(
+            status,
+            SilentStatus::Indeterminate,
+            "the conservative verdict (ADR-057): gone-vs-evaded is undecidable for a \
+             single-conjunct draft → route-to-human."
+        );
+    }
+
+    /// A single-conjunct draft whose shape IS present reads Dormant (no near-miss is
+    /// possible, but the shape is alive — keep it). The Indeterminate verdict is ONLY
+    /// for the shape-absent single-conjunct case.
+    #[test]
+    fn single_conjunct_shape_present_is_dormant() {
+        let c = corpus("fn live() { x.unwrap(); }");
+        assert_eq!(
+            silent_status(&body_calls_unwrap(), &c),
+            SilentStatus::Dormant,
+            "single-conjunct with the shape PRESENT is Dormant (alive, keep) — \
+             Indeterminate is only for the undecidable shape-absent case."
+        );
+    }
+
+    /// EVADING does not require the exact shape to still be present: a MULTI-conjunct
+    /// draft whose exact shape mutated AWAY but left a near-miss is still Evading
+    /// (the near-miss check runs regardless of shape-presence).
+    #[test]
+    fn multi_conjunct_shape_mutated_away_with_near_miss_is_evading() {
+        // No item binds the full Clone+Debug draft (shape absent), but a Clone-only
+        // struct is a near-miss (one constraint — Debug — away).
+        let c = corpus("#[derive(Clone)] struct OnlyClone;");
+        assert_eq!(
+            silent_status(&derives_clone_and_debug(), &c),
+            SilentStatus::Evading,
+            "a multi-conjunct draft whose exact shape is absent but which has a \
+             near-miss in the corpus is EVADING — the near-miss check must not be \
+             gated on shape-present, or a mutated-away defect reads obsolete."
+        );
     }
 }
