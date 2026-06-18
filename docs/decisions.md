@@ -97,6 +97,22 @@
 - [ADR-044 — Frontier-Honesty as a Cross-Cutting v0.4 Spec Constraint: Every Verdict-Emitting or Candidate-Generating Component Reports What It Actually Proved](#adr-044-frontier-honesty-as-a-cross-cutting-v04-spec-constraint-every-verdict-emitting-or-candidate-generating-component-reports-what-it-actually-proved)
 - [ADR-045 — The Parameterization-Collapse Procedure and Tangle-Kind Classification: Sequencing the Recurrent Immune Tangle as an Effort DAG](#adr-045-the-parameterization-collapse-procedure-and-tangle-kind-classification-sequencing-the-recurrent-immune-tangle-as-an-effort-dag)
 - [ADR-046 — The Diff-Native Fingerprint Modality: Match a Structural DELTA, Not a Snapshot (detect / classify / label)](#adr-046-the-diff-native-fingerprint-modality-match-a-structural-delta-not-a-snapshot-detect--classify--label)
+- [ADR-047 — GATE-G Soundness: The Near-Miss Non-Vacuity Predicate](#adr-047-gate-g-soundness-the-near-miss-non-vacuity-predicate--a-promotion-requires-one-corpus-item-one-constraint-from-binding-spared-by-failing-exactly-that-one) *(Ratified 2026-06-10; amended by Amendments 1–3)*
+  - [ADR-047 Amendment 3 — the closed-alphabet soundness boundary](#adr-047-amendment-3-2026-06-17-drafted-by-the-adr-specialist-on-the-v06-pioneers-build-step-zero--gate-gs-spare-clean-certificate-is-sound-only-over-a-closed-constraint-alphabet-opening-the-alphabet-routes-to-the-human-oracle-not-the-gate) *(DRAFT — v06; Survey certifies)*
+- [ADR-048 — The Promoted-Draft Newtype](#adr-048-the-promoted-draft-newtype-make-only-bs-output-is-assertable-type-enforced-not-doc-convention) *(Ratified 2026-06-10)*
+- [ADR-049 — No Caller Emits Un-Scored Output: The Affinity-Score Invariant](#adr-049-no-caller-emits-un-scored-output-the-affinity-score-invariant--the-goodhart-asymmetric-ratification-lever) *(Ratified 2026-06-10)*
+- [ADR-050 — The `incident=` Key + the Signal-2 Routing Rule](#adr-050-the-incident-key--the-signal-2-routing-rule-an-incident-less-cluster-is-capped-at-suspected-principled-caution-not-a-gap) *(Ratified 2026-06-10)*
+- [ADR-051 — The Co-Native Ratification Record](#adr-051-the-co-native-ratification-record-one-record-two-renderings--specimen-triple--acceptrejectnarrow--fate) *(Ratified 2026-06-10 — UNIMPLEMENTED; impl is the v0.6 build; amended by Amendment 1)*
+  - [ADR-051 Amendment 1 — the is_discriminating recursive-descent precondition is satisfied (standing invariant)](#adr-051-amendment-1-2026-06-17-drafted-by-the-adr-specialist-on-the-v06-pioneers-build-step-zero--the-narrowpersistedspecimen-re-mint-precondition-is_discriminating-recurses-into-combinator-children-is-satisfied-this-amendment-records-the-satisfaction-and-locks-it-as-a-standing-invariant) *(DRAFT — v06; Survey certifies)*
+- [ADR-052 — The Affinity-Score Is the Spine](#adr-052-the-affinity-score-is-the-spine-every-learning-core-caller-emits-scored-output) *(Ratified 2026-06-10)*
+- [ADR-053 — The Tolerance-Quadrant Grid](#adr-053-the-tolerance-quadrant-grid-the-safety-dual-is-a-structurally-required-set-not-a-wishlist) *(Ratified 2026-06-10)*
+- [ADR-054 — The Two-Signal Gate: Signal-2 (Danger) as the Shared Afferent](#adr-054-the-two-signal-gate-the-innate-arm--signal-2-danger-as-the-shared-afferent) *(Ratified 2026-06-10)*
+- [ADR-055 — The Ratification Ceiling: Throughput-of-Judgment Is the Real Bottleneck](#adr-055-the-ratification-ceiling-throughput-of-judgment-is-the-real-bottleneck) *(Ratified 2026-06-10)*
+- [ADR-056 — The C-Side Non-Degeneracy Guard + the Soft Generalization-Confidence Signal](#adr-056-the-c-side-non-degeneracy-guard--the-soft-generalization-confidence-signal-the-generators-two-halves-of-island-25) *(Ratified 2026-06-10)*
+- [ADR-057 — The Conservative Default Under Uncertainty](#adr-057-the-conservative-default-under-uncertainty-antigens-safe-default-is-the-action-that-minimizes-counterfactual-trust-harm--retainroute-under-uncertainty-per-instance-free-aggregate-bounded-by-a-scarcity-completion-positive-evidence-decides-outside-the-default) *(DRAFT — v06; Survey certifies)*
+- [ADR-058 — The Co-Native Output Contract](#adr-058-the-co-native-output-contract-legibility-generalized-to-re-inheritable-by-either-forgetting-mind--the-story-facet-is-a-rendering-of-a-typed-event-stream-never-a-free-text-source) *(DRAFT — v06; supersede-extends ADR-042; Survey certifies)*
+- [ADR-059 — The Life-Record STOCK](#adr-059-the-life-record-stock-antigens-first-persistent-substrate-is-an-append-only-per-class-event-stream-score--outcome--story-drift-immune-because-it-stores-events-not-claims-current-state-always-derived) *(DRAFT — SKELETON; v06)*
+- [ADR-060 — The Keystone Afferent Decomposition](#adr-060-the-keystone-afferent-decomposition-one-shared-sensing-spine-stock--reader--discriminator--defended-sensor-2-axis-do-now--witness-resolution-build-once-not-per-organ) *(DRAFT — SKELETON; v06)*
 
 ---
 
@@ -11212,3 +11228,1322 @@ Antigen's fingerprint model is a SNAPSHOT predicate: it matches the structure of
 - This is the THIRD independent appearance of the syntactic/semantic (GENERATE/SELECT-machine → LABEL-human) boundary — keystone dark-zone, witness-invocation, now diff-native — confirming it is antigen's defining structure (ADR-044), not a per-feature discipline.
 - It is the natural fingerprint shape for the route-arm's `cargo antigen review <diff>` (charter-route-arm) and the perfect substrate for the wound-`learn-from` PROPOSE input (a fix-diff REVERSED is the diff-fingerprint of the bug-introducing class).
 - Resolves the demand-side correctness need (#7): a green snapshot scan on a guard-removing PR LAUNDERS the removal; if antigen runs on PRs at all, the diff-native DETECT slice is what keeps it from actively misinforming the reviewer.
+
+---
+
+<!-- ADR-047..056 transcribed from the v0.5 Outfitters ratified drafts (jbd/expeditions/v05-the-learning-organism/drafts/) into the tracked canon as v0.6 Pioneers build-step-zero (2026-06-18). Faithful transcription; the ratification ritual (process.md:257-258) completing the v0.5 seal. Header levels demoted h1->h2 to match canon; "targets 0.5-dev" status framing preserved verbatim as the ratification provenance. -->
+
+## [ADR-047] GATE-G Soundness: The Near-Miss Non-Vacuity Predicate — a Promotion Requires One Corpus Item One Constraint From Binding, Spared by Failing Exactly That One
+
+**Status**: **RATIFIED 2026-06-10** (rev 3 — near-miss SAFETY primitive + (A)-binary + generation-quality routing, the two-axis reconciliation; supersedes rev-1 skeleton-relevance and rev-2 pure-near-miss in-draft). v05 Outfitters/converge wave; targets `0.5-dev`. **Co-locked with ADR-048 (OQ4 — the joint ratification act); captain seal-gate by full re-read of the live bytes (sha 105f50df+).** Lifecycle complete: Phase 1-8 + reciprocal pass (aristotle), ATK (adversarial — 5 breaks incl. N4 empty-drop), per-sentence-attribution consistency-audit, OQ1/OQ3/OQ4 captain-RULED, OQ2 confirmed-closed (aristotle, `propose.rs:239-244` — `anti_unify` emits one flat top-level `AnyOf`, no nesting). **Build-wave obligations carried in the baton (named, NOT claimed-closed):** scientist-validate the OQ2 top-level-conjunct scope against the real matcher; pathmaker-lock the OQ3 `has_discriminating_conjunct` Constraint-partition against the real enum; run the Q9 born-red ATK set.
+
+**Participants**: adr-specialist (draft + the near-miss/P1 fold), aristotle (first-principles grounding — the skeleton-relevance correction, then the reciprocal pass that stripped it to the near-miss primitive), adversarial (the 4 RAN breaks that drove the primitive), systems-thinking (the 047/048 constructor-fusion leverage), captain (the two-holes anchor + the P1 lean + the born-red directive).
+
+**Related**: ADR-045 (the C ══ B co-ship — PROPOSE never promotes except through B; this ADR hardens B's promotion authority); ADR-044 (frontier-honesty — this ADR carries a frontier statement; the gate's verdict is a corpus-bounded FACT, never a total-safety proof); ADR-005 Sub-clause F (every trust boundary requires a validation check before trust is extended — GATE-G is the keystone instance: the moment a caller wires `propose()`, B's "spared" is the trust being extended); ADR-007 (structurally-guaranteed need — the keystone has zero callers today, but Island 3 wires the first one, making this latent hole live); ADR-039 (the confidence dial — the score the gate's downstream consumers carry). **Co-ships with ADR-048** (the promoted-draft newtype: ADR-047 locks WHAT must hold at promotion; ADR-048 locks the TYPE that makes forgetting-it impossible — V2-CB-WIRING; the two are the same safety-tangle split into predicate + carrier).
+
+---
+
+## Finding
+
+`antigen::learn::self_tolerance::promote_if_safe` (the B-gate's promotion authority) has **two distinct vacuity holes**, and the v0.5 baton conflated them. Only one is open. Grounded by reading the real `self_tolerance.rs` + `propose.rs` + `matcher.rs` at `0.5-dev` HEAD (aristotle's first-principles pass, captain's anchor):
+
+**Hole (1) — EMPTY corpus: CLOSED.** `promote_if_safe` (`self_tolerance.rs:120-122`) already returns `None` when `clean_corpus.is_empty()`. The captain's prior gate-G ruling shipped in v0.4; the test pins it (`promote_if_safe_refuses_an_empty_corpus_the_gate_g_hazard`, `self_tolerance.rs:216-226`). A vacuous-pass against nothing cannot promote. **Nothing to do here — this ADR records the closure, it does not re-open it.**
+
+**Hole (2) — NON-EMPTY-but-NON-BINDABLE corpus: OPEN.** `is_empty()` is a *proxy* for "B has something real to check." The proxy's residual: a corpus of N clean items where the draft binds **zero** of them. `evaluate` (`self_tolerance.rs:68-75`) walks the corpus, finds no `draft.matches(item)`, returns `Spared`; `spare_clean` is then **vacuously** `true` — and an autoimmune draft **promotes with a green check**. The gate "spared" items it was never near. Confirmed run-as-code by two independent v0.4 probes (recorded in `charter-learning-core.md:78-87`, camp `V2 promote-if-safe-vacuous-on-nonbindable-nonempty-corpus`).
+
+**The separation that must survive into the ADR (captain's anchor; aristotle's note `565aebfe`).** The baton's "subset-principle / LGG makes vacuity structurally avoidable (already shipped)" is **true for the over-generalization half and mis-located for the gate**. `anti_unify`-to-disjunction (`propose.rs:126-188`) already starts narrow — intersection conjuncts + an `any_of` over the discriminating leaves — so only the residual over-binding reaches B. That hardens the **generator (C)**. But hole (2) is a **corpus-provenance** problem, not a generalization problem: *even a perfect LGG draft promotes vacuously against a corpus that doesn't exercise it.* **The subset-principle hardens C; it does NOT close GATE-G.** Fusing generator-precision with gate-soundness is the error this ADR must not make. GATE-G needs its **own** check, regardless of how good C is.
+
+**The false-negative trap the naive fix walks into (aristotle's note `152fb16e` — the load-bearing correction).** The obvious phrasing — "require ≥1 draft-**bindable** corpus item" — would **brick the keystone**, because of how the draft and the clean corpus interact:
+
+- The draft shape is `all_of([ skeleton-conjuncts…, any_of([discriminating-arms]) ])`. `Fingerprint::matches` (`matcher.rs:78`) returns `true` IFF the **whole** `all_of` is `Match` — *including* the `any_of`.
+- A **clean sibling** of the cluster (the exact item one would source for the clean corpus) matches the skeleton conjuncts (same item-kind, same `impl_of_trait`, same shared body-calls) but the `any_of` arm is `NoMatch` on it (it has `.ok()`, not `unwrap`/`expect`) → the whole draft is `NoMatch` → `draft.matches(clean_sibling) == false`. **That is correct behavior** — it is the autoimmunity-sparing working as designed.
+- So if "bindable" := `draft.matches(item) == true`, then clean siblings are **not** bindable, and a clean corpus made entirely of siblings (what a caller actually sources) has **zero** bindable items → the naive gate **rejects every safe promotion**. The gate meant to certify safety would refuse all good drafts. That is *worse* than the `is_empty()` proxy: it false-rejects safe drafts instead of false-passing unsafe ones.
+
+The root confusion: **"the corpus must EXERCISE the draft" has two readings the naive phrasing collapses.**
+- **(a) whole-draft-bindable** — `draft.matches(item) == true`. **Self-contradictory for a clean corpus**: a whole-draft-bindable item is by definition a *defect* (it carries the discriminating signal), not clean. "Corpus has a whole-draft-bindable item" cannot hold for a corpus that is actually clean.
+- **(b) skeleton-relevant** — the item matches the draft's **skeleton** (`all_of` minus the discriminating `any_of`), i.e. it is in the draft's **neighborhood** (same family — a `Drop` impl that calls `flush`), close enough that B's sparing of it is *informative*. A clean sibling is skeleton-relevant (proves B can tell defect from clean *within* the family) but whole-draft-spared (proves B does so *correctly*).
+
+Reading (b) closes the vacuity hole **without** breaking the safe path — but reading (b)-as-"skeleton" was **not the final form.**
+
+**From skeleton-relevance to the near-miss primitive (the rev-1 → rev-2 correction; the chain that produced the decision below).** The skeleton formulation (rev 1: "≥1 corpus item the skeleton matches but the whole draft spares") was RAN by the adversarial against the real `anti_unify` + matcher and **broke four ways** (scratch harness `R:/antigen-atk-scratch/src/main.rs`): **ATK-047-1** trivial-skeleton vacuity (a bare-`[Item(Fn)]` skeleton makes any unrelated `fn` "relevant" — vacuity *relocated*, worst exactly in the high-autoimmunity case); **ATK-047-2** collapsed-draft deadlock (a no-`any_of` draft has `skeleton == draft` → `[M ∧ ¬M]` unsatisfiable → the keystone can *never* promote it, on the very path B exists for); **ATK-047-3** Undefined-skeleton silent-FN (the verdict flips on whether the corpus was sourced as `struct` vs `impl` defs); **ATK-047-4** mislabeled-clean (a corpus item that panics via an unlisted route passes the gate). Aristotle then ran a **reciprocal first-principles pass against his own skeleton fix** (default-to-refuted toward his own claim) and stripped it to the bedrock primitive: the question non-vacuity *actually* asks is **"did B spare an item it plausibly could have flagged?"** = **"is there a NEAR-MISS in the corpus?"** A near-miss — a corpus item one constraint from binding, spared by failing exactly that one — is the partition-free invariant that closes ATK-1/2/3 uniformly (no "identity vs behavioral" constraint classification needed, because you drop *one conjunct off the structure*, not a *type* of conjunct), promotes the precise-core no-disjunction draft (resolving Open-Question-1 to near-miss, not never-promote), and leaves only ATK-047-4 as a named claim-scope residual. **The §Decision below locks the near-miss primitive + the P1 backstop; rev-1 skeleton-relevance is recorded here as the path, not the destination.**
+
+---
+
+## Decision
+
+**Promotion through B requires a NEAR-MISS witness in the clean corpus: at least one corpus item that is one constraint away from binding the draft and is spared because it fails exactly that one.** Formally, `promote_if_safe(draft, corpus)` returns the promote verdict only when, in addition to the existing spare-clean check (the draft binds no corpus item), the corpus contains a **near-miss**:
+
+```
+NEAR-MISS NON-VACUITY (the GATE-G soundness predicate — uniform over ALL draft shapes):
+  ∃ item ∈ corpus, ∃ conjunct c ∈ draft.constraints :
+        (draft MINUS c).matches(item) == true
+   AND   draft.matches(item)          == false
+```
+
+A near-miss item matches **all-but-one** of the draft's top-level conjuncts and is spared **by failing exactly that remaining one**. Such an item is the proof that **B made a real discrimination** — it spared an item it *plausibly could have flagged* (it was one constraint from binding), not an item it was never near. The vacuity hole is precisely "B spared items it was never close to"; the near-miss relation is the **neighborhood** relation that closes it.
+
+**Why near-miss is the bedrock primitive (it supersedes the earlier "skeleton-relevance" formulation and dissolves three of the four adversarial breaks).** The crew's first formulation — "≥1 corpus item the draft's *skeleton* (all_of minus the any_of) matches but the whole draft spares" — the adversarial RAN against the real `anti_unify` + matcher (scratch harness `R:/antigen-atk-scratch/src/main.rs`) and broke four ways; aristotle then stripped the fix to this primitive (the reciprocal first-principles pass, captured on `safety/keystone-harden-gate-g`, notes `d1df4af2`/`4157296f`). Near-miss is better because it is **definition-free of any constraint-TYPE partition**: it drops **one conjunct at a time off the structure**, never needing to classify a constraint as "identity" vs "behavioral" (the partition the earlier relaxed-skeleton needed — and which reopened vacuity on a behaviorally-anchored family). That single move closes the breaks:
+
+- **ATK-047-2 (collapsed-draft — keystone unusable under the brick-ruling; SAFE-but-route-to-human under the final ruling).** A no-`any_of` draft with a *precise* core — e.g. `all_of([impl, impl_of_trait("Drop"), body_calls("flush"), body_calls("unwrap")])` from an **identical-twins** cluster `{flush().unwrap(), flush().unwrap()}` — binds both defects and spares a clean `flush().ok()` sibling. The "never-promote a no-disjunction draft" ruling **bricked it** (skeleton == draft → no witness). Near-miss correctly sees it as **safe**: drop `body_calls("unwrap")` → the clean `flush().ok()` sibling matches `{impl, Drop, flush}` and fails only `unwrap` → near-miss witnessed, B's discrimination is real. **But near-miss answered the wrong question by trying to AUTO-PROMOTE it** (aristotle's reciprocal pass, note `7c7ba6a3`): the draft is generalized from *identical photocopies*, so it may not extend to a *new* defect site — a **generation-QUALITY** defect, not a safety defect. B is sound on it (spare-clean holds) but **B cannot certify its generalization-quality** — and auto-promoting via near-miss would be B doing C's job (violating the generator/gate-SEPARATE anchor). **Final ruling: B routes the collapsed/no-disjunction draft to a human (`NotCorpusWitnessable`) — not because it is unsafe, but because B honestly cannot certify the generalization.** Upstream, the **generalization-confidence tier-input** (Island-2.5's signal half → ADR-050) lowers a twins-draft's tier so it is surfaced as low-confidence rather than reaching the human as an un-annotated route; the route-to-human is then a tier-aware consequence, not a surprise. (Resolves Open-Question-1 to **route-to-human-for-generation-quality**, reconciling near-miss-as-safety-primitive with D-as-generation-quality-routing — they were never rivals.)
+- **ATK-047-1 (trivial-skeleton vacuity — hole relocated, not closed).** The "drop the any_of" skeleton collapsed to bare `[Item(Fn)]` when the cluster shared no body-call, so any unrelated `fn` passed. Near-miss does **not** relocate the hole: a witness must be one constraint from binding *the actual draft*, which for `{fn, body_calls("transmute")}` means "a `fn` that would bind if it called `transmute`" — a genuine discrimination ("B spares non-`transmute` fns"), not arbitrary unrelated code the draft's signal never came near.
+  - **→ Superseded-in-part by Amendment 2 (see below).** The prose above is *imprecise* about the case where dropping the sole discriminator collapses the draft to a bare-structural skeleton (`[impl, Drop, foo]` near-missing a bare `Drop` impl lacking `foo`). Amendment 2's **remainder-discriminates guard** treats that collapse as a REAL near-miss hole (the remainder must STILL carry a discriminating conjunct), not "the gate working." A reader chasing the single-discriminator question should read Amendment 2 as the live ruling; this bullet is the pre-Amd2 reasoning, kept for the trail.
+- **ATK-047-3 (Undefined-skeleton silent FN — verdict flips on corpus item-class).** The earlier skeleton carried `body_calls` conjuncts that went `Undefined` on a bodyless corpus item, flipping the verdict silently on struct-vs-impl corpus sourcing. Near-miss drops one conjunct at a time off the *whole draft* and tests the standard `matches` (whose `Undefined` projects to "doesn't fire," `matcher.rs:72-76`) — there is no separate skeleton to go silently `Undefined`; the same Kleene-strong matcher decides every term.
+
+**B decides on TWO distinct axes, and the (A)-binary refusal is the one safety-call that genuinely stays in B (captain's ruling — keep it BINARY, never a threshold).** B's gate separates:
+- **SAFETY (B's job):** does the draft over-bind clean code? Two safety refusals: it **binds** a clean corpus item (`BindsCleanItem` — autoimmune), OR it is **bare-structural over-general** — `all_of([impl, impl_of_trait("Drop")])` with NO discriminating signal binds every `Drop` impl and spares none in-family. The bare-structural case is a genuine *safety* concern (it over-binds the whole family), so **B refuses it via precondition (A): the draft must carry ≥1 discriminating conjunct beyond bare structural anchors.** **(A) is BINARY** — "has-a-discriminating-conjunct? yes/no" — **NOT a tunable specificity count.** A tunable "≥K conjuncts" floor (P2) would be a magic number on the *generalization* axis living inside the *safety* gate — itself an instance of antigen's own `FingerprintGamedNotDefended` / Goodhart class (a draft tuned to clear the count without being meaningfully specific), the exact Goodhart-in-the-wrong-organ the captain forbids. (A)-binary = safety, stays in B; (A)-as-threshold = P2, rejected.
+- **GENERATION-QUALITY (NOT B's job — C's, P1):** does the draft *generalize* (extend to a new site), or is it twins-overfit? B **cannot answer this** — it is not a safety question — so for a collapsed/no-disjunction draft B routes to human (above) rather than auto-promote. P1 (not P2) keeps each gate single-responsibility — **B does safety (near-miss + spare-clean + (A)-binary); C does generalization-quality** — the `ParallelStateTrackersDiverge`-avoiding split the generator/gate-SEPARATE anchor demands. **The captain's Island-2.5 SPLIT (the C-side responsibility decomposes into TWO things, on the two axes):**
+  - **the TWINS-overfit case is a generalization-confidence SIGNAL, not a refusal** — a twins-draft is *safe*, so C does not refuse it; it gets a **lower generalization-confidence tier** (the emit-the-signal-don't-bury-a-threshold discipline, the same shape as the feeder-quorum count and the recurrence-escalation), which **folds into ADR-050's tier-routing** (the dial/human cuts; B's `NotCorpusWitnessable` route-to-human is the low-confidence consequence, not a hard gate);
+  - **the BARE-STRUCTURAL over-general case is a refusal** — it over-binds the family (a real safety problem), refused by B's (A)-binary AND, upstream, by **C's non-degeneracy guard**, which the captain pulls charter→do-now as a **thin new ADR** (the C-side guard, Island-2.5's refusal half). It is *structurally-required-anyway* (anti-YAGNI: `anti_unify` CAN emit bare-structural drafts, `propose.rs:185-187`) — surfacing already-required scope, not new scope. It gates the same Island-3 propose-live.
+
+  So Island-2.5 is not one monolithic "non-degeneracy guard" — it is the SAME two-axis split: the generation-quality SIGNAL (twins → tier-input → ADR-050) and the safety REFUSAL (bare-structural → C's guard ADR + B's (A)-binary). Naming them separately prevents the "refuse what should be tiered-down / tier-down what should be refused" confusion.
+
+**The gate is three-valued, deciding on the two axes above.** `promote_if_safe` returns:
+- **promote** — near-miss witnessed AND draft spares the whole corpus AND (A)-binary passes (has a discriminating conjunct) AND the draft is not a collapsed twins-overfit. All safety checks green, generalization is corpus-witnessable.
+- **reject-autoimmune** (`BindsCleanItem`) — the draft binds a clean corpus item (safety) OR fails (A)-binary (bare-structural over-general, over-binds the family — safety).
+- **route-to-human** (`NotCorpusWitnessable`) — the draft is **safe** but B cannot certify its generalization (collapsed/no-disjunction = possibly twins-overfit). **First-class, not an error**: "this draft is safe but I can't certify it generalizes — ratify it by hand." The exact handoff into the ratification-interface (ADR-051, Tension-3). B never fakes a generalization-verdict it cannot make (sub-clause-F-honest); the generalization-confidence tier-input (Island-2.5's signal half → ADR-050) annotates the twins-draft as low-confidence so the route-to-human is tier-aware, not a bare surprise.
+
+**This is sub-clause F (ADR-005) at the keystone trust boundary.** The trust extended at promotion is "this draft is safe to flag with." The validation check before extending it is the near-miss predicate. Without it, the trust is extended on a vacuous "spared."
+
+**Keep generator-precision and gate-soundness as SEPARATE concerns (the captain's anchor, enforced here).** The subset-principle / LGG discipline (`anti_unify` chooses the least-general generalization, widens only on positive need) hardens **C** and is governed elsewhere — it is **deferred to `charter-learning-core` as a recall-deepening (do-later, sequenced)**; **GATE-G's soundness does NOT depend on it** (a future reader must not think the gate waits on the generator's precision). This ADR governs **B's promotion authority** only. The two never merge: B's near-miss check is required *regardless* of how precise C is, because non-exercise is a property of the *corpus*, not the *draft*. (The one place B and C *do* hand off is the over-general backstop above — and that is a clean division of labor, not a merge: C refuses bare-structural drafts before B ever sees them.)
+
+**Frontier scope (ADR-044): the predicate is corpus-bounded, not a total-safety proof.** See the frontier statement below. The near-miss witness raises the gate from "spared *something or nothing*" to "spared a *near-miss* — an item it plausibly could have flagged" — it does **not** prove the draft spares all clean code everywhere (the open-world problem). The corpus is the ratifier's responsibility; a richer clean corpus is a stronger gate. This ADR closes the **vacuity** hole, NOT the **open-world coverage** gap — and the gate's new strength must not be over-read as closing open-world (aristotle's explicit caution). **One residual it explicitly does NOT close (ATK-047-4, named in claim-scope, not structurally closeable):** a corpus item the operator *mislabeled* as clean — e.g. an `impl Drop` that panics via a third route the draft does not list — is near-miss-relevant and whole-draft-spared, so it passes the gate while being a real defect. The gate certifies "B made a real discrimination," but only **as strongly as the operator's clean-label is true.** Label-trust is a human-ratifier responsibility (ADR-044's computability-forced human-in-the-loop), named here as an honest-scope bound exactly like the all→Suspected ceiling (ADR-050), never papered over.
+
+---
+
+## Mechanics
+
+**The near-miss check is cheaply buildable — verified against the real bytes, no new matcher machinery.** A `Fingerprint`'s `constraints` is a `Vec<Constraint>` (`antigen-fingerprint/src/lib.rs`), and `Fingerprint::matches` (`matcher.rs:78-80`) is `match_all_of(&self.constraints, item) == Match3::Match`. "Drop conjunct `c`" is just cloning the `constraints` vector with index `c` removed and matching the result through the **same shipped matcher**. One clone-minus-one-element + one re-use of `matches`, iterated over the conjuncts. No constraint-type classification, no skeleton derivation, no nesting concerns — the predicate operates on the top-level `constraints` slice structurally.
+
+1. **`fn is_near_miss(draft: &Fingerprint, item: &syn::Item) -> bool`** — `true` iff `draft.constraints.len() >= 2` AND `!draft.matches(item)` AND `∃ i ∈ 0..draft.constraints.len()` such that `Fingerprint { constraints: draft.constraints without index i }.matches(item)`. (The dropped-conjunct fingerprint is matched by the standard `matches`; its `Undefined` projects to "doesn't fire" via the shipped Kleene-strong `match_all_of`, `matcher.rs:72-76` — so there is no separate-skeleton definedness artifact, closing ATK-047-3.) **The `len >= 2` guard closes the EMPTY-ALL_OF VACUITY (ATK-047-N4, adversarial RAN vs matcher):** dropping the sole conjunct of a single-conjunct draft yields an *empty* `constraints` vector, which `match_all_of` makes **vacuously `Match`** (`matcher.rs:88` — "an empty slice is vacuously `Match`"; the parse-time empty-`all_of` ban does NOT cover a drop-one-constructed empty). Without the guard, every non-binding item would be a false "near-miss" and vacuity reopens — and crucially `narrow()` can mint a *single discriminating* conjunct (`[body_calls("unwrap")]`) that PASSES (A)-binary yet still empty-drops, so (A)-binary does **not** subsume this; it is a distinct hole. A single-conjunct draft has **no valid near-miss by construction** (there is nothing to be "one constraint away" from when there is only one constraint) → it returns `NotCorpusWitnessable` (route-to-human), which is correct. **Top-level conjuncts only**: `anti_unify` emits a flat top-level `all_of` (`propose.rs:171-184` pushes every conjunct, incl. the `any_of`, directly onto `conjuncts`; it never nests). A future generator emitting a nested `any_of` would want a recursive drop — locked as a scope boundary (Open-Question-2), not built now.
+
+2. **`fn has_discriminating_conjunct(draft: &Fingerprint) -> bool`** — the **(A)-binary** safety check: `true` iff `draft.constraints` contains ≥1 conjunct that is NOT a bare structural anchor (`Constraint::Item(_)` / `Constraint::ImplOfTrait(_)` / `Constraint::NameMatches(_)` alone) — i.e. it carries an actual discriminating signal (a `body_calls`, `body_contains_macro`, `qualifier`, `any_of`, or any leaf that distinguishes a defect from its clean family-sibling). **Binary, never a count.** A draft failing this is bare-structural over-general (binds the whole family, spares none in-family) → a *safety* refusal. (The exact partition "bare structural anchor vs discriminating signal" is locked with the pathmaker against the real `Constraint` enum at ratification — stated as a *principle*: an anchor that says *what the item IS* is structural; one that says *what distinguishes a defect* is discriminating.)
+
+3. **`fn corpus_witnesses_draft(draft: &Fingerprint, corpus: &[syn::Item]) -> NonVacuity`** — the near-miss non-vacuity check:
+   - returns **`Witnessed`** iff `∃ item ∈ corpus : is_near_miss(draft, item)` (a near-miss exists — the draft's generalization is corpus-exercised);
+   - else **`NoWitness`** (no corpus item is one constraint from binding — B cannot certify the generalization; route to a human).
+
+4. **`promote_if_safe`** runs, in order: the empty check (shipped), the (A)-binary safety check, the near-miss generalization check, then spare-clean:
+   ```
+   if clean_corpus.is_empty() { return Refused(EmptyCorpus); }              // hole (1), shipped
+   if !has_discriminating_conjunct(&draft) {                                 // (A)-binary SAFETY refusal
+       return Refused(BindsCleanItem);   // bare-structural over-general — over-binds the family
+   }                                                                         // (C's Island-2.5 guard catches this upstream too)
+   match corpus_witnesses_draft(&draft, clean_corpus) {
+     NoWitness => return Refused(NotCorpusWitnessable),                     // SAFE but can't certify generalization → route-to-human (ADR-051)
+     Witnessed => {}                                                        // near-miss exists; fall through
+   }
+   if spare_clean(&draft, clean_corpus) { Promoted(draft) } else { Refused(BindsCleanItem) }  // binds a clean item = autoimmune
+   ```
+   (The `Promoted(_)`/`Refused(_)` here are sketch verbs for the gate *logic*; the actual return type is **`Result<PromotedDraft, ToleranceVerdict>`** — `Promoted(draft)` is `Ok(PromotedDraft { fingerprint: draft, tier })` with the gate-assigned `tier` (ADR-048/049/050), and each `Refused(v)` is `Err(v)`. ADR-047 governs the *predicate*; ADR-048 governs the *exact constructor + return type* — the co-lock.)
+   **Two axes, kept distinct (the rev-3 reconciliation, captain + aristotle):** the (A)-binary check and `spare_clean` are SAFETY (does it over-bind?); the near-miss check is GENERALIZATION-QUALITY (can B certify it extends?). A draft that is safe but not near-miss-witnessed (a twins-collapsed draft) is **safe yet routes to human** — B refuses to fake the generalization-verdict it cannot make. The three verdicts: `NotCorpusWitnessable` = "safe, but I can't certify it generalizes — ratify by hand" (the route-to-human handoff into ADR-051); `BindsCleanItem` = "autoimmune — binds a clean item OR is bare-structural over-general." The Island-2.5 SPLIT handles the upstream cases on the two axes: C's non-degeneracy guard (the refusal half) catches the **bare-structural** case before B (defense-in-depth with B's (A)-binary); the generalization-confidence tier-input (the signal half → ADR-050) lowers the **twins** draft's tier (it does NOT refuse it — twins are safe). The guard does not "make route-to-human rare" by catching twins — twins still route to human; the tier-input just annotates them as low-confidence first.
+
+4. **`ToleranceVerdict` extends to the three-valued shape.** Today it is `{ Spared, BindsCleanItem{clean_index} }` (`self_tolerance.rs:36-47`). It gains **`NotCorpusWitnessable`** (the route-to-human verdict — no near-miss). The pure predicate `spare_clean` keeps its literal answer (mirroring the empty-corpus division of labor at `self_tolerance.rs:112-115`); the *promotion authority* (`promote_if_safe`) is where the three-valued refusal lives. (See §Standing-Pressure-Audit Q2 for the sealed-enum inclusion discipline on the three-variant verdict.) GATE-G introduces **no proc-macro surface** — it is a library-internal gate (§Standing-Pressure-Audit Q1).
+
+### §Enforcement-Surface
+
+| Mechanism | Enforcement-Tier | Enforcement-Scope | Bypass risk + mitigation |
+|---|---|---|---|
+| `promote_if_safe` (A)-binary safety check (`!has_discriminating_conjunct → BindsCleanItem`) | build-time (library — the verdict forces the caller to handle the refusal) | client (the library API) | Bypass = none meaningful: the check is binary and internal. **Must NOT be a tunable count** (that = P2 = a `FingerprintGamedNotDefended`-class Goodhart surface a draft could be tuned to clear); the ratification gate forbids any "≥K" form. The exact "discriminating vs bare-structural" `Constraint` partition is locked with the pathmaker. |
+| `promote_if_safe` near-miss guard (`NoWitness → NotCorpusWitnessable`) | build-time (library type-level — the three-valued verdict forces the caller to handle the route-to-human arm) | client (the library API itself) | Bypass = a caller calls `anti_unify` + asserts the raw draft without routing through `promote_if_safe`. **Mitigated by ADR-048** (the `PromotedDraft` newtype: raw `anti_unify` returns `Fingerprint`, not assertable as a promoted class — only `promote_if_safe` mints `PromotedDraft`). Without ADR-048 this is a doc-convention bypass (`propose.rs:73-77`); with it, structural. |
+| The `NotCorpusWitnessable` route-to-human verdict surfaced to the operator | CLI-time (when `cargo antigen propose` reports a cluster yielded no corpus-witnessable draft → ratification-interface, ADR-051) | client + CI (the propose caller, Island 3) | Bypass = operator ignores the diagnostic and hand-writes the antigen. That is the operator's prerogative (out of scope — they leave the learning loop and author manually); the gate governs `propose()`, not hand-authoring. |
+| C's non-degeneracy guard (P1) refuses bare-structural over-general drafts upstream of B | scan-time / CLI-time (in the generator path, before `propose()` calls B) | client + CI (the generator, pulled charter→do-now per P1) | Bypass = removing the non-degeneracy guard from C. Mitigated by the falsification non-degeneracy test (the "collapse to bare-structural → no draft" test) owned by the keystone test suite. **This is the co-requisite of the near-miss gate** — without it, near-miss alone admits the bare-structural collapse (the one case it is more permissive than the rejected never-promote ruling). |
+| The near-miss tests pin the predicate (the four ATK cases + the positive control) | commit-time + CI (the antigen test suite, `-D warnings` gate) | client + CI | Bypass = deleting the tests. Mitigated by the ATK suite owning the named adversarial tests (ATK-047-1..4) the adversarial role co-signs. |
+
+**Friction-vs-structural disclosure:** the non-vacuity guard itself is **structural** at the library boundary (a `None` the caller's type-system forces them to handle), not friction-only — *provided* the caller uses `promote_if_safe`/`propose` rather than asserting `anti_unify` output directly. The "use the gate, not the raw generator" boundary is friction-only **until ADR-048** makes it structural via the newtype. This ADR + ADR-048 together make the whole path structural; this ADR alone makes the *gate's verdict* structural but leaves the *route-to-the-gate* a convention.
+
+### §Standing-Pressure-Audit (Q1–Q9)
+
+- **Q1 — Proc-macro arg-signature**: **N/A — GATE-G introduces no proc-macro.** It is a library-internal gate (`self_tolerance.rs` functions). No parse-time arg surface. (Explicitly labeled to claim the exemption per process.md Q1.)
+- **Q2 — Sealed-enum inclusion-discipline**: `ToleranceVerdict` is a sealed enum carving the axis *"why a draft did/didn't promote against this corpus."* Inclusion criterion: a variant names a distinct **corpus-relative promotion-decision provenance**. Current set: `Spared` (safe), `BindsCleanItem{clean_index}` (autoimmune — binds a clean item), **+ `NotCorpusWitnessable` (this ADR — no near-miss in the corpus → route-to-human).** Exclusion criterion: a variant naming a *draft-internal* property (e.g. "over-general") does NOT belong — that is C's concern, refused upstream by C's non-degeneracy guard (P1), never a `ToleranceVerdict` (excluded candidate: `OverGeneralDraft` — rejected, generator-precision label, mis-axis; exactly the B/C separation P1 enforces). Extension discipline: a new variant requires an ADR amendment + must name a corpus-relative decision-provenance not expressible as a combination of the existing three.
+- **Q3 — Controlled-vocabulary-tier**: N/A (no shared-taxonomy string field; the verdict is a sealed enum, Q2).
+- **Q4 — Resolution algorithm**: the "reference" the predicate resolves is *a near-miss corpus item*. Algorithm: linear scan of `clean_corpus`; for each item, scan the draft's `constraints` dropping one at a time, testing `(draft minus c).matches(item) && !draft.matches(item)`. First near-miss → `Witnessed`; none → `NotCorpusWitnessable` → the route-to-human verdict at **CLI-time/build-time** (the caller handles the three-valued verdict). Not silent: type-forced. Cost: O(corpus × conjuncts) matcher calls — both small (a cluster's clean siblings × a handful of conjuncts).
+- **Q5 — Cross-primitive interaction**: interacts with `spare_clean`/`evaluate` (siblings in `self_tolerance`), with `anti_unify`/`propose` (the C-side, `propose.rs`), AND with **C's non-degeneracy guard (P1)** — which refuses bare-structural over-general drafts *before* `propose` calls B. Ordered: C's non-degeneracy guard → `anti_unify` → `propose` (`propose.rs:215-218`) → `promote_if_safe` (near-miss *and* spare-clean). The near-miss check reads the *draft's own* `constraints` (drop-one-conjunct), never re-parses (`ParallelStateTrackersDiverge` guard satisfied structurally).
+- **Q6 — Deprecation surface**: **semantic-break by return-type change, zero callers.** `promote_if_safe`'s return changes `Option<Fingerprint>` → **`Result<PromotedDraft, ToleranceVerdict>`** (the 047/048 co-lock ruling — `Result` NOT `Option`, so the three-valued verdict's `NotCorpusWitnessable` route-to-human reason survives in the `Err` arm; an `Option` would swallow it). It narrows what promotes (a safe-but-not-near-miss draft now routes to human) AND changes the type. **Zero production callers** (ADR-007), so no migration — the in-crate tests migrate in the same commit. Tightening before the first caller wires in. Called out per Q6.
+- **Q7 — Named-surface check**: new names — `is_near_miss`, `corpus_witnesses_draft`, `has_discriminating_conjunct` (fns), `NonVacuity{Witnessed, NoWitness}` (intermediate enum), `NotCorpusWitnessable` (`ToleranceVerdict` variant). Cross-ADR grep target for the adversarial/scout: confirm none collide with ADR-039/044/045/046 surfaces or existing `self_tolerance`/`propose` public items. (The earlier `skeleton`/`exercised_by`/`VacuousAgainstCorpus` names are RETIRED with the skeleton formulation — do not ship them.)
+- **Q8 — Enforcement-mechanism**: the §Enforcement-Surface table above has a row per gate (the near-miss guard, the route-to-human verdict, C's non-degeneracy guard P1, the test-pinning). The near-miss guard's row is build-time/client (type-forced verdict).
+- **Q9 — Spec-adversarial pre-implementation test (the BORN-RED spec — the adversarial's RAN cases ARE the definition of done, captain's directive)**: the executable tests that fail if the gate is implemented most-permissively, taken from the adversarial's scratch harness (`R:/antigen-atk-scratch/src/main.rs`):
+  - **ATK-047-1 + (A)-binary** `bare_structural_draft_rejected_as_autoimmune` — a bare-structural over-general draft (`all_of([impl, impl_of_trait("Drop")])`, no discriminating signal) → `BindsCleanItem` (the (A)-binary SAFETY refusal — over-binds the family). AND `trivial_skeleton_not_corpus_witnessable` — a draft whose discriminating signal all lives in one conjunct + an unrelated-item corpus → `NotCorpusWitnessable` (vacuity NOT relocated; B routes rather than fake-promotes).
+  - **ATK-047-2** `twins_collapsed_draft_routes_to_human` — the identical-twins cluster `{flush().unwrap(), flush().unwrap()}` (no `any_of`) + a clean `flush().ok()` sibling → **`NotCorpusWitnessable`** (SAFE — near-miss sees the `.ok()` sibling — but B cannot certify the twins-generalization, so it routes to human, NOT auto-promote). This is the rev-3 ruling: near-miss is the safety primitive, but a collapsed twins-draft is a generation-quality question B refuses to answer.
+  - **(A)-binary positive** `precise_no_disjunction_draft_with_real_discrimination_promotes` — a no-`any_of` draft whose core carries a *genuine* discriminating signal AND is near-miss-witnessed AND not-twins-collapsed promotes (proving (A)-binary does NOT brick the precise no-disjunction case — only the bare-structural one).
+  - **ATK-047-3** `near_miss_verdict_invariant_to_corpus_item_class` — the same safe Drop draft against a struct-sourced vs impl-sourced clean corpus yields the **same** verdict (no silent flip on definedness).
+  - **ATK-047-4** `near_miss_passes_mislabeled_clean_corpus_item` — a corpus item that panics via an unlisted route passes the gate; this test **documents the residual** (asserts the gate passes, with a comment that label-trust is the human-ratifier's, per claim-scope) rather than asserting a structural close.
+  - **ATK-047-N4** `single_conjunct_draft_is_not_near_miss_via_empty_drop` — a single-conjunct draft (e.g. a `narrow()`-minted `[body_calls("unwrap")]` that passes (A)-binary) is NOT near-miss-witnessable: the `len >= 2` guard prevents the empty-drop, so it returns `NotCorpusWitnessable` rather than vacuously near-miss-matching every non-binding item. (The adversarial's RAN hole — the empty-`all_of` vacuity that `matcher.rs:88` would otherwise reopen; (A)-binary does NOT subsume it.)
+  - **Positive control** `near_miss_promotes_the_good_drop_family` — the canonical `{unwrap, expect}` family + `CleanGuard` → promotes (`Witnessed`); the happy path stays green.
+  - **P1 co-requisite** `non_degeneracy_guard_refuses_bare_structural_draft` — `all_of([impl, impl_of_trait("Drop")])` refused by **C's** non-degeneracy guard before B sees it. (Lives with the generator; named here as the co-requisite the near-miss gate depends on.)
+  These encode the spec BEFORE the pathmaker writes code; may be `#[ignore]`'d pending implementation but the bodies are the spec. **The born-red set IS the definition of done for the build wave.**
+
+### §Standing invariant — (A) is BINARY, FOREVER; it must NEVER become a tunable threshold (the line that stops P1 decaying into P2)
+
+> **The (A)-binary safety check is a BINARY predicate — "does the draft carry ≥1 discriminating conjunct beyond bare structural anchors? yes/no" — and it MUST NEVER acquire a tunable specificity count (a "≥K conjuncts" floor).**
+
+This is a **standing invariant on the gate, not a one-time design note** (captain's explicit ruling — write the boundary load-bearing so a future amendment can't quietly cross it). The rationale, stated once and for all: a tunable `≥K` floor would be a **magic number on the *generalization* axis installed inside the *safety* gate** — and a draft could be tuned to clear the count without being meaningfully specific. That is **antigen's own `FingerprintGamedNotDefended` / Goodhart failure-class, committed by antigen's own keystone gate at the keystone trust boundary** — the exact thing antigen exists to forbid, one level up. The binary check has no number to game: a draft either carries a discriminating signal or it does not. **Any future ADR or amendment that proposes to make (A) a count, a threshold, a ratio, or any other tunable quantity is, by this invariant, proposing to install a Goodhart surface in the safety gate, and must be rejected on that ground alone.** (Generalization *quality* — "is this specific *enough*, will it over-fit?" — is C's axis, handled by the soft generalization-confidence signal, ADR-056/050, NEVER a hard threshold in B. The B/C boundary IS the protection: the moment a quantity-on-generalization migrates into B, P1 has decayed into P2.)
+
+---
+
+## Frontier statement (ADR-044)
+
+- **What this ADR proves:** that a promoted draft passed **all three of B's checks** — **(A)-binary** (it carries a discriminating signal, not bare-structural over-general), **near-miss** (≥1 corpus item is one constraint from binding it and spared — proving B made a real **in-family discrimination**; for a draft with a single discriminator the near-miss is "an in-family item the draft spares by failing that one discriminator," not "any item it could plausibly have flagged" — the N1 softness, narrowed), and **spare-clean** (it binds no clean corpus item). All three are **decidable, corpus-bounded FACTs** (drop-one-conjunct + `draft.matches` + a constraint-shape check, all through the shipped matcher over a finite corpus; the drop-one requires ≥2 conjuncts, so the empty-`all_of` vacuity ATK-047-N4 cannot reopen). The gate's "promote" now means "discriminating AND in-family-near-miss-witnessed AND spares-clean," never "spared *nothing*." (A safe-but-not-near-miss-witnessed draft does not promote — it routes to a human, `NotCorpusWitnessable`.)
+- **What this ADR does NOT prove:** that the draft is a *correct* failure-class; that it spares **all** clean code everywhere (the open-world generalization problem — undecidable by Rice, ADR-044); that the corpus is *representative*; or that the corpus items labeled clean *are* clean (ATK-047-4 — the mislabeled-clean residual: a defective item the operator mislabeled passes the gate, certified only as strongly as the label). A near-miss-witnessed gate against a *thin* or *mislabeled* corpus is still only as strong as the corpus. Near-miss closes the "B checked nothing it was near" vacuity hole; it does **not** close the "B's corpus was too small / mislabeled" gap. **The gate's new strength must not be over-read as closing open-world.**
+- **The ratifier:** the operator who supplies AND labels the clean corpus (corpus quality + clean-label truth are their responsibility — ADR-044's human-in-the-loop, computability-forced) and, downstream, the human/incident who ratifies the promoted draft into a named class (the draft remains a *suggestion at a calibrated tier* per ADR-045, never an asserted class — promotion through B is necessary, not sufficient). The `NotCorpusWitnessable` route-to-human verdict is the *named, first-class* handoff to this ratifier (ADR-051) when the corpus cannot witness the draft at all.
+
+---
+
+## Consequences
+
+- **The keystone's safety floor is sound, not vacuous.** Island 2 closes; Island 3 (`cargo antigen propose`) can wire the first caller knowing a promoted draft was genuinely near-miss-exercised. (Aristotle's `blocks` link: GATE-G blocks `generators/cargo-antigen-propose` and `callers/ratification-interface` — both unblock on this ADR's ratification + implementation.)
+- **The clean corpus becomes a first-class input the caller must source well.** `substrate/clean-siblings-exist-propose-can-run` (the feasibility witness) proves antigen's own dogfood corpus *can* supply near-miss clean siblings — so the gate is satisfiable on the real target, not just in theory.
+- **The value-floor of the whole voyage is established here** (value-finder's note `42423245`): an engine that can emit one autoimmune draft has *negative* expected value (poisoned trust is not recoverable per-flag). Near-miss non-vacuity is the structural guarantee that the *first* flag a developer sees from the learning engine is not autoimmune.
+- **The `NotCorpusWitnessable` verdict is a feature, not a failure** — it is the honest "I can't witness this; you ratify it" handoff that connects GATE-G to the ratification-interface (ADR-051, Tension-3). A gate that refuses to fake a verdict is the trust-floor the whole organism rides.
+- **P1 pulls C's non-degeneracy guard charter→do-now** — a small do-now scope add, the co-requisite of the near-miss gate (it refuses the bare-structural collapse B is intentionally not made to handle, keeping B/C single-responsibility).
+- **No production caller existed to migrate** (ADR-007) — the tightening is free now, ruinous to retrofit after a caller depends on vacuous promotion.
+
+## Resolves
+
+- The GATE-G non-empty-but-non-bindable vacuity hole (the real open residual; the empty-corpus hole was already closed in v0.4).
+- The four adversarial breaks the first ("skeleton-relevance") formulation carried — trivial-skeleton vacuity-relocation (ATK-047-1), collapsed-draft deadlock (ATK-047-2), Undefined-skeleton silent-FN (ATK-047-3) — all closed by the partition-free near-miss primitive; the mislabeled-clean residual (ATK-047-4) is named in claim-scope as an honest bound, not papered over.
+- The over-rejection trap of "never-promote a no-disjunction draft" — a precise-core no-disjunction draft is now correctly handled (safe → near-miss-witnessed → promotes if it generalizes; twins-collapsed → routes to human for generation-quality); it is not conflated with an over-general collapse.
+- The conflation of generator-precision (subset-principle/LGG hardens C, charter) with gate-soundness (near-miss hardens B, do-now) — held separate; the over-generality/twins backstop assigned to C (P1, Island-2.5); the (A)-binary bare-structural *safety* refusal kept in B (binary, never a threshold = never the P2 Goodhart surface).
+- The two-axis confusion (is a twins-draft a safety problem or a quality problem?) — resolved: safety (over-binding) is B's, generalization-quality (does it extend?) is C's; B routes what it cannot certify rather than guess.
+
+## Open questions (to resolve before ratification)
+
+1. **~~The no-disjunction draft edge~~ — RESOLVED (captain + aristotle).** Resolved to the two-axis model: a no-disjunction draft is *safe* (near-miss sees its discrimination) but a twins-collapsed one is a *generation-quality* question B cannot answer, so B routes it to human (`NotCorpusWitnessable`); the *bare-structural* over-general draft is an (A)-binary *safety* refusal that stays in B. The Island-2.5 SPLIT handles the upstream halves: C's non-degeneracy **guard** catches the *bare-structural* case; the generalization-confidence **tier-input** (→ADR-050) lowers the *twins* draft's tier (signal, not refusal). The §Decision carries the full reconciliation (aristotle's note `7c7ba6a3`).
+2. **Top-level-only conjunct scope.** The near-miss predicate drops one *top-level* conjunct at a time. `anti_unify` emits a flat top-level `all_of` today (`propose.rs:171-184` — the `any_of` is itself a top-level conjunct, never nested). Lock the scope as "top-level conjuncts" with a note that a future generator emitting a *nested* `any_of` would want a recursive drop (a near-miss-derivation amendment). Scientist to confirm against the matcher's nesting.
+3. **~~P1 scope handoff~~ — RULED (captain).** P1 confirmed; C's non-degeneracy guard pulled charter→do-now as **Island-2.5** (a new do-now build, structurally-required-anyway per anti-YAGNI — `anti_unify` CAN emit twins/bare-structural drafts, so the guard is needed regardless). P2 rejected (a tunable specificity floor = `FingerprintGamedNotDefended`-class Goodhart in the wrong organ). **(A) stays BINARY** (has-a-discriminating-conjunct, not a count) and lives in B as the bare-structural *safety* refusal. The ONE remaining lock-item: the exact `Constraint` partition for `has_discriminating_conjunct` (which leaves count as "discriminating" vs "bare structural") — lock with the pathmaker against the real enum (stated as a principle: identity-anchors are structural, defect-distinguishers are discriminating).
+4. **§047/048 co-lock — RULED `Result`, constructor-fused.** The `PromotedDraft` constructor returns `Ok(PromotedDraft)` only when (A)-binary passes ∧ near-miss `Witnessed` ∧ `spare_clean` — non-vacuity *unforgettable-by-construction* (Meadows #5). **Signature: `promote_if_safe -> Result<PromotedDraft, ToleranceVerdict>`** (NOT `Option` — `Option` would swallow the route-to-human reason; the `Err(NotCorpusWitnessable)` arm keeps it legible through the collapse). ADR-048's Mechanics carry this; co-lock is the joint ratification act.
+
+---
+
+## Amendment 1 (2026-06-11, pathmaker self-ratified during the Pioneers build wave) — producer-normalization of a single top-level `AllOf` wrapper closes the shape-fragility seam
+
+**Status**: RATIFIED (build-wave self-ratify; supersede-not-erase — the original §Mechanics "top-level conjuncts only" decision is PRESERVED above and REFINED here, not replaced).
+
+**What the original locked**: the near-miss predicate + (A)-binary read the draft's **top-level** `constraints` slice (§Mechanics 1/2), with nested `any_of`/`all_of` deferred to OQ2 ("a future generator emitting a nested `any_of` would want a recursive drop").
+
+**The divergence the build discovered (PROVEN BY RUN — `atk_047_shape_fragility_seam.rs`, the adversarial's pre-seeded born-red spec).** "Top-level conjuncts" is **producer-dependent**: two producers emit two top-level *shapes* for the SAME semantic fingerprint —
+- `anti_unify` (the real v0.5 generator) emits a **FLAT** `Vec<Constraint>` (e.g. `[Item, ImplOfTrait, AnyOf]`);
+- `Fingerprint::parse("all_of([..])")` — and any future `narrow()`/`PersistedSpecimen`-re-mint that reconstructs through the `all_of(..)` *surface* (ADR-051) — emits a single **WRAPPED** `[AllOf([..])]`.
+
+Because `is_discriminating(Constraint::AllOf(_)) == true`, a WRAPPED **bare-structural** draft makes `has_discriminating_conjunct` return `true` — so the **(A)-binary SAFETY refusal does not fire** on a draft the flat form correctly refuses. The verdict depends on *which producer built the draft* — antigen's own `ParallelStateTrackersDiverge` at the keystone gate. (Lived: the `learn_propose` example's `parse`-built naive draft routed-to-human instead of getting the (A)-binary refusal until this fix.)
+
+**The amendment**: `has_discriminating_conjunct` and `is_near_miss` read **producer-normalized** top-level conjuncts — a *sole* top-level `AllOf` wrapper is unwrapped (one level) to the flat conjuncts the generator would have emitted, before the predicate reads them (`self_tolerance::normalized_top_level`). The safety verdict is then **producer-independent** for the single-wrapper case: a flat and a single-`AllOf`-wrapped draft of identical semantics get the identical verdict.
+
+**Scope (honest — what this amendment does NOT close)**: it normalizes a **single** top-level `AllOf` (one level). It does **NOT** recurse into a *nested* `AllOf` sitting *alongside* other top-level conjuncts (`[Item, ImplOfTrait, AllOf([flush, drain, unwrap])]`) — there, a single top-level drop of the inner `AllOf` still collapses many discriminators at once, reopening the trivial-skeleton vacuity (ATK-047-1) via nesting. **That nested case remains OQ2-deferred and pinned born-red** (`nested_draft_does_not_spuriously_near_miss_a_bare_family_member` + `…does_not_promote_against_a_bare_family_member_only_corpus`, `#[ignore]`'d). Today `anti_unify` never nests, so no live nested bypass exists; the fix lands when a generator that emits nesting does (recursive-drop-or-refuse).
+
+**Why self-ratified at build (not bounced to a fresh ADR)**: this REFINES the locked predicate to be producer-independent — the same intent the original carried ("the gate reads the draft's own constraints, no re-parse"), made robust against the parse/narrow/persist surface. It un-greens the two single-wrapper born-red ATK-047 tests (now GREEN regression guards) and leaves the genuinely-harder nested case red. The notary adjudicates spec-refine vs build-wrong; the trail is here.
+
+---
+
+## Amendment 2 (2026-06-11, drafted by the test-architect, pathmaker self-ratifies at build) — the near-miss REMAINDER must discriminate, and the canonical-form normalize is RECURSIVE — closing the two trivial-skeleton vacuity holes the gate's own audit found
+
+**Status**: PROPOSED for build-wave self-ratify (supersede-not-erase; REFINES the §Decision near-miss primitive + Amendment 1's normalize, neither replaced). Drafted by the test-architect at the captain's routing (build-wave batch "SAFETY SPINE LANDED + 2 VACUITY HOLES FOUND"); the pathmaker self-ratifies on landing the code. **Both holes were found by the gate auditing the gate** — the adversarial + test-architect + scout pass falsified the fresh spine immediately after self-close; **both close BEFORE Island 3 wires a real caller** (cheap now, ruinous with a caller).
+
+**What the §Decision + Amendment 1 locked**: a near-miss is a corpus item one *top-level* (producer-normalized, single-wrapper) conjunct from binding the draft (`is_near_miss` drops one normalized conjunct at a time). (A)-binary refuses a bare-structural draft. The near-miss was claimed to close ATK-047-1 (trivial-skeleton vacuity): "Near-miss does NOT relocate the hole."
+
+**The two divergences the build discovered (BOTH proven by RUN — `atk_047_shape_fragility_seam.rs` + `atk_047_near_miss_invariants.rs` invariant 6, RAN-RED 2026-06-11):**
+
+**Hole I — the FLAT single-discriminator trivial-skeleton vacuity (ATK-047-1, LIVE on the committed flat path).** A draft whose *entire* discriminating signal lives in ONE conjunct — `[Item(Impl), ImplOfTrait("Drop"), BodyCalls("aaa")]` (one discriminator) — against a corpus item that is a bare `Drop` impl NOT calling `aaa`: `is_near_miss` drops the SOLE discriminator `BodyCalls("aaa")`, leaving the remainder `[Item(Impl), ImplOfTrait("Drop")]`, which is **bare-structural** and matches *every* `Drop` impl. So the bare member is counted a "near-miss" → the gate PROMOTES (`Ok`), when it should route-to-human (`NotCorpusWitnessable`). The corpus item shares NONE of the draft's discriminating signal; it is "near" only by **collapsing the draft to its structural skeleton** — the *exact* trivial-skeleton vacuity the near-miss primitive was claimed to close. **The gate certifies "B made a real discrimination" when B made none.** This FALSIFIES the §Decision sentence "ATK-047-1 — Near-miss does NOT relocate the hole" for the single-discriminator case. (RED: `atk_047_shape_fragility_seam.rs:299,:315`; the universalized property `atk_047_near_miss_invariants.rs` invariant 6.)
+
+**Hole II — the NESTED double-wrap evasion (Amendment 1's named-but-open residual, now LIVE via the user-parse surface).** `parse_all_of` does NOT flatten, so `parse("all_of([all_of([item])])")` yields a **double-wrapped** `[AllOf([AllOf([..])])]`. Amendment 1's `normalized_top_level` unwraps a *single* `AllOf` (one level) — so a double-wrap survives normalization still wrapped, and the (A)-binary evasion + the nested-near-miss vacuity both re-open. This is SAFE on the v0.5 *generator* path (`anti_unify` never nests, end-to-end flat), but it is **LIVE via the user-parse surface** the moment build unit #8 (ADR-051 `narrow()`/`PersistedSpecimen` re-mint) RE-PARSES a user-edited fingerprint into arbitrary nesting. A nested `AllOf` *conjunct* also lets ONE top-level drop strip MANY discriminators at once (the nested-near-miss half — `nested_draft_does_not_spuriously_near_miss_a_bare_family_member`, RED).
+
+**The amendment (two coupled rules, one primitive):**
+
+1. **The near-miss REMAINDER must itself discriminate (closes Hole I).** A corpus item is a near-miss **only if** the dropped-conjunct *remainder* retains ≥1 discriminating conjunct — i.e. the item is spared by failing a **discriminating** conjunct, never by failing the *sole* conjunct that makes the draft non-structural. Formally, refine the near-miss predicate's existential:
+   ```
+   ∃ conjunct c ∈ normalized(draft) :
+         (normalized(draft) MINUS c).matches(item) == true
+     AND  normalized(draft).matches(item)          == false
+     AND  has_discriminating_conjunct(draft MINUS c)   // ← NEW: remainder still discriminates
+   ```
+   A near-miss whose remainder is bare-structural is a structural-skeleton collapse, NOT a real in-family discrimination — refuse to count it. (Mechanically: `is_near_miss` adds `&& has_discriminating_conjunct(&Fingerprint { constraints: remainder })` to the drop-one test. ~3 lines, reusing the shipped (A)-binary predicate — ONE predicate, now a third call-site, no `ParallelStateTrackersDiverge`.)
+
+2. **The canonical-form normalize is RECURSIVE (closes Hole II).** `normalized_top_level` becomes a recursive canonical-form: **flatten ALL redundant nested `AllOf`** (a sole or nested-conjunct `AllOf` whose children merge into the parent — sound because `all_of` is associative and a single-child `all_of` is identity; this is RECOGNITION, it matches `matcher.rs:163`'s own all_of handling). Applied at the predicate read, both `has_discriminating_conjunct` and `is_near_miss` see the fully-flattened conjunct set, so a double-wrap `AllOf(AllOf(..))` and a nested-conjunct `AllOf` alongside others both normalize away. Unit #8's re-mint then inherits a producer-independent gate regardless of user-parse nesting.
+
+**The one principled RESIDUAL kept open (named, not papered over — aristotle's split, captain-ruled).** An `AllOf` sitting *inside an `AnyOf` arm* (`any_of([all_of([a, b]), c])`) is **semantically necessary**, not redundant — the recursive flatten must NOT touch it. A top-level drop that removes the whole `AnyOf` there *under-binds* (misses), routing-to-human SAFE — it never fabricates a promote. So the **arm-internal `AllOf`-in-`AnyOf` recall-drop is the genuine OQ2 charter** (a recall-deepening for a future nested-`any_of` generator), distinct from the *safety* holes I + II this amendment closes. Safety closes now; recall is chartered.
+
+**Frontier (what Amendment 2 proves / does NOT prove):** it proves the near-miss is a **real discrimination** (the remainder discriminates) and is **producer-independent under arbitrary `AllOf` nesting** (recursive canonical-form) — both decidable, corpus-bounded facts. It does NOT prove anything about the open-world coverage gap (unchanged from §Frontier) nor close the arm-internal recall-drop (chartered). The (A)-BINARY-FOREVER standing invariant is untouched: the new remainder-check reuses the *binary* `has_discriminating_conjunct`, never a count.
+
+**Born-red → guard (the un-ignore set, one fix-condition):** landing both rules un-ignores, in one commit — `atk_047_shape_fragility_seam.rs` (`single_discriminator_draft_is_not_near_miss_via_bare_structural_collapse`, `…routes_to_human_against_unrelated_bare_corpus`, `nested_draft_does_not_spuriously_near_miss_a_bare_family_member`, `…does_not_promote_against_a_bare_family_member_only_corpus`) + `atk_047_near_miss_invariants.rs` invariant 6 (`single_discriminator_near_miss_must_not_be_bare_structural_collapse`, the universalization). All RAN-confirmed RED; all chained to this amendment's fix.
+
+**Why self-ratified at build**: REFINES the near-miss primitive to be a *real* discrimination and producer-independent under nesting — the same intent the §Decision carried ("B made a real in-family discrimination"), made sound against the single-discriminator and user-parse-nesting surfaces. It un-greens 5 born-red guards and leaves only the principled arm-internal recall-residual (chartered). The notary adjudicates spec-refine vs build-wrong; the trail is here.
+
+---
+
+## [ADR-048] The Promoted-Draft Newtype: Make "Only B's Output Is Assertable" Type-Enforced, Not Doc-Convention
+
+**Status**: **RATIFIED 2026-06-10** (v05 Outfitters/converge wave; targets `0.5-dev`). **Co-locked with ADR-047 (the joint ratification act); captain seal-gate by full re-read.** Lifecycle complete: deconstructed (aristotle, Phase 1-8 + the serde/PersistedSpecimen fifth-surface grounding), attack-annotated (adversarial — the serde-forgery + the shared bypass-class), consistency-audited. **Build-wave obligation in the baton:** the explicit `into_fingerprint` one-way-downgrade ATK (OQ2) runs at build (sound by design — an extracted `Fingerprint` is assertable as nothing).
+
+**Participants**: adr-specialist (draft + the 048/049/050 score-unification), dreamer (the V2-CB-WIRING island + the (1)+(2) fusion question, note `760a4197`), aristotle (Phase 1-8 + the serde/PersistedSpecimen fifth-surface grounding), adversarial (the ATK — serde-forgery + the shared bypass-class), captain (the co-lock directive + the seal-gate read).
+
+**Related**: **ADR-047** (the GATE-G non-vacuity predicate — ADR-047 locks WHAT must hold at promotion; THIS ADR locks the TYPE that makes routing-around-the-gate impossible; the two are the same safety-tangle split into predicate + carrier and **co-ship**, ADR-045's C ══ B made structural); ADR-045 (the C ══ B co-ship — "PROPOSE never promotes except through B"; today this rests on a doc convention this ADR makes a type); ADR-005 Sub-clause F (the trust boundary — this ADR converts the boundary from friction to structure); ADR-044 (frontier-honesty — `PromotedDraft` carries no more authority than "passed B against this corpus"; it is not an asserted class).
+
+---
+
+## Finding
+
+Today the safety boundary "**raw `anti_unify` output cannot be asserted; only `propose()` output can**" rests on a **doc-stated convention**, not a type. The convention is stated clearly — `anti_unify`'s doc (`propose.rs:73-77`): *"The returned draft is a HYPOTHESIS… is NOT a promotable fingerprint… Calling `anti_unify` directly and matching with the result bypasses the safety gate — do that only for inspection, never to promote."* — and `self_tolerance`'s `promote_if_safe` doc (`self_tolerance.rs:89-115`) reinforces it. But **both `anti_unify` and `propose` return the same type — `Option<Fingerprint>` / `Fingerprint`** (`propose.rs:96`, `propose.rs:215`). Nothing in the type system distinguishes a draft that passed B from one that did not.
+
+While the keystone has **zero callers** (ADR-007), this is latent: there is no pipeline to route a raw draft into. **The moment Island 3 wires the first caller (`cargo antigen propose`), the boundary becomes load-bearing** — a caller can call `anti_unify`, get a `Fingerprint`, and `.matches()` against real code or emit it as a `#[presents]`/`#[antigen]` suggestion **without ever routing through B**. The autoimmune draft the whole GATE-G work (ADR-047) exists to refuse is one ordinary function call away from being asserted, and the type system says nothing. This is sub-clause F (ADR-005) left as a convention exactly at the keystone trust boundary — the one place ADR-045 calls "the captain's highest-stakes line."
+
+The dreamer (note `760a4197`) located this as **V2-CB-WIRING** and posed the design question this ADR must rule on: *"can the newtype's constructor ENCODE the non-vacuity invariant, making (1) unforgettable-by-construction?"* — i.e. should the newtype fuse the ADR-047 check (non-vacuity) and the ADR-048 carrier (assertability) into a single type-state move where the *only* way to obtain a `PromotedDraft` is through the full gate?
+
+---
+
+## Decision
+
+**Introduce a `PromotedDraft` newtype whose ONLY constructor is the B-gate.** A raw generalization is a `Fingerprint` (a hypothesis — assertable as nothing); a draft that has passed B against a real, non-empty, exercising clean corpus is a `PromotedDraft` (the only kind the assertion/emission surfaces accept). The boundary "only B's output is promotable" becomes a **type**, not a sentence in a doc-comment.
+
+```
+/// A draft that has passed B's gate against a real clean corpus, CARRYING its
+/// score — the ONLY assertable generalization. Constructed solely by
+/// `promote_if_safe` / `propose`; there is no public constructor, no
+/// `From<Fingerprint>`, and no `Deserialize` (the serde-forgery guard, §5).
+/// Possession of a `PromotedDraft` is the structural proof that ALL THREE of
+/// ADR-047's gate checks held — (A)-binary (has a discriminating signal),
+/// near-miss non-vacuity (corpus exercised it), and spare-clean (binds no
+/// clean item) — AND that the output is SCORED (ADR-049: the `tier` is the
+/// existing `Provenance`/dial ordinal, assigned by ADR-050's two-signal
+/// routing at promotion). One token, three invariants: B-gate-ran [048],
+/// gate-checks-held [047], output-scored [049]. (Co-shipping with ADR-047.)
+pub struct PromotedDraft {
+    fingerprint: Fingerprint,   // PRIVATE — no bypass construction
+    tier: Provenance,           // the score (ADR-049), assigned by the gate (ADR-050) — NOT a new type
+}   // no Deserialize (§5); fields private
+```
+
+- `anti_unify(cluster) -> Option<Fingerprint>` — unchanged. Returns the raw hypothesis.
+- `promote_if_safe(draft: Fingerprint, corpus) -> Result<PromotedDraft, ToleranceVerdict>` — **the sole minter.** Runs ADR-047's near-miss non-vacuity check + the spare-clean check; on success wraps the draft in `PromotedDraft`; on failure returns the **`ToleranceVerdict`** naming why (`BindsCleanItem` = autoimmune, `NotCorpusWitnessable` = route-to-human). No other code path constructs one. **The `Result` (not `Option`) is load-bearing for the co-lock** (see below): an `Option<PromotedDraft>` would collapse all three of ADR-047's verdicts into a bare `None`, swallowing the `NotCorpusWitnessable` route-to-human reason the ratification-interface (ADR-051) needs. The error arm carries the verdict so the route-to-human handoff survives the type.
+- `propose(cluster, corpus) -> Result<PromotedDraft, ProposeOutcome>` — the only path from a cluster to a promotable draft (`propose.rs:215`), now returning the gated newtype (`ProposeOutcome` widens `ToleranceVerdict` with the C-side outcomes: `EmptyCluster`, `NoSharedSkeleton`, and the P1 `Degenerate` refusal from C's non-degeneracy guard — so every non-promotion reason is legible, not a bare `None`).
+- `PromotedDraft` exposes read-only accessors: `fn fingerprint(&self) -> &Fingerprint` (for `.matches()` / serialize) **and `fn tier(&self) -> Provenance`** (the score — ADR-049/050; the auto-accept policy-lever reads THIS, a gate-assigned tier, never a C-self-assessed one). The *only way in* is the gate.
+
+**The score field — the 048/049/050 unification (one coherent object: the scored promoted draft).** `PromotedDraft` carries a `tier: Provenance` (the EXISTING ordinal — `Encountered`/`Constructable`/`Heuristic`/`Imagined`, `finding.rs:319` — NOT a new type, a recognition per Tension-1). The three ADRs are one move on one object: **ADR-048 is the tier-CARRIER** (the field), **ADR-050 is the tier-ASSIGNMENT** (two-signal routing computes it at promotion: Signal-2-present → Named-eligible, Signal-1-only → Suspected), **ADR-049 is the tier-MANDATORY invariant** ("no caller emits un-scored output" — type-enforceable BECAUSE `PromotedDraft` structurally carries the tier, so an un-scored caller-output is type-impossible). Possession of the token proves the gate ran [048] AND the output is scored [049]. (The exact field type — `Provenance` vs a `{Provenance, DialTier}` pair — is locked with the pathmaker against `finding.rs` before ratification; aristotle's note `e92e7b7b`.)
+
+**The fusion ruling (the dreamer's question + systems-thinking's leverage-note + the captain's co-lock directive, answered): the constructor IS the fused gate — the newtype is the CARRIER, ADR-047's near-miss predicate is the CHECK, and the constructor returns a `PromotedDraft` only when the check passes, so the type encodes the invariant unforgettably-by-construction — but the two ADRs stay SEPARABLE.** Concretely:
+- The near-miss non-vacuity invariant (ADR-047) is **encoded by construction**: `promote_if_safe` is the only minter, and it returns `Ok(PromotedDraft)` *iff* ADR-047's near-miss check returns `Witnessed` AND spare-clean holds. *Possession of a `PromotedDraft` is the structural proof both held.* systems-thinking's framing (Meadows leverage #5 — a RULE beats a runtime-check you must remember): the type-rule makes GATE-G **impossible to skip**, not merely easy-to-remember. The dreamer's "unforgettable-by-construction" is achieved.
+- But we **keep them as two ADRs**, because they answer two different questions and can fail independently: ADR-047 answers *"what must be true of the corpus for a promotion to be sound?"* (the near-miss predicate — could be wrong even with a perfect newtype); ADR-048 answers *"what stops a caller from asserting an un-gated draft?"* (the carrier — could be bypassed even with a perfect predicate, if the type let you construct it freely). Fusing them into one ADR would hide that the *predicate* and the *carrier* are distinct failure surfaces (the CODE-TRUE audit must be able to check each independently). **The TYPE fuses them at runtime (one constructor, one gate); the DECISIONS stay two so drift in either is its own finding.** This is the precise sense of "co-lock": the *code* is one fused move, the *governance* is two falsifiable claims.
+
+**Co-lock surface (the constructor signature):** `promote_if_safe(draft, corpus) -> Result<PromotedDraft, ToleranceVerdict>` where `Ok` ⟺ (`corpus_witnesses_draft == Witnessed` ∧ `spare_clean`). The `Result`-not-`Option` shape is the load-bearing detail (above): it carries ADR-047's three-valued verdict *through* the newtype so `NotCorpusWitnessable` reaches ADR-051's ratification-interface intact.
+
+This is **recognition, not new build** (ADR-006): the boundary already exists (the doc says it); we are giving it the type it always implied. The Rust idiom is the standard "parse, don't validate" / typed-capability move — `PromotedDraft` is a capability token whose existence *is* the proof of the safety check.
+
+---
+
+## Mechanics
+
+1. **`pub struct PromotedDraft(Fingerprint)`** in `self_tolerance` (the gate's home), field private. No `pub fn new`, no `From<Fingerprint>`, no `Default`. The absence of a public constructor is load-bearing — it is the whole mechanism (Q2/Q6 below).
+2. **`promote_if_safe`** signature changes `Option<Fingerprint>` → `Result<PromotedDraft, ToleranceVerdict>`. On the `Ok` arm it wraps: `Ok(PromotedDraft(draft))`. (ADR-047's near-miss + spare-clean checks run *before* the wrap — the wrap is the last act, so the token is minted iff every gate passed; the `Err` arm carries the verdict.)
+3. **`propose`** signature changes `Option<Fingerprint>` → `Result<PromotedDraft, ProposeOutcome>` (`propose.rs:215`). Body threads the return type through from `promote_if_safe`, widening the error with the C-side non-promotion reasons (empty cluster, no shared skeleton, P1 degenerate-refusal).
+4. **Read access + the shared gate-bypass class.** `impl PromotedDraft { pub fn fingerprint(&self) -> &Fingerprint }` + `impl AsRef<Fingerprint> for PromotedDraft` — consumers that `.matches()` or serialize get a `&Fingerprint`, never an owned un-tokened one that could be re-promoted-by-forgery. **`into_fingerprint(self) -> Fingerprint` (the owned downgrade) is one member of a shared GATE-BYPASS class** that also includes ADR-051's `narrow()` re-gate (Tension-3 Hole-3: a ratifier narrowing a promoted draft produces a *new* fingerprint that must re-pass the gate, not inherit the old token). **The shared guard for the whole class:** *any operation that yields an owned `Fingerprint` from a `PromotedDraft`, or mutates a promoted draft into a different fingerprint, DOWNGRADES the capability — the result is a plain `Fingerprint` (assertable as nothing) and re-promotion requires re-routing through `promote_if_safe`.* `into_fingerprint` is safe because the downgrade is explicit and one-way; `narrow()` is safe because it returns a `Fingerprint` (or `Result<PromotedDraft,_>` if it re-gates inline), never a silently-re-tokened `PromotedDraft`. **This guard is named in BOTH ADR-048 (here) and ADR-051 (the `narrow()` re-gate) so neither owns it alone — the CODE-TRUE audit checks the class, not two unrelated methods.** (Observer's move #5: `into_fingerprint` + `narrow()` are the same bypass-class; cross-named.)
+
+5. **The serde surface is the THIRD member of the bypass class (aristotle, note `15254349`) — `PromotedDraft` must NOT derive `Deserialize`.** The private-field/no-public-constructor seal does **not** cover the serde construction path: `#[derive(Deserialize)]` can construct private fields, so a hand-written JSON `{"0": <fingerprint>}` would **forge a `PromotedDraft` token from disk** that never passed the gate. The ruling: **`PromotedDraft` does not derive `Deserialize`.** If the token must persist (for the ratification record's specimen store, ADR-051, or catalog persistence), the **serialized form is a bare `Fingerprint`** that **re-enters `promote_if_safe` on load** to re-acquire the token — *deserialize-downgrades*, the same downgrade-then-re-gate class as `into_fingerprint`/`narrow()`. (`Serialize` is fine — emitting the token's fingerprint is safe; it is *construction-from-untrusted-bytes* that forges.) Near-free to design-in now (a derive choice); ruinous to retrofit (every persisted token would be a forgeable capability). This closes the bypass class at the persistence boundary — without it, the whole capability-token discipline launders through a JSON file.
+5. **The assertion/emission surfaces** (Island 3's `cargo antigen propose` output; any future auto-`#[presents]` suggestion path) accept `PromotedDraft`, never bare `Fingerprint`, at the point where a draft becomes a *suggestion the operator sees*. (The catalog/scan surfaces that match *already-ratified* `#[antigen]` fingerprints are unaffected — those fingerprints came from a human author, not the generator; `PromotedDraft` governs the *generator→suggestion* edge only.)
+
+### §Enforcement-Surface
+
+| Mechanism | Enforcement-Tier | Enforcement-Scope | Bypass risk + mitigation |
+|---|---|---|---|
+| `PromotedDraft` private field + no public constructor | build-time (compile error — cannot construct outside the gate's module) | client (the library type system) | Bypass requires editing `self_tolerance.rs` to add a public constructor or make the field `pub`. That is a deliberate source edit to the safety module, not an accident — and it would be a CODE-DRIFT finding the CODE-TRUE audit catches (the newtype's privacy IS the enforcement). No config/runtime bypass exists. |
+| Suggestion surfaces accept `PromotedDraft` not `Fingerprint` | build-time (type mismatch is a compile error) | client + CI | Bypass = a surface author changes the parameter type to `Fingerprint`. Mitigated by a guard test asserting the propose-caller's emit path is typed on `PromotedDraft` (ATK-048-*), co-signed by adversarial. |
+| `into_fingerprint` downgrade is one-way | build-time | client | By design not a bypass — extracting yields a plain `Fingerprint` assertable as nothing; re-promotion requires re-routing through the gate. |
+
+**Friction-vs-structural disclosure:** this ADR makes the generator→suggestion boundary **structural** (a compile error, not a convention). The only residual is the source-edit-the-safety-module path, which is not a friction-vs-structural concern (it is a deliberate-tampering concern the CODE-TRUE audit owns). Unlike ADR-047-alone (where route-to-the-gate was friction-only), ADR-047 + ADR-048 together close the whole path structurally.
+
+### §Standing-Pressure-Audit (Q1–Q9)
+
+- **Q1 — Proc-macro arg-signature**: **N/A — no proc-macro.** `PromotedDraft` is a library newtype. (Exemption claimed explicitly.)
+- **Q2 — Sealed-enum inclusion**: N/A — `PromotedDraft` is a newtype struct, not an enum. The *sealing* discipline that matters here is **constructor-sealing**: the type is sealed against external construction by the private field + no public constructor + no `From`/`Default`. Inclusion criterion for "what may mint a `PromotedDraft`": only a function that has run the full B-gate (near-miss non-vacuity + spare-clean). Today that is exactly `promote_if_safe`. Extension discipline: a new minter requires an ADR amendment AND must run the identical gate (no second, weaker promotion path — that would be `ParallelStateTrackersDiverge` for the safety gate). (The `ToleranceVerdict` *error*-arm enum that `promote_if_safe` returns IS the sealed enum, governed by ADR-047 §Q2 — not duplicated here.)
+- **Q3 — Controlled-vocabulary-tier**: N/A.
+- **Q4 — Resolution algorithm**: N/A (no reference field).
+- **Q5 — Cross-primitive interaction**: tightly coupled to ADR-047's `promote_if_safe` (the minter) and to `propose` (the cluster→token path). Interaction is explicit and one-directional: `propose` → `promote_if_safe` → `PromotedDraft`. No shared mutable state; the token wraps the *same* `Fingerprint` C produced (no re-extraction → no divergence).
+- **Q6 — Deprecation surface**: **semantic-break by signature change, but zero callers.** `promote_if_safe` and `propose` change return type `Option<Fingerprint>` → `Result<PromotedDraft, ToleranceVerdict>` / `Result<PromotedDraft, ProposeOutcome>`. Any caller pattern-matching on `Some(Fingerprint)` must now handle `Ok(PromotedDraft)` + the typed `Err` and call `.fingerprint()`. **Zero production callers** (ADR-007) — the in-crate tests are the only call sites and migrate in the same commit. The cheapest possible moment (before any caller depends on the bare-`Fingerprint`/`Option` return). Called out per Q6.
+- **Q7 — Named-surface check**: new names — `PromotedDraft` (type), `fingerprint`/`into_fingerprint` (methods), `ProposeOutcome` (the `propose` error enum). Cross-ADR grep target: confirm `PromotedDraft`/`ProposeOutcome` collide with no type in `antigen`/`antigen-fingerprint`/`antigen-macros` (they should not — new safety-layer types). `narrow()` (ADR-051) is in the shared bypass-class but lives in ADR-051's surface; cross-referenced, not owned here. Scout/adversarial to substrate-grep before lock.
+- **Q8 — Enforcement-mechanism**: §Enforcement-Surface above; the load-bearing row is the private-field/no-public-constructor compile-time seal. The shared gate-bypass-class guard (Mechanics §4) is the second row — checked in both ADR-048 and ADR-051.
+- **Q9 — Spec-adversarial pre-implementation test**: the test that fails if the newtype is implemented permissively — `promoted_draft_has_no_public_constructor`: a compile-fail trybuild fixture attempting `PromotedDraft(some_fingerprint)` or `PromotedDraft::new(...)` from outside the module MUST fail to compile (the trybuild `.stderr` snapshot pins it — **stable-blessed** per the project's release discipline, so the snapshot must be generated on stable). AND `propose_returns_promoted_draft_not_fingerprint`: a type-level assertion that `propose`'s `Ok` payload is `PromotedDraft`. AND `into_fingerprint_downgrades_capability`: the owned-extraction yields a plain `Fingerprint` that is NOT re-assertable without re-gating (the shared-bypass-class guard). The trybuild compile-fail is the load-bearing test — it proves the seal holds against the bypass.
+
+---
+
+## Frontier statement (ADR-044)
+
+- **What this ADR proves:** that *possession of a `PromotedDraft` is structural proof the B-gate ran* — non-vacuity (ADR-047) + spare-clean held against a real corpus. The type carries exactly the gate's claim, no more.
+- **What this ADR does NOT prove:** that the wrapped fingerprint is a *correct* failure-class, or spares all clean code (ADR-047's frontier — corpus-bounded, Rice-limited). `PromotedDraft` is a *capability token for "passed B,"* never a *certificate of correctness.* It does not upgrade the draft's epistemic status from "suggestion at a calibrated tier" (ADR-045) to "named class" — naming stays with the human/incident ratifier.
+- **The ratifier:** unchanged from ADR-047 — the operator supplies the corpus; the human/incident ratifies the suggestion into a named class. The newtype governs *machine assertability*, not *semantic ratification*.
+
+---
+
+## Consequences
+
+- **The C ══ B co-ship (ADR-045) becomes a type, not a doc-convention.** "Never ship C without B green" — the captain's highest-stakes line — is now enforced by the compiler: there is no `Fingerprint`-typed path from `anti_unify` to a suggestion surface that skips B.
+- **Island 3 can wire `cargo antigen propose` safely.** The first caller receives `PromotedDraft`s; it *cannot* accidentally emit a raw `anti_unify` draft because the emit surface is typed on the token.
+- **Near-free now, ruinous to retrofit** (dreamer + value-finder): adding the newtype before the first caller is a one-commit signature change with zero migration; adding it after callers depend on `Option<Fingerprint>` is a breaking change across every caller.
+- **The CODE-TRUE audit gains a structural anchor**: "does the code enforce only-B-output-is-assertable?" becomes "is `PromotedDraft`'s field private and is the suggestion surface typed on it?" — a grep-checkable invariant, not a doc-read.
+
+## Resolves
+
+- The doc-convention-only status of "raw `anti_unify` output cannot be asserted" (ADR-045's boundary) — now type-enforced.
+- The latent bypass where a caller routes a raw `Fingerprint` to a suggestion surface without B (live the moment Island 3 wires a caller).
+- The dreamer's V2-CB-WIRING island (homed do-now, co-shipping with ADR-047).
+
+## Open questions — RESOLVED at ratification (captain seal-gate)
+
+1. **Module home for `PromotedDraft` — LOCKED: `self_tolerance`** (the gate's home; the minter lives there and the privacy seal requires same-module).
+2. **`into_fingerprint` ownership-downgrade — sound by design; explicit ATK rides the baton.** One-way extraction is safe (an extracted `Fingerprint` is assertable as nothing; re-promotion requires re-gating through `promote_if_safe`). The explicit born-red downgrade test (`into_fingerprint_downgrades_capability`, §Q9) runs at build as part of the bypass-class suite (the adversarial's un-run list).
+3. **Corpus-provenance — LOCKED: bare-wrapper for v0.5.** `PromotedDraft` does NOT carry corpus-provenance; that is the ratification record's job (ADR-051's `PersistedSpecimen`), avoiding a double-owned provenance.
+
+---
+
+## [ADR-049] No Caller Emits Un-Scored Output: The Affinity-Score Invariant + the Goodhart-Asymmetric Ratification Lever
+
+**Status**: Draft 2026-06-10 (v05 Outfitters/converge wave; targets `0.5-dev`). An **enforcement** ADR (not a design ADR — it enforces that the *existing* `Provenance` ordinal is correctly populated by every learning-core caller), the do-now invariant of the affinity-score-is-the-spine frame (ADR-052). **RATIFIED 2026-06-10** (captain seal-gate; the score = the existing `Provenance` ordinal type-carried on `PromotedDraft`, so un-scored output is type-impossible; staged lifecycle + consistency-audit). **Depends on ADR-052 (ratified)** (which ratifies "the score IS the existing `Provenance`/dial ordinal" — this ADR's invariant is vacuous until that score-as-axis is ratified) and **co-shipping with ADR-048** (the `PromotedDraft` newtype is the tier-CARRIER that makes this invariant type-enforceable).
+
+**Participants**: adr-specialist (draft), value-finder (the affinity-score-as-policy-lever), aristotle (the 048/049/050 unification — the score lives ON the `PromotedDraft`), observer (the three-required-claims scope + the Goodhart-asymmetric lever), captain (Tension-1: one field, two readings).
+
+**Related**: **ADR-052** (the affinity-score-is-the-spine frame — the score-as-axis this ADR enforces); **ADR-048** (the `PromotedDraft` newtype carries the `tier: Provenance` field — the *carrier* that makes "no un-scored output" type-impossible); **ADR-050** (the two-signal routing is the tier-ASSIGNMENT policy — what computes the tier); ADR-039 (the confidence dial + the `Provenance` ladder — the score is THIS, surfaced; recognition not new build, `finding.rs:62` `DialTier`, `finding.rs:79` `Provenance`); ADR-044 (frontier-honesty — the honest tier IS the Goodhart protection).
+
+---
+
+## Finding
+
+The affinity-score was independently rediscovered by four fields as the one cross-cutting carrier every learning-core caller's output needs (the value-finder's spine frame, ADR-052). But it is **structurally absent from the caller path today**. Grounded against the real bytes:
+
+- The score TYPE already exists: `Provenance` (`finding.rs:79`) = `{ Encountered, Constructable, Heuristic, Imagined }` — a **mandatory** typed enum on every `Finding` (`finding.rs:319`, `class_provenance: Provenance`, never `Option`, never a free string — "the permissive admission is trustworthy only because the provenance is honest"). Plus `DialTier` (`finding.rs:62`) = `{ Suspected, Named }`. This is the affinity-score's v0.5 form (Tension-1, captain — the ordinal, NOT a calibrated `[0,1]` scalar; conformal calibration is charter).
+- But the **learning-core caller path does NOT carry it.** `Fingerprint` (`antigen-fingerprint/src/lib.rs`) is `{ constraints: Vec<Constraint> }` — no score field. `anti_unify`/`propose` (`propose.rs`) attach no `Provenance`/dial/tier to their output (`propose.rs:57` only *mentions* "a suggestion at a calibrated tier" in a doc-comment; nothing in code attaches one). So a promoted draft is **structurally un-scored** — and the invariant "no caller emits un-scored output" is not merely vacuous, it is **false-by-construction**: the caller's output type has no slot for a score (aristotle's sharpening, note `e92e7b7b`).
+
+**The resolution is a wiring, not a new type (the 048/049/050 unification).** The score-type exists (`Provenance`); promotion is exactly the moment it gets *attached*. ADR-048's `PromotedDraft` gains the `tier: Provenance` field; ADR-050's two-signal routing *computes* it at promotion; this ADR makes carrying it *mandatory*. Three ADRs, one coherent object: **the scored promoted draft.**
+
+---
+
+## Decision
+
+**Every learning-core caller emits scored output, where the score is the existing `Provenance` ordinal carried on the `PromotedDraft` (ADR-048) and assigned by the two-signal routing (ADR-050) — and the score governs a Goodhart-ASYMMETRIC ratification lever.** Three claims (the observer's three required, `64d446d2`):
+
+1. **WHAT the score is (recognition, not new build).** The score is `class_provenance: Provenance` — the existing mandatory ordinal (`Encountered` / `Constructable` / `Heuristic` / `Imagined`), with the `DialTier` (`Suspected`/`Named`) as its gating projection. This ADR defines NO new metric and NO continuous score (that is charter, ADR-052's deferred half); it enforces that the *existing* ordinal is correctly populated. **The framing is "no caller forgets to set the provenance," NOT "here is what provenance means"** (that is ADR-052's job).
+
+2. **THE INVARIANT (type-enforced via ADR-048).** Every learning-core caller path that emits a draft MUST populate the provenance with the draft's *actual* provenance — never leaving it at the default `Imagined` when the draft has a known provenance. Because ADR-048's `PromotedDraft` is the only assertable output AND it structurally carries `tier: Provenance`, an un-scored caller-output is **type-impossible** — the invariant rides ADR-048's newtype (the same structural move: the token carries score + gate-proof together). A `propose()` that returned `Imagined` on a `Constructable` draft is the born-red spec (Q9).
+
+3. **THE GOODHART-ASYMMETRIC LEVER (the do-now policy-lever, ADR-052/055).** The score drives ratification policy, but **asymmetrically**: **auto-REJECT is safe at any tier** (rejecting a low-confidence draft costs nothing — structural); **auto-ACCEPT is permitted ONLY above the verified-core line** (`Encountered` / `Constructable` — the Goodhart-safe boundary where "a fiction can never claim these," `finding.rs:80`). `Heuristic` / `Imagined` drafts MUST still pass the human/agent ratify-act (ADR-051) — they cannot be auto-accepted. This asymmetry IS the Goodhart protection (ADR-044): the honest tier closes the gaming surface at *labeling*, and the lever respects the verified-core line so an un-verified draft can never auto-promote.
+
+---
+
+## Mechanics
+
+- **The field** (ADR-048): `PromotedDraft { fingerprint: Fingerprint, tier: Provenance }`. The accessor `fn tier(&self) -> Provenance` is what the lever reads — a gate-assigned tier, never C-self-assessed (the Hole-1 corollary of ADR-051's one-invariant: C never mints the token, so C cannot self-assess into auto-accept).
+- **The assignment** (ADR-050): at promotion, the two-signal routing maps (cluster defect-bind count, clean-corpus spare evidence, Signal-2 incident presence) → the `Provenance`/`DialTier`. Signal-2-present → Named-eligible; Signal-1-only → Suspected (the principled-caution ceiling, ADR-050).
+- **The enforcement** (this ADR): the invariant is checked at the type level (no un-scored `PromotedDraft` can exist) + at the emit seam (a caller emitting a `Finding` populates `class_provenance` with the draft's tier, not the default).
+
+### §Enforcement-Surface
+
+| Mechanism | Enforcement-Tier | Enforcement-Scope | Bypass risk + mitigation |
+|---|---|---|---|
+| Un-scored output is type-impossible (`PromotedDraft` carries `tier`) | build-time (the type has no un-scored state) | client (the type system, via ADR-048) | Bypass = a caller emits a bare `Finding` with default `Imagined` instead of routing the draft's real tier. Mitigated: the caller's tier comes from the `PromotedDraft.tier()` (gate-assigned); a Finding built from a promoted draft inherits it. |
+| Auto-accept only above verified-core (the asymmetric lever) | CLI-time / scan-time (the ratification policy, ADR-051) | client + CI | Bypass = a policy that auto-accepts `Heuristic`/`Imagined`. **Forbidden by this invariant** — the lever's accept-branch is gated on `tier >= Constructable`; a policy below that line is a spec violation the audit catches. (Auto-REJECT at any tier is fine — asymmetry.) |
+| The provenance is populated with the ACTUAL tier, not default `Imagined` | scan-time (the emit seam) | client + CI | Bypass = a caller leaves `class_provenance` at the default. Mitigated by the Q9 born-red test (a `Constructable` draft emitting `Imagined` fails). |
+
+**Friction-vs-structural disclosure:** the "no un-scored output" half is **structural** (type-enforced via ADR-048's `tier` field — an un-scored `PromotedDraft` cannot be constructed). The "actual tier not default `Imagined`" half is **scan-time** (a caller could populate the wrong tier; the born-red test guards the propose path, but a future caller must obey the invariant — friction-at-the-new-caller-boundary). The asymmetric lever is enforced at the ratification policy (ADR-051).
+
+### §Standing-Pressure-Audit (Q1–Q9)
+
+- **Q1 — Proc-macro arg-signature**: **N/A — no proc-macro** (an enforcement invariant over the caller path + the `tier` field on a library type). Exemption claimed.
+- **Q2 — Sealed-enum inclusion**: the score enums (`Provenance`, `DialTier`) are ALREADY-SEALED (ADR-039, `finding.rs`) — this ADR adds no variant; it enforces population. The verified-core LINE (the `Encountered`/`Constructable` vs `Heuristic`/`Imagined` boundary) is the inclusion-relevant structure: the asymmetric lever keys on it. Extension: a new `Provenance` tier is an ADR-039 amendment, not this ADR's.
+- **Q3 — Controlled-vocabulary-tier**: `Provenance` is the Tier-1 sealed dial taxonomy (ADR-039). This ADR enforces correct population, no new vocab.
+- **Q4 — Resolution algorithm**: the tier "resolves" via ADR-050's two-signal routing (the assignment policy). Failure mode: a caller that cannot determine a tier defaults to `Imagined` (the honest floor — "we don't know this is real") and the draft is NOT auto-acceptable (asymmetric lever); surfaces at scan-time.
+- **Q5 — Cross-primitive interaction**: the 048/049/050 unification — 048 carries the tier, 050 assigns it, 049 mandates it. Consumes `Provenance`/`DialTier` (ADR-039). The lever feeds ADR-051's ratification policy. No re-derivation — the tier is computed once at promotion and carried.
+- **Q6 — Deprecation surface**: **additive — zero callers** (ADR-007). The `tier` field is new on `PromotedDraft` (which is itself new); no existing caller to migrate. The enforcement is free to add now, ruinous to retrofit (a caller emitting un-scored output that downstream code came to depend on).
+- **Q7 — Named-surface check**: this ADR introduces no new names of its own (it enforces population of the existing `Provenance`/`DialTier` and references ADR-048's `tier` field). The verified-core line is a *concept*, not a new identifier. Cross-ADR grep: confirm the asymmetric-lever's threshold reads the existing `Provenance` discriminants, not a new constant.
+- **Q8 — Enforcement-mechanism**: §Enforcement-Surface above (type-impossible un-scored output; scan-time correct-population; ratification-policy asymmetric lever).
+- **Q9 — Spec-adversarial pre-implementation test (born-red)**:
+  - `promote_does_not_emit_imagined_on_a_constructable_draft` — a `propose()` over a `Constructable`-provenance cluster yields a `PromotedDraft` whose `tier()` is `Constructable`, NOT the default `Imagined` (the actual-tier-not-default invariant — the born-red spec, observer).
+  - `auto_accept_refuses_below_verified_core` — the ratification lever's auto-accept branch refuses a `Heuristic`/`Imagined` draft (it routes to human, ADR-051), while auto-REJECT works at any tier (the asymmetry).
+  - `promoted_draft_has_no_unscored_state` — a type-level assertion that `PromotedDraft` always carries a `tier` (no constructor produces an un-scored one — rides ADR-048's seal).
+
+---
+
+## Frontier statement (ADR-044)
+
+- **What this ADR proves:** that every learning-core caller's output carries its actual `Provenance` tier (a decidable, mandatory label — type-enforced via ADR-048), and that auto-accept is structurally gated above the verified-core line. The honest tier IS the Goodhart protection (a fiction can never claim `Encountered`/`Constructable`).
+- **What this ADR does NOT prove:** that the tier is *calibrated* (a continuous, statistically-sound affinity is charter — ADR-052's deferred half), nor that a `Constructable` draft is *correct* (the tier is a calibrated-confidence LABEL, not a correctness proof — ADR-044's "calibrated-under-claiming, not formally sound"). It enforces honest *labeling*, not *truth*.
+- **The ratifier:** the human/agent who sets the lever's thresholds (the policy) and ratifies the below-verified-core drafts the lever refuses to auto-accept (ADR-051). The asymmetry keeps the un-verified drafts in the human's hands — the computability-forced ratifier (ADR-044).
+
+---
+
+## Consequences
+
+- **"No un-scored output" becomes type-impossible**, not a discipline someone must remember — it rides ADR-048's `PromotedDraft.tier` field. The seam-doctrine: near-free now (the field is one addition before any caller), ruinous to retrofit (a caller emitting un-scored output downstream code depends on).
+- **The score makes machine-output usable by all three personas** (systems-thinking, Meadows #6 information-flow): triage (A), drift-trajectory (B), inheritance-trust (C) all read the one field.
+- **The Goodhart-asymmetric lever is the do-now intervention on the ratification ceiling** (ADR-055): auto-reject-anything + auto-accept-only-verified converts per-draft labor into a set-once threshold (the only thing that scales), WITHOUT letting an un-verified draft auto-promote.
+- **The 048/049/050 unification** — three ADRs, one object (the scored promoted draft) — is the recognition that the carrier (048), the assignment (050), and the mandate (049) are one structural move.
+
+## Resolves
+
+- The structural absence of the score on the caller path (it was false-by-construction — `Fingerprint` has no score slot; `PromotedDraft.tier` adds it).
+- The risk of an auto-accept laundering an un-verified draft (the asymmetric lever forbids auto-accept below verified-core).
+- The vacuity of "no un-scored output" before a score type existed on the caller path (now type-enforceable via ADR-048).
+
+## Open questions (to resolve before ratification)
+
+1. **The exact `tier` field type on `PromotedDraft`.** `Provenance` alone, or a `{ Provenance, DialTier }` pair? The `DialTier` (Suspected/Named) is the gating projection of the provenance + Signal-2; carrying both is explicit, carrying just `Provenance` + deriving the dial is leaner. Lock with the pathmaker against `finding.rs` (aristotle's note `e92e7b7b`).
+2. **Where the verified-core LINE is drawn for the lever.** `Encountered`/`Constructable` are clearly above (the Goodhart-safe core, `finding.rs:80`); `Heuristic`/`Imagined` clearly below. Confirm there is no intermediate tier the lever must rule on (there is not, in the current `Provenance` enum — but a future ADR-039 tier would need the lever updated). Lock the lever's threshold as `>= Constructable`, by discriminant, not a magic constant.
+3. **Does ADR-052 ratify before this?** This ADR is `BlockedBy ADR-052` (the score-as-axis must ratify first so "the score TYPE exists" is non-vacuous). Confirm the ratification order: 052 (the frame) → 048 (the carrier) + 050 (the assignment) → 049 (the mandate). All co-shipping in the do-now set.
+
+---
+
+## [ADR-050] The `incident=` Key + the Signal-2 Routing Rule: an Incident-Less Cluster Is Capped at Suspected (Principled Caution, Not a Gap)
+
+**Status**: Draft 2026-06-10 (v05 Outfitters/converge wave; targets `0.5-dev`). The do-now AXIS-slice of the two-signal frame (ADR-054); the ORGAN is charter. **RATIFIED 2026-06-10** (captain seal-gate; the `incident=` macro-key + the tier-routing rule with two tier-inputs — Signal-2 + generalization-confidence; the all→Suspected ceiling named principled-caution; staged lifecycle + consistency-audit).
+
+**Participants**: adr-specialist (draft), naturalist (the innate-arm reframe — Signal-2 as the shared afferent), captain (the axis-vs-organ split + the "principled caution, not a gap" framing), aristotle / adversarial (review pending).
+
+**Related**: **ADR-054** (the two-signal-gate frame — THIS ADR is its do-now enforcement: ADR-054 names Signal-2 as the shared afferent axis; ADR-050 ships the `incident=` key + the routing ceiling); ADR-041 (the marked-unknown plane — `#[dread]`/`#[red_flag]` are the Signal-1 marks `incident=` extends; `MarkerArgs` is the parse surface, `parse.rs:855-913`); ADR-039 (the confidence dial — Named/Suspected is the tier the routing rule sets; the `incident=` link is a tier *input*, surfaced on the scan-time Finding); ADR-044 (frontier-honesty — the Suspected ceiling IS the honest label when Signal-2 is absent); ADR-047 (GATE-G near-miss = the *structural* costimulation; `incident=` = the *semantic* costimulation — both Signal-2 readings).
+
+---
+
+## Finding
+
+The Cartographers charted antigen's entire **adaptive** immune arm and never the **innate** arm (the naturalist's noticing). The two-signal model (Janeway/Matzinger, 30+ years settled): an adaptive lymphocyte never fires on **Signal-1** (structural recognition) alone — it needs **Signal-2** (a costimulatory *danger signal*: did this shape actually cause harm?) or it goes anergic/tolerant. Cognate in antigen:
+
+- **Signal-1** = the shipped structural match: a `#[dread]`/`#[red_flag]` mark, a `shape_digest` cluster, an `anti_unify` draft. **Antigen has this.**
+- **Signal-2** = did-this-shape-actually-CAUSE-a-failure: an incident, a panic, a reverted commit, a co-located failing test. **Antigen has NO Signal-2 organ.**
+
+A learning core that promotes a *structural-only* match to a **Named** failure-class is firing on Signal-1 without Signal-2 — the autoimmune-prone move the innate arm exists to gate. Today nothing in the marking surface carries a Signal-2 link, and nothing in the tier-assignment consults one.
+
+**The captain's split (Tension-2, resolved): the AXIS is do-now; the ORGAN is charter.** Building a `cargo antigen incident-link` organ (detecting/ingesting real incidents from CI, git, issue trackers) is a whole runtime-afferent sub-territory — charter. But the **axis** — a place to *record* a Signal-2 link when the author has one, and a routing rule that *honestly caps* what a Signal-1-only mark can claim — is cheap, recognition-grade, and load-bearing now (it is the structural shadow of the GATE-G costimulation work, ADR-047). Shipping the axis without the organ is not a gap; it is **principled caution**: absent a Signal-2 organ, antigen *correctly refuses* to promote a structural-only match past Suspected.
+
+---
+
+## Decision
+
+**Ship the `incident=` key on the marked-unknown markers + a Signal-2 routing rule, and cap incident-less clusters at Suspected.** Two parts:
+
+1. **The `incident=` key (the record).** Add an **optional** `incident = "<link>"` field to the marked-unknown markers (`#[dread]`, `#[red_flag]`, `#[aura]`) — a free-text Signal-2 reference (an issue URL, a commit SHA, a CI run, a failing-test path). It threads into the discoverable doc-marker the scan re-reads (`marked-unknown:v1` → `v2`, additive-optional). It is the author's hook to say "this structural mark is backed by real harm, here's the evidence."
+
+2. **The routing rule (the ceiling).** At tier-assignment (the scan-time Finding emit seam, ADR-039), a cluster/draft is **Named-eligible only if ≥1 of its constituent marks carries an `incident=` link**; an **incident-less cluster is capped at Suspected.** This is a tier *ceiling*, not a tier *floor* — a Named-eligible cluster may still be Suspected for other reasons; but an incident-less one **cannot** be Named, full stop.
+
+**The Suspected ceiling is PRINCIPLED CAUTION, not a gap (captain's explicit framing — name it as such, never as a missing feature).** Antigen's current dogfood is all-Suspected precisely because antigen has no Signal-2 organ yet, so no antigen-internal mark carries an `incident=` link. That all→Suspected outcome is the **honest** state (ADR-044): without costimulation, the structural match is a *suspicion*, not a *named class*. The ceiling is the innate arm working — it is the anergy a lymphocyte enters on Signal-1 alone. When the organ ships (charter) and marks start carrying real incident links, the ceiling lifts *for those marks* automatically. The ADR must frame the all-Suspected dogfood as "the gate doing its job," never as "antigen can't reach Named yet."
+
+**Signal-2 is the SHARED afferent (ADR-054 frame, enforced here).** The `incident=` link is not a `#[dread]`-only feature — it is the single Signal-2 input that the pruner, the forgetting-curve, and plasma/memory-fate (all charter) will subscribe to. The key is designed as the *shared* afferent from the start (one field, one doc-marker slot, one routing consult), so the charter organs read the same link, never each inventing their own (`ParallelStateTrackersDiverge` avoided at the axis level).
+
+---
+
+## Mechanics
+
+### §Proc-Macro-Surface (Q1)
+
+| Primitive | Field | Type (parse-receive) | Required | Default | Constraint |
+|---|---|---|---|---|---|
+| `#[dread]` / `#[red_flag]` / `#[aura]` | `incident` | `Option<String>` | **No** (optional) | `None` | non-empty if present (an `incident = ""` rejects, mirroring the `trigger` empty-check, `parse.rs:940`); free-text reference (URL / SHA / path / test-name) — **open-vocab** (a Signal-2 link is whatever evidence exists), validated only for non-emptiness |
+
+- **Parse** (`MarkerArgs`, `parse.rs:855-913`): add `incident: Option<String>` + `incident_span: Option<Span>`. In the `match pair.key` arm, add `"incident" => { … }` (string-valued, span-captured, like `trigger`). The `other =>` unknown-field arm's error text updates to enumerate both fields (`trigger` required, `incident` optional) per the full-enumerated-set discipline (process.md Q1).
+- **Validate**: `trigger` stays required (guard 3, unchanged); `incident` if present must be non-empty (the same empty-string sub-clause-F check). No cross-field constraint (a mark may have `trigger` without `incident` — that is the common incident-less case).
+- **Emit** (`marked_unknown_marker`, `lib.rs:663-697`): bump the doc-marker to `antigen:marked-unknown:v2` and add an optional `"incident":"<escaped>"` field (JSON-escaped exactly like `trigger`, `lib.rs:672-693` — the macro crate carries no serde, so the hand-rolled escape applies). **Additive-optional**: a `v1` reader that doesn't know `incident` still parses (the field is absent on old marks); a `v2` reader reads it when present. (Per the authored-field-read-by-scan pattern: the scan re-reads `incident` from the doc-marker — it is AUTHORED, so the macro must re-emit it, not drop it.)
+
+### The routing rule (scan-time, not macro-time)
+
+The tier ceiling lives at the **Finding emit seam** (ADR-039 scan-time half, `finding.rs`), NOT on the macro — tier is a property of the Finding, assigned at emit, not a `#[dread]` field (per the family-member-tier discipline: tier comes from the emit seam, not the macro). The synthesis pass, when assigning a cluster's tier, reads **two tier-inputs** (both can only LOWER the tier — a ceiling discipline):
+
+- **Signal-2 / `incident=` (this ADR):** is there ≥1 constituent mark with a non-empty `incident`? **Yes** → Named-eligible; **No** → capped at Suspected (the Signal-2 ceiling).
+- **Generalization-confidence (the Island-2.5 SPLIT tier-input, from ADR-047/the C-side):** is the draft a twins-overfit (a generalization C cannot certify extends)? A low generalization-confidence draft is **capped at Suspected** even if Signal-2 is present — the same emit-the-signal-don't-bury-a-threshold discipline (the C-side emits a generalization-confidence *signal*, NOT a hard refusal; a twins-draft is safe but low-confidence-to-generalize, so it routes/tiers down, never auto-Named). This is the captain's Island-2.5 ruling: the *twins* case is a tier-input here (a generalization-confidence ceiling), distinct from the *bare-structural* case (a safety refusal in B's (A)-binary + C's non-degeneracy guard ADR — NOT a tier-input).
+
+A cluster reaches **Named** only when BOTH inputs clear (Signal-2 present AND generalization-confidence high). Either ceiling alone caps it at Suspected. (This is why "a Named-eligible cluster may still be Suspected for other reasons" — generalization-confidence is the named "other reason.")
+
+### §Enforcement-Surface
+
+| Mechanism | Enforcement-Tier | Enforcement-Scope | Bypass risk + mitigation |
+|---|---|---|---|
+| `incident=` parse (optional, non-empty-if-present) | parse-time (macro expansion — empty `incident=""` is a compile error) | client (the proc-macro) | Bypass = author omits `incident` (legitimate — the common case; the routing rule then caps at Suspected, which is correct). No harmful bypass: omitting `incident` cannot *raise* the ceiling. |
+| The Suspected ceiling for incident-less clusters | scan-time (the Finding emit seam; CI-gateable via `cargo antigen scan`) | client + CI | Bypass = an author fabricates an `incident=` link (cites a non-incident). That is a *social* boundary (observe-don't-declare, ADR-044) — sincerity is un-tabled, like `trigger` sincerity (`parse.rs:854`). Structurally, the link's *presence* is enforced; its *truth* is the human-ratifier's (the same frontier as ADR-047's clean-label trust). |
+| The `v2` doc-marker additive-optional schema | scan-time (the scan re-parses the marker) | client + CI | Bypass = a malformed marker. Mitigated by the JSON-escape (`lib.rs:672`) + the additive-optional reader (a `v1` mark without `incident` still parses). |
+
+**Friction-vs-structural disclosure:** the Suspected ceiling is enforced at **scan-time** (CI-gateable) — structural for the *presence* of a Signal-2 link, friction-only for its *truthfulness* (a fabricated incident link is a deliberate social bypass, not an accidental one). This ADR enforces "no Named without a Signal-2 link" structurally; it does not (cannot) enforce "the linked incident is real" — that is the human-ratifier's, named honestly per ADR-044.
+
+### §Standing-Pressure-Audit (Q2–Q9)
+
+- **Q2 — Sealed-enum inclusion**: N/A (no new enum; `incident` is an open-vocab free-text field, Q3).
+- **Q3 — Controlled-vocabulary-tier**: `incident` is **Tier-3 adopter open-vocab** (a Signal-2 link is whatever evidence the author has — a URL, SHA, path, ticket). Validation boundary: non-empty (rejected even from the open set). No `adopter-uses-novel-vocab` hint needed — there is no closed vocabulary to deviate from; any non-empty string is a valid link. Explicitly labeled open-vocab-extension per Q1 (a-d): (a) open-vocab; (b) validation boundary = non-empty; (c) no hint (no closed set); (d) sealed enumeration is structurally impossible — incident references are unbounded by nature.
+- **Q4 — Resolution algorithm**: the routing rule "resolves" the cluster's incident-presence by scanning its constituent marks' doc-markers for a non-empty `incident`. Failure mode: no mark carries one → Suspected ceiling (the honest default, not an error). Surfaces at scan-time (the tier on the Finding).
+- **Q5 — Cross-primitive interaction**: `incident` is added to the SHARED `MarkerArgs` (all three markers `#[dread]`/`#[red_flag]`/`#[aura]` inherit it — same field, same semantics, no per-marker divergence). It interacts with the tier-assignment (ADR-039) as a tier *input*, and is designed as the shared afferent the charter organs (pruner/forgetting-curve/plasma-fate, ADR-053/charter) subscribe to. The routing rule reads `incident` from the doc-marker the macro emits — the scan re-reads the authored field, no re-derivation.
+- **Q6 — Deprecation surface**: **additive.** `incident` is a new optional field; existing `#[dread(trigger=…)]` marks are unaffected (they stay incident-less → Suspected, which is their current behavior). The doc-marker `v1`→`v2` bump is additive-optional (a `v1` mark parses under the `v2` reader). No migration; no semantic-break (an incident-less mark's tier is unchanged — it was already Suspected-capped de facto, now de jure).
+- **Q7 — Named-surface check**: new names — `incident` (macro field), `marked-unknown:v2` (doc-marker version). Cross-ADR grep: confirm `incident` collides with no existing `MarkerArgs`/`PresentsArgs`/`AntigenArgs` field (it should not — it is new). Scout/adversarial to substrate-grep.
+- **Q8 — Enforcement-mechanism**: §Enforcement-Surface above (parse-time presence-check + scan-time ceiling).
+- **Q9 — Spec-adversarial pre-implementation test**:
+  - `incident_field_parses_and_threads_to_marker` — `#[dread(trigger="…", incident="https://…/issues/42")]` parses, and the emitted `v2` doc-marker carries the escaped `incident`.
+  - `empty_incident_rejects` — `incident=""` is a parse error (the non-empty sub-clause-F check), mirroring the empty-`trigger` test (`parse.rs`).
+  - `incident_less_cluster_capped_at_suspected` — a cluster whose marks carry no `incident` is assigned Suspected, never Named (the ceiling — the load-bearing routing test).
+  - `incident_bearing_cluster_is_named_eligible` — a cluster with ≥1 incident-linked mark is Named-eligible (the ceiling lifts).
+  - `v1_marker_parses_under_v2_reader` — an old `v1` doc-marker (no `incident`) still parses (additive-optional schema).
+
+---
+
+## Frontier statement (ADR-044)
+
+- **What this ADR proves:** that a Named-eligible cluster carries ≥1 author-supplied Signal-2 link (a decidable, scan-time FACT — the `incident` field is present and non-empty on ≥1 constituent mark). The Suspected ceiling for incident-less clusters is the honest label: "structural match, no costimulation."
+- **What this ADR does NOT prove:** that the linked incident *caused* the failure-class, or even that it is a real incident (sincerity is the un-tabled social boundary, like `trigger` sincerity, `parse.rs:854`). The `incident=` link's *presence* is structural; its *truth* and *causal relevance* are the human/CI ratifier's (ADR-044's computability-forced human-in-the-loop). And it does NOT build a Signal-2 detection organ — that is charter.
+- **The ratifier:** the author who supplies the `incident=` link (truthfully) and the human/CI who treats the link as real. The Suspected ceiling is the structural protection against a Named claim with no ratifier-supplied Signal-2.
+
+---
+
+## Consequences
+
+- **The innate arm gets its do-now slice** without the organ: antigen can *record* Signal-2 and *honestly cap* Signal-1-only claims now; the detection organ follows (charter-runtime-afferent).
+- **The all-Suspected dogfood is reframed as correct, not deficient** — antigen's own marks have no incident links yet, so they cap at Suspected, which is the gate working. This kills the "antigen can't reach Named on itself" misreading before it lands in docs (the recurring docs-as-mirror trap — name the ceiling as principled caution).
+- **Signal-2 ships as a shared afferent** — the charter organs (pruner, forgetting-curve, plasma-fate) read the same `incident` link, never inventing parallel danger-signal fields.
+- **Cross-ref ADR-047 completes the costimulation picture**: GATE-G near-miss is the *structural* "the corpus exercised the draft"; `incident=` is the *semantic* "real harm backs this mark." A draft that passes both is doubly-costimulated; the dial reflects the Signal-2 presence.
+
+## Resolves
+
+- The missing innate arm (the adaptive-only map) — at the axis level.
+- The risk of promoting a structural-only match to Named (Signal-1 without Signal-2 = autoimmune-prone) — the Suspected ceiling forbids it.
+- The "antigen is stuck at Suspected on itself = a gap" misreading — reframed as principled caution (the gate working).
+
+## Open questions (to resolve before ratification)
+
+1. **`incident=` on `#[aura]`?** `#[aura]` is the *light* non-gating marker (never gates, never nags). Does an incident link on an aura make sense, or is `incident=` only meaningful on `#[dread]`/`#[red_flag]` (the ones that can reach Named)? **Recommend: accept on all three** (the field is shared; an aura with an incident is just a low-magnitude mark that happens to have evidence — harmless, and keeping the field uniform avoids per-marker divergence, Q5). Naturalist to confirm the biology (does a low-danger signal still carry costimulation?).
+2. **Doc-marker version bump `v1`→`v2` vs in-place optional field.** Bumping to `v2` is the clean schema-evolution move, but it touches every marker emit. Confirm with the scan-side reader: does the reader key on the `v1`/`v2` literal, or parse the JSON permissively (tolerating an unknown `incident` field on `v1`)? If the latter, no version bump is needed (pure additive field). Scientist to verify the reader's version-handling against `scan/` before locking the bump.
+3. **The routing-rule's "≥1 mark carries incident" — per-cluster or per-draft?** A cluster aggregates several marks; a `propose` draft generalizes them. Is Named-eligibility "≥1 *mark* in the cluster has an incident" or "the *promoted draft* is linked to an incident"? **Lean: per-cluster (≥1 constituent mark)** — the draft inherits Named-eligibility from any incident-bearing member, since the cluster is the failure-family. Aristotle to deconstruct whether draft-level vs mark-level Signal-2 matters for the tolerance organs.
+
+---
+
+## [ADR-051] The Co-Native Ratification Record: One Record, Two Renderings — Specimen-Triple → Accept/Reject/Narrow → Fate
+
+**Status**: **RATIFIED 2026-06-10** (v05 Outfitters/converge wave; targets `0.5-dev`). The do-now slice of the ratification-ceiling frame (ADR-055); rich UX + budget-split are charter. **Depends on GATE-G (ADR-047, ratified)** — ratification is a `propose()`/`promote_if_safe` consumer; it ships on top of the gate's safe, route-to-human-tagged drafts. Captain seal-gate by full re-read; the **PersistedSpecimen serde-persistence seam (the adversarial's must-fix-before-baton) folded into §Mechanics** — the in-memory record holds the token (not Serialize), the on-disk form is a bare `Fingerprint` that re-mints on load.
+
+**Participants**: adr-specialist (draft + the one-invariant fold), value-finder (the ratification-ceiling frame — judgment-throughput is the real bottleneck), captain (the Tension-3 resolution + the seal-gate read), aristotle (the one-invariant recognition + the PersistedSpecimen fifth-surface grounding + the load-regate scope-boundary), adversarial (the three laundering paths + the serde-forgery + the persistence-seam must-fix).
+
+**Related**: **ADR-055** (the ratification-ceiling frame — THIS ADR is its do-now enforcement); **ADR-047** (GATE-G — the `NotCorpusWitnessable` route-to-human verdict is the *exact* handoff INTO this record; a draft B cannot certify lands here for the human); **ADR-048** (the `PromotedDraft` newtype — the `narrow()` re-gate below is a member of the shared GATE-BYPASS class alongside `into_fingerprint` + the serde-deserialize surface, co-named there); ADR-044 (observe-don't-declare — the ratify-act IS the human supplying the semantic half; a bad ratification surface collapses this into theater); ADR-039 (the dial — the score is the coarse policy-lever the ratifier sets thresholds on); the ratification-interface island (`callers/ratification-interface`); the persona-c / trust-budget self-register islands (design inputs).
+
+---
+
+## Finding
+
+Every learning-core caller terminates in the **same ratify-act**: a human (or an agent acting as one) decides whether a machine-proposed draft becomes a named class (observe-don't-declare, ADR-044 — the machine supplies the syntactic half, the ratifier supplies the semantic half). The value-finder's ceiling frame (ADR-055): the organism's value is gated **not by generation throughput but by how many proposals can be JUDGED.** An ungoverned engine produces a backlog of un-ratified drafts that decays into noise → trust-erosion. And there is a *specific structural handoff that needs a home*: ADR-047's GATE-G three-valued gate produces a **`NotCorpusWitnessable`** verdict — "this draft is safe but B cannot certify it generalizes; a human must ratify it." That verdict needs a place to land.
+
+**Tension-3 (resolved by the captain): human and agent are TWO RENDERINGS of ONE record, not two acts.** The mistake would be building a human UX and a separate agent API as parallel ratification paths (they would diverge — `ParallelStateTrackersDiverge` at the ratification boundary). Instead: **one co-native record** (a structured artifact both a human and an agent read natively, no translation), with two *renderings* (a CLI/TUI view for a human, a structured query/response for an agent) over the *same* underlying record and the *same* accept/reject/narrow verbs. The ratify-act is one act; who performs it (human at a terminal, agent in a loop) is a rendering choice, not a second mechanism.
+
+**The do-now slice vs charter (captain).** DO-NOW: the **record** (the specimen-triple + the fate), a **thin accept/reject/narrow CLI**, and the **fate-hook** (a seam that records every draft's fate — near-free now, ruinous to retrofit, the systems-thinking L4-staleness precondition). CHARTER: the rich UX, the active-learning budget-split (which drafts to surface for the scarce judgment budget), the continuous calibrated threshold.
+
+---
+
+## Decision
+
+**Ship one co-native ratification record with three verbs and a fate-hook; render it two ways (human CLI + agent query) over the same record — governed by ONE type-invariant.**
+
+### The one invariant (lead with it — every hole is a corollary, not a separate patch)
+
+> **THE RATIFICATION RECORD ACCEPTS ONLY A FRESH `PromotedDraft` CAPABILITY TOKEN, NEVER A BARE `Fingerprint`.**
+
+This is a **recognition** (aristotle's reciprocal pass, note `2e638317`): ADR-048's capability-token discipline applied to the ratification *surface* — the same trust boundary, one level out. The token only exists post-gate (only `promote_if_safe` mints it, ADR-048), so "only a `PromotedDraft` is recordable-as-accepted" closes, **by construction**, the whole family of ratification-bypasses the adversarial named — they are not three independent holes needing three patches; they are three instances of one type-invariant, and drafting them as separate rules would hide the unification and invite a fourth un-closed instance. The corollaries (each closes *by type*, not by a check someone must remember):
+
+- **Auto-accept cannot launder a C-self-assessed score (Hole-1).** The score an auto-accept policy-lever reads is the tier *on the `PromotedDraft`* — computed BY THE GATE at promotion (ADR-039/049 scored draft), not by C's self-assessment. C never mints the token, so C cannot self-assess a draft into auto-accept. The lever rides a gate-assigned field.
+- **A route-to-human / un-witnessed draft cannot be recorded-as-accepted (Hole-2).** A `NotCorpusWitnessable` draft (ADR-047) is **structurally a `Fingerprint`, not a `PromotedDraft`** — the gate never minted a token for it. So the "green-spare-clean-lie" (recording a route-to-human draft as if it passed) is **type-impossible**: you literally cannot hold a `PromotedDraft` for a draft the gate routed to a human. The record carries gate-verdict-provenance *by type*.
+- **A human-narrowed fingerprint cannot reach accepted without re-gating (Hole-3 + the `into_fingerprint`/`narrow` cross-ADR bypass).** `narrow()` (and `into_fingerprint`, ADR-048) yield a **bare `Fingerprint`** — the ADR-048 downgrade-then-re-gate class. A bare `Fingerprint` is *not acceptable-by-type*; it MUST re-enter `promote_if_safe` to re-acquire a token before it is recordable. `narrow` is a **member** of the ADR-048 downgrade class, not its own rule.
+- **The serde surface cannot forge a token from disk (the persistence corollary, ADR-048 constraint).** `PromotedDraft` must NOT derive `Deserialize` directly (a hand-written JSON `{"0": <fingerprint>}` would mint a token that never passed the gate — newtype privacy does NOT cover the serde construction path). If it must persist (for this record or the catalog), it deserializes to a **bare `Fingerprint` that re-gates on load** — deserialize-downgrades, same class. (This is an ADR-048 ruling surfaced here because it hits the ratification record's persistence; co-named.)
+
+**The strange-loop note (worth seeing):** this is antigen's own capability-token discipline (parse-don't-validate) closing the **last seam where its own safety could launder** — the human/agent ratification act. The gate that exists to prevent autoimmunity is protected, at the ratification surface, by the *same* type-capability move that protects it at the promotion surface. One primitive, two surfaces. The no-overclaim / sub-clause-F discipline reaching its own terminal boundary.
+
+The rest of the Decision is the **content** the invariant governs:
+
+Four parts:
+
+1. **The specimen-triple record.** A drafted class arrives for ratification as a complete **specimen** — `(promoted_draft, cluster, spared_siblings)`: the `PromotedDraft` (ADR-048), the cluster of marked sites it generalizes, and the clean siblings it spared (the near-miss witnesses from GATE-G). A draft arriving *with its evidence* is faster to judge (the value-finder's enabler) — the ratifier sees what fired it, what it would flag, and what it correctly spares, without hunting. The triple is the **one co-native record** both renderings read.
+
+2. **Three verbs: accept / reject / narrow.**
+   - **accept** — ratify the draft into a named (or suspected-tier) class; it becomes a real `#[antigen]` the catalog ships.
+   - **reject** — the draft is wrong (autoimmune, or not a real class); record the rejection (with the draft's fate, part 4) so the engine does not re-propose it.
+   - **narrow** — the draft is *close but over-broad*; the ratifier tightens it (adds a conjunct, restricts an anchor). Per the one-invariant: **`narrow()` yields a bare `Fingerprint` (the ADR-048 downgrade class), which is not acceptable-by-type until it re-enters `promote_if_safe` and re-acquires a `PromotedDraft` token.** `narrow` is a *member* of the ADR-048 downgrade-then-re-gate class (co-named with `into_fingerprint`), not its own rule — the CODE-TRUE audit checks the class.
+
+3. **The `NotCorpusWitnessable` handoff (the GATE-G connection, = the Hole-2 corollary made concrete).** When GATE-G (ADR-047) returns `NotCorpusWitnessable` (a safe draft B cannot certify generalizes — a twins-collapsed draft), there is **no `PromotedDraft` token** — the draft is structurally a `Fingerprint`. So it **cannot be recorded-as-accepted** (the invariant forbids it by type); it lands in the record as a *pending* specimen **flagged "needs-human-generalization-judgment."** This is the first-class consumer of GATE-G's route-to-human verdict — the gate does not fake a verdict, and the record cannot accept what the gate did not tokenize. The ratifier's accept (via `narrow`-then-re-gate, or by supplying a richer corpus the draft is near-miss-witnessed against) is the human supplying the generalization-quality judgment B refused to guess.
+
+4. **The fate-hook (the seam-hook, do-now, near-free, ruinous-to-retrofit).** Every draft's terminal **fate** — accepted / rejected / narrowed-then-re-gated / un-ratified-still-pending — is recorded at a single seam. This is the systems-thinking **L4-staleness precondition**: without a fate-record, the engine cannot learn from its own ratification history (which proposals the ratifier accepted vs rejected = the affinity-maturation feedback the whole loop needs), and retrofitting a fate-record after callers exist means reconstructing history that was never captured. The hook is one write at the ratify-act; building it now is near-free, building it later is archaeology.
+
+**Co-native, not human-first-with-an-API-bolted-on (the structural posture).** The record is a structured artifact (the specimen-triple + verbs + fate) that an agent queries and a human reads through the *same* schema — neither translates to the other's format. The CLI is a rendering; the agent-query is a rendering; the record is one. (This is the co-native design discipline applied to the ratification surface: build the representation both minds engage natively, not a human UX with an agent adapter.)
+
+---
+
+## Mechanics
+
+### The record + verbs (do-now)
+
+- **`struct RatificationSpecimen { draft: PromotedDraft, cluster: Vec<MarkedSite>, spared: Vec<CleanSibling>, gate_verdict: ToleranceVerdict, fate: Fate }`** — the **in-memory** co-native record. Holds the live `PromotedDraft` token; **does NOT derive `Serialize`/`Deserialize`** (the token must never round-trip serde — the Hole-4 corollary + ADR-048 §5). `gate_verdict` carries the GATE-G outcome (`Spared` = promoted clean, `NotCorpusWitnessable` = needs-human-generalization-judgment) so the rendering can flag *why* it needs a human.
+- **`struct PersistedSpecimen { draft: Fingerprint, cluster: Vec<MarkedSite>, spared: Vec<CleanSibling>, gate_verdict: ToleranceVerdict, fate: Fate }`** — the **on-disk** form (the fate-hook persists specimen + history). Holds a **bare `Fingerprint`**, not the token; **IS `Serialize`/`Deserialize`** (a bare fingerprint is assertable as nothing — safe to persist). This split is *how* the Hole-4 corollary is enforced in the type system rather than merely stated: the persisted form structurally **cannot carry a forgeable token.** *(The adversarial's must-fix-before-baton, grounded by aristotle: without this split, `RatificationSpecimen` would be both the live record AND the persisted form — the token couldn't round-trip serde, an implementer would hit the compile error and "fix" it by re-adding `Deserialize` to `PromotedDraft`, reopening the whole forgery hole. The split closes it by construction.)*
+- **The two conversions — the downgrade-then-re-gate class at the persistence boundary (the *fifth* surface, alongside promotion · accept · narrow · serde):**
+  - `RatificationSpecimen → PersistedSpecimen` on save = the `into_fingerprint` downgrade (the token becomes a bare fingerprint; the capability does not persist).
+  - `PersistedSpecimen → RatificationSpecimen` on load = **re-mint via `promote_if_safe`** (the bare fingerprint re-acquires a token by re-passing the gate). **Persistence never holds the token; load never skips the gate.**
+- **Load-regate scope-boundary (do-now — NOT the pruner):** the load-time re-gate runs `promote_if_safe(draft, the PERSISTED `spared` corpus)` — a **provenance re-check** that the persisted draft genuinely passed the gate (a pure function of the persisted bytes, **no live scan**): an honest record always re-mints; only a tampered/forged draft fails. Re-gating against the **current codebase** would be a different, stronger claim — *"does the class still hold as the code evolved?"* — which is the **autoimmunity-pruner's job (peripheral tolerance, charter)**, NOT this fix. Locking the re-gate to the persisted corpus keeps an implementer from wiring a slow live scan (wrong, and pruner-creep). Persistence-regate = *"the token is real"* (do-now); pruner = *"the class still holds"* (charter) — complementary, kept distinct.
+- **`enum Fate { Pending, Accepted{tier}, Rejected{reason}, Narrowed{new_fingerprint} }`** — the terminal disposition, written at the ratify-act.
+- **Three verbs** as methods/CLI-subcommands: `accept(specimen, tier) -> #[antigen] class`, `reject(specimen, reason) -> Fate::Rejected`, `narrow(specimen, added_constraint) -> Result<PromotedDraft, ToleranceVerdict>` (re-gates — the bypass-class guard).
+
+### Two renderings (do-now: thin CLI; charter: rich UX + agent MCP)
+
+- **Human rendering (do-now, thin):** `cargo antigen ratify` lists pending specimens (draft + cluster + spared, the triple) and accepts `accept`/`reject`/`narrow` on each. Thin = no TUI, no rich diff view (charter); a legible terminal list + the three verbs.
+- **Agent rendering (charter — the rich query/MCP):** the same record exposed as a structured query (an agent reads the specimen-triple, applies a policy — e.g. the dial-lever "accept Named, watch Suspected" — and emits the same accept/reject/narrow). Do-now provides the *record shape* the agent rendering will read; the MCP/budget-split surface is charter.
+
+### The dial as a policy-lever (do-now, recognition — ADR-052/055)
+
+The coarse ordinal dial (Suspected/Named, ADR-039) is the do-now policy-lever: a ratifier sets "Named → review-individually, Suspected → batch-watch" — converting per-draft labor into a set-once threshold (the only thing that scales, value-finder). This is **recognition** (the dial ships), not new build; ADR-051 surfaces it at the ratification record. The *continuous calibrated threshold* + the *active-learning budget allocator* (which Suspected drafts are worth a human's scarce attention) are charter (ADR-055's deferred half).
+
+### §Enforcement-Surface
+
+| Mechanism | Enforcement-Tier | Enforcement-Scope | Bypass risk + mitigation |
+|---|---|---|---|
+| `narrow()` re-gates (the shared bypass-class guard) | build-time (the narrowed fingerprint is a plain `Fingerprint`, not a `PromotedDraft` — re-promotion requires `promote_if_safe`) | client (the type system) | Bypass = asserting the narrowed `Fingerprint` without re-gating. **Mitigated structurally by ADR-048's newtype** (a bare `Fingerprint` is assertable as nothing). Co-named with `into_fingerprint` (ADR-048) as ONE class — the CODE-TRUE audit checks both. |
+| The fate-hook records every draft's terminal fate | CLI-time (written at the ratify-act) + scan-time (the fate-record is read by the maturation feedback) | client + CI | Bypass = a ratify-act that doesn't write a fate (a draft accepted out-of-band). Mitigated by routing ALL ratification through the three verbs (each writes a fate); an out-of-band accept is hand-authoring, outside the loop (the operator's prerogative, but then the engine doesn't learn from it). |
+| The `NotCorpusWitnessable` handoff (GATE-G drafts land here) | CLI-time (the route-to-human specimen appears in the pending list) | client + CI | Bypass = the gate's route-to-human verdict is dropped instead of landed here. Mitigated by ADR-047's `Result` signature (the verdict is type-carried, not a bare `None`) — the caller MUST handle `NotCorpusWitnessable`, and the only sane handling is "land it for ratification." |
+
+**Friction-vs-structural disclosure:** the `narrow()` re-gate is **structural** (the type forces it, via ADR-048). The fate-hook is **friction-only at the boundary** — a determined operator can accept a class out-of-band without writing a fate; the discipline makes in-loop ratification the default path, not a wall. (Out-of-band hand-authoring is legitimate; it just exits the learning loop, and the engine then has no feedback from it — named honestly, not prevented.)
+
+### §Standing-Pressure-Audit (Q1–Q9)
+
+- **Q1 — Proc-macro arg-signature**: **N/A — no proc-macro** (the record + CLI are tooling, not a macro; an `accept` may *emit* an `#[antigen]`, but that uses the existing macro, not a new one). Exemption claimed.
+- **Q2 — Sealed-enum inclusion**: `Fate` is a sealed enum carving *"a draft's terminal disposition."* Inclusion criterion: a variant names a distinct terminal state of the ratify-act. Set: `Pending` (not yet judged), `Accepted{tier}`, `Rejected{reason}`, `Narrowed{new_fingerprint}`. Exclusion: a variant naming a *gate* outcome (e.g. "Autoimmune") does NOT belong — that is `ToleranceVerdict`'s axis (ADR-047), not `Fate`'s; a draft B rejected never reaches a `Fate` (it never became a specimen). Extension discipline: a new `Fate` requires an ADR amendment + a distinct terminal ratify-state.
+- **Q3 — Controlled-vocabulary-tier**: `Rejected{reason}` is Tier-3 adopter open-vocab (a rejection reason is free-text); `Accepted{tier}` draws from the Tier-1 sealed dial taxonomy (Suspected/Named, ADR-039). Validation: `reason` non-empty.
+- **Q4 — Resolution algorithm**: `narrow()` resolves the narrowed fingerprint by re-routing through `promote_if_safe` (ADR-047). Failure mode: the narrowed fingerprint fails the gate → returns the gate's `Err` verdict (the ratifier narrowed it wrong); surfaces at CLI-time.
+- **Q5 — Cross-primitive interaction**: consumes `PromotedDraft` + `ToleranceVerdict` (ADR-047/048); the `narrow()` re-gate calls back into `promote_if_safe` (the shared bypass-class). The fate-hook feeds the maturation feedback (charter — but the seam is do-now). Designed so the agent rendering reads the *same* `RatificationSpecimen` the human CLI renders (one record, no parallel state).
+- **Q6 — Deprecation surface**: **additive** (a new tooling surface; no existing caller to break — the keystone has zero callers, ADR-007).
+- **Q7 — Named-surface check**: new names — `RatificationSpecimen`, `Fate` (types), `accept`/`reject`/`narrow` (verbs), `cargo antigen ratify` (CLI). Cross-ADR grep: confirm `ratify` collides with no existing `cargo antigen` subcommand (scan/audit/new/vaccinate — it should not); confirm `narrow` is the agreed verb (vs `tighten`/`refine`). Scout/adversarial to substrate-grep.
+- **Q8 — Enforcement-mechanism**: §Enforcement-Surface above (the `narrow()` re-gate structural; the fate-hook friction-at-boundary; the GATE-G handoff type-carried).
+- **Q9 — Spec-adversarial pre-implementation test**:
+  - **The one-invariant load-bearing test** `accept_takes_only_a_promoted_draft_not_a_bare_fingerprint` — a compile-fail trybuild fixture: `accept(bare_fingerprint, …)` MUST NOT compile (the record's accept-path is typed on `PromotedDraft`). This is the test that proves the whole bypass-family is closed by type. **The adversarial's residual-probe** (`2e638317`): *is there ANY path to recorded-as-accepted that does NOT go through a `PromotedDraft`?* — if the answer is "no" (no such path compiles), the one invariant holds; if "yes," that path is the real residual. The trybuild suite enumerates the candidate bypasses (bare `Fingerprint`, `into_fingerprint` output, `narrow` output, a deserialized token) and asserts each fails to compile as an `accept` argument.
+  - `narrow_produces_a_fingerprint_that_must_regate` — `narrow(specimen, c)` yields a value that is NOT a `PromotedDraft` until it re-passes `promote_if_safe` (the bypass-class guard — load-bearing, co-tested with ADR-048's `into_fingerprint` test).
+  - `promoted_draft_does_not_deserialize_to_a_token` — a trybuild/compile-or-runtime test that `PromotedDraft` has no `Deserialize` (or that its `Deserialize` yields a bare `Fingerprint` requiring re-gate) — the serde-forgery corollary (ADR-048 §5).
+  - `persisted_specimen_round_trips_as_bare_fingerprint_and_re_mints_on_load` — saving a `RatificationSpecimen` yields a `PersistedSpecimen` carrying a bare `Fingerprint` (no token persisted); loading it re-mints the token via `promote_if_safe` **against the persisted `spared` corpus** (not the live codebase). Asserts: (a) `PersistedSpecimen` is `Serialize`/`Deserialize` and `RatificationSpecimen` is not; (b) an honest round-trip re-mints successfully; (c) a tampered persisted draft fails the re-gate (the forgery-detection); (d) the re-gate does NOT scan the current codebase (the pruner-creep guard). The fifth-surface closure of the bypass class.
+  - `not_corpus_witnessable_draft_lands_as_pending_specimen` — a GATE-G `NotCorpusWitnessable` draft appears in the pending ratification list flagged needs-human-generalization-judgment AND cannot be accepted (no token) — the route-to-human handoff is wired, not dropped, and the Hole-2 type-impossibility holds.
+  - `every_ratify_act_writes_a_fate` — accept/reject/narrow each write a `Fate`; a specimen cannot leave the loop with `Fate::Pending` silently (the fate-hook is exercised).
+  - `human_and_agent_render_the_same_record` — the CLI rendering and the structured-query rendering read the *same* `RatificationSpecimen` (no parallel ratification state — the co-native invariant).
+
+---
+
+## Frontier statement (ADR-044)
+
+- **What this ADR proves:** that every machine-proposed draft has a single co-native record (specimen-triple + fate) and a thin accept/reject/narrow surface, with `narrow()` re-gating and a fate-hook — a decidable, do-now record + verbs.
+- **What this ADR does NOT prove:** that the *ratification decision is correct* (the human/agent supplies the semantic half — observe-don't-declare, ADR-044; the record makes the decision *judgeable*, it does not make it *right*), nor that the scarce judgment budget is *optimally allocated* (the active-learning budget-split is charter, ADR-055), nor that the threshold is calibrated (ADR-052's deferred half). The record carries judgment; it does not perform it.
+- **The ratifier:** the human (or agent-as-ratifier) who spends the trust-budget. This ADR exists so a bad ratification surface does not collapse observe-don't-declare into theater — the specimen-triple makes the draft judgeable, the fate-hook makes the history learnable, the two-renderings keep human and agent on one record.
+
+---
+
+## Consequences
+
+- **GATE-G's route-to-human verdict gets its home** — `NotCorpusWitnessable` (ADR-047) lands here as a needs-human-judgment specimen, completing the three-valued gate's third arm. The gate and the record are co-designed: the gate refuses to guess, the record gives the human what they need to decide.
+- **The fate-hook is the L4-staleness precondition shipped now** — the engine can learn from its own ratification history (accepted-vs-rejected = the maturation feedback) because every fate was recorded from the first caller. Retrofitting this is archaeology; building it now is one write.
+- **The shared bypass-class is closed on all three members** — `narrow()` (here) + `into_fingerprint()` + `Deserialize`-from-disk (ADR-048 §4/§5) all downgrade-the-capability; none lets a mutated or disk-forged draft skip the gate. The CODE-TRUE audit checks the class, not three unrelated methods.
+- **Co-native at the ratification boundary** — human and agent read one record; no human-UX-with-an-agent-adapter divergence. The hardest-to-retrofit boundary (the trust boundary) is co-native from turn one.
+
+## Resolves
+
+- **The whole ratification-bypass family, by ONE type-invariant** (accept-only-`PromotedDraft`): auto-accept-laundering (Hole-1), the green-route-to-human-lie (Hole-2), human-narrow-without-re-gate (Hole-3), the `into_fingerprint`/`narrow`/serde bypass routes — all close as corollaries, not as four patches. (The unification is the resolve; a fourth un-closed instance is what drafting them separately would have invited.)
+- The missing home for GATE-G's `NotCorpusWitnessable` route-to-human verdict (= Hole-2 made concrete — a route-to-human draft has no token, so it cannot be accepted by type).
+- The ratification-ceiling (ADR-055) at the do-now level: judgeability (specimen-triple) + a coarse policy-lever (the dial) + a learnable history (the fate-hook).
+- The risk of a human/agent ratification divergence (one co-native record, two renderings).
+- The serde token-forgery surface (ADR-048 ruling, surfaced here): `PromotedDraft` does not derive `Deserialize`; persisted tokens deserialize to a bare `Fingerprint` that re-gates.
+
+## Open questions (to resolve before ratification)
+
+1. **Where the record lives.** A `.antigen/ratification/` sidecar? The camp substrate? An in-tree file? The captain's earlier ack-store ruling (charter the real store, build-now the principle) suggests: do-now = the record *shape* + the fate-hook seam; the *durable store* is charter (the same split as the acknowledgement store, ADR-046 territory). Confirm the do-now slice is "shape + seam," not "persistent store."
+2. **`narrow` verb name.** `narrow` vs `tighten` vs `refine` (Q7). Lean `narrow` (it is literally restricting the fingerprint's codomain — the opposite of the generator's "widen on positive need"). Adversarial to check the verb doesn't collide with a `cargo antigen` subcommand or a fingerprint-grammar term.
+3. **Agent-as-ratifier authority.** Can an agent `accept` (ratify into a Named class), or only `narrow`/flag-for-human? This touches observe-don't-declare (ADR-044) — is an agent's accept a real ratification or still a suggestion? **Lean: an agent renders the record and can apply a *policy* (accept-all-Named, etc.), but the policy is the human's set-once threshold (ADR-039 dial-lever) — so the agent's accept is the human's pre-authorized threshold firing, not a new semantic authority.** Aristotle to deconstruct whether that holds the observe-don't-declare line.
+
+---
+
+## ADR-052 .. ADR-055 — The Four Organizing-Axis Frame-ADRs (v05 Outfitters)
+
+> **Status**: **RATIFIED 2026-06-10** (v05 Outfitters/converge wave; targets `0.5-dev`; captain seal-gate — each axis frontier-honest, PROVEN/DEFERRED). Four ratifiable frame-ADRs, drafted together for legibility — **each ratifies individually**. The Cartographers surfaced four organizing axes (`frames/`); a frame that stays informal context is enforced by nobody. These ADRs **ratify each axis scoped to what is PROVEN / do-now within it**, so the Pioneers *enforce* the frame, not treat it as flavor. The vision-maximum of each axis is named and *deferred* (charter), never smuggled in as a do-now claim.
+>
+> **Drafting discipline (the whole point of scoping a frame-ADR):** a frame is seductive — it wants to claim its entire vision. Each ADR below carries a hard **PROVEN / DEFERRED** line so the do-now claim is exactly the falsifiable slice and the rest is sequenced charter. This is ADR-044 frontier-honesty applied to the *frames themselves*.
+
+---
+
+## [ADR-052] The Affinity-Score Is the Spine: Every Learning-Core Caller Emits Scored Output
+
+**Status**: **RATIFIED 2026-06-10**. **Related**: ADR-039 (the confidence dial — the score IS this, surfaced; recognition not new build); ADR-044 (frontier-honesty); ADR-049 (the cross-cutting "no caller emits un-scored output" invariant this frame grounds — ADR-049 is the *enforcement*, ADR-052 is the *frame*); the diversity-spine frame (`frames/affinity-score-is-the-spine`).
+
+**Finding.** The Cartographers' first organizing axis (the dreamer): B (the shipped `self_tolerance` governor — the thymus) is the **constant**; every caller is a **diversity-generator B makes safe**, and they all terminate in the same scored output. The affinity-score was independently rediscovered by four fields (dev-trust, spec-mining, conformal prediction, the subset-principle) as the one cross-cutting carrier. **One field, two readings** (Tension-1, captain-resolved): the score is a *partial order* (the spine — "this draft is higher-affinity than that one") AND an *ordinal dial* (the lever — Suspected/Named cut-points). These are not in tension; they are two reads of one field.
+
+**Decision (frame).** The affinity-score is the **spine of the learning core**: a recognized, load-bearing structural axis along which every caller's output is ordered and tiered. The score is **the shipped provenance-ladder + Suspected/Named dial (ADR-039), surfaced into the caller path** — recognition (ADR-006), not a new metric.
+
+**PROVEN / do-now:** the score-as-ordinal-dial (the three cut-points Suspected/Named already shipped in ADR-039) is the do-now carrier; the enforcement is ADR-049 ("no caller emits un-scored output"). **DEFERRED / charter:** the score-as-calibrated-partial-order (conformal calibration, a continuous affinity metric, the budget-split allocation across the order) → `charter-learning-core` / the ratification-ceiling charter. The do-now claim is the *ordinal dial on every caller*, NOT a calibrated continuous score.
+
+**Frontier statement.** *Proves:* every learning-core caller's output carries the ADR-039 tier (a decidable, shipped label). *Does NOT prove:* the tier is *calibrated* (a continuous, statistically-sound affinity is charter). *Ratifier:* the human reads the tier as a confidence label, not a probability.
+
+**Blocks:** ADR-049 (needs this frame to ratify the "scored output" invariant non-vacuously — see ADR-049's score-definition blocker: the score TYPE must exist in the caller path first).
+
+---
+
+## [ADR-053] The Tolerance-Quadrant Grid: The Safety-Dual Is a Structurally-Required SET, Not a Wishlist
+
+**Status**: **RATIFIED 2026-06-10**. **Related**: ADR-007 (structurally-guaranteed need — the grid is a *required set*, the do-now/charter ADR for the empty quadrants); ADR-045 (the central-delete quadrant = the shipped negative-selection gate); ADR-003 (biological metaphor load-bearing — the grid IS the biology); the tolerance-quadrant-grid frame (`frames/the-tolerance-quadrant-grid`, the naturalist).
+
+**Finding.** The second organizing axis (the naturalist) is the **safety-dual** of the spine: where the spine says what flows *in*, the grid says what keeps B honest *over time*. {central, peripheral} × {prevent, delete}: **central-delete** (negative selection — SHIPPED, ADR-045) · **central-express** (AIRE / attestation-as-self) · **peripheral-prevent** (the two-signal anergy gate) · **peripheral-delete** (the autoimmunity-pruner). Biology proves **no single tolerance layer suffices** (central deletion is only ~60-70% effective) → the four quadrants are a **structurally-required SET** (ADR-007), not a wishlist. An empty quadrant is a structural *gap*; a new tolerance-dream *homes in a quadrant*.
+
+**Decision (frame).** Antigen's tolerance architecture is the **four-quadrant grid**, and ADR-007's structural-need argument applies to it: because no single quadrant is sufficient (biology-proven), all four are *structurally required*. The grid is the **map onto which every tolerance-dream homes** — a tolerance feature is placed by which quadrant it fills.
+
+**PROVEN / do-now:** only **central-delete is shipped** (the negative-selection gate, ADR-045/047). This ADR ratifies the *grid as the required-set frame* and the *placement discipline* (a tolerance-dream homes in a quadrant) — do-now. **DEFERRED / charter, by quadrant:** central-express (attestation-as-self / AIRE) → `charter-learning-core` intent-substrate lane; peripheral-prevent (two-signal anergy gate) → the runtime-afferent charter (tied to ADR-054); peripheral-delete (the autoimmunity-pruner — a CO-REQUISITE safety organ per the captain, runs on live audit telemetry) → `charter-feedback-homeostasis`. The do-now claim is *the grid is the required set + the placement rule*, NOT building the three empty quadrants now.
+
+**Frontier statement.** *Proves:* the four-quadrant grid is the complete tolerance-axis (biology-grounded, ADR-007) and central-delete fills one quadrant (shipped). *Does NOT prove:* the three empty quadrants are built (they are sequenced charter) — and explicitly does NOT over-claim "attestation makes the selector safe" (the AIRE-ruling: attestation extends tolerance to EXPRESSED intent; unexpressed = a known autoimmunity-gap). *Ratifier:* the future expedition that fills each quadrant ratifies its own organ.
+
+---
+
+## [ADR-054] The Two-Signal Gate: The Innate Arm — Signal-2 (Danger) as the Shared Afferent
+
+**Status**: **RATIFIED 2026-06-10**. **Related**: ADR-050 (the `incident=` macro-key + routing rule — the do-now AXIS-slice of this frame; ADR-050 is the *enforcement*, ADR-054 is the *frame*); ADR-047 (GATE-G — the innate veto lives *inside* the gate-soundness bug, see below); ADR-003 (the metaphor); the two-signal-gate frame (`frames/the-two-signal-gate`, the naturalist, tagged `#innate-arm`).
+
+**Finding.** The third organizing axis (the naturalist) names what the *whole rest of the map missed*: the crew charted the entire **adaptive** arm and never the **innate** arm. The two-signal model (Janeway/Matzinger, 30+ years settled): adaptive immunity never fires on Signal-1 (structural recognition) alone; it needs Signal-2 (a costimulatory **danger signal** — did this shape actually CAUSE harm?) or the cell goes anergic/tolerant. Cognate: **Signal-1** = the shipped `#[dread]` / cluster / `anti_unify` structural match; **Signal-2** = did-this-shape-actually-cause-a-failure (incident / panic / reverted-commit / co-located failing test). **Antigen has no Signal-2 organ.** And the reframe that makes it art: **GATE-G vacuity IS Signal-1-present / Signal-2-absent** — the briefing's mandated fix ("the corpus must EXERCISE the draft") is, term-for-term, *installing costimulation*. Signal-2 is the **shared afferent** under the pruner, the forgetting-curve, and plasma/memory-fate.
+
+**Decision (frame).** The two-signal gate is antigen's **innate arm**, and **Signal-2 (danger) is a single shared afferent** that multiple organs subscribe to — not a per-organ feature. The frame names Signal-2 as a first-class axis distinct from Signal-1's structural match.
+
+**PROVEN / do-now (the AXIS-slice, ADR-050):** add an `incident=` key to the marking surface + a routing rule (incident-bearing cluster → Named-eligible; incident-less cluster → **Suspected ceiling**). The all→Suspected dogfood ceiling is **PRINCIPLED CAUTION, not a gap** (captain's explicit framing): without a Signal-2 organ, antigen *correctly* refuses to promote a structural-only match past Suspected. **DEFERRED / charter (the ORGAN):** the `cargo antigen incident-link` organ + the danger-signal cluster (incident-link, danger-context, spread-velocity, marking-incentive) → `charter-runtime-afferent`. The do-now claim is *the `incident=` key + the routing ceiling*, NOT a runtime incident-detection organ.
+
+**Frontier statement.** *Proves:* a draft carrying an incident link is Named-eligible; one without is Suspected-capped (a decidable routing rule). *Does NOT prove:* that the incident *caused* the failure (semantic, the human/CI ratifier's call) or that antigen *detects* incidents (the organ is charter). *Ratifier:* the human/incident who supplies the Signal-2 link. **Cross-ref ADR-047:** the near-miss non-vacuity check is the *structural* shadow of costimulation (the corpus must exercise the draft); ADR-054's `incident=` is the *semantic* costimulation (the draft must link to real harm). Both are Signal-2 readings — one structural, one semantic.
+
+---
+
+## [ADR-055] The Ratification Ceiling: Throughput-of-Judgment Is the Real Bottleneck
+
+**Status**: **RATIFIED 2026-06-10**. **Related**: ADR-051 (the co-native ratification record — the do-now surface where the trust-budget is spent; ADR-051 is the *enforcement*, ADR-055 is the *frame*); ADR-044 (observe-don't-declare — the ratify-act this frame governs); ADR-039 (the dial as a policy-lever); the ratification-ceiling frame (`self/ratification-throughput-the-real-ceiling` + `callers/ratification-interface`, the value-finder).
+
+**Finding.** The fourth organizing axis (the value-finder): the organism's value is gated **NOT by generation throughput but by how many machine-proposals a human/agent can afford to JUDGE.** Every caller terminates in the same ratify-act (observe-don't-declare, ADR-044). An ungoverned generative engine produces a backlog of un-ratified drafts that decays into noise → trust-erosion. Two enablers the product already suggests: the **specimen-triple** (a draft arriving WITH its evidence — cluster + spared-siblings — is faster to judge) and the **affinity-score as a policy-lever** ("ratify all >0.9, reject all <0.3, review the middle" — converts per-draft labor into set-once threshold judgment, the only thing that scales).
+
+**Decision (frame).** The **ratification ceiling** — throughput-of-human-judgment — is the recognized real bottleneck of the whole organism, and every generative caller is governed by it: a caller that produces drafts faster than they can be judged produces *negative* value (backlog → noise → trust-erosion). The frame makes "judgeability" a first-class design constraint, co-equal with generation correctness.
+
+**PROVEN / do-now (ADR-051):** the **specimen-triple record** (draft + cluster + spared-siblings, arriving together) + the **dial as a coarse policy-lever** (the three ordinal cut-points already let an operator set "Named → review, Suspected → watch"). These make a draft *judgeable* do-now. **DEFERRED / charter:** the budget-split allocation (active-learning-style optimization of *which* drafts to surface for the scarce judgment budget) + a continuous calibrated threshold → the ratification-ceiling charter / `charter-learning-core`. The do-now claim is *the specimen-triple + the coarse dial-lever make drafts judgeable*, NOT an optimized budget allocator.
+
+**Frontier statement.** *Proves:* a draft arrives as a complete specimen-triple at a calibrated tier (a decidable, do-now record). *Does NOT prove:* that the *allocation* of scarce judgment across the backlog is optimal (the budget-split is charter) or that the tier threshold is statistically calibrated (ADR-052's deferred half). *Ratifier:* the human/agent who spends the trust-budget — the frame exists so that a bad ratification surface does not collapse observe-don't-declare (ADR-044) into theater.
+
+---
+
+## The four frames as one structure (why they ratify together)
+
+The four axes are not independent — they are the **control loop** of the organism, each governing one stage: ADR-052 (spine = what flows IN, the scored generators) → ADR-054 (two-signal = the danger-gated SELECTION) → ADR-053 (tolerance-grid = what keeps the selector HONEST over time) → ADR-055 (ratification-ceiling = the THROUGHPUT bound on the whole loop). Ratifying them as a set makes the control-loop frame (ADR-037) *enforceable at the axis level* — a Pioneer building any caller can check it against the four frames and know which stage it serves, scored, danger-gated, tolerance-bounded, and judgeable. Each is its own falsifiable claim (own PROVEN/DEFERRED line); together they are the immune feedback loop the naturalist's coherence-rule certified as ONE recurrent tangle.
+
+---
+
+## [ADR-056] The C-Side Non-Degeneracy Guard + the Soft Generalization-Confidence Signal: the Generator's Two Halves of Island-2.5
+
+**Status**: Draft 2026-06-10 (v05 Outfitters/converge wave; targets `0.5-dev`). The generator (C) half of the Island-2.5 SPLIT, pulled charter→do-now as the co-requisite of GATE-G (ADR-047). Thin — it adds one refusal predicate + one confidence signal to the existing `anti_unify`/`propose` path. **RATIFIED 2026-06-10** (captain seal-gate; predicate grounded against the real `anti_unify` at `propose.rs:108-192` — binary `constraints ⊆ {Item, ImplOfTrait}`, no magic number; shares the (A)-binary predicate with ADR-047; staged lifecycle + consistency-audit).
+
+**Participants**: adr-specialist (draft), aristotle (the P1 single-responsibility split + the reciprocal pass that located the two halves), captain (the Island-2.5 SPLIT ruling: a refusal-guard + a tier-input-signal, not one monolithic guard).
+
+**Related**: **ADR-047** (GATE-G — this ADR is its named co-requisite: B does safety, C does generalization-quality; the bare-structural REFUSAL is defense-in-depth with B's (A)-binary, and the twins SIGNAL feeds the tier-input ADR-047 routes to); **ADR-050** (the generalization-confidence signal is a tier-input here, consumed by ADR-050's two-tier-input routing); ADR-045 (the C ══ B co-ship — C's own precision is governed separately from B's gate); ADR-007 (structurally-required-anyway — `anti_unify` CAN emit degenerate drafts, so the guard is needed regardless of P1, anti-YAGNI); the falsification non-degeneracy test (charter-learning-core V2, pulled here).
+
+---
+
+## Finding
+
+GATE-G (ADR-047) decides on two axes and keeps each gate single-responsibility: **B does SAFETY** (near-miss + spare-clean + (A)-binary), **C does GENERALIZATION-QUALITY** (does the draft generalize, or is it degenerate/twins-overfit?). ADR-047 named the C-side responsibility as its co-requisite (P1) and the captain pulled it charter→do-now as **Island-2.5**. The captain's SPLIT ruling: Island-2.5 is **not one monolithic guard** — it decomposes on the same two axes into two distinct things, and bundling them invites the "refuse what should be tiered / tier what should be refused" confusion.
+
+Grounded against the real `anti_unify` (`propose.rs:96-192`), the generator can emit two problematic shapes:
+
+1. **A degenerate / bare-structural draft.** `anti_unify` always pushes `Constraint::Item(shared_kind)` (`propose.rs:114`) and conditionally `Constraint::ImplOfTrait` (`propose.rs:122`); body-signals become conjuncts (shared) or an `any_of` (discriminating). When a cluster shares an item-kind/trait but **no body signals at all** (or the members' bodies are too heterogeneous to intersect), the draft collapses to ONLY identity anchors — `all_of([impl, impl_of_trait("Drop")])` with no body conjunct and no `any_of`. This **over-binds the whole family** (every `Drop` impl) — a genuine over-generalization that should not become a draft. This is a *quality* problem at the generator (the cluster wasn't a real family, or the generalization is too coarse).
+
+2. **A twins-overfit draft.** When the cluster's members are (near-)identical, the `discriminating` set is empty (`propose.rs:142-144`) so no `any_of` is emitted, but the shared body-signals DO become conjuncts — yielding a *precise* draft (`{impl, Drop, flush, unwrap}`) generalized from what is effectively N=1 (photocopies). The draft is **safe** (B's spare-clean holds, near-miss even witnesses it — ADR-047), but it may not extend to a *new* defect site (over-fit to the twins). This is a *confidence* problem, not a safety problem.
+
+These are the two halves. The captain's split: **(1) is a REFUSAL** (over-binding is a real defect the generator should not emit); **(2) is a SIGNAL** (the draft is fine, just low-confidence-to-generalize — emit the signal, don't refuse it).
+
+---
+
+## Decision
+
+**The generator gains TWO thin additions, on the two axes — a non-degeneracy REFUSAL and a generalization-confidence SIGNAL.**
+
+### (1) The non-degeneracy guard (a REFUSAL — the bare-structural half)
+
+`anti_unify`/`propose` REFUSE to emit a **degenerate** draft — one whose `constraints` carry **no discriminating signal** (only the identity anchors `Item` / `ImplOfTrait` / `NameMatches`, with no `body_calls`/`body_contains_macro`/`qualifier`/`any_of`). A degenerate draft over-binds its whole family; emitting it would hand B a draft that fails (A)-binary anyway. The guard refuses it **at the generator**, returning the `Degenerate` non-promotion reason (the `ProposeOutcome::Degenerate` arm, ADR-048) — so the operator is told "these sites share only their structural shape; this is not a real failure-family, refine the cluster or hand-author."
+
+This is **defense-in-depth with B's (A)-binary** (ADR-047): B's (A)-binary is the gate's own standalone-soundness check (a caller could invoke `promote_if_safe` directly), and C's non-degeneracy guard catches the same shape *upstream* (before `propose` ever calls B), with a *generator-appropriate* diagnostic ("the cluster wasn't a family"). Two checks, same binary predicate (`has_discriminating_conjunct`), different vantage — the generator explains *why the draft is bad*, the gate refuses *to promote it*. **The predicate is BINARY** (has-a-discriminating-conjunct? yes/no), never a tunable specificity count — a "≥K conjuncts" floor would be antigen's own `FingerprintGamedNotDefended`/Goodhart class (ADR-047's P2-rejection, carried here).
+
+### (2) The generalization-confidence signal (a SIGNAL — the twins half → ADR-050)
+
+`anti_unify`/`propose` emit a **generalization-confidence signal** alongside a draft: a measure of how well the draft is expected to *extend* beyond the cluster it was generalized from. The v0.5 form is **the cluster's effective diversity** — a homogeneous cluster (twins / near-photocopies, where the `discriminating` set is empty AND the members are near-identical) yields a **LOW** generalization-confidence; a diverse cluster (multiple distinct discriminating signals) yields a **higher** one. This is the **emit-the-signal-don't-bury-a-threshold** discipline (the same shape as the feeder-quorum count and the recurrence-escalation, the captain's recurring wave-ruling): C does NOT refuse a twins-draft (it is safe) — it *labels* it low-confidence-to-generalize, and that label **folds into ADR-050's tier-routing** (a low-generalization-confidence draft is capped lower on the dial; the human/policy cuts). A twins-draft is surfaced as a low-confidence suggestion, NOT auto-Named and NOT refused.
+
+**The asymmetry that keeps the two halves distinct:** degenerate (over-binding) = a SAFETY-adjacent quality defect → REFUSED (it should not be a draft). Twins-overfit = a confidence-only concern on an otherwise-fine draft → SIGNALED (it is a valid draft, just low-confidence). Refusing a twins-draft would throw away real immunity (the false-negative trap's dual); tiering-down a degenerate draft would ship an over-binder at low confidence (still autoimmune). The split is load-bearing.
+
+### The single discriminator partitions all three cases cleanly (aristotle's grounding, `adr-056-predicate-grounding.md`)
+
+One question — **does the draft carry body conjuncts beyond `{Item, ImplOfTrait}`?** — partitions the generator's output into three mutually-exclusive cases (no draft lands in two):
+
+| case | draft shape | disposition | organ |
+|---|---|---|---|
+| **bare-structural** | NO body conjuncts (anchors only) | over-general → **REFUSE** | **C-guard (this ADR)** + B's (A)-binary |
+| **photocopy / twins** | HAS body conjuncts, NO `AnyOf` (identical members) | precise but low-generalization → **route-to-human + low confidence-tier** | the soft signal (this ADR) → ADR-050 tier-input |
+| **heterogeneous** | HAS an `AnyOf` (discriminating split) | healthy → **promotes** | normal path |
+
+**A photocopy/twins draft is NOT bare-structural** — it HAS body conjuncts (it is precise); bare-structural has NONE (it over-binds). So **the non-degeneracy GUARD (refusal half) catches bare-structural ONLY — it never catches twins.** It keys on the draft's *constraint shape* (`is_degenerate`), never on *cluster-identity* (`shape_digest`), so it cannot reject a twins cluster (twins produce a precise draft WITH body conjuncts, which `is_degenerate` passes — consistent with the `shape_digest`-under-clusters argument). The twins case is handled SOLELY by the soft confidence-signal, never the guard. (This is the anti-stale-attribution discipline made structural: "the guard catches bare-structural; the signal handles twins" — never "the guard catches twins.")
+
+---
+
+## Mechanics
+
+### (1) The non-degeneracy guard
+
+- **`fn is_degenerate(draft: &Fingerprint) -> bool`** — `true` iff `draft.constraints` contains NO conjunct beyond the identity anchors (`Constraint::Item` / `ImplOfTrait` / `NameMatches`) — i.e. `!has_discriminating_conjunct(draft)` (the SAME predicate as ADR-047's (A)-binary, shared, not duplicated — `ParallelStateTrackersDiverge` avoided: one predicate, two call-sites). The exact identity-anchor-vs-discriminating-signal partition is locked with the pathmaker against the real `Constraint` enum (stated as a principle: an anchor naming *what the item IS* is identity; one naming *what distinguishes a defect* is discriminating — same partition as ADR-047).
+- **`anti_unify`** gains the guard at its tail (after building `conjuncts`, `propose.rs:189-192`): if `is_degenerate(&draft)`, return `None` (the cluster shared no discriminating signal — `anti_unify` already declines a heterogeneous cluster at `propose.rs:113`; this extends the decline to a homogeneous-but-signalless one). **`propose`** surfaces this as `ProposeOutcome::Degenerate` (the generator-appropriate diagnostic, distinct from B's `BindsCleanItem`).
+
+### (2) The generalization-confidence signal
+
+- **`fn generalization_confidence(cluster: &[syn::Item], draft: &Fingerprint) -> Confidence`** — a v0.5 ordinal (`Low` / `Moderate` / `High`, or mapped onto the existing `Provenance`/dial tiers per ADR-049) computed from the cluster's effective diversity: how many distinct discriminating signals span the members (an empty `discriminating` set with near-identical member bodies → `Low`; a rich `any_of` over several members → higher). Read off the SAME feature extraction `anti_unify` already does (`MemberFeatures`, `propose.rs:101-106`) — no new walk.
+- **`propose`** returns the confidence alongside the `PromotedDraft` (it flows into the `tier` field, ADR-048/050: a low generalization-confidence is one of ADR-050's two tier-inputs, capping the draft lower). The signal is a tier-input, never a refusal.
+
+### §Enforcement-Surface
+
+| Mechanism | Enforcement-Tier | Enforcement-Scope | Bypass risk + mitigation |
+|---|---|---|---|
+| `anti_unify` refuses a degenerate draft (`is_degenerate → None`) | scan-time / CLI-time (in the generator, before `propose` calls B) | client + CI (the generator) | Bypass = removing the guard. Mitigated: B's (A)-binary catches the same shape (defense-in-depth — even if C's guard is removed, an (A)-fail draft cannot promote). The two checks share one predicate. |
+| The generalization-confidence signal caps the tier (twins → Low → ADR-050) | scan-time (the tier-input seam, ADR-050/039) | client + CI | Bypass = ignoring the confidence (treating a twins-draft as high-confidence). Mitigated: the confidence is a tier-input ADR-050 consumes; a draft cannot be auto-Named below the verified-core line (ADR-049's asymmetric lever). |
+
+**Friction-vs-structural disclosure:** the non-degeneracy guard is **defense-in-depth, not the sole barrier** — B's (A)-binary is the structural backstop (the gate refuses an (A)-fail draft regardless of C's guard), so removing C's guard degrades the diagnostic quality, not the safety. The confidence signal is **scan-time** (it caps the tier; it does not refuse).
+
+### §Standing-Pressure-Audit (Q1–Q9)
+
+- **Q1 — Proc-macro arg-signature**: **N/A — no proc-macro** (library functions on the generator path). Exemption claimed.
+- **Q2 — Sealed-enum inclusion**: `ProposeOutcome` gains the `Degenerate` variant (the generator-side non-promotion reasons: `EmptyCluster`, `NoSharedSkeleton`, **`Degenerate`** — ADR-048). Inclusion criterion: a generator-side reason a draft could not be produced/promoted. `Confidence` (if a new enum) is `{Low, Moderate, High}` — OR it maps onto the existing `Provenance`/dial (preferred, recognition). Exclusion: a *gate*-side reason (`BindsCleanItem`) does NOT belong in `ProposeOutcome` — that is B's `ToleranceVerdict` axis.
+- **Q3 — Controlled-vocabulary-tier**: the confidence is Tier-1 sealed (maps onto the dial, ADR-039). No new open-vocab.
+- **Q4 — Resolution algorithm**: `is_degenerate` resolves by scanning `draft.constraints` for a discriminating conjunct (the (A)-binary predicate). `generalization_confidence` resolves from the cluster's member-feature diversity. Both fail-safe: a degenerate draft → `None` (no draft); an un-assessable confidence → `Low` (the conservative cap).
+- **Q5 — Cross-primitive interaction**: shares `has_discriminating_conjunct` with ADR-047 (one predicate, two call-sites — the (A)-binary). Feeds ADR-050's tier-routing (the confidence is a tier-input) and ADR-048's `tier` field. Reads the SAME `MemberFeatures` `anti_unify` extracts — no re-walk.
+- **Q6 — Deprecation surface**: **additive — zero callers** (ADR-007). `anti_unify` gains a tail guard (narrows what it emits — a degenerate draft now returns `None` instead of an over-binder); `propose` gains the confidence in its return. No migration (zero callers). The narrowing is a tightening before the first caller.
+- **Q7 — Named-surface check**: new names — `is_degenerate`, `generalization_confidence` (fns), `Confidence` (if a new enum), `ProposeOutcome::Degenerate` (variant). Cross-ADR grep: confirm `Degenerate`/`Confidence` collide with nothing in `learn`/`finding`. Prefer mapping `Confidence` onto the existing dial (recognition) over a new enum.
+- **Q8 — Enforcement-mechanism**: §Enforcement-Surface above (the guard refuses at the generator; the signal caps the tier).
+- **Q9 — Spec-adversarial pre-implementation test (born-red)**:
+  - `anti_unify_refuses_a_degenerate_draft` — a cluster sharing only `{impl, Drop}` with no body signal → `anti_unify` returns `None` / `propose` returns `ProposeOutcome::Degenerate` (the over-binder is refused at the generator, not handed to B). **The existing falsification test `learn_dogfood_propose.rs:123-135` already asserts the one-sided "draft must not collapse to bare `item=fn`" — ADR-056 is its enforcement HOME; name that test the co-requisite (extend it from the `item=fn` instance to the general `is_degenerate` predicate).**
+  - `precise_draft_with_discrimination_is_not_degenerate` — a draft with a `body_calls` conjunct is NOT degenerate (the guard does not brick precise drafts — only bare-structural ones; the (A)-binary positive, mirrored on the C-side).
+  - `twins_cluster_yields_low_generalization_confidence` — an identical-twins cluster yields a `Low` confidence (NOT a refusal — the draft is still produced, just tier-capped), proving the twins case is a signal not a refusal.
+  - `diverse_cluster_yields_higher_confidence` — a cluster with several distinct discriminating signals yields a higher confidence (the signal discriminates real diversity from photocopies).
+
+---
+
+## Frontier statement (ADR-044)
+
+- **What this ADR proves:** that the generator refuses a *degenerate* (bare-structural, no-discriminating-signal) draft (a decidable predicate — the (A)-binary on `draft.constraints`) and labels every emitted draft with a generalization-confidence (a decidable ordinal from cluster diversity). The refusal and the label are both syntactic-decidable facts.
+- **What this ADR does NOT prove:** that a non-degenerate draft *will* generalize correctly (the confidence is a calibrated label of *cluster diversity*, NOT a guarantee the draft extends — the semantic "does this generalize to unseen code" is undecidable, Rice; the human ratifier owns it via ADR-051), nor that a `Low`-confidence draft is *wrong* (it may be a real 2-site class — `Low` means "ratify by hand," not "reject"). It enforces honest *labeling* of generalization-confidence, not its *truth*.
+- **The ratifier:** the human who ratifies the `Low`-confidence drafts the signal caps (ADR-051) — the asymmetric lever (ADR-049) keeps a low-confidence draft from auto-promoting. The refusal half needs no ratifier (a degenerate draft is simply not produced).
+
+---
+
+## Consequences
+
+- **GATE-G's co-requisite ships** — B can be sound standalone (its (A)-binary) AND C catches the bare-structural shape upstream with a generator-appropriate diagnostic. The single-responsibility split (B=safety, C=generalization-quality) is complete.
+- **The Island-2.5 SPLIT is correctly two things** — a refusal (degenerate) + a signal (twins-confidence), not one monolithic guard. The captain's split is realized in code: `is_degenerate` refuses, `generalization_confidence` signals.
+- **The twins-draft is preserved, not thrown away** — it is a valid (safe) draft, surfaced low-confidence; refusing it would be the false-negative trap's dual. The signal feeds ADR-050's tier, the human ratifies (ADR-051).
+- **One predicate, two vantages** — `has_discriminating_conjunct` is shared between B's (A)-binary and C's non-degeneracy guard; no parallel implementation to diverge.
+- **Structurally-required-anyway** (ADR-007) — `anti_unify` CAN emit degenerate/twins drafts (`propose.rs:185-187`), so both halves are needed regardless of P1; this ADR surfaces already-required scope into the do-now.
+
+## Resolves
+
+- The bare-structural over-general draft at the generator (refused with a "this cluster wasn't a family" diagnostic, not handed to B as an (A)-fail).
+- The twins-overfit draft's tier (a generalization-confidence signal caps it low, feeding ADR-050; the human ratifies — not auto-Named, not refused).
+- The Island-2.5 SPLIT (the captain's two-half decomposition realized: refusal + signal).
+- The risk of the C-side guard being a tunable specificity floor (kept BINARY — the (A)-binary predicate, never a count).
+
+## Open questions (to resolve before ratification)
+
+1. **`Confidence` as a new enum vs mapped onto the dial.** Recommend mapping onto the existing `Provenance`/`DialTier` (recognition, ADR-049 — the generalization-confidence is one input to the tier, not a parallel score). A separate `Confidence` enum risks a second score-axis (ADR-049's "one field, two readings" warns against this). Confirm with aristotle.
+2. **The exact generalization-confidence computation.** "Cluster effective diversity" — is it the count of distinct discriminating signals? The member-body edit-distance? The v0.5 form should be the SIMPLEST honest signal (an empty `discriminating` set + near-identical members → `Low`); the richer diversity metric is charter. Lock the v0.5 form with the pathmaker (the simplest non-gameable signal).
+3. **Where `is_degenerate` lives.** It shares the (A)-binary predicate with ADR-047 (B's gate). Does the predicate live in `self_tolerance` (B's home, imported by C) or in a shared `learn` module? Recommend a shared location so the ONE predicate has ONE home (both B and C import it). Lock with the pathmaker.
+
+---
+
+## Amendment 1 (2026-06-11, pathmaker self-ratified during the Pioneers build wave) — the degenerate REFUSAL lives in `propose`, not `anti_unify`'s tail; OQs 1–3 resolved
+
+**Status**: RATIFIED (build-wave self-ratify; supersede-not-erase — §Mechanics-1's "the guard at `anti_unify`'s tail" is PRESERVED above as the intent and REFINED here on placement).
+
+**The divergence (reconciling §Mechanics-1 with ADR-048).** §Mechanics-1 located the non-degeneracy guard "at `anti_unify`'s tail … if `is_degenerate(&draft)`, return `None`." But **ADR-048 §Decision states `anti_unify` is *unchanged* — "Returns the raw hypothesis"** (the raw `Fingerprint` is exposed for *inspection*, plainly labeled, ADR-044/048). Making `anti_unify` itself refuse a degenerate draft would (a) contradict ADR-048's "unchanged" and (b) blind the inspection path (the dogfood test + the ATK harnesses call `anti_unify` directly to *examine* the raw draft, including a bare-structural one — `learn_dogfood_propose.rs`, `atk_047_shape_fragility_seam.rs`).
+
+**The resolution (as built).** `anti_unify` keeps returning the raw hypothesis (ADR-048-true — inspection intact). **The degenerate REFUSAL lives in `propose`** (the generator's *promotion* path), surfaced as `ProposeOutcome::Degenerate`, *before* `propose` calls B. This is §Mechanics-1's intent exactly ("C refuses it at the generator, before `propose()` calls B") — `propose` IS the generator's promotion entrypoint — without breaking `anti_unify`'s inspection contract. Defense-in-depth with B's (A)-binary is preserved: even a hand-routed `promote_if_safe(anti_unify(degenerate), …)` is refused by B's own (A)-binary.
+
+**OQ1 — RESOLVED: `Confidence` is a separate v0.5 enum `{Low, Moderate, High}`** (NOT mapped onto `Provenance` yet). Rationale: `Confidence` is a *generation-quality* axis the generator computes; `Provenance` is the gate-assigned score-tier on the `PromotedDraft` (ADR-048/049). They are distinct axes (mapping confidence→tier is ADR-050's *routing* job, build unit 6, not yet wired). Shipping `Confidence` as its own thin enum keeps the generator's signal legible at the C-side and defers the tier-fold to where it belongs (ADR-050). `Moderate` ships **reserved** (documented, anti-YAGNI per ADR-007): the v0.5 signal is binary by construction (`any_of` present → `High`, absent → `Low`), and a richer per-member-diversity metric that would populate `Moderate` is charter (OQ2).
+
+**OQ2 — RESOLVED: the simplest honest signal = "is there a discriminating `any_of`?"** `generalization_confidence` returns `High` iff the draft carries a discriminating `any_of` (the anti-unifier split distinct member signals = real diversity), else `Low` (no split = twins/photocopy/bare-structural, generalized from effectively N=1). This keys on the draft's *constraint shape*, NOT `shape_digest` cluster-identity (which under-clusters). The edit-distance/member-diversity richer metric is charter.
+
+**OQ3 — RESOLVED: the ONE predicate lives in `self_tolerance` (B's home), imported by C.** `has_discriminating_conjunct` is defined in `self_tolerance`; `propose::is_degenerate(d) == !has_discriminating_conjunct(d)` imports it — one predicate, two call-sites, `ParallelStateTrackersDiverge` avoided. The partition (identity-anchors `{Item, ImplOfTrait, NameMatches}` vs everything-else-discriminating) is locked against the real `Constraint` enum (`antigen-fingerprint/src/lib.rs`), stated as a principle in the predicate's doc. (The predicate also gained producer-normalization — see ADR-047 Amendment 1 — so `is_degenerate` is producer-independent too, since it shares the predicate.)
+
+---
+
+
+---
+
+<!-- ADR-057 + ADR-058: v0.6 Outfitters/converge ADRs, landed DRAFT (research-review certification defers to the fresh Survey notary per the no-self-witness ruling). Full drafts from jbd/.../v06/drafts/. -->
+
+## [ADR-057] The Conservative Default Under Uncertainty: Antigen's Safe Default Is the Action That Minimizes Counterfactual Trust-Harm — RETAIN/ROUTE Under Uncertainty (Per-Instance Free, Aggregate-Bounded by a Scarcity-Completion); Positive Evidence Decides Outside the Default
+
+*(Title supersedes the rev-1 framing "PRUNE for the one autoreactive verb" — Amendment 2 dissolved the "inverted verb" into the certainty/uncertainty boundary: the default rules the uncertainty region only; the pruner acts on positive harm-evidence, outside the default. See Amendment 2.)*
+
+**Status**: **DRAFT** (v06 Outfitters/converge wave; targets the v0.6 line). Staged through the lifecycle — Phase-1 first-principles (aristotle), adversarial attack-annotation, research-review — before ratification. **Nothing builds on this un-ratified; a draft is a claim at the lowest tier.** Cross-cutting FRAME-ADR (a fifth organizing axis alongside ADR-052..055). Enforced per-organ by the existing safety primitives (ADR-047 GATE-G route-to-human, ADR-053 the tolerance grid, ADR-054 the two-signal gate); this ADR is the FRAME that names the single principle they each instantiate.
+
+**Participants**: adr-specialist (draft + the counterfactual-harm reframe + the two routed-safety-question folds), math-researcher (the 5-field unanimity + Gold/Angluin + base-rate + herd-immunity literature), aristotle (the deconstruction — `ratification-is-a-judgment-of-counterfactual-harm`), adversarial (the blanket-RETAIN stress-test — the autoreactive-verb exception), value-finder + systems-thinking + outsider (flagged the unmade default-bias decision).
+
+**Related**: **ADR-047** (GATE-G — `NotCorpusWitnessable`/route-to-human IS the conservative default at the promotion surface; the closed-alphabet assumption named here as Amendment-territory); **ADR-053** (the tolerance-quadrant grid — the reversible-first ladder IS this principle on the curation axis); **ADR-054** (the two-signal gate — Signal-2-absent → Suspected-capped is this principle on the danger axis); **ADR-055/051** (ratification ceiling — the conservative default is WHY the ratifier is the bottleneck: uncertainty routes TO them); ADR-039 (the ordinal dial — the score the default reads); ADR-006 (recognition-not-design — this default is *recognized* in five organs, not designed fresh); ADR-044 (frontier-honesty — the default is honest about what it cannot certify).
+
+---
+
+## Finding
+
+**The unmade decision.** Five v0.6 lenses (outsider, systems-thinking, value-finder, math-researcher, naturalist) independently flagged the same gap: every generative organ in the maturing organism faces a moment of UNCERTAINTY — should it fire? promote? forget? share? broaden? — and **no ADR states what antigen does by default when the evidence is insufficient to decide.** The charters describe what each organ does when it IS confident; none names the default bias under uncertainty. An unstated default is a default chosen by accident, organ-by-organ, by whoever implements each one — `ParallelStateTrackersDiverge` at the policy layer.
+
+**The literature is UNANIMOUS on the direction** (baton §8; math-researcher's lit-map). Five independent fields, none aware of the others, all say antigen's safe default under uncertainty is **conservative**:
+
+- **Gold 1967 (learnability):** in the open-alphabet / positive-only regime, the engine can over-generalize with NO possible counterexample — so under that uncertainty it must NOT promote; it must route to the oracle (Angluin's teacher). `[[safety/gate-g-soundness-assumes-closed-alphabet]]`.
+- **Axelsson 2000 (base-rate fallacy):** when true positives are rare (real defects are a tiny fraction of code-shapes), even a near-perfect detector floods false positives — so the prospector must NOT auto-promote; it must propose few high-precision candidates and route the rest. `[[lit/negative-space-prospector-and-the-base-rate-fallacy]]`.
+- **Anderson & May 1991 / Fine 1993 (herd immunity):** a false-positive fingerprint shared to the herd propagates its harm at population scale via the very mechanism that makes sharing valuable — so under uncertainty antigen must NOT share; the curation gate is a SAFETY threshold, not a courtesy. `[[lit/herd-immunity-has-a-threshold-and-shared-autoimmunity-propagates]]`.
+- **Continual-learning (stability-plasticity):** under uncertainty about whether a class is stale, the safe move is to NOT forget (forgetting is irreversible). The dormant-HOLD default costs attention — **itself a finite shared stock (the trust-budget), NOT a free "only"** (ATK-057-4): HOLD is per-class cheap but unbounded HOLD drowns the reader (suppression-training, antigen's own `RoutingTableStale`). So the HOLD default's **scarcity-regime completion is the FORGETTING-CURVE decay loop** (a held-but-never-re-stimulated dormant class decays out over N scans), exactly as route-to-human's completion is the attention-allocator (Q9 / ATK-057-2). The default preserves optionality per-class; the decay loop bounds the aggregate attention-cost — both required for HOLD to be harm-minimizing. `[[lit/forgetting-is-the-stability-plasticity-tradeoff]]` + `[[loops/forgetting-curve-attention-reclaim]]`.
+- **The danger model (innate immunity):** absent a danger signal (Signal-2), the costimulation is missing — so the response stays capped (Suspected), not escalated. ADR-054.
+
+**But "conservative" is NOT "always RETAIN the antigen" — and getting that wrong is the adversarial's trap.** The naive reading ("default to keeping/holding the immune class") is RIGHT for the four *generative* verbs and CATASTROPHICALLY WRONG for the one *autoreactive* verb. Retaining a class that has gone autoimmune — that fires on clean code — is NOT conservative. It is the harm itself: it trains the developer to ignore antigen (suppression-training, the trust-budget storm), the exact failure the whole voyage exists to prevent. So a blanket "RETAIN" default would, on the pruning axis, default antigen INTO its own nightmare.
+
+**The resolution is to reframe the default around the invariant the naive reading misses: COUNTERFACTUAL HARM, not the antigen-class.** (aristotle's deconstruction, `[[ratification-is-a-judgment-of-counterfactual-harm]]`: every antigen act is a judgment of counterfactual harm — "would matching code have caused a failure the clean siblings would not?"). The conservative default is **the action that minimizes counterfactual harm to the developer's trust** — and that action is direction-specific per verb, because the harm-asymmetry flips on exactly one axis.
+
+---
+
+## Decision
+
+**Antigen's default under uncertainty is the action that MINIMIZES COUNTERFACTUAL HARM TO THE DEVELOPER'S TRUST. For every GENERATIVE verb (fire, promote, forget, share, broaden) that default is the CONSERVATIVE / non-acting one (don't-fire, don't-promote, don't-forget, don't-share, don't-broaden — route to the human instead). For the one AUTOREACTIVE verb (prune a class that fires on clean code) the conservative default is to ACT (prune/silence — reversibly first), because there NON-action is the harm.**
+
+This is ONE principle, not six rules. The asymmetry is structural and stated once: **a generative verb's harm is to the developer's trust (a false fire/promote/share spends trust the organism cannot refund); the conservative move is to NOT spend it under uncertainty. The autoreactive verb's harm is ALSO to the developer's trust (a retained autoimmune class spends trust on every false fire); the conservative move is to STOP spending it.** Both defaults minimize the same quantity — trust-harm — and that is why they point opposite directions on the action axis. The unifying invariant is the quantity minimized, not the direction of the action.
+
+### The default per verb (each an INSTANCE of the one principle, enforced by an EXISTING primitive — recognition, not new build)
+
+| Verb (organ) | Uncertainty | Conservative default | Already enforced by |
+|---|---|---|---|
+| **fire** (any detection) | is this a real defect or a look-alike? | don't fire / cap at Suspected | ADR-054 two-signal gate (Signal-2 absent → Suspected-capped) |
+| **promote** (MATURE / learning-core) | does this draft generalize, or over-fit? | don't promote → `NotCorpusWitnessable` → route-to-human | ADR-047 GATE-G (the near-miss / spare-clean refusal) |
+| **forget** (CURATE / forgetting-curve) | is this class stale, or just dormant? | don't forget → tombstone-not-silence, retain | ADR-053 peripheral-tolerance ladder (reversible-first) |
+| **share** (POPULATION / registry-herd) | is this fingerprint clean enough for the herd? | don't share → gate on a herd-size-amplified FDR bound | ADR-053 + SEAM-C (self-tolerance-before-herd) |
+| **broaden** (ADAPT / red-queen) | should the old class stretch, or a new lineage spawn? | don't broaden → route-to-human (the uncertainty no-op; continued-miss = the pre-antigen baseline, harm-free per ATK-057-3). *When evidence arrives:* prefer de-novo over broaden (broaden is the higher-harm move: original antigenic sin) — but spawn-de-novo is itself an ACTION, so it lives in the evidence region, not the uncertainty no-op | route-to-human now; the de-novo-vs-recall arbitration gate (split-4) decides on evidence |
+| **PRUNE** (CURATE / autoimmunity-pruner) | is this class autoreactive (firing on clean code)? | **DO act → silence/prune (reversibly first)** | ADR-053 peripheral-DELETE quadrant — the ONE inverted default |
+
+### The two routed safety-questions, folded in as NAMED CONSTRAINTS (the baton's §7 charges)
+
+**Constraint A — the closed-alphabet soundness boundary (the Gold answer, baton §7a).** GATE-G's "spares clean corpus" certificate is SOUND ONLY in the closed-alphabet conjunctive regime (the fixed `Constraint` enum IS the closed alphabet; the type system enforces closure today). **Any surface that OPENS the alphabet (a learned/invented `Constraint` kind — `learn-the-grammar-itself`, SEAM-D's naming-half) INVALIDATES the certificate** (Gold 1967: superfinite class, no finite negative sample suffices) and falls into the uncertain regime → the conservative default applies → route-to-human (Angluin's oracle restores learnability). **This is WHY the LLM-reasoner seam-split exists — a learnability requirement, not arbitrary scoping.** `generalization_confidence` is hereby given a FORMAL meaning: it is the learnability-regime indicator (guaranteed = closed-alphabet conjunctive + positives+negatives + non-degenerate corpus; un-guaranteed = open-alphabet / positive-only / degenerate → conservative default fires). Detail + the ADR-047-amendment recommendation: `[[safety/gate-g-soundness-assumes-closed-alphabet]]`.
+
+**Constraint B — the score is ordinal, not a probability (the calibration answer, baton §7b).** The affinity-score (`generalization_confidence` → 2 buckets, `propose.rs:288`; `tier: Provenance` → DialTier projection) is a coarse ORDINAL proxy, NOT a calibrated probability — by construction, and correctly so (the (A)-BINARY-FOREVER standing invariant, ADR-047 §Standing-invariant, forbids a tunable probability threshold inside the safety gate). **No organ may AUTO-ACT on the score as if it were P(class is correct)** — an ordinal bucket cannot bound a false-discovery rate. The conservative default is what makes the un-calibrated ordinal SAFE: every uncertain draft routes to a human rather than being auto-disposed by a probability threshold. Where a future organ (catalog-FDR, AL-budget) genuinely needs a calibrated probability, that is a SEPARATE C-axis measurement living OUTSIDE the safety gate, never a threshold migrated INTO it. Detail: `[[safety/affinity-score-is-ordinal-not-calibrated-probability]]`.
+
+### The reversibility ladder (the adversarial's mitigation for the one inverted default)
+
+The PRUNE default acts under uncertainty — which is itself a risk (false-pruning a dormant-but-real immunity re-introduces antigen's own `RoutingTableStale` nightmare, self-inflicted; baton §3 CURATE). The mitigation: **the autoreactive default acts REVERSIBLY first** (ADR-053's peripheral-tolerance ladder: anergy → Treg active-suppression → exhaustion-checkpoint **before** delete). Silence-don't-delete; tombstone-don't-erase (persona-c build-requirement 1). So even the inverted default stays recoverable — it minimizes harm in BOTH directions (stops the false fires AND keeps the evidence the class existed, so a cold reader doesn't re-walk the dead end). The PRUNE default is conservative-with-an-undo, not destructive.
+
+---
+
+## Mechanics
+
+This is a FRAME-ADR: it does not introduce a new type or function. It names the principle the existing safety primitives each instantiate, so that (a) no future organ silently chooses a non-conservative default, and (b) the CODE-TRUE audit can check each organ's default against this single rule.
+
+- **The enforcement is the existing primitives** (recognition): route-to-human (ADR-047), Suspected-cap (ADR-054), the reversible ladder (ADR-053), the herd FDR gate (SEAM-C). This ADR adds NO new mechanism; it adds the *frame* that makes their shared logic legible and audit-able as one decision.
+- **The CODE-TRUE audit obligation:** for each organ that ships in v0.6, the survey walks "what does it do under uncertainty?" and certifies the default matches this table. A generative organ that auto-acts under uncertainty (auto-promotes a Low-confidence draft, auto-forgets a dormant class, auto-shares without the FDR gate) is a FINDING against ADR-057. The one autoreactive organ (pruner) that does NOT act on a clearly-autoimmune class is also a finding (the inverted default).
+- **The provenance link:** every organ's default-under-uncertainty points back to this ADR (`camp link --kind characterizes`); "what governs this organ's default?" is answerable by traversal.
+
+### §Standing-Pressure-Audit (the relevant subset)
+
+- **Q2 — sealed-enum inclusion:** no new enum. The default reads the EXISTING `ToleranceVerdict` (ADR-047: `NotCorpusWitnessable` is the route-to-human conservative arm) and `Confidence`/`tier` (ADR-039/049). No variant added.
+- **Q6 — deprecation:** additive (a frame over existing primitives; no caller breaks).
+- **Q9 — adversarial pre-ratification test (CLOSED by converge-adversarial, 2026-06-17 — ATK-057-1/2/3):** the blanket-RETAIN stress — *is there any axis where the conservative default is the HARMFUL move?* **OQ1 ANSWERED: YES the pruner is the SOLE DIRECTION-inverted verb; no second axis inverts the action-direction under uncertainty** (ATK-057-1 SENSE-miss = the pre-antigen baseline, not below it → SENSE non-action is genuinely harm-free; ATK-057-3 BROADEN continued-miss = baseline → harm-free). The counterfactual-harm reframe + the Amendment-2 evidence/uncertainty boundary SURVIVE the attack.
+  - **But ATK-057-2 REFUTED an over-strong supporting claim, now corrected honestly:** the pruner's non-action spends trust **per-fire** (the one DIRECTION-inversion); **route-to-human spends the scarce ratifier budget IN AGGREGATE under scarcity** (the §2 co-requisite cite: over-firing → the expert stops trusting the whole system) — reconciled by the attention-allocator (route-up-to-budget-then-allocate the highest-value subset); **SENSE non-action alone is harm-free** (returns to the pre-antigen baseline). So **"conservative = costless inaction" holds PER-DRAFT but NOT IN AGGREGATE** — "inaction is free" is the naive-RETAIN trap one level up, false once the route-rate exceeds the ratifier's budget. This does NOT add a sixth inverted row; it makes the **attention-allocator the conservative default's scarcity-regime COMPLETION** (the allocator is tied INTO this ADR, not a separate later nicety — the same co-requisite logic the §2 keystone names). The pruner remains the SOLE direction-inversion.
+  - **ATK-057-4 (the same pattern on a SECOND finite stock — HOLD drains attention):** the `forget`-axis conservative default (HOLD / tombstone-not-silence) is also per-instance-free / aggregate-costly — unbounded HOLD grows the catalog monotonically → suppression-training → the developer ignores the whole feature (antigen becomes the stale-CODEOWNERS-table it exists to prevent). Its scarcity-regime completion is the **FORGETTING-CURVE decay loop** (§Finding line, `[[loops/forgetting-curve-attention-reclaim]]`). **The unifying finding (ATK-057-2 + ATK-057-4):** *"inaction is free" is per-instance-TRUE and aggregate-FALSE on EVERY axis that touches a finite shared stock* — route drains the ratifier budget (→ allocator), HOLD drains the attention budget (→ decay loop). The ADR is honest only when each axis names its scarcity-regime completion: the conservative default preserves optionality PER-INSTANCE, and a per-axis scarcity-mechanism bounds the AGGREGATE cost. Both halves are required; neither alone is harm-minimizing. (SENSE remains the one genuinely-free axis — a miss returns to the pre-antigen baseline, ATK-057-1, no shared stock drained.)
+
+---
+
+## Amendment 1 (2026-06-17, drafted by the adr-specialist) — the FORGET default is scoped to the genuinely-ambiguous CELL (witness-liveness), not blanket-RETAIN-on-the-class
+
+**Append-only refinement (supersede-not-erase): the §Decision table's `forget` row read "don't forget → tombstone-not-silence, retain," framed at the verb level. The outsider's reciprocal pass (`[[outsider/the-discriminator-is-blind-for-silent-classes]]` + `[[outsider/dormant-vs-obsolete-the-third-state]]`) deconstructed that into a more precise — and more honest — scoping. The original verb-level statement STANDS as the default; this amendment names the exact cell it governs so the default is not over-read as "never forget anything."**
+
+**The refinement.** The conservative-RETAIN default for `forget` applies to the ONE genuinely-ambiguous cell, NOT to every class. CURATE reads a class on three axes — (fires?) × (harms? — runtime, loud-classes only) × (witness-live-at-site? — static, via `cargo antigen audit`). For antigen's CORE population (SILENT failure-classes, origin.md's founding population), the harms-axis is null in BOTH the obsolete and evaded branches (a silent failure produces no prod incident either way), so the discrimination happens on the STATIC duals:
+
+- shape REMOVED from source → genuinely **OBSOLETE** → safe to forget (the binding-site no longer exists; this is NOT the ambiguous cell — forgetting here is correct, not conservative-vs-not).
+- shape present + a near-miss/variant appeared (GATE-G's near-miss machinery, already built) → **EVADED** → broaden (route per the broaden default).
+- shape present, unchanged, untouched, **NO live witness** → **DORMANT** → **THE AMBIGUOUS CELL: conservative default = HOLD (archive-without-forget, tombstone-not-silence).** Here the asymmetry the outsider named bites: default-FORGET risks losing a real-but-quiet immunity (antigen's own `RoutingTableStale` nightmare, self-inflicted); default-HOLD costs only a cheap dormant clone's attention. Trust-harm is minimized by HOLD.
+- shape present, no harm, **HAS a live witness** → **WELL-DEFENDED** → retain (it's silent BECAUSE defended; forgetting it removes a working immunity — the worst failure in the cluster, baton §2).
+
+**So the conservative default is NOT "never forget the class" — it is "forget only the cell where the static discriminator is UNAMBIGUOUS (shape-removed = obsolete); HOLD the cell where it is ambiguous (dormant)."** This sharpens the verb-level statement without contradicting it: a class whose binding-site is provably gone is not an uncertain case, so forgetting it is not a non-conservative act. The conservative default governs the UNCERTAIN cell, which is precisely the dormant (silent + no-witness + shape-present) cell.
+
+**The witness-liveness honesty caveat (feeds the defended-sensor's own ADR, not this one).** "Witness-live" smuggles four meanings (EXISTS / RUNS / PASSES / WOULD-CATCH). Only WOULD-CATCH (removing the guard → the witness goes RED — antigen's own negative-control discipline, "a green test is a lie until a mutation makes it RED") is real defense; EXISTS/RUNS/PASSES is theater. The WELL-DEFENDED cell above is honest ONLY under the WOULD-CATCH reading — which makes the defended-sensor a mutation-testing organ (SEAM-B / `cargo-mutants`), a real do-now, not a cheap audit-read. **ADR-057 does not resolve which reading the defended-sensor uses** (that is the defended-sensor's own ADR); it only flags that the WELL-DEFENDED row's correctness DEPENDS on it, so the conservative default for that row degrades to HOLD (the dormant default) until the sensor is honestly built. Under uncertainty about whether a witness is real, treat the class as dormant → HOLD. The conservative default composes with its own un-built preconditions: absent a trustworthy WELL-DEFENDED sensor, every silent-no-harm class defaults to HOLD.
+
+---
+
+## Amendment 2 (2026-06-17, the adr-specialist folding in the converge-aristotle ruling on `[[safety/conservative-default-bias-adr]]`) — the unifying FORM, and the certainty/uncertainty BOUNDARY that dissolves the "one inverted verb" framing into something cleaner
+
+**The lead's first-principles ruling on split-3 converged independently on this exact ADR (one cross-cutting conservative-default, per-axis scoped), citing this ADR's own three safety-islands as the load-bearing evidence — a clean reciprocal convergence. The ruling sharpens the §Decision in two ways that supersede-not-erase the original framing.**
+
+**(1) The unifying FORM is named precisely (sharpens "minimize counterfactual trust-harm").** The §Decision states the quantity minimized (counterfactual trust-harm); the ruling states the FORM of the action that minimizes it: **"Under uncertainty, take the action that PRESERVES OPTIONALITY / IS REVERSIBLE / EXTENDS NO NEW TRUST."** These are the same principle from two angles — the quantity (trust-harm) and the form (optionality-preserving / reversible / no-new-trust). Each axis instantiates the FORM: don't-fire (no new alarm), don't-promote (no new asserted class), don't-forget (preserve the option to re-fire), prefer-de-novo (protect existing affinity = preserve the old lineage's optionality), don't-share (extend no herd-trust). This is ALSO why CURATE is reversible-first (anergy/Treg/exhaustion before delete) — the same form. The ADR states the form once and tabulates the per-axis instantiation (the §Decision table).
+
+**(2) The certainty/uncertainty BOUNDARY dissolves the "one inverted verb" framing (a genuine correction the original §Decision over-complicated).** The original §Decision carved the pruner out as "the one AUTOREACTIVE verb whose conservative default is to ACT" — treating it as an inversion of the principle. **The ruling shows this is cleaner stated as a BOUNDARY, not an inversion: the conservative default governs the UNCERTAINTY REGION ONLY. Cells with POSITIVE EVIDENCE — of harm OR of defense — are decided BY THAT EVIDENCE, not by the default.** Pruning a KNOWN-autoimmune class (positive evidence it fires on clean code) is NOT "the inverted default under uncertainty" — it is **certainty-of-harm acting on evidence**, which lives outside the default's jurisdiction entirely. The pruner does not invert the conservative default; it is simply not governed by it (it fires on positive harm-evidence, the danger model's costimulation, ADR-054). Symmetrically, the WELL-DEFENDED cell (Amendment 1) is decided by positive defense-evidence (a WOULD-CATCH witness), also outside the default. **So there is no "inverted verb" — there is the uncertainty region (where the conservative default rules, one direction: don't-act/route) and the evidence region (where positive evidence decides, either direction).** This is the outsider's well-defended-vs-ambiguous split (Amendment 1) generalized to ALL axes: the default is the answer ONLY in the genuinely-ambiguous cell; positive evidence on either side pre-empts it.
+
+**The §Decision table re-read under Amendment 2:** the "PRUNE" row is NOT a sixth row that inverts the principle — it is the evidence-region exit that the table's uncertainty-rows route TOWARD when evidence arrives. The cleaner statement: *under uncertainty, every verb defaults to the optionality-preserving action (don't-act/route); when positive evidence arrives (harm → prune; defense → retain; danger-signal → fire; near-miss-witness → promote), the evidence decides and the default steps aside.* This makes the adversarial's blanket-RETAIN trap vanish entirely — RETAIN was never the rule for known-harmful classes, because those were never in the uncertainty region.
+
+**Homing note (the lead's HOMING ruling, recorded):** this is ONE new foundational cross-cutting ADR, structurally like ADR-005 (sub-clause-F) — a discipline every trust-boundary / uncertainty-point inherits. It supersedes nothing (net-new) and is REFERENCED-BY the keystone discriminator ADR, the CURATE ADR, the ADAPT/de-novo ADR, the ADR-047 closed-alphabet amendment, and the affinity-score-ordinal constraint. The `[[safety/conservative-default-bias-adr]]` island is the lead's RULING; THIS ADR draft is the ratifiable ARTIFACT that ruling homes into — one decision, two substrate-renderings (the ruling-note and the ADR), reconciled here.
+
+---
+
+## Amendment 3 (2026-06-17, the adr-specialist folding in the converge-adversarial ATK-057 closure + the converge-aristotle lethal-corner confirmation) — two corrections the elegant dissolution over-reached: "inaction is free" is aggregate-FALSE, and "the evidence decides" assumed single-signed evidence
+
+**Amendment 2's dissolution was elegant but over-reached in two places the adversarial + a deconstruction-side aristotle caught. Both are genuine corrections (the frame claimed completeness; these are the two corners where it wasn't yet complete). Append-only; Amendment 2's structure stands, these complete it.**
+
+**(3a) "Inaction is free" is per-instance-TRUE but aggregate-FALSE on every axis touching a finite shared stock (ATK-057-2 + ATK-057-4, the adversarial — adversarial stage CLOSED by this).** The §Finding said "retaining a dormant class costs ONLY attention." That **"only" was the bug**: attention is a finite shared stock (the trust-budget), and unbounded HOLD → suppression-training → antigen becomes the stale-CODEOWNERS-table it exists to prevent. The unifying finding: the optionality-preserving action is free PER-INSTANCE but drains a finite shared stock in AGGREGATE on every axis that touches one. So **each axis must name its scarcity-regime completion — the per-axis mechanism that bounds the aggregate**, or the ADR is dishonest:
+
+| Axis | Per-instance conservative action | The finite stock it drains in aggregate | Scarcity-regime completion (bounds the aggregate) |
+|---|---|---|---|
+| promote/route | route-to-human | the ratifier's judgment budget | the attention-allocator (uncertainty-sampling × diversity-batch × stopping-criterion) |
+| forget/HOLD | don't-forget (archive dormant) | the developer's attention (held classes accrue) | the **forgetting-curve decay loop** (held-but-never-re-stimulated dormant classes decay out over N scans) |
+| share | don't-share | (no aggregate drain — withholding shares nothing) | none needed |
+| fire/SENSE | don't-fire | **none** — a miss = the pre-antigen baseline, no stock drained | **SENSE is the one genuinely-free axis** |
+
+So the conservative default is honest ONLY when stated as: *preserve optionality PER-INSTANCE + a per-axis scarcity-mechanism bounds the AGGREGATE.* Both halves required. (This is also WHY the §2 co-requisite attention-allocator is co-requisite, not a later nicety — and why the forgetting-curve is a CO-REQUISITE of the HOLD default, not a separate organ.)
+
+**(3b) "The evidence decides" silently assumed SINGLE-SIGNED evidence — the double-signed lethal corner (aristotle's deconstruction-side catch, lead-confirmed; OQ-4 / Constraint-C).** Amendment 2's dissolution ("when positive evidence arrives the evidence decides; there is no inverted verb") assumes a cell has evidence in ONE direction. **The lethal corner: a class with DOUBLE-SIGNED evidence — it BOTH harms (fires on clean code = positive prune-evidence) AND was blessed (human-ratified = positive retain-evidence).** "The evidence decides" is ILL-DEFINED there, and the silent failure mode is **the blessing laundering the autoimmune class past the pruner** (`[[outsider/who-screens-the-ratifier]]`: a rubber-stamped autoimmune draft is now BLESSED, immune to the pruner — the exact self-inflicted autoimmunity the voyage exists to prevent). A frame that claims completeness ("there is no inverted verb / the evidence decides") MUST handle the conflict case or the completeness-claim is false.
+
+**The fix (sub-clause-F, ADR-005, already supplies the machinery — Constraint C):** the human blessing is a **TRUST-BOUNDARY**, and every trust-boundary requires a re-validation check (sub-clause-F). So: **when harm-evidence and blessing-evidence CONFLICT, the blessing buys REVERSIBLE RETENTION (anergy/tombstone) but NOT INVISIBILITY.** The conflict is SURFACED (`cargo antigen audit --autoimmunity`: "this blessed class now fires on clean code") and the human RE-DECIDES. The blessing is an INPUT re-validated against fresh harm-evidence, never a permanent shield. This COMPLETES Amendment 2 (it does not contradict it): the evidence region has a conflict-sub-region, and the conflict-resolution is "reversible-retain + surface + re-decide," governed by sub-clause-F. **Constraint C (the third named constraint, alongside A closed-alphabet + B ordinal-score): a human blessing re-validates against fresh harm-evidence; positive ratification buys reversible retention, never invisibility to the pruner.**
+
+**Net: the §Decision is now complete in both corners** — the aggregate-cost of inaction (each axis names its scarcity completion) and the double-signed-evidence conflict (sub-clause-F re-validation). The elegant dissolution holds; these are the two places it had to be finished.
+
+---
+
+## Frontier statement (ADR-044)
+
+- **What this ADR proves:** that antigen has ONE stated default-under-uncertainty (minimize counterfactual trust-harm), instantiated per-verb by existing primitives, with one structurally-justified inversion (the autoreactive verb). A decidable audit rule: each organ's default either matches the table or is a finding.
+- **What this ADR does NOT prove:** that any individual ratification DECISION is correct (the human supplies the semantic half — ADR-044); that the reversibility ladder's thresholds are calibrated (those are the pruner's own ADR, charter); that the literature's unanimity is *complete* (a sixth field might name a different default — but five independent fields converging on one direction is strong, and the principle is falsifiable: a counterexample axis where non-conservative minimizes trust-harm would amend this ADR).
+- **The ratifier:** the human/agent who spends the trust-budget. This ADR exists so that the organism, under uncertainty, defaults to HANDING them the decision (generative verbs) or PROTECTING them from a class already harming them (the autoreactive verb) — never to silently auto-acting in a way that spends trust they did not authorize.
+
+---
+
+## Consequences
+
+- **The unmade default-bias decision is made, once, cross-cuttingly** — no organ implementer chooses it by accident. The five-field unanimity is recorded as the grounding, not re-litigated per organ.
+- **The two routed safety-questions get a permanent home** — the closed-alphabet boundary (→ an ADR-047 append-only amendment) and the ordinal-not-probability constraint are named, so a future amendment that opens the alphabet or migrates a probability threshold into the gate is, by this ADR + ADR-047's standing invariant, proposing to break the safe default and must be rejected on that ground.
+- **The adversarial's blanket-RETAIN trap is disarmed** — the default is framed on counterfactual trust-harm, not the antigen-class, so the pruning-axis inversion falls out of the principle rather than contradicting it.
+- **The CODE-TRUE audit gains a cross-cutting check** — "does this organ default conservatively?" is one rule the survey applies to every v0.6 organ.
+
+## Resolves
+
+- **Split-3 (the discriminator default-bias, baton §8):** YES, ONE cross-cutting ADR — because the default is ONE principle (minimize counterfactual trust-harm) with per-verb instances enforced by EXISTING primitives, and stating it once is what prevents the per-organ divergence. (Per-organ rules would hide the unification and invite a sixth organ to choose wrong.)
+- **The two routed safety-questions (baton §7)** — folded as Constraints A (closed-alphabet) and B (ordinal-score).
+- **The double-signed-evidence lethal corner (Amendment 3 / Constraint C)** — a blessed-but-now-autoimmune class cannot launder past the pruner; the blessing re-validates against fresh harm-evidence (sub-clause-F, ADR-005), buying reversible retention not invisibility.
+- **The aggregate-cost honesty (Amendment 3a)** — "inaction is free" is corrected to per-instance-free + a per-axis scarcity-mechanism bounding the aggregate (the allocator for route; the forgetting-curve decay for HOLD; SENSE the one free axis).
+- **The relationship between the calibration answer and the conservative default** — the conservative default is WHY an un-calibrated ordinal score is safe (uncertainty routes to human, never auto-acts on the bucket as a probability).
+
+## Open questions (to resolve before ratification)
+
+1. ~~**Is the pruner the SOLE inverted default?**~~ **CLOSED (converge-adversarial, ATK-057-1/2/3): YES, the pruner is the sole DIRECTION-inverted verb.** ATK-057-2 corrected the supporting claim (route-to-human spends the ratifier budget in aggregate → the allocator is the scarcity-regime completion; see Q9). No second direction-inversion.
+2. **Does Constraint A belong here or as an ADR-047 amendment, or BOTH?** Lean: the SOUNDNESS-boundary statement is an ADR-047 append-only amendment (it bounds GATE-G's own certificate); this ADR REFERENCES it as the learnability instance of the conservative default. The captain/docs-owner makes the `docs/decisions.md` / ADR-047-amendment edit (antigen-repo tracked code — the docs-team's lane), NOT the charter-steward. Flag for the captain.
+3. **Does BROADEN's conservative default (spawn de-novo) depend on split-4's arbitration gate shipping?** If the de-novo-vs-recall gate is charter, the broaden default is "route-to-human" until it ships (the conservative default degrades gracefully to route-to-human everywhere a specific primitive is absent).
+
+## [ADR-058] The Co-Native Output Contract: Legibility Generalized to Re-Inheritable-by-Either-Forgetting-Mind — The Story Facet Is a Rendering of a Typed Event-Stream, Never a Free-Text Source
+
+**Status**: **DRAFT** (v06 Outfitters/converge wave; targets the v0.6 line). Staged through the lifecycle — first-principles (aristotle, via the dream-recognition + split-2 ruling), adversarial/refutation (outsider's refutation attempt that FOUND the conformance criterion), research-review — before ratification. **Nothing builds on this un-ratified.** **SUPERSEDES-AND-EXTENDS ADR-042** (the legibility spine): ADR-042's "legible to a human" becomes the human-only SPECIAL CASE of "re-inheritable by either forgetting mind." Append-only; ADR-042's text stands, this extends its scope.
+
+**Participants**: outsider (the C1 conformance criterion — found via a refutation attempt on the two-readers seam; owns its wording), aristotle (the schema-fold: story = the typed event-stream itself, tombstone + autobiography fall out as renderings; the split-2 persona-c home ruling), adr-specialist (the ADR draft from the outsider's canonical clause-home + the leaf-payload exception statement), naturalist (`[[lived/the-elder-letter-is-the-autobiography]]` — persona-c, the makers' own persistence topology as the proof).
+
+**Related**: **ADR-042** (legibility — the human-only special case this supersede-extends); **ADR-020** (attested-intent — the `WHY` leaf-payload that IS conformant as a typed-event slot); **ADR-006** (recognition-not-design — this is RECOGNITION: `[[dream/the-immune-autobiography]]` already specifies the typed lifecycle; the clause guards the dream's intent from a later builder's drift, it does not impose a new constraint); the life-record STOCK ADR (the v0.6 keystone — the story facet IS this stock); ADR-051 (the fate-record = one record-kind of the same stream); the co-native design discipline (if either mind must translate, the representation is wrong).
+
+---
+
+## Finding
+
+**ADR-042 established legibility — but scoped it to ONE reader.** ADR-042 (the legibility spine) requires antigen's learned-class output be "legible to a human." The v0.6 maturing organism adds a SECOND forgetting mind that must re-inherit the same record: the **fresh-context AI agent** (persona-c — the institutional memory of a maintainer who forgets, whether a solo dev across months or an agent across the context-wipe; `[[lived/the-elder-letter-is-the-autobiography]]`). The split-2 ruling (aristotle) homes persona-c here: legibility is not human-legibility, it is **re-inheritability by either forgetting mind.** ADR-042's "legible to a human" is the human-only special case.
+
+**The live trap (why this needs an ADR, not just a note).** The life-record (the v0.6 keystone STOCK) is specified as "score- + outcome- + STORY-capable." The word "story" SOUNDS like prose, and prose sounds human-authored — so the cheapest implementation (add a free-text `notes`/`story` `String` column a developer types into) LOOKS like the story facet but is **non-conformant**: it forces the AI-agent reader to PARSE NATURAL LANGUAGE to consume the record, a translation step that silently RELOCATES the two-readers seam INTO the story field. The co-native invariant (if either mind must translate, the representation is wrong) is violated — by a field that looks right. A later builder WILL reach for the free-text column absent an explicit forbidding clause.
+
+**This is RECOGNITION, not new design (ADR-006).** `[[dream/the-immune-autobiography]]` ALREADY specifies a TYPED lifecycle of events (first-felt/dread → clustered → matured → ratified{who,why,when} → first-real-bind → drifted → anergized → re-armed → broadened → forgotten = birth/maturation/working-life/senescence) and names the model: *"the fate-record is the SKELETON; the autobiography is the organism reading its own skeleton back as a story."* That IS structure-rendering-to-prose. The dream draws the exact contrast: a cold agent reading a score-series gets TELEMETRY; reading the autobiography gets ONBOARDING — "inherits a NARRATIVE, not a table" means the narrative is a RENDERING of the typed stream, never a human-typed blob. The clause recognizes the dream's intent and guards it from drift; it does not correct the dream.
+
+---
+
+## Decision
+
+**Antigen's learned-class output is governed by the CO-NATIVE OUTPUT CONTRACT: every facet of the life-record must be RE-INHERITABLE BY EITHER FORGETTING MIND (human OR fresh-context agent) WITHOUT TRANSLATION. The story/narrative facet specifically MUST be a structured, machine-authored, append-only event-stream of TYPED lifecycle events; human-readable prose is a RENDERING (a projection) computed FROM that stream, never an INPUT to it.**
+
+### Conformance Criterion C1 — the story/narrative facet is a RENDERING, not a SOURCE
+
+The life-record's narrative/story facet MUST be a **structured, machine-authored, append-only event-stream of TYPED lifecycle events.** Human-readable prose (the autobiography, the tombstone, the medical-chart) is a **rendering** computed FROM that event-stream. **Prose is an OUTPUT of the record, never an INPUT to it.**
+
+- **CONFORMANT** — a typed event-stream, e.g. `Born{from_marks, at}`, `Clustered{n_siblings, at}`, `Matured{affinity_delta, at}`, `Ratified{who, why, when}`, `BoundDefect{site, at}`, `Drifted{at}`, `Anergized{at}`, `Broadened{evasion_ref, at}`, `Forgotten{cause_ref, at}` — with a prose renderer (`cargo antigen story <class>`). Both readers consume the SAME stream natively: READER-A (human) reads the rendered prose; READER-B (agent) reads the typed events. **Neither translates.**
+- **NON-CONFORMANT** (the trap this clause forbids) — a free-text, human-authored narrative field (a `String` "notes"/"story" column a developer types into). This forces READER-B to NL-parse to consume the record — the translation step that relocates the reader-seam into the story field.
+
+**The conformance TEST a reviewer applies:** *can the AI-agent reader consume the full narrative WITHOUT a natural-language parse step?* If the agent must NL-parse any field to get the class's history, that field is non-conformant — re-express it as typed events with a prose renderer.
+
+### The schema consequence (aristotle's fold — one stock, N renderings)
+
+The story field is **NOT a `String` column** — it IS the append-only TYPED event-stream itself (= the life-record STOCK, the v0.6 keystone). **Tombstone** (CURATE's retire-record, ADR-057 Amd1 / the "tombstone-not-silence" build-requirement) and the **autobiography** both FALL OUT as renderings of this one stream — they are not separate fields, they are two projections of the same typed events. **One stock, N renderings.** This is why the contract is *recognition*: the typed event-stream the life-record needs anyway IS the conformant story facet; no separate "story" structure is built.
+
+### The leaf-payload exception (the one nuance — stated explicitly per the outsider's flag)
+
+`Ratified{who, WHY, when}` carries a human-authored `WHY`. That `WHY` MAY be free human text — but it is a **LEAF VALUE on a TYPED event** (the attestation, ADR-020), **not the narrative STRUCTURE itself.** The distinction is load-bearing and a builder must not collapse it:
+
+- The agent reads the **typed event and its slots** (`Ratified` with `who`/`when`/`why`) and traverses the history WITHOUT parsing the `WHY`-string — the `WHY` is an **opaque-attestation payload** the agent treats as a leaf (it does not need to parse it to walk the lifecycle).
+- The renderer surfaces the `WHY`-string to the human **verbatim** (it is the human's own ratification rationale, ADR-020).
+
+So **intent-as-text is CONFORMANT as a typed-event leaf-payload**; what C1 forbids is the **narrative STRUCTURE** being inferred-from-prose. A free-text `WHY` slot on a typed `Ratified` event is fine; a free-text `story` column that IS the narrative is not. (The line: prose may be a *value at a leaf*; prose may never be the *structure of the record*.)
+
+---
+
+## Mechanics
+
+This ADR governs the SCHEMA of the life-record's story facet (the keystone STOCK); it does not introduce a separate type. Enforcement is structural + review-time:
+
+- **Structural:** the story facet is typed (an `enum LifecycleEvent { Born{..}, Clustered{..}, … }` append-only stream), so a non-conformant free-text narrative is a *different type* a reviewer can see at the schema. The `WHY` leaf is a `String` slot on the `Ratified` variant (ADR-020 attestation), explicitly typed as opaque-payload.
+- **Review-time (the C1 conformance check):** any PR adding a field to the life-record runs the C1 test — *can the agent reader consume it without NL-parsing?* A free-text narrative column is a finding against ADR-058; the fix is to re-express it as typed events + a renderer.
+- **The renderers** (`cargo antigen story <class>`, the tombstone, the medical-chart) are projections — they READ the typed stream and EMIT prose; they never accept prose back. One-way: typed → prose.
+
+### §Standing-Pressure-Audit (the relevant subset)
+
+- **Q2 — sealed-enum inclusion:** `LifecycleEvent` is a sealed enum carving "a typed event in a learned class's life." Inclusion: a variant names a distinct lifecycle transition (birth/maturation/working-life/senescence — the dream's enumeration). Exclusion: a variant that is a free-text catch-all ("Note{String}") does NOT belong — that re-opens the C1 trap. Extension discipline: a new lifecycle event requires an ADR amendment + a distinct typed transition, never a free-text escape-hatch.
+- **Q6 — deprecation:** SUPERSEDE-AND-EXTENDS ADR-042 (append-only; ADR-042's human-legibility text stands as the special case). No caller breaks; the scope widens.
+- **Q9 — adversarial/refutation pre-ratification test:** the outsider's refutation attempt on the two-readers seam IS the Q9 — it tried to show the seam dissolves *for free* and instead found it dissolves *only by design* (the free-text column is the live counterexample). The conformance criterion converts the seam-dissolution from true-by-luck to true-by-design. **Residual probe:** is there a facet OTHER than the story where prose could sneak in as structure? (Candidate: the `cluster` facet's site-descriptions — confirm those are typed `MarkedSite` refs, not prose. The reviewer checks every life-record facet against C1, not only the story.)
+
+---
+
+## Frontier statement (ADR-044)
+
+- **What this ADR proves:** that the life-record's story facet is a typed event-stream with prose as a one-way rendering — a decidable schema property (the C1 test is mechanical: does the agent NL-parse?). The seam between the two forgetting minds dissolves at the co-native stock *by design*.
+- **What this ADR does NOT prove:** that the *prose rendering is good* (a renderer can emit unhelpful prose from a perfect stream — quality is not conformance); that the typed event-vocabulary is *complete* (the lifecycle enum may grow — Q2's extension discipline governs that); nor that the human's `WHY`-attestation is *correct* (ADR-020 — the human supplies the semantic half).
+- **The ratifier / re-inheritor:** the cold reader — human OR fresh-context agent — who re-inherits the class's history. This ADR exists so that re-inheritance is symmetric: neither mind translates, because the record is one typed stream with renderings, not a human-authored blob with an agent-adapter bolted on.
+
+---
+
+## Consequences
+
+- **persona-c gets its home (split-2 resolved):** legibility is re-inheritability by either forgetting mind; ADR-042 is the human-only special case this supersede-extends. The makers' own persistence topology (elder-letters, sleep-notes, MEMORY.md, the logbook — the fresh-agent-inherits-memory UX lived daily) is the proof that co-native is antigen's reason for being, not a constraint it honors.
+- **The two-readers seam dissolves at the stock, by design** — one typed event-stream, N renderings (autobiography + tombstone + medical-chart all fall out). The seam cannot relocate into a free-text story field because C1 forbids that field.
+- **The life-record's story facet is specified before it's built** — the keystone STOCK's "story-capable" requirement now has a conformant schema (typed events), so the build does not reach for the free-text column.
+- **Intent-as-text stays possible (the WHY leaf)** — ADR-020's attested WHY is conformant as a typed-event payload, so the human's rationale is captured verbatim without making prose the record's structure.
+
+## Resolves
+
+- **Split-2 (persona-c lens placement):** persona-c homes in this co-native-output-contract ADR (supersede-extends ADR-042); cross-cutting.
+- **The two-readers seam at the life-record:** dissolves at the co-native stock; the surviving TIMING-seam (advise-after vs constrain-during) is a separate per-organ build-axis, not this contract's concern.
+- **The "story-capable" ambiguity in the keystone STOCK spec:** story = the typed event-stream itself, not a free-text field.
+
+## Open questions (to resolve before ratification)
+
+1. **Does C1 apply to facets beyond the story?** (Q9 residual — confirm the `cluster` and `spared` facets are typed refs, not prose, against the keystone STOCK schema. Lean: yes, C1 is a whole-record contract; the story is just where the trap is most tempting.)
+2. **The exact `LifecycleEvent` vocabulary** — the dream enumerates ~10 events; the build locks the v0.6 set (the rest are Q2 extensions). The MATURE/CURATE ADRs co-ratify the score- and fate-bearing variants.
+3. **Renderer location** — is `cargo antigen story <class>` a do-now CLI or charter? Lean: the typed stream + ONE thin prose renderer is do-now (the co-native contract needs at least one rendering to demonstrate the one-way projection); rich renderings (medical-chart UI) are charter.
+
+
+---
+
+## [ADR-059] The Life-Record STOCK: Antigen's First Persistent Substrate Is an Append-Only Per-Class EVENT-Stream (Score + Outcome + Story), Drift-Immune Because It Stores Events Not Claims, Current-State Always Derived
+
+**Status**: **DRAFT — SKELETON** (v06 Pioneers build-step-zero; targets the v0.6 line). The keystone ROOT of the maturing organism — the stock every maturing organ reads and writes. Staged through the lifecycle (first-principles, adversarial, research-review) before ratification; **co-ratified with the MATURE ADR (ADR-061)** because the STOCK's score-payload field needs MATURE's affinity-2-vector type. **Nothing builds on this un-ratified.** This skeleton lands the FINDING + the DECISION-stub + the load-bearing invariants + the open questions, so the build's root ADR is present on disk; the full §Mechanics + §Standing-Pressure-Audit finalize with the schema lock.
+
+**Participants** (from the converge substrate): outsider (the C1 conformance criterion via ADR-058 — the story facet is a typed event-stream), naturalist (`[[convergence/already-in-the-substrate]]`, `[[lived/the-elder-letter-is-the-autobiography]]` — the makers' own persistence topology as the proof), systems-thinking (`[[loops/fate-record-is-the-missing-stock]]` — the L4-staleness precondition), adr-specialist (this skeleton).
+
+**Related**: **ADR-058** (the co-native output contract — the story facet of THIS stock MUST conform to C1: a typed event-stream that renders to prose, never a free-text source); **ADR-051** (the ratification record's fate-hook is the FIRST writer into this stock — `Fate` events are life-record events); **ADR-061** (MATURE — the affinity-2-vector the score-payload field carries; co-ratified); **ADR-057** (the conservative default reads/derives current-state from this stock — e.g. the dormant/forgetting-curve HOLD reads the event history); ADR-044 (frontier-honesty); ADR-006 (recognition-not-design — `.git` is the prior-art the events-not-claims model recognizes); the project NOT-list ("not a documentation system / no out-of-band drift-prone state").
+
+---
+
+### Finding
+
+**The maturing organism needs persistent state, and antigen has NONE today.** CODE-TRUE verified (0.6-dev, the converge survey `[[survey/launch-q-confirmed-no-fate-record-turn-zero]]`): `propose()` is PURE; `PromotedDraft.tier` is single-run; there is no fate-record, no affinity-trajectory, no persistence — grep = 0. Every maturing organ (MATURE's affinity gradient, CURATE's forgetting-curve, the change-detector's rate-stream, the ratification fate-hook) reads a stock that does not exist. **This stock is TURN-ZERO and UN-BACK-FILLABLE** — history not captured from the first caller cannot be reconstructed. So the life-record is the keystone root: the cheap-now-ruinous-to-retrofit seam.
+
+**The tension: antigen's NOT-list rejects "out-of-band drift-prone state," and this is antigen's first persistent mutable substrate.** A naive life-record that stores a CLAIM-about-current-state ("class K is stale") is exactly the drift-prone state the project forbids — it must be kept in sync with reality and silently lies when it isn't (antigen's own `RoutingTableStale` / stale-CODEOWNERS failure-class, self-inflicted). The finding is that there is a kind of persistent state that is NOT drift-prone, and the life-record must be that kind.
+
+---
+
+### Decision (stub — the load-bearing invariants; full §Mechanics finalizes with the schema lock)
+
+**Ship an append-only, per-class life-record STOCK that stores EVENTS (what the gate/organism DID), never CLAIMS-about-current-state. Current state is ALWAYS DERIVED by reading (folding) the event stream — never stored and kept-in-sync.**
+
+**INVARIANT 1 — Events, not claims (the identity-amendment / NOT-list reconciliation).** The life-record records EVENTS: scores computed, outcomes observed, provenance, fates. Append-only, never mutated. This is the SAME drift-immune substrate kind as `.git` — which antigen already trusts and depends on (`[[signal-2-is-already-in-the-git-history]]`). It may NEVER store a claim-about-current-state ("class K is stale", "class K is dormant") that must be kept in sync. "Is class K stale?" is a QUERY answered by folding the events, not a field. Storing events ≠ storing claims; only the latter drifts. **This is a KNOWING identity-amendment to the project NOT-list**, named explicitly: `propose()`'s purity was deliberate; superseding it deserves the ADR, not a silent hook. The NOT-list's "no out-of-band drift-prone state" is preserved — the life-record is not that, because events-not-claims + current-state-derived is structurally drift-immune.
+
+**INVARIANT 2 — The story facet conforms to ADR-058 C1 (co-native, typed event-stream).** The story facet is NOT a free-text `String` column. It IS the append-only TYPED EVENT-stream itself (`Born{..}`, `Matured{..}`, `Ratified{who,why,when}`, `BoundDefect{..}`, `Drifted{..}`, `Anergized{..}`, `Forgotten{..}`, …), rendering to prose via a one-way projection. A free-text-primary story field is NON-CONFORMANT (it reintroduces the two-readers seam — the agent must NL-parse the human's blob). The tombstone (CURATE's retire-record) and the autobiography both FALL OUT as renderings of this one stream — one stock, N renderings (ADR-058 §schema-consequence). The human-authored `WHY` on `Ratified` is a typed-event LEAF-payload (ADR-020 attestation, opaque to traversal), the one permitted prose-at-a-leaf (ADR-058 leaf-payload exception).
+
+**INVARIANT 3 — Per-class, and the score-payload waits one design-step.** The stock is keyed per learned-class. The **story + outcome fields land FIRST** (schema-independent of the affinity type). The **score-payload field waits for MATURE's affinity-2-vector type** (ADR-061) — co-ratified, because the schema needs that type to be honest about what a "score" event carries (a Pareto recall×precision 2-vector, not a scalar — `[[affinity-is-a-frontier-not-a-scalar]]`).
+
+---
+
+### Frontier statement (ADR-044)
+
+- **Proves:** that antigen's first persistent substrate is drift-immune by construction (events-not-claims, current-state-derived — a decidable structural property: does any field store a kept-in-sync claim? if no, drift-immune) and co-native (the story facet is a typed stream, ADR-058 C1).
+- **Does NOT prove:** that the derived current-state queries are CHEAP at scale (a fold over a long event stream may need a cached projection — but the cache is derived, re-buildable from events, never the source of truth); nor that the event vocabulary is COMPLETE (it grows; the MATURE/CURATE ADRs co-ratify their event variants); nor that the score-payload is calibrated (ADR-057 Constraint B — ordinal, not probability).
+- **The reader/re-inheritor:** every maturing organ AND the cold agent/human who re-inherits a class's history (ADR-058 — both forgetting minds read the same stream, neither translates).
+
+### Open questions (to resolve before ratification)
+
+1. **Where the stock lives** (the durable store) — a `.antigen/life-record/` sidecar? The same split as ADR-051's record-store OQ (do-now = the event SHAPE + the write seam; the durable store is charter). Confirm the do-now slice is "shape + seam," not "persistent store."
+2. **The exact `LifecycleEvent` vocabulary for v0.6** — the dream enumerates ~10 events; the build locks the v0.6 set (the rest are ADR-058 Q2 extensions); MATURE/CURATE co-ratify the score- and fate-bearing variants.
+3. **The derived-state projection / cache** — is a cached current-state projection do-now or charter? Lean: the fold is do-now (correctness); the cache is charter (performance), and is always re-derivable from events.
+4. **Co-ratification sequencing with ADR-061** — the score-payload field's type is ADR-061's affinity-2-vector; confirm the story+outcome fields land first (schema-independent) and the score field lands with ADR-061.
+
+
+---
+
+## [ADR-060] The Keystone Afferent Decomposition: One Shared Sensing Spine (STOCK → READER → DISCRIMINATOR → DEFENDED-SENSOR), 2-Axis-Do-Now + Witness-Resolution, Build-Once Not Per-Organ
+
+**Status**: **DRAFT — SKELETON** (v06 Pioneers build-step-zero; targets the v0.6 line). The build-once afferent spine — the strongest build-once signal in the survey (five blind lenses converged: ~5 bespoke detectors across tolerance-grid/size-adapt/afferent collapse to 1 READER + 1 DISCRIMINATOR + 1 DEFENDED-SENSOR + thin adapters). Staged through the lifecycle before ratification. **Nothing builds on this un-ratified.** This skeleton lands the FINDING + the four-organ DECISION-stub + the do-now/do-later honest split + open questions.
+
+**Participants** (from the converge substrate): `[[loops/afferent-sensing-is-one-shared-organ]]`, `[[loops/discriminator-is-the-shared-dual-sensor]]`, `[[loops/curate-is-a-multi-stock-router]]`, `[[outsider/the-discriminator-is-blind-for-silent-classes]]`, `[[outsider/dormant-vs-obsolete-the-third-state]]`, adr-specialist (this skeleton).
+
+**Related**: **ADR-059** (the life-record STOCK — the afferent spine's first organ; the READER reads the per-class rate-stream the STOCK records); **ADR-057** (the conservative default — under unknown coverage, ADR-057's HOLD prevents false-forgetting a dormant-but-real class); **ADR-062** (CURATE — the DISCRIMINATOR's obsolete/dormant/evaded/well-defended classification feeds CURATE's confusion-matrix router); `WitnessTier` (`antigen-attestation/src/tier.rs:47` — the do-now witness-RESOLUTION read); ADR-054 (the two-signal gate — Signal-2 is the harms-axis input); ADR-044 (frontier-honesty).
+
+---
+
+### Finding
+
+**Five bespoke detectors, one shared shape.** The survey found that the tolerance-grid, the size-adapter, and the afferent-collapse organs were each about to build their own sensing of "what is happening to this class" — and they are the SAME sensing spine viewed from different organs. Build-once: 1 change-detector (READER) + 1 classifier (DISCRIMINATOR) + 1 defended-sensor + thin per-organ adapters, NOT five bespoke detectors. (`[[loops/afferent-sensing-is-one-shared-organ]]` — the strongest build-once signal in the survey.)
+
+**The honesty trap the decomposition must avoid (the false-friend axis).** The DISCRIMINATOR's third axis (witness-live-at-site?) is a HOMONYM that splits into two distinct claims `WitnessTier` deliberately separates: witness-RESOLUTION (`WitnessTier::Reachability` = "identifier resolves, no execution-level verification" — do-now, a READ of shipped machinery) vs site-EXERCISED (`WitnessTier::Execution` = "witness was executed" — NOT computable today; audit does not invoke `cargo test`). Conflating them would let "well-defended" read GREEN when the witness merely RESOLVES (theater), not when it WOULD-CATCH (real defense). The decomposition is honest only when the do-now read is named witness-RESOLUTION and the exercised-coverage organ is named do-later.
+
+---
+
+### Decision (stub — the four organs + the do-now/do-later split; full §Mechanics finalizes with the build)
+
+**Ship ONE shared afferent spine of four organs, each at its honest do-now scope:**
+
+1. **STOCK** (ADR-059) — the append-only per-class life-record the spine reads/writes. (Its own ADR.)
+2. **READER** — ONE online change-detector (ADWIN/CUSUM-family) over a per-class rate-stream derived from the STOCK. Build-once; thin per-organ adapters subscribe.
+3. **DISCRIMINATOR** — a **2-axis plane do-now (fires? × harms?), partially 3-axis.** The 2-axis do-now classifies obsolete / dormant / evaded / well-defended (+ autoimmune as the mis-firing complement). The third axis (witness-resolution) PARTIALLY distinguishes WELL-DEFENDED (a resolving witness is positive defense-evidence — enough to fire ADR-057's conservative HOLD); the full exercised-coverage split from DORMANT is do-later.
+4. **DEFENDED-SENSOR** — the witness-RESOLUTION read is **do-now** (wire `audit`'s `WitnessTier` into the discriminator); the exercised-coverage (WOULD-CATCH / mutation-testing) organ is **do-later**. Under unknown coverage, ADR-057's conservative HOLD prevents false-forgetting a dormant-but-real class (antigen's own `RoutingTableStale`, self-inflicted).
+
+**The build-once law:** the ~5 bespoke detectors collapse to 1 READER + 1 DISCRIMINATOR + 1 DEFENDED-SENSOR + thin adapters. An organ that builds its OWN sensing instead of subscribing to the shared spine is a finding against ADR-060 (a `ParallelStateTrackersDiverge` at the sensing layer).
+
+---
+
+### Frontier statement (ADR-044)
+
+- **Proves:** the afferent sensing is ONE shared spine (build-once), and the DISCRIMINATOR's do-now classification is honest about the witness-resolution-vs-exercised homonym (the do-now read is RESOLUTION; the EXERCISED organ is named do-later, not claimed).
+- **Does NOT prove:** that witness-RESOLUTION is real DEFENSE (only WOULD-CATCH / mutation-testing proves that — do-later; until then, a resolving witness is positive evidence enough for HOLD, never enough for auto-forget); nor that the change-detector's thresholds are calibrated (the detector's own tuning); nor that the 2-axis plane is complete (the full cube — incl. exercised-coverage — is do-later, ADR-062).
+- **The reader:** every maturing organ subscribes to this one spine; the conservative default (ADR-057) governs every cell where the sensing is uncertain.
+
+### Open questions (to resolve before ratification)
+
+1. **The change-detector family** — ADWIN vs CUSUM vs a thin custom rate-monitor; lean: one online detector, prior-art-grounded (`[[prior-art/adwin-drift-detection-is-the-automatic-decay-trigger]]`).
+2. **The do-now DISCRIMINATOR's exact cells** — confirm the 2-axis (fires? × harms?) plane against the live `WitnessTier` ordinal; the harms-axis is Signal-2 (ADR-054), runtime, loud-classes only.
+3. **Sequencing against ADR-059** — the READER reads a rate-stream DERIVED from the STOCK; confirm the STOCK's event vocabulary carries the rate-bearing events the READER folds.
+
+---
+
+## ADR-047 Amendment 3 (2026-06-17, drafted by the ADR-specialist on the v06 Pioneers build-step-zero) — GATE-G's spare-clean certificate is SOUND ONLY over a CLOSED `Constraint` alphabet; opening the alphabet routes to the human oracle, not the gate
+
+**Status**: DRAFT (v06 Pioneers build-step-zero — names a load-bearing assumption that was IMPLICIT and un-stated in the original §Decision; that silence is itself the finding the ADR-keeper's CODE-TRUE walk surfaced). Append-only; the §Decision and Amendments 1–2 stand. Awaits the fresh Survey notary for promotion to Witnessed (no-self-witness).
+
+**What the original ADR-047 left implicit.** ADR-047's §Decision establishes that `promote_if_safe` certifies a draft is safe when it (A)-binary-discriminates AND is near-miss-witnessed AND spares the clean corpus. The §Frontier statement honestly bounds this as *corpus-bounded, not a total-safety proof* — but it never named the OTHER precondition the certificate silently rests on: **that the `Constraint` alphabet is CLOSED.** This amendment names it, because a v0.6 organ (`learn-the-grammar-itself`) could open it, and an un-named assumption is an assumption chosen by accident at the surface that violates it.
+
+**The decision (the named soundness boundary).** GATE-G's "spares clean corpus" certificate — and the whole (A)-binary partition it rests on — is **SOUND ONLY in the CLOSED-ALPHABET CONJUNCTIVE regime.** The fixed `Constraint` enum IS the closed alphabet:
+
+- **The type system enforces closure at the (A)-binary partition.** `is_discriminating` (`self_tolerance.rs:289`) pattern-matches the `Constraint` enum **exhaustively** — a new variant would not compile against the match without a hand-written arm. The soundness of the (A)-binary safety call *depends on* the enum being closed: a constraint kind the match never saw cannot be classified discriminating-vs-anchor.
+- **The parser double-enforces closure.** `parse_constraint` (`antigen-fingerprint/src/parser.rs:42-71`) accepts EXACTLY the closed set of operators (`item`, `name`, `variants`, `has_method`, `attr_present`, `doc_contains`, `body_contains_macro`, `body_calls`, `is_async`/`is_unsafe`/`is_const`, `impl_of_trait`, `derives`, `serde_arg`, `all_of`, `any_of`, `not`) and returns a HARD `syn::Error` ("unknown fingerprint operator `{other}`; expected one of: …") for anything else. There is **no custom / extensible / plugin constraint parse path.** (CODE-TRUE verified on 0.6-dev @ 84facc2.)
+
+**Why the boundary is load-bearing (Gold 1967 / Angluin 1987 — `[[lit/gold-bound-what-the-engine-can-never-learn]]`).** For a closed-alphabet CONJUNCTIVE draft, the concept class is NOT superfinite — a modest finite clean corpus is a sufficient negative sample, and "spares clean" is a sound non-over-generalization certificate (Gold's identification-in-the-limit holds). **The moment a surface OPENS the alphabet — lets the engine INVENT a new `Constraint` kind (`learn-the-grammar-itself`, SEAM-D's naming-half) — the hypothesis space can become SUPERFINITE, and Gold's theorem bites: the engine can over-generalize a brand-new constraint with NO finite corpus able to refute it (no possible negative evidence).** The SAME certificate becomes UNSOUND there: "spares clean" certifies nothing, because no finite clean corpus is a sufficient negative sample for an open-alphabet hypothesis class.
+
+**This is WHY the LLM-reasoner seam-split exists — a learnability requirement, not arbitrary scoping.** Angluin 1987: the human-in-the-loop oracle is the minimally-adequate teacher (membership + equivalence queries) that RESTORES learnability in the open-alphabet regime. `route-to-human-on-near-miss` IS an equivalence query (the near-miss is the candidate counterexample). So the seam is drawn at exactly the learnability boundary: the **detection-half** (record that a grammar-gap exists) is Gold-safe and stays in v0.6 learning-core; the **naming-half** (invent the new `Constraint` word) is Gold-IMPOSSIBLE from positive examples alone → REQUIRES the oracle → `charter-llm-immune-reasoner`, explicitly OUT of v0.6.
+
+**The v0.6 build-invariant this installs (carried into every alphabet-touching organ).** narrow()/PersistedSpecimen re-parse arbitrary fingerprints — but over the SAME fixed `Constraint` enum (closed alphabet preserved), so they stay IN the sound regime. The closed alphabet is an **INVARIANT they inherit, NOT a runtime flag they must check** — it is statically guaranteed by the parser + the exhaustive match. **Do NOT add an extensible / custom / plugin `Constraint` parse arm without (a) the learnability-regime flag and (b) the route-to-human gate this amendment + ADR-057 Constraint A require.** Any future ADR or amendment that opens the alphabet is, by this boundary, proposing to invalidate GATE-G's own certificate and must carry the oracle-restoration with it or be rejected.
+
+**`generalization_confidence` gets a formal meaning (the learnability-regime indicator).** Closed-alphabet conjunctive + positives+negatives + non-degenerate corpus = the GUARANTEED regime (High-able). Open-alphabet / positive-only (prospector candidates) / degenerate corpus = the UN-guaranteed regime (Low → route-to-human, never auto-promote). This connects to ADR-057 Constraint B (the affinity-score is ordinal, not a calibrated probability): the ordinal score is SAFE precisely because, in the un-guaranteed regime, it forces route-to-human rather than auto-acting.
+
+**Frontier (what this amendment proves / does NOT prove).** Proves: GATE-G's certificate is sound in the statically-guaranteed closed-alphabet regime the current parser + enum enforce (a decidable property — the parser rejects unknown ops, the match is exhaustive). Does NOT prove: that an open-alphabet organ could be made sound by the gate alone (it cannot — Gold; the oracle is required); nor does it weaken the §Frontier's existing open-world bound (corpus representativeness is still the operator's responsibility). The boundary is named so a future open-alphabet surface cannot quietly cross it.
+
+**Resolves.** ADR-057's routed safety-question §7a (the closed-alphabet soundness boundary). The LLM-reasoner seam-split is re-grounded as a learnability requirement, not a scoping preference. Cross-linked: ADR-057 Constraint A references this amendment as the learnability instance of the conservative default.
+
+
+---
+
+## ADR-051 Amendment 1 (2026-06-17, drafted by the ADR-specialist on the v06 Pioneers build-step-zero) — the narrow()/PersistedSpecimen re-mint precondition (`is_discriminating` recurses into combinator children) is SATISFIED; this amendment records the satisfaction and locks it as a standing invariant
+
+**Status**: DRAFT (v06 Pioneers build-step-zero). Append-only; the §Decision (the one type-invariant + the four parts) stands. Awaits the fresh Survey notary for promotion to Witnessed (no-self-witness).
+
+**What the original ADR-051 was silent on (the ADR-keeper's CODE-TRUE-of-the-ADR finding).** ADR-051 §Mechanics says `narrow()` and `PersistedSpecimen`-load re-mint through `promote_if_safe`, re-gating ARBITRARY fingerprints (narrow re-parses a user-edited fingerprint into arbitrary nesting; load re-parses persisted bytes). ADR-051 NEVER NAMED that re-gating arbitrary nesting REQUIRES `is_discriminating` to recurse into `AnyOf`/`Not` children — else the (A)-binary safety refusal silently fails on a `Not(bare_anchor)` / `AnyOf([bare_anchors])` draft (the latent combinator-anchor vacuity). A builder following ADR-051's §Mechanics literally, against a NON-recursive `is_discriminating`, would open exactly the gate-bypass vacuity ADR-051's one-invariant exists to prevent. ADR-051's silence made that vacuity a *spec-compliant* outcome — the silent-lie state the ADR-keeper exists to prevent. (Carried from v0.5 as the "MUST-FIX-BEFORE-ADR-051"; briefing.md:75; `safety/gate-g-combinator-anchor-vacuity`.)
+
+**The CODE-TRUE status as of v0.6 Pioneers — the precondition is SATISFIED in the build wave (staged + verified green), pending commit.** RUN-verified in the working tree on 0.6-dev (commit-state caveat below):
+
+- `is_discriminating` (`self_tolerance.rs:289-312`) now RECURSES into the boolean combinators: `Not(child) => is_discriminating(child)` (a negation is discriminating iff its inner signal is — negating a real signal stays real; negating a pure anchor binds its complement, vacuous); `AllOf(children) | AnyOf(children) => children.iter().any(is_discriminating)` (a combinator is discriminating iff ANY descendant leaf is). The previous form returned `true` UNCONDITIONALLY for the three combinators — an assumption, not a check.
+- The born-red ATK `antigen/tests/atk_p0_is_discriminating_recursive_descent.rs` is GREEN (RAN: 4 passed, 0 failed, 0 ignored). It pins: `Not(Item(Struct))` non-discriminating, `Not(AllOf([Item, ImplOfTrait]))` non-discriminating, `AnyOf([Item(Struct), Item(Enum)])` non-discriminating, AND the positive control (`Not(BodyCalls("unwrap"))` and `AnyOf([Item, BodyCalls])` STAY discriminating — the fix narrows, it does not flip).
+- **COMMIT-STATE CAVEAT (CODE-TRUE honesty):** as of committed HEAD `84facc2`, `is_discriminating` is STILL the non-recursive form (`Constraint::Not(_) => true` at HEAD:285) — the recursive fix is STAGED in the index (verified green), not yet committed. This amendment records the precondition as met *in the build wave*; the Survey wave certifies it against committed HEAD once the Pioneers' learning-core commit lands. ADR-051's narrow/persist must not ship ahead of that commit.
+
+**The decision (what this amendment locks).** ADR-051's narrow()/PersistedSpecimen re-mint surface **MAY ship on a sound (A)-binary partition once the P0 fix commits** — the precondition the original was silent on is met in the build wave (staged, green), pending its commit. And the recursion is hereby a **STANDING INVARIANT of the ratification record's re-gate**: the soundness of re-gating arbitrary-nesting fingerprints (the whole point of narrow/persist re-parse) DEPENDS on `is_discriminating` recursing into `Not`/`AnyOf`/`AllOf` children. **Any future edit that reverts `is_discriminating` to a non-recursive or unconditional-`true`-on-a-combinator form re-opens the combinator-anchor vacuity AT the narrow/persist surface (a silent wrong-promote on a `Not(bare_anchor)` re-minted draft) and must be rejected on that ground.** The born-red ATK is the regression guard; deleting it is deleting the proof the invariant holds.
+
+**Relationship to ADR-047 Amendments 1 & 2 (no overlap, complementary).** ADR-047 Amd2's recursive canonical-form (`normalized_top_level`) flattens REDUNDANT nested `AllOf` wrappers (associativity — a structural normalization); ADR-047 Amd2's remainder-discriminates guard requires a near-miss's dropped-conjunct remainder to still discriminate. This ADR-051 amendment is about a DIFFERENT axis: `is_discriminating`'s own RECURSION into `Not`/`AnyOf` children (the SEMANTIC descent the `AllOf`-flatten does not reach — `Not` and `AnyOf` are never flattened, they carry meaning). All three landed; all three are load-bearing; none subsumes another.
+
+**Resolves.** The "GATED on P0" status the briefing-for-pioneers §4 ledger assigns ADR-051 — the P0 gate is satisfied in the build wave (the fix is staged + green this wave; it clears fully once committed). ADR-051's implementation (narrow/persist/Fate/`ratify`) may proceed on a sound partition once that commit lands. The standing-invariant clause keeps the precondition from silently regressing once narrow/persist callers depend on it.
+
