@@ -34,6 +34,11 @@ clap = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+# Pure-Rust git plumbing for `cargo antigen mine` — the SZZ corpus-miner's
+# full-object-graph walk (`rev-list --all`) over `.git`. The git I/O lives HERE
+# in the CLI, not the antigen lib (ADR-002 / the vcs_witness pattern: the lib
+# classifies already-read `CommitMeta`; the CLI reads git). See `mine.rs`.
+gix = { workspace = true }
 # Format-preserving TOML editor for `verify dep-pin --write` in-place rewrites
 # (ADR-017-Amd1 posture: deps aren't precious; gate mutation-safety, not
 # dep-count). Attested per antigen's own UnpinnedDependency discipline — pinned
