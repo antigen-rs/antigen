@@ -788,3 +788,150 @@ fn list_clusters_json_is_machine_readable() {
     );
     drop(tmp);
 }
+
+// ───────────────────────────────────────────────────────────────────────────
+// Class 7 — STREAM A2 observability: --explain (the GATE-G reasoning the render
+// hides). Turns the gate from oracle into teacher. Pure additive output — it
+// NEVER changes the verdict or the exit code (GATE-G holds).
+// ───────────────────────────────────────────────────────────────────────────
+
+/// The dirty corpus that reaches the autoimmune (`BindsCleanItem`) verdict: a near-miss
+/// `?`-sibling (passes the witness gate) PLUS an IDENTICAL swallow-error site the
+/// operator mislabeled clean (the draft BINDS it → spare-clean catches it). Mirrors
+/// `propose_cli_plumbs_a_dirty_corpus_the_gate_catches_it`.
+const DIRTY_CLEAN_CORPUS: &str = "fn scan_dir_safe(root: &std::path::Path) -> std::io::Result<Vec<String>> {\n\
+    \x20   let mut out = Vec::new();\n\
+    \x20   for e in std::fs::read_dir(root)? {\n\
+    \x20       out.push(e?.path().display().to_string());\n\
+    \x20   }\n\
+    \x20   Ok(out)\n\
+     }\n\
+     fn walk_clean(root: &std::path::Path) -> Vec<String> {\n\
+    \x20   let mut out = Vec::new();\n\
+    \x20   if let Ok(entries) = std::fs::read_dir(root) {\n\
+    \x20       for e in entries.flatten() {\n\
+    \x20           out.push(e.path().display().to_string());\n\
+    \x20       }\n\
+    \x20   }\n\
+    \x20   out\n\
+     }\n";
+
+/// `--explain` on AUTOIMMUNE refusal names the BOUND clean twin — the known-good item
+/// the draft would have flagged (the autoimmunity made concrete). Without --explain the
+/// render names only the index; with it, the item identity.
+#[test]
+fn explain_on_autoimmune_names_the_bound_twin() {
+    let (tmp, cluster, clean) = staged_twins(DIRTY_CLEAN_CORPUS);
+    let (code, stdout, _e) = propose(&[
+        "--cluster-root",
+        cluster.to_str().unwrap(),
+        "--clean-root",
+        clean.to_str().unwrap(),
+        "--explain",
+    ]);
+    assert_eq!(code, 0, "autoimmune refusal is an honest outcome (exit 0)");
+    assert!(
+        stdout.to_lowercase().contains("binds") || stdout.to_lowercase().contains("autoimmune"),
+        "the verdict is still autoimmune; stdout={stdout}"
+    );
+    assert!(
+        stdout.contains("--explain"),
+        "the --explain block must render; stdout={stdout}"
+    );
+    // The bound twin is the mislabeled `walk_clean` fn the draft binds.
+    assert!(
+        stdout.contains("fn walk_clean"),
+        "--explain must name the BOUND clean twin (fn walk_clean); stdout={stdout}"
+    );
+    drop(tmp);
+}
+
+/// `--explain` on ROUTE-TO-HUMAN renders WHY there is no near-miss (the path to a YES:
+/// add a sibling one constraint from the defect). The reasoning IS the absence.
+#[test]
+fn explain_on_route_to_human_renders_why_no_near_miss() {
+    // Unrelated clean code → no near-miss → route-to-human.
+    let (tmp, cluster, clean) = staged_twins(
+        "fn add(a: i32, b: i32) -> i32 { a + b }\n\
+         fn greet(n: &str) -> String { format!(\"hi {n}\") }\n",
+    );
+    let (code, stdout, _e) = propose(&[
+        "--cluster-root",
+        cluster.to_str().unwrap(),
+        "--clean-root",
+        clean.to_str().unwrap(),
+        "--explain",
+    ]);
+    assert_eq!(code, 0, "route-to-human is first-class (exit 0)");
+    assert!(
+        stdout.contains("routed to a human"),
+        "the verdict is still route-to-human; stdout={stdout}"
+    );
+    assert!(
+        stdout.contains("--explain") && stdout.to_lowercase().contains("near-miss"),
+        "--explain must render the why-no-near-miss reasoning; stdout={stdout}"
+    );
+    drop(tmp);
+}
+
+/// **The load-bearing invariant: `--explain` is PURE OUTPUT.** It changes neither the
+/// verdict text's core nor the exit code — only APPENDS reasoning. Run the same
+/// route-to-human case with and without `--explain`; the exit code is identical and the
+/// non-explain output is a PREFIX of the explain output (nothing removed/changed, only
+/// added).
+#[test]
+fn explain_never_changes_the_verdict_or_exit_code() {
+    let unrelated = "fn add(a: i32, b: i32) -> i32 { a + b }\n";
+    let (tmp, cluster, clean) = staged_twins(unrelated);
+    let c = cluster.to_str().unwrap();
+    let cl = clean.to_str().unwrap();
+
+    let (code_plain, stdout_plain, _e1) = propose(&["--cluster-root", c, "--clean-root", cl]);
+    let (code_explain, stdout_explain, _e2) =
+        propose(&["--cluster-root", c, "--clean-root", cl, "--explain"]);
+
+    assert_eq!(
+        code_plain, code_explain,
+        "--explain must NOT change the exit code (pure output)"
+    );
+    // The plain render is fully contained in the explain render (only appended to).
+    let plain_trimmed = stdout_plain.trim_end();
+    assert!(
+        stdout_explain.contains(plain_trimmed),
+        "--explain must only APPEND reasoning, never alter the verdict render"
+    );
+    assert!(
+        stdout_explain.len() > stdout_plain.len(),
+        "--explain must add reasoning lines"
+    );
+    drop(tmp);
+}
+
+/// `--explain --format json` attaches an `explain` object carrying the near-miss /
+/// bound-twin identities (machine-readable). On autoimmune the `bound_twin` is named.
+#[test]
+fn explain_json_attaches_the_reasoning_object() {
+    let (tmp, cluster, clean) = staged_twins(DIRTY_CLEAN_CORPUS);
+    let (code, stdout, _e) = propose(&[
+        "--cluster-root",
+        cluster.to_str().unwrap(),
+        "--clean-root",
+        clean.to_str().unwrap(),
+        "--explain",
+        "--format",
+        "json",
+    ]);
+    assert_eq!(code, 0, "json autoimmune, exit 0");
+    let v: serde_json::Value =
+        serde_json::from_str(&stdout).expect("--explain --format json emits valid JSON");
+    assert_eq!(v["outcome"], "refused-autoimmune");
+    assert!(
+        v["explain"].is_object(),
+        "the explain object must be attached; got {v}"
+    );
+    assert_eq!(
+        v["explain"]["bound_twin"], "fn walk_clean",
+        "the JSON explain must name the bound twin; got {v}"
+    );
+    drop(tmp);
+}
