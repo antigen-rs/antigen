@@ -24,9 +24,10 @@ use std::path::Path;
 
 use super::{
     AuditReport, CategoryAuditReport, ConvergentEvidenceAuditReport, CoverageAuditReport,
-    DeferredDefenseAuditReport, LineageFidelityAuditReport, PrescriptiveAuditReport,
-    RecurrentAuditReport, audit, audit_category, audit_convergent_evidence, audit_coverage,
-    audit_deferred_defenses, audit_lineage_fidelity, audit_prescriptive, audit_recurrent,
+    DefendedStatusReport, DeferredDefenseAuditReport, LineageFidelityAuditReport,
+    PrescriptiveAuditReport, RecurrentAuditReport, audit, audit_category,
+    audit_convergent_evidence, audit_coverage, audit_defended_status, audit_deferred_defenses,
+    audit_lineage_fidelity, audit_prescriptive, audit_recurrent,
 };
 use crate::scan::ScanReport;
 
@@ -69,6 +70,12 @@ pub struct AuditBundle {
     /// Prescriptive work-orchestration audit (ADR-033) — every work-need
     /// projected to a four-valued `WorkVerdict` ("code IS the board").
     pub prescriptive: PrescriptiveAuditReport,
+    /// P2' defended-status sensor — the per-class witness-resolution roll-up the
+    /// obsolete/well-defended discriminator reads. Derived from [`Self::audit`]
+    /// (the per-immunity witness tiers, rolled up by failure-class), so it adds no
+    /// new scan/resolution work — it is a projection of the core audit the bundle
+    /// already carries.
+    pub defended_status: DefendedStatusReport,
 }
 
 /// Run the audit detector sequence and bundle the per-detector reports.
@@ -82,8 +89,13 @@ pub struct AuditBundle {
 /// (typically the same path passed to [`crate::scan::scan_workspace`]).
 #[must_use]
 pub fn run(report: &ScanReport, root: &Path) -> AuditBundle {
+    // The core immunity audit runs first; the P2' defended-status roll-up is a
+    // projection of it (per-immunity tiers folded by failure-class), so it reads
+    // the result rather than re-scanning.
+    let core_audit = audit(report, root);
+    let defended_status = audit_defended_status(&core_audit);
     AuditBundle {
-        audit: audit(report, root),
+        audit: core_audit,
         category: audit_category(report),
         deferred: audit_deferred_defenses(report, DEFERRED_STALE_GRACE_DAYS),
         convergent: audit_convergent_evidence(report),
@@ -91,5 +103,6 @@ pub fn run(report: &ScanReport, root: &Path) -> AuditBundle {
         lineage_fidelity: audit_lineage_fidelity(report),
         coverage: audit_coverage(report),
         prescriptive: audit_prescriptive(report, root),
+        defended_status,
     }
 }
