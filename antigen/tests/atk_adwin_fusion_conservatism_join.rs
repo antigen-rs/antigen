@@ -73,11 +73,15 @@
 //! `trajectory_direction()` misses DOES fire `Drift`.
 //! ----------------------------------------------------------------------------
 
-// BORN-RED GATE — drop this when learn/adwin.rs + the fusion layer land.
-// The gate suppresses compilation so this file doesn't break the test suite
-// while the organ is unbuilt. Enable with:
-//   cargo test -p antigen --features adwin_built --test atk_adwin_fusion_conservatism_join
-#![cfg(feature = "adwin_built")]
+// BORN-RED GATE DROPPED — `learn/adwin.rs` + `fuse_channels` shipped (build-adwin,
+// ADR-065). The adversary's proposed surface (`DriftAxis`, `DriftVerdict`, `detect`,
+// `fuse_channels`) matched the built surface verbatim — no rename needed. This file now
+// runs in the default `cargo test` suite as the live fusion-conservatism-join spec.
+//
+// Test-ergonomics allows (the workspace exempts test ergonomics): the contract's prose
+// names types without backticks (doc_markdown), and the SHOULD-FIRE fixture seeds with
+// `rand`. These don't earn their churn in a born-red attack harness.
+#![allow(clippy::doc_markdown)]
 
 use antigen::learn::adwin::{DriftAxis, DriftVerdict, detect, fuse_channels};
 use antigen::learn::affinity::Affinity;
@@ -445,12 +449,12 @@ fn atk_adwin6_should_fire_fixture_long_trajectory_real_drop() {
 
     // 200 stable points at recall≈0.9 (σ≈0.02).
     for _ in 0..200 {
-        let r = 0.9 + rng.gen_range(-0.02..=0.02_f64);
+        let r = 0.9 + rng.random_range(-0.02..=0.02_f64);
         traj.push(Affinity::new(r.clamp(0.0, 1.0), 0.85));
     }
     // Abrupt drop to recall≈0.4 for 200 more points.
     for _ in 0..200 {
-        let r = 0.4 + rng.gen_range(-0.02..=0.02_f64);
+        let r = 0.4 + rng.random_range(-0.02..=0.02_f64);
         traj.push(Affinity::new(r.clamp(0.0, 1.0), 0.85));
     }
 
@@ -532,7 +536,7 @@ fn atk_adwin7_blind_channel_never_reaches_curate_forget_end_to_end() {
     }
 
     // Blind-bit-3 channel: any DriftVerdict + Indeterminate.
-    for adwin in [underpowered.clone(), no_drift, drift] {
+    for adwin in [underpowered, no_drift, drift] {
         let fused = fuse_channels(adwin.clone(), SilentStatus::Indeterminate, false);
         let action = curate(fused);
         assert_ne!(
