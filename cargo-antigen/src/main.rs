@@ -243,11 +243,13 @@ struct ProposeArgs {
     cluster_root: PathBuf,
     /// The OPERATOR-supplied, OPERATOR-labeled clean corpus root (scanned; its
     /// function/impl items are the asserted-clean siblings the gate spares against).
-    /// **Required** — there is no auto-derived "the rest of the tree is clean"
-    /// default. Antigen never labels unmarked code clean (ADR-044/047, ATK-047-4):
-    /// the gate is only as strong as the corpus you supply + label.
+    /// **Required for the gate** — there is no auto-derived "the rest of the tree is
+    /// clean" default. Antigen never labels unmarked code clean (ADR-044/047,
+    /// ATK-047-4): the gate is only as strong as the corpus you supply + label.
+    /// (Optional only with `--list-clusters`, a dry-run preview that never runs the
+    /// gate and so never consults the clean corpus.)
     #[arg(long, value_name = "PATH")]
-    clean_root: PathBuf,
+    clean_root: Option<PathBuf>,
     /// Which marker-class is the defect cluster (`dread` / `aura` / `red-flag`).
     /// A cluster mixes one marker-class only — different felt-classes anti-unify to
     /// a worse generalization. Default: `dread`.
@@ -256,6 +258,25 @@ struct ProposeArgs {
     /// Output format: human or json.
     #[arg(long, default_value = "human")]
     format: OutputFormat,
+    /// **Preview the cluster landscape and STOP** — group the marked sites by
+    /// structural shape and print every candidate cluster (its shape digest, its
+    /// source-distinct site count, and which one propose would anti-unify), WITHOUT
+    /// running the gate. A pure read of the `by_shape` grouping the CLI already
+    /// computes — the diagnostic that answers "why did propose say *no cluster*?"
+    /// (usually: every shape is a singleton). Reads `--cluster-root` only;
+    /// `--clean-root` is not consulted. Exit `0`.
+    #[arg(long)]
+    list_clusters: bool,
+    /// **Opt CI into a distinct exit code per outcome** (mirrors `audit --strict`).
+    /// Without this flag propose always exits `0` (the human-facing default —
+    /// route-to-human is first-class, never a "failure"). WITH it, the outcome is
+    /// categorized for a CI gate, NOT graded pass/fail:
+    /// `0` promoted · `10` route-to-human · `11` refused-autoimmune ·
+    /// `12` degenerate · `13` no-cluster. (IO/usage errors stay `2` regardless —
+    /// the `10+` range never collides with them.) A non-zero here is a *category*,
+    /// not a verdict: `10` (route-to-human) is the gate being honest, not failing.
+    #[arg(long)]
+    exit_code: bool,
 }
 
 #[derive(Debug, Parser)]
@@ -3876,13 +3897,33 @@ struct DepScanResult {
 /// (`NotCorpusWitnessable`) is a FIRST-CLASS, expected outcome — the gate refusing
 /// to fake a verdict it cannot make — not a failure.
 fn run_propose(args: ProposeArgs) -> ExitCode {
-    // Both roots must exist + be directories (the clean-root is REQUIRED by clap, so
-    // an ABSENT flag is already a clap usage error; here we validate the supplied
-    // paths). antigen never auto-derives the clean corpus (ADR-044/047, ATK-047-4).
+    // The cluster-root must exist + be a directory (needed by every path, including
+    // the --list-clusters dry-run).
     if let Err(code) = validate_dir(&args.cluster_root, "--cluster-root") {
         return code;
     }
-    if let Err(code) = validate_dir(&args.clean_root, "--clean-root") {
+
+    // --list-clusters: preview the cluster landscape and STOP (a pure read of the
+    //     by_shape grouping — no gate, no clean corpus). Runs BEFORE the clean-root
+    //     requirement: a dry-run preview never consults the corpus. The diagnostic
+    //     for "why no cluster?" — usually because every marked shape is a singleton.
+    if args.list_clusters {
+        return run_list_clusters(&args);
+    }
+
+    // The clean-root is REQUIRED for the gate (no auto-derived "rest of tree is clean"
+    // default — ADR-044/047, ATK-047-4). It is Option only so --list-clusters can omit
+    // it; on the gate path an absent corpus is a usage error.
+    let Some(clean_root) = args.clean_root.as_deref() else {
+        eprintln!(
+            "error: --clean-root is required to gate a draft (the OPERATOR-supplied, \
+             OPERATOR-labeled clean corpus the gate spares against). Antigen never \
+             auto-labels unmarked code clean. (It is optional only with --list-clusters, \
+             a dry-run preview that never runs the gate.)"
+        );
+        return ExitCode::from(2);
+    };
+    if let Err(code) = validate_dir(clean_root, "--clean-root") {
         return code;
     }
 
@@ -3908,14 +3949,16 @@ fn run_propose(args: ProposeArgs) -> ExitCode {
             args.cluster_root.display(),
             cluster.len()
         );
-        return ExitCode::SUCCESS;
+        // A no-≥2-cluster is the NoCluster outcome category (same as an empty/
+        // heterogeneous cluster downstream) — honor --exit-code consistently.
+        return ProposeExit::NoCluster.code(args.exit_code);
     }
 
     // (2) Collect the OPERATOR-supplied clean corpus: every fn/impl item under
     //     --clean-root. The operator SUPPLIES + LABELS it; the gate spares against
     //     exactly this (corpus-bounded claim-scope). antigen adds NOTHING from
     //     --cluster-root or elsewhere — no auto-clean path exists.
-    let clean_corpus = match collect_clean_corpus(&args.clean_root) {
+    let clean_corpus = match collect_clean_corpus(clean_root) {
         Ok(c) => c,
         Err(code) => return code,
     };
@@ -3924,7 +3967,7 @@ fn run_propose(args: ProposeArgs) -> ExitCode {
             "error: --clean-root {} yielded no function/impl items to spare against. \
              Supply a clean corpus of known-good sibling code; antigen cannot certify \
              safety against an empty corpus (it never auto-labels unmarked code clean).",
-            args.clean_root.display()
+            clean_root.display()
         );
         return ExitCode::from(2);
     }
@@ -3952,6 +3995,183 @@ fn validate_dir(path: &Path, flag: &str) -> Result<(), ExitCode> {
         return Err(ExitCode::from(2));
     }
     Ok(())
+}
+
+/// One candidate cluster in the `--list-clusters` landscape: a marked structural
+/// shape, how many source-distinct sites carry it, and a representative site. The
+/// `chosen` flag marks the group propose would actually anti-unify (the largest
+/// ≥2-site group). A pure projection of the `by_shape` grouping the CLI already
+/// computes — the reasoning the gate-path throws away after picking the winner.
+struct ClusterCandidate {
+    shape_digest: String,
+    site_count: usize,
+    sample_file: PathBuf,
+    sample_line: usize,
+    chosen: bool,
+}
+
+/// `--list-clusters`: preview the cluster landscape and STOP (the dry-run diagnostic).
+///
+/// Scans `--cluster-root` only (the `--clean-root` is irrelevant to a grouping
+/// preview — the gate never runs), groups the chosen marker's marks by structural
+/// shape, and renders EVERY candidate cluster: its shape, source-distinct site
+/// count, a sample site, and which one propose would pick. This surfaces the
+/// `by_shape` map propose computes then discards — the direct answer to "why did
+/// propose say *no cluster found*?" (almost always: every shape is a singleton, so
+/// no ≥2 group exists to anti-unify). Read-only; the source tree is byte-unchanged.
+fn run_list_clusters(args: &ProposeArgs) -> ExitCode {
+    let report = match scan::scan_workspace(&args.cluster_root, None) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: scan of --cluster-root failed: {e}");
+            return ExitCode::from(2);
+        },
+    };
+
+    // The SAME grouping assemble_marked_cluster does — kept structurally identical so
+    // the preview reflects exactly what the gate path would see (no divergent view).
+    let mut by_shape: std::collections::BTreeMap<String, Vec<&scan::MarkedUnknown>> =
+        std::collections::BTreeMap::new();
+    for m in &report.marked_unknowns {
+        if m.marker == args.marker && !m.shape_digest.is_empty() {
+            by_shape.entry(m.shape_digest.clone()).or_default().push(m);
+        }
+    }
+
+    // The chosen shape = the largest group with ≥2 source-distinct sites (the same
+    // max_by_key assemble_marked_cluster uses). None if every group is a singleton.
+    let chosen_shape: Option<String> = by_shape
+        .iter()
+        .filter(|(_, marks)| source_distinct_count(marks) >= 2)
+        .max_by_key(|(_, marks)| source_distinct_count(marks))
+        .map(|(shape, _)| shape.clone());
+
+    let mut candidates: Vec<ClusterCandidate> = by_shape
+        .iter()
+        .map(|(shape, marks)| {
+            // A stable representative site (the lexicographically-first (file, line)).
+            let sample = marks
+                .iter()
+                .map(|m| (m.file.clone(), m.line))
+                .min()
+                .unwrap_or_else(|| (PathBuf::new(), 0));
+            ClusterCandidate {
+                shape_digest: shape.clone(),
+                site_count: source_distinct_count(marks),
+                sample_file: sample.0,
+                sample_line: sample.1,
+                chosen: chosen_shape.as_deref() == Some(shape.as_str()),
+            }
+        })
+        .collect();
+    // Largest groups first (then by shape for determinism) — the most cluster-like
+    // shapes lead, the singletons trail.
+    candidates.sort_by(|a, b| {
+        b.site_count
+            .cmp(&a.site_count)
+            .then_with(|| a.shape_digest.cmp(&b.shape_digest))
+    });
+
+    if matches!(args.format, OutputFormat::Json) {
+        return render_list_clusters_json(args, &candidates, chosen_shape.is_some());
+    }
+    render_list_clusters_human(args, &candidates, chosen_shape.is_some())
+}
+
+/// Human render of the `--list-clusters` landscape.
+fn render_list_clusters_human(
+    args: &ProposeArgs,
+    candidates: &[ClusterCandidate],
+    has_cluster: bool,
+) -> ExitCode {
+    println!(
+        "== `{}` cluster landscape under {} (dry-run; gate NOT run) ==\n",
+        args.marker,
+        args.cluster_root.display()
+    );
+    if candidates.is_empty() {
+        println!(
+            "No `{}` marks found. propose anti-unifies a cluster of ≥2 marked sites that \
+             share a structural shape; there are none here to group.",
+            args.marker
+        );
+        // No marks at all is a NoCluster outcome for --exit-code purposes.
+        return ProposeExit::NoCluster.code(args.exit_code);
+    }
+    println!("  sites  chosen   shape digest (sample site)");
+    for c in candidates {
+        let marker = if c.chosen { "  <==" } else { "" };
+        // Short shape prefix keeps the line readable; the full digest is the cluster
+        // key, not a user-facing name (a fingerprint is the named thing, not a shape).
+        let short = c.shape_digest.chars().take(16).collect::<String>();
+        println!(
+            "  {:>5}  {:<7}  {}… ({}:{}){}",
+            c.site_count,
+            if c.chosen { "yes" } else { "" },
+            short,
+            c.sample_file.display(),
+            c.sample_line,
+            marker
+        );
+    }
+    println!();
+    if has_cluster {
+        println!(
+            "propose would anti-unify the `<==` group (the largest with ≥2 \
+             source-distinct sites). Run without --list-clusters to gate it."
+        );
+    } else {
+        println!(
+            "No group has ≥2 source-distinct sites — every `{}` shape is a singleton, \
+             so propose finds NO cluster to anti-unify (the expected state on antigen's \
+             own marks today; abstract-recall clustering past exact-shape is the v0.6 \
+             frontier).",
+            args.marker
+        );
+    }
+    // A preview is informational; categorize by whether a cluster exists so --exit-code
+    // lets CI distinguish "there is something to propose" from "nothing to anti-unify".
+    if has_cluster {
+        ProposeExit::Promoted.code(args.exit_code)
+    } else {
+        ProposeExit::NoCluster.code(args.exit_code)
+    }
+}
+
+/// JSON render of the `--list-clusters` landscape (machine-readable preview).
+fn render_list_clusters_json(
+    args: &ProposeArgs,
+    candidates: &[ClusterCandidate],
+    has_cluster: bool,
+) -> ExitCode {
+    let clusters: Vec<serde_json::Value> = candidates
+        .iter()
+        .map(|c| {
+            serde_json::json!({
+                "shape_digest": c.shape_digest,
+                "site_count": c.site_count,
+                "sample_site": format!("{}:{}", c.sample_file.display(), c.sample_line),
+                "chosen": c.chosen,
+            })
+        })
+        .collect();
+    let value = serde_json::json!({
+        "outcome": "cluster-landscape",
+        "marker": args.marker,
+        "cluster_root": args.cluster_root.display().to_string(),
+        "has_cluster": has_cluster,
+        "clusters": clusters,
+        "note": "dry-run preview of the by_shape grouping; the gate was NOT run (--clean-root not consulted)",
+    });
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&value).unwrap_or_else(|_| "{}".to_string())
+    );
+    if has_cluster {
+        ProposeExit::Promoted.code(args.exit_code)
+    } else {
+        ProposeExit::NoCluster.code(args.exit_code)
+    }
 }
 
 /// Re-acquire the marked DEFECT cluster: scan `root`, keep the `marker`-class
@@ -4099,9 +4319,59 @@ fn collect_rs_items(dir: &Path, out: &mut Vec<syn::Item>) -> Result<(), String> 
     Ok(())
 }
 
+/// The categorical OUTCOME of a propose run — the CI-routable distinction the
+/// `--exit-code` flag surfaces. Computed once, after rendering, so the print-side
+/// (the human suggestion) and the code-side (the CI signal) share one source of
+/// truth and never drift (antigen's own `ParallelStateTrackersDiverge`, kept out of
+/// its own CLI).
+///
+/// **A category, never a pass/fail grade.** Route-to-human is the gate being honest,
+/// not a failure — so its code (`10`) reads as "needs a human", distinct from
+/// promoted (`0`) but NOT an error. The IO/usage error path stays `2` (returned
+/// upstream, before an outcome category exists); the `10+` range never collides.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ProposeExit {
+    /// A ratifiable suggestion was minted. The actionable-positive outcome.
+    Promoted,
+    /// The gate routed the candidate to a human (no near-miss to witness it).
+    /// First-class, NOT a failure.
+    RouteToHuman,
+    /// The draft bound a clean-corpus item (or was bare-structural over-general) —
+    /// the gate refused it as autoimmune.
+    RefusedAutoimmune,
+    /// The cluster shares only structural shape (no discriminating signal).
+    Degenerate,
+    /// Nothing to anti-unify — empty/heterogeneous cluster, or no ≥2 cluster found.
+    NoCluster,
+}
+
+impl ProposeExit {
+    /// Map the outcome category to an [`ExitCode`]. With `exit_code == false` (the
+    /// human default) EVERY category is `0` — propose never grades a first-class
+    /// outcome a "failure". With `exit_code == true` (opt-in, mirrors `audit
+    /// --strict`) each category gets a distinct CI-routable code in the `10+` range
+    /// (never colliding with the `2` IO/usage-error convention).
+    fn code(self, exit_code: bool) -> ExitCode {
+        if !exit_code {
+            return ExitCode::SUCCESS;
+        }
+        match self {
+            Self::Promoted => ExitCode::SUCCESS,
+            Self::RouteToHuman => ExitCode::from(10),
+            Self::RefusedAutoimmune => ExitCode::from(11),
+            Self::Degenerate => ExitCode::from(12),
+            Self::NoCluster => ExitCode::from(13),
+        }
+    }
+}
+
 /// Render the propose outcome as a ratifiable SUGGESTION (observe-don't-declare,
 /// ADR-044). Every outcome is legible (ADR-048); route-to-human is first-class, NOT
 /// a failure. Writes only to stdout/stderr — the source tree is byte-unchanged.
+///
+/// The exit code is computed from the outcome CATEGORY ([`ProposeExit`]) honoring
+/// `--exit-code`: `0` for every category by default (human-facing), or a distinct
+/// CI-routable code per category when opted in.
 fn render_propose_outcome(
     outcome: &Result<
         antigen::learn::self_tolerance::PromotedDraft,
@@ -4113,10 +4383,10 @@ fn render_propose_outcome(
     use antigen::learn::self_tolerance::ToleranceVerdict;
 
     if matches!(args.format, OutputFormat::Json) {
-        return render_propose_json(outcome);
+        return render_propose_json(outcome, args);
     }
 
-    match outcome {
+    let category = match outcome {
         Ok(token) => {
             // A capability token — the only assertable generalization. Surface it as
             // a SUGGESTION the human inspects + ratifies, never an audited verdict.
@@ -4130,7 +4400,7 @@ fn render_propose_outcome(
                  the syntactic half; you ratify the semantic half (observe-don't-declare).",
                 args.marker
             );
-            ExitCode::SUCCESS
+            ProposeExit::Promoted
         },
         Err(ProposeOutcome::Rejected(ToleranceVerdict::NotCorpusWitnessable)) => {
             // The settled-thesis outcome on antigen's own marks: the gate refuses to
@@ -4147,7 +4417,7 @@ fn render_propose_outcome(
                  sibling.)",
                 args.marker
             );
-            ExitCode::SUCCESS
+            ProposeExit::RouteToHuman
         },
         Err(ProposeOutcome::Rejected(ToleranceVerdict::BindsCleanItem { clean_index })) => {
             println!("== refused: the draft binds your clean corpus (autoimmune) ==\n");
@@ -4164,13 +4434,14 @@ fn render_propose_outcome(
                      safety check; refine the cluster (these sites share only their shape)."
                 ),
             }
-            ExitCode::SUCCESS
+            ProposeExit::RefusedAutoimmune
         },
         Err(ProposeOutcome::Rejected(ToleranceVerdict::Spared)) => {
             // The gate never returns Err(Spared) — Spared is the success predicate.
-            // Render defensively rather than panic (totality).
+            // Render defensively rather than panic (totality). Categorize as
+            // no-cluster (no promotable draft was minted).
             println!("== no promotable draft (spared, but not minted) ==");
-            ExitCode::SUCCESS
+            ProposeExit::NoCluster
         },
         Err(ProposeOutcome::Degenerate) => {
             println!("== no candidate: the cluster is not a real failure-family ==\n");
@@ -4181,7 +4452,7 @@ fn render_propose_outcome(
                  cluster to sites that share a real defect signal.",
                 args.marker
             );
-            ExitCode::SUCCESS
+            ProposeExit::Degenerate
         },
         Err(ProposeOutcome::EmptyCluster | ProposeOutcome::NoSharedSkeleton) => {
             println!("== no candidate: the cluster could not be anti-unified ==\n");
@@ -4190,63 +4461,83 @@ fn render_propose_outcome(
                  (a heterogeneous group is not a real family). Nothing to generalize.",
                 args.marker
             );
-            ExitCode::SUCCESS
+            ProposeExit::NoCluster
         },
-    }
+    };
+
+    category.code(args.exit_code)
 }
 
 /// Render the `outcome` as a compact JSON object (machine-readable; the same
 /// observe-don't-declare content as the human render, never an asserted class).
+///
+/// The exit code honors `--exit-code` via the SAME [`ProposeExit`] category map the
+/// human render uses — one source of truth, so the human and JSON surfaces never
+/// disagree on the CI code for an outcome.
 fn render_propose_json(
     outcome: &Result<
         antigen::learn::self_tolerance::PromotedDraft,
         antigen::learn::propose::ProposeOutcome,
     >,
+    args: &ProposeArgs,
 ) -> ExitCode {
     use antigen::learn::propose::ProposeOutcome;
     use antigen::learn::self_tolerance::ToleranceVerdict;
 
-    let value = match outcome {
-        Ok(token) => serde_json::json!({
-            "outcome": "candidate-suggestion",
-            // ALWAYS false in v0.5: a PromotedDraft token is a ratifiable SUGGESTION,
-            // never an asserted/named class (observe-don't-declare). Pinning it false
-            // keeps a future reader from mistaking the suggestion for an auto-promotion.
-            "promoted": false,
-            "fingerprint": render_fingerprint(token.fingerprint()),
-            "tier": format!("{:?}", token.tier()),
-            "note": "ratifiable suggestion (observe-don't-declare); inspect + ratify by hand",
-        }),
-        Err(ProposeOutcome::Rejected(ToleranceVerdict::NotCorpusWitnessable)) => {
+    let (value, category) = match outcome {
+        Ok(token) => (
+            serde_json::json!({
+                "outcome": "candidate-suggestion",
+                // ALWAYS false in v0.5: a PromotedDraft token is a ratifiable SUGGESTION,
+                // never an asserted/named class (observe-don't-declare). Pinning it false
+                // keeps a future reader from mistaking the suggestion for an auto-promotion.
+                "promoted": false,
+                "fingerprint": render_fingerprint(token.fingerprint()),
+                "tier": format!("{:?}", token.tier()),
+                "note": "ratifiable suggestion (observe-don't-declare); inspect + ratify by hand",
+            }),
+            ProposeExit::Promoted,
+        ),
+        Err(ProposeOutcome::Rejected(ToleranceVerdict::NotCorpusWitnessable)) => (
             serde_json::json!({
                 "outcome": "route-to-human",
                 "note": "B cannot certify the draft generalizes against the supplied corpus (no near-miss); routed to a human ratifier",
-            })
-        },
-        Err(ProposeOutcome::Rejected(ToleranceVerdict::BindsCleanItem { clean_index })) => {
+            }),
+            ProposeExit::RouteToHuman,
+        ),
+        Err(ProposeOutcome::Rejected(ToleranceVerdict::BindsCleanItem { clean_index })) => (
             serde_json::json!({
                 "outcome": "refused-autoimmune",
                 "clean_index": clean_index,
                 "note": "the draft binds a clean-corpus item (or is bare-structural over-general); refused",
-            })
-        },
-        Err(ProposeOutcome::Rejected(ToleranceVerdict::Spared)) => serde_json::json!({
-            "outcome": "no-promotable-draft",
-        }),
-        Err(ProposeOutcome::Degenerate) => serde_json::json!({
-            "outcome": "degenerate",
-            "note": "the cluster shares only structural shape (no discriminating signal); not a real failure-family",
-        }),
-        Err(ProposeOutcome::EmptyCluster) => serde_json::json!({ "outcome": "empty-cluster" }),
-        Err(ProposeOutcome::NoSharedSkeleton) => {
-            serde_json::json!({ "outcome": "no-shared-skeleton" })
-        },
+            }),
+            ProposeExit::RefusedAutoimmune,
+        ),
+        Err(ProposeOutcome::Rejected(ToleranceVerdict::Spared)) => (
+            serde_json::json!({ "outcome": "no-promotable-draft" }),
+            ProposeExit::NoCluster,
+        ),
+        Err(ProposeOutcome::Degenerate) => (
+            serde_json::json!({
+                "outcome": "degenerate",
+                "note": "the cluster shares only structural shape (no discriminating signal); not a real failure-family",
+            }),
+            ProposeExit::Degenerate,
+        ),
+        Err(ProposeOutcome::EmptyCluster) => (
+            serde_json::json!({ "outcome": "empty-cluster" }),
+            ProposeExit::NoCluster,
+        ),
+        Err(ProposeOutcome::NoSharedSkeleton) => (
+            serde_json::json!({ "outcome": "no-shared-skeleton" }),
+            ProposeExit::NoCluster,
+        ),
     };
     println!(
         "{}",
         serde_json::to_string_pretty(&value).unwrap_or_else(|_| "{}".to_string())
     );
-    ExitCode::SUCCESS
+    category.code(args.exit_code)
 }
 
 /// Render a [`antigen_fingerprint::Fingerprint`] for the suggestion (a human reads +
