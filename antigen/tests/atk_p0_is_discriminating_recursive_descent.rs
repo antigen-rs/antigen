@@ -1,19 +1,24 @@
-//! ATK-P0 — the `is_discriminating` recursive-descent vacuity (BORN-RED).
+//! ATK-P0 — the `is_discriminating` recursive-descent vacuity.
+//!
+//! **STATUS: P0 LANDED (v0.6 Pioneers).** These tests were born-red against
+//! v0.6-dev and are now GREEN: `is_discriminating` descends into combinator
+//! children (`self_tolerance.rs`). The `#[ignore]` markers are dropped; the three
+//! degenerate-input asserts + the positive control are the live regression spec.
 //!
 //! # What this defends (the v0.6 P0 "done" definition)
 //!
 //! `self_tolerance::is_discriminating` (the (A)-binary partition, ADR-047 OQ3) is
 //! the sub-primitive ALL of GATE-G's non-vacuity checks key on
 //! (`has_discriminating_conjunct`, `is_near_miss`'s remainder-guard, the
-//! C-side `is_degenerate` refusal). At v0.6-dev it is **NON-RECURSIVE**: the three
-//! boolean combinators return `true` UNCONDITIONALLY —
+//! C-side `is_degenerate` refusal). At v0.6-dev it was **NON-RECURSIVE**: the three
+//! boolean combinators returned `true` UNCONDITIONALLY —
 //!
 //! ```ignore
 //! Constraint::AllOf(_) | Constraint::AnyOf(_) | Constraint::Not(_) => true,
 //! ```
 //!
-//! — "which carry discriminating children" (the comment). But that is an
-//! ASSUMPTION, not a check: it never descends to confirm the children actually
+//! — "which carry discriminating children" (the comment). But that was an
+//! ASSUMPTION, not a check: it never descended to confirm the children actually
 //! discriminate. The degenerate input that breaks it is a combinator wrapping ONLY
 //! bare-structural anchors:
 //!
@@ -28,7 +33,7 @@
 //! - `AnyOf([Item(Struct), Item(Enum)])` — a disjunction of pure anchors; binds the
 //!   whole "struct-or-enum" family; reported discriminating, refusal skipped.
 //!
-//! # Why this is BORN-RED (and must stay red until P0 lands)
+//! # Why this WAS born-red (the vacuity P0 closed)
 //!
 //! This is the MUST-FIX-BEFORE-ADR-051 carried from v0.5 (briefing.md:75,
 //! `safety/gate-g-combinator-anchor-vacuity`). It is LATENT (unreachable) under
@@ -36,15 +41,17 @@
 //! `Not`, no nested combinator). It becomes LIVE the moment `narrow()` / `persist`
 //! / user-`parse` can introduce a `Not` or a nested combinator into a draft — i.e.
 //! exactly the ADR-051 narrow/persist surface. Shipping that surface over a
-//! non-recursive `is_discriminating` re-opens the vacuity as a SILENT WRONG promote.
+//! non-recursive `is_discriminating` would re-open the vacuity as a SILENT WRONG
+//! promote — so the descent had to land first.
 //!
-//! P0 = make `is_discriminating` recursively descend: a combinator is discriminating
-//! IFF it (recursively) contains at least one discriminating leaf. `Not(c)` is
-//! discriminating iff `c` is; `AllOf`/`AnyOf` iff ANY child is. THEN these asserts
-//! flip to green and the gate refuses the wrapped-anchor drafts.
+//! P0 (LANDED) = `is_discriminating` recursively descends: a combinator is
+//! discriminating IFF it (recursively) contains at least one discriminating leaf.
+//! `Not(c)` is discriminating iff `c` is; `AllOf`/`AnyOf` iff ANY child is. The
+//! asserts below are GREEN and the gate now refuses the wrapped-anchor drafts.
 //!
 //! Author: converge-adversarial (v0.6 Outfitters build-wave deliverable — the
-//! failing test that DEFINES P0's done, handed to the Pioneers).
+//! failing test that DEFINED P0's done, handed to the Pioneers; landed by the
+//! Pioneers build-wave).
 
 use antigen::learn::self_tolerance::has_discriminating_conjunct;
 use antigen_fingerprint::{Constraint, Fingerprint, ItemKind};
@@ -53,11 +60,6 @@ use antigen_fingerprint::{Constraint, Fingerprint, ItemKind};
 /// `Not(Item(Struct))` matches the entire "not a struct" complement — no real
 /// in-family discrimination, a fabricating over-bind. The (A)-binary partition
 /// MUST classify it as NON-discriminating so GATE-G refuses it.
-#[ignore = "born-red: P0 (is_discriminating recursive-descent fix, \
-            safety/gate-g-combinator-anchor-vacuity) is unbuilt on 0.6-dev — \
-            self_tolerance.rs:283-285 returns true for AllOf|AnyOf|Not \
-            unconditionally. Drop this #[ignore] when is_discriminating descends \
-            into combinator children; the body is the spec."]
 #[test]
 fn not_of_bare_anchor_is_not_discriminating() {
     let draft = Fingerprint {
@@ -79,8 +81,6 @@ fn not_of_bare_anchor_is_not_discriminating() {
 /// bare-structural skeleton that binds every `Drop` impl. Normalization flattens a
 /// top-level `AllOf`, but a nested/wrapped one a future `narrow()` could emit must
 /// also be seen through: an `AllOf` of only anchors does not discriminate.
-#[ignore = "born-red: P0 unbuilt (see not_of_bare_anchor_is_not_discriminating) — \
-            drop when is_discriminating descends into combinator children."]
 #[test]
 fn all_of_only_anchors_is_not_discriminating() {
     let inner = Constraint::AllOf(vec![
@@ -102,8 +102,6 @@ fn all_of_only_anchors_is_not_discriminating() {
 
 /// `AnyOf([Item(Struct), Item(Enum)])` — a disjunction of pure anchors. Binds the
 /// whole "struct or enum" family. No discriminating leaf → must be NON-discriminating.
-#[ignore = "born-red: P0 unbuilt (see not_of_bare_anchor_is_not_discriminating) — \
-            drop when is_discriminating descends into combinator children."]
 #[test]
 fn any_of_only_anchors_is_not_discriminating() {
     let draft = Fingerprint {

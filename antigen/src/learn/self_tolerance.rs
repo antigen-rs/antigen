@@ -263,14 +263,36 @@ pub fn has_discriminating_conjunct(draft: &Fingerprint) -> bool {
 /// One constraint's side of the (A)-binary partition: `false` for a bare
 /// structural/identity anchor, `true` for a discriminating signal. The single
 /// source of truth for the partition (ADR-047 OQ3 / ADR-056 OQ3).
-const fn is_discriminating(c: &Constraint) -> bool {
+///
+/// # The combinators descend (P0 — `safety/gate-g-combinator-anchor-vacuity`)
+///
+/// A boolean combinator is discriminating **iff it (recursively) wraps at least
+/// one discriminating leaf** — it does NOT discriminate *by virtue of being a
+/// combinator*. The previous form returned `true` unconditionally for
+/// `AllOf`/`AnyOf`/`Not`, which was an *assumption* ("they carry discriminating
+/// children") rather than a *check*: a combinator wrapping ONLY bare-structural
+/// anchors (`Not(Item(Struct))`, `AnyOf([Item(Struct), Item(Enum)])`) was
+/// reported discriminating, so GATE-G's (A)-binary refusal was skipped for a
+/// fabricating over-bind — the armed self-inflicted-autoimmunity vacuity. This is
+/// LATENT under today's `anti_unify` (flat top-level `all_of`, no `Not`, no nested
+/// combinator) and goes LIVE the moment `narrow()`/`persist`/user-`parse` can
+/// introduce a `Not` or nested combinator — i.e. exactly the ADR-051 surface. So
+/// the descent is the hard prereq of ADR-051.
+///
+/// `Not(c)` is discriminating iff `c` is (negating a real signal stays a real
+/// signal; negating a pure anchor binds its complement — vacuous). `AllOf`/`AnyOf`
+/// are discriminating iff ANY child is (one real discriminator anywhere in the
+/// tree is enough to make a genuine in-family discrimination). This is no longer a
+/// `const fn` — its sole caller ([`has_discriminating_conjunct`]) is non-const and
+/// nothing relied on const-evaluation; the recursive `.iter().any` form reads like
+/// the call-site and is the natural shape.
+fn is_discriminating(c: &Constraint) -> bool {
     match c {
         // Structural/identity anchors — name *what the item IS*, not what
         // distinguishes a defect. A draft of only these over-binds the family.
         Constraint::Item(_) | Constraint::ImplOfTrait(_) | Constraint::NameMatches(_) => false,
-        // Everything else distinguishes a defect from its clean sibling:
-        // body signals, qualifiers, attr/derive/serde introspection, ranges,
-        // and the boolean combinators (which carry discriminating children).
+        // Leaf discriminators — body signals, qualifiers, attr/derive/serde
+        // introspection, ranges: each distinguishes a defect from its clean sibling.
         Constraint::Variants(_)
         | Constraint::HasMethod(_)
         | Constraint::AttrPresent(_)
@@ -279,10 +301,14 @@ const fn is_discriminating(c: &Constraint) -> bool {
         | Constraint::BodyCalls(_)
         | Constraint::Qualifier(_)
         | Constraint::Derives(_)
-        | Constraint::SerdeArg(_)
-        | Constraint::AllOf(_)
-        | Constraint::AnyOf(_)
-        | Constraint::Not(_) => true,
+        | Constraint::SerdeArg(_) => true,
+        // Boolean combinators DESCEND (P0): discriminating IFF a wrapped leaf is.
+        // A combinator of only anchors discriminates NOTHING (it over-binds the
+        // family) — the recursive check, not the old unconditional `true`.
+        Constraint::Not(child) => is_discriminating(child),
+        Constraint::AllOf(children) | Constraint::AnyOf(children) => {
+            children.iter().any(is_discriminating)
+        },
     }
 }
 
