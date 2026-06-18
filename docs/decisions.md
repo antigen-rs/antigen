@@ -12756,3 +12756,134 @@ This ADR governs a DESIGN POSTURE, not a type. Enforcement is review-time, at th
 - The un-named line ADR-002 Amendment 2 gestured at ("compete where antigen cohesion serves") — the line is grammar-authority.
 - The recurring compose-first reflex at core-organ ratifications (surfaced at #12, would recur at every reasoning organ) — answered by the grammar-authority discriminator.
 
+
+---
+
+## [ADR-065] ADWIN-Full: the Honest-Blind Batch Drift-Detector — UnderPowered Is the Spine (the Default at Antigen's Scale), the Power-Guard Is Its Own Floor→Full Regime-Switch, Authority Bounded by the Conservative Default
+
+**Status**: **RATIFIED 2026-06-18** (v06 "the maturing organism" / extend → ratify wave; targets the v0.6 line, `0.6-dev`). Staged through the lifecycle — design (extend-dreamer's floor→full-seam + real/virtual-fusion reframe), **source-verified math** (math-researcher: Bifet & Gavaldà 2007 §3.1/3.2/3.3 + Eq 3.1 transcribed VERBATIM from the pulled PDF, the bucket-merge validated against the paper's worked trace), compose-vs-build recon (extend-scout: the one Rust ADWIN crate has an anti-fit API), first-principles (aristotle, Phases 1-8 on `extend/adwin-full-the-biggest-detector`), author-distinct witness (the ratify-wave observer). **Instantiates ADR-064** (build-the-core-organs) — its SECOND named instance: the crate's streaming `bool` API erases antigen's `UnderPowered` distinction, so antigen BUILDS the pure-batch verdict. **Depends on the life-record STOCK (ADR-059, the trajectory input) + the bit-3 silent-sensor (shipped) for the real/virtual fusion.**
+
+**Participants**: extend-dreamer (the floor→full lived-transition, the self-announcing power-threshold, the real/virtual fusion table, the honest-scope flag honored), math-researcher (the source-verified bounds + bucket-merge + the synthetic-fixture suite — the captain's two flagged contracts met verbatim), extend-scout (the compose-vs-build verdict: `anomstream-core`'s `&mut self update()->bool` is the wrong shape + erases `UnderPowered`), aristotle (Phases 1-8: UnderPowered-as-spine, the real/virtual-fusion conservatism-join, the order-asymmetry vs the serializer, the herd-drift void), the ratify-wave observer (author-distinct witness).
+
+**Related**: **ADR-064** (build-the-core-organs — this is its second instance; the compose-vs-build precedent the ADWIN build cites); **ADR-059** (the life-record STOCK — `score_trajectory()` is the detector's pure input); **ADR-057** (the conservative default — the detector NEVER deletes; UnderPowered/Indeterminate ⇒ CURATE HOLDS); **ADR-060** (the afferent decomposition — ADWIN is the loud-class READER half; bit-3 is the silent half; they compose, neither subsumes); the bit-3 silent-sensor (`SilentStatus` 4-valued, shipped 95f31e1/fdd11fb — the second fusion channel); CURATE (`convergence/curate-is-a-confusion-matrix` — the decay-trigger consumer); the red-queen island (shares the change-point detector at the obsolete-vs-evaded boundary); the CUSUM island (`dream/cusum-...` — the chosen-over alternative); `prior-art/adwin-drift-detection-is-the-automatic-decay-trigger` (the verified-math substrate).
+
+---
+
+## Finding
+
+antigen needs to decide WHEN a learned class has gone obsolete (or is being evaded) by watching its per-class affinity-trajectory for a downward change-point — the automatic decay-trigger the forgetting-curve and red-queen loops both reach for. ADWIN (Bifet & Gavaldà 2007, the field-standard streaming concept-drift detector) is the canonical mechanism. But three first principles (aristotle Phases 1-8) reshape it from "a streaming drift detector" into antigen's organ:
+
+- **UnderPowered is the SPINE, not an edge case (T1, the Aristotelian move).** A change on a stream is detectable only above a statistical power threshold; below it, detection is mathematically impossible. At antigen's CURRENT scale (classes have matured n≈4-8 times) the bound is DEAD: `2·ε_cut > 1.0` = the max observable signal, so a correct detector CANNOT fire. Therefore `UnderPowered{eps_cut, max_observable}` is not a corner case — it is the DEFAULT verdict for every class today. The organ's entire v0.6 value is that it HONESTLY says "I cannot yet see drift for this class, and here is exactly when I will be able to (`n*`, computed from the bound, no real data needed)." A detector that fires zero and says-so is the correct, valuable v0.6 organ — and it is the SAME organ that fires correctly once trajectories lengthen, with NO code change.
+- **It must be a BATCH pure derivation, not a stateful stream (T2 — ADR-064's second instance).** antigen's posture is append-only-record + current-state-DERIVED. A detector holding its own mutable window is a SECOND state-store that can desync from the life-record (`ParallelStateTrackersDiverge` at the detector boundary). The one Rust ADWIN crate (`anomstream-core::AdwinDetector`) is a `&mut self`, ingest-one-point-at-a-time, fire-and-truncate streaming struct whose `update()` returns a bare `bool` (non-finite silently ignored, no-drift indistinguishable from under-powered) — it is BOTH the wrong shape (the forbidden second state) AND erases the `UnderPowered` distinction. Per ADR-064 (grammar-authority): antigen's verdict vocabulary is authoritative, so antigen BUILDS `detect(trajectory: &[Affinity], delta: f64) -> DriftVerdict` over the materialized `score_trajectory()`.
+- **The power-guard IS its own floor→full regime-switch (T1+T5+A6).** It is ONE `DriftVerdict` type, two regimes: the FLOOR (rigorous ADWIN0, `δ'=δ/n`, all-n splits, Theorem-3.1-rigorous, returns `UnderPowered` while blind) and the FULL (ADWIN2 — exponential-histogram window, variance-aware `ε_cut` Eq 3.1, `δ'=δ/ln n`, O(log n) bucket-cuts, normal-approximation). The floor's `UnderPowered` verdict already carries `eps_cut` and `max_observable`; the moment `eps_cut < max_observable` persistently, the class has crossed its power threshold `n*` — the SAME signal the seam reads. The floor's power-guard IS the seam trigger; no separate length-counter. The organ REPORTS its own coming-of-age as a life-record event.
+
+---
+
+## Decision
+
+**Build ADWIN-full as one `detect(&[Affinity], delta) -> DriftVerdict` batch organ in `learn/adwin.rs`, with `UnderPowered` as the first-class default verdict, the power-guard as the floor→full regime-switch, the real/virtual fusion with the bit-3 second channel, and decay-authority bounded by the conservative default (ADR-057). Validate on synthetic fixtures; real-class-drift validation accrues as trajectories lengthen and the organ self-announces per-class power.**
+
+### The verdict type (the spine)
+
+```
+enum DriftVerdict {
+  Drift { cut_index, axis, observed_diff, eps_cut },
+  NoDrift { tightest_margin },
+  UnderPowered { eps_cut, max_observable },   // eps_cut >= max-observable-signal: structurally blind, SAYS SO
+}
+```
+
+`UnderPowered` is the default at antigen's scale. Silence has two causes — no-drift vs can't-see — and they are DISTINCT verdicts (a bare `bool` collapsing them is the silent-miscalibration antigen exists to catch).
+
+### The source-verified math (the captain's flagged contract — VERBATIM, do NOT reconstruct from memory)
+
+The bounds and bucket-merge are transcribed verbatim from the pulled Bifet-Gavaldà 2007 PDF (math-researcher, source-of-truth read this turn). The constants are load-bearing — getting one wrong is a silent miscalibration:
+
+- **FLOOR — rigorous ADWIN0 `ε_cut` (§3.1):** `m = 1/(1/n0 + 1/n1)` (harmonic mean); `δ' = δ/n`; `ε_cut = sqrt( (1/(2m))·ln(4/δ') )`. The constant inside `ln` is **4**. The guaranteed-DETECTABLE shift is **2·ε_cut** (Theorem 3.1) — this factor-2 is why n≈8 is dead.
+- **FULL — variance-aware ADWIN2 `ε_cut` (Eq 3.1):** `ε_cut = sqrt( (2/m)·σ²_W·ln(2/δ') ) + (2/(3m))·ln(2/δ')`. The constant inside `ln` is **2** (NOT 4 — do not copy the floor's). The additive Bernstein term `(2/(3m))·ln(2/δ')` is **NOT optional** (it protects small windows; dropping it under-fires in exactly antigen's regime). `σ²_W` = the observed sample variance of the per-axis scalar values in W.
+- **The δ' correction is COUPLED to the cutpoint set (T3):** FLOOR uses `δ'=δ/n` (all-n splits); FULL uses `δ'=δ/ln n` (O(log n) bucket-boundary cuts). These are NOT interchangeable — `δ/n` in the full detector over-corrects (loses the sensitivity the EH structure buys); `δ/ln n` in the floor under-corrects (a forgetting-storm). A born-red test asserts each regime uses its own.
+- **The exponential-histogram bucket-merge (§3.3):** each bucket `{capacity: power-of-2, content: f64 sum}`; keep ≤ M buckets per size; on M+1 buckets of size 2^i, **merge the two OLDEST** (adding capacity AND content) into size 2^{i+1}, CASCADING up. **M=5** (the paper's validated default). The GOLDEN FIXTURE is the paper's own worked trace (`Content 4,2,2,1,1` + new `1` → `4,2,2,2,1` → `4,4,2,1`) — a born-red test feeds this exact sequence and asserts the bucket list at each step (a wrong merge — newest-not-oldest, no-cascade, capacity-but-not-content — fails it).
+- **The rigor caveat (MUST be in the ADR):** Eq 3.1 is the NORMAL-APPROXIMATION form — "perfectly valid in practice" but "not 100% rigorous," valid only above the sample-count the CLT needs (~30, partially relaxed by the Bernstein term). The FULL detector trades the floor's unconditional Theorem-3.1 rigor for sensitivity AT a named threshold. Below it, the floor's rigorous bound (or its `UnderPowered` verdict) is the correct detector.
+
+### The real/virtual fusion (the two-channel discriminator — the safety-critical table)
+
+A single stream cannot split real from virtual drift (T4); antigen's bit-3 static-shape sensor (shipped) + GATE-G near-miss are the SECOND channel. The fusion:
+
+| ADWIN signal | + static channel (bit-3) | ⇒ verdict |
+|---|---|---|
+| recall-drop | shape GONE | REAL drift, OBSOLETE |
+| recall-drop | shape PRESENT + near-miss | REAL drift, EVADING (red-queen) |
+| recall-drop | shape PRESENT + no near-miss | VIRTUAL drift (churn), **KEEP** |
+| precision-drop | clean-binds rising | REAL drift, AUTOIMMUNE over-broadening |
+
+**The conservatism-JOIN (aristotle Phase 6 C2 — the safety corner the ADR states explicitly):** the fusion's KEEP/HOLD is the JOIN of both channels' conservatism. If EITHER channel is blind — ADWIN `UnderPowered` OR bit-3 `Indeterminate` (its 4th state) — **CURATE HOLDS (never forgets)**, regardless of the other channel. A virtual-drift cell must never fall through to forget when a channel is blind. (This sharpens the dreamer's table at the one cell that could autoimmune-forget on churn.)
+
+### Decay-authority bounded by the conservative default (ADR-057)
+
+A confirmed downward change-point on recall is the AUTOMATIC input to CURATE's reversible ladder — but ADWIN NEVER deletes (ADR-057): it proposes the LOWEST reversible rung and routes-to-human for anything irreversible. `UnderPowered` (ADWIN) or `Indeterminate` (bit-3) ⇒ CURATE MUST HOLD. The change-point sets the `withdrawn_at`/`forgotten_at` CANDIDATE date; the human ratifies the irreversible step.
+
+### The self-announcement (honest-scope made a runtime signal)
+
+The moment a class crosses its power threshold `n*`, the organ appends a life-record event: "class X reached statistical power at maturation #N; drift-sensing is now LIVE for it." This is the honest-scope ("validated on synthetic fixtures; real validation accrues as trajectories lengthen") turned into a per-class RUNTIME signal — not a dodge, a self-report.
+
+---
+
+## Mechanics
+
+- **HOME:** a new submodule `learn/adwin.rs` (greenfield — scout verified zero existing change-detection code). The floor batch detector + the full ADWIN2 struct both live here; the full streaming form is an INTERNAL optimization `detect()` dispatches to once `n ≥ n*` — the CALLER sees one function, only the regime-switch inside.
+- **INPUT:** `LifeRecord::score_trajectory() -> Vec<Affinity>` (life_record.rs:262, SHIPPED). Reads the per-axis scalar stream (`affinity.recall` / `affinity.precision`, both `f64 ∈ [0,1]`, affinity.rs:81). Per-axis OR with `δ_axis = δ/2` (Bonferroni over the two axes).
+- **OUTPUT:** a `Drift` verdict appends `LifeEvent::Drifted` to the record (life_record.rs:130 — the variant ALREADY EXISTS, reserved for exactly this producer). **Plus (the herd-drift void hook, do-now-cheap):** the change-point records the COMMIT-sha, not just the index, so the future cross-class herd-correlator (v0.7+) has a shared commit-time-axis to align on.
+
+### §Synthetic-fixture validation suite (the captain's KEY contract — each a born-red test, δ=0.05)
+
+The detector is validated on hand-constructed affinity-sequences with KNOWN change-points — the SAME methodology as the paper's own Figs 2-5, at antigen's scale. Honest-scope: "validated on synthetic fixtures; real-class-drift validation accrues as trajectories lengthen."
+
+- **SHOULD-FIRE:** ~200 pts stable recall≈0.9 (σ≈0.02), then abrupt drop to ≈0.4 — at n≈400 the variance-aware ε_cut « the 0.5 shift, MUST fire, `cut_index` within the bucket-granularity of the true change-point.
+- **SHOULDN'T-FIRE (the negative control, statistical):** K=100 pure-noise streams (recall≈0.9, σ≈0.05, no change-point) with distinct seeds — empirical false-positive rate ≤ δ. A detector firing on >5% has a miscalibrated bound (the exact silent miscalibration, caught).
+- **UnderPowered→FIRES boundary (the seam fixture, the most important):** a fixed 0.5 shift embedded in streams of growing length (n=8,16,32,64,128,256). The test DERIVES the boundary from the verified formula (`sign(observed_shift − 2·ε_cut)`) — it does NOT hardcode a guessed n (tests serve reality). Asserts the verdict transitions UnderPowered→Drift at the length the math predicts, and the power-guard reports `max_observable < eps_cut` for exactly the blind n.
+- **INTERIOR-CRATER (the full organ's raison):** recall 0.9→craters to 0.2→recovers to 0.9; `first==last==0.9` so `trajectory_direction()` reads Stable (BLIND). Asserts full-ADWIN FIRES on the interior change-point — the payoff the 2-point read structurally misses (life_record.rs:291).
+- **PER-AXIS-OR:** recall craters but precision compensates (a scalar/F1 projection reads flat). Asserts per-axis OR fires; records scalar-projection as the REJECTED alternative with an executable reason.
+
+### §Enforcement-Surface (subset)
+
+| Mechanism | Tier | Bypass + mitigation |
+|---|---|---|
+| `UnderPowered` first-class verdict (not a `bool`) | build-time (the enum) | Bypass = collapsing to `bool`. Mitigated by the type + the boundary fixture. |
+| Batch pure `detect()` (no `&mut self` state) | build-time + review | Bypass = a stateful streaming struct (the crate's shape — the desync ADR-064 forbids). |
+| δ' coupled to the cutpoint set (δ/n floor, δ/ln n full) | test-time | Bypass = one δ' for both. Mitigated by the per-regime born-red assertion. |
+| The bucket-merge = the paper's (oldest, cascading, +content) | test-time | Bypass = a wrong merge. Mitigated by the golden-trace fixture. |
+| CURATE HOLDS on UnderPowered/Indeterminate (the conservatism-join) | CLI + scan-time | Bypass = forgetting on a blind channel. Mitigated by ADR-057 + the fusion-join clause. |
+
+### §Standing-Pressure-Audit (subset)
+
+- **Q2 — sealed enum:** `DriftVerdict` carves "the outcome of a change-point test." Inclusion: `Drift`/`NoDrift`/`UnderPowered` (a distinct epistemic state). Exclusion: a free-text or `bool` collapse (re-opens the silent-miscalibration). Extension: a new verdict needs an ADR amendment + a distinct epistemic state.
+- **Q6 — deprecation:** additive (new `learn/adwin.rs`; the `LifeEvent::Drifted` consumer is pre-reserved; no caller breaks). May SUPERSEDE `trajectory_direction()` for long streams (the interior-crater fix) — a named, tested replacement, not a silent break.
+- **Q9 — adversarial:** the negative-control (false-positive-rate ≤ δ over K=100 noise streams) + the fusion-conservatism-join attack (does any cell forget on a blind channel?) are the Q9 corners. Residual: the herd-drift correlation (v0.7+) is explicitly OUT — the do-now records the commit-sha so it's reachable.
+
+---
+
+## Frontier statement (ADR-044)
+
+- **What this ADR proves:** that antigen has an honest-blind batch drift-detector whose `UnderPowered` default truthfully reports the n≈8 regime, whose power-guard is its own floor→full regime-switch (a computable `n*`, no real data), and whose real/virtual fusion + conservative-default authority make it safe to wire into CURATE — validated on synthetic fixtures (the paper's own method at antigen's scale).
+- **What this ADR does NOT prove:** that the full ADWIN2 regime is exercised by REAL long trajectories (none exist at v0.6 — it accrues as classes mature, and the organ self-announces when); that the variance-aware bound's normal-approximation holds below ~30 samples (it doesn't — the floor's rigorous bound governs there); nor that adaptive-alpha self-tuning (facet 6) or cross-class herd-drift (facet 7) are built (reserved, gated on accumulated drift-outcome history / a shared commit-time-axis).
+- **The decider:** CURATE (the moral center) consuming the verdict — bounded by the conservative default; and the human ratifying any irreversible forget.
+
+## The reserved futures (named, not built)
+
+- **Adaptive-alpha self-tuning (facet 6, reserved):** the organ tunes its decay-aggressiveness from its own false-alarm history (a second-order loop) — gated on the life-record accumulating `(drift-call, was-it-real)` pairs; the verdict reserves the field.
+- **Cross-class herd-drift correlation (facet 7, v0.7+):** N classes drifting at one commit = ONE event (a refactor/edition-bump), one ratify-decision for the cluster (the scarce-ratifier saved N-fold). PRELIMINARY PRINCIPLE not yet named: a population-level change-point over a SHARED commit-time-axis. The do-now hook that reserves it: record the change-point's commit-sha (above), so the future correlator has the axis to align on.
+
+## Consequences
+
+- **antigen gains an honest decay-trigger that fires zero today and SAYS WHY** — the maturing-organism thesis embodied: the organ knows what it cannot yet know and announces when that changes.
+- **ADR-064 gets its second instance** — the crate's streaming `bool` erases `UnderPowered`, so antigen builds; the grammar-authority line holds at the drift verdict as it held at the serializer.
+- **The interior-crater blindness is fixed** — full-ADWIN supersedes `trajectory_direction()`'s 2-point read for long streams.
+- **CURATE's decay-loop closes with a safety floor** — the change-point feeds the reversible ladder; UnderPowered/Indeterminate ⇒ HOLD; never deletes (ADR-057).
+
+## Resolves
+
+- The missing automatic decay-trigger for the forgetting-curve / red-queen loops (the loud-class half; bit-3 is the silent half — they compose, ADR-060).
+- The interior-crater blindness of `trajectory_direction()` (the v2 deferred to the ADWIN builder).
+- The compose-vs-build question for the drift detector: BUILD (ADR-064) — the crate's API erases `UnderPowered` and holds forbidden state.
+- The real-vs-virtual drift ambiguity a single stream cannot split — resolved by the two-channel fusion with the conservatism-join.
+
