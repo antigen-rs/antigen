@@ -28,6 +28,11 @@ walkdir = "2"
 clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Pure-Rust git plumbing for the SZZ corpus-miner's full-object-graph walk
+# (`rev-list --all` over `.git`) — used ONLY by cargo-antigen (the CLI does the
+# git I/O; the antigen lib stays subprocess-free per ADR-002, the vcs_witness
+# pattern). The most-downloaded pure-Rust git crate; read-surface only.
+gix = "0.84"
 
 # Dev-only: property-based tests for parser invariants (W1).
 # proptest 1.x has been stable since 2017; we hold to that line.
