@@ -12547,3 +12547,212 @@ This ADR governs the SCHEMA of the life-record's story facet (the keystone STOCK
 
 **Resolves.** The "GATED on P0" status the briefing-for-pioneers §4 ledger assigns ADR-051 — the P0 gate is satisfied and committed on `0.6-dev` (`93d1c20`). ADR-051's implementation (narrow/persist/Fate/`ratify`) may proceed on a sound partition. The standing-invariant clause keeps the precondition from silently regressing once narrow/persist callers depend on it.
 
+
+---
+
+## [ADR-063] The Fingerprint → DSL Serializer: the Privileged Inverse Projection That Completes the Fingerprint Bijection — Round-Trip Exactness IS the Type's Co-Nativeness, Completeness Compiler-Guaranteed by the Closed Alphabet
+
+**Status**: **RATIFIED 2026-06-18** (v06 "the maturing organism" / extend → ratify wave; targets the v0.6 line, `0.6-dev`). Staged through the lifecycle — design (extend-dreamer's spine-reframe + extend-scout's prior-art recon), buildable-rigor (math-researcher's verified grammar-coverage + hazard map), first-principles (aristotle, Phases 1-8 on `extend/dsl-serializer-the-legibility-spine`), author-distinct witness (the ratify-wave observer). **Instantiates ADR-064** (build-the-core-reasoning-organs): the serializer is antigen's OWN grammar's inverse — a core organ, BUILT, not a crate-wrap. **Depends on the closed `Constraint` alphabet (ADR-047 Amendment 3, ratified)** — the closure is what makes the serializer's completeness a compiler guarantee.
+
+**Participants**: extend-dreamer (the spine-not-leaf reframe — the serializer is the legibility organ that makes every learned class co-native, the eight-consumer adjacency scan), math-researcher (the CODE-TRUE buildable design: crate boundary, full 16-variant grammar map, the three round-trip hazards, the proptest oracle), extend-scout (the prior-art verification — no crate emits the macro-DSL; the idiomatic `Display`-mirrors-parser pattern), aristotle (Phases 1-8: the irreducible-function deconstruction, the honest-scope correction below, the exhaustive-match-as-proof move, the three-voids forced-rejection), the ratify-wave observer (author-distinct witness).
+
+**Related**: **ADR-064** (build-the-core-organs — this is its first explicit instance + the principle the serializer's existence motivated); **ADR-058** (the co-native output contract — the serializer is THAT discipline applied to the `Fingerprint` type: one AST, N renderings, no translation; the DSL is the human-ratifiable rendering); **ADR-047 Amendment 3** (the closed-alphabet boundary — the serializer's exhaustive match is the same closed-alphabet-makes-it-sound family); **ADR-051** (the co-native ratification record — `narrow` re-parses a user-EDITED fingerprint; the serializer is what the human edits; see the honest-scope §); **ADR-051 Amendment 1** (the `is_discriminating`-recurses standing invariant — the serializer joins that family of closed-alphabet standing invariants); **ADR-010** (the fingerprint grammar — the serializer emits exactly that grammar); **ADR-002 / ADR-002 Amd 2** (compose-don't-compete — the serializer COMPOSES proc_macro2 for escaping, BUILDS the structural fold; the build/compose line is ADR-064); ADR-004 (implicit-to-explicit — the serializer makes the in-memory AST an explicit, editable artifact); the island `extend/dsl-serializer-the-legibility-spine`; the SEAM island `propose-suggest-scaffold` (task #12 `render_antigen_scaffold`).
+
+---
+
+## Finding
+
+`antigen-fingerprint` ships ONE direction of a claimed bijection. `Fingerprint::parse(&str) -> syn::Result<Self>` (`antigen-fingerprint/src/lib.rs:477`, `impl Parse` at `:528`) maps a subset of DSL strings → the `Constraint` AST. **The inverse is missing** — CODE-TRUE verified on `0.6-dev`: zero `impl Display`, zero `to_dsl`, zero `unparse` for `Fingerprint`/`Constraint`. The only AST→text path today is `format!("{fp:?}")` (Debug), which is **NOT macro-parseable** — paste it above your code and the `#[antigen(...)]` macro rejects it. So a learned/proposed/narrowed `Fingerprint` exists only as an in-memory AST, a serde-JSON blob, or a Debug dump — **none of which a human can read, edit, ratify, paste, or diff as the SAME text the macro compiles.** The `Fingerprint` type is machine-only.
+
+**The irreducible function (aristotle Phase 2).** Stripped of the "serializer" framing, the artifact is: **the privileged inverse projection that completes the Fingerprint bijection.** Three first principles ground it:
+
+- **It is `parse`'s exact inverse, not an independent format (T1).** There is ONE grammar (the parser defines it); the serializer is sound only *relative to that parser*. The correctness oracle is therefore `parse(serialize(fp)) == fp`, targeting the parser, not a golden string. (Forced-rejection: an independent output grammar would drift from the input grammar — the `ParallelStateTrackersDiverge` failure ADR-051 names, here at the GRAMMAR boundary.)
+- **Among the renderings, the DSL is privileged — it is the UNIQUE rendering that is ALSO the parser's input grammar (T3).** The `Constraint` AST has three projections: serde-JSON (`lib.rs:138`, ships), Debug (derive, ships), and the DSL (this ADR). serde-JSON is not the macro's grammar; Debug is not; **the DSL is.** It is the only rendering for which `parse ∘ render` can be the identity — so it is the only co-native one (ADR-058: the rendering both minds consume without translation).
+- **Round-trip EXACTNESS *is* the type's co-nativeness (T8).** The same DSL text a human reads/edits is the same text the parser consumes is the same text the macro compiles — **iff** the render is the parser's *exact* inverse. Exactness is not a quality bar; it is the line between a co-native organ and a deceptive one (forced-rejection: an *approximate* round-trip is WORSE than none — it looks faithful and silently changes the class the human thought they edited; the Debug-trap one level deeper).
+
+**The completeness is compiler-guaranteed, not test-hoped (T6, the load-bearing structural property).** The `Constraint` alphabet is CLOSED (ADR-047 Amd3, CODE-TRUE: the parser hard-errors unknown operators, `is_discriminating` matches the enum exhaustively, there is no plugin/custom parse arm). Therefore a serializer whose `match` over `Constraint` is **exhaustive (no wildcard `_` arm)** cannot silently drop a variant: adding a 17th operator to the grammar fails to compile the serializer until an arm is written. **The closed alphabet turns serializer-completeness from a coverage-hope into a compiler guarantee** — the structural win the open-alphabet world (the charter LLM-reasoner) cannot have. The proptest round-trip is the WITNESS of per-arm *correctness*; the exhaustive match is the guarantee of *coverage*. Both are load-bearing; neither subsumes the other (aristotle Phase 6 C2).
+
+---
+
+## The honest-scope correction (CODE-TRUE — lead with it, because the design substrate carried a false dependency)
+
+The design notes (dreamer consumer-5, scout, pathmaker-surface) state **"persist (ADR-051) is BLOCKED on the serializer."** **This is FALSE as stated, and the ADR corrects it** (CODE-TRUE discipline — an ADR that repeats it is a lie by the time a reader greps `Constraint`'s derives):
+
+- **serde-persistence already SHIPS.** `Constraint` derives `Serialize, Deserialize` (`lib.rs:138`). ADR-051 §Mechanics defines `PersistedSpecimen { draft: Fingerprint, … }` as **`IS Serialize/Deserialize`**, with the on-disk form "a bare `Fingerprint` that re-mints on load." **Persisting the bytes of a learned class works TODAY via serde-JSON, with no serializer.** The serializer does NOT unblock persist-as-storage.
+- **What the serializer unblocks is co-native RATIFIABILITY, not storage (aristotle Phase 6 C1).** ADR-058's conformance test: *can a human ratify/narrow the persisted form WITHOUT translation?* For serde-JSON: **no** — a human does not narrow a class by hand-editing JSON. ADR-051's `narrow` verb is literally "the human edits the serialized form, which re-parses": that edit surface MUST be the DSL (the co-native rendering), not JSON. So the precise dependency is:
+  - **serde-persist (storage):** UNBLOCKED — ships.
+  - **co-native `narrow` (the human-editable form) + the scaffold (`render_antigen_scaffold`) + error-display + diff-native review:** BLOCKED on this serializer.
+
+The serializer is essential to ADR-051's `narrow` UX and to ADR-058's co-native contract for the `Fingerprint` type — **not** to ADR-051's serde-storage seam. The ADR states this so no builder inherits the false "persist is blocked" claim.
+
+---
+
+## Decision
+
+**Build the `Fingerprint → DSL` serializer in `antigen-fingerprint` as the parser's exact inverse, governed by the round-trip type-law and the exhaustive-match coverage invariant; render the scaffold as a downstream consumer.**
+
+### The round-trip type-law (lead with it — the Aristotelian move)
+
+> **For every PARSER-PRODUCIBLE `Fingerprint` fp: `Fingerprint::parse(serialize(fp)) == fp`** (`Fingerprint: PartialEq`, `lib.rs:131`). And the serializer's `match` over `Constraint` is **EXHAUSTIVE — no wildcard arm** — so this round-trip's COMPLETENESS is a compiler guarantee, not a test-coverage hope.
+
+This is not "add a round-trip test." It is a **STANDING INVARIANT joining the closed-alphabet family** (ADR-047 Amd3, ADR-051 Amd1): the serializer's exhaustiveness is the same shape as `is_discriminating`'s recursion and GATE-G's closed-alphabet soundness — a property the type system FORCES, of which the proptest is the witness. **Any future edit that adds a wildcard `_` arm to the serializer's `Constraint` match re-opens the silent-variant-drop class (the digest-strip-list-completeness bug pattern) and must be rejected on that ground.**
+
+### Crate boundary, surface, and the four parts
+
+1. **Crate: `antigen-fingerprint`** (a new `serialize.rs` module, or `impl Display` for `Constraint` + `Fingerprint`), next to the parser it inverts — NOT in `antigen-macros`. Rationale: the round-trip test needs BOTH the parser and the serializer in scope; the inverse-pair (type + parser + serializer) must stay coherent in one crate; `antigen-macros` and `cargo-antigen` both depend on `antigen-fingerprint`, so a serializer here is reachable by every consumer. (math-researcher §1, verified.)
+
+2. **Surface — two layers:**
+   - `impl std::fmt::Display for Fingerprint` + `for Constraint` = the **round-trip core** (the parser's exact inverse; emits the comma-joined top-level constraint list, NO surrounding `#[antigen(...)]`). The round-trip oracle targets `Display` (the parser consumes the inner list via `parse_top_level`).
+   - `pub fn to_antigen_attr(fp: &Fingerprint) -> String` = the **cosmetic attribute wrapper** (wraps the `Display` output in `#[antigen(…)]`) the scaffold consumer prints.
+
+3. **Full grammar coverage — every `Constraint` variant emits EXACTLY the parser's surface form** (math-researcher §2, mapped arm-for-arm against `parser.rs`). The three bare forms that are easy to get wrong and MUST reuse the SHIPPED reverse maps (do not re-spell):
+   - `Item(kind)` → `item = <keyword>` (BARE keyword, NOT quoted) via `ItemKind::keyword()` (`lib.rs:282`).
+   - `Qualifier(k)` → `is_async`/`is_unsafe`/`is_const` (BARE keyword, NO parens) via `QualifierKind::keyword()` (`lib.rs:334`).
+   - `Variants(range)` → `variants = M..=N` (bare ints with `..=`).
+   The combinators recurse: `all_of([…])`, `any_of([…])`, `not(<c>)`; top-level constraints joined by `", "`.
+
+4. **The three round-trip hazards the contract MUST defend** (math-researcher §3, each a born-red test):
+   - **(a) String escaping (the load-bearing one).** String-payload leaves (`AttrPresent`, `DocContains`, `ImplOfTrait`, `Derives`, `SerdeArg`, `BodyCalls`, `BodyContainsMacro`, `NameMatches` glob, `HasMethod` name+sig) sit inside a `LitStr` the parser reads. The serializer MUST emit a **valid Rust string-literal body** — escape `\` → `\\`, `"` → `\"`, and control chars. **COMPOSE the escaper** (`proc_macro2::Literal::string(payload)` renders exact Rust-literal escaping; a present dep) — do not re-implement escaping (this is the ADR-064 compose-the-witness-layer move at the leaf). Test fixture: a `doc_contains` payload with `"`, `\`, and a newline.
+   - **(b) `HasMethod` — emit the RAW signature, not the normalized cache.** `MethodPattern` `PartialEq` compares name + **raw `signature`**, NOT `normalized_signature` (the `#[serde(skip)]` perf cache, `lib.rs:391/395`). Emitting normalized would make the round-tripped raw signature ≠ the original → round-trip FAILS by the type's own equality law (T5). Emit raw. Test fixture: a `HasMethod` with non-canonical spacing.
+   - **(c) Scoped domain — round-trip holds for PARSER-PRODUCIBLE fps, faithfully ERRORS on the rest.** The parser rejects empty globs, empty `all_of`/`any_of`, and misplaced `not` (bare top-level / under `any_of`). A well-formed (parser-produced) fp never contains these. A hand-built fp (from the anti-unify/propose path) COULD — and serialize→parse will correctly ERROR at parse (the serializer faithfully emitted a form the language rejects; the fp was never valid). **The round-trip is scoped: `parse(serialize(fp)) == fp` for every parser-producible fp** — the honest boundary, and the right one (antigen's propose/anti-unify path validates before shipping a fingerprint).
+
+### The scaffold (the SEAM consumer — trivial once the serializer round-trips)
+
+`render_antigen_scaffold` (task #12) is a **consumer**, not part of this build's correctness. It serves three currently-textless-or-generic surfaces with one helper: scan-suggestion (specialize the `<antigen>` placeholder), propose-success (emit the stub for the minted draft), and `cargo antigen new`'s stub (its first non-failure rung). Its correctness is INHERITED from the round-trip: because `parse(serialize(fp)) == fp`, the user's pasted attribute parses back to the SAME fingerprint the tool computed — paste-and-compile, not paste-and-rewrite. (The `new` file-writing half stays do-later; the print rung rides the same helper free.)
+
+---
+
+## Mechanics
+
+### The round-trip test (the executable correctness contract — born-red, three layers + proptest)
+
+- **§4.1 Per-variant matrix** — one fixture DSL string per `Constraint` variant → parse → serialize → parse → assert equal, plus the bare-form rows (`item = enum`, `is_async`, `variants = 2..=5`) that catch the quote/paren traps. The readable enumeration of the contract.
+- **§4.2 Nested/composite** — a deep fixture (`all_of([item = struct, derives("Hash"), not(derives("Eq")), any_of([body_calls("unwrap"), body_calls("expect")])])`) → round-trip → equal; exercises the recursive serializer and the only-legal `Not` position.
+- **§4.3 Escaping** — a `doc_contains` payload with `"`, `\`, newline → round-trip → equal; the test that defends the escaper (hazard a).
+- **§4.4 Proptest (the contract's witness, recommended)** — a strategy generating arbitrary **well-formed** Fingerprints (depth ≤ MAX_DEPTH, nodes ≤ MAX_NODES, `Not` only as an `all_of` child with a positive sibling, non-empty globs/lists) asserting `parse(serialize(fp)) == fp`. This searches for the breaking fp rather than trusting the enumeration — the audit that §4.1 is complete (aristotle C2: proptest = per-arm correctness; exhaustive match = coverage).
+
+### §Enforcement-Surface
+
+| Mechanism | Enforcement-Tier | Enforcement-Scope | Bypass risk + mitigation |
+|---|---|---|---|
+| The exhaustive `Constraint` match (no wildcard) | build-time (compile error on an unhandled variant) | the type system | Bypass = adding a `_ =>` arm. Mitigated structurally by the no-wildcard discipline + this ADR's standing-invariant clause; a wildcard arm is a finding against ADR-063 (re-opens silent-variant-drop). |
+| The round-trip proptest (`parse(serialize(fp)) == fp`) | test-time (`cargo test`) | client + CI | Bypass = deleting/weakening the proptest. Mitigated: deleting it deletes the proof the per-arm renders are correct; the per-variant matrix (§4.1) is the human-readable backstop. |
+| Emit RAW `HasMethod` signature (not normalized) | test-time (the non-canonical-spacing fixture reds an impl that emits normalized) | client + CI | Bypass = emitting `normalized_signature`. Mitigated by hazard-(b) fixture + the `PartialEq`-on-raw type law. |
+| COMPOSE proc_macro2 for escaping | review-time + test-time (the escaping fixture reds a hand-rolled escaper that misses a case) | client | Bypass = a hand-written escaper. Mitigated by hazard-(a) fixture + the ADR-064 compose-the-witness-layer guidance. |
+
+### §Standing-Pressure-Audit (the relevant subset)
+
+- **Q1 — proc-macro arg-signature:** N/A — the serializer is library code in `antigen-fingerprint` (it may *emit* an `#[antigen(…)]` string, but it defines no new macro). Exemption claimed.
+- **Q2 — sealed-enum inclusion:** no new enum; the serializer is a total fold over the EXISTING sealed `Constraint`. The exhaustiveness discipline IS the Q2 guard turned outward — a new `Constraint` variant forces a new serializer arm (the closed-alphabet invariant).
+- **Q6 — deprecation:** purely **additive** (new `Display`/`to_antigen_attr` surface; no existing caller to break; the `Fingerprint` type gains a third projection alongside serde + Debug).
+- **Q7 — named-surface check:** `Display` (std trait), `to_antigen_attr` (free fn) — confirm no existing `to_antigen_attr`/`to_dsl` collides (grep: none on `0.6-dev`).
+- **Q9 — adversarial pre-implementation test:** the proptest round-trip (§4.4) IS the Q9 — it tries to FIND the fp that breaks round-trip; if none is found across the well-formed domain, the contract holds by search, not by the author's enumeration. The hazard fixtures (a/b/c) are the named adversarial corners the proptest's generator must reach.
+
+---
+
+## Frontier statement (ADR-044)
+
+- **What this ADR proves:** that `Fingerprint` has a co-native DSL rendering that is the parser's exact inverse over the parser-producible domain (a decidable property — the proptest searches it, the exhaustive match guarantees coverage), making every learned/proposed/narrowed class readable, editable, pasteable, and diffable as the SAME text the macro compiles.
+- **What this ADR does NOT prove:** that the serialized form is *aesthetically good* (a faithful render can be ugly — pretty-printing is a reachable extension, below, not conformance); that round-trip holds for hand-built fps that violate parser well-formedness (it correctly ERRORS — the scoped domain); nor that the canonical/normalizing form (idempotent serialize) is built (a reachable extension, below).
+- **The re-inheritor:** the human (or fresh-context agent) who reads, edits, ratifies, or pastes a learned class — and the macro that re-compiles it. The serializer exists so the `Fingerprint` type is co-native (ADR-058) rather than machine-only.
+
+---
+
+## The reachable extensions (named, not built — the spine's gradient) and the three voids it borders
+
+The do-now build is the floor (round-trip core + exhaustive match + the three hazard tests + the scaffold consumer). The serializer is a SEAM organ sitting on three future boundaries (aristotle Phase 8 forced-rejection); the build must not foreclose any:
+
+- **Canonical/normalizing form (reachable)** — define operator-order + reuse ADR-047 Amd2's `normalized_top_level` flatten so `serialize(parse(serialize(fp))) == serialize(fp)` (idempotent). Makes fingerprints byte-diffable for identity. Buildable on top of the floor; not required for the round-trip law.
+- **Pretty + compact dual rendering (reachable)** — pretty (indented combinators) for review/error-messages, compact (one-line) for attribute embedding; the round-trip law holds for BOTH against the one parser (the ADR-058 "N renderings, one stock" shape applied to `Fingerprint`). **Do not foreclose:** keep the renderings sharing one inverse, never N independent serializers (they could drift — the T1 void).
+- **VOID 1 — the open-alphabet canary (v0.7+, gated on a first principle that does not yet exist).** The serializer's coherence is a PROXY for the alphabet's closure: it can only round-trip BECAUSE the alphabet is closed. When the charter LLM-reasoner (ADR-047 Amd3) invents a new `Constraint` word, the FIRST thing that breaks is the serializer's round-trip (a constraint the parser hard-errors on has no grammar to round-trip against). The exhaustive-match red-break FIRES at exactly that boundary — it is the proxy for this void's influence today. The void's SHAPE: a future SECOND serialization mode that is explicitly round-trip-UNSOUND and route-to-human-flagged. **Do not foreclose:** the no-wildcard match is precisely what makes the serializer the canary; a wildcard arm would silence it.
+- **VOID 2 — the provenance autobiography (reserved, gated on ADR-059).** Emit the fingerprint as source WITH inline comments derived from the life-record STOCK (`// matured 12×, recall 0.94, last drift none`): the serialized form becomes the immune autobiography in human-readable source (the ADR-058 story-rendering shape applied to `Fingerprint`). Comments are non-semantic (strip-on-parse) so round-trip holds. **Do not foreclose:** reserve the comment-injection hook; never make the story a `String` field on the Fingerprint (ADR-058 C1).
+- **VOID 3 — live-source authoring (reachable, the order-inversion).** Because parse and serialize are exact inverses, a fingerprint could LIVE as source-of-truth in a `.antigen` file, AST-derived per operation (R9). This inverts the AST-primacy to source-primacy — licensed precisely by the exact round-trip. **Do not foreclose:** state the bijection SYMMETRICALLY (parse and serialize are inverse halves), so live-source is a reachable future, not a re-architecture. v0.6 keeps AST-primary; the symmetry is preserved.
+
+---
+
+## Consequences
+
+- **The `Fingerprint` type becomes co-native (ADR-058 applied to it):** one AST, three projections (serde-JSON, Debug, DSL); the DSL is the human-ratifiable one; `narrow` (ADR-051) finally has something for the human to edit.
+- **The scaffold SEAM unblocks** (`render_antigen_scaffold`, task #12) — propose-success / scan-suggestion / `cargo antigen new` get paste-and-COMPILE stubs, correctness inherited from the round-trip.
+- **The serializer joins the closed-alphabet standing-invariant family** (ADR-047 Amd3, ADR-051 Amd1): its exhaustive match is a compiler-guaranteed completeness proof; a wildcard arm is a rejectable regression.
+- **The honest dependency is recorded CODE-TRUE:** serde-persist ships; co-native-narrow + scaffold are what the serializer unblocks — no builder inherits the false "persist is blocked" claim.
+- **Antigen dogfoods its own discipline on its own internals:** the round-trip is itself an antigen-defendable failure-class (`SerializerParserRoundtripDiverges`), born-red against a deliberately-broken arm.
+
+## Resolves
+
+- The missing inverse of `Fingerprint::parse` — the half-built bijection is completed.
+- The scaffold SEAM's true prerequisite (the pathmaker-surface's build-blocker on `propose-suggest-scaffold`): the serializer exists, the scaffold is now trivial.
+- The false "persist (ADR-051) is blocked on the serializer" dependency in the design substrate (corrected CODE-TRUE: serde-storage ships; co-native-ratifiability is the real dependency).
+- ADR-051's `narrow` UX gap (the human edits the DSL, the co-native rendering — not JSON).
+- ADR-058's co-native contract for the `Fingerprint` type (the DSL is the no-translation rendering both minds consume).
+
+
+---
+
+## [ADR-064] Compose the Witness/IO Layer, BUILD the Core Reasoning Organs: the Compose/Build Line Is the Grammar-Authority (Alphabet) Boundary
+
+**Status**: **RATIFIED 2026-06-18** (v06 "the maturing organism" / ratify wave; targets the v0.6 line). **SUPERSEDES-AND-EXTENDS ADR-002** (compose-don't-compete): ADR-002's "compose existing tools" is RECOGNIZED as scoped to the WITNESS/IO layer; this ADR names the complementary half — antigen BUILDS its opinionated core reasoning organs — and states the line between them. Append-only; ADR-002's text stands as the witness-layer rule.
+
+**Participants**: aristotle (the first-principles deconstruction that surfaced the principle — Phase 5 of the #12 ratification, where "prefer compose (ADR-002)" was revealed as wrong-layer for a core organ), the captain (the standing instinct that #12 deserves a standalone principle ADR because the serializer and the drift-detector are both instances of one un-named rule), math-researcher + extend-scout (the CODE-TRUE evidence: no crate emits antigen's macro-DSL; the one Rust ADWIN crate has an anti-fit streaming API), the ratify-wave observer (author-distinct witness).
+
+**Related**: **ADR-002 / ADR-002 Amendment 2** (compose-don't-compete + "compose where external expertise serves; compete where antigen cohesion serves" — this ADR makes that amendment's line PRECISE: the line is grammar-authority); **ADR-063** (the Fingerprint→DSL serializer — the first explicit instance: antigen's own grammar's inverse, BUILT); the ADWIN-full drift-detector design (`extend/adwin-full-the-biggest-detector` — the second instance: antigen's own pure-batch verdict, BUILT, not the anti-fit streaming crate); **ADR-047 Amendment 3** (the closed-alphabet boundary — the build-side organs operate over antigen's OWN closed alphabet; that closure is what makes them sound); ADR-003 (the biological metaphor — the immune system's effector/sensor organs ARE the body's, not borrowed).
+
+---
+
+## Finding
+
+ADR-002 ("compose, don't compete") reads, on its face, as **"compose everything"** — antigen delegates to clippy, kani, proptest, cargo-mutants, RustSec, git. ADR-002 Amendment 2 already softened this ("compete where antigen cohesion serves") but did NOT name the LINE. The #12 serializer ratification surfaced the line at first principles (aristotle Phase 5): the cheap reflex was "check whether a crate does this; prefer compose." The scout's CODE-TRUE finding inverted it — no crate emits antigen's macro-DSL (serde is the JSON/RON wire layer, prettyplease is the Rust-source layer; both wrong layer) — and the deeper reason is not "no crate happens to exist" but **the serializer IS antigen's own grammar's inverse: it is a CORE REASONING ORGAN, and core organs are BUILT.** The same shape recurs at the drift-detector: the one Rust ADWIN crate exposes an anti-fit stateful `update() -> bool` streaming API that re-imports the silent-`UnderPowered` failure antigen exists to CATCH; antigen builds its own pure-batch `detect(&[Affinity]) -> DriftVerdict` instead. Two organs, one un-named rule.
+
+**The line is grammar-authority (the alphabet boundary).** Antigen has its OWN closed alphabets — the `Constraint` DSL grammar (ADR-010/047 Amd3), the affinity/drift verdict vocabulary (ADR-052/the ADWIN design), the tolerance/fate taxonomies. Where antigen's OWN grammar is authoritative, an external tool cannot serve without forcing a translation layer (the co-native violation, CLAUDE.md): serde would emit JSON the macro can't read; the ADWIN crate would emit a `bool` that erases the `UnderPowered` distinction. Where an EXTERNAL tool's grammar is authoritative — the proof of a witness (kani/proptest), the lint of a pattern (clippy), the history of a repo (git), the escaping of a Rust string literal (proc_macro2) — antigen composes, because re-implementing would fragment the ecosystem and duplicate mature engineering (ADR-002's original rationale, intact).
+
+---
+
+## Decision
+
+**Antigen COMPOSES the witness/IO layer and BUILDS its core reasoning organs. The line is grammar-authority: COMPOSE where an external tool's grammar is authoritative for the task; BUILD where ANTIGEN's own (closed-alphabet) grammar is authoritative.**
+
+The discriminator (aristotle's T3, generalized): **if the artifact IS a projection of, or a verdict in, antigen's own grammar/vocabulary, BUILD it. If the artifact is a proof, a lint, a history-read, or a wire/escaping format an external tool already owns, COMPOSE it.**
+
+- **BUILD (core reasoning organs — antigen's grammar is authoritative):**
+  - the `Constraint` DSL serializer (ADR-063) — antigen's grammar's inverse;
+  - the drift-detector's pure-batch verdict (`detect(&[Affinity]) -> DriftVerdict`, the ADWIN-full design) — antigen's verdict vocabulary, which must carry `UnderPowered` honestly;
+  - GATE-G, `is_discriminating`, the affinity-maturation engine, the discriminator classifier, CURATE — every organ that REASONS in antigen's own closed alphabet.
+- **COMPOSE (witness/IO layer — an external tool's grammar is authoritative):**
+  - witnesses: `#[test]`, proptest, kani/prusti/verus/creusot, clippy/dylint (ADR-002, intact);
+  - IO/format: git (history), proc_macro2 (Rust-literal escaping — the ADR-063 hazard-(a) move), serde (the JSON wire form for storage), RustSec/cargo-audit (advisory data).
+
+**Why the line is grammar-authority and not "build the hard parts" (the first-principles correction).** The naive line is effort-based ("build what's hard, compose what's easy"). That is wrong: the serializer is EASY (a structural fold) yet must be built; kani proofs are HARD yet must be composed. The line is not effort — it is **whose grammar is authoritative**, because a composed tool whose grammar is NOT authoritative forces a translation layer, and a translation layer at a core reasoning surface is exactly the co-native violation antigen exists to avoid. (The ADWIN crate's `bool` is the proof: composing it is *easier* than building the batch detector, but it translates antigen's `UnderPowered`-bearing verdict into a `bool` that erases the distinction — composing the easy thing imports the silent failure.)
+
+---
+
+## Mechanics
+
+This ADR governs a DESIGN POSTURE, not a type. Enforcement is review-time, at the design/ratification layer:
+
+- **The compose-or-build question is asked at every new-organ ratification:** is this organ's grammar antigen's own (closed-alphabet reasoning) or an external tool's (witness/IO)? The answer decides compose-vs-build. A proposal to COMPOSE a core reasoning organ (e.g. "just use crate X for the drift verdict") must show the external grammar does NOT force a translation layer that erases an antigen distinction — and if it does (the ADWIN `bool`), the proposal is rejected in favor of build.
+- **The composed witness/IO dependencies stay thin and at the boundary:** proc_macro2 for escaping (a leaf), serde for the JSON wire form (storage, not reasoning), git for history (IO). None reasons in antigen's alphabet.
+
+### §Standing-Pressure-Audit (the relevant subset)
+
+- **Q6 — deprecation:** SUPERSEDE-AND-EXTENDS ADR-002 (append-only; ADR-002's compose-the-witness-layer text stands as the half this names the complement of). No caller breaks; the posture is made precise.
+- **Q9 — adversarial pre-ratification test:** the residual probe — is there an organ that is BOTH core-reasoning AND already perfectly served by an external grammar with no translation? (Candidate: the parser composes `syn`'s tokenizer — but `syn` owns the Rust-token grammar, which IS authoritative for tokenizing; antigen builds the `Constraint`-grammar layer ON TOP. So the parser is itself an instance of the line: compose `syn` for tokens, build the `Constraint` grammar. No counterexample found.)
+
+---
+
+## Frontier statement (ADR-044)
+
+- **What this ADR proves:** that antigen's compose-vs-build decisions follow a single decidable line (grammar-authority), of which ADR-063 (serializer) and the ADWIN-full detector are the two motivating instances — so the posture is principled, not case-by-case.
+- **What this ADR does NOT prove:** that every future organ's grammar-authority is OBVIOUS (some will be genuinely ambiguous — the ADR provides the question, not an oracle); nor that composing is ever wrong when the grammar IS external (ADR-002's rationale stands — re-implementing a witness tool is still wasteful and fragmenting).
+- **The decider:** the ratifier of each new organ, who asks the grammar-authority question before committing to compose or build.
+
+## Consequences
+
+- **ADR-002 is completed, not contradicted:** its compose-the-witness-layer rule is recognized as one half of a line whose other half (build-the-core-organs) was always implicit in "compete where cohesion serves" (Amd 2). The line is now precise.
+- **The serializer (ADR-063) and the drift-detector are re-grounded as principled builds,** not ad-hoc exceptions to compose-first.
+- **A future "just use crate X" for a core organ has a named test to pass:** does X's grammar force a translation that erases an antigen distinction? If yes, build.
+
+## Resolves
+
+- The un-named line ADR-002 Amendment 2 gestured at ("compete where antigen cohesion serves") — the line is grammar-authority.
+- The recurring compose-first reflex at core-organ ratifications (surfaced at #12, would recur at every reasoning organ) — answered by the grammar-authority discriminator.
+
