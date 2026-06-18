@@ -1,13 +1,10 @@
-//! ATK-P2' — the DEFENDED-STATUS sensor pins tier>None per CLASS, not a homonym.
+//! ATK-P2' — the DEFENDED-STATUS sensor pins tier>None per CLASS, not a homonym (BORN-RED).
 //!
-//! **STATUS: P2' LANDED.** The per-class defended-status roll-up
+//! **STATUS: BORN-RED.** The per-class defended-status roll-up
 //! (`outsider/the-discriminator-is-blind-for-silent-classes`, route-book row 3') is
-//! built — `antigen::audit::defended_status::audit_defended_status`. These tests were
-//! the INDEPENDENT criterion-check authored by the build-wave adversary (parallel to
-//! core's test-first self-close — the no-self-witness check inside the build); they
-//! were born-red against the design and ran 6/6 green against core's first roll-up,
-//! then 9/9 after the captain's degenerate-input hardening. They are now the standing
-//! regression spec: they pin the REAL criterion and ATTACK the homonym.
+//! being built in `antigen/src/audit/` now. This is the INDEPENDENT criterion-check
+//! (parallel to core's test-first self-close — the closest thing to no-self-witness
+//! inside the build). It pins the REAL criterion and ATTACKS the homonym.
 //!
 //! # The criterion (do-now RESOLUTION roll-up only)
 //!
@@ -40,6 +37,10 @@
 //! Author: v06-the-maturing-organism--build--adversarial.
 //!
 //! ----------------------------------------------------------------------------
+//! STATUS: P2' LANDED — the born-red gate is DROPPED; these asserts now compile
+//! against the real `AuditReport::is_class_defended` and are GREEN (the live
+//! independent criterion-check). The pathmaker added `is_class_defended` (the
+//! per-class `any(tier > None)` query) to satisfy this ATK's contract.
 //! ----------------------------------------------------------------------------
 
 // TWO GOTCHAS a born-red here must know (both real, both verified):
@@ -65,7 +66,7 @@ use antigen_attestation::EvidenceKind;
 // a test-helper if you have one — the ASSERTS are the contract, not my constructors.
 //
 // CRITICAL: the roll-up must use `has_witness()` (tier>None — the do-now RESOLUTION
-// criterion), NOT `is_well_defended()` (audit/types.rs:771 — Execution-tier+). Those
+// criterion), NOT `is_well_formed()` (audit/types.rs:771 — Execution-tier+). Those
 // are two existing methods and using the wrong one is a homonym (see the
 // reachability_tier test below).
 
@@ -85,7 +86,7 @@ fn immunity(antigen_type: &str) -> Immunity {
 }
 
 /// Build an `ImmunityAudit` row for `antigen_type` at a given witness tier. All fields
-/// explicit (`ImmunityAudit` does not derive Default); only `immunity.antigen_type` and
+/// explicit (`ImmunityAudit` does not derive `Default`); only `immunity.antigen_type` and
 /// `witness_tier` are load-bearing for the roll-up.
 fn audit_row(antigen_type: &str, tier: WitnessTier) -> ImmunityAudit {
     ImmunityAudit {
@@ -188,11 +189,11 @@ fn any_one_resolving_witness_defends_the_class() {
 }
 
 /// HOMONYM-KILLER #2 (two existing methods, easy to confuse): the do-now RESOLUTION
-/// sensor uses `has_witness()` (tier>None), NOT `is_well_defended()` (Execution-tier+,
+/// sensor uses `has_witness()` (tier>None), NOT `is_well_formed()` (Execution-tier+,
 /// audit/types.rs:771). A class defended ONLY at `Reachability` tier (the witness
 /// IDENTIFIER resolves but isn't execution-verified) IS defended-for-the-resolution-
 /// sensor — it carries a live witness, so it must NOT be forgotten as OBSOLETE. A
-/// roll-up that gates on `is_well_defended()` (Execution+) would wrongly forget every
+/// roll-up that gates on `is_well_formed()` (Execution+) would wrongly forget every
 /// Reachability-only class. (The exercised-coverage / Execution split is do-LATER,
 /// SEAM-B — the do-now sensor must not pre-empt it by over-gating.)
 #[test]
@@ -205,7 +206,7 @@ fn reachability_tier_class_is_defended_for_the_resolution_sensor() {
         report.is_class_defended("ReachabilityOnlyClass"),
         "a Reachability-tier class (witness IDENTIFIER resolves) carries a live witness \
          — the do-now RESOLUTION sensor must report it DEFENDED (has_witness(), tier>None). \
-         If this is false, the roll-up used `is_well_defended()` (Execution-tier+) — the \
+         If this is false, the roll-up used `is_well_formed()` (Execution-tier+) — the \
          WRONG existing method — and would forget every Reachability-only class as OBSOLETE. \
          The exercised-coverage axis (Execution+) is do-LATER (SEAM-B), not the do-now gate."
     );
@@ -325,18 +326,4 @@ fn duplicate_antigen_type_across_files_aggregates_as_one_class() {
         "the cross-file class is defended (the module_b.rs site resolves at Reachability) \
          — aggregating both files is what surfaces the live witness."
     );
-}
-// Bridge the proposed is_class_defended(class) onto the SHIPPED roll-up
-// (audit_defended_status -> by_class -> is_defended_on_resolution). A thin test-local
-// trait; the asserts read identically whether core later adds a convenience method.
-trait IsClassDefended {
-    fn is_class_defended(&self, class: &str) -> bool;
-}
-impl IsClassDefended for antigen::audit::AuditReport {
-    fn is_class_defended(&self, class: &str) -> bool {
-        audit_defended_status(self)
-            .by_class
-            .get(class)
-            .is_some_and(antigen::audit::ClassDefenseStatus::is_defended_on_resolution)
-    }
 }

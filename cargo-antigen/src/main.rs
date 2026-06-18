@@ -3405,6 +3405,34 @@ fn print_lineage_fidelity_advisory(report: &audit::LineageFidelityAuditReport) {
     println!();
 }
 
+/// Render the P2' defended-status roll-up: per failure-class, whether it carries
+/// any live (`tier > None`) witness — the signal the obsolete/well-defended
+/// discriminator reads (`outsider/the-discriminator-is-blind-for-silent-classes`).
+/// Loud only for the UNDEFENDED classes (no resolving witness → OBSOLETE-eligible);
+/// silent when every class carries a live witness (nothing to forget). This is the
+/// RESOLUTION axis (the witness resolves), not the exercised-coverage axis — the
+/// tier is shown so it can't be read as "proven to catch."
+fn print_defended_status(report: &audit::DefendedStatusReport) {
+    let undefended = report.undefended_classes();
+    if undefended.is_empty() {
+        return;
+    }
+    println!(
+        "⚠ {} failure-class(es) carry NO live (resolving, tier>None) witness — \
+         OBSOLETE-eligible (the discriminator may forget them; a silent class with \
+         no resolving witness is indistinguishable from a dead one):",
+        undefended.len()
+    );
+    println!();
+    for class in undefended {
+        println!(
+            "  {}  [{} site(s), 0 resolving]",
+            class.antigen_type, class.site_count
+        );
+    }
+    println!();
+}
+
 /// Render the coverage / reachability frontier (the ignorance frontier): sites
 /// the scanner should have evaluated but did not, grouped by cause. Silent when
 /// the frontier is empty — which under a flat audit means "no member concept,"
@@ -4694,6 +4722,12 @@ fn run_fingerprint(args: FingerprintArgs) -> ExitCode {
     }
 }
 
+// The audit command is a long sequential dispatch: bundle the fan-out, envelope
+// it, then render every detector's report in order. Adding the P2' defended-status
+// detector (one destructure field + one render call) tipped it past the
+// too-many-lines floor; the body is inherently a flat per-detector sequence, not
+// hidden complexity, so the lint is allowed here rather than split artificially.
+#[allow(clippy::too_many_lines)]
 fn run_audit(args: AuditArgs) -> ExitCode {
     if !args.root.exists() {
         eprintln!("error: path does not exist: {}", args.root.display());
@@ -4754,6 +4788,7 @@ fn run_audit(args: AuditArgs) -> ExitCode {
         lineage_fidelity: lineage_fidelity_report,
         coverage: coverage_report,
         prescriptive: prescriptive_report,
+        defended_status: defended_status_report,
     } = audit::orchestrate::run(&scan_report, &args.root);
 
     // Live projection: the audit recomputed all of the above from the current
@@ -4772,6 +4807,7 @@ fn run_audit(args: AuditArgs) -> ExitCode {
             lineage_fidelity_audit: &lineage_fidelity_report,
             coverage_audit: &coverage_report,
             prescriptive_audit: &prescriptive_report,
+            defended_status: &defended_status_report,
         },
     );
 
@@ -4792,6 +4828,7 @@ fn run_audit(args: AuditArgs) -> ExitCode {
             print_category_audit_human(&category_report);
             print_coverage_frontier(&coverage_report);
             print_prescriptive_board(&prescriptive_report);
+            print_defended_status(&defended_status_report);
         },
         OutputFormat::Json => match serde_json::to_string_pretty(&enveloped) {
             Ok(s) => println!("{s}"),
@@ -5795,6 +5832,12 @@ struct JsonAuditReport<'a> {
     /// machine-readable form of the audit board ("code IS the board") — a live
     /// projection per ADR-034, recomputed every run, never stored.
     prescriptive_audit: &'a audit::PrescriptiveAuditReport,
+    /// P2' defended-status sensor: per-class witness-resolution roll-up (does each
+    /// failure-class carry ANY live `tier > None` witness?). The signal the
+    /// obsolete/well-defended discriminator reads — delivered here so the computed
+    /// per-class verdict reaches consumers (the delivery-arm discipline), a
+    /// projection of `audit` recomputed every run, never stored.
+    defended_status: &'a audit::DefendedStatusReport,
 }
 
 fn print_audit_human(scan_report: &scan::ScanReport, audit_report: &audit::AuditReport) {

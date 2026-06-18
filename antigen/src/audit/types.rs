@@ -953,6 +953,31 @@ impl AuditReport {
         self.audits.iter().filter(|a| !a.is_well_formed()).collect()
     }
 
+    /// Is the failure-class `antigen_type` **defended on the resolution axis** — does
+    /// ANY of its immunity sites carry a witness whose tier is `> None`?
+    ///
+    /// This is the P2' defended-status query the obsolete/well-defended discriminator
+    /// reads (`outsider/the-discriminator-is-blind-for-silent-classes`): a silent class
+    /// with a resolving witness is WELL-DEFENDED (do NOT forget); one with only
+    /// `tier == None` sites is OBSOLETE-eligible. The per-class convenience form of
+    /// [`audit_defended_status`](super::audit_defended_status) — `any(tier > None)` over
+    /// the class's sites, built on [`ImmunityAudit::has_witness`].
+    ///
+    /// It is the **resolution** axis (the witness identifier resolves), NOT the
+    /// exercised-coverage axis: a `Reachability`-tier witness counts (it resolves), so
+    /// this uses [`ImmunityAudit::has_witness`] (`tier > None`), **not**
+    /// [`ImmunityAudit::is_well_formed`] (`Execution`+). The WOULD-CATCH /
+    /// exercised-coverage discrimination is do-later (SEAM-B); over-gating here on
+    /// `Execution` would wrongly forget every `Reachability`-only class as OBSOLETE.
+    /// A class with no audit rows is cleanly `false` (no witness ⇒ not defended).
+    #[must_use]
+    pub fn is_class_defended(&self, antigen_type: &str) -> bool {
+        self.audits
+            .iter()
+            .filter(|a| a.immunity.antigen_type == antigen_type)
+            .any(ImmunityAudit::has_witness)
+    }
+
     /// Per-presents-site verdicts that the audit graded `undefended` (ADR-029).
     /// These are the presents-sites with no registered code-tier witness and no
     /// passing site-attached evidence — the sites a CI gate should fail on.
