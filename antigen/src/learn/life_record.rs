@@ -194,6 +194,16 @@ impl LifeRecord {
     /// **Derived** current state: is this class retired? A fold over the stream
     /// (ADR-059) — antigen never *stores* the claim "class K is retired" (that would
     /// drift); it stores the [`LifeEvent::Retired`] *event* and derives the state.
+    ///
+    /// **Merge-order-invariant** (the committed-in-tree multi-writer property): this
+    /// is an *existence* fold (`any(Retired)`), which is commutative — two branches
+    /// appending to the same class, git-merged in EITHER interleaving, derive the
+    /// same retired-state. There is no un-retire/`ReArmed` event, so retirement is
+    /// monotone (once any branch retires, the merged stream is retired). An
+    /// order-SENSITIVE derivation (a future `ReArmed` toggling against `Retired`)
+    /// would NOT be merge-safe without a per-event total-order key — see the
+    /// multi-writer seam on [`trajectory_direction`](Self::trajectory_direction),
+    /// the one current order-sensitive read.
     #[must_use]
     pub fn is_retired(&self) -> bool {
         self.events.iter().any(|e| matches!(e, LifeEvent::Retired))
@@ -269,6 +279,25 @@ impl LifeRecord {
     /// the first dominates the last, `Stable` otherwise (equal, or a mixed
     /// trade-off neither dominates — honestly *not* a clean improvement, so not
     /// claimable as `Improving`).
+    ///
+    /// # ⚠ MULTI-WRITER SEAM (the committed-in-tree merge-order gap)
+    ///
+    /// Unlike [`is_retired`](Self::is_retired) (a commutative existence fold), this is
+    /// an **order-sensitive** read: it folds first-vs-last over the `Scored` events in
+    /// *append order*. When the life-record is committed-in-tree and shared (CI /
+    /// multi-dev — which ADR-059's committed-in-tree makes day-one), two branches each
+    /// appending `Scored` points are git-merged in SOME interleaving, and a
+    /// first-vs-last read can depend on that interleaving — non-deterministic derived
+    /// direction. (It also misses interior craters, 0.9→0.2→0.9 reading `Stable` —
+    /// the same limitation noted for the ADWIN facet.) The robust fix, when the
+    /// multi-writer regime arrives, is a per-`Scored`-event **total-order key that
+    /// survives merge** — NOT file-append position — folded by a commutative
+    /// reduction. The cheapest git-native key (uses the `.git` substrate ADR-059
+    /// already leans on) is the event's commit-hash + commit-timestamp. DEFERRED for
+    /// turn-zero single-writer; this is the seam to close before the score-trajectory
+    /// reads are trusted under concurrent merge. (Surfaced by the build-adversarial's
+    /// merge-order design-stress; the order-key shape is a design-Q routed to
+    /// aristotle.)
     #[must_use]
     pub fn trajectory_direction(&self) -> Option<Trend> {
         let traj = self.score_trajectory();
