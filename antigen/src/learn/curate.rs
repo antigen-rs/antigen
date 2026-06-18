@@ -139,6 +139,14 @@ pub const fn curate(verdict: ClassVerdict) -> CurationAction {
 /// Returns the [`LifeEvent`] appended (so the caller can see *what* was recorded), or
 /// `None` for the non-recording actions.
 pub fn apply(action: CurationAction, record: &mut LifeRecord) -> Option<LifeEvent> {
+    // Idempotency on the one irreversible action: a class is retired exactly once. A
+    // second `Forget` on an already-retired record is a no-op (no duplicate tombstone),
+    // so a cold-reader counting `Retired` events in the autobiography can never read two
+    // deaths for one class. Same contract as the non-recording actions: no event, no
+    // lifecycle change. (Found by the forget-path adversarial: ATK-CURATE-3.)
+    if matches!(action, CurationAction::Forget) && record.is_retired() {
+        return None;
+    }
     let event = match action {
         CurationAction::Forget => Some(LifeEvent::Retired),
         CurationAction::ReArm => Some(LifeEvent::Drifted),
