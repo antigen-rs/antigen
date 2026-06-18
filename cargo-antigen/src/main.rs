@@ -44,6 +44,8 @@ use std::process::ExitCode;
 use antigen::{audit, presents, scan};
 use clap::{Parser, Subcommand};
 
+mod mine;
+
 /// Cargo subcommand for antigen.
 #[derive(Debug, Parser)]
 #[command(name = "cargo-antigen", bin_name = "cargo", version)]
@@ -155,6 +157,17 @@ enum AntigenSubcommand {
     /// prints the `structural_fingerprint` of every immune/presents site,
     /// optionally narrowed by `--antigen` and/or `--item-path`.
     Fingerprint(FingerprintArgs),
+    /// Mine a repository's `.git` for the SZZ `(defect, fix)` corpus (the
+    /// learning core's INPUT corpus — recomputable from git history).
+    ///
+    /// Walks the **full object graph** (`rev-list --all`, NOT a tip revwalk),
+    /// classifies fix-commits (B-SZZ keyword + AG-SZZ cosmetic filter, via
+    /// `antigen::learn::szz::is_fix_commit`), and links each to its first parent.
+    /// The git read lives here in the CLI (ADR-002 / the `vcs_witness` pattern:
+    /// the lib classifies already-read substrate; the CLI reads git). Prints the
+    /// measured corpus size — the self-verifying cure for MATURE's
+    /// corpus-starvation (a near-zero count signals a tip-revwalk regression).
+    Mine(MineArgs),
 }
 
 // A CLI args struct: each bool is an independent `--flag` (strict / include_deps
@@ -334,6 +347,24 @@ struct FingerprintArgs {
     /// Output format: human or json.
     #[arg(long, default_value = "human")]
     format: OutputFormat,
+}
+
+#[derive(Debug, Parser)]
+struct MineArgs {
+    /// Repository root to mine (default: current directory). Must contain a
+    /// `.git` (the full object graph is walked, `rev-list --all`).
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+    /// Output format: human or json.
+    #[arg(long, default_value = "human")]
+    format: OutputFormat,
+    /// Starvation threshold: exit non-zero (code 1) if the mined corpus has
+    /// FEWER than this many `(defect, fix)` pairs. The honest tripwire — a
+    /// near-zero count on a real repo signals a tip-revwalk regression (the
+    /// corpus-starvation bug `Corpus::is_starved` guards). Default 0 = never
+    /// fail on size (report-only).
+    #[arg(long, default_value = "0")]
+    min_pairs: usize,
 }
 
 // ============================================================================
@@ -2256,6 +2287,7 @@ fn main() -> ExitCode {
         AntigenSubcommand::Vcs(cli) => run_vcs(cli),
         AntigenSubcommand::MucosalMap(args) => run_mucosal_map(args),
         AntigenSubcommand::Fingerprint(args) => run_fingerprint(args),
+        AntigenSubcommand::Mine(args) => run_mine(args),
     }
 }
 
@@ -4579,6 +4611,60 @@ fn run_vaccinate(antigen: String, pattern: String) -> ExitCode {
         antigen, pattern
     );
     ExitCode::FAILURE
+}
+
+// ============================================================================
+// cargo antigen mine (the SZZ corpus-miner's git WALK — see `mine.rs`)
+// ============================================================================
+
+fn run_mine(args: MineArgs) -> ExitCode {
+    if !args.root.join(".git").exists() {
+        eprintln!(
+            "error: no .git found at {} (mine walks the full object graph of a git repo)",
+            args.root.display()
+        );
+        return ExitCode::from(2);
+    }
+
+    let corpus = match mine::mine_repo(&args.root) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return ExitCode::from(2);
+        },
+    };
+
+    let size = corpus.size();
+    match args.format {
+        OutputFormat::Json => {
+            // The full corpus, machine-readable (the learning core's INPUT).
+            match serde_json::to_string_pretty(&corpus) {
+                Ok(s) => println!("{s}"),
+                Err(e) => {
+                    eprintln!("error: serializing corpus: {e}");
+                    return ExitCode::from(2);
+                },
+            }
+        },
+        OutputFormat::Human => {
+            println!("SZZ corpus mined from {}", args.root.display());
+            println!("  {size} (defect, fix) pairs across the full object graph");
+            if corpus.is_starved(args.min_pairs.max(1)) {
+                println!(
+                    "  note: corpus is small — on a repo with real fix-history this can \
+                     signal a tip-revwalk (mine the full graph: rev-list --all)"
+                );
+            }
+        },
+    }
+
+    // The honest tripwire: fail if the corpus is starved below the operator's
+    // threshold (default 0 = report-only). A starved corpus means MATURE has no
+    // input — surfacing it as a non-zero exit lets CI catch a traversal regression.
+    if corpus.is_starved(args.min_pairs) {
+        return ExitCode::from(1);
+    }
+    ExitCode::SUCCESS
 }
 
 /// One scanned site's fingerprint, for `cargo antigen fingerprint` output.
