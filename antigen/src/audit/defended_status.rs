@@ -16,9 +16,11 @@
 //! This sensor supplies the **second axis** that breaks the tie: **witness
 //! liveness**. A well-defended class carries a *live, resolving witness at its
 //! sites*; an obsolete one does not. The audit already resolves witnesses
-//! per-immunity ([`ImmunityAudit::witness_tier`] / [`ImmunityAudit::has_witness`]);
-//! what was missing is the **per-class roll-up** — audit emits one
-//! [`ImmunityAudit`] per immunity *site*, never a verdict per failure-*class*.
+//! per-immunity (`witness_tier` / `has_witness` on
+//! [`ImmunityAudit`](crate::audit::ImmunityAudit)); what was missing is the
+//! **per-class roll-up** — audit emits one
+//! [`ImmunityAudit`](crate::audit::ImmunityAudit) per immunity *site*, never a
+//! verdict per failure-*class*.
 //! Without the roll-up, WELL-DEFENDED collapses into OBSOLETE (a silent class with
 //! a resolving witness looks identical to a dead one to the discriminator).
 //!
