@@ -27,6 +27,7 @@
 
 pub mod affinity;
 pub mod life_record;
+pub mod maturation;
 pub mod propose;
 pub mod self_tolerance;
 pub mod szz;
