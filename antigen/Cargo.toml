@@ -29,6 +29,12 @@ path = "src/lib.rs"
 # propagation, the macro's env-var check fires even when the adopter enables
 # the feature on their antigen dependency.
 antigen-poxparty = ["antigen-macros/antigen-poxparty"]
+# Born-red gate for the ADWIN + fusion layer ATK. The test file
+# `atk_adwin_fusion_conservatism_join.rs` gates on `#![cfg(adwin_built)]` so
+# it does not break the suite while `learn/adwin.rs` is unbuilt. The ADWIN
+# pathmaker drops the gate (and this feature entry becomes vestigial) once the
+# organ lands and all 13 tests compile and pass green.
+adwin_built = []
 
 [lints]
 workspace = true

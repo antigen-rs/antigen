@@ -340,39 +340,50 @@ fn propose_render_surfaces_only_gate_minted_suggestions() {
     );
     drop(tmp2);
 
-    // CODE-TRUE — every `render_fingerprint(` call in the propose region takes a
+    // CODE-TRUE — every fingerprint-RENDERING call in the propose region takes a
     // `token.fingerprint()` (a gate-minted `PromotedDraft`), NEVER a bare `Fingerprint`
     // from `anti_unify`/the draft. If a future edit renders a fingerprint outside an
-    // `Ok(token)` arm, this trips. The probe: count render_fingerprint( call-sites and
-    // assert each is immediately fed `token.fingerprint()`.
+    // `Ok(token)` arm, this trips. The probe: count the render-fn call-sites and assert
+    // each is immediately fed `token.fingerprint()`.
+    //
+    // Two render-fns sit on this boundary and BOTH must inherit the token-only
+    // provenance: `render_fingerprint` (the machine-facing Debug form, JSON surface) and
+    // `render_antigen_scaffold` (the paste-and-COMPILE `#[antigen(...)]` DSL, human
+    // surface — ADR-063). The scaffold is a NEW render surface; without guarding it here
+    // it would be an unguarded ADR-048 laundering path. The invariant is unchanged
+    // (every rendered fingerprint is gate-minted); the set of render-fns it covers grew.
     let region = propose_region();
     let mut call_sites = 0usize;
-    for (idx, _) in region.match_indices("render_fingerprint(") {
-        // Skip the DEFINITION (`fn render_fingerprint(`) — only count CALL sites.
-        let preceding = &region[..idx];
-        if preceding.ends_with("fn ") {
-            continue;
+    for render_fn in ["render_fingerprint(", "render_antigen_scaffold("] {
+        for (idx, _) in region.match_indices(render_fn) {
+            // Skip the DEFINITION (`fn render_*(`) — only count CALL sites.
+            let preceding = &region[..idx];
+            if preceding.ends_with("fn ") {
+                continue;
+            }
+            call_sites += 1;
+            // The argument must be the gate-minted token's fingerprint — the text
+            // immediately after the open paren must BEGIN with `token.fingerprint(`,
+            // never `draft`, `anti_unify`, or a bare `&fp` not sourced from the token.
+            // (We check the prefix, not a paren-split — `token.fingerprint()` carries
+            // its own parens.)
+            let after = region[idx + render_fn.len()..].trim_start();
+            assert!(
+                after.starts_with("token.fingerprint(") || after.starts_with("token .fingerprint("),
+                "{render_fn} must be fed a GATE-MINTED token's fingerprint \
+                 (`token.fingerprint()`), never an un-gated draft — a rendered fingerprint \
+                 whose provenance is not a gate verdict launders the ADR-048 token at the \
+                 render boundary. Found arg starting: `{}`",
+                &after[..after.len().min(40)]
+            );
         }
-        call_sites += 1;
-        // The argument must be the gate-minted token's fingerprint — the text
-        // immediately after the open paren must BEGIN with `token.fingerprint(`, never
-        // `draft`, `anti_unify`, or a bare `&fp` not sourced from the token. (We check
-        // the prefix, not a paren-split — `token.fingerprint()` carries its own parens.)
-        let after = region[idx + "render_fingerprint(".len()..].trim_start();
-        assert!(
-            after.starts_with("token.fingerprint(") || after.starts_with("token .fingerprint("),
-            "render_fingerprint must be fed a GATE-MINTED token's fingerprint \
-             (`token.fingerprint()`), never an un-gated draft — a rendered fingerprint \
-             whose provenance is not a gate verdict launders the ADR-048 token at the \
-             render boundary. Found arg starting: `{}`",
-            &after[..after.len().min(40)]
-        );
     }
     assert!(
         call_sites >= 2,
-        "expected the human + json `Ok(token)` arms to each render the minted \
-         fingerprint (≥2 call sites); found {call_sites} — did the render surface move? \
-         (a moved render must keep the token-only-provenance invariant under attack)"
+        "expected the human (`render_antigen_scaffold`) + json (`render_fingerprint`) \
+         `Ok(token)` arms to each render the minted fingerprint (≥2 call sites); found \
+         {call_sites} — did a render surface move? (a moved render must keep the \
+         token-only-provenance invariant under attack)"
     );
 }
 

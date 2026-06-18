@@ -105,9 +105,11 @@ pub mod digest;
 mod glob;
 mod matcher;
 mod parser;
+mod serialize;
 
 pub use digest::{HasAttributes, ShapeNormalize, structural_digest, structural_shape_digest};
 pub use glob::glob_match_ident;
+pub use serialize::to_antigen_attr;
 
 /// Maximum fingerprint AST depth (per ADR-010 OQ4). Configurable via
 /// `[package.metadata.antigen.fingerprint_max_depth]` in future sweeps.
