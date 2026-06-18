@@ -428,23 +428,37 @@ fn propose_has_no_auto_clean_corpus_path_anywhere() {
     );
     drop(tmp);
 
-    // CODE-TRUE — the clean corpus is built SOLELY from `--clean-root`
-    // (`collect_clean_corpus(&args.clean_root)`), never auto-derived. A future edit that
-    // scans the cluster root / the whole workspace and subtracts marks would add a
+    // CODE-TRUE — the clean corpus is built SOLELY from `--clean-root`, never
+    // auto-derived. `--clean-root` is `Option<PathBuf>` (optional ONLY for the
+    // `--list-clusters` dry-run, which never gates), so the gate path binds the local
+    // `let Some(clean_root) = args.clean_root` and feeds `clean_root` to
+    // `collect_clean_corpus`. The invariant pinned here is the SOURCE of the corpus
+    // (the operator-explicit `--clean-root`), not the binding's spelling. A future edit
+    // that scans the cluster root / the whole workspace and subtracts marks would add a
     // forbidden path here; assert its absence so it trips. This is the
     // affordance-enumeration twin of the CLI file's `propose_does_not_auto_label_*`
     // (that one pins the positive source; this attack pins the NEGATIVE — no derivation).
     let region = propose_region();
     assert!(
-        region.contains("collect_clean_corpus(&args.clean_root)"),
-        "the clean corpus must come from --clean-root \
-         (collect_clean_corpus(&args.clean_root)) — the operator-explicit source"
+        region.contains("collect_clean_corpus(clean_root)"),
+        "the clean corpus must come from --clean-root (collect_clean_corpus(clean_root)) \
+         — the operator-explicit source"
+    );
+    assert!(
+        region.contains("let Some(clean_root) = args.clean_root"),
+        "the gate's clean_root must be BOUND from --clean-root (args.clean_root), with an \
+         `else` that refuses the gate when it is absent — not derived from anything else"
     );
     // No auto-derivation: not from the cluster root, not from a workspace scan, not from
-    // an "assume clean / unmarked = clean" inference.
+    // an "assume clean / unmarked = clean" inference. (NOTE: `scan_workspace(&args
+    // .cluster_root` IS now present in run_propose — the --list-clusters dry-run scans the
+    // cluster root to PREVIEW the by_shape grouping — but that path never builds a clean
+    // corpus, so it is not an auto-clean derivation. The forbidden shapes are the ones
+    // that would feed a DERIVED corpus into the gate: collect_clean_corpus from the
+    // cluster root, or an explicit assume/unmarked/auto-clean inference.)
     for forbidden in [
         "collect_clean_corpus(&args.cluster_root)",
-        "scan_workspace(&args.cluster_root",
+        "collect_clean_corpus(cluster_root)",
         "assume_clean",
         "unmarked_is_clean",
         "auto_clean",
@@ -456,6 +470,61 @@ fn propose_has_no_auto_clean_corpus_path_anywhere() {
              + labels the corpus via --clean-root, antigen adds nothing"
         );
     }
+}
+
+/// ATK — `only_the_list_clusters_affordance_exits_zero_without_a_corpus`. The
+/// `--clean-root → Option` change (so the `--list-clusters` dry-run can preview WITHOUT
+/// a corpus) opened a precise bypass risk: a corpus-less success path on the GATE side.
+/// The invariant this pins (the adversarial's ruling): **only the explicit
+/// list/preview affordance may exit 0 without `--clean-root`; the bare run and every
+/// gate path must still refuse.** Made the Option weaken nothing on the gate.
+///
+/// Three probes on the SAME real ≥2 cluster (so the only variable is the corpus
+/// affordance):
+/// - `--cluster-root c` (bare, no corpus, no preview) → exit 2, names `clean-root`
+///   (the gate is REQUESTED; the missing required corpus is a usage error).
+/// - `--cluster-root c --list-clusters` (preview, no corpus) → exit 0 (the ONLY
+///   sanctioned corpus-less success: it never gates).
+/// - `--cluster-root c --clean-root c` (gate, WITH corpus) → reaches the gate (NOT a
+///   usage error): exit != 2 (the corpus IS supplied; whatever GATE-G then rules is a
+///   real verdict, not a missing-arg error).
+#[test]
+fn only_the_list_clusters_affordance_exits_zero_without_a_corpus() {
+    let (tmp, cluster, clean) = staged(TWINS, NEAR_MISS_CLEAN);
+    let c = cluster.to_str().unwrap();
+    let cl = clean.to_str().unwrap();
+
+    // (a) Bare gate request, no corpus → usage error (exit 2), names --clean-root.
+    let (bare_code, _o, bare_err) = propose(&["--cluster-root", c]);
+    assert_eq!(
+        bare_code, 2,
+        "the bare run (gate requested, no --clean-root) must be a usage error, NOT a \
+         corpus-less success; stderr={bare_err}"
+    );
+    assert!(
+        bare_err.contains("clean-root"),
+        "the usage error must name the missing --clean-root; stderr={bare_err}"
+    );
+
+    // (b) The preview affordance is the ONLY sanctioned corpus-less exit 0 — it never
+    //     gates, so no corpus is needed.
+    let (preview_code, preview_out, _e) = propose(&["--cluster-root", c, "--list-clusters"]);
+    assert_eq!(
+        preview_code, 0,
+        "--list-clusters is the sanctioned corpus-less preview (exit 0); stdout={preview_out}"
+    );
+
+    // (c) WITH a corpus the gate is actually reached — the absent-corpus usage error
+    //     (exit 2) must NOT fire when --clean-root IS supplied. (Whatever GATE-G rules
+    //     from there is a real verdict, asserted by the gate-outcome tests; here we only
+    //     pin that supplying the corpus clears the missing-arg refusal.)
+    let (gate_code, _o, _e) = propose(&["--cluster-root", c, "--clean-root", cl]);
+    assert_ne!(
+        gate_code, 2,
+        "supplying --clean-root must clear the missing-corpus usage error (the gate is \
+         reached); a 2 here would mean the corpus was ignored"
+    );
+    drop(tmp);
 }
 
 // ───────────────────────────────────────────────────────────────────────────
