@@ -32,10 +32,12 @@
 )]
 
 use antigen::learn::adwin::{
-    Axis, Bucket, DEFAULT_DELTA, DriftVerdict, ExpHistogram, FusedDrift, MAX_OBSERVABLE,
-    StaticChannel, detect, eps_cut_floor, eps_cut_full, fuse, power_threshold_n,
+    Bucket, DEFAULT_DELTA, DriftAxis, DriftVerdict, ExpHistogram, MAX_OBSERVABLE, detect,
+    eps_cut_floor, eps_cut_full, fuse_channels, power_threshold_n,
 };
 use antigen::learn::affinity::Affinity;
+use antigen::learn::discriminator::ClassVerdict;
+use antigen::learn::reader::SilentStatus;
 
 /// Build an affinity trajectory from a recall sequence, holding precision at `1.0`
 /// (the clean default — only recall varies). The detector reads per-axis, so a
@@ -95,7 +97,7 @@ fn atk_adwin_should_fire_on_abrupt_recall_drop() {
             observed_diff,
             ..
         } => {
-            assert_eq!(axis, Axis::Recall, "the drift is on the recall axis");
+            assert_eq!(axis, DriftAxis::Recall, "the drift is on the recall axis");
             assert!(
                 observed_diff > 0.3,
                 "the observed shift (~0.5) cleared the bound: got {observed_diff}"
@@ -173,16 +175,20 @@ fn atk_adwin_underpowered_to_fires_boundary_derived_from_formula() {
         DriftVerdict::UnderPowered {
             eps_cut,
             max_observable,
-            n_star: reported,
         } => {
+            // The reported eps_cut is the GUARANTEED-detectable shift (2·ε_cut_balanced,
+            // Theorem 3.1.2); blind ⟺ that ≥ max_observable (the contract's invariant).
             assert!(
-                eps_cut >= max_observable || 2.0 * eps_cut > max_observable,
-                "below n* the bound exceeds the max observable signal"
+                eps_cut >= max_observable,
+                "below n* the detectable shift exceeds the max observable signal: \
+                 eps_cut={eps_cut}, max_observable={max_observable}"
             );
             assert_eq!(max_observable, MAX_OBSERVABLE);
-            assert_eq!(
-                reported, n_star,
-                "the self-announced n* matches the derived power threshold"
+            // n* is computed on demand (no longer a verdict field) — it must say the
+            // class becomes observable at a length past where we are now.
+            assert!(
+                n_star >= below,
+                "the derived n* ({n_star}) is past the current blind length ({below})"
             );
         },
         other => panic!(
@@ -196,7 +202,7 @@ fn atk_adwin_underpowered_to_fires_boundary_derived_from_formula() {
     let mut recalls: Vec<f64> = vec![0.9; half];
     recalls.extend(vec![0.4; above - half]);
     match detect(&recall_traj(&recalls), DEFAULT_DELTA) {
-        DriftVerdict::Drift { axis, .. } => assert_eq!(axis, Axis::Recall),
+        DriftVerdict::Drift { axis, .. } => assert_eq!(axis, DriftAxis::Recall),
         other => panic!("well above n* (n={above}) a 0.5 shift must fire, got {other:?}"),
     }
 }
@@ -207,8 +213,14 @@ fn atk_adwin_underpowered_never_suppressed_at_antigen_scale() {
     // so — never a silent NoDrift. Even a maximal 0.9→0.1 step at n=8.
     let traj = recall_traj(&[0.9, 0.9, 0.9, 0.9, 0.1, 0.1, 0.1, 0.1]);
     match detect(&traj, DEFAULT_DELTA) {
-        DriftVerdict::UnderPowered { n_star, .. } => {
-            assert!(n_star > 8, "n* must say drift becomes observable AFTER n=8");
+        DriftVerdict::UnderPowered { eps_cut, .. } => {
+            // The detectable shift exceeds the max observable signal at n=8 (DEAD).
+            assert!(eps_cut >= MAX_OBSERVABLE, "n=8 is structurally blind");
+            // n* (computed on demand) must say power arrives AFTER n=8.
+            assert!(
+                power_threshold_n(DEFAULT_DELTA / 2.0) > 8,
+                "n* must say drift becomes observable AFTER n=8"
+            );
         },
         other => {
             panic!("INV-ADWIN-1: n=8 must be UnderPowered (never silent NoDrift), got {other:?}")
@@ -302,7 +314,7 @@ fn atk_adwin_per_axis_or_fires_when_one_axis_craters() {
             // recall fires on the recall axis even as precision compensates.
             assert_eq!(
                 axis,
-                Axis::Recall,
+                DriftAxis::Recall,
                 "per-axis OR fires on the cratering axis, not a flat scalarization"
             );
         },
@@ -454,86 +466,108 @@ fn atk_adwin_floor_eps_cut_matches_paper_worked_value() {
 }
 
 // ============================================================================
-// The real/virtual fusion — INV-ADWIN-3 conservatism-JOIN (the safety corner)
+// The two-channel fusion — INV-ADWIN-3 conservatism-JOIN (the safety corner)
+//
+// NOTE: the BINDING fusion contract is the adversary's born-red file
+// `atk_adwin_fusion_conservatism_join.rs` (13 tests, gated on the `adwin_built`
+// feature). These tests are the builder's own complementary coverage of `fuse_channels`
+// in the always-on suite — they assert the same conservatism-JOIN against ClassVerdict.
 // ============================================================================
 
-#[test]
-fn atk_adwin_fusion_holds_when_adwin_blind() {
-    // INV-ADWIN-3: ADWIN UnderPowered ⇒ HOLD, regardless of the static channel — even
-    // a shape-GONE static read must NOT forge ahead to forget.
-    let blind = DriftVerdict::UnderPowered {
+/// Helpers: a confident recall-`Drift` and an `UnderPowered` verdict for the fusion tests.
+fn recall_drift() -> DriftVerdict {
+    DriftVerdict::Drift {
+        cut_index: 100,
+        axis: DriftAxis::Recall,
+        observed_diff: 0.5,
+        eps_cut: 0.1,
+    }
+}
+fn under_powered() -> DriftVerdict {
+    DriftVerdict::UnderPowered {
         eps_cut: 2.0,
         max_observable: 1.0,
-        n_star: 64,
-    };
-    for ch in [
-        StaticChannel::ShapeGone,
-        StaticChannel::ShapePresentNearMiss,
-        StaticChannel::ShapePresentNoNearMiss,
-        StaticChannel::CleanBindsRising,
+    }
+}
+
+#[test]
+fn atk_adwin_fuse_holds_when_adwin_blind() {
+    // INV-ADWIN-3: ADWIN UnderPowered ⇒ RouteToHuman (HOLD), regardless of bit-3 — even
+    // shape-gone-undefended (the single forgettable cell) must NOT become Obsolete.
+    for silent in [
+        SilentStatus::Obsolete,
+        SilentStatus::Dormant,
+        SilentStatus::Evading,
+        SilentStatus::Indeterminate,
     ] {
-        assert_eq!(
-            fuse(&blind, ch),
-            FusedDrift::Hold,
-            "ADWIN blind ⇒ HOLD regardless of static channel {ch:?}"
+        for defended in [true, false] {
+            assert_ne!(
+                fuse_channels(under_powered(), silent, defended),
+                ClassVerdict::Obsolete,
+                "ADWIN blind ⇒ never Obsolete ({silent:?}, defended={defended})"
+            );
+        }
+    }
+}
+
+#[test]
+fn atk_adwin_fuse_holds_when_bit3_blind() {
+    // INV-ADWIN-3: bit-3 Indeterminate ⇒ never Obsolete, regardless of the ADWIN channel
+    // — even a confident recall-Drift must NOT forget an undecidable absence.
+    for adwin in [
+        recall_drift(),
+        under_powered(),
+        DriftVerdict::NoDrift {
+            tightest_margin: 0.1,
+        },
+    ] {
+        assert_ne!(
+            fuse_channels(adwin, SilentStatus::Indeterminate, false),
+            ClassVerdict::Obsolete,
+            "bit-3 Indeterminate ⇒ never Obsolete, even with a confident ADWIN drift"
         );
     }
 }
 
 #[test]
-fn atk_adwin_fusion_holds_when_static_blind() {
-    // INV-ADWIN-3: bit-3 Indeterminate ⇒ HOLD, regardless of the ADWIN channel — even
-    // a confident recall-Drift must NOT forget when the static channel is blind.
-    let drift = DriftVerdict::Drift {
-        cut_index: 100,
-        axis: Axis::Recall,
-        observed_diff: 0.5,
-        eps_cut: 0.1,
-        commit_sha: None,
-    };
+fn atk_adwin_fuse_table_rows_when_both_sighted() {
+    // recall-drop + shape-gone-undefended ⇒ Obsolete (REAL obsolescence).
     assert_eq!(
-        fuse(&drift, StaticChannel::Indeterminate),
-        FusedDrift::Hold,
-        "static-channel Indeterminate ⇒ HOLD regardless of a confident ADWIN drift"
+        fuse_channels(recall_drift(), SilentStatus::Obsolete, false),
+        ClassVerdict::Obsolete,
+        "recall-drop + shape-gone-undefended ⇒ Obsolete"
     );
-}
-
-#[test]
-fn atk_adwin_fusion_table_rows_when_both_sighted() {
-    // The ADR-065 table, both channels sighted.
-    let recall_drift = DriftVerdict::Drift {
-        cut_index: 100,
-        axis: Axis::Recall,
-        observed_diff: 0.5,
-        eps_cut: 0.1,
-        commit_sha: None,
-    };
+    // recall-drop + shape-gone-DEFENDED ⇒ WellDefended (the witness-override holds).
     assert_eq!(
-        fuse(&recall_drift, StaticChannel::ShapeGone),
-        FusedDrift::RealObsolete,
-        "recall-drop + shape GONE ⇒ REAL/OBSOLETE"
+        fuse_channels(recall_drift(), SilentStatus::Obsolete, true),
+        ClassVerdict::WellDefended,
+        "recall-drop + shape-gone-defended ⇒ WellDefended (witness override)"
     );
+    // recall-drop + Evading ⇒ Evaded (red-queen).
     assert_eq!(
-        fuse(&recall_drift, StaticChannel::ShapePresentNearMiss),
-        FusedDrift::RealEvading,
-        "recall-drop + shape PRESENT + near-miss ⇒ REAL/EVADING (red-queen)"
+        fuse_channels(recall_drift(), SilentStatus::Evading, false),
+        ClassVerdict::Evaded,
+        "recall-drop + near-miss ⇒ Evaded"
     );
+    // recall-drop + Dormant ⇒ Dormant (VIRTUAL drift / churn — KEEP, the autoimmune-
+    // forget cell, closed).
     assert_eq!(
-        fuse(&recall_drift, StaticChannel::ShapePresentNoNearMiss),
-        FusedDrift::VirtualKeep,
-        "recall-drop + shape PRESENT + no near-miss ⇒ VIRTUAL/KEEP (churn — the autoimmune-forget cell, closed)"
+        fuse_channels(recall_drift(), SilentStatus::Dormant, false),
+        ClassVerdict::Dormant,
+        "recall-drop + shape-present-no-near-miss ⇒ Dormant (virtual drift)"
     );
 
+    // precision-drop + shape-gone-undefended ⇒ NOT Obsolete (a precision-drop is
+    // autoimmune over-broadening — re-arm/narrow, never a clean forget).
     let precision_drift = DriftVerdict::Drift {
         cut_index: 100,
-        axis: Axis::Precision,
+        axis: DriftAxis::Precision,
         observed_diff: 0.5,
         eps_cut: 0.1,
-        commit_sha: None,
     };
-    assert_eq!(
-        fuse(&precision_drift, StaticChannel::CleanBindsRising),
-        FusedDrift::RealAutoimmune,
-        "precision-drop + clean-binds rising ⇒ REAL/AUTOIMMUNE over-broadening"
+    assert_ne!(
+        fuse_channels(precision_drift, SilentStatus::Obsolete, false),
+        ClassVerdict::Obsolete,
+        "precision-drop + shape-gone ⇒ NOT Obsolete (autoimmune, route to human)"
     );
 }
