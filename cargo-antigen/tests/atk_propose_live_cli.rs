@@ -387,33 +387,47 @@ fn propose_requires_an_operator_clean_corpus() {
 /// CLEAN-CORPUS-SOURCE — `propose_does_not_auto_label_unmarked_as_clean`. The
 /// affirmative dual: the clean corpus comes SOLELY from `--clean-root`, never from
 /// "scan the rest of the tree". CODE-TRUE assertion against the live `run_propose`
-/// (cargo-antigen/src/main.rs): the clean corpus is `collect_clean_corpus(&args
-/// .clean_root)` and NOTHING else — no `scan_workspace`-minus-marks auto-derivation.
-/// (A grep-checkable invariant the CODE-TRUE audit owns; pinned here so a future
-/// "convenience" auto-clean path is a test failure.)
+/// (cargo-antigen/src/main.rs): the clean corpus is collected from a `clean_root`
+/// bound from `args.clean_root` (the operator-supplied `--clean-root`) and NOTHING
+/// else — no `scan_workspace`-minus-marks auto-derivation. (A grep-checkable
+/// invariant the CODE-TRUE audit owns; pinned here so a future "convenience"
+/// auto-clean path is a test failure.)
+///
+/// Note: `--clean-root` is `Option<PathBuf>` (optional ONLY for the `--list-clusters`
+/// dry-run, which never runs the gate); the gate path binds the local
+/// `let Some(clean_root) = args.clean_root` and passes `clean_root` to
+/// `collect_clean_corpus`. The invariant pinned here is the SOURCE of the clean
+/// corpus, not the binding's spelling.
 #[test]
 fn propose_does_not_auto_label_unmarked_as_clean() {
     let src = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/src/main.rs"))
         .expect("read cargo-antigen main.rs");
     // Locate run_propose's body and assert the clean corpus is built ONLY from
-    // --clean-root (collect_clean_corpus(&args.clean_root)).
+    // --clean-root: the gate binds `clean_root` from `args.clean_root` and feeds it
+    // to collect_clean_corpus.
     let run_propose = src
         .split("fn run_propose(")
         .nth(1)
         .expect("run_propose exists");
     let body = &run_propose[..run_propose.find("\nfn ").unwrap_or(run_propose.len())];
     assert!(
-        body.contains("collect_clean_corpus(&args.clean_root)"),
-        "the clean corpus must come from --clean-root (collect_clean_corpus(&args.clean_root))"
+        body.contains("collect_clean_corpus(clean_root)"),
+        "the clean corpus must come from --clean-root (collect_clean_corpus(clean_root))"
+    );
+    assert!(
+        body.contains("let Some(clean_root) = args.clean_root"),
+        "the gate's clean_root must be bound from --clean-root (args.clean_root), not derived"
     );
     // The anti-auto-label invariant: run_propose must NOT derive the clean corpus by
-    // scanning the cluster root / the whole workspace and subtracting marks. If a
-    // future edit adds such a path, this trips.
+    // scanning the cluster root / the whole workspace and subtracting marks. The
+    // --list-clusters preview DOES scan the cluster root, but it never builds a clean
+    // corpus (the gate doesn't run), so a `scan_workspace` in the body is no longer a
+    // proxy for auto-derivation — assert the precise auto-clean shapes instead.
     assert!(
-        !body.contains("scan_workspace")
-            && !body.contains("collect_clean_corpus(&args.cluster_root)"),
-        "run_propose must NOT auto-derive the clean corpus (no scan_workspace / cluster-root \
-         clean-derivation) — the operator labels clean, antigen does not (ATK-047-4)"
+        !body.contains("collect_clean_corpus(&args.cluster_root)")
+            && !body.contains("collect_clean_corpus(cluster_root)"),
+        "run_propose must NOT auto-derive the clean corpus from the cluster root — the \
+         operator labels clean, antigen does not (ATK-047-4)"
     );
 }
 
@@ -592,6 +606,185 @@ fn propose_rejects_a_nonexistent_root() {
     assert!(
         stderr.contains("cluster-root") && stderr.contains("does not exist"),
         "the error must name the nonexistent --cluster-root; stderr={stderr}"
+    );
+    drop(tmp);
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Class 6 — STREAM A1 observability: --list-clusters (dry-run preview) +
+// --exit-code (CI-routable outcome categories). The verb SHOWS its work.
+// These are the teeth for the observability cheap-wins: the render-boundary
+// reasoning (the by_shape grouping) is surfaced, and CI can distinguish outcomes
+// WITHOUT the human-facing default ever grading a first-class outcome a "failure".
+// ───────────────────────────────────────────────────────────────────────────
+
+/// `--list-clusters` previews the `by_shape` grouping and STOPS (the dry-run). On the
+/// real ≥2 twins cluster it shows ONE chosen group with 2 sites; the gate never runs
+/// (no clean corpus consulted). Exit 0 by default.
+#[test]
+fn list_clusters_previews_the_chosen_twins_group() {
+    let (tmp, cluster, clean) = staged_twins("fn unrelated() {}\n");
+    let (code, stdout, _stderr) = propose(&[
+        "--cluster-root",
+        cluster.to_str().unwrap(),
+        "--clean-root",
+        clean.to_str().unwrap(),
+        "--list-clusters",
+    ]);
+    assert_eq!(
+        code, 0,
+        "list-clusters is a preview, exit 0; stdout={stdout}"
+    );
+    assert!(
+        stdout.contains("cluster landscape") && stdout.contains("dry-run"),
+        "the preview must name itself a dry-run landscape; stdout={stdout}"
+    );
+    // The twins share a shape → exactly one ≥2 group, marked chosen (`<==`).
+    assert!(
+        stdout.contains("<==") && stdout.contains('2'),
+        "the chosen ≥2 group must be marked with its site count; stdout={stdout}"
+    );
+    // A dry-run NEVER renders a promote/refuse verdict (the gate didn't run).
+    assert!(
+        !stdout.to_lowercase().contains("ratifiable suggestion")
+            && !stdout.to_lowercase().contains("refused"),
+        "the dry-run must not render a gate verdict; stdout={stdout}"
+    );
+    drop(tmp);
+}
+
+/// `--list-clusters` does NOT require `--clean-root` (a preview never consults the
+/// clean corpus). Omitting it must succeed, not error — the Option made the corpus
+/// optional ONLY on this path.
+#[test]
+fn list_clusters_does_not_require_clean_root() {
+    let (tmp, cluster, _clean) = staged_twins("fn unrelated() {}\n");
+    let (code, stdout, stderr) = propose(&[
+        "--cluster-root",
+        cluster.to_str().unwrap(),
+        "--list-clusters",
+    ]);
+    assert_eq!(
+        code, 0,
+        "list-clusters without --clean-root must succeed; stderr={stderr}"
+    );
+    assert!(
+        stdout.contains("cluster landscape"),
+        "the preview must render; stdout={stdout}"
+    );
+    drop(tmp);
+}
+
+/// Omitting `--clean-root` on the GATE path (no --list-clusters) is a usage error
+/// (exit 2) — the operator must supply + label the clean corpus; antigen never
+/// auto-derives it (ATK-047-4). The Option must not weaken the gate's requirement.
+#[test]
+fn missing_clean_root_on_the_gate_path_is_a_usage_error() {
+    let (tmp, cluster, _clean) = staged_twins("fn unrelated() {}\n");
+    let (code, _stdout, stderr) = propose(&["--cluster-root", cluster.to_str().unwrap()]);
+    assert_eq!(
+        code, 2,
+        "the gate path requires --clean-root (usage error); stderr={stderr}"
+    );
+    assert!(
+        stderr.contains("clean-root") && stderr.contains("required"),
+        "the error must name the missing --clean-root requirement; stderr={stderr}"
+    );
+    drop(tmp);
+}
+
+/// `--exit-code` opts CI into a distinct code per outcome. Route-to-human (the
+/// settled twins-vs-unrelated dogfood outcome) → code 10 WITH the flag, but 0
+/// WITHOUT it (the human default never grades route-to-human a failure). The stdout
+/// is identical either way — only the exit code differs.
+#[test]
+fn exit_code_distinguishes_route_to_human_only_when_opted_in() {
+    let unrelated = "fn add(a: i32, b: i32) -> i32 { a + b }\n";
+    let (tmp, cluster, clean) = staged_twins(unrelated);
+    let cluster_s = cluster.to_str().unwrap();
+    let clean_s = clean.to_str().unwrap();
+
+    // WITHOUT --exit-code: route-to-human renders, exit 0 (first-class, not a failure).
+    let (code_default, stdout_default, _e1) =
+        propose(&["--cluster-root", cluster_s, "--clean-root", clean_s]);
+    assert_eq!(
+        code_default, 0,
+        "route-to-human is exit 0 by default; stdout={stdout_default}"
+    );
+    assert!(
+        stdout_default.contains("routed to a human"),
+        "the settled twins-vs-unrelated outcome is route-to-human; stdout={stdout_default}"
+    );
+
+    // WITH --exit-code: the SAME outcome → code 10 (route-to-human category).
+    let (code_flag, stdout_flag, _e2) = propose(&[
+        "--cluster-root",
+        cluster_s,
+        "--clean-root",
+        clean_s,
+        "--exit-code",
+    ]);
+    assert_eq!(
+        code_flag, 10,
+        "route-to-human is category code 10 with --exit-code; stdout={stdout_flag}"
+    );
+    // The render is identical — only the exit code is gated by the flag.
+    assert_eq!(
+        stdout_default, stdout_flag,
+        "the --exit-code flag changes only the exit code, never the render"
+    );
+    drop(tmp);
+}
+
+/// `--exit-code` maps the no-cluster outcome to code 13 (distinct from route-to-human
+/// 10), while the default stays 0. CI can tell "nothing to anti-unify" from "a
+/// candidate needs a human" — the distinction the all-0 status quo erased.
+#[test]
+fn exit_code_distinguishes_no_cluster_from_route_to_human() {
+    let (tmp, cluster, clean) = staged_dirs(); // empty cluster → no-cluster
+    let cluster_s = cluster.to_str().unwrap();
+    let clean_s = clean.to_str().unwrap();
+
+    let (code_default, _o1, _e1) = propose(&["--cluster-root", cluster_s, "--clean-root", clean_s]);
+    assert_eq!(code_default, 0, "no-cluster is exit 0 by default");
+
+    let (code_flag, _o2, _e2) = propose(&[
+        "--cluster-root",
+        cluster_s,
+        "--clean-root",
+        clean_s,
+        "--exit-code",
+    ]);
+    assert_eq!(
+        code_flag, 13,
+        "no-cluster is category code 13 with --exit-code (distinct from route-to-human 10)"
+    );
+    drop(tmp);
+}
+
+/// `--list-clusters --format json` emits a machine-readable landscape: the cluster
+/// list with shape digests + site counts + the `chosen` flag, and `has_cluster`.
+#[test]
+fn list_clusters_json_is_machine_readable() {
+    let (tmp, cluster, _clean) = staged_twins("fn unrelated() {}\n");
+    let (code, stdout, _stderr) = propose(&[
+        "--cluster-root",
+        cluster.to_str().unwrap(),
+        "--list-clusters",
+        "--format",
+        "json",
+    ]);
+    assert_eq!(code, 0, "json list-clusters preview, exit 0");
+    let v: serde_json::Value =
+        serde_json::from_str(&stdout).expect("list-clusters --format json emits valid JSON");
+    assert_eq!(v["outcome"], "cluster-landscape");
+    assert_eq!(v["has_cluster"], true, "the twins form a ≥2 cluster");
+    let clusters = v["clusters"].as_array().expect("clusters is an array");
+    assert!(
+        clusters
+            .iter()
+            .any(|c| c["chosen"] == true && c["site_count"] == 2),
+        "exactly one chosen 2-site cluster; got {clusters:?}"
     );
     drop(tmp);
 }
