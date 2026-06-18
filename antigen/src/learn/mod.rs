@@ -25,6 +25,7 @@
 //! (ADR-044, observe-don't-declare) — a ratifiable suggestion, never an
 //! auto-asserted class.
 
+pub mod adwin;
 pub mod affinity;
 pub mod curate;
 pub mod discriminator;
