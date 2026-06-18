@@ -290,6 +290,18 @@ struct ProposeArgs {
     /// not a verdict: `10` (route-to-human) is the gate being honest, not failing.
     #[arg(long)]
     exit_code: bool,
+    /// **Show the GATE-G reasoning behind the verdict** — turn the gate from oracle
+    /// into teacher. Every propose render tells you the VERDICT but hides the PATH to
+    /// a YES; `--explain` surfaces the reasoning the render discards. On
+    /// route-to-human: that NO clean sibling is one constraint from binding the draft
+    /// (so you know to add a near-miss sibling to your corpus). On autoimmune refusal:
+    /// WHICH clean-corpus item the draft wrongly bound (the twin it would have
+    /// flagged — the autoimmunity made concrete). On promote: which clean sibling
+    /// WITNESSED the generalization (the near-miss that proved B made a real in-family
+    /// discrimination). Pure additive output — it NEVER changes the verdict or the
+    /// exit code (the gate holds; GATE-G is untouched). The source tree is byte-unchanged.
+    #[arg(long)]
+    explain: bool,
 }
 
 #[derive(Debug, Parser)]
@@ -4038,7 +4050,111 @@ fn run_propose(args: ProposeArgs) -> ExitCode {
     //     ever rendered as if it were gated.
     let outcome = antigen::learn::propose::propose(&cluster, &clean_corpus);
 
-    render_propose_outcome(&outcome, &args)
+    // --explain: compute the GATE-G reasoning the render would otherwise hide (the
+    //     near-miss that witnessed the draft, or the clean twin it wrongly bound). A
+    //     pure READ of the gate's primitives over the SAME cluster + corpus — it never
+    //     re-routes the draft or changes the verdict. None when --explain is off.
+    let explanation = args
+        .explain
+        .then(|| compute_explanation(&cluster, &clean_corpus, &outcome));
+
+    render_propose_outcome(&outcome, &args, explanation.as_ref())
+}
+
+/// The GATE-G reasoning behind a propose verdict (the `--explain` payload). A pure
+/// projection of the gate's primitives over the cluster + corpus — computed only when
+/// `--explain` is set, NEVER consulted by the gate itself (it cannot change a verdict).
+///
+/// Each field is the reasoning for the outcome it belongs to; the render prints only
+/// the one matching the fired verdict.
+struct ProposeExplanation {
+    /// The clean corpus item that WITNESSED the draft (the near-miss — one constraint
+    /// from binding), described as `<kind> <name>`. `None` when the corpus holds no
+    /// near-miss (the route-to-human reason) or there is no draft (degenerate/no-cluster).
+    near_miss: Option<String>,
+    /// The clean corpus item the draft WRONGLY bound (the autoimmune twin), described
+    /// as `<kind> <name>`. Only populated on the `BindsCleanItem { Some(i) }` path.
+    bound_twin: Option<String>,
+}
+
+/// Compute the `--explain` reasoning by RE-DERIVING the draft (a pure
+/// `anti_unify` over the cluster — the same draft `propose` built) and reading the
+/// gate's primitives (`near_miss_index`, `evaluate`) over the corpus. Read-only; it
+/// never mints a token or changes the verdict.
+fn compute_explanation(
+    cluster: &[syn::Item],
+    clean_corpus: &[syn::Item],
+    outcome: &Result<
+        antigen::learn::self_tolerance::PromotedDraft,
+        antigen::learn::propose::ProposeOutcome,
+    >,
+) -> ProposeExplanation {
+    use antigen::learn::propose::{ProposeOutcome, anti_unify};
+    use antigen::learn::self_tolerance::{ToleranceVerdict, near_miss_index};
+
+    // Re-derive the draft `propose` built (same pure anti_unify over the cluster). On
+    // the degenerate / no-skeleton / empty paths there is no usable draft.
+    let draft = anti_unify(cluster);
+
+    // The near-miss that witnessed (or would witness) the generalization — the spared
+    // clean sibling one constraint from binding. Present on promote + (its ABSENCE is)
+    // the route-to-human reason.
+    let near_miss = draft
+        .as_ref()
+        .and_then(|d| near_miss_index(d, clean_corpus).map(|i| describe_item(&clean_corpus[i])));
+
+    // The clean twin the draft WRONGLY bound — only on the autoimmune path, where the
+    // verdict carries the bound index.
+    let bound_twin = match outcome {
+        Err(ProposeOutcome::Rejected(ToleranceVerdict::BindsCleanItem {
+            clean_index: Some(i),
+        })) => clean_corpus.get(*i).map(describe_item),
+        _ => None,
+    };
+
+    ProposeExplanation {
+        near_miss,
+        bound_twin,
+    }
+}
+
+/// A one-line identity for a `syn::Item` — `<kind> <name>` (e.g. `impl Drop for
+/// CleanGuard`, `fn flush`). Zero-dependency (reads the AST directly; no
+/// source-printer needed): for `--explain` the user wants to know WHICH sibling, not
+/// re-read its whole body.
+fn describe_item(item: &syn::Item) -> String {
+    match item {
+        syn::Item::Fn(f) => format!("fn {}", f.sig.ident),
+        syn::Item::Struct(s) => format!("struct {}", s.ident),
+        syn::Item::Enum(e) => format!("enum {}", e.ident),
+        syn::Item::Trait(t) => format!("trait {}", t.ident),
+        syn::Item::Impl(imp) => {
+            let self_ty = type_last_segment(&imp.self_ty);
+            match &imp.trait_ {
+                Some((_, path, _)) => {
+                    let tr = path
+                        .segments
+                        .last()
+                        .map_or_else(|| "?".to_string(), |s| s.ident.to_string());
+                    format!("impl {tr} for {self_ty}")
+                },
+                None => format!("impl {self_ty}"),
+            }
+        },
+        _ => "item".to_string(),
+    }
+}
+
+/// The last path-segment of a type (`Foo` from `crate::a::Foo`), for `describe_item`.
+fn type_last_segment(ty: &syn::Type) -> String {
+    match ty {
+        syn::Type::Path(p) => p
+            .path
+            .segments
+            .last()
+            .map_or_else(|| "?".to_string(), |s| s.ident.to_string()),
+        _ => "?".to_string(),
+    }
 }
 
 /// Validate that `path` exists and is a directory, with a `flag`-named diagnostic.
@@ -4432,18 +4548,28 @@ impl ProposeExit {
 /// The exit code is computed from the outcome CATEGORY ([`ProposeExit`]) honoring
 /// `--exit-code`: `0` for every category by default (human-facing), or a distinct
 /// CI-routable code per category when opted in.
+///
+/// `explain` is `Some` iff `--explain` was set — extra GATE-G reasoning lines are
+/// appended to the matching arm. It is PURE OUTPUT: it never changes which arm fires
+/// (the verdict) nor the exit code (the gate holds).
+// One arm per ToleranceVerdict/ProposeOutcome, each with its own diagnostic prose +
+// the optional --explain block — the length is the legibility (every non-promotion is
+// spelled out, ADR-048). Splitting the arms into helpers would scatter the
+// observe-don't-declare contract across functions for no real gain.
+#[allow(clippy::too_many_lines)]
 fn render_propose_outcome(
     outcome: &Result<
         antigen::learn::self_tolerance::PromotedDraft,
         antigen::learn::propose::ProposeOutcome,
     >,
     args: &ProposeArgs,
+    explain: Option<&ProposeExplanation>,
 ) -> ExitCode {
     use antigen::learn::propose::ProposeOutcome;
     use antigen::learn::self_tolerance::ToleranceVerdict;
 
     if matches!(args.format, OutputFormat::Json) {
-        return render_propose_json(outcome, args);
+        return render_propose_json(outcome, args, explain);
     }
 
     let category = match outcome {
@@ -4460,6 +4586,23 @@ fn render_propose_outcome(
                  the syntactic half; you ratify the semantic half (observe-don't-declare).",
                 args.marker
             );
+            if let Some(ex) = explain {
+                match &ex.near_miss {
+                    Some(item) => println!(
+                        "\n--explain (GATE-G reasoning):\n  \
+                         The generalization is WITNESSED by clean sibling `{item}` — it matches\n  \
+                         all-but-one of the draft's conjuncts and is SPARED by failing exactly\n  \
+                         one. That near-miss is the proof B made a REAL in-family discrimination\n  \
+                         (it spared a sibling it plausibly could have flagged), not a\n  \
+                         bare-structural over-bind."
+                    ),
+                    None => println!(
+                        "\n--explain (GATE-G reasoning):\n  \
+                         (no single near-miss sibling identified — the draft is\n  \
+                         near-miss-witnessed by the corpus as a whole.)"
+                    ),
+                }
+            }
             ProposeExit::Promoted
         },
         Err(ProposeOutcome::Rejected(ToleranceVerdict::NotCorpusWitnessable)) => {
@@ -4477,6 +4620,21 @@ fn render_propose_outcome(
                  sibling.)",
                 args.marker
             );
+            if explain.is_some() {
+                // On route-to-human, the reasoning IS the absence: no corpus item is
+                // one discriminating constraint from binding the draft. (near_miss is
+                // None here by construction — the gate routed BECAUSE there is none.)
+                println!(
+                    "\n--explain (GATE-G reasoning):\n  \
+                     The gate scanned your clean corpus for a NEAR-MISS — a sibling that\n  \
+                     matches all-but-one of the draft's conjuncts and is spared by failing\n  \
+                     exactly one. It found NONE: every clean item either fully matches the\n  \
+                     draft (would be flagged) or is MORE than one constraint away (unrelated).\n  \
+                     To let the gate certify a promote, add a clean sibling that is ONE\n  \
+                     discriminating constraint from the defect (the in-family near-miss that\n  \
+                     proves the discrimination is real)."
+                );
+            }
             ProposeExit::RouteToHuman
         },
         Err(ProposeOutcome::Rejected(ToleranceVerdict::BindsCleanItem { clean_index })) => {
@@ -4493,6 +4651,17 @@ fn render_propose_outcome(
                      would over-bind its whole structural family. Refused at the (A)-binary\n\
                      safety check; refine the cluster (these sites share only their shape)."
                 ),
+            }
+            if let Some(ex) = explain {
+                if let Some(twin) = &ex.bound_twin {
+                    println!(
+                        "\n--explain (GATE-G reasoning):\n  \
+                         The clean item the draft would flag is `{twin}` — promoting the draft\n  \
+                         would fire on THIS known-good code (the autoimmunity made concrete).\n  \
+                         Either tighten the cluster so the draft no longer matches `{twin}`, or\n  \
+                         remove `{twin}` from the clean corpus if it is NOT actually clean."
+                    );
+                }
             }
             ProposeExit::RefusedAutoimmune
         },
@@ -4540,11 +4709,12 @@ fn render_propose_json(
         antigen::learn::propose::ProposeOutcome,
     >,
     args: &ProposeArgs,
+    explain: Option<&ProposeExplanation>,
 ) -> ExitCode {
     use antigen::learn::propose::ProposeOutcome;
     use antigen::learn::self_tolerance::ToleranceVerdict;
 
-    let (value, category) = match outcome {
+    let (mut value, category) = match outcome {
         Ok(token) => (
             serde_json::json!({
                 "outcome": "candidate-suggestion",
@@ -4593,6 +4763,20 @@ fn render_propose_json(
             ProposeExit::NoCluster,
         ),
     };
+    // --explain: attach the GATE-G reasoning as an `explain` object (the same
+    // near-miss / bound-twin identities the human render shows). Pure additive — it
+    // never changes the outcome or the exit code.
+    if let Some(ex) = explain {
+        if let serde_json::Value::Object(map) = &mut value {
+            map.insert(
+                "explain".to_string(),
+                serde_json::json!({
+                    "near_miss": ex.near_miss,
+                    "bound_twin": ex.bound_twin,
+                }),
+            );
+        }
+    }
     println!(
         "{}",
         serde_json::to_string_pretty(&value).unwrap_or_else(|_| "{}".to_string())

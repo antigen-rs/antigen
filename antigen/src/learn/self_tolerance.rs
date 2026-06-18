@@ -386,15 +386,48 @@ pub fn is_near_miss(draft: &Fingerprint, item: &syn::Item) -> bool {
     })
 }
 
+/// The index of the **first near-miss** corpus item for `draft`, or `None`.
+///
+/// ADR-047 §Mechanics 3 — the near-miss non-vacuity primitive, made *legible*: it
+/// returns WHICH item witnesses the generalization, not merely whether one does.
+///
+/// A near-miss is the proof B made a real in-family discrimination (it spared an item
+/// it *plausibly could have flagged* — one discriminating constraint away). The
+/// gate's promote-decision only needs to know *whether* a near-miss exists
+/// ([`corpus_witnesses_draft`]), but two consumers need its **identity**:
+/// - `cargo antigen propose --explain` — to show the user WHICH clean sibling
+///   witnessed the generalization (turning the gate from oracle into teacher), and on
+///   the route-to-human path, that there is NONE;
+/// - the effector (ACT, a later build unit) — the **spared clean sibling IS the
+///   retrieval target** for retrieve-then-adapt (the affinity-twin the fix is
+///   adapted from). This is the shared "expose the discarded near-miss" enabler
+///   (briefing §5, the A2↔ACT seam): one surface feeds both consumers.
+///
+/// **First-hit, deterministic:** returns the lowest index whose item
+/// [`is_near_miss`]. Corpus order is the operator's supplied order, so the result is
+/// stable across runs on the same corpus. A draft with several near-misses yields the
+/// first — sufficient for both the witness (one is enough) and the explain/retrieve
+/// target (the first spared sibling).
+#[must_use]
+pub fn near_miss_index(draft: &Fingerprint, corpus: &[syn::Item]) -> Option<usize> {
+    corpus.iter().position(|item| is_near_miss(draft, item))
+}
+
 /// Does the clean corpus contain a **near-miss** for `draft`? (ADR-047
 /// §Mechanics 3 — the near-miss non-vacuity check.)
 ///
 /// `true` iff ≥1 corpus item is one constraint from binding the draft (the draft's
 /// generalization is corpus-exercised); `false` (route-to-human) iff no corpus item
 /// is — B cannot certify the generalization.
+///
+/// This is the boolean projection of [`near_miss_index`] — **one source of truth**
+/// for "is there a near-miss?" (the predicate) and "which one?" (the identity), so
+/// the witness-decision and the explain/retrieve target can never disagree
+/// (`ParallelStateTrackersDiverge` avoided — antigen's own keystone class, kept out
+/// of its own gate).
 #[must_use]
 pub fn corpus_witnesses_draft(draft: &Fingerprint, corpus: &[syn::Item]) -> bool {
-    corpus.iter().any(|item| is_near_miss(draft, item))
+    near_miss_index(draft, corpus).is_some()
 }
 
 /// Promote `draft` through B's gate against a clean corpus, minting a
@@ -715,6 +748,81 @@ mod tests {
         assert!(
             promoted.is_ok(),
             "a precise near-miss-witnessed spare-clean draft is SAFE → promotes"
+        );
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // near_miss_index — the legible near-miss primitive (the A2 / ACT enabler).
+    // It returns WHICH corpus item witnesses the generalization (the explain /
+    // retrieve target); corpus_witnesses_draft is its boolean projection.
+    // ────────────────────────────────────────────────────────────────────────
+
+    /// `near_miss_index` returns the index of the near-miss item, and is in lockstep
+    /// with `corpus_witnesses_draft` (one source of truth — no divergence).
+    #[test]
+    fn near_miss_index_returns_the_witnessing_item_and_stays_in_lockstep() {
+        let items = drop_family();
+        let clean = vec![impl_drop_for(&items, "CleanGuard")];
+        let draft = disjunction_draft();
+        // CleanGuard (.ok()) is the near-miss: matches {impl, Drop, take}, fails only
+        // the any_of → index 0 in this single-item corpus.
+        assert_eq!(
+            near_miss_index(&draft, &clean),
+            Some(0),
+            "the .ok() sibling at index 0 is the near-miss"
+        );
+        // Lockstep: the boolean predicate is exactly `near_miss_index(..).is_some()`.
+        assert_eq!(
+            corpus_witnesses_draft(&draft, &clean),
+            near_miss_index(&draft, &clean).is_some(),
+            "corpus_witnesses_draft must be the boolean projection of near_miss_index"
+        );
+    }
+
+    /// `None` when no corpus item is a near-miss (route-to-human territory) — and
+    /// lockstep holds there too (`corpus_witnesses_draft == false`).
+    #[test]
+    fn near_miss_index_is_none_when_no_near_miss_exists() {
+        // An unrelated clean item shares no discriminating conjunct with the draft →
+        // not a near-miss (it fails MORE than one constraint).
+        let unrelated: syn::Item =
+            syn::parse_str("fn add(a: i32, b: i32) -> i32 { a + b }").unwrap();
+        let corpus = vec![unrelated];
+        let draft = disjunction_draft();
+        assert_eq!(
+            near_miss_index(&draft, &corpus),
+            None,
+            "an unrelated fn is not one constraint from binding a Drop-impl draft"
+        );
+        assert!(
+            !corpus_witnesses_draft(&draft, &corpus),
+            "lockstep: no near-miss index ⇒ corpus_witnesses_draft is false"
+        );
+    }
+
+    /// First-hit determinism: when MULTIPLE corpus items are near-misses,
+    /// `near_miss_index` returns the LOWEST index (the operator's supplied order is
+    /// stable, so the result is deterministic — the explain/retrieve target is
+    /// reproducible run-over-run).
+    #[test]
+    fn near_miss_index_returns_the_first_when_several_are_near_misses() {
+        let items = drop_family();
+        let clean_a = impl_drop_for(&items, "CleanGuard");
+        // A second near-miss: another `.ok()` Drop sibling (matches {impl, Drop, take},
+        // fails only the any_of), placed AFTER CleanGuard.
+        let clean_b: syn::Item = syn::parse_str(
+            "impl Drop for SecondClean { fn drop(&mut self) { let _ = flush().take().ok(); } }",
+        )
+        .unwrap();
+        let corpus = vec![clean_a, clean_b];
+        let draft = disjunction_draft();
+        // Both are near-misses; the FIRST (index 0) is returned.
+        assert!(is_near_miss(&draft, &corpus[0]));
+        assert!(is_near_miss(&draft, &corpus[1]));
+        assert_eq!(
+            near_miss_index(&draft, &corpus),
+            Some(0),
+            "with several near-misses, the lowest index wins (deterministic first-hit)"
         );
     }
 
