@@ -29,12 +29,9 @@ path = "src/lib.rs"
 # propagation, the macro's env-var check fires even when the adopter enables
 # the feature on their antigen dependency.
 antigen-poxparty = ["antigen-macros/antigen-poxparty"]
-# Born-red gate for the ADWIN + fusion layer ATK. The test file
-# `atk_adwin_fusion_conservatism_join.rs` gates on `#![cfg(adwin_built)]` so
-# it does not break the suite while `learn/adwin.rs` is unbuilt. The ADWIN
-# pathmaker drops the gate (and this feature entry becomes vestigial) once the
-# organ lands and all 13 tests compile and pass green.
-adwin_built = []
+# (The `adwin_built` born-red gate was removed once `learn/adwin.rs` + the fusion
+# layer shipped — `atk_adwin_fusion_conservatism_join.rs` now runs ungated in the
+# default suite. See ADR-065 / branch build-adwin.)
 
 [lints]
 workspace = true
@@ -64,6 +61,11 @@ proc-macro2 = { workspace = true }
 
 [dev-dependencies]
 proptest = { workspace = true }
+# `rand` is used by the ADWIN fusion ATK (`atk_adwin_fusion_conservatism_join.rs`,
+# feature-gated on `adwin_built`) to seed the SHOULD-FIRE long-trajectory fixture.
+# Already resolved in the lockfile transitively (proptest); pinned here as a direct
+# dev-dep so the gated test compiles.
+rand = "0.9"
 tempfile = { workspace = true }
 # The ADR-048 capability-token seal: a trybuild compile-fail harness pins that
 # `PromotedDraft` has NO public constructor (no `PromotedDraft(fp)`, no `::new`,

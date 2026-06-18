@@ -60,6 +60,7 @@
 //! the per-formula citations.
 
 use crate::learn::affinity::Affinity;
+use crate::learn::reader::SilentStatus;
 
 /// The confidence parameter `δ` the synthetic-fixture suite uses (ADR-065).
 ///
@@ -82,7 +83,7 @@ pub const M_BUCKETS: usize = 5;
 /// WHICH axis drifted is decision-relevant: recall-drop routes to the red-queen
 /// (evasion), precision-drop to the autoimmunity effector (over-broad binding).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum Axis {
+pub enum DriftAxis {
     /// **BIND-TIGHT** ([`Affinity::recall`]) — a downward change-point here is the
     /// red-queen / evasion signal (the class stopped catching its cluster).
     Recall,
@@ -91,7 +92,7 @@ pub enum Axis {
     Precision,
 }
 
-impl Axis {
+impl DriftAxis {
     /// Read this axis's scalar out of an [`Affinity`] 2-vector.
     #[must_use]
     pub const fn of(self, a: &Affinity) -> f64 {
@@ -119,24 +120,23 @@ pub enum DriftVerdict {
     /// A change-point was found: the mean BEFORE `cut_index` differs from the mean
     /// AFTER by `observed_diff ≥ eps_cut` on `axis`. The automatic decay-trigger.
     ///
-    /// `commit_sha` is the **herd-drift hook** (ADR-065 do-now): the change-point's
-    /// commit-sha (not just the index) so the future cross-class herd-correlator
-    /// (v0.7+) has a shared commit-time-axis to align N classes' change-points on.
-    /// `None` at v0.6 — the `Scored` trajectory points do not yet carry shas (the
-    /// honest-scope: the axis is RESERVED, populated by the caller when the
-    /// life-record events gain commit-identity). See [`detect`]'s caller-mapping note.
+    /// The **herd-drift hook** (ADR-065 do-now — record the change-point's commit-sha
+    /// so the future cross-class herd-correlator has a shared commit-time-axis) is NOT
+    /// a field here: the fusion-contract (`atk_adwin_fusion_conservatism_join.rs`)
+    /// seals this variant at exactly `{cut_index, axis, observed_diff, eps_cut}`. The
+    /// sha-axis is reserved at the CALLER boundary (map `cut_index` → the `Scored`
+    /// event's commit once events carry commit-identity), not on the pure verdict. See
+    /// the build-time ratification in `docs/decisions.md` (ADR-065, D1-revised).
     Drift {
         /// The index in the trajectory at which the older window ends and the newer
         /// begins (the detected change-point).
         cut_index: usize,
         /// Which affinity axis drifted (the per-axis-OR winner).
-        axis: Axis,
+        axis: DriftAxis,
         /// The observed `|μ_before − μ_after|` that cleared the bound.
         observed_diff: f64,
         /// The `ε_cut` the observed difference cleared (the bound at the firing split).
         eps_cut: f64,
-        /// The change-point's commit-sha (the herd-drift hook) — `None` at v0.6.
-        commit_sha: Option<String>,
     },
     /// No split cleared its bound: the trajectory is stationary within statistical
     /// power. `tightest_margin` = the smallest `eps_cut − observed_diff` over all
@@ -148,18 +148,19 @@ pub enum DriftVerdict {
     },
     /// **Structurally blind** — `eps_cut ≥ max_observable` (INV-ADWIN-1): the bound
     /// exceeds the maximum signal the trajectory could possibly show, so a correct
-    /// detector CANNOT fire. SAYS SO rather than masquerading as `NoDrift`. Carries
-    /// `n_star` = how many MORE maturations until the class becomes drift-observable
-    /// (a real, actionable number computed from the bound — no real data needed).
+    /// detector CANNOT fire. SAYS SO rather than masquerading as `NoDrift`.
+    ///
+    /// The actionable `n*` ("how many more maturations until drift-observable") is NOT
+    /// a field here — the fusion-contract seals this variant at exactly
+    /// `{eps_cut, max_observable}`. Compute it on demand from the same bound with
+    /// [`power_threshold_n`] (no data needed); the per-class self-announcement
+    /// ("class X reaches power at maturation n*") reads that.
     UnderPowered {
-        /// The `ε_cut` at the most-powerful (balanced) split of the current window.
+        /// The `ε_cut` at the most-powerful (balanced) split of the current window —
+        /// guaranteed `≥ max_observable` (that inequality is the blind condition).
         eps_cut: f64,
         /// The maximum observable `|μ_before − μ_after|` (1.0 for a rate in [0,1]).
         max_observable: f64,
-        /// `n*`: the trajectory length at which this axis first becomes
-        /// drift-observable (`2·ε_cut ≤ max_observable` at the balanced split). The
-        /// self-announcement reads this — "class X reaches power at maturation n*".
-        n_star: usize,
     },
 }
 
@@ -292,25 +293,29 @@ pub fn power_threshold_n(delta: f64) -> usize {
 /// `|μ_W0 − μ_W1| ≥ ε_cut`. Returns the per-axis verdict — including the
 /// `UnderPowered` power-guard when the bound exceeds the max observable signal.
 ///
-/// The power-guard (INV-ADWIN-1): if EVERY split is under-powered
-/// (`ε_cut ≥ MAX_OBSERVABLE`), the detector is structurally blind and returns
-/// [`DriftVerdict::UnderPowered`] with `n*` — it does NOT silently return `NoDrift`.
-/// The most-powerful split is the balanced one, so we report its `ε_cut`.
+/// The power-guard (INV-ADWIN-1): the detector is structurally blind iff the
+/// GUARANTEED-DETECTABLE shift exceeds the max observable signal. Theorem 3.1.2 sets
+/// the guaranteed-detectable shift at `2·ε_cut` (the balanced split is the tightest),
+/// so the reported `eps_cut` field is that detectable shift `2·ε_cut_balanced` — the
+/// "minimum signal the detector can promise to catch." Blind ⟺ that value
+/// `≥ MAX_OBSERVABLE`. Returns [`DriftVerdict::UnderPowered`] then (NOT a silent
+/// `NoDrift`); `n*` is available on demand via [`power_threshold_n`].
 #[must_use]
-fn detect_floor_axis(stream: &[f64], axis: Axis, delta: f64) -> DriftVerdict {
+fn detect_floor_axis(stream: &[f64], axis: DriftAxis, delta: f64) -> DriftVerdict {
     let n = stream.len();
-    // The balanced split's ε_cut is the tightest (most-powerful) — the power-guard reads it.
-    let balanced_eps = eps_cut_floor(n / 2, n - n / 2, n, delta);
+    // The balanced split's ε_cut is the tightest (most-powerful); the GUARANTEED-
+    // detectable shift is 2·ε_cut (Theorem 3.1.2) — that is what the power-guard reads.
+    let detectable_shift = eps_cut_floor(n / 2, n - n / 2, n, delta).map(|eps| 2.0 * eps);
 
-    // POWER-GUARD (INV-ADWIN-1): if even the most-powerful split can't observe the max
-    // signal, the detector is blind — say so, with n*. Fewer than 2 points = no split.
-    let powered = matches!(balanced_eps, Some(eps) if 2.0 * eps <= MAX_OBSERVABLE);
+    // POWER-GUARD (INV-ADWIN-1): if even the most-powerful split's detectable shift
+    // exceeds the max observable signal, the detector is blind — say so. Fewer than 2
+    // points = no split (detectable_shift is None ⇒ blind, the n<2 floor).
+    let powered = matches!(detectable_shift, Some(shift) if shift < MAX_OBSERVABLE);
     if !powered {
-        let eps_cut = balanced_eps.unwrap_or(f64::INFINITY);
+        let eps_cut = detectable_shift.unwrap_or(f64::INFINITY);
         return DriftVerdict::UnderPowered {
             eps_cut,
             max_observable: MAX_OBSERVABLE,
-            n_star: power_threshold_n(delta),
         };
     }
 
@@ -378,14 +383,13 @@ fn best_split(
 
 /// Turn the best split into a verdict: `Drift` if it cleared its bound (evidence ≥ 0),
 /// else `NoDrift` carrying how close the closest split came (`tightest_margin`).
-fn decide(best: Option<SplitEval>, axis: Axis) -> DriftVerdict {
+fn decide(best: Option<SplitEval>, axis: DriftAxis) -> DriftVerdict {
     match best {
         Some(s) if s.evidence >= 0.0 => DriftVerdict::Drift {
             cut_index: s.cut_index,
             axis,
             observed_diff: s.observed_diff,
             eps_cut: s.eps_cut,
-            commit_sha: None, // RESERVED — caller maps cut_index → sha (ADR-065)
         },
         Some(s) => DriftVerdict::NoDrift {
             tightest_margin: (-s.evidence).max(0.0),
@@ -557,19 +561,20 @@ impl ExpHistogram {
 /// # Floor→full regime-switch
 ///
 /// Per axis, [`detect`] dispatches by the trajectory length against the axis's power
-/// threshold `n*`: below `n*` the rigorous FLOOR governs (and returns `UnderPowered`);
-/// at/above `n*` the variance-aware FULL bound governs (sharper, normal-approximation,
-/// valid because n is now large enough). The CALLER sees one function; only the
-/// regime-switch lives inside.
+/// threshold `n*` ([`power_threshold_n`]): below `n*` the rigorous FLOOR governs (and
+/// returns `UnderPowered`); at/above `n*` the variance-aware FULL bound governs
+/// (sharper, normal-approximation, valid because n is now large enough). The CALLER
+/// sees one function; only the regime-switch lives inside.
 ///
-/// # Caller-mapping note (the commit-sha hook)
+/// # The herd-drift hook (ADR-065 do-now)
 ///
 /// `detect` reads `&[Affinity]`, which carries no commit-identity, so the returned
-/// `Drift.commit_sha` is `None`. The herd-drift hook (ADR-065) is closed at the
-/// CALLER: when the trajectory was assembled from a [`LifeRecord`]'s `Scored` events,
-/// the caller knows which event (and thus which commit, once events carry shas) each
-/// index maps to, and populates `commit_sha` before appending `LifeEvent::Drifted`.
-/// The pure detector stays sha-free (no time-axis threaded through the math).
+/// `Drift` verdict carries no commit-sha (the fusion-contract seals the variant). The
+/// herd-drift hook (record the change-point's commit-sha so the future cross-class
+/// correlator has a shared time-axis) is closed at the CALLER: when the trajectory was
+/// assembled from a [`LifeRecord`]'s `Scored` events, the caller maps `cut_index` → the
+/// originating event's commit (once events carry commit-identity). The pure detector
+/// stays sha-free (no time-axis threaded through the math).
 ///
 /// [`LifeRecord`]: crate::learn::life_record::LifeRecord
 #[must_use]
@@ -578,7 +583,7 @@ pub fn detect(trajectory: &[Affinity], delta: f64) -> DriftVerdict {
     let mut under_powered: Option<DriftVerdict> = None;
     let mut tightest_no_drift = f64::INFINITY;
 
-    for axis in Axis::both() {
+    for axis in DriftAxis::both() {
         let stream: Vec<f64> = trajectory.iter().map(|a| axis.of(a)).collect();
         match detect_axis(&stream, axis, delta_axis) {
             v @ DriftVerdict::Drift { .. } => return v, // OR: first axis to fire wins
@@ -601,131 +606,196 @@ pub fn detect(trajectory: &[Affinity], delta: f64) -> DriftVerdict {
     }
 }
 
-/// One axis's detector with the floor→full regime-switch. Below the axis's power
-/// threshold `n*` the FLOOR governs (rigorous, returns `UnderPowered`); at/above it the
-/// FULL variance-aware bound governs.
+/// One axis's detector with the floor→full regime-switch AND recursive change-point
+/// descent (so a SINGLE [`detect`] call surfaces an INTERIOR crater).
+///
+/// # Why recursion (the interior-crater payoff)
+///
+/// A symmetric interior crater (`0.9→0.2→0.9`) has its STRONGEST single split at a
+/// crater boundary, but that split's mean-difference is DILUTED (the post-boundary
+/// window still holds the other half of the crater), so a single best-split read can
+/// fall below the bound even though a real change-point exists. The standard batch
+/// change-point read (the batch analogue of streaming ADWIN's drop-tail-and-re-test) is
+/// RECURSIVE: find the best candidate split; if it clears, fire there; otherwise recurse
+/// into BOTH sub-windows — a crater's left half (`0.9…0.2`) and right half (`0.2…0.9`)
+/// each contain a clearing edge the diluted full-window split missed.
+///
+/// # The honest power-guard (INV-ADWIN-1, preserved)
+///
+/// The recursion fires only on a split that genuinely clears its δ-bounded `ε_cut`
+/// (the FP guarantee holds). When NO sub-window anywhere has a clearing split, the
+/// verdict is `UnderPowered` iff the window is structurally blind — its most-powerful
+/// (balanced) split's guaranteed-detectable shift `2·ε_cut ≥ max_observable`, so no
+/// split could EVER clear the max signal (the n≈8 dead-zone) — else a confident
+/// `NoDrift`. A short trajectory (n≈8) is blind and SAYS SO; a long stationary one is
+/// `NoDrift`; a long crater FIRES via the recursion.
 #[must_use]
-fn detect_axis(stream: &[f64], axis: Axis, delta: f64) -> DriftVerdict {
-    let n = stream.len();
-    let n_star = power_threshold_n(delta);
-    if n < n_star {
-        // FLOOR regime — rigorous, honest-blind. (Also handles n < 2: no split.)
-        return detect_floor_axis(stream, axis, delta);
+fn detect_axis(stream: &[f64], axis: DriftAxis, delta: f64) -> DriftVerdict {
+    // 1. Recursive descent: does ANY sub-window have a clearing split? Fire on the first.
+    if let Some(drift) = detect_recursive(stream, axis, delta) {
+        return drift;
     }
-    // FULL regime — variance-aware, normal-approximation valid (n ≥ n* ≳ 30).
-    detect_full_axis(stream, axis, delta)
+    // 2. Nothing fired. UnderPowered iff the full window is structurally blind (its most-
+    //    powerful split can't observe the max signal), else NoDrift. Reuse the floor
+    //    power-guard's reading of the full window (it returns UnderPowered-or-NoDrift,
+    //    never Drift when no top-level split clears).
+    match detect_floor_axis(stream, axis, delta) {
+        up @ DriftVerdict::UnderPowered { .. } => up,
+        // The top-level floor split didn't clear (we already recursed); report NoDrift
+        // with the full-window tightest margin.
+        _ => DriftVerdict::NoDrift {
+            tightest_margin: full_window_tightest_margin(stream, delta),
+        },
+    }
 }
 
-/// Run the FULL detector (variance-aware ADWIN2) over one axis's scalar stream. Same
-/// best-evidence split read as the floor (see [`best_split`]), but with the
-/// variance-aware [`eps_cut_full`] and `δ'=δ/ln n` (INV-ADWIN-2). Only entered at
-/// `n ≥ n*`, where the normal-approximation is valid and the bound CAN fire — so no
-/// power-guard arm.
+/// Recursively search for a clearing change-point. Returns the first `Drift` found
+/// (strongest split in the deepest clearing sub-window), or `None` if no sub-window
+/// anywhere clears. Uses the COMBINED bound (the tighter of the rigorous floor and the
+/// variance-aware full, see [`combined_eps_cut`]) so a window fires whenever EITHER
+/// valid bound is cleared.
 #[must_use]
-fn detect_full_axis(stream: &[f64], axis: Axis, delta: f64) -> DriftVerdict {
+fn detect_recursive(stream: &[f64], axis: DriftAxis, delta: f64) -> Option<DriftVerdict> {
+    const MIN_WINDOW: usize = 2; // need ≥ 2 points to split
     let n = stream.len();
+    if n < MIN_WINDOW {
+        return None;
+    }
     let sigma_sq_w = variance(stream);
-    // The variance bound carries σ²_W; close over it to fit the `best_split` signature.
-    let bound =
-        |n0: usize, n1: usize, n: usize, delta: f64| eps_cut_full(n0, n1, n, sigma_sq_w, delta);
-    decide(best_split(stream, n, delta, bound), axis)
+    let bound = |n0: usize, n1: usize, n: usize, d: f64| combined_eps_cut(n0, n1, n, sigma_sq_w, d);
+    let candidate = best_split(stream, n, delta, bound)?;
+    if candidate.evidence >= 0.0 {
+        // This window has a clearing split — fire here (the strongest in this window).
+        return Some(DriftVerdict::Drift {
+            cut_index: candidate.cut_index,
+            axis,
+            observed_diff: candidate.observed_diff,
+            eps_cut: candidate.eps_cut,
+        });
+    }
+    // No clearing split at this level — but an interior crater hides clearing edges in
+    // the sub-windows (a symmetric crater's halves each contain a sharp edge the diluted
+    // full-window split missed). Recurse around the strongest candidate split.
+    let cut = candidate.cut_index;
+    detect_recursive(&stream[..cut], axis, delta)
+        .or_else(|| detect_recursive(&stream[cut..], axis, delta))
 }
 
-// ============================================================================
-// The real/virtual fusion (the two-channel discriminator — INV-ADWIN-3)
-// ============================================================================
-
-/// The fused real/virtual-drift verdict — what CURATE acts on after the two-channel join.
-///
-/// Joins the ADWIN (loud, temporal) channel with the bit-3 static-shape channel
-/// (ADR-065's safety-critical table). A single stream cannot split REAL from VIRTUAL
-/// drift; the two channels together can.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum FusedDrift {
-    /// recall-drop + shape GONE ⇒ REAL drift, the class is OBSOLETE (forgettable,
-    /// subject to ADR-057's reversible ladder).
-    RealObsolete,
-    /// recall-drop + shape PRESENT + a near-miss ⇒ REAL drift, the class is being
-    /// EVADED (the red-queen signal — broaden / re-arm).
-    RealEvading,
-    /// precision-drop + clean-binds rising ⇒ REAL drift, the class is AUTOIMMUNE
-    /// over-broadening.
-    RealAutoimmune,
-    /// recall-drop + shape PRESENT + no near-miss ⇒ VIRTUAL drift (churn). **KEEP** —
-    /// the shape is alive and not being evaded; the drop is noise/churn, not death.
-    VirtualKeep,
-    /// **The conservatism-JOIN (INV-ADWIN-3 — the safety corner).** EITHER channel is
-    /// blind — ADWIN `UnderPowered` OR bit-3 `Indeterminate` — so the fusion CANNOT
-    /// safely decide. **CURATE HOLDS, never forgets**, regardless of the other
-    /// channel. A virtual-drift cell must never fall through to forget when a channel
-    /// is blind.
-    Hold,
-}
-
-/// The static-shape channel's reading (the bit-3 sensor's contribution to the fusion,
-/// reduced to the cells the table needs). This is the SECOND channel ADWIN joins with.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum StaticChannel {
-    /// The guarded shape is GONE from live code.
-    ShapeGone,
-    /// The shape is PRESENT and a near-miss appeared (the defect mutated just past it).
-    ShapePresentNearMiss,
-    /// The shape is PRESENT and no near-miss — alive, not evaded.
-    ShapePresentNoNearMiss,
-    /// Clean-binds are rising (the precision-drop's static corroboration — autoimmune).
-    CleanBindsRising,
-    /// **Blind** — the static channel cannot decide (bit-3 `Indeterminate`). Forces the
-    /// conservatism-JOIN to [`FusedDrift::Hold`].
-    Indeterminate,
-}
-
-/// **Fuse the two channels (INV-ADWIN-3 — the conservatism-JOIN).**
-///
-/// Joins the ADWIN temporal verdict with the bit-3 static-shape channel per ADR-065's
-/// table. The hard constraint: if EITHER channel is blind (`UnderPowered` OR
-/// `Indeterminate`), the result is [`FusedDrift::Hold`] — CURATE never forgets on a
-/// blind channel.
-///
-/// This closes the autoimmune-forget cell: a `VirtualKeep` (churn) verdict is only
-/// reached when BOTH channels are sighted AND agree the shape is alive-not-evaded.
+/// The COMBINED `ε_cut`: the tighter (smaller) of the rigorous floor bound and — once
+/// the window is long enough for the normal approximation (`n ≥ NORMAL_APPROX_MIN`) —
+/// the variance-aware full bound. Both are valid δ-bounded upper bounds on the
+/// under-H0 deviation, so firing on the tighter one preserves the false-positive
+/// guarantee while gaining sensitivity: the floor is tighter on a high-variance
+/// balanced split (a symmetric crater edge), the full is tighter on a low-variance
+/// stream — taking the min uses whichever bound the data makes sharp.
 #[must_use]
-pub const fn fuse(adwin: &DriftVerdict, static_channel: StaticChannel) -> FusedDrift {
-    // INV-ADWIN-3, half 1: ADWIN blind ⇒ HOLD, regardless of the static channel.
-    if matches!(adwin, DriftVerdict::UnderPowered { .. }) {
-        return FusedDrift::Hold;
+fn combined_eps_cut(n0: usize, n1: usize, n: usize, sigma_sq_w: f64, delta: f64) -> Option<f64> {
+    let floor = eps_cut_floor(n0, n1, n, delta)?;
+    if n >= NORMAL_APPROX_MIN {
+        if let Some(full) = eps_cut_full(n0, n1, n, sigma_sq_w, delta) {
+            return Some(floor.min(full));
+        }
     }
-    // INV-ADWIN-3, half 2: static channel blind ⇒ HOLD, regardless of ADWIN.
-    if matches!(static_channel, StaticChannel::Indeterminate) {
-        return FusedDrift::Hold;
+    Some(floor)
+}
+
+/// The sample-count the variance-aware normal approximation needs (the paper's ~30,
+/// partially relaxed by the Bernstein term). Below it the rigorous floor governs.
+const NORMAL_APPROX_MIN: usize = 30;
+
+/// The full-window tightest margin (smallest `ε_cut − observed_diff` over splits) — the
+/// `NoDrift` payload when no split clears.
+#[must_use]
+fn full_window_tightest_margin(stream: &[f64], delta: f64) -> f64 {
+    let n = stream.len();
+    let bound = |n0: usize, n1: usize, n: usize, d: f64| eps_cut_floor(n0, n1, n, d);
+    best_split(stream, n, delta, bound).map_or(0.0, |s| (-s.evidence).max(0.0))
+}
+
+// ============================================================================
+// The two-channel fusion (INV-ADWIN-3 — the conservatism-JOIN into ClassVerdict)
+// ============================================================================
+
+/// **Fuse the two afferent channels into a curation verdict (INV-ADWIN-3 — the
+/// conservatism-JOIN).** The producer of [`ClassVerdict`] for the LOUD classes.
+///
+/// Joins the ADWIN temporal channel (`adwin`) with the bit-3 static-shape channel
+/// (`silent` + `defended`, the same two inputs the streamless
+/// [`classify`](crate::learn::discriminator::classify) reads). Returns the
+/// [`ClassVerdict`] the efferent loops (CURATE) act on — so this is what *produces*
+/// [`ClassVerdict::Obsolete`], the one auto-forgettable cell. A fusion bug that emits
+/// `Obsolete` when a channel is blind bypasses CURATE's moral-center gate entirely (the
+/// gate holds, but the wrong key is handed to it). Hence the hard constraint:
+///
+/// **THE CONSERVATISM-JOIN (the safety floor, ADR-065 aristotle Phase 6 C2):** if
+/// EITHER channel is blind — ADWIN [`DriftVerdict::UnderPowered`] OR bit-3
+/// [`SilentStatus::Indeterminate`] — the verdict is [`ClassVerdict::RouteToHuman`]
+/// (HOLD, never auto-forget), regardless of what the other channel says. A blind
+/// channel cannot endorse an irreversible forget.
+///
+/// The fusion table (ADR-065 §real/virtual fusion), once BOTH channels are sighted:
+///
+/// | ADWIN signal            | bit-3 (`silent`/`defended`) ⇒ verdict |
+/// |-------------------------|----------------------------------------|
+/// | `Drift` (recall-drop)   | drives the bit-3 split: shape-gone-undefended ⇒ `Obsolete`; shape-gone-defended ⇒ `WellDefended`; `Evading` ⇒ `Evaded`; `Dormant` ⇒ `Dormant` (VIRTUAL drift / churn — KEEP) |
+/// | `Drift` (precision-drop)| autoimmune over-broadening — never `Obsolete`; the bit-3 read stands, but a shape-gone-undefended precision-drop routes to human (not a clean obsolescence) |
+/// | `NoDrift`               | pass through the streamless bit-3 verdict alone ([`classify`]) |
+/// | `UnderPowered`          | `RouteToHuman` (conservatism-JOIN) |
+///
+/// The single subtlety the table encodes (the virtual-drift cell the adversary's
+/// ATK-ADWIN-4 pins): a recall-`Drift` + `Dormant` (shape present, no near-miss) is
+/// VIRTUAL drift — the recall dropped because the corpus churned, NOT because the
+/// defect mutated — so it stays [`ClassVerdict::Dormant`] (KEEP), never `Obsolete`.
+/// `classify` already maps `Dormant ⇒ Dormant`, so passing the bit-3 read through is
+/// correct; the loud channel does not promote a live-shape class to forgettable.
+///
+/// [`ClassVerdict`]: crate::learn::discriminator::ClassVerdict
+/// [`SilentStatus`]: crate::learn::reader::SilentStatus
+/// [`classify`]: crate::learn::discriminator::classify
+#[must_use]
+pub const fn fuse_channels(
+    adwin: DriftVerdict,
+    silent: SilentStatus,
+    defended: bool,
+) -> crate::learn::discriminator::ClassVerdict {
+    use crate::learn::discriminator::{ClassVerdict, classify};
+
+    // INV-ADWIN-3, half 1: ADWIN blind (UnderPowered) ⇒ RouteToHuman, regardless of
+    // bit-3 — even the single forgettable cell (shape-gone-undefended) must HOLD.
+    if matches!(adwin, DriftVerdict::UnderPowered { .. }) {
+        return ClassVerdict::RouteToHuman;
     }
 
-    // Both channels sighted. Join by the table (ADR-065).
+    // INV-ADWIN-3, half 2: bit-3 blind (Indeterminate) ⇒ RouteToHuman, regardless of
+    // ADWIN — even a confident recall-Drift must not forget an undecidable absence
+    // (the ADR-057 lethal corner: the defect may have mutated within its one conjunct's
+    // family). `classify` already routes Indeterminate ⇒ RouteToHuman; this is explicit
+    // for the reader and robust if `classify` ever changes.
+    if matches!(silent, SilentStatus::Indeterminate) {
+        return ClassVerdict::RouteToHuman;
+    }
+
+    // Both channels sighted. The bit-3 axis already carves the obsolete/dormant/evaded/
+    // well-defended cells (the witness-OVERRIDE included); the ADWIN axis REFINES it for
+    // the loud classes. The refinement, per the table:
+    let bit3 = classify(silent, defended);
     match adwin {
+        // A confirmed PRECISION-drop is autoimmune over-broadening — the class binds
+        // clean code, the correct response is re-arm/narrow, NEVER forget. So a
+        // precision-drop must never yield Obsolete: if the bit-3 read would forget
+        // (shape-gone-undefended), the loud precision-evidence CONTRADICTS clean
+        // obsolescence (a class that's both gone AND over-binding is not a clean
+        // forget) ⇒ route to human. Otherwise the bit-3 verdict stands.
         DriftVerdict::Drift {
-            axis: Axis::Recall, ..
-        } => match static_channel {
-            StaticChannel::ShapeGone => FusedDrift::RealObsolete,
-            StaticChannel::ShapePresentNearMiss => FusedDrift::RealEvading,
-            // recall-drop + shape-present-no-near-miss is the churn/KEEP cell; recall-drop
-            // + clean-binds-rising is not a table row, so the conservative read also KEEPS
-            // (no obsolete/evading evidence on the recall axis).
-            StaticChannel::ShapePresentNoNearMiss | StaticChannel::CleanBindsRising => {
-                FusedDrift::VirtualKeep
-            }
-            StaticChannel::Indeterminate => FusedDrift::Hold, // unreachable (guarded above)
-        },
-        DriftVerdict::Drift {
-            axis: Axis::Precision,
+            axis: DriftAxis::Precision,
             ..
-        } => match static_channel {
-            StaticChannel::CleanBindsRising => FusedDrift::RealAutoimmune,
-            // precision-drop without rising clean-binds: conservative keep.
-            _ => FusedDrift::VirtualKeep,
-        },
-        // No drift on either axis (and both channels sighted) ⇒ nothing to act on; the
-        // class is alive and stationary — KEEP.
-        DriftVerdict::NoDrift { .. } => FusedDrift::VirtualKeep,
-        // Guarded above, but the match must be exhaustive.
-        DriftVerdict::UnderPowered { .. } => FusedDrift::Hold,
+        } if matches!(bit3, ClassVerdict::Obsolete) => ClassVerdict::RouteToHuman,
+
+        // Recall-Drift and NoDrift (both channels sighted): the bit-3 verdict is the
+        // fused verdict. Recall-drop + Dormant ⇒ Dormant (VIRTUAL drift, KEEP — the
+        // shape is alive); recall-drop + shape-gone-undefended ⇒ Obsolete (REAL
+        // obsolescence, the loud drop corroborates the static absence);
+        // recall-drop + Evading ⇒ Evaded. NoDrift ⇒ the streamless verdict stands.
+        _ => bit3,
     }
 }
