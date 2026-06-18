@@ -28,5 +28,6 @@
 pub mod affinity;
 pub mod life_record;
 pub mod propose;
+pub mod reader;
 pub mod self_tolerance;
 pub mod szz;

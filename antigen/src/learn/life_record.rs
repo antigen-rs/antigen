@@ -307,15 +307,27 @@ impl LifeRecord {
     /// lethal-corner). `None` when the trajectory has no direction yet (< 2 score
     /// points) — nothing to contradict.
     ///
-    /// Only the opposed pair `Improving`-vs-`Declining` (either order) is a
-    /// divergence; a matching claim, or `Stable`-vs-a-real-direction (the honest
-    /// hedge), is not flagged.
+    /// What counts as a divergence (the asymmetry is deliberate — it tracks which
+    /// way a hand-authored claim could HIDE A DROP, the failure REQ-4 exists to
+    /// catch):
+    /// - `Improving` ↔ `Declining` (either order) — direct contradiction.
+    /// - `Stable` claimed while actually `Declining` — a *dishonest hedge*: "holding
+    ///   steady / fine" over a real decline is downside-hiding drift, exactly the
+    ///   story-vs-struct lie REQ-4 must surface. (Found by the adversarial's
+    ///   no-self-witness re-attack: a `Stable` hedge was the gap a pure
+    ///   `Improving↔Declining` opposition left open.)
+    ///
+    /// NOT flagged (benign): a matching claim; `Stable`-while-`Improving` (an honest
+    /// under-claim — hides nothing); `Improving`/`Declining`-while-`Stable` (claiming
+    /// a direction the trajectory doesn't yet show — over-claim, but not a
+    /// drop-hiding lie; out of REQ-4's downside-hiding scope).
     #[must_use]
     pub fn check_story_coherence(&self, claimed: Trend) -> Option<StoryDivergence> {
         let actual = self.trajectory_direction()?;
         let opposed = matches!(
             (claimed, actual),
-            (Trend::Improving, Trend::Declining) | (Trend::Declining, Trend::Improving)
+            (Trend::Improving | Trend::Stable, Trend::Declining)
+                | (Trend::Declining, Trend::Improving)
         );
         opposed.then_some(StoryDivergence { claimed, actual })
     }
@@ -392,12 +404,47 @@ mod tests {
         // Matching claim (Declining vs Declining) → not flagged.
         assert_eq!(down.check_story_coherence(Trend::Declining), None);
 
-        // Stable hedge vs a real direction → not a hard contradiction.
-        assert_eq!(down.check_story_coherence(Trend::Stable), None);
-
         // No trajectory yet → nothing to contradict.
         let empty = LifeRecord::new("c");
         assert_eq!(empty.check_story_coherence(Trend::Improving), None);
+    }
+
+    /// REGRESSION (adversarial no-self-witness re-attack): a `Stable` hedge over a
+    /// REAL decline is a DISHONEST hedge that hides a drop — it MUST be flagged. (The
+    /// pure `Improving↔Declining` opposition left this gap; the asymmetric fix closes
+    /// the downside-hiding direction.)
+    #[test]
+    fn stable_claim_while_declining_is_flagged() {
+        let mut down = LifeRecord::new("c");
+        down.append(LifeEvent::Scored(Affinity::new(0.9, 0.8)));
+        down.append(LifeEvent::Scored(Affinity::new(0.3, 0.2))); // real decline
+
+        assert_eq!(
+            down.check_story_coherence(Trend::Stable),
+            Some(StoryDivergence {
+                claimed: Trend::Stable,
+                actual: Trend::Declining,
+            }),
+            "a Narrated claim of Stable ('holding steady / fine') over a real \
+             DECLINING trajectory is a downside-hiding lie — the exact story-vs-struct \
+             drift REQ-4 exists to catch. It must be flagged."
+        );
+    }
+
+    /// And the benign side of the asymmetry: `Stable` over an IMPROVING trajectory is
+    /// an honest under-claim (hides nothing) — NOT flagged.
+    #[test]
+    fn stable_claim_while_improving_is_not_flagged() {
+        let mut up = LifeRecord::new("c");
+        up.append(LifeEvent::Scored(Affinity::new(0.3, 0.2)));
+        up.append(LifeEvent::Scored(Affinity::new(0.9, 0.8))); // improving
+
+        assert_eq!(
+            up.check_story_coherence(Trend::Stable),
+            None,
+            "Stable over Improving is a benign under-claim — it hides no drop, so it \
+             is not a REQ-4 divergence (the asymmetry is deliberate)."
+        );
     }
 
     #[test]
