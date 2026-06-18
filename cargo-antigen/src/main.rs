@@ -4827,7 +4827,11 @@ fn render_propose_outcome(
             // A capability token — the only assertable generalization. Surface it as
             // a SUGGESTION the human inspects + ratifies, never an audited verdict.
             println!("== candidate failure-class fingerprint (ratifiable suggestion) ==\n");
-            println!("  fingerprint: {}", render_fingerprint(token.fingerprint()));
+            // The paste-and-COMPILE scaffold (ADR-063): the DSL the macro actually
+            // compiles, so the human can paste it above an item and ratify in-place —
+            // not the old Debug form the macro rejects.
+            println!("  paste-and-compile:");
+            println!("    {}", render_antigen_scaffold(token.fingerprint()));
             println!("  score tier:  {:?}", token.tier());
             println!(
                 "\nThis is a SUGGESTION drafted from your `{}` marks and gated against your\n\
@@ -5066,10 +5070,23 @@ fn render_propose_json(
 }
 
 /// Render a [`antigen_fingerprint::Fingerprint`] for the suggestion (a human reads +
-/// ratifies it). Uses the `Debug` shape — a canonical human-facing pretty-printer is
-/// a render charter; for v0.5 the Debug form is honest + inspectable.
+/// ratifies it). Uses the `Debug` shape — kept for the JSON surface's machine-facing
+/// `structural_fingerprint` field. The HUMAN paste-and-compile surface uses
+/// [`render_antigen_scaffold`] (ADR-063): the DSL the macro actually compiles.
 fn render_fingerprint(fp: &antigen_fingerprint::Fingerprint) -> String {
     format!("{fp:?}")
+}
+
+/// Render a `Fingerprint` as the paste-and-COMPILE `#[antigen(fingerprint = r#"…"#)]`
+/// scaffold — the SEAM helper (board task #12), serving the three currently-textless-or-
+/// generic surfaces with one renderer: propose-success (the minted draft), scan-suggestion
+/// (the `<antigen>` placeholder), and `cargo antigen new`'s stub (its first non-failure
+/// rung). Per ADR-063, its faithfulness is INHERITED from the serializer's round-trip:
+/// because `parse(serialize(fp)) == fp`, the pasted attribute parses back to the SAME
+/// fingerprint the tool computed — paste-and-compile, not paste-and-rewrite (the old
+/// `Debug` form was NOT macro-parseable, the precise gap ADR-063 closes).
+fn render_antigen_scaffold(fp: &antigen_fingerprint::Fingerprint) -> String {
+    antigen_fingerprint::to_antigen_attr(fp)
 }
 
 fn run_new(name: String) -> ExitCode {
