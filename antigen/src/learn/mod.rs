@@ -26,6 +26,7 @@
 //! auto-asserted class.
 
 pub mod affinity;
+pub mod discriminator;
 pub mod life_record;
 pub mod maturation;
 pub mod propose;
