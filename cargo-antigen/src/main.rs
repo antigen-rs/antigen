@@ -248,6 +248,10 @@ struct ScanArgs {
 /// operator supplies and labels the clean corpus, and the gate verifies only
 /// against what they supply (ADR-044/047; auto-labeling "unmarked = clean" is the
 /// ATK-047-4 mislabeled-clean residual the gate must not trust).
+// Four independent CLI toggles (list_clusters / exit_code / explain / suggest) — each a
+// distinct user-facing affordance, not a state-machine that should be one enum. The
+// excessive-bools lint targets boolean-blindness in domain state; these are clap flags.
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Parser)]
 struct ProposeArgs {
     /// Root to scan for the marked DEFECT cluster (the `#[dread]`/`#[aura]` sites
@@ -302,6 +306,23 @@ struct ProposeArgs {
     /// exit code (the gate holds; GATE-G is untouched). The source tree is byte-unchanged.
     #[arg(long)]
     explain: bool,
+    /// **The effector SUGGEST-floor — show the spared twin as a suggested fix.** When
+    /// the gate PROMOTES (it found a spared clean sibling — the near-miss that
+    /// witnessed the generalization), `--suggest` renders that sibling as a
+    /// retrieve-then-adapt FIX SUGGESTION: "your defect carries `<the discriminating
+    /// signal>`; this spared clean sibling `<name>` shows the safe SHAPE without it —
+    /// adapt toward it." At the lowest trust rung (`MaybeIncorrect` — suggest, NEVER
+    /// auto-apply; the human ratifies).
+    ///
+    /// **Honest-scope (load-bearing):** the spared twin is a DIFFERENT function that
+    /// merely shares the fingerprint-keyed conjuncts. It shows the safe SHAPE, NOT a
+    /// verified fix — intent-preservation is the human's call (a `.unwrap()` and a
+    /// `.ok()` of the same flush are NOT the same code). So `--suggest` never claims
+    /// correctness. When there is NO spared twin (route-to-human), it does NOT fabricate
+    /// one — it falls back to the GENUS fix-direction (ADR-038) and says so. A
+    /// SUGGEST-floor: it renders, it never writes the source tree (observe-don't-declare).
+    #[arg(long)]
+    suggest: bool,
 }
 
 #[derive(Debug, Parser)]
@@ -4058,7 +4079,15 @@ fn run_propose(args: ProposeArgs) -> ExitCode {
         .explain
         .then(|| compute_explanation(&cluster, &clean_corpus, &outcome));
 
-    render_propose_outcome(&outcome, &args, explanation.as_ref())
+    // --suggest: the effector SUGGEST-floor. Compute the retrieve-then-adapt fix
+    //     suggestion — the spared clean twin + the discriminating signal the defect
+    //     carries that the twin lacks. A pure READ over the SAME cluster + corpus; it
+    //     NEVER writes the source (observe-don't-declare). None when --suggest is off.
+    let suggestion = args
+        .suggest
+        .then(|| compute_suggestion(&cluster, &clean_corpus));
+
+    render_propose_outcome(&outcome, &args, explanation.as_ref(), suggestion.as_ref())
 }
 
 /// The GATE-G reasoning behind a propose verdict (the `--explain` payload). A pure
@@ -4154,6 +4183,226 @@ fn type_last_segment(ty: &syn::Type) -> String {
             .last()
             .map_or_else(|| "?".to_string(), |s| s.ident.to_string()),
         _ => "?".to_string(),
+    }
+}
+
+/// The effector trust-ladder rung a suggestion sits at — mirrors
+/// `cargo_metadata::diagnostic::Applicability` (the stable re-export of rustc's
+/// `Applicability`), the canonical rustfix trust semantics.
+///
+/// The SUGGEST-floor (this build unit) emits ONLY [`Applicability::MaybeIncorrect`]:
+/// the retrieve-then-adapt suggestion shows the safe shape but cannot prove
+/// intent-preservation, so it is never auto-applied — the human ratifies. The richer
+/// rungs (`MachineApplicable` auto-apply) are a later build unit gated on a correctness
+/// oracle ACT does not yet have; defining the full enum now names the ladder honestly.
+/// (A local mirror, not the `cargo_metadata` crate dependency: the floor RENDERS a
+/// suggestion, it does not yet apply a `rustfix` diff — the crate dep lands with
+/// auto-apply, where `rustfix` is needed anyway. Anti-YAGNI: no heavy dep for a
+/// 4-variant enum a render-only floor uses.)
+///
+/// All four variants mirror the canonical enum faithfully even though the SUGGEST-floor
+/// constructs only `MaybeIncorrect` — the ladder is named in full so a reader sees the
+/// trust-spectrum the effector climbs (the higher rungs land with the auto-apply build
+/// unit). `dead_code` is allowed for the not-yet-constructed rungs, not silenced
+/// globally.
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Applicability {
+    /// The suggestion is correct and can be auto-applied. (NOT emitted by the floor —
+    /// it requires a correctness oracle ACT does not yet have.)
+    MachineApplicable,
+    /// The suggestion shows the right shape but may not preserve intent — suggest, the
+    /// human ratifies. **The SUGGEST-floor's only rung.**
+    MaybeIncorrect,
+    /// The suggestion contains placeholders the human must fill.
+    HasPlaceholders,
+    /// Applicability is unknown.
+    Unspecified,
+}
+
+impl Applicability {
+    /// The human-facing label for the trust rung.
+    const fn label(self) -> &'static str {
+        match self {
+            Self::MachineApplicable => "machine-applicable (auto-apply)",
+            Self::MaybeIncorrect => "maybe-incorrect (suggest; ratify by hand)",
+            Self::HasPlaceholders => "has-placeholders (fill in by hand)",
+            Self::Unspecified => "unspecified",
+        }
+    }
+}
+
+/// The effector SUGGEST-floor payload (the `--suggest` output) — a retrieve-then-adapt
+/// fix suggestion derived from GATE-G's spared-clean output. A pure projection over the
+/// cluster + corpus; NEVER writes the source tree (observe-don't-declare at the effector).
+struct ProposeSuggestion {
+    /// The spared clean sibling that witnessed the generalization (the retrieval
+    /// target — the safe shape the defect should adapt toward), described as
+    /// `<kind> <name>`. `None` when the corpus holds no near-miss (route-to-human →
+    /// the no-twin genus-fallback path).
+    twin: Option<String>,
+    /// The discriminating signal the defect carries that the twin lacks — rendered
+    /// human-readably (e.g. "calls `unwrap` or `expect`"). The "what makes your sites
+    /// defective" half of the suggestion. `None` when the draft carries no readable
+    /// discriminating conjunct (degenerate / no-skeleton).
+    signal: Option<String>,
+}
+
+/// Compute the `--suggest` payload (the effector SUGGEST-floor) by re-deriving the
+/// draft (the same pure `anti_unify` over the cluster `propose` used) and reading
+/// GATE-G's spared-clean output: the spared near-miss twin (`near_miss_index`) + the
+/// draft's discriminating signal. Read-only; it mints no token, writes no source,
+/// changes no verdict — a pure projection (ADR-002/006: a READER of present substrate).
+fn compute_suggestion(cluster: &[syn::Item], clean_corpus: &[syn::Item]) -> ProposeSuggestion {
+    use antigen::learn::propose::anti_unify;
+    use antigen::learn::self_tolerance::near_miss_index;
+
+    let draft = anti_unify(cluster);
+
+    // The retrieval target: the spared clean sibling one discriminating constraint from
+    // the defect (the safe shape). Present on promote; ABSENT on route-to-human (the
+    // genus-fallback path).
+    let twin_index = draft
+        .as_ref()
+        .and_then(|d| near_miss_index(d, clean_corpus));
+    let twin = twin_index.map(|i| describe_item(&clean_corpus[i]));
+
+    // The discriminating signal = the conjunct(s) the spared twin FAILS — the genuine
+    // "what to change" (the defect HAS this, the safe twin LACKS it). This is far more
+    // honest than listing the whole shared skeleton: a near-miss is spared by failing
+    // exactly the discriminating conjunct(s), so those ARE the signal. When there is no
+    // twin (route-to-human), fall back to the draft's discriminating conjuncts (the
+    // non-anchor signals) — the best available "what makes these defective" without a
+    // twin to diff against.
+    let signal = match (draft.as_ref(), twin_index) {
+        (Some(d), Some(i)) => render_distinguishing_from_twin(d, &clean_corpus[i]),
+        (Some(d), None) => render_discriminating_signal(d),
+        (None, _) => None,
+    };
+
+    ProposeSuggestion { twin, signal }
+}
+
+/// Render ONE constraint human-readably, or `None` for a bare structural/identity
+/// anchor (item-kind / trait / name — the shared family shape, not a defect signal).
+/// Combinators render their discriminating children joined.
+fn render_one_constraint(c: &antigen_fingerprint::Constraint) -> Option<String> {
+    use antigen_fingerprint::Constraint;
+    match c {
+        // Structural/identity anchors — the shared family shape, not the defect signal.
+        Constraint::Item(_) | Constraint::ImplOfTrait(_) | Constraint::NameMatches(_) => None,
+        // Body-level discriminators — the defect signal.
+        Constraint::BodyCalls(n) => Some(format!("calls `{n}`")),
+        Constraint::BodyContainsMacro(n) => Some(format!("invokes `{n}!`")),
+        Constraint::HasMethod(_) => Some("has a discriminating method".to_string()),
+        Constraint::AttrPresent(a) => Some(format!("carries `#[{a}]`")),
+        Constraint::DocContains(s) => Some(format!("doc contains \"{s}\"")),
+        Constraint::Variants(_) => Some("has a discriminating variant count".to_string()),
+        Constraint::Qualifier(_) => Some("carries a discriminating qualifier".to_string()),
+        Constraint::Derives(d) => Some(format!("derives `{d}`")),
+        Constraint::SerdeArg(_) => Some("carries a discriminating serde attr".to_string()),
+        // Combinators render their discriminating children, joined.
+        Constraint::Not(inner) => render_one_constraint(inner).map(|s| format!("does NOT {s}")),
+        Constraint::AnyOf(arms) => {
+            let parts: Vec<String> = arms.iter().filter_map(render_one_constraint).collect();
+            (!parts.is_empty()).then(|| parts.join(" or "))
+        },
+        Constraint::AllOf(arms) => {
+            let parts: Vec<String> = arms.iter().filter_map(render_one_constraint).collect();
+            (!parts.is_empty()).then(|| parts.join(" and "))
+        },
+    }
+}
+
+/// Render the draft's DISCRIMINATING signal human-readably — the body-level conjuncts
+/// that distinguish a defect from its clean family-sibling. Skips the bare structural
+/// anchors. Returns `None` when there is no readable discriminating conjunct (a
+/// degenerate draft). Used on the NO-TWIN path (route-to-human), where there is no
+/// sibling to diff against — the best available "what makes these defective".
+fn render_discriminating_signal(draft: &antigen_fingerprint::Fingerprint) -> Option<String> {
+    let parts: Vec<String> = draft
+        .constraints
+        .iter()
+        .filter_map(render_one_constraint)
+        .collect();
+    (!parts.is_empty()).then(|| parts.join("; "))
+}
+
+/// Render the signal that DISTINGUISHES the defect from the spared `twin` — the
+/// conjunct(s) the twin FAILS. A near-miss is spared by failing exactly the
+/// discriminating conjunct(s), so those ARE the genuine "what to change" (the defect
+/// HAS them, the safe twin LACKS them). This is far more honest than listing the whole
+/// shared skeleton: only the conjuncts the twin doesn't satisfy are the defect signal.
+///
+/// Walks the draft's top-level conjuncts; for each non-anchor conjunct, tests whether
+/// the twin matches a single-conjunct fingerprint of it. The ones the twin does NOT
+/// match are the discriminators. Returns `None` if the twin matches every conjunct
+/// (it shouldn't — a near-miss fails ≥1 — but stay total) or none is readable.
+fn render_distinguishing_from_twin(
+    draft: &antigen_fingerprint::Fingerprint,
+    twin: &syn::Item,
+) -> Option<String> {
+    use antigen_fingerprint::{Constraint, Fingerprint};
+    let parts: Vec<String> = draft
+        .constraints
+        .iter()
+        .filter(|c| {
+            // Keep only the conjuncts the twin FAILS (the discriminators it lacks).
+            !Fingerprint {
+                constraints: vec![(*c).clone()],
+            }
+            .matches(twin)
+        })
+        // Don't surface a bare anchor even if the twin somehow failed it.
+        .filter(|c| !matches!(c, Constraint::Item(_) | Constraint::ImplOfTrait(_) | Constraint::NameMatches(_)))
+        .filter_map(render_one_constraint)
+        .collect();
+    (!parts.is_empty()).then(|| parts.join("; "))
+}
+
+/// Render the `--suggest` payload (the effector SUGGEST-floor) for one propose outcome.
+/// On a PROMOTE (a spared twin exists) it shows the twin as a retrieve-then-adapt fix at
+/// the [`Applicability::MaybeIncorrect`] rung WITH the intent-preservation caveat; on the
+/// no-twin path (route-to-human) it falls back to the genus fix-direction and SAYS there
+/// is no in-corpus example (never fabricates one). Writes only to stdout.
+fn render_suggestion(s: &ProposeSuggestion, marker: &str) {
+    println!("\n--suggest (effector SUGGEST-floor — retrieve-then-adapt):");
+    if let Some(twin) = &s.twin {
+        // The retrieve-then-adapt suggestion: the spared twin is the safe shape.
+        if let Some(sig) = &s.signal {
+            println!(
+                "  Your `{marker}` sites {sig}. The spared clean sibling `{twin}` is\n  \
+                 ONE discriminating constraint away — it shows the safe SHAPE without\n  \
+                 that signal. Adapt the flagged sites toward `{twin}`."
+            );
+        } else {
+            println!(
+                "  The spared clean sibling `{twin}` is one discriminating constraint from\n  \
+                 your `{marker}` sites — it shows the safe SHAPE. Adapt the flagged sites\n  \
+                 toward `{twin}`."
+            );
+        }
+        println!("  trust: {}", Applicability::MaybeIncorrect.label());
+        // The load-bearing honest-scope caveat (adversarial STRESS #5): the twin is a
+        // DIFFERENT function — it shows the shape, NOT a verified fix.
+        println!(
+            "  CAVEAT: `{twin}` is a DIFFERENT function that merely shares the\n  \
+             fingerprint-keyed conjuncts — it shows the safe SHAPE, NOT a verified fix.\n  \
+             Intent-preservation is YOUR call: the twin may handle the case differently\n  \
+             than your site intends (e.g. propagate vs silently drop). Ratify by hand."
+        );
+    } else {
+        // The no-twin case — fall back to the genus fix-direction, never fabricate.
+        let signal = s.signal.as_deref().unwrap_or("the flagged behavior");
+        println!(
+            "  No spared clean sibling (twin) was found in your corpus — there is NO\n  \
+             in-corpus example of the safe shape, so antigen will NOT fabricate one.\n  \
+             Your `{marker}` sites {signal}. The GENUS fix-direction (ADR-038) is one of:\n  \
+             recover-the-info (don't drop the error) · tighten-the-guard · reorder-the-effect.\n  \
+             Add a clean sibling that is one discriminating constraint from the defect to\n  \
+             get a concrete in-corpus twin."
+        );
+        println!("  trust: {}", Applicability::MaybeIncorrect.label());
     }
 }
 
@@ -4564,12 +4813,13 @@ fn render_propose_outcome(
     >,
     args: &ProposeArgs,
     explain: Option<&ProposeExplanation>,
+    suggest: Option<&ProposeSuggestion>,
 ) -> ExitCode {
     use antigen::learn::propose::ProposeOutcome;
     use antigen::learn::self_tolerance::ToleranceVerdict;
 
     if matches!(args.format, OutputFormat::Json) {
-        return render_propose_json(outcome, args, explain);
+        return render_propose_json(outcome, args, explain, suggest);
     }
 
     let category = match outcome {
@@ -4603,6 +4853,10 @@ fn render_propose_outcome(
                     ),
                 }
             }
+            // --suggest: the effector SUGGEST-floor — show the spared twin as a fix.
+            if let Some(s) = suggest {
+                render_suggestion(s, &args.marker);
+            }
             ProposeExit::Promoted
         },
         Err(ProposeOutcome::Rejected(ToleranceVerdict::NotCorpusWitnessable)) => {
@@ -4634,6 +4888,11 @@ fn render_propose_outcome(
                      discriminating constraint from the defect (the in-family near-miss that\n  \
                      proves the discrimination is real)."
                 );
+            }
+            // --suggest: no spared twin here (route-to-human IS the no-near-miss verdict)
+            // → the genus fix-direction fallback, never a fabricated twin.
+            if let Some(s) = suggest {
+                render_suggestion(s, &args.marker);
             }
             ProposeExit::RouteToHuman
         },
@@ -4710,6 +4969,7 @@ fn render_propose_json(
     >,
     args: &ProposeArgs,
     explain: Option<&ProposeExplanation>,
+    suggest: Option<&ProposeSuggestion>,
 ) -> ExitCode {
     use antigen::learn::propose::ProposeOutcome;
     use antigen::learn::self_tolerance::ToleranceVerdict;
@@ -4773,6 +5033,27 @@ fn render_propose_json(
                 serde_json::json!({
                     "near_miss": ex.near_miss,
                     "bound_twin": ex.bound_twin,
+                }),
+            );
+        }
+    }
+    // --suggest: attach the effector SUGGEST-floor payload — the spared twin (the
+    // retrieve-then-adapt target) + the discriminating signal + the trust rung. Pure
+    // additive; `twin: null` is the no-twin genus-fallback case. The source is never
+    // written (observe-don't-declare).
+    if let Some(s) = suggest {
+        if let serde_json::Value::Object(map) = &mut value {
+            map.insert(
+                "suggest".to_string(),
+                serde_json::json!({
+                    "twin": s.twin,
+                    "signal": s.signal,
+                    "applicability": "maybe-incorrect",
+                    "auto_apply": false,
+                    "note": s.twin.as_ref().map_or(
+                        "no in-corpus twin; genus fix-direction fallback (ADR-038); never fabricated",
+                        |_| "the spared twin shows the safe SHAPE, not a verified fix; intent-preservation is the human's call",
+                    ),
                 }),
             );
         }
