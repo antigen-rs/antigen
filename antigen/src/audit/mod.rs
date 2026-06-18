@@ -77,6 +77,8 @@ pub use prescriptive::{
     OutOfFrameCause, PrescriptiveAuditReport, PrescriptiveVerdict, StepDetail, StepState,
     audit_prescriptive,
 };
+mod defended_status;
+pub use defended_status::{ClassDefenseStatus, DefendedStatusReport, audit_defended_status};
 
 /// The thin audit-side sequencer (ADR-036).
 ///
