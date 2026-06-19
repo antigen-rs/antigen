@@ -42,9 +42,10 @@ use crate::learn::self_tolerance::{is_near_miss, is_near_miss_capable};
 pub enum SilentStatus {
     /// The fingerprint's **shape is gone** — it matches NO item AND no near-miss
     /// exists for it in the live corpus, **and the draft is near-miss-capable** (≥2
-    /// conjuncts, so the absence of a near-miss is *trustworthy*). The failure-shape
-    /// this class guards no longer exists in any detectable form → an **obsolete**
-    /// candidate (safe to forget, subject to the other axes).
+    /// *discriminating* conjuncts, so the absence of a near-miss is *trustworthy*: had
+    /// it evaded, a near-miss would have been operationally detectable). The
+    /// failure-shape this class guards no longer exists in any detectable form → an
+    /// **obsolete** candidate (safe to forget, subject to the other axes).
     Obsolete,
     /// The shape is **present** (the fingerprint matches a live item) but no
     /// **near-miss** appeared — the guarded shape exists, instances simply don't
@@ -57,14 +58,16 @@ pub enum SilentStatus {
     /// broaden/re-arm, do NOT forget. This is the cell ADWIN is blind to for silent
     /// classes.
     Evading,
-    /// **Cannot decide gone-vs-evaded** — the shape is absent but the draft is a
-    /// *single conjunct* ([`is_near_miss`] is structurally blind there, so evasion
-    /// cannot be ruled out). Returning [`Obsolete`](Self::Obsolete) here would let
-    /// CURATE forget a class whose defect merely **mutated within its one conjunct's
-    /// family** (e.g. `body_calls("unwrap")` → the site now calls `expect()`). The
-    /// conservative verdict (ADR-057 conservative-default-under-uncertainty):
-    /// **route-to-human, never auto-forget.** A single-conjunct class's absence is
-    /// not trustworthy as obsolescence.
+    /// **Cannot decide gone-vs-evaded** — the shape is absent but the draft is
+    /// near-miss-*incapable* (fewer than 2 *discriminating* conjuncts: a single
+    /// conjunct, OR one lone discriminator padded by bare structural/identity anchors).
+    /// [`is_near_miss`] is structurally blind there, so evasion cannot be ruled out.
+    /// Returning [`Obsolete`](Self::Obsolete) here would let CURATE forget a class
+    /// whose defect merely **mutated within its discriminator's family** (e.g.
+    /// `body_calls("unwrap")` → the site now calls `expect()`). The conservative
+    /// verdict (ADR-057 conservative-default-under-uncertainty): **route-to-human,
+    /// never auto-forget.** A near-miss-incapable class's absence is not trustworthy as
+    /// obsolescence.
     Indeterminate,
 }
 
@@ -80,17 +83,23 @@ pub enum SilentStatus {
 /// 2. **[`SilentStatus::Dormant`]** iff the shape is present (the draft matches a
 ///    live item) but no near-miss — the shape is alive, keep it.
 /// 3. **[`SilentStatus::Obsolete`]** iff the shape is absent, no near-miss, **and the
-///    draft is [`is_near_miss_capable`]** (≥2 conjuncts) — the absence is
-///    *trustworthy* (had it evaded, a near-miss would have been detectable).
-/// 4. **[`SilentStatus::Indeterminate`]** iff the shape is absent and the draft is a
-///    *single conjunct* — [`is_near_miss`] is structurally blind, so gone-vs-evaded
-///    is undecidable → route-to-human, never auto-forget (ADR-057).
+///    draft is [`is_near_miss_capable`]** (≥2 *discriminating* conjuncts) — the absence
+///    is *trustworthy* (had it evaded, a near-miss would have been *detectable*).
+/// 4. **[`SilentStatus::Indeterminate`]** iff the shape is absent and the draft is
+///    near-miss-*incapable* (fewer than 2 discriminating conjuncts) — [`is_near_miss`]
+///    is structurally blind, so gone-vs-evaded is undecidable → route-to-human, never
+///    auto-forget (ADR-057).
 ///
-/// The single-conjunct guard closes the READER's evasion-blindness (the adversarial
-/// find): without it, `silent_status(body_calls("unwrap"), [fn(){ x.expect() }])`
-/// returns `Obsolete` (forget) when the defect actually mutated `unwrap → expect`.
-/// Reads [`Fingerprint::matches`] + [`is_near_miss`] + [`is_near_miss_capable`] — no
-/// temporal signal, no STOCK.
+/// The capability guard closes the READER's evasion-blindness (the adversarial find):
+/// without it, `silent_status(body_calls("unwrap"), [fn(){ x.expect() }])` returns
+/// `Obsolete` (forget) when the defect actually mutated `unwrap → expect`. The guard is
+/// **operational, not a count** (Survey-wave fix, ADR-047 Amendment 2): a draft with one lone
+/// discriminator padded by bare anchors (`name = matches("handle_*")` bolted onto
+/// `body_calls("unwrap")`) is near-miss-*capable by count* yet *blind in operation* — the
+/// only near-miss-forming drop keeps the lone discriminator, which the mutated item no
+/// longer matches. Counting *discriminators* (not conjuncts) routes it to `Indeterminate`,
+/// not `Obsolete`. Reads [`Fingerprint::matches`] + [`is_near_miss`] +
+/// [`is_near_miss_capable`] — no temporal signal, no STOCK.
 #[must_use]
 pub fn silent_status(draft: &Fingerprint, corpus: &[syn::Item]) -> SilentStatus {
     // EVADING first: a near-miss anywhere is the act-now signal, even if the exact
@@ -102,9 +111,11 @@ pub fn silent_status(draft: &Fingerprint, corpus: &[syn::Item]) -> SilentStatus 
         return SilentStatus::Dormant;
     }
     // Shape absent and no near-miss. Trust "obsolete" ONLY if a near-miss COULD have
-    // been detected (≥2 conjuncts). A single-conjunct draft is near-miss-blind, so
-    // its absence cannot be distinguished from an in-conjunct-family mutation →
-    // conservative route-to-human (ADR-057), never auto-forget.
+    // been detected — i.e. the draft has ≥2 DISCRIMINATING conjuncts (operational
+    // capability, not a raw count). A draft with fewer (a single conjunct, OR one lone
+    // discriminator padded by bare anchors) is near-miss-blind, so its absence cannot be
+    // distinguished from an in-family mutation → conservative route-to-human (ADR-057),
+    // never auto-forget.
     if is_near_miss_capable(draft) {
         SilentStatus::Obsolete
     } else {
