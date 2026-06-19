@@ -552,6 +552,12 @@ impl ExpHistogram {
 
 /// **The drift detector** (ADR-065) — a batch-pure change-point test over a trajectory.
 ///
+/// `delta` (`δ`) is the CONFIDENCE — the false-positive bound (Theorem 3.1); the
+/// caller's contract is `δ ∈ (0, 1)` (use [`DEFAULT_DELTA`]). An out-of-range `δ` is
+/// CLAMPED into the safe interval rather than allowed to silently miscalibrate the FP
+/// guarantee (`δ ≤ 0` ⇒ a NaN/∞ bound; `δ ≥ 1` ⇒ an over-firing bound — the dangerous
+/// direction for a decay-trigger). In-range `δ` is untouched.
+///
 /// Runs PER-AXIS (recall, precision) with `δ_axis = δ/2`
 /// (Bonferroni over the two axes) and ORs the alarms — returning the FIRST axis that
 /// fires (recall checked first, the red-queen signal never masked). If no axis fires
@@ -579,6 +585,24 @@ impl ExpHistogram {
 /// [`LifeRecord`]: crate::learn::life_record::LifeRecord
 #[must_use]
 pub fn detect(trajectory: &[Affinity], delta: f64) -> DriftVerdict {
+    // δ is a CONFIDENCE — the caller's contract is δ ∈ (0, 1) (the false-positive bound,
+    // Theorem 3.1). An out-of-range δ silently MISCALIBRATES the safety-critical FP
+    // guarantee: δ ≤ 0 makes `ε_cut` NaN/∞ (the bound is `√(…·ln(4/δ'))`); δ ≥ 1 LOOSENS
+    // the bound so the detector OVER-FIRES (a false drift → a wrongful forget candidate —
+    // the dangerous direction for a decay-trigger). Rather than return a NaN-poisoned or
+    // over-firing verdict (the exact silent-miscalibration antigen exists to catch), the
+    // detector CLAMPS δ into the safe interval so the FP guarantee can NEVER be silently
+    // broken by an out-of-range δ. `0.5` is the conservative max false-positive rate (a
+    // detector allowed to be wrong half the time is already past useful); the
+    // `MIN_POSITIVE` floor keeps δ→0 honest-blind (the safe direction). In-range δ
+    // (e.g. the canonical `0.05`) is untouched — the clamp is a no-op for every valid
+    // caller and a safety net only for the bug case. NaN δ ⇒ clamp to the floor (blind).
+    let delta = if delta.is_nan() {
+        f64::MIN_POSITIVE
+    } else {
+        delta.clamp(f64::MIN_POSITIVE, 0.5)
+    };
+
     let delta_axis = delta / 2.0; // Bonferroni over the two axes (ADR-065)
     let mut under_powered: Option<DriftVerdict> = None;
     let mut tightest_no_drift = f64::INFINITY;
