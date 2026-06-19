@@ -549,12 +549,13 @@ fn atk_adwin_fuse_table_rows_when_both_sighted() {
         ClassVerdict::Evaded,
         "recall-drop + near-miss ⇒ Evaded"
     );
-    // recall-drop + Dormant ⇒ Dormant (VIRTUAL drift / churn — KEEP, the autoimmune-
-    // forget cell, closed).
+    // recall-drop + Dormant ⇒ RouteToHuman (ADR-065 Amendment 1): the cause (churn vs
+    // evasion) is UNDECIDABLE on a denominator-free rate, so neither Dormant/KEEP nor
+    // Evaded/ReArm is defensible — the third conservatism-join "channel-can't-decide" cell.
     assert_eq!(
         fuse_channels(recall_drift(), SilentStatus::Dormant, false),
-        ClassVerdict::Dormant,
-        "recall-drop + shape-present-no-near-miss ⇒ Dormant (virtual drift)"
+        ClassVerdict::RouteToHuman,
+        "recall-drop + shape-present-no-near-miss ⇒ RouteToHuman (UNDECIDABLE cause; ADR-065 Amd 1)"
     );
 
     // precision-drop + shape-gone-undefended ⇒ NOT Obsolete (a precision-drop is
