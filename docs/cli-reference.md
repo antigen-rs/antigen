@@ -200,6 +200,44 @@ The vocabulary this command uses — *marked unknown*, *anti-unify*, *clean corp
 *GATE-G*, *near-miss*, *route-to-human*, *PromotedDraft* — is anchored in the
 [glossary](glossary.md#learning-core-terms-adr-044045047048).
 
+### `mine`
+
+```
+cargo antigen mine [--root <PATH>] [--min-pairs <N>] [--format human|json]
+```
+
+Mines a repository's `.git` for the SZZ `(defect, fix)` corpus — the Learning-Core's
+input corpus, **recomputable from git history** (it is never stored; you regenerate it).
+It walks the **full object graph** (`rev-list --all`, not a tip revwalk), classifies
+fix-commits, and links each to its first parent.
+
+```
+$ cargo antigen mine
+SZZ corpus mined from .
+  246 (defect, fix) pairs across the full object graph
+```
+
+`--min-pairs <N>` is the honest tripwire: exit non-zero (`1`) if the mined corpus has
+**fewer** than `N` pairs. A near-zero count on a repo with real fix-history signals a
+tip-revwalk regression (the corpus-starvation bug). Default `0` = report-only, never fail
+on size.
+
+```
+$ cargo antigen mine --min-pairs 999999
+SZZ corpus mined from .
+  246 (defect, fix) pairs across the full object graph
+  note: corpus is small — on a repo with real fix-history this can signal a tip-revwalk (mine the full graph: rev-list --all)
+$ echo $?
+1
+```
+
+`--format json` emits the full pair list (`{ defect_commit, fix_commit }` records) for a
+tool to consume. `mine` is the one shipped verb that feeds the v0.6 maturing-organism: its
+corpus is the recomputable input behind the life-record STOCK. The organs that consume it —
+maturation, drift-detection, curation — are a **library** today (`antigen::learn::*`, see
+[`library-api.md`](library-api.md)); the `cargo antigen` verb that drives the full curation
+loop is the v0.7 frontier.
+
 ---
 
 ## Exit codes

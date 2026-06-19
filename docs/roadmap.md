@@ -89,6 +89,74 @@ are now **built** (ADR-047/048):
 
 ---
 
+## Shipped (v0.5 — the learning organism goes live)
+
+v0.5 takes the Learning-Core from a library with zero production callers to a live verb.
+
+### `cargo antigen propose` — the keystone verb (ADR-045/047/048)
+
+The cluster → propose → gate → promote/route loop above now has a production caller:
+`cargo antigen propose` re-acquires a `#[dread]`/`#[aura]`-marked cluster under
+`--cluster-root`, anti-unifies it into a draft, and routes it through GATE-G against an
+**operator-supplied** `--clean-root` corpus. It renders a *ratifiable suggestion* — never
+an auto-`#[presents]` or an auto-named class — and leaves the source tree byte-unchanged.
+On antigen's own marks the verb **routes to a human** (no near-miss in the corpus), which
+is the gate being honest, not a failure. See [`cli-reference.md`](cli-reference.md#propose)
+and the runnable fixture in
+[`examples/propose-demo`](https://github.com/antigen-rs/antigen/tree/main/examples/propose-demo).
+
+### The fingerprint serializer — `to_antigen_attr` (ADR-063)
+
+`antigen-fingerprint` now ships the `Fingerprint → DSL` serializer, the parser's exact
+inverse: for every parser-producible fingerprint, `Fingerprint::parse(serialize(fp)) == fp`.
+This is what lets tooling emit an `#[antigen(fingerprint = r#"…"#)]` attribute a developer
+can paste verbatim. See [`library-api.md`](library-api.md).
+
+---
+
+## Shipped (v0.6 — the maturing organism)
+
+v0.5 made a draft *propose-able*. v0.6 builds the organs that let a **learned class mature
+and be curated over its life** — the affinity-maturation arm and the curation loop around it
+(ADR-059..065).
+
+> **Scope honesty — library-complete, not yet a live CLI loop.** Every v0.6 organ below is
+> **library-complete**: typed, unit/property-tested, and composable as a public
+> `antigen::learn::*` API. What is **not** yet shipped is a production CLI verb that drives
+> the full afferent→efferent curation loop end-to-end — no `cargo antigen` subcommand calls
+> these organs today. The **live curation loop is v0.7**. So if you reach for a
+> `cargo antigen curate` / `cargo antigen drift` command and don't find one, that's the
+> roadmap, not you — the organs exist as a library; the verb that wires them does not yet.
+
+The organs, afferent (sense) → classify → efferent (act):
+
+- **STOCK — the life-record (`antigen::learn::life_record`, ADR-059).** Antigen's first
+  persistent, append-only substrate: a class's autobiography. Before v0.6 `propose()` was a
+  pure function with no memory; the life-record is the trajectory every other v0.6 organ
+  reads. Recomputable inputs (the SZZ `(defect, fix)` corpus) stay derivable via
+  `cargo antigen mine`.
+- **MATURE — affinity + maturation (`antigen::learn::affinity` / `maturation`, ADR-061).**
+  The `Affinity { recall, precision }` 2-vector is the *height* a maturing draft climbs;
+  `maturation::mature` is the germinal-center engine that takes a rough anti-unified draft
+  and matures it toward the Pareto frontier of (recall, precision).
+- **READER — the drift/obsolescence sensor (`antigen::learn::reader`).** Watches a class's
+  relationship to the live code; the silent-core facet reports whether a class has gone
+  dormant, obsolete, or is being evaded.
+- **DISCRIMINATOR — the shared classifier (`antigen::learn::discriminator`).**
+  `fused_classify` fuses the streamless sensors into one `ClassVerdict` per failure-class —
+  the build-once share at the classifier, not duplicated per sensor.
+- **ADWIN — the batch drift-detector (`antigen::learn::adwin`, ADR-065).** The honest-blind
+  loud-class half of the decay-trigger: it reports `Drift` / `NoDrift` / `UnderPowered`,
+  where `UnderPowered` ("I cannot yet see drift for this class, and here is exactly when I
+  will be able to") is the *default* verdict at v0.6 scale — a detector that says-so rather
+  than guessing. See [`concepts.md`](concepts.md#drift-detection-the-maturing-organism).
+- **CURATE — the moral center (`antigen::learn::curate`).** The efferent decision-layer: the
+  forget-gate. Every other organ senses and classifies; CURATE acts — and its conservative
+  default **holds** (never forgets) whenever any channel is blind (ADR-057). The forgetting
+  is the trust.
+
+---
+
 ## Next — the fingerprint-grammar edge (graduation paths)
 
 Every shipped stdlib family carries an honest **tier** (`named` / `suspected` /
