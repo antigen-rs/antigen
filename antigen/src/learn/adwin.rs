@@ -631,6 +631,32 @@ pub fn detect(trajectory: &[Affinity], delta: f64) -> DriftVerdict {
 /// `NoDrift`; a long crater FIRES via the recursion.
 #[must_use]
 fn detect_axis(stream: &[f64], axis: DriftAxis, delta: f64) -> DriftVerdict {
+    // 0. NON-FINITE GUARD (ADR-065 harden, the moral-center P0 fix — INV-ADWIN-1
+    //    extended). A non-finite value (`NaN`/`±∞`) in the stream is GARBAGE the
+    //    channel cannot honestly read, so the channel is BLIND on it — `UnderPowered`,
+    //    never a confident `Drift`/`NoDrift`. The hazard is `±∞` specifically: the
+    //    detector's `ε_cut` is computed from sample COUNTS (always finite), so an `∞`
+    //    mean-difference clears EVERY finite bound and fabricates a high-confidence
+    //    `Drift` the data does not contain — which fuses straight through to
+    //    `Obsolete`/auto-forget (`fuse_channels` guards `UnderPowered`/`Indeterminate`,
+    //    NOT a `Drift` synthesized from garbage). `NaN` would already poison the
+    //    power-guard into `UnderPowered`, but guarding both keeps the contract one
+    //    honest rule: garbage data ⇒ blind channel ⇒ HOLD — the same conservatism the
+    //    fusion-JOIN embodies. The `Affinity` clamp now sanitizes the load path
+    //    ([`Affinity`]'s `Deserialize`), so this is defense-in-depth at the math layer
+    //    for any non-finite value that reaches the detector by any other path.
+    if stream.iter().any(|x| !x.is_finite()) {
+        // Report the most-powerful balanced split's detectable shift as `eps_cut` for
+        // legibility (the same field the honest floor power-guard reports); a blind
+        // channel cannot quantify drift, so `max_observable` is the conventional 1.0.
+        let n = stream.len();
+        let eps_cut =
+            eps_cut_floor(n / 2, n - n / 2, n, delta).map_or(f64::INFINITY, |eps| 2.0 * eps);
+        return DriftVerdict::UnderPowered {
+            eps_cut,
+            max_observable: MAX_OBSERVABLE,
+        };
+    }
     // 1. Recursive descent: does ANY sub-window have a clearing split? Fire on the first.
     if let Some(drift) = detect_recursive(stream, axis, delta) {
         return drift;
