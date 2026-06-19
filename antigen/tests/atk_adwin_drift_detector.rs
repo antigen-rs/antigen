@@ -549,12 +549,13 @@ fn atk_adwin_fuse_table_rows_when_both_sighted() {
         ClassVerdict::Evaded,
         "recall-drop + near-miss ⇒ Evaded"
     );
-    // recall-drop + Dormant ⇒ Dormant (VIRTUAL drift / churn — KEEP, the autoimmune-
-    // forget cell, closed).
+    // recall-drop + Dormant ⇒ RouteToHuman (the THIRD conservatism-join cell, ADR-065
+    // aristotle ruling @26a3d8a): the cause is UNDECIDABLE on the denominator-free rate
+    // (churn vs evasion), so escalate — NOT the old "VIRTUAL drift, KEEP".
     assert_eq!(
         fuse_channels(recall_drift(), SilentStatus::Dormant, false),
-        ClassVerdict::Dormant,
-        "recall-drop + shape-present-no-near-miss ⇒ Dormant (virtual drift)"
+        ClassVerdict::RouteToHuman,
+        "recall-drop + shape-present-no-near-miss ⇒ RouteToHuman (undecidable cause)"
     );
 
     // precision-drop + shape-gone-undefended ⇒ NOT Obsolete (a precision-drop is
