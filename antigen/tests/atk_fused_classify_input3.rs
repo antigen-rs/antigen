@@ -18,13 +18,15 @@
 //! wired-and-ready LIBRARY seam (the canonical fused-classify the pipeline will call),
 //! NOT a fabricated CLI caller. These tests defend the library seam.
 //!
-//! # The contested cell is NOT asserted here
+//! # The (formerly contested) `recall-Drift + Dormant` cell — RULED `RouteToHuman`
 //!
-//! `recall-Drift + SilentStatus::Dormant` is under a live design-Q (camp 2767bd73): the
-//! merged fusion contract maps it `⇒ Dormant` (virtual-drift KEEP); the INPUT-3 wiring
-//! note + the discriminator docstring map it `⇒ Evaded` (loud evasion). Until ruled,
-//! this file asserts only the SAFETY FLOOR both readings agree on (NOT `Obsolete`) for
-//! that cell, plus the un-contested cells in full.
+//! This cell was a ratified-vs-ratified conflict (camp 2767bd73): `⇒ Dormant` (the
+//! merged fusion contract, "virtual-drift KEEP") vs `⇒ Evaded` (the INPUT-3 note, "loud
+//! evasion"). Aristotle RULED `⇒ RouteToHuman` (ADR-065 amendment @`26a3d8a`): the cause
+//! is UNDECIDABLE on the denominator-free `Affinity` rate, so escalate (the third
+//! conservatism-JOIN cell). This file asserts the SAFETY FLOOR for that cell (NEVER
+//! `Obsolete`) — which holds under `RouteToHuman` by construction — plus the
+//! un-contested cells in full.
 
 use antigen::learn::adwin::DEFAULT_DELTA;
 use antigen::learn::affinity::Affinity;
