@@ -16,6 +16,12 @@
 //! a structurally-blind trajectory must NEVER auto-forget.
 //!
 //! ID-chain: ATK-HARDEN-ADWIN-NN.
+//
+// The contract prose names sealed-enum variants (UnderPowered / NoDrift / Drift) and
+// invariants in plain text; backtick-everything (doc_markdown) does not earn its churn
+// in a born-red attack harness (the workspace exempts test ergonomics — same allow the
+// sibling `atk_adwin_fusion_conservatism_join.rs` carries).
+#![allow(clippy::doc_markdown)]
 
 use antigen::learn::adwin::{DriftVerdict, detect};
 use antigen::learn::affinity::Affinity;
