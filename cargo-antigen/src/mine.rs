@@ -71,9 +71,13 @@ pub fn mine_repo(repo_path: &Path) -> Result<Corpus, MineError> {
     for r in all {
         let mut r = r.map_err(|e| MineError::Walk(e.to_string()))?;
         // Peel through tags/symbolic refs to the object the ref ultimately names.
-        if let Ok(peeled) = r.peel_to_id() {
-            tips.push(peeled.detach());
-        }
+        // A peel FAILURE is propagated as `MineError::Walk`, NOT silently dropped: the
+        // function's contract is abandon-don't-truncate (a dropped ref would exclude its
+        // whole ancestry from the `--all` seed, silently under-reporting `Corpus::size`
+        // — the exact tip-revwalk starvation this seed exists to prevent). Matching the
+        // surrounding refs/rev-walk/commit-lookup error handling (deep-comb szz fix).
+        let peeled = r.peel_to_id().map_err(|e| MineError::Walk(e.to_string()))?;
+        tips.push(peeled.detach());
     }
 
     // The full-object-graph ancestry walk from every tip. `gix` de-duplicates a
@@ -175,5 +179,67 @@ mod tests {
         // A path with no .git is an honest Open error, never a panic or silent empty.
         let not_a_repo = std::env::temp_dir().join("antigen-szz-definitely-not-a-git-repo-xyz");
         assert!(matches!(mine_repo(&not_a_repo), Err(MineError::Open(_))));
+    }
+
+    /// Run a `git` subcommand in `dir`, asserting success. Used only to STAGE a real
+    /// `.git` for the dangling-ref fixture (the production miner never shells out — it
+    /// reads the object graph via `gix`).
+    fn git(dir: &Path, args: &[&str]) {
+        let status = std::process::Command::new("git")
+            .current_dir(dir)
+            .args(args)
+            .status()
+            .expect("git must be on PATH for this fixture");
+        assert!(status.success(), "git {args:?} failed in {}", dir.display());
+    }
+
+    /// ATK-DEEPCOMB-SZZ-1 (deep-comb degenerate-input pass) — an UNPEELABLE ref must
+    /// ABANDON the walk (`MineError::Walk`), never be silently dropped.
+    ///
+    /// `mine_repo`'s `--all` seed peels every reference to its object id. A ref that
+    /// fails to peel (a dangling ref pointing at a missing object, a broken symbolic
+    /// ref) was silently skipped by the old `if let Ok(peeled) = r.peel_to_id() {}` —
+    /// which EXCLUDES that ref's entire ancestry from the corpus, silently
+    /// under-reporting `Corpus::size`. That is exactly the tip-revwalk **starvation**
+    /// the `--all` seed exists to prevent, and it directly contradicts the function's
+    /// stated contract: `MineError::Walk` docs say "The walk is abandoned — a partial
+    /// corpus would silently under-report `Corpus::size`," and the `# Errors` section
+    /// says a mid-walk read failure abandons "rather than returning a silently-truncated
+    /// corpus." A dropped unpeelable ref is a silently-truncated corpus.
+    ///
+    /// BORN-RED on the old code (the dangling ref was skipped → `Ok`); GREEN once the
+    /// peel error is `?`-propagated as `MineError::Walk` (abandon-don't-truncate).
+    #[test]
+    fn mine_repo_abandons_on_an_unpeelable_ref_never_silently_drops() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let repo = tmp.path();
+
+        // A minimal real repo with one fix commit (so the GOOD ref has mineable history —
+        // the point is that the BAD ref must not let the walk silently succeed with a
+        // truncated corpus).
+        git(repo, &["init", "-q", "-b", "main"]);
+        git(repo, &["config", "user.email", "t@t.t"]);
+        git(repo, &["config", "user.name", "t"]);
+        std::fs::write(repo.join("f.txt"), "a").unwrap();
+        git(repo, &["add", "f.txt"]);
+        git(repo, &["commit", "-qm", "fix: a panic in Drop"]);
+
+        // Plant a DANGLING ref: a ref file pointing at an object id that does not exist.
+        // `peel_to_id` cannot resolve it → the old code silently dropped it.
+        std::fs::write(
+            repo.join(".git/refs/heads/dangling"),
+            "0000000000000000000000000000000000000001\n",
+        )
+        .unwrap();
+
+        let result = mine_repo(repo);
+        assert!(
+            matches!(result, Err(MineError::Walk(_))),
+            "ATK-DEEPCOMB-SZZ-1: an unpeelable (dangling) ref must ABANDON the walk with \
+             MineError::Walk — abandon-don't-truncate (the function's own contract). \
+             Silently dropping it excludes its ancestry from the --all seed and \
+             under-reports Corpus::size (the tip-revwalk starvation the seed prevents). \
+             Got: {result:?}",
+        );
     }
 }
