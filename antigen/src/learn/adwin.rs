@@ -59,6 +59,8 @@
 //! miscalibration. See [`eps_cut_floor`] / [`eps_cut_full`] / [`ExpHistogram`] for
 //! the per-formula citations.
 
+use antigen_macros::presents;
+
 use crate::learn::affinity::Affinity;
 use crate::learn::reader::SilentStatus;
 
@@ -583,6 +585,15 @@ impl ExpHistogram {
 /// stays sha-free (no time-axis threaded through the math).
 ///
 /// [`LifeRecord`]: crate::learn::life_record::LifeRecord
+//
+// Dogfood (INV-ADWIN-1): this fn IS the failure-locus for
+// [`SilentIntentNullification`](crate::stdlib::dogfood::SilentIntentNullification) —
+// the one place a blind axis (`UnderPowered`) could be silently collapsed into a
+// confident `NoDrift`, or an out-of-range `δ` could silently miscalibrate the FP
+// guarantee. It `#[presents]` that class so `cargo antigen audit` sees the defense.
+// The born-red `atk_adwin_underpowered_never_suppressed_at_antigen_scale` declares it
+// defends the class via `#[defended_by]`; the audit cross-references the two.
+#[presents(SilentIntentNullification)]
 #[must_use]
 pub fn detect(trajectory: &[Affinity], delta: f64) -> DriftVerdict {
     // δ is a CONFIDENCE — the caller's contract is δ ∈ (0, 1) (the false-positive bound,
