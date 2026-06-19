@@ -31,6 +31,7 @@
     clippy::default_trait_access
 )]
 
+use antigen::defended_by;
 use antigen::learn::adwin::{
     Bucket, DEFAULT_DELTA, DriftAxis, DriftVerdict, ExpHistogram, MAX_OBSERVABLE, detect,
     eps_cut_floor, eps_cut_full, fuse_channels, power_threshold_n,
@@ -208,6 +209,7 @@ fn atk_adwin_underpowered_to_fires_boundary_derived_from_formula() {
 }
 
 #[test]
+#[defended_by(SilentIntentNullification)]
 fn atk_adwin_underpowered_never_suppressed_at_antigen_scale() {
     // INV-ADWIN-1: at antigen's CURRENT scale (n≈8) the detector is DEAD and MUST say
     // so — never a silent NoDrift. Even a maximal 0.9→0.1 step at n=8.

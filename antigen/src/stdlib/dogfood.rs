@@ -470,12 +470,23 @@ pub struct FingerprintDigestWithoutFormatValidation;
 /// **Category**: `FunctionalCorrectness` — the produced result (no effect)
 /// contradicts the adopter's declared intent (effect supplied). The summary
 /// tier of both children.
+// Fingerprint-recall note (dogfood, INV — this class ate its own dog food): the
+// original `doc_contains("silently nullified")` matched ONLY this class's own
+// definition doc — it could not recall ANY real instance (the F4/under-coverage
+// direction, an instance of AntigenFingerprintDivergesFromClassExtension #19). The
+// real extension says "silent-miscalibration" (the ADWIN δ-clamp / UnderPowered
+// guard in learn/adwin.rs::detect — a blind-axis intent silently collapsed into a
+// confident NoDrift is exactly this class). So the fingerprint widens to a
+// broad-RECALL `any_of` over the surface phrasings the class actually uses; precision
+// stays in the witness (the F8 recall/precision split this family preaches). The
+// authoritative carrier is the explicit `#[presents(SilentIntentNullification)]` on
+// adwin::detect; this fingerprint is the recall net for the as-yet-undeclared.
 #[antigen(
     name = "silent-intent-nullification",
     category = AntigenCategory::FunctionalCorrectness,
-    fingerprint = r#"doc_contains("silently nullified")"#,
+    fingerprint = r#"any_of([doc_contains("silently nullified"), doc_contains("silent-miscalibration"), doc_contains("silently miscalibrate")])"#,
     family = "dogfood",
-    summary = "A surface appears to accept or honor an adopter's declared intent but does not realize it; the intent is silently nullified between declaration and effect. Parent of ActiveArgumentDiscard (parse-side, behavioral witness) and CapabilityOmissionAtLowering (lowering-side, structural witness), which differ by witness-structure — both are silent.",
+    summary = "A surface appears to accept or honor an adopter's declared intent but does not realize it; the intent is silently nullified between declaration and effect. Parent of ActiveArgumentDiscard (parse-side, behavioral witness) and CapabilityOmissionAtLowering (lowering-side, structural witness), which differ by witness-structure — both are silent. Recall covers the silent-miscalibration phrasing (a blind detector axis collapsed into a confident verdict — the ADWIN instance).",
     references = ["ADR-024", "ADR-007"]
 )]
 pub struct SilentIntentNullification;
