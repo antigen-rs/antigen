@@ -103,7 +103,7 @@ pub struct Affinity {
 /// **Deserialize enforces the clamp invariant at the type boundary** (ADR-065
 /// harden, the moral-center P0 fix).
 ///
-/// The `recall`/`precision` clamp ([`clamp_rate`]: `NaN → 0.0`, `±∞ → [0,1]`) is the
+/// The `recall`/`precision` clamp (`clamp_rate`: `NaN → 0.0`, `±∞ → [0,1]`) is the
 /// type's documented standing invariant — the "honest-labeling-at-the-default"
 /// posture [`new`](Affinity::new) names. But a *derived* `Deserialize` populates the
 /// `pub` fields RAW, so a persisted life-record carrying a non-finite float (e.g. a
