@@ -15,8 +15,9 @@
 //! > For every parser-producible `fp`: `Fingerprint::parse(fp.to_string()) ==
 //! > Ok(fp)`.
 //!
-//! [`Display`] emits the comma-joined top-level constraint list (NO surrounding
-//! `#[antigen(…)]`) — exactly the inner form [`parser::parse_top_level`] reads.
+//! [`Display`](std::fmt::Display) emits the comma-joined top-level constraint list (NO
+//! surrounding `#[antigen(…)]`) — exactly the inner form the parser's top-level entry
+//! (`parser::parse_top_level`) reads.
 //! [`to_antigen_attr`] wraps that in `#[antigen(fingerprint = r#"…"#)]` for the
 //! scaffold consumer.
 //!
