@@ -12925,3 +12925,43 @@ Tekgy greenlit the full ADWIN ship before the seal; the lead charged wiring the 
 
 Whole crate green (385 lib + 13 detector + 12 fusion-contract + 6 fused-classify + all siblings, 0 failed), clippy `--all-targets -D warnings` clean, fmt clean.
 
+---
+
+## ADR-065 Amendment 1 (2026-06-18, ruled by aristotle on the v06 extend→ratify wave) — the recall-Drift + Dormant fusion cell is UNDECIDABLE on a denominator-free rate: RouteToHuman (the third conservatism-join cell), not Dormant/KEEP
+
+**Status**: **RATIFIED** (v06 extend→ratify wave). Append-only; the §Decision (the floor→full seam + the real/virtual fusion + the conservatism-JOIN) stands as amended here.
+
+**What the original ADR-065 §real/virtual-fusion was silent on (the ratified-vs-ratified conflict the ADWIN build surfaced).** ADR-065's fusion table listed `recall-drop + shape PRESENT + no near-miss = VIRTUAL drift (churn), KEEP` (⇒ `ClassVerdict::Dormant`). The build's `fuse_channels` (`antigen/src/learn/adwin.rs`) implemented exactly that, and the adversary's merged-binding-fusion ATK (`antigen/tests/atk_adwin_fusion_conservatism_join.rs`, table row "Drift recall-drop + Dormant ⇒ Dormant → Hold (VIRTUAL drift)") pinned it green. But the SAME cell was reserved as **Evaded (ReArm)** by ADR-065's INPUT-3 framing + the math-researcher's note (a loud recall-drop on a still-present shape IS the evasion the streamless near-miss axis is blind to). Same input, opposite verdict AND opposite curation action, both ratified. The builder correctly refused to silently resolve it.
+
+**The CODE-TRUE finding that resolves it (the first principle neither artifact named).** A recall-`Drift` is a drop in a **denominator-free RATE**, and the cluster-size denominator is **not recorded** anywhere in the substrate the detector reads (CODE-TRUE on `0.6-dev` / HEAD at ruling time):
+
+- `Affinity { recall: f64, precision: f64 }` (`antigen/src/learn/affinity.rs`) — both fields are RATES in `[0,1]`. `recall` = "the FRACTION of defect-cluster members the draft matches"; the cluster-size is divided out at construction and discarded.
+- `LifeEvent::Scored(Affinity)` (`antigen/src/learn/life_record.rs`) carries ONLY the 2-vector; `score_trajectory() -> Vec<Affinity>` is pure rates. There is no `cluster_size` / `corpus_size` / count field anywhere in the life-record.
+
+Therefore a recall-rate drop (e.g. 0.9→0.4) is **genuinely UNDECIDABLE at a snapshot** between two causes the rate cannot distinguish:
+
+- **CHURN** — the cluster shrank (denominator moved); the draft still binds all it can. The rate fell because the denominator changed. ⇒ KEEP (Dormant).
+- **EVASION** — the cluster stayed; the defect mutated; the draft binds fewer members (numerator moved). ⇒ ReArm (Evaded).
+
+The original code's comment ASSERTS the churn cause ("the recall dropped because the corpus churned, NOT because the defect mutated") — a **denominator claim it cannot make**. The INPUT-3 framing assumes the evasion cause — the opposite denominator claim. **Neither is justified on a denominator-free rate; each silently guesses one of two unverifiable causes.**
+
+**The decision (what this amendment rules).** `recall-Drift + Dormant ⇒ ClassVerdict::RouteToHuman (HOLD)`. This is NOT a tie-break between two reasonable verdicts — it is the recognition that the cell has **no determinate verdict on the recorded substrate**, so the only honest action over an undecidable cause is to escalate (ADR-057's conservative default). The cell **JOINS the conservatism-JOIN's RouteToHuman family as the THIRD "a channel cannot decide" cell**, alongside the two ADR-065 already has:
+
+- `UnderPowered` (ANY silent) ⇒ RouteToHuman — the ADWIN channel is blind.
+- (ANY drift) `Indeterminate` ⇒ RouteToHuman — the bit-3 channel is blind.
+- **(NEW) `recall-Drift` + `Dormant` ⇒ RouteToHuman — the DENOMINATOR channel is blind** (the rate discarded the count that would distinguish churn from evasion).
+
+**Why RouteToHuman DOMINATES (not merely a safe default).** It neither rots (as a wrong auto-KEEP would — a silently-obsolete class kept forever) nor guesses (as a wrong auto-ReArm would), AND it preserves ADWIN's whole value: it **surfaces the drift the streamless near-miss axis was blind to** (an auto-KEEP would ignore the loud signal entirely, defeating the detector's purpose). The action-over-silence asymmetry (a wrong-ReArm self-corrects via the self-tolerance gate + the precision axis; a wrong-KEEP rots) is the fallback IF RouteToHuman were unavailable; at v0.6 the ratification interface exists (ADR-051), so the dominating option is available.
+
+**The do-later that DISSOLVES this cell (the reserved future, named so a builder sees the cell is RouteToHuman *because the signal is missing*, not forever).** Record the denominator: a `Scored { affinity, cluster_size }` (or a sibling matched-count) field on the life-record event makes the cause decidable — `recall-drop + STABLE denominator = EVASION (⇒ Evaded/ReArm)`; `recall-drop + SHRINKING denominator = CHURN (⇒ Dormant/KEEP)` — and the cell **SPLITS back into both original verdicts**, retiring RouteToHuman for it. A future amendment makes that split when the denominator is recorded.
+
+**The code + ATK changes this amendment ratifies (adversary applied, supersede-not-erase; commit `8d7e17c` on `amend-routetohuman`, merged as this commit).**
+
+- `fuse_channels` (`adwin.rs`): the recall-`Drift` + `Dormant` arm yields `ClassVerdict::RouteToHuman` (was the `Dormant` passthrough via `_ => bit3`). Explicit arm added before the passthrough. Comment changed from "VIRTUAL drift, KEEP" to "UNDECIDABLE (churn vs evasion) on a denominator-free rate — escalate (ADR-057), the third conservatism-join cell; a recorded denominator would split it."
+- The fusion-table doc-comment (`adwin.rs`, the `///` table preceding `fuse_channels`): the `Dormant` row flips from `Dormant (VIRTUAL drift, KEEP)` to `RouteToHuman (UNDECIDABLE cause — third conservatism-join cell)`. The conservatism-join now has THREE RouteToHuman rows.
+- The conservatism-join ATK (`atk_adwin_fusion_conservatism_join.rs`): `atk_adwin4` renamed to `atk_adwin4_recall_drift_plus_dormant_routes_to_human`; assertion flipped from `ClassVerdict::Dormant` to `ClassVerdict::RouteToHuman`; doc-comment updated to name the denominator-free root cause and the RESERVE.
+
+**Supersedes.** The Build-time ratification #3 entry above ("the `recall-Drift + Dormant` cell is HELD") — the cell is no longer held; it is ruled here. The build-time ratification #2 entry ("recall-`Drift` + `Dormant` ⇒ `Dormant`, the virtual-drift KEEP cell") — superseded in the same way; the code that implemented it is amended by this commit.
+
+**Resolves.** The recall-Drift + Dormant ratified-vs-ratified conflict (the ATK's Dormant/KEEP vs the INPUT-3 reservation's Evaded/ReArm) — by naming the first principle neither encoded: the cause is unverifiable on a denominator-free rate, so the honest verdict is escalate. Behaviorally moot at v0.6 (the cell is unreachable while every class is `UnderPowered`), ruled for correctness so the cell is right the day it first becomes reachable.
+
