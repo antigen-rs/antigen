@@ -54,7 +54,7 @@ use crate::{Constraint, Fingerprint};
 
 impl fmt::Display for Fingerprint {
     /// Emit the comma-joined top-level constraint list — the exact inner form
-    /// [`crate::parser::parse_top_level`] consumes (NO surrounding
+    /// `parse_top_level` consumes (NO surrounding
     /// `#[antigen(…)]`). This is the round-trip oracle's target: `parse` reads
     /// this list back into the same AST.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -164,7 +164,7 @@ fn write_combinator_list(
 /// attribute form the scaffold consumer pastes above an item (ADR-063 §2 — the
 /// cosmetic attribute wrapper).
 ///
-/// The inner DSL is [`Fingerprint`]'s [`Display`]; this only adds the
+/// The inner DSL is [`Fingerprint`]'s [`fmt::Display`]; this only adds the
 /// macro-attribute envelope. Because the inner text round-trips
 /// (`parse(serialize(fp)) == fp`), the pasted attribute parses back to the SAME
 /// fingerprint the tool computed — paste-and-compile, not paste-and-rewrite.
