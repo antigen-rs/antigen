@@ -25,7 +25,7 @@
 //!
 //! The [`Constraint`] alphabet is CLOSED (ADR-047 Amendment 3). The `match` in
 //! [`Constraint`]'s `Display` is therefore **EXHAUSTIVE with no wildcard `_`
-//! arm** — a 17th operator added to the grammar fails to compile this module
+//! arm** — a new operator added to the grammar fails to compile this module
 //! until an arm is written. This turns serializer-completeness from a
 //! coverage-hope into a compiler guarantee. **Adding a wildcard `_` arm
 //! re-opens the silent-variant-drop class and is a rejectable finding against
@@ -74,7 +74,7 @@ impl fmt::Display for Fingerprint {
 impl fmt::Display for Constraint {
     /// Emit a single constraint in the parser's exact surface form.
     ///
-    /// EXHAUSTIVE no-wildcard match over all 16 `Constraint` variants — the
+    /// EXHAUSTIVE no-wildcard match over **every** `Constraint` variant — the
     /// closed-alphabet completeness guarantee (ADR-063 T6). Do NOT add a `_`
     /// arm: a new variant MUST force a compile error here until its inverse is
     /// written.
