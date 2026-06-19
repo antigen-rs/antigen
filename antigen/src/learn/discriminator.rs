@@ -92,6 +92,51 @@ pub const fn classify(silent: SilentStatus, defended: bool) -> ClassVerdict {
     }
 }
 
+/// **The canonical fused-classify (INPUT-3 wired)** — the three-axis per-class verdict
+/// the curation pipeline consumes, consulting the ADWIN loud rate-stream alongside the
+/// two streamless sensors.
+///
+/// This is the production-shaped entry: [`classify`] is the streamless 2-input
+/// special-case (used when there is no trajectory / the loud axis is silent);
+/// `fused_classify` is the FULL read — it derives the loud-axis [`DriftVerdict`] from
+/// the class's affinity-trajectory and joins it via the conservatism-JOIN
+/// ([`fuse_channels`](crate::learn::adwin::fuse_channels)). The loud axis is the third
+/// sensor the docstring at the top of this module reserved (INPUT 3).
+///
+/// # Inputs
+/// - `trajectory` — the class's affinity-trajectory
+///   ([`score_trajectory`](crate::learn::life_record::LifeRecord::score_trajectory)),
+///   the loud-axis input ADWIN reads.
+/// - `silent` — INPUT 1, the streamless source-AST status
+///   ([`silent_status`](crate::learn::reader::silent_status)).
+/// - `defended` — INPUT 2, the witness axis (`tier > None`).
+/// - `delta` — the ADWIN confidence (use
+///   [`DEFAULT_DELTA`](crate::learn::adwin::DEFAULT_DELTA)).
+///
+/// # The conservatism-JOIN is preserved (INV-ADWIN-3)
+/// If the loud axis is blind (`UnderPowered` — the default at antigen's n≈8 scale) OR
+/// the silent axis is `Indeterminate`, the verdict is [`ClassVerdict::RouteToHuman`] —
+/// never an irreversible forget. So at v0.6, where every class is loud-axis-blind, this
+/// reduces to the streamless [`classify`] read for the *forget* decision (the loud axis
+/// abstains, the streamless verdict stands) — the honest "ADWIN sees nothing yet, here's
+/// the streamless call" behavior, NOT a fabricated loud signal.
+///
+/// **Honest scope:** this is the LIBRARY seam — the canonical entry the curation
+/// pipeline will call. At v0.6 that pipeline has no production caller yet (the binary
+/// wires only `propose`); `fused_classify` is the wired-and-ready fused-classify, not a
+/// dormant duplicate of `classify` — it is the path that consults the loud axis, which
+/// `classify` structurally cannot.
+#[must_use]
+pub fn fused_classify(
+    trajectory: &[crate::learn::affinity::Affinity],
+    silent: SilentStatus,
+    defended: bool,
+    delta: f64,
+) -> ClassVerdict {
+    let drift = crate::learn::adwin::detect(trajectory, delta);
+    crate::learn::adwin::fuse_channels(drift, silent, defended)
+}
+
 impl ClassVerdict {
     /// May an efferent loop **auto-forget** a class on this verdict? `true` ONLY for
     /// [`Obsolete`](Self::Obsolete) — the shape is gone AND nothing (witness) holds
