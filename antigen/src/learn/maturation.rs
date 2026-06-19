@@ -129,10 +129,18 @@ fn is_discriminating_conjunct(c: &Constraint) -> bool {
 )]
 #[must_use]
 fn mutation_budget(affinity: Affinity, max_budget: usize) -> usize {
+    // A zero exploration width means zero candidates this round (the climb halts at the
+    // current draft). The non-zero floor below would be `clamp(1, 0)` here — and Rust's
+    // `Ord::clamp` PANICS when `min > max`, so a valid `max_budget == 0` must short-
+    // circuit to 0 rather than fall into the floor (ATK-DEEPCOMB-MATURE / ATK-MATURE-6).
+    if max_budget == 0 {
+        return 0;
+    }
     // L1 "how matured is this draft" in [0, 2] (both axes in [0,1]).
     let maturity = affinity.recall + affinity.precision;
     // Decay from max_budget (maturity 0) to 1 (maturity 2).
     let scaled = (max_budget as f64) * (1.0 - maturity / 2.0);
+    // max_budget >= 1 here, so the `1..=max_budget` floor is a valid clamp range.
     (scaled.round() as usize).clamp(1, max_budget)
 }
 
