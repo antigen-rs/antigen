@@ -851,6 +851,20 @@ pub const fn fuse_channels(
         return ClassVerdict::RouteToHuman;
     }
 
+    // INV-ADWIN-3, half 1b: a Drift carrying a NON-FINITE `observed_diff` (±∞/NaN) is
+    // GARBAGE, not a confident signal — `detect` never emits one (the ADR-065 harden
+    // ±∞/NaN guard sanitizes its OUTPUT), but `fuse_channels` is `pub` and could be
+    // handed a hand-constructed verdict with a non-finite diff. A garbage channel is a
+    // BLIND channel: it cannot endorse an irreversible forget, so it routes to a human —
+    // the same conservatism as `UnderPowered`. This closes the ±∞-Forget class at the
+    // fusion INPUT boundary (harden closed it at detect's output; this is the final
+    // layer — no third). A FINITE diff (every real `detect` output) is untouched.
+    if let DriftVerdict::Drift { observed_diff, .. } = adwin {
+        if !observed_diff.is_finite() {
+            return ClassVerdict::RouteToHuman;
+        }
+    }
+
     // INV-ADWIN-3, half 2: bit-3 blind (Indeterminate) ⇒ RouteToHuman, regardless of
     // ADWIN — even a confident recall-Drift must not forget an undecidable absence
     // (the ADR-057 lethal corner: the defect may have mutated within its one conjunct's
