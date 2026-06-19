@@ -77,7 +77,7 @@ use antigen_fingerprint::Fingerprint;
 /// `None` for incomparable points. There is deliberately **no `Ord`** — collapsing
 /// the frontier to a total order is exactly the scalar mistake this type exists to
 /// refuse.
-#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize)]
 pub struct Affinity {
     /// **BIND-TIGHT** — the fraction of defect-cluster members the draft matches,
     /// in `[0.0, 1.0]`. `1.0` = the draft binds every cluster member (the recall
@@ -98,6 +98,39 @@ pub struct Affinity {
     /// on: `precision < 1.0` means at least one clean item is bound — the autoimmune
     /// condition. The gate is the binary cliff; this is the continuous slope toward it.
     pub precision: f64,
+}
+
+/// **Deserialize enforces the clamp invariant at the type boundary** (ADR-065
+/// harden, the moral-center P0 fix).
+///
+/// The `recall`/`precision` clamp ([`clamp_rate`]: `NaN → 0.0`, `±∞ → [0,1]`) is the
+/// type's documented standing invariant — the "honest-labeling-at-the-default"
+/// posture [`new`](Affinity::new) names. But a *derived* `Deserialize` populates the
+/// `pub` fields RAW, so a persisted life-record carrying a non-finite float (e.g. a
+/// hand-edited or format-permissive `Scored(Affinity)` event) would deserialize an
+/// UNCLAMPED affinity — and a non-finite value is lethal downstream: `+∞` clears the
+/// drift detector's finite `ε_cut`, fabricating a confident `Drift` that auto-forgets
+/// a class (the conservatism-JOIN guards `UnderPowered`/`Indeterminate`, NOT a `Drift`
+/// synthesized from garbage). Routing deserialization through [`new`](Affinity::new)
+/// makes the documented invariant CODE-TRUE for every construction path, not just the
+/// in-process constructors — a claimed invariant that the load path violates is
+/// precisely the failure-class antigen exists to catch.
+impl<'de> serde::Deserialize<'de> for Affinity {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where D: serde::Deserializer<'de> {
+        // Deserialize the wire fields RAW, then route through `new` so the same clamp
+        // every other construction path uses is applied on load. The shadow struct
+        // matches the derived `Serialize` shape exactly (a `{recall, precision}` map),
+        // so the serialize→deserialize round-trip is preserved for in-range values and
+        // SANITIZED (never rejected) for out-of-range/non-finite ones.
+        #[derive(serde::Deserialize)]
+        struct RawAffinity {
+            recall: f64,
+            precision: f64,
+        }
+        let raw = RawAffinity::deserialize(deserializer)?;
+        Ok(Self::new(raw.recall, raw.precision))
+    }
 }
 
 /// Which objective an affinity 2-vector **favors** — the legibility label MATURE
@@ -434,5 +467,39 @@ mod tests {
         let json = serde_json::to_string(&a).expect("serialize");
         let back: Affinity = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(a, back);
+    }
+
+    /// ATK-HARDEN-AFFINITY-SERDE: `Deserialize` enforces the clamp invariant at the
+    /// type boundary (the moral-center P0 root fix). A persisted life-record carrying
+    /// a non-finite or out-of-range affinity must deserialize to the CLAMPED value
+    /// (`NaN → 0.0`, `±∞ → [0,1]`, out-of-range pinned), NOT the raw poison — a raw
+    /// `±∞` reaching the drift detector fabricates a confident `Drift` that
+    /// auto-forgets a class. The clamp is the type's documented standing invariant; it
+    /// must hold on the LOAD path, not only at `new()`.
+    #[test]
+    fn deserialize_enforces_the_clamp_invariant() {
+        // A format that admits non-finite/out-of-range floats: a serde_json::Value
+        // built from raw numbers (JSON proper has no Infinity literal, but the same
+        // Deserializer path is exercised by any format that does — and direct numbers
+        // out of `[0,1]` are the always-reachable case).
+        let raw = serde_json::json!({ "recall": 5.0, "precision": -2.0 });
+        let back: Affinity = serde_json::from_value(raw).expect("deserialize clamps, never errors");
+        assert_eq!(
+            back,
+            aff(1.0, 0.0),
+            "out-of-range affinity must clamp on deserialize (recall 5.0→1.0, \
+             precision -2.0→0.0), not load raw — the invariant is enforced at the \
+             type boundary, not just at new().",
+        );
+
+        // NaN via a float-permissive in-memory Deserializer (serde_json::Number cannot
+        // hold NaN, so route the NaN through `from_str` of a non-JSON-but-serde format
+        // is overkill; instead assert the constructor-equivalence the impl guarantees:
+        // Deserialize == new(), and new() already clamps NaN→0.0 — covered by
+        // `new_clamps_out_of_range_and_nan`. The boundary wiring is what this test
+        // pins: the LOAD path routes through `new`, so every clamp `new` does, the
+        // load path does too.
+        let clamped_via_new = Affinity::new(f64::NAN, f64::INFINITY);
+        assert_eq!(clamped_via_new, aff(0.0, 1.0));
     }
 }
