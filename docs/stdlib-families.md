@@ -597,6 +597,42 @@ cargo run --bin cargo-antigen -- antigen scan --root antigen/examples --format j
 
 ---
 
+## Dogfood antigens (antigen's own)
+
+Distinct from the families above: these are **antigen-internal** failure-classes —
+classes antigen observed in *its own* development substrate and marks on its own
+source (`antigen/src/stdlib/dogfood.rs`). They are **not part of the bundled catalog**
+and are **not imported by adopters**; they exist so antigen eats its own dog food.
+A `cargo antigen scan` on an external crate (even with `--bundled-catalog`) never
+surfaces them.
+
+### `SilentIntentNullification` — *dogfood*
+
+A surface appears to accept or honor an adopter's declared intent but does not realize
+it — the intent is silently nullified between declaration and effect. It is the
+**parent** of two witness-distinct children, both silent: `ActiveArgumentDiscard`
+(parse-side, behavioral witness) and `CapabilityOmissionAtLowering` (lowering-side,
+structural witness).
+
+Antigen marks its *own* drift-detector with it: `antigen::learn::adwin::detect` carries
+`#[presents(SilentIntentNullification)]` because a blind detector axis collapsed into a
+confident verdict would be exactly this class — the immune system declaring immunity to
+its own silent-miscalibration failure-mode (the recall fingerprint covers the
+`"silently nullified"` / `"silent-miscalibration"` phrasing). A scan of antigen's own
+tree surfaces the mark as a **candidate, not a verdict**:
+
+```
+$ cargo antigen scan --root antigen
+  antigen\src\learn\adwin.rs:118  SilentIntentNullification on enum [fingerprint match]
+  antigen\src\stdlib\dogfood.rs:494  SilentIntentNullification on struct [fingerprint match]
+```
+
+For the full dogfood roster and each class's witness-structure, see the source
+docstrings in
+[`antigen/src/stdlib/dogfood.rs`](../antigen/src/stdlib/dogfood.rs).
+
+---
+
 ## See also
 
 - [`examples-guide.md`](examples-guide.md) — a runnable walkthrough lesson for

@@ -20,6 +20,17 @@ Comprehensive, co-native, structural memory of failure-classes, defenses, attest
 > and per-release manifest see [`CHANGELOG.md`](CHANGELOG.md) and
 > [crates.io](https://crates.io/crates/antigen).
 
+> **What's new in v0.6 — the maturing organism.** Beyond declaring and scanning
+> failure-classes, antigen is growing the organs to let a *learned* class mature
+> and be curated over its life: a persistent life-record (the class's
+> autobiography), an affinity-maturation engine, a drift-detector that honestly
+> says "I can't see drift yet" rather than guessing, and a conservative forget-gate.
+> These ship today as a **library** (`antigen::learn`) — typed, tested, composable;
+> the `cargo antigen` verb that drives the full curation loop end-to-end is the v0.7
+> frontier. See [`docs/concepts.md`](docs/concepts.md#drift-detection-the-maturing-organism)
+> for the organ tour and [`docs/library-api.md`](docs/library-api.md#drift-detection-driftverdict-adr-065)
+> for the public surface.
+
 ---
 
 ## The problem antigen addresses
