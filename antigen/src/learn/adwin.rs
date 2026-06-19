@@ -737,17 +737,23 @@ fn full_window_tightest_margin(stream: &[f64], delta: f64) -> f64 {
 ///
 /// | ADWIN signal            | bit-3 (`silent`/`defended`) ⇒ verdict |
 /// |-------------------------|----------------------------------------|
-/// | `Drift` (recall-drop)   | drives the bit-3 split: shape-gone-undefended ⇒ `Obsolete`; shape-gone-defended ⇒ `WellDefended`; `Evading` ⇒ `Evaded`; `Dormant` ⇒ `Dormant` (VIRTUAL drift / churn — KEEP) |
+/// | `Drift` (recall-drop)   | drives the bit-3 split: shape-gone-undefended ⇒ `Obsolete`; shape-gone-defended ⇒ `WellDefended`; `Evading` ⇒ `Evaded`; `Dormant` ⇒ `RouteToHuman` (UNDECIDABLE cause — third conservatism-join cell) |
 /// | `Drift` (precision-drop)| autoimmune over-broadening — never `Obsolete`; the bit-3 read stands, but a shape-gone-undefended precision-drop routes to human (not a clean obsolescence) |
 /// | `NoDrift`               | pass through the streamless bit-3 verdict alone ([`classify`]) |
 /// | `UnderPowered`          | `RouteToHuman` (conservatism-JOIN) |
 ///
-/// The single subtlety the table encodes (the virtual-drift cell the adversary's
-/// ATK-ADWIN-4 pins): a recall-`Drift` + `Dormant` (shape present, no near-miss) is
-/// VIRTUAL drift — the recall dropped because the corpus churned, NOT because the
-/// defect mutated — so it stays [`ClassVerdict::Dormant`] (KEEP), never `Obsolete`.
-/// `classify` already maps `Dormant ⇒ Dormant`, so passing the bit-3 read through is
-/// correct; the loud channel does not promote a live-shape class to forgettable.
+/// The third conservatism-join cell (ADR-065 amendment, aristotle first-principles
+/// ruling): a recall-`Drift` + `Dormant` (shape present, no near-miss) routes to
+/// human — NOT the old "VIRTUAL drift / KEEP." The cause is **genuinely undecidable**
+/// on the denominator-free `Affinity` rate: [`Affinity::recall`] is a pure fraction
+/// (cluster-size divided out at construction; [`LifeEvent::Scored`] carries no count).
+/// A recall-rate drop 0.9→0.4 is indistinguishable between churn (denominator shrank,
+/// shape alive — KEEP) and evasion (numerator moved, defect mutated — `ReArm`). Routing
+/// to human is honest-blind: it surfaces the loud signal ADWIN detected (which the
+/// streamless bit-3 axis is blind to) without guessing which cause applies. The cell
+/// becomes decidable when `Scored` carries a `cluster_size` count: stable denominator
+/// → recall-drop means Evaded; shrinking denominator → means Dormant/churn. Reserved
+/// for the `Scored{affinity, cluster_size}` do-later.
 ///
 /// [`ClassVerdict`]: crate::learn::discriminator::ClassVerdict
 /// [`SilentStatus`]: crate::learn::reader::SilentStatus
@@ -791,11 +797,26 @@ pub const fn fuse_channels(
             ..
         } if matches!(bit3, ClassVerdict::Obsolete) => ClassVerdict::RouteToHuman,
 
-        // Recall-Drift and NoDrift (both channels sighted): the bit-3 verdict is the
-        // fused verdict. Recall-drop + Dormant ⇒ Dormant (VIRTUAL drift, KEEP — the
-        // shape is alive); recall-drop + shape-gone-undefended ⇒ Obsolete (REAL
-        // obsolescence, the loud drop corroborates the static absence);
-        // recall-drop + Evading ⇒ Evaded. NoDrift ⇒ the streamless verdict stands.
+        // Third conservatism-join cell (ADR-065 aristotle ruling): recall-Drift + Dormant
+        // is UNDECIDABLE. Affinity::recall is a pure rate — Scored carries no cluster_size
+        // denominator. A recall-drop 0.9→0.4 is indistinguishable between:
+        //   • churn (denominator shrank, shape alive — KEEP)
+        //   • evasion (numerator moved, defect mutated — ReArm)
+        // RouteToHuman is the honest-blind response: surfaces the ADWIN detection without
+        // guessing which cause applies.
+        // RESERVE: a `Scored { affinity, cluster_size }` denominator field splits this cell —
+        //   stable denominator + recall-drop ⇒ Evaded (cluster alive, fewer matches = evasion)
+        //   shrinking denominator + recall-drop ⇒ Dormant/churn
+        // that do-later retires RouteToHuman for this cell.
+        DriftVerdict::Drift {
+            axis: DriftAxis::Recall,
+            ..
+        } if matches!(bit3, ClassVerdict::Dormant) => ClassVerdict::RouteToHuman,
+        // Recall-Drift + NoDrift — the bit-3 verdict is the fused verdict when the
+        // denominator-ambiguity doesn't apply:
+        //   recall-drop + shape-gone-undefended ⇒ Obsolete (REAL obsolescence, loud corroborates static)
+        //   recall-drop + Evading ⇒ Evaded
+        // NoDrift ⇒ the streamless verdict stands.
         _ => bit3,
     }
 }
