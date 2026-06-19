@@ -126,6 +126,8 @@ pub const fn classify(silent: SilentStatus, defended: bool) -> ClassVerdict {
 /// wires only `propose`); `fused_classify` is the wired-and-ready fused-classify, not a
 /// dormant duplicate of `classify` — it is the path that consults the loud axis, which
 /// `classify` structurally cannot.
+///
+/// [`DriftVerdict`]: crate::learn::adwin::DriftVerdict
 #[must_use]
 pub fn fused_classify(
     trajectory: &[crate::learn::affinity::Affinity],
