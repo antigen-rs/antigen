@@ -124,6 +124,15 @@ self-tolerance gate → a human ratifier) — live as `cargo antigen propose`. S
 [`the-keystone-explained.md`](the-keystone-explained.md) for why the safety line
 holds.
 
+**New in v0.6 — the maturing organism.** The organs that let a *learned* class
+mature and be curated over its life — a persistent life-record, an
+affinity-maturation engine, an honest-blind drift-detector, and a conservative
+forget-gate — ship today as a **library** (`antigen::learn`); the `cargo antigen`
+verb that drives the full curation loop is the v0.7 frontier. See
+[`concepts.md`](concepts.md#drift-detection-the-maturing-organism) for the organ
+tour and [`library-api.md`](library-api.md#drift-detection-driftverdict-adr-065)
+for the `DriftVerdict` surface.
+
 ### "Something isn't working; help me debug"
 
 - **[`troubleshooting.md`](troubleshooting.md)** — diagnostic guide
@@ -143,7 +152,7 @@ holds.
   actually looks like, narrated through a real failure-class
 - **[`composition.md`](composition.md)** — how antigen fits alongside
   the tools you already use
-- **[`roadmap.md`](roadmap.md)** — trajectory and what's coming
+- **[`roadmap.md`](roadmap.md)** — what's shipped (through the v0.6 maturing organism) and what's coming
 - **[`scope.md`](scope.md)** — comprehensive vision; multi-paper
   publication trajectory; cross-domain convergence
 - **[`vision-pitch.md`](vision-pitch.md)** — ecosystem-outreach pitch
