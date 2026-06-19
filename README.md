@@ -4,8 +4,10 @@
 
 Comprehensive, co-native, structural memory of failure-classes, defenses, attestations, and coordination — accessible natively to both human and AI agents. Built for the age of agentic dev, vibe-coding, and human-LLM collaboration.
 
-> **Status**: published on crates.io. The surface: core macros, fingerprint
-> grammar, scan + audit + attest + tolerate + oracle CLI, Oracle 5-state
+> **Status**: a working **beta** (`0.5.0-beta.1`), published on crates.io. The
+> surface: core macros, fingerprint grammar (parse · match · serialize), the
+> `scan + propose + audit + attest + tolerate + oracle + verify + vcs +
+> mucosal-map + fingerprint + mine` CLI, Oracle 5-state
 > lifecycle, cross-cutting attestation, substrate-witness predicates, ADR-029
 > observe-don't-declare vocabulary (`#[defended_by]`, extended `#[presents]`),
 > Match3 three-valued fingerprint evaluation, the prescriptive work-orchestration
@@ -180,7 +182,7 @@ declarations of its own, antigen does **not** report a false all-clear — it
 auto-injects its **bundled stdlib catalog** and surfaces real footgun
 candidates from the shipped failure-classes:
 
-```
+```text
 Scanning workspace: .
 
 Scanned 1 files, found 2 antigen-related declarations:
@@ -188,8 +190,10 @@ Scanned 1 files, found 2 antigen-related declarations:
   - 0 explicit #[presents] markers
   - 2 fingerprint matches (candidate sites — see below)
 
-  src/lib.rs:21  get-unchecked-without-proof on fn [fingerprint match]
-  src/lib.rs:30  panic-in-drop on impl [fingerprint match]
+2 fingerprint match(es) across 2 antigen type(s) — candidate sites (expected noise; the witness layer refines them, per the filter/proof split). Not a TODO list.
+
+  .\src\lib.rs:1  get-unchecked-without-proof on fn [fingerprint match]
+  .\src\lib.rs:6  panic-in-drop on impl [fingerprint match]
 ```
 
 These are **fingerprint matches to inspect, not audited verdicts**. `cargo antigen
@@ -272,7 +276,7 @@ When the biology predicts a primitive, the project builds it. See [`docs/decisio
 
 **Test coverage**: a broad workspace suite (unit + adversarial ATK + trybuild UI) gates every change in CI. See the CI badge / Actions for the live count.
 
-Not yet shipped (honest stubs in CLI): `cargo antigen attest oracle`, `cargo antigen attest migrate`, `cargo antigen new`, `cargo antigen vaccinate`, `antigen-stdlib`.
+Not yet shipped (honest "design phase" stubs in the CLI): `cargo antigen attest oracle`, `cargo antigen new`, `cargo antigen vaccinate`, `antigen-stdlib`.
 
 **What `scan` / `audit` show you today — and what's coming.** `scan` reports declared *presentations* and fingerprint *candidates*; `audit` grades each presentation *defended* / *undefended* / *substrate-gap* at a witness tier; the `#[aura]` / `#[dread]` / `#[red_flag]` markers surface under `scan --format json` (`report.marked_unknowns`). Two surfaces are honestly **not** in the human report yet, and sit on the roadmap: a **per-site** fingerprint verdict (today a witness credits a failure-*class*, not the individual site it exercises), and a **console confidence-dial / marked-unknown rendering** (queryable via JSON today). So if you go looking for a per-site "this exact line is defended" verdict, or a dial in the console, and don't find it — that's the roadmap, not you. The catalog's [`docs/stdlib-families.md`](docs/stdlib-families.md) explains the current behavior in detail; [`docs/reading-a-verdict.md`](docs/reading-a-verdict.md) decodes what each line means.
 
