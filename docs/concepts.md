@@ -341,7 +341,10 @@ This matters for setting expectations honestly:
   `PromotedDraft` capability-token (ADR-048 — a promotable token only the gate can
   mint). On antigen's own marks the verb **routes the draft to a human ratifier**
   (the corpus holds no near-miss); it does not name a class for itself — that
-  self-immunizing promote payoff is the v0.6 frontier.
+  self-immunizing promote payoff needs abstract-recall clustering. v0.6 built the
+  organs a learned class matures and is curated through (see *Drift-detection: the
+  maturing organism* below, library-complete); the live CLI curation loop is the v0.7
+  frontier.
 - The falsification gate is real: antigen carries three genuinely-felt
   `#[dread]` marks on its **own** production source, and the dogfood
   proof anti-unifies the two *silent-skip twins* among them (a directory
@@ -349,6 +352,55 @@ This matters for setting expectations honestly:
   incomplete corpus) into a draft, governed by B. The *mechanism* is
   proven; the specific dogfood draft over-fits its near-identical twins
   (a recall increment, located honestly).
+
+---
+
+## Drift-detection: the maturing organism
+
+The Learning-Core above is the **afferent** arc: it takes a felt cluster and proposes a
+draft. v0.6 adds the organs that let a *learned class* live — mature toward a better
+fingerprint, sense when it has gone obsolete or is being evaded, and be curated
+(eventually forgotten) when it stops earning its keep. This is antigen modeled as a
+maturing organism, not a static catalog.
+
+> **Library-complete, live loop is v0.7.** Every organ below ships as a tested, composable
+> `antigen::learn::*` library API. What does **not** ship yet is a `cargo antigen` verb that
+> drives the whole sense → classify → act loop end-to-end — no production CLI caller wires
+> these together today. The live curation loop is the v0.7 frontier. The organs are real;
+> the verb that runs them is not yet built.
+
+The organs, in the order a class flows through them:
+
+- **The life-record (STOCK).** A class's append-only autobiography (`antigen::learn::life_record`).
+  Before v0.6, proposing was memoryless; the life-record is the persistent trajectory of a
+  class's affinity over time — the substrate every sensor below reads. Its recomputable
+  input (the SZZ `(defect, fix)` corpus) stays derivable from git via `cargo antigen mine`.
+- **Maturation (MATURE).** The `Affinity { recall, precision }` 2-vector is the *height* a
+  draft climbs; the maturation engine (`antigen::learn::maturation`) takes a rough
+  anti-unified draft and matures it toward the Pareto frontier of (recall, precision) — the
+  germinal-center analog.
+- **The reader (SENSE).** `antigen::learn::reader` watches a class's relationship to the live
+  code and reports whether it has gone dormant, obsolete, or is being evaded.
+- **ADWIN (SENSE, the loud half).** `antigen::learn::adwin` is a batch drift-detector over a
+  class's affinity-trajectory. Its defining honesty is a third verdict beyond drift/no-drift:
+  **`UnderPowered`** — "I cannot yet see drift for this class, and here is exactly when I
+  will be able to." At antigen's current scale (a class has matured only a handful of times)
+  `UnderPowered` is the *default* — and that is the correct, valuable behavior: a detector
+  that fires zero and says-so, rather than one that guesses on too little data. The same
+  organ fires correctly once trajectories lengthen, with no code change.
+- **The discriminator (CLASSIFY).** `antigen::learn::discriminator::fused_classify` fuses the
+  streamless sensors into one `ClassVerdict` per failure-class — the build-once share lives at
+  the classifier, not duplicated in each sensor.
+- **CURATE (ACT) — the moral center.** `antigen::learn::curate` is the efferent decision-layer:
+  the forget-gate. Every other organ senses or classifies; CURATE alone *acts*. Its
+  conservative default **holds** — it never forgets — whenever any channel is blind (ADWIN
+  `UnderPowered` or the static sensor `Indeterminate`), per ADR-057. The forgetting is the
+  trust: a learned class is only ever decayed through a reversible, human-ratifiable ladder,
+  never silently dropped.
+
+For the drift-detector's verdict type and the honest-scope of its statistical bound, see
+ADR-065 in [`decisions.md`](decisions.md) and the `library-api.md` surface for
+[`DriftVerdict`](library-api.md#drift-detection-driftverdict-adr-065).
 
 ---
 
