@@ -159,7 +159,7 @@ pub enum DriftVerdict {
         /// The `ε_cut` at the most-powerful (balanced) split of the current window —
         /// guaranteed `≥ max_observable` (that inequality is the blind condition).
         eps_cut: f64,
-        /// The maximum observable `|μ_before − μ_after|` (1.0 for a rate in [0,1]).
+        /// The maximum observable `|μ_before − μ_after|` (1.0 for a rate in \[0,1\]).
         max_observable: f64,
     },
 }
@@ -756,6 +756,9 @@ fn full_window_tightest_margin(stream: &[f64], delta: f64) -> f64 {
 /// for the `Scored{affinity, cluster_size}` do-later.
 ///
 /// [`ClassVerdict`]: crate::learn::discriminator::ClassVerdict
+/// [`ClassVerdict::Obsolete`]: crate::learn::discriminator::ClassVerdict::Obsolete
+/// [`ClassVerdict::RouteToHuman`]: crate::learn::discriminator::ClassVerdict::RouteToHuman
+/// [`ClassVerdict::Dormant`]: crate::learn::discriminator::ClassVerdict::Dormant
 /// [`SilentStatus`]: crate::learn::reader::SilentStatus
 /// [`classify`]: crate::learn::discriminator::classify
 #[must_use]
