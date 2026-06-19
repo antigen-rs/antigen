@@ -413,23 +413,42 @@ pub fn near_miss_index(draft: &Fingerprint, corpus: &[syn::Item]) -> Option<usiz
     corpus.iter().position(|item| is_near_miss(draft, item))
 }
 
-/// Can a near-miss exist for `draft` **by construction** — i.e. does the draft have
-/// **≥2 (normalized) top-level conjuncts**?
+/// Can a near-miss exist for `draft` **by construction**?
 ///
-/// [`is_near_miss`] is structurally `false` for a single-conjunct (or empty) draft
-/// (the `len < 2` anti-vacuity guard, ATK-047-N4): dropping the sole conjunct yields
-/// the vacuously-matching empty draft, so there is nothing to be "one constraint
-/// away" from. That guard is correct **for the GATE** (it prevents a false near-miss
-/// minting a token), but a *consumer* that reads `is_near_miss` to detect
-/// **evasion** (the READER) must know when a `false` means "no near-miss" versus
-/// "near-miss is undetectable here" — otherwise a single-conjunct class whose defect
-/// mutated reads as having no evasion-signal and is wrongly forgotten as obsolete.
-/// This predicate exposes exactly that structural fact, computed over the same
-/// `normalized_top_level` normalization, so the consumer can fall back to a
-/// conservative verdict (ADR-057) instead of trusting a structurally-blind `false`.
+/// I.e. is near-miss detection OPERATIONALLY possible for this draft, so that the READER
+/// can trust a `false` from [`is_near_miss`] as "no evasion" rather than "I'm blind here"?
+///
+/// **The test is ≥2 *discriminating* conjuncts, NOT ≥2 conjuncts** (ADR-047 Amendment 2,
+/// Survey-wave fix). [`is_near_miss`] reports a near-miss only when dropping ONE conjunct
+/// leaves a remainder that still **matches** the item AND still **discriminates**
+/// (`has_discriminating_conjunct` — dropping the only discriminator collapses to a
+/// bare-structural skeleton that over-binds the family, which is not a valid near-miss).
+/// For the READER's evasion case — the defect mutated *past* a discriminator, so the item
+/// FAILS that discriminator — a near-miss is detectable only if dropping that discriminator
+/// STILL leaves a discriminating remainder, i.e. only if **≥2 conjuncts discriminate**.
+///
+/// A bare COUNT (`len >= 2`) is therefore the WRONG predicate: a draft with one
+/// discriminating conjunct padded by structural/identity anchors (`Item`, `NameMatches`,
+/// `ImplOfTrait`) is near-miss-capable *by count* yet near-miss-**BLIND in operation** —
+/// the only near-miss-forming drop keeps the lone discriminator, which the mutated item no
+/// longer matches. Trusting that count let `silent_status` read such a draft `Obsolete`
+/// (forget) when its defect had merely mutated within the discriminator's family — the
+/// SAME lethal evasion-blindness the single-conjunct guard closed, slipping through on a
+/// 2-conjunct count (a bare anchor `name = matches("handle_*")` bolted onto
+/// `body_calls("unwrap")` flipped Indeterminate → Obsolete). The fix counts discriminators,
+/// not conjuncts, so an evasion-blind draft falls back to the conservative verdict
+/// (ADR-057) instead of trusting a structurally-blind `false`.
 #[must_use]
 pub fn is_near_miss_capable(draft: &Fingerprint) -> bool {
-    normalized_top_level(draft).len() >= 2
+    // ≥2 discriminating conjuncts: only then can a near-miss be formed by dropping ONE
+    // discriminator and leaving a still-discriminating remainder (the in-family witness).
+    // Counting raw conjuncts would trust an absence on a draft where no item could EVER
+    // be a near-miss (one lone discriminator, padded by anchors).
+    normalized_top_level(draft)
+        .iter()
+        .filter(|c| is_discriminating(c))
+        .count()
+        >= 2
 }
 
 /// Does the clean corpus contain a **near-miss** for `draft`? (ADR-047
