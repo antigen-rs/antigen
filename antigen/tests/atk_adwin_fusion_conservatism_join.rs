@@ -32,9 +32,10 @@
 //! 1. **Blind-channel forget** — can ANY combination of (`DriftVerdict::UnderPowered`,
 //!    any `SilentStatus`) or (`any DriftVerdict`, `SilentStatus::Indeterminate`)
 //!    produce `ClassVerdict::Obsolete`? If yes: a blind-channel autoimmune-forget.
-//! 2. **Virtual-drift cell** — a recall-drop with the shape PRESENT and no near-miss
-//!    is VIRTUAL drift (code churn, not the defect mutating). Must produce
-//!    `ClassVerdict::Dormant`, NOT `Obsolete`.
+//! 2. **Undecidable-recall-drop cell** — a recall-drop with the shape PRESENT and
+//!    no near-miss is UNDECIDABLE between churn and evasion on a denominator-free
+//!    rate (ADR-065 Amendment 1, aristotle ruling). Must produce
+//!    `ClassVerdict::RouteToHuman` (third conservatism-join cell), NOT `Obsolete`.
 //! 3. **`DriftVerdict` sealed enum** — `UnderPowered` must be a first-class variant,
 //!    not a `bool`. Collapsing to `bool` merges "no-drift" with "can't-see",
 //!    reopening the silent-miscalibration antigen exists to catch.
@@ -51,12 +52,12 @@
 //! |--------------------|--------------------------|----------------------|
 //! | Drift (recall-drop)| `Obsolete` (shape gone)  | `Obsolete` → Forget  |
 //! | Drift (recall-drop)| `Evading` (near-miss)    | `Evaded` → `ReArm`   |
-//! | Drift (recall-drop)| `Dormant` (shape present)| `Dormant` → Hold (VIRTUAL drift) |
+//! | Drift (recall-drop)| `Dormant` (shape present)| `RouteToHuman` → Hold (UNDECIDABLE — third conservatism-join cell; ADR-065 Amendment 1) |
 //! | `UnderPowered`     | ANY                      | `RouteToHuman` → Hold |
 //! | ANY                | `Indeterminate`          | `RouteToHuman` → Hold |
 //! | `NoDrift`          | ANY                      | pass through bit-3 alone |
 //!
-//! The two rows with `RouteToHuman` are the conservatism-join — the safety floor.
+//! The THREE rows with `RouteToHuman` are the conservatism-join — the safety floor.
 //!
 //! Author: v06-adwin-adversarial (the conservatism-join attack before the organ
 //! ships, feeding the ADWIN pathmaker the failing tests that define done).
@@ -68,9 +69,9 @@
 //! commit that makes these compile.
 //! What is NON-negotiable: (a) `UnderPowered` is a first-class variant distinct
 //! from `NoDrift`; (b) a blind-channel combination NEVER produces
-//! `ClassVerdict::Obsolete`; (c) virtual-drift (shape-present + no-near-miss)
-//! NEVER produces `Obsolete`; (d) a 0.9→0.2→0.9 crater that
-//! `trajectory_direction()` misses DOES fire `Drift`.
+//! `ClassVerdict::Obsolete`; (c) recall-Drift + Dormant routes to
+//! `RouteToHuman` (UNDECIDABLE, ADR-065 Amendment 1) — NEVER to `Obsolete`;
+//! (d) a 0.9→0.2→0.9 crater that `trajectory_direction()` misses DOES fire `Drift`.
 //! ----------------------------------------------------------------------------
 
 // BORN-RED GATE DROPPED — `learn/adwin.rs` + `fuse_channels` shipped (build-adwin,
@@ -317,12 +318,16 @@ fn atk_adwin3_indeterminate_bit3_blocks_forget_across_all_adwin_verdicts() {
 }
 
 // ---------------------------------------------------------------------------
-// ATK-ADWIN-4 — Virtual-drift: a recall-drop with the shape PRESENT and no
-// near-miss is code CHURN, not the defect mutating.
+// ATK-ADWIN-4 — Undecidable recall-drop: a recall-drop with the shape PRESENT and
+// no near-miss is UNDECIDABLE between churn (denominator shrank) and evasion
+// (numerator moved). Affinity::recall is a denominator-free rate — no cluster_size
+// stored; neither cause can be verified from the substrate.
 //
-// The fusion table (ADR-065): ADWIN Drift (recall-drop) + Dormant (shape present,
-// no near-miss) → ClassVerdict::Dormant, NOT Obsolete. Forgetting on virtual
-// drift discards a live defense because the test suite shrank.
+// The ruling (ADR-065 Amendment 1, aristotle v06 ratify wave): recall-Drift +
+// Dormant → ClassVerdict::RouteToHuman (third conservatism-join cell). Was
+// previously "Dormant → Hold (VIRTUAL drift, KEEP)" — superseded because neither
+// cause is verifiable on a denominator-free rate. The cell is decidable once
+// Scored carries cluster_size (the reserved do-later).
 // ---------------------------------------------------------------------------
 
 /// ADWIN Drift (recall-drop) + `Dormant` must fuse to `RouteToHuman` — the third
