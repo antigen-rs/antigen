@@ -38,8 +38,12 @@
 //!   Theorem-3.1-rigorous, returns `UnderPowered` while blind. Governs below the
 //!   sample-count the normal-approximation needs.
 //! - the **FULL** (variance-aware ADWIN2, [`eps_cut_full`] / [`ExpHistogram`]) — Eq
-//!   3.1, `δ'=δ/ln n`, O(log n) bucket-cuts, normal-approximation. Governs once a
-//!   class has accumulated enough maturations.
+//!   3.1, `δ'=δ/ln n`, the paper's O(log n) bucket-cut form, normal-approximation.
+//!   Governs once a class has accumulated enough maturations. NOTE (ADR-065 Amd 2):
+//!   the shipped [`detect`] scans all `n−1` cuts via the `best_split` helper; the
+//!   [`ExpHistogram`] O(log n) cutpoint structure is built + self-tested but not yet on
+//!   the detection path, and the floor governs at v0.6 scale (gated behind `n ≥ 30`).
+//!   See the [`eps_cut_full`] docstring + ADR-065 Amendment 2.
 //!
 //! The floor's `UnderPowered` verdict already carries `eps_cut` and `max_observable`;
 //! the moment `eps_cut < max_observable` persistently, the class has crossed its
@@ -203,8 +207,8 @@ pub fn eps_cut_floor(n0: usize, n1: usize, n: usize, delta: f64) -> Option<f64> 
 /// **FULL — the variance-aware ADWIN2 `ε_cut` (Bifet-Gavaldà Eq 3.1).**
 ///
 /// `ε_cut = sqrt( (2/m)·σ²_W·ln(2/δ') ) + (2/(3m))·ln(2/δ')`, with `δ' = δ/ln(n)`
-/// (only O(log n) bucket-boundary cutpoints are checked; INV-ADWIN-2). **The constant
-/// inside `ln` is 2** (NOT 4 — do not copy the floor's). The additive Bernstein term
+/// (the paper's ADWIN2 correction for ~O(log n) bucket-boundary cutpoints; INV-ADWIN-2).
+/// **The constant inside `ln` is 2** (NOT 4 — do not copy the floor's). The additive Bernstein term
 /// `(2/(3m))·ln(2/δ')` is **NOT optional** — it protects small windows (the normal
 /// approximation fails there) and dropping it under-fires in exactly antigen's regime.
 ///
@@ -214,6 +218,17 @@ pub fn eps_cut_floor(n0: usize, n1: usize, n: usize, delta: f64) -> Option<f64> 
 /// valid in practice" but "not 100% rigorous," valid only above the sample-count the
 /// CLT needs (~30, partially relaxed by the Bernstein term). Below that the floor's
 /// rigorous bound governs.
+///
+/// **FINDING (ADR-065 Amendment 2) — shipped-scan scope.** The `δ' = δ/ln(n)`
+/// correction is the union bound for ~O(log n) cutpoints, but the shipped [`detect`]
+/// path scans ALL `n−1` interior cuts (the `best_split` helper — "Scan all O(n) interior
+/// splits") — the [`ExpHistogram`] O(log n) cutpoint structure is built and self-tested
+/// but is NOT on the detection path. This is latent, not live: the full leg is gated
+/// behind `n ≥ NORMAL_APPROX_MIN` (= 30) in the `combined_eps_cut` helper, and at v0.6
+/// scale every class is `UnderPowered` at n≈4–8, so the rigorous all-`n` floor (`δ/n`)
+/// governs every reachable case. The all-cut-vs-O(log n) reconciliation (restrict the
+/// scan to the EH boundaries, OR re-derive the full bound's `δ'` for the all-cut scan)
+/// is flagged for a build pass in ADR-065 Amendment 2.
 #[must_use]
 #[allow(clippy::cast_precision_loss)] // n is a trajectory length, well within f64
 pub fn eps_cut_full(n0: usize, n1: usize, n: usize, sigma_sq_w: f64, delta: f64) -> Option<f64> {
@@ -796,7 +811,7 @@ fn full_window_tightest_margin(stream: &[f64], delta: f64) -> f64 {
 /// ruling): a recall-`Drift` + `Dormant` (shape present, no near-miss) routes to
 /// human — NOT the old "VIRTUAL drift / KEEP." The cause is **genuinely undecidable**
 /// on the denominator-free `Affinity` rate: [`Affinity::recall`] is a pure fraction
-/// (cluster-size divided out at construction; [`LifeEvent::Scored`] carries no count).
+/// (cluster-size divided out at construction; [`LifeEvent::Scored`](crate::learn::life_record::LifeEvent::Scored) carries no count).
 /// A recall-rate drop 0.9→0.4 is indistinguishable between churn (denominator shrank,
 /// shape alive — KEEP) and evasion (numerator moved, defect mutated — `ReArm`). Routing
 /// to human is honest-blind: it surfaces the loud signal ADWIN detected (which the
