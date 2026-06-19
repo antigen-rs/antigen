@@ -325,30 +325,37 @@ fn atk_adwin3_indeterminate_bit3_blocks_forget_across_all_adwin_verdicts() {
 // drift discards a live defense because the test suite shrank.
 // ---------------------------------------------------------------------------
 
-/// ADWIN Drift (recall-drop) + Dormant must fuse to Dormant (the virtual-drift
-/// cell), never to Obsolete.
+/// ADWIN Drift (recall-drop) + `Dormant` must fuse to `RouteToHuman` — the third
+/// conservatism-join cell (ADR-065 aristotle ruling, superseding the earlier
+/// "VIRTUAL drift / KEEP" reading).
+///
+/// The cause is genuinely undecidable: `Affinity::recall` is a denominator-free
+/// rate. A recall-drop 0.9→0.4 cannot be distinguished between churn (denominator
+/// shrank, shape alive — keep) and evasion (numerator moved, defect mutated —
+/// re-arm) without a cluster-size count. Routing to human is the honest-blind
+/// response. RESERVE: a `Scored { affinity, cluster_size }` field splits this cell.
 #[test]
-fn atk_adwin4_virtual_drift_stays_dormant_never_forgets() {
+fn atk_adwin4_recall_drift_plus_dormant_routes_to_human() {
     let drift = DriftVerdict::Drift {
         cut_index: 50,
         axis: DriftAxis::Recall,
         observed_diff: 0.45,
         eps_cut: 0.08,
     };
-    // Dormant: the shape is present in live code (an item matching the fingerprint
-    // exists) but no instance currently trips it AND no near-miss — pure churn.
+    // Dormant: the shape is present in live code but no instance currently trips it
+    // AND no near-miss. `Affinity::recall` is a pure rate — no cluster_size stored.
     let fused = fuse_channels(drift, SilentStatus::Dormant, /* defended */ false);
     assert_eq!(
         fused,
-        ClassVerdict::Dormant,
-        "ATK-ADWIN-4: ADWIN Drift + Dormant must fuse to Dormant (VIRTUAL drift — \
-         the shape is alive, recall dropped because the test suite shrank). Got \
-         {fused:?}. Producing Obsolete here would forget a live defense on churn.",
+        ClassVerdict::RouteToHuman,
+        "ATK-ADWIN-4: ADWIN Drift(Recall) + Dormant must fuse to RouteToHuman (third \
+         conservatism-join cell — UNDECIDABLE cause on a denominator-free rate). Got \
+         {fused:?}. Silently guessing Dormant/churn is wrong; RouteToHuman is honest-blind.",
     );
     assert_ne!(
         curate(fused),
         CurationAction::Forget,
-        "ATK-ADWIN-4 (moral center): virtual-drift must NOT produce Forget.",
+        "ATK-ADWIN-4 (moral center): RouteToHuman must NOT produce Forget.",
     );
 }
 
