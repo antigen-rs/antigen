@@ -400,7 +400,7 @@ The organs, in the order a class flows through them:
 - **CURATE (ACT) — the moral center.** `antigen::learn::curate` is the efferent decision-layer:
   the forget-gate. Every other organ senses or classifies; CURATE alone *acts*. Its
   conservative default **holds** — it never forgets — whenever any channel is blind (ADWIN
-  `UnderPowered` or the static sensor `Indeterminate`), per ADR-057. The forgetting is the
+  `UnderPowered` or the static sensor `Indeterminate`). The forgetting is the
   trust: a learned class is only ever decayed through a reversible, human-ratifiable ladder,
   never silently dropped.
 
