@@ -5,7 +5,7 @@
 //! invoke as `cargo antigen scan` / `cargo antigen audit` from any directory
 //! containing a `Cargo.toml`.
 //!
-//! ## Subcommands (v0.1.0-rc.1)
+//! ## Subcommands
 //!
 //! - `cargo antigen scan` — walk the workspace, extract antigen-related
 //!   attributes, report unaddressed presentations + tolerated sites + parse
@@ -20,9 +20,10 @@
 //!   state-7 absence.
 //! - `cargo antigen attest` — manage `.attest/<Antigen>.json` substrate-witness
 //!   sidecars (ADR-019). Subcommands: `scaffold` (create sidecar), `sign`
-//!   (add signer entry), `check` (evaluate predicate against sidecar).
-//!   Further subcommands (`delta`, `oracle`, `list`, `move`, `migrate`, `gc`)
-//!   are design-phase stubs hidden from `--help`.
+//!   (add signer entry), `check` (evaluate predicate against sidecar),
+//!   `delta` (add a delta-attestation entry), `list` (enumerate sidecars),
+//!   `gc` (report orphaned sidecar entries; `--force` to delete). The
+//!   `oracle` per-attestation marker is a design-phase stub hidden from `--help`.
 //! - `cargo antigen tolerate` — manage tolerance-ratification sidecars (ADR-019
 //!   §tolerance tier). Subcommands: `scaffold`, `sign`, `check`, `list` (stubs
 //!   pending adopter feedback).
@@ -71,15 +72,17 @@ struct AntigenCli {
 enum AntigenSubcommand {
     /// Scan the workspace for antigen presentations and report unaddressed ones.
     Scan(ScanArgs),
-    /// Propose a candidate failure-class fingerprint from a cluster of marked
-    /// sites (the keystone goes live — ADR-045/047/048, the learning core).
+    /// Propose a candidate failure-class fingerprint from a cluster of marked sites.
     ///
     /// Re-acquires the `#[dread]`/`#[aura]`-marked cluster under `--cluster-root`,
-    /// anti-unifies it into a draft, and routes it through the B-gate (GATE-G)
-    /// against the OPERATOR-supplied `--clean-root` corpus. Renders a **ratifiable
-    /// suggestion** (observe-don't-declare, ADR-044) — never an auto-`#[presents]`
-    /// or an auto-named class. A `propose` run leaves the source tree byte-unchanged;
-    /// the machine supplies the syntactic half, a human ratifies the semantic half.
+    /// generalizes it into a draft fingerprint, and tests that draft against the
+    /// clean corpus you supply with `--clean-root`: a draft that would also match
+    /// clean code is rejected (it would flag healthy code), and a draft that binds
+    /// only with help from a near-miss sibling is surfaced for review rather than
+    /// promoted. The result is a **suggestion to review** — never an auto-written
+    /// `#[presents]` and never an auto-named class. A `propose` run leaves your
+    /// source tree byte-unchanged: the machine drafts the syntactic half, and a
+    /// human ratifies the semantic half.
     Propose(ProposeArgs),
     /// Scaffold a new antigen declaration (design phase).
     ///
@@ -294,7 +297,7 @@ struct ProposeArgs {
     /// not a verdict: `10` (route-to-human) is the gate being honest, not failing.
     #[arg(long)]
     exit_code: bool,
-    /// **Show the GATE-G reasoning behind the verdict** — turn the gate from oracle
+    /// **Show the reasoning behind the verdict** — turn the gate from oracle
     /// into teacher. Every propose render tells you the VERDICT but hides the PATH to
     /// a YES; `--explain` surfaces the reasoning the render discards. On
     /// route-to-human: that NO clean sibling is one constraint from binding the draft
@@ -303,7 +306,7 @@ struct ProposeArgs {
     /// flagged — the autoimmunity made concrete). On promote: which clean sibling
     /// WITNESSED the generalization (the near-miss that proved B made a real in-family
     /// discrimination). Pure additive output — it NEVER changes the verdict or the
-    /// exit code (the gate holds; GATE-G is untouched). The source tree is byte-unchanged.
+    /// exit code (the gate is untouched). The source tree is byte-unchanged.
     #[arg(long)]
     explain: bool,
     /// **The effector SUGGEST-floor — show the spared twin as a suggested fix.** When
@@ -430,7 +433,7 @@ enum AttestSubcommand {
     Check(AttestCheckArgs),
     /// Add a delta-attestation entry to an existing sidecar.
     Delta(AttestDeltaArgs),
-    /// Per-attestation oracle marker (design phase; v0.1-rc stub).
+    /// Per-attestation oracle marker (design-phase stub).
     ///
     /// Renamed from `oracle complete` per F28-R2 cross-ADR collision-avoidance:
     /// `cargo antigen oracle complete` (top-level) is the steward-authorized
@@ -457,7 +460,7 @@ enum AttestSubcommand {
     Oracle,
     /// List all `.attest/` sidecars in the workspace.
     List(AttestListArgs),
-    /// Garbage-collect orphaned sidecar entries (report-only in v0.1).
+    /// Garbage-collect orphaned sidecar entries (report-only; `--force` to delete).
     Gc(AttestGcArgs),
 }
 
@@ -4843,7 +4846,7 @@ fn render_propose_outcome(
             if let Some(ex) = explain {
                 match &ex.near_miss {
                     Some(item) => println!(
-                        "\n--explain (GATE-G reasoning):\n  \
+                        "\n--explain (the gate's reasoning):\n  \
                          The generalization is WITNESSED by clean sibling `{item}` — it matches\n  \
                          all-but-one of the draft's conjuncts and is SPARED by failing exactly\n  \
                          one. That near-miss is the proof B made a REAL in-family discrimination\n  \
@@ -4851,7 +4854,7 @@ fn render_propose_outcome(
                          bare-structural over-bind."
                     ),
                     None => println!(
-                        "\n--explain (GATE-G reasoning):\n  \
+                        "\n--explain (the gate's reasoning):\n  \
                          (no single near-miss sibling identified — the draft is\n  \
                          near-miss-witnessed by the corpus as a whole.)"
                     ),
@@ -4868,7 +4871,7 @@ fn render_propose_outcome(
             // fake a generalization-verdict it cannot make. FIRST-CLASS, expected.
             println!("== drafted a candidate — routed to a human ratifier ==\n");
             println!(
-                "Antigen anti-unified a draft from your `{}` marks, but the B-gate cannot\n\
+                "Antigen anti-unified a draft from your `{}` marks, but cannot\n\
                  certify it GENERALIZES against your clean corpus (no near-miss: no clean\n\
                  sibling is one discriminating constraint from binding the draft). So it\n\
                  routes the candidate to a HUMAN ratifier rather than promote it.\n\n\
@@ -4883,7 +4886,7 @@ fn render_propose_outcome(
                 // one discriminating constraint from binding the draft. (near_miss is
                 // None here by construction — the gate routed BECAUSE there is none.)
                 println!(
-                    "\n--explain (GATE-G reasoning):\n  \
+                    "\n--explain (the gate's reasoning):\n  \
                      The gate scanned your clean corpus for a NEAR-MISS — a sibling that\n  \
                      matches all-but-one of the draft's conjuncts and is spared by failing\n  \
                      exactly one. It found NONE: every clean item either fully matches the\n  \
@@ -4911,14 +4914,14 @@ fn render_propose_outcome(
                 ),
                 None => println!(
                     "The anti-unified draft is BARE-STRUCTURAL (no discriminating signal) — it\n\
-                     would over-bind its whole structural family. Refused at the (A)-binary\n\
-                     safety check; refine the cluster (these sites share only their shape)."
+                     would over-bind its whole structural family. Refused at the safety\n\
+                     check; refine the cluster (these sites share only their shape)."
                 ),
             }
             if let Some(ex) = explain {
                 if let Some(twin) = &ex.bound_twin {
                     println!(
-                        "\n--explain (GATE-G reasoning):\n  \
+                        "\n--explain (the gate's reasoning):\n  \
                          The clean item the draft would flag is `{twin}` — promoting the draft\n  \
                          would fire on THIS known-good code (the autoimmunity made concrete).\n  \
                          Either tighten the cluster so the draft no longer matches `{twin}`, or\n  \
@@ -5459,16 +5462,12 @@ fn run_attest(cli: AttestCli) -> ExitCode {
         AttestSubcommand::Gc(args) => run_attest_gc(args),
         AttestSubcommand::Oracle => {
             eprintln!(
-                "`attest oracle mark` is not yet implemented in v0.1-rc.\n\
-                 Renamed from `attest oracle complete` per ADR-021 F28-R2 to \
-                 disambiguate from the top-level `cargo antigen oracle complete` \
-                 state-machine verb. Implementation pending: must write \
-                 `OracleCompletionMarker {{ oracle_state_at_attestation, .. }}` \
-                 at sign time per ADR-021 §D4 + ATK-021-19 (without the \
-                 sign-time-state anchor, sign-time-validity cannot be \
-                 structurally enforced — the audit cannot distinguish post-\
-                 sign-time deprecation from pre-sign-time deprecation).\n\
-                 Operator scripts MUST NOT rely on this exit code as success."
+                "`attest oracle mark` is not yet implemented (design-phase stub).\n\
+                 This per-attestation marker records the oracle's state at the moment \
+                 a signer attests, so the audit can later tell apart an oracle that was \
+                 valid at sign time from one that was already deprecated. To transition \
+                 an oracle's own state, use `cargo antigen oracle complete` instead.\n\
+                 This command currently writes nothing — do not treat its exit code as success."
             );
             ExitCode::FAILURE
         },
@@ -6073,7 +6072,7 @@ fn run_attest_list(args: AttestListArgs) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-/// `attest gc`: report orphaned sidecars (report-only in v0.1; --force deletes).
+/// `attest gc`: report orphaned sidecars (report-only; `--force` deletes).
 fn run_attest_gc(args: AttestGcArgs) -> ExitCode {
     use antigen_attestation::Ratification;
 
@@ -6139,7 +6138,7 @@ fn run_attest_gc(args: AttestGcArgs) -> ExitCode {
         }
         eprintln!("{removed} sidecar(s) removed.");
     } else {
-        eprintln!("(Run with --force to delete. Report-only in v0.1.)");
+        eprintln!("(Reported only. Re-run with --force to delete these sidecars.)");
     }
 
     ExitCode::SUCCESS

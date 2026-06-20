@@ -32,9 +32,11 @@
 //! 1. **Blind-channel forget** — can ANY combination of (`DriftVerdict::UnderPowered`,
 //!    any `SilentStatus`) or (`any DriftVerdict`, `SilentStatus::Indeterminate`)
 //!    produce `ClassVerdict::Obsolete`? If yes: a blind-channel autoimmune-forget.
-//! 2. **Virtual-drift cell** — a recall-drop with the shape PRESENT and no near-miss
-//!    is VIRTUAL drift (code churn, not the defect mutating). Must produce
-//!    `ClassVerdict::Dormant`, NOT `Obsolete`.
+//! 2. **Undecidable recall-drop cell** — a recall-drop with the shape PRESENT and
+//!    no near-miss is UNDECIDABLE: `Affinity::recall` is a denominator-free rate, so
+//!    churn (denominator shrank, shape alive) cannot be distinguished from evasion
+//!    (numerator moved, defect mutated) without a cluster-size count. Must produce
+//!    `ClassVerdict::RouteToHuman` (the third conservatism-join cell), NOT `Obsolete`.
 //! 3. **`DriftVerdict` sealed enum** — `UnderPowered` must be a first-class variant,
 //!    not a `bool`. Collapsing to `bool` merges "no-drift" with "can't-see",
 //!    reopening the silent-miscalibration antigen exists to catch.
@@ -51,12 +53,14 @@
 //! |--------------------|--------------------------|----------------------|
 //! | Drift (recall-drop)| `Obsolete` (shape gone)  | `Obsolete` → Forget  |
 //! | Drift (recall-drop)| `Evading` (near-miss)    | `Evaded` → `ReArm`   |
-//! | Drift (recall-drop)| `Dormant` (shape present)| `Dormant` → Hold (VIRTUAL drift) |
+//! | Drift (recall-drop)| `Dormant` (shape present)| `RouteToHuman` → Hold (UNDECIDABLE) |
 //! | `UnderPowered`     | ANY                      | `RouteToHuman` → Hold |
 //! | ANY                | `Indeterminate`          | `RouteToHuman` → Hold |
 //! | `NoDrift`          | ANY                      | pass through bit-3 alone |
 //!
-//! The two rows with `RouteToHuman` are the conservatism-join — the safety floor.
+//! The three rows with `RouteToHuman` are the conservatism-join — the safety floor.
+//! The `Dormant` row is the third cell: the cause is undecidable on a denominator-free
+//! recall rate, so it escalates to a human rather than guessing churn-vs-evasion.
 //!
 //! Author: v06-adwin-adversarial (the conservatism-join attack before the organ
 //! ships, feeding the ADWIN pathmaker the failing tests that define done).
@@ -68,8 +72,8 @@
 //! commit that makes these compile.
 //! What is NON-negotiable: (a) `UnderPowered` is a first-class variant distinct
 //! from `NoDrift`; (b) a blind-channel combination NEVER produces
-//! `ClassVerdict::Obsolete`; (c) virtual-drift (shape-present + no-near-miss)
-//! NEVER produces `Obsolete`; (d) a 0.9→0.2→0.9 crater that
+//! `ClassVerdict::Obsolete`; (c) the undecidable recall-drop cell (shape-present +
+//! no-near-miss) NEVER produces `Obsolete` (it routes to a human); (d) a 0.9→0.2→0.9 crater that
 //! `trajectory_direction()` misses DOES fire `Drift`.
 //! ----------------------------------------------------------------------------
 
@@ -317,12 +321,13 @@ fn atk_adwin3_indeterminate_bit3_blocks_forget_across_all_adwin_verdicts() {
 }
 
 // ---------------------------------------------------------------------------
-// ATK-ADWIN-4 — Virtual-drift: a recall-drop with the shape PRESENT and no
-// near-miss is code CHURN, not the defect mutating.
+// ATK-ADWIN-4 — Undecidable recall-drop: a recall-drop with the shape PRESENT
+// and no near-miss cannot be told apart from code churn vs. the defect mutating.
 //
-// The fusion table (ADR-065): ADWIN Drift (recall-drop) + Dormant (shape present,
-// no near-miss) → ClassVerdict::Dormant, NOT Obsolete. Forgetting on virtual
-// drift discards a live defense because the test suite shrank.
+// The fusion table (ADR-065 Amendment 1): ADWIN Drift (recall-drop) + Dormant
+// (shape present, no near-miss) → ClassVerdict::RouteToHuman, NOT Obsolete. The
+// cause is undecidable on a denominator-free recall rate, so the honest-blind
+// response is to escalate — never auto-forget, never silently guess churn.
 // ---------------------------------------------------------------------------
 
 /// ADWIN Drift (recall-drop) + `Dormant` must fuse to `RouteToHuman` — the third
