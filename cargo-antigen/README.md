@@ -28,7 +28,7 @@ Commands:
   vcs          Drive VCS-Information-Loss Family observations (ADR-026)
   mucosal-map  Map mucosal trust boundaries across the workspace (ADR-027 + Amd 1)
   fingerprint  Print the structural fingerprint of a scanned item
-  mine         Mine a repository's `.git` for the SZZ `(defect, fix)` corpus
+  mine         Mine a repository's `.git` for the SZZ `(defect, fix)` corpus (the learning core's INPUT corpus — recomputable from git history)
 ```
 
 ## Installation
