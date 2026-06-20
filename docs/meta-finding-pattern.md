@@ -252,8 +252,8 @@ discipline that catches it crosses with it.
 
 ## See also
 
-- [`decisions.md`](decisions.md) — ADR-006 (recognition-not-design),
-  ADR-028 (antigen-category taxonomy)
+- [`decisions.md`](decisions.md) — recognition-not-design, and the
+  antigen-category taxonomy
 - [`testing-patterns.md`](testing-patterns.md) — witness conventions, the
   "test that reads both sides" pattern
 - [`where-to-look-for-antigens.md`](where-to-look-for-antigens.md) —

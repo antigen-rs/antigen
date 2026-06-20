@@ -607,7 +607,7 @@ are filtered from the output.
 
 ## References
 
-- [`docs/decisions.md`](decisions.md) — ADR-010 (fingerprint grammar v1) and
+- [`docs/decisions.md`](decisions.md) — the fingerprint grammar v1 and its
   amendments; performance invariants; De Morgan loophole rationale
 - [`docs/tutorial.md`](tutorial.md) — step-by-step walkthrough using a
   real fingerprint

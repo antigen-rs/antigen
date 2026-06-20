@@ -297,8 +297,8 @@ cargo test --test spares_namesake_contract -p antigen   # 9/9 green; the names t
 
 - [`stdlib-families.md`](../stdlib-families.md) — the catalog: the eight families,
   their tiers, what each catches
-- [`decisions.md`](../decisions.md) — ADR-039 §C Amendment 1, the spares-namesake
-  sub-test ratified by Catch 2
+- [`decisions.md`](../decisions.md) — the spares-namesake sub-test ratified by
+  Catch 2
 - [`origin.md`](../origin.md) — the tambear incident: the founding "green test,
   wrong answer" that antigen exists to prevent, and which Catch 2 is a recurrence of
 - [`fingerprint-grammar.md`](../fingerprint-grammar.md) — why `body_calls` is
