@@ -120,8 +120,13 @@ _SH_INFOS = {"sh", "shell", "bash", "console", "shell-session", "sh-session"}
 _OUTPUT_INFOS = {"", "text", "console", "output", "txt"}
 
 # A command line we care about — anything driving the antigen binary, plus the
-# install line (illustrative, but worth surfacing).
-_CMD_LINE_RE = re.compile(r"\b(cargo\s+antigen\b|cargo\s+install\s+cargo-antigen\b)")
+# install line (illustrative, but worth surfacing). The demo docs also drive the
+# binary via `cargo run --bin cargo-antigen -- antigen …`, so recognize that too.
+_CMD_LINE_RE = re.compile(
+    r"\b(cargo\s+antigen\b"
+    r"|cargo\s+run\s+--bin\s+cargo-antigen\s+--\s+antigen\b"
+    r"|cargo\s+install\s+cargo-antigen\b)"
+)
 
 
 @dataclasses.dataclass
@@ -143,6 +148,34 @@ class Example:
 def _strip_prompt(line: str) -> str:
     """Drop a leading shell prompt (`$ `, `> `, `PS> `) from a command line."""
     return re.sub(r"^\s*(\$|>|PS[^>]*>)\s+", "", line).rstrip()
+
+
+def _first_command(body: str) -> Optional[str]:
+    """Find the first antigen command in a fence body, joining `\\`-continuations.
+
+    The demo docs write a long invocation across lines with a trailing backslash:
+
+        cargo run --bin cargo-antigen -- antigen propose \\
+            --cluster-root examples/propose-demo/cluster \\
+            --clean-root   examples/propose-demo/clean
+
+    A single-line scan would only see the first line and miss the args. So when the
+    line that holds the command ends in `\\`, fold the continuation lines into it.
+    """
+    lines = body.splitlines()
+    for i, raw in enumerate(lines):
+        if not _CMD_LINE_RE.search(raw):
+            continue
+        parts = [raw.rstrip()]
+        while parts[-1].endswith("\\"):
+            parts[-1] = parts[-1][:-1].rstrip()
+            if i + 1 < len(lines):
+                i += 1
+                parts.append(lines[i].strip())
+            else:
+                break
+        return " ".join(p for p in parts if p)
+    return None
 
 
 _PROMPT_CMD_RE = re.compile(r"^\s*\$\s+(cargo\s+antigen\b.*)$")
@@ -171,11 +204,7 @@ def extract_examples(doc: str, text: str) -> list[Example]:
     for idx, f in enumerate(fences):
         if f.info not in _SH_INFOS:
             continue
-        cmd_line = None
-        for raw in f.body.splitlines():
-            if _CMD_LINE_RE.search(raw):
-                cmd_line = raw
-                break
+        cmd_line = _first_command(f.body)
         if cmd_line is None:
             continue
         command = _strip_prompt(cmd_line)
@@ -245,17 +274,35 @@ _HELP_TAIL_RE = re.compile(r"(--help|-h|--version|-V)\s*$")
 
 _ILLUSTRATIVE_MARKERS = ("cd ", "/path/to", "your-project", "your/rust", "cargo install")
 
+# A command that drives the binary against IN-REPO demo fixtures is deterministic
+# here — it needs no user project and no network. `propose`/`scan`/`audit` whose
+# every path-arg lives under `examples/` is the fixture-runnable class: the demo's
+# real captured outputs (route-to-human, promote, JSON) become checkable, not just
+# "illustrative". This is exactly where the demo's promote-output drift hides.
+_FIXTURE_SUBCMDS = ("propose", "scan", "audit", "fingerprint")
+_PATH_ARG_RE = re.compile(r"--(?:cluster-root|clean-root|root|item-path)\s+(\S+)")
+
+
+def _drives_subcmd(c: str, sub: str) -> bool:
+    return re.search(rf"\bantigen\s+{sub}\b", c) is not None
+
 
 def classify(command: str) -> str:
-    """Return 'runnable' or 'illustrative' for a command string."""
+    """Return 'runnable', 'fixture', or 'illustrative' for a command string."""
     c = command.strip()
     if any(mark in c for mark in _ILLUSTRATIVE_MARKERS):
         return "illustrative"
     if _RUNNABLE_RE.match(c):
         return "runnable"
-    # `cargo antigen --help` with trailing args, or a bare help on the root.
     if c.startswith("cargo antigen") and _HELP_TAIL_RE.search(c):
         return "runnable"
+    # Fixture-runnable: a fixture subcommand whose path-args ALL point under
+    # examples/ (in-repo, deterministic). If any path-arg escapes examples/ (a
+    # placeholder like <PATH>, or a user tree), it stays illustrative.
+    if any(_drives_subcmd(c, s) for s in _FIXTURE_SUBCMDS):
+        path_args = _PATH_ARG_RE.findall(c)
+        if path_args and all(p.startswith("examples/") for p in path_args):
+            return "fixture"
     return "illustrative"
 
 
@@ -264,27 +311,39 @@ def classify(command: str) -> str:
 # --------------------------------------------------------------------------- #
 
 def _split_argv(command: str) -> list[str]:
-    """Turn a `cargo antigen ...` string into argv for the binary.
+    """Turn a documented invocation into argv for the binary.
 
     The binary is invoked as the cargo subcommand: `cargo-antigen antigen ...`.
-    So `cargo antigen scan --help` -> [bin, "antigen", "scan", "--help"].
+    Two surface forms map to the same argv tail (everything from "antigen" on):
+      - `cargo antigen scan --help`                       -> ["antigen","scan","--help"]
+      - `cargo run --bin cargo-antigen -- antigen propose …` -> ["antigen","propose",…]
     """
     parts = command.split()
-    assert parts[0] == "cargo" and parts[1] == "antigen", command
-    return parts[1:]  # drop "cargo", keep "antigen" + the rest
+    # Find the "antigen" token that begins the real argument tail.
+    if parts[:2] == ["cargo", "antigen"]:
+        return parts[1:]
+    if "antigen" in parts:
+        i = parts.index("antigen")
+        # only accept it as the subcommand boundary if it follows the `-- ` of a
+        # `cargo run --bin cargo-antigen -- antigen` form.
+        if "cargo-antigen" in parts[:i] and "--" in parts[:i]:
+            return parts[i:]
+    raise ValueError(f"cannot parse invocation: {command!r}")
 
 
-def run_command(binary: Path, command: str) -> str:
+def run_command(binary: Path, command: str, cwd: Optional[Path] = None) -> str:
     argv = [str(binary)] + _split_argv(command)
     # Capture BYTES and decode as UTF-8 ourselves. The binary writes UTF-8 (its
     # help strings carry em-dashes and section-signs); `text=True` would decode
     # with the platform locale (cp1252 on Windows), turning `—` into mojibake and
     # producing a FALSE drift on every line that contains one. Decoding the bytes
     # as UTF-8 is the only way the comparison sees the same characters the doc has.
+    # cwd=root so a fixture command's relative `examples/…` paths resolve.
     proc = subprocess.run(
         argv,
         capture_output=True,
         timeout=60,
+        cwd=str(cwd) if cwd else None,
     )
     out = proc.stdout.decode("utf-8", errors="replace")
     err = proc.stderr.decode("utf-8", errors="replace")
@@ -366,7 +425,11 @@ def doc_targets(root: Path) -> list[Path]:
     readmes = [root / "README.md"]
     for crate in ("antigen", "antigen-fingerprint", "antigen-attestation", "antigen-macros", "cargo-antigen"):
         readmes.append(root / crate / "README.md")
-    return [p for p in docs + readmes if p.exists()]
+    # The runnable demos under examples/ carry REAL captured outputs (the demo
+    # README's route-to-human / promote / JSON transcripts) — exactly the fixture-
+    # runnable class. Include them so those transcripts are checked, not just shown.
+    examples = sorted((root / "examples").rglob("*.md")) if (root / "examples").is_dir() else []
+    return [p for p in docs + readmes + examples if p.exists()]
 
 
 def run(root: Path, binary: Path) -> list[Result]:
@@ -382,7 +445,7 @@ def run(root: Path, binary: Path) -> list[Result]:
             if ex.claimed_output is None:
                 results.append(Result(ex, "NO-CLAIM"))
                 continue
-            actual = run_command(binary, ex.command)
+            actual = run_command(binary, ex.command, cwd=root)
             claimed_n = normalize(ex.claimed_output)
             actual_n = normalize(actual)
             if claimed_n == actual_n:
@@ -409,10 +472,15 @@ def print_human(results: list[Result], binary: Path) -> None:
     n_drift = sum(r.status == "DRIFT" for r in results)
     n_illus = sum(r.status == "ILLUSTRATIVE" for r in results)
     n_noclaim = sum(r.status == "NO-CLAIM" for r in results)
+    # How many of the run examples are the fixture class (demo transcripts run
+    # against in-repo examples/), vs the help/version surface.
+    n_fixture = sum(classify(r.example.command) == "fixture" for r in results
+                    if r.status in ("PASS", "DRIFT", "EXCERPT"))
 
     print(f"antigen doc-harness — binary: {binary}")
     print(f"  examples found: {len(results)}")
     print(f"  RUNNABLE-HERE:  {n_pass} pass, {n_excerpt} excerpt, {n_drift} drift, {n_noclaim} no-claim (command present, no output block)")
+    print(f"                  ({n_fixture} of the run examples are demo-fixture transcripts run against examples/)")
     print(f"  ILLUSTRATIVE:   {n_illus} (needs a user project/network — surfaced, not asserted)")
     print()
 
