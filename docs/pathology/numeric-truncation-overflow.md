@@ -131,7 +131,6 @@ in [`../roadmap.md`](../roadmap.md).
   tier-honesty worked example)
 - [`../fingerprint-grammar.md`](../fingerprint-grammar.md) — the fingerprint DSL
 - [`../witness-tiers.md`](../witness-tiers.md) — the tier gradient
-- [`../decisions.md`](../decisions.md) — ADR-039 §C Amendment 1 (the named→suspected
-  correction)
+- [`../decisions.md`](../decisions.md) — the named→suspected correction
 - [`../../antigen/src/stdlib/numeric_truncation.rs`](../../antigen/src/stdlib/numeric_truncation.rs)
   — the source docstring (ground truth)

@@ -693,10 +693,10 @@ semantic no-ops that vacuously pass. If you want "no predicate," don't add
   human-readable and JSON, field-by-field
 - [`docs/fingerprint-grammar.md`](fingerprint-grammar.md) — full operator
   reference for the fingerprint DSL with worked examples
-- [`docs/decisions.md`](decisions.md) — ADR-002 (compose-not-compete),
-  ADR-005 (sub-clause F + witness tier honesty), ADR-011 (`#[antigen_tolerance]`
-  mechanics and rationale-as-required-field), ADR-013 (phantom-type
-  witness recognition + WitnessTier gradient)
+- [`docs/decisions.md`](decisions.md) — compose-not-compete; sub-clause F +
+  witness tier honesty; `#[antigen_tolerance]` mechanics and
+  rationale-as-required-field; phantom-type witness recognition + WitnessTier
+  gradient
 - [`docs/testing-patterns.md`](testing-patterns.md) — property test
   conventions, failing-as-passing pattern
 - [`docs/glossary.md`](glossary.md) — antigen, presentation, immunity,

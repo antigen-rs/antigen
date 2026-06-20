@@ -440,7 +440,7 @@ they're a structurally distinct set:
   systems toward retrieval-augmented patterns, which re-introduces
   the retrieval-mediation boundary above.
 - **Multi-agent coordination boundaries.** When two agents
-  collaborate (multi-agent frameworks; JBD-style teams; pipeline
+  collaborate (multi-agent frameworks; multi-agent development teams; pipeline
   workflows where one agent's output is another's input), each
   agent has its own context state. State synchronization across
   agents requires shared substrate the agents both read — text
@@ -579,7 +579,7 @@ section names some.
 discipline, named failure-classes typically require three independent
 substrate-grounded instances to clear the ratification threshold. The
 section below names nine failure-classes; three (6.1, 6.7, 6.8) are
-substrate-grounded — 6.1 by the tambear `DeterminismClass` /
+substrate-grounded — 6.1 by the origin project's `DeterminismClass` /
 `CommutativityClass` pattern accelerated by AI-cognition cycling; 6.7
 by antigen's own PanickingInDrop spacing-bug + ADR-010 receiver/type
 instances; 6.8 by the ATK adversarial suite that catches the theatrical-witness
@@ -619,7 +619,7 @@ specific lesson.
 
 The failure mode: a fix that was made in one session gets undone (or
 forgotten) in another. The pattern reappears. The team notices it
-the third or fourth time it happens. (This is *exactly* the tambear
+the third or fourth time it happens. (This is *exactly* the origin project's
 DeterminismClass / CommutativityClass pattern from
 [`case-study.md`](case-study.md), but accelerated by AI-cognition's
 faster cycling.)
@@ -703,12 +703,12 @@ structural coverage, because adopters trust the substrate.
 **Substrate-grounded instances**:
 
 - **External instance** (separate project consuming antigen as a
-  dependency): tambear's `PanickingInDrop` fingerprint used
+  dependency): an external adopter's `PanickingInDrop` fingerprint used
   `"(&mut self)"` for the receiver pattern; proc_macro2 renders it
   `"(& mut self)"` with a space after `&`. Pattern silently matched
-  zero `impl Drop` blocks for four days until scout's tutorial
-  cross-check surfaced it. Tambear is a separate Rust project that
-  adopted antigen as a path dependency; its smoke-test consumption
+  zero `impl Drop` blocks for four days until a tutorial cross-check
+  surfaced it. The adopter is a separate Rust project that
+  pulled in antigen as a path dependency; its smoke-test consumption
   surfaced the failure-class for an audience that wasn't antigen-
   internal.
 - **Internal instance**: ADR-010 ratified text used
@@ -718,11 +718,11 @@ structural coverage, because adopters trust the substrate.
   the by-value-receiver methods the fingerprint was meant to catch.
 
 The external/internal pairing matters for substrate-grounding rigor:
-the tambear instance is independent confirmation that the failure-
+the external-adopter instance is independent confirmation that the failure-
 class isn't an artifact of antigen-developers-only thinking. A
 hostile reviewer asking "isn't this self-referential substrate?" has
 at least one external observation point. Both instances surfaced
-through scout's spec-vs-engine cross-check discipline (not through
+through a spec-vs-engine cross-check discipline (not through
 adversarial probing — the failure-class is specification-invisible).
 Resolved structurally by ADR-010 Amendment 5 (pre-tokenize user
 pattern strings through proc_macro2 at parse time). The Amendment 5
@@ -788,7 +788,7 @@ vulnerability) requires either property-based testing
 ### 6.9 — AI-AI coordination failure (ideated encounter-tier)
 
 The structural shape: in teams with multiple AI agents (multi-agent
-systems, JBD-style coordination, parallel pull-request authors), AI
+systems, multi-agent coordination, parallel pull-request authors), AI
 agents don't share session state with each other any more than they
 share with humans. Two AI agents working on the same codebase from
 different contexts can produce the same kinds of failures that human-
@@ -1664,7 +1664,7 @@ that helped catalyze the shift."
 - [`concepts.md`](concepts.md) — architectural concepts in adopter form
 - [`tutorial.md`](tutorial.md) — first 15 minutes
 - [`quickstart.md`](quickstart.md) — 5-minute taste
-- [`case-study.md`](case-study.md) — the tambear
+- [`case-study.md`](case-study.md) — the origin project's
   DeterminismClass/CommutativityClass narrative
 - [`composition.md`](composition.md) — antigen + your existing tools
 - [`for-llm-collaborators.md`](for-llm-collaborators.md) — LLM

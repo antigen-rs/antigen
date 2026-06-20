@@ -391,8 +391,8 @@ vocabulary of *what's being defended*.
 - [`concepts.md`](concepts.md) — architectural concepts
 - [`witness-tiers.md`](witness-tiers.md) — witness tier semantics
 - [`macros.md`](macros.md) — full macro reference
-- [`decisions.md`](decisions.md) — especially ADR-002 (compose, don't
-  compete) and ADR-013 (phantom-type witness recognition)
+- [`decisions.md`](decisions.md) — especially compose, don't compete, and
+  phantom-type witness recognition
 - [`testing-patterns.md`](testing-patterns.md) — when/how
   testing-and-antigen co-operate
 

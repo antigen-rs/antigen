@@ -640,9 +640,8 @@ docstrings in
 - [`fingerprint-grammar.md`](fingerprint-grammar.md) — the full fingerprint DSL
 - [`witness-tiers.md`](witness-tiers.md) — the confidence/tier gradient
 - [`macros.md`](macros.md) — the macro reference (incl. the marked-unknown markers)
-- [`decisions.md`](decisions.md) — ADR-039 §C (the tier-honesty admission
-  discipline), ADR-040 (the fingerprint grammar leaves), ADR-041 (the
-  marked-unknown markers)
+- [`decisions.md`](decisions.md) — the tier-honesty admission discipline, the
+  fingerprint grammar leaves, and the marked-unknown markers
 - The per-family source docstrings in
   [`antigen/src/stdlib/`](../antigen/src/stdlib/) — ground truth for every tier,
   fingerprint, and witness

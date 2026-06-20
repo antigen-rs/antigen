@@ -34,7 +34,7 @@ assignees: ''
 
 ## Have you checked our existing prior-art surveys?
 
-- [ ] `docs/expedition/ecosystem-composition.md` (Rust ecosystem tools)
-- [ ] `docs/expedition/academic-context.md` (academic work)
+- [ ] `docs/composition.md` (how antigen composes with existing Rust tools)
+- [ ] `docs/scope.md` (what antigen is and isn't, relative to neighboring approaches)
 
 If the prior art is already covered there, what additional aspect do you want to surface?

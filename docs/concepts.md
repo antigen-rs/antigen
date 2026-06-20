@@ -363,6 +363,12 @@ fingerprint, sense when it has gone obsolete or is being evaded, and be curated
 (eventually forgotten) when it stops earning its keep. This is antigen modeled as a
 maturing organism, not a static catalog.
 
+> The sections below are the concept-level tour. For the full arc told as one story —
+> the sense → classify → act reflex and why the headline capability is the set of things
+> antigen *refuses* to do — see [the maturing organism](the-maturing-organism.md). The
+> canonical nouns (CURATE, the reversible-first ladder, the conservatism-JOIN, Affinity
+> the 2-vector) are defined in the [glossary](glossary.md#maturing-organism-terms-the-v06-efferent-organs).
+
 > **Library-complete, live loop is v0.7.** Every organ below ships as a tested, composable
 > `antigen::learn::*` library API. What does **not** ship yet is a `cargo antigen` verb that
 > drives the whole sense → classify → act loop end-to-end — no production CLI caller wires
@@ -394,7 +400,7 @@ The organs, in the order a class flows through them:
 - **CURATE (ACT) — the moral center.** `antigen::learn::curate` is the efferent decision-layer:
   the forget-gate. Every other organ senses or classifies; CURATE alone *acts*. Its
   conservative default **holds** — it never forgets — whenever any channel is blind (ADWIN
-  `UnderPowered` or the static sensor `Indeterminate`), per ADR-057. The forgetting is the
+  `UnderPowered` or the static sensor `Indeterminate`). The forgetting is the
   trust: a learned class is only ever decayed through a reversible, human-ratifiable ladder,
   never silently dropped.
 

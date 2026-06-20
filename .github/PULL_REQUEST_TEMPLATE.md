@@ -1,13 +1,9 @@
 <!--
 Thanks for contributing to antigen!
 
-The project is in design phase. Until v0.1 ships, the most valuable PRs are:
-- Documentation typo fixes
-- Clear improvements to design substrate documents
-- Glossary additions for new terminology
-
-Code PRs against the placeholder crates are unlikely to land — please discuss design
-in an issue first if you want to propose substantive code changes.
+See CONTRIBUTING.md for the contribution paths and what happens to your PR. For
+substantive code or design changes, opening an issue to discuss first usually makes
+review faster — your PR description is the primary substrate the review works from.
 -->
 
 ## What does this PR change?
@@ -21,7 +17,7 @@ in an issue first if you want to propose substantive code changes.
 ## Type of change
 
 - [ ] Documentation (typo, clarification, addition)
-- [ ] Design substrate refinement (a doc in `docs/expedition/`)
+- [ ] Design-rationale refinement (a doc in `docs/` or an ADR in `docs/decisions.md`)
 - [ ] Glossary update
 - [ ] CI / repo-hygiene change
 - [ ] Code change (please confirm: have you discussed in an issue first?)

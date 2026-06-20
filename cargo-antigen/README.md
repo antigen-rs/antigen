@@ -3,7 +3,7 @@
 **Cargo subcommand for the [antigen](https://crates.io/crates/antigen) project —
 scan, audit, and learn structural failure-class antibodies in Rust codebases.**
 
-> **Status: working beta (`0.5.0-beta.1`), published on crates.io.** The
+> **Status: working beta, published on crates.io.** The
 > subcommands below are real and runnable today. The CLI surface is stabilizing
 > toward `1.0` and may still change between beta releases.
 
@@ -28,7 +28,7 @@ Commands:
   vcs          Drive VCS-Information-Loss Family observations (ADR-026)
   mucosal-map  Map mucosal trust boundaries across the workspace (ADR-027 + Amd 1)
   fingerprint  Print the structural fingerprint of a scanned item
-  mine         Mine a repository's `.git` for the SZZ `(defect, fix)` corpus
+  mine         Mine a repository's `.git` for the SZZ `(defect, fix)` corpus (the learning core's INPUT corpus — recomputable from git history)
 ```
 
 ## Installation
@@ -79,7 +79,7 @@ corpus before suggesting it:
 $ cargo antigen propose --cluster-root ./cluster --clean-root ./clean
 == drafted a candidate — routed to a human ratifier ==
 
-Antigen anti-unified a draft from your `dread` marks, but the B-gate cannot
+Antigen anti-unified a draft from your `dread` marks, but cannot
 certify it GENERALIZES against your clean corpus (no near-miss: no clean
 sibling is one discriminating constraint from binding the draft). So it
 routes the candidate to a HUMAN ratifier rather than promote it.
