@@ -5,6 +5,73 @@ All notable changes to the antigen project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] — UNRELEASED
+
+**0.6.0 — The Maturing Organism.** v0.5 gave antigen a memory; v0.6 lets a remembered
+failure-class *live*. An immune system that learned to keep a memory can now feel the ground
+shift under one of its own learned defenses, write that defense in legible source a human reads
+and edits, and — the moral center — never discard a live defense on a signal it cannot actually
+see. The four new organs ship as a **typed, tested, composable library** (`antigen::learn`); the
+`cargo antigen` verb that drives the full sense → classify → act loop end-to-end is the v0.7
+frontier. The headline capability of this release is the set of things antigen structurally
+refuses to do.
+
+### Added — the maturing-organism library (`antigen::learn`)
+
+Four library-complete organs, each typed, tested, and composable. None is wired to a `cargo
+antigen` verb yet — the binary still wires `propose` (afferent) only; these are the efferent
+organs the v0.7 pipeline will drive.
+
+- **The life-record (`antigen::learn::life_record`)** — a learned class's append-only
+  autobiography: a typed event stream (`Born`, `Matured`, `Scored`, `Drifted`, `Ratified`,
+  `Retired`, …). Current state is *derived, never stored* — `is_retired()` is a fold over the
+  stream, not a flag kept in sync — so the record cannot drift out of sync with itself, the same
+  property that makes a `.git` history trustworthy. A forget is a pushed `Retired` tombstone,
+  never an erasure.
+- **Affinity maturation (`antigen::learn::affinity` + `maturation`)** — a learned class's height,
+  recorded as a 2-vector `Affinity { recall, precision }`, deliberately **not a scalar**:
+  `PartialOrd` with no `Ord`, because catch-every-defect (recall) and spare-every-clean
+  (precision) genuinely trade off, and collapsing them to one number hides the choice. The
+  maturation ceiling is the Pareto frontier, not a threshold. **The score is not a probability** —
+  it is the honest placeholder for a calibrated confidence v0.7 will compute.
+- **Drift detection (`antigen::learn::adwin`)** — a batch-pure change-point detector
+  (Bifet-Gavaldà 2007) over a class's affinity trajectory. Its verdict is three-valued, and the
+  third — **`UnderPowered`** — is the spine, not a corner case: below a statistical-power
+  threshold a change is mathematically undetectable, so the detector says "I cannot yet see drift
+  for this class, and here is exactly when I will be able to" rather than a false `NoDrift`. At
+  today's scale `UnderPowered` is the default verdict; a detector that fires zero and says so is
+  the correct, honest v0.6 organ.
+- **CURATE — the moral center (`antigen::learn::curate` + `discriminator`)** — the efferent
+  decision layer: the one organ that *acts* on a class. It maps a class verdict to one action on
+  a reversible-first ladder — Keep · Hold · RouteToHuman · ReArm · **Forget** — where Forget is
+  the only irreversible rung and is reachable from a single verdict (`Obsolete`) alone,
+  type-enforced. Before CURATE acts, the **conservatism-JOIN** fuses the sensor channels: if any
+  channel is blind (drift `UnderPowered`, the shape-sensor `Indeterminate`, or a non-finite drift
+  signal), the verdict is `RouteToHuman`, regardless of what the other channels say. A blind
+  channel cannot endorse an irreversible forget. CURATE's load-bearing property is not what it
+  forgets — it is what it is structurally incapable of forgetting.
+
+### Added — the co-native serializer (`antigen-fingerprint`)
+
+- **`Fingerprint → DSL` serialization** — the parser's exact inverse, completing the bijection
+  (`parse ∘ serialize == identity`). The DSL is the privileged rendering: the same text a human
+  reads and edits is the text the parser consumes is the text the `#[antigen(…)]` macro compiles
+  — round-trip exactness *is* co-nativeness. Completeness is a compiler guarantee, not a test
+  hope: the `Constraint` alphabet is closed and the `Display` match is exhaustive with no wildcard
+  arm, so a new operator fails to compile the serializer until an arm is written.
+
+### Honest scope (what v0.6 does and does not do)
+
+- **Library-complete, not CLI-wired.** Every organ above is a tested `antigen::learn` API. No
+  `cargo antigen` verb drives the sense → classify → act loop end-to-end; the live curation loop
+  is the v0.7 frontier.
+- **The strange-loop is unfired.** `propose` routes a draft to a human; it does not promote.
+  antigen anti-unifies a draft and routes it to ratification — never "antigen immunized itself."
+- **The affinity score is not a probability.** Calibration is v0.7; the 2-vector is the honest
+  trade-off surface, not a confidence number.
+- **ADWIN fires zero at v0.6 scale, by design.** `UnderPowered` is the default verdict, not a
+  bug — the same organ fires correctly once trajectories lengthen, with no code change.
+
 ## [0.5.0-beta.1] — 2026-06-17
 
 **0.5.0-beta.1 — The Learning Organism (first v0.5 beta).** v0.4 shipped the safety-governed
