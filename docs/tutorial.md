@@ -49,16 +49,16 @@ Add antigen to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-antigen = "0.5.0-beta.1"   # the first v0.5 beta — the learning surface + the failure-class families
+antigen = "0.6"   # the learning surface + the failure-class families   (check crates.io for the latest)
 ```
 
 Install the cargo subcommand:
 
 ```sh
-cargo install cargo-antigen --version 0.5.0-beta.1
+cargo install cargo-antigen
 ```
 
-> `cargo install cargo-antigen --version 0.5.0-beta.1` installs the v0.5 beta — the full
+> `cargo install cargo-antigen` installs the latest published release — the full
 > v0.4 surface (bundled catalog, `--message-format json` flycheck, diff-native DETECT) plus the
 > v0.5 learning surface (`cargo antigen propose`) is included.
 
@@ -75,6 +75,7 @@ Usage: cargo antigen <COMMAND>
 
 Commands:
   scan         Scan the workspace for antigen presentations and report unaddressed ones
+  propose      Propose a candidate failure-class fingerprint from a cluster of marked sites
   audit        Comprehensive immunity coverage report — witness resolution and tier validation
   attest       Manage `.attest/<Antigen>.json` substrate-witness sidecars (ADR-019)
   tolerate     Manage tolerance-ratification sidecars (ADR-019 §tolerance tier)
@@ -83,6 +84,7 @@ Commands:
   vcs          Drive VCS-Information-Loss Family observations (ADR-026)
   mucosal-map  Map mucosal trust boundaries across the workspace (ADR-027 + Amd 1)
   fingerprint  Print the structural fingerprint of a scanned item
+  mine         Mine a repository's `.git` for the SZZ `(defect, fix)` corpus (the learning core's INPUT corpus — recomputable from git history)
   help         Print this message or the help of the given subcommand(s)
 
 Options:

@@ -3,7 +3,7 @@
 **Cargo subcommand for the [antigen](https://crates.io/crates/antigen) project —
 scan, audit, and learn structural failure-class antibodies in Rust codebases.**
 
-> **Status: working beta (`0.5.0-beta.1`), published on crates.io.** The
+> **Status: working beta, published on crates.io.** The
 > subcommands below are real and runnable today. The CLI surface is stabilizing
 > toward `1.0` and may still change between beta releases.
 
