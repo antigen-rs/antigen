@@ -1,5 +1,12 @@
 # Antigen — Architectural Decision Records
 
+> **Who this is for.** This is antigen's architecture-decision ledger — the record of
+> *why* each design is shaped the way it is. You do not need it to use antigen; if
+> you want to get started, begin at [`index.md`](index.md). The ADR numbers are the
+> project's own index into its reasoning, kept here so a contributor can trace a
+> design back to the decision that made it. Read it when you want the *why* behind a
+> primitive, not the *how* of using one.
+
 > Ratified architectural decisions for the antigen project. Every load-bearing
 > decision lands here with a clear rationale, a resolves-clause, and an
 > enforcement mechanism.
