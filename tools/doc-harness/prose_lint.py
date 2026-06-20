@@ -128,11 +128,26 @@ def _user_only(aud: str) -> bool:
     return aud == "user"
 
 
+# A pin is ACTIONABLE in an install context — a `[dependencies]` toml line
+# (`name = "x.y.z"`), a `cargo install`/`cargo add` command, or the prose form of
+# either. A bare version-string in running prose (a case study quoting a drift, a
+# versioning-policy discussion) is NARRATIVE — flagging it as a pin-to-edit is a
+# false positive that breaks the doc's own story. The rule splits the two so the
+# report separates "fix these" (version-pin) from "review these" (version-mention).
+_INSTALL_CONTEXT_RE = re.compile(
+    r"""(?x)
+    (?: ^\s*[A-Za-z0-9_-]+ \s* = \s* ["'] )        # toml dep:  name = "
+      | cargo \s+ (?:install|add) \b               # cargo install / add
+    """
+)
+
+
 def rule_version_pin(rel: str, aud: str, lk: list[tuple[int, str, str]]) -> list[Finding]:
     """A hard pre-release version pin. The CHANGELOG carries versions; an install
-    snippet should not pin a beta. Fires on prose AND code (it's about install
-    guidance). The derived `antigen_version` JSON field is *not* an install pin —
-    it carries `: ` and a JSON key, so we exclude `"antigen_version"` lines."""
+    snippet should not pin a beta. The derived `antigen_version` JSON field is not
+    an install pin (it carries a JSON key) — excluded. A version-string in an
+    install context is the real edit (`version-pin`); one in running prose is a
+    narrative mention (`version-mention`) the human reviews, not auto-edits."""
     findings = []
     pin = re.compile(r"\b\d+\.\d+\.\d+-(?:beta|alpha|rc)[\w.]*\b")
     for lineno, kind, line in lk:
@@ -140,9 +155,14 @@ def rule_version_pin(rel: str, aud: str, lk: list[tuple[int, str, str]]) -> list
             continue
         if "antigen_version" in line:
             continue  # derived-from-byte, correct-now, couples to the version bump
-        if pin.search(line):
+        if not pin.search(line):
+            continue
+        if _INSTALL_CONTEXT_RE.search(line):
             findings.append(Finding(rel, lineno, "version-pin", line.strip(),
-                                    "hard pre-release pin — drop it or point at the CHANGELOG / crates.io"))
+                                    "hard pre-release pin in an install context — drop it / point at crates.io"))
+        else:
+            findings.append(Finding(rel, lineno, "version-mention", line.strip(),
+                                    "a version-string in prose — likely narrative (case study / policy); review, don't auto-edit"))
     return findings
 
 
