@@ -347,7 +347,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for detail.
 
 ## Acknowledgments
 
-The originating insight came from a cleanup expedition on the [tambear](https://github.com/tambear-rs/tambear) project. The immune-system architecture framing came from the project lead. The naming, three-verb framing, taxonomy, and design substrate emerged in pre-team scaffolding, then were ratified across a series of design sweeps that produced the ADRs, empirical validations, and the comprehensive vision.
+The originating insight came from a cleanup expedition on a real-world Rust codebase — a computational-mathematics project. The immune-system architecture framing came from the project lead. The naming, three-verb framing, taxonomy, and design substrate emerged in pre-team scaffolding, then were ratified across a series of design sweeps that produced the ADRs, empirical validations, and the comprehensive vision.
 
 See [`docs/origin.md`](https://github.com/antigen-rs/antigen/blob/main/docs/origin.md) for the founding incident; [`docs/vision-pitch.md`](https://github.com/antigen-rs/antigen/blob/main/docs/vision-pitch.md) for the full vision.
 

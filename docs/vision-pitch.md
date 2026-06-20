@@ -96,7 +96,7 @@ Antigen's substrate-witnesses watch that relationship: they read the representat
 
 ## A concrete instance from the project that motivated antigen
 
-In April 2026, the [tambear](https://github.com/tambear-rs/tambear) project — a Windows-native GPU-accelerated mathematical computing toolkit — discovered a polarity inversion in its `DeterminismClass` enum's `meet` method. The discriminants were ordered strongest-first; the lattice ordering is reverse-strictness; `meet = std::cmp::min` therefore returned the *strongest* class instead of the weakest. The fix: `meet = max` is correct.
+In April 2026, the project that motivated antigen — a Windows-native GPU-accelerated mathematical computing toolkit — discovered a polarity inversion in its `DeterminismClass` enum's `meet` method. The discriminants were ordered strongest-first; the lattice ordering is reverse-strictness; `meet = std::cmp::min` therefore returned the *strongest* class instead of the weakest. The fix: `meet = max` is correct.
 
 Two months later, an unrelated change introduced `CommutativityClass` — structurally identical shape, independently designed, by different agents on a different team. The polarity inversion shipped again with `meet = std::cmp::min`. The same illness, re-derived from scratch, narrowly caught by adversarial pre-implementation verification.
 
@@ -210,7 +210,7 @@ Full vocabulary and roadmap: [`roadmap.md`](roadmap.md).
 
 We're not asking for adoption all at once. The pathway has explicit phases:
 
-**Phase 1 (shipped)**: core macros + scan + audit + attest, published on [crates.io](https://crates.io/crates/antigen). Early adopters write their own antigens for project-specific failure classes. [Tambear](https://github.com/tambear-rs/tambear) is the first adopter.
+**Phase 1 (shipped)**: core macros + scan + audit + attest, published on [crates.io](https://crates.io/crates/antigen). Early adopters write their own antigens for project-specific failure classes. The origin project is the first adopter.
 
 **Phase 2: antigen-stdlib.** A companion crate provides ready-made antigens for common Rust failure classes. Adoption barrier drops significantly — value without authoring antigens yourself, the way clippy ships default lints.
 

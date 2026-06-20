@@ -290,7 +290,7 @@ substrate for all of them simultaneously.
 
 Apply everything above to the project's founding incident:
 
-**The incident**: tambear's `DeterminismClass` shipped with `meet = min` because
+**The incident**: a computational-mathematics project's `DeterminismClass` shipped with `meet = min` because
 the polarity-inversion-when-strongest-first pattern wasn't recognized. Caught
 and fixed (commit references in [`origin.md`](origin.md)). The lesson was
 learned: "when class enum has strongest-first discriminants, lattice meet must
@@ -299,7 +299,7 @@ on `DeterminismClass::meet()`, the team's collective memory.
 
 Months later, drafting `CommutativityClass` — structurally identical pattern.
 The lesson didn't transfer. `meet = min` was specified again. Almost shipped a
-second time. Only caught because JBD-team's multi-agent discipline forced
+second time. Only caught because a multi-agent development team's discipline forced
 re-derivation from worked examples. In a less-disciplined team or a single-
 agent fresh-context session, it would have shipped.
 

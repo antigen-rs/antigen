@@ -422,10 +422,10 @@ each exercise the WHOLE primitive stack on different stress profiles:
    not antigen's roadmap — antigen's promotion gate considers their
    substrate as evidence of API durability without claiming their
    milestones as antigen's.
-3. **Tambear discipline + numerical-correctness adoption.** Tambear's
-   Phase 4 work (sinh/cosh signed-zero) extends to more numeric
+3. **Origin-project discipline + numerical-correctness adoption.** The
+   origin project's Phase 4 work (sinh/cosh signed-zero) extends to more numeric
    functions + more disciplines + Oracle lifecycle for the numerics
-   specs. Cross-crate trust extension between tambear → antigen at the
+   specs. Cross-crate trust extension between the origin project → antigen at the
    external-adopter API. The WHOLE stack against cross-project
    adoption + a real numerical-correctness domain.
 
@@ -472,7 +472,7 @@ build in parallel:
   coverage
 - External adopter feedback: ongoing as adopters exercise antigen's API
   surface and surface real-world friction signal
-- Tambear discipline expansion: ongoing as tambear's numerics team
+- Origin-project discipline expansion: ongoing as its numerics team
   hits more failure-classes worth attesting
 
 If all three converge without surfacing breaking changes + the
@@ -847,7 +847,7 @@ co-evolutionary pathway that produced the tool itself.
 
 ## Questions
 
-- *Why isn't there a calendar in this roadmap?* Per Tekgy's no-rush
+- *Why isn't there a calendar in this roadmap?* A deliberate no-rush
   framing — release-readiness drives timing, not calendar dates.
   Substrate maturity is the actual signal. Versions ship when substrate
   is ready; sweeps close when their scope-locks are satisfied. The

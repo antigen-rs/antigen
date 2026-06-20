@@ -6,7 +6,7 @@
 > steps" and more "here's what actually happened, and what changed
 > after antigen."
 
-The codebase is **tambear**, a Rust mathematical-determinism library
+The codebase is a Rust mathematical-determinism library
 that became antigen's origin project. The failure-class is real; the
 fix was real; the lesson was nearly lost to commit history before the
 project that became antigen captured it structurally.
@@ -18,7 +18,7 @@ For the internal post-mortem narrative (richer detail), see
 
 ## The codebase
 
-Tambear is a library for determinism-class lattices in numerical
+The origin project is a library for determinism-class lattices in numerical
 computation. Operations on values carry a *class* — a marker for the
 strength of guarantee the operation provides. The lattice has
 operations like:
@@ -165,8 +165,8 @@ use antigen::antigen;
     summary = "Class enums with strongest-first discriminants must use max for meet; \
                misalignment silently overpromises safety properties.",
     references = [
-        "issue:tambear/tambear#892",
-        "issue:tambear/tambear#1247",
+        "issue:project#892",
+        "issue:project#1247",
         "internal:post-mortem-2026-05-06",
     ],
 )]
@@ -337,7 +337,7 @@ For pattern recipes, see [`usage-patterns.md`](usage-patterns.md).
 
 ## The deeper claim
 
-Tambear's `DeterminismClass` / `CommutativityClass` pair is one
+The origin project's `DeterminismClass` / `CommutativityClass` pair is one
 specific failure-class. But the *pattern of the pattern* — "the same
 structural failure shipped twice, and would have shipped a third
 time without intervention" — recurs across every long-lived codebase

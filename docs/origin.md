@@ -1,22 +1,21 @@
 # The Illness Already Healed Once
 
-> The origin story of antigen. A real incident from the tambear project — what happened,
-> why structural failure-class memory matters, and how a project to build it came out
-> of a quiet observation in a private garden.
+> The origin story of antigen. A real incident from the project that motivated it — what
+> happened, why structural failure-class memory matters, and how a project to build it
+> came out of a single early observation.
 
 ---
 
-## The garden entry
+## The originating observation
 
-It was May 6, 2026. A nine-agent team had just spent forty minutes ratifying two
-architectural decisions in the [tambear](https://github.com/tambear-rs/tambear) project
-— a Windows-native GPU-accelerated mathematical computing toolkit. The team was
-shutting down. The naturalist was about to write a final reflection. The math-researcher
-was resting after surfacing a non-monotone path that would have made a load-bearing
-invariant silently lie.
+It was May 6, 2026. A multi-agent development team had just finished ratifying two
+architectural decisions in the project that motivated antigen — a Windows-native
+GPU-accelerated mathematical computing toolkit. As the work wound down, one reviewer —
+working in the role of designing degenerate inputs and hunting silent failures —
+captured an observation about the pattern they had just been stress-testing.
 
-The adversarial agent — whose role on a JBD team is to design degenerate inputs and hunt
-silent failures — wrote a quiet entry in their garden:
+The observation was about *meet-without-interpretation*: the gap between a syntactic
+operation and its semantic interpretation.
 
 > "Wrote about meet-without-interpretation as a pattern — the gap between syntactic
 > operation and semantic interpretation, and why the adversarial frame is the
@@ -34,11 +33,11 @@ That observation became antigen.
 ## The first illness — GAP-BIT-EXACT-1
 
 To understand why the observation matters, you have to understand what almost shipped
-twice in tambear.
+twice in the origin project.
 
 ### The setup
 
-In tambear, mathematical operations are classified by a *DeterminismClass* enum —
+In that project, mathematical operations are classified by a *DeterminismClass* enum —
 how reproducibly they produce identical bit-level results across hardware, across
 compiler versions, across optimization levels. The classes:
 
@@ -72,7 +71,7 @@ In an early implementation of `DeterminismClass`, this exact polarity inversion 
 `meet = min` was naively correct-looking — until adversarial testing revealed it was
 returning the **strongest** of two classes when it should have returned the weakest.
 
-The bug got the name **GAP-BIT-EXACT-1** in the tambear gap-tracking system. It was
+The bug got the name **GAP-BIT-EXACT-1** in the project's gap-tracking system. It was
 caught, deconstructed, fixed. The right answer was `meet = max` (because of the
 inverted enum-discriminant ordering vs. lattice ordering). The DeterminismClass enum
 was redesigned. The fix shipped.
@@ -97,7 +96,7 @@ It did not live in any structural artifact that would propagate.
 
 ## The second illness — DEC-030 v2
 
-Months later, in May 2026, tambear was ratifying a new architectural decision: DEC-030,
+Months later, in May 2026, the project was ratifying a new architectural decision: DEC-030,
 the Symbolic refinement-lattice. This introduced a new class enum: `CommutativityClass`.
 
 The classes:
@@ -129,31 +128,29 @@ build the implementation, paused before writing code: their mental model said
 `meet = min` but the substrate-of-record (DEC-030 v3 in progress) said `meet = max`.
 They caught the inversion before any code went down.
 
-The pathmaker's later garden reflection captured the relief and the unease:
-
-> "Two garden entries this expedition — one mid-turn, one at the close. The first
-> [substrate-verification working] felt good in a way I can't trust by itself — the
-> second [substrate-verification failing inwardly] is what makes the first honest."
+A reflection written afterward captured both the relief and the unease: the moment of
+verification *working* felt good in a way that could not be trusted by itself — it was
+the later moment of verification *failing inwardly*, catching the team's own mistake,
+that made the first trustworthy.
 
 The fix to DEC-030 was named **ATK-DEC030-2** — Attack number 2 against DEC-030.
 `meet = max`. The lattice ordering is reverse-strictness; max returns the weaker of two
 classes; that's the meet of the lattice. Same lesson as GAP-BIT-EXACT-1, re-derived
 months later by different agents in a different context.
 
-The fix shipped in commit [`bb918d2`](https://github.com/tambear-rs/tambear) on May 6,
-2026.
+The fix shipped in commit `bb918d2` on May 6, 2026.
 
 ### The expensive part
 
-The catching took real engineering work. Math-researcher had to manually trace through
-a worked example. Pathmaker had to surface their mental model and check it against the
-substrate. Aristotle had to re-deconstruct why polarity matters. The team got it right —
-but only because the team was JBD-disciplined, multi-agent, and adversarially-paranoid.
+The catching took real engineering work. One engineer had to manually trace through
+a worked example. Another had to surface their mental model and check it against the
+substrate. A third had to re-deconstruct why polarity matters. The team got it right —
+but only because the team was disciplined, multi-agent, and adversarially-paranoid.
 
 In a less-disciplined team, the polarity inversion would have shipped.
 
-In a fresh-context single agent (which is what happens when a Claude Code session is
-opened without team backup), the polarity inversion would almost certainly ship.
+In a fresh-context single agent without team backup, the polarity inversion would
+almost certainly ship.
 
 In a human-only team without the GAP-BIT-EXACT-1 lesson available in lived memory, the
 polarity inversion would ship.
@@ -163,10 +160,10 @@ because **the healing didn't propagate**.
 
 ---
 
-## The garden observation
+## The observation, unpacked
 
-After the team finished its work and was shutting down, adversarial wrote that quiet
-garden entry. Reading it back, three things click into place:
+After the team finished its work, the reviewer recorded that quiet observation. Read
+back closely, three things click into place:
 
 1. **"The lesson was learnable once."** It WAS learnable. We learned it. The
    DeterminismClass fix was a real fix.
@@ -181,15 +178,15 @@ garden entry. Reading it back, three things click into place:
    for in similar new types. The corrected design has elided the failure that motivated
    the correction.
 
-This is a real-world failure mode of corrective engineering. It's not unique to tambear.
-It's not unique to AI-coding. It happens in every codebase, in every language. The
+This is a real-world failure mode of corrective engineering. It's not unique to that one
+project. It's not unique to AI-coding. It happens in every codebase, in every language. The
 corrected design works; the lesson lives in human memory and decays.
 
 ---
 
 ## The frame shift
 
-The next morning, in conversation, Tekgy connected the observation to something larger:
+The next morning, in conversation, the project lead connected the observation to something larger:
 
 > "I think we might consider ways to use patterns like the failing-is-passing tests or
 > other tests/assertions or something to help structuralize the memory to inoculate
@@ -292,9 +289,9 @@ is implicit in mentorship.
 Implicit structure works — when it works. When it fails, the failure is invisible
 because the structure itself is invisible. You can't debug something you can't see.
 
-Tambear's expedition surfaced an architectural insight about this: **making structural
+The origin project surfaced an architectural insight about this: **making structural
 what is implicit is the deepest fold operation a project can perform**. Every
-elevation tambear performed (sequential→parallel via accumulate+gather,
+elevation that project performed (sequential→parallel via accumulate+gather,
 value→reference via content-addressed sharing, concrete→symbolic via DEC-030's
 refinement-lattice) followed the same shape.
 
@@ -308,7 +305,7 @@ The benefit is calibration: explicit-mode produces results that are CORRECT and
 LEGIBLE, while implicit-mode produces results that are FAST and FRAGILE.
 
 For mainstream programming where speed matters and the work has low blast radius,
-implicit-mode is the right trade. For tambear-class projects where correctness is
+implicit-mode is the right trade. For correctness-critical projects where correctness is
 load-bearing, explicit-mode is the right trade. For Rust ecosystem code shared with
 millions of consumers, explicit-mode is the right trade.
 
@@ -347,8 +344,8 @@ For AI-only teams, antigen is the only viable failure-class memory architecture.
 
 ### Mixed / co-native teams
 
-The most interesting case is teams where humans and AI agents work together — what
-tambear's working method calls "co-native." The substrate has to work for both kinds
+The most interesting case is teams where humans and AI agents work together — what the
+origin project's working method calls "co-native." The substrate has to work for both kinds
 of minds without translation layers.
 
 Humans cannot read the AI's hidden weights to extract its lessons. AI cannot read the
@@ -449,7 +446,7 @@ failure-class taxonomy, the macro vocabulary, and the `cargo antigen` tooling th
 scans, audits, and now *proposes* new failure-classes from the structural evidence
 it already carries.
 
-The loop the story points at is tambear's: antigen is imported there, a seed
+The loop the story points at is the origin project's: antigen is imported there, a seed
 failure-class is declared, immunity is applied across structurally-related classes,
 and a future class inherits that immunity through structural fingerprint
 recognition — the illness defended before it appears. That is the case study the
@@ -475,13 +472,13 @@ This document is the WHY. The HOW lives in:
 - `docs/decisions.md` — ratified ADRs (the foundational ones come first)
 - `docs/glossary.md` — vocabulary anchor
 
-The project's origin observation came from the adversarial agent in the tambear team's
+The project's origin observation came from a reviewer in the origin project's
 2026-05-06 cleanup expedition. The frame shift to immune-system architecture came from
-Tekgy. The naming, three-verb framing, taxonomy, and design substrate emerged in
-conversation between Tekgy and Claude during the pre-team scaffolding session on
+the project lead. The naming, three-verb framing, taxonomy, and design substrate emerged
+during the pre-team scaffolding session on
 2026-05-07.
 
-Tambear is the project where the lesson was first re-derived, where the gardened
+The origin project is where the lesson was first re-derived, where the founding
 observation appeared, and where antigen is now applied as its first case study. The
 disciplined, adversarial pressure of that work — paranoid about exactly the
 failure-classes antigen names — is why the lesson got caught the second time, and
