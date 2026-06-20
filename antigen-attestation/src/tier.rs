@@ -124,7 +124,7 @@ impl EvidenceKind {
 ///
 /// Three tiers (basic/mid/advanced). Not
 /// every approver has git config or crypto tooling — concrete case: a
-/// JBD team of LLM agents signing each other's attestations has neither.
+/// team of LLM agents signing each other's attestations has neither.
 /// `TextStamp` is the basic tier any reviewer can produce; `GitTrust`
 /// is the mid tier for git-configured humans; `CryptoSigned` is the
 /// advanced tier reserved for v0.4+ activation. CI gates can require

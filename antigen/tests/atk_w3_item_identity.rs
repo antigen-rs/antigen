@@ -276,7 +276,7 @@ fn atk_w3_006_cross_file_presents_immune_pair_is_not_silently_unaddressed() {
 // When pathmaker marks W3 complete, the routing must include:
 // - A named substrate check (e.g., "cargo test --package antigen atk_w3")
 // - Confirmation that the proximity heuristic TODO at scan.rs:245 is removed
-// - A tambear-adoption-log entry showing W3 results against tambear's 217-file
+// - An adoption-log entry showing W3 results against a real multi-crate adopter
 //   workspace (per Milestone B exit criteria in A2 README)
 //
 // This test cannot be automated in Rust — it's a process contract. It lives

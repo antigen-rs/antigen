@@ -1023,7 +1023,7 @@ fn atk_a3_014_hallucinated_references_indistinguishable_from_validated() {
 // ============================================================================
 // ATK-A3-015: seam-tier consistency witness — oracle built from wrong implementation
 //
-// Encounter-candidate seam-tier framing (tambear math-researcher, single instance).
+// Encounter-candidate seam-tier framing (single instance, from adopter work).
 // Gated: seam-tier antigen vocabulary ships (post-A3, taxonomy ADR territory).
 //
 // Background: seam-tier antigens (composition-time failures between two correct
