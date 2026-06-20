@@ -6,10 +6,10 @@
 > document is for you (LLM) as much as for the human who pointed you
 > at it.
 
-If you're a human reading this: this is one of the docs we wrote that
-treats LLM collaborators as first-class readers. The other user-facing
-docs work for both audiences; this one is *primarily for the LLM*
-because the protocol it describes is specifically about how to behave
+If you're a human reading this: antigen treats LLM collaborators as
+first-class readers, and this is the doc that does it directly. The other
+user-facing docs work for both audiences; this one is *primarily for the
+LLM* because the protocol it describes is specifically about how to behave
 as an LLM agent working with antigen. You're welcome to read it — it
 may tell you what to expect from your AI collaborators.
 

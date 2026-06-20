@@ -4,32 +4,34 @@
 
 Comprehensive, co-native, structural memory of failure-classes, defenses, attestations, and coordination — accessible natively to both human and AI agents. Built for the age of agentic dev, vibe-coding, and human-LLM collaboration.
 
-> **Status**: a working **beta** (`0.5.0-beta.1`), published on crates.io. The
-> surface: core macros, fingerprint grammar (parse · match · serialize), the
-> `scan + propose + audit + attest + tolerate + oracle + verify + vcs +
-> mucosal-map + fingerprint + mine` CLI, Oracle 5-state
-> lifecycle, cross-cutting attestation, substrate-witness predicates, ADR-029
-> observe-don't-declare vocabulary (`#[defended_by]`, extended `#[presents]`),
-> Match3 three-valued fingerprint evaluation, the prescriptive work-orchestration
-> family (8 macros), the titer/scalar witness kind, live-projection reporting,
-> member-aware multi-crate scan, **eight failure-class stdlib families** that
-> ship members (11 members total) **plus a chartered ninth** (crypto-misuse — the
-> class is named, no honest call-only fingerprint exists yet), and the
-> `#[aura]`/`#[dread]`/`#[red_flag]` marked-unknown markers — catalogued in
-> [`docs/stdlib-families.md`](docs/stdlib-families.md). For the published version
-> and per-release manifest see [`CHANGELOG.md`](CHANGELOG.md) and
-> [crates.io](https://crates.io/crates/antigen).
+[![crates.io](https://img.shields.io/crates/v/antigen.svg)](https://crates.io/crates/antigen)
+[![docs.rs](https://img.shields.io/docsrs/antigen)](https://docs.rs/antigen)
 
-> **What's new in v0.6 — the maturing organism.** Beyond declaring and scanning
-> failure-classes, antigen is growing the organs to let a *learned* class mature
-> and be curated over its life: a persistent life-record (the class's
-> autobiography), an affinity-maturation engine, a drift-detector that honestly
-> says "I can't see drift yet" rather than guessing, and a conservative forget-gate.
-> These ship today as a **library** (`antigen::learn`) — typed, tested, composable;
-> the `cargo antigen` verb that drives the full curation loop end-to-end is the v0.7
-> frontier. See [`docs/concepts.md`](docs/concepts.md#drift-detection-the-maturing-organism)
-> for the organ tour and [`docs/library-api.md`](docs/library-api.md#drift-detection-driftverdict-adr-065)
-> for the public surface.
+> **What antigen is.** You describe the shape of a failure once, and antigen checks
+> that every place that shape could appear is defended. The shipped surface: the core
+> macros, the fingerprint grammar (parse · match · serialize), the
+> `scan · propose · audit · attest · tolerate · oracle · verify · vcs · mucosal-map ·
+> fingerprint · mine` CLI, the Oracle 5-state lifecycle, cross-cutting attestation,
+> substrate-witness predicates, the observe-don't-declare vocabulary
+> (`#[defended_by]`, `#[presents]`), three-valued fingerprint evaluation, the
+> work-orchestration macro family, the titer witness kind, member-aware multi-crate
+> scan, **eight failure-class stdlib families** that ship members **plus a chartered
+> ninth** (crypto-misuse — the class is named; no honest call-only fingerprint exists
+> for it yet), and the `#[aura]`/`#[dread]`/`#[red_flag]` marked-unknown markers —
+> catalogued in [`docs/stdlib-families.md`](docs/stdlib-families.md).
+
+> **The learning organs.** Beyond declaring and scanning failure-classes, antigen
+> can let a *learned* class mature and be curated over its life: a persistent
+> life-record (the class's autobiography), an affinity-maturation engine, a
+> drift-detector that says "I can't see drift yet" rather than guessing, and a
+> conservative forget-gate. These ship as a **library** (`antigen::learn`) — typed,
+> tested, composable; the `cargo antigen` verb that drives the full curation loop
+> end-to-end is the v0.7 frontier. See
+> [`docs/the-maturing-organism.md`](docs/the-maturing-organism.md) for the organ tour
+> and [`docs/library-api.md`](docs/library-api.md) for the public surface.
+>
+> For the published version and per-release manifest, see
+> [`CHANGELOG.md`](CHANGELOG.md) and [crates.io](https://crates.io/crates/antigen).
 
 ---
 
@@ -213,9 +215,8 @@ scan --message-format json` emits editor flycheck for rust-analyzer. See
 
 Add antigen as a dependency:
 
-```toml
-[dependencies]
-antigen = "0.5.0-beta.1"   # check crates.io for the latest version
+```sh
+cargo add antigen   # resolves the latest published version
 ```
 
 Now declare your first antigen. The full walkthrough lives in [`docs/tutorial.md`](docs/tutorial.md) — your first 15 minutes, end-to-end, with a real failure-class.
