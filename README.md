@@ -4,32 +4,34 @@
 
 Comprehensive, co-native, structural memory of failure-classes, defenses, attestations, and coordination — accessible natively to both human and AI agents. Built for the age of agentic dev, vibe-coding, and human-LLM collaboration.
 
-> **Status**: a working **beta** (`0.5.0-beta.1`), published on crates.io. The
-> surface: core macros, fingerprint grammar (parse · match · serialize), the
-> `scan + propose + audit + attest + tolerate + oracle + verify + vcs +
-> mucosal-map + fingerprint + mine` CLI, Oracle 5-state
-> lifecycle, cross-cutting attestation, substrate-witness predicates, ADR-029
-> observe-don't-declare vocabulary (`#[defended_by]`, extended `#[presents]`),
-> Match3 three-valued fingerprint evaluation, the prescriptive work-orchestration
-> family (8 macros), the titer/scalar witness kind, live-projection reporting,
-> member-aware multi-crate scan, **eight failure-class stdlib families** that
-> ship members (11 members total) **plus a chartered ninth** (crypto-misuse — the
-> class is named, no honest call-only fingerprint exists yet), and the
-> `#[aura]`/`#[dread]`/`#[red_flag]` marked-unknown markers — catalogued in
-> [`docs/stdlib-families.md`](docs/stdlib-families.md). For the published version
-> and per-release manifest see [`CHANGELOG.md`](CHANGELOG.md) and
-> [crates.io](https://crates.io/crates/antigen).
+[![crates.io](https://img.shields.io/crates/v/antigen.svg)](https://crates.io/crates/antigen)
+[![docs.rs](https://img.shields.io/docsrs/antigen)](https://docs.rs/antigen)
 
-> **What's new in v0.6 — the maturing organism.** Beyond declaring and scanning
-> failure-classes, antigen is growing the organs to let a *learned* class mature
-> and be curated over its life: a persistent life-record (the class's
-> autobiography), an affinity-maturation engine, a drift-detector that honestly
-> says "I can't see drift yet" rather than guessing, and a conservative forget-gate.
-> These ship today as a **library** (`antigen::learn`) — typed, tested, composable;
-> the `cargo antigen` verb that drives the full curation loop end-to-end is the v0.7
-> frontier. See [`docs/concepts.md`](docs/concepts.md#drift-detection-the-maturing-organism)
-> for the organ tour and [`docs/library-api.md`](docs/library-api.md#drift-detection-driftverdict-adr-065)
-> for the public surface.
+> **What antigen is.** You describe the shape of a failure once, and antigen checks
+> that every place that shape could appear is defended. The shipped surface: the core
+> macros, the fingerprint grammar (parse · match · serialize), the
+> `scan · propose · audit · attest · tolerate · oracle · verify · vcs · mucosal-map ·
+> fingerprint · mine` CLI, the Oracle 5-state lifecycle, cross-cutting attestation,
+> substrate-witness predicates, the observe-don't-declare vocabulary
+> (`#[defended_by]`, `#[presents]`), three-valued fingerprint evaluation, the
+> work-orchestration macro family, the titer witness kind, member-aware multi-crate
+> scan, **eight failure-class stdlib families** that ship members **plus a chartered
+> ninth** (crypto-misuse — the class is named; no honest call-only fingerprint exists
+> for it yet), and the `#[aura]`/`#[dread]`/`#[red_flag]` marked-unknown markers —
+> catalogued in [`docs/stdlib-families.md`](https://github.com/antigen-rs/antigen/blob/main/docs/stdlib-families.md).
+
+> **The learning organs.** Beyond declaring and scanning failure-classes, antigen
+> can let a *learned* class mature and be curated over its life: a persistent
+> life-record (the class's autobiography), an affinity-maturation engine, a
+> drift-detector that says "I can't see drift yet" rather than guessing, and a
+> conservative forget-gate. These ship as a **library** (`antigen::learn`) — typed,
+> tested, composable; the `cargo antigen` verb that drives the full curation loop
+> end-to-end is the v0.7 frontier. See
+> [`docs/the-maturing-organism.md`](https://github.com/antigen-rs/antigen/blob/main/docs/the-maturing-organism.md) for the organ tour
+> and [`docs/library-api.md`](https://github.com/antigen-rs/antigen/blob/main/docs/library-api.md) for the public surface.
+>
+> For the published version and per-release manifest, see
+> [`CHANGELOG.md`](https://github.com/antigen-rs/antigen/blob/main/CHANGELOG.md) and [crates.io](https://crates.io/crates/antigen).
 
 ---
 
@@ -57,8 +59,8 @@ The table below shows the full transformation vocabulary antigen is building. It
 spans the core observe-don't-declare vocabulary (`#[presents]` / `#[defended_by]` /
 `#[antigen_tolerance]`), the deferred-defense and recurrent-emergence families, and
 the prescriptive work-orchestration family (`#[panel]`, `#[ddx]`, …). For the
-authoritative per-macro ship state see [`CHANGELOG.md`](CHANGELOG.md) and
-[`docs/roadmap.md`](docs/roadmap.md); the point of the table is the *shape* of the
+authoritative per-macro ship state see [`CHANGELOG.md`](https://github.com/antigen-rs/antigen/blob/main/CHANGELOG.md) and
+[`docs/roadmap.md`](https://github.com/antigen-rs/antigen/blob/main/docs/roadmap.md); the point of the table is the *shape* of the
 transformation. Every right-side stays current OR fails loudly when stale — that
 property is the mechanism.
 
@@ -103,7 +105,7 @@ pub struct PanickingInDrop;
 
 That declaration is the failure-class memory. `cargo antigen scan` finds every site in your codebase that structurally matches it. `cargo antigen audit` verifies that every claimed immunity has a working witness at the appropriate tier. The lesson is now durable substrate — not implicit knowledge.
 
-When the same polarity-inversion bug appears in two sibling enums, antigen propagates the lesson from the first fix structurally to the second — the same illness does not ship twice. See [`docs/origin.md`](docs/origin.md) for the founding incident that motivated this.
+When the same polarity-inversion bug appears in two sibling enums, antigen propagates the lesson from the first fix structurally to the second — the same illness does not ship twice. See [`docs/origin.md`](https://github.com/antigen-rs/antigen/blob/main/docs/origin.md) for the founding incident that motivated this.
 
 ---
 
@@ -151,9 +153,9 @@ Plus the `cargo antigen` subcommands (run `cargo antigen --help` for the live li
 
 Antigen's vocabulary spans several families, each grounded in the biological immune system. The metaphor is the systematic discovery framework for what each family needs to be — each immune-system component maps to a code discipline with its own primitive.
 
-**Shipped today**: The five core macros above plus the deferred-defense, recurrent-emergence, mucosal-boundary, VCS-information-loss, agentic-coordination, and supply-chain families. See the vocabulary table above and [`docs/examples-guide.md`](docs/examples-guide.md) for pattern walkthroughs. Also shipped:
+**Shipped today**: The five core macros above plus the deferred-defense, recurrent-emergence, mucosal-boundary, VCS-information-loss, agentic-coordination, and supply-chain families. See the vocabulary table above and [`docs/examples-guide.md`](https://github.com/antigen-rs/antigen/blob/main/docs/examples-guide.md) for pattern walkthroughs. Also shipped:
 
-**Prescriptive / work-orchestration family** — `#[panel]`, `#[ddx]`, `#[rx]`, `#[triage]`, `#[refer]`, `#[biopsy]`, `#[culture]`, `#[quarantine]`. Code-site-local work-needs expressed directly in the type system — "code IS the Asana board." `cargo antigen audit` renders per-site verdicts (`Pending` / `Fulfilled` / `Overdue` / `OutOfFrame`) as a live-projected board section. See [`docs/macros.md`](docs/macros.md) for the full reference and [`docs/examples-guide.md`](docs/examples-guide.md) (`prescriptive_board` example) for a walkthrough with live audit output.
+**Prescriptive / work-orchestration family** — `#[panel]`, `#[ddx]`, `#[rx]`, `#[triage]`, `#[refer]`, `#[biopsy]`, `#[culture]`, `#[quarantine]`. Code-site-local work-needs expressed directly in the type system — "code IS the Asana board." `cargo antigen audit` renders per-site verdicts (`Pending` / `Fulfilled` / `Overdue` / `OutOfFrame`) as a live-projected board section. See [`docs/macros.md`](https://github.com/antigen-rs/antigen/blob/main/docs/macros.md) for the full reference and [`docs/examples-guide.md`](https://github.com/antigen-rs/antigen/blob/main/docs/examples-guide.md) (`prescriptive_board` example) for a walkthrough with live audit output.
 
 **Titer / scalar witness kind** — `#[ignorance]` (scan-coverage, member one) and raw `#[titer(source=...)]`. A second witness kind that attests a *measured value* (no verdict, trend-trackable) rather than a categorical defense verdict. Antigen reports the value; the threshold-judgment lives downstream. `#[ignorance]` / scan-coverage is retroactively recognized as member-one; no code change required.
 
@@ -170,15 +172,15 @@ Antigen's vocabulary spans several families, each grounded in the biological imm
 | numeric-truncation-overflow | `size_of`-in-element-count raw-copy foot-cannon | suspected |
 | unsafe-soundness-boundary | `transmute` · uninit-assumed-init · `from_utf8_unchecked` | named (×3) |
 
-Plus the **marked-unknown markers** `#[aura]` / `#[dread]` / `#[red_flag]` (ADR-041) — structural records for the danger you *feel* but can't yet name (they never gate, never nag). A ninth family, **crypto-misuse**, is *chartered* — the class is named, but no honest call-only fingerprint exists in the current grammar yet (better honest-deferred than dishonest-shipped). Full catalog with fingerprints + runnable examples (and scan fixtures for the two `unsafe`-primitive families): [`docs/stdlib-families.md`](docs/stdlib-families.md).
+Plus the **marked-unknown markers** `#[aura]` / `#[dread]` / `#[red_flag]` (ADR-041) — structural records for the danger you *feel* but can't yet name (they never gate, never nag). A ninth family, **crypto-misuse**, is *chartered* — the class is named, but no honest call-only fingerprint exists in the current grammar yet (better honest-deferred than dishonest-shipped). Full catalog with fingerprints + runnable examples (and scan fixtures for the two `unsafe`-primitive families): [`docs/stdlib-families.md`](https://github.com/antigen-rs/antigen/blob/main/docs/stdlib-families.md).
 
-**On the roadmap** (see [`docs/roadmap.md`](docs/roadmap.md) for the full trajectory):
+**On the roadmap** (see [`docs/roadmap.md`](https://github.com/antigen-rs/antigen/blob/main/docs/roadmap.md) for the full trajectory):
 
 **Biological-component family** — `#[macrophage]`, `#[neutrophil]`, `#[treg]`, `#[complement]`, `#[dendritic]`, and ~30 more. Each maps to a real code discipline; each discovered via the biological metaphor, not speculation.
 
 **Dysregulation states** — `#[immunodeficient]`, `#[immunocompromised]`, `#[sepsis]`. For regions of deliberate non-defense, made structurally explicit and auditable. *Autoimmunity* (the immune system over-firing on self) is deliberately **not** a site-marker — naming a marker `#[autoimmune]` would read backwards, since autoimmunity is the pathology, not the discipline. It is planned to surface instead as an audit-mode **screen** that flags fingerprints over-firing on their own clean siblings, with the per-site preventer being the already-shipped `#[antigen_tolerance]` (ADR-041 ruling).
 
-The full vocabulary target is laid out in [`docs/vision-pitch.md`](docs/vision-pitch.md).
+The full vocabulary target is laid out in [`docs/vision-pitch.md`](https://github.com/antigen-rs/antigen/blob/main/docs/vision-pitch.md).
 
 ---
 
@@ -209,16 +211,15 @@ Scanned 1 files, found 2 antigen-related declarations:
 
 These are **fingerprint matches to inspect, not audited verdicts**. `cargo antigen
 scan --message-format json` emits editor flycheck for rust-analyzer. See
-[`docs/quickstart.md`](docs/quickstart.md) and [`docs/output-formats.md`](docs/output-formats.md).
+[`docs/quickstart.md`](https://github.com/antigen-rs/antigen/blob/main/docs/quickstart.md) and [`docs/output-formats.md`](https://github.com/antigen-rs/antigen/blob/main/docs/output-formats.md).
 
 Add antigen as a dependency:
 
-```toml
-[dependencies]
-antigen = "0.5.0-beta.1"   # check crates.io for the latest version
+```sh
+cargo add antigen   # resolves the latest published version
 ```
 
-Now declare your first antigen. The full walkthrough lives in [`docs/tutorial.md`](docs/tutorial.md) — your first 15 minutes, end-to-end, with a real failure-class.
+Now declare your first antigen. The full walkthrough lives in [`docs/tutorial.md`](https://github.com/antigen-rs/antigen/blob/main/docs/tutorial.md) — your first 15 minutes, end-to-end, with a real failure-class.
 
 ---
 
@@ -242,7 +243,7 @@ The biological metaphor is **load-bearing, not decorative**. The immune system i
 | Mucosal boundary defense | `#[mucosal]` — input validation primitives |
 | Dysregulation | `#[sepsis]`, `#[anaphylaxis]` (an over-firing screen is on the roadmap — not a `#[autoimmune]` marker) |
 
-When the biology predicts a primitive, the project builds it. See [`docs/decisions.md`](docs/decisions.md) (ADR-003) for the discipline.
+When the biology predicts a primitive, the project builds it. See [`docs/decisions.md`](https://github.com/antigen-rs/antigen/blob/main/docs/decisions.md) for why the metaphor is load-bearing.
 
 ---
 
@@ -289,37 +290,37 @@ When the biology predicts a primitive, the project builds it. See [`docs/decisio
 
 Not yet shipped (honest "design phase" stubs in the CLI): `cargo antigen attest oracle`, `cargo antigen new`, `cargo antigen vaccinate`, `antigen-stdlib`.
 
-**What `scan` / `audit` show you today — and what's coming.** `scan` reports declared *presentations* and fingerprint *candidates*; `audit` grades each presentation *defended* / *undefended* / *substrate-gap* at a witness tier; the `#[aura]` / `#[dread]` / `#[red_flag]` markers surface under `scan --format json` (`report.marked_unknowns`). Two surfaces are honestly **not** in the human report yet, and sit on the roadmap: a **per-site** fingerprint verdict (today a witness credits a failure-*class*, not the individual site it exercises), and a **console confidence-dial / marked-unknown rendering** (queryable via JSON today). So if you go looking for a per-site "this exact line is defended" verdict, or a dial in the console, and don't find it — that's the roadmap, not you. The catalog's [`docs/stdlib-families.md`](docs/stdlib-families.md) explains the current behavior in detail; [`docs/reading-a-verdict.md`](docs/reading-a-verdict.md) decodes what each line means.
+**What `scan` / `audit` show you today — and what's coming.** `scan` reports declared *presentations* and fingerprint *candidates*; `audit` grades each presentation *defended* / *undefended* / *substrate-gap* at a witness tier; the `#[aura]` / `#[dread]` / `#[red_flag]` markers surface under `scan --format json` (`report.marked_unknowns`). Two surfaces are honestly **not** in the human report yet, and sit on the roadmap: a **per-site** fingerprint verdict (today a witness credits a failure-*class*, not the individual site it exercises), and a **console confidence-dial / marked-unknown rendering** (queryable via JSON today). So if you go looking for a per-site "this exact line is defended" verdict, or a dial in the console, and don't find it — that's the roadmap, not you. The catalog's [`docs/stdlib-families.md`](https://github.com/antigen-rs/antigen/blob/main/docs/stdlib-families.md) explains the current behavior in detail; [`docs/reading-a-verdict.md`](https://github.com/antigen-rs/antigen/blob/main/docs/reading-a-verdict.md) decodes what each line means.
 
-See [`docs/roadmap.md`](docs/roadmap.md) for the planned trajectory.
+See [`docs/roadmap.md`](https://github.com/antigen-rs/antigen/blob/main/docs/roadmap.md) for the planned trajectory.
 
 ---
 
 ## Where to go next
 
 **If you're getting started:**
-- [`docs/getting-started.md`](docs/getting-started.md) — your literal first session, narrated step-by-step (install → first scan → read a finding → wire your editor), every command run for real
-- [`docs/tutorial.md`](docs/tutorial.md) — your first 15 minutes with antigen, end-to-end
-- [`docs/where-to-look-for-antigens.md`](docs/where-to-look-for-antigens.md) — conventions for locating antigen declarations in your project
-- [`docs/usage-patterns.md`](docs/usage-patterns.md) — common patterns for applying antigen's vocabulary to real failure-classes
+- [`docs/getting-started.md`](https://github.com/antigen-rs/antigen/blob/main/docs/getting-started.md) — your literal first session, narrated step-by-step (install → first scan → read a finding → wire your editor), every command run for real
+- [`docs/tutorial.md`](https://github.com/antigen-rs/antigen/blob/main/docs/tutorial.md) — your first 15 minutes with antigen, end-to-end
+- [`docs/where-to-look-for-antigens.md`](https://github.com/antigen-rs/antigen/blob/main/docs/where-to-look-for-antigens.md) — conventions for locating antigen declarations in your project
+- [`docs/usage-patterns.md`](https://github.com/antigen-rs/antigen/blob/main/docs/usage-patterns.md) — common patterns for applying antigen's vocabulary to real failure-classes
 
 **If you want reference docs:**
-- [`docs/macros.md`](docs/macros.md) — full reference for all five attribute macros
-- [`docs/witness-tiers.md`](docs/witness-tiers.md) — WitnessTier gradient reference
-- [`docs/fingerprint-grammar.md`](docs/fingerprint-grammar.md) — full fingerprint DSL reference
-- [`docs/glossary.md`](docs/glossary.md) — vocabulary anchor for every project term
-- [`CHANGELOG.md`](CHANGELOG.md) — what shipped in this release
+- [`docs/macros.md`](https://github.com/antigen-rs/antigen/blob/main/docs/macros.md) — full reference for all five attribute macros
+- [`docs/witness-tiers.md`](https://github.com/antigen-rs/antigen/blob/main/docs/witness-tiers.md) — WitnessTier gradient reference
+- [`docs/fingerprint-grammar.md`](https://github.com/antigen-rs/antigen/blob/main/docs/fingerprint-grammar.md) — full fingerprint DSL reference
+- [`docs/glossary.md`](https://github.com/antigen-rs/antigen/blob/main/docs/glossary.md) — vocabulary anchor for every project term
+- [`CHANGELOG.md`](https://github.com/antigen-rs/antigen/blob/main/CHANGELOG.md) — what shipped in this release
 
 **If you want the architecture:**
-- [`docs/origin.md`](docs/origin.md) — the post-mortem narrative that motivated the project
-- [`docs/vision-pitch.md`](docs/vision-pitch.md) — the full vision; supersedes all narrower framings
-- [`docs/structural-memory.md`](docs/structural-memory.md) — foundational whitepaper on what structural memory means and why it matters for hybrid human-AI teams
-- [`docs/decisions.md`](docs/decisions.md) — ratified ADRs and amendments
-- [`docs/internal/postures.md`](docs/internal/postures.md) — architectural postures threaded through the ADRs
+- [`docs/origin.md`](https://github.com/antigen-rs/antigen/blob/main/docs/origin.md) — the post-mortem narrative that motivated the project
+- [`docs/vision-pitch.md`](https://github.com/antigen-rs/antigen/blob/main/docs/vision-pitch.md) — the full vision; supersedes all narrower framings
+- [`docs/structural-memory.md`](https://github.com/antigen-rs/antigen/blob/main/docs/structural-memory.md) — foundational whitepaper on what structural memory means and why it matters for hybrid human-AI teams
+- [`docs/decisions.md`](https://github.com/antigen-rs/antigen/blob/main/docs/decisions.md) — ratified ADRs and amendments
+- [`docs/internal/postures.md`](https://github.com/antigen-rs/antigen/blob/main/docs/internal/postures.md) — architectural postures threaded through the ADRs
 
 **If you're a researcher or practitioner:**
-- [`docs/internal/cross-domain-architectural-map.md`](docs/internal/cross-domain-architectural-map.md) — the cross-domain architectural map (16+ academic fields)
-- [`docs/internal/immune-system-primitive-map.md`](docs/internal/immune-system-primitive-map.md) — the multi-component immunity framing, primitive by primitive
+- [`docs/internal/cross-domain-architectural-map.md`](https://github.com/antigen-rs/antigen/blob/main/docs/internal/cross-domain-architectural-map.md) — the cross-domain architectural map (16+ academic fields)
+- [`docs/internal/immune-system-primitive-map.md`](https://github.com/antigen-rs/antigen/blob/main/docs/internal/immune-system-primitive-map.md) — the multi-component immunity framing, primitive by primitive
 
 ---
 
@@ -327,7 +328,7 @@ See [`docs/roadmap.md`](docs/roadmap.md) for the planned trajectory.
 
 Most valuable contributions right now:
 
-- **Real-world failure-class proposals** — Rust failures that fit (or refine) the project's growing taxonomy; issue templates at [`.github/ISSUE_TEMPLATE`](.github/ISSUE_TEMPLATE)
+- **Real-world failure-class proposals** — Rust failures that fit (or refine) the project's growing taxonomy; issue templates at [`.github/ISSUE_TEMPLATE`](https://github.com/antigen-rs/antigen/tree/main/.github/ISSUE_TEMPLATE)
 - **Antigen-stdlib candidates** — specific patterns to bundle in the eventual stdlib library with real-world instance evidence (not speculation)
 - **Witness type integrations** — kani/prusti/verus/creusot/flux harness recognition refinements
 - **Adoption feedback** — real-world adoption signal from Rust workspaces
@@ -346,9 +347,9 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for detail.
 
 ## Acknowledgments
 
-The originating insight came from a cleanup expedition on the [tambear](https://github.com/tambear-rs/tambear) project. The immune-system architecture framing came from the project lead. The naming, three-verb framing, taxonomy, and design substrate emerged in pre-team scaffolding, then were ratified across a series of design sweeps that produced the ADRs, empirical validations, and the comprehensive vision.
+The originating insight came from a cleanup expedition on a real-world Rust codebase — a computational-mathematics project. The immune-system architecture framing came from the project lead. The naming, three-verb framing, taxonomy, and design substrate emerged in pre-team scaffolding, then were ratified across a series of design sweeps that produced the ADRs, empirical validations, and the comprehensive vision.
 
-See [`docs/origin.md`](docs/origin.md) for the founding incident; [`docs/vision-pitch.md`](docs/vision-pitch.md) for the full vision.
+See [`docs/origin.md`](https://github.com/antigen-rs/antigen/blob/main/docs/origin.md) for the founding incident; [`docs/vision-pitch.md`](https://github.com/antigen-rs/antigen/blob/main/docs/vision-pitch.md) for the full vision.
 
 ---
 

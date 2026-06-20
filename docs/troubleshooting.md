@@ -638,8 +638,8 @@ gap, accepted), remove the defense.
 
 ## References
 
-- [`docs/decisions.md`](decisions.md) — ADR-005 (witness strength tiers),
-  ADR-008 (error-span precision), ADR-011 (tolerance discipline)
+- [`docs/decisions.md`](decisions.md) — witness strength tiers, error-span
+  precision, and the tolerance discipline
 - [`docs/usage-patterns.md`](usage-patterns.md) — when to use each macro
 - [`docs/testing-patterns.md`](testing-patterns.md) — witness types and
   placement conventions

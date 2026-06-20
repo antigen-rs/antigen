@@ -41,14 +41,26 @@ declare your own first antigen — quickstart shows you how:
 
 ```toml
 [dependencies]
-antigen = "0.5.0-beta.1"   # check crates.io for the latest version
+antigen = "0.6"   # check crates.io for the latest version
 ```
 
 ---
 
 ## Pick your path
 
-Different starting points for different people.
+Six ways in, depending on why you're here. Each row names where to start; the
+sections below expand each path.
+
+| If you want to… | Start here | Then |
+|---|---|---|
+| **See it work in 30 seconds** | [the felt arc](the-felt-arc.md) | one real run, no install |
+| **Use it on your code** | [quickstart](quickstart.md) | [getting-started](getting-started.md) → [tutorial](tutorial.md) → [concepts](concepts.md) |
+| **Understand how it works** | [concepts](concepts.md) | [the maturing organism](the-maturing-organism.md) → [drift-detection and the moral center](drift-detection-and-the-moral-center.md) → [the v0.6 anatomy](the-v06-anatomy.md) → [library-api](library-api.md) → [the immune-system guide](the-immune-system-a-programmers-guide.md) |
+| **Know why it's shaped this way** | [decisions](decisions.md) | [the keystone explained](the-keystone-explained.md) |
+| **Get unstuck** | [troubleshooting](troubleshooting.md) | [reading a verdict](reading-a-verdict.md) → [i-scanned-and](i-scanned-and.md) |
+| **Collaborate as an AI agent** | [for LLM collaborators](for-llm-collaborators.md) | the co-native protocol, first-class |
+
+The detail for each:
 
 ### "I'm new to antigen; show me what it is and how to use it"
 
@@ -210,8 +222,7 @@ A flat catalog of every doc with one-line purpose:
 | [`examples-guide.md`](examples-guide.md) | Progressive walkthrough of `antigen/examples/` |
 | [`the-felt-arc.md`](the-felt-arc.md) | The learning core as you live it — dread → propose → route-to-human, four beats |
 | [`the-learning-loop.md`](the-learning-loop.md) | Where `propose` sits in the system — one organ in a living loop |
-| [`the-v05-story.md`](the-v05-story.md) | The narrative of the learning organism — what `cargo antigen propose` is and why it asks a human |
-| [`the-keystone-explained.md`](the-keystone-explained.md) | Why the learning core routes to a human — the safety line, from first principles |
+| [`the-keystone-explained.md`](the-keystone-explained.md) | Why the learning core routes to a human — what `cargo antigen propose` is, the safety line, from first principles |
 | [`composition.md`](composition.md) | How antigen composes with clippy, proptest, kani/prusti/verus, etc. |
 | [`where-to-look-for-antigens.md`](where-to-look-for-antigens.md) | Placement conventions |
 | [`usage-patterns.md`](usage-patterns.md) | Common patterns / cookbook |

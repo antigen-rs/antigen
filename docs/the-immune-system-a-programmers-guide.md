@@ -355,6 +355,93 @@ crosses.
 
 ---
 
+## Chapter 11 — The contraction phase (the body remembers *selectively*)
+
+Chapter 10 left you at an edge: biology is quiet on routing policy, so that's where
+antigen is young. There's a second silence the earlier chapters didn't reach, and it's
+the one this release fills — so walk one more chapter, because the biology predicts a
+whole faculty before antigen builds it, the same way it predicted memory cells and the
+witness.
+
+Chapter 3 taught the easy half of immune memory: the body *keeps* the lesson of an
+encounter, and so antigen has declarations. But keeping is not the whole story, and the
+half it skipped is the harder one. When an infection is cleared, the immune system has a
+problem it created itself: it spent the fight massively expanding a population of effector
+cells, and now most of them are no longer needed. It cannot keep them all — an immune
+system that never let go would drown in its own obsolete responses, and the metabolic cost
+of maintaining every clone you ever raised would crowd out the capacity to raise new ones.
+
+So the body enters the **contraction phase.** The vast effector population dies back by
+apoptosis — *programmed* death, not damage — and only a small, curated set survives as
+long-lived **memory cells.** Memory is not what the body keeps. Memory is what survives a
+deliberate, conservative cull. The body remembers *selectively.*
+
+> **Antigen's version: the efferent arc — the organs that decide what a learned class's
+> life should be.** Chapters 1–10 are antigen's *afferent* half: sense a shape, present
+> it, prove it with a witness, generate new recognition and screen it against self.
+> Those organs make a class. This release adds the half that lets a class *live* — and,
+> when it has stopped earning its keep, lets it die *carefully.* A learned class gets an
+> append-only **life-record** (its autobiography; Chapter 3's memory, now a history
+> instead of a snapshot), a sense for whether its trajectory is **drifting**, and a
+> decision-layer — **CURATE** — that maps the class's state to one action on a ladder
+> ordered from reversible to irreversible. The last rung is `Forget`: the contraction
+> phase, the programmed death of a class that has gone obsolete. The biology made it
+> inevitable — a memory system that cannot forget is one that fills with the dead — so
+> antigen built the organ that forgets, and built it scared.
+
+And here the biology predicts something sharper than "antigen can forget." It predicts
+*how careful the forgetting has to be* — because the immune system's own cautionary tale
+is a contraction gone wrong.
+
+> **The tolerance checkpoint on memory — the chapter's load-bearing prediction.** The
+> decision of which clones to retire and which to keep is not made freely; it is
+> tolerance-checkpointed, the same self-screen Chapter 6 taught for *generating* new
+> antibodies, now applied to *deleting* old memory. A contraction that culls the wrong
+> clone — one whose antigen is gone only because the response *worked* — throws away a
+> defense that is still the reason you're safe. The body guards against this: a clone
+> with ongoing survival signals is spared the cull even when its antigen is no longer
+> visible.
+>
+> antigen's version is the **conservatism-JOIN**, and it is the most load-bearing single
+> structure in the release. Before CURATE can forget a class, three signals are fused —
+> the silent shape-sensor, the witness axis, and the drift-sensor — and the rule is:
+> **if *any* signal is blind, the verdict is route-to-a-human, not forget.** A drift
+> sensor that can't yet see (the default at antigen's current scale), or a shape-sensor
+> that can't tell "gone" from "evaded," cannot endorse an irreversible deletion no matter
+> what the other signals say. And the witness is the survival signal made literal: a
+> class whose *shape* is gone but whose *witness still defends it* is kept, not forgotten
+> — because the witness is the plausible reason the shape is gone (the guard held). That
+> is Chapter 4's witness and Chapter 6's tolerance, reaching forward to guard the one
+> action antigen can't take back.
+
+This is why the chapter's one-line spine is *the body remembers selectively.* The danger
+the whole apparatus exists to starve is antigen's own founding nightmare — a still-needed
+defense, silently dropped — recreated from *inside* the organ built to fight it. A wrong
+forget is how the tool would become the noise. So the efferent arc is built the way the
+afferent arc was: the generator and its self-screen are one type-coupled step. The body
+never expands without tolerance and never contracts without it either, and antigen,
+following the biology, never forgets without the conservatism-JOIN.
+
+> **Silence test, again — and notice the silence Chapter 10 named just got quieter in one
+> spot and louder in another.** Chapter 10 predicted routing policy is where antigen is
+> young. This release builds exactly the routing decision the biology *does* have a
+> structure for — *which response to a learned class, including letting it die* — and
+> leaves genuinely emergent, distributed orchestration (which finding goes to whom across
+> a whole team) still young. The metaphor stayed honest: it predicted the faculty biology
+> has (selective memory consolidation) and stayed quiet on the faculty biology doesn't
+> (centralized priority routing). And there's a present-tense edge the biology points
+> straight at: in a body, the contraction phase is *autonomous* — no cell asks permission
+> to die. In antigen, it is not. The loop that would drive sense → classify → forget
+> end-to-end is a library of organs, not a wired command, and the decision to forget
+> routes to a person rather than firing on its own. The body closed that loop; antigen
+> hasn't yet, on purpose — the trust that would justify autonomy is still being earned.
+> Where the biology is autonomous and antigen keeps a human in the loop, antigen is
+> young — and *choosing* to stay young there is the point. The fuller walk through this
+> arc, as architecture rather than biology, is [the maturing
+> organism](the-maturing-organism.md).
+
+---
+
 ## The map, now that you've walked it
 
 You met each of these as a mechanism with a problem it solves; here they are as a
@@ -372,6 +459,7 @@ reference, but the reference only means something because you walked the story:
 | Affinity maturation / germinal center | generate *new* recognition, selected against self | the **Learning-Core** (`antigen::learn`, shipped as a library): `propose()` anti-unifies a cluster into a draft; `promote_if_safe` promotes only a draft that spares the clean corpus (the self-screen) |
 | Dysregulation | name the ways the defense itself fails | the **self-tolerance gate** (`antigen::learn::self_tolerance`, shipped v0.4 as a library) detects autoimmunity — a fingerprint over-firing on clean siblings |
 | Mucosa | invest defense where the trust boundary is | the deserialization-trust-boundary family |
+| Contraction phase / selective memory | let an obsolete response die *carefully*, sparing the ones still earning their keep | the **efferent arc** (`antigen::learn::*`, shipped as a library): the life-record, the drift sense, and **CURATE** — `Forget` reachable from `Obsolete` alone, gated by the **conservatism-JOIN** (any blind signal ⇒ route-to-human, never forget) |
 
 The full forward-looking version of this map — every immune primitive antigen
 *could* grow into as adoption surfaces real instances — lives in
@@ -393,7 +481,10 @@ were inevitable; biology *generated* new antibodies and screened them against se
 one process, so a self-tolerant learner — generate-and-screen as a single gated step —
 was inevitable, which is exactly why the learning core is the generator *and* its
 negative-selection gate, type-coupled; biology defended its mucosa hardest, so the
-deserialization family was inevitable.
+deserialization family was inevitable; biology contracted its memory *selectively* — a
+tolerance checkpoint on which clones die — so a curator that forgets only through the
+conservatism-JOIN was inevitable, the self-screen of Chapter 6 reaching forward to guard
+the one action antigen can't undo.
 
 And the silence tests show the metaphor's *integrity*: it doesn't claim to predict
 everything. Where biology is quiet (routing policy), antigen is young — and the
@@ -415,8 +506,8 @@ record this guide just walked you through.
   code, and the tolerance mechanism that fixed it
 - [`immune-system-primitive-map.md`](internal/immune-system-primitive-map.md) — the full
   forward map: every biological primitive antigen could grow into
-- [`decisions.md`](decisions.md) — ADR-003 (the metaphor is load-bearing), ADR-029
-  (observe-don't-declare, Chapter 4's correction)
+- [`decisions.md`](decisions.md) — why the metaphor is load-bearing, and the
+  observe-don't-declare discipline (Chapter 4's correction)
 - [`glossary.md`](glossary.md) — every term anchored to its biological referent and
   Rust analog
 - [`concepts.md`](concepts.md) — the architectural concepts behind the story
