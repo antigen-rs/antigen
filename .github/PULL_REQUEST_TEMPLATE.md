@@ -17,7 +17,7 @@ review faster — your PR description is the primary substrate the review works 
 ## Type of change
 
 - [ ] Documentation (typo, clarification, addition)
-- [ ] Design substrate refinement (a doc in `docs/expedition/`)
+- [ ] Design-rationale refinement (a doc in `docs/` or an ADR in `docs/decisions.md`)
 - [ ] Glossary update
 - [ ] CI / repo-hygiene change
 - [ ] Code change (please confirm: have you discussed in an issue first?)
