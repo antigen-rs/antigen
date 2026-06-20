@@ -12813,7 +12813,7 @@ A single stream cannot split real from virtual drift (T4); antigen's bit-3 stati
 |---|---|---|
 | recall-drop | shape GONE | REAL drift, OBSOLETE |
 | recall-drop | shape PRESENT + near-miss | REAL drift, EVADING (red-queen) |
-| recall-drop | shape PRESENT + no near-miss | VIRTUAL drift (churn), **KEEP** |
+| recall-drop | shape PRESENT + no near-miss | ~~VIRTUAL drift (churn), **KEEP**~~ — *superseded; see the ADR-065 amendment below: this cell is **`RouteToHuman`** (the cause is undecidable on a denominator-free rate, so it joins the conservatism-JOIN's third route-to-human cell)* |
 | precision-drop | clean-binds rising | REAL drift, AUTOIMMUNE over-broadening |
 
 **The conservatism-JOIN (aristotle Phase 6 C2 — the safety corner the ADR states explicitly):** the fusion's KEEP/HOLD is the JOIN of both channels' conservatism. If EITHER channel is blind — ADWIN `UnderPowered` OR bit-3 `Indeterminate` (its 4th state) — **CURATE HOLDS (never forgets)**, regardless of the other channel. A virtual-drift cell must never fall through to forget when a channel is blind. (This sharpens the dreamer's table at the one cell that could autoimmune-forget on churn.)
