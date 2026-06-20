@@ -101,7 +101,7 @@ Same shape. Same trap. **Independently arrived at, independently wrong.**
 What stopped the second illness was **not** memory of the first fix; that memory
 was not structurally accessible. What stopped it was *re-deriving the lesson from
 scratch*. The math-researcher traced a worked example by hand and noticed the
-polarity was wrong. The pathmaker, about to implement the draft, paused: their
+polarity was wrong. The implementer, about to write the code, paused: their
 mental model said `min`, but the substrate-of-record said `max` — and they caught
 the inversion before any code went down.
 

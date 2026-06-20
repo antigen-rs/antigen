@@ -116,7 +116,7 @@ Had antigen existed during that cycle, the team would have declared:
 pub struct PolarityInvertedClassMeet;
 ```
 
-When `CommutativityClass` was introduced months later, `cargo antigen scan` would have flagged the structural match in CI. The pathmaker would have seen the diagnostic, written the suggested witness proptest, watched it fail, and fixed the polarity before the code merged. The illness would have been cured before it appeared.
+When `CommutativityClass` was introduced months later, `cargo antigen scan` would have flagged the structural match in CI. The engineer would have seen the diagnostic, written the suggested witness proptest, watched it fail, and fixed the polarity before the code merged. The illness would have been cured before it appeared.
 
 ---
 
