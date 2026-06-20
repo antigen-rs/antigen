@@ -1,0 +1,139 @@
+# doc-harness — the documentation example-harness
+
+A non-reproducing example is a lie that compiles in the reader's head. This
+harness is the mechanical check that every shell example in antigen's docs still
+matches the real binary — run it once per release instead of re-proving every
+example by hand.
+
+## What it does
+
+For every documentation file (`docs/**/*.md`, the five crate READMEs, and
+`examples/**/*.md` — the runnable demos), it:
+
+1. **Extracts** each example, in any of the conventions the docs use:
+   - **command-then-output** — an ` ```sh ` fence holds the command, the fence
+     right after holds the claimed output ("Verify:" / "You should see:").
+   - **self-contained transcript** — a single ` ```text ` fence whose first line
+     is a `$ cargo antigen ...` prompt with the output below it. Crate READMEs
+     use this.
+   - Both forms also drive the binary via `cargo run --bin cargo-antigen --
+     antigen …` (the demo style) and may span lines with a trailing `\`; the
+     extractor folds the continuation.
+2. **Classifies** each command:
+   - **RUNNABLE-HERE** — deterministic in this repo with no user project, no
+     network, no mutation: every `--help` surface and `--version`. Run and diffed.
+   - **FIXTURE-RUNNABLE** — a `propose`/`scan`/`audit`/`fingerprint` command whose
+     every path-arg (`--cluster-root`, `--clean-root`, `--root`, `--item-path`)
+     points under `examples/` — i.e. against in-repo demo fixtures, deterministic
+     here. These are the demo's *real captured outputs* (route-to-human, promote,
+     JSON); they are run and diffed too — exactly where the demo's promote-output
+     format-drift hides. A `<PATH>` placeholder or a `/path/to/...` arg disqualifies
+     it (stays illustrative).
+   - **ILLUSTRATIVE** — needs a world the harness can't conjure (`cargo install`,
+     `cd /path/to/your/project`, `scan` against an unspecified tree). These are
+     **surfaced** (so they're visible, never silently skipped) but not asserted
+     byte-equal.
+3. **Reports** every drift as a located finding: `doc:line` plus a unified diff
+   of claimed-vs-actual, so a writer fixes the exact spot.
+
+A self-contained transcript may legitimately show an **excerpt** — a README
+routinely trims the `Usage:`/`Options:` apparatus and drops rows. If the claimed
+output is an exact-line-*subsequence* of the real output (every claimed line
+appears, in order), it's reported as **EXCERPT**, not drift. A *modified* line —
+an abbreviated description the binary doesn't emit verbatim — breaks the
+subsequence and surfaces as drift, because that's a claim the binary doesn't
+back. EXCERPT does not gate; DRIFT does.
+
+## Run it
+
+```sh
+cargo build -p cargo-antigen          # the harness needs the real binary
+python tools/doc-harness/run.py       # human report
+python tools/doc-harness/run.py --json  # machine-readable
+```
+
+Flags: `--bin PATH` (override the binary), `--docs-root DIR` (override the repo
+root). Exit code `1` if any RUNNABLE-HERE example drifted, `0` if all reproduced,
+`2` on harness error (binary not found).
+
+## Two design decisions worth knowing
+
+**It decodes the binary's output as UTF-8 explicitly.** antigen's help strings
+carry em-dashes and section-signs. Python's `subprocess(text=True)` decodes with
+the platform locale — cp1252 on Windows — which mangles `—` into mojibake and
+produces a *false* drift on every line that contains one. A harness that cries
+drift on every help block trains writers to ignore it. So the harness captures
+bytes and decodes UTF-8, and the diff shows only what genuinely changed.
+
+**It masks the version string.** The version (`0.5.0-beta.1`) is volatile — it
+changes at release, and the CHANGELOG is its carrier, not the help output. The
+harness normalizes any `x.y.z[-tag]` to `<VERSION>` before comparing, so a
+pre-bump binary doesn't false-positive every block that happens to print a
+version.
+
+## The byte-unchanged test (`byte_unchanged.py`)
+
+The single most damaging behavioral lie antigen's docs could tell is that a
+command only *observes* when in fact it writes. The trust model rests on two such
+claims: `propose` renders a suggestion and "leaves the source tree byte-unchanged"
+(observe-don't-declare, ADR-044 — why a human ratifies what the machine drafts),
+and `scan`+`audit` are "two read-only inspection commands. Neither mutates your
+code" (deployment-ci-integration.md:12).
+
+Neither is catchable by reading the source — the write-suppression is a property
+of the whole run, not a line. So this test RUNS each: for `propose`, every
+invocation the demo documents (route-to-human, promote — the path that constructs
+a fingerprint, the one most likely to write if the contract broke — and both
+`--format json` variants); for `scan`+`audit`, against the marked cluster tree.
+Each runs against a throwaway copy of the demo fixtures, hashing every file before
+and after. One byte moves → the claim is a lie and this fails loudly, naming the
+doc that made it.
+
+```sh
+python tools/doc-harness/byte_unchanged.py    # exit 1 if the tree changed
+```
+
+The test has teeth: a negative-control sweep (inject a file the way a broken
+propose would) confirms it detects a write rather than passing vacuously.
+
+## The prose-linter (`prose_lint.py`)
+
+The harness proves every *example* runs. The prose-linter proves every *claim in
+the prose* holds the line — the second half of the standing machinery the mandate
+names ("no test-counts, no internal names, no (planned), every fence
+verified-run"). It is antigen's own thesis turned on its own docs: a claim whose
+truth silently flips when the world moves — a version tags, a role-name leaks out
+of the team, a promised feature ships — is the silent-failure class. A flagged
+line is a fingerprint match to inspect, not an audited verdict; some hits are
+load-bearing and a human keeps them.
+
+```sh
+python tools/doc-harness/prose_lint.py            # all rules
+python tools/doc-harness/prose_lint.py --rule version-pin --rule us-leak
+python tools/doc-harness/prose_lint.py --json
+```
+
+Rules: `version-pin` (a hard pre-release pin in an *install context* — a
+`[dependencies]` line or `cargo install`/`cargo add`; the mechanical edit) and its
+sibling `version-mention` (a version-string in running prose — a case study, a
+policy discussion; review, don't auto-edit — both emitted by the same rule so the
+report separates "fix these" from "review these"); `us-leak` (internal
+project/person/role/tool names in a USER doc); `planned-future` (a `(planned)`
+promise in present-tense prose); `test-count` (a bare count as
+performed evidence). It is **audience-aware**: `docs/internal/**` and
+`docs/decisions.md` are contributor docs — internal by design, so ADR-numbers and
+role-names there are not leaks — but a personal name and a stale version pin leak
+regardless of audience. Every default rule is conservative: a noisy linter is one
+writers learn to ignore.
+
+One **advisory, opt-in** rule lives outside the default run: `derivable-count`
+(`--rule derivable-count`) flags a hard count of a derivable thing — "13 variants",
+"8 families", "6 subcommands". A count copied from the code silently goes stale
+when a variant is added; "every variant (no `_` arm)" states the *guarantee* and
+cannot drift (the derive-from-byte doctrine). It needs per-hit judgment — a grammar
+range or a deliberately-explained count is fine — so it's opt-in, not in the
+trusted default set.
+
+Together the two tools make "the docs are COMPLETE · CHECKED · COHESIVE" a thing a
+CI job can assert, not a heroic human pass that decays the moment a subcommand is
+added.
