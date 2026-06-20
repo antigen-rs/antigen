@@ -123,8 +123,16 @@ promise in present-tense prose); `test-count` (a bare count as
 performed evidence). It is **audience-aware**: `docs/internal/**` and
 `docs/decisions.md` are contributor docs — internal by design, so ADR-numbers and
 role-names there are not leaks — but a personal name and a stale version pin leak
-regardless of audience. Every rule is conservative: a noisy linter is one writers
-learn to ignore.
+regardless of audience. Every default rule is conservative: a noisy linter is one
+writers learn to ignore.
+
+One **advisory, opt-in** rule lives outside the default run: `derivable-count`
+(`--rule derivable-count`) flags a hard count of a derivable thing — "13 variants",
+"8 families", "6 subcommands". A count copied from the code silently goes stale
+when a variant is added; "every variant (no `_` arm)" states the *guarantee* and
+cannot drift (the derive-from-byte doctrine). It needs per-hit judgment — a grammar
+range or a deliberately-explained count is fine — so it's opt-in, not in the
+trusted default set.
 
 Together the two tools make "the docs are COMPLETE · CHECKED · COHESIVE" a thing a
 CI job can assert, not a heroic human pass that decays the moment a subcommand is
