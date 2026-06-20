@@ -222,8 +222,7 @@ A flat catalog of every doc with one-line purpose:
 | [`examples-guide.md`](examples-guide.md) | Progressive walkthrough of `antigen/examples/` |
 | [`the-felt-arc.md`](the-felt-arc.md) | The learning core as you live it — dread → propose → route-to-human, four beats |
 | [`the-learning-loop.md`](the-learning-loop.md) | Where `propose` sits in the system — one organ in a living loop |
-| [`the-v05-story.md`](the-v05-story.md) | The narrative of the learning organism — what `cargo antigen propose` is and why it asks a human |
-| [`the-keystone-explained.md`](the-keystone-explained.md) | Why the learning core routes to a human — the safety line, from first principles |
+| [`the-keystone-explained.md`](the-keystone-explained.md) | Why the learning core routes to a human — what `cargo antigen propose` is, the safety line, from first principles |
 | [`composition.md`](composition.md) | How antigen composes with clippy, proptest, kani/prusti/verus, etc. |
 | [`where-to-look-for-antigens.md`](where-to-look-for-antigens.md) | Placement conventions |
 | [`usage-patterns.md`](usage-patterns.md) | Common patterns / cookbook |
