@@ -113,7 +113,7 @@ root cause was a single subtle gap, and finding *it* is the next catch.
 
 The over-claims didn't slip past testing. They slipped past testing *because the
 test was wrong* — and a passing test that proves the wrong thing is antigen's
-founding disease (the tambear incident; see [`origin.md`](../origin.md)).
+founding disease (the founding incident; see [`origin.md`](../origin.md)).
 
 Each `named` member shipped with an **affinity-pair** test: a bad site that should
 bind, and a safe sibling that should be spared. Every pair was green. But the
@@ -299,7 +299,7 @@ cargo test --test spares_namesake_contract -p antigen   # 9/9 green; the names t
   their tiers, what each catches
 - [`decisions.md`](../decisions.md) — the spares-namesake sub-test ratified by
   Catch 2
-- [`origin.md`](../origin.md) — the tambear incident: the founding "green test,
+- [`origin.md`](../origin.md) — the founding incident: the founding "green test,
   wrong answer" that antigen exists to prevent, and which Catch 2 is a recurrence of
 - [`fingerprint-grammar.md`](../fingerprint-grammar.md) — why `body_calls` is
   receiver-blind (the gun in act one)

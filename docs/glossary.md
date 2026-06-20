@@ -747,19 +747,20 @@ Provides `scan`, `audit`, `attest`, `tolerate`, `oracle`, `verify`, `vcs`,
 ### antigen library / antigen registry
 
 **Definition**: the (eventual) collection of named antigens distributed via crates.io.
-`antigen-stdlib` is the first; project-specific antigens (e.g., `tambear-antigens`) extend
+`antigen-stdlib` is the first; project-specific antigens (e.g., a `my-project-antigens` crate) extend
 it. No central registry — community-driven via crate publication.
 
 ---
 
-## Disciplines inherited from tambear
+## Disciplines inherited from the origin project
 
-These terms come from tambear's DECs and team-briefing disciplines. They apply to antigen
-because the antigen team inherits these disciplines from the JBD methodology.
+These terms come from the origin project's design decisions and team-briefing disciplines.
+They apply to antigen because the antigen team inherits these disciplines from its
+multi-agent development methodology.
 
 ### sub-clause F (trust boundary)
 
-**Origin**: tambear DEC-022.
+**Origin**: the origin project's trust-boundary design decision.
 
 **In antigen**: every antigen declaration's witness MUST be validated by tooling before
 the defense is trusted. The trust boundary lives at `cargo antigen scan` time
@@ -768,7 +769,7 @@ witnesses).
 
 ### substrate over memory
 
-**Origin**: tambear standing constraint.
+**Origin**: a standing constraint of the origin project.
 
 **In antigen**: cargo-antigen tooling reads the codebase as ground truth. Documentation
 about antigens is informational; the source-of-truth is the `#[antigen]` / `#[presents]`
@@ -785,7 +786,7 @@ about antigens is informational; the source-of-truth is the `#[antigen]` / `#[pr
 
 ### narrow-then-lift
 
-**Origin**: tambear DEC-022 sub-clause discipline.
+**Origin**: a sub-clause discipline of the origin project's design decisions.
 
 **In antigen**: antigen fingerprints should narrow to what the structural pattern can
 *actually* match; if a fingerprint is overly broad, narrow it before adding to the
@@ -794,7 +795,7 @@ only when evidence supports it.
 
 ### proptest-locks-the-narrow-truth
 
-**Origin**: tambear documentation-accuracy discipline.
+**Origin**: the origin project's documentation-accuracy discipline.
 
 **In antigen**: every antigen declaration's documentation must reflect what the
 fingerprint actually matches and what the witness actually proves. Proptests on the
@@ -802,7 +803,7 @@ witness ensure the docstring stays accurate.
 
 ### recognition-not-design
 
-**Origin**: tambear convergence-patterns work; named in DEC-032 placeholder.
+**Origin**: the origin project's convergence-patterns work.
 
 **In antigen**: antigen *recognizes* failure-classes that already exist in code. It does
 not *design* failure-classes from scratch. Each new antigen is a recognition, not an
@@ -811,7 +812,7 @@ antigen-stdlib is recognition of existing common patterns.
 
 ### conditional-lean-collapse
 
-**Origin**: tambear V4 / coordination disciplines.
+**Origin**: the origin project's coordination disciplines.
 
 **In antigen**: when routing antigen declarations through composition, preserve the
 conditional structure. e.g., if a function is "fragile to X under condition C, immune to
@@ -1352,7 +1353,7 @@ yet; route the undecidable to a human," never a fabricated signal.
 
 ## Glossary maintenance
 
-This glossary is itself a tambear-style discipline artifact. As the antigen project
+This glossary is itself a discipline artifact in the origin project's tradition. As the antigen project
 matures, terms WILL drift in meaning. The discipline:
 
 1. Every PR that introduces new vocabulary or refines existing terms updates this glossary.

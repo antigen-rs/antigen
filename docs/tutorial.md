@@ -17,7 +17,7 @@ Antigen's answer: put the lesson in the type system, next to the code it
 protects, in a form that survives developer turnover, AI context cycling, and
 time.
 
-One concrete example: tambear's `DeterminismClass` had a method `meet` that
+One concrete example: the origin project's `DeterminismClass` had a method `meet` that
 returned `std::cmp::min` of its discriminants. Correct for the discriminant
 ordering, wrong for the lattice ordering — the class with the highest
 discriminant is the *weakest* element, so lattice-meet should return the
@@ -315,7 +315,7 @@ doesn't apply — the test IS the evidence. But some failure-classes can't be
 verified by a test. Their proof requires human expert judgment, not program
 execution.
 
-Consider the `SignedZeroDiscipline` failure-class from tambear — the project
+Consider the `SignedZeroDiscipline` failure-class from the project
 that gave antigen its motivation. The discipline is:
 
 > `sinh(x)` must return `−0.0` when `x` is `−0.0`, not `+0.0`. The IEEE 754
