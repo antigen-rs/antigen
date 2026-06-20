@@ -235,12 +235,44 @@ def rule_test_count(rel: str, aud: str, lk: list[tuple[int, str, str]]) -> list[
     return findings
 
 
+def rule_derivable_count(rel: str, aud: str, lk: list[tuple[int, str, str]]) -> list[Finding]:
+    """A hard count of a DERIVABLE thing — "13 variants", "8 families", "6
+    subcommands". The derive-from-byte doctrine (F4): a count copied from the code
+    silently goes stale when a variant is added; "every variant (no _ arm)" states
+    the GUARANTEE and cannot drift. This rule surfaces the drift-prone counts so a
+    writer can decide to derive instead.
+
+    ADVISORY + opt-in (not in the default run): even tightly scoped it needs
+    per-hit judgment — a grammar range ("variants = 3..=8") or a deliberately-
+    explained count ("to dissolve the 8-vs-9") is fine. USER docs only; skips
+    fences (a count inside a code/DSL block is the code, not a prose claim)."""
+    if not _user_only(aud):
+        return []
+    findings = []
+    count = re.compile(r"\b\d{1,3}\s+(variants?|macros?|families|subcommands?)\b", re.I)
+    rangey = re.compile(r"\d\s*\.\.=?\s*\d")  # a DSL range like 3..=8, not a claim
+    for lineno, kind, line in lk:
+        if kind != "prose":
+            continue
+        if rangey.search(line):
+            continue
+        m = count.search(line)
+        if m:
+            findings.append(Finding(rel, lineno, "derivable-count", line.strip(),
+                                    "a hard count of a derivable thing — drift-prone; consider stating the guarantee, not the cardinality (derive-from-byte)"))
+    return findings
+
+
+# The default run — conservative, high-confidence rules. `derivable-count` is
+# advisory (needs per-hit judgment) so it's opt-in via `--rule derivable-count`.
 RULES: dict[str, Callable[[str, str, list], list[Finding]]] = {
     "version-pin": rule_version_pin,
     "us-leak": rule_us_leak,
     "planned-future": rule_planned_future,
     "test-count": rule_test_count,
+    "derivable-count": rule_derivable_count,
 }
+DEFAULT_RULES = {"version-pin", "us-leak", "planned-future", "test-count"}
 
 
 # --------------------------------------------------------------------------- #
@@ -257,7 +289,9 @@ def doc_targets(root: Path) -> list[Path]:
 
 def run(root: Path, selected: Optional[set[str]]) -> list[Finding]:
     findings: list[Finding] = []
-    rules = {k: v for k, v in RULES.items() if not selected or k in selected}
+    # No --rule given → the conservative default set (advisory rules opt-in only).
+    active = selected if selected else DEFAULT_RULES
+    rules = {k: v for k, v in RULES.items() if k in active}
     for path in doc_targets(root):
         rel = str(path.relative_to(root)).replace(os.sep, "/")
         aud = audience(rel)
