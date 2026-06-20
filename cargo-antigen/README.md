@@ -79,7 +79,7 @@ corpus before suggesting it:
 $ cargo antigen propose --cluster-root ./cluster --clean-root ./clean
 == drafted a candidate — routed to a human ratifier ==
 
-Antigen anti-unified a draft from your `dread` marks, but the B-gate cannot
+Antigen anti-unified a draft from your `dread` marks, but cannot
 certify it GENERALIZES against your clean corpus (no near-miss: no clean
 sibling is one discriminating constraint from binding the draft). So it
 routes the candidate to a HUMAN ratifier rather than promote it.
