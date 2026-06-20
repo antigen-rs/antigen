@@ -9,7 +9,7 @@ assignees: ''
 ## What design aspect are you discussing?
 
 <!-- Reference the relevant document section. -->
-<!-- e.g., "design-intent.md § 'The 8-class failure taxonomy'" -->
+<!-- e.g., "stdlib-families.md § the failure-class families" or a specific ADR in decisions.md -->
 
 ## Your concern, refinement, or question
 
