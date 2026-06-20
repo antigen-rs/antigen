@@ -1,0 +1,58 @@
+# doc-harness — the documentation example-harness
+
+A non-reproducing example is a lie that compiles in the reader's head. This
+harness is the mechanical check that every shell example in antigen's docs still
+matches the real binary — run it once per release instead of re-proving every
+example by hand.
+
+## What it does
+
+For every documentation file (`docs/**/*.md` plus the five crate READMEs), it:
+
+1. **Extracts** each `sh` command-fence that drives `cargo antigen`, and pairs it
+   with the output fence the doc claims it produces (the fence immediately after).
+2. **Classifies** each command:
+   - **RUNNABLE-HERE** — deterministic in this repo with no user project, no
+     network, no mutation: every `--help` surface and `--version`. These are run
+     for real and diffed against their claimed output.
+   - **ILLUSTRATIVE** — needs a world the harness can't conjure (`cargo install`,
+     `cd /path/to/your/project`, `scan` against an unspecified tree). These are
+     **surfaced** (so they're visible, never silently skipped) but not asserted
+     byte-equal.
+3. **Reports** every drift as a located finding: `doc:line` plus a unified diff
+   of claimed-vs-actual, so a writer fixes the exact spot.
+
+## Run it
+
+```sh
+cargo build -p cargo-antigen          # the harness needs the real binary
+python tools/doc-harness/run.py       # human report
+python tools/doc-harness/run.py --json  # machine-readable
+```
+
+Flags: `--bin PATH` (override the binary), `--docs-root DIR` (override the repo
+root). Exit code `1` if any RUNNABLE-HERE example drifted, `0` if all reproduced,
+`2` on harness error (binary not found).
+
+## Two design decisions worth knowing
+
+**It decodes the binary's output as UTF-8 explicitly.** antigen's help strings
+carry em-dashes and section-signs. Python's `subprocess(text=True)` decodes with
+the platform locale — cp1252 on Windows — which mangles `—` into mojibake and
+produces a *false* drift on every line that contains one. A harness that cries
+drift on every help block trains writers to ignore it. So the harness captures
+bytes and decodes UTF-8, and the diff shows only what genuinely changed.
+
+**It masks the version string.** The version (`0.5.0-beta.1`) is volatile — it
+changes at release, and the CHANGELOG is its carrier, not the help output. The
+harness normalizes any `x.y.z[-tag]` to `<VERSION>` before comparing, so a
+pre-bump binary doesn't false-positive every block that happens to print a
+version.
+
+## The endgame
+
+This harness is the first half of the standing doc-machinery. The second half is
+a **prose-linter** — no stale version pins, no internal role-names, no
+`(planned)` futures in the prose body. The two together make "the docs are
+COMPLETE · CHECKED · COHESIVE" a thing a CI job can assert, not a heroic human
+pass that decays the moment a subcommand is added.
