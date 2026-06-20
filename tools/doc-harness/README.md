@@ -64,19 +64,21 @@ version.
 
 ## The byte-unchanged test (`byte_unchanged.py`)
 
-The single most damaging behavioral lie antigen's docs could tell is that
-`cargo antigen propose` only *observes* — renders a suggestion and leaves your
-tree byte-unchanged — when in fact it writes. Observe-don't-declare (ADR-044) is
-why a human ratifies what the machine drafts; the whole trust model rests on it.
-`cli-reference.md` and `examples/propose-demo/README.md` both assert it in words.
+The single most damaging behavioral lie antigen's docs could tell is that a
+command only *observes* when in fact it writes. The trust model rests on two such
+claims: `propose` renders a suggestion and "leaves the source tree byte-unchanged"
+(observe-don't-declare, ADR-044 — why a human ratifies what the machine drafts),
+and `scan`+`audit` are "two read-only inspection commands. Neither mutates your
+code" (deployment-ci-integration.md:12).
 
-The claim is not catchable by reading the source — the write-suppression is a
-property of the whole run, not a line. So this test RUNS it: every propose
-invocation the demo documents (route-to-human, promote, and both `--format json`
-variants — the promote path constructs a fingerprint, the one most likely to
-write if the contract broke) against a throwaway copy of the demo fixtures,
-hashing every file before and after. One byte moves → the keystone is a lie and
-this fails loudly.
+Neither is catchable by reading the source — the write-suppression is a property
+of the whole run, not a line. So this test RUNS each: for `propose`, every
+invocation the demo documents (route-to-human, promote — the path that constructs
+a fingerprint, the one most likely to write if the contract broke — and both
+`--format json` variants); for `scan`+`audit`, against the marked cluster tree.
+Each runs against a throwaway copy of the demo fixtures, hashing every file before
+and after. One byte moves → the claim is a lie and this fails loudly, naming the
+doc that made it.
 
 ```sh
 python tools/doc-harness/byte_unchanged.py    # exit 1 if the tree changed
