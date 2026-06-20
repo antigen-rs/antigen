@@ -17,9 +17,8 @@ assignees: ''
 
 ## What you've already read
 
-- [ ] `docs/expedition/design-intent.md`
-- [ ] `docs/expedition/api-shape.md`
-- [ ] `docs/expedition/revolutionary-and-not.md`
+- [ ] `docs/concepts.md`
+- [ ] `docs/scope.md`
 - [ ] `docs/origin.md`
 - [ ] `docs/decisions.md` (relevant ADRs)
 
