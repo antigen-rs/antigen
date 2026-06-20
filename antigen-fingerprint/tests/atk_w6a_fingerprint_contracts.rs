@@ -454,8 +454,8 @@ fn atk_w6a_012_any_of_all_arms_fail_returns_false_silently() {
 ///
 /// **History**: pre-A3.5, this test asserted the OPPOSITE — that `(&self, ...)`
 /// must NOT match because `normalize_ws` couldn't recover the missing space.
-/// That documented a real production footgun (tambear's `PanickingInDrop` was
-/// bitten by it — fixed at tambear commit 7d9664a). The A3.5 onboarding sweep
+/// That documented a real production footgun (an adopter's `PanickingInDrop`
+/// failure-class was bitten by it). The A3.5 onboarding sweep
 /// addressed the underlying engine bug rather than living with the footgun:
 /// both the parser AND the matcher route their signature strings through
 /// `proc_macro2::TokenStream::from_str(_).to_string()` for symmetric
@@ -501,7 +501,7 @@ fn atk_w6a_013_has_method_signature_whitespace_normalized() {
 
 /// ATK-W6a-013b — `&mut self` receiver canonicalization (A3.5 engine fix).
 ///
-/// The tambear production footgun: `has_method("drop", "(&mut self)")` against
+/// The production footgun: `has_method("drop", "(&mut self)")` against
 /// `impl Drop for T { fn drop(&mut self) { ... } }` produced zero matches
 /// before the A3.5 fix. `proc_macro2` renders `&mut self` as `& mut self`
 /// (space-separated tokens); plain `normalize_ws` on the pattern left it as
