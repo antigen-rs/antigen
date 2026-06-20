@@ -9,8 +9,13 @@ example by hand.
 
 For every documentation file (`docs/**/*.md` plus the five crate READMEs), it:
 
-1. **Extracts** each `sh` command-fence that drives `cargo antigen`, and pairs it
-   with the output fence the doc claims it produces (the fence immediately after).
+1. **Extracts** each `cargo antigen` example, in either of the two conventions
+   the docs use:
+   - **command-then-output** — an ` ```sh ` fence holds the command, the fence
+     right after holds the claimed output ("Verify:" / "You should see:").
+   - **self-contained transcript** — a single ` ```text ` fence whose first line
+     is a `$ cargo antigen ...` prompt with the output below it. Crate READMEs
+     use this.
 2. **Classifies** each command:
    - **RUNNABLE-HERE** — deterministic in this repo with no user project, no
      network, no mutation: every `--help` surface and `--version`. These are run
@@ -21,6 +26,14 @@ For every documentation file (`docs/**/*.md` plus the five crate READMEs), it:
      byte-equal.
 3. **Reports** every drift as a located finding: `doc:line` plus a unified diff
    of claimed-vs-actual, so a writer fixes the exact spot.
+
+A self-contained transcript may legitimately show an **excerpt** — a README
+routinely trims the `Usage:`/`Options:` apparatus and drops rows. If the claimed
+output is an exact-line-*subsequence* of the real output (every claimed line
+appears, in order), it's reported as **EXCERPT**, not drift. A *modified* line —
+an abbreviated description the binary doesn't emit verbatim — breaks the
+subsequence and surfaces as drift, because that's a claim the binary doesn't
+back. EXCERPT does not gate; DRIFT does.
 
 ## Run it
 

@@ -132,6 +132,12 @@ class Example:
     raw_command_line: str  # the line as it appeared (may have a `$ ` prompt)
     claimed_output: Optional[str]   # the following output fence, if any
     claimed_output_line: Optional[int]
+    # A self-contained transcript fence (MODE 2) may legitimately show only an
+    # *excerpt* of help — a README routinely trims the Usage/Options apparatus.
+    # An exact-line-subsequence of the real output is treated as a valid excerpt
+    # (EXCERPT), not drift. A command-then-output pair (MODE 1) is held to exact
+    # match: it claims to be the whole output.
+    excerpt_ok: bool = False
 
 
 def _strip_prompt(line: str) -> str:
@@ -139,15 +145,32 @@ def _strip_prompt(line: str) -> str:
     return re.sub(r"^\s*(\$|>|PS[^>]*>)\s+", "", line).rstrip()
 
 
+_PROMPT_CMD_RE = re.compile(r"^\s*\$\s+(cargo\s+antigen\b.*)$")
+
+
 def extract_examples(doc: str, text: str) -> list[Example]:
-    """Pair every antigen command-fence with the output fence that follows it."""
+    """Extract every antigen example a doc claims an output for.
+
+    Two extraction modes cover the two conventions the docs use:
+
+    MODE 1 — command-fence then output-fence: an ```sh fence holds the command,
+    and the fence right after holds the output ("Verify:" / "You should see:").
+
+    MODE 2 — self-contained transcript: a single ```text fence whose first line
+    is a `$ cargo antigen ...` prompt, with the output below it in the same
+    fence. Crate READMEs use this. The command is the prompt line; the claimed
+    output is the rest of the fence.
+
+    A fence consumed as MODE-1 output is not re-read as a MODE-2 transcript.
+    """
     fences = list(iter_fences(text))
     examples: list[Example] = []
+    consumed_as_output: set[int] = set()  # fence indices used as a command's output
+
+    # MODE 1 — sh command fence paired with the following output fence.
     for idx, f in enumerate(fences):
         if f.info not in _SH_INFOS:
             continue
-        # Find the antigen command line(s) inside this sh fence. A fence may hold
-        # several lines; we take the first line that drives the binary.
         cmd_line = None
         for raw in f.body.splitlines():
             if _CMD_LINE_RE.search(raw):
@@ -157,34 +180,52 @@ def extract_examples(doc: str, text: str) -> list[Example]:
             continue
         command = _strip_prompt(cmd_line)
 
-        # The claimed output is the next output-shaped fence. We look only at the
-        # immediately-following fence: docs put the output right after the command
-        # (sometimes with a "You should see:" prose line between, which is not a
-        # fence and so does not interrupt the fence sequence).
         claimed = None
         claimed_line = None
         if idx + 1 < len(fences):
             nxt = fences[idx + 1]
-            # The output fence is the next output-shaped fence. Docs commonly echo
-            # the command on its first line (`$ cargo antigen --help`) inside the
-            # output block — that is still output, so a leading `$ `-prompt echo
-            # does NOT disqualify it. The only thing that disqualifies the next
-            # fence is its being another *command* fence (an `sh` block), i.e. two
-            # commands in a row with no output between them.
+            # The output fence may echo the command on its first line (`$ cargo
+            # antigen --help`) — still output. Only another *command* (sh) fence
+            # disqualifies it (two commands in a row, no output between).
             if nxt.info in _OUTPUT_INFOS and nxt.info not in _SH_INFOS:
                 claimed = nxt.body
                 claimed_line = nxt.open_line
+                consumed_as_output.add(idx + 1)
 
         examples.append(
             Example(
-                doc=doc,
-                open_line=f.open_line,
-                command=command,
+                doc=doc, open_line=f.open_line, command=command,
                 raw_command_line=cmd_line.strip(),
-                claimed_output=claimed,
-                claimed_output_line=claimed_line,
+                claimed_output=claimed, claimed_output_line=claimed_line,
             )
         )
+
+    # MODE 2 — self-contained `$ cargo antigen ...` transcript fence.
+    for idx, f in enumerate(fences):
+        if idx in consumed_as_output or f.info in _SH_INFOS:
+            continue
+        if f.info not in _OUTPUT_INFOS:
+            continue
+        body_lines = f.body.splitlines()
+        if not body_lines:
+            continue
+        m = _PROMPT_CMD_RE.match(body_lines[0])
+        if not m:
+            continue
+        command = m.group(1).rstrip()
+        # The claimed output is everything after the prompt line. (normalize()
+        # also strips a leading echoed-command line, so passing the whole body is
+        # safe — but pass only the tail to keep the diff anchored on the output.)
+        claimed = "\n".join(body_lines[1:])
+        examples.append(
+            Example(
+                doc=doc, open_line=f.open_line, command=command,
+                raw_command_line=body_lines[0].strip(),
+                claimed_output=claimed, claimed_output_line=f.open_line,
+                excerpt_ok=True,
+            )
+        )
+
     return examples
 
 
@@ -284,8 +325,26 @@ def normalize(text: str) -> list[str]:
 @dataclasses.dataclass
 class Result:
     example: Example
-    status: str   # PASS | DRIFT | ILLUSTRATIVE | NO-CLAIM
+    status: str   # PASS | EXCERPT | DRIFT | ILLUSTRATIVE | NO-CLAIM
     diff: Optional[str] = None
+
+
+def is_subsequence(claimed: list[str], actual: list[str]) -> bool:
+    """True if every non-blank claimed line appears in `actual`, in order.
+
+    This is the excerpt test: a README that shows a *truthful subset* of help —
+    trimming the Usage/Options apparatus, dropping rows — passes. A README that
+    *modifies* a line (an abbreviated description the binary doesn't emit
+    verbatim) does NOT pass: that line isn't found in actual, so the subsequence
+    breaks and it surfaces as drift.
+    """
+    it = iter(actual)
+    for c in claimed:
+        if c == "":
+            continue  # blank lines don't have to line up
+        if not any(c == a for a in it):  # advances the shared iterator
+            return False
+    return True
 
 
 def find_binary(explicit: Optional[str], root: Path) -> Optional[Path]:
@@ -328,6 +387,9 @@ def run(root: Path, binary: Path) -> list[Result]:
             actual_n = normalize(actual)
             if claimed_n == actual_n:
                 results.append(Result(ex, "PASS"))
+            elif ex.excerpt_ok and is_subsequence(claimed_n, actual_n):
+                # A self-contained transcript showing a truthful subset of help.
+                results.append(Result(ex, "EXCERPT"))
             else:
                 diff = "\n".join(
                     difflib.unified_diff(
@@ -343,15 +405,23 @@ def run(root: Path, binary: Path) -> list[Result]:
 
 def print_human(results: list[Result], binary: Path) -> None:
     n_pass = sum(r.status == "PASS" for r in results)
+    n_excerpt = sum(r.status == "EXCERPT" for r in results)
     n_drift = sum(r.status == "DRIFT" for r in results)
     n_illus = sum(r.status == "ILLUSTRATIVE" for r in results)
     n_noclaim = sum(r.status == "NO-CLAIM" for r in results)
 
     print(f"antigen doc-harness — binary: {binary}")
     print(f"  examples found: {len(results)}")
-    print(f"  RUNNABLE-HERE:  {n_pass} pass, {n_drift} drift, {n_noclaim} no-claim (command present, no output block)")
+    print(f"  RUNNABLE-HERE:  {n_pass} pass, {n_excerpt} excerpt, {n_drift} drift, {n_noclaim} no-claim (command present, no output block)")
     print(f"  ILLUSTRATIVE:   {n_illus} (needs a user project/network — surfaced, not asserted)")
     print()
+
+    if n_excerpt:
+        print("=== EXCERPT — a truthful subset of help (README trim); not drift ===")
+        for r in results:
+            if r.status == "EXCERPT":
+                print(f"  {r.example.doc}:{r.example.open_line}  `{r.example.command}`")
+        print()
 
     if n_drift:
         print("=== DRIFT — claimed output does not match the binary ===")
