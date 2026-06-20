@@ -7,19 +7,28 @@ example by hand.
 
 ## What it does
 
-For every documentation file (`docs/**/*.md` plus the five crate READMEs), it:
+For every documentation file (`docs/**/*.md`, the five crate READMEs, and
+`examples/**/*.md` — the runnable demos), it:
 
-1. **Extracts** each `cargo antigen` example, in either of the two conventions
-   the docs use:
+1. **Extracts** each example, in any of the conventions the docs use:
    - **command-then-output** — an ` ```sh ` fence holds the command, the fence
      right after holds the claimed output ("Verify:" / "You should see:").
    - **self-contained transcript** — a single ` ```text ` fence whose first line
      is a `$ cargo antigen ...` prompt with the output below it. Crate READMEs
      use this.
+   - Both forms also drive the binary via `cargo run --bin cargo-antigen --
+     antigen …` (the demo style) and may span lines with a trailing `\`; the
+     extractor folds the continuation.
 2. **Classifies** each command:
    - **RUNNABLE-HERE** — deterministic in this repo with no user project, no
-     network, no mutation: every `--help` surface and `--version`. These are run
-     for real and diffed against their claimed output.
+     network, no mutation: every `--help` surface and `--version`. Run and diffed.
+   - **FIXTURE-RUNNABLE** — a `propose`/`scan`/`audit`/`fingerprint` command whose
+     every path-arg (`--cluster-root`, `--clean-root`, `--root`, `--item-path`)
+     points under `examples/` — i.e. against in-repo demo fixtures, deterministic
+     here. These are the demo's *real captured outputs* (route-to-human, promote,
+     JSON); they are run and diffed too — exactly where the demo's promote-output
+     format-drift hides. A `<PATH>` placeholder or a `/path/to/...` arg disqualifies
+     it (stays illustrative).
    - **ILLUSTRATIVE** — needs a world the harness can't conjure (`cargo install`,
      `cd /path/to/your/project`, `scan` against an unspecified tree). These are
      **surfaced** (so they're visible, never silently skipped) but not asserted
