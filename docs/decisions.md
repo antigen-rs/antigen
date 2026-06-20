@@ -105,12 +105,12 @@
 - [ADR-045 — The Parameterization-Collapse Procedure and Tangle-Kind Classification: Sequencing the Recurrent Immune Tangle as an Effort DAG](#adr-045-the-parameterization-collapse-procedure-and-tangle-kind-classification-sequencing-the-recurrent-immune-tangle-as-an-effort-dag)
 - [ADR-046 — The Diff-Native Fingerprint Modality: Match a Structural DELTA, Not a Snapshot (detect / classify / label)](#adr-046-the-diff-native-fingerprint-modality-match-a-structural-delta-not-a-snapshot-detect--classify--label)
 - [ADR-047 — GATE-G Soundness: The Near-Miss Non-Vacuity Predicate](#adr-047-gate-g-soundness-the-near-miss-non-vacuity-predicate--a-promotion-requires-one-corpus-item-one-constraint-from-binding-spared-by-failing-exactly-that-one) *(Ratified 2026-06-10; amended by Amendments 1–3)*
-  - [ADR-047 Amendment 3 — the closed-alphabet soundness boundary](#adr-047-amendment-3-2026-06-17-drafted-by-the-adr-specialist-on-the-v06-pioneers-build-step-zero--gate-gs-spare-clean-certificate-is-sound-only-over-a-closed-constraint-alphabet-opening-the-alphabet-routes-to-the-human-oracle-not-the-gate) *(DRAFT — v06; Survey certifies)*
+  - [ADR-047 Amendment 3 — the closed-alphabet soundness boundary](#adr-047-amendment-3-2026-06-17-drafted-on-the-v06-pioneers-build-step-zero--gate-gs-spare-clean-certificate-is-sound-only-over-a-closed-constraint-alphabet-opening-the-alphabet-routes-to-the-human-oracle-not-the-gate) *(DRAFT — v06; Survey certifies)*
 - [ADR-048 — The Promoted-Draft Newtype](#adr-048-the-promoted-draft-newtype-make-only-bs-output-is-assertable-type-enforced-not-doc-convention) *(Ratified 2026-06-10)*
 - [ADR-049 — No Caller Emits Un-Scored Output: The Affinity-Score Invariant](#adr-049-no-caller-emits-un-scored-output-the-affinity-score-invariant--the-goodhart-asymmetric-ratification-lever) *(Ratified 2026-06-10)*
 - [ADR-050 — The `incident=` Key + the Signal-2 Routing Rule](#adr-050-the-incident-key--the-signal-2-routing-rule-an-incident-less-cluster-is-capped-at-suspected-principled-caution-not-a-gap) *(Ratified 2026-06-10)*
 - [ADR-051 — The Co-Native Ratification Record](#adr-051-the-co-native-ratification-record-one-record-two-renderings--specimen-triple--acceptrejectnarrow--fate) *(Ratified 2026-06-10 — UNIMPLEMENTED; impl is the v0.6 build; amended by Amendment 1)*
-  - [ADR-051 Amendment 1 — the is_discriminating recursive-descent precondition is satisfied (standing invariant)](#adr-051-amendment-1-2026-06-17-drafted-by-the-adr-specialist-on-the-v06-pioneers-build-step-zero--the-narrowpersistedspecimen-re-mint-precondition-is_discriminating-recurses-into-combinator-children-is-satisfied-this-amendment-records-the-satisfaction-and-locks-it-as-a-standing-invariant) *(DRAFT — v06; Survey certifies)*
+  - [ADR-051 Amendment 1 — the is_discriminating recursive-descent precondition is satisfied (standing invariant)](#adr-051-amendment-1-2026-06-17-drafted-on-the-v06-pioneers-build-step-zero--the-narrowpersistedspecimen-re-mint-precondition-is_discriminating-recurses-into-combinator-children-is-satisfied-this-amendment-records-the-satisfaction-and-locks-it-as-a-standing-invariant) *(DRAFT — v06; Survey certifies)*
 - [ADR-052 — The Affinity-Score Is the Spine](#adr-052-the-affinity-score-is-the-spine-every-learning-core-caller-emits-scored-output) *(Ratified 2026-06-10)*
 - [ADR-053 — The Tolerance-Quadrant Grid](#adr-053-the-tolerance-quadrant-grid-the-safety-dual-is-a-structurally-required-set-not-a-wishlist) *(Ratified 2026-06-10)*
 - [ADR-054 — The Two-Signal Gate: Signal-2 (Danger) as the Shared Afferent](#adr-054-the-two-signal-gate-the-innate-arm--signal-2-danger-as-the-shared-afferent) *(Ratified 2026-06-10)*
@@ -188,7 +188,7 @@ Cargo subcommands:
 
 ### Resolves
 
-- The implicit-memory failure mode (per the originating insight from the origin project adversarial)
+- The implicit-memory failure mode (per the originating insight from the origin project's adversarial review)
 - Documentation drift as a memory carrier (refined: ADR-001 doesn't reject
   documentation, it pushes memory upward in the carrier hierarchy — see Amendment 1)
 - AI-coding-agent context-loss across sessions
@@ -205,12 +205,12 @@ Cargo subcommands:
 
 **Amends**: ADR-001.
 
-**Reason**: Synthesizes aristotle's Phase 1-8 deconstruction findings A17, F1, F6,
-scientist's validation pass F-RELATED-1, and adversarial's ATK-001-{1..5} into
+**Reason**: Synthesizes first-principles deconstruction findings A17, F1, F6,
+validation-pass finding F-RELATED-1, and adversarial tests ATK-001-{1..5} into
 structural refinements ADR-001 missed. The amendment is **structural-forcing**: the
 project is committed to all C1–C8 commitments by other ADRs (007, 005, 010); ADR-001
-should enumerate them rather than leaving them implicit. Aristotle's reciprocal
-Phase 1-8 confirmed approval with no foundational objections; scientist validated.
+should enumerate them rather than leaving them implicit. A reciprocal first-principles
+pass confirmed approval with no foundational objections; validation concurred.
 
 **Related**: ADR-002, ADR-004, ADR-005, ADR-006, ADR-007, ADR-008, ADR-009, ADR-010,
 ADR-011, ADR-013.
@@ -281,7 +281,7 @@ who don't know the antigen exists. v0.1 ships both surfaces.
 5. **Stale tolerance** — `#[antigen_tolerance(X)]` on a site that doesn't match
    any fingerprint (the tolerance is dead weight; audit warns it can be removed
    — the descended_from-style stale-reference pattern applied to tolerances; per
-   aristotle's reciprocal Phase 1-8 enhancement).
+   a reciprocal first-principles enhancement).
 
 ### Change 3: Enumerate structural commitments C1–C8
 
@@ -355,7 +355,7 @@ value-claim with it.
 
 ### Change 6: Related field expansion
 
-Per scientist's F-RELATED-1 finding, ADR-001's original Related field was sparse.
+Per validation finding F-RELATED-1, ADR-001's original Related field was sparse.
 Amended Related field listed in this Amendment's header above; full
 cross-references include ADR-006 (recognition-not-design discipline grounding C6).
 
@@ -367,13 +367,13 @@ amended Resolves clause of ADR-001 itself.
 
 ### Resolves (this amendment)
 
-- Aristotle Phase 1-8 finding A17 (memory carriers form a hierarchy, not a binary)
-- Aristotle Phase 8 F1 (passive vs active spectrum was implicit)
-- Aristotle Phase 5 commitments-enumeration (C1-C8 surfaced but not in ADR-001)
-- Aristotle Phase 8 F6 (ergonomic-maintenance pressure was implicit)
-- Adversarial ATK-001-2 (witness shape mismatch — the spectrum was unnamed)
-- Adversarial ATK-001-5 (passive-vs-active surface confusion)
-- Scientist F-RELATED-1 (ADR-001's Related field was sparse)
+- Phase 1-8 finding A17 (memory carriers form a hierarchy, not a binary)
+- Phase 8 finding F1 (passive vs active spectrum was implicit)
+- Phase 5 commitments-enumeration (C1-C8 surfaced but not in ADR-001)
+- Phase 8 finding F6 (ergonomic-maintenance pressure was implicit)
+- ATK-001-2 (witness shape mismatch — the spectrum was unnamed)
+- ATK-001-5 (passive-vs-active surface confusion)
+- Validation finding F-RELATED-1 (ADR-001's Related field was sparse)
 
 ---
 
@@ -511,7 +511,7 @@ This amendment's compose-vs-compete posture is **biology-predicted at the outcom
 
 - Biology cognate upgraded: cytokine signaling + memory machinery + antimicrobial chemistry as parallel-surfaces; substrate-cited
 - Honest dual-axis grounding named: biology grounds outcome; software-engineering grounds process
-- Each compete decision in a new ADR carries the four-item substrate-citation (verified by naturalist + adversarial gates)
+- Each compete decision in a new ADR carries the four-item substrate-citation (checked at the biology-grounding and adversarial-review gates)
 
 ### Resolves
 
@@ -566,7 +566,7 @@ metaphor breaks (predicts something that doesn't fit Rust naturally), name where
 refine — do not abandon. When the metaphor predicts something useful, build it.**
 
 Specifically:
-- The naturalist role on the antigen team has explicit responsibility for keeping the
+- A biology-grounding discipline carries explicit responsibility for keeping the
   metaphor honest
 - Every API decision considers the biological analog as a thinking tool
 - Where biology rhymes (e.g., MHC presentation → `#[presents]`), the names align
@@ -575,16 +575,15 @@ Specifically:
 
 ### Mechanics
 
-The naturalist role on the antigen multi-agent team owns this discipline. When they observe
-metaphor-predicted primitives that haven't been built, they surface them. When the
-metaphor breaks, they name where.
+The biology-grounding discipline owns this work. When metaphor-predicted primitives
+haven't been built, we surface them. When the metaphor breaks, we name where.
 
 The `docs/glossary.md` anchors every term to its biological referent + Rust ecosystem
 analog.
 
 ### Consequences
 
-- The naturalist role is non-optional in the antigen team
+- The biology-grounding discipline is non-optional
 - The glossary is maintained as load-bearing artifact
 - Design reviews include "does this break the metaphor?" as a checklist item
 - Documentation can use biological language freely; API documentation uses precise
@@ -593,7 +592,7 @@ analog.
 ### Enforcement
 
 - Glossary updates required for every new term in design docs
-- Naturalist review required for any API change that breaks an established metaphor
+- Biology-grounding review required for any API change that breaks an established metaphor
   mapping
 - Every new antigen in `antigen-stdlib` includes its biological analog in documentation
 
@@ -639,14 +638,14 @@ ADR-003 §Mechanics extended:
 ### Consequences
 
 - Biology coverage map becomes the discovery substrate for stdlib research arcs
-- Naturalist role is BOTH metaphor-honesty guardian AND discovery-framework maintainer
+- The biology-grounding discipline is BOTH metaphor-honesty guardian AND discovery-framework maintainer
 - Stdlib completeness has a measurable target: coverage of the biological metaphor
 
 ### Enforcement
 
 - New stdlib antigens cite their biological-component mapping in documentation
 - Biology coverage map updated as part of stdlib research-arc drops
-- Naturalist review at stdlib ratification time includes coverage-map consultation
+- Biology-grounding review at stdlib ratification time includes coverage-map consultation
 
 ### Resolves
 
@@ -831,7 +830,7 @@ on Layer 2); ADR-011 (`rationale` on `#[antigen_tolerance]`); ADR-014
 (`rationale` on `#[antigen_generates]`); ADR-005 Amendment 3 (sibling
 amendment; complementary surface — Amendment 2 governs trust-extension
 primitives at parse time, Amendment 3 governs audit's reporting surface
-at runtime; per aristotle R-Conflict-Check, no content conflict).
+at runtime; per first-principles resolution R-Conflict-Check, no content conflict).
 
 ### Finding
 
@@ -930,7 +929,7 @@ unmarked default.
   field for temporal trust extensions.
 - **Future sweeps**: every ADR that proposes a new attribute, config
   field, or declaration form is reviewed against this discipline at
-  Phase 1-8 time. Aristotle's deconstruction asks the question
+  Phase 1-8 time. First-principles deconstruction asks the question
   explicitly.
 
 ### Enforcement
@@ -940,7 +939,7 @@ unmarked default.
   `antigen_tolerance` parser when ADR-011 ships).
 - **Process**: `process.md`'s ADR template + Phase 1-8 review prompt
   ensures future amendments are reviewed against the discipline.
-- **Adversarial**: ATK seeds against new primitives include
+- **Adversarial review**: ATK seeds against new primitives include
   "justification-field-missing" as a default attack pattern.
 
 ### Resolves
@@ -994,7 +993,7 @@ extension is governed by sub-clause F: the status word must reflect
 what the audit *actually verified*, not what it *could maximally
 infer*.
 
-A2 adversarial filings produced five confirmed classes of
+The A2 adversarial sweep produced five confirmed classes of
 under-verified defenses, each demonstrating the same failure
 mode: the audit's status surface reports verification work at a
 stronger tier than the audit actually performs. The pattern is
@@ -1282,8 +1281,8 @@ unless ADR-007 (anti-YAGNI) explicitly grants the structural-guarantee.
 
 ### Mechanics
 
-The naturalist role guards this discipline at design-review time. When a proposed
-addition feels designed-not-recognized, naturalist asks: "what structure are you
+The biology-grounding discipline guards this at design-review time. When a proposed
+addition feels designed-not-recognized, the review asks: "what structure are you
 recognizing? show me the instances."
 
 The recognition substrate is concrete: every antigen in stdlib must have its
@@ -1349,7 +1348,7 @@ The original framing — "recognize patterns that already exist in real-world Ru
 ### Mechanics
 
 ADR-006 §Mechanics amended:
-- The naturalist role guards recognition discipline at the ADOPTER extension layer
+- The biology-grounding discipline guards recognition discipline at the ADOPTER extension layer
 - For stdlib additions: the discipline check is "what substrate grounds this antigen?" not "what direct encounter recognizes this?"
 - Stdlib antigens MUST cite at least one substrate reference in `#[antigen(..., references = [...])]`; declaration without references is a parse-time error for `antigen-stdlib`
 
@@ -1425,11 +1424,11 @@ The test for "structurally guaranteed":
 
 ### Mechanics
 
-The aristotle role on the antigen team owns the structurally-guaranteed-need analysis.
-When a proposed feature is debated, aristotle's first question is: "what structural
+First-principles analysis owns the structurally-guaranteed-need question.
+When a proposed feature is debated, the first question is: "what structural
 commitment guarantees we need this?"
 
-The contrarian/inversion role asks the opposite: "what would happen if we DIDN'T build
+The inversion check asks the opposite: "what would happen if we DIDN'T build
 this?" If the answer is "the design works fine," the feature is YAGNI; if the answer is
 "we'd violate ADR-X," the feature is structurally-guaranteed.
 
@@ -1558,17 +1557,17 @@ escape valve to warn-not-error severity).
 
 ADR-008 frames the named-observer as a single practitioner editing
 code with antigen markers, but the design is silent on
-multi-contributor workflows. Adversarial ATK-008-1 surfaced the
+multi-contributor workflows. Adversarial test ATK-008-1 surfaced the
 concrete failure: Team A declares `#[presents(X)]` in their branch;
 Team B is writing `#[immune(X, witness = ...)]` in a parallel branch.
 With `cargo antigen scan --strict` in CI, Team A's branch permanently
 fails until Team B merges. The lag is normal development flow, not a
 real vulnerability — but the current design treats it as a hard
-failure. Naturalist's biology framing reinforces this: immune response
+failure. The biology framing reinforces this: immune response
 lag is normal; antigen presentation and antibody production are
 temporally separated in real immune systems.
 
-This amendment also closes the gap scientist named in F-DOCS-2 (the
+This amendment also closes the gap named in validation finding F-DOCS-2 (the
 "named observer experience" sections claimed by ADR-008's enforcement
 clause that don't exist on current API surfaces).
 
@@ -1682,14 +1681,14 @@ commitment as an implementation deliverable so it doesn't slip.
 
 ### Resolves
 
-- Adversarial ATK-008-1 (multi-contributor workflow friction; the
+- ATK-008-1 (multi-contributor workflow friction; the
   "Team A's branch permanently fails until Team B merges" failure
   case).
-- Naturalist's Risk A5 entry on multi-contributor workflow friction.
+- The Risk A5 entry on multi-contributor workflow friction.
 - The conflict between ADR-008's named-observer ergonomics and
   ADR-009's Layer 1 minimum-friction promise.
 - The configuration-surface ambiguity in ADR-008 around severity.
-- Scientist F-DOCS-2 finding (named observer experience documentation
+- Validation finding F-DOCS-2 (named observer experience documentation
   gap).
 
 ### Open questions deferred to future ADRs
@@ -1706,7 +1705,7 @@ commitment as an implementation deliverable so it doesn't slip.
    output formats (SARIF was named in ADR-001 mechanics but is not
    yet implemented)? Defer to A6+ (IDE/CI integration sweep).
 4. **Layer 1 vs Layer 3 default-severity differential** (per
-   aristotle's Phase 1-8 D2 finding): Layer 3 consumers (with ADR
+   Phase 1-8 finding D2): Layer 3 consumers (with ADR
    registries per ADR-009) are in discipline-mature territory and
    may default to severity = error rather than warn, since strict
    discipline is the operating mode they've already opted into.
@@ -1887,7 +1886,7 @@ UnsandboxedBuildScript, etc.) whose detection-model is external-substrate (Cargo
 metadata) — unreachable by the syn-based scanner. Forcing these antigens to carry a fingerprint
 forces them to declare a scan-surface they do not have. The result: placeholder fingerprints
 (`doc_contains("ADR-025")`) matching every file that mentions the ADR number, producing O(codebase
-mentions) spurious scan presentations (~14,792 at measurement time; observer-confirmed). This is
+mentions) spurious scan presentations (~14,792 at measurement time; review-confirmed). This is
 a representation forced to diverge from substrate truth — the macro's required-fingerprint encoding
 the false claim "I am scan-locatable" for antigens that are not.
 
@@ -2143,7 +2142,7 @@ These open questions become future ADR-NNNs as the team encounters concrete need
 **Reason**: ADR-010's example fingerprint isn't valid Rust syntax (uses
 single-quoted string-style operators that `syn::parse2::<Expr>`
 rejects). The intended path is custom DSL parsing via
-`syn::parse::ParseBuffer` peek/parse machinery — math-researcher's
+`syn::parse::ParseBuffer` peek/parse machinery — the research review's
 "Path C". The ADR's prose said "parsed via `syn::parse2`" without
 specifying that the `T` parameter is a custom DSL parser, not
 `syn::Expr`.
@@ -2191,11 +2190,11 @@ Becomes:
 > 1. The fingerprint string is tokenized via `syn`'s tokenizer; a
 >    custom DSL parser (using `syn::parse::ParseBuffer` peek/parse
 >    machinery) consumes the tokens into an internal `Fingerprint`
->    AST. This is Path C from the systems-research review — distinct
+>    AST. This is Path C from the research review — distinct
 >    from `syn::parse2::<syn::Expr>`, which cannot accept the DSL
 >    syntax above.
 
-### W6 implementation note (per aristotle R-Q1.D — not part of ratified amendment text)
+### W6 implementation note (per first-principles resolution R-Q1.D — not part of ratified amendment text)
 
 The fingerprint parser will tokenize the LitStr value via
 `proc_macro2::TokenStream::from_str` then parse through Path C.
@@ -2226,7 +2225,7 @@ not blocker for this amendment's ratification.
 fingerprint is part of a public API under semver. Without explicit
 policy, breaking changes leak into minor versions silently. Clippy's
 MSRV precedent ([clippy::msrv configuration]) is directly applicable.
-This was ADR-010 open question 2; math-researcher's review elevated
+This was ADR-010 open question 2; the research review elevated
 it to "must land before stdlib publication."
 
 [clippy::msrv configuration]: https://rust-lang.github.io/rust-clippy/master/index.html#/msrv
@@ -2253,7 +2252,7 @@ Add a "Semver and MSRV" subsection to ADR-010 between "Mechanics" and
 >   tolerance markers and defenses may become orphaned
 >   (per ADR-011 stale-tolerance detection).
 > - **Deprecation-then-narrow workflow** (alternative to immediate
->   major bump; per aristotle R-Q2-A): narrowings MAY ship in minor
+>   major bump; per first-principles resolution R-Q2-A): narrowings MAY ship in minor
 >   versions IF preceded by N..N+M minor versions of deprecation
 >   warnings. During the deprecation cycle, audit emits a warning
 >   when sites are matched by the broader form but would be
@@ -2265,7 +2264,7 @@ Add a "Semver and MSRV" subsection to ADR-010 between "Mechanics" and
 >   should never rely on it). Substrate precedent: clippy and
 >   cargo-deny both use deprecation-then-narrow patterns.
 > - **Named-companion-antigen pattern** (recommended for material
->   narrowings; per aristotle R-Q2-B): for narrowings affecting >10%
+>   narrowings; per first-principles resolution R-Q2-B): for narrowings affecting >10%
 >   of matched sites (heuristic, not formal threshold), introduce a
 >   *named companion antigen* with the narrower fingerprint rather
 >   than narrowing in-place. The original antigen persists at v1.0
@@ -2333,8 +2332,8 @@ operators that v1 grammar as ratified doesn't provide. The matcher
 engine's location is also unspecified, leading to circular-dependency
 risk between `antigen-macros` (compile-time validation) and `antigen`
 (scan-time matching). This amendment also folds in the filter-vs-proof
-framing crystallized during A1 in scout's framing + math-researcher's
-review §16.
+framing crystallized during A1 in an exploratory pass's framing + the
+research review §16.
 
 ### Clause A: scan semantics — pre-expansion only
 
@@ -2399,7 +2398,7 @@ review §16.
 > field/variant shape matchers, method-signature patterns,
 > composition operators) ship in v1 unchanged.
 
-### Clause D: filter-vs-proof framing — folded in from scout/math-researcher §16.1
+### Clause D: filter-vs-proof framing — folded in from the exploratory pass and research review §16.1
 
 > ### Semantic posture: fingerprints filter, witnesses prove
 >
@@ -2436,7 +2435,7 @@ review §16.
 >    coherent: ship the parser + dispatch + name-glob in A2; add
 >    operators per stdlib need.
 >
-> **Anti-laziness discipline** (per aristotle R-Q4): recall-tuned
+> **Anti-laziness discipline** (per first-principles resolution R-Q4): recall-tuned
 > does NOT mean unboundedly broad. Stdlib authors SHOULD calibrate
 > fingerprints against a representative corpus of real instances
 > before publishing.
@@ -2462,7 +2461,7 @@ review §16.
 > - `antigen` — for scan-time matching against target-code ASTs.
 >
 > Both `Fingerprint::parse(s)` AND `Fingerprint::matches(item)`
-> live in `antigen-fingerprint` (per aristotle R-Q3).
+> live in `antigen-fingerprint` (per first-principles resolution R-Q3).
 > `antigen-macros` consumes parse-only (compile-time validation);
 > `antigen` + `cargo-antigen` consume both. The matcher's
 > per-consumer compile cost in `antigen-macros` is negligible — cargo
@@ -2497,7 +2496,7 @@ review §16.
 >    canonicalized via proc_macro2 round-trip and stored as
 >    canonical strings at fingerprint-load time, NOT re-parsed per
 >    match site. The naive per-match-site re-parse is a documented
->    50× slowdown (math-researcher §4.1). See ADR-010 Amendment 5
+>    50× slowdown (research review §4.1). See ADR-010 Amendment 5
 >    for the canonicalization path; the `syn::Signature` AST
 >    comparison remains a future upgrade target.
 > 3. **Parse-time depth + node-count caps**: the fingerprint parser
@@ -2505,7 +2504,7 @@ review §16.
 >    256 (defaults; configurable in `[package.metadata.antigen]`).
 >    This prevents pathological fingerprints from blowing up the
 >    matcher.
-> 4. **Node-kind dispatch at the visitor** (per aristotle R-Q5; also
+> 4. **Node-kind dispatch at the visitor** (per first-principles resolution R-Q5; also
 >    named in ADR-015 §Performance invariants): the
 >    `Fingerprint::matches` evaluator dispatches by `node_kind` at
 >    the top of each visit. Only fingerprints with matching
@@ -2516,7 +2515,7 @@ review §16.
 >    with total fingerprint count regardless of relevance.
 >
 > Without these invariants, the 5-second budget blows out 5-10× per
-> math-researcher §4. The invariants are required for v0.1.0 release.
+> the research review §4. The invariants are required for v0.1.0 release.
 
 ### Additional consequences
 
@@ -2527,7 +2526,7 @@ review §16.
 >   depth/node-count caps + node-kind dispatch. Defers other
 >   operators per the filter framing.
 > - **Sweep A3+**: incremental scan cache (per-file mtime +
->   content-hash keyed) — math-researcher §14 names this as
+>   content-hash keyed) — the research review §14 names this as
 >   required for IDE integration; not load-bearing for v0.1.0
 >   release but high-priority for v0.2+.
 > - **Sweep A5 (stdlib)**: `enum_discriminant_ordering` operator
@@ -2576,7 +2575,7 @@ depth at 10" to:
   dual-parser drift surfaced from this gap).
 - Performance budget honesty (Invariants); the 5-second claim was
   speculative without these invariants ratified.
-- Adversarial ATK-010-2 (math-researcher §11; performance estimate
+- ATK-010-2 (research review §11; performance estimate
   speculation acknowledged).
 
 ---
@@ -2682,7 +2681,7 @@ involving the witness layer.
 
 - **Sweep A2 (current)**: W6 ships the filter layer (parser +
   dispatch + initial operators per Amendment 3 Clause C). W7
-  ships the proof layer's witness-tier API (per ADR-013 + scout's
+  ships the proof layer's witness-tier API (per ADR-013 + the
   W7 design). The two ship together because they are operational
   halves of the same architectural commitment.
 - **Sweep A3+**: composition rules for the filter/proof boundary
@@ -2703,7 +2702,7 @@ involving the witness layer.
   belong in the filter layer (fingerprint) or the proof layer
   (witness)? If filter, can it instead live in proof? If proof,
   why does this ADR amend ADR-010?"
-- **Adversarial**: ATK seeds against new ADR-010 amendments
+- **Adversarial review**: ATK seeds against new ADR-010 amendments
   include "filter/proof boundary violation" as a default attack
   pattern.
 
@@ -2782,7 +2781,7 @@ engine behavior surfaced it. Fixed at `af4113c`.
 scope — the "Failure-class eliminated" section listed sub-mechanism B as closed
 by proc_macro2 round-trip, but round-trip does NOT bridge token-class
 distinctions (Self/self are different tokens that remain different after
-tokenization). Aristotle's Phase 1-8 caught this overclaim during the review.
+tokenization). The first-principles Phase 1-8 review caught this overclaim.
 
 ### Decision
 
@@ -2955,7 +2954,7 @@ all_of([item = struct, not(body_contains_macro("panic!"))])
 the evaluation is: `body_contains_macro("panic!") = false` (no body-locus, returns false),
 `not(false) = true`, `all_of(Match, true) = Match`. Every struct matches, vacuously.
 
-This is the adversarial ATK-FP-NOT-BODY-VACUOUS finding (committed `1b843d1`). The adopter
+This is the adversarial-test finding ATK-FP-NOT-BODY-VACUOUS (committed `1b843d1`). The adopter
 intended "structs without `panic!`" but gets all structs — the fingerprint fires everywhere
 it was meant to filter.
 
@@ -2992,8 +2991,8 @@ instead of falling through to `false`. No separate domain-annotation is needed �
 evaluator already knows whether the locus exists (it is the `_ => {}` arm). The domain is
 implicit in which item-classes the predicate's match arm visits.
 
-**Match3 composition — two levels.** There are two distinct semantic levels (aristotle
-Phase-1-8 PASSED, strengthening clarification 2026-05-27). They MUST NOT be conflated in
+**Match3 composition — two levels.** There are two distinct semantic levels (first-principles
+Phase-1-8 review PASSED, strengthening clarification 2026-05-27). They MUST NOT be conflated in
 implementation or documentation, or future grammar extensions will accidentally collapse
 `Undefined` into `NoMatch` in the leaf algebra.
 
@@ -3061,7 +3060,7 @@ Match3 closes the vacuous-not hazard at the type level.
 
 ### Biology (PMID 11238607, primary-source grounded)
 
-Three-valued predicate evaluation is biology-confirmed (naturalist gate PASSED 2026-05-27).
+Three-valued predicate evaluation is biology-confirmed (biology-grounding gate PASSED 2026-05-27).
 The assay-on-wrong-tissue cognate is exact and pubmed-grounded.
 
 **Core principle**: absence of evidence is not evidence of absence when the evidence could
@@ -3133,7 +3132,7 @@ safely on top.
 
 ### Gate outcomes (ceremony complete)
 
-**Aristotle Phase-1-8 — PASSED** (2026-05-27). Resolved: Match3 cardinality is correct
+**First-principles Phase-1-8 review — PASSED** (2026-05-27). Resolved: Match3 cardinality is correct
 (three values for the definedness subject; Error is orthogonal infrastructure-layer concern;
 PartialMatch is a different subject coverage-axis); `all_of` Kleene-strong leaf-algebra +
 fingerprint-fires projection (two-level distinction explicit); `not(Undefined) = Undefined`
@@ -3141,16 +3140,16 @@ fingerprint-fires projection (two-level distinction explicit); `not(Undefined) =
 Amendment 6 territory (not a new ADR). Strengthening clarification (Kleene-strong two-level
 semantics naming) folded into §Match3 composition.
 
-**Naturalist (biology) — PASSED** (2026-05-27). Assay-on-wrong-tissue cognate confirmed,
+**Biology-grounding review — PASSED** (2026-05-27). Assay-on-wrong-tissue cognate confirmed,
 pubmed-grounded (PMID 11238607; indeterminate-Western-blot clinical category). Three-valued
 logic with `not(Undefined) = Undefined` is biology-required. Window-period HIV testing as
 canonical instance.
 
-**Adversarial — PASSED** (2026-05-28). All four ATK-FP tests traced through Kleene-strong
+**Adversarial review — PASSED** (2026-05-28). All four ATK-FP tests traced through Kleene-strong
 algebra; all confirmed closed. Test 1 inverts (broken behavior becomes correct assertion);
 tests 2/3/4 unaffected.
 
-**Scientist (consistency) — PASSED** (2026-05-28).
+**Consistency review — PASSED** (2026-05-28).
 
 ### What this amendment does NOT do
 
@@ -3163,7 +3162,7 @@ tests 2/3/4 unaffected.
 
 ### Evidence citations
 
-- ATK-FP-NOT-BODY-VACUOUS: adversarial finding committed `1b843d1` (four tests pinning
+- ATK-FP-NOT-BODY-VACUOUS: adversarial-test finding committed `1b843d1` (four tests pinning
   the broken behavior)
 - Substrate verification: `matcher.rs:244-285`, `body_contains_macro -> bool`, `_ => {}` arm
   at `matcher.rs:282`
@@ -3226,7 +3225,7 @@ fn test_polarity_inversion_caught() { ... }
 ```
 
 **Required**: antigen type (positional), `rationale` (non-empty string).
-**Optional**: `until` (non-empty if present, per aristotle reciprocal Phase 1-8),
+**Optional**: `until` (non-empty if present, per the reciprocal first-principles Phase 1-8),
 `see` (open-vocabulary string array mirroring ADR-009's `references`).
 
 A single item can stack multiple tolerances against different antigens. Tolerance
@@ -3245,11 +3244,11 @@ is **item-level only** in v1; module-level deferred to future ADR.
 
 **Trust-boundary check (ADR-005)**:
 1. Empty rationale rejected at parse time.
-2. Empty `until` rejected at parse time (per aristotle reciprocal Phase 1-8 —
+2. Empty `until` rejected at parse time (per the reciprocal first-principles Phase 1-8 —
    meaningless empty expiry indicates user error).
 3. Antigen type must be discoverable in the workspace or imported from a crate.
 4. Item-level placement only in v1.
-5. **Tolerance dominates over `#[presents]` on the same item** (per aristotle
+5. **Tolerance dominates over `#[presents]` on the same item** (per
    ATK-011-3): site is reported as tolerated; the `#[presents]` marker is dead
    code; audit warns to remove one or the other.
 
@@ -3280,7 +3279,7 @@ is **item-level only** in v1; module-level deferred to future ADR.
   answer: tolerance-as-opt-out is the v1 mechanism; negative fingerprints stay
   deferred.
 - The "false-positive flagging" risk from `revolutionary-and-not.md`.
-- The bootstrap-blocker per aristotle ATK-011-5: the project's own
+- The bootstrap-blocker per ATK-011-5: the project's own
   `examples/broken_witness.rs` is the first auto-flag candidate when W6 lands;
   ADR-011 ratification is structurally urgent for that to ship coherent.
 
@@ -3293,7 +3292,7 @@ is **item-level only** in v1; module-level deferred to future ADR.
    in Sweep A3).
 4. CI default-warn-not-fail vs strict on tolerance presence.
 5. Bypass-detection for rationale-stuffing (no automated mechanism in v1; future
-   ADR may add rationale-quality lint informed by naturalist's biology framing).
+   ADR may add rationale-quality lint informed by the biology framing).
 
 ---
 
@@ -3318,7 +3317,7 @@ surfaced a real gap: two newly re-rolled ULP-distance functions in the origin pr
 detection because the existing pattern detector only catches the inline
 single-expression form, not the multi-statement function-body form.
 
-This is the structural sibling of adversarial's ATK-010-1 (macro-expansion
+This is the structural sibling of the adversarial-review ATK-010-1 (macro-expansion
 blindness): both are *structural blindness* where the failure-class exists in
 executed code but not in the syntactic surface ADR-010's v1 grammar walks.
 
@@ -3343,10 +3342,10 @@ GeneratedMatch`; `confidence: High | Medium | Low`.
 The v2 grammar is a **non-breaking extension** of v1: v1 fingerprints continue to
 parse and run unchanged.
 
-**Pre-parsed-pattern invariant** (per aristotle reciprocal Phase 1-8 +
-math-researcher §4.1): body-level operators MUST be pre-parsed at fingerprint-load
+**Pre-parsed-pattern invariant** (per the reciprocal first-principles Phase 1-8 +
+research review §4.1): body-level operators MUST be pre-parsed at fingerprint-load
 time, not per-match-site. Without this invariant, body-level operators exhibit
-the 50× constant-factor cost asymmetry math-researcher flagged for v1's
+the 50× constant-factor cost asymmetry the research review flagged for v1's
 `has_method`.
 
 Performance impact: `O(n × m × b)` where `b` is average body size. Realistic
@@ -3385,7 +3384,7 @@ should benchmark and may need parallelism or incremental scan caching.
 2. Cross-language body patterns (still Rust-only in v2).
 3. Performance under workspace growth (>100k files).
 4. Relationship to clippy's internal pattern DSL (per ADR-002 compose-don't-compete:
-   yes if feasible; math-researcher systems-review for v2 should investigate).
+   yes if feasible; a systems-analysis research review for v2 should investigate).
 
 ---
 
@@ -3583,7 +3582,7 @@ A macro can stack multiple `#[antigen_generates]` declarations.
 
 **Audit integration**: synthetic presentations are checked for a defense
 on the same item (the macro INVOCATION, not the macro definition).
-Per aristotle's reciprocal Phase 1-8, scan output surfaces consumer-side awareness:
+Per the reciprocal first-principles Phase 1-8, scan output surfaces consumer-side awareness:
 
 ```
 src/lib.rs:42  PanickingInDrop on generated_SomeDerive (#[derive(SomeDerive)] expansion)
@@ -3622,7 +3621,7 @@ expansion-validation deferred (v0.2+ trusts the author).
 
 ### Resolves
 
-- Adversarial ATK-010-1 (macro-expansion blindness producing silent false-negatives).
+- ATK-010-1 (macro-expansion blindness producing silent false-negatives).
 - ADR-001's C6 (the carrier set is structural; new carrier requires ADR — this ADR).
 - The structural-blindness pair with ADR-012 (function-body patterns).
 - The third-party-derive blind spot in real Rust adoption.
@@ -3680,8 +3679,8 @@ to that single mechanics commitment:
    structural patterns is structurally guaranteed by the v0.1 stdlib
    commitments per ADR-007.
 
-2. **The grammar-vs-vocabulary cut** (per aristotle's reciprocal
-   Phase 1-8 of math-researcher's ADR-010 systems review): the
+2. **The grammar-vs-vocabulary cut** (surfaced by a first-principles
+   reciprocal deconstruction of the research review of ADR-010): the
    *grammar* (node-kind × field-path × constraint-op + Boolean
    composition) is the load-bearing structural commitment; the
    *vocabulary* (named operators) is the projection surface. ADR-010
@@ -3798,13 +3797,13 @@ Three honest paths exist:
   limitation honestly per ADR-010's already-stated honest-known-
   limitations posture.
 
-**Both math-researcher (substrate-correction addendum) and aristotle
-(revising addendum) independently recommend Path 2** when the backend
-ratifies. Independent convergence on Path 2 from different
-chains-of-reasoning is the recognition signal at the strongest tier.
-The sibling decision should consider this as substrate, not as a
-pre-commitment from ADR-015's body. **Pathmaker decides under W6b
-implementation pressure.**
+**Both the research review (substrate-correction addendum) and the
+first-principles deconstruction (revising addendum) independently
+recommend Path 2** when the backend ratifies. Independent convergence
+on Path 2 from different chains-of-reasoning is the recognition signal
+at the strongest tier. The sibling decision should consider this as
+substrate, not as a pre-commitment from ADR-015's body. **The
+implementer decides under W6b implementation pressure.**
 
 When the sibling decision lands:
 - The S3 evaluator trait goes public, with the chosen backend
@@ -3866,7 +3865,7 @@ Three distinct span concerns disambiguated:
 
 #### Performance invariants
 
-Per math-researcher's ADR-010 review §3.2 + §4 + §15.Q2 + W6 advance
+Per the research review of ADR-010 §3.2 + §4 + §15.Q2 + W6 advance
 note, all unchanged from ADR-010 Amendment 3:
 
 - Single-pass walking with `node_kind` dispatch (don't run N
@@ -3921,14 +3920,14 @@ choice is *what fingerprints match*, not *what witnesses prove*.
 ### Resolves
 
 - The implementation-detail tension in ADR-010 §Mechanics §1 that
-  surfaced under math-researcher's review §16.6 + the origin project
+  surfaced under the research review §16.6 + the origin project
   adoption-log evidence.
-- The B-vs-C question scout asked: this ADR makes the answer
+- The B-vs-C open question: this ADR makes the answer
   "neither B nor C as initially framed; it's *one grammar with
   separable runtime*." The runtime choice (library / subprocess /
   deferred) is sibling decision territory.
-- Aristotle's grammar-vs-vocabulary cut: the grammar is what gets
-  ratified (this ADR pins it); the vocabulary is what gets
+- The first-principles grammar-vs-vocabulary cut: the grammar is what
+  gets ratified (this ADR pins it); the vocabulary is what gets
   documented and grows with stdlib content.
 
 ### Open questions deferred to future ADRs
@@ -4020,8 +4019,8 @@ composition operating on current code/test/proof state) are
 They cannot, in principle, recognize stale-context or
 premature-abstraction without access to a temporal substrate.
 
-ADR-007's anti-YAGNI clause commits us to all 8 classes. Aristotle's
-P1-8 phase 8 surfaced the deeper structure: antigen v1 occupies one
+ADR-007's anti-YAGNI clause commits us to all 8 classes. The
+first-principles Phase 8 surfaced the deeper structure: antigen v1 occupies one
 cell of a 2D grid (analysis-level × temporality) and gestures at the
 others via taxonomy + manually-presented antigens. This ADR ratifies
 the grid as a recognition substrate.
@@ -4330,7 +4329,7 @@ scan-time and stamps it on discovered declarations. User-facing macros are
 unchanged. The identity is a derived property of the discovery mechanism,
 not a user-declared property.
 
-Phase 1-8 (aristotle) deconstructed all approaches and eight additional
+A first-principles Phase 1-8 deconstruction examined all approaches and eight additional
 alternatives on a gradient from user-burden to scanner-burden. Approach
 3-revised wins on ADR-002 (compose, don't compete — delegates to cargo),
 ADR-005 (sub-clause F — validates cross-crate trust via cargo's resolution
@@ -4381,11 +4380,11 @@ exact resolved version string from `cargo metadata`'s `packages[].version`
 field (semver-formatted; major.minor.patch with optional pre-release/build
 metadata as cargo reports it).
 
-**Why include the version** (scout's P5 nuance, empirically verified):
+**Why include the version** (P5 nuance, empirically verified):
 A workspace can depend on `foo v1.0` and `foo v2.0` simultaneously. With
 crate-name-only canonical_path, the two versions' antigens become
 observationally identical — sub-clause F violation. The `@<version>` suffix
-makes the distinction explicit. Scout empirically verified: antigen's own
+makes the distinction explicit. Empirically verified: antigen's own
 dep graph already has 4 crate names at multiple versions (`getrandom`,
 `hashbrown`, `r-efi`, `wit-bindgen`). `name@version` is minimum-viable, not
 future-proofing.
@@ -4574,7 +4573,7 @@ to cargo).
 ADR-017 ratified cross-crate antigen identity (Approach 3-revised: scanner-derived
 `canonical_path`) and stated cross-crate trust-boundary mechanics "defer to ADR-005's enforcement
 clauses." ADR-001 C7 named the scanner-activation of cross-crate `addresses()` matching as
-tracked-not-decided. Pathmaker's multi-crate scan Layer 1 (`e53f91d`) shipped the substrate
+tracked-not-decided. The multi-crate scan Layer 1 (`e53f91d`) shipped the substrate
 (member-aware scan, distinct `canonical_path` stamping per member, cross-member lineage). Layer 2 —
 cross-crate `addresses()`/`defended_by` matching over the merged member-report (== ATK-A3-005,
 closes `DelegateCrossCrateResolutionGap`) — is an **implementation-activation of already-ratified
@@ -4603,8 +4602,8 @@ issues a cross-crate verdict only under this sub-clause-F validation check:
    boundary.
 
 These are the only two clauses Layer 2 adds beyond the ratified architecture. With them on the
-record, pathmaker's Layer-2 implementation has its trust-boundary check ratified before the code
-signs.
+record, the Layer-2 implementation has its trust-boundary check ratified before the code
+lands.
 
 ### Why this is a Type-A §Mechanics amendment, not a new ADR
 
@@ -4658,14 +4657,14 @@ explicit tagged-synthesis with diamond dedup.
 ### Finding
 
 A3's scope-lock commits to `#[descended_from]` propagation as Deliverable 1.
-Pathmaker surfaced a question before implementing: what does the synthesis
+A question surfaced before implementing: what does the synthesis
 pass actually DO with inherited presentations? Three readings:
 
 1. **Literal scope-lock**: synthesize inherited Presentation records as-if-marked; audit treats them identically to explicit markers.
 2. **ADR-005-strict**: scan collects lineage edges only; audit walks chain at audit-time.
-3. **Pathmaker's recommendation**: synthesize inherited Presentations BUT mark them with `MatchKind::DescendedFrom { parent }` variant; audit emits re-attestation hint.
+3. **The implementation recommendation**: synthesize inherited Presentations BUT mark them with `MatchKind::DescendedFrom { parent }` variant; audit emits re-attestation hint.
 
-Phase 1-8 (aristotle) deconstructed all three plus seven additional approaches.
+A first-principles Phase 1-8 deconstruction examined all three plus seven additional approaches.
 The depth-shift cut: ADR-005 §Decision item 2 says scan re-checks inherited
 witnesses; P2 says behavioral re-check is A4-A5 work. A3's job is to surface
 the inheritance state in a form A4-A5's behavioral-tier can consume. This is
@@ -4909,15 +4908,15 @@ to ancestor defenses to help the user evaluate re-attestation.
 
 ### Resolves
 
-- The propagation-semantics question pathmaker surfaced (Reading 1 vs 2 vs 3).
+- The propagation-semantics question that surfaced before implementing (Reading 1 vs 2 vs 3).
 - ADR-005 §Decision item 2's "scan walks descended_from chains and re-checks"
   language gains an A3-tractable substrate.
 - Diamond Phase 1-8 and propagation Phase 1-8 findings — ratified into substrate.
 - ADR-001 Amendment 1 Change 2 5-state matrix — amended to 7-state.
 - The implicit-by-omission "what does propagation DO?" elevated to explicit
   tagged-synthesis with diamond dedup.
-- Adversarial BUG-A3-001 (edge-level dedup precondition for cycle detection).
-- Adversarial BUG-A3-002 (dangling-child edge non-walk).
+- BUG-A3-001 (edge-level dedup precondition for cycle detection).
+- BUG-A3-002 (dangling-child edge non-walk).
 - Adversarial enforcement findings A18-01/04/09 (inherited_from canonical_path
   granularity — resolved by ProvenanceEntry).
 
@@ -4946,10 +4945,10 @@ to ancestor defenses to help the user evaluate re-attestation.
 **Amends**: ADR-018 §Decision "The descendant inherits the ancestor's match_kind.
 Inheritance is provenance, not match-kind."
 
-**Reason**: Observer NB017 (F24 peer review) surfaced a precision gap in the
+**Reason**: Peer review NB017 (F24) surfaced a precision gap in the
 ratified text: "not match-kind" correctly names what inheritance does NOT preserve
 from a match-semantics perspective, but does not name the stronger claim that
-`descended_from` makes no substitutability guarantee. ADR-024 (F24 aristotle
+`descended_from` makes no substitutability guarantee. ADR-024 (F24 first-principles
 Phase 1-8 on substitutability vs provenance) established this as a load-bearing
 distinction that future implementers and consumers need to read explicitly.
 
@@ -4969,7 +4968,7 @@ to:
 > of A4-A5 behavioral-tier work (open question 5 above); A3's job is to surface the
 > inheritance state in a form A4-A5 can consume."
 
-**Resolves**: F24 (aristotle Phase 1-8 on substitutability vs provenance) finding
+**Resolves**: F24 (first-principles Phase 1-8 on substitutability vs provenance) finding
 that the ratified text left implicit the non-substitutability guarantee. Explicit
 statement prevents implementers from inferring substitutability from `descended_from`
 declarations.
@@ -5004,7 +5003,7 @@ The inline code example was changed from `#[orient(...)]` to `#[triage_commit(..
 
 **Amends**: ADR-026 §Decision (Schema additions paragraph — backfills variant semantics into the ratified contract); ADR-026 §Consequences (camp::triage connection-claim loosening from STRUCTURAL claim to conceptual-alignment-now / structural-v0.3+).
 
-**Reason**: Outsider's connection-claim discipline analysis (`820a710a`, `fd7ff496`, `b095f9c3`) surfaced two related issues: (1) ADR-026 §Decision named `TriageDecision` as an enum (`Black | Red | Yellow | Green | White`) but did not define the variant semantics — those were documented only in `antigen/src/vcs.rs` doc-comments, creating a documentation-tier inversion where the implementation is more rigorous than the ratified contract; (2) the §Sweep-level "Connection to camp `triage` primitive" line was a STRUCTURAL claim with decorative-tier delivery — no cross-tool schema commitment exists today, and the honest state is "conceptual alignment now; structural alignment v0.3+." Per scientist's framing and outsider's resolve recommendation (b1 with v0.3 commitment named).
+**Reason**: A connection-claim discipline analysis (`820a710a`, `fd7ff496`, `b095f9c3`) surfaced two related issues: (1) ADR-026 §Decision named `TriageDecision` as an enum (`Black | Red | Yellow | Green | White`) but did not define the variant semantics — those were documented only in `antigen/src/vcs.rs` doc-comments, creating a documentation-tier inversion where the implementation is more rigorous than the ratified contract; (2) the §Sweep-level "Connection to camp `triage` primitive" line was a STRUCTURAL claim with decorative-tier delivery — no cross-tool schema commitment exists today, and the honest state is "conceptual alignment now; structural alignment v0.3+." Per the validation framing and the resolve recommendation (b1 with v0.3 commitment named).
 
 **Change 1 — TriageDecision variant semantics backfill (`fd7ff496`)**: The §Schema additions paragraph is extended with explicit variant semantics so the ADR itself is the authoritative source. The five variants carry the following semantics in the rollback-as-triage software-engineering use-case (analogous to but not identical with clinical field-triage protocols — see Amendment 2 Change 3 below on the connection-claim tier):
 
@@ -5018,11 +5017,11 @@ The inline code example was changed from `#[orient(...)]` to `#[triage_commit(..
 
 > "Conceptual alignment with camp `triage` primitive — both classify state into 5-color taxonomy with rollback/treatment-discipline semantics. Cross-tool schema alignment (shared `TriageDecision` type across antigen + camp) is deferred to v0.3+ research arc; no schema commitment is made in v0.2."
 
-This honors outsider's resolve recommendation (b1 with v0.3 commitment named) and avoids the documentation-tier inversion of claiming structural alignment that does not yet exist.
+This honors the resolve recommendation (b1 with v0.3 commitment named) and avoids the documentation-tier inversion of claiming structural alignment that does not yet exist.
 
-**Change 3 — START attribution loosening (`a87e4245`)**: The `#[triage_commit]` doc-comment and the `TriageDecision` doc-comment in `antigen/src/vcs.rs` previously claimed "Modeled on the START field-triage protocol" (IDENTITY-tier connection-claim per outsider's discipline taxonomy). Loosened to "Color-tagged analogously to clinical field-triage protocols (e.g., START — Simple Triage And Rapid Treatment, US emergency-medicine standard since 1983)" — RHYME-tier connection-claim. The substantive structural rhyme is preserved (5-color schema + treatment-decision discipline); the IDENTITY overclaim is removed (clinical START doesn't have `White`; the protocol's diagnostic protocol per se is not what `#[triage_commit]` implements). The corresponding doc-comment edits ship in the same commit as this amendment.
+**Change 3 — START attribution loosening (`a87e4245`)**: The `#[triage_commit]` doc-comment and the `TriageDecision` doc-comment in `antigen/src/vcs.rs` previously claimed "Modeled on the START field-triage protocol" (IDENTITY-tier connection-claim per the connection-claim discipline taxonomy). Loosened to "Color-tagged analogously to clinical field-triage protocols (e.g., START — Simple Triage And Rapid Treatment, US emergency-medicine standard since 1983)" — RHYME-tier connection-claim. The substantive structural rhyme is preserved (5-color schema + treatment-decision discipline); the IDENTITY overclaim is removed (clinical START doesn't have `White`; the protocol's diagnostic protocol per se is not what `#[triage_commit]` implements). The corresponding doc-comment edits ship in the same commit as this amendment.
 
-**Resolves**: Connection-claim discipline gaps surfaced by outsider's audit during the v02-completion-arc expedition. Adopters reading ADR-026 in isolation now have authoritative variant semantics in the ratified contract; the camp::triage connection-claim accurately reflects current state (conceptual alignment) and named future commitment (v0.3+ structural alignment); the START attribution preserves the substantive rhyme without IDENTITY overclaim.
+**Resolves**: Connection-claim discipline gaps surfaced during the v02-completion-arc expedition. Adopters reading ADR-026 in isolation now have authoritative variant semantics in the ratified contract; the camp::triage connection-claim accurately reflects current state (conceptual alignment) and named future commitment (v0.3+ structural alignment); the START attribution preserves the substantive rhyme without IDENTITY overclaim.
 
 ---
 
@@ -5032,7 +5031,7 @@ This honors outsider's resolve recommendation (b1 with v0.3 commitment named) an
 
 **Amends**: ADR-026 §Finding (Detection model paragraph) and §Finding (Enforcement model paragraph); adds two audit hints to §Decision audit-hint vocabulary.
 
-**Reason**: Adversarial ATK-VCS-1 (rollback detection algorithm not specified) and ATK-VCS-4 (structural enforcement verification not required at audit-time) identified held-implementation-spec-depth-gap instances. Aristotle Phase 1-8 (campsite `v02-impl-vcs-info-loss`) established the correct resolution for both. The ADR previously stated detection MUST be at commit-time (§D1) without specifying HOW the hook recognizes a rollback commit. The enforcement model accepted Structural mode declarations without verifying the remote configuration via substrate-witness.
+**Reason**: ATK-VCS-1 (rollback detection algorithm not specified) and ATK-VCS-4 (structural enforcement verification not required at audit-time) identified held-implementation-spec-depth-gap instances. A first-principles Phase 1-8 deconstruction (campsite `v02-impl-vcs-info-loss`) established the correct resolution for both. The ADR previously stated detection MUST be at commit-time (§D1) without specifying HOW the hook recognizes a rollback commit. The enforcement model accepted Structural mode declarations without verifying the remote configuration via substrate-witness.
 
 **Change 1 — Rollback detection algorithm (ATK-VCS-1)**: Specifies AUTHOR-DECLARATION (Algorithm C) as the detection algorithm. The commit-time hook applies a three-step decision tree: (1) git-revert metadata present + no `Triage-Decision:` trailer → fire `RollbackWithoutTriageCommit`; (2) commit carries a `Triage-Decision: <value>` trailer → validate value is a `TriageDecision` enum variant; fire `vcs-rollback-triage-chain` witness check *(Amendment 4 corrects step 2 from codebase-presence to commit-trailer signal)*; (3) otherwise → audit defers. Residual risk from manual inverse cherry-picks (undetectable without author declaration) is NAMED and EXPLICIT per friction-only philosophy. Diff-similarity detection (Algorithm B) is opt-in via `cargo antigen vcs --diff-similarity-check` (v0.3+ experimental).
 
@@ -5052,11 +5051,11 @@ This honors outsider's resolve recommendation (b1 with v0.3 commitment named) an
 
 **Amends**: ADR-026 Amendment 3 Change 1 §Decision-tree step 2 (inline parenthetical at §Finding Detection model paragraph).
 
-**Reason**: ATK-VCS-A2 (adversarial post-ratification finding on Amendment 3, campsite `adr026-amendment-4-step2-commit-trailer`): Amendment 3 step 2 specified "commit declares `#[triage_commit]`" as the detection signal. This is codebase-presence semantics — does the codebase contain the attribute anywhere, not does THIS commit declare a triage decision. Three failure modes: (a) rollback commit on a codebase that already has `#[triage_commit]` elsewhere fires step 2 by coincidence; (b) rollback commit on a codebase with zero `#[triage_commit]` declarations falls silently to step 3; (c) two identical rollback commits on different codebases receive different audit behavior. The structural mechanism for commit-intent is already specified in ADR-026 §M3: the `Triage-Decision: <value>` git trailer on the commit itself.
+**Reason**: ATK-VCS-A2 (an adversarial post-ratification finding on Amendment 3, campsite `adr026-amendment-4-step2-commit-trailer`): Amendment 3 step 2 specified "commit declares `#[triage_commit]`" as the detection signal. This is codebase-presence semantics — does the codebase contain the attribute anywhere, not does THIS commit declare a triage decision. Three failure modes: (a) rollback commit on a codebase that already has `#[triage_commit]` elsewhere fires step 2 by coincidence; (b) rollback commit on a codebase with zero `#[triage_commit]` declarations falls silently to step 3; (c) two identical rollback commits on different codebases receive different audit behavior. The structural mechanism for commit-intent is already specified in ADR-026 §M3: the `Triage-Decision: <value>` git trailer on the commit itself.
 
 **Change — Step-2 signal corrected**: Step 2 of the AUTHOR-DECLARATION decision tree is: commit carries a `Triage-Decision: <value>` trailer → validate value is a `TriageDecision` enum variant; fire `vcs-rollback-triage-chain` witness check. This is commit-intent semantics (does THIS commit declare its triage decision?), consistent with ADR-026 §M3 trailer schema.
 
-**Scope**: This correction affects the `install-hooks` and `install-server-hooks` CLI verbs (which write the pre-commit/pre-push hook that executes the decision tree). It does NOT affect the witness evaluators (`vcs_trailer_present`, `vcs_rollback_triage_chain`, `vcs_attest_branch_deletion`, `vcs_server_side_enforcement_active`) or the observation-side CLI verbs (`scan`, `check-commit`, `attest`, `rollback-prepare`, `branch-archive`). Per aristotle F1 ratification (campsite `adr026-amendment-4-step2-commit-trailer`): witness layer + observation CLI proceed in parallel; hook-installation verbs defer until this amendment ratifies.
+**Scope**: This correction affects the `install-hooks` and `install-server-hooks` CLI verbs (which write the pre-commit/pre-push hook that executes the decision tree). It does NOT affect the witness evaluators (`vcs_trailer_present`, `vcs_rollback_triage_chain`, `vcs_attest_branch_deletion`, `vcs_server_side_enforcement_active`) or the observation-side CLI verbs (`scan`, `check-commit`, `attest`, `rollback-prepare`, `branch-archive`). Per first-principles finding F1 (campsite `adr026-amendment-4-step2-commit-trailer`): witness layer + observation CLI proceed in parallel; hook-installation verbs defer until this amendment ratifies.
 
 **Related**: ADR-026 Amendment 3 Change 1 (the amended text); ADR-026 §M3 (`Triage-Decision:` trailer schema); ADR-010 (witness independence from scan-layer decisions); ADR-019 (substrate-witness reads substrate, not ADR text).
 
@@ -5068,10 +5067,10 @@ This honors outsider's resolve recommendation (b1 with v0.3 commitment named) an
 
 **Amends**: ADR-027.
 
-**Reason**: The v02-completion-arc team surfaced six spec-depth gaps in
-ADR-027 before pathmaker could implement the mucosal family. The gaps are
-independent in origin (naturalist biology-prediction, scout adversarial-test,
-outsider naive-question) but converge on the same root: ADR-027 §Decision
+**Reason**: The v02-completion-arc work surfaced six spec-depth gaps in
+ADR-027 before the mucosal family could be implemented. The gaps are
+independent in origin (a biology-grounding prediction, an adversarial test,
+a naive question) but converge on the same root: ADR-027 §Decision
 specifies WHAT the mucosal primitives are without specifying HOW their
 argument shape, variant inclusion, and audit logic resolve at impl time.
 This amendment closes the gaps to unblock implementation. Filed as instance
@@ -5138,9 +5137,9 @@ UserInput, FilesystemPath, EnvironmentVariable, ShellArgument`.
 ### Change 4 — handled_by typed as syn::Path
 
 **Finding**: ADR-027 §Decision says `handled_by = "..."` (string) but
-does not specify the string format. Scout flagged (`c7ae5990`); aristotle
-confirmed. Free-form string allows typos to silently produce broken
-delegations.
+does not specify the string format. An exploratory pass flagged it
+(`c7ae5990`); first-principles deconstruction confirmed. Free-form string
+allows typos to silently produce broken delegations.
 
 **Decision**: `handled_by` parses as a Rust path expression (`syn::Path`),
 not a string literal. Syntax:
@@ -5158,7 +5157,7 @@ module-graph rules.
 
 ### Change 5 — Delegate kind-matching semantics
 
-**Finding** (scout ATK-MUCOSAL-3): 'corresponding declaration' in
+**Finding** (ATK-MUCOSAL-3): 'corresponding declaration' in
 §Decision is ambiguous. Reading A (any `#[mucosal]` on target suffices)
 is an attack surface: `#[mucosal_delegate(boundary = UserInput,
 handled_by = sanitize_db)]` passes when `sanitize_db` carries only
@@ -5178,7 +5177,7 @@ kind-matching via set-membership (NOT exact-equality).
 
 ### Change 6 — #[mucosal_tolerant] primitive added
 
-**Finding** (naturalist `fab2b234`): biology distinguishes THREE response
+**Finding** (biology-grounding observation, `fab2b234`): biology distinguishes THREE response
 states at mucosal sites — active defense, active tolerance (Tregs /
 oral tolerance), and undecided. ADR-027 ships primitives for state 1 only;
 states 2 and 3 are both treated as 'undefended'. Adopters with intentional
@@ -5241,7 +5240,7 @@ The full §Audit-hint vocabulary for the mucosal family becomes 11 hints:
 ### What this amendment does NOT do
 
 - Does NOT introduce a sibling axis for process-event boundaries (PrBoundary class). Deferred v0.3+.
-- Does NOT ship the three additional metaphor-predicted primitives from naturalist `dd2732e8` (M-cell, goblet, tolerance-breakdown). Deferred v0.3+.
+- Does NOT ship the three additional metaphor-predicted primitives from the biology-grounding survey (`dd2732e8`: M-cell, goblet, tolerance-breakdown). Deferred v0.3+.
 - Does NOT make `reviewed_by` required in v0.2; that lands v0.2.1+ with a migration hint.
 - Does NOT mechanically verify 'accepts' content matches actual runtime boundary behavior. Deferred v0.3+.
 
@@ -5253,7 +5252,7 @@ The full §Audit-hint vocabulary for the mucosal family becomes 11 hints:
 
 **Amends**: ADR-028 §Decision enforcement bullet: "`category = SubstrateAlignment` requires at least one substrate-witness predicate leaf".
 
-**Reason**: Observer audit of the supply-chain category backfill (campsite `adr028-predicate-leaf-clarification`) surfaced an ambiguity: does "substrate-witness predicate leaf" apply to the FINGERPRINT scan-side pattern, or to the WITNESS evaluator? The two are structurally different. Fingerprint patterns locate declaration sites; witnesses evaluate substrate state at audit time. Requiring the fingerprint itself to be a substrate-witness leaf would prohibit valid scan-side patterns like `doc_contains("ADR-025")` that correctly locate antigen declarations but do not themselves read substrate state. Team-lead confirmed Interpretation 2: the requirement applies to the witness layer.
+**Reason**: A review of the supply-chain category backfill (campsite `adr028-predicate-leaf-clarification`) surfaced an ambiguity: does "substrate-witness predicate leaf" apply to the FINGERPRINT scan-side pattern, or to the WITNESS evaluator? The two are structurally different. Fingerprint patterns locate declaration sites; witnesses evaluate substrate state at audit time. Requiring the fingerprint itself to be a substrate-witness leaf would prohibit valid scan-side patterns like `doc_contains("ADR-025")` that correctly locate antigen declarations but do not themselves read substrate state. Team-lead confirmed Interpretation 2: the requirement applies to the witness layer.
 
 **Change**: The enforcement bullet previously read (implicitly):
 
@@ -5263,7 +5262,7 @@ Clarified (inline annotation at §Decision, line 5780) to:
 
 > The "substrate-witness predicate leaf" requirement applies to the WITNESS layer — either an audit-pipeline evaluator that reads substrate state directly (e.g., `DepPinnedState`, `ContentHashState`), or a fingerprint using substrate-witness leaves from ADR-019's grammar. It does NOT require the fingerprint scan-side pattern itself to be a substrate-witness leaf. Fingerprint finds the declaration sites; witness evaluates substrate state.
 
-**Enforcement gap named** (per aristotle R3 on `adr028-predicate-leaf-clarification`): parse-time enforcement of the substrate-witness leaf requirement depends on the category-vs-predicate-type cross-check (ADR-028 §F1-R Hybrid miscategorization defense), tracked in campsite `v02-impl-category-witness-cross-check`. Until that cross-check ships, the requirement is advisory at parse-time and enforced only at audit-time. This is an honest disclosure per ADR-005 sub-clause F — the enforcement chain is traceable even where parse-time enforcement is not yet implemented.
+**Enforcement gap named** (per first-principles resolution R3 on `adr028-predicate-leaf-clarification`): parse-time enforcement of the substrate-witness leaf requirement depends on the category-vs-predicate-type cross-check (ADR-028 §F1-R Hybrid miscategorization defense), tracked in campsite `v02-impl-category-witness-cross-check`. Until that cross-check ships, the requirement is advisory at parse-time and enforced only at audit-time. This is an honest disclosure per ADR-005 sub-clause F — the enforcement chain is traceable even where parse-time enforcement is not yet implemented.
 
 **Resolves**: Ambiguity that would have required `doc_contains("ADR-025")` to be replaced with a substrate-witness leaf at scan time — an overconstrained requirement that conflates fingerprint location semantics with witness evaluation semantics.
 
@@ -5275,7 +5274,7 @@ Clarified (inline annotation at §Decision, line 5780) to:
 
 **Amends**: ADR-028 §Enforcement (G2 deliverable): "G2: category-vs-predicate-type cross-check."
 
-**Reason**: The G2 campsite spec originally implied a parse-time check — `AntigenArgs::validate()` reading the category field and enforcing witness-type consistency at macro-expand time. aristotle's F1 finding on `v02-impl-category-witness-cross-check` identified the structural blocker: a single `#[antigen]` macro cannot see the `#[immune]` declarations that address it. Those declarations are on different items, potentially in different files. The antigen-immunity join only exists once `cargo antigen scan` assembles the full `ScanReport`. A parse-time check cannot be implemented without an inversion of the macro execution model.
+**Reason**: The G2 campsite spec originally implied a parse-time check — `AntigenArgs::validate()` reading the category field and enforcing witness-type consistency at macro-expand time. A first-principles F1 finding on `v02-impl-category-witness-cross-check` identified the structural blocker: a single `#[antigen]` macro cannot see the `#[immune]` declarations that address it. Those declarations are on different items, potentially in different files. The antigen-immunity join only exists once `cargo antigen scan` assembles the full `ScanReport`. A parse-time check cannot be implemented without an inversion of the macro execution model.
 
 **Change**: G2 is an AUDIT-TIME cross-check in `audit_category()`, not a parse-time check in `AntigenArgs::validate()`. Implementation: `audit_category()` joins each explicit-category `AntigenDeclaration` against every `Immunity` where `immunity.antigen_type == decl.type_name`. Witness type is read structurally from the immunity: `requires_predicate.is_some()` identifies a substrate-witness; a non-empty `witness` field identifies a code-witness. The mismatch hint (`AntigenCategoryClaimInconsistentWithPredicateType`) is advisory at audit time and CI-gateable per Amendment 2. Zero immunities is not flagged (orthogonal coverage gap).
 
@@ -5311,7 +5310,7 @@ This is consistent with Amendment 2's principle: the witness-layer requirement i
 
 - **v0.2 (shipped)**: `antigen-category-defaulted-implicit-functional` (G1), `antigen-category-claim-inconsistent-with-predicate-type` (G2), `antigen-category-hybrid-incomplete-evidence` (G3).
 - **v0.2.x (deferred — named blocking reasons)**:
-  - `antigen-category-missing-explicit` — requires the v0.1/v0.2 migration-record discriminator (deferred in G1 aristotle F1 ruling).
+  - `antigen-category-missing-explicit` — requires the v0.1/v0.2 migration-record discriminator (deferred in the G1 first-principles F1 ruling).
   - `antigen-category-mismatch-witness-type` — advisory soft-smell layer atop claim-inconsistent; distinct softer signal; lands after claim-inconsistent proves in the field.
 
 *§Decision backward-compat paragraph* inline annotation — remove the phrase "v0.2+ NEW declarations: `category` REQUIRED at parse-time; absence is hard-error" and replace with "v0.2+ NEW declarations: absence emits `antigen-category-defaulted-implicit-functional` migration hint; parse-time hard error is v0.2.x once migration tooling exists."
@@ -5328,7 +5327,7 @@ This is consistent with Amendment 2's principle: the witness-layer requirement i
 
 **Reason**: The category-metadata surface (ADR-028) describes failure-class properties but omits a dimension the immune-system metaphor requires: whether a fail-class has been ENCOUNTERED in the wild yet. This distinction is already implicit in two ratified places — ADR-006-Am1/ADR-022 split stdlib growth into prospective (research-declared, no live instance required) and retrospective (adopter-extension, triggered by real encounter) — but it is purely policy-level, with no per-antigen typed field. The project's own preemptive-bias discipline (feedback memory `feedback_internal_tool_antigens_preemptive.md`) and the dogfood stdlib already contain vaccinated-state antigens (declared from shape-prediction, no live instance), making the implicit policy visible. Recognition-not-design (ADR-006): the encounter-status axis already exists as implicit policy + biology prediction; this amendment makes it EXPLICIT as typed metadata.
 
-Biology grounding (naturalist ruling, 2026-05-26): The vaccination cognate (`cargo antigen vaccinate` verb, glossary:43) already encodes the "weakened antigen for advance memory" concept. A fail-class declared from forward-compat reasoning IS the germline-naive / vaccinated state. Anergy (ADR-016) presupposes encounter and is RESPONSE-POSTURE on a separate axis, not a fourth encounter-state. Biology is silent on how to witness a vaccinated antigen (no live input), which predicts the hard sub-clause-F constraint that Vaccinated antigens may not claim Behavioral witnesses.
+Biology grounding (biology-grounding ruling, 2026-05-26): The vaccination cognate (`cargo antigen vaccinate` verb, glossary:43) already encodes the "weakened antigen for advance memory" concept. A fail-class declared from forward-compat reasoning IS the germline-naive / vaccinated state. Anergy (ADR-016) presupposes encounter and is RESPONSE-POSTURE on a separate axis, not a fourth encounter-state. Biology is silent on how to witness a vaccinated antigen (no live input), which predicts the hard sub-clause-F constraint that Vaccinated antigens may not claim Behavioral witnesses.
 
 **Change**:
 
@@ -5348,7 +5347,7 @@ Biology grounding (naturalist ruling, 2026-05-26): The vaccination cognate (`car
 
 *Anergy cross-link (explicit naming):* `anergic = encountered + unresponsive-without-co-stimulation (ADR-016 tolerance)`. Anergy is receptor-level unresponsiveness — non-volitional and reversible, not deliberate suppression (that is `#[immunosuppress]`). This is a (EncounterStatus::Encountered, response_posture::Anergic) coordinate in the product space, not a separate encounter state. The cross-link from encounter-status to ADR-016 is now named rather than implicit.
 
-**Resolves**: aristotle finding F6 (antigen-dx-dogfood expedition, 2026-05-26). The three-axis state-space — encounter-status × witness-tier × response-posture (posture gated on encounter) — was always implicit in the ratified surface; this amendment makes it explicit and sub-clause-F enforced. Naturalist biology-confirmed: silence on Behavioral-witness-for-vaccinated IS the constraint made structural; three-axis product-not-chain resolves the VecCardinalityMasqueradingAsSet error in aristotle's prior skeleton.
+**Resolves**: first-principles finding F6 (antigen-dx-dogfood expedition, 2026-05-26). The three-axis state-space — encounter-status × witness-tier × response-posture (posture gated on encounter) — was always implicit in the ratified surface; this amendment makes it explicit and sub-clause-F enforced. Biology-confirmed: silence on Behavioral-witness-for-vaccinated IS the constraint made structural; three-axis product-not-chain resolves the VecCardinalityMasqueradingAsSet error in the prior first-principles skeleton.
 
 ---
 
@@ -5356,7 +5355,7 @@ Biology grounding (naturalist ruling, 2026-05-26): The vaccination cognate (`car
 
 **Status**: Ratified 2026-05-26.
 
-**Amends**: ADR-028 §Decision (category metadata surface) + §Audit-hint vocabulary. Cross-references ADR-006 (recognition-not-design), ADR-010 (fingerprint matching), ADR-019 B1 (recognition-vs-evidence role distinction), and the antigen-dx-dogfood F10 fundamentality-test + the idiotype-network cognate (immune-system-primitive-map.md, naturalist). Sibling to Amendment 5 (encounter-status axis — relationship to the WILD). Separate ratification unit per aristotle's ruling: different subjects, bundling would be VecCardinalityMasqueradingAsSet at the amendment level.
+**Amends**: ADR-028 §Decision (category metadata surface) + §Audit-hint vocabulary. Cross-references ADR-006 (recognition-not-design), ADR-010 (fingerprint matching), ADR-019 B1 (recognition-vs-evidence role distinction), and the antigen-dx-dogfood F10 fundamentality-test + the idiotype-network cognate (immune-system-primitive-map.md, biology-grounding survey). Sibling to Amendment 5 (encounter-status axis — relationship to the WILD). Separate ratification unit per the first-principles ruling: different subjects, bundling would be VecCardinalityMasqueradingAsSet at the amendment level.
 
 **Reason**: The category-metadata surface (ADR-028) classifies a fail-class by WHAT it gets wrong (SubstrateAlignment vs FunctionalCorrectness) but omits a dimension the F10 fundamentality-test surfaced: a class's relationship TO ITS OWN DECLARATION. Some fail-classes are *about* the relation between a description and its referent (spec-vs-impl, fingerprint-vs-class-extension, declared-intent-vs-realized) — and for exactly those, the class's own declaration is itself a description-with-a-referent, so the declaration CAN exhibit the class. This "self-reach" is observable and was observed repeatedly during the dx-dogfood expedition (`RatifiedSpecDriftFromImpl` fired on its own docs; the `AntigenFingerprint` antigen's name committed its own error; the glossary entry would have committed the failure it documents). Recognition-not-design (ADR-006): the distinction already exists structurally and is observable; this amendment makes it EXPLICIT as typed metadata + a ratification-lane check.
 
@@ -5368,9 +5367,9 @@ Biology grounding (naturalist ruling, 2026-05-26): The vaccination cognate (`car
 - **Tier is recognition-lane-determined, author-recorded** (the structural difference from category + encounter-status, both purely author-set). Determination rule: `tier = Description` iff the SELF-REACH check passes — some artifact that declares the class (spec, name, fingerprint, glossary entry, the taxonomy row) can itself exhibit the class. Else `tier = Object`. Determined by the RECOGNITION LANE at ratification time; then recorded in the declaration by the author under that determination. Default (when omitted): `Object` — the conservative default, since self-reach is the positive diagnostic that must be affirmatively recognized.
 - **Orthogonal to category** (sub-clause: tier ⊥ category). Both directions of the orthogonality are substrate-verified, NOT theoretical:
   - **FunctionalCorrectness + Description-tier exists**: `silent-intent-nullification` (verified dogfood.rs) is FunctionalCorrectness yet self-reaches — its DSL can omit the capability it names.
-  - **SubstrateAlignment + Object-tier exists** — six counterexamples found in the stdlib by aristotle (stage-3 absorption) and independently confirmed by scientist (stage-4): `delegated-handler-kind-mismatch` (about `#[mucosal_delegate]` declarations, not antigen declarations), `scanner-boundary-false-negative` (about trust-boundary heuristics, not declarations), `unstable-hash-as-persisted-value` (about persisted-hash code, not declarations), `parallel-state-trackers-diverge` (about runtime trackers, not declarations), `agent-wake-without-substrate-delta-injection` (about agent-wake protocol, not declarations — subject involves context-vs-substrate gap but self-reach fails operationally because the declaration cannot "resume" and "fail to read a delta"), `delegate-cross-crate-resolution-gap` (about cross-crate resolution, not declarations). All SubstrateAlignment; none self-reach; all Object-tier.
+  - **SubstrateAlignment + Object-tier exists** — six counterexamples found in the stdlib by a first-principles pass (stage-3 absorption) and independently confirmed by a validation pass (stage-4): `delegated-handler-kind-mismatch` (about `#[mucosal_delegate]` declarations, not antigen declarations), `scanner-boundary-false-negative` (about trust-boundary heuristics, not declarations), `unstable-hash-as-persisted-value` (about persisted-hash code, not declarations), `parallel-state-trackers-diverge` (about runtime trackers, not declarations), `agent-wake-without-substrate-delta-injection` (about agent-wake protocol, not declarations — subject involves context-vs-substrate gap but self-reach fails operationally because the declaration cannot "resume" and "fail to read a delta"), `delegate-cross-crate-resolution-gap` (about cross-crate resolution, not declarations). All SubstrateAlignment; none self-reach; all Object-tier.
   - **The load-bearing discriminator**: a class is Description-tier iff *the class's SUBJECT is the description↔referent relation*. Every class has a name (a descriptive artifact), but only a subset are *about* description-referent relations. The discriminator is the SUBJECT, not the artifacts involved. SubstrateAlignment classes whose subject is a specific code/protocol shape (boundaries, hashes, trackers, wake-protocols) are Object-tier; SubstrateAlignment classes whose subject is declarations/specs/fingerprints/biology-claims drifting from their referents are Description-tier. Category answers "what does it get wrong" (representation-vs-state vs verb-correctness); tier answers "is the class itself about description↔referent." Independent axes, both directions substrate-populated.
-- **Self-reach is a NETWORK/TAXONOMY property, not single-declaration** (naturalist's idiotype-network biology, F10-(c)): the per-antigen tier marker (b) is the LOCAL SHADOW of the taxonomy-completeness-pressure (c). Biology basis: recognition-of-recognition exists at the NETWORK level (anti-idiotype antibodies bind *another* cell's receptor) but biology is SILENT on reflexive single-molecule self-binding — no antibody binds its own idiotope. That silence is instrument-not-argument: it LOCATES self-reach at the network/taxonomy tier rather than the single-declaration tier. A class reaches its own declaration only across the network (the taxonomy) that holds both class and declaration, never as a single declaration binding itself. So the per-antigen marker (b) is necessarily the local shadow of the network-level property (c). Part (c) is a standing pressure on stdlib growth (comprehensive-vision research-driven coverage), not a per-antigen field — named here as the biology grounding.
+- **Self-reach is a NETWORK/TAXONOMY property, not single-declaration** (the idiotype-network biology grounding, F10-(c)): the per-antigen tier marker (b) is the LOCAL SHADOW of the taxonomy-completeness-pressure (c). Biology basis: recognition-of-recognition exists at the NETWORK level (anti-idiotype antibodies bind *another* cell's receptor) but biology is SILENT on reflexive single-molecule self-binding — no antibody binds its own idiotope. That silence is instrument-not-argument: it LOCATES self-reach at the network/taxonomy tier rather than the single-declaration tier. A class reaches its own declaration only across the network (the taxonomy) that holds both class and declaration, never as a single declaration binding itself. So the per-antigen marker (b) is necessarily the local shadow of the network-level property (c). Part (c) is a standing pressure on stdlib growth (comprehensive-vision research-driven coverage), not a per-antigen field — named here as the biology grounding.
 
 *§Audit-hint vocabulary — add tier hints (ADVISORY in v0.2):*
 
@@ -5386,7 +5385,7 @@ Biology grounding (naturalist ruling, 2026-05-26): The vaccination cognate (`car
 
 The product space, not a chain. Each axis is independent; all four corners of the category × tier subspace are substrate-populated.
 
-**Resolves**: aristotle finding F10 part (b) (antigen-dx-dogfood, 2026-05-26). Part (a) (the fundamentality-test as a ratification heuristic) is a recognition-lane practice, not a typed surface — it is the DISCIPLINE that determines this field. Part (c) (taxonomy-completeness-pressure) is the network-level form, grounded in the idiotype-network cognate; named here as the biology grounding for why (b) is a local shadow. Sibling heuristic: `description-tier-grows-by-witness-split` (naturalist, dogfood/description-tier-grows-by-witness-split) — description-tier classes tend to grow as parent + witness-mechanism-split children rather than flat standalones; confirmed by scientist's stage-4 substrate survey (Fingerprint sibling pair is cleanest instance; Object-tier classes all flat).
+**Resolves**: first-principles finding F10 part (b) (antigen-dx-dogfood, 2026-05-26). Part (a) (the fundamentality-test as a ratification heuristic) is a recognition-lane practice, not a typed surface — it is the DISCIPLINE that determines this field. Part (c) (taxonomy-completeness-pressure) is the network-level form, grounded in the idiotype-network cognate; named here as the biology grounding for why (b) is a local shadow. Sibling heuristic: `description-tier-grows-by-witness-split` (biology-grounding survey, dogfood/description-tier-grows-by-witness-split) — description-tier classes tend to grow as parent + witness-mechanism-split children rather than flat standalones; confirmed by the validation pass's stage-4 substrate survey (Fingerprint sibling pair is cleanest instance; Object-tier classes all flat).
 
 ---
 
@@ -5396,15 +5395,15 @@ The product space, not a chain. Each axis is independent; all four corners of th
 
 **Amends**: ADR-028 §Decision. Adds (a) `§Witness-selection-guidance` subsection and (b) `§SubstrateAlignment witness-locus discriminator` subsection.
 
-**Related**: ADR-028 Amendment 2 (substrate-witness predicate leaf requirement at the witness layer); ADR-028 Amendment 3 (category-vs-predicate-type cross-check); ADR-006 (recognition-not-design); ADR-019 B1 (recognition-vs-evidence role distinction); ADR-004 (implicit-to-explicit); ADR-029 (observed-not-declared: silence-generator guidance and ADR-029 are the same structural principle viewed from opposite ends — ADR-029 applies it to immune-state *verdicts*, this amendment applies it to witness-*selection*; naturalist synthesis 2026-05-27); `findings/category-witness-crosscheck-vs-fingerprint-only-stdlib`.
+**Related**: ADR-028 Amendment 2 (substrate-witness predicate leaf requirement at the witness layer); ADR-028 Amendment 3 (category-vs-predicate-type cross-check); ADR-006 (recognition-not-design); ADR-019 B1 (recognition-vs-evidence role distinction); ADR-004 (implicit-to-explicit); ADR-029 (observed-not-declared: silence-generator guidance and ADR-029 are the same structural principle viewed from opposite ends — ADR-029 applies it to immune-state *verdicts*, this amendment applies it to witness-*selection*; biology-grounding synthesis 2026-05-27); `findings/category-witness-crosscheck-vs-fingerprint-only-stdlib`.
 
 **Two-part reason:**
 
-**Part A (silence-generator)**: ADR-028 made SubstrateAlignment vs FunctionalCorrectness a first-class category because the category predicts the witness *layer*. The antigen-dx-dogfood expedition surfaced a finer recurring structure *inside* SubstrateAlignment: these antigens differ by their **silence-generator** — the specific mechanism by which the failure fails to announce itself. Four generators recurred across the stdlib + dogfood antigens, each biologically distinct, and each implying a different witness shape. The silence-generator is therefore witness-selection guidance: name how the failure stays silent, and the witness that breaks the silence follows. This is recognition (ADR-006): the four generators were read off existing antigens, not invented. **Structural unity with ADR-029** (naturalist synthesis, 2026-05-27): ADR-029's observed-not-declared principle and this silence-generator guidance are the same structure seen from opposite ends — ADR-029 applies "do not declare a verdict the tool cannot observe" to immune-state (the *output* side); silence-generator guidance applies "name the mechanism that prevents observation" to witness-selection (the *input* side). They are the same discipline: where silence lives, what breaks it, and who gets to say so.
+**Part A (silence-generator)**: ADR-028 made SubstrateAlignment vs FunctionalCorrectness a first-class category because the category predicts the witness *layer*. The antigen-dx-dogfood expedition surfaced a finer recurring structure *inside* SubstrateAlignment: these antigens differ by their **silence-generator** — the specific mechanism by which the failure fails to announce itself. Four generators recurred across the stdlib + dogfood antigens, each biologically distinct, and each implying a different witness shape. The silence-generator is therefore witness-selection guidance: name how the failure stays silent, and the witness that breaks the silence follows. This is recognition (ADR-006): the four generators were read off existing antigens, not invented. **Structural unity with ADR-029** (biology-grounding synthesis, 2026-05-27): ADR-029's observed-not-declared principle and this silence-generator guidance are the same structure seen from opposite ends — ADR-029 applies "do not declare a verdict the tool cannot observe" to immune-state (the *output* side); silence-generator guidance applies "name the mechanism that prevents observation" to witness-selection (the *input* side). They are the same discipline: where silence lives, what breaks it, and who gets to say so.
 
 **Part B (witness-locus split)**: ADR-028 Amendment 2's "substrate-witness reads substrate state" correctly covers external-substrate-divergence (representation vs external sidecar/git/doc) but silently excludes in-repo-parity-divergence (two code artifacts in the same repo that must agree). `ParallelStateTrackersDiverge` is SubstrateAlignment by failure-KIND (representation-diverges-from-state), yet its correct witness is a bijection/parity code-test (not a substrate-predicate), because the "state" is an in-repo enum rather than external substrate. G2's cross-check faithfully implements Amendment 2 — the gap is the ADR's model, not G2's code. The fix: name the discriminator within SubstrateAlignment explicitly. Recognition-not-design (ADR-006): the distinction already exists in the substrate (the witness type itself carries the locus information); this amendment makes it explicit in the category model.
 
-**Aristotelian convergence** (aristotle, `findings/category-witness-crosscheck-vs-fingerprint-only-stdlib`): three deconstructions this expedition cycle converged on one structural signature — *a typed model collapses a distinction the substrate already carries*: (1) the `witness` word in ADR-029-V2 collapses runtime-witness vs audit-time-predicate; (2) `EvalNode::passed():bool` collapses Passed/Failed/Indeterminate (e58627d5 fix); (3) `category=SubstrateAlignment` collapses external-substrate-divergence vs in-repo-parity-divergence. This is `VecCardinalityMasqueradingAsSet` at the model-type layer — the recurring shape where the typed verdict/category/word is coarser than the substrate distinction it claims to represent.
+**First-principles convergence** (`findings/category-witness-crosscheck-vs-fingerprint-only-stdlib`): three deconstructions this expedition cycle converged on one structural signature — *a typed model collapses a distinction the substrate already carries*: (1) the `witness` word in ADR-029-V2 collapses runtime-witness vs audit-time-predicate; (2) `EvalNode::passed():bool` collapses Passed/Failed/Indeterminate (e58627d5 fix); (3) `category=SubstrateAlignment` collapses external-substrate-divergence vs in-repo-parity-divergence. This is `VecCardinalityMasqueradingAsSet` at the model-type layer — the recurring shape where the typed verdict/category/word is coarser than the substrate distinction it claims to represent.
 
 ### Change A: §Witness-selection-guidance subsection
 
@@ -5416,7 +5415,7 @@ SubstrateAlignment failures are, by definition, representations diverging from t
 
 **This is guidance, not a new declared field.** The silence-generator is the author's diagnostic question ("how does this failure stay silent?") whose answer points at a witness. No `#[antigen(silence = …)]` field is added — the guidance is operational. (Anti-YAGNI note: a stored field would need a consumer; the guidance has its consumer today — the antigen author choosing a witness.)
 
-Four generators have cleared the recurrence threshold (each observed in multiple stdlib + dogfood antigens; biology cognates verified by naturalist):
+Four generators have cleared the recurrence threshold (each observed in multiple stdlib + dogfood antigens; biology cognates verified against the immune-system grounding):
 
 **1. Silence-by-absence** — no enforcement mechanism exists; a comment substitutes for one. Nothing fires when representations drift because nothing was ever wired to fire.
 
@@ -5452,7 +5451,7 @@ Four generators have cleared the recurrence threshold (each observed in multiple
 | missing-diagnostic | wrong value loud downstream, untraced (localization=0) | signal fires but unlocalized | per-leaf expected/found emit |
 | wrong-weighting | detected but confidence gradient collapsed | autoimmunity (innate ≠ adaptive, collapsed) | confidence-discrimination test |
 
-The four generators cleared the recurrence threshold as of 2026-05-27. A fifth may surface; amend this section when it does. The 2x2 structure (detection-survives? × confidence-correct?) provides a falsifiable ceiling: a 5th generator would require a third boolean axis (scientist, 2026-05-27).
+The four generators cleared the recurrence threshold as of 2026-05-27. A fifth may surface; amend this section when it does. The 2x2 structure (detection-survives? × confidence-correct?) provides a falsifiable ceiling: a 5th generator would require a third boolean axis (validation pass, 2026-05-27).
 
 ### Change B: §SubstrateAlignment witness-locus discriminator
 
@@ -5473,7 +5472,7 @@ Both are SubstrateAlignment by failure-KIND (representation-diverges-from-state)
 
 **G2 cross-check behavior**: G2 (`antigen-category-mismatch-witness-type`) fires when a SubstrateAlignment antigen carries a code-witness. This correctly catches external-substrate-divergence defended by a code-test (wrong). It SHOULD NOT fire for in-repo-parity-divergence defended by a bijection/parity code-test (correct, per this amendment). G2 should accept a code-witness as satisfying SubstrateAlignment WHEN the divergence is in-repo-parity.
 
-**Near-term implementation** (v0.2.x): G2's cross-check accepts a code-witness for SubstrateAlignment antigens that carry an explicit in-repo-parity rationale (via `requires =` absent AND a declared `#[defended_by]` with a parity-test naming convention, or a new `witness_locus = in_repo_parity` advisory hint). Until mechanized: `ParallelStateTrackersDiverge` and `BiologyGroundingClaimDrift` carry known-advisory-flag comments documenting this as the correct in-repo-parity witness pattern (per navigator sequencing decision, `findings/category-witness-crosscheck-vs-fingerprint-only-stdlib`).
+**Near-term implementation** (v0.2.x): G2's cross-check accepts a code-witness for SubstrateAlignment antigens that carry an explicit in-repo-parity rationale (via `requires =` absent AND a declared `#[defended_by]` with a parity-test naming convention, or a new `witness_locus = in_repo_parity` advisory hint). Until mechanized: `ParallelStateTrackersDiverge` and `BiologyGroundingClaimDrift` carry known-advisory-flag comments documenting this as the correct in-repo-parity witness pattern (per the sequencing decision, `findings/category-witness-crosscheck-vs-fingerprint-only-stdlib`).
 
 **Recursive irony**: `ParallelStateTrackersDiverge` (#18) is itself a `ParallelStateTrackersDiverge` instance across the category/witness split — `category=SubstrateAlignment` (the two-tracker claim in the declared model) diverges from `witness=code-bijection-test` (the evidence the implementation actually uses to defend it). The antigen about the failure-class is the poster-child for the gap in the rule that classifies it.
 
@@ -5871,7 +5870,7 @@ Using only the first is insufficient — `--force` satisfies it while violating 
 
 ### Biology grounding
 
-**ABO/Rh** (naturalist): `allowed_types` is categorical set membership. Scope limitations:
+**ABO/Rh** (biology grounding): `allowed_types` is categorical set membership. Scope limitations:
 no within-allow-list trust gradient; no emergency-override; no multi-recipient consensus.
 
 **Structural vs nominal recognition**: `GitTrust`/`CryptoSigned` in `allowed_types` adds
@@ -5923,7 +5922,7 @@ artifact-class** with its own state machine, dedicated stewards, provenance, and
 tracking. Without lifecycle structure, discipline degrades to convention — the exact failure
 mode antigen exists to solve.
 
-**Reframe composition** (aristotle F27): R1 (content-blindness) + R2 (richer metadata)
+**Reframe composition** (first-principles finding F27): R1 (content-blindness) + R2 (richer metadata)
 compose cleanly. Richer metadata + no content access = stronger schema-enforceable
 discipline than content access + weaker metadata would produce.
 
@@ -5947,7 +5946,7 @@ migrate` verb: DROPPED (additive-only makes migration unnecessary; old `OracleRe
 status }` sidecars parsed via two-pass deserialization with `oracle-ref-needs-migration`
 hint).
 
-**D3 — Oracle as artifact-class** (Model B; aristotle F27; adversarial ATK-021-11 through -18):
+**D3 — Oracle as artifact-class** (Model B; first-principles finding F27; adversarial tests ATK-021-11 through -18):
 
 Oracle struct: `id`, `reference: OracleRef`, `state: OracleState`, `stewards: Vec<Steward>`,
 `created: Provenance`, `version: OracleVersion`, `transitions: Vec<StateTransition>`,
@@ -6267,7 +6266,7 @@ Drill #74 substrate identified three primitive families covering the temporal ar
 
 ### Decision
 
-**Antigen ships three sibling primitive families as a single ratification per temporal-arc cohesion. WitnessClass enum + non-deterministic seed requirement + family disambiguation table address adversarial findings. Biology grounding is dual-axis (immunology + clinical-medicine + cognitive) per naturalist's refinement.**
+**Antigen ships three sibling primitive families as a single ratification per temporal-arc cohesion. WitnessClass enum + non-deterministic seed requirement + family disambiguation table address adversarial-review findings. Biology grounding is dual-axis (immunology + clinical-medicine + cognitive) per the biology-grounding refinement.**
 
 **Convergent Evidence Family** ships v0.2 macros (6 members); `WitnessClass` enum for independence-checking; `SeedKind` enum for non-deterministic seed enforcement.
 
@@ -6275,7 +6274,7 @@ Drill #74 substrate identified three primitive families covering the temporal ar
 
 **Prescriptive Work-Orchestration Family** ships v0.2 macros (9 members) + camp integration.
 
-**WitnessClass enum** (per adversarial C1: `min_independent` = distinct CLASSES not distinct witnesses):
+**WitnessClass enum** (per adversarial finding C1: `min_independent` = distinct CLASSES not distinct witnesses):
 
 ```rust
 pub enum WitnessClass {
@@ -6284,7 +6283,7 @@ pub enum WitnessClass {
 }
 ```
 
-**SeedKind enum** (per adversarial C2: non-deterministic seed required for `#[clonal]`):
+**SeedKind enum** (per adversarial finding C2: non-deterministic seed required for `#[clonal]`):
 
 ```rust
 pub enum SeedKind {
@@ -6293,9 +6292,9 @@ pub enum SeedKind {
 }
 ```
 
-**IgG identity-collapse limitation** (per adversarial C3): `#[igg]` source-independence is NOMINAL (different signer identity strings) not STRUCTURAL. Same limitation as ADR-025 dep_attested B6-C.
+**IgG identity-collapse limitation** (per adversarial finding C3): `#[igg]` source-independence is NOMINAL (different signer identity strings) not STRUCTURAL. Same limitation as ADR-025 dep_attested B6-C.
 
-**Disambiguation table** (per adversarial C4; load-bearing — adopter-misuse defeats discipline):
+**Disambiguation table** (per adversarial finding C4; load-bearing — adopter-misuse defeats discipline):
 
 | If your situation is... | Use... | Not... |
 |---|---|---|
@@ -6307,14 +6306,14 @@ pub enum SeedKind {
 | "Low-level persistent signal NOT cross-substrate" | `#[chronic]` | `#[recurrence_anchor]` |
 | "Differential diagnosis: rule-out workflow" | `#[ddx]` | `#[panel]` |
 
-**Biology grounding — dual-axis honesty** (per naturalist refinement 1; `#[titer]` reassigned per Amendment 1):
+**Biology grounding — dual-axis honesty** (per biology-grounding refinement 1; `#[titer]` reassigned per Amendment 1):
 - **Immunology-proper** (7 primitives): `#[clonal]`, `#[igg]`, `#[crossreactive]`, `#[polyclonal]`, `#[monoclonal]`, `#[adcc]`, `#[chronic]`
 - **Clinical-medicine** (11 primitives): `#[diagnostic]`, `#[panel]`, `#[ddx]`, `#[rx]`, `#[triage]`, `#[refer]`, `#[biopsy]`, `#[culture]`, `#[titer]`, `#[quarantine]`, `#[recurrence_anchor]`
 - **Cognitive-organizational** (4 primitives): `#[itch]`, `#[saturate]`, `#[crystallize]`, `#[strand]`
 
-**MHC routing-error correction** (per naturalist refinement 2): no primitive in ADR-024 maps to MHC. The MHC cognate is `#[presents]` in ADR-001.
+**MHC routing-error correction** (per biology-grounding refinement 2): no primitive in ADR-024 maps to MHC. The MHC cognate is `#[presents]` in ADR-001.
 
-**Temporal-arc forward-pointer** (per naturalist refinement 3): other principles may ground different family-groupings (specificity-arc, location-arc, duration-arc, layer-of-immune-response-arc). This ADR ratifies the temporal-arc grouping; future ADRs extend the recursion.
+**Temporal-arc forward-pointer** (per biology-grounding refinement 3): other principles may ground different family-groupings (specificity-arc, location-arc, duration-arc, layer-of-immune-response-arc). This ADR ratifies the temporal-arc grouping; future ADRs extend the recursion.
 
 **Compose vs compete decision**: Convergent COMPOSES with proptest/kani/clippy; COMPETES on aggregation discipline. Recurrent COMPETES (no existing tool covers cross-substrate recurrence with antigen's structural vocabulary). Prescriptive COMPETES (Asana/Jira/Linear/Notion alternatives; antigen-cohesion serves antigen-adopters better).
 
@@ -6353,7 +6352,7 @@ pub enum SeedKind {
 ### What this ADR does NOT do
 
 - Does NOT mechanically verify source-independence of `#[igg]` signers (nominal-only; known limitation)
-- Does NOT claim biology proper grounds all 21 primitives uniformly (dual-axis honesty per naturalist)
+- Does NOT claim biology proper grounds all 21 primitives uniformly (dual-axis honesty per the biology grounding)
 - Does NOT claim temporal-arc is the only valid organizing principle
 
 ## ADR-024 Amendment 1 — `#[titer]` biology-grounding axis reassignment
@@ -6362,12 +6361,12 @@ pub enum SeedKind {
 
 **Amends**: ADR-024.
 
-**Reason**: Outsider dust-finding (`3a3fada0`) surfaced a count drift in the
+**Reason**: A naive-question pass (`3a3fada0`) surfaced a count drift in the
 §Biology grounding block: header declared "(7 primitives)" for
-immunology-proper but the list contained 8 entries. Naturalist (original
-author of refinement 1 dual-axis honesty) evaluated the axis assignment for
-the eighth entry, `#[titer]`, and judged it belongs in clinical-medicine,
-not immunology-proper.
+immunology-proper but the list contained 8 entries. The biology-grounding
+review (originator of refinement 1 dual-axis honesty) evaluated the axis
+assignment for the eighth entry, `#[titer]`, and judged it belongs in
+clinical-medicine, not immunology-proper.
 
 **Related**: ADR-003 (biology metaphor); ADR-024 §Biology grounding
 (parent dual-axis honesty refinement);
@@ -6496,7 +6495,7 @@ Parse line: `parse.rs:2967`.
 
 **Amends**: ADR-024 §Mechanics (Recurrent Emergence family — the `#[recurrence_anchor]`
 noticing-precondition). Resolves a question ADR-024 §Mechanics left silent, surfaced by an
-adversarial follow-on and deferred from v0.2.
+adversarial-review follow-on and deferred from v0.2.
 
 **Related**:
 - ADR-024 §Mechanics (Recurrent Emergence — `#[itch]` / `#[recurrence_anchor]` /
@@ -6566,10 +6565,10 @@ scan-resident itch) is unchanged. The precondition fires iff neither holds.
 
 ### Enforcement-tier / non-blocking status
 
-- **Non-blocking for 0.2.0 stable** (navigator + team-lead confirmed): the ATK-RECURRENT-7 phantom
+- **Non-blocking for 0.2.0 stable** (team-lead confirmed): the ATK-RECURRENT-7 phantom
   fix (`8dfd4d5`) is correct regardless; this is a v0.3 *enhancement* (tighten cross-class to
   class-specific), not a correctness regression in shipped stable.
-- Routes to pathmaker for the `audit.rs` change + the lineage-walk; the ruling + this amendment
+- The `audit.rs` change + the lineage-walk are the implementation work; the ruling + this amendment
   block are the design deliverable.
 
 ### What this amendment does NOT do
@@ -6649,7 +6648,7 @@ scan-resident itch) is unchanged. The precondition fires iff neither holds.
 | `dep_attested` signing | CLI-time | client | requires `--reviewable-artifact`; rubber-stamp limitation named |
 | `UnsandboxedBuildScript` + `UnsandboxedProcMacro` | audit-time (v0.4+) | client + CI | sandbox-detection limitations named |
 
-**Biology grounding** (per naturalist reframe — NON-NEGOTIABLE): **Distributed-Boundary Innate-Immunity family** — multi-cell-type integrated system, NOT basophil/eosinophil (wrong shape). Per-primitive cognates: `UnpinnedDependency` ↔ PRR specificity discipline; `ContentHashMismatch` ↔ antigenic identity verification; `MaintainerChangeWithoutReattestation` ↔ transplant immunology re-attestation; `SuddenDependencyExpansion` ↔ Trojan-horse + MHC-I internal antigen presentation; `UnsandboxedBuildScript/ProcMacro` ↔ macrophage phagosome containment.
+**Biology grounding** (per biology-grounding reframe — NON-NEGOTIABLE): **Distributed-Boundary Innate-Immunity family** — multi-cell-type integrated system, NOT basophil/eosinophil (wrong shape). Per-primitive cognates: `UnpinnedDependency` ↔ PRR specificity discipline; `ContentHashMismatch` ↔ antigenic identity verification; `MaintainerChangeWithoutReattestation` ↔ transplant immunology re-attestation; `SuddenDependencyExpansion` ↔ Trojan-horse + MHC-I internal antigen presentation; `UnsandboxedBuildScript/ProcMacro` ↔ macrophage phagosome containment.
 
 **Known limitations**: (1) rubber-stamp attestation; (2) solo-developer single-signer; (3) first-attestation gap for ContentHashMismatch; (4) sandbox-detection limitations (time-bomb attacks, environment-detection); (5) account-compromise without ownership change; (6) git-trust signing baseline; (7) maintainer-change detection timing; (8) dependency-confusion attacks (v0.3+ roadmap); (9) typosquatting partial (v0.3+ roadmap).
 
@@ -6683,13 +6682,13 @@ Modern git workflows include force-push, branch-deletion, rebase, squash-merge, 
 
 **The central cognate: ForcePushErasingHistory ↔ Immune Amnesia (measles)** (Mina et al. 2015, Science): measles virus infects memory lymphocytes; post-measles patients show increased susceptibility to other pathogens for 2-3 years. CATASTROPHIC LOSS of MEMORY-CARRYING substrates with DOCUMENTED HARM and STRUCTURAL DEFENSE patterns. Biology PREDICTS the failure mode and defense pattern.
 
-**Rollback-as-triage discipline** (per drill #74): rollback-as-treatment requires triage-commit-first discipline: commit triage decision THEN do rollback. **Dual-axis grounding** (per naturalist): this discipline is CLINICAL-MEDICINE grounded (informed consent + chart documentation). Immune biology has NO analog to "log rationale before acting." This honest dual-axis acknowledgement parallels ADR-024's grounding split.
+**Rollback-as-triage discipline** (per drill #74): rollback-as-treatment requires triage-commit-first discipline: commit triage decision THEN do rollback. **Dual-axis grounding** (biology grounding): this discipline is CLINICAL-MEDICINE grounded (informed consent + chart documentation). Immune biology has NO analog to "log rationale before acting." This honest dual-axis acknowledgement parallels ADR-024's grounding split.
 
-**Detection model** (per adversarial D1): `RollbackWithoutTriageCommit` cannot be detected by post-hoc history inspection (`git reset --hard` removes traces). MUST operate at COMMIT-TIME via hooks.
+**Detection model** (per adversarial finding D1): `RollbackWithoutTriageCommit` cannot be detected by post-hoc history inspection (`git reset --hard` removes traces). MUST operate at COMMIT-TIME via hooks.
 
 *(Amendment 3 — 2026-05-24: rollback detection uses AUTHOR-DECLARATION (Algorithm C), not diff-similarity (Algorithm B). The commit-time hook applies a three-step decision tree: (1) commit message contains git-revert metadata (`This-reverts-commit-X` or `Revert-Of:` trailer) AND no `Triage-Decision:` trailer → fire `RollbackWithoutTriageCommit` hint; (2) commit carries a `Triage-Decision: <value>` trailer → validate value is a `TriageDecision` enum variant; fire `vcs-rollback-triage-chain` witness check *(Amendment 4 — 2026-05-24: corrected from "commit declares `#[triage_commit]`" — codebase-presence semantics; trailer-on-commit is the correct commit-intent signal per ADR-026 §M3)*; (3) otherwise → audit defers; residual risk is that manual inverse cherry-picks without any declaration are undetectable at commit-time. This residual risk is NAMED and EXPLICIT per friction-only philosophy: making bad behavior deliberate rather than impossible. Adopters requiring diff-similarity detection must opt in via `cargo antigen vcs --diff-similarity-check` (v0.3+ experimental path). Campsite: `v02-impl-vcs-info-loss`.)*
 
-**Enforcement model** (per adversarial D3): client-side hooks are bypassable via plumbing commands. The ADR ships:
+**Enforcement model** (per adversarial finding D3): client-side hooks are bypassable via plumbing commands. The ADR ships:
 - **Friction-only mode** (default v0.2): client-side hooks + audit-time; makes bad behavior DELIBERATE rather than ACCIDENTAL; explicitly NOT preventive
 - **Structural mode** (server-side; v0.2.1+): pre-receive hooks; requires adopter to control git remote
 
@@ -6711,7 +6710,7 @@ Modern git workflows include force-push, branch-deletion, rebase, squash-merge, 
 #[triage_commit(
     triage_decision = TriageDecision::Red,
     rollback_target = "abc1234",
-    triaged_by = "navigator",
+    triaged_by = "maintainer",
     rationale = "vital metric regression confirmed via #84; rolling back to last-known-good",
     rollback_due_within_minutes = 30,
 )]
@@ -6770,15 +6769,15 @@ fn _triage_marker_do_not_remove() {}
 
 ### Finding
 
-**Boundary types in modern software** (v0.2 + v0.3+ scope marks): Imports/exports, APIs (HTTP/gRPC), MCPs, External links, iframes, Databases, Cross-service, Cross-computer executables, Untrusted 3rd party code (see ADR-025), PRs with external-boundary touch, User input — plus NEW per adversarial E1: **Filesystem/path construction** (path-traversal via user input), **Environment variables** (env-var injection), **Shell argument construction** (user-input → shell arg). WebSocket + CI/CD pipeline inputs deferred to v0.3+.
+**Boundary types in modern software** (v0.2 + v0.3+ scope marks): Imports/exports, APIs (HTTP/gRPC), MCPs, External links, iframes, Databases, Cross-service, Cross-computer executables, Untrusted 3rd party code (see ADR-025), PRs with external-boundary touch, User input — plus NEW per adversarial finding E1: **Filesystem/path construction** (path-traversal via user input), **Environment variables** (env-var injection), **Shell argument construction** (user-input → shell arg). WebSocket + CI/CD pipeline inputs deferred to v0.3+.
 
 **The critical insight**: sanitization presence ≠ correctness. Discipline fires at boundary regardless.
 
-**The split-defense problem** (per adversarial E2): `#[mucosal]` declared on the outermost function (the actual boundary), but sanitization performed by an inner callee. Without explicit delegation primitive, audit might falsely report the boundary as defended. Resolution: `#[mucosal_delegate]` primitive.
+**The split-defense problem** (per adversarial finding E2): `#[mucosal]` declared on the outermost function (the actual boundary), but sanitization performed by an inner callee. Without explicit delegation primitive, audit might falsely report the boundary as defended. Resolution: `#[mucosal_delegate]` primitive.
 
 ### Decision
 
-**Antigen ships a Mucosal Boundary Taxonomy (15 variants in v0.2; 2 more documented for v0.3+) + `cargo antigen mucosal-map` discovery tool + `#[mucosal]` and `#[mucosal_delegate]` macros + per-boundary stdlib antigens. Per-variant tissue-mapping IS NOT biology-grounded (per naturalist); biology grounds the tier-claim + 4 functional disciplines.**
+**Antigen ships a Mucosal Boundary Taxonomy (15 variants in v0.2; 2 more documented for v0.3+) + `cargo antigen mucosal-map` discovery tool + `#[mucosal]` and `#[mucosal_delegate]` macros + per-boundary stdlib antigens. Per-variant tissue-mapping IS NOT biology-grounded (per the biology grounding); biology grounds the tier-claim + 4 functional disciplines.**
 
 **`#[mucosal(kind = MucosalKind::..., rationale = "...")]`** — declarative marker for boundary defense.
 
@@ -6805,7 +6804,7 @@ fn _triage_marker_do_not_remove() {}
 | Boundary detection | scan-time | client | static analysis best-effort; missed boundaries = false-negatives |
 | MucosalKind set | parse-time (enum check) | — | adding kinds requires ADR amendment per ADR-001 Amendment 1 C6 |
 
-**Biology grounding** (per naturalist — NON-NEGOTIABLE): the 15-variant MucosalKind taxonomy is **software-engineering scope-selection**, NOT biology-grounded. Biology has ~5-7 anatomical mucosal sites organized by ANATOMICAL LOCATION; the software taxonomy is organized by DATA-FLOW TYPE. Per-variant tissue-mapping (GALT-to-DatabaseQuery, etc.) fails at every cell.
+**Biology grounding** (NON-NEGOTIABLE): the 15-variant MucosalKind taxonomy is **software-engineering scope-selection**, NOT biology-grounded. Biology has ~5-7 anatomical mucosal sites organized by ANATOMICAL LOCATION; the software taxonomy is organized by DATA-FLOW TYPE. Per-variant tissue-mapping (GALT-to-DatabaseQuery, etc.) fails at every cell.
 
 **What biology DOES ground (Class 1)**: (1) mucosal-tier-as-distinct discipline; (2) tolerogenic-by-default + selective-response; (3) prevention-at-boundary (secretory-IgA-style exclusion); (4) trafficking-integration insight (CCR9/CCR10 link GALT and respiratory immunity — opens v0.3+ research arc for cross-MucosalKind shared validation libraries).
 
@@ -6838,7 +6837,7 @@ fn _triage_marker_do_not_remove() {}
 
 **Related**: ADR-001 Amendment 1 (structural memory carriers); ADR-005 Amendment 2 (rationale as trust-extension); ADR-019 (substrate-witness vs code-witness already operationalizes this split); ADR-022 (Stdlib-vs-Extension); and all v0.2 family ADRs (ADR-023 through ADR-027 carry category metadata).
 
-**Implicit pattern elevated** (per ADR-004): substrate-alignment vs functional-correctness has been implicit in antigen's architecture from day one — `cargo antigen scan` does substrate-alignment work, `cargo antigen audit` does functional-correctness work, observer-role catches substrate-alignment failures, adversarial+scientist+pathmaker roles catch functional-correctness failures.
+**Implicit pattern elevated** (per ADR-004): substrate-alignment vs functional-correctness has been implicit in antigen's architecture from day one — `cargo antigen scan` does substrate-alignment work, `cargo antigen audit` does functional-correctness work, review of representation-vs-state catches substrate-alignment failures, adversarial and validation review catch functional-correctness failures.
 
 ### Finding
 
@@ -6900,7 +6899,7 @@ Hybrid: `CampsiteOpen` (sidecar must exist AND signatures must cryptographically
 | Hybrid incomplete-evidence | audit-time (partial coverage signal) | client + CI | v0.2 shipped (G3) *(Amd 4)* |
 | v0.1 backward-compat default | parse-time migration hint | client | v0.2 ships; v0.3+ deprecation removes default |
 
-**Biology grounding** (per naturalist — NON-NEGOTIABLE): the category distinction is **OPERATIONALLY substrate-grounded**, NOT biology-grounded. Biology provides an approximate documentation cognate (Class 2-3): pattern-recognition (PRRs, BCRs, TCRs) ↔ substrate-alignment; effector-function (cytokine release, cell killing) ↔ functional-correctness. The biology cognate is documentation-aid, not load-bearing prediction. The OPERATIONAL substrate is: observer-role catches substrate-alignment; adversarial+scientist+pathmaker catch functional-correctness; substrate-witnesses vs code-witnesses (ADR-019) already operationalize this split.
+**Biology grounding** (NON-NEGOTIABLE): the category distinction is **OPERATIONALLY substrate-grounded**, NOT biology-grounded. Biology provides an approximate documentation cognate (Class 2-3): pattern-recognition (PRRs, BCRs, TCRs) ↔ substrate-alignment; effector-function (cytokine release, cell killing) ↔ functional-correctness. The biology cognate is documentation-aid, not load-bearing prediction. The OPERATIONAL substrate is: review of representation-vs-state catches substrate-alignment; adversarial and validation review catch functional-correctness; substrate-witnesses vs code-witnesses (ADR-019) already operationalize this split.
 
 ### Consequences
 
@@ -6962,12 +6961,12 @@ Both channels also carry:
 audit` declares verdicts. Code never claims "I am immune to X" — the tool reports:
 "defended at tier T / not defended, gaps at sites A, B, C."
 
-**The shift is ~80% already shipped** (aristotle T7): `#[immune]` today only *declares*
+**The shift is ~80% already shipped** (first-principles finding T7): `#[immune]` today only *declares*
 a defense claim+evidence-pointer; `cargo antigen audit` already *issues* the verdict
 (`audit.rs:8`: "meaningful only if Y resolves"). This ADR's novel content is (a) the
 verdict-language change and (b) the witness→test-side migration for code-tier sites.
 
-**Aristotle Phase-1-8 outcome**: PASS WITH AMENDMENTS. Ship R5 not R4: two primitives,
+**First-principles Phase-1-8 outcome**: PASS WITH AMENDMENTS. Ship R5 not R4: two primitives,
 not three. `#[site_binding]` dropped; `requires=` folds into `#[presents]`. Migration is
 asymmetric: code-tier and substrate-tier sites migrate differently. Three voids seeded for
 v0.3+ (V1 conjunctive defense, V2 two-evaluation-mode, V3 vulnerability layer).
@@ -6993,7 +6992,7 @@ fn bijection_test_audit_hints_const_matches_enum() {
 `cargo antigen audit` scans for these markers and cross-references to the presents-sites
 they cover. The test declares *what it defends*; the audit determines *whether it defends it*.
 
-**Why `#[defended_by(X)]` is declared, not computed** (aristotle discriminator, 2026-05-27):
+**Why `#[defended_by(X)]` is declared, not computed** (first-principles discriminator, 2026-05-27):
 Detection is structural — the vulnerability's shape IS the vulnerability; a fingerprint recovers
 which failure-class a site presents because presentation is identity-with-structure. Defense is
 semantic — a test's *intent toward a failure-mode* is not carried by its structure; coverage
@@ -7037,15 +7036,15 @@ at the site — it lives on `#[presents]`. A test fn IS elsewhere — it annotat
 The `requires =` predicate replaces `requires =` inside `#[immune]`; the `proof =`
 expression replaces `witness = <phantom>` inside `#[immune]`. Both move from the
 (now-deprecated) immune-site to the presents-site — already the natural failure-locus,
-and already present at every target site (aristotle A7-verified against full workspace grep).
+and already present at every target site (per first-principles finding A7, verified against full workspace grep).
 
 **Note**: `PresentsArgs` currently accepts only the antigen path (`parse.rs:108`). Adding
 `requires =` and `proof =` are additive fields on an existing attribute — one parse path
 extended, not a new proc-macro invented. Recognition-over-design (ADR-006): the existing
 carrier already exists at every target site.
 
-**`#[site_binding]` dropped**: the three-primitive R4 design (scientist's original draft)
-invents a new attribute to carry what `#[presents]` can already hold. Aristotle Phase-1-8
+**`#[site_binding]` dropped**: the three-primitive R4 design (the original draft)
+invents a new attribute to carry what `#[presents]` can already hold. First-principles Phase-1-8
 ruling: adopt R5 (two primitives), not R4 (three). `#[site_binding]` is not ratified.
 
 **Full R5 model (unified)**:
@@ -7156,7 +7155,7 @@ fn add_dependency(...) { ... }
 fn add_dependency(...) { ... }
 ```
 
-Substrate-tier sites in scope (aristotle T2, L1 — all verified against workspace grep):
+Substrate-tier sites in scope (first-principles findings T2, L1 — all verified against workspace grep):
 `supply_chain_unpinned.rs:44`, `vcs_info_loss.rs:82/122/160`, `triage_commit.rs:96`,
 `substrate_witness.rs:118`, `delta_attestation.rs:87`, `agentic_coordination.rs:112`,
 `antigen_category.rs:161`.
@@ -7180,7 +7179,7 @@ fn make_droppable<T>() { ... }
 The audit reads the `proof=` expression, recognizes the phantom shape structurally (same
 `audit.rs:95-98` logic as today), classifies `WitnessTier::FormalProof`. Carrier-swap only.
 
-### The honest semantic gap (adversarial findings)
+### The honest semantic gap (adversarial review)
 
 The `#[defended_by]` marker + coverage-tier check + structural registry cross-reference
 closes the *lazy-abuse surface* (no witness = fails) and reduces the *honest-mistake
@@ -7216,7 +7215,7 @@ what behavioral invariant a witness exercises.
 **L2 — Phantom-witness registration (RESOLVED)**:
 Phantom-type witnesses (`phantom_witness.rs:76`: `witness = NonPanickingProof::<T>::verified`)
 are code-tier but NOT `#[test]` functions — `#[defended_by]` applies to test/proptest
-witnesses only. Resolution: `proof=` folds into `#[presents]` (aristotle F1). The
+witnesses only. Resolution: `proof=` folds into `#[presents]` (first-principles finding F1). The
 phantom-proof reference is defense-evidence of the same category as `requires=` — site-attached
 evidence with no test to annotate. The audit reads the `proof=` expression, recognizes the
 phantom shape structurally (unchanged — same `audit.rs:95-98` logic), classifies `FormalProof`.
@@ -7230,7 +7229,7 @@ site knows what tier of defense it requires; the witness just registers what it 
 Until implemented, `partial` is not emitted; the verdict vocabulary (`defended` /
 `undefended` / `substrate-gap`) is complete without it.
 
-### Voids seeded for v0.3+ (aristotle Phase 8)
+### Voids seeded for v0.3+ (Phase 8 — first principles)
 
 Not addressed by this ADR; seed campsites when scheduling v0.3 work.
 
@@ -7449,7 +7448,7 @@ This pattern is the reference implementation for all other instances.
 how long a suppression may last. The claim is: "this suppression expires within 30 days from
 `since`." Fix: add `duration_cap: Option<u64>` and `since: Option<String>` as typed fields to
 `DeferredDefense`, populate during scan push, add duration-check in evaluator comparing
-`(today - since_date).num_days()` to cap. Adversarial confirmed (`d72dacf`).
+`(today - since_date).num_days()` to cap. Adversarial review confirmed (`d72dacf`).
 Status: SHIPPED (commit `ac75c10`) — typed fields landed in `scan.rs`; emission path wired in
 `evaluate_deferred_defense_hint()`; `ImmunosuppressDurationCapExceeded` now has an active
 emission path; ATK documentation tests inverted to assert correct behavior.
@@ -7459,13 +7458,13 @@ emission path; ATK documentation tests inverted to assert correct behavior.
 **Any claim whose truth can drift after write-time AND HAS A CONSULTABLE EXTERIOR must be
 audit-observed.**
 
-Both conjuncts are required (aristotle OQ1 refinement, Phase-7 stability check): truth-drift
+Both conjuncts are required (first-principles OQ1 refinement, Phase-7 stability check): truth-drift
 is NECESSARY but NOT SUFFICIENT for observation-eligibility. A consultable exterior is the
 second conjunct. Without it, the principle demands observing the unobservable — some drift-prone
 claims correctly stay declared because no exterior exists (Tier-3, see below). The §Mechanics
 criteria already encode the fix; this principle reconciles with them.
 
-The principle distinguishes three tiers of drift-prone claims (aristotle OQ1 three-tier
+The principle distinguishes three tiers of drift-prone claims (first-principles OQ1 three-tier
 sharpening, substrate-verified against all 27 arg-structs):
 
 - **Tier-1 (directly-observable)**: structured claim WITH a machine-consultable exterior.
@@ -7506,8 +7505,8 @@ ADR-029 inverted one claim class (per-site immune verdict → observed by audit)
 covers the complementary emergent class: system-level and time-sensitive properties that
 only the audit can observe.
 
-**Locus-dispatch connection** (aristotle OQ1): the "exterior the audit consults" is the
-WITNESS-LOCUS (wall-clock / workspace-scan / sidecar / git-metadata — the same loci aristotle
+**Locus-dispatch connection** (first-principles OQ1): the "exterior the audit consults" is the
+WITNESS-LOCUS (wall-clock / workspace-scan / sidecar / git-metadata — the same loci
 found in the detectability collapse-test and applied in ADR-031 OQ4). ADR-030's
 observation-eligibility is the same structure as ADR-031's revocation-verification: both are
 observed-not-declared AT A LOCUS; both have a residual class with NO locus (ADR-031:
@@ -7568,7 +7567,7 @@ implementation alongside D.
 
 Properties that fail any criterion stay declared.
 
-**Placement criterion** (naturalist OQ2 finding, biology-grounded via PMID 12819486): The
+**Placement criterion** (biology-grounding OQ2 finding, via PMID 12819486): The
 audit should observe at the CHEAPEST point that catches the failure-class, not everywhere
 an exterior exists:
 
@@ -7590,7 +7589,7 @@ pattern matches `audit_deferred_defenses()` today: a finding is surfaced, not a 
 Adopters can gate on hint presence via `--strict` for the hints they care about (future
 extension).
 
-**Tier-2 vs Tier-1 asymmetry** (adversarial OQ3 gate finding, 2026-05-27): Tier-2
+**Tier-2 vs Tier-1 asymmetry** (adversarial-review OQ3 gate finding, 2026-05-27): Tier-2
 proxy-observation (e.g. `status_reviewed_at` staleness) is structurally weaker than Tier-1
 direct-observation (e.g. `orient.until` elapsed-date check). Tier-1 proves the CLAIM IS FALSE
 (the deadline elapsed; the count diverged). Tier-2 proves the FORM of re-examination was
@@ -7603,7 +7602,7 @@ gating on form, not substance.
 
 ### Gate outcomes (ceremony complete)
 
-**OQ1 — PASSED** (aristotle Phase-1-8, 2026-05-27): The observation-eligible /
+**OQ1 — PASSED** (first-principles Phase-1-8, 2026-05-27): The observation-eligible /
 declaration-stable axis HOLDS across all 27 arg-structs. No primitive breaks it. Three
 refinements supplied: (1) principle-conjunct fix (drift + consultable-exterior both required,
 not drift alone); (2) three-tier taxonomy (direct/proxy/stays-declared); (3) Tier-3 → Tier-2
@@ -7611,13 +7610,13 @@ promotion mechanism (add a `reviewed_at` sibling to promote any Tier-3 prose fie
 grounding confirmed: the exterior-locus IS the witness-locus of ADR-029/031 — the three ADRs
 share one locus-dispatch frame.
 
-**OQ2 — PASSED** (naturalist biology, 2026-05-27): Wall-clock / accumulation / workspace-count
+**OQ2 — PASSED** (biology grounding, 2026-05-27): Wall-clock / accumulation / workspace-count
 exterior families each have clean biology cognates (kinetics/FcRn-clock, tolerance-budget-as-fold,
 clonal-census) with constraints. Additional finding: the observation PLACEMENT criterion
 (cost-bounded per-site vs aggregate-census) is grounded by PMID 12819486 (central-once vs
 peripheral-continuous tolerance). All 5 instances correctly placed.
 
-**OQ3 — PASSED** (adversarial, 2026-05-27): Timestamp-washing attack acknowledged as the
+**OQ3 — PASSED** (adversarial review, 2026-05-27): Timestamp-washing attack acknowledged as the
 Tier-2 proxy's known semantic gap — the audit observes the declared date, not that review
 actually occurred. Posture: observation is better than silence; the semantic gap is documented
 openly per ADR-029 §honest semantic gap. Three additional angles probed: (1) tier-promotion
@@ -7640,11 +7639,11 @@ silently skips duration_cap check (separate gap, separately documented). Advisor
 
 - Instance D reference implementation: `bf60e5d` (orient-until-date fix)
 - Instance E shipped: `ac75c10` (ImmunosuppressDurationCapExceeded emission path + typed fields)
-- Instance E adversarial confirmation: `d72dacf` (ATK-IMMUNOSUPPRESS-DURATION-CAP-UNREACHABLE)
+- Instance E adversarial-review confirmation: `d72dacf` (ATK-IMMUNOSUPPRESS-DURATION-CAP-UNREACHABLE)
 - Biology grounding: PMID 36726033 (Pyzik, *Nat Rev Immunol* 2023 — FcRn-controlled
   half-life); PMID 12819486 (Wekerle, *Transplantation* 2003 — central vs peripheral tolerance
   as distinct mechanisms)
-- Adversarial probes (timestamp-washing + tier-promotion-racing + density-gaming): PASSED
+- Adversarial-review probes (timestamp-washing + tier-promotion-racing + density-gaming): PASSED
 - Locus-dispatch synthesis: a shared frame across ADR-029/030/031
 
 ---
@@ -7665,13 +7664,13 @@ structural shape that made its ancestor present `X` has no way to declare that s
 stuck presenting `X` forever — not because the vulnerability is real, but because the
 declaration machinery has no delete operation.
 
-Scout's empirical finding (`f02f40bf`) and aristotle's Phase-8 ruling converge on the same
+An empirical finding (`f02f40bf`) and the first-principles Phase-8 ruling converge on the same
 gap. The biology cognate: **negative selection** in the thymus deletes self-reactive T-cell
 clones before they can mount an autoimmune attack. Without it, inherited recognition propagates
 to clones that the gate should have pruned — the autoimmune-shadow-discovery-engine shadow #6
 prediction, confirmed empirically.
 
-**The 2×2 structure** (aristotle + outsider gate finding, 2026-05-27): the revocation primitive
+**The 2×2 structure** (first-principles + naive-question gate finding, 2026-05-27): the revocation primitive
 closes BOTH off-diagonals of a signal-1 × signal-2 matrix. Without the primitive, only one of
 the two fail-classes is observable:
 
@@ -7685,9 +7684,9 @@ Both require the audit to observe signal-1 (structural fingerprint check) and si
 
 ### Evidence
 
-Aristotle triangulated the placement (item-level vs edge-level) three ways:
+First principles triangulated the placement (item-level vs edge-level) three ways:
 
-**(1) Biology (naturalist gate — passed, primary-source grounded).** Negative selection deletes
+**(1) Biology (biology-grounding gate — passed, primary-source grounded).** Negative selection deletes
 the self-reactive **clone** (item), not its lineage edge. A thymocyte is deleted because of
 WHAT IT PRESENTS (self-reactivity), not because of WHO ITS PARENT WAS. Verified via PMID
 12766760 (Palmer E, *Nat Rev Immunol* 2003): the deletion decision is clone-intrinsic, made on
@@ -7698,7 +7697,7 @@ which is honest evidence the item-level placement is structurally correct.
 **(2) Subject-check.** The subject of a revocation is "this item's presentation-set" — does
 this item present X? Edge-level revocation (`reverted_for=[X]` on `#[descended_from(Parent)]`)
 makes the subject the edge. Item-level makes it the item's presentation-set. The item is the
-right subject. Confirmed by aristotle's Phase 1-8 (presentation-state MODIFIER, not a new
+right subject. Confirmed on first principles, Phase 1-8 (presentation-state MODIFIER, not a new
 identity axis — see §Three surfaces below).
 
 **(3) Diamond-union incompleteness — the load-bearing argument (Phase-7 structural guarantee).**
@@ -7762,7 +7761,7 @@ revocations:
 - Disagreement is `RevocationContradictedByStructure` (advisory initially, escalatable via
   `--strict`).
 
-**Witness-locus-relative verification** (aristotle OQ4 sharpening): how you observe a
+**Witness-locus-relative verification** (first-principles OQ4 sharpening): how you observe a
 revocation is determined by WHERE the antigen's witness reads from — the witness-locus. This
 makes `RevocationContradictedByStructure` a FAMILY, one member per locus, not a fingerprint-only
 check:
@@ -7780,7 +7779,7 @@ residual should be structurally rare.
 
 **`rationale=` escape-hatch**: `#[no_longer_presents(X, rationale = "...")]` silences the check
 when the author can explain why the observed evidence is a false positive. The canonical case
-(naturalist OQ2 enrichment) is **molecular mimicry** — a DIFFERENT antigen's look-alike
+(biology-grounding OQ2 enrichment) is **molecular mimicry** — a DIFFERENT antigen's look-alike
 fingerprint coincidentally matches the item, producing a false positive that is NOT the
 re-introduction of X. The escape-hatch is motivated by a real biology-grounded phenomenon, not
 just defensive convenience.
@@ -7792,7 +7791,7 @@ Auto-revoking on non-match alone would make the audit SILENTLY ASSUME (a) — ma
 safety by choosing the reassuring interpretation of an ambiguous signal. This is
 SILENCE-BY-MASKING (silence-taxonomy generator 2, applied to revocation).
 
-**The declaration is costimulation** (aristotle + outsider gate finding, 2026-05-27; confirmed
+**The declaration is costimulation** (first-principles + naive-question gate finding, 2026-05-27; confirmed
 ADR-028 §all_of = costimulation principle, decisions.md:5383): structural non-match =
 signal-1; the author's affirmation = signal-2. Acting on signal-1 alone (auto-revoke) is
 inappropriate-activation-without-costimulation — the exact pathology that B-cell activation
@@ -7868,7 +7867,7 @@ evidence still matches. No additional expiry mechanism is needed — the revocat
 re-validated on every scan, not trusted once from declaration time.
 
 This is the "continuous tolerance" cognate from biology (central + peripheral tolerance, not
-one-time thymic pruning — naturalist grounded via PMID 10227976 Laufer et al., *J Immunol*
+one-time thymic pruning — biology-grounded via PMID 10227976 Laufer et al., *J Immunol*
 1999: self-reactive T-cells escape thymic selection and are pathogenic in vivo; one-time
 pruning is insufficient). The audit IS the continuous re-evaluation.
 
@@ -7902,9 +7901,9 @@ fourth column:
 | Suppressed | `#[anergy(X)]` | X is suppressed for a defined period |
 | Revoked | `#[no_longer_presents(X)]` | X is canceled, structural non-match expected |
 
-### Three surfaces — closed at three (aristotle Phase 1-8)
+### Three surfaces — closed at three (Phase 1-8 — first principles)
 
-Aristotle's ruling closes the identity-surface question: `#[no_longer_presents(X)]` is a
+The first-principles ruling closes the identity-surface question: `#[no_longer_presents(X)]` is a
 PRESENTATION-SITE STATE MODIFIER, NOT a new `#[antigen]` identity axis. It operates on the
 presents-site surface as negation/retraction, parallel to `#[anergy]` (Suppressed state). The
 three surfaces now mapped:
@@ -7932,7 +7931,7 @@ matching structure exists cannot fire `RevocationContradictedByStructure` (no st
 match at declaration time). If the structure later appears but stays JUST BELOW the
 fingerprint threshold (imprecise-fingerprint attack), the preventive revocation silences a
 real vulnerability during that window. This is the existing imprecise-fingerprint surface
-(already in adversarial's scope), widened by the preventive window, NOT a new attack class.
+(already in the adversarial-review scope), widened by the preventive window, NOT a new attack class.
 Guard: continuous re-scan armed on structure-appearance; fingerprint precision is the root
 mitigation.
 
@@ -7962,7 +7961,7 @@ locus-dispatch frame requires.
 ### What this ADR does NOT do
 
 - Does NOT alter the existing `#[descended_from]` propagation model (set-union is preserved).
-- Does NOT add `reverted_for=` to `#[descended_from]` edges (aristotle's ruling: edge-level is
+- Does NOT add `reverted_for=` to `#[descended_from]` edges (per the first-principles ruling: edge-level is
   incomplete under diamond-union semantics).
 - Does NOT make `RevocationContradictedByStructure` a build-breaking finding by default.
 - Does NOT inherit revocations to the item's own descendants (each descendant declares for
@@ -7970,28 +7969,28 @@ locus-dispatch frame requires.
 
 ### Gate outcomes (ceremony record)
 
-**Aristotle (Phase 1-8) — PASS.** Diamond-union structural-guarantee confirmed (Phase-7
+**First principles (Phase 1-8) — PASS.** Diamond-union structural-guarantee confirmed (Phase-7
 stable); item-level placement = presentation-state-modifier (not identity axis);
 identity-surface-closed-at-three holds. OQ3: `RevocationOfUnpresentedClass` advisory +
 explicit `preventive` flag (AIRE-grounded, continuous-rescan-armed). OQ4: revocation
 verification is witness-locus-relative; `RevocationContradictedByStructure` is a locus-relative
 family; `RevocationCannotBeVerified` is the near-empty residual.
 
-**Naturalist (biology) — PASS.** OQ1: item-level confirmed via PMID 12766760; falsifier hunt
+**Biology grounding — PASS.** OQ1: item-level confirmed via PMID 12766760; falsifier hunt
 empty. OQ2: continuous-tolerance maps via PMID 10227976; staleness-observation is biologically
 required. `RevocationContradictedByStructure` has a clean cognate (escaped self-reactive
 clone). Molecular-mimicry false-positive named as canonical `rationale=` case.
 
-**Adversarial (OQ5) — PASS WITH ONE ADDITION (incorporated).** Diamond-revocation escape: real
+**Adversarial review (OQ5) — PASS WITH ONE ADDITION (incorporated).** Diamond-revocation escape: real
 but intentional — non-inheritance is load-bearing; diamond-sibling surface documented in
 §Known open gaps. `rationale=` gaming: same shape as existing escapes; not a new surface.
 
-**Scientist (consistency review) — PASS.** All four gate findings incorporated. ADR-029 table
+**Consistency review — PASS.** All four gate findings incorporated. ADR-029 table
 updated to reflect locus-relative framing. `RevocationContradictedByStructure` correctly
 presented as a family. §Known open gaps names both remaining surfaces cleanly. No internal
 consistency failures.
 
-**Post-ceremony amendments** (incorporated by scientist, re-reviewed PASS): (1) Mirror
+**Post-ceremony amendments** (incorporated during consistency review, re-reviewed PASS): (1) Mirror
 fail-class `InheritedPresentationStructurallyCeasedWithoutAffirmation` + costimulation
 rationale for why affirmation is declared. (2) `UnaffirmedCessation` verdict name + two-stage
 detection architecture + (b)-vs-(c) known-limitation clause + `UnaffirmedStructuralCessation`
@@ -8073,7 +8072,7 @@ fn critical_operation() { ... }
 `all_of(X, Y)` makes the conjunction members explicit and scope unambiguous, consistent
 with existing compositor vocabulary in the DSL.
 
-**Audit semantics: new `AuditVerdict` variant `ConjunctionIncomplete`** (aristotle Q2: NEW
+**Audit semantics: new `AuditVerdict` variant `ConjunctionIncomplete`** (first-principles Q2: NEW
 VARIANT, not a `SubstrateGap` specialization).
 
 ```
@@ -8087,7 +8086,7 @@ Subject-check: `SubstrateGap`'s subject is "witness present, predicate FAILED at
 substrate." `ConjunctionIncomplete`'s subject is "some witnesses entirely ABSENT — the
 structural requirement isn't met." Different subjects, different resolution paths.
 
-`ConjunctionIncomplete` FAILS under `--strict` (aristotle Q4): it IS an unmet defense
+`ConjunctionIncomplete` FAILS under `--strict` (first-principles Q4): it IS an unmet defense
 requirement. Strict-failing set extends to: `{Undefended, ConjunctionIncomplete,
 SubstrateGap}`. A declared conjunction that is not fully satisfied is a defense shortfall.
 
@@ -8095,7 +8094,7 @@ SubstrateGap}`. A declared conjunction that is not fully satisfied is a defense 
 `all_of` has a passing witness at the class level. The conjunction is a SINGLE defense intent
 requiring ALL named witnesses.
 
-**Tier interaction: two orthogonal axes, not a higher tier** (aristotle Q1).
+**Tier interaction: two orthogonal axes, not a higher tier** (first-principles Q1).
 
 The full state is `(tier, plurality)` — two orthogonal axes. `tier = max(members)` is
 correct as a backward-compatible PROJECTION onto the tier axis, but not the full state.
@@ -8126,7 +8125,7 @@ axis.
 because conjunction is a defense STRUCTURE, not a witness KIND — the tier taxonomy is about
 witness kinds.
 
-**`WitnessState` as an extensible struct** (aristotle Phase-8 void): a third witness-layer
+**`WitnessState` as an extensible struct** (Phase-8 void — first principles): a third witness-layer
 axis is structurally possible in future versions (COVERAGE per-test/per-span; FRESHNESS
 staleness obligation per ADR-030; RECENCY-OF-LAST-RUN). `WitnessState` is an open struct
 with named fields (not a tuple), so future axes grow additively without breaking the v0.3
@@ -8148,7 +8147,7 @@ activated cells are NOT "strongly anergic." The cellular machinery is distinct (
 its own transcription factors, e.g. NFAT-without-AP-1; activation has the full
 NFAT/AP-1/NFkB program).
 
-**Why max-of-members-flat fails biologically** (naturalist on the record): max-of-members
+**Why max-of-members-flat fails biologically** (biology grounding): max-of-members
 would assert "activated-via-conjunction = max(activation_from_signal_1,
 activation_from_signal_2) = signal_1's activation (since signal-2 alone barely activates)."
 That is biology-wrong: signal-1 ALONE produces anergy, not "weak activation"; the
@@ -8165,7 +8164,7 @@ system produces a categorically different output. Quality-of-evidence (tier) and
 number-of-independent-evidence-kinds-required (plurality) are orthogonal in immunology by
 30+ years of mechanism.
 
-**Connection to prior rulings** (naturalist): this confirms the same orthogonal-axis shape
+**Connection to prior rulings** (biology grounding): this confirms the same orthogonal-axis shape
 as the silence-axis afferent/efferent split (ADR-028 Amendment 7) and the count-split
 measurement-vs-parameter (ADR-030). Each time biology was asked, it produced an orthogonal
 axis where the structural reasoning under-specified the joint — instrument-grade pattern
@@ -8178,7 +8177,7 @@ syntax, not a replacement. The proc-macro parser accepts the compositor form; ex
 single-witness and multi-annotation forms unchanged.
 
 **ADR-018 (diamond inheritance + class-level defense)**: Conjunction requirements propagate
-via class-level defense match — no new mechanism needed (aristotle Q5). A parent's
+via class-level defense match — no new mechanism needed (first-principles Q5). A parent's
 `#[defended_by(all_of(A, B))]` declares that A and B defend class X at the CLASS level.
 Descendants inheriting the presentation of X (via `#[descended_from]`) receive the
 conjunction check at the class level: the inherited site shows `ConjunctionIncomplete` iff
@@ -8200,7 +8199,7 @@ backward-compat callers.
 ### Implementation notes
 
 These are non-optional constraints on the v0.3 implementation. They live here (not only in
-§Adversarial) so implementers find them without reading the ceremony record.
+the adversarial-review section) so implementers find them without reading the ceremony record.
 
 **Parse-time rejection of nested `all_of` (NON-OPTIONAL)**: The v0.3 proc-macro parser MUST
 reject nested `all_of` in `#[defended_by]` at compile time with a clear error. Accepting
@@ -8258,25 +8257,25 @@ failure class.
 
 ### Gate outcomes (ceremony complete)
 
-**Aristotle Phase-1-8 — PASSED** (2026-05-27). Five questions resolved: Q1 (tier) new
+**First-principles Phase-1-8 — PASSED** (2026-05-27). Five questions resolved: Q1 (tier) new
 orthogonal plurality axis + `WitnessState { tier, plurality }`; Q2 (verdict)
 `ConjunctionIncomplete` = new `AuditVerdict` variant; Q3 (nesting) deferred as
 forward-compatible additive extension; Q4 (--strict) `ConjunctionIncomplete` fails under
 `--strict`; Q5 (inheritance) class-level composition, no new mechanism. Phase-8 void:
 `WitnessState` as extensible struct.
 
-**Naturalist (biology) — PASSED** (2026-05-27). Costimulation categorical-state confirmed,
+**Biology grounding — PASSED** (2026-05-27). Costimulation categorical-state confirmed,
 primary-source grounded (PMID 12670403). (tier, plurality) orthogonal axes confirmed by
 30+ years of two-signal mechanism. Max-of-members-flat biologically disproven.
 
-**Adversarial — PASSED** (2026-05-27) with three named gaps incorporated: (a) bypass
+**Adversarial review — PASSED** (2026-05-27) with three named gaps incorporated: (a) bypass
 vector via parallel plain defense → `ConjunctionIntentDiluted` advisory named as v0.4+
 research item; (b) nested `all_of` parse-time error constraint (NON-OPTIONAL implementation
 note); (c) class-level vs site-level documentation gap (adoption guidance).
 
-**Scientist (consistency) — PASSED** (2026-05-28). Plurality::ConjunctionPartial rename
-adopted, §Implementation notes and §Adoption guidance sections promoted from §Adversarial.
-Outsider naive-pass addressed.
+**Consistency review — PASSED** (2026-05-28). Plurality::ConjunctionPartial rename
+adopted, §Implementation notes and §Adoption guidance sections promoted from the adversarial-review section.
+The naive-question pass addressed.
 
 ### What this ADR does NOT do
 
@@ -8346,7 +8345,7 @@ A failure-class can also have **telemetry**: a measured value read from a source
 ignorance detection… the audit/verdict layer is ADR scope; this field is the floor it stands
 on." That value-floor has no home in the categorical grammar — and the prior attempt to give
 it one (a `titer` macro whose satisfaction was `measure(M) >= threshold`) was correctly
-rejected by math-researcher: the threshold that turns a value into a verdict is a
+rejected by the research review: the threshold that turns a value into a verdict is a
 *method-relative clinical judgment* (Bolotin 2020 measles 120 mIU/mL; McIntosh 2015 SBA
 titre ≥4/8 complement-source-relative), not a substrate fact. **The objection was true of
 the verdict we were bolting on, not of the value underneath.**
@@ -8366,9 +8365,9 @@ escape-hatch.**
 A **categorical** witness attests a *verdict*; a **titer** witness attests a *value*. Both
 are substrate-reads. This makes "witness" honest about what it attests. **Antigen attests the
 value; the threshold-as-judgment lives downstream, outside antigen.** Antigen stays out of the
-clinical-judgment business — exactly the boundary math-researcher's rigor drew. (The fork
-between defer-to-v0.4 and ship-in-v0.3 is *dissolved*, not adjudicated: math-researcher was
-right about the verdict, a maintainer was right about the value; report-not-verdict keeps both.)
+clinical-judgment business — exactly the boundary the research review drew. (The fork
+between defer-to-v0.4 and ship-in-v0.3 is *dissolved*, not adjudicated: the research review was
+right about the verdict, the maintainer was right about the value; report-not-verdict keeps both.)
 
 **Biology predicts the split (ADR-003 doing predictive work).** Serology has two distinct
 readings: sero*conversion* (binary — did antibodies develop? yes / no / *equivocal* — the third
@@ -8378,14 +8377,14 @@ The metaphor named the axis before we did — and the silence-test confirms it i
 not decoration: serology gives the titer value but says *nothing* about the protective threshold
 (which titer = "immune enough"), a method-relative clinical judgment downstream of the assay.
 Biology goes silent at exactly the seam where antigen does: antigen attests the value, the
-threshold-judgment lives downstream (naturalist's silence-test, ADR-003).
+threshold-judgment lives downstream (the biology-grounding silence-test, ADR-003).
 
 **Why `#[ignorance]`/scan-coverage is member-one (not arbitrary).** Every categorical witness
 antigen has ever shipped is a *per-site / depth* reading (this site: defended / undefended /
 unreached). A titer witness is a *breadth / space-coverage* reading — a measured value over a SET
 (coverage = the fraction of a space with a valid witness). Scan-coverage is therefore the FIRST
 breadth reading antigen carries, which makes it the canonical titer member, not an arbitrary pick.
-This split was independently predicted three weeks before the witness-taxonomy existed (scout,
+This split was independently predicted three weeks before the witness-taxonomy existed (an exploratory pass,
 2026-05-08: *instance-coverage* (depth, per-site) ‖ *taxonomy-coverage* (breadth, across-the-space)
 — "a good metric covers a SPACE, not just INSTANCES within it"). Two independent derivations
 landing on one joint — and SARIF's own vocabulary already carries it (per-site `result` rows =
@@ -8414,12 +8413,12 @@ the live report's two sections (ADR-034) fall out as the two witness kinds for f
 - **Guard (so it is not a dumping ground)**: freedom in the family's *domain*, bounded by the
   family *contract*. A `#[titer(source = …)]` MUST attach to a failure-class; it cannot become a
   free-floating `p99_latency` metrics sink (that is prometheus — compose-don't-compete, ADR-002).
-  **Well-typedness predicate** (math-researcher Sharpening 3 — for parse-time enforceability):
+  **Well-typedness predicate** (research review, Sharpening 3 — for parse-time enforceability):
   a titer-witness is well-typed IFF it is *bound to an antigen failure-class declaration* — the
   `source` reads a value *about that class's defended-state quantity*. The discriminator vs a
   prometheus metric is exact: is there a failure-class this magnitude is the titer *of*?
   `p99_latency` with no failure-class = ill-typed (reject at parse / audit-hint).
-  `coverage` of `#[ignorance]` = well-typed. Pathmaker specifies this as a parse-time binding
+  `coverage` of `#[ignorance]` = well-typed. We specify this as a parse-time binding
   check, parallel to how categorical witnesses bind via `#[presents(requires = …)]`.
 
 #### Titer witnesses are three-valued at the value layer (the gem at the measurement layer)
@@ -8427,7 +8426,7 @@ the live report's two sections (ADR-034) fall out as the two witness kinds for f
 A titer-witness's reading is **three-valued**: `measured-value` / `below-threshold-or-floor` /
 **`un-measurable`** (no source resolved, or the measurement instrument never reached a readable
 signal). **`un-measurable` is NOT `below-threshold`** — it is out-of-frame (well-posedness,
-ADR-029 Amendment 1). Naturalist's biology grounding makes this concrete: clinical serology
+ADR-029 Amendment 1). The biology grounding makes this concrete: clinical serology
 already treats *"below the assay's limit of detection"* as categorically distinct from
 *"measured-and-below-protective-threshold"* — a below-LoD sample is "not detectable," NOT "zero
 antibody" (the instrument couldn't see it). This is the measurement-layer instance of the
@@ -8435,7 +8434,7 @@ three-valued-logic invariant (the gem): the *could-not-evaluate* state is catego
 from the *evaluated-and-low* state, and collapsing them is the silent-wrong-verdict bug class.
 A titer-witness MUST keep `un-measurable` distinct from `below-threshold`.
 
-**`un-measurable` is the lift's unit, not a titer special case (math-researcher).** A value-read
+**`un-measurable` is the lift's unit, not a titer special case (research review).** A value-read
 `measure : Substrate ⇀ Scalar` is a partial function exactly as a categorical predicate is; its
 honest total form is the lift `Substrate → (Scalar + 1)`, and `un-measurable` is the *same* unit
 `⊥` that the categorical kind's `substrate-gap` / `out-of-frame` is — the one terminal inhabitant
@@ -8446,7 +8445,7 @@ verdict over `⊥` is a type error, not a measurement. The value layer obeys the
 way the verdict layer does. (When the universal three-valued principle ratifies, this is one of its
 instantiations — the value-read lift — not a titer-local rule.)
 
-**Non-monotonicity as a structural argument for report-not-verdict** (math-researcher Sharpening
+**Non-monotonicity as a structural argument for report-not-verdict** (research review, Sharpening
 2): a value-witness is non-monotone in *both* directions — a re-measurement can rise OR fall
 (unlike categorical attestation-leaves, which are monotone under substrate growth). Therefore
 there is no `fulfilled` latch to revert; the only stable thing to attest about a both-ways
@@ -8488,7 +8487,7 @@ maturation; "recognize when their generic resembles something we built" = **cros
 fingerprint-similarity query). **Home**: the already-seeded
 `adaptive-memory-bcell-persistent-recognition` campsite — not new scope.
 
-**The germinal center is the fleet of codebases (naturalist, ADR-003 break-test).** The variation
+**The germinal center is the fleet of codebases (biology grounding, ADR-003 break-test).** The variation
 pool that selection acts on is NOT intra-lineage somatic hypermutation — biology is correctly
 silent there (importing random-variation + Darwinian-death would be the wrong model for deliberate
 recognition-naming). The variation pool is *inter-codebase*: different adopters independently name
@@ -8531,10 +8530,10 @@ do by a frame* (satisfaction = a who-attests); a titer *attests a measured value
 failure-class* (no who, no deadline, no verdict). ADR-024 listed titer as prescriptive because the
 witness-kind axis did not exist yet — with only the verdict-witness kind available, "a measured
 quantity monitored over time" had nowhere to live but as a pseudo-work-need (the verdict-bolting
-math-researcher rejected). ADR-024 Amendment 1's own words ("clinicians ORDER titer tests to
+the research review rejected). ADR-024 Amendment 1's own words ("clinicians ORDER titer tests to
 monitor… antibody concentration over time") already describe a *measurement-witness workflow*, not
 a unit of code-site-local forward work. Consequence: **ADR-033 ships eight prescriptive work-need
-macros; `#[titer]` moves here.** math-researcher (whose categorical-algebra boundary drew the
+macros; `#[titer]` moves here.** The research review (whose categorical-algebra boundary drew the
 family line) ruled this explicitly: titer EXITS
 the prescriptive family, single-home in the witness taxonomy, **not** dual-home — a titer is not a
 work-need (no who-attests, no workflow, and the four-valued `WorkVerdict` does not even type over a
@@ -8666,7 +8665,7 @@ the defense verdict set:
   outside the well-posedness frame. The three-valued-logic gem applied to prescriptive —
   `out-of-frame` is the third value the v0.2 cardinality-collapse bugs teach us to keep distinct.
 
-**Verdict-lattice isomorphism (math-researcher):** the four-valued prescriptive verdict is NOT a new
+**Verdict-lattice isomorphism (research review):** the four-valued prescriptive verdict is NOT a new
 lattice — it is the defense tri-state (`defended` / `undefended` / `substrate-gap`) with the
 unsatisfied cell *temporally split* by the frame: `undefended` splits into `pending` (within frame)
 + `overdue` (past frame); `substrate-gap` maps to `out-of-frame`. **Implementation consequence:
@@ -8778,7 +8777,7 @@ strings (advisory parse, audit-time evaluated).
 (`#[titer]` arg-shape lives in ADR-019 Amendment 1, the titer-witness kind — `source` + the
 three-valued reading. It is NOT a prescriptive macro.)
 
-#### §Witness-binding (Q4 — `panel.needs ↔ filled_by` binding, scientist's catch RESOLVED)
+#### §Witness-binding (Q4 — `panel.needs ↔ filled_by` binding, validation-pass catch RESOLVED)
 
 `panel.needs` (the need descriptions) and `filled_by` / `reviewed_by` (who fulfills/reviews) bind by
 **collective coverage over the need-set, attested per role-step, NOT 1:1 parallel-array**:
@@ -8801,7 +8800,7 @@ three-valued reading. It is NOT a prescriptive macro.)
   `pending` (within frame) or `overdue` (past frame) for the *site*, never a parse error.
 
 **Workflow-order in S1 — `reviewed_by` requires ALL `filled_by` attested (conjunction, not
-disjunction)** (adversarial gap, camp question `ae2e3a2d`). "You cannot review what is not filled":
+disjunction)** (an adversarial-review gap, camp question `ae2e3a2d`). "You cannot review what is not filled":
 a `reviewed_by` attestation counts toward fulfillment only when **every** `filled_by` role-step is
 itself attested at the current fingerprint. For a multi-member `filled_by`, the discipline is ALL,
 not ANY — a reviewer attests the *completed battery*, not a partial one. So the site-level verdict
@@ -8820,7 +8819,7 @@ on the frame) — never `Fulfilled`. A chain with no closing steps at all (`fill
 distinguishes (a) truly-open-work-need with only an opener from (b) truly-empty-chain (no who-refs
 at all) — both are non-`Fulfilled`, but only (b) is `OutOfFrame`.
 
-#### §Verdict semantics per shape (Q-gap — S3/S4 `Fulfilled` reachability, adversarial `ae2e3a2d`)
+#### §Verdict semantics per shape (Q-gap — S3/S4 `Fulfilled` reachability, adversarial review `ae2e3a2d`)
 
 Not every shape reaches `Fulfilled` the same way; two need explicit verdict semantics so `Fulfilled`
 is neither structurally-unreachable nor a bypass:
@@ -8907,12 +8906,12 @@ prescriptive verdicts (the overdue gate).
   VCS-rollback classification (Black/Red/Yellow/Green/White) — a DISTINCT axis from `#[triage]`
   work-need priority ordering, and from `#[triage_commit]` (ADR-026). Disambiguate at definition:
   ADR-026 `TriageDecision` = VCS rollback classification; ADR-033 `#[triage]` = work-need priority
-  ordering. Names rhyme; surfaces are unrelated (adversarial cross-check PASSED, ATK-PRES-10).
+  ordering. Names rhyme; surfaces are unrelated (adversarial cross-check PASSED — ATK-PRES-10).
 - **Q9 (spec-adversarial pre-impl tests):** the `#[ignore]`'d corpus is shipped in
   `antigen/tests/atk_prescriptive_family_adr033.rs` (adversarial gate). Critical guard: ATK-PRES-8 —
   `WorkVerdict::OutOfFrame` (un-evaluable: who-ref unknown) must NOT collapse to
   `WorkVerdict::Overdue` (frame elapsed) — the prescriptive analog of ATK-3V-4. Tests flip from
-  `#[ignore]` to active when pathmaker ships the macros. (The Q9 corpus must drop the `titer` row
+  `#[ignore]` to active when the macros ship. (The Q9 corpus must drop the `titer` row
   per the titer-relocation to ADR-019 Amendment 1. On `triage`: the corpus's ATK-PRES-14 was
   CORRECT — `triage` triages code sites, not camp campsites — and the §Proc-Macro-Surface S3 table
   has been fixed (transcription correction) to match the corpus + the maintainer ruling. ATK-PRES-14's
@@ -8936,7 +8935,7 @@ prescriptive verdicts (the overdue gate).
 - The audit-is-the-board question (a required audit section, live-projected).
 - The different-things-from-camp question (the locality test).
 - The dual-family smell (panel/ddx are reading-directions over a shared object, not duplicates).
-- The `panel.needs ↔ filled_by` binding ambiguity (scientist's catch — collective coverage, not
+- The `panel.needs ↔ filled_by` binding ambiguity (a validation-pass catch — collective coverage, not
   positional pairing).
 - The titer misfiling (titer is a witness kind, not a work-need — relocated to ADR-019 Amendment 1).
 
@@ -8997,7 +8996,7 @@ is a *view*, never a copy.
   claims "this is the v0.3.0 posture" MUST carry what it was computed against, or it is
   unverifiable/unreproducible. The envelope = `{ antigen_version, git_sha, generated_at,
   schema_version }`, extending the stabilized scan-json (the `ScanReport` `#[serde(default)]` additive
-  pattern). **Note: this is NOT recognition — `ScanReport` has no envelope today; pathmaker builds it
+  pattern). **Note: this is NOT recognition — `ScanReport` has no envelope today; it is built
   fresh.** It is the only genuinely-new piece of the reporting model; everything else is assembly.
 - **Release SBOM = a reproducible *render* of a tagged state, not a stored truth.** Running
   `cargo antigen audit` at the `v0.3.0` tag *is* the v0.3.0 defense-posture SBOM, regenerable any time
@@ -9089,9 +9088,9 @@ The answer is that the third value is **forced, not found**, and the forcing is 
    step outside what it evaluates to certify the evaluation will succeed; that certification is another
    read.
 
-**The lemma was put to a falsification gate and confirmed.** Adversarial examined every
+**The lemma was put to a falsification gate and confirmed.** An adversarial review examined every
 substrate-relative boundary in antigen's audit pipeline for a *total* one (no `⊥` branch, partiality
-not paid upstream) and found NO counterexample. Math-researcher signed off that the partition is
+not paid upstream) and found NO counterexample. A research review signed off that the partition is
 **exhaustive**: every such boundary is either (a) a genuine eval-time substrate read, correctly lifted
 to 3+ values (`load_sidecar`, `compute_presentation_verdicts`, `AuditHint`); or (b) a read of
 already-materialized in-memory data, correctly 2-valued with partiality paid upstream at scan time (the
@@ -9198,17 +9197,17 @@ implicit-mode obscurity antigen exists to surface.
 - **v0.3 floor (recognition, not new build):** ratify the law + both antigen names; record the
   instantiation catalog. The shipped boundaries (`CompositeVerdict`, `Match3`, `UnreachedCause`,
   `WorkVerdict::OutOfFrame`, the substrate-witness `AuditHint`) already *demonstrate* the law on
-  antigen's own construction — adversarial's gate confirmed the implementation naturally factors into
+  antigen's own construction — an adversarial-review gate confirmed the implementation naturally factors into
   (eval-time reads → 3-valued) + (in-memory → 2-valued, paid upstream).
 - **Tracked v0.3+ follow-ons (additive, NON-blocking):**
   - The `eval_ratified_doc` leaf fix — the remaining `⊥ → false` direction: set `evaluated: false` on
     the doc-side read-failure paths (doc-absent, no-parseable-frontmatter-version) so a read-failure is
     reported as un-evaluated, not as definitively-below-floor. (The sibling `⊥ → true` malformed-version
     overflow already closed at validate time in `7941dc6` / ATK-FT-3.) Owned by the freshness-bypass
-    campsites. A *systematic leaf-sweep of `evaluate.rs`* (naturalist's prediction): every leaf asked
+    campsites. A *systematic leaf-sweep of `evaluate.rs`* (a predicted follow-on): every leaf asked
     "does it fold an un-anchored / un-parseable / empty-collection `⊥` into pass-or-fail?" — the
     gem-as-detector in operation.
-  - `CoverageAuditReport::coverage_was_applicable() -> bool` (adversarial's type-discipline finding: a
+  - `CoverageAuditReport::coverage_was_applicable() -> bool` (an adversarial-review type-discipline finding: a
     3-state domain behind the 2-valued `is_complete()` — an allowed C4 projection today, but the third
     state should be inspectable by library consumers).
   - The `WorkVerdict::OutOfFrame` sub-cause refinement (`OutOfFrameCause` sub-enum mirroring
@@ -9235,7 +9234,7 @@ implicit-mode obscurity antigen exists to surface.
 ## [ADR-036] The Scan/Audit Orchestration Decomposition: a Thin Out-of-Band Coordinator Above the Detector Sequence (the SCRAM Host)
 
 **Status**: Locked design (2026-06-02) — buildability-confirmed against the
-real substrate by the pathmaker; **awaiting the notary** (Geological Society / Boat 4) for promotion to
+real substrate; **awaiting the notary** (Geological Society / Boat 4) for promotion to
 Witnessed. This is a *claim* ("the decomposition is buildable as specified, behavior-preserving, and the
 SCRAM seam is genuinely near-free"), not a self-witnessed verification. The build itself is the
 Bushwhackers' **opening move** (Boat 3), before any other file touches `scan.rs`/`audit.rs`.
@@ -9265,7 +9264,7 @@ mechanism that can halt a runaway detection cascade from a layer the runaway can
 `scan.rs` (8031 lines, 354 KB) and `audit.rs` (7853 lines, 371 KB) are two monoliths that every
 parallel build front must touch. Three problems compound:
 
-1. **File-collision risk under parallel build.** Two pathmakers adding two families cannot both edit a
+1. **File-collision risk under parallel build.** Two builders adding two families cannot both edit a
    single 350 KB file without merge conflict. The voyage's parallel-by-scope model (non-touching scopes)
    is unenforceable while the detectors all live in two files.
 2. **The orchestration is not a layer — it is smeared across `main.rs`.** Hands-on substrate check:
@@ -9277,8 +9276,8 @@ parallel build front must touch. Three problems compound:
    `audit::audit_deferred_defenses(&report, 30)` — *the CLI binary is the de-facto orchestrator.* There
    is no single place that owns "run the detector sequence." A future cascade-governor would have nowhere
    to live above the loop.
-3. **There are TWO cascades, of TWO different shapes** (the pathmaker's finding, sharpened by the
-   adversarial stress on substrate). The audit side (the `main.rs` detector fan-out) *is* a natural
+3. **There are TWO cascades, of TWO different shapes** (a finding sharpened by
+   adversarial stress on the substrate). The audit side (the `main.rs` detector fan-out) *is* a natural
    detector-sequence — an orchestrator-runs-a-list shape; SCRAM fits cleanly above it. But the scan side
    (`scan_workspace` at `scan.rs:3093`) is **not a detector loop** — it is a *pipeline of passes*: a
    `WalkDir` file-walk driving an inline `ScanVisitor` per file, then a lineage-safety pass
@@ -9296,7 +9295,7 @@ parallel build front must touch. Three problems compound:
 
 The maintainer locked the *requirement* — "the orchestration layer MUST be a genuine out-of-band coordinator
 capable of hosting a future kill-switch above the detector loop, never inside a detector it must be able
-to stop" — and charged the pathmaker to confirm it is genuinely near-free in the real decomposition, or
+to stop" — and the requirement was to confirm it is genuinely near-free in the real decomposition, or
 surface it as a finding. **Verdict: the REQUIREMENT survives (sound control theory); the MECHANISM as
 phrased — "above the detector loop" — is the degenerate case, and the substrate sharpens it to a different,
 still-near-free shape.** The near-free thing to bank now is **detector purity**, not a literal
@@ -9308,7 +9307,7 @@ into `scan_workspace`'s file-walk (wrong layer; scan has no detector loop) or to
 fns (wasted) — so this ADR locks the *purity invariant + the command-orchestration host*, which is what
 actually makes SCRAM insertable later, and confirms *that* is near-free (the detectors are already ~pure).
 
-**Honest cost calibration (adversarial's pre-commit refinement — surface it, don't bury it): near-free on
+**Honest cost calibration (an adversarial-review pre-commit refinement — surface it, don't bury it): near-free on
 the AUDIT side, MODEST-not-zero on the SCAN side.** The audit side is already a sequence of independent
 one-shot `audit_*` fns — wrapping it in a thin coordinator is near-free. The scan side is a *thin wrapper*
 around the `WalkDir` pass, NOT a detector-loop rewrite and NOT a mid-walk interrupt of the visitor — the
@@ -9360,8 +9359,8 @@ full surface enumerated from the real files — is preserved.)
 ### The out-of-band invariant (the SCRAM seam, sub-clause-F-checked)
 
 The maintainer's requirement — *the governor must sit where the runaway it governs cannot disable it* — is
-sound and survives. Stripped of the kill-switch/SCRAM imagery, the irreducible property (aristotle's
-first-principles grounding) is the **single-conductor invariant**: *the authority to stop the run lives in
+sound and survives. Stripped of the kill-switch/SCRAM imagery, the irreducible property (on first
+principles) is the **single-conductor invariant**: *the authority to stop the run lives in
 exactly ONE place, and that place is not any detector/pass the run might run away in.* A runaway is a unit
 producing more work/signal than the loop can damp; if that unit also held stop-authority, the runaway would
 disable its own brake. Its real near-free form on this substrate is **detector purity + a named host above
@@ -9386,7 +9385,7 @@ the whole pipeline**, not "a kill-switch threaded into a detector loop." The loc
    already nearly pure, and keeping it pure is what guarantees no extraction introduces a hidden shared-state
    coupling. The future-governor enablement is a bonus on top of a refactor-correctness property worth
    locking regardless.)*
-   - **FORCED stage-sequencing invariant (adversarial's pre-commit finding, has teeth): NO stage triggers
+   - **FORCED stage-sequencing invariant (an adversarial-review pre-commit finding, has teeth): NO stage triggers
      the next — the coordinator owns sequencing.** Purity of a *detector* is necessary but not sufficient;
      the extra requirement is that **no stage (scan-pass, audit-detector) calls the next stage directly** —
      every stage *returns to the coordinator*, which decides what runs next. This is the single-conductor
@@ -9483,7 +9482,7 @@ binary); the decomposition makes it explicit (a named layer with a validation ch
 - Does NOT build the cascade-governor or any SCRAM logic — it locks the *host shape* so the governor is
   buildable later for ~free; the governor itself is charter.
 - Does NOT pre-decide whether the pipeline coordinator lives in `antigen` (`pipeline.rs`) or in
-  `cargo-antigen` (the binary). The pathmaker's lean is `antigen`-side (so library consumers, not only
+  `cargo-antigen` (the binary). The recommendation leans `antigen`-side (so library consumers, not only
   the CLI, get the orchestrated entry point and the future SCRAM) — but the minimal behavior-preserving
   move keeps the coordinator CLI-side; this is a build-time choice for the Bushwhackers, recorded as the
   one open mechanism question, not a blocker (see §Open mechanism choice).
@@ -9496,7 +9495,7 @@ binary); the decomposition makes it explicit (a named layer with a validation ch
 
 Where does the pipeline coordinator live — `antigen/src/pipeline.rs` (library-side, so the orchestrated +
 SCRAM-capable entry point is available to all consumers) or `cargo-antigen` (binary-side, the minimal
-behavior-preserving move)? The pathmaker recommends **library-side**: it makes the regulator's loop a
+behavior-preserving move)? The recommendation is **library-side**: it makes the regulator's loop a
 first-class part of the library (consistent with the LOOP-A frame), and a runtime-sensor or external
 platform consumer (charter) would want the orchestrated entry point, not a re-implementation of `main.rs`'s
 fan-out. But binary-side is a valid minimal move that satisfies the out-of-band invariant for the CLI. This
@@ -9504,7 +9503,7 @@ is the single open mechanism question; it does not gate the lock. If the Bushwha
 *not* near-free (e.g. a circular-dependency surprise), that is a finding to surface to the maintainer, not a
 requirement to drop.
 
-### Build-time supersede-note (Bushwhackers / pathmaker, 2026-06-03) — the scan side gains a `parse.rs` leaf
+### Build-time supersede-note (Bushwhackers, 2026-06-03) — the scan side gains a `parse.rs` leaf
 
 **What this supersedes (append-only; the original §Decision module-shape is preserved above, this overrules
 only the implicit "the scan parsing engine lives in `walk.rs`").** The §Decision §The module shape lists the
@@ -9544,10 +9543,10 @@ out-of-band invariant) still holds: no pass holds stop-authority; `parse` is the
 
 **Status**: Locked design (2026-06-02) for the **regulator self-model** (use-1
 below) — **awaiting the notary** for promotion to Witnessed. The frame's *self-model* use is
-falsification-gate-CLEARED (adversarial), biology-coherence-RULED (naturalist, high confidence), and
-first-principles-grounded (aristotle). Its *second* use — whether the control-loop FUNCTION is also a
+falsification-gate-CLEARED (adversarial review), biology-coherence-RULED (biology-grounding, high confidence), and
+first-principles-grounded. Its *second* use — whether the control-loop FUNCTION is also a
 citing axis of the stdlib family taxonomy (ADR-038) — was an open seam, now **RESOLVED via the
-fidelity-vs-genus crosscut test** (aristotle + adversarial, converged independently): the crosscut found a
+fidelity-vs-genus crosscut test** (first-principles and adversarial review, converged independently): the crosscut found a
 COMPARE-fidelity cell the original two-genera missed, resolved by adding a THIRD genus
 (comparator-divergence), so the genus axis becomes complete-by-construction (info/comparator/effect =
 SENSE/COMPARE/ACT, one per active stage) and ADR-038 does **not** cite a separate function axis — it carries
@@ -9606,7 +9605,7 @@ requires. A prediction landing on a distinction biology had already made is the 
 establishing "predictive" as a strong standing track record. So: an organizing frame that has earned **one**
 predictive credit, not a proven-complete taxonomy.
 
-The falsification gate (adversarial, a different authority than the expansionist who drew the loop —
+The falsification gate (adversarial review, a different authority than the cross-domain analysis that drew the loop —
 satisfying `IndependentRecheckAuthority`) attacked the frame and could not find a regulator-mechanism that
 fails to tile. **The frame survives as a description of antigen's own regulator.** What the gate *did* find
 is the boundary in the next section.
@@ -9663,7 +9662,7 @@ Biology states the same partition: the immune system's *regulatory machinery* (t
 via the afferent arm) but never merged. Control theory (C/D) is the principle; biology (machinery/catalog)
 is its instance; both draw one line.
 
-### The boundary-discriminator (locks the two ADRs apart — adversarial's located finding)
+### The boundary-discriminator (locks the two ADRs apart — a located adversarial-review finding)
 
 A `families/*` campsite belongs to the **stdlib (ADR-038, a disturbance)** iff it catalogs a user-code
 failure-class antigen SENSES. It belongs to **this ADR (LOOP-A, the regulator)** iff it describes antigen's
@@ -9691,10 +9690,10 @@ The frame's two-ness — mis-stated earlier as "two loops" — is **one frame, t
 2. **Use-2 (RESOLVED — see next section): the FUNCTION axis of the detected-family grid.** Whether a stdlib
    family's failure-genus is usefully classified by *which loop-fidelity it violates*.
 
-### The crosscut test result (use-2 resolved — aristotle + adversarial converged)
+### The crosscut test result (use-2 resolved — first principles + adversarial review converged)
 
 The deciding test (does the loop-function axis ever sort two families into a different cell than the genus
-axis?) was run *independently* by aristotle and adversarial, and they **converged**:
+axis?) was run *independently* on first principles and by adversarial review, and they **converged**:
 - **Rows that are info- or effect-divergence are 1:1 with the function axis** — information-divergence ↔
   SENSE/MEMORY-fidelity, effect-divergence ↔ ACT-fidelity. On these the function axis is genus-relabeled.
 - **Two families cross-cut: `crypto-non-constant-time` (== on a secret) and `gate-collapse-in-user-code`
@@ -9704,8 +9703,8 @@ axis?) was run *independently* by aristotle and adversarial, and they **converge
   fix is "tighten the guard," not "recover info" (SENSE) or "change the effect" (ACT). They land in a
   **COMPARE-fidelity** cell the two-genera plane had no home for.
 
-**Resolution: the two genera become THREE.** The clean realization (adversarial's option X, which aristotle's
-scoped-Position-B reduces to) is **not** a second orthogonal axis on every family — the cross-cut is at one
+**Resolution: the two genera become THREE.** The clean realization (the adversarial-review option X, which the
+first-principles scoped-Position-B reduces to) is **not** a second orthogonal axis on every family — the cross-cut is at one
 cell only, so a whole second axis is over-machinery. Instead, **complete the genus axis** with its missing
 value: **information-divergence (SENSE/MEMORY) · comparator-divergence (COMPARE) · effect-divergence (ACT)**
 — one divergence-genus per *active* loop-stage. This keeps the genus the single sort key, makes it
@@ -9716,9 +9715,9 @@ ROUTE and FEEDBACK have *no* user-code disturbance-genus (they are antigen-respo
 user-code genus axis populates exactly the three stages where a program has fidelity to lose
 (sense → check → act) and is empty at the two response-only stages — an asymmetry that is evidence the axis
 tracks something real. **ADR-038 carries the three-genus taxonomy; this resolves use-2.** (One residual:
-adversarial flagged the cross-cut rests on N=2 same-cell families — `comparator-divergence` is named on two
+adversarial review flagged the cross-cut rests on N=2 same-cell families — `comparator-divergence` is named on two
 witnesses; it is the weakest-supported of the three genera and ADR-038 should hold it at the suspected
-confidence-tier until more witnesses land. The maintainer's concurrence + adversarial's witness-attack are the
+confidence-tier until more witnesses land. The maintainer's concurrence + an adversarial witness-attack are the
 final seals; the structural resolution is converged.)
 
 ### What this ADR does NOT do
@@ -9749,10 +9748,10 @@ final seals; the structural resolution is converged.)
 ## [ADR-038] The Stdlib Taxonomy Grid: Three Divergence-Genera (One per Active Loop-Stage), Super-Family Parents, and Remedy-Shape as the Primary Sort
 
 **Status**: Locked design (2026-06-02) — **awaiting the notary** for promotion
-to Witnessed. The crosscut test that gated this ADR has cleared (aristotle + adversarial converged
+to Witnessed. The crosscut test that gated this ADR has cleared (first principles + adversarial review converged
 independently — see ADR-037 §The crosscut test result). The **`comparator-divergence` genus rests on N=2
 witnesses** and is held at the suspected confidence-tier (ADR-039) until more land; the maintainer's concurrence
-+ adversarial's witness-attack are the final seals on that one genus. The rest is converged.
++ an adversarial witness-attack are the final seals on that one genus. The rest is converged.
 
 **Related**:
 - ADR-028 (Antigen-Category Taxonomy: Substrate-Alignment vs Functional-Correctness). This grid's **primary
@@ -9774,8 +9773,8 @@ witnesses** and is held at the suspected confidence-tier (ADR-039) until more la
 The stdlib families need a taxonomy that (a) does not collapse them into one bucket, (b) keeps members with
 *distinct remedies* distinct (so the audit prescribes the right fix), and (c) gives `cargo antigen gaps` a
 *finite completeness check* instead of a hand-walk. The Cartographer sweep produced the pieces — the
-researcher's genera, the naturalist's super-family parents, the space/time decomposition — and the crosscut
-resolution (ADR-037) supplied the missing third genus. This ADR assembles them into one grid.
+divergence-genera, the super-family parents, the space/time decomposition — and the crosscut
+resolution (ADR-037) supplied the missing third genus. This grid assembles them into one.
 
 ### Decision: the grid
 
@@ -9825,7 +9824,7 @@ guardrail (in each parent the members map to mechanisms with different, often op
 remedy-parent (under its ADR-028 category); its genus (which loop-fidelity it breaks) is the
 completeness-coordinate. So `cargo antigen gaps` becomes a **finite check**: *is every permitted
 (category × genus × super-family-parent) cell populated, with members kept distinct by remedy?* — concrete,
-not a hand-walk. (The PHASE and SCALE axes from the expansionist's lifecycle-converge grid complete the full
+not a hand-walk. (The PHASE and SCALE axes from the cross-domain lifecycle-converge grid complete the full
 multi-axis address for primitives where they apply; they are LOOP-A-scoped and refine, not re-sort.)
 
 ### Mechanics: the stdlib/LOOP-A boundary-discriminator (the same clause as ADR-037 §Mechanics)
@@ -9850,7 +9849,7 @@ The A-vs-B fork (does ADR-038 cite the loop-function axis, or stay pure-remedy-s
 distinction (the harbor-master's steer): the function axis must be defined as **FIDELITY-VIOLATED, not
 stage-that-senses.** "Which stage *perceives* the disturbance?" is vacuous — every disturbance answers
 "SENSE" (you never classify pathogens by which stage of your own immune system perceives them); that
-vacuity objection (adversarial + naturalist) targets the *stage-that-senses* framing and is correct about
+vacuity objection (from adversarial review and biology-grounding) targets the *stage-that-senses* framing and is correct about
 it. But "which loop-FIDELITY does the disturbance *violate*?" **discriminates** — information-fidelity
 (SENSE/MEMORY), comparator-fidelity (COMPARE), effect-fidelity (ACT) — and those fidelities are *named by
 loop-functions*. The genus is "what KIND of correctness fails" — a property/fix-shape discriminator, the
@@ -9887,7 +9886,7 @@ parallel classification field bolted on.
 - Does NOT merge a super-family's members into one fingerprint — distinct-remedies → distinct-units is
   load-bearing (merging prescribes the wrong fix for N−1 branches).
 - Does NOT assert `comparator-divergence` as fully witnessed — N=2, suspected-tier, pending more witnesses +
-  adversarial's witness-attack + maintainer concurrence.
+  an adversarial witness-attack + maintainer concurrence.
 
 ---
 
@@ -9900,7 +9899,7 @@ The **build-gate admission rule is RULED (a maintainer, permissive — supersede
 asymmetry (false-positive ≈ ~0, especially PASSIVE; false-negative = the silent failure). The crisp /
 constructable / encountered material moves to the dial as an honest PROVENANCE ladder (decision-(b)); a new
 PASSIVE [tooling] vs ACTIVE [user-macro] presentation axis keeps permissive admission free; honest
-provenance-labeling is the one invariant (adversarial's fiction-intolerance re-homes onto verifying
+provenance-labeling is the one invariant (the adversarial fiction-intolerance re-homes onto verifying
 provenance, not gating entry)** — see §The build gate (the superseded crisp-gate + the earlier fork +
 deliberation preserved append-only for the trail).
 
@@ -9961,8 +9960,8 @@ physically-split stream defeats the seam's whole purpose (one subscribable signa
   is admitted to the stdlib if it can be *articulated as a scannable structural pattern* — named,
   seen-as-a-mechanism, or even *imagined* — **provided it has a structural TELL (a scannable fingerprint).**
   The tell-requirement is **definitional, not a Goodhart gate**: an antigen *is* a fingerprint the scanner
-  matches; no fingerprint = nothing to scan = it simply *isn't an antigen* (this is adversarial's structural
-  mechanism = the tell IS the causal path; a narrative-only "concern" has no tell). So there is **no
+  matches; no fingerprint = nothing to scan = it simply *isn't an antigen* (this is the structural-mechanism
+  argument = the tell IS the causal path; a narrative-only "concern" has no tell). So there is **no
   fiction-exclusion gate at admission** *and* **no separate Goodhart gate is needed** — narrative-only fictions
   cannot flood the *scannable* stdlib because they have no fingerprint to scan with; they route to `#[dread]`
   instead (the site-local marker, the macro-on-the-shelf — see below). The justification for permissive
@@ -9978,7 +9977,7 @@ physically-split stream defeats the seam's whole purpose (one subscribable signa
     binary framing):**
     1. **VERIFIED-CORE stdlib** — a structural tell **+ a constructable, verifiably-failing demonstration**
        (the demo is WILD-found OR CONSTRUCTED-and-verified — a *constructed* demo suffices; rarity-tolerant,
-       no survivor-bias). This is the crew's Form-3 in its authoritative form (naturalist-captured): the
+       no survivor-bias). This is Form-3 in its authoritative form: the
        verified core of the scannable stdlib, provenance = encountered / constructable.
     2. **PASSIVE-HEURISTIC stdlib** — a **heuristic / correlational tell** (scannable, but NOT
        verifiably-constructable-to-failure — clippy-lint-style, "this shape *correlates* with the failure").
@@ -9992,12 +9991,12 @@ physically-split stream defeats the seam's whole purpose (one subscribable signa
     failing demo a fiction cannot produce) — so flooding buys the floor, not the loud center. Recurrence-COUNT
     promotes within the dial; it is not an admission bar.
   - **A tell-less / narrative-only concern is NOT excluded — it takes the `#[dread]` form** (ADR-041, the
-    site-local marker). This is where adversarial's "narrative → dread" and a maintainer's "the user has macros
+    site-local marker). This is where the "narrative → dread" reading and a maintainer's "the user has macros
     available for what we imagined" *meet*: a thing you can *feel/narrate at a site* but cannot *articulate
     as a scannable class* has no fingerprint, so it cannot be a stdlib antigen — it is a dread declaration
     instead. (dread = feeling-at-a-site, no class; imagined-antigen = a class WITH a tell, no instance yet —
     the two compose, they do not collide.)
-  - **Goodhart, closed STRUCTURALLY (record the objection as resolved-by-this, per adversarial — the reason
+  - **Goodhart, closed STRUCTURALLY (record the objection as resolved-by-this, per the adversarial review — the reason
     must be durable, not rot).** The objection: "mechanism is infinitely manufacturable by an LLM agent
     (antigen's target user); a narrative-admission gate hands the stdlib's key to the exact optimizer antigen
     names as its deepest self-risk (`FingerprintGamedNotDefended` / Goodhart)." The resolution: admission is
@@ -10016,7 +10015,7 @@ physically-split stream defeats the seam's whole purpose (one subscribable signa
     actually meets one.
   - **Honest labeling is the ONE invariant** (it serves permissiveness; it does not limit it). Every
     admitted antigen carries a **mandatory provenance/tier label**, and an *imagined* one MUST be labeled
-    imagined — never dressed up as encountered or constructable. Adversarial's fiction-intolerance
+    imagined — never dressed up as encountered or constructable. The adversarial fiction-intolerance
     **re-homes**: it is no longer an entry-bouncer (there is none); it is the **provenance VERIFIER** — it
     catches *false provenance* (a "this was encountered" claim that wasn't, a "constructable" tier with no
     constructable demo). This is observe-don't-declare (ADR-029) applied to admission itself: admit freely,
@@ -10129,7 +10128,7 @@ physically-split stream defeats the seam's whole purpose (one subscribable signa
   heuristic tier — it can never claim `constructable` (it has no verifiable demo) or `encountered` (it was
   never seen), so it is transparently marked unproven, sits passive, and is dial-gated. Permissiveness and
   Goodhart-safety coexist *because of* the honest tier: admit everything-with-a-tell, but a fiction can only
-  occupy the lowest, quietest, passive tiers — never masquerade as verified. (Adversarial is the
+  occupy the lowest, quietest, passive tiers — never masquerade as verified. (Adversarial review is the
   tier-VERIFIER blocking false claims to `constructable`+; recurrence-COUNT is a *promotion* signal
   — imagined/heuristic → constructable → encountered → matured — never an admission bar.) This provenance ladder is distinct from but composes with
   the **confidence** reading (the Bayesian posterior over "is this a real failure-class *here*, at this
@@ -10146,7 +10145,7 @@ physically-split stream defeats the seam's whole purpose (one subscribable signa
   ADR only fixes that it is a *third*, *authored*, high-magnitude signal distinct from the inferred dial
   tier, and that it emits into the same typed-event stream (§C).
 
-**(B) Lock the dial-vocabulary ↔ shipped-marker mapping (outsider's flag, prevents a parallel-tracker
+**(B) Lock the dial-vocabulary ↔ shipped-marker mapping (a naive-question flag, prevents a parallel-tracker
 divergence).** The new dial tier-words (innate/suspected/named/confident) MUST be explicitly related in the
 ADR to the *shipped* binary `match_kind` (`ExplicitMarker | FingerprintMatch`) — either as a refinement of
 it or as a stated-orthogonal axis. Shipping two tier-vocabularies for one axis with no stated relation is a
@@ -10160,7 +10159,7 @@ the scan-time input; dial-tier is the audit-time grade," an orthogonal-but-relat
 "land it in `ScanReport`." One typed record:
 - `site` (file + line) · `class-or-marker` · `timestamp` · `origin-stage {scan | audit}`;
 - **`schema_version`** (monotonic) + the locked **forward-compat rule: every future field is additive +
-  optional (`#[serde(default)]`); external consumers branch on `schema_version`** (adversarial's
+  optional (`#[serde(default)]`); external consumers branch on `schema_version`** (an adversarial-review
   schema-sufficiency finding #12). The `Finding` record is the EXTERNAL platform contract (the
   antigen-as-platform organ consumes it from outside); an un-versioned external contract is our own
   `SemVer-contract-violation` family dogfooded against ourselves — and ADR-041 already grew the schema once
@@ -10187,7 +10186,7 @@ the scan-time input; dial-tier is the audit-time grade," an orthogonal-but-relat
 - **`presentation` {passive | active}** — the first-class presentation axis (decision A): an
   imagined/low-provenance antigen defaults `passive` (tooling/scan-side, no user-macro burden); `active` is
   the user-facing macro chosen by an encounterer. This is what makes permissive admission free.
-- **`severity`/`magnitude` is a UNIVERSAL field on EVERY Finding** (adversarial finding #12, organ 3): not a
+- **`severity`/`magnitude` is a UNIVERSAL field on EVERY Finding** (adversarial-review finding #12, organ 3): not a
   marked-unknown-plane-only field — the cytokine-signaling organ routes by severity-as-priority, so a named
   dial-verdict Finding must also carry a severity or it cannot be routed. The dread/aura plane (ADR-041) adds
   `existence-certainty` *on top of* the universal `magnitude`; it does not own it.
@@ -10201,7 +10200,7 @@ home is a new shared `event.rs` / `finding.rs` in the library (or the merged pop
 `AuditReport`). This is the only locus that satisfies the seam's purpose (one wire-format for the three
 downstream organs) without violating single-source-of-truth (ADR-034). The maintainer's emit-not-display
 *requirement* is preserved exactly; the *locus* is corrected from "ScanReport" to "merge-at-audit" — a
-buildability sharpen (adversarial surfaced it, substrate confirmed it), not a weakening.
+buildability sharpen (an adversarial review surfaced it, substrate confirmed it), not a weakening.
 
 **Schema ownership (the cross-ADR boundary — prevents a two-schemas `ParallelStateTrackersDiverge`).** **This
 ADR (039) is the SOLE OWNER of the `Finding`/event schema** — the record type and its full field-list above.
@@ -10213,7 +10212,7 @@ at the schema level, which this boundary forecloses. (Cross-cited both ways: ADR
 
 *(Buildability: the full record — `class_provenance` mandatory-enum + `presentation` + the dial tier +
 the required marked-unknown `trigger`/`existence-certainty` — was spiked to a compiling, running, serializing
-struct (`roles/pathmaker/spikes/seam-spike`): both new typed fields land additively, serialize kebab-cased,
+struct (a build-spike): both new typed fields land additively, serialize kebab-cased,
 and the run demonstrates the passive-by-default-for-imagined rule (an imagined class emits
 `class_provenance: imagined` + `presentation: passive`, an encountered one `active`). "The verdict carries
 provenance + passive" is SEEn in a real struct, not asserted.)*
@@ -10231,11 +10230,11 @@ to prevent; when over-coverage is ~free and under-coverage catastrophic, the reg
 user-macro burden (the new PASSIVE [tooling] vs ACTIVE [user-macro] axis); the vast field of
 imagined-but-never-triggered antigens costs nothing until someone *encounters* one. **(3) honest labeling =
 the one invariant** — every antigen carries a mandatory provenance label; an imagined one MUST be labeled
-imagined. Adversarial's fiction-intolerance **re-homes** from entry-bouncer to *provenance VERIFIER*: a
+imagined. The adversarial fiction-intolerance **re-homes** from entry-bouncer to *provenance VERIFIER*: a
 fiction is *admitted* (harmlessly, passive, low-provenance) but *cannot be labeled* encountered/constructable
 without a real demonstration — so the Goodhart hole closes at *labeling*, not entry, and a fiction stays
 visibly low-provenance/passive where it misleads no one. This is observe-don't-declare (ADR-029) applied to
-admission: admit freely, never claim a provenance you cannot observe. Biology backs it cleanly (naturalist):
+admission: admit freely, never claim a provenance you cannot observe. Biology backs it cleanly:
 the naive B-cell repertoire is a vast field of never-triggered PASSIVE receptors — permissive-but-passive is
 how immunity is *built*, a metaphor-confirmation for the organizing frame too.
 
@@ -10246,7 +10245,7 @@ the permissive override #2** above. It was right that fiction must be caught; th
 that finding and moved it from entry-gate to provenance-label.)* **GATE = tell +
 crisp mechanism, where crisp = a constructable + verifiably-failing demonstration.** Recurrence is *not* an
 admission criterion (it is a dial-promotion signal). The
-ruling is *closest to* the adversarial Form-3 shape (fiction-intolerant, rarity-tolerant) but lands the
+ruling is *closest to* the Form-3 shape (fiction-intolerant, rarity-tolerant) but lands the
 anchor on **"constructable + verifiably-failing"** rather than "a shown wild instance" — a stronger,
 self-contained anchor: you need not find the failure *in the wild*, only be able to *construct a minimal
 case that actually exhibits it*. A fiction cannot be constructed-and-shown-to-fail, so this closes the
@@ -10261,12 +10260,12 @@ admission rule had two candidate forms; the maintainer owned the cut.
 - **Form 1 — "recurs AND tell"** (the vision §2 sketch): a stdlib antigen requires both a structural tell
   *and* evidence it recurs in real code. Keeps the stdlib bar high; lets the dial/dread carry the
   not-yet-recurring.
-- **Form 2 — "tell + (recurs OR mechanism)"** (aristotle's first-principles refinement): a structural tell
+- **Form 2 — "tell + (recurs OR mechanism)"** (a first-principles refinement): a structural tell
   is necessary; generality is established by *either* recurrence *or* a known failure-mechanism — two routes
   to "this is general, not a curiosity." Does not re-exclude the explicable-but-not-yet-witnessed silent
   class.
 
-**Naturalist's biology counsel (recorded as the recommended dissolution, NOT a ruling):** the fork conflates
+**The biology counsel (recorded as the recommended dissolution, NOT a ruling):** the fork conflates
 two distinct immune events. *Building* the recognition capacity = the naive repertoire, generated
 combinatorially on structural possibility *before* any encounter (recurrence plays no role). *Committing to
 memory* = affinity maturation on encounter (recurrence drives durable memory). The build gate asks the
@@ -10283,28 +10282,28 @@ is built on. **Recommendation: Form 2** (tell necessary; recurs OR mechanism adm
 tier). The stricter-bar worry (stdlib fills with curiosities) is answered by the *dial* keeping
 unencountered classes at the soft tier, not by an admission bouncer.
 
-**Adversarial's counsel (a THIRD position that splits the difference — and disagrees with the naturalist on
-one point):** adversarial accepts the gate-vs-dial split (evidence-strength is a dial concern, not a gate
+**The adversarial counsel (a THIRD position that splits the difference — and disagrees with the biology counsel on
+one point):** the adversarial position accepts the gate-vs-dial split (evidence-strength is a dial concern, not a gate
 concern) but **rejects "OR mechanism" as a GATE criterion** — because "mechanism" is *infinitely
 manufacturable*: an LLM agent (antigen's stated target user) can construct a plausible failure-mechanism
 narrative for any pattern on demand, and this gets *worse* as the optimizer gets stronger (the
 `FingerprintGamedNotDefended` / Goodhart self-risk). So "OR mechanism" hands the stdlib's admission key to
 the exact adversary antigen names as its deepest self-risk, flooding the stdlib with
 mechanism-justified-but-never-recurring speculation — the very noise the `#[dread]` discipline rejects.
-Adversarial's resolution: **GATE = tell + at-least-one-SHOWN-real-instance** (one real instance shown, *not*
+The adversarial resolution: **GATE = tell + at-least-one-SHOWN-real-instance** (one real instance shown, *not*
 a recurrence-*count* threshold — so it is rarity-tolerant but fiction-intolerant; rarity is fine,
 fictionality is not). Then *mechanism-only-without-any-shown-recurrence* does **not** enter the built stdlib
 — but it is **not discarded**: it is exactly what `#[dread]`/`#[aura]` (ADR-041, the inside-out driver) is
 *for* (a standing request to find the recurrence that would graduate it into a built family).
 
-**The genuine disagreement for the maintainer to resolve:** the naturalist says *mechanism admits* (to the
-suspected tier of the built stdlib); adversarial says *mechanism-only does NOT admit to the built stdlib —
+**The genuine disagreement for the maintainer to resolve:** the biology counsel says *mechanism admits* (to the
+suspected tier of the built stdlib); the adversarial position says *mechanism-only does NOT admit to the built stdlib —
 it lives at the `#[dread]` frontier until one real instance is shown.* Both route mechanism-only candidates
 to a low-confidence home that isn't a loud stdlib fingerprint; they differ on **whether that home is a
-suspected-tier built fingerprint (naturalist) or a `#[dread]` marker (adversarial).** The Goodhart argument
+suspected-tier built fingerprint (the biology counsel) or a `#[dread]` marker (the adversarial position).** The Goodhart argument
 is the load-bearing new input: it is *why* "shown instance" beats "mechanism" as the non-gameable anchor.
 Three options were on the table — Form 1 (recurs AND tell), Form 2 (tell + recurs-OR-mechanism), Form 3
-(adversarial: tell + at-least-one-shown-instance; mechanism-only → `#[dread]`). **RESOLVED by the maintainer
+(tell + at-least-one-shown-instance; mechanism-only → `#[dread]`). **RESOLVED by the maintainer
 override at the top of this section: tell + crisp-mechanism (constructable + verifiably-failing); recurrence
 is a promotion signal, not an admission criterion.** The override refines Form 3's non-gameable anchor from
 "a shown wild instance" to "a constructable verifiably-failing demonstration" — same fiction-intolerance,
@@ -10335,7 +10334,7 @@ deliver the value this design claims.
 ## [ADR-040] The Grammar Increment: Frame-Relative Matching, `body_calls`, and the Syntactic Absence Family (Leaf-Matcher Tier)
 
 **Status**: Locked design (2026-06-02) — **awaiting the notary** for promotion
-to Witnessed. Buildability-confirmed against the real `antigen-fingerprint` crate by the pathmaker. This
+to Witnessed. Buildability-confirmed against the real `antigen-fingerprint` crate. This
 ADR locks the **leaf-matcher tier** (Increments 1–2: new `Constraint` variants in the existing per-node
 walk). The **per-type correlation tier** (Increment 3 / G4) is carved to its own sibling ADR (it is a
 different machine); the **semantic tier** (resolved types, control-flow liveness) is **charter → v0.4**
@@ -10467,13 +10466,13 @@ error — a compile-fail fixture confirms it).
 
 **Status**: Locked design (2026-06-02) — **awaiting the notary** for promotion
 to Witnessed. The plane structure, the two-guard earned-ness discipline, and the emit-seam are converged
-(aristotle Phase-1-8 + value-finder worth + naturalist biology). **The third marker is RULED `#[red_flag]`**
+(first-principles Phases 1-8 + value analysis + biology-grounding). **The third marker is RULED `#[red_flag]`**
 (maintainer — closing the naming sub-fork). `#[red_flag]` is the clinical-red-flag sense (certain-enough-to-
 escalate, names-nothing-specific = the inverse of pathognomonic) — no cross-domain collision (unlike
 `#[sentinel]` = the watcher) and no within-family ambiguity. `#[alarmin]` was a viable lean (the
 DAMP/act-now-danger fit is real) but set aside on a *mild level-mismatch* (alarmin is the **family-wide**
 danger-signal substrate, slightly broad for one corner-marker — naming one marker after the genus-word).
-**Correction for the notary (naturalist self-withdrew, substrate-checked):** the earlier "`#[alarmin]` =
+**Correction for the notary (a self-withdrawn objection, substrate-checked):** the earlier "`#[alarmin]` =
 `#[dread]`'s referent → within-family collision" objection was **false and is retracted** — `#[dread]`'s
 cited referent is *angor animi*, not alarmin; there is no collision. `#[alarmin]` was set aside on the mild
 level-mismatch only, not a collision. See §The third marker.
@@ -10542,12 +10541,12 @@ problem").
 
 1. **The affect-gravity of the name self-selects sparing use.** You can't spray `#[dread]` — the word's
    weight makes "the floor feels rotten" the only honest use. Strip the affect (a neutral `#[unknown]`) and
-   it becomes rot-graffiti; keep it and it is an earned signal. (value-finder's "the affect IS the gate.")
+   it becomes rot-graffiti; keep it and it is an earned signal. (the value analysis: "the affect IS the gate.")
 2. **The marker is a typed, authored, lifecycle-tracked ⊥-attestation with a built-in staleness-smell.** It
    is an attestation (ADR-020: site + author + trigger), therefore falsifiable (declared → investigated →
    named | cleared), and an un-investigated one is itself a substrate-smell (ADR-031-flavored: "⊥-declared
    here for N commits, untouched"). So abuse is *self-surfacing*, not merely discouraged.
-3. **The trigger field is REQUIRED, not optional** (outsider's load-bearing ask, routed via aristotle;
+3. **The trigger field is REQUIRED, not optional** (a load-bearing naive-question ask, routed through first principles;
    ruling confirmed-current by the maintainer at transcription time). The vision §5 phrasing "ideally carrying
    the trigger" reads as *optional* — but an optional trigger is the hole through which the graffiti
    returns: a triggerless `#[dread]` is exactly the contentless "this seems off" mark the primitive exists
@@ -10600,7 +10599,7 @@ research-driver mechanized.
 ### The third marker: `#[red_flag]` (RULED — maintainer, closing the naming sub-fork)
 
 The high-certainty / act-now / unnameable marker is **`#[red_flag]`**. The deliberation, preserved:
-- **`#[sentinel]` — OUT** (outsider, substrate-checked): "sentinel" is already spoken-for as (a) a textual
+- **`#[sentinel]` — OUT** (a naive-question check, substrate-checked): "sentinel" is already spoken-for as (a) a textual
   sentinel *value* (`audit.rs:2116/5069/5151`) and (b) "sentinel sites" in the epidemiology map meaning
   *surveillance / watch-and-report* — almost the **opposite** of this marker's auto-escalate-on-first-match
   posture.
@@ -10608,7 +10607,7 @@ The high-certainty / act-now / unnameable marker is **`#[red_flag]`**. The delib
   act-now-danger fit is real (an alarmin *is* the "act now, danger present" signal). It was set aside on a
   *mild level-mismatch*: alarmin is the **family-wide** danger-signal substrate (the whole marked-unknown
   sensing system's mechanism), so naming one corner-marker `#[alarmin]` is a genus-word-for-one-species
-  slight (like naming one antibody "immunoglobulin"). **Correction (naturalist self-withdrew on substrate-
+  slight (like naming one antibody "immunoglobulin"). **Correction (a self-withdrawn objection on substrate-
   check — recorded so the notary does not act on the false objection):** an *earlier* objection claimed
   "alarmin = `#[dread]`'s referent → within-family collision" — that is **FALSE and retracted**: `#[dread]`'s
   cited referent is *angor animi* (this ADR, §the markers), not alarmin (alarmin is the family substrate,
@@ -10635,8 +10634,8 @@ became the graffiti it was designed to prevent.
 - Does NOT put the marked-unknown ON the dial's classification axis — it is at ⊥, off-axis, on its own
   magnitude × existence-certainty plane; it merely shares the dial's *non-gating floor surfacing policy*.
 - Does NOT gate or nag — it is the inside-out research-driver, not an error.
-- Does NOT lock the third marker's spelling — `#[sentinel]` vs `#[alarm]`/`#[alarmin]` is the naturalist's
-  biology-fit cut + outsider naming-check.
+- Does NOT lock the third marker's spelling — `#[sentinel]` vs `#[alarm]`/`#[alarmin]` is a
+  biology-fit cut + a naming-check.
 - Does NOT build the affinity-maturation engine — that is charter; the first-class existence-certainty
   schema field is the cheap stub that keeps it buildable later (the engine subscribes to this emit-half).
 
@@ -10646,7 +10645,7 @@ became the graffiti it was designed to prevent.
 
 **Status**: Locked design (2026-06-02) — **awaiting the notary** for promotion
 to Witnessed. The three-discipline structure and the `#[autoimmune]` naming reconciliation are converged
-(value-finder legibility-spine + outsider naming-catch + naturalist ruling, all substrate-checked). Mostly
+(a value-analysis legibility-spine + a naming-catch + a biology-grounded ruling, all substrate-checked). Mostly
 **recognition** — the confidence dial (ADR-039) already exists; this names it as the anti-drowning surfacing
 discipline and corrects a backwards-reading name before it ships.
 
@@ -10688,7 +10687,7 @@ the discipline it exists to demonstrate. Two distinct things were implicit and o
    deliberately-tolerated exceptions) are used sparingly; their cost self-selects restraint (ADR-041's
    earned-ness; `#[antigen_tolerance]`'s Treg-license).
 3. **Surfacing — RANK × BUDGET × TRIAGE-STATE (three inputs, not two — the anti-drowning keeper, both
-   directions).** *Ranking alone does NOT cure habituation* (adversarial's break, biology-forced): ranking
+   directions).** *Ranking alone does NOT cure habituation* (an adversarial-review break, biology-forced): ranking
    reorders a single *snapshot*, but habituation is a function of the *delta* between what the reader saw
    last run and sees now — and rank has no reader-state coordinate. Worse, a stable high-confidence /
    high-blast **accepted-risk** item permanently occupies the top ranks and *fills the output budget*, so a
@@ -10723,14 +10722,14 @@ suspected population quiet at the floor. A fixture proving a tolerated high-blas
 new medium finding out of the budget is the load-bearing test. Liberal coverage and a readable, *delta-based*
 signal demonstrably coexist across runs.
 
-**Scope split (build-now vs charter — adversarial's honest note + naturalist's substate bend):**
+**Scope split (build-now vs charter — an adversarial-review honest note + a biology-grounded substate bend):**
 - **Build-now**: the *principle* (default surface = the NEW/un-acked delta, not the static severity wall)
   + the `#[antigen_tolerance]` → off-default-surface branch (no new store; tolerance persists in source +
   ALSO fixes chronic-starvation in one move).
 - **Charter**: a general acknowledgement store for *non-tolerated* findings (per-team "what we acked" —
   needs `.antigen/acked` or the camp substrate). Real store + UX; charter it. The principle is build-now and
   load-bearing without it.
-- **Do NOT merge the acknowledged substates** (naturalist's biology bend — they are different mechanisms
+- **Do NOT merge the acknowledged substates** (a biology bend — they are different mechanisms
   with different reversibility): *accepted-risk* = anergy (reversible, rationale-carrying,
   `#[antigen_tolerance]`, **build-now**); *fix-later* = exhaustion (quiet *until the cluster-key changes*, a
   delta-sensitive mute, **charter** — needs the ack-store keyed on cluster-key); *false-positive* = clonal
@@ -10738,7 +10737,7 @@ signal demonstrably coexist across runs.
   the receptor), **NOT** a triage-quiet-state (quieting a wrong check is premature-abstraction — a stale
   tolerated wrong check is the garden-becomes-a-bug-hiding-place one level up).
 
-### Decision (B): the `#[autoimmune]` naming reconciliation (naturalist's ruling)
+### Decision (B): the `#[autoimmune]` naming reconciliation (the biology-grounded ruling)
 
 Naming-coherence means *the word points the same direction as the thing* — not that the word never touches
 the disease (a diagnostic screen named after the pathology it detects is coherent: a TB test detects TB).
@@ -10793,7 +10792,7 @@ here so the two ADRs do not ship a backwards name.)
 
 ### Finding
 
-The v04 design space converged — independently from three directions (dreamer-from-ambition, value-finder-from-worth, scout-from-cheapest-path) — on a single structural observation: **the highest-leverage v0.4 build is not a new organ but a shared service**. The current `cargo antigen scan` + `synthesis_pass` already computes a catalog-match for the one crate whose fingerprints it knows. Four distinct consumers need exactly this computation — CLI output, editor-inline squiggles, agent-at-generation queries, and session-priming of a fresh agent — but the current codebase serves only the first, and only if the crate carries its own `#[antigen]` declarations (because `synthesis_pass` builds its fingerprint table from the scanned tree, not from a bundled catalog).
+The v04 design space converged — independently from three directions (from ambition, from worth, and from the cheapest path) — on a single structural observation: **the highest-leverage v0.4 build is not a new organ but a shared service**. The current `cargo antigen scan` + `synthesis_pass` already computes a catalog-match for the one crate whose fingerprints it knows. Four distinct consumers need exactly this computation — CLI output, editor-inline squiggles, agent-at-generation queries, and session-priming of a fresh agent — but the current codebase serves only the first, and only if the crate carries its own `#[antigen]` declarations (because `synthesis_pass` builds its fingerprint table from the scanned tree, not from a bundled catalog).
 
 Two concrete substrate gaps feed every downstream symptom:
 1. **No bundled-catalog mode.** Scanning a consumer crate that hasn't declared antigen's stdlib members fires zero stdlib findings — the bundled fingerprint table is missing. The adopter must declare stdlib members themselves (the active model the origin project uses) before any value lands.
@@ -10811,7 +10810,7 @@ The worth does not spread evenly: **client A (bundled-catalog CLI) has the highe
 Ship a `--bundled-catalog` flag (or make it the default when no in-tree antigens exist) that loads antigen's own `stdlib::*` fingerprints as a built-in `&[(String, Fingerprint)]` passed into the existing `synthesis_pass`. The adopter does not need to declare `#[antigen]` or `#[presents]` for stdlib members; antigen scans their code against the vetted stdlib catalog directly. This is the first real product-grade adoption surface: `cargo antigen scan` on a fresh crate produces real findings from antigen's own class memory. **Not gated on self-tolerance** (ships antigen's OWN curated stdlib, not a cross-codebase-shared catalog — the negative-selection precondition applies to the shared registry, not to shipping antigen's vetted classes).
 
 **Client B — editor-inline flycheck render:**
-A `Finding → rustc-DiagnosticSpan` serializer that emits antigen's findings in the rustc-JSON-diagnostic schema. rust-analyzer's `check.overrideCommand` stable config hook accepts this schema; no custom LSP server is needed (the scout-verified path). Line-granular spans work today; exact spans become available when the v0.4 semantic tier ships. Cost: MODEST (one new serializer, no new core, no LSP server). This client delivers value at every keystroke once the adopter adds one config line.
+A `Finding → rustc-DiagnosticSpan` serializer that emits antigen's findings in the rustc-JSON-diagnostic schema. rust-analyzer's `check.overrideCommand` stable config hook accepts this schema; no custom LSP server is needed (the verified path). Line-granular spans work today; exact spans become available when the v0.4 semantic tier ships. Cost: MODEST (one new serializer, no new core, no LSP server). This client delivers value at every keystroke once the adopter adds one config line.
 
 **Client C — agent-query MCP endpoint (per-fragment):**
 An MCP-protocol endpoint that accepts a code fragment and returns matching `Finding` records from the spine. The agent queries antigen before emitting — structural inspection at generation time, the asymmetry cured at the source. The Finding schema (ADR-039 §C) with `schema_version` + additive-optional fields is the MCP response format (the external contract is already versioned for exactly this). Cost: MODERATE (MCP server wrapper around the callable spine; the substrate is shipped). **This is the flagship offer** (the inspection half of the codegen loop at its point of failure) but it is a PUSH render — adoption is gated on a vendor wiring the query or antigen shipping a reference MCP server so the push render has a zero-vendor on-ramp.
@@ -10878,7 +10877,7 @@ The invariant recurred on five distinct surfaces before convergence was recogniz
 4. The witness-invocation arm: running a bounded kani check produces a verdict over the tool's bound — not a proof over all inputs. The bounded-vs-complete qualifier is the frontier-honesty requirement on the invocation arm.
 5. The diff-native fingerprint modality: detecting that a guard-shaped call was removed (syntactic, decidable) is NOT the same as proving the guard was required (semantic, undecidable). The frontier-honesty requirement scopes the diff-native output to "a guard-shaped deletion was detected" — the label "regression" stays with the human/incident ratifier.
 
-The formal grounding (math-researcher, `convergence/frontier-honesty-invariant`): the invariant IS **soundness-without-completeness** in the sense of Cousot & Cousot 1977 (abstract interpretation). An analyzer is SOUND if it reports a verdict only when the verdict is true under its chosen abstraction `α`. It is INCOMPLETE if there are true properties it cannot prove under `α`. **Rice's theorem** (Rice 1953) makes the trade FORCED: every non-trivial semantic property of programs is undecidable, so no analyzer is both sound and complete for a real failure-class — soundness requires giving up completeness, and completeness is unachievable for semantic properties.
+The formal grounding (research review, `convergence/frontier-honesty-invariant`): the invariant IS **soundness-without-completeness** in the sense of Cousot & Cousot 1977 (abstract interpretation). An analyzer is SOUND if it reports a verdict only when the verdict is true under its chosen abstraction `α`. It is INCOMPLETE if there are true properties it cannot prove under `α`. **Rice's theorem** (Rice 1953) makes the trade FORCED: every non-trivial semantic property of programs is undecidable, so no analyzer is both sound and complete for a real failure-class — soundness requires giving up completeness, and completeness is unachievable for semantic properties.
 
 **Why v0.4 specifically:** v0.2/v0.3 are recognition-heavy — the dial already enforces honest-labeling on DETECTION (the syntactic proxy). v0.4 is the first arc that (a) GENERATES knowledge (the learning core) and (b) INVOKES external provers (the witness arm). These are the first surfaces where antigen can plausibly claim more than it proved: an over-claim by the learning core produces self-inflicted autoimmunity (false positives flooding the codebase); an over-claim by the witness arm forges a proof.
 
@@ -10920,7 +10919,7 @@ The boundary between the halves is exactly the syntactic/semantic line = the dec
 
 ### Enforcement
 
-- Process: any ADR ratification that lacks a frontier statement on a verdict-emitting or candidate-generating component is procedurally incomplete. The scientist role's sign-off attests the frontier statement is present and honest.
+- Process: any ADR ratification that lacks a frontier statement on a verdict-emitting or candidate-generating component is procedurally incomplete. The validation-pass sign-off attests the frontier statement is present and honest.
 - The dial tier (ADR-039) is the runtime carrier of the frontier statement's "what I proved" clause — the tier on each `Finding` is the machine-readable frontier label.
 - The `class_provenance` field (ADR-039 §C) is the class-level frontier label — `Heuristic` or `Imagined` means "no constructable demo exists"; `Constructable` or `Encountered` means the syntactic-machine half has been verified by building or finding.
 
@@ -10941,7 +10940,7 @@ The boundary between the halves is exactly the syntactic/semantic line = the dec
 
 ### Finding
 
-The v04 Cartographers wave surfaced a recurring structural pattern across independent crew members (naturalist, expansionist, dreamer, math-researcher, value-finder): the ROADMAP's 9-charter dependency DAG maps N organ-charters to N build units, but the biology it models is a recurrent tangle — not a pipeline. When crew members independently collapsed the expanded charter-space, they converged on approximately 5 deep primitives, each of which collapses several charters into one parameterized mechanism.
+The v04 Cartographers wave surfaced a recurring structural pattern across multiple independent lines of analysis (observation, cross-domain analogy, design exploration, research review, and value analysis): the ROADMAP's 9-charter dependency DAG maps N organ-charters to N build units, but the biology it models is a recurrent tangle — not a pipeline. When these lines independently collapsed the expanded charter-space, they converged on approximately 5 deep primitives, each of which collapses several charters into one parameterized mechanism.
 
 The collapse is not a simplification — it is a recognition (ADR-006). The 9-charter DAG was a legibility projection; the primitive-tangle is the underlying truth. Building 9 separate organs where the substrate is ONE parameterized mechanism would be antigen's own `ParallelStateTrackersDiverge` at the architecture level.
 
@@ -11019,7 +11018,7 @@ The ratifier: the Pioneers and Survey waves. If the build reveals that a propose
 
 ### Consequences
 
-- The ROADMAP's 9-charter DAG remains the legibility projection for dreamers and charter-readers. This ADR does not update the ROADMAP; it provides the collapsed-primitive model the Pioneers build from. The two representations coexist: the charter-DAG (dreamer-legible, rich) and the primitive-tangle (builder-legible, collapsed).
+- The ROADMAP's 9-charter DAG remains the legibility projection for design exploration and charter-readers. This ADR does not update the ROADMAP; it provides the collapsed-primitive model the Pioneers build from. The two representations coexist: the charter-DAG (design-legible, rich) and the primitive-tangle (builder-legible, collapsed).
 - The do-later/deep-future charter sequence is: E first → A+C (one-tree scope) → B (co-ship with C) → A (fleet-scope) → D (research-probe first).
 - Primitive D's research-undefined status is load-bearing. Any ADR that locks a Primitive-D design without first probing and ratifying a tractable algorithm would be claiming more than is proven (ADR-044 violation applied to antigen's own roadmap).
 
@@ -11104,7 +11103,7 @@ ADR-045 step 2 reads "A (convergence field, one-tree) + C (PROPOSE, acute n=1) �
 - **P0a — the digest seam is empty.** `MarkedUnknown::to_finding` emits empty `structural_digest` and `cluster_key = "dread@"` (verified, `types.rs:734/740`). A and C "ride the shipped cluster_key" is FALSE for their actual input until this is filled.
 - **P0b — there is no corpus.** ZERO applied `#[dread]`/`#[aura]`/`#[red_flag]` marks exist in antigen's own source/tests/fixtures (grep-verified; the macros shipped per ADR-041 but were never APPLIED). The keystone falsification gate ("produce one draft on our OWN marks") would cluster the empty set.
 
-**The split that keeps E unblocked** (pathmaker, run-as-code): SPINE-E rides the **synthesis/audit half** of the scan (the matched-item path), which DOES carry real `structural_digest` — so **E does not block on population-fill and leads immediately.** Only the **marked-unknown subscribers** (C/PROPOSE, diff-native-on-population, the route-arm dread-sentinel, the cytokine-bus) inherit the primitive-zero dependency. "Substrate shipped, v0.4 is integration" → honest restatement: **"the SCHEMA is shipped; POPULATION-FILL is primitive-zero; the marked-unknown subscribers ride it."**
+**The split that keeps E unblocked** (verified run-as-code): SPINE-E rides the **synthesis/audit half** of the scan (the matched-item path), which DOES carry real `structural_digest` — so **E does not block on population-fill and leads immediately.** Only the **marked-unknown subscribers** (C/PROPOSE, diff-native-on-population, the route-arm dread-sentinel, the cytokine-bus) inherit the primitive-zero dependency. "Substrate shipped, v0.4 is integration" → honest restatement: **"the SCHEMA is shipped; POPULATION-FILL is primitive-zero; the marked-unknown subscribers ride it."**
 
 ### Decision
 
@@ -11133,7 +11132,7 @@ ADR-045 step 2 reads "A (convergence field, one-tree) + C (PROPOSE, acute n=1) �
 
 ### Finding
 
-ADR-045 Amd-1's P0a step said to ride a SINGLE digest (`current_item_digest`) for both the Finding's `structural_digest` and the `cluster_key`. Building it that way is wrong on two counts the adversarial proved run-as-code:
+ADR-045 Amd-1's P0a step said to ride a SINGLE digest (`current_item_digest`) for both the Finding's `structural_digest` and the `cluster_key`. Building it that way is wrong on two counts an adversarial review proved run-as-code:
 
 1. **The identity digest is name-SENSITIVE, but PROPOSE must cluster name-INSENSITIVELY.** `antigen_fingerprint::structural_digest` hashes the item's own ident, so two structurally-identical felt-sites with different names (`Alpha`/`Gamma`) get different digests. But two real marked sites ALWAYS have different names — clustering on the identity digest would never group them, defeating the anti-unifier (the keystone clustering precondition, from the over-merge's opposite direction: an *under-merge*).
 2. **Overloading one field is `ParallelStateTrackersDiverge` in our own seam.** Diff-native DETECT (ADR-046) keys on `(item-name, structural_digest)` *because* `structural_digest` is identity-sensitive; making it name-insensitive to serve clustering would silently break DETECT. One field cannot honestly mean "identity" on a matched-item Finding and "shape" on a marked-unknown Finding.
@@ -11220,7 +11219,7 @@ Antigen's fingerprint model is a SNAPSHOT predicate: it matches the structure of
 
 **Add a diff-native fingerprint modality: match a structural DELTA between two commits. Split it into three honest tiers (the claim-scope discipline, ADR-044):**
 
-- **DETECT (do-now, CHEAP):** scan HEAD~1 and HEAD on the **scan path**, key per-item by **(item-name, `structural_digest`)** pulled from the syn AST, and set-diff. An item whose digest changed (or was added/removed) is surfaced as "this item's structure changed." Zero new core (a `HashSet` difference over the shipped per-item digests). **Keyed on item-name, NOT Finding file+line** — the pathmaker verified this sidesteps the Finding-identity gap (Finding carries file+line only, no item-path; a reorder shifts every line). The scan-path slice does **not** depend on the population-fill primitive-zero (ADR-045 Amd 1); a diff that rides the unified Finding POPULATION would inherit that dependency and need a stable item-identity added to Finding.
+- **DETECT (do-now, CHEAP):** scan HEAD~1 and HEAD on the **scan path**, key per-item by **(item-name, `structural_digest`)** pulled from the syn AST, and set-diff. An item whose digest changed (or was added/removed) is surfaced as "this item's structure changed." Zero new core (a `HashSet` difference over the shipped per-item digests). **Keyed on item-name, NOT Finding file+line** — this was verified to sidestep the Finding-identity gap (Finding carries file+line only, no item-path; a reorder shifts every line). The scan-path slice does **not** depend on the population-fill primitive-zero (ADR-045 Amd 1); a diff that rides the unified Finding POPULATION would inherit that dependency and need a stable item-identity added to Finding.
 - **CLASSIFY (do-later, MODERATE):** to say "a GUARD was removed" (vs a benign refactor), set-diff the leaf-matchers (`body_calls`/`has_method`) between HEAD~1 and HEAD per item — a before/after PREDICATE PAIR (guard-shaped call present at HEAD~1, absent at HEAD). This is the worth-bearing guard-regression matcher; a real new matcher modality, not delivered by the digest-set diff alone.
 - **LABEL (irreducibly human/incident):** even with leaf-diff, "removed a guard" splits into "removed a REQUIRED guard (regression)" vs "removed a never-load-bearing guard (clean refactor)." Requiredness is a SEMANTIC property (Rice → undecidable). The diff narrows the candidate set (something guard-shaped vanished HERE); the LABEL stays with the human/CI-context/incident ratifier. The wound-`learn-from` loop supplies this label cheaply (a revert-of-a-fix-diff is a LABELED guard-removal).
 
@@ -11242,9 +11241,9 @@ Antigen's fingerprint model is a SNAPSHOT predicate: it matches the structure of
 
 ## [ADR-047] GATE-G Soundness: The Near-Miss Non-Vacuity Predicate — a Promotion Requires One Corpus Item One Constraint From Binding, Spared by Failing Exactly That One
 
-**Status**: **RATIFIED 2026-06-10** (rev 3 — near-miss SAFETY primitive + (A)-binary + generation-quality routing, the two-axis reconciliation; supersedes rev-1 skeleton-relevance and rev-2 pure-near-miss in-draft). v05 Outfitters/converge wave; targets `0.5-dev`. **Co-locked with ADR-048 (OQ4 — the joint ratification act); maintainer seal-gate by full re-read of the live bytes (sha 105f50df+).** Lifecycle complete: Phase 1-8 + reciprocal pass (aristotle), ATK (adversarial — 5 breaks incl. N4 empty-drop), per-sentence-attribution consistency-audit, OQ1/OQ3/OQ4 maintainer-RULED, OQ2 confirmed-closed (aristotle, `propose.rs:239-244` — `anti_unify` emits one flat top-level `AnyOf`, no nesting). **Build-wave obligations carried in the baton (named, NOT claimed-closed):** scientist-validate the OQ2 top-level-conjunct scope against the real matcher; pathmaker-lock the OQ3 `has_discriminating_conjunct` Constraint-partition against the real enum; run the Q9 born-red ATK set.
+**Status**: **RATIFIED 2026-06-10** (rev 3 — near-miss SAFETY primitive + (A)-binary + generation-quality routing, the two-axis reconciliation; supersedes rev-1 skeleton-relevance and rev-2 pure-near-miss in-draft). v05 Outfitters/converge wave; targets `0.5-dev`. **Co-locked with ADR-048 (OQ4 — the joint ratification act); maintainer seal-gate by full re-read of the live bytes (sha 105f50df+).** Lifecycle complete: Phase 1-8 + reciprocal first-principles pass, ATK (adversarial review — 5 breaks incl. N4 empty-drop), per-sentence-attribution consistency-audit, OQ1/OQ3/OQ4 maintainer-RULED, OQ2 confirmed-closed on first principles (`propose.rs:239-244` — `anti_unify` emits one flat top-level `AnyOf`, no nesting). **Build-wave obligations carried in the baton (named, NOT claimed-closed):** validate the OQ2 top-level-conjunct scope against the real matcher; lock the OQ3 `has_discriminating_conjunct` Constraint-partition against the real enum; run the Q9 born-red ATK set.
 
-**Participants**: adr-specialist (draft + the near-miss/P1 fold), aristotle (first-principles grounding — the skeleton-relevance correction, then the reciprocal pass that stripped it to the near-miss primitive), adversarial (the 4 RAN breaks that drove the primitive), systems-thinking (the 047/048 constructor-fusion leverage), maintainer (the two-holes anchor + the P1 lean + the born-red directive).
+**Developed through**: ADR drafting (the near-miss/P1 fold), first-principles grounding (the skeleton-relevance correction, then the reciprocal pass that stripped it to the near-miss primitive), adversarial review (the 4 RAN breaks that drove the primitive), systems analysis (the 047/048 constructor-fusion leverage), and the maintainer's two-holes anchor + the P1 lean + the born-red directive.
 
 **Related**: ADR-045 (the C ══ B co-ship — PROPOSE never promotes except through B; this ADR hardens B's promotion authority); ADR-044 (frontier-honesty — this ADR carries a frontier statement; the gate's verdict is a corpus-bounded FACT, never a total-safety proof); ADR-005 Sub-clause F (every trust boundary requires a validation check before trust is extended — GATE-G is the keystone instance: the moment a caller wires `propose()`, B's "spared" is the trust being extended); ADR-007 (structurally-guaranteed need — the keystone has zero callers today, but Island 3 wires the first one, making this latent hole live); ADR-039 (the confidence dial — the score the gate's downstream consumers carry). **Co-ships with ADR-048** (the promoted-draft newtype: ADR-047 locks WHAT must hold at promotion; ADR-048 locks the TYPE that makes forgetting-it impossible — V2-CB-WIRING; the two are the same safety-tangle split into predicate + carrier).
 
@@ -11252,15 +11251,15 @@ Antigen's fingerprint model is a SNAPSHOT predicate: it matches the structure of
 
 ## Finding
 
-`antigen::learn::self_tolerance::promote_if_safe` (the B-gate's promotion authority) has **two distinct vacuity holes**, and the v0.5 baton conflated them. Only one is open. Grounded by reading the real `self_tolerance.rs` + `propose.rs` + `matcher.rs` at `0.5-dev` HEAD (aristotle's first-principles pass, maintainer's anchor):
+`antigen::learn::self_tolerance::promote_if_safe` (the B-gate's promotion authority) has **two distinct vacuity holes**, and the v0.5 baton conflated them. Only one is open. Grounded by reading the real `self_tolerance.rs` + `propose.rs` + `matcher.rs` at `0.5-dev` HEAD (a first-principles pass, the maintainer's anchor):
 
 **Hole (1) — EMPTY corpus: CLOSED.** `promote_if_safe` (`self_tolerance.rs:120-122`) already returns `None` when `clean_corpus.is_empty()`. The maintainer's prior gate-G ruling shipped in v0.4; the test pins it (`promote_if_safe_refuses_an_empty_corpus_the_gate_g_hazard`, `self_tolerance.rs:216-226`). A vacuous-pass against nothing cannot promote. **Nothing to do here — this ADR records the closure, it does not re-open it.**
 
 **Hole (2) — NON-EMPTY-but-NON-BINDABLE corpus: OPEN.** `is_empty()` is a *proxy* for "B has something real to check." The proxy's residual: a corpus of N clean items where the draft binds **zero** of them. `evaluate` (`self_tolerance.rs:68-75`) walks the corpus, finds no `draft.matches(item)`, returns `Spared`; `spare_clean` is then **vacuously** `true` — and an autoimmune draft **promotes with a green check**. The gate "spared" items it was never near. Confirmed run-as-code by two independent v0.4 probes (recorded in `charter-learning-core.md:78-87`, camp `V2 promote-if-safe-vacuous-on-nonbindable-nonempty-corpus`).
 
-**The separation that must survive into the ADR (maintainer's anchor; aristotle's note `565aebfe`).** The baton's "subset-principle / LGG makes vacuity structurally avoidable (already shipped)" is **true for the over-generalization half and mis-located for the gate**. `anti_unify`-to-disjunction (`propose.rs:126-188`) already starts narrow — intersection conjuncts + an `any_of` over the discriminating leaves — so only the residual over-binding reaches B. That hardens the **generator (C)**. But hole (2) is a **corpus-provenance** problem, not a generalization problem: *even a perfect LGG draft promotes vacuously against a corpus that doesn't exercise it.* **The subset-principle hardens C; it does NOT close GATE-G.** Fusing generator-precision with gate-soundness is the error this ADR must not make. GATE-G needs its **own** check, regardless of how good C is.
+**The separation that must survive into the ADR (the maintainer's anchor; first-principles note `565aebfe`).** The baton's "subset-principle / LGG makes vacuity structurally avoidable (already shipped)" is **true for the over-generalization half and mis-located for the gate**. `anti_unify`-to-disjunction (`propose.rs:126-188`) already starts narrow — intersection conjuncts + an `any_of` over the discriminating leaves — so only the residual over-binding reaches B. That hardens the **generator (C)**. But hole (2) is a **corpus-provenance** problem, not a generalization problem: *even a perfect LGG draft promotes vacuously against a corpus that doesn't exercise it.* **The subset-principle hardens C; it does NOT close GATE-G.** Fusing generator-precision with gate-soundness is the error this ADR must not make. GATE-G needs its **own** check, regardless of how good C is.
 
-**The false-negative trap the naive fix walks into (aristotle's note `152fb16e` — the load-bearing correction).** The obvious phrasing — "require ≥1 draft-**bindable** corpus item" — would **brick the keystone**, because of how the draft and the clean corpus interact:
+**The false-negative trap the naive fix walks into (first-principles note `152fb16e` — the load-bearing correction).** The obvious phrasing — "require ≥1 draft-**bindable** corpus item" — would **brick the keystone**, because of how the draft and the clean corpus interact:
 
 - The draft shape is `all_of([ skeleton-conjuncts…, any_of([discriminating-arms]) ])`. `Fingerprint::matches` (`matcher.rs:78`) returns `true` IFF the **whole** `all_of` is `Match` — *including* the `any_of`.
 - A **clean sibling** of the cluster (the exact item one would source for the clean corpus) matches the skeleton conjuncts (same item-kind, same `impl_of_trait`, same shared body-calls) but the `any_of` arm is `NoMatch` on it (it has `.ok()`, not `unwrap`/`expect`) → the whole draft is `NoMatch` → `draft.matches(clean_sibling) == false`. **That is correct behavior** — it is the autoimmunity-sparing working as designed.
@@ -11272,7 +11271,7 @@ The root confusion: **"the corpus must EXERCISE the draft" has two readings the 
 
 Reading (b) closes the vacuity hole **without** breaking the safe path — but reading (b)-as-"skeleton" was **not the final form.**
 
-**From skeleton-relevance to the near-miss primitive (the rev-1 → rev-2 correction; the chain that produced the decision below).** The skeleton formulation (rev 1: "≥1 corpus item the skeleton matches but the whole draft spares") was RAN by the adversarial against the real `anti_unify` + matcher and **broke four ways** (scratch harness `R:/antigen-atk-scratch/src/main.rs`): **ATK-047-1** trivial-skeleton vacuity (a bare-`[Item(Fn)]` skeleton makes any unrelated `fn` "relevant" — vacuity *relocated*, worst exactly in the high-autoimmunity case); **ATK-047-2** collapsed-draft deadlock (a no-`any_of` draft has `skeleton == draft` → `[M ∧ ¬M]` unsatisfiable → the keystone can *never* promote it, on the very path B exists for); **ATK-047-3** Undefined-skeleton silent-FN (the verdict flips on whether the corpus was sourced as `struct` vs `impl` defs); **ATK-047-4** mislabeled-clean (a corpus item that panics via an unlisted route passes the gate). Aristotle then ran a **reciprocal first-principles pass against his own skeleton fix** (default-to-refuted toward his own claim) and stripped it to the bedrock primitive: the question non-vacuity *actually* asks is **"did B spare an item it plausibly could have flagged?"** = **"is there a NEAR-MISS in the corpus?"** A near-miss — a corpus item one constraint from binding, spared by failing exactly that one — is the partition-free invariant that closes ATK-1/2/3 uniformly (no "identity vs behavioral" constraint classification needed, because you drop *one conjunct off the structure*, not a *type* of conjunct), promotes the precise-core no-disjunction draft (resolving Open-Question-1 to near-miss, not never-promote), and leaves only ATK-047-4 as a named claim-scope residual. **The §Decision below locks the near-miss primitive + the P1 backstop; rev-1 skeleton-relevance is recorded here as the path, not the destination.**
+**From skeleton-relevance to the near-miss primitive (the rev-1 → rev-2 correction; the chain that produced the decision below).** The skeleton formulation (rev 1: "≥1 corpus item the skeleton matches but the whole draft spares") was RAN by adversarial testing against the real `anti_unify` + matcher and **broke four ways** (scratch harness `R:/antigen-atk-scratch/src/main.rs`): **ATK-047-1** trivial-skeleton vacuity (a bare-`[Item(Fn)]` skeleton makes any unrelated `fn` "relevant" — vacuity *relocated*, worst exactly in the high-autoimmunity case); **ATK-047-2** collapsed-draft deadlock (a no-`any_of` draft has `skeleton == draft` → `[M ∧ ¬M]` unsatisfiable → the keystone can *never* promote it, on the very path B exists for); **ATK-047-3** Undefined-skeleton silent-FN (the verdict flips on whether the corpus was sourced as `struct` vs `impl` defs); **ATK-047-4** mislabeled-clean (a corpus item that panics via an unlisted route passes the gate). A **reciprocal first-principles pass against the skeleton fix** then ran (default-to-refuted toward the fix's own claim) and stripped it to the bedrock primitive: the question non-vacuity *actually* asks is **"did B spare an item it plausibly could have flagged?"** = **"is there a NEAR-MISS in the corpus?"** A near-miss — a corpus item one constraint from binding, spared by failing exactly that one — is the partition-free invariant that closes ATK-1/2/3 uniformly (no "identity vs behavioral" constraint classification needed, because you drop *one conjunct off the structure*, not a *type* of conjunct), promotes the precise-core no-disjunction draft (resolving Open-Question-1 to near-miss, not never-promote), and leaves only ATK-047-4 as a named claim-scope residual. **The §Decision below locks the near-miss primitive + the P1 backstop; rev-1 skeleton-relevance is recorded here as the path, not the destination.**
 
 ---
 
@@ -11289,9 +11288,9 @@ NEAR-MISS NON-VACUITY (the GATE-G soundness predicate — uniform over ALL draft
 
 A near-miss item matches **all-but-one** of the draft's top-level conjuncts and is spared **by failing exactly that remaining one**. Such an item is the proof that **B made a real discrimination** — it spared an item it *plausibly could have flagged* (it was one constraint from binding), not an item it was never near. The vacuity hole is precisely "B spared items it was never close to"; the near-miss relation is the **neighborhood** relation that closes it.
 
-**Why near-miss is the bedrock primitive (it supersedes the earlier "skeleton-relevance" formulation and dissolves three of the four adversarial breaks).** The crew's first formulation — "≥1 corpus item the draft's *skeleton* (all_of minus the any_of) matches but the whole draft spares" — the adversarial RAN against the real `anti_unify` + matcher (scratch harness `R:/antigen-atk-scratch/src/main.rs`) and broke four ways; aristotle then stripped the fix to this primitive (the reciprocal first-principles pass, captured on `safety/keystone-harden-gate-g`, notes `d1df4af2`/`4157296f`). Near-miss is better because it is **definition-free of any constraint-TYPE partition**: it drops **one conjunct at a time off the structure**, never needing to classify a constraint as "identity" vs "behavioral" (the partition the earlier relaxed-skeleton needed — and which reopened vacuity on a behaviorally-anchored family). That single move closes the breaks:
+**Why near-miss is the bedrock primitive (it supersedes the earlier "skeleton-relevance" formulation and dissolves three of the four adversarial breaks).** The first formulation — "≥1 corpus item the draft's *skeleton* (all_of minus the any_of) matches but the whole draft spares" — adversarial testing RAN against the real `anti_unify` + matcher (scratch harness `R:/antigen-atk-scratch/src/main.rs`) and broke four ways; a reciprocal first-principles pass then stripped the fix to this primitive (captured on `safety/keystone-harden-gate-g`, notes `d1df4af2`/`4157296f`). Near-miss is better because it is **definition-free of any constraint-TYPE partition**: it drops **one conjunct at a time off the structure**, never needing to classify a constraint as "identity" vs "behavioral" (the partition the earlier relaxed-skeleton needed — and which reopened vacuity on a behaviorally-anchored family). That single move closes the breaks:
 
-- **ATK-047-2 (collapsed-draft — keystone unusable under the brick-ruling; SAFE-but-route-to-human under the final ruling).** A no-`any_of` draft with a *precise* core — e.g. `all_of([impl, impl_of_trait("Drop"), body_calls("flush"), body_calls("unwrap")])` from an **identical-twins** cluster `{flush().unwrap(), flush().unwrap()}` — binds both defects and spares a clean `flush().ok()` sibling. The "never-promote a no-disjunction draft" ruling **bricked it** (skeleton == draft → no witness). Near-miss correctly sees it as **safe**: drop `body_calls("unwrap")` → the clean `flush().ok()` sibling matches `{impl, Drop, flush}` and fails only `unwrap` → near-miss witnessed, B's discrimination is real. **But near-miss answered the wrong question by trying to AUTO-PROMOTE it** (aristotle's reciprocal pass, note `7c7ba6a3`): the draft is generalized from *identical photocopies*, so it may not extend to a *new* defect site — a **generation-QUALITY** defect, not a safety defect. B is sound on it (spare-clean holds) but **B cannot certify its generalization-quality** — and auto-promoting via near-miss would be B doing C's job (violating the generator/gate-SEPARATE anchor). **Final ruling: B routes the collapsed/no-disjunction draft to a human (`NotCorpusWitnessable`) — not because it is unsafe, but because B honestly cannot certify the generalization.** Upstream, the **generalization-confidence tier-input** (Island-2.5's signal half → ADR-050) lowers a twins-draft's tier so it is surfaced as low-confidence rather than reaching the human as an un-annotated route; the route-to-human is then a tier-aware consequence, not a surprise. (Resolves Open-Question-1 to **route-to-human-for-generation-quality**, reconciling near-miss-as-safety-primitive with D-as-generation-quality-routing — they were never rivals.)
+- **ATK-047-2 (collapsed-draft — keystone unusable under the brick-ruling; SAFE-but-route-to-human under the final ruling).** A no-`any_of` draft with a *precise* core — e.g. `all_of([impl, impl_of_trait("Drop"), body_calls("flush"), body_calls("unwrap")])` from an **identical-twins** cluster `{flush().unwrap(), flush().unwrap()}` — binds both defects and spares a clean `flush().ok()` sibling. The "never-promote a no-disjunction draft" ruling **bricked it** (skeleton == draft → no witness). Near-miss correctly sees it as **safe**: drop `body_calls("unwrap")` → the clean `flush().ok()` sibling matches `{impl, Drop, flush}` and fails only `unwrap` → near-miss witnessed, B's discrimination is real. **But near-miss answered the wrong question by trying to AUTO-PROMOTE it** (the reciprocal first-principles pass, note `7c7ba6a3`): the draft is generalized from *identical photocopies*, so it may not extend to a *new* defect site — a **generation-QUALITY** defect, not a safety defect. B is sound on it (spare-clean holds) but **B cannot certify its generalization-quality** — and auto-promoting via near-miss would be B doing C's job (violating the generator/gate-SEPARATE anchor). **Final ruling: B routes the collapsed/no-disjunction draft to a human (`NotCorpusWitnessable`) — not because it is unsafe, but because B honestly cannot certify the generalization.** Upstream, the **generalization-confidence tier-input** (Island-2.5's signal half → ADR-050) lowers a twins-draft's tier so it is surfaced as low-confidence rather than reaching the human as an un-annotated route; the route-to-human is then a tier-aware consequence, not a surprise. (Resolves Open-Question-1 to **route-to-human-for-generation-quality**, reconciling near-miss-as-safety-primitive with D-as-generation-quality-routing — they were never rivals.)
 - **ATK-047-1 (trivial-skeleton vacuity — hole relocated, not closed).** The "drop the any_of" skeleton collapsed to bare `[Item(Fn)]` when the cluster shared no body-call, so any unrelated `fn` passed. Near-miss does **not** relocate the hole: a witness must be one constraint from binding *the actual draft*, which for `{fn, body_calls("transmute")}` means "a `fn` that would bind if it called `transmute`" — a genuine discrimination ("B spares non-`transmute` fns"), not arbitrary unrelated code the draft's signal never came near.
   - **→ Superseded-in-part by Amendment 2 (see below).** The prose above is *imprecise* about the case where dropping the sole discriminator collapses the draft to a bare-structural skeleton (`[impl, Drop, foo]` near-missing a bare `Drop` impl lacking `foo`). Amendment 2's **remainder-discriminates guard** treats that collapse as a REAL near-miss hole (the remainder must STILL carry a discriminating conjunct), not "the gate working." A reader chasing the single-discriminator question should read Amendment 2 as the live ruling; this bullet is the pre-Amd2 reasoning, kept for the trail.
 - **ATK-047-3 (Undefined-skeleton silent FN — verdict flips on corpus item-class).** The earlier skeleton carried `body_calls` conjuncts that went `Undefined` on a bodyless corpus item, flipping the verdict silently on struct-vs-impl corpus sourcing. Near-miss drops one conjunct at a time off the *whole draft* and tests the standard `matches` (whose `Undefined` projects to "doesn't fire," `matcher.rs:72-76`) — there is no separate skeleton to go silently `Undefined`; the same Kleene-strong matcher decides every term.
@@ -11313,7 +11312,7 @@ A near-miss item matches **all-but-one** of the draft's top-level conjuncts and 
 
 **Keep generator-precision and gate-soundness as SEPARATE concerns (the maintainer's anchor, enforced here).** The subset-principle / LGG discipline (`anti_unify` chooses the least-general generalization, widens only on positive need) hardens **C** and is governed elsewhere — it is **deferred to `charter-learning-core` as a recall-deepening (do-later, sequenced)**; **GATE-G's soundness does NOT depend on it** (a future reader must not think the gate waits on the generator's precision). This ADR governs **B's promotion authority** only. The two never merge: B's near-miss check is required *regardless* of how precise C is, because non-exercise is a property of the *corpus*, not the *draft*. (The one place B and C *do* hand off is the over-general backstop above — and that is a clean division of labor, not a merge: C refuses bare-structural drafts before B ever sees them.)
 
-**Frontier scope (ADR-044): the predicate is corpus-bounded, not a total-safety proof.** See the frontier statement below. The near-miss witness raises the gate from "spared *something or nothing*" to "spared a *near-miss* — an item it plausibly could have flagged" — it does **not** prove the draft spares all clean code everywhere (the open-world problem). The corpus is the ratifier's responsibility; a richer clean corpus is a stronger gate. This ADR closes the **vacuity** hole, NOT the **open-world coverage** gap — and the gate's new strength must not be over-read as closing open-world (aristotle's explicit caution). **One residual it explicitly does NOT close (ATK-047-4, named in claim-scope, not structurally closeable):** a corpus item the operator *mislabeled* as clean — e.g. an `impl Drop` that panics via a third route the draft does not list — is near-miss-relevant and whole-draft-spared, so it passes the gate while being a real defect. The gate certifies "B made a real discrimination," but only **as strongly as the operator's clean-label is true.** Label-trust is a human-ratifier responsibility (ADR-044's computability-forced human-in-the-loop), named here as an honest-scope bound exactly like the all→Suspected ceiling (ADR-050), never papered over.
+**Frontier scope (ADR-044): the predicate is corpus-bounded, not a total-safety proof.** See the frontier statement below. The near-miss witness raises the gate from "spared *something or nothing*" to "spared a *near-miss* — an item it plausibly could have flagged" — it does **not** prove the draft spares all clean code everywhere (the open-world problem). The corpus is the ratifier's responsibility; a richer clean corpus is a stronger gate. This ADR closes the **vacuity** hole, NOT the **open-world coverage** gap — and the gate's new strength must not be over-read as closing open-world (an explicit first-principles caution). **One residual it explicitly does NOT close (ATK-047-4, named in claim-scope, not structurally closeable):** a corpus item the operator *mislabeled* as clean — e.g. an `impl Drop` that panics via a third route the draft does not list — is near-miss-relevant and whole-draft-spared, so it passes the gate while being a real defect. The gate certifies "B made a real discrimination," but only **as strongly as the operator's clean-label is true.** Label-trust is a human-ratifier responsibility (ADR-044's computability-forced human-in-the-loop), named here as an honest-scope bound exactly like the all→Suspected ceiling (ADR-050), never papered over.
 
 ---
 
@@ -11323,7 +11322,7 @@ A near-miss item matches **all-but-one** of the draft's top-level conjuncts and 
 
 1. **`fn is_near_miss(draft: &Fingerprint, item: &syn::Item) -> bool`** — `true` iff `draft.constraints.len() >= 2` AND `!draft.matches(item)` AND `∃ i ∈ 0..draft.constraints.len()` such that `Fingerprint { constraints: draft.constraints without index i }.matches(item)`. (The dropped-conjunct fingerprint is matched by the standard `matches`; its `Undefined` projects to "doesn't fire" via the shipped Kleene-strong `match_all_of`, `matcher.rs:72-76` — so there is no separate-skeleton definedness artifact, closing ATK-047-3.) **The `len >= 2` guard closes the EMPTY-ALL_OF VACUITY (ATK-047-N4, adversarial RAN vs matcher):** dropping the sole conjunct of a single-conjunct draft yields an *empty* `constraints` vector, which `match_all_of` makes **vacuously `Match`** (`matcher.rs:88` — "an empty slice is vacuously `Match`"; the parse-time empty-`all_of` ban does NOT cover a drop-one-constructed empty). Without the guard, every non-binding item would be a false "near-miss" and vacuity reopens — and crucially `narrow()` can mint a *single discriminating* conjunct (`[body_calls("unwrap")]`) that PASSES (A)-binary yet still empty-drops, so (A)-binary does **not** subsume this; it is a distinct hole. A single-conjunct draft has **no valid near-miss by construction** (there is nothing to be "one constraint away" from when there is only one constraint) → it returns `NotCorpusWitnessable` (route-to-human), which is correct. **Top-level conjuncts only**: `anti_unify` emits a flat top-level `all_of` (`propose.rs:171-184` pushes every conjunct, incl. the `any_of`, directly onto `conjuncts`; it never nests). A future generator emitting a nested `any_of` would want a recursive drop — locked as a scope boundary (Open-Question-2), not built now.
 
-2. **`fn has_discriminating_conjunct(draft: &Fingerprint) -> bool`** — the **(A)-binary** safety check: `true` iff `draft.constraints` contains ≥1 conjunct that is NOT a bare structural anchor (`Constraint::Item(_)` / `Constraint::ImplOfTrait(_)` / `Constraint::NameMatches(_)` alone) — i.e. it carries an actual discriminating signal (a `body_calls`, `body_contains_macro`, `qualifier`, `any_of`, or any leaf that distinguishes a defect from its clean family-sibling). **Binary, never a count.** A draft failing this is bare-structural over-general (binds the whole family, spares none in-family) → a *safety* refusal. (The exact partition "bare structural anchor vs discriminating signal" is locked with the pathmaker against the real `Constraint` enum at ratification — stated as a *principle*: an anchor that says *what the item IS* is structural; one that says *what distinguishes a defect* is discriminating.)
+2. **`fn has_discriminating_conjunct(draft: &Fingerprint) -> bool`** — the **(A)-binary** safety check: `true` iff `draft.constraints` contains ≥1 conjunct that is NOT a bare structural anchor (`Constraint::Item(_)` / `Constraint::ImplOfTrait(_)` / `Constraint::NameMatches(_)` alone) — i.e. it carries an actual discriminating signal (a `body_calls`, `body_contains_macro`, `qualifier`, `any_of`, or any leaf that distinguishes a defect from its clean family-sibling). **Binary, never a count.** A draft failing this is bare-structural over-general (binds the whole family, spares none in-family) → a *safety* refusal. (The exact partition "bare structural anchor vs discriminating signal" is locked against the real `Constraint` enum at ratification — stated as a *principle*: an anchor that says *what the item IS* is structural; one that says *what distinguishes a defect* is discriminating.)
 
 3. **`fn corpus_witnesses_draft(draft: &Fingerprint, corpus: &[syn::Item]) -> NonVacuity`** — the near-miss non-vacuity check:
    - returns **`Witnessed`** iff `∃ item ∈ corpus : is_near_miss(draft, item)` (a near-miss exists — the draft's generalization is corpus-exercised);
@@ -11342,7 +11341,7 @@ A near-miss item matches **all-but-one** of the draft's top-level conjuncts and 
    if spare_clean(&draft, clean_corpus) { Promoted(draft) } else { Refused(BindsCleanItem) }  // binds a clean item = autoimmune
    ```
    (The `Promoted(_)`/`Refused(_)` here are sketch verbs for the gate *logic*; the actual return type is **`Result<PromotedDraft, ToleranceVerdict>`** — `Promoted(draft)` is `Ok(PromotedDraft { fingerprint: draft, tier })` with the gate-assigned `tier` (ADR-048/049/050), and each `Refused(v)` is `Err(v)`. ADR-047 governs the *predicate*; ADR-048 governs the *exact constructor + return type* — the co-lock.)
-   **Two axes, kept distinct (the rev-3 reconciliation, maintainer + aristotle):** the (A)-binary check and `spare_clean` are SAFETY (does it over-bind?); the near-miss check is GENERALIZATION-QUALITY (can B certify it extends?). A draft that is safe but not near-miss-witnessed (a twins-collapsed draft) is **safe yet routes to human** — B refuses to fake the generalization-verdict it cannot make. The three verdicts: `NotCorpusWitnessable` = "safe, but I can't certify it generalizes — ratify by hand" (the route-to-human handoff into ADR-051); `BindsCleanItem` = "autoimmune — binds a clean item OR is bare-structural over-general." The Island-2.5 SPLIT handles the upstream cases on the two axes: C's non-degeneracy guard (the refusal half) catches the **bare-structural** case before B (defense-in-depth with B's (A)-binary); the generalization-confidence tier-input (the signal half → ADR-050) lowers the **twins** draft's tier (it does NOT refuse it — twins are safe). The guard does not "make route-to-human rare" by catching twins — twins still route to human; the tier-input just annotates them as low-confidence first.
+   **Two axes, kept distinct (the rev-3 reconciliation, the maintainer + first principles):** the (A)-binary check and `spare_clean` are SAFETY (does it over-bind?); the near-miss check is GENERALIZATION-QUALITY (can B certify it extends?). A draft that is safe but not near-miss-witnessed (a twins-collapsed draft) is **safe yet routes to human** — B refuses to fake the generalization-verdict it cannot make. The three verdicts: `NotCorpusWitnessable` = "safe, but I can't certify it generalizes — ratify by hand" (the route-to-human handoff into ADR-051); `BindsCleanItem` = "autoimmune — binds a clean item OR is bare-structural over-general." The Island-2.5 SPLIT handles the upstream cases on the two axes: C's non-degeneracy guard (the refusal half) catches the **bare-structural** case before B (defense-in-depth with B's (A)-binary); the generalization-confidence tier-input (the signal half → ADR-050) lowers the **twins** draft's tier (it does NOT refuse it — twins are safe). The guard does not "make route-to-human rare" by catching twins — twins still route to human; the tier-input just annotates them as low-confidence first.
 
 4. **`ToleranceVerdict` extends to the three-valued shape.** Today it is `{ Spared, BindsCleanItem{clean_index} }` (`self_tolerance.rs:36-47`). It gains **`NotCorpusWitnessable`** (the route-to-human verdict — no near-miss). The pure predicate `spare_clean` keeps its literal answer (mirroring the empty-corpus division of labor at `self_tolerance.rs:112-115`); the *promotion authority* (`promote_if_safe`) is where the three-valued refusal lives. (See §Standing-Pressure-Audit Q2 for the sealed-enum inclusion discipline on the three-variant verdict.) GATE-G introduces **no proc-macro surface** — it is a library-internal gate (§Standing-Pressure-Audit Q1).
 
@@ -11350,11 +11349,11 @@ A near-miss item matches **all-but-one** of the draft's top-level conjuncts and 
 
 | Mechanism | Enforcement-Tier | Enforcement-Scope | Bypass risk + mitigation |
 |---|---|---|---|
-| `promote_if_safe` (A)-binary safety check (`!has_discriminating_conjunct → BindsCleanItem`) | build-time (library — the verdict forces the caller to handle the refusal) | client (the library API) | Bypass = none meaningful: the check is binary and internal. **Must NOT be a tunable count** (that = P2 = a `FingerprintGamedNotDefended`-class Goodhart surface a draft could be tuned to clear); the ratification gate forbids any "≥K" form. The exact "discriminating vs bare-structural" `Constraint` partition is locked with the pathmaker. |
+| `promote_if_safe` (A)-binary safety check (`!has_discriminating_conjunct → BindsCleanItem`) | build-time (library — the verdict forces the caller to handle the refusal) | client (the library API) | Bypass = none meaningful: the check is binary and internal. **Must NOT be a tunable count** (that = P2 = a `FingerprintGamedNotDefended`-class Goodhart surface a draft could be tuned to clear); the ratification gate forbids any "≥K" form. The exact "discriminating vs bare-structural" `Constraint` partition is locked at implementation. |
 | `promote_if_safe` near-miss guard (`NoWitness → NotCorpusWitnessable`) | build-time (library type-level — the three-valued verdict forces the caller to handle the route-to-human arm) | client (the library API itself) | Bypass = a caller calls `anti_unify` + asserts the raw draft without routing through `promote_if_safe`. **Mitigated by ADR-048** (the `PromotedDraft` newtype: raw `anti_unify` returns `Fingerprint`, not assertable as a promoted class — only `promote_if_safe` mints `PromotedDraft`). Without ADR-048 this is a doc-convention bypass (`propose.rs:73-77`); with it, structural. |
 | The `NotCorpusWitnessable` route-to-human verdict surfaced to the operator | CLI-time (when `cargo antigen propose` reports a cluster yielded no corpus-witnessable draft → ratification-interface, ADR-051) | client + CI (the propose caller, Island 3) | Bypass = operator ignores the diagnostic and hand-writes the antigen. That is the operator's prerogative (out of scope — they leave the learning loop and author manually); the gate governs `propose()`, not hand-authoring. |
 | C's non-degeneracy guard (P1) refuses bare-structural over-general drafts upstream of B | scan-time / CLI-time (in the generator path, before `propose()` calls B) | client + CI (the generator, pulled charter→do-now per P1) | Bypass = removing the non-degeneracy guard from C. Mitigated by the falsification non-degeneracy test (the "collapse to bare-structural → no draft" test) owned by the keystone test suite. **This is the co-requisite of the near-miss gate** — without it, near-miss alone admits the bare-structural collapse (the one case it is more permissive than the rejected never-promote ruling). |
-| The near-miss tests pin the predicate (the four ATK cases + the positive control) | commit-time + CI (the antigen test suite, `-D warnings` gate) | client + CI | Bypass = deleting the tests. Mitigated by the ATK suite owning the named adversarial tests (ATK-047-1..4) the adversarial role co-signs. |
+| The near-miss tests pin the predicate (the four ATK cases + the positive control) | commit-time + CI (the antigen test suite, `-D warnings` gate) | client + CI | Bypass = deleting the tests. Mitigated by the ATK suite owning the named adversarial tests (ATK-047-1..4). |
 
 **Friction-vs-structural disclosure:** the non-vacuity guard itself is **structural** at the library boundary (a `None` the caller's type-system forces them to handle), not friction-only — *provided* the caller uses `promote_if_safe`/`propose` rather than asserting `anti_unify` output directly. The "use the gate, not the raw generator" boundary is friction-only **until ADR-048** makes it structural via the newtype. This ADR + ADR-048 together make the whole path structural; this ADR alone makes the *gate's verdict* structural but leaves the *route-to-the-gate* a convention.
 
@@ -11366,18 +11365,18 @@ A near-miss item matches **all-but-one** of the draft's top-level conjuncts and 
 - **Q4 — Resolution algorithm**: the "reference" the predicate resolves is *a near-miss corpus item*. Algorithm: linear scan of `clean_corpus`; for each item, scan the draft's `constraints` dropping one at a time, testing `(draft minus c).matches(item) && !draft.matches(item)`. First near-miss → `Witnessed`; none → `NotCorpusWitnessable` → the route-to-human verdict at **CLI-time/build-time** (the caller handles the three-valued verdict). Not silent: type-forced. Cost: O(corpus × conjuncts) matcher calls — both small (a cluster's clean siblings × a handful of conjuncts).
 - **Q5 — Cross-primitive interaction**: interacts with `spare_clean`/`evaluate` (siblings in `self_tolerance`), with `anti_unify`/`propose` (the C-side, `propose.rs`), AND with **C's non-degeneracy guard (P1)** — which refuses bare-structural over-general drafts *before* `propose` calls B. Ordered: C's non-degeneracy guard → `anti_unify` → `propose` (`propose.rs:215-218`) → `promote_if_safe` (near-miss *and* spare-clean). The near-miss check reads the *draft's own* `constraints` (drop-one-conjunct), never re-parses (`ParallelStateTrackersDiverge` guard satisfied structurally).
 - **Q6 — Deprecation surface**: **semantic-break by return-type change, zero callers.** `promote_if_safe`'s return changes `Option<Fingerprint>` → **`Result<PromotedDraft, ToleranceVerdict>`** (the 047/048 co-lock ruling — `Result` NOT `Option`, so the three-valued verdict's `NotCorpusWitnessable` route-to-human reason survives in the `Err` arm; an `Option` would swallow it). It narrows what promotes (a safe-but-not-near-miss draft now routes to human) AND changes the type. **Zero production callers** (ADR-007), so no migration — the in-crate tests migrate in the same commit. Tightening before the first caller wires in. Called out per Q6.
-- **Q7 — Named-surface check**: new names — `is_near_miss`, `corpus_witnesses_draft`, `has_discriminating_conjunct` (fns), `NonVacuity{Witnessed, NoWitness}` (intermediate enum), `NotCorpusWitnessable` (`ToleranceVerdict` variant). Cross-ADR grep target for the adversarial/scout: confirm none collide with ADR-039/044/045/046 surfaces or existing `self_tolerance`/`propose` public items. (The earlier `skeleton`/`exercised_by`/`VacuousAgainstCorpus` names are RETIRED with the skeleton formulation — do not ship them.)
+- **Q7 — Named-surface check**: new names — `is_near_miss`, `corpus_witnesses_draft`, `has_discriminating_conjunct` (fns), `NonVacuity{Witnessed, NoWitness}` (intermediate enum), `NotCorpusWitnessable` (`ToleranceVerdict` variant). Cross-ADR grep target: confirm none collide with ADR-039/044/045/046 surfaces or existing `self_tolerance`/`propose` public items. (The earlier `skeleton`/`exercised_by`/`VacuousAgainstCorpus` names are RETIRED with the skeleton formulation — do not ship them.)
 - **Q8 — Enforcement-mechanism**: the §Enforcement-Surface table above has a row per gate (the near-miss guard, the route-to-human verdict, C's non-degeneracy guard P1, the test-pinning). The near-miss guard's row is build-time/client (type-forced verdict).
-- **Q9 — Spec-adversarial pre-implementation test (the BORN-RED spec — the adversarial's RAN cases ARE the definition of done, maintainer's directive)**: the executable tests that fail if the gate is implemented most-permissively, taken from the adversarial's scratch harness (`R:/antigen-atk-scratch/src/main.rs`):
+- **Q9 — Spec-adversarial pre-implementation test (the BORN-RED spec — the RAN adversarial cases ARE the definition of done, the maintainer's directive)**: the executable tests that fail if the gate is implemented most-permissively, taken from the adversarial scratch harness (`R:/antigen-atk-scratch/src/main.rs`):
   - **ATK-047-1 + (A)-binary** `bare_structural_draft_rejected_as_autoimmune` — a bare-structural over-general draft (`all_of([impl, impl_of_trait("Drop")])`, no discriminating signal) → `BindsCleanItem` (the (A)-binary SAFETY refusal — over-binds the family). AND `trivial_skeleton_not_corpus_witnessable` — a draft whose discriminating signal all lives in one conjunct + an unrelated-item corpus → `NotCorpusWitnessable` (vacuity NOT relocated; B routes rather than fake-promotes).
   - **ATK-047-2** `twins_collapsed_draft_routes_to_human` — the identical-twins cluster `{flush().unwrap(), flush().unwrap()}` (no `any_of`) + a clean `flush().ok()` sibling → **`NotCorpusWitnessable`** (SAFE — near-miss sees the `.ok()` sibling — but B cannot certify the twins-generalization, so it routes to human, NOT auto-promote). This is the rev-3 ruling: near-miss is the safety primitive, but a collapsed twins-draft is a generation-quality question B refuses to answer.
   - **(A)-binary positive** `precise_no_disjunction_draft_with_real_discrimination_promotes` — a no-`any_of` draft whose core carries a *genuine* discriminating signal AND is near-miss-witnessed AND not-twins-collapsed promotes (proving (A)-binary does NOT brick the precise no-disjunction case — only the bare-structural one).
   - **ATK-047-3** `near_miss_verdict_invariant_to_corpus_item_class` — the same safe Drop draft against a struct-sourced vs impl-sourced clean corpus yields the **same** verdict (no silent flip on definedness).
   - **ATK-047-4** `near_miss_passes_mislabeled_clean_corpus_item` — a corpus item that panics via an unlisted route passes the gate; this test **documents the residual** (asserts the gate passes, with a comment that label-trust is the human-ratifier's, per claim-scope) rather than asserting a structural close.
-  - **ATK-047-N4** `single_conjunct_draft_is_not_near_miss_via_empty_drop` — a single-conjunct draft (e.g. a `narrow()`-minted `[body_calls("unwrap")]` that passes (A)-binary) is NOT near-miss-witnessable: the `len >= 2` guard prevents the empty-drop, so it returns `NotCorpusWitnessable` rather than vacuously near-miss-matching every non-binding item. (The adversarial's RAN hole — the empty-`all_of` vacuity that `matcher.rs:88` would otherwise reopen; (A)-binary does NOT subsume it.)
+  - **ATK-047-N4** `single_conjunct_draft_is_not_near_miss_via_empty_drop` — a single-conjunct draft (e.g. a `narrow()`-minted `[body_calls("unwrap")]` that passes (A)-binary) is NOT near-miss-witnessable: the `len >= 2` guard prevents the empty-drop, so it returns `NotCorpusWitnessable` rather than vacuously near-miss-matching every non-binding item. (The RAN adversarial hole — the empty-`all_of` vacuity that `matcher.rs:88` would otherwise reopen; (A)-binary does NOT subsume it.)
   - **Positive control** `near_miss_promotes_the_good_drop_family` — the canonical `{unwrap, expect}` family + `CleanGuard` → promotes (`Witnessed`); the happy path stays green.
   - **P1 co-requisite** `non_degeneracy_guard_refuses_bare_structural_draft` — `all_of([impl, impl_of_trait("Drop")])` refused by **C's** non-degeneracy guard before B sees it. (Lives with the generator; named here as the co-requisite the near-miss gate depends on.)
-  These encode the spec BEFORE the pathmaker writes code; may be `#[ignore]`'d pending implementation but the bodies are the spec. **The born-red set IS the definition of done for the build wave.**
+  These encode the spec BEFORE any code is written; may be `#[ignore]`'d pending implementation but the bodies are the spec. **The born-red set IS the definition of done for the build wave.**
 
 ### §Standing invariant — (A) is BINARY, FOREVER; it must NEVER become a tunable threshold (the line that stops P1 decaying into P2)
 
@@ -11397,9 +11396,9 @@ This is a **standing invariant on the gate, not a one-time design note** (mainta
 
 ## Consequences
 
-- **The keystone's safety floor is sound, not vacuous.** Island 2 closes; Island 3 (`cargo antigen propose`) can wire the first caller knowing a promoted draft was genuinely near-miss-exercised. (Aristotle's `blocks` link: GATE-G blocks `generators/cargo-antigen-propose` and `callers/ratification-interface` — both unblock on this ADR's ratification + implementation.)
+- **The keystone's safety floor is sound, not vacuous.** Island 2 closes; Island 3 (`cargo antigen propose`) can wire the first caller knowing a promoted draft was genuinely near-miss-exercised. (The `blocks` link: GATE-G blocks `generators/cargo-antigen-propose` and `callers/ratification-interface` — both unblock on this ADR's ratification + implementation.)
 - **The clean corpus becomes a first-class input the caller must source well.** `substrate/clean-siblings-exist-propose-can-run` (the feasibility witness) proves antigen's own dogfood corpus *can* supply near-miss clean siblings — so the gate is satisfiable on the real target, not just in theory.
-- **The value-floor of the whole voyage is established here** (value-finder's note `42423245`): an engine that can emit one autoimmune draft has *negative* expected value (poisoned trust is not recoverable per-flag). Near-miss non-vacuity is the structural guarantee that the *first* flag a developer sees from the learning engine is not autoimmune.
+- **The value-floor of the whole voyage is established here** (value analysis, note `42423245`): an engine that can emit one autoimmune draft has *negative* expected value (poisoned trust is not recoverable per-flag). Near-miss non-vacuity is the structural guarantee that the *first* flag a developer sees from the learning engine is not autoimmune.
 - **The `NotCorpusWitnessable` verdict is a feature, not a failure** — it is the honest "I can't witness this; you ratify it" handoff that connects GATE-G to the ratification-interface (ADR-051, Tension-3). A gate that refuses to fake a verdict is the trust-floor the whole organism rides.
 - **P1 pulls C's non-degeneracy guard charter→do-now** — a small do-now scope add, the co-requisite of the near-miss gate (it refuses the bare-structural collapse B is intentionally not made to handle, keeping B/C single-responsibility).
 - **No production caller existed to migrate** (ADR-007) — the tightening is free now, ruinous to retrofit after a caller depends on vacuous promotion.
@@ -11414,20 +11413,20 @@ This is a **standing invariant on the gate, not a one-time design note** (mainta
 
 ## Open questions (to resolve before ratification)
 
-1. **~~The no-disjunction draft edge~~ — RESOLVED (maintainer + aristotle).** Resolved to the two-axis model: a no-disjunction draft is *safe* (near-miss sees its discrimination) but a twins-collapsed one is a *generation-quality* question B cannot answer, so B routes it to human (`NotCorpusWitnessable`); the *bare-structural* over-general draft is an (A)-binary *safety* refusal that stays in B. The Island-2.5 SPLIT handles the upstream halves: C's non-degeneracy **guard** catches the *bare-structural* case; the generalization-confidence **tier-input** (→ADR-050) lowers the *twins* draft's tier (signal, not refusal). The §Decision carries the full reconciliation (aristotle's note `7c7ba6a3`).
-2. **Top-level-only conjunct scope.** The near-miss predicate drops one *top-level* conjunct at a time. `anti_unify` emits a flat top-level `all_of` today (`propose.rs:171-184` — the `any_of` is itself a top-level conjunct, never nested). Lock the scope as "top-level conjuncts" with a note that a future generator emitting a *nested* `any_of` would want a recursive drop (a near-miss-derivation amendment). Scientist to confirm against the matcher's nesting.
-3. **~~P1 scope handoff~~ — RULED (maintainer).** P1 confirmed; C's non-degeneracy guard pulled charter→do-now as **Island-2.5** (a new do-now build, structurally-required-anyway per anti-YAGNI — `anti_unify` CAN emit twins/bare-structural drafts, so the guard is needed regardless). P2 rejected (a tunable specificity floor = `FingerprintGamedNotDefended`-class Goodhart in the wrong organ). **(A) stays BINARY** (has-a-discriminating-conjunct, not a count) and lives in B as the bare-structural *safety* refusal. The ONE remaining lock-item: the exact `Constraint` partition for `has_discriminating_conjunct` (which leaves count as "discriminating" vs "bare structural") — lock with the pathmaker against the real enum (stated as a principle: identity-anchors are structural, defect-distinguishers are discriminating).
+1. **~~The no-disjunction draft edge~~ — RESOLVED (the maintainer + first principles).** Resolved to the two-axis model: a no-disjunction draft is *safe* (near-miss sees its discrimination) but a twins-collapsed one is a *generation-quality* question B cannot answer, so B routes it to human (`NotCorpusWitnessable`); the *bare-structural* over-general draft is an (A)-binary *safety* refusal that stays in B. The Island-2.5 SPLIT handles the upstream halves: C's non-degeneracy **guard** catches the *bare-structural* case; the generalization-confidence **tier-input** (→ADR-050) lowers the *twins* draft's tier (signal, not refusal). The §Decision carries the full reconciliation (first-principles note `7c7ba6a3`).
+2. **Top-level-only conjunct scope.** The near-miss predicate drops one *top-level* conjunct at a time. `anti_unify` emits a flat top-level `all_of` today (`propose.rs:171-184` — the `any_of` is itself a top-level conjunct, never nested). Lock the scope as "top-level conjuncts" with a note that a future generator emitting a *nested* `any_of` would want a recursive drop (a near-miss-derivation amendment). A validation pass confirms against the matcher's nesting.
+3. **~~P1 scope handoff~~ — RULED (maintainer).** P1 confirmed; C's non-degeneracy guard pulled charter→do-now as **Island-2.5** (a new do-now build, structurally-required-anyway per anti-YAGNI — `anti_unify` CAN emit twins/bare-structural drafts, so the guard is needed regardless). P2 rejected (a tunable specificity floor = `FingerprintGamedNotDefended`-class Goodhart in the wrong organ). **(A) stays BINARY** (has-a-discriminating-conjunct, not a count) and lives in B as the bare-structural *safety* refusal. The ONE remaining lock-item: the exact `Constraint` partition for `has_discriminating_conjunct` (which leaves count as "discriminating" vs "bare structural") — lock against the real enum (stated as a principle: identity-anchors are structural, defect-distinguishers are discriminating).
 4. **§047/048 co-lock — RULED `Result`, constructor-fused.** The `PromotedDraft` constructor returns `Ok(PromotedDraft)` only when (A)-binary passes ∧ near-miss `Witnessed` ∧ `spare_clean` — non-vacuity *unforgettable-by-construction* (Meadows #5). **Signature: `promote_if_safe -> Result<PromotedDraft, ToleranceVerdict>`** (NOT `Option` — `Option` would swallow the route-to-human reason; the `Err(NotCorpusWitnessable)` arm keeps it legible through the collapse). ADR-048's Mechanics carry this; co-lock is the joint ratification act.
 
 ---
 
-## Amendment 1 (2026-06-11, pathmaker self-ratified during the Pioneers build wave) — producer-normalization of a single top-level `AllOf` wrapper closes the shape-fragility seam
+## Amendment 1 (2026-06-11, self-ratified during the Pioneers build wave) — producer-normalization of a single top-level `AllOf` wrapper closes the shape-fragility seam
 
 **Status**: RATIFIED (build-wave self-ratify; supersede-not-erase — the original §Mechanics "top-level conjuncts only" decision is PRESERVED above and REFINED here, not replaced).
 
 **What the original locked**: the near-miss predicate + (A)-binary read the draft's **top-level** `constraints` slice (§Mechanics 1/2), with nested `any_of`/`all_of` deferred to OQ2 ("a future generator emitting a nested `any_of` would want a recursive drop").
 
-**The divergence the build discovered (PROVEN BY RUN — `atk_047_shape_fragility_seam.rs`, the adversarial's pre-seeded born-red spec).** "Top-level conjuncts" is **producer-dependent**: two producers emit two top-level *shapes* for the SAME semantic fingerprint —
+**The divergence the build discovered (PROVEN BY RUN — `atk_047_shape_fragility_seam.rs`, the pre-seeded born-red adversarial spec).** "Top-level conjuncts" is **producer-dependent**: two producers emit two top-level *shapes* for the SAME semantic fingerprint —
 - `anti_unify` (the real v0.5 generator) emits a **FLAT** `Vec<Constraint>` (e.g. `[Item, ImplOfTrait, AnyOf]`);
 - `Fingerprint::parse("all_of([..])")` — and any future `narrow()`/`PersistedSpecimen`-re-mint that reconstructs through the `all_of(..)` *surface* (ADR-051) — emits a single **WRAPPED** `[AllOf([..])]`.
 
@@ -11441,9 +11440,9 @@ Because `is_discriminating(Constraint::AllOf(_)) == true`, a WRAPPED **bare-stru
 
 ---
 
-## Amendment 2 (2026-06-11, drafted by the test-architect, pathmaker self-ratifies at build) — the near-miss REMAINDER must discriminate, and the canonical-form normalize is RECURSIVE — closing the two trivial-skeleton vacuity holes the gate's own audit found
+## Amendment 2 (2026-06-11, self-ratified at build) — the near-miss REMAINDER must discriminate, and the canonical-form normalize is RECURSIVE — closing the two trivial-skeleton vacuity holes the gate's own audit found
 
-**Status**: PROPOSED for build-wave self-ratify (supersede-not-erase; REFINES the §Decision near-miss primitive + Amendment 1's normalize, neither replaced). Drafted by the test-architect at the maintainer's routing (build-wave batch "SAFETY SPINE LANDED + 2 VACUITY HOLES FOUND"); the pathmaker self-ratifies on landing the code. **Both holes were found by the gate auditing the gate** — the adversarial + test-architect + scout pass falsified the fresh spine immediately after self-close; **both close BEFORE Island 3 wires a real caller** (cheap now, ruinous with a caller).
+**Status**: PROPOSED for build-wave self-ratify (supersede-not-erase; REFINES the §Decision near-miss primitive + Amendment 1's normalize, neither replaced). Drafted from test-suite design at the maintainer's routing (build-wave batch "SAFETY SPINE LANDED + 2 VACUITY HOLES FOUND"); self-ratified on landing the code. **Both holes were found by the gate auditing the gate** — an adversarial + test-design + exploratory pass falsified the fresh spine immediately after self-close; **both close BEFORE Island 3 wires a real caller** (cheap now, ruinous with a caller).
 
 **What the §Decision + Amendment 1 locked**: a near-miss is a corpus item one *top-level* (producer-normalized, single-wrapper) conjunct from binding the draft (`is_near_miss` drops one normalized conjunct at a time). (A)-binary refuses a bare-structural draft. The near-miss was claimed to close ATK-047-1 (trivial-skeleton vacuity): "Near-miss does NOT relocate the hole."
 
@@ -11466,7 +11465,7 @@ Because `is_discriminating(Constraint::AllOf(_)) == true`, a WRAPPED **bare-stru
 
 2. **The canonical-form normalize is RECURSIVE (closes Hole II).** `normalized_top_level` becomes a recursive canonical-form: **flatten ALL redundant nested `AllOf`** (a sole or nested-conjunct `AllOf` whose children merge into the parent — sound because `all_of` is associative and a single-child `all_of` is identity; this is RECOGNITION, it matches `matcher.rs:163`'s own all_of handling). Applied at the predicate read, both `has_discriminating_conjunct` and `is_near_miss` see the fully-flattened conjunct set, so a double-wrap `AllOf(AllOf(..))` and a nested-conjunct `AllOf` alongside others both normalize away. Unit #8's re-mint then inherits a producer-independent gate regardless of user-parse nesting.
 
-**The one principled RESIDUAL kept open (named, not papered over — aristotle's split, maintainer-ruled).** An `AllOf` sitting *inside an `AnyOf` arm* (`any_of([all_of([a, b]), c])`) is **semantically necessary**, not redundant — the recursive flatten must NOT touch it. A top-level drop that removes the whole `AnyOf` there *under-binds* (misses), routing-to-human SAFE — it never fabricates a promote. So the **arm-internal `AllOf`-in-`AnyOf` recall-drop is the genuine OQ2 charter** (a recall-deepening for a future nested-`any_of` generator), distinct from the *safety* holes I + II this amendment closes. Safety closes now; recall is chartered.
+**The one principled RESIDUAL kept open (named, not papered over — a first-principles split, maintainer-ruled).** An `AllOf` sitting *inside an `AnyOf` arm* (`any_of([all_of([a, b]), c])`) is **semantically necessary**, not redundant — the recursive flatten must NOT touch it. A top-level drop that removes the whole `AnyOf` there *under-binds* (misses), routing-to-human SAFE — it never fabricates a promote. So the **arm-internal `AllOf`-in-`AnyOf` recall-drop is the genuine OQ2 charter** (a recall-deepening for a future nested-`any_of` generator), distinct from the *safety* holes I + II this amendment closes. Safety closes now; recall is chartered.
 
 **Frontier (what Amendment 2 proves / does NOT prove):** it proves the near-miss is a **real discrimination** (the remainder discriminates) and is **producer-independent under arbitrary `AllOf` nesting** (recursive canonical-form) — both decidable, corpus-bounded facts. It does NOT prove anything about the open-world coverage gap (unchanged from §Frontier) nor close the arm-internal recall-drop (chartered). The (A)-BINARY-FOREVER standing invariant is untouched: the new remainder-check reuses the *binary* `has_discriminating_conjunct`, never a count.
 
@@ -11478,9 +11477,9 @@ Because `is_discriminating(Constraint::AllOf(_)) == true`, a WRAPPED **bare-stru
 
 ## [ADR-048] The Promoted-Draft Newtype: Make "Only B's Output Is Assertable" Type-Enforced, Not Doc-Convention
 
-**Status**: **RATIFIED 2026-06-10** (v05 Outfitters/converge wave; targets `0.5-dev`). **Co-locked with ADR-047 (the joint ratification act); maintainer seal-gate by full re-read.** Lifecycle complete: deconstructed (aristotle, Phase 1-8 + the serde/PersistedSpecimen fifth-surface grounding), attack-annotated (adversarial — the serde-forgery + the shared bypass-class), consistency-audited. **Build-wave obligation in the baton:** the explicit `into_fingerprint` one-way-downgrade ATK (OQ2) runs at build (sound by design — an extracted `Fingerprint` is assertable as nothing).
+**Status**: **RATIFIED 2026-06-10** (v05 Outfitters/converge wave; targets `0.5-dev`). **Co-locked with ADR-047 (the joint ratification act); maintainer seal-gate by full re-read.** Lifecycle complete: deconstructed (first principles, Phase 1-8 + the serde/PersistedSpecimen fifth-surface grounding), attack-annotated (adversarial review — the serde-forgery + the shared bypass-class), consistency-audited. **Build-wave obligation in the baton:** the explicit `into_fingerprint` one-way-downgrade ATK (OQ2) runs at build (sound by design — an extracted `Fingerprint` is assertable as nothing).
 
-**Participants**: adr-specialist (draft + the 048/049/050 score-unification), dreamer (the V2-CB-WIRING island + the (1)+(2) fusion question, note `760a4197`), aristotle (Phase 1-8 + the serde/PersistedSpecimen fifth-surface grounding), adversarial (the ATK — serde-forgery + the shared bypass-class), maintainer (the co-lock directive + the seal-gate read).
+**Developed through**: ADR drafting (the 048/049/050 score-unification), design exploration (the V2-CB-WIRING island + the (1)+(2) fusion question, note `760a4197`), first-principles deconstruction (Phase 1-8 + the serde/PersistedSpecimen fifth-surface grounding), adversarial review (the ATK — serde-forgery + the shared bypass-class), and the maintainer's co-lock directive + seal-gate read.
 
 **Related**: **ADR-047** (the GATE-G non-vacuity predicate — ADR-047 locks WHAT must hold at promotion; THIS ADR locks the TYPE that makes routing-around-the-gate impossible; the two are the same safety-tangle split into predicate + carrier and **co-ship**, ADR-045's C ══ B made structural); ADR-045 (the C ══ B co-ship — "PROPOSE never promotes except through B"; today this rests on a doc convention this ADR makes a type); ADR-005 Sub-clause F (the trust boundary — this ADR converts the boundary from friction to structure); ADR-044 (frontier-honesty — `PromotedDraft` carries no more authority than "passed B against this corpus"; it is not an asserted class).
 
@@ -11492,7 +11491,7 @@ Today the safety boundary "**raw `anti_unify` output cannot be asserted; only `p
 
 While the keystone has **zero callers** (ADR-007), this is latent: there is no pipeline to route a raw draft into. **The moment Island 3 wires the first caller (`cargo antigen propose`), the boundary becomes load-bearing** — a caller can call `anti_unify`, get a `Fingerprint`, and `.matches()` against real code or emit it as a `#[presents]`/`#[antigen]` suggestion **without ever routing through B**. The autoimmune draft the whole GATE-G work (ADR-047) exists to refuse is one ordinary function call away from being asserted, and the type system says nothing. This is sub-clause F (ADR-005) left as a convention exactly at the keystone trust boundary — the one place ADR-045 calls "the maintainer's highest-stakes line."
 
-The dreamer (note `760a4197`) located this as **V2-CB-WIRING** and posed the design question this ADR must rule on: *"can the newtype's constructor ENCODE the non-vacuity invariant, making (1) unforgettable-by-construction?"* — i.e. should the newtype fuse the ADR-047 check (non-vacuity) and the ADR-048 carrier (assertability) into a single type-state move where the *only* way to obtain a `PromotedDraft` is through the full gate?
+Design exploration (note `760a4197`) located this as **V2-CB-WIRING** and posed the design question this ADR must rule on: *"can the newtype's constructor ENCODE the non-vacuity invariant, making (1) unforgettable-by-construction?"* — i.e. should the newtype fuse the ADR-047 check (non-vacuity) and the ADR-048 carrier (assertability) into a single type-state move where the *only* way to obtain a `PromotedDraft` is through the full gate?
 
 ---
 
@@ -11523,10 +11522,10 @@ pub struct PromotedDraft {
 - `propose(cluster, corpus) -> Result<PromotedDraft, ProposeOutcome>` — the only path from a cluster to a promotable draft (`propose.rs:215`), now returning the gated newtype (`ProposeOutcome` widens `ToleranceVerdict` with the C-side outcomes: `EmptyCluster`, `NoSharedSkeleton`, and the P1 `Degenerate` refusal from C's non-degeneracy guard — so every non-promotion reason is legible, not a bare `None`).
 - `PromotedDraft` exposes read-only accessors: `fn fingerprint(&self) -> &Fingerprint` (for `.matches()` / serialize) **and `fn tier(&self) -> Provenance`** (the score — ADR-049/050; the auto-accept policy-lever reads THIS, a gate-assigned tier, never a C-self-assessed one). The *only way in* is the gate.
 
-**The score field — the 048/049/050 unification (one coherent object: the scored promoted draft).** `PromotedDraft` carries a `tier: Provenance` (the EXISTING ordinal — `Encountered`/`Constructable`/`Heuristic`/`Imagined`, `finding.rs:319` — NOT a new type, a recognition per Tension-1). The three ADRs are one move on one object: **ADR-048 is the tier-CARRIER** (the field), **ADR-050 is the tier-ASSIGNMENT** (two-signal routing computes it at promotion: Signal-2-present → Named-eligible, Signal-1-only → Suspected), **ADR-049 is the tier-MANDATORY invariant** ("no caller emits un-scored output" — type-enforceable BECAUSE `PromotedDraft` structurally carries the tier, so an un-scored caller-output is type-impossible). Possession of the token proves the gate ran [048] AND the output is scored [049]. (The exact field type — `Provenance` vs a `{Provenance, DialTier}` pair — is locked with the pathmaker against `finding.rs` before ratification; aristotle's note `e92e7b7b`.)
+**The score field — the 048/049/050 unification (one coherent object: the scored promoted draft).** `PromotedDraft` carries a `tier: Provenance` (the EXISTING ordinal — `Encountered`/`Constructable`/`Heuristic`/`Imagined`, `finding.rs:319` — NOT a new type, a recognition per Tension-1). The three ADRs are one move on one object: **ADR-048 is the tier-CARRIER** (the field), **ADR-050 is the tier-ASSIGNMENT** (two-signal routing computes it at promotion: Signal-2-present → Named-eligible, Signal-1-only → Suspected), **ADR-049 is the tier-MANDATORY invariant** ("no caller emits un-scored output" — type-enforceable BECAUSE `PromotedDraft` structurally carries the tier, so an un-scored caller-output is type-impossible). Possession of the token proves the gate ran [048] AND the output is scored [049]. (The exact field type — `Provenance` vs a `{Provenance, DialTier}` pair — is locked against `finding.rs` before ratification; first-principles note `e92e7b7b`.)
 
-**The fusion ruling (the dreamer's question + systems-thinking's leverage-note + the maintainer's co-lock directive, answered): the constructor IS the fused gate — the newtype is the CARRIER, ADR-047's near-miss predicate is the CHECK, and the constructor returns a `PromotedDraft` only when the check passes, so the type encodes the invariant unforgettably-by-construction — but the two ADRs stay SEPARABLE.** Concretely:
-- The near-miss non-vacuity invariant (ADR-047) is **encoded by construction**: `promote_if_safe` is the only minter, and it returns `Ok(PromotedDraft)` *iff* ADR-047's near-miss check returns `Witnessed` AND spare-clean holds. *Possession of a `PromotedDraft` is the structural proof both held.* systems-thinking's framing (Meadows leverage #5 — a RULE beats a runtime-check you must remember): the type-rule makes GATE-G **impossible to skip**, not merely easy-to-remember. The dreamer's "unforgettable-by-construction" is achieved.
+**The fusion ruling (the design question + a systems-analysis leverage note + the maintainer's co-lock directive, answered): the constructor IS the fused gate — the newtype is the CARRIER, ADR-047's near-miss predicate is the CHECK, and the constructor returns a `PromotedDraft` only when the check passes, so the type encodes the invariant unforgettably-by-construction — but the two ADRs stay SEPARABLE.** Concretely:
+- The near-miss non-vacuity invariant (ADR-047) is **encoded by construction**: `promote_if_safe` is the only minter, and it returns `Ok(PromotedDraft)` *iff* ADR-047's near-miss check returns `Witnessed` AND spare-clean holds. *Possession of a `PromotedDraft` is the structural proof both held.* The systems-analysis framing (Meadows leverage #5 — a RULE beats a runtime-check you must remember): the type-rule makes GATE-G **impossible to skip**, not merely easy-to-remember. The "unforgettable-by-construction" goal is achieved.
 - But we **keep them as two ADRs**, because they answer two different questions and can fail independently: ADR-047 answers *"what must be true of the corpus for a promotion to be sound?"* (the near-miss predicate — could be wrong even with a perfect newtype); ADR-048 answers *"what stops a caller from asserting an un-gated draft?"* (the carrier — could be bypassed even with a perfect predicate, if the type let you construct it freely). Fusing them into one ADR would hide that the *predicate* and the *carrier* are distinct failure surfaces (the CODE-TRUE audit must be able to check each independently). **The TYPE fuses them at runtime (one constructor, one gate); the DECISIONS stay two so drift in either is its own finding.** This is the precise sense of "co-lock": the *code* is one fused move, the *governance* is two falsifiable claims.
 
 **Co-lock surface (the constructor signature):** `promote_if_safe(draft, corpus) -> Result<PromotedDraft, ToleranceVerdict>` where `Ok` ⟺ (`corpus_witnesses_draft == Witnessed` ∧ `spare_clean`). The `Result`-not-`Option` shape is the load-bearing detail (above): it carries ADR-047's three-valued verdict *through* the newtype so `NotCorpusWitnessable` reaches ADR-051's ratification-interface intact.
@@ -11540,9 +11539,9 @@ This is **recognition, not new build** (ADR-006): the boundary already exists (t
 1. **`pub struct PromotedDraft(Fingerprint)`** in `self_tolerance` (the gate's home), field private. No `pub fn new`, no `From<Fingerprint>`, no `Default`. The absence of a public constructor is load-bearing — it is the whole mechanism (Q2/Q6 below).
 2. **`promote_if_safe`** signature changes `Option<Fingerprint>` → `Result<PromotedDraft, ToleranceVerdict>`. On the `Ok` arm it wraps: `Ok(PromotedDraft(draft))`. (ADR-047's near-miss + spare-clean checks run *before* the wrap — the wrap is the last act, so the token is minted iff every gate passed; the `Err` arm carries the verdict.)
 3. **`propose`** signature changes `Option<Fingerprint>` → `Result<PromotedDraft, ProposeOutcome>` (`propose.rs:215`). Body threads the return type through from `promote_if_safe`, widening the error with the C-side non-promotion reasons (empty cluster, no shared skeleton, P1 degenerate-refusal).
-4. **Read access + the shared gate-bypass class.** `impl PromotedDraft { pub fn fingerprint(&self) -> &Fingerprint }` + `impl AsRef<Fingerprint> for PromotedDraft` — consumers that `.matches()` or serialize get a `&Fingerprint`, never an owned un-tokened one that could be re-promoted-by-forgery. **`into_fingerprint(self) -> Fingerprint` (the owned downgrade) is one member of a shared GATE-BYPASS class** that also includes ADR-051's `narrow()` re-gate (Tension-3 Hole-3: a ratifier narrowing a promoted draft produces a *new* fingerprint that must re-pass the gate, not inherit the old token). **The shared guard for the whole class:** *any operation that yields an owned `Fingerprint` from a `PromotedDraft`, or mutates a promoted draft into a different fingerprint, DOWNGRADES the capability — the result is a plain `Fingerprint` (assertable as nothing) and re-promotion requires re-routing through `promote_if_safe`.* `into_fingerprint` is safe because the downgrade is explicit and one-way; `narrow()` is safe because it returns a `Fingerprint` (or `Result<PromotedDraft,_>` if it re-gates inline), never a silently-re-tokened `PromotedDraft`. **This guard is named in BOTH ADR-048 (here) and ADR-051 (the `narrow()` re-gate) so neither owns it alone — the CODE-TRUE audit checks the class, not two unrelated methods.** (Observer's move #5: `into_fingerprint` + `narrow()` are the same bypass-class; cross-named.)
+4. **Read access + the shared gate-bypass class.** `impl PromotedDraft { pub fn fingerprint(&self) -> &Fingerprint }` + `impl AsRef<Fingerprint> for PromotedDraft` — consumers that `.matches()` or serialize get a `&Fingerprint`, never an owned un-tokened one that could be re-promoted-by-forgery. **`into_fingerprint(self) -> Fingerprint` (the owned downgrade) is one member of a shared GATE-BYPASS class** that also includes ADR-051's `narrow()` re-gate (Tension-3 Hole-3: a ratifier narrowing a promoted draft produces a *new* fingerprint that must re-pass the gate, not inherit the old token). **The shared guard for the whole class:** *any operation that yields an owned `Fingerprint` from a `PromotedDraft`, or mutates a promoted draft into a different fingerprint, DOWNGRADES the capability — the result is a plain `Fingerprint` (assertable as nothing) and re-promotion requires re-routing through `promote_if_safe`.* `into_fingerprint` is safe because the downgrade is explicit and one-way; `narrow()` is safe because it returns a `Fingerprint` (or `Result<PromotedDraft,_>` if it re-gates inline), never a silently-re-tokened `PromotedDraft`. **This guard is named in BOTH ADR-048 (here) and ADR-051 (the `narrow()` re-gate) so neither owns it alone — the CODE-TRUE audit checks the class, not two unrelated methods.** (A review's move #5: `into_fingerprint` + `narrow()` are the same bypass-class; cross-named.)
 
-5. **The serde surface is the THIRD member of the bypass class (aristotle, note `15254349`) — `PromotedDraft` must NOT derive `Deserialize`.** The private-field/no-public-constructor seal does **not** cover the serde construction path: `#[derive(Deserialize)]` can construct private fields, so a hand-written JSON `{"0": <fingerprint>}` would **forge a `PromotedDraft` token from disk** that never passed the gate. The ruling: **`PromotedDraft` does not derive `Deserialize`.** If the token must persist (for the ratification record's specimen store, ADR-051, or catalog persistence), the **serialized form is a bare `Fingerprint`** that **re-enters `promote_if_safe` on load** to re-acquire the token — *deserialize-downgrades*, the same downgrade-then-re-gate class as `into_fingerprint`/`narrow()`. (`Serialize` is fine — emitting the token's fingerprint is safe; it is *construction-from-untrusted-bytes* that forges.) Near-free to design-in now (a derive choice); ruinous to retrofit (every persisted token would be a forgeable capability). This closes the bypass class at the persistence boundary — without it, the whole capability-token discipline launders through a JSON file.
+5. **The serde surface is the THIRD member of the bypass class (first principles, note `15254349`) — `PromotedDraft` must NOT derive `Deserialize`.** The private-field/no-public-constructor seal does **not** cover the serde construction path: `#[derive(Deserialize)]` can construct private fields, so a hand-written JSON `{"0": <fingerprint>}` would **forge a `PromotedDraft` token from disk** that never passed the gate. The ruling: **`PromotedDraft` does not derive `Deserialize`.** If the token must persist (for the ratification record's specimen store, ADR-051, or catalog persistence), the **serialized form is a bare `Fingerprint`** that **re-enters `promote_if_safe` on load** to re-acquire the token — *deserialize-downgrades*, the same downgrade-then-re-gate class as `into_fingerprint`/`narrow()`. (`Serialize` is fine — emitting the token's fingerprint is safe; it is *construction-from-untrusted-bytes* that forges.) Near-free to design-in now (a derive choice); ruinous to retrofit (every persisted token would be a forgeable capability). This closes the bypass class at the persistence boundary — without it, the whole capability-token discipline launders through a JSON file.
 5. **The assertion/emission surfaces** (Island 3's `cargo antigen propose` output; any future auto-`#[presents]` suggestion path) accept `PromotedDraft`, never bare `Fingerprint`, at the point where a draft becomes a *suggestion the operator sees*. (The catalog/scan surfaces that match *already-ratified* `#[antigen]` fingerprints are unaffected — those fingerprints came from a human author, not the generator; `PromotedDraft` governs the *generator→suggestion* edge only.)
 
 ### §Enforcement-Surface
@@ -11550,7 +11549,7 @@ This is **recognition, not new build** (ADR-006): the boundary already exists (t
 | Mechanism | Enforcement-Tier | Enforcement-Scope | Bypass risk + mitigation |
 |---|---|---|---|
 | `PromotedDraft` private field + no public constructor | build-time (compile error — cannot construct outside the gate's module) | client (the library type system) | Bypass requires editing `self_tolerance.rs` to add a public constructor or make the field `pub`. That is a deliberate source edit to the safety module, not an accident — and it would be a CODE-DRIFT finding the CODE-TRUE audit catches (the newtype's privacy IS the enforcement). No config/runtime bypass exists. |
-| Suggestion surfaces accept `PromotedDraft` not `Fingerprint` | build-time (type mismatch is a compile error) | client + CI | Bypass = a surface author changes the parameter type to `Fingerprint`. Mitigated by a guard test asserting the propose-caller's emit path is typed on `PromotedDraft` (ATK-048-*), co-signed by adversarial. |
+| Suggestion surfaces accept `PromotedDraft` not `Fingerprint` | build-time (type mismatch is a compile error) | client + CI | Bypass = a surface author changes the parameter type to `Fingerprint`. Mitigated by a guard test asserting the propose-caller's emit path is typed on `PromotedDraft` (ATK-048-*). |
 | `into_fingerprint` downgrade is one-way | build-time | client | By design not a bypass — extracting yields a plain `Fingerprint` assertable as nothing; re-promotion requires re-routing through the gate. |
 
 **Friction-vs-structural disclosure:** this ADR makes the generator→suggestion boundary **structural** (a compile error, not a convention). The only residual is the source-edit-the-safety-module path, which is not a friction-vs-structural concern (it is a deliberate-tampering concern the CODE-TRUE audit owns). Unlike ADR-047-alone (where route-to-the-gate was friction-only), ADR-047 + ADR-048 together close the whole path structurally.
@@ -11563,7 +11562,7 @@ This is **recognition, not new build** (ADR-006): the boundary already exists (t
 - **Q4 — Resolution algorithm**: N/A (no reference field).
 - **Q5 — Cross-primitive interaction**: tightly coupled to ADR-047's `promote_if_safe` (the minter) and to `propose` (the cluster→token path). Interaction is explicit and one-directional: `propose` → `promote_if_safe` → `PromotedDraft`. No shared mutable state; the token wraps the *same* `Fingerprint` C produced (no re-extraction → no divergence).
 - **Q6 — Deprecation surface**: **semantic-break by signature change, but zero callers.** `promote_if_safe` and `propose` change return type `Option<Fingerprint>` → `Result<PromotedDraft, ToleranceVerdict>` / `Result<PromotedDraft, ProposeOutcome>`. Any caller pattern-matching on `Some(Fingerprint)` must now handle `Ok(PromotedDraft)` + the typed `Err` and call `.fingerprint()`. **Zero production callers** (ADR-007) — the in-crate tests are the only call sites and migrate in the same commit. The cheapest possible moment (before any caller depends on the bare-`Fingerprint`/`Option` return). Called out per Q6.
-- **Q7 — Named-surface check**: new names — `PromotedDraft` (type), `fingerprint`/`into_fingerprint` (methods), `ProposeOutcome` (the `propose` error enum). Cross-ADR grep target: confirm `PromotedDraft`/`ProposeOutcome` collide with no type in `antigen`/`antigen-fingerprint`/`antigen-macros` (they should not — new safety-layer types). `narrow()` (ADR-051) is in the shared bypass-class but lives in ADR-051's surface; cross-referenced, not owned here. Scout/adversarial to substrate-grep before lock.
+- **Q7 — Named-surface check**: new names — `PromotedDraft` (type), `fingerprint`/`into_fingerprint` (methods), `ProposeOutcome` (the `propose` error enum). Cross-ADR grep target: confirm `PromotedDraft`/`ProposeOutcome` collide with no type in `antigen`/`antigen-fingerprint`/`antigen-macros` (they should not — new safety-layer types). `narrow()` (ADR-051) is in the shared bypass-class but lives in ADR-051's surface; cross-referenced, not owned here. Substrate-grep before lock.
 - **Q8 — Enforcement-mechanism**: §Enforcement-Surface above; the load-bearing row is the private-field/no-public-constructor compile-time seal. The shared gate-bypass-class guard (Mechanics §4) is the second row — checked in both ADR-048 and ADR-051.
 - **Q9 — Spec-adversarial pre-implementation test**: the test that fails if the newtype is implemented permissively — `promoted_draft_has_no_public_constructor`: a compile-fail trybuild fixture attempting `PromotedDraft(some_fingerprint)` or `PromotedDraft::new(...)` from outside the module MUST fail to compile (the trybuild `.stderr` snapshot pins it — **stable-blessed** per the project's release discipline, so the snapshot must be generated on stable). AND `propose_returns_promoted_draft_not_fingerprint`: a type-level assertion that `propose`'s `Ok` payload is `PromotedDraft`. AND `into_fingerprint_downgrades_capability`: the owned-extraction yields a plain `Fingerprint` that is NOT re-assertable without re-gating (the shared-bypass-class guard). The trybuild compile-fail is the load-bearing test — it proves the seal holds against the bypass.
 
@@ -11581,19 +11580,19 @@ This is **recognition, not new build** (ADR-006): the boundary already exists (t
 
 - **The C ══ B co-ship (ADR-045) becomes a type, not a doc-convention.** "Never ship C without B green" — the maintainer's highest-stakes line — is now enforced by the compiler: there is no `Fingerprint`-typed path from `anti_unify` to a suggestion surface that skips B.
 - **Island 3 can wire `cargo antigen propose` safely.** The first caller receives `PromotedDraft`s; it *cannot* accidentally emit a raw `anti_unify` draft because the emit surface is typed on the token.
-- **Near-free now, ruinous to retrofit** (dreamer + value-finder): adding the newtype before the first caller is a one-commit signature change with zero migration; adding it after callers depend on `Option<Fingerprint>` is a breaking change across every caller.
+- **Near-free now, ruinous to retrofit** (design + value analysis): adding the newtype before the first caller is a one-commit signature change with zero migration; adding it after callers depend on `Option<Fingerprint>` is a breaking change across every caller.
 - **The CODE-TRUE audit gains a structural anchor**: "does the code enforce only-B-output-is-assertable?" becomes "is `PromotedDraft`'s field private and is the suggestion surface typed on it?" — a grep-checkable invariant, not a doc-read.
 
 ## Resolves
 
 - The doc-convention-only status of "raw `anti_unify` output cannot be asserted" (ADR-045's boundary) — now type-enforced.
 - The latent bypass where a caller routes a raw `Fingerprint` to a suggestion surface without B (live the moment Island 3 wires a caller).
-- The dreamer's V2-CB-WIRING island (homed do-now, co-shipping with ADR-047).
+- The V2-CB-WIRING island (homed do-now, co-shipping with ADR-047).
 
 ## Open questions — RESOLVED at ratification (maintainer seal-gate)
 
 1. **Module home for `PromotedDraft` — LOCKED: `self_tolerance`** (the gate's home; the minter lives there and the privacy seal requires same-module).
-2. **`into_fingerprint` ownership-downgrade — sound by design; explicit ATK rides the baton.** One-way extraction is safe (an extracted `Fingerprint` is assertable as nothing; re-promotion requires re-gating through `promote_if_safe`). The explicit born-red downgrade test (`into_fingerprint_downgrades_capability`, §Q9) runs at build as part of the bypass-class suite (the adversarial's un-run list).
+2. **`into_fingerprint` ownership-downgrade — sound by design; explicit ATK rides the baton.** One-way extraction is safe (an extracted `Fingerprint` is assertable as nothing; re-promotion requires re-gating through `promote_if_safe`). The explicit born-red downgrade test (`into_fingerprint_downgrades_capability`, §Q9) runs at build as part of the bypass-class suite (the un-run adversarial list).
 3. **Corpus-provenance — LOCKED: bare-wrapper for v0.5.** `PromotedDraft` does NOT carry corpus-provenance; that is the ratification record's job (ADR-051's `PersistedSpecimen`), avoiding a double-owned provenance.
 
 ---
@@ -11602,7 +11601,7 @@ This is **recognition, not new build** (ADR-006): the boundary already exists (t
 
 **Status**: Draft 2026-06-10 (v05 Outfitters/converge wave; targets `0.5-dev`). An **enforcement** ADR (not a design ADR — it enforces that the *existing* `Provenance` ordinal is correctly populated by every learning-core caller), the do-now invariant of the affinity-score-is-the-spine frame (ADR-052). **RATIFIED 2026-06-10** (maintainer seal-gate; the score = the existing `Provenance` ordinal type-carried on `PromotedDraft`, so un-scored output is type-impossible; staged lifecycle + consistency-audit). **Depends on ADR-052 (ratified)** (which ratifies "the score IS the existing `Provenance`/dial ordinal" — this ADR's invariant is vacuous until that score-as-axis is ratified) and **co-shipping with ADR-048** (the `PromotedDraft` newtype is the tier-CARRIER that makes this invariant type-enforceable).
 
-**Participants**: adr-specialist (draft), value-finder (the affinity-score-as-policy-lever), aristotle (the 048/049/050 unification — the score lives ON the `PromotedDraft`), observer (the three-required-claims scope + the Goodhart-asymmetric lever), maintainer (Tension-1: one field, two readings).
+**Developed through**: ADR drafting, value analysis (the affinity-score-as-policy-lever), first-principles deconstruction (the 048/049/050 unification — the score lives ON the `PromotedDraft`), peer review (the three-required-claims scope + the Goodhart-asymmetric lever), and the maintainer's Tension-1 resolution (one field, two readings).
 
 **Related**: **ADR-052** (the affinity-score-is-the-spine frame — the score-as-axis this ADR enforces); **ADR-048** (the `PromotedDraft` newtype carries the `tier: Provenance` field — the *carrier* that makes "no un-scored output" type-impossible); **ADR-050** (the two-signal routing is the tier-ASSIGNMENT policy — what computes the tier); ADR-039 (the confidence dial + the `Provenance` ladder — the score is THIS, surfaced; recognition not new build, `finding.rs:62` `DialTier`, `finding.rs:79` `Provenance`); ADR-044 (frontier-honesty — the honest tier IS the Goodhart protection).
 
@@ -11610,10 +11609,10 @@ This is **recognition, not new build** (ADR-006): the boundary already exists (t
 
 ## Finding
 
-The affinity-score was independently rediscovered by four fields as the one cross-cutting carrier every learning-core caller's output needs (the value-finder's spine frame, ADR-052). But it is **structurally absent from the caller path today**. Grounded against the real bytes:
+The affinity-score was independently rediscovered by four fields as the one cross-cutting carrier every learning-core caller's output needs (the value-analysis spine frame, ADR-052). But it is **structurally absent from the caller path today**. Grounded against the real bytes:
 
 - The score TYPE already exists: `Provenance` (`finding.rs:79`) = `{ Encountered, Constructable, Heuristic, Imagined }` — a **mandatory** typed enum on every `Finding` (`finding.rs:319`, `class_provenance: Provenance`, never `Option`, never a free string — "the permissive admission is trustworthy only because the provenance is honest"). Plus `DialTier` (`finding.rs:62`) = `{ Suspected, Named }`. This is the affinity-score's v0.5 form (Tension-1, maintainer — the ordinal, NOT a calibrated `[0,1]` scalar; conformal calibration is charter).
-- But the **learning-core caller path does NOT carry it.** `Fingerprint` (`antigen-fingerprint/src/lib.rs`) is `{ constraints: Vec<Constraint> }` — no score field. `anti_unify`/`propose` (`propose.rs`) attach no `Provenance`/dial/tier to their output (`propose.rs:57` only *mentions* "a suggestion at a calibrated tier" in a doc-comment; nothing in code attaches one). So a promoted draft is **structurally un-scored** — and the invariant "no caller emits un-scored output" is not merely vacuous, it is **false-by-construction**: the caller's output type has no slot for a score (aristotle's sharpening, note `e92e7b7b`).
+- But the **learning-core caller path does NOT carry it.** `Fingerprint` (`antigen-fingerprint/src/lib.rs`) is `{ constraints: Vec<Constraint> }` — no score field. `anti_unify`/`propose` (`propose.rs`) attach no `Provenance`/dial/tier to their output (`propose.rs:57` only *mentions* "a suggestion at a calibrated tier" in a doc-comment; nothing in code attaches one). So a promoted draft is **structurally un-scored** — and the invariant "no caller emits un-scored output" is not merely vacuous, it is **false-by-construction**: the caller's output type has no slot for a score (a first-principles sharpening, note `e92e7b7b`).
 
 **The resolution is a wiring, not a new type (the 048/049/050 unification).** The score-type exists (`Provenance`); promotion is exactly the moment it gets *attached*. ADR-048's `PromotedDraft` gains the `tier: Provenance` field; ADR-050's two-signal routing *computes* it at promotion; this ADR makes carrying it *mandatory*. Three ADRs, one coherent object: **the scored promoted draft.**
 
@@ -11621,7 +11620,7 @@ The affinity-score was independently rediscovered by four fields as the one cros
 
 ## Decision
 
-**Every learning-core caller emits scored output, where the score is the existing `Provenance` ordinal carried on the `PromotedDraft` (ADR-048) and assigned by the two-signal routing (ADR-050) — and the score governs a Goodhart-ASYMMETRIC ratification lever.** Three claims (the observer's three required, `64d446d2`):
+**Every learning-core caller emits scored output, where the score is the existing `Provenance` ordinal carried on the `PromotedDraft` (ADR-048) and assigned by the two-signal routing (ADR-050) — and the score governs a Goodhart-ASYMMETRIC ratification lever.** Three claims (the three required by peer review, `64d446d2`):
 
 1. **WHAT the score is (recognition, not new build).** The score is `class_provenance: Provenance` — the existing mandatory ordinal (`Encountered` / `Constructable` / `Heuristic` / `Imagined`), with the `DialTier` (`Suspected`/`Named`) as its gating projection. This ADR defines NO new metric and NO continuous score (that is charter, ADR-052's deferred half); it enforces that the *existing* ordinal is correctly populated. **The framing is "no caller forgets to set the provenance," NOT "here is what provenance means"** (that is ADR-052's job).
 
@@ -11658,7 +11657,7 @@ The affinity-score was independently rediscovered by four fields as the one cros
 - **Q7 — Named-surface check**: this ADR introduces no new names of its own (it enforces population of the existing `Provenance`/`DialTier` and references ADR-048's `tier` field). The verified-core line is a *concept*, not a new identifier. Cross-ADR grep: confirm the asymmetric-lever's threshold reads the existing `Provenance` discriminants, not a new constant.
 - **Q8 — Enforcement-mechanism**: §Enforcement-Surface above (type-impossible un-scored output; scan-time correct-population; ratification-policy asymmetric lever).
 - **Q9 — Spec-adversarial pre-implementation test (born-red)**:
-  - `promote_does_not_emit_imagined_on_a_constructable_draft` — a `propose()` over a `Constructable`-provenance cluster yields a `PromotedDraft` whose `tier()` is `Constructable`, NOT the default `Imagined` (the actual-tier-not-default invariant — the born-red spec, observer).
+  - `promote_does_not_emit_imagined_on_a_constructable_draft` — a `propose()` over a `Constructable`-provenance cluster yields a `PromotedDraft` whose `tier()` is `Constructable`, NOT the default `Imagined` (the actual-tier-not-default invariant — the born-red spec from peer review).
   - `auto_accept_refuses_below_verified_core` — the ratification lever's auto-accept branch refuses a `Heuristic`/`Imagined` draft (it routes to human, ADR-051), while auto-REJECT works at any tier (the asymmetry).
   - `promoted_draft_has_no_unscored_state` — a type-level assertion that `PromotedDraft` always carries a `tier` (no constructor produces an un-scored one — rides ADR-048's seal).
 
@@ -11675,7 +11674,7 @@ The affinity-score was independently rediscovered by four fields as the one cros
 ## Consequences
 
 - **"No un-scored output" becomes type-impossible**, not a discipline someone must remember — it rides ADR-048's `PromotedDraft.tier` field. The seam-doctrine: near-free now (the field is one addition before any caller), ruinous to retrofit (a caller emitting un-scored output downstream code depends on).
-- **The score makes machine-output usable by all three personas** (systems-thinking, Meadows #6 information-flow): triage (A), drift-trajectory (B), inheritance-trust (C) all read the one field.
+- **The score makes machine-output usable by all three personas** (systems analysis, Meadows #6 information-flow): triage (A), drift-trajectory (B), inheritance-trust (C) all read the one field.
 - **The Goodhart-asymmetric lever is the do-now intervention on the ratification ceiling** (ADR-055): auto-reject-anything + auto-accept-only-verified converts per-draft labor into a set-once threshold (the only thing that scales), WITHOUT letting an un-verified draft auto-promote.
 - **The 048/049/050 unification** — three ADRs, one object (the scored promoted draft) — is the recognition that the carrier (048), the assignment (050), and the mandate (049) are one structural move.
 
@@ -11687,7 +11686,7 @@ The affinity-score was independently rediscovered by four fields as the one cros
 
 ## Open questions (to resolve before ratification)
 
-1. **The exact `tier` field type on `PromotedDraft`.** `Provenance` alone, or a `{ Provenance, DialTier }` pair? The `DialTier` (Suspected/Named) is the gating projection of the provenance + Signal-2; carrying both is explicit, carrying just `Provenance` + deriving the dial is leaner. Lock with the pathmaker against `finding.rs` (aristotle's note `e92e7b7b`).
+1. **The exact `tier` field type on `PromotedDraft`.** `Provenance` alone, or a `{ Provenance, DialTier }` pair? The `DialTier` (Suspected/Named) is the gating projection of the provenance + Signal-2; carrying both is explicit, carrying just `Provenance` + deriving the dial is leaner. Lock against `finding.rs` (first-principles note `e92e7b7b`).
 2. **Where the verified-core LINE is drawn for the lever.** `Encountered`/`Constructable` are clearly above (the Goodhart-safe core, `finding.rs:80`); `Heuristic`/`Imagined` clearly below. Confirm there is no intermediate tier the lever must rule on (there is not, in the current `Provenance` enum — but a future ADR-039 tier would need the lever updated). Lock the lever's threshold as `>= Constructable`, by discriminant, not a magic constant.
 3. **Does ADR-052 ratify before this?** This ADR is `BlockedBy ADR-052` (the score-as-axis must ratify first so "the score TYPE exists" is non-vacuous). Confirm the ratification order: 052 (the frame) → 048 (the carrier) + 050 (the assignment) → 049 (the mandate). All co-shipping in the do-now set.
 
@@ -11697,7 +11696,7 @@ The affinity-score was independently rediscovered by four fields as the one cros
 
 **Status**: Draft 2026-06-10 (v05 Outfitters/converge wave; targets `0.5-dev`). The do-now AXIS-slice of the two-signal frame (ADR-054); the ORGAN is charter. **RATIFIED 2026-06-10** (maintainer seal-gate; the `incident=` macro-key + the tier-routing rule with two tier-inputs — Signal-2 + generalization-confidence; the all→Suspected ceiling named principled-caution; staged lifecycle + consistency-audit).
 
-**Participants**: adr-specialist (draft), naturalist (the innate-arm reframe — Signal-2 as the shared afferent), maintainer (the axis-vs-organ split + the "principled caution, not a gap" framing), aristotle / adversarial (review pending).
+**Developed through**: ADR drafting, the innate-arm reframe (Signal-2 as the shared afferent), the maintainer's axis-vs-organ split + the "principled caution, not a gap" framing, with first-principles + adversarial review pending.
 
 **Related**: **ADR-054** (the two-signal-gate frame — THIS ADR is its do-now enforcement: ADR-054 names Signal-2 as the shared afferent axis; ADR-050 ships the `incident=` key + the routing ceiling); ADR-041 (the marked-unknown plane — `#[dread]`/`#[red_flag]` are the Signal-1 marks `incident=` extends; `MarkerArgs` is the parse surface, `parse.rs:855-913`); ADR-039 (the confidence dial — Named/Suspected is the tier the routing rule sets; the `incident=` link is a tier *input*, surfaced on the scan-time Finding); ADR-044 (frontier-honesty — the Suspected ceiling IS the honest label when Signal-2 is absent); ADR-047 (GATE-G near-miss = the *structural* costimulation; `incident=` = the *semantic* costimulation — both Signal-2 readings).
 
@@ -11705,7 +11704,7 @@ The affinity-score was independently rediscovered by four fields as the one cros
 
 ## Finding
 
-The Cartographers charted antigen's entire **adaptive** immune arm and never the **innate** arm (the naturalist's noticing). The two-signal model (Janeway/Matzinger, 30+ years settled): an adaptive lymphocyte never fires on **Signal-1** (structural recognition) alone — it needs **Signal-2** (a costimulatory *danger signal*: did this shape actually cause harm?) or it goes anergic/tolerant. Cognate in antigen:
+The Cartographers charted antigen's entire **adaptive** immune arm and never the **innate** arm (an observation that surfaced it). The two-signal model (Janeway/Matzinger, 30+ years settled): an adaptive lymphocyte never fires on **Signal-1** (structural recognition) alone — it needs **Signal-2** (a costimulatory *danger signal*: did this shape actually cause harm?) or it goes anergic/tolerant. Cognate in antigen:
 
 - **Signal-1** = the shipped structural match: a `#[dread]`/`#[red_flag]` mark, a `shape_digest` cluster, an `anti_unify` draft. **Antigen has this.**
 - **Signal-2** = did-this-shape-actually-CAUSE-a-failure: an incident, a panic, a reverted commit, a co-located failing test. **Antigen has NO Signal-2 organ.**
@@ -11768,7 +11767,7 @@ A cluster reaches **Named** only when BOTH inputs clear (Signal-2 present AND ge
 - **Q4 — Resolution algorithm**: the routing rule "resolves" the cluster's incident-presence by scanning its constituent marks' doc-markers for a non-empty `incident`. Failure mode: no mark carries one → Suspected ceiling (the honest default, not an error). Surfaces at scan-time (the tier on the Finding).
 - **Q5 — Cross-primitive interaction**: `incident` is added to the SHARED `MarkerArgs` (all three markers `#[dread]`/`#[red_flag]`/`#[aura]` inherit it — same field, same semantics, no per-marker divergence). It interacts with the tier-assignment (ADR-039) as a tier *input*, and is designed as the shared afferent the charter organs (pruner/forgetting-curve/plasma-fate, ADR-053/charter) subscribe to. The routing rule reads `incident` from the doc-marker the macro emits — the scan re-reads the authored field, no re-derivation.
 - **Q6 — Deprecation surface**: **additive.** `incident` is a new optional field; existing `#[dread(trigger=…)]` marks are unaffected (they stay incident-less → Suspected, which is their current behavior). The doc-marker `v1`→`v2` bump is additive-optional (a `v1` mark parses under the `v2` reader). No migration; no semantic-break (an incident-less mark's tier is unchanged — it was already Suspected-capped de facto, now de jure).
-- **Q7 — Named-surface check**: new names — `incident` (macro field), `marked-unknown:v2` (doc-marker version). Cross-ADR grep: confirm `incident` collides with no existing `MarkerArgs`/`PresentsArgs`/`AntigenArgs` field (it should not — it is new). Scout/adversarial to substrate-grep.
+- **Q7 — Named-surface check**: new names — `incident` (macro field), `marked-unknown:v2` (doc-marker version). Cross-ADR grep: confirm `incident` collides with no existing `MarkerArgs`/`PresentsArgs`/`AntigenArgs` field (it should not — it is new). Substrate-grep before lock.
 - **Q8 — Enforcement-mechanism**: §Enforcement-Surface above (parse-time presence-check + scan-time ceiling).
 - **Q9 — Spec-adversarial pre-implementation test**:
   - `incident_field_parses_and_threads_to_marker` — `#[dread(trigger="…", incident="https://…/issues/42")]` parses, and the emitted `v2` doc-marker carries the escaped `incident`.
@@ -11802,17 +11801,17 @@ A cluster reaches **Named** only when BOTH inputs clear (Signal-2 present AND ge
 
 ## Open questions (to resolve before ratification)
 
-1. **`incident=` on `#[aura]`?** `#[aura]` is the *light* non-gating marker (never gates, never nags). Does an incident link on an aura make sense, or is `incident=` only meaningful on `#[dread]`/`#[red_flag]` (the ones that can reach Named)? **Recommend: accept on all three** (the field is shared; an aura with an incident is just a low-magnitude mark that happens to have evidence — harmless, and keeping the field uniform avoids per-marker divergence, Q5). Naturalist to confirm the biology (does a low-danger signal still carry costimulation?).
-2. **Doc-marker version bump `v1`→`v2` vs in-place optional field.** Bumping to `v2` is the clean schema-evolution move, but it touches every marker emit. Confirm with the scan-side reader: does the reader key on the `v1`/`v2` literal, or parse the JSON permissively (tolerating an unknown `incident` field on `v1`)? If the latter, no version bump is needed (pure additive field). Scientist to verify the reader's version-handling against `scan/` before locking the bump.
-3. **The routing-rule's "≥1 mark carries incident" — per-cluster or per-draft?** A cluster aggregates several marks; a `propose` draft generalizes them. Is Named-eligibility "≥1 *mark* in the cluster has an incident" or "the *promoted draft* is linked to an incident"? **Lean: per-cluster (≥1 constituent mark)** — the draft inherits Named-eligibility from any incident-bearing member, since the cluster is the failure-family. Aristotle to deconstruct whether draft-level vs mark-level Signal-2 matters for the tolerance organs.
+1. **`incident=` on `#[aura]`?** `#[aura]` is the *light* non-gating marker (never gates, never nags). Does an incident link on an aura make sense, or is `incident=` only meaningful on `#[dread]`/`#[red_flag]` (the ones that can reach Named)? **Recommend: accept on all three** (the field is shared; an aura with an incident is just a low-magnitude mark that happens to have evidence — harmless, and keeping the field uniform avoids per-marker divergence, Q5). Confirm against the biology (does a low-danger signal still carry costimulation?).
+2. **Doc-marker version bump `v1`→`v2` vs in-place optional field.** Bumping to `v2` is the clean schema-evolution move, but it touches every marker emit. Confirm with the scan-side reader: does the reader key on the `v1`/`v2` literal, or parse the JSON permissively (tolerating an unknown `incident` field on `v1`)? If the latter, no version bump is needed (pure additive field). A validation pass verifies the reader's version-handling against `scan/` before locking the bump.
+3. **The routing-rule's "≥1 mark carries incident" — per-cluster or per-draft?** A cluster aggregates several marks; a `propose` draft generalizes them. Is Named-eligibility "≥1 *mark* in the cluster has an incident" or "the *promoted draft* is linked to an incident"? **Lean: per-cluster (≥1 constituent mark)** — the draft inherits Named-eligibility from any incident-bearing member, since the cluster is the failure-family. A first-principles pass deconstructs whether draft-level vs mark-level Signal-2 matters for the tolerance organs.
 
 ---
 
 ## [ADR-051] The Co-Native Ratification Record: One Record, Two Renderings — Specimen-Triple → Accept/Reject/Narrow → Fate
 
-**Status**: **RATIFIED 2026-06-10** (v05 Outfitters/converge wave; targets `0.5-dev`). The do-now slice of the ratification-ceiling frame (ADR-055); rich UX + budget-split are charter. **Depends on GATE-G (ADR-047, ratified)** — ratification is a `propose()`/`promote_if_safe` consumer; it ships on top of the gate's safe, route-to-human-tagged drafts. Maintainer seal-gate by full re-read; the **PersistedSpecimen serde-persistence seam (the adversarial's must-fix-before-baton) folded into §Mechanics** — the in-memory record holds the token (not Serialize), the on-disk form is a bare `Fingerprint` that re-mints on load.
+**Status**: **RATIFIED 2026-06-10** (v05 Outfitters/converge wave; targets `0.5-dev`). The do-now slice of the ratification-ceiling frame (ADR-055); rich UX + budget-split are charter. **Depends on GATE-G (ADR-047, ratified)** — ratification is a `propose()`/`promote_if_safe` consumer; it ships on top of the gate's safe, route-to-human-tagged drafts. Maintainer seal-gate by full re-read; the **PersistedSpecimen serde-persistence seam (an adversarial-review must-fix-before-baton) folded into §Mechanics** — the in-memory record holds the token (not Serialize), the on-disk form is a bare `Fingerprint` that re-mints on load.
 
-**Participants**: adr-specialist (draft + the one-invariant fold), value-finder (the ratification-ceiling frame — judgment-throughput is the real bottleneck), maintainer (the Tension-3 resolution + the seal-gate read), aristotle (the one-invariant recognition + the PersistedSpecimen fifth-surface grounding + the load-regate scope-boundary), adversarial (the three laundering paths + the serde-forgery + the persistence-seam must-fix).
+**Developed through**: ADR drafting (the one-invariant fold), value analysis (the ratification-ceiling frame — judgment-throughput is the real bottleneck), the maintainer's Tension-3 resolution + seal-gate read, first-principles deconstruction (the one-invariant recognition + the PersistedSpecimen fifth-surface grounding + the load-regate scope-boundary), and adversarial review (the three laundering paths + the serde-forgery + the persistence-seam must-fix).
 
 **Related**: **ADR-055** (the ratification-ceiling frame — THIS ADR is its do-now enforcement); **ADR-047** (GATE-G — the `NotCorpusWitnessable` route-to-human verdict is the *exact* handoff INTO this record; a draft B cannot certify lands here for the human); **ADR-048** (the `PromotedDraft` newtype — the `narrow()` re-gate below is a member of the shared GATE-BYPASS class alongside `into_fingerprint` + the serde-deserialize surface, co-named there); ADR-044 (observe-don't-declare — the ratify-act IS the human supplying the semantic half; a bad ratification surface collapses this into theater); ADR-039 (the dial — the score is the coarse policy-lever the ratifier sets thresholds on); the ratification-interface island (`callers/ratification-interface`); the persona-c / trust-budget self-register islands (design inputs).
 
@@ -11820,11 +11819,11 @@ A cluster reaches **Named** only when BOTH inputs clear (Signal-2 present AND ge
 
 ## Finding
 
-Every learning-core caller terminates in the **same ratify-act**: a human (or an agent acting as one) decides whether a machine-proposed draft becomes a named class (observe-don't-declare, ADR-044 — the machine supplies the syntactic half, the ratifier supplies the semantic half). The value-finder's ceiling frame (ADR-055): the organism's value is gated **not by generation throughput but by how many proposals can be JUDGED.** An ungoverned engine produces a backlog of un-ratified drafts that decays into noise → trust-erosion. And there is a *specific structural handoff that needs a home*: ADR-047's GATE-G three-valued gate produces a **`NotCorpusWitnessable`** verdict — "this draft is safe but B cannot certify it generalizes; a human must ratify it." That verdict needs a place to land.
+Every learning-core caller terminates in the **same ratify-act**: a human (or an agent acting as one) decides whether a machine-proposed draft becomes a named class (observe-don't-declare, ADR-044 — the machine supplies the syntactic half, the ratifier supplies the semantic half). The value-analysis ceiling frame (ADR-055): the organism's value is gated **not by generation throughput but by how many proposals can be JUDGED.** An ungoverned engine produces a backlog of un-ratified drafts that decays into noise → trust-erosion. And there is a *specific structural handoff that needs a home*: ADR-047's GATE-G three-valued gate produces a **`NotCorpusWitnessable`** verdict — "this draft is safe but B cannot certify it generalizes; a human must ratify it." That verdict needs a place to land.
 
 **Tension-3 (resolved by the maintainer): human and agent are TWO RENDERINGS of ONE record, not two acts.** The mistake would be building a human UX and a separate agent API as parallel ratification paths (they would diverge — `ParallelStateTrackersDiverge` at the ratification boundary). Instead: **one co-native record** (a structured artifact both a human and an agent read natively, no translation), with two *renderings* (a CLI/TUI view for a human, a structured query/response for an agent) over the *same* underlying record and the *same* accept/reject/narrow verbs. The ratify-act is one act; who performs it (human at a terminal, agent in a loop) is a rendering choice, not a second mechanism.
 
-**The do-now slice vs charter (maintainer).** DO-NOW: the **record** (the specimen-triple + the fate), a **thin accept/reject/narrow CLI**, and the **fate-hook** (a seam that records every draft's fate — near-free now, ruinous to retrofit, the systems-thinking L4-staleness precondition). CHARTER: the rich UX, the active-learning budget-split (which drafts to surface for the scarce judgment budget), the continuous calibrated threshold.
+**The do-now slice vs charter (maintainer).** DO-NOW: the **record** (the specimen-triple + the fate), a **thin accept/reject/narrow CLI**, and the **fate-hook** (a seam that records every draft's fate — near-free now, ruinous to retrofit, the systems-analysis L4-staleness precondition). CHARTER: the rich UX, the active-learning budget-split (which drafts to surface for the scarce judgment budget), the continuous calibrated threshold.
 
 ---
 
@@ -11836,7 +11835,7 @@ Every learning-core caller terminates in the **same ratify-act**: a human (or an
 
 > **THE RATIFICATION RECORD ACCEPTS ONLY A FRESH `PromotedDraft` CAPABILITY TOKEN, NEVER A BARE `Fingerprint`.**
 
-This is a **recognition** (aristotle's reciprocal pass, note `2e638317`): ADR-048's capability-token discipline applied to the ratification *surface* — the same trust boundary, one level out. The token only exists post-gate (only `promote_if_safe` mints it, ADR-048), so "only a `PromotedDraft` is recordable-as-accepted" closes, **by construction**, the whole family of ratification-bypasses the adversarial named — they are not three independent holes needing three patches; they are three instances of one type-invariant, and drafting them as separate rules would hide the unification and invite a fourth un-closed instance. The corollaries (each closes *by type*, not by a check someone must remember):
+This is a **recognition** (a reciprocal first-principles pass, note `2e638317`): ADR-048's capability-token discipline applied to the ratification *surface* — the same trust boundary, one level out. The token only exists post-gate (only `promote_if_safe` mints it, ADR-048), so "only a `PromotedDraft` is recordable-as-accepted" closes, **by construction**, the whole family of ratification-bypasses adversarial review named — they are not three independent holes needing three patches; they are three instances of one type-invariant, and drafting them as separate rules would hide the unification and invite a fourth un-closed instance. The corollaries (each closes *by type*, not by a check someone must remember):
 
 - **Auto-accept cannot launder a C-self-assessed score (Hole-1).** The score an auto-accept policy-lever reads is the tier *on the `PromotedDraft`* — computed BY THE GATE at promotion (ADR-039/049 scored draft), not by C's self-assessment. C never mints the token, so C cannot self-assess a draft into auto-accept. The lever rides a gate-assigned field.
 - **A route-to-human / un-witnessed draft cannot be recorded-as-accepted (Hole-2).** A `NotCorpusWitnessable` draft (ADR-047) is **structurally a `Fingerprint`, not a `PromotedDraft`** — the gate never minted a token for it. So the "green-spare-clean-lie" (recording a route-to-human draft as if it passed) is **type-impossible**: you literally cannot hold a `PromotedDraft` for a draft the gate routed to a human. The record carries gate-verdict-provenance *by type*.
@@ -11849,7 +11848,7 @@ The rest of the Decision is the **content** the invariant governs:
 
 Four parts:
 
-1. **The specimen-triple record.** A drafted class arrives for ratification as a complete **specimen** — `(promoted_draft, cluster, spared_siblings)`: the `PromotedDraft` (ADR-048), the cluster of marked sites it generalizes, and the clean siblings it spared (the near-miss witnesses from GATE-G). A draft arriving *with its evidence* is faster to judge (the value-finder's enabler) — the ratifier sees what fired it, what it would flag, and what it correctly spares, without hunting. The triple is the **one co-native record** both renderings read.
+1. **The specimen-triple record.** A drafted class arrives for ratification as a complete **specimen** — `(promoted_draft, cluster, spared_siblings)`: the `PromotedDraft` (ADR-048), the cluster of marked sites it generalizes, and the clean siblings it spared (the near-miss witnesses from GATE-G). A draft arriving *with its evidence* is faster to judge (the value-analysis enabler) — the ratifier sees what fired it, what it would flag, and what it correctly spares, without hunting. The triple is the **one co-native record** both renderings read.
 
 2. **Three verbs: accept / reject / narrow.**
    - **accept** — ratify the draft into a named (or suspected-tier) class; it becomes a real `#[antigen]` the catalog ships.
@@ -11858,7 +11857,7 @@ Four parts:
 
 3. **The `NotCorpusWitnessable` handoff (the GATE-G connection, = the Hole-2 corollary made concrete).** When GATE-G (ADR-047) returns `NotCorpusWitnessable` (a safe draft B cannot certify generalizes — a twins-collapsed draft), there is **no `PromotedDraft` token** — the draft is structurally a `Fingerprint`. So it **cannot be recorded-as-accepted** (the invariant forbids it by type); it lands in the record as a *pending* specimen **flagged "needs-human-generalization-judgment."** This is the first-class consumer of GATE-G's route-to-human verdict — the gate does not fake a verdict, and the record cannot accept what the gate did not tokenize. The ratifier's accept (via `narrow`-then-re-gate, or by supplying a richer corpus the draft is near-miss-witnessed against) is the human supplying the generalization-quality judgment B refused to guess.
 
-4. **The fate-hook (the seam-hook, do-now, near-free, ruinous-to-retrofit).** Every draft's terminal **fate** — accepted / rejected / narrowed-then-re-gated / un-ratified-still-pending — is recorded at a single seam. This is the systems-thinking **L4-staleness precondition**: without a fate-record, the engine cannot learn from its own ratification history (which proposals the ratifier accepted vs rejected = the affinity-maturation feedback the whole loop needs), and retrofitting a fate-record after callers exist means reconstructing history that was never captured. The hook is one write at the ratify-act; building it now is near-free, building it later is archaeology.
+4. **The fate-hook (the seam-hook, do-now, near-free, ruinous-to-retrofit).** Every draft's terminal **fate** — accepted / rejected / narrowed-then-re-gated / un-ratified-still-pending — is recorded at a single seam. This is the systems-analysis **L4-staleness precondition**: without a fate-record, the engine cannot learn from its own ratification history (which proposals the ratifier accepted vs rejected = the affinity-maturation feedback the whole loop needs), and retrofitting a fate-record after callers exist means reconstructing history that was never captured. The hook is one write at the ratify-act; building it now is near-free, building it later is archaeology.
 
 **Co-native, not human-first-with-an-API-bolted-on (the structural posture).** The record is a structured artifact (the specimen-triple + verbs + fate) that an agent queries and a human reads through the *same* schema — neither translates to the other's format. The CLI is a rendering; the agent-query is a rendering; the record is one. (This is the co-native design discipline applied to the ratification surface: build the representation both minds engage natively, not a human UX with an agent adapter.)
 
@@ -11869,7 +11868,7 @@ Four parts:
 ### The record + verbs (do-now)
 
 - **`struct RatificationSpecimen { draft: PromotedDraft, cluster: Vec<MarkedSite>, spared: Vec<CleanSibling>, gate_verdict: ToleranceVerdict, fate: Fate }`** — the **in-memory** co-native record. Holds the live `PromotedDraft` token; **does NOT derive `Serialize`/`Deserialize`** (the token must never round-trip serde — the Hole-4 corollary + ADR-048 §5). `gate_verdict` carries the GATE-G outcome (`Spared` = promoted clean, `NotCorpusWitnessable` = needs-human-generalization-judgment) so the rendering can flag *why* it needs a human.
-- **`struct PersistedSpecimen { draft: Fingerprint, cluster: Vec<MarkedSite>, spared: Vec<CleanSibling>, gate_verdict: ToleranceVerdict, fate: Fate }`** — the **on-disk** form (the fate-hook persists specimen + history). Holds a **bare `Fingerprint`**, not the token; **IS `Serialize`/`Deserialize`** (a bare fingerprint is assertable as nothing — safe to persist). This split is *how* the Hole-4 corollary is enforced in the type system rather than merely stated: the persisted form structurally **cannot carry a forgeable token.** *(The adversarial's must-fix-before-baton, grounded by aristotle: without this split, `RatificationSpecimen` would be both the live record AND the persisted form — the token couldn't round-trip serde, an implementer would hit the compile error and "fix" it by re-adding `Deserialize` to `PromotedDraft`, reopening the whole forgery hole. The split closes it by construction.)*
+- **`struct PersistedSpecimen { draft: Fingerprint, cluster: Vec<MarkedSite>, spared: Vec<CleanSibling>, gate_verdict: ToleranceVerdict, fate: Fate }`** — the **on-disk** form (the fate-hook persists specimen + history). Holds a **bare `Fingerprint`**, not the token; **IS `Serialize`/`Deserialize`** (a bare fingerprint is assertable as nothing — safe to persist). This split is *how* the Hole-4 corollary is enforced in the type system rather than merely stated: the persisted form structurally **cannot carry a forgeable token.** *(An adversarial-review must-fix-before-baton, grounded on first principles: without this split, `RatificationSpecimen` would be both the live record AND the persisted form — the token couldn't round-trip serde, an implementer would hit the compile error and "fix" it by re-adding `Deserialize` to `PromotedDraft`, reopening the whole forgery hole. The split closes it by construction.)*
 - **The two conversions — the downgrade-then-re-gate class at the persistence boundary (the *fifth* surface, alongside promotion · accept · narrow · serde):**
   - `RatificationSpecimen → PersistedSpecimen` on save = the `into_fingerprint` downgrade (the token becomes a bare fingerprint; the capability does not persist).
   - `PersistedSpecimen → RatificationSpecimen` on load = **re-mint via `promote_if_safe`** (the bare fingerprint re-acquires a token by re-passing the gate). **Persistence never holds the token; load never skips the gate.**
@@ -11884,7 +11883,7 @@ Four parts:
 
 ### The dial as a policy-lever (do-now, recognition — ADR-052/055)
 
-The coarse ordinal dial (Suspected/Named, ADR-039) is the do-now policy-lever: a ratifier sets "Named → review-individually, Suspected → batch-watch" — converting per-draft labor into a set-once threshold (the only thing that scales, value-finder). This is **recognition** (the dial ships), not new build; ADR-051 surfaces it at the ratification record. The *continuous calibrated threshold* + the *active-learning budget allocator* (which Suspected drafts are worth a human's scarce attention) are charter (ADR-055's deferred half).
+The coarse ordinal dial (Suspected/Named, ADR-039) is the do-now policy-lever: a ratifier sets "Named → review-individually, Suspected → batch-watch" — converting per-draft labor into a set-once threshold (the only thing that scales — value analysis). This is **recognition** (the dial ships), not new build; ADR-051 surfaces it at the ratification record. The *continuous calibrated threshold* + the *active-learning budget allocator* (which Suspected drafts are worth a human's scarce attention) are charter (ADR-055's deferred half).
 
 ### §Enforcement-Surface
 
@@ -11904,10 +11903,10 @@ The coarse ordinal dial (Suspected/Named, ADR-039) is the do-now policy-lever: a
 - **Q4 — Resolution algorithm**: `narrow()` resolves the narrowed fingerprint by re-routing through `promote_if_safe` (ADR-047). Failure mode: the narrowed fingerprint fails the gate → returns the gate's `Err` verdict (the ratifier narrowed it wrong); surfaces at CLI-time.
 - **Q5 — Cross-primitive interaction**: consumes `PromotedDraft` + `ToleranceVerdict` (ADR-047/048); the `narrow()` re-gate calls back into `promote_if_safe` (the shared bypass-class). The fate-hook feeds the maturation feedback (charter — but the seam is do-now). Designed so the agent rendering reads the *same* `RatificationSpecimen` the human CLI renders (one record, no parallel state).
 - **Q6 — Deprecation surface**: **additive** (a new tooling surface; no existing caller to break — the keystone has zero callers, ADR-007).
-- **Q7 — Named-surface check**: new names — `RatificationSpecimen`, `Fate` (types), `accept`/`reject`/`narrow` (verbs), `cargo antigen ratify` (CLI). Cross-ADR grep: confirm `ratify` collides with no existing `cargo antigen` subcommand (scan/audit/new/vaccinate — it should not); confirm `narrow` is the agreed verb (vs `tighten`/`refine`). Scout/adversarial to substrate-grep.
+- **Q7 — Named-surface check**: new names — `RatificationSpecimen`, `Fate` (types), `accept`/`reject`/`narrow` (verbs), `cargo antigen ratify` (CLI). Cross-ADR grep: confirm `ratify` collides with no existing `cargo antigen` subcommand (scan/audit/new/vaccinate — it should not); confirm `narrow` is the agreed verb (vs `tighten`/`refine`). Substrate-grep before lock.
 - **Q8 — Enforcement-mechanism**: §Enforcement-Surface above (the `narrow()` re-gate structural; the fate-hook friction-at-boundary; the GATE-G handoff type-carried).
 - **Q9 — Spec-adversarial pre-implementation test**:
-  - **The one-invariant load-bearing test** `accept_takes_only_a_promoted_draft_not_a_bare_fingerprint` — a compile-fail trybuild fixture: `accept(bare_fingerprint, …)` MUST NOT compile (the record's accept-path is typed on `PromotedDraft`). This is the test that proves the whole bypass-family is closed by type. **The adversarial's residual-probe** (`2e638317`): *is there ANY path to recorded-as-accepted that does NOT go through a `PromotedDraft`?* — if the answer is "no" (no such path compiles), the one invariant holds; if "yes," that path is the real residual. The trybuild suite enumerates the candidate bypasses (bare `Fingerprint`, `into_fingerprint` output, `narrow` output, a deserialized token) and asserts each fails to compile as an `accept` argument.
+  - **The one-invariant load-bearing test** `accept_takes_only_a_promoted_draft_not_a_bare_fingerprint` — a compile-fail trybuild fixture: `accept(bare_fingerprint, …)` MUST NOT compile (the record's accept-path is typed on `PromotedDraft`). This is the test that proves the whole bypass-family is closed by type. **The adversarial residual-probe** (`2e638317`): *is there ANY path to recorded-as-accepted that does NOT go through a `PromotedDraft`?* — if the answer is "no" (no such path compiles), the one invariant holds; if "yes," that path is the real residual. The trybuild suite enumerates the candidate bypasses (bare `Fingerprint`, `into_fingerprint` output, `narrow` output, a deserialized token) and asserts each fails to compile as an `accept` argument.
   - `narrow_produces_a_fingerprint_that_must_regate` — `narrow(specimen, c)` yields a value that is NOT a `PromotedDraft` until it re-passes `promote_if_safe` (the bypass-class guard — load-bearing, co-tested with ADR-048's `into_fingerprint` test).
   - `promoted_draft_does_not_deserialize_to_a_token` — a trybuild/compile-or-runtime test that `PromotedDraft` has no `Deserialize` (or that its `Deserialize` yields a bare `Fingerprint` requiring re-gate) — the serde-forgery corollary (ADR-048 §5).
   - `persisted_specimen_round_trips_as_bare_fingerprint_and_re_mints_on_load` — saving a `RatificationSpecimen` yields a `PersistedSpecimen` carrying a bare `Fingerprint` (no token persisted); loading it re-mints the token via `promote_if_safe` **against the persisted `spared` corpus** (not the live codebase). Asserts: (a) `PersistedSpecimen` is `Serialize`/`Deserialize` and `RatificationSpecimen` is not; (b) an honest round-trip re-mints successfully; (c) a tampered persisted draft fails the re-gate (the forgery-detection); (d) the re-gate does NOT scan the current codebase (the pruner-creep guard). The fifth-surface closure of the bypass class.
@@ -11943,8 +11942,8 @@ The coarse ordinal dial (Suspected/Named, ADR-039) is the do-now policy-lever: a
 ## Open questions (to resolve before ratification)
 
 1. **Where the record lives.** A `.antigen/ratification/` sidecar? The camp substrate? An in-tree file? The maintainer's earlier ack-store ruling (charter the real store, build-now the principle) suggests: do-now = the record *shape* + the fate-hook seam; the *durable store* is charter (the same split as the acknowledgement store, ADR-046 territory). Confirm the do-now slice is "shape + seam," not "persistent store."
-2. **`narrow` verb name.** `narrow` vs `tighten` vs `refine` (Q7). Lean `narrow` (it is literally restricting the fingerprint's codomain — the opposite of the generator's "widen on positive need"). Adversarial to check the verb doesn't collide with a `cargo antigen` subcommand or a fingerprint-grammar term.
-3. **Agent-as-ratifier authority.** Can an agent `accept` (ratify into a Named class), or only `narrow`/flag-for-human? This touches observe-don't-declare (ADR-044) — is an agent's accept a real ratification or still a suggestion? **Lean: an agent renders the record and can apply a *policy* (accept-all-Named, etc.), but the policy is the human's set-once threshold (ADR-039 dial-lever) — so the agent's accept is the human's pre-authorized threshold firing, not a new semantic authority.** Aristotle to deconstruct whether that holds the observe-don't-declare line.
+2. **`narrow` verb name.** `narrow` vs `tighten` vs `refine` (Q7). Lean `narrow` (it is literally restricting the fingerprint's codomain — the opposite of the generator's "widen on positive need"). An adversarial check confirms the verb doesn't collide with a `cargo antigen` subcommand or a fingerprint-grammar term.
+3. **Agent-as-ratifier authority.** Can an agent `accept` (ratify into a Named class), or only `narrow`/flag-for-human? This touches observe-don't-declare (ADR-044) — is an agent's accept a real ratification or still a suggestion? **Lean: an agent renders the record and can apply a *policy* (accept-all-Named, etc.), but the policy is the human's set-once threshold (ADR-039 dial-lever) — so the agent's accept is the human's pre-authorized threshold firing, not a new semantic authority.** A first-principles pass deconstructs whether that holds the observe-don't-declare line.
 
 ---
 
@@ -11960,7 +11959,7 @@ The coarse ordinal dial (Suspected/Named, ADR-039) is the do-now policy-lever: a
 
 **Status**: **RATIFIED 2026-06-10**. **Related**: ADR-039 (the confidence dial — the score IS this, surfaced; recognition not new build); ADR-044 (frontier-honesty); ADR-049 (the cross-cutting "no caller emits un-scored output" invariant this frame grounds — ADR-049 is the *enforcement*, ADR-052 is the *frame*); the diversity-spine frame (`frames/affinity-score-is-the-spine`).
 
-**Finding.** The Cartographers' first organizing axis (the dreamer): B (the shipped `self_tolerance` governor — the thymus) is the **constant**; every caller is a **diversity-generator B makes safe**, and they all terminate in the same scored output. The affinity-score was independently rediscovered by four fields (dev-trust, spec-mining, conformal prediction, the subset-principle) as the one cross-cutting carrier. **One field, two readings** (Tension-1, maintainer-resolved): the score is a *partial order* (the spine — "this draft is higher-affinity than that one") AND an *ordinal dial* (the lever — Suspected/Named cut-points). These are not in tension; they are two reads of one field.
+**Finding.** The Cartographers' first organizing axis (from design exploration): B (the shipped `self_tolerance` governor — the thymus) is the **constant**; every caller is a **diversity-generator B makes safe**, and they all terminate in the same scored output. The affinity-score was independently rediscovered by four fields (dev-trust, spec-mining, conformal prediction, the subset-principle) as the one cross-cutting carrier. **One field, two readings** (Tension-1, maintainer-resolved): the score is a *partial order* (the spine — "this draft is higher-affinity than that one") AND an *ordinal dial* (the lever — Suspected/Named cut-points). These are not in tension; they are two reads of one field.
 
 **Decision (frame).** The affinity-score is the **spine of the learning core**: a recognized, load-bearing structural axis along which every caller's output is ordered and tiered. The score is **the shipped provenance-ladder + Suspected/Named dial (ADR-039), surfaced into the caller path** — recognition (ADR-006), not a new metric.
 
@@ -11974,9 +11973,9 @@ The coarse ordinal dial (Suspected/Named, ADR-039) is the do-now policy-lever: a
 
 ## [ADR-053] The Tolerance-Quadrant Grid: The Safety-Dual Is a Structurally-Required SET, Not a Wishlist
 
-**Status**: **RATIFIED 2026-06-10**. **Related**: ADR-007 (structurally-guaranteed need — the grid is a *required set*, the do-now/charter ADR for the empty quadrants); ADR-045 (the central-delete quadrant = the shipped negative-selection gate); ADR-003 (biological metaphor load-bearing — the grid IS the biology); the tolerance-quadrant-grid frame (`frames/the-tolerance-quadrant-grid`, the naturalist).
+**Status**: **RATIFIED 2026-06-10**. **Related**: ADR-007 (structurally-guaranteed need — the grid is a *required set*, the do-now/charter ADR for the empty quadrants); ADR-045 (the central-delete quadrant = the shipped negative-selection gate); ADR-003 (biological metaphor load-bearing — the grid IS the biology); the tolerance-quadrant-grid frame (`frames/the-tolerance-quadrant-grid`).
 
-**Finding.** The second organizing axis (the naturalist) is the **safety-dual** of the spine: where the spine says what flows *in*, the grid says what keeps B honest *over time*. {central, peripheral} × {prevent, delete}: **central-delete** (negative selection — SHIPPED, ADR-045) · **central-express** (AIRE / attestation-as-self) · **peripheral-prevent** (the two-signal anergy gate) · **peripheral-delete** (the autoimmunity-pruner). Biology proves **no single tolerance layer suffices** (central deletion is only ~60-70% effective) → the four quadrants are a **structurally-required SET** (ADR-007), not a wishlist. An empty quadrant is a structural *gap*; a new tolerance-dream *homes in a quadrant*.
+**Finding.** The second organizing axis is the **safety-dual** of the spine: where the spine says what flows *in*, the grid says what keeps B honest *over time*. {central, peripheral} × {prevent, delete}: **central-delete** (negative selection — SHIPPED, ADR-045) · **central-express** (AIRE / attestation-as-self) · **peripheral-prevent** (the two-signal anergy gate) · **peripheral-delete** (the autoimmunity-pruner). Biology proves **no single tolerance layer suffices** (central deletion is only ~60-70% effective) → the four quadrants are a **structurally-required SET** (ADR-007), not a wishlist. An empty quadrant is a structural *gap*; a new tolerance-dream *homes in a quadrant*.
 
 **Decision (frame).** Antigen's tolerance architecture is the **four-quadrant grid**, and ADR-007's structural-need argument applies to it: because no single quadrant is sufficient (biology-proven), all four are *structurally required*. The grid is the **map onto which every tolerance-dream homes** — a tolerance feature is placed by which quadrant it fills.
 
@@ -11988,9 +11987,9 @@ The coarse ordinal dial (Suspected/Named, ADR-039) is the do-now policy-lever: a
 
 ## [ADR-054] The Two-Signal Gate: The Innate Arm — Signal-2 (Danger) as the Shared Afferent
 
-**Status**: **RATIFIED 2026-06-10**. **Related**: ADR-050 (the `incident=` macro-key + routing rule — the do-now AXIS-slice of this frame; ADR-050 is the *enforcement*, ADR-054 is the *frame*); ADR-047 (GATE-G — the innate veto lives *inside* the gate-soundness bug, see below); ADR-003 (the metaphor); the two-signal-gate frame (`frames/the-two-signal-gate`, the naturalist, tagged `#innate-arm`).
+**Status**: **RATIFIED 2026-06-10**. **Related**: ADR-050 (the `incident=` macro-key + routing rule — the do-now AXIS-slice of this frame; ADR-050 is the *enforcement*, ADR-054 is the *frame*); ADR-047 (GATE-G — the innate veto lives *inside* the gate-soundness bug, see below); ADR-003 (the metaphor); the two-signal-gate frame (`frames/the-two-signal-gate`, tagged `#innate-arm`).
 
-**Finding.** The third organizing axis (the naturalist) names what the *whole rest of the map missed*: the crew charted the entire **adaptive** arm and never the **innate** arm. The two-signal model (Janeway/Matzinger, 30+ years settled): adaptive immunity never fires on Signal-1 (structural recognition) alone; it needs Signal-2 (a costimulatory **danger signal** — did this shape actually CAUSE harm?) or the cell goes anergic/tolerant. Cognate: **Signal-1** = the shipped `#[dread]` / cluster / `anti_unify` structural match; **Signal-2** = did-this-shape-actually-cause-a-failure (incident / panic / reverted-commit / co-located failing test). **Antigen has no Signal-2 organ.** And the reframe that makes it art: **GATE-G vacuity IS Signal-1-present / Signal-2-absent** — the briefing's mandated fix ("the corpus must EXERCISE the draft") is, term-for-term, *installing costimulation*. Signal-2 is the **shared afferent** under the pruner, the forgetting-curve, and plasma/memory-fate.
+**Finding.** The third organizing axis names what the *whole rest of the map missed*: the crew charted the entire **adaptive** arm and never the **innate** arm. The two-signal model (Janeway/Matzinger, 30+ years settled): adaptive immunity never fires on Signal-1 (structural recognition) alone; it needs Signal-2 (a costimulatory **danger signal** — did this shape actually CAUSE harm?) or the cell goes anergic/tolerant. Cognate: **Signal-1** = the shipped `#[dread]` / cluster / `anti_unify` structural match; **Signal-2** = did-this-shape-actually-cause-a-failure (incident / panic / reverted-commit / co-located failing test). **Antigen has no Signal-2 organ.** And the reframe that makes it art: **GATE-G vacuity IS Signal-1-present / Signal-2-absent** — the briefing's mandated fix ("the corpus must EXERCISE the draft") is, term-for-term, *installing costimulation*. Signal-2 is the **shared afferent** under the pruner, the forgetting-curve, and plasma/memory-fate.
 
 **Decision (frame).** The two-signal gate is antigen's **innate arm**, and **Signal-2 (danger) is a single shared afferent** that multiple organs subscribe to — not a per-organ feature. The frame names Signal-2 as a first-class axis distinct from Signal-1's structural match.
 
@@ -12002,9 +12001,9 @@ The coarse ordinal dial (Suspected/Named, ADR-039) is the do-now policy-lever: a
 
 ## [ADR-055] The Ratification Ceiling: Throughput-of-Judgment Is the Real Bottleneck
 
-**Status**: **RATIFIED 2026-06-10**. **Related**: ADR-051 (the co-native ratification record — the do-now surface where the trust-budget is spent; ADR-051 is the *enforcement*, ADR-055 is the *frame*); ADR-044 (observe-don't-declare — the ratify-act this frame governs); ADR-039 (the dial as a policy-lever); the ratification-ceiling frame (`self/ratification-throughput-the-real-ceiling` + `callers/ratification-interface`, the value-finder).
+**Status**: **RATIFIED 2026-06-10**. **Related**: ADR-051 (the co-native ratification record — the do-now surface where the trust-budget is spent; ADR-051 is the *enforcement*, ADR-055 is the *frame*); ADR-044 (observe-don't-declare — the ratify-act this frame governs); ADR-039 (the dial as a policy-lever); the ratification-ceiling frame (`self/ratification-throughput-the-real-ceiling` + `callers/ratification-interface`).
 
-**Finding.** The fourth organizing axis (the value-finder): the organism's value is gated **NOT by generation throughput but by how many machine-proposals a human/agent can afford to JUDGE.** Every caller terminates in the same ratify-act (observe-don't-declare, ADR-044). An ungoverned generative engine produces a backlog of un-ratified drafts that decays into noise → trust-erosion. Two enablers the product already suggests: the **specimen-triple** (a draft arriving WITH its evidence — cluster + spared-siblings — is faster to judge) and the **affinity-score as a policy-lever** ("ratify all >0.9, reject all <0.3, review the middle" — converts per-draft labor into set-once threshold judgment, the only thing that scales).
+**Finding.** The fourth organizing axis (value analysis): the organism's value is gated **NOT by generation throughput but by how many machine-proposals a human/agent can afford to JUDGE.** Every caller terminates in the same ratify-act (observe-don't-declare, ADR-044). An ungoverned generative engine produces a backlog of un-ratified drafts that decays into noise → trust-erosion. Two enablers the product already suggests: the **specimen-triple** (a draft arriving WITH its evidence — cluster + spared-siblings — is faster to judge) and the **affinity-score as a policy-lever** ("ratify all >0.9, reject all <0.3, review the middle" — converts per-draft labor into set-once threshold judgment, the only thing that scales).
 
 **Decision (frame).** The **ratification ceiling** — throughput-of-human-judgment — is the recognized real bottleneck of the whole organism, and every generative caller is governed by it: a caller that produces drafts faster than they can be judged produces *negative* value (backlog → noise → trust-erosion). The frame makes "judgeability" a first-class design constraint, co-equal with generation correctness.
 
@@ -12016,7 +12015,7 @@ The coarse ordinal dial (Suspected/Named, ADR-039) is the do-now policy-lever: a
 
 ## The four frames as one structure (why they ratify together)
 
-The four axes are not independent — they are the **control loop** of the organism, each governing one stage: ADR-052 (spine = what flows IN, the scored generators) → ADR-054 (two-signal = the danger-gated SELECTION) → ADR-053 (tolerance-grid = what keeps the selector HONEST over time) → ADR-055 (ratification-ceiling = the THROUGHPUT bound on the whole loop). Ratifying them as a set makes the control-loop frame (ADR-037) *enforceable at the axis level* — a Pioneer building any caller can check it against the four frames and know which stage it serves, scored, danger-gated, tolerance-bounded, and judgeable. Each is its own falsifiable claim (own PROVEN/DEFERRED line); together they are the immune feedback loop the naturalist's coherence-rule certified as ONE recurrent tangle.
+The four axes are not independent — they are the **control loop** of the organism, each governing one stage: ADR-052 (spine = what flows IN, the scored generators) → ADR-054 (two-signal = the danger-gated SELECTION) → ADR-053 (tolerance-grid = what keeps the selector HONEST over time) → ADR-055 (ratification-ceiling = the THROUGHPUT bound on the whole loop). Ratifying them as a set makes the control-loop frame (ADR-037) *enforceable at the axis level* — a Pioneer building any caller can check it against the four frames and know which stage it serves, scored, danger-gated, tolerance-bounded, and judgeable. Each is its own falsifiable claim (own PROVEN/DEFERRED line); together they are the immune feedback loop a coherence-rule certified as ONE recurrent tangle.
 
 ---
 
@@ -12024,7 +12023,7 @@ The four axes are not independent — they are the **control loop** of the organ
 
 **Status**: Draft 2026-06-10 (v05 Outfitters/converge wave; targets `0.5-dev`). The generator (C) half of the Island-2.5 SPLIT, pulled charter→do-now as the co-requisite of GATE-G (ADR-047). Thin — it adds one refusal predicate + one confidence signal to the existing `anti_unify`/`propose` path. **RATIFIED 2026-06-10** (maintainer seal-gate; predicate grounded against the real `anti_unify` at `propose.rs:108-192` — binary `constraints ⊆ {Item, ImplOfTrait}`, no magic number; shares the (A)-binary predicate with ADR-047; staged lifecycle + consistency-audit).
 
-**Participants**: adr-specialist (draft), aristotle (the P1 single-responsibility split + the reciprocal pass that located the two halves), maintainer (the Island-2.5 SPLIT ruling: a refusal-guard + a tier-input-signal, not one monolithic guard).
+**Developed through**: ADR drafting, first-principles deconstruction (the P1 single-responsibility split + the reciprocal pass that located the two halves), and the maintainer's Island-2.5 SPLIT ruling (a refusal-guard + a tier-input-signal, not one monolithic guard).
 
 **Related**: **ADR-047** (GATE-G — this ADR is its named co-requisite: B does safety, C does generalization-quality; the bare-structural REFUSAL is defense-in-depth with B's (A)-binary, and the twins SIGNAL feeds the tier-input ADR-047 routes to); **ADR-050** (the generalization-confidence signal is a tier-input here, consumed by ADR-050's two-tier-input routing); ADR-045 (the C ══ B co-ship — C's own precision is governed separately from B's gate); ADR-007 (structurally-required-anyway — `anti_unify` CAN emit degenerate drafts, so the guard is needed regardless of P1, anti-YAGNI); the falsification non-degeneracy test (charter-learning-core V2, pulled here).
 
@@ -12060,7 +12059,7 @@ This is **defense-in-depth with B's (A)-binary** (ADR-047): B's (A)-binary is th
 
 **The asymmetry that keeps the two halves distinct:** degenerate (over-binding) = a SAFETY-adjacent quality defect → REFUSED (it should not be a draft). Twins-overfit = a confidence-only concern on an otherwise-fine draft → SIGNALED (it is a valid draft, just low-confidence). Refusing a twins-draft would throw away real immunity (the false-negative trap's dual); tiering-down a degenerate draft would ship an over-binder at low confidence (still autoimmune). The split is load-bearing.
 
-### The single discriminator partitions all three cases cleanly (aristotle's grounding, `adr-056-predicate-grounding.md`)
+### The single discriminator partitions all three cases cleanly (first-principles grounding, `adr-056-predicate-grounding.md`)
 
 One question — **does the draft carry body conjuncts beyond `{Item, ImplOfTrait}`?** — partitions the generator's output into three mutually-exclusive cases (no draft lands in two):
 
@@ -12078,7 +12077,7 @@ One question — **does the draft carry body conjuncts beyond `{Item, ImplOfTrai
 
 ### (1) The non-degeneracy guard
 
-- **`fn is_degenerate(draft: &Fingerprint) -> bool`** — `true` iff `draft.constraints` contains NO conjunct beyond the identity anchors (`Constraint::Item` / `ImplOfTrait` / `NameMatches`) — i.e. `!has_discriminating_conjunct(draft)` (the SAME predicate as ADR-047's (A)-binary, shared, not duplicated — `ParallelStateTrackersDiverge` avoided: one predicate, two call-sites). The exact identity-anchor-vs-discriminating-signal partition is locked with the pathmaker against the real `Constraint` enum (stated as a principle: an anchor naming *what the item IS* is identity; one naming *what distinguishes a defect* is discriminating — same partition as ADR-047).
+- **`fn is_degenerate(draft: &Fingerprint) -> bool`** — `true` iff `draft.constraints` contains NO conjunct beyond the identity anchors (`Constraint::Item` / `ImplOfTrait` / `NameMatches`) — i.e. `!has_discriminating_conjunct(draft)` (the SAME predicate as ADR-047's (A)-binary, shared, not duplicated — `ParallelStateTrackersDiverge` avoided: one predicate, two call-sites). The exact identity-anchor-vs-discriminating-signal partition is locked against the real `Constraint` enum (stated as a principle: an anchor naming *what the item IS* is identity; one naming *what distinguishes a defect* is discriminating — same partition as ADR-047).
 - **`anti_unify`** gains the guard at its tail (after building `conjuncts`, `propose.rs:189-192`): if `is_degenerate(&draft)`, return `None` (the cluster shared no discriminating signal — `anti_unify` already declines a heterogeneous cluster at `propose.rs:113`; this extends the decline to a homogeneous-but-signalless one). **`propose`** surfaces this as `ProposeOutcome::Degenerate` (the generator-appropriate diagnostic, distinct from B's `BindsCleanItem`).
 
 ### (2) The generalization-confidence signal
@@ -12138,13 +12137,13 @@ One question — **does the draft carry body conjuncts beyond `{Item, ImplOfTrai
 
 ## Open questions (to resolve before ratification)
 
-1. **`Confidence` as a new enum vs mapped onto the dial.** Recommend mapping onto the existing `Provenance`/`DialTier` (recognition, ADR-049 — the generalization-confidence is one input to the tier, not a parallel score). A separate `Confidence` enum risks a second score-axis (ADR-049's "one field, two readings" warns against this). Confirm with aristotle.
-2. **The exact generalization-confidence computation.** "Cluster effective diversity" — is it the count of distinct discriminating signals? The member-body edit-distance? The v0.5 form should be the SIMPLEST honest signal (an empty `discriminating` set + near-identical members → `Low`); the richer diversity metric is charter. Lock the v0.5 form with the pathmaker (the simplest non-gameable signal).
-3. **Where `is_degenerate` lives.** It shares the (A)-binary predicate with ADR-047 (B's gate). Does the predicate live in `self_tolerance` (B's home, imported by C) or in a shared `learn` module? Recommend a shared location so the ONE predicate has ONE home (both B and C import it). Lock with the pathmaker.
+1. **`Confidence` as a new enum vs mapped onto the dial.** Recommend mapping onto the existing `Provenance`/`DialTier` (recognition, ADR-049 — the generalization-confidence is one input to the tier, not a parallel score). A separate `Confidence` enum risks a second score-axis (ADR-049's "one field, two readings" warns against this). Confirm on first principles.
+2. **The exact generalization-confidence computation.** "Cluster effective diversity" — is it the count of distinct discriminating signals? The member-body edit-distance? The v0.5 form should be the SIMPLEST honest signal (an empty `discriminating` set + near-identical members → `Low`); the richer diversity metric is charter. Lock the v0.5 form at implementation (the simplest non-gameable signal).
+3. **Where `is_degenerate` lives.** It shares the (A)-binary predicate with ADR-047 (B's gate). Does the predicate live in `self_tolerance` (B's home, imported by C) or in a shared `learn` module? Recommend a shared location so the ONE predicate has ONE home (both B and C import it). Lock at implementation.
 
 ---
 
-## Amendment 1 (2026-06-11, pathmaker self-ratified during the Pioneers build wave) — the degenerate REFUSAL lives in `propose`, not `anti_unify`'s tail; OQs 1–3 resolved
+## Amendment 1 (2026-06-11, self-ratified during the Pioneers build wave) — the degenerate REFUSAL lives in `propose`, not `anti_unify`'s tail; OQs 1–3 resolved
 
 **Status**: RATIFIED (build-wave self-ratify; supersede-not-erase — §Mechanics-1's "the guard at `anti_unify`'s tail" is PRESERVED above as the intent and REFINED here on placement).
 
@@ -12169,9 +12168,9 @@ One question — **does the draft carry body conjuncts beyond `{Item, ImplOfTrai
 
 *(Title supersedes the rev-1 framing "PRUNE for the one autoreactive verb" — Amendment 2 dissolved the "inverted verb" into the certainty/uncertainty boundary: the default rules the uncertainty region only; the pruner acts on positive harm-evidence, outside the default. See Amendment 2.)*
 
-**Status**: **DRAFT** (v06 Outfitters/converge wave; targets the v0.6 line). Staged through the lifecycle — Phase-1 first-principles (aristotle), adversarial attack-annotation, research-review — before ratification. **Nothing builds on this un-ratified; a draft is a claim at the lowest tier.** Cross-cutting FRAME-ADR (a fifth organizing axis alongside ADR-052..055). Enforced per-organ by the existing safety primitives (ADR-047 GATE-G route-to-human, ADR-053 the tolerance grid, ADR-054 the two-signal gate); this ADR is the FRAME that names the single principle they each instantiate.
+**Status**: **DRAFT** (v06 Outfitters/converge wave; targets the v0.6 line). Staged through the lifecycle — Phase-1 first-principles, adversarial attack-annotation, research-review — before ratification. **Nothing builds on this un-ratified; a draft is a claim at the lowest tier.** Cross-cutting FRAME-ADR (a fifth organizing axis alongside ADR-052..055). Enforced per-organ by the existing safety primitives (ADR-047 GATE-G route-to-human, ADR-053 the tolerance grid, ADR-054 the two-signal gate); this ADR is the FRAME that names the single principle they each instantiate.
 
-**Participants**: adr-specialist (draft + the counterfactual-harm reframe + the two routed-safety-question folds), math-researcher (the 5-field unanimity + Gold/Angluin + base-rate + herd-immunity literature), aristotle (the deconstruction — `ratification-is-a-judgment-of-counterfactual-harm`), adversarial (the blanket-RETAIN stress-test — the autoreactive-verb exception), value-finder + systems-thinking + outsider (flagged the unmade default-bias decision).
+**Developed through**: ADR drafting (the counterfactual-harm reframe + the two routed-safety-question folds), research review (the 5-field unanimity + Gold/Angluin + base-rate + herd-immunity literature), first-principles deconstruction (`ratification-is-a-judgment-of-counterfactual-harm`), adversarial review (the blanket-RETAIN stress-test — the autoreactive-verb exception), and value + systems + naive-question analysis (flagging the unmade default-bias decision).
 
 **Related**: **ADR-047** (GATE-G — `NotCorpusWitnessable`/route-to-human IS the conservative default at the promotion surface; the closed-alphabet assumption named here as Amendment-territory); **ADR-053** (the tolerance-quadrant grid — the reversible-first ladder IS this principle on the curation axis); **ADR-054** (the two-signal gate — Signal-2-absent → Suspected-capped is this principle on the danger axis); **ADR-055/051** (ratification ceiling — the conservative default is WHY the ratifier is the bottleneck: uncertainty routes TO them); ADR-039 (the ordinal dial — the score the default reads); ADR-006 (recognition-not-design — this default is *recognized* in five organs, not designed fresh); ADR-044 (frontier-honesty — the default is honest about what it cannot certify).
 
@@ -12179,9 +12178,9 @@ One question — **does the draft carry body conjuncts beyond `{Item, ImplOfTrai
 
 ## Finding
 
-**The unmade decision.** Five v0.6 lenses (outsider, systems-thinking, value-finder, math-researcher, naturalist) independently flagged the same gap: every generative organ in the maturing organism faces a moment of UNCERTAINTY — should it fire? promote? forget? share? broaden? — and **no ADR states what antigen does by default when the evidence is insufficient to decide.** The charters describe what each organ does when it IS confident; none names the default bias under uncertainty. An unstated default is a default chosen by accident, organ-by-organ, by whoever implements each one — `ParallelStateTrackersDiverge` at the policy layer.
+**The unmade decision.** Five v0.6 lenses (naive-question, systems-analysis, value, research, and biology-grounding) independently flagged the same gap: every generative organ in the maturing organism faces a moment of UNCERTAINTY — should it fire? promote? forget? share? broaden? — and **no ADR states what antigen does by default when the evidence is insufficient to decide.** The charters describe what each organ does when it IS confident; none names the default bias under uncertainty. An unstated default is a default chosen by accident, organ-by-organ, by whoever implements each one — `ParallelStateTrackersDiverge` at the policy layer.
 
-**The literature is UNANIMOUS on the direction** (baton §8; math-researcher's lit-map). Five independent fields, none aware of the others, all say antigen's safe default under uncertainty is **conservative**:
+**The literature is UNANIMOUS on the direction** (baton §8; the research lit-map). Five independent fields, none aware of the others, all say antigen's safe default under uncertainty is **conservative**:
 
 - **Gold 1967 (learnability):** in the open-alphabet / positive-only regime, the engine can over-generalize with NO possible counterexample — so under that uncertainty it must NOT promote; it must route to the oracle (Angluin's teacher). `[[safety/gate-g-soundness-assumes-closed-alphabet]]`.
 - **Axelsson 2000 (base-rate fallacy):** when true positives are rare (real defects are a tiny fraction of code-shapes), even a near-perfect detector floods false positives — so the prospector must NOT auto-promote; it must propose few high-precision candidates and route the rest. `[[lit/negative-space-prospector-and-the-base-rate-fallacy]]`.
@@ -12189,9 +12188,9 @@ One question — **does the draft carry body conjuncts beyond `{Item, ImplOfTrai
 - **Continual-learning (stability-plasticity):** under uncertainty about whether a class is stale, the safe move is to NOT forget (forgetting is irreversible). The dormant-HOLD default costs attention — **itself a finite shared stock (the trust-budget), NOT a free "only"** (ATK-057-4): HOLD is per-class cheap but unbounded HOLD drowns the reader (suppression-training, antigen's own `RoutingTableStale`). So the HOLD default's **scarcity-regime completion is the FORGETTING-CURVE decay loop** (a held-but-never-re-stimulated dormant class decays out over N scans), exactly as route-to-human's completion is the attention-allocator (Q9 / ATK-057-2). The default preserves optionality per-class; the decay loop bounds the aggregate attention-cost — both required for HOLD to be harm-minimizing. `[[lit/forgetting-is-the-stability-plasticity-tradeoff]]` + `[[loops/forgetting-curve-attention-reclaim]]`.
 - **The danger model (innate immunity):** absent a danger signal (Signal-2), the costimulation is missing — so the response stays capped (Suspected), not escalated. ADR-054.
 
-**But "conservative" is NOT "always RETAIN the antigen" — and getting that wrong is the adversarial's trap.** The naive reading ("default to keeping/holding the immune class") is RIGHT for the four *generative* verbs and CATASTROPHICALLY WRONG for the one *autoreactive* verb. Retaining a class that has gone autoimmune — that fires on clean code — is NOT conservative. It is the harm itself: it trains the developer to ignore antigen (suppression-training, the trust-budget storm), the exact failure the whole voyage exists to prevent. So a blanket "RETAIN" default would, on the pruning axis, default antigen INTO its own nightmare.
+**But "conservative" is NOT "always RETAIN the antigen" — and getting that wrong is the adversarial trap.** The naive reading ("default to keeping/holding the immune class") is RIGHT for the four *generative* verbs and CATASTROPHICALLY WRONG for the one *autoreactive* verb. Retaining a class that has gone autoimmune — that fires on clean code — is NOT conservative. It is the harm itself: it trains the developer to ignore antigen (suppression-training, the trust-budget storm), the exact failure the whole voyage exists to prevent. So a blanket "RETAIN" default would, on the pruning axis, default antigen INTO its own nightmare.
 
-**The resolution is to reframe the default around the invariant the naive reading misses: COUNTERFACTUAL HARM, not the antigen-class.** (aristotle's deconstruction, `[[ratification-is-a-judgment-of-counterfactual-harm]]`: every antigen act is a judgment of counterfactual harm — "would matching code have caused a failure the clean siblings would not?"). The conservative default is **the action that minimizes counterfactual harm to the developer's trust** — and that action is direction-specific per verb, because the harm-asymmetry flips on exactly one axis.
+**The resolution is to reframe the default around the invariant the naive reading misses: COUNTERFACTUAL HARM, not the antigen-class.** (a first-principles deconstruction, `[[ratification-is-a-judgment-of-counterfactual-harm]]`: every antigen act is a judgment of counterfactual harm — "would matching code have caused a failure the clean siblings would not?"). The conservative default is **the action that minimizes counterfactual harm to the developer's trust** — and that action is direction-specific per verb, because the harm-asymmetry flips on exactly one axis.
 
 ---
 
@@ -12218,7 +12217,7 @@ This is ONE principle, not six rules. The asymmetry is structural and stated onc
 
 **Constraint B — the score is ordinal, not a probability (the calibration answer, baton §7b).** The affinity-score (`generalization_confidence` → 2 buckets, `propose.rs:288`; `tier: Provenance` → DialTier projection) is a coarse ORDINAL proxy, NOT a calibrated probability — by construction, and correctly so (the (A)-BINARY-FOREVER standing invariant, ADR-047 §Standing-invariant, forbids a tunable probability threshold inside the safety gate). **No organ may AUTO-ACT on the score as if it were P(class is correct)** — an ordinal bucket cannot bound a false-discovery rate. The conservative default is what makes the un-calibrated ordinal SAFE: every uncertain draft routes to a human rather than being auto-disposed by a probability threshold. Where a future organ (catalog-FDR, AL-budget) genuinely needs a calibrated probability, that is a SEPARATE C-axis measurement living OUTSIDE the safety gate, never a threshold migrated INTO it. Detail: `[[safety/affinity-score-is-ordinal-not-calibrated-probability]]`.
 
-### The reversibility ladder (the adversarial's mitigation for the one inverted default)
+### The reversibility ladder (an adversarial-review mitigation for the one inverted default)
 
 The PRUNE default acts under uncertainty — which is itself a risk (false-pruning a dormant-but-real immunity re-introduces antigen's own `RoutingTableStale` nightmare, self-inflicted; baton §3 CURATE). The mitigation: **the autoreactive default acts REVERSIBLY first** (ADR-053's peripheral-tolerance ladder: anergy → Treg active-suppression → exhaustion-checkpoint **before** delete). Silence-don't-delete; tombstone-don't-erase (persona-c build-requirement 1). So even the inverted default stays recoverable — it minimizes harm in BOTH directions (stops the false fires AND keeps the evidence the class existed, so a cold reader doesn't re-walk the dead end). The PRUNE default is conservative-with-an-undo, not destructive.
 
@@ -12236,21 +12235,21 @@ This is a FRAME-ADR: it does not introduce a new type or function. It names the 
 
 - **Q2 — sealed-enum inclusion:** no new enum. The default reads the EXISTING `ToleranceVerdict` (ADR-047: `NotCorpusWitnessable` is the route-to-human conservative arm) and `Confidence`/`tier` (ADR-039/049). No variant added.
 - **Q6 — deprecation:** additive (a frame over existing primitives; no caller breaks).
-- **Q9 — adversarial pre-ratification test (CLOSED by converge-adversarial, 2026-06-17 — ATK-057-1/2/3):** the blanket-RETAIN stress — *is there any axis where the conservative default is the HARMFUL move?* **OQ1 ANSWERED: YES the pruner is the SOLE DIRECTION-inverted verb; no second axis inverts the action-direction under uncertainty** (ATK-057-1 SENSE-miss = the pre-antigen baseline, not below it → SENSE non-action is genuinely harm-free; ATK-057-3 BROADEN continued-miss = baseline → harm-free). The counterfactual-harm reframe + the Amendment-2 evidence/uncertainty boundary SURVIVE the attack.
-  - **But ATK-057-2 REFUTED an over-strong supporting claim, now corrected honestly:** the pruner's non-action spends trust **per-fire** (the one DIRECTION-inversion); **route-to-human spends the scarce ratifier budget IN AGGREGATE under scarcity** (the §2 co-requisite cite: over-firing → the expert stops trusting the whole system) — reconciled by the attention-allocator (route-up-to-budget-then-allocate the highest-value subset); **SENSE non-action alone is harm-free** (returns to the pre-antigen baseline). So **"conservative = costless inaction" holds PER-DRAFT but NOT IN AGGREGATE** — "inaction is free" is the naive-RETAIN trap one level up, false once the route-rate exceeds the ratifier's budget. This does NOT add a sixth inverted row; it makes the **attention-allocator the conservative default's scarcity-regime COMPLETION** (the allocator is tied INTO this ADR, not a separate later nicety — the same co-requisite logic the §2 keystone names). The pruner remains the SOLE direction-inversion.
+- **Q9 — adversarial pre-ratification test (CLOSED by converge adversarial review, 2026-06-17 — ATK-057-1/2/3):** the blanket-RETAIN stress — *is there any axis where the conservative default is the HARMFUL move?* **OQ1 ANSWERED: YES the pruner is the SOLE DIRECTION-inverted verb; no second axis inverts the action-direction under uncertainty** (ATK-057-1 SENSE-miss = the pre-antigen baseline, not below it → SENSE non-action is genuinely harm-free; ATK-057-3 BROADEN continued-miss = baseline → harm-free). The counterfactual-harm reframe + the Amendment-2 evidence/uncertainty boundary SURVIVE the attack.
+  - **But ATK-057-2 REFUTED an over-strong supporting claim (adversarial review), now corrected honestly:** the pruner's non-action spends trust **per-fire** (the one DIRECTION-inversion); **route-to-human spends the scarce ratifier budget IN AGGREGATE under scarcity** (the §2 co-requisite cite: over-firing → the expert stops trusting the whole system) — reconciled by the attention-allocator (route-up-to-budget-then-allocate the highest-value subset); **SENSE non-action alone is harm-free** (returns to the pre-antigen baseline). So **"conservative = costless inaction" holds PER-DRAFT but NOT IN AGGREGATE** — "inaction is free" is the naive-RETAIN trap one level up, false once the route-rate exceeds the ratifier's budget. This does NOT add a sixth inverted row; it makes the **attention-allocator the conservative default's scarcity-regime COMPLETION** (the allocator is tied INTO this ADR, not a separate later nicety — the same co-requisite logic the §2 keystone names). The pruner remains the SOLE direction-inversion.
   - **ATK-057-4 (the same pattern on a SECOND finite stock — HOLD drains attention):** the `forget`-axis conservative default (HOLD / tombstone-not-silence) is also per-instance-free / aggregate-costly — unbounded HOLD grows the catalog monotonically → suppression-training → the developer ignores the whole feature (antigen becomes the stale-CODEOWNERS-table it exists to prevent). Its scarcity-regime completion is the **FORGETTING-CURVE decay loop** (§Finding line, `[[loops/forgetting-curve-attention-reclaim]]`). **The unifying finding (ATK-057-2 + ATK-057-4):** *"inaction is free" is per-instance-TRUE and aggregate-FALSE on EVERY axis that touches a finite shared stock* — route drains the ratifier budget (→ allocator), HOLD drains the attention budget (→ decay loop). The ADR is honest only when each axis names its scarcity-regime completion: the conservative default preserves optionality PER-INSTANCE, and a per-axis scarcity-mechanism bounds the AGGREGATE cost. Both halves are required; neither alone is harm-minimizing. (SENSE remains the one genuinely-free axis — a miss returns to the pre-antigen baseline, ATK-057-1, no shared stock drained.)
 
 ---
 
-## Amendment 1 (2026-06-17, drafted by the adr-specialist) — the FORGET default is scoped to the genuinely-ambiguous CELL (witness-liveness), not blanket-RETAIN-on-the-class
+## Amendment 1 (2026-06-17) — the FORGET default is scoped to the genuinely-ambiguous CELL (witness-liveness), not blanket-RETAIN-on-the-class
 
-**Append-only refinement (supersede-not-erase): the §Decision table's `forget` row read "don't forget → tombstone-not-silence, retain," framed at the verb level. The outsider's reciprocal pass (`[[outsider/the-discriminator-is-blind-for-silent-classes]]` + `[[outsider/dormant-vs-obsolete-the-third-state]]`) deconstructed that into a more precise — and more honest — scoping. The original verb-level statement STANDS as the default; this amendment names the exact cell it governs so the default is not over-read as "never forget anything."**
+**Append-only refinement (supersede-not-erase): the §Decision table's `forget` row read "don't forget → tombstone-not-silence, retain," framed at the verb level. A naive-question reciprocal pass (`[[naive-question/the-discriminator-is-blind-for-silent-classes]]` + `[[naive-question/dormant-vs-obsolete-the-third-state]]`) deconstructed that into a more precise — and more honest — scoping. The original verb-level statement STANDS as the default; this amendment names the exact cell it governs so the default is not over-read as "never forget anything."**
 
 **The refinement.** The conservative-RETAIN default for `forget` applies to the ONE genuinely-ambiguous cell, NOT to every class. CURATE reads a class on three axes — (fires?) × (harms? — runtime, loud-classes only) × (witness-live-at-site? — static, via `cargo antigen audit`). For antigen's CORE population (SILENT failure-classes, origin.md's founding population), the harms-axis is null in BOTH the obsolete and evaded branches (a silent failure produces no prod incident either way), so the discrimination happens on the STATIC duals:
 
 - shape REMOVED from source → genuinely **OBSOLETE** → safe to forget (the binding-site no longer exists; this is NOT the ambiguous cell — forgetting here is correct, not conservative-vs-not).
 - shape present + a near-miss/variant appeared (GATE-G's near-miss machinery, already built) → **EVADED** → broaden (route per the broaden default).
-- shape present, unchanged, untouched, **NO live witness** → **DORMANT** → **THE AMBIGUOUS CELL: conservative default = HOLD (archive-without-forget, tombstone-not-silence).** Here the asymmetry the outsider named bites: default-FORGET risks losing a real-but-quiet immunity (antigen's own `RoutingTableStale` nightmare, self-inflicted); default-HOLD costs only a cheap dormant clone's attention. Trust-harm is minimized by HOLD.
+- shape present, unchanged, untouched, **NO live witness** → **DORMANT** → **THE AMBIGUOUS CELL: conservative default = HOLD (archive-without-forget, tombstone-not-silence).** Here the named asymmetry bites: default-FORGET risks losing a real-but-quiet immunity (antigen's own `RoutingTableStale` nightmare, self-inflicted); default-HOLD costs only a cheap dormant clone's attention. Trust-harm is minimized by HOLD.
 - shape present, no harm, **HAS a live witness** → **WELL-DEFENDED** → retain (it's silent BECAUSE defended; forgetting it removes a working immunity — the worst failure in the cluster, baton §2).
 
 **So the conservative default is NOT "never forget the class" — it is "forget only the cell where the static discriminator is UNAMBIGUOUS (shape-removed = obsolete); HOLD the cell where it is ambiguous (dormant)."** This sharpens the verb-level statement without contradicting it: a class whose binding-site is provably gone is not an uncertain case, so forgetting it is not a non-conservative act. The conservative default governs the UNCERTAIN cell, which is precisely the dormant (silent + no-witness + shape-present) cell.
@@ -12259,25 +12258,25 @@ This is a FRAME-ADR: it does not introduce a new type or function. It names the 
 
 ---
 
-## Amendment 2 (2026-06-17, the adr-specialist folding in the converge-aristotle ruling on `[[safety/conservative-default-bias-adr]]`) — the unifying FORM, and the certainty/uncertainty BOUNDARY that dissolves the "one inverted verb" framing into something cleaner
+## Amendment 2 (2026-06-17, folding in the converge first-principles ruling on `[[safety/conservative-default-bias-adr]]`) — the unifying FORM, and the certainty/uncertainty BOUNDARY that dissolves the "one inverted verb" framing into something cleaner
 
-**The lead's first-principles ruling on split-3 converged independently on this exact ADR (one cross-cutting conservative-default, per-axis scoped), citing this ADR's own three safety-islands as the load-bearing evidence — a clean reciprocal convergence. The ruling sharpens the §Decision in two ways that supersede-not-erase the original framing.**
+**A first-principles ruling on split-3 converged independently on this exact ADR (one cross-cutting conservative-default, per-axis scoped), citing this ADR's own three safety-islands as the load-bearing evidence — a clean reciprocal convergence. The ruling sharpens the §Decision in two ways that supersede-not-erase the original framing.**
 
 **(1) The unifying FORM is named precisely (sharpens "minimize counterfactual trust-harm").** The §Decision states the quantity minimized (counterfactual trust-harm); the ruling states the FORM of the action that minimizes it: **"Under uncertainty, take the action that PRESERVES OPTIONALITY / IS REVERSIBLE / EXTENDS NO NEW TRUST."** These are the same principle from two angles — the quantity (trust-harm) and the form (optionality-preserving / reversible / no-new-trust). Each axis instantiates the FORM: don't-fire (no new alarm), don't-promote (no new asserted class), don't-forget (preserve the option to re-fire), prefer-de-novo (protect existing affinity = preserve the old lineage's optionality), don't-share (extend no herd-trust). This is ALSO why CURATE is reversible-first (anergy/Treg/exhaustion before delete) — the same form. The ADR states the form once and tabulates the per-axis instantiation (the §Decision table).
 
-**(2) The certainty/uncertainty BOUNDARY dissolves the "one inverted verb" framing (a genuine correction the original §Decision over-complicated).** The original §Decision carved the pruner out as "the one AUTOREACTIVE verb whose conservative default is to ACT" — treating it as an inversion of the principle. **The ruling shows this is cleaner stated as a BOUNDARY, not an inversion: the conservative default governs the UNCERTAINTY REGION ONLY. Cells with POSITIVE EVIDENCE — of harm OR of defense — are decided BY THAT EVIDENCE, not by the default.** Pruning a KNOWN-autoimmune class (positive evidence it fires on clean code) is NOT "the inverted default under uncertainty" — it is **certainty-of-harm acting on evidence**, which lives outside the default's jurisdiction entirely. The pruner does not invert the conservative default; it is simply not governed by it (it fires on positive harm-evidence, the danger model's costimulation, ADR-054). Symmetrically, the WELL-DEFENDED cell (Amendment 1) is decided by positive defense-evidence (a WOULD-CATCH witness), also outside the default. **So there is no "inverted verb" — there is the uncertainty region (where the conservative default rules, one direction: don't-act/route) and the evidence region (where positive evidence decides, either direction).** This is the outsider's well-defended-vs-ambiguous split (Amendment 1) generalized to ALL axes: the default is the answer ONLY in the genuinely-ambiguous cell; positive evidence on either side pre-empts it.
+**(2) The certainty/uncertainty BOUNDARY dissolves the "one inverted verb" framing (a genuine correction the original §Decision over-complicated).** The original §Decision carved the pruner out as "the one AUTOREACTIVE verb whose conservative default is to ACT" — treating it as an inversion of the principle. **The ruling shows this is cleaner stated as a BOUNDARY, not an inversion: the conservative default governs the UNCERTAINTY REGION ONLY. Cells with POSITIVE EVIDENCE — of harm OR of defense — are decided BY THAT EVIDENCE, not by the default.** Pruning a KNOWN-autoimmune class (positive evidence it fires on clean code) is NOT "the inverted default under uncertainty" — it is **certainty-of-harm acting on evidence**, which lives outside the default's jurisdiction entirely. The pruner does not invert the conservative default; it is simply not governed by it (it fires on positive harm-evidence, the danger model's costimulation, ADR-054). Symmetrically, the WELL-DEFENDED cell (Amendment 1) is decided by positive defense-evidence (a WOULD-CATCH witness), also outside the default. **So there is no "inverted verb" — there is the uncertainty region (where the conservative default rules, one direction: don't-act/route) and the evidence region (where positive evidence decides, either direction).** This is the well-defended-vs-ambiguous split (Amendment 1) generalized to ALL axes: the default is the answer ONLY in the genuinely-ambiguous cell; positive evidence on either side pre-empts it.
 
-**The §Decision table re-read under Amendment 2:** the "PRUNE" row is NOT a sixth row that inverts the principle — it is the evidence-region exit that the table's uncertainty-rows route TOWARD when evidence arrives. The cleaner statement: *under uncertainty, every verb defaults to the optionality-preserving action (don't-act/route); when positive evidence arrives (harm → prune; defense → retain; danger-signal → fire; near-miss-witness → promote), the evidence decides and the default steps aside.* This makes the adversarial's blanket-RETAIN trap vanish entirely — RETAIN was never the rule for known-harmful classes, because those were never in the uncertainty region.
+**The §Decision table re-read under Amendment 2:** the "PRUNE" row is NOT a sixth row that inverts the principle — it is the evidence-region exit that the table's uncertainty-rows route TOWARD when evidence arrives. The cleaner statement: *under uncertainty, every verb defaults to the optionality-preserving action (don't-act/route); when positive evidence arrives (harm → prune; defense → retain; danger-signal → fire; near-miss-witness → promote), the evidence decides and the default steps aside.* This makes the adversarial blanket-RETAIN trap vanish entirely — RETAIN was never the rule for known-harmful classes, because those were never in the uncertainty region.
 
 **Homing note (the lead's HOMING ruling, recorded):** this is ONE new foundational cross-cutting ADR, structurally like ADR-005 (sub-clause-F) — a discipline every trust-boundary / uncertainty-point inherits. It supersedes nothing (net-new) and is REFERENCED-BY the keystone discriminator ADR, the CURATE ADR, the ADAPT/de-novo ADR, the ADR-047 closed-alphabet amendment, and the affinity-score-ordinal constraint. The `[[safety/conservative-default-bias-adr]]` island is the lead's RULING; THIS ADR draft is the ratifiable ARTIFACT that ruling homes into — one decision, two substrate-renderings (the ruling-note and the ADR), reconciled here.
 
 ---
 
-## Amendment 3 (2026-06-17, the adr-specialist folding in the converge-adversarial ATK-057 closure + the converge-aristotle lethal-corner confirmation) — two corrections the elegant dissolution over-reached: "inaction is free" is aggregate-FALSE, and "the evidence decides" assumed single-signed evidence
+## Amendment 3 (2026-06-17, folding in the converge adversarial-review ATK-057 closure + the converge first-principles lethal-corner confirmation) — two corrections the elegant dissolution over-reached: "inaction is free" is aggregate-FALSE, and "the evidence decides" assumed single-signed evidence
 
-**Amendment 2's dissolution was elegant but over-reached in two places the adversarial + a deconstruction-side aristotle caught. Both are genuine corrections (the frame claimed completeness; these are the two corners where it wasn't yet complete). Append-only; Amendment 2's structure stands, these complete it.**
+**Amendment 2's dissolution was elegant but over-reached in two places adversarial review + a deconstruction-side first-principles pass caught. Both are genuine corrections (the frame claimed completeness; these are the two corners where it wasn't yet complete). Append-only; Amendment 2's structure stands, these complete it.**
 
-**(3a) "Inaction is free" is per-instance-TRUE but aggregate-FALSE on every axis touching a finite shared stock (ATK-057-2 + ATK-057-4, the adversarial — adversarial stage CLOSED by this).** The §Finding said "retaining a dormant class costs ONLY attention." That **"only" was the bug**: attention is a finite shared stock (the trust-budget), and unbounded HOLD → suppression-training → antigen becomes the stale-CODEOWNERS-table it exists to prevent. The unifying finding: the optionality-preserving action is free PER-INSTANCE but drains a finite shared stock in AGGREGATE on every axis that touches one. So **each axis must name its scarcity-regime completion — the per-axis mechanism that bounds the aggregate**, or the ADR is dishonest:
+**(3a) "Inaction is free" is per-instance-TRUE but aggregate-FALSE on every axis touching a finite shared stock (ATK-057-2 + ATK-057-4 — the adversarial-review stage CLOSED by this).** The §Finding said "retaining a dormant class costs ONLY attention." That **"only" was the bug**: attention is a finite shared stock (the trust-budget), and unbounded HOLD → suppression-training → antigen becomes the stale-CODEOWNERS-table it exists to prevent. The unifying finding: the optionality-preserving action is free PER-INSTANCE but drains a finite shared stock in AGGREGATE on every axis that touches one. So **each axis must name its scarcity-regime completion — the per-axis mechanism that bounds the aggregate**, or the ADR is dishonest:
 
 | Axis | Per-instance conservative action | The finite stock it drains in aggregate | Scarcity-regime completion (bounds the aggregate) |
 |---|---|---|---|
@@ -12288,7 +12287,7 @@ This is a FRAME-ADR: it does not introduce a new type or function. It names the 
 
 So the conservative default is honest ONLY when stated as: *preserve optionality PER-INSTANCE + a per-axis scarcity-mechanism bounds the AGGREGATE.* Both halves required. (This is also WHY the §2 co-requisite attention-allocator is co-requisite, not a later nicety — and why the forgetting-curve is a CO-REQUISITE of the HOLD default, not a separate organ.)
 
-**(3b) "The evidence decides" silently assumed SINGLE-SIGNED evidence — the double-signed lethal corner (aristotle's deconstruction-side catch, lead-confirmed; OQ-4 / Constraint-C).** Amendment 2's dissolution ("when positive evidence arrives the evidence decides; there is no inverted verb") assumes a cell has evidence in ONE direction. **The lethal corner: a class with DOUBLE-SIGNED evidence — it BOTH harms (fires on clean code = positive prune-evidence) AND was blessed (human-ratified = positive retain-evidence).** "The evidence decides" is ILL-DEFINED there, and the silent failure mode is **the blessing laundering the autoimmune class past the pruner** (`[[outsider/who-screens-the-ratifier]]`: a rubber-stamped autoimmune draft is now BLESSED, immune to the pruner — the exact self-inflicted autoimmunity the voyage exists to prevent). A frame that claims completeness ("there is no inverted verb / the evidence decides") MUST handle the conflict case or the completeness-claim is false.
+**(3b) "The evidence decides" silently assumed SINGLE-SIGNED evidence — the double-signed lethal corner (a deconstruction-side first-principles catch, lead-confirmed; OQ-4 / Constraint-C).** Amendment 2's dissolution ("when positive evidence arrives the evidence decides; there is no inverted verb") assumes a cell has evidence in ONE direction. **The lethal corner: a class with DOUBLE-SIGNED evidence — it BOTH harms (fires on clean code = positive prune-evidence) AND was blessed (human-ratified = positive retain-evidence).** "The evidence decides" is ILL-DEFINED there, and the silent failure mode is **the blessing laundering the autoimmune class past the pruner** (`[[naive-question/who-screens-the-ratifier]]`: a rubber-stamped autoimmune draft is now BLESSED, immune to the pruner — the exact self-inflicted autoimmunity the voyage exists to prevent). A frame that claims completeness ("there is no inverted verb / the evidence decides") MUST handle the conflict case or the completeness-claim is false.
 
 **The fix (sub-clause-F, ADR-005, already supplies the machinery — Constraint C):** the human blessing is a **TRUST-BOUNDARY**, and every trust-boundary requires a re-validation check (sub-clause-F). So: **when harm-evidence and blessing-evidence CONFLICT, the blessing buys REVERSIBLE RETENTION (anergy/tombstone) but NOT INVISIBILITY.** The conflict is SURFACED (`cargo antigen audit --autoimmunity`: "this blessed class now fires on clean code") and the human RE-DECIDES. The blessing is an INPUT re-validated against fresh harm-evidence, never a permanent shield. This COMPLETES Amendment 2 (it does not contradict it): the evidence region has a conflict-sub-region, and the conflict-resolution is "reversible-retain + surface + re-decide," governed by sub-clause-F. **Constraint C (the third named constraint, alongside A closed-alphabet + B ordinal-score): a human blessing re-validates against fresh harm-evidence; positive ratification buys reversible retention, never invisibility to the pruner.**
 
@@ -12308,7 +12307,7 @@ So the conservative default is honest ONLY when stated as: *preserve optionality
 
 - **The unmade default-bias decision is made, once, cross-cuttingly** — no organ implementer chooses it by accident. The five-field unanimity is recorded as the grounding, not re-litigated per organ.
 - **The two routed safety-questions get a permanent home** — the closed-alphabet boundary (→ an ADR-047 append-only amendment) and the ordinal-not-probability constraint are named, so a future amendment that opens the alphabet or migrates a probability threshold into the gate is, by this ADR + ADR-047's standing invariant, proposing to break the safe default and must be rejected on that ground.
-- **The adversarial's blanket-RETAIN trap is disarmed** — the default is framed on counterfactual trust-harm, not the antigen-class, so the pruning-axis inversion falls out of the principle rather than contradicting it.
+- **The adversarial blanket-RETAIN trap is disarmed** — the default is framed on counterfactual trust-harm, not the antigen-class, so the pruning-axis inversion falls out of the principle rather than contradicting it.
 - **The CODE-TRUE audit gains a cross-cutting check** — "does this organ default conservatively?" is one rule the survey applies to every v0.6 organ.
 
 ## Resolves
@@ -12321,15 +12320,15 @@ So the conservative default is honest ONLY when stated as: *preserve optionality
 
 ## Open questions (to resolve before ratification)
 
-1. ~~**Is the pruner the SOLE inverted default?**~~ **CLOSED (converge-adversarial, ATK-057-1/2/3): YES, the pruner is the sole DIRECTION-inverted verb.** ATK-057-2 corrected the supporting claim (route-to-human spends the ratifier budget in aggregate → the allocator is the scarcity-regime completion; see Q9). No second direction-inversion.
+1. ~~**Is the pruner the SOLE inverted default?**~~ **CLOSED (converge adversarial review, ATK-057-1/2/3): YES, the pruner is the sole DIRECTION-inverted verb.** ATK-057-2 corrected the supporting claim (route-to-human spends the ratifier budget in aggregate → the allocator is the scarcity-regime completion; see Q9). No second direction-inversion.
 2. **Does Constraint A belong here or as an ADR-047 amendment, or BOTH?** Lean: the SOUNDNESS-boundary statement is an ADR-047 append-only amendment (it bounds GATE-G's own certificate); this ADR REFERENCES it as the learnability instance of the conservative default. The maintainer/docs-owner makes the `docs/decisions.md` / ADR-047-amendment edit (antigen-repo tracked code — the docs-team's lane), NOT the charter-steward. Flag for the maintainer.
 3. **Does BROADEN's conservative default (spawn de-novo) depend on split-4's arbitration gate shipping?** If the de-novo-vs-recall gate is charter, the broaden default is "route-to-human" until it ships (the conservative default degrades gracefully to route-to-human everywhere a specific primitive is absent).
 
 ## [ADR-058] The Co-Native Output Contract: Legibility Generalized to Re-Inheritable-by-Either-Forgetting-Mind — The Story Facet Is a Rendering of a Typed Event-Stream, Never a Free-Text Source
 
-**Status**: **DRAFT** (v06 Outfitters/converge wave; targets the v0.6 line). Staged through the lifecycle — first-principles (aristotle, via the dream-recognition + split-2 ruling), adversarial/refutation (outsider's refutation attempt that FOUND the conformance criterion), research-review — before ratification. **Nothing builds on this un-ratified.** **SUPERSEDES-AND-EXTENDS ADR-042** (the legibility spine): ADR-042's "legible to a human" becomes the human-only SPECIAL CASE of "re-inheritable by either forgetting mind." Append-only; ADR-042's text stands, this extends its scope.
+**Status**: **DRAFT** (v06 Outfitters/converge wave; targets the v0.6 line). Staged through the lifecycle — first-principles (via the dream-recognition + split-2 ruling), a naive-question refutation attempt that FOUND the conformance criterion, research-review — before ratification. **Nothing builds on this un-ratified.** **SUPERSEDES-AND-EXTENDS ADR-042** (the legibility spine): ADR-042's "legible to a human" becomes the human-only SPECIAL CASE of "re-inheritable by either forgetting mind." Append-only; ADR-042's text stands, this extends its scope.
 
-**Participants**: outsider (the C1 conformance criterion — found via a refutation attempt on the two-readers seam; owns its wording), aristotle (the schema-fold: story = the typed event-stream itself, tombstone + autobiography fall out as renderings; the split-2 persona-c home ruling), adr-specialist (the ADR draft from the outsider's canonical clause-home + the leaf-payload exception statement), naturalist (`[[lived/the-elder-letter-is-the-autobiography]]` — persona-c, the makers' own persistence topology as the proof).
+**Developed through**: a naive-question pass (the C1 conformance criterion — found via a refutation attempt on the two-readers seam), first-principles deconstruction (the schema-fold: story = the typed event-stream itself, tombstone + autobiography fall out as renderings; the split-2 persona-c home ruling), ADR drafting (from the canonical clause-home + the leaf-payload exception statement), and a biology-grounding observation (`[[lived/the-elder-letter-is-the-autobiography]]` — persona-c, the makers' own persistence topology as the proof).
 
 **Related**: **ADR-042** (legibility — the human-only special case this supersede-extends); **ADR-020** (attested-intent — the `WHY` leaf-payload that IS conformant as a typed-event slot); **ADR-006** (recognition-not-design — this is RECOGNITION: `[[dream/the-immune-autobiography]]` already specifies the typed lifecycle; the clause guards the dream's intent from a later builder's drift, it does not impose a new constraint); the life-record STOCK ADR (the v0.6 keystone — the story facet IS this stock); ADR-051 (the fate-record = one record-kind of the same stream); the co-native design discipline (if either mind must translate, the representation is wrong).
 
@@ -12337,7 +12336,7 @@ So the conservative default is honest ONLY when stated as: *preserve optionality
 
 ## Finding
 
-**ADR-042 established legibility — but scoped it to ONE reader.** ADR-042 (the legibility spine) requires antigen's learned-class output be "legible to a human." The v0.6 maturing organism adds a SECOND forgetting mind that must re-inherit the same record: the **fresh-context AI agent** (persona-c — the institutional memory of a maintainer who forgets, whether a solo dev across months or an agent across the context-wipe; `[[lived/the-elder-letter-is-the-autobiography]]`). The split-2 ruling (aristotle) homes persona-c here: legibility is not human-legibility, it is **re-inheritability by either forgetting mind.** ADR-042's "legible to a human" is the human-only special case.
+**ADR-042 established legibility — but scoped it to ONE reader.** ADR-042 (the legibility spine) requires antigen's learned-class output be "legible to a human." The v0.6 maturing organism adds a SECOND forgetting mind that must re-inherit the same record: the **fresh-context AI agent** (persona-c — the institutional memory of a maintainer who forgets, whether a solo dev across months or an agent across the context-wipe; `[[lived/the-elder-letter-is-the-autobiography]]`). The split-2 first-principles ruling homes persona-c here: legibility is not human-legibility, it is **re-inheritability by either forgetting mind.** ADR-042's "legible to a human" is the human-only special case.
 
 **The live trap (why this needs an ADR, not just a note).** The life-record (the v0.6 keystone STOCK) is specified as "score- + outcome- + STORY-capable." The word "story" SOUNDS like prose, and prose sounds human-authored — so the cheapest implementation (add a free-text `notes`/`story` `String` column a developer types into) LOOKS like the story facet but is **non-conformant**: it forces the AI-agent reader to PARSE NATURAL LANGUAGE to consume the record, a translation step that silently RELOCATES the two-readers seam INTO the story field. The co-native invariant (if either mind must translate, the representation is wrong) is violated — by a field that looks right. A later builder WILL reach for the free-text column absent an explicit forbidding clause.
 
@@ -12358,11 +12357,11 @@ The life-record's narrative/story facet MUST be a **structured, machine-authored
 
 **The conformance TEST a reviewer applies:** *can the AI-agent reader consume the full narrative WITHOUT a natural-language parse step?* If the agent must NL-parse any field to get the class's history, that field is non-conformant — re-express it as typed events with a prose renderer.
 
-### The schema consequence (aristotle's fold — one stock, N renderings)
+### The schema consequence (the first-principles fold — one stock, N renderings)
 
 The story field is **NOT a `String` column** — it IS the append-only TYPED event-stream itself (= the life-record STOCK, the v0.6 keystone). **Tombstone** (CURATE's retire-record, ADR-057 Amd1 / the "tombstone-not-silence" build-requirement) and the **autobiography** both FALL OUT as renderings of this one stream — they are not separate fields, they are two projections of the same typed events. **One stock, N renderings.** This is why the contract is *recognition*: the typed event-stream the life-record needs anyway IS the conformant story facet; no separate "story" structure is built.
 
-### The leaf-payload exception (the one nuance — stated explicitly per the outsider's flag)
+### The leaf-payload exception (the one nuance — stated explicitly per a naive-question flag)
 
 `Ratified{who, WHY, when}` carries a human-authored `WHY`. That `WHY` MAY be free human text — but it is a **LEAF VALUE on a TYPED event** (the attestation, ADR-020), **not the narrative STRUCTURE itself.** The distinction is load-bearing and a builder must not collapse it:
 
@@ -12385,7 +12384,7 @@ This ADR governs the SCHEMA of the life-record's story facet (the keystone STOCK
 
 - **Q2 — sealed-enum inclusion:** `LifecycleEvent` is a sealed enum carving "a typed event in a learned class's life." Inclusion: a variant names a distinct lifecycle transition (birth/maturation/working-life/senescence — the dream's enumeration). Exclusion: a variant that is a free-text catch-all ("Note{String}") does NOT belong — that re-opens the C1 trap. Extension discipline: a new lifecycle event requires an ADR amendment + a distinct typed transition, never a free-text escape-hatch.
 - **Q6 — deprecation:** SUPERSEDE-AND-EXTENDS ADR-042 (append-only; ADR-042's human-legibility text stands as the special case). No caller breaks; the scope widens.
-- **Q9 — adversarial/refutation pre-ratification test:** the outsider's refutation attempt on the two-readers seam IS the Q9 — it tried to show the seam dissolves *for free* and instead found it dissolves *only by design* (the free-text column is the live counterexample). The conformance criterion converts the seam-dissolution from true-by-luck to true-by-design. **Residual probe:** is there a facet OTHER than the story where prose could sneak in as structure? (Candidate: the `cluster` facet's site-descriptions — confirm those are typed `MarkedSite` refs, not prose. The reviewer checks every life-record facet against C1, not only the story.)
+- **Q9 — adversarial/refutation pre-ratification test:** a naive-question refutation attempt on the two-readers seam IS the Q9 — it tried to show the seam dissolves *for free* and instead found it dissolves *only by design* (the free-text column is the live counterexample). The conformance criterion converts the seam-dissolution from true-by-luck to true-by-design. **Residual probe:** is there a facet OTHER than the story where prose could sneak in as structure? (Candidate: the `cluster` facet's site-descriptions — confirm those are typed `MarkedSite` refs, not prose. The reviewer checks every life-record facet against C1, not only the story.)
 
 ---
 
@@ -12423,7 +12422,7 @@ This ADR governs the SCHEMA of the life-record's story facet (the keystone STOCK
 
 **Status**: **DRAFT — SKELETON** (v06 Pioneers build-step-zero; targets the v0.6 line). The keystone ROOT of the maturing organism — the stock every maturing organ reads and writes. Staged through the lifecycle (first-principles, adversarial, research-review) before ratification; **co-ratified with the MATURE ADR (ADR-061)** because the STOCK's score-payload field needs MATURE's affinity-2-vector type. **Nothing builds on this un-ratified.** This skeleton lands the FINDING + the DECISION-stub + the load-bearing invariants + the open questions, so the build's root ADR is present on disk; the full §Mechanics + §Standing-Pressure-Audit finalize with the schema lock.
 
-**Participants** (from the converge substrate): outsider (the C1 conformance criterion via ADR-058 — the story facet is a typed event-stream), naturalist (`[[convergence/already-in-the-substrate]]`, `[[lived/the-elder-letter-is-the-autobiography]]` — the makers' own persistence topology as the proof), systems-thinking (`[[loops/fate-record-is-the-missing-stock]]` — the L4-staleness precondition), adr-specialist (this skeleton).
+**Developed through** (from the converge substrate): a naive-question pass (the C1 conformance criterion via ADR-058 — the story facet is a typed event-stream), a biology-grounding observation (`[[convergence/already-in-the-substrate]]`, `[[lived/the-elder-letter-is-the-autobiography]]` — the makers' own persistence topology as the proof), systems analysis (`[[loops/fate-record-is-the-missing-stock]]` — the L4-staleness precondition), and ADR drafting (this skeleton).
 
 **Related**: **ADR-058** (the co-native output contract — the story facet of THIS stock MUST conform to C1: a typed event-stream that renders to prose, never a free-text source); **ADR-051** (the ratification record's fate-hook is the FIRST writer into this stock — `Fate` events are life-record events); **ADR-061** (MATURE — the affinity-2-vector the score-payload field carries; co-ratified); **ADR-057** (the conservative default reads/derives current-state from this stock — e.g. the dormant/forgetting-curve HOLD reads the event history); ADR-044 (frontier-honesty); ADR-006 (recognition-not-design — `.git` is the prior-art the events-not-claims model recognizes); the project NOT-list ("not a documentation system / no out-of-band drift-prone state").
 
@@ -12469,7 +12468,7 @@ This ADR governs the SCHEMA of the life-record's story facet (the keystone STOCK
 
 **Status**: **DRAFT — SKELETON** (v06 Pioneers build-step-zero; targets the v0.6 line). The build-once afferent spine — the strongest build-once signal in the survey (five blind lenses converged: ~5 bespoke detectors across tolerance-grid/size-adapt/afferent collapse to 1 READER + 1 DISCRIMINATOR + 1 DEFENDED-SENSOR + thin adapters). Staged through the lifecycle before ratification. **Nothing builds on this un-ratified.** This skeleton lands the FINDING + the four-organ DECISION-stub + the do-now/do-later honest split + open questions.
 
-**Participants** (from the converge substrate): `[[loops/afferent-sensing-is-one-shared-organ]]`, `[[loops/discriminator-is-the-shared-dual-sensor]]`, `[[loops/curate-is-a-multi-stock-router]]`, `[[outsider/the-discriminator-is-blind-for-silent-classes]]`, `[[outsider/dormant-vs-obsolete-the-third-state]]`, adr-specialist (this skeleton).
+**Developed through** (from the converge substrate): `[[loops/afferent-sensing-is-one-shared-organ]]`, `[[loops/discriminator-is-the-shared-dual-sensor]]`, `[[loops/curate-is-a-multi-stock-router]]`, `[[naive-question/the-discriminator-is-blind-for-silent-classes]]`, `[[naive-question/dormant-vs-obsolete-the-third-state]]`, and ADR drafting (this skeleton).
 
 **Related**: **ADR-059** (the life-record STOCK — the afferent spine's first organ; the READER reads the per-class rate-stream the STOCK records); **ADR-057** (the conservative default — under unknown coverage, ADR-057's HOLD prevents false-forgetting a dormant-but-real class); **ADR-062** (CURATE — the DISCRIMINATOR's obsolete/dormant/evaded/well-defended classification feeds CURATE's confusion-matrix router); `WitnessTier` (`antigen-attestation/src/tier.rs:47` — the do-now witness-RESOLUTION read); ADR-054 (the two-signal gate — Signal-2 is the harms-axis input); ADR-044 (frontier-honesty).
 
@@ -12510,7 +12509,7 @@ This ADR governs the SCHEMA of the life-record's story facet (the keystone STOCK
 
 ---
 
-## ADR-047 Amendment 3 (2026-06-17, drafted by the ADR-specialist on the v06 Pioneers build-step-zero) — GATE-G's spare-clean certificate is SOUND ONLY over a CLOSED `Constraint` alphabet; opening the alphabet routes to the human oracle, not the gate
+## ADR-047 Amendment 3 (2026-06-17, drafted on the v06 Pioneers build-step-zero) — GATE-G's spare-clean certificate is SOUND ONLY over a CLOSED `Constraint` alphabet; opening the alphabet routes to the human oracle, not the gate
 
 **Status**: DRAFT (v06 Pioneers build-step-zero — names a load-bearing assumption that was IMPLICIT and un-stated in the original §Decision; that silence is itself the finding the ADR-keeper's CODE-TRUE walk surfaced). Append-only; the §Decision and Amendments 1–2 stand. Awaits the fresh Survey notary for promotion to Witnessed (no-self-witness).
 
@@ -12536,7 +12535,7 @@ This ADR governs the SCHEMA of the life-record's story facet (the keystone STOCK
 
 ---
 
-## ADR-051 Amendment 1 (2026-06-17, drafted by the ADR-specialist on the v06 Pioneers build-step-zero) — the narrow()/PersistedSpecimen re-mint precondition (`is_discriminating` recurses into combinator children) is SATISFIED; this amendment records the satisfaction and locks it as a standing invariant
+## ADR-051 Amendment 1 (2026-06-17, drafted on the v06 Pioneers build-step-zero) — the narrow()/PersistedSpecimen re-mint precondition (`is_discriminating` recurses into combinator children) is SATISFIED; this amendment records the satisfaction and locks it as a standing invariant
 
 **Status**: DRAFT (v06 Pioneers build-step-zero). Append-only; the §Decision (the one type-invariant + the four parts) stands. Awaits the fresh Survey notary for promotion to Witnessed (no-self-witness).
 
@@ -12559,9 +12558,9 @@ This ADR governs the SCHEMA of the life-record's story facet (the keystone STOCK
 
 ## [ADR-063] The Fingerprint → DSL Serializer: the Privileged Inverse Projection That Completes the Fingerprint Bijection — Round-Trip Exactness IS the Type's Co-Nativeness, Completeness Compiler-Guaranteed by the Closed Alphabet
 
-**Status**: **RATIFIED 2026-06-18** (v06 "the maturing organism" / extend → ratify wave; targets the v0.6 line, `0.6-dev`). Staged through the lifecycle — design (extend-dreamer's spine-reframe + extend-scout's prior-art recon), buildable-rigor (math-researcher's verified grammar-coverage + hazard map), first-principles (aristotle, Phases 1-8 on `extend/dsl-serializer-the-legibility-spine`), author-distinct witness (the ratify-wave observer). **Instantiates ADR-064** (build-the-core-reasoning-organs): the serializer is antigen's OWN grammar's inverse — a core organ, BUILT, not a crate-wrap. **Depends on the closed `Constraint` alphabet (ADR-047 Amendment 3, ratified)** — the closure is what makes the serializer's completeness a compiler guarantee.
+**Status**: **RATIFIED 2026-06-18** (v06 "the maturing organism" / extend → ratify wave; targets the v0.6 line, `0.6-dev`). Staged through the lifecycle — design (the spine-reframe + prior-art recon), buildable-rigor (verified grammar-coverage + hazard map), first-principles (Phases 1-8 on `extend/dsl-serializer-the-legibility-spine`), author-distinct witness. **Instantiates ADR-064** (build-the-core-reasoning-organs): the serializer is antigen's OWN grammar's inverse — a core organ, BUILT, not a crate-wrap. **Depends on the closed `Constraint` alphabet (ADR-047 Amendment 3, ratified)** — the closure is what makes the serializer's completeness a compiler guarantee.
 
-**Participants**: extend-dreamer (the spine-not-leaf reframe — the serializer is the legibility organ that makes every learned class co-native, the eight-consumer adjacency scan), math-researcher (the CODE-TRUE buildable design: crate boundary, full 16-variant grammar map, the three round-trip hazards, the proptest oracle), extend-scout (the prior-art verification — no crate emits the macro-DSL; the idiomatic `Display`-mirrors-parser pattern), aristotle (Phases 1-8: the irreducible-function deconstruction, the honest-scope correction below, the exhaustive-match-as-proof move, the three-voids forced-rejection), the ratify-wave observer (author-distinct witness).
+**Developed through**: design exploration (the spine-not-leaf reframe — the serializer is the legibility organ that makes every learned class co-native, the eight-consumer adjacency scan), a research review (the CODE-TRUE buildable design: crate boundary, full 16-variant grammar map, the three round-trip hazards, the proptest oracle), prior-art verification (no crate emits the macro-DSL; the idiomatic `Display`-mirrors-parser pattern), first-principles deconstruction (Phases 1-8: the irreducible-function deconstruction, the honest-scope correction below, the exhaustive-match-as-proof move, the three-voids forced-rejection), and an author-distinct witness.
 
 **Related**: **ADR-064** (build-the-core-organs — this is its first explicit instance + the principle the serializer's existence motivated); **ADR-058** (the co-native output contract — the serializer is THAT discipline applied to the `Fingerprint` type: one AST, N renderings, no translation; the DSL is the human-ratifiable rendering); **ADR-047 Amendment 3** (the closed-alphabet boundary — the serializer's exhaustive match is the same closed-alphabet-makes-it-sound family); **ADR-051** (the co-native ratification record — `narrow` re-parses a user-EDITED fingerprint; the serializer is what the human edits; see the honest-scope §); **ADR-051 Amendment 1** (the `is_discriminating`-recurses standing invariant — the serializer joins that family of closed-alphabet standing invariants); **ADR-010** (the fingerprint grammar — the serializer emits exactly that grammar); **ADR-002 / ADR-002 Amd 2** (compose-don't-compete — the serializer COMPOSES proc_macro2 for escaping, BUILDS the structural fold; the build/compose line is ADR-064); ADR-004 (implicit-to-explicit — the serializer makes the in-memory AST an explicit, editable artifact); the island `extend/dsl-serializer-the-legibility-spine`; the SEAM island `propose-suggest-scaffold` (task #12 `render_antigen_scaffold`).
 
@@ -12571,22 +12570,22 @@ This ADR governs the SCHEMA of the life-record's story facet (the keystone STOCK
 
 `antigen-fingerprint` ships ONE direction of a claimed bijection. `Fingerprint::parse(&str) -> syn::Result<Self>` (`antigen-fingerprint/src/lib.rs:477`, `impl Parse` at `:528`) maps a subset of DSL strings → the `Constraint` AST. **The inverse is missing** — CODE-TRUE verified on `0.6-dev`: zero `impl Display`, zero `to_dsl`, zero `unparse` for `Fingerprint`/`Constraint`. The only AST→text path today is `format!("{fp:?}")` (Debug), which is **NOT macro-parseable** — paste it above your code and the `#[antigen(...)]` macro rejects it. So a learned/proposed/narrowed `Fingerprint` exists only as an in-memory AST, a serde-JSON blob, or a Debug dump — **none of which a human can read, edit, ratify, paste, or diff as the SAME text the macro compiles.** The `Fingerprint` type is machine-only.
 
-**The irreducible function (aristotle Phase 2).** Stripped of the "serializer" framing, the artifact is: **the privileged inverse projection that completes the Fingerprint bijection.** Three first principles ground it:
+**The irreducible function (Phase 2 — first principles).** Stripped of the "serializer" framing, the artifact is: **the privileged inverse projection that completes the Fingerprint bijection.** Three first principles ground it:
 
 - **It is `parse`'s exact inverse, not an independent format (T1).** There is ONE grammar (the parser defines it); the serializer is sound only *relative to that parser*. The correctness oracle is therefore `parse(serialize(fp)) == fp`, targeting the parser, not a golden string. (Forced-rejection: an independent output grammar would drift from the input grammar — the `ParallelStateTrackersDiverge` failure ADR-051 names, here at the GRAMMAR boundary.)
 - **Among the renderings, the DSL is privileged — it is the UNIQUE rendering that is ALSO the parser's input grammar (T3).** The `Constraint` AST has three projections: serde-JSON (`lib.rs:138`, ships), Debug (derive, ships), and the DSL (this ADR). serde-JSON is not the macro's grammar; Debug is not; **the DSL is.** It is the only rendering for which `parse ∘ render` can be the identity — so it is the only co-native one (ADR-058: the rendering both minds consume without translation).
 - **Round-trip EXACTNESS *is* the type's co-nativeness (T8).** The same DSL text a human reads/edits is the same text the parser consumes is the same text the macro compiles — **iff** the render is the parser's *exact* inverse. Exactness is not a quality bar; it is the line between a co-native organ and a deceptive one (forced-rejection: an *approximate* round-trip is WORSE than none — it looks faithful and silently changes the class the human thought they edited; the Debug-trap one level deeper).
 
-**The completeness is compiler-guaranteed, not test-hoped (T6, the load-bearing structural property).** The `Constraint` alphabet is CLOSED (ADR-047 Amd3, CODE-TRUE: the parser hard-errors unknown operators, `is_discriminating` matches the enum exhaustively, there is no plugin/custom parse arm). Therefore a serializer whose `match` over `Constraint` is **exhaustive (no wildcard `_` arm)** cannot silently drop a variant: adding a 17th operator to the grammar fails to compile the serializer until an arm is written. **The closed alphabet turns serializer-completeness from a coverage-hope into a compiler guarantee** — the structural win the open-alphabet world (the charter LLM-reasoner) cannot have. The proptest round-trip is the WITNESS of per-arm *correctness*; the exhaustive match is the guarantee of *coverage*. Both are load-bearing; neither subsumes the other (aristotle Phase 6 C2).
+**The completeness is compiler-guaranteed, not test-hoped (T6, the load-bearing structural property).** The `Constraint` alphabet is CLOSED (ADR-047 Amd3, CODE-TRUE: the parser hard-errors unknown operators, `is_discriminating` matches the enum exhaustively, there is no plugin/custom parse arm). Therefore a serializer whose `match` over `Constraint` is **exhaustive (no wildcard `_` arm)** cannot silently drop a variant: adding a 17th operator to the grammar fails to compile the serializer until an arm is written. **The closed alphabet turns serializer-completeness from a coverage-hope into a compiler guarantee** — the structural win the open-alphabet world (the charter LLM-reasoner) cannot have. The proptest round-trip is the WITNESS of per-arm *correctness*; the exhaustive match is the guarantee of *coverage*. Both are load-bearing; neither subsumes the other (Phase 6 C2 — first principles).
 
 ---
 
 ## The honest-scope correction (CODE-TRUE — lead with it, because the design substrate carried a false dependency)
 
-The design notes (dreamer consumer-5, scout, pathmaker-surface) state **"persist (ADR-051) is BLOCKED on the serializer."** **This is FALSE as stated, and the ADR corrects it** (CODE-TRUE discipline — an ADR that repeats it is a lie by the time a reader greps `Constraint`'s derives):
+The design notes (design exploration consumer-5, the exploratory recon, the build-surface) state **"persist (ADR-051) is BLOCKED on the serializer."** **This is FALSE as stated, and the ADR corrects it** (CODE-TRUE discipline — an ADR that repeats it is a lie by the time a reader greps `Constraint`'s derives):
 
 - **serde-persistence already SHIPS.** `Constraint` derives `Serialize, Deserialize` (`lib.rs:138`). ADR-051 §Mechanics defines `PersistedSpecimen { draft: Fingerprint, … }` as **`IS Serialize/Deserialize`**, with the on-disk form "a bare `Fingerprint` that re-mints on load." **Persisting the bytes of a learned class works TODAY via serde-JSON, with no serializer.** The serializer does NOT unblock persist-as-storage.
-- **What the serializer unblocks is co-native RATIFIABILITY, not storage (aristotle Phase 6 C1).** ADR-058's conformance test: *can a human ratify/narrow the persisted form WITHOUT translation?* For serde-JSON: **no** — a human does not narrow a class by hand-editing JSON. ADR-051's `narrow` verb is literally "the human edits the serialized form, which re-parses": that edit surface MUST be the DSL (the co-native rendering), not JSON. So the precise dependency is:
+- **What the serializer unblocks is co-native RATIFIABILITY, not storage (Phase 6 C1 — first principles).** ADR-058's conformance test: *can a human ratify/narrow the persisted form WITHOUT translation?* For serde-JSON: **no** — a human does not narrow a class by hand-editing JSON. ADR-051's `narrow` verb is literally "the human edits the serialized form, which re-parses": that edit surface MUST be the DSL (the co-native rendering), not JSON. So the precise dependency is:
   - **serde-persist (storage):** UNBLOCKED — ships.
   - **co-native `narrow` (the human-editable form) + the scaffold (`render_antigen_scaffold`) + error-display + diff-native review:** BLOCKED on this serializer.
 
@@ -12606,19 +12605,19 @@ This is not "add a round-trip test." It is a **STANDING INVARIANT joining the cl
 
 ### Crate boundary, surface, and the four parts
 
-1. **Crate: `antigen-fingerprint`** (a new `serialize.rs` module, or `impl Display` for `Constraint` + `Fingerprint`), next to the parser it inverts — NOT in `antigen-macros`. Rationale: the round-trip test needs BOTH the parser and the serializer in scope; the inverse-pair (type + parser + serializer) must stay coherent in one crate; `antigen-macros` and `cargo-antigen` both depend on `antigen-fingerprint`, so a serializer here is reachable by every consumer. (math-researcher §1, verified.)
+1. **Crate: `antigen-fingerprint`** (a new `serialize.rs` module, or `impl Display` for `Constraint` + `Fingerprint`), next to the parser it inverts — NOT in `antigen-macros`. Rationale: the round-trip test needs BOTH the parser and the serializer in scope; the inverse-pair (type + parser + serializer) must stay coherent in one crate; `antigen-macros` and `cargo-antigen` both depend on `antigen-fingerprint`, so a serializer here is reachable by every consumer. (the research review §1, verified.)
 
 2. **Surface — two layers:**
    - `impl std::fmt::Display for Fingerprint` + `for Constraint` = the **round-trip core** (the parser's exact inverse; emits the comma-joined top-level constraint list, NO surrounding `#[antigen(...)]`). The round-trip oracle targets `Display` (the parser consumes the inner list via `parse_top_level`).
    - `pub fn to_antigen_attr(fp: &Fingerprint) -> String` = the **cosmetic attribute wrapper** (wraps the `Display` output in `#[antigen(…)]`) the scaffold consumer prints.
 
-3. **Full grammar coverage — every `Constraint` variant emits EXACTLY the parser's surface form** (math-researcher §2, mapped arm-for-arm against `parser.rs`). The three bare forms that are easy to get wrong and MUST reuse the SHIPPED reverse maps (do not re-spell):
+3. **Full grammar coverage — every `Constraint` variant emits EXACTLY the parser's surface form** (the research review §2, mapped arm-for-arm against `parser.rs`). The three bare forms that are easy to get wrong and MUST reuse the SHIPPED reverse maps (do not re-spell):
    - `Item(kind)` → `item = <keyword>` (BARE keyword, NOT quoted) via `ItemKind::keyword()` (`lib.rs:282`).
    - `Qualifier(k)` → `is_async`/`is_unsafe`/`is_const` (BARE keyword, NO parens) via `QualifierKind::keyword()` (`lib.rs:334`).
    - `Variants(range)` → `variants = M..=N` (bare ints with `..=`).
    The combinators recurse: `all_of([…])`, `any_of([…])`, `not(<c>)`; top-level constraints joined by `", "`.
 
-4. **The three round-trip hazards the contract MUST defend** (math-researcher §3, each a born-red test):
+4. **The three round-trip hazards the contract MUST defend** (the research review §3, each a born-red test):
    - **(a) String escaping (the load-bearing one).** String-payload leaves (`AttrPresent`, `DocContains`, `ImplOfTrait`, `Derives`, `SerdeArg`, `BodyCalls`, `BodyContainsMacro`, `NameMatches` glob, `HasMethod` name+sig) sit inside a `LitStr` the parser reads. The serializer MUST emit a **valid Rust string-literal body** — escape `\` → `\\`, `"` → `\"`, and control chars. **COMPOSE the escaper** (`proc_macro2::Literal::string(payload)` renders exact Rust-literal escaping; a present dep) — do not re-implement escaping (this is the ADR-064 compose-the-witness-layer move at the leaf). Test fixture: a `doc_contains` payload with `"`, `\`, and a newline.
    - **(b) `HasMethod` — emit the RAW signature, not the normalized cache.** `MethodPattern` `PartialEq` compares name + **raw `signature`**, NOT `normalized_signature` (the `#[serde(skip)]` perf cache, `lib.rs:391/395`). Emitting normalized would make the round-tripped raw signature ≠ the original → round-trip FAILS by the type's own equality law (T5). Emit raw. Test fixture: a `HasMethod` with non-canonical spacing.
    - **(c) Scoped domain — round-trip holds for PARSER-PRODUCIBLE fps, faithfully ERRORS on the rest.** The parser rejects empty globs, empty `all_of`/`any_of`, and misplaced `not` (bare top-level / under `any_of`). A well-formed (parser-produced) fp never contains these. A hand-built fp (from the anti-unify/propose path) COULD — and serialize→parse will correctly ERROR at parse (the serializer faithfully emitted a form the language rejects; the fp was never valid). **The round-trip is scoped: `parse(serialize(fp)) == fp` for every parser-producible fp** — the honest boundary, and the right one (antigen's propose/anti-unify path validates before shipping a fingerprint).
@@ -12636,7 +12635,7 @@ This is not "add a round-trip test." It is a **STANDING INVARIANT joining the cl
 - **§4.1 Per-variant matrix** — one fixture DSL string per `Constraint` variant → parse → serialize → parse → assert equal, plus the bare-form rows (`item = enum`, `is_async`, `variants = 2..=5`) that catch the quote/paren traps. The readable enumeration of the contract.
 - **§4.2 Nested/composite** — a deep fixture (`all_of([item = struct, derives("Hash"), not(derives("Eq")), any_of([body_calls("unwrap"), body_calls("expect")])])`) → round-trip → equal; exercises the recursive serializer and the only-legal `Not` position.
 - **§4.3 Escaping** — a `doc_contains` payload with `"`, `\`, newline → round-trip → equal; the test that defends the escaper (hazard a).
-- **§4.4 Proptest (the contract's witness, recommended)** — a strategy generating arbitrary **well-formed** Fingerprints (depth ≤ MAX_DEPTH, nodes ≤ MAX_NODES, `Not` only as an `all_of` child with a positive sibling, non-empty globs/lists) asserting `parse(serialize(fp)) == fp`. This searches for the breaking fp rather than trusting the enumeration — the audit that §4.1 is complete (aristotle C2: proptest = per-arm correctness; exhaustive match = coverage).
+- **§4.4 Proptest (the contract's witness, recommended)** — a strategy generating arbitrary **well-formed** Fingerprints (depth ≤ MAX_DEPTH, nodes ≤ MAX_NODES, `Not` only as an `all_of` child with a positive sibling, non-empty globs/lists) asserting `parse(serialize(fp)) == fp`. This searches for the breaking fp rather than trusting the enumeration — the audit that §4.1 is complete (first-principles C2: proptest = per-arm correctness; exhaustive match = coverage).
 
 ### §Enforcement-Surface
 
@@ -12667,7 +12666,7 @@ This is not "add a round-trip test." It is a **STANDING INVARIANT joining the cl
 
 ## The reachable extensions (named, not built — the spine's gradient) and the three voids it borders
 
-The do-now build is the floor (round-trip core + exhaustive match + the three hazard tests + the scaffold consumer). The serializer is a SEAM organ sitting on three future boundaries (aristotle Phase 8 forced-rejection); the build must not foreclose any:
+The do-now build is the floor (round-trip core + exhaustive match + the three hazard tests + the scaffold consumer). The serializer is a SEAM organ sitting on three future boundaries (the Phase 8 first-principles forced-rejection); the build must not foreclose any:
 
 - **Canonical/normalizing form (reachable)** — define operator-order + reuse ADR-047 Amd2's `normalized_top_level` flatten so `serialize(parse(serialize(fp))) == serialize(fp)` (idempotent). Makes fingerprints byte-diffable for identity. Buildable on top of the floor; not required for the round-trip law.
 - **Pretty + compact dual rendering (reachable)** — pretty (indented combinators) for review/error-messages, compact (one-line) for attribute embedding; the round-trip law holds for BOTH against the one parser (the ADR-058 "N renderings, one stock" shape applied to `Fingerprint`). **Do not foreclose:** keep the renderings sharing one inverse, never N independent serializers (they could drift — the T1 void).
@@ -12688,7 +12687,7 @@ The do-now build is the floor (round-trip core + exhaustive match + the three ha
 ## Resolves
 
 - The missing inverse of `Fingerprint::parse` — the half-built bijection is completed.
-- The scaffold SEAM's true prerequisite (the pathmaker-surface's build-blocker on `propose-suggest-scaffold`): the serializer exists, the scaffold is now trivial.
+- The scaffold SEAM's true prerequisite (the build-surface's build-blocker on `propose-suggest-scaffold`): the serializer exists, the scaffold is now trivial.
 - The false "persist (ADR-051) is blocked on the serializer" dependency in the design substrate (corrected CODE-TRUE: serde-storage ships; co-native-ratifiability is the real dependency).
 - ADR-051's `narrow` UX gap (the human edits the DSL, the co-native rendering — not JSON).
 - ADR-058's co-native contract for the `Fingerprint` type (the DSL is the no-translation rendering both minds consume).
@@ -12700,7 +12699,7 @@ The do-now build is the floor (round-trip core + exhaustive match + the three ha
 
 **Status**: **RATIFIED 2026-06-18** (v06 "the maturing organism" / ratify wave; targets the v0.6 line). **SUPERSEDES-AND-EXTENDS ADR-002** (compose-don't-compete): ADR-002's "compose existing tools" is RECOGNIZED as scoped to the WITNESS/IO layer; this ADR names the complementary half — antigen BUILDS its opinionated core reasoning organs — and states the line between them. Append-only; ADR-002's text stands as the witness-layer rule.
 
-**Participants**: aristotle (the first-principles deconstruction that surfaced the principle — Phase 5 of the #12 ratification, where "prefer compose (ADR-002)" was revealed as wrong-layer for a core organ), the maintainer (the standing instinct that #12 deserves a standalone principle ADR because the serializer and the drift-detector are both instances of one un-named rule), math-researcher + extend-scout (the CODE-TRUE evidence: no crate emits antigen's macro-DSL; the one Rust ADWIN crate has an anti-fit streaming API), the ratify-wave observer (author-distinct witness).
+**Developed through**: first-principles deconstruction that surfaced the principle (Phase 5 of the #12 ratification, where "prefer compose (ADR-002)" was revealed as wrong-layer for a core organ), the maintainer's standing instinct that #12 deserves a standalone principle ADR because the serializer and the drift-detector are both instances of one un-named rule, the CODE-TRUE research + prior-art evidence (no crate emits antigen's macro-DSL; the one Rust ADWIN crate has an anti-fit streaming API), and an author-distinct witness.
 
 **Related**: **ADR-002 / ADR-002 Amendment 2** (compose-don't-compete + "compose where external expertise serves; compete where antigen cohesion serves" — this ADR makes that amendment's line PRECISE: the line is grammar-authority); **ADR-063** (the Fingerprint→DSL serializer — the first explicit instance: antigen's own grammar's inverse, BUILT); the ADWIN-full drift-detector design (`extend/adwin-full-the-biggest-detector` — the second instance: antigen's own pure-batch verdict, BUILT, not the anti-fit streaming crate); **ADR-047 Amendment 3** (the closed-alphabet boundary — the build-side organs operate over antigen's OWN closed alphabet; that closure is what makes them sound); ADR-003 (the biological metaphor — the immune system's effector/sensor organs ARE the body's, not borrowed).
 
@@ -12708,7 +12707,7 @@ The do-now build is the floor (round-trip core + exhaustive match + the three ha
 
 ## Finding
 
-ADR-002 ("compose, don't compete") reads, on its face, as **"compose everything"** — antigen delegates to clippy, kani, proptest, cargo-mutants, RustSec, git. ADR-002 Amendment 2 already softened this ("compete where antigen cohesion serves") but did NOT name the LINE. The #12 serializer ratification surfaced the line at first principles (aristotle Phase 5): the cheap reflex was "check whether a crate does this; prefer compose." The scout's CODE-TRUE finding inverted it — no crate emits antigen's macro-DSL (serde is the JSON/RON wire layer, prettyplease is the Rust-source layer; both wrong layer) — and the deeper reason is not "no crate happens to exist" but **the serializer IS antigen's own grammar's inverse: it is a CORE REASONING ORGAN, and core organs are BUILT.** The same shape recurs at the drift-detector: the one Rust ADWIN crate exposes an anti-fit stateful `update() -> bool` streaming API that re-imports the silent-`UnderPowered` failure antigen exists to CATCH; antigen builds its own pure-batch `detect(&[Affinity]) -> DriftVerdict` instead. Two organs, one un-named rule.
+ADR-002 ("compose, don't compete") reads, on its face, as **"compose everything"** — antigen delegates to clippy, kani, proptest, cargo-mutants, RustSec, git. ADR-002 Amendment 2 already softened this ("compete where antigen cohesion serves") but did NOT name the LINE. The #12 serializer ratification surfaced the line at first principles (Phase 5): the cheap reflex was "check whether a crate does this; prefer compose." The CODE-TRUE prior-art finding inverted it — no crate emits antigen's macro-DSL (serde is the JSON/RON wire layer, prettyplease is the Rust-source layer; both wrong layer) — and the deeper reason is not "no crate happens to exist" but **the serializer IS antigen's own grammar's inverse: it is a CORE REASONING ORGAN, and core organs are BUILT.** The same shape recurs at the drift-detector: the one Rust ADWIN crate exposes an anti-fit stateful `update() -> bool` streaming API that re-imports the silent-`UnderPowered` failure antigen exists to CATCH; antigen builds its own pure-batch `detect(&[Affinity]) -> DriftVerdict` instead. Two organs, one un-named rule.
 
 **The line is grammar-authority (the alphabet boundary).** Antigen has its OWN closed alphabets — the `Constraint` DSL grammar (ADR-010/047 Amd3), the affinity/drift verdict vocabulary (ADR-052/the ADWIN design), the tolerance/fate taxonomies. Where antigen's OWN grammar is authoritative, an external tool cannot serve without forcing a translation layer (the co-native violation, CLAUDE.md): serde would emit JSON the macro can't read; the ADWIN crate would emit a `bool` that erases the `UnderPowered` distinction. Where an EXTERNAL tool's grammar is authoritative — the proof of a witness (kani/proptest), the lint of a pattern (clippy), the history of a repo (git), the escaping of a Rust string literal (proc_macro2) — antigen composes, because re-implementing would fragment the ecosystem and duplicate mature engineering (ADR-002's original rationale, intact).
 
@@ -12718,7 +12717,7 @@ ADR-002 ("compose, don't compete") reads, on its face, as **"compose everything"
 
 **Antigen COMPOSES the witness/IO layer and BUILDS its core reasoning organs. The line is grammar-authority: COMPOSE where an external tool's grammar is authoritative for the task; BUILD where ANTIGEN's own (closed-alphabet) grammar is authoritative.**
 
-The discriminator (aristotle's T3, generalized): **if the artifact IS a projection of, or a verdict in, antigen's own grammar/vocabulary, BUILD it. If the artifact is a proof, a lint, a history-read, or a wire/escaping format an external tool already owns, COMPOSE it.**
+The discriminator (the T3 first-principle, generalized): **if the artifact IS a projection of, or a verdict in, antigen's own grammar/vocabulary, BUILD it. If the artifact is a proof, a lint, a history-read, or a wire/escaping format an external tool already owns, COMPOSE it.**
 
 - **BUILD (core reasoning organs — antigen's grammar is authoritative):**
   - the `Constraint` DSL serializer (ADR-063) — antigen's grammar's inverse;
@@ -12768,9 +12767,9 @@ This ADR governs a DESIGN POSTURE, not a type. Enforcement is review-time, at th
 
 ## [ADR-065] ADWIN-Full: the Honest-Blind Batch Drift-Detector — UnderPowered Is the Spine (the Default at Antigen's Scale), the Power-Guard Is Its Own Floor→Full Regime-Switch, Authority Bounded by the Conservative Default
 
-**Status**: **RATIFIED 2026-06-18** (v06 "the maturing organism" / extend → ratify wave; targets the v0.6 line, `0.6-dev`). Staged through the lifecycle — design (extend-dreamer's floor→full-seam + real/virtual-fusion reframe), **source-verified math** (math-researcher: Bifet & Gavaldà 2007 §3.1/3.2/3.3 + Eq 3.1 transcribed VERBATIM from the pulled PDF, the bucket-merge validated against the paper's worked trace), compose-vs-build recon (extend-scout: the one Rust ADWIN crate has an anti-fit API), first-principles (aristotle, Phases 1-8 on `extend/adwin-full-the-biggest-detector`), author-distinct witness (the ratify-wave observer). **Instantiates ADR-064** (build-the-core-organs) — its SECOND named instance: the crate's streaming `bool` API erases antigen's `UnderPowered` distinction, so antigen BUILDS the pure-batch verdict. **Depends on the life-record STOCK (ADR-059, the trajectory input) + the bit-3 silent-sensor (shipped) for the real/virtual fusion.**
+**Status**: **RATIFIED 2026-06-18** (v06 "the maturing organism" / extend → ratify wave; targets the v0.6 line, `0.6-dev`). Staged through the lifecycle — design (the floor→full-seam + real/virtual-fusion reframe), **source-verified math** (a research review: Bifet & Gavaldà 2007 §3.1/3.2/3.3 + Eq 3.1 transcribed VERBATIM from the pulled PDF, the bucket-merge validated against the paper's worked trace), compose-vs-build recon (the one Rust ADWIN crate has an anti-fit API), first-principles (Phases 1-8 on `extend/adwin-full-the-biggest-detector`), author-distinct witness. **Instantiates ADR-064** (build-the-core-organs) — its SECOND named instance: the crate's streaming `bool` API erases antigen's `UnderPowered` distinction, so antigen BUILDS the pure-batch verdict. **Depends on the life-record STOCK (ADR-059, the trajectory input) + the bit-3 silent-sensor (shipped) for the real/virtual fusion.**
 
-**Participants**: extend-dreamer (the floor→full lived-transition, the self-announcing power-threshold, the real/virtual fusion table, the honest-scope flag honored), math-researcher (the source-verified bounds + bucket-merge + the synthetic-fixture suite — the maintainer's two flagged contracts met verbatim), extend-scout (the compose-vs-build verdict: `anomstream-core`'s `&mut self update()->bool` is the wrong shape + erases `UnderPowered`), aristotle (Phases 1-8: UnderPowered-as-spine, the real/virtual-fusion conservatism-join, the order-asymmetry vs the serializer, the herd-drift void), the ratify-wave observer (author-distinct witness).
+**Developed through**: design exploration (the floor→full lived-transition, the self-announcing power-threshold, the real/virtual fusion table, the honest-scope flag honored), a research review (the source-verified bounds + bucket-merge + the synthetic-fixture suite — the maintainer's two flagged contracts met verbatim), compose-vs-build recon (`anomstream-core`'s `&mut self update()->bool` is the wrong shape + erases `UnderPowered`), first-principles deconstruction (Phases 1-8: UnderPowered-as-spine, the real/virtual-fusion conservatism-join, the order-asymmetry vs the serializer, the herd-drift void), and an author-distinct witness.
 
 **Related**: **ADR-064** (build-the-core-organs — this is its second instance; the compose-vs-build precedent the ADWIN build cites); **ADR-059** (the life-record STOCK — `score_trajectory()` is the detector's pure input); **ADR-057** (the conservative default — the detector NEVER deletes; UnderPowered/Indeterminate ⇒ CURATE HOLDS); **ADR-060** (the afferent decomposition — ADWIN is the loud-class READER half; bit-3 is the silent half; they compose, neither subsumes); the bit-3 silent-sensor (`SilentStatus` 4-valued, shipped 95f31e1/fdd11fb — the second fusion channel); CURATE (`convergence/curate-is-a-confusion-matrix` — the decay-trigger consumer); the red-queen island (shares the change-point detector at the obsolete-vs-evaded boundary); the CUSUM island (`dream/cusum-...` — the chosen-over alternative); `prior-art/adwin-drift-detection-is-the-automatic-decay-trigger` (the verified-math substrate).
 
@@ -12778,7 +12777,7 @@ This ADR governs a DESIGN POSTURE, not a type. Enforcement is review-time, at th
 
 ## Finding
 
-antigen needs to decide WHEN a learned class has gone obsolete (or is being evaded) by watching its per-class affinity-trajectory for a downward change-point — the automatic decay-trigger the forgetting-curve and red-queen loops both reach for. ADWIN (Bifet & Gavaldà 2007, the field-standard streaming concept-drift detector) is the canonical mechanism. But three first principles (aristotle Phases 1-8) reshape it from "a streaming drift detector" into antigen's organ:
+antigen needs to decide WHEN a learned class has gone obsolete (or is being evaded) by watching its per-class affinity-trajectory for a downward change-point — the automatic decay-trigger the forgetting-curve and red-queen loops both reach for. ADWIN (Bifet & Gavaldà 2007, the field-standard streaming concept-drift detector) is the canonical mechanism. But three first principles (Phases 1-8) reshape it from "a streaming drift detector" into antigen's organ:
 
 - **UnderPowered is the SPINE, not an edge case (T1, the Aristotelian move).** A change on a stream is detectable only above a statistical power threshold; below it, detection is mathematically impossible. At antigen's CURRENT scale (classes have matured n≈4-8 times) the bound is DEAD: `2·ε_cut > 1.0` = the max observable signal, so a correct detector CANNOT fire. Therefore `UnderPowered{eps_cut, max_observable}` is not a corner case — it is the DEFAULT verdict for every class today. The organ's entire v0.6 value is that it HONESTLY says "I cannot yet see drift for this class, and here is exactly when I will be able to (`n*`, computed from the bound, no real data needed)." A detector that fires zero and says-so is the correct, valuable v0.6 organ — and it is the SAME organ that fires correctly once trajectories lengthen, with NO code change.
 - **It must be a BATCH pure derivation, not a stateful stream (T2 — ADR-064's second instance).** antigen's posture is append-only-record + current-state-DERIVED. A detector holding its own mutable window is a SECOND state-store that can desync from the life-record (`ParallelStateTrackersDiverge` at the detector boundary). The one Rust ADWIN crate (`anomstream-core::AdwinDetector`) is a `&mut self`, ingest-one-point-at-a-time, fire-and-truncate streaming struct whose `update()` returns a bare `bool` (non-finite silently ignored, no-drift indistinguishable from under-powered) — it is BOTH the wrong shape (the forbidden second state) AND erases the `UnderPowered` distinction. Per ADR-064 (grammar-authority): antigen's verdict vocabulary is authoritative, so antigen BUILDS `detect(trajectory: &[Affinity], delta: f64) -> DriftVerdict` over the materialized `score_trajectory()`.
@@ -12804,7 +12803,7 @@ enum DriftVerdict {
 
 ### The source-verified math (the maintainer's flagged contract — VERBATIM, do NOT reconstruct from memory)
 
-The bounds and bucket-merge are transcribed verbatim from the pulled Bifet-Gavaldà 2007 PDF (math-researcher, source-of-truth read this turn). The constants are load-bearing — getting one wrong is a silent miscalibration:
+The bounds and bucket-merge are transcribed verbatim from the pulled Bifet-Gavaldà 2007 PDF (a research review, source-of-truth read this turn). The constants are load-bearing — getting one wrong is a silent miscalibration:
 
 - **FLOOR — rigorous ADWIN0 `ε_cut` (§3.1):** `m = 1/(1/n0 + 1/n1)` (harmonic mean); `δ' = δ/n`; `ε_cut = sqrt( (1/(2m))·ln(4/δ') )`. The constant inside `ln` is **4**. The guaranteed-DETECTABLE shift is **2·ε_cut** (Theorem 3.1) — this factor-2 is why n≈8 is dead.
 - **FULL — variance-aware ADWIN2 `ε_cut` (Eq 3.1):** `ε_cut = sqrt( (2/m)·σ²_W·ln(2/δ') ) + (2/(3m))·ln(2/δ')`. The constant inside `ln` is **2** (NOT 4 — do not copy the floor's). The additive Bernstein term `(2/(3m))·ln(2/δ')` is **NOT optional** (it protects small windows; dropping it under-fires in exactly antigen's regime). `σ²_W` = the observed sample variance of the per-axis scalar values in W.
@@ -12823,7 +12822,7 @@ A single stream cannot split real from virtual drift (T4); antigen's bit-3 stati
 | recall-drop | shape PRESENT + no near-miss | ~~VIRTUAL drift (churn), **KEEP**~~ — *superseded; see the ADR-065 amendment below: this cell is **`RouteToHuman`** (the cause is undecidable on a denominator-free rate, so it joins the conservatism-JOIN's third route-to-human cell)* |
 | precision-drop | clean-binds rising | REAL drift, AUTOIMMUNE over-broadening |
 
-**The conservatism-JOIN (aristotle Phase 6 C2 — the safety corner the ADR states explicitly):** the fusion's KEEP/HOLD is the JOIN of both channels' conservatism. If EITHER channel is blind — ADWIN `UnderPowered` OR bit-3 `Indeterminate` (its 4th state) — **CURATE HOLDS (never forgets)**, regardless of the other channel. A virtual-drift cell must never fall through to forget when a channel is blind. (This sharpens the dreamer's table at the one cell that could autoimmune-forget on churn.)
+**The conservatism-JOIN (Phase 6 C2 — first principles, the safety corner the ADR states explicitly):** the fusion's KEEP/HOLD is the JOIN of both channels' conservatism. If EITHER channel is blind — ADWIN `UnderPowered` OR bit-3 `Indeterminate` (its 4th state) — **CURATE HOLDS (never forgets)**, regardless of the other channel. A virtual-drift cell must never fall through to forget when a channel is blind. (This sharpens the fusion table at the one cell that could autoimmune-forget on churn.)
 
 ### Decay-authority bounded by the conservative default (ADR-057)
 
@@ -12837,7 +12836,7 @@ The moment a class crosses its power threshold `n*`, the organ appends a life-re
 
 ## Mechanics
 
-- **HOME:** a new submodule `learn/adwin.rs` (greenfield — scout verified zero existing change-detection code). The floor batch detector + the full ADWIN2 struct both live here; the full streaming form is an INTERNAL optimization `detect()` dispatches to once `n ≥ n*` — the CALLER sees one function, only the regime-switch inside.
+- **HOME:** a new submodule `learn/adwin.rs` (greenfield — an exploratory pass verified zero existing change-detection code). The floor batch detector + the full ADWIN2 struct both live here; the full streaming form is an INTERNAL optimization `detect()` dispatches to once `n ≥ n*` — the CALLER sees one function, only the regime-switch inside.
 - **INPUT:** `LifeRecord::score_trajectory() -> Vec<Affinity>` (life_record.rs:262, SHIPPED). Reads the per-axis scalar stream (`affinity.recall` / `affinity.precision`, both `f64 ∈ [0,1]`, affinity.rs:81). Per-axis OR with `δ_axis = δ/2` (Bonferroni over the two axes).
 - **OUTPUT:** a `Drift` verdict appends `LifeEvent::Drifted` to the record (life_record.rs:130 — the variant ALREADY EXISTS, reserved for exactly this producer). **Plus (the herd-drift void hook, do-now-cheap):** the change-point records the COMMIT-sha, not just the index, so the future cross-class herd-correlator (v0.7+) has a shared commit-time-axis to align on.
 
@@ -12907,13 +12906,13 @@ Neither divergence touches the locked math (bounds verbatim), the `UnderPowered`
 
 ### The discriminator INPUT-3 seam (NOT built — scoped out, the next non-touching unit)
 
-The ADR + the math-researcher's wiring note (`prior-art/…`, 2026-06-18) reserve discriminator `INPUT 3` (`discriminator.rs:19-23`) for the loud-class signal: a recall-axis `Drift` maps to `ClassVerdict::Evaded`, `UnderPowered` ⇒ the loud axis ABSTAINS (the streamless verdict stands). That wiring EDITS `discriminator.rs` (a separate lane with its own producers) and is **out of this build's non-touching scope** — left as the next unit for whoever owns the discriminator. The detector slots into the reserved socket without a redesign; the plug is built, the socket-wiring is the follow-on.
+The ADR + the research wiring note (`prior-art/…`, 2026-06-18) reserve discriminator `INPUT 3` (`discriminator.rs:19-23`) for the loud-class signal: a recall-axis `Drift` maps to `ClassVerdict::Evaded`, `UnderPowered` ⇒ the loud axis ABSTAINS (the streamless verdict stands). That wiring EDITS `discriminator.rs` (a separate lane with its own producers) and is **out of this build's non-touching scope** — left as the next unit for whoever owns the discriminator. The detector slots into the reserved socket without a redesign; the plug is built, the socket-wiring is the follow-on.
 
 ---
 
 ## Build-time ratification #2 (the ADWIN builder, `build-adwin`, 2026-06-18 — reconciled to the binding fusion-contract)
 
-After build-time ratification #1, a SECOND adversarial landed the **binding fusion contract** on `0.6-dev` (`atk_adwin_fusion_conservatism_join.rs` @`f95a13b`, 13 tests gated on a born-red `adwin_built` feature) — the highest-stakes gate after the moral center, because `fuse_channels` is what *produces* `ClassVerdict::Obsolete` (the one auto-forgettable cell). The detector was merged forward and reconciled to it. Three points supersede earlier wording (append-only):
+After build-time ratification #1, a SECOND adversarial pass landed the **binding fusion contract** on `0.6-dev` (`atk_adwin_fusion_conservatism_join.rs` @`f95a13b`, 13 tests gated on a born-red `adwin_built` feature) — the highest-stakes gate after the moral center, because `fuse_channels` is what *produces* `ClassVerdict::Obsolete` (the one auto-forgettable cell). The detector was merged forward and reconciled to it. Three points supersede earlier wording (append-only):
 
 - **D1-REVISED — the `Drift` variant is SEALED at `{cut_index, axis, observed_diff, eps_cut}`; the commit-sha is NOT a field at all.** Build-time ratification #1 placed the sha on `DriftVerdict::Drift { commit_sha: Option<String> }`. The fusion contract pattern-matches `Drift { cut_index, axis, observed_diff, eps_cut }` and `UnderPowered { eps_cut, max_observable }` with EXACT field lists — so a `commit_sha` field (and the `UnderPowered.n_star` field) would break the binding tests. SUPERSEDED: both removed. The herd-drift hook is now closed PURELY at the caller boundary (map `cut_index` → the originating `Scored` event's commit once events carry commit-identity); `n*` is computed on demand via `power_threshold_n` (no longer a verdict field). The hook + the self-announcement are both still HONORED — neither is a field, both are caller-side derivations. The variant shape is now the contract's, not the builder's.
 - **The fusion surface IS `fuse_channels(DriftVerdict, SilentStatus, defended) -> ClassVerdict`** (NOT the builder's earlier `fuse(&DriftVerdict, StaticChannel) -> FusedDrift`). The contract requires the fusion to PRODUCE the discriminator's `ClassVerdict` and feed `curate` end-to-end. `fuse_channels` = the conservatism-JOIN over the existing streamless `classify(silent, defended)`: ADWIN `UnderPowered` OR bit-3 `Indeterminate` ⇒ `RouteToHuman` (HOLD, never `Obsolete`); a precision-`Drift` that would otherwise yield `Obsolete` routes to human (autoimmune over-broadening is never a clean forget); else the bit-3 verdict (recall-`Drift` + `Dormant` ⇒ `Dormant`, the virtual-drift KEEP cell). The adversary's proposed surface (`DriftAxis`/`DriftVerdict`/`detect`/`fuse_channels`) matched the as-built names verbatim — no import rename needed.
@@ -12928,17 +12927,17 @@ Reconciled state: BOTH ATK files run UNGATED in the default suite (the born-red 
 a maintainer greenlit the full ADWIN ship before the seal; the lead charged wiring the discriminator INPUT-3 socket so the production classify path consults the loud axis. Two things govern the as-built result:
 
 - **The curation pipeline is DORMANT — wiring is at the LIBRARY seam, NOT a fabricated CLI caller.** grep on `0.6-dev@6770865`: `classify` / `curate` / `silent_status` / `score_trajectory` have ZERO production callers (every caller is `#[cfg(test)]` or `fuse_channels` itself); the binary wires only `propose::propose`. There is no "live production classify path" to insert into. Per the lead's honesty-guard (a zero-caller fused-classify is the smell antigen flags), INPUT-3 is wired as the canonical LIBRARY entry `discriminator::fused_classify(trajectory, silent, defended, delta)` — it composes `score_trajectory → detect → fuse_channels` so the curation pipeline consults the loud axis BY DEFAULT when it is wired. `classify` remains the streamless 2-input special-case; `fused_classify` is the full three-axis read. Born-red tested on real `LifeRecord`/`SilentStatus` inputs (`atk_fused_classify_input3.rs`, 6 tests) — the `Obsolete` test proves the trajectory actually fires `Drift` through the wiring (a blind axis would abstain to `RouteToHuman`). (Building the curation CLI command that DRIVES this pipeline end-to-end is a separate, larger unit — flagged to the lead, not assumed here.)
-- **The `recall-Drift + Dormant` cell is HELD under a live design-Q (camp `2767bd73`), NOT silently resolved.** This ADR's INPUT-3 paragraph (above, ratify-context) says recall-`Drift` ⇒ `Evaded`; the math-researcher's wiring note + the discriminator docstring concur. BUT the MERGED binding fusion contract (`atk_adwin4_virtual_drift_stays_dormant_never_forgets`, green on 0.6-dev) asserts `recall-Drift + Dormant ⇒ Dormant` (virtual-drift KEEP). SAME input, OPPOSITE verdict + curation action, both ratified — the un-named crux is whether a recall-drop on a shape-present/no-near-miss class is CHURN (corpus shrank → KEEP) or loud EVASION (defect escaping the static sensor → broaden), which a single recall `DriftVerdict` cannot itself distinguish. Wiring `Evaded` would RED a merged contract; wiring `Dormant` ignores INPUT-3. RESOLUTION DEFERRED to the lead + aristotle (it is an ADR-merit call, and switching to `Evaded` means AMENDING a merged binding contract — the adversary's call). As-built, `fused_classify` leaves the cell at the MERGED default (`Dormant`, via `fuse_channels`); the born-red INPUT-3 test asserts only the safety FLOOR both readings agree on for that cell (NEVER `Obsolete`), so it survives EITHER ruling without a silent re-bless. Once ruled, the contested cell is a one-line change in `fuse_channels` (+ amend `atk_adwin4` if it flips to `Evaded`).
+- **The `recall-Drift + Dormant` cell is HELD under a live design-Q (camp `2767bd73`), NOT silently resolved.** This ADR's INPUT-3 paragraph (above, ratify-context) says recall-`Drift` ⇒ `Evaded`; the research wiring note + the discriminator docstring concur. BUT the MERGED binding fusion contract (`atk_adwin4_virtual_drift_stays_dormant_never_forgets`, green on 0.6-dev) asserts `recall-Drift + Dormant ⇒ Dormant` (virtual-drift KEEP). SAME input, OPPOSITE verdict + curation action, both ratified — the un-named crux is whether a recall-drop on a shape-present/no-near-miss class is CHURN (corpus shrank → KEEP) or loud EVASION (defect escaping the static sensor → broaden), which a single recall `DriftVerdict` cannot itself distinguish. Wiring `Evaded` would RED a merged contract; wiring `Dormant` ignores INPUT-3. RESOLUTION DEFERRED to the lead + a first-principles ruling (it is an ADR-merit call, and switching to `Evaded` means AMENDING a merged binding contract — an adversarial-review call). As-built, `fused_classify` leaves the cell at the MERGED default (`Dormant`, via `fuse_channels`); the born-red INPUT-3 test asserts only the safety FLOOR both readings agree on for that cell (NEVER `Obsolete`), so it survives EITHER ruling without a silent re-bless. Once ruled, the contested cell is a one-line change in `fuse_channels` (+ amend `atk_adwin4` if it flips to `Evaded`).
 
 Whole crate green (385 lib + 13 detector + 12 fusion-contract + 6 fused-classify + all siblings, 0 failed), clippy `--all-targets -D warnings` clean, fmt clean.
 
 ---
 
-## ADR-065 Amendment 1 (2026-06-18, ruled by aristotle on the v06 extend→ratify wave) — the recall-Drift + Dormant fusion cell is UNDECIDABLE on a denominator-free rate: RouteToHuman (the third conservatism-join cell), not Dormant/KEEP
+## ADR-065 Amendment 1 (2026-06-18, ruled on the v06 extend→ratify wave) — the recall-Drift + Dormant fusion cell is UNDECIDABLE on a denominator-free rate: RouteToHuman (the third conservatism-join cell), not Dormant/KEEP
 
 **Status**: **RATIFIED** (v06 extend→ratify wave). Append-only; the §Decision (the floor→full seam + the real/virtual fusion + the conservatism-JOIN) stands as amended here.
 
-**What the original ADR-065 §real/virtual-fusion was silent on (the ratified-vs-ratified conflict the ADWIN build surfaced).** ADR-065's fusion table listed `recall-drop + shape PRESENT + no near-miss = VIRTUAL drift (churn), KEEP` (⇒ `ClassVerdict::Dormant`). The build's `fuse_channels` (`antigen/src/learn/adwin.rs`) implemented exactly that, and the adversary's merged-binding-fusion ATK (`antigen/tests/atk_adwin_fusion_conservatism_join.rs`, table row "Drift recall-drop + Dormant ⇒ Dormant → Hold (VIRTUAL drift)") pinned it green. But the SAME cell was reserved as **Evaded (ReArm)** by ADR-065's INPUT-3 framing + the math-researcher's note (a loud recall-drop on a still-present shape IS the evasion the streamless near-miss axis is blind to). Same input, opposite verdict AND opposite curation action, both ratified. The builder correctly refused to silently resolve it.
+**What the original ADR-065 §real/virtual-fusion was silent on (the ratified-vs-ratified conflict the ADWIN build surfaced).** ADR-065's fusion table listed `recall-drop + shape PRESENT + no near-miss = VIRTUAL drift (churn), KEEP` (⇒ `ClassVerdict::Dormant`). The build's `fuse_channels` (`antigen/src/learn/adwin.rs`) implemented exactly that, and the adversary's merged-binding-fusion ATK (`antigen/tests/atk_adwin_fusion_conservatism_join.rs`, table row "Drift recall-drop + Dormant ⇒ Dormant → Hold (VIRTUAL drift)") pinned it green. But the SAME cell was reserved as **Evaded (ReArm)** by ADR-065's INPUT-3 framing + the research note (a loud recall-drop on a still-present shape IS the evasion the streamless near-miss axis is blind to). Same input, opposite verdict AND opposite curation action, both ratified. The builder correctly refused to silently resolve it.
 
 **The CODE-TRUE finding that resolves it (the first principle neither artifact named).** A recall-`Drift` is a drop in a **denominator-free RATE**, and the cluster-size denominator is **not recorded** anywhere in the substrate the detector reads (CODE-TRUE on `0.6-dev` / HEAD at ruling time):
 
@@ -12976,7 +12975,7 @@ The original code's comment ASSERTS the churn cause ("the recall dropped because
 
 ## ADR-065 Amendment 2 (2026-06-18, honest-scope finding — Finding B) — the FULL regime's `δ'=δ/ln n` is justified by "O(log n) bucket-boundary cutpoints," but the shipped scan checks all `n−1` cuts and the `ExpHistogram` is never on the detection path: a doc-over-code over-claim (antigen's own `DocClaimVsCodeImplementationMismatch`), latent-not-live
 
-**Status**: **DOCUMENTED finding, RULED honest-scope** (not a live-bug fix). Append-only; the §Decision and the §math contract stand as scoped here. The math-direction resolution (below) is **flagged for a build pass** (aristotle / math-researcher), not silently picked by this note.
+**Status**: **DOCUMENTED finding, RULED honest-scope** (not a live-bug fix). Append-only; the §Decision and the §math contract stand as scoped here. The math-direction resolution (below) is **flagged for a build pass** (first-principles / research review), not silently picked by this note.
 
 **What this amendment is.** Antigen's own discipline is *"the ADR says what the code does, or one of them is a finding"* (the `DocClaimVsCodeImplementationMismatch` / `RatifiedSpecDriftFromImpl` class). Applied INWARD to ADR-065's own ADWIN math, one claim does not match the shipped code. Naming it is the dogfood; this is the doc half of the v0.6 docs-currency sweep.
 
@@ -12994,7 +12993,7 @@ The original code's comment ASSERTS the churn cause ("the recall dropped because
 **The decision (what this amendment rules, and what it defers).** The honest-scope is ruled here; the math-direction is flagged for a build pass.
 
 - **RULED (honest-scope, doc-side, no code behavior change):** the FULL regime's `δ'=δ/ln n` may NOT be justified by "O(log n) bucket-boundary cutpoints" while the shipped scan checks all `n−1`. The docs that carry the unqualified coupling claim (`adwin.rs:205–206`, the module doc, `mod.rs`, ADR-065 §math, and `roadmap.md`) are scoped to say: *the detector scans all `n−1` interior cuts; the `δ/ln n` full bound and the `ExpHistogram` window-structure are the paper's ADWIN2 form, present in the crate but not on the current all-cut detection path; the rigorous all-`n` floor (`δ/n`) governs every case the v0.6-scale detector reaches.* The EH is **reserved infrastructure**, not the live cutpoint source.
-- **FLAGGED for a build pass (math-direction — NOT picked here; needs aristotle + math-researcher):** two sound resolutions exist and the choice is a math/architecture call, not a docs call —
+- **FLAGGED for a build pass (math-direction — NOT picked here; needs a first-principles + research review):** two sound resolutions exist and the choice is a math/architecture call, not a docs call —
   - **(A) Code → doc:** restrict the FULL-regime scan to the `ExpHistogram`'s O(log n) bucket boundaries (wire EH onto the detection path); then `δ/ln n` is correctly union-bound-corrected and the doc becomes true as written. Buys the EH's sensitivity; costs the all-cut localization the batch recursion currently uses.
   - **(B) Doc → code:** keep the all-`n−1`-cut scan and re-derive the FULL bound's correction as `δ' = δ/n` (matching the floor's cut-set), demoting `δ/ln n`; the `ExpHistogram` stays reserved future-work for a streaming/windowed variant. Keeps today's localization; loses the EH-sensitivity the `δ/ln n` term was buying.
   A born-red test should pin whichever direction is ratified (parallel to ADR-065's existing "each regime uses its own `δ'`" born-red).
