@@ -48,7 +48,19 @@ antigen = "0.5.0-beta.1"   # check crates.io for the latest version
 
 ## Pick your path
 
-Different starting points for different people.
+Six ways in, depending on why you're here. Each row names where to start; the
+sections below expand each path.
+
+| If you want to… | Start here | Then |
+|---|---|---|
+| **See it work in 30 seconds** | [the felt arc](the-felt-arc.md) | one real run, no install |
+| **Use it on your code** | [quickstart](quickstart.md) | [getting-started](getting-started.md) → [tutorial](tutorial.md) → [concepts](concepts.md) |
+| **Understand how it works** | [concepts](concepts.md) | [the maturing organism](the-maturing-organism.md) → [library-api](library-api.md) → [the immune-system guide](the-immune-system-a-programmers-guide.md) |
+| **Know why it's shaped this way** | [decisions](decisions.md) | [the keystone explained](the-keystone-explained.md) |
+| **Get unstuck** | [troubleshooting](troubleshooting.md) | [reading a verdict](reading-a-verdict.md) → [i-scanned-and](i-scanned-and.md) |
+| **Collaborate as an AI agent** | [for LLM collaborators](for-llm-collaborators.md) | the co-native protocol, first-class |
+
+The detail for each:
 
 ### "I'm new to antigen; show me what it is and how to use it"
 

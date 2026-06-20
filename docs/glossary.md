@@ -1245,6 +1245,111 @@ into a named class. This is why `propose` renders a suggestion and never writes 
 
 ---
 
+## Maturing-organism terms (the v0.6 efferent organs)
+
+The learning-core terms above cover how a class is *born* (the afferent arc: mark →
+anti-unify → gate). These cover how a born class *lives* over its lifetime — matures,
+is sensed for drift, is classified, and is curated. Each is a typed, tested
+`antigen::learn` library API; the `cargo antigen` verb that drives the full loop
+end-to-end is the v0.7 frontier.
+
+### life-record
+
+**Biological referent**: an immune cell's accumulated history — every exposure,
+every selection event — kept as the cell's own past, never overwritten.
+
+**Rust ecosystem analog**: a learned class's append-only autobiography
+(`antigen::learn::life_record`): a typed event stream (`Born`, `Matured`,
+`Scored`, `Drifted`, `Ratified`, `Retired`, …) that every sensor reads. Current state
+is **derived, never stored** — `is_retired()` is a fold over the stream (did a
+`Retired` event ever happen?), not a flag kept in sync. The record stores *events*
+(what happened), not *claims* (what is true now), which is why it cannot drift out of
+sync with itself — the same property that makes a `.git` history trustworthy. A forget
+is a pushed `Retired` tombstone, never an erasure.
+
+### Affinity (the 2-vector)
+
+**Biological referent**: binding affinity — how tightly an antibody binds its target.
+A maturing B-cell climbs toward higher affinity through somatic hypermutation, selected
+against self.
+
+**Rust ecosystem analog**: a learned class's **height**, recorded as a 2-vector
+`Affinity { recall, precision }` — deliberately **not a scalar**. The two axes trade
+off: **recall** (BIND-TIGHT — the fraction of the defect cluster the fingerprint
+matches) and **precision** (SPARE-CLEAN — the fraction of clean code it correctly
+spares). `Affinity` is `PartialOrd` with **no `Ord`**: two affinities where one wins on
+recall and the other on precision are genuinely incomparable (`partial_cmp` returns
+`None`), and that incomparability is the point — a single number would silently pick a
+point on the trade-off and hide the choice it makes. The "maturation ceiling" is not a
+threshold someone set; it is the Pareto frontier a draft can no longer improve off of.
+
+> **It is not a probability.** The 2-vector is the honest placeholder for a calibrated
+> confidence antigen does not yet compute — score calibration is the v0.7 frontier. Read
+> it as a trade-off surface, never as "how likely this is a real failure."
+
+### drift-detection (ADWIN)
+
+**Biological referent**: sensing that the pathogen population has shifted — that a
+once-effective defense is losing its grip — and knowing when you have watched long
+enough to be sure.
+
+**Rust ecosystem analog**: a batch-pure change-point detector
+(`antigen::learn::adwin`, after Bifet-Gavaldà 2007) that watches a class's affinity
+trajectory for a downward change. Its verdict is three-valued — `Drift`, `NoDrift`, and
+**`UnderPowered`** — and the third is the spine, not a corner case. Below a
+statistical-power threshold a change is *mathematically undetectable*; the detector then
+returns `UnderPowered` ("I cannot yet see drift for this class, and here is exactly when
+I will be able to") rather than a false `NoDrift`. At today's scale (classes have matured
+only a handful of times) `UnderPowered` is the **default verdict**, and a detector that
+fires zero and says so is the correct, honest organ — the same organ that fires once
+trajectories lengthen, with no code change.
+
+> **Silence has two distinct causes — "no drift" and "can't see" — and they are distinct
+> verdicts.** Collapsing them into one `bool` is exactly the silent-miscalibration antigen
+> exists to catch.
+
+### CURATE
+
+**Biological referent**: the contraction phase — after an immune response, the body
+prunes its expanded memory pool, keeping the lineages still worth the cost and letting
+the rest decay. The pruning is itself gated, so a memory still defending the body is
+never deleted by mistake.
+
+**Rust ecosystem analog**: the **efferent (act) organ** (`antigen::learn::curate`) — the
+one station on antigen's sense → classify → act arc that *acts* on a learned class rather
+than sensing or classifying it. It maps a class verdict to one action on the
+**reversible-first ladder**:
+
+| Rung | Action | From verdict | Reversible? |
+|---|---|---|---|
+| 1 | **Keep** | WellDefended | yes — null action |
+| 2 | **Hold** | Dormant | yes — discards nothing |
+| 3 | **RouteToHuman** | RouteToHuman | yes — escalates the undecidable |
+| 4 | **ReArm** | Evaded | yes — records a drift, broadens coverage |
+| 5 | **Forget** | Obsolete | **no — the only irreversible rung** |
+
+The ladder is ordered reversible → irreversible deliberately: `Forget` is the last rung
+and is reachable from a single verdict (`Obsolete`) alone, type-enforced by
+`is_auto_forgettable`. A future edit that tried to forget any other verdict would have to
+delete the gate to do it. CURATE's load-bearing property is not what it forgets — it is
+what it is structurally incapable of forgetting.
+
+### conservatism-JOIN
+
+**Biological referent**: a tolerance checkpoint on memory deletion — if any one of the
+signals that would license pruning a memory cell is unreadable, the cell is spared.
+
+**Rust ecosystem analog**: the safety floor that fuses the sensor channels before CURATE
+acts (`antigen::learn::discriminator::fuse_channels`). **If either channel is blind — the
+drift detector returns `UnderPowered`, or the silent shape-sensor returns `Indeterminate`,
+or a drift signal arrives non-finite — the fused verdict is `RouteToHuman`, regardless of
+what the other channel says.** A blind channel cannot endorse an irreversible forget.
+Because every class is drift-blind by default at today's scale, this is why the system
+cannot auto-forget anything today: the honest behavior is "the loud sensor sees nothing
+yet; route the undecidable to a human," never a fabricated signal.
+
+---
+
 ## Glossary maintenance
 
 This glossary is itself a tambear-style discipline artifact. As the antigen project
