@@ -62,10 +62,32 @@ harness normalizes any `x.y.z[-tag]` to `<VERSION>` before comparing, so a
 pre-bump binary doesn't false-positive every block that happens to print a
 version.
 
-## The endgame
+## The prose-linter (`prose_lint.py`)
 
-This harness is the first half of the standing doc-machinery. The second half is
-a **prose-linter** — no stale version pins, no internal role-names, no
-`(planned)` futures in the prose body. The two together make "the docs are
-COMPLETE · CHECKED · COHESIVE" a thing a CI job can assert, not a heroic human
-pass that decays the moment a subcommand is added.
+The harness proves every *example* runs. The prose-linter proves every *claim in
+the prose* holds the line — the second half of the standing machinery the mandate
+names ("no test-counts, no internal names, no (planned), every fence
+verified-run"). It is antigen's own thesis turned on its own docs: a claim whose
+truth silently flips when the world moves — a version tags, a role-name leaks out
+of the team, a promised feature ships — is the silent-failure class. A flagged
+line is a fingerprint match to inspect, not an audited verdict; some hits are
+load-bearing and a human keeps them.
+
+```sh
+python tools/doc-harness/prose_lint.py            # all rules
+python tools/doc-harness/prose_lint.py --rule version-pin --rule us-leak
+python tools/doc-harness/prose_lint.py --json
+```
+
+Rules: `version-pin` (a hard pre-release pin — the CHANGELOG carries versions),
+`us-leak` (internal project/person/role/tool names in a USER doc), `planned-future`
+(a `(planned)` promise in present-tense prose), `test-count` (a bare count as
+performed evidence). It is **audience-aware**: `docs/internal/**` and
+`docs/decisions.md` are contributor docs — internal by design, so ADR-numbers and
+role-names there are not leaks — but a personal name and a stale version pin leak
+regardless of audience. Every rule is conservative: a noisy linter is one writers
+learn to ignore.
+
+Together the two tools make "the docs are COMPLETE · CHECKED · COHESIVE" a thing a
+CI job can assert, not a heroic human pass that decays the moment a subcommand is
+added.
