@@ -55,7 +55,7 @@ sections below expand each path.
 |---|---|---|
 | **See it work in 30 seconds** | [the felt arc](the-felt-arc.md) | one real run, no install |
 | **Use it on your code** | [quickstart](quickstart.md) | [getting-started](getting-started.md) → [tutorial](tutorial.md) → [concepts](concepts.md) |
-| **Understand how it works** | [concepts](concepts.md) | [the maturing organism](the-maturing-organism.md) → [library-api](library-api.md) → [the immune-system guide](the-immune-system-a-programmers-guide.md) |
+| **Understand how it works** | [concepts](concepts.md) | [the maturing organism](the-maturing-organism.md) → [drift-detection and the moral center](drift-detection-and-the-moral-center.md) → [the v0.6 anatomy](the-v06-anatomy.md) → [library-api](library-api.md) → [the immune-system guide](the-immune-system-a-programmers-guide.md) |
 | **Know why it's shaped this way** | [decisions](decisions.md) | [the keystone explained](the-keystone-explained.md) |
 | **Get unstuck** | [troubleshooting](troubleshooting.md) | [reading a verdict](reading-a-verdict.md) → [i-scanned-and](i-scanned-and.md) |
 | **Collaborate as an AI agent** | [for LLM collaborators](for-llm-collaborators.md) | the co-native protocol, first-class |
