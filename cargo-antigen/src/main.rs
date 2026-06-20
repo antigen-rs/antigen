@@ -264,8 +264,8 @@ struct ProposeArgs {
     /// The OPERATOR-supplied, OPERATOR-labeled clean corpus root (scanned; its
     /// function/impl items are the asserted-clean siblings the gate spares against).
     /// **Required for the gate** — there is no auto-derived "the rest of the tree is
-    /// clean" default. Antigen never labels unmarked code clean (ADR-044/047,
-    /// ATK-047-4): the gate is only as strong as the corpus you supply + label.
+    /// clean" default. Antigen never labels unmarked code clean: the gate is only
+    /// as strong as the corpus you supply + label.
     /// (Optional only with `--list-clusters`, a dry-run preview that never runs the
     /// gate and so never consults the clean corpus.)
     #[arg(long, value_name = "PATH")]
@@ -322,8 +322,8 @@ struct ProposeArgs {
     /// verified fix — intent-preservation is the human's call (a `.unwrap()` and a
     /// `.ok()` of the same flush are NOT the same code). So `--suggest` never claims
     /// correctness. When there is NO spared twin (route-to-human), it does NOT fabricate
-    /// one — it falls back to the GENUS fix-direction (ADR-038) and says so. A
-    /// SUGGEST-floor: it renders, it never writes the source tree (observe-don't-declare).
+    /// one — it falls back to the GENUS fix-direction and says so. A SUGGEST-floor:
+    /// it renders, it never writes the source tree (observe-don't-declare).
     #[arg(long)]
     suggest: bool,
 }
@@ -4399,7 +4399,7 @@ fn render_suggestion(s: &ProposeSuggestion, marker: &str) {
         println!(
             "  No spared clean sibling (twin) was found in your corpus — there is NO\n  \
              in-corpus example of the safe shape, so antigen will NOT fabricate one.\n  \
-             Your `{marker}` sites {signal}. The GENUS fix-direction (ADR-038) is one of:\n  \
+             Your `{marker}` sites {signal}. The GENUS fix-direction is one of:\n  \
              recover-the-info (don't drop the error) · tighten-the-guard · reorder-the-effect.\n  \
              Add a clean sibling that is one discriminating constraint from the defect to\n  \
              get a concrete in-corpus twin."
@@ -5057,7 +5057,7 @@ fn render_propose_json(
                     "applicability": "maybe-incorrect",
                     "auto_apply": false,
                     "note": s.twin.as_ref().map_or(
-                        "no in-corpus twin; genus fix-direction fallback (ADR-038); never fabricated",
+                        "no in-corpus twin; genus fix-direction fallback; never fabricated",
                         |_| "the spared twin shows the safe SHAPE, not a verified fix; intent-preservation is the human's call",
                     ),
                 }),
