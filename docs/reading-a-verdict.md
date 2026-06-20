@@ -35,7 +35,7 @@ through that lens and the output stops feeling like an accusation.
 There's a sharper way to say the same thing, and antigen prints it verbatim on every
 machine-readable diagnostic:
 
-> **a fingerprint match to inspect, not an audited verdict.**
+> **This is a fingerprint match to inspect, not an audited verdict.**
 
 Hold that sentence. It's the whole claim-scope of a `scan` line. The scanner reports
 that a *shape* in your code matches a known failure-class's fingerprint. It has
