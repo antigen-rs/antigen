@@ -1307,7 +1307,7 @@ naturalist work).
 
 #### ADR-021 — OracleRef generalization + Oracle artifact-class (RATIFIED)
 
-Oracle as **structurally distinguished artifact** (Model B per Tekgy decision)
+Oracle as **structurally distinguished artifact** (Model B per maintainer decision)
 rather than typed pointer. Five-state lifecycle:
 `Draft → Complete → {Deprecated, Retired, Revoked}`. Dedicated stewardship
 role separate from signers. State transitions are steward-authorized events
@@ -1347,7 +1347,7 @@ where small carry-forwards could smuggle substantive change.
 
 #### Process discipline: cross-ADR substrate-grep sub-routine
 
-`docs/process.md` amended with Phase 3 cross-ADR surface check — prevents
+`docs/internal/process.md` amended with Phase 3 cross-ADR surface check — prevents
 naming collisions (e.g., F28-R2 where `attest oracle complete` would have
 collided with `oracle complete` lifecycle verb). Caught at draft-time rather
 than ship-time.
@@ -1382,16 +1382,16 @@ than ship-time.
 - `EvidenceKind` enum (TypeSystemProof | Behavioral | SubstrateState) as
   third audit-output axis.
 - `signature_strength` field per signer on audit output (git-trust default;
-  text-stamp + crypto-signed as Tekgy verdict 2026-05-20).
+  text-stamp + crypto-signed as a maintainer verdict 2026-05-20).
 - New hints: `discipline-predicate-passed-substrate-current`,
   `discipline-substrate-stale`, `discipline-predicate-passed-via-delta-chain`,
   `discipline-substrate-delta-chain-near-cap`, `tolerance-vibes-grade`,
   `oracle-in-draft`, `oracle-completion-attested`, `oracle-reference-malformed`,
   + others. Tier-honesty mapping documented in `docs/witness-tiers.md`.
 
-#### Tambear adoption (Phase 4 shipped)
+#### External-adopter validation (Phase 4 shipped)
 
-Tambear's sinh/cosh signed-zero discipline declared and substrate-witnessed
+An external adopter's sinh/cosh signed-zero discipline declared and substrate-witnessed
 end-to-end against the v0.1-rc primitives. First-user adoption arc closed
 against the originating motivation.
 
@@ -1416,7 +1416,7 @@ against the originating motivation.
   `docs/expedition/stdlib-seed-antigens.md`, `docs/expedition/case-study-determinism-class.md`
   — same receiver-form correction
 - `README.md` — full narrative deep-draft replacing terse status block; what/what-not/
-  vocabulary/workflow/architecture/tambear-origin/v0.1.0-scope/setup/license
+  vocabulary/workflow/architecture/origin/v0.1.0-scope/setup/license
 - `docs/usage-patterns.md` — `#[antigen_tolerance]` decision tree + good/weak rationale
   examples + `until` field usage
 - All four crate-level doc-comments improved; per-macro ADR references; stale "future"
@@ -1443,7 +1443,7 @@ against the originating motivation.
   `"(& mut self)"`, and sloppy-whitespace variants all canonicalize to the same form and
   match the same signatures. Pre-A3.5 the engine required the spaced form `"(& self, ...)"`;
   that footgun is eliminated. (ATK-W6a-013 / ATK-W6a-013b; first real instance:
-  tambear's PanickingInDrop, surfaced during A3.5 onboarding cross-check)
+  an external adopter's PanickingInDrop, surfaced during A3.5 onboarding cross-check)
 - `normalize_signature_canonical` now returns `Option<String>`; strict fail on malformed
   signature string (proc_macro2 parse error → `None`, not silent fallback to plain
   `normalize_ws(raw)`). Grounds: ADR-005 §1 sub-clause F — lenient fallback reintroduces
@@ -1469,7 +1469,7 @@ against the originating motivation.
 
 - 240 passing, 31 ignored (up from 187/18-suites at rc.1); 21 suites
 - ATK-W6a-013 inverted: was "must NOT match" (documenting bug); now "must match" (fix verified)
-- ATK-W6a-013b added: tambear footgun — `has_method("drop", "(&mut self)")` now matches
+- ATK-W6a-013b added: an external-adopter footgun — `has_method("drop", "(&mut self)")` now matches
   across natural/canonical/sloppy whitespace variants
 - ATK-W6a-017 added: Self/self token-class distinction guard — `"(Self, Self) -> Self"` must
   NOT match `fn meet(self, other: Self)`; two positive controls included (receiver pattern matches
@@ -1483,7 +1483,7 @@ against the originating motivation.
 
 First functional release candidate. Sweep A2 (core macros + scan + audit
 completion) closed with 187 passing tests across 18 suites; clippy + doc gates
-clean. Cuts the substrate the JBD team built across A1 (10 ratified ADRs +
+clean. Cuts the substrate the development team built across A1 (10 ratified ADRs +
 4 amendments) and A2 (W1-W8 implementation work-streams).
 
 ### Added
@@ -1634,20 +1634,17 @@ clean. Cuts the substrate the JBD team built across A1 (10 ratified ADRs +
   - `docs/expedition/design-intent.md` — what antigen IS, what it ISN'T
   - `docs/expedition/api-shape.md` — sketch of API surface
   - `docs/expedition/revolutionary-and-not.md` — honest claims and limits
-  - `docs/expedition/team-briefing.md` — for the JBD team at spawn time
+  - `docs/expedition/team-briefing.md` — for the development team at spawn time
   - `docs/expedition/failure-class-instances.md` — real-world Rust ecosystem instances
     of the 8 first-principles failure classes
   - `docs/expedition/ecosystem-composition.md` — composition opportunities with existing
     Rust tools
   - `docs/expedition/academic-context.md` — relationship to existing academic work
-  - `docs/expedition/inheritance-from-tambear.md` — disciplines and patterns inherited
-    from the tambear project
-- Foundational ADRs (ADR-001 through ADR-008) ratified by Tekgy + Claude in pre-team
-  scaffolding
+- Foundational ADRs (ADR-001 through ADR-008) ratified in pre-team scaffolding
 - `docs/glossary.md` — vocabulary anchor
-- `docs/process.md` — formal ADR lifecycle and governance (how decisions get drafted,
-  reviewed, ratified, and govern downstream work; inherited from tambear DEC discipline
-  and adapted for antigen)
+- `docs/internal/process.md` — formal ADR lifecycle and governance (how decisions get
+  drafted, reviewed, ratified, and govern downstream work; a discipline carried over from
+  a high-correctness computational-mathematics project and adapted for antigen)
 - `docs/vision-pitch.md` — 1500-word ecosystem-outreach pitch
 - `docs/expedition/case-study-determinism-class.md` — pseudocode walkthrough of how
   antigen would have caught the originating bug pattern (closes the loop origin.md
@@ -1667,7 +1664,7 @@ clean. Cuts the substrate the JBD team built across A1 (10 ratified ADRs +
 - `.github/workflows/release.yml` — release workflow (git-tag-triggered crates.io
   publish + GitHub release)
 - GitHub issue templates and PR template
-- 9 starter campsites for the future antigen JBD team
+- 9 starter campsites for the future antigen development team
 
 ### Reserved
 
