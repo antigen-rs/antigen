@@ -113,9 +113,13 @@ python tools/doc-harness/prose_lint.py --rule version-pin --rule us-leak
 python tools/doc-harness/prose_lint.py --json
 ```
 
-Rules: `version-pin` (a hard pre-release pin — the CHANGELOG carries versions),
-`us-leak` (internal project/person/role/tool names in a USER doc), `planned-future`
-(a `(planned)` promise in present-tense prose), `test-count` (a bare count as
+Rules: `version-pin` (a hard pre-release pin in an *install context* — a
+`[dependencies]` line or `cargo install`/`cargo add`; the mechanical edit) and its
+sibling `version-mention` (a version-string in running prose — a case study, a
+policy discussion; review, don't auto-edit — both emitted by the same rule so the
+report separates "fix these" from "review these"); `us-leak` (internal
+project/person/role/tool names in a USER doc); `planned-future` (a `(planned)`
+promise in present-tense prose); `test-count` (a bare count as
 performed evidence). It is **audience-aware**: `docs/internal/**` and
 `docs/decisions.md` are contributor docs — internal by design, so ADR-numbers and
 role-names there are not leaks — but a personal name and a stale version pin leak
