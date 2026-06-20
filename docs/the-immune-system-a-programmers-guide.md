@@ -506,8 +506,8 @@ record this guide just walked you through.
   code, and the tolerance mechanism that fixed it
 - [`immune-system-primitive-map.md`](internal/immune-system-primitive-map.md) — the full
   forward map: every biological primitive antigen could grow into
-- [`decisions.md`](decisions.md) — ADR-003 (the metaphor is load-bearing), ADR-029
-  (observe-don't-declare, Chapter 4's correction)
+- [`decisions.md`](decisions.md) — why the metaphor is load-bearing, and the
+  observe-don't-declare discipline (Chapter 4's correction)
 - [`glossary.md`](glossary.md) — every term anchored to its biological referent and
   Rust analog
 - [`concepts.md`](concepts.md) — the architectural concepts behind the story
