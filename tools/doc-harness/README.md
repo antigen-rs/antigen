@@ -62,6 +62,29 @@ harness normalizes any `x.y.z[-tag]` to `<VERSION>` before comparing, so a
 pre-bump binary doesn't false-positive every block that happens to print a
 version.
 
+## The byte-unchanged test (`byte_unchanged.py`)
+
+The single most damaging behavioral lie antigen's docs could tell is that
+`cargo antigen propose` only *observes* — renders a suggestion and leaves your
+tree byte-unchanged — when in fact it writes. Observe-don't-declare (ADR-044) is
+why a human ratifies what the machine drafts; the whole trust model rests on it.
+`cli-reference.md` and `examples/propose-demo/README.md` both assert it in words.
+
+The claim is not catchable by reading the source — the write-suppression is a
+property of the whole run, not a line. So this test RUNS it: every propose
+invocation the demo documents (route-to-human, promote, and both `--format json`
+variants — the promote path constructs a fingerprint, the one most likely to
+write if the contract broke) against a throwaway copy of the demo fixtures,
+hashing every file before and after. One byte moves → the keystone is a lie and
+this fails loudly.
+
+```sh
+python tools/doc-harness/byte_unchanged.py    # exit 1 if the tree changed
+```
+
+The test has teeth: a negative-control sweep (inject a file the way a broken
+propose would) confirms it detects a write rather than passing vacuously.
+
 ## The prose-linter (`prose_lint.py`)
 
 The harness proves every *example* runs. The prose-linter proves every *claim in
