@@ -188,7 +188,7 @@ Cargo subcommands:
 
 ### Resolves
 
-- The implicit-memory failure mode (per the originating insight from tambear adversarial)
+- The implicit-memory failure mode (per the originating insight from the origin project adversarial)
 - Documentation drift as a memory carrier (refined: ADR-001 doesn't reject
   documentation, it pushes memory upward in the carrier hierarchy — see Amendment 1)
 - AI-coding-agent context-loss across sessions
@@ -467,7 +467,7 @@ The `witness` parameter on `#[immune(...)]` accepts:
 
 ### Finding
 
-ADR-002's "default compose" became a project-wide constraint when its load-bearing reason (v0.1 ship discipline) had a narrower scope. The amended default is **substrate-grounded design choice**, not categorical-default. The Tekgy reframe identifies a clamping artifact: antigen needs its own surfaces at cohesion-critical points, exactly as the immune system evolved its own integrated vocabulary at surfaces where adjacent-system tools would have caused translation losses.
+ADR-002's "default compose" became a project-wide constraint when its load-bearing reason (v0.1 ship discipline) had a narrower scope. The amended default is **substrate-grounded design choice**, not categorical-default. The a maintainer reframe identifies a clamping artifact: antigen needs its own surfaces at cohesion-critical points, exactly as the immune system evolved its own integrated vocabulary at surfaces where adjacent-system tools would have caused translation losses.
 
 ### Decision
 
@@ -515,7 +515,7 @@ This amendment's compose-vs-compete posture is **biology-predicted at the outcom
 
 ### Resolves
 
-- The "default compose" clamping artifact (per Tekgy lock 2026-05-21)
+- The "default compose" clamping artifact (per a maintainer lock 2026-05-21)
 - The hand-wavy biology framing: Class-1 outcome-level grounding replaces "competition + cooperation coexist" generic claim
 - The compose-default that fragmented supply-chain adopter experience (per ADR-025 compete decision)
 
@@ -575,7 +575,7 @@ Specifically:
 
 ### Mechanics
 
-The naturalist role on the antigen JBD team owns this discipline. When they observe
+The naturalist role on the antigen multi-agent team owns this discipline. When they observe
 metaphor-predicted primitives that haven't been built, they surface them. When the
 metaphor breaks, they name where.
 
@@ -616,9 +616,9 @@ analog.
 
 ### Finding
 
-ADR-003 ratifies the biological metaphor as load-bearing for two roles: (1) teaching tool and (2) architectural-insight predictor. What the original text does NOT surface explicitly — and what the Tekgy lock makes clear — is a third role: **discovery framework for stdlib growth**.
+ADR-003 ratifies the biological metaphor as load-bearing for two roles: (1) teaching tool and (2) architectural-insight predictor. What the original text does NOT surface explicitly — and what the maintainer lock makes clear — is a third role: **discovery framework for stdlib growth**.
 
-The Tekgy lock (2026-05-21): "Each unused biological component is a research prompt. Mucosal immunity → input boundary defenses. MHC presentation → scope/visibility of declaration. Complement cascade → compound multi-step defenses. We've used ~10% of the metaphor. Each remaining component is a research arc."
+The a maintainer lock (2026-05-21): "Each unused biological component is a research prompt. Mucosal immunity → input boundary defenses. MHC presentation → scope/visibility of declaration. Complement cascade → compound multi-step defenses. We've used ~10% of the metaphor. Each remaining component is a research arc."
 
 ### Decision
 
@@ -677,10 +677,10 @@ Memoization invariants are implicit in cache implementations. Refactoring discip
 implicit in mentorship.
 
 When this implicit structure is wrong (the meet=min vs meet=max frame-translation in
-tambear; the missing variance annotation in TypeScript that produces a runtime cast
+the origin project; the missing variance annotation in TypeScript that produces a runtime cast
 error), the failure mode is invisible because the structure itself is invisible.
 
-Tambear's expedition-level work showed that **making structural what is implicit is the
+The origin project's expedition-level work showed that **making structural what is implicit is the
 deepest fold operation a project can perform**. Each elevation (sequential→parallel,
 value→reference, concrete→symbolic, single-axis→product-axis, implicit→explicit) makes
 new work possible while elevating the boundary that was preventing it.
@@ -732,7 +732,7 @@ while implicit-mode produces results that are FAST and FRAGILE.
 ### Resolves
 
 - The "implicit-skilled-fast vs explicit-discipline-slower-but-required" tension named
-  by Tekgy + Claude
+  by the maintainers
 - Fresh-session amnesia where new agents revert to implicit-default (pre-loaded explicit
   imports prevent this)
 - Cross-team communication failures (explicit declarations are inspectable by all)
@@ -747,7 +747,7 @@ while implicit-mode produces results that are FAST and FRAGILE.
 
 ### Finding
 
-Tambear DEC-022 sub-clause F establishes: **every trust boundary requires a validation
+The origin project DEC-022 sub-clause F establishes: **every trust boundary requires a validation
 check before trust is extended**. The pattern: an asserted claim must be canonicalized
 and validated by the receiving system before it is acted upon.
 
@@ -1242,7 +1242,7 @@ ADR-007 (anti-YAGNI is the structurally-guaranteed counterweight to recognition)
 
 ### Finding
 
-Tambear's expedition surfaced a distinction between two kinds of architectural work:
+The origin project's expedition surfaced a distinction between two kinds of architectural work:
 - **Design DECs** — choosing among alternatives; ratifying a decision that wasn't
   predetermined
 - **Recognition DECs** — naming structure that was already implicit in the substrate;
@@ -1325,7 +1325,7 @@ source pattern documented — the real-code instances it was recognized from.
 
 ADR-006 ratified "recognition-not-design" as a single discipline applied across ALL antigen development. This was structurally correct for the adopter-extension layer and structurally INCORRECT for the stdlib-growth layer.
 
-The conflation arose because at ratification time (2026-05-07), antigen's scope was still being elaborated. The Tekgy reframe (2026-05-21): antigen ships a FULL immune system as core stdlib — every immune-component earns primitive status via **research + substrate-grounding from beyond direct encounter**.
+The conflation arose because at ratification time (2026-05-07), antigen's scope was still being elaborated. The a maintainer reframe (2026-05-21): antigen ships a FULL immune system as core stdlib — every immune-component earns primitive status via **research + substrate-grounding from beyond direct encounter**.
 
 The original framing — "recognize patterns that already exist in real-world Rust codebases" — is too narrow for two reasons: (1) biology metaphor actively predicts primitives no Rust codebase has yet encountered; (2) 2026+ dev contexts (agentic teams, vibe coders, AI-pair) produce failure-classes that wait-for-encounter cannot reach in safety-critical timelines.
 
@@ -1397,7 +1397,7 @@ load-bearing inversion: when the project's *structural commitments* guarantee th
 feature will be needed, building it later (when the structure forces the issue) is
 expensive.
 
-Tambear's anti-YAGNI / YAWNI doctrine: "If the principles structurally guarantee we'll
+The origin project's anti-YAGNI / YAWNI doctrine: "If the principles structurally guarantee we'll
 need it, build it now."
 
 Antigen's structural commitments include:
@@ -1467,7 +1467,7 @@ ADR-009 (adoption gradient is named-observer ergonomics applied to the API).
 
 ### Finding
 
-Tambear's expedition revealed that every refinement-lattice has a **terminal stratum
+The origin project's expedition revealed that every refinement-lattice has a **terminal stratum
 where individual practitioners enact the protocol**. The lattice abstracts; the terminal
 stratum embodies. Practitioners are the inhabitants of the terminal stratum.
 
@@ -1711,7 +1711,7 @@ commitment as an implementation deliverable so it doesn't slip.
    may default to severity = error rather than warn, since strict
    discipline is the operating mode they've already opted into.
    Defer to future ADR; expected to surface when the first Layer 3
-   consumer (likely tambear) hits the question and the migration
+   consumer (likely the origin project) hits the question and the migration
    path becomes concrete.
 
 ---
@@ -1807,7 +1807,7 @@ supports it):
 )]
 ```
 
-The `adr` field (and equivalent for tambear's `dec` etc.) is structured cross-reference.
+The `adr` field (and equivalent for the origin project's `dec` etc.) is structured cross-reference.
 When present, cargo-antigen tooling can validate that the named ADR exists in the
 project's `decisions.md` (or configured equivalent), surface it in audit reports,
 generate trace links from antigen presentations to ratified decisions, and provide
@@ -1862,7 +1862,7 @@ validated.
 ### Resolves
 
 - Adoption barrier for early-stage Rust projects without ADR discipline
-- The "antigen requires you to be a tambear-class project" misperception
+- The "antigen requires you to be a the origin project-class project" misperception
 - Schema rigidity in cross-reference fields (open-vocabulary `references` accommodates
   any documentation practice)
 
@@ -2835,7 +2835,7 @@ Mitigations:
   explicitly maps each receiver form (`self`, `&self`, `&mut self`, no receiver)
   to its pattern form.
 - **Fingerprint-declaration corrections**: `PolarityInvertedClassMeet` in
-  tambear's `antigens.rs` and the two ADR-010 ratified-text instances corrected
+  the origin project's `antigens.rs` and the two ADR-010 ratified-text instances corrected
   from `"(Self, Self) -> Self"` to `"(self, Self) -> Self"`.
 
 This distinction — `Self` (typed parameter) vs `self` (receiver keyword) — is
@@ -2922,7 +2922,7 @@ positive control.
    ("Never matches (silent failure)" examples) should note that sub-mechanism A
    is now engine-bridged — users may write either spacing form.
 
-3. **Tambear adoption log**: the PanickingInDrop fingerprint's `"(&mut self)"`
+3. **The origin project adoption log**: the PanickingInDrop fingerprint's `"(&mut self)"`
    fix committed at `7d9664a` is no longer load-bearing post-Amendment 5; kept
    for clarity.
 
@@ -3306,15 +3306,15 @@ is **item-level only** in v1; module-level deferred to future ADR.
 **Related**: ADR-001 [as amended] (C5 drift-detection-at-scan-time invariant),
 ADR-002 (compose, don't compete; clippy pattern engine reuse), ADR-005 (sub-clause
 F: structural blindness IS a sub-clause F violation), ADR-006 (recognition not
-design; tambear adoption surfaced this), ADR-007 (anti-YAGNI: function-body
+design; the origin project adoption surfaced this), ADR-007 (anti-YAGNI: function-body
 matching structurally guaranteed), ADR-010 (the ADR being amended), ADR-014
 (sibling structural-blindness fix for macro-generated code).
 
 ### Finding
 
 ADR-010's v1 grammar matches at the **item level** — declarations and signatures.
-Tambear's adoption log (entry 2026-05-07, `UlpDistanceRolledByHand` antigen)
-surfaced a real gap: two newly re-rolled ULP-distance functions in tambear escaped
+The origin project's adoption log (entry 2026-05-07, `UlpDistanceRolledByHand` antigen)
+surfaced a real gap: two newly re-rolled ULP-distance functions in the origin project escaped
 detection because the existing pattern detector only catches the inline
 single-expression form, not the multi-statement function-body form.
 
@@ -3350,7 +3350,7 @@ the 50× constant-factor cost asymmetry math-researcher flagged for v1's
 `has_method`.
 
 Performance impact: `O(n × m × b)` where `b` is average body size. Realistic
-estimate for tambear-scale (217 files): ~6s per scan. Borderline for CI; Sweep A5
+estimate for the origin project-scale (217 files): ~6s per scan. Borderline for CI; Sweep A5
 should benchmark and may need parallelism or incremental scan caching.
 
 ### Consequences
@@ -3367,7 +3367,7 @@ should benchmark and may need parallelism or incremental scan caching.
 
 - Property tests for each v2 operator against synthetic ASTs.
 - Adversarial sweep: malformed v2 fingerprints fail loudly.
-- Tambear case study: `UlpDistanceRolledByHand` migrates to v2 grammar.
+- The origin project case study: `UlpDistanceRolledByHand` migrates to v2 grammar.
 
 ### Resolves
 
@@ -3674,7 +3674,7 @@ substrate evidence surfaced after ratification that warrant amendment
 to that single mechanics commitment:
 
 1. **The body-pattern problem is real** (ADR-012, deferred from
-   ADR-010 v1; tambear adoption-log entry 2026-05-07: simple
+   ADR-010 v1; the origin project adoption-log entry 2026-05-07: simple
    syntactic patterns missed the multi-statement form of
    `UlpDistanceRolledByHand`). Body-level matching for arbitrary
    structural patterns is structurally guaranteed by the v0.1 stdlib
@@ -3694,12 +3694,12 @@ to that single mechanics commitment:
    independent of which engine runs it. ADR-010 conflated them;
    ADR-015 separates them.
 
-**Substrate honesty**: tambear's `pattern.rs` is exploratory-not-
+**Substrate honesty**: the origin project's `pattern.rs` is exploratory-not-
 committed (per team-lead clarification). ast-grep itself is at
 v0.42.1 (April 2026), pre-1.0; ast-grep-core docs explicitly state
 "the Rust API is not stable yet" with the CLI as the recommended
 primary path. Recognition-not-design (ADR-006) requires substrate
-that has happened *and is committed*; tambear clears the first bar
+that has happened *and is committed*; the origin project clears the first bar
 but not the second. ast-grep-core clears existence but not stability.
 
 This honesty constrains what ADR-015 can ratify. The
@@ -3913,7 +3913,7 @@ choice is *what fingerprints match*, not *what witnesses prove*.
   silently at scan time. `Path C` parser produces `syn::Error`
   pointing to the offending token's span.
 - **Recognition substrate**: when the sibling backend decision
-  ratifies, tambear's `UlpDistanceRolledByHand` adoption gap
+  ratifies, the origin project's `UlpDistanceRolledByHand` adoption gap
   (multi-statement form) becomes the integration test target. v0.1
   ships honest documentation that body-pattern matching is
   deferred; the gap is named, not papered over.
@@ -3921,7 +3921,7 @@ choice is *what fingerprints match*, not *what witnesses prove*.
 ### Resolves
 
 - The implementation-detail tension in ADR-010 §Mechanics §1 that
-  surfaced under math-researcher's review §16.6 + tambear
+  surfaced under math-researcher's review §16.6 + the origin project
   adoption-log evidence.
 - The B-vs-C question scout asked: this ADR makes the answer
   "neither B nor C as initially framed; it's *one grammar with
@@ -4226,7 +4226,7 @@ ADR-002).
 - **Adversarial sweep** (ADR-005 sub-clause F): a `verified_at`
   field that the audit doesn't actually walk is *decoration*, not
   memory. ADR-005 forbids decorative trust extensions.
-- **Recognition substrate**: tambear's CI workflow (after antigen
+- **Recognition substrate**: the origin project's CI workflow (after antigen
   v0.2+ ships) is the integration test target.
 
 ### Resolves
@@ -5560,7 +5560,7 @@ discipline doc, team sign-off record, oracle-completion marker, signed git trail
 
 This gap is not hypothetical:
 
-1. **Direct adoption signal**: tambear independently sketched `witness = doc_attested(...)`
+1. **Direct adoption signal**: the origin project independently sketched `witness = doc_attested(...)`
    from three antibody-tier methodology patterns crystallized in one day
    (2026-05-18) — independent design convergence with three architectural differences
    (tooling friction, PR review visibility, code-drift defense).
@@ -5691,7 +5691,7 @@ rationale. Distinct exit codes for CI routing.
 `SubstrateState` cannot reach `FormalProof`; `signature_strength` is `None` until
 DSSE/Sigstore activate (v0.4+).
 
-**E7** — Tambear-adoption smoke test (Phase 4): primitive exercises `SignedZeroDiscipline`
+**E7** — The origin project-adoption smoke test (Phase 4): primitive exercises `SignedZeroDiscipline`
 on sinh/cosh. Adoption findings feed v0.2 amendment planning.
 
 ### Resolves
@@ -5913,11 +5913,11 @@ are complementary, not competing.
 
 ### Finding
 
-**R1 (Tekgy)**: Audit NEVER reads oracle content. Substantive judgment ("does the code
+**R1 (a maintainer)**: Audit NEVER reads oracle content. Substantive judgment ("does the code
 satisfy what the oracle specifies?") is human/LLM work done at sign-time. Audit validates
 structural well-formedness + oracle state + completion marker + version-pin.
 
-**R2 (Tekgy)**: The current `OracleRef { path, status }` struct is insufficient. An oracle
+**R2 (a maintainer)**: The current `OracleRef { path, status }` struct is insufficient. An oracle
 is not a typed pointer carrying a completion marker — it is a **structurally distinguished
 artifact-class** with its own state machine, dedicated stewards, provenance, and lifecycle
 tracking. Without lifecycle structure, discipline degrades to convention — the exact failure
@@ -5982,7 +5982,7 @@ state transition (TextStamp-authorized) — transition flagged but attestation p
 
 ### Mechanics
 
-**Oracle CLI subfamily** (all five slices ship in v0.1-rc per Tekgy):
+**Oracle CLI subfamily** (all five slices ship in v0.1-rc per a maintainer):
 - `cargo antigen oracle list` — workspace oracle inventory
 - `cargo antigen oracle status <id>` — state + transitions + stewards + attestations
 - `cargo antigen oracle declare --as steward --reference <ref> --rationale <r>` — create DRAFT
@@ -6119,12 +6119,12 @@ These layers have DIFFERENT growth disciplines (per ADR-006 Amendment 1): stdlib
 ## Convention notes
 
 - **ADR vs. DEC**: this project uses "ADR" (Architecture Decision Record) following
-  ecosystem convention. Tambear uses "DEC" (Decision Entry Container). Same shape,
+  ecosystem convention. The origin project uses "DEC" (Decision Entry Container). Same shape,
   different naming for consistency with broader Rust/software-architecture practice.
 - **Ratification authority**: ADRs at the foundational level (1-8) require team-lead
   ratification. ADRs above 8 (project ratifications during expeditions) follow the
   team's normal Phase 1-8 review and ratification process.
-- **Pre-team ADRs (1-8)**: these were ratified by Tekgy + Claude in the pre-team
+- **Pre-team ADRs (1-8)**: these were ratified by the maintainers in the pre-team
   scaffolding session. They are foundational and should not be casually amended; major
   amendments require explicit deconstruction by the antigen team.
 
@@ -6958,7 +6958,7 @@ Both channels also carry:
    to. This survives `#[immune]` deprecation by moving to the presents-site, which is already
    the natural failure-locus.
 
-**The core principle (Tekgy, seed note):** Code declares structural facts. `cargo antigen
+**The core principle (a maintainer, seed note):** Code declares structural facts. `cargo antigen
 audit` declares verdicts. Code never claims "I am immune to X" — the tool reports:
 "defended at tier T / not defended, gaps at sites A, B, C."
 
@@ -8368,7 +8368,7 @@ are substrate-reads. This makes "witness" honest about what it attests. **Antige
 value; the threshold-as-judgment lives downstream, outside antigen.** Antigen stays out of the
 clinical-judgment business — exactly the boundary math-researcher's rigor drew. (The fork
 between defer-to-v0.4 and ship-in-v0.3 is *dissolved*, not adjudicated: math-researcher was
-right about the verdict, Tekgy was right about the value; report-not-verdict keeps both.)
+right about the verdict, a maintainer was right about the value; report-not-verdict keeps both.)
 
 **Biology predicts the split (ADR-003 doing predictive work).** Serology has two distinct
 readings: sero*conversion* (binary — did antibodies develop? yes / no / *equivocal* — the third
@@ -8686,7 +8686,7 @@ projection, never a stored tracker).
 
 #### 5. The antigen-prescriptive ↔ camp boundary is a falsifiable test, not a feature list.
 
-Per anchor #3 (Tekgy, 2026-06-01): camp stays separate; antigen never depends on or reads camp. The
+Per anchor #3 (a maintainer, 2026-06-01): camp stays separate; antigen never depends on or reads camp. The
 discriminator:
 
 > **If this exact code site vanished, does the work-need vanish with it?**
@@ -8915,7 +8915,7 @@ prescriptive verdicts (the overdue gate).
   `#[ignore]` to active when pathmaker ships the macros. (The Q9 corpus must drop the `titer` row
   per the titer-relocation to ADR-019 Amendment 1. On `triage`: the corpus's ATK-PRES-14 was
   CORRECT — `triage` triages code sites, not camp campsites — and the §Proc-Macro-Surface S3 table
-  has been fixed (transcription correction) to match the corpus + the Tekgy ruling. ATK-PRES-14's
+  has been fixed (transcription correction) to match the corpus + the maintainer ruling. ATK-PRES-14's
   flagged "priority_order non-resolution tier unspecified" is now resolved: unresolvable
   code-site ref = out-of-frame per ADR-017 Amendment 1, see §Enforcement-Surface.)
 
@@ -9895,7 +9895,7 @@ parallel classification field bolted on.
 
 **Status**: Locked design (2026-06-02) — **awaiting the notary** for promotion
 to Witnessed. The three-decisions split and the emit-seam locus are locked first-principles + substrate.
-The **build-gate admission rule is RULED (Tekgy, permissive — supersedes the earlier crisp-gate): admission
+The **build-gate admission rule is RULED (a maintainer, permissive — supersedes the earlier crisp-gate): admission
 ≈ ARTICULABILITY (name/see/imagine it → admitted; no fiction-exclusion gate), justified by the cost
 asymmetry (false-positive ≈ ~0, especially PASSIVE; false-negative = the silent failure). The crisp /
 constructable / encountered material moves to the dial as an honest PROVENANCE ladder (decision-(b)); a new
@@ -9957,7 +9957,7 @@ physically-split stream defeats the seam's whole purpose (one subscribable signa
 **(A) Lock three named admission decisions, not one gate.**
 
 - **Admission ≈ ARTICULABILITY-AS-A-STRUCTURAL-TELL — no filtering gate, but antigen-hood is definitional
-  (RULED, Tekgy permissive + the captain's cut; supersedes the crisp-gate above).** A candidate failure-class
+  (RULED, a maintainer permissive + the captain's cut; supersedes the crisp-gate above).** A candidate failure-class
   is admitted to the stdlib if it can be *articulated as a scannable structural pattern* — named,
   seen-as-a-mechanism, or even *imagined* — **provided it has a structural TELL (a scannable fingerprint).**
   The tell-requirement is **definitional, not a Goodhart gate**: an antigen *is* a fingerprint the scanner
@@ -9982,7 +9982,7 @@ physically-split stream defeats the seam's whole purpose (one subscribable signa
        verified core of the scannable stdlib, provenance = encountered / constructable.
     2. **PASSIVE-HEURISTIC stdlib** — a **heuristic / correlational tell** (scannable, but NOT
        verifiably-constructable-to-failure — clippy-lint-style, "this shape *correlates* with the failure").
-       Admits at a **PASSIVE, honestly-labeled *imagined*-tier** below the verified core (Tekgy's permissive
+       Admits at a **PASSIVE, honestly-labeled *imagined*-tier** below the verified core (a maintainer's permissive
        ruling). It is a general *scannable class* (so it is stdlib, not dread), surfaced soft / dial-gated,
        and *honestly labeled* as heuristic — it cannot *claim* the verified-core tier it hasn't earned.
     3. **`#[dread]`** — a **narrative-only / site-local hunch** with NO scannable class at all (no
@@ -9992,7 +9992,7 @@ physically-split stream defeats the seam's whole purpose (one subscribable signa
     failing demo a fiction cannot produce) — so flooding buys the floor, not the loud center. Recurrence-COUNT
     promotes within the dial; it is not an admission bar.
   - **A tell-less / narrative-only concern is NOT excluded — it takes the `#[dread]` form** (ADR-041, the
-    site-local marker). This is where adversarial's "narrative → dread" and Tekgy's "the user has macros
+    site-local marker). This is where adversarial's "narrative → dread" and a maintainer's "the user has macros
     available for what we imagined" *meet*: a thing you can *feel/narrate at a site* but cannot *articulate
     as a scannable class* has no fingerprint, so it cannot be a stdlib antigen — it is a dread declaration
     instead. (dread = feeling-at-a-site, no class; imagined-antigen = a class WITH a tell, no instance yet —
@@ -10218,9 +10218,9 @@ and the run demonstrates the passive-by-default-for-imagined rule (an imagined c
 `class_provenance: imagined` + `presentation: passive`, an encountered one `active`). "The verdict carries
 provenance + passive" is SEEn in a real struct, not asserted.)*
 
-### The build gate: RULED (Tekgy, permissive) — the deliberation ladder, preserved append-only below
+### The build gate: RULED (a maintainer, permissive) — the deliberation ladder, preserved append-only below
 
-**THE RULING (Tekgy, permissive — FINAL, supersedes the crisp-gate below): admission ≈ ARTICULABILITY;
+**THE RULING (a maintainer, permissive — FINAL, supersedes the crisp-gate below): admission ≈ ARTICULABILITY;
 there is no filtering gate.** Name it / see-a-mechanism / *imagine* it → admitted. The crisp /
 constructable / encountered distinction is **not a gate** — it is the dial's honest **provenance ladder**
 (decision-(b)): encountered → constructable → imagined, all admitted, the tier stating which. Three things
@@ -10241,7 +10241,7 @@ how immunity is *built*, a metaphor-confirmation for the organizing frame too.
 
 ---
 
-*(Superseded ruling — the crisp-GATE (Tekgy override #1), kept append-only and **later further superseded by
+*(Superseded ruling — the crisp-GATE (a maintainer override #1), kept append-only and **later further superseded by
 the permissive override #2** above. It was right that fiction must be caught; the permissive ruling kept
 that finding and moved it from entry-gate to provenance-label.)* **GATE = tell +
 crisp mechanism, where crisp = a constructable + verifiably-failing demonstration.** Recurrence is *not* an
@@ -10256,7 +10256,7 @@ this ruling is preserved below (append-only; the fork is superseded, not erased)
 
 ---
 
-*(Superseded deliberation — the fork as it stood before the Tekgy override. Kept for the trail.)* The exact
+*(Superseded deliberation — the fork as it stood before the maintainer override. Kept for the trail.)* The exact
 admission rule had two candidate forms; the captain owned the cut.
 - **Form 1 — "recurs AND tell"** (the vision §2 sketch): a stdlib antigen requires both a structural tell
   *and* evidence it recurs in real code. Keeps the stdlib bar high; lets the dial/dread carry the
@@ -10304,7 +10304,7 @@ to a low-confidence home that isn't a loud stdlib fingerprint; they differ on **
 suspected-tier built fingerprint (naturalist) or a `#[dread]` marker (adversarial).** The Goodhart argument
 is the load-bearing new input: it is *why* "shown instance" beats "mechanism" as the non-gameable anchor.
 Three options were on the table — Form 1 (recurs AND tell), Form 2 (tell + recurs-OR-mechanism), Form 3
-(adversarial: tell + at-least-one-shown-instance; mechanism-only → `#[dread]`). **RESOLVED by the Tekgy
+(adversarial: tell + at-least-one-shown-instance; mechanism-only → `#[dread]`). **RESOLVED by the maintainer
 override at the top of this section: tell + crisp-mechanism (constructable + verifiably-failing); recurrence
 is a promotion signal, not an admission criterion.** The override refines Form 3's non-gameable anchor from
 "a shown wild instance" to "a constructable verifiably-failing demonstration" — same fiction-intolerance,
@@ -10322,7 +10322,7 @@ deliver the value this design claims.
 
 ### What this ADR does NOT do
 
-- Does NOT leave the build-gate admission rule open — it is RULED (Tekgy override): tell + crisp-mechanism
+- Does NOT leave the build-gate admission rule open — it is RULED (a maintainer override): tell + crisp-mechanism
   (constructable + verifiably-failing); recurrence is a dial-promotion signal, not an admission criterion.
 - Does NOT specify the `#[dread]`/`#[aura]` marker semantics — that is the marked-unknown plane ADR; this
   ADR only fixes the three-way split and the shared emit stream.
@@ -10796,7 +10796,7 @@ here so the two ADRs do not ship a backwards name.)
 The v04 design space converged — independently from three directions (dreamer-from-ambition, value-finder-from-worth, scout-from-cheapest-path) — on a single structural observation: **the highest-leverage v0.4 build is not a new organ but a shared service**. The current `cargo antigen scan` + `synthesis_pass` already computes a catalog-match for the one crate whose fingerprints it knows. Four distinct consumers need exactly this computation — CLI output, editor-inline squiggles, agent-at-generation queries, and session-priming of a fresh agent — but the current codebase serves only the first, and only if the crate carries its own `#[antigen]` declarations (because `synthesis_pass` builds its fingerprint table from the scanned tree, not from a bundled catalog).
 
 Two concrete substrate gaps feed every downstream symptom:
-1. **No bundled-catalog mode.** Scanning a consumer crate that hasn't declared antigen's stdlib members fires zero stdlib findings — the bundled fingerprint table is missing. The adopter must declare stdlib members themselves (the active model tambear uses) before any value lands.
+1. **No bundled-catalog mode.** Scanning a consumer crate that hasn't declared antigen's stdlib members fires zero stdlib findings — the bundled fingerprint table is missing. The adopter must declare stdlib members themselves (the active model the origin project uses) before any value lands.
 2. **No multi-render surface.** The Finding schema (ADR-039 §C) is a structured, versioned wire-format designed to be the external contract. No serializer today converts it to the `rustc-DiagnosticSpan` format that rust-analyzer's flycheck consumes, nor to an MCP-query response, nor to a batch session-prime digest. Each potential render requires a new serializer; none exist.
 
 The worth does not spread evenly: **client A (bundled-catalog CLI) has the highest present-adoption worth at the cheapest build cost** (a `&[(String, Fingerprint)]` passed into the existing `synthesis_pass`). The other three clients are near-free follow-ons once the spine is built — they differ only in their serializer and transport, not in their scan computation.
@@ -11188,7 +11188,7 @@ A bundled-catalog match (a `(String, Fingerprint)` injected into `synthesis_pass
 
 ### Finding
 
-The baton's E0 mechanic said "auto-detect when no in-tree antigens." Implemented literally as *inject-iff-`report.antigens.is_empty()`*, that **suppresses the bundled catalog for a partial adopter** — a crate that has declared a few of its own antigens but still wants the stdlib flagships. But the REAL adopters (tambear, camp) are **partial adopters, not blank crates**. A partial adopter who explicitly passes `--bundled-catalog` and gets it silently suppressed is the exact silent-miss E0 exists to kill (the flagship footgun goes unflagged). Auto-detect-when-empty is the right *convenience default* but the wrong *explicit-request* semantics.
+The baton's E0 mechanic said "auto-detect when no in-tree antigens." Implemented literally as *inject-iff-`report.antigens.is_empty()`*, that **suppresses the bundled catalog for a partial adopter** — a crate that has declared a few of its own antigens but still wants the stdlib flagships. But the REAL adopters (the origin project, camp) are **partial adopters, not blank crates**. A partial adopter who explicitly passes `--bundled-catalog` and gets it silently suppressed is the exact silent-miss E0 exists to kill (the flagship footgun goes unflagged). Auto-detect-when-empty is the right *convenience default* but the wrong *explicit-request* semantics.
 
 ### Decision
 
@@ -11238,7 +11238,7 @@ Antigen's fingerprint model is a SNAPSHOT predicate: it matches the structure of
 
 ---
 
-<!-- ADR-047..056 transcribed from the v0.5 Outfitters ratified drafts (jbd/expeditions/v05-the-learning-organism/drafts/) into the tracked canon as v0.6 Pioneers build-step-zero (2026-06-18). Faithful transcription; the ratification ritual (process.md:257-258) completing the v0.5 seal. Header levels demoted h1->h2 to match canon; "targets 0.5-dev" status framing preserved verbatim as the ratification provenance. -->
+<!-- ADR-047..056 transcribed from the v0.5 ratified drafts into the tracked canon as v0.6 Pioneers build-step-zero (2026-06-18). Faithful transcription; the ratification ritual (process.md:257-258) completing the v0.5 seal. Header levels demoted h1->h2 to match canon; "targets 0.5-dev" status framing preserved verbatim as the ratification provenance. -->
 
 ## [ADR-047] GATE-G Soundness: The Near-Miss Non-Vacuity Predicate — a Promotion Requires One Corpus Item One Constraint From Binding, Spared by Failing Exactly That One
 
@@ -12163,7 +12163,7 @@ One question — **does the draft carry body conjuncts beyond `{Item, ImplOfTrai
 
 ---
 
-<!-- ADR-057 + ADR-058: v0.6 Outfitters/converge ADRs, landed DRAFT (research-review certification defers to the fresh Survey notary per the no-self-witness ruling). Full drafts from jbd/.../v06/drafts/. -->
+<!-- ADR-057 + ADR-058: v0.6 Outfitters/converge ADRs, landed DRAFT (research-review certification defers to the fresh Survey notary per the no-self-witness ruling). Full drafts in the project design history. -->
 
 ## [ADR-057] The Conservative Default Under Uncertainty: Antigen's Safe Default Is the Action That Minimizes Counterfactual Trust-Harm — RETAIN/ROUTE Under Uncertainty (Per-Instance Free, Aggregate-Bounded by a Scarcity-Completion); Positive Evidence Decides Outside the Default
 
@@ -12925,7 +12925,7 @@ Reconciled state: BOTH ATK files run UNGATED in the default suite (the born-red 
 
 ## Build-time ratification #3 (the ADWIN builder, `build-adwin`, 2026-06-18 — INPUT-3 wired as the honest library seam; one cell HELD)
 
-Tekgy greenlit the full ADWIN ship before the seal; the lead charged wiring the discriminator INPUT-3 socket so the production classify path consults the loud axis. Two things govern the as-built result:
+a maintainer greenlit the full ADWIN ship before the seal; the lead charged wiring the discriminator INPUT-3 socket so the production classify path consults the loud axis. Two things govern the as-built result:
 
 - **The curation pipeline is DORMANT — wiring is at the LIBRARY seam, NOT a fabricated CLI caller.** grep on `0.6-dev@6770865`: `classify` / `curate` / `silent_status` / `score_trajectory` have ZERO production callers (every caller is `#[cfg(test)]` or `fuse_channels` itself); the binary wires only `propose::propose`. There is no "live production classify path" to insert into. Per the lead's honesty-guard (a zero-caller fused-classify is the smell antigen flags), INPUT-3 is wired as the canonical LIBRARY entry `discriminator::fused_classify(trajectory, silent, defended, delta)` — it composes `score_trajectory → detect → fuse_channels` so the curation pipeline consults the loud axis BY DEFAULT when it is wired. `classify` remains the streamless 2-input special-case; `fused_classify` is the full three-axis read. Born-red tested on real `LifeRecord`/`SilentStatus` inputs (`atk_fused_classify_input3.rs`, 6 tests) — the `Obsolete` test proves the trajectory actually fires `Drift` through the wiring (a blind axis would abstain to `RouteToHuman`). (Building the curation CLI command that DRIVES this pipeline end-to-end is a separate, larger unit — flagged to the lead, not assumed here.)
 - **The `recall-Drift + Dormant` cell is HELD under a live design-Q (camp `2767bd73`), NOT silently resolved.** This ADR's INPUT-3 paragraph (above, ratify-context) says recall-`Drift` ⇒ `Evaded`; the math-researcher's wiring note + the discriminator docstring concur. BUT the MERGED binding fusion contract (`atk_adwin4_virtual_drift_stays_dormant_never_forgets`, green on 0.6-dev) asserts `recall-Drift + Dormant ⇒ Dormant` (virtual-drift KEEP). SAME input, OPPOSITE verdict + curation action, both ratified — the un-named crux is whether a recall-drop on a shape-present/no-near-miss class is CHURN (corpus shrank → KEEP) or loud EVASION (defect escaping the static sensor → broaden), which a single recall `DriftVerdict` cannot itself distinguish. Wiring `Evaded` would RED a merged contract; wiring `Dormant` ignores INPUT-3. RESOLUTION DEFERRED to the lead + aristotle (it is an ADR-merit call, and switching to `Evaded` means AMENDING a merged binding contract — the adversary's call). As-built, `fused_classify` leaves the cell at the MERGED default (`Dormant`, via `fuse_channels`); the born-red INPUT-3 test asserts only the safety FLOOR both readings agree on for that cell (NEVER `Obsolete`), so it survives EITHER ruling without a silent re-bless. Once ruled, the contested cell is a one-line change in `fuse_channels` (+ amend `atk_adwin4` if it flips to `Evaded`).
