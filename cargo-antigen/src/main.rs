@@ -108,18 +108,18 @@ enum AntigenSubcommand {
     },
     /// Comprehensive immunity coverage report — witness resolution and tier validation.
     Audit(AuditArgs),
-    /// Manage `.attest/<Antigen>.json` substrate-witness sidecars (ADR-019).
+    /// Manage `.attest/<Antigen>.json` substrate-witness sidecars.
     Attest(AttestCli),
-    /// Manage tolerance-ratification sidecars (ADR-019 §tolerance tier).
+    /// Manage tolerance-ratification sidecars.
     Tolerate(TolerateCli),
-    /// Manage Oracle artifact-class records (ADR-021 §D3).
+    /// Manage Oracle artifact-class records.
     ///
     /// Oracles are structurally-distinguished discipline artifacts with lifecycle
     /// state (Draft → Complete → Deprecated/Retired/Revoked), dedicated stewards,
     /// and provenance tracking. `cargo antigen oracle` manages the Oracle JSON
     /// records and their state-machine transitions.
     Oracle(OracleCli),
-    /// Drive Supply-Chain Defense Family verifications (ADR-025).
+    /// Drive Supply-Chain Defense Family verifications.
     ///
     /// Eight subcommands cover dep-pinning, dep-attestation, content-hash
     /// recording/verification, maintainer snapshots, and (v0.4+ stubs)
@@ -129,7 +129,7 @@ enum AntigenSubcommand {
     /// `requires = ...` substrate-witness predicates and routes them
     /// through these handlers.
     Verify(VerifyCli),
-    /// Drive VCS-Information-Loss Family observations (ADR-026).
+    /// Drive VCS-Information-Loss Family observations.
     ///
     /// Observation subcommands (v0.2): `scan` (surface VCS-info-loss risk
     /// across the repo), `check-commit` (evaluate one commit's trailers
@@ -139,10 +139,10 @@ enum AntigenSubcommand {
     /// deletion). These OBSERVE the git substrate via the
     /// `antigen::vcs_witness` evaluators; they do not install hooks.
     /// `install-hooks` / `install-server-hooks` (the enforcement layer that
-    /// executes the detection decision tree) defer to v0.2.x post-ADR-026
-    /// Amendment 4 ratification per the witness-layer-independence split.
+    /// executes the detection decision tree) are deferred, keeping the
+    /// observation layer independent of the enforcement layer.
     Vcs(VcsCli),
-    /// Map mucosal trust boundaries across the workspace (ADR-027 + Amd 1).
+    /// Map mucosal trust boundaries across the workspace.
     ///
     /// Walks the scan report's mucosal declarations and runs the
     /// `audit_mucosal` pipeline (incl. the Change-5 three-tier delegate
@@ -166,7 +166,7 @@ enum AntigenSubcommand {
     /// Walks the **full object graph** (`rev-list --all`, NOT a tip revwalk),
     /// classifies fix-commits (B-SZZ keyword + AG-SZZ cosmetic filter, via
     /// `antigen::learn::szz::is_fix_commit`), and links each to its first parent.
-    /// The git read lives here in the CLI (ADR-002 / the `vcs_witness` pattern:
+    /// The git read lives here in the CLI (the `vcs_witness` pattern:
     /// the lib classifies already-read substrate; the CLI reads git). Prints the
     /// measured corpus size — the self-verifying cure for MATURE's
     /// corpus-starvation (a near-zero count signals a tip-revwalk regression).
@@ -201,13 +201,13 @@ struct ScanArgs {
     /// workspace's member crates via `cargo metadata`, scan each independently,
     /// and stamp each member's declarations with its own `<name>@<version>`
     /// canonical path. Cross-member `#[descended_from]` lineage resolves across
-    /// members. This is the substrate for cross-crate identity (ADR-001 C7).
+    /// members. This is the substrate for cross-crate identity.
     /// Default OFF: the flat single-bag scan stays the default for
     /// backward-compatible output.
     #[arg(long)]
     workspace: bool,
-    /// Filter to antigen declarations of a single category (ADR-028 §CLI
-    /// integration). Accepts `substrate-alignment` or `functional-correctness`.
+    /// Filter to antigen declarations of a single category. Accepts
+    /// `substrate-alignment` or `functional-correctness`.
     /// A hybrid antigen (both categories) matches either filter.
     #[arg(long)]
     category: Option<String>,
@@ -217,9 +217,9 @@ struct ScanArgs {
     /// closing the zero-hits-cliff (an empty repertoire is otherwise a false
     /// all-clear). An EXPLICIT `--bundled-catalog` ALWAYS injects (augments local
     /// antigens); without the flag, the catalog auto-injects only when no in-tree
-    /// antigens are found (ADR-043 Amendment 2). Bundled matches are SCAN-FACTS
+    /// antigens are found. Bundled matches are SCAN-FACTS
     /// ("structure matches a known class"), never audited defense verdicts
-    /// (claim-scope, ADR-043 Amendment 1 / ADR-044).
+    /// (claim-scope).
     #[arg(long)]
     bundled_catalog: bool,
     /// Emit findings in the **cargo/rustc `--message-format=json` shape** (v0.4
@@ -249,8 +249,8 @@ struct ScanArgs {
 /// sites live) and `--clean-root` (the OPERATOR-asserted clean corpus). The split
 /// is load-bearing: antigen NEVER auto-labels unmarked code as clean — the
 /// operator supplies and labels the clean corpus, and the gate verifies only
-/// against what they supply (ADR-044/047; auto-labeling "unmarked = clean" is the
-/// ATK-047-4 mislabeled-clean residual the gate must not trust).
+/// against what they supply (auto-labeling "unmarked = clean" is a mislabeled-clean
+/// residual the gate must not trust).
 // Four independent CLI toggles (list_clusters / exit_code / explain / suggest) — each a
 // distinct user-facing affordance, not a state-machine that should be one enum. The
 // excessive-bools lint targets boolean-blindness in domain state; these are clap flags.
@@ -342,8 +342,8 @@ struct AuditArgs {
     /// `cargo test` integration).
     #[arg(long)]
     strict: bool,
-    /// Filter the category audit to a single category (ADR-028 §CLI
-    /// integration). Accepts `substrate-alignment` or `functional-correctness`.
+    /// Filter the category audit to a single category. Accepts
+    /// `substrate-alignment` or `functional-correctness`.
     /// A hybrid antigen (both categories) matches either filter.
     #[arg(long)]
     category: Option<String>,
@@ -885,11 +885,10 @@ enum VerifySubcommand {
     /// **THE NON-NEGOTIABLE CHALK/DEBUG DEFENSE**. First-attestation:
     /// `cargo antigen verify content-hash record <crate@version>`.
     /// Verification: `cargo antigen verify content-hash <crate@version>`.
-    /// Per ADR-025 §Decision + B1-R.
     ContentHash(VerifyContentHashArgs),
     /// v0.4+: sandbox-execute a proc-macro dep and report observations.
     /// Currently a stub that surfaces the "tooling not yet available"
-    /// awareness signal per ADR-005 Amendment 2 honest-tier-naming.
+    /// awareness signal — honest tier-naming, never a silent pass.
     #[command(name = "proc-macro-sandbox")]
     ProcMacroSandbox,
     /// v0.4+: sandbox-execute a `build.rs` and report observations.
@@ -977,7 +976,7 @@ struct VerifyDepPinArgs {
     /// its resolved `=<version>` from `Cargo.lock` (format-preserving — comments
     /// and layout are kept). OPT-IN by design: rewriting the adopter's manifest
     /// is an outward-facing, hard-to-reverse mutation, so it is NEVER the default
-    /// (ADR-017-Amd1 posture: gate mutation-safety). Without `--write` the
+    /// — mutation-safety is gated behind this opt-in flag. Without `--write` the
     /// subcommand only PRINTS the suggested edits. Deps with no resolved version
     /// in `Cargo.lock` are left unchanged (never guessed).
     #[arg(long)]
@@ -1086,7 +1085,9 @@ fn run_verify_deps(args: VerifyDepsArgs) -> ExitCode {
                 println!();
                 println!("To fix:");
                 println!("  edit Cargo.toml; change each entry to `<name> = \"=X.Y.Z\"`.");
-                println!("Per ADR-025 §UnpinnedDependency — exact-pin is the discipline.");
+                println!(
+                    "Exact-pin (`=X.Y.Z`) is the discipline — an unpinned dependency can change under you."
+                );
             }
         },
         OutputFormat::Json => {
@@ -1127,7 +1128,7 @@ fn run_verify_maintainer_changes(args: VerifyMaintainerChangesArgs) -> ExitCode 
     println!();
     println!("WARNING: this subcommand MUST run BEFORE `cargo update`. After");
     println!("`cargo update`, the new maintainer's code is already in Cargo.lock");
-    println!("and the gate has effectively already passed. Per ADR-025.");
+    println!("and the gate has effectively already passed.");
     println!();
     let state = evaluate_maintainer_unchanged(&args.root, &args.crate_name, &args.since_version);
     match state {
@@ -1151,7 +1152,7 @@ fn run_verify_maintainer_changes(args: VerifyMaintainerChangesArgs) -> ExitCode 
             ExitCode::from(1)
         },
         MaintainerState::CratesIoQueryUnavailable => {
-            println!("result: crates.io query unavailable (v0.2 limitation per ADR-025)");
+            println!("result: crates.io query unavailable (live registry query not yet supported)");
             ExitCode::from(2)
         },
     }
@@ -1557,7 +1558,7 @@ fn run_verify_content_hash_check(args: VerifyContentHashCheckArgs) -> ExitCode {
             println!();
             println!("This is the chalk/debug/eslint-config attack signal. Investigate before");
             println!("re-recording — if the change is legitimate, re-attest with a fresh");
-            println!("signer + review artifact. Per ADR-025 §ContentHashMismatch.");
+            println!("signer + review artifact.");
             ExitCode::from(1)
         },
         ContentHashState::NoAttestation => {
@@ -1657,7 +1658,7 @@ fn run_verify_stub(name: &str, version_target: &str, description: &str) -> ExitC
     println!();
     println!("  {description}");
     println!();
-    println!("Per ADR-005 Amendment 2 honest-tier-naming: this subcommand is");
+    println!("Honest tier-naming: this subcommand is");
     println!("a deliberate stub. It does NOT silently pass — the supply-chain");
     println!("audit hints surface the un-evaluated witness as the appropriate");
     println!("unsandboxed-* hint, NOT as a passing evaluation.");
@@ -2130,7 +2131,7 @@ fn run_vcs_rollback_prepare(args: VcsRollbackPrepareArgs) -> ExitCode {
         );
         return ExitCode::from(1);
     }
-    println!("Add this trailer to your rollback commit message (ADR-026 Amendment 4):");
+    println!("Add this trailer to your rollback commit message:");
     println!();
     println!("    Triage-Decision: {}", args.decision.to_lowercase());
     println!();
@@ -2147,8 +2148,8 @@ fn run_vcs_attest_stub() -> ExitCode {
     println!();
     println!("Generic VCS attestation-sidecar recording lands in v0.2.x. For now,");
     println!("use `branch-archive` (branch-deletion attestation) or `rollback-prepare`");
-    println!("(triage-commit trailer scaffolding). Per ADR-005 Amendment 2 honest-tier-");
-    println!("naming: this stub does NOT silently pass.");
+    println!("(triage-commit trailer scaffolding). Honest tier-naming: this stub does");
+    println!("NOT silently pass.");
     ExitCode::from(2)
 }
 
@@ -6531,7 +6532,7 @@ fn print_immune_state_verdicts(audit_report: &audit::AuditReport) {
     }
 
     println!();
-    println!("Immune-state verdicts (ADR-029 — observed, not declared):");
+    println!("Immune-state verdicts (observed, not declared):");
 
     let undefended = audit_report.undefended_verdicts();
     let defended_count = audit_report
