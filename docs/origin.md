@@ -109,7 +109,7 @@ The shape is **structurally identical** to `DeterminismClass`. Strongest at the 
 Lattice ordering reverse to discriminant ordering. The same polarity question applies
 to `meet()`.
 
-DEC-030 v2 was drafted by the aristotle agent — a different agent from the one that had
+DEC-030 v2 was drafted by a different engineer from the one who had
 worked on GAP-BIT-EXACT-1 months earlier. The DEC-030 draft specified
 `meet = std::cmp::min`.
 
@@ -121,9 +121,9 @@ The illness almost shipped a second time. What stopped it was not memory of the
 DeterminismClass fix — that memory wasn't structurally accessible. What stopped it was
 **re-deriving the lesson from scratch**:
 
-The math-researcher agent, doing a pre-implementation substrate verification of the
+One engineer, doing a pre-implementation substrate verification of the
 DEC-030 v2 draft, traced through a worked example by hand and noticed the polarity was
-wrong. The pathmaker agent, who had pre-loaded DEC-030 v2 into their working context to
+wrong. Another, who had pre-loaded DEC-030 v2 into their working context to
 build the implementation, paused before writing code: their mental model said
 `meet = min` but the substrate-of-record (DEC-030 v3 in progress) said `meet = max`.
 They caught the inversion before any code went down.
