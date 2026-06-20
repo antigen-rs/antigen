@@ -1833,14 +1833,13 @@ fn count_commits_changing_line(depth: usize, regex: &str, pathspec: &str) -> Opt
 /// failure-classes and surface their recurrence counts — the passive→active
 /// loop (`infra/recurrence-automation`).
 ///
-/// **The structural seam (pathmaker convergence, this expedition).** Mining
-/// DETECTS the structural fact (this pattern fired N times across the window);
-/// the VERDICT (is N a recurrence worth a `#[recurrence_anchor]`?) stays the
-/// adopter's recognition call. So this command never auto-anchors and never
-/// fails the build — it reports observations and points at the macro the
-/// adopter would use. Parallel to camp's recurrence (which mines the team
-/// ACTIVITY LOG for recurring work); antigen mines GIT HISTORY for recurring
-/// failure-classes — different substrates, different objects, not competing.
+/// **The structural seam.** Mining DETECTS the structural fact (this pattern
+/// fired N times across the window); the VERDICT (is N a recurrence worth a
+/// `#[recurrence_anchor]`?) stays the adopter's recognition call. So this
+/// command never auto-anchors and never fails the build — it reports
+/// observations and points at the macro the adopter would use. It mines GIT
+/// HISTORY for recurring failure-classes; a verdict over recurring *work* would
+/// instead read a team's activity log — different substrates, different objects.
 ///
 /// **Honest degradation (the offline/no-repo axis).** When git is unavailable
 /// each observation reads "unobservable", never "zero" — the absence of a mine
@@ -2945,18 +2944,18 @@ fn acquire_scan_report(args: &ScanArgs) -> Result<scan::ScanReport, ExitCode> {
             "Scanning workspace (bundled stdlib catalog): {}",
             args.root.display()
         );
-        // Captain's ruling / ADR-043 Amendment 2: an EXPLICIT --bundled-catalog
-        // flag ALWAYS injects (augments the crate's own antigens with the bundled
-        // catalog), regardless of how many local antigens the crate declares. The
-        // real adopters (tambear, camp) are PARTIAL adopters, not blank crates —
-        // a partial adopter who explicitly asks for the catalog and gets it
-        // suppressed is the exact silent-miss E0 exists to kill. (auto_detect =
-        // false → Always.) The auto-detect-when-empty convenience is the *no-flag*
-        // default, handled by the plain scan path; it is not reachable here.
+        // ADR-043 Amendment 2: an EXPLICIT --bundled-catalog flag ALWAYS injects
+        // (augments the crate's own antigens with the bundled catalog), regardless
+        // of how many local antigens the crate declares. Real-world adopters are
+        // typically PARTIAL adopters, not blank crates — a partial adopter who
+        // explicitly asks for the catalog and gets it suppressed is the exact
+        // silent-miss E0 exists to kill. (auto_detect = false → Always.) The
+        // auto-detect-when-empty convenience is the *no-flag* default, handled by
+        // the plain scan path; it is not reachable here.
         scan::scan_workspace_bundled_catalog(&args.root, None, false)
     } else {
         eprintln!("Scanning workspace: {}", args.root.display());
-        // No flag: AUTO-DETECT (captain's ruling / ADR-043 Amd-2 case 2). A crate
+        // No flag: AUTO-DETECT (ADR-043 Amd-2 case 2). A crate
         // with ZERO local antigens auto-injects the bundled catalog — that closes
         // the zero-hits-cliff for a total newcomer who didn't know to pass the
         // flag. A crate WITH local antigens stays local-only (it has its own
