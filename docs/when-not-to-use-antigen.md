@@ -56,16 +56,10 @@ doesn't claim to.
 This is the misread most worth heading off. antigen v0.6 can *learn* the shape of a new
 failure-family: given a cluster of marked sites, it anti-unifies them into a draft and
 screens that draft against clean code. But what it does with the draft is **route it to a
-human** — it renders a ratifiable suggestion and leaves your source tree byte-unchanged.
-You can watch it refuse to overstep:
-
-```text
-$ cargo antigen propose --help
-Propose a candidate failure-class fingerprint from a cluster of marked sites.
-... Renders a ratifiable suggestion (observe-don't-declare) — never an auto-#[presents]
-or an auto-named class. A propose run leaves the source tree byte-unchanged; the machine
-supplies the syntactic half, a human ratifies the semantic half.
-```
+human** — it renders a ratifiable suggestion (observe-don't-declare), never an
+auto-`#[presents]` or an auto-named class, and it leaves your source tree byte-unchanged.
+The machine supplies the syntactic half; a human ratifies the semantic half. (Run
+`cargo antigen propose --help` and the description says exactly this.)
 
 The honest sentence is *"antigen anti-unifies a draft and routes it to a human to
 ratify."* It is never *"antigen immunized itself."* If you wanted a system that curates its
