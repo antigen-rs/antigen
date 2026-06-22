@@ -230,7 +230,7 @@ The composition is genuinely orthogonal in most cases. You adopt what
 fits your team's existing practice; the components compose without
 requiring each other.
 
-See [`immune-system-primitive-map.md`](internal/immune-system-primitive-map.md)
+See [`immune-system-primitive-map.md`](immune-system-primitive-map.md)
 for the deeper multi-component architectural framing.
 
 ---
@@ -405,7 +405,7 @@ The organs, in the order a class flows through them:
   never silently dropped.
 
 For the drift-detector's verdict type and the honest-scope of its statistical bound, see
-ADR-065 in [`decisions.md`](decisions.md) and the `library-api.md` surface for
+ADR-065 and the `library-api.md` surface for
 [`DriftVerdict`](library-api.md#drift-detection-driftverdict-adr-065).
 
 ---
@@ -630,7 +630,7 @@ When *antigen-the-project* expands its core vocabulary:
 
 > Stdlib growth is research-driven, deliberately comprehensive. New primitives are substrate-citable from postmortems / literature / training-data / predictive analysis / biological-component-mapping — not constrained to "wait for the third instance."
 
-The biological immune system serves as the systematic discovery framework. Each unused immune-system component is a research-arc prompt. The macro family expansions (~50+ primitives across 9 tiers per the [biology primitive map](internal/immune-system-primitive-map.md)) are research-driven, not recognition-gated.
+The biological immune system serves as the systematic discovery framework. Each unused immune-system component is a research-arc prompt. The macro family expansions (~50+ primitives across 9 tiers per the [biology primitive map](immune-system-primitive-map.md)) are research-driven, not recognition-gated.
 
 This split matters because the two disciplines have different cost asymmetries. Speculative *adopter* extensions bloat noise; speculative *stdlib* extensions cover failure-classes adopters haven't yet hit but should be protected against. The amended ADR-006 + new ADR-022 formalize this split.
 
@@ -706,6 +706,4 @@ Going deeper:
 - [`war-stories/learning-from-its-own-wounds.md`](war-stories/learning-from-its-own-wounds.md)
   — antigen running the Learning-Core on its own honest self-doubt
 - [`origin.md`](origin.md) — the founding incident
-- [`decisions.md`](decisions.md) — ratified ADRs
-- [`postures.md`](internal/postures.md) — architectural postures
 - [`scope.md`](scope.md) — the architectural class and adoption strategy

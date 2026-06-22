@@ -1,4 +1,4 @@
-//! Stdlib family-member fingerprint affinity-pair tests (beta.2 voyage).
+//! Stdlib family-member fingerprint affinity-pair tests (beta.2).
 //!
 //! Each build-now stdlib family member ships WITH an **admitting-specimen** — an
 //! affinity-pair (a failing case the fingerprint *binds* + a clean sibling it
@@ -33,7 +33,7 @@ fn item(src: &str) -> syn::Item {
 // ============================================================================
 // crypto-misuse :: NonConstantTimeSecretComparison — CHARTERED (no test)
 //
-// The crypto-misuse flagship is chartered, NOT shipped (aristotle's beta.2 notary
+// The crypto-misuse flagship is chartered, NOT shipped (beta.2 notary
 // ruling): no honest call-only fingerprint exists for it. A verify-entrypoint
 // anchor + not(ct_eq) ANTI-ALIGNS with the defect — it fires on the SAFE path
 // (`ring::hmac::verify` is constant-time internally; verify/hmac_verify are the

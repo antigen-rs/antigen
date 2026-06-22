@@ -6,7 +6,7 @@
 //! Amendment 1); the antigens here name the failure-classes that
 //! `#[triage_commit]` + the `cargo antigen vcs` CLI subfamily defend against.
 //!
-//! ## The central cognate (NON-NEGOTIABLE per naturalist)
+//! ## The central cognate (NON-NEGOTIABLE)
 //!
 //! **`ForcePushErasingHistory` ↔ Immune Amnesia (measles)** —
 //! Mina et al. 2015, *Science*. Measles virus infects memory lymphocytes;
@@ -26,16 +26,16 @@
 //! | `CherryPickLosingOriginalContext` | Class-switching context loss |
 //! | `RebaseRewritingHistoryWithoutLog` | V(D)J recombination without per-cell record |
 //! | `StashedWorkAbandoned` | Anergy / primed-without-activation |
-//! | `RollbackWithoutTriageCommit` | (cognate not yet assigned; naturalist follow-up) |
-//! | `BranchDeletionWithoutAttestation` | (cognate not yet assigned; naturalist follow-up) |
-//! | `UnpushedBranchWithSubstantiveWork` | (cognate not yet assigned; naturalist follow-up) |
-//! | `MergeConflictResolutionWithoutAttestation` | (cognate not yet assigned; naturalist follow-up) |
-//! | `AmendedCommitWithoutOldHashPreservation` | (cognate not yet assigned; naturalist follow-up) |
+//! | `RollbackWithoutTriageCommit` | (cognate not yet assigned; follow-up) |
+//! | `BranchDeletionWithoutAttestation` | (cognate not yet assigned; follow-up) |
+//! | `UnpushedBranchWithSubstantiveWork` | (cognate not yet assigned; follow-up) |
+//! | `MergeConflictResolutionWithoutAttestation` | (cognate not yet assigned; follow-up) |
+//! | `AmendedCommitWithoutOldHashPreservation` | (cognate not yet assigned; follow-up) |
 //!
 //! The five "not yet assigned" entries are deliberate — per
 //! `feedback_clean_without_snag_is_argument_mode`, a clean off-the-cuff
-//! cognate without substrate is argument-mode, not prediction. Naturalist
-//! drives the biology-grounding deepening as a v0.2.x follow-up.
+//! cognate without substrate is argument-mode, not prediction. The
+//! biology-grounding deepening is a follow-up.
 //!
 //! ## Antigen-category (per ADR-028)
 //!
@@ -87,7 +87,7 @@ use crate::antigen;
 /// hooks. Cannot be detected by post-hoc history inspection — `git reset
 /// --hard` removes traces.
 ///
-/// **Biology cognate**: not yet assigned; naturalist v0.2.x follow-up.
+/// **Biology cognate**: not yet assigned; follow-up.
 ///
 /// **Defense**: `cargo antigen vcs install-hooks` installs the pre-commit
 /// hook that requires a `Triage-Decision:` trailer when the commit is a
@@ -146,7 +146,7 @@ pub struct RefactorWithoutPreservationOfWhy;
 /// sidecar audit. Client-side bypassable via `git update-ref -d`; server-
 /// side enforcement (v0.2.1+) closes the gap.
 ///
-/// **Biology cognate**: not yet assigned; naturalist v0.2.x follow-up.
+/// **Biology cognate**: not yet assigned; follow-up.
 ///
 /// **Defense**: `cargo antigen vcs branch-archive <branch> --by <role>
 /// --rationale "..."` records the attestation BEFORE the delete.
@@ -175,7 +175,7 @@ pub struct BranchDeletionWithoutAttestation;
 /// post-measles patients show increased susceptibility to other pathogens
 /// for 2-3 years. The catastrophic loss of memory-carrying substrates,
 /// documented harm, and structural defense patterns is the foundational
-/// shape of this entire family. Per naturalist (NON-NEGOTIABLE): this is
+/// shape of this entire family (NON-NEGOTIABLE): this is
 /// IDENTITY-tier cognate, not RHYME-tier — the structural prediction is
 /// substantive.
 ///
@@ -314,7 +314,7 @@ pub struct RebaseRewritingHistoryWithoutLog;
 /// + checks each branch's last-push timestamp; flags branches with > N
 /// substantive commits not pushed in > M days.
 ///
-/// **Biology cognate**: not yet assigned; naturalist v0.2.x follow-up.
+/// **Biology cognate**: not yet assigned; follow-up.
 ///
 /// **Defense**: `cargo antigen vcs scan --check-unpushed` lists candidate
 /// branches; CI / pre-commit hooks can nag the developer to push or
@@ -372,7 +372,7 @@ pub struct StashedWorkAbandoned;
 /// on the merge commit; the developer cannot reconstruct why this
 /// resolution was chosen vs. the alternatives.
 ///
-/// **Biology cognate**: not yet assigned; naturalist v0.2.x follow-up.
+/// **Biology cognate**: not yet assigned; follow-up.
 ///
 /// **Defense**: `cargo antigen vcs check-commit` on merge commits requires
 /// either (a) zero conflicts resolved (trivial merge); or (b) a
@@ -404,7 +404,7 @@ pub struct MergeConflictResolutionWithoutAttestation;
 /// message; the amended commit carries an `Amended-From: <old-sha>`
 /// trailer.
 ///
-/// **Biology cognate**: not yet assigned; naturalist v0.2.x follow-up.
+/// **Biology cognate**: not yet assigned; follow-up.
 ///
 /// **Defense**: `cargo antigen vcs install-hooks` installs the pre-commit
 /// hook that, when the commit is an amend AND the original commit has

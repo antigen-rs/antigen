@@ -44,7 +44,7 @@ use serde::{Deserialize, Serialize};
 
 /// Maximum nesting depth for predicate trees.
 ///
-/// Adversarial NFA-11 guard. Predicates deeper than this are rejected at
+/// Depth guard. Predicates deeper than this are rejected at
 /// `validate()` time before the recursive `walk()` reaches dangerous
 /// stack depth. 64 is far beyond any legitimate predicate (real
 /// predicates rarely exceed depth 5) while protecting against crafted
@@ -57,21 +57,21 @@ pub const MAX_PREDICATE_DEPTH: usize = 64;
 pub enum Predicate {
     /// A single leaf primitive.
     Leaf(Leaf),
-    /// `all_of([...])` — every child predicate must pass (co-stimulation
-    /// per naturalist R-N2; missing signal → anergy).
+    /// `all_of([...])` — every child predicate must pass (co-stimulation;
+    /// missing signal → anergy).
     AllOf {
         /// Child predicates; all must pass.
         children: Vec<Self>,
     },
     /// `any_of([...])` — at least one child predicate must pass
-    /// (redundant pathways per naturalist R-N2; classical-vs-alternative
+    /// (redundant pathways; classical-vs-alternative
     /// complement).
     AnyOf {
         /// Child predicates; at least one must pass.
         children: Vec<Self>,
     },
-    /// `not(...)` — child must NOT pass (inhibitory checkpoints per
-    /// naturalist R-N2; CTLA-4 / PD-1 / Tregs).
+    /// `not(...)` — child must NOT pass (inhibitory checkpoints;
+    /// CTLA-4 / PD-1 / Tregs).
     Not {
         /// Child predicate to negate.
         child: Box<Self>,
@@ -324,7 +324,7 @@ pub enum Leaf {
     SignedTrailer {
         /// Trailer key, e.g., `"Discipline-Verified-By"`.
         key: String,
-        /// Optional role-tag constraint (e.g., `"math-researcher"`).
+        /// Optional role-tag constraint (e.g., `"reviewer"`).
         #[serde(default, skip_serializing_if = "Option::is_none")]
         role: Option<String>,
         /// Required count of matching trailers; default 1.
@@ -486,20 +486,20 @@ pub enum PredicateParseError {
         combinator: CombinatorName,
     },
     /// A `signers(required = [])` leaf is a semantic no-op: it always passes
-    /// regardless of signer state, vacuously bypassing identity checks
-    /// (adversarial NFA-7). Rejected at the same layer as zero-leaf
+    /// regardless of signer state, vacuously bypassing identity checks.
+    /// Rejected at the same layer as zero-leaf
     /// compositions per R-A6.
     EmptySignersList,
     /// An `oracles_complete(files = [])` leaf is a semantic no-op: it always
     /// passes (vacuous truth on an empty iterator), vacuously bypassing oracle
-    /// checks (adversarial NFA-8). Same class as `EmptySignersList`.
+    /// checks. Same class as `EmptySignersList`.
     EmptyOraclesList,
     /// A `signed_trailer(count = 0)` leaf always passes — "require zero
-    /// trailers" is vacuously true even with no trailers present (adversarial
-    /// NFA-9). Default count is 1; an explicit 0 bypasses the identity check.
+    /// trailers" is vacuously true even with no trailers present.
+    /// Default count is 1; an explicit 0 bypasses the identity check.
     ZeroTrailerCount,
-    /// Predicate tree nesting depth exceeds the allowed maximum (adversarial
-    /// NFA-11). Deep recursion in `walk()` can stack-overflow on pathologically
+    /// Predicate tree nesting depth exceeds the allowed maximum.
+    /// Deep recursion in `walk()` can stack-overflow on pathologically
     /// nested predicates deserialized from crafted sidecars. Rejected at
     /// `validate()` time before the recursive walk reaches dangerous depth.
     NestingDepthExceeded {
@@ -509,13 +509,13 @@ pub enum PredicateParseError {
     /// A `ratified_doc(anchor = "")` leaf carries an empty anchor string.
     /// In Rust, `str::contains("")` is always `true`, so an empty anchor
     /// vacuously bypasses the anchor-presence check — any doc passes
-    /// regardless of whether it contains the intended section marker
-    /// (adversarial NFA-14). Rejected at `validate()` time.
+    /// regardless of whether it contains the intended section marker.
+    /// Rejected at `validate()` time.
     EmptyAnchor,
     /// A `ratified_doc(min_version = "")` leaf carries an empty min-version
     /// string. `compare_versions(any_version, "")` always returns Greater or
     /// Equal, so an empty `min_version` vacuously passes the version floor check
-    /// for any document with a non-empty version field (adversarial NFA-15).
+    /// for any document with a non-empty version field.
     /// Rejected at `validate()` time.
     EmptyMinVersion,
     /// A `ratified_doc(min_version = …)` leaf carries a version component that
@@ -525,7 +525,7 @@ pub enum PredicateParseError {
     /// floor instead of raising it. A `min_version` like `"18446744073709551616.0"`
     /// (`u64::MAX` + 1) reads as `[0, 0]`, so any document with version ≥ `1.0`
     /// vacuously satisfies a gate that was meant to require an unobtainably large
-    /// version (adversarial ATK-FT-3). Rejected at `validate()` time so a bad
+    /// version. Rejected at `validate()` time so a bad
     /// floor can never silently become `0`.
     UnparseableMinVersion {
         /// The offending component that did not parse as a `u64`.
@@ -563,27 +563,25 @@ impl std::fmt::Display for PredicateParseError {
             Self::NestingDepthExceeded { max_depth } => write!(
                 f,
                 "predicate nesting depth exceeds maximum of {max_depth}; \
-                 deep recursion in walk() can stack-overflow on crafted sidecars \
-                 (adversarial NFA-11)"
+                 deep recursion in walk() can stack-overflow on crafted sidecars"
             ),
             Self::EmptyAnchor => write!(
                 f,
                 "ratified_doc leaf has an empty anchor string; \
                  str::contains('') is always true and vacuously bypasses the \
-                 anchor-presence check (adversarial NFA-14)"
+                 anchor-presence check"
             ),
             Self::EmptyMinVersion => write!(
                 f,
                 "ratified_doc leaf has an empty min_version string; \
                  compare_versions(any_version, '') is always Greater or Equal and \
-                 vacuously bypasses the version floor check (adversarial NFA-15)"
+                 vacuously bypasses the version floor check"
             ),
             Self::UnparseableMinVersion { component } => write!(
                 f,
                 "ratified_doc leaf has a min_version component `{component}` that is \
                  not a valid u64 (non-numeric or overflowing); compare_versions parses \
-                 it as 0, silently LOWERING the version floor instead of raising it \
-                 (adversarial ATK-FT-3)"
+                 it as 0, silently LOWERING the version floor instead of raising it"
             ),
         }
     }
@@ -648,7 +646,7 @@ mod tests {
 
     #[test]
     fn validate_rejects_empty_signers_required_list_nfa7() {
-        // BUG REGRESSION TEST (adversarial NFA-7): `Signers { required: [] }`
+        // BUG REGRESSION TEST (NFA-7): `Signers { required: [] }`
         // is a semantic no-op — it always passes regardless of signer state.
         // This allows bypassing the signer check entirely via a vacuous leaf.
         // The predicate grammar already rejects `all_of([])` and `any_of([])`
@@ -748,7 +746,7 @@ mod tests {
 
     #[test]
     fn validate_rejects_excessive_nesting_depth_nfa11() {
-        // BUG REGRESSION TEST (adversarial NFA-11): `walk()` is recursive.
+        // BUG REGRESSION TEST (NFA-11): `walk()` is recursive.
         // A crafted sidecar with a pathologically nested predicate (thousands
         // of `not(not(not(...)))` levels) would stack-overflow the audit
         // process. validate() now runs an iterative depth check BEFORE the
@@ -789,7 +787,7 @@ mod tests {
 
     #[test]
     fn validate_rejects_zero_trailer_count_nfa9() {
-        // BUG REGRESSION TEST (adversarial NFA-9): `SignedTrailer { count: 0 }`
+        // BUG REGRESSION TEST (NFA-9): `SignedTrailer { count: 0 }`
         // always passes — "require zero trailers" is vacuously true even with
         // no trailers at all. Same class as NFA-7 (empty required) and NFA-8
         // (empty files). The default is 1; an explicit 0 bypasses the check.
@@ -809,7 +807,7 @@ mod tests {
 
     #[test]
     fn validate_rejects_empty_oracles_files_list_nfa8() {
-        // BUG REGRESSION TEST (adversarial NFA-8): `OraclesComplete { files: [] }`
+        // BUG REGRESSION TEST (NFA-8): `OraclesComplete { files: [] }`
         // is a semantic no-op — it always passes (vacuous truth on empty iterator).
         // This is the same class as NFA-7 (empty Signers.required). An author
         // who writes `oracles_complete([])` has checked zero oracles but the

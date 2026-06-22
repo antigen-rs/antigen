@@ -265,8 +265,6 @@ wired — most often the `#[defended_by]` antigen type doesn't match the
   and the `requires =` predicate grammar
 - [`composition.md`](composition.md) — how the new forms compose with tests,
   proptest, lints, and formal verification
-- [`decisions.md`](decisions.md) — observe-don't-declare, and substrate-witness
-  predicates
 - `antigen/examples/basic.rs` — a complete compileable `#[presents]` +
   `#[defended_by]` pair
 - `antigen/examples/substrate_witness.rs` — a complete `#[presents(requires=...)]`

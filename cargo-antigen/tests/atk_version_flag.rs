@@ -2,7 +2,7 @@
 //!
 //! Locks down the CLI version-flag contract added in rc.3: `--version` must
 //! exit 0 and stdout must contain the workspace-pinned package version. This
-//! is the gate that unblocks camp's version-mismatch warning sub-step, which
+//! is the gate that unblocks a downstream adopter's version-mismatch warning sub-step, which
 //! depends on being able to introspect the installed cargo-antigen version
 //! from a subprocess invocation.
 

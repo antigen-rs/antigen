@@ -44,7 +44,7 @@ pub struct SignedZeroDiscipline;
 #[presents(
     SignedZeroDiscipline,
     requires = all_of([
-        signers(required = ["alice"], roles = {alice = "math-researcher"}),
+        signers(required = ["alice"], roles = {alice = "reviewer"}),
         ratified_doc(path = "docs/disciplines/ieee754-odd-functions.md", min_version = "1.0"),
         fresh_within_days(days = 180),
     ])

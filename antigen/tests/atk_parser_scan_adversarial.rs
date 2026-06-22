@@ -151,8 +151,8 @@ fn atk_parser_5_keyword_adjacent_witness_does_not_crash() {
 // ============================================================================
 // ATK-PARSER-6: Cross-parser equivalence file location finding
 //
-// Navigator asked whether antigen/tests/parser_equivalence.rs exists.
-// It does NOT — the equivalence tests are INLINE in scan.rs (7 props)
+// Whether antigen/tests/parser_equivalence.rs exists:
+// it does NOT — the equivalence tests are INLINE in scan.rs (7 props)
 // and parse.rs (9 props). This test anchors the finding on disk.
 // ============================================================================
 

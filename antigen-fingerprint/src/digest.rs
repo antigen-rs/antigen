@@ -16,7 +16,7 @@
 //! staleness detection. Both fields are typed as free-form strings — but until
 //! this module, **no canonical producer existed**. An adopter following the
 //! documented workflow had no reachable way to obtain the value to sign
-//! against (camp's binary-adopter finding 6), so `against = "current"` and
+//! against, so `against = "current"` and
 //! `fresh_within_days` were effectively dead features. This module is that
 //! producer.
 //!
@@ -134,7 +134,7 @@ const ANTIGEN_OWNED_ATTRS: &[&str] = &[
     // invariant the rest of this list upholds. Omitting them also leaked the
     // `trigger` payload into the marked-unknown SHAPE digest, splitting two
     // structurally-identical felt-sites with different trigger text into separate
-    // PROPOSE clusters (the under-merge — adversarial-found).
+    // PROPOSE clusters (the under-merge).
     "dread",
     "aura",
     "red_flag",

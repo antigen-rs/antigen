@@ -146,8 +146,7 @@ formal-verification harnesses (kani / prusti / verus / creusot), and custom lint
 are all recognized as witness families; `audit` validates each at the appropriate
 tier.
 
-**Architectural commitments** (see [`decisions.md`](decisions.md) for the
-ratified ADRs that govern these):
+**Architectural commitments:**
 - Structural memory not documentary (ADR-001)
 - Compose, don't compete (ADR-002)
 - Biological metaphor is load-bearing (ADR-003)

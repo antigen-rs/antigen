@@ -1,7 +1,7 @@
 //! The READER — the drift/obsolescence sensor over a class's relationship to the
 //! live code (P2). Two facets, split by whether the class emits a temporal signal.
 //!
-//! # The two facets (the scout's "don't schedule P2 as one block")
+//! # The two facets
 //!
 //! - **The SILENT-CORE facet (this module's [`silent_status`]) — STREAMLESS.** Antigen's
 //!   founding population is *silent* failure-classes (origin.md: the bug nobody
@@ -90,10 +90,10 @@ pub enum SilentStatus {
 ///    is structurally blind, so gone-vs-evaded is undecidable → route-to-human, never
 ///    auto-forget (ADR-057).
 ///
-/// The capability guard closes the READER's evasion-blindness (the adversarial find):
+/// The capability guard closes the READER's evasion-blindness:
 /// without it, `silent_status(body_calls("unwrap"), [fn(){ x.expect() }])` returns
 /// `Obsolete` (forget) when the defect actually mutated `unwrap → expect`. The guard is
-/// **operational, not a count** (Survey-wave fix, ADR-047 Amendment 2): a draft with one lone
+/// **operational, not a count** (ADR-047 Amendment 2): a draft with one lone
 /// discriminator padded by bare anchors (`name = matches("handle_*")` bolted onto
 /// `body_calls("unwrap")`) is near-miss-*capable by count* yet *blind in operation* — the
 /// only near-miss-forming drop keeps the lone discriminator, which the mutated item no
@@ -229,7 +229,7 @@ mod tests {
         }
     }
 
-    /// REGRESSION (adversarial find — the lethal single-conjunct evasion-blindness):
+    /// REGRESSION (the lethal single-conjunct evasion-blindness):
     /// a single-conjunct class whose defect MUTATED within its conjunct's family
     /// (`unwrap` → `expect`) used to read `Obsolete` (= forget) because `is_near_miss`
     /// is structurally blind for single-conjunct drafts (the `len < 2` gate-guard).

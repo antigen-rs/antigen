@@ -61,7 +61,7 @@ pub struct UnvalidatedExternalInput;
               current v1 API blocks the async runtime.",
     until = "2027-03-01",
     expected_co_stimulation = "validator-rs-v2-upgrade-complete",
-    signed_by = "navigator"
+    signed_by = "reviewer"
 )]
 pub fn process_api_response(payload: &str) -> Result<String, String> {
     // In production this should validate before processing.

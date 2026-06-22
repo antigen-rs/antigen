@@ -52,7 +52,7 @@ pub enum AntigenCategory {
     /// The antigen fires when a REPRESENTATION diverges from actual state.
     ///
     /// Examples: unpinned dependencies, untracked files in publish, git-dirty
-    /// tagged releases, campsites whose sidecar is missing.
+    /// tagged releases, records whose sidecar is missing.
     ///
     /// Minimum witness requirement: at least one substrate-witness predicate
     /// leaf (per ADR-019 + ADR-028 Option A STRICT).
@@ -208,7 +208,7 @@ mod tests {
     }
 
     // -------------------------------------------------------------------------
-    // Adversarial tests (added by adversarial role)
+    // Adversarial tests
     // -------------------------------------------------------------------------
 
     #[test]

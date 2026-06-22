@@ -4,8 +4,7 @@
 > aspirational. Substrate-grounded confidence intervals; no firm calendar
 > dates beyond what's actually committed.
 
-**This is the adopter-facing roadmap.** Ratified architecture lives in
-[`decisions.md`](decisions.md).
+**This is the adopter-facing roadmap.**
 
 ---
 
@@ -442,10 +441,10 @@ Alongside the trinity:
 1. **T4 resolved** (compound evidence overclaim surface) — when
    immune+tolerance attestations land on the same site, can we report
    that without users misreading "two attestations = stronger
-   evidence"? Aristotle F11 flagged this. Either ship a resolution or
+   evidence"? We flagged this. Either ship a resolution or
    explicitly document the surface as "do not depend on
    additive-evidence interpretation."
-2. **T6 resolved** (severity-class scout substrate-grep) — was anything
+2. **T6 resolved** (severity-class substrate-grep) — was anything
    in ADR-008 Amendment 1 about severity ever wired into scan output?
    Quick mechanical check; if YES we document, if NO we defer to v0.2
    explicitly.
@@ -561,16 +560,16 @@ What we know going in:
   stale-mismatched. Need cross-version migration story. Options:
   audit treats v0.1 fingerprints as legacy + emits hint;
   `attest migrate-fingerprints` CLI rebases pins to new scheme;
-  schema carries `fingerprint_scheme_version` field. Aristotle F12
+  schema carries `fingerprint_scheme_version` field. We
   worked this; needs concrete-pressure trigger (first fingerprint
   scheme bump) to ratify.
 
-- **T8 / FA-5: descended_from predicate inheritance** — can a
+- **T8: descended_from predicate inheritance** — can a
   consuming crate declare `#[descended_from = "A::X"]` but supply a
   WEAKER `requires` predicate than A's? Tier-honesty implications.
-  Aristotle F10 + adversarial FA-5 worked this; resolution likely
+  We worked this; resolution likely
   uses Eiffel-style variance rules (precondition-weakening prohibited;
-  postcondition-strengthening allowed). Scout's Eiffel rhyme already
+  postcondition-strengthening allowed). An Eiffel rhyme already
   surfaced in academic-context.md as candidate design. Lands when
   cross-crate descended_from sees real adoption pressure.
 
@@ -586,21 +585,21 @@ What we know going in:
   transitional(condition)`. v0.1 ships with implicit "permanent"
   semantics; v0.2 adds explicit lifetime so disciplines that should
   re-attest periodically (e.g., security review every 90 days) can
-  express that structurally. Scout flagged this in expedition substrate.
+  express that structurally. We flagged this.
 
 - **`--prioritized` flag for `attest list --pending`** — annotation-
   fatigue mitigation. Sort pending attestations by antigen-severity +
   fingerprint-confidence so adopters see the load-bearing items first.
-  Cross-domain rhyme from software-ergonomics literature (scout S4).
+  Cross-domain rhyme from software-ergonomics literature.
   Useful when teams have many in-flight attestation surfaces.
 
 - **TUF k-of-n threshold signatures** — `signers(required_threshold =
   K, candidates = [...])`. Cross-domain analog from TUF specification;
-  scout S4 + CAP-theorem framing makes this a principled extension of
+  a CAP-theorem framing makes this a principled extension of
   current `required = [...]` shape. Useful when teams want "any 3 of
   these 5 reviewers" rather than "all of these 3."
 
-- **T3: `discipline_doc` field dual-jobs separation** — aristotle F9
+- **T3: `discipline_doc` field dual-jobs separation** — a
   frontier-flag. Current field does Job 1 (canonical reference) AND
   Job 2 (review-grounded binding). Future amendment might split into
   `canonical_reference` + `review_grounded` so the claims can vary
@@ -703,7 +702,7 @@ structural architecture of failure-class memory that doesn't depend on
 Rust.
 
 Per-language implementations are components in the multi-component
-framing (see [`immune-system-primitive-map.md`](internal/immune-system-primitive-map.md)):
+framing (see [`immune-system-primitive-map.md`](immune-system-primitive-map.md)):
 
 - **Python**: ast-module or tree-sitter-based fingerprint engine;
   pip-installable tool with `python -m antigen scan` invocation
@@ -797,7 +796,7 @@ Use antigens from dependencies. Contribute candidate stdlib antigens.
 Participate in cross-organization failure-class memory sharing.
 
 Each tier multiplies leverage without requiring the others. See
-[`immune-system-primitive-map.md`](internal/immune-system-primitive-map.md)
+[`immune-system-primitive-map.md`](immune-system-primitive-map.md)
 for the deeper architectural framing.
 
 ---
@@ -805,7 +804,7 @@ for the deeper architectural framing.
 ## How decisions get made
 
 This roadmap is recognition-grounded, not spec-grounded. **Ratified
-ADRs** (in [`decisions.md`](decisions.md)) commit the architectural
+ADRs** commit the architectural
 direction.
 
 Per ADR-006 (recognition-not-design): new antigens, new witness types,

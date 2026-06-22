@@ -1589,7 +1589,7 @@ impl PoxpartyArgs {
 
 /// Arguments to `#[orient(antigen, learning_path, until)]`.
 ///
-/// Per ADR-023 §Decision + aristotle's `orient-field-optionality-ruling`
+/// Per ADR-023 §Decision orient-field-optionality
 /// (Option A, hard break): orient acknowledges a pre-immunity learning period
 /// and `learning_path` + `until` are **both REQUIRED** — they are the
 /// accountability fields the primitive exists to impose. Making them optional
@@ -1870,8 +1870,8 @@ impl MacroTriageDecision {
 // TriageCommitArgs parsing (ADR-026 §Rollback-as-triage primitive)
 //
 // `#[triage_commit]` is the rollback-as-triage primitive ratified by ADR-026
-// §Decision. Per aristotle's fixup-orient-dual-signature F1-F5 resolution
-// (camp note 55a161e7), `#[triage_commit]` is a SIBLING primitive to
+// §Decision. Per the fixup-orient-dual-signature F1-F5 resolution,
+// `#[triage_commit]` is a SIBLING primitive to
 // `#[orient]`, NOT an extension — orient names a failure-class (acknowledged
 // pre-immunity); triage_commit names a system-state-classification + commit
 // to a rollback action within a time-bound. The clinical-medicine grounding
@@ -1883,8 +1883,8 @@ impl MacroTriageDecision {
 /// triaged_by = ..., rationale = ..., rollback_due_within_minutes = ...)]`.
 ///
 /// All five fields are REQUIRED per ADR-026 §Decision rollback-as-triage
-/// primitive. Per ADR-026 §Rollback-as-triage discipline (NON-NEGOTIABLE
-/// per naturalist): the chart-documentation cognate demands the rationale +
+/// primitive. Per ADR-026 §Rollback-as-triage discipline (NON-NEGOTIABLE):
+/// the chart-documentation cognate demands the rationale +
 /// `triaged_by` + time-bound be present before the action commits, NOT after.
 ///
 /// Loudness-as-discipline (ADR-023 central pattern applied here): missing
@@ -2036,7 +2036,7 @@ impl TriageCommitArgs {
     /// - `rollback_target` REQUIRED, non-empty — sha pointer to last-known-good
     /// - `triaged_by` REQUIRED, non-empty — informed-consent author identity
     /// - `rationale` REQUIRED, minimum 20 characters — chart-documentation
-    ///   discipline per naturalist's clinical-medicine grounding
+    ///   discipline per clinical-medicine grounding
     ///   (parallel to `#[anergy]` 20-char floor)
     /// - `rollback_due_within_minutes` REQUIRED, positive — tight time-bound
     ///   carrier; 0 would mean immediate-or-never and degrades discipline
@@ -2142,7 +2142,7 @@ impl TriageCommitArgs {
 
 /// Arguments to `#[diagnostic(modalities = [...], min_independent = N)]`.
 ///
-/// Per ADR-024 §Decision + adversarial C1:
+/// Per ADR-024 §Decision:
 /// - `modalities` is a list of `WitnessClass::X` paths
 /// - `min_independent` is REQUIRED and measured in distinct CLASSES
 #[derive(Debug)]
@@ -2238,7 +2238,7 @@ const KNOWN_WITNESS_CLASSES: &[&str] = &[
 ];
 
 impl DiagnosticArgs {
-    /// Per ADR-024 + adversarial C1: `min_independent` is REQUIRED;
+    /// Per ADR-024: `min_independent` is REQUIRED;
     /// `modalities` must be non-empty; `min_independent` must not exceed
     /// the number of distinct modality classes (otherwise the claim is
     /// vacuously unsatisfiable). Each modality must also name a real
@@ -2275,7 +2275,7 @@ impl DiagnosticArgs {
             return Err(syn::Error::new(
                 self.args_span,
                 "#[diagnostic] requires `min_independent = N` (ADR-024 §Decision; \
-                 N counts distinct WitnessClass categories per adversarial C1).",
+                 N counts distinct WitnessClass categories).",
             ));
         };
         if min == 0 {
@@ -2297,8 +2297,8 @@ impl DiagnosticArgs {
                 self.min_independent_span.unwrap_or(self.args_span),
                 format!(
                     "#[diagnostic] `min_independent = {min}` exceeds the number of \
-                     distinct WitnessClass categories supplied ({}). Per ADR-024 \
-                     adversarial C1, min_independent counts CLASSES not witnesses — \
+                     distinct WitnessClass categories supplied ({}). Per ADR-024, \
+                     min_independent counts CLASSES not witnesses — \
                      duplicate classes don't add independence. Increase distinct \
                      modalities or lower the floor.",
                     distinct.len()
@@ -2311,7 +2311,7 @@ impl DiagnosticArgs {
 
 /// Arguments to `#[clonal(witness = ..., iterations = N, seed = SeedKind::...)]`.
 ///
-/// Per ADR-024 §Decision + adversarial C2:
+/// Per ADR-024 §Decision:
 /// - `witness` is REQUIRED — references the per-iteration function/test
 /// - `iterations` is REQUIRED — explicit non-zero count
 /// - `seed = SeedKind::Fixed(_)` is REJECTED at parse time
@@ -2442,7 +2442,7 @@ impl ClonalArgs {
                  makes 'iterations' a misnomer (every iteration replays the same \
                  RNG state). Use SeedKind::Random, SeedKind::EntropyFromCi, or \
                  SeedKind::TimestampSeeded. \
-                 Per ADR-024 adversarial C2: COMPILE-TIME enforcement.",
+                 Per ADR-024: COMPILE-TIME enforcement.",
             ));
         }
         Ok(())
@@ -2451,7 +2451,7 @@ impl ClonalArgs {
 
 /// Arguments to `#[igg(witnesses = [...], historical_span = N, min_reattestations = N)]`.
 ///
-/// Per ADR-024 §Decision + adversarial C3:
+/// Per ADR-024 §Decision:
 /// - `witnesses` REQUIRED non-empty
 /// - `historical_span` REQUIRED (days)
 /// - `min_reattestations` REQUIRED
@@ -2721,8 +2721,7 @@ impl AdccArgs {
 }
 
 // ============================================================================
-// Recurrent-Emergence Family argument parsers (ADR-024 + scientist HOW-spec
-// cf2a2317 + aristotle Reading-A pre-authorization 744471a3)
+// Recurrent-Emergence Family argument parsers (ADR-024)
 //
 // Six present-looking primitives per ADR-024 §Family 2: #[itch],
 // #[recurrence_anchor], #[crystallize], #[chronic], #[saturate], #[strand].
@@ -2810,7 +2809,7 @@ impl Parse for ItchArgs {
 }
 
 impl ItchArgs {
-    /// Per scientist HOW-spec: name + description required; description ≥10 chars.
+    /// Per the HOW-spec: name + description required; description ≥10 chars.
     pub fn validate(&self) -> syn::Result<()> {
         match self.name.as_deref() {
             None => {
@@ -2942,7 +2941,7 @@ impl Parse for RecurrenceAnchorArgs {
 }
 
 impl RecurrenceAnchorArgs {
-    /// Per scientist HOW-spec: antigen + instances (> 0) + since + rationale
+    /// Per the HOW-spec: antigen + instances (> 0) + since + rationale
     /// (≥20 chars) all REQUIRED.
     pub fn validate(&self) -> syn::Result<()> {
         if self.antigen.is_none() {
@@ -3014,8 +3013,8 @@ impl RecurrenceAnchorArgs {
 ///
 /// Cognitive-organizational primitive: "itch cluster crosses threshold
 /// into named failure-class." The promotion event from below-threshold
-/// noticing to formal recognition; parallel to `crystallize` in the camp
-/// field-track substrate.
+/// noticing to formal recognition — the transition from informal noticing
+/// to formal recognition.
 #[derive(Debug)]
 pub struct CrystallizeArgs {
     pub name: Option<String>,
@@ -3097,7 +3096,7 @@ impl Parse for CrystallizeArgs {
 }
 
 impl CrystallizeArgs {
-    /// Per scientist HOW-spec: name + summary required; summary ≥10 chars.
+    /// Per the HOW-spec: name + summary required; summary ≥10 chars.
     pub fn validate(&self) -> syn::Result<()> {
         match self.name.as_deref() {
             None => {
@@ -3222,7 +3221,7 @@ impl Parse for ChronicArgs {
 }
 
 impl ChronicArgs {
-    /// Per scientist HOW-spec: antigen + since both REQUIRED.
+    /// Per the HOW-spec: antigen + since both REQUIRED.
     pub fn validate(&self) -> syn::Result<()> {
         if self.antigen.is_none() {
             return Err(syn::Error::new(
@@ -3318,7 +3317,7 @@ impl Parse for SaturateArgs {
 }
 
 impl SaturateArgs {
-    /// Per scientist HOW-spec: description required (≥10 chars).
+    /// Per the HOW-spec: description required (≥10 chars).
     pub fn validate(&self) -> syn::Result<()> {
         match self.description.as_deref() {
             None => {
@@ -3424,7 +3423,7 @@ impl Parse for StrandArgs {
 }
 
 impl StrandArgs {
-    /// Per scientist HOW-spec: name + description both REQUIRED (≥10 chars).
+    /// Per the HOW-spec: name + description both REQUIRED (≥10 chars).
     pub fn validate(&self) -> syn::Result<()> {
         match self.name.as_deref() {
             None => {
@@ -4165,7 +4164,7 @@ fn is_kebab_case(s: &str) -> bool {
 // Eight clinical-named macros route to four structural shapes. These seven
 // (panel/rx/refer/biopsy/ddx/culture/quarantine) are unambiguous; `#[triage]`
 // (S3 Ordering) is held pending a ratified-ADR-vs-test-corpus arg-shape
-// divergence (camp question fc2e1677). All field shapes follow ADR-033
+// divergence. All field shapes follow ADR-033
 // §Proc-Macro-Surface tables S1/S2/S4 exactly. Parse uses the `MetaPair` +
 // `parse_terminated` idiom (the cleaner of the two in-file conventions); the
 // who-ref `Vec<String>` fields are ADR-020 role-refs; frame fields are ISO-8601
@@ -4759,8 +4758,9 @@ impl QuarantineArgs {
 /// Arguments to `#[triage(priority_order, triaged_by?, re_triage_due?)]`
 /// (ADR-033 S3 Ordering). Per the 2026-06-01 post-ratification fixup, `campsites`
 /// was DROPPED (transcription drift); `priority_order` entries are **code-site
-/// references** (file/item-path), in priority order — NOT camp campsites (anchor
-/// #3: the audit never reads camp). Resolution is at audit-time (ADR-017
+/// references** (file/item-path), in priority order — NOT external work-tracker
+/// units (anchor #3: the audit resolves only file/item-path references).
+/// Resolution is at audit-time (ADR-017
 /// Amendment 1): an unresolvable ref ⇒ `out-of-frame`, never silent-satisfied.
 #[derive(Debug)]
 pub struct TriageArgs {
@@ -5507,7 +5507,7 @@ mod tests {
     }
 
     // -------------------------------------------------------------------------
-    // Adversarial tests (added by adversarial role)
+    // Adversarial tests
     // -------------------------------------------------------------------------
 
     #[test]
@@ -5578,7 +5578,7 @@ mod tests {
     fn valid_triage_commit_tokens() -> TokenStream {
         r#"triage_decision = TriageDecision::Red,
            rollback_target = "abc1234",
-           triaged_by = "navigator",
+           triaged_by = "reviewer",
            rationale = "vital metric regression confirmed via #84; rolling back",
            rollback_due_within_minutes = 30"#
             .parse()
@@ -5590,7 +5590,7 @@ mod tests {
         let args = syn::parse2::<TriageCommitArgs>(valid_triage_commit_tokens()).unwrap();
         assert_eq!(args.triage_decision, Some(MacroTriageDecision::Red));
         assert_eq!(args.rollback_target.as_deref(), Some("abc1234"));
-        assert_eq!(args.triaged_by.as_deref(), Some("navigator"));
+        assert_eq!(args.triaged_by.as_deref(), Some("reviewer"));
         assert_eq!(args.rollback_due_within_minutes, Some(30));
         args.validate().unwrap();
     }
@@ -5621,7 +5621,7 @@ mod tests {
             let src = format!(
                 r#"triage_decision = {variant_text},
                    rollback_target = "abc1234",
-                   triaged_by = "navigator",
+                   triaged_by = "reviewer",
                    rationale = "twenty-character-rationale-text-here",
                    rollback_due_within_minutes = 30"#
             );
@@ -5636,7 +5636,7 @@ mod tests {
     fn triage_commit_parser_rejects_unknown_variant() {
         let tokens: TokenStream = r#"triage_decision = TriageDecision::Purple,
             rollback_target = "abc1234",
-            triaged_by = "navigator",
+            triaged_by = "reviewer",
             rationale = "twenty-character-rationale-text-here",
             rollback_due_within_minutes = 30"#
             .parse()
@@ -5649,7 +5649,7 @@ mod tests {
     fn triage_commit_parser_rejects_string_literal_triage_decision() {
         let tokens: TokenStream = r#"triage_decision = "red",
             rollback_target = "abc1234",
-            triaged_by = "navigator",
+            triaged_by = "reviewer",
             rationale = "twenty-character-rationale-text-here",
             rollback_due_within_minutes = 30"#
             .parse()
@@ -5664,7 +5664,7 @@ mod tests {
     #[test]
     fn triage_commit_validate_rejects_missing_triage_decision() {
         let tokens: TokenStream = r#"rollback_target = "abc1234",
-            triaged_by = "navigator",
+            triaged_by = "reviewer",
             rationale = "twenty-character-rationale-text-here",
             rollback_due_within_minutes = 30"#
             .parse()
@@ -5677,7 +5677,7 @@ mod tests {
     fn triage_commit_validate_rejects_empty_rollback_target() {
         let tokens: TokenStream = r#"triage_decision = TriageDecision::Red,
             rollback_target = "",
-            triaged_by = "navigator",
+            triaged_by = "reviewer",
             rationale = "twenty-character-rationale-text-here",
             rollback_due_within_minutes = 30"#
             .parse()
@@ -5703,7 +5703,7 @@ mod tests {
     fn triage_commit_validate_rejects_short_rationale() {
         let tokens: TokenStream = r#"triage_decision = TriageDecision::Red,
             rollback_target = "abc1234",
-            triaged_by = "navigator",
+            triaged_by = "reviewer",
             rationale = "too short",
             rollback_due_within_minutes = 30"#
             .parse()
@@ -5716,7 +5716,7 @@ mod tests {
     fn triage_commit_validate_rejects_zero_minutes() {
         let tokens: TokenStream = r#"triage_decision = TriageDecision::Red,
             rollback_target = "abc1234",
-            triaged_by = "navigator",
+            triaged_by = "reviewer",
             rationale = "twenty-character-rationale-text-here",
             rollback_due_within_minutes = 0"#
             .parse()
@@ -5729,7 +5729,7 @@ mod tests {
     fn triage_commit_parser_rejects_unknown_field() {
         let tokens: TokenStream = r#"triage_decision = TriageDecision::Red,
             rollback_target = "abc1234",
-            triaged_by = "navigator",
+            triaged_by = "reviewer",
             rationale = "twenty-character-rationale-text-here",
             rollback_due_within_minutes = 30,
             bogus = "value""#
@@ -5753,7 +5753,7 @@ mod tests {
     }
 
     // -------------------------------------------------------------------------
-    // Adversarial tests for #[triage_commit] (added by adversarial role)
+    // Adversarial tests for #[triage_commit]
     // -------------------------------------------------------------------------
 
     #[test]
@@ -5762,7 +5762,7 @@ mod tests {
         // "20characterrational!" is exactly 20 chars.
         let tokens: TokenStream = r#"triage_decision = TriageDecision::Red,
             rollback_target = "abc1234",
-            triaged_by = "navigator",
+            triaged_by = "reviewer",
             rationale = "20characterrationale",
             rollback_due_within_minutes = 30"#
             .parse()
@@ -5784,7 +5784,7 @@ mod tests {
         // Just below the 20-char minimum: must fail.
         let tokens: TokenStream = r#"triage_decision = TriageDecision::Red,
             rollback_target = "abc1234",
-            triaged_by = "navigator",
+            triaged_by = "reviewer",
             rationale = "19characterrational",
             rollback_due_within_minutes = 30"#
             .parse()
@@ -5803,14 +5803,14 @@ mod tests {
 
     #[test]
     fn triage_commit_validate_absurdly_large_deadline_is_currently_accepted() {
-        // ADVERSARIAL FINDING: rollback_due_within_minutes = u32::MAX is accepted.
+        // EDGE CASE: rollback_due_within_minutes = u32::MAX is accepted.
         // Semantically absurd (5.3 million hours = 600 years). The validate()
         // method only checks for 0; there is no upper cap. This test PINS the
         // current behavior. A future check could warn/error on deadline > 10080
         // (one week in minutes) per operational discipline.
         let tokens: TokenStream = r#"triage_decision = TriageDecision::Yellow,
             rollback_target = "abc1234",
-            triaged_by = "navigator",
+            triaged_by = "reviewer",
             rationale = "twenty-character-rationale-text",
             rollback_due_within_minutes = 4294967295"#
             .parse()
@@ -5830,7 +5830,7 @@ mod tests {
         // a valid git ref.
         let tokens: TokenStream = r#"triage_decision = TriageDecision::Red,
             rollback_target = "   ",
-            triaged_by = "navigator",
+            triaged_by = "reviewer",
             rationale = "twenty-character-rationale-text",
             rollback_due_within_minutes = 30"#
             .parse()
@@ -5856,7 +5856,7 @@ mod tests {
         // discipline (ADR-026 §Rollback-as-triage: rationale before action, not after).
         let tokens: TokenStream = r#"triage_decision = TriageDecision::Red,
             rollback_target = "abc1234",
-            triaged_by = "navigator",
+            triaged_by = "reviewer",
             rationale = "                    ",
             rollback_due_within_minutes = 30"#
             .parse()
@@ -5880,14 +5880,14 @@ mod tests {
 
     #[test]
     fn triage_commit_validate_non_sha_rollback_target_is_currently_accepted() {
-        // ADVERSARIAL FINDING: rollback_target accepts arbitrary non-SHA strings.
+        // EDGE CASE: rollback_target accepts arbitrary non-SHA strings.
         // ADR-026 says "commit sha" but no format validation is enforced.
         // "not-a-sha-at-all" is accepted. This is intentional forward-compat
         // (refs like branch names may also be valid rollback targets), but
         // the gap is that completely arbitrary text passes.
         let tokens: TokenStream = r#"triage_decision = TriageDecision::Red,
             rollback_target = "not-a-sha-at-all-just-text",
-            triaged_by = "navigator",
+            triaged_by = "reviewer",
             rationale = "twenty-character-rationale-text",
             rollback_due_within_minutes = 30"#
             .parse()
@@ -5907,7 +5907,7 @@ mod tests {
         // The validator does NOT check for this semantic inconsistency.
         let tokens: TokenStream = r#"triage_decision = TriageDecision::Green,
             rollback_target = "abc1234",
-            triaged_by = "navigator",
+            triaged_by = "reviewer",
             rationale = "no regression detected in twenty chars",
             rollback_due_within_minutes = 1"#
             .parse()
@@ -6070,7 +6070,7 @@ mod tests {
     }
 
     // -------------------------------------------------------------------------
-    // Recurrent-Emergence Family tests (ADR-024 + scientist HOW-spec cf2a2317)
+    // Recurrent-Emergence Family tests (ADR-024)
     // -------------------------------------------------------------------------
 
     #[test]
@@ -6452,7 +6452,7 @@ mod tests {
     }
 
     // -------------------------------------------------------------------------
-    // Adversarial tests for #[immunosuppress] and #[anergy] — past until date
+    // Tests for #[immunosuppress] and #[anergy] — past until date
     // -------------------------------------------------------------------------
 
     #[test]
@@ -6612,7 +6612,7 @@ mod tests {
     //
     // The systemic root: ADR-023 loudness-as-discipline implemented as min-length
     // but whitespace-stuffing was not considered. triage_commit got fixed first
-    // (via the hook in response to adversarial's failing test); these four remain.
+    // (via the hook in response to the failing test); these four remain.
     // -------------------------------------------------------------------------
 
     #[test]
@@ -6718,7 +6718,7 @@ mod tests {
 //        unknown-field tolerance and missing-required-field tolerance).
 //        Rejecting more is fine; accepting where the macro rejects is not.
 //
-// Adversarial input shapes worth fuzzing (per W1's adversarial-pass plan):
+// Input shapes worth fuzzing:
 // Unicode in names, nested macros / inner-quoted strings in fingerprints,
 // extremely long string literals, malformed array literals, multi-line
 // rustfmt output, all-whitespace edge cases, kebab-case boundary inputs.
@@ -7260,12 +7260,12 @@ mod parser_props {
     #[test]
     fn triage_accepts_priority_order_of_code_sites() {
         let tokens: TokenStream =
-            r#"priority_order = ["src/a.rs::foo", "src/b.rs::bar"], triaged_by = "navigator", re_triage_due = "2027-03-01""#
+            r#"priority_order = ["src/a.rs::foo", "src/b.rs::bar"], triaged_by = "reviewer", re_triage_due = "2027-03-01""#
                 .parse()
                 .unwrap();
         let args = syn::parse2::<TriageArgs>(tokens).unwrap();
         assert_eq!(args.priority_order.len(), 2);
-        assert_eq!(args.triaged_by.as_deref(), Some("navigator"));
+        assert_eq!(args.triaged_by.as_deref(), Some("reviewer"));
         args.validate().unwrap();
     }
 

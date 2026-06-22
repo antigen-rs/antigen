@@ -4,7 +4,7 @@
 > membrane, and build the whole immune system one mechanism at a time — and at
 > each step, the moment the biology makes a primitive *inevitable*, antigen's
 > version of it lands. By the end you'll understand both: real immunology, and why
-> antigen is shaped the way it is. The claim of [ADR-003](decisions.md) is that the
+> antigen is shaped the way it is. The claim of ADR-003 is that the
 > biological metaphor is **load-bearing, not decorative** — that it *predicts* what
 > antigen needs. This guide is the argument for that claim, told as a story.
 
@@ -101,7 +101,7 @@ another module, and the lesson is gone.
 > failure-class as durable, checked structure. The lesson of the encounter survives
 > the refactor, the session boundary, the personnel change. This is the move the
 > whole tool is built around — B-cell memory → persistent failure-class
-> declarations. [ADR-003](decisions.md) cites exactly this as the proof the
+> declarations. ADR-003 cites exactly this as the proof the
 > metaphor predicts primitives: *biology had memory cells, so antigen has
 > declarations.*
 
@@ -158,7 +158,7 @@ children.
 > lineage. (With one discipline the biology also enforces: inheritance does **not**
 > transitively grant immunity — each descendant must *re-attest* its own defense,
 > because a daughter cell still has to make its own antibody. See
-> [`decisions.md`](decisions.md), ADR-005 sub-clause F.)
+> ADR-005 sub-clause F.)
 
 ---
 
@@ -463,7 +463,7 @@ reference, but the reference only means something because you walked the story:
 
 The full forward-looking version of this map — every immune primitive antigen
 *could* grow into as adoption surfaces real instances — lives in
-[`immune-system-primitive-map.md`](internal/immune-system-primitive-map.md). That document is
+[`immune-system-primitive-map.md`](immune-system-primitive-map.md). That document is
 *recognition substrate*: a catalog of what biology already has answers to that
 antigen will eventually need answers to.
 
@@ -471,7 +471,7 @@ antigen will eventually need answers to.
 
 ## Why this is the argument for ADR-003
 
-[ADR-003](decisions.md) makes a strong claim: the biological metaphor is *load-
+ADR-003 makes a strong claim: the biological metaphor is *load-
 bearing* — it doesn't decorate the design, it *generates* it. This guide is the
 evidence. At every chapter, the biology made a primitive **inevitable** before
 antigen built it: biology had memory cells, so declarations were inevitable; biology
@@ -492,7 +492,7 @@ metaphor is honest enough to tell you so. A metaphor that predicted *everything*
 would be a metaphor you were forcing; one that predicts the built primitives and
 goes quiet exactly where antigen is young is a metaphor that's *real*. That's the
 difference between a decoration and a discovery framework. When the biology predicts
-a primitive, [the project builds it](decisions.md). That's not a slogan. It's the
+a primitive, the project builds it. That's not a slogan. It's the
 record this guide just walked you through.
 
 ---
@@ -504,10 +504,8 @@ record this guide just walked you through.
 - [`war-stories/the-self-catch.md`](war-stories/the-self-catch.md) — the autoimmune
   episode of Chapter 6, told in full: antigen's fingerprints firing on its own clean
   code, and the tolerance mechanism that fixed it
-- [`immune-system-primitive-map.md`](internal/immune-system-primitive-map.md) — the full
+- [`immune-system-primitive-map.md`](immune-system-primitive-map.md) — the full
   forward map: every biological primitive antigen could grow into
-- [`decisions.md`](decisions.md) — why the metaphor is load-bearing, and the
-  observe-don't-declare discipline (Chapter 4's correction)
 - [`glossary.md`](glossary.md) — every term anchored to its biological referent and
   Rust analog
 - [`concepts.md`](concepts.md) — the architectural concepts behind the story

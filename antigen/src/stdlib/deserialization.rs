@@ -1,4 +1,4 @@
-//! # Deserialization-Trust-Boundary Family — stdlib antigens (beta.2 voyage)
+//! # Deserialization-Trust-Boundary Family — stdlib antigens
 //!
 //! The un-shipped DEEP tier of the shipped Mucosal-Boundary family (ADR-027):
 //! deserialization is THE canonical place untrusted bytes cross into typed-Rust

@@ -26,7 +26,7 @@
 //!
 //! # Scope (the do-now resolution axis, NOT the exercised-coverage axis)
 //!
-//! "Live" smuggles four meanings (the outsider's naive-Q): (1) EXISTS — the
+//! "Live" smuggles four meanings: (1) EXISTS — the
 //! witness identifier **resolves**; (2) RUNS — not `#[ignore]`'d; (3) PASSES —
 //! green; (4) WOULD-CATCH — exercises the guarded shape (remove the guard → RED).
 //! Only (4) is *real* defense; (1)–(3) can be theatre. **This sensor is the

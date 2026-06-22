@@ -1,7 +1,7 @@
 //! E0 — the bundled-catalog → `Finding` PROJECTION gate (the un-built half).
 //!
-//! Campsite: `near-front/bundled-stdlib-catalog-scan-mode`. ADR-043 Amd-1
-//! (match-render only, claim-scoped); ADR-044 (claim-scope honesty).
+//! ADR-043 Amd-1 (match-render only, claim-scoped); ADR-044 (claim-scope
+//! honesty).
 //!
 //! The scan-side gates (`e0_bundled_catalog_scan.rs`, all GREEN) prove the
 //! catalog injects into the synthesis pass and the matches resolve to
@@ -13,7 +13,7 @@
 //!   - NONE may be a `FindingBody::DialVerdict` (an AUDITED verdict — that crosses
 //!     the ADR-044 syntactic/semantic line; a bundled match reading as an audited
 //!     all-clear/defended verdict is antigen's OWN over-claim class, the deepest
-//!     E0 break the Survey-wave checks for),
+//!     E0 break the checks guard against),
 //!   - each carries the catalog member's verified-core provenance.
 //!
 //! ## RED-by-design, but NON-BLOCKING (`#[ignore]`)
@@ -23,10 +23,10 @@
 //! exists but nothing constructs it, and the pipeline `findings` population is
 //! marked-unknowns-only (pipeline.rs:133-157). Calling the (not-yet-existent)
 //! projection directly would make this whole test binary fail to COMPILE, which
-//! hard-stops `cargo test -p antigen` and bricks the pathmaker's iteration loop.
-//! So this gate is `#[ignore]`d with the contract spelled out inline. The
-//! pathmaker, when the projection lands, deletes the `panic!` stub + the
-//! `#[ignore]`, calls the real projection (name is theirs to pick — the BEHAVIOR
+//! hard-stops `cargo test -p antigen` and bricks the iteration loop.
+//! So this gate is `#[ignore]`d with the contract spelled out inline. When
+//! the projection lands, delete the `panic!` stub + the
+//! `#[ignore]`, call the real projection (name is free to pick — the BEHAVIOR
 //! asserted below is the gate), and it flips GREEN.
 //!
 //! Discover it with: `cargo test -p antigen --test e0_bundled_catalog_entrypoint
@@ -50,9 +50,9 @@ fn fixture(name: &str) -> PathBuf {
 /// unified `Finding` population (each a `FindingBody::FingerprintMatch` carrying
 /// the catalog member's authored provenance). Replace this stub's body with the
 /// real call once it ships (e.g. `antigen::scan::bundled_catalog_findings(scan)`
-/// or whatever the pathmaker names it) and remove the `#[ignore]` on the test.
+/// or whatever it ends up named) and remove the `#[ignore]` on the test.
 fn project_bundled_findings(scan: &antigen::scan::ScanReport) -> Vec<Finding> {
-    // LANDED (pathmaker): the projection shipped as
+    // LANDED: the projection shipped as
     // `antigen::scan::bundled_catalog_findings` (re-exported from
     // `stdlib::catalog`, which owns the catalog provenance). It turns the
     // bundled-catalog scan's `FingerprintMatch` presentations into

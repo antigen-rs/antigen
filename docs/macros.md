@@ -879,7 +879,6 @@ To prevent confusion:
 - [`witness-tiers.md`](witness-tiers.md) — WitnessTier gradient semantics
 - [`output-formats.md`](output-formats.md) — scan/audit output reference
 - [`troubleshooting.md`](troubleshooting.md) — error diagnostics
-- [`decisions.md`](decisions.md) — ratified ADRs
 
 The macro implementations live in `antigen-macros/`. The crate-level
 doc-comments in `antigen-macros/src/lib.rs` provide an alternative

@@ -1,4 +1,4 @@
-//! # Numeric-Truncation-Overflow Family — stdlib antigens (beta.2 voyage)
+//! # Numeric-Truncation-Overflow Family — stdlib antigens
 //!
 //! Silent numeric-corruption classes. The build-now member is the famous
 //! **`size_of`-in-element-count** foot-cannon: passing a *byte* count where an

@@ -4,8 +4,7 @@
 //! These are the git-substrate witness leaves referenced by the
 //! VCS-info-loss stdlib antigens.
 //!
-//! Per the WITNESS-LAYER-INDEPENDENCE principle (aristotle F1 on
-//! `adr026-amendment-4-step2-commit-trailer`): the witness layer reads git
+//! Per the WITNESS-LAYER-INDEPENDENCE principle: the witness layer reads git
 //! SUBSTRATE (commit trailers, branch state, remote configuration) and is
 //! UNCHANGED by Amendment 4's correction to the hook detection trigger.
 //! Amendment 4 changes *when* a witness fires (the hook's detection rule),
@@ -292,7 +291,7 @@ mod tests {
 
     #[test]
     fn rollback_triage_chain_absent_when_no_trailer() {
-        let t = trailers(&[("Reviewed-By", "navigator")]);
+        let t = trailers(&[("Reviewed-By", "alice")]);
         assert_eq!(
             RollbackTriageState::evaluate(&t),
             RollbackTriageState::ChainAbsent
@@ -304,7 +303,7 @@ mod tests {
     fn branch_attest_pass_states() {
         assert!(
             BranchAttestState::Attested {
-                by_role: "navigator".into()
+                by_role: "reviewer".into()
             }
             .is_pass()
         );

@@ -19,7 +19,7 @@
 //!   draft, maximally specific) LOWERS precision against *novel* clean siblings.
 //!
 //! A single scalar "affinity" climbing to a "ceiling" silently picks a point on this
-//! recall↔precision tradeoff and **hides the choice** — exactly the v0.4 survey's two
+//! recall↔precision tradeoff and **hides the choice** — exactly the two
 //! residual failure poles (`overfits-homogeneous-clone-pair` = over-matured photocopy;
 //! the clustering-recall seam = under-matured), which are the two *ends of the same
 //! unnamed axis*. Naming the axis is a free design move now; retrofitting a 2-objective

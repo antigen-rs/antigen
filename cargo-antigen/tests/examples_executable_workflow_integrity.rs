@@ -14,8 +14,8 @@
 //! correct; only running its own workflow exposed the gap. (That was instance
 //! #5 of "example can't satisfy its own predicate"; the doc-gap is now fixed.)
 //!
-//! This is the CLASS defense aristotle + naturalist seeded under the
-//! `examples-ci-executable-workflow-integrity` campsite: a test that EXECUTES
+//! This is the CLASS defense seeded under the
+//! `examples-ci-executable-workflow-integrity`: a test that EXECUTES
 //! the example's documented workflow and asserts the claimed tier, so a future
 //! drift (renamed flag, removed doc, changed predicate, regressed fingerprint
 //! producer) FAILS HERE at CI time instead of waiting for an adopter to trip on

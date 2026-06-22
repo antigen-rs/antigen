@@ -53,7 +53,7 @@ fn atk_a2_001_path_qualified_presents_extracts_last_segment() {
 // ============================================================================
 // ATK-A2-003: Empty-body function witness passes audit as well-formed
 //
-// Naturalist PREDICTION 1: "the temptation will be to ship reachability-only
+// PREDICTION 1: "the temptation will be to ship reachability-only
 // and call it execution-tier." This test catches that drift.
 //
 // A function with no #[test] attribute and an empty body must NOT be treated
@@ -329,7 +329,7 @@ fn atk_a2_005_ambiguous_witness_name_is_not_silently_resolved() {
 
 #[test]
 fn atk_a2_009_stale_tolerance_orphan_is_flagged_by_scan() {
-    // Per ADR-011 §Mechanics + ATK-A2-009 (naturalist's biology cognate
+    // Per ADR-011 §Mechanics + ATK-A2-009 (biology cognate
     // "peripheral suppression continuing after the antigen it suppressed is
     // no longer present"). A tolerance marker for an antigen that isn't
     // declared in the scanned workspace must surface as an orphan.
@@ -544,11 +544,11 @@ fn atk_a2_002_second_antigen_in_file_reports_correct_line() {
 // cleanly if `real_fn` exists anywhere in the workspace — even though the path
 // as written points nowhere coherent.
 //
-// This is TC-7 from naturalist's tier-confusion roam (20260508-tier-confusion-roam.md).
+// This is TC-7 from the tier-confusion analysis (20260508-tier-confusion-roam.md).
 // Distinct from ATK-A2-005 (same-name collision): TC-7 is about a path that doesn't
 // point to the right place at all, not about two functions sharing a name.
 //
-// Biology cognate (naturalist): auto-immune cross-reactivity — antibody recognizes
+// Biology cognate: auto-immune cross-reactivity — antibody recognizes
 // a peptide motif on the wrong tissue. Same segment shape, wrong molecular context.
 // ============================================================================
 
@@ -591,7 +591,7 @@ fn atk_a2_011_fabricated_path_prefix_does_not_pass_strict_gate() {
 // ============================================================================
 // ATK-A2-012: #[test] #[ignore] witness classified as Test-kind (well-formed)
 //
-// TC-6 from naturalist's tier-confusion roam. A witness with BOTH #[test] AND
+// TC-6 from the tier-confusion analysis. A witness with BOTH #[test] AND
 // #[ignore] attributes never runs by default (cargo test skips ignored tests).
 // detect_kind checks for #[test] presence but not #[ignore] — so a test that
 // is explicitly marked as "do not run" passes audit as WitnessKind::Test.

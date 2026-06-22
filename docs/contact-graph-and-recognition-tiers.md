@@ -41,14 +41,13 @@
 
 ## Background: how this finding surfaced
 
-A2 day-2 evening, team-lead in conversation with Tekgy traced through what
-contact tracing could be in antigen beyond `#[descended_from]` chains. Tekgy
-pushed back on a claim team-lead had made — that "assumption-violation has
-no biological cognate at the cellular level, only at the system-fitness
-level."
+This finding surfaced while tracing through what contact tracing could be in
+antigen beyond `#[descended_from]` chains. An initial claim — that
+"assumption-violation has no biological cognate at the cellular level, only
+at the system-fitness level" — turned out to be wrong.
 
-The pushback was substrate-grounded. Tekgy asked: *might assumptions BE
-cellular?* Working through the question:
+The counter-question was substrate-grounded: *might assumptions BE cellular?*
+Working through it:
 
 - Cell-surface receptors encode structural assumptions about ligand shapes
 - Enzymes encode structural assumptions about substrate shapes
@@ -64,16 +63,16 @@ binding wrong shapes; enzymes catalyzing wrong substrates; repair machinery
 mis-correcting non-canonical pairs; immune system attacking self via
 molecular mimicry.
 
-Assumptions are cellular at the molecular-recognition level. The team-lead
-correction propagated into deeper finding: **antigen's fingerprint matching
+Assumptions are cellular at the molecular-recognition level. That correction
+propagated into a deeper finding: **antigen's fingerprint matching
 primitive is structurally identical to molecular recognition**, and
 cross-reactivity (which V0 already named) is not a single primitive but
 a tiered phenomenon operating at every level of recognition.
 
 That correction surfaced the three-tier framework. From there, the
-multi-modal transmission framework Tekgy had named earlier in the
-conversation (call graph + trait impl + module proximity + macro expansion +
-shared types + descended_from) gained a seventh mode — assumption-graph
+multi-modal transmission framework named earlier (call graph + trait impl +
+module proximity + macro expansion + shared types + descended_from) gained a
+seventh mode — assumption-graph
 transmission — and crystallized as a structurally distinct finding from
 cross-reactivity tiers but operationally compositional with them.
 
@@ -342,9 +341,9 @@ Public-health epidemiology has rich vocabulary that maps cleanly:
 The full contact-graph framework becomes especially powerful at cross-crate
 scope:
 
-> tambear's `Container<T>` was just declared as presenting X.
-> `cargo antigen trace --cross-crate` shows: every project depending on
-> tambear that uses Container<T> is structurally exposed.
+> A computational-mathematics project's `Container<T>` was just declared as
+> presenting X. `cargo antigen trace --cross-crate` shows: every project
+> depending on that crate that uses Container<T> is structurally exposed.
 
 That's CVE-style supply-chain propagation but for *failure-classes
 generally*, not just security. The cybersecurity precedent (CVE in
@@ -457,13 +456,13 @@ This document is forward substrate. Recognition triggers for ratification
 
 - **Tier 3 (contextual-assumption) gets operationalized** when adoption
   surfaces real cases of "code locally-correct but downstream-impacted."
-  Tambear's path-dep adoption in A3+ may surface this when stdlib antigens
-  affect downstream tambear assumptions.
+  Path-dependent adoption by a downstream consumer crate in A3+ may surface
+  this when stdlib antigens affect that crate's assumptions.
 
 - **Multi-modal transmission gets operationalized** when post-A3 cross-crate
-  scan reveals graph-effects of single antigen declarations. The "tambear's
-  Container<T> propagates exposure to downstream crates" scenario is the
-  trigger.
+  scan reveals graph-effects of single antigen declarations. The "a
+  downstream crate's Container<T> propagates exposure to its dependents"
+  scenario is the trigger.
 
 - **The matrix as governance metric** when antigen-stdlib reaches multi-
   thousand antigen scale. Per cross-domain-map.md Appendix A.5 (ATT&CK
@@ -477,7 +476,7 @@ This document is forward substrate. Recognition triggers for ratification
 ## Closing posture
 
 The graph-typed-recognition-surface finding is the deepest single
-architectural finding from A2 day-2's late-evening conversation. It
+architectural finding from the A2 design phase. It
 elevates antigen's recognition primitive from "fingerprint matches at a
 site" to "fingerprint matches at a graph-typed surface across three
 recognition tiers."
@@ -501,8 +500,8 @@ ephemeral; this typed-substrate carries the findings forward.
 
 ---
 
-*V0 authored 2026-05-08 evening by team-lead, capturing findings from
-real-time conversation with Tekgy. Companion to the immune-system primitive
-map V0 and the cross-domain architectural map V1. Maintained as adoption
+*V0 authored 2026-05-08, capturing findings from a design discussion.
+Companion to the immune-system primitive map V0 and the cross-domain
+architectural map V1. Maintained as adoption
 pressure surfaces tier-2 / tier-3 / non-descended-from-mode instances that
 warrant deeper-tier matrix cell ratification.*

@@ -6,9 +6,8 @@
 //! code — no new types required.
 //!
 //! Audit-level tests (`ContentHashMismatch` fires on content difference,
-//! dep-attest-without-reviewable-artifact hint, etc.) live in
-//! `campsites/.../scientist/tests/` and will be enabled as pathmaker
-//! implements the audit-side types (ADR-025 §Enforcement-Surface).
+//! dep-attest-without-reviewable-artifact hint, etc.) will be enabled as the
+//! audit-side types are implemented (ADR-025 §Enforcement-Surface).
 //!
 //! ADR-025: Supply-Chain Defense Family.
 
@@ -70,7 +69,7 @@ fn scan_finds_content_hash_mismatch_as_unaddressed() {
 }
 
 // content_hash_matches leaf type is NOW recognized in antigen-attestation
-// (pathmaker added it to the sealed leaf set). The scanner correctly finds the
+// (added to the sealed leaf set). The scanner correctly finds the
 // immunity with the requires_predicate captured.
 
 #[test]
@@ -186,7 +185,7 @@ fn scan_finds_unattested_dep_inclusion_presentation() {
     );
 }
 
-// dep_attested leaf type is NOW recognized (pathmaker added to parser).
+// dep_attested leaf type is NOW recognized (added to parser).
 
 #[test]
 fn scan_finds_dep_attested_rubber_stamp_immunity() {

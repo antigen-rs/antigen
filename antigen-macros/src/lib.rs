@@ -44,8 +44,8 @@
 //! linker behavior, or binary size. The cost lives entirely at `cargo antigen scan`
 //! time, which runs out-of-band.
 //!
-//! See ADR-010 (fingerprint grammar v1) and the project's `docs/expedition/`
-//! directory for the design rationale.
+//! See ADR-010 (fingerprint grammar v1) and the project's documentation
+//! for the design rationale.
 //!
 //! ## Known v1 limitations
 //!
@@ -205,7 +205,7 @@ pub fn antigen(args: TokenStream, input: TokenStream) -> TokenStream {
     // The use-token references the type by bare name (`let _x: Foo;`). That is
     // safe here precisely because the generics check above already rejected any
     // parameterized marker — so `#marker_ident` always names a concrete,
-    // arg-free type. (Adversarial flagged use-tokens-under-generics; the guard,
+    // arg-free type. (use-tokens-under-generics; the guard,
     // not an assumption about E0392, is what makes this sound.)
     let expanded = quote! {
         #[doc = #attr_doc]
@@ -375,7 +375,7 @@ pub fn defended_by(args: TokenStream, input: TokenStream) -> TokenStream {
 /// - `rationale = "..."` (required) — human-readable justification; empty
 ///   string is rejected
 /// - `until = "..."` (optional) — expiry tag (e.g., `"v1.0"`); empty string
-///   is rejected (per aristotle reciprocal Phase 1-8)
+///   is rejected (per the reciprocal Phase 1-8 rule)
 /// - `see = [...]` (optional) — open-vocabulary string array of references
 ///
 /// # Example
@@ -816,7 +816,7 @@ pub fn poxparty(args: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// `#[diagnostic(modalities = [...], min_independent = N)]` asserts that
 /// at least `N` distinct [`WitnessClass`](https://docs.rs/antigen) categories
-/// converge on this defense. Per ADR-024 §Decision + adversarial C1, the
+/// converge on this defense. Per ADR-024 §Decision, the
 /// count is over distinct CLASSES, not raw witness count — running the
 /// same kind of test in triplicate doesn't add evidence.
 ///
@@ -876,7 +876,7 @@ pub fn diagnostic(args: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// `#[clonal(witness = ..., iterations = N, seed = SeedKind::...)]`
 /// asserts that a witness is run with many independent iterations.
-/// Per ADR-024 §Decision + adversarial C2, `seed = SeedKind::Fixed(_)`
+/// Per ADR-024 §Decision, `seed = SeedKind::Fixed(_)`
 /// is a COMPILE ERROR — a fixed seed makes "independent iterations" a
 /// contradiction.
 ///
@@ -917,7 +917,7 @@ pub fn clonal(args: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// `#[igg(witnesses = [...], historical_span = N, min_reattestations = N)]`
 /// asserts that the defense has been re-attested across a time span.
-/// Per ADR-024 §Decision + adversarial C3, source-independence is
+/// Per ADR-024 §Decision, source-independence is
 /// NOMINAL only — different signer identity strings are not structural
 /// proof of independent sources.
 ///
@@ -1035,8 +1035,7 @@ pub fn adcc(args: TokenStream, input: TokenStream) -> TokenStream {
 }
 
 // ============================================================================
-// Recurrent-Emergence Family (ADR-024 + scientist HOW-spec cf2a2317 +
-// aristotle Reading-A pre-authorization 744471a3)
+// Recurrent-Emergence Family (ADR-024)
 //
 // Six present-looking primitives: #[itch], #[recurrence_anchor],
 // #[crystallize], #[chronic], #[saturate], #[strand]. Cognitive-organizational
@@ -1121,7 +1120,7 @@ pub fn recurrence_anchor(args: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// `#[crystallize(name, from_itches?, antigen?, summary)]` records the
 /// moment a pattern of noticings crystallizes into a formal antigen.
-/// Parallel to camp's field-track `crystallize` verb.
+/// Captures the transition from informal noticing to formal recognition.
 ///
 /// # Biology grounding
 ///
@@ -1429,8 +1428,8 @@ pub fn orient(args: TokenStream, input: TokenStream) -> TokenStream {
 /// Declare a rollback-as-triage commit: classify system state + commit to
 /// rollback within a tight time-bound (ADR-026 §Rollback-as-triage).
 ///
-/// Per aristotle's fixup-orient-dual-signature resolution (camp note
-/// 55a161e7): `#[triage_commit]` is a SIBLING primitive to `#[orient]`, NOT
+/// Per the fixup-orient-dual-signature resolution, `#[triage_commit]` is a
+/// SIBLING primitive to `#[orient]`, NOT
 /// an extension. Orient names a failure-class with see-also context;
 /// `triage_commit` names a triage decision + a rollback action. The two are
 /// different speech acts in the deferred-defense family.
@@ -1438,7 +1437,7 @@ pub fn orient(args: TokenStream, input: TokenStream) -> TokenStream {
 /// # Biology grounding — dual-axis honesty
 ///
 /// The `#[triage_commit]` primitive carries DUAL-AXIS grounding per ADR-026
-/// §Finding (NON-NEGOTIABLE per naturalist); neither axis is decorative.
+/// §Finding (NON-NEGOTIABLE); neither axis is decorative.
 ///
 /// **Clinical-medicine axis grounds the OUTCOME**: triage as a discipline
 /// comes from clinical emergency-response medicine — the practice of
@@ -1489,7 +1488,7 @@ pub fn orient(args: TokenStream, input: TokenStream) -> TokenStream {
 /// - `rollback_target = "<sha>"` — commit sha pointing to the last-known-good
 ///   state. Non-empty.
 /// - `triaged_by = "<role|name>"` — informed-consent author identity (role
-///   slug like `"navigator"` or a personal name). Non-empty.
+///   slug like `"reviewer"` or a personal name). Non-empty.
 /// - `rationale = "..."` — chart-documentation; minimum 20 characters per
 ///   ADR-023 loudness-as-discipline applied to clinical-medicine
 ///   chart-documentation. Records WHY the rollback was decided before the
@@ -1513,7 +1512,7 @@ pub fn orient(args: TokenStream, input: TokenStream) -> TokenStream {
 /// #[triage_commit(
 ///     triage_decision = TriageDecision::Red,
 ///     rollback_target = "abc1234",
-///     triaged_by = "navigator",
+///     triaged_by = "reviewer",
 ///     rationale = "vital metric regression confirmed via #84; rolling back to last-known-good",
 ///     rollback_due_within_minutes = 30,
 /// )]
@@ -1549,7 +1548,7 @@ pub fn triage_commit(args: TokenStream, input: TokenStream) -> TokenStream {
 // Witness satisfaction REUSES the ADR-019/020 categorical spine (no new
 // mechanism); only the S1 ORDERING is new content. `#[triage]` is intentionally
 // NOT shipped in this commit — its arg-shape has a ratified-ADR-vs-test-corpus
-// divergence (camp question fc2e1677, awaiting aristotle); the other seven are
+// divergence; the other seven are
 // unambiguous. `#[titer]` is NOT in this family (it is a titer-witness kind,
 // ADR-019 Amendment 1).
 // ============================================================================
@@ -1729,7 +1728,8 @@ pub fn quarantine(args: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// Per the 2026-06-01 post-ratification fixup, the `campsites` field was dropped:
 /// `priority_order` entries are **code-site references** (file/item-path), not
-/// camp campsites (anchor #3 — the audit never reads camp). They resolve at
+/// external work-tracker units (anchor #3 — the audit resolves only
+/// file/item-path references). They resolve at
 /// audit-time (ADR-017 Amendment 1); an unresolvable entry is `out-of-frame`,
 /// never silently satisfied.
 ///

@@ -740,8 +740,8 @@ checksum = "swapped-hash"
     // ========================================================================
     // Path-traversal defense-in-depth: the path-builder primitives must refuse
     // to escape supply_chain_root on a malicious crate_name/version, regardless
-    // of whether the caller pre-validated. (observer's finding: evaluate_dep_
-    // attested + load_content_hash_record reached the path-builders without the
+    // of whether the caller pre-validated. (evaluate_dep_attested +
+    // load_content_hash_record reached the path-builders without the
     // is_valid_crate_name check that evaluate_maintainer_unchanged has.)
     // ========================================================================
 

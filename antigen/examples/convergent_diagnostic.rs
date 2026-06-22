@@ -2,7 +2,7 @@
 //!
 //! ADR-024 convergent-evidence family. `#[diagnostic]` asserts that a
 //! defense rests on multiple *distinct* `WitnessClass` categories
-//! converging on the same conclusion. Per adversarial C1, the
+//! converging on the same conclusion. The
 //! `min_independent` count is over distinct CLASSES, not raw witness
 //! count — running the same kind of test three times doesn't add
 //! evidence.
@@ -49,7 +49,7 @@ pub struct CheckedArithmeticOverflow;
 /// 2. **`FormalVerification`** — Kani proof `kani_sum_bounds`
 /// 3. **`ManualReview`** — PR review attested in commit history
 ///
-/// Per ADR-024 adversarial C1: `min_independent = 3` requires
+/// Per ADR-024: `min_independent = 3` requires
 /// THREE distinct `WitnessClass` categories. The macro rejects
 /// `min_independent` exceeding the number of distinct categories
 /// supplied (vacuously unsatisfiable claim).
@@ -93,9 +93,9 @@ fn main() {
     println!("   modalities: PropertyTest, PropertyTest (duplicate class)");
     println!("   min_independent: 1");
     println!("   audit: diagnostic-modalities-class-collapsed warning");
-    println!("          (per adversarial C1: classes, not raw count)");
+    println!("          (classes, not raw count)");
     println!();
-    println!("Per ADR-024 adversarial C1:");
+    println!("Per ADR-024:");
     println!("  min_independent COUNTS DISTINCT CATEGORIES, not witnesses.");
     println!("  Three property-tests = ONE PropertyTest class = ONE independent.");
     println!();

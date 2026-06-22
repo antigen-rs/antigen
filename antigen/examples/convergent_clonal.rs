@@ -3,7 +3,7 @@
 //!
 //! ADR-024 convergent-evidence family. `#[clonal]` captures the
 //! pattern of running a witness across many independent iterations —
-//! the B-cell clonal-expansion analog. Per adversarial C2, the macro
+//! the B-cell clonal-expansion analog. The macro
 //! REJECTS `seed = SeedKind::Fixed(_)` at parse time: a fixed seed
 //! makes "independent iterations" a contradiction.
 //!
@@ -92,7 +92,7 @@ fn main() {
     println!("   iterations: 5_000");
     println!("   seed: SeedKind::EntropyFromCi (per-CI deterministic)");
     println!();
-    println!("Per ADR-024 adversarial C2:");
+    println!("Per ADR-024:");
     println!("  `seed = SeedKind::Fixed(_)` is REJECTED at parse time.");
     println!("  A fixed seed makes 'iterations' a misnomer — each");
     println!("  iteration replays the same RNG state.");

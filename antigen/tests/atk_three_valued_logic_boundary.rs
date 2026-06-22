@@ -219,7 +219,7 @@ fn atk_3v3_all_of_with_failing_standard_leaf_is_failed_not_indeterminate() {
 //
 // FALSIFICATION CHECK: removing the `&& a.audit_hint != AuditHint::DisciplinePredicateDeferred`
 // guard from immune_audit_is_substrate_gap() causes this test to FAIL (the verdict
-// becomes SubstrateGap). Confirmed by observer: git stash (reverts fix) → test fails.
+// becomes SubstrateGap). Confirmed: git stash (reverts fix) → test fails.
 #[test]
 fn atk_3v4_deferred_predicate_does_not_produce_substrate_gap_verdict() {
     use std::path::Path;

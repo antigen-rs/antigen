@@ -1,10 +1,10 @@
 //! E0 — the `--bundled-catalog` CLI contract, end-to-end through the compiled
-//! binary. THE PARTIAL-ADOPTER SILENT-MISS REFUTATION (captain's ruling /
-//! ADR-043 Amendment 2: an EXPLICIT `--bundled-catalog` ALWAYS injects).
+//! binary. THE PARTIAL-ADOPTER SILENT-MISS REFUTATION (ADR-043 Amendment 2:
+//! an EXPLICIT `--bundled-catalog` ALWAYS injects).
 //!
 //! The library-level gate (`antigen/tests/e0_bundled_catalog_scan.rs`) proves
 //! the `Always` mode catches a partial adopter's flagship footgun. THIS gate is
-//! the harder refutation the captain asked for: does the FIX actually CLOSE the
+//! the harder refutation: does the FIX actually CLOSE the
 //! silent-miss at the CLI dispatch — i.e. does `cargo antigen scan
 //! --bundled-catalog` on a crate that ALREADY declares a local antigen surface
 //! the bundled flagship footgun, rather than suppressing the catalog because the
@@ -76,7 +76,7 @@ fn explicit_bundled_catalog_flag_catches_a_partial_adopters_flagship_footgun() {
     assert!(
         stdout.contains(FLAGSHIP),
         "EXPLICIT --bundled-catalog on a partial adopter (one local antigen) MUST \
-         surface the bundled flagship `{FLAGSHIP}` footgun — the captain's ruling \
+         surface the bundled flagship `{FLAGSHIP}` footgun — the ruling \
          (always-inject) closes the silent-miss. If this is absent, the catalog was \
          suppressed because the crate declares a local antigen — the exact \
          silent-miss E0 exists to kill. stdout = {stdout}"

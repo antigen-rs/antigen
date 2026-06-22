@@ -25,7 +25,7 @@ pub struct SignedZeroDiscipline;
 #[immune(
     SignedZeroDiscipline,
     requires = all_of([
-        signers(required = ["math-researcher"]),
+        signers(required = ["reviewer"]),
         fresh_within_days(180),
     ])
 )]

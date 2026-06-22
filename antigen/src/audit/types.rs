@@ -196,7 +196,7 @@ pub enum AuditHint {
 
     /// A `#[descended_from(Parent)]` lineage edge whose CHILD antigen's
     /// structural fingerprint is detectably NOT a refinement of the PARENT's
-    /// (lineage-fidelity check; scientist severity ruling 2026-05-27: ADVISORY
+    /// (lineage-fidelity check; ADVISORY
     /// for v0.3, hard-fail deferred to a future ADR).
     ///
     /// A child fingerprint *refines* its parent's when every item matching the
@@ -442,11 +442,11 @@ pub enum AuditHint {
     // `audit_convergent_evidence()`.
     // ------------------------------------------------------------------
     /// `#[diagnostic]` has fewer distinct `WitnessClass` categories than
-    /// `min_independent` requires. Per ADR-024 §Decision + adversarial C1.
+    /// `min_independent` requires. Per ADR-024 §Decision.
     DiagnosticModalityInsufficient,
     /// `#[diagnostic]` modalities all share a single `WitnessClass` —
     /// the `min_independent` floor is structurally unmet even if the
-    /// raw count matches. Per adversarial C1 (class-collapse).
+    /// raw count matches (class-collapse).
     DiagnosticModalitiesClassCollapsed,
     /// `#[diagnostic]` declared with no modalities. Empty modality
     /// list is structurally meaningless.
@@ -469,7 +469,7 @@ pub enum AuditHint {
     ClonalIterationsBelowThreshold,
     /// `#[igg]` all re-attestations share the same signer identity —
     /// nominal source-independence collapses to identity-collapse.
-    /// Per adversarial C3 named limitation.
+    /// A named limitation.
     IggIdentityCollapseWarning,
     /// `#[igg]` `historical_span` shorter than the configured workspace
     /// threshold.
@@ -492,8 +492,8 @@ pub enum AuditHint {
     // ------------------------------------------------------------------
     // Recurrent-Emergence Family hints (ADR-024 §Family 2).
     //
-    // Pre-authorized under ADR-024 §5471 "~30 examples:" open-set wording
-    // per aristotle Reading-A (744471a3): family-prefixed, substrate-grep-
+    // Pre-authorized under ADR-024 §5471 "~30 examples:" open-set wording:
+    // family-prefixed, substrate-grep-
     // clean, semantically within the recurrent audit taxonomy. Emitted by
     // `audit_recurrent()`.
     // ------------------------------------------------------------------
@@ -537,7 +537,7 @@ pub enum AuditHint {
     // Mucosal Boundary Family hints (ADR-027 + Amendment 1).
     //
     // Pre-authorized under ADR-027 §Audit-hint vocabulary "examples:"
-    // open-set framing per aristotle F7. Emitted by `audit_mucosal()`.
+    // open-set framing. Emitted by `audit_mucosal()`.
     // ------------------------------------------------------------------
     /// A boundary surfaced by scan carries no `#[mucosal]` /
     /// `#[mucosal_tolerant]` declaration. (v0.2: emitted by
@@ -579,7 +579,7 @@ pub enum AuditHint {
     //
     // G1 deliverable: the category-defaulted migration hint, emitted at
     // scan/audit time for antigen declarations with an absent (empty)
-    // `category` field. Per adversarial's G1 ratification (scan-time-only
+    // `category` field. Per the G1 ratification (scan-time-only
     // for v0.2), this hint is the load-bearing signal that makes
     // absent-category VISIBLE rather than a silent false-green. The
     // parse-time hard-error + v0.1/v0.2 discrimination (migration-record)
@@ -595,7 +595,7 @@ pub enum AuditHint {
     AntigenCategoryDefaultedImplicitFunctional,
 
     // ------------------------------------------------------------------
-    // G2 deliverable (ADR-028 + Amendment 2 + aristotle F1 on
+    // G2 deliverable (ADR-028 + Amendment 2 on
     // v02-impl-category-witness-cross-check): the category-vs-witness-type
     // cross-check, emitted at AUDIT time (not parse time). A single
     // `#[antigen]` cannot see its `#[immune]` declarations at macro-expand
@@ -618,8 +618,8 @@ pub enum AuditHint {
 
     /// A hybrid antigen (`category = [SubstrateAlignment, FunctionalCorrectness]`)
     /// has exactly ONE of its two axes witnessed at audit time — one axis is
-    /// backed by a matching immunity, the other is unwitnessed. Per aristotle's
-    /// G3 F1 ruling, this is distinct from
+    /// backed by a matching immunity, the other is unwitnessed. This is
+    /// distinct from
     /// [`Self::AntigenCategoryClaimInconsistentWithPredicateType`]: a hybrid
     /// with one axis covered is INCOMPLETE (partial evidence), not a full
     /// structural violation (which is the zero-axes case, still reported as
@@ -628,14 +628,12 @@ pub enum AuditHint {
     AntigenCategoryHybridIncompleteEvidence,
 
     // ------------------------------------------------------------------
-    // Silence-witness shape-mismatch hints (scientist design 2026-05-27 in
-    // forward/silence-witness-shape-mismatch-hint; aristotle architectural
-    // gate cleared 2026-05-27 in forward/silence-witness-shape-mismatch-impl).
+    // Silence-witness shape-mismatch hints.
     //
     // A `SubstrateAlignment` antigen fails by SILENCE — a representation
     // drifts from actual state and nothing fires, because the antigen is
     // about ABSENCE of a closure-mechanism, not a wrong output. The
-    // silence-by-absence generator (scientist's 2x2 cap analysis) is defeated
+    // silence-by-absence generator (the 2x2 cap analysis) is defeated
     // only by a witness that asserts the mechanism EXISTS (a substrate
     // predicate or a bijection/parity test), not by a code-behavior test.
     // These two advisory hints flag the witness-shape that cannot detect
@@ -668,7 +666,7 @@ pub enum AuditHint {
     /// bijection-parity test. Co-emitted alongside G2's
     /// [`Self::AntigenCategoryClaimInconsistentWithPredicateType`] (same root
     /// cause, witness-type mismatch) but carries the silence-generator framing
-    /// and the actionable guidance G2 does not. Per scientist's design, the
+    /// and the actionable guidance G2 does not. By design, the
     /// wrong-weighting generator legitimately uses a code-tier
     /// confidence-discrimination test — so this is advisory, and the reader
     /// should confirm the intended generator before treating it as a mismatch.
@@ -957,7 +955,7 @@ impl AuditReport {
     /// ANY of its immunity sites carry a witness whose tier is `> None`?
     ///
     /// This is the P2' defended-status query the obsolete/well-defended discriminator
-    /// reads (`outsider/the-discriminator-is-blind-for-silent-classes`): a silent class
+    /// reads: a silent class
     /// with a resolving witness is WELL-DEFENDED (do NOT forget); one with only
     /// `tier == None` sites is OBSOLETE-eligible. The per-class convenience form of
     /// [`audit_defended_status`](super::audit_defended_status) — `any(tier > None)` over
@@ -1023,7 +1021,7 @@ pub enum ImmuneVerdict {
 /// The four-valued verdict for a prescriptive work-need (ADR-033 §Decision 3).
 ///
 /// This is the [`ImmuneVerdict`] tri-state with the unsatisfied cell *temporally
-/// split by the frame* (the verdict-lattice isomorphism, math-researcher): the
+/// split by the frame* (the verdict-lattice isomorphism): the
 /// prescriptive evaluator REUSES the ADR-029 satisfaction read and applies a
 /// frame-aware projection — it does NOT fork a parallel evaluator (forking
 /// re-introduces the cardinality-collapse the three-valued-logic gem warns

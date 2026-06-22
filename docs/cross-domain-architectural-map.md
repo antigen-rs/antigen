@@ -63,8 +63,7 @@ there, distributed across the disciplines.
 
 ## Structural-identity criteria
 
-Per math-researcher's structural-identity test in postures.md §7 (depth-
-shift discipline), the criteria for "this field's framework is the same
+The structural-identity criteria for "this field's framework is the same
 pattern, not a rhyme":
 
 1. **Same fail-mode without the architecture** (i.e., what fails when
@@ -81,9 +80,8 @@ A field passes the **partial-cognate** test when one or two criteria match
 — the field illuminates a piece of the architecture but not the whole.
 
 A field is **silent** when zero criteria match — the field is genuinely a
-different architecture, and the silence is informative (per naturalist's
-biology-as-instrument framing: silence where it should be silent is
-evidence of load-bearing-ness).
+different architecture, and the silence is informative (silence where it
+should be silent is evidence of load-bearing-ness).
 
 Each entry below records its identity-criteria status explicitly.
 
@@ -699,7 +697,8 @@ carriers.
 - A6 IDE integration framing material can explicitly invoke
   internalization: "antigen turns the explicit failure-class declaration
   back into tacit developer awareness via inline IDE annotation."
-- Methodology-paper material on JBD-team-with-substrate discipline maps
+- Methodology-paper material on a multi-agent team with shared-substrate
+  discipline maps
   cleanly onto SECI: the team operates the externalization + combination
   half explicitly and structurally; substrate-over-memory is the
   discipline that prevents the cycle from collapsing back to tacit-only.
@@ -1333,7 +1332,7 @@ makes antigen's project-level coordination work.
 
 ### What this maps to in antigen
 
-- **Substrate-over-memory IS stigmergy.** The campsite logbook + git
+- **Substrate-over-memory IS stigmergy.** The activity log + git
   history + on-disk docs are the pheromone field. Each agent (Claude
   instance, human contributor) leaves signals in substrate; other
   agents detect and respond without direct coordination. Validation 4
@@ -1365,11 +1364,11 @@ makes antigen's project-level coordination work.
   not ad hoc; it is a specific instance of a domain-general coordination
   architecture.
 
-- **Stigmergy explains why the JBD-team-with-substrate works at scale.**
+- **Stigmergy explains why a multi-agent team with shared substrate works at scale.**
   Direct communication scales as O(N²) with team size; stigmergic
   coordination scales as O(N) because each agent only interacts with
   the substrate, not with all other agents. The coordination
-  pattern (campsite logbook + ADRs + project docs + memory index)
+  pattern (activity log + ADRs + project docs + memory index)
   operates stigmergically by design — the team scales because the
   substrate carries the coordination load.
 
@@ -1382,7 +1381,7 @@ makes antigen's project-level coordination work.
 
 ### Recognition triggers in antigen
 
-- Methodology-paper material on JBD-team-with-substrate can directly
+- Methodology-paper material on a multi-agent team with shared substrate can directly
   invoke stigmergy as the theoretical grounding for substrate-over-
   memory. The discipline becomes a *named architectural practice*,
   not just a project-specific reflex.
@@ -1642,8 +1641,8 @@ header) is operationally demonstrated by this addition.
   distributed-knowledge problems. The "X is complete — `git grep
   ADR-NNN docs/decisions.md` returns matches" pattern from CLOSURE.md
   Validation 4 is the muddy-children move at team scale: don't rely on
-  private bilateral exchange ("pathmaker said it's done" → "navigator
-  relays" → "observer logs"); rely on public-substrate inspection
+  private bilateral exchange ("one agent said it's done" → "another
+  relays" → "a third logs"); rely on public-substrate inspection
   every agent can witness.
 
 ### Connection to the comprehension-drift family
@@ -1651,7 +1650,7 @@ header) is operationally demonstrated by this addition.
 V5 (stakeholder mental-model divergence) and V7 (mutual-update
 assumption coupling) of the comprehension-drift family are *instances*
 of common-knowledge failure at the team-coordination scope. The
-literature-grounding doc (campsite trail) cited Halpern & Moses 1990 +
+literature-grounding doc cited Halpern & Moses 1990 +
 Prentice & Miller 1993 for these variants; this window makes the
 citation structurally load-bearing rather than incidental.
 
@@ -1696,7 +1695,7 @@ behind it, not just team-cognition or social-epistemology framing.
   require common-knowledge coordination; the structural answer is
   shared-substrate declarations as public announcement.*
 - **Methodology paper**: substrate-over-memory's grounding in
-  stigmergy (per scientist's routing) extends naturally into
+  stigmergy extends naturally into
   epistemic logic — both are formal accounts of how distributed
   agents coordinate via shared substrate rather than private
   exchange. Bridge-posture material.
@@ -1717,7 +1716,7 @@ behind it, not just team-cognition or social-epistemology framing.
   knowledge requires multi-agent witnessed announcement. Antigen's
   ADR-text-as-public-substrate is the same shape, instantiated at the
   team-coordination layer rather than the protocol layer.
-- **CLOSURE.md Validation 4 recovery protocol**: navigator's "X is
+- **CLOSURE.md Validation 4 recovery protocol**: the "X is
   complete — `git grep ...`" pattern is the muddy-children move
   applied operationally. The substrate-grounded check is the public
   announcement; agent-to-agent relay is the private bilateral
@@ -1727,7 +1726,7 @@ behind it, not just team-cognition or social-epistemology framing.
 
 ## Where the cross-domain map goes silent (honest boundaries)
 
-Per naturalist's biology-as-instrument framing in V0: the silence is
+The silence is
 informative. Fields where the structural-identity test fails *zero*
 criteria — i.e., the field's framework genuinely doesn't map to
 antigen's architecture — are themselves load-bearing evidence that the
@@ -1875,7 +1874,7 @@ foundation by stigmergy theory. The discipline is not project-specific;
 it is a specific instance of a domain-general coordination architecture.
 
 This shifts methodology-paper framing: instead of presenting
-substrate-over-memory as a JBD-team practice, present it as the project's
+substrate-over-memory as a project-team practice, present it as the project's
 adoption of stigmergic coordination, with citations across biology
 (Grassé), distributed systems (gossip protocols), and version control
 (git as stigmergic substrate).
@@ -1962,18 +1961,18 @@ than re-deriving it.
 
 This document is V1. Future deepening:
 
-- **Naturalist** can deepen the biology-spine V1 (V0 deepening) in
+- A future pass could deepen the biology-spine V1 (V0 deepening) in
   parallel; this document is the cross-domain sibling.
-- **Scout** can find prior-art partial-instantiations within specific
+- A future pass could find prior-art partial-instantiations within specific
   cognate fields (e.g., academic papers on schema-theory tooling that
   could be ergonomic prior art for IDE integration in A6).
-- **Scientist** can integrate the sixteen-window convergence into
+- A future pass could integrate the sixteen-window convergence into
   manuscript trajectory: tool-paper uses cybersecurity + aviation
   cognates for adoption-pitch; foundational-paper uses cumulative-
   culture + Peirce + stigmergy + epistemic-logic cognates for the
   architectural-claim substrate; methodology-paper uses stigmergy +
   SECI cognates for the team-discipline framing.
-- **Aristotle** can note candidate posture-class entries surfacing from
+- A future pass could note candidate posture-class entries surfacing from
   cross-domain framing — particularly stigmergy as the theoretical
   grounding of substrate-over-memory.
 
@@ -2222,7 +2221,7 @@ Primary cognates: **cybersecurity (CVE+ATT&CK), aviation safety (NTSB),
 RustSec**. These give the audience-familiar framing for "what category
 of tool is antigen, and why does the category matter?" The empirical
 defenses (biology-as-search-heuristic precision, colonization ratio, ATK
-confirmation rate, tambear adoption signal) take primary load; the
+confirmation rate, downstream-adoption signal) take primary load; the
 cognates are the *category framing* the reader needs to understand the
 empirical defenses.
 
@@ -2254,7 +2253,7 @@ paper's positioning requires:
   analysis per the muddy-children proof. Static analysis is itself
   private bilateral inspection that cannot establish common knowledge;
   the structural answer is shared-substrate declarations. The
-  3-fundamental-gap → 5-fundamental-gap finding (per scout↔academic
+  3-fundamental-gap → 5-fundamental-gap finding (per the cross-domain
   convergence) is foundational-paper material grounded in this
   literature.
 - Niche construction frames *why ecosystem-stdlib matters* beyond
@@ -2273,7 +2272,7 @@ substrate-of-practice (Polanyi + Lave & Wenger + Wenger-Trayner et al.
 - Stigmergy provides theoretical grounding for substrate-over-memory.
 - SECI provides the cycle framing (tacit-explicit-explicit-tacit) for
   why externalization-without-internalization fails.
-- CAS provides the boundary/signal/emergence framing for why JBD-team
+- CAS provides the boundary/signal/emergence framing for why a multi-agent team
   scales — the team coordinates stigmergically, not through direct
   communication.
 - Argyris's espoused-theory vs theory-in-use distinction (Argyris &
@@ -2472,7 +2471,7 @@ experience integrating two epistemologies that the academic mainline
 otherwise treats as incompatible.
 
 **What this maps to in antigen**: the project's combination of
-*biology-as-instrument* (naturalist's framing) plus *programming-
+*biology-as-instrument* plus *programming-
 language-theory-as-instrument* (the academic CS lineage) plus *past-
 self-gardening-as-instrument* plus *ML-graph-memory-as-instrument*
 (scope.md's four-window convergence) is *structurally Two-Eyed Seeing
@@ -2819,7 +2818,7 @@ Operational implications for antigen:
   failure mode.
 
 - **For the team's coordination**: the comprehension-drift family
-  literature grounding (this campsite thread) maps the substrate-of-
+  literature grounding (this thread) maps the substrate-of-
   practice principle to the team-coordination scope. Substrate-over-
   memory IS the team-coordination instance of the principle. The
   cross-domain map V1 catches the project-architecture instance; this
@@ -2853,7 +2852,7 @@ triggers from this appendix:
   tuning-based knowledge embedding.
 - **Methodology paper** (post-A2): communities-of-practice (Lave &
   Wenger) becomes the team-coordination framing alongside stigmergy
-  (which scientist already has).
+  (already in hand).
 - **Adoption pitch v2**: Two-Eyed Seeing as the framing for biology-as-
   instrument; CARE-shaped framing for community authority over
   domain-specific stdlib branches.
@@ -2873,7 +2872,7 @@ To prevent scope creep:
   substrate (ADR-001, posture §5, substrate-over-memory, Amendment 3
   tier-honesty); the appendix surfaces the underlying principle but
   does not advance it to formal posture-class until the team chooses
-  to. Aristotle's call.
+  to.
 
 - Does NOT advocate for direct adoption of CARE Principles or
   Two-Eyed Seeing as governance frameworks. They are recognition

@@ -256,7 +256,7 @@ pub struct Oracle {
 ///
 /// Stewards are categorically distinct from signers (ADR-021 §D3 + B-021-4
 /// biology grounding: FDC stewardship vs B-cell attestation; different
-/// cellular lineages). The math-researcher who attests against an oracle
+/// cellular lineages). Whoever attests against an oracle
 /// is NOT necessarily its steward.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Steward {
@@ -476,7 +476,7 @@ where D: serde::Deserializer<'de> {
 pub struct Signer {
     /// Signer name (git config `user.name`).
     pub name: String,
-    /// Optional role tag (e.g., `"math-researcher"`, `"reviewer"`).
+    /// Optional role tag (e.g., `"reviewer"`, `"auditor"`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub role: Option<String>,
     /// Date of this attestation (signer's local date at sign time).
@@ -510,7 +510,7 @@ pub struct Signer {
 
 /// Whether a signer entry is a fresh attestation or a carry-forward delta
 /// from a prior attestation. Delta entries carry anti-laundering safeguards
-/// per ADR-019 §Decision + adversarial T2-R.
+/// per ADR-019 §Decision.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum SignerBasis {
@@ -656,9 +656,9 @@ pub enum ValidationError {
         signer_name: String,
     },
     /// A `SignerBasis::DeltaFrom` carried a `rationale` shorter than the
-    /// configured minimum (default 20 chars). Per adversarial T2R-B:
-    /// non-empty alone permits rubber-stamp rationales — minimum-length
-    /// enforcement keeps the field carrying actual signal.
+    /// configured minimum (default 20 chars). Non-empty alone permits
+    /// rubber-stamp rationales — minimum-length enforcement keeps the
+    /// field carrying actual signal.
     RationaleTooShort {
         /// Item path the offending signer is recorded under.
         item_path: String,
@@ -697,9 +697,9 @@ pub enum ValidationError {
         signer_name: String,
     },
     /// A workspace-configured value for an antigen-attestation knob is
-    /// out of the project-enforced hard-floor bounds. Per adversarial
-    /// T2R-C: workspaces can tighten anti-laundering caps but cannot
-    /// loosen them beyond a hardcoded floor.
+    /// out of the project-enforced hard-floor bounds. Workspaces can
+    /// tighten anti-laundering caps but cannot loosen them beyond a
+    /// hardcoded floor.
     WorkspaceConfigOutOfBounds {
         /// Which config key violates the floor (e.g., `"delta_chain_cap"`).
         key: &'static str,
@@ -969,7 +969,7 @@ pub const DEFAULT_DELTA_CHAIN_CAP: u32 = 3;
 
 /// Hard floor on chain-depth cap, NOT workspace-configurable.
 ///
-/// Per adversarial T2R-C: workspaces can TIGHTEN the cap (set it lower than
+/// Workspaces can TIGHTEN the cap (set it lower than
 /// the default) but cannot LOOSEN it beyond this floor. The CLI refuses
 /// `[package.metadata.antigen.attestation] delta_chain_cap = N` when N > this
 /// constant. Without a hard floor, a workspace TOML edit defeats the entire
@@ -983,7 +983,7 @@ pub const HARD_DELTA_CHAIN_CAP_MIN: u32 = 1;
 
 /// Default minimum character count for `SignerBasis::DeltaFrom::rationale`.
 ///
-/// Per adversarial T2R-B: non-empty alone permits rubber-stamp rationales
+/// Non-empty alone permits rubber-stamp rationales
 /// like `"ok"`, `"fine"`, `"reviewed"`. Schema enforces a minimum length so
 /// the rationale carries actual signal. Workspaces can TIGHTEN via
 /// `[package.metadata.antigen.attestation] delta_rationale_min_chars = N`
@@ -1406,7 +1406,7 @@ mod tests {
 
     #[test]
     fn delta_with_rubber_stamp_rationale_rejected_t2r_b() {
-        // Per adversarial T2R-B: "ok", "fine", "reviewed" all pass non-empty
+        // "ok", "fine", "reviewed" all pass non-empty
         // but the minimum-length floor catches them.
         let date = NaiveDate::from_ymd_opt(2026, 5, 19).unwrap();
         for rubber_stamp in &["ok", "fine", "reviewed", "changes are safe"] {
@@ -1653,7 +1653,7 @@ mod tests {
 
     #[test]
     fn oracle_with_one_steward_rejected_atk021_13() {
-        // BUG REGRESSION TEST (adversarial ATK-021-13): single-steward oracles
+        // BUG REGRESSION TEST (ATK-021-13): single-steward oracles
         // must be rejected — if the lone steward leaves, the oracle becomes
         // permanently orphaned with no succession path.
         let mut oracle = valid_oracle("single-steward-oracle");
@@ -1710,7 +1710,7 @@ mod tests {
 
     #[test]
     fn oracle_transition_with_unauthorized_author_rejected_atk021_15() {
-        // BUG REGRESSION TEST (adversarial ATK-021-15): state transitions must
+        // BUG REGRESSION TEST (ATK-021-15): state transitions must
         // be authorized by a declared steward. A non-steward author is a silent
         // forgery — at TextStamp level anyone can claim to be a steward.
         let mut oracle = valid_oracle("bad-transition-oracle");
