@@ -361,4 +361,4 @@ structural backstop that reduces the need for defense wiring at those sites.
 ## References
 
 - [`docs/case-study-determinism-class.md`](case-study-determinism-class.md) — the failing-as-passing pattern shown in context
-- [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — current CI gates
+- [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) — current CI gates

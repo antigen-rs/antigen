@@ -192,7 +192,7 @@ that defends against two failure-classes just lists both:
 ```rust
 #[antigen::presents(crate::antigens::VacuousCompletionFalseGreen, requires = signers(...))]
 #[antigen::presents(crate::antigens::ParallelStateComputationDiverges, requires = signers(...))]
-pub fn signature_state_with(&self, /* ... */) -> CampsiteState { /* ... */ }
+pub fn signature_state_with(&self, /* ... */) -> SignatureState { /* ... */ }
 ```
 
 This matters most if you have **two `#[immune]` attributes stacked on one item**

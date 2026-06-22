@@ -71,7 +71,7 @@ Antigen has a formal internal architectural process — a discipline carried ove
 
 This typically takes a few days for non-trivial changes. Your PR description is the primary substrate we work from — clearer description = faster review.
 
-If you're curious about the internal discipline itself (the ADR lifecycle, sweep planning, review responsibilities), see [`docs/internal/process.md`](docs/internal/process.md). It documents how antigen is maintained internally — not what we ask of contributors.
+The project maintains an internal discipline (the ADR lifecycle, sweep planning, review responsibilities) that documents how antigen is maintained internally — not what we ask of contributors.
 
 ---
 

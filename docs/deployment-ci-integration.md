@@ -21,7 +21,7 @@ Antigen gives you two read-only inspection commands. Neither mutates your code.
   declared failure-class memory actually backed by evidence?"*
 
 For CI, `audit --strict` is the load-bearing gate (see
-[the relationship](#scan-strict-vs-audit-strict) below). `scan` is most useful
+[the relationship](#scan---strict-vs-audit---strict) below). `scan` is most useful
 as a non-gating informational step or for the JSON artifact.
 
 ---
