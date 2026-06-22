@@ -466,12 +466,6 @@ LLM agent, these are the places to look for canonical information:
 - [`usage-patterns.md`](usage-patterns.md) — pattern recipes
 - [`glossary.md`](glossary.md) — vocabulary anchor; every project term
 
-For deeper substrate:
-- [`docs/decisions.md`](decisions.md) — ratified ADRs (especially
-  ADR-006 recognition-not-design, ADR-005 sub-clause F at trust
-  boundaries, ADR-005 Amendment 3 audit-tier-honesty)
-- [`docs/internal/postures.md`](internal/postures.md) — architectural postures
-
 ---
 
 *This document is part of antigen's co-native design. If you're an LLM

@@ -316,11 +316,11 @@ See [`docs/roadmap.md`](https://github.com/antigen-rs/antigen/blob/main/docs/roa
 - [`docs/vision-pitch.md`](https://github.com/antigen-rs/antigen/blob/main/docs/vision-pitch.md) — the full vision; supersedes all narrower framings
 - [`docs/structural-memory.md`](https://github.com/antigen-rs/antigen/blob/main/docs/structural-memory.md) — foundational whitepaper on what structural memory means and why it matters for hybrid human-AI teams
 - [`docs/decisions.md`](https://github.com/antigen-rs/antigen/blob/main/docs/decisions.md) — ratified ADRs and amendments
-- [`docs/internal/postures.md`](https://github.com/antigen-rs/antigen/blob/main/docs/internal/postures.md) — architectural postures threaded through the ADRs
+- [`docs/contributors/postures.md`](https://github.com/antigen-rs/antigen/blob/main/docs/contributors/postures.md) — architectural postures threaded through the ADRs
 
 **If you're a researcher or practitioner:**
-- [`docs/internal/cross-domain-architectural-map.md`](https://github.com/antigen-rs/antigen/blob/main/docs/internal/cross-domain-architectural-map.md) — the cross-domain architectural map (16+ academic fields)
-- [`docs/internal/immune-system-primitive-map.md`](https://github.com/antigen-rs/antigen/blob/main/docs/internal/immune-system-primitive-map.md) — the multi-component immunity framing, primitive by primitive
+- [`docs/cross-domain-architectural-map.md`](https://github.com/antigen-rs/antigen/blob/main/docs/cross-domain-architectural-map.md) — the cross-domain architectural map (16+ academic fields)
+- [`docs/immune-system-primitive-map.md`](https://github.com/antigen-rs/antigen/blob/main/docs/immune-system-primitive-map.md) — the multi-component immunity framing, primitive by primitive
 
 ---
 

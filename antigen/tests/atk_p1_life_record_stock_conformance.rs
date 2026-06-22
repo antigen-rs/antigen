@@ -2,15 +2,15 @@
 //!
 //! **STATUS: BORN-RED. These tests do NOT COMPILE yet** — the life-record STOCK
 //! (`antigen::learn::life_record`, ADR-059) is the ONE genuinely-ABSENT organ of
-//! v0.6 (the keystone taproot, §3 of `briefing-for-pioneers.md`). This file is the
-//! adversarial *definition of done* for P1: the failing test the Pioneer who builds
+//! v0.6 (the keystone taproot). This file is the
+//! adversarial *definition of done* for P1: the failing test the builder who builds
 //! the STOCK makes green. When P1 lands, drop the `#![cfg(...)]` born-red gate (see
 //! below), the type emerges to satisfy these asserts, and they become the live
 //! regression spec.
 //!
 //! It is born-red by **non-compilation against an absent API**, the strongest form
 //! for an absent organ: the test names the contract surface so precisely that a
-//! pathmaker who builds a NON-conformant STOCK (e.g. a `story: String` column) finds
+//! builder who builds a NON-conformant STOCK (e.g. a `story: String` column) finds
 //! these asserts will not compile — the type must be a typed event-stream to satisfy
 //! them. That IS the C1 conformance check made executable.
 //!
@@ -45,7 +45,7 @@
 //!
 //! # Why born-red and not just a design doc
 //!
-//! A born-red test is the adversary's backbone for self-close: "done" = THESE asserts
+//! A born-red test is the backbone for self-close: "done" = THESE asserts
 //! pass, not "the happy path renders a nice story." The C1 trap (free-text-primary)
 //! is exactly the kind of thing a builder reaches for under flow ("just add a notes
 //! String") — this test makes that choice fail to compile. Append-only and
@@ -53,11 +53,10 @@
 //! or delete a record looks identical in the happy path and is catastrophic in the
 //! cold-agent-inherits-it path.
 //!
-//! Author: v06-the-maturing-organism--build--adversarial (the failing test that
-//! DEFINES P1's done, handed to the STOCK pathmaker).
+//! The failing test that DEFINES P1's done, handed to the STOCK builder.
 //!
 //! ----------------------------------------------------------------------------
-//! STATUS: P1a + P1b LANDED (v0.6 Pioneers). The file-level born-red gate is
+//! STATUS: P1a + P1b LANDED. The file-level born-red gate is
 //! DROPPED — the four P1a asserts AND the P1b coherence test
 //! (`hand_authored_story_diverging_from_the_score_is_flagged`) now compile against
 //! the real `antigen::learn::life_record` and are GREEN (the live regression
@@ -66,8 +65,8 @@
 //! exist, so the coherence test is ungated.
 //! ----------------------------------------------------------------------------
 
-// NOTE TO THE STOCK PATHMAKER: the names below (LifeRecord, LifeEvent, Actor, …) are
-// the adversary's PROPOSED surface, asserting the CONTRACT not the spelling. If you
+// NOTE TO THE STOCK BUILDER: the names below (LifeRecord, LifeEvent, Actor, …) are
+// the PROPOSED surface, asserting the CONTRACT not the spelling. If you
 // name the type `Autobiography` or the event `RatifiedBy`, rename here in the same
 // change — the asserts are what's load-bearing, the identifiers are negotiable
 // (recognition-not-design). What is NON-negotiable: (a) the story is a typed event
@@ -83,7 +82,7 @@ const CLASS: &str = "parallel-state-trackers-diverge";
 // ---------------------------------------------------------------------------
 
 /// The story is BUILT by appending typed lifecycle events. This compiles ONLY if
-/// `LifeEvent` is a typed enum (`Born`, `Matured`, `Ratified{..}`, …). A pathmaker
+/// `LifeEvent` is a typed enum (`Born`, `Matured`, `Ratified{..}`, …). A builder
 /// who models the story as `story: String` cannot satisfy this — there is no
 /// `LifeEvent::Born` to push. THAT non-compilation is the C1 enforcement.
 #[test]
@@ -229,7 +228,7 @@ fn current_state_derives_from_events_never_stored_as_a_claim() {
 //    runs in the default build as the live regression spec.
 // ---------------------------------------------------------------------------
 
-/// persona-c REQ-4 (aristotle's criterion #3, the WRITE-seam that survives the READ
+/// persona-c REQ-4 (criterion #3, the WRITE-seam that survives the READ
 /// -seam dissolution): a HAND-AUTHORED story carrying a witness-link must be
 /// COHERENCE-CHECKABLE against the struct — a "this class is maturing well" while the
 /// score-trajectory DROPS is antigen's own drift-nightmare reproduced inside its
@@ -253,7 +252,7 @@ fn hand_authored_story_diverging_from_the_score_is_flagged() {
     // dropping trajectory. The prose lives in the opaque `note` leaf (never parsed);
     // the directional claim is the typed `Trend::Improving` — and the coherence-check
     // compares TYPED claim vs TYPED trajectory (a structural compare, no NL-read).
-    // (Aristotle's build-wave ruling: the witness-link is the typed claimed-direction,
+    // (Ruling: the witness-link is the typed claimed-direction,
     // not a prose heuristic — `Trend`-vs-trajectory, robust to clever wording.)
     rec.append(LifeEvent::Narrated {
         claimed: Trend::Improving,

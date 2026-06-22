@@ -1,7 +1,6 @@
-// C ══ B autoimmunity safety-gate fixture (the single safety-tangle on the
-// chart). Parsed-as-text. Mirrors the pathmaker's run-as-code spike: a
-// panic-in-Drop family + a CLEAN Drop sibling that the governed PROPOSE must NOT
-// flag.
+// C ══ B autoimmunity safety-gate fixture (the single safety-tangle).
+// Parsed-as-text. Mirrors the run-as-code spike: a panic-in-Drop family + a
+// CLEAN Drop sibling that the governed PROPOSE must NOT flag.
 //
 // THE DEFECTIVE FAMILY — two real Drop impls that reach a panic source, varying
 // only in the call leaf (.unwrap() vs .expect()). A draft fingerprint PROPOSE

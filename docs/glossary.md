@@ -1218,7 +1218,7 @@ routes them through `propose()`, and **renders** the outcome as a ratifiable sug
 markers. See [`cli-reference.md`](cli-reference.md#propose) and
 [`examples-guide.md`](examples-guide.md).
 
-**Introduced in**: ADR-045 (library); Island 3 of the v0.5 expedition (CLI).
+**Introduced in**: ADR-045 (library); the CLI.
 
 ### observe-don't-declare
 

@@ -1,4 +1,4 @@
-//! # Drop-and-Panic-Discipline Family — stdlib antigens (beta.2 voyage)
+//! # Drop-and-Panic-Discipline Family — stdlib antigens
 //!
 //! Teardown footguns. The canonical one: a `Drop::drop` body that can panic. A
 //! panic during `Drop` *while another panic is unwinding* aborts the process

@@ -1,8 +1,8 @@
 //! E0 — the bundled-stdlib-catalog scan mode. THE ACCEPTANCE GATE (the
 //! behavioral half, testable against the PUBLIC API today).
 //!
-//! Campsite: `near-front/bundled-stdlib-catalog-scan-mode`. ADR-043 Amd-1
-//! (match-render only, claim-scoped); ADR-044 (claim-scope honesty).
+//! ADR-043 Amd-1 (match-render only, claim-scoped); ADR-044 (claim-scope
+//! honesty).
 //!
 //! THE E0 SPEC (briefing §2 E0): a fresh ZERO-DECLARATION crate scanned with the
 //! bundled catalog produces ≥1 real finding from the stdlib catalog; every
@@ -21,7 +21,7 @@
 //! The ENTRYPOINT-level gate (a public `scan + bundled-catalog` call that emits
 //! the matches into the `Finding` population with provenance stamped + NO
 //! audited-defense verdict) lives in `e0_bundled_catalog_entrypoint.rs`; it is
-//! RED until the pathmaker ships the public catalog-match entrypoint.
+//! RED until the public catalog-match entrypoint ships.
 
 use std::path::{Path, PathBuf};
 
@@ -143,7 +143,7 @@ fn bundled_catalog_matches_the_consumer_fixtures_real_footguns() {
 // (3) Every catalog entry carries a verified-core provenance. This is the
 //     claim-scope tier-honesty precondition: a bundled match can only ever read
 //     as Constructable/Encountered, never a manufactured Imagined/Heuristic.
-//     (The pathmaker's build.rs filters to 8 flagship modules to guarantee this;
+//     (The build.rs filters to 8 flagship modules to guarantee this;
 //     this gate FALSIFIES that guarantee against the SHIPPED catalog, so a future
 //     module add that drags in an unlabeled member trips here.)
 // ===========================================================================
@@ -266,10 +266,10 @@ fn every_entrypoint_match_resolves_to_verified_core_provenance() {
 //     The CLI `--bundled-catalog` flag drives auto_detect=true (main.rs), so a
 //     user who EXPLICITLY asks for the catalog but has one local antigen gets no
 //     flagship coverage. This test pins BOTH modes so the gap is a CONSCIOUS
-//     choice: if the council decides `--bundled-catalog` should mean "always
+//     choice: if `--bundled-catalog` is decided to mean "always
 //     inject" (the explicit-request reading), the auto-detect assertion below
 //     trips and forces the change deliberately rather than letting a silent miss
-//     ship. See the camp notice (adversarial, build-wave).
+//     ship.
 // ===========================================================================
 
 fn partial_adopter_get_unchecked_matches(auto_detect: bool) -> usize {
@@ -294,8 +294,8 @@ fn partial_adopter_get_unchecked_matches(auto_detect: bool) -> usize {
 fn partial_adopter_auto_detect_suppresses_the_catalog_a_known_silent_miss() {
     // AUTO-DETECT: one in-tree antigen ⇒ catalog NOT injected ⇒ the flagship
     // get_unchecked footgun is MISSED. This is the trap. If this flips to >0, the
-    // auto-detect semantics changed (likely deliberately — verify the council
-    // decided `--bundled-catalog` means always-inject) and this fence updates.
+    // auto-detect semantics changed (likely deliberately — verify
+    // `--bundled-catalog` was decided to mean always-inject) and this fence updates.
     let auto = partial_adopter_get_unchecked_matches(true);
     assert_eq!(
         auto, 0,

@@ -6,7 +6,7 @@
 //! Phase 4 doc work produced multiple drift incidents — phantom
 //! `ExternalUnvalidated` tier, wrong field names (`results` vs `audits`),
 //! wrong `witness_kind` shapes, wrong `audit_hint` names — because docs
-//! were authored against design-substrate (expedition prose) rather than
+//! were authored against design-substrate (design prose) rather than
 //! code-substrate (actual serde-serialized output). This test closes that
 //! gap by parsing the real binary's JSON output and asserting against a
 //! frozen schema. The test fails when the schema changes, forcing the
@@ -143,7 +143,7 @@ fn schema_lock_scan_match_kind_values() {
 // The v0.3 member-aware scan reuses the EXACT same JSON shape as the flat scan
 // (no new top-level keys) — it only populates the already-present
 // `canonical_path` field on each record with `<name>@<version>`. These tests
-// pin that contract: the camp bridge + external tooling can rely on the schema
+// pin that contract: external tooling can rely on the schema
 // being stable across `--workspace`, and on `canonical_path` being the
 // member-attribution channel.
 // ============================================================================

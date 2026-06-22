@@ -1,4 +1,4 @@
-//! # Async-Soundness Family — stdlib antigens (beta.2 voyage)
+//! # Async-Soundness Family — stdlib antigens
 //!
 //! Concurrency-boundary footguns. The build-now member is the **unsafe Send/Sync**
 //! form: a hand-written `unsafe impl Send for T` / `unsafe impl Sync for T`
@@ -20,7 +20,7 @@
 //! `LockHeldAcrossAwait` (liveness of a typed binding across a suspension point)
 //! is a new control-flow grammar dimension → charter. `BlockingCallInAsyncFn`
 //! (`is_async` + a heuristic blocking-API name-list) is build-now at the
-//! suspected tier — a candidate for the next wave. `SpawnedFutureNotAwaited`
+//! suspected tier — a candidate for a later phase. `SpawnedFutureNotAwaited`
 //! (`let _ = spawn()` binding-tell) → charter. This family ships the clean,
 //! named `unsafe impl Send/Sync` member now.
 

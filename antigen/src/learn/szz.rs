@@ -109,7 +109,7 @@ pub struct DefectFixPair {
 /// size self-report.
 ///
 /// [`size`](Self::size) is the per-repo self-verification of the corpus-starvation
-/// cure: it reports the count actually mined, never a baked baton number. A starved
+/// cure: it reports the count actually mined, never a baked-in number. A starved
 /// corpus (a tip-revwalk bug) reports a small size, surfacing the build-bug instead
 /// of silently failing the do-now justification.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]

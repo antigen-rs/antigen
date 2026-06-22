@@ -2,7 +2,7 @@
 //!
 //! # Why this is the moral center
 //!
-//! The whole-voyage naturalist finding: **"CURATE is the moral center — the
+//! The central finding: **"CURATE is the moral center — the
 //! forgetting IS the trust."** Every other organ *senses* and *classifies*; CURATE is
 //! the first that *acts* — and one of its actions ([`CurationAction::Forget`])
 //! discards a failure-class. A wrong forget here re-introduces antigen's own
@@ -143,7 +143,7 @@ pub fn apply(action: CurationAction, record: &mut LifeRecord) -> Option<LifeEven
     // second `Forget` on an already-retired record is a no-op (no duplicate tombstone),
     // so a cold-reader counting `Retired` events in the autobiography can never read two
     // deaths for one class. Same contract as the non-recording actions: no event, no
-    // lifecycle change. (Found by the forget-path adversarial: ATK-CURATE-3.)
+    // lifecycle change. (Pinned by ATK-CURATE-3.)
     if matches!(action, CurationAction::Forget) && record.is_retired() {
         return None;
     }

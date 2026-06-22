@@ -262,7 +262,7 @@ fn atk_w3_006_cross_file_presents_immune_pair_is_not_silently_unaddressed() {
     // "presentation at lib.rs:N has no matching immunity in the same file;
     // cross-file matching is not yet supported (A3)."
     //
-    // TODO(adversarial): write fixture with cross-file pair when A3 ships.
+    // TODO: write fixture with cross-file pair when A3 ships.
     panic!("A3 pre-implementation contract — remove #[ignore] when cross-file matching ships");
 }
 
@@ -273,7 +273,7 @@ fn atk_w3_006_cross_file_presents_immune_pair_is_not_silently_unaddressed() {
 // claim must name a substrate-grounded check. This test is the enforcement
 // mechanism for W3 specifically.
 //
-// When pathmaker marks W3 complete, the routing must include:
+// When W3 is marked complete, the routing must include:
 // - A named substrate check (e.g., "cargo test --package antigen atk_w3")
 // - Confirmation that the proximity heuristic TODO at scan.rs:245 is removed
 // - An adoption-log entry showing W3 results against a real multi-crate adopter
@@ -281,5 +281,5 @@ fn atk_w3_006_cross_file_presents_immune_pair_is_not_silently_unaddressed() {
 //
 // This test cannot be automated in Rust — it's a process contract. It lives
 // here as documentation that the W3 closure must include these three artifacts.
-// Observer should verify them at Milestone B.
+// These must be verified at Milestone B.
 // ============================================================================

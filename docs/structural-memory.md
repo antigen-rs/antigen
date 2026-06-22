@@ -1003,7 +1003,7 @@ structurally and the memory propagates through structural inheritance*
 — has been independently re-invented across many academic fields.
 
 The cross-domain map in
-[`docs/cross-domain-architectural-map.md`](internal/cross-domain-architectural-map.md)
+[`docs/cross-domain-architectural-map.md`](cross-domain-architectural-map.md)
 catalogs sixteen-plus academic fields where versions of this
 architecture have been developed. **But the cognate strength varies
 substantially** across these fields, and honest substrate-grounding
@@ -1685,19 +1685,13 @@ that helped catalyze the shift."
 - [`vision-pitch.md`](vision-pitch.md) — ecosystem outreach pitch
 - [`origin.md`](origin.md) — founding incident narrative
 
-### Architectural substrate
-
-- [`decisions.md`](decisions.md) — ratified ADRs
-- [`postures.md`](internal/postures.md) — architectural postures
-- [`process.md`](internal/process.md) — ADR lifecycle
-
 ### Research / cross-domain
 
-- [`cross-domain-architectural-map.md`](internal/cross-domain-architectural-map.md)
+- [`cross-domain-architectural-map.md`](cross-domain-architectural-map.md)
   — 16+ academic fields converging on the architecture
-- [`immune-system-primitive-map.md`](internal/immune-system-primitive-map.md)
+- [`immune-system-primitive-map.md`](immune-system-primitive-map.md)
   — biology primitive catalog
-- [`contact-graph-and-recognition-tiers.md`](internal/contact-graph-and-recognition-tiers.md)
+- [`contact-graph-and-recognition-tiers.md`](contact-graph-and-recognition-tiers.md)
   — recognition framework
 
 ### Cited intellectual lineage

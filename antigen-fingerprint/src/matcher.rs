@@ -642,7 +642,7 @@ mod tests {
     // ========================================================================
     // ADR-040 Increment 1 (KEYSTONE) — body_calls(path)
     //
-    // These are the adversarial tests-first definition-of-done for the
+    // These are the tests-first definition-of-done for the
     // `body_calls` leaf matcher. They are *asymmetric*: each binds-bad on a
     // body that calls the needle AND spares-good on a clean sibling that does
     // not — so a test that passes against both the gap and the fix is
@@ -870,7 +870,7 @@ mod tests {
 
     // ========================================================================
     // ADR-040 Increment 2 — G1: item qualifier presence/absence
-    // (is_async / is_unsafe / is_const). Adversarial tests-first definition-of-
+    // (is_async / is_unsafe / is_const). Tests-first definition-of-
     // done (grammar-leaf-defining-tests.md). Each binds-bad AND spares-good; the
     // partial-domain (Undefined-on-no-locus) trap is pinned so not(is_*) on a
     // wrong-locus item cannot vacuously match (ADR-010 Amd6).
@@ -920,7 +920,7 @@ mod tests {
     /// locus (`ItemTrait.unsafety`), so `is_unsafe` on it must be a definite
     /// Match/NoMatch — NOT `Undefined`. Omitting the `(Unsafe, Trait)` arm was a
     /// FALSE-Undefined (the item has the locus, the arm didn't enumerate it). This
-    /// is the notary/adversarial-flagged fix; it also lets `UnsafeSendSync`-shaped
+    /// is the fix; it also lets `UnsafeSendSync`-shaped
     /// fingerprints reach an `unsafe trait` Send-marker.
     #[test]
     fn is_unsafe_matches_unsafe_trait_definite_not_undefined() {
@@ -999,7 +999,7 @@ mod tests {
 
     // ========================================================================
     // ADR-040 Increment 2 — G3: trait-impl identity (impl_of_trait, presence AND
-    // absence). Adversarial tests-first definition-of-done. Reads ONE impl item's
+    // absence). Tests-first definition-of-done. Reads ONE impl item's
     // own trait-path last segment (an inherent impl → NoMatch; a non-impl →
     // Undefined). The cross-item "does Type impl X anywhere" form is G4/charter.
     // ========================================================================
@@ -1078,7 +1078,7 @@ mod tests {
 
     // ========================================================================
     // ADR-040 Increment 2 — G1b: derive-list / serde-arg introspection +
-    // attribute-absence. Adversarial tests-first definition-of-done. Syntactic
+    // attribute-absence. Tests-first definition-of-done. Syntactic
     // last-ident membership (no path resolution — the derive/path-collision is
     // the honest false-positive the dial carries). attr_absent is the anchored
     // negation of the shipped attr_present (no new operator).

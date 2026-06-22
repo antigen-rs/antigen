@@ -235,10 +235,10 @@ restraint *is* the product.
 
 ## Where this version sits in the arc
 
-The learning organism is being built as a sequence of islands. It helps to know
+The learning organism is being built as a sequence of stages. It helps to know
 which are wired and live, which ship as a library, and which are still ahead:
 
-| | Island | Status |
+| | Stage | Status |
 |---|---|---|
 | 1 | **route-arm** — the marks-as-cluster feeder | shipped, wired (v0.5) |
 | 2 | **keystone-safety-harden** — GATE-G, the self-tolerance gate | shipped, wired (v0.5) |
@@ -249,12 +249,12 @@ which are wired and live, which ship as a library, and which are still ahead:
 | 7 | the **wired curation loop** — a `cargo antigen` verb driving sense→classify→act | ahead (v0.7) |
 | 8 | the **self-immunization payoff** — the loop closing on antigen's own worries | ahead (v0.7) |
 
-**v0.5 wired islands 1–3** (the afferent pump and its safety spine, the keystone
-verb live). **v0.6 builds islands 4–6 as a library** — the efferent organs that let
+**v0.5 wired stages 1–3** (the afferent pump and its safety spine, the keystone
+verb live). **v0.6 builds stages 4–6 as a library** — the efferent organs that let
 a ratified class live, typed and tested and composable, but not yet driven by a CLI
-verb. Islands 7–8 are the road ahead. (One thing explicitly *outside* the whole
+verb. Stages 7–8 are the road ahead. (One thing explicitly *outside* the whole
 sequence: an LLM-reasoner that would name classes itself. That's a separate future
-expedition; antigen builds the bounded organs before the cross-cutting brain.)
+effort; antigen builds the bounded organs before the cross-cutting brain.)
 
 ---
 

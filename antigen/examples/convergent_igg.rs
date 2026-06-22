@@ -6,7 +6,7 @@
 //! — produced AFTER initial `IgM` response, indicating affinity
 //! maturation and durable immune memory.
 //!
-//! ## Named limitation (per ADR-024 adversarial C3)
+//! ## Named limitation (per ADR-024)
 //!
 //! `#[igg]` source-independence is NOMINAL only. Different signer
 //! identity strings are not structural proof of independent sources —
@@ -68,7 +68,7 @@ pub fn commit_transaction(tx_id: u64) -> Result<(), String> {
 /// not the criterion here. The criterion is 4 distinct identities,
 /// and 4 same-identity entries collapse.
 ///
-/// This is exactly the NAMED LIMITATION per adversarial C3.
+/// This is exactly the NAMED LIMITATION.
 #[igg(
     witnesses = [alice_review, alice_review, alice_review, alice_review],
     historical_span = 90,
@@ -99,7 +99,7 @@ fn main() {
     println!("   min_reattestations: 4");
     println!("   audit: igg-identity-collapse-warning");
     println!();
-    println!("Per ADR-024 adversarial C3:");
+    println!("Per ADR-024:");
     println!("  `#[igg]` source-independence is NOMINAL only.");
     println!("  4 different signer-identity strings is not structural proof");
     println!("  of 4 independent sources. The named limitation is in the ADR;");

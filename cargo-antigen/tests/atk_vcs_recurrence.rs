@@ -26,7 +26,7 @@ fn bin() -> PathBuf {
 /// on a repo named by an inherited `GIT_*` var.
 ///
 /// Why this matters: these tests build a hermetic tempdir repo, but they ran
-/// non-hermetically under one parent — the camp pre-commit hook, which runs
+/// non-hermetically under one parent — a downstream pre-commit hook, which runs
 /// `cargo test` *inside* a `git stash` / `git commit` sequence. Git exports
 /// `GIT_DIR` / `GIT_INDEX_FILE` (and friends) to its child processes, so the
 /// inherited env pointed the test's `git init` / `git add` at the REAL repo's

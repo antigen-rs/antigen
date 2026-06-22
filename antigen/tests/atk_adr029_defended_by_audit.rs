@@ -11,7 +11,7 @@
 //! test would register correctly yet be silently ignored by the verdict
 //! computation, leaving its presents-sites with no verdict at all.
 //!
-//! ADR-029 implementation (pathmaker, 2026-05-27): `audit()` computes a
+//! ADR-029 implementation (2026-05-27): `audit()` computes a
 //! per-presents-site verdict surface, `AuditReport::presentation_verdicts:
 //! Vec<PresentationVerdict>`, with `verdict: ImmuneVerdict =
 //! Defended { tier } | Undefended | SubstrateGap`. The verdict is
@@ -450,7 +450,7 @@ fn atk_adr029_10_requires_predicate_on_presentation_not_undefended() {
     // sidecar is absent (SubstrateGap) or the predicate fails, the verdict must
     // NOT be Undefended — Undefended means "no intent at all."
     // Currently FAILS because compute_presentation_verdicts() ignores requires_predicate.
-    // (Fixed by pathmaker's adr-029 wiring; compute_presentation_verdicts()
+    // (Fixed by the adr-029 wiring; compute_presentation_verdicts()
     // now inspects p.requires_predicate and routes through substrate-witness eval.)
     assert_ne!(
         v.verdict,
@@ -550,7 +550,7 @@ fn atk_adr029_12_impl_fn_defended_by_must_produce_defended_verdict() {
         .expect("a verdict for the FailureClass presents-site");
 
     // An impl_fn test method IS a valid runnable witness. The verdict must be Defended.
-    // (Fixed by pathmaker's adr-029 wiring; the impl_fn gate is now accepted.)
+    // (Fixed by the adr-029 wiring; the impl_fn gate is now accepted.)
     assert!(
         matches!(v.verdict, ImmuneVerdict::Defended { .. }),
         "ATK-ADR029-12: a #[defended_by] on an impl_fn witness must produce Defended. \
@@ -613,7 +613,7 @@ fn atk_adr029_13_proof_on_presentation_produces_formal_proof_tier() {
         .expect("a verdict for the PhantomAntigen presents-site");
 
     // A site with proof= declared has the strongest possible evidence. Must be
-    // Defended at FormalProof tier. (Fixed by pathmaker's adr-029 wiring;
+    // Defended at FormalProof tier. (Fixed by the adr-029 wiring;
     // compute_presentation_verdicts() now reads p.proof.)
     assert!(
         matches!(
@@ -897,7 +897,7 @@ fn atk_adr029_17_defended_by_descendant_type_does_not_cover_inherited_ancestor_p
 // The failing substrate requirement is completely invisible in the verdict:
 // the site appears Defended when its substrate invariant is actually not met.
 //
-// EXPLOITATION SHAPE (scientist, forward/conjunctive-defense-void-or-semantics):
+// EXPLOITATION SHAPE (conjunctive-defense-void-or-semantics):
 //   #[defended_by(X)]  -- passes, code-tier = Some(Reachability)
 //   #[presents(X, requires = <failing-predicate>)]  -- fails, site_requires_tier = None
 //   Result: best_tier = Some(Reachability), verdict = Defended
@@ -1085,7 +1085,7 @@ fn atk_adr029_20_empty_string_proof_overclaims_formal_proof_tier() {
     );
     let v = &audit_result.presentation_verdicts[0];
 
-    // FIXED (findings/proof-empty-string-overclaims-formal-proof): the empty-proof
+    // FIXED (proof-empty-string-overclaims-formal-proof): the empty-proof
     // overclaim is gated on TWO layers — the macro now rejects a string-literal
     // `proof =` at authoring time (parse.rs PresentsArgs::validate), and the audit
     // defends-in-depth by not crediting a blank `proof` string (site_proof_tier
@@ -1229,7 +1229,7 @@ fn atk_adr029_22_immune_requires_predicate_missing_sidecar_yields_substrate_gap(
 // both use bare antigen_type, so both have the same cross-crate gap.
 #[test]
 fn atk_adr029_21_defense_matches_cross_crate_presentation_with_same_type_name() {
-    // FIXED (findings/defense-canonical-path-cross-crate-overclaim): in a real
+    // FIXED (defense-canonical-path-cross-crate-overclaim): in a real
     // cross-crate scan both sides are canonical-stamped (ADR-017). A presentation
     // from other_crate (canonical_path = other_crate::Foo) and a defense from
     // this_crate (canonical_path = this_crate::Foo) carry DIFFERENT canonical
@@ -1297,7 +1297,7 @@ fn atk_adr029_21_defense_matches_cross_crate_presentation_with_same_type_name() 
 
 // ========================================================================
 // ATK-G2-22: G2 defense check inherits the cross-crate bare-name overclaim
-// (2026-05-27, adversarial)
+// (2026-05-27)
 //
 // The G2 fix (5cdbad9) uses `d.antigen_type == decl.type_name` (bare-name)
 // when checking whether a #[defended_by] registration contributes code-tier
@@ -1367,7 +1367,7 @@ fn atk_g2_22_cross_crate_defense_triggers_spurious_g2_hint() {
 
     let category_report = audit_category(&report);
 
-    // FIXED (findings/g2-cross-crate-bare-name-overclaim): G2 now matches the
+    // FIXED (g2-cross-crate-bare-name-overclaim): G2 now matches the
     // defense by (antigen_type, canonical_path). crate_b's defense
     // (canonical_path = crate_b::…) does NOT match crate_a::Foo, so it is NOT
     // counted as evidence — no spurious mismatch. crate_a::Foo has zero real
@@ -1485,8 +1485,7 @@ fn atk_adr029_23_unstamped_defense_wildcard_covers_cross_crate_presentation() {
 
 // ========================================================================
 // ATK-G2-24: G2 immunity loop uses bare antigen_type match — cross-crate
-// immunity contributes spurious witness evidence to wrong antigen (2026-05-27,
-// adversarial)
+// immunity contributes spurious witness evidence to wrong antigen (2026-05-27)
 //
 // The G2 audit_category() immunity loop (audit.rs:3105-3116) filters by:
 //   imm.antigen_type != decl.type_name   (bare name only, no canonical_path)
@@ -1676,7 +1675,7 @@ fn atk_g2_25_cross_crate_code_immunity_silences_silence_no_witness_advisory() {
 
 // ========================================================================
 // ATK-G2-26: immunity loop uses None-wildcard; defense loop uses strict equality.
-// Semantic inconsistency documented (2026-05-28, adversarial).
+// Semantic inconsistency documented (2026-05-28).
 //
 // After the ATK-G2-24 fix, the G2 immunity loop guard is:
 //   if imm.canonical_path.is_some() && imm.canonical_path != decl.canonical_path {
@@ -1696,7 +1695,7 @@ fn atk_g2_25_cross_crate_code_immunity_silences_silence_no_witness_advisory() {
 // This test DOCUMENTS current behavior (the inconsistency). Whether the immunity
 // None-wildcard is intentional ("class-level evidence for X regardless of where X is
 // declared") or a residual gap needs a design ruling before the shared
-// `forward/shared-canonical-path-addresses-helper` is extracted.
+// canonical-path addresses-helper is extracted.
 //
 // The design question: should an intra-workspace immunity contribute to the G2
 // cross-check for a dep's same-named antigen?
@@ -1784,7 +1783,7 @@ fn atk_g2_26_immunity_none_wildcard_vs_defense_strict_equality_asymmetry() {
             .contains(&AuditHint::AntigenWitnessShapeMismatchForSilenceNoWitness)
     });
 
-    // POST-FIX (forward/shared-canonical-path-addresses-helper ruling: strict None==None):
+    // POST-FIX (shared canonical-path addresses-helper ruling: strict None==None):
     // Both immunity and defense loops now use strict canonical-path equality via
     // `canonical_paths_match()`. The previous None-wildcard in the immunity loop is fixed.
     //

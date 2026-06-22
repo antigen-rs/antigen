@@ -59,8 +59,7 @@ use crate::learn::affinity::Affinity;
 /// so a hand-authored story is *witnessed-against* the struct **by construction**
 /// (not "independently authored, audited by guesswork"). The same "typed claim
 /// re-validated against typed events" shape as the §3 current-state-derived
-/// invariant and ADR-057's lethal-corner — the wave's central three-sites principle.
-/// (Aristotle's build-wave ruling on `loops/fate-record-is-the-missing-stock`.)
+/// invariant and ADR-057's lethal-corner — the central three-sites principle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Trend {
     /// The author claims affinity is rising (recall/precision improving run-over-run).
@@ -295,9 +294,8 @@ impl LifeRecord {
     /// reduction. The cheapest git-native key (uses the `.git` substrate ADR-059
     /// already leans on) is the event's commit-hash + commit-timestamp. DEFERRED for
     /// turn-zero single-writer; this is the seam to close before the score-trajectory
-    /// reads are trusted under concurrent merge. (Surfaced by the build-adversarial's
-    /// merge-order design-stress; the order-key shape is a design-Q routed to
-    /// aristotle.)
+    /// reads are trusted under concurrent merge. The order-key shape is a deferred
+    /// design question.
     #[must_use]
     pub fn trajectory_direction(&self) -> Option<Trend> {
         let traj = self.score_trajectory();
@@ -342,8 +340,7 @@ impl LifeRecord {
     /// - `Improving` ↔ `Declining` (either order) — direct contradiction.
     /// - `Stable` claimed while actually `Declining` — a *dishonest hedge*: "holding
     ///   steady / fine" over a real decline is downside-hiding drift, exactly the
-    ///   story-vs-struct lie REQ-4 must surface. (Found by the adversarial's
-    ///   no-self-witness re-attack: a `Stable` hedge was the gap a pure
+    ///   story-vs-struct lie REQ-4 must surface. (A `Stable` hedge was the gap a pure
     ///   `Improving↔Declining` opposition left open.)
     ///
     /// NOT flagged (benign): a matching claim; `Stable`-while-`Improving` (an honest
@@ -438,7 +435,7 @@ mod tests {
         assert_eq!(empty.check_story_coherence(Trend::Improving), None);
     }
 
-    /// REGRESSION (adversarial no-self-witness re-attack): a `Stable` hedge over a
+    /// REGRESSION: a `Stable` hedge over a
     /// REAL decline is a DISHONEST hedge that hides a drop — it MUST be flagged. (The
     /// pure `Improving↔Declining` opposition left this gap; the asymmetric fix closes
     /// the downside-hiding direction.)

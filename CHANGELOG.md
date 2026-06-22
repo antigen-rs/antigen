@@ -303,7 +303,7 @@ the beta.2 + docs changes follow here.
   per shipped family (Presentation → Etiology → Epidemiology → Histology →
   Differential → Treatment → Prognosis).
 - **Narrative** — [`docs/war-stories/the-self-catch.md`](docs/war-stories/the-self-catch.md)
-  (antigen catching itself across this voyage, every catch git-traceable),
+  (antigen catching itself across this release, every catch git-traceable),
   [`docs/the-immune-system-a-programmers-guide.md`](docs/the-immune-system-a-programmers-guide.md)
   (the biology cognate as a narrative course),
   [`docs/the-failure-class-cookbook.md`](docs/the-failure-class-cookbook.md)
@@ -443,7 +443,7 @@ the beta.2 + docs changes follow here.
   low-certainty auras. The markers surface at the dial's non-gating floor — never
   gate, never nag.
 
-### Added — Unsafe-Soundness-Boundary stdlib family (beta.2 voyage)
+### Added — Unsafe-Soundness-Boundary stdlib family
 
 - New stdlib family `unsafe_soundness` — the `unsafe`-primitive call-shapes where
   a wrong invariant is **Undefined Behavior**, not a panic. Three named members
@@ -568,13 +568,13 @@ the beta.2 + docs changes follow here.
   shipped `PanickingInDrop` fingerprint cannot), and `UnsafeSendSync` anchors on
   `impl_of_trait("Send")` + `is_unsafe`.
 
-### Chartered (not shipped) — Crypto-Misuse family `NonConstantTimeSecretComparison` (beta.2 voyage)
+### Chartered (not shipped) — Crypto-Misuse family `NonConstantTimeSecretComparison`
 
 - The `crypto_misuse` family module ships as a **charter doc, with no member**.
   `NonConstantTimeSecretComparison` (a secret/MAC compared in non-constant time — a
   timing-attack oracle) is a **real, recurring** failure-class (GHSA-q7pg-9pr4-mrp2;
   the RUSTSEC `crypto-failure` category), but **no honest call-only fingerprint can
-  express it in the shipped grammar** (aristotle's beta.2 notary ruling, confirmed
+  express it in the shipped grammar** (a beta.2 notary ruling, confirmed
   from two independent angles). A verify-entrypoint anchor + `not(ct_eq)`
   **anti-aligns with the defect** — `ring::hmac::verify` is the *correct*, internally
   constant-time API (and `verify`/`hmac_verify` are the *names of the safe
@@ -587,7 +587,7 @@ the beta.2 + docs changes follow here.
   dishonest-shipped. (An earlier in-development draft of this member was reverted on
   the notary ruling — it never shipped a release.)
 
-### Added — Deserialization-Trust-Boundary stdlib family (beta.2 voyage)
+### Added — Deserialization-Trust-Boundary stdlib family
 
 - New stdlib family `deserialization` — the deep tier of Mucosal-Boundary
   (ADR-027): untrusted bytes crossing into typed structs. Two members:
@@ -621,7 +621,7 @@ the beta.2 + docs changes follow here.
     specimens (the affinity-pairs in `examples/deserialization.rs` + the
     fingerprint drift-guard tests in `tests/stdlib_family_fingerprints.rs`).
 
-### Added — Time-and-Ordering-Hazards stdlib family — `SystemTimeUnwrapPanic` (beta.2 voyage)
+### Added — Time-and-Ordering-Hazards stdlib family — `SystemTimeUnwrapPanic`
 
 - New stdlib family `time_ordering`. First member `SystemTimeUnwrapPanic`
   (suspected) — a `SystemTime::duration_since` clock read whose
@@ -646,7 +646,7 @@ the beta.2 + docs changes follow here.
   drift-guard tests). `SystemTimeForElapsedMeasurement` (semantic) and `TOCTOU`
   (relational) members stay charter-deferred.
 
-### Added — Drop-and-Panic-Discipline stdlib family — `PanicInDrop` (beta.2 voyage)
+### Added — Drop-and-Panic-Discipline stdlib family — `PanicInDrop`
 
 - New stdlib family `drop_panic`. First member `PanicInDrop` (named) — a real
   `Drop` impl whose body reaches a panic source; panic-during-unwind aborts the
@@ -664,7 +664,7 @@ the beta.2 + docs changes follow here.
   (visibility-tell) and `PanicSourceInConstContext` (clippy-covered) stay
   charter-deferred.
 
-### Added — Panic-on-Index + Resource-Lifecycle-Leak stdlib families (beta.2 voyage)
+### Added — Panic-on-Index + Resource-Lifecycle-Leak stdlib families
 
 - **`panic_on_index` :: `GetUncheckedWithoutProof`** (named) — a call to
   `get_unchecked` / `get_unchecked_mut`, the unchecked-indexing escape hatch whose
@@ -690,7 +690,7 @@ the beta.2 + docs changes follow here.
   (`examples/panic_on_index.rs`, `examples/resource_lifecycle.rs`) + drift-guard
   tests.
 
-### Added — Async-Soundness + Numeric-Truncation-Overflow stdlib families (beta.2 voyage)
+### Added — Async-Soundness + Numeric-Truncation-Overflow stdlib families
 
 - **`async_soundness` :: `UnsafeSendSync`** (named) — a hand-written
   `unsafe impl Send for T` / `unsafe impl Sync for T` asserts cross-thread safety
@@ -887,7 +887,7 @@ its own type-discipline violation. The law names two layers: `CardinalityCollaps
 and `SubCauseCollapseInTheUnit` (the silent-wrong-remedy; conditionally forced when
 failure-stages are distinguishable and route non-interchangeable remedies). The
 ceremony (`forward/adr035-three-valued-type-law-ceremony`) was co-signed by
-aristotle, math-researcher, and adversarial after the falsification gate confirmed
+three independent reviewers after the falsification gate confirmed
 no counterexample to the no-total-boundary regress lemma.
 
 ### Fixed — correctness hardening (ATK suite)
@@ -1238,7 +1238,7 @@ at real failure sites.
   fingerprint for a SubstrateAlignment antigen whose witness reads substrate).
 - **ADR-028 Amendment 3** — the category-vs-predicate-type cross-check is
   AUDIT-time, not parse-time (the antigen-immunity join only exists once the scan
-  report assembles); resolves the G2 campsite.
+  report assembles); resolves the G2 work-item.
 - **ADR-028 Amendment 4** — §Enforcement-Surface re-sync post G1/G2/G3: table row 1
   corrected from "parse-time HARD ERROR" to "v0.2 migration hint; hard error v0.2.x";
   cross-check row → audit-time-only; audit-hint vocabulary tiered (v0.2 shipped vs
@@ -1369,8 +1369,7 @@ possibly `#[descended_from]`). Distinct from `requires =` substrate-witness
 predicates — attestation is the *declaration* of who attests; substrate-witness
 predicates *evaluate* against that declaration. Layer 1 adoption gradient
 (ADR-009) compliance: light-touch attestation reaches every adopter without
-requiring the full predicate language. Notary-arc biology grounding (B6 from
-naturalist work).
+requiring the full predicate language. Notary-arc biology grounding (B6).
 
 #### ADR-021 — OracleRef generalization + Oracle artifact-class (RATIFIED)
 
@@ -1388,7 +1387,7 @@ oracles at Execution tier). Additive-only schema evolution discipline ratified
 (no migration framework needed). Five Class-1 biology cognates including
 immune-memory + V(D)J recombination.
 
-#### Tolerance-ratification (scout S1 — plugs ADR-011 vibes-grade gap)
+#### Tolerance-ratification (plugs ADR-011 vibes-grade gap)
 
 `#[antigen_tolerance(X, sidecar = true)]` opt-in enables structured
 attestation for tolerance claims; schema **isomorphic to immunity sidecars**.
@@ -1731,7 +1730,7 @@ clean. Cuts the substrate the development team built across A1 (10 ratified ADRs
 - `.github/workflows/release.yml` — release workflow (git-tag-triggered crates.io
   publish + GitHub release)
 - GitHub issue templates and PR template
-- 9 starter campsites for the future antigen development team
+- 9 starter work-items for the future antigen development team
 
 ### Reserved
 

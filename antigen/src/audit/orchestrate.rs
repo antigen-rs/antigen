@@ -62,7 +62,7 @@ pub struct AuditBundle {
     /// ADR-024 recurrent-emergence audit (`#[itch]` / `#[recurrence_anchor]` /
     /// `#[crystallize]` / ...).
     pub recurrent: RecurrentAuditReport,
-    /// `#[descended_from]` lineage-fidelity advisory (scientist 2026-05-27).
+    /// `#[descended_from]` lineage-fidelity advisory.
     pub lineage_fidelity: LineageFidelityAuditReport,
     /// Coverage / reachability audit — the ignorance frontier as per-site
     /// verdicts (the 4th peripheral-tolerance mechanism).

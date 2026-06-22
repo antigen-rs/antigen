@@ -1,4 +1,4 @@
-//! # Time-and-Ordering-Hazards Family — stdlib antigens (beta.2 voyage)
+//! # Time-and-Ordering-Hazards Family — stdlib antigens
 //!
 //! Clock and ordering failure-classes. The flagship is the **silent-in-tests /
 //! panic-in-prod** shape: the system clock can run BACKWARDS (NTP correction,

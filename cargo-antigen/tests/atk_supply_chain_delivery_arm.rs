@@ -33,7 +33,7 @@
 //!   - JSON test: change `is_none()` to `expect("supply_chain_audit (delivery arm)")`.
 //!   - Human test: change `!mentions_supply_chain` to `assert!(mentions_supply_chain, ...)`.
 //!
-//! ## Fix direction (per pathmaker note in forward/audit-delivery-completeness-antigen)
+//! ## Fix direction
 //!
 //! Wire `antigen::audit::audit_supply_chain(&scan_report, &args.root)` into
 //! `run_audit()` in main.rs alongside the existing audit calls. Add a
@@ -179,7 +179,7 @@ fn atk_supply_chain_audit_human_output_silent() {
 //
 // This test is currently IGNORED (would fail if supply_chain_audit is absent).
 // It documents what the fixed output SHOULD contain, as a specification for
-// pathmaker implementing the fix. Once fixed, un-ignore and delete the gap-
+// Once the fix lands, un-ignore and delete the gap-
 // documenting tests above.
 // ============================================================================
 

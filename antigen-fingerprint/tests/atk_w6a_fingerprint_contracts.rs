@@ -795,7 +795,7 @@ fn atk_w6a_016_method_pattern_equality_ignores_normalized_cache() {
 ///
 /// `Self` (capital S) is a type-alias identifier; `self` (lowercase) is a
 /// receiver keyword. These are categorically different tokens at the lexer level
-/// (T3-T5 from aristotle's ADR-010 Amendment 5 Phase 1-8). A user who writes
+/// (T3-T5 from ADR-010 Amendment 5). A user who writes
 /// `has_method("meet", "(Self, Self) -> Self")` intends to match a static-style
 /// method taking two typed `Self` parameters — not a receiver-method.
 ///

@@ -360,7 +360,5 @@ structural backstop that reduces the need for defense wiring at those sites.
 
 ## References
 
-- [`docs/decisions.md`](decisions.md) — ratified ADRs
-- [`docs/internal/process.md`](internal/process.md) — the formal ADR lifecycle
 - [`docs/case-study-determinism-class.md`](case-study-determinism-class.md) — the failing-as-passing pattern shown in context
 - [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — current CI gates

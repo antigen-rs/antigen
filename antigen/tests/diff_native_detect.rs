@@ -1,18 +1,16 @@
 //! diff-native DETECT (ADR-046) — THE ACCEPTANCE GATE for the do-now half.
 //!
-//! Campsite-adjacent: `dream/the-antigen-that-spans-the-diff-not-the-snapshot`
-//! (the DETECT slice is do-now; CLASSIFY/LABEL are do-later/human). STREAM-DIFF
-//! in the Pioneers baton §2.
+//! (The DETECT slice is do-now; CLASSIFY/LABEL are do-later/human.)
 //!
 //! THE SPEC (briefing §2 diff-native DETECT):
 //!   - a fn with a bounds guard at HEAD~1 and the guard removed at HEAD: the
 //!     `(name, structural_digest)` set-diff surfaces "validate changed structure";
 //!   - a benign line-shift (reorder/insert, no structural change) does NOT surface
-//!     phantom churn (THE ADVERSARIAL'S UN-RUN DEGENERATE — built here).
+//!     phantom churn (the un-run degenerate — built here).
 //!
 //! This gate pins the CORE diff-native algorithm against the SHIPPED public
 //! primitive `antigen_fingerprint::structural_digest`, keyed by item NAME (not
-//! file+line — the pathmaker-verified identity choice that sidesteps the
+//! file+line — the verified identity choice that sidesteps the
 //! Finding-line-identity gap; a reorder shifts every line but no item's name or
 //! structure). The set-diff = symmetric difference of `(name, digest)` pairs.
 //!

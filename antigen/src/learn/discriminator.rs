@@ -4,7 +4,7 @@
 //! # The build-once share is at the CLASSIFIER, not the sensors
 //!
 //! The v0.6 obsolete/dormant/evaded/well-defended classification was once imagined
-//! as "one change-detector feeding one discriminator." The converge-adversarial
+//! as "one change-detector feeding one discriminator." The adversarial
 //! corrected that: the *sensors* read DIFFERENT inputs with DIFFERENT mechanisms and
 //! do NOT collapse — only the **classifier** is shared. This module IS that shared
 //! classifier. It consumes:

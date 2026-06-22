@@ -473,7 +473,7 @@ This document is the WHY. The HOW lives in:
 - `docs/glossary.md` — vocabulary anchor
 
 The project's origin observation came from a reviewer in the origin project's
-2026-05-06 cleanup expedition. The frame shift to immune-system architecture came from
+2026-05-06 cleanup pass. The frame shift to immune-system architecture came from
 the project lead. The naming, three-verb framing, taxonomy, and design substrate emerged
 during the pre-team scaffolding session on
 2026-05-07.

@@ -50,7 +50,7 @@ pub fn b() {}
 #[ddx(symptom = "slow query", rule_out = ["missing index", "n+1"], investigator = "frank", reviewer = "grace")]
 pub fn d() {}
 
-#[triage(priority_order = ["src/a.rs::foo", "src/b.rs::bar"], triaged_by = "navigator", re_triage_due = "2027-04-01")]
+#[triage(priority_order = ["src/a.rs::foo", "src/b.rs::bar"], triaged_by = "reviewer", re_triage_due = "2027-04-01")]
 pub fn t() {}
 
 #[culture(test_kind = "24h soak", runs_until = "2027-05-01")]

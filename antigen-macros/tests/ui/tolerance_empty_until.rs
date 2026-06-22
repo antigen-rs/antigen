@@ -1,5 +1,5 @@
 //! W6a fixture: `#[antigen_tolerance(X, rationale = "..", until = "")]`
-//! must reject. Per ADR-011 §Mechanics §2 (aristotle reciprocal Phase 1-8):
+//! must reject. Per ADR-011 §Mechanics §2:
 //! empty `until` indicates user error.
 
 use antigen_macros::antigen_tolerance;

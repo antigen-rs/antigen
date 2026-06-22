@@ -6,7 +6,7 @@
 //! emitted not declared). THIS file holds the **bypass-attempts those contracts are
 //! the positive controls FOR** — the specific forge/launder/institutionalize moves
 //! that must be **structurally impossible**, not merely "not done by the happy path."
-//! The seam (captain's ruling, 2026-06-12): the test-architect owns CONTRACT; the
+//! The seam: the test-architect owns CONTRACT; the
 //! adversarial owns ATTACK. A contract says "propose leaves the tree byte-unchanged";
 //! an attack says "there is NO code path — no flag, no env var, no config — that makes
 //! propose write a `#[presents]`."
@@ -398,7 +398,7 @@ fn propose_render_surfaces_only_gate_minted_suggestions() {
 /// treat unmarked items as the clean corpus" default — that DERIVES a clean corpus
 /// antigen did not have an operator label. Auto-labeling unmarked=clean institutionalizes
 /// the ATK-047-4 mislabeled-clean residual (the gate trusting its own label) — and
-/// aristotle proved it computability-FORBIDDEN (a machine cannot decide "this unmarked
+/// it is computability-FORBIDDEN (a machine cannot decide "this unmarked
 /// code is clean"). The probe: enumerate every corpus-source affordance; each must
 /// require an explicit operator label.
 #[test]

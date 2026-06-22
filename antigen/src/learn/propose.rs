@@ -33,7 +33,7 @@
 //! `any_of` arm is `NoMatch` on the clean sibling (it has neither `unwrap` nor
 //! `expect`), so the whole `all_of` is `NoMatch`.
 //!
-//! # C ══ B — the one safety-tangle (ADR-045; the captain's highest-stakes line)
+//! # C ══ B — the one safety-tangle (ADR-045; the highest-stakes line)
 //!
 //! anti-unify-to-disjunction REDUCES but does not ELIMINATE autoimmunity: a
 //! cluster whose distinguishing leaf happens to also appear in clean code still

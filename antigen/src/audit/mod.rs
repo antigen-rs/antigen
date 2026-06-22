@@ -802,8 +802,8 @@ mod tests {
                 AntigenCategory::FunctionalCorrectness,
             ],
         ));
-        // Only a substrate-witness — missing the code-witness axis. Per
-        // aristotle's G3 F1 ruling, a hybrid with exactly one axis witnessed
+        // Only a substrate-witness — missing the code-witness axis.
+        // A hybrid with exactly one axis witnessed
         // is INCOMPLETE evidence, not a full claim-inconsistent violation.
         report.immunities.push(immunity_for("HybridAntigen", true));
         let out = audit_category(&report);
@@ -888,8 +888,7 @@ mod tests {
     }
 
     // ========================================================================
-    // Silence-witness shape-mismatch hints (scientist design + aristotle gate,
-    // forward/silence-witness-shape-mismatch-{hint,impl}, 2026-05-27).
+    // Silence-witness shape-mismatch hints.
     //
     // Hint 1 (no-witness): a SubstrateAlignment antigen with NO witness at all —
     //   the silence-by-absence generator. Fills the gap G2 deliberately leaves
@@ -976,7 +975,7 @@ mod tests {
             vec![AntigenCategory::SubstrateAlignment],
         ));
         // Both a substrate-witness AND a code-witness. The code test is now
-        // supplementary — the wrong-tier advisory must NOT fire (scientist's
+        // supplementary — the wrong-tier advisory must NOT fire (the
         // suppression rule), and G2 is clean (substrate axis satisfied).
         report.immunities.push(immunity_for("DriftAntigen", true));
         report.immunities.push(immunity_for("DriftAntigen", false));
@@ -1327,7 +1326,7 @@ mod tests {
     // `items.first()`. The first()-shortcut silently audited each immunity
     // against the FIRST item's signers/fingerprint, so `second_fn`'s immunity
     // would pass spuriously when `alice` had only signed `first_fn`.
-    // (findings/sidecar-first-item-wrong-audit, adversarial.)
+    // (The sidecar-first-item-wrong-audit case.)
     // ========================================================================
 
     #[test]
@@ -1442,7 +1441,7 @@ mod tests {
     // Immunity is observed, not declared: audit() cross-references each
     // #[presents(X)] against the #[defended_by(X)] witnesses + #[immune] audits
     // and grades defended / undefended / substrate-gap. These pin that surface;
-    // the adversarial ATK (atk_adr029_defended_by_audit) exercises it end-to-end.
+    // the ATK (atk_adr029_defended_by_audit) exercises it end-to-end.
     // ========================================================================
 
     fn presents_site(antigen: &str, file: &str, line: usize) -> crate::scan::Presentation {
@@ -1812,7 +1811,7 @@ mod tests {
     }
 
     // ========================================================================
-    // ATK — orient degenerate inputs (adversarial probe, 2026-05-27)
+    // ATK — orient degenerate inputs
     //
     // The bf60e5d fix correctly branches on `until >= today`, but three edge
     // paths in evaluate_deferred_defense_hint need adversarial coverage:
@@ -2093,7 +2092,7 @@ mod tests {
 
     #[test]
     fn atk_immunosuppress_malformed_since_silently_skips_cap_check() {
-        // ATK-IMMUNOSUPPRESS-MALFORMED-SINCE (2026-05-27, adversarial):
+        // ATK-IMMUNOSUPPRESS-MALFORMED-SINCE:
         //
         // audit.rs:1072 uses `if let Some(since_date) = parse_iso_date(since)`.
         // If `since` is malformed (not ISO 8601), parse_iso_date returns None

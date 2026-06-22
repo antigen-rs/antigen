@@ -1,14 +1,13 @@
 //! Adversarial tests for the Mucosal Boundary Family (ADR-027).
 //!
-//! All tests are #[ignore] until the mucosal family ships. When pathmaker
-//! lands v02-impl-mucosal-boundary:
+//! All tests are #[ignore] until the mucosal family ships. When it lands:
 //!
 //! 1. Remove #[ignore] from each test.
 //! 2. Run `cargo test atk_mucosal_adversarial` — tests should FAIL.
 //! 3. Fix the production code so tests PASS.
 //! 4. These tests are now regression guards.
 //!
-//! Written by adversarial role as preemptive attack surface documentation.
+//! Preemptive attack surface documentation.
 
 use std::path::PathBuf;
 
@@ -105,8 +104,8 @@ fn atk_mucosal_2_handled_by_nonexistent_path_emits_missing_hint() {
 // lacks corresponding declaration — but it doesn't specify what "corresponding"
 // means. Does it check for the SAME kind, or just ANY #[mucosal]?
 //
-// ADVERSARIAL FINDING: This is the handled_by resolution spec gap flagged by
-// observer (campsite v02-impl-mucosal-boundary, #implementation-spec-depth-gap).
+// FINDING: This is the handled_by resolution spec gap
+// (#implementation-spec-depth-gap).
 // If "any #[mucosal]" is sufficient, a defender can satisfy the audit check by
 // pointing to a mucosal handler for the WRONG boundary type — a silent false
 // positive in the defense attestation.

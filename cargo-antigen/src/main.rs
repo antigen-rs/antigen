@@ -243,7 +243,7 @@ struct ScanArgs {
     output: Option<PathBuf>,
 }
 
-/// Args for `cargo antigen propose` (Island 3 — the keystone goes live).
+/// Args for `cargo antigen propose` — the keystone goes live.
 ///
 /// Two trust-distinct source roots: `--cluster-root` (where the marked DEFECT
 /// sites live) and `--clean-root` (the OPERATOR-asserted clean corpus). The split
@@ -444,8 +444,7 @@ enum AttestSubcommand {
     /// (now ratified — Task 1 shipped; this verb's handler is design-phase
     /// pending the `OracleCompletionMarker` schema field plumbing).
     ///
-    /// **ATK-021-19 implementation requirement** (per navigator routing
-    /// 2026-05-20): the CLI MUST write
+    /// **ATK-021-19 implementation requirement**: the CLI MUST write
     /// `OracleCompletionMarker { oracle_state_at_attestation: <current
     /// oracle state at sign time>, .. }` into the sidecar at every
     /// invocation. Without the sign-time-state anchor, sign-time-validity
@@ -683,7 +682,7 @@ enum OracleSubcommand {
     /// Transition an oracle from DRAFT to COMPLETE (steward-authorized).
     ///
     /// Signers may attest against Complete oracles; Draft oracles block
-    /// the `oracles_complete(...)` predicate per ADR-021 §D3.
+    /// the `oracles_complete(...)` predicate.
     Complete(OracleCompleteArgs),
     /// Transition an oracle from COMPLETE to DEPRECATED (steward-authorized).
     ///
@@ -867,14 +866,13 @@ enum VerifySubcommand {
     /// run BEFORE `cargo update`. After `cargo update` the new
     /// maintainer's code has already landed in `Cargo.lock`; the gate
     /// has effectively already passed. Document the sequencing in
-    /// CI scripts. Per ADR-025 §Decision.
+    /// CI scripts.
     MaintainerChanges(VerifyMaintainerChangesArgs),
     /// Record a dep-attestation sidecar.
     ///
     /// `--reviewable-artifact <PATH>` is REQUIRED — empty/missing
     /// values produce a rubber-stamp sidecar that the audit will
-    /// flag with `dep-attest-without-reviewable-artifact`. Per
-    /// ADR-025 §Schema-additions.
+    /// flag with `dep-attest-without-reviewable-artifact`.
     DepAttest(VerifyDepAttestArgs),
     /// Bulk-pin every unpinned `Cargo.toml` dep with the current
     /// resolved version (advisory v0.2: prints suggested edits;
@@ -1686,7 +1684,7 @@ struct VcsCli {
 #[derive(Debug, Subcommand)]
 enum VcsSubcommand {
     /// Evaluate a single commit's `Triage-Decision:` trailer against the
-    /// rollback-triage chain (ADR-026 Amendment 4 commit-trailer signal).
+    /// rollback-triage chain.
     CheckCommit(VcsCheckCommitArgs),
     /// Surface VCS-info-loss risk across recent history (v0.2: reports the
     /// rollback-triage state of revert/reset commits in the recent log).
@@ -1699,12 +1697,11 @@ enum VcsSubcommand {
     /// for a rollback (v0.2 advisory: prints the trailer line to add).
     RollbackPrepare(VcsRollbackPrepareArgs),
     /// v0.2.x: record a generic VCS attestation sidecar. Currently a stub
-    /// surfacing the tooling-not-yet-available awareness signal per
-    /// ADR-005 Amendment 2 honest-tier-naming.
+    /// surfacing the tooling-not-yet-available awareness signal.
     Attest,
     /// Mine git history for the recurrent-emergence stdlib failure-classes and
     /// surface how many times each pattern fired — the passive→active loop for
-    /// the recurrent family (`infra/recurrence-automation`). DETECTION only:
+    /// the recurrent family. DETECTION only:
     /// reports observed counts; the *verdict* (is this recurrence worth a
     /// `#[recurrence_anchor]`?) stays the adopter's call (the structural seam —
     /// mining detects the fact, the adopter/ADR owns the recognition).
@@ -3146,8 +3143,8 @@ fn run_scan(args: ScanArgs) -> ExitCode {
     }
 }
 
-/// Render a brief summary of dep scan results in human format. Per
-/// navigator's ruling, dep reports are independent — we only summarize
+/// Render a brief summary of dep scan results in human format. Dep
+/// reports are independent — we only summarize
 /// counts here (full per-crate detail goes through --format json).
 fn print_human_dep_summary(deps: &[DepScanResult]) {
     println!();
@@ -3288,8 +3285,7 @@ fn print_lineage_integrity(report: &scan::ScanReport) {
 }
 
 /// Render deferred-defense declarations (`#[anergy]` / `#[immunosuppress]` /
-/// `#[poxparty]` / `#[orient]`) LOUDLY (ADR-023 + forward/suppression-loud-must-
-/// be-removed). These are intentional dev permissions to proceed with a known
+/// `#[poxparty]` / `#[orient]`) LOUDLY (ADR-023). These are intentional dev permissions to proceed with a known
 /// defense gap — they do NOT block the build and do NOT auto-expire, but the
 /// audit must ALWAYS announce active ones prominently so they cannot become
 /// silent accumulated debt. `audit_deferred_defenses` computes the state; this
@@ -3436,8 +3432,7 @@ fn print_recurrent_concerns(report: &audit::RecurrentAuditReport) {
     println!();
 }
 
-/// Render the `#[descended_from]` lineage-fidelity advisory (scientist
-/// 2026-05-27: ADVISORY for v0.3). Flags edges where the child antigen's
+/// Render the `#[descended_from]` lineage-fidelity advisory. Flags edges where the child antigen's
 /// fingerprint is detectably NOT a refinement of the parent's. Non-blocking —
 /// it does NOT affect the exit code; it surfaces a lineage claim that doesn't
 /// survive the structural check (the MHC-restriction / negative-selection
@@ -3475,7 +3470,7 @@ fn print_lineage_fidelity_advisory(report: &audit::LineageFidelityAuditReport) {
 
 /// Render the P2' defended-status roll-up: per failure-class, whether it carries
 /// any live (`tier > None`) witness — the signal the obsolete/well-defended
-/// discriminator reads (`outsider/the-discriminator-is-blind-for-silent-classes`).
+/// discriminator reads.
 /// Loud only for the UNDEFENDED classes (no resolving witness → OBSOLETE-eligible);
 /// silent when every class carries a live witness (nothing to forget). This is the
 /// RESOLUTION axis (the witness resolves), not the exercised-coverage axis — the
@@ -3982,7 +3977,7 @@ struct DepScanResult {
     report: scan::ScanReport,
 }
 
-/// `cargo antigen propose` — the keystone goes live (Island 3, ADR-045/047/048).
+/// `cargo antigen propose` — the keystone goes live (ADR-045/047/048).
 ///
 /// Re-acquires the marked DEFECT cluster under `--cluster-root`, collects the
 /// OPERATOR-supplied clean corpus under `--clean-root`, routes them through the
@@ -4386,7 +4381,7 @@ fn render_suggestion(s: &ProposeSuggestion, marker: &str) {
             );
         }
         println!("  trust: {}", Applicability::MaybeIncorrect.label());
-        // The load-bearing honest-scope caveat (adversarial STRESS #5): the twin is a
+        // The load-bearing honest-scope caveat: the twin is a
         // DIFFERENT function — it shows the shape, NOT a verified fix.
         println!(
             "  CAVEAT: `{twin}` is a DIFFERENT function that merely shares the\n  \
@@ -4690,8 +4685,8 @@ fn item_shape_digest(item: &syn::Item) -> Option<String> {
 /// `.rs` file under `clean_root`. The operator supplies + labels this; antigen never
 /// adds an auto-labeled item (ADR-044/047). Returns the parsed `syn::Item`s.
 ///
-/// **HARD-ERRORS on any unreadable/unparseable `.rs` file — never silently skips**
-/// (captain's ruling). A silently-incomplete clean corpus is a *weaker gate*: a
+/// **HARD-ERRORS on any unreadable/unparseable `.rs` file — never silently skips**.
+/// A silently-incomplete clean corpus is a *weaker gate*: a
 /// dropped clean item is one the spare-clean/near-miss checks never run against, so a
 /// draft that would have bound it can promote — autoimmunity admitted at the gate
 /// INPUT. That silent read-or-continue is exactly antigen's own `scan_workspace_inner`
@@ -4720,7 +4715,7 @@ fn collect_clean_corpus(clean_root: &Path) -> Result<Vec<syn::Item>, ExitCode> {
 /// Recursively walk `dir` for `.rs` files, parse each, and push its top-level items
 /// into `out`. Skips `target` + hidden dirs (a clean corpus is source, not build
 /// output). **Returns `Err(message)` naming the first file it cannot read OR parse —
-/// it does NOT silently skip** (the captain's ruling; see [`collect_clean_corpus`]):
+/// it does NOT silently skip** (see [`collect_clean_corpus`]):
 /// a silently-dropped clean file narrows the labeled corpus and weakens the gate,
 /// which is antigen's own silent-skip `#[dread]` committed at the gate input.
 fn collect_rs_items(dir: &Path, out: &mut Vec<syn::Item>) -> Result<(), String> {
@@ -5104,7 +5099,7 @@ fn run_new(name: String) -> ExitCode {
            - Generate a starter declaration file in your project's antigen module\n\
          \n\
          For now, please write antigen declarations by hand. See the project's\n\
-         docs/expedition/conventions.md for naming guidance.\n",
+         documentation for naming guidance.\n",
         name
     );
     ExitCode::FAILURE
@@ -5423,7 +5418,7 @@ fn run_audit(args: AuditArgs) -> ExitCode {
     // is NOT gated here — the intent exists; it warrants a warning, not a hard
     // fail, until per-antigen severity lands in a later slice.)
     let strict_undefended_fails = args.strict && !audit_report.undefended_verdicts().is_empty();
-    // ATK-STRICT-5 / findings/scan-audit-strict-divergence: audit --strict is the
+    // ATK-STRICT-5: audit --strict is the
     // CI integration point and MUST be a superset of scan --strict. The three
     // structural-defect gates that `scan --strict` enforces (orphaned tolerances,
     // orphaned lineage edges, dangling child lineage edges) belong in the audit
@@ -6372,7 +6367,7 @@ struct JsonAuditReport<'a> {
     /// ADR-023 deferred-defense state (anergy / immunosuppress / poxparty /
     /// orient): active/expired/stale counts + per-declaration hints. Always
     /// present so consumers can detect active suppressions — the LOUD invariant
-    /// (forward/suppression-loud-must-be-removed): intentional defense gaps must
+    /// intentional defense gaps must
     /// never be silently invisible.
     deferred_defense_audit: &'a audit::DeferredDefenseAuditReport,
     /// ADR-024 convergent-evidence audit (`#[diagnostic]`/`#[clonal]`/`#[igg]`/...):
@@ -6383,9 +6378,9 @@ struct JsonAuditReport<'a> {
     /// per-declaration concern hints + clean/concern counts. Delivered here so
     /// the computed verdict reaches consumers (was a severed delivery arm).
     recurrent_audit: &'a audit::RecurrentAuditReport,
-    /// `#[descended_from]` lineage-fidelity advisory (scientist 2026-05-27):
+    /// `#[descended_from]` lineage-fidelity advisory:
     /// edges where the child antigen's fingerprint is detectably NOT a
-    /// refinement of the parent's. ADVISORY (non-blocking) for v0.3.
+    /// refinement of the parent's. ADVISORY (non-blocking).
     lineage_fidelity_audit: &'a audit::LineageFidelityAuditReport,
     /// Coverage / reachability audit (the ignorance frontier): per-site
     /// `UnreachedSite` verdicts with a `cause` (Barrier / `SubThreshold` /
@@ -6653,8 +6648,7 @@ fn print_category_audit_human(category_report: &audit::CategoryAuditReport) {
     print_silence_witness_advisory(category_report);
 }
 
-/// Render the silence-witness shape-mismatch advisories (scientist design +
-/// aristotle gate, forward/silence-witness-shape-mismatch-{hint,impl}). A
+/// Render the silence-witness shape-mismatch advisories. A
 /// `SubstrateAlignment` antigen fails by silence-by-absence: a representation
 /// drifts and nothing fires, because the antigen is about the ABSENCE of a
 /// closure-mechanism. The two advisories flag witness shapes that cannot detect

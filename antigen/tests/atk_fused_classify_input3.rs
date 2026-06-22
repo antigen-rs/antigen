@@ -20,9 +20,9 @@
 //!
 //! # The once-contested cell: ruled `RouteToHuman` (ADR-065 Amendment 1)
 //!
-//! `recall-Drift + SilentStatus::Dormant` was a ratified-vs-ratified design-Q (camp
-//! 2767bd73): the merged fusion contract mapped it `⇒ Dormant` (virtual-drift KEEP),
-//! the INPUT-3 note `⇒ Evaded` (loud evasion). aristotle ruled it `⇒ RouteToHuman`:
+//! `recall-Drift + SilentStatus::Dormant` was a ratified-vs-ratified design-Q:
+//! the merged fusion contract mapped it `⇒ Dormant` (virtual-drift KEEP),
+//! the INPUT-3 note `⇒ Evaded` (loud evasion). It was ruled `⇒ RouteToHuman`:
 //! `Affinity` is a denominator-free rate, so churn-vs-evasion is structurally UNDECIDABLE
 //! — the third conservatism-join "channel-can't-decide" cell. This file still asserts
 //! only the SAFETY FLOOR (NOT `Obsolete`), which survives the ruling, plus the
@@ -154,7 +154,7 @@ fn atk_fused_loud_drop_plus_evading_is_evaded() {
 #[test]
 fn atk_fused_loud_drop_plus_dormant_is_never_obsolete() {
     // recall-Drift + SilentStatus::Dormant (shape present, no near-miss) is UNDER a live
-    // design-Q (camp 2767bd73): merged contract ⇒ Dormant (churn KEEP); INPUT-3 note ⇒
+    // design-Q: merged contract ⇒ Dormant (churn KEEP); INPUT-3 note ⇒
     // Evaded (loud evasion). Both AGREE on the safety floor: NEVER Obsolete (a live shape
     // is not forgettable). We assert ONLY that floor here, pending the ruling — so this
     // test survives EITHER resolution without a silent re-bless.

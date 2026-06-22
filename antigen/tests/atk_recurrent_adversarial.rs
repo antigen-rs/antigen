@@ -1,15 +1,13 @@
 //! Adversarial tests for the Recurrent Emergence Family (ADR-024).
 //!
-//! All tests are #[ignore] until the recurrent family ships. When pathmaker
-//! lands v02-impl-recurrent-emergence:
+//! All tests are #[ignore] until the recurrent family ships. When it lands:
 //!
 //! 1. Remove #[ignore] from each test.
 //! 2. Run `cargo test atk_recurrent_adversarial` — tests should FAIL.
 //! 3. Fix the production code so tests PASS.
 //! 4. These tests are now regression guards.
 //!
-//! Written by adversarial role as preemptive attack surface documentation.
-//! Campsite: v02-impl-recurrent-emergence
+//! Preemptive attack surface documentation.
 
 use std::path::PathBuf;
 
@@ -53,7 +51,7 @@ fn chronic_decl(since: Option<&str>) -> RecurrentDeclaration {
 // at parse time), NOT a typed integer — "3 occurrences across 2 releases" is
 // the intended usage. Free-text is the correct type by ratified design.
 //
-// DESIGN DECISION (ratified with pathmaker 2026-05-24, option a):
+// DESIGN DECISION (ratified 2026-05-24, option a):
 //   Parse-time reject empty/whitespace-only threshold (parallel to
 //   description/rationale). Audit-time hint for richer semantic vacuity
 //   ("once pigs fly") is optional/deferred — parse-time cannot judge it.
@@ -61,12 +59,12 @@ fn chronic_decl(since: Option<&str>) -> RecurrentDeclaration {
 // ============================================================================
 
 #[test]
-#[ignore = "pending pathmaker implementation: parse-time reject empty/whitespace threshold (option-a design decision)"]
+#[ignore = "pending implementation: parse-time reject empty/whitespace threshold (option-a design decision)"]
 fn atk_recurrent_1_itch_threshold_empty_string_is_compile_error() {
     // threshold = "" is unambiguously vacuous — no condition declared.
     // Proc-macro must reject with a message indicating threshold, if present,
     // must be a non-empty non-whitespace string.
-    todo!("implement once pathmaker ships parse-time empty-threshold rejection");
+    todo!("implement once parse-time empty-threshold rejection lands");
 }
 
 // ============================================================================
@@ -177,13 +175,12 @@ fn atk_recurrent_3_crystallize_into_nonexistent_antigen_emits_hint() {
 //       Expected: audit emits `chronic-since-not-a-date` hint.
 //       NOTE: version-tag-shaped strings like "v0.2.0" are TOLERATED silently
 //       (informal use; no hint). Only unambiguous garbage triggers the hint.
-//       DESIGN DECISION (adversarial 2026-05-24): audit-time hint, NOT
+//       DESIGN DECISION (2026-05-24): audit-time hint, NOT
 //       parse-time error. The scan layer is recall-tuned (ADR-010); the audit
 //       layer applies the two-path logic: ISO-8601 parseable → enforce;
 //       version-tag-shaped (v\d+\.\d+.*) → tolerate; everything else → hint.
 //   (b) review_date = "2020-01-01" — past date, valid format.
-//       Expected: audit emits `chronic-signal-past-review-date` (pre-authorized
-//       per aristotle F1 on v02-impl-recurrent-emergence campsite).
+//       Expected: audit emits `chronic-signal-past-review-date` (pre-authorized).
 //
 // Both sub-cases are silent failures if review_date is stored as an opaque
 // string without validation. An engineer writes `review_date = "some day"` and
@@ -247,7 +244,7 @@ fn atk_recurrent_4b_chronic_past_review_date_emits_hint() {
 // #[recurrence_anchor(pattern = "AnchorName")] in the codebase.
 //
 // ATTACK: #[saturate(anchor = "NonExistentAnchor")] should emit
-// `saturate-no-anchor` at audit time (pre-authorized per aristotle F1).
+// `saturate-no-anchor` at audit time (pre-authorized).
 // Without resolution checking, saturate looks like threshold-exceeded discipline
 // but the anchor it references doesn't exist — the recurrence lifecycle is
 // broken at the saturation step.
@@ -336,7 +333,7 @@ fn atk_recurrent_7_phantom_from_itches_fires_no_itch_precondition() {
 // ============================================================================
 // ADR-024 Amendment 3: from_itches is CLASS-SPECIFIC (lineage-aware).
 //
-// The scientist's attack (dogfood note fd7c24c9): under the prior GLOBAL
+// The attack: under the prior GLOBAL
 // membership test, from_itches = ["AntigenY"] suppressed the noticing
 // precondition for an AntigenX anchor as long as AntigenY had ANY scan-resident
 // #[itch] anywhere. That guts the precondition's meaning — noticing AntigenY is
@@ -349,7 +346,7 @@ fn atk_recurrent_7_phantom_from_itches_fires_no_itch_precondition() {
 
 #[test]
 fn atk_recurrent_adr024_amd3_cross_class_from_itches_does_not_suppress_precondition() {
-    // The scientist's attack: an AntigenX anchor cites from_itches = ["AntigenY"].
+    // The attack: an AntigenX anchor cites from_itches = ["AntigenY"].
     // AntigenY IS scan-resident (has its own #[itch]), so the OLD global test
     // passed it. Amd3: AntigenY is unrelated to AntigenX — pure cross-class — so
     // it carries no precondition evidence for THIS anchor; the precondition fires.
@@ -461,7 +458,7 @@ fn atk_recurrent_adr024_amd3_lineage_ancestor_from_itches_satisfies_precondition
 // enforcement (category-vs-predicate-type structural check per ADR-028 G2).
 //
 // NOTE: This test encodes the category-witness-cross-check discipline that
-// v02-impl-category-witness-cross-check campsite aims to ship. If that campsite
+// the category-witness-cross-check work aims to ship. If that work
 // ships first, this test will pass. If recurrent ships first, this test
 // ensures the category guard is properly applied to recurrent antigens.
 //

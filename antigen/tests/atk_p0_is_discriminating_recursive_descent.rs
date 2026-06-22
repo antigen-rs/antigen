@@ -1,6 +1,6 @@
 //! ATK-P0 — the `is_discriminating` recursive-descent vacuity.
 //!
-//! **STATUS: P0 LANDED (v0.6 Pioneers).** These tests were born-red against
+//! **STATUS: P0 LANDED.** These tests were born-red against
 //! v0.6-dev and are now GREEN: `is_discriminating` descends into combinator
 //! children (`self_tolerance.rs`). The `#[ignore]` markers are dropped; the three
 //! degenerate-input asserts + the positive control are the live regression spec.
@@ -49,9 +49,7 @@
 //! `Not(c)` is discriminating iff `c` is; `AllOf`/`AnyOf` iff ANY child is. The
 //! asserts below are GREEN and the gate now refuses the wrapped-anchor drafts.
 //!
-//! Author: converge-adversarial (v0.6 Outfitters build-wave deliverable — the
-//! failing test that DEFINED P0's done, handed to the Pioneers; landed by the
-//! Pioneers build-wave).
+//! The failing test that DEFINED P0's done.
 
 use antigen::learn::self_tolerance::has_discriminating_conjunct;
 use antigen_fingerprint::{Constraint, Fingerprint, ItemKind};

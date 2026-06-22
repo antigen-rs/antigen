@@ -164,7 +164,7 @@ fn audit_json(root: &Path) -> serde_json::Value {
 
 #[test]
 fn atk_suppression_human_output_silent_about_anergy() {
-    // DELIVERY ARM WIRED (pathmaker): human output now LOUDLY announces the
+    // DELIVERY ARM WIRED: human output now LOUDLY announces the
     // active anergy declaration — naming the keyword, the reason, and a
     // deferred-defense section. The dev gets a clear signal the gap exists.
     let (_tmp, root) = staged_with_anergy();

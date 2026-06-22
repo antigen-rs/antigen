@@ -2,7 +2,7 @@
 //!
 //! Antigen eating its own cooking — failure-classes sourced from direct
 //! observation of antigen's own development and coordination substrate during
-//! the v0.2 completion arc (2026-05-24 expedition).
+//! the v0.2 completion arc (2026-05-24).
 //!
 //! Three classes declared here were each witnessed live as substrate-claim
 //! mismatches during sign-pass audits and coordination substrate checks. They
@@ -107,8 +107,8 @@ pub struct AntigenDeclarationMissingCategory;
 /// expressed by `#[mucosal_delegate(boundary = MucosalKind::ApiRequest, ...)]`
 /// has a different meaning depending on which phase you are in.
 ///
-/// **Observed shape** (2026-05-24): during the sign-pass for
-/// `v02-impl-mucosal-boundary`, observer confirmed that `handled_by` is
+/// **Observed shape** (2026-05-24): during a sign-pass for the
+/// mucosal-boundary implementation, it was confirmed that `handled_by` is
 /// `syn::Path` (enforced at parse-time) but kind-matching is explicitly
 /// deferred to audit via the three-tier delegate diagnosis. The gap between
 /// the two enforcement phases is structurally load-bearing — any new
@@ -270,7 +270,7 @@ pub struct AuditHintWithNoUpstreamPreconditionCheck;
 /// (2026-05-24)** — each caught by substrate-grep-before-implementing, none by
 /// a test:
 ///
-/// 1. *orient drift (aristotle F4)*: ADR-023 §Decision specified
+/// 1. *orient drift*: ADR-023 §Decision specified
 ///    `#[orient(antigen, learning_path, until)]` with parse-time horizon
 ///    validation + CI gate. Commit `49a11eb` shipped
 ///    `#[orient(antigen, see, adr, attestation_optional)]` — two of three
@@ -278,8 +278,8 @@ pub struct AuditHintWithNoUpstreamPreconditionCheck;
 ///
 /// 2. *G2 fingerprint spec-drift*: ADR-028 Amendment 2 clarified that the
 ///    substrate-witness-leaf requirement does NOT apply to the fingerprint
-///    predicate tree (Interpretation 2). A downstream campsite spec (written
-///    citing aristotle's F2 before Amendment 2 corrected the layer) said "walk
+///    predicate tree (Interpretation 2). A downstream spec (written
+///    before Amendment 2 corrected the layer) said "walk
 ///    the fingerprint predicate tree at parse-time" — directly contradicting
 ///    the amended ADR. Caught at impl-time via substrate-grep. Spec-vs-spec
 ///    (amendment vs downstream-spec).
@@ -292,12 +292,12 @@ pub struct AuditHintWithNoUpstreamPreconditionCheck;
 ///    re-synced in ADR-028 Amendment 4. Spec-vs-spec (table vs later
 ///    amendment).
 ///
-/// 4. *agent-identity collision*: during this expedition, a coordination-layer
+/// 4. *agent-identity collision*: a coordination-layer
 ///    instance — an agent's post-compaction self-model diverged from its
-///    registered team identity (the substrate `team-config.json`), producing a
+///    registered team identity (the coordination substrate), producing a
 ///    duplicated implementation of one failure-class across two modules. The
 ///    representation (who-the-agent-thinks-it-is) diverged from the actual
-///    state (the roster). Caught by substrate-check (team-config + a verbatim
+///    state (the coordination record). Caught by substrate-check (the coordination record + a verbatim
 ///    message-loop). This is the failure-class one layer out — drift between a
 ///    self-model and the substrate that defines it.
 ///
@@ -315,7 +315,7 @@ pub struct AuditHintWithNoUpstreamPreconditionCheck;
 /// (spec, tracker) does not match the actual (code, other-tracker).
 ///
 /// **The mechanization path**: when ADRs carry structured §Proc-Macro-Surface
-/// tables (aristotle's process-amendment F2 sub-clause), the spec becomes
+/// tables (the process-amendment sub-clause), the spec becomes
 /// machine-checkable: `cargo antigen audit` can compare the declared surface
 /// against the scanned source. v0.2 ships this antigen with an advisory
 /// substrate-witness (doc-contains); v0.2.x mechanizes it once structured
@@ -455,7 +455,7 @@ pub struct FingerprintDigestWithoutFormatValidation;
 /// The adopter supplies something meaningful (arguments, a field, a constraint)
 /// and the surface neither errors nor effects it — the intent is silently
 /// nullified between declaration and realization, while the surface *looks* like
-/// it accepted the input. Per aristotle's F5 ratification the family has two
+/// it accepted the input. The family has two
 /// children distinguished by **witness-structure** (not by loud-vs-silent —
 /// both are silent at their layer):
 ///
@@ -613,14 +613,14 @@ pub struct ScannerBoundaryFalseNegative;
 /// ("analogous to"). The loosening was applied at the `TriageDecision` enum
 /// doc-comment but MISSED at the module-level doc-comment in the same file
 /// (`vcs.rs:10` still read "modeled on the START field-triage protocol"). No
-/// tool caught it; only naturalist attention at sign-time did. The site has
+/// tool caught it; only human attention at sign-time did. The site has
 /// since been corrected — this antigen locks in the now-clean state so a future
 /// re-drift fires.
 ///
 /// **Sibling fail-class**: `RatifiedSpecDriftFromImpl`. Both are
 /// `SubstrateAlignment` members of the **substrate-divergence** family, but they
 /// are siblings, not the same antigen, because their witnesses have DIFFERENT
-/// STRUCTURE (the discriminator per aristotle's recognition ruling):
+/// STRUCTURE (the discriminator):
 /// `RatifiedSpecDriftFromImpl`'s witness is a SET-COMPARISON (does the realized
 /// field-set equal the ratified field-set? binary-per-element).
 /// `BiologyGroundingClaimDrift`'s witness is an AXIS-MATCH plus an
@@ -694,7 +694,7 @@ pub struct BiologyGroundingClaimDrift;
 /// the same thing I recorded" silently flips to "different," with no
 /// compile-time or write-time signal.
 ///
-/// **Observed instance** (2026-05-26, this expedition): the substrate-witness
+/// **Observed instance** (2026-05-26): the substrate-witness
 /// `signed_against_fingerprint` / `current_fingerprint` machinery (ADR-019)
 /// compares a *persisted* item digest to a freshly recomputed one for
 /// `against = "current"` / `fresh_within_days`. The producer
@@ -755,7 +755,7 @@ pub struct UnstableHashAsPersistedValue;
 /// of a relationship — but the witness shape differs: that one omits an
 /// upstream edge; this one folds both ends of the comparison onto one source.
 ///
-/// **Observed instance** (2026-05-26, this expedition; resolved same day): the
+/// **Observed instance** (2026-05-26; resolved same day): the
 /// substrate-witness audit (`audit_substrate_witness` in `antigen/src/audit.rs`)
 /// originally passed the sidecar's stored `current_fingerprint` into the
 /// predicate evaluator, so `signed_against_fingerprint == current_fingerprint`
@@ -811,7 +811,7 @@ pub struct AuditFingerprintSelfReferential;
 /// input that PARSES but carries the *wrong semantic meaning for the intended
 /// slot* is not yet in an honorable shape.
 ///
-/// **Five observed instances in this expedition (aristotle convergence, 2026-05-26)**:
+/// **Five observed instances (2026-05-26)**:
 /// - **Finding 3**: a signed `.attest/` sidecar is accepted for a `witness=`
 ///   immune site; the sidecar binds to a slot that audit's code-witness branch
 ///   never reads, so the attestation is silently uncredited.
@@ -876,7 +876,7 @@ pub struct SilentSemanticMismatchAtTrustBoundary;
 /// code faster than teams can inspect it. The fail-class antigen exists to prevent IN ADOPTERS
 /// is the fail-class most likely to hit antigen's own codebase through the same mechanism.
 ///
-/// **Four observed instances (pathmaker structural rhyme, 2026-05-26)**:
+/// **Four observed instances (structural rhyme, 2026-05-26)**:
 /// - **Never-resolving witness**: `#[immune(X, witness = "fn_name")]` compiles; audit can
 ///   never resolve a string to a function reference. Silent void from compile-time forward.
 /// - **Never-credited sidecar**: a signed `.attest/` sidecar exists for a `witness=` site;
@@ -950,14 +950,14 @@ pub struct DeclaredCapabilityWithNoProductionPath;
 /// parse error and no warning — the most insidious form because the surface
 /// *looks* like it accepted the value.
 ///
-/// Per aristotle's F5 ratification this is a child of [`SilentIntentNullification`],
+/// This is a child of [`SilentIntentNullification`],
 /// distinguished from its sibling [`ActiveArgumentDiscard`] by witness-structure:
 /// `ActiveArgumentDiscard` *silently swallows tokens at parse* (behavioral witness:
 /// feed args, assert compile-error); this one *silently drops at lowering*
 /// (structural witness: the parity test). Both are silent — they differ by
 /// witness-structure, not by loud-vs-silent.
 ///
-/// **Observed instance** (2026-05-25, this expedition; fixed in commit c237101):
+/// **Observed instance** (2026-05-25; fixed in commit c237101):
 /// the `signers()` substrate-witness DSL did not parse `signature_allow` /
 /// `signature_prefer`, and `to_leaf()` hardcoded `signature_allow = Vec::new()`
 /// / `signature_prefer = None` regardless of input (parser.rs:317-318).
@@ -1045,12 +1045,12 @@ pub struct CapabilityOmissionAtLowering;
 /// see the geometric complement from inside. See `docs/testing-patterns.md §
 /// Fingerprint authoring discipline` for the discipline.
 ///
-/// **Observed instances** (2026-05-26, antigen-dx-dogfood expedition, camp's
-/// binary-adopter coverage sweep): both directions surfaced when a second body
-/// (camp's coverage sweep) reached instances the self-application path had
+/// **Observed instances** (2026-05-26, a binary-adopter
+/// coverage sweep): both directions surfaced when a second body
+/// (a coverage sweep) reached instances the self-application path had
 /// never walked. The under-coverage case (`ActiveArgumentDiscard`) was found
-/// by the scout's systematic coverage pass; the over-coverage case
-/// (`RatifiedSpecDriftFromImpl`) was identified by outsider's signal-vs-noise
+/// by a systematic coverage pass; the over-coverage case
+/// (`RatifiedSpecDriftFromImpl`) was identified by a signal-vs-noise
 /// analysis of scan output.
 ///
 /// **Defense**: author fingerprints to the *class's extension* (the full set
@@ -1088,7 +1088,7 @@ pub struct AntigenFingerprintDivergesFromClassExtension;
 /// nothing. Nothing fails when they diverge; the drift is silent until a reader
 /// trusts the stale copy.
 ///
-/// **Observed instances** (2026-05-26, antigen-dx-dogfood expedition; the
+/// **Observed instances** (2026-05-26; the
 /// recurrence that motivated declaring this class):
 ///
 /// - **const ↔ enum (the canonical instance)**: `ADR025_AUDIT_HINTS` (a
@@ -1166,7 +1166,7 @@ pub struct ParallelStateTrackersDiverge;
 /// or the scan output carries the PREVIOUS item's digest, producing non-empty but
 /// wrong fingerprints that silently pass all schema checks.
 ///
-/// **Observed instances** (2026-05-26, antigen-dx-dogfood expedition, fe6a3a0):
+/// **Observed instances** (2026-05-26, fe6a3a0):
 /// Three new visitor methods (`visit_item_const`, `visit_item_static`,
 /// `visit_impl_item_const`) were added to cover previously-blind item kinds.
 /// Each correctly called `check_attrs` but omitted the mandatory
@@ -1244,7 +1244,7 @@ pub struct ScanVisitorDigestAssignmentOmission;
 /// every other team member's `cargo test --workspace` until the fix lands — even
 /// if the fix is in a dirty working tree or in-flight on a different agent.
 ///
-/// **Observed instances** (2026-05-26, antigen-dx-dogfood expedition, three
+/// **Observed instances** (2026-05-26, three
 /// consecutive P0s):
 ///
 /// 1. `89f8108` — enum-variant presents blind spot. Test committed FAILING;
@@ -1257,7 +1257,7 @@ pub struct ScanVisitorDigestAssignmentOmission;
 ///
 /// All three are the same shape: the adversarial intent is correct ("pin the
 /// gap"), the mechanism is wrong ("break CI for the team"). The pattern recurred
-/// three times in a single expedition despite all three being avoidable with the
+/// three times in a single session despite all three being avoidable with the
 /// same one-line fix (`#[ignore]`).
 ///
 /// **Category**: `SubstrateAlignment` — the committed substrate (`git log`) claims
@@ -1308,9 +1308,9 @@ pub struct FailingTestWithoutIgnorePin;
 /// running a strict clippy/CI gate. The adopter did nothing wrong; the macro's
 /// emitted output broke their build.
 ///
-/// **Observed instance** (2026-05-22 → 2026-05-24, camp's adoption of antigen):
-/// camp is a binary crate. Its first `#[antigen]` declarations tripped
-/// `dead_code` on every marker struct — Finding 1 of camp's hardcore-adoption
+/// **Observed instance** (2026-05-22 → 2026-05-24, a binary-crate adopter):
+/// the adopter is a binary crate. Its first `#[antigen]` declarations tripped
+/// `dead_code` on every marker struct — Finding 1 of that adopter's
 /// dogfood. The fix lives in the `#[antigen]` macro itself
 /// (`antigen-macros/src/lib.rs`): the expansion emits a zero-cost use-token
 /// alongside the marker —
@@ -1346,7 +1346,7 @@ pub struct FailingTestWithoutIgnorePin;
 /// adopter's marker compiles clean under `-D warnings`.
 ///
 /// **Internal-tooling discipline**: per `feedback-internal-tool-antigens-preemptive`,
-/// declared from the confirmed camp-adoption instance — the fix shipped in the
+/// declared from the confirmed adopter instance — the fix shipped in the
 /// macro before this declaration existed, leaving the defending code
 /// unmarkable. This declaration closes that declaration-layer gap.
 #[antigen(
@@ -1385,7 +1385,7 @@ pub struct MarkerStructDeadCodeInBinary;
 /// declarations kept working; but the direct struct-literal sites
 /// (`scan.rs` synthesis tests, `antigen-macros/src/parse.rs` test fixtures,
 /// `antigen/tests/atk_a3_fractal_preview.rs`) all needed `category: Vec::new()`
-/// added by hand. Scout (`1c861b3a`) caught two sites; the migration touched
+/// added by hand. A coverage pass (`1c861b3a`) caught two sites; the migration touched
 /// every direct constructor. The struct also has `#[serde(default)]` on
 /// `canonical_path` — same shape, an earlier instance of the same class. This
 /// recurs by construction: the comprehensive-vision metadata roadmap will keep
@@ -1428,7 +1428,7 @@ pub struct MarkerStructDeadCodeInBinary;
 /// **Internal-tooling discipline**: per `feedback-internal-tool-antigens-preemptive`,
 /// named from the confirmed v0.2 `AntigenDeclaration` instance rather than
 /// waiting for the next metadata field to break the build. Raised as a naive
-/// question by outsider (v02-completion-arc); the instance was at hand, the
+/// question; the instance was at hand, the
 /// recurrence is structurally guaranteed, so it earns a declaration.
 #[antigen(
     name = "serde-default-masking-struct-literal-break",
@@ -1476,7 +1476,7 @@ pub struct SerdeDefaultMaskingStructLiteralBreak;
 /// primitive with UNBOUNDED external callers trusts its input, and the remedy
 /// is validate-at-the-primitive-boundary (you can never enumerate every caller,
 /// so site-consistency is unachievable). Different remedy-structure = different
-/// class. (Per naturalist's recognition ruling, 2026-05-26: barrier-integrity /
+/// class. (2026-05-26: barrier-integrity /
 /// innate-immune arm vs adaptive-receptor arm — biologically distinct defense
 /// classes, so standalone, not sibling.)
 ///
@@ -1548,7 +1548,7 @@ pub struct PathTraversalViaUnvalidatedComponent;
 /// `cargo antigen audit` time — a temporal displacement from write to
 /// evaluation.
 ///
-/// **Observed instance** (2026-05-26, `dogfood.rs:799`, aristotle F1):
+/// **Observed instance** (2026-05-26, `dogfood.rs:799`):
 /// `signers(required = ["math-researcher"])` — author intended a *role*
 /// slot but used the *name* slot. Parse succeeded; audit found the
 /// signer name "math-researcher" never appeared on any attestation record.
@@ -1574,7 +1574,7 @@ pub struct PathTraversalViaUnvalidatedComponent;
 /// type-presence check: does every multi-string-slot DSL constructor
 /// wrap slots in distinct types?
 ///
-/// **Biology cognate** (naturalist routing): molecular mimicry /
+/// **Biology cognate**: molecular mimicry /
 /// cross-reactivity — a receptor that binds the wrong ligand because the
 /// binding site doesn't discriminate. The DSL slot is the receptor; the
 /// semantic value is the ligand; same shape (String) misleads into the
@@ -1626,7 +1626,7 @@ pub struct AffordanceTrapInAttestationDSL;
 /// of findings it knows about. The failure stays silent not because nothing
 /// fired, but because nothing reached the adopter.
 ///
-/// **Observed instances** in antigen itself (aristotle, 2026-05-27):
+/// **Observed instances** in antigen itself (2026-05-27):
 /// Five of eight `AuditReport` families are computed by public `audit_*`
 /// functions and exercised by tests, but have zero CLI render paths in
 /// `cargo-antigen/src/main.rs`:
@@ -1640,17 +1640,16 @@ pub struct AffordanceTrapInAttestationDSL;
 /// antigen-category (scan output), and witness (audit hints). The severed
 /// five are computed + tested but never displayed.
 ///
-/// **Also observed at scan layer** (observer, scout, 2026-05-27):
+/// **Also observed at scan layer** (2026-05-27):
 /// `orphaned_lineage_edges()` and `dangling_child_lineage_edges()` in
 /// `scan.rs` are computed but have no CLI output paths — the same delivery-arm
-/// severance at the scan stage for `#[descended_from]` structural verification
-/// (campsite `forward/descended-from-structural-verification`).
+/// severance at the scan stage for `#[descended_from]` structural verification.
 ///
 /// **Silence-generator**: silence-by-absence — the delivery mechanism was
 /// never wired, so the verdict never reaches a detection surface. The enforcer
 /// (the CLI render path) was never created.
 ///
-/// **Why the 2x2 silence-taxonomy ceiling holds** (aristotle): delivery-arm
+/// **Why the 2x2 silence-taxonomy ceiling holds**: delivery-arm
 /// severance is NOT a fifth silence-generator on the acute evasion axis.
 /// The 2x2 (silence-by-absence / silence-by-masking / silence-by-missing-diagnostic /
 /// silence-by-wrong-weighting) classifies how a FAILURE stays silent; delivery-arm
@@ -1713,16 +1712,16 @@ pub struct AuditVerdictComputedButNotDelivered;
 /// bad value believes they set it correctly; the audit never corrects them.
 ///
 /// **Three confirmed shapes across five sites in antigen/cargo-antigen**
-/// (adversarial, 2026-05-27, camp notice):
+/// (2026-05-27):
 ///
 /// **(1) None-arm parse collapse** (`if let Some(x) = parse_optional(raw)` where
 /// `raw = Some(bad-string)` → `parse_optional` returns `None` → outer `if let`
 /// arm not entered):
 /// - `audit.rs:1081`: `orient.until = Some("2099/01/01")` (slash-format typo) →
-///   silently grants `OrientActive` forever (campsite `findings/orient-unparseable-until-silent-green`)
+///   silently grants `OrientActive` forever
 /// - `audit.rs:1072`: `immunosuppress.since = Some("bad-date")` → silently skips
 ///   the `duration_cap` exceeded check, granting indefinite `ImmunosuppressActive`
-///   (adversarial commit `fd3e387`)
+///   (commit `fd3e387`)
 ///
 /// **(2) Bare-name match without canonical path** (error: wrong crate's entity;
 /// absent: no entity; both treated as "found" or "not-found" without disambiguation):
@@ -1734,7 +1733,6 @@ pub struct AuditVerdictComputedButNotDelivered;
 /// **(3) if-let-Ok silent skip** (parse-error arm absent; failure treated as empty-file):
 /// - `main.rs:1738`: `oracle list` silently skips corrupt `.json` files, yielding
 ///   "No oracle records found" with exit 0 and no parse-error diagnostic
-///   (campsite `findings/oracle-corrupt-json-silent-skip`)
 /// - `main.rs:3712`: `attest gc` silently skips sidecars with corrupt JSON
 ///
 /// **Why the pattern recurs**: each site was written to handle the "intentionally
@@ -1804,17 +1802,15 @@ pub struct AbsentErrorCollapse;
 /// with that name, one crate with that type name). The omission is correct in
 /// the common case; the bug manifests only in the expanded case.
 ///
-/// **Three confirmed instances** (scout, 2026-05-28, antigen-dx-dogfood
-/// expedition; three instances = naming threshold per the project's
-/// recurrence-gate):
+/// **Three confirmed instances** (2026-05-28; three instances = naming
+/// threshold per the project's recurrence-gate):
 ///
 /// **(1) Sidecar first-item shortcut** (`audit.rs:1597`):
 /// `audit_substrate_witness()` calls `sidecar.items.first()` to select the
 /// evaluation target. When a sidecar covers multiple items, item N's immunity
 /// is evaluated against item 0's `ItemRatification` — using item 0's
 /// fingerprint and item 0's signers. Key = list position (always 0); the
-/// distinguishing dimension is item path. Campsite:
-/// `findings/sidecar-first-item-wrong-audit`.
+/// distinguishing dimension is item path.
 ///
 /// **(2) Mucosal same-name function collision** (`audit.rs:2966`):
 /// `audit_mucosal()` builds `handler_kinds: HashMap<&str, HashSet<&str>>`
@@ -1825,8 +1821,7 @@ pub struct AbsentErrorCollapse;
 /// distinguishing dimension is source file. Fix shape: detect same-name
 /// ambiguity at index-build time and emit
 /// `MucosalDisciplineDelegateTargetAmbiguous` (keying by `(file, fn_name)`
-/// requires `handled_by` to carry file info, which it does not). Campsite:
-/// `findings/mucosal-same-name-fn-collision`.
+/// requires `handled_by` to carry file info, which it does not).
 ///
 /// **(3) Cross-crate defense bare-type match** (pre-fix; fixed at `03e1c99`):
 /// `defense_addresses()` used `d.antigen_type == p.antigen_type` alone — bare
@@ -1846,7 +1841,7 @@ pub struct AbsentErrorCollapse;
 ///   along; it was simply omitted from the key.
 ///
 /// **Connection to `LookupKeyInsufficientIdentity` as a dogfood antigen
-/// candidate** (garden, 2026-05-28): this class is named from the structural
+/// candidate** (2026-05-28): this class is named from the structural
 /// shape of the fix (key collision → expand key), not from the silence type.
 /// The silence-generator is silence-by-absence: the lookup's ambiguity arm was
 /// never installed. The class is distinct from
@@ -1860,7 +1855,7 @@ pub struct AbsentErrorCollapse;
 /// forward-pointer that the author KNEW the key was narrower than it should be
 /// (a comment acknowledging that later work would match by `item_path`). The
 /// other two shapes (bare fn name / bare type name) are
-/// caught by the explicit `#[presents]` markers on the two blocked campsites'
+/// caught by the explicit `#[presents]` markers on the two blocked work-units'
 /// index-build sites. A fingerprint grammar capable of expressing "a
 /// `HashMap` keyed by `&str` where the value type has a second `&str`
 /// field not used as the key" is a v0.3 predicate-language enrichment; for
@@ -1874,7 +1869,7 @@ pub struct AbsentErrorCollapse;
 ///
 /// **Internal-tooling discipline**: per
 /// `feedback-internal-tool-antigens-preemptive`, declared from three confirmed
-/// instances. All three were found empirically in the same expedition arc;
+/// instances. All three were found empirically in the same development arc;
 /// the structural shape is predictable to recur wherever an index is built
 /// without incorporating the distinguishing dimension.
 #[antigen(
@@ -1912,9 +1907,8 @@ pub struct AuditIndexKeyCollision;
 /// downstream handling that uses it correctly — conservative (non-match, but
 /// not `NoMatch`) in most audit contexts.
 ///
-/// **Six confirmed instances** (scout + navigator, 2026-05-28,
-/// antigen-dx-dogfood expedition; six instances = well past the naming
-/// threshold):
+/// **Six confirmed instances** (2026-05-28; six instances = well past the
+/// naming threshold):
 ///
 /// **(1) Fingerprint `not(body_contains_macro)` on a struct** (pre-fix;
 /// fixes by ADR-010 Amendment 6): `body_contains_macro` applied to a struct
@@ -1923,8 +1917,7 @@ pub struct AuditIndexKeyCollision;
 /// return is `Undefined` — structs don't have bodies; the predicate has no
 /// locus. Match3 (`{Match, NoMatch, Undefined}` with Kleene-strong algebra)
 /// closes this: `not(Undefined) = Undefined`, which does not contribute to a
-/// positive match result. Campsite:
-/// `forward/fingerprint-grammar-body-content-with-negation`.
+/// positive match result.
 ///
 /// **(2) Orient `until` date — collapse: None vs Some(malformed-date)**
 /// (`audit.rs:1081`): when `until = Some("2026/01/01")` (slash-format typo),
@@ -1932,14 +1925,13 @@ pub struct AuditIndexKeyCollision;
 /// entered; the audit silently grants `OrientActive` forever. The malformed
 /// case is indistinguishable from "no until date." Fixed by the Orient-style
 /// split: `None` (absent) retains silent skip; `Some(bad-date)` escalates
-/// to a diagnostic. Campsite: `findings/orient-unparseable-until-silent-green`.
+/// to a diagnostic.
 ///
 /// **(3) Anergy/Immunosuppress `until` date — same collapse** (`audit.rs:1119,
 /// 1151, 1158`): `unwrap_or("")` collapses `None` (absent) and
 /// `Some("not-a-date")` (present but malformed) to the same empty string, so
 /// a typo in `until=` silently grants indefinite `AnergicActive` /
-/// `ImmunosuppressActive`. Campsite:
-/// `findings/deferred-until-malformed-silent-active`.
+/// `ImmunosuppressActive`.
 ///
 /// **(4) Supply-chain predicate evaluation — no-sidecar vs failed**
 /// (pre-fix): a predicate returning `false` (checked, fails) was
@@ -1959,8 +1951,8 @@ pub struct AuditIndexKeyCollision;
 /// collapse to the same non-pass state without distinguishing "checked and
 /// found absent" from "unchecked because the substrate couldn't be reached."
 ///
-/// **Biology cognate** (naturalist gate required before ratification; scout
-/// recommendation for routing): **anergy** — T-cell anergy is the cellular
+/// **Biology cognate** (biology gate recommended before ratification):
+/// **anergy** — T-cell anergy is the cellular
 /// program that runs when a T-cell receptor engages its antigen but the
 /// costimulatory signal (CD28/B7, signal-2) is absent. The cell enters a
 /// persistent non-responsive program that is CATEGORICALLY DISTINCT from
@@ -2002,7 +1994,7 @@ pub struct AuditIndexKeyCollision;
 /// value (`Undefined`, `Undefined` in an enum name); explicit `#[presents]`
 /// markers cover the pre-fix instances that never named it.
 ///
-/// **NOTE**: naturalist biology gate is recommended before ratification of
+/// **NOTE**: a biology gate is recommended before ratification of
 /// this antigen into the stdlib (ADR-027 biology-grounding discipline for
 /// non-dogfood families). The biology is already well-mapped (anergy vs
 /// deletion vs inactivation-by-absence), but the formal gate produces the

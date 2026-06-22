@@ -19,7 +19,7 @@ use crate::scan::ScanReport;
 // ============================================================================
 //
 // "Did the scanner reach + evaluate this site?" is one structural question that
-// the team recognized surfaces in three tiers (regulatory IGNORANCE, prescriptive
+// surfaces in three tiers (regulatory IGNORANCE, prescriptive
 // OutOfFrame well-posedness, the v0.2 dx-dogfood ScannerBoundaryFalseNegative).
 // Immunological ignorance is the 4th canonical peripheral-tolerance mechanism
 // (Khan & Ghazanfar 2018): a functional self-antigen that the immune system
@@ -27,12 +27,12 @@ use crate::scan::ScanReport;
 // that the scanner never reaches. Tolerance-by-non-encounter, distinct from
 // anergy (seen + disabled), deletion (removed), and suppression (held back).
 //
-// Aristotle's first-principles point is decisive and shapes this layer: ignorance
+// A first-principles point is decisive and shapes this layer: ignorance
 // is the ONE state that is purely *observed* and NEVER *declarable*. A
 // `#[ignorance]` site-macro would be the observe-don't-declare contradiction — to
 // write it you'd have reached the site, so it would not be ignorant. There is
 // therefore no site-macro; there is the failure-CLASS (an `IgnoranceUnreachedSite`
-// antigen, aristotle's ADR deliverable) and the audit VERDICT below, which this
+// antigen) and the audit VERDICT below, which this
 // module emits when it can determine a site should-have-been-reached-but-was-not.
 //
 // THE CARDINALITY IS PRINCIPLED, NOT ENUMERATED-BY-LUCK. A site can be lost at
@@ -42,7 +42,7 @@ use crate::scan::ScanReport;
 // collapse three-causes-with-three-remedies into one undifferentiated "unreached"
 // and lose the remedy-routing — the cardinality-collapse this whole arc fights).
 //
-// DETECTABILITY LIMIT (formalized from aristotle's observe-don't-declare). Non-
+// DETECTABILITY LIMIT (formalized from the observe-don't-declare principle). Non-
 // reach is only detectable *relative to a reference that points into the lost
 // region* — a `#[descended_from]` target, a cross-need reference, an
 // `addresses()` target that resolves into an unreached site (a dangling
@@ -145,7 +145,7 @@ pub struct CoverageAuditReport {
     /// producing [`ScanReport`] carried a [`crate::scan::ScanCoverage`] record
     /// (a member-aware `--workspace` scan), `false` for a flat scan that has no
     /// member concept. This is the third value [`Self::is_complete`] cannot
-    /// carry on its own (adversarial 2026-06-01 type-discipline gap): a 2-valued
+    /// carry on its own (a type-discipline gap): a 2-valued
     /// `bool` over a 3-state domain collapses "complete because every member was
     /// scanned" and "complete because coverage was never applicable" to the same
     /// `true`. Read it via [`Self::coverage_was_applicable`].

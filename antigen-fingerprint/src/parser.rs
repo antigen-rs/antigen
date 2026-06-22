@@ -239,8 +239,8 @@ fn parse_doc_contains(input: ParseStream) -> syn::Result<Constraint> {
 /// the exact named-but-silent (false-coverage) failure-class antigen exists to
 /// surface. This gate rejects such names at PARSE time with a message that names
 /// the fix, rather than shipping a no-op fingerprint. (DRY: one place to be
-/// honest about names — both leaves route through here, per the harbor-master
-/// ruling that the shipped `body_contains_macro` gets the same fix.)
+/// honest about names — both leaves route through here, and the shipped
+/// `body_contains_macro` gets the same fix.)
 ///
 /// `syn::parse_str::<Ident>` accepts exactly one identifier — Unicode XID idents
 /// and raw idents (`r#fn`) included — and rejects paths, dots, parens, and `!`.
@@ -667,7 +667,7 @@ mod tests {
 
     #[test]
     fn rejects_body_contains_macro_non_ident_name_loudly() {
-        // The SHIPPED twin gets the same fail-loud gate (harbor-master ruling):
+        // The SHIPPED twin gets the same fail-loud gate:
         // body_contains_macro matches a macro path's LAST segment, so a path/`!`/
         // dotted/padded name silently never fires — the same named-but-silent
         // class. The shared `validate_target_ident_name` gate closes it for both

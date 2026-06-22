@@ -296,7 +296,7 @@ The three verdicts:
 > **Honest-scope (ADR-065 Amendment 2).** The detector's FULL (variance-aware) regime is
 > gated behind a sample-count of 30 and is not reached at v0.6 scale; the rigorous floor
 > bound governs every reachable case. A documented doc-vs-code scope note on the FULL bound's
-> cutpoint-set lives in [`decisions.md`](decisions.md) (ADR-065 Amendment 2) — it does not
+> cutpoint-set (ADR-065 Amendment 2) does not
 > affect the verdict for any trajectory a v0.6-scale caller can produce.
 
 ---

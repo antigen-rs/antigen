@@ -1386,7 +1386,7 @@ mod tests {
     // content for the four overlapping fields (name, fingerprint, family,
     // summary). The two parsers live in different crates by structural
     // necessity (proc-macro = true crates can't be linked as libraries) and
-    // their drift was the substance of ATK-001-2 in pre-team scaffolding.
+    // their drift was the substance of ATK-001-2 in early scaffolding.
     //
     // When adding a fixture here, add the matching one in antigen-macros's
     // parse.rs ANTIGEN_PARSER_FIXTURES table. Field-additions to the antigen
@@ -1760,8 +1760,8 @@ mod tests {
             // I6 — ScanImmuneArgs: a qualified-path antigen extracts only
             // the last segment as the antigen_type (the matching surface
             // antigen scan/audit reasons against). This is a regression
-            // anchor for ATK-A2-001 — the path-split corruption that the
-            // adversarial pass surfaced.
+            // anchor for ATK-A2-001 — the path-split corruption that
+            // adversarial testing surfaced.
             #[test]
             fn scan_immune_qualified_antigen_path_extracts_last_segment(
                 module_segs in proptest::collection::vec(
@@ -2696,7 +2696,7 @@ mod tests {
 
     #[test]
     fn atk_a3_orphan_child_without_antigen_declaration_is_surfaced() {
-        // ATK-A3-ORPHAN-CHILD (adversarial BUG-A3-002): lineage edge where the
+        // ATK-A3-ORPHAN-CHILD (BUG-A3-002): lineage edge where the
         // CHILD has no corresponding `#[antigen]` declaration. The user wrote
         // `#[descended_from(Parent)]` on a struct that is NOT itself an antigen.
         //
@@ -2707,7 +2707,7 @@ mod tests {
         //
         // Contract: this must be surfaced via SOME query channel —
         // `dangling_child_lineage_edges()` (the chosen channel),
-        // `orphaned_lineage_edges()`, or `parse_failures`. Pathmaker chose
+        // `orphaned_lineage_edges()`, or `parse_failures`. The chosen design is
         // a separate `dangling_child_lineage_edges()` method (parallel to
         // `orphaned_lineage_edges`) because the channel separation
         // is structurally cleaner per ADR-006 (recognition-not-design).
@@ -2729,7 +2729,7 @@ mod tests {
              parse_failures; got orphans: {orphans:?}, dangling: {dangling:?}"
         );
 
-        // Specific assertion: pathmaker chose dangling_child_lineage_edges as the
+        // Specific assertion: dangling_child_lineage_edges is the chosen
         // channel. The orphan-channel must NOT also surface this case
         // (parent IS in antigens, so it's not a parent-orphan).
         assert!(
@@ -2953,7 +2953,7 @@ mod tests {
     // ========================================================================
     // ADR-009 Amd-1: fingerprint-omission silent behavior (ATK-ADR009-AMD1)
     //
-    // Scout probe surface (2026-05-27 field notice 032da904): when an antigen
+    // Probe surface: when an antigen
     // is declared without a fingerprint, the synthesis_pass skips it silently.
     // This is CORRECT behavior (verify-only antigens have no scan-surface per
     // ADR-009 Amd-1), but it creates an invisible failure mode for authors who
@@ -2966,7 +2966,7 @@ mod tests {
     //       does not break the explicit-marker path)
     //   (d) no diagnostic is emitted (parse_failures is empty for the omission case)
     //
-    // (d) is the design gap scout identified: the author who INTENDED a fingerprint
+    // (d) is the design gap: the author who INTENDED a fingerprint
     // gets exactly the same behavior as one who deliberately omitted it. There is no
     // "did you mean to add a fingerprint?" lint.
     // ========================================================================
@@ -3076,7 +3076,7 @@ mod tests {
         // the field gets exactly the same behavior as an intentional verify-only
         // antigen declaration. No parse_failure, no warning, no lint.
         //
-        // This is the silent failure scout flagged: the two cases are indistinguishable
+        // This is the silent failure: the two cases are indistinguishable
         // from the tool's perspective. The mitigation direction per ADR-009 Amd-1
         // §Enforcement is a future lint: "antigen X has no fingerprint and no
         // detection_model=verify_only classification — consider adding one."

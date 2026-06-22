@@ -1,5 +1,5 @@
 //! DOGFOOD HONESTY GUARD — assert the CURRENT honest outcome of the antigen-on-
-//! antigen dogfood, so a flip is NOTICED (captain's batch-2 routing, 2026-06-11).
+//! antigen dogfood, so a flip is NOTICED.
 //!
 //! # The drift this closes (a NAME-asserted-property gap)
 //!
@@ -11,7 +11,7 @@
 //! fix that makes the payoff FIRE (a real self-immunizing promote) would also not be
 //! noticed. The test cannot go red on the thing its name claims.
 //!
-//! # The empirically-settled truth this pins (captain "THESIS SETTLED", 2026-06-11)
+//! # The empirically-settled truth this pins
 //!
 //! antigen's two real read-loop `#[dread]` twins anti-unify into a draft of ~21
 //! ALL-SHARED conjuncts with NO `any_of`. A near-miss needs a clean item one
@@ -29,7 +29,7 @@
 //! It asserts the CURRENT honest outcome (route-to-human). If a future change makes
 //! the payoff fire (the dogfood PROMOTES), THIS TEST GOES RED — a deliberate signal
 //! to (1) celebrate the strange-loop closing AND (2) update the docs / CLAUDE.md /
-//! briefing that currently say "routes to human ratification" (the captain's claim-
+//! briefing that currently say "routes to human ratification" (the claim-
 //! calibration). A red here is GOOD NEWS that demands a doc update — the comment
 //! says so, so whoever trips it knows it is not a regression.
 
@@ -92,7 +92,7 @@ fn dogfood_currently_routes_to_human_not_promotes_the_payoff_is_chartered() {
         Err(ProposeOutcome::Rejected(
             ToleranceVerdict::NotCorpusWitnessable
         )),
-        "DOGFOOD CLAIM-CALIBRATION (captain, THESIS SETTLED): antigen's real read-loop \
+        "DOGFOOD CLAIM-CALIBRATION (THESIS SETTLED): antigen's real read-loop \
          twins anti-unify to a ~21-all-shared-conjunct draft with NO any_of, so NO \
          near-miss exists at any corpus size → the gate ROUTES TO HUMAN, it does not \
          promote. The PAYOFF (a self-immunizing promote) is CHARTERED (v0.6, needs \

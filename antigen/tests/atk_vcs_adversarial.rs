@@ -1,14 +1,14 @@
 //! Adversarial fixtures for the VCS-Information-Loss Family (ADR-026).
 //!
 //! All tests are #[ignore] until the VCS stdlib antigens and substrate-witness
-//! evaluators ship. When pathmaker lands v02-impl-vcs-info-loss:
+//! evaluators ship. When v02-impl-vcs-info-loss lands:
 //!
 //! 1. Remove #[ignore] from each test.
 //! 2. Run `cargo test atk_vcs_adversarial` — tests should FAIL.
 //! 3. Fix the production code so tests PASS.
 //! 4. These tests are now regression guards.
 //!
-//! Written by adversarial role as preemptive attack surface documentation.
+//! Preemptive attack-surface documentation.
 
 // When the module exists, add:
 // use antigen::vcs::{TriageDecision, VcsAttestation};
@@ -23,7 +23,7 @@
 // Candidates: (a) commit message contains "Revert", (b) `git revert` metadata,
 // (c) commit introduces a `Triage-Decision:` trailer, (d) explicit annotation.
 //
-// ADVERSARIAL FINDING: A rollback commit authored without `git revert` (e.g.,
+// FINDING: A rollback commit authored without `git revert` (e.g.,
 // manually cherry-picking the inverse diff with message "Fix: reapply old state")
 // may NOT be detected as a rollback. The hint fires on git-revert commits
 // but misses manual inverse-cherry-picks. This is a false-negative class.
@@ -51,7 +51,7 @@ fn atk_vcs_1_manual_rollback_without_git_revert_may_miss_hint() {
 // (both --force and --force-with-lease erase history). The hint name is
 // `vcs-force-push-erased-substantive-history` for both.
 //
-// ADVERSARIAL FINDING: `--force-with-lease` can be used when the local
+// FINDING: `--force-with-lease` can be used when the local
 // tracking ref matches remote, which means it DOES erase remote history.
 // A git hook that checks only for `--force` flags and not `--force-with-lease`
 // flags would miss this class. Test that the pre-push hook catches
@@ -77,7 +77,7 @@ fn atk_vcs_2_force_with_lease_triggers_hint_same_as_force() {
 // variant: Green triage means "no regression detected" — no rollback planned.
 // A tight deadline (e.g., 1 minute) on Green triage is semantically absurd.
 //
-// ADVERSARIAL FINDING: The current validate() does not cross-check triage
+// FINDING: The current validate() does not cross-check triage
 // decision against deadline reasonableness. A Green triage with a 1-minute
 // deadline passes validation but signals confusion about the triage semantics.
 //
@@ -109,7 +109,7 @@ fn atk_vcs_3_green_triage_with_deadline_semantic_inconsistency() {
 // The DETECTION mechanism: how does cargo antigen audit KNOW whether the
 // remote has server-side hooks installed?
 //
-// ADVERSARIAL FINDING: Without checking the actual remote configuration,
+// FINDING: Without checking the actual remote configuration,
 // the audit must rely on the `ServerSideEnforcementMode` declaration in the
 // codebase. If an adopter declares `enforcement = Structural` but hasn't
 // actually installed server hooks, the audit is fooled — it assumes Structural
@@ -146,7 +146,7 @@ fn atk_vcs_4_structural_enforcement_declared_but_server_hook_not_installed() {
 // non-empty check. The field is supposed to name a role or person who
 // performed the triage — whitespace-only is meaningless.
 //
-// ADVERSARIAL FINDING: validate() checks Some("") but "   " is not empty.
+// FINDING: validate() checks Some("") but "   " is not empty.
 // This is structurally identical to the rollback_target whitespace gap.
 //
 // Expected: validate() trims the string before checking emptiness, OR
@@ -169,7 +169,7 @@ fn atk_vcs_5_triaged_by_whitespace_only_should_be_rejected() {
 // ADR-026 names `BranchDeletionWithoutAttestation` as one of the 11 VCS
 // stdlib antigens. The attestation mechanism: `vcs_attest_branch_deletion(branch, by_role)`.
 //
-// ADVERSARIAL FINDING: What happens when a branch is deleted WITH attestation,
+// FINDING: What happens when a branch is deleted WITH attestation,
 // then re-created and deleted AGAIN without attestation? The audit must
 // track whether attestation applies to the CURRENT deletion or any prior
 // deletion of that branch name. Branch names are reusable; attestation

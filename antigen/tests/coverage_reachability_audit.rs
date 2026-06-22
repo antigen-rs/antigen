@@ -26,7 +26,7 @@
 //!    `(is_complete, coverage_was_applicable)` pair tells verified-complete
 //!    (`true,true`) from incomplete (`false,true`) from not-applicable
 //!    (`true,false`), so a 2-valued `is_complete` no longer collapses the
-//!    first and third (adversarial 2026-06-01 type-discipline gap).
+//!    first and third (type-discipline gap, 2026-06-01).
 
 use antigen::audit::{UnreachedCause, audit_coverage};
 use antigen::scan::{ScanCoverage, ScanReport};
@@ -198,7 +198,7 @@ fn complete_coverage_reports_no_unreached_sites() {
 
 #[test]
 fn coverage_was_applicable_is_the_three_state_discriminator() {
-    // The core type-discipline pin (adversarial 2026-06-01): is_complete() is a
+    // The core type-discipline pin (2026-06-01): is_complete() is a
     // 2-valued bool over a 3-state domain. Without coverage_was_applicable(), a
     // library consumer cannot tell case (1) verified-complete from case (3)
     // not-applicable — both collapse to is_complete()==true. This test asserts

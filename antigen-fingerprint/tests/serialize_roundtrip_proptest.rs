@@ -7,7 +7,7 @@
 //!
 //! holds for ALL of them. Where the per-variant matrix in `serialize.rs`'s unit
 //! tests ENUMERATES the contract, this SEARCHES for the fp that breaks it — the
-//! audit that the enumeration is complete (ADR-063 aristotle C2: proptest =
+//! audit that the enumeration is complete (ADR-063 C2: proptest =
 //! per-arm correctness by search; the exhaustive no-wildcard match =
 //! coverage-by-compiler). It is also the ADR-063 §Standing-Pressure-Audit Q9
 //! (the adversarial pre-implementation test) turned into a standing oracle.

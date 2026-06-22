@@ -1,4 +1,4 @@
-// Admitting-specimen for `UnsafeSendSync` (async-soundness family, beta.2 voyage).
+// Admitting-specimen for `UnsafeSendSync` (async-soundness family, beta.2).
 //
 // This is a SCAN FIXTURE, not a compiled example, BY NECESSITY: the workspace
 // sets `unsafe_code = "forbid"` (a forbid an inner #[allow] cannot override), so

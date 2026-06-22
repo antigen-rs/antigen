@@ -245,8 +245,6 @@ footgun shapes flagged on a crate that already declares its own antigens:
   with your existing test/lint/verification gates
 - [`immune-migration-guide.md`](immune-migration-guide.md) — if your codebase
   still has `#[immune]` sites the audit flags as deprecated
-- [`decisions.md`](decisions.md) — the warn-not-error default, state-7
-  inheritance, and observe-don't-declare verdicts
 
 ---
 
