@@ -230,7 +230,7 @@ For Rust ecosystem maintainers and tooling-aware engineers:
 
 1. **Read the design substrate** (start with [`origin.md`](origin.md) and [`roadmap.md`](roadmap.md)) and tell us where the design is wrong, over-claiming, or missing considerations.
 2. **Surface prior art** we haven't covered.
-3. **Propose failure-classes** that should be in `antigen-stdlib`, with real-world instance evidence. Issue templates at [`.github/ISSUE_TEMPLATE`](.github/ISSUE_TEMPLATE) accept these.
+3. **Propose failure-classes** that should be in `antigen-stdlib`, with real-world instance evidence. Issue templates at [`.github/ISSUE_TEMPLATE`](../.github/ISSUE_TEMPLATE) accept these.
 4. **Tell us if you'd be an early adopter.** Real adoption stories shape priorities far more than maintainer guesses. Open a GitHub Discussion thread if antigen would address a pain point in your codebase.
 
 For tool authors (clippy, kani, prusti, verus, cargo-mutants, etc.):

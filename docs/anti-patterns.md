@@ -408,7 +408,7 @@ the docs warn explicitly.
 actual matcher behavior. For `has_method`, the documented receiver
 form is `(self, ...)` for by-value, `(& self, ...)` for by-reference,
 `(& mut self, ...)` for by-mutable-reference. See
-[`fingerprint-grammar.md`](fingerprint-grammar.md#has_method) for
+[`fingerprint-grammar.md`](fingerprint-grammar.md#has_methodname-signature) for
 the receiver-rendering reference table.
 
 ---

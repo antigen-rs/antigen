@@ -35,7 +35,7 @@
 >   (cross-reactivity + contact-tracing entries reference this document)
 > - [`cross-domain-architectural-map.md`](cross-domain-architectural-map.md)
 >   §8 (cybersecurity cognate for supply-chain propagation)
-> - [`scope.md`](../scope.md) (forward-substrate primitive map)
+> - [`scope.md`](scope.md) (forward-substrate primitive map)
 
 ---
 

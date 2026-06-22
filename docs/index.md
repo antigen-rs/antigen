@@ -297,9 +297,10 @@ A flat catalog of every doc with one-line purpose:
 | [`immune-system-primitive-map.md`](immune-system-primitive-map.md) | Biology primitive catalog |
 | [`contact-graph-and-recognition-tiers.md`](contact-graph-and-recognition-tiers.md) | 3-tier × 7-mode recognition framework |
 
-The contributor-facing design substrate above — postures, the ADR lifecycle, and
-the development conventions — lives in [`contributors/`](contributors/); the
-research maps sit alongside the other docs at the top level.
+The architectural postures threaded through the ADRs are catalogued in
+[`postures.md`](postures.md); the ratified ADRs themselves live in
+[`decisions.md`](decisions.md). The research maps sit alongside the other docs
+at the top level.
 
 ---
 

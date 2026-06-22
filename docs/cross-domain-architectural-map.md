@@ -29,7 +29,7 @@
 > **Companion to**:
 > - [`immune-system-primitive-map.md`](immune-system-primitive-map.md)
 >   (biology / virology / medicine / public health spine)
-> - [`scope.md`](../scope.md) (the multi-window convergence frame)
+> - [`scope.md`](scope.md) (the multi-window convergence frame)
 
 ---
 

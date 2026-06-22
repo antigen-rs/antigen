@@ -11,7 +11,7 @@
 > does NOT commit the project to building any specific primitive on any
 > specific timeline.
 >
-> **Companion to**: [`scope.md`](../scope.md) (the comprehensive vision); each
+> **Companion to**: [`scope.md`](scope.md) (the comprehensive vision); each
 > primitive in this map is a potential future ADR / sweep / tool surface
 > visible from scope.md's "comprehensive immune-system primitive map" table
 > but expanded into substantive territory exploration.
