@@ -77,12 +77,12 @@ Commands:
   scan         Scan the workspace for antigen presentations and report unaddressed ones
   propose      Propose a candidate failure-class fingerprint from a cluster of marked sites
   audit        Comprehensive immunity coverage report — witness resolution and tier validation
-  attest       Manage `.attest/<Antigen>.json` substrate-witness sidecars (ADR-019)
-  tolerate     Manage tolerance-ratification sidecars (ADR-019 §tolerance tier)
-  oracle       Manage Oracle artifact-class records (ADR-021 §D3)
-  verify       Drive Supply-Chain Defense Family verifications (ADR-025)
-  vcs          Drive VCS-Information-Loss Family observations (ADR-026)
-  mucosal-map  Map mucosal trust boundaries across the workspace (ADR-027 + Amd 1)
+  attest       Manage `.attest/<Antigen>.json` substrate-witness sidecars
+  tolerate     Manage tolerance-ratification sidecars
+  oracle       Manage Oracle artifact-class records
+  verify       Drive Supply-Chain Defense Family verifications
+  vcs          Drive VCS-Information-Loss Family observations
+  mucosal-map  Map mucosal trust boundaries across the workspace
   fingerprint  Print the structural fingerprint of a scanned item
   mine         Mine a repository's `.git` for the SZZ `(defect, fix)` corpus (the learning core's INPUT corpus — recomputable from git history)
   help         Print this message or the help of the given subcommand(s)

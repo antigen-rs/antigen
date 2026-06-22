@@ -90,9 +90,9 @@ Plus five cargo subcommands:
 
 - `cargo antigen scan` — find every site exhibiting a declared failure-class
 - `cargo antigen audit` — observe per-site defense verdicts (defended / undefended / substrate-gap)
-- `cargo antigen attest` — manage `.attest/<Antigen>.json` substrate-witness sidecars (ADR-019)
-- `cargo antigen tolerate` — manage tolerance-ratification sidecars (ADR-019 §tolerance tier)
-- `cargo antigen oracle` — manage Oracle artifact-class records (ADR-021)
+- `cargo antigen attest` — manage `.attest/<Antigen>.json` substrate-witness sidecars
+- `cargo antigen tolerate` — manage tolerance-ratification sidecars
+- `cargo antigen oracle` — manage Oracle artifact-class records
 
 These primitives describe a structure that doesn't depend on Rust.
 Each could be implemented for other languages (Python, JavaScript,

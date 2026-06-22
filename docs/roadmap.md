@@ -348,9 +348,9 @@ The core vocabulary, scan + audit tooling, substrate-witness pipeline, Oracle ar
 ### CLI surface (`cargo antigen ...`)
 - **`scan`** — workspace-wide scanning, item-identity matching (W3), fingerprint detection, tolerance recognition, orphaned-tolerance reporting
 - **`audit`** — `WitnessTier` gradient (None / Reachability / Execution / FormalProof) per ADR-005 Amendment 3; substrate-witness pipeline wired end-to-end via the rc.2 hotfix
-- **`attest`** subcommands — manage `.attest/<Antigen>.json` substrate-witness sidecars (ADR-019): `scaffold`, `sign`, `check`, plus design-phase `list`, `delta`, `gc`
-- **`tolerate`** subcommands — manage tolerance-ratification sidecars (ADR-019 §tolerance tier)
-- **`oracle`** subcommands — manage Oracle artifact-class records (ADR-021 §D3): `list`, `status`, `declare`, `complete`, `deprecate`, `retire`, `revoke`
+- **`attest`** subcommands — manage `.attest/<Antigen>.json` substrate-witness sidecars: `scaffold`, `sign`, `check`, plus design-phase `list`, `delta`, `gc`
+- **`tolerate`** subcommands — manage tolerance-ratification sidecars
+- **`oracle`** subcommands — manage Oracle artifact-class records: `list`, `status`, `declare`, `complete`, `deprecate`, `retire`, `revoke`
 - **`--version`** flag (rc.3) — introspects the installed `cargo-antigen` version for tooling integration
 
 ### Fingerprint engine
