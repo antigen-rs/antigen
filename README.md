@@ -140,10 +140,10 @@ Plus the `cargo antigen` subcommands (run `cargo antigen --help` for the live li
 - **`cargo antigen audit`** — verify every defense has a working witness at the appropriate tier; also renders the prescriptive work board (ADR-033)
 - **`cargo antigen attest`** — substrate-witness sidecar management (`scaffold`, `sign`, `check`, `delta`, `list`, `gc`)
 - **`cargo antigen tolerate`** — tolerance-ratification sidecar management
-- **`cargo antigen oracle`** — Oracle artifact-class records (ADR-021)
+- **`cargo antigen oracle`** — Oracle artifact-class records
 - **`cargo antigen verify`** — supply-chain defense verifications: content-hash, dep-pin (ADR-025)
 - **`cargo antigen vcs`** — VCS-information-loss observations, incl. recurrence mining (ADR-026)
-- **`cargo antigen mucosal-map`** — map mucosal trust boundaries across the workspace (ADR-027)
+- **`cargo antigen mucosal-map`** — map mucosal trust boundaries across the workspace
 - **`cargo antigen fingerprint`** — print the structural fingerprint of a scanned item
 - **`cargo antigen propose`** — the learning verb: anti-unify a cluster of marked unknowns (`#[dread]`/`#[aura]`) into a candidate fingerprint, gated against an operator-supplied clean corpus (ADR-045/047/048). Renders a ratifiable suggestion — it observes, it does not name a class (the source tree is left byte-unchanged)
 
