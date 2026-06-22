@@ -5,7 +5,7 @@ All notable changes to the antigen project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.6.0] — UNRELEASED
+## [0.6.0] — 2026-06-22
 
 **0.6.0 — The Maturing Organism.** v0.5 gave antigen a memory; v0.6 lets a remembered
 failure-class *live*. An immune system that learned to keep a memory can now feel the ground
