@@ -1468,10 +1468,7 @@ mod requires_json_tests {
         }) = p
         {
             assert_eq!(required, vec!["alice".to_string(), "bob".to_string()]);
-            assert_eq!(
-                roles.get("alice").map(String::as_str),
-                Some("reviewer")
-            );
+            assert_eq!(roles.get("alice").map(String::as_str), Some("reviewer"));
             assert_eq!(roles.get("bob").map(String::as_str), Some("reviewer"));
         } else {
             panic!("expected Signers leaf, got: {json}");
