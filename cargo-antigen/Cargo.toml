@@ -49,7 +49,20 @@ toml_edit = "0.22"
 # (async, tokio) — cargo-antigen is a sync CLI. Posture: dep approved; the
 # offline-degradation behavior is the build-requirement (gated in code, never a
 # hard error). default-features keeps rustls; no native-tls/openssl footprint.
-ureq = "2"
+#
+# OFF-BY-DEFAULT (ADR-002 Amendment 3, clause 5 — the non-cascade guarantee):
+# antigen's only network/TLS code must be opt-in, so a non-user of `--live`
+# never compiles a network stack into their binary. Gated behind the
+# `live-verify` feature below; `optional = true` keeps it out of the default
+# dependency graph entirely (`cargo tree` shows no ureq unless the feature is on).
+ureq = { version = "2", optional = true }
+
+[features]
+# Opt-in live crates.io verification (`verify content-hash check --live`). NOT a
+# default feature — building without it compiles zero network/TLS dependencies
+# (the ADR-002 Amd-3 clause-5 breach-gate). `dep:ureq` activates the optional
+# dependency only when the feature is requested.
+live-verify = ["dep:ureq"]
 
 [dev-dependencies]
 tempfile = "3"

@@ -33,8 +33,9 @@
 
 - [ADR-001 — Failure-class memory is structural, not documentary](#adr-001--failure-class-memory-is-structural-not-documentary)
   - [ADR-001 Amendment 1 — Carrier-strength hierarchy + passive/active surfaces + structural commitments C1–C8](#adr-001-amendment-1--carrier-strength-hierarchy--passiveactive-surfaces--structural-commitments-c1c8)
-- [ADR-002 — Compose, don't compete](#adr-002--compose-dont-compete) *(amended by ADR-013, ADR-015, Amendment 2)*
+- [ADR-002 — Compose, don't compete](#adr-002--compose-dont-compete) *(amended by ADR-013, ADR-015, Amendment 2, Amendment 3)*
   - [ADR-002 Amendment 2 — Compose where external expertise serves; compete where antigen cohesion serves](#adr-002-amendment-2--compose-where-external-expertise-serves-compete-where-antigen-cohesion-serves)
+  - [ADR-002 Amendment 3 — Sovereign by Default: the Non-Cascade Guarantee](#adr-002-amendment-3--sovereign-by-default-the-non-cascade-guarantee)
 - [ADR-003 — Biological metaphor is load-bearing, not decorative](#adr-003--biological-metaphor-is-load-bearing-not-decorative) *(amended by Amendment 1)*
   - [ADR-003 Amendment 1 — Biology is BOTH teaching tool AND discovery framework](#adr-003-amendment-1--biology-is-both-teaching-tool-and-discovery-framework)
 - [ADR-004 — Implicit-to-explicit elevation as architectural posture](#adr-004--implicit-to-explicit-elevation-as-architectural-posture)
@@ -523,6 +524,108 @@ This amendment's compose-vs-compete posture is **biology-predicted at the outcom
 - Does NOT abandon compose discipline; preserves it where external expertise + low integration cost warrant it
 - Does NOT claim biology grounds the four-item substrate-citation mechanic (honest silence; software-engineering invention)
 - Does NOT preclude future ADRs from surfacing additional compose-vs-compete decision mechanisms
+
+---
+
+## ADR-002 Amendment 3 — Sovereign by Default: the Non-Cascade Guarantee
+
+**Status**: Ratified 2026-06-23. Drafted in v0.6.1; ratified after two first-principles deconstruction rounds
++ an author-distinct observer witness. The v1 "Opinionated Competitor" and v2 framings were rejected for
+decreeing a directional *outcome* ("owning is the expected path") dressed as a default; this ratified form
+reframes the default as a *journey/process* (a burden of proof, not an end-state), which is what survived
+deconstruction.
+
+**Amends**: ADR-002 (Compose, don't compete; ratified 2026-05-07) — previously amended by ADR-013
+(Amendment 1) + Amendment 2 (2026-05-22). **Honestly supersedes Amendment 2's burden-DIRECTION** (the
+substrate-citation moves from *compete* to *composing a non-herd capability*); **preserves** Amendment 2's
+per-surface distinguishing machinery and its refusal to decree an outcome.
+
+**Related**: ADR-002 Amendment 2, ADR-003 (biology-as-discovery), ADR-021/ADR-025 (the supply-chain family —
+antigen's own active protection, here applied to itself), the co-native + no-self-witness disciplines, and the
+governing disposition *Journey Before Destination*.
+
+### Finding
+
+2026 is an epidemic of supply-chain attacks through package management. Antigen is, by mission, a supply-chain
+detector — it therefore **cannot itself be a cascade vector** (a supply-chain-vulnerable immune system is the
+ultimate autoimmune hypocrisy: the doctor as the disease). Three facts shape the posture:
+
+1. **The guarantee-cost asymmetry.** Guaranteeing a *composed* dep never cascades costs *forever, reactively,
+   per-package* (verify content, reason about every update, sandbox, track maintainer/registry drift).
+   Guaranteeing antigen's *own* code costs ~nothing beyond the review antigen already does.
+2. **The herd is the active protection — for the *universal* substrate.** Composing `serde` is safe but a niche
+   unwatched crate is dangerous because `serde`/`syn`/`clippy`/`cargo` are **herd-immunized**: the whole
+   ecosystem depends on and watches them, so a compromise is *loud*; a niche crate's compromise is *silent*.
+   "The packages every dev already uses" are a categorical compose-bucket precisely because the herd supplies
+   the surveillance antigen would otherwise have to supply itself.
+3. **The dose makes the poison.** Sovereignty is the cure at the right dose, a poison at the wrong one:
+   *underdose* (compose everything) = supply-chain exposure; *overdose* (reinvent serde/TLS) = reinvention
+   exposure (a hand-rolled version of a battle-tested, security-critical thing is *less* safe).
+
+**The governing disposition — Journey Before Destination.** What follows sets a *default*, but it is a default
+about the **journey** (how antigen approaches each compose-vs-own decision), **never about the destination**
+(it decrees no fixed sovereign outcome; the actual own/compose mix is whatever the case-by-case experiments
+yield). This is the shape of memory-safety-by-default: a discipline on *how you write*, not a claim the program
+*is* provably safe.
+
+### Decision
+
+**The invariant: nothing in antigen's published crates could ever cascade a supply-chain attack.** It is
+non-negotiable and always holds. Everything below is the *method* of upholding it.
+
+1. **Compose the herd-immunized universal substrate freely** — the foundational toolchain + crates the whole
+   ecosystem uses and watches (clippy, rust-analyzer, cargo; `serde`, `syn`, `proc-macro2`), whether
+   user-invoked (not in our graph → zero cascade surface) or a shipped crate-dep (in our graph, but the herd is
+   its active protection). Composing here does not engage the presumption below.
+2. **For everything that is antigen's OWN capability (non-herd, niche, or unwatched): a rebuttable
+   sovereign-presumption.** Antigen *presumes roll-our-own*, with the **burden of proof on composing** — the
+   `unsafe`-block analog: composing is permitted, but must be justified, evidenced, protected, and gated. This
+   is a *journey* default (where each decision starts + who must prove the exception), **not a destination
+   claim** (it does not assert antigen is or will be sovereign). Owning is **prevention**: you cannot prevent
+   with a defense you do not control.
+3. **Rebut the presumption EMPIRICALLY — never by prior** (the author's or a reviewer's). Scaffold BOTH paths
+   (a roll-our-own MVP *and* a wrap-with-full-protection) and decide against a **cost/risk/liability rubric**
+   (build cost · ongoing guarantee cost/release · attack surface · churn exposure · liability if compromised ·
+   does-the-dep-do-more-than-we-need), with an **author-distinct witness** confirming the verdict — without it,
+   it is a vibes-grade gate wearing an Execution-tier label. Proportional to stakes.
+4. **The unavoidable large non-herd dep becomes a dedicated `antigen-*` crate (a granuloma)** — sovereign,
+   separately governed, version-by-version careful work so nothing breaks for antigen and nothing enters from
+   community versions; community contribution flows through antigen's own governance.
+5. **Protect + gate every composed exception.** Run antigen's own supply-chain protection over the dep's tree
+   (**attestation-based today** — `ContentHashMatches`/`DepAttested`/`MaintainerUnchanged` static in v0.2;
+   live-query v0.3+; `SandboxClean` v0.4+) and **feature-gate the breach** so it only compiles when requested
+   (e.g. the live crates.io-checksum verify in `cargo-antigen` — TLS is the security-too-hard carve-out, so
+   `ureq` is the right compose, gated behind `live-verify = ["dep:ureq"]`).
+6. **The guarantee is enforced, not promised:** antigen runs its own supply-chain family over its own
+   dependency tree as a **blocking release gate** (the v0.6.1 `cargo antigen pre-tag` audit is its first
+   instance).
+
+### Biology grounding
+
+**Class-1 (biology-predicted at outcome level):** owning-as-prevention (the immune system owns its
+antimicrobial chemistry — defensins/complement/lysozyme — rather than outsourcing); the skin-barrier (external
+code baked in = a breach; roll-our-own = skin intact; wrap = a poultice that may carry its own bacteria; the
+`antigen-*` crate = a granuloma walling off the unavoidable breach); herd immunity as the universal substrate's
+protection. **Software-engineering invention (honest silence — biology does not ground these):** the
+cost-asymmetry argument, the empirical cost/risk/liability rubric, and the Journey-Before-Destination framing.
+
+### What this amendment supersedes / preserves
+
+- **Supersedes** Amendment 2's burden-DIRECTION: the substrate-citation moves from *compete* to *composing a
+  non-herd capability*. Justified by the non-cascade *safety invariant* — a safety property is permitted to set
+  a burden-of-proof default, exactly as memory-safety burdens `unsafe`.
+- **Preserves** Amendment 2's per-surface distinguishing machinery (now applied to the compose exception) AND
+  its refusal to decree an outcome — this amendment sets a *journey* default, not a destination, so Amendment
+  2's "neither *outcome* privileged" stands.
+
+### What this amendment does NOT do
+
+- Does **not** decree a sovereign outcome (it's a journey default; the mix is whatever the experiments yield).
+- Does **not** burden composing the herd-immunized universal substrate.
+- Does **not** permit a gut-call in *either* direction — clause 3's experiment + author-distinct witness is
+  required to compose *or* to claim a thing is too-big-to-roll.
+- Does **not** mandate reinventing the foundational/security-critical substrate (the overdose).
+- Does **not** claim biology grounds the empirical mechanic, the cost-asymmetry, or Journey-Before-Destination.
 
 ---
 
