@@ -46,6 +46,7 @@ use antigen::{audit, presents, scan};
 use clap::{Parser, Subcommand};
 
 mod mine;
+mod pre_tag;
 
 /// Cargo subcommand for antigen.
 #[derive(Debug, Parser)]
@@ -171,6 +172,20 @@ enum AntigenSubcommand {
     /// measured corpus size — the self-verifying cure for MATURE's
     /// corpus-starvation (a near-zero count signals a tip-revwalk regression).
     Mine(MineArgs),
+    /// **Pre-tag release checkpoint** — the gate the CI gate runs too late to catch.
+    ///
+    /// Runs the consistency + tag-safety checks that must hold BEFORE the git tag
+    /// is cut, prints PASS/FAIL per check, and exits non-zero if any FAIL. CI runs
+    /// on push — AFTER the tag is already pushed — but the git tag is the one
+    /// non-idempotent, human-recovery-required release step. `pre-tag` is the
+    /// **releng gate** (not a user-facing scan) that catches what CI cannot in
+    /// time: version coherence (workspace version == every internal `=`-pin ==
+    /// the version-to-tag), the headline **no-tag-exists** check (local AND
+    /// `origin`), a real `## [<version>]` CHANGELOG section, publish-blocking
+    /// metadata + README presence on all 5 crates, and `Cargo.lock` freshness. It
+    /// does NOT reimplement CI — it prints the local gate to run by hand. This is
+    /// the runnable defense for the `NonIdempotentReleaseStep` stdlib antigen.
+    PreTag(PreTagArgs),
 }
 
 // A CLI args struct: each bool is an independent `--flag` (strict / include_deps
@@ -1483,6 +1498,11 @@ fn run_verify_content_hash_record(args: VerifyContentHashRecordArgs) -> ExitCode
 /// 1-char → `1/<name>`; 2-char → `2/<name>`; 3-char → `3/<c1>/<name>`;
 /// 4+-char → `<c1c2>/<c3c4>/<name>`. Names are lowercased (the index is
 /// case-insensitive, stored lowercase). Returns `None` for an empty name.
+///
+/// Gated behind `live-verify` (ADR-002 Amd-3 clause 5): only `fetch_cratesio_cksum`
+/// consumes it, so without the feature it would be dead code — the non-cascade
+/// guarantee keeps the entire live-verification machinery out of a default build.
+#[cfg(feature = "live-verify")]
 fn cratesio_index_path(name: &str) -> Option<String> {
     let lower = name.to_lowercase();
     let n = lower.chars().count();
@@ -1501,6 +1521,11 @@ fn cratesio_index_path(name: &str) -> Option<String> {
 /// as ⊥ (Unverifiable), so the live check degrades gracefully (never blocks).
 /// This is the ONLY networked code; the verdict is the pure
 /// `compare_live_cksum`. A 5s timeout bounds the offline-degradation latency.
+///
+/// Gated behind `live-verify` (ADR-002 Amd-3 clause 5): this is the sole `ureq`
+/// (network/TLS) call site. Off by default so non-users never compile a network
+/// stack into their binary.
+#[cfg(feature = "live-verify")]
 fn fetch_cratesio_cksum(name: &str, version: &str) -> Option<String> {
     let index_path = cratesio_index_path(name)?;
     let url = format!("https://index.crates.io/{index_path}");
@@ -1596,6 +1621,13 @@ fn run_verify_content_hash_check(args: VerifyContentHashCheckArgs) -> ExitCode {
 /// outcome, and returns `true` iff the result should ESCALATE the exit code (a
 /// `Mismatch` under `--strict`). `Verified` and `Unverifiable` never escalate;
 /// `Unverifiable` (offline) is reported and skipped so the audit is not blocked.
+///
+/// Gated behind `live-verify` (ADR-002 Amd-3 clause 5). The
+/// `#[cfg(not(feature = "live-verify"))]` stub below has the SAME signature and
+/// returns `false`, so the call site in `run_verify_content_hash_check` is
+/// identical in both configurations — the feature only changes what `--live`
+/// *does*, never whether the binary compiles.
+#[cfg(feature = "live-verify")]
 fn run_live_cksum_check(
     root: &std::path::Path,
     crate_name: &str,
@@ -1649,6 +1681,29 @@ fn run_live_cksum_check(
             false
         },
     }
+}
+
+/// Stub for the `--live` path when the binary is built WITHOUT the `live-verify`
+/// feature (the default — ADR-002 Amd-3 clause 5, the non-cascade guarantee: no
+/// network/TLS dependency in a default build). Same signature as the real
+/// [`run_live_cksum_check`], so the call site in `run_verify_content_hash_check`
+/// is unchanged across configurations. Prints a clear SKIPPED notice and returns
+/// `false` — offline ≠ failure, so `--live` here never blocks and never escalates
+/// the exit code; the local content-hash check remains authoritative either way.
+#[cfg(not(feature = "live-verify"))]
+fn run_live_cksum_check(
+    _root: &std::path::Path,
+    crate_name: &str,
+    version: &str,
+    _strict: bool,
+) -> bool {
+    println!(
+        "content-hash --live: SKIPPED for {crate_name}@{version} — this binary was \
+         built without the `live-verify` feature; rebuild with `--features \
+         live-verify` to enable live crates.io verification. The local check is \
+         authoritative either way."
+    );
+    false
 }
 
 fn run_verify_stub(name: &str, version_target: &str, description: &str) -> ExitCode {
@@ -2321,6 +2376,7 @@ fn main() -> ExitCode {
         AntigenSubcommand::MucosalMap(args) => run_mucosal_map(args),
         AntigenSubcommand::Fingerprint(args) => run_fingerprint(args),
         AntigenSubcommand::Mine(args) => run_mine(args),
+        AntigenSubcommand::PreTag(args) => run_pre_tag(args),
     }
 }
 
@@ -5175,6 +5231,68 @@ fn run_mine(args: MineArgs) -> ExitCode {
     ExitCode::SUCCESS
 }
 
+/// Args for `cargo antigen pre-tag` — the pre-tag release checkpoint.
+#[derive(Debug, Parser)]
+struct PreTagArgs {
+    /// Workspace root (default: current directory).
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+    /// The version that would be tagged. Defaults to the workspace
+    /// `[workspace.package] version` — supply this only to pre-flight a
+    /// not-yet-bumped version (every check is run relative to it).
+    #[arg(long)]
+    version: Option<String>,
+}
+
+/// `cargo antigen pre-tag` — run every pre-tag check, print PASS/FAIL per check,
+/// exit non-zero if any check FAILs (it is a gate). The checks are the
+/// consistency + tag-safety preconditions CI runs too late to catch (after the
+/// non-recoverable tag is already pushed). See [`pre_tag`] for the check-set.
+fn run_pre_tag(args: PreTagArgs) -> ExitCode {
+    if !args.root.is_dir() {
+        eprintln!(
+            "error: --root is not a directory: {} (pre-tag runs at a workspace root)",
+            args.root.display()
+        );
+        return ExitCode::from(2);
+    }
+
+    let results = pre_tag::run_checks(&args.root, args.version.as_deref());
+
+    println!(
+        "cargo antigen pre-tag — release checkpoint for {}",
+        args.root.display()
+    );
+    println!();
+    let mut failed = 0usize;
+    for r in &results {
+        let mark = if r.passed { "PASS" } else { "FAIL" };
+        if !r.passed {
+            failed += 1;
+        }
+        // The first detail line sits on the PASS/FAIL row; any continuation lines
+        // (multi-line details) are indented under it.
+        let mut lines = r.detail.lines();
+        let first = lines.next().unwrap_or("");
+        println!("[{mark}] {:<22} {first}", r.name);
+        for cont in lines {
+            println!("       {:<22} {cont}", "");
+        }
+    }
+    println!();
+    if failed == 0 {
+        println!("all {} checks PASSED — safe to tag", results.len());
+        ExitCode::SUCCESS
+    } else {
+        println!(
+            "{failed} of {} checks FAILED — DO NOT TAG until resolved (the tag is the \
+             non-recoverable step)",
+            results.len()
+        );
+        ExitCode::from(1)
+    }
+}
+
 /// One scanned site's fingerprint, for `cargo antigen fingerprint` output.
 #[derive(serde::Serialize)]
 struct FingerprintMatch {
@@ -6851,14 +6969,20 @@ fn print_state7_diagnostics(audit_report: &audit::AuditReport) {
 
 #[cfg(test)]
 mod tests {
-    use super::cratesio_index_path;
-
     // The crates.io sparse-index path convention is the deterministic core of
     // the live-verification network shell — unit-tested here. The 3-valued
     // verdict (compare_live_cksum) is tested in the antigen lib; the network
     // fetch itself (real HTTP to crates.io) is verified manually, since it
     // cannot be made hermetic.
+    //
+    // Gated behind `live-verify` (ADR-002 Amd-3 clause 5): `cratesio_index_path`
+    // only exists when the feature is on, so the import + these tests are gated
+    // with the same cfg — a default `cargo test` build compiles cleanly with no
+    // unresolved import.
+    #[cfg(feature = "live-verify")]
+    use super::cratesio_index_path;
 
+    #[cfg(feature = "live-verify")]
     #[test]
     fn cratesio_index_path_follows_cargo_length_convention() {
         // 1/2/3-char names get the short prefixes; 4+ get the <c1c2>/<c3c4> form.
@@ -6869,6 +6993,7 @@ mod tests {
         assert_eq!(cratesio_index_path("ureq").as_deref(), Some("ur/eq/ureq"));
     }
 
+    #[cfg(feature = "live-verify")]
     #[test]
     fn cratesio_index_path_lowercases_the_name() {
         // The index is stored lowercase; a mixed-case name must normalize.
@@ -6876,6 +7001,7 @@ mod tests {
         assert_eq!(cratesio_index_path("AB").as_deref(), Some("2/ab"));
     }
 
+    #[cfg(feature = "live-verify")]
     #[test]
     fn cratesio_index_path_empty_name_is_none() {
         assert_eq!(cratesio_index_path(""), None);

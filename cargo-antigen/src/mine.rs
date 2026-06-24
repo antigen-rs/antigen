@@ -187,6 +187,13 @@ mod tests {
     fn git(dir: &Path, args: &[&str]) {
         let status = std::process::Command::new("git")
             .current_dir(dir)
+            // A throwaway fixture repo is NOT a gated project: isolate it from the
+            // user's GLOBAL git hooks. (camp's pre-commit gate installs via a global
+            // `core.hooksPath` and hard-fails — "no camp project found" — inside a
+            // non-camp temp repo, breaking the fixture's commit.) This does NOT skip
+            // the test — the miner is still fully exercised; only the synthetic
+            // fixture commit runs un-hooked, exactly as a synthetic git history should.
+            .args(["-c", "core.hooksPath="])
             .args(args)
             .status()
             .expect("git must be on PATH for this fixture");

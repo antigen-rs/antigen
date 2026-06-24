@@ -70,6 +70,12 @@
 //!   call-shapes where a wrong invariant is UB, not a panic (`transmute`,
 //!   `assume_init`, `from_utf8_unchecked`). Biology cognate: the breached
 //!   self/non-self membrane (a forged MHC marker).
+//! - [`release_engineering`](crate::stdlib::release_engineering) — the
+//!   Release-Engineering Failure-Class Family: the substrate-alignment classes
+//!   that bite at the release boundary (the non-idempotent git tag, missing
+//!   publish metadata, transitive-dep MSRV creep, fingerprint collision).
+//!   Declaration-only — enforced by `cargo antigen pre-tag` + CI, not
+//!   source-walking. Biology cognate: the irreversible developmental commitment.
 //! - [`dogfood`](crate::stdlib::dogfood) — antigen-internal dogfood antigens,
 //!   failure-classes observed directly in antigen's own development and
 //!   coordination substrate (v0.2 completion arc, 2026-05-24).
@@ -115,6 +121,7 @@ pub mod mucosal;
 pub mod numeric_truncation;
 pub mod panic_on_index;
 pub mod recurrent;
+pub mod release_engineering;
 pub mod resource_lifecycle;
 pub mod supply_chain;
 pub mod time_ordering;
