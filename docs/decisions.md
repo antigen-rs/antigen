@@ -13102,3 +13102,311 @@ The original code's comment ASSERTS the churn cause ("the recall dropped because
 
 **Resolves.** The doc-over-code over-claim surfaced by the v0.6 docs-currency sweep — antigen's own `DocClaimVsCodeImplementationMismatch` turned inward on the ADWIN organ. Latent (unreachable behind the `n ≥ 30` power gate while every class is `UnderPowered`), ruled for honest-scope now so the doc stops claiming a cutpoint-set the code does not use, with the math-direction fix flagged for the build wave before the full regime first becomes reachable.
 
+---
+
+## ADR-066 — Antibodies: the Adaptive Self; antigen as a Lens (Observability over Declaration)
+
+**Status**: Ratified 2026-06-24 (v0.6.1). Drafted from a real dogfood pain (tambear's `#[defended_by]` limits)
+through two author-distinct ceremony councils — a 7-lens design pass (aristotle · contrarian · outsider ·
+constructive/hostile/mal-intent adversarial · observer) and a 7-lens verification pass (detail-auditor ·
+biology-faithfulness · mal-intent · practitioner · pedant · observer · expansionist) — plus a sealing notary.
+The §4 math-development is a named research follow-on, not part of this ratification.
+
+**Supersedes / extends**: ADR-029 (supersedes class-level "one witness credits all sites" matching + the
+test-only witness scope; **preserves + generalizes** "immunity is *observed*, never *declared*"). ADR-029
+**Amendment 1** (substrate-gap precedence — a failing `requires=` is not masked by a witness) is honored at §3.
+**Names ADR-024 as a source** for the evidence-qualifiers (incomplete reconciliation — see Open seams). Mirrors
+**ADR-009 Amendment 1** (verify-only/external-substrate antigens) onto the defense side. Generalizes **ADR-002
+Amendment 3** (herd-immunized substrate = the non-self-good quadrant cell; the stroma-builder is a sovereign
+own-capability — its clause-3 empirical rebuttal lives in *its* follow-on ADR). **Honors ADR-041** (`dread`/`aura`
+stay on the marked-unknown plane, OFF the classification axis; this ADR only *adds* proof-of-emission — note
+ADR-041 is itself "locked, not yet ratified").
+
+**Related**: the no-self-witness invariant, co-native + honest-labeling disciplines, the decidability ceiling,
+the structural digest / stroma, *Journey Before Destination*.
+
+### Finding
+
+Dogfooding surfaced four seams in `#[defended_by]`, one root:
+
+1. It attaches only to a test/fn (`antigen-macros/src/lib.rs:347`) — asserting, falsely, that every silent
+   failure is test-coverable.
+2. **Its macro *name and attachment* are inverted:** `#[defended_by(X)]` reads "a *test* is defended-by a
+   *threat* X" and attaches to the test, not to the defending act. (The *argument* naming the antigen is
+   correct — a paratope is named for the epitope it binds; the defect is the name + where it hangs, not the
+   argument.)
+3. Matching is class-level (`immunity.rs:253-262`, self-documented as an open gap) — N×`#[presents(X)]` +
+   1 witness ⇒ all N read defended. A real soundness hole.
+4. A defense is asserted, never observed (the macro is a pure doc-marker) — the audit cannot tell a
+   demonstrated defense from a claimed one, nor express a partial one.
+
+Root: **antigen has a rich catalog of non-self and no first-class repertoire of self.** An immune system is
+*defined* by adaptive memory of the protective. The missing positive-self is structurally demanded by the
+biology. The deeper question — *on what authority do we credit a defense?* Not on the bytes being "proof" (you
+can manufacture proof; many silent fail-classes are unprovable). Authority is twofold: **rigor** borrowed from
+*proven biology-math* where the analog is faithful, and **trustworthiness** from a *culture of proof-over-trust*
+— observability over declaration. The honesty is the rigor.
+
+### The thesis: a lens, not a gate; show the biology; the metaphor does the work
+
+**antigen is a sensing organ for a codebase's self-knowledge — a lens, never a compile-blocker.** It does not
+**declare** a verdict ("defended", "done", "safe"); it **shows the current biology** — the immune state at each
+site — and makes it legible to *every* mind on the team, human and AI alike, in ways docs and Slack
+structurally cannot. **Immune activity is health.** A codebase showing *no* immune signal isn't protected — it
+has no immune system. "Never green" is therefore not a defect; it is the organ being alive. The job is to make
+the living readout **legible**, and to **teach** that antigen is *signal, not noise*.
+
+The immune metaphor (antigen's only public vocabulary) carries **four jobs at once**: **rigor** (proven
+biology-math, §4); **transparency** (show the biology, never hide, never declare done); **risk-communication**
+(biology names carry their own caution — `immunosuppress` *feels* risky to anyone); **responsibility** (the
+mask-in-a-pandemic model). "Proof over trust" is a **cultural commitment**, not a byte-property. Trust remains;
+the culture (observability, no-self-witness, openness, strict defaults, re-derivable evidence) makes
+manufactured proof *discoverable* and trust *earned*. **"Proof" has two non-overclaiming senses:** proof of
+**detection** and proof of **mitigation-capability** (a *recommended* procedure *does or can* mitigate — many
+alternatives, any may suffice, combinations may be partial; sufficiency is the user's judgment, never our
+decree). Honest scope: most real defenses are *asserted*, so antigen is best read as **a disciplined, per-site
+defense *registry* with a re-verified minority — not a proof *engine*.**
+
+### Decision
+
+**The invariant: antigen shows the current biology and never declares a protection-verdict, and never blocks.**
+A defense is a named, per-site, observable (or honestly-labeled asserted) *reaction*, whose effect is shown as a
+change in the site's immune state. Rigor is borrowed from proven biology-math where the analog is faithful;
+trustworthiness is the proof-over-trust culture. Everything below is method.
+
+1. **The antibody is a first-class definition — a *recommended mitigation*, not a guaranteed cure.**
+   `#[antibody(binds = X, kind = …, references = […])]`. **`binds` always names the ANTIGEN** (the epitope) —
+   *enforced at compile time*. **The `kind` alphabet** (closed, extensible by ADR): `Test` · `Structural`
+   (a re-checkable shape) · `TypeProof` · `SubstratePredicate` · `Asserted*` (the asserted vocabulary —
+   `AssertedFixedInPR`/`…Commit`/`…Refactor`/`…PackageUpdate`/`…InternalDoc`/`…BySignedPerson`). An antigen has
+   *many* possible antibodies; any may suffice; combinations may be partial. `#[defended_by(X)]` is retained as
+   a **deprecated alias** — honestly: *it retains class-level (hint-grade) crediting; instance-binding upgrades
+   a site's shown state* (a migration *codemod* + a transition window before the new self-antigen fires are the
+   adoptable path).
+
+2. **A binding addresses one site, over the sovereign stroma.** The unit is **one reaction to one stroma-node**
+   (multiple antibodies may react to one node — §7 — so 1:1 is binding↔reaction, not binding↔site). Identity is
+   the **stroma-node** in antigen's **own sovereign stroma-builder** (ADR-002 Amd3): **fully-qualified,
+   collision-free** (closing the cross-file `validate`/`validate` collision — `scan/diff.rs:117`
+   last-write-wins); **node lifecycle** (deletion/rename/split re-home or re-open bindings); it **owns the digest
+   + threat model** (doc-comment-only edits do not re-open; semantic-equivalence under different tokens is out of
+   scope by the ceiling). **The binding carries the structural predicate it matched, so re-confirmation is
+   *mechanical* where the predicate still holds — re-verify, don't re-ask.** **Graph-integrity is a faithfulness
+   precondition** for the field math (§4): the stroma-builder follow-on ADR MUST carry it (a poisoned graph
+   yields false-quiet with mathematical credibility). Honest strength: **1:1 by-construction for single-present
+   nodes; conservative-reopen for multi-present** (`AntibodyRebindsAcrossLocalDisambiguator`, fails *safe*).
+   Class-level matching is demoted to a non-closing hint. **An out-of-source binding manifest** (a sidecar keyed
+   on stroma-node id) is offered. The full builder is a **required sovereign dependency with its own follow-on
+   ADR** — not built here.
+
+3. **Observability over declaration — the proof/trust line.** A reaction is **observed** (the audit
+   re-checks it at this site) or **asserted** (a claim it cannot re-check) — the discriminator is *"can the
+   audit re-check this, here?"*, a property of the verifier. **The re-check scope of a `Structural` antibody
+   must be declared** (immediate-body vs effective-behavior): a body-only check is evadable by one-hop
+   delegation. Per **ADR-029 Amendment 1**, a failed `requires=` substrate-gap takes precedence over any binding.
+
+4. **The standing is a *field* governed by structure-faithful math — the discipline is ratified; the exact
+   math is research.** A site's immune state is a field over the stroma (the manifold), not a binary verdict and
+   not an invented scalar. We do *not* "inherit proven continuous-diffusion math" — applying our own guard, pure
+   diffusion demands a conserved quantity, a metric, and a flux boundary the stroma lacks, so that borrow is
+   *falsified*. The ratified commitment is the **discipline**: *relationships governed by the best
+   structure-faithful math; the guard **applied** (required vs supplied vs absent terms enumerated per
+   candidate); lossiness named; a discrete code-graph summons discrete/graph math, not a borrowed continuous
+   PDE.* The **named candidates** (developed in the math-research follow-on, each guard-checked before
+   enforcement): **reaction-diffusion** (the **antibody is the sink**, unifying this field with mitigation §7;
+   **residual loudness is the steady-state** — "an equilibrium, not a bar" — the principled meaning of
+   "quiescent under policy P", §5); **quasispecies / replicator-mutator** (antigen's own canonization loop *is*
+   germinal-center selection; summons a fitness function, competition term, variant operator, and Eigen's
+   error-threshold complexity ceiling); **Hill kinetics** (the combine-semantics; the clonal/igg/polyclonal
+   qualifiers are its cooperativity coefficient — **closing the ADR-024 seam**); **percolation / R₀** (the
+   *graph-level* herd / blast-radius signal). (`clonal`→branching-process is **downgraded to metaphor**.) **The
+   convergent missing primitive** three of these maths demand: a first-class **membrane / compartment-boundary**
+   (host↔federation permeability). **The scalars measure smoke** — the math is rigorous, the *observables fed
+   into it* are proxies; we say so. **`dread`/`aura` are NOT points on this field** — they live on ADR-041's
+   marked-unknown plane (⊥); this ADR adds only proof-of-emission (§8).
+
+5. **No protection-threshold in the truth — thresholds are policy, and we ship strict.** antigen never emits
+   "defended/done/sufficient"; truth = the field, **shown**. *Partial* protection is **residual loudness shown**,
+   not "below a bar". Any gate is the **user's policy layer** on top — and **that antigen ships a
+   *non-permissive* default is itself a ratified invariant** (the *category* "strict, not a fig-leaf"; the
+   *value* drifts). We ship **named presets** (strict/standard/advisory) so no team cargo-cults a raw number.
+   The reader can predict the **loudness they will see** and the **bucket**, never an exact internal number.
+
+6. **Immunosuppress = a visible, felt, individually-signed reaction-by-reaction act — never a silent global
+   knob.** Per-(site, antigen); *N* acceptances are *N* signed, individually-expiring lines (friction
+   proportional to scope); the **aggregate is a first-class LOUD status line**. A global threshold-softener is
+   **forbidden**. The name carries the risk. Guards: cap consecutive renewals; no-self-witness on renewal (a
+   *different* `signed_by` after K); asserter-trust config is **non-self** (unknown-asserter default = 0). **A
+   flood of cheap asserted reactions must not drive a node quiet:** asserted reactions contribute *less* to the
+   shown reduction than observed, with a floor for asserted-only sites, and asserted-count > N triggers the
+   aggregate-loud line.
+
+7. **Partial mitigation is shown as residual loudness; sufficiency is the user reading the biology.** No machine
+   "sufficient". A reaction that *claims coverage it lacks* is the born-red self-antigen
+   `AntibodyOverclaimsBindingScope` — caught where catchable (an *observed* reaction's reach is re-checked; an
+   *asserted* claim is labeled asserted and shown, never trusted). Coverage is **shown, not unioned-to-a-verdict.**
+
+8. **Proof of *emission-fidelity* at every tier — not of universal detection.** Every fingerprint (incl.
+   `dread`/`aura`) carries a **positive specimen**, a **non-vacuous negative control** (a *minimal structural
+   perturbation* of the positive — a near-miss — verified by the author-distinct reviewer at canonization; the
+   teeth-check is cultural, not mechanically-unfakeable), and **scoped circumstances**. Constructable at every
+   tier; **decidability caps how high a verdict climbs, never whether the behavior is provable.**
+
+9. **The data model carries, first-class** (anti-YAGNI): an **evidence-package** (`reproducer_or_method` ·
+   `research_narrative` · `public_scan_findings?` · `disclosure_trail?` — field-set ratified, schema drifts), a
+   **citable identity** (content-addressed on the structural digest), and **queryable taxonomy lineage**
+   (CWE/CAPEC/ATT&CK/CVE — structured).
+
+10. **Public-health duty.** **A published weakness fingerprint ships with its antibody** (the only durable-spine
+    part of disclosure; the *workflow* is process). **Two operator opsec invariants** (the externality duty, not
+    the entity's): the **scan-results inventory is a targeting map** — MUST NOT be centralized beyond the
+    disclosure window and MUST be access-scoped; and **a published artifact's own suppressions surface in
+    downstream consumers' reports as residual loudness attributed to the upstream dependency** (the
+    immunosuppressed-carrier-is-still-infectious mechanism).
+
+11. **One complete biology, many projections — the lens's output.** antigen **always computes and persists the
+    complete biology** (the full stroma map, every item in detail, regenerated each run — *nothing hidden*). The
+    **surface is a legible, prioritized summary** (e.g. *"presents 37 / 15, 18 dreads — only 3 with no antibody;
+    here is your action-menu: confirm · suppress · assert-if-configured · automated-only"*) with **stable
+    pointers** (the sovereign stroma-node ids) into the full report; a standard **`-v … -vvvv`** dial pulls more
+    inline. Depth is **progressive / opt-in** — the reconciliation of *hide-nothing* with *don't-drown*. The
+    persisted map is the **distributed-cognition substrate**; its **per-run delta is itself signal** (a
+    codebase's immune *history*). Verbosity levels + report format drift; *completeness + progressive-disclosure
+    + stable-pointers* is the invariant.
+
+**New self-antigens** (born-red): `ClassLevelDefenseCreditsUnexercisedSite` (Finding §3) and
+`AntibodyOverclaimsBindingScope` (§7).
+
+### Responsibility — the mask-in-a-pandemic model (two levels)
+
+antigen is *an immune system*; it does not police. **The individual entity is sovereign over itself** (its
+policy thresholds, suppressions) — we inform, default-strict, make-risk-felt, and show; we do not force. **The
+public-health operator (antigen / the federation) owns the *externalities*** — disclosure, herd stewardship, the
+targeting-map opsec (§10): *the health authority must never publish a hit-list of the unprotected to those who
+would exploit it.*
+
+### Biology grounding
+
+**Class-1 (biology-predicted; rigor borrowed — each guard-checked in the math-research follow-on):** the
+antibody↔antigen binding relation; **the field maths of §4** (reaction-diffusion / quasispecies-selection /
+Hill-kinetics / percolation), proven *in their native domains*, to be verified faithful term-by-term before
+enforcement; **clonal/IgG/polyclonal as *distinct evidence mechanisms*** — affinity (IgG), repetition (clonal),
+breadth (polyclonal); **immune memory as a learned, matured repertoire**; **structural recognizer / missing-self**
+(a structural antibody = the antigen-shape is *gone* — *not* antibody-mediated; NK missing-self has no paratope,
+so it is a recognizer, not an antibody); **the danger model** (Matzinger — threat is danger, not origin); **no
+homeostatic "done".** **The guard:** enforce a process's math *only where the analog is faithful*; a
+math-demanded-but-absent term (a conserved quantity, a metric, a flux boundary) is the **falsifier** (pure-
+diffusion → reaction-diffusion is this guard *working*). **"Proven" caveat:** in biology "proven" means
+*well-modeled and empirically supported*, not theorem-proven — we lean on the math's formal rigor in its native
+domain and on the guard for the transfer. **Software-engineering / security-research invention (honest
+silence):** the observed/asserted discriminator, the policy/truth split + ship-strict invariant, the data model,
+responsible disclosure, the output/projection model.
+
+### The current map (orientation — drift-allowed, NOT decreed)
+
+**antigen is the self-knowledge organ of a codebase, across distributed (human + AI) cognition** — a lens that
+makes the codebase legible to every kind of mind. **Adoption is for those who want the lens**, and **education
+is load-bearing** (teaching "antigen is signal, not noise; here's why we never say 'good to go'" is a first-class
+onboarding artifact — a deliberate positioning choice with a real cost: a narrower initial audience).
+
+**The danger-model quadrant** (self/non-self × good/bad; threat = danger not origin): self-good = healthy code +
+own bindings; self-bad = own presents; **non-self-good = herd-immunized deps / imported repertoires (ADR-002
+Amd3)**; non-self-bad = supply-chain pathogens. **Two stacked selves** (antigen-the-organ vs the host entity);
+host-relative; dogfood is the reflexive case. **Entity-sovereign, ecosystem-aware** — antigen spans prophylactic
+/ preventative / specific-immunity / herd-immunity / public-health / policy.
+
+**The public library — three layers** (decidability governing potency / portability / shareability):
+re-verifiable antigen fingerprints; re-verifiable antibody fingerprints (potent in a foreign host *because*
+re-verified there — the repertoire self-selects for the decidable frontier); and the asserted-antibody
+*vocabulary*. **A curated arXiv-for-immunity — with a trust-root caveat:** never auto-publish; team-reviewed in
+batches; canonized only with no-self-witness; a contribution is a **reproducible before→after case record**;
+DOI-like identity; community pen-tests. **Design against the centralized-canonization trust-root** (multiple
+independent canonizers; content-addressed identity needing no registrar's blessing; re-verification-or-it-doesn't-
+count *inside* the federation; **Sybil-resistance is a precondition**). Governing filter: ***a fingerprint that
+requires the federation's trust to be believed does not belong in the federation.*** **The MITRE proof-corpus:**
+fingerprint CWE/CAPEC/ATT&CK — trust-corpora → proof-corpora, **stratified by provable-vs-reasoned**; a
+measurable coverage frontier; **bidirectional**. The **ICR** is a separate, linkable platform-format. **Every
+fingerprint is a public good independent of antigen-adoption.** **Triple life** — code · white paper (the
+research-account / proof-of-emission; *the journey is part of the proof*) · citable identity — co-native; public
+artifacts badge the **scoped** claim, never bare "proven".
+
+**The math-research follow-on.** §4's named candidates are developed in a dedicated math-research voyage (read
+the original papers; verify faithfulness term-by-term; apply the guard; name the lossiness) — first targets: the
+quasispecies fitness-function build-spec and the percolation critical-fraction computation. Its output feeds a
+successor ADR; the membrane/compartment-boundary primitive is its convergent design target.
+
+### Process not outcome (durable / drifting)
+
+- **Invariant (durable):** show the biology, never declare a verdict, never block; a defense is a named per-site
+  observable-or-honestly-asserted reaction; observability over declaration; rigor borrowed *only where the
+  analog is faithful, the guard applied*; thresholds are policy and **antigen ships a non-permissive default**;
+  a published weakness ships with its antibody + the two operator-opsec duties; every fingerprint carries
+  proof-of-emission + evidence-package + citable identity + taxonomy lineage; **the complete biology is always
+  computed and persisted, surfaced with progressive disclosure and stable pointers**; the entity is sovereign,
+  the operator owns externalities.
+- **Process (durable):** the standing is a structure-faithful field; immunosuppress is
+  per-site/visible/friction-proportional/aggregate-loud; canonization is team-gated + no-self-witness; partial =
+  residual loudness shown; re-confirmation is mechanical where the predicate holds.
+- **Outcome (must drift — NOT decreed):** *which* structure-faithful math (and constants); policy threshold
+  *values* and preset definitions; verbosity levels + report format; the federation platform / DOI registrar /
+  venue / ICR shape; the repertoire's own/compose mix.
+
+### What this ADR does NOT do
+
+- Does **not** build the stroma-builder, the federation/platform/registrar, the MITRE corpus, **or develop the
+  §4 math** (named dependencies / research follow-on — this ADR builds the *one primitive*: a first-class,
+  observable, per-site defense, and ratifies the *disciplines*).
+- Does **not** gate/block — antigen is a lens, never a compile-blocker.
+- Does **not** remove `#[defended_by]` (deprecated alias + codemod).
+- Does **not** claim any artifact *is* proof, or that trust is eliminated; many fail-classes are unprovable and
+  we say so.
+- Does **not** decree which math, nor any threshold value.
+- Does **not** police the entity's own risk choices.
+
+### Open seams (surfaced honestly)
+
+- **The §4 math is named, not developed** — the faithfulness verification (guard applied term-by-term) and the
+  membrane primitive are the math-research follow-on's work.
+- **ADR-024 reconciliation is incomplete** (`clonal` fixed-seed enforcement, `igg` nominal-only limit not yet
+  carried through — Hill-cooperativity is the likely closer, pending the math voyage).
+- **`Structural` re-check depth** (immediate-body vs effective-behavior) must be pinned in implementation.
+
+### Glossary
+
+- **antigen** — a named failure-class; a "bad shape."
+- **presents** — a site exhibits an antigen's structural shape.
+- **dread / aura** — *declared* marked-unknowns, on ADR-041's ⊥ plane, OFF the classification axis.
+- **antibody** — a *recommended mitigation* for an antigen (many may exist; any may suffice).
+- **binding (reaction)** — one antibody's reaction to one specific site.
+- **observed / asserted** — the proof/trust line: *observed* = the audit can re-check it here; *asserted* = an
+  honestly-labeled claim it cannot re-check.
+- **stroma-node** — a site's stable structural identity (fully-qualified item-path + structural digest); the
+  manifold the immune-signal field lives over.
+- **loudness** — the shown immune-signal value at a site ("concentration" only when speaking the math;
+  "standing" = the field-value-at-a-site).
+
+### Worked example *(proposed syntax — not yet implemented)*
+
+```rust
+// ANTIGEN — a named bad shape (in the repertoire).
+#[antigen(name = "panicking-in-drop",
+          fingerprint = "impl Drop with unwrap/expect/panic in body")]
+pub struct PanickingInDrop;
+```
+```rust
+// PRESENTS — this site exhibits the shape. (id= only when a node has >1 same-class present.)
+#[presents(PanickingInDrop, id = "buf-flush")]
+impl Drop for Buf { fn drop(&mut self) { self.flush().unwrap(); } }
+```
+```rust
+// ANTIBODY — a recommended mitigation bound to THIS site. Observed: the audit re-checks the shape here.
+// `binds` NAMES THE ANTIGEN (compile-checked); `kind = Structural` is from the §1 alphabet.
+#[antibody(binds = PanickingInDrop, kind = Structural, references = ["PR#12345"])]
+impl Drop for Buf { fn drop(&mut self) { let _ = self.flush(); } }   // the after-state
+```
+
+What antigen **shows** (never "defended"): before — full loudness at `buf-flush`. After — the structural
+antibody re-verifies at the site, the signal **drops to its steady-state**; any residual shows as *residual
+loudness*, attributed to *this* site. No "done" is declared; the current biology is shown; the user's *policy*
+(not antigen) decides whether the residual gates their CI.
+
