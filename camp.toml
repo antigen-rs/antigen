@@ -14,14 +14,23 @@
 # This is a camp false-negative — the version IS bumped (0.3.0-beta.1 ahead of
 # the latest v0.2.x tags). A human closes this by eye before the tag ceremony.
 #
-# rtk mangles cargo output — always run gates via `command cargo ...` directly,
-# not through rtk. The commands below are the raw forms camp should invoke.
+# rtk note: cargo (and grep/rg/git) are excluded from the rtk Bash hook
+# (config.toml exclude_commands), so cargo output is raw — no `command cargo`
+# workaround needed.
+#
+# These MIRROR .github/workflows/ci.yml (the gate that actually blocks a push) so
+# the hook gate and CI cannot drift. ci.yml sets RUSTFLAGS="-D warnings" at the
+# workflow level (EVERY job), replicated below via `env` on check/test/msrv
+# (clippy carries -D via its own flags; doc carries RUSTDOCFLAGS). The runnable
+# mirror is scripts/ci-local.sh — keep all three (ci.yml, this, the script) in sync.
 
 [gates]
 commands = [
+  "env RUSTFLAGS=-Dwarnings cargo check --workspace --all-targets",
   "cargo +nightly fmt --all -- --check",
   "cargo clippy --workspace --all-targets -- -D warnings",
-  "cargo test --workspace --all-targets",
-  "cargo doc --workspace --no-deps",
+  "env RUSTFLAGS=-Dwarnings cargo test --workspace --all-targets",
+  "env RUSTDOCFLAGS=-Dwarnings cargo doc --workspace --no-deps --document-private-items",
+  "env RUSTFLAGS=-Dwarnings cargo +1.95.0 check --workspace",
   "cargo run --bin cargo-antigen -- antigen audit",
 ]
