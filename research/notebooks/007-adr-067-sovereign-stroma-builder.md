@@ -37,11 +37,33 @@ induced-views, change-as-danger-signal, substrate-then-lenses); the fixes:
   clock**, **persistence crash-consistency → process**, **`GlobalConsistencyObstruction` deferred** (a dangling
   self-antigen here — its detector, the sheaf lens, isn't built in this ADR).
 
+**v3 → v4 (post 5-lens re-council, 2026-06-25).** A differently-composed council verified v3: **bones held
+unanimously** (sovereign-lattice/composed-resolution, two-wavefronts, the snapshot keystone, Amd3-faithful — r-a
+is literally in clause-1's herd list, `decisions.md:577`). It hardened the *new* material:
+- **`confidence` → closed-alphabet TIER** (adv-break): v3's `(source, confidence)` was the invented-scalar the
+  project keeps rejecting (3rd guard-catch). Collapsed to E10's closed alphabet, extended per-source
+  (`mir-exact` > `resolved` > `syntactic`); freshness is a tier-attribute (stale-corroboration closed);
+  convergence raises tier only across *fresh, independent* sources, via the lattice — no combination math.
+- **Inter-run change queue** (adv-break): the snapshot gives *intra*-run termination; concurrent changes are
+  queued + coalesced into the next snapshot (bounded, never dropped) — storms impossible *across* runs too.
+- **Standing sampled parity surveillance, spine-level** (systems + adv-break + observer): the hourglass would
+  make self-consistency the only check — no-self-witness violated on its own substrate — so an independent
+  raw-tooling oracle is kept alive by sampling, *re-derived fresh each cycle*, never retiring to self-consistency.
+- **r-a interface tiered + witness re-labeled** (feasibility + notary + observer): LSP for call/name edges
+  (bounded, handshake-guarded); data-flow needs the MIR-pipeline/`ra_ap_*` (re-couples, unbounded) — a capability
+  fork; the pre-ratification witness is a *clause-1 execution-feasibility* confirmation, NOT the clause-3
+  sovereign-rebuttal (which the herd reframe **dissolved**).
+- **Sources maturity-tiered** (MIR/NLL-today · runtime-traces-pipeline · *Polonius-speculative* — v3 over-listed
+  it); **digest security-tier invariant** (algorithm drifts); materialization decided in the freeze; honest tense
+  on the deferred parity guard.
+
 ---
 
 ## ADR-067 — The Stroma: a Sovereign Immune Lattice over Composed Resolution
 
-**Status**: Proposed (v0.6.1, 2026-06-25). Design-pair draft; pending refinement + a re-run council on v3.
+**Status**: Proposed (v0.6.1, **v4 — post two councils**, 2026-06-25). Design-pair draft. **One hard
+pre-ratification block remains: the r-a-interface execution-feasibility witness** (Open Seams §1) — run it, then
+ratify.
 
 **Implements / depends-from**: ADR-066 §2 (the stroma-builder — collision-free identity, lifecycle, digest,
 graph-integrity); §11 (the persisted map = the output / distributed-cognition substrate); §4 + notebook 006
@@ -95,8 +117,10 @@ tolerance-self = the clean corpus) become addressable **in one namespace** — t
 
 **The invariant: antigen maintains a sovereign immune lattice over a full-AST attributed base graph, whose
 *resolution* is composed from the user's rust-analyzer (require-installed) and whose *immune meaning* is
-antigen's own; maintenance computes against a frozen snapshot and publishes atomically; the load-bearing immune
-identity is never delegated.** Everything below is method.
+antigen's own; maintenance computes against a frozen snapshot, queues concurrent changes, and publishes
+atomically; an independent raw-tooling oracle is kept alive by *standing sampled surveillance* (internal
+self-consistency is never the only check); the load-bearing immune identity is never delegated.** Everything
+below is method.
 
 **A. The base.**
 
@@ -124,6 +148,25 @@ identity is never delegated.** Everything below is method.
    are declared gets `presents`-grade semantic detection. *The sheaf's reach = structural-free + semantic-opt-in,*
    stated honestly (not "semantic detection for everyone").
 
+3b. **The stroma is a multi-source attributed graph — and provenance is a closed-alphabet TIER, never an invented
+   confidence scalar.** (v3 wrote `(source, confidence)` on every attribute — the re-council caught it as the
+   *exact* invented-scalar the project keeps rejecting, the third time the guard fired on this pattern. Retracted:
+   there is **no continuous confidence number**.) Instead, the §E10 edge-provenance — a **closed, extensible
+   alphabet of tiers** — generalizes to all attributes, and each new source contributes its *own named tier* at a
+   principled position: `declared` (human) · `resolved` (r-a — *inferred*) · `mir-exact` (the borrow checker's
+   data-flow/aliasing is *exact*, a **higher** tier than r-a's inferred `resolved`, not slottable into it) ·
+   `syntactic` (syn — approximate). **Freshness is a tier-attribute, not a modifier:** a source captured at an
+   older revision is a *lower (stale) tier*, so it can never corroborate up. **Convergence raises tier only across
+   *fresh, independent* sources**, via the lattice/JOIN antigen already computes — no invented combination math.
+   **Sources are tiered by availability** (so the ADR is honest about what's real): **available today** — MIR/NLL
+   via `rustc --emit=mir` (a separate pipeline, feasible-not-trivial), cargo-metadata, git/SZZ (already mined),
+   rustdoc-JSON; **pipeline-work / runs-your-code** — runtime traces (resolves dynamic dispatch static analysis
+   can't, but requires instrument+execute); **speculative-on-stabilization** — *Polonius external aliasing facts*
+   (nightly-only `-Z polonius`, internal Datalog not designed for external consumption — a research project, not a
+   compose-today; v3 over-listed it as available). Sources are optional + layered (absent source → lower tier,
+   honest `dread`), and **which sources to materialize is decided in the snapshot-planning phase** (a *frozen*
+   pre-wavefront decision — so the cost brake doesn't violate A.5's no-mid-wavefront-state-dependence).
+
 **B. The induced-views architecture (honest).**
 
 4. **Structures are induced views over the base** — topology (from conductance), sheaf (from contracts + edge
@@ -144,7 +187,10 @@ identity is never delegated.** Everything below is method.
    once against the pre-change graph, re-evaluate that *fixed* set, no mid-wavefront re-triggering → storms
    impossible by construction over a cyclic graph where attributes are edge-triggers). The wavefront's
    convergence is *earned here*, not borrowed from the field's `diag(d)≻0` fixed-point (a different recurrence
-   with no decay term).
+   with no decay term). **Concurrent changes — those arriving *during* a maintenance run — are queued and
+   coalesced into the next snapshot** (the queue is *bounded*; the coalesced batch *is* the danger signal for the
+   next run, so coalescing defers the signal one cycle, never drops it). This makes "storms impossible by
+   construction" hold *across* runs, not only within one (the inter-run gap v3 left silent).
 
 6. **Two wavefronts, opposite directions.** **Freshness** = *forward* (what did the changed node's dependencies
    change?). **Detection** = *backward* (who *depends on* the changed node and may now be broken?) — with
@@ -163,6 +209,20 @@ identity is never delegated.** Everything below is method.
    a proc-macro behavior change (via a Cargo.lock bump) changes the *expanded* code with no source edit — so
    **proc-macro-use edges** are a named edge-kind, and a lock-diff re-digests the items that use the changed
    macro.
+
+7b. **Standing sampled parity surveillance — an independent oracle that never retires to bare self-consistency**
+   (the spine-level integrity fix; systems + adv-break). The hourglass (the single-source-of-truth migration,
+   §map) is powerful *and* dangerous: once every organ reads the stroma, internal self-consistency
+   (`StromaIncrementalDrift`: incremental == full-rebuild) is **not** external correctness — a systematic
+   adapter/r-a bug (§E version-skew) corrupts every organ *identically*, no independent reader left to disagree.
+   That is antigen's own **no-self-witness invariant, on its own substrate.** So a **sample** of nodes is
+   **continuously re-derived from the *live* raw tooling** (syn / r-a / MIR directly) and checked against the
+   stroma: the parity witness is a **standing surveillance, not a one-time migration gate**, and the sample is
+   re-derived *fresh each cycle* — so the oracle never goes stale and never false-fires as the stroma validly
+   evolves (closing the retire-or-drift trap adv-break named). It may retire only if a *different* independent
+   sentinel replaces it, never to self-consistency alone. (`StromaConsumerParityDrift` is the *planned* born-red
+   guard — deferred to the migration follow-on; the *commitment* to keep an independent oracle alive is spine,
+   per the invariant.)
 
 **D. Detection + defense on the lattice.**
 
@@ -229,6 +289,21 @@ unify-the-selves work can land. **Practitioner reality:** ship the **syntactic-s
 first (genuinely cheap, no resolver), earn live/resolved incrementally; the smallest adoptable unit is "one real
 edge-kind, one real query (who-depends-on-this-I-changed), proven fresh, silent by default."
 
+**The stroma as single source of structural truth — the hourglass.** Once the stroma exists, antigen's organs
+(scan, fingerprint, digest, audit) refactor to **pull from the stroma** rather than each re-rolling from raw
+tooling: many sources flow *in* (clause 3b), one stroma in the middle, many consumers read *out*. syn doesn't
+vanish — it moves from *re-rolled in every consumer* to *one ingestion source* (it lives once, not N times).
+The payoff is an **upgrade**, not just DRY: the moment a consumer reads the stroma it inherits **every** source
+(r-a resolution, MIR data-flow, git history) for free, and the existing organs become **lenses** over the base —
+unifying old-antigen with the new architecture. Migration is **incremental + parity-witnessed**: a consumer
+moves only when the stroma faithfully provides what it needs *and* a parity check (`stroma-pull == raw-tooling`)
+passes — and parity does **not** retire at migration: it becomes the **standing sampled surveillance** of §C
+clause 7b (the *planned* guard is a born-red `StromaConsumerParityDrift`, deferred to this migration follow-on).
+Never big-bang. This is *why* the integrity discipline is load-bearing *and why the independent oracle must stay
+alive*: once everything reads the stroma, a stale stroma corrupts every organ at once, and self-consistency
+alone cannot see it. (The migration is staged follow-on work — but keeping an independent oracle alive is the
+spine commitment, per the invariant, not map-level.)
+
 ---
 
 ### Process not outcome
@@ -238,14 +313,18 @@ edge-kind, one real query (who-depends-on-this-I-changed), proven fresh, silent 
   declared); resolution composed from require-installed r-a (immune lattice never delegated); **maintenance on a
   frozen snapshot, atomic publish, detection never reads torn**; two-directional conservative increment,
   rebuild-witnessed on lifecycle-events; persistence a gitignored per-machine cache with a crash-consistency
-  contract; edge-provenance carries resolution-confidence → detection-tier.
+  contract; **edge/attribute provenance is a closed-alphabet TIER (not an invented confidence scalar) →
+  detection-tier**; concurrent changes queued + coalesced; an independent raw-tooling oracle kept alive by
+  standing sampled surveillance; the digest is *collision-resistant for the identity/signing tier*.
 - **Process (durable):** built from the sunk `syn` parse (syntactic edges) + composed r-a (resolved edges) +
   cargo-metadata (dep edges); the adapter wraps r-a versions; change is the danger signal; freshness=forward /
   detection=backward; the sheaf re-checks only change-touched edges.
 - **Outcome (must drift — NOT decreed):** the node/edge schema + edge-kinds + conductance weights; the **field
   representation**; the **at-rest persistence format** (the *contract* is process; the *format/number* drift);
-  the **r-a interface** (LSP vs library); the digest's exact canonicalization; the contract-declaration syntax;
-  the live-editor surface.
+  the **r-a interface tier** (LSP for call/name edges vs MIR-pipeline/`ra_ap_*` for data-flow); the digest
+  *algorithm within each security tier* (the collision-resistant-for-signing vs fast-for-clustering *tier* is
+  invariant; BLAKE3-vs-SHA-256 / FNV-vs-xxHash drifts); which multi-sources are materialized + their maturity-
+  tier; the parity-surveillance sample rate; the contract-declaration syntax; the live-editor surface.
 
 ---
 
@@ -261,9 +340,17 @@ edge-kind, one real query (who-depends-on-this-I-changed), proven fresh, silent 
 
 ### Open seams (for refinement + a re-run council)
 
-- **The r-a interface** (LSP protocol vs building on its analysis) — the adapter holds either way; the build
-  picks, and an **author-distinct witness** confirms it yields the resolved call/data-flow edges we need
-  (the Amd3 clause-3 experiment, now a pre-ratification *precondition*, not a footnote).
+- **The r-a interface is a capability fork — and resolving it is a HARD pre-ratification BLOCK** (an
+  *author-distinct execution-feasibility confirmation* — NOT an Amd3 *clause-3* sovereign-rebuttal, which the
+  clause-1 herd reframe **retired**; the clause-1 compose engages no presumption). The fork is not free: **LSP**
+  delivers call/name/type edges and is require-installed-honest + **bounded** (pin a min LSP protocol version;
+  assert capabilities at the connection handshake — that *is* the version-skew guard, name it), but exposes **no
+  data-flow**; **data-flow/aliasing edges** need a `rustc --emit=mir` pipeline *or* the unstable in-build
+  `ra_ap_*` library (which re-couples + carries an **unbounded** adapter cost — name the asymmetry). The witness
+  must confirm *which interface tier yields which edge-types* on antigen's own code **before** this ratifies.
+  **Residual risk to state honestly:** a `resolved` edge inherits r-a's soundness — excellent, not formally
+  verified; r-a silently mis-resolving a newer-edition feature would stamp a wrong edge `resolved` (the false-
+  quiet to name, mitigated by the standing parity surveillance, §C).
 - **The contract-declaration discipline** — what's declarable, how, and how the sheaf consumes it (its own ADR).
 - **Persistence crash-consistency mechanism** + the gitignored-cache lifecycle (first-build cost, CI runners).
 - **Hub-node budget** + the `presents`-tier zero-false-positive invariant for the live surface (its own ADR).
