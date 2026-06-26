@@ -226,9 +226,13 @@ A frame that *can't* be broken usually isn't describing anything — so a clean 
   `structural`, **in the same block at the same time.** So **Evidence is a *vector over properties*, not a
   scalar over the site.** (Same shape as the pub-boundary-payload-hole miss: producer sanitizes one property
   while another rides in unchecked.) Sharpening, not a new axis.
-- **marked-unknown / dread / aura (ADR-041)** → expected to break the frame (explicitly *off* the classification
-  axis); doesn't. It **extends the Evidence alphabet** with a rung below `reasoned`: `intuited` ("evidence-tier
-  = I can't even name what would settle this"). A *value* on Evidence, not a new dimension. Places cleanly.
+- **marked-unknown / dread / aura (ADR-041)** → a *first* pass tried to fold this onto Evidence as a rung below
+  `reasoned` (`intuited`). **That was wrong, and ADR-041 is right to keep it OFF the classification axis** — same
+  reason as the membrane below (see 6b): the Evidence axis ranks *how well a **named** claim is supported*, but
+  the marked-unknown is **pre-naming** — there's no claim yet to rank, only a felt sense that *something unnamed*
+  is here. Forcing it onto Evidence conflates "weak evidence for X" with "no X named yet." It stays on ADR-041's
+  ⊥ plane — a **category error to coordinatize**, not a missing rung. (So Evidence's alphabet stays
+  `structural/observed/asserted/reasoned`; marked-unknown is *off* it.)
 - **temporal / lifecycle** (anergy, `immunosuppress until`, decay, SZZ history) → **not a descriptive axis at
   all.** It's **Dynamics** — how a fixed point *moves/decays over time* — which already lives in ADR-067 clause
   C (the two wavefronts). The frame *locates*; dynamics *animates*. Don't bolt time onto the static frame.
@@ -273,6 +277,12 @@ params, a module's privacy, a crate's API, an `unsafe` block — each a little s
 **You can't enter the observer as one of its own coordinates.** antigen *is* the membrane; it doesn't *assign*
 membrane as an axis-value.
 
+**The two category-errors rhyme.** Both the membrane *and* the marked-unknown (above) are "doesn't place"
+remainders — and neither is a missing axis. The membrane resists coordinatization because antigen *is* it (the
+observer can't be its own coordinate); the marked-unknown resists because it's *pre-naming* (a coordinate
+presupposes a named thing to locate, and dread is the felt sense before there's a claim). The lesson generalizes:
+when the frame throws a remainder, first ask whether it's a category error before minting a dimension.
+
 ### 6c — what the residue DID earn: three widened definitions
 The detour's real yield is that the four axes were defined too tightly. Widen them and the residue is absorbed:
 - **Scale = *all* the scales, not lexical containment.** The "my code → my deps → transitive → ecosystem"
@@ -281,11 +291,12 @@ The detour's real yield is that the four axes were defined too tightly. Widen th
 - **Authority = responsibility / accountability, not just "how a claim got blessed."** *We're* responsible for
   our lines; the *user* for their config changes; the *system* for being transparent + documented. The
   write-permission residue from face 3 homes here — "responsible for our own lines" *is* an Authority statement.
-- **Evidence = uniform across the build, no ownership cap** (per 6b-2) — and a per-property vector with an
-  `intuited` rung (per the clean placements above).
+- **Evidence = uniform across the build, no ownership cap** (per 6b-2) — and a per-property *vector*
+  (`unsafe` proved memory-safety and type-correctness carry different tiers at the same site), alphabet
+  `structural/observed/asserted/reasoned`. (Marked-unknown is *not* a rung — it stays off-axis, ADR-041.)
 
 **Verdict (v3):** **four descriptive axes hold** — `Scale (plural) · Subject · Evidence (per-property vector;
-`structural/observed/asserted/reasoned/intuited`; build-uniform) · Authority (responsibility, broad)` — plus the
+`structural/observed/asserted/reasoned`; build-uniform) · Authority (responsibility, broad)` — plus the
 two response axes (immunity / compliance) and the orthogonal **Dynamics** layer. **No Provenance axis.** The most
 useful artifact is the new standing rule: **the coordinate system describes user-facing behavior only;
 construction concerns (acquisition, curation, herd/granuloma) are a *different map* — never smuggle one onto the
