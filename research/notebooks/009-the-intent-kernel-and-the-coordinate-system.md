@@ -307,6 +307,71 @@ widened axes, which is the proof they were the right four, just under-defined.
 
 ---
 
+## Part 7 — Harvest from the dream-library (charter enrichments)
+
+A scan of the ~40 jbd charters (the ancestor dream-library 009/066/067 grew from) for content that *enriches*
+the kernel/axes. **Almost no drift** was found — the charters are coherent with canon — so this is pure harvest,
+not dedup: the charters are *distinct source-dreams* (left in place), and 009 becomes the hub that **indexes
+their concrete mechanisms** so the frame ADRs inherit them. Each: the add · what it feeds · source.
+
+**Operational mechanisms (fold into the intent-layer + coordinate ADRs):**
+- **Authorship-keyed confidence ladder = the Authority axis with teeth.** `#[presents]` is a *claim adjudicated
+  by the fingerprint*; confidence tiers by authorship × match-strength; a 3-bucket verdict
+  (confirmed / dubious / suggested); **never auto-write `defended_by`.** Makes Authority (responsibility)
+  *checkable*, not just a label. *Feeds:* Authority axis + ADR-066 proof-not-trust. *Src:*
+  charter-opsonization-active-recognition, 2026-06-06-tooling-arc-charter-refinements.
+- **Active tolerance is a visible, expiring STATE — not deletion.** A suppressed class stays *quiet* (present,
+  dampened, visible, expiring); lapse → unmask + an `ExpiredX` litter that gets **louder the longer ignored**
+  (inverted tech-debt). The effector that rewrites a marker is the first *safe* instance of
+  autogen-modifying-source. *Feeds:* Dynamics layer + the injection model + the anergy/marked-unknown handling.
+  *Src:* charter-suppression-rethink.
+- **Germinal-center lifecycle** (cluster→propose→test→promote/prune) with `structural_digest` clustering as the
+  checkable primitive, and the **GATE-G negative-selection vacuity** as a standing soundness obligation.
+  *Feeds:* the Tier-4 auto-graduation loop in the intent layer. *Src:* charter-learning-core.
+
+**Dimensional enrichments (open questions for the frame ADRs):**
+- **Danger-evidence is a dimension distinct from the Evidence axis.** Evidence ranks *claim-support*;
+  danger-evidence ranks *consequence* — could-harm (quiet) vs did-harm (loud), with a **roster** of
+  suspected-but-unproven classes, **spread-velocity**, and **cross-adopter diversity** as a Signal-2 amplifier
+  (the herd as a measuring instrument). *Open Q:* is this a refinement of the **immunity response axis**, a
+  severity field, or a third sense-axis? *Feeds:* ADR-066 danger-quadrant. *Src:* charter-harm-evidence-ladder,
+  charter-runtime-afferent, v05-learning-organism-cartographers-synthesis.
+- **Self / symbiont / pathogen is a *ternary*, not a binary.** Biology spends most tolerance-machinery on
+  commensals (symbionts), not pathogens. *Open Q:* does the membrane/tolerance model want a **symbiont**
+  (trusted-non-self, e.g. herd deps) middle term? *Feeds:* the self/non-self → membrane discussion (Part 6) +
+  ADR-002 Amd3 herd. *Src:* charter-registry-herd.
+- **Dread as continuous felt-WEIGHT (magnitude), distinct from marked-unknown (existence).** A
+  severity/proprioceptive field — *not* the off-axis pre-naming plane; keep them separate (this sharpens, not
+  contradicts, Part 6's marked-unknown ruling). *Feeds:* the marked-unknown discussion + a possible severity
+  dimension. *Src:* charter-prevention-transmission.
+
+**Structural / epistemic grounding:**
+- **The universal learning-loop** (SENSE→CLUSTER→GENERALIZE→GOVERN→PROMOTE, +COORDINATE at registry scale)
+  recurs in **6+ independent domains** and survives a falsification test (jazz-improv *fails* the 4/5 check) —
+  meta-evidence the coordinate structure is **discovered, not invented.** An epistemology-of-antigen grounding
+  for the whole frame. *Feeds:* a grounding note for the coordinate-system meta-frame. *Src:*
+  charter-reflexive-platform, charter-learning-core.
+- **The project itself is a second organism.** The construction-space (Part 6) recurses: the project's *own
+  design corpus* is a stroma with immune memory; consolidation (this very pass) is its afferent circuit.
+  *Feeds:* Subject:immune-system-itself + the construction-vs-user-facing frame. *Src:*
+  charter-the-consolidation-voyage, charter-engram.
+- **CDC / public-health immunity** — live population surveillance + outbreak + **contact-trace-a-deviation-back-
+  to-its-commit** — is the *dynamic* complement to structural herd-memory; the SDLC-immune-loop
+  (Node ⇄ Patrol/Outbreak) closes the afferent→efferent cycle at deployment scale. *Feeds:* Dynamics +
+  platforms-as-views + ADR-067 two-wavefronts. *Src:* charter-registry-herd, charter-effector-arm,
+  charter-platform-fleet.
+
+**Frontier (named, not folded):** the **3-layer immunity stack** — code · cognition · psyche — with
+triple-network (Salience / Central-Executive / Default-Mode) neuroscience grounding and three named joints
+(co-native-org · standing-sentinels · the relationship). The biggest-vision expansion of the Subject axis; a
+1.x+ horizon, recorded so the frame knows its ceiling. *Src:* charter-immunity-all-the-way-up.
+
+*No charter was edited — they're distinct source-dreams, not duplicates; this section indexes their gold. The
+only dedup this pass was the v0.6.1 self-map reconciliation + the adr-002-amendment-3 draft collapse (jbd commit
+`7fdc5b2`).*
+
+---
+
 ## Spawns (the ADRs this seeds)
 
 - **The intent-layer ADR** — `#[intent(...)]`, the default-intent + config-as-policy, the flag-vocab + the
