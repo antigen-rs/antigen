@@ -1,0 +1,42 @@
+# F-negative-space — self/sense cartography (v0.6.1, tip 8b2e040)
+
+Holistic scout, NEGATIVE-SPACE cartographer. Workspace R:/antigen-061-self-non-self READ-ONLY.
+Builds on F-self-non-self-deconstruction-v061 (captured-intent prior) — VERIFIED + extended.
+
+## The grid (read against)
+- Control loop ADR-037: SENSE→COMPARE(-to-reference)→ROUTE→ACT→FEEDBACK + sizing. Five stage-failures + the BRACKETED reference/setpoint (decisions.md:9577-9631).
+- Learning loop disposition-enums (the self/sense organ): `SilentStatus`{Obsolete,Dormant,Evading,Indeterminate} → `ClassVerdict`{Obsolete,WellDefended,Dormant,Evaded,RouteToHuman} → `CurationAction`{Forget,Hold,ReArm,Keep,RouteToHuman}. The reversible→irreversible ladder; Forget the lone irreversible.
+- Immune quartet: immune / tolerance / anergy / autoimmune. Deferred-defense FAMILY of 4 (anergy/immunosuppress/poxparty/orient) — but ONLY as `#[attr]` declarations audited attestation-side (decisions.md:6136-6174).
+- Two disjoint selves: identity-self (`structural_digest`, fingerprint crate) ∥ tolerance-self (`clean_corpus`, learn crate). VERIFIED disjoint: grep of each crate for the other's names = 0.
+- Lone typed-intent: `Narrated{claimed: Trend}` re-validated by `check_story_coherence` (life_record.rs:351). Five opaque-intent sites (Fresh.reasoning, DeltaFrom.rationale, Steward.authorization_basis, StateTransition.rationale, Ratified.why).
+
+## Negative-space findings (substrate-verified)
+
+**NF1 — ANERGY is the missing curation disposition (the empty cell). 0.6.1-sized.**
+Present pattern: the deferred-defense family ships 4 muted-posture primitives (decisions.md:6146 — anergy = "Alive but unresponsive. Reversible if co-stimulation arrives. Aging:Yes. Escalation:auto-re-engage"). Absent shape: the curation ladder (CurationAction) has Hold (alive, fully active) and Forget (gone, discarded) but NO disposition for *alive-but-deliberately-muted-and-time-bound-auto-re-engaging*. Why structure guarantees it: anergy is specified (decisions.md:5341) as a `(Encountered, Anergic)` COORDINATE in a product space — that coordinate exists on the attestation axis (`#[anergy]` on a source item) but has NO analog on the learning axis (a self-DERIVED disposition on a failure-class). antigen can *forget* a class or *hold* it; it cannot *anergize* one (mute it, set an `until`, auto-re-engage). The biology that justifies Hold+Forget already named the third rung and the codebase built it on the wrong axis. grep learn/ for anergy|inactivat|quiescent|silenced = 0.
+
+**NF2 — The held SETPOINT is the force-with-no-name (Phase-8 void, ADR-CONFESSED). Not 0.6.1 (design).**
+Present pattern: ADR-037 (decisions.md:9581,9628-9631) NAMES the reference/setpoint stage, concedes "control theory says a loop has a reference," then BRACKETS it out: "not a separate stage." Absent shape: antigen holds no reference signal of its own — the only setpoint-failure it names (`#[autoimmune]`/setpoint-corruption/`FingerprintGamedNotDefended`) is a class to DETECT IN USER CODE, never antigen's own held "what this class is MEANT to defend." Why structure guarantees it: a closed-loop regulator that COMPAREs-to-reference must HAVE a reference; the ADR admits the stage and then refuses to instantiate it. This IS past-me's captured-intent void, now confirmed in the architecture's own words. The setpoint = captured-intent = the unnamed referent both selves project from. CONFIRMED, not refuted.
+
+**NF3 — The two selves are two projections of the missing setpoint. VERIFIED disjoint.**
+Identity-self answers "did THIS drift from its signed form" (deviation from intent-at-signing). Tolerance-self answers "does this draft over-bind clean code" (deviation from intent-of-clean). Both are `deviation(reference)` with NO shared reference object — and the two code regions never import each other's names (grep-confirmed bidirectionally). The setpoint NF2 names is exactly the object that would unify them. 0.6.1-sized sub-move: C2 (name the bridge in an ADR-draft).
+
+**NF4 — Intent is typed ONCE, opaque FIVE times — a self-imposed ceiling (ADR-020). C1 is 0.6.1-sized.**
+Present pattern: `Trend`/`check_story_coherence` PROVES antigen can type a hand-authored claim and witness it against derived reality (life_record.rs:351). Absent shape: every OTHER intent site stays opaque text by DOCTRINE (ADR-020 leaf-payload exception). Why structure guarantees the move: the working template exists; the five opaque sites are the same shape un-typed. The non-self antigen flags is always `deviation(intent)`, yet intent is the one thing the architecture is committed to NOT representing — except at the single narration site. Lift the ceiling at the attestation site: typed `expected: Trend`/`expected_disposition` on a Fresh attestation, re-validated exactly as Narrated already is.
+
+**NF5 — FEEDBACK is feedforward-only; the loop doesn't close. Structural, watch for v0.7.**
+Present pattern: ADR-037 declares a FEEDBACK arm (damp so the loop stays stable). Absent shape: the maturation trajectory→Scored→ADWIN flow is feedFORWARD (sense→classify) — there is NO live edge from ACT (Forget/ReArm) back to SENSE that DAMPS. curate::apply records a tombstone/drift event but nothing reads those events back into the next sense pass to adjust sensitivity. Why structure guarantees it: ADR-037's own FEEDBACK failure-point is "cascade-becomes-the-problem / no damping → SCRAM out-of-band" — i.e. the damping is delegated to an OUT-OF-BAND governor (SCRAM), not an in-band feedback edge. The in-band FEEDBACK arm is the conspicuously-thin arm (Explore agent confirmed: "live but DECOUPLED from the Act/Route loop — feedforward, not a control loop arm that closes back"). NOT a v0.6.1 build; flagged as the thinnest loop-arm.
+
+## Unique angle (the ONE absence I'm most confident is real)
+**NF1 — anergy-as-curation-disposition — because its surroundings imply it LOUDEST.** Three independent forces converge on the same empty cell: (a) the curation ladder has a hole between Hold and Forget exactly where a reversible-mute rung belongs; (b) the biology framework already NAMED and SPECIFIED that rung in full operational detail (until-required, auto-re-engage, aging) — decisions.md:6146,6160; (c) antigen already BUILT anergy, but on the attestation axis as a human `#[attr]`, leaving the learning axis (self-derived disposition) blank. The codebase is screaming the shape of the missing star: it built the constellation's anergy point in the wrong sky. This is the wobble that reveals the planet — a fully-specified concept present everywhere in DOCS and on the wrong code-axis, structurally absent from the one axis (self-derived curation) where the loop's own logic demands it.
+
+## Phase-8 (forced rejection)
+If anergy CANNOT be a self-derived disposition (only a human declaration) — then antigen's learning loop can only ever forget-or-keep, never *defer-with-intent-to-revisit on its own judgment*. The void's shape: every "the system decides to mute X for now" must route through a human (RouteToHuman). That means the learning loop has NO reversible-deferral of its OWN — its only self-acted irreversible move (Forget) has no self-acted reversible-mute counterpart. The missing primitive (NF1) IS the symmetry-completion of the ladder: a self-derived `Anergize{until}` rung between Hold and Forget, governed by the same conservatism-JOIN. Its absence is why RouteToHuman is overloaded — it's absorbing the anergy-shaped decisions the loop can't make itself.
+
+## Routing
+- NF1 (anergy disposition) + NF4 (typed intent C1) → navigator, 0.6.1 build candidates.
+- NF2 (held setpoint) + NF3 (unify selves) → navigator, design/ADR-draft (continues C2).
+- NF5 (thin FEEDBACK arm) → flag for v0.7 loop-closure design.
+
+## Waking notes
+Next: pull NF1 thread — should `Anergize{until}` be a 6th `CurationAction` + a `ClassVerdict::Anergic` cell, OR a `LifeEvent::Anergized{until}` on the record (the check_story_coherence-reuse argument favors life-record-side, same as C1)? Untested: how the conservatism-JOIN would gate a self-anergize (must it require defended? require a near-miss-capable trajectory?). The auto-re-engage = a SENSE-side re-read at `until` — which closes a sliver of NF5's feedback gap. NF1 and NF5 may be the SAME move from two angles (convergence). Verify on next waking.
