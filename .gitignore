@@ -84,6 +84,13 @@ agent-feedback/
 # camp documentation when published.
 /camp/
 
+# tools/ call-graph extraction POC (archived; superseded by ADR-067 r-a integration).
+# The .py scripts + README are tracked as provenance; their regenerable ~1 MB outputs are not.
+/tools/edges.json
+/tools/nodes.json
+/tools/l2_tables.md
+/tools/test_appendix.md
+
 # OS
 .DS_Store
 Thumbs.db
