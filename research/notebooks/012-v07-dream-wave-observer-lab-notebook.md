@@ -559,7 +559,7 @@ Think-big-dreamer seeded this as a new campsite (no charter home) during the far
 
 In the far-future-charters sign, the think-big-dreamer noted: "NOT committed to jbd git (navigator owns contended commits) — the charter file edits are on disk, uncommitted, for the navigator to sweep."
 
-**Observer substrate-alignment flag:** Charter file edits are on disk but uncommitted. This is a known pattern (navigator owns commits). The navigator must sweep these before the wave closes or the disk-state diverges from git. Flag in substrate.
+**Observer substrate-alignment flag — RESOLVED:** Charter file edits were swept by the navigator before the wave closed. jbd git log shows `584bc58` (expedition substrate + 8 charter-deepenings) and `7e75ae0` (final finds: cohomology fusion, lens grounding, corrections). jbd working tree is clean. No divergence. The navigator fulfilled this exactly as expected.
 
 ---
 
@@ -574,4 +574,120 @@ In the far-future-charters sign, the think-big-dreamer noted: "NOT committed to 
 
 **What needs deconstruct most:** Danger-evidence placement (5th axis vs response-axis gradient). Everything else has enough grounding to proceed.
 
-*Notebook status: COMPLETE for PASS-1 dream wave. Observer campsite signed. Notebook at `research/notebooks/012-v07-dream-wave-observer-lab-notebook.md`.*
+---
+
+## T+80min Final Additions (2026-06-27 ~00:01–00:06 UTC) — Late-wave closures
+
+*This section was written after context compaction. Sources: full re-read of the camp activity log entries [af786c22] through [49f4c510].*
+
+### Academic-researcher closes all remaining open Q's
+
+**`open-q/dread-weight-vs-marked-unknown` [af786c22]:** Signed with triple-network neuroscience grounding. Key finding: the canonical detector-organ for marked-unknown is the SALIENCE NETWORK (anterior insula), NOT the DMN as the think-big-dreamer assumed. The correction matters: SN detects salience + initiates DMN↔CEN switching (Menon 2011; Menon & Uddin 2010; Sridharan/Levitin/Menon 2008). The CRYSTALLIZE operation = SN-gated switch DMN→CEN. The INCUBATE/RESONATE operations = DMN associative processing. The plane uses BOTH networks, not just one.
+
+**Observer assessment:** The SN correction is an improvement, not a contradiction. The marked-unknown plane's "different-subsystem" argument is now neurologically grounded in a way that will satisfy a reviewer: it's physically distinct network architecture, not just functional differentiation. The most consequential finding from the academic-researcher's note: all three SENSE-faculty items (danger-evidence, dread-weight, marked-unknown) are afferent sensing channels. They all feed the response; none classifies the intent. The frame has TWO unnamed faculties — PLACE (4 axes, executive/CEN) and SENSE (danger/dread/marked-unknown, the afferent salience layer) — and this is WHY 009 Part 6 kept ruling them off the axes. Not a category error, a different faculty.
+
+**`dream/unified-corpus` [1c340ba0]:** Signed. BRON (Hemberg et al 2020, arXiv:2010.00533) grounds the "three libraries are one interlinked corpus" claim — a published knowledge graph linking ATT&CK/CAPEC/CWE/CVE/D3FEND with typed bidirectional edges. Sabelfeld & Myers 2003 grounds the taint/data-flow CWE identity. The HONEST LIMIT: not all CWEs are taint (the 5-primitive set, not taint alone, is the basis). 009's framing needs calibration: "a large fraction reduce to a small set of data-flow/reachability primitives" not "all CWEs are taint."
+
+**Observer assessment:** The BRON prior-art finding is significant. It means antigen doesn't need to invent the corpus-as-typed-graph — it can adopt BRON's schema and extend it. This is the compose-don't-compete ruling applied to the knowledge layer. The novel contribution (confirmed by literature search) is the TRIPLE UNION: corpus-graph + stroma-formalization + in-source declaration. No prior work does all three together.
+
+**`dream/injection-model` [49f4c510]:** Signed. Foster et al 2007 (ACM TOPLAS) grounds the injection model as a WELL-BEHAVED LENS. GetPut law = lossless-removable guarantee. PutGet law = lossless-re-derivable guarantee. Both are theorems, not hopes, for a well-behaved lens. Incremental view maintenance (Horn/Cheney/Lindley 2018) grounds sync-at-scale as O(code-change) rather than O(codebase).
+
+**Observer assessment:** This is the cleanest, most rigorous grounding of the wave. The injection model's trust foundation is now a mathematical object with proven laws. FLAG 3 (injection model state-field seam) is PARTIALLY addressed: the lens grounding handles reversibility; the text-layout/placement concern is still a separate problem (projectional editing — JetBrains MPS). The academic-researcher named this explicitly as the "honest limit" of the lens grounding. The lifecycle `state` field's re-derivability is still the open seam — the lens laws govern the marker layer's relationship to the stroma, but the state-transition tracking (live→suppressed-expiring→resolved-pending-removal) still needs adjudication.
+
+### Expansionist's meta-finding: frame is discovered, not invented
+
+**[d6977933 + 7e9b57e1]:** Expansionist seeded and signed `dream/frame-is-discovered-not-invented`. The meta-thesis: EVERY major component of the frame is independently an instance of a mature foreign structure (closed-loop regulator, Rice's theorem, product of partial orders, two-signal gate, oral tolerance, Gene Ontology, AIRE/pGE, bidirectional lens + stigmergy, homeostatic boundary, Russell type-universe). The term-by-term fits are not loose metaphors — they are precise structural isomorphisms.
+
+**Observer assessment:** This is the wave's best single meta-finding, and it changes what the ratify ADR should claim. The coordinate-frame posture ADR can cite these convergences (with per-component saves) as evidence the frame is discovered rather than constructed. This is a far stronger epistemic foundation than "we designed a nice coordinate system." The expansionist correctly identifies the FALSIFICATION DISCIPLINE (jazz-improv move) — it also identifies the HONEST DISANALOGIES that prove this is not forced: (a) build-uniformity doesn't transfer to construction-space; (b) GO's evidence-codes are unordered while antigen's Evidence IS ordered; (c) a cell can't be half-membraned but a codebase can; (d) a spreadsheet has reference+reality but no actuator. These named disanalogies are the mark of a genuine structural comparison rather than a metaphorical one.
+
+**Publishability note:** The "frame is discovered, not invented" meta-claim, supported by 9+ independent field-matchings with per-component citations, would survive peer review. This is the wave's highest-value contribution to the ratify ADR.
+
+### Expansionist: membrane-as-mechanism sharpening
+
+**[7e52fd58]:** Expansionist's 4-property biological membrane mapping:
+1. SELECTIVELY PERMEABLE → antigen gates, never seals (antigen-never-forces-only-holds-honest)
+2. ENERGY-MAINTAINED → the membrane costs upkeep (Dynamics layer); a membrane left un-maintained decays
+3. RECEPTOR-BEARING → SENSE faculty (danger/dread/marked-unknown) is membrane-RESIDENT; PLACE happens inside, SENSE happens at the boundary
+4. DEFINES THE CELL → antigen constitutes the self that can have bugs-vs-not (autopoiesis)
+
+**Observer assessment:** The RECEPTOR-BEARING property is the most consequential structural insight here. It unifies the academic-researcher's two-faculties finding (PLACE vs SENSE) with the membrane-installer product thesis. The SENSE faculty is membrane-resident because that's where receptors live. This is not a coincidence — it's why antigen's sensing (danger, dread, marked-unknown) is architecturally separate from its coordinate classification. The topology of the system is biological.
+
+**Honest limit identified by expansionist:** Biology over-promises "instant identity" — a cell can't be half-membraned but a codebase can. The adoption gradient is antigen's, not biology's. Do NOT borrow "identity is instant"; borrow "identity is the ongoing maintenance."
+
+### Think-big-dreamer's danger-evidence lattice-meet argument
+
+**[a49fb68b]:** The strongest single argument for danger-evidence as a 5th axis:
+- Orthogonality is now CITED: Pradeu & Cooper 2012 ("the proper opposition is the presence or absence of DANGER, not exogenous vs endogenous") = formal orthogonality claim in the literature
+- The gate is a LATTICE MEET: RESPONSE = Evidence MEET Danger. A meet needs two operands. Danger can't be folded into Evidence (that would make it unary) NOR into the response axes (it's an INPUT to the gate, not the output). Structurally forced to be its own thing.
+- History deepened: Signal-2 source (Bretscher-Cohn 1970, Lafferty-Cunningham 1975 = costimulation) pre-dates Matzinger; Matzinger re-interprets Signal-2 as host-DAMAGE (DAMPs from the HOST's own stressed/necrotic cells)
+
+**Observer assessment:** The lattice-meet argument is the cleanest single argument the wave produced for the 5th-axis position. If RESPONSE is a MEET operation requiring Evidence AND Danger, then Danger must be a separate operand — it can't be reduced to a modifier on one of the existing operands. This is a formal constraint, not a design preference.
+
+**However (the observer's challenge survives):** The meet-argument establishes that danger-evidence is ORTHOGONAL to Evidence. It does NOT settle whether danger belongs to the DESCRIPTIVE axis space or to the RESPONSE axis space. The academic-researcher's two-faculties synthesis (PLACE vs SENSE) offers a third option: danger-evidence is a SENSE-faculty element, neither a descriptive axis nor a response-axis modifier, but part of the afferent sensing layer that GATES the response computation. Under this framing:
+- Descriptive axes (the PLACE faculty) = 4 axes as currently specified
+- SENSE faculty = danger-evidence, dread-weight, marked-unknown (all afferent inputs that gate and modulate the response)
+- Response axes = immunity + compliance (the output, gated by both PLACE and SENSE)
+
+The deconstruct wave should take this as its target: the PLACE-vs-SENSE split may be the resolution that satisfies the lattice-meet argument without adding a 5th descriptive axis.
+
+### Navigator: escalation resolutions received and integrated
+
+**[c4bb74b5], [54e95bb9], [37c6a4c4]:** Navigator received the observer's flags and think-big-dreamer's escalations, confirmed they're encoded in deconstruct targets. The navigator's key acknowledgment: "danger-as-5th-axis (not-provenance-error) + collapse lattice" are the top deconstruct seams. The trust→proof asymptote framing of the Authority axis is flagged for the converge ADR.
+
+---
+
+## Wave Closure Assessment
+
+### Final campsite state (2026-06-27 ~00:06–00:10 UTC)
+
+*Verified against live `camp status --expedition v0.7-presents-the-self` after context compaction.*
+
+| Campsite | Final State | Notes |
+|---|---|---|
+| observe/lab-notebook | COMPLETE (1/1) | observer signed |
+| dream/antigen-as-membrane-installer | COMPLETE (1/1) | think-big-dreamer signed; new campsite |
+| dream/axis-product-atlas | COMPLETE (2/2) | expansionist + [other] signed |
+| dream/frame-is-discovered-not-invented | COMPLETE (1/1) | expansionist signed; new campsite |
+| dream/coordinate-system | COMPLETE (3/3) | academic-researcher signed |
+| dream/stroma-as-sense-organ | COMPLETE (3/3) | all signed |
+| dream/far-future-charters | COMPLETE (3/3) | all signed |
+| open-q/danger-evidence | COMPLETE (3/3) | all signed |
+| open-q/symbiont-ternary | COMPLETE (3/3) | all signed |
+| open-q/dread-weight-vs-marked-unknown | COMPLETE (3/3) | all signed |
+| dream/unified-corpus | COMPLETE (3/3) | academic-researcher signed |
+| dream/injection-model | COMPLETE (3/3) | academic-researcher signed |
+| dream/construction-space-coordinate-system | COMPLETE (4/4) | all signed (including academic-researcher) |
+| research/literature-grounding | COMPLETE (1/1) | academic-researcher synthesis signed |
+| dream/intent-kernel-frame | PARTIAL (4/5) | naturalist unsigned; awaiting naturalist re-activation |
+
+**Total: 14 complete, 1 partial. Only `dream/intent-kernel-frame` awaits the naturalist's signature.** The wave is 93% complete at campsite close. The naturalist's slept-unsigned flag was recorded in activity [d640284f]. The dream content is fully delivered; the missing signature is administrative, not substantive.
+
+### FLAG updates based on late-wave findings
+
+**FLAG 1 (Danger-evidence candidate 5th axis):** STILL THE HIGHEST-VALUE SEAM, but the framing has clarified. The academic-researcher's two-faculties synthesis (PLACE vs SENSE) is the most intellectually complete resolution path, and it may dissolve the 5th-axis controversy without settling it as either "5th axis" or "response-axis modifier." Deconstruct should target the PLACE-vs-SENSE split explicitly, alongside the lattice-meet argument.
+
+**FLAG 2 (Proof-synthesis boundary):** Unchanged. Still the quietest, most structurally load-bearing. The lens grounding for injection model strengthens the decidability argument for reversibility, but decidability of code synthesis (the dreamer's extension) remains unargued.
+
+**FLAG 3 (Injection model state-field seam):** PARTIALLY ADDRESSED. The lens grounding (GetPut/PutGet laws) proves the marker layer's reversibility. The text-layout concern and the lifecycle-state-transition concern are still open — academic-researcher named them as "honest limits" of the lens theory. The specific seam: `state` field (live/suppressed-expiring/resolved-pending-removal) tracks history that may not re-derive from the current stroma snapshot alone.
+
+**BONUS FLAG (PLACE vs SENSE as unnamed faculty split):** This is the late-wave gift that changes the deconstruct wave's primary question. The academic-researcher's convergence notice [64a7ffd5] — all three SENSE-faculty items are afferent sensing channels — is a unifying insight that may resolve FLAG 1 not by adjudicating "5th axis vs response-modifier" but by introducing a third structural option that was absent from the original framing.
+
+### What the complete wave produced that wasn't in 009
+
+1. Salsa composition opportunity for stroma snapshot-vs-live
+2. Sheaf-cohomological program analysis paper (arXiv 2603.27015) as literal grounding for the Evidence-as-sheaf claim
+3. `edges.json` as antigen's own altered-self + second known-good migration oracle
+4. Marked-unknown RESONATE operation as fingerprint-discovery (innate→adaptive bridge)
+5. Axis-product atlas as mechanical feature-prediction method
+6. Construction-space coordinate system as second, isomorphic organism with its own axes
+7. Membrane-installer product thesis, sharpened to 4-property biological mechanism
+8. Naturalist's 3-way convergence (Aristotle + Maturana-Varela + Russell) on observer-can't-be-its-own-coordinate
+9. Unfired-loop honesty guard on self-immunization
+10. Lens theory (Foster 2007) as formal grounding for injection model — GetPut/PutGet = theorems not hopes
+11. BRON knowledge graph as prior art for the three-library corpus
+12. CWE 5-primitive basis (not just taint) as the honest corpus scope
+13. PLACE-vs-SENSE faculty split as the unifying frame for danger/dread/marked-unknown
+14. "Frame is discovered, not invented" meta-finding (expansionist) — 9+ field-matchings, all term-by-term
+15. Membrane-receptor-bearing property as the structural explanation for why SENSE is architecturally separate from PLACE
+
+*Notebook status: COMPLETE including late-wave additions through T+80min. Lab notebook at `R:/antigen-061-self-non-self/research/notebooks/012-v07-dream-wave-observer-lab-notebook.md`.*
