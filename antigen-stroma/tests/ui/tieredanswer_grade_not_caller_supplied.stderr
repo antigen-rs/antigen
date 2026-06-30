@@ -1,0 +1,11 @@
+error[E0451]: fields `value`, `tier` and `grade` of struct `TieredAnswer` are private
+  --> tests/ui/tieredanswer_grade_not_caller_supplied.rs:18:9
+   |
+17 |     let _dishonest: TieredAnswer<&str> = TieredAnswer {
+   |                                          ------------ in this type
+18 |         value: "x",
+   |         ^^^^^ private field
+19 |         tier: ResolutionTier::Syntactic,
+   |         ^^^^ private field
+20 |         grade: DetectionGrade::Presents, // a syntactic source can NOT carry presents-grade
+   |         ^^^^^ private field

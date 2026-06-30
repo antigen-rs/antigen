@@ -1,0 +1,5 @@
+error[E0451]: field `_private` of struct `InjectedException` is private
+  --> tests/ui/injected_exception_needs_overlay.rs:17:39
+   |
+17 |     let _forged = InjectedException { _private: () }; // MUST NOT COMPILE — private field.
+   |                                       ^^^^^^^^ private field

@@ -1,0 +1,11 @@
+error[E0502]: cannot borrow `db` as mutable because it is also borrowed as immutable
+  --> tests/ui/torn_read_does_not_compile.rs:39:13
+   |
+33 |     let snap = SnapshotHandle { db: &db };
+   |                                     --- immutable borrow occurs here
+...
+39 |     publish(&mut db);
+   |             ^^^^^^^ mutable borrow occurs here
+40 |
+41 |     let _second = read_through(&snap); // would observe a DIFFERENT revision — the torn read
+   |                                ----- immutable borrow later used here

@@ -6,7 +6,7 @@
 //! Two test surfaces:
 //!
 //! 1. **Real workspace** — `enumerate_workspace_member_roots` against the
-//!    antigen workspace itself must return all five members with their
+//!    antigen workspace itself must return all six members with their
 //!    canonical paths, and a member-aware scan must attribute each declaration
 //!    to its owning member crate (distinct `canonical_path`s). This is the dual
 //!    of `atk_a3_d3_cross_crate_enumeration.rs`, which covers the *dep*
@@ -56,6 +56,7 @@ fn enumerate_returns_all_workspace_members() {
         "antigen-macros",
         "antigen-fingerprint",
         "antigen-attestation",
+        "antigen-stroma",
         "cargo-antigen",
     ] {
         assert!(
@@ -65,8 +66,8 @@ fn enumerate_returns_all_workspace_members() {
     }
     assert_eq!(
         members.len(),
-        5,
-        "antigen workspace has exactly five members; got: {names:?}",
+        6,
+        "antigen workspace has exactly six members; got: {names:?}",
     );
 }
 
@@ -136,11 +137,11 @@ fn member_aware_scan_records_complete_coverage() {
         .as_ref()
         .expect("member-aware scan must populate scan_coverage");
 
-    // All five members enumerated AND scanned ⇒ no ignorance frontier.
+    // All six members enumerated AND scanned ⇒ no ignorance frontier.
     assert_eq!(
         coverage.enumerated_members.len(),
-        5,
-        "all five workspace members must be enumerated; got: {:?}",
+        6,
+        "all six workspace members must be enumerated; got: {:?}",
         coverage.enumerated_members
     );
     assert!(
