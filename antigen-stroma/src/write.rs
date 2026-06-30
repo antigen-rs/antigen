@@ -32,9 +32,19 @@ pub struct InjectedException {
 
 impl InjectedException {
     /// The sole constructor — an injected exception is a PROJECTION of an overlay, never an
-    /// independent source. **STUB — fill (frame epoch):** derive the embedded form from the overlay.
+    /// independent source (ADR-067 Open-seam-4). Taking `&OverlayMarker` makes the derivation-witness
+    /// a TYPE obligation: you cannot mint an `InjectedException` without an overlay in hand, and the
+    /// private `_private` field forbids the struct-literal bypass (the born-red trybuild fixture
+    /// `injected_exception_needs_overlay.rs` proves the literal does not compile).
+    ///
+    /// Frame epoch: the overlay carries no payload yet (the marker-emit substrate is the
+    /// later-epoch STEP-3 concern), so the projection is structural — the existence of this call IS
+    /// the "derived-from-overlay" provenance. When `OverlayMarker` gains its payload, this projects it.
     #[must_use]
-    pub fn from_overlay(_overlay: &OverlayMarker) -> Self {
-        todo!("frame epoch: injected exception is a projection of the overlay (never independent)")
+    pub const fn from_overlay(overlay: &OverlayMarker) -> Self {
+        // The overlay is the source-of-truth the injected form projects FROM. Frame epoch has no
+        // payload to copy; the borrow is the provenance obligation made structural.
+        let _ = overlay;
+        Self { _private: () }
     }
 }

@@ -2,4 +2,4 @@
 
 pub mod facts;
 
-pub use facts::{ContractFacts, EdgeFact, EdgeFacts, EdgeKind, NodeFacts};
+pub use facts::{ContractFact, ContractFacts, EdgeFact, EdgeFacts, EdgeKind, NodeFact, NodeFacts};

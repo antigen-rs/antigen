@@ -8,37 +8,66 @@
 //! NO differential-dataflow (genome three-lineage convergence: DD is salsa-hostile, zero prior art,
 //! refuted by the point-wise query-census). Do NOT scaffold DD.
 
-use crate::node::StromaNodeId;
-use crate::node::node::{Contract, Node};
+// The three relations are salsa `#[input]`s (ADR-070 §4.6: ONE input per relation, so an edit that
+// changes call-resolution invalidates `EdgeFacts` WITHOUT touching `NodeFacts`/`ContractFacts`). The
+// salsa-generated `new`/accessors can't carry doc comments — the allow covers only that surface.
+#![allow(missing_docs)]
+
+use crate::node::node::Contract;
+use crate::node::{IdentityDigest, StromaNodeId};
 use crate::read::ResolutionTier;
 
-/// The node relation. **STUB note:** uncomment `#[salsa::input]` when wiring; holds the node tuples.
-// #[salsa::input]
-#[derive(Debug, Clone, Default)]
+/// The node relation — the `#[salsa::input]` table of node TUPLES (not the per-entity [`crate::node::node::Node`]
+/// handle; that handle is the in-place-mutable identity layer, this is the relation the closure reads).
+#[salsa::input]
 pub struct NodeFacts {
-    /// The node tuples in this snapshot, each keyed by its stable [`crate::node::Locator`].
-    pub nodes: Vec<Node>,
+    /// The node tuples in this snapshot, each keyed by its stable qualified-path identity.
+    pub nodes: Vec<NodeFact>,
 }
 
 /// The edge relation. Populated from TWO feeders (syn syntactic + SCIP resolved), each tier-stamped;
 /// the ladder (ADR-069) lives in `EdgeFact.tier`. salsa re-runs the closure ONLY when this changes.
-// #[salsa::input]
-#[derive(Debug, Clone, Default)]
+#[salsa::input]
 pub struct EdgeFacts {
     /// The edge tuples in this snapshot, each tier-stamped at the tier it was reconstructed at.
     pub edges: Vec<EdgeFact>,
 }
 
 /// The local-contract relation (provides/requires + provenance, ADR-067 §A.3).
-// #[salsa::input]
-#[derive(Debug, Clone, Default)]
+#[salsa::input]
 pub struct ContractFacts {
     /// The per-node local contracts (provides/requires + provenance) in this snapshot.
-    pub contracts: Vec<Contract>,
+    pub contracts: Vec<ContractFact>,
+}
+
+/// One node tuple in the relation — the node's identity + its kind + the two digests.
+///
+/// The plain value-tuple form the closure iterates, distinct from the salsa [`crate::node::node::Node`]
+/// handle (which is the in-place-mutable per-entity storage the maintenance pass `set_*`s).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NodeFact {
+    /// The fully-qualified, collision-free, cfg-aware identity (ADR-067 §A.1).
+    pub id: StromaNodeId,
+    /// The node-kind discriminant (REUSED `ItemTarget` — the matching vocabulary, NOT the identity).
+    pub kind: antigen::scan::ItemTarget,
+    /// The collision-resistant signing digest (BLAKE3) — changes on any edit (the danger signal).
+    pub identity_digest: IdentityDigest,
+    /// The name-insensitive shape digest (FNV) — the clustering / near-miss / backdate key.
+    /// Changes on a MEANING edit (body/signature change) but NOT on a rename.
+    pub shape_digest: crate::node::digest::ShapeDigest,
+}
+
+/// One contract tuple in the relation — a node's local provides/requires + provenance (ADR-067 §A.3).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ContractFact {
+    /// The node this contract belongs to.
+    pub node: StromaNodeId,
+    /// The local contract payload (provides/requires + provenance-tier).
+    pub contract: Contract,
 }
 
 /// One edge tuple — tier-stamped (the resolution ladder lives HERE).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EdgeFact {
     /// The source node — the edge points FROM here.
     pub src: StromaNodeId,

@@ -12,22 +12,25 @@
 //!
 //! ## Class: property/structural (NOT born-red — `Locator` is a concrete frozen type, no `todo!()`)
 //! These run from day one. They guard the value-equality CONTRACT the salsa interning depends on.
+//! Note on salsa semantics: with `#[salsa::interned]`, value-equality is guaranteed by interning —
+//! equal (`fq_path`, `cfg_set`) inputs ⇒ equal `LocatorId` output (salsa deduplicates within a db).
+//! The tests construct two independent `Locator`s per scenario; salsa's intern table enforces the
+//! structural-equality → Id-equality contract we're verifying.
 
+use antigen_stroma::db::StromaDb;
 use antigen_stroma::node::cfg::CfgSet;
 use antigen_stroma::node::locator::Locator;
 
-fn loc(fq_path: &str) -> Locator {
-    Locator {
-        fq_path: fq_path.to_string(),
-        cfg_set: CfgSet::default(),
-    }
+fn loc(db: &StromaDb, fq_path: &str) -> Locator {
+    Locator::new(db, fq_path.to_string(), CfgSet::default())
 }
 
 // ATK: a RENAME (fq_path changes) produces a DISTINCT Locator — salsa will see delete+create.
 #[test]
 fn atk_frame_locator_rename_changes_identity() {
-    let before = loc("mycrate::foo::handler");
-    let after_rename = loc("mycrate::foo::process"); // same module, renamed item
+    let db = StromaDb::default();
+    let before = loc(&db, "mycrate::foo::handler");
+    let after_rename = loc(&db, "mycrate::foo::process"); // same module, renamed item
 
     assert_ne!(
         before, after_rename,
@@ -40,8 +43,9 @@ fn atk_frame_locator_rename_changes_identity() {
 // ATK: a MOVE (module path changes, item name same) also produces a DISTINCT Locator.
 #[test]
 fn atk_frame_locator_move_changes_identity() {
-    let before = loc("mycrate::foo::handler");
-    let after_move = loc("mycrate::bar::handler"); // moved to another module
+    let db = StromaDb::default();
+    let before = loc(&db, "mycrate::foo::handler");
+    let after_move = loc(&db, "mycrate::bar::handler"); // moved to another module
 
     assert_ne!(
         before, after_move,
@@ -55,8 +59,9 @@ fn atk_frame_locator_move_changes_identity() {
 // the body/digest in would FAIL here (re-minting on every edit, destroying the stable-key property).
 #[test]
 fn nc_frame_locator_same_path_is_same_locator() {
-    let a = loc("mycrate::foo::handler");
-    let b = loc("mycrate::foo::handler"); // same item, post body-edit (locator carries no body)
+    let db = StromaDb::default();
+    let a = loc(&db, "mycrate::foo::handler");
+    let b = loc(&db, "mycrate::foo::handler"); // same item, post body-edit (locator carries no body)
 
     assert_eq!(
         a, b,
@@ -71,14 +76,17 @@ fn nc_frame_locator_same_path_is_same_locator() {
 #[test]
 fn nc_frame_locator_cfg_is_part_of_key() {
     use antigen_stroma::node::cfg::CfgAtom;
-    let unix = Locator {
-        fq_path: "mycrate::foo::handler".to_string(),
-        cfg_set: CfgSet(vec![CfgAtom("unix".to_string())]),
-    };
-    let windows = Locator {
-        fq_path: "mycrate::foo::handler".to_string(),
-        cfg_set: CfgSet(vec![CfgAtom("windows".to_string())]),
-    };
+    let db = StromaDb::default();
+    let unix = Locator::new(
+        &db,
+        "mycrate::foo::handler".to_string(),
+        CfgSet(vec![CfgAtom("unix".to_string())]),
+    );
+    let windows = Locator::new(
+        &db,
+        "mycrate::foo::handler".to_string(),
+        CfgSet(vec![CfgAtom("windows".to_string())]),
+    );
     assert_ne!(
         unix, windows,
         "NC: two items at the same path under DIFFERENT cfg compared equal — cfg is not part of the \

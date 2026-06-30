@@ -22,7 +22,6 @@ use antigen_stroma::node::path::syntactic_fq_path;
 
 // ATK-FRAME-IDENTITY (born-red): foo::bar and baz::bar MUST be distinct identities.
 #[test]
-#[ignore = "born-red until syntactic_fq_path is filled (frame epoch); de-ignore on fill"]
 fn atk_frame_identity_cross_module_paths_are_distinct() {
     // Same item name `bar`, DIFFERENT module chains — the bare-name defect would collide these.
     let foo_bar = syntactic_fq_path("mycrate", &["foo".to_string()], "bar");
@@ -47,7 +46,6 @@ fn atk_frame_identity_cross_module_paths_are_distinct() {
 // A trivial impl that made every path unique (e.g. appended a counter) would PASS the ATK above but
 // FAIL this — proving the ATK tests construction, not mere uniqueness.
 #[test]
-#[ignore = "born-red until syntactic_fq_path is filled (frame epoch); de-ignore on fill"]
 fn nc_frame_identity_same_module_same_item_collide() {
     let a = syntactic_fq_path("mycrate", &["foo".to_string()], "bar");
     let b = syntactic_fq_path("mycrate", &["foo".to_string()], "bar");
@@ -63,7 +61,6 @@ fn nc_frame_identity_same_module_same_item_collide() {
 // NEGATIVE CONTROL (teeth, boundary): nested module chains must ALSO distinguish — `a::b::item` is
 // distinct from `a::item`. Guards against a construction that only looks at the LAST module segment.
 #[test]
-#[ignore = "born-red until syntactic_fq_path is filled (frame epoch); de-ignore on fill"]
 fn nc_frame_identity_nested_module_depth_is_load_bearing() {
     let shallow = syntactic_fq_path("mycrate", &["a".to_string()], "item");
     let deep = syntactic_fq_path("mycrate", &["a".to_string(), "b".to_string()], "item");

@@ -17,7 +17,13 @@ pub struct CfgSet(pub Vec<CfgAtom>);
 impl CfgSet {
     /// **STUB — fill (frame epoch):** sort + dedup the atoms so equal cfg-sets are bit-equal.
     #[must_use]
-    pub fn canonical(_atoms: Vec<CfgAtom>) -> Self {
-        todo!("frame epoch: sort+dedup for canonical cfg-set equality (interned-key stability)")
+    pub fn canonical(mut atoms: Vec<CfgAtom>) -> Self {
+        // Sort + dedup so two captures of the SAME active cfg-set compare bit-equal regardless of
+        // capture order — the stability the interned `Locator` key needs (equal cfg-sets must map to
+        // the same salsa `Id`). `CfgAtom` derives `Ord` over its inner string, so this is a total,
+        // deterministic canonical order.
+        atoms.sort();
+        atoms.dedup();
+        Self(atoms)
     }
 }

@@ -24,16 +24,14 @@
 
 use antigen_stroma::node::node::Revision;
 
-// The merge seam the §4.5a ruling requires. Until the builder lands it, this shim is `todo!()` and
-// the `#[ignore]`d tests are born-red. ON FILL: replace this shim's body with a call to the builder's
-// real `merge_last_changed` / `Revision::merge`, and de-ignore.
-fn merge_last_changed(_current: Revision, _observed: Revision) -> Revision {
-    todo!("frame epoch: monotone max-merge of last_changed (the §4.5a ruling becomes code here)")
+// The merge seam the §4.5a ruling requires — FILLED: delegates to the builder's `Revision::merge`
+// (the monotone `max` join). De-ignored: the tests now run as forever regression guards.
+fn merge_last_changed(current: Revision, observed: Revision) -> Revision {
+    current.merge(observed)
 }
 
 // ATK-FRAME-LASTCHANGED (born-red): two concurrent sets with t1 < t2 leave t2 REGARDLESS OF ORDER.
 #[test]
-#[ignore = "born-red until the last_changed monotone-merge seam lands (frame epoch); de-ignore on fill"]
 fn atk_frame_lastchanged_max_is_order_independent() {
     let t1 = Revision(1000);
     let t2 = Revision(2000);
@@ -57,7 +55,6 @@ fn atk_frame_lastchanged_max_is_order_independent() {
 // NEGATIVE CONTROL (teeth): a single write with an OLDER mtime than the current value MUST NOT regress
 // last_changed backward. A blind LWW impl regresses here; `max` does not.
 #[test]
-#[ignore = "born-red until the last_changed monotone-merge seam lands (frame epoch); de-ignore on fill"]
 fn nc_frame_lastchanged_older_write_does_not_regress() {
     let current = Revision(2000);
     let stale_observed = Revision(500);
@@ -73,7 +70,6 @@ fn nc_frame_lastchanged_older_write_does_not_regress() {
 // NEGATIVE CONTROL (teeth, idempotence): merging a value with itself is a no-op (the join is
 // idempotent — a property the §4.5a ruling names explicitly).
 #[test]
-#[ignore = "born-red until the last_changed monotone-merge seam lands (frame epoch); de-ignore on fill"]
 fn nc_frame_lastchanged_is_idempotent() {
     let v = Revision(1500);
     assert_eq!(

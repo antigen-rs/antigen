@@ -1,20 +1,25 @@
 //! STEP 2b — the STABLE LOCATOR (the salsa key). The git-path half of the locator/identity split.
 //!
-//! `#[salsa::interned]`: value-equality → stable `Id`. Survives BODY edits (the locator is path+cfg,
-//! NOT the digest). API CORRECTION (implementer, verified vs salsa 0.27.2): salsa 0.27 has NO `#[id]`
-//! key-field on `#[salsa::input]` — the stable-locator intent is expressed via `#[salsa::interned]`
+//! `#[salsa::interned(no_lifetime, debug)]`: value-equality → stable `Id`; `no_lifetime` drops the
+//! phantom `'db` lifetime parameter so `LocatorId` is `'static`-usable as a field on
+//! `#[salsa::input]` (which cannot take lifetime parameters). Verified vs salsa 0.27.2
+//! `tests/interned-structs.rs:49`. API CORRECTION: salsa 0.27 has NO `#[id]` key-field on
+//! `#[salsa::input]` — the stable-locator intent is expressed via `#[salsa::interned]`
 //! (keyed-BY-VALUE), not a key field on the input.
+
+// salsa's `#[interned]`/`#[input]` macros generate the `new` constructor + field accessors as
+// associated fns that cannot carry doc comments. The public TYPES and their FIELDS are documented;
+// this allow only covers the unavoidable macro-generated surface.
+#![allow(missing_docs)]
 
 use super::cfg::CfgSet;
 
 /// The stable address of a node — interned so equal (path, cfg) values map to the same salsa `Id`.
 /// An item at `crate::module::foo` stays the same `Locator` across edits to its body.
 ///
-/// **STUB note for the builder:** uncomment the salsa attribute and the `'db` lifetime when wiring
-/// against `StromaDb`. Kept attribute-free in the skeleton so the module tree reads without a salsa
-/// build. Fields must be salsa-storable (interned data types).
-// #[salsa::interned]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// Constructed via `Locator::new(&db, fq_path, cfg_set)` — value-equality gives a stable Id that
+/// survives body edits (the locator carries no digest, only the path+cfg coordinate).
+#[salsa::interned(no_lifetime, debug)]
 pub struct Locator {
     /// `crate::mod::item` (syntactic-tier) or the SCIP symbol (resolved-tier). See [`super::path`].
     pub fq_path: String,
