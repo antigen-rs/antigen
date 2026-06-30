@@ -13,8 +13,8 @@
 // salsa-generated `new`/accessors can't carry doc comments — the allow covers only that surface.
 #![allow(missing_docs)]
 
+use crate::node::StromaNodeId;
 use crate::node::node::Contract;
-use crate::node::{IdentityDigest, StromaNodeId};
 use crate::read::ResolutionTier;
 
 /// The node relation — the `#[salsa::input]` table of node TUPLES (not the per-entity [`crate::node::node::Node`]
@@ -46,14 +46,17 @@ pub struct ContractFacts {
 /// handle (which is the in-place-mutable per-entity storage the maintenance pass `set_*`s).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NodeFact {
-    /// The fully-qualified, collision-free, cfg-aware identity (ADR-067 §A.1).
+    /// The fully-qualified, collision-free, cfg-aware identity (ADR-067 §A.1). The signing
+    /// `identity_digest` lives HERE (inside `id`) — the SINGLE source of truth; read it via
+    /// `node.id.identity_digest`. (The separate salsa `Node` handle carries the digest as a
+    /// top-level mutable field because it is `set_*`-mutated in place; a `NodeFact` is a value
+    /// tuple, so it holds the digest once.)
     pub id: StromaNodeId,
     /// The node-kind discriminant (REUSED `ItemTarget` — the matching vocabulary, NOT the identity).
     pub kind: antigen::scan::ItemTarget,
-    /// The collision-resistant signing digest (BLAKE3) — changes on any edit (the danger signal).
-    pub identity_digest: IdentityDigest,
-    /// The name-insensitive shape digest (FNV) — the clustering / near-miss / backdate key.
-    /// Changes on a MEANING edit (body/signature change) but NOT on a rename.
+    /// The name-insensitive shape digest (FNV) — the clustering / near-miss / backdate key. A SIBLING
+    /// of identity (NOT part of the `id` 3-tuple): it changes on a MEANING edit (body/signature) but
+    /// NOT on a rename, and two different-named same-shape items SHARE it. So it lives top-level here.
     pub shape_digest: crate::node::digest::ShapeDigest,
 }
 

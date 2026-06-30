@@ -195,7 +195,7 @@ pub fn lower_scan_report(
 
         let id = StromaNodeId {
             fq_path: fq,
-            identity_digest: identity_digest.clone(),
+            identity_digest,
             cfg_set: cfg_set.clone(),
         };
 
@@ -204,7 +204,6 @@ pub fn lower_scan_report(
             NodeFact {
                 id,
                 kind: item_target.clone(),
-                identity_digest,
                 shape_digest,
             },
         );
