@@ -5,6 +5,7 @@ members = [
     "antigen-attestation",
     "antigen-fingerprint",
     "antigen-macros",
+    "antigen-stroma",
     "cargo-antigen",
 ]
 
@@ -33,6 +34,18 @@ serde_json = "1"
 # git I/O; the antigen lib stays subprocess-free per ADR-002, the vcs_witness
 # pattern). The most-downloaded pure-Rust git crate; read-surface only.
 gix = "0.84"
+
+# The stroma's relational base + clock (ADR-068). salsa 0.27.2 is the MEASURED-mature
+# version — the atomic-publish keystone (the &db / &mut db borrow-split) was verified
+# against 0.27.2 source. Only `antigen-stroma` depends on these; `antigen` stays
+# salsa-free so its light consumers (cargo-antigen, the attribute scanner) don't compile it.
+salsa = "0.27.2"
+# Semiring-datalog closure (ascent). The ENGINE epoch fills the closure bodies; the FRAME
+# epoch declares the dep so the engine-stub signatures typecheck in the same crate.
+ascent = "0.8"
+# Collision-resistant identity-digest tier (ADR-067 §A.2). FNV-1a (in antigen-fingerprint)
+# is engineer-collidable and stays the SHAPE tier only; BLAKE3 is the signing/identity tier.
+blake3 = "1.8"
 
 # Dev-only: property-based tests for parser invariants (W1).
 # proptest 1.x has been stable since 2017; we hold to that line.

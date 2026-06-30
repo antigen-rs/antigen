@@ -1,0 +1,11 @@
+error[E0599]: no associated function or constant named `new` found for struct `PresentsVerdict` in the current scope
+  --> tests/ui/syntactic_cannot_construct_presents.rs:26:36
+   |
+26 |     let _forged = PresentsVerdict::new(); // MUST NOT COMPILE — no public constructor.
+   |                                    ^^^ associated function or constant not found in `PresentsVerdict`
+   |
+help: there is a method `ne` with a similar name, but with different arguments
+  --> $RUST/core/src/cmp.rs
+   |
+   |     fn ne(&self, other: &Rhs) -> bool {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

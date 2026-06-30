@@ -1,0 +1,21 @@
+ATK-SCIP-RECON-001 · FIXTURE 3 (malformed-symbol — must FALL THROUGH to syntactic).
+
+This is a SPECIMEN of a malformed SCIP symbol key, not a real index. A SCIP symbol is a structured
+string: `<scheme> <manager> <package> <version> <descriptors>`. The line below is truncated /
+structurally invalid per the SCIP symbol grammar (it stops mid-descriptor with an unterminated
+package and no descriptor suffix):
+
+    rust-analyzer cargo mycrate 0.1.0 mymod/
+
+REQUIRED BEHAVIOR: the ingestion path does NOT construct a `StromaNodeId` with this malformed symbol
+as `fq_path`. It falls through to the syntactic-tier locator (the module-tree-walk path), stamped
+`dread`-grade; the edge is `Unreconstructible` or emitted at syntactic tier.
+
+WHY LOAD-BEARING: a builder who calls `FqPath::from_symbol(raw)` without validation silently
+constructs a malformed-symbol `StromaNodeId` that could match garbage in the `Locator` intern table —
+an observational-autoimmunity seed. The fixture proves malformed symbols are rejected from the
+resolved tier and the degraded path stays honest.
+
+(Kept as a `.txt` specimen rather than a binary `.scip` protobuf so a stranger can READ the
+failure-mode. When `ingest_scip` is wired against real protobuf, the engine-epoch fill encodes this
+malformed symbol into the test index and asserts the fall-through.)
