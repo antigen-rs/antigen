@@ -13410,3 +13410,437 @@ antibody re-verifies at the site, the signal **drops to its steady-state**; any 
 loudness*, attributed to *this* site. No "done" is declared; the current biology is shown; the user's *policy*
 (not antigen) decides whether the residual gates their CI.
 
+
+---
+
+## ADR-067 — The Stroma: a Sovereign Immune Lattice over Composed Resolution
+
+**Status**: **Ratified 2026-06-30** (v0.7, the-keel CONVERGE wave). Drafted from notebook-007 v4 (Proposed,
+post-two-councils 2026-06-25), the F-adr-067 first-principles deconstruction (INWARD), the notebook-008 observer
+consistency audit, and the **two evidence waves** (the-crucible + the-spike-yard) that ran the deciding
+experiments. Ratified by an **author-distinct ceremony panel** (aristotle + adversarial certify; the drafter is
+excluded — the no-self-witness invariant) after the two open design-forks were **blessed by both co-captains**
+(the sovereign-merge mechanism + the incorrect-stroma kernel amendment). The compose-vs-sovereign **partition**
+is folded in as integral (it reassigns the build framing from re-pour to compose and touches NO invariant); the
+**engine** machinery (ADR-068) and the **resolution-tier ladder** (ADR-069) are drafted alongside as their own
+ADRs.
+
+**Implements / depends-from**: ADR-066 §2 (the stroma-builder — collision-free identity, lifecycle, digest,
+graph-integrity); §11 (the persisted map = the output / distributed-cognition substrate); §4 + notebook 006
+(the graph as the keystone substrate for the §4 maths). **ADR-002 Amendment 3**: resolution (rust-analyzer /
+SCIP) is **herd-immunized substrate, composed freely via the user-invoked, zero-cascade-surface form
+(clause 1)**; the **immune lattice is the sovereign own-capability**. **Subsumes** the `LineageEdge` DAG as one
+edge-kind. **Defers** to follow-ons: the sheaf-lens ADR (incl. `GlobalConsistencyObstruction`), the §4
+field/maths, the contract-declaration syntax, the live-editor surface, the **output-substrate ADR** (overlay-
+primary), and the **coordinate-frame/009 kernel amendment** (the blessed incorrect-stroma naming).
+
+**Related**: ADR-068 (the stroma engine), ADR-069 (the read axis), notebook 006 (math-feeder verdicts), the
+SZZ miner, the no-self-witness invariant, *Journey Before Destination*.
+
+### Finding
+
+ADR-066 deferred the substrate its soundness rests on; two threads (binding-identity §2, the §4 keystone graph)
+converge on it. **antigen does not have it** — `scan/parse.rs` is an attribute-only single-file `syn` walk; the
+only typed edge (`LineageEdge`, `types.rs:1244`) is *human-declared* via `#[descended_from]`, not derived; the
+bare-item-name identity *demonstrably collides* (`scan/diff.rs` — `item_digest_map` keys on bare `name`,
+`item_digest_map_multi` does last-write-wins across files; a present, bug-forced defect). The team's own
+`tools/extract_edges.py` is a Python regex name-matcher that **misses 52% of real first-party edges** (2332
+heuristic name-edges vs 4647 SCIP-resolved). The deeper finding two councils forced: **`syn` resolves nothing** —
+call / data-flow / trait edges (the ones that make the stroma a *detector*, not a fancier import list) require
+name + type resolution antigen does not have and should not reinvent. That capability is **the herd's**
+(rust-analyzer). So the honest design is not "sovereign because cheap"; it is **"sovereign in the immune
+lattice, composed in the resolution."**
+
+**The partition finding (the build-framing correction).** The stroma splits cleanly at one line — **is this
+recomputable-from-sources, or is it authored?** — and the two halves have *opposite* build strategies. The cut
+is **come-apart-proven and exhaustive**: CodeQL/Glean/Joern/salsa/DDlog/lens-BX exhibit the *entire*
+compose-region with *none* of antigen's four never-done moves (WRITE-BACK · INTENT · SELF-DISTRUST ·
+COUNTERFACTUAL), so the line cannot be collapsed; five independent derivations converge on the identical cut.
+The partition reassigns the build framing from re-pour to compose **without touching any invariant**.
+
+### The thesis: a sovereign immune lattice, built over the herd's resolution
+
+The stroma is antigen's **structural-self** — a maintained, full-AST, attributed graph of the host codebase,
+the base from which topology/sheaf/manifold/field are *induced views*. What antigen **owns** (sovereign) is the
+**immune lattice** (node attributes, contracts, field, sheaf, the opinionated discipline, the four never-done
+moves, and the authored-generative remainder = the *stochastic* germinal-center fingerprint-generation). What
+antigen **composes** (the herd's) is **resolution** — which `foo()` binds where — from the user's installed
+rust-analyzer (served via SCIP). r-a is the herd-provided *eyes*; antigen is the immune *cognition*. It is also
+**opinionated**: where Rust's types can't express a contract (aliasing, ordering, protocol, panic-freedom),
+antigen lets you *declare* it — graceful degradation when you don't, full power when you do. It is the first
+object where antigen's two disconnected selves (identity-self = the digest; tolerance-self = the clean corpus)
+become addressable **in one namespace**.
+
+### Decision
+
+**The invariant: antigen maintains a sovereign immune lattice over a full-AST attributed base graph, whose
+*resolution* is composed from the user's rust-analyzer (require-installed, herd-immunized, clause-1
+zero-cascade) and whose *immune meaning* is antigen's own; the build STANDS ON the herd for everything
+recomputable-from-sources (the compose region — parity-guardable) and is SOVEREIGN only for what is authored
+(the four never-dones + the stochastic fingerprint-generation — authority-guarded); maintenance computes against
+a frozen snapshot, queues concurrent changes, and publishes atomically; an independent raw-tooling oracle is
+kept alive by standing sampled surveillance; the load-bearing immune identity is never delegated.** Everything
+below is method.
+
+**A. The base.** (1) Full-AST, attributed; **the *computation* is never coarsened** (the *at-rest
+representation* is a separate, drift-allowed concern — the two senses are distinct). Nodes carry a
+**fully-qualified, collision-free identity** `(qualified-path, identity-digest)` (closing the `diff.rs`
+bare-name collision), a **local contract** (provides/requires) with **provenance**, and an **open attribute
+set**; `cfg`-collision is handled by incorporating the active `cfg`-set into identity. (2) **Two digests**: a
+collision-resistant **identity/signing digest** (BLAKE3/SHA-256 tier — FNV-1a is engineer-collidable) and a
+fast **shape digest** (FNV-1a, for near-miss clustering). (3) **Local contracts are first-class node-data with
+provenance** (structural-inferred vs declared-semantic); graceful degradation gives structural detection where
+only structural contracts exist, `presents`-grade semantic detection where declared. (3b) Provenance is a
+**closed-alphabet TIER, never an invented confidence scalar**; freshness is itself a tier; convergence raises
+tier only across fresh, independent sources.
+
+**B. Induced-views (honest).** (4) Structures are induced views over the base, derived at dial-able resolution.
+**Honest caveat**: it is a **co-determining fixpoint, not a one-way functor** (the sheaf requires a node-contract
+the base carries *for* it); **"accrete, never migrate" has a named trapdoor** — a new lens-KIND additive to the
+attribute set is an accretion (safe); one that rewrites an attribute's meaning is a migration (forbidden without
+its own ADR). Richness IS detection — *but only as sound as the edges*, which is why resolution is composed.
+
+**C. Dynamics — frozen-snapshot, change-driven, two-directional.** (5) Maintenance computes against a frozen
+snapshot and publishes atomically; detection always reads a fully-published version, never torn (the systems
+keystone — storms impossible by construction; concurrent changes queued + coalesced into the next snapshot).
+(6) **Two wavefronts**: freshness = forward, detection = backward, with receptor-selectivity. (7)
+Persist-as-single-source-of-truth; conservative change-driven increment (over-propagate never under-propagate;
+the per-run cost bound holds for non-hub changes — the hub exception is named). The full-rebuild witness
+(`StromaIncrementalDrift`) fires on lifecycle danger-events and on demand, never a clock. Persistence is a
+gitignored per-machine cache. (7b) **Lifecycle-events (rename/split/merge) are RECOMPUTABLE structural
+projections, NOT writes** (compose-side / thymic-stroma — they re-home bindings *as a consequence of* a
+recomputable diff). (7c) **Standing sampled parity surveillance** — a sample of nodes is continuously
+re-derived from the *live* raw tooling and checked against the stroma; the parity oracle stays
+**sovereign-AND-external** (the SELF-DISTRUST never-done made concrete) and never retires to self-consistency.
+
+**D. Detection + defense.** (8) An **edge-test is an antibody on an edge** (the ADR-066 model extends from
+node- to edge-bindings); live-running is a follow-on with a named hub-node carve-out + a `presents`-tier
+zero-false-positive invariant. (9) The **"am I OK?" lens**: never "OK", but "nothing lit up downstream" (over
+*resolved* edges) or "check exactly these N" — requires resolved edges to be trustworthy.
+
+**E. Resolution + sovereignty.** (10) Resolution is composed from the user's rust-analyzer (require-installed);
+edge-provenance carries the honesty (`resolved` = presents-grade · `syntactic` = dread-grade · `declared` =
+human); graceful degradation ships the syntactic subgraph when r-a is absent. (11) **The binary interface fork
+is dissolved for the resolved tier: SCIP is the third path** the binary LSP-XOR-`ra_ap_*` fork missed
+(`rust-analyzer scip` — bounded AND yields resolved edges; the author-distinct execution-feasibility witness on
+antigen's own 5-crate workspace). The ladder is syntactic < resolved (SCIP) < mir-exact (scoped, never
+whole-graph-default; ADR-069 holds the ladder). **The data-flow/mir half is the field-maths follow-on's
+head-gate, NOT a block on this base ADR.**
+
+**F. The partition — compose vs sovereign.** (12) The build stands on the herd for the **COMPOSE region**
+(recomputable, parity-guardable: base, query, induced-views, field, provenance, incrementality, resolved
+edges — salsa PULL + semiring-datalog, ADR-068) and is **SOVEREIGN** only for the authored remainder. **The
+discriminant is STOCHASTICITY, not carrier-growth**: a deterministic-exhaustive generator grows the carrier yet
+is recomputable-from-input → COMPOSE; the router keys on not-a-pure-function-of-input, with carrier-growth as
+the cheap detector. The sovereign remainder is the **stochastic** fingerprint-generation step +
+editorial-retirement governance (default retirement = D2a, recomputable output over an authored
+threshold-config → compose). **The 4-cell write taxonomy** (TRUE-EMBED · D1 · MATERIALIZED-D1 · D2; write-back
+is THE safety boundary). **Compose ≠ cheap** (the compose region is *more* greenfield than the sovereign region;
+the partition removes algorithm-design *risk*, not integration work). (13) **The CONFIG/OUTPUT split** is the
+standing build rule: *for every primitive, separate the authored CONFIG (sovereign, D2/D2a, external-witness)
+from the recomputable OUTPUT (compose, D1/materialized-D1, parity-guardable); never let one word name both.* The
+recomputability line is **complete** (the F2 enumeration) and **operationally-detectable** (carrier-growth is a
+build-time crossing signal — a *detector*, not a second independent derivation). (14) **Three structurally-forced
+build invariants ratify WITH the partition** (its exhaustiveness depends on them): **(a) the SOVEREIGN-MERGE
+primitive** — the authored half cannot merge by re-derivation; the co-captain-blessed triple is an ordered
+authored-event-log (git commit-DAG order) + digest-dedup (structural_digest clustering) + an authority-arbiter
+for concurrent events, encoded as the `SovereignMerge`/`ComposeMerge` type-split; **(b) the tool-INDEPENDENT
+stroma-fidelity witness** — the freshness witness must read filesystem mtime, never r-a output (no-self-witness
+at the SOURCE level); **(c) the RETENTION-POLICY invariant** — a history-base materialized-D1 datum is
+parity-guardable IFF its history is retained (discard demotes it to D2).
+
+**Self-antigens** (the prose-vs-invariant cure — each prose correction ships its enforcing guard; several were
+surfaced by antigen's own dogfood on this draft): `StromaIncrementalDrift` (born-red here) ·
+`ApoptosisAuthorityBoundaryConflated` (buildable-now: `ComposeRetire`/`SovereignRetire` type-distinct) ·
+`LifecycleEventMisfiledAsWrite` (deferred) · `ParityOracleSharesComposedSource` (deferred) ·
+`SovereignCatalogMergedByReDerivation` (buildable-now on the STOCK seam) ·
+`HistoryDiscardedButGuardedAsRecomputable` (deferred; `RETENTION_WINDOW` const + compile-assert) ·
+`A6EfferentOutputNotOnStroma` (architectural gate) · `GlobalConsistencyObstruction` (deferred to the sheaf-lens
+ADR — minting here would be a dangling defense) · `StromaConsumerParityDrift` (deferred to the migration
+follow-on).
+
+### Biology grounding
+
+**Class-1**: the **thymic stroma** (the scaffold presenting self for tolerance — the present-organ that READS
+the base; lifecycle-projection lives here); the stroma as **tissue**; the **danger model** (Matzinger — respond
+to change; the backdate property ages-through cosmetic change for free); **receptor selectivity**; **herd
+immunity** (composing rust-analyzer/SCIP — the ecosystem-watched substrate — is the herd protecting the
+universal capability, Amd3); the **germinal-center** (the GENERATE-organ doing stochastic non-deterministic
+authoring — the sovereign remainder, structurally separate because its output is not a pure function of its
+input). **Honest-invention**: the r-a/SCIP adapter + provenance scheme, the frozen-snapshot/atomic-publish rule,
+the digest split, the contract-declaration discipline, the compose-vs-sovereign recomputability partition (the
+*line* is constructor-theory-grounded; the *4-cell test* and the config/output split are software-engineering
+invention).
+
+### Process not outcome
+
+- **Invariant (durable)**: as stated above — the sovereign lattice over a full-AST attributed base; FQ
+  collision-free + collision-resistant + cfg-aware identity; first-class contracts with provenance; resolution
+  composed from require-installed r-a (immune lattice never delegated); the build stands-on-the-herd for the
+  compose region and is sovereign only for the authored remainder, the seam AT the recomputability line;
+  lifecycle-events are recomputable structural projections; frozen-snapshot + atomic-publish + detection never
+  torn; two-directional conservative increment, rebuild-witnessed on lifecycle-events; provenance is a
+  closed-alphabet tier; an independent raw-tooling oracle kept alive by standing surveillance (sovereign-and-
+  external); the config/output split as the standing build rule; the three emergent invariants ratify WITH the
+  partition.
+- **Process (durable)**: built from the sunk `syn` parse (syntactic edges) + composed r-a via SCIP (resolved
+  edges) + cargo-metadata (dep edges); the adapter wraps r-a versions; change is the danger signal;
+  freshness=forward / detection=backward; both deciding experiments (base-substrate, output-substrate) ran
+  before ratification; the router keys on stochasticity (carrier-growth is its detector).
+- **Outcome (must drift — NOT decreed)**: the node/edge schema + edge-kinds + conductance weights; the field
+  representation; the at-rest persistence format; the exact resolved-tier interface within the SCIP path; the
+  digest *algorithm within each security tier*; which multi-sources are materialized; the parity-surveillance
+  sample rate; the contract-declaration syntax; the live-editor surface.
+
+### What this ADR does NOT do
+
+- Does **not** build the §4 field/maths, the sheaf lens, the contract-declaration syntax, or the live editor
+  (follow-ons). Does **not** specify the engine machinery (ADR-068) or the resolution-tier ladder (ADR-069).
+- Does **not** roll its own Rust resolver, nor vendor/fork/granuloma r-a (require-installed, clause-1
+  herd-compose). Does **not** coarsen the *computation*. Does **not** mint `GlobalConsistencyObstruction`.
+- Does **not** claim semantic detection for everyone (structural-free + semantic-opt-in via declaration).
+- Does **not** build the (B) history/event-log write-store — that is a deferred 0.8 substrate; 0.7 carries only
+  the (A) decay/anergy half (recomputable, rides the salsa clock).
+
+### Resolved seams
+
+Each ruled by the first-principles pass + the evidence waves; the full deconstruction chains (append-only,
+supersede-not-erase) live in the the-keel deposits.
+
+- **Peer-vs-child constitute (F1)**: write is a PEER of constitute on the SOVEREIGN side, COLLAPSED-TO-ONE on
+  the COMPOSE side — the same recomputability cut. Deciding criterion: does constitute GROW the carrier?
+- **The `last_changed` temporal "4-cell crack" (F2, canonical landing)**: the "temporal cell" was never a cell;
+  it is the recomputability line applied to the TIME axis, dissolving as a CQRS conflation — **(A) DECAY**
+  (anergy/fibrosis/backdate) is recomputable given `last_changed` and **folds into the 0.7 core** (sealed by
+  LE6: `last_changed` is a maintenance-stamped `#[salsa::input]`, never a tracked-fn); **(B) HISTORY/event-log**
+  (contact-trace, the Δ-sequence, trajectory_direction) refuses to fold and is **named-deferred to the 0.8
+  event-log write-store** (event-sourcing's state=projection / log=truth). The 4-cell taxonomy is exhaustive
+  over the snapshot region. Reopener: a modal/counterfactual temporal read (TEMPORAL × COUNTERFACTUAL — a
+  never-done).
+- **Incorrect-stroma failure mode (F3, co-captain-blessed)**: named **OBSERVATIONAL-AUTOIMMUNITY** — the stroma
+  is a fallible READ; a confidently-wrong stroma yields confidently-wrong verdicts with no error signal. Amends
+  009's kernel with the prior baseline intent `StromaFaithfullyReflectsReality` + the presents
+  `StromaFidelityUnwitnessed` (form-not-content), witnessed **tool-independently** (filesystem mtime, never r-a
+  output). Drafted as the coordinate-frame/009 follow-on.
+- **Output-substrate (F4)**: overlay (SCIP-symbol-anchored) is primary for DERIVED markers; injection for the
+  DECLARED `#[antigen_tolerance]` exception; git-notes sidecar eliminated (blob-SHA severance). The
+  output-substrate follow-on ADR carries the invariant that an injected marker with an overlay counterpart must
+  be DERIVED FROM the overlay (a projection, never an independent source).
+- **Apoptosis (F5)**: default retirement = D2a (recomputable output over an authored threshold-config →
+  compose); only editorial retirement is sovereign.
+
+---
+
+## ADR-068 — The Stroma Engine: compose the herd (salsa clock + semiring-datalog queries)
+
+**Status**: **Ratified 2026-06-30** (v0.7, the-keel CONVERGE wave). The build-spec for the COMPOSE half of the
+stroma (ADR-067 §F). Ratified by the author-distinct ceremony panel (aristotle + adversarial certify; the
+drafter excluded). Every measured figure is from antigen's OWN call-graph (the-crucible + the-spike-yard,
+2026-06-28/29), author-distinct and re-run-confirmed.
+
+**Implements / depends-from**: **ADR-067 §F** (the compose region this engine realizes — the seam sits AT the
+recomputability line); **ADR-002 Amendment 3 clause-1** (salsa, rust-analyzer, ascent are herd-immunized
+substrate composed freely). **Depends-on**: **ADR-069** (the 3-tier resolution ladder this engine's
+edge-resolution layer rides).
+
+**Related**: charter-stroma-engine, charter-stroma-partition, charter-stroma-temporal-organism (the temporal
+stamp rides the SAME salsa revision clock), notebook 006 (math-feeder), the bounded-fan-out topological law,
+*Journey Before Destination*.
+
+### Finding
+
+ADR-067 §F partitions the stroma at the recomputability line and says of the compose region "stand on the herd,
+don't re-pour." This ADR **names the herd to stand on and the measured shape of standing on it.** The central
+correction the engine work forced: **detection, field, provenance, and blast-radius are NOT four subsystems** —
+they are **four semirings over ONE path-query**, and the "two engines" (demand-vs-push) framing is SUBSUMED into
+*maintenance-strategy-per-semiring over one graph*. The base-substrate question (graph-as-base vs
+relational-as-base) was a ratification gate; it ran BOTH ways on antigen's real call-graph (n=2948, 4714 edges):
+hand-rolled BFS-graph = 33,872 pairs in 2.46 ms (~80 lines); ascent semiring-datalog = 33,882 pairs (incl. 10
+cyclic self-pairs, 3 SCCs) in 2.88 ms (4 lines). **Performance equivalent; the gate is cleared.**
+
+### Decision
+
+**The invariant: the compose region is built as ONE relational base graph + ONE semiring-datalog query
+framework, with maintenance-strategy chosen PER-SEMIRING over the single graph; salsa supplies the revision +
+memoization clock (the frozen-snapshot / atomic-publish boundary), semiring-datalog supplies the
+detection-and-field queries that run over salsa-published facts; the engine NEVER hand-rolls what the herd
+(salsa, rust-analyzer, ascent) already provides; the non-idempotent counting semiring is always idempotent OR
+explicitly condensed, never naive over antigen's cyclic call-graph.** Everything below is method.
+
+1. **Relational-as-base (DECIDED by the deciding experiment)** — relations (salsa facts), not a hand-rolled
+   adjacency graph; wins on code clarity (4 lines vs 80), extensibility (a semiring is a *parameter change*),
+   salsa integration (relations = salsa facts), and cycle detection (the closure surfaces the SCCs for free).
+2. **Four semirings over one path-query (MEASURED + re-run)** — detection (boolean), field conductance
+   (tropical-min), provenance (lattice-JOIN), blast-radius (counting) = ONE reachability relation under four
+   semirings, differing only in per-pair *value* (the identical 33,882-pair relation across three independent
+   derivations). The demand-vs-push split is maintenance-strategy-per-semiring, not a data-model split.
+3. **The idempotency boundary (MEASURED + ENFORCED, not prose)** — idempotent semirings run in 2–4 ms; the
+   non-idempotent counting semiring ran 206–242 s (**~100,000× slower**) because antigen's call-graph has cycles
+   (the counting blowup IS the SCC blowup). The failure is SILENT (a correct-but-slow query that hangs in
+   production — antigen's worst failure class). **Enforcement**: every `Semiring` impl declares
+   `const IDEMPOTENT: bool`; a compile-assert requires `IDEMPOTENT = false` to run only after a condensation
+   pre-pass; the born-red `NonIdempotentSemiringWithoutCondensation` with the NC5 cyclic-graph negative control.
+   The condensation pre-pass IS the §6 two topology-chosen operators — the remedy was already in the genome; the
+   dogfood makes it ENFORCED.
+4. **salsa is the clock, NOT the semiring engine** — salsa for the revision + memoization clock;
+   semiring-datalog (ascent) for the detection-and-field queries over salsa-published facts. rust-analyzer's
+   `RootDatabase` IS salsa, so resolution and the immune lattice share ONE revision space.
+5. **Differential-dataflow is OUT of the 0.7 build (three-lineage converged)** — salsa-batch suffices for 0.7
+   across all tiers; the no-engine argument rests on the **bounded-fan-out topological law** (antigen's graphs
+   are bounded-fan-out because static analysis over a type-checked language inherits the language discipline).
+   DD-out is a 0.7 NON-USE, **never a foreclosure of the mechanism**: the named re-open conditions are
+   (a) a consumer query-census finds an all-pairs-online-push consumer, OR (b) relational tuple-invalidation
+   proves insufficient at extreme scale, OR (c) measured live-edit latency becomes the binding constraint. If
+   chosen it is **differential-dataflow, never DBSP** (DBSP does not build on Windows).
+6. **Two condensation operators under one banner (NOT one primitive)** — the shared abstraction is
+   "condensation"; the operators differ by hub-topology: **SCC-condense (Tarjan)** for the cyclic blast tier,
+   **IFDS summary-edge** for the fan-out DAG data-flow tier (ATK-UNIFY-001, NC-checked: SCC-condense is a no-op
+   on a DAG fan-out hub). Charter two operators under one banner, never one primitive.
+7. **The snapshot keystone embeds in salsa (MEASURED on 0.27.2)** — frozen-snapshot + atomic-publish (salsa
+   Revision) + conservative change-driven increment + the BACKDATE property = ADR-067's "nothing lit up
+   downstream" + the Matzinger danger-model for free. The **digest IS the backdate-comparison key**
+   (`structural_digest` over tokens after stripping `ANTIGEN_OWNED_ATTRS`, now complete + guard-tested).
+   Live-vs-batch is a cadence choice on the SAME machinery; the atomic-publish tick is the shared clock.
+8. **Maturity ground-truth (drift-allowed)** — salsa 0.27.2 + differential-dataflow 0.24.0 are mature; ascent is
+   usable but its cadence has slowed (the *interface* — user-defined lattice fixpoints over salsa facts — is the
+   durable spec; the crate is the swappable implementation, with a fork-or-replace contingency named).
+
+### Biology grounding
+
+**Class-1**: **herd immunity** (composing salsa / rust-analyzer / ascent is the herd protecting the universal
+capability, Amd3); the **danger model** (the backdate property = respond to *meaning*-change). **Honest-invention
+(the genome work)**: the four-semirings-over-one-query unification, the idempotency-boundary constraint,
+salsa-as-clock / semiring-as-query, DD-out / salsa-batch, the two-condensation-operators result, the
+bounded-fan-out law as the structural *why* the cheap engine wins.
+
+### Process not outcome
+
+- **Invariant (durable)**: ONE relational base + ONE semiring-datalog framework, maintenance-strategy
+  per-semiring; salsa = clock, semiring-datalog = queries over published facts; never hand-roll what the herd
+  provides; the field/blast semiring is idempotent-or-condensed, never naive-counting over the cyclic graph
+  (enforced via `const IDEMPOTENT: bool` + compile-assert); the snapshot keystone embeds in salsa; condensation
+  is operator-chosen-by-hub-topology (two operators, one banner); the digest is the backdate key.
+- **Process (durable)**: relational-as-base (decided by experiment); salsa-batch for 0.7 (DD-out, three-lineage
+  converged); both deciding experiments ran on antigen's real call-graph before ratification.
+- **Outcome (must drift)**: the exact semiring set + per-semiring maintenance strategy; the node/edge schema;
+  the ascent-vs-alternative crate choice; whether/when DD-incremental enters a 0.7.x/0.8 epoch (gated on the
+  named re-open conditions); the condensation operators' implementation; the at-rest persistence format.
+
+### What this ADR does NOT do
+
+- Does **not** specify the recomputability partition or the sovereign region (ADR-067 §F), nor ratify the
+  resolution-tier ladder (ADR-069 — this engine *rides* it).
+- Does **not** build DD-incremental for 0.7 (deferred, gated on the named re-open conditions; DBSP forbidden on
+  the portability finding).
+- Does **not** decide the field's apparatus-as-content cell (continuous-PDE external co-kernel vs
+  discrete-percolation-fixpoint — a follow-on; may be EMPTY).
+- Does **not** hard-code "Polonius = speculative" (it is near-stable; the real blocker is external-aliasing-facts
+  consumption — a research project, not a compose-today).
+
+### Open seams
+
+The CLASS-2 false-positive measurement (the degraded-syntactic-tier honesty gate of ADR-069) is buildable-now
+(a diff-and-count over existing data) → run-then-ratify the low-noise sub-claim. The apparatus-as-content cell,
+the SCIP occurrence-to-call-edge reconstruction verification, the ascent cadence contingency, and workspace-scale
+benchmarking are named-near-term follow-ons.
+
+---
+
+## ADR-069 — The Read Axis: the 3-tier resolution ladder + the read-frame is 3 axes with a live T3 slot
+
+**Status**: **Ratified 2026-06-30** (v0.7, the-keel CONVERGE wave). Ratified by the author-distinct ceremony
+panel (aristotle + adversarial certify; the drafter excluded). Two braided rulings: (A) the **resolution-tier
+ladder** (syntactic < resolved < mir-exact) that ADR-067 §3b/§11 and ADR-068 defer to here; (B) the
+**read-frame arity** — the 3-vs-5 read-axis cross-island dissent, resolved-by-evidence to **3 axes with a
+structurally-present, live T3 slot**.
+
+**Implements / depends-from**: **ADR-067 §3b** (provenance is a closed-alphabet TIER, not an invented scalar —
+this ADR ratifies the tier ladder) + **§11** (the SCIP resolved tier); **ADR-068** (the engine rides this
+ladder); **notebook 009** (the four descriptive axes — Scale · Subject · Evidence · Authority — this ADR
+sharpens the Evidence/read-frame slice); **ADR-002 Amd3 clause-1** (SCIP / r-a is composed-herd substrate).
+
+**Related**: charter-stroma-coordinate-frame (A3 + the open 3-vs-5 dissent), charter-stroma-engine (the 3-tier
+edge ladder), notebook 009 Part-6 (the pressure-test that settled the axis count at 4 descriptive), the
+no-self-witness invariant, *Journey Before Destination*.
+
+### Finding
+
+Two distinct cuts kept getting conflated. (1) **The resolution-tier ladder** — how well is a stroma
+edge/attribute *resolved*? The team's heuristic call-graph misses **52%** of real first-party edges (2332 vs
+4647 SCIP-resolved). A confidently-wrong "nothing lit up" over a 52%-incomplete graph is **false-quiet — the
+worst failure for an immune detector.** (2) **The read-frame arity (the 3-vs-5 dissent)** — A3 holds 3 axes
+(SOURCE × PERSPECTIVE × POLARITY) with honest 4th-axis candidates (ARITY, TEMPORAL-INTEGRATION), while a capstone
+island settled 5 and an audit island settled 3. The constructor-capacity work said arity would be settled
+EMPIRICALLY once resolved-edges shipped — and they now ship.
+
+### Decision
+
+**The invariant (A — the ladder): edge/attribute resolution is a CLOSED, EXTENSIBLE alphabet of TIERS ordered
+by resolution-confidence, never an invented continuous confidence scalar; a lower tier can NEVER corroborate up;
+freshness is itself a tier; convergence raises tier only across FRESH, INDEPENDENT sources. The detection-tier a
+tier earns is its honest ceiling: syntactic edges are `dread`-grade (never `presents`), resolved edges are
+`presents`-grade.**
+
+**The invariant (B — the arity): the read-frame is THREE axes (SOURCE × PERSPECTIVE × POLARITY) WITH a
+structurally-present T3 (mir-only) slot that is empirically empty on antigen's OWN codebase but is
+ready-to-populate when the stroma reads a user codebase that exercises it (dyn-dispatch / async /
+closures-as-edges). The candidates (ARITY, TEMPORAL-INTEGRATION) are NOT deleted — they LIVE in the T3 slot,
+populated per-codebase. The ruling is "3 axes with a named, structurally-present T3," NEVER "candidates closed"
+— because the read-axis ADR frames what the stroma reads in ARBITRARY codebases, not only antigen's own.
+T3-empty is not T3-doesn't-exist.**
+
+**A. The ladder.** (1) Three tiers: **syntactic** (`syn` — free, ~48% of edges, `dread`-grade) < **resolved**
+(`rust-analyzer scip` batch — call/data-flow/trait edges, ~13–49 s cold whole-workspace, sub-second live;
+`presents`-grade) < **mir-exact** (`rustc --emit=mir` — monomorphized + data-flow; per-crate compile cost; best
+SCOPED, never whole-graph default). (2) **SCIP is the resolved tier** (the third path the binary
+LSP-XOR-`ra_ap_*` fork missed), keying at symbol-level so name-ambiguity drops from 91% (raw-name) to 0.6% (SCIP
+symbol-level). Degraded mode: r-a present → resolved (`presents`-grade); absent → the syntactic subgraph ships
+(`dread`-grade). **GATE**: the "syntactic fallback is degraded-but-honest" claim is conditional on the CLASS-2
+false-positive measurement (heuristic emits `parse@M1` when the resolved target is `parse@M2` — invisible to
+name-level comparison; structurally certain given 91% raw-name ambiguity). The `dread`-grade cap is the always-on
+structural mitigation; the CLASS-2 measurement (buildable-now, run-then-ratify) gates the low-noise sub-claim.
+(3) **Freshness-as-tier** — a stale capture is a lower tier; this keeps the standing parity surveillance honest.
+(4) Residual risk named: a `resolved` edge inherits r-a's soundness (excellent, not formally verified).
+
+**B. The arity.** (5) The mechanism ran (EXERCISED-below-LATENT): antigen's 4,714 SCIP-resolved first-party
+call edges classify into exactly 3 resolution tiers — T1-syntactic 4,502 (95.5%) / T2-resolved 212 (4.5%) /
+**T3-mir-only 0%** (zero `dyn` dispatch, zero `async fn`, all closures in docs/bounds). (6) The
+resolution-tier T3 is precisely where the structures that would FORCE an independent ARITY or
+TEMPORAL-INTEGRATION axis live — and it is empirically EMPTY on antigen's macro-based, dyn-free codebase. (7)
+**The slot is named and LIVE, not deleted**: the read-axis ADR frames arbitrary user codebases, and a
+tokio-heavy/`dyn`-heavy user codebase populates T3 and resurrects the candidates *for that codebase's reading*.
+009 Part-6's membrane + supersede-chain stay CLOSED (idiotypic reads-of-reads = inward fixpoint).
+
+### Biology grounding
+
+**Class-1**: **receptor selectivity** (the PERSPECTIVE axis); the **danger model** (POLARITY: intent-default).
+**Honest-invention**: the resolution-tier ladder, freshness-as-tier, the SCIP-as-resolved-tier choice, the
+empirical T3-live-slot arity ruling (the method of settling an axis count by exercising the substrate is
+antigen's own discovered-not-invented discipline).
+
+### Process not outcome
+
+- **Invariant (durable)**: resolution is a closed-extensible TIER alphabet (never a scalar);
+  lower-never-corroborates-up; freshness IS a tier; detection-tier is the tier's honest ceiling; the read-frame
+  is 3 axes with a structurally-present T3 slot (empty on antigen's own codebase, live for user codebases); the
+  candidates relocate into T3, never deleted.
+- **Process (durable)**: the ladder settled by EXERCISED-below-LATENT on antigen's real SCIP call-graph; SCIP is
+  the resolved-tier interface; the arity ruling rests on the empirically-empty (but structurally-present) T3.
+- **Outcome (must drift)**: the exact tier-alphabet membership (new sources add new named tiers); the SCIP
+  interface mechanics; the per-source maturity tiering; the freshness-check sample rate. **The 3-axis frame
+  itself is NOT an outcome — it is the invariant** (reopened only by the named populate-the-T3-slot condition).
+
+### What this ADR does NOT do
+
+- Does **not** specify the engine machinery (ADR-068) or the partition (ADR-067 §F).
+- Does **not** make `mir-exact` a whole-graph default (scoped only).
+- Does **not** claim the candidates are deleted — they relocate into the structurally-present T3 slot, live for
+  any user codebase exercising dyn/async/closures.
+
+### Open seams
+
+The "incorrect stroma" failure mode is named in 009's kernel as OBSERVATIONAL-AUTOIMMUNITY (ADR-067 Open-seam-3,
+co-captain-blessed); two of its triggers live on this ladder — the **SCIP-reconstruction-unverified** born-red
+ATK (a macro-call-site degenerate fixture must pass before SCIP edges carry `presents`-grade) and the
+**index-staleness** freshness-demotion (resolved → dread when the index is older than source). The mir-exact
+tier's adapter-churn risk needs the same version-handshake discipline ADR-067 §10 names for the r-a adapter.
