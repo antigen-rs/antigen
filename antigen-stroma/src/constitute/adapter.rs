@@ -184,7 +184,7 @@ pub fn lower_scan_report(
         let item_name = item_target_name(item_target);
 
         // Syntactic FQ path (the floor-tier locator — SCIP supersedes at engine epoch).
-        let fq: FqPath = syntactic_fq_path(crate_name, &module_chain, item_name);
+        let fq: FqPath = syntactic_fq_path(crate_name, &module_chain, &item_name);
 
         // Both digests, computed from ONE parse of the source: IdentityDigest via the §4.3
         // canonical_identity_tokens seam (tamper-evident, load-bearing-kept), ShapeDigest via the
@@ -255,15 +255,177 @@ pub fn lower_scan_report(
     (nodes, edges)
 }
 
-/// Extract the string name from an `ItemTarget`.
-const fn item_target_name(target: &antigen::scan::ItemTarget) -> &str {
+/// The subject of an impl block: `<Type as Trait>` for a trait impl, bare `Type` for an inherent one.
+/// Shared by the `Impl` / `ImplFn` / `ImplConst` arms so the trait-qualification renders one way.
+fn impl_subject(target_type: &str, trait_path: Option<&str>) -> String {
+    trait_path.map_or_else(
+        || target_type.to_string(),
+        |tr| format!("<{target_type} as {tr}>"),
+    )
+}
+
+/// Derive a DISTINGUISHING path-segment name from an `ItemTarget`.
+///
+/// The simple name-bearing variants yield their bare ident. The impl-family variants do NOT — they
+/// carry `target_type`/`trait_path`/`fn_name` instead of a single ident, and collapsing them all to
+/// one placeholder (`"__impl__"`) would re-import the bare-name collision the frame exists to close
+/// (two `impl` blocks in one module → the SAME `fq_path`, distinguishable only by body digest). So
+/// each impl-family variant is rendered to a path segment that preserves its distinguishing parts:
+/// `<Type as Trait>` for a trait impl, `Type` for an inherent impl, `Type::method` / `Type::CONST`
+/// for impl members, `Trait::method` for a trait method, `Enum::Variant` for a variant. (`::` inside
+/// a segment is fine — the segment is a leaf identifier within `crate::mod::<here>`, never re-split.)
+fn item_target_name(target: &antigen::scan::ItemTarget) -> String {
+    use antigen::scan::ItemTarget as IT;
     match target {
-        antigen::scan::ItemTarget::Struct(n)
-        | antigen::scan::ItemTarget::Enum(n)
-        | antigen::scan::ItemTarget::Trait(n)
-        | antigen::scan::ItemTarget::Fn(n)
-        | antigen::scan::ItemTarget::TypeAlias(n) => n.as_str(),
-        // Non-name-bearing variants (impl, macro invocation) — use a placeholder.
-        _ => "__impl__",
+        IT::Struct(n)
+        | IT::Enum(n)
+        | IT::Trait(n)
+        | IT::Fn(n)
+        | IT::TypeAlias(n)
+        | IT::Const(n)
+        | IT::Static(n)
+        | IT::Union(n) => n.clone(),
+        // A trait impl: `<Type as Trait>`; an inherent impl: just the `Type`.
+        IT::Impl {
+            trait_path,
+            target_type,
+        } => impl_subject(target_type, trait_path.as_deref()),
+        // An impl method: `<subject>::method`.
+        IT::ImplFn {
+            trait_path,
+            target_type,
+            fn_name,
+        } => format!(
+            "{}::{fn_name}",
+            impl_subject(target_type, trait_path.as_deref())
+        ),
+        // An impl const: `<subject>::CONST`.
+        IT::ImplConst {
+            trait_path,
+            target_type,
+            const_name,
+        } => format!(
+            "{}::{const_name}",
+            impl_subject(target_type, trait_path.as_deref())
+        ),
+        // A trait method declaration: `Trait::method`.
+        IT::TraitFn {
+            trait_name,
+            fn_name,
+        } => format!("{trait_name}::{fn_name}"),
+        // An enum variant: `Enum::Variant`.
+        IT::EnumVariant {
+            enum_name,
+            variant_name,
+        } => format!("{enum_name}::{variant_name}"),
+        // Genuinely unidentifiable (a macro invocation, an unparsed item): a stable placeholder. The
+        // body-digest still distinguishes two such nodes in the same module via `identity_digest`.
+        IT::Unknown { .. } => "__unknown__".to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use antigen::scan::ItemTarget as IT;
+
+    use super::item_target_name;
+
+    // REGRESSION (survey find): the impl-family variants must NOT all collapse to one placeholder —
+    // that would re-import the bare-name collision the frame exists to close (two impls in one module
+    // → the SAME fq_path). Each impl-family variant must yield a DISTINGUISHING path segment.
+
+    #[test]
+    fn two_inherent_impls_get_distinct_names() {
+        let foo = IT::Impl {
+            trait_path: None,
+            target_type: "Foo".into(),
+        };
+        let bar = IT::Impl {
+            trait_path: None,
+            target_type: "Bar".into(),
+        };
+        assert_ne!(
+            item_target_name(&foo),
+            item_target_name(&bar),
+            "impl Foo and impl Bar collapsed to the same path segment — the bare-name defect re-imported."
+        );
+    }
+
+    #[test]
+    fn trait_impl_distinguished_from_inherent_and_by_trait() {
+        let inherent = IT::Impl {
+            trait_path: None,
+            target_type: "Foo".into(),
+        };
+        let as_drop = IT::Impl {
+            trait_path: Some("Drop".into()),
+            target_type: "Foo".into(),
+        };
+        let as_clone = IT::Impl {
+            trait_path: Some("Clone".into()),
+            target_type: "Foo".into(),
+        };
+        // `impl Foo`, `impl Drop for Foo`, `impl Clone for Foo` are THREE distinct nodes.
+        assert_ne!(item_target_name(&inherent), item_target_name(&as_drop));
+        assert_ne!(item_target_name(&as_drop), item_target_name(&as_clone));
+        assert_ne!(item_target_name(&inherent), item_target_name(&as_clone));
+    }
+
+    #[test]
+    fn methods_on_different_types_get_distinct_names() {
+        let foo_run = IT::ImplFn {
+            trait_path: None,
+            target_type: "Foo".into(),
+            fn_name: "run".into(),
+        };
+        let bar_run = IT::ImplFn {
+            trait_path: None,
+            target_type: "Bar".into(),
+            fn_name: "run".into(),
+        };
+        // Two `run` methods on different types must not collide (the ImplFn bare-name case).
+        assert_ne!(
+            item_target_name(&foo_run),
+            item_target_name(&bar_run),
+            "Foo::run and Bar::run collapsed — methods are not distinguished by their owning type."
+        );
+    }
+
+    #[test]
+    fn enum_variants_distinguished_within_and_across_enums() {
+        let a_x = IT::EnumVariant {
+            enum_name: "A".into(),
+            variant_name: "X".into(),
+        };
+        let a_y = IT::EnumVariant {
+            enum_name: "A".into(),
+            variant_name: "Y".into(),
+        };
+        let b_x = IT::EnumVariant {
+            enum_name: "B".into(),
+            variant_name: "X".into(),
+        };
+        assert_ne!(item_target_name(&a_x), item_target_name(&a_y)); // A::X ≠ A::Y
+        assert_ne!(item_target_name(&a_x), item_target_name(&b_x)); // A::X ≠ B::X
+    }
+
+    #[test]
+    fn identical_items_collide_the_teeth() {
+        // NC: two IDENTICAL targets MUST yield the SAME name (so the dedup/identity is deterministic,
+        // not over-disambiguating). Proves the above tests reject only genuine distinctions.
+        let a = IT::Fn("handle".into());
+        let b = IT::Fn("handle".into());
+        assert_eq!(item_target_name(&a), item_target_name(&b));
+        let m1 = IT::ImplFn {
+            trait_path: Some("Drop".into()),
+            target_type: "Foo".into(),
+            fn_name: "drop".into(),
+        };
+        let m2 = IT::ImplFn {
+            trait_path: Some("Drop".into()),
+            target_type: "Foo".into(),
+            fn_name: "drop".into(),
+        };
+        assert_eq!(item_target_name(&m1), item_target_name(&m2));
     }
 }
