@@ -21,7 +21,6 @@ use antigen_stroma::read::ResolutionTier;
 
 // ATK-FRAME-FIDELITY (born-red): source NEWER than index → Resolved demotes to Syntactic (dread).
 #[test]
-#[ignore = "born-red until FidelityWitness::check is filled (frame epoch); de-ignore on fill"]
 fn atk_frame_fidelity_stale_index_demotes_resolved_to_dread() {
     // index built at t=1000; a source edited at t=2000 (clearly newer) => the resolved edges from
     // that index are stale => demote to Syntactic.
@@ -39,7 +38,6 @@ fn atk_frame_fidelity_stale_index_demotes_resolved_to_dread() {
 // time) on a coarse-granularity fs (FAT32 2s resolution) must STILL demote — the >=1s guard band
 // closes the same-second false-FRESH window.
 #[test]
-#[ignore = "born-red until FidelityWitness::check coarse-mtime margin is filled; de-ignore on fill"]
 fn atk_frame_fidelity_coarse_mtime_guard_band_closes_same_second_false_fresh() {
     // source_mtime EQUAL to index_mtime: a strict `>` comparison would call this FRESH (false-FRESH).
     // The guard band (fire when source_mtime > index_mtime - 1s) must demote.
@@ -57,7 +55,6 @@ fn atk_frame_fidelity_coarse_mtime_guard_band_closes_same_second_false_fresh() {
 // Proves the demotion is freshness-keyed, not a blanket "always demote" that would pass both ATKs
 // vacuously.
 #[test]
-#[ignore = "born-red until FidelityWitness::check is filled (frame epoch); de-ignore on fill"]
 fn nc_frame_fidelity_fresh_index_keeps_resolved() {
     // index built at t=2000, source last edited at t=500 (well before, outside the 1s band) => fresh.
     let kept = FidelityWitness::check(500, 2000, ResolutionTier::Resolved);

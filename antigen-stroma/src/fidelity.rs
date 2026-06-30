@@ -11,29 +11,55 @@
 
 use crate::read::ResolutionTier;
 
+/// The coarse-filesystem safety margin (1 second).
+///
+/// FAT32 and some other filesystems have a 2-second mtime granularity — a real post-index edit that
+/// happens to land in the same 2-second window reads as `source_mtime == index_mtime` under a strict
+/// `>` comparison, producing a false-FRESH verdict. The >=1s guard band (ADR-070 §4.9, attack A7)
+/// demotes whenever `source_mtime + COARSE_FS_MARGIN >= index_mtime`: same-second ties are
+/// ALWAYS treated as potentially-stale (the conservative/safe direction).
+const COARSE_FS_MARGIN: u64 = 1;
+
 /// Prior baseline intent: `StromaFaithfullyReflectsReality`. The witness that checks form-fidelity.
 ///
-/// **STUB — fill (frame epoch):** [`FidelityWitness::check`] touches ONLY `fs::metadata` (mtime) —
-/// it must NEVER read r-a/SCIP output (that would make the witness tool-DEPENDENT, defeating it).
+/// Checks ONLY `fs::metadata` (mtime) — NEVER r-a/SCIP output. The tool-independence is enforced
+/// by SIGNATURE: `check` takes raw `u64` seconds since epoch (from `fs::metadata().modified()`)
+/// and has NO parameter through which a tool handle could enter. If a builder made the witness
+/// tool-dependent, the ATK in `tests/atk_frame_fidelity.rs` would fail to compile (the fn-pointer
+/// coercion asserts `(u64, u64, ResolutionTier) → ResolutionTier` from day one).
 pub struct FidelityWitness;
 
 impl FidelityWitness {
     /// Check whether the index is fresh relative to the source. Returns the (possibly demoted) tier.
-    /// **STUB — fill (frame epoch):** if `source_mtime > index_mtime`, demote `Resolved -> Syntactic`
-    /// (presents-grade -> dread-grade) — the always-on index-staleness guard (ADR-069 Open-seam-1).
-    /// Touch ONLY `fs::metadata`.
     ///
-    /// SAFETY MARGIN (adversarial A7): coarse-mtime filesystems (FAT32, 2s granularity) report a
-    /// false-Fresh on same-second edits. Add a >=1s safety margin to the comparison — treat
-    /// `source_mtime >= index_mtime - MARGIN` as potentially-stale (demote), not just strictly-newer.
-    /// Demotion happens AT INGESTION TIME, not query time (adversarial A3) — so a stale-SCIP edge can
-    /// never enter the base at presents-grade and later corroborate up.
+    /// **Demotion rule:** if `source_mtime + COARSE_FS_MARGIN >= index_mtime`, the index is
+    /// potentially stale — demote `Resolved` → `Syntactic` (presents-grade → dread-grade). The >=1s
+    /// guard band closes the same-second false-FRESH window on coarse-granularity filesystems
+    /// (ADR-070 §4.9, attack A7).
+    ///
+    /// Demotion happens AT INGESTION TIME, not query time (adversarial A3) — so a stale-SCIP edge
+    /// can never enter the base at presents-grade and later corroborate up.
+    ///
+    /// `T3Mir` is demoted just like `Resolved` (it is equally stale if the index is stale — a higher
+    /// tier is not a freshness exemption). `Syntactic` is tier-passthrough (already the floor).
     #[must_use]
-    pub fn check(_source_mtime: u64, _index_mtime: u64, claimed: ResolutionTier) -> ResolutionTier {
-        let _ = claimed;
-        todo!(
-            "frame epoch: mtime-only freshness check w/ >=1s coarse-fs margin; demote at ingestion"
-        )
+    pub const fn check(
+        source_mtime: u64,
+        index_mtime: u64,
+        claimed: ResolutionTier,
+    ) -> ResolutionTier {
+        // Conservative: stale if source_mtime + margin >= index_mtime.
+        // Same-second (source == index) ties → stale (the guard band closes the FAT32 window).
+        let stale = source_mtime.saturating_add(COARSE_FS_MARGIN) >= index_mtime;
+
+        if stale {
+            // Demote to the syntactic floor (dread-grade). A stale index cannot support a higher
+            // tier claim — the confident-wrong window the fidelity witness closes.
+            ResolutionTier::Syntactic
+        } else {
+            // Fresh: pass the claimed tier through unchanged.
+            claimed
+        }
     }
 }
 

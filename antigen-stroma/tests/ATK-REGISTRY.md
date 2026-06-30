@@ -33,7 +33,20 @@ FAILS the NC. If both ATK and NC can pass against a non-implementation, the test
 |----|--------------------------|-------|------------------|--------------------------|--------|
 | ATK-FRAME-IDENTITY | FQ-identity is CONSTRUCTED — `foo::bar` ≠ `baz::bar` (the bare-name `diff.rs` defect is closed) | runtime `#[ignore]` | `node::path::syntactic_fq_path` todo! | two identical items in the SAME module collide (proves only the cross-module case is rejected) | ADR-070 §4.1/§4.2, §8 |
 | ATK-FRAME-DIGEST-TIER | `IdentityDigest` is collision-RESISTANT (BLAKE3) — two FNV-colliding items get distinct digests | runtime `#[ignore]` | `node::digest::IdentityDigest::of_tokens` todo! | `ShapeDigest` (FNV) MAY collide near-misses (proves the test targets the identity tier only) | ADR-070 §4.3, §6, §8 |
-| ATK-FRAME-DIGEST-STRIP | Forging/editing a LOAD-BEARING antigen attr changes `IdentityDigest` (tamper-evident) | runtime `#[ignore]` | `IdentityDigest::of_tokens` + the strip-set | editing a PURE-ANNOTATION attr (in `ANTIGEN_OWNED_ATTRS`) does NOT change `IdentityDigest` (stable change-detection) | ADR-070 §4.3 (A10), §8 |
+| ATK-FRAME-DIGEST-STRIP | Forging/editing a LOAD-BEARING antigen attr changes `IdentityDigest` (tamper-evident) | runtime `#[ignore]` (boundary form) | `IdentityDigest::of_tokens` + the strip-set | editing a PURE-ANNOTATION attr does NOT change `IdentityDigest` | ADR-070 §4.3 (A10), §8 |
+| ATK-FRAME-DIGEST-STRIP-E2E | the §4.3 come-apart end-to-end on the REAL path (`IdentityDigest::of_item`): forging `#[presents]`/`#[defended_by]` changes identity; toggling `#[diagnostic]`/`#[antigen]` does not | runtime (GREEN now) — **DISAGREEMENT-SETTLER** | the `canonical_identity_tokens` §4.3 seam | the pure-attr direction (stability) is the built-in teeth | ADR-070 §4.3, the builder-vs-scout §4.3 dispute |
+
+> **ATK-FRAME-DIGEST-STRIP-E2E settled the builder-vs-scout §4.3 disagreement EXECUTABLY (verdict: GREEN,
+> no hole).** The builder flagged `lower_scan_report`'s `clone_without_antigen_attrs` (strips ALL antigen
+> attrs) as a tamper-evidence hole; the scout called it not-a-gap. The strong ATK (against the real
+> `IdentityDigest::of_item` path, not the `of_tokens` boundary) is GREEN: the constitute adapter routes
+> identity through `canonical_identity_tokens` (strips PURE attrs only, KEEPS load-bearing), so forging
+> `#[presents]` DOES change identity. The builder's worry was a correct read of the SHAPE digest (where
+> all-strip is right) misapplied to identity — the exact §4.3 "two digests, different strip-sets" conflation
+> the ADR warns against. **The weaker `#[ignore]` boundary-form DIGEST-STRIP is now SUPERSEDED by this
+> E2E form** — keep both (the boundary one de-ignores when `of_tokens` is independently exercised), but
+> the E2E is the load-bearing tamper-evidence guard. `PURE_ANTIGEN_ATTRS` (the strip set) correctly
+> EXCLUDES presents/defended_by/descended_from/crossreactive.
 | ATK-FRAME-TIER-CAP | A `source=syntactic` read CANNOT construct a `presents`-grade verdict (type-state) | compile-state (trybuild) + runtime | the type-state in `read::tier` / `read::answer` | a `source=resolved` read MAY construct `presents` (cap is tier-keyed, not a blanket ban) | ADR-070 §3.2, §8 |
 | ATK-FRAME-TORN-READ | A torn read (detection over a half-published base) is a COMPILE error under `&db`/`&mut db` | compile-state (trybuild) | the `SnapshotHandle<'db>` borrow model | a correctly-sequenced read session (`&db` across detection+field+provenance) COMPILES + sees ONE revision | ADR-070 §3.5, §8 |
 | ATK-SCIP-RECON-001 | SCIP reconstruction is TIER-HONEST: a macro-call-site is NEVER silently `Resolved`/`presents` | runtime `#[ignore]` (3-fixture) | `scip::ingest_scip` + `EdgeReconstruction` | **F2:** a plain call-site MUST reconstruct cleanly to `Resolved`. **F3:** a malformed symbol MUST fall through to syntactic, never construct a `StromaNodeId` with it | ADR-070 §5.2 (A5), island `frame-impl-scip-ingestion`, §8 |

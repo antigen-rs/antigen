@@ -21,7 +21,6 @@ use antigen_stroma::read::ResolutionTier;
 // builder folds cfg/path into the preimage, a cargo-metadata read (composed source) would change the
 // collision-resistant identity — a compose/sovereign violation (§4.4).
 #[test]
-#[ignore = "born-red until IdentityDigest::of_tokens is filled (frame epoch); de-ignore on fill"]
 fn atk_frame_preimage_is_tokens_only_cfg_not_folded() {
     // SAME item tokens. The cfg/path differences live in sibling StromaNodeId fields, NOT the preimage.
     let tokens = b"fn handle() { work() }";
@@ -40,7 +39,6 @@ fn atk_frame_preimage_is_tokens_only_cfg_not_folded() {
 // NEGATIVE CONTROL (teeth): different ITEM TOKENS still produce different digests — proving the
 // tokens-only rule did not collapse the digest into a constant.
 #[test]
-#[ignore = "born-red until IdentityDigest::of_tokens is filled (frame epoch); de-ignore on fill"]
 fn nc_frame_preimage_distinct_tokens_still_distinct() {
     let a = IdentityDigest::of_tokens(b"fn handle() { work() }");
     let b = IdentityDigest::of_tokens(b"fn handle() { rest() }");
@@ -60,7 +58,6 @@ fn nc_frame_preimage_distinct_tokens_still_distinct() {
 // SEAM NOTE: this asserts the COMPOSITION fidelity-witness(ingest) then corroborate reads the stored
 // tier. Until both land, born-red. The shim models ingestion as: stored_tier = check(src,idx,claimed).
 #[test]
-#[ignore = "born-red until FidelityWitness::check + corroborate land (frame epoch); de-ignore on fill"]
 fn atk_frame_stale_scip_is_demoted_at_ingestion_so_corroborate_cannot_reach_presents() {
     use antigen_stroma::fidelity::FidelityWitness;
     use antigen_stroma::read::tier::corroborate;

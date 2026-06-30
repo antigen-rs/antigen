@@ -19,7 +19,6 @@ use antigen_stroma::node::digest::{IdentityDigest, ShapeDigest};
 
 // ATK-FRAME-DIGEST-TIER (born-red): distinct preimages => distinct collision-resistant IdentityDigest.
 #[test]
-#[ignore = "born-red until IdentityDigest::of_tokens is filled (frame epoch); de-ignore on fill"]
 fn atk_frame_digest_tier_distinct_items_distinct_identity_digest() {
     // Two items whose canonical tokens differ — even by one byte — must get distinct identity digests.
     let a = IdentityDigest::of_tokens(b"struct Foo { a: u8 }");
@@ -45,7 +44,6 @@ fn atk_frame_digest_tier_distinct_items_distinct_identity_digest() {
 // ATK-FRAME-DIGEST-TIER (born-red, determinism): the signing digest is a PURE function of the
 // preimage — same tokens, same digest. (Tamper-evidence requires reproducibility.)
 #[test]
-#[ignore = "born-red until IdentityDigest::of_tokens is filled (frame epoch); de-ignore on fill"]
 fn atk_frame_digest_tier_is_deterministic() {
     let a = IdentityDigest::of_tokens(b"fn quux() {}");
     let b = IdentityDigest::of_tokens(b"fn quux() {}");
@@ -61,7 +59,6 @@ fn atk_frame_digest_tier_is_deterministic() {
 // for identity but is CORRECT for clustering/backdate. The NC proves the ATK targets the identity
 // tier, not a blanket "every digest distinguishes everything".
 #[test]
-#[ignore = "born-red until ShapeDigest::of_item is filled (frame epoch); de-ignore on fill"]
 fn nc_frame_shape_digest_is_name_insensitive() {
     // Same structure, different name. The shape digest strips the name (ADR-070 §4.3) so these MAY
     // collide. If a builder accidentally made ShapeDigest name-SENSITIVE, this NC fails and signals
