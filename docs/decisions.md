@@ -13844,3 +13844,139 @@ co-captain-blessed); two of its triggers live on this ladder — the **SCIP-reco
 ATK (a macro-call-site degenerate fixture must pass before SCIP edges carry `presents`-grade) and the
 **index-staleness** freshness-demotion (resolved → dread when the index is older than source). The mir-exact
 tier's adapter-churn risk needs the same version-handshake discipline ADR-067 §10 names for the r-a adapter.
+
+## ADR-070 — The Frame Build-Spec: the read-write-constitute coordinate frame + the constituted base
+
+**Status**: **Ratified 2026-06-30** (v0.7, the-frame PROVISION → CONVERGE wave). The additive in-frame
+BUILD-SPEC that turns ADR-067/068/069's settled law into a builder-ready construction guide. Ratified by an
+author-distinct ceremony panel (converge-adversarial + converge-observer certify; the converge-adr-specialist
+drafter excluded — the no-self-witness invariant). Authored to the **co-captain-ruled scope-line** (Tekgy + main,
+Option A). **Additive, append-only, supersede-nothing — ZERO new invariants of 067/068/069/009-kernel; zero
+Type-C.** The full 725-line spec lives in the wave deposit
+(`jbd/expeditions/the-frame/deposits/ADR-070-DRAFT-frame-extended-build-spec.md`); this ledger carries the
+ratified ruling + the load-bearing invariants compactly.
+
+**Implements / depends-from**: **ADR-067** (the Stroma — the partition, the FQ-identity finding, the F-clause
+invariants, the 009-kernel fidelity witness in §F3); **ADR-068** (the engine — salsa clock + semiring-datalog,
+the relational base, the condensation compile-assert); **ADR-069** (the read axis — the 3-tier ladder + the
+3-axis read-frame + the live T3 slot). This ADR adds the build-spec the three leave silent; it changes no
+invariant of any of them.
+
+**Related**: the find-the-gaps wave's 9 signed islands (the BINDS-vs-LEAVES-OPEN map, the gap-map-aristotle, the
+7 implementer PROPOSE-islands), the converge-executor's `frame-skeleton/` crate tree (the empty frame this spec
+fills), `antigen-fingerprint/src/digest.rs` (the two existing digest strip-sets), `antigen/src/scan/` (the
+afferent capture the base is constituted FROM), the no-self-witness invariant, *Journey Before Destination*.
+
+### Finding
+
+ADR-067/068/069 ratified the law but left the BUILD silent: a builder handed them would derive architecture
+mid-build (a type left unpinned, an interface nobody drew, an invariant stated but not given its enforcement
+shape). The single highest-leverage silence: the existing `ItemTarget` (`scan/types.rs:158`) carries **bare
+names**, and `diff.rs:101` (`item_digest_map`) does last-write-wins across files — the bare-name collision
+ADR-067 §Finding names as "a present, bug-forced defect." A frame that inherits that shape re-imports the defect
+it exists to close. The find-wave triaged 18 gaps — **all Type-A, zero Type-C** (the law is unusually complete);
+the yield is the build-spec, not a law-defect.
+
+### Decision
+
+**The generating rule (lead with it): the CONFIG/OUTPUT split (ADR-067 §F.13) is the FRACTAL spine of the whole
+frame — separate the authored/stable half (CONFIG) from the recomputable/changing half (OUTPUT); never let one
+word name both; the lower/unverified half NEVER corroborates the higher up (ADR-069 invariant A, applied to
+every axis: resolution-tier, freshness, reconstruction, config-staleness, digest-tier).** Every build-decision
+below is an INSTANCE of this one rule (C1 fractal-partition · C2 honesty-monotonic · C3 type-enforced-not-runtime-
+checked — antigen dogfooding its hold-you-honest-by-construction thesis onto its own base). The builder who
+internalizes the rule generates the Nth decision rather than memorizing N.
+
+**The scope-line (co-captain Option A — do NOT reopen): FRAME epoch = the read-CONTRACT (the typed query
+surface — signatures + types — FROZEN) + the constituted BASE + STEP-2 query STUBS. ENGINE epoch = the
+ascent-closure bodies + degraded-mode + the CLASS-2 FP measurement. NO Type-B experiment seated this expedition;
+the syntactic-degraded observational-autoimmunity risk DEFERS to the engine (do not ship confidently-wrong edges
+before the resolved tier exists).** This is the keel's frame-POINT vs engine-NODE cut.
+
+**The build-order (PROMINENT — `read-write-constitute` is the CONCEPTUAL triad, NOT the build-sequence):
+`read-CONTRACT (freeze first) → CONSTITUTE (base beneath it) → read-IMPL (stubs) → write`.** A builder who reads
+the triad as a sequence builds read-impl before the base exists and STALLS. The read-contract is the one artifact
+the paradigm-loop forbids to drift (every organ snaps to it); the base internals are all drift-allowed OUTCOMES.
+
+**The load-bearing INVARIANTS the build MUST honor (additive enforcement shapes for the settled law):**
+1. **FQ-identity the frame MUST CONSTRUCT** — every base node is keyed by a constructed qualified-path (syntactic
+   module-tree walk at `dread`-grade, refined by the SCIP symbol at `presents`-grade), NEVER by `ItemTarget`
+   (which is reused as the node's KIND-discriminant only). Closing the bare-name defect is the highest-leverage
+   bind.
+2. **Two digests, different strip-sets** — `identity_digest` = a collision-resistant tier (BLAKE3/SHA-256) over
+   the existing `structural_digest` strip-set (strips `ANTIGEN_OWNED_ATTRS`, KEEPS name); `shape_digest` = FNV-1a
+   over the existing `structural_shape_digest` strip-set (strips `ANTIGEN_OWNED_ATTRS` + name). Naming the
+   existing functions makes `digest_strip_list_completeness_guard.rs` cover both. *(Verified code-true against
+   `antigen-fingerprint/src/digest.rs`.)* The digest PREIMAGE is tokens-only; path + cfg are sibling fields.
+3. **Stable-locator vs changing-digest** — the salsa KEY is a stable locator (qualified-path + cfg, the git
+   "path"); `identity_digest` is a tracked VALUE (the git "blob-SHA"). Keying on the digest re-mints the entity
+   on every edit and destroys the danger/backdate model. Rename = delete-old-locator + create-new (the lifecycle
+   layer re-homes by digest-clustering; the base makes no entity-continuity claim across a rename).
+4. **The tool-INDEPENDENT fidelity witness** (009-kernel, ADR-067 §F3) — `check()` reads ONLY filesystem mtime,
+   NEVER r-a output (no-self-witness at the source level); fires `StromaFidelityUnwitnessed` and demotes
+   resolved → dread when `source_mtime > index_build_time - 1s` (the guard band closes the coarse-mtime
+   false-FRESH). Staleness demotion is applied AT INGESTION (the stored `EdgeFact.tier` already reflects it), so
+   `corroborate` never re-reads freshness — closing the promote-before-demote window.
+5. **Tier-honest SCIP reconstruction** — the reconstruction surface encodes a THREE-WAY distinction
+   (cleanly-reconstructed → `resolved` · ambiguous → DEMOTE, do not pick · unreconstructible → drop to syntactic
+   or mark unknown); the cardinal sin is stamping `resolved` on a guessed macro-enclosure. The DISTINCTION binds;
+   the enum that realizes it is LEAVES-OPEN.
+6. **Atomic-publish is FREE from the borrow checker** — the systems-keystone B6 ("detection never reads a torn
+   graph") falls out of salsa's `&db`-read / `&mut db`-write split: a torn read is a COMPILE error, not a lock,
+   for the frame's batch cadence (live-edit concurrency needs salsa `snapshot`/`fork` — named-deferred).
+7. **`last_changed` concurrent-write = `max(mtime)`** — a monotone, idempotent, order-independent join; the
+   general `SovereignMerge` arbiter collapses for this field because its value is fs-mtime-derived (compose-clean,
+   LE6 unchanged).
+8. **The base schema must EXPRESS antigen's own efferent outputs** as first-class nodes (the open attr-set + kind
+   discriminant suffices; do not restrict to today's 13 `ItemTarget` variants).
+
+### Biology grounding
+
+The frame is antigen's **structural-self** made constructible — the maintained, FQ-identified base the immune
+lattice reads. **Honest-invention**: the config/output split as the generating rule; the construct-the-qualified-
+path discipline (closing the bare-name autoimmunity seed); the borrow-checker atomic-publish (the thesis
+dogfooded onto antigen's own base).
+
+### Process not outcome
+
+- **Invariant (durable)**: the 8 load-bearing binds above + the config/output generating rule + the contract-first
+  build-order + the additive-not-superseding relationship to 067/068/069. These are BOUND — violating one is a
+  code-drift finding.
+- **Process (durable)**: the staged ADR lifecycle that produced this (deconstruct → attack-annotate →
+  settled-vs-added ledger → author-distinct certify); the CODE-TRUE walk (each ledger claim verified at the bytes:
+  `parse.rs:797`, `diff.rs:101/114`, `types.rs:158/348`, `digest.rs:177/222`).
+- **Outcome (must drift — explicitly LEAVES-OPEN, the builder's free call)**: the exact node/salsa type layout;
+  the salsa input granularity; the digest algorithm-within-tier; the crate topology (`antigen-stroma`,
+  workspace member #6, recommended); whether `ScanReport` stays the wire-format or becomes a projection. **No
+  exact type-outcome is decreed; the builder refines these during construction.**
+
+### What this ADR does NOT do
+
+- Does **not** change any invariant of ADR-067/068/069/009-kernel — it is purely additive build-guidance.
+- Does **not** build the engine (the ascent-closure bodies, the four semirings, degraded-mode, CLASS-2 are
+  engine-epoch).
+- Does **not** decree a frozen type-OUTCOME — every concrete type sketch is marked LEAVES-OPEN/recommended; what
+  binds is the invariant the type protects. *(A captain pre-transcribe invariant-vs-OUTCOME audit caught one
+  over-commitment: §5.2's SCIP-reconstruction clause was re-framed from "the TYPE is bound" to "the DISTINCTION
+  is bound, the enum is LEAVES-OPEN" — a strict weaken-to-recommendation. The converge-observer independently
+  RE-ATTESTED this delta — no-self-witness on an author's own "this is safe" — verdict: the prior draft was
+  overclaiming by binding the specific enum; the revision correctly identifies what the law requires; the two
+  remaining BINDS clauses (false-quiet close + malformed-symbol fall-through) are the unchanged load-bearing
+  teeth; not a new invariant, not a Type-C.)*
+- Does **not** author a sovereign-write on the base (the base is compose-region; a base `Node` requires a
+  `constituted_from: SourceWitness`, making sovereign-base-write a compile error). The `SovereignMerge` /
+  `SovereignCatalogMergedByReDerivation` obligation is routed as a standing debt to `antigen-fingerprint`, not
+  silently discharged.
+
+### Open seams
+
+The 009-amendment is ratified INSIDE ADR-067 §F3, NOT a standalone `ADR-009 Amendment` section — a newcomer
+grepping for it misses it (the standalone amendment document is a named follow-on). The G10 accrete/migrate void
+(an accretion that ACTS as a migration by reinterpreting a prior lens's attribute) is a NAMED inherited
+obligation for the future schema-evolution expedition, with a born-red placeholder — not a frame Type-C (the
+frame's initial schema has no prior attribute to migrate from). The frame ships a `parity_check_hook()` signature
+for the deferred parity oracle. **Engine-wave inherited debts**: the `CondensedGraph` type-state for the
+IDEMPOTENT compile-assert (ADR-068 should name the idiom); the attr-by-attr strip-set partition (the born-red
+`ATK-FRAME-DIGEST-STRIP`); the `ATK-SCIP-RECON-001` Rust test code (the 3-fixture macro/plain/malformed spec
+needs the `antigen-stroma` crate to exist). Seven more born-red ATK seeds (each with a negative control) are
+specified in the deposit §8.
