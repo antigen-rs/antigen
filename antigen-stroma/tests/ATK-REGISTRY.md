@@ -258,3 +258,29 @@ Two teeth-holes the survey's `cargo-mutants` sweep surfaced on `node/digest.rs`,
 Both defend clustering-quality / public-API contract, NOT the identity/tamper-evidence tier (that path
 routes through `is_pure`, whose mutants were already CAUGHT). A regression here degrades clustering or a
 helper's honesty — it does not break signing.
+
+### v2#5 teeth-check — strip_pure per-kind dispatch on the §4.3 IDENTITY path (2026-07-01)
+
+A SIBLING of v2#2 the test-architect surfaced while closing it — same parallel-arm shape, but on the
+higher-stakes tamper-evidence tier. Closed in `atk_frame_digest_strip.rs` (tests-only; src untouched).
+
+- **v2#5 — `strip_pure_antigen_attrs` per-kind dispatch untested for non-fn kinds.** The e2e pure/
+  load-bearing NCs ran on ONE kind (fn). `strip_pure_antigen_attrs` (digest.rs ~177-190) has a
+  `retain_on!` arm per kind (Struct/Enum/Union/Trait/Type/Const/Static/Fn/Impl/Mod) + `other =>
+  other.clone()` (no strip). Deleting a per-kind arm routes that kind to the no-strip branch → a PURE
+  attr survives into the §4.3 identity preimage → toggling `#[diagnostic]` MOVES that kind's
+  `IdentityDigest` (a tamper-evidence-tier / stable-change-detection violation). **Closed:**
+  `STRIP_CASES` (one per attr-bearing arm) drives
+  `nc_frame_digest_strip_pure_annotation_stable_across_all_item_kinds` (pure toggle must NOT move
+  identity → kills every arm-deletion mutant) + a non-vacuity guard
+  `nc_frame_digest_strip_load_bearing_moves_identity_across_all_item_kinds` (a `#[presents]` forge MUST
+  move identity for every kind → catches an over-broad strip that drops load-bearing attrs).
+  **Teeth proven (isolated throwaway worktree — the shared tree's digest.rs was NEVER touched, since the
+  docs-wright was editing it live):** deleting the Enum strip arm → `[enum]` pure-stable case RED (pure
+  attr survived, identity moved); making the strip over-broad (`retain(|_| false)`) → the pure-stable
+  test STAYED GREEN while the load-bearing guard went RED on `[struct]` (proving the pure test alone
+  would pass vacuously). cargo-mutants --file node/digest.rs confirms the full per-kind sweep.
+
+Unlike v2#2/v2#3, this defends the IDENTITY / tamper-evidence tier directly — the security keystone. It
+is the higher-stakes sibling: a regression here makes a forged/toggled attr silently move (or fail to
+move) the signing digest for a non-fn kind.
