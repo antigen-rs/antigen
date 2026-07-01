@@ -1,30 +1,27 @@
-//! STEP 8 — watch-zones + named-deferred obligations. NAME, don't build (the way ADR-067 names
-//! `GlobalConsistencyObstruction` as a deferred placeholder).
+//! Reserved extension points — the hooks organs and lenses implement against.
 //!
-//! These are NOT frame-Type-C escalations — they are named-inherited obligations the frame marks so
-//! a future epoch picks them up instead of re-discovering them. Each is a born-red placeholder /
-//! HOOK, not an implementation.
+//! Each type here names an extension point in the type system, so an obligation is marked rather
+//! than left implicit. Each is a hook, not an implementation.
 
-/// **G10 (aristotle) — the accrete/migrate void.**
+/// The accrete/migrate void.
 ///
-/// A future sheaf/field lens that REINTERPRETS the first lens's attribute is an
-/// accretion-acting-as-migration; the law has NO build-time detector. Named here as a born-red
-/// placeholder. **STUB:** the future lens-migration detector hooks here.
+/// A sheaf/field lens that reinterprets an earlier lens's attribute is an accretion acting as a
+/// migration, and there is no build-time detector for it. This type is the hook a lens-migration
+/// detector attaches to.
 pub struct AccreteMigrateVoid;
 
-/// **Parity-surveillance (deferred self-antigen).**
+/// The parity-surveillance hook.
 ///
-/// Ship the HOOK (this trait), NOT the oracle. The oracle (does the compose OUTPUT match its
-/// recomputation?) is engine/organ-epoch. The frame ships the surface a future parity-guard
-/// implements.
+/// This trait is the surface a parity-guard implements: its `check_parity` asks whether the compose
+/// output still matches its recomputation. The trait declares the surface; it holds no oracle itself.
 pub trait ParitySurveillance {
-    /// Re-derive the compose output and compare to the stored one. **STUB — engine/organ epoch.**
+    /// Re-derive the compose output and compare it to the stored one.
     fn check_parity(&self) -> bool;
 }
 
-// T3Mir population (see read::tier::ResolutionTier::T3Mir) is the other named-deferred slot — the
-// variant ships in the read contract; mir-exact population is engine-epoch (scoped-never-whole-graph).
+// T3Mir (see read::tier::ResolutionTier::T3Mir) is a reserved tier slot — the variant is in the read
+// contract, and its mir-exact population is scoped to the queried region.
 //
-// IFDS summary-edge condensation (data-flow tier) is the field-maths follow-on's head-gate
-// (ADR-067 §E.11) — the frame builds the SCC-condense-for-blast half (engine epoch); IFDS is the
-// named-deferred follow-on. (base::facts documents the condensation two-operator split.)
+// IFDS summary-edge condensation (data-flow tier) is a reserved extension (ADR-067 §E.11); the
+// SCC-condense half for blast lives in the closure. (base::facts documents the condensation
+// two-operator split.)

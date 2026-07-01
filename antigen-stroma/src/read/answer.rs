@@ -1,4 +1,4 @@
-//! STEP 1 — the tier-carrying answer + the read-session handle.
+//! The tier-carrying answer + the read-session handle.
 
 use super::tier::{DetectionGrade, ResolutionTier};
 

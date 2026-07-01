@@ -1,19 +1,18 @@
-//! STEP 2a — the two-digest split (ADR-067 §A.2). CONFIG/OUTPUT applied to the digest.
+//! The two-digest split (ADR-067 §A.2). CONFIG/OUTPUT applied to the digest.
 //!
-//! Two DISTINCT types so one field can never name both:
-//! - [`IdentityDigest`] — BLAKE3, collision-RESISTANT, signing tier. The integrity half. FNV-1a is
-//!   engineer-collidable and NOT admissible for identity (the born-red FNV-collision ATK proves it).
+//! Two distinct types so one field can never name both:
+//! - [`IdentityDigest`] — BLAKE3, collision-resistant, signing tier. The integrity half. FNV-1a is
+//!   engineer-collidable and not admissible for identity.
 //! - [`ShapeDigest`] — FNV-1a (reused from `antigen-fingerprint`), cheap-recomputable, the
-//!   clustering + near-miss + ADR-068 clause-7 BACKDATE key. Strips name; drift-allowed.
+//!   clustering + near-miss + ADR-068 clause-7 backdate key. Strips name; drift-allowed.
 //!
-//! **DIFFERENT strip-sets** (aristotle A6 / adversarial GAP-3): `IdentityDigest` KEEPS semantic attrs
-//! (signing); `ShapeDigest` STRIPS name (clustering/backdate). Do not unify the preimages.
+//! The two use **different strip-sets**: `IdentityDigest` keeps semantic attrs (signing);
+//! `ShapeDigest` strips name (clustering/backdate). The preimages are deliberately not unified.
 
 /// Collision-resistant signing digest (BLAKE3).
 ///
-/// Preimage = canonicalized item tokens ONLY (the implementer's lean, pending adr-reviewer): path +
-/// cfg are SIBLING identity fields, not folded in, keeping this a pure function of the item's own
-/// bytes (recomputable, parity-guardable).
+/// Preimage = canonicalized item tokens only. Path and cfg are sibling identity fields, not folded
+/// in — so this is a pure function of the item's own bytes (recomputable, parity-guardable).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct IdentityDigest(pub [u8; 32]);
 
@@ -31,7 +30,7 @@ impl IdentityDigest {
 
     /// The end-to-end identity digest of a parsed item: BLAKE3 over [`canonical_identity_tokens`].
     ///
-    /// This is the §4.3 tamper-evidence form — it KEEPS load-bearing antigen attrs in the preimage
+    /// This is the ADR-070 §4.3 tamper-evidence form — it KEEPS load-bearing antigen attrs in the preimage
     /// (so forging `#[presents]` changes the identity) while STRIPPING pure-annotation antigen attrs
     /// (so toggling `#[diagnostic]` does not). Prefer this over hand-feeding [`Self::of_tokens`] with
     /// caller-canonicalized bytes — the canonicalizer is the seam that decides the strip-set.
@@ -45,7 +44,7 @@ impl IdentityDigest {
 /// item *claims*, so they are STRIPPED from the identity preimage (toggling one must not churn
 /// identity). This is the complement of the load-bearing set within `ANTIGEN_OWNED_ATTRS`.
 ///
-/// **The §4.3 come-apart (the sharpest config/output cut):** the identity digest must be
+/// **The ADR-070 §4.3 come-apart (the sharpest config/output cut):** the identity digest must be
 /// tamper-evident on a forged CLAIM (a grade, a defense-grant, a lineage, a tolerance) yet stable
 /// under a pure documentary edit. So the strip-set is NOT "all antigen attrs" (that would make
 /// forging `#[presents]` invisible — tamper-evidence defeated) and NOT "no antigen attrs" (that
@@ -56,7 +55,7 @@ impl IdentityDigest {
 /// The universe (`ANTIGEN_OWNED_ATTRS`) is owned by `antigen-fingerprint` under
 /// `digest_strip_list_completeness_guard`; this list is the IDENTITY-tier partition of it. A new
 /// antigen macro lands in `ANTIGEN_OWNED_ATTRS` first; its load-bearing-ness is decided HERE. The
-/// born-red `ATK-FRAME-DIGEST-STRIP` validates the partition (forge a load-bearing attr → identity
+/// `atk_frame_digest_strip` tests validate the partition (forge a load-bearing attr → identity
 /// changes; toggle a pure one → identity stable).
 const PURE_ANTIGEN_ATTRS: &[&str] = &[
     // The bare attestation WRAPPERS — containers, not claims.
@@ -130,7 +129,7 @@ fn is_pure_antigen_attr(attr: &syn::Attribute) -> bool {
     last_segment_in(attr, PURE_ANTIGEN_ATTRS)
 }
 
-/// Whether an attribute is a LOAD-BEARING antigen attr (the §4.3 complement of `is_pure_antigen_attr`).
+/// Whether an attribute is a LOAD-BEARING antigen attr (the ADR-070 §4.3 complement of `is_pure_antigen_attr`).
 ///
 /// A load-bearing attr's presence is a forgeable CLAIM (a grade, a defense/tolerance grant, a
 /// lineage) that the identity digest KEEPS so a forge is tamper-evident. Public because an organ
@@ -148,7 +147,7 @@ fn last_segment_in(attr: &syn::Attribute, set: &[&str]) -> bool {
         .is_some_and(|seg| set.contains(&seg.ident.to_string().as_str()))
 }
 
-/// Produce the canonical IDENTITY-token preimage of a parsed item — the §4.3 seam.
+/// Produce the canonical IDENTITY-token preimage of a parsed item — the ADR-070 §4.3 seam.
 ///
 /// Clones the item, retains every attribute EXCEPT the pure-annotation antigen attrs
 /// (`PURE_ANTIGEN_ATTRS`), and re-renders to a canonical token byte string (proc-macro2's `Display`

@@ -1,13 +1,9 @@
-//! STEP 5 — `FidelityWitness` + `StromaFidelityUnwitnessed` (the 009-kernel amendment).
+//! `FidelityWitness` + `StromaFidelityUnwitnessed` — the form-fidelity check (ADR-067 §F3).
 //!
-//! Observational-autoimmunity: ADR-067 §F3 ratifies this INSIDE the stroma ADR — there is NO
-//! standalone section (WATCH-C1 newcomer-trap: grepping "ADR-009 Amendment" misses it; the converge
-//! guidance adds an explicit pointer).
-//!
-//! THE INVARIANT: the form (not the content) of the stroma must be witnessed TOOL-INDEPENDENTLY —
-//! filesystem `mtime`, NEVER rust-analyzer/SCIP output. If the index is older than the source, a
-//! `presents`-grade resolved edge is DEMOTED to `dread`-grade. The failure this closes:
-//! observational-autoimmunity — the system confidently wrong with NO error signal.
+//! The invariant: the form (not the content) of the stroma is witnessed tool-independently —
+//! filesystem `mtime`, never rust-analyzer/SCIP output. If the index is older than the source, a
+//! `presents`-grade resolved edge is demoted to `dread`-grade. This closes the confidently-wrong
+//! failure where a stale index produces a high-tier verdict with no error signal.
 
 use crate::read::ResolutionTier;
 
@@ -20,7 +16,7 @@ use crate::read::ResolutionTier;
 /// ALWAYS treated as potentially-stale (the conservative/safe direction).
 const COARSE_FS_MARGIN: u64 = 1;
 
-/// Prior baseline intent: `StromaFaithfullyReflectsReality`. The witness that checks form-fidelity.
+/// The witness that checks form-fidelity.
 ///
 /// Checks ONLY `fs::metadata` (mtime) — NEVER r-a/SCIP output. The tool-independence is enforced
 /// by SIGNATURE: `check` takes raw `u64` seconds since epoch (from `fs::metadata().modified()`)
@@ -37,8 +33,8 @@ impl FidelityWitness {
     /// guard band closes the same-second false-FRESH window on coarse-granularity filesystems
     /// (ADR-070 §4.9, attack A7).
     ///
-    /// Demotion happens AT INGESTION TIME, not query time (adversarial A3) — so a stale-SCIP edge
-    /// can never enter the base at presents-grade and later corroborate up.
+    /// Demotion happens AT INGESTION TIME, not query time — so a stale-SCIP edge can never enter the
+    /// base at presents-grade and later corroborate up.
     ///
     /// `T3Mir` is demoted just like `Resolved` (it is equally stale if the index is stale — a higher
     /// tier is not a freshness exemption). `Syntactic` is tier-passthrough (already the floor).
@@ -63,12 +59,11 @@ impl FidelityWitness {
     }
 }
 
-/// The born-red presents-trigger: `StromaFidelityUnwitnessed` (form-not-content).
+/// The unwitnessed-fidelity signal (form-not-content).
 ///
-/// Fires when a resolved edge would carry `presents`-grade but the index is stale (or
-/// SCIP-reconstruction is unverified). Two named triggers: (a) index-staleness; (b)
-/// SCIP-reconstruction-unverified (see
-/// [`crate::scip`]). **STUB — the ATK test asserts this fires; the type carries the unwitnessed signal.**
+/// Carries why a resolved edge that would otherwise reach `presents`-grade cannot be witnessed: the
+/// index is stale, or the SCIP reconstruction is unverified (see [`UnwitnessedReason`] and
+/// [`crate::scip`]).
 #[derive(Debug, Clone)]
 pub struct StromaFidelityUnwitnessed {
     /// Why the fidelity could not be witnessed (stale-index | scip-unverified).

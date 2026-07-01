@@ -3,9 +3,6 @@
 The **stroma**: a sovereign immune lattice over composed resolution — the read-write-constitute
 coordinate frame + base node-set every antigen organ snaps to (ADR-067 / ADR-068 / ADR-069).
 
-> This README is the crate's stranger-facing surface. It ships with the crate when the skeleton is
-> lifted into the workspace. (Crate READMEs are a doc-coverage frontier — keep it code-true.)
-
 ## What it is
 
 A salsa-clocked relational base of collision-free, cfg-aware, **tier-honest** nodes, read through a
@@ -14,11 +11,16 @@ syntactic + resolved sources), never authored — on the compose base, *write co
 constitute*. A lower resolution tier can never corroborate up: a syntactic read literally cannot
 construct a `presents`-grade verdict.
 
-## The two epochs (both in this one crate)
+## Two layers (both in this one crate)
 
-- **Frame epoch** — the read CONTRACT + the constituted BASE + query STUBS. (This skeleton.)
-- **Engine epoch** — the ascent semiring-datalog closure + 4 semirings + condensation + SCIP
-  population. Every `todo!("engine epoch")` is its fill-point.
+- The **read/constitute layer** — the read contract, the constituted base, and the point-wise query
+  signatures.
+- The **datalog-closure layer** — the ascent semiring-datalog closure, the four semirings,
+  SCC-condensation, and SCIP population.
+
+The point-wise query functions (`reachable_from`, `field_at`, `provenance_of`, `blast_from`) panic
+when called: they read from the reachability closure but do not compute it. Their signatures are the
+frozen query contract every organ compiles against.
 
 ## The keystone (free from salsa + the borrow checker)
 
@@ -26,7 +28,10 @@ Reads take `&StromaDb`; advancing the base takes `&mut StromaDb`. A torn read �
 half-published base — is a **compile error**, not a runtime lock. The atomic-publish invariant falls
 out of Rust's borrow rules.
 
-## Build order
+## The public surface
 
-See `../BUILD-PLAN.md` — the dependency-ordered sequence (db → read-contract → constitute → query →
-write). Building out of order stalls.
+- [`StromaDb`](src/db.rs) — the salsa database everything attaches to.
+- The **read frame** ([`read`](src/read)) — the 3-axis `ReadCoord`, the tier-capped `TieredAnswer`,
+  and the point-wise queries.
+- [`constitute`](src/constitute) — populate the base from a `SourceWitness` (there is no separate
+  `write`; population is always re-derivation from sources).

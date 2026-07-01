@@ -1,12 +1,11 @@
-//! STEP 3 — the fact tables (ADR-068; relational-as-base).
+//! The fact tables (ADR-068; relational-as-base).
 //!
-//! ONE `#[salsa::input]` per base RELATION, NOT one mega-input. salsa's revision/invalidation is
-//! per-input-field: splitting by relation gives the genome's RELATIONAL TUPLE-INVALIDATION for free
-//! — an edit that changes call-resolution invalidates `EdgeFacts` WITHOUT touching `NodeFacts`/
-//! `ContractFacts`. One mega-input would invalidate everything on any change (defeating incrementality).
+//! ONE `#[salsa::input]` per base RELATION, not one mega-input. salsa's revision/invalidation is
+//! per-input-field: splitting by relation gives relational tuple-invalidation for free — an edit
+//! that changes call-resolution invalidates `EdgeFacts` without touching `NodeFacts`/`ContractFacts`.
+//! One mega-input would invalidate everything on any change, defeating incrementality.
 //!
-//! NO differential-dataflow (genome three-lineage convergence: DD is salsa-hostile, zero prior art,
-//! refuted by the point-wise query-census). Do NOT scaffold DD.
+//! The base uses salsa for incremental memoization, not differential-dataflow.
 
 // The three relations are salsa `#[input]`s (ADR-070 §4.6: ONE input per relation, so an edit that
 // changes call-resolution invalidates `EdgeFacts` WITHOUT touching `NodeFacts`/`ContractFacts`). The
@@ -88,8 +87,8 @@ pub struct EdgeFact {
 ///
 /// The discriminant accretes new kinds as new lenses are added (the open/closed cut — `EdgeKind` is
 /// OPEN-extensible, the `provenance_tier` on [`EdgeFact`] is CLOSED). Each kind is a distinct
-/// receptor a read can select for via [`crate::read::Perspective`]. The frame seeds the kinds the
-/// syntactic + resolved feeders can populate today; later lenses (data-flow, co-change) accrete here.
+/// receptor a read can select for via [`crate::read::Perspective`]. The registry holds the kinds the
+/// syntactic + resolved feeders populate; other lenses (data-flow, co-change) accrete their own kinds.
 ///
 /// `#[non_exhaustive]` so a downstream match must keep a wildcard arm — adding a kind is a
 /// pure-accretion, never a breaking change (ADR-067 §B4 accrete-never-migrate at the type level).
@@ -97,7 +96,7 @@ pub struct EdgeFact {
 #[non_exhaustive]
 pub enum EdgeKind {
     /// A call edge: `src` invokes `dst`. Syntactic feeder (name-edge, `dread`) refined by SCIP
-    /// (enclosure-reconstructed, `resolved`). The genome's primary detection relation.
+    /// (enclosure-reconstructed, `resolved`). The primary detection relation.
     Call,
     /// An import / `use` edge: `src`'s module brings `dst` into scope.
     Import,
@@ -108,11 +107,11 @@ pub enum EdgeKind {
     /// A proc-macro-use edge: `src` is annotated/expanded by macro `dst`. The degenerate input for
     /// SCIP enclosure-reconstruction (macro expansion breaks lexical enclosure — see [`crate::scip`]).
     ProcMacroUse,
-    /// A co-change edge: `src` and `dst` historically change together (a temporal-tier signal).
-    /// Populated by a future history/lifecycle lens; the kind is reserved so the schema is open now.
+    /// A co-change edge: `src` and `dst` historically change together (a temporal-tier signal). A
+    /// history/lifecycle lens populates it; the kind is present so the relational schema stays open.
     CoChange,
-    /// A data-flow edge: a value flows from `src` to `dst`. The IFDS/field-maths follow-on populates
-    /// it (named-deferred, ADR-067 §E.11); the kind ships so the relational schema stays open.
+    /// A data-flow edge: a value flows from `src` to `dst`. A data-flow lens (ADR-067 §E.11)
+    /// populates it; the kind is present so the relational schema stays open.
     DataFlow,
     /// A lineage edge: an AUTHORED structural-projection link (rename/split/merge re-homing). Unlike
     /// the others this is a SovereignMerge-class authored edge, NOT a recomputable derivation
@@ -120,30 +119,27 @@ pub enum EdgeKind {
     Lineage,
 }
 
-// THE CLOSURE (ENGINE epoch — NOT built here, signature shown so the frame's shape is legible):
+// The reachability closure reads these fact tables; its shape (shown so the relational contract is
+// legible from here):
 //
 //   #[salsa::tracked]
 //   fn reachability(db: &dyn Db) -> ReachabilityRelation {
 //       let edges = EdgeFacts::get(db).edges(db);
-//       ascent::ascent_run! { ... }   // the semiring-datalog closure (genome: 33,882 pairs / 2.6ms)
+//       ascent::ascent_run! { ... }   // the semiring-datalog closure
 //   }
 //
-// The 4 semirings over ONE query (detection/conductance/provenance/blast), the Semiring trait with
-// `const IDEMPOTENT: bool`, the born-red NonIdempotentSemiringWithoutCondensation compile-assert, and
-// SCC-condensation (Tarjan, for blast; IFDS is the field-maths follow-on, named-deferred) are ALL
-// engine-epoch fills. The frame defines the relational SHAPE the engine queries; it does NOT scaffold
-// the closure. (observer ledger G14 -> Type-A: frame = fact tables + API stubs; engine = closure.)
+// Four semirings run over one query (detection/conductance/provenance/blast) via a `Semiring` trait
+// with `const IDEMPOTENT: bool`, plus SCC-condensation (Tarjan) for the blast tier. These fact tables
+// define the relational shape the closure queries; they do not contain the closure itself.
 //
-// IDEMPOTENT GATE SHAPE (adversarial: builder will wrongly implement as a runtime panic). The
-// NonIdempotentSemiringWithoutCondensation guard must be COMPILE-TIME, not runtime. The pattern is a
-// sealed-trait + a const bound, NOT a `if !IDEMPOTENT { panic!() }`:
+// The non-idempotent (counting) semiring must be gated at COMPILE time, not with a runtime
+// `if !IDEMPOTENT { panic!() }`: a counting semiring on a cyclic graph without condensation is a
+// silent-slowdown, so the type system forbids writing it. The idiom is a sealed trait + a const bound:
 //
 //   trait Semiring { type Weight; const IDEMPOTENT: bool; /* plus/times/zero/one */ }
-//   // A counting semiring (IDEMPOTENT=false) is constructible ONLY via a Condensed<S> wrapper:
 //   struct Condensed<S: Semiring>(S);           // proves a condensation pre-pass ran
 //   fn run_closure<S: Semiring>(facts: &EdgeFacts) -> ... where Assert<{ S::IDEMPOTENT }>: IsTrue {}
 //   fn run_closure_condensed<S: Semiring>(c: Condensed<S>, ...) {}  // the only door for non-idempotent
 //
-// The non-condensed counting path is UNCONSTRUCTIBLE at compile time (the 100,000x silent-slow
-// failure on antigen's cyclic graph cannot be written). This is ENGINE epoch, but the SHAPE is named
-// here so the builder doesn't reach for a runtime assert.
+// The non-condensed counting path is unconstructible at compile time — the slow cyclic-graph case
+// cannot be written.

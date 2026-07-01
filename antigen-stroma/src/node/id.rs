@@ -1,8 +1,8 @@
-//! STEP 2a — `StromaNodeId`, the SEMANTIC node identity (ADR-067 §A.1).
+//! `StromaNodeId` — the SEMANTIC node identity (ADR-067 §A.1).
 //!
-//! The 3-field collision-free, cfg-aware identity. **NOT the salsa storage handle** (that's
-//! [`super::node::Node`]) and **NOT** `ItemTarget` (that's the wider MATCHING key — reusing it
-//! re-imports the bare-name collision the frame exists to close, diff.rs:114 last-write-wins).
+//! The 3-field collision-free, cfg-aware identity. **Not the salsa storage handle** (that's
+//! [`super::node::Node`]) and **not** `ItemTarget` (that's the wider matching key — reusing it as an
+//! identity re-imports the bare-name collision the frame exists to close).
 //!
 //! Used for hashing / equality / overlay-anchoring / cross-snapshot comparison.
 
