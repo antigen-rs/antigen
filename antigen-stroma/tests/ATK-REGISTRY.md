@@ -84,6 +84,58 @@ ATK) surfaced BINDING invariants with NO seed ATK. Three closed here (`atk_frame
 > `detection_ceiling` was a stub — but the read-CONTRACT fill had already landed, so they were
 > silently-GREEN and de-ignored immediately (green-from-birth forever-guards, never born-red).
 
+## v2-PATCH ATKs (SURVEY-DISCOVERED — the constitute synchronization node, post-certification)
+
+The frame's SURVEY (cargo-mutants full sweep) located a real LOGIC bug + its enabling test-void at the
+constitute adapter — the single point where a `ScanReport` becomes facts. Closed correct-before-build
+(before the engine builds on these facts). This is the registry posture live: the survey named the
+undefended claim-kind, a born-red defined "done", the builder fixed, the guard lives forever.
+
+| ID | Defends (the claim-kind) | Class | Born-red against | Negative control (teeth) | Source |
+|----|--------------------------|-------|------------------|--------------------------|--------|
+| ATK-FRAME-V2-DEDUP-001 | the constitute dedup keys on IDENTITY (`StromaNodeId`), NOT `(file, ItemTarget)` — two items sharing an `ItemTarget` in one file but with distinct bodies (→ distinct `identity_digest`) BOTH survive as distinct nodes (§4.1: `ItemTarget` is NOT identity) | runtime born-red (RED@`eb1156b`) | the `(file, ItemTarget)` `NodeKey` dedup at `adapter.rs:179` (early-return BEFORE `identity_digest` computed) | two GENUINELY-identical records (same `(file, line, ItemTarget)` → same identity) must STILL dedup to one — proves the fix collapses true duplicates, not distinct-same-target items (a "never dedup" impl passes the ATK, fails this NC) | frame-v2#1 island, ADR-070 §4.1, `atk_frame_v2_dedup_identity.rs` |
+| ATK-FRAME-V2-CONTAINMENT | `digests_at_line` matches an item by CONTAINMENT (`span.start().line ..= span.end().line`), NOT exact span-start — one item carrying two antigen attrs on DIFFERENT lines resolves BOTH records to the same containing item → same `IdentityDigest` → merges to ONE node | runtime born-red (RED@exact-match) | exact-span-start matching (`== target_line`): the N+1 attr record misses every item → `gap_digests` → distinct id → spurious 2nd node (unmasked by the identity-keyed dedup) | the SAME-line merge case (`same_item_across_two_vecs_merges_to_one_node`) passes under BOTH matchings, so it does NOT guard containment — the DIFFERENT-line case is the discriminating come-apart | frame-v2#1 (builder-deepened), `multi_attr_different_lines.rs`, `atk_frame_v2_dedup_identity.rs` |
+
+> **ATK-FRAME-V2-DEDUP-001 — the teeth-of-record (RED→GREEN, empirical).** Force-run against the
+> certified frame `eb1156b` (the `(file, ItemTarget)` dedup): `atk_frame_v2_dedup_two_impls_same_target_both_survive`
+> FAILED `left: 1, right: 2` — the second `impl Foo` (distinct body, same `ItemTarget`) was dropped at
+> the `node_map.contains_key(&key) → return` gate BEFORE its `identity_digest` was ever consulted. The
+> NC (`nc_two_genuinely_identical_records_dedup_to_one`) PASSED at both revisions (true-dup → 1 node).
+> The builder's fix (delete `NodeKey`; key `node_map` on `StromaNodeId` itself; compute the id BEFORE
+> the dedup gate) turns the ATK GREEN: 2 distinct nodes sharing one `fq_path`
+> (`…::same_target_distinct_identity::Foo`), differing only by `identity_digest`. That red→green IS the
+> verification of record for this v2 patch. **The specimen** (`tests/fixtures/frame_v2_dedup/`) is a
+> readable two-`impl Foo` tree a stranger can study; the test DISCOVERS the two blocks' lines by parse
+> (never hard-coded), so an edit that collapses the specimen fails loud rather than going vacuously green.
+
+> **ATK-FRAME-V2-CONTAINMENT — a fix that UNMASKED a latent bug (the deepening).** The DEDUP-001 fix
+> (key on identity) had a second-order consequence: it turned a previously-HARMLESS `digests_at_line`
+> imprecision into a real double-node bug. One item with `#[presents]`@N + `#[immune]`@N+1 (routine in
+> antigen's own dogfooding) emits records at N and N+1; `syn` folds both attrs into the item span
+> (`[N ..= close]`). Under exact-span-start matching the N+1 record missed every item → `gap_digests` →
+> and *because the dedup now keys on identity* it SPLIT into a spurious second node. (Under the OLD
+> `(file, ItemTarget)` dedup this stayed masked — both records shared the key and collapsed regardless.)
+> The builder went deeper than the surface dedup bug and fixed `digests_at_line` to match by CONTAINMENT.
+> This guard LOCKS that semantic: it is born-RED against exact-match (2 nodes: N real + N+1 gap), GREEN
+> under containment (1 node). **Why it was REQUIRED, not decorative:** the existing same-line merge test
+> passes under BOTH matchings, so a silent revert to exact-match would pass every other test — only the
+> DIFFERENT-line come-apart catches it. The registry posture live: a fix that changes a system's coupling
+> can convert a dormant imprecision into a live defect; the test that pins the NEW invariant is owed the
+> same day. Specimen `tests/fixtures/frame_v2_dedup/multi_attr_different_lines.rs`; the test discovers the
+> span by parse (`FixtureFile::struct_span`) and asserts the span is multi-line, so it can't go vacuous.
+
+> **frame-v2#4 — the enabling test-void, closed (`frame_v2_constitute_lowering.rs` + the reusable
+> `ScanReport` fixture).** The survey's sweep found **13 mutants** surviving across the constitute
+> lowering — `module_chain_from_path` (lib/main/mod/regular-file boundary logic, ~10), `digests_at_line`
+> (line-match + gap-fallback, 2), `lower_scan_report` (body→empty, 1) — ALL because no `ScanReport`
+> fixture existed to reach them. The reusable fixture (`tests/support/scan_report_fixture.rs`:
+> `ScanReportBuilder` + file-backed `FixtureFile`) is the missing vehicle; 7 integration tests over a
+> real module-tree specimen (`tests/fixtures/frame_v2_modtree/src/{lib,main,node/mod,node/locator,a/b/c}.rs`)
+> exercise the two private helpers THROUGH the pub `lower_scan_report` — asserting the produced `fq_path`
+> (encodes the module chain) and whether the identity digest is a real content digest vs the traceable
+> gap-fallback. This is a NEW test-class the suite lacked: **integration-over-the-synchronization-node**,
+> reaching private lowering logic through its one public seam. Mutation-verified — see the teeth-sweep.
+
 ## Newly-undefended watch (BINDING invariants still WITHOUT an ATK — surfaced, not hidden)
 
 These are BINDING but not yet defended by a test-class. Named here so the gap is a finding with a name,
@@ -156,3 +208,24 @@ complete — for every ATK there is a degenerate impl that passes the ATK but fa
 testing** (`cargo-mutants`) over `antigen-stroma` — a mutant the suite does NOT kill is a coverage-hole
 with a name, not a number that dipped. The by-hand sweep above is the design spec for that automated
 run. Treat any surviving mutant as a finding routed to the test-architect, not a metric.
+
+### v2-PATCH teeth-check — the constitute adapter, mutation-verified (2026-07-01)
+
+The obligation above, discharged for the constitute seam. `cargo-mutants --file adapter.rs`:
+
+- **First run (against the SURVEY baseline, before the v2 tests):** the constitute lowering was
+  integration-test-dark — 13 mutants across `module_chain_from_path` / `digests_at_line` /
+  `lower_scan_report` survived (the finding that opened frame-v2#4).
+- **After the v2#4 fixture + 8 integration tests landed:** `25 mutants tested: 18 caught, 5 unviable,
+  2 missed`. The 2 survivors were BOTH `replace && with ||` at `adapter.rs:119` / `:123` — the lib/main
+  special-cases. Their come-apart is a MULTI-segment path whose FIRST segment is `lib`/`main`
+  (`src/lib/sub.rs`, `src/main/sub.rs`): with `&&` correct → `["lib","sub"]`; with `||` mutant →
+  collapses to `[]`. The existing specimens (`src/lib.rs`, `src/main.rs`, both `len == 1`) could not
+  distinguish them — a real teeth-gap, surfaced by the sweep, NOT hidden.
+- **Closed:** added the `src/lib/sub.rs` + `src/main/sub.rs` specimens and
+  `lib_and_main_special_cases_require_whole_path_not_first_segment` — the come-apart that kills both.
+  (The 5 unviable are `Default`-based return-replacements the type does not admit — not coverage holes.)
+
+The lesson (for the strength ledger): a coverage-void and a logic-bug CO-LOCATE — the same test-dark
+lowering seam that hid frame-v2#1's dedup bug also hid these boundary-logic survivors. The fixture that
+gives one its born-red gives the whole seam its teeth.

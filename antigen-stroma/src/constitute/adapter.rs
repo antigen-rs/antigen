@@ -29,7 +29,7 @@
 //! source using `ShapeDigest::of_item()`.
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use quote::ToTokens;
 use syn::spanned::Spanned;
@@ -42,22 +42,38 @@ use crate::node::path::syntactic_fq_path;
 
 // ── Item extraction ───────────────────────────────────────────────────────────────────────────────
 
-/// Compute BOTH digests of an item from a file, identified by its 1-based line number.
-///
-/// Parses the file with `syn::parse_file` ONCE, finds the item whose `Spanned::span().start().line`
-/// matches `target_line`, and computes:
+/// Compute BOTH digests of an item from a file, identified by a 1-based line number that falls
+/// ANYWHERE within the item (its `span().start().line ..= span().end().line`), and computes:
 /// - the `IdentityDigest` via the [`canonical_identity_tokens`] SEAM (§4.3 — strips PURE-annotation
 ///   antigen attrs but KEEPS load-bearing ones, so identity is tamper-evident on a forged `#[presents]`),
 /// - the `ShapeDigest` via the item's rendered source (name-INSENSITIVE FNV, the clustering key).
 ///
-/// Returns `None` if the file can't be read/parsed or no item matches the line. The 90% case for
-/// antigen's own codebase (no inline non-test `mod` blocks); the SCIP symbol refines at engine-epoch.
+/// ## Why CONTAINMENT, not exact span-start
+///
+/// A `ScanReport` record's `line` is the line of the SPECIFIC `#[attr]` invocation that produced it
+/// (`ScanVisitor::line_of_attr` = `attr.span().start().line`), NOT the item's canonical first line.
+/// One item carrying two antigen attrs on DIFFERENT lines (e.g. `#[presents]` on line N, `#[immune]`
+/// on line N+1 — routine in antigen's own dogfooding) emits a `Presentation` at line N and an
+/// `Immunity` at line N+1. `syn` folds outer attrs INTO the item span, so the item's span-start is N
+/// (the first attr) and its span-end is the item's closing line — the whole `[N ..= close]` range.
+/// Both attr-lines fall inside that range. Matching by CONTAINMENT resolves both records to the SAME
+/// containing item → the SAME canonical `IdentityDigest` → the two records dedup to ONE node (the
+/// intended cross-attribute-vec merge). Matching by exact span-start (`== target_line`) would resolve
+/// only the record whose attr sits on the span-start line; the other would miss every item, fall back
+/// to `gap_digests`, and — because the dedup keys on the identity-digest — SPLIT into a spurious second
+/// node. Top-level `parsed.items` occupy DISJOINT line ranges, so containment is unambiguous and still
+/// distinguishes two same-named `impl` blocks (they hold disjoint ranges → distinct real digests).
+///
+/// Returns `None` if the file can't be read/parsed or `target_line` falls outside every top-level
+/// item (a comment/blank between items → the honest gap-fallback). The 90% case for antigen's own
+/// codebase (no inline non-test `mod` blocks); the SCIP symbol refines at engine-epoch.
 fn digests_at_line(file: &Path, target_line: usize) -> Option<(IdentityDigest, ShapeDigest)> {
     let src = std::fs::read_to_string(file).ok()?;
     let parsed = syn::parse_file(&src).ok()?;
 
     for item in &parsed.items {
-        if item.span().start().line == target_line {
+        let span = item.span();
+        if (span.start().line..=span.end().line).contains(&target_line) {
             // Identity: BLAKE3 over the §4.3 canonical preimage (pure-stripped, load-bearing + name kept).
             let identity = IdentityDigest::of_tokens(&canonical_identity_tokens(item));
             // Shape: name-insensitive FNV. of_item takes source text and re-normalizes the ident; we
@@ -132,23 +148,6 @@ fn module_chain_from_path(file: &Path, source_root: &Path) -> Vec<String> {
     segments
 }
 
-// ── Key type for node deduplication ──────────────────────────────────────────────────────────────
-
-#[derive(Clone, PartialEq, Eq, Hash)]
-struct NodeKey {
-    file: PathBuf,
-    item_target_str: String,
-}
-
-impl NodeKey {
-    fn new(file: &Path, item_target: &antigen::scan::ItemTarget) -> Self {
-        Self {
-            file: file.to_path_buf(),
-            item_target_str: format!("{item_target:?}"),
-        }
-    }
-}
-
 // ── The lowering pass ─────────────────────────────────────────────────────────────────────────────
 
 /// Lower a scan report into the base fact PAYLOADS.
@@ -171,15 +170,20 @@ pub fn lower_scan_report(
     // --- STEP 1: collect all (file, line, item_target) triples from every attribute vec ----------
     // ScanReport has 14+ vecs; we visit the ones that carry item_target (the node-bearing records).
     // `lineage_edges` are visited separately for edges.
-    let mut node_map: HashMap<NodeKey, NodeFact> = HashMap::new();
+    //
+    // Dedup keys on the `StromaNodeId` ITSELF — `(fq_path, identity_digest, cfg_set)` — NOT on
+    // `(file, ItemTarget)`. §4.1: `ItemTarget` is NOT identity. Keying on `(file, ItemTarget)` would
+    // silently collapse two DISTINCT items that render to the same `ItemTarget` in one file (e.g. two
+    // inherent `impl Foo` blocks, or a `#[cfg(test)] impl Foo` alongside its non-test twin): their
+    // `fq_path` also collides, so the `identity_digest` (body BLAKE3) is the ONLY discriminator — and
+    // it's precisely the field an `ItemTarget`-derived key omits. The dedup that DOES belong here is
+    // the cross-attribute-vec merge (one item carrying BOTH `#[presents]` and an immunity appears in
+    // two vecs at the SAME (file, line) → SAME digest → SAME `StromaNodeId`), which keying on the
+    // full id preserves. So: compute the id BEFORE the dedup gate, key on the id.
+    let mut node_map: HashMap<StromaNodeId, NodeFact> = HashMap::new();
 
     // Helper: intern one (file, line, item_target) into node_map.
     let mut intern = |file: &Path, line: usize, item_target: &antigen::scan::ItemTarget| {
-        let key = NodeKey::new(file, item_target);
-        if node_map.contains_key(&key) {
-            return; // already seen this (file, item_target) — dedup
-        }
-
         let module_chain = module_chain_from_path(file, source_root);
         let item_name = item_target_name(item_target);
 
@@ -189,6 +193,7 @@ pub fn lower_scan_report(
         // Both digests, computed from ONE parse of the source: IdentityDigest via the §4.3
         // canonical_identity_tokens seam (tamper-evident, load-bearing-kept), ShapeDigest via the
         // name-insensitive FNV path. Falls back to traceable gap-digests if the source is unreadable.
+        // The IdentityDigest is computed HERE, before the dedup gate, because it is part of the key.
         let abs_file = source_root.join(file);
         let (identity_digest, shape_digest) =
             digests_at_line(&abs_file, line).unwrap_or_else(|| gap_digests(&fq.path));
@@ -199,8 +204,12 @@ pub fn lower_scan_report(
             cfg_set: cfg_set.clone(),
         };
 
+        if node_map.contains_key(&id) {
+            return; // already seen this exact StromaNodeId — the legitimate cross-vec dedup
+        }
+
         node_map.insert(
-            key,
+            id.clone(),
             NodeFact {
                 id,
                 kind: item_target.clone(),
