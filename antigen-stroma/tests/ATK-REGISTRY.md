@@ -195,7 +195,7 @@ complete — for every ATK there is a degenerate impl that passes the ATK but fa
 | ATK | the vacuous impl that would false-pass | the NC that catches it |
 |-----|-----------------------------------------|------------------------|
 | IDENTITY | every path made unique (counter suffix) | same-module-same-item must COLLIDE |
-| DIGEST-TIER | name-sensitive raw-byte hash | ShapeDigest must stay name-INSENSITIVE |
+| DIGEST-TIER | name-sensitive raw-byte hash | ShapeDigest must stay name-INSENSITIVE (all 8 item kinds — v2#2) |
 | DIGEST-STRIP | hash raw source (no strip) | pure-annotation edit must NOT move identity |
 | TIER-CAP | forbid ALL presents verdicts | `corroborate(resolved,resolved)` must still mint |
 | TORN-READ | forbid ALL publishing | the serialized drop-then-publish session must compile |
@@ -229,3 +229,32 @@ The obligation above, discharged for the constitute seam. `cargo-mutants --file 
 The lesson (for the strength ledger): a coverage-void and a logic-bug CO-LOCATE — the same test-dark
 lowering seam that hid frame-v2#1's dedup bug also hid these boundary-logic survivors. The fixture that
 gives one its born-red gives the whole seam its teeth.
+
+### v2#2 + v2#3 teeth-check — the digest.rs keystone, mutation-verified (2026-07-01)
+
+Two teeth-holes the survey's `cargo-mutants` sweep surfaced on `node/digest.rs`, closed in
+`atk_frame_digest_tier.rs` (tests-only; the frozen src is untouched):
+
+- **v2#2 — `ShapeDigest::of_item` name-insensitivity untested for 7 of 8 item kinds.** The pre-existing
+  `nc_frame_shape_digest_is_name_insensitive` tested ONLY the Struct arm; deleting any of the
+  Enum/Union/Trait/Type/Const/Static/Fn arms (digest.rs:217–223) SURVIVED — the kind fell through to the
+  name-SENSITIVE raw-DefaultHasher `_` branch, unguarded. **Closed:** `SHAPE_CASES` (one entry per
+  ident-bearing arm) drives two parametrized tests —
+  `nc_frame_shape_digest_name_insensitive_across_all_item_kinds` (two same-shape/different-name items must
+  share a digest → kills all 7 arm-deletion mutants) and
+  `nc_frame_shape_digest_shape_sensitive_across_all_item_kinds` (a genuine structural change must MOVE the
+  digest → the non-vacuity guard, so name-insensitivity can't pass against a collapse-everything digest).
+  **Teeth proven (revert-and-restore):** deleting the `Fn` arm → `[fn]` case RED (two `raw:` digests);
+  deleting the `Enum` arm → `[enum]` case RED. Remaining 5 arms structurally identical in the loop;
+  cargo-mutants confirms the 8/8 sweep.
+- **v2#3 — `pub fn is_load_bearing_antigen_attr` had zero teeth.** Both whole-body replacements
+  (`-> true`, `-> false`) SURVIVED (digest.rs:140) — a public helper an organ trusts for a tamper-surface
+  decision shipped with no regression guard. **Closed:** `atk_is_load_bearing_antigen_attr_contract_triple`
+  pins the triple (`#[presents]`→true, `#[diagnostic]`→false, `#[derive(Debug)]`→false) — the third case
+  encodes the SUBTLETY that is_load_bearing/is_pure are complements only WITHIN `ANTIGEN_OWNED_ATTRS`.
+  **Teeth proven (revert-and-restore):** body `-> true` → case (b) RED; body `-> false` → case (a) RED.
+  Both missed mutants killed.
+
+Both defend clustering-quality / public-API contract, NOT the identity/tamper-evidence tier (that path
+routes through `is_pure`, whose mutants were already CAUGHT). A regression here degrades clustering or a
+helper's honesty — it does not break signing.
