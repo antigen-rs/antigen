@@ -7,6 +7,12 @@
 **/*.rs.bk
 Cargo.lock
 
+# cargo-mutants scratch (survey/adversarial mutation sweeps — never committed)
+mutants.out/
+mutants.out.old/
+**/mutants.out/
+**/mutants.out.old/
+
 # IDE
 .vscode/
 .idea/
