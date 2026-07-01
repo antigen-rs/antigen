@@ -1,11 +1,11 @@
-//! STEP 2b — the `Node` (the salsa `#[input]`). The git-blob half: carries the CHANGING digests.
+//! The `Node` (the salsa `#[input]`). The git-blob half: carries the CHANGING digests.
 //!
-//! Held + mutated-in-place across edits (VERIFIED: salsa 0.27.2 `tests/mutate_in_place.rs` —
-//! `.set_field(&mut db).to(v)` overwrites in place; the input handle's identity PERSISTS). The
-//! maintenance pass finds the existing `Node` for an edited item by its stable `Locator` and
-//! `.set_identity_digest(...)` it — the SAME entity sees a CHANGED digest → salsa fires the change
-//! (the danger signal) + old-vs-new digest is comparable (the backdate key). Re-minting on edit
-//! would destroy both — that's the bug aristotle A4/A8 caught.
+//! Held and mutated in place across edits: `.set_field(&mut db).to(v)` overwrites in place and the
+//! input handle's identity persists. The maintenance pass finds the existing `Node` for an edited
+//! item by its stable `Locator` and `.set_identity_digest(...)` it — the same entity sees a changed
+//! digest, so salsa fires the change (the danger signal) and the old-vs-new digest is comparable
+//! (the backdate key). Re-minting a node on edit would destroy both, which is why identity is keyed
+//! on the stable locator, not the digest.
 
 // salsa's `#[input]` macro generates `new` + field accessors + setters as associated fns that cannot
 // carry doc comments. The public type and its fields ARE documented; this allow covers only the
@@ -37,29 +37,31 @@ pub struct Node {
     pub kind: antigen::scan::ItemTarget,
     /// The local contract: provides/requires + provenance-tier (see [`Contract`]).
     pub contract: Contract,
-    /// Maintenance-stamped last-changed revision (ADR-067 LE6 — a `#[salsa::input]` field, NEVER a
-    /// tracked-fn). See WATCH/GAP-13: on the COMPOSE base this is recomputable-from-mtime; the
-    /// authority-arbiter tension is a sovereign-side concern, out of frame scope.
+    /// Maintenance-stamped last-changed revision (ADR-067 LE6 — a `#[salsa::input]` field, not a
+    /// tracked fn). On the compose base this is recomputable from fs-mtime; see [`Revision::merge`]
+    /// for its concurrent-write join.
     pub last_changed: Revision,
 }
 
-/// A node's local contract (provides/requires + provenance), ADR-067 §A.3.
-/// **STUB — fill (frame epoch):** the provides/requires relation shape.
+/// A node's local contract — its provides/requires relation and provenance tier (ADR-067 §A.3).
+///
+/// Empty at this layer: the base carries the contract slot on every node, and the
+/// provides/requires/provenance fields are populated by the datalog-closure layer that reconstructs
+/// the relation. A default `Contract` is the honest "no contract reconstructed yet" value.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Contract {
-    // STUB: provides: Vec<...>, requires: Vec<...>, provenance: ResolutionTier
+    // provides / requires / provenance fields are added when the closure layer reconstructs them.
 }
 
 /// A maintenance revision stamp (the observed fs-mtime, ADR-067 LE6).
 ///
-/// On the COMPOSE base this is derived-from-mtime, not an authored claim. Its concurrent-write merge
-/// is the §4.5a ruling: a deterministic, monotone, idempotent, order-independent join — see
-/// [`Revision::merge`].
+/// On the compose base this is derived from fs-mtime, not an authored claim. Its concurrent-write
+/// merge is a deterministic, monotone, idempotent, order-independent join — see [`Revision::merge`].
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Revision(pub u64);
 
 impl Revision {
-    /// The §4.5a concurrent-write merge: take the LATER timestamp (`max`, most-recent-knowledge wins).
+    /// The concurrent-write merge: take the LATER timestamp (`max`, most-recent-knowledge wins).
     ///
     /// Both writers derive the value from the SAME fs source, so whichever `set` wins LAST under
     /// salsa's write-serialization is correct REGARDLESS of order. This collapses the general

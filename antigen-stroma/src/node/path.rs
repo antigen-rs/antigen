@@ -1,18 +1,19 @@
-//! STEP 2c — syntactic FQ-path construction (GAP A5 / G2, RESOLVED Type-A).
+//! FQ-path construction — the two tiers of the locator.
 //!
-//! The locator MUST be constructible BEFORE r-a/SCIP (the syntactic-tier base ships first, degraded
-//! mode). But `antigen`'s `scan::parse` is a single-file walk with NO module-path. So constitute
-//! needs this sub-step: walk the module tree (inline `mod` blocks + the file structure) to assign
-//! `crate::mod::item` paths SYNTACTICALLY. Cheap, r-a-free (syn gives the nesting). The SCIP symbol
-//! (resolved tier) REFINES this when present; the syntactic module-path is the floor-tier locator.
+//! [`syntactic_fq_path`] builds the floor: the module chain (from the file structure) assigns each
+//! item a `crate::mod::item` path at `ResolutionTier::Syntactic`, needing only `syn`.
+//! [`refine_with_scip`] raises a path to `ResolutionTier::Resolved` when given a well-formed SCIP
+//! symbol — the symbol is the resolved-tier locator; the syntactic path is the tier below it.
 
 use crate::node::id::FqPath;
 use crate::read::ResolutionTier;
 
-/// Build the syntactic FQ path for an item from the module tree.
+/// Build the syntactic FQ path for an item from its module chain.
 ///
-/// **STUB — fill (frame epoch):** walk inline `mod` blocks + the directory/file structure; emit
-/// `crate::mod::item` at `ResolutionTier::Syntactic`. r-a-free; the floor-tier locator.
+/// Joins `crate_name`, the `module_chain`, and `item_name` with `::` into a `crate::mod::item` path
+/// and stamps it `ResolutionTier::Syntactic` — the floor-tier locator, computed without
+/// rust-analyzer or SCIP. The full module chain is load-bearing: it distinguishes `foo::bar` from
+/// `baz::bar`. A resolved SCIP symbol supersedes this via [`refine_with_scip`].
 #[must_use]
 pub fn syntactic_fq_path(crate_name: &str, module_chain: &[String], item_name: &str) -> FqPath {
     // Join `crate :: mod1 :: mod2 :: … :: item` — the FULL module chain is load-bearing (the closing
@@ -33,8 +34,10 @@ pub fn syntactic_fq_path(crate_name: &str, module_chain: &[String], item_name: &
 
 /// Refine a syntactic path with a resolved SCIP symbol when available (raises the locator tier).
 ///
-/// **STUB — frame epoch:** if a SCIP symbol exists for this item, return the resolved-tier `FqPath`;
-/// else return the syntactic floor unchanged.
+/// A well-formed SCIP symbol is the resolved-tier truth and supersedes the lexical guess: returns a
+/// `ResolutionTier::Resolved` `FqPath` built from the symbol. A `None` or malformed symbol falls
+/// through to the `syntactic` floor unchanged — a malformed symbol never mints a `Resolved` locator
+/// (ADR-070 §5.2 malformed-symbol invariant, which keeps the resolved tier clean).
 #[must_use]
 pub fn refine_with_scip(syntactic: FqPath, scip_symbol: Option<&str>) -> FqPath {
     // A well-formed SCIP symbol IS the resolved-tier truth (symbol-level keying drops name-ambiguity
@@ -53,10 +56,10 @@ pub fn refine_with_scip(syntactic: FqPath, scip_symbol: Option<&str>) -> FqPath 
 
 /// A minimal well-formedness gate for a SCIP symbol used as a resolved-tier locator.
 ///
-/// Frame-epoch conservative: a symbol is admissible only if it is non-empty and not pure whitespace.
-/// The full SCIP grammar validation is engine-epoch (where `ingest_scip` wires the real run); the
-/// invariant the FRAME must hold is the negative one — a malformed symbol must never become an
-/// `fq_path` at `Resolved` tier (it falls through to syntactic instead).
+/// Conservative: a symbol is admissible only if it is non-empty and not pure whitespace. This is a
+/// well-formedness floor, not full SCIP grammar validation; the invariant it holds is the negative
+/// one — a malformed symbol must never become an `fq_path` at `Resolved` tier (it falls through to
+/// syntactic instead).
 fn is_well_formed_scip_symbol(symbol: &str) -> bool {
     !symbol.trim().is_empty()
 }

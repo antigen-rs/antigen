@@ -1,22 +1,23 @@
-//! STEP 1 — the resolution tier ladder + the lower-never-corroborates-up invariant.
+//! The resolution tier ladder + the lower-never-corroborates-up invariant.
 //!
-//! `ResolutionTier` is an ORDERED, closed-extensible enum. The detection grade a read can earn is
-//! CAPPED by its source tier ([`ResolutionTier::detection_ceiling`]) — this is the type-level
-//! enforcement of ADR-069 §A: a syntactic read cannot construct a `presents`-grade verdict.
+//! `ResolutionTier` is an ordered enum. The detection grade a read can earn is CAPPED by its source
+//! tier ([`ResolutionTier::detection_ceiling`]) — this is the type-level enforcement of ADR-069 §A:
+//! a syntactic read cannot construct a `presents`-grade verdict.
 
 /// The source-resolution tier of a fact (ADR-069 §A). Ordered: `Syntactic < Resolved < T3Mir`.
 ///
-/// `T3Mir` is a **live slot**, not a TODO and not deleted — structurally present but unpopulated on
-/// antigen's own (dyn/async/closure-free) codebase. The frame reads ARBITRARY user codebases; a
-/// tokio/dyn-heavy one populates it. The variant ships; population is named-deferred (engine epoch,
-/// mir-exact, scoped-never-whole-graph). `Option<T3Data> = None` on antigen's own code.
+/// `T3Mir` is a live slot — structurally present but unpopulated on a dyn/async/closure-free
+/// codebase (antigen's own). The frame reads arbitrary user codebases; a tokio/dyn-heavy one
+/// populates it. If a read comes back at `T3Mir` tier with an empty value, treat it as
+/// empty-but-structurally-valid, not an error: mir-exact population is computed by the
+/// datalog-closure layer, scoped to the queried region rather than the whole graph.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ResolutionTier {
     /// T1 — syntactic (syn walk; r-a-free). Detection ceiling = `dread`-grade, NEVER `presents`.
     Syntactic,
     /// T2 — resolved (SCIP symbol-level). Detection ceiling = `presents`-grade.
     Resolved,
-    /// T3 — mir-only (live slot; `None` on antigen's own code). Population = engine epoch.
+    /// T3 — mir-only (live slot; empty on dyn/async/closure-free code). Detection ceiling = `presents`-grade.
     T3Mir,
 }
 
@@ -68,9 +69,8 @@ pub fn corroborate_presents(a: ResolutionTier, b: ResolutionTier) -> Option<Pres
 impl ResolutionTier {
     /// The cap on detection grade for a read sourced at this tier (ADR-069 §A, lower-never-up).
     ///
-    /// **STUB — fill (frame epoch, this is contract not engine):** `Syntactic => Dread`,
-    /// `Resolved | T3Mir => Presents`. The whole point: there is no path from a `Syntactic` source
-    /// to a `Presents` grade except the single privileged `corroborate(a, b)` door (see below).
+    /// `Syntactic` caps at `Dread`; `Resolved` and `T3Mir` reach `Presents`. There is no path from a
+    /// `Syntactic` source to a `Presents` grade except the single privileged [`corroborate`] door.
     #[must_use]
     pub const fn detection_ceiling(self) -> DetectionGrade {
         match self {
@@ -113,4 +113,4 @@ pub fn corroborate(a: ResolutionTier, b: ResolutionTier) -> Option<ResolutionTie
 
 // FRESHNESS is itself a tier-attribute (ADR-069 §A.3): a stale capture is a lower tier. The
 // index-staleness guard (resolved -> dread when index older than source, ADR-069 Open-seam-1) is an
-// always-on demotion in the read path — wired via fidelity::FidelityWitness (STEP 5).
+// always-on demotion in the read path — applied via `fidelity::FidelityWitness`.

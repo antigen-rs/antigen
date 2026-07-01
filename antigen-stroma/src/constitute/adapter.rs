@@ -1,20 +1,14 @@
-//! STEP 4 — the `ScanReport -> NodeFacts/EdgeFacts` lowering (the integration seam).
+//! The `ScanReport -> NodeFacts/EdgeFacts` lowering (the integration seam).
 //!
 //! The existing scan (`antigen::scan::scan_workspace -> ScanReport`) is the input feeder. This
 //! adapter lowers `ScanReport`'s per-attribute Vecs (presentations, immunities, ...) into the keyed
-//! relational base. The SCIP ingestion (resolved edges) is a SECOND feeder into `EdgeFacts`,
-//! tier-stamped resolved.
+//! relational base. SCIP ingestion (resolved edges) is a second feeder into `EdgeFacts`, tier-stamped
+//! resolved.
 //!
-//! CONVERGE-WAVE FLAG (do not let this go silent): does `ScanReport` stay the wire format with the
-//! stroma INDUCED from it, or does the stroma become primary and `ScanReport` a projection? The
-//! implementer's lean: stroma primary, `ScanReport` a backward-compatible projection (the genome's
-//! "`ScanReport` is an induced view" reading). This is a converge-wave call — named here so the
-//! builder doesn't decide it implicitly.
-//!
-//! ## The two digests at frame epoch
+//! ## The two digests
 //!
 //! Both are computed from ONE parse of the item source (see `digests_at_line`):
-//! - `IdentityDigest` (BLAKE3) routes through the [`canonical_identity_tokens`] SEAM (§4.3): it
+//! - `IdentityDigest` (BLAKE3) routes through the [`canonical_identity_tokens`] SEAM (ADR-070 §4.3): it
 //!   strips PURE-annotation antigen attrs but KEEPS load-bearing ones, so identity is tamper-evident
 //!   on a forged `#[presents]` yet stable under a toggled `#[diagnostic]`. The strip decision lives
 //!   in that ONE seam (`node::digest`), NOT duplicated here — this adapter only calls it.
@@ -44,11 +38,12 @@ use crate::node::path::syntactic_fq_path;
 
 /// Compute BOTH digests of an item from a file, identified by a 1-based line number that falls
 /// ANYWHERE within the item (its `span().start().line ..= span().end().line`), and computes:
-/// - the `IdentityDigest` via the [`canonical_identity_tokens`] SEAM (§4.3 — strips PURE-annotation
-///   antigen attrs but KEEPS load-bearing ones, so identity is tamper-evident on a forged `#[presents]`),
+/// - the `IdentityDigest` via the [`canonical_identity_tokens`] SEAM (ADR-070 §4.3 — strips
+///   PURE-annotation antigen attrs but KEEPS load-bearing ones, so identity is tamper-evident on a
+///   forged `#[presents]`),
 /// - the `ShapeDigest` via the item's rendered source (name-INSENSITIVE FNV, the clustering key).
 ///
-/// ## Why CONTAINMENT, not exact span-start
+/// ## Why CONTAINMENT, not exact span-start (ADR-070 §4.4 record→item resolution)
 ///
 /// A `ScanReport` record's `line` is the line of the SPECIFIC `#[attr]` invocation that produced it
 /// (`ScanVisitor::line_of_attr` = `attr.span().start().line`), NOT the item's canonical first line.
@@ -65,8 +60,8 @@ use crate::node::path::syntactic_fq_path;
 /// distinguishes two same-named `impl` blocks (they hold disjoint ranges → distinct real digests).
 ///
 /// Returns `None` if the file can't be read/parsed or `target_line` falls outside every top-level
-/// item (a comment/blank between items → the honest gap-fallback). The 90% case for antigen's own
-/// codebase (no inline non-test `mod` blocks); the SCIP symbol refines at engine-epoch.
+/// item (a comment/blank between items → the honest gap-fallback). Resolves against top-level items
+/// only; it does not descend into inline `mod` blocks.
 fn digests_at_line(file: &Path, target_line: usize) -> Option<(IdentityDigest, ShapeDigest)> {
     let src = std::fs::read_to_string(file).ok()?;
     let parsed = syn::parse_file(&src).ok()?;
@@ -102,8 +97,9 @@ fn gap_digests(fq_path: &str) -> (IdentityDigest, ShapeDigest) {
 /// Derive the module chain from a file path relative to `source_root`.
 ///
 /// Strips the `src/` prefix and `.rs` extension, handles `mod.rs` and `lib.rs` edge cases, and
-/// splits the remainder on path separators. The 90% case for antigen's own codebase (no inline
-/// non-test `mod` blocks, no `#[path]` attrs). The SCIP symbol (engine-epoch) supersedes this.
+/// splits the remainder on path separators. Derives the chain from the file layout: it does not
+/// account for inline `mod` blocks or `#[path]` attributes, where the file layout and the module
+/// path diverge.
 ///
 /// Examples:
 /// - `src/lib.rs`         → `[]` (the crate root — module chain is empty)
@@ -157,17 +153,17 @@ fn module_chain_from_path(file: &Path, source_root: &Path) -> Vec<String> {
 /// the salsa inputs. This function is `&mut db`-free so it is testable without a live db.
 ///
 /// Each unique `(file, item_target)` pair in the report's per-attribute vecs becomes one
-/// `NodeFact`. Edges come from `lineage_edges` (a `Lineage`-kind authored edge per
-/// `#[descended_from]`; the SCIP call-graph is engine-epoch). `CfgSet` is passed through to the
-/// `Locator` key so identical items under different cfg are DISTINCT nodes (ADR-070 §4.5 cfg-aware
-/// identity; for frame epoch `cfg_set = CfgSet::default()`).
+/// `NodeFact`; the returned edge vec is empty (this lowering produces nodes, not edges). `CfgSet` is
+/// passed through to the `Locator` key so identical items under different cfg are DISTINCT nodes
+/// (ADR-070 §4.5 cfg-aware identity; `cfg_set = CfgSet::default()` when a single active config is
+/// captured).
 pub fn lower_scan_report(
     report: &antigen::scan::ScanReport,
     source_root: &Path,
     crate_name: &str,
     cfg_set: &CfgSet,
 ) -> (Vec<NodeFact>, Vec<EdgeFact>) {
-    // --- STEP 1: collect all (file, line, item_target) triples from every attribute vec ----------
+    // --- collect all (file, line, item_target) triples from every attribute vec -------------------
     // ScanReport has 14+ vecs; we visit the ones that carry item_target (the node-bearing records).
     // `lineage_edges` are visited separately for edges.
     //
@@ -187,7 +183,7 @@ pub fn lower_scan_report(
         let module_chain = module_chain_from_path(file, source_root);
         let item_name = item_target_name(item_target);
 
-        // Syntactic FQ path (the floor-tier locator — SCIP supersedes at engine epoch).
+        // Syntactic FQ path (the floor-tier locator).
         let fq: FqPath = syntactic_fq_path(crate_name, &module_chain, &item_name);
 
         // Both digests, computed from ONE parse of the source: IdentityDigest via the §4.3
@@ -247,16 +243,14 @@ pub fn lower_scan_report(
         intern(&df.file, df.line, &df.item_target);
     }
     // `MarkedUnknown` carries `file` + `line` but NOT `item_target` (it's a marker-on-item, not
-    // an item-identity record — it has structural_digest + shape_digest but no ItemTarget field).
-    // Engine epoch: wire marked_unknowns via a `(file, line)` → `StromaNodeId` reverse-lookup.
+    // an item-identity record — it has structural_digest + shape_digest but no ItemTarget field), so
+    // it does not become a node here.
 
-    // --- STEP 2: edges ----------------------------------------------------------------------------
-    // Call-graph edges (Call/Import/TypeUse) are engine-epoch (SCIP feeder — not wired here).
-    //
-    // `ScanReport::lineage_edges` carry antigen-declaration-level lineage (child/parent ANTIGEN
-    // TYPES by name, not code-item `ItemTarget` pairs), so they don't map cleanly onto
-    // `EdgeKind::Lineage` (which connects `StromaNodeId`-keyed items). Frame epoch: no edges.
-    // Engine epoch: wire `lineage_edges` via the antigen-declaration lookup + SCIP call-edges.
+    // --- edges ------------------------------------------------------------------------------------
+    // This lowering emits no edges. Call-graph edges (Call/Import/TypeUse) come from the SCIP
+    // feeder. `ScanReport::lineage_edges` carry antigen-declaration-level lineage (child/parent
+    // ANTIGEN TYPES by name, not code-item `ItemTarget` pairs), so they don't map cleanly onto
+    // `EdgeKind::Lineage` (which connects `StromaNodeId`-keyed items).
     let edges: Vec<EdgeFact> = Vec::new();
 
     let nodes: Vec<NodeFact> = node_map.into_values().collect();
@@ -338,9 +332,9 @@ mod tests {
 
     use super::item_target_name;
 
-    // REGRESSION (survey find): the impl-family variants must NOT all collapse to one placeholder —
-    // that would re-import the bare-name collision the frame exists to close (two impls in one module
-    // → the SAME fq_path). Each impl-family variant must yield a DISTINGUISHING path segment.
+    // The impl-family variants must NOT all collapse to one placeholder — that would re-import the
+    // bare-name collision the frame exists to close (two impls in one module → the SAME fq_path).
+    // Each impl-family variant must yield a DISTINGUISHING path segment.
 
     #[test]
     fn two_inherent_impls_get_distinct_names() {

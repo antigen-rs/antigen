@@ -1,4 +1,4 @@
-//! STEP 1 — the read coordinate: SOURCE × PERSPECTIVE × POLARITY (ADR-069 §B).
+//! The read coordinate: SOURCE × PERSPECTIVE × POLARITY (ADR-069 §B).
 
 use super::tier::ResolutionTier;
 use crate::base::facts::EdgeKind;
