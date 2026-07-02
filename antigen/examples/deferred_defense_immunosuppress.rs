@@ -1,10 +1,17 @@
 //! Example: `#[immunosuppress]` — surgical silencing with hard duration cap.
 //!
+//! **TEMPORARILY STUBBED.** The `#[immunosuppress(...)]` sites below are commented
+//! out, so this example does not currently demonstrate a live suppression. The
+//! `#[immunosuppress]` time-bound `until`-date mechanism is being replaced by a
+//! self-presenting expiry class: an expired window will *present* a failure-class
+//! (which an audit surfaces) rather than emit a hard compile error, and hardcoded
+//! example dates — which rot — go away. The `#[dread]` on `process_work_item`
+//! self-presents this stub, so an audit reminds us to restore / rewrite the example
+//! against the new mechanism instead of it being silently lost.
+//!
 //! ADR-023 deferred-defense family. Immunosuppress captures "I am deliberately
 //! muting a specific family of checks for a specific, bounded duration, with a
-//! stated rationale." The duration cap is enforced at PARSE TIME — a compile
-//! error is emitted if `until - since > duration_cap`. This closes the
-//! audit-only gap (A4 attack absorbed).
+//! stated rationale."
 //!
 //! ## Biological analog
 //!
@@ -14,13 +21,6 @@
 //! Distinct from anergy (which is receptor-level unresponsiveness) because
 //! immunosuppression is an active, deliberate, systemic intervention.
 //!
-//! ## When to use `#[immunosuppress]`
-//!
-//! - You need to silence a specific check family for a specific CI/infra reason
-//! - The suppression has a clear expiry (deadline, dependency, migration)
-//! - You want the duration to be machine-enforced at compile time
-//! - You want a clear record of who approved the suppression and when
-//!
 //! ## Run this example
 //!
 //! ```sh
@@ -28,7 +28,8 @@
 //! ```
 
 use antigen::antigen;
-use antigen::immunosuppress;
+use antigen::dread;
+// use antigen::immunosuppress; // stubbed — see the module note + the #[dread] below.
 
 // ============================================================================
 // A failure-class declaration
@@ -43,38 +44,40 @@ use antigen::immunosuppress;
 pub struct MissingObservabilityInstrumentation;
 
 // ============================================================================
-// A site where the check family is temporarily suppressed.
-// The suppression has a hard deadline and a clear rationale.
+// A site where the check family would be temporarily suppressed.
+//
+// The live `#[immunosuppress(...)]` is commented out pending the presents-expiry
+// redesign (see the module note); the `#[dread]` below self-presents the stub.
 // ============================================================================
 
 /// Process work items from the internal queue.
 ///
-/// Observability instrumentation is suppressed here until the OpenTelemetry
-/// migration completes. The legacy tracing backend conflicts with the new
-/// collector in staging — adding `tracing::instrument` causes a panic in
-/// the test environment until the version lock is resolved.
-///
-/// Duration cap: 90 days (workspace default). This ensures the suppression
-/// cannot silently persist indefinitely.
-#[immunosuppress(
-    MissingObservabilityInstrumentation,
-    rationale = "OpenTelemetry migration: legacy tracing backend conflicts \
-                 with new OTEL collector in staging environment. Instrumentation \
-                 causes test-environment panics until version lock resolved.",
-    until = "2026-08-01",
-    signed_by = "platform-team"
-)]
+/// Observability instrumentation would be suppressed here until the OpenTelemetry
+/// migration completes. (Demonstration stubbed — see the module note.)
+#[dread(trigger = "the #[immunosuppress] demonstration in this example is commented \
+                   out. Its time-bound `until`-date mechanism is being replaced by a \
+                   self-presenting expiry class (the presents-expiry redesign), and \
+                   hardcoded example dates rot. Restore / rewrite this example against \
+                   the new mechanism once it lands.")]
+// The live suppression, stubbed pending the presents-expiry redesign:
+// #[immunosuppress(
+//     MissingObservabilityInstrumentation,
+//     rationale = "OpenTelemetry migration: legacy tracing backend conflicts \
+//                  with new OTEL collector in staging environment. Instrumentation \
+//                  causes test-environment panics until version lock resolved.",
+//     until = "<future date>",
+//     signed_by = "platform-team"
+// )]
 // async is intentional — models a real async function even with simplified body.
 #[allow(clippy::unused_async)]
 pub async fn process_work_item(item_id: u64) -> Result<(), String> {
     // Simplified processing without instrumentation.
-    // After until-date: restore tracing::instrument here.
     let _ = item_id;
     Ok(())
 }
 
 // ============================================================================
-// A second site with an explicit duration_cap override
+// A second site with an explicit duration_cap override (also stubbed)
 // ============================================================================
 
 #[antigen(
@@ -87,25 +90,19 @@ pub struct SynchronousIoInAsyncContext;
 
 /// Read a configuration file.
 ///
-/// This uses synchronous IO in an async context because the config subsystem
-/// predates the async runtime. A proper `tokio::fs` migration is in progress.
-/// A short cap (30d) signals urgency.
-///
-/// Unlike `#[quarantine]` (whose expiry is a runtime `Overdue` verdict), an
-/// expired `#[immunosuppress]` is a COMPILE error — you cannot ship a silently
-/// lapsed suppression. So this example's 30-day window is placed far in the
-/// future to stay buildable; the span still models a real short urgency cap.
-/// To watch the compile-time rejection yourself, change `until` to a past date
-/// and rebuild.
-#[immunosuppress(
-    SynchronousIoInAsyncContext,
-    rationale = "Config subsystem predates async runtime; tokio::fs migration \
-                 tracked in ISSUE-5012. Short cap signals urgency of migration.",
-    since = "2099-01-01",
-    until = "2099-01-31",
-    duration_cap = 30,
-    signed_by = "infra-lead"
-)]
+/// Synchronous IO in an async context (the config subsystem predates the async
+/// runtime; a `tokio::fs` migration is in progress). (Demonstration stubbed — see
+/// the module note.)
+// The live suppression, stubbed pending the presents-expiry redesign:
+// #[immunosuppress(
+//     SynchronousIoInAsyncContext,
+//     rationale = "Config subsystem predates async runtime; tokio::fs migration \
+//                  tracked in ISSUE-5012. Short cap signals urgency of migration.",
+//     since = "<start>",
+//     until = "<future date>",
+//     duration_cap = 30,
+//     signed_by = "infra-lead"
+// )]
 // async is intentional — models a function that should use tokio::fs.
 #[allow(clippy::unused_async)]
 pub async fn read_config(path: &str) -> Result<String, String> {
@@ -121,23 +118,13 @@ pub async fn read_config(path: &str) -> Result<String, String> {
 fn main() {
     println!("=== antigen deferred-defense: #[immunosuppress] example ===");
     println!();
-    println!("Two immunosuppress declarations:");
+    println!("This example is TEMPORARILY STUBBED: the #[immunosuppress] sites are");
+    println!("commented out pending the presents-expiry redesign (an expired window");
+    println!("will present a failure-class rather than hard-error, and example dates");
+    println!("stop being hardcoded). The #[dread] on process_work_item self-presents");
+    println!("the stub so an audit reminds us to restore it.");
     println!();
-    println!("1. process_work_item");
-    println!("   antigen:  MissingObservabilityInstrumentation");
-    println!("   until:    2026-11-01");
-    println!("   cap:      90d (workspace default)");
-    println!("   signer:   platform-team");
-    println!();
-    println!("2. read_config");
-    println!("   antigen:  SynchronousIoInAsyncContext");
-    println!("   until:    2026-07-15");
-    println!("   cap:      30d (explicit override — urgency signal)");
-    println!("   signer:   infra-lead");
-    println!();
-    println!("Key ADR-023 discipline:");
-    println!("  - Duration cap enforced at PARSE TIME (A4: not audit-only)");
-    println!("  - 'rationale' minimum 20 characters (loudness-as-discipline)");
-    println!("  - After 'until' passes: hint becomes immunosuppress-expired");
-    println!("  - Try setting 'until' to > 90 days from now: compile error");
+    println!("ADR-023 discipline (for reference, once restored):");
+    println!("  - rationale minimum 20 characters (loudness-as-discipline)");
+    println!("  - after 'until' passes: hint becomes immunosuppress-expired");
 }
