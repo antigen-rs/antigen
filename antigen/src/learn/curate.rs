@@ -139,6 +139,16 @@ pub const fn curate(verdict: ClassVerdict) -> CurationAction {
 /// Returns the [`LifeEvent`] appended (so the caller can see *what* was recorded), or
 /// `None` for the non-recording actions.
 pub fn apply(action: CurationAction, record: &mut LifeRecord) -> Option<LifeEvent> {
+    // Forget is idempotent. A class already carrying a `Retired` tombstone has nothing
+    // left to retire, so a second Forget records nothing — like the reversible no-op
+    // actions. Without this guard a double-Forget appends a second `Retired`: the derived
+    // `is_retired()` stays correct (the `any()` fold is monotone), but the raw stream now
+    // holds two deaths for one class, corrupting event-counting and history traversal for
+    // any cold-reader that audits the autobiography (ADR-059). A forget is a *pushed*
+    // event, not an erasure — and there is exactly one death to push.
+    if action == CurationAction::Forget && record.is_retired() {
+        return None;
+    }
     let event = match action {
         CurationAction::Forget => Some(LifeEvent::Retired),
         CurationAction::ReArm => Some(LifeEvent::Drifted),
