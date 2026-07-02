@@ -1,6 +1,7 @@
 //! ATK-CURATE-FORGET-PATH — adversarial attack on CURATE's moral-center forget-gate.
 //!
-//! **STATUS: TEETH-TESTS (the gate held) + ONE LIVE BUG FOUND (double-retire).**
+//! **STATUS: TEETH-TESTS (the gate holds) + ONE BUG FOUND AND CLOSED
+//! (double-retire, ATK-CURATE-3 — now a regression guard).**
 //!
 //! The claim to refute: `Forget` (the one irreversible action — it retires a
 //! failure-class) is reachable ONLY when the class verdict is `Obsolete`. The cost
@@ -16,27 +17,26 @@
 //! 2. **The sensor seam** — can the discriminator PRODUCE `Obsolete` for a class that
 //!    is actually evading, dormant, or defended? Probe degenerate sensor combinations.
 //! 3. **`apply(Forget)` idempotency** — can a second `Forget` on an already-retired
-//!    record corrupt the autobiography without detection? (LIVE BUG FOUND — see
-//!    ATK-CURATE-3 below.)
+//!    record corrupt the autobiography without detection? (A bug was found here and is
+//!    now closed — see ATK-CURATE-3 below.)
 //! 4. **Tombstone integrity** — is the `Retired` tombstone genuinely readable in
 //!    history after Forget? Can Forget drop prior history?
 //! 5. **End-to-end** — wire real sensor inputs through classify → curate → apply and
 //!    verify that no path through the full pipeline forgets a class that should be kept.
 //!
-//! # ATK-CURATE-3 — LIVE BUG: `apply(Forget)` is not idempotent
+//! # ATK-CURATE-3 — `apply(Forget)` is idempotent (regression guard)
 //!
-//! `apply(CurationAction::Forget, &mut record)` does not check whether the record is
-//! already retired before appending another `Retired` event. Calling it twice appends
-//! two `Retired` events to the autobiography. `is_retired()` returns true both times
-//! (it uses `any()`, which is correct), but the raw event stream now contains two
-//! deaths for one class — a fact that corrupts any cold-reader doing event-counting or
+//! `apply(CurationAction::Forget, &mut record)` checks whether the record is already
+//! retired before appending a `Retired` event: a second `Forget` on an already-retired
+//! record appends nothing and returns `None` (same as the no-event actions). Without
+//! that guard, calling it twice would append two `Retired` events — `is_retired()` would
+//! stay true (its `any()` fold is correct), but the raw event stream would hold two
+//! deaths for one class, corrupting any cold-reader doing event-counting or
 //! audit-history traversal (`events().iter().filter(Retired).count() == 2`).
 //!
-//! The fix: `apply(Forget, record)` should be idempotent — if the record is already
-//! retired, a second `Forget` appends nothing and returns `None` (same as the
-//! no-event actions).
-//!
-//! The test ATK-CURATE-3-double-retire is born-RED until this guard exists.
+//! This attack found that missing guard as a live bug; the guard now lives in
+//! `curate::apply`, and `atk_curate3_double_retire_corrupts_autobiography` stands as
+//! its regression guard.
 
 use antigen::learn::curate::{apply, curate, CurationAction};
 use antigen::learn::discriminator::{classify, ClassVerdict};
@@ -243,16 +243,14 @@ fn atk_curate2_full_sensor_sweep_only_obsolete_undefended_forgets() {
 }
 
 // ---------------------------------------------------------------------------
-// ATK-CURATE-3 — LIVE BUG: `apply(Forget)` is NOT idempotent.
+// ATK-CURATE-3 — `apply(Forget)` is idempotent (regression guard).
 //
-// A class that is already retired receives a SECOND Retired tombstone if
-// apply(Forget, record) is called again. is_retired() stays true (any() fold),
-// but the event-count is 2, not 1. This corrupts the autobiography for any
-// cold-reader that counts events or audits the history stream.
-//
-// BORN-RED: this test FAILS on the current implementation because there is no
-// idempotency guard in apply(). It becomes green when apply(Forget, record)
-// is made idempotent: if record.is_retired(), append nothing, return None.
+// A class that is already retired must NOT receive a second Retired tombstone when
+// apply(Forget, record) is called again. is_retired() would stay true either way (the
+// any() fold is correct), but a double-append makes the event-count 2, not 1 —
+// corrupting the autobiography for any cold-reader that counts events or audits the
+// history stream. The guard in apply() (if record.is_retired(), append nothing and
+// return None) closes it; this test is the regression guard that keeps it closed.
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -268,12 +266,10 @@ fn atk_curate3_double_retire_corrupts_autobiography() {
     let events_after_first = rec.events().len();
 
     // Second Forget — the class is ALREADY retired. A second Forget is a caller bug,
-    // but apply() should not silently double-append a tombstone. The autobiography
-    // must stay clean: the second call must be idempotent (append nothing, return
-    // None — same contract as Keep/Hold/RouteToHuman, none of which append events
-    // when the lifecycle state already reflects no change).
-    //
-    // BORN-RED: this assertion FAILS on the current implementation.
+    // but apply() must not silently double-append a tombstone. The autobiography
+    // stays clean: the second call is idempotent (appends nothing, returns None —
+    // same contract as Keep/Hold/RouteToHuman, none of which append events when the
+    // lifecycle state already reflects no change).
     let second = apply(curate(ClassVerdict::Obsolete), &mut rec);
     assert_eq!(
         second, None,
