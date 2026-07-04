@@ -21,7 +21,7 @@
 //!
 //! ## Three response states (ADR-027 Amendment 1 Change 6)
 //!
-//! Per the biology-prediction: mucosal sites have THREE response
+//! Per naturalist's biology-prediction: mucosal sites have THREE response
 //! states, not two — active defense (`#[mucosal]`), active tolerance
 //! (`#[mucosal_tolerant]`), and undecided (absence of any declaration). This
 //! parallels ADR-016's `#[immune]` / `#[antigen_tolerance]` / undeclared

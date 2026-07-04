@@ -137,5 +137,7 @@ recorded in [`../roadmap.md`](../roadmap.md).
 - [`../stdlib-families.md`](../stdlib-families.md) — the catalog row
 - [`../fingerprint-grammar.md`](../fingerprint-grammar.md) — the fingerprint DSL
 - [`../witness-tiers.md`](../witness-tiers.md) — the tier gradient
+- [`../decisions.md`](../decisions.md) — ADR-039 §C Amendment 1 (the namesake-FP
+  disclosure), ADR-040 (grammar leaves)
 - [`../../antigen/src/stdlib/time_ordering.rs`](../../antigen/src/stdlib/time_ordering.rs)
   — the source docstring (ground truth)

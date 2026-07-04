@@ -1,4 +1,4 @@
-//! # Crypto-Misuse Family — CHARTERED (no shipped member yet)
+//! # Crypto-Misuse Family — CHARTERED (no shipped member yet, beta.2 voyage)
 //!
 //! The RUSTSEC `crypto-failure` category seen from the developer side. The
 //! load-bearing framing (arxiv 1806.04929 "How Usable are Rust Cryptography
@@ -19,9 +19,9 @@
 //! honest *call-only* fingerprint can express it in the shipped grammar** — so it
 //! is chartered, not shipped, pending the deferred name/operator grammar leaves.
 //!
-//! **Why there is no honest call-only anchor (confirmed from two independent
-//! angles: codomain-reasoning + empirical crate-API verification).** A first
-//! attempt anchored on a crypto verify entrypoint
+//! **Why there is no honest call-only anchor (aristotle's ruling, beta.2 notary —
+//! confirmed from two independent angles: codomain-reasoning + empirical crate-API
+//! verification).** A first attempt anchored on a crypto verify entrypoint
 //! (`verify` / `hmac_verify` / `verify_mac`) and fired on the *absence* of a
 //! constant-time compare (`not(body_calls("ct_eq"))`). That **anti-aligns with the
 //! defect** — it fires loudest on the *safe* path:

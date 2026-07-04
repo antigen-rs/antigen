@@ -20,6 +20,10 @@
 //!     `antigen_attestation::WitnessTier` which already derives it).
 //!   - ATK-WTP-2: Both enums must report the same discriminant values.
 //!   - ATK-WTP-3: Both enums must have the same variant count.
+//!
+//! Campsite: `dogfood/witnesstier-duplication-drift`
+//! Found by: outsider (substrate-verified 2026-05-26)
+//! Blocked by: adversarial (2026-05-26)
 
 use antigen::audit::WitnessTier as AuditTier;
 use antigen_attestation::WitnessTier as AttestTier;

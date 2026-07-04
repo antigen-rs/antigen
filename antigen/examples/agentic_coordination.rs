@@ -22,8 +22,7 @@
 //!
 //! Both antigens are category `SubstrateAlignment`: the agent's representation
 //! (context state, resolution index) diverges from actual substrate state (the
-//! version-control history, the shared coordination state, the cross-crate
-//! handler graph) across session or crate
+//! git log, camp status, cross-crate handler graph) across session or crate
 //! boundaries. The failure is not in what the code COMPUTES — it is in what
 //! the agent BELIEVES is true. The computation is correct given its inputs;
 //! the inputs are stale.
@@ -52,7 +51,7 @@ use antigen::stdlib::agentic_coordination::{
 // ============================================================================
 
 /// A stub type representing the team's work-tracking substrate.
-/// In a real team, this could be a shared coordination store, a task queue, or
+/// In a real team, this could be a camp substrate, a task queue, or
 /// any representation of pending and completed work.
 pub struct WorkSubstrate {
     /// Snapshot of "what's pending" — stale if not refreshed at wake.
@@ -75,8 +74,7 @@ impl WorkSubstrate {
 
     /// Simulates reading the substrate delta and removing work items that shipped while idle.
     pub fn inject_delta(&mut self) {
-        // In real usage: read the version-control history and the shared
-        // coordination state to pull in the substrate delta.
+        // In real usage: read git log, camp status, substrate delta.
         // Here: simulate discovering that "feature X" was actually shipped.
         self.pending_items
             .retain(|item| !item.contains("feature X"));
@@ -102,17 +100,15 @@ pub fn resume_from_snapshot(substrate: &WorkSubstrate) -> Vec<String> {
 
 /// Session-start function that injects the substrate delta FIRST.
 ///
-/// This is the defended pattern: read the version-control history and the
-/// shared coordination state before
+/// This is the defended pattern: read git log + camp status before
 /// routing. The defense is a discipline, not a code invariant — the
-/// agent MUST refresh its view of the coordination state before any routing.
+/// agent MUST run `camp wake` and read `git log` before any routing.
 /// A ratified wake-protocol doc is the substrate-witness for this claim.
 ///
 /// ADR-029: the `requires = ratified_doc(...)` substrate-witness predicate
 /// lives directly on `#[presents]`. It evaluates at audit time by checking
 /// that the specified doc exists and is current in the `.attest/` sidecar.
-/// The doc names the discipline: refresh the coordination state and review
-/// recent version-control history
+/// The doc names the discipline: run `camp wake` + `git log --oneline -20`
 /// before claiming any work item. The wake-protocol doc mandates
 /// substrate-delta injection before routing; this function follows the
 /// protocol.

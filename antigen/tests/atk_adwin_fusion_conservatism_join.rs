@@ -2,13 +2,13 @@
 //!
 //! **STATUS: BORN-RED by non-compilation** — `antigen::learn::adwin` does not exist
 //! yet (ADR-065 is ratified; the organ is the next build unit in `learn/adwin.rs`).
-//! This file is the adversarial definition-of-done for the ADWIN organ: the safety
+//! This file is the adversarial definition-of-done for the ADWIN builder: the safety
 //! contracts these tests assert must ALL be green before the fusion layer ships.
 //!
 //! When `learn/adwin.rs` + the two-channel fusion function land:
 //! 1. Drop the `#![cfg(adwin_built)]` gate below.
 //! 2. Fix the imports to match the real module path / type names (the names here
-//!    are the PROPOSED surface — rename in the same change if the
+//!    are the adversary's PROPOSED surface — rename in the same change if the
 //!    builder chose different identifiers; the contracts are load-bearing, not
 //!    the spellings).
 //! 3. All tests should compile and pass green — if any fail, a fusion-safety contract
@@ -22,7 +22,7 @@
 //! `Obsolete` when a channel is blind bypasses the moral center entirely — the
 //! gate holds, but the wrong key is handed to it.
 //!
-//! The conservatism-join (ADR-065, Phase 6 C2) states:
+//! The conservatism-join (ADR-065, aristotle Phase 6 C2) states:
 //! **if EITHER channel is blind (ADWIN `UnderPowered` OR bit-3 `Indeterminate`),
 //! the fused verdict must NOT be `ClassVerdict::Obsolete`** — CURATE must HOLD,
 //! never forget, regardless of what the other channel says.
@@ -32,11 +32,9 @@
 //! 1. **Blind-channel forget** — can ANY combination of (`DriftVerdict::UnderPowered`,
 //!    any `SilentStatus`) or (`any DriftVerdict`, `SilentStatus::Indeterminate`)
 //!    produce `ClassVerdict::Obsolete`? If yes: a blind-channel autoimmune-forget.
-//! 2. **Undecidable recall-drop cell** — a recall-drop with the shape PRESENT and
-//!    no near-miss is UNDECIDABLE: `Affinity::recall` is a denominator-free rate, so
-//!    churn (denominator shrank, shape alive) cannot be distinguished from evasion
-//!    (numerator moved, defect mutated) without a cluster-size count. Must produce
-//!    `ClassVerdict::RouteToHuman` (the third conservatism-join cell), NOT `Obsolete`.
+//! 2. **Virtual-drift cell** — a recall-drop with the shape PRESENT and no near-miss
+//!    is VIRTUAL drift (code churn, not the defect mutating). Must produce
+//!    `ClassVerdict::Dormant`, NOT `Obsolete`.
 //! 3. **`DriftVerdict` sealed enum** — `UnderPowered` must be a first-class variant,
 //!    not a `bool`. Collapsing to `bool` merges "no-drift" with "can't-see",
 //!    reopening the silent-miscalibration antigen exists to catch.
@@ -47,38 +45,36 @@
 //!    blind to drift MUST produce `DriftVerdict::UnderPowered{..}`, never
 //!    `NoDrift{..}`. "I cannot see" ≠ "I see nothing."
 //!
-//! # The fusion table (ADR-065 §real/virtual fusion — the oracle)
+//! # The fusion table (ADR-065 §real/virtual fusion — the adversary's oracle)
 //!
 //! | ADWIN signal       | bit-3 status             | fused verdict        |
 //! |--------------------|--------------------------|----------------------|
 //! | Drift (recall-drop)| `Obsolete` (shape gone)  | `Obsolete` → Forget  |
 //! | Drift (recall-drop)| `Evading` (near-miss)    | `Evaded` → `ReArm`   |
-//! | Drift (recall-drop)| `Dormant` (shape present)| `RouteToHuman` → Hold (UNDECIDABLE) |
+//! | Drift (recall-drop)| `Dormant` (shape present)| `Dormant` → Hold (VIRTUAL drift) |
 //! | `UnderPowered`     | ANY                      | `RouteToHuman` → Hold |
 //! | ANY                | `Indeterminate`          | `RouteToHuman` → Hold |
 //! | `NoDrift`          | ANY                      | pass through bit-3 alone |
 //!
-//! The three rows with `RouteToHuman` are the conservatism-join — the safety floor.
-//! The `Dormant` row is the third cell: the cause is undecidable on a denominator-free
-//! recall rate, so it escalates to a human rather than guessing churn-vs-evasion.
+//! The two rows with `RouteToHuman` are the conservatism-join — the safety floor.
 //!
-//! This is the conservatism-join attack written before the organ ships — the
-//! failing tests that define done.
+//! Author: v06-adwin-adversarial (the conservatism-join attack before the organ
+//! ships, feeding the ADWIN pathmaker the failing tests that define done).
 //!
 //! ----------------------------------------------------------------------------
-//! TO THE ADWIN IMPLEMENTER: the names below (`DriftVerdict`, `detect`,
-//! `fuse_channels`, `DriftAxis`, …) are the PROPOSED surface,
+//! TO THE ADWIN PATHMAKER: the names below (`DriftVerdict`, `detect`,
+//! `fuse_channels`, `DriftAxis`, …) are the adversary's PROPOSED surface,
 //! asserting the CONTRACT not the spelling. Rename the imports in the same
 //! commit that makes these compile.
 //! What is NON-negotiable: (a) `UnderPowered` is a first-class variant distinct
 //! from `NoDrift`; (b) a blind-channel combination NEVER produces
-//! `ClassVerdict::Obsolete`; (c) the undecidable recall-drop cell (shape-present +
-//! no-near-miss) NEVER produces `Obsolete` (it routes to a human); (d) a 0.9→0.2→0.9 crater that
+//! `ClassVerdict::Obsolete`; (c) virtual-drift (shape-present + no-near-miss)
+//! NEVER produces `Obsolete`; (d) a 0.9→0.2→0.9 crater that
 //! `trajectory_direction()` misses DOES fire `Drift`.
 //! ----------------------------------------------------------------------------
 
-// BORN-RED GATE DROPPED — `learn/adwin.rs` + `fuse_channels` shipped
-// (ADR-065). The proposed surface (`DriftAxis`, `DriftVerdict`, `detect`,
+// BORN-RED GATE DROPPED — `learn/adwin.rs` + `fuse_channels` shipped (build-adwin,
+// ADR-065). The adversary's proposed surface (`DriftAxis`, `DriftVerdict`, `detect`,
 // `fuse_channels`) matched the built surface verbatim — no rename needed. This file now
 // runs in the default `cargo test` suite as the live fusion-conservatism-join spec.
 //
@@ -321,17 +317,16 @@ fn atk_adwin3_indeterminate_bit3_blocks_forget_across_all_adwin_verdicts() {
 }
 
 // ---------------------------------------------------------------------------
-// ATK-ADWIN-4 — Undecidable recall-drop: a recall-drop with the shape PRESENT
-// and no near-miss cannot be told apart from code churn vs. the defect mutating.
+// ATK-ADWIN-4 — Virtual-drift: a recall-drop with the shape PRESENT and no
+// near-miss is code CHURN, not the defect mutating.
 //
-// The fusion table (ADR-065 Amendment 1): ADWIN Drift (recall-drop) + Dormant
-// (shape present, no near-miss) → ClassVerdict::RouteToHuman, NOT Obsolete. The
-// cause is undecidable on a denominator-free recall rate, so the honest-blind
-// response is to escalate — never auto-forget, never silently guess churn.
+// The fusion table (ADR-065): ADWIN Drift (recall-drop) + Dormant (shape present,
+// no near-miss) → ClassVerdict::Dormant, NOT Obsolete. Forgetting on virtual
+// drift discards a live defense because the test suite shrank.
 // ---------------------------------------------------------------------------
 
 /// ADWIN Drift (recall-drop) + `Dormant` must fuse to `RouteToHuman` — the third
-/// conservatism-join cell (ADR-065 ruling, superseding the earlier
+/// conservatism-join cell (ADR-065 aristotle ruling, superseding the earlier
 /// "VIRTUAL drift / KEEP" reading).
 ///
 /// The cause is genuinely undecidable: `Affinity::recall` is a denominator-free

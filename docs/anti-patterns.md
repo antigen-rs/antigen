@@ -408,7 +408,7 @@ the docs warn explicitly.
 actual matcher behavior. For `has_method`, the documented receiver
 form is `(self, ...)` for by-value, `(& self, ...)` for by-reference,
 `(& mut self, ...)` for by-mutable-reference. See
-[`fingerprint-grammar.md`](fingerprint-grammar.md#has_methodname-signature) for
+[`fingerprint-grammar.md`](fingerprint-grammar.md#has_method) for
 the receiver-rendering reference table.
 
 ---
@@ -494,13 +494,13 @@ Designing a feature where a proc-macro expands an attribute into a structured co
 
 **What it looks like**:
 
-A `.gitignore` entry without a leading `/` that's intended to match a specific directory at the repo root, but which (per gitignore semantics) actually matches at ANY depth. Example: `cache/` (no leading slash) excludes `<repo>/cache/`, `<repo>/subproject/cache/`, and `<repo>/anything/anywhere/cache/`.
+A `.gitignore` entry without a leading `/` that's intended to match a specific directory at the repo root, but which (per gitignore semantics) actually matches at ANY depth. Example: `campsites/` (no leading slash) excludes `<repo>/campsites/`, `<repo>/subproject/campsites/`, and `<repo>/anything/anywhere/campsites/`.
 
 **Why it's an anti-pattern**: git's view of disk diverges from disk silently. Build tools see all files (they read disk); git sees a subset (it filters through gitignore). The discrepancy survives every CI run until someone clones fresh and the missing files become user-visible.
 
 **The cost**: catastrophic at rare moments. A fresh agent waking up to a cloned repo finds an empty directory where the build expected files. Recursive proofs, witness machinery, source modules — anything in the silently-excluded directory simply isn't there in the cloned tree, even though it was there on the original machine.
 
-**Real instance**: a `.gitignore` had `cache/` (no anchor) intended to exclude only a top-level `<repo>/cache/` build directory. It silently matched a nested `<repo>/subcrate/src/cache/` source module and would have erased that module — imports, sidecars, and all — from any fresh clone. The build kept succeeding on the original machine; a substrate-alignment audit caught the gap before anyone cloned fresh.
+**Real instance**: a `.gitignore` had `campsites/` (no anchor) intended to exclude only a top-level `<repo>/campsites/` coordination directory. It silently matched a nested `<repo>/subcrate/src/campsites/` source module and would have erased that module — imports, sidecars, and all — from any fresh clone. The build kept succeeding on the original machine; a substrate-alignment audit caught the gap before anyone cloned fresh.
 
 **Correct shape**: gitignore patterns intended to apply only at repo root need an explicit `/` prefix. Audit `.gitignore` periodically against expected substrate. Treat gitignore as substrate-alignment-critical — what git knows differs from what disk has, and that gap is invisible from inside the implementation lane.
 
@@ -565,6 +565,9 @@ substrate.
   in several anti-patterns
 - [`fingerprint-grammar.md`](fingerprint-grammar.md) — fingerprint DSL
   reference; helps avoid anti-pattern 4 and 9
+- [`decisions.md`](decisions.md) — ratified ADRs that ground the
+  discipline (ADR-005, ADR-006, ADR-010, ADR-011, ADR-013, ADR-019,
+  ADR-021, ADR-028)
 
 ---
 

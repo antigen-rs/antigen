@@ -20,16 +20,16 @@
 //! ## ADR-024 invariants
 //!
 //! - **`min_independent` = distinct WitnessClass CATEGORIES, not raw witness
-//!   count**. Two `StaticAnalysis` witnesses count as
+//!   count** (per adversarial C1). Two `StaticAnalysis` witnesses count as
 //!   ONE independent class. The `#[diagnostic]` audit hint
 //!   `diagnostic-modalities-class-collapsed` fires when all witnesses share
 //!   a single class.
-//! - **`SeedKind::Fixed(u64)` is REJECTED for `#[clonal]`**. The clonal
-//!   proc-macro emits a compile error at parse time
+//! - **`SeedKind::Fixed(u64)` is REJECTED for `#[clonal]`** (per adversarial
+//!   C2). The clonal proc-macro emits a compile error at parse time
 //!   (parallel to the `#[immunosuppress]` duration-cap enforcement). A
 //!   fixed seed makes "independent iterations" a misnomer — each iteration
 //!   replays the same RNG state.
-//! - **IgG source-independence is NOMINAL only** (per
+//! - **IgG source-independence is NOMINAL only** (per adversarial C3 and
 //!   ADR-024 §What this ADR does NOT do). Different signer-identity
 //!   strings are not structural proof of independent sources; the antigen
 //!   surfaces the discipline, not the metaphysical guarantee.
@@ -42,13 +42,13 @@ use serde::{Deserialize, Serialize};
 
 /// Categorical type of witness backing a defense claim.
 ///
-/// Per ADR-024 §Decision: `#[diagnostic]`'s
+/// Per ADR-024 §Decision + adversarial C1: `#[diagnostic]`'s
 /// `min_independent` is measured in distinct CLASSES, not witness count.
 /// Two property-tests count as ONE `PropertyTest` class; the discipline is
 /// against argument-from-uniformity (running the same kind of test in
 /// triplicate doesn't add evidence).
 ///
-/// The variant set is the v0.2 sealed-set; future findings or
+/// The variant set is the v0.2 sealed-set; future adversarial findings or
 /// recognized witness modalities can extend it via additive ADR amendment.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -114,7 +114,7 @@ impl WitnessClass {
 
 /// RNG-seed policy for `#[clonal]`-style iterated witness evaluation.
 ///
-/// Per ADR-024 §Decision: `#[clonal]` declares that a
+/// Per ADR-024 §Decision + adversarial C2: `#[clonal]` declares that a
 /// witness is being run with many independent iterations. If the seed is
 /// fixed, the iterations are NOT independent — they all replay the same
 /// RNG state. `SeedKind::Fixed(_)` in `#[clonal]` is therefore a

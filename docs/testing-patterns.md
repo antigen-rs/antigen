@@ -180,7 +180,7 @@ The project does NOT aim for 100% line coverage as a metric. We aim for:
 1. **Every public API function has at least one test** — proving the contract
 2. **Every error path has a test** — proving the error handling does what the docs claim
 3. **Every property the docs assert has a proptest** — per the
-   `proptest-locks-the-narrow-truth` discipline (inherited from the originating project's design decisions)
+   `proptest-locks-the-narrow-truth` discipline (inherited from tambear DEC-022)
 4. **Every named failure mode has a failing-as-passing test** — proving the
    detection works AND doesn't silently regress
 
@@ -360,5 +360,7 @@ structural backstop that reduces the need for defense wiring at those sites.
 
 ## References
 
+- [`docs/decisions.md`](decisions.md) — ratified ADRs
+- [`docs/internal/process.md`](internal/process.md) — the formal ADR lifecycle
 - [`docs/case-study-determinism-class.md`](case-study-determinism-class.md) — the failing-as-passing pattern shown in context
-- [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) — current CI gates
+- [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — current CI gates

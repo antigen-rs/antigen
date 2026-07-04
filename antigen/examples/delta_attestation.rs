@@ -1,5 +1,5 @@
 //! Delta-attestation example — Fresh + chained Delta with anti-laundering safeguards.
-//! (ADR-019 §M3 `SignerBasis` three-layer safeguard set.)
+//! (ADR-019 §M3 `SignerBasis` + adversarial T2-R three-layer safeguard set.)
 //!
 //! # The story
 //!
@@ -17,7 +17,7 @@
 //! far from the originally-reviewed substance with no Fresh re-attestation
 //! ever happening.
 //!
-//! ADR-019 §M3 ratifies three structural safeguards:
+//! ADR-019 §M3 ratifies three structural safeguards (adversarial T2-R):
 //!
 //! **Safeguard #1 — chain-depth cap**: the longest chain of consecutive
 //! Delta entries since the last Fresh signature is capped (default 3,

@@ -26,47 +26,47 @@
 //!   specifically in multi-session / multi-agent / human-LLM-collab workflows.
 //!   Biology cognate: immunological memory loss during session gap.
 //! - [`crypto_misuse`](crate::stdlib::crypto_misuse) — the Crypto-Misuse Family
-//!  . **CHARTERED, no shipped member yet:** the flagship
+//!   (beta.2 voyage). **CHARTERED, no shipped member yet:** the flagship
 //!   non-constant-time secret comparison is a real failure-class but has no honest
 //!   call-only fingerprint (a verify-anchor anti-aligns with the safe path; the
 //!   real defect is `==` on a secret, needing the deferred name + operator leaves).
 //!   See the module doc for the full reasoning + graduation path.
 //! - [`deserialization`](crate::stdlib::deserialization) — the
-//!   Deserialization-Trust-Boundary Family, the deep tier of
+//!   Deserialization-Trust-Boundary Family (beta.2 voyage), the deep tier of
 //!   Mucosal-Boundary: untrusted bytes crossing into typed structs without the
 //!   tight-junction (`deny_unknown_fields` absent → silent field drop;
 //!   unbounded streaming `from_reader` → DoS). Biology cognate: gut mucosa.
 //! - [`time_ordering`](crate::stdlib::time_ordering) — the
-//!   Time-and-Ordering-Hazards Family: the silent-in-tests /
+//!   Time-and-Ordering-Hazards Family (beta.2 voyage): the silent-in-tests /
 //!   panic-in-prod clock footgun (`SystemTime::duration_since().unwrap()` panics
 //!   on backwards-clock, never in tests). Biology cognate: circadian /
 //!   signaling-timing failure.
 //! - [`drop_panic`](crate::stdlib::drop_panic) — the Drop-and-Panic-Discipline
-//!   Family: a real `Drop` impl (`impl_of_trait("Drop")`) whose
+//!   Family (beta.2 voyage): a real `Drop` impl (`impl_of_trait("Drop")`) whose
 //!   body reaches a panic source — panic-during-unwind aborts the process.
 //!   Biology cognate: apoptosis gone wrong (teardown that triggers a cascade).
 //! - [`resource_lifecycle`](crate::stdlib::resource_lifecycle) — the
-//!   Resource-Lifecycle-Leak Family: an explicit-leak primitive
+//!   Resource-Lifecycle-Leak Family (beta.2 voyage): an explicit-leak primitive
 //!   (`mem::forget` / `Box::leak` / `Vec::leak`) skips `Drop`. The sibling of
 //!   `drop_panic` on the Drop-Lifecycle axis (drop never-fires vs
 //!   fires-but-explodes). Biology cognate: failure of apoptosis.
 //! - [`panic_on_index`](crate::stdlib::panic_on_index) — the Panic-on-Index
-//!   Family: `get_unchecked` / `get_unchecked_mut` skip the
+//!   Family (beta.2 voyage): `get_unchecked` / `get_unchecked_mut` skip the
 //!   bounds check → out-of-bounds is Undefined Behavior. Biology cognate:
 //!   proprioception / spinal-reflex failure.
 //! - [`async_soundness`](crate::stdlib::async_soundness) — the Async-Soundness
-//!   Family: a hand-written `unsafe impl Send/Sync` asserts
+//!   Family (beta.2 voyage): a hand-written `unsafe impl Send/Sync` asserts
 //!   cross-thread safety the compiler cannot check (~40% of unsound advisories).
 //!   Biology cognate: a mislabeled self/non-self marker at the thread boundary.
 //! - [`numeric_truncation`](crate::stdlib::numeric_truncation) — the
-//!   Numeric-Truncation-Overflow Family: the `size_of`-in-element-
+//!   Numeric-Truncation-Overflow Family (beta.2 voyage): the `size_of`-in-element-
 //!   count foot-cannon (a byte count where an element count is expected → OOB),
 //!   shipped at the **suspected** tier (the call-co-presence fires on the
 //!   idiomatic-correct byte-copy too, so it's demoted from named; its own fix is
 //!   spared, so demote-not-drop; graduation is type-aware). Biology cognate:
 //!   silent mutation.
 //! - [`unsafe_soundness`](crate::stdlib::unsafe_soundness) — the
-//!   Unsafe-Soundness-Boundary Family: the `unsafe`-primitive
+//!   Unsafe-Soundness-Boundary Family (beta.2 voyage): the `unsafe`-primitive
 //!   call-shapes where a wrong invariant is UB, not a panic (`transmute`,
 //!   `assume_init`, `from_utf8_unchecked`). Biology cognate: the breached
 //!   self/non-self membrane (a forged MHC marker).

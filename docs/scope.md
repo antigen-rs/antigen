@@ -146,7 +146,8 @@ formal-verification harnesses (kani / prusti / verus / creusot), and custom lint
 are all recognized as witness families; `audit` validates each at the appropriate
 tier.
 
-**Architectural commitments:**
+**Architectural commitments** (see [`decisions.md`](decisions.md) for the
+ratified ADRs that govern these):
 - Structural memory not documentary (ADR-001)
 - Compose, don't compete (ADR-002)
 - Biological metaphor is load-bearing (ADR-003)
@@ -289,7 +290,7 @@ substrate for all of them simultaneously.
 
 Apply everything above to the project's founding incident:
 
-**The incident**: a computational-mathematics project's `DeterminismClass` shipped with `meet = min` because
+**The incident**: tambear's `DeterminismClass` shipped with `meet = min` because
 the polarity-inversion-when-strongest-first pattern wasn't recognized. Caught
 and fixed (commit references in [`origin.md`](origin.md)). The lesson was
 learned: "when class enum has strongest-first discriminants, lattice meet must
@@ -298,7 +299,7 @@ on `DeterminismClass::meet()`, the team's collective memory.
 
 Months later, drafting `CommutativityClass` — structurally identical pattern.
 The lesson didn't transfer. `meet = min` was specified again. Almost shipped a
-second time. Only caught because a multi-agent development team's discipline forced
+second time. Only caught because JBD-team's multi-agent discipline forced
 re-derivation from worked examples. In a less-disciplined team or a single-
 agent fresh-context session, it would have shipped.
 

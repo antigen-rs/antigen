@@ -1,7 +1,7 @@
 //! ATK-CE convergent-evidence audit adversarial tests.
 //!
 //! These tests attack `audit_convergent_evidence()` in `antigen::audit`.
-//! They run against the implementation and FAIL where bugs exist.
+//! They run against pathmaker's implementation and FAIL where bugs exist.
 //!
 //! ADR-024 defines the enforcement surface. These tests verify that the
 //! enforcement surface is correctly implemented, not just the happy path.

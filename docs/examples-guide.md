@@ -252,7 +252,7 @@ audit confirms the proof structure is recognized.
 - Substrate-witness leaves: `signers(required = [...])`, `fresh_within_days(N)`, `ratified_doc(path = ...)`, `oracles_complete(files = [...])`, `signed_trailer(...)`
 - Combinators: `all_of`, `any_of`, `not`
 - The sidecar lives at `.attest/<AntigenName>.json` co-located with the declaration
-- Audit tier climbs from `None` → `Reachability` → `Execution` as the sidecar gets scaffolded, then signed **by the required signer** (here `alice`, in the `numerics-reviewer` role) — signing as anyone else leaves the gap open *by design* (see "Try this" below)
+- Audit tier climbs from `None` → `Reachability` → `Execution` as the sidecar gets scaffolded, then signed **by the required signer** (here `alice`, in the `math-researcher` role) — signing as anyone else leaves the gap open *by design* (see "Try this" below)
 - This is how to verify disciplines that have NO in-tree witness function (e.g., "I reviewed this against Higham §6.3")
 
 **Try this** — sign as yourself first and watch the gap *persist*, then sign as the required reviewer and watch it close:
@@ -266,17 +266,17 @@ cargo run --bin cargo-antigen -- antigen attest sign --sidecar antigen/examples/
 cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
 #   → substrate_witness.rs:44  SignedZeroDiscipline — substrate-gap   (signing as `you` does NOT satisfy it)
 
-# 2) Sign as the *required* reviewer — alice, in the numerics-reviewer role — then re-audit: now it climbs.
-cargo run --bin cargo-antigen -- antigen attest sign --sidecar antigen/examples/.attest/SignedZeroDiscipline.json --item-path signed_zero_preserving_sinh --signer alice --role numerics-reviewer --fingerprint <fingerprint-from-scaffold-output>
+# 2) Sign as the *required* reviewer — alice, in the math-researcher role — then re-audit: now it climbs.
+cargo run --bin cargo-antigen -- antigen attest sign --sidecar antigen/examples/.attest/SignedZeroDiscipline.json --item-path signed_zero_preserving_sinh --signer alice --role math-researcher --fingerprint <fingerprint-from-scaffold-output>
 cargo run --bin cargo-antigen -- antigen audit --root antigen/examples
 #   → substrate_witness.rs:44  SignedZeroDiscipline — defended at Execution
 ```
 
 > **Why the gap persists under `--signer you`**: the `requires` predicate is
-> `all_of([signers(required = ["alice"], roles = {alice = "numerics-reviewer"}), ratified_doc("docs/disciplines/ieee754-odd-functions.md", min_version = "1.0"), fresh_within_days(180)])`.
+> `all_of([signers(required = ["alice"], roles = {alice = "math-researcher"}), ratified_doc("docs/disciplines/ieee754-odd-functions.md", min_version = "1.0"), fresh_within_days(180)])`.
 > An arbitrary signer satisfies *none* of the `signers` leaf — antigen refuses to credit
 > self-attestation by a non-required reviewer. The defense reaches `Execution` only when the
-> *named* reviewer (`alice`, a `numerics-reviewer`) signs against the *ratified* discipline doc
+> *named* reviewer (`alice`, a `math-researcher`) signs against the *ratified* discipline doc
 > within the freshness window. That refusal is the whole point of a substrate-witness: the gap
 > states exactly what real review it demands, and no shortcut closes it.
 
@@ -968,7 +968,7 @@ absence tell and a streaming-call tell.
   every presents-site of that type defended), not per-site. So this example does
   **not** visibly separate the two sites; the split above is the durable principle,
   and `stdlib-families.md`'s `UnboundedDeserialization` box tracks the per-site
-  visibility gap for the tool/example maintainers.
+  visibility gap for the tool/example crew.
 - Why `from_slice` is *not* in the fingerprint: a slice is bounded, so it isn't an
   unbounded vector — and it fired on the bounded-slice fix itself (ADR-039 §C
   Amd-1, the clean-sibling rule).

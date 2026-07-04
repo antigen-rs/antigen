@@ -297,19 +297,10 @@ traditional carriers (none drift-resistant) or persist as structural
 memory (durable; checkable by tooling; co-native for human + LLM
 collaborators).
 
-> **The efferent arc has its own diagrams.** The lifecycle above is the *afferent*
-> half — how a class is born and detected. Once a class exists, the v0.6 organs let
-> it *live*: a life-record, the two senses, the classifier, and CURATE. Those are
-> diagrammed in [the v0.6 anatomy](the-v06-anatomy.md) (the organ topology) and
-> [the learning loop](the-learning-loop.md) (the whole sense → classify → act loop,
-> with the wired-vs-library-vs-frontier tiers marked honestly).
-
 ---
 
 ## See also
 
-- [`the-v06-anatomy.md`](the-v06-anatomy.md) — the v0.6 organ-topology diagrams
-- [`the-learning-loop.md`](the-learning-loop.md) — the afferent→efferent loop as one picture
 - [`concepts.md`](concepts.md) — what antigen IS architecturally
 - [`tutorial.md`](tutorial.md) — first 15 minutes
 - [`macros.md`](macros.md) — full macro reference

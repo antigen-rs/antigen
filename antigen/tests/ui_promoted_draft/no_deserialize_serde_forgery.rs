@@ -1,5 +1,5 @@
 //! BYPASS-6 (ADR-048 §5): the serde-forgery surface — the THIRD member of the
-//! shared gate-bypass class.
+//! shared gate-bypass class (aristotle, note `15254349`).
 //!
 //! The private-field / no-public-constructor seal does NOT, by itself, cover the
 //! serde construction path: `#[derive(Deserialize)]` can construct private fields,

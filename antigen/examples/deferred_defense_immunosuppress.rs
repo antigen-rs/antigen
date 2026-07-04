@@ -89,20 +89,12 @@ pub struct SynchronousIoInAsyncContext;
 ///
 /// This uses synchronous IO in an async context because the config subsystem
 /// predates the async runtime. A proper `tokio::fs` migration is in progress.
-/// A short cap (30d) signals urgency.
-///
-/// Unlike `#[quarantine]` (whose expiry is a runtime `Overdue` verdict), an
-/// expired `#[immunosuppress]` is a COMPILE error — you cannot ship a silently
-/// lapsed suppression. So this example's 30-day window is placed far in the
-/// future to stay buildable; the span still models a real short urgency cap.
-/// To watch the compile-time rejection yourself, change `until` to a past date
-/// and rebuild.
+/// Short cap (30d) signals urgency.
 #[immunosuppress(
     SynchronousIoInAsyncContext,
     rationale = "Config subsystem predates async runtime; tokio::fs migration \
                  tracked in ISSUE-5012. Short cap signals urgency of migration.",
-    since = "2099-01-01",
-    until = "2099-01-31",
+    until = "2026-06-21",
     duration_cap = 30,
     signed_by = "infra-lead"
 )]

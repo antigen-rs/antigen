@@ -7,7 +7,7 @@
 // This is a regression fence against a NAIVE fix that captures
 // `current_item_digest` too early (before the per-item recompute), which would
 // make B silently inherit A's stale digest. The current visit-order is already
-// correct (current_item_digest is recomputed per item before
+// correct per the scout's read (current_item_digest is recomputed per item before
 // each check_attrs) — so this test should PASS once the seam is wired, and it must
 // STAY green under any future refactor of the capture point.
 

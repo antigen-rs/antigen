@@ -1,6 +1,6 @@
 [package]
 name = "antigen-attestation"
-description = "Ratification schema + substrate-witness predicate evaluator for antigen discipline-witnesses."
+description = "Ratification schema + substrate-witness predicate evaluator for antigen discipline-witnesses (ADR-019)."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

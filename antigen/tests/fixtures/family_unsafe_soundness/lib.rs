@@ -1,4 +1,4 @@
-// Admitting-specimen for the unsafe-soundness family (beta.2).
+// Admitting-specimen for the unsafe-soundness family (beta.2 voyage).
 //
 // SCAN FIXTURE (not a compiled example) BY NECESSITY: every member's tell is an
 // `unsafe` primitive (transmute / assume_init / from_utf8_unchecked), and the

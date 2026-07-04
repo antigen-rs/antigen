@@ -31,7 +31,7 @@
 //!    never a silent promote — so a future change can't quietly flip the dogfood
 //!    into a false promote at the CLI boundary.
 //!
-//! 2. **operator-supplied clean corpus (`--clean-root`).** The operator's CLEAN-
+//! 2. **operator-supplied clean corpus (`--clean-root`).** The captain's CLEAN-
 //!    CORPUS-SOURCE ruling: the clean corpus is OPERATOR-SUPPLIED, never auto-
 //!    derived/auto-labeled. Antigen auto-labeling "unmarked = clean" IS the
 //!    mislabeled-clean residual (ATK-047-4 — the gate trusting its own label =
@@ -356,7 +356,7 @@ fn propose_promote_renders_a_ratifiable_suggestion_not_an_auto_presents() {
 // Class 2 — operator-supplied clean corpus (--clean-root); no auto-label
 // ───────────────────────────────────────────────────────────────────────────
 
-/// CLEAN-CORPUS-SOURCE — `propose_requires_an_operator_clean_corpus`.
+/// CLEAN-CORPUS-SOURCE (captain's ruling) — `propose_requires_an_operator_clean_corpus`.
 /// `propose` REQUIRES an explicit operator-supplied clean corpus (`--clean-root` or
 /// equivalent); it must NOT auto-derive "everything unmarked is clean" (that is the
 /// ATK-047-4 mislabeled-clean residual — the gate trusting its own label). Invoking

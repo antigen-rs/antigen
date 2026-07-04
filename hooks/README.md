@@ -24,7 +24,8 @@ drift.)
 
 ## Enforcement tier: friction-only
 
-This is a **client-side** hook. That makes it
+This is a **client-side** hook. Per
+[`docs/process.md`](../docs/process.md) §enforcement-surface, that makes it
 **friction-only**: it turns shipping an undefended failure-class into a
 *deliberate* act (`git commit --no-verify`) rather than an *accidental* one. It
 does **not** prevent a determined bypass, and it is **not** a substitute for the

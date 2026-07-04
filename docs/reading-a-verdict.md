@@ -35,7 +35,7 @@ through that lens and the output stops feeling like an accusation.
 There's a sharper way to say the same thing, and antigen prints it verbatim on every
 machine-readable diagnostic:
 
-> **This is a fingerprint match to inspect, not an audited verdict.**
+> **a fingerprint match to inspect, not an audited verdict.**
 
 Hold that sentence. It's the whole claim-scope of a `scan` line. The scanner reports
 that a *shape* in your code matches a known failure-class's fingerprint. It has
@@ -49,23 +49,17 @@ this line literally appears in the output.)
 ## `scan` — the summary block
 
 The first thing `scan` prints is a tally. Each line counts one *kind* of thing it
-found in **your** tree — so the cardinals below are placeholders. What's stable is
-the *set of lines* and what each one means; the numbers are whatever your tree holds:
+found:
 
 ```
-Scanned <N> files, found <M> antigen-related declarations:
-  - <n> antigen declarations
-  - <n> explicit #[presents] markers
-  - <n> fingerprint matches (candidate sites — see below)
-  - <n> tolerated sites (#[antigen_tolerance])
-  - <n> #[defended_by] declarations
-  - <n> #[immune] declarations (deprecated — migrate to #[defended_by]/#[presents])
-  - <n> parse failures
+Scanned 35 files, found 116 antigen-related declarations:
+  - 27 antigen declarations
+  - 45 explicit #[presents] markers
+  - 40 fingerprint matches (candidate sites — see below)
+  - 3 tolerated sites (#[antigen_tolerance])
+  - 3 #[defended_by] declarations
+  - 1 #[immune] declarations (deprecated — migrate to #[defended_by]/#[presents])
 ```
-
-> Zero-count lines are suppressed — a kind only appears when its count is nonzero, so
-> a clean tree prints a shorter block than a busy one. Read the *labels*, not the
-> numbers.
 
 | Line | What it counts | What it means for you |
 |---|---|---|
@@ -229,11 +223,10 @@ that wants the whole `ScanReport`.
 | **`✗`** | `undefended (no #[defended_by] witness, no passing requires= predicate)` | No proof yet. **Not "broken" — just unwitnessed.** Add a `#[defended_by]` test, a `requires=` predicate, or an `#[antigen_tolerance]` rationale. |
 | **`⚠`** | `substrate-gap (defense intent present; current substrate does not satisfy the requires= predicate)` | You *declared* a defense via `requires=`, but the substrate it checks for isn't there (e.g. a missing sidecar attestation). Not "no witness" — "witness intended, evidence absent." |
 
-`audit` also prints a one-line tally — the cardinals are whatever your tree holds, so
-read the categories, not the numbers:
+`audit` also prints a one-line tally:
 
 ```
-<n> defended, <n> undefended, <n> substrate-gap (across <n> presents-site(s))
+7 defended, 26 undefended, 12 substrate-gap (across 45 presents-site(s))
 ```
 
 - **defended** — covered by a witness, proof holds.

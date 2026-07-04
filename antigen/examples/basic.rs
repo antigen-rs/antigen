@@ -35,7 +35,7 @@ use antigen::{antigen, defended_by, presents};
 // Canonical seed antigen per ADR-010 Amendment 3 Clause C. The fingerprint
 // matches real `Drop` impls (via `impl_of_trait("Drop")`, ADR-040) whose bodies
 // contain a panic-shaped macro. The `impl_of_trait("Drop")` anchor is the v2
-// tightening: the v1 grammar had no operator for "this impl is
+// tightening (beta.2 voyage): the v1 grammar had no operator for "this impl is
 // for the Drop trait", so it over-fired on every non-`Drop` impl with a panic
 // macro; now it only fires on the real Drop trait, narrowing the codomain to the
 // actual failure-class. (For the broader stdlib member that ALSO covers

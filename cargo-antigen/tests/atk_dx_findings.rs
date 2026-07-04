@@ -1,4 +1,4 @@
-//! Adversarial tests for antigen DX findings from a binary-adopter.
+//! Adversarial tests for antigen DX findings from the camp binary-adopter expedition.
 //!
 //! Each test asserts what SHOULD be true. All findings are now fixed;
 //! tests serve as regression anchors. Tests are named after the finding they exercise.
@@ -71,7 +71,7 @@ fn scaffold_with_fp(dir: &Path, antigen: &str, item: &str, fp: &str) -> PathBuf 
 /// Regression anchor (Finding 8, fixed): sign against an `against="current"`
 /// sidecar with empty fingerprint must warn (or refuse with non-zero exit).
 ///
-/// Reproducer: an adopter's `VacuousCompletionFalseGreen` sidecar was signed with
+/// Reproducer: camp's `VacuousCompletionFalseGreen` sidecar was signed with
 /// empty `current_fingerprint`; audit then fails the predicate with no hint
 /// that the empty fingerprint is the cause.
 #[test]
@@ -149,7 +149,7 @@ fn atk_dx_f8_sign_empty_fp_any_passes() {
 /// adjacent to that file, run audit --root on the antigen workspace, and assert
 /// the output warns about the ignored sidecar.
 ///
-/// The live reproducer: an adopter's `.attest/VacuousCompletionFalseGreen.json` sidecar
+/// The camp live reproducer: `R:/camp/src/schema/.attest/VacuousCompletionFalseGreen.json`
 /// was signed for an immune site using `witness=` — audit ignored the sidecar completely.
 #[test]
 fn atk_dx_f3_audit_warns_on_sidecar_for_witness_site() {
@@ -240,7 +240,7 @@ fn atk_dx_f3_audit_warns_on_sidecar_for_witness_site() {
     );
 
     let fixture_context = &combined[fixture_block_start.unwrap()..];
-    // Take only the first ~300 chars (one output block)
+    // Take only the first ~300 chars (one campsite's output block)
     let site_output = &fixture_context[..fixture_context.len().min(300)];
 
     // The output for this site must warn about the sidecar being ignored.

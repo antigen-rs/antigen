@@ -108,7 +108,7 @@ pub fn experimental_feature_alpha(config: &str) -> Option<String> {
 #[triage_commit(
     triage_decision = TriageDecision::Red,
     rollback_target = "abc1234",
-    triaged_by = "reviewer",
+    triaged_by = "navigator",
     rationale = "primary path failing in production; rolling back to last-known-good snapshot pending root-cause",
     rollback_due_within_minutes = 30
 )]

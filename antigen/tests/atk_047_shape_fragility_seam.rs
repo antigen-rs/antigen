@@ -1,4 +1,4 @@
-//! ATK-047 SHAPE-FRAGILITY SEAM — the born-red spec for
+//! ATK-047 SHAPE-FRAGILITY SEAM — the build-wave adversary's born-red spec for
 //! the GATE-G primitives' producer-independence invariant (ADR-047 OQ2 / the
 //! `(A)-BINARY-FOREVER` standing invariant; ADR-051 narrow/persist surfaces).
 //!
@@ -100,7 +100,7 @@ fn flat_bare_structural_is_refused_by_a_binary() {
 /// `(A)-binary`. It now is: `has_discriminating_conjunct` reads producer-normalized
 /// top-level conjuncts (a sole top-level `AllOf` is unwrapped), so the outer wrapper
 /// no longer reads as a discriminating conjunct and the refusal fires correctly.
-// UN-IGNORED (ADR-047 Amendment 1): `has_discriminating_conjunct` /
+// UN-IGNORED (ADR-047 Amendment 1, pathmaker): `has_discriminating_conjunct` /
 // `is_near_miss` now normalize a single top-level `AllOf` wrapper, so the verdict is
 // producer-independent for the single-wrapper case — a GREEN regression guard now.
 // (The NESTED case further below stays born-red — ADR-047 OQ2, genuinely deferred.)
@@ -128,7 +128,7 @@ fn wrapped_bare_structural_must_also_be_refused_by_a_binary() {
 /// wrapper normalization, both now yield `BindsCleanItem{None}` (the (A)-binary
 /// refusal), where pre-fix they disagreed (flat → `BindsCleanItem`, wrapped →
 /// `NotCorpusWitnessable`).
-// UN-IGNORED (ADR-047 Amendment 1): the single-wrapper normalization
+// UN-IGNORED (ADR-047 Amendment 1, pathmaker): the single-wrapper normalization
 // makes the verdict producer-independent — now a GREEN regression guard.
 #[test]
 fn gate_verdict_is_producer_independent_for_identical_semantics() {
@@ -203,7 +203,7 @@ fn bare_drop_impl() -> syn::Item {
 /// the nested draft reads identically to the FLAT one — a single top-level drop can
 /// no longer strip many discriminators at once, and the remainder-discriminates rule
 /// (Amd2 Hole-I) refuses the bare-structural collapse regardless. Pre-Amd2 this
-/// SILENTLY WRONG-near-missed (the live nested-vacuity hole found later).
+/// SILENTLY WRONG-near-missed (the live nested-vacuity hole the notary-pass found).
 #[test]
 fn nested_draft_does_not_spuriously_near_miss_a_bare_family_member() {
     let bare = bare_drop_impl();
@@ -256,7 +256,7 @@ fn nested_draft_does_not_promote_against_a_bare_family_member_only_corpus() {
 // draft's signal never came near." So a single-discriminator draft `[impl, Drop,
 // foo]` near-missing (and promoting against) a bare `Drop` impl that lacks `foo`
 // is the gate WORKING: B genuinely spares non-foo Drop impls. Default-to-refuted
-// applied to the original claim caught it (→ retraction). The two tests
+// applied to my OWN claim caught it (camp 7fea15c2 → retraction). The two tests
 // asserting route-to-human were WRONG and are removed.
 //
 // What SURVIVES is the producer-independence finding above (the nested case): a
@@ -280,7 +280,7 @@ fn nested_draft_does_not_promote_against_a_bare_family_member_only_corpus() {
 // nested-vacuity. Fix B is RECURSIVE (`flatten_all_of_into` splices every nested
 // AllOf, any depth). This guard proves the recursion terminates correctly at
 // depth-2 — it would go RED under a non-recursive single-flatten regression.
-// REACHABILITY: NOT generator-only — ADR-051 narrow()/persist
+// REACHABILITY (captain's ruling): NOT generator-only — ADR-051 narrow()/persist
 // re-PARSES a user-edited fingerprint (`parse_all_of` does not flatten), so a
 // hand-written `all_of([all_of([..])])` reaches the gate. Live by unit #8.
 // PROVEN BY RUN: `R:/antigen-atk-scratch/src/doublewrap_probe.rs`.

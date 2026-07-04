@@ -2,7 +2,7 @@
 //!
 //! # The v0.4 spine: PROPOSE governed by self-tolerance (ADR-045)
 //!
-//! Two halves that MUST co-ship (the single safety-tangle):
+//! Two halves that MUST co-ship (the single safety-tangle on the v0.4 chart):
 //!
 //! - **B — self-tolerance / the spare-clean gate**
 //!   ([`self_tolerance`](crate::learn::self_tolerance)): the SELECTOR. Given a

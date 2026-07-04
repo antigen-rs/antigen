@@ -1,8 +1,8 @@
 //! ATK-CE adversarial test suite — Convergent-Evidence Family (ADR-024).
 //!
-//! STATUS: PENDING IMPLEMENTATION
-//! Tests are commented out and will be enabled when the
-//! convergent-evidence family ships. Each comment block describes:
+//! STATUS: PENDING PATHMAKER COMMIT
+//! Tests are commented out and will be enabled when pathmaker ships the
+//! convergent-evidence family. Each comment block describes:
 //!   - The attack vector
 //!   - What the implementation SHOULD do (spec-derived)
 //!   - What a silent failure looks like (wrong but plausible answer)
@@ -72,7 +72,7 @@
 // ============================================================================
 //
 // ADR-024 C2: SeedKind::Fixed(u64) MUST be rejected for #[clonal].
-// ADR says "parse-time OR audit-time"; the brief requires parse-time.
+// ADR says "parse-time OR audit-time"; campsite brief requires parse-time.
 //
 // The compile-fail test lives in antigen-macros/tests/ui/clonal_fixed_seed_compile_error.rs
 // That test exercises the parse-time path.

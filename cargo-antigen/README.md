@@ -3,7 +3,7 @@
 **Cargo subcommand for the [antigen](https://crates.io/crates/antigen) project —
 scan, audit, and learn structural failure-class antibodies in Rust codebases.**
 
-> **Status: working beta, published on crates.io.** The
+> **Status: working beta (`0.5.0-beta.1`), published on crates.io.** The
 > subcommands below are real and runnable today. The CLI surface is stabilizing
 > toward `1.0` and may still change between beta releases.
 
@@ -21,14 +21,14 @@ Commands:
   scan         Scan the workspace for antigen presentations and report unaddressed ones
   propose      Propose a candidate failure-class fingerprint from a cluster of marked sites
   audit        Comprehensive immunity coverage report — witness resolution and tier validation
-  attest       Manage `.attest/<Antigen>.json` substrate-witness sidecars
-  tolerate     Manage tolerance-ratification sidecars
-  oracle       Manage Oracle artifact-class records
-  verify       Drive Supply-Chain Defense Family verifications
-  vcs          Drive VCS-Information-Loss Family observations
-  mucosal-map  Map mucosal trust boundaries across the workspace
+  attest       Manage `.attest/<Antigen>.json` substrate-witness sidecars (ADR-019)
+  tolerate     Manage tolerance-ratification sidecars (ADR-019 §tolerance tier)
+  oracle       Manage Oracle artifact-class records (ADR-021 §D3)
+  verify       Drive Supply-Chain Defense Family verifications (ADR-025)
+  vcs          Drive VCS-Information-Loss Family observations (ADR-026)
+  mucosal-map  Map mucosal trust boundaries across the workspace (ADR-027 + Amd 1)
   fingerprint  Print the structural fingerprint of a scanned item
-  mine         Mine a repository's `.git` for the SZZ `(defect, fix)` corpus (the learning core's INPUT corpus — recomputable from git history)
+  mine         Mine a repository's `.git` for the SZZ `(defect, fix)` corpus
 ```
 
 ## Installation
@@ -79,7 +79,7 @@ corpus before suggesting it:
 $ cargo antigen propose --cluster-root ./cluster --clean-root ./clean
 == drafted a candidate — routed to a human ratifier ==
 
-Antigen anti-unified a draft from your `dread` marks, but cannot
+Antigen anti-unified a draft from your `dread` marks, but the B-gate cannot
 certify it GENERALIZES against your clean corpus (no near-miss: no clean
 sibling is one discriminating constraint from binding the draft). So it
 routes the candidate to a HUMAN ratifier rather than promote it.

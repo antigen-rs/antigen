@@ -124,7 +124,7 @@ impl EvidenceKind {
 ///
 /// Three tiers (basic/mid/advanced). Not
 /// every approver has git config or crypto tooling — concrete case: a
-/// team of LLM agents signing each other's attestations has neither.
+/// JBD team of LLM agents signing each other's attestations has neither.
 /// `TextStamp` is the basic tier any reviewer can produce; `GitTrust`
 /// is the mid tier for git-configured humans; `CryptoSigned` is the
 /// advanced tier reserved for v0.4+ activation. CI gates can require
@@ -170,7 +170,7 @@ impl SignatureStrength {
 /// (ADR-019 §M5 state-mapping tables). Parallel to (and additive to)
 /// `antigen::audit::AuditHint`; both can fire on the same audit result.
 ///
-/// Naming follows ADR-019 §M5 (the
+/// Naming follows ADR-019 §M5 + adversarial T6-R (the
 /// `discipline-predicate-passed-substrate-current` hint replaces
 /// the v2 draft's `discipline-substrate-validated-and-current` overclaim).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -219,7 +219,7 @@ pub enum SubstrateAuditHint {
     /// and Fresh. The strongest tolerance-attestation state in v0.1.
     TolerancePredicatePassedSubstrateCurrent,
 
-    // --- Kind-mismatch hints (TOL-A / TOL-B) ---
+    // --- Kind-mismatch hints (per adversarial TOL-A / TOL-B) ---
     /// `#[immune(X, requires = ...)]` site, sidecar exists with
     /// `kind = Tolerance` instead of expected `Immunity`. Common cause:
     /// site switched from `#[antigen_tolerance]` to `#[immune]` but the
@@ -232,7 +232,7 @@ pub enum SubstrateAuditHint {
     /// `Tolerance`. Symmetric to the immunity-side kind mismatch above.
     ToleranceSidecarKindMismatchExpectedToleranceGotImmunity,
 
-    // --- Compound-claim contradiction (T4-A) ---
+    // --- Compound-claim contradiction (per adversarial T4-A) ---
     /// Site declares BOTH `#[immune(X, ...)]` and
     /// `#[antigen_tolerance(X, sidecar = true, ...)]` for the same antigen.
     /// This is logically incoherent — a site cannot simultaneously be

@@ -1,6 +1,6 @@
 //! ATK-ADWIN — the honest-blind batch drift-detector spec (ADR-065).
 //!
-//! The synthetic-fixture suite is the KEY contract: the detector
+//! The synthetic-fixture suite the captain flagged as the KEY contract: the detector
 //! is validated on hand-constructed affinity-sequences with KNOWN change-points — the
 //! SAME methodology as Bifet-Gavaldà 2007's own Figs 2-5, at antigen's scale. Honest
 //! scope (ADR-065, verbatim): "validated on synthetic fixtures; real-class-drift
@@ -261,7 +261,7 @@ fn atk_adwin_interior_crater_fires_twice_drop_and_recovery() {
     // recall 0.9 → craters to 0.2 → recovers to 0.9. first==last==0.9 so the 2-point
     // trajectory_direction() reads Stable (BLIND). The full organ MUST catch BOTH the
     // drop (~150) AND the recovery (~300) — a one-fire impl must NOT pass (the
-    // C3 correction). A batch detector finds the STRONGEST change-point per
+    // observer's C3 correction). A batch detector finds the STRONGEST change-point per
     // call; the recursion (detect, split, re-detect on both halves) surfaces both.
     let mut rng = Lcg::new(999);
     let mut recalls: Vec<f64> = (0..150).map(|_| rng.around(0.9, 0.02)).collect();
@@ -452,7 +452,7 @@ fn atk_adwin_floor_and_full_delta_prime_not_interchangeable() {
 
 #[test]
 fn atk_adwin_floor_eps_cut_matches_paper_worked_value() {
-    // Pin the floor ε_cut against the verified worked value
+    // Pin the floor ε_cut against the math-researcher's verified worked value
     // (Bifet-Gavaldà §3.2, δ=0.05, balanced split): n=8 ⇒ ε_cut ≈ 1.2710 (DEAD, >1.0).
     let eps = eps_cut_floor(4, 4, 8, 0.05).unwrap();
     assert!(
@@ -470,9 +470,9 @@ fn atk_adwin_floor_eps_cut_matches_paper_worked_value() {
 // ============================================================================
 // The two-channel fusion — INV-ADWIN-3 conservatism-JOIN (the safety corner)
 //
-// NOTE: the BINDING fusion contract is the born-red file
+// NOTE: the BINDING fusion contract is the adversary's born-red file
 // `atk_adwin_fusion_conservatism_join.rs` (13 tests, gated on the `adwin_built`
-// feature). These tests are the complementary coverage of `fuse_channels`
+// feature). These tests are the builder's own complementary coverage of `fuse_channels`
 // in the always-on suite — they assert the same conservatism-JOIN against ClassVerdict.
 // ============================================================================
 

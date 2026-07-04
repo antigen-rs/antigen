@@ -13,7 +13,7 @@
 // So a SAFE draft DOES exist here. The no-bypass gate's contract: whatever C
 // promotes must bind the cluster AND spare the clean sibling — C must NOT take
 // the easy autoimmune "any Drop impl" path. If C promotes a draft that binds the
-// clean sibling, it bypassed B (the one thing that must not pass). If
+// clean sibling, it bypassed B (the captain's one-thing-that-must-not-pass). If
 // C cannot find the disjunction within its reach, pruning (None) is also safe.
 
 pub struct DefectiveOne;

@@ -38,10 +38,10 @@ use crate::antigen;
 /// without reading the substrate delta that accumulated while the agent was
 /// idle — producing decisions based on stale context state.
 ///
-/// **The lived failure pattern**:
+/// **The lived failure pattern (from v02-completion-arc)**:
 /// An agent with a compaction summary describing "current state" routes work
-/// based on that summary. Meanwhile, other agents committed 3 new families,
-/// recorded completed work units, and shipped ATK test bodies. The agent's context says
+/// based on that summary. Meanwhile, teammates committed 3 new families,
+/// signed campsites, and shipped ATK test bodies. The agent's context says
 /// "task X pending" while the substrate says "X shipped at commit abc123."
 /// The agent re-does work, routes stale claims, or blocks on gates already
 /// cleared.
@@ -52,11 +52,11 @@ use crate::antigen;
 /// resolved, missing changes that affect current decisions.
 ///
 /// **Category**: `SubstrateAlignment` — the agent's context representation
-/// diverges from actual substrate state (git log, coordination state, file system)
+/// diverges from actual substrate state (git log, camp status, file system)
 /// across the session boundary.
 ///
 /// **Defense at v0.2** (substrate-witness, not enforcement):
-/// `git log --oneline -N` + a coordination-state read at session start, BEFORE any
+/// `git log --oneline -N` + `camp status` at session start, BEFORE any
 /// routing or task-claiming. The discipline: treat context-held state as
 /// hypothesis; substrate-grep confirms or rejects.
 ///

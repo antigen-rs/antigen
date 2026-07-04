@@ -1,7 +1,7 @@
 //! ATK-SC evaluation-layer adversarial tests.
 //!
 //! These tests attack the supply-chain evaluator functions directly
-//! (`antigen::supply_chain::evaluate`). They run against the
+//! (`antigen::supply_chain::evaluate`). They run against pathmaker's
 //! implementation and SHOULD FAIL where the spec hasn't been fully enforced.
 //!
 //! Each test is named after the attack vector and contains a precise
@@ -127,7 +127,7 @@ fn atk_sc1a_dot_artifact_should_be_flagged_as_rubber_stamp() {
 //    Current: PASS (evaluator doesn't check the predicate's artifact requirement)
 //
 // Note: This is adversarially contrived. The spec may intend the artifact field
-// as documentation-only. Verify which interpretation is correct.
+// as documentation-only. Verify with pathmaker which interpretation is correct.
 // ============================================================================
 
 #[test]
@@ -269,7 +269,7 @@ checksum = "swapped-malicious-hash"
 // but this is a misleading error — the crate IS in the lockfile, it just has
 // no checksum.
 //
-// This documents current behavior to verify the intended semantics.
+// This documents current behavior to verify pathmaker's intent.
 // ============================================================================
 
 #[test]
@@ -473,7 +473,7 @@ fn atk_sc_audit1_any_of_emits_false_positive_for_passing_branch() {
         .collect();
 
     // ADVERSARIAL PATTERN: this test FAILS when the bug EXISTS.
-    // When any_of semantics are fixed, the test passes.
+    // When pathmaker fixes any_of semantics, the test passes.
     //
     // Correct behavior: any_of is satisfied by the 1.0.197 branch (PASS).
     // No failure hints should be emitted for sibling branches that failed.

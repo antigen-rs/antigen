@@ -20,15 +20,15 @@ path = "src/main.rs"
 workspace = true
 
 [dependencies]
-antigen = { version = "=0.6.0", path = "../antigen" }
-antigen-attestation = { version = "=0.6.0", path = "../antigen-attestation" }
+antigen = { version = "=0.5.0-beta.1", path = "../antigen" }
+antigen-attestation = { version = "=0.5.0-beta.1", path = "../antigen-attestation" }
 # `cargo antigen propose` (Island 3) re-acquires the marked cluster's + the clean
 # corpus's ASTs from source — it parses `.rs` files (`syn`) and locates the
 # enclosing item by its name-insensitive shape digest (`antigen-fingerprint`), the
 # same two-digest discipline the scan records (ADR-045 Amd-1/2). Both are already
 # transitive (antigen depends on them); naming them direct makes the propose
 # cluster-assembly first-class in the CLI.
-antigen-fingerprint = { version = "=0.6.0", path = "../antigen-fingerprint" }
+antigen-fingerprint = { version = "=0.5.0-beta.1", path = "../antigen-fingerprint" }
 syn = { workspace = true }
 clap = { workspace = true }
 serde = { workspace = true }

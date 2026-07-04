@@ -9,8 +9,8 @@
 //!
 //! These tests pin the W7 implementation against the Amendment 3 mapping
 //! table (lines 920–928 of docs/decisions.md). They are the regression
-//! shield for the five silent deviations surfaced in the pre-amendment
-//! design draft.
+//! shield for the five silent deviations aristotle's Phase 1-8 surfaced in
+//! scout's pre-amendment design draft.
 
 use std::path::{Path, PathBuf};
 

@@ -454,8 +454,8 @@ fn atk_w6a_012_any_of_all_arms_fail_returns_false_silently() {
 ///
 /// **History**: pre-A3.5, this test asserted the OPPOSITE — that `(&self, ...)`
 /// must NOT match because `normalize_ws` couldn't recover the missing space.
-/// That documented a real production footgun (an adopter's `PanickingInDrop`
-/// failure-class was bitten by it). The A3.5 onboarding sweep
+/// That documented a real production footgun (tambear's `PanickingInDrop` was
+/// bitten by it — fixed at tambear commit 7d9664a). The A3.5 onboarding sweep
 /// addressed the underlying engine bug rather than living with the footgun:
 /// both the parser AND the matcher route their signature strings through
 /// `proc_macro2::TokenStream::from_str(_).to_string()` for symmetric
@@ -501,7 +501,7 @@ fn atk_w6a_013_has_method_signature_whitespace_normalized() {
 
 /// ATK-W6a-013b — `&mut self` receiver canonicalization (A3.5 engine fix).
 ///
-/// The production footgun: `has_method("drop", "(&mut self)")` against
+/// The tambear production footgun: `has_method("drop", "(&mut self)")` against
 /// `impl Drop for T { fn drop(&mut self) { ... } }` produced zero matches
 /// before the A3.5 fix. `proc_macro2` renders `&mut self` as `& mut self`
 /// (space-separated tokens); plain `normalize_ws` on the pattern left it as
@@ -795,7 +795,7 @@ fn atk_w6a_016_method_pattern_equality_ignores_normalized_cache() {
 ///
 /// `Self` (capital S) is a type-alias identifier; `self` (lowercase) is a
 /// receiver keyword. These are categorically different tokens at the lexer level
-/// (T3-T5 from ADR-010 Amendment 5). A user who writes
+/// (T3-T5 from aristotle's ADR-010 Amendment 5 Phase 1-8). A user who writes
 /// `has_method("meet", "(Self, Self) -> Self")` intends to match a static-style
 /// method taking two typed `Self` parameters — not a receiver-method.
 ///

@@ -1,7 +1,7 @@
 //! ATK-P2' — the DEFENDED-STATUS sensor pins tier>None per CLASS, not a homonym (BORN-RED).
 //!
 //! **STATUS: BORN-RED.** The per-class defended-status roll-up
-//! (the-discriminator-is-blind-for-silent-classes, route-book row 3') is
+//! (`outsider/the-discriminator-is-blind-for-silent-classes`, route-book row 3') is
 //! being built in `antigen/src/audit/` now. This is the INDEPENDENT criterion-check
 //! (parallel to core's test-first self-close — the closest thing to no-self-witness
 //! inside the build). It pins the REAL criterion and ATTACKS the homonym.
@@ -34,10 +34,12 @@
 //! passes for BOTH homonyms — it goes green-by-luck while the criterion stays
 //! undefended. The STRONG tests below assert the tier-discrimination directly.
 //!
+//! Author: v06-the-maturing-organism--build--adversarial.
+//!
 //! ----------------------------------------------------------------------------
 //! STATUS: P2' LANDED — the born-red gate is DROPPED; these asserts now compile
 //! against the real `AuditReport::is_class_defended` and are GREEN (the live
-//! independent criterion-check). The implementation added `is_class_defended` (the
+//! independent criterion-check). The pathmaker added `is_class_defended` (the
 //! per-class `any(tier > None)` query) to satisfy this ATK's contract.
 //! ----------------------------------------------------------------------------
 
@@ -223,7 +225,7 @@ fn class_absent_from_audits_is_not_defended() {
 }
 
 // ===========================================================================
-// HARDENING (degenerate-input — the no-self-witness check
+// HARDENING (captain's degenerate-input request — the no-self-witness check
 // inside the build). These read the RICH roll-up (audit_defended_status) so the
 // aggregation FIELDS (max_witness_tier / site_count / resolving_site_count) are
 // pinned, not just the boolean.

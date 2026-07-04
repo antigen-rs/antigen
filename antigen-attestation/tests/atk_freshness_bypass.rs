@@ -52,11 +52,12 @@
 //! code's negative-diff guard is correct). This is an asymmetric fixture:
 //! it only passes because the code is correct on this surface.
 //!
-//! ## Findings
+//! ## Camp substrate
 //!
-//! ATK-FT-1 and ATK-FT-2 cover the perpetual-freshness-bypass /
-//! fresh-through path. ATK-FT-3 is a new finding
-//! (`compare_versions` overflow).
+//! ATK-FT-1 and ATK-FT-2 correspond to the
+//! `forward/perpetual-freshness-bypass-fresh-through` campsite
+//! (v03-vision-buildout expedition). ATK-FT-3 is a new finding
+//! (`compare_versions` overflow — no campsite yet; adversarial to seed one).
 
 use std::collections::BTreeMap;
 use std::path::Path;

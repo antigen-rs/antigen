@@ -5,12 +5,12 @@
 //! `cargo metadata` as a subprocess; they require cargo to be on PATH (which
 //! is always the case in any environment that built the workspace).
 //!
-//! Per A3 scope-lock §6 + the 2026-05-09 ruling: cross-crate scope
+//! Per A3 scope-lock §6 + navigator's 2026-05-09 ruling: cross-crate scope
 //! in v0.1 is enumeration + per-crate scanning, NOT merged cross-crate
 //! `addresses()` matching. ATK-A3-005 (module-path-qualified `ItemTarget`)
-//! is deferred to an ADR-class decision.
+//! is deferred to ADR-class decision pending aristotle.
 //!
-//! The Sub-clause F trust-model ADR sentence is in flight;
+//! The Sub-clause F trust-model ADR sentence is in flight with aristotle;
 //! these tests cover the mechanism, not the trust documentation.
 
 use std::path::{Path, PathBuf};
@@ -134,7 +134,7 @@ fn d3_enumerate_classifies_registry_origin() {
 
 // ============================================================================
 // Full pipeline: enumerate + scan_workspace per-dep produces independent
-// per-crate ScanReports. No cross-crate matching, per the cross-crate scope ruling.
+// per-crate ScanReports. No cross-crate matching, per navigator's ruling.
 //
 // The test runs scan_workspace on a single small dep (`antigen-fingerprint`,
 // when --include-path-workspace=true is set) and asserts the report is

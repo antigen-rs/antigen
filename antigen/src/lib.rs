@@ -138,6 +138,9 @@
 //!   immune-system surface (ADR-002).
 //! - Not a logic-bug catcher. Antigen catches *failure-classes that have been
 //!   named*; it does not detect novel logic errors.
+//!
+//! See the [`docs/expedition/`](https://github.com/antigen-rs/antigen/tree/main/docs/expedition)
+//! directory in the repository for the full design intent.
 
 // Re-export the proc-macros from antigen-macros so users can `use antigen::antigen`,
 // `use antigen::presents`, etc.
@@ -148,7 +151,7 @@
 // `witness = fn` channel of the now-deprecated `#[immune]`.
 pub use antigen_macros::defended_by;
 // Rollback-as-Triage primitive (ADR-026 §Rollback-as-triage discipline):
-// sibling to the deferred-defense family per the fixup-orient-dual-
+// sibling to the deferred-defense family per aristotle's fixup-orient-dual-
 // signature resolution. Names a triage decision + commit to rollback within
 // a tight time-bound; clinical-medicine grounded.
 pub use antigen_macros::triage_commit;
@@ -176,7 +179,8 @@ pub use antigen_macros::{aura, dread, red_flag};
 // (ADR-019 Amendment 1). `#[triage]` is the work-need ordering macro, distinct
 // from `#[triage_commit]` (ADR-026 VCS-rollback).
 pub use antigen_macros::{biopsy, culture, ddx, panel, quarantine, refer, rx, triage};
-// Recurrent-Emergence Family (ADR-024 §Family 2): six
+// Recurrent-Emergence Family (ADR-024 §Family 2 + scientist HOW-spec
+// cf2a2317 + aristotle Reading-A pre-authorization 744471a3): six
 // present-looking primitives for noticing-and-anchoring recurring
 // failure-classes across substrates. Cognitive-organizational +
 // immunology-proper + clinical-medicine dual-axis grounding.
@@ -223,7 +227,7 @@ pub mod render;
 /// Ships B (the self-tolerance / spare-clean gate, [`learn::self_tolerance`]) —
 /// the negative-selection SELECTOR that rejects a draft fingerprint matching
 /// clean code (autoimmunity). C (the PROPOSE generator) must never promote a
-/// draft without B green (the one safety-tangle).
+/// draft without B green (the one safety-tangle on the v0.4 chart).
 pub mod learn;
 
 /// Stdlib of curated, ratified antigen declarations.

@@ -4,7 +4,8 @@
 > aspirational. Substrate-grounded confidence intervals; no firm calendar
 > dates beyond what's actually committed.
 
-**This is the adopter-facing roadmap.**
+**This is the adopter-facing roadmap.** Ratified architecture lives in
+[`decisions.md`](decisions.md).
 
 ---
 
@@ -348,9 +349,9 @@ The core vocabulary, scan + audit tooling, substrate-witness pipeline, Oracle ar
 ### CLI surface (`cargo antigen ...`)
 - **`scan`** — workspace-wide scanning, item-identity matching (W3), fingerprint detection, tolerance recognition, orphaned-tolerance reporting
 - **`audit`** — `WitnessTier` gradient (None / Reachability / Execution / FormalProof) per ADR-005 Amendment 3; substrate-witness pipeline wired end-to-end via the rc.2 hotfix
-- **`attest`** subcommands — manage `.attest/<Antigen>.json` substrate-witness sidecars: `scaffold`, `sign`, `check`, plus design-phase `list`, `delta`, `gc`
-- **`tolerate`** subcommands — manage tolerance-ratification sidecars
-- **`oracle`** subcommands — manage Oracle artifact-class records: `list`, `status`, `declare`, `complete`, `deprecate`, `retire`, `revoke`
+- **`attest`** subcommands — manage `.attest/<Antigen>.json` substrate-witness sidecars (ADR-019): `scaffold`, `sign`, `check`, plus design-phase `list`, `delta`, `gc`
+- **`tolerate`** subcommands — manage tolerance-ratification sidecars (ADR-019 §tolerance tier)
+- **`oracle`** subcommands — manage Oracle artifact-class records (ADR-021 §D3): `list`, `status`, `declare`, `complete`, `deprecate`, `retire`, `revoke`
 - **`--version`** flag (rc.3) — introspects the installed `cargo-antigen` version for tooling integration
 
 ### Fingerprint engine
@@ -421,10 +422,10 @@ each exercise the WHOLE primitive stack on different stress profiles:
    not antigen's roadmap — antigen's promotion gate considers their
    substrate as evidence of API durability without claiming their
    milestones as antigen's.
-3. **Origin-project discipline + numerical-correctness adoption.** The
-   origin project's Phase 4 work (sinh/cosh signed-zero) extends to more numeric
+3. **Tambear discipline + numerical-correctness adoption.** Tambear's
+   Phase 4 work (sinh/cosh signed-zero) extends to more numeric
    functions + more disciplines + Oracle lifecycle for the numerics
-   specs. Cross-crate trust extension between the origin project → antigen at the
+   specs. Cross-crate trust extension between tambear → antigen at the
    external-adopter API. The WHOLE stack against cross-project
    adoption + a real numerical-correctness domain.
 
@@ -441,10 +442,10 @@ Alongside the trinity:
 1. **T4 resolved** (compound evidence overclaim surface) — when
    immune+tolerance attestations land on the same site, can we report
    that without users misreading "two attestations = stronger
-   evidence"? We flagged this. Either ship a resolution or
+   evidence"? Aristotle F11 flagged this. Either ship a resolution or
    explicitly document the surface as "do not depend on
    additive-evidence interpretation."
-2. **T6 resolved** (severity-class substrate-grep) — was anything
+2. **T6 resolved** (severity-class scout substrate-grep) — was anything
    in ADR-008 Amendment 1 about severity ever wired into scan output?
    Quick mechanical check; if YES we document, if NO we defer to v0.2
    explicitly.
@@ -471,7 +472,7 @@ build in parallel:
   coverage
 - External adopter feedback: ongoing as adopters exercise antigen's API
   surface and surface real-world friction signal
-- Origin-project discipline expansion: ongoing as its numerics team
+- Tambear discipline expansion: ongoing as tambear's numerics team
   hits more failure-classes worth attesting
 
 If all three converge without surfacing breaking changes + the
@@ -560,16 +561,16 @@ What we know going in:
   stale-mismatched. Need cross-version migration story. Options:
   audit treats v0.1 fingerprints as legacy + emits hint;
   `attest migrate-fingerprints` CLI rebases pins to new scheme;
-  schema carries `fingerprint_scheme_version` field. We
+  schema carries `fingerprint_scheme_version` field. Aristotle F12
   worked this; needs concrete-pressure trigger (first fingerprint
   scheme bump) to ratify.
 
-- **T8: descended_from predicate inheritance** — can a
+- **T8 / FA-5: descended_from predicate inheritance** — can a
   consuming crate declare `#[descended_from = "A::X"]` but supply a
   WEAKER `requires` predicate than A's? Tier-honesty implications.
-  We worked this; resolution likely
+  Aristotle F10 + adversarial FA-5 worked this; resolution likely
   uses Eiffel-style variance rules (precondition-weakening prohibited;
-  postcondition-strengthening allowed). An Eiffel rhyme already
+  postcondition-strengthening allowed). Scout's Eiffel rhyme already
   surfaced in academic-context.md as candidate design. Lands when
   cross-crate descended_from sees real adoption pressure.
 
@@ -585,21 +586,21 @@ What we know going in:
   transitional(condition)`. v0.1 ships with implicit "permanent"
   semantics; v0.2 adds explicit lifetime so disciplines that should
   re-attest periodically (e.g., security review every 90 days) can
-  express that structurally. We flagged this.
+  express that structurally. Scout flagged this in expedition substrate.
 
 - **`--prioritized` flag for `attest list --pending`** — annotation-
   fatigue mitigation. Sort pending attestations by antigen-severity +
   fingerprint-confidence so adopters see the load-bearing items first.
-  Cross-domain rhyme from software-ergonomics literature.
+  Cross-domain rhyme from software-ergonomics literature (scout S4).
   Useful when teams have many in-flight attestation surfaces.
 
 - **TUF k-of-n threshold signatures** — `signers(required_threshold =
   K, candidates = [...])`. Cross-domain analog from TUF specification;
-  a CAP-theorem framing makes this a principled extension of
+  scout S4 + CAP-theorem framing makes this a principled extension of
   current `required = [...]` shape. Useful when teams want "any 3 of
   these 5 reviewers" rather than "all of these 3."
 
-- **T3: `discipline_doc` field dual-jobs separation** — a
+- **T3: `discipline_doc` field dual-jobs separation** — aristotle F9
   frontier-flag. Current field does Job 1 (canonical reference) AND
   Job 2 (review-grounded binding). Future amendment might split into
   `canonical_reference` + `review_grounded` so the claims can vary
@@ -702,7 +703,7 @@ structural architecture of failure-class memory that doesn't depend on
 Rust.
 
 Per-language implementations are components in the multi-component
-framing (see [`immune-system-primitive-map.md`](immune-system-primitive-map.md)):
+framing (see [`immune-system-primitive-map.md`](internal/immune-system-primitive-map.md)):
 
 - **Python**: ast-module or tree-sitter-based fingerprint engine;
   pip-installable tool with `python -m antigen scan` invocation
@@ -796,7 +797,7 @@ Use antigens from dependencies. Contribute candidate stdlib antigens.
 Participate in cross-organization failure-class memory sharing.
 
 Each tier multiplies leverage without requiring the others. See
-[`immune-system-primitive-map.md`](immune-system-primitive-map.md)
+[`immune-system-primitive-map.md`](internal/immune-system-primitive-map.md)
 for the deeper architectural framing.
 
 ---
@@ -804,7 +805,7 @@ for the deeper architectural framing.
 ## How decisions get made
 
 This roadmap is recognition-grounded, not spec-grounded. **Ratified
-ADRs** commit the architectural
+ADRs** (in [`decisions.md`](decisions.md)) commit the architectural
 direction.
 
 Per ADR-006 (recognition-not-design): new antigens, new witness types,
@@ -846,7 +847,7 @@ co-evolutionary pathway that produced the tool itself.
 
 ## Questions
 
-- *Why isn't there a calendar in this roadmap?* A deliberate no-rush
+- *Why isn't there a calendar in this roadmap?* Per Tekgy's no-rush
   framing — release-readiness drives timing, not calendar dates.
   Substrate maturity is the actual signal. Versions ship when substrate
   is ready; sweeps close when their scope-locks are satisfied. The

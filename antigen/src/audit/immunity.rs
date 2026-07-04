@@ -564,8 +564,8 @@ pub fn audit_substrate_witness(immunity: &Immunity, predicate_json: &str) -> Imm
     // whenever two `#[immune]` sites in the same file shared an antigen sidecar
     // — the second site's `audit_substrate_witness` call would evaluate the
     // FIRST site's signers + fingerprint, so signers who signed `first_fn`
-    // would silently pass `second_fn`'s immunity (the
-    // sidecar-first-item-wrong-audit case, ATK-pinned). The scaffold and
+    // would silently pass `second_fn`'s immunity (findings/
+    // sidecar-first-item-wrong-audit / ATK adversarial pin). The scaffold and
     // sign paths (cargo-antigen/src/main.rs ~2949 and ~2964) write
     // `item_path: item_target.label()`, and existing lookups elsewhere in
     // main.rs (~3479, ~3610) already match on `item.item_path == args.item_path`,

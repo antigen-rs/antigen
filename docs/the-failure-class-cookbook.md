@@ -287,7 +287,7 @@ pub struct YourFailureClass;
 
 The discipline that keeps your declarations honest is the same one the stdlib
 follows: declare from a *real encountered instance* (recognition, not speculation —
-ADR-006), and pick the tier the fingerprint earns (a bare common
+[ADR-006](decisions.md)), and pick the tier the fingerprint earns (a bare common
 method name is `suspected`, not `named`). For the full authoring guide see
 [`fingerprint-grammar.md`](fingerprint-grammar.md) and [`macros.md`](macros.md);
 for *why* tier-honesty matters, the [war-story](war-stories/the-self-catch.md) is

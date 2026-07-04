@@ -5,73 +5,6 @@ All notable changes to the antigen project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.6.0] — 2026-06-22
-
-**0.6.0 — The Maturing Organism.** v0.5 gave antigen a memory; v0.6 lets a remembered
-failure-class *live*. An immune system that learned to keep a memory can now feel the ground
-shift under one of its own learned defenses, write that defense in legible source a human reads
-and edits, and — the moral center — never discard a live defense on a signal it cannot actually
-see. The four new organs ship as a **typed, tested, composable library** (`antigen::learn`); the
-`cargo antigen` verb that drives the full sense → classify → act loop end-to-end is the v0.7
-frontier. The headline capability of this release is the set of things antigen structurally
-refuses to do.
-
-### Added — the maturing-organism library (`antigen::learn`)
-
-Four library-complete organs, each typed, tested, and composable. None is wired to a `cargo
-antigen` verb yet — the binary still wires `propose` (afferent) only; these are the efferent
-organs the v0.7 pipeline will drive.
-
-- **The life-record (`antigen::learn::life_record`)** — a learned class's append-only
-  autobiography: a typed event stream (`Born`, `Matured`, `Scored`, `Drifted`, `Ratified`,
-  `Retired`, …). Current state is *derived, never stored* — `is_retired()` is a fold over the
-  stream, not a flag kept in sync — so the record cannot drift out of sync with itself, the same
-  property that makes a `.git` history trustworthy. A forget is a pushed `Retired` tombstone,
-  never an erasure.
-- **Affinity maturation (`antigen::learn::affinity` + `maturation`)** — a learned class's height,
-  recorded as a 2-vector `Affinity { recall, precision }`, deliberately **not a scalar**:
-  `PartialOrd` with no `Ord`, because catch-every-defect (recall) and spare-every-clean
-  (precision) genuinely trade off, and collapsing them to one number hides the choice. The
-  maturation ceiling is the Pareto frontier, not a threshold. **The score is not a probability** —
-  it is the honest placeholder for a calibrated confidence v0.7 will compute.
-- **Drift detection (`antigen::learn::adwin`)** — a batch-pure change-point detector
-  (Bifet-Gavaldà 2007) over a class's affinity trajectory. Its verdict is three-valued, and the
-  third — **`UnderPowered`** — is the spine, not a corner case: below a statistical-power
-  threshold a change is mathematically undetectable, so the detector says "I cannot yet see drift
-  for this class, and here is exactly when I will be able to" rather than a false `NoDrift`. At
-  today's scale `UnderPowered` is the default verdict; a detector that fires zero and says so is
-  the correct, honest v0.6 organ.
-- **CURATE — the moral center (`antigen::learn::curate` + `discriminator`)** — the efferent
-  decision layer: the one organ that *acts* on a class. It maps a class verdict to one action on
-  a reversible-first ladder — Keep · Hold · RouteToHuman · ReArm · **Forget** — where Forget is
-  the only irreversible rung and is reachable from a single verdict (`Obsolete`) alone,
-  type-enforced. Before CURATE acts, the **conservatism-JOIN** fuses the sensor channels: if any
-  channel is blind (drift `UnderPowered`, the shape-sensor `Indeterminate`, or a non-finite drift
-  signal), the verdict is `RouteToHuman`, regardless of what the other channels say. A blind
-  channel cannot endorse an irreversible forget. CURATE's load-bearing property is not what it
-  forgets — it is what it is structurally incapable of forgetting.
-
-### Added — the co-native serializer (`antigen-fingerprint`)
-
-- **`Fingerprint → DSL` serialization** — the parser's exact inverse, completing the bijection
-  (`parse ∘ serialize == identity`). The DSL is the privileged rendering: the same text a human
-  reads and edits is the text the parser consumes is the text the `#[antigen(…)]` macro compiles
-  — round-trip exactness *is* co-nativeness. Completeness is a compiler guarantee, not a test
-  hope: the `Constraint` alphabet is closed and the `Display` match is exhaustive with no wildcard
-  arm, so a new operator fails to compile the serializer until an arm is written.
-
-### Honest scope (what v0.6 does and does not do)
-
-- **Library-complete, not CLI-wired.** Every organ above is a tested `antigen::learn` API. No
-  `cargo antigen` verb drives the sense → classify → act loop end-to-end; the live curation loop
-  is the v0.7 frontier.
-- **The strange-loop is unfired.** `propose` routes a draft to a human; it does not promote.
-  antigen anti-unifies a draft and routes it to ratification — never "antigen immunized itself."
-- **The affinity score is not a probability.** Calibration is v0.7; the 2-vector is the honest
-  trade-off surface, not a confidence number.
-- **ADWIN fires zero at v0.6 scale, by design.** `UnderPowered` is the default verdict, not a
-  bug — the same organ fires correctly once trajectories lengthen, with no code change.
-
 ## [0.5.0-beta.1] — 2026-06-17
 
 **0.5.0-beta.1 — The Learning Organism (first v0.5 beta).** v0.4 shipped the safety-governed
@@ -303,7 +236,7 @@ the beta.2 + docs changes follow here.
   per shipped family (Presentation → Etiology → Epidemiology → Histology →
   Differential → Treatment → Prognosis).
 - **Narrative** — [`docs/war-stories/the-self-catch.md`](docs/war-stories/the-self-catch.md)
-  (antigen catching itself across this release, every catch git-traceable),
+  (antigen catching itself across this voyage, every catch git-traceable),
   [`docs/the-immune-system-a-programmers-guide.md`](docs/the-immune-system-a-programmers-guide.md)
   (the biology cognate as a narrative course),
   [`docs/the-failure-class-cookbook.md`](docs/the-failure-class-cookbook.md)
@@ -443,7 +376,7 @@ the beta.2 + docs changes follow here.
   low-certainty auras. The markers surface at the dial's non-gating floor — never
   gate, never nag.
 
-### Added — Unsafe-Soundness-Boundary stdlib family
+### Added — Unsafe-Soundness-Boundary stdlib family (beta.2 voyage)
 
 - New stdlib family `unsafe_soundness` — the `unsafe`-primitive call-shapes where
   a wrong invariant is **Undefined Behavior**, not a panic. Three named members
@@ -568,13 +501,13 @@ the beta.2 + docs changes follow here.
   shipped `PanickingInDrop` fingerprint cannot), and `UnsafeSendSync` anchors on
   `impl_of_trait("Send")` + `is_unsafe`.
 
-### Chartered (not shipped) — Crypto-Misuse family `NonConstantTimeSecretComparison`
+### Chartered (not shipped) — Crypto-Misuse family `NonConstantTimeSecretComparison` (beta.2 voyage)
 
 - The `crypto_misuse` family module ships as a **charter doc, with no member**.
   `NonConstantTimeSecretComparison` (a secret/MAC compared in non-constant time — a
   timing-attack oracle) is a **real, recurring** failure-class (GHSA-q7pg-9pr4-mrp2;
   the RUSTSEC `crypto-failure` category), but **no honest call-only fingerprint can
-  express it in the shipped grammar** (a beta.2 notary ruling, confirmed
+  express it in the shipped grammar** (aristotle's beta.2 notary ruling, confirmed
   from two independent angles). A verify-entrypoint anchor + `not(ct_eq)`
   **anti-aligns with the defect** — `ring::hmac::verify` is the *correct*, internally
   constant-time API (and `verify`/`hmac_verify` are the *names of the safe
@@ -587,7 +520,7 @@ the beta.2 + docs changes follow here.
   dishonest-shipped. (An earlier in-development draft of this member was reverted on
   the notary ruling — it never shipped a release.)
 
-### Added — Deserialization-Trust-Boundary stdlib family
+### Added — Deserialization-Trust-Boundary stdlib family (beta.2 voyage)
 
 - New stdlib family `deserialization` — the deep tier of Mucosal-Boundary
   (ADR-027): untrusted bytes crossing into typed structs. Two members:
@@ -621,7 +554,7 @@ the beta.2 + docs changes follow here.
     specimens (the affinity-pairs in `examples/deserialization.rs` + the
     fingerprint drift-guard tests in `tests/stdlib_family_fingerprints.rs`).
 
-### Added — Time-and-Ordering-Hazards stdlib family — `SystemTimeUnwrapPanic`
+### Added — Time-and-Ordering-Hazards stdlib family — `SystemTimeUnwrapPanic` (beta.2 voyage)
 
 - New stdlib family `time_ordering`. First member `SystemTimeUnwrapPanic`
   (suspected) — a `SystemTime::duration_since` clock read whose
@@ -646,7 +579,7 @@ the beta.2 + docs changes follow here.
   drift-guard tests). `SystemTimeForElapsedMeasurement` (semantic) and `TOCTOU`
   (relational) members stay charter-deferred.
 
-### Added — Drop-and-Panic-Discipline stdlib family — `PanicInDrop`
+### Added — Drop-and-Panic-Discipline stdlib family — `PanicInDrop` (beta.2 voyage)
 
 - New stdlib family `drop_panic`. First member `PanicInDrop` (named) — a real
   `Drop` impl whose body reaches a panic source; panic-during-unwind aborts the
@@ -664,7 +597,7 @@ the beta.2 + docs changes follow here.
   (visibility-tell) and `PanicSourceInConstContext` (clippy-covered) stay
   charter-deferred.
 
-### Added — Panic-on-Index + Resource-Lifecycle-Leak stdlib families
+### Added — Panic-on-Index + Resource-Lifecycle-Leak stdlib families (beta.2 voyage)
 
 - **`panic_on_index` :: `GetUncheckedWithoutProof`** (named) — a call to
   `get_unchecked` / `get_unchecked_mut`, the unchecked-indexing escape hatch whose
@@ -690,7 +623,7 @@ the beta.2 + docs changes follow here.
   (`examples/panic_on_index.rs`, `examples/resource_lifecycle.rs`) + drift-guard
   tests.
 
-### Added — Async-Soundness + Numeric-Truncation-Overflow stdlib families
+### Added — Async-Soundness + Numeric-Truncation-Overflow stdlib families (beta.2 voyage)
 
 - **`async_soundness` :: `UnsafeSendSync`** (named) — a hand-written
   `unsafe impl Send for T` / `unsafe impl Sync for T` asserts cross-thread safety
@@ -887,7 +820,7 @@ its own type-discipline violation. The law names two layers: `CardinalityCollaps
 and `SubCauseCollapseInTheUnit` (the silent-wrong-remedy; conditionally forced when
 failure-stages are distinguishable and route non-interchangeable remedies). The
 ceremony (`forward/adr035-three-valued-type-law-ceremony`) was co-signed by
-three independent reviewers after the falsification gate confirmed
+aristotle, math-researcher, and adversarial after the falsification gate confirmed
 no counterexample to the no-total-boundary regress lemma.
 
 ### Fixed — correctness hardening (ATK suite)
@@ -1238,7 +1171,7 @@ at real failure sites.
   fingerprint for a SubstrateAlignment antigen whose witness reads substrate).
 - **ADR-028 Amendment 3** — the category-vs-predicate-type cross-check is
   AUDIT-time, not parse-time (the antigen-immunity join only exists once the scan
-  report assembles); resolves the G2 work-item.
+  report assembles); resolves the G2 campsite.
 - **ADR-028 Amendment 4** — §Enforcement-Surface re-sync post G1/G2/G3: table row 1
   corrected from "parse-time HARD ERROR" to "v0.2 migration hint; hard error v0.2.x";
   cross-check row → audit-time-only; audit-hint vocabulary tiered (v0.2 shipped vs
@@ -1369,11 +1302,12 @@ possibly `#[descended_from]`). Distinct from `requires =` substrate-witness
 predicates — attestation is the *declaration* of who attests; substrate-witness
 predicates *evaluate* against that declaration. Layer 1 adoption gradient
 (ADR-009) compliance: light-touch attestation reaches every adopter without
-requiring the full predicate language. Notary-arc biology grounding (B6).
+requiring the full predicate language. Notary-arc biology grounding (B6 from
+naturalist work).
 
 #### ADR-021 — OracleRef generalization + Oracle artifact-class (RATIFIED)
 
-Oracle as **structurally distinguished artifact** (Model B per maintainer decision)
+Oracle as **structurally distinguished artifact** (Model B per Tekgy decision)
 rather than typed pointer. Five-state lifecycle:
 `Draft → Complete → {Deprecated, Retired, Revoked}`. Dedicated stewardship
 role separate from signers. State transitions are steward-authorized events
@@ -1387,7 +1321,7 @@ oracles at Execution tier). Additive-only schema evolution discipline ratified
 (no migration framework needed). Five Class-1 biology cognates including
 immune-memory + V(D)J recombination.
 
-#### Tolerance-ratification (plugs ADR-011 vibes-grade gap)
+#### Tolerance-ratification (scout S1 — plugs ADR-011 vibes-grade gap)
 
 `#[antigen_tolerance(X, sidecar = true)]` opt-in enables structured
 attestation for tolerance claims; schema **isomorphic to immunity sidecars**.
@@ -1413,7 +1347,7 @@ where small carry-forwards could smuggle substantive change.
 
 #### Process discipline: cross-ADR substrate-grep sub-routine
 
-`docs/internal/process.md` amended with Phase 3 cross-ADR surface check — prevents
+`docs/process.md` amended with Phase 3 cross-ADR surface check — prevents
 naming collisions (e.g., F28-R2 where `attest oracle complete` would have
 collided with `oracle complete` lifecycle verb). Caught at draft-time rather
 than ship-time.
@@ -1448,16 +1382,16 @@ than ship-time.
 - `EvidenceKind` enum (TypeSystemProof | Behavioral | SubstrateState) as
   third audit-output axis.
 - `signature_strength` field per signer on audit output (git-trust default;
-  text-stamp + crypto-signed as a maintainer verdict 2026-05-20).
+  text-stamp + crypto-signed as Tekgy verdict 2026-05-20).
 - New hints: `discipline-predicate-passed-substrate-current`,
   `discipline-substrate-stale`, `discipline-predicate-passed-via-delta-chain`,
   `discipline-substrate-delta-chain-near-cap`, `tolerance-vibes-grade`,
   `oracle-in-draft`, `oracle-completion-attested`, `oracle-reference-malformed`,
   + others. Tier-honesty mapping documented in `docs/witness-tiers.md`.
 
-#### External-adopter validation (Phase 4 shipped)
+#### Tambear adoption (Phase 4 shipped)
 
-An external adopter's sinh/cosh signed-zero discipline declared and substrate-witnessed
+Tambear's sinh/cosh signed-zero discipline declared and substrate-witnessed
 end-to-end against the v0.1-rc primitives. First-user adoption arc closed
 against the originating motivation.
 
@@ -1482,7 +1416,7 @@ against the originating motivation.
   `docs/expedition/stdlib-seed-antigens.md`, `docs/expedition/case-study-determinism-class.md`
   — same receiver-form correction
 - `README.md` — full narrative deep-draft replacing terse status block; what/what-not/
-  vocabulary/workflow/architecture/origin/v0.1.0-scope/setup/license
+  vocabulary/workflow/architecture/tambear-origin/v0.1.0-scope/setup/license
 - `docs/usage-patterns.md` — `#[antigen_tolerance]` decision tree + good/weak rationale
   examples + `until` field usage
 - All four crate-level doc-comments improved; per-macro ADR references; stale "future"
@@ -1509,7 +1443,7 @@ against the originating motivation.
   `"(& mut self)"`, and sloppy-whitespace variants all canonicalize to the same form and
   match the same signatures. Pre-A3.5 the engine required the spaced form `"(& self, ...)"`;
   that footgun is eliminated. (ATK-W6a-013 / ATK-W6a-013b; first real instance:
-  an external adopter's PanickingInDrop, surfaced during A3.5 onboarding cross-check)
+  tambear's PanickingInDrop, surfaced during A3.5 onboarding cross-check)
 - `normalize_signature_canonical` now returns `Option<String>`; strict fail on malformed
   signature string (proc_macro2 parse error → `None`, not silent fallback to plain
   `normalize_ws(raw)`). Grounds: ADR-005 §1 sub-clause F — lenient fallback reintroduces
@@ -1535,7 +1469,7 @@ against the originating motivation.
 
 - 240 passing, 31 ignored (up from 187/18-suites at rc.1); 21 suites
 - ATK-W6a-013 inverted: was "must NOT match" (documenting bug); now "must match" (fix verified)
-- ATK-W6a-013b added: an external-adopter footgun — `has_method("drop", "(&mut self)")` now matches
+- ATK-W6a-013b added: tambear footgun — `has_method("drop", "(&mut self)")` now matches
   across natural/canonical/sloppy whitespace variants
 - ATK-W6a-017 added: Self/self token-class distinction guard — `"(Self, Self) -> Self"` must
   NOT match `fn meet(self, other: Self)`; two positive controls included (receiver pattern matches
@@ -1549,7 +1483,7 @@ against the originating motivation.
 
 First functional release candidate. Sweep A2 (core macros + scan + audit
 completion) closed with 187 passing tests across 18 suites; clippy + doc gates
-clean. Cuts the substrate the development team built across A1 (10 ratified ADRs +
+clean. Cuts the substrate the JBD team built across A1 (10 ratified ADRs +
 4 amendments) and A2 (W1-W8 implementation work-streams).
 
 ### Added
@@ -1700,17 +1634,20 @@ clean. Cuts the substrate the development team built across A1 (10 ratified ADRs
   - `docs/expedition/design-intent.md` — what antigen IS, what it ISN'T
   - `docs/expedition/api-shape.md` — sketch of API surface
   - `docs/expedition/revolutionary-and-not.md` — honest claims and limits
-  - `docs/expedition/team-briefing.md` — for the development team at spawn time
+  - `docs/expedition/team-briefing.md` — for the JBD team at spawn time
   - `docs/expedition/failure-class-instances.md` — real-world Rust ecosystem instances
     of the 8 first-principles failure classes
   - `docs/expedition/ecosystem-composition.md` — composition opportunities with existing
     Rust tools
   - `docs/expedition/academic-context.md` — relationship to existing academic work
-- Foundational ADRs (ADR-001 through ADR-008) ratified in pre-team scaffolding
+  - `docs/expedition/inheritance-from-tambear.md` — disciplines and patterns inherited
+    from the tambear project
+- Foundational ADRs (ADR-001 through ADR-008) ratified by Tekgy + Claude in pre-team
+  scaffolding
 - `docs/glossary.md` — vocabulary anchor
-- `docs/internal/process.md` — formal ADR lifecycle and governance (how decisions get
-  drafted, reviewed, ratified, and govern downstream work; a discipline carried over from
-  a high-correctness computational-mathematics project and adapted for antigen)
+- `docs/process.md` — formal ADR lifecycle and governance (how decisions get drafted,
+  reviewed, ratified, and govern downstream work; inherited from tambear DEC discipline
+  and adapted for antigen)
 - `docs/vision-pitch.md` — 1500-word ecosystem-outreach pitch
 - `docs/expedition/case-study-determinism-class.md` — pseudocode walkthrough of how
   antigen would have caught the originating bug pattern (closes the loop origin.md
@@ -1730,7 +1667,7 @@ clean. Cuts the substrate the development team built across A1 (10 ratified ADRs
 - `.github/workflows/release.yml` — release workflow (git-tag-triggered crates.io
   publish + GitHub release)
 - GitHub issue templates and PR template
-- 9 starter work-items for the future antigen development team
+- 9 starter campsites for the future antigen JBD team
 
 ### Reserved
 

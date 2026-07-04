@@ -5,7 +5,7 @@
 //! invoke as `cargo antigen scan` / `cargo antigen audit` from any directory
 //! containing a `Cargo.toml`.
 //!
-//! ## Subcommands
+//! ## Subcommands (v0.1.0-rc.1)
 //!
 //! - `cargo antigen scan` — walk the workspace, extract antigen-related
 //!   attributes, report unaddressed presentations + tolerated sites + parse
@@ -20,10 +20,9 @@
 //!   state-7 absence.
 //! - `cargo antigen attest` — manage `.attest/<Antigen>.json` substrate-witness
 //!   sidecars (ADR-019). Subcommands: `scaffold` (create sidecar), `sign`
-//!   (add signer entry), `check` (evaluate predicate against sidecar),
-//!   `delta` (add a delta-attestation entry), `list` (enumerate sidecars),
-//!   `gc` (report orphaned sidecar entries; `--force` to delete). The
-//!   `oracle` per-attestation marker is a design-phase stub hidden from `--help`.
+//!   (add signer entry), `check` (evaluate predicate against sidecar).
+//!   Further subcommands (`delta`, `oracle`, `list`, `move`, `migrate`, `gc`)
+//!   are design-phase stubs hidden from `--help`.
 //! - `cargo antigen tolerate` — manage tolerance-ratification sidecars (ADR-019
 //!   §tolerance tier). Subcommands: `scaffold`, `sign`, `check`, `list` (stubs
 //!   pending adopter feedback).
@@ -72,17 +71,15 @@ struct AntigenCli {
 enum AntigenSubcommand {
     /// Scan the workspace for antigen presentations and report unaddressed ones.
     Scan(ScanArgs),
-    /// Propose a candidate failure-class fingerprint from a cluster of marked sites.
+    /// Propose a candidate failure-class fingerprint from a cluster of marked
+    /// sites (the keystone goes live — ADR-045/047/048, the learning core).
     ///
     /// Re-acquires the `#[dread]`/`#[aura]`-marked cluster under `--cluster-root`,
-    /// generalizes it into a draft fingerprint, and tests that draft against the
-    /// clean corpus you supply with `--clean-root`: a draft that would also match
-    /// clean code is rejected (it would flag healthy code), and a draft that binds
-    /// only with help from a near-miss sibling is surfaced for review rather than
-    /// promoted. The result is a **suggestion to review** — never an auto-written
-    /// `#[presents]` and never an auto-named class. A `propose` run leaves your
-    /// source tree byte-unchanged: the machine drafts the syntactic half, and a
-    /// human ratifies the semantic half.
+    /// anti-unifies it into a draft, and routes it through the B-gate (GATE-G)
+    /// against the OPERATOR-supplied `--clean-root` corpus. Renders a **ratifiable
+    /// suggestion** (observe-don't-declare, ADR-044) — never an auto-`#[presents]`
+    /// or an auto-named class. A `propose` run leaves the source tree byte-unchanged;
+    /// the machine supplies the syntactic half, a human ratifies the semantic half.
     Propose(ProposeArgs),
     /// Scaffold a new antigen declaration (design phase).
     ///
@@ -108,18 +105,18 @@ enum AntigenSubcommand {
     },
     /// Comprehensive immunity coverage report — witness resolution and tier validation.
     Audit(AuditArgs),
-    /// Manage `.attest/<Antigen>.json` substrate-witness sidecars.
+    /// Manage `.attest/<Antigen>.json` substrate-witness sidecars (ADR-019).
     Attest(AttestCli),
-    /// Manage tolerance-ratification sidecars.
+    /// Manage tolerance-ratification sidecars (ADR-019 §tolerance tier).
     Tolerate(TolerateCli),
-    /// Manage Oracle artifact-class records.
+    /// Manage Oracle artifact-class records (ADR-021 §D3).
     ///
     /// Oracles are structurally-distinguished discipline artifacts with lifecycle
     /// state (Draft → Complete → Deprecated/Retired/Revoked), dedicated stewards,
     /// and provenance tracking. `cargo antigen oracle` manages the Oracle JSON
     /// records and their state-machine transitions.
     Oracle(OracleCli),
-    /// Drive Supply-Chain Defense Family verifications.
+    /// Drive Supply-Chain Defense Family verifications (ADR-025).
     ///
     /// Eight subcommands cover dep-pinning, dep-attestation, content-hash
     /// recording/verification, maintainer snapshots, and (v0.4+ stubs)
@@ -129,7 +126,7 @@ enum AntigenSubcommand {
     /// `requires = ...` substrate-witness predicates and routes them
     /// through these handlers.
     Verify(VerifyCli),
-    /// Drive VCS-Information-Loss Family observations.
+    /// Drive VCS-Information-Loss Family observations (ADR-026).
     ///
     /// Observation subcommands (v0.2): `scan` (surface VCS-info-loss risk
     /// across the repo), `check-commit` (evaluate one commit's trailers
@@ -139,10 +136,10 @@ enum AntigenSubcommand {
     /// deletion). These OBSERVE the git substrate via the
     /// `antigen::vcs_witness` evaluators; they do not install hooks.
     /// `install-hooks` / `install-server-hooks` (the enforcement layer that
-    /// executes the detection decision tree) are deferred, keeping the
-    /// observation layer independent of the enforcement layer.
+    /// executes the detection decision tree) defer to v0.2.x post-ADR-026
+    /// Amendment 4 ratification per the witness-layer-independence split.
     Vcs(VcsCli),
-    /// Map mucosal trust boundaries across the workspace.
+    /// Map mucosal trust boundaries across the workspace (ADR-027 + Amd 1).
     ///
     /// Walks the scan report's mucosal declarations and runs the
     /// `audit_mucosal` pipeline (incl. the Change-5 three-tier delegate
@@ -166,7 +163,7 @@ enum AntigenSubcommand {
     /// Walks the **full object graph** (`rev-list --all`, NOT a tip revwalk),
     /// classifies fix-commits (B-SZZ keyword + AG-SZZ cosmetic filter, via
     /// `antigen::learn::szz::is_fix_commit`), and links each to its first parent.
-    /// The git read lives here in the CLI (the `vcs_witness` pattern:
+    /// The git read lives here in the CLI (ADR-002 / the `vcs_witness` pattern:
     /// the lib classifies already-read substrate; the CLI reads git). Prints the
     /// measured corpus size — the self-verifying cure for MATURE's
     /// corpus-starvation (a near-zero count signals a tip-revwalk regression).
@@ -201,13 +198,13 @@ struct ScanArgs {
     /// workspace's member crates via `cargo metadata`, scan each independently,
     /// and stamp each member's declarations with its own `<name>@<version>`
     /// canonical path. Cross-member `#[descended_from]` lineage resolves across
-    /// members. This is the substrate for cross-crate identity.
+    /// members. This is the substrate for cross-crate identity (ADR-001 C7).
     /// Default OFF: the flat single-bag scan stays the default for
     /// backward-compatible output.
     #[arg(long)]
     workspace: bool,
-    /// Filter to antigen declarations of a single category. Accepts
-    /// `substrate-alignment` or `functional-correctness`.
+    /// Filter to antigen declarations of a single category (ADR-028 §CLI
+    /// integration). Accepts `substrate-alignment` or `functional-correctness`.
     /// A hybrid antigen (both categories) matches either filter.
     #[arg(long)]
     category: Option<String>,
@@ -217,9 +214,9 @@ struct ScanArgs {
     /// closing the zero-hits-cliff (an empty repertoire is otherwise a false
     /// all-clear). An EXPLICIT `--bundled-catalog` ALWAYS injects (augments local
     /// antigens); without the flag, the catalog auto-injects only when no in-tree
-    /// antigens are found. Bundled matches are SCAN-FACTS
+    /// antigens are found (ADR-043 Amendment 2). Bundled matches are SCAN-FACTS
     /// ("structure matches a known class"), never audited defense verdicts
-    /// (claim-scope).
+    /// (claim-scope, ADR-043 Amendment 1 / ADR-044).
     #[arg(long)]
     bundled_catalog: bool,
     /// Emit findings in the **cargo/rustc `--message-format=json` shape** (v0.4
@@ -243,14 +240,14 @@ struct ScanArgs {
     output: Option<PathBuf>,
 }
 
-/// Args for `cargo antigen propose` — the keystone goes live.
+/// Args for `cargo antigen propose` (Island 3 — the keystone goes live).
 ///
 /// Two trust-distinct source roots: `--cluster-root` (where the marked DEFECT
 /// sites live) and `--clean-root` (the OPERATOR-asserted clean corpus). The split
 /// is load-bearing: antigen NEVER auto-labels unmarked code as clean — the
 /// operator supplies and labels the clean corpus, and the gate verifies only
-/// against what they supply (auto-labeling "unmarked = clean" is a mislabeled-clean
-/// residual the gate must not trust).
+/// against what they supply (ADR-044/047; auto-labeling "unmarked = clean" is the
+/// ATK-047-4 mislabeled-clean residual the gate must not trust).
 // Four independent CLI toggles (list_clusters / exit_code / explain / suggest) — each a
 // distinct user-facing affordance, not a state-machine that should be one enum. The
 // excessive-bools lint targets boolean-blindness in domain state; these are clap flags.
@@ -264,8 +261,8 @@ struct ProposeArgs {
     /// The OPERATOR-supplied, OPERATOR-labeled clean corpus root (scanned; its
     /// function/impl items are the asserted-clean siblings the gate spares against).
     /// **Required for the gate** — there is no auto-derived "the rest of the tree is
-    /// clean" default. Antigen never labels unmarked code clean: the gate is only
-    /// as strong as the corpus you supply + label.
+    /// clean" default. Antigen never labels unmarked code clean (ADR-044/047,
+    /// ATK-047-4): the gate is only as strong as the corpus you supply + label.
     /// (Optional only with `--list-clusters`, a dry-run preview that never runs the
     /// gate and so never consults the clean corpus.)
     #[arg(long, value_name = "PATH")]
@@ -297,7 +294,7 @@ struct ProposeArgs {
     /// not a verdict: `10` (route-to-human) is the gate being honest, not failing.
     #[arg(long)]
     exit_code: bool,
-    /// **Show the reasoning behind the verdict** — turn the gate from oracle
+    /// **Show the GATE-G reasoning behind the verdict** — turn the gate from oracle
     /// into teacher. Every propose render tells you the VERDICT but hides the PATH to
     /// a YES; `--explain` surfaces the reasoning the render discards. On
     /// route-to-human: that NO clean sibling is one constraint from binding the draft
@@ -306,7 +303,7 @@ struct ProposeArgs {
     /// flagged — the autoimmunity made concrete). On promote: which clean sibling
     /// WITNESSED the generalization (the near-miss that proved B made a real in-family
     /// discrimination). Pure additive output — it NEVER changes the verdict or the
-    /// exit code (the gate is untouched). The source tree is byte-unchanged.
+    /// exit code (the gate holds; GATE-G is untouched). The source tree is byte-unchanged.
     #[arg(long)]
     explain: bool,
     /// **The effector SUGGEST-floor — show the spared twin as a suggested fix.** When
@@ -322,8 +319,8 @@ struct ProposeArgs {
     /// verified fix — intent-preservation is the human's call (a `.unwrap()` and a
     /// `.ok()` of the same flush are NOT the same code). So `--suggest` never claims
     /// correctness. When there is NO spared twin (route-to-human), it does NOT fabricate
-    /// one — it falls back to the GENUS fix-direction and says so. A SUGGEST-floor:
-    /// it renders, it never writes the source tree (observe-don't-declare).
+    /// one — it falls back to the GENUS fix-direction (ADR-038) and says so. A
+    /// SUGGEST-floor: it renders, it never writes the source tree (observe-don't-declare).
     #[arg(long)]
     suggest: bool,
 }
@@ -342,8 +339,8 @@ struct AuditArgs {
     /// `cargo test` integration).
     #[arg(long)]
     strict: bool,
-    /// Filter the category audit to a single category. Accepts
-    /// `substrate-alignment` or `functional-correctness`.
+    /// Filter the category audit to a single category (ADR-028 §CLI
+    /// integration). Accepts `substrate-alignment` or `functional-correctness`.
     /// A hybrid antigen (both categories) matches either filter.
     #[arg(long)]
     category: Option<String>,
@@ -433,7 +430,7 @@ enum AttestSubcommand {
     Check(AttestCheckArgs),
     /// Add a delta-attestation entry to an existing sidecar.
     Delta(AttestDeltaArgs),
-    /// Per-attestation oracle marker (design-phase stub).
+    /// Per-attestation oracle marker (design phase; v0.1-rc stub).
     ///
     /// Renamed from `oracle complete` per F28-R2 cross-ADR collision-avoidance:
     /// `cargo antigen oracle complete` (top-level) is the steward-authorized
@@ -444,7 +441,8 @@ enum AttestSubcommand {
     /// (now ratified — Task 1 shipped; this verb's handler is design-phase
     /// pending the `OracleCompletionMarker` schema field plumbing).
     ///
-    /// **ATK-021-19 implementation requirement**: the CLI MUST write
+    /// **ATK-021-19 implementation requirement** (per navigator routing
+    /// 2026-05-20): the CLI MUST write
     /// `OracleCompletionMarker { oracle_state_at_attestation: <current
     /// oracle state at sign time>, .. }` into the sidecar at every
     /// invocation. Without the sign-time-state anchor, sign-time-validity
@@ -459,7 +457,7 @@ enum AttestSubcommand {
     Oracle,
     /// List all `.attest/` sidecars in the workspace.
     List(AttestListArgs),
-    /// Garbage-collect orphaned sidecar entries (report-only; `--force` to delete).
+    /// Garbage-collect orphaned sidecar entries (report-only in v0.1).
     Gc(AttestGcArgs),
 }
 
@@ -682,7 +680,7 @@ enum OracleSubcommand {
     /// Transition an oracle from DRAFT to COMPLETE (steward-authorized).
     ///
     /// Signers may attest against Complete oracles; Draft oracles block
-    /// the `oracles_complete(...)` predicate.
+    /// the `oracles_complete(...)` predicate per ADR-021 §D3.
     Complete(OracleCompleteArgs),
     /// Transition an oracle from COMPLETE to DEPRECATED (steward-authorized).
     ///
@@ -866,13 +864,14 @@ enum VerifySubcommand {
     /// run BEFORE `cargo update`. After `cargo update` the new
     /// maintainer's code has already landed in `Cargo.lock`; the gate
     /// has effectively already passed. Document the sequencing in
-    /// CI scripts.
+    /// CI scripts. Per ADR-025 §Decision.
     MaintainerChanges(VerifyMaintainerChangesArgs),
     /// Record a dep-attestation sidecar.
     ///
     /// `--reviewable-artifact <PATH>` is REQUIRED — empty/missing
     /// values produce a rubber-stamp sidecar that the audit will
-    /// flag with `dep-attest-without-reviewable-artifact`.
+    /// flag with `dep-attest-without-reviewable-artifact`. Per
+    /// ADR-025 §Schema-additions.
     DepAttest(VerifyDepAttestArgs),
     /// Bulk-pin every unpinned `Cargo.toml` dep with the current
     /// resolved version (advisory v0.2: prints suggested edits;
@@ -883,10 +882,11 @@ enum VerifySubcommand {
     /// **THE NON-NEGOTIABLE CHALK/DEBUG DEFENSE**. First-attestation:
     /// `cargo antigen verify content-hash record <crate@version>`.
     /// Verification: `cargo antigen verify content-hash <crate@version>`.
+    /// Per ADR-025 §Decision + B1-R.
     ContentHash(VerifyContentHashArgs),
     /// v0.4+: sandbox-execute a proc-macro dep and report observations.
     /// Currently a stub that surfaces the "tooling not yet available"
-    /// awareness signal — honest tier-naming, never a silent pass.
+    /// awareness signal per ADR-005 Amendment 2 honest-tier-naming.
     #[command(name = "proc-macro-sandbox")]
     ProcMacroSandbox,
     /// v0.4+: sandbox-execute a `build.rs` and report observations.
@@ -974,7 +974,7 @@ struct VerifyDepPinArgs {
     /// its resolved `=<version>` from `Cargo.lock` (format-preserving — comments
     /// and layout are kept). OPT-IN by design: rewriting the adopter's manifest
     /// is an outward-facing, hard-to-reverse mutation, so it is NEVER the default
-    /// — mutation-safety is gated behind this opt-in flag. Without `--write` the
+    /// (ADR-017-Amd1 posture: gate mutation-safety). Without `--write` the
     /// subcommand only PRINTS the suggested edits. Deps with no resolved version
     /// in `Cargo.lock` are left unchanged (never guessed).
     #[arg(long)]
@@ -1083,9 +1083,7 @@ fn run_verify_deps(args: VerifyDepsArgs) -> ExitCode {
                 println!();
                 println!("To fix:");
                 println!("  edit Cargo.toml; change each entry to `<name> = \"=X.Y.Z\"`.");
-                println!(
-                    "Exact-pin (`=X.Y.Z`) is the discipline — an unpinned dependency can change under you."
-                );
+                println!("Per ADR-025 §UnpinnedDependency — exact-pin is the discipline.");
             }
         },
         OutputFormat::Json => {
@@ -1126,7 +1124,7 @@ fn run_verify_maintainer_changes(args: VerifyMaintainerChangesArgs) -> ExitCode 
     println!();
     println!("WARNING: this subcommand MUST run BEFORE `cargo update`. After");
     println!("`cargo update`, the new maintainer's code is already in Cargo.lock");
-    println!("and the gate has effectively already passed.");
+    println!("and the gate has effectively already passed. Per ADR-025.");
     println!();
     let state = evaluate_maintainer_unchanged(&args.root, &args.crate_name, &args.since_version);
     match state {
@@ -1150,7 +1148,7 @@ fn run_verify_maintainer_changes(args: VerifyMaintainerChangesArgs) -> ExitCode 
             ExitCode::from(1)
         },
         MaintainerState::CratesIoQueryUnavailable => {
-            println!("result: crates.io query unavailable (live registry query not yet supported)");
+            println!("result: crates.io query unavailable (v0.2 limitation per ADR-025)");
             ExitCode::from(2)
         },
     }
@@ -1556,7 +1554,7 @@ fn run_verify_content_hash_check(args: VerifyContentHashCheckArgs) -> ExitCode {
             println!();
             println!("This is the chalk/debug/eslint-config attack signal. Investigate before");
             println!("re-recording — if the change is legitimate, re-attest with a fresh");
-            println!("signer + review artifact.");
+            println!("signer + review artifact. Per ADR-025 §ContentHashMismatch.");
             ExitCode::from(1)
         },
         ContentHashState::NoAttestation => {
@@ -1656,7 +1654,7 @@ fn run_verify_stub(name: &str, version_target: &str, description: &str) -> ExitC
     println!();
     println!("  {description}");
     println!();
-    println!("Honest tier-naming: this subcommand is");
+    println!("Per ADR-005 Amendment 2 honest-tier-naming: this subcommand is");
     println!("a deliberate stub. It does NOT silently pass — the supply-chain");
     println!("audit hints surface the un-evaluated witness as the appropriate");
     println!("unsandboxed-* hint, NOT as a passing evaluation.");
@@ -1684,7 +1682,7 @@ struct VcsCli {
 #[derive(Debug, Subcommand)]
 enum VcsSubcommand {
     /// Evaluate a single commit's `Triage-Decision:` trailer against the
-    /// rollback-triage chain.
+    /// rollback-triage chain (ADR-026 Amendment 4 commit-trailer signal).
     CheckCommit(VcsCheckCommitArgs),
     /// Surface VCS-info-loss risk across recent history (v0.2: reports the
     /// rollback-triage state of revert/reset commits in the recent log).
@@ -1697,11 +1695,12 @@ enum VcsSubcommand {
     /// for a rollback (v0.2 advisory: prints the trailer line to add).
     RollbackPrepare(VcsRollbackPrepareArgs),
     /// v0.2.x: record a generic VCS attestation sidecar. Currently a stub
-    /// surfacing the tooling-not-yet-available awareness signal.
+    /// surfacing the tooling-not-yet-available awareness signal per
+    /// ADR-005 Amendment 2 honest-tier-naming.
     Attest,
     /// Mine git history for the recurrent-emergence stdlib failure-classes and
     /// surface how many times each pattern fired — the passive→active loop for
-    /// the recurrent family. DETECTION only:
+    /// the recurrent family (`infra/recurrence-automation`). DETECTION only:
     /// reports observed counts; the *verdict* (is this recurrence worth a
     /// `#[recurrence_anchor]`?) stays the adopter's call (the structural seam —
     /// mining detects the fact, the adopter/ADR owns the recognition).
@@ -1831,13 +1830,14 @@ fn count_commits_changing_line(depth: usize, regex: &str, pathspec: &str) -> Opt
 /// failure-classes and surface their recurrence counts — the passive→active
 /// loop (`infra/recurrence-automation`).
 ///
-/// **The structural seam.** Mining DETECTS the structural fact (this pattern
-/// fired N times across the window); the VERDICT (is N a recurrence worth a
-/// `#[recurrence_anchor]`?) stays the adopter's recognition call. So this
-/// command never auto-anchors and never fails the build — it reports
-/// observations and points at the macro the adopter would use. It mines GIT
-/// HISTORY for recurring failure-classes; a verdict over recurring *work* would
-/// instead read a team's activity log — different substrates, different objects.
+/// **The structural seam (pathmaker convergence, this expedition).** Mining
+/// DETECTS the structural fact (this pattern fired N times across the window);
+/// the VERDICT (is N a recurrence worth a `#[recurrence_anchor]`?) stays the
+/// adopter's recognition call. So this command never auto-anchors and never
+/// fails the build — it reports observations and points at the macro the
+/// adopter would use. Parallel to camp's recurrence (which mines the team
+/// ACTIVITY LOG for recurring work); antigen mines GIT HISTORY for recurring
+/// failure-classes — different substrates, different objects, not competing.
 ///
 /// **Honest degradation (the offline/no-repo axis).** When git is unavailable
 /// each observation reads "unobservable", never "zero" — the absence of a mine
@@ -2128,7 +2128,7 @@ fn run_vcs_rollback_prepare(args: VcsRollbackPrepareArgs) -> ExitCode {
         );
         return ExitCode::from(1);
     }
-    println!("Add this trailer to your rollback commit message:");
+    println!("Add this trailer to your rollback commit message (ADR-026 Amendment 4):");
     println!();
     println!("    Triage-Decision: {}", args.decision.to_lowercase());
     println!();
@@ -2145,8 +2145,8 @@ fn run_vcs_attest_stub() -> ExitCode {
     println!();
     println!("Generic VCS attestation-sidecar recording lands in v0.2.x. For now,");
     println!("use `branch-archive` (branch-deletion attestation) or `rollback-prepare`");
-    println!("(triage-commit trailer scaffolding). Honest tier-naming: this stub does");
-    println!("NOT silently pass.");
+    println!("(triage-commit trailer scaffolding). Per ADR-005 Amendment 2 honest-tier-");
+    println!("naming: this stub does NOT silently pass.");
     ExitCode::from(2)
 }
 
@@ -2942,18 +2942,18 @@ fn acquire_scan_report(args: &ScanArgs) -> Result<scan::ScanReport, ExitCode> {
             "Scanning workspace (bundled stdlib catalog): {}",
             args.root.display()
         );
-        // ADR-043 Amendment 2: an EXPLICIT --bundled-catalog flag ALWAYS injects
-        // (augments the crate's own antigens with the bundled catalog), regardless
-        // of how many local antigens the crate declares. Real-world adopters are
-        // typically PARTIAL adopters, not blank crates — a partial adopter who
-        // explicitly asks for the catalog and gets it suppressed is the exact
-        // silent-miss E0 exists to kill. (auto_detect = false → Always.) The
-        // auto-detect-when-empty convenience is the *no-flag* default, handled by
-        // the plain scan path; it is not reachable here.
+        // Captain's ruling / ADR-043 Amendment 2: an EXPLICIT --bundled-catalog
+        // flag ALWAYS injects (augments the crate's own antigens with the bundled
+        // catalog), regardless of how many local antigens the crate declares. The
+        // real adopters (tambear, camp) are PARTIAL adopters, not blank crates —
+        // a partial adopter who explicitly asks for the catalog and gets it
+        // suppressed is the exact silent-miss E0 exists to kill. (auto_detect =
+        // false → Always.) The auto-detect-when-empty convenience is the *no-flag*
+        // default, handled by the plain scan path; it is not reachable here.
         scan::scan_workspace_bundled_catalog(&args.root, None, false)
     } else {
         eprintln!("Scanning workspace: {}", args.root.display());
-        // No flag: AUTO-DETECT (ADR-043 Amd-2 case 2). A crate
+        // No flag: AUTO-DETECT (captain's ruling / ADR-043 Amd-2 case 2). A crate
         // with ZERO local antigens auto-injects the bundled catalog — that closes
         // the zero-hits-cliff for a total newcomer who didn't know to pass the
         // flag. A crate WITH local antigens stays local-only (it has its own
@@ -3143,8 +3143,8 @@ fn run_scan(args: ScanArgs) -> ExitCode {
     }
 }
 
-/// Render a brief summary of dep scan results in human format. Dep
-/// reports are independent — we only summarize
+/// Render a brief summary of dep scan results in human format. Per
+/// navigator's ruling, dep reports are independent — we only summarize
 /// counts here (full per-crate detail goes through --format json).
 fn print_human_dep_summary(deps: &[DepScanResult]) {
     println!();
@@ -3285,7 +3285,8 @@ fn print_lineage_integrity(report: &scan::ScanReport) {
 }
 
 /// Render deferred-defense declarations (`#[anergy]` / `#[immunosuppress]` /
-/// `#[poxparty]` / `#[orient]`) LOUDLY (ADR-023). These are intentional dev permissions to proceed with a known
+/// `#[poxparty]` / `#[orient]`) LOUDLY (ADR-023 + forward/suppression-loud-must-
+/// be-removed). These are intentional dev permissions to proceed with a known
 /// defense gap — they do NOT block the build and do NOT auto-expire, but the
 /// audit must ALWAYS announce active ones prominently so they cannot become
 /// silent accumulated debt. `audit_deferred_defenses` computes the state; this
@@ -3432,7 +3433,8 @@ fn print_recurrent_concerns(report: &audit::RecurrentAuditReport) {
     println!();
 }
 
-/// Render the `#[descended_from]` lineage-fidelity advisory. Flags edges where the child antigen's
+/// Render the `#[descended_from]` lineage-fidelity advisory (scientist
+/// 2026-05-27: ADVISORY for v0.3). Flags edges where the child antigen's
 /// fingerprint is detectably NOT a refinement of the parent's. Non-blocking —
 /// it does NOT affect the exit code; it surfaces a lineage claim that doesn't
 /// survive the structural check (the MHC-restriction / negative-selection
@@ -3470,7 +3472,7 @@ fn print_lineage_fidelity_advisory(report: &audit::LineageFidelityAuditReport) {
 
 /// Render the P2' defended-status roll-up: per failure-class, whether it carries
 /// any live (`tier > None`) witness — the signal the obsolete/well-defended
-/// discriminator reads.
+/// discriminator reads (`outsider/the-discriminator-is-blind-for-silent-classes`).
 /// Loud only for the UNDEFENDED classes (no resolving witness → OBSOLETE-eligible);
 /// silent when every class carries a live witness (nothing to forget). This is the
 /// RESOLUTION axis (the witness resolves), not the exercised-coverage axis — the
@@ -3977,7 +3979,7 @@ struct DepScanResult {
     report: scan::ScanReport,
 }
 
-/// `cargo antigen propose` — the keystone goes live (ADR-045/047/048).
+/// `cargo antigen propose` — the keystone goes live (Island 3, ADR-045/047/048).
 ///
 /// Re-acquires the marked DEFECT cluster under `--cluster-root`, collects the
 /// OPERATOR-supplied clean corpus under `--clean-root`, routes them through the
@@ -4381,7 +4383,7 @@ fn render_suggestion(s: &ProposeSuggestion, marker: &str) {
             );
         }
         println!("  trust: {}", Applicability::MaybeIncorrect.label());
-        // The load-bearing honest-scope caveat: the twin is a
+        // The load-bearing honest-scope caveat (adversarial STRESS #5): the twin is a
         // DIFFERENT function — it shows the shape, NOT a verified fix.
         println!(
             "  CAVEAT: `{twin}` is a DIFFERENT function that merely shares the\n  \
@@ -4395,7 +4397,7 @@ fn render_suggestion(s: &ProposeSuggestion, marker: &str) {
         println!(
             "  No spared clean sibling (twin) was found in your corpus — there is NO\n  \
              in-corpus example of the safe shape, so antigen will NOT fabricate one.\n  \
-             Your `{marker}` sites {signal}. The GENUS fix-direction is one of:\n  \
+             Your `{marker}` sites {signal}. The GENUS fix-direction (ADR-038) is one of:\n  \
              recover-the-info (don't drop the error) · tighten-the-guard · reorder-the-effect.\n  \
              Add a clean sibling that is one discriminating constraint from the defect to\n  \
              get a concrete in-corpus twin."
@@ -4685,8 +4687,8 @@ fn item_shape_digest(item: &syn::Item) -> Option<String> {
 /// `.rs` file under `clean_root`. The operator supplies + labels this; antigen never
 /// adds an auto-labeled item (ADR-044/047). Returns the parsed `syn::Item`s.
 ///
-/// **HARD-ERRORS on any unreadable/unparseable `.rs` file — never silently skips**.
-/// A silently-incomplete clean corpus is a *weaker gate*: a
+/// **HARD-ERRORS on any unreadable/unparseable `.rs` file — never silently skips**
+/// (captain's ruling). A silently-incomplete clean corpus is a *weaker gate*: a
 /// dropped clean item is one the spare-clean/near-miss checks never run against, so a
 /// draft that would have bound it can promote — autoimmunity admitted at the gate
 /// INPUT. That silent read-or-continue is exactly antigen's own `scan_workspace_inner`
@@ -4715,7 +4717,7 @@ fn collect_clean_corpus(clean_root: &Path) -> Result<Vec<syn::Item>, ExitCode> {
 /// Recursively walk `dir` for `.rs` files, parse each, and push its top-level items
 /// into `out`. Skips `target` + hidden dirs (a clean corpus is source, not build
 /// output). **Returns `Err(message)` naming the first file it cannot read OR parse —
-/// it does NOT silently skip** (see [`collect_clean_corpus`]):
+/// it does NOT silently skip** (the captain's ruling; see [`collect_clean_corpus`]):
 /// a silently-dropped clean file narrows the labeled corpus and weakens the gate,
 /// which is antigen's own silent-skip `#[dread]` committed at the gate input.
 fn collect_rs_items(dir: &Path, out: &mut Vec<syn::Item>) -> Result<(), String> {
@@ -4841,7 +4843,7 @@ fn render_propose_outcome(
             if let Some(ex) = explain {
                 match &ex.near_miss {
                     Some(item) => println!(
-                        "\n--explain (the gate's reasoning):\n  \
+                        "\n--explain (GATE-G reasoning):\n  \
                          The generalization is WITNESSED by clean sibling `{item}` — it matches\n  \
                          all-but-one of the draft's conjuncts and is SPARED by failing exactly\n  \
                          one. That near-miss is the proof B made a REAL in-family discrimination\n  \
@@ -4849,7 +4851,7 @@ fn render_propose_outcome(
                          bare-structural over-bind."
                     ),
                     None => println!(
-                        "\n--explain (the gate's reasoning):\n  \
+                        "\n--explain (GATE-G reasoning):\n  \
                          (no single near-miss sibling identified — the draft is\n  \
                          near-miss-witnessed by the corpus as a whole.)"
                     ),
@@ -4866,7 +4868,7 @@ fn render_propose_outcome(
             // fake a generalization-verdict it cannot make. FIRST-CLASS, expected.
             println!("== drafted a candidate — routed to a human ratifier ==\n");
             println!(
-                "Antigen anti-unified a draft from your `{}` marks, but cannot\n\
+                "Antigen anti-unified a draft from your `{}` marks, but the B-gate cannot\n\
                  certify it GENERALIZES against your clean corpus (no near-miss: no clean\n\
                  sibling is one discriminating constraint from binding the draft). So it\n\
                  routes the candidate to a HUMAN ratifier rather than promote it.\n\n\
@@ -4881,7 +4883,7 @@ fn render_propose_outcome(
                 // one discriminating constraint from binding the draft. (near_miss is
                 // None here by construction — the gate routed BECAUSE there is none.)
                 println!(
-                    "\n--explain (the gate's reasoning):\n  \
+                    "\n--explain (GATE-G reasoning):\n  \
                      The gate scanned your clean corpus for a NEAR-MISS — a sibling that\n  \
                      matches all-but-one of the draft's conjuncts and is spared by failing\n  \
                      exactly one. It found NONE: every clean item either fully matches the\n  \
@@ -4909,14 +4911,14 @@ fn render_propose_outcome(
                 ),
                 None => println!(
                     "The anti-unified draft is BARE-STRUCTURAL (no discriminating signal) — it\n\
-                     would over-bind its whole structural family. Refused at the safety\n\
-                     check; refine the cluster (these sites share only their shape)."
+                     would over-bind its whole structural family. Refused at the (A)-binary\n\
+                     safety check; refine the cluster (these sites share only their shape)."
                 ),
             }
             if let Some(ex) = explain {
                 if let Some(twin) = &ex.bound_twin {
                     println!(
-                        "\n--explain (the gate's reasoning):\n  \
+                        "\n--explain (GATE-G reasoning):\n  \
                          The clean item the draft would flag is `{twin}` — promoting the draft\n  \
                          would fire on THIS known-good code (the autoimmunity made concrete).\n  \
                          Either tighten the cluster so the draft no longer matches `{twin}`, or\n  \
@@ -5053,7 +5055,7 @@ fn render_propose_json(
                     "applicability": "maybe-incorrect",
                     "auto_apply": false,
                     "note": s.twin.as_ref().map_or(
-                        "no in-corpus twin; genus fix-direction fallback; never fabricated",
+                        "no in-corpus twin; genus fix-direction fallback (ADR-038); never fabricated",
                         |_| "the spared twin shows the safe SHAPE, not a verified fix; intent-preservation is the human's call",
                     ),
                 }),
@@ -5099,7 +5101,7 @@ fn run_new(name: String) -> ExitCode {
            - Generate a starter declaration file in your project's antigen module\n\
          \n\
          For now, please write antigen declarations by hand. See the project's\n\
-         documentation for naming guidance.\n",
+         docs/expedition/conventions.md for naming guidance.\n",
         name
     );
     ExitCode::FAILURE
@@ -5418,7 +5420,7 @@ fn run_audit(args: AuditArgs) -> ExitCode {
     // is NOT gated here — the intent exists; it warrants a warning, not a hard
     // fail, until per-antigen severity lands in a later slice.)
     let strict_undefended_fails = args.strict && !audit_report.undefended_verdicts().is_empty();
-    // ATK-STRICT-5: audit --strict is the
+    // ATK-STRICT-5 / findings/scan-audit-strict-divergence: audit --strict is the
     // CI integration point and MUST be a superset of scan --strict. The three
     // structural-defect gates that `scan --strict` enforces (orphaned tolerances,
     // orphaned lineage edges, dangling child lineage edges) belong in the audit
@@ -5457,12 +5459,16 @@ fn run_attest(cli: AttestCli) -> ExitCode {
         AttestSubcommand::Gc(args) => run_attest_gc(args),
         AttestSubcommand::Oracle => {
             eprintln!(
-                "`attest oracle mark` is not yet implemented (design-phase stub).\n\
-                 This per-attestation marker records the oracle's state at the moment \
-                 a signer attests, so the audit can later tell apart an oracle that was \
-                 valid at sign time from one that was already deprecated. To transition \
-                 an oracle's own state, use `cargo antigen oracle complete` instead.\n\
-                 This command currently writes nothing — do not treat its exit code as success."
+                "`attest oracle mark` is not yet implemented in v0.1-rc.\n\
+                 Renamed from `attest oracle complete` per ADR-021 F28-R2 to \
+                 disambiguate from the top-level `cargo antigen oracle complete` \
+                 state-machine verb. Implementation pending: must write \
+                 `OracleCompletionMarker {{ oracle_state_at_attestation, .. }}` \
+                 at sign time per ADR-021 §D4 + ATK-021-19 (without the \
+                 sign-time-state anchor, sign-time-validity cannot be \
+                 structurally enforced — the audit cannot distinguish post-\
+                 sign-time deprecation from pre-sign-time deprecation).\n\
+                 Operator scripts MUST NOT rely on this exit code as success."
             );
             ExitCode::FAILURE
         },
@@ -6067,7 +6073,7 @@ fn run_attest_list(args: AttestListArgs) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-/// `attest gc`: report orphaned sidecars (report-only; `--force` deletes).
+/// `attest gc`: report orphaned sidecars (report-only in v0.1; --force deletes).
 fn run_attest_gc(args: AttestGcArgs) -> ExitCode {
     use antigen_attestation::Ratification;
 
@@ -6133,7 +6139,7 @@ fn run_attest_gc(args: AttestGcArgs) -> ExitCode {
         }
         eprintln!("{removed} sidecar(s) removed.");
     } else {
-        eprintln!("(Reported only. Re-run with --force to delete these sidecars.)");
+        eprintln!("(Run with --force to delete. Report-only in v0.1.)");
     }
 
     ExitCode::SUCCESS
@@ -6367,7 +6373,7 @@ struct JsonAuditReport<'a> {
     /// ADR-023 deferred-defense state (anergy / immunosuppress / poxparty /
     /// orient): active/expired/stale counts + per-declaration hints. Always
     /// present so consumers can detect active suppressions — the LOUD invariant
-    /// intentional defense gaps must
+    /// (forward/suppression-loud-must-be-removed): intentional defense gaps must
     /// never be silently invisible.
     deferred_defense_audit: &'a audit::DeferredDefenseAuditReport,
     /// ADR-024 convergent-evidence audit (`#[diagnostic]`/`#[clonal]`/`#[igg]`/...):
@@ -6378,9 +6384,9 @@ struct JsonAuditReport<'a> {
     /// per-declaration concern hints + clean/concern counts. Delivered here so
     /// the computed verdict reaches consumers (was a severed delivery arm).
     recurrent_audit: &'a audit::RecurrentAuditReport,
-    /// `#[descended_from]` lineage-fidelity advisory:
+    /// `#[descended_from]` lineage-fidelity advisory (scientist 2026-05-27):
     /// edges where the child antigen's fingerprint is detectably NOT a
-    /// refinement of the parent's. ADVISORY (non-blocking).
+    /// refinement of the parent's. ADVISORY (non-blocking) for v0.3.
     lineage_fidelity_audit: &'a audit::LineageFidelityAuditReport,
     /// Coverage / reachability audit (the ignorance frontier): per-site
     /// `UnreachedSite` verdicts with a `cause` (Barrier / `SubThreshold` /
@@ -6527,7 +6533,7 @@ fn print_immune_state_verdicts(audit_report: &audit::AuditReport) {
     }
 
     println!();
-    println!("Immune-state verdicts (observed, not declared):");
+    println!("Immune-state verdicts (ADR-029 — observed, not declared):");
 
     let undefended = audit_report.undefended_verdicts();
     let defended_count = audit_report
@@ -6648,7 +6654,8 @@ fn print_category_audit_human(category_report: &audit::CategoryAuditReport) {
     print_silence_witness_advisory(category_report);
 }
 
-/// Render the silence-witness shape-mismatch advisories. A
+/// Render the silence-witness shape-mismatch advisories (scientist design +
+/// aristotle gate, forward/silence-witness-shape-mismatch-{hint,impl}). A
 /// `SubstrateAlignment` antigen fails by silence-by-absence: a representation
 /// drifts and nothing fires, because the antigen is about the ABSENCE of a
 /// closure-mechanism. The two advisories flag witness shapes that cannot detect

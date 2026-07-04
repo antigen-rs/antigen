@@ -68,7 +68,7 @@ use proptest::prelude::*;
 /// identity anchors (`Item`, `ImplOfTrait`), discriminating leaves (`BodyCalls`,
 /// `BodyContainsMacro`), AND recursively-nested `AllOf`/`AnyOf` combinators.
 ///
-/// The leaf-only generator (a batch-3 catch, 2026-06-11) left
+/// The leaf-only generator (the captain's batch-3 catch, 2026-06-11) left
 /// invariant 2's "including nested combinators" claim COMMENT-ASSERTED but
 /// UNTESTED — and the nested-vacuity hole (a nested `AllOf` conjunct lets ONE
 /// top-level drop strip MANY discriminators) lives precisely in the combinator
@@ -87,7 +87,7 @@ fn any_constraint() -> impl Strategy<Value = Constraint> {
     // (incl. the double-wrap `AllOf(AllOf(..))` the recursive-canonical-form must
     // flatten) without blowing up the search space. ALL THREE combinators the
     // `Constraint` enum carries are generated — `Not(Box<Self>)` too, so a nested
-    // negation can't slip a combinator-shape past the property (the
+    // negation can't slip a combinator-shape past the property (the team-lead's
     // completeness catch: the generator must span every combinator the gate reads).
     leaf.prop_recursive(2, 8, 3, |inner| {
         prop_oneof![
@@ -314,7 +314,7 @@ proptest! {
 // REGISTRY #1 — CLOSED 2026-06-11 (ADR-047 Amendment 2, `is_near_miss` now requires
 // `has_discriminating_conjunct(&remainder)` on the dropped-conjunct remainder;
 // `self_tolerance.rs:352`). This invariant is the UNIVERSALIZATION of the
-// confirmed-LIVE ATK-047-1 finding (`atk_047_shape_fragility_seam.rs`
+// adversarial's confirmed-LIVE ATK-047-1 finding (`atk_047_shape_fragility_seam.rs`
 // gave TWO specific examples; this proves the fix for the CLASS — all single-
 // discriminator drafts vs all non-binding items). Born RED, fixed, now a PERMANENT
 // regression guard (the ATK lifecycle: never deleted).
