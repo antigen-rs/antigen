@@ -803,7 +803,7 @@ fn full_window_tightest_margin(stream: &[f64], delta: f64) -> f64 {
 /// `Obsolete` when a channel is blind bypasses CURATE's moral-center gate entirely (the
 /// gate holds, but the wrong key is handed to it). Hence the hard constraint:
 ///
-/// **THE CONSERVATISM-JOIN (the safety floor, ADR-065 Phase 6 C2):** if
+/// **THE CONSERVATISM-JOIN (the safety floor, ADR-065 aristotle Phase 6 C2):** if
 /// EITHER channel is blind — ADWIN [`DriftVerdict::UnderPowered`] OR bit-3
 /// [`SilentStatus::Indeterminate`] — the verdict is [`ClassVerdict::RouteToHuman`]
 /// (HOLD, never auto-forget), regardless of what the other channel says. A blind
@@ -818,8 +818,8 @@ fn full_window_tightest_margin(stream: &[f64], delta: f64) -> f64 {
 /// | `NoDrift`               | pass through the streamless bit-3 verdict alone ([`classify`]) |
 /// | `UnderPowered`          | `RouteToHuman` (conservatism-JOIN) |
 ///
-/// The third conservatism-join cell (ADR-065 amendment): a recall-`Drift` +
-/// `Dormant` (shape present, no near-miss) routes to
+/// The third conservatism-join cell (ADR-065 amendment, aristotle first-principles
+/// ruling): a recall-`Drift` + `Dormant` (shape present, no near-miss) routes to
 /// human — NOT the old "VIRTUAL drift / KEEP." The cause is **genuinely undecidable**
 /// on the denominator-free `Affinity` rate: [`Affinity::recall`] is a pure fraction
 /// (cluster-size divided out at construction; [`LifeEvent::Scored`](crate::learn::life_record::LifeEvent::Scored) carries no count).
@@ -890,7 +890,7 @@ pub const fn fuse_channels(
             ..
         } if matches!(bit3, ClassVerdict::Obsolete) => ClassVerdict::RouteToHuman,
 
-        // Third conservatism-join cell (ADR-065): recall-Drift + Dormant
+        // Third conservatism-join cell (ADR-065 aristotle ruling): recall-Drift + Dormant
         // is UNDECIDABLE. Affinity::recall is a pure rate — Scored carries no cluster_size
         // denominator. A recall-drop 0.9→0.4 is indistinguishable between:
         //   • churn (denominator shrank, shape alive — KEEP)

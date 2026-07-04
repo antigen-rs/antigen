@@ -161,7 +161,7 @@ fn scan_json_output_is_not_capped() {
 //   4. Verify the JSON output has NO "orphaned" or similar diagnostic field
 //      — the gap is the ABSENCE of orphan diagnostic in the output.
 //
-// FIX DIRECTION:
+// FIX DIRECTION (scout campsite forward/descended-from-structural-verification):
 // Wire ScanReport::orphaned_lineage_edges() result into the scan output render
 // path — either as a separate JSON field (`orphaned_lineage_edges: [...]`) or
 // as entries in `parse_failures` with a diagnostic message. The human output
@@ -225,7 +225,7 @@ pub struct ChildClass;
         "ATK-orphaned-lineage: edge parent must be ParentClass"
     );
 
-    // (4): DELIVERY ARM FIXED (bf60e5d+). The scan JSON now DELIVERS
+    // (4): DELIVERY ARM FIXED (bf60e5d+, pathmaker). The scan JSON now DELIVERS
     // the computed orphaned_lineage_edges() verdict as a top-level field
     // (sibling to `unaddressed` — the same computed-then-attached pattern; the
     // query is derived state, not stored on ScanReport). An author running
@@ -274,7 +274,7 @@ pub struct ChildClass;
         .expect("run scan");
     let stdout = String::from_utf8_lossy(&out.stdout);
 
-    // DELIVERY ARM FIXED: the human output now WARNS about the
+    // DELIVERY ARM FIXED (pathmaker): the human output now WARNS about the
     // orphaned lineage edge and names the missing parent, so an author running
     // `cargo antigen scan` (no --format json) sees their broken lineage.
     let mentions_orphan =

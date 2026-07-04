@@ -46,7 +46,7 @@ use super::{
 //
 // Sub-clause F (ADR-005): cross-crate antigen declarations are trusted
 // inputs; the trust anchor is cargo's own checksum verification chain.
-// The trust-model ADR sentence is still in flight.
+// The trust-model ADR sentence is in flight with aristotle.
 // ============================================================================
 
 /// How a [`DepCrateRoot`] was sourced — the `cargo metadata` `source` field

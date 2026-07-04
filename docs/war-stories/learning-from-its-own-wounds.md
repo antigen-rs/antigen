@@ -277,6 +277,9 @@ cargo test --test autoimmunity_safety_gate -p antigen
 - [`../the-keystone-explained.md`](../the-keystone-explained.md) — *why* the loop is
   trustworthy, stripped to first principles: why the generator must route through the
   gate, and exactly where the guarantees stop.
+- [`../decisions.md`](../decisions.md) — ADR-044 (observe-don't-declare: a draft is
+  a hypothesis, never an asserted class) and ADR-045 (the generator-and-gate
+  co-ship: never promote without the gate green).
 - [`../fingerprint-grammar.md`](../fingerprint-grammar.md) — `any_of` and
   `body_calls`: the leaves the anti-unifier builds a draft out of.
 - [`../stdlib-families.md`](../stdlib-families.md) — the hand-written failure-class

@@ -1,5 +1,6 @@
 //! P0a — the marked-unknown digest seam (the keystone PROPOSE-slice input
-//! precondition; ADR-045 Amd-1).
+//! precondition; ADR-045 Amd-1; campsite
+//! `keystone/propose-slice-input-seam-marked-unknown-digest-is-empty`).
 //!
 //! THE FAILING TESTS THAT DEFINE DONE. Write RED first; green = the seam is real.
 //!
@@ -13,11 +14,11 @@
 //! the B-governor exists to prevent). These tests pin the fix: the enclosing
 //! item's `structural_digest` rides through to the emitted Finding.
 //!
-//! The fix direction (design not prescription): add a
+//! The fix direction (pathmaker's, design not prescription): add a
 //! `structural_digest` field to `MarkedUnknown`, populate it from
 //! `self.current_item_digest` at the push in `extract_marked_unknown`
 //! (`parse.rs:481`; the digest is already in scope — set per item before
-//! `check_attrs`), and have `to_finding` use it for BOTH
+//! `check_attrs`, scout-verified), and have `to_finding` use it for BOTH
 //! `structural_digest` and `cluster_key_of(digest, marker)`.
 
 use std::path::{Path, PathBuf};
@@ -97,7 +98,7 @@ fn marked_unknown_finding_carries_the_enclosing_item_digest() {
     let gamma = mark_by_trigger(&marks, "same shape as Alpha");
 
     // The PROPOSE-slice clusters on the name-INSENSITIVE SHAPE digest (the
-    // two-field distinction, ADR-045 Amd-2): identical-shape items must
+    // captain's two-field ruling, ADR-045 Amd-2): identical-shape items must
     // share it so anti-unification has a cluster to generalize.
     let s_alpha = finding_shape_digest(alpha);
     let s_beta = finding_shape_digest(beta);
@@ -218,7 +219,7 @@ fn ordering_regression_guard() {
 
 // ===========================================================================
 // TEST 4 — a mark on a non-canonical-item position (enum variant). Per the
-// refinement: the variant shares the enclosing ENUM's digest (a
+// scout's refinement: the variant shares the enclosing ENUM's digest (a
 // principled stand-in), which must be NON-EMPTY — it must NOT silently
 // re-collapse into the empty "dread@" bucket.
 // ===========================================================================
@@ -252,7 +253,7 @@ fn mark_on_a_non_item_position_uses_a_principled_nonempty_digest() {
         );
     }
 
-    // Documented spec consequence (an open question, NOT
+    // Documented spec consequence (the scout's open question for the council, NOT
     // a failure assertion): under the enum-granular stand-in, two distinct marked
     // variants of ONE enum share the enclosing enum's digest → they cluster
     // together. If the PROPOSE-slice later needs per-variant discrimination, this
@@ -265,7 +266,7 @@ fn mark_on_a_non_item_position_uses_a_principled_nonempty_digest() {
         1,
         "the enum-granular stand-in means both variant marks share the enclosing \
          enum's digest → ONE cluster_key. If this becomes >1, per-variant digests \
-         were introduced — a deliberate spec change, not a silent \
+         were introduced — a deliberate spec change for the council, not a silent \
          drift. keys = {keys:?}"
     );
 }

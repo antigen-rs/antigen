@@ -96,7 +96,7 @@ Antigen's substrate-witnesses watch that relationship: they read the representat
 
 ## A concrete instance from the project that motivated antigen
 
-In April 2026, the project that motivated antigen — a Windows-native GPU-accelerated mathematical computing toolkit — discovered a polarity inversion in its `DeterminismClass` enum's `meet` method. The discriminants were ordered strongest-first; the lattice ordering is reverse-strictness; `meet = std::cmp::min` therefore returned the *strongest* class instead of the weakest. The fix: `meet = max` is correct.
+In April 2026, the [tambear](https://github.com/tambear-rs/tambear) project — a Windows-native GPU-accelerated mathematical computing toolkit — discovered a polarity inversion in its `DeterminismClass` enum's `meet` method. The discriminants were ordered strongest-first; the lattice ordering is reverse-strictness; `meet = std::cmp::min` therefore returned the *strongest* class instead of the weakest. The fix: `meet = max` is correct.
 
 Two months later, an unrelated change introduced `CommutativityClass` — structurally identical shape, independently designed, by different agents on a different team. The polarity inversion shipped again with `meet = std::cmp::min`. The same illness, re-derived from scratch, narrowly caught by adversarial pre-implementation verification.
 
@@ -116,7 +116,7 @@ Had antigen existed during that cycle, the team would have declared:
 pub struct PolarityInvertedClassMeet;
 ```
 
-When `CommutativityClass` was introduced months later, `cargo antigen scan` would have flagged the structural match in CI. The engineer would have seen the diagnostic, written the suggested witness proptest, watched it fail, and fixed the polarity before the code merged. The illness would have been cured before it appeared.
+When `CommutativityClass` was introduced months later, `cargo antigen scan` would have flagged the structural match in CI. The pathmaker would have seen the diagnostic, written the suggested witness proptest, watched it fail, and fixed the polarity before the code merged. The illness would have been cured before it appeared.
 
 ---
 
@@ -210,7 +210,7 @@ Full vocabulary and roadmap: [`roadmap.md`](roadmap.md).
 
 We're not asking for adoption all at once. The pathway has explicit phases:
 
-**Phase 1 (shipped)**: core macros + scan + audit + attest, published on [crates.io](https://crates.io/crates/antigen). Early adopters write their own antigens for project-specific failure classes. The origin project is the first adopter.
+**Phase 1 (shipped)**: core macros + scan + audit + attest, published on [crates.io](https://crates.io/crates/antigen). Early adopters write their own antigens for project-specific failure classes. [Tambear](https://github.com/tambear-rs/tambear) is the first adopter.
 
 **Phase 2: antigen-stdlib.** A companion crate provides ready-made antigens for common Rust failure classes. Adoption barrier drops significantly — value without authoring antigens yourself, the way clippy ships default lints.
 
@@ -230,7 +230,7 @@ For Rust ecosystem maintainers and tooling-aware engineers:
 
 1. **Read the design substrate** (start with [`origin.md`](origin.md) and [`roadmap.md`](roadmap.md)) and tell us where the design is wrong, over-claiming, or missing considerations.
 2. **Surface prior art** we haven't covered.
-3. **Propose failure-classes** that should be in `antigen-stdlib`, with real-world instance evidence. Issue templates at [`.github/ISSUE_TEMPLATE`](../.github/ISSUE_TEMPLATE) accept these.
+3. **Propose failure-classes** that should be in `antigen-stdlib`, with real-world instance evidence. Issue templates at [`.github/ISSUE_TEMPLATE`](.github/ISSUE_TEMPLATE) accept these.
 4. **Tell us if you'd be an early adopter.** Real adoption stories shape priorities far more than maintainer guesses. Open a GitHub Discussion thread if antigen would address a pain point in your codebase.
 
 For tool authors (clippy, kani, prusti, verus, cargo-mutants, etc.):
@@ -265,7 +265,7 @@ These are early signals from one project's development process, not controlled s
 
 ## The architectural class
 
-Antigen instantiates a broader architectural class: *recognition with memory and inheritance, where new instances of recognized patterns are caught structurally and memory propagates through structural inheritance*. This class has been independently re-invented across 16+ academic fields, with four particularly rigorous independent convergences through different methods: the type-theory lineage (Hoare 1969 → Eiffel → Liquid Haskell → Flux), cognitive schema theory, Christopher Alexander's pattern languages, and cybersecurity IDS signature systems. The biological immune system is the originating substrate antigen explicitly models on — not a peer cognate, but the empirical implementation of this architecture refined over 500 million years of evolutionary pressure. The cross-domain convergence is cataloged at [`cross-domain-architectural-map.md`](cross-domain-architectural-map.md).
+Antigen instantiates a broader architectural class: *recognition with memory and inheritance, where new instances of recognized patterns are caught structurally and memory propagates through structural inheritance*. This class has been independently re-invented across 16+ academic fields, with four particularly rigorous independent convergences through different methods: the type-theory lineage (Hoare 1969 → Eiffel → Liquid Haskell → Flux), cognitive schema theory, Christopher Alexander's pattern languages, and cybersecurity IDS signature systems. The biological immune system is the originating substrate antigen explicitly models on — not a peer cognate, but the empirical implementation of this architecture refined over 500 million years of evolutionary pressure. The cross-domain convergence is cataloged at [`cross-domain-architectural-map.md`](internal/cross-domain-architectural-map.md).
 
 ---
 
@@ -284,6 +284,8 @@ The illness already healed once. Let's not heal it again next year, and the year
 - **The story**: [`docs/origin.md`](origin.md) — the post-mortem narrative motivating the project
 - **The roadmap**: [`roadmap.md`](roadmap.md) — full scope, all families, research arcs, trajectory
 - **The whitepaper**: [`docs/structural-memory.md`](structural-memory.md) — foundational treatment of what structural memory means and why it matters for human-AI hybrid teams
+- **The architecture**: [`docs/decisions.md`](decisions.md) — ratified ADRs and amendments
+- **The postures**: [`docs/internal/postures.md`](internal/postures.md) — architectural postures threaded through the ADRs
 - **The case study**: [`docs/case-study-determinism-class.md`](case-study-determinism-class.md) — full walkthrough of how antigen would have caught the originating bug pattern
 
 If anything here resonates, please [open a Discussion](https://github.com/antigen-rs/antigen/discussions).

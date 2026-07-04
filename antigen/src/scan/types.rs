@@ -723,7 +723,7 @@ pub struct MarkedUnknown {
 impl MarkedUnknown {
     /// Convert a scanned marked-unknown into the unified
     /// [`Finding`](crate::finding::Finding) schema
-    /// (ADR-039 §C, the scan-time half) — the marker phase's emit (ADR-041
+    /// (ADR-039 §C, the scan-time half) — the marker wave's emit (ADR-041
     /// §Emit-seam). A marked-unknown is an authored mark at a site the author
     /// *encountered*, so it carries `class_provenance = Encountered` +
     /// `presentation = Active` (the author chose to mark their own site, ADR-041);
@@ -1394,8 +1394,8 @@ impl ScanCoverage {
     /// valid Cargo workspace cannot have two members sharing a `name@version`,
     /// but the data type carries no construction guard). De-duplicating here
     /// means a downstream ignorance audit reads "is this member unseen?" once
-    /// per member, not once per accidental repeat (ATK-COV-2 decision).
-    /// Order follows first appearance in
+    /// per member, not once per accidental repeat (ATK-COV-2 decision,
+    /// pathmaker 2026-06-01). Order follows first appearance in
     /// `enumerated_members` for determinism.
     #[must_use]
     pub fn unscanned_members(&self) -> Vec<&str> {
@@ -1529,7 +1529,7 @@ impl ScanReport {
 
     /// Tolerances whose named antigen is no longer declared in the scanned
     /// workspace. Per ADR-011 §Mechanics + ATK-A2-009 (the stale-tolerance
-    /// orphan check, the biology cognate "peripheral suppression
+    /// orphan check, naturalist's biology cognate "peripheral suppression
     /// continuing after the antigen it suppressed is no longer present").
     ///
     /// Cross-crate antigens are not yet handled — for now, an "orphan" is a
@@ -1599,7 +1599,7 @@ impl ScanReport {
 
     /// Lineage edges whose CHILD has no [`AntigenDeclaration`] in the scan.
     ///
-    /// BUG-A3-002 fix. The dual of
+    /// BUG-A3-002 fix (adversarial 2026-05-09). The dual of
     /// [`ScanReport::orphaned_lineage_edges`] — `orphaned` checks the
     /// parent endpoint, `dangling` checks the child endpoint.
     ///

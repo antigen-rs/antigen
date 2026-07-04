@@ -192,7 +192,7 @@ that defends against two failure-classes just lists both:
 ```rust
 #[antigen::presents(crate::antigens::VacuousCompletionFalseGreen, requires = signers(...))]
 #[antigen::presents(crate::antigens::ParallelStateComputationDiverges, requires = signers(...))]
-pub fn signature_state_with(&self, /* ... */) -> SignatureState { /* ... */ }
+pub fn signature_state_with(&self, /* ... */) -> CampsiteState { /* ... */ }
 ```
 
 This matters most if you have **two `#[immune]` attributes stacked on one item**
@@ -265,6 +265,8 @@ wired — most often the `#[defended_by]` antigen type doesn't match the
   and the `requires =` predicate grammar
 - [`composition.md`](composition.md) — how the new forms compose with tests,
   proptest, lints, and formal verification
+- [`decisions.md`](decisions.md) — ADR-029 (observe-don't-declare) and ADR-019
+  (substrate-witness predicates)
 - `antigen/examples/basic.rs` — a complete compileable `#[presents]` +
   `#[defended_by]` pair
 - `antigen/examples/substrate_witness.rs` — a complete `#[presents(requires=...)]`

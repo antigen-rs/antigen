@@ -7,7 +7,7 @@
 > "is X-decision posture-class?" by checking against this list rather than
 > rediscovering each posture from substrate.
 >
-> **Lifecycle relation**: Ratification lives in
+> **Lifecycle relation**: Per [`process.md`](process.md), ratification lives in
 > `decisions.md`. Postures do not gate ratification; they are read alongside an
 > ADR draft to ask "which ratified posture(s) does this ADR thread through?"
 > ADR-006 (recognition-not-design) keeps the catalog honest: an entry lands here
@@ -33,7 +33,7 @@
 > ratified" section is updated to Path 1.
 >
 > **Vocabulary lock**: every term used here is anchored in
-> [`glossary.md`](glossary.md). When a posture's wording drifts between this
+> [`glossary.md`](../glossary.md). When a posture's wording drifts between this
 > file and an ADR, the ADR is authoritative; this file is corrected.
 
 ---
@@ -96,14 +96,14 @@ threads transversally through nearly every ADR that introduces a primitive.
 
 ### Where ratified
 
-[ADR-005 — Sub-clause F at every trust boundary](decisions.md#adr-005--sub-clause-f-at-every-trust-boundary)
+[ADR-005 — Sub-clause F at every trust boundary](../decisions.md#adr-005--sub-clause-f-at-every-trust-boundary)
 (foundational; pre-team).
 
 Two amendments extend the discipline to specific surfaces:
-- [ADR-005 Amendment 2 — Rationale-as-required-field as transverse sub-clause F discipline](decisions.md#adr-005-amendment-2--rationale-as-required-field-as-transverse-sub-clause-f-discipline)
+- [ADR-005 Amendment 2 — Rationale-as-required-field as transverse sub-clause F discipline](../decisions.md#adr-005-amendment-2--rationale-as-required-field-as-transverse-sub-clause-f-discipline)
   applies the posture at the API surface (every trust-extending primitive).
   See posture §6.
-- [ADR-005 Amendment 3 — Audit reports its own tier honestly](decisions.md#adr-005-amendment-3--audit-reports-its-own-tier-honestly)
+- [ADR-005 Amendment 3 — Audit reports its own tier honestly](../decisions.md#adr-005-amendment-3--audit-reports-its-own-tier-honestly)
   applies the posture at the audit reporting surface.
 
 ### Recognition examples
@@ -160,7 +160,7 @@ the question is "is there a real structural pattern this recognizes?" not
 
 ### Where ratified
 
-[ADR-006 — Recognition, not design](decisions.md#adr-006--recognition-not-design)
+[ADR-006 — Recognition, not design](../decisions.md#adr-006--recognition-not-design)
 (foundational; pre-team).
 
 ADR-007 (anti-YAGNI) is recognition's structurally-guaranteed counterweight
@@ -218,13 +218,13 @@ ecosystem-spanning vocabulary rather than a yet-another-lint.
 
 ### Where ratified
 
-[ADR-002 — Compose, don't compete](decisions.md#adr-002--compose-dont-compete)
+[ADR-002 — Compose, don't compete](../decisions.md#adr-002--compose-dont-compete)
 (foundational; pre-team).
 
 The discipline extends through:
-- [ADR-013 — phantom-type witness recognition + witness-validity tier mapping](decisions.md#adr-013--adr-002-amendment-1-phantom-type-witness-recognition--witness-validity-tier-mapping)
+- [ADR-013 — phantom-type witness recognition + witness-validity tier mapping](../decisions.md#adr-013--adr-002-amendment-1-phantom-type-witness-recognition--witness-validity-tier-mapping)
   formally amends ADR-002 to recognize phantom-type witnesses (witness-axis).
-- [ADR-015 — Fingerprint engine: grammar-over-AST with per-fingerprint evaluator trait](decisions.md#adr-015--fingerprint-engine-grammar-over-ast-with-per-fingerprint-evaluator-trait)
+- [ADR-015 — Fingerprint engine: grammar-over-AST with per-fingerprint evaluator trait](../decisions.md#adr-015--fingerprint-engine-grammar-over-ast-with-per-fingerprint-evaluator-trait)
   operationalises compose-not-compete at the *engine* axis (it amends
   ADR-010, not ADR-002 directly): each fingerprint engine (syn, ast-grep,
   future MIR/HIR/runtime) is a delegation-boundary; the evaluator trait
@@ -286,7 +286,7 @@ implementation.
 
 ### Where ratified
 
-[ADR-007 — Anti-YAGNI: structurally-guaranteed need](decisions.md#adr-007--anti-yagni-structurally-guaranteed-need)
+[ADR-007 — Anti-YAGNI: structurally-guaranteed need](../decisions.md#adr-007--anti-yagni-structurally-guaranteed-need)
 (foundational; pre-team).
 
 ### Recognition examples
@@ -349,7 +349,7 @@ to fresh-context teams, to cross-project consumers.
 
 ### Where ratified
 
-[ADR-004 — Implicit-to-explicit elevation as architectural posture](decisions.md#adr-004--implicit-to-explicit-elevation-as-architectural-posture)
+[ADR-004 — Implicit-to-explicit elevation as architectural posture](../decisions.md#adr-004--implicit-to-explicit-elevation-as-architectural-posture)
 (foundational; pre-team).
 
 ### Recognition examples
@@ -412,7 +412,7 @@ of-trust-boundaries.
 
 ### Where ratified
 
-[ADR-005 Amendment 2 — Rationale-as-required-field as transverse sub-clause F discipline](decisions.md#adr-005-amendment-2--rationale-as-required-field-as-transverse-sub-clause-f-discipline)
+[ADR-005 Amendment 2 — Rationale-as-required-field as transverse sub-clause F discipline](../decisions.md#adr-005-amendment-2--rationale-as-required-field-as-transverse-sub-clause-f-discipline)
 (2026-05-09).
 
 Originating observation: ADR-001 Amendment 1 Change 7. The amendment
@@ -506,7 +506,7 @@ Different operational layers, structurally identical move.
 ### Where ratified
 
 The most load-bearing canonical example is
-[ADR-005 Amendment 3 — Audit reports its own tier honestly](decisions.md#adr-005-amendment-3--audit-reports-its-own-tier-honestly)
+[ADR-005 Amendment 3 — Audit reports its own tier honestly](../decisions.md#adr-005-amendment-3--audit-reports-its-own-tier-honestly)
 (2026-05-09), Finding section: *"the visible question was 'should
 `is_well_formed` return true for empty bodies?' The load-bearing commitment
 was 'the audit's reporting surface IS a trust boundary' — once that
@@ -514,10 +514,10 @@ commitment is named, the empty-body case becomes one of five instances of
 the underlying violation."*
 
 Two further amendments are themselves depth-shift instances:
-[ADR-015](decisions.md#adr-015--fingerprint-engine-grammar-over-ast-with-per-fingerprint-evaluator-trait)
+[ADR-015](../decisions.md#adr-015--fingerprint-engine-grammar-over-ast-with-per-fingerprint-evaluator-trait)
 (visible: ast-grep vs syn engine choice; load-bearing: the evaluator-trait
 architecture) and
-[ADR-016](decisions.md#adr-016--temporal-recognition-surface-provenance--freshness-primitives-for-stale-context-and-premature-abstraction)
+[ADR-016](../decisions.md#adr-016--temporal-recognition-surface-provenance--freshness-primitives-for-stale-context-and-premature-abstraction)
 (visible: temporal field set; load-bearing: `verified_at` granularity as
 trust-boundary commitment).
 
@@ -625,7 +625,7 @@ operational layers.
 
 > **INTERIM mitigation — terminal fix is structural.** This posture is
 > ratified as a necessary-but-insufficient discipline layer. The terminal fix
-> is a wake-reconcile primitive: tooling-emitted substrate-delta on
+> is a JBD/camp wake-reconcile primitive: tooling-emitted substrate-delta on
 > agent wake, so alignment is pushed rather than remembered.
 
 ### Posture
@@ -634,7 +634,7 @@ operational layers.
 > working agent believes the work is done. A completion signal carries weight
 > only when accompanied by a substrate-grounded check: a named command that a
 > separate agent can run to verify the claim independently. Completion signals
-> backed only by agent-context state (in-progress drafts, tasks marked
+> backed only by agent-context state (drafts in campsites, tasks marked
 > complete, routing messages sent) are outbox-state, not substrate-state, and
 > must not be acted on as if they were substrate-grounded.
 
@@ -652,19 +652,19 @@ The discipline-layer posture (name the substrate check) is ratified as INTERIM
 mitigation. It reduces the gap at the margin but cannot eliminate it: the
 check relies on the agent remembering to self-police the faculty (context-currency)
 that is compromised. Empirical record: a discipline-layer intervention (an
-agent-file "substrate-currency before sending" section) was added mid-stream
+agent-file "substrate-currency before sending" section) was added mid-expedition
 and instances recurred after it. The failing faculty cannot reliably detect its
 own failure.
 
 The terminal fix is structural: a wake-reconcile primitive where the coordination
-tool pushes a substrate-delta into context on agent wake — work-units changed,
+tool pushes a substrate-delta into context on agent wake — campsites changed,
 commits landed, tasks closed. The agent reconciles against current substrate
 instead of its frozen snapshot. This is antigen's own thesis (implicit memory
 fails; structural memory required) applied to team coordination: substrate-
 currency is a substrate-alignment antigen at the coordination layer.
 
 The canonical failure is concrete: three agents each issued
-"ratification complete" signals on the basis of work-unit and task-list state.
+"ratification complete" signals on the basis of campsites and task-list state.
 No ratification commit existed on disk. Recovery required a `git grep ADR-011
 docs/decisions.md` that the routing chain had not performed.
 
@@ -675,7 +675,7 @@ claim-propagation) ratified by Phase 1-8 deconstruction. All three ratification
 conditions are met: cross-session temporal independence, same-layer repetition
 (claim-propagation tier, 5+ instances), and the concept stops surprising
 trackers (it fires predictably post-compaction, when the pending-state-list
-diverges from the shared substrate).
+diverges from camp substrate).
 
 Most load-bearing canonical instance: a team passed three "ratification complete"
 signals through its routing chain on the basis of agent context rather than
@@ -717,10 +717,9 @@ When receiving a completion signal without a named substrate check: run the
 obvious check yourself before acting. If the check contradicts the signal,
 the signal was outbox-state; report the discrepancy to the sender.
 
-When receiving a hand-off that asserts a coordination-state ("task X is at 1/2
-signed"): verify against the shared substrate (e.g. `git log --oneline`) before
-acting on the claim. The asserted state in the sender's context may be stale
-(compaction artifact).
+When receiving routing that asserts a campsite-state ("campsite X is at 1/2
+signed"): run `camp status` or `git log --oneline` before acting on the claim.
+The campsite state in the sender's context may be stale (compaction artifact).
 
 ---
 
@@ -730,15 +729,15 @@ To prevent scope creep:
 
 - **Not a ratification surface**. ADRs ratify; postures.md surfaces what is
   already ratified. New posture entries land here only after the cited ADR
-  (or amendment) is itself ratified. Per
+  (or amendment) is itself ratified per [`process.md`](process.md). Per
   ADR-006 (recognition-not-design), the catalog does not introduce postures
   speculatively.
 - **Not authoritative when ADR text and posture text diverge**. The cited
   ADR is the source of truth; this catalog is corrected when the divergence
   is detected.
-- **Not a working-agreement document**. Working agreements (process
-  conventions, role definitions, routing topology) are procedural and
-  live outside this catalog. Postures are
+- **Not a working-agreement document**. Working agreements (campsite
+  conventions, role definitions, navigator-routing topology) live in
+  [`process.md`](process.md) and the team-briefing. Postures are
   *architectural* normative orientations, not procedural ones.
 - **Not exhaustive**. A V0+1 entry is queued: the antigen-grammar /
   antigen-engine architectural cut (per glossary entry; ADR-015 + ADR-013
@@ -793,7 +792,7 @@ ADR-006:
     persistence/registry (stored representation outlives functional
     reality — observed in zombie-team-config drift when a team config
     showed active members whose lead session had ended at compact).
-  - **Substrate-domain axis**: project-substrate (work-units, glossary,
+  - **Substrate-domain axis**: project-substrate (campsites, glossary,
     scan results, ADRs — what antigen-the-tool targets) and
     harness-substrate (team configs, agent liveness, tool-availability
     registries — the operational walled garden in which we work).

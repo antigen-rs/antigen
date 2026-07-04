@@ -159,7 +159,7 @@ omitted otherwise).
 
 ```json
 {
-  "antigen_version": "<version>",
+  "antigen_version": "0.5.0-beta.1",
   "git_sha": "e130c8f8681e8f9533a43820ab0fdcf6efe4f247",
   "generated_at": "2026-06-01T17:09:04.582520600+00:00",
   "report_schema_version": 1,
@@ -580,7 +580,7 @@ delivered-verdict sidebands `category`, `deferred_defense_audit`,
 
 ```json
 {
-  "antigen_version": "<version>",
+  "antigen_version": "0.5.0-beta.1",
   "git_sha": "e130c8f8681e8f9533a43820ab0fdcf6efe4f247",
   "generated_at": "2026-06-01T17:09:04.582520600+00:00",
   "report_schema_version": 1,

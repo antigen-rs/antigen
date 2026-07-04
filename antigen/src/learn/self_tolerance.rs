@@ -14,7 +14,7 @@
 //! `Drop` impl", which matches a CLEAN `Drop` sibling. The generator's own output
 //! IS the false positive. **C must never promote a draft this gate rejects.**
 //! Even a smarter disjunction draft must pass B: B is required regardless of how
-//! PROPOSE generalizes (ADR-045 — the C ══ B co-ship; the highest-stakes
+//! PROPOSE generalizes (ADR-045 — the C ══ B co-ship; the captain's highest-stakes
 //! line: never ship C without B green).
 //!
 //! # Claim-scope (ADR-044)
@@ -191,7 +191,7 @@ pub fn spare_clean(draft: &Fingerprint, clean_corpus: &[syn::Item]) -> bool {
 /// WRONG promote). The verdict would depend on which producer built the draft
 /// (antigen's own `ParallelStateTrackersDiverge` at the keystone gate).
 ///
-/// **The fix (recursive — Amendment 2):** `all_of` is associative
+/// **The fix (recursive — Amendment 2, captain's ruling):** `all_of` is associative
 /// and a single-child `all_of` is identity, so flattening *every* `AllOf` that
 /// appears at the top level into its parent is **semantics-preserving** (matches the
 /// shipped `matcher.rs` `all_of` algebra). This closes the double-wrap
@@ -418,8 +418,8 @@ pub fn near_miss_index(draft: &Fingerprint, corpus: &[syn::Item]) -> Option<usiz
 /// I.e. is near-miss detection OPERATIONALLY possible for this draft, so that the READER
 /// can trust a `false` from [`is_near_miss`] as "no evasion" rather than "I'm blind here"?
 ///
-/// **The test is ≥2 *discriminating* conjuncts, NOT ≥2 conjuncts** (ADR-047 Amendment 2).
-/// [`is_near_miss`] reports a near-miss only when dropping ONE conjunct
+/// **The test is ≥2 *discriminating* conjuncts, NOT ≥2 conjuncts** (ADR-047 Amendment 2,
+/// Survey-wave fix). [`is_near_miss`] reports a near-miss only when dropping ONE conjunct
 /// leaves a remainder that still **matches** the item AND still **discriminates**
 /// (`has_discriminating_conjunct` — dropping the only discriminator collapses to a
 /// bare-structural skeleton that over-binds the family, which is not a valid near-miss).
@@ -478,7 +478,7 @@ pub fn corpus_witnesses_draft(draft: &Fingerprint, corpus: &[syn::Item]) -> bool
 /// is structurally unable to acquire one (unforgettable-by-construction, ADR-048).
 ///
 /// The checks run **in order** (ADR-047 §Mechanics 4):
-/// 1. **Empty-corpus refusal** (the gate-G hazard): an empty
+/// 1. **Empty-corpus refusal** (the gate-G hazard, captain's v0.4 ruling): an empty
 ///    corpus makes [`spare_clean`] *vacuously* `true` — B would verify NOTHING.
 ///    Refused as `BindsCleanItem { clean_index: None }` ("cannot certify safety
 ///    against nothing"). The refusal lives HERE (structural), not per-caller.
@@ -681,7 +681,7 @@ mod tests {
     #[test]
     fn promote_if_safe_refuses_an_empty_corpus_the_gate_g_hazard() {
         // The GATE (`promote_if_safe`) REFUSES an empty corpus despite spare_clean
-        // being vacuously true (gate-G): a vacuous pass is
+        // being vacuously true (captain's ruling, gate-G): a vacuous pass is
         // autoimmunity-with-a-green-check — B verified NOTHING. "Cannot certify
         // safety against nothing." Even the OBVIOUSLY-safe disjunction draft must
         // not promote against emptiness — the refusal is about the corpus being
@@ -706,7 +706,7 @@ mod tests {
     }
 
     // ========================================================================
-    // ADR-047 §Q9 — the BORN-RED GATE-G near-miss spec. The RAN
+    // ADR-047 §Q9 — the BORN-RED GATE-G near-miss spec. The adversarial's RAN
     // cases ARE the definition of done (the near-miss primitive, rev-3 locked).
     // Ported from `R:/antigen-atk-scratch/src/atk3.rs` (the near-miss harness).
     // ========================================================================

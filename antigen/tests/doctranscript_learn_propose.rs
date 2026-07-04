@@ -10,9 +10,9 @@
 //! compile clean and the example would silently teach a lie. This test-class closes
 //! that — it exercises the SAME library teach-arc the example + the docs show and
 //! **asserts every claimed output**. One artifact per claim = the test = the example
-//! = the doc: when the documentation inherits these, every line was gate-verified.
+//! = the doc: when the teach-wave inherits these, every line was gate-verified.
 //!
-//! Each test below is a copy-paste-ready transcript for the documentation: the code is
+//! Each test below is a copy-paste-ready transcript for the docs-wright: the code is
 //! the example, the asserted values are the doc's "you'll see ..." lines. If a doc
 //! claims a verdict, that verdict is asserted here against the real gate.
 

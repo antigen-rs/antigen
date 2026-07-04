@@ -1,4 +1,4 @@
-//! # Panic-on-Index Family — stdlib antigens
+//! # Panic-on-Index Family — stdlib antigens (beta.2 voyage)
 //!
 //! Out-of-bounds access classes. The build-now member is the **unsafe** form:
 //! `get_unchecked` / `get_unchecked_mut` skip the bounds check, so an

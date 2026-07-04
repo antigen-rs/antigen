@@ -54,7 +54,7 @@ use serde::{Deserialize, Serialize};
 /// plus informed consent before procedure. The dual-axis grounding —
 /// clinical-medicine grounds outcome, software-engineering grounds
 /// process — is acknowledged explicitly per ADR-026 §Rollback-as-triage
-/// discipline (NON-NEGOTIABLE refinement).
+/// discipline (NON-NEGOTIABLE naturalist refinement).
 ///
 /// The variant set is the v0.2 sealed-set; future findings can extend it via
 /// additive ADR amendment per ADR-001 Amendment 1 C6.
@@ -138,8 +138,9 @@ impl TriageDecision {
 /// Whether the VCS-info-loss antigens operate in friction-only (client-side)
 /// or structural (server-side) enforcement mode (ADR-026 §Enforcement model).
 ///
-/// Client-side hooks are bypassable via git plumbing commands. The ADR ships
-/// **friction-only** as the v0.2 default — makes bad behavior DELIBERATE rather than ACCIDENTAL;
+/// Per an adversarial finding absorbed during ADR-026 ratification: client-side
+/// hooks are bypassable via git plumbing commands. The ADR ships **friction-only**
+/// as the v0.2 default — makes bad behavior DELIBERATE rather than ACCIDENTAL;
 /// explicitly NOT preventive. Structural mode requires adopter to control the
 /// git remote and is the v0.2.1+ path.
 ///
@@ -269,7 +270,7 @@ mod tests {
     }
 
     // -------------------------------------------------------------------------
-    // Adversarial tests
+    // Adversarial tests (added by adversarial role)
     // -------------------------------------------------------------------------
 
     #[test]

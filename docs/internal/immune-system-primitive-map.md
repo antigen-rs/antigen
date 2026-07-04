@@ -11,7 +11,7 @@
 > does NOT commit the project to building any specific primitive on any
 > specific timeline.
 >
-> **Companion to**: [`scope.md`](scope.md) (the comprehensive vision); each
+> **Companion to**: [`scope.md`](../scope.md) (the comprehensive vision); each
 > primitive in this map is a potential future ADR / sweep / tool surface
 > visible from scope.md's "comprehensive immune-system primitive map" table
 > but expanded into substantive territory exploration.
@@ -39,8 +39,8 @@ refined, and the failure modes are well-characterized. Every primitive in the
 biological immune system is a structural answer to a problem antigen will
 eventually face when adoption scales.
 
-The strongest argument for biology-as-load-bearing (per ADR-003, with
-biology-as-search-heuristic showing 5/5 prediction precision)
+The strongest argument for biology-as-load-bearing (per ADR-003 + naturalist's
+A2 day-2 biology-as-search-heuristic finding with 5/5 prediction precision)
 is that biology *predicts* primitives the project hasn't built yet. This
 document catalogs those predictions explicitly so future sweeps can recognize
 them as adoption surfaces specific needs.
@@ -67,7 +67,7 @@ These primitives are shipped or in-flight in v0.1.0-rc.1:
 - **Vaccination** → `cargo antigen vaccinate` (planned, A5)
 - **Peripheral tolerance / Tregs** → `#[antigen_tolerance]`
 - **Innate vs adaptive immunity** → passive surface (fingerprint scan) vs active surface (markers)
-- **Affinity maturation** → W6a synthesis pass (recognized post-hoc; biology predicted, team built independently)
+- **Affinity maturation** → W6a synthesis pass (recognized post-hoc; biology predicted, team built independently — see scout's W6a-IS-NK-cell finding)
 
 For these, biology and antigen have already converged structurally. The remaining sections are forward substrate.
 
@@ -155,8 +155,8 @@ need a specific antigen; they recognize the absence of self-markers.
 *structurally unusual* code in your codebase even when no antigen has been
 named — outlier detection over a large fingerprint corpus.
 
-**Status**: partially shipped. W6a's
-synthesis pass (fingerprint-match-without-marker) was identified AS the NK-cell primitive —
+**Status**: partially shipped. Scout's day-2 finding identified W6a's
+synthesis pass (fingerprint-match-without-marker) AS the NK-cell primitive —
 the team built it without naming it that. Full NK-cell behavior would extend
 to *outlier detection* (not just antigen-fingerprint matches but
 "this code is structurally unlike anything else in your codebase, including
@@ -523,7 +523,7 @@ Naturally surfaces from real adoption: maintenance burden, learning curve,
 build-time cost, perceived complexity, "I have tests, I don't need this."
 
 **What would trigger instantiation**: this is a perpetual concern, not a
-single primitive. Adoption friction is tracked across the
+single primitive. Naturalist + scout track adoption friction across the
 project's lifetime; ergonomic improvements respond to it.
 
 **Tooling shape**: not tooling. This is a *posture* — antigen ergonomics is
@@ -715,8 +715,8 @@ types as substrate.
 
 **Cross-crate version post-A3 is genuinely powerful**:
 
-> "A downstream crate's `Container<T>` was just declared as presenting X. `cargo antigen
-> trace --cross-crate` shows: every project depending on that crate that uses
+> "tambear's `Container<T>` was just declared as presenting X. `cargo antigen
+> trace --cross-crate` shows: every project depending on tambear that uses
 > Container<T> is structurally exposed."
 
 That's CVE-style supply-chain propagation but for *failure-classes generally*,
@@ -1019,8 +1019,8 @@ recognizing and naming new failure-classes.
 
 ## Where biology goes silent (honest boundaries)
 
-With biology-as-instrument showing structured silence at the FormalProof
-tier: biology has dense vocabulary up through where
+Per naturalist's A2 day-2 finding (biology-as-instrument with structured
+silence at FormalProof tier): biology has dense vocabulary up through where
 biological immunity actually reaches its limits, then goes silent. The
 silence is informative.
 
@@ -1063,13 +1063,13 @@ emerging needs.
 
 This document is V0. Future deepening:
 
-- A future pass could generate biology-grounded predictions about which
+- **Naturalist** generates biology-grounded predictions about which
   primitives land first based on adoption pressure + biological prior.
-- A future pass could find prior-art partial-instantiations (existing tooling that
+- **Scout** finds prior-art partial-instantiations (existing tooling that
   already does some of this; ergonomic patterns; friction-cost data).
-- A future pass could integrate the map into manuscript trajectory + adoption
+- **Scientist** integrates the map into manuscript trajectory + adoption
   pitch material.
-- A future pass could extend the cross-domain mapping
+- **Academic-researcher** (when spawned) extends the cross-domain mapping
   beyond biology — virology, medicine, public health, possibly cognitive
   science (memory consolidation, pattern recognition, schema theory),
   evolutionary biology (selection pressure as fingerprint refinement),
@@ -1095,6 +1095,6 @@ recognizes; the project does not design ahead of recognition. This map is
 recognition substrate — when adoption surfaces a real instance, the team
 finds the answer here rather than re-deriving it.
 
-Biology operates as an engineering
+Per naturalist's A2 day-2 framing: biology operates as engineering
 instrument. The instrument has dense vocabulary where it has answers and
 honest silence where it doesn't. This map preserves both.

@@ -17,7 +17,7 @@ use crate::scan::ScanReport;
 // ============================================================================
 // Lineage-fidelity audit (DescendedFromFingerprintDivergence) — ADVISORY
 //
-// Severity: advisory for v0.3, hard-fail deferred to
+// scientist severity ruling 2026-05-27: advisory for v0.3, hard-fail deferred to
 // a future ADR. For each `#[descended_from(Parent)]` edge, check whether the
 // CHILD antigen's structural fingerprint *refines* the PARENT's (child.matches ⊆
 // parent.matches — the child is at-least-as-specific). Emits an advisory hint on
@@ -52,7 +52,7 @@ pub struct LineageFidelityAuditReport {
     pub divergences: Vec<LineageFidelityAudit>,
 }
 
-/// Audit `#[descended_from]` lineage fidelity (ADVISORY).
+/// Audit `#[descended_from]` lineage fidelity (ADVISORY, scientist 2026-05-27).
 ///
 /// Only flags edges where BOTH endpoints have a parseable fingerprint AND the
 /// child is detectably NOT a refinement of the parent. Edges where either
@@ -113,8 +113,8 @@ pub fn audit_lineage_fidelity(report: &ScanReport) -> LineageFidelityAuditReport
     LineageFidelityAuditReport { divergences }
 }
 
-/// Conservative, statically-decidable NON-refinement detector.
-/// Returns `Some(reason)` when the child is
+/// Conservative, statically-decidable NON-refinement detector (scientist
+/// refinement note 2026-05-27). Returns `Some(reason)` when the child is
 /// detectably NOT a refinement of the parent, `None` otherwise (including all
 /// undecidable cases — the advisory errs toward silence, never a false positive).
 ///
@@ -126,8 +126,8 @@ pub fn audit_lineage_fidelity(report: &ScanReport) -> LineageFidelityAuditReport
 ///   `doc_contains` substring contains `s` → an item can match the child without
 ///   matching the parent → not a refinement.
 ///
-/// `name = matches(glob)` containment is deferred (the harder case);
-/// glob-subset is not attempted here, so a glob mismatch is NOT flagged
+/// `name = matches(glob)` containment is deferred (the harder case scout/scientist
+/// flagged); glob-subset is not attempted here, so a glob mismatch is NOT flagged
 /// (silence, not a false positive). Nested combinators (`all_of` / `any_of` /
 /// `not`) are not descended into for v0.3 — only top-level constraints compared.
 fn fingerprint_nonrefinement_reason(

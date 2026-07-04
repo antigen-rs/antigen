@@ -17,7 +17,7 @@ Antigen's answer: put the lesson in the type system, next to the code it
 protects, in a form that survives developer turnover, AI context cycling, and
 time.
 
-One concrete example: the origin project's `DeterminismClass` had a method `meet` that
+One concrete example: tambear's `DeterminismClass` had a method `meet` that
 returned `std::cmp::min` of its discriminants. Correct for the discriminant
 ordering, wrong for the lattice ordering — the class with the highest
 discriminant is the *weakest* element, so lattice-meet should return the
@@ -49,16 +49,16 @@ Add antigen to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-antigen = "0.6"   # the learning surface + the failure-class families   (check crates.io for the latest)
+antigen = "0.5.0-beta.1"   # the first v0.5 beta — the learning surface + the failure-class families
 ```
 
 Install the cargo subcommand:
 
 ```sh
-cargo install cargo-antigen
+cargo install cargo-antigen --version 0.5.0-beta.1
 ```
 
-> `cargo install cargo-antigen` installs the latest published release — the full
+> `cargo install cargo-antigen --version 0.5.0-beta.1` installs the v0.5 beta — the full
 > v0.4 surface (bundled catalog, `--message-format json` flycheck, diff-native DETECT) plus the
 > v0.5 learning surface (`cargo antigen propose`) is included.
 
@@ -75,16 +75,14 @@ Usage: cargo antigen <COMMAND>
 
 Commands:
   scan         Scan the workspace for antigen presentations and report unaddressed ones
-  propose      Propose a candidate failure-class fingerprint from a cluster of marked sites
   audit        Comprehensive immunity coverage report — witness resolution and tier validation
-  attest       Manage `.attest/<Antigen>.json` substrate-witness sidecars
-  tolerate     Manage tolerance-ratification sidecars
-  oracle       Manage Oracle artifact-class records
-  verify       Drive Supply-Chain Defense Family verifications
-  vcs          Drive VCS-Information-Loss Family observations
-  mucosal-map  Map mucosal trust boundaries across the workspace
+  attest       Manage `.attest/<Antigen>.json` substrate-witness sidecars (ADR-019)
+  tolerate     Manage tolerance-ratification sidecars (ADR-019 §tolerance tier)
+  oracle       Manage Oracle artifact-class records (ADR-021 §D3)
+  verify       Drive Supply-Chain Defense Family verifications (ADR-025)
+  vcs          Drive VCS-Information-Loss Family observations (ADR-026)
+  mucosal-map  Map mucosal trust boundaries across the workspace (ADR-027 + Amd 1)
   fingerprint  Print the structural fingerprint of a scanned item
-  mine         Mine a repository's `.git` for the SZZ `(defect, fix)` corpus (the learning core's INPUT corpus — recomputable from git history)
   help         Print this message or the help of the given subcommand(s)
 
 Options:
@@ -317,7 +315,7 @@ doesn't apply — the test IS the evidence. But some failure-classes can't be
 verified by a test. Their proof requires human expert judgment, not program
 execution.
 
-Consider the `SignedZeroDiscipline` failure-class from the project
+Consider the `SignedZeroDiscipline` failure-class from tambear — the project
 that gave antigen its motivation. The discipline is:
 
 > `sinh(x)` must return `−0.0` when `x` is `−0.0`, not `+0.0`. The IEEE 754

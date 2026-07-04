@@ -9,7 +9,7 @@ assignees: ''
 ## What design aspect are you discussing?
 
 <!-- Reference the relevant document section. -->
-<!-- e.g., "stdlib-families.md § the failure-class families" or a specific ADR in decisions.md -->
+<!-- e.g., "design-intent.md § 'The 8-class failure taxonomy'" -->
 
 ## Your concern, refinement, or question
 
@@ -17,8 +17,9 @@ assignees: ''
 
 ## What you've already read
 
-- [ ] `docs/concepts.md`
-- [ ] `docs/scope.md`
+- [ ] `docs/expedition/design-intent.md`
+- [ ] `docs/expedition/api-shape.md`
+- [ ] `docs/expedition/revolutionary-and-not.md`
 - [ ] `docs/origin.md`
 - [ ] `docs/decisions.md` (relevant ADRs)
 

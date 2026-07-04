@@ -41,7 +41,7 @@ pub enum StepState {
 }
 
 /// Why a work-need landed `OutOfFrame` — the sub-cause inside the un-evaluable
-/// verdict (`SubCauseCollapseInTheUnit`, the Layer-2 sibling of
+/// verdict (math-researcher `SubCauseCollapseInTheUnit`, the Layer-2 sibling of
 /// the cardinality-collapse).
 ///
 /// [`WorkVerdict::OutOfFrame`] is a single atomic value reached from several
@@ -140,7 +140,7 @@ pub struct PrescriptiveVerdict {
     /// `None` when `Fulfilled`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub blocking: Option<String>,
-    /// The TYPED sub-cause when `verdict == OutOfFrame` (the
+    /// The TYPED sub-cause when `verdict == OutOfFrame` (math-researcher
     /// `SubCauseCollapseInTheUnit` fix): which of the distinguishable
     /// un-evaluable causes fired, so the board routes a per-cause remedy rather
     /// than fusing them. `None` for every non-`OutOfFrame` verdict (the field is
@@ -349,7 +349,7 @@ fn priority_order_ref_resolves(report: &ScanReport, ref_text: &str) -> bool {
 /// Audit the prescriptive work-orchestration declarations (ADR-033).
 ///
 /// Projects each to a four-valued [`WorkVerdict`] via the per-shape satisfaction
-/// semantics (decisions.md §Verdict-semantics-per-shape). The
+/// semantics aristotle ruled (decisions.md §Verdict-semantics-per-shape). The
 /// satisfaction read REUSES the ADR-019/020 categorical spine (`load_sidecar`
 /// plus [`antigen_attestation::evaluate::evaluate_predicate_with_kind`]) — there
 /// is NO new witness machinery, only a new COMPOSITION of who-step states per
@@ -658,8 +658,8 @@ fn eval_ordering(
     // declared, just not yet attested.)
     let evaluable = all_refs_resolve && !triager_unevaluable && !decl.items.is_empty();
 
-    // S3 is a STANDING re-validated ordering, not a terminal task.
-    // The rule: Fulfilled = triaged_by attested AND WITHIN re_triage_due. A triage
+    // S3 is a STANDING re-validated ordering, not a terminal task. aristotle's
+    // ruling: Fulfilled = triaged_by attested AND WITHIN re_triage_due. A triage
     // attested but PAST re_triage_due is **Overdue** (the ordering is stale —
     // re-triage owed), NOT Fulfilled. So the re_triage_due frame elapsing must
     // de-satisfy even a fresh attestation: fold Past into un-satisfaction here so
@@ -720,8 +720,8 @@ fn eval_ordering(
 /// `filled_by` exactly as the other shapes do, so when the macro+scan gain a
 /// closure field (the Layer-2 follow-up: `quarantine.released_by` /
 /// `culture.green_by` mapping to `filled_by`), the Fulfilled path lights up with
-/// no change here. Left as an open question (the §Proc-Macro-Surface vs
-/// §Verdict-semantics field gap) rather than guessed at.
+/// no change here. Routed to the team as a question (the §Proc-Macro-Surface vs
+/// §Verdict-semantics field gap) rather than guessed at solo.
 ///
 /// Absent closure ⇒ unsatisfied (evaluable) — Pending within frame, Overdue past
 /// it. The frame expiring does NOT flip unsatisfied→satisfied (the bypass guard).

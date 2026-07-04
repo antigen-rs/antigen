@@ -72,7 +72,7 @@ use antigen::{culture, panel, quarantine, refer, triage};
 // real items; the work-need's identity IS its (file, item-path) — move the
 // item and the need moves with it; delete the item and the need is moot
 // (ADR-033 T1, the locality test). That locality is exactly what distinguishes
-// an antigen-prescriptive work-need from an external task-tracker entry.
+// an antigen-prescriptive work-need from a camp campsite.
 
 /// A parsed configuration value.
 #[derive(Debug)]
@@ -180,8 +180,7 @@ pub fn validate_required(config: &str, required: &[&str]) -> bool {
 /// A standing priority ordering over the parser's remediation backlog.
 ///
 /// `#[triage]` is a re-validatable ORDERING over **code-site references** (not
-/// external task-tracker entries — anchor #3: the audit never reads an external
-/// tracker). Each entry in
+/// camp campsites — anchor #3: the audit never reads camp). Each entry in
 /// `priority_order` is resolved against the scanned workspace (ADR-017
 /// Amendment 1). Here every entry names a function declared *in this file*, so
 /// all refs resolve → the ordering is evaluable. With no `triaged_by`

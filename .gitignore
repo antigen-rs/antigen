@@ -87,6 +87,3 @@ agent-feedback/
 # OS
 .DS_Store
 Thumbs.db
-
-# Internal design-diary + the FULL ADR ledger (private; public docs/decisions.md is the scrubbed copy)
-docs/internal/

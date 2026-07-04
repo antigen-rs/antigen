@@ -84,7 +84,7 @@ impl CategoryAuditReport {
 ///
 /// Two checks, both at audit time:
 ///
-/// **G1 (scan-time-only enforcement)**: emits
+/// **G1 (scan-time-only enforcement per adversarial's ratification)**: emits
 /// [`AuditHint::AntigenCategoryDefaultedImplicitFunctional`] for any
 /// [`crate::scan::AntigenDeclaration`] whose `category` field is empty
 /// (absent). This is the load-bearing signal that makes absent-category
@@ -94,7 +94,7 @@ impl CategoryAuditReport {
 /// for ALL absent-category declarations (both carry-overs and new), since
 /// both should migrate.
 ///
-/// **G2 (category↔witness-type cross-check, per Amendment 2)**:
+/// **G2 (category↔witness-type cross-check, per Amendment 2 + aristotle F1)**:
 /// for each explicit-category declaration, joins the immunities addressing it
 /// ([`crate::scan::Immunity::antigen_type`] == the declaration's `type_name`)
 /// and emits [`AuditHint::AntigenCategoryClaimInconsistentWithPredicateType`]
@@ -236,7 +236,7 @@ pub fn audit_category(report: &ScanReport) -> CategoryAuditReport {
             continue;
         }
 
-        // The emission is three-way:
+        // Per aristotle's G3 F1 ruling, the emission is three-way:
         //   - hybrid [SA, FC] with exactly ONE axis witnessed → incomplete
         //     evidence (partial coverage, not a full violation)
         //   - hybrid with ZERO axes witnessed → claim-inconsistent (full
@@ -261,8 +261,8 @@ pub fn audit_category(report: &ScanReport) -> CategoryAuditReport {
         // the actionable "reach for a substrate predicate or bijection-parity
         // test" guidance G2's type-only verdict omits. Suppressed when a
         // substrate witness is also present (the code test is then supplementary)
-        // — that is exactly the `!has_substrate_witness` guard. By design,
-        // the wrong-weighting generator legitimately uses a code-tier
+        // — that is exactly the `!has_substrate_witness` guard. Per scientist's
+        // design, the wrong-weighting generator legitimately uses a code-tier
         // confidence test, so this is advisory: confirm the intended generator
         // before treating it as a mismatch.
         if wants_substrate && has_code_witness && !has_substrate_witness {

@@ -2,7 +2,7 @@
 //! SEAM-1 / SEAM-2 convergence point.
 //!
 //! This is the library-side orchestrated entry point the ADR-036 §Decision +
-//! §Open-mechanism-choice call for (library-side, so a
+//! §Open-mechanism-choice call for (the pathmaker's lean: library-side, so a
 //! runtime-sensor or external-platform consumer — charter — gets the orchestrated
 //! loop, not a re-implementation of `main.rs`'s fan-out). It runs the
 //! **scan → audit** pass sequence and is the one place that:
@@ -38,10 +38,10 @@
 //! Behavior-preserving: `run` composes the *existing* `scan_workspace` +
 //! `audit::orchestrate::run`; it changes nothing about what they compute. The
 //! CLI's hand-rolled fan-out can adopt this entry point incrementally. The
-//! **scan-time marked-unknown half is now WIRED** (the ADR-041 marker phase): each
+//! **scan-time marked-unknown half is now WIRED** (the ADR-041 marker wave): each
 //! `#[aura]`/`#[dread]`/`#[red_flag]` the scan surfaces lands as a
 //! `FindingBody::MarkedUnknown` in the unified population. The **audit-time
-//! dial-verdict half is still the deferred ADR-039 dial phase** — the merge-locus
+//! dial-verdict half is still the deferred ADR-039 dial wave** — the merge-locus
 //! exists so it lands for ~free; until then the population carries only the
 //! marked-unknown half.
 
@@ -96,8 +96,8 @@ pub struct PipelineRun {
     /// The audit bundle (the per-detector reports the audit sequence produced).
     pub audit: AuditBundle,
     /// The unified typed-event population (ADR-039 §C) — scan-time marked-unknown
-    /// markers (WIRED, the ADR-041 marker phase) merged with audit-time dial
-    /// verdicts (the deferred ADR-039 dial phase). Currently carries the
+    /// markers (WIRED, the ADR-041 marker wave) merged with audit-time dial
+    /// verdicts (the deferred ADR-039 dial wave). Currently carries the
     /// marked-unknown half; the dial half lands at the same merge-locus when wired.
     pub findings: Vec<Finding>,
     /// `true` when the run completed; `false` when a SCRAM tripped it early. The
@@ -124,7 +124,7 @@ pub fn run(root: &Path, control: &mut RunControl) -> std::io::Result<PipelineRun
     // Stage 1 — scan (the collection walk + lineage + finalize passes). A pure-ish
     // directory scanner; it returns to the coordinator, never triggering audit.
     let scan = scan_workspace(root, None)?;
-    // SEAM-1, scan half (ADR-041 marker phase — WIRED): the scan stage's
+    // SEAM-1, scan half (ADR-041 marker wave — WIRED): the scan stage's
     // `#[aura]`/`#[dread]`/`#[red_flag]` marked-unknown markers merge UP into the
     // unified population first, each as a `FindingBody::MarkedUnknown` (authored,
     // encountered, active — ADR-041 §Emit-seam). A monotonic per-record timestamp
@@ -151,8 +151,8 @@ pub fn run(root: &Path, control: &mut RunControl) -> std::io::Result<PipelineRun
     let audit = orchestrate::run(&scan, root);
     // SEAM-1, audit half: the audit stage's dial verdicts merge into the SAME
     // population (audit is the last stage that sees both halves). Wired by the
-    // ADR-039 dial phase; the merge-at-audit locus is established here now.
-    // `findings` is intentionally the empty unified population until those phases
+    // ADR-039 dial wave; the merge-at-audit locus is established here now.
+    // `findings` is intentionally the empty unified population until those waves
     // populate it — see the module doc.
     let _ = &mut findings;
 
@@ -201,7 +201,7 @@ mod tests {
 
     #[test]
     fn marked_unknown_markers_emit_into_the_finding_population() {
-        // SEAM-1 scan-half (ADR-041 marker phase): the scan-surfaced markers land as
+        // SEAM-1 scan-half (ADR-041 marker wave): the scan-surfaced markers land as
         // FindingBody::MarkedUnknown in the unified population. Point at the marker
         // fixture (read-as-text by the scan walk).
         use crate::finding::{ExistenceCertainty, FindingBody, Magnitude};
@@ -213,7 +213,7 @@ mod tests {
         assert!(out.completed);
 
         // Three markers in the fixture → three MarkedUnknown findings (the audit half
-        // is still the deferred dial phase, so the population is exactly these three).
+        // is still the deferred dial wave, so the population is exactly these three).
         let markers: Vec<_> = out
             .findings
             .iter()

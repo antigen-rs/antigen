@@ -50,10 +50,11 @@ Each step earns its place; skipping one collapses the loop:
 
 > **The loop is linear on first encounter; iterative in practice.** A
 > declaration's fingerprint typically gets refined over multiple instances —
-> when a second adopter, a later pass, or an adversarial sweep finds a site
+> when a second adopter, a scout pass, or an adversarial sweep finds a site
 > the original fingerprint missed, you're not failing the loop, you're in its
-> *affinity-maturation* phase — the under-coverage / over-coverage refinement
-> discipline.
+> *affinity-maturation* phase. See
+> [`AntigenFingerprintDivergesFromClassExtension`](decisions.md) for the
+> under-coverage / over-coverage refinement discipline.
 
 ---
 
@@ -208,6 +209,8 @@ substrate clutter and in adopter cognitive load. Recognition-not-design
 - **Beware over-coverage.** A fingerprint that matches a thousand
   unrelated sites is recall noise — it teaches adopters the tool cries
   wolf. Tighten before declaring.
+  ([`AntigenFingerprintDivergesFromClassExtension`](decisions.md) covers
+  the under-coverage / over-coverage trade in detail.)
 
 A useful threshold question: *would a future contributor, hitting an
 instance of this class, benefit from the fingerprint flagging it before
@@ -226,7 +229,7 @@ mechanism:
 - A teammate's stated belief about what's committed vs the actual `git
   show` output.
 - A routing decision's framing vs the substrate-recorded ruling.
-- A "we agreed X" assertion vs the activity log of who actually agreed.
+- A "we agreed X" assertion vs the campsite log of who actually agreed.
 
 Not by coincidence: this is the *generation-outpaces-inspection asymmetry*
 tiling upward. The asymmetry is scale-invariant — its three faces (detection,
@@ -236,7 +239,7 @@ structures outside the generating act because the generating act can't
 inspect itself; multi-agent coordination needs structures outside the
 coordinating-act for the same reason. The *same structural cause* produces
 each rung's `ParallelStateTrackersDiverge`, which is why the same loop
-applies: notice, name, design a substrate-level check (an activity-log review,
+applies: notice, name, design a substrate-level check (a campsite review,
 a git-log gate, a pre-routing substrate-grep), guard. The witness moves from
 "test that reads two surfaces" to "discipline that reads two surfaces" — but
 the shape, and the loop, are the same because the asymmetry is the same.
@@ -249,6 +252,8 @@ discipline that catches it crosses with it.
 
 ## See also
 
+- [`decisions.md`](decisions.md) — ADR-006 (recognition-not-design),
+  ADR-028 (antigen-category taxonomy)
 - [`testing-patterns.md`](testing-patterns.md) — witness conventions, the
   "test that reads both sides" pattern
 - [`where-to-look-for-antigens.md`](where-to-look-for-antigens.md) —

@@ -2,7 +2,7 @@
 //
 // Purpose: verify the IgG IDENTITY-COLLAPSE correctness invariant.
 //
-// ADR-024 C3 + named limitation: `#[igg]` source-independence is
+// ADR-024 adversarial C3 + named limitation: `#[igg]` source-independence is
 // NOMINAL (different signer identity strings) not STRUCTURAL. The audit MUST
 // emit `igg-identity-collapse-warning` when the witnesses array contains
 // duplicate identity strings — same person signing twice is NOT independent

@@ -1,7 +1,10 @@
-//! C ══ B — the AUTOIMMUNITY SAFETY GATE. The single safety-tangle
-//! (ADR-045: the one safety-tangle; the highest-stakes test).
+//! C ══ B — the AUTOIMMUNITY SAFETY GATE. The single safety-tangle on the v0.4
+//! chart (ADR-045: the one safety-tangle; captain: highest-stakes test).
 //!
-//! THE TANGLE (proven run-as-code by an early spike, re-proven here):
+//! Campsites: `keystone/self-tolerance-negative-selection-anchor`,
+//! `dream/affinity-maturation-engine`, `dream/self-tolerance-negative-selection-engine`.
+//!
+//! THE TANGLE (proven run-as-code by the pathmaker's spike, re-proven here):
 //!   - C (PROPOSE) anti-unifies a cluster of structurally-similar defective sites
 //!     into a DRAFT fingerprint.
 //!   - NAIVE-LGG (drop the differing leaves) OVER-GENERALIZES: it drops
@@ -149,7 +152,7 @@ fn disjunction_draft_binds_the_family_and_spares_the_clean_sibling() {
 //     clean_corpus)` must REJECT a draft that matches ANY clean-corpus item, and
 //     ACCEPT one that spares them all. C must never PROMOTE a draft B rejects.
 //
-//     LANDED: the gate shipped as
+//     LANDED (pathmaker): the gate shipped as
 //     `antigen::learn::self_tolerance::spare_clean`. This gate is now wired to the
 //     real implementation — GREEN means the shipped gate enforces the contract.
 // ===========================================================================
@@ -251,8 +254,8 @@ fn b_gate_rejects_a_disjunction_that_still_binds_a_clean_sibling() {
 //     match clean code — proven in test (A1)). C promotes ONLY through B.
 //
 //     RED-by-design, NON-BLOCKING (`#[ignore]`): C (PROPOSE) is unbuilt. The stub
-//     names the contract; point `propose_draft` at the real
-//     generator (e.g. `antigen::learn::propose::anti_unify(cluster)`) and drop
+//     names the contract; the pathmaker points `propose_draft` at the real
+//     generator (e.g. `antigen::learn::propose::anti_unify(cluster)`) and drops
 //     the `#[ignore]`. Discover with `-- --ignored`.
 // ===========================================================================
 
@@ -307,7 +310,7 @@ fn propose_produces_a_draft_that_binds_the_cluster_and_passes_b() {
 }
 
 // ===========================================================================
-// (E) THE NO-BYPASS GATE (the one thing that must not pass). C's
+// (E) THE NO-BYPASS GATE (the captain's "one thing that must not pass"). C's
 //     END-TO-END promote path must route through B — a draft that binds a clean
 //     sibling MUST NOT be promotable, no matter how C is structured internally.
 //     This is a BLACK-BOX test of C's promote API: given the MIXED-PANIC-SHAPE
@@ -320,7 +323,7 @@ fn propose_produces_a_draft_that_binds_the_cluster_and_passes_b() {
 //     promotes it; a weaker C prunes; neither is a failure. Only bypass is.
 //
 //     RED-by-design, NON-BLOCKING (`#[ignore]`): C's promote path is unbuilt. The
-//     stub names the SYNC-2 contract; point `propose_and_promote`
+//     stub names the SYNC-2 contract; the pathmaker points `propose_and_promote`
 //     at C's real end-to-end promote entrypoint (the one that internally consults
 //     B) and drops the `#[ignore]`.
 // ===========================================================================
@@ -392,7 +395,7 @@ fn c_promote_path_never_promotes_a_draft_that_binds_clean() {
 //     output. If `propose` returned Some here, B was bypassed.
 //
 //     Verified live against the shipped C: raw draft binds clean=true, propose
-//     returns None (pruned). This is the one-thing-that-must-not-pass,
+//     returns None (pruned). This is the captain's one-thing-that-must-not-pass,
 //     proven NOT to pass.
 // ===========================================================================
 
@@ -431,7 +434,7 @@ fn propose_prunes_when_anti_unifys_own_disjunction_binds_clean() {
 
     // THE DECISIVE GATE: propose (which routes anti_unify's draft through B) MUST
     // NOT promote this autoimmune draft. It returns None — B caught anti_unify's
-    // own over-binding output. A Some here = B was bypassed = the
+    // own over-binding output. A Some here = B was bypassed = the captain's
     // one-thing-that-must-not-pass.
     let promoted = propose_and_promote(&cluster, &clean_corpus);
     assert!(
@@ -443,18 +446,18 @@ fn propose_prunes_when_anti_unifys_own_disjunction_binds_clean() {
 }
 
 // ===========================================================================
-// (G) THE VACUOUS-CORPUS REFUSAL (the "autoimmunity-with-a-green-check" case,
-//     RATIFIED CLOSED by the gate-G ruling). B's spare-clean PREDICATE
+// (G) THE VACUOUS-CORPUS REFUSAL (the scout's "autoimmunity-with-a-green-check",
+//     RATIFIED CLOSED by the captain's gate-G ruling). B's spare-clean PREDICATE
 //     is vacuously true against an EMPTY clean corpus (nothing to reject) — so a
 //     promote against an empty corpus would be autoimmunity WITH a green check: B
 //     verified NOTHING. The guarantee "C never promotes without B green" is only
 //     meaningful if B actually checked against real clean code.
 //
-//     RULING (supersedes the prior "documented hazard" pin): the GATE
+//     RULING (captain, supersedes the prior "documented hazard" pin): the GATE
 //     `promote_if_safe` REFUSES an empty corpus — "cannot certify safety against
 //     nothing." The refusal is STRUCTURAL (at the gate, not per-caller), so every
 //     promote path inherits the conservative-safe default. `propose(cluster, &[])`
-//     therefore returns None. This test originally pinned the
+//     therefore returns None. This test was written by the adversarial pinning the
 //     pre-ruling behavior with an explicit flip-instruction ("if this is now None,
 //     propose was hardened — update this gate to assert the prune"); the ruling
 //     landed, so it now asserts the REFUSAL.
@@ -470,7 +473,7 @@ fn propose_refuses_an_empty_corpus_cannot_certify_against_nothing() {
     ";
     let cluster: Vec<syn::Item> = syn::parse_file(src).expect("parses").items;
 
-    // RATIFIED behavior (gate-G ruling): with an EMPTY clean corpus, the
+    // RATIFIED behavior (captain's gate-G ruling): with an EMPTY clean corpus, the
     // gate cannot certify safety against nothing → REFUSE. propose returns None.
     let promoted = propose_and_promote(&cluster, &[]);
     assert!(

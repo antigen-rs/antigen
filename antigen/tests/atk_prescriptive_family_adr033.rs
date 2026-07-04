@@ -18,15 +18,15 @@
 //! Any test rows for titer-as-prescriptive are DROPPED from this corpus.
 //!
 //! `triage.campsites` is **DROPPED** (Tekgy ruling 2026-06-01, anchor #3): `triage`
-//! uses `priority_order` as direct code-site references; the `campsites` field is an
-//! opaque label the audit does NOT resolve. Any test asserting audit resolves the
-//! `campsites` field against external state is wrong-by-design and is DROPPED from this corpus.
+//! uses `priority_order` as direct code-site references; camp campsites are opaque
+//! labels the audit does NOT resolve. Any test asserting audit resolves campsites
+//! against camp state is wrong-by-design and is DROPPED from this corpus.
 //!
 //! ## Purpose
 //!
-//! These tests encode the ADR-033 spec BEFORE the macros are implemented.
+//! These tests encode the ADR-033 spec BEFORE pathmaker implements the macros.
 //! All tests are `#[ignore]`'d — they will not compile or will not run until
-//! the implementation ships. When `#[panel]`/`#[ddx]`/etc. ship,
+//! the implementation ships. When pathmaker ships `#[panel]`/`#[ddx]`/etc.,
 //! un-ignore the relevant tests and confirm they pass.
 //!
 //! ## What these tests guard
@@ -77,7 +77,7 @@
 //   2. They are "should fail to compile" tests — requiring compile-fail infrastructure
 //      (e.g., trybuild / compile-error fixtures) or scan-time error checking.
 //
-// When the macros ship, convert these to:
+// When pathmaker ships the macros, convert these to:
 //   (a) Compile-error tests via trybuild or compile-fail attributes, OR
 //   (b) Scan-level tests via scan_workspace() on fixtures that use the macros.
 
@@ -510,7 +510,7 @@ pub fn p() {}
     );
 }
 
-/// ATK-PRES-8b (SUB-CAUSE DE-FUSION, SubCauseCollapseInTheUnit):
+/// ATK-PRES-8b (SUB-CAUSE DE-FUSION, math-researcher SubCauseCollapseInTheUnit):
 /// the FOUR distinguishable OutOfFrame sub-causes must be reported distinctly —
 /// fusing them into one opaque value is a silent-wrong-REMEDY (the Layer-2
 /// sibling of the cardinality-collapse the gem guards). Each cause routes a
@@ -701,17 +701,17 @@ fn atk_pres11_work_verdict_has_exactly_four_variants() {
 }
 
 // ============================================================================
-// Adversarial consistency gaps — found in ADR-033 draft sweep (2026-06-01).
-// These encode SPECIFICATION HOLES, not just implementation gaps.
-// The answers must be settled in ADR-033 before implementation. Questions
-// logged as open design questions.
+// Adversarial consistency gaps — found in ADR-033 draft sweep (adversarial,
+// 2026-06-01). These encode SPECIFICATION HOLES, not just implementation gaps.
+// The answers must be settled in ADR-033 before pathmaker implements. Questions
+// logged to aristotle via camp question [ae2e3a2d].
 // ============================================================================
 
 /// ATK-PRES-12: S3 `triage` WorkVerdict::Fulfilled — is it structurally reachable?
 ///
-/// `#[triage]` coordinates an ordered set of work items. The ordering
-/// is attested via `triaged_by`. The work items are OPAQUE LABELS — the audit
-/// cannot see their done-state (anchor #3 forbids external-state reads).
+/// `#[triage]` coordinates an ordered set of work items (campsites). The ordering
+/// is attested via `triaged_by`. The campsites are OPAQUE LABELS — the audit
+/// cannot see their done-state (anchor #3 forbids camp reads).
 ///
 /// Q: when does a `#[triage]` site reach WorkVerdict::Fulfilled?
 ///
@@ -722,14 +722,14 @@ fn atk_pres11_work_verdict_has_exactly_four_variants() {
 ///   triage that has a triaged_by attestation is immediately Fulfilled regardless
 ///   of whether any work was actually done — that's a cardinality collapse
 ///   (Pending and Fulfilled look the same once the attestation exists).
-/// - If Fulfilled requires the work items to be resolved, the audit can never
-///   compute it (opaque labels + no external-state reads).
+/// - If Fulfilled requires the campsites to be resolved, the audit can never
+///   compute it (opaque labels + no camp reads).
 ///
 /// SPEC GAP: WorkVerdict::Fulfilled for S3 is underspecified. The ADR must
 /// clarify whether `#[triage]` can reach Fulfilled at all in v0.3, or whether
 /// it is structurally Pending-until-triaged / OutOfFrame-after-expiry.
 ///
-/// RESOLVED (decisions.md §Verdict-semantics-per-shape): triage is a
+/// RESOLVED (aristotle, decisions.md §Verdict-semantics-per-shape): triage is a
 /// standing re-validated ORDERING. Fulfilled = `triaged_by` attested AND within
 /// `re_triage_due` AND all `priority_order` refs resolve. Fulfilled IS reachable
 /// (it means "ordering current + resolvable"), re-earned each cycle. `triaged_by`
@@ -764,7 +764,7 @@ pub fn bar() {}
 
     // Same triage but PAST re_triage_due ⇒ Overdue (re-triage owed), NOT
     // permanently Fulfilled — even with a fresh triaged_by attestation. This is
-    // the anti-bypass ruling: triaged_by attested is necessary but the
+    // the anti-bypass aristotle ruled: triaged_by attested is necessary but the
     // re_triage_due frame elapsing makes the ordering stale (re-triage owed). A
     // triage that stayed Fulfilled forever after one attestation would be the
     // perpetual-freshness bypass; the frame de-satisfies it.
@@ -822,11 +822,11 @@ pub fn bar() {}
 ///   a closure witness is undefended.
 ///   Risk: adds a new closure-attestation mechanism not described in the ADR.
 ///
-/// PREDICTION: Interpretation A introduces the same bypass class as
+/// ADVERSARIAL PREDICTION: Interpretation A introduces the same bypass class as
 /// `fresh_through=today` — set a past date, mark Fulfilled, no actual work done.
 /// Interpretation B is safer but introduces implementation complexity not mentioned.
 ///
-/// RESOLVED (decisions.md §Verdict-semantics-per-shape):
+/// RESOLVED (aristotle, decisions.md §Verdict-semantics-per-shape):
 /// Interpretation B. S4 Fulfilled requires a POSITIVE closure (a closure
 /// attestation), NEVER frame-expiry alone. A `#[quarantine]` past its `until`
 /// with NO closure attestation is **Overdue**, not Fulfilled — frame-expiry
@@ -912,15 +912,15 @@ pub fn c() {}
 ///
 /// Q: what happens when `priority_order` references a code site that DOESN'T exist?
 ///
-/// ADR says "audit does NOT resolve against external state" — but code sites ARE resolved. So a
+/// ADR says "audit does NOT resolve against camp" — but code sites ARE resolved. So a
 /// `priority_order` item that doesn't match any code site is a structural mismatch.
 ///
-/// PREDICTION: if this is a parse-time error, the attacker can make a triage
+/// ADVERSARIAL PREDICTION: if this is a parse-time error, the attacker can make a triage
 /// fail to compile by removing a referenced code site (forcing all sites that priority_order
 /// reference to be valid at compile time). If this is audit-time OutOfFrame, the triage site
 /// silently produces OutOfFrame when references dangle — potentially hiding a real gap.
 ///
-/// RESOLVED (decisions.md §Enforcement-Surface + ADR-017-Amd1):
+/// RESOLVED (aristotle, decisions.md §Enforcement-Surface + ADR-017-Amd1):
 /// audit-time, NOT parse-time. An unresolvable `priority_order` code-site ref ⇒
 /// `WorkVerdict::OutOfFrame` (un-evaluable), never silent-satisfied, never a
 /// compile error. This is the gem: the audit cannot grade an ordering over sites
@@ -1004,14 +1004,14 @@ pub fn bar() {}
 ///   - Is there a per-filler review ordering (alice filled → bob reviews alice's part;
 ///     charlie filled → a different reviewer for charlie's part)?
 ///
-/// PREDICTION:
+/// ADVERSARIAL PREDICTION:
 /// - "ALL filled_by" is safer (no review before all fill is done) but can produce
 ///   false-Overdue if one filler is delayed (the conjunction makes the review
 ///   un-initiatable until every fill is done).
 /// - "ANY filled_by" allows review before all fill is done — partial closure risk.
 /// - Per-filler mapping re-introduces the positional pairing the ADR explicitly rejected.
 ///
-/// RESOLVED (decisions.md §Witness-binding + §Verdict-semantics):
+/// RESOLVED (aristotle, decisions.md §Witness-binding + §Verdict-semantics):
 /// ALL, conjunction. A `reviewed_by` attestation is credited ONLY when EVERY
 /// `filled_by` role-step is attested at the current fingerprint ("you cannot
 /// review what is not filled"). Multi-member `filled_by` = ALL, not ANY. A

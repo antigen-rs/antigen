@@ -5,8 +5,8 @@
 //! They are "failing-as-passing" contracts: each test PASSES when the
 //! implementation is correct, and FAILS loudly when a specific bug exists.
 //!
-//! The invariants tested here are explicitly listed as the non-negotiable
-//! correctness gates:
+//! The invariants tested here are explicitly listed in the scientist campsite
+//! brief as the non-negotiable correctness gates:
 //!
 //! 1. `ContentHashMismatch` fires on CONTENT difference even when VERSION identical
 //! 2. `UnpinnedTransitiveDependency` NARROW — fires only for direct dep with `*/?`
@@ -517,7 +517,8 @@ fn atk_hint_2_content_hash_sidecar_malformed_is_in_audit_hints_const() {
 // that classifies every AuditHint variant. When a new variant is added to the
 // enum, this match must be updated or it won't compile.
 //
-// The principle: "a new variant makes the match non-exhaustive = COMPILE ERROR".
+// This approach was seeded in forward/audit-hint-exhaustive-match-completeness
+// (pathmaker note: "a new variant makes the match non-exhaustive = COMPILE ERROR").
 // ATK-HINT-2 proved the hand-list approach fails; this test is the structural fix.
 //
 // The function `hint_is_supply_chain` below performs the exhaustive match.

@@ -18,7 +18,7 @@
 //!   (`Draft → Complete → Deprecated / Retired / Revoked`)
 //! - **Stewards**: appointed reviewers who authorize state transitions.
 //!   Minimum 2 per oracle (ATK-021-13 succession mitigation). Stewards are
-//!   categorically distinct from signers — the reviewer who attests
+//!   categorically distinct from signers — the math-researcher who attests
 //!   against an oracle is NOT necessarily its steward.
 //! - **State machine**: monotonic. Backward transitions prohibited. Draft
 //!   blocks signer attestation (`oracles_complete(...)` predicate rejects);

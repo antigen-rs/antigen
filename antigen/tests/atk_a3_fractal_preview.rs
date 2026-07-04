@@ -1,6 +1,6 @@
 //! ATK-A3 fractal-prediction pre-implementation contracts.
 //!
-//! Filed during A2 adversarial sweep based on the fractal prediction:
+//! Filed during A2 adversarial sweep based on naturalist's fractal prediction:
 //! "wherever antigen does recognition work, there will be a structural-variant
 //! blind spot." Both sites here are A3 scope (cross-crate scan +
 //! `#[descended_from]` propagation). All tests are `#[ignore]` until A3 ships.
@@ -11,6 +11,9 @@
 //! - Coordination tier: ratification signals (outbox vs substrate state)
 //! - Implementation tier: `attr.path().is_ident()` (bare vs path-qualified)
 //! - This file: recognition-work in A3 (cross-crate + lineage walking)
+//!
+//! See: campsites/antigen-design/20260508120021-.../naturalist/20260508-tier-confusion-roam.md
+//! and the-fractal-was-the-architecture.md garden entry.
 
 // Tests in this file are pre-implementation contracts. As each A3 deliverable
 // ships, the corresponding test loses its #[ignore] and gains a real fixture-
@@ -57,7 +60,7 @@ fn atk_a3_001_reexported_witness_resolves_correctly() {
     // crate_b must resolve to the function's actual definition in crate_b,
     // not produce NotFound because the indexer only finds defined-here items.
     //
-    // TODO: write multi-crate fixture when A3 ships cross-crate scan.
+    // TODO(adversarial): write multi-crate fixture when A3 ships cross-crate scan.
     panic!("A3 pre-implementation contract");
 }
 
@@ -340,7 +343,7 @@ fn atk_a3_004_proc_macro_generated_witness_is_handled_not_silently_missing() {
     // must either resolve correctly OR produce a clear diagnostic explaining
     // that generated impls are not yet resolvable — not silently NotFound.
     //
-    // TODO: write fixture when A3 ships.
+    // TODO(adversarial): write fixture when A3 ships.
     panic!("A3 pre-implementation contract");
 }
 
@@ -576,7 +579,7 @@ fn atk_a3_007_fake_registry_path_not_in_cargo_metadata_is_rejected() {
     // the trust boundary. This contract specifically exercises `enumerate_dep_crate_roots`
     // as the sub-clause F delegation point (ADR-017).
     //
-    // TODO: build a fixture workspace with a planted fake registry
+    // TODO(adversarial): build a fixture workspace with a planted fake registry
     // directory and assert enumerate_dep_crate_roots excludes it.
     //
     // See ADR-017 §"The trust delegation" for the two-precondition model.
@@ -629,7 +632,7 @@ fn atk_a3_008_duplicate_edge_adr018_synthesis_dedup_emits_diagnostic() {
     // visible diagnostic explaining the collapse. Scan report's duplicate_lineage
     // count should be queryable.
     //
-    // TODO: implement after ADR-018 ratification defines the
+    // TODO(adversarial): implement after ADR-018 ratification defines the
     // diagnostic channel for edge-level dedup discards.
     panic!("A3 pre-implementation contract");
 }
@@ -659,8 +662,8 @@ fn atk_a3_008_duplicate_edge_adr018_synthesis_dedup_emits_diagnostic() {
 //   separate contract is needed here — the deferred status lives in ADR-017 with its
 //   own adoption-pressure trigger.
 //
-// Biological cognate: this failure class is ANTIGENIC DRIFT, not
-// memory-waning. The drift-vs-waning audit message distinction is the live
+// Biological cognate (naturalist, A3): this failure class is ANTIGENIC DRIFT, not
+// memory-waning. The drift-vs-waning audit message distinction is the live adversarial
 // concern for A4+; see ATK-A3-010 for that contract.
 //   - Memory-waning: claim-side decay. Target stable; titer wanes. Maps to ADR-016
 //     `verified_at` + re-attestation. User action: re-run same witness.
@@ -708,7 +711,7 @@ fn atk_a3_009_multi_version_fingerprint_divergence_addressed_without_revalidatio
 //     Audit message shape: "antigen fingerprint has changed since witness validation;
 //     re-recognize vulnerability shape before re-running witness."
 //
-// The catch: an A4 implementation that emits memory-waning language
+// The adversarial catch: an A4 implementation that emits memory-waning language
 // ("re-validate your witness") for an antigenic-drift scenario gives the user
 // a plausible-but-wrong action. The user re-runs the witness, it passes (because
 // the witness was written correctly for the OLD fingerprint and still compiles),
@@ -743,7 +746,7 @@ fn atk_a3_010_antigenic_drift_audit_message_must_not_use_memory_waning_language(
     // remains. This is the antigenic-drift silent-green: a plausible passing action
     // that does not address the actual structural change.
     //
-    // TODO: implement when A4-A5 ships behavioral re-validation +
+    // TODO(adversarial): implement when A4-A5 ships behavioral re-validation +
     // AuditHint text differentiation. Requires:
     //   - ATK-A3-009 fixture (fingerprint divergence + immunity against old version)
     //   - Audit AuditHint carrying a category field (Drift vs Waning) or equivalent
@@ -813,8 +816,8 @@ fn atk_a3_011_cross_crate_witness_reported_executed_when_consumer_cannot_run_it(
     //   - Anti-assertion: the tier is NOT ExecutionVerified (the consuming workspace
     //     did not execute the test).
     //
-    // TODO: implement when A4-A5 cross-crate witness resolution lands.
-    // See also the multi-component threat model §C6 for the full attack.
+    // TODO(adversarial): implement when A4-A5 cross-crate witness resolution lands.
+    // See also: campsite `20260510-multi-component-threat-model.md` §C6 for full attack.
     panic!("A4+ pre-implementation contract — cross-crate witness tier");
 }
 
@@ -873,8 +876,8 @@ fn atk_a3_012_proc_macro_generated_immunity_lacks_source_annotation() {
     //   - Anti-assertion: a hand-written `#[immune(X)]` on the same item type produces
     //     declaration_source = HandWritten, not GeneratedByMacro.
     //
-    // TODO: implement when ADR-014 lands and scan.rs tracks declaration source.
-    // See also the multi-component threat model §C1 for the full attack.
+    // TODO(adversarial): implement when ADR-014 lands and scan.rs tracks declaration source.
+    // See also: campsite `20260510-multi-component-threat-model.md` §C1 for full attack.
     panic!("A4+ pre-implementation contract — proc-macro generated immunity source");
 }
 
@@ -945,8 +948,8 @@ fn atk_a3_013_diamond_provenance_set_union_loses_path_witness_structure() {
     //     the stronger one. Assert that lineage_edges traversal is used, not
     //     inherited_from alone.
     //
-    // TODO: implement when A4-A5 behavioral re-validation lands.
-    // See also the multi-component threat model §C5 for the full attack.
+    // TODO(adversarial): implement when A4-A5 behavioral re-validation lands.
+    // See also: campsite `20260510-multi-component-threat-model.md` §C5 for full attack.
     panic!("A4+ pre-implementation contract — diamond ProvenanceEntry path loss");
 }
 
@@ -1012,15 +1015,15 @@ fn atk_a3_014_hallucinated_references_indistinguishable_from_validated() {
     //   - Shared-cluster fixture: N antigens sharing one dead reference URL → audit
     //     surfaces cluster size N in its output for that reference.
     //
-    // TODO: implement when cargo antigen audit gains --validate-refs.
-    // See also the multi-component threat model §C4 for the full attack.
+    // TODO(adversarial): implement when cargo antigen audit gains --validate-refs.
+    // See also: campsite `20260510-multi-component-threat-model.md` §C4 for full attack.
     panic!("A4+ pre-implementation contract — reference tier annotation");
 }
 
 // ============================================================================
 // ATK-A3-015: seam-tier consistency witness — oracle built from wrong implementation
 //
-// Encounter-candidate seam-tier framing (single instance, from adopter work).
+// Encounter-candidate seam-tier framing (tambear math-researcher, single instance).
 // Gated: seam-tier antigen vocabulary ships (post-A3, taxonomy ADR territory).
 //
 // Background: seam-tier antigens (composition-time failures between two correct
@@ -1076,8 +1079,8 @@ fn atk_a3_015_seam_tier_consistency_witness_wrong_oracle_passes_audit() {
     // ("reference implementation per IEEE 754 conformance suite") produces
     // ExecutionVerified because the oracle claim is grounded.
     //
-    // TODO: implement when seam-tier antigen vocabulary ships.
-    // See deferred-substrate V16 §seam-tier and the encounters-attack-surface notes.
+    // TODO(adversarial): implement when seam-tier antigen vocabulary ships.
+    // See deferred-substrate V16 §seam-tier and campsite 20260510-encounters-attack-surface.md.
     panic!("Encounter-candidate pre-impl contract — seam-tier oracle wrong");
 }
 
@@ -1132,7 +1135,7 @@ fn atk_a3_016_seam_tier_antigen_declared_at_wrong_composition_boundary() {
     // `exp_api` output against reference. The kernel's internal intermediate
     // seam (where divergence actually occurs) is never probed.
     //
-    // TODO: implement when seam-tier vocabulary ships.
+    // TODO(adversarial): implement when seam-tier vocabulary ships.
     panic!("Encounter-candidate pre-impl contract — seam-tier wrong composition boundary");
 }
 
@@ -1193,7 +1196,7 @@ fn atk_a3_017_tier_misclassification_evades_witness_strength_requirement() {
     // Fixture B (structural mismatch): antigen declared seam-tier; witness is
     // phantom-type. Audit emits error: phantom-type cannot cover composition boundary.
     //
-    // TODO: implement when seam-tier vocabulary ships.
+    // TODO(adversarial): implement when seam-tier vocabulary ships.
     panic!("Encounter-candidate pre-impl contract — tier mis-classification witness strength");
 }
 
@@ -1201,7 +1204,7 @@ fn atk_a3_017_tier_misclassification_evades_witness_strength_requirement() {
 // ATK-A3-018: retire-to-documentation as premature dismissal of real encounter-candidates
 //
 // Meta-level attack on the encounters discipline itself.
-// Gated: encounters tier ratification (process.md Q7).
+// Gated: encounters tier ratification (aristotle Phase 1-8, process.md Q7).
 //
 // Background: the encounters-proposal adds a third encounter disposition:
 // retire-to-documentation — the encounter becomes usage docs / adoption guide
@@ -1253,7 +1256,7 @@ fn atk_a3_017_tier_misclassification_evades_witness_strength_requirement() {
 #[ignore = "Meta-level ATK on encounters discipline; retire-to-documentation lacks \
              structural guard against premature dismissal — three guards required: \
              second-opinion, revisit-window, concrete-artifact; remove ignore when \
-             encounters-tier ratification addresses this"]
+             encounters-tier ratification (aristotle Phase 1-8) addresses this"]
 fn atk_a3_018_retire_to_documentation_is_evasion_surface_without_guards() {
     // This is a process-level contract, not a code contract. It cannot be
     // activated by an implementation change alone — it activates when the
@@ -1267,8 +1270,8 @@ fn atk_a3_018_retire_to_documentation_is_evasion_surface_without_guards() {
     // discipline, not a code assertion. When the three guards land in the
     // ratified encounters-tier document, this contract is closed.
     //
-    // TODO: close when encounters ratification addresses guards.
-    // See the encounters-attack-surface notes §Failure mode 5 for
+    // TODO(adversarial): close when encounters ratification addresses guards.
+    // See campsite `20260510-encounters-attack-surface.md` §Failure mode 5 for
     // the full lifecycle analysis.
     panic!("Meta-level process contract — retire-to-documentation guards");
 }

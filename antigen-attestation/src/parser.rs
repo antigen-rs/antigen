@@ -901,8 +901,8 @@ fn signature_strength_from_str(s: &LitStr) -> syn::Result<crate::tier::Signature
         // kebab-case (the `--strength` CLI flag AND this DSL). An adopter who
         // reaches for the wrong-surface spelling — most likely the snake_case
         // wire form seen in a sidecar — should get a redirect, not an opaque
-        // miss (the per-leaf-diagnostic discipline applied to this
-        // cross-surface affordance trap).
+        // miss (aristotle's F1/F5 affordance-trap ruling; the per-leaf-
+        // diagnostic discipline applied to this cross-surface seam).
         other => {
             let snake_case_hint = if other.contains('_') {
                 " (note: kebab-case, matching the `cargo antigen --strength` flag \
@@ -1440,7 +1440,7 @@ mod requires_json_tests {
         // Predicate type. This locks the two ASTs together — any divergence
         // (renamed variant, new field, changed serde tag) breaks the test.
         let cases = [
-            r#"signers(required = ["alice"], roles = {alice = "reviewer"})"#,
+            r#"signers(required = ["alice"], roles = {alice = "math-researcher"})"#,
             r#"all_of([signers(required = ["alice"]), fresh_within_days(180)])"#,
             r"any_of([fresh_within_days(30), fresh_within_days(90)])",
             r"not(fresh_within_days(90))",
@@ -1459,7 +1459,7 @@ mod requires_json_tests {
     #[test]
     fn leaf_signers_roles_round_trips() {
         // Ensure roles field parses and survives the JSON round-trip.
-        let input = r#"signers(required = ["alice", "bob"], roles = {alice = "reviewer", bob = "reviewer"})"#;
+        let input = r#"signers(required = ["alice", "bob"], roles = {alice = "math-researcher", bob = "reviewer"})"#;
         let json = parse_requires(input).to_json();
         let p: crate::Predicate =
             serde_json::from_str(&json).expect("roles round-trip must succeed");
@@ -1468,7 +1468,10 @@ mod requires_json_tests {
         }) = p
         {
             assert_eq!(required, vec!["alice".to_string(), "bob".to_string()]);
-            assert_eq!(roles.get("alice").map(String::as_str), Some("reviewer"));
+            assert_eq!(
+                roles.get("alice").map(String::as_str),
+                Some("math-researcher")
+            );
             assert_eq!(roles.get("bob").map(String::as_str), Some("reviewer"));
         } else {
             panic!("expected Signers leaf, got: {json}");
@@ -1496,7 +1499,7 @@ mod requires_json_tests {
     // This test FAILS until parser.rs exposes `signature_allow = [...]` in the DSL
     // and to_leaf() propagates the list.
     //
-    // Root: finding F2 from comprehensive-antigen-coverage:
+    // Root: aristotle finding F2 from comprehensive-antigen-coverage campsite:
     //   Leaf::Signers has 5 fields; LeafExpr::Signers exposes 3 (after roles= fix).
     //   signature_allow and signature_prefer are still dead surface (parser.rs:317-318).
     #[test]
@@ -1565,7 +1568,7 @@ mod requires_json_tests {
         let p = round_trip(
             r#"signers(
                 required = ["alice", "bob"],
-                roles = {alice = "reviewer"},
+                roles = {alice = "math-researcher"},
                 against = "any",
                 signature_allow = ["git-trust", "crypto-signed"],
                 signature_prefer = "crypto-signed"
@@ -1584,7 +1587,7 @@ mod requires_json_tests {
         assert_eq!(required, vec!["alice".to_string(), "bob".to_string()]);
         assert_eq!(
             roles.get("alice").map(String::as_str),
-            Some("reviewer"),
+            Some("math-researcher"),
             "roles field must survive lowering"
         );
         assert_eq!(

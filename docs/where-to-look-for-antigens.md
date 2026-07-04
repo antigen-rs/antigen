@@ -187,10 +187,10 @@ annotations that say "this vocabulary applies here."
 
 ### Presentations you didn't add
 
-Some presentations will be added by `cargo antigen vaccinate` (planned), which
-will bulk-apply a presentation to all sites matching an antigen's fingerprint.
-These would look identical to hand-written presentations — there's no mechanical
-distinction in the source. They would appear wherever the fingerprint matched.
+Some presentations are added by `cargo antigen vaccinate`, which bulk-applies
+a presentation to all sites matching an antigen's fingerprint. These look
+identical to hand-written presentations — there's no mechanical distinction
+in the source. They appear wherever the fingerprint matched.
 
 If you're reading code and see a `#[presents]` you don't recognize, check
 `src/antigens.rs` (or the bundled catalog) for the declaration that defines it.
@@ -316,6 +316,8 @@ tells you *where* those annotations live.
 
 - [`docs/macros.md`](macros.md) — full reference for all five attribute macros
   with attribute syntax, examples, and field-by-field documentation
+- [`docs/decisions.md`](decisions.md) — ADR-004 (implicit-to-explicit elevation),
+  ADR-009 (adoption gradient: Layer 1 through 4)
 - [`docs/usage-patterns.md`](usage-patterns.md) — when/how to apply each macro
 - [`docs/testing-patterns.md`](testing-patterns.md) — witness conventions and
   test placement

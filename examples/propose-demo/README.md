@@ -65,7 +65,7 @@ it to a human. **Real captured output** (exit code `0`):
 ```
 == drafted a candidate — routed to a human ratifier ==
 
-Antigen anti-unified a draft from your `dread` marks, but cannot
+Antigen anti-unified a draft from your `dread` marks, but the B-gate cannot
 certify it GENERALIZES against your clean corpus (no near-miss: no clean
 sibling is one discriminating constraint from binding the draft). So it
 routes the candidate to a HUMAN ratifier rather than promote it.
@@ -94,8 +94,7 @@ captured output** (exit code `0`):
 ```
 == candidate failure-class fingerprint (ratifiable suggestion) ==
 
-  paste-and-compile:
-    #[antigen(fingerprint = r#"item = fn, body_calls("display"), body_calls("flatten"), body_calls("new"), body_calls("path"), body_calls("push"), body_calls("read_dir"), body_calls("to_string")"#)]
+  fingerprint: Fingerprint { constraints: [Item(Fn), BodyCalls("display"), BodyCalls("flatten"), BodyCalls("new"), BodyCalls("path"), BodyCalls("push"), BodyCalls("read_dir"), BodyCalls("to_string")] }
   score tier:  Imagined
 
 This is a SUGGESTION drafted from your `dread` marks and gated against your
@@ -116,7 +115,7 @@ ratifiable *suggestion*, never an auto-applied promotion.
 
 ```json
 {
-  "fingerprint": "Fingerprint { constraints: [Item(Fn), BodyCalls(\"display\"), BodyCalls(\"flatten\"), BodyCalls(\"new\"), BodyCalls(\"path\"), BodyCalls(\"push\"), BodyCalls(\"read_dir\"), BodyCalls(\"to_string\")] }",
+  "fingerprint": "Fingerprint { constraints: [Item(Fn), BodyCalls(\"display\"), ...] }",
   "note": "ratifiable suggestion (observe-don't-declare); inspect + ratify by hand",
   "outcome": "candidate-suggestion",
   "promoted": false,

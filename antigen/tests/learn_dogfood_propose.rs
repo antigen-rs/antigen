@@ -14,7 +14,7 @@
 //! as-complete). They form a real felt-family: a directory walk that swallows an
 //! IO/parse error and proceeds, building an incomplete result presented as whole.
 //!
-//! THE PROOF: re-acquire the two twins' ASTs (path-B: re-parse the
+//! THE PROOF: re-acquire the two twins' ASTs (the scout's path-B: re-parse the
 //! on-disk source — antigen's own marks ride the committed source as the corpus),
 //! anti-unify them to a DRAFT, and confirm the draft binds BOTH twins while
 //! sparing a clean directory-walk sibling that does NOT swallow its errors.
@@ -27,7 +27,7 @@
 //! UNDER-clusters relative to what PROPOSE's anti-unifier can generalize: the
 //! anti-unifier abstracts away the body differences that the exact-body shape
 //! digest keeps. This is a real seam (the clustering heuristic is stricter than
-//! the generalizer) — flagged as a P0a clustering-recall note, not a
+//! the generalizer) — flagged to the Survey as a P0a clustering-recall note, not a
 //! blocker: the falsification gate (`autoimmunity_safety_gate.rs` test D) carries the
 //! ≥2-cluster proof on a shape-homogeneous corpus; this test carries the
 //! antigen-self proof on the felt (abstractly-clustered) corpus.
@@ -37,7 +37,7 @@ use std::path::Path;
 use antigen::learn::propose;
 use antigen::learn::self_tolerance::ToleranceVerdict;
 
-/// Re-acquire the `fn` item named `fn_name` from `file` on disk (the
+/// Re-acquire the `fn` item named `fn_name` from `file` on disk (the scout's
 /// path-B AST re-acquisition: marks ride file+line+digest; PROPOSE re-parses the
 /// clustered files at PROPOSE-time and locates the enclosing item — here keyed by
 /// the function's stable name, which is sufficient for these two free functions).
@@ -146,7 +146,7 @@ fn propose_routes_the_felt_draft_to_human_not_promote_the_settled_thesis() {
     // reason is legible, never a bare `None`.
     let promoted = propose::propose(&twins, &clean_corpus);
 
-    // THE SETTLED THESIS: antigen's real felt twins
+    // THE SETTLED THESIS (captain's empirical ruling): antigen's real felt twins
     // ROUTE-TO-HUMAN, they do NOT promote. The twins draft is ~21 ALL-SHARED conjuncts
     // with NO discriminating `any_of` (two genuine twins share everything), and no
     // read-loop-free clean fn is one-conjunct-from-binding it, so NO near-miss exists

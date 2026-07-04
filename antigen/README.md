@@ -2,7 +2,7 @@
 
 **Structural memory of failure-classes for Rust. Make implicit immunity explicit.**
 
-> **Status: working beta, published on crates.io.** The macros,
+> **Status: working beta (`0.5.0-beta.1`), published on crates.io.** The macros,
 > witness types, and structural-recognition primitives below are real and
 > exercised by a large test suite. The API is stabilizing toward `1.0` and may
 > still change between beta releases.

@@ -183,5 +183,7 @@ are recorded in [`../roadmap.md`](../roadmap.md).
   summary row)
 - [`../fingerprint-grammar.md`](../fingerprint-grammar.md) — the fingerprint DSL
 - [`../witness-tiers.md`](../witness-tiers.md) — the confidence/tier gradient
+- [`../decisions.md`](../decisions.md) — ADR-027 (mucosal boundary), ADR-039 §C
+  (tier-honesty admission), ADR-040 (grammar leaves)
 - [`../../antigen/src/stdlib/deserialization.rs`](../../antigen/src/stdlib/deserialization.rs)
   — the source docstring (ground truth)

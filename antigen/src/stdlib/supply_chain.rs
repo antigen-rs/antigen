@@ -4,7 +4,7 @@
 //! Per ADR-025 these antigens make supply-chain failure-classes first-class
 //! structural memory rather than tribal knowledge that drifts.
 //!
-//! ## Biology cognate (NON-NEGOTIABLE)
+//! ## Biology cognate (NON-NEGOTIABLE per naturalist reframe)
 //!
 //! **Distributed-Boundary Innate-Immunity family** — a multi-cell-type
 //! integrated system. Per-primitive cognates:

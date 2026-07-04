@@ -226,7 +226,7 @@ mod tests {
         );
     }
 
-    // ---- E0 acceptance (E0 spec) ----
+    // ---- E0 acceptance (baton §2 E0 spec) ----
 
     fn e0_fixture() -> std::path::PathBuf {
         std::path::Path::new("tests")

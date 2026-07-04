@@ -9,7 +9,7 @@
 // If min_independent = 2 and only 1 distinct class is present, audit MUST emit
 // `diagnostic-modalities-class-collapsed` — the independence claim is false.
 //
-// This is the failure mode identified in ADR-024 (C1). An
+// This is the failure mode adversarial C1 identified in ADR-024. An
 // implementation that counts witnesses (not classes) would incorrectly pass
 // `[StaticAnalysis, StaticAnalysis]` with min_independent = 2.
 //

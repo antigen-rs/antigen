@@ -89,7 +89,7 @@ pub const fn new_auth_handler(token: &str) -> Result<(), String> {
 #[triage_commit(
     triage_decision = TriageDecision::Red,
     rollback_target = "a83f2c1",
-    triaged_by = "oncall-reviewer",
+    triaged_by = "oncall-navigator",
     rationale = "Session-fixation exploit confirmed via WAF logs (INCIDENT-8841); \
                  a83f2c1 is the last-clean-CI snapshot before the vulnerable auth path merged",
     rollback_due_within_minutes = 30
@@ -140,7 +140,7 @@ pub fn rollback_payment_processor(snapshot_sha: &str) -> Result<(), String> {
 #[triage_commit(
     triage_decision = TriageDecision::Yellow,
     rollback_target = "HEAD",
-    triaged_by = "oncall-reviewer",
+    triaged_by = "oncall-navigator",
     rationale = "p99 latency elevated 40% in EU-WEST region; no vital-metric breach yet; \
                  investigating correlation with deploy ac91def; decision pending",
     rollback_due_within_minutes = 60
@@ -157,7 +157,7 @@ pub fn investigate_latency_regression() {
 #[triage_commit(
     triage_decision = TriageDecision::Green,
     rollback_target = "HEAD",
-    triaged_by = "senior-reviewer",
+    triaged_by = "senior-navigator",
     rationale = "Alert fired on elevated error-rate; investigation shows traffic spike \
                  from load-test in staging leaking to prod metrics; no actual regression; \
                  no rollback warranted; suppressing alert for 2h",
@@ -174,7 +174,7 @@ pub fn close_false_positive_alert() {
 #[triage_commit(
     triage_decision = TriageDecision::White,
     rollback_target = "HEAD",
-    triaged_by = "oncall-reviewer",
+    triaged_by = "oncall-navigator",
     rationale = "Cache layer was flagged during triage of INCIDENT-9011 but was determined \
                  unrelated to the active p0; explicitly scoped out to avoid distraction; \
                  cache investigation to continue post-incident in separate thread",

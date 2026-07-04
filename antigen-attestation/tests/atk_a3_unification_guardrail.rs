@@ -1,5 +1,5 @@
 //! Adversarial precision test for the discipline-vs-machinery unification
-//! asymmetry boundary (ADR-019 §M3 / §M5).
+//! asymmetry boundary (ADR-019 §M3 / §M5 + adversarial T5-R + aristotle F1).
 //!
 //! ## What this test guards
 //!

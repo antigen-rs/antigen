@@ -171,7 +171,7 @@ fn tolerance_vibes_grade_distinct_from_substrate_state() {
     // Constructed result: the canonical "tolerance vibes-grade" output
     // (returned when `#[antigen_tolerance(X)]` has no `sidecar = true`).
     let result = antigen_attestation::EvaluatedPredicate::tolerance_vibes_grade();
-    // Per ADR-019 §M5: vibes-grade tolerance reports
+    // Per ADR-019 §M5 + scout S1: vibes-grade tolerance reports
     // EvidenceKind::None (not SubstrateState) to surface that NO substrate
     // was consulted. This is the load-bearing distinction that lets CI
     // gates separate vibes-grade tolerance from attested tolerance.

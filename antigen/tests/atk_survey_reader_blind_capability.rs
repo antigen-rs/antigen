@@ -1,4 +1,4 @@
-//! ATK-SURVEY-READER-BLIND — the refutation of CURATE's moral center,
+//! ATK-SURVEY-READER-BLIND — the Survey-wave refutation of CURATE's moral center,
 //! attacked at the UPSTREAM sensor seam the prior CURATE/discriminator ATKs never
 //! reached.
 //!

@@ -2,7 +2,7 @@
 
 Thank you for your interest in antigen — structural memory of failure-classes for Rust.
 
-> **Status: actively shipping**, published on crates.io. The substrate-witness pipeline, the Oracle lifecycle, cross-cutting attestation, and the learning organs (`antigen::learn`) are all live. For the published version and per-release surface, see [`CHANGELOG.md`](CHANGELOG.md). We welcome substantive contributions across multiple paths.
+> **Status: actively shipping.** v0.1.0-rc.3 is published on crates.io; the substrate-witness pipeline, Oracle 5-state lifecycle, and cross-cutting attestation are all live. The architectural-posture-shift event that opened v0.2 ratified ten ADRs as the v0.2 direction lock. We welcome substantive contributions across multiple paths.
 
 ---
 
@@ -62,16 +62,16 @@ If you disagree with a ratified ADR, GitHub Discussions is the right surface. De
 
 ## What happens to your PR
 
-Antigen has a formal internal architectural process — a discipline carried over from a high-correctness computational-mathematics project. **You don't need to interact with it directly.** When you submit a PR, a maintainer takes it through that discipline:
+Antigen has a formal internal architectural process inherited from the tambear project. **You don't need to interact with it directly.** When you submit a PR, the antigen team takes it through our discipline:
 
-1. **First-principles review** — a maintainer deconstructs the change against the ratified ADRs, surfaces any hidden assumptions, identifies cross-cutting concerns
+1. **First-principles review** — an aristotle-role agent (or maintainer) deconstructs the change against the ratified ADRs, surfaces any hidden assumptions, identifies cross-cutting concerns
 2. **Adversarial review** — failure-mode hunting; what's the worst input? what silent failures could pass tests?
 3. **Substrate validation** — does the change match what the codebase actually does? are claims in the PR description accurate?
 4. **Merge or revision request** — clean PRs land; revision requests come with specific findings
 
 This typically takes a few days for non-trivial changes. Your PR description is the primary substrate we work from — clearer description = faster review.
 
-The project maintains an internal discipline (the ADR lifecycle, sweep planning, review responsibilities) that documents how antigen is maintained internally — not what we ask of contributors.
+If you're curious about the internal discipline itself (the ADR lifecycle, sweep planning, role responsibilities), see [`docs/process.md`](docs/process.md). It documents how the antigen team coordinates internally — not what we ask of contributors.
 
 ---
 

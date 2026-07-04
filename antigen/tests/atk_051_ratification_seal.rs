@@ -1,16 +1,16 @@
 //! ATK-051 — the ratification-record one-invariant seal (ADR-051 §Q9), BORN-RED.
 //!
-//! ADR-051's whole surface is **greenfield** (confirmed by HEAD-grep 2026-06-11:
+//! ADR-051's whole surface is **greenfield** (scout-confirmed, HEAD-grep 2026-06-11:
 //! `RatificationSpecimen`, `PersistedSpecimen`, `Fate`, `accept`/`reject`/`narrow`,
 //! `cargo antigen ratify` all need creating) and sits at build-order steps 7-8 —
-//! far from the keystone-spine being built now. This file lands the born-red
+//! far from the keystone-spine the pathmaker is on now. This file lands the born-red
 //! spec **before** the surface, so the moment it exists the type-invariant is
 //! defended and the un-ignore is a one-line act, not a fresh test-design.
 //!
-//! These may be `#[ignore]`'d pending implementation; the bodies are
-//! the spec. Each test below is `#[ignore]`'d with a precise un-ignore condition;
-//! its body is the executable spec ADR-051 §Q9 names. When the
-//! surface lands, replace the `unimplemented!` shim with the real call and remove the
+//! Per the baton: *"they may be `#[ignore]`'d pending implementation; the bodies are
+//! the spec."* Each test below is `#[ignore]`'d with a precise un-ignore condition;
+//! its body is the executable spec ADR-051 §Q9 names. When the pathmaker lands the
+//! surface, replace the `unimplemented!` shim with the real call and remove the
 //! `#[ignore]` — the body already says what "done" means.
 //!
 //! # The ONE invariant (lead with it — every hole is a corollary)
@@ -19,11 +19,11 @@
 //! > TOKEN, NEVER A BARE `Fingerprint`.**
 //!
 //! This is ADR-048's capability-token discipline applied to the ratification
-//! *surface* — the same trust boundary, one level out. It
+//! *surface* — the same trust boundary, one level out (aristotle's recognition). It
 //! closes the whole ratification-bypass family BY TYPE, as corollaries not patches:
 //! auto-accept-launder (Hole-1), the route-to-human-lie (Hole-2), human-narrow-
 //! without-re-gate (Hole-3), the serde-forgery / persistence-launder (Hole-4). The
-//! residual-probe is the test: *is there ANY path to recorded-as-
+//! adversarial's residual-probe is the test: *is there ANY path to recorded-as-
 //! accepted that does NOT go through a `PromotedDraft`?* If no such path compiles,
 //! the one invariant holds.
 //!
@@ -116,7 +116,7 @@ fn not_corpus_witnessable_draft_lands_as_pending_specimen() {
 }
 
 /// ADR-051 §Q9 — `persisted_specimen_round_trips_as_bare_fingerprint_and_re_mints_on_load`
-/// (a must-fix-before-handoff, the FIFTH surface). The in-memory
+/// (the adversarial's must-fix-before-baton, the FIFTH surface). The in-memory
 /// `RatificationSpecimen` holds the live `PromotedDraft` and is NOT serde; the
 /// on-disk `PersistedSpecimen` holds a bare `Fingerprint` and IS serde; load
 /// re-mints via `promote_if_safe` against the PERSISTED `spared` corpus (a
@@ -196,7 +196,7 @@ fn human_and_agent_render_the_same_record() {
 
 // ───────────────────────────────────────────────────────────────────────────
 // The ADR-047-Amd2 ↔ ADR-051 COUPLING — the nested-vacuity fix is a 051-soundness
-// PREREQ (batch-3 + the 051-seal audit). 051's narrow()/
+// PREREQ (captain batch-3 + the adversarial's 051-seal audit). 051's narrow()/
 // re-mint RE-PARSE user-edited fingerprints into ARBITRARY nesting — so 051's
 // SHAPE-soundness (the reconstructed fingerprint re-gates to the right verdict, and
 // forgery-detection holds against a NESTED autoimmune draft) rides the gate's
@@ -238,7 +238,7 @@ fn narrow_output_is_producer_normalized() {
 /// so the single-level normalize doesn't see through it, and the re-gate spuriously
 /// promotes (`Ok`) instead of refusing — the forgery passes. The fix (Amd2 Hole-II
 /// recursive flatten) makes the re-mint see the flattened autoimmune shape and `Err`.
-/// This is the 051-soundness elevation (batch-3).
+/// This is the adversarial's 051-soundness elevation (captain batch-3).
 #[test]
 #[ignore = "born-red: ADR-051 PersistedSpecimen re-mint greenfield + rides ADR-047 \
             Amd2 recursive-normalize; un-ignore when re-mint + recursive canonical-form land"]

@@ -75,7 +75,7 @@ pub fn rollback_to_snapshot(snapshot_sha: &str) -> Result<(), String> {
 #[triage_commit(
     triage_decision = TriageDecision::Red,
     rollback_target = "83a7f2c",
-    triaged_by = "oncall-reviewer",
+    triaged_by = "oncall-navigator",
     rationale = "Confirmed regression in payment path (issue #4421); snapshot 83a7f2c is the last green CI for this module",
     rollback_due_within_minutes = 30
 )]

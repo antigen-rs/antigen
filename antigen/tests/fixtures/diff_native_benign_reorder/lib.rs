@@ -1,5 +1,5 @@
 // diff-native DETECT fixture — the DEGENERATE / benign-line-shift case
-// (the un-run degenerate). Parsed-as-text.
+// (the adversarial's un-run degenerate). Parsed-as-text.
 //
 // SAME items as diff_native_guard_before, SAME structure for each — but
 // REORDERED in the file, with blank lines and comments inserted. Every item's

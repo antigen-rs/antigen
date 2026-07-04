@@ -5,7 +5,7 @@
 //! that sees both halves). It is the external platform contract the three
 //! downstream learning-loop organs (the affinity-maturation engine,
 //! antigen-as-platform, the cytokine-signaling-network — all charter) subscribe
-//! to. Per the "emit, don't display" lock: the dial verdict and the
+//! to. Per the captain's "emit, don't display" lock: the dial verdict and the
 //! `#[dread]` / `#[aura]` markers MUST be queryable as structured output, not
 //! merely rendered.
 //!
@@ -19,7 +19,7 @@
 //! `ParallelStateTrackersDiverge` class at the schema level, which this boundary
 //! forecloses.
 //!
-//! **Forward-compat contract (ADR-039 §C).** The record
+//! **Forward-compat contract (ADR-039 §C, adversarial finding #12).** The record
 //! is the EXTERNAL contract; it is versioned via
 //! [`Finding`](crate::finding::Finding)'s `schema_version` and **every future
 //! field is additive + optional** (`#[serde(default)]`); external
@@ -28,8 +28,9 @@
 //! contract inherits it. (ADR-041 already grew the schema once — it added
 //! `existence_certainty` — proving it *will* grow.) Recognition, not design.
 //!
-//! The current shape was spiked to a compiling, running, serializing struct;
-//! this is the real-crate landing of that shape under ADR-036/039/041.
+//! The current shape was spiked to a compiling, running, serializing struct at
+//! `roles/pathmaker/spikes/seam-spike`; this is the real-crate landing of that
+//! shape under ADR-036/039/041.
 
 use antigen_macros::dread;
 use serde::{Deserialize, Serialize};
@@ -151,7 +152,7 @@ impl Presentation {
     }
 }
 
-/// Universal severity (ADR-039 §C) — on EVERY [`Finding`].
+/// Universal severity (ADR-039 §C, adversarial finding #12) — on EVERY [`Finding`].
 ///
 /// The cytokine-signaling organ (charter) routes by severity-as-priority, so a
 /// named dial-verdict Finding must also carry a severity or it cannot be routed —

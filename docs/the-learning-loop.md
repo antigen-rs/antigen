@@ -7,8 +7,7 @@
 > takes each organ one mechanism at a time. This page zooms **out**: it shows
 > `cargo antigen propose` not as a standalone command but as **one organ in a
 > living loop** — where the candidate it drafts comes *from*, where the drafts it
-> emits *go*, and how much of the loop is wired, how much ships as a library, and
-> how much is still ahead.
+> emits *go*, and which half of the loop v0.5 actually closes.
 >
 > Read this when `propose` makes sense in isolation but you can't yet see the
 > system it belongs to.
@@ -128,36 +127,29 @@ Every outcome is a **render, never a source edit.** A `propose` run leaves your
 tree byte-unchanged. The machine drafts the syntactic half; a human ratifies the
 semantic half.
 
-### The efferent path — a class lives over its life (built as a library in v0.6)
+### The efferent path — a class defends the tissue (the v0.6 frontier)
 
-The other half of the loop carries a *ratified* class forward through its life. In
-v0.6 this half ships as a typed, tested library (`antigen::learn`) — the organs
-that let a remembered class accumulate a history, sense its own drift, and be
-curated when it stops earning its keep:
+The other half of the loop carries a *ratified* class back down to the code:
 
 ```
-a ratified          life-record         SENSE             CLASSIFY            ACT — CURATE
-failure-class   →   (its history)   →   reader · ADWIN →  conservatism-JOIN → reversible-first ladder
-#[antigen] memory   accumulates         feel its drift    fuse the channels   (Keep · Hold · RouteToHuman
-                                                                                · ReArm · Forget)
+a ratified           scan/audit matches          (v0.6) auto-insert a
+failure-class    →   it on future code     →     linking #[presents] mark   →   the developer's
+#[antigen] memory                                at the site                     next-audit to-do
 ```
 
-Each organ is real and composable today. The **life-record** is the class's
-append-only autobiography; the two **senses** read it — `reader` for silent
-classes, `ADWIN` for loud ones, and `ADWIN` answers `UnderPowered` ("I can't yet
-see drift") rather than guessing. The **classifier**'s conservatism-JOIN fuses the
-channels, and if any channel is blind it routes to a human rather than act. **CURATE**
-maps the result to one action on a reversible-first ladder whose only irreversible
-rung — Forget — is reachable from a single verdict alone. For the full anatomy see
-[the maturing organism](the-maturing-organism.md).
+Here a class that survived ratification becomes durable `#[antigen]` memory; the
+next time `scan`/`audit` meets matching code, it would dispatch an **effector** —
+an auto-inserted linking mark that says *"this site is in a known
+failure-class's territory."* Note the discipline even here: the tool would
+*link*, never *fix*. The link is the handoff; resolving it stays the developer's
+job.
 
-**What is *not* built is the wiring.** No `cargo antigen` verb drives
-sense → classify → act end-to-end yet; the organs are a library the v0.7 pipeline
-will call. The auto-marking effector and the loop closing on antigen's own worries
-are the v0.7 frontier, named in [the roadmap](roadmap.md). The order is deliberate:
-a defense system that takes autoimmunity seriously builds the *self-screen* and the
-*conscience about forgetting* before it builds the machinery that acts on the tissue
-autonomously.
+**This efferent path is not built in v0.5.** The auto-marking effector, the
+catalog that hosts ratified classes, the homeostasis that prunes classes which go
+stale — these are the road ahead, named in [the roadmap](roadmap.md). v0.5 builds
+the afferent pump and stops at the human. That's deliberate: a defense system
+that takes autoimmunity seriously builds the *self-screen* before it builds the
+machinery that acts on the tissue.
 
 ---
 
@@ -172,32 +164,18 @@ graph LR
     C -->|propose anti-unifies| D["a draft<br/>candidate fingerprint"]
     D -->|GATE-G self-tolerance| H["a human<br/>ratifies"]
     H -->|ratified class| M["#[antigen]<br/>durable memory"]
-    M -->|"life-record + SENSE<br/>(reader · ADWIN)"| S["sense its drift<br/>over its life"]
-    S -->|"CLASSIFY<br/>(conservatism-JOIN)"| A["CURATE<br/>reversible-first ladder"]
-    A -.->|"a wired cargo antigen verb<br/>drives it end-to-end (v0.7)"| F["fewer / new<br/>worries"]
-    F -.->|"the loop closes<br/>(v0.7)"| W
+    M -.->|"defends future code<br/>(v0.6 efferent)"| F["fewer / new<br/>worries"]
+    F -.->|"the loop closes<br/>(v0.6)"| W
 
     classDef live fill:#1b4d2e,stroke:#2e7d4f,color:#e8f5e9
-    classDef lib fill:#15394d,stroke:#2e6f8f,color:#e3f2fd
     classDef ahead fill:#3a3a3a,stroke:#666,color:#bbb,stroke-dasharray: 5 5
-    class W,C,D,H,M live
-    class S,A lib
-    class F ahead
+    class W,C,D,H live
+    class M,F ahead
 ```
 
-Three tiers, ordered by how close each is to the user's hands:
-
-- The **solid green path is wired and live**: a worry → a cluster → a draft → a
-  human ratifier → a durable `#[antigen]` memory. Run it today.
-- The **solid blue organs ship as a library in v0.6**: once a class is remembered,
-  the efferent organs let it *live* — a life-record (its autobiography), the two
-  senses (`reader` for silent classes, `ADWIN` for loud ones) that feel its drift,
-  the classifier's conservatism-JOIN, and **CURATE**'s reversible-first ladder that
-  decides what to do with it. These are typed, tested `antigen::learn` APIs — real,
-  composable, but not yet driven by a `cargo antigen` verb.
-- The **dashed path is the v0.7 frontier**: a wired CLI loop that drives
-  sense → classify → act end-to-end, and the self-immunization payoff where the loop
-  closes back on antigen's own worries.
+The **solid path is live in v0.5**: a worry → a cluster → a draft → a human
+ratifier. The **dashed path is the v0.6 frontier**: a ratified class defending
+future code, surfacing new worries, closing the loop back on itself.
 
 This is why you should be careful with one specific claim. It is tempting to say
 antigen *"immunized itself"* — that it found a failure-class in its own code,
@@ -223,38 +201,36 @@ present-tense holds exactly:
 > human ratifier.**
 
 Not *"antigen immunized itself."* The two gaps between the dogfood test and the
-closed loop are the same v0.7 frontier: **auto-clustering** antigen's
+closed loop are the same v0.6 frontier: **auto-clustering** antigen's
 heterogeneous singleton marks (so the CLI forms the cluster the test assembles by
 hand), and the **self-immunization payoff** (the loop closing on antigen's own
-worries). What ships today is real and honest: a tool that turns a felt worry into
-a drafted candidate and hands the naming to a person — and, in v0.6, the library
-organs that let a ratified class live, drift, and be curated once it exists. The
-restraint *is* the product.
+worries). What v0.5 ships is real and honest: a tool that turns a felt worry into
+a drafted candidate and hands the naming to a person. The restraint *is* the
+product.
 
 ---
 
-## Where this version sits in the arc
+## Where v0.5 sits in the arc
 
-The learning organism is being built as a sequence of stages. It helps to know
-which are wired and live, which ship as a library, and which are still ahead:
+The learning organism is being built as a sequence of islands. It helps to know
+which are underfoot and which are ahead:
 
-| | Stage | Status |
+| | Island | Status |
 |---|---|---|
-| 1 | **route-arm** — the marks-as-cluster feeder | shipped, wired (v0.5) |
-| 2 | **keystone-safety-harden** — GATE-G, the self-tolerance gate | shipped, wired (v0.5) |
-| 3 | **`cargo antigen propose`** — the keystone goes live | shipped, wired (v0.5) |
-| 4 | **life-record + maturation** — a class's history and its affinity climb | library (v0.6) |
-| 5 | **sense + classify** — `reader`/`ADWIN` drift-sensing, the conservatism-JOIN | library (v0.6) |
-| 6 | **CURATE** — the reversible-first ladder, the conscience about forgetting | library (v0.6) |
-| 7 | the **wired curation loop** — a `cargo antigen` verb driving sense→classify→act | ahead (v0.7) |
-| 8 | the **self-immunization payoff** — the loop closing on antigen's own worries | ahead (v0.7) |
+| 1 | **route-arm** — the marks-as-cluster feeder | shipped (v0.5) |
+| 2 | **keystone-safety-harden** — GATE-G, the self-tolerance gate | shipped (v0.5) |
+| 3 | **`cargo antigen propose`** — the keystone goes live | shipped (v0.5) |
+| 4 | intent-substrate — deepening the "self" the gate screens against | ahead |
+| 5 | effector-repair — a learned class suggests a fix (the efferent arm) | ahead |
+| 6 | testing-platform — a learned class generates a witness that defends it | ahead |
+| 7 | red-queen — the same maturation engine pointed at fingerprint-evasion | ahead |
 
-**v0.5 wired stages 1–3** (the afferent pump and its safety spine, the keystone
-verb live). **v0.6 builds stages 4–6 as a library** — the efferent organs that let
-a ratified class live, typed and tested and composable, but not yet driven by a CLI
-verb. Stages 7–8 are the road ahead. (One thing explicitly *outside* the whole
-sequence: an LLM-reasoner that would name classes itself. That's a separate future
-effort; antigen builds the bounded organs before the cross-cutting brain.)
+**v0.5 is islands 1–3**: the afferent pump and its safety spine, with the keystone
+verb live. Islands 4–7 are the road ahead — they are roadmap, not present, and
+this doc has not taught them as if they exist. (One thing explicitly *outside* the
+whole sequence: an LLM-reasoner that would name classes itself. That's a separate
+future expedition; antigen builds the bounded organs before the cross-cutting
+brain.)
 
 ---
 

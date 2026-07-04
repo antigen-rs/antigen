@@ -22,8 +22,8 @@
 //!   *plumbing* (anti-unify → gate → legible outcome) works on real dogfood; the
 //!   *promote payoff* on real marks is a frontier that needs the afferent fix (more
 //!   source-distinct clustered marks, or a richer near-miss-providing corpus) — the
-//!   3a-now / 3b-frontier distinction, ground-truthed by RUN (a reasoned "it should
-//!   promote" is a claim, only a run settles a verdict).
+//!   captain's 3a-now / 3b-frontier ruling, ground-truthed by RUN (the adversarial
+//!   ran it; a reasoned "it should promote" is a claim, only a run settles a verdict).
 //!
 //! Together: the gate is satisfiable (3a), the loop is real on antigen-on-antigen
 //! (3b), and the gate is sound — it never autoimmune-promotes; when it cannot
@@ -196,7 +196,7 @@ fn the_dogfood_loop_closes_end_to_end_with_an_honest_route_to_human() {
          being HONEST — it never autoimmune-promotes and never fakes a generalization \
          verdict it cannot make. (The promote-payoff on real marks is the afferent \
          frontier: more source-distinct clustered marks, or a near-miss-providing \
-         corpus — the 3a-now/3b-frontier distinction, ground-truthed by RUN.)"
+         corpus — the captain's 3a-now/3b-frontier ruling, ground-truthed by RUN.)"
     );
     // The ONE invariant that must hold whatever the verdict: the gate NEVER promotes
     // a draft that binds the clean sibling (autoimmunity). Here it didn't promote at

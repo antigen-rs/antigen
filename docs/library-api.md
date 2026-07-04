@@ -17,11 +17,11 @@
 
 ```toml
 [dependencies]
-antigen = "0.6"     # the scan + learn library surfaces   (check crates.io for the latest)
+antigen = "0.5.0-beta.1"     # the scan + learn library surfaces
 # The Learning-Core returns `antigen_fingerprint::Fingerprint` values. If you
 # want to *name* that type (store it, match on it, print it), add the fingerprint
 # crate too — antigen does not currently re-export it:
-antigen-fingerprint = "0.6"   # check crates.io for the latest
+antigen-fingerprint = "0.5.0-beta.1"
 syn = "2"                    # you supply `syn::Item`s to the learner
 ```
 
@@ -296,7 +296,7 @@ The three verdicts:
 > **Honest-scope (ADR-065 Amendment 2).** The detector's FULL (variance-aware) regime is
 > gated behind a sample-count of 30 and is not reached at v0.6 scale; the rigorous floor
 > bound governs every reachable case. A documented doc-vs-code scope note on the FULL bound's
-> cutpoint-set (ADR-065 Amendment 2) does not
+> cutpoint-set lives in [`decisions.md`](decisions.md) (ADR-065 Amendment 2) — it does not
 > affect the verdict for any trajectory a v0.6-scale caller can produce.
 
 ---

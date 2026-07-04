@@ -1,4 +1,4 @@
-//! # Resource-Lifecycle-Leak Family — stdlib antigens
+//! # Resource-Lifecycle-Leak Family — stdlib antigens (beta.2 voyage)
 //!
 //! Leaks: resources whose `Drop` never fires. The build-now member is the
 //! **explicit-leak-primitive** form — `mem::forget` / `Box::leak` / `Vec::leak`
@@ -9,12 +9,12 @@
 //! die and be cleared (dropped) instead persist (senescent-cell accumulation).
 //! `mem::forget` = explicitly suppressing the death signal.
 //!
-//! ## Sibling-family note
+//! ## Sibling-family note (scout)
 //!
 //! This family and `drop_panic` are two halves of one Drop-Lifecycle axis:
 //! `drop_panic` = drop fires-but-explodes; `resource_lifecycle` = drop
 //! never-fires. They are NOT merged (distinct remedies — panic-free teardown vs
-//! document-the-leak) but the kinship is real.
+//! document-the-leak) but the kinship is real, recorded for the naturalist.
 //!
 //! ## Antigen-category (ADR-028)
 //!

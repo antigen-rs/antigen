@@ -1,12 +1,12 @@
 # Case Study — the determinism-class polarity inversion
 
 > The founding incident, told as a focused case study. A polarity-inverted
-> lattice `meet` shipped in a computational-mathematics project, was caught and fixed, and then **arrived
+> lattice `meet` shipped in tambear, was caught and fixed, and then **arrived
 > again, independently, months later** in a structurally-identical new enum. This
 > is the bug antigen was invented to make un-repeatable — and the antigen that
 > would have caught the second occurrence before it was written.
 >
-> For the full founding narrative (the originating observation, the frame shift to immune-
+> For the full founding narrative (the garden entry, the frame shift to immune-
 > system architecture), see [`origin.md`](origin.md). For the generic
 > "same bug twice" pattern told with a simplified enum, see
 > [`case-study.md`](case-study.md). This file is the **specific** determinism-class
@@ -16,7 +16,7 @@
 
 ## The codebase
 
-The originating project is a Windows-native,
+[tambear](https://github.com/tambear-rs/tambear) is a Windows-native,
 GPU-accelerated mathematical computing toolkit. Its operations are classified by
 a **`DeterminismClass`** — how reproducibly an operation produces identical
 bit-level results across hardware, compiler versions, and optimization levels:
@@ -100,8 +100,8 @@ Same shape. Same trap. **Independently arrived at, independently wrong.**
 
 What stopped the second illness was **not** memory of the first fix; that memory
 was not structurally accessible. What stopped it was *re-deriving the lesson from
-scratch*. A reviewer traced a worked example by hand and noticed the
-polarity was wrong. The implementer, about to write the code, paused: their
+scratch*. The math-researcher traced a worked example by hand and noticed the
+polarity was wrong. The pathmaker, about to implement the draft, paused: their
 mental model said `min`, but the substrate-of-record said `max` — and they caught
 the inversion before any code went down.
 
@@ -269,7 +269,7 @@ why it matters, and why it is the case antigen was built around.
 
 ## See also
 
-- [`origin.md`](origin.md) — the full founding narrative (the originating observation, the
+- [`origin.md`](origin.md) — the full founding narrative (the garden entry, the
   frame shift to immune-system architecture)
 - [`case-study.md`](case-study.md) — the "same bug twice" pattern told generically
 - [`immune-migration-guide.md`](immune-migration-guide.md) — converting old

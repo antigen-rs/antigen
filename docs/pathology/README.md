@@ -52,3 +52,5 @@ documented members. This matches the catalog exactly.
 - [`../witness-tiers.md`](../witness-tiers.md) — the confidence/tier gradient
 - [`../examples-guide.md`](../examples-guide.md) — a runnable walkthrough per family
   example
+- [`../decisions.md`](../decisions.md) — ADR-027, ADR-028, ADR-039 §C, ADR-040,
+  ADR-041

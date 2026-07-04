@@ -1,10 +1,10 @@
 //! ATK-SC adversarial test suite — Supply-Chain Defense Family (ADR-025).
 //!
-//! STATUS: PENDING IMPLEMENTATION
+//! STATUS: PENDING PATHMAKER COMMIT
 //
-// These tests will not compile until the supply-chain family ships.
+// These tests will not compile until pathmaker ships the supply-chain family.
 // They are written against the SPEC (ADR-025) — they define what SHOULD be true.
-// When it ships, these either:
+// When pathmaker ships, these either:
 //   (a) compile and PASS  → implementation is correct
 //   (b) compile and FAIL  → implementation has the bug this test catches
 //   (c) don't compile     → required types or functions are missing
@@ -27,7 +27,7 @@
 // Expected defense: audit checks artifact field before accepting claim.
 
 // NOTE: These tests require `antigen::audit::audit_supply_chain` and the
-// `DepAttested` predicate leaf type. Enable when the supply-chain family ships.
+// `DepAttested` predicate leaf type. Enable when pathmaker ships.
 
 // #[test]
 // fn atk_sc1_empty_reviewable_artifact_produces_dep_attest_hint() {

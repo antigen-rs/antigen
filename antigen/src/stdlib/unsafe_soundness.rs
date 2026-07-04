@@ -1,4 +1,4 @@
-//! # Unsafe-Soundness-Boundary Family — stdlib antigens
+//! # Unsafe-Soundness-Boundary Family — stdlib antigens (beta.2 voyage)
 //!
 //! Soundness holes reachable from safe-looking code — the `unsafe`-primitive
 //! call-shapes where a wrong invariant is **Undefined Behavior**, not a panic.
@@ -10,7 +10,7 @@
 //! invariant is a forged MHC marker (a foreign cell passing as self). This rhymes
 //! hard with the Mucosal-Boundary family (trust-boundary) — it is mucosal-boundary
 //! applied to the *memory-safety* membrane (the new-family-vs-deep-tier question
-//! is a judgment call; the members are the same either way).
+//! is a naturalist call; the members are the same either way).
 //!
 //! ## Antigen-category (ADR-028)
 //!

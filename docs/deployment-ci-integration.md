@@ -21,7 +21,7 @@ Antigen gives you two read-only inspection commands. Neither mutates your code.
   declared failure-class memory actually backed by evidence?"*
 
 For CI, `audit --strict` is the load-bearing gate (see
-[the relationship](#scan---strict-vs-audit---strict) below). `scan` is most useful
+[the relationship](#scan-strict-vs-audit-strict) below). `scan` is most useful
 as a non-gating informational step or for the JSON artifact.
 
 ---
@@ -245,6 +245,8 @@ footgun shapes flagged on a crate that already declares its own antigens:
   with your existing test/lint/verification gates
 - [`immune-migration-guide.md`](immune-migration-guide.md) — if your codebase
   still has `#[immune]` sites the audit flags as deprecated
+- [`decisions.md`](decisions.md) — ADR-008 Amendment 1 (warn-not-error default),
+  ADR-018 (state-7), ADR-029 (observe-don't-declare verdicts)
 
 ---
 

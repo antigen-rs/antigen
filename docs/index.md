@@ -41,26 +41,14 @@ declare your own first antigen — quickstart shows you how:
 
 ```toml
 [dependencies]
-antigen = "0.6"   # check crates.io for the latest version
+antigen = "0.5.0-beta.1"   # check crates.io for the latest version
 ```
 
 ---
 
 ## Pick your path
 
-Six ways in, depending on why you're here. Each row names where to start; the
-sections below expand each path.
-
-| If you want to… | Start here | Then |
-|---|---|---|
-| **See it work in 30 seconds** | [the felt arc](the-felt-arc.md) | one real run, no install |
-| **Use it on your code** | [quickstart](quickstart.md) | [getting-started](getting-started.md) → [tutorial](tutorial.md) → [concepts](concepts.md) |
-| **Understand how it works** | [concepts](concepts.md) | [the maturing organism](the-maturing-organism.md) → [drift-detection and the moral center](drift-detection-and-the-moral-center.md) → [the v0.6 anatomy](the-v06-anatomy.md) → [library-api](library-api.md) → [the immune-system guide](the-immune-system-a-programmers-guide.md) |
-| **Know why it's shaped this way** | [the keystone explained](the-keystone-explained.md) | [the immune-system guide](the-immune-system-a-programmers-guide.md) |
-| **Get unstuck** | [troubleshooting](troubleshooting.md) | [reading a verdict](reading-a-verdict.md) → [i-scanned-and](i-scanned-and.md) |
-| **Collaborate as an AI agent** | [for LLM collaborators](for-llm-collaborators.md) | the co-native protocol, first-class |
-
-The detail for each:
+Different starting points for different people.
 
 ### "I'm new to antigen; show me what it is and how to use it"
 
@@ -176,13 +164,18 @@ for the `DriftVerdict` surface.
 
 - **[`origin.md`](origin.md)** — the founding incident; the
   determinism-class / commutativity-class post-mortem
+- **[`decisions.md`](decisions.md)** — ratified ADRs and amendments
+- **[`postures.md`](internal/postures.md)** — architectural postures (seven
+  postures threaded through the ADRs)
+- **[`process.md`](internal/process.md)** — formal ADR lifecycle and
+  governance
 - **[`testing-patterns.md`](testing-patterns.md)** — when/how
   testing-and-antigen co-operate
-- **[`cross-domain-architectural-map.md`](cross-domain-architectural-map.md)**
+- **[`cross-domain-architectural-map.md`](internal/cross-domain-architectural-map.md)**
   — 16+ academic fields converging on the same architectural class
-- **[`immune-system-primitive-map.md`](immune-system-primitive-map.md)**
+- **[`immune-system-primitive-map.md`](internal/immune-system-primitive-map.md)**
   — comprehensive biology primitive catalog
-- **[`contact-graph-and-recognition-tiers.md`](contact-graph-and-recognition-tiers.md)**
+- **[`contact-graph-and-recognition-tiers.md`](internal/contact-graph-and-recognition-tiers.md)**
   — 3-tier × 7-mode recognition framework
 
 ### "I want the project's roadmap"
@@ -194,6 +187,10 @@ for the `DriftVerdict` surface.
 
 - **[`../CONTRIBUTING.md`](../CONTRIBUTING.md)** — contribution guide
 - **[`roadmap.md`](roadmap.md)** — where contributions matter most
+- **[`postures.md`](internal/postures.md)** — the architectural postures
+  contributions should thread through
+- **[`process.md`](internal/process.md)** — ADR lifecycle for proposing
+  architectural changes
 
 ---
 
@@ -213,7 +210,8 @@ A flat catalog of every doc with one-line purpose:
 | [`examples-guide.md`](examples-guide.md) | Progressive walkthrough of `antigen/examples/` |
 | [`the-felt-arc.md`](the-felt-arc.md) | The learning core as you live it — dread → propose → route-to-human, four beats |
 | [`the-learning-loop.md`](the-learning-loop.md) | Where `propose` sits in the system — one organ in a living loop |
-| [`the-keystone-explained.md`](the-keystone-explained.md) | Why the learning core routes to a human — what `cargo antigen propose` is, the safety line, from first principles |
+| [`the-v05-story.md`](the-v05-story.md) | The narrative of the learning organism — what `cargo antigen propose` is and why it asks a human |
+| [`the-keystone-explained.md`](the-keystone-explained.md) | Why the learning core routes to a human — the safety line, from first principles |
 | [`composition.md`](composition.md) | How antigen composes with clippy, proptest, kani/prusti/verus, etc. |
 | [`where-to-look-for-antigens.md`](where-to-look-for-antigens.md) | Placement conventions |
 | [`usage-patterns.md`](usage-patterns.md) | Common patterns / cookbook |
@@ -287,20 +285,21 @@ A flat catalog of every doc with one-line purpose:
 
 | Doc | Purpose |
 |---|---|
+| [`decisions.md`](decisions.md) | Ratified ADRs |
+| [`postures.md`](internal/postures.md) | Architectural postures |
+| [`process.md`](internal/process.md) | ADR lifecycle |
 | [`testing-patterns.md`](testing-patterns.md) | Testing and antigen together |
 
 ### Research substrate
 
 | Doc | Purpose |
 |---|---|
-| [`cross-domain-architectural-map.md`](cross-domain-architectural-map.md) | Academic convergence map |
-| [`immune-system-primitive-map.md`](immune-system-primitive-map.md) | Biology primitive catalog |
-| [`contact-graph-and-recognition-tiers.md`](contact-graph-and-recognition-tiers.md) | 3-tier × 7-mode recognition framework |
+| [`cross-domain-architectural-map.md`](internal/cross-domain-architectural-map.md) | Academic convergence map |
+| [`immune-system-primitive-map.md`](internal/immune-system-primitive-map.md) | Biology primitive catalog |
+| [`contact-graph-and-recognition-tiers.md`](internal/contact-graph-and-recognition-tiers.md) | 3-tier × 7-mode recognition framework |
 
-The architectural postures threaded through the ADRs are catalogued in
-[`postures.md`](postures.md); the ratified ADRs themselves live in
-[`decisions.md`](decisions.md). The research maps sit alongside the other docs
-at the top level.
+The design substrate above — postures, ADR lifecycle, development conventions,
+and research maps — lives under [`internal/`](internal/README.md).
 
 ---
 
@@ -341,7 +340,7 @@ This index is maintained alongside the docs themselves. When a new
 doc lands, this index updates. When a doc is renamed or retired, this
 index updates. If you find a discrepancy — a doc listed here that
 doesn't exist, or a doc that exists but isn't listed — please open an
-issue or submit a fix.
+issue or submit a fix (see [`postures.md`](internal/postures.md) §1).
 
 ---
 

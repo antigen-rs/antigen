@@ -7,7 +7,7 @@
 //!
 //! ## Substrate-vs-machinery unification asymmetry
 //!
-//! Per ADR-019 §Decision: substrate-
+//! Per ADR-019 §Decision + aristotle F1 + adversarial T5-R: substrate-
 //! witness evaluation shares **discipline**-level unification with
 //! cross-crate witness evaluation (both follow tier-honesty; both have
 //! `SubstrateState` evidence kind; both cap at `Execution`). They do NOT
@@ -18,7 +18,7 @@
 //! `antigen::scan`'s Rust-AST path.** A future maintainer might read
 //! "discipline unification" and try to share — that would silently
 //! mis-classify a JSON-shaped payload as Rust-AST-shaped (or vice
-//! versa). The precision test in
+//! versa). The adversarial precision test in
 //! `antigen/tests/atk_a3_unification_guardrail.rs` (when integrated) FAILS
 //! if shared parsing is wired up.
 //!
@@ -144,8 +144,8 @@ impl EvaluatedPredicate {
 /// explained leaf-by-leaf instead of collapsing to an opaque
 /// `DisciplinePredicateFailed`. Debugging the name-vs-role confusion (Finding
 /// 5) previously required reading the evaluator source; with this the audit
-/// says `signers(required=["reviewer"]): FAIL — no signer named
-/// "reviewer" (found names: ["Claude"])`.
+/// says `signers(required=["camp-maintainer"]): FAIL — no signer named
+/// "camp-maintainer" (found names: ["Claude"])`.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct LeafOutcome {
     /// Short leaf label, e.g. `signers(required=["alice"])` or
@@ -165,7 +165,7 @@ pub struct LeafOutcome {
     /// not mistake "the check was deferred" for "the check ran and failed"
     /// (ATK-eval-leaf-not-evaluated).
     ///
-    /// CARDINALITY WATCH-ITEM: this `bool` collapses three logical
+    /// CARDINALITY WATCH-ITEM (aristotle): this `bool` collapses three logical
     /// eval-states into two — `evaluated-here` (pass/fail), `not-here-but-
     /// elsewhere` (supply-chain → `cargo antigen verify`), and
     /// `not-evaluable-anywhere` (a genuine gap). At v0.2 every non-evaluated
@@ -571,7 +571,7 @@ fn eval_ratified_doc<C: EvaluationContext>(
         evaluated: true,
         reason,
     };
-    // ADR-035 leaf-sweep: the
+    // ADR-035 leaf-sweep (forward/adr035-leaf-sweep-bottom-to-false): the
     // substrate-absent / input-unreadable arms are ⊥ (could-not-evaluate), NOT
     // a genuine evaluated-and-failed. They must lift to `evaluated: false` so
     // the CompositeVerdict three-state propagation is honest — collapsing ⊥ to a
@@ -623,7 +623,7 @@ fn eval_ratified_doc<C: EvaluationContext>(
         // version string (e.g. a non-numeric or u64-overflowing component).
         // `compare_versions` would silently coerce such a component to 0 and read
         // it as below ANY real floor — a ⊥ masquerading as a genuine below-min
-        // fail. The eval-time DOC-side mirror of the validate-time
+        // fail. The eval-time DOC-side mirror of aristotle's validate-time
         // PredicateParseError::UnparseableMinVersion (FT-3): the DECLARED min was
         // closed upstream (cell b); the FOUND doc-version is read here (cell a)
         // and must lift to ⊥, NOT reuse the validate-time fix. A genuinely
@@ -859,8 +859,8 @@ fn eval_oracles_complete<C: EvaluationContext>(
     let label = "oracles_complete".to_string();
     // Per-oracle result: `Ok(())` passes; `Err((evaluated, reason))` fails, where
     // `evaluated` distinguishes a genuine evaluated-and-failed (true) from a ⊥
-    // could-not-evaluate (false). ADR-035 leaf-sweep instance 4:
-    // a MISSING oracle file
+    // could-not-evaluate (false). ADR-035 leaf-sweep instance 4
+    // (forward/adr035-leaf-sweep-bottom-to-false): a MISSING oracle file
     // (`read_oracle` returns `None`) is substrate-absent ⊥ → `evaluated:false`;
     // a file that READ but whose status ≠ "complete" is a genuine fail →
     // `evaluated:true`. The old fused "missing OR not-complete" else-arm
@@ -1159,7 +1159,7 @@ fn parse_oracle_status(content: &str) -> Option<String> {
 
 /// Whether `v` is a parseable version string for [`compare_versions`] — every
 /// `.`-separated component must trim to a valid `u64`. Used by the ADR-035
-/// leaf-sweep (instance 3) to tell a
+/// leaf-sweep (instance 3, forward/adr035-leaf-sweep-bottom-to-false) to tell a
 /// genuinely-comparable found doc-version from an un-readable one: a component
 /// that does not parse (non-numeric, or numeric-but-overflowing `u64`) makes the
 /// version un-evaluable (⊥), distinct from a parseable version that is genuinely
@@ -1379,14 +1379,14 @@ mod tests {
 
     #[test]
     fn signers_leaf_failure_names_the_role_vs_name_confusion() {
-        // Finding 5: alice holds the ROLE "reviewer"; an adopter who puts
-        // the role into `required` (instead of `roles={alice="reviewer"}`)
+        // Finding 5: alice holds the ROLE "math-researcher"; an adopter who puts
+        // the role into `required` (instead of `roles={alice="math-researcher"}`)
         // must get a reason that points at the confusion, not silence.
         let mut alice = alice_fresh(sample_date(), "fp-current");
-        alice.role = Some("reviewer".to_string());
+        alice.role = Some("math-researcher".to_string());
         let item = item_with(vec![alice]);
         let pred = Predicate::leaf(Leaf::Signers {
-            required: vec!["reviewer".to_string()],
+            required: vec!["math-researcher".to_string()],
             roles: BTreeMap::new(),
             against: SignerCurrency::Current,
             signature_allow: vec![],
@@ -1555,7 +1555,7 @@ mod tests {
         let item = item_with(vec![]);
         let pred = Predicate::leaf(Leaf::SignedTrailer {
             key: "Discipline-Verified-By".to_string(),
-            role: Some("reviewer".to_string()),
+            role: Some("math-researcher".to_string()),
             count: 1,
         });
         // Trailer without role tag — should fail
@@ -1577,7 +1577,7 @@ mod tests {
         let ctx_with_role = TestContext::new(sample_date()).with_trailers(
             "src/test.rs",
             "sinh",
-            vec!["Discipline-Verified-By: alice [role=reviewer]"],
+            vec!["Discipline-Verified-By: alice [role=math-researcher]"],
         );
         let r2 = evaluate_predicate(
             &pred,
@@ -1811,7 +1811,7 @@ mod tests {
 
     #[test]
     fn oracle_crlf_line_endings_not_silently_rejected_nfa6() {
-        // BUG REGRESSION TEST (NFA-6): oracle files authored on
+        // BUG REGRESSION TEST (adversarial NFA-6): oracle files authored on
         // Windows use CRLF (\r\n) line endings. `parse_oracle_status` uses
         // `strip_prefix("---\n")` which fails on `---\r\n`, causing the oracle
         // to be treated as missing/incomplete even when status IS "complete".
@@ -1899,7 +1899,7 @@ mod tests {
 
     #[test]
     fn signers_role_currency_must_be_joint_not_independent_nfa13() {
-        // BUG REGRESSION TEST (NFA-13): `eval_signers` checks
+        // BUG REGRESSION TEST (adversarial NFA-13): `eval_signers` checks
         // currency (against=Current) and role separately across the candidates
         // list. Two independent `any(...)` checks: "does any alice have current
         // fingerprint?" AND "does any alice have role=reviewer?". If alice has
@@ -1962,7 +1962,7 @@ mod tests {
 
     #[test]
     fn empty_min_version_string_vacuously_passes_version_check_nfa15() {
-        // BUG REGRESSION TEST (NFA-15): same class as NFA-14.
+        // BUG REGRESSION TEST (adversarial NFA-15): same class as NFA-14.
         // `min_version: Some("")` enters the version check branch but `compare_versions`
         // parses "" as `[(0, "")]` — the lowest possible version representation.
         // Any document with a non-empty version field compares Greater than "" and passes.
@@ -1994,7 +1994,7 @@ mod tests {
 
     #[test]
     fn empty_anchor_string_vacuously_bypasses_anchor_check_nfa14() {
-        // BUG REGRESSION TEST (NFA-14): `eval_ratified_doc` performs
+        // BUG REGRESSION TEST (adversarial NFA-14): `eval_ratified_doc` performs
         // the anchor check via `content.contains(anchor)`. In Rust, `str::contains("")`
         // is always `true` for any string. An `anchor: Some("")` predicate therefore
         // vacuously passes for ANY doc content — even a doc with no meaningful
@@ -2027,7 +2027,7 @@ mod tests {
 
     #[test]
     fn text_stamp_signer_silently_inflated_to_git_trust_nfa16() {
-        // BUG REGRESSION TEST (NFA-16): `classify_passed_predicate`
+        // BUG REGRESSION TEST (adversarial NFA-16): `classify_passed_predicate`
         // hardcodes `signature_strength: Some(SignatureStrength::GitTrust)` for
         // all signer-present paths. The `Signer` schema carries no
         // `strength: SignatureStrength` field, so the evaluator cannot distinguish
@@ -2106,7 +2106,7 @@ mod tests {
 
     #[test]
     fn historical_signer_entry_does_not_trigger_false_stale_nfa18() {
-        // BUG REGRESSION TEST (NFA-18): sidecars are append-only. When
+        // BUG REGRESSION TEST (adversarial NFA-18): sidecars are append-only. When
         // a signer re-attests after the item fingerprint changes, the sidecar gains
         // a NEW entry (current fp) while keeping the OLD entry (prior fp). The old
         // stale-detection code counted stale ROWS rather than stale NAMES: any row
@@ -2163,7 +2163,7 @@ mod tests {
 
     #[test]
     fn historical_text_stamp_entry_does_not_pull_down_current_git_trust_strength_nfa19() {
-        // BUG REGRESSION TEST (NFA-19): `min_strength` was computed
+        // BUG REGRESSION TEST (adversarial NFA-19): `min_strength` was computed
         // across ALL signer rows including historical stale entries. In an append-only
         // sidecar, a signer who attested at TextStamp tier against fp-old then
         // re-attested at GitTrust tier against fp-current leaves BOTH rows. The old
@@ -2214,7 +2214,7 @@ mod tests {
 
     #[test]
     fn historical_delta_entry_does_not_contaminate_current_fresh_state_nfa20() {
-        // BUG REGRESSION TEST (NFA-20): `max_chain_depth` and `has_delta`
+        // BUG REGRESSION TEST (adversarial NFA-20): `max_chain_depth` and `has_delta`
         // were computed across ALL signer rows. A signer who originally attested via
         // a delta-chain (chain_depth >= near-cap) against fp-old then re-attested Fresh
         // against fp-current should be classified as Fresh — not DeltaChainNearCap.
@@ -2268,7 +2268,7 @@ mod tests {
 
     #[test]
     fn stale_signer_date_does_not_satisfy_fresh_within_days_standalone_nfa21() {
-        // BUG REGRESSION TEST (NFA-21): `eval_fresh_within_days` used
+        // BUG REGRESSION TEST (adversarial NFA-21): `eval_fresh_within_days` used
         // `item.signers.iter().map(|s| s.date).max()` — taking the maximum date
         // across ALL signer entries including stale-fingerprint ones. A signer who
         // signed TODAY against fp-old (stale fingerprint) would satisfy a
@@ -2306,7 +2306,7 @@ mod tests {
 
     #[test]
     fn fresh_through_with_no_signers_at_all_bypasses_freshness_nfa23() {
-        // GAP CLOSED (NFA-23, fixed via ATK-FT-1/2): `eval_fresh_within_days`
+        // GAP CLOSED (adversarial NFA-23, fixed via ATK-FT-1/2): `eval_fresh_within_days`
         // used to accept `item.fresh_through` as an anchor date even when the sidecar had
         // NO signers — a sidecar with `signers = []` but `fresh_through = today` satisfied
         // the freshness leaf, so nobody had attested yet the item appeared "fresh." That
@@ -2461,7 +2461,7 @@ mod tests {
 
     #[test]
     fn doc_without_trailing_newline_after_closing_frontmatter_silently_fails_nfa25() {
-        // SILENT FAILURE (NFA-25): `parse_frontmatter_field` uses
+        // SILENT FAILURE (adversarial NFA-25): `parse_frontmatter_field` uses
         // `stripped.find("\n---\n")` to locate the closing delimiter. If the doc
         // ends immediately after `---` with no trailing newline — which is a
         // common authoring pattern — the terminator `\n---\n` never matches and
@@ -2761,7 +2761,7 @@ mod tests {
     //
     // FIXED (option b): `evaluated: bool` field added to `LeafOutcome`; supply-chain
     // leaves set `evaluated=false` so the CLI renders NOT-EVALUATED, not FAIL.
-    // The eval-leaf-not-evaluated-arm finding is closed.
+    // Campsite findings/eval-leaf-not-evaluated-arm is closed.
     // ========================================================================
 
     #[test]
@@ -2792,7 +2792,8 @@ mod tests {
              The `passed: false, evaluated: true` combination implies the check ran \
              and failed, but it never ran — only the supply-chain audit pass can \
              evaluate dep_pinned leaves. \
-             Fix: set `evaluated: false` in the supply-chain leaf arm of eval_leaf().",
+             Fix: set `evaluated: false` in the supply-chain leaf arm of eval_leaf(). \
+             See campsite findings/eval-leaf-not-evaluated-arm.",
             leaf.label, leaf.passed, leaf.evaluated,
         );
     }
@@ -2874,7 +2875,7 @@ mod tests {
 
     #[test]
     fn ratified_doc_anchor_vs_min_version_affordance_trap_nfa27() {
-        // SILENT WRONG-PASS (NFA-27): `AffordanceTrapInAttestationDSL`.
+        // SILENT WRONG-PASS (adversarial NFA-27): `AffordanceTrapInAttestationDSL`.
         //
         // `ratified_doc(path=..., min_version=..., anchor=...)` has three optional
         // `String` slots with distinct semantics: `min_version` does a structured
@@ -2947,7 +2948,8 @@ mod tests {
     }
 
     // ========================================================================
-    // ADR-035 leaf-sweep — ⊥→false collapses (Shape C).
+    // ADR-035 leaf-sweep — ⊥→false collapses (Shape C, campsite
+    // forward/adr035-leaf-sweep-bottom-to-false).
     //
     // These tests assert that substrate-absent read-failures produce
     // `evaluated: false` (the honest ⊥ carrier), NOT `evaluated: true`
@@ -2960,9 +2962,10 @@ mod tests {
     // `eval_ratified_doc` (line 568-572) hardcodes `evaluated: true` on every
     // path, and `eval_oracles_complete`'s missing-file arm (line 857-861) fuses
     // ⊥ with genuine-fail into one `evaluated: true` outcome.
-    // After the fix these tests PASS.
+    // After pathmaker's fix these tests PASS.
     //
-    // The falsifying tests are written before the fix so they are durable artifacts.
+    // Math-researcher seeded the full inventory (campsite log); adversarial
+    // writes the falsifying tests before the fix so they are durable artifacts.
     // ========================================================================
 
     /// ADR-035 leaf-sweep instance 1: `eval_ratified_doc` — doc not found.
@@ -3002,7 +3005,8 @@ mod tests {
              Current: label={:?}, passed={}, evaluated={}. \
              Fix: in eval_ratified_doc, the doc-not-found arm (line 589-590) must \
              return LeafOutcome {{ evaluated: false, .. }} instead of using the \
-             fail() closure (which hardcodes evaluated: true).",
+             fail() closure (which hardcodes evaluated: true). \
+             See campsite forward/adr035-leaf-sweep-bottom-to-false.",
             leaf.label, leaf.passed, leaf.evaluated,
         );
     }
@@ -3042,7 +3046,8 @@ mod tests {
              version must have evaluated=false (version un-readable = ⊥), not evaluated=true. \
              Current: label={:?}, passed={}, evaluated={}. \
              Fix: the no-parseable-version arm (line 595-599) must return \
-             LeafOutcome {{ evaluated: false, .. }}.",
+             LeafOutcome {{ evaluated: false, .. }}. \
+             See campsite forward/adr035-leaf-sweep-bottom-to-false.",
             leaf.label, leaf.passed, leaf.evaluated,
         );
     }
@@ -3179,7 +3184,8 @@ mod tests {
              Current: label={:?}, passed={}, evaluated={}. \
              Fix: in eval_oracles_complete, split the else arm — read_oracle None → \
              LeafOutcome {{ evaluated: false, .. }}; read_oracle Some(content) but \
-             status ≠ 'complete' → LeafOutcome {{ evaluated: true, passed: false, .. }}.",
+             status ≠ 'complete' → LeafOutcome {{ evaluated: true, passed: false, .. }}. \
+             See campsite forward/adr035-leaf-sweep-bottom-to-false.",
             leaf.label, leaf.passed, leaf.evaluated,
         );
     }

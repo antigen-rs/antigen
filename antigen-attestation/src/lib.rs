@@ -41,7 +41,7 @@
 //! See [`SignerBasis::DeltaFrom`] for the three layered safeguards
 //! (chain-depth cap; cumulative-fingerprint tracking; required non-empty
 //! rationale). Removing any one re-opens the laundering surface; the
-//! three together close it (ADR-019 §Decision).
+//! three together close it (ADR-019 §Decision + adversarial T2-R).
 
 #![forbid(unsafe_code)]
 

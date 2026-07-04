@@ -21,7 +21,7 @@
 //! being asserted, and the type system would say nothing. Each fixture below is one
 //! of those bypasses; the seal holds iff **every one fails to compile**.
 //!
-//! The five surfaces the capability-token must hold across ("attack the
+//! The five surfaces the capability-token must hold across (the baton's "attack the
 //! boundary, not the type" — a guarantee stated for a type IN ISOLATION leaks at the
 //! seam where it is reduced / serialized / embedded / re-axis-read):
 //!
