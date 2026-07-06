@@ -54,11 +54,13 @@ pub struct MissingObservabilityInstrumentation;
 ///
 /// Observability instrumentation would be suppressed here until the OpenTelemetry
 /// migration completes. (Demonstration stubbed — see the module note.)
-#[dread(trigger = "the #[immunosuppress] demonstration in this example is commented \
+#[dread(
+    trigger = "the #[immunosuppress] demonstration in this example is commented \
                    out. Its time-bound `until`-date mechanism is being replaced by a \
                    self-presenting expiry class (the presents-expiry redesign), and \
                    hardcoded example dates rot. Restore / rewrite this example against \
-                   the new mechanism once it lands.")]
+                   the new mechanism once it lands."
+)]
 // The live suppression, stubbed pending the presents-expiry redesign:
 // #[immunosuppress(
 //     MissingObservabilityInstrumentation,
