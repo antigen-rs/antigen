@@ -191,3 +191,40 @@ to `0.8` **only** at a deliberate *future* contract, theme TBD.
    boundary; F9's four self-regulation organs named on_hold in the latent era.
 4. **Formal ratification** into `decisions.md` via the process ceremony — this
    notebook is the convergence input, not the ratified text.
+
+---
+
+## E. Certification amendments (2026-07-07, author-distinct panel)
+
+The ratification ceremony's author-distinct panel (aristotle + adversarial certify; the
+drafter excluded — the no-self-witness invariant) returned one word-fix and two BLOCKs; all
+resolved, co-captain-blessed, and carried canonically in the ratified `decisions.md` entries
+(ADR-067 Amendment 1 + ADR-071). Recorded here (append-only, supersede-not-erase) so the
+design substrate matches the ratified text:
+
+- **Aristotle word-fix — A5 "proven" → "witnessed-complete."** "Proven total coverage"
+  over-reaches antigen's own three-valued / self-distrust discipline (a scan is a
+  *witness-to-a-tier*, not a QED). ABSORB-done's coverage is **witnessed-complete (scanned,
+  tier-tagged, not assumed)** — admit no *unscanned* assumption, never claim completeness the
+  tool cannot prove.
+- **Adversarial BLOCK-1 — the behavioral-contract gap (Hyrum's Law).** A1's valve (a) "keep
+  the API the same" covered only the *typed* surface; observable behavior (log/error formats,
+  ordering, defaults, span names) can break while (a) "fires." Fix: valve (a) = the
+  **observable** contract is unchanged; a behavioral change ships via valve (b) with a
+  **behavior-change note** even when the typed API is untouched; plus an honest **Hyrum's-Law
+  residual** (undocumented reliance can't be fully enumerated — the note mitigates, doesn't
+  guarantee).
+- **Adversarial BLOCK-2 — the afferent hierarchy admits cycles (the fixpoint was
+  ungrounded).** Write-back-as-facts let an organ feed its own upstream (A→B→A), so the
+  "tree"/fixpoint claim needed acyclicity. Fix — the **acyclicity invariant (B2′):**
+  signal-algebra enforces an organ writes facts at a **strictly higher tier than any it
+  reads** (afferent = read-lower / write-higher, up the DAG); **feedback/control is efferent —
+  a separate channel, not afferent input**; the fixpoint is grounded on the DAG's finite
+  tiers, and oscillation-risk lives in the efferent loop (the F9 stability-margin organ's
+  beat), never the afferent tree.
+- **Advisories (folded in):** the shared-coordinate node individuates by the **organ track's
+  blast** (self-regulation is a consumer view, not a second individuation); greenfield organs
+  (idle beneficiary-set at birth) individuate by **afferent-source / build-cost** via the
+  OR-witness; the **write-back-as-facts step carries ADR-005 sub-clause F** (a new trust
+  boundary — provenance tiers + parity surveillance validate the written fact before a higher
+  organ extends trust to it).
