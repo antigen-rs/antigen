@@ -117,10 +117,14 @@ expedition, landing (built + absorbed) before the latent tree.**
 stroma signal) → signal-algebra (write organ outputs back as facts) → L3 latent tree
 (organs that sense from organs).`
 
-- **`0.7` era** = stroma (done) + the tier-0 organs + signal-algebra (the bridge), each an
-  additive `0.7.x` release (expand + deprecate).
-- **`0.8` boundary** = contract the pre-stroma deprecations **+** open the latent theme.
-- **`0.8` era** = the latent tree, climbing `0.8.x` to the fixpoint. *(Per [021] §C.)*
+- **`0.7.x` era** = the whole immune organism — stroma (done) + tier-0 organs +
+  signal-algebra + the latent tree — one additive climb to the fixpoint. The latent
+  tree is *still* organ-building (higher-order sensing), so it stays `0.7`, **not** a
+  new era.
+- **`0.8` = open / TBD** — a future contract (`0.7`'s pre-stroma deprecations) + the
+  next theme, undefined now.
+- **Platform / value** (universal-stroma, fleet, multi-tenant) = **distant horizon**,
+  un-pinned from `0.8`. *(Per [021] §C.)*
 
 ## Consequences
 
