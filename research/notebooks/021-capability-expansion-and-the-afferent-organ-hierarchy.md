@@ -154,23 +154,27 @@ versioning). The era boundary does **double duty** — technical *contract* (rem
 the era's deprecations) **and** thematic cut (new phase) — and they **coincide by
 design**, keeping it cargo-honest (the theme cut *is* a real break).
 
-- **`0.7` era = the stroma (done) + the tier-0 base organs** (raw-signal sensing:
-  sense, effector tiers, suppression, feedback, hooks, self/non-self,
-  marker-sovereignty). Each organ = build/absorb/prove, each shipping a `0.7.x`
-  release, all additive (expand + deprecate).
-- **Signal-algebra** = the bridge: its own build/absorb/prove, closing `0.7`.
-- **`0.8` boundary** = **contract expedition** (remove the pre-stroma deprecated
-  code `0.7` accumulated) **+ open the latent-organ theme.**
-- **`0.8` era = the latent-organ tree** (integrators + controllers, sense-from-
-  senses, incl. the four F9 self-regulation organs), climbing `0.8.x` to the
-  fixpoint. Rolling expand/contract continues (`0.9` contracts `0.8`'s
-  deprecations, etc.).
+- **`0.7.x` era = the whole immune organism** — stroma (done) + tier-0 base organs
+  (raw-signal sensing: self/non-self, effector tiers, suppression, sense, hooks,
+  feedback, teeth) **+ signal-algebra + the latent-organ tree** (integrators +
+  controllers that sense from the base organs, incl. the four F9 self-regulation
+  organs). All **one additive climb**: each capability's build/absorb/prove voyages
+  ship `0.7.x` releases (`0.7.10, 0.7.11 …`) to the **fixpoint** (combining organ
+  outputs yields nothing new). The latent tree is *still organ-building* — higher-
+  order sensing, same theme — so it stays `0.7`, **not** a new era. *(Corrects an
+  earlier over-split that put the latent tree in `0.8`; the latent organs "sense
+  from the senses" but are the same theme, and `0.8` was already claimed.)*
+- **`0.8` = open / TBD** — a *future* boundary: contract `0.7`'s accumulated
+  pre-stroma deprecations **+** whatever the next theme turns out to be. Not
+  defined now.
+- **Platform / value / multi-tenant** (universal-stroma, the fleet, view-language,
+  governance) = **distant horizon**, un-pinned from any specific number. *(It had
+  squatted on `0.8`; it does not — it's further out.)*
 
 **Semver mechanics settled:** patch/minor are **integers, not digits** —
-`0.7.10 > 0.7.9`, no rollover, nothing forces `0.8`. The climb stays `0.7.x` as
-long as changes are additive; the minor steps **only** on a deliberate
-era-boundary contract. The organ model itself draws the `0.7→0.8` line: the latent
-tree *cannot exist* until signal-algebra lands, so tier-0 = `0.7`, latent = `0.8`.
+`0.7.10 > 0.7.9`, no rollover, nothing forces `0.8`. The whole organism climb stays
+`0.7.x` as long as it's additive (which it is — expand + deprecate); the minor steps
+to `0.8` **only** at a deliberate *future* contract, theme TBD.
 
 ---
 
