@@ -192,3 +192,124 @@ efferent-actuator / the hinge), **which axis** (`access` / `structure`), **which
 FEEDBACK/SIZE), and **which observer** (rank-1 tier vs the 4-dim control quartet). The empty
 cells name the gap-charters; the unfold half names the growth. *Not a change of direction —
 a lens that expands the understanding at every spot and shows where the atoms are missing.*
+
+## 11. The math-witness — three co-pending render patents PROVE the design-tier priors
+
+*Added 2026-07-08. The 022 shape was DERIVED (multi-lens council priors). Pith/tambear's
+render-math patents — the same "lift" family that runs across every sibling — turn out to
+formalize antigen's stroma-shape as **theorems**. This is the strongest possible witness: an
+independent field, built for GPU rendering, proves the algebra we posited for immunity. The
+priors became theorems. Below, each 022 claim ↔ its patent theorem.*
+
+### 11.1 Liftability ⇒ the afferent wing is exactly the liftable class
+
+The **Liftability Framework** (Theorem 16.1): an effect is *liftable* iff it is an additive
+per-particle fold `E = F(Σᵢ f(pᵢ))` — a monotone accumulate over a commutative-additive
+kernel. **That IS the afferent wing** (§2): the accumulate-semiring, catamorphic fold,
+rank-1 observer. The liftable class and the afferent-sensor class are the same set.
+
+### 11.2 The Operator Boundary (Theorem 22.1) ⇒ B2′, PROVEN
+
+**Theorem 22.1**: *an effect requires non-additive (non-commutative) accumulation iff it is
+order-dependent.* Proof: additive accumulation is permutation-invariant (`Σ` commutes), so
+any order-dependent effect (which particle is in front) is unreachable by any additive
+operator. **This is B2′** (§6, §8): the afferent monotone-accumulate algebra CANNOT compute
+the order-dependent / cancelling efferent decision — not by discipline, by **algebra**. The
+firewall we ratified process-side (§8 gap: "should be a type wall") is a *proven* boundary,
+not a convention. The signal-algebra expedition can cite the theorem as its type-wall's
+justification.
+
+### 11.3 The depth-kernel ⇒ the HINGE, and λ is the dial between the wings
+
+The **exponential depth kernel** (Nadaraya-Watson estimator, `Numerator/Denominator` with
+per-pixel `z_min` reference) is COMPARE = Should − Is (§4), made precise:
+
+- **λ is the temperature dial connecting the two wings.** `λ=0` → pure additive accumulate
+  (afferent / volumetric / the density KDE). `λ→∞` → the **MIN operator** (nearest-surface
+  selection = tropical-min = the *route/conductance* semiring). **The four semirings of §1
+  are NOT independent axes — they are λ-limits of ONE family, joined by log-sum-exp**
+  (`softmin_λ → min` as `λ→∞`; the standard tropical-limit homomorphism). This upgrades
+  "semirings = the `Op`-dial" from an assertion to a *mechanism*: the dial is a temperature,
+  and log-sum-exp is the semiring morphism. `(+,×)` and `(min,+)` are the two ends of one
+  thermometer.
+- **`z_min`-subtraction-before-exponentiation = COMPARE is a comparison-subtraction against a
+  reference/setpoint** — "measure relative to the baseline," never a deletion. Exactly the
+  §4 claim that the hinge is *the one legitimate ring* (a comparison-subtraction, not a
+  deletion-subtraction). The reference `z_min` is the **setpoint** — i.e. the
+  intent-substrate keystone (§4): the hinge is meaningless without the reference it subtracts
+  against, which is *why* intent-substrate gates the efferent build.
+- **`λ<0` flips the reference from `z_min` to `z_max` = the POLARITY flip** (Is/Should, §5)
+  as a literal sign-of-λ, the reference-pole flipping to match. Polarity is the sign of the
+  hinge's temperature. (Atmospheric-inversion in the patent; Should-vs-Is in antigen.)
+- **z-buffer is not a separate algorithm — it is the `λ→∞` limit of one family** (patent
+  Corollary). Rhymes with ADR-071's "the loop is edges, not nodes": the efferent selection
+  isn't a different *kind* of thing bolted on, it is the afferent accumulate *at a different
+  temperature*. Two wings, one thermometer.
+
+### 11.4 Wave-optics ⇒ the INVERSE exists, it OSCILLATES, and the firewall is a channel-split
+
+Substituting the **oscillating (complex Helmholtz) kernel** for the positive-definite
+(Gaussian) one gives the accumulate-semiring a true **additive inverse** (phase → destructive
+interference → cancellation). This is the sharpest witness of all:
+
+- **inverse ⇒ oscillation, PROVEN.** The moment the afferent accumulate gains a real
+  subtraction, it *interferes* (Airy fringes, diffraction). This is precisely the B2′
+  oscillator-hazard (§6: "accumulate feeding a canceller feeding back = ringing"). Wave
+  optics is what "the ring leaked into the afferent side" (§9 falsifier #3) *looks like* —
+  and antigen's whole point is to NOT be an interferometer.
+- **the cure is a channel-split, and it's the SAME architecture.** The complex field lives in
+  **separate Re/Im render targets** (MRT), accumulated additively but *independently*, and
+  the observer reads only the **modulus-squared** (`Re² + Im²`, non-negative). **That MRT
+  split IS the B2′ firewall, physical**: you *may* have the Should−Is inverse — but only in a
+  **separate channel** whose afferent-observable projection is non-negative (monotone).
+  Complex where the observer can't see; monotone where they can — the exact "complex inside,
+  simple at the surface" posture. The efferent (signed, cancelling) computation is legal
+  *because it is a different render target*, not a different value in the same accumulator.
+  This tells the signal-algebra expedition its type: **the efferent channel is a distinct
+  output target, not a signed value in the afferent semiring.**
+- **Fresnel dual-boundary = the self-aligning seam = recognition-not-design.** `F = D²/(λL)`
+  governs BOTH the physical regime (near/far field) AND the computational regime
+  (compact/screen-scale splats): the boundary where the *semantics* change coincides with the
+  boundary where the *algebra* changes. Antigen's B4 is the same self-aligning seam — the
+  tier where the *vocabulary* changes is the tier where the *type-wall* falls (§8). A dual
+  boundary is never imposed; it is *recognized* where two independent things happen to
+  coincide (ADR-006).
+
+### 11.5 The Fock boundary ⇒ the fixed-organ latent tree vs the variable-population learn-core
+
+Liftability's **Fock boundary**: effects whose *particle count itself varies* (population-
+dependent, variable-N) are **non-liftable** — no fixed additive fold reaches them. Map:
+
+- The **latent-organ tree** (ADR-071 B4: organs-sensing-from-organs to a fixpoint) is the
+  **k-particle → N-body hierarchy at FIXED N** — a bounded tower of liftable folds. It stays
+  inside the liftable class *as long as the organ-set is fixed*. This is why the capstone is
+  a **recursive latent-organ tree**, not a new algebra: it climbs dimension (frame-exit,
+  §5) without crossing the Fock boundary.
+- The **learn-core** (`antigen::learn`: affinity-maturation over a *variable antibody
+  population* — a germinal center that grows/prunes clones) is the **N-varying** side. It is
+  the ONE organ that *crosses* the Fock boundary — which is exactly why it is the keystone
+  that couldn't be stamped stable with zero callers (CLAUDE.md status): a Fock-crossing organ
+  is categorically harder than a fixed fold. **The fixed latent tree and the variable-N
+  learn-core are the two sides of the Fock boundary** — and that boundary is *the* reason
+  they are different organs with different safety-governance, not one mechanism.
+
+### 11.6 What this witness CHANGES (live consequences, not just satisfaction)
+
+1. **B2′'s §8 gap closes with a citation.** The type-wall the signal-algebra expedition owes
+   (§8) has a proof (Theorem 22.1) and a *shape* (§11.4: separate output target, not a signed
+   value). Both belong in that expedition's charter.
+2. **The `Op`-dial gets a mechanism.** §1's "semirings = Op-dial" is now "λ-temperature
+   family joined by log-sum-exp" (§11.3) — testable: does antigen's route/conductance
+   `field_at` sit at `λ→∞` (tropical-min) of the same family the detection-count sits at
+   (`λ=0`)? Falsifier #3 (§9) sharpens: signed-flow = letting `λ` go complex = interference.
+3. **intent-substrate = the `z_min` reference.** §11.3 gives the keystone a mathematical
+   role: the hinge is *definitionally* a subtraction against the setpoint; no setpoint, no
+   COMPARE. Reinforces intent-substrate gating v073/v074.
+4. **The capstone's boundary is named.** §11.5 draws the exact line the latent tree must not
+   cross (fixed-N) and names the one organ that does (learn-core) — a real architectural
+   constraint on ADR-071's B4, for the backward-audit amendment (§8).
+
+*The convergence is now four-project AND cross-tier: antigen (code) · camp (relationships) ·
+tambear (computation) · pith (prose) instantiate the shape; and tambear/pith's render-math
+proves the shape's algebra. The priors we derived, an independent field proved. See sweep
+notebook 023 for the full cross-project map.*
