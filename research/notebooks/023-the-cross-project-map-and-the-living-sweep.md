@@ -133,13 +133,47 @@ Threads that appear in *multiple* siblings and will surface in antigen — watch
    seam-ringing are the same `N`-scaling seen along the tree vs at its boundaries. The afferent
    sensor gets both *deeper* and *sharper* with evidence — and B2′/Thm 22.1 is the wall it must never
    cross in *either* axis (an efferent edge stays efferent, however much `N` you throw at it).
-4. **"lift" everywhere** — tambear's core verb, pith's render primitive, antigen's tier-raise
+4. **Berry phase / holonomy — FOUND (2026-07-08, PR-4, the LAST thread).** In pith's
+   `grassmannian-research/expedition-log.md` + well-tempered `expedition-log.md:100-113,229`: a
+   **closed loop** on the Grassmannian `Gr(2,N)` accumulates a **path-dependent residual** (holonomy)
+   ∝ enclosed area, nonzero for `N≥4`, saturating at `2π`. The expedition states the identity
+   outright: *"Berry phase IS the comma — a path-dependent residual from cyclic traversal"* and (PR-7)
+   *"the comma IS the total curvature"* (= ∫ Ricci of the Fisher-info metric / 2π). **Unlike PR-3,
+   this has a CONFIRMED instance:** 99.86% geometric-phase agreement in the N-body figure-8 orbit —
+   the physics is solid; only the specific Grassmannian-*render* prediction (PR-4) is untested.
+   **Antigen import — the deepest one, and it completes the map:**
+   - **The afferent tree is a DAG (B2′ acyclicity) → no cycles → no closed loops → ZERO holonomy →
+     zero Berry phase → zero comma.** B2′ doesn't merely prevent oscillation; it makes the afferent
+     manifold **FLAT.** That is *why* the afferent climb reaches a clean fixpoint (B4) — a flat
+     manifold has no curvature to accumulate a residual. The afferent side IS the expedition's "flat
+     manifold, comma zero, linearization won" case (well-tempered log:245).
+   - **The efferent loop is cyclic (ADR-037 feedback) → can accumulate a Berry phase → a residual per
+     cycle → the ring.** So **Gibbs (#3) and Berry are two views of ONE efferent-loop residual:** Gibbs
+     = the frequency-domain view (overshoot at a discontinuity), Berry = the geometric view (holonomy
+     from a cycle). The stability-margin organ (f9) watches for both — they're the same thing.
+   - **Theorem 22.1 (B2′) is the SINGLE wall behind all three phenomena.** An additive/order-independent
+     fold is *permutation-invariant* — so it cannot see the **order** of a traversal (→ no Berry phase),
+     the **sharpness** of an edge (→ Gibbs when forced), nor a **cyclic residual** (→ no comma). The
+     afferent fold is *flat, edge-blind, and cycle-blind by the same algebra.* Comma, ring, holonomy:
+     one wall.
+   - **The k-body ladder ties #1/#2/#4 together** (well-tempered log:446): `D₃−D₂` = "the Berry phase
+     of the shape sphere, the triangle-dependent weight *no pair can compute*." Each latent-organ tier
+     captures the irreducibly-higher-order **k-body correlation** (k=2 pairwise, k=3 the three-body
+     Berry residual); the tree's depth = how many k-body correlations resolve, capped by `log₂(N)` (#2).
+   [TIER: the geometric-phase physics is CONFIRMED (99.86% N-body); the antigen mapping is a DESIGN-tier
+   structural rhyme — strong, real at the abstraction level (B2′-acyclicity ⟺ flatness ⟺ zero holonomy),
+   but "does the efferent loop accumulate a *computable* Berry phase?" is a rhyme to measure, not yet an
+   identity to assert.]
+5. **"lift" everywhere** — tambear's core verb, pith's render primitive, antigen's tier-raise
    (afferent → observer). The frame-exit / dimensional-raise (022 §5) is one "lift" seen four
    ways.
 
-*These are OPEN threads. As tambear's own math notebooks are read, this section accretes the
-actual theorems (dimensional-Nyquist statement, the folds/seams recurrence) and their antigen
-import-targets.*
+*Part III is now COMPLETE — all cross-pollination threads found and unified. The through-line:
+**one wall (Thm 22.1 / B2′) generates the whole family.** The afferent additive fold, being
+permutation-invariant, is flat (no Berry phase / comma), edge-blind (Gibbs when forced), and
+cycle-blind — and gets both deeper (`log₂(N)` tiers) and sharper (`N^(−1/6)` seams) with evidence,
+never crossing into the efferent (order-dependent) half. antigen's whole design is a disciplined
+refusal to let the afferent fold pretend it can do efferent work.*
 
 ---
 
@@ -248,9 +282,12 @@ should *cite / enforce*:
 - [x] **folds/seams recurrence FOUND** — it's the **Gibbs phenomenon** at hard-edge discontinuities
       (`benchmark-reality/convergence-prediction.md:76`); Gibbs ringing = the observable symptom of a
       B2′ violation; the stability-margin organ watches for it (Part III #3, complete).
-- [ ] still open in the sibling expeditions: **PR-4** (Berry phase / Grassmannian traversal —
-      `grassmannian-research/`) — the one remaining named-but-unread thread. Candidate: does the Berry
-      phase map to antigen's provenance/path-dependence (a holonomy on the tier-DAG)?
+- [x] **PR-4 (Berry phase / Grassmannian) READ — the last thread, now Part III #4.** Verdict: the
+      Berry phase = holonomy = the comma = curvature (CONFIRMED at 99.86% in N-body; the render
+      prediction untested). Antigen map: **B2′ acyclicity ⟺ flat afferent manifold ⟺ zero holonomy**;
+      the efferent loop carries the Berry residual = the ring; Thm 22.1 is the one wall behind comma +
+      Gibbs + holonomy. My holonomy-on-the-DAG hunch was *inverted and sharper*: the DAG has NO
+      holonomy — that flatness is the point. **Cross-project exploration COMPLETE.**
 - [ ] **candidate B4′ Amendment-2** (batched): re-ground the depth-cap on the robust `log₂(N)`/MP-floor
       core, dropping the unconfirmed harmonic-comma dependence (from the PR-3 under-powered finding).
 - [ ] the kernel-substitution ("Application A") patent — the full kernel *library* (the `Op`-dial
