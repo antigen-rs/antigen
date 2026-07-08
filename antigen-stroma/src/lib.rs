@@ -40,6 +40,7 @@ pub mod base;
 pub mod constitute;
 pub mod deferred;
 pub mod fidelity;
+pub mod intent;
 pub mod node;
 pub mod read;
 pub mod scip;
