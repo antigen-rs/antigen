@@ -43,6 +43,7 @@ pub mod fidelity;
 pub mod node;
 pub mod read;
 pub mod scip;
+pub mod signal;
 pub mod write;
 
 pub use db::StromaDb;

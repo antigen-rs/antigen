@@ -12,6 +12,9 @@
 //!     (the `PresentsVerdict`-has-no-public-constructor type-state). `ui_pass`: `corroborate` mints it.
 //!   - ATK-FRAME-NONIDEM    — a non-idempotent (counting/blast) semiring on a RAW graph is a compile
 //!     error (the `CondensedGraph` type-state). ENGINE-epoch. `ui_pass`: the condensed path compiles.
+//!   - ATK-SIGNAL-B2PRIME   — the signal-algebra tier-wall (ADR-071 B2′, `src/signal.rs`): an organ
+//!     cannot write at ≤ the tier it reads (`write_back` yields `Up<R>`), and a signed `EfferentChannel`
+//!     cannot enter the afferent write door (the channel-split). `ui_pass`: the sound tower-climb compiles.
 //!
 //! ## Born-red status (the deepest sense)
 //! Until the type-states land, the `ui/*.rs` fixtures COMPILE (the cap isn't enforced yet) → trybuild

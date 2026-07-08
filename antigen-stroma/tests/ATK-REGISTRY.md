@@ -54,6 +54,25 @@ FAILS the NC. If both ATK and NC can pass against a non-implementation, the test
 | ATK-FRAME-LASTCHANGED | Concurrent `last_changed` writes resolve by `max(mtime)` — order-independent monotone join | runtime `#[ignore]` | the maintenance `set` of `last_changed` | a single write with an OLDER mtime MUST NOT regress `last_changed` backward (proves `max`, not blind last-write-wins) | ADR-070 §4.5a (A4), §8 |
 | ATK-FRAME-NONIDEM (inherited) | A non-idempotent (counting/blast) semiring without condensation is a COMPILE error | compile-state (trybuild) — **engine-epoch placeholder** | the `CondensedGraph` type-state (engine fill) | the same query on a `CondensedGraph` compiles; an idempotent detection query on a raw graph compiles | ADR-068 clause-3, ADR-070 §4.6 (A9), §8 |
 
+## SIGNAL-algebra ATKs (the B2′ tier-wall — the acyclicity firewall, 2026-07-08)
+
+The signal-algebra tier-wall (`src/signal.rs`) makes **ADR-071 B2′** a compile-time impossibility — the
+first real B2′ enforcement (it was process-enforced until now; nb 022 §8 named the gap, ADR-068 Am1 /
+ADR-071 Am1 supplied the proof, Operator-Boundary Theorem 22.1). Two invariants, compile-state born-red
+(trybuild); the `ui_pass` control proves the sound one-tier-per-write climb still compiles (not vacuous).
+
+| ATK | the invariant it guards | test-class | surface | negative-control | ADR-ref |
+|---|---|---|---|---|---|
+| ATK-SIGNAL-B2PRIME-WRITE-AT-READ-TIER | an organ CANNOT write an afferent output at (or below) the tier it read — `write_back` yields the successor `Up<R>`, never `R` (read-lower-write-higher DAG by construction) | compile-state (trybuild) | `ui/organ_writes_at_read_tier_forbidden.rs` fails `E0308` (`OrganOutput<_, Base>` vs `<_, Up<Base>>`) | `ui_pass/organ_output_climbs_the_tower.rs` — the sound ingest→write→write climb COMPILES | ADR-071 B2′, ADR-068 Am1 (Thm 22.1), nb 022 §11 |
+| ATK-SIGNAL-B2PRIME-EFFERENT-IN-AFFERENT | a signed `EfferentChannel` CANNOT enter the afferent write door (`write_back` takes `&OrganOutput`, never `&EfferentChannel`) — the wave-optics MRT channel-split as a type | compile-state (trybuild) | `ui/efferent_cannot_enter_afferent_write.rs` fails `E0308` (`&EfferentChannel<u32>` vs `&OrganOutput<u32, _>`) | the sound path feeds a real `OrganOutput` (climbs-the-tower control) | ADR-071 B2′, nb 022 §11.4 |
+
+**Known-deferred (surfaced, not hidden):** a latent organ with SEVERAL afferent inputs at different
+tiers (write above the *max*) needs a type-level `MaxTier`; the peano strict-above *relation* is not
+expressible on stable Rust without the typenum `Cmp` pattern, so the wall uses successor-strictness
+(`write_back → Up<R>`), which proves the acyclicity core. The `MaxTier` multi-input door lands with the
+first multi-input latent organ. The channel-split guards the *afferent* door; the efferent wing's own
+governance is a separate build.
+
 ## Gap-closing ATKs (post-floor — BINDING invariants the §8 seed-table did not enumerate)
 
 The §8 table is the FLOOR. A registry cross-walk (every `INVARIANT (BINDS` in ADR-070 → its defending

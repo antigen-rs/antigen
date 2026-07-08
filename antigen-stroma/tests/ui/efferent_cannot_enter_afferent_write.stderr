@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/efferent_cannot_enter_afferent_write.rs:17:24
+   |
+17 |     let _ = write_back(&efferent, 2u32);
+   |             ---------- ^^^^^^^^^ expected `&OrganOutput<u32, _>`, found `&EfferentChannel<u32>`
+   |             |
+   |             arguments to this function are incorrect
+   |
+   = note: expected reference `&OrganOutput<u32, _>`
+              found reference `&EfferentChannel<u32>`
+note: function defined here
+  --> src/signal.rs
+   |
+   | pub const fn write_back<T, R: OrganTier>(
+   |              ^^^^^^^^^^
