@@ -69,10 +69,27 @@ Threads that appear in *multiple* siblings and will surface in antigen — watch
    compute-tree, pith's render-tree (Fock boundary), AND antigen's **latent-organ tree**
    (ADR-071 B4). findmcp became the **F**ingerprint-**M**atrix-**M**odel classifier — a
    fingerprint FMM. *Import target:* the capstone's tree depth / summarization structure.
-2. **dimensional-Nyquist** — (from tambear's math; not yet read in full) the sampling bound on
-   how many dimensions a fold can resolve. *Predicted import:* the **rank-bound on the observer**
-   (022 §8: B4 over-reaches a rank-1 tier). A Nyquist bound would say *how many* latent-organ
-   tiers are resolvable before aliasing — a hard cap on the tree, not a soft one.
+2. **dimensional-Nyquist — FOUND (2026-07-08 hunt).** Not in tambear; it lives in pith at
+   `docs/research/well-tempered-expedition/expedition-log.md:227`, PR-3 (Spectral Gap Harmonics),
+   the "dimensional octave hypothesis." **Statement (verbatim):** *"Each doubling of photon count
+   adds approximately one new resolvable dimension of structure — the information-theoretic
+   octave."* i.e. `D ≈ log₂(N) + const`. The aliasing threshold is the **Marchenko-Pastur noise
+   floor** (a dimension is resolvable iff its eigenvalue-gap clears the MP floor of a random
+   covariance spectrum); k-particle correlations (k=1,2,3) build the hierarchy. **[TIER: pith
+   PRE-REGISTERED PREDICTION — not yet experimentally confirmed. Imports as a conjectured *form*,
+   not a proven bound.]**
+   **Antigen import (the B4 depth-cap):** the latent-organ tree's resolvable **depth** is bounded
+   by `D ≈ log₂(N_facts)` — each doubling of the base organs' *independent* signal adds ~1
+   resolvable latent-organ tier; above that, a higher "organ sensing from senses" falls below the
+   MP noise floor and **aliases** (its output is indistinguishable from noise). This is the
+   principled depth-cap 022 §8 wanted: not "climb open-endedly to a fixpoint" but "climb while
+   information-gain clears the MP floor, capped at `log₂(N)`." It even rationalizes `ResolutionTier`
+   at 3 values (depth ~2) ⇔ ~4–8 independent base signal-classes. Feeds ADR-071 B4′ (nb 024
+   Draft 2): upgrades the depth-cap slot from "known-open, no form" to "conjectured form
+   `log₂(N)`, MP-floor aliasing — awaiting pith's experimental confirmation."
+   **The `Op`-dial rhyme (bonus):** MP + k-particle correlations (k=1,2,3) building a hierarchy is
+   the *same* k-particle→N-body structure as the Fock-boundary latent tree (Part II) — pith's
+   dimensional octave and antigen's latent tree are the same object seen from the spectral side.
 3. **folds / seams oscillation** — (from tambear's math + wave-optics interference) the ringing
    that appears at a fold-seam. *Import target:* B2′ — the seam between the two wings is exactly
    where oscillation threatens; the **stability-margin** organ (022 §6) watches it. Wave-optics
@@ -168,10 +185,10 @@ should *cite / enforce*:
 4. Create the missing **Fock-boundary/capstone** charter (fixed-N tree vs variable-N learn-core).
 5. Home the λ-family falsifier (`fold_λ` sweep-test) in route-arm/cytokine-field.
 
-**Needs ADR ceremony (draft-only; team ratifies per process.md):**
-- ADR-037 T1 drift amendment (the four Ashby extras = latent organs, not open stages).
-- ADR-071 **B4′** Fock-boundary clause (Import-lens drafted it).
-- ADR-068 §2 λ-family mechanism (turn the list into a thermometer).
+**Needs ADR ceremony — ✅ RATIFIED & LANDED 2026-07-08** (author-distinct panel: aristotle SOUND ×3, adversarial D2 BLOCK→fixed→re-attest CLEAR; co-captain-blessed; drafts in nb 024):
+- ✅ ADR-037 **Amendment 1** — the four Ashby extras = latent organs, not open stages.
+- ✅ ADR-071 **Amendment 1 (B4′)** — Fock-boundary clause (+ the Nyquist `log₂(N)` depth-cap, conjecture-tier).
+- ✅ ADR-068 **Amendment 1** — λ-family as a conjecture+falsifier (standing verdict: "rhyme until `fold_λ` built").
 
 **Cross-project follow-on (blocked on tambear math — Part V):**
 - dimensional-Nyquist → hard latent-tree depth cap (gates B4; the one hard-number import).
@@ -181,8 +198,12 @@ should *cite / enforce*:
 ## Part V — Living frontier (what still wants exploring)
 
 - [ ] read the remaining pith vision docs (any not yet seen) for further absorb-targets
-- [ ] read **tambear's own math notebooks** — the *actual* dimensional-Nyquist statement + the
-      folds/seams recurrence (Part III #2, #3 are placeholders until then)
+- [x] ~~dimensional-Nyquist statement~~ **FOUND** in pith (not tambear) — `well-tempered-
+      expedition/expedition-log.md:227`, PR-3: `D ≈ log₂(N)`, MP-floor aliasing (Part III #2).
+      Pre-registered prediction; awaiting pith's experimental confirmation.
+- [ ] read pith's **well-tempered-expedition** in full — PR-3's experimental *results* (did the
+      octave hold?), PR-4 (Berry phase / Grassmannian), and the folds/seams recurrence (Part III #3
+      still a placeholder). If PR-3 confirmed → B4′'s depth-cap graduates conjecture→witnessed.
 - [ ] the kernel-substitution ("Application A") patent — the full kernel *library* (the `Op`-dial
       as an actual interchangeable-kernel set)
 - [ ] does findmcp's FMM classifier share the learn-core's variable-N population? (Fock-side rhyme)
