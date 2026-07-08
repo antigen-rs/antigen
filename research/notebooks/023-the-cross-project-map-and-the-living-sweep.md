@@ -111,10 +111,70 @@ should *cite / enforce*:
 - **Fock boundary → latent-tree-vs-learn-core** (022 §11.5): the fixed-N / variable-N line as a
   real constraint on ADR-071 B4.
 
-### Sweep ledger (findings land here)
+### Sweep ledger — run 1 (2026-07-08, 6 read-only lenses over antigen's substrate)
 
-*(empty — populated by the sweep run below; each finding: `[lens] · substrate-location ·
-alignment|gap|import|tension · one-line`.)*
+*Antigen-only breadth (cross-project reach deferred, Part V). Each finding: `location ·
+[tag] · one-line`. Six lenses: ADR · Charter · Notebook · Code · Absorb · Import-proof.*
+
+**Code-lens (the grounding — what's real vs claimed):**
+- `scan/walk.rs:128`, `read/tier.rs:104 corroborate` · [CODE-true] · afferent fold is built + monotone (`+=`/`push`/`extend`; `max`-only). The sensor wing is compiled.
+- `learn/curate.rs:71 Forget` · [CODE-true] · the one built efferent organ, and it IS the bounded-reversible-governed shape (not a ring). §3 confirmed.
+- `read/query.rs:{21,35,47,62}`, `base/facts.rs:131-146` · [gap] · `field_at` + all four semirings are `todo!()`/comment-only ⇒ **the λ-family witness is DESIGN-tier, unfalsifiable against current code** (→ corrected 022 §11.3).
+- `learn/maturation.rs:248`, `learn/life_record.rs:155` · [gap] · learn-core matures ONE draft; no `Repertoire{clones:Vec}` ⇒ **Fock-crossing is a doc-claim, not a type** (→ corrected 022 §11.5). Biggest lens-vs-substrate gap.
+- `write.rs:34-54` · [gap, §8 confirmed] · type-enforces only overlay-vs-injection; **no tier-write-ordering wall.** B2′ remains process-enforced.
+- `scip.rs:36` · [gap] · SCIP feeder unbuilt ⇒ today's fold runs at `Syntactic`/`dread` tier only.
+
+**ADR-lens (decisions.md):**
+- 037 §"does NOT do" L9833-9834 · [tension, CONFIRMED] · "may add a stage" for observability/controllability/delay/stability-margin **contradicts ratified 071-B7** (those four = Ashby-forced latent *organs*, not stages). Narrow amendment.
+- 071-B2′ L14023 · [import] · B2′-in-prose = Thm 22.1; cite the proof + build the type-wall (§8 gap).
+- 071-B4 L14025 · [tension, CONFIRMED] · "open-ended latent tree" over-reaches rank-1 `ResolutionTier` (3 values → depth ~2). Needs fixed-N/Fock distinction + depth cap.
+- 068 §2 L13673 · [import] · "four semirings" asserted as a list → λ-family mechanism (log-sum-exp) absent; cite it.
+- 002-Amd3 L530-569, 069 POLARITY L13772, 070 fractal-spine L13882 · [alignment] · sovereign/non-cascade = channel-split rhyme; POLARITY = sign-of-λ; fractal CONFIG/OUTPUT = monotone-afferent law.
+
+**Notebook-lens (research/notebooks/):**
+- nb 009 (intent-kernel) · [CONFIRM, strongest prior] · reached `COMPARE = Should−Is` + intent-substrate-setpoint + polarity-as-1-bit a full cycle BEFORE the math proved it. Recognition, then witness.
+- nb 019/021 §B2′ · [CONFIRM→PROVEN] · the acyclicity invariant is now Thm 22.1; §8 gap closes with a citation + shape.
+- nb 019 §B5/B6, 021 §B "open-ended latent tree" · [CONTRADICT/stale] · Fock boundary + Nyquist cap say fixed-N/tier-bounded. Clearest stale claim → the B4 amendment.
+- nb 006 (four maths) · [REVISE] · quasispecies/percolation/Hill/reaction-diffusion as *independent* borrows → subsumed into one λ-family; membrane-crossing = channel-split reached from 3 maths converging.
+- nb 017 (Boyd ruling) · [CONFIRM+revise-reason] · FEEDBACK-stage emptiness Boyd read as "correctly thin" is now PROVEN (only the efferent wing has feedback; the DAG can't ring).
+
+**Absorb-lens (pith → antigen frontier):**
+- pith `suggest` = capability-gated annotation channel · [absorb, sharpest] · the MRT channel-split as a concrete API: `suggest`→annotation (never direct edit), promoted by explicit `resolve`, every op `{author,type,content,resolved,resolvedBy,timestamp}`. **Answers "what type is the efferent channel."**
+- pith topic-templates/expectations · [absorb] · intent-substrate's schema = expected-defense-set per structural locus, per-element role-typed (present/missing/underdeveloped) ⇒ COMPARE is **three-valued** (matches antigen's three-valued trust law).
+- pith contradiction-detection · [absorb] · COMPARE mechanism = extract declared-relation (setpoint) + observed-relation (scan), key by class-node, fire on opposite polarity. `Should−Is≠0` made discrete.
+- pith Tier 0-3 ladder · [absorb] · build-order: sense→observe-only-COMPARE→act→multi-mind, each tier additive (never mutates lower algebra = B2′ as a build-rule). Confirms intent-substrate+conformance gate `propose`.
+- pith `.pith` CONFIG/OUTPUT · [CONFIRM-strong] · bit-for-bit independent re-derivation of ADR-067 §F.13; adds content-hash cache-key as recompute-invalidation trigger.
+
+**Charter-lens (jbd/charters/):**
+- All 10 gap-charters + older charters place cleanly onto (wing·axis·Op·loop-pos·observer). No orphans.
+- `b2-prime-signal-algebra-type-wall` · [gap, sharpest] · cites 022 §6/§8/§9 (pre-witness) but **zero** mention of Thm 22.1 / channel-split / MRT. Most-owing charter omits the witness.
+- **No Fock-boundary/capstone charter exists** · [gap] · the fixed-N-tree-vs-variable-N-learn-core line lives only as a scattered horizon-tag. §11.5's core constraint has no charter home.
+- λ-family falsifier · [gap] · §11.6 #2 test (`field_at` at λ→∞ vs count at λ=0) has no home; add to route-arm/cytokine-field.
+- route-arm+cytokine-field+registry-herd · [merge-adjacent, keep-split] · share one gradient-field substrate, distinct payoffs (magnitude/character/aggregate) — "secretly-one-substrate, three-organs," already self-noted.
+- `peripheral-delete-autoimmunity-pruner` · [alignment, exemplary] · charters the true-delete-vs-reversible-mask fork + pins §9 falsifier #4.
+
+**Import-proof-lens (theorems → concrete enforcement):**
+- Thm 22.1 → B2′ type-wall · [ready] · sealed `StrictlyAbove` tier-lift trait + no-public-ctor `OrganOutput<T,Tier>` (template = `tier.rs PresentsVerdict`); efferent = distinct `EfferentChannel`, never a signed `AfferentFact`. Buildable today.
+- λ-family → falsifiable test · [ready] · one `fold_λ` must recover count@λ=0 AND field_at@λ→∞ bit-for-bit, `O(exp(-λΔ))` on a λ-sweep. Likely verdict "rhyme until `fold_λ` built" — itself a de-risking finding.
+- Fock → B4′ clause · [ready] · one-sentence ADR-071 amendment: latent tree stays fixed-N (fixed-arity afferent tuples, liftable at kN); learn-core sole crosser, outside the tree, own safety-gate. Retroactively explains the zero-caller bar.
+- dimensional-Nyquist → hard depth cap · [needs-tambear-math] · the ONE import yielding a hard number, gates ratified B4; theorem unread. **Top cross-project follow-on.**
+
+### Convergent actionable set (ranked; every lens lands here)
+
+**In-bounds substrate (notebooks + charters — done / doing in run-1 pass):**
+1. ✅ Correct 022 §11.3 (λ-family design-tier) + §11.5 (learn-core Fock design-tier) + add §11.7 tier-honesty ledger.
+2. ✅ This ledger (023 Part IV).
+3. Amend `b2-prime-signal-algebra-type-wall` charter to carry Thm 22.1 + the channel-split type-shape (the ready `OrganOutput<T,Tier>`/`StrictlyAbove`/`EfferentChannel` design).
+4. Create the missing **Fock-boundary/capstone** charter (fixed-N tree vs variable-N learn-core).
+5. Home the λ-family falsifier (`fold_λ` sweep-test) in route-arm/cytokine-field.
+
+**Needs ADR ceremony (draft-only; team ratifies per process.md):**
+- ADR-037 T1 drift amendment (the four Ashby extras = latent organs, not open stages).
+- ADR-071 **B4′** Fock-boundary clause (Import-lens drafted it).
+- ADR-068 §2 λ-family mechanism (turn the list into a thermometer).
+
+**Cross-project follow-on (blocked on tambear math — Part V):**
+- dimensional-Nyquist → hard latent-tree depth cap (gates B4; the one hard-number import).
 
 ---
 

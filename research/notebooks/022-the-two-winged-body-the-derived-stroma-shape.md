@@ -231,7 +231,16 @@ per-pixel `z_min` reference) is COMPARE = Should − Is (§4), made precise:
   (`softmin_λ → min` as `λ→∞`; the standard tropical-limit homomorphism). This upgrades
   "semirings = the `Op`-dial" from an assertion to a *mechanism*: the dial is a temperature,
   and log-sum-exp is the semiring morphism. `(+,×)` and `(min,+)` are the two ends of one
-  thermometer.
+  thermometer. **[DESIGN-TIER, not code — flagged by the 2026-07-08 code-lens sweep.]** In the
+  current source, `field_at` and all four semirings are `todo!()`/comment-only
+  (`antigen-stroma/src/read/query.rs`, `.../base/facts.rs:131-146`); the afferent fold that
+  *is* built (`scan/walk.rs:128`, `read/tier.rs:104 corroborate`) is a plain monotone
+  accumulate, not yet a `fold_λ`. So "the semirings are one λ-family" is a **falsifiable
+  prior, not a code fact**: it holds iff a *single* `fold_λ` recovers the detection/blast count
+  at `λ=0` AND `field_at`/conductance-min at `λ→∞` bit-for-bit (with `O(exp(-λΔ))` deformation
+  on a λ-sweep). Today those are two separate reducers ⇒ the honest verdict is **"rhyme until a
+  unifying `fold_λ` is built"**; the test is the *acceptance criterion* for building it (§9
+  falsifier #3). The signal-algebra expedition owns proving or refuting it.
 - **`z_min`-subtraction-before-exponentiation = COMPARE is a comparison-subtraction against a
   reference/setpoint** — "measure relative to the baseline," never a deletion. Exactly the
   §4 claim that the hinge is *the one legitimate ring* (a comparison-subtraction, not a
@@ -285,13 +294,20 @@ dependent, variable-N) are **non-liftable** — no fixed additive fold reaches t
   inside the liftable class *as long as the organ-set is fixed*. This is why the capstone is
   a **recursive latent-organ tree**, not a new algebra: it climbs dimension (frame-exit,
   §5) without crossing the Fock boundary.
-- The **learn-core** (`antigen::learn`: affinity-maturation over a *variable antibody
-  population* — a germinal center that grows/prunes clones) is the **N-varying** side. It is
-  the ONE organ that *crosses* the Fock boundary — which is exactly why it is the keystone
-  that couldn't be stamped stable with zero callers (CLAUDE.md status): a Fock-crossing organ
-  is categorically harder than a fixed fold. **The fixed latent tree and the variable-N
-  learn-core are the two sides of the Fock boundary** — and that boundary is *the* reason
-  they are different organs with different safety-governance, not one mechanism.
+- The **learn-core** (`antigen::learn`: affinity-maturation) is the organ that *will* cross to
+  the **N-varying** side — a germinal center holding a *variable antibody population*. **[The
+  variable-N population is DESIGN-TIER, not built — flagged by the 2026-07-08 code-lens sweep.]**
+  In the current source the learn-core matures **one draft at a time** (`learn/maturation.rs:248
+  mature` climbs a single `current`; `learn/propose.rs` takes one cluster; `learn/life_record.rs`
+  is one-record-per-class); there is *no* `Repertoire { clones: Vec<…> }` growing/pruning a live
+  population across rounds. So the code today sits structurally on the **fixed-fold side**, and
+  "grows/prunes clones" is the chartered dream, not the instantiated type. What is *design-true*:
+  the learn-core is the ONE organ **positioned** to cross the Fock boundary (variable-N is its
+  chartered shape), which is exactly why it is the keystone that couldn't be stamped stable with
+  zero callers (CLAUDE.md status) — a Fock-crossing organ is categorically harder than a fixed
+  fold. **The fixed latent tree and the (to-be-built) variable-N learn-core are the two sides of
+  the Fock boundary** — the reason they must be different organs with different safety-governance,
+  not one mechanism. The variable-N `Repertoire` type is a named build, not a claim of code.
 
 ### 11.6 What this witness CHANGES (live consequences, not just satisfaction)
 
@@ -313,3 +329,24 @@ dependent, variable-N) are **non-liftable** — no fixed additive fold reaches t
 tambear (computation) · pith (prose) instantiate the shape; and tambear/pith's render-math
 proves the shape's algebra. The priors we derived, an independent field proved. See sweep
 notebook 023 for the full cross-project map.*
+
+### 11.7 Tier-honesty ledger (what the math-witness IS vs ISN'T, per the code-lens)
+
+*antigen's own self-distrust discipline, turned on this notebook: a witness is only as true as
+its tier. The 2026-07-08 code-lens sweep graded each §11 claim against real source.*
+
+| §11 claim | tier | witness / gap |
+|---|---|---|
+| afferent wing = monotone accumulate | **CODE** | `scan/walk.rs:128` (pure `+=`/`push`/`extend`), `read/tier.rs:104 corroborate` (`max`-only) |
+| efferent = bounded-reversible-governed, not a ring | **CODE (one witness)** | `learn/curate.rs:71 Forget` (reversible KEEP/HOLD/ROUTE/ReArm + one gated irreversible); rest of efferent is frontier |
+| B2′ = Thm 22.1 (the boundary is proven) | **PROOF** (math), **but the type-wall is unbuilt** | `write.rs` type-enforces only overlay-vs-injection; no tier-write-ordering wall; `Semiring`+`IDEMPOTENT` gate is a comment (`facts.rs:139-142`). §8 gap confirmed OPEN |
+| hinge = COMPARE = Should − Is against a setpoint | **DESIGN** (recognized in nb 009, chartered) | `compare-hinge` + `intent-substrate` charters; no built `field_at` yet |
+| semirings = one λ-temperature family | **DESIGN / falsifiable** | `field_at` + all 4 semirings `todo!()`; verdict "rhyme until `fold_λ` built" (§11.3) |
+| learn-core = the variable-N Fock-crosser | **DESIGN** (positioned, not built) | matures one draft; no `Repertoire` population type (§11.5) |
+| firewall = channel-split (efferent = separate target) | **DESIGN, with a shipped sibling** | pith's `suggest`-as-annotation-channel is the built prose-side proof (023 Part IV); antigen's is chartered |
+
+**The honest one-line:** the *afferent wing is compiled*; the *math-witness is a proof about
+the algebra*; the *efferent wing, the hinge, the λ-family, and the Fock-crossing learn-core are
+DESIGN-tier* — chartered, math-backed, and (for the channel-split) already built by a sibling,
+but not yet antigen's code. The witness tells us *what to build and why it's right*, not *that
+it's built*.
