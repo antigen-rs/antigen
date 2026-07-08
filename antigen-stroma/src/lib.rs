@@ -34,6 +34,7 @@
 #![allow(clippy::module_inception)]
 
 pub mod config_output;
+pub mod conformance;
 pub mod db;
 
 pub mod base;
