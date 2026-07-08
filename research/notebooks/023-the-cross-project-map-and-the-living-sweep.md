@@ -87,13 +87,52 @@ Threads that appear in *multiple* siblings and will surface in antigen — watch
    at 3 values (depth ~2) ⇔ ~4–8 independent base signal-classes. Feeds ADR-071 B4′ (nb 024
    Draft 2): upgrades the depth-cap slot from "known-open, no form" to "conjectured form
    `log₂(N)`, MP-floor aliasing — awaiting pith's experimental confirmation."
+   **PR-3 STATUS (2026-07-08 follow-up read of the well-tempered lab-notebook):** the octave/comma
+   experiment is *untested-in-practice AND provably under-powered.* Only the analytical formula
+   (Test 0.4) was validated; the dimensional-cascade Series 1/2 tables are **empty** ("records added
+   when experiments run"). The power analysis kills it at planned scale: the Pythagorean comma (1.4%)
+   sits **below the eigenvalue noise floor** (~2.1% at 500K photons in 222 dims); it needs **10M+
+   photons** for 3σ, with a live **photon-count confound** (d_eff doubling "could be purely a
+   photon-count effect," lab-notebook:374). So PR-3 does NOT graduate B4′'s depth-cap — the
+   conjecture tier is *correct and now blocked on 10M+ photons*, not merely unread.
+   **The refinement that matters (separate what we need from what pith couldn't confirm):** antigen's
+   depth-cap needs only `D ≈ log₂(N)` gated by the MP floor — **robust spectral theory** (d_eff grows
+   with sample count; sub-MP-floor modes are noise). PR-3's *additional* claim (dimensions in a
+   *harmonic/octave* structure with a Pythagorean comma) is the under-powered decoration antigen does
+   **not** depend on. So B4′'s depth-cap can be **re-grounded on the robust core** (log₂(N)/MP-floor),
+   dropping the dependence on pith's unconfirmed comma → candidate **B4′ Amendment-2** clarification
+   (batch, not immediate re-ceremony — B4′ ratified same day).
    **The `Op`-dial rhyme (bonus):** MP + k-particle correlations (k=1,2,3) building a hierarchy is
    the *same* k-particle→N-body structure as the Fock-boundary latent tree (Part II) — pith's
    dimensional octave and antigen's latent tree are the same object seen from the spectral side.
-3. **folds / seams oscillation** — (from tambear's math + wave-optics interference) the ringing
-   that appears at a fold-seam. *Import target:* B2′ — the seam between the two wings is exactly
-   where oscillation threatens; the **stability-margin** organ (022 §6) watches it. Wave-optics
-   proves the seam *is* an interference boundary.
+3. **folds / seams oscillation — FOUND (2026-07-08 hunt): it's the GIBBS phenomenon.** In pith at
+   `docs/research/benchmark-reality/convergence-prediction.md:76`: *"At actual discontinuities (hard
+   edges), the KDE has a Gibbs-like smoothing artifact that persists for any h > 0 but whose spatial
+   extent → 0 as h → 0."* The ringing at a seam is Gibbs overshoot — a smooth (band-limited/additive)
+   kernel trying to represent a sharp discontinuity. Properties: persists for any finite bandwidth
+   `h`; its width shrinks `∝ h ∝ N^(−1/6)` (vanishes as photon-count `N → ∞`); asymptotically
+   eliminable (SSIM→1). Sibling framings pith gives it: "Fundamental Limit 1: Hard Edges"
+   (`rendering-limits.md`), the Cosine kernel's "resonant response at discontinuities"
+   (`kernel-taxonomy.md`), and — the load-bearing one — it is tied to the **Accumulation Operator
+   Boundary (§22 = Theorem 22.1 = B2′)**: "hard-edge rendering requires order-dependent accumulation."
+   **Antigen import — Gibbs ringing IS the observable symptom of a B2′ violation.** When the afferent
+   *additive/order-independent* fold is forced to represent a sharp *efferent/order-dependent* edge —
+   a discontinuity Thm 22.1 says the additive algebra *cannot* capture — it **overshoots and rings**.
+   The ringing is the afferent side straining against the operator boundary: exactly the B2′
+   oscillator-hazard (022 §6), now with a name (Gibbs) and a mechanism. **The stability-margin organ
+   (022 §3/§6, f9) watches for precisely this ringing** — its job is to detect the afferent fold
+   overshooting at the wing-seam, the tell that an efferent (order-dependent) computation leaked into
+   the afferent (additive) channel. And the "UV-seam / non-injective projection of a closed surface to
+   R²" framing pith cites is *literally* 022 §5's Flatland irreversible-lift: fold a closed higher-D
+   surface down → a non-injective seam that rings. **The fold, the seam, and the ringing are one
+   object.** [TIER: theoretical convergence-prediction, not empirical — but it's a standard
+   Gibbs/Fourier result, robust.]
+   **The unified `N`-scaling (a synthesis across #2 and #3):** more independent evidence `N` improves
+   the afferent fold's fidelity in *both* axes — **depth** (dimensional octave: `D ≈ log₂(N)` more
+   resolvable tiers, #2) and **at-seams** (Gibbs width `∝ N^(−1/6)` less ringing, #3). Depth-cap and
+   seam-ringing are the same `N`-scaling seen along the tree vs at its boundaries. The afferent
+   sensor gets both *deeper* and *sharper* with evidence — and B2′/Thm 22.1 is the wall it must never
+   cross in *either* axis (an efferent edge stays efferent, however much `N` you throw at it).
 4. **"lift" everywhere** — tambear's core verb, pith's render primitive, antigen's tier-raise
    (afferent → observer). The frame-exit / dimensional-raise (022 §5) is one "lift" seen four
    ways.
@@ -201,9 +240,19 @@ should *cite / enforce*:
 - [x] ~~dimensional-Nyquist statement~~ **FOUND** in pith (not tambear) — `well-tempered-
       expedition/expedition-log.md:227`, PR-3: `D ≈ log₂(N)`, MP-floor aliasing (Part III #2).
       Pre-registered prediction; awaiting pith's experimental confirmation.
-- [ ] read pith's **well-tempered-expedition** in full — PR-3's experimental *results* (did the
-      octave hold?), PR-4 (Berry phase / Grassmannian), and the folds/seams recurrence (Part III #3
-      still a placeholder). If PR-3 confirmed → B4′'s depth-cap graduates conjecture→witnessed.
+- [x] read pith's **well-tempered-expedition** (lab-notebook) — **PR-3 verdict: does NOT graduate.**
+      Only the analytical formula validated; the cascade Series is empty + provably under-powered
+      (comma < noise floor, needs 10M+ photons, photon-count confound). B4′ depth-cap stays
+      conjecture; **re-grounded** on the robust `log₂(N)`/MP-floor core, dropping the harmonic-comma
+      dependence (Part III #2 update). → candidate B4′ Amendment-2 (batched).
+- [x] **folds/seams recurrence FOUND** — it's the **Gibbs phenomenon** at hard-edge discontinuities
+      (`benchmark-reality/convergence-prediction.md:76`); Gibbs ringing = the observable symptom of a
+      B2′ violation; the stability-margin organ watches for it (Part III #3, complete).
+- [ ] still open in the sibling expeditions: **PR-4** (Berry phase / Grassmannian traversal —
+      `grassmannian-research/`) — the one remaining named-but-unread thread. Candidate: does the Berry
+      phase map to antigen's provenance/path-dependence (a holonomy on the tier-DAG)?
+- [ ] **candidate B4′ Amendment-2** (batched): re-ground the depth-cap on the robust `log₂(N)`/MP-floor
+      core, dropping the unconfirmed harmonic-comma dependence (from the PR-3 under-powered finding).
 - [ ] the kernel-substitution ("Application A") patent — the full kernel *library* (the `Op`-dial
       as an actual interchangeable-kernel set)
 - [ ] does findmcp's FMM classifier share the learn-core's variable-N population? (Fock-side rhyme)
