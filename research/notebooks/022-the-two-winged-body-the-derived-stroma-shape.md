@@ -339,11 +339,11 @@ its tier. The 2026-07-08 code-lens sweep graded each §11 claim against real sou
 |---|---|---|
 | afferent wing = monotone accumulate | **CODE** | `scan/walk.rs:128` (pure `+=`/`push`/`extend`), `read/tier.rs:104 corroborate` (`max`-only) |
 | efferent = bounded-reversible-governed, not a ring | **CODE (one witness)** | `learn/curate.rs:71 Forget` (reversible KEEP/HOLD/ROUTE/ReArm + one gated irreversible); rest of efferent is frontier |
-| B2′ = Thm 22.1 (the boundary is proven) | **PROOF** (math), **but the type-wall is unbuilt** | `write.rs` type-enforces only overlay-vs-injection; no tier-write-ordering wall; `Semiring`+`IDEMPOTENT` gate is a comment (`facts.rs:139-142`). §8 gap confirmed OPEN |
+| B2′ = Thm 22.1 (the boundary is proven) | **PROOF** (math) + **CORE type-wall now BUILT** (2026-07-08) | `antigen-stroma/src/signal.rs`: `write_back` yields the successor `Up<R>` by construction, so an organ cannot write at ≤ the tier it reads (born-red ATK-SIGNAL-B2PRIME-WRITE-AT-READ-TIER, E0308). §8 gap CLOSED for the single-input core; **deferred**: the multi-input `MaxTier` (peano strict-above *relation* hits stable-Rust coherence overlap → successor-strictness instead). Separate from the `facts.rs` idempotency gate (still a comment). |
 | hinge = COMPARE = Should − Is against a setpoint | **DESIGN** (recognized in nb 009, chartered) | `compare-hinge` + `intent-substrate` charters; no built `field_at` yet |
 | semirings = one λ-temperature family | **DESIGN / falsifiable** | `field_at` + all 4 semirings `todo!()`; verdict "rhyme until `fold_λ` built" (§11.3) |
 | learn-core = the variable-N Fock-crosser | **DESIGN** (positioned, not built) | matures one draft; no `Repertoire` population type (§11.5) |
-| firewall = channel-split (efferent = separate target) | **DESIGN, with a shipped sibling** | pith's `suggest`-as-annotation-channel is the built prose-side proof (023 Part IV); antigen's is chartered |
+| firewall = channel-split (efferent = separate target) | **CORE now BUILT** (2026-07-08) | `signal.rs`: `EfferentChannel<T>` is a distinct type the afferent `write_back` cannot consume (born-red ATK-SIGNAL-B2PRIME-EFFERENT-IN-AFFERENT, E0308) — a signed inverse cannot enter the afferent semiring. The MRT-shape as a type. pith's `suggest`-annotation-channel is the sibling prose-side proof (023 Part IV). Deferred: the efferent wing's own governance (a separate build). |
 
 **The honest one-line:** the *afferent wing is compiled*; the *math-witness is a proof about
 the algebra*; the *efferent wing, the hinge, the λ-family, and the Fock-crossing learn-core are
