@@ -69,7 +69,10 @@ directions, one structure pole. Acyclic DAG → **cannot oscillate**.
 **bounded** (parse-time `duration_cap`/`until`), **reversible** ("quiet-not-gone" —
 `#[anergy]` auto-re-engages, `#[immunosuppress]` *expires and self-presents*), and
 **governed** (signed + rationale'd + loudness∝risk). So the efferent algebra is a
-**bounded-reversible-governed suppression — a decaying MEET-lattice, not a ring.** *A true
+**bounded-reversible-governed suppression — a decaying MEET-lattice, not a ring.** *(The
+three legs are co-equal: **governed** — ADR-023 ships `#[immunosuppress]` as **Loud**,
+loudness∝risk a first-class audit discipline — is NOT folded under "quiet-not-gone";
+"quiet-not-gone" is shorthand for all three legs, not a claim that suppression is silent.)* *A true
 additive inverse — permanent deletion of a self-signal — is literally what autoimmunity is*
 (`decisions.md:5538`, "collapsing the gradient IS the autoimmune pathology"). The historical
 receipt: **`#[immune]` was the ring** ("this failure-class is cancelled/gone here" = an
@@ -117,7 +120,12 @@ The generator is **one fold on one frame, acted on by a symmetry group + a frame
 *duals of the things ON the semiring, not an inverse OF it*:
 - **reflection / chirality** = the access-transpose (G↔Gᵀ), an involution;
 - **polarity flip** = `Is`↔`Should` (ADR-069 `POLARITY`);
-- **rotation** = `perspective` (which edge-kind lens);
+- **rotation** = `perspective` (which edge-kind lens) — and **`access` itself factors**:
+  `access = (rotation: which edge-kind lens) × (reflection: gather/scatter direction)`, with
+  *each lens carrying its own transpose-involution*. So `perspective` and the direction-
+  transpose are **orthogonal generators** of the access-frame, not competing framings —
+  which sharpens §9 falsifier-1 to *"does the count survive on **every** lens, or only the
+  call-graph?"*;
 - **frame-exit** = the observer / Fock-raise — the *one operation that exits the frame to
   observe it*, which is *why* it raises a dimension (exiting a frame = adding one).
 
