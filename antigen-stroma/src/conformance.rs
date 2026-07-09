@@ -22,11 +22,13 @@
 //!
 //! ## Fidelity boundary (honest scope)
 //!
-//! Locus-matching keys on `<file>::<item-label>` ([`ItemTarget::label`]) — a stable, authorable key,
-//! but NOT a canonical module-path resolution. A setpoint written as a module path (`crate::foo::bar`)
-//! and a scan site (`src/foo.rs::bar`) match only when their keys agree; precise path resolution is
-//! deferred to the resolution layer (ADR-069), exactly as the scan itself runs at syntactic tier until
-//! SCIP/mir resolution lands. Tolerations (`#[antigen_tolerance]`) are not yet folded in — the
+//! Locus-matching keys on `<file>::<kind>::<item-label>` (the item-KIND + [`ItemTarget::label`]) — a
+//! stable, authorable key, but NOT a canonical module-path resolution. The `kind` segment closes the
+//! cross-variant collision (a `struct` named `f` cannot bleed into a `fn` named `f`); what remains a
+//! syntactic-tier limit is a *same-kind, same-name* collision across sibling modules in one file (two
+//! `fn parse` in `mod a`/`mod b`) — precise path resolution is deferred to the resolution layer
+//! (ADR-069), exactly as the scan itself runs at syntactic tier until SCIP/mir resolution lands.
+//! Tolerations (`#[antigen_tolerance]`) are not yet folded in — the
 //! `Disposition::Tolerated` path is exercised by the abstract [`compare`] tests today; wiring the
 //! scan's declared exceptions is a named next increment.
 
@@ -37,13 +39,39 @@ use antigen::scan::{ItemTarget, ScanReport};
 
 use crate::intent::{ConformanceGap, ObservedDefense, Setpoint, Strength, compare};
 
-/// The locus key a scan site is grouped under: `<file>::<item-label>`.
+/// The item-KIND discriminant of a scan site (`fn`/`struct`/`enum`/…).
 ///
-/// A setpoint's `locus` is matched against this. See the module's fidelity-boundary note — this is an
-/// authorable key, not a canonical module-path resolution.
+/// [`ItemTarget::label`] collapses `Fn("f")`, `Struct("f")`, `Enum("f")`, … to the bare name `"f"` — so
+/// keying a locus on the label alone lets a defense on a *struct* named `f` bleed into a setpoint for a
+/// *function* named `f` (false conformance). The kind discriminates them.
+const fn item_kind(item: &ItemTarget) -> &'static str {
+    match item {
+        ItemTarget::Struct(_) => "struct",
+        ItemTarget::Enum(_) => "enum",
+        ItemTarget::Trait(_) => "trait",
+        ItemTarget::Fn(_) => "fn",
+        ItemTarget::TypeAlias(_) => "type",
+        ItemTarget::Impl { .. } => "impl",
+        ItemTarget::ImplFn { .. } => "implfn",
+        ItemTarget::TraitFn { .. } => "traitfn",
+        ItemTarget::EnumVariant { .. } => "variant",
+        ItemTarget::ImplConst { .. } => "implconst",
+        ItemTarget::Const(_) => "const",
+        ItemTarget::Static(_) => "static",
+        ItemTarget::Union(_) => "union",
+        ItemTarget::Unknown { .. } => "unknown",
+    }
+}
+
+/// The locus key a scan site is grouped under: `<file>::<kind>::<item-label>`.
+///
+/// A setpoint's `locus` is matched against this. The **kind** segment closes the cross-variant collision
+/// class (a `struct` named `f` no longer collides with a `fn` named `f`). See the module's
+/// fidelity-boundary note — this is still an authorable key, not a canonical module-path resolution, so a
+/// *same-kind, same-name* collision across sibling modules in one file remains a syntactic-tier limit.
 #[must_use]
 pub fn locus_key(file: &Path, item: &ItemTarget) -> String {
-    format!("{}::{}", file.display(), item.label())
+    format!("{}::{}::{}", file.display(), item_kind(item), item.label())
 }
 
 /// Raise a class's recorded strength to at least `strength` (the max-merge across markers).
@@ -132,7 +160,7 @@ pub fn conformance_report(setpoints: &[Setpoint], scan: &ScanReport) -> Conforma
 mod tests {
     use std::path::PathBuf;
 
-    use antigen::scan::{Defense, ItemTarget, MatchKind, Presentation, ScanReport};
+    use antigen::scan::{Defense, Immunity, ItemTarget, MatchKind, Presentation, ScanReport};
 
     use super::{conformance_report, locus_key, observed_at};
     use crate::intent::{Attestation, Conformance, Disposition, Expectation, Setpoint, Strength};
@@ -252,6 +280,75 @@ mod tests {
         // A `#[presents(X, proof = ...)]` (defense evidence on the presents-site) reads Guarded.
         let scan = ScanReport {
             presentations: vec![presentation("X", "deserialize", true)],
+            ..Default::default()
+        };
+        let locus = locus_key(&PathBuf::from(FILE), &fn_item("deserialize"));
+        assert_eq!(observed_at(&scan, &locus)[0].strength, Strength::Guarded);
+    }
+
+    // --- harden wave (2026-07-09): teeth for the previously-undefended paths ---
+
+    fn struct_item(name: &str) -> ItemTarget {
+        ItemTarget::Struct(name.to_string())
+    }
+
+    fn immunity(class: &str, item: &str) -> Immunity {
+        Immunity {
+            antigen_type: class.to_string(),
+            witness: "some_witness".to_string(),
+            requires_predicate: None,
+            file: PathBuf::from(FILE),
+            line: 1,
+            item_kind: "fn".to_string(),
+            item_target: fn_item(item),
+            canonical_path: None,
+            structural_fingerprint: String::new(),
+        }
+    }
+
+    #[test]
+    fn struct_defense_does_not_bleed_into_fn_setpoint() {
+        // FINDING C1 (harden wave): `locus_key` now discriminates by item-KIND. A `#[defended_by]` on a
+        // STRUCT named `deserialize` must NOT satisfy a setpoint guarding a FUNCTION named `deserialize`.
+        // Before the kind-discriminant, both keyed to `<file>::deserialize` → false conformance.
+        let struct_defense = Defense {
+            antigen_type: "UntrustedInput".to_string(),
+            file: PathBuf::from(FILE),
+            line: 1,
+            item_kind: "struct".to_string(),
+            item_target: struct_item("deserialize"),
+            canonical_path: None,
+        };
+        let scan = ScanReport {
+            defenses: vec![struct_defense],
+            ..Default::default()
+        };
+        // The setpoint's locus is the FUNCTION `deserialize`; the struct-defense keys elsewhere now.
+        let report = conformance_report(&[setpoint_guarding(&["UntrustedInput"])], &scan);
+        assert_eq!(report.loci[0].gaps[0].verdict, Conformance::Absent);
+    }
+
+    #[test]
+    fn immunity_site_reads_guarded() {
+        // TEETH (harden wave): the `scan.immunities` (legacy `#[immune]`) loop was deletable with no test
+        // going red. A live claim-kind — an immunity site → `Guarded` — now has a guard.
+        let scan = ScanReport {
+            immunities: vec![immunity("X", "deserialize")],
+            ..Default::default()
+        };
+        let locus = locus_key(&PathBuf::from(FILE), &fn_item("deserialize"));
+        assert_eq!(observed_at(&scan, &locus)[0].strength, Strength::Guarded);
+    }
+
+    #[test]
+    fn requires_predicate_alone_counts_as_guarded() {
+        // TEETH (harden wave): the `|| p.requires_predicate.is_some()` disjunct was droppable with no test
+        // going red (the frame-v2 `||`-operand-drop mutation-shape). A presents-site with a substrate
+        // predicate but NO phantom `proof` must still read `Guarded`.
+        let mut p = presentation("X", "deserialize", false); // proof = None
+        p.requires_predicate = Some(r#"{"pred":"non_panic"}"#.to_string());
+        let scan = ScanReport {
+            presentations: vec![p],
             ..Default::default()
         };
         let locus = locus_key(&PathBuf::from(FILE), &fn_item("deserialize"));

@@ -150,6 +150,12 @@ const fn required_strength(disposition: Disposition) -> Strength {
 /// - observed `>=` required → [`Conformance::Conforms`];
 /// - observed is `None` (nothing at all) → [`Conformance::Absent`];
 /// - observed is present but `<` required → [`Conformance::Underdeveloped`].
+///
+/// Gaps are emitted **per-expectation, not per-class** (one gap per entry in `expects`, in order). A
+/// well-formed [`Setpoint`] lists each class at most once; if the authored config lists a class twice
+/// (an authoring error), `compare` faithfully yields one gap *per listing* — it does not dedup or error.
+/// Uniqueness-per-class is an authored-config invariant (validate at the `Setpoint` trust boundary,
+/// ADR-005 sub-clause F), not something `compare` imposes.
 #[must_use]
 pub fn compare(setpoint: &Setpoint, observed: &[ObservedDefense]) -> Vec<ConformanceGap> {
     setpoint
@@ -292,5 +298,38 @@ mod tests {
                 Conformance::Underdeveloped,
             ]
         );
+    }
+
+    // --- harden wave (2026-07-09): edge-cases the happy path skipped ---
+
+    #[test]
+    fn witnessed_expectation_with_no_defense_is_absent() {
+        // Fills the `Witnessed × None` cell (only `Guarded × None` was tested): a witnessed expectation
+        // met by nothing at all is Absent (the setpoint is unmet), not Underdeveloped.
+        let sp = setpoint(vec![expect("PanicOnEmpty", Disposition::Witnessed)]);
+        assert_eq!(compare(&sp, &[])[0].verdict, Conformance::Absent);
+    }
+
+    #[test]
+    fn empty_setpoint_yields_no_gaps() {
+        // A degenerate (empty-`expects`) setpoint produces no gaps — locked so a config-serialization
+        // error that blanks `expects` can't silently read as "everything conforms" without a test noticing.
+        let sp = setpoint(vec![]);
+        assert!(compare(&sp, &[observed("X", Strength::Guarded)]).is_empty());
+    }
+
+    #[test]
+    fn duplicate_class_in_expects_yields_a_gap_per_expectation() {
+        // FINDING I1 (harden wave): `compare` is per-EXPECTATION, not per-class. A class listed twice
+        // (an authoring error) faithfully yields one gap per listing — documented, not deduped. This test
+        // pins that contract so a future dedup/validation change is a deliberate, test-visible decision.
+        let sp = setpoint(vec![
+            expect("X", Disposition::Guarded),   // vs Present → Underdeveloped
+            expect("X", Disposition::Witnessed), // vs Present → Conforms
+        ]);
+        let gaps = compare(&sp, &[observed("X", Strength::Present)]);
+        assert_eq!(gaps.len(), 2);
+        assert_eq!(gaps[0].verdict, Conformance::Underdeveloped);
+        assert_eq!(gaps[1].verdict, Conformance::Conforms);
     }
 }
