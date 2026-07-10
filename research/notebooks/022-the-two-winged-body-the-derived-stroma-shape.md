@@ -437,22 +437,31 @@ their Fock-sides, and where PH earns its keep vs merely re-describes — is **§
 **Mapper** on a 9-dim cytokine feature-space under correlation distance (PMC7129978); Torres 2016
 disease-space loops = resilience (PMC4835107). Tier-honest inline.*
 
-**The governing fact — the complex-choice is the whole game (CONFIRMED-by-math).** "Compute H₁ of the
-reachability graph" is under-specified *to the point of wrong*: which cycles count as H₁ depends on the
-**complex**, and the two natural choices disagree on the very first example, the directed 3-cycle
-`a→b→c→a`:
+**The governing fact — the complex-choice is the whole game (CONFIRMED-by-math, ℚ-verified; corrects
+an earlier draft of this row).** "Compute H₁ of the reachability graph" is under-specified *to the point
+of wrong*: which cycles count as H₁ depends on the **complex**. The benign-vs-entangled taxonomy that
+decides it (GLMY, arXiv 2404.01007 Thm 2; every row verified by exact ℚ-rank):
 
-| complex | H₁ of `a→b→c→a` | chirality | for code |
+| motif | GLMY path-H₁ | undirected/flag-H₁ | code meaning |
 |---|---|---|---|
-| undirected flag/clique | 0 (triangle fills) | **lost** (symmetrizes) | **rejected** — discards the §1 afferent/efferent axis, the exact fault that sank VR-PH |
-| directed flag (Flagser) | **survives** (a cyclic triple is not a *transitive* clique) | kept | floods H₁ with benign mutual-recursion / triangle / diamond noise |
-| **GLMY path homology** | **trivial** (bounds the 2-path) | kept (direction-native) | **recommended** — its "trivial cycle" (bigon, boundary-triangle, boundary-square) *coincides with* the code notion of "benign cycle" |
+| bigon `a⇄b` | **0** (regular reduction `e_{aa}=0`) | 1 | mutual recursion → **benign** |
+| **transitive** triangle `a→b→c` + chord `a→c` | **0** (bounds) | 0 | helper + shortcut → **benign** |
+| **boundary** square `a→b→d`, `a→c→d` (no `a→d`) | **0** (routes reconcile) | **1** | reconciling diamond → **benign** |
+| **directed 3-cycle** `a→b→c→a` (no chord) | **1** (generator) | **0** | genuine 3-way entanglement |
+| non-boundary square / polygon ≥4 | **1** (generator) | 1 | genuine multi-route entanglement |
 
-So pinning the complex **is** the design decision. Path homology is the unique choice that keeps
-direction AND quotients out exactly the benign motifs (mutual recursion `a⇄b`, helper-triangles,
-diamonds), keeping as H₁ generators precisely the **non-boundary squares and long directed cycles** —
-genuinely entangled multi-route structures with no reconciling shortcut. That structural coincidence
-is *why* path homology is the right tool, not a decoration.
+GLMY path homology's *trivial* motifs (bigon, transitive-triangle, boundary-square) **coincide with the
+code's *benign* cycles** (mutual recursion, helper+shortcut, reconciling diamonds); its *generators*
+(the directed cycle — **including the 3-cycle** — and the non-boundary square) are exactly genuine
+entanglement with no reconciling shortcut. The **directed flag complex** instead counts the *benign*
+bigon and boundary-square as H₁ (flooding with mutual-recursion / diamond noise); the **undirected**
+complex discards chirality (the fault that sank VR-PH). **Two chirality witnesses pin the choice, with
+OPPOSITE signs:** the directed 3-cycle is a generator in path homology but *trivial* undirected (1 vs 0);
+the boundary square is *trivial* in path homology but a generator undirected (0 vs 1) — so no single
+symmetrization can fake path homology in both directions. That is why pinning **GLMY path homology** *is*
+the design decision, not a decoration. *(The earlier draft wrongly listed the directed 3-cycle as
+path-trivial and named it the discriminator; the ℚ-verified fact is that path & flag AGREE the 3-cycle
+is a generator — they disagree on the bigon and the boundary square.)*
 
 **Lens A — tier-filtered path homology (the "layer"; afferent-side; build FIRST).** `ResolutionTier` is
 a total order `Syntactic < Resolved < T3Mir` (CONFIRMED, `semiring.rs`), and every `EdgeFact` already
