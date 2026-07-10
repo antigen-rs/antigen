@@ -360,3 +360,161 @@ the algebra*; the *efferent wing, the hinge, the λ-family, and the Fock-crossin
 DESIGN-tier* — chartered, math-backed, and (for the channel-split) already built by a sibling,
 but not yet antigen's code. The witness tells us *what to build and why it's right*, not *that
 it's built*.
+
+## §11.8 — The shape of the response: Mapper *is* our condensation, H₁ ↔ min-cut, the two shape-families
+
+*Added 2026-07-10 from a deep-read of the co-infection TDA paper ("Topological data analysis to
+model the shape of immune responses during co-infections," PMC7129978) + its math lineage
+(Singh–Mémoli–Carlsson 2007, the Mapper algorithm; Carlsson 2009; Torres et al. 2016, the
+disease-space resilience-loop). Tier-honest: CONFIRMED-by-paper / INFERENCE / SPECULATION inline.*
+
+**The recognition (CONFIRMED structural identity, ADR-006).** The paper's "shape of the immune
+response" is a **Mapper** graph — *not* persistent homology. Mapper: a lens `f: X → ℝⁿ`, cover
+`f(X)` by overlapping intervals, pull back, cluster each preimage, take the **nerve** (a vertex per
+cluster, an edge per shared point). This is *literally* what antigen's `Condensation{scc_of,
+dag_adj}` (`antigen-stroma/src/engine/condense.rs`) is: `scc_of` is the quotient map (node →
+super-node), `dag_adj` is the induced graph on the quotient. **SCC-condensation = Mapper with the
+lens fixed to strongly-connected-component membership and the cover trivial** — the same
+category-theoretic object (a set quotient + the pushforward graph on it), with the **Nerve Lemma**
+certifying that the condensation graph legitimately *is* "the shape of the response." So tier-2
+topology is not a formalism to import — it is a name + a theorem for what the afferent wing already
+computes. Mapper is a fold-to-quotient (a catamorphism) → **afferent-native**, consistent with the
+whole §11 accumulate-wing.
+
+**The free lens (INFERENCE — a scoped new organ, recognition not invention).** Mapper's lens need
+not be SCC-membership. Each tier-1 per-node **field** the stroma already computes —
+conductance-distance, blast-multiplicity, provenance-tier — *is* a Mapper lens. Cover its range,
+pull back, take the nerve → a **response-shape graph stratified into iso-exposure regions**. The
+fields exist; Mapper only names the nerve-over-a-field. This is the concrete tier-2 "shape of the
+response field" organ (design-tier), native, composing with the SCC + min-cut primitives.
+
+**H₁ and min-cut — DUAL, not identical (INFERENCE, corrected by the §11.9 deep-dive).** The tempting
+claim "a 1-cycle *is* the chokepoint" over-reaches: **H₁ lives in the cycle-space, min-cut in the
+cut-space, and they are Menger/Poincaré-*dual* (orthogonal complements of the edge-space), not equal.**
+The defensible statement: a **fillable** cycle (one that bounds — a shortcut edge reconciles two
+routes) is the "chokepoint-gets-bypassed" phenomenon; a **persistent non-boundary** 1-cycle is a
+genuine redundant-route entanglement with *no* reconciling shortcut. And "a 1-cycle" is not even
+well-defined until the *complex* is pinned — a directed 3-cycle is trivial in path homology yet
+non-trivial in the directed flag complex (§11.9). So topology and min-cut are dual faces of the field's
+1-skeleton: claim the duality, not the identity.
+
+**The co-infection / multi-blast entanglement invariant (INFERENCE, grounded in the paper's real
+result).** The paper's headline: a co-infection response is **not** the union of the two single
+responses — early it is *inherited from* the viral response (the two share a Mapper region), then it
+**shifts into a novel joint regime** neither single response has. Ported to our un-formalized
+**multiple-simultaneous-danger-field** case, the entanglement invariant is **H₀ of the joint field,
+refined by the min-cut of the overlap**:
+- `reach(A) ∩ reach(B) = ∅` (disjoint components) → **INDEPENDENT / disseminated** blasts — repair separately;
+- overlap that is a **cut set** → **ENTANGLED at a chokepoint** — one repair defends both;
+- overlap that is **not** a cut → the **novel partially-entangled regime** (co-infection > the sum).
+This generalizes local-vs-disseminated to interacting fields — the discriminator the paper's data exhibits.
+
+**The two orthogonal shape-families (INFERENCE).** §11.3's **λ** is a temperature on the *fold
+operation* — additive (λ=0, blast/count) to tropical-min (λ→∞, conductance) via log-sum-exp; it
+selects *which field* you compute (the `Op`-dial). Mapper's **cover-resolution** dials the *quotient
+granularity* — fine (detail) to coarse (gross shape); it shapes a *fixed* field. These are
+**orthogonal and compose**: for each λ (a field), a resolution sweep gives a family of shapes. So
+antigen carries **two independent one-parameter shape-families — λ (Op-temperature) × Mapper-resolution
+(quotient-scale).** Sweeping resolution and recording which chokepoints/communities *survive across
+scales* is a genuine persistence computation (barcode length = a chokepoint's cross-scale robustness)
+that does **not** cross the metric-space problem — it is persistence *of Mapper graphs*, not
+Vietoris–Rips on a metric.
+
+**Where persistent homology lives — PLACED, not declined.** The paper never uses PH, and Vietoris–Rips
+PH *on the directed reachability graph* is a genuine stretch (quasi-metric — asymmetric, ∞-valued — and
+symmetrizing to force a metric discards the chirality axis of §1). But "not afferent-native" is a
+**coordinate, not a rejection**: PH lives across BOTH wings, in three homes — (A) tier-filtered
+**path** homology (afferent-side — a monotone fold), (B) feature-embedding VR-PH = the "disease-space"
+phenotype network (learn-core-side), (C) temporal-trajectory PH = the Torres resilience-loop
+(learn-core/temporal-side). The full settlement — the governing complex-choice, the three lenses with
+their Fock-sides, and where PH earns its keep vs merely re-describes — is **§11.9**.
+
+## §11.9 — Where persistent homology lives: the settlement (three lenses, two wings, one complex-choice)
+
+*Added 2026-07-10 from a rigorous deep-dive verified against primary sources: Grigor'yan–Lin–Muranov–Yau
+**path homology** (generator criterion + O((mn)^ω) 1-dim persistent cost, arXiv 2404.01007); the
+**directed flag complex** (Lütgehetmann–Govc–Smith–Levi / Flagser); the co-infection method =
+**Mapper** on a 9-dim cytokine feature-space under correlation distance (PMC7129978); Torres 2016
+disease-space loops = resilience (PMC4835107). Tier-honest inline.*
+
+**The governing fact — the complex-choice is the whole game (CONFIRMED-by-math).** "Compute H₁ of the
+reachability graph" is under-specified *to the point of wrong*: which cycles count as H₁ depends on the
+**complex**, and the two natural choices disagree on the very first example, the directed 3-cycle
+`a→b→c→a`:
+
+| complex | H₁ of `a→b→c→a` | chirality | for code |
+|---|---|---|---|
+| undirected flag/clique | 0 (triangle fills) | **lost** (symmetrizes) | **rejected** — discards the §1 afferent/efferent axis, the exact fault that sank VR-PH |
+| directed flag (Flagser) | **survives** (a cyclic triple is not a *transitive* clique) | kept | floods H₁ with benign mutual-recursion / triangle / diamond noise |
+| **GLMY path homology** | **trivial** (bounds the 2-path) | kept (direction-native) | **recommended** — its "trivial cycle" (bigon, boundary-triangle, boundary-square) *coincides with* the code notion of "benign cycle" |
+
+So pinning the complex **is** the design decision. Path homology is the unique choice that keeps
+direction AND quotients out exactly the benign motifs (mutual recursion `a⇄b`, helper-triangles,
+diamonds), keeping as H₁ generators precisely the **non-boundary squares and long directed cycles** —
+genuinely entangled multi-route structures with no reconciling shortcut. That structural coincidence
+is *why* path homology is the right tool, not a decoration.
+
+**Lens A — tier-filtered path homology (the "layer"; afferent-side; build FIRST).** `ResolutionTier` is
+a total order `Syntactic < Resolved < T3Mir` (CONFIRMED, `semiring.rs`), and every `EdgeFact` already
+carries its tier (CONFIRMED, `closure.rs` stores `(usize, ResolutionTier)`). Threshold the edge set
+downward from the top: `G₃` (proof-tier only) ⊆ `G₂` (add resolved) ⊆ `G₁` (add syntactic = full) — a
+**bona-fide filtration on a fixed vertex set, indexed by a knob already in the type**. No VR radius
+invented, no metric fabricated, and **thresholding never touches orientation → chirality is preserved
+at every level.** *This is the chirality-preserving PH the prior VR objection said was impossible.*
+- **H₀ across tiers = the merge-tier of two code regions** — a coupling that connects only at Syntactic
+  is a **provenance-fragile coupling** (believed, not proven); one holding at T3Mir is proof-grade.
+- **H₁ (path homology) = non-boundary directed cycles = benign-vs-entangled discrimination.** A
+  persistent class (born at T3Mir, survives down) = proof-grade structural entanglement; a short bar
+  (only at Syntactic) = a weak-evidence artifact. This is **confidence-graded topology** — a barcode
+  whose axis is *epistemic confidence*, not scale (CONFIRMED-novel; no prior "confidence-filtered code
+  topology" found).
+- **Cost** O((mn)^ω), ω<2.373, H₀/H₁ only, 3 filtration levels — tractable (efficient 1-dim PPH
+  algorithms exist; H₂+ not needed).
+- **Fock-side — the §11.5 UPDATE (INFERENCE, flag for ratification):** *not all PH is variable-N.* Lens
+  A's filtration is **monotone-additive** (edges only ever ADDED as the tier lowers, over a fixed
+  node-set) — structurally the afferent monotone-accumulate shape (§11.2). **So tier-filtered path
+  homology lives on the afferent / liftable side, not the learn-core.** This refines the earlier "PH is
+  variable-N ∴ learn-core" placement: it holds for B/C, not A.
+
+**Lens B — feature-embedding VR-PH (the "network"; learn-core-side; build SECOND).** The honest port of
+the paper's *actual* method (it did TDA on a cytokine feature-space, never on the infection graph).
+Embed each node in intrinsic structural-feature space `φ(v) ∈ ℝ^d` — in-degree, out-degree (*separately*
+— this is where chirality survives, as coordinates), blast-cardinality `|field_at(v)|`,
+exposure-cardinality `|reachable_from(v)|`, max-provenance-tier, SCC-size, conductance-centrality — then
+VR-PH under a **symmetric** metric (correlation distance, matching the paper). **Metric-legal — YES,
+rigorously:** the chirality objection does NOT apply because we cluster nodes *by profile* (direction
+lives in the coordinates), not by folding the directed graph into a distance.
+- **H₀ clusters = code "phenotypes"** — classes of nodes with the same structural role (hub-sinks,
+  source-dispatchers, …). This is a **second, orthogonal network** — the phenotype/similarity network,
+  not the adjacency graph — the codebase's **disease-space**. It is the reliably-actionable prize of B,
+  and it is a genuinely *new organ* SCC/min-cut/Mapper cannot express (they operate on adjacency; this
+  operates on profile-similarity).
+- **H₁ loops = cyclic structural regimes** — real topology, but code-actionability is uncertain
+  (**SPECULATION** — needs an empirical bench). H₀ is the prize; H₁-here is research-grade.
+- **Fock-side:** VR-PH is the archetypal variable-N filtration → **learn-core / variable-N side
+  (CONFIRMED placement).** So A and B sit on **opposite sides of the Fock boundary** — the sharpest
+  witness that they are distinct organs, not one capability.
+
+**Lens C — temporal-trajectory PH (learn-core/temporal-side; DEFERRED).** Lens B's `φ` computed
+per-salsa-revision, with commits as the trajectory index (CONFIRMED analog to Torres: health→infection→
+recovery = a loop in disease-space; **tight loop = resilience, broken arc = decay**). A resilience
+metric for changes. Correct home, correctly placed, rightly deferred — it needs the temporal substrate
+wired first.
+
+**Where PH earns its keep vs merely re-describes (the honest test).**
+- **EARNS (CONFIRMED):** (1) the **tier-barcode** — "which parts of the shape survive
+  confidence-thresholding" — is strictly richer than SCC/min-cut at any single tier; Mapper gives *a*
+  shape, persistence gives *which parts persist*. (2) Lens B's **phenotype-H₀** — orthogonal to every
+  adjacency primitive. (3) path homology's **benign-vs-entangled-SCC** discrimination — condensation
+  collapses each SCC to a point (`condense.rs`), *destroying* internal cycle structure; path homology
+  tells a mutual-recursion SCC (trivial) from a genuinely-entangled one (non-boundary squares, H₁≥1).
+- **RE-DESCRIPTION (CONFIRMED debits):** single-tier H₀ = connected-components = free from BFS/condense
+  (only earns keep *across* the filtration); and the **static single-graph shape is already Mapper's /
+  SCC's** — PH adds nothing there. **Division of labor: Mapper owns the static afferent shape; PH owns
+  the *parametrized family* of shapes (over confidence, over similarity-radius, over time).** Where
+  there is no parameter, PH is redundant with Mapper.
+
+**Build order (CONFIRMED recommendation):** A (tier-filtered **path** homology — native filtration,
+chirality-preserving, cheap) → B (feature-embedding VR-PH, correlation metric — the honest paper-port,
+the phenotype network) → C (temporal, deferred). And the one over-claim to never make: **H₁ = min-cut is
+false; they are Menger/Poincaré-dual** (§11.8).
