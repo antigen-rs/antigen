@@ -1,0 +1,24 @@
+error[E0277]: the trait bound `Blast: Idempotent` is not satisfied
+  --> tests/ui/nonidem_run_closure_blast_forbidden.rs:15:27
+   |
+15 |     let _ = run_closure::<Blast>(&rel);
+   |                           ^^^^^ the trait `Idempotent` is not implemented for `Blast`
+   |
+help: the following other types implement trait `Idempotent`
+  --> src/engine/semiring.rs
+   |
+   | impl Idempotent for Detection {}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Detection`
+...
+   | impl Idempotent for Conductance {}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Conductance`
+...
+   | impl Idempotent for Provenance {}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `Provenance`
+note: required by a bound in `run_closure`
+  --> src/engine/semiring.rs
+   |
+   | pub fn run_closure<S>(rel: &ReachabilityRelation) -> HashMap<(usize, usize), S::Weight>
+   |        ----------- required by a bound in this function
+   | where S: Semiring + Idempotent {
+   |                     ^^^^^^^^^^ required by this bound in `run_closure`
