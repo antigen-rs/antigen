@@ -6,6 +6,7 @@
 //! [`super::semiring::run_condensed`] consumes via [`super::semiring::Condensed`].
 
 use super::closure::ReachabilityRelation;
+use super::semiring::{Condensed, Semiring};
 
 /// The condensation of a graph: SCC membership + the acyclic super-node DAG.
 pub struct Condensation {
@@ -15,6 +16,16 @@ pub struct Condensation {
     pub sccs: Vec<Vec<usize>>,
     /// `dag_adj[scc_id]` = the successor SCC ids (deduplicated, self-loops removed) — an acyclic DAG.
     pub dag_adj: Vec<Vec<usize>>,
+}
+
+impl Condensation {
+    /// Mint the [`Condensed`] proof-of-pre-pass for a non-idempotent (counting) closure over this
+    /// condensation's acyclic DAG — the ONLY way to obtain a `Condensed<S>` (R4). The proof carries the
+    /// DAG, so [`run_condensed`](super::semiring::run_condensed) provably runs on a condensed graph.
+    #[must_use]
+    pub fn proof<S: Semiring>(&self) -> Condensed<S> {
+        Condensed::from_condensed_dag(self.dag_adj.clone())
+    }
 }
 
 /// Condense a relation's SCCs into a DAG via Tarjan's algorithm.

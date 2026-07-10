@@ -112,8 +112,15 @@ impl ReachabilityRelation {
         &self.backward[i]
     }
 
-    /// BFS from `start` along forward or backward adjacency, collecting reached nodes and the
-    /// min/max edge-tier traversed. The visited-set makes this terminate on cyclic graphs.
+    /// BFS from `start` along forward or backward adjacency, collecting reached nodes and the min/max
+    /// edge-tier over the edges that FIRST-DISCOVER them. The visited-set makes this terminate on cyclic
+    /// graphs.
+    ///
+    /// The tier fold runs only when an edge discovers a new node. Back-edges and self-loops (edges to an
+    /// already-seen node) are cycle-closing artifacts, NOT reaching-path edges: folding their tier would
+    /// let a lower-tier back-edge silently demote an answer whose actual reaching path is fully resolved
+    /// (e.g. `A --Resolved--> B`, `B --Syntactic--> B` would report `B` at `Syntactic`, not `Resolved`).
+    /// That is the R6 tier-honesty invariant, enforced at the traversal.
     #[must_use]
     pub fn reach(&self, start: usize, forward: bool) -> Reached {
         let mut seen = vec![false; self.nodes.len()];
@@ -130,12 +137,13 @@ impl ReachabilityRelation {
                 &self.backward[u]
             };
             for &(v, tier) in adj {
-                min_tier = Some(min_tier.map_or(tier, |m| m.min(tier)));
-                max_tier = Some(max_tier.map_or(tier, |m| m.max(tier)));
                 if !seen[v] {
                     seen[v] = true;
                     out.insert(v);
                     queue.push_back(v);
+                    // Fold ONLY discovery edges — back-edges/self-loops are not on any reaching path.
+                    min_tier = Some(min_tier.map_or(tier, |m| m.min(tier)));
+                    max_tier = Some(max_tier.map_or(tier, |m| m.max(tier)));
                 }
             }
         }

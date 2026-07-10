@@ -14,8 +14,7 @@ use std::collections::HashSet;
 use antigen_stroma::base::facts::{EdgeFact, EdgeFacts, EdgeKind};
 use antigen_stroma::db::StromaDb;
 use antigen_stroma::engine::{
-    Blast, Condensed, Conductance, Detection, ReachabilityRelation, condense, run_closure,
-    run_condensed,
+    Blast, Conductance, Detection, ReachabilityRelation, condense, run_closure, run_condensed,
 };
 use antigen_stroma::node::StromaNodeId;
 use antigen_stroma::node::cfg::CfgSet;
@@ -131,6 +130,40 @@ fn field_at_a_is_the_forward_closure() {
 }
 
 #[test]
+fn a_syntactic_back_edge_does_not_demote_a_resolved_field() {
+    use ResolutionTier::{Resolved, Syntactic};
+    // A --Resolved--> B, with a B --Syntactic--> B self-loop. The self-loop is a cycle-closing artifact,
+    // NOT a reaching path — so field_at(A) = {B} must stay Resolved / Presents, not be demoted to
+    // Syntactic / Dread. Regression: the tier fold once ran before the visited-check, so a lower-tier
+    // back-edge silently dragged the answer tier below its real reaching path (R6 tier-honesty).
+    let mut db = StromaDb::default();
+    let facts = EdgeFacts::new(
+        &db,
+        vec![edge("A", "B", Resolved), edge("B", "B", Syntactic)],
+    );
+    db.set_edge_facts(facts);
+    let snap = SnapshotHandle::open(&db);
+    let ans = field_at(&snap, &node("A"));
+
+    assert_eq!(
+        set_of(
+            ans.read_at_least(DetectionGrade::Dread)
+                .expect("floor readable")
+        ),
+        names(&["B"]),
+    );
+    assert_eq!(
+        ans.tier(),
+        ResolutionTier::Resolved,
+        "the Resolved reaching edge sets the tier"
+    );
+    assert!(
+        ans.read_at_least(DetectionGrade::Presents).is_some(),
+        "a Resolved-only reaching path serves a presents read despite the Syntactic self-loop",
+    );
+}
+
+#[test]
 fn queries_on_an_unpopulated_base_are_empty_at_the_floor() {
     let db = StromaDb::default(); // no edge relation published
     let snap = SnapshotHandle::open(&db);
@@ -169,11 +202,23 @@ fn conductance_closure_is_shortest_hop_count() {
 
 #[test]
 fn blast_counting_runs_only_on_a_condensed_dag() {
-    // A diamond DAG: 0→1, 0→2, 1→3, 2→3 → two distinct paths 0⇝3 (the non-idempotent count).
-    let dag = vec![vec![1usize, 2], vec![3usize], vec![3usize], vec![]];
-    let counts = run_condensed::<Blast>(Condensed(Blast), &dag);
-    assert_eq!(counts[&(0, 3)], 2, "two distinct DAG paths from 0 to 3");
-    assert_eq!(counts[&(0, 1)], 1);
+    use ResolutionTier::Resolved;
+    // A diamond DAG: A→B, A→C, B→D, C→D → two distinct paths A⇝D (the non-idempotent count). Built
+    // through the real pipeline — relation → condense() → proof → run_condensed. The proof is the ONLY
+    // door and carries its DAG, so a raw cyclic graph cannot be smuggled into the counting closure.
+    let rel = ReachabilityRelation::from_edges(&[
+        edge("A", "B", Resolved),
+        edge("A", "C", Resolved),
+        edge("B", "D", Resolved),
+        edge("C", "D", Resolved),
+    ]);
+    let cond = condense(&rel);
+    let counts = run_condensed::<Blast>(cond.proof::<Blast>());
+    let sa = cond.scc_of[rel.index_of(&node("A")).unwrap()];
+    let sb = cond.scc_of[rel.index_of(&node("B")).unwrap()];
+    let sd = cond.scc_of[rel.index_of(&node("D")).unwrap()];
+    assert_eq!(counts[&(sa, sd)], 2, "two distinct DAG paths from A to D");
+    assert_eq!(counts[&(sa, sb)], 1, "one path from A to B");
 }
 
 #[test]

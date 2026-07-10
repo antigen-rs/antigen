@@ -10,6 +10,7 @@
 //! SCC-condensation pre-pass ran (R3/R4).
 
 use std::collections::HashMap;
+use std::marker::PhantomData;
 
 use super::closure::ReachabilityRelation;
 use crate::read::ResolutionTier;
@@ -66,10 +67,27 @@ impl IsTrue for Assert<true> {}
 
 /// A witness that an SCC-condensation pre-pass ran (R4): the ONLY door to a non-idempotent semiring.
 ///
-/// [`run_condensed`] consumes a `Condensed<S>`, so a counting closure cannot be invoked without first
-/// producing this proof (via the [`condense`](mod@super::condense) pre-pass). The raw-graph counting path is
-/// unconstructible.
-pub struct Condensed<S: Semiring>(pub S);
+/// [`run_condensed`] consumes a `Condensed<S>` — and it carries the acyclic super-node DAG *inside*,
+/// so the counting closure runs on exactly the graph the pre-pass condensed. The field is private and
+/// the only constructor is [`Condensation::proof`](super::condense::Condensation::proof), so a
+/// `Condensed<S>` cannot be forged: external code cannot hand-build one over a raw cyclic graph (which
+/// would diverge / stack-overflow). The raw-graph counting path is genuinely unconstructible.
+pub struct Condensed<S: Semiring> {
+    /// The condensed (acyclic) super-node DAG the closure runs on — `dag[i]` = successors of `i`.
+    dag: Vec<Vec<usize>>,
+    _semiring: PhantomData<S>,
+}
+
+impl<S: Semiring> Condensed<S> {
+    /// Mint the proof over an already-condensed DAG. Crate-internal — reachable only from
+    /// [`Condensation::proof`](super::condense::Condensation::proof), which is the sole public door.
+    pub(crate) const fn from_condensed_dag(dag: Vec<Vec<usize>>) -> Self {
+        Self {
+            dag,
+            _semiring: PhantomData,
+        }
+    }
+}
 
 // --- Const/marker coherence (the Assert/IsTrue idiom, load-bearing) --------------------------------
 // Every semiring marked `Idempotent` MUST have `IDEMPOTENT == true`, and the counting semiring MUST
@@ -271,17 +289,17 @@ where S: Semiring + Idempotent {
 
 /// Run a semiring closure on a CONDENSED (acyclic) DAG — the ONLY door for a non-idempotent semiring.
 ///
-/// R3/R4. The [`Condensed`] argument is the proof that an SCC-condensation pre-pass ran; `dag` is the
-/// super-node adjacency (`dag[i]` = the super-node successors of super-node `i`), which is acyclic, so
-/// even the counting semiring terminates.
+/// R3/R4. The [`Condensed`] proof carries the super-node adjacency it was condensed from (`dag[i]` =
+/// the super-node successors of super-node `i`), which is acyclic, so even the counting semiring
+/// terminates. Because the DAG lives inside the proof (mintable only via
+/// [`Condensation::proof`](super::condense::Condensation::proof)), the closure provably runs on a
+/// condensed graph — there is no separate raw-graph argument to mismatch.
 ///
 /// Returns the per-super-node-pair closure weight. For [`Blast`] this is the number of distinct DAG
 /// paths between super-nodes — finite because the graph is acyclic.
 #[must_use]
-pub fn run_condensed<S: Semiring>(
-    _proof: Condensed<S>,
-    dag: &[Vec<usize>],
-) -> HashMap<(usize, usize), S::Weight> {
+pub fn run_condensed<S: Semiring>(proof: Condensed<S>) -> HashMap<(usize, usize), S::Weight> {
+    let dag = &proof.dag;
     let n = dag.len();
     let mut out = HashMap::with_capacity(n * n);
     // For each target j, memoize the closure weight of every source i via a DAG recursion. This avoids

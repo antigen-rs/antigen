@@ -241,6 +241,16 @@ per-pixel `z_min` reference) is COMPARE = Should − Is (§4), made precise:
   on a λ-sweep). Today those are two separate reducers ⇒ the honest verdict is **"rhyme until a
   unifying `fold_λ` is built"**; the test is the *acceptance criterion* for building it (§9
   falsifier #3). The signal-algebra expedition owns proving or refuting it.
+  **[UPDATE 2026-07-09 — the reducers landed; the verdict held.]** A Fable one-shot built
+  `field_at` + all four query paths + the four semirings (`antigen-stroma/src/engine/semiring.rs`,
+  `read/query.rs`), so the `todo!()` clause above is now false at the word level. But it landed as
+  **four separate hand-rolled reducers** — each query rolls its own tier-tracking BFS / max-fold, and
+  the `Semiring` library sits *beside* the queries rather than under them (the production paths bypass
+  `run_closure`). That is exactly the "two separate reducers" state, not a single `fold_λ`. So the
+  falsifiable verdict is **unchanged and, if anything, corroborated**: still "rhyme until a unifying
+  `fold_λ` is built," and §9 falsifier #3 stays open. What moved is only the *hook* — the unbuilt
+  thing is no longer `field_at` (built) but the `fold_λ` that would recover all four as λ-limits of one
+  fold. Wiring the queries *through* the semiring dial is the future signal-algebra organ that decides it.
 - **`z_min`-subtraction-before-exponentiation = COMPARE is a comparison-subtraction against a
   reference/setpoint** — "measure relative to the baseline," never a deletion. Exactly the
   §4 claim that the hinge is *the one legitimate ring* (a comparison-subtraction, not a
@@ -341,7 +351,7 @@ its tier. The 2026-07-08 code-lens sweep graded each §11 claim against real sou
 | efferent = bounded-reversible-governed, not a ring | **CODE (one witness)** | `learn/curate.rs:71 Forget` (reversible KEEP/HOLD/ROUTE/ReArm + one gated irreversible); rest of efferent is frontier |
 | B2′ = Thm 22.1 (the boundary is proven) | **PROOF** (math) + **CORE type-wall now BUILT** (2026-07-08) | `antigen-stroma/src/signal.rs`: `write_back` yields the successor `Up<R>` by construction, so an organ cannot write at ≤ the tier it reads (born-red ATK-SIGNAL-B2PRIME-WRITE-AT-READ-TIER, E0308). §8 gap CLOSED for the single-input core; **deferred**: the multi-input `MaxTier` (peano strict-above *relation* hits stable-Rust coherence overlap → successor-strictness instead). Separate from the `facts.rs` idempotency gate (still a comment). |
 | hinge = COMPARE = Should − Is against a setpoint | **CORE BUILT + LIVE** (2026-07-08) | `antigen-stroma/src/intent.rs`: `Setpoint` (attested `(who, why)`, role-typed `Disposition`) + `compare()` = a three-valued conformance-gap (Conforms/Absent/Underdeveloped). Now **wired to REAL scan output** via `conformance.rs` (the conformance-monitor: `#[presents]`/`#[defended_by]` markers → observed `Strength` → per-locus gaps over an actual codebase). Rank-1 (attested). Deferred: canonical locus-resolution + tolerations, the what-was-meant AIRE-analog, the 4-dim observer. |
-| semirings = one λ-temperature family | **DESIGN / falsifiable** | `field_at` + all 4 semirings `todo!()`; verdict "rhyme until `fold_λ` built" (§11.3) |
+| semirings = one λ-temperature family | **DESIGN / falsifiable** (reducers BUILT 2026-07-09; λ-unification still open) | `field_at` + all four query paths + the four semirings now BUILT (`engine/semiring.rs`, `read/query.rs` — Fable one-shot) — but as **four separate hand-rolled reducers**, NOT one `fold_λ` (the semiring library exists yet the production queries bypass `run_closure`). Verdict "rhyme until `fold_λ` built" (§11.3) UNCHANGED — corroborated; the falsifier's hook moves from `field_at` (built) to the unbuilt unifying `fold_λ` |
 | learn-core = the variable-N Fock-crosser | **DESIGN** (positioned, not built) | matures one draft; no `Repertoire` population type (§11.5) |
 | firewall = channel-split (efferent = separate target) | **CORE now BUILT** (2026-07-08) | `signal.rs`: `EfferentChannel<T>` is a distinct type the afferent `write_back` cannot consume (born-red ATK-SIGNAL-B2PRIME-EFFERENT-IN-AFFERENT, E0308) — a signed inverse cannot enter the afferent semiring. The MRT-shape as a type. pith's `suggest`-annotation-channel is the sibling prose-side proof (023 Part IV). Deferred: the efferent wing's own governance (a separate build). |
 
