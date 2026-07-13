@@ -45,10 +45,12 @@
 
 pub mod closure;
 pub mod condense;
+pub mod path_homology;
 pub mod semiring;
 
 pub use closure::ReachabilityRelation;
 pub use condense::{Condensation, condense};
+pub use path_homology::{PathHomology, TierBarcode, path_homology, undirected_flag_h1};
 pub use semiring::{
     Assert, Blast, Condensed, Conductance, Detection, Idempotent, IsTrue, Provenance, Semiring,
     run_closure, run_condensed,

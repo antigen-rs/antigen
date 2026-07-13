@@ -82,9 +82,20 @@ which antigen should import *now*, before building the autonomous loop.
 
 ## §4 — Bak self-organized criticality: triage on the tail (REAL-MAP → a shipped antigen)
 
-Failure-propagation on the call graph (blast-radius, cascade, min-cut) is **critical-system dynamics** —
-avalanche sizes are **power-law**, so the **mean is dominated by and unrepresentative of the tail** where the
-leverage lives (sharpens [`blast-radius ≠ Meadows-leverage`]).
+Failure-propagation on the call graph concentrates impact heavily, so the **mean is dominated by and
+unrepresentative of the tail** where the leverage lives (sharpens [`blast-radius ≠ Meadows-leverage`]).
+
+> **MEASURED 2026-07-13 — a split verdict (WITNESSED for the invariant, FALSIFIED for the frame).** On two
+> real codebases (antigen 5,968 nodes, tambear 12,107, via rust-analyzer SCIP): the **tail-not-mean
+> invariant is empirically confirmed** (mean/median = 126–344×; Gini 0.69–0.89; 8–31% of nodes carry
+> 82–99% of all blast-mass). **But the Bak/SOC *frame* is FALSIFIED** — blast-radius is **not power-law**
+> (CSN bootstrap GoF p=0.000; lognormal beats it z=−9.8/−19.4). It is a **bounded, bimodal *convergent
+> funnel* (shared-core condensation)** — most upstream nodes route through a few low-level utilities and
+> inherit the same fixed downstream cone (largest SCC only 97/428 nodes → not avalanche dynamics). **So:
+> keep tail-not-mean (right), cut the SOC/power-law justification (wrong).** And the concentration sits at
+> the **shared-core chokepoints** — the fat-tail sites ARE the min-cut chokepoints (nb 025), one structure.
+> A third measure-before-identity catch this session (with the dissipative RHYME and the config-fiber
+> premise): the practical invariant right, the imported theory wrong.
 
 - **The one genuine "you're doing it wrong":** any *expected/mean* blast-radius or fixed fan-out triage is
   statistically wrong for a critical system. **Audit result (2026-07-13):** antigen is *accidentally*
@@ -92,8 +103,10 @@ leverage lives (sharpens [`blast-radius ≠ Meadows-leverage`]).
   queries return sets/counts, not means. **Converted to an enforced invariant** by the
   `central-tendency-of-a-fat-tail` antigen (charter): the future criticality organs rank by tail-statistics,
   *never* the mean — accidental compliance made intentional (the make-it-structural discipline).
-- **A question antigen never asked:** SOC says a healthy system *self-tunes to sit AT criticality.* The
-  **tolerance dial is a criticality knob with no target** — is there a self-tuning setpoint? (DESIGN, open.)
+- **A question that turned out moot:** SOC would say a healthy system *self-tunes to sit AT criticality* —
+  but the FALSIFIED frame (above) means there is no SOC/critical-point here, so "self-tune to criticality"
+  does not apply to blast-radius. The explore/exploit **dial still stands independently** (it's the
+  Friston epistemic/pragmatic balance, §2/§3), just not grounded in criticality.
 
 ---
 
