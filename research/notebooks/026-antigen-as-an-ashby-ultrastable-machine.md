@@ -62,15 +62,27 @@ missing objective). Import its failure mode: the **"dark room"** — surprise-mi
 trivial model that predicts nothing hard (for antigen: a repertoire that declares nothing, or only trivial
 classes, to keep the gap zero).
 
-> **MEASURED 2026-07-13 (prototype on antigen+tambear SCIP graphs).** The claim "the epistemic term *derives*
-> nb 025's *enter new axes*" is **PARTIAL — and it must be stated as *danger-projected*.** Raw information
-> content does NOT order the axes (semver + cost carry the most info-mass and rank on top); coverage + temporal
-> only reach the podium once weighted by **flip-probability** = P[resolving this uncertainty *flips a
-> danger-verdict*]. So the strategic ranking is the **product** `information-mass × danger-relevance ×
-> downstream-stakes` — the *full* Friston expected-free-energy (pragmatic × epistemic, multiplicatively
-> yoked), not the epistemic term standing alone. State the epistemic term as **danger-projected expected
-> information gain**; and coverage vs temporal swap #1/#2 by whether you weight by node-count (temporal) or
-> downstream-blast (coverage). This *is* proper active inference (the epistemic term is always goal-projected).
+> **MEASURED 2026-07-13 (prototype on antigen+tambear SCIP graphs) — with a scope note.** The claim "the
+> epistemic term *derives* nb 025's *enter new axes*" is **PARTIAL — and it must be stated as
+> *danger-projected*.** Raw information content does NOT order the axes (semver + cost carry the most
+> info-mass and rank on top); coverage + temporal only reach the podium once weighted by **flip-probability**
+> = P[resolving this uncertainty *flips a danger-verdict*]. So the strategic ranking is the **product**
+> `information-mass × danger-relevance × downstream-stakes` — the *full* Friston expected-free-energy
+> (pragmatic × epistemic, multiplicatively yoked), not the epistemic term standing alone. **Scope correction
+> (M4):** the "MEASURED" ranking ran over Axes 1–7; Axes 8 (semver) and 9 (cost) are marked EMPTY in nb 025
+> §1 — there is no populated field to measure information-content of. The ranking of semver + cost as
+> "most-info" is based on the **estimated information-mass of those fields once populated**, not a measured
+> run over real data. Downgrade: the semver/cost portion is **estimated** (structural prior), not MEASURED.
+> State the epistemic term as **danger-projected expected information gain**; and coverage vs temporal swap
+> #1/#2 by whether you weight by node-count (temporal) or downstream-blast (coverage). This *is* proper
+> active inference (the epistemic term is always goal-projected).
+>
+> **D3 aggregator correction:** the "expected-free-energy scalar" for self-organization decisions is an
+> EXPECTATION (a mean). §4's shipped `central-tendency-of-a-fat-tail` antigen forbids a mean aggregator
+> over the fat-tailed danger field. The organism-level scalar must be a **tail-EFE** — a tail-mass
+> aggregator (e.g. expected shortfall / tail-integral of danger-weighted free energy), NOT the mean.
+> This sharpens the "define an expected-free-energy scalar" prescription: the aggregator is the tail, not
+> the expectation.
 
 ---
 
@@ -140,6 +152,15 @@ unrepresentative of the tail** where the leverage lives (sharpens [`blast-radius
   **`RouteToHuman` is a structural refusal of operational closure.** The one framework whose core concept maps
   cleanly onto *what antigen deliberately is NOT* — the human is a permanent structural-coupling partner, by
   design. Silence where it should be silent = the boundary is load-bearing and correctly placed.
+
+  > **D4 — the unresolved tension:** §1 (Loop 2 closes autonomously) and §3 (the strange loop closes Ashby's
+  > 2nd loop autonomously) sit in tension with the autopoiesis note above and with §5's permanent-partner
+  > design. The **honest form is "governed sometimes-autonomy"**: the conservatism-JOIN has a fixed point —
+  > if it ever auto-fires, the human-permanent-partner claim is false; if it never does, the "close
+  > autonomously" claims are false. Neither headline alone is right. **The v0.7 question is precisely WHERE
+  > that fixed point sits** — and neither answer is yet ratified. State §1/§3's "close autonomously" and
+  > §5's "permanent by design" as **opposing constraints the conservatism-JOIN must thread**, not as
+  > simultaneously-true facts. The resolution is the JOIN's safety condition, not a prose reconciliation.
 
 ---
 

@@ -16,7 +16,7 @@ stroma HOLDS ALL" now has a concrete meaning: hold all nine axes at full fidelit
 
 | # | axis | what it adds | representative sources | status |
 |---|---|---|---|---|
-| 1 | **fidelity** | same edge at rising resolution | syntactic → SCIP → HIR → THIR → MIR → mono → LLVM-IR | partial (syntactic + SCIP) |
+| 1 | **fidelity** | same edge at rising resolution | syntactic → SCIP → HIR → THIR → MIR → mono → LLVM-IR | partial (syntactic only — the SCIP *contract* [`EdgeReconstruction`] exists but `ingest_scip` (`scip.rs:40`) is `todo!()`; Axis-1 is populated today only from hand-built fixtures) |
 | 2 | **reachability-modality** | could / **did** / feasible / will-codegen — different reach-predicates | static graph · **coverage** · symbolic/Kani · mono-collector | ~empty (no *did*) |
 | 3 | **guarantee-opt-out** | where Rust's guarantees lapse | `unsafe` map · FFI/ABI · `asm!` · build.rs-generated | empty |
 | 4 | **aliasing / ownership** | who-aliases/owns/races whom | Polonius (`.facts`) · Miri borrows · TSAN | empty |

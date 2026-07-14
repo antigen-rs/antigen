@@ -6,11 +6,12 @@ imaginary-discriminant · N-modal root-portrait · tier-relative SNR · Fock-noi
 · enriching-current — resolved into one coherent streaming afferent wing. Tier-honest: **CONFIRMED** (rests
 on ratified structure) / **INFERENCE** / **CONJECTURE** (under active enrichment sweeps).*
 
-**Headline:** antigen's afferent wing is not a batch graph — it is a **salsa-driven streaming *enriching
-current*.** The drive (new data) is the carrier; each interpreting organ appends its `(output, residual)`
-to a monotone-accumulating bundle; residuals ride up and are *progressively explained* (noise→info); and
-"the stroma HOLDS ALL" is upgraded from a design decision to a **theorem** — you cannot pre-classify
-anything as noise, because signal/noise is tier- and Fock-relative.
+**Headline:** antigen's afferent wing is not a batch graph — it **could be** a salsa-driven streaming
+*enriching current* (pending §9 conjecture-1: can salsa carry readable residual-channels without
+differential-dataflow). The drive (new data) is the carrier; each interpreting organ appends its
+`(output, residual)` to a monotone-accumulating bundle; residuals ride up and are *progressively
+explained* (noise→info); and "the stroma HOLDS ALL" is upgraded from a design decision to a **theorem**
+— you cannot pre-classify anything as noise, because signal/noise is tier- and Fock-relative.
 
 ---
 
@@ -32,25 +33,35 @@ and not durably-stored-and-diffed. The real axis was **static vs streaming**, an
 
 ## §2 — Tier-relative SNR = the renormalization relevant/irrelevant split (INFERENCE)
 
+> **Analogy-strength (026 §6 grader applied): RHYME.** The RG mechanism reclassifies degrees of freedom
+> (relevant/irrelevant) near a **fixed point** — it does not flip irrelevant fields *back* to relevant on
+> the way up; that is, it inverts the referent of what the notebook says. Antigen's per-(stream×tier) SNR
+> field DOES flip the noise at tier-k into the signal at tier-(k+1), but RG operators don't do that near a
+> fixed point — the analogy inverts. **Keep the mechanism as antigen-native design; strip the borrowed
+> RG-authority.** The SNR-recursion and the noise-becomes-signal insight are structurally real; the RG
+> identity is not.
+
 SNR is not a per-stream scalar — it is a **per-(stream × tier) field.** The signal/noise decomposition
-depends on which organ is reading, and it *changes up the tiers* exactly as the **renormalization group**
-reclassifies degrees of freedom (relevant = signal, survives coarse-graining; irrelevant = noise, averages
-out) at each scale. So the concept×tier lattice (nb 025 §4) carries an SNR recursion: `fragility@0` and
-`fragility@1` have different signal/noise. The sharp form: **the noise at tier-k is often the *signal* at
-tier-(k+1)** — a node's coverage-*variance across runs* is noise to the coverage organ but *is the
-flakiness signal* to the organ above; molecular motion is "noise" until temperature is the macro signal it
-becomes.
+depends on which organ is reading, and it *changes up the tiers* (tier-k noise is often tier-(k+1)
+signal). The concept×tier lattice (nb 025 §4) carries an SNR recursion: `fragility@0` and `fragility@1`
+have different signal/noise. The sharp form: **the noise at tier-k is often the *signal* at tier-(k+1)**
+— a node's coverage-*variance across runs* is noise to the coverage organ but *is the flakiness signal*
+to the organ above; molecular motion is "noise" until temperature is the macro signal it becomes.
 
 ## §3 — Fock positioning converts noise → info (INFERENCE, = nb 022 §11.5 through the SNR lens)
+
+> **Analogy-strength (026 §6 grader applied): RHYME.** The Fock-noise→info framing invokes vacuum
+> fluctuations becoming real correlated photons under parametric down-conversion. Antigen has no field
+> operators, no vacuum state, no down-conversion Hamiltonian, and the noise→info event here is a
+> *boundary-crossing* between fixed-N and variable-N organs, not a quantum-optical process. **Keep the
+> Fock-boundary mechanism (structurally real); strip the down-conversion physics identity.**
 
 A **fixed-N afferent organ must discard variable-N structure as noise** (it can't hold a population beyond
 its fixed arity — the overflow "doesn't fit"). The **variable-N learn-core reads that same structure as its
 signal** (the population *is* the repertoire). Crossing the Fock boundary *is* the noise→info conversion.
-This is the nb 022 §11.5 Fock boundary seen through SNR, with a literal grounding: in Fock space **vacuum
-fluctuations (noise) become real correlated photons (signal)** under parametric down-conversion. And the
-**dimensional-Nyquist / Marchenko-Pastur floor** (nb 022 §11.5) sets *where* the floor sits per resolution
-— a signal above the floor at one dimension *aliases into noise* at another. Fock/dimensional positioning
-is the knob that **moves the noise floor.**
+And the **dimensional-Nyquist / Marchenko-Pastur floor** (nb 022 §11.5) sets *where* the floor sits per
+resolution — a signal above the floor at one dimension *aliases into noise* at another. Fock/dimensional
+positioning is the knob that **moves the noise floor.**
 
 ## §4 — Residual-lifting: why higher organs exist (INFERENCE, strong — a 2nd justification)
 
@@ -60,13 +71,21 @@ it couldn't = its noise), and the tier-(k+1) organ lifts *both*. **A higher orga
 the lower organ threw away** — because, by §2, that residual *is* a higher tier's signal. One structure,
 three names:
 - **Predictive coding (Friston, again).** Each layer sends its *prediction* down and its *prediction-error*
-  (the residual) *up*; the layer above exists to explain the error. This IS the nb 026 §2 Friston hierarchy,
-  with the residual as the up-going channel. (STRUCTURAL-MAP bordering on literal.)
+  (the residual) *up*; the layer above exists to explain the error. This is the nb 026 §2 Friston hierarchy,
+  with the residual as the up-going channel. **Analogy-strength: RESONANCE, not literal.** Predictive
+  coding's defining feature is the *top-down prediction channel* — the downward flow of priors. That channel
+  is **B2′-forbidden in the afferent wing**: a higher-tier organ cannot write to a lower-tier slot (B2′ is a
+  type rule, nb 025 §3). Only the ascending-error half of the predictive-coding loop maps. **Keep the
+  ascending-error mechanism as antigen-native; strip the literal predictive-coding identity** (the top-down
+  channel is absent by design).
 - **Gradient boosting.** Fit a model, fit the next to its *residual*. The concept×tier lattice is a boosting
   stack: `fragility@(k+1)` fits `fragility@k`'s residual.
 - **Renormalization (sharpest).** RG integrates out the high-frequency "noise" modes at a scale — but their
   effect *renormalizes the couplings at the next scale.* The discarded modes *become* the higher tier's
-  signal via the coupling flow. The residual *is* the RG flow (nb 025 §4).
+  signal via the coupling flow. **Analogy-strength: RHYME** (see §2 note — the inversion caveat applies
+  here too; the coupling-rescaling is absent; but the "discarded modes affect the next scale" shape is the
+  closest structural rhyme to what antigen does). **Keep the residual-lifting mechanism; strip the RG
+  identity.**
 
 So the DAG input-types upgrade: a tier-(k+1) organ reads **`{raw axes} + {lower outputs} + {lower
 RESIDUALS}`** — the residual is a *first-class input channel*, distinct from the output.
@@ -101,6 +120,16 @@ a store that contains everything, but **the live current carrying everything (si
 flight.** Substrate-holds-all + tier-relative-SNR + Fock-noise-to-info are **one principle**, reached from
 three directions. Consequence: *discarding a residual at any tier below the Fock boundary is a bug* — the
 current keeps it; the organ ignores it *without deleting it.*
+
+> **D2 reconciliation (monotone vs zigzag):** §10's novel primitive says a residual is *born* when it
+> appears and *dies* when a higher organ *explains it away* (zigzag). This does NOT contradict "discarding
+> is a bug." **Explained-away MARKS a residual explained; it does NOT remove it from the stored channel.**
+> The stored accumulate-channel is **monotone** (Monoid-not-Abelian holds; the afferent wing cannot form
+> an oscillator). The **zigzag barcode** runs over the DERIVED *unexplained-residual view* — what remains
+> un-explained at each tier — not over the stored channel itself. The stored channel grows without bound;
+> the derived view shrinks as higher organs explain residuals away. These are two different objects.
+> Open item: unbounded monotone growth over a streaming git-history is a real concern — bounding
+> bundle-size O(commits) is a design question to resolve before streaming goes to production.
 
 ## §7 — The root-portrait self-division: split / twist / poised (SWEEP RETURNED — framing STRIPPED, see §10b)
 
@@ -162,12 +191,16 @@ Three research sweeps enriched this notebook. Tier-honest verdicts:
 concrete): a per-axis **noise model** with concrete floor estimators (Axis-1 fidelity = syntactic
 false-edge-rate vs SCIP, ~48% prior; Axis-7 co-change = PMI/lift; etc.) and three SNR-metric families
 (edge-set = precision-ratio vs a higher-tier reference; verdict = stability-under-resampling; numeric = μ/σ).
-**Two denoisers already SHIPPED:** the `TierBarcode` (per-stream tier-filter) + `corroborate`
-(cross-orthogonal-axis — noise *multiplies* because the axes are independent). The genuinely-new organ: the
-**residual-lift test** — a residual element *un*-explained on its own axis but *corroborated* on an
-orthogonal one is the noise→info event (`¬signal(s₁) ∧ signal(s₂)` = the paracrine/hidden-coupling signal),
-realized as a **cross-axis persistence barcode.** First experiment: Axis-1 false-edge-rate vs SCIP on
-antigen+tambear (converts the prior to MEASURED + validates the barcode-as-denoiser).
+**One denoiser SHIPPED:** the `TierBarcode` (per-stream tier-filter, `path_homology.rs`). **`corroborate`**
+(`read/tier.rs:104`) is also shipped but is **single fidelity-axis only** — it combines two
+`ResolutionTier`s of the SAME edge (e.g. `Resolved` from two independent sources on Axis-1) to raise
+detection grade; it does NOT cross orthogonal axes. With only Axis-1 populated today, no cross-axis
+corroboration is even exercisable. The "cross-orthogonal-axis denoiser" is the **genuinely-new organ still
+to build:** the **residual-lift test** — a residual element *un*-explained on its own axis but
+*corroborated* on an orthogonal one is the noise→info event (`¬signal(s₁) ∧ signal(s₂)` = the
+paracrine/hidden-coupling signal), realized as a **cross-axis persistence barcode.** First experiment:
+Axis-1 false-edge-rate vs SCIP on antigen+tambear (converts the prior to MEASURED + validates the
+barcode-as-denoiser).
 
 **(b) Self-division — root-portrait/holonomy STRIPPED (measure-before-identity; 4th catch, cleanest).** The
 polynomial read is FALSE as a density fact (modes ≠ roots — Duistermaat: 3 Gaussians → 4 modes;
